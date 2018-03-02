@@ -28,7 +28,7 @@ defmodule OmiseGO.Tracker do
 
   defmodule Core do
 
-    def initialize(query_result, height, etc...) do
+    def initialize(query_result, height, other?) do
       # figure out the state of the tracker where it's left off
     end
 

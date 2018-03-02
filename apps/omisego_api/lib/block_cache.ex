@@ -5,7 +5,7 @@ defmodule OmiseGO.BlockCache do
   """
 
   def add_block(block) do
-    GenServer.cast(__MODULE__.Core, {:add_block, height})
+    GenServer.cast(__MODULE__.Core, {:add_block, block})
   end
 
   def get_block(height) do

@@ -4,7 +4,7 @@ defmodule OmiseGO.API do
 
     # TODO: consider having StatelessValidatonWorker to scale this, instead scaling API
     with {:ok, decoded_tx} <- Core.statelessly_valid?(tx), # stateless validity
-         tx_result <- State.exec(decoded_tx) # GenServer.call
+         tx_result <- State.exec(decoded_tx), # GenServer.call
          do: tx_result
   end
 

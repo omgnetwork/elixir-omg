@@ -13,13 +13,15 @@ defmodule OmiseGO.API.Eventer do
 
   ### Server
 
-  def handle_call({:notify, event_triggers}, _from, state)
+  def handle_call({:notify, event_triggers}, _from, state) do
+
+  end
 
   defmodule Core do
 
     def notify(event_triggers, state) do
       # cycle through state.subscriptions and generate list of {receiver, body} pairs
-      events
+      events = []
     end
   end
 end
