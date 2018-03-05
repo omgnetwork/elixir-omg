@@ -15,6 +15,6 @@ defmodule OmiseGO.MixProject do
   #
   # Run "mix help deps" for examples and options.
   defp deps do
-    []
+    [{:bimap, "~> 0.1.1"}]
   end
 end
