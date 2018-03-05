@@ -1,45 +1,56 @@
-defmodule OmiseGO.BlockCache do
+defmodule OmiseGo.BlockCache do
   @moduledoc """
-  Allows for quick scallable access to a fresh subset of blocks
-  (do we need this?)
+    Alows for quick access to a fresh subset of blocks
+    (do we need this?)
+    (makit as wraper to DB?)
   """
-
-  def add_block(block) do
-    GenServer.cast(__MODULE__.Core, {:add_block, block})
+  ##### Client
+  def start_ling() do
+    GenServer.start_link(__MODULE__, :ok, __MODULE__)
   end
 
-  def get_block(height) do
-    # TODO: bottleneck because of the `call`, how to paralellize?
-    {block, blocks_to_fetch} = GenServer.call(__MODULE__.Core, {:get_block, height})
-    fetched_blocks = DB.blocks(blocks_to_fetch)
-    Map.get(fetched_blocks, height, block)
+  @spec get(block_number::integer)::Block
+  def get(block_number) do
+    GenServer.call(__MODULE__, {:get, block_number})
   end
 
+  @spec push_block(block::Block)::boolean
+  def push(block) do
+    GenServer.cast(__MODULE__, {:push, block})
+  end
+
+  ##### Server
+  use GenServer
+
+  def init(:ok) do
+      %Core{}
+  end
+
+  def handle_call({:get, block_number}, _from, state) do #when is_integer(block_number)
+        case Core.contain?(block_number,state) do
+            true -> {:reply, Core.get(block_number,state), state}
+            false -> {:reply, DB.block(block_number), state}
+        end
+  end
+
+  def handle_cast({:push, block = %Block{}}, _from, state) do
+    {:noreply, :ok, Core.update(block,state)}
+  end
+
+  ##### Core
   defmodule Core do
-
-    defstruct [:blocks]
-
-    use GenServer
-
-    @cachesize 1024
-
-    def handle_cast({:add_block, %{height: height} = block}, state) do
-      state
-      |> Map.delete(height - cache_size())
-      |> Map.put(height, block)
+    @defstrust size: 0, container: %{}, max_size: 100
+    def get(block_number, state) do
+       state[block_number]
     end
 
-    def handle_call({:get_block, height}, state) do
-      case Map.get(state, height) do
-        nil -> {nil, [height]}
-        block -> {block, []}
-      end
+    def update(block, state) do
+      #remove oldeset variable if max_size reach
+      {:ok, Map.put(state,block.number,block)}
     end
 
-    defp cache_size() do
-      @cachesize # constant now, but can be adaptive to whatever
+    def contain?(block_number, state) do
+        Map.has_key?(state,block_number)
     end
-
   end
-
 end
