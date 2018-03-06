@@ -50,7 +50,9 @@ defmodule OmiseGO.API.State do
   end
 
   defmodule Core do
-    defstruct [:height, :tx_index, :utxos, pending_txs: []]
+    defstruct [:height, :utxos, pending_txs: [], tx_index: 0]
+
+    alias OmiseGO.API.State.Transaction
 
     def get_state_fetching_query() do
       # some form of coding what we need to start up state
@@ -60,16 +62,45 @@ defmodule OmiseGO.API.State do
     def extract_initial_state(query_result) do
       # extract height and utxos from query result
       height = 0 # FIXME
-      utxos = [] # FIXME
+      utxos = %{} # FIXME
       %__MODULE__{height: height, utxos: utxos}
     end
 
-    def exec(tx, state) do
-      # stateful validity
-      # state update
-      tx_result = :error # FIXME
-      new_state = state # FIXME
-      {tx_result, new_state}
+    def exec(tx, %Core{height: height, tx_index: tx_index, utxos: utxos, pending_txs: pending_txs} = state) do
+      with {:ok, in_amount1} <- correct_input?(state, tx, 0)
+      do
+        {:ok, state |> apply_spend(tx)}
+      else
+        {:error, _reason} = error -> {error, state}
+      end
+
+    end
+
+    defp correct_input?(%Core{utxos: utxos}, %Transaction{blknum1: blknum, txindex1: txindex, oindex1: oindex}, 0) do
+      correct_input?(utxos, blknum, txindex, oindex)
+    end
+
+    defp correct_input?(utxos, blknum, txindex, oindex) do
+      case Map.get(utxos, {blknum, txindex, oindex}) do
+        nil -> {:error, :transaction_not_found}
+        # FIXME amount is redundant in utxos!
+        %{amount: amount} -> {:ok, amount}
+      end
+    end
+
+    defp apply_spend(%Core{height: height, tx_index: tx_index, utxos: utxos, pending_txs: pending_txs} = state,
+                     %Transaction{amount1: amount1, amount2: amount2} = tx) do
+      new_utxos = %{
+        {height, tx_index, 0} => %{amount: amount1, tx: tx},
+        {height, tx_index, 1} => %{amount: amount2, tx: tx},
+      }
+
+      new_state = %Core{
+        state |
+        tx_index: tx_index + 1,
+        utxos: Map.merge(utxos, new_utxos),
+        pending_txs: [pending_txs | tx]
+      }
     end
 
     def form_block(state) do
@@ -84,11 +115,12 @@ defmodule OmiseGO.API.State do
       {block, event_triggers, db_updates, new_state}
     end
 
-    def deposit(owner, amount, state) do
-      block = %{}
+    def deposit(owner, amount, %Core{height: height, utxos: utxos} = state) do
+      new_utxos = %{{height, 0, 0} => %{amount: amount, tx: Transaction.new_deposit(owner, amount)}}
+      block = %{height: height + 1, utxos: new_utxos}
       event_triggers = []
       db_updates = []
-      new_state = state # FIXME EEEEE
+      new_state = %Core{state | height: height + 1, utxos: Map.merge(utxos, new_utxos)}
       {block, event_triggers, db_updates, new_state}
     end
 
