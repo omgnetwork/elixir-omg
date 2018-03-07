@@ -1,4 +1,4 @@
-defmodule OmiseGO.MixProject do
+defmodule OmiseGO.Umbrella.MixProject do
   use Mix.Project
 
   def project do

@@ -1,9 +1,9 @@
-defmodule OmiseGO.API.MixProject do
+defmodule OmiseGO.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :omisego_api,
+      app: :omisego_lib,
       version: "0.1.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
@@ -15,19 +15,16 @@ defmodule OmiseGO.API.MixProject do
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger],
+      mod: {OmiseGO.Application, []}
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:phoenix_pubsub, "~> 1.0"},
-      {:ex_rlp, "~> 0.2.1"},
-      {:ex_unit_fixtures, "~> 0.3.1", only: [:test]}
+      {:blockchain, "~> 0.1.6"},
     ]
   end
 end
