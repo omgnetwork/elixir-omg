@@ -301,7 +301,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
   @tag fixtures: [:alice, :state_empty]
   test "deposits emit event triggers, they don't leak into next block", %{alice: alice, state_empty: state} do
-    assert {_, [trigger], _, state} = Core.deposit(alice, 4, state)
+    assert {[trigger], _, state} = Core.deposit(alice, 4, state)
 
     assert trigger == %{deposit: %{owner: alice, amount: 4}}
 
@@ -377,7 +377,7 @@ defmodule OmiseGO.API.State.CoreTest do
     #   %Transaction{blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
     #                newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0}
     #   |> Core.exec(state) |> success?
-    # {deposit_block, [deposit_trigger], [deposit_db_update], state} = Core.deposit(alice, 4, state)
+    # {[deposit_trigger], [deposit_db_update], state} = Core.deposit(alice, 4, state)
     #
     # {block, [spend_trigger], [spend_db_update], _} = Core.form_block(state)
 
@@ -406,7 +406,7 @@ defmodule OmiseGO.API.State.CoreTest do
   # TODO: other?
 
   defp do_deposit(state, owner, amount) do
-    {_, _, _, new_state} =
+    {_, _, new_state} =
       Core.deposit(owner, amount, state)
     new_state
   end

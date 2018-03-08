@@ -1,7 +1,12 @@
 defmodule OmiseGO.API.State.Transaction do
+  @moduledoc """
+  Internal representation of a spend transaction on Plasma chain
+  """
 
   @zero_address List.duplicate(<<0>>, 20) |> Enum.join
 
+  # TODO: probably useful to structure these fields somehow ore readable like
+  # defstruct [:input1, :input2, :output1, :output2, :fee], with in/outputs as structs or tuples?
   defstruct [:blknum1,
              :txindex1,
              :oindex1,
@@ -15,7 +20,16 @@ defmodule OmiseGO.API.State.Transaction do
              :fee,
              ]
 
+  defmodule Signed do
+    @moduledoc false
+    defstruct [:raw_tx, :sig1, :sig2]
+  end
+
   defmodule Recovered do
+    @moduledoc """
+    Representation of a Signed transaction, with addresses recovered from signatures (from Transaction.Signed)
+    Intent is to allow concurent processing of signatures outside of serial processing in state.ex
+    """
 
     # FIXME: refactor to somewhere to avoid dupliaction
     @zero_address List.duplicate(<<0>>, 20) |> Enum.join
@@ -24,22 +38,8 @@ defmodule OmiseGO.API.State.Transaction do
     defstruct [:raw_tx, spender1: @zero_address, spender2: @zero_address]
   end
 
-  defmodule Signed do
-    defstruct [:raw_tx, :sig1, :sig2]
-  end
-
-  def new_deposit(owner, amount) do
-    %__MODULE__{zero_transaction | newowner1: owner, amount1: amount, newowner2: @zero_address}
-  end
+  # TODO: add convenience function for creating common transactions (1in-1out, 1in-2out-with-change, etc.)
 
   def zero_address, do: @zero_address
-
-  defp zero_transaction do
-    # FIXME: rethink what would be the best approach to default values here
-    %__MODULE__{
-      blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-      amount1: 0, amount2: 0, fee: 0,
-    }
-  end
 
 end

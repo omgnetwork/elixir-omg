@@ -1,4 +1,7 @@
 defmodule OmiseGO.API.State do
+
+  ### Imperative shell
+
   ### Client
 
   def start_link() do
@@ -22,17 +25,40 @@ defmodule OmiseGO.API.State do
 
   use GenServer
 
+  alias OmiseGO.API.State.Core
+
+  @doc """
+  Start processing state using the database entries
+  """
   def init(:ok) do
     with db_queries <- Core.get_state_fetching_query(),
          {:ok, query_result} <- DB.multi_get(db_queries),
          do: Core.extract_initial_state(query_result)
   end
 
+  @doc """
+  Checks (stateful validity) and executes a spend transaction. Assuming stateless validity!
+  """
   def handle_call({:exec, tx}, _from, state) do
     {tx_result, new_state} = Core.exec(tx, state)
     {:reply, tx_result, new_state}
   end
 
+  @doc """
+  Includes a deposit done on the root chain contract (see above - not sure about this)
+  """
+  def handle_call({:deposit, owner, amount}, _from, state) do
+    {event_triggers, db_updates, new_state} = Core.deposit(owner, amount, state)
+    # GenServer.cast
+    Eventer.notify(event_triggers)
+    # GenServer.cast
+    DB.multi_update(db_updates)
+    {:reply, :ok, new_state}
+  end
+
+  @doc """
+  Wraps up accumulated transactions into a block, triggers events, triggers db update, pushes block to queue
+  """
   def handle_cast({:form_block}, _from, state) do
     {block, event_triggers, db_updates, new_state} = Core.form_block(state)
     # GenServer.cast
@@ -44,26 +70,21 @@ defmodule OmiseGO.API.State do
     {:noreply, :ok, new_state}
   end
 
-  def handle_call({:deposit, owner, amount}, _from, state) do
-    {block, event_triggers, db_updates, new_state} = Core.deposit(owner, amount, state)
-    # GenServer.cast
-    Eventer.notify(event_triggers)
-    # GenServer.cast
-    DB.multi_update(db_updates)
-    {:reply, :ok, new_state}
-  end
-
   defmodule Core do
+    @moduledoc """
+    Functional core for State.
+    """
+    # TODO: consider structuring and naming files/modules differently, to not have bazillions of `X.Core` modules?
     defstruct [:height, :utxos, pending_txs: [], tx_index: 0]
 
     alias OmiseGO.API.State.Transaction
 
     def get_state_fetching_query() do
       # some form of coding what we need to start up state
-      db_queries = []
+      _db_queries = []
     end
 
-    def extract_initial_state(query_result) do
+    def extract_initial_state(_query_result) do
       # extract height and utxos from query result
       # FIXME
       height = 1
@@ -121,7 +142,7 @@ defmodule OmiseGO.API.State do
            do: {:ok, owner_has}
     end
 
-    defp get_utxo(utxos, {0, 0, 0}), do: {:ok, %{amount: 0, owner: Transaction.zero_address()}}
+    defp get_utxo(_utxos, {0, 0, 0}), do: {:ok, %{amount: 0, owner: Transaction.zero_address()}}
 
     defp get_utxo(utxos, {blknum, txindex, oindex}) do
       case Map.get(utxos, {blknum, txindex, oindex}) do
@@ -139,7 +160,7 @@ defmodule OmiseGO.API.State do
     end
 
     defp apply_spend(
-           %Core{height: height, tx_index: tx_index, utxos: utxos, pending_txs: pending_txs} =
+           %Core{height: height, tx_index: tx_index, utxos: utxos} =
              state,
            %Transaction{
              blknum1: blknum1,
@@ -156,7 +177,7 @@ defmodule OmiseGO.API.State do
         {height, tx_index, 1} => %{owner: tx.newowner2, amount: tx.amount2}
       }
 
-      new_state = %Core{
+      %Core{
         state
         | tx_index: tx_index + 1,
           utxos:
@@ -193,8 +214,6 @@ defmodule OmiseGO.API.State do
     def deposit(owner, amount, %Core{height: height, utxos: utxos} = state) do
       new_utxos = %{{height, 0, 0} => %{amount: amount, owner: owner}}
 
-      block = %{}
-
       event_triggers = [%{deposit: %{amount: amount, owner: owner}}]
 
       db_updates = []
@@ -205,7 +224,7 @@ defmodule OmiseGO.API.State do
           utxos: Map.merge(utxos, new_utxos)
       }
 
-      {block, event_triggers, db_updates, new_state}
+      {event_triggers, db_updates, new_state}
     end
   end
 end
