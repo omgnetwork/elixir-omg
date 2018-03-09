@@ -38,9 +38,10 @@ podTemplate(
                 sh("mix compile --force --warnings-as-errors")
             }
         }
-
+/*
         stage('Dialyze') {
             sh("mix dialyzer --halt-exit-status")
         }
+*/
     }
 }

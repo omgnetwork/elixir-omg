@@ -4,6 +4,8 @@ defmodule OmiseGO.BlockCache do
   (do we need this?)
   """
 
+  alias OmiseGO.DB
+
   def add_block(block) do
     GenServer.cast(__MODULE__.Core, {:add_block, block})
   end
@@ -23,6 +25,8 @@ defmodule OmiseGO.BlockCache do
     defstruct [:blocks]
 
     use GenServer
+
+    def init(:ok), do: :not_implemented
 
     @cachesize 1024
 

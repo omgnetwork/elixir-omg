@@ -1,4 +1,4 @@
-defmodule OmiseGO.BlockQueue do
+defmodule OmiseGO.API.BlockQueue do
   @moduledoc """
   Responsible for keeping a queue of blocks lined up nicely for submission to Eth.
   In particular responsible for picking up, where it's left off (crashed) gracefully
@@ -6,11 +6,11 @@ defmodule OmiseGO.BlockQueue do
 
   ### Client
 
-  def push_block(block)
+  def push_block(_block), do: :not_implemented
 
-  def status
+  def status, do: :not_implemented
 
-  def submission_mined(height)
+  def submission_mined(_height), do: :not_implemented
 
   ### Server
 

@@ -16,7 +16,7 @@ defmodule OmiseGO.API.Eventer do
 
   ### Server
 
-  def handle_call({:notify, event_triggers}, _from, state) do
+  def handle_call({:notify, _event_triggers}, _from, _state) do
 
   end
 
@@ -25,9 +25,9 @@ defmodule OmiseGO.API.Eventer do
     soon to be filled out in Pawel's PR
     """
 
-    def notify(event_triggers, state) do
+    def notify(_event_triggers, _state) do
       # cycle through state.subscriptions and generate list of {receiver, body} pairs
-      events = []
+      _events = []
     end
   end
 end
