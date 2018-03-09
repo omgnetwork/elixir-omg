@@ -14,16 +14,10 @@ podTemplate(
             checkout scm
         }
 
-        stage('Deps') {
+        stage('Build') {
             sh("mix do local.hex --force, local.rebar --force")
             withEnv(["MIX_ENV=test"]) {
-                sh("mix do deps.get, deps.compile")
-            }
-        }
-
-        stage('Build') {
-            withEnv(["MIX_ENV=test"]) {
-                sh("mix compile --warnings-as-errors")
+                sh("mix do deps.get, deps.compile, compile")
             }
         }
 
@@ -39,10 +33,14 @@ podTemplate(
             }
         }
 
-        stage('Dialyze') {
+        stage('Cleanbuild') {
             withEnv(["MIX_ENV=test"]) {
-                sh("mix dialyzer --halt-exit-status")
+                sh("mix compile --force --warnings-as-errors")
             }
+        }
+
+        stage('Dialyze') {
+            sh("mix dialyzer --halt-exit-status")
         }
     }
 }
