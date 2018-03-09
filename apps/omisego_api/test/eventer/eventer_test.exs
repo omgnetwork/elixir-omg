@@ -17,7 +17,7 @@ defmodule OmiseGO.API.Eventer.CoreTest do
     depositor = "depositor"
     transaction = Transaction.new_deposit(depositor, 100)
     recovered_tx = %Recovered{raw_tx: transaction}
-    [[notification: %Received{tx: ^transaction}, topic: "transactions/received/" <> ^depositor]] =
+    [{%Received{tx: ^transaction}, "transactions/received/" <> ^depositor}] =
       Core.notify([%{tx: recovered_tx}])
   end
 

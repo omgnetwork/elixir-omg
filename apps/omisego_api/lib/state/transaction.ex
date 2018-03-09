@@ -36,7 +36,7 @@ defmodule OmiseGO.API.State.Transaction do
 
      defp recover_public_address(transaction_hash_no_spenders, sig) do
        transaction_hash_no_spenders
-       |> Crypto.recover_public(sig)
+       |> OmiseGO.API.Crypto.recover_public(sig)
      end
   end
 
