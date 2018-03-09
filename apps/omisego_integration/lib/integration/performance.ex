@@ -1,12 +1,12 @@
-defmodule HonteD.Integration.Performance do
+defmodule OmiseGO.Integration.Performance do
   @moduledoc """
-  Tooling to run HonteD performance tests - orchestration and running tests
+  Tooling to run OmiseGO performance tests - orchestration and running tests
   """
 
-  alias HonteD.Integration.Performance.{Scenario, TMBench}
+  alias OmiseGO.Integration.Performance.{Scenario, TMBench}
 
   require Logger
-  alias HonteD.{API}
+  alias OmiseGO.{API}
 
   @doc """
   Assumes a setup done earlier, builds the scenario and runs performance test
@@ -110,7 +110,7 @@ defmodule HonteD.Integration.Performance do
     end)
   end
 
-  # will submit a stream of transactions to HonteD.API, checking expected result
+  # will submit a stream of transactions to OmiseGO.API, checking expected result
   defp submit_stream(stream) do
     stream
     |> Enum.each(fn {expected, tx} ->
@@ -120,7 +120,7 @@ defmodule HonteD.Integration.Performance do
 
   defp submit_one(expected, tx) do
     tx
-    |> HonteD.API.submit_sync()
+    |> OmiseGO.API.submit_sync()
     |> check_result(expected)
   end
 

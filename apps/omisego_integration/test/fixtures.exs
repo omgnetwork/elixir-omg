@@ -1,21 +1,21 @@
-defmodule HonteD.Integration.Fixtures do
+defmodule OmiseGO.Integration.Fixtures do
   use ExUnitFixtures.FixtureModule
 
-  alias HonteD.Integration
+  alias OmiseGO.Integration
 
   deffixture homedir() do
     Integration.homedir()
   end
 
-  deffixture tendermint(homedir, honted) do
-    :ok = honted # prevent warnings
+  deffixture tendermint(homedir, omisego) do
+    :ok = omisego # prevent warnings
     {:ok, exit_fn} = Integration.tendermint(homedir)
     on_exit exit_fn
     :ok
   end
 
-  deffixture honted() do
-    {:ok, exit_fn} = Integration.honted()
+  deffixture omisego() do
+    {:ok, exit_fn} = Integration.omisego()
     on_exit exit_fn
     :ok
   end

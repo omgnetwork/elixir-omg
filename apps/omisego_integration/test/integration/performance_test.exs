@@ -1,4 +1,4 @@
-defmodule HonteD.Integration.PerformanceTest do
+defmodule OmiseGO.Integration.PerformanceTest do
   @moduledoc """
   Integration test of the performance testing device.
 
@@ -10,7 +10,7 @@ defmodule HonteD.Integration.PerformanceTest do
 
   import ExUnit.CaptureIO
 
-  alias HonteD.Integration.Performance
+  alias OmiseGO.Integration.Performance
 
   @moduletag :integration
 

@@ -1,8 +1,8 @@
-defmodule HonteD.Integration.Contract do
+defmodule OmiseGO.Integration.Contract do
   @moduledoc """
   Helper for staking contract operations in integration/tests/dev.
   """
-  alias HonteD.Integration.WaitFor, as: WaitFor
+  alias OmiseGO.Integration.WaitFor, as: WaitFor
 
   @doc """
   Deploy OMG token and staking contracts on Ethereum chain. Useful in :dev and :test environments.
@@ -78,6 +78,6 @@ defmodule HonteD.Integration.Contract do
   # In runtime working directory depends on the way application was started.
   # `mix test` sets working directory to $ROOT/apps/$APP_CURRENTLY_BEING_TESTED/
   def get_path_to_project_root do
-    Application.get_env(:honted_integration, :relative_path_to_root, "")
+    Application.get_env(:omisego_integration, :relative_path_to_root, "")
   end
 end

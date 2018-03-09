@@ -1,9 +1,9 @@
-defmodule HonteD.Integration.Performance.TMBench do
+defmodule OmiseGO.Integration.Performance.TMBench do
   @moduledoc """
   Handling of the tm_bench facility from tendermint/tools
   """
 
-  alias HonteD.Integration
+  alias OmiseGO.Integration
 
   @doc """
   Starts a tm-bench Porcelain process for `duration` to listen for events and collect metrics

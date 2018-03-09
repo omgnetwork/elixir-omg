@@ -1,4 +1,4 @@
-defmodule HonteD.Integration do
+defmodule OmiseGO.Integration do
   @moduledoc """
   The intention is to have an app that depends on all other apps, which could serve as the place to put
   integration tests
@@ -8,7 +8,7 @@ defmodule HonteD.Integration do
 
   def homedir do
     Temp.track!
-    Temp.mkdir!(%{prefix: "honted_tendermint_test_homedir"})
+    Temp.mkdir!(%{prefix: "omisego_tendermint_test_homedir"})
   end
 
   @doc """
@@ -17,19 +17,19 @@ defmodule HonteD.Integration do
   def geth do
     _ = Application.ensure_all_started(:porcelain)
     _ = Application.ensure_all_started(:ethereumex)
-    {ref, geth_os_pid, _} = HonteD.Integration.Geth.start()
+    {ref, geth_os_pid, _} = OmiseGO.Integration.Geth.start()
     on_exit = fn() ->
-      HonteD.Integration.Geth.stop(ref, geth_os_pid)
+      OmiseGO.Integration.Geth.stop(ref, geth_os_pid)
     end
     {:ok, on_exit}
   end
 
   @doc """
-  Runs a HonteD ABCI app using Porcelain
+  Runs a OmiseGO ABCI app using Porcelain
   """
-  def honted do
+  def omisego do
     # handles a setup/teardown of our apps, that talk to similarly setup/torndown tendermint instances
-    our_apps_to_start = [:honted_eth, :honted_api, :honted_abci, :honted_ws, :honted_jsonrpc]
+    our_apps_to_start = [:omisego_eth, :omisego_api, :omisego_abci, :omisego_ws, :omisego_jsonrpc]
     started_apps =
       our_apps_to_start
       |> Enum.map(&Application.ensure_all_started/1)
@@ -42,7 +42,7 @@ defmodule HonteD.Integration do
   end
 
   @doc """
-  Inits a temporary tendermint chain and runs a node connecting to HonteD
+  Inits a temporary tendermint chain and runs a node connecting to OmiseGO
   Waits till node is up
   """
   def tendermint(homedir) do

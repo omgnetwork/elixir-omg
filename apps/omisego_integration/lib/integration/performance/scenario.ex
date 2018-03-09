@@ -1,12 +1,12 @@
-defmodule HonteD.Integration.Performance.Scenario do
+defmodule OmiseGO.Integration.Performance.Scenario do
   @moduledoc """
   Generating test scenarios for performance tests - mainly streams of transactions and other useful data
   """
 
   defstruct [:issuers, :create_token_txs, :tokens, :issue_txs, :holders_senders, :n_receivers, :failure_rate]
 
-  import HonteD.Crypto
-  import HonteD.Transaction
+  import OmiseGO.Crypto
+  import OmiseGO.Transaction
 
   @start_tokens 1_000_000
   @normal_amount 1
@@ -129,7 +129,7 @@ defmodule HonteD.Integration.Performance.Scenario do
   defp create_token(issuer) do
     {:ok, tx} = create_create_token(nonce: 0, issuer: issuer.addr)
     tx = signed_tx(tx, issuer)
-    token_addr = HonteD.Token.create_address(issuer.addr, 0)
+    token_addr = OmiseGO.Token.create_address(issuer.addr, 0)
     {token_addr, {true, tx}}
   end
 
@@ -141,7 +141,7 @@ defmodule HonteD.Integration.Performance.Scenario do
 
   defp signed_tx(tx, acc) do
     tx
-    |> HonteD.TxCodec.encode()
+    |> OmiseGO.TxCodec.encode()
     |> Base.encode16()
     |> sign(acc.priv)
   end

@@ -1,4 +1,4 @@
-defmodule HonteD.Integration.SmokeTest do
+defmodule OmiseGO.Integration.SmokeTest do
   @moduledoc """
   Smoke tests the integration of abci/ws/jsonrpc/elixir_api/eventer applications in the wild
 
@@ -9,7 +9,7 @@ defmodule HonteD.Integration.SmokeTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  alias HonteD.{Crypto, API, Integration, Eth, Transaction}
+  alias OmiseGO.{Crypto, API, Integration, Eth, Transaction}
 
   @supply 5
   @tm_pubkey "FEFB8740A301134C7762E38241B59FC8181D982A1DE629F7168622A863E9BCAA"
@@ -18,10 +18,10 @@ defmodule HonteD.Integration.SmokeTest do
 
   defmodule TestWebsocket do
     @moduledoc """
-    A Websocket client used to test the honted_ws server
+    A Websocket client used to test the omisego_ws server
     """
     def connect!() do
-      ws_port = Application.get_env(:honted_ws, :honted_api_ws_port)
+      ws_port = Application.get_env(:omisego_ws, :omisego_api_ws_port)
       Socket.Web.connect!("localhost", ws_port)
     end
 
@@ -61,13 +61,13 @@ defmodule HonteD.Integration.SmokeTest do
     end
   end
 
-  deffixture websocket(honted) do
-    :ok = honted
+  deffixture websocket(omisego) do
+    :ok = omisego
     TestWebsocket.connect!()
   end
 
   deffixture jsonrpc do
-    jsonrpc_port = Application.get_env(:honted_jsonrpc, :honted_api_rpc_port)
+    jsonrpc_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
     fn (method, params) ->
       "http://localhost:#{jsonrpc_port}"
       |> JSONRPC2.Clients.HTTP.call(to_string(method), params)
@@ -90,7 +90,7 @@ defmodule HonteD.Integration.SmokeTest do
   end
 
   ###
-  ### apis/honted/tendermint integration
+  ### apis/omisego/tendermint integration
   ###
 
   @tag fixtures: [:tendermint, :websocket, :apis_caller]
@@ -277,7 +277,7 @@ defmodule HonteD.Integration.SmokeTest do
     assert {:ok, TestWebsocket.codec(tx_query_result)} == apis_caller.(:tx, %{hash: tx_hash})
 
     # tx in response can be decoded
-    assert encoded_tx |> Base.decode16!() |> HonteD.TxCodec.decode!()
+    assert encoded_tx |> Base.decode16!() |> OmiseGO.TxCodec.decode!()
 
     # TOKEN INFO
     assert {
@@ -376,7 +376,7 @@ defmodule HonteD.Integration.SmokeTest do
   end
 
   ###
-  ### contract/tendermint/geth/honted integration
+  ### contract/tendermint/geth/omisego integration
   ###
 
   deffixture contracts(geth) do
@@ -387,31 +387,31 @@ defmodule HonteD.Integration.SmokeTest do
 
   @doc """
   Wraps the test in an artificial environment (config.exs-like), which points to a staking contract
-  Needs to stop and start some honted applications to reload the fake config
+  Needs to stop and start some omisego applications to reload the fake config
   """
-  deffixture staking_contract_config(geth, honted, contracts) do
-    :ok = honted # prevent warnings
+  deffixture staking_contract_config(geth, omisego, contracts) do
+    :ok = omisego # prevent warnings
     :ok = geth
     {_, staking} = contracts
 
-    Application.put_env(:honted_eth, :staking_contract_address, staking)
-    Application.put_env(:honted_eth, :enabled, true)
+    Application.put_env(:omisego_eth, :staking_contract_address, staking)
+    Application.put_env(:omisego_eth, :enabled, true)
 
-    Application.stop(:honted_eth)
-    Application.stop(:honted_abci)
-    Application.ensure_all_started(:honted_eth)
-    Application.ensure_all_started(:honted_abci)
+    Application.stop(:omisego_eth)
+    Application.stop(:omisego_abci)
+    Application.ensure_all_started(:omisego_eth)
+    Application.ensure_all_started(:omisego_abci)
 
     on_exit fn ->
-      Application.put_env(:honted_eth, :staking_contract_address, "0x0")
-      Application.put_env(:honted_eth, :enabled, false)
+      Application.put_env(:omisego_eth, :staking_contract_address, "0x0")
+      Application.put_env(:omisego_eth, :enabled, false)
     end
     :ok
   end
 
   @tag fixtures: [:geth, :tendermint, :contracts, :staking_contract_config]
   test "Sets validators with staking contract", %{contracts: {token, staking}} do
-    # NOTE: for this to work, tendermint must start _after_ the configured, secondary honted start
+    # NOTE: for this to work, tendermint must start _after_ the configured, secondary omisego start
     #       this magically works, but mind well if it breaks
     amount = 100
 
@@ -435,9 +435,9 @@ defmodule HonteD.Integration.SmokeTest do
     {:ok, _} = Integration.Contract.join(staking, alice_ethereum_address, new_validator_pubkey)
 
     {:ok, next} = Eth.Contract.get_next_epoch_block_number(staking)
-    HonteD.Integration.WaitFor.eth_block_height(next + 1, true, 10_000)
+    OmiseGO.Integration.WaitFor.eth_block_height(next + 1, true, 10_000)
 
-    Process.sleep(1000) # wait till honted_eth pulls in contract state
+    Process.sleep(1000) # wait till omisego_eth pulls in contract state
 
     {:ok, raw_tx} = API.create_epoch_change_transaction(alice, 1)
 

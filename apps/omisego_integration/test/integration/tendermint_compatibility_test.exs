@@ -1,4 +1,4 @@
-defmodule HonteD.Integration.TendermintCompatibilityTest do
+defmodule OmiseGO.Integration.TendermintCompatibilityTest do
   @moduledoc """
   Testing various compatibilities with tendermint core
 
@@ -7,7 +7,7 @@ defmodule HonteD.Integration.TendermintCompatibilityTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  alias HonteD.{Crypto, API, Transaction}
+  alias OmiseGO.{Crypto, API, Transaction}
 
   @moduletag :integration
 

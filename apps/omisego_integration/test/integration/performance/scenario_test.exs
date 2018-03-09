@@ -1,11 +1,11 @@
-defmodule HonteD.Integration.Performance.ScenarioTest do
+defmodule OmiseGO.Integration.Performance.ScenarioTest do
   @moduledoc """
   Unit test for performance scenario generation.
   Check is done on abci.state level - no IO is involved.
   """
 
-  alias HonteD.ABCI.State
-  alias HonteD.Integration.Performance.Scenario
+  alias OmiseGO.ABCI.State
+  alias OmiseGO.Integration.Performance.Scenario
 
   use ExUnit.Case, async: true
 
@@ -24,9 +24,9 @@ defmodule HonteD.Integration.Performance.ScenarioTest do
   end
 
   def apply_tx({success_expected, tx}, state) do
-    {:ok, decoded} = tx |> Base.decode16!() |> HonteD.TxCodec.decode()
+    {:ok, decoded} = tx |> Base.decode16!() |> OmiseGO.TxCodec.decode()
     # Signature check is needed to properly simulate abci/state behavior.
-    :ok = HonteD.Transaction.Validation.valid_signed?(decoded)
+    :ok = OmiseGO.Transaction.Validation.valid_signed?(decoded)
     case State.exec(state, decoded) do
       {:ok, state} when success_expected -> state
       {:error, :insufficient_funds} when not success_expected -> state

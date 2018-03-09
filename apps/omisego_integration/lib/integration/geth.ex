@@ -1,4 +1,4 @@
-defmodule HonteD.Integration.Geth do
+defmodule OmiseGO.Integration.Geth do
   @moduledoc """
   Helper module for deployment of contracts to dev geth.
   """
@@ -7,9 +7,9 @@ defmodule HonteD.Integration.Geth do
     # NOTE: Warnings produced here are result of Temp+Porcelain.Process being broken
     # NOTE: Dropping Temp or using Porcelain.Result instead of Process prevents warnings
     Temp.track!
-    homedir = Temp.mkdir!(%{prefix: "honted_eth_test_homedir"})
+    homedir = Temp.mkdir!(%{prefix: "omisego_eth_test_homedir"})
     res = launch("geth --dev --rpc --datadir #{homedir} 2>&1")
-    {:ok, :ready} = HonteD.Integration.WaitFor.eth_rpc()
+    {:ok, :ready} = OmiseGO.Integration.WaitFor.eth_rpc()
     res
   end
 
@@ -42,6 +42,6 @@ defmodule HonteD.Integration.Geth do
   end
 
   defp wait_for_geth_start(geth_out) do
-    HonteD.Integration.wait_for_start(geth_out, "IPC endpoint opened", 3000)
+    OmiseGO.Integration.wait_for_start(geth_out, "IPC endpoint opened", 3000)
   end
 end

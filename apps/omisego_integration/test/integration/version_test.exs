@@ -1,4 +1,4 @@
-defmodule HonteD.Integration.VersionTest do
+defmodule OmiseGO.Integration.VersionTest do
   @moduledoc """
   Intends to make a quick check whether the binaries available are at their correct versions
   """

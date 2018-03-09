@@ -1,9 +1,9 @@
-defmodule HonteD.Integration.Mixfile do
+defmodule OmiseGO.Integration.Mixfile do
   use Mix.Project
 
   def project do
     [
-      app: :honted_integration,
+      app: :omisego_integration,
       version: "0.1.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
@@ -31,11 +31,11 @@ defmodule HonteD.Integration.Mixfile do
       {:ex_unit_fixtures, "~> 0.3.1", only: [:test]},
       {:eep, ~r/.*/, github: "virtan/eep", compile: "rebar compile"}, # regex - match any version
       #
-      {:honted_lib, in_umbrella: true},
-      {:honted_api, in_umbrella: true},
-      {:honted_abci, in_umbrella: true},
-      {:honted_ws, in_umbrella: true},
-      {:honted_jsonrpc, in_umbrella: true},
+      {:omisego_lib, in_umbrella: true},
+      {:omisego_api, in_umbrella: true},
+      {:omisego_abci, in_umbrella: true},
+      {:omisego_ws, in_umbrella: true},
+      {:omisego_jsonrpc, in_umbrella: true},
     ]
   end
 end

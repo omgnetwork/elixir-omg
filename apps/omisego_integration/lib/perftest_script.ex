@@ -1,12 +1,12 @@
-defmodule HonteD.PerftestScript do
+defmodule OmiseGO.PerftestScript do
   @moduledoc """
-  Wrapper around HonteD.Integratoin.Performance to run commandline-like invocations of the performance test
+  Wrapper around OmiseGO.Integratoin.Performance to run commandline-like invocations of the performance test
 
   Usage examples:
   ```
-  mix run --no-start -e 'HonteD.PerftestScript.setup_and_run(5, 0, 100)'
-  mix run --no-start -e 'HonteD.PerftestScript.setup_and_run(5, 0, 100, %{profiling: :fprof})'
-  mix run --no-start -e 'HonteD.PerftestScript.setup_and_run(5, 0, 100, %{homedir_size: true})'
+  mix run --no-start -e 'OmiseGO.PerftestScript.setup_and_run(5, 0, 100)'
+  mix run --no-start -e 'OmiseGO.PerftestScript.setup_and_run(5, 0, 100, %{profiling: :fprof})'
+  mix run --no-start -e 'OmiseGO.PerftestScript.setup_and_run(5, 0, 100, %{homedir_size: true})'
   ```
 
   Available profilers: `:fprof`, `:eep`
@@ -14,17 +14,17 @@ defmodule HonteD.PerftestScript do
   NOTE: keep this as thin as reasonably possible, this is not tested (excluded in coveralls.json)
   """
 
-  alias HonteD.Integration
+  alias OmiseGO.Integration
 
   @doc """
-  Runs full HonteD node and runs perf test
+  Runs full OmiseGO node and runs perf test
   """
   def setup_and_run(nstreams, fill_in, duration, opts \\ %{}) do
     [:porcelain, :hackney]
     |> Enum.each(&Application.ensure_all_started/1)
 
     homedir = Integration.homedir()
-    {:ok, _exit_fn_honted} = Integration.honted()
+    {:ok, _exit_fn_omisego} = Integration.omisego()
     {:ok, _exit_fn_tendermint} = Integration.tendermint(homedir)
 
     result = Integration.Performance.run(nstreams, fill_in, duration, opts)

@@ -1,4 +1,4 @@
-defmodule HonteD.Integration.WaitFor do
+defmodule OmiseGO.Integration.WaitFor do
   @moduledoc """
   Generic wait_for_* utils, styled after web3 counterparts
   """
@@ -16,7 +16,7 @@ defmodule HonteD.Integration.WaitFor do
 
   def eth_block_height(n, dev \\ false, timeout \\ 10_000) do
     f = fn() ->
-      height = HonteD.Eth.Contract.block_height()
+      height = OmiseGO.Eth.Contract.block_height()
       case height < n do
         true ->
           _ = maybe_mine(dev)
