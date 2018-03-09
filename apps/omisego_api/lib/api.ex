@@ -4,6 +4,8 @@ defmodule OmiseGO.API do
   """
 
   alias OmiseGO.API.State
+  alias OmiseGO.API.Core
+  alias OmiseGO.DB
 
   def submit(tx) do
 
@@ -13,8 +15,8 @@ defmodule OmiseGO.API do
          do: tx_result
   end
 
-  def get_block(height) do
-    BlockCache.get_block(height)
+  def get_block(_height) do
+    # BlockCache.get_block(height)
   end
 
   def tx(hash) do
@@ -25,7 +27,7 @@ defmodule OmiseGO.API do
     @moduledoc """
     Functional core work-horse for OmiseGO.API
     """
-    def statelessly_valid?(tx) do
+    def statelessly_valid?(_tx) do
       # well formed, signed etc, returns decoded tx
     end
   end
