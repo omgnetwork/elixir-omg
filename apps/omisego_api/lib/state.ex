@@ -51,8 +51,8 @@ defmodule OmiseGO.API.State do
     {event_triggers, db_updates, new_state} = Core.deposit(owner, amount, state)
     # GenServer.cast
     Eventer.notify(event_triggers)
-    # GenServer.cast
-    DB.multi_update(db_updates)
+    # GenServer.call
+    :ok = DB.multi_update(db_updates)
     {:reply, :ok, new_state}
   end
 
@@ -63,11 +63,11 @@ defmodule OmiseGO.API.State do
     {block, event_triggers, db_updates, new_state} = Core.form_block(state)
     # GenServer.cast
     Eventer.notify(event_triggers)
-    # GenServer.cast
-    DB.multi_update(db_updates)
+    # GenServer.call
+    :ok = DB.multi_update(db_updates)
     # GenServer.cast
     BlockQueue.push_block(block)
-    {:noreply, :ok, new_state}
+    {:noreply, new_state}
   end
 
   defmodule Core do
@@ -101,8 +101,8 @@ defmodule OmiseGO.API.State do
           },
           %Core{utxos: utxos} = state
         ) do
-      with {:ok, in_amount1} <- correct_input?(utxos, tx, 0, spender1),
-           {:ok, in_amount2} <- correct_input?(utxos, tx, 1, spender2),
+      with {:ok, in_amount1} <- process_tx_input(utxos, tx, 0, spender1),
+           {:ok, in_amount2} <- process_tx_input(utxos, tx, 1, spender2),
            :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2 + fee) do
         {:ok,
          state
@@ -118,7 +118,7 @@ defmodule OmiseGO.API.State do
     end
 
     # FIXME dry and move spender figuring out elsewhere
-    defp correct_input?(
+    defp process_tx_input(
            utxos,
            %Transaction{blknum1: blknum, txindex1: txindex, oindex1: oindex},
            0,
@@ -130,7 +130,7 @@ defmodule OmiseGO.API.State do
            do: {:ok, owner_has}
     end
 
-    defp correct_input?(
+    defp process_tx_input(
            utxos,
            %Transaction{blknum2: blknum, txindex2: txindex, oindex2: oindex},
            1,

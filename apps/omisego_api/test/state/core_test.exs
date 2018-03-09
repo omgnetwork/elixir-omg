@@ -144,7 +144,7 @@ defmodule OmiseGO.API.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :carol, :state_alice_deposit]
-  test "can spend partially spent", %{alice: alice, bob: bob, carol: carol, state_alice_deposit: state}  do
+  test "can spend change and merge coins", %{alice: alice, bob: bob, carol: carol, state_alice_deposit: state}  do
 
     state =
       %Transaction.Recovered{
