@@ -27,6 +27,9 @@ defmodule OmiseGO.API.MixProject do
   defp deps do
     [
       {:ex_unit_fixtures, "~> 0.3.1", only: [:test]},
+      #
+      {:omisego_db, in_umbrella: true},
+      {:omisego_eth, in_umbrella: true},
     ]
   end
 end
