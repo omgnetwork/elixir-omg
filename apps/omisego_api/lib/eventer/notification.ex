@@ -12,7 +12,7 @@ defmodule OmiseGO.API.Notification do
     defstruct [:tx]
 
     @type t :: %Received{
-      tx: Transaction.t
+      tx: any()
     }
   end
 
@@ -24,7 +24,7 @@ defmodule OmiseGO.API.Notification do
     defstruct [:tx]
 
     @type t :: %Spent{
-      tx: Transaction.t
+      tx: any()
     }
   end
 
