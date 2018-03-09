@@ -1,4 +1,4 @@
-defmodule HanabiEngine.Application do
+defmodule OmiseGO.API.Application do
   @moduledoc false
 
   use Application

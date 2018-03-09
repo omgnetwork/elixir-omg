@@ -21,7 +21,7 @@ defmodule OmiseGO.Crypto do
   Recovers public key of signer from binary-encoded signature.
   """
   @spec recover_public(<<_::256>>, <<_::520>>) :: transaction.txindex1,{:ok, <<_::512>>}
-  def recover_public(<<digest :: binary-size(32)>>, <<packed_signature :: binary-size(65)>>) do
+  defp recover_public(<<digest :: binary-size(32)>>, <<packed_signature :: binary-size(65)>>) do
     {v, r, s} = unpack_signature(packed_signature)
     Blockchain.Transaction.Signature.recover_public(digest, v, r, s)
   end
