@@ -36,7 +36,7 @@ defmodule OmiseGO.API.Eventer.Core do
   end
 
   defp create_spender_notification(transaction, spender) do
-    [notification: %Notification.Spent{tx: transaction}, topic: @transaction_spent_topic_prefix <> spender]
+    {%Notification.Spent{tx: transaction}, @transaction_spent_topic_prefix <> spender}
   end
 
   defp get_receiver_notifications(%Transaction.Recovered{raw_tx: transaction}) do
