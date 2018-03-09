@@ -14,20 +14,34 @@ podTemplate(
             checkout scm
         }
 
-        stage('Build') {
+        stage('Deps') {
             sh("mix do local.hex --force, local.rebar --force")
             withEnv(["MIX_ENV=test"]) {
                 sh("mix do deps.get, deps.compile")
             }
         }
 
+        stage('Build') {
+            withEnv(["MIX_ENV=test"]) {
+                sh("mix compile --warnings-as-errors")
+            }
+        }
+
         stage('Test') {
             withEnv(["MIX_ENV=test"]) {
-                sh("mix test")
-            /*
-                sh("mix do credo, coveralls.html --umbrella --no-start --include integration")
+                sh("mix coveralls.html --umbrella")
+            }
+        }
+
+        stage('Lint') {
+            withEnv(["MIX_ENV=test"]) {
+                sh("mix credo")
+            }
+        }
+
+        stage('Dialyze') {
+            withEnv(["MIX_ENV=test"]) {
                 sh("mix dialyzer --halt-exit-status")
-            */
             }
         }
     }
