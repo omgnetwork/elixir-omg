@@ -5,13 +5,13 @@ defmodule OmiseGO.Tracker do
 
   ### Client
 
-  def check_illegal_exits()
+  def check_illegal_exits
 
-  def check_invalid_blocks()
+  def check_invalid_blocks
 
-  def check_block_withholding()
+  def check_block_withholding
 
-  def check_halting()
+  def check_halting
 
   ### Server
 
@@ -27,6 +27,9 @@ defmodule OmiseGO.Tracker do
   # TODO: rest similarly
 
   defmodule Core do
+    @moduledoc """
+    Functional core for the OmiseGO.Tracker
+    """
 
     def initialize(query_result, height, other?) do
       # figure out the state of the tracker where it's left off

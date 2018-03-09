@@ -4,21 +4,17 @@ defmodule OmiseGO.DB do
 
   ### Client (port)
 
-  def update()
-
   def multi_update(db_updates)
 
-  def get()
-
-  def multi_get()
+  def multi_get
 
   def tx(hash)
 
   def blocks(blocks_to_fetch)
 
-  def utxos()
+  def utxos
 
-  def height()
+  def height
 
   ### Server
 

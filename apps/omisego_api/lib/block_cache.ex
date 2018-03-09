@@ -16,6 +16,9 @@ defmodule OmiseGO.BlockCache do
   end
 
   defmodule Core do
+    @moduledoc """
+    Soon to be filled in a PR
+    """
 
     defstruct [:blocks]
 
@@ -36,7 +39,7 @@ defmodule OmiseGO.BlockCache do
       end
     end
 
-    defp cache_size() do
+    defp cache_size do
       @cachesize # constant now, but can be adaptive to whatever
     end
 
