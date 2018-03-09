@@ -1,4 +1,7 @@
 defmodule OmiseGO.API do
+  @moduledoc """
+  Entrypoint for all the exposed public functions of the child chain API
+  """
 
   alias OmiseGO.API.State
 
@@ -19,6 +22,9 @@ defmodule OmiseGO.API do
   end
 
   defmodule Core do
+    @moduledoc """
+    Functional core work-horse for OmiseGO.API
+    """
     def statelessly_valid?(tx) do
       # well formed, signed etc, returns decoded tx
     end

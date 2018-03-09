@@ -1,4 +1,7 @@
 defmodule OmiseGO.API.Eventer do
+  @moduledoc """
+  soon to be filled out in Pawel's PR
+  """
 
   ### Client
 
@@ -18,6 +21,9 @@ defmodule OmiseGO.API.Eventer do
   end
 
   defmodule Core do
+    @moduledoc """
+    soon to be filled out in Pawel's PR
+    """
 
     def notify(event_triggers, state) do
       # cycle through state.subscriptions and generate list of {receiver, body} pairs

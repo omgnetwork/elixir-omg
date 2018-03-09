@@ -8,7 +8,7 @@ defmodule OmiseGO.BlockQueue do
 
   def push_block(block)
 
-  def status()
+  def status
 
   def submission_mined(height)
 
