@@ -1,5 +1,7 @@
 defmodule OmiseGO.API do
 
+  alias OmiseGO.API.State
+
   def submit(tx) do
 
     # TODO: consider having StatelessValidatonWorker to scale this, instead scaling API

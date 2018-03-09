@@ -4,15 +4,15 @@ defmodule OmiseGO.API.State do
 
   ### Client
 
-  def start_link() do
-    GenServer.start_link(__MODULE__, :ok, __MODULE__)
+  def start_link do
+    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
   def exec(tx) do
     GenServer.call(__MODULE__, {:exec, tx})
   end
 
-  def form_block() do
+  def form_block do
     GenServer.cast(__MODULE__, {:form_block})
   end
 
@@ -33,7 +33,7 @@ defmodule OmiseGO.API.State do
   def init(:ok) do
     with db_queries <- Core.get_state_fetching_query(),
          {:ok, query_result} <- DB.multi_get(db_queries),
-         do: Core.extract_initial_state(query_result)
+         do: {:ok, Core.extract_initial_state(query_result)}
   end
 
   @doc """
@@ -79,7 +79,7 @@ defmodule OmiseGO.API.State do
 
     alias OmiseGO.API.State.Transaction
 
-    def get_state_fetching_query() do
+    def get_state_fetching_query do
       # some form of coding what we need to start up state
       _db_queries = []
     end
