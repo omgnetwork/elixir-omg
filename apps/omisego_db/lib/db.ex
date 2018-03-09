@@ -43,12 +43,12 @@ defmodule OmiseGO.DB do
 
     def parse_multi_update(db_updates) do
       # parse
-      raw_updates
+      _raw_updates = []
     end
 
     def blocks_query(blocks_to_fetch) do
       # prepare
-      block_query
+      _block_query = ""
     end
 
   end
