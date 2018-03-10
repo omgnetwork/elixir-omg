@@ -11,7 +11,8 @@ defmodule OmiseGO.API.MixProject do
       lockfile: "../../mix.lock",
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      test_coverage: [tool: ExCoveralls],
     ]
   end
 
@@ -26,6 +27,9 @@ defmodule OmiseGO.API.MixProject do
   defp deps do
     [
       {:ex_unit_fixtures, "~> 0.3.1", only: [:test]},
+      #
+      {:omisego_db, in_umbrella: true},
+      {:omisego_eth, in_umbrella: true},
     ]
   end
 end
