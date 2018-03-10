@@ -12,7 +12,7 @@ defmodule OmiseGO.API.MixProject do
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      test_coverage: [tool: ExCoveralls]
+      test_coverage: [tool: ExCoveralls],
     ]
   end
 
@@ -30,6 +30,9 @@ defmodule OmiseGO.API.MixProject do
       {:ex_rlp, "~> 0.2.1"},
       {:blockchain, "~> 0.1.6"},
       {:ex_unit_fixtures, "~> 0.3.1", only: [:test]},
+      #
+      {:omisego_db, in_umbrella: true},
+      {:omisego_eth, in_umbrella: true},
     ]
   end
 end
