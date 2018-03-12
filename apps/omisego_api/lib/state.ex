@@ -6,7 +6,7 @@ defmodule OmiseGO.API.State do
 
   ### Client
 
-  def start_link do
+  def start_link dont
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
