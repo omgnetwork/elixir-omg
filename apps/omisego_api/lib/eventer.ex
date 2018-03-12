@@ -1,33 +1,46 @@
 defmodule OmiseGO.API.Eventer do
   @moduledoc """
-  soon to be filled out in Pawel's PR
+  Imperative shell for handling events
   """
+
+  alias Phoenix.PubSub
+  alias OmiseGO.API.Eventer.Core
+
+  @pubsub :eventer
 
   ### Client
 
   def notify(event_triggers) do
-    messages = GenServer.cast(__MODULE__.Core, {:notify, event_triggers})
-    Enum.each(messages, fn msg -> send(msg.receiver, msg.body) end)
+    GenServer.cast(__MODULE__, {:notify, event_triggers})
   end
 
-  def subscribe(args) do
-    GenServer.call(__MODULE__.Core, {:subscribe, args})
+  def subscribe(topic) when is_binary(topic) do
+    case PubSub.subscribe(@pubsub, topic) do
+      :ok -> :ok
+      {:error, _message} -> :error
+    end
+  end
+
+  def unsubscribe(topic) when is_list(topic) do
+    case PubSub.unsubscribe(@pubsub, topic) do
+      :ok -> :ok
+      {:error, _message} -> :error
+    end
   end
 
   ### Server
 
-  def handle_call({:notify, _event_triggers}, _from, _state) do
+  use GenServer
 
+  def init(:ok) do
+    {:ok, nil}
   end
 
-  defmodule Core do
-    @moduledoc """
-    soon to be filled out in Pawel's PR
-    """
-
-    def notify(_event_triggers, _state) do
-      # cycle through state.subscriptions and generate list of {receiver, body} pairs
-      _events = []
-    end
+  def handle_cast({:notify, event_triggers}, state) do
+    event_triggers
+    |> Core.notify
+    |> Enum.each(fn {notification, topic} -> PubSub.broadcast(:eventer, topic, notification) end)
+    {:noreply, state}
   end
+
 end
