@@ -1,4 +1,7 @@
 defmodule OmiseGO.API.Eventer.Core do
+  @moduledoc """
+  Functional core of eventer
+  """
 
   alias OmiseGO.API.Notification
   alias OmiseGO.API.State.Transaction
@@ -9,6 +12,9 @@ defmodule OmiseGO.API.Eventer.Core do
 
   # TODO: put this module in proper place
   defmodule OmiseGO.Block do
+    @moduledoc """
+    Representation of a OmiseGO block
+    """
     defstruct [:number, :hash]
   end
 
