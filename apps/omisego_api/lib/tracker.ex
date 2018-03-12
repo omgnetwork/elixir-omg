@@ -5,19 +5,21 @@ defmodule OmiseGO.Tracker do
 
   ### Client
 
-  def check_illegal_exits()
+  def check_illegal_exits, do: :not_implemented
 
-  def check_invalid_blocks()
+  def check_invalid_blocks, do: :not_implemented
 
-  def check_block_withholding()
+  def check_block_withholding, do: :not_implemented
 
-  def check_halting()
+  def check_halting, do: :not_implemented
 
   ### Server
 
   use GenServer
 
-  def handle_call({:check_illegal_exits}, _from, state) do
+  def init(:ok), do: :not_implemented
+
+  def handle_call({:check_illegal_exits}, _from, _state) do
     # get parameters of what to check from state
     # get information from Eth (sidecause)
     # get information (utxos) from State (sidecause) ???
@@ -27,16 +29,19 @@ defmodule OmiseGO.Tracker do
   # TODO: rest similarly
 
   defmodule Core do
+    @moduledoc """
+    Functional core for the OmiseGO.Tracker
+    """
 
-    def initialize(query_result, height, other?) do
+    def initialize(_query_result, _height, _other?) do
       # figure out the state of the tracker where it's left off
     end
 
-    def illegal_exits_query(state) do
+    def illegal_exits_query(_state) do
 
     end
 
-    def check_illegal_exits(query_result, utxos, state) do
+    def check_illegal_exits(_query_result, _utxos, _state) do
       # decide whether all is ok
     end
 

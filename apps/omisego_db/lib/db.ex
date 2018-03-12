@@ -4,35 +4,17 @@ defmodule OmiseGO.DB do
 
   ### Client (port)
 
-  def update()
+  def multi_update(_db_updates), do: :not_implemented
 
-  def multi_update(db_updates)
+  def multi_get(_db_queries), do: :not_implemented
 
-  def get()
+  def tx(_hash), do: :not_implemented
 
-  def multi_get()
+  def blocks(_blocks_to_fetch), do: :not_implemented
 
-  def tx(hash)
+  def utxos, do: :not_implemented
 
-  def blocks(blocks_to_fetch)
-
-  def utxos()
-
-  def height()
-
-  ### Server
-
-  # TODO: only examples listed
-
-  def handle_call({:multi_update, db_updates}, _from, nil) do
-    # do all the listed updates in sequence
-    # parse db updates in Core and process in db backend
-  end
-
-  def handle_call({:blocks, blocks_to_fetch}, _from, nil) do
-    # prepare block query
-    # execute low level query in db backend
-  end
+  def height, do: :not_implemented
 
   defmodule Core do
     @moduledoc """
@@ -41,14 +23,14 @@ defmodule OmiseGO.DB do
 
     # adapter - testable, if we really really want to
 
-    def parse_multi_update(db_updates) do
+    def parse_multi_update(_db_updates) do
       # parse
-      raw_updates
+      _raw_updates = []
     end
 
-    def blocks_query(blocks_to_fetch) do
+    def blocks_query(_blocks_to_fetch) do
       # prepare
-      block_query
+      _block_query = ""
     end
 
   end
