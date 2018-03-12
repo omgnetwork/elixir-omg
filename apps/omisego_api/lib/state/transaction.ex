@@ -39,14 +39,9 @@ defmodule OmiseGO.API.State.Transaction do
 
     def recover_from(%OmiseGO.API.State.Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2}) do
        hash_no_spenders = OmiseGO.API.State.Transaction.raw_tx_hash(raw_tx)
-       spender1 = recover_public_address(hash_no_spenders, sig1)
-       spender2 = recover_public_address(hash_no_spenders, sig2)
+       spender1 = Crypto.recover_address(hash_no_spenders, sig1)
+       spender2 = Crypto.recover_address(hash_no_spenders, sig2)
        %__MODULE__{raw_tx: raw_tx, spender1: spender1, spender2: spender2}
-     end
-
-     defp recover_public_address(transaction_hash_no_spenders, sig) do
-       transaction_hash_no_spenders
-       |> Crypto.recover_address(sig)
      end
   end
 
