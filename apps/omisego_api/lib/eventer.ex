@@ -14,16 +14,18 @@ defmodule OmiseGO.API.Eventer do
     GenServer.cast(__MODULE__, {:notify, event_triggers})
   end
 
-  def subscribe(topics) when is_list(topics) do
-    subs = Enum.map(topics, &(PubSub.subscribe(@pubsub, &1)))
-    subs
-    |> Enum.reduce(:ok, fn (a, b) -> if b != :ok, do: :error, else: a end)
+  def subscribe(topic) when is_binary(topic) do
+    case PubSub.subscribe(@pubsub, topic) do
+      :ok -> :ok
+      {:error, _message} -> :error
+    end
   end
 
-  def unsubscribe(topics) when is_list(topics) do
-    unsubs = Enum.map(topics, &(PubSub.unsubscribe(@pubsub, &1)))
-    unsubs
-    |> Enum.reduce(:ok, fn (a, b) -> if b != :ok, do: :error, else: a end)
+  def unsubscribe(topic) when is_list(topic) do
+    case PubSub.unsubscribe(@pubsub, topic) do
+      :ok -> :ok
+      {:error, _message} -> :error
+    end
   end
 
   ### Server

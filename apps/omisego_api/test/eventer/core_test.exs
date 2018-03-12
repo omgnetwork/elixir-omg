@@ -8,7 +8,6 @@ defmodule OmiseGO.API.Eventer.CoreTest do
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.State.Transaction.Recovered
 
-
   #TODO: implement all tests
   test "notifications for finalied block event are created" do
   end

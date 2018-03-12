@@ -1,7 +1,5 @@
 defmodule OmiseGO.API.Notification do
 
-  alias OmiseGO.API.State.Transaction
-
   @type t :: Received.t | Sent.t | BlockFinalized.t
 
   defmodule Received do

@@ -3,6 +3,8 @@ defmodule OmiseGO.API.State.Transaction do
   Internal representation of a spend transaction on Plasma chain
   """
 
+  alias OmiseGO.API.Crypto
+
   @zero_address <<0>> |> List.duplicate(20) |> Enum.join
 
   # TODO: probably useful to structure these fields somehow ore readable like
@@ -50,5 +52,22 @@ defmodule OmiseGO.API.State.Transaction do
   def zero_address, do: @zero_address
 
   def account_address?(address), do: address != @zero_address
+
+  def raw_tx_hash(%__MODULE__{} = transaction) do
+    #FIXME: is that a proper structure for RLP?
+    [transaction.blknum1,
+     transaction.txindex1,
+     transaction.oindex1,
+     transaction.blknum2,
+     transaction.txindex2,
+     transaction.oindex2,
+     transaction.newowner1,
+     transaction.amount1,
+     transaction.newowner2,
+     transaction.amount2,
+     transaction.fee]
+    |> ExRLP.encode
+    |> OmiseGO.API.Crypto.hash()
+end
 
 end

@@ -6,7 +6,7 @@ defmodule OmiseGO.API.Application do
 
   def start(_type, _args) do
     children = [
-      supervisor(Phoenix.PubSub.PG2, [:eventer, [ ]]),
+      supervisor(Phoenix.PubSub.PG2, [:eventer, []]),
     ]
     opts = [strategy: :one_for_one]
     Supervisor.start_link(children, opts)
