@@ -1,4 +1,7 @@
 defmodule OmiseGO.API.Eventer do
+  @moduledoc """
+  soon to be filled out in Pawel's PR
+  """
 
   alias Phoenix.PubSub
   alias OmiseGO.API.Eventer.Core
