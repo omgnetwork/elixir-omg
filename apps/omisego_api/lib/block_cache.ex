@@ -4,6 +4,8 @@ defmodule OmiseGO.BlockCache do
   (do we need this?)
   """
 
+  alias OmiseGO.DB
+
   def add_block(block) do
     GenServer.cast(__MODULE__.Core, {:add_block, block})
   end
@@ -16,10 +18,15 @@ defmodule OmiseGO.BlockCache do
   end
 
   defmodule Core do
+    @moduledoc """
+    Soon to be filled in a PR
+    """
 
     defstruct [:blocks]
 
     use GenServer
+
+    def init(:ok), do: :not_implemented
 
     @cachesize 1024
 
@@ -36,7 +43,7 @@ defmodule OmiseGO.BlockCache do
       end
     end
 
-    defp cache_size() do
+    defp cache_size do
       @cachesize # constant now, but can be adaptive to whatever
     end
 

@@ -3,7 +3,7 @@ defmodule OmiseGO.API.State.Transaction do
   Internal representation of a spend transaction on Plasma chain
   """
 
-  @zero_address List.duplicate(<<0>>, 20) |> Enum.join
+  @zero_address <<0>> |> List.duplicate(20) |> Enum.join
 
   # TODO: probably useful to structure these fields somehow ore readable like
   # defstruct [:input1, :input2, :output1, :output2, :fee], with in/outputs as structs or tuples?
@@ -32,7 +32,7 @@ defmodule OmiseGO.API.State.Transaction do
     """
 
     # FIXME: refactor to somewhere to avoid dupliaction
-    @zero_address List.duplicate(<<0>>, 20) |> Enum.join
+    @zero_address <<0>> |> List.duplicate(20) |> Enum.join
 
     # FIXME: rethink default values
     defstruct [:raw_tx, spender1: @zero_address, spender2: @zero_address]
