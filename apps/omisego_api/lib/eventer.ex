@@ -1,6 +1,6 @@
 defmodule OmiseGO.API.Eventer do
   @moduledoc """
-  soon to be filled out in Pawel's PR
+  Imperative shell for handling events
   """
 
   alias Phoenix.PubSub
