@@ -28,7 +28,6 @@ defmodule OmiseGO.FreshBlocksTest do
 
   test "getting Block" do
     range = 20..80
-    blocks = generate_blocks(range)
     state = generate_fresh_block(90)
     for number <- range, do: {%Block{number: ^number}, []} = FreshBlocks.get(number, state)
   end
