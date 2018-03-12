@@ -42,7 +42,7 @@ defmodule OmiseGO.API.Crypto do
   @spec verify(binary, binary, binary) :: {:ok, boolean}
   def verify(msg, signature, address) do
     {:ok, recovered_address} =
-      msg |> hash()|> recover_address(signature)
+      msg |> hash() |> recover_address(signature)
     {:ok, address == recovered_address}
   end
 
