@@ -9,7 +9,7 @@ defmodule OmiseGO.FreshBlocksTest do
     Enum.map(range, &%Block{number: &1})
   end
 
-  def generate_blockCache(size, max_size \\ :math.pow(2, 10)) do
+  def generate_fresh_block(size, max_size \\ 1024) do
     update_state = fn state, block ->
       with {:ok, n_state} <- FreshBlocks.update(state, block) do
         n_state
@@ -19,9 +19,9 @@ defmodule OmiseGO.FreshBlocksTest do
     Enum.reduce(generate_blocks(0..(size - 1)), %FreshBlocks{max_size: max_size}, update_state)
   end
 
-  test "slisink oldest to max size cache" do
+  test "slicing oldest to max size cache" do
     max_size = 10
-    state = generate_blockCache(max_size + 1, max_size)
+    state = generate_fresh_block(max_size + 1, max_size)
     {nil, [0]} = FreshBlocks.get(0, state)
     {_, []} = FreshBlocks.get(1, state)
   end
@@ -29,7 +29,7 @@ defmodule OmiseGO.FreshBlocksTest do
   test "getting Block" do
     range = 20..80
     blocks = generate_blocks(range)
-    state = generate_blockCache(90)
+    state = generate_fresh_block(90)
     for number <- range, do: {%Block{number: ^number}, []} = FreshBlocks.get(number, state)
   end
 end

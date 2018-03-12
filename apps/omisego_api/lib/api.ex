@@ -9,7 +9,7 @@ defmodule OmiseGO.API do
   end
 
   def get_block(height) do
-    BlockCache.get_block(height)
+    FreshBlocks.get(height)
   end
 
   def tx(hash) do

@@ -1,8 +1,8 @@
 defmodule OmiseGO.FreshBlocks do
   @moduledoc """
-    Alows for quick access to a fresh subset of blocks
+    Allows for quick access to a fresh subset of blocks
     (do we need this?)
-    (makit as wraper to DB?)
+    (mak it as wrapper to DB?)
   """
 
   # TODO remove this and import the true one
@@ -37,19 +37,14 @@ defmodule OmiseGO.FreshBlocks do
     end
 
     def update(block, state) do
-      keys_queue = :queue.snoc(state.keys_queue, block.number)
+      keys_queue = :queue.in(block.number, state.keys_queue)
       container = Map.put(state.container, block.number, block)
-
       cond do
         state.max_size < Kernel.map_size(container) ->
-          key_to_remove = :queue.get(state.keys_queue)
+          {{:value, key_to_remove}, keys_queue} = :queue.out(state.keys_queue)
 
           {:ok,
-           %{
-             state
-             | keys_queue: :queue.drop(keys_queue),
-               container: Map.delete(container, key_to_remove)
-           }}
+           %{state | keys_queue: keys_queue, container: Map.delete(container, key_to_remove)}}
 
         true ->
           {:ok, %{state | keys_queue: keys_queue, container: container}}
