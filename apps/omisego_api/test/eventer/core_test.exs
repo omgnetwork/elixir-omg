@@ -7,6 +7,7 @@ defmodule OmiseGO.API.Eventer.CoreTest do
   alias OmiseGO.API.Notification.Received
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.State.Transaction.Recovered
+  alias OmiseGO.API.TestHelper
 
   #TODO: implement all tests
   test "notifications for finalied block event are created" do
@@ -14,10 +15,15 @@ defmodule OmiseGO.API.Eventer.CoreTest do
 
   test "receiver is notified about deposit" do
     depositor = "depositor"
-    deposit = %Transaction{newowner1: depositor, amount1: 100,
-                           newowner2: Transaction.zero_address, amount2: 0}
-    recovered_tx = %Recovered{raw_tx: deposit}
-    [{%Received{tx: ^deposit}, "transactions/received/" <> ^depositor}] =
+    signed_deposit =
+      %Transaction{
+        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        newowner1: depositor, amount1: 100, newowner2: Transaction.zero_address, amount2: 0, fee: 0
+      }
+      |> TestHelper.signed
+
+    recovered_tx = %Recovered{signed: signed_deposit}
+    [{%Received{tx: ^signed_deposit}, "transactions/received/" <> ^depositor}] =
       Core.notify([%{tx: recovered_tx}])
   end
 

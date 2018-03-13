@@ -8,13 +8,8 @@ defmodule OmiseGO.API.Crypto do
 
   @doc """
   Produces a cryptographic digest of a message.
-
-  TODO: replace hashing function with ethereum's Keccak
   """
-  def hash(message), do: message |> erlang_hash()
-
-  # NOTE temporary function, which will go away when we move to sha3 and eth primitives
-  defp erlang_hash(message), do: :crypto.hash(:sha256, message)
+  def hash(message), do: message |> :keccakf1600.sha3_256()
 
   @doc """
   Produce a stand-alone, 65 bytes long, signature for message of arbitrary length.
@@ -106,6 +101,19 @@ defmodule OmiseGO.API.Crypto do
   def hex_to_address!(hex) do
     {:ok, address} = hex_to_address(hex)
     address
+  end
+
+  @spec hex_to_block_hash(binary) :: {:ok, binary()} | {:error, :bad_hex_encoding_of_block_hash}
+  def hex_to_block_hash(hex) when is_binary(hex) and byte_size(hex) == 62 do
+    case Base.decode16(hex, case: :lower) do
+      {:ok, bin} -> {:ok, bin}
+      :error -> {:error, :bad_hex_encoding_of_block_hash}
+    end
+  end
+
+  @spec block_hash_to_hex(binary) :: binary()
+  def block_hash_to_hex(block_hash) when is_binary(block_hash) and byte_size(block_hash) == 32 do
+    Base.encode16(block_hash, case: :lower)
   end
 
   # private

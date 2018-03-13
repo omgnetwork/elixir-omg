@@ -15,10 +15,9 @@ defmodule OmiseGO.API.State do
   end
 
   def form_block do
-    GenServer.cast(__MODULE__, {:form_block})
+    GenServer.call(__MODULE__, {:form_block})
   end
 
-  # NOTE: totally not sure about the argumets here and coordination child vs root
   def deposit(owner, amount) do
     GenServer.call(__MODULE__, {:deposit, owner, amount})
   end
@@ -30,7 +29,6 @@ defmodule OmiseGO.API.State do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Eventer
   alias OmiseGO.DB
-  alias OmiseGO.API.BlockQueue
 
   @doc """
   Start processing state using the database entries
@@ -64,14 +62,12 @@ defmodule OmiseGO.API.State do
   @doc """
   Wraps up accumulated transactions into a block, triggers events, triggers db update, pushes block to queue
   """
-  def handle_cast({:form_block}, _from, state) do
-    {block, event_triggers, db_updates, new_state} = Core.form_block(state)
-    # GenServer.cast
-    Eventer.notify(event_triggers)
-    # GenServer.call
-    :ok = DB.multi_update(db_updates)
-    # GenServer.cast
-    BlockQueue.push_block(block)
-    {:noreply, new_state}
-  end
+  def handle_call(:form_block, _from, state) do
+   {block, event_triggers, db_updates, new_state} = Core.form_block(state)
+   # GenServer.cast
+   Eventer.notify(event_triggers)
+   # GenServer.call
+   :ok = DB.multi_update(db_updates)
+   {:reply, {:ok, block.hash}, new_state}
+ end
 end
