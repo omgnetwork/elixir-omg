@@ -28,3 +28,8 @@ use Mix.Config
 # here (which is why it is important to import them last).
 #
 #     import_config "#{Mix.env}.exs"
+config :omisego_eth,
+    contract: 0x42,
+
+config :ethereumex,
+  url: "http://localhost:8545"
