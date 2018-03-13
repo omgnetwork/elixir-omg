@@ -24,7 +24,15 @@ defmodule OmiseGO.API.State.Transaction do
 
   defmodule Signed do
     @moduledoc false
-    defstruct [:raw_tx, :sig1, :sig2]
+    defstruct [:raw_tx, :sig1, :sig2, :hash]
+
+    def hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2} = signed) do
+      hash =
+        (OmiseGO.API.State.Transaction.hash(tx) <> sig1 <> sig2)
+        |> Crypto.hash()
+      %{signed | hash: hash}
+    end
+
   end
 
   defmodule Recovered do
@@ -37,13 +45,13 @@ defmodule OmiseGO.API.State.Transaction do
     @zero_address <<0>> |> List.duplicate(20) |> Enum.join
 
     # FIXME: rethink default values
-    defstruct [:raw_tx, spender1: @zero_address, spender2: @zero_address]
+    defstruct [:signed, spender1: @zero_address, spender2: @zero_address]
 
-    def recover_from(%OmiseGO.API.State.Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2}) do
-       hash_no_spenders = OmiseGO.API.State.Transaction.raw_tx_hash(raw_tx)
+    def recover_from(%OmiseGO.API.State.Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2} = signed) do
+       hash_no_spenders = OmiseGO.API.State.Transaction.hash(raw_tx)
        spender1 = Crypto.recover_address(hash_no_spenders, sig1)
        spender2 = Crypto.recover_address(hash_no_spenders, sig2)
-       %__MODULE__{raw_tx: raw_tx, spender1: spender1, spender2: spender2}
+       %__MODULE__{signed: signed, spender1: spender1, spender2: spender2}
      end
   end
 
@@ -53,8 +61,7 @@ defmodule OmiseGO.API.State.Transaction do
 
   def account_address?(address), do: address != @zero_address
 
-  def raw_tx_hash(%__MODULE__{} = transaction) do
-    #FIXME: is that a proper structure for RLP?
+  def hash(%__MODULE__{} = transaction) do
     [transaction.blknum1,
      transaction.txindex1,
      transaction.oindex1,
@@ -69,5 +76,7 @@ defmodule OmiseGO.API.State.Transaction do
     |> ExRLP.encode
     |> OmiseGO.API.Crypto.hash()
 end
+
+def is_single_utxo(%__MODULE__{} = transaction), do: transaction.blknum2 == 0
 
 end

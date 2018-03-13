@@ -3,11 +3,14 @@ defmodule OmiseGO.API.State.Core do
   Functional core for State.
   """
 
+  @maximum_block_size :math.pow(2, 16)
+
   # TODO: consider structuring and naming files/modules differently, to not have bazillions of `X.Core` modules?
   defstruct [:height, :utxos, pending_txs: [], tx_index: 0]
 
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.State.Core
+  alias OmiseGO.API.Block
 
   def get_state_fetching_query do
     # some form of coding what we need to start up state
@@ -23,21 +26,17 @@ defmodule OmiseGO.API.State.Core do
     %__MODULE__{height: height, utxos: utxos}
   end
 
-  def exec(
-        %Transaction.Recovered{
-          raw_tx: %Transaction{fee: fee, amount1: amount1, amount2: amount2} = tx,
-          spender1: spender1,
-          spender2: spender2
-        },
-        %Core{utxos: utxos} = state
-      ) do
-    with {:ok, in_amount1} <- correct_input?(utxos, tx, 0, spender1),
+  def exec(%Transaction.Recovered{signed: signed, spender1: spender1, spender2: spender2},
+           %Core{utxos: utxos} = state) do
+    %Transaction.Signed{raw_tx: %Transaction{amount1: amount1, amount2: amount2, fee: fee} = tx} = signed
+    with :ok <- validate_block_size(state),
+         {:ok, in_amount1} <- correct_input?(utxos, tx, 0, spender1),
          {:ok, in_amount2} <- correct_input?(utxos, tx, 1, spender2),
          :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2 + fee) do
       {:ok,
        state
        |> apply_spend(tx)
-       |> add_pending_tx(tx)}
+       |> add_pending_tx(signed)}
     else
       {:error, _reason} = error -> {error, state}
     end
@@ -54,7 +53,7 @@ defmodule OmiseGO.API.State.Core do
          0,
          spender1
        ) do
-    with {:ok, utxo} <- get_utxo(utxos, {blknum, txindex, oindex}),
+         with {:ok, utxo} <- get_utxo(utxos, {blknum, txindex, oindex}),
          %{owner: owner, amount: owner_has} <- utxo,
          :ok <- is_spender?(owner, spender1),
          do: {:ok, owner_has}
@@ -123,7 +122,7 @@ defmodule OmiseGO.API.State.Core do
     # generating event triggers
     # generate requests to persistence
     # drop pending txs from state, update height etc.
-    block = %{}
+    block = %Block{transactions: Enum.reverse(txs)} |> Block.merkle_hash()
 
     event_triggers =
       txs
@@ -155,5 +154,12 @@ defmodule OmiseGO.API.State.Core do
     }
 
     {event_triggers, db_updates, new_state}
+  end
+
+  defp validate_block_size(%__MODULE__{pending_txs: txs}) do
+    case length(txs) == @maximum_block_size do
+      true -> {:error, :too_many_transactions_in_block}
+      false -> :ok
+    end
   end
 end
