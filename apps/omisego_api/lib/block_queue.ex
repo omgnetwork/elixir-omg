@@ -30,6 +30,10 @@ defmodule OmiseGO.API.BlockQueue do
     GenServer.cast(__MODULE__.Server, {:new_height, height})
   end
 
+  def update_gas_price(price) do
+    GenServer.cast(__MODULE__.Server, {:gas_price, price})
+  end
+
   defmodule Block do
     @moduledoc false
 
@@ -122,7 +126,6 @@ defmodule OmiseGO.API.BlockQueue do
         num: own_height,
         nonce: state.nonce,
         hash: hash,
-        gas: state.priority_gas_price
       }
 
       blocks = Map.put(state.blocks, own_height, block)
@@ -163,6 +166,14 @@ defmodule OmiseGO.API.BlockQueue do
     end
 
     @doc """
+    Change gas price for tx sent in future. This includes all re-submissions.
+    Allows to react to changes in Ethereum mempool.
+    """
+    def set_gas_price(state, price) do
+      %{state | priority_gas_price: price}
+    end
+
+    @doc """
     Query to get sequence of blocks that should be submitted to root chain.
     """
     @spec get_blocks_to_submit(Core.t()) ::
@@ -192,6 +203,7 @@ defmodule OmiseGO.API.BlockQueue do
       |> elem(0)
       |> Map.values()
       |> Enum.sort_by(& &1.num)
+      |> Enum.map(&(Map.put(&1, :gas, state.priority_gas_price)))
     end
 
     # :lists.seq/3 throws, so wrapper
@@ -247,6 +259,12 @@ defmodule OmiseGO.API.BlockQueue do
 
     def handle_cast({:new_height, height}, state) do
       state1 = Core.set_parent_height(state, height)
+      _ = submit_blocks(state1)
+      {:noreply, state1}
+    end
+
+    def handle_cast({:gas_price, price}, state) do
+      state1 = Core.set_gas_price(state, price)
       _ = submit_blocks(state1)
       {:noreply, state1}
     end

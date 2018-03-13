@@ -4,6 +4,7 @@ defmodule OmiseGO.API.BlockQueueTest do
   use ExUnit.Case, async: true
 
   import OmiseGO.API.BlockQueue.Core
+  import OmiseGO.API.BlockQueue.Block
 
   def hashes({:ok, blocks}) do
     for block <- blocks, do: block.hash
@@ -48,6 +49,24 @@ defmodule OmiseGO.API.BlockQueueTest do
       long  = 10000 |> make_chain() |> :erlang.term_to_binary() |> byte_size()
       short = 100 |> make_chain() |> :erlang.term_to_binary() |> byte_size()
       assert 0.9 < long/short and long/short < (1/0.9)
+    end
+
+    test "Pending tx can be resubmitted with new gas price" do
+      queue =
+        new()
+        |> set_mined(0)
+        |> set_gas_price(1)
+        |> enqueue_block("1")
+        |> enqueue_block("2")
+        |> set_parent_height(5)
+      {:ok, blocks} = get_blocks_to_submit(queue)
+      assert 1 = hd(blocks).gas
+      {:ok, blocks2} =
+        queue
+        |> set_gas_price(555)
+        |> get_blocks_to_submit()
+      assert 555 = hd(blocks2).gas
+      assert length(blocks) == length(blocks2)
     end
   end
 end
