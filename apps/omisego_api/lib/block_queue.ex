@@ -18,18 +18,27 @@ defmodule OmiseGO.API.BlockQueue do
 
   ### Client
 
+  @spec push_block(block :: hash) :: :ok
   def push_block(block) do
     GenServer.call(__MODULE__.Server, {:enqueue_block, block})
   end
 
+  @spec get_child_block_number :: {:ok, nil | pos_integer()}
+  def get_child_block_number do
+    GenServer.call(__MODULE__.Server, :get_child_number)
+  end
+
+  @spec submission_mined(block_num :: pos_integer()) :: :ok
   def submission_mined(block_num) do
     GenServer.cast(__MODULE__.Server, {:mined_head, block_num})
   end
 
+  @spec ethereum_block(height :: pos_integer()) :: :ok
   def ethereum_block(height) do
     GenServer.cast(__MODULE__.Server, {:new_height, height})
   end
 
+  @spec update_gas_price(price :: pos_integer()) :: :ok
   def update_gas_price(price) do
     GenServer.cast(__MODULE__.Server, {:gas_price, price})
   end
@@ -249,6 +258,10 @@ defmodule OmiseGO.API.BlockQueue do
       state1 = Core.enqueue_block(state, block)
       _ = submit_blocks(state1)
       {:noreply, state1}
+    end
+
+    def handle_call(:get_child_number, _from, state) do
+      {:reply, {:ok, state.constructed_num}, state}
     end
 
     def handle_cast({:mined_head, mined_num}, state) do
