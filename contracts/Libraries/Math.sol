@@ -1,4 +1,4 @@
-pragma solidity 0.4.18;
+pragma solidity ^0.4.18;
 
 
 library Math {
@@ -7,7 +7,7 @@ library Math {
         pure
         returns (uint256)
     {
-        if (a > b) 
+        if (a > b)
             return a;
         return b;
     }
