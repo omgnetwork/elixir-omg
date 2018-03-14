@@ -19,46 +19,44 @@ defmodule OmiseGO.API.BlockQueue do
 
   ### Client
 
-  @spec push_block(block :: hash) :: :ok
-  def push_block(block) do
-    GenServer.call(__MODULE__.Server, {:enqueue_block, block})
+  @spec enqueue_child_block(block :: hash) :: :ok
+  def enqueue_child_block(block) do
+    GenServer.call(__MODULE__.Server, {:enqueue_child_block, block})
+  end
+
+  @spec mined_child_head(block_num :: pos_integer()) :: :ok
+  def mined_child_head(block_num) do
+    GenServer.cast(__MODULE__.Server, {:mined_child_head, block_num})
+  end
+
+  @spec new_ethereum_height(height :: pos_integer()) :: :ok
+  def new_ethereum_height(height) do
+    GenServer.cast(__MODULE__.Server, {:new_ethereum_height, height})
   end
 
   @spec get_child_block_number :: {:ok, nil | pos_integer()}
   def get_child_block_number do
-    GenServer.call(__MODULE__.Server, :get_child_number)
-  end
-
-  @spec submission_mined(block_num :: pos_integer()) :: :ok
-  def submission_mined(block_num) do
-    GenServer.cast(__MODULE__.Server, {:mined_head, block_num})
-  end
-
-  @spec ethereum_block(height :: pos_integer()) :: :ok
-  def ethereum_block(height) do
-    GenServer.cast(__MODULE__.Server, {:new_height, height})
+    GenServer.call(__MODULE__.Server, :get_child_block_number)
   end
 
   @spec update_gas_price(price :: pos_integer()) :: :ok
   def update_gas_price(price) do
-    GenServer.cast(__MODULE__.Server, {:gas_price, price})
+    GenServer.cast(__MODULE__.Server, {:update_gas_price, price})
   end
 
-  defmodule Block do
+  defmodule BlockSubmission do
     @moduledoc false
 
-    alias OmiseGO.API.BlockQueue, as: Lib
+    alias OmiseGO.API.BlockQueue, as: BlockQueue
 
     @type t() :: %{
-            num: Lib.plasma_block_num(),
-            hash: Lib.hash(),
+            num: BlockQueue.plasma_block_num(),
+            hash: BlockQueue.hash(),
             nonce: non_neg_integer(),
             gas: pos_integer()
           }
     defstruct [:num, :hash, :nonce, :gas]
   end
-
-  ### Core, purely functional, testable
 
   defmodule Core do
     @moduledoc """
@@ -67,8 +65,8 @@ defmodule OmiseGO.API.BlockQueue do
     (thus, it handles config values as internal variables)
     """
 
-    alias OmiseGO.API.BlockQueue, as: Lib
-    alias OmiseGO.API.BlockQueue.Block, as: Block
+    alias OmiseGO.API.BlockQueue, as: BlockQueue
+    alias OmiseGO.API.BlockQueue.BlockSubmission, as: BlockSubmission
 
     defstruct [
       :blocks,
@@ -85,13 +83,13 @@ defmodule OmiseGO.API.BlockQueue do
     ]
 
     @type t() :: %__MODULE__{
-            blocks: %{pos_integer() => %Block{}},
+            blocks: %{pos_integer() => %BlockSubmission{}},
             # last mined block num
-            mined_num: nil | Lib.plasma_block_num(),
+            mined_num: nil | BlockQueue.plasma_block_num(),
             # newest constructed block num
-            constructed_num: nil | Lib.plasma_block_num(),
+            constructed_num: nil | BlockQueue.plasma_block_num(),
             # current Ethereum block height
-            parent_height: nil | Lib.eth_height(),
+            parent_height: nil | BlockQueue.eth_height(),
             # next nonce of account used to submit blocks
             nonce: non_neg_integer(),
             # gas price to use when (re)submitting transactions
@@ -128,11 +126,11 @@ defmodule OmiseGO.API.BlockQueue do
       }
     end
 
-    @spec enqueue_block(Core.t(), Lib.hash()) :: Core.t()
+    @spec enqueue_block(Core.t(), BlockQueue.hash()) :: Core.t()
     def enqueue_block(state, hash) do
       own_height = state.constructed_num + state.child_block_interval
 
-      block = %Block{
+      block = %BlockSubmission{
         num: own_height,
         nonce: state.nonce,
         hash: hash,
@@ -153,7 +151,7 @@ defmodule OmiseGO.API.BlockQueue do
     be monotonically increasing. Due to construction of contract we know it does not
     contain holes so we care only about highest number.
     """
-    @spec set_mined(Core.t(), Lib.plasma_block_num()) :: Core.t()
+    @spec set_mined(Core.t(), BlockQueue.plasma_block_num()) :: Core.t()
     def set_mined(%{constructed_num: nil} = state, mined_num) do
       set_mined(%{state | constructed_num: mined_num}, mined_num)
     end
@@ -162,15 +160,15 @@ defmodule OmiseGO.API.BlockQueue do
       num_threshold = mined_num - state.child_block_interval * state.finality_threshold
       young? = fn {_, block} -> block.num > num_threshold end
       blocks = state.blocks |> Enum.filter(young?) |> Map.new()
-      constr = max(mined_num, state.constructed_num)
+      top_known_block = max(mined_num, state.constructed_num)
 
-      %{state | constructed_num: constr, mined_num: mined_num, blocks: blocks}
+      %{state | constructed_num: top_known_block, mined_num: mined_num, blocks: blocks}
     end
 
     @doc """
     Set height of Ethereum chain.
     """
-    @spec set_parent_height(Core.t(), Lib.eth_height()) :: Core.t()
+    @spec set_parent_height(Core.t(), BlockQueue.eth_height()) :: Core.t()
     def set_parent_height(state, parent_height) do
       %{state | parent_height: parent_height}
     end
@@ -187,7 +185,7 @@ defmodule OmiseGO.API.BlockQueue do
     Query to get sequence of blocks that should be submitted to root chain.
     """
     @spec get_blocks_to_submit(Core.t()) ::
-            {:ok, [Lib.encoded_signed_tx()]} | {:error, :uninitialized}
+            {:ok, [BlockQueue.encoded_signed_tx()]} | {:error, :uninitialized}
     def get_blocks_to_submit(state) do
       case ready?(state) do
         false -> {:error, :uninitialized}
@@ -239,8 +237,6 @@ defmodule OmiseGO.API.BlockQueue do
     end
   end
 
-  ### Server, part of imperative shell
-
   defmodule Server do
     @moduledoc """
     Stores core's state, handles timing of calls to root chain.
@@ -254,32 +250,33 @@ defmodule OmiseGO.API.BlockQueue do
       {:ok, Core.new()}
     end
 
-    def handle_call({:enqueue_block, block}, from, state) do
+    def handle_call({:enqueue_child_block, block}, from, state) do
       GenServer.reply(from, :ok)
       state1 = Core.enqueue_block(state, block)
-      _ = submit_blocks(state1)
+      submit_blocks(state1)
       {:noreply, state1}
     end
 
-    def handle_call(:get_child_number, _from, state) do
+    def handle_call(:get_child_block_number, _from, state) do
       {:reply, {:ok, state.constructed_num}, state}
     end
 
-    def handle_cast({:mined_head, mined_num}, state) do
+    def handle_cast({:mined_child_head, mined_num}, state) do
       state1 = Core.set_mined(state, mined_num)
-      _ = submit_blocks(state1)
+      submit_blocks(state1)
       {:noreply, state1}
     end
 
-    def handle_cast({:new_height, height}, state) do
+    def handle_cast({:new_ethereum_height, height}, state) do
       state1 = Core.set_parent_height(state, height)
-      _ = submit_blocks(state1)
+      submit_blocks(state1)
       {:noreply, state1}
     end
 
-    def handle_cast({:gas_price, price}, state) do
+    def handle_cast({:update_gas_price, price}, state) do
       state1 = Core.set_gas_price(state, price)
-      _ = submit_blocks(state1)
+      # resubmit pending tx with new gas; allowing them to be mined if price is higher
+      submit_blocks(state1)
       {:noreply, state1}
     end
 

@@ -71,7 +71,7 @@ defmodule OmiseGO.API.State do
     # GenServer.call
     :ok = DB.multi_update(db_updates)
     # GenServer.cast
-    BlockQueue.push_block(block)
+    BlockQueue.enqueue_child_block(block)
     {:noreply, new_state}
   end
 end
