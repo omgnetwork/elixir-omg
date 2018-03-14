@@ -10,13 +10,9 @@ defmodule OmiseGO.API.BlockQueueTest do
     for block <- blocks, do: block.hash
   end
 
-  def flip(flipped_fun) when is_function(flipped_fun, 2) do
-    fn(x, y) -> flipped_fun.(y, x) end
-  end
-
   def make_chain(length) do
     1..length
-    |> Enum.reduce(set_mined(new(), 0), flip(&enqueue_block/2))
+    |> Enum.reduce(set_mined(new(), 0), fn(hash, state) -> enqueue_block(state, hash) end)
     |> set_parent_height(length)
     |> set_mined(length * 1000)
   end
