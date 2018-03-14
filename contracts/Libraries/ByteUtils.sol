@@ -1,4 +1,4 @@
-pragma solidity 0.4.18;
+pragma solidity ^0.4.18;
 
 
 /**
@@ -13,17 +13,17 @@ library ByteUtils {
         pure
         returns (bytes)
     {
-        
+
         bytes memory tempBytes;
-        
+
         assembly {
             tempBytes := mload(0x40)
-            
+
             let lengthmod := and(_length, 31)
-            
+
             let mc := add(tempBytes, lengthmod)
             let end := add(mc, _length)
-            
+
             for {
                 let cc := add(add(_bytes, lengthmod), _start)
             } lt(mc, end) {
@@ -32,14 +32,14 @@ library ByteUtils {
             } {
                 mstore(mc, mload(cc))
             }
-            
+
             mstore(tempBytes, _length)
-            
+
             //update free-memory pointer
             //allocating the array padded to 32 bytes like the compiler does now
             mstore(0x40, and(add(mc, 31), not(31)))
         }
-        
+
         return tempBytes;
     }
 }

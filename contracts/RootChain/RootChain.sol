@@ -1,4 +1,4 @@
-pragma solidity 0.4.18;
+pragma solidity ^0.4.18;
 import 'SafeMath.sol';
 import 'Math.sol';
 import 'RLP.sol';
@@ -59,7 +59,7 @@ contract RootChain {
 
     modifier incrementOldBlocks() {
         while (childChain[weekOldBlock].created_at < block.timestamp.sub(1 weeks)) {
-            if (childChain[weekOldBlock].created_at == 0) 
+            if (childChain[weekOldBlock].created_at == 0)
                 break;
             weekOldBlock = weekOldBlock.add(1);
         }
@@ -202,7 +202,7 @@ contract RootChain {
         }
     }
 
-    /* 
+    /*
      *  Constants
      */
     function getChildChain(uint256 blockNumber)
