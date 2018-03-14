@@ -19,11 +19,6 @@ defmodule OmiseGO.API.BlockQueue do
 
   ### Client
 
-  @spec enqueue_child_block(block :: hash) :: :ok
-  def enqueue_child_block(block) do
-    GenServer.call(__MODULE__.Server, {:enqueue_child_block, block})
-  end
-
   @spec mined_child_head(block_num :: pos_integer()) :: :ok
   def mined_child_head(block_num) do
     GenServer.cast(__MODULE__.Server, {:mined_child_head, block_num})
@@ -73,7 +68,6 @@ defmodule OmiseGO.API.BlockQueue do
       :mined_num,
       :constructed_num,
       :parent_height,
-      nonce: 0,
       priority_gas_price: 20_000_000_000,
       # config:
       child_block_interval: 1000,
@@ -90,8 +84,6 @@ defmodule OmiseGO.API.BlockQueue do
             constructed_num: nil | BlockQueue.plasma_block_num(),
             # current Ethereum block height
             parent_height: nil | BlockQueue.eth_height(),
-            # next nonce of account used to submit blocks
-            nonce: non_neg_integer(),
             # gas price to use when (re)submitting transactions
             priority_gas_price: pos_integer(),
             # CONFIG CONSTANTS below
@@ -110,7 +102,6 @@ defmodule OmiseGO.API.BlockQueue do
     end
 
     def new(
-          nonce: nonce,
           child_block_interval: child_block_interval,
           chain_start_parent_height: child_start_parent_height,
           submit_period: submit_period,
@@ -118,7 +109,6 @@ defmodule OmiseGO.API.BlockQueue do
         ) do
       %__MODULE__{
         blocks: Map.new(),
-        nonce: nonce,
         child_block_interval: child_block_interval,
         chain_start_parent_height: child_start_parent_height,
         submit_period: submit_period,
@@ -129,15 +119,16 @@ defmodule OmiseGO.API.BlockQueue do
     @spec enqueue_block(Core.t(), BlockQueue.hash()) :: Core.t()
     def enqueue_block(state, hash) do
       own_height = state.constructed_num + state.child_block_interval
+      nonce = trunc(own_height / state.child_block_interval)
 
       block = %BlockSubmission{
         num: own_height,
-        nonce: state.nonce,
-        hash: hash,
+        nonce: nonce,
+        hash: hash
       }
 
       blocks = Map.put(state.blocks, own_height, block)
-      %{state | constructed_num: own_height, blocks: blocks, nonce: state.nonce + 1}
+      %{state | constructed_num: own_height, blocks: blocks}
     end
 
     @doc """
@@ -182,20 +173,18 @@ defmodule OmiseGO.API.BlockQueue do
     end
 
     @doc """
-    Query to get sequence of blocks that should be submitted to root chain.
+    Check if new block should be formed.
     """
-    @spec get_blocks_to_submit(Core.t()) ::
-            {:ok, [BlockQueue.encoded_signed_tx()]} | {:error, :uninitialized}
-    def get_blocks_to_submit(state) do
-      case ready?(state) do
-        false -> {:error, :uninitialized}
-        true -> {:ok, blocks_to_submit(state)}
-      end
+    @spec create_block?(Core.t()) :: true | false
+    def create_block?(state) do
+      max_num(state) == state.constructed_num
     end
 
-    # private (core)
-
-    defp blocks_to_submit(state) do
+    @doc """
+    Query to get sequence of blocks that should be submitted to root chain.
+    """
+    @spec get_blocks_to_submit(Core.t()) :: [BlockQueue.encoded_signed_tx()]
+    def get_blocks_to_submit(state) do
       %{
         blocks: blocks,
         mined_num: mined_num,
@@ -203,16 +192,17 @@ defmodule OmiseGO.API.BlockQueue do
         child_block_interval: block_interval
       } = state
 
-      range = make_range(mined_num + block_interval, constructed, block_interval)
-      block_nums = rate_limiting_cutoff(range, state)
+      block_nums = make_range(mined_num + block_interval, constructed, block_interval)
 
       blocks
       |> Map.split(block_nums)
       |> elem(0)
       |> Map.values()
       |> Enum.sort_by(& &1.num)
-      |> Enum.map(&(Map.put(&1, :gas, state.priority_gas_price)))
+      |> Enum.map(&Map.put(&1, :gas, state.priority_gas_price))
     end
+
+    # private (core)
 
     # :lists.seq/3 throws, so wrapper
     defp make_range(first, last, _) when first >= last, do: []
@@ -221,19 +211,9 @@ defmodule OmiseGO.API.BlockQueue do
       :lists.seq(first, last, step)
     end
 
-    defp rate_limiting_cutoff(list, state) do
-      max_num = max_num(state)
-      for num <- list, num <= max_num, do: num
-    end
-
     defp max_num(state) do
       (1 + trunc((state.parent_height - state.chain_start_parent_height) / state.submit_period)) *
         state.child_block_interval
-    end
-
-    @spec ready?(Core.t()) :: boolean
-    defp ready?(state) do
-      state.mined_num != nil and state.constructed_num != nil and state.parent_height != nil
     end
   end
 
@@ -247,30 +227,20 @@ defmodule OmiseGO.API.BlockQueue do
     use GenServer
 
     def init(:ok) do
-      {:ok, Core.new()}
-    end
-
-    def handle_call({:enqueue_child_block, block}, from, state) do
-      GenServer.reply(from, :ok)
-      state1 = Core.enqueue_block(state, block)
-      submit_blocks(state1)
-      {:noreply, state1}
+      with {:ok, parent_height} <- Eth.get_ethereum_height(),
+           {:ok, mined_num} <- Eth.get_current_child_block() do
+        {:ok, _} = :timer.send_interval(1000, self(), :check_mined_child_head)
+        {:ok, _} = :timer.send_interval(1000, self(), :check_ethereum_height)
+        state =
+          Core.new()
+          |> Core.set_mined(mined_num)
+          |> Core.set_parent_height(parent_height)
+        {:ok, state}
+      end
     end
 
     def handle_call(:get_child_block_number, _from, state) do
       {:reply, {:ok, state.constructed_num}, state}
-    end
-
-    def handle_cast({:mined_child_head, mined_num}, state) do
-      state1 = Core.set_mined(state, mined_num)
-      submit_blocks(state1)
-      {:noreply, state1}
-    end
-
-    def handle_cast({:new_ethereum_height, height}, state) do
-      state1 = Core.set_parent_height(state, height)
-      submit_blocks(state1)
-      {:noreply, state1}
     end
 
     def handle_cast({:update_gas_price, price}, state) do
@@ -280,7 +250,33 @@ defmodule OmiseGO.API.BlockQueue do
       {:noreply, state1}
     end
 
+    def handle_info(:check_mined_child_head, state) do
+      {:ok, mined_num} = Eth.get_current_child_block()
+      state1 = Core.set_mined(state, mined_num)
+      submit_blocks(state1)
+      {:noreply, state1}
+    end
+
+    def handle_info(:check_ethereum_height, state) do
+      with {:ok, height} <- Eth.get_ethereum_height(),
+           state1 <- Core.set_parent_height(state, height),
+           true <- create_block(state1),
+           {:ok, block_hash} <- OmiseGO.API.State.form_block(),
+           state2 <- Core.enqueue_block(state1, block_hash) do
+        submit_blocks(state2)
+        {:noreply, state2}
+      end
+    end
+
     # private (server)
+
+    @spec create_block(Core.t()) :: true | {:noreply, Core.t()}
+    def create_block(state) do
+      case Core.create_block?(state) do
+        true -> true
+        false -> {:noreply, state}
+      end
+    end
 
     @spec submit_blocks(Core.t()) :: :ok
     defp submit_blocks(state) do
