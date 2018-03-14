@@ -10,7 +10,10 @@ defmodule OmiseGO.DB do
 
   def tx(_hash), do: :not_implemented
 
-  def blocks(_blocks_to_fetch), do: :not_implemented
+  @spec blocks(block_to_fetch :: list(integer)) :: map
+  def blocks(_blocks_to_fetch) do
+    %{}
+  end
 
   def utxos, do: :not_implemented
 
