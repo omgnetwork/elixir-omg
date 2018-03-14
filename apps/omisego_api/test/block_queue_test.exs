@@ -6,7 +6,7 @@ defmodule OmiseGO.API.BlockQueueTest do
   import OmiseGO.API.BlockQueue.Core
   import OmiseGO.API.BlockQueue.BlockSubmission
 
-  def hashes({:ok, blocks}) do
+  def hashes(blocks) do
     for block <- blocks, do: block.hash
   end
 
@@ -23,15 +23,11 @@ defmodule OmiseGO.API.BlockQueueTest do
 
   describe "Block queue." do
     test "No submitBlock will be sent until properly initialized" do
-      assert {:error, :uninitialized} =
-        new()
-        |> set_mined(0)
-        |> enqueue_block(1)
-        |> get_blocks_to_submit()
+      catch_error get_blocks_to_submit(new())
     end
 
     test "Smoke test" do
-      assert ["3"] =
+      assert ["3", "4", "5"] =
         new()
         |> set_mined(0)
         |> enqueue_block("1")
@@ -59,9 +55,9 @@ defmodule OmiseGO.API.BlockQueueTest do
         |> enqueue_block("1")
         |> enqueue_block("2")
         |> set_parent_height(5)
-      {:ok, blocks} = get_blocks_to_submit(queue)
+      blocks = get_blocks_to_submit(queue)
       assert 1 = hd(blocks).gas
-      {:ok, blocks2} =
+      blocks2 =
         queue
         |> set_gas_price(555)
         |> get_blocks_to_submit()
