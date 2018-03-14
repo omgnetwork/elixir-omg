@@ -1,38 +1,76 @@
 defmodule OmiseGO.DB do
-
-  # Types-aware adapter to the db backend
+  @moduledoc """
+  Our-types-aware port/adapter to the db backend
+  """
 
   ### Client (port)
 
-  def multi_update(_db_updates), do: :not_implemented
-
-  def multi_get(_db_queries), do: :not_implemented
-
-  def tx(_hash), do: :not_implemented
-
-  def blocks(_blocks_to_fetch), do: :not_implemented
-
-  def utxos, do: :not_implemented
-
-  def height, do: :not_implemented
-
-  defmodule Core do
-    @moduledoc """
-    Responsible for converting type-aware, logic-specific queries (updates) into backend specific queries (updates)
-    """
-
-    # adapter - testable, if we really really want to
-
-    def parse_multi_update(_db_updates) do
-      # parse
-      _raw_updates = []
-    end
-
-    def blocks_query(_blocks_to_fetch) do
-      # prepare
-      _block_query = ""
-    end
-
+  def start_link do
+    GenServer.start_link(OmiseGO.DB.LevelDBServer, :ok, name: OmiseGO.DB.LevelDBServer)
   end
 
+  def multi_update(db_updates) do
+    GenServer.call(OmiseGO.DB.LevelDBServer, {:multi_update, db_updates})
+  end
+
+  def tx(hash) do
+    GenServer.call(OmiseGO.DB.LevelDBServer, {:tx, hash})
+  end
+
+  def blocks(blocks_to_fetch) do
+    GenServer.call(OmiseGO.DB.LevelDBServer, {:blocks, blocks_to_fetch})
+  end
+
+  def utxos do
+    GenServer.call(OmiseGO.DB.LevelDBServer, {:utxos})
+  end
+
+  defmodule LevelDBServer do
+    @moduledoc """
+    Server handling a db connection to leveldb
+    """
+    defstruct [:db_ref]
+
+    use GenServer
+
+    alias OmiseGO.DB.LevelDBCore
+
+    import Exleveldb
+
+    def init(:ok) do
+      {:ok, db_ref} = open("/home/user/.omisego/data")
+      {:ok, %__MODULE__{db_ref: db_ref}}
+    end
+
+    def handle_call({:tx, hash}, _from, %__MODULE__{db_ref: db_ref} = state) do
+      key = LevelDBCore.tx_key(hash)
+      result = get(db_ref, key)
+      {:reply, result, state}
+    end
+
+    def handle_call({:blocks, blocks_to_fetch}, _from, %__MODULE__{db_ref: db_ref} = state) do
+      result =
+        blocks_to_fetch
+        |> Enum.map(&LevelDBCore.block_key/1)
+        |> Enum.map(fn key -> get(db_ref, key) end)
+      {:reply, result, state}
+    end
+
+    def handle_call({:utxos}, _from, %__MODULE__{db_ref: db_ref} = state) do
+      with key <- LevelDBCore.utxo_list_key(),
+           {:ok, utxo_list} <- get(db_ref, key),
+           utxso_keys <- Enum.map(utxo_list, &LevelDBCore.utxo_key/1),
+           result <- Enum.map(utxso_keys, fn key -> get(db_ref, key) end),
+           do: {:reply, result, state}
+    end
+
+    def handle_call({:multi_update, db_updates}, _from, %__MODULE__{db_ref: db_ref} = state) do
+      operations =
+        db_updates
+        |> LevelDBCore.parse_multi_updates
+
+      :ok = write(db_ref, operations)
+      {:reply, :ok, state}
+    end
+  end
 end

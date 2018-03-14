@@ -397,12 +397,6 @@ defmodule OmiseGO.API.State.CoreTest do
 
   end
 
-  test "core generates the db query" do
-    # NOTE: trivial test, considering current behavior, but might evolve... hm
-    # FIXME
-    assert "correct query" == Core.get_state_fetching_query()
-  end
-
   # TODO: other?
 
   defp do_deposit(state, owner, amount) do
