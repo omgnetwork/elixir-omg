@@ -2,6 +2,10 @@ defmodule OmiseGO.DB do
   @moduledoc """
   Our-types-aware port/adapter to the db backend
   """
+  # TODO 1: leveldb interactions should be polished out.
+  #         Includes better than Poison value encoding, overhaulf of key encoding,
+  #         smoke-test (smoke test can be a temporary thing), iron out shell-core interactions
+  # TODO 2: still needs to be integrated into other components and integration-tested
 
   ### Client (port)
 
@@ -25,6 +29,10 @@ defmodule OmiseGO.DB do
 
   def utxos do
     GenServer.call(OmiseGO.DB.LevelDBServer, {:utxos})
+  end
+
+  def height do
+    :to_be_implemented
   end
 
   defmodule LevelDBServer do
