@@ -20,6 +20,9 @@ defmodule OmiseGO.Eth do
   end
 
   defmodule Transaction do
+    @moduledoc """
+    struct contain data required by submit block
+    """
     defstruct [:root_hash, :nonce, :gas_price]
   end
 
