@@ -23,7 +23,7 @@ podTemplate(
         }
 
         stage('Build Geth temp') {
-          withEnv(["GETHPATH=go_ether","GETH_VERSION=release/1.7" ])
+          withEnv(["GETHPATH=go_ethereum","GETH_VERSION=release/1.7" ]){
             sh("\
             # NOTE: getting from ppa doesn't work, so building from source\
             RUN set -xe && \
@@ -37,6 +37,7 @@ podTemplate(
                 cd build/bin && \
                 export PATH=$PATH:${PWD} && \
                 geth version")
+          }
         }
 
         stage('Test') {
