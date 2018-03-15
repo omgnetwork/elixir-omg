@@ -39,12 +39,16 @@ defmodule OmiseGO.DB do
 
     def init(:ok) do
       {:ok, db_ref} = open("/home/user/.omisego/data")
+      Process.flag(:trap_exit, true)
       {:ok, %__MODULE__{db_ref: db_ref}}
     end
 
     def handle_call({:tx, hash}, _from, %__MODULE__{db_ref: db_ref} = state) do
-      key = LevelDBCore.tx_key(hash)
-      result = get(db_ref, key)
+      result =
+        with key <- LevelDBCore.tx_key(hash),
+             {:ok, value} <- get(db_ref, key),
+             {:ok, decoded} <- LevelDBCore.decode_value(:tx, value),
+             do: {:ok, decoded}
       {:reply, result, state}
     end
 
@@ -53,14 +57,15 @@ defmodule OmiseGO.DB do
         blocks_to_fetch
         |> Enum.map(&LevelDBCore.block_key/1)
         |> Enum.map(fn key -> get(db_ref, key) end)
+        |> Enum.map(fn {:ok, value} -> LevelDBCore.decode_value(:block, value) end)
       {:reply, result, state}
     end
 
     def handle_call({:utxos}, _from, %__MODULE__{db_ref: db_ref} = state) do
       with key <- LevelDBCore.utxo_list_key(),
            {:ok, utxo_list} <- get(db_ref, key),
-           utxso_keys <- Enum.map(utxo_list, &LevelDBCore.utxo_key/1),
-           result <- Enum.map(utxso_keys, fn key -> get(db_ref, key) end),
+           utxo_keys <- Enum.map(utxo_list, &LevelDBCore.utxo_key/1),
+           result <- Enum.map(utxo_keys, fn key -> get(db_ref, key) end),
            do: {:reply, result, state}
     end
 
