@@ -31,7 +31,7 @@ podTemplate(
                 cd ${GETHPATH} && \
                 git init && \
                 git remote add origin https://github.com/ethereum/go-ethereum && \
-                git fetch --depth 1 origin "${GETH_VERSION}" && \
+                git fetch --depth 1 origin ${GETH_VERSION} && \
                 git checkout FETCH_HEAD && \
                 make geth && \
                 cd build/bin && \
