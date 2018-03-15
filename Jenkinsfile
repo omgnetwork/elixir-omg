@@ -36,8 +36,7 @@ podTemplate(
                 make geth && \
                 cd build/bin && \
                 export PATH=$PATH:${PWD} && \
-                geth version
-            ")
+                geth version")
         }
 
         stage('Test') {
