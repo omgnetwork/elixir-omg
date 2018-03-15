@@ -3,7 +3,7 @@ defmodule OmiseGO.EthTest do
   alias OmiseGO.Eth.WaitFor, as: WaitFor
 
   use ExUnitFixtures
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   doctest OmiseGO.Eth
 
@@ -16,7 +16,7 @@ defmodule OmiseGO.EthTest do
     contract_address
   end
 
-  def set_new_contract() do
+  def set_new_contract do
     _ = Application.ensure_all_started(:ethereumex)
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
 
