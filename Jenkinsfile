@@ -24,9 +24,7 @@ podTemplate(
 
         stage('Build Geth temp') {
           withEnv(["GETHPATH=go_ethereum","GETH_VERSION=release/1.7"]){
-            sh("\
-            RUN set -xe && \
-                mkdir -p ${GETHPATH} && \
+            sh("mkdir -p ${GETHPATH} && \
                 cd ${GETHPATH} && \
                 git init && \
                 git remote add origin https://github.com/ethereum/go-ethereum && \
