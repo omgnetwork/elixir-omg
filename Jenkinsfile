@@ -23,6 +23,11 @@ podTemplate(
         }
 
         stage('Build Geth temp') {
+          sh("export PATH=/usr/local/go/bin:${PATH}")
+          withEnv(["GOLANG_VERSION=\"1.9.2\""]) {
+            sh("GOLANG_DOWNLOAD_URL=\"https://golang.org/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz\" && GOLANG_DOWNLOAD_SHA256=\"de874549d9a8d8d8062be05808509c09a88a248e77ec14eb77453530829ac02b\" && curl -fSL -o golang-bin.tar.gz \"${GOLANG_DOWNLOAD_URL}\" && echo \"${GOLANG_DOWNLOAD_SHA256}  golang-bin.tar.gz\" | sha256sum -c - && tar -xzC /usr/local -f golang-bin.tar.gz && rm golang-bin.tar.gz")
+          }
+          sh("go version")
           withEnv(["GETHPATH=\"/go_ethereum\"", "GETH_VERSION=\"v1.7.3\""]) {
             sh("mkdir -p ${GETHPATH}")
           }
