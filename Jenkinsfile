@@ -23,13 +23,9 @@ podTemplate(
         }
 
         stage('Build Geth temp') {
-          withEnv(["GETHPATH=go_ether","GETH_VERSION=release/1.8" ])
-            sh("
-            # NOTE: fixed version 1.7.3 for now
-            ENV GETH_VERSION="v1.7.3"
-
-            # geth
-            # NOTE: getting from ppa doesn't work, so building from source
+          withEnv(["GETHPATH=go_ether","GETH_VERSION=release/1.7" ])
+            sh("\
+            # NOTE: getting from ppa doesn't work, so building from source\
             RUN set -xe && \
                 mkdir -p ${GETHPATH} && \
                 cd ${GETHPATH} && \
