@@ -29,7 +29,12 @@ use Mix.Config
 #
 #     import_config "#{Mix.env}.exs"
 config :omisego_eth,
-    contract: 0x42,
+    contract: "contract_addres",
+    omg_addr: "omg_addres",
+    root_path: "../../"
 
 config :ethereumex,
+  scheme: "http",
+  host: "localhost",
+  port: 8545,
   url: "http://localhost:8545"

@@ -25,7 +25,10 @@ defmodule OmiseGO.Eth.MixProject do
 
   defp deps do
     [
-      {:ethereumex, "~> 0.3.1"}
+      {:abi, git: "https://github.com/omisego/abi.git", branch: "add_bytes32"},
+      {:ethereumex, git: "https://github.com/omisego/ethereumex.git", branch: "fix_spec", override: true},
+      {:temp, "~> 0.4"},
+      {:porcelain, "~> 2.0"}
     ]
   end
 end
