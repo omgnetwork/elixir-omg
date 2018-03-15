@@ -9,11 +9,13 @@ defmodule OmiseGO.API.State.Core do
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.State.Core
 
-  def extract_initial_state(_utxos_query_result) do
-    # extract utxos from query result
+  def extract_initial_state(_utxos_query_result, _height_query_result) do
+    # extract height and utxos from query result
+    # FIXME
+    height = 1
     # FIXME
     utxos = %{}
-    %__MODULE__{height: 1, utxos: utxos}
+    %__MODULE__{height: height, utxos: utxos}
   end
 
   def exec(

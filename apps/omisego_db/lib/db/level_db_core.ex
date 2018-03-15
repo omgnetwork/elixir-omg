@@ -18,6 +18,10 @@ defmodule OmiseGO.DB.LevelDBCore do
   defp parse_multi_update({:delete, :block, block}), do: {:delete, block_key(block)}
   defp parse_multi_update({:delete, :utxo, utxo}), do: {:delete, utxo_key(utxo)}
 
+  def decode_value(:block, encoded), do: Poison.decode(encoded)
+  def decode_value(:tx, encoded), do: Poison.decode(encoded)
+  def decode_value(:utxo, encoded), do: Poison.decode(encoded)
+
   defp encode_value(value), do: Poison.encode!(value)
 
   def tx_key(%{hash: hash} = _tx) do
