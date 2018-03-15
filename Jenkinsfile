@@ -23,18 +23,16 @@ podTemplate(
         }
 
         stage('Build Geth temp') {
-          withEnv(["GETHPATH=go_ethereum","GETH_VERSION=release/1.7"]){
-            sh("mkdir -p ${GETHPATH} && \
-                cd ${GETHPATH} && \
-                git init && \
-                git remote add origin https://github.com/ethereum/go-ethereum && \
-                git fetch --depth 1 origin ${GETH_VERSION} && \
-                git checkout FETCH_HEAD && \
-                make geth && \
-                cd build/bin && \
-                export PATH=$PATH:${PWD} && \
-                geth version")
+          withEnv(["GETHPATH=\"/go_ethereum\"", "GETH_VERSION=\"v1.7.3\""]) {
+            sh("mkdir -p ${GETHPATH}")
           }
+          withEnv(["GETHPATH=\"/go_ethereum\"", "GETH_VERSION=\"v1.7.3\""]) {
+            sh("cd ${GETHPATH} && git init && git remote add origin https://github.com/ethereum/go-ethereum && git fetch --depth 1 origin \"${GETH_VERSION}\" && git checkout FETCH_HEAD && make geth")
+          }
+          withEnv(["GETHPATH=\"/go_ethereum\"", "GETH_VERSION=\"v1.7.3\""]) {
+            sh("export PATH=\"${GETHPATH}/build/bin/:${PATH}\"")
+          }
+          sh("geth version")
         }
 
         stage('Test') {
