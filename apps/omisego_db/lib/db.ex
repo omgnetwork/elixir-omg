@@ -17,6 +17,8 @@ defmodule OmiseGO.DB do
     GenServer.call(OmiseGO.DB.LevelDBServer, {:tx, hash})
   end
 
+  # TODO: FreshBlocks fetches by block number and returns by block number, while we probably want by block hash
+  @spec blocks(block_to_fetch :: list()) :: {:ok, map} | {:error, any}
   def blocks(blocks_to_fetch) do
     GenServer.call(OmiseGO.DB.LevelDBServer, {:blocks, blocks_to_fetch})
   end
