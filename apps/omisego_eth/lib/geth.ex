@@ -1,4 +1,4 @@
-defmodule OmiseGO.Integration.Geth do
+defmodule OmiseGO.Eth.Geth do
   @moduledoc """
   Helper module for deployment of contracts to dev geth.
   """
@@ -6,10 +6,10 @@ defmodule OmiseGO.Integration.Geth do
   def start do
     # NOTE: Warnings produced here are result of Temp+Porcelain.Process being broken
     # NOTE: Dropping Temp or using Porcelain.Result instead of Process prevents warnings
-    Temp.track!
-    homedir = Temp.mkdir!(%{prefix: "omisego_eth_test_homedir"})
+    Temp.track!()
+    homedir = Temp.mkdir!(%{prefix: "honted_eth_test_homedir"})
     res = launch("geth --dev --rpc --datadir #{homedir} 2>&1")
-    {:ok, :ready} = OmiseGO.Integration.WaitFor.eth_rpc()
+    {:ok, :ready} = OmiseGO.Eth.WaitFor.eth_rpc()
     res
   end
 
@@ -23,10 +23,10 @@ defmodule OmiseGO.Integration.Geth do
   # PRIVATE
   defp launch(cmd) do
     geth_pids = geth_os_pids()
-    geth_proc = %Porcelain.Process{err: nil, out: geth_out} = Porcelain.spawn_shell(
-      cmd,
-      out: :stream,
-    )
+
+    geth_proc =
+      %Porcelain.Process{err: nil, out: geth_out} = Porcelain.spawn_shell(cmd, out: :stream)
+
     geth_pids_after = geth_os_pids()
     wait_for_geth_start(geth_out)
     [geth_os_pid] = geth_pids_after -- geth_pids
@@ -36,12 +36,28 @@ defmodule OmiseGO.Integration.Geth do
 
   defp geth_os_pids do
     %{out: out} = Porcelain.shell("pidof geth")
+
     out
-    |> String.trim
-    |> String.split
+    |> String.trim()
+    |> String.split()
+  end
+
+  def wait_for_start(outstream, look_for, timeout) do
+    # Monitors the stdout coming out of a process for signal of successful startup
+    waiting_task_function = fn ->
+      outstream
+      |> Stream.take_while(fn line -> not String.contains?(line, look_for) end)
+      |> Enum.to_list()
+    end
+
+    waiting_task_function
+    |> Task.async()
+    |> Task.await(timeout)
+
+    :ok
   end
 
   defp wait_for_geth_start(geth_out) do
-    OmiseGO.Integration.wait_for_start(geth_out, "IPC endpoint opened", 3000)
+    wait_for_start(geth_out, "IPC endpoint opened", 3000)
   end
 end
