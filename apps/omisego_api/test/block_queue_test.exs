@@ -4,7 +4,7 @@ defmodule OmiseGO.API.BlockQueueTest do
   use ExUnit.Case, async: true
 
   import OmiseGO.API.BlockQueue.Core
-  import OmiseGO.API.BlockQueue.BlockSubmission
+  import OmiseGO.API.BlockQueue.Core.BlockSubmission
 
   def hashes(blocks) do
     for block <- blocks, do: block.hash
