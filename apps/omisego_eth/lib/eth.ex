@@ -28,7 +28,7 @@ defmodule OmiseGO.Eth do
 
   # , do: :ok
   def submit_block(
-        %Transaction{root_hash: hash, nonce: nonce, gas_price: price},
+        %Transaction{root_hash: "0x" <> hash, nonce: nonce, gas_price: price},
         from \\ @omg_addr,
         contract \\ @contract
       ) do
@@ -73,5 +73,14 @@ defmodule OmiseGO.Eth do
       enc_return |> Base.decode16!(case: :lower) |> ABI.TypeDecoder.decode_raw([{:uint, 256}])
 
     {:ok, child_block}
+  end
+
+  def get_chilid_chain(block_number, contract \\ @contract) do
+    data = "getChildChain(uint256)" |> ABI.encode([block_number]) |> Base.encode16()
+
+    Ethereumex.HttpClient.eth_call(%{
+      to: contract,
+      data: "0x#{data}"
+    })
   end
 end
