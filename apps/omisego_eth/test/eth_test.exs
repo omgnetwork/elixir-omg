@@ -29,40 +29,51 @@ defmodule OmiseGO.EthTest do
   end
 
   @first_block %Eth.Transaction{
-    root_hash: "FEFB8740A301134C7762E38241B59FC8181D982A1DE629F7168622A863E9BCAC",
+    root_hash: "0xFEFB8740A301134C7762E38241B59FC8181D982A1DE629F7168622A863E9BCAC",
     gas_price: "0x2D0900",
     nonce: 1
   }
 
-  @tag fixtures: [:geth]
-  test "child block increment after add block" do
+  defp create_first_blocks() do
     {addres, contract} = set_new_contract()
     {:ok, 1} = Eth.get_current_child_block(contract)
     Eth.submit_block(@first_block, addres, contract)
     {:ok, 2} = Eth.get_current_child_block(contract)
     for nonce <- 1..5, do: Eth.submit_block(%{@first_block | nonce: nonce}, addres, contract)
     {:ok, 6} = Eth.get_current_child_block(contract)
+    {addres, contract}
+  end
+
+  @tag fixtures: [:geth]
+  test "child block increment after add block" do
+    create_first_blocks()
   end
 
   @tag fixtures: [:geth]
   test "child not increment number after add wrong nonce" do
-    {addres, contract} = set_new_contract()
-    {:ok, 1} = Eth.get_current_child_block(contract)
-    Eth.submit_block(@first_block, addres, contract)
-    {:ok, 2} = Eth.get_current_child_block(contract)
-    for nonce <- 1..5, do: Eth.submit_block(%{@first_block | nonce: nonce}, addres, contract)
-    {:ok, 6} = Eth.get_current_child_block(contract)
+    {addres, contract} = create_first_blocks()
+    {:ok, current_block} = Eth.get_current_child_block(contract)
 
-    for nonce <- Enum.to_list(1..10) -- [6],
+    for nonce <- Enum.to_list(1..10) -- [current_block],
         do: Eth.submit_block(%{@first_block | nonce: nonce}, addres, contract)
 
-    {:ok, 6} = Eth.get_current_child_block(contract)
+    {:ok, current_block} = Eth.get_current_child_block(contract)
   end
 
   @tag fixtures: [:geth]
   test "get_ethereum_heigh return integer" do
     {:ok, number} = Eth.get_ethereum_height()
     assert is_integer(number)
+  end
+
+  @tag fixtures: [:geth]
+  test "get child chain" do
+    {addres, contract} = create_first_blocks()
+    {:ok, hash} = Eth.get_chilid_chain(2, contract)
+    hash = String.downcase(hash)
+
+    assert String.slice(hash, 0, String.length(@first_block.root_hash)) ==
+             String.downcase(@first_block.root_hash)
   end
 
   defp encode_constructor_params(args, types) do
