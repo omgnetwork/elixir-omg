@@ -30,7 +30,6 @@ defmodule OmiseGO.API.State do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Eventer
   alias OmiseGO.DB
-  alias OmiseGO.API.BlockQueue
 
   @doc """
   Start processing state using the database entries
