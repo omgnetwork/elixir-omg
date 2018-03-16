@@ -59,7 +59,7 @@ defmodule OmiseGO.EthTest do
     for nonce <- Enum.to_list(1..10) -- [current_block],
         do: Eth.submit_block(%{@first_block | nonce: nonce}, addres, contract)
 
-    {:ok, current_block} = Eth.get_current_child_block(contract)
+    {:ok, ^current_block} = Eth.get_current_child_block(contract)
   end
 
   @tag fixtures: [:geth]
@@ -70,7 +70,7 @@ defmodule OmiseGO.EthTest do
 
   @tag fixtures: [:geth]
   test "get child chain" do
-    {addres, contract} = create_first_blocks()
+    {_addres, contract} = create_first_blocks()
     {:ok, hash} = Eth.get_chilid_chain(2, contract)
     hash = String.downcase(hash)
 
