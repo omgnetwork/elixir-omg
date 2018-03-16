@@ -30,7 +30,7 @@ defmodule OmiseGO.API.MixProject do
       {:ex_rlp, "~> 0.2.1"},
       {:blockchain, "~> 0.1.6"},
       {:ex_unit_fixtures, "~> 0.3.1", only: [:test]},
-      {:libsecp256k1, "~> 0.1.2", override: true},
+      {:libsecp256k1, "~> 0.1.2", compile: "${HOME}/.mix/rebar compile", override: true},
       #
       {:omisego_db, in_umbrella: true},
       {:omisego_eth, in_umbrella: true},

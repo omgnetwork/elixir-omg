@@ -36,7 +36,7 @@ defmodule OmiseGO.EthTest do
     nonce: 1
   }
 
-  defp create_first_blocks() do
+  defp create_first_blocks do
     {addres, contract} = set_new_contract()
     {:ok, 1} = Eth.get_current_child_block(contract)
     Eth.submit_block(@first_block, addres, contract)
