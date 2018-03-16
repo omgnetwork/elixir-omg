@@ -164,11 +164,12 @@ defmodule OmiseGO.API.BlockQueue.Core do
   end
 
   @doc """
-  Check if new block should be formed.
+  Check if new child block should be formed basing on blocks formed so far and
+  age of RootChain contract in ethereum blocks.
   """
   @spec create_block?(Core.t()) :: true | false
   def create_block?(state) do
-    max_num(state) > state.formed_child_block_num
+    max_num_since_genesis(state) > state.formed_child_block_num
   end
 
   # private (core)
@@ -177,9 +178,11 @@ defmodule OmiseGO.API.BlockQueue.Core do
     trunc(height / interval)
   end
 
-  defp max_num(state) do
-    (1 + trunc((state.parent_height - state.chain_start_parent_height) / state.submit_period)) *
-      state.child_block_interval
+  defp max_num_since_genesis(state) do
+    root_chain_age_in_ethereum_blocks = state.parent_height - state.chain_start_parent_height
+    child_chain_blocks_created = trunc(root_chain_age_in_ethereum_blocks / state.submit_period)
+    # add one because child block numbering starts from 1 * state.child_block_interval
+    (1 + child_chain_blocks_created) * state.child_block_interval
   end
 
   # :lists.seq/3 throws, so wrapper
