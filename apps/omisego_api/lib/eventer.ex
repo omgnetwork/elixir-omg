@@ -21,7 +21,7 @@ defmodule OmiseGO.API.Eventer do
     end
   end
 
-  def unsubscribe(topic) when is_list(topic) do
+  def unsubscribe(topic) when is_binary(topic) do
     case PubSub.unsubscribe(@pubsub, topic) do
       :ok -> :ok
       {:error, _message} -> :error

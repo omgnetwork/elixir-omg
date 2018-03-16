@@ -5,18 +5,11 @@ defmodule OmiseGO.API.Eventer.Core do
 
   alias OmiseGO.API.Notification
   alias OmiseGO.API.State.Transaction
+  alias OmiseGO.API.Block
 
   @block_finalized_topic "block_finalized"
   @transaction_spent_topic_prefix "transactions/spent/"
   @transaction_received_topic_prefix "transactions/received/"
-
-  # TODO: put this module in proper place
-  defmodule OmiseGO.Block do
-    @moduledoc """
-    Representation of a OmiseGO block
-    """
-    defstruct [:number, :hash]
-  end
 
   @spec notify(any()) :: list({Notification.t, binary()})
   def notify(event_triggers) do
@@ -28,31 +21,33 @@ defmodule OmiseGO.API.Eventer.Core do
     receiver_notifications = get_receiver_notifications(transaction)
     spender_notifications ++ receiver_notifications
   end
-  defp get_notification_with_topic(%{block: %OmiseGO.Block{} = block}) do
+  defp get_notification_with_topic(%{block: %Block{} = block}) do
     [
       {%Notification.BlockFinalized{number: block.number, hash: block.hash}, @block_finalized_topic}
     ]
   end
 
-  defp get_spender_notifications(%Transaction.Recovered{raw_tx: transaction, spender1: spender1, spender2: spender2}) do
+  defp get_spender_notifications(
+    %Transaction.Recovered{signed: %Transaction.Signed{} = signed, spender1: spender1, spender2: spender2}) do
+
     [spender1, spender2]
     |> Enum.filter(&Transaction.account_address?/1)
-    |> Enum.map(&(create_spender_notification(transaction, &1)))
+    |> Enum.map(&(create_spender_notification(signed, &1)))
     |> Enum.uniq
   end
 
-  defp create_spender_notification(transaction, spender) do
+  defp create_spender_notification(%Transaction.Signed{} = transaction, spender) do
     {%Notification.Spent{tx: transaction}, @transaction_spent_topic_prefix <> spender}
   end
 
-  defp get_receiver_notifications(%Transaction.Recovered{raw_tx: transaction}) do
-    [transaction.newowner1, transaction.newowner2]
+  defp get_receiver_notifications(%Transaction.Recovered{signed: %Transaction.Signed{raw_tx: tx} = signed}) do
+    [tx.newowner1, tx.newowner2]
     |> Enum.filter(&Transaction.account_address?/1)
-    |> Enum.map(&(create_receiver_notification(transaction, &1)))
+    |> Enum.map(&(create_receiver_notification(signed, &1)))
     |> Enum.uniq
   end
 
-  defp create_receiver_notification(transaction, receiver) do
+  defp create_receiver_notification(%Transaction.Signed{} = transaction, receiver) do
     {%Notification.Received{tx: transaction}, @transaction_received_topic_prefix <> receiver}
   end
 end
