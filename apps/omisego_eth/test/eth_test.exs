@@ -7,6 +7,8 @@ defmodule OmiseGO.EthTest do
 
   doctest OmiseGO.Eth
 
+  @moduletag :requires_geth
+
   def deploy_contract(addr, bytecode, types, args) do
     enc_args = encode_constructor_params(types, args)
     txmap = %{from: addr, data: bytecode <> enc_args, gas: "0x3D0900"}
