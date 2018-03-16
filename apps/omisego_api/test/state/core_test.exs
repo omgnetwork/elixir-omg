@@ -285,7 +285,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{signed: signed_tx, spender1: alice}
       |> Core.exec(state) |> success?
 
-    {:ok, {_, [trigger], _, _}} = Core.form_block(state.height, state.height + 1, state)
+    assert {:ok, {_, [trigger], _, _}} = Core.form_block(state.height, state.height + 1, state)
 
     assert trigger == %{tx: signed_tx}
   end
@@ -312,7 +312,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{signed: signed_tx, spender1: bob}
       |> Core.exec(state) |> success?
 
-    {:ok, {_, [_trigger1, _trigger2], _, _}} = Core.form_block(state.height, state.height + 1, state)
+    assert {:ok, {_, [_trigger1, _trigger2], _, _}} = Core.form_block(state.height, state.height + 1, state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -327,7 +327,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{signed: signed_tx, spender1: alice}
       |> Core.exec(state) |> same?(state)
 
-    {:ok, {_, [], _, _}} = Core.form_block(state.height, state.height + 1, state)
+    assert {:ok, {_, [], _, _}} = Core.form_block(state.height, state.height + 1, state)
   end
 
   @tag fixtures: [:alice, :state_empty]
