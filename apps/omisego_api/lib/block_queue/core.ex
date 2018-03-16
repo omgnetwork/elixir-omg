@@ -189,6 +189,10 @@ defmodule OmiseGO.API.BlockQueue.Core do
     :lists.seq(first, last, step)
   end
 
+  # When restarting, we don't actually know what was the state of submission process to Ethereum.
+  # Some blocks might have been submitted and lost/rejected/reorged by Ethereum in the mean time.
+  # To properly restart the process we get last blocks known to DB and split them into mined
+  # blocks (might still need tracking!) and blocks not yet submitted.
   @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [BlockQueue.hash()]) ::
           {:ok, Core.t()} | false
   defp enqueue_existing_blocks(state, top_mined_hash, hashes) do
