@@ -72,6 +72,23 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         |> hashes()
     end
 
+    test "Produced child block numbers are as expected" do
+      assert {:ok, 1000} =
+        empty()
+        |> set_mined(0)
+        |> enqueue_block("1")
+        |> get_formed_block_num(0)
+    end
+
+    test "Produced blocks submission requests have nonces in order" do
+      assert [_, %{nonce: 2}] =
+        empty()
+        |> set_mined(0)
+        |> enqueue_block("1")
+        |> enqueue_block("2")
+        |> get_blocks_to_submit()
+    end
+
     test "Block generation is driven by Ethereum height" do
       queue =
         empty()
