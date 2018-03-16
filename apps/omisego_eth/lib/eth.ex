@@ -75,7 +75,7 @@ defmodule OmiseGO.Eth do
     {:ok, child_block}
   end
 
-  def get_chilid_chain(block_number, contract \\ @contract) do
+  def get_child_chain(block_number, contract \\ @contract) do
     data = "getChildChain(uint256)" |> ABI.encode([block_number]) |> Base.encode16()
 
     Ethereumex.HttpClient.eth_call(%{
