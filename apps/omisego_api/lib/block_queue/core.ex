@@ -97,9 +97,11 @@ defmodule OmiseGO.API.BlockQueue.Core do
   end
 
   @doc """
-  Get last number of plasma block, added to queue.
+  Get current block number (`block_num(state, 0)`), next block number (`block_num(state, 1)`), etc
   """
-  def block_num(state), do: state.constructed_num
+  def get_formed_block_num(state, delta) do
+    {:ok, state.constructed_num + (delta * state.child_block_interval)}
+  end
 
   @doc """
   Set number of plasma block mined on the parent chain.

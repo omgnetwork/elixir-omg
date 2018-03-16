@@ -14,8 +14,8 @@ defmodule OmiseGO.API.State do
     GenServer.call(__MODULE__, {:exec, tx})
   end
 
-  def form_block do
-    GenServer.call(__MODULE__, :form_block)
+  def form_block(current, following) do
+    GenServer.call(__MODULE__, {:form_block, current, following})
   end
 
   # NOTE: totally not sure about the argumets here and coordination child vs root
@@ -63,7 +63,7 @@ defmodule OmiseGO.API.State do
   @doc """
   Wraps up accumulated transactions into a block, triggers events, triggers db update, returns block hash
   """
-  def handle_call(:form_block, _from, state) do
+  def handle_call({:form_block, _current, _following}, _from, state) do
     {block, event_triggers, db_updates, new_state} = Core.form_block(state)
     # GenServer.cast
     Eventer.notify(event_triggers)

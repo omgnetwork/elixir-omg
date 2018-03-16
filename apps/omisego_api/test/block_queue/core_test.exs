@@ -55,7 +55,6 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         |> hashes()
     end
 
-    @tag :current
     test "Recovery will fail if DB is corrupted" do
       assert false == recover(["5", "6"], 7000)
     end

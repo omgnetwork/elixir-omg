@@ -89,7 +89,9 @@ defmodule OmiseGO.API.BlockQueue do
       with {:ok, height} <- Eth.get_ethereum_height(),
            state1 <- Core.set_ethereum_height(state, height),
            true <- create_block(state1),
-           {:ok, block_hash} <- OmiseGO.API.State.form_block(),
+           {:ok, to_form} <- Core.get_formed_block_num(state, +1),
+           {:ok, following} <- Core.get_formed_block_num(state, +2),
+           {:ok, block_hash} <- OmiseGO.API.State.form_block(to_form, following),
            state2 <- Core.enqueue_block(state1, block_hash) do
         submit_blocks(state2)
         {:noreply, state2}
