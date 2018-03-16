@@ -68,7 +68,7 @@ defmodule OmiseGO.API.BlockQueue do
     end
 
     def handle_call(:get_child_block_number, _from, state) do
-      {:reply, {:ok, state.constructed_num}, state}
+      {:reply, Core.get_formed_block_num(state, 0), state}
     end
 
     def handle_cast({:update_gas_price, price}, state) do
