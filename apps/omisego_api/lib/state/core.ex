@@ -100,12 +100,7 @@ defmodule OmiseGO.API.State.Core do
            oindex2: oindex2
          } = tx
        ) do
-    new_utxos = %{
-      # FIXME: don't insert 0 amount utxos
-      {height, tx_index, 0} => %{owner: tx.newowner1, amount: tx.amount1},
-      {height, tx_index, 1} => %{owner: tx.newowner2, amount: tx.amount2}
-    }
-
+    new_utxos = get_non_zero_amount_utxos(height, tx_index, tx)
     %Core{
       state
       | tx_index: tx_index + 1,
@@ -114,6 +109,20 @@ defmodule OmiseGO.API.State.Core do
           |> Map.merge(new_utxos)
           |> Map.delete({blknum1, txindex1, oindex1})
           |> Map.delete({blknum2, txindex2, oindex2})
+    }
+  end
+
+  defp get_non_zero_amount_utxos(_, _, %Transaction{amount1: 0, amount2: 0}), do: %{}
+  defp get_non_zero_amount_utxos(height, tx_index, %Transaction{amount1: 0} = tx) do
+    %{{height, tx_index, 1} => %{owner: tx.newowner2, amount: tx.amount2}}
+  end
+  defp get_non_zero_amount_utxos(height, tx_index, %Transaction{amount2: 0} = tx) do
+    %{{height, tx_index, 0} => %{owner: tx.newowner1, amount: tx.amount1}}
+  end
+  defp get_non_zero_amount_utxos(height, tx_index, %Transaction{} = tx) do
+    %{
+      {height, tx_index, 0} => %{owner: tx.newowner1, amount: tx.amount1},
+      {height, tx_index, 1} => %{owner: tx.newowner2, amount: tx.amount2}
     }
   end
 
