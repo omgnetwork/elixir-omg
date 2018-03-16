@@ -6,7 +6,6 @@ defmodule OmiseGO.API.BlockQueue do
   Relies on RootChain contract having reorg protection ('decimals for deposits' part).
   Relies on RootChain contract's 'authority' account not being used to send any other tx.
 
-  TODO: if restarted, actively load last state
   TODO: react to changing gas price and submitBlock txes not being mined; needs external gas price oracle
   """
 

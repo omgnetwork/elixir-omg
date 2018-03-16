@@ -1,4 +1,4 @@
-defmodule OmiseGO.API.BlockQueueTest do
+defmodule OmiseGO.API.BlockQueue.CoreTest do
   @moduledoc false
 
   use ExUnit.Case, async: true
