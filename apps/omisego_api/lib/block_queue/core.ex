@@ -23,8 +23,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
   defstruct [
     :blocks,
-    :mined_num,
-    :constructed_num,
+    :mined_child_block_num,
+    :formed_child_block_num,
     :parent_height,
     priority_gas_price: 20_000_000_000,
     # config:
@@ -37,9 +37,9 @@ defmodule OmiseGO.API.BlockQueue.Core do
   @type t() :: %__MODULE__{
           blocks: %{pos_integer() => %BlockSubmission{}},
           # last mined block num
-          mined_num: nil | BlockQueue.plasma_block_num(),
-          # newest constructed block num
-          constructed_num: nil | BlockQueue.plasma_block_num(),
+          mined_child_block_num: nil | BlockQueue.plasma_block_num(),
+          # newest formed block num
+          formed_child_block_num: nil | BlockQueue.plasma_block_num(),
           # current Ethereum block height
           parent_height: nil | BlockQueue.eth_height(),
           # gas price to use when (re)submitting transactions
@@ -66,7 +66,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
         finality_threshold: finality_threshold,
         known_hashes: known_hashes,
         top_mined_hash: top_mined_hash,
-        mined_num: mined_num,
+        mined_child_block_num: mined_child_block_num,
         parent_height: parent_height
       ) do
     state = %__MODULE__{
@@ -75,7 +75,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
       chain_start_parent_height: child_start_parent_height,
       submit_period: submit_period,
       finality_threshold: finality_threshold,
-      mined_num: mined_num,
+      mined_child_block_num: mined_child_block_num,
       parent_height: parent_height
     }
 
@@ -84,7 +84,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
   @spec enqueue_block(Core.t(), BlockQueue.hash()) :: Core.t()
   def enqueue_block(state, hash) do
-    own_height = state.constructed_num + state.child_block_interval
+    own_height = state.formed_child_block_num + state.child_block_interval
 
     block = %BlockSubmission{
       num: own_height,
@@ -93,35 +93,35 @@ defmodule OmiseGO.API.BlockQueue.Core do
     }
 
     blocks = Map.put(state.blocks, own_height, block)
-    %{state | constructed_num: own_height, blocks: blocks}
+    %{state | formed_child_block_num: own_height, blocks: blocks}
   end
 
   @doc """
   Get current block number (`block_num(state, 0)`), next block number (`block_num(state, 1)`), etc
   """
   def get_formed_block_num(state, delta) do
-    {:ok, state.constructed_num + (delta * state.child_block_interval)}
+    {:ok, state.formed_child_block_num + (delta * state.child_block_interval)}
   end
 
   @doc """
   Set number of plasma block mined on the parent chain.
 
-  Since reorgs are possible, consecutive values of mined_num don't have to be
+  Since reorgs are possible, consecutive values of mined_child_block_num don't have to be
   monotonically increasing. Due to construction of contract we know it does not
   contain holes so we care only about the highest number.
   """
   @spec set_mined(Core.t(), BlockQueue.plasma_block_num()) :: Core.t()
-  def set_mined(%{constructed_num: nil} = state, mined_num) do
-    set_mined(%{state | constructed_num: mined_num}, mined_num)
+  def set_mined(%{formed_child_block_num: nil} = state, mined_child_block_num) do
+    set_mined(%{state | formed_child_block_num: mined_child_block_num}, mined_child_block_num)
   end
 
-  def set_mined(state, mined_num) do
-    num_threshold = mined_num - state.child_block_interval * state.finality_threshold
+  def set_mined(state, mined_child_block_num) do
+    num_threshold = mined_child_block_num - state.child_block_interval * state.finality_threshold
     young? = fn {_, block} -> block.num > num_threshold end
     blocks = state.blocks |> Enum.filter(young?) |> Map.new()
-    top_known_block = max(mined_num, state.constructed_num)
+    top_known_block = max(mined_child_block_num, state.formed_child_block_num)
 
-    %{state | constructed_num: top_known_block, mined_num: mined_num, blocks: blocks}
+    %{state | formed_child_block_num: top_known_block, mined_child_block_num: mined_child_block_num, blocks: blocks}
   end
 
   @doc """
@@ -148,12 +148,12 @@ defmodule OmiseGO.API.BlockQueue.Core do
   def get_blocks_to_submit(state) do
     %{
       blocks: blocks,
-      mined_num: mined_num,
-      constructed_num: constructed,
+      mined_child_block_num: mined_child_block_num,
+      formed_child_block_num: formed,
       child_block_interval: block_interval
     } = state
 
-    block_nums = make_range(mined_num + block_interval, constructed, block_interval)
+    block_nums = make_range(mined_child_block_num + block_interval, formed, block_interval)
 
     blocks
     |> Map.split(block_nums)
@@ -168,7 +168,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
   """
   @spec create_block?(Core.t()) :: true | false
   def create_block?(state) do
-    max_num(state) > state.constructed_num
+    max_num(state) > state.formed_child_block_num
   end
 
   # private (core)
@@ -195,8 +195,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
     with true <- Enum.member?(hashes, top_mined_hash) do
       index = Enum.find_index(hashes, &(&1 == top_mined_hash))
       {mined, fresh} = Enum.split(hashes, index + 1)
-      bottom_mined = state.mined_num - state.child_block_interval * (length(mined) - 1)
-      nums = make_range(bottom_mined, state.mined_num, state.child_block_interval)
+      bottom_mined = state.mined_child_block_num - state.child_block_interval * (length(mined) - 1)
+      nums = make_range(bottom_mined, state.mined_child_block_num, state.child_block_interval)
 
       mined_blocks =
         for {num, hash} <- Enum.zip(nums, mined) do
@@ -211,7 +211,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
       state = %{
         state
-        | constructed_num: state.mined_num + state.child_block_interval,
+        | formed_child_block_num: state.mined_child_block_num + state.child_block_interval,
           blocks: mined_blocks
       }
 
