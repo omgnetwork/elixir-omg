@@ -10,6 +10,7 @@ defmodule OmiseGO.DB.LevelDBCore do
     |> Enum.map(&parse_multi_update/1)
   end
 
+  # TODO, switch to selecting the clause base on the type of tx/block/utxo (struct?)
   defp parse_multi_update({:put, :tx, tx}), do: {:put, tx_key(tx), encode_value(tx)}
   defp parse_multi_update({:put, :block, block}), do: {:put, block_key(block), encode_value(block)}
   defp parse_multi_update({:put, :utxo, utxo}), do: {:put, utxo_key(utxo), encode_value(utxo)}

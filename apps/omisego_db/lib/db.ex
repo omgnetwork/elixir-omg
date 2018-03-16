@@ -48,8 +48,8 @@ defmodule OmiseGO.DB do
     import Exleveldb
 
     def init(:ok) do
+      # TODO: handle file location properly - probably pass as parameter here and configure in DB.Application
       {:ok, db_ref} = open("/home/user/.omisego/data")
-      Process.flag(:trap_exit, true)
       {:ok, %__MODULE__{db_ref: db_ref}}
     end
 
