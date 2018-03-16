@@ -34,9 +34,9 @@ defmodule OmiseGO.API.State do
   Start processing state using the database entries
   """
   def init(:ok) do
-    with db_queries <- Core.get_state_fetching_query(),
-         {:ok, query_result} <- DB.multi_get(db_queries),
-         do: {:ok, Core.extract_initial_state(query_result)}
+    with {:ok, utxos_query_result} <- DB.utxos(),
+         {:ok, height_query_result} <- DB.height(),
+         do: {:ok, Core.extract_initial_state(utxos_query_result, height_query_result)}
   end
 
   @doc """
