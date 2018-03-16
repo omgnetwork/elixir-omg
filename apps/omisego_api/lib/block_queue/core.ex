@@ -79,8 +79,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
       parent_height: parent_height
     }
 
-    res = enqueue_existing_blocks(state, top_mined_hash, known_hashes)
-    res
+    enqueue_existing_blocks(state, top_mined_hash, known_hashes)
   end
 
   @spec enqueue_block(Core.t(), BlockQueue.hash()) :: Core.t()
@@ -104,9 +103,10 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
   @doc """
   Set number of plasma block mined on the parent chain.
-  Since reorgs are possible, consecutive values of mined_num don't have to
-  be monotonically increasing. Due to construction of contract we know it does not
-  contain holes so we care only about highest number.
+
+  Since reorgs are possible, consecutive values of mined_num don't have to be
+  monotonically increasing. Due to construction of contract we know it does not
+  contain holes so we care only about the highest number.
   """
   @spec set_mined(Core.t(), BlockQueue.plasma_block_num()) :: Core.t()
   def set_mined(%{constructed_num: nil} = state, mined_num) do
@@ -132,7 +132,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
   @doc """
   Change gas price for tx sent in future. This includes all re-submissions.
-  Allows to react to changes in Ethereum mempool.
+
+  Allows to react to changes of Ethereum mempool utilization.
   """
   def set_gas_price(state, price) do
     %{state | priority_gas_price: price}
