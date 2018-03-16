@@ -18,8 +18,7 @@ defmodule OmiseGO.Eth.MixProject do
 
   def application do
     [
-      extra_applications: [:logger],
-      applications: [:ethereumex]
+      extra_applications: [:logger]
     ]
   end
 
