@@ -69,15 +69,51 @@ defmodule OmiseGO.API.State.CoreTest do
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "amounts must add up", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    signed_tx =
+    tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
         newowner1: bob, amount1: 8, newowner2: alice, amount2: 3, fee: 0,
       }
+    assert_amounts_dont_add_up(state, tx, alice, Transaction.zero_address())
+
+    #spending utxo with fee
+    tx =
+      %Transaction{
+        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        newowner1: bob, amount1: 8, newowner2: alice, amount2: 2, fee: 1,
+      }
+    assert_amounts_dont_add_up(state, tx, alice, Transaction.zero_address())
+
+    #spending from second input
+    tx =
+      %Transaction{
+        blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 1, txindex2: 0, oindex2: 0,
+        newowner1: bob, amount1: 8, newowner2: alice, amount2: 3, fee: 0,
+      }
+    assert_amounts_dont_add_up(state, tx, Transaction.zero_address(), alice)
+
+    #spending both outputs
+    signed_tx =
+      %Transaction{
+        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        newowner1: bob, amount1: 2, newowner2: alice, amount2: 8, fee: 0,
+      }
       |> TestHelper.signed
 
-    # FIXME: include more scenarios of possible invalid txs? use second input, both outputs, fees etc. (in a dry way)
-    %Transaction.Recovered{signed: signed_tx, spender1: alice}
+    state =
+      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      |> Core.exec(state) |> success?
+
+    tx = %Transaction{
+      blknum1: 2, txindex1: 0, oindex1: 0, blknum2: 2, txindex2: 0, oindex2: 1,
+      newowner1: alice, amount1: 8, newowner2: bob, amount2: 3, fee: 0,
+    }
+    assert_amounts_dont_add_up(state, tx, bob, alice)
+  end
+
+  defp assert_amounts_dont_add_up(state, transaction, spender1, spender2) do
+    signed_tx = transaction |> TestHelper.signed
+    %Transaction.Recovered{signed: signed_tx, spender1: spender1, spender2: spender2}
     |> Core.exec(state) |> fail?(:amounts_dont_add_up) |> same?(state)
   end
 
@@ -230,14 +266,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{signed: signed_tx, spender1: alice}
       |> Core.exec(state) |> success?
 
-    expected_block = %Block{
-      transactions: [signed_tx],
-      hash: <<29, 23, 209, 231, 86, 85, 27, 89, 11, 205, 112, 53, 88, 46, 209, 246, 217, 188, 47,
-              39, 3, 193, 32, 75, 25, 54, 147, 110, 146, 197, 90, 86>>
-    }
-
-    {actual_block, _, _, state} = Core.form_block(state)
-    assert actual_block == expected_block
+    {_, _, _, state} = Core.form_block(state)
 
     %Transaction.Recovered{signed: signed_tx, spender1: alice}
     |> Core.exec(state) |> fail?(:utxo_not_found)
