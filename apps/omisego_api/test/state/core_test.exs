@@ -24,7 +24,7 @@ defmodule OmiseGO.API.State.CoreTest do
   end
 
   deffixture state_empty() do
-    Core.extract_initial_state([])
+    Core.extract_initial_state(1, [])
   end
 
   deffixture state_alice_deposit(state_empty, alice) do
@@ -478,7 +478,6 @@ defmodule OmiseGO.API.State.CoreTest do
   test "core generates the db query" do
     # NOTE: trivial test, considering current behavior, but might evolve... hm
     # FIXME
-    assert "correct query" == Core.get_state_fetching_query()
   end
 
   defp do_deposit(state, owner, amount) do
