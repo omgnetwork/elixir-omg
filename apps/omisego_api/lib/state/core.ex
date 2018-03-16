@@ -9,12 +9,7 @@ defmodule OmiseGO.API.State.Core do
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.State.Core
 
-  def get_state_fetching_query do
-    # some form of coding what we need to start up state
-    _db_queries = "correct query"
-  end
-
-  def extract_initial_state(_query_result) do
+  def extract_initial_state(_utxos_query_result, _height_query_result) do
     # extract height and utxos from query result
     # FIXME
     height = 1
