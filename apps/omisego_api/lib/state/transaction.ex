@@ -75,8 +75,5 @@ defmodule OmiseGO.API.State.Transaction do
      transaction.fee]
     |> ExRLP.encode
     |> OmiseGO.API.Crypto.hash()
-end
-
-def is_single_utxo(%__MODULE__{} = transaction), do: transaction.blknum2 == 0
-
+  end
 end

@@ -53,7 +53,7 @@ defmodule OmiseGO.API.State.Core do
          0,
          spender1
        ) do
-         with {:ok, utxo} <- get_utxo(utxos, {blknum, txindex, oindex}),
+    with {:ok, utxo} <- get_utxo(utxos, {blknum, txindex, oindex}),
          %{owner: owner, amount: owner_has} <- utxo,
          :ok <- is_spender?(owner, spender1),
          do: {:ok, owner_has}
