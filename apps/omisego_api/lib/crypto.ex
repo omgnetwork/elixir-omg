@@ -8,13 +8,8 @@ defmodule OmiseGO.API.Crypto do
 
   @doc """
   Produces a cryptographic digest of a message.
-
-  TODO: replace hashing function with ethereum's Keccak
   """
-  def hash(message), do: message |> erlang_hash()
-
-  # NOTE temporary function, which will go away when we move to sha3 and eth primitives
-  defp erlang_hash(message), do: :crypto.hash(:sha256, message)
+  def hash(message), do: message |> :keccakf1600.sha3_256()
 
   @doc """
   Produce a stand-alone, 65 bytes long, signature for message of arbitrary length.
