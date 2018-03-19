@@ -2,7 +2,6 @@ defmodule OmiseGO.Eth do
   @moduledoc """
   Adapter/port to ethereum
   """
-  alias OmiseGO.Eth.WaitFor, as: WaitFor
 
   @contract Application.get_env(:omisego_eth, :contract)
   @omg_addr Application.get_env(:omisego_eth, :omg_addr)
@@ -37,15 +36,12 @@ defmodule OmiseGO.Eth do
       |> ABI.encode([hash |> Base.decode16!(), nonce])
       |> Base.encode16()
 
-    {:ok, txhash} =
-      Ethereumex.HttpClient.eth_send_transaction(%{
-        from: from,
-        to: contract,
-        data: "0x#{data}",
-        gas: price
-      })
-
-    WaitFor.eth_receipt(txhash, 10_000)
+    Ethereumex.HttpClient.eth_send_transaction(%{
+      from: from,
+      to: contract,
+      data: "0x#{data}",
+      gas: price
+    })
   end
 
   # , do: {:ok, 12345678}

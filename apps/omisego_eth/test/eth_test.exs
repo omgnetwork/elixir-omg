@@ -5,34 +5,32 @@ defmodule OmiseGO.EthTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  #@moduletag :requires_geth
+  # @moduletag :requires_geth
 
-  defp generate_transaction( nonce ) do
+  defp generate_transaction(nonce) do
+    hash = :crypto.hash(:sha256, to_charlist(nonce))
+    hash = hash |> Base.encode16()
+
     %Eth.Transaction{
-        root_hash: "0x" <> (:crypto.hash(:sha256, to_charlist(nonce)) |> Base.encode16),
-        gas_price: "0x2D0900",
-        nonce: nonce
+      root_hash: "0x" <> hash,
+      gas_price: "0x2D0900",
+      nonce: nonce
     }
   end
 
   defp add_bloks(range, contract) do
-      for nonce <- range, do: Eth.submit_block(generate_transaction(nonce),contract.from,contract.addres)
+    for nonce <- range do
+      {:ok, txhash} =
+        Eth.submit_block(generate_transaction(nonce), contract.from, contract.addres)
+
+      WaitFor.eth_receipt(txhash, 10_000)
+    end
   end
 
   @tag fixtures: [:contract]
   test "child block increment after add block", %{contract: contract} do
-    add_bloks(1..3,contract)
+    add_bloks(1..3, contract)
     {:ok, 4} = Eth.get_current_child_block(contract.addres)
-  end
-
-  @tag fixtures: [:contract]
-  test "child not increment number after add wrong nonce", %{contract: contract} do
-     add_bloks(1..3,contract)
-    {:ok, current_block} = Eth.get_current_child_block(contract.addres)
-
-     add_bloks(Enum.to_list(1..10) -- [current_block],contract)
-
-    {:ok, ^current_block} = Eth.get_current_child_block(contract.addres)
   end
 
   @tag fixtures: [:geth]
@@ -42,11 +40,12 @@ defmodule OmiseGO.EthTest do
   end
 
   @tag fixtures: [:contract]
-  test "get child chain", %{contract: contract}  do
+  test "get child chain", %{contract: contract} do
     add_bloks(1..8, contract)
-    block  = generate_transaction(4)
+    block = generate_transaction(4)
     {:ok, hash} = Eth.get_child_chain(4, contract.addres)
     hash = String.downcase(hash)
+
     assert String.slice(hash, 0, String.length(block.root_hash)) ==
              String.downcase(block.root_hash)
   end
