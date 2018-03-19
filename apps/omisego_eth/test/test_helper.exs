@@ -16,7 +16,7 @@ defmodule OmiseGO.Eth.TestHelpers do
     contract_address
   end
 
-  def set_new_contract do
+  def create_new_contract do
     _ = Application.ensure_all_started(:ethereumex)
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
 

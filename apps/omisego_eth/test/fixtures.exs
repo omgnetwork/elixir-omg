@@ -8,7 +8,7 @@ defmodule OmiseGO.Eth.Fixtures do
   end
 
   deffixture contract(geth) do
-    {from, contract_addres} = OmiseGO.Eth.TestHelpers.set_new_contract()
+    {from, contract_addres} = OmiseGO.Eth.TestHelpers.create_new_contract()
 
     %{
       addres: contract_addres,
