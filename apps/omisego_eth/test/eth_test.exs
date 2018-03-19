@@ -5,7 +5,7 @@ defmodule OmiseGO.EthTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  # @moduletag :requires_geth
+  @moduletag :requires_geth
 
   defp generate_transaction(nonce) do
     hash = :crypto.hash(:sha256, to_charlist(nonce))
