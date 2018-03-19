@@ -1,11 +1,12 @@
 ExUnit.configure(exclude: [requires_geth: true])
 ExUnitFixtures.start()
-ExUnitFixtures.load_fixture_files() # need to do this in umbrella apps
+# need to do this in umbrella apps
+ExUnitFixtures.load_fixture_files()
 ExUnit.start()
-
 
 defmodule OmiseGO.Eth.TestHelpers do
   alias OmiseGO.Eth.WaitFor, as: WaitFor
+
   defp deploy_contract(addr, bytecode, types, args) do
     enc_args = encode_constructor_params(types, args)
     txmap = %{from: addr, data: bytecode <> enc_args, gas: "0x3D0900"}
