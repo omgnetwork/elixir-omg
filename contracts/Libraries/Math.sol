@@ -7,7 +7,7 @@ library Math {
         pure
         returns (uint256)
     {
-        if (a > b)
+        if (a > b) 
             return a;
         return b;
     }
