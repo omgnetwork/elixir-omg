@@ -278,7 +278,7 @@ library RLP {
     function toInt(RLPItem memory self)
         internal
         view
-        returns (int data)
+        returns (int data) 
     {
         return int(toUint(self));
     }
@@ -427,7 +427,7 @@ library RLP {
     // Check that an RLP item is valid.
     function _validate(RLPItem memory self)
         private
-        pure
+        pure 
         returns (bool ret)
     {
         // Check that RLP is well-formed.
