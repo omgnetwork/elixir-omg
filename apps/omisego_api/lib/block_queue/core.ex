@@ -45,7 +45,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
           # gas price to use when (re)submitting transactions
           priority_gas_price: pos_integer(),
           # CONFIG CONSTANTS below
-          # spacing of child blocks in RootChain contract
+          # spacing of child blocks in RootChain contract, being the amount of deposit decimals per child block
           child_block_interval: pos_integer(),
           # Ethereum height at which first block was mined
           chain_start_parent_height: pos_integer(),
@@ -142,7 +142,9 @@ defmodule OmiseGO.API.BlockQueue.Core do
   end
 
   @doc """
-  Query to get sequence of blocks that should be submitted to root chain.
+  Compares the child blocks mined in contract with formed blocks
+
+  Picks for submission the child blocks that haven't yet been seen mined on Ethereum
   """
   @spec get_blocks_to_submit(Core.t()) :: [BlockQueue.encoded_signed_tx()]
   def get_blocks_to_submit(state) do
