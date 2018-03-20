@@ -21,7 +21,7 @@ defmodule OmiseGO.EthTest do
   defp add_bloks(range, contract) do
     for nonce <- range do
       {:ok, txhash} =
-        Eth.submit_block(generate_transaction(nonce), contract.from, contract.addres)
+        Eth.submit_block(generate_transaction(nonce), contract.from, contract.address)
 
       WaitFor.eth_receipt(txhash, 10_000)
     end
@@ -30,7 +30,7 @@ defmodule OmiseGO.EthTest do
   @tag fixtures: [:contract]
   test "child block increment after add block", %{contract: contract} do
     add_bloks(1..3, contract)
-    {:ok, 4} = Eth.get_current_child_block(contract.addres)
+    {:ok, 4} = Eth.get_current_child_block(contract.address)
   end
 
   @tag fixtures: [:geth]
@@ -43,7 +43,7 @@ defmodule OmiseGO.EthTest do
   test "get child chain", %{contract: contract} do
     add_bloks(1..8, contract)
     block = generate_transaction(4)
-    {:ok, hash} = Eth.get_child_chain(4, contract.addres)
+    {:ok, hash} = Eth.get_child_chain(4, contract.address)
     hash = String.downcase(hash)
 
     assert String.slice(hash, 0, String.length(block.root_hash)) ==
