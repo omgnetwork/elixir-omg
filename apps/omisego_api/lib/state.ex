@@ -60,7 +60,7 @@ defmodule OmiseGO.API.State do
   end
 
   @doc """
-  Wraps up accumulated transactions into a block, triggers events, triggers db update, pushes block to queue
+  Wraps up accumulated transactions into a block, triggers events, triggers db update, returns block hash
   """
   def handle_call({:form_block, current_block_num, next_block_num}, _from, state) do
    case Core.form_block(state, current_block_num, next_block_num) do

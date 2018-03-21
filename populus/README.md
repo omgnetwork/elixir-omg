@@ -6,6 +6,7 @@ sudo apt-get install libssl-dev
 cd populus
 pip install -r requirements.txt
 python -m solc.install v0.4.18
+pip install --upgrade web3
 ```
 
 to compile contracts
