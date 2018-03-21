@@ -1,4 +1,3 @@
 # OmiseGO
 
 **TODO: Add description**
-
