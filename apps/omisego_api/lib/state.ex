@@ -14,8 +14,8 @@ defmodule OmiseGO.API.State do
     GenServer.call(__MODULE__, {:exec, tx})
   end
 
-  def form_block(current_block_num, next_block_num) do
-    GenServer.call(__MODULE__, {:form_block, current_block_num, next_block_num})
+  def form_block(block_num_to_form) do
+    GenServer.call(__MODULE__, {:form_block, block_num_to_form})
   end
 
   def deposit(owner, amount) do
@@ -28,6 +28,7 @@ defmodule OmiseGO.API.State do
 
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Eventer
+  alias OmiseGO.API.BlockQueue
   alias OmiseGO.DB
 
   @doc """
@@ -62,15 +63,12 @@ defmodule OmiseGO.API.State do
   @doc """
   Wraps up accumulated transactions into a block, triggers events, triggers db update, returns block hash
   """
-  def handle_call({:form_block, current_block_num, next_block_num}, _from, state) do
-   case Core.form_block(state, current_block_num, next_block_num) do
-     {:error, reason} -> {:reply, {:error, reason}, state}
-     {:ok, {block, event_triggers, db_updates, new_state}} ->
-       # GenServer.cast
-       Eventer.notify(event_triggers)
-       # GenServer.call
-       :ok = DB.multi_update(db_updates)
-       {:reply, {:ok, block.hash}, new_state}
-   end
+  def handle_cast({:form_block, block_num_to_form}, _from, state) do
+    result = Core.form_block(state, block_num_to_form)
+    with {:ok, {block, event_triggers, db_updates, new_state}} <- result,
+         :ok <- DB.multi_update(db_updates),
+         BlockQueue.enqueue_block(block),
+         Eventer.notify(event_triggers),
+         do: {:noreply, new_state}
  end
 end

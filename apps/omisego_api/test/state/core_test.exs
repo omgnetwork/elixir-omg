@@ -231,7 +231,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can spend after block is formed", %{alice: alice, bob: bob, state_alice_deposit: state}  do
-    {:ok, {_, _, _, state}} = Core.form_block(state.height, state.height + 1, state)
+    {:ok, {_, _, _, state}} = Core.form_block(state.height, state)
 
     signed_tx =
       %Transaction{
@@ -266,7 +266,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{signed: signed_tx, spender1: alice}
       |> Core.exec(state) |> success?
 
-    {:ok, {_, _, _, state}} = Core.form_block(state.height, state.height + 1, state)
+    {:ok, {_, _, _, state}} = Core.form_block(state.height, state)
 
     %Transaction.Recovered{signed: signed_tx, spender1: alice}
     |> Core.exec(state) |> fail?(:utxo_not_found)
@@ -285,7 +285,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{signed: signed_tx, spender1: alice}
       |> Core.exec(state) |> success?
 
-    assert {:ok, {_, [trigger], _, _}} = Core.form_block(state.height, state.height + 1, state)
+    assert {:ok, {_, [trigger], _, _}} = Core.form_block(state.height, state)
 
     assert trigger == %{tx: signed_tx}
   end
@@ -312,7 +312,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{signed: signed_tx, spender1: bob}
       |> Core.exec(state) |> success?
 
-    assert {:ok, {_, [_trigger1, _trigger2], _, _}} = Core.form_block(state.height, state.height + 1, state)
+    assert {:ok, {_, [_trigger1, _trigger2], _, _}} = Core.form_block(state.height, state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -327,7 +327,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{signed: signed_tx, spender1: alice}
       |> Core.exec(state) |> same?(state)
 
-    assert {:ok, {_, [], _, _}} = Core.form_block(state.height, state.height + 1, state)
+    assert {:ok, {_, [], _, _}} = Core.form_block(state.height, state)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -336,7 +336,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
     assert trigger == %{deposit: %{owner: alice, amount: 4}}
 
-    assert {:ok, {_, [], _, _}} = Core.form_block(state.height, state.height + 1, state)
+    assert {:ok, {_, [], _, _}} = Core.form_block(state.height, state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -351,8 +351,8 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{signed: signed_tx, spender1: alice}
       |> Core.exec(state) |> success?
 
-    assert {:ok, {_, [_trigger], _, state}} = Core.form_block(state.height, state.height + 1, state)
-    assert {:ok, {_, [], _, _}} = Core.form_block(state.height, state.height + 1, state)
+    assert {:ok, {_, [_trigger], _, state}} = Core.form_block(state.height, state)
+    assert {:ok, {_, [], _, _}} = Core.form_block(state.height, state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -386,7 +386,7 @@ defmodule OmiseGO.API.State.CoreTest do
                 210, 192, 45, 101, 109, 90, 220, 253, 39, 134, 197, 129, 139,
                 135, 120, 214, 203, 233, 76, 186>>
       }
-    {:ok, {^expected_block, _, _, _}} = Core.form_block(state.height, state.height + 1, state)
+    {:ok, {^expected_block, _, _, _}} = Core.form_block(state.height, state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -402,21 +402,21 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{signed: signed_tx_1, spender1: alice}
       |> Core.exec(state) |> success?
 
-    {:ok, {_, _, _, state}} = Core.form_block(state.height, state.height + 1, state)
+    {:ok, {_, _, _, state}} = Core.form_block(state.height, state)
 
     expected_block = %Block{transactions: [], hash: @empty_block_hash}
-    {:ok, {^expected_block, _, _, _}} = Core.form_block(state.height, state.height + 1, state)
+    {:ok, {^expected_block, _, _, _}} = Core.form_block(state.height, state)
   end
 
   @tag fixtures: [:state_empty]
   test "return error when current block numbers do not match when forming block", %{state_empty: state} do
-    assert {:error, :invalid_current_block_number} == Core.form_block(2, 3, state)
+    assert {:error, :invalid_current_block_number} == Core.form_block(2, state)
   end
 
   @tag fixtures: [:state_empty]
   test "no pending transactions at start (no events, empty block, no db updates)", %{state_empty: state} do
     expected_block = %Block{transactions: [], hash: @empty_block_hash}
-    {:ok, {^expected_block, [], [], _}} = Core.form_block(state.height, state.height + 1, state)
+    {:ok, {^expected_block, [], [], _}} = Core.form_block(state.height, state)
   end
 
   test "spending produces db updates, that don't leak to next block" do

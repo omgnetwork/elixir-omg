@@ -16,9 +16,12 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
   end
 
   def make_chain(length) do
+    {queue, _} =
     1..length
     |> Enum.reduce(set_mined(empty(), 0), fn(hash, state) -> enqueue_block(state, hash) end)
     |> set_ethereum_height(length)
+
+    queue
     |> set_mined(length * 1000)
   end
 
@@ -90,35 +93,38 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     end
 
     test "Block generation is driven by Ethereum height" do
-      queue =
+      assert {queue, [_one_to_form]} =
         empty()
         |> set_mined(0)
         |> set_ethereum_height(1)
-      assert create_block?(queue)
+
       queue =
         queue
         |> enqueue_block("1")
-      assert not create_block?(queue)
-      queue =
+
+      assert {queue, []} =
         queue
         |> set_ethereum_height(0)
-      assert not create_block?(queue)
-      queue =
+
+      assert {queue, []} =
         queue
         |> set_ethereum_height(1)
-      assert not create_block?(queue)
-      queue =
+
+      assert {queue, [_one_to_form]} =
         queue
         |> set_ethereum_height(2)
-      assert create_block?(queue)
+
       queue =
         queue
         |> enqueue_block("2")
-      assert not create_block?(queue)
+
+      assert {_, []} =
+        queue
+        |> set_ethereum_height(2)
     end
 
     test "Smoke test" do
-      assert ["3", "4", "5"] =
+      assert {queue, []} =
         empty()
         |> set_mined(0)
         |> enqueue_block("1")
@@ -128,6 +134,9 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         |> enqueue_block("5")
         |> set_mined(2000)
         |> set_ethereum_height(3)
+
+      assert ["3", "4", "5"] =
+        queue
         |> get_blocks_to_submit()
         |> hashes()
     end
@@ -139,13 +148,14 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     end
 
     test "Pending tx can be resubmitted with new gas price" do
-      queue =
+      {queue, _} =
         empty()
         |> set_mined(0)
         |> set_gas_price(1)
         |> enqueue_block("1")
         |> enqueue_block("2")
         |> set_ethereum_height(5)
+
       blocks = get_blocks_to_submit(queue)
       assert %BlockSubmission{gas_price: 1} = hd(blocks)
       blocks2 =
