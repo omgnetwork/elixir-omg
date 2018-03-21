@@ -18,33 +18,47 @@ defmodule OmiseGO.Eth do
     {:ok, on_exit}
   end
 
-  defmodule Transaction do
-    @moduledoc """
-    struct contain data required by submit block
-    """
-    defstruct [:root_hash, :nonce, :gas_price]
+  defmodule BlockSubmission do
+    @moduledoc false
+
+    @type hash() :: <<_::256>>
+    @type plasma_block_num() :: pos_integer()
+
+    @type t() :: %{
+      num: plasma_block_num(),
+      hash: hash(),
+      nonce: non_neg_integer(),
+      gas_price: pos_integer()
+    }
+    defstruct [:num, :hash, :nonce, :gas_price]
   end
 
-  # , do: :ok
   def submit_block(
-        %Transaction{root_hash: "0x" <> hash, nonce: nonce, gas_price: price},
+        %BlockSubmission{num: child_block_number, hash: hash, nonce: nonce, gas_price: gas_price},
         from \\ @omg_addr,
         contract \\ @contract
       ) do
     data =
       "submitBlock(bytes32,uint256)"
-      |> ABI.encode([hash |> Base.decode16!(), nonce])
+      |> ABI.encode([hash |> Base.decode16!(), child_block_number])
       |> Base.encode16()
+
+    gas = 100_000
 
     Ethereumex.HttpClient.eth_send_transaction(%{
       from: from,
       to: contract,
+      gas: encode_eth_rpc_unsigned_int(gas),
+      gasPrice: encode_eth_rpc_unsigned_int(gas_price),
       data: "0x#{data}",
-      gas: price
+      nonce: encode_eth_rpc_unsigned_int(nonce),
     })
   end
 
-  # , do: {:ok, 12345678}
+  defp encode_eth_rpc_unsigned_int(value) do
+    "0x" <> (value |> :binary.encode_unsigned |> Base.encode16 |> String.trim_leading("0"))
+  end
+
   def get_ethereum_height do
     case Ethereumex.HttpClient.eth_block_number() do
       {:ok, "0x" <> height_hex} ->

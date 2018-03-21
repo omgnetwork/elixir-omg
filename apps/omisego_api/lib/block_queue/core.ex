@@ -5,21 +5,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
   (thus, it handles config values as internal variables)
   """
 
-  defmodule BlockSubmission do
-    @moduledoc false
-
-    alias OmiseGO.API.BlockQueue, as: BlockQueue
-
-    @type t() :: %{
-      num: BlockQueue.plasma_block_num(),
-      hash: BlockQueue.hash(),
-      nonce: non_neg_integer(),
-      gas: pos_integer()
-    }
-    defstruct [:num, :hash, :nonce, :gas]
-  end
-
   alias OmiseGO.API.BlockQueue, as: BlockQueue
+  alias OmiseGO.Eth.BlockSubmission
 
   defstruct [
     :blocks,
@@ -162,7 +149,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
     |> elem(0)
     |> Map.values()
     |> Enum.sort_by(& &1.num)
-    |> Enum.map(&Map.put(&1, :gas, state.gas_price_to_use))
+    |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
   end
 
   @doc """
