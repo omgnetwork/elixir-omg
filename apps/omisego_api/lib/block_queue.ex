@@ -10,8 +10,11 @@ defmodule OmiseGO.API.BlockQueue do
   """
 
   alias OmiseGO.API.BlockQueue.Core, as: Core
+  alias OmiseGO.Eth.BlockSubmission
 
   @type eth_height() :: non_neg_integer()
+  @type hash() :: BlockSubmission.hash()
+  @type plasma_block_num() :: BlockSubmission.plasma_block_num()
   # child chain block number, as assigned by plasma contract
   @type encoded_signed_tx() :: binary()
 
