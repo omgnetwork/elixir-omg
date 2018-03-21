@@ -25,14 +25,14 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
   def recover(known_hashes, mined_child_block_num) do
     top_mined_hash = "#{inspect trunc(mined_child_block_num / 1000)}"
     new(
+      mined_child_block_num: mined_child_block_num,
+      known_hashes: known_hashes,
+      top_mined_hash: top_mined_hash,
+      parent_height: 10,
       child_block_interval: 1000,
       chain_start_parent_height: 1,
       submit_period: 1,
-      finality_threshold: 12,
-      known_hashes: known_hashes,
-      top_mined_hash: top_mined_hash,
-      mined_child_block_num: mined_child_block_num,
-      parent_height: 10)
+      finality_threshold: 12)
   end
 
   describe "Block queue." do

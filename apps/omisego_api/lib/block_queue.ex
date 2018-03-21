@@ -20,16 +20,6 @@ defmodule OmiseGO.API.BlockQueue do
 
   ### Client
 
-  @spec mined_child_head(block_num :: pos_integer()) :: :ok
-  def mined_child_head(block_num) do
-    GenServer.cast(__MODULE__.Server, {:mined_child_head, block_num})
-  end
-
-  @spec get_child_block_number :: {:ok, nil | pos_integer()}
-  def get_child_block_number do
-    GenServer.call(__MODULE__.Server, :get_child_block_number)
-  end
-
   @spec update_gas_price(price :: pos_integer()) :: :ok
   def update_gas_price(price) do
     GenServer.cast(__MODULE__.Server, {:update_gas_price, price})
@@ -46,29 +36,30 @@ defmodule OmiseGO.API.BlockQueue do
 
     def init(:ok) do
       finality = 12
-      with {:ok, parent_height} <- Eth.get_ethereum_height(),
-           {:ok, mined_num} <- Eth.get_current_child_block(),
-           {:ok, parent_start} <- Eth.get_root_deployment_height(),
-           {:ok, known_hashes} <- OmiseGO.FreshBlocks.get_top_blocks(finality),
-           {:ok, top_mined_hash} = Eth.get_child_block_root(mined_num) do
-        {:ok, state} = Core.new(
-          child_block_interval: 1000,
-          chain_start_parent_height: parent_start,
-          submit_period: 1,
-          finality_threshold: finality,
-          known_hashes: known_hashes,
-          top_mined_hash: top_mined_hash,
-          mined_num: mined_num,
-          parent_height: parent_height
-        )
-        {:ok, _} = :timer.send_interval(1000, self(), :check_mined_child_head)
-        {:ok, _} = :timer.send_interval(1000, self(), :check_ethereum_height)
-        {:ok, state}
+      # NOTE: something throws, suspect: ethereumex
+      try do
+        with {:ok, parent_height} <- Eth.get_ethereum_height(),
+             {:ok, mined_num} <- Eth.get_current_child_block(),
+             {:ok, parent_start} <- Eth.get_root_deployment_height(),
+             {:ok, known_hashes} <- OmiseGO.FreshBlocks.get_top_blocks(finality),
+             {:ok, top_mined_hash} = Eth.get_child_block_root(mined_num) do
+          {:ok, state} = Core.new(
+            mined_num: mined_num,
+            known_hashes: known_hashes,
+            top_mined_hash: top_mined_hash,
+            parent_height: parent_height,
+            child_block_interval: 1000,
+            chain_start_parent_height: parent_start,
+            submit_period: 1,
+            finality_threshold: finality
+          )
+          {:ok, _} = :timer.send_interval(1000, self(), :check_mined_child_head)
+          {:ok, _} = :timer.send_interval(1000, self(), :check_ethereum_height)
+          {:ok, state}
+        end
+      catch
+        error -> {:stop, {:unable_to_init_block_queue, error}}
       end
-    end
-
-    def handle_call(:get_child_block_number, _from, state) do
-      {:reply, Core.get_formed_block_num(state, 0), state}
     end
 
     def handle_cast({:update_gas_price, price}, state) do
