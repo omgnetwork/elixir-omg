@@ -11,10 +11,11 @@ defmodule OmiseGO.EthTest do
     hash = :crypto.hash(:sha256, to_charlist(nonce))
     hash = hash |> Base.encode16()
 
-    %Eth.Transaction{
-      root_hash: "0x" <> hash,
-      gas_price: "0x2D0900",
-      nonce: nonce
+    %Eth.BlockSubmission{
+      num: nonce,
+      hash: hash,
+      gas_price: 20_000_000_000,
+      nonce: nonce,
     }
   end
 
@@ -43,10 +44,8 @@ defmodule OmiseGO.EthTest do
   test "get child chain", %{contract: contract} do
     add_bloks(1..8, contract)
     block = generate_transaction(4)
-    {:ok, hash} = Eth.get_child_chain(4, contract.address)
-    hash = String.downcase(hash)
-
-    assert String.slice(hash, 0, String.length(block.root_hash)) ==
-             String.downcase(block.root_hash)
+    {:ok, "0x" <> child_chain_result} = Eth.get_child_chain(4, contract.address)
+    {child_chain_hash, _child_chain_time} = String.split_at(child_chain_result, 64)
+    assert String.downcase(block.hash) == child_chain_hash
   end
 end

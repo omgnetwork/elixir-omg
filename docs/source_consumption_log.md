@@ -21,10 +21,13 @@ Identifies each module of pre-existing source code used in developing source cod
   * `ex_rlp`, MIT, https://hex.pm/packages/ex_rlp
   * `blockchain`, MIT, https://hex.pm/packages/blockchain
   * `libsecp256k1`, MIT, https://hex.pm/packages/libsecp256k1
+  * `exleveldb`, Apache 2.0, https://hex.pm/packages/exleveldb
+  * `merkle_tree`, MIT, https://hex.pm/packages/merkle_tree
   * `abi`, , https://github.com/omisego/abi.git
   * `porcelain`, MIT, https://hex.pm/packages/porcelain 
   * `temp`, MIT, https://hex.pm/packages/temp
   * `ethereumex`, MIT, https://github.com/omisego/ethereumex.git
+
 
 ## Likely to be redistributed
 
