@@ -40,7 +40,12 @@ defmodule OmiseGO.DB do
   end
 
   def height do
-    :to_be_implemented
+    #FIXME
+    {:ok, 1}
+  end
+
+  def last_deposit_height do
+    GenServer.call(OmiseGO.DB.LevelDBServer, :last_deposit_block_height)
   end
 
   defmodule LevelDBServer do
@@ -102,6 +107,13 @@ defmodule OmiseGO.DB do
 
       :ok = write(db_ref, operations)
       {:reply, :ok, state}
+    end
+
+    def handle_call(:last_deposit_block_height, _from, %__MODULE__{db_ref: db_ref} = state) do
+      #TODO: initialize db with height 0
+      with key <- LevelDBCore.last_deposit_block_height_key(),
+           {:ok, height} <- get(db_ref, key),
+           do: {:reply, LevelDBCore.decode_value(:last_deposit_block_height, height), state}
     end
   end
 end

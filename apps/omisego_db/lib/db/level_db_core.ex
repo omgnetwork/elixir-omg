@@ -14,6 +14,8 @@ defmodule OmiseGO.DB.LevelDBCore do
   defp parse_multi_update({:put, :tx, tx}), do: {:put, tx_key(tx), encode_value(tx)}
   defp parse_multi_update({:put, :block, block}), do: {:put, block_key(block), encode_value(block)}
   defp parse_multi_update({:put, :utxo, utxo}), do: {:put, utxo_key(utxo), encode_value(utxo)}
+  defp parse_multi_update({:put, :last_deposit_block_height, height}),
+    do: {:put, last_deposit_block_height_key(), encode_value(height)}
 
   defp parse_multi_update({:delete, :tx, tx}), do: {:delete, tx_key(tx)}
   defp parse_multi_update({:delete, :block, block}), do: {:delete, block_key(block)}
@@ -22,6 +24,7 @@ defmodule OmiseGO.DB.LevelDBCore do
   def decode_value(:block, encoded), do: Poison.decode(encoded)
   def decode_value(:tx, encoded), do: Poison.decode(encoded)
   def decode_value(:utxo, encoded), do: Poison.decode(encoded)
+  def decode_value(:last_deposit_block_height, encoded), do: Poison.decode(encoded)
 
   defp encode_value(value), do: Poison.encode!(value)
 
@@ -44,5 +47,9 @@ defmodule OmiseGO.DB.LevelDBCore do
   def utxo_key({blknum, txindex, oindex} = _utxo_id) do
     # FIXME: very bad, fix
     <<"u", Integer.to_string(blknum), Integer.to_string(txindex), Integer.to_string(oindex)>>
+  end
+
+  def last_deposit_block_height_key() do
+    "last_deposit_block_height"
   end
 end

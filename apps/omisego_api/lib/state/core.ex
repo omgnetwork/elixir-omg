@@ -6,19 +6,19 @@ defmodule OmiseGO.API.State.Core do
   @maximum_block_size 65536
 
   # TODO: consider structuring and naming files/modules differently, to not have bazillions of `X.Core` modules?
-  defstruct [:height, :utxos, pending_txs: [], tx_index: 0]
+  defstruct [:height, :last_deposit_height, :utxos, pending_txs: [], tx_index: 0]
 
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Block
 
-  def extract_initial_state(_utxos_query_result, _height_query_result) do
-    # extract height and utxos from query result
+  def extract_initial_state(_utxos_query_result, _height_query_result, _last_deposit_height_query_result) do
+    # extract height, last deposit height and utxos from query result
     # FIXME
     height = 1
     # FIXME
     utxos = %{}
-    %__MODULE__{height: height, utxos: utxos}
+    %__MODULE__{height: height, last_deposit_height: 0, utxos: utxos}
   end
 
   #TODO: Add specs
@@ -96,6 +96,7 @@ defmodule OmiseGO.API.State.Core do
            oindex2: oindex2
          } = tx
        ) do
+
     new_utxos = get_non_zero_amount_utxos(height, tx_index, tx)
     %Core{
       state
@@ -122,7 +123,7 @@ defmodule OmiseGO.API.State.Core do
     }
   end
 
-  def form_block(current_block_num, next_block_num, %Core{pending_txs: txs} = state) do
+  def form_block(%Core{pending_txs: txs} = state, current_block_num, next_block_num) do
     # block generation
     # generating event triggers
     # generate requests to persistence
@@ -151,20 +152,35 @@ defmodule OmiseGO.API.State.Core do
     if expected_block_num == height, do: :ok, else: {:error, :invalid_current_block_number}
   end
 
-  def deposit(owner, amount, %Core{height: height, utxos: utxos} = state) do
-    new_utxos = %{{height, 0, 0} => %{amount: amount, owner: owner}}
+  def deposit(deposits, %Core{utxos: utxos} = state) do
+    deposits = deposits |> Enum.filter(&(&1.block_height > state.last_deposit_height))
 
-    event_triggers = [%{deposit: %{amount: amount, owner: owner}}]
+    new_utxos =
+      deposits
+      |> Map.new(
+          fn %{block_height: height, owner: owner, amount: amount} ->
+            {{height, 0, 0}, %{amount: amount, owner: owner}}
+          end)
 
-    db_updates = []
-
-    new_state = %Core{
-      state
-      | height: height + 1,
-        utxos: Map.merge(utxos, new_utxos)
-    }
+    event_triggers =
+      deposits
+      |> Enum.map(fn %{owner: owner, amount: amount} -> %{deposit: %{amount: amount, owner: owner}} end)
+    db_updates = deposit_db_updates(deposits)
+    new_state = %Core{state | utxos: Map.merge(utxos, new_utxos)}
 
     {event_triggers, db_updates, new_state}
+  end
+
+  defp deposit_db_updates(deposits) do
+    if Enum.empty?(deposits) do
+      []
+    else
+      max_block_height =
+        deposits
+        |> Enum.max_by(&(&1.block_height))
+        |> Map.get(:block_height)
+      [{:last_deposit_block_height, max_block_height}]
+    end
   end
 
   defp validate_block_size(
