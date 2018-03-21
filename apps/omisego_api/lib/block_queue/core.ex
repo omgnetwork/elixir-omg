@@ -26,7 +26,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
     :mined_child_block_num,
     :formed_child_block_num,
     :parent_height,
-    priority_gas_price: 20_000_000_000,
+    gas_price_to_use: 20_000_000_000,
     # config:
     child_block_interval: 1000,
     chain_start_parent_height: 1,
@@ -43,7 +43,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
           # current Ethereum block height
           parent_height: nil | BlockQueue.eth_height(),
           # gas price to use when (re)submitting transactions
-          priority_gas_price: pos_integer(),
+          gas_price_to_use: pos_integer(),
           # CONFIG CONSTANTS below
           # spacing of child blocks in RootChain contract, being the amount of deposit decimals per child block
           child_block_interval: pos_integer(),
@@ -60,23 +60,23 @@ defmodule OmiseGO.API.BlockQueue.Core do
   end
 
   def new(
+        mined_child_block_num: mined_child_block_num,
+        known_hashes: known_hashes,
+        top_mined_hash: top_mined_hash,
+        parent_height: parent_height,
         child_block_interval: child_block_interval,
         chain_start_parent_height: child_start_parent_height,
         submit_period: submit_period,
-        finality_threshold: finality_threshold,
-        known_hashes: known_hashes,
-        top_mined_hash: top_mined_hash,
-        mined_child_block_num: mined_child_block_num,
-        parent_height: parent_height
+        finality_threshold: finality_threshold
       ) do
     state = %__MODULE__{
       blocks: Map.new(),
+      mined_child_block_num: mined_child_block_num,
+      parent_height: parent_height,
       child_block_interval: child_block_interval,
       chain_start_parent_height: child_start_parent_height,
       submit_period: submit_period,
-      finality_threshold: finality_threshold,
-      mined_child_block_num: mined_child_block_num,
-      parent_height: parent_height
+      finality_threshold: finality_threshold
     }
 
     enqueue_existing_blocks(state, top_mined_hash, known_hashes)
@@ -138,7 +138,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
   Allows to react to changes of Ethereum mempool utilization.
   """
   def set_gas_price(state, price) do
-    %{state | priority_gas_price: price}
+    %{state | gas_price_to_use: price}
   end
 
   @doc """
@@ -162,7 +162,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
     |> elem(0)
     |> Map.values()
     |> Enum.sort_by(& &1.num)
-    |> Enum.map(&Map.put(&1, :gas, state.priority_gas_price))
+    |> Enum.map(&Map.put(&1, :gas, state.gas_price_to_use))
   end
 
   @doc """
