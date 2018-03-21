@@ -4,7 +4,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
   use ExUnit.Case, async: true
 
   import OmiseGO.API.BlockQueue.Core
-  import OmiseGO.API.BlockQueue.Core.BlockSubmission
+  alias OmiseGO.Eth.BlockSubmission
 
   def hashes(blocks) do
     for block <- blocks, do: block.hash
@@ -147,12 +147,12 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         |> enqueue_block("2")
         |> set_ethereum_height(5)
       blocks = get_blocks_to_submit(queue)
-      assert 1 = hd(blocks).gas
+      assert %BlockSubmission{gas_price: 1} = hd(blocks)
       blocks2 =
         queue
         |> set_gas_price(555)
         |> get_blocks_to_submit()
-      assert 555 = hd(blocks2).gas
+      assert %BlockSubmission{gas_price: 555} = hd(blocks2)
       assert length(blocks) == length(blocks2)
     end
   end

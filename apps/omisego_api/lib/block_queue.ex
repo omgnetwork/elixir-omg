@@ -11,11 +11,8 @@ defmodule OmiseGO.API.BlockQueue do
 
   alias OmiseGO.API.BlockQueue.Core, as: Core
 
-  @type hash() :: <<_::256>>
-
   @type eth_height() :: non_neg_integer()
   # child chain block number, as assigned by plasma contract
-  @type plasma_block_num() :: pos_integer()
   @type encoded_signed_tx() :: binary()
 
   ### Client
@@ -103,7 +100,9 @@ defmodule OmiseGO.API.BlockQueue do
     defp submit_blocks(state) do
       state
       |> Core.get_blocks_to_submit()
-      |> Enum.each(&Eth.submit_block(&1.nonce, &1.hash, &1.gas))
+      |> Enum.each(fn submission ->
+        {:ok, _txhash} = OmiseGO.Eth.submit_block(submission.nonce, submission.hash, submission.gas)
+      end)
     end
   end
 end
