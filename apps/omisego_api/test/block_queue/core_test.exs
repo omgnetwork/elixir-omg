@@ -18,7 +18,10 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
   def make_chain(length) do
     {queue, _} =
     1..length
-    |> Enum.reduce(set_mined(empty(), 0), fn(hash, state) -> enqueue_block(state, hash) end)
+    |> Enum.reduce(set_mined(empty(), 0), fn(hash, state) ->
+      {state, _} = set_ethereum_height(state, hash)
+      enqueue_block(state, hash)
+    end)
     |> set_ethereum_height(length)
 
     queue
@@ -75,12 +78,74 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         |> hashes()
     end
 
-    test "Produced child block numbers are as expected" do
-      assert {:ok, 1000} =
+    test "Produced child block numbers to form are as expected" do
+      assert {queue, [0]} =
         empty()
         |> set_mined(0)
+        |> set_ethereum_height(1)
+
+      assert {_, [1000]} =
+        queue
         |> enqueue_block("1")
-        |> get_formed_block_num(0)
+        |> set_mined(1)
+        |> set_ethereum_height(2)
+    end
+
+    test "Produced child blocks to form aren't repeated, if none are enqueued" do
+      assert {queue, [0]} =
+        empty()
+        |> set_mined(0)
+        |> set_ethereum_height(1)
+
+      assert {_, []} =
+        queue
+        |> set_ethereum_height(2)
+    end
+
+    test "Ethereum updates and enqueues can go interleaved" do
+      assert {queue, []} =
+        empty()
+        |> set_mined(0)
+        |> set_ethereum_height(1) |> elem(0)
+        |> set_ethereum_height(2) |> elem(0)
+        |> set_ethereum_height(3)
+
+      assert {queue, [1000]} =
+        queue
+        |> enqueue_block("1")
+        |> set_ethereum_height(4)
+
+      assert {queue, []} =
+        queue
+        |> set_ethereum_height(5)
+
+      assert {_, [2000]} =
+        queue
+        |> enqueue_block("2")
+        |> set_ethereum_height(6)
+    end
+
+    test "Ethereum updates can back off and jump independent from enqueues" do
+      assert {queue, []} =
+        empty()
+        |> set_mined(0)
+        |> set_ethereum_height(1) |> elem(0)
+        |> set_ethereum_height(2) |> elem(0)
+        |> set_ethereum_height(1)
+
+      assert {queue, [1000]} =
+        queue
+        |> enqueue_block("1")
+        |> set_ethereum_height(2)
+
+      assert {queue, []} =
+        queue
+        |> enqueue_block("2")
+        |> set_ethereum_height(1)
+
+      assert {_, [2000]} =
+        queue
+        |> set_ethereum_height(3)
     end
 
     test "Produced blocks submission requests have nonces in order" do
@@ -93,33 +158,27 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     end
 
     test "Block generation is driven by Ethereum height" do
-      assert {queue, [_one_to_form]} =
+      assert {queue, [0]} =
         empty()
         |> set_mined(0)
         |> set_ethereum_height(1)
 
-      queue =
-        queue
-        |> enqueue_block("1")
-
       assert {queue, []} =
         queue
+        |> enqueue_block("1")
         |> set_ethereum_height(0)
 
       assert {queue, []} =
         queue
         |> set_ethereum_height(1)
 
-      assert {queue, [_one_to_form]} =
+      assert {queue, [1000]} =
         queue
         |> set_ethereum_height(2)
 
-      queue =
-        queue
-        |> enqueue_block("2")
-
       assert {_, []} =
         queue
+        |> enqueue_block("2")
         |> set_ethereum_height(2)
     end
 

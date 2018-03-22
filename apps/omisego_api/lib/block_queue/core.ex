@@ -14,6 +14,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
     :mined_child_block_num,
     :formed_child_block_num,
     :parent_height,
+    wait_for_enqueue: false,
     gas_price_to_use: 20_000_000_000,
     # config:
     child_block_interval: 1000,
@@ -30,6 +31,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
           formed_child_block_num: nil | BlockQueue.plasma_block_num(),
           # current Ethereum block height
           parent_height: nil | BlockQueue.eth_height(),
+          # whether we're pending an enqueue signal with a new block
+          wait_for_enqueue: boolean(),
           # gas price to use when (re)submitting transactions
           gas_price_to_use: pos_integer(),
           # CONFIG CONSTANTS below
@@ -81,14 +84,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
     }
 
     blocks = Map.put(state.blocks, own_height, block)
-    %{state | formed_child_block_num: own_height, blocks: blocks}
-  end
-
-  @doc """
-  Get current block number (`block_num(state, 0)`), next block number (`block_num(state, 1)`), etc
-  """
-  def get_formed_block_num(state, delta) do
-    {:ok, state.formed_child_block_num + (delta * state.child_block_interval)}
+    %{state | formed_child_block_num: own_height, blocks: blocks, wait_for_enqueue: false}
   end
 
   @doc """
@@ -119,7 +115,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
   def set_ethereum_height(%Core{formed_child_block_num: formed_num} = state, parent_height) do
     new_state = %{state | parent_height: parent_height}
     if should_form_block?(new_state) do
-      {new_state, [formed_num]}
+      {%{new_state | wait_for_enqueue: true}, [formed_num]}
     else
       {new_state, []}
     end
@@ -158,13 +154,12 @@ defmodule OmiseGO.API.BlockQueue.Core do
     |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
   end
 
-  @doc """
-  Check if new child block should be formed basing on blocks formed so far and
-  age of RootChain contract in ethereum blocks.
-  """
+
+  # Check if new child block should be formed basing on blocks formed so far and
+  # age of RootChain contract in ethereum blocks
   @spec should_form_block?(Core.t()) :: true | false
   defp should_form_block?(state) do
-    max_num_since_genesis(state) > state.formed_child_block_num
+    due_child_block_num(state) > state.formed_child_block_num && ! state.wait_for_enqueue
   end
 
   # private (core)
@@ -173,11 +168,11 @@ defmodule OmiseGO.API.BlockQueue.Core do
     trunc(height / interval)
   end
 
-  defp max_num_since_genesis(state) do
+  defp due_child_block_num(state) do
     root_chain_age_in_ethereum_blocks = state.parent_height - state.chain_start_parent_height
-    child_chain_blocks_created = trunc(root_chain_age_in_ethereum_blocks / state.submit_period)
+    child_chain_blocks_due = trunc(root_chain_age_in_ethereum_blocks / state.submit_period)
     # add one because child block numbering starts from 1 * state.child_block_interval
-    (1 + child_chain_blocks_created) * state.child_block_interval
+    (1 + child_chain_blocks_due) * state.child_block_interval
   end
 
   # :lists.seq/3 throws, so wrapper
