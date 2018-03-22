@@ -41,7 +41,8 @@ defmodule OmiseGO.API.BlockQueue do
         with {:ok, parent_height} <- Eth.get_ethereum_height(),
              {:ok, mined_num} <- Eth.get_current_child_block(),
              {:ok, parent_start} <- Eth.get_root_deployment_height(),
-             {:ok, known_hashes} <- OmiseGO.FreshBlocks.get_top_blocks(finality),
+             {:ok, stored_child_top_num} <- OmiseGO.DB.child_top_block_number(),
+             {:ok, known_hashes} <- OmiseGO.DB.block_hashes(0..stored_child_top_num),
              {:ok, top_mined_hash} = Eth.get_child_block_root(mined_num) do
           {:ok, state} = Core.new(
             mined_num: mined_num,
