@@ -25,7 +25,6 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     |> set_ethereum_height(length)
 
     queue
-    |> set_mined(length * 1000)
   end
 
   def recover(known_hashes, mined_child_block_num) do
@@ -200,10 +199,23 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         |> hashes()
     end
 
-    test "Old blocks are GCd" do
-      long  = 10000 |> make_chain() |> :erlang.term_to_binary() |> byte_size()
-      short = 100 |> make_chain() |> :erlang.term_to_binary() |> byte_size()
-      assert 0.9 < long/short and long/short < (1/0.9)
+    test "Old blocks are GCd, but only after they're mined" do
+      long_length = 10000
+      short_length = 100
+
+      long  = long_length |> make_chain()
+      long_size = long |> :erlang.term_to_binary() |> byte_size()
+      short_size = short_length |> make_chain() |> :erlang.term_to_binary() |> byte_size()
+
+      # sanity check if we haven't GCd too early
+      assert long_size > long_length/short_length * short_size
+
+      long_mined_size =
+        long
+        |> set_mined((long_length - short_length) * 1000)
+        |> :erlang.term_to_binary() |> byte_size()
+
+      assert_in_delta(long_mined_size/short_size, 1, 0.2)
     end
 
     test "Pending tx can be resubmitted with new gas price" do
