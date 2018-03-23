@@ -10,7 +10,6 @@ defmodule OmiseGO.DB.LevelDBCore do
     |> Enum.map(&parse_multi_update/1)
   end
 
-  # TODO, switch to selecting the clause base on the type of tx/block/utxo (struct?)
   defp parse_multi_update({:put, :tx, tx}), do: {:put, tx_key(tx), encode_value(:tx, tx)}
   defp parse_multi_update({:put, :block, block}), do: {:put, block_key(block), encode_value(:block, block)}
   defp parse_multi_update({:put, :utxo, utxo}), do: {:put, utxo_key(utxo), encode_value(:utxo, utxo)}
@@ -19,31 +18,20 @@ defmodule OmiseGO.DB.LevelDBCore do
   defp parse_multi_update({:delete, :block, block}), do: {:delete, block_key(block)}
   defp parse_multi_update({:delete, :utxo, utxo}), do: {:delete, utxo_key(utxo)}
 
-  def decode_value(:block, encoded), do: Poison.decode(encoded)
-  def decode_value(:tx, encoded), do: Poison.decode(encoded)
-  def decode_value(:utxo, encoded) do
-    with {:ok, %{"b" => b, "t" => t, "o" => o, "value" => utxo_value}} <- Poison.decode(encoded),
-         do: %{{b, t, o} => utxo_value}
-  end
+  def decode_value(:block, encoded), do: :erlang.binary_to_term(encoded)
+  def decode_value(:tx, encoded), do: :erlang.binary_to_term(encoded)
+  def decode_value(:utxo, encoded), do: :erlang.binary_to_term(encoded)
 
-  defp encode_value(:tx, value), do: Poison.encode!(value)
-  defp encode_value(:block, value), do: Poison.encode!(value)
-  defp encode_value(:utxo, utxo) do
-    [{b, t, o}] = Map.keys(utxo)
-    [utxo_value] = Map.values(utxo)
-
-    %{b: b, t: t, o: o, value: utxo_value}
-    |> Poison.encode!
-  end
+  defp encode_value(:tx, value), do: :erlang.term_to_binary(value)
+  defp encode_value(:block, value), do: :erlang.term_to_binary(value)
+  defp encode_value(:utxo, value), do: :erlang.term_to_binary(value)
 
   def filter_utxos(keys_stream) do
     keys_stream
-    # |> Stream.map(&IO.inspect/1)
     |> Stream.filter(fn
       "u" <> _rest -> true
       _ -> false
     end)
-    # |> Stream.map(&IO.inspect/1)
   end
 
   def tx_key(%{hash: hash} = _tx) do
@@ -62,8 +50,7 @@ defmodule OmiseGO.DB.LevelDBCore do
     [utxo_id] = Map.keys(utxo)
     utxo_key(utxo_id)
   end
-  def utxo_key({blknum, txindex, oindex} = _utxo_id) do
-    # FIXME: very bad, fix
-    "u" <> Integer.to_string(blknum) <> Integer.to_string(txindex) <> Integer.to_string(oindex)
+  def utxo_key({_blknum, _txindex, _oindex} = utxo_id) do
+    "u" <> :erlang.term_to_binary(utxo_id)
   end
 end
