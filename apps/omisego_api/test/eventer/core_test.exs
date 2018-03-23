@@ -13,14 +13,15 @@ defmodule OmiseGO.API.Eventer.CoreTest do
   test "notifications for finalied block event are created" do
   end
 
-  test "receiver is notified about deposit" do
+  @tag fixtures: [:alice, :bob]
+  test "receiver is notified about deposit", %{alice: alice, bob: bob} do
     depositor = "depositor"
     signed_deposit =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
         newowner1: depositor, amount1: 100, newowner2: Transaction.zero_address, amount2: 0, fee: 0
       }
-      |> TestHelper.signed
+      |> TestHelper.signed(alice.priv, bob.priv)
 
     recovered_tx = %Recovered{signed: signed_deposit}
     [{%Received{tx: ^signed_deposit}, "transactions/received/" <> ^depositor}] =

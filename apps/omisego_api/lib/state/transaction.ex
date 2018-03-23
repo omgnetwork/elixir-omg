@@ -23,6 +23,9 @@ defmodule OmiseGO.API.State.Transaction do
              ]
 
   defmodule Signed do
+
+    @signature_length 64
+
     @moduledoc false
     defstruct [:raw_tx, :sig1, :sig2, :hash]
 
@@ -33,6 +36,76 @@ defmodule OmiseGO.API.State.Transaction do
       %{signed | hash: hash}
     end
 
+    def encode(%__MODULE__{} = singed_tx) do
+      tx = singed_tx.raw_tx
+
+      [tx.blknum1,
+        tx.txindex1,
+        tx.oindex1,
+        tx.blknum2,
+        tx.txindex2,
+        tx.oindex2,
+        tx.newowner1,
+        tx.amount1,
+        tx.newowner2,
+        tx.amount2,
+        tx.fee,
+        singed_tx.hash,
+        singed_tx.sig1,
+        singed_tx.sig2]
+        |> ExRLP.encode
+    end
+
+    def decode(line) do
+      with {:ok, tx} <- rlp_decode(line),
+        {:ok, tx} <- reconstruct_tx(tx),
+      do: {:ok, tx}
+    end
+
+    defp int_parse(int), do: :binary.decode_unsigned(int, :big)
+
+    defp rlp_decode(line) do
+      try do
+        {:ok, ExRLP.decode(line)}
+      catch
+        _ ->
+        {:error, :malformed_transaction_rlp}
+      end
+    end
+
+    defp reconstruct_tx(encoded_singed_tx) do
+      case encoded_singed_tx do
+        [blknum1, txindex1, oindex1,
+          blknum2, txindex2, oindex2,
+          newowner1, amount1, newowner2, amount2,
+          fee, hash, sig1, sig2] ->
+
+            tx = %OmiseGO.API.State.Transaction{
+              blknum1: int_parse(blknum1),
+              txindex1: int_parse(txindex1),
+              oindex1: int_parse(oindex1),
+              blknum2: int_parse(blknum2),
+              txindex2: int_parse(txindex2),
+              oindex2: int_parse(oindex2),
+              newowner1: newowner1,
+              amount1: int_parse(amount1),
+              newowner2: newowner2,
+              amount2: int_parse(amount2),
+              fee: int_parse(fee)}
+
+            {:ok,
+             %__MODULE__{
+               raw_tx: tx,
+               hash: hash,
+               sig1: sig1,
+               sig2: sig2
+            }}
+
+        _tx ->
+          {:error}
+
+      end
+    end
   end
 
   defmodule Recovered do
@@ -47,12 +120,12 @@ defmodule OmiseGO.API.State.Transaction do
     # FIXME: rethink default values
     defstruct [:signed, spender1: @zero_address, spender2: @zero_address]
 
-    def recover_from(%OmiseGO.API.State.Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2} = signed) do
+    def recover_from(%OmiseGO.API.State.Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2, hash: hash} = signed) do
        hash_no_spenders = OmiseGO.API.State.Transaction.hash(raw_tx)
-       spender1 = Crypto.recover_address(hash_no_spenders, sig1)
-       spender2 = Crypto.recover_address(hash_no_spenders, sig2)
+       {:ok, spender1} = Crypto.recover_address(hash_no_spenders, sig1)
+       {:ok, spender2} = Crypto.recover_address(hash_no_spenders, sig2)
        %__MODULE__{signed: signed, spender1: spender1, spender2: spender2}
-     end
+    end
   end
 
   # TODO: add convenience function for creating common transactions (1in-1out, 1in-2out-with-change, etc.)
@@ -61,22 +134,27 @@ defmodule OmiseGO.API.State.Transaction do
 
   def account_address?(address), do: address != @zero_address
 
-  def hash(%__MODULE__{} = transaction) do
-    [transaction.blknum1,
-     transaction.txindex1,
-     transaction.oindex1,
-     transaction.blknum2,
-     transaction.txindex2,
-     transaction.oindex2,
-     transaction.newowner1,
-     transaction.amount1,
-     transaction.newowner2,
-     transaction.amount2,
-     transaction.fee]
-    |> ExRLP.encode
-    |> OmiseGO.API.Crypto.hash()
-end
+  def encode(%__MODULE__{} = tx) do
+    [tx.blknum1,
+      tx.txindex1,
+      tx.oindex1,
+      tx.blknum2,
+      tx.txindex2,
+      tx.oindex2,
+      tx.newowner1,
+      tx.amount1,
+      tx.newowner2,
+      tx.amount2,
+      tx.fee]
+      |> ExRLP.encode
+  end
 
-def is_single_utxo(%__MODULE__{} = transaction), do: transaction.blknum2 == 0
+  def hash(%__MODULE__{} = tx) do
+    tx
+    |> encode
+    |> Crypto.hash()
+  end
+
+  def is_single_utxo(%__MODULE__{} = transaction), do: transaction.blknum2 == 0
 
 end

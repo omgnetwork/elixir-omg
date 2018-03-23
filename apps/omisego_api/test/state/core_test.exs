@@ -5,53 +5,33 @@ defmodule OmiseGO.API.State.CoreTest do
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.TestHelper
+
+  import OmiseGO.API.TestHelper
 
   @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232,
                       237, 80, 242, 60, 209, 253, 249, 76, 145, 84, 237, 58, 118, 9,
                       162, 241, 255, 152, 31>>
-
-  deffixture alice() do
-    "alicealicealicealice"
-  end
-
-  deffixture bob() do
-    "bobbobbobbobbobbobbo"
-  end
-
-  deffixture carol() do
-    "carolcarolcarol"
-  end
-
-  deffixture state_empty() do
-    Core.extract_initial_state([])
-  end
-
-  deffixture state_alice_deposit(state_empty, alice) do
-    state_empty
-    |> do_deposit(alice, 10)
-  end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can spend deposits", %{alice: alice, bob: bob, state_alice_deposit: state} do
     signed_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
     signed_tx =
       %Transaction{
         blknum1: 2, txindex1: 0, oindex1: 1, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 3, newowner2: 0, amount2: 0, fee: 0,
+        newowner1: bob.addr, amount1: 3, newowner2: 0, amount2: 0, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
 
-    %Transaction.Recovered{signed: signed_tx, spender1: alice}
+    %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
     |> Core.exec(state) |> success?
   end
 
@@ -60,10 +40,10 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx =
       %Transaction{
         blknum1: 1, txindex1: 1, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
-    %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      |> signed(bob.priv, alice.priv)
+    %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
     |> Core.exec(state) |> fail?(:utxo_not_found) |> same?(state)
   end
 
@@ -72,12 +52,12 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 8, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 8, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
 
     # FIXME: include more scenarios of possible invalid txs? use second input, both outputs, fees etc. (in a dry way)
-    %Transaction.Recovered{signed: signed_tx, spender1: alice}
+    %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
     |> Core.exec(state) |> fail?(:amounts_dont_add_up) |> same?(state)
   end
 
@@ -86,20 +66,20 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 8, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 8, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
-    %Transaction.Recovered{signed: signed_tx, spender1: bob}
+      |> signed(bob.priv, alice.priv)
+    %Transaction.Recovered{signed: signed_tx, spender1: bob.addr}
     |> Core.exec(state) |> fail?(:incorrect_spender) |> same?(state)
 
     signed_tx =
       %Transaction{
         blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 1, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 8, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 8, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
 
-    %Transaction.Recovered{signed: signed_tx, spender1: bob}
+    %Transaction.Recovered{signed: signed_tx, spender1: bob.addr}
     |> Core.exec(state) |> fail?(:incorrect_spender) |> same?(state)
   end
 
@@ -109,43 +89,43 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
     state1 =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
     signed_tx =
       %Transaction{
         blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 1, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
     state2 =
-      %Transaction.Recovered{signed: signed_tx, spender2: alice}
+      %Transaction.Recovered{signed: signed_tx, spender2: alice.addr}
       |> Core.exec(state) |> success?
 
     signed_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
     [state1, state2]
     |> Enum.map(fn state ->
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
       |> Core.exec(state) |> fail?(:utxo_not_found) |> same?(state)
     end)
 
     signed_tx = %Transaction{
       blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 1, txindex2: 0, oindex2: 0,
-      newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+      newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
     }
-    |> TestHelper.signed
+    |> signed(bob.priv, alice.priv)
     [state1, state2]
     |> Enum.map(fn state ->
-      %Transaction.Recovered{signed: signed_tx, spender2: alice}
+      %Transaction.Recovered{signed: signed_tx, spender2: alice.addr}
       |> Core.exec(state) |> fail?(:utxo_not_found) |> same?(state)
     end)
   end
@@ -155,41 +135,41 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
 
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
     signed_tx =
       %Transaction{
         blknum1: 2, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: carol, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
+        newowner1: carol.addr, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: bob}
+      %Transaction.Recovered{signed: signed_tx, spender1: bob.addr}
       |> Core.exec(state) |> success?
 
     signed_tx =
       %Transaction{
         blknum1: 2, txindex1: 0, oindex1: 1, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: carol, amount1: 3, newowner2: 0, amount2: 0, fee: 0,
+        newowner1: carol.addr, amount1: 3, newowner2: 0, amount2: 0, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
     signed_tx =
       %Transaction{
         blknum1: 2, txindex1: 1, oindex1: 0, blknum2: 2, txindex2: 2, oindex2: 0,
-        newowner1: alice, amount1: 10, newowner2: 0, amount2: 0, fee: 0,
+        newowner1: alice.addr, amount1: 10, newowner2: 0, amount2: 0, fee: 0,
       }
-      |> TestHelper.signed
-    %Transaction.Recovered{signed: signed_tx, spender1: carol, spender2: carol}
+      |> signed(bob.priv, alice.priv)
+    %Transaction.Recovered{signed: signed_tx, spender1: carol.addr, spender2: carol.addr}
     |> Core.exec(state) |> success?
   end
 
@@ -200,20 +180,20 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
     signed_tx =
       %Transaction{
         blknum1: 3, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
       }
-      |> TestHelper.signed
-    %Transaction.Recovered{signed: signed_tx, spender1: bob}
+      |> signed(bob.priv, alice.priv)
+    %Transaction.Recovered{signed: signed_tx, spender1: bob.addr}
     |> Core.exec(state) |> success?
   end
 
@@ -222,24 +202,20 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
 
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    expected_block = %Block{
-      transactions: [signed_tx],
-      hash: <<29, 23, 209, 231, 86, 85, 27, 89, 11, 205, 112, 53, 88, 46, 209, 246, 217, 188, 47,
-              39, 3, 193, 32, 75, 25, 54, 147, 110, 146, 197, 90, 86>>
-    }
+    expected_block = Block.merkle_hash(%Block{transactions: [signed_tx]})
 
     {actual_block, _, _, state} = Core.form_block(state)
     assert actual_block == expected_block
 
-    %Transaction.Recovered{signed: signed_tx, spender1: alice}
+    %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
     |> Core.exec(state) |> fail?(:utxo_not_found)
   end
 
@@ -248,12 +224,12 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
 
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
     assert {_, [trigger], _, _} = Core.form_block(state)
@@ -266,21 +242,21 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
     signed_tx =
       %Transaction{
         blknum1: 2, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: alice, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
+        newowner1: alice.addr, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: bob}
+      %Transaction.Recovered{signed: signed_tx, spender1: bob.addr}
       |> Core.exec(state) |> success?
 
     assert {_, [_trigger1, _trigger2], _, _} = Core.form_block(state)
@@ -291,11 +267,11 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx =
       %Transaction{
         blknum1: 1, txindex1: 1, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
       |> Core.exec(state) |> same?(state)
 
     assert {_, [], _, _} = Core.form_block(state)
@@ -315,11 +291,11 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{signed: signed_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
     assert {_, [_trigger], _, state} = Core.form_block(state)
@@ -333,30 +309,25 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_1 =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
     state =
-      %Transaction.Recovered{signed: signed_tx_1, spender1: alice}
+      %Transaction.Recovered{signed: signed_tx_1, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
     signed_tx_2 =
       %Transaction{
         blknum1: 2, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: alice, amount1: 2, newowner2: bob, amount2: 5, fee: 0
+        newowner1: alice.addr, amount1: 2, newowner2: bob.addr, amount2: 5, fee: 0
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
     state =
-      %Transaction.Recovered{signed: signed_tx_2, spender1: bob}
+      %Transaction.Recovered{signed: signed_tx_2, spender1: bob.addr}
       |> Core.exec(state) |> success?
 
-    expected_block =
-      %Block{
-        transactions: [signed_tx_1, signed_tx_2],
-        hash: <<222, 21, 36, 237, 108, 161, 96, 234, 25, 28, 102, 22,
-                210, 192, 45, 101, 109, 90, 220, 253, 39, 134, 197, 129, 139,
-                135, 120, 214, 203, 233, 76, 186>>
-      }
+    expected_block = Block.merkle_hash(%Block{transactions: [signed_tx_1, signed_tx_2]})
+
     {^expected_block, _, _, _} = Core.form_block(state)
   end
 
@@ -366,11 +337,11 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_1 =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0
       }
-      |> TestHelper.signed
+      |> signed(bob.priv, alice.priv)
     state =
-      %Transaction.Recovered{signed: signed_tx_1, spender1: alice}
+      %Transaction.Recovered{signed: signed_tx_1, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
     {_, _, _, state} = Core.form_block(state)
@@ -419,7 +390,7 @@ defmodule OmiseGO.API.State.CoreTest do
     #
     # state =
     #   %Transaction{blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-    #                newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0}
+    #                newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0}
     #   |> Core.exec(state) |> success?
     # {[deposit_trigger], [deposit_db_update], state} = Core.deposit(alice, 4, state)
     #
@@ -436,7 +407,7 @@ defmodule OmiseGO.API.State.CoreTest do
     # state = Core.extract_initial_state("utxo1, utxo2 etc")
     # state =
     #   %Transaction{blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-    #                newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0}
+    #                newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0}
     #   |> Core.exec(state) |> success?
 
   end
@@ -447,30 +418,4 @@ defmodule OmiseGO.API.State.CoreTest do
     assert "correct query" == Core.get_state_fetching_query()
   end
 
-  # TODO: other?
-
-  defp do_deposit(state, owner, amount) do
-    {_, _, new_state} =
-      Core.deposit(owner, amount, state)
-    new_state
-  end
-
-  defp success?(result) do
-    assert {:ok, state} = result
-    state
-  end
-
-  defp fail?(result, expected_error) do
-    assert {{:error, ^expected_error}, state} = result
-    state
-  end
-
-  defp same?({{:error, _someerror}, state}, expected_state) do
-    assert expected_state == state
-    state
-  end
-  defp same?(state, expected_state) do
-    assert expected_state == state
-    state
-  end
 end
