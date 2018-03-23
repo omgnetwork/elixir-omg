@@ -155,6 +155,4 @@ defmodule OmiseGO.API.State.Transaction do
     |> Crypto.hash()
   end
 
-  def is_single_utxo(%__MODULE__{} = transaction), do: transaction.blknum2 == 0
-
 end

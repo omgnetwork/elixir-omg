@@ -19,7 +19,7 @@ defmodule OmiseGO.API.Fixtures do
   deffixture carol(entities), do: entities.carol
 
   deffixture state_empty() do
-    Core.extract_initial_state([])
+    Core.extract_initial_state(1, [])
   end
 
   deffixture state_alice_deposit(state_empty, alice) do

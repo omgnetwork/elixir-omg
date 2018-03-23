@@ -1,5 +1,6 @@
 {
   "skip_files": [
-    "lib/state.ex"
+      "lib/state.ex",
+      "lib/block_queue.ex"
   ]
 }

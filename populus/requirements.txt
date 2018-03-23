@@ -1,0 +1,3 @@
+populus==2.2.0
+pytest-xdist
+flake8

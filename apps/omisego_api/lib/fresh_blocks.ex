@@ -25,6 +25,10 @@ defmodule OmiseGO.FreshBlocks do
     GenServer.cast(__MODULE__, {:push, block})
   end
 
+  def get_top_blocks(_number) do
+    {:ok, []}
+  end
+
   ##### Core
   defmodule Core do
     @moduledoc """
@@ -61,9 +65,10 @@ defmodule OmiseGO.FreshBlocks do
   end
 
   def handle_call({:get, block_number}, _from, %Core{} = state) do
-    {block, blocks_to_fetch} = Core.get(block_number, state)
-    fetched_blocks = DB.blocks(blocks_to_fetch)
-    {:reply, Map.get(fetched_blocks, block_number, block), state}
+    with {block, blocks_to_fetch} <- Core.get(block_number, state),
+         {:ok, fetched_blocks} <- DB.blocks(blocks_to_fetch),
+         block_to_return <- Map.get(fetched_blocks, block_number, block),
+         do: {:reply, block_to_return, state}
   end
 
   def handle_cast({:push, %Block{} = block}, _from, state) do

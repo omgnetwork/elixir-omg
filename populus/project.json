@@ -1,0 +1,16 @@
+{
+  "version":"7",
+  "compilation":{
+    "contracts_source_dirs": ["../contracts"],
+    "import_remappings": [
+      "SafeMath.sol=../contracts/Libraries/SafeMath.sol",
+      "ByteUtils.sol=../contracts/Libraries/ByteUtils.sol",
+      "ECRecovery.sol=../contracts/Libraries/ECRecovery.sol",
+      "Math.sol=../contracts/Libraries/Math.sol",
+      "Merkle.sol=../contracts/Libraries/Merkle.sol",
+      "RLP.sol=../contracts/Libraries/RLP.sol",
+      "Validate.sol=../contracts/Libraries/Validate.sol",
+      "PriorityQueue.sol=../contracts/DataStructures/PriorityQueue.sol"
+    ]
+  }
+}
