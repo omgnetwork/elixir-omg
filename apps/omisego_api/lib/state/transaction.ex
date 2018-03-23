@@ -102,7 +102,7 @@ defmodule OmiseGO.API.State.Transaction do
             }}
 
         _tx ->
-          {:error}
+          {:error, :malformed_transaction}
 
       end
     end

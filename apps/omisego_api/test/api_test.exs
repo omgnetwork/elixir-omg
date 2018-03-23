@@ -9,8 +9,7 @@ defmodule OmiseGO.API.ApiTest do
 
   @tag fixtures: [:alice, :bob]
   test "signed transaction is valid", %{alice: alice, bob: bob} do
-    signed_tx
-     =
+    signed_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
         newowner1: alice.addr, amount1: 7, newowner2: bob.addr, amount2: 3, fee: 0,
@@ -28,5 +27,16 @@ defmodule OmiseGO.API.ApiTest do
       )
 
   end
+
+  test "encoded transaction is empty" do
+    empty_tx = <<192>>
+
+    to = empty_tx
+      |> Core.recover_tx
+      |> same?({:error, :malformed_transaction})
+
+  end
+
+
 
 end
