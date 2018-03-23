@@ -9,8 +9,6 @@ defmodule OmiseGO.API do
   alias OmiseGO.DB
 
   def submit(encoded_singed_tx) do
-
-    # TODO: consider having StatelessValidatonWorker to scale this, instead scaling API
     with {:ok, recovered_tx} <- Core.recover_tx(encoded_singed_tx),
       recovered_tx <- State.exec(recovered_tx),
     do: {:ok}
@@ -36,7 +34,7 @@ defmodule OmiseGO.API do
         recovered_tx <- Transaction.Recovered.recover_from(singed_tx),
       do: {:ok, recovered_tx}
     end
-    
+
   end
 
 end

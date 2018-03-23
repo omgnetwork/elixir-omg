@@ -23,16 +23,16 @@ defmodule OmiseGO.API.State.Transaction do
              ]
 
   defmodule Signed do
-
-    @signature_length 64
-
     @moduledoc false
+
+    alias OmiseGO.API.State.Transaction
+
     defstruct [:raw_tx, :sig1, :sig2, :hash]
 
     def hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2} = signed) do
-      hash =
-        (OmiseGO.API.State.Transaction.hash(tx) <> sig1 <> sig2)
+      hash = (Transaction.hash(tx) <> sig1 <> sig2)
         |> Crypto.hash()
+
       %{signed | hash: hash}
     end
 
@@ -113,15 +113,15 @@ defmodule OmiseGO.API.State.Transaction do
     Representation of a Signed transaction, with addresses recovered from signatures (from Transaction.Signed)
     Intent is to allow concurent processing of signatures outside of serial processing in state.ex
     """
+    alias OmiseGO.API.State.Transaction
 
-    # FIXME: refactor to somewhere to avoid dupliaction
     @zero_address <<0>> |> List.duplicate(20) |> Enum.join
-
+    
     # FIXME: rethink default values
     defstruct [:signed, spender1: @zero_address, spender2: @zero_address]
 
-    def recover_from(%OmiseGO.API.State.Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2, hash: hash} = signed) do
-       hash_no_spenders = OmiseGO.API.State.Transaction.hash(raw_tx)
+    def recover_from(%Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2, hash: hash} = signed) do
+       hash_no_spenders = Transaction.hash(raw_tx)
        {:ok, spender1} = Crypto.recover_address(hash_no_spenders, sig1)
        {:ok, spender2} = Crypto.recover_address(hash_no_spenders, sig2)
        %__MODULE__{signed: signed, spender1: spender1, spender2: spender2}

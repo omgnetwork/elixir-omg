@@ -1,7 +1,6 @@
 defmodule OmiseGO.API.Fixtures do
   use ExUnitFixtures.FixtureModule
 
-  alias OmiseGO.API.TestHelper
   alias OmiseGO.API.State.Core
 
   import OmiseGO.API.TestHelper

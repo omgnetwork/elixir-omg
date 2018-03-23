@@ -25,18 +25,14 @@ defmodule OmiseGO.API.ApiTest do
         spender1: alice.addr,
         spender2: bob.addr}
       )
-
   end
 
   test "encoded transaction is empty" do
     empty_tx = <<192>>
 
-    to = empty_tx
+    empty_tx
       |> Core.recover_tx
       |> same?({:error, :malformed_transaction})
-
   end
-
-
 
 end
