@@ -23,8 +23,8 @@ defmodule OmiseGO.DBTest do
         {:put, :tx, %{hash: "abcde"}},
       ]
     )
-    assert {:ok, %{"hash" => "abcd"}} == DB.tx(%{hash: "abcd"})
-    assert {:ok, %{"hash" => "abcde"}} == DB.tx(%{hash: "abcde"})
+    assert {:ok, %{hash: "abcd"}} == DB.tx(%{hash: "abcd"})
+    assert {:ok, %{hash: "abcde"}} == DB.tx(%{hash: "abcde"})
     assert :not_found == DB.tx(%{hash: "abcdef"})
 
     :ok = DB.multi_update(
@@ -37,9 +37,9 @@ defmodule OmiseGO.DBTest do
       ]
     )
     assert :not_found == DB.tx(%{hash: "abcd"})
-    assert {:ok, %{"hash" => "abcde"}} == DB.tx(%{hash: "abcde"})
-    assert {:ok, %{"hash" => "abcdef"}} == DB.tx(%{hash: "abcdef"})
-    assert {:ok, [{:ok, %{"hash" => "wvxyz"}}, {:ok, %{"hash" => "xyz"}}]} ==
+    assert {:ok, %{hash: "abcde"}} == DB.tx(%{hash: "abcde"})
+    assert {:ok, %{hash: "abcdef"}} == DB.tx(%{hash: "abcdef"})
+    assert {:ok, [%{hash: "wvxyz"}, %{hash: "xyz"}]} ==
       DB.blocks([%{hash: "wvxyz"}, %{hash: "xyz"}])
   end
 
@@ -47,7 +47,7 @@ defmodule OmiseGO.DBTest do
     :ok = DB.multi_update([{:put, :tx, %{hash: "abcdef"}}])
     :ok = DB.stop
     {:ok, _pid} = DB.start_link
-    assert {:ok, %{"hash" => "abcdef"}} == DB.tx(%{hash: "abcdef"})
+    assert {:ok, %{hash: "abcdef"}} == DB.tx(%{hash: "abcdef"})
   end
 
   test "handles utxo storage" do
@@ -64,10 +64,10 @@ defmodule OmiseGO.DBTest do
     )
 
     assert {:ok, [
-      %{{10, 30, 0} => %{"amount" => 10, "owner" => "alice1"}},
-      %{{11, 30, 0} => %{"amount" => 10, "owner" => "alice2"}},
-      %{{11, 31, 0} => %{"amount" => 10, "owner" => "alice3"}},
-      %{{11, 31, 1} => %{"amount" => 10, "owner" => "alice4"}},
+      %{{10, 30, 0} => %{amount: 10, owner: "alice1"}},
+      %{{11, 30, 0} => %{amount: 10, owner: "alice2"}},
+      %{{11, 31, 0} => %{amount: 10, owner: "alice3"}},
+      %{{11, 31, 1} => %{amount: 10, owner: "alice4"}},
     ]} == DB.utxos
   end
 end

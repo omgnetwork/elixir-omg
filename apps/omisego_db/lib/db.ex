@@ -2,8 +2,7 @@ defmodule OmiseGO.DB do
   @moduledoc """
   Our-types-aware port/adapter to the db backend
   """
-  # TODO 1: Includes better than Poison value encoding, overhaulf of key encoding,
-  #         iron out shell-core interactions
+  # TODO 1: iron out shell-core interactions
   # TODO 2: still needs to be integrated into other components and integration-tested
 
   ### Client (port)
@@ -60,8 +59,7 @@ defmodule OmiseGO.DB do
       result =
         with key <- LevelDBCore.tx_key(hash),
              {:ok, value} <- get(db_ref, key),
-             {:ok, decoded} <- LevelDBCore.decode_value(:tx, value),
-             do: {:ok, decoded}
+             do: {:ok, LevelDBCore.decode_value(:tx, value)}
       {:reply, result, state}
     end
 
