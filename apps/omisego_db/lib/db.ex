@@ -2,15 +2,18 @@ defmodule OmiseGO.DB do
   @moduledoc """
   Our-types-aware port/adapter to the db backend
   """
-  # TODO 1: leveldb interactions should be polished out.
-  #         Includes better than Poison value encoding, overhaulf of key encoding,
-  #         smoke-test (smoke test can be a temporary thing), iron out shell-core interactions
+  # TODO 1: Includes better than Poison value encoding, overhaulf of key encoding,
+  #         iron out shell-core interactions
   # TODO 2: still needs to be integrated into other components and integration-tested
 
   ### Client (port)
 
   def start_link do
     GenServer.start_link(OmiseGO.DB.LevelDBServer, :ok, name: OmiseGO.DB.LevelDBServer)
+  end
+
+  def stop do
+    GenServer.stop(OmiseGO.DB.LevelDBServer, :normal)
   end
 
   def multi_update(db_updates) do
@@ -68,15 +71,16 @@ defmodule OmiseGO.DB do
         |> Enum.map(&LevelDBCore.block_key/1)
         |> Enum.map(fn key -> get(db_ref, key) end)
         |> Enum.map(fn {:ok, value} -> LevelDBCore.decode_value(:block, value) end)
-      {:reply, result, state}
+      {:reply, {:ok, result}, state}
     end
 
     def handle_call({:utxos}, _from, %__MODULE__{db_ref: db_ref} = state) do
-      with key <- LevelDBCore.utxo_list_key(),
-           {:ok, utxo_list} <- get(db_ref, key),
-           utxo_keys <- Enum.map(utxo_list, &LevelDBCore.utxo_key/1),
-           result <- Enum.map(utxo_keys, fn key -> get(db_ref, key) end),
-           do: {:reply, result, state}
+      with keys_stream <- stream(db_ref, :keys_only),
+           utxo_keys <- LevelDBCore.filter_utxos(keys_stream),
+           result <- utxo_keys
+                     |> Enum.map(fn key -> get(db_ref, key) end)
+                     |> Enum.map(fn {:ok, value} -> LevelDBCore.decode_value(:utxo, value) end),
+           do: {:reply, {:ok, result}, state}
     end
 
     def handle_call({:multi_update, db_updates}, _from, %__MODULE__{db_ref: db_ref} = state) do
