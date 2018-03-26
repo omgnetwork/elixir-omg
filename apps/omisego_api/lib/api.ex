@@ -8,9 +8,10 @@ defmodule OmiseGO.API do
   alias OmiseGO.API.Core
   alias OmiseGO.DB
 
+  @spec submit(byte) :: {:ok} | {:error, any}
   def submit(encoded_singed_tx) do
     with {:ok, recovered_tx} <- Core.recover_tx(encoded_singed_tx),
-      recovered_tx <- State.exec(recovered_tx),
+        {:ok, recovered_tx} <- State.exec(recovered_tx),
     do: {:ok}
   end
 
@@ -20,21 +21,6 @@ defmodule OmiseGO.API do
 
   def tx(hash) do
     DB.tx(hash)
-  end
-
-  defmodule Core do
-    @moduledoc """
-    Functional core work-horse for OmiseGO.API
-    """
-
-    alias OmiseGO.API.State.Transaction
-
-    def recover_tx(encoded_singed_tx) do
-      with {:ok, singed_tx} <- Transaction.Signed.decode(encoded_singed_tx),
-        recovered_tx <- Transaction.Recovered.recover_from(singed_tx),
-      do: {:ok, recovered_tx}
-    end
-
   end
 
 end

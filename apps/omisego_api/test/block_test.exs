@@ -5,28 +5,37 @@ defmodule OmiseGO.API.BlockTest do
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.Block
 
-  test "block has a correct hash" do
-    tx = %Transaction{
+  @tag fixtures: [:stable_alice, :stable_bob]
+  test "block has a correct hash", %{stable_alice: alice, stable_bob: bob} do
+    raw_tx = %Transaction{
       blknum1: 1,
       txindex1: 1,
       oindex1: 0,
       blknum2: 1,
       txindex2: 2,
       oindex2: 1,
-      newowner1: "alicealicealicealice",
+      newowner1: alice.addr,
       amount1: 1,
-      newowner2: "carolcarolcarolcarol",
+      newowner2: bob.addr,
       amount2: 2,
       fee: 0
     }
-    sig = <<1>> |> List.duplicate(65) |> :binary.list_to_bin
-    signed_tx = %Transaction.Signed{raw_tx: tx, sig1: sig, sig2: sig} |> Transaction.Signed.hash
-    block = %Block{transactions: [signed_tx]}
+
+    signed_tx_hash =
+      raw_tx
+      |> Transaction.signed(alice.priv, bob.priv)
+      |> Transaction.Signed.hash
+
+    recovered_tx = %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr, spender2: bob.addr}
+
+    block = %Block{transactions: [recovered_tx]}
+
     expected =
       %Block{
-        transactions: [signed_tx],
-        hash: <<187, 156, 163, 31, 125, 99, 105, 127, 178, 172, 123, 159, 141, 169, 117,
-                101, 52, 63, 43, 9, 252, 123, 229, 124, 43, 188, 200, 1, 225, 193, 203, 63>>
+        transactions: [recovered_tx],
+        hash: <<39, 49, 253, 85, 4, 152, 15, 89, 68, 191, 248, 101, 94, 133,
+                166, 205, 152, 186, 3, 97, 5, 27, 75, 135, 36, 207, 221,
+                100, 239, 85, 109, 27>>
        }
     assert expected == Block.merkle_hash(block)
   end

@@ -28,26 +28,27 @@ defmodule OmiseGO.API.Eventer.Core do
   end
 
   defp get_spender_notifications(
-    %Transaction.Recovered{signed: %Transaction.Signed{} = signed, spender1: spender1, spender2: spender2}) do
+    %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: spender1, spender2: spender2} = recovered_tx) do
 
     [spender1, spender2]
     |> Enum.filter(&Transaction.account_address?/1)
-    |> Enum.map(&(create_spender_notification(signed, &1)))
+    |> Enum.map(&(create_spender_notification(recovered_tx, &1)))
     |> Enum.uniq
   end
 
-  defp create_spender_notification(%Transaction.Signed{} = transaction, spender) do
+  defp create_spender_notification(%Transaction.Recovered{} = transaction, spender) do
     {%Notification.Spent{tx: transaction}, @transaction_spent_topic_prefix <> spender}
   end
 
-  defp get_receiver_notifications(%Transaction.Recovered{signed: %Transaction.Signed{raw_tx: tx} = signed}) do
-    [tx.newowner1, tx.newowner2]
+  defp get_receiver_notifications(%Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash,
+                                                         spender1: spender1, spender2: spender2} = recovered_tx) do
+    [raw_tx.newowner1, raw_tx.newowner2]
     |> Enum.filter(&Transaction.account_address?/1)
-    |> Enum.map(&(create_receiver_notification(signed, &1)))
+    |> Enum.map(&(create_receiver_notification(recovered_tx, &1)))
     |> Enum.uniq
   end
 
-  defp create_receiver_notification(%Transaction.Signed{} = transaction, receiver) do
+  defp create_receiver_notification(%Transaction.Recovered{} = transaction, receiver) do
     {%Notification.Received{tx: transaction}, @transaction_received_topic_prefix <> receiver}
   end
 end

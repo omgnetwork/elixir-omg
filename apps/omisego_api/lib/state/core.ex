@@ -21,18 +21,21 @@ defmodule OmiseGO.API.State.Core do
     %__MODULE__{height: height, utxos: utxos}
   end
 
-  #TODO: Add specs
-  def exec(%Transaction.Recovered{signed: signed, spender1: spender1, spender2: spender2},
-           %Core{utxos: utxos} = state) do
-    %Transaction.Signed{raw_tx: %Transaction{amount1: amount1, amount2: amount2, fee: fee} = tx} = signed
+  #TODO: Add specs :raw_tx, :signed_tx_hash, spender1: @zero_address, spender2: @zero_address
+  def exec(%Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash,
+                                  spender1: spender1, spender2: spender2} = recovered_tx,
+                                  %Core{utxos: utxos} = state) do
+
+    %Transaction{amount1: amount1, amount2: amount2, fee: fee} = raw_tx
+
     with :ok <- validate_block_size(state),
-         {:ok, in_amount1} <- correct_input?(utxos, tx, 0, spender1),
-         {:ok, in_amount2} <- correct_input?(utxos, tx, 1, spender2),
+         {:ok, in_amount1} <- correct_input?(utxos, raw_tx, 0, spender1),
+         {:ok, in_amount2} <- correct_input?(utxos, raw_tx, 1, spender2),
          :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2 + fee) do
       {:ok,
        state
-       |> apply_spend(tx)
-       |> add_pending_tx(signed)}
+       |> apply_spend(raw_tx)
+       |> add_pending_tx(recovered_tx)}
     else
       {:error, _reason} = error -> {error, state}
     end
