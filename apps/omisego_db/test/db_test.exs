@@ -30,7 +30,7 @@ defmodule OmiseGO.DBTest do
     )
     assert {:ok, %{hash: "abcd"}} == DB.tx(%{hash: "abcd"}, TestDBServer)
     assert {:ok, %{hash: "abcde"}} == DB.tx(%{hash: "abcde"}, TestDBServer)
-    assert :not_found == DB.tx(%{hash: "abcdef"}, TestDBServer)
+    assert {:ok, :not_found} == DB.tx(%{hash: "abcdef"}, TestDBServer)
 
     :ok = DB.multi_update(
       [
@@ -42,7 +42,7 @@ defmodule OmiseGO.DBTest do
       ],
       TestDBServer
     )
-    assert :not_found == DB.tx(%{hash: "abcd"}, TestDBServer)
+    assert {:ok, :not_found} == DB.tx(%{hash: "abcd"}, TestDBServer)
     assert {:ok, %{hash: "abcde"}} == DB.tx(%{hash: "abcde"}, TestDBServer)
     assert {:ok, %{hash: "abcdef"}} == DB.tx(%{hash: "abcdef"}, TestDBServer)
     assert {:ok, [%{hash: "wvxyz"}, %{hash: "xyz"}]} ==
