@@ -25,10 +25,6 @@ defmodule OmiseGO.FreshBlocks do
     GenServer.cast(__MODULE__, {:push, block})
   end
 
-  def get_top_blocks(_number) do
-    {:ok, []}
-  end
-
   ##### Core
   defmodule Core do
     @moduledoc """

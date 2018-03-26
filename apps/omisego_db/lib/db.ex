@@ -27,6 +27,14 @@ defmodule OmiseGO.DB do
     GenServer.call(OmiseGO.DB.LevelDBServer, {:blocks, blocks_to_fetch})
   end
 
+  def block_hashes(block_numbers_to_fetch) do
+    GenServer.call(OmiseGO.DB.LevelDBServer, {:block_hashes, block_numbers_to_fetch})
+  end
+
+  def child_top_block_number do
+    GenServer.call(OmiseGO.DB.LevelDBServer, {:child_top_block_number})
+  end
+
   def utxos do
     GenServer.call(OmiseGO.DB.LevelDBServer, {:utxos})
   end
@@ -69,6 +77,14 @@ defmodule OmiseGO.DB do
         |> Enum.map(fn key -> get(db_ref, key) end)
         |> Enum.map(fn {:ok, value} -> LevelDBCore.decode_value(:block, value) end)
       {:reply, result, state}
+    end
+
+    def handle_call({:block_hashes, _block_numbers_to_fetch}, _from, %__MODULE__{db_ref: _db_ref} = _state) do
+      :not_implemented
+    end
+
+    def handle_call({:child_top_block_number}, _from, %__MODULE__{db_ref: _db_ref} = _state) do
+      :not_implemented
     end
 
     def handle_call({:utxos}, _from, %__MODULE__{db_ref: db_ref} = state) do
