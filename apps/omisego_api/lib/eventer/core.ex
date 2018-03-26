@@ -28,7 +28,7 @@ defmodule OmiseGO.API.Eventer.Core do
   end
 
   defp get_spender_notifications(
-    %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash,
+    %Transaction.Recovered{raw_tx: _raw_tx, signed_tx_hash: _signed_tx_hash,
                            spender1: spender1, spender2: spender2} = recovered_tx) do
 
     [spender1, spender2]
@@ -41,8 +41,8 @@ defmodule OmiseGO.API.Eventer.Core do
     {%Notification.Spent{tx: transaction}, @transaction_spent_topic_prefix <> spender}
   end
 
-  defp get_receiver_notifications(%Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash,
-                                                         spender1: spender1, spender2: spender2} = recovered_tx) do
+  defp get_receiver_notifications(%Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: _signed_tx_hash,
+                                                         spender1: _spender1, spender2: _spender2} = recovered_tx) do
     [raw_tx.newowner1, raw_tx.newowner2]
     |> Enum.filter(&Transaction.account_address?/1)
     |> Enum.map(&(create_receiver_notification(recovered_tx, &1)))

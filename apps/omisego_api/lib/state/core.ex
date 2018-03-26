@@ -22,7 +22,7 @@ defmodule OmiseGO.API.State.Core do
   end
 
   #TODO: Add specs :raw_tx, :signed_tx_hash, spender1: @zero_address, spender2: @zero_address
-  def exec(%Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash,
+  def exec(%Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: _signed_tx_hash,
                                   spender1: spender1, spender2: spender2} = recovered_tx,
                                   %Core{utxos: utxos} = state) do
 

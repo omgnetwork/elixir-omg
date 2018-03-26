@@ -4,14 +4,13 @@ defmodule OmiseGO.API do
   """
 
   alias OmiseGO.API.State
-  alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.Core
   alias OmiseGO.DB
 
   @spec submit(byte) :: {:ok} | {:error, any}
   def submit(encoded_singed_tx) do
     with {:ok, recovered_tx} <- Core.recover_tx(encoded_singed_tx),
-        {:ok, recovered_tx} <- State.exec(recovered_tx),
+        {:ok, _recovered_tx} <- State.exec(recovered_tx),
     do: {:ok}
   end
 
