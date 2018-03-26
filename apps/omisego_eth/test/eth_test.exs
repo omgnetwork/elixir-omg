@@ -44,8 +44,7 @@ defmodule OmiseGO.EthTest do
   test "get child chain", %{contract: contract} do
     add_bloks(1..8, contract)
     block = generate_transaction(4)
-    {:ok, "0x" <> child_chain_result} = Eth.get_child_chain(4, contract.address)
-    {child_chain_hash, _child_chain_time} = String.split_at(child_chain_result, 64)
-    assert String.downcase(block.hash) == child_chain_hash
+    {:ok, {child_chain_hash, _child_chain_time}} = Eth.get_child_chain(4, contract.address)
+    assert String.downcase(block.hash) == child_chain_hash |> Base.encode16(case: :lower)
   end
 end
