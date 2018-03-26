@@ -10,13 +10,9 @@ defmodule OmiseGO.DB.LevelDBCore do
     |> Enum.map(&parse_multi_update/1)
   end
 
-  defp parse_multi_update({:put, :tx, tx}), do: {:put, tx_key(tx), encode_value(:tx, tx)}
-  defp parse_multi_update({:put, :block, block}), do: {:put, block_key(block), encode_value(:block, block)}
-  defp parse_multi_update({:put, :utxo, utxo}), do: {:put, utxo_key(utxo), encode_value(:utxo, utxo)}
+  defp parse_multi_update({:put, type, tx}), do: {:put, key(type, tx), encode_value(type, tx)}
 
-  defp parse_multi_update({:delete, :tx, tx}), do: {:delete, tx_key(tx)}
-  defp parse_multi_update({:delete, :block, block}), do: {:delete, block_key(block)}
-  defp parse_multi_update({:delete, :utxo, utxo}), do: {:delete, utxo_key(utxo)}
+  defp parse_multi_update({:delete, type, tx}), do: {:delete, key(type, tx)}
 
   defp decode_response(_type, db_response) do
     case db_response do
@@ -59,9 +55,7 @@ defmodule OmiseGO.DB.LevelDBCore do
     end
   end
 
-  defp encode_value(:tx, value), do: :erlang.term_to_binary(value)
-  defp encode_value(:block, value), do: :erlang.term_to_binary(value)
-  defp encode_value(:utxo, value), do: :erlang.term_to_binary(value)
+  defp encode_value(_type, value), do: :erlang.term_to_binary(value)
 
   def filter_utxos(keys_stream) do
     keys_stream
@@ -71,23 +65,19 @@ defmodule OmiseGO.DB.LevelDBCore do
     end)
   end
 
-  def tx_key(%{hash: hash} = _tx) do
-    tx_key(hash)
+  def key(:tx, %{hash: hash} = _tx) do
+    key(:tx, hash)
   end
-  def tx_key(hash), do: "t" <> hash
+  def key(:tx, hash), do: "t" <> hash
 
-  def block_key(%{hash: hash} = _block), do: block_key(hash)
-  def block_key(hash), do: "b" <> hash
+  def key(:block, %{hash: hash} = _block), do: key(:block, hash)
+  def key(:block, hash), do: "b" <> hash
 
-  def utxo_list_key do
-    "utxos"
-  end
-
-  def utxo_key(utxo) when is_map(utxo) do
+  def key(:utxo, utxo) when is_map(utxo) do
     [utxo_id] = Map.keys(utxo)
-    utxo_key(utxo_id)
+    key(:utxo, utxo_id)
   end
-  def utxo_key({_blknum, _txindex, _oindex} = utxo_id) do
+  def key(:utxo, {_blknum, _txindex, _oindex} = utxo_id) do
     "u" <> :erlang.term_to_binary(utxo_id)
   end
 end
