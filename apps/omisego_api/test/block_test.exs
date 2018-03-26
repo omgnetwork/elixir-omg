@@ -26,7 +26,12 @@ defmodule OmiseGO.API.BlockTest do
       |> Transaction.signed(alice.priv, bob.priv)
       |> Transaction.Signed.hash
 
-    recovered_tx = %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr, spender2: bob.addr}
+    recovered_tx =
+      %Transaction.Recovered{raw_tx: raw_tx,
+        signed_tx_hash: signed_tx_hash,
+        spender1: alice.addr,
+        spender2: bob.addr
+      }
 
     block = %Block{transactions: [recovered_tx]}
 

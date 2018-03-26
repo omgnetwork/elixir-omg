@@ -300,7 +300,12 @@ defmodule OmiseGO.API.State.CoreTest do
 
     assert {:ok, {_, [trigger], _, _}} = Core.form_block(state.height, state.height + 1, state)
 
-    assert trigger == %{tx: %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}}
+    assert trigger ==
+      %{tx:
+        %Transaction.Recovered{raw_tx: raw_tx,
+          signed_tx_hash: signed_tx_hash,
+          spender1: alice.addr}
+      }
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]

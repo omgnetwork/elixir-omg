@@ -2,7 +2,7 @@ defmodule OmiseGO.API.TestHelper do
   @moduledoc """
   Various shared functions used in API tests
   """
-  
+
   alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Core
 
