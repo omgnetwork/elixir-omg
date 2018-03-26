@@ -59,6 +59,14 @@ defmodule OmiseGO.DB.LevelDBServer do
     {:reply, result, state}
   end
 
+  def handle_call({:block_hashes, _block_numbers_to_fetch}, _from, %__MODULE__{db_ref: _db_ref} = _state) do
+    :not_implemented
+  end
+
+  def handle_call({:child_top_block_number}, _from, %__MODULE__{db_ref: _db_ref} = _state) do
+    :not_implemented
+  end
+
   # Argument order flipping tools :(
 
   defp write(operations, db_ref) do
