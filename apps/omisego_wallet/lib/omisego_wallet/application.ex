@@ -11,7 +11,7 @@ defmodule OmisegoWallet.Application do
     # Define workers and child supervisors to be supervised
     children = [
       # Start the Ecto repository
-      #supervisor(OmisegoWallet.Repo, []),
+      supervisor(OmisegoWallet.Repo, []),
       # Start the endpoint when the application starts
       supervisor(OmisegoWalletWeb.Endpoint, []),
       # Start your own worker by calling: OmisegoWallet.Worker.start_link(arg1, arg2, arg3)
