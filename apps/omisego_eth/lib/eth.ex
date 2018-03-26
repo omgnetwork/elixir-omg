@@ -88,9 +88,17 @@ defmodule OmiseGO.Eth do
   def get_child_chain(block_number, contract \\ @contract) do
     data = "getChildChain(uint256)" |> ABI.encode([block_number]) |> Base.encode16()
 
-    Ethereumex.HttpClient.eth_call(%{
-      to: contract,
-      data: "0x#{data}"
-    })
+    {:ok, "0x" <> enc_return} =
+      Ethereumex.HttpClient.eth_call(%{
+        to: contract,
+        data: "0x#{data}"
+      })
+
+    [{root, created_at}] =
+      enc_return
+      |> Base.decode16!(case: :lower)
+      |> ABI.TypeDecoder.decode_raw([{:tuple, [:bytes32, {:uint, 256}]}])
+
+    {:ok, {root, created_at}}
   end
 end

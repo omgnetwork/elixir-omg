@@ -27,7 +27,11 @@ defmodule OmiseGO.DB do
     GenServer.call(server_name, {:utxos})
   end
 
-  def height(_server_name \\ @server_name) do
-    :to_be_implemented
+  def block_hashes(block_numbers_to_fetch) do
+    GenServer.call(OmiseGO.DB.LevelDBServer, {:block_hashes, block_numbers_to_fetch})
+  end
+
+  def child_top_block_number do
+    GenServer.call(OmiseGO.DB.LevelDBServer, {:child_top_block_number})
   end
 end
