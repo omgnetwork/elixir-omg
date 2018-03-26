@@ -41,10 +41,16 @@ defmodule OmiseGO.API.BlockQueue do
         with {:ok, parent_height} <- Eth.get_ethereum_height(),
              {:ok, mined_num} <- Eth.get_current_child_block(),
              {:ok, parent_start} <- Eth.get_root_deployment_height(),
-             {:ok, known_hashes} <- OmiseGO.FreshBlocks.get_top_blocks(finality),
+             {:ok, stored_child_top_num} <- OmiseGO.DB.child_top_block_number(),
+             # TODO: taking all stored hashes now. While still being feasible DB-wise ("just" many hashes)
+             #       it might be prohibitive, if we create BlockSubmissions out of the unfiltered batch
+             #       (see enqueue_existing_blocks). Probably we want to set a hard cutoff and do
+             #       OmiseGO.DB.block_hashes(stored_child_top_num - cutoff..stored_child_top_num)
+             #       Leaving a chore to handle that in the future
+             {:ok, known_hashes} <- OmiseGO.DB.block_hashes(0..stored_child_top_num),
              {:ok, top_mined_hash} = Eth.get_child_block_root(mined_num) do
           {:ok, state} = Core.new(
-            mined_num: mined_num,
+            mined_child_block_num: mined_num,
             known_hashes: known_hashes,
             top_mined_hash: top_mined_hash,
             parent_height: parent_height,
