@@ -1,10 +1,11 @@
 defmodule OmisegoWalletWeb.Controller.Utxo do
+  @moduledoc """
+  """
   alias OmisegoWallet.{Repo, TransactionDB}
   use OmisegoWalletWeb, :controller
   import Ecto.Query, only: [from: 2]
   alias OmiseGO.API.{Block}
-  alias OmiseGO.API.State.{Transaction}
-  alias OmiseGO.API.State.Transaction.{Signed}
+  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
 
   defp consume_transaction(
          %Signed{
@@ -16,98 +17,58 @@ defmodule OmisegoWalletWeb.Controller.Utxo do
     # TODO change this to encode from OmiseGo.API.State.Transaction
     txbyte = inspect(signed_transaction)
 
-    make_transaction = fn transaction, number ->
+    make_transaction_db = fn transaction, number ->
       %TransactionDB{
         addres: Map.get(transaction, :"newowner#{number}"),
         amount: Map.get(transaction, :"amount#{number}"),
         blknum: block_number,
-        oindex: 1,
+        oindex: Map.get(transaction, :"oindex#{number}"),
         txbyte: txbyte,
         txindex: txindex
       }
     end
 
-    {Repo.insert(make_transaction.(transaction, "1")),
-     Repo.insert(make_transaction.(transaction, "2"))}
+    {Repo.insert(make_transaction_db.(transaction, 1)),
+     Repo.insert(make_transaction_db.(transaction, 2))}
   end
 
-  defp remove_transaction(%Signed{
+  defp remove_utxo(%Signed{
          raw_tx: %Transaction{} = transaction
        }) do
-    from(
-      transactionDb in TransactionDB,
-      where:
-        transactionDb.txindex == ^transaction.txindex1 and
-          transactionDb.blknum == ^transaction.blknum1 and transactionDb.oindex == 1
-    )
-    |> Repo.delete_all()
+    remove_from = fn transaction, number ->
+      txindex = Map.get(transaction, :"txindex#{number}")
+      blknum = Map.get(transaction, :"blknum#{number}")
+      oindex = Map.get(transaction, :"oindex#{number}")
 
-    from(
-      transactionDb in TransactionDB,
-      where:
-        transactionDb.txindex == ^transaction.txindex2 and
-          transactionDb.blknum == ^transaction.blknum2 and transactionDb.oindex == 2
-    )
-    |> Repo.delete_all()
+      elements_to_remove = from(
+        transactionDb in TransactionDB,
+        where:
+          transactionDb.txindex == ^txindex and transactionDb.blknum == ^blknum and
+            transactionDb.oindex == ^oindex
+      )
+      elements_to_remove |> Repo.delete_all()
+    end
+
+    {remove_from.(transaction, 1), remove_from.(transaction, 2)}
   end
 
   def consume_block(%Block{transactions: transactions}, block_number) do
-    res =
-      Stream.with_index(transactions)
-      |> Stream.map(fn {%Signed{} = signed, txindex} ->
-        {remove_transaction(signed), consume_transaction(signed, txindex, block_number)}
-      end)
-      |> Enum.to_list()
+    numbered_transactions = Stream.with_index(transactions)
+
+    numbered_transactions
+    |> Stream.map(fn {%Signed{} = signed, txindex} ->
+      {remove_utxo(signed), consume_transaction(signed, txindex, block_number)}
+    end)
+    |> Enum.to_list()
   end
 
   def available(conn, %{"addres" => addres}) do
-  #  ret =
-  #    consume_block(
-  #      %Block{
-  #        transactions: [
-  #          %Signed{
-  #            raw_tx: %Transaction{
-  #              blknum1: 1,
-  #              txindex1: 1,
-  #              oindex1: 1,
-  #              blknum2: 1,
-  #              txindex2: 1,
-  #              oindex2: 1,
-  #              newowner1: "edek",
-  #              amount1: 23,
-  #              newowner2: "plus",
-  #              amount2: 11,
-  #              fee: 3
-  #            }
-  #          },
-  #          %Signed{
-  #            raw_tx: %Transaction{
-  #              blknum1: 2,
-  #              txindex1: 1,
-  #              oindex1: 1,
-  #              blknum2: 1,
-  #              txindex2: 1,
-  #              oindex2: 1,
-  #              newowner1: "anakonda",
-  #              amount1: 23,
-  #              newowner2: "anakonda",
-  #              amount2: 11,
-  #              fee: 3
-  #            }
-  #          }
-  #        ]
-  #      },
-  #      2
-  #    )
-  #
-    # json(conn, ret)
-    # Repo.delete(%TransactionDB{addres: "anakonda", amount: 11})
-    json(conn, %{addres: addres, utxos: get_all_utxo(addres)})
-  end
-
-  defp get_all_utxo(addres) do
     transactions = Repo.all(from(tr in TransactionDB, where: tr.addres == ^addres, select: tr))
-    slicer = &Map.take(&1, TransactionDB.field_names())
-    Enum.map(transactions, slicer)
+    fields_names = List.delete(TransactionDB.field_names(), :addres)
+
+    json(conn, %{
+      addres: addres,
+      utxos: Enum.map(transactions, &Map.take(&1, fields_names))
+    })
   end
 end

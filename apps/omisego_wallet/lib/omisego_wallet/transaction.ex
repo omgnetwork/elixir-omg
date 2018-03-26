@@ -1,4 +1,6 @@
 defmodule OmisegoWallet.TransactionDB do
+  @moduledoc """
+  """
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -6,12 +8,12 @@ defmodule OmisegoWallet.TransactionDB do
   def field_names, do: @field_names
 
   schema "transactions" do
-    field :addres, :string
-    field :amount, :integer
-    field :blknum, :integer
-    field :oindex, :integer
-    field :txbyte, :string
-    field :txindex, :integer
+    field(:addres, :string)
+    field(:amount, :integer)
+    field(:blknum, :integer)
+    field(:oindex, :integer)
+    field(:txbyte, :string)
+    field(:txindex, :integer)
   end
 
   @doc false

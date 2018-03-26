@@ -12,8 +12,11 @@ config :logger, level: :warn
 # Configure your database
 config :omisego_wallet, OmisegoWallet.Repo,
   adapter: Ecto.Adapters.Postgres,
-  username: "postgres",
-  password: "postgres",
-  database: "omisego_wallet_test",
+  username: "omisego",
+  password: "12345678",
+  database: "test_development",
   hostname: "localhost",
+  pool_size: 10
+
+config :omisego_wallet, OmisegoWallet.Repo,
   pool: Ecto.Adapters.SQL.Sandbox
