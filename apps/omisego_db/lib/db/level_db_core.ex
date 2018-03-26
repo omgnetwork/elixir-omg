@@ -18,9 +18,46 @@ defmodule OmiseGO.DB.LevelDBCore do
   defp parse_multi_update({:delete, :block, block}), do: {:delete, block_key(block)}
   defp parse_multi_update({:delete, :utxo, utxo}), do: {:delete, utxo_key(utxo)}
 
-  def decode_value(:block, encoded), do: :erlang.binary_to_term(encoded)
-  def decode_value(:tx, encoded), do: :erlang.binary_to_term(encoded)
-  def decode_value(:utxo, encoded), do: :erlang.binary_to_term(encoded)
+  defp decode_response(_type, db_response) do
+    case db_response do
+      :not_found -> :not_found
+      {:ok, encoded} -> :erlang.binary_to_term(encoded)
+      other -> {:error, other}
+    end
+  end
+
+  @doc """
+  Interprepts the response from leveldb and returns a success-decorated result
+  """
+  def decode_value(db_response, type) do
+    case decode_response(type, db_response) do
+      {:error, error} -> {:error, error}
+      other -> {:ok, other}
+    end
+  end
+
+  @doc """
+  Interprets an enumberable of responses from leveldb and decorates the enumerable with a {:ok, _enumberable}
+  if no errors occurred
+  """
+  def decode_values(encoded_enumerable, type) do
+    raw_decoded =
+      encoded_enumerable
+      |> Enum.map(fn encoded -> decode_response(type, encoded) end)
+
+    is_error? = fn result ->
+      case result do
+        {:error, _} -> true
+        _ -> false
+      end
+    end
+
+    if Enum.any?(raw_decoded, is_error?) do
+      {:error, raw_decoded}
+    else
+      {:ok, raw_decoded}
+    end
+  end
 
   defp encode_value(:tx, value), do: :erlang.term_to_binary(value)
   defp encode_value(:block, value), do: :erlang.term_to_binary(value)
