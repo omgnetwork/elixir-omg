@@ -6,8 +6,6 @@ defmodule OmiseGO.API.State.CoreTest do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.Transaction
 
-  import OmiseGO.API.TestHelper
-
   @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232,
                       237, 80, 242, 60, 209, 253, 249, 76, 145, 84, 237, 58, 118, 9,
                       162, 241, 255, 152, 31>>
