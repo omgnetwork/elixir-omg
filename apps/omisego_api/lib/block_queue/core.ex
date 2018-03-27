@@ -8,6 +8,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
   alias OmiseGO.API.BlockQueue, as: BlockQueue
   alias OmiseGO.Eth.BlockSubmission
 
+  @zero_bytes32 <<0>> |> List.duplicate(32) |> Enum.join
+
   defstruct [
     :blocks,
     :mined_child_block_num,
@@ -188,30 +190,39 @@ defmodule OmiseGO.API.BlockQueue.Core do
   @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [BlockQueue.hash()]) ::
           {:ok, Core.t()} | false
   defp enqueue_existing_blocks(state, top_mined_hash, hashes) do
-    with true <- Enum.member?(hashes, top_mined_hash) do
-      index = Enum.find_index(hashes, &(&1 == top_mined_hash))
-      {mined, fresh} = Enum.split(hashes, index + 1)
-      bottom_mined = state.mined_child_block_num - state.child_block_interval * (length(mined) - 1)
-      nums = make_range(bottom_mined, state.mined_child_block_num, state.child_block_interval)
+    no_hashes_known = Enum.empty?(hashes)
+    cond do
+      no_hashes_known && top_mined_hash == @zero_bytes32 ->
+        # we start a fresh queue from db and fresh contract
+        {:ok, %{state | formed_child_block_num: 0}}
+      no_hashes_known && top_mined_hash != @zero_bytes32 ->
+        {:error, :contract_ahead_of_db}
+      Enum.member?(hashes, top_mined_hash) ->
+        index = Enum.find_index(hashes, &(&1 == top_mined_hash))
+        {mined, fresh} = Enum.split(hashes, index + 1)
+        bottom_mined = state.mined_child_block_num - state.child_block_interval * (length(mined) - 1)
+        nums = make_range(bottom_mined, state.mined_child_block_num, state.child_block_interval)
 
-      mined_blocks =
-        for {num, hash} <- Enum.zip(nums, mined) do
-          {num,
-           %BlockSubmission{
-             num: num,
-             hash: hash,
-             nonce: calc_nonce(num, state.child_block_interval)
-           }}
-        end
-        |> Map.new()
+        mined_blocks =
+          for {num, hash} <- Enum.zip(nums, mined) do
+            {num,
+             %BlockSubmission{
+               num: num,
+               hash: hash,
+               nonce: calc_nonce(num, state.child_block_interval)
+             }}
+          end
+          |> Map.new()
 
-      state = %{
-        state
-        | formed_child_block_num: state.mined_child_block_num + state.child_block_interval,
-          blocks: mined_blocks
-      }
+        state = %{
+          state
+          | formed_child_block_num: state.mined_child_block_num + state.child_block_interval,
+            blocks: mined_blocks
+        }
 
-      {:ok, Enum.reduce(fresh, state, fn hash, acc -> enqueue_block(acc, hash) end)}
+        {:ok, Enum.reduce(fresh, state, fn hash, acc -> enqueue_block(acc, hash) end)}
+      !no_hashes_known ->
+        {:error, :mined_hash_not_found_in_db}
     end
   end
 end
