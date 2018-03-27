@@ -1,5 +1,7 @@
 use Mix.Config
 
+config :porcelain, :goon_warn_if_missing, false
+
 config :omisego_eth,
     contract: "contract_addres",
     omg_addr: "omg_addres",
