@@ -45,6 +45,50 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         |> hashes()
     end
 
+    test "Recovers properly for fresh world state" do
+      {:ok, queue} = new(
+        mined_child_block_num: 0,
+        known_hashes: [],
+        top_mined_hash: <<0>> |> List.duplicate(32) |> Enum.join,
+        parent_height: 10,
+        child_block_interval: 1000,
+        chain_start_parent_height: 1,
+        submit_period: 1,
+        finality_threshold: 12
+      )
+
+      assert [] ==
+        queue
+        |> get_blocks_to_submit()
+        |> hashes()
+    end
+
+    test "Won't recover if is contract is ahead of db" do
+      assert {:error, :contract_ahead_of_db} = new(
+        mined_child_block_num: 0,
+        known_hashes: [],
+        top_mined_hash: <<1>> |> List.duplicate(32) |> Enum.join,
+        parent_height: 10,
+        child_block_interval: 1000,
+        chain_start_parent_height: 1,
+        submit_period: 1,
+        finality_threshold: 12
+      )
+    end
+
+    test "Won't recover if there is a mined hash absent in db" do
+      assert {:error, :mined_hash_not_found_in_db} = new(
+        mined_child_block_num: 0,
+        known_hashes: [<<2>> |> List.duplicate(32) |> Enum.join],
+        top_mined_hash: <<1>> |> List.duplicate(32) |> Enum.join,
+        parent_height: 10,
+        child_block_interval: 1000,
+        chain_start_parent_height: 1,
+        submit_period: 1,
+        finality_threshold: 12
+      )
+    end
+
     test "Recovers after restart and is able to process more blocks" do
       assert ["8", "9", "10"] =
         ["5", "6", "7", "8", "9"]
@@ -56,7 +100,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     end
 
     test "Recovery will fail if DB is corrupted" do
-      assert false == recover(["5", "6"], 7000)
+      assert {:error, :mined_hash_not_found_in_db} = recover(["5", "6"], 7000)
     end
 
     test "No submitBlock will be sent until properly initialized" do
