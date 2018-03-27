@@ -6,7 +6,7 @@ defmodule OmiseGO.API.State do
 
   ### Client
 
-  def start_link do
+  def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
@@ -63,7 +63,7 @@ defmodule OmiseGO.API.State do
   Wraps up accumulated transactions into a block, triggers events, triggers db update, returns block hash
   """
   def handle_call({:form_block, current_block_num, next_block_num}, _from, state) do
-   case Core.form_block(state, current_block_num, next_block_num) do
+   case Core.form_block(current_block_num, next_block_num, state) do
      {:error, reason} -> {:reply, {:error, reason}, state}
      {:ok, {block, event_triggers, db_updates, new_state}} ->
        # GenServer.cast

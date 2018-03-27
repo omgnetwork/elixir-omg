@@ -28,7 +28,8 @@ defmodule OmiseGO.DB do
   end
 
   def height(_server_name \\ @server_name) do
-    :to_be_implemented
+    # FIXME
+    {:ok, 0}
   end
 
   defmodule LevelDBServer do

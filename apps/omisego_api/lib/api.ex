@@ -9,9 +9,8 @@ defmodule OmiseGO.API do
 
   def submit(tx) do
 
-    # TODO: consider having StatelessValidatonWorker to scale this, instead scaling API
-    with {:ok, decoded_tx} <- Core.statelessly_valid?(tx), # stateless validity (EDIT: most likely an ecrecover on sigs)
-         tx_result <- State.exec(decoded_tx), # GenServer.call
+    # FIXME: revert to have the decode tx step
+    with tx_result <- State.exec(tx),
          do: tx_result
   end
 

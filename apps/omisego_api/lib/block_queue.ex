@@ -34,6 +34,12 @@ defmodule OmiseGO.API.BlockQueue do
 
     use GenServer
 
+    alias OmiseGO.Eth
+
+    def start_link(_args) do
+      GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+    end
+
     def init(:ok) do
       finality = 12
       # NOTE: something throws, suspect: ethereumex
