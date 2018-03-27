@@ -23,8 +23,8 @@ Identifies each module of pre-existing source code used in developing source cod
   * `libsecp256k1`, MIT, https://hex.pm/packages/libsecp256k1
   * `exleveldb`, Apache 2.0, https://hex.pm/packages/exleveldb
   * `merkle_tree`, MIT, https://hex.pm/packages/merkle_tree
-  * `abi`, , https://github.com/omisego/abi.git
-  * `porcelain`, MIT, https://hex.pm/packages/porcelain 
+  * `abi`, MIT , https://github.com/omisego/abi.git
+  * `porcelain`, MIT, https://hex.pm/packages/porcelain
   * `temp`, MIT, https://hex.pm/packages/temp
   * `ethereumex`, MIT, https://github.com/omisego/ethereumex.git
 
@@ -40,3 +40,4 @@ Identifies each module of pre-existing source code used in developing source cod
 
 * `populus/web3.py/et al.`, MIT, https://pypi.python.org/pypi/populus/1.11.0
 * `solc`, GPL 3.0, https://github.com/ethereum/solidity
+* `postgresql`, PostgreSQL License, https://www.postgresql.org

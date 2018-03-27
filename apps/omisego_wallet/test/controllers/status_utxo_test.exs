@@ -8,6 +8,8 @@ defmodule OmisegoWalletWeb.Controller.UtxoTest do
   alias OmiseGO.API.{Block}
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
 
+  @moduletag :requires_postgres
+
   @empty %Transaction{
     blknum1: 0,
     txindex1: 0,
