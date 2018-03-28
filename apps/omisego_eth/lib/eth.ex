@@ -118,8 +118,9 @@ defmodule OmiseGO.Eth do
         %{owner: owner, amount: amount, block_height: block_height}
       end
 
-    deposits = get_events(block_from, block_to, event, parse_deposit, contract)
-    Enum.sort(deposits, &(&1.block_height > &2.block_height))
+    with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
+         deposits <- get_logs(unfiltered_logs, parse_deposit),
+         do: {:ok, Enum.sort(deposits, &(&1.block_height > &2.block_height))}
   end
 
   defp encode_event_signature(signature) do
@@ -129,17 +130,23 @@ defmodule OmiseGO.Eth do
 
   defp int_to_hex(int), do: "0x" <> Integer.to_string(int, 16)
 
-  defp get_events(block_from, block_to, event, parse_event, contract) do
-    {:ok, response} = Ethereumex.HttpClient.eth_get_logs(%{
-      fromBlock: int_to_hex(block_from),
-      toBlock: int_to_hex(block_to),
-      address: contract,
-      topics: ["0x#{event}"]
-    })
-
-    response
-    |> Enum.filter(&(not Map.get(&1, "removed")))
+  defp get_logs(logs, parse_log) do
+    logs
+    |> Enum.filter(&(not Map.get(&1, "removed", true)))
     |> Enum.map(&(Map.get(&1, "data")))
-    |> Enum.map(&(parse_event.(&1)))
+    |> Enum.map(parse_log)
+  end
+
+  defp get_ethereum_logs(block_from, block_to, event, contract) do
+    try do
+      Ethereumex.HttpClient.eth_get_logs(%{
+        fromBlock: int_to_hex(block_from),
+        toBlock: int_to_hex(block_to),
+        address: contract,
+        topics: ["0x#{event}"]
+      })
+    catch
+      _ -> {:error, :failed_to_get_deposits}
+    end
   end
 end

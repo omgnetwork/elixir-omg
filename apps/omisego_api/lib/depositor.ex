@@ -9,7 +9,7 @@ defmodule OmiseGO.API.Depositor do
 
   ### Client
 
-  def start_link() do
+  def start_link do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
@@ -26,14 +26,16 @@ defmodule OmiseGO.API.Depositor do
     with {:ok, eth_block_height} <- Eth.get_ethereum_height(),
          {:ok, new_state, next_get_deposits_interval, block_from, block_to}
            <- Core.get_deposit_block_range(state, eth_block_height),
-         deposits <- Eth.get_deposits(block_from, block_to),
+         {:ok, deposits} <- Eth.get_deposits(block_from, block_to),
          :ok <- State.deposit(deposits) do
            schedule_get_deposits(next_get_deposits_interval)
            {:no_reply, new_state}
-        end
+    else
+      _ -> {:stop, :failed_to_get_deposits, state}
+    end
   end
 
   defp schedule_get_deposits(interval) do
-    Process.send(self(), :get_deposits, interval)
+    Process.send_after(self(), :get_deposits, interval)
   end
 end

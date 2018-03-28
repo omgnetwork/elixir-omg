@@ -49,7 +49,6 @@ defmodule OmiseGO.DB.LevelDBCore do
     <<"u", Integer.to_string(blknum), Integer.to_string(txindex), Integer.to_string(oindex)>>
   end
 
-  def last_deposit_block_height_key() do
-    "last_deposit_block_height"
-  end
+  def last_deposit_block_height_key, do: "last_deposit_block_height"
+
 end

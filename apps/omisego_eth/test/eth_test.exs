@@ -67,7 +67,7 @@ defmodule OmiseGO.EthTest do
   test "gets deposits from a range of blocks", %{contract: contract} do
     deposit(contract)
     {:ok, height} = Eth.get_ethereum_height()
-    assert [%{amount: 1, block_height: 1, owner: contract.from}] ==
+    assert {:ok, [%{amount: 1, block_height: 1, owner: contract.from}]} ==
       Eth.get_deposits(1, height, contract.address)
   end
 end
