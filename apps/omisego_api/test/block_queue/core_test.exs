@@ -49,7 +49,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       {:ok, queue} = new(
         mined_child_block_num: 0,
         known_hashes: [],
-        top_mined_hash: <<0>> |> List.duplicate(32) |> Enum.join,
+        top_mined_hash: <<0::size(256)>>,
         parent_height: 10,
         child_block_interval: 1000,
         chain_start_parent_height: 1,
@@ -67,7 +67,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       assert {:error, :contract_ahead_of_db} = new(
         mined_child_block_num: 0,
         known_hashes: [],
-        top_mined_hash: <<1>> |> List.duplicate(32) |> Enum.join,
+        top_mined_hash: <<1::size(256)>>,
         parent_height: 10,
         child_block_interval: 1000,
         chain_start_parent_height: 1,
@@ -79,8 +79,8 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     test "Won't recover if there is a mined hash absent in db" do
       assert {:error, :mined_hash_not_found_in_db} = new(
         mined_child_block_num: 0,
-        known_hashes: [<<2>> |> List.duplicate(32) |> Enum.join],
-        top_mined_hash: <<1>> |> List.duplicate(32) |> Enum.join,
+        known_hashes: [<<2::size(256)>>],
+        top_mined_hash: <<1::size(256)>>,
         parent_height: 10,
         child_block_interval: 1000,
         chain_start_parent_height: 1,
