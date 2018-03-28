@@ -34,6 +34,12 @@ defmodule OmiseGO.API.BlockQueue do
 
     use GenServer
 
+    alias OmiseGO.Eth
+
+    def start_link(_args) do
+      GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+    end
+
     def init(:ok) do
       finality = 12
       # NOTE: something throws, suspect: ethereumex
@@ -48,7 +54,7 @@ defmodule OmiseGO.API.BlockQueue do
              #       OmiseGO.DB.block_hashes(stored_child_top_num - cutoff..stored_child_top_num)
              #       Leaving a chore to handle that in the future
              {:ok, known_hashes} <- OmiseGO.DB.block_hashes(0..stored_child_top_num),
-             {:ok, top_mined_hash} = Eth.get_child_block_root(mined_num) do
+             {:ok, {top_mined_hash, _time}} = Eth.get_child_chain(mined_num) do
           {:ok, state} = Core.new(
             mined_child_block_num: mined_num,
             known_hashes: known_hashes,

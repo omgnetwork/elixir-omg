@@ -101,4 +101,9 @@ defmodule OmiseGO.Eth do
 
     {:ok, {root, created_at}}
   end
+
+  def get_root_deployment_height(contract \\ @contract) do
+    # FIXME
+    {:ok, 10}
+  end
 end
