@@ -8,7 +8,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
   alias OmiseGO.API.BlockQueue, as: BlockQueue
   alias OmiseGO.Eth.BlockSubmission
 
-  @zero_bytes32 <<0>> |> List.duplicate(32) |> Enum.join
+  @zero_bytes32 <<0::size(256)>>
 
   defstruct [
     :blocks,
@@ -187,42 +187,54 @@ defmodule OmiseGO.API.BlockQueue.Core do
   # Some blocks might have been submitted and lost/rejected/reorged by Ethereum in the mean time.
   # To properly restart the process we get last blocks known to DB and split them into mined
   # blocks (might still need tracking!) and blocks not yet submitted.
+
+  # NOTE: handles both the case when there aren't any hashes in database and there are
   @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [BlockQueue.hash()]) ::
-          {:ok, Core.t()} | false
+          {:ok, Core.t()} | {:error, atom}
+  defp enqueue_existing_blocks(state, @zero_bytes32, [] = _known_hahes) do
+    # we start a fresh queue from db and fresh contract
+    {:ok, %{state | formed_child_block_num: 0}}
+  end
+  defp enqueue_existing_blocks(_state, _top_mined_hash, [] = _known_hashes) do
+    # something's wrong - no hashes in db and top_mined hash isn't a zero hash as required
+    {:error, :contract_ahead_of_db}
+  end
+
   defp enqueue_existing_blocks(state, top_mined_hash, hashes) do
-    no_hashes_known = Enum.empty?(hashes)
-    cond do
-      no_hashes_known && top_mined_hash == @zero_bytes32 ->
-        # we start a fresh queue from db and fresh contract
-        {:ok, %{state | formed_child_block_num: 0}}
-      no_hashes_known && top_mined_hash != @zero_bytes32 ->
-        {:error, :contract_ahead_of_db}
-      Enum.member?(hashes, top_mined_hash) ->
-        index = Enum.find_index(hashes, &(&1 == top_mined_hash))
-        {mined, fresh} = Enum.split(hashes, index + 1)
-        bottom_mined = state.mined_child_block_num - state.child_block_interval * (length(mined) - 1)
-        nums = make_range(bottom_mined, state.mined_child_block_num, state.child_block_interval)
+    if Enum.member?(hashes, top_mined_hash) do
+      {mined_blocks, fresh_blocks} = split_existing_blocks(state, top_mined_hash, hashes)
 
-        mined_blocks =
-          for {num, hash} <- Enum.zip(nums, mined) do
-            {num,
-             %BlockSubmission{
-               num: num,
-               hash: hash,
-               nonce: calc_nonce(num, state.child_block_interval)
-             }}
-          end
-          |> Map.new()
+      mined_submissions =
+        for {num, hash} <- mined_blocks do
+          {num,
+           %BlockSubmission{
+             num: num,
+             hash: hash,
+             nonce: calc_nonce(num, state.child_block_interval)
+           }}
+        end
+        |> Map.new()
 
-        state = %{
-          state
-          | formed_child_block_num: state.mined_child_block_num + state.child_block_interval,
-            blocks: mined_blocks
-        }
+      state = %{
+        state
+        | formed_child_block_num: state.mined_child_block_num + state.child_block_interval,
+          blocks: mined_submissions
+      }
 
-        {:ok, Enum.reduce(fresh, state, fn hash, acc -> enqueue_block(acc, hash) end)}
-      !no_hashes_known ->
-        {:error, :mined_hash_not_found_in_db}
+      {:ok, Enum.reduce(fresh_blocks, state, fn hash, acc -> enqueue_block(acc, hash) end)}
+    else
+      {:error, :mined_hash_not_found_in_db}
     end
+  end
+
+  # splits into ones that are before top_mined_hash and those after
+  # the mined ones are zipped with their numbers to submit
+  defp split_existing_blocks(state, top_mined_hash, hashes) do
+    index = Enum.find_index(hashes, &(&1 == top_mined_hash))
+    {mined, fresh} = Enum.split(hashes, index + 1)
+    bottom_mined = state.mined_child_block_num - state.child_block_interval * (length(mined) - 1)
+    nums = make_range(bottom_mined, state.mined_child_block_num, state.child_block_interval)
+
+    {Enum.zip(nums, mined), fresh}
   end
 end
