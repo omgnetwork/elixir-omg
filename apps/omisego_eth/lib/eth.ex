@@ -3,9 +3,6 @@ defmodule OmiseGO.Eth do
   Adapter/port to ethereum
   """
 
-  @contract Application.get_env(:omisego_eth, :contract)
-  @omg_addr Application.get_env(:omisego_eth, :omg_addr)
-
   def geth do
     _ = Application.ensure_all_started(:porcelain)
     _ = Application.ensure_all_started(:ethereumex)
@@ -35,9 +32,12 @@ defmodule OmiseGO.Eth do
 
   def submit_block(
         %BlockSubmission{num: child_block_number, hash: hash, nonce: nonce, gas_price: gas_price},
-        from \\ @omg_addr,
-        contract \\ @contract
+        from \\ nil,
+        contract \\ nil
       ) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+    from = from || Application.get_env(:omisego_eth, :omg_addr)
+
     data =
       "submitBlock(bytes32,uint256)"
       |> ABI.encode([hash |> Base.decode16!(), child_block_number])
@@ -70,7 +70,9 @@ defmodule OmiseGO.Eth do
     end
   end
 
-  def get_current_child_block(contract \\ @contract) do
+  def get_current_child_block(contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+
     data = "currentChildBlock()" |> ABI.encode([]) |> Base.encode16()
 
     {:ok, "0x" <> enc_return} =
@@ -85,7 +87,9 @@ defmodule OmiseGO.Eth do
     {:ok, child_block}
   end
 
-  def get_child_chain(block_number, contract \\ @contract) do
+  def get_child_chain(block_number, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+
     data = "getChildChain(uint256)" |> ABI.encode([block_number]) |> Base.encode16()
 
     {:ok, "0x" <> enc_return} =
@@ -102,7 +106,9 @@ defmodule OmiseGO.Eth do
     {:ok, {root, created_at}}
   end
 
-  def get_root_deployment_height(contract \\ @contract) do
+  def get_root_deployment_height(contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+
     # FIXME
     {:ok, 10}
   end
