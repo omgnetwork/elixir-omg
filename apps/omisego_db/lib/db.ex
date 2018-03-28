@@ -6,7 +6,7 @@ defmodule OmiseGO.DB do
 
   ### Client (port)
 
-  @server_name Application.get_env(:omisego_db, :server_name)
+  @server_name OmiseGO.DB.LevelDBServer
 
   def multi_update(db_updates, server_name \\ @server_name) do
     GenServer.call(server_name, {:multi_update, db_updates})
