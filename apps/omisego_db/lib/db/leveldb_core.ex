@@ -79,5 +79,7 @@ defmodule OmiseGO.DB.LevelDBCore do
   def key(:utxo, {_blknum, _txindex, _oindex} = utxo_id) do
     "u" <> :erlang.term_to_binary(utxo_id)
   end
-  def key(:last_deposit_block_height, _), do: "last_deposit_block_height"
+  def key(:last_deposit_block_height, _), do: key(:last_deposit_block_height)
+
+  def key(:last_deposit_block_height), do: "last_deposit_block_height"
 end
