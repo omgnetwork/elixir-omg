@@ -404,7 +404,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
     {:ok, {_, _, _, state}} = Core.form_block(state.height, state.height + 1, state)
 
-    expected_block = %Block{transactions: [], hash: @empty_block_hash}
+    expected_block = empty_block()
     {:ok, {^expected_block, _, _, _}} = Core.form_block(state.height, state.height + 1, state)
   end
 
@@ -415,51 +415,83 @@ defmodule OmiseGO.API.State.CoreTest do
 
   @tag fixtures: [:state_empty]
   test "no pending transactions at start (no events, empty block, no db updates)", %{state_empty: state} do
-    expected_block = %Block{transactions: [], hash: @empty_block_hash}
-    {:ok, {^expected_block, [], [], _}} = Core.form_block(state.height, state.height + 1, state)
+    expected_block = empty_block()
+
+    assert {:ok, {^expected_block, [], [{:put, :block, ^expected_block}], _}} =
+      Core.form_block(state.height, state.height + 1, state)
   end
 
-  test "spending produces db updates, that don't leak to next block" do
-    # FIXME
-    # FIXME check new tx and block in db_updates
+  @tag fixtures: [:alice, :bob, :state_alice_deposit]
+  test "spending produces db updates, that don't leak to next block",
+       %{alice: alice, bob: bob, state_alice_deposit: state} do
+    signed_tx_1 =
+      %Transaction{
+        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0
+      }
+      |> TestHelper.signed
+    state =
+      %Transaction.Recovered{signed: signed_tx_1, spender1: alice}
+      |> Core.exec(state) |> success?
 
-    # {_, _, [], _} = Core.form_block(state)
+    {:ok, {_, _, db_updates, state}} =
+      Core.form_block(state.height, state.height + 1, state)
+    assert [
+      {:put, :utxo, %{{2, 0, 0} => %{owner: ^bob, amount: 7}}},
+      {:put, :utxo, %{{2, 0, 1} => %{owner: ^alice, amount: 3}}},
+      {:delete, :utxo, {1, 0, 0}},
+      {:put, :block, _}
+    ] = db_updates
+
+    # TODO: shouldn't access state.height in these tests - too internal
+    assert {:ok, {_, _, [{:put, :block, _}], state}} =
+      Core.form_block(state.height, state.height + 1, state)
+
+    # check double inputey-spends
+    signed_tx_2 =
+      %Transaction{
+        blknum1: 2, txindex1: 0, oindex1: 0, blknum2: 2, txindex2: 0, oindex2: 1,
+        newowner1: bob, amount1: 10, newowner2: 0, amount2: 0, fee: 0
+      }
+      |> TestHelper.signed
+    state =
+      %Transaction.Recovered{signed: signed_tx_2, spender1: bob, spender2: alice}
+      |> Core.exec(state) |> success?
+
+    {:ok, {_, _, db_updates2, state}} =
+      Core.form_block(state.height, state.height + 1, state)
+    assert [
+      {:put, :utxo, %{{4, 0, 0} => %{owner: ^bob, amount: 10}}},
+      {:delete, :utxo, {2, 0, 0}},
+      {:delete, :utxo, {2, 0, 1}},
+      {:put, :block, _}
+    ] = db_updates2
+
+    # TODO: shouldn't access state.height in these tests - too internal
+    assert {:ok, {_, _, [{:put, :block, _}], _}} =
+      Core.form_block(state.height, state.height + 1, state)
+
   end
 
-  test "depositing produces db updates, that don't leak to next block" do
-    # FIXME
-    # FIXME check block and transaction in db updates
+  @tag fixtures: [:alice, :state_empty]
+  test "depositing produces db updates, that don't leak to next block", %{alice: alice, state_empty: state} do
+    assert {_, [db_update], state} = Core.deposit(alice, 4, state)
 
-    # {_, _, [], _} = Core.form_block(state)
+    assert db_update == {:put, :utxo, %{{1, 0, 0} => %{owner: alice, amount: 4}}}
+
+    assert {:ok, {_, _, [{:put, :block, _}], _}} = Core.form_block(state.height, state.height + 1, state)
   end
 
-  test "spending removes/adds utxos from db" do
+  @tag fixtures: [:state_empty]
+  test "empty blocks are pushed to db", %{state_empty: state} do
+    {:ok, {_, _, db_updates, _}} = Core.form_block(state.height, state.height + 1, state)
 
-    # FIXME
-    # FIXME check removal/add of utxos
-  end
+    is_block_put? = fn {operation, type, _} -> operation == :put && type == :block end
+    assert Enum.count(db_updates, is_block_put?) == 1
 
-  test "empty blocks are pushed to db" do
-    # {_, _, db_updates, _} = Core.form_block(state)
+    expected_block = empty_block()
 
-    # FIXME empty block in db_udates and height bump
-  end
-
-  test "blocks with deposits and spends are pushed to db and events properly" do
-    # alice = "" # FIXME
-    # bob = ""
-    #
-    # state = "alice deposited"
-    #
-    # state =
-    #   %Transaction{blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-    #                newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0}
-    #   |> Core.exec(state) |> success?
-    # {[deposit_trigger], [deposit_db_update], state} = Core.deposit(alice, 4, state)
-    #
-    # {block, [spend_trigger], [spend_db_update], _} = Core.form_block(state)
-
-    # FIXME check both ok in db and events and block
+    assert {:put, :block, ^expected_block} = Enum.find(db_updates, is_block_put?)
   end
 
   test "utxos get initialized by query result from db and are spendable" do
@@ -503,5 +535,9 @@ defmodule OmiseGO.API.State.CoreTest do
   defp same?(state, expected_state) do
     assert expected_state == state
     state
+  end
+
+  defp empty_block do
+    %Block{transactions: [], hash: @empty_block_hash}
   end
 end

@@ -31,15 +31,15 @@ defmodule OmiseGO.API.State.Core do
          :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2 + fee) do
       {:ok,
        state
-       |> apply_spend(tx)
-       |> add_pending_tx(signed)}
+       |> add_pending_tx(signed)
+       |> apply_spend(tx)}
     else
       {:error, _reason} = error -> {error, state}
     end
   end
 
-  defp add_pending_tx(%Core{pending_txs: pending_txs} = state, new_tx) do
-    %Core{state | pending_txs: [new_tx] ++ pending_txs}
+  defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, new_tx) do
+    %Core{state | pending_txs: [{tx_index, new_tx}] ++ pending_txs}
   end
 
   # FIXME dry and move spender figuring out elsewhere
@@ -122,19 +122,50 @@ defmodule OmiseGO.API.State.Core do
     }
   end
 
-  def form_block(current_block_num, next_block_num, %Core{pending_txs: txs} = state) do
-    # block generation
-    # generating event triggers
-    # generate requests to persistence
-    # drop pending txs from state, update height etc.
+  @doc """
+   - Generates block and calculates it's root hash for submission
+   - generates triggers for events
+   - generates requests to the persistence layer for a block
+   - processes pending txs gathered, updates height etc
+  """
+  def form_block(
+    current_block_num,
+    next_block_num,
+    %Core{pending_txs: reverse_txs, height: height} = state
+  ) do
     with :ok <- validate_block_number(current_block_num, state) do
-      block = %Block{transactions: Enum.reverse(txs)} |> Block.merkle_hash()
+
+      txs = Enum.reverse(reverse_txs)
+
+      block =
+        txs
+        |> Enum.map(fn {_tx_index, tx} -> tx end)
+        |> (fn txs -> %Block{transactions: txs} end).()
+        |> Block.merkle_hash()
 
       event_triggers =
         txs
-        |> Enum.map(fn tx -> %{tx: tx} end)
+        |> Enum.map(fn {_tx_index, tx} -> %{tx: tx} end)
 
-      db_updates = []
+      # TODO: consider calculating this along with updating the `utxos` field in the state for consistency
+      db_updates_new_utxos =
+        txs
+        |> Enum.flat_map(fn {tx_index, %{raw_tx: tx}} -> get_non_zero_amount_utxos(height, tx_index, tx) end)
+        |> Enum.map(fn {new_utxo_key, new_utxo} -> {:put, :utxo, %{new_utxo_key => new_utxo}} end)
+
+      db_updates_spent_utxos =
+        txs
+        |> Enum.flat_map(fn {_tx_index, %{raw_tx: tx}} ->
+          [{tx.blknum1, tx.txindex1, tx.oindex1}, {tx.blknum2, tx.txindex2, tx.oindex2}]
+        end)
+        |> Enum.filter(fn utxo_key -> utxo_key != {0, 0, 0} end)
+        |> Enum.map(fn utxo_key -> {:delete, :utxo, utxo_key} end)
+
+      db_updates_block = [{:put, :block, block}]
+
+      db_updates =
+        [db_updates_new_utxos, db_updates_spent_utxos, db_updates_block]
+        |> Enum.concat()
 
       new_state = %Core{
         state
@@ -156,7 +187,7 @@ defmodule OmiseGO.API.State.Core do
 
     event_triggers = [%{deposit: %{amount: amount, owner: owner}}]
 
-    db_updates = []
+    db_updates = [{:put, :utxo, new_utxos}]
 
     new_state = %Core{
       state
