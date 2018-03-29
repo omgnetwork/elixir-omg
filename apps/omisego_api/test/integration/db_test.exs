@@ -91,13 +91,29 @@ defmodule OmiseGO.API.Integration.DBTest do
 
     {:error, :utxo_not_found} = OmiseGO.API.submit(tx)
 
-    :ok = OmiseGO.API.State.deposit("Alice", 10)
+    :ok = OmiseGO.API.State.deposit(alice, 10)
 
     :ok = OmiseGO.API.submit(tx)
 
+    # FIXME: should actuallly be called by the Eth-driven BlockQueue
+    OmiseGO.API.State.form_block(2, 3)
+
+    dat_hash = <<20, 9, 184, 82, 130, 252, 199, 222, 114, 107, 24, 253, 47, 120,
+                 250, 1, 224, 25, 79, 194, 87, 231, 47, 71, 192, 53, 223, 149, 190, 183,
+                 170, 215>>
+
+    assert :not_found = OmiseGO.API.get_block(<<0::size(256)>>)
+    assert %OmiseGO.API.Block{hash: ^dat_hash} = OmiseGO.API.get_block(dat_hash)
+
+    # FIXME - should actually stop and start apps to check if persistence works fine
+    assert {:ok, [
+      %{{2, 0, 0} => %{amount: 7, owner: ^bob}},
+      %{{2, 0, 1} => %{amount: 3, owner: ^alice}}
+    ]} = DB.utxos()
+
     {:error, :utxo_not_found} = OmiseGO.API.submit(tx)
 
-    OmiseGO.API.State.form_block(2,3)
+    OmiseGO.API.State.form_block(2, 3)
   end
 
 end

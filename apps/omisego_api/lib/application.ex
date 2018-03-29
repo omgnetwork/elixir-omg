@@ -9,6 +9,7 @@ defmodule OmiseGO.API.Application do
       supervisor(Phoenix.PubSub.PG2, [:eventer, []]),
       {OmiseGO.API.State, []},
       {OmiseGO.API.BlockQueue.Server, []},
+      {OmiseGO.API.FreshBlocks, []},
     ]
     opts = [strategy: :one_for_one]
     Supervisor.start_link(children, opts)
