@@ -28,25 +28,25 @@ defmodule OmiseGO.DBTest do
       ],
       TestDBServer
     )
-    assert {:ok, %{hash: "abcd"}} == DB.tx(%{hash: "abcd"}, TestDBServer)
-    assert {:ok, %{hash: "abcde"}} == DB.tx(%{hash: "abcde"}, TestDBServer)
-    assert {:ok, :not_found} == DB.tx(%{hash: "abcdef"}, TestDBServer)
+    assert {:ok, %{hash: "abcd"}} == DB.tx("abcd", TestDBServer)
+    assert {:ok, %{hash: "abcde"}} == DB.tx("abcde", TestDBServer)
+    assert {:ok, :not_found} == DB.tx("abcdef", TestDBServer)
 
     :ok = DB.multi_update(
       [
         {:put, :tx, %{hash: "abcdef"}},
-        {:delete, :tx, %{hash: "abcd"}},
+        {:delete, :tx, "abcd"},
         {:put, :block, %{hash: "xyz"}},
         {:put, :block, %{hash: "vxyz"}},
         {:put, :block, %{hash: "wvxyz"}},
       ],
       TestDBServer
     )
-    assert {:ok, :not_found} == DB.tx(%{hash: "abcd"}, TestDBServer)
-    assert {:ok, %{hash: "abcde"}} == DB.tx(%{hash: "abcde"}, TestDBServer)
-    assert {:ok, %{hash: "abcdef"}} == DB.tx(%{hash: "abcdef"}, TestDBServer)
+    assert {:ok, :not_found} == DB.tx("abcd", TestDBServer)
+    assert {:ok, %{hash: "abcde"}} == DB.tx("abcde", TestDBServer)
+    assert {:ok, %{hash: "abcdef"}} == DB.tx("abcdef", TestDBServer)
     assert {:ok, [%{hash: "wvxyz"}, %{hash: "xyz"}]} ==
-      DB.blocks([%{hash: "wvxyz"}, %{hash: "xyz"}], TestDBServer)
+      DB.blocks(["wvxyz", "xyz"], TestDBServer)
   end
 
   test "check db actually does persist", %{dir: dir} do
@@ -57,7 +57,7 @@ defmodule OmiseGO.DBTest do
       %{db_path: dir},
       name: TestDBServer
     )
-    assert {:ok, %{hash: "abcdef"}} == DB.tx(%{hash: "abcdef"}, TestDBServer)
+    assert {:ok, %{hash: "abcdef"}} == DB.tx("abcdef", TestDBServer)
   end
 
   test "handles utxo storage" do
@@ -69,7 +69,7 @@ defmodule OmiseGO.DBTest do
         {:put, :utxo, %{{11, 31, 0} => %{amount: 10, owner: "alice3"}}},
         {:put, :utxo, %{{11, 31, 1} => %{amount: 10, owner: "alice4"}}},
         {:put, :utxo, %{{50, 30, 0} => %{amount: 10, owner: "alice5"}}},
-        {:delete, :utxo, %{{50, 30, 0} => nil}},
+        {:delete, :utxo, {50, 30, 0}},
       ],
       TestDBServer
     )
