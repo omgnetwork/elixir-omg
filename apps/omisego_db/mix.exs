@@ -18,7 +18,11 @@ defmodule OmiseGO.DB.MixProject do
 
   def application do
     [
-      extra_applications: [:logger]
+      env: [
+        db_path: "",
+      ],
+      extra_applications: [:logger],
+      mod: {OmiseGO.DB.Application, []}
     ]
   end
 
