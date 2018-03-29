@@ -27,11 +27,11 @@ defmodule OmiseGO.DB do
     GenServer.call(server_name, {:utxos})
   end
 
-  def block_hashes(block_numbers_to_fetch) do
-    GenServer.call(OmiseGO.DB.LevelDBServer, {:block_hashes, block_numbers_to_fetch})
+  def block_hashes(block_numbers_to_fetch, server_name \\ @server_name) do
+    GenServer.call(server_name, {:block_hashes, block_numbers_to_fetch})
   end
 
-  def child_top_block_number do
-    GenServer.call(OmiseGO.DB.LevelDBServer, {:child_top_block_number})
+  def child_top_block_number(server_name \\ @server_name) do
+    GenServer.call(server_name, {:child_top_block_number})
   end
 end
