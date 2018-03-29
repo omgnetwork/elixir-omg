@@ -38,11 +38,9 @@ defmodule OmiseGOWatcher.Mixfile do
   defp deps do
     [
       {:phoenix, "~> 1.3.2"},
-      {:phoenix_pubsub, "~> 1.0"},
-      {:phoenix_ecto, "~> 3.2"},
-      {:postgrex, ">= 0.0.0"},
-      {:gettext, "~> 0.11"},
-      {:cowboy, "~> 1.0"},
+      {:phoenix_ecto, "~> 3.3"},
+      {:postgrex, ">= 0.13.5"},
+      {:gettext, "~> 0.15"},
       {:omisego_api, in_umbrella: true}
     ]
   end

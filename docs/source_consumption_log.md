@@ -27,6 +27,10 @@ Identifies each module of pre-existing source code used in developing source cod
   * `porcelain`, MIT, https://hex.pm/packages/porcelain
   * `temp`, MIT, https://hex.pm/packages/temp
   * `ethereumex`, MIT, https://github.com/omisego/ethereumex.git
+  * `phoenix`, MIT, https://github.com/phoenixframework/phoenix
+  * `phoenix_ecto`, MIT, https://github.com/phoenixframework/phoenix_ecto
+  * `gettext`, Apache 2.0, https://github.com/elixir-lang/gettext
+  * `postgrex`, Apache 2.0, https://github.com/elixir-ecto/postgrex
 
 
 ## Likely to be redistributed
