@@ -19,6 +19,7 @@ defmodule OmiseGO.API do
     # BlockCache.get_block(height)
   end
 
+  # TODO: this will likely be dropped from the OmiseGO.API and here
   def tx(hash) do
     DB.tx(hash)
   end

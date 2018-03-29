@@ -34,7 +34,7 @@ defmodule OmiseGO.API.State do
   Start processing state using the database entries
   """
   def init(:ok) do
-    with {:ok, height_query_result} <- DB.height(),
+    with {:ok, height_query_result} <- DB.child_top_block_number(),
          {:ok, last_deposit_query_result} <- DB.last_deposit_height(),
          {:ok, utxos_query_result} <- DB.utxos() do
        Supervisor.init([OmiseGO.API.Depositor], strategy: :one_for_one)
