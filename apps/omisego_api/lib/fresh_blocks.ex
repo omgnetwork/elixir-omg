@@ -1,27 +1,22 @@
-defmodule OmiseGO.FreshBlocks do
+defmodule OmiseGO.API.FreshBlocks do
   @moduledoc """
     Allows for quick access to a fresh subset of blocks
   """
   alias OmiseGO.DB
 
-  # TODO remove this and import the true one
-  defmodule Block do
-    @moduledoc """
-    """
-    defstruct [:number]
-  end
+  alias OmiseGO.API.Block
 
   ##### Client
-  def start_link(opts) do
-    GenServer.start_link(__MODULE__, :ok, opts)
+  def start_link(_opts) do
+    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @spec get(block_number :: integer) :: Block
-  def get(block_number) do
-    GenServer.call(__MODULE__, {:get, block_number})
+  @spec get(block_hash :: integer) :: {:ok, Block} | {:error, any}
+  def get(block_hash) do
+    GenServer.call(__MODULE__, {:get, block_hash})
   end
 
-  def push(%Block{} = block) do
+  def push(block) do
     GenServer.cast(__MODULE__, {:push, block})
   end
 
@@ -32,16 +27,16 @@ defmodule OmiseGO.FreshBlocks do
     """
     defstruct container: %{}, max_size: 100, keys_queue: :queue.new()
 
-    def get(block_number, state) do
-      case Map.get(state.container, block_number) do
-        nil -> {nil, [block_number]}
+    def get(block_hash, %__MODULE__{} = state) do
+      case Map.get(state.container, block_hash) do
+        nil -> {nil, [block_hash]}
         %Block{} = block -> {block, []}
       end
     end
 
-    def update(block, state) do
-      keys_queue = :queue.in(block.number, state.keys_queue)
-      container = Map.put(state.container, block.number, block)
+    def push(%Block{} = block, %__MODULE__{} = state) do
+      keys_queue = :queue.in(block.hash, state.keys_queue)
+      container = Map.put(state.container, block.hash, block)
 
       if state.max_size < Kernel.map_size(container) do
         {{:value, key_to_remove}, keys_queue} = :queue.out(state.keys_queue)
@@ -60,15 +55,19 @@ defmodule OmiseGO.FreshBlocks do
     {:ok, %Core{}}
   end
 
-  def handle_call({:get, block_number}, _from, %Core{} = state) do
-    with {block, blocks_to_fetch} <- Core.get(block_number, state),
-         {:ok, fetched_blocks} <- DB.blocks(blocks_to_fetch),
-         block_to_return <- Map.get(fetched_blocks, block_number, block),
-         do: {:reply, block_to_return, state}
+  def handle_call({:get, block_hash}, _from, %Core{} = state) do
+    result =
+      with {block, block_hashes_to_fetch} <- Core.get(block_hash, state),
+           {:ok, fetched_blocks} <- DB.blocks(block_hashes_to_fetch),
+           # FIXME: this is clearly a violation of rules. How should I combine these two results?
+           fetched_blocks <- (if fetched_blocks == [], do: %{}, else: %{block_hash => hd(fetched_blocks)}),
+           do: Map.get(fetched_blocks, block_hash, block)
+
+    {:reply, result, state}
   end
 
-  def handle_cast({:push, %Block{} = block}, _from, state) do
-    {:ok, new_state} = Core.update(block, state)
-    {:noreply, :ok, new_state}
+  def handle_cast({:push, block}, state) do
+    {:ok, new_state} = Core.push(block, state)
+    {:noreply, new_state}
   end
 end

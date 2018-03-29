@@ -28,6 +28,7 @@ defmodule OmiseGO.API.State do
 
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Eventer
+  alias OmiseGO.API.FreshBlocks
   alias OmiseGO.DB
 
   @doc """
@@ -70,6 +71,8 @@ defmodule OmiseGO.API.State do
        Eventer.notify(event_triggers)
        # GenServer.call
        :ok = DB.multi_update(db_updates)
+       # cast
+       :ok = FreshBlocks.push(block)
        {:reply, {:ok, block.hash}, new_state}
    end
  end
