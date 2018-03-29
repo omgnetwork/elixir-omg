@@ -6,4 +6,4 @@ config :omisego_api,
   depositor_max_block_range_in_deposits_query: 5,
   contract_deployment_block: 10 #FIXME update after contract is deployed
 
-import_config "#{Mix.env}.exs"
+#import_config "#{Mix.env}.exs"

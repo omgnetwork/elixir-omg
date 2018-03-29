@@ -11,35 +11,48 @@ defmodule OmiseGO.API.Depositor.CoreTest do
   deffixture initial_state(), do: %Core{last_deposit_block: 0}
 
   @tag fixtures: [:initial_state]
-  test "range of blocks to get deposits from is returned and there are no more finalized blocks",
+  test "consecutive ranges of blocks are produced until there are no more finalized blocks",
     %{initial_state: state} do
-    block_from = state.last_deposit_block + 1
-    block_to = state.last_deposit_block + @max_blocks_in_fetch
-    expected_state = %{state | last_deposit_block: block_to}
+    block_from = 1
+    eth_height = 2 * @max_blocks_in_fetch + @block_finality_margin
 
-    assert {:ok, expected_state, @get_deposits_interval, block_from, block_to} ==
-      Core.get_deposit_block_range(state, 10)
+    {:ok, state, 0, ^block_from, block_to} = Core.get_deposit_block_range(state, eth_height)
+    assert block_to >= block_from
+
+    {:ok, state, @get_deposits_interval, block_from_2, block_to_2} =
+      Core.get_deposit_block_range(state, eth_height)
+    assert block_from_2 == block_to + 1
+    assert block_to_2 >= block_from_2
+
+    {:no_blocks_with_deposit, ^state, @get_deposits_interval} =
+      Core.get_deposit_block_range(state, eth_height)
   end
 
   @tag fixtures: [:initial_state]
-  test "range of blocks to get deposits from is empty when there are no new finalized blocks",
+  test "produced range of blocks respect increasing Ethereum height",
     %{initial_state: state} do
-    assert {:no_deposits, state} ==
-        Core.get_deposit_block_range(state, state.last_deposit_block + @block_finality_margin - 1)
+    block_from = 1
+    eth_height = @max_blocks_in_fetch + @block_finality_margin
+    {:ok, state, @get_deposits_interval, ^block_from, block_to} =
+        Core.get_deposit_block_range(state, eth_height)
+
+    eth_height_2 = eth_height + 1
+    {:ok, state, @get_deposits_interval, block_from_2, block_to_2} =
+        Core.get_deposit_block_range(state, eth_height_2)
+    assert block_from_2 == block_to + 1
+    assert block_to_2 == block_from_2
   end
 
   @tag fixtures: [:initial_state]
-  test "range of blocks to get deposits from is returned in parts",
+  test "no new ranges of blocks are produced when Ethereum height decreases",
     %{initial_state: state} do
-    state
-    |> assert_range(0)
-    |> assert_range(@get_deposits_interval)
-  end
+      block_from = 1
+      eth_height = @max_blocks_in_fetch + @block_finality_margin
+      {:ok, state, @get_deposits_interval, ^block_from, block_to} =
+          Core.get_deposit_block_range(state, eth_height)
 
-  defp assert_range(state, expected_interval) do
-    block_from = state.last_deposit_block + 1
-    block_to = state.last_deposit_block + @max_blocks_in_fetch
-    {:ok, state, ^expected_interval, ^block_from, ^block_to} = Core.get_deposit_block_range(state, 15)
-    state
+      eth_height_2 = eth_height - 1
+      {:no_blocks_with_deposit, ^state, @get_deposits_interval} =
+        Core.get_deposit_block_range(state, eth_height_2)
   end
 end

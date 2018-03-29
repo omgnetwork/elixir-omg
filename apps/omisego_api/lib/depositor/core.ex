@@ -13,8 +13,8 @@ defmodule OmiseGO.API.Depositor.Core do
   def get_deposit_block_range(%__MODULE__{last_deposit_block: last_deposit_block} = state, current_ethereum_block) do
     max_block = current_ethereum_block - @block_finality_margin
     cond do
-      max_block < last_deposit_block ->
-        {:no_deposits, state}
+      max_block <= last_deposit_block ->
+        {:no_blocks_with_deposit, state, @get_deposits_interval}
       last_deposit_block + @max_blocks_in_fetch < max_block ->
         next_last_deposit_block = last_deposit_block + @max_blocks_in_fetch
         state = %{state | last_deposit_block: next_last_deposit_block}

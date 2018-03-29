@@ -152,8 +152,8 @@ defmodule OmiseGO.API.State.Core do
     if expected_block_num == height, do: :ok, else: {:error, :invalid_current_block_number}
   end
 
-  def deposit(deposits, %Core{utxos: utxos} = state) do
-    deposits = deposits |> Enum.filter(&(&1.block_height > state.last_deposit_height))
+  def deposit(deposits, %Core{utxos: utxos, last_deposit_height: last_deposit_height} = state) do
+    deposits = deposits |> Enum.filter(&(&1.block_height > last_deposit_height))
 
     new_utxos =
       deposits
@@ -165,21 +165,35 @@ defmodule OmiseGO.API.State.Core do
     event_triggers =
       deposits
       |> Enum.map(fn %{owner: owner, amount: amount} -> %{deposit: %{amount: amount, owner: owner}} end)
-    db_updates = deposit_db_updates(deposits)
-    new_state = %Core{state | utxos: Map.merge(utxos, new_utxos)}
+
+    last_deposit_height = get_last_deposit_height(deposits, last_deposit_height)
+    db_updates = deposit_db_updates(deposits, last_deposit_height)
+
+    new_state =
+      %Core{state |
+       utxos: Map.merge(utxos, new_utxos),
+       last_deposit_height: last_deposit_height
+     }
 
     {event_triggers, db_updates, new_state}
   end
 
-  defp deposit_db_updates(deposits) do
+  defp get_last_deposit_height(deposits, current_height) do
     if Enum.empty?(deposits) do
-      []
+      current_height
     else
-      max_block_height =
+      new_block_height =
         deposits
         |> Enum.max_by(&(&1.block_height))
         |> Map.get(:block_height)
-      [{:last_deposit_block_height, max_block_height}]
+    end    
+  end
+
+  defp deposit_db_updates(deposits, last_deposit_height) do
+    if Enum.empty?(deposits) do
+      []
+    else
+      [{:last_deposit_block_height, last_deposit_height}]
     end
   end
 
