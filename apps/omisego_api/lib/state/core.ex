@@ -182,11 +182,10 @@ defmodule OmiseGO.API.State.Core do
     if Enum.empty?(deposits) do
       current_height
     else
-      new_block_height =
         deposits
         |> Enum.max_by(&(&1.block_height))
         |> Map.get(:block_height)
-    end    
+    end
   end
 
   defp deposit_db_updates(deposits, last_deposit_height) do

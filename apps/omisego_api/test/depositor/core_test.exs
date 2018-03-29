@@ -37,7 +37,7 @@ defmodule OmiseGO.API.Depositor.CoreTest do
         Core.get_deposit_block_range(state, eth_height)
 
     eth_height_2 = eth_height + 1
-    {:ok, state, @get_deposits_interval, block_from_2, block_to_2} =
+    {:ok, _, @get_deposits_interval, block_from_2, block_to_2} =
         Core.get_deposit_block_range(state, eth_height_2)
     assert block_from_2 == block_to + 1
     assert block_to_2 == block_from_2
@@ -46,9 +46,8 @@ defmodule OmiseGO.API.Depositor.CoreTest do
   @tag fixtures: [:initial_state]
   test "no new ranges of blocks are produced when Ethereum height decreases",
     %{initial_state: state} do
-      block_from = 1
       eth_height = @max_blocks_in_fetch + @block_finality_margin
-      {:ok, state, @get_deposits_interval, ^block_from, block_to} =
+      {:ok, state, @get_deposits_interval, _, _} =
           Core.get_deposit_block_range(state, eth_height)
 
       eth_height_2 = eth_height - 1
