@@ -9,11 +9,12 @@ defmodule OmiseGO.Eth.Fixtures do
 
   deffixture contract(geth) do
     _ = geth
-    {from, contract_address} = OmiseGO.Eth.TestHelpers.create_new_contract()
+    {from, {txhash, contract_address}} = OmiseGO.Eth.TestHelpers.create_new_contract()
 
     %{
       address: contract_address,
-      from: from
+      from: from,
+      txhash: txhash
     }
   end
 end
