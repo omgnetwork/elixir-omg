@@ -47,4 +47,12 @@ defmodule OmiseGO.API.Api.CoreTest do
 
   end
 
+  test "transaction is allowed to have one empty spender" do
+
+  end
+
+  test "transaction is not allowed to have 2 empty spenders" do
+
+  end
+
 end

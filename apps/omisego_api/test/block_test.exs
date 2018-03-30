@@ -4,6 +4,7 @@ defmodule OmiseGO.API.BlockTest do
 
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.Block
+  alias OmiseGO.API.Core
 
   @tag fixtures: [:stable_alice, :stable_bob]
   test "block has a correct hash", %{stable_alice: alice, stable_bob: bob} do
@@ -21,17 +22,12 @@ defmodule OmiseGO.API.BlockTest do
       fee: 0
     }
 
-    signed_tx_hash =
+    encoded_singed_tx =
       raw_tx
       |> Transaction.signed(alice.priv, bob.priv)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.encode
 
-    recovered_tx =
-      %Transaction.Recovered{raw_tx: raw_tx,
-        signed_tx_hash: signed_tx_hash,
-        spender1: alice.addr,
-        spender2: bob.addr
-      }
+    {:ok, recovered_tx} = Core.recover_tx(encoded_singed_tx)
 
     block = %Block{transactions: [recovered_tx]}
 

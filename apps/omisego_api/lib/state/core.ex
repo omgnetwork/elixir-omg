@@ -45,6 +45,9 @@ defmodule OmiseGO.API.State.Core do
     %Core{state | pending_txs: [new_tx] ++ pending_txs}
   end
 
+  # if there's no spender, make sure we cannot spend
+  defp correct_input?(_, _, _, nil), do: {:ok, 0}
+
   # FIXME dry and move spender figuring out elsewhere
   defp correct_input?(
          utxos,
@@ -70,7 +73,7 @@ defmodule OmiseGO.API.State.Core do
          do: {:ok, owner_has}
   end
 
-  defp get_utxo(_utxos, {0, 0, 0}), do: {:ok, %{amount: 0, owner: Transaction.zero_address()}}
+  defp get_utxo(_utxos, {0, 0, 0}), do: {:error, :cant_spend_zero_utxo}
 
   defp get_utxo(utxos, {blknum, txindex, oindex}) do
     case Map.get(utxos, {blknum, txindex, oindex}) do
