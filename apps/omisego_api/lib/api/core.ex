@@ -2,9 +2,9 @@ defmodule OmiseGO.API.Core do
   @moduledoc """
   Functional core work-horse for OmiseGO.API
   """
- @empty_signature <<0>> |> List.duplicate(65) |> :binary.list_to_bin()
-
   alias OmiseGO.API.State.Transaction
+
+  @empty_signature <<0::size(520)>>
 
   def recover_tx(encoded_signed_tx) do
     with {:ok, signed_tx} <- Transaction.Signed.decode(encoded_signed_tx),
@@ -23,7 +23,7 @@ defmodule OmiseGO.API.Core do
            oindex2: 0
          },
          sig1: @empty_signature,
-         sig2:  @empty_signature
+         sig2: @empty_signature
        }),
        do: {:error, :no_inputs}
 

@@ -186,7 +186,7 @@ defmodule OmiseGO.API.State.Transaction do
     |> Crypto.hash()
   end
 
-  def signed(%__MODULE__{} = tx, priv1, priv2) do
+  def sign(%__MODULE__{} = tx, priv1, priv2) do
     encoded_tx = encode(tx)
     signature1 = Crypto.signature(encoded_tx, priv1)
     signature2 = Crypto.signature(encoded_tx, priv2)

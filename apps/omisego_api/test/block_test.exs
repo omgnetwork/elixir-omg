@@ -24,7 +24,7 @@ defmodule OmiseGO.API.BlockTest do
 
     encoded_singed_tx =
       raw_tx
-      |> Transaction.signed(alice.priv, bob.priv)
+      |> Transaction.sign(alice.priv, bob.priv)
       |> Transaction.Signed.encode
 
     {:ok, recovered_tx} = Core.recover_tx(encoded_singed_tx)
