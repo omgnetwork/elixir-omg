@@ -41,7 +41,8 @@ defmodule OmiseGOWatcher.Mixfile do
       {:phoenix_ecto, "~> 3.3"},
       {:postgrex, ">= 0.13.5"},
       {:gettext, "~> 0.15"},
-      {:omisego_api, in_umbrella: true}
+      {:omisego_api, in_umbrella: true},
+      {:sqlite_ecto2, "~> 2.2"}
     ]
   end
 

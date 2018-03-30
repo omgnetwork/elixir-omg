@@ -31,6 +31,7 @@ Identifies each module of pre-existing source code used in developing source cod
   * `phoenix_ecto`, MIT, https://github.com/phoenixframework/phoenix_ecto
   * `gettext`, Apache 2.0, https://github.com/elixir-lang/gettext
   * `postgrex`, Apache 2.0, https://github.com/elixir-ecto/postgrex
+  * `sqlite_ecto2`, MIT, https://github.com/scouten/sqlite_ecto2
 
 
 ## Likely to be redistributed

@@ -11,12 +11,8 @@ config :logger, level: :warn
 
 # Configure your database
 config :omisego_watcher, OmiseGOWatcher.Repo,
-  adapter: Ecto.Adapters.Postgres,
-  username: "omisego",
-  password: "12345678",
-  database: "test_development",
-  hostname: "localhost",
-  pool_size: 10
-
+  adapter: Sqlite.Ecto2,
+  database: "ecto_simple.sqlite3"
+  
 config :omisego_watcher, OmiseGOWatcher.Repo,
   pool: Ecto.Adapters.SQL.Sandbox
