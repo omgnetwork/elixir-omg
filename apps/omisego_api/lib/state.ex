@@ -35,7 +35,7 @@ defmodule OmiseGO.API.State do
   """
   def init(:ok) do
     with {:ok, utxos_query_result} <- DB.utxos(),
-         {:ok, height_query_result} <- DB.height(),
+         {:ok, height_query_result} <- DB.child_top_block_number(),
          do: {:ok, Core.extract_initial_state(utxos_query_result, height_query_result)}
   end
 
