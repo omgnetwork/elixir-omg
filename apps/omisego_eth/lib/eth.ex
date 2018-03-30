@@ -43,7 +43,7 @@ defmodule OmiseGO.Eth do
         {:ok, height}
 
       {:ok, _} ->
-        {:error, :ble}
+        {:error, :wrong_contract_address}
 
       other ->
         other
