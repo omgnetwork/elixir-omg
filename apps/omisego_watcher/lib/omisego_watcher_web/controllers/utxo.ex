@@ -1,5 +1,7 @@
 defmodule OmiseGOWatcherWeb.Controller.Utxo do
-  @moduledoc """
+  @moduledoc"""
+  Operations related to utxo.
+  Modify the state in the database.
   """
   alias OmiseGOWatcher.{Repo, TransactionDB}
   use OmiseGOWatcherWeb, :controller

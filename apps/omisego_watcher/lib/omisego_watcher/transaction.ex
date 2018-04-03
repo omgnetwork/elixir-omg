@@ -1,5 +1,6 @@
 defmodule OmiseGOWatcher.TransactionDB do
-  @moduledoc """
+  @moduledoc"""
+  Template for creating (mix ecto.migrate) and using tables (database).
   """
   use Ecto.Schema
   import Ecto.Changeset
