@@ -17,7 +17,7 @@ defmodule OmiseGO.EthTest do
       num: nonce,
       hash: hash,
       gas_price: 20_000_000_000,
-      nonce: nonce,
+      nonce: nonce
     }
   end
 
@@ -50,7 +50,7 @@ defmodule OmiseGO.EthTest do
   end
 
   @tag fixtures: [:geth]
-  test "get_ethereum_heigh return integer" do
+  test "get_ethereum_height return integer" do
     {:ok, number} = Eth.get_ethereum_height()
     assert is_integer(number)
   end
@@ -69,5 +69,11 @@ defmodule OmiseGO.EthTest do
     {:ok, height} = Eth.get_ethereum_height()
     assert {:ok, [%{amount: 1, block_height: 1, owner: contract.from}]} ==
       Eth.get_deposits(1, height, contract.address)
+  end
+
+  @tag fixtures: [:contract]
+  test "get contract deployment height", %{contract: contract} do
+    {:ok, number} = Eth.get_root_deployment_height(contract.txhash, contract.address)
+    assert is_integer(number)
   end
 end
