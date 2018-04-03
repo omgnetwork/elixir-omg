@@ -5,227 +5,230 @@ defmodule OmiseGO.API.State.CoreTest do
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.TestHelper
 
   @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232,
                       237, 80, 242, 60, 209, 253, 249, 76, 145, 84, 237, 58, 118, 9,
                       162, 241, 255, 152, 31>>
 
-  deffixture alice() do
-    "alicealicealicealice"
-  end
-
-  deffixture bob() do
-    "bobbobbobbobbobbobbo"
-  end
-
-  deffixture carol() do
-    "carolcarolcarol"
-  end
-
-  deffixture state_empty() do
-    Core.extract_initial_state(1, [])
-  end
-
-  deffixture state_alice_deposit(state_empty, alice) do
-    state_empty
-    |> do_deposit(alice, 10)
-  end
-
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can spend deposits", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    signed_tx =
+
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 2, txindex1: 0, oindex1: 1, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 3, newowner2: 0, amount2: 0, fee: 0,
+        newowner1: bob.addr, amount1: 3, newowner2: 0, amount2: 0, fee: 0,
       }
-      |> TestHelper.signed
 
-    %Transaction.Recovered{signed: signed_tx, spender1: alice}
-    |> Core.exec(state) |> success?
+    %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
+      |> Core.exec(state) |> success?
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can't spend nonexistent", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 1, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
-    %Transaction.Recovered{signed: signed_tx, spender1: alice}
+
+    %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
     |> Core.exec(state) |> fail?(:utxo_not_found) |> same?(state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "amounts must add up", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    tx =
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 8, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: alice.addr, amount1: 8, newowner2: bob.addr, amount2: 3, fee: 0,
       }
-    assert_amounts_dont_add_up(state, tx, alice, Transaction.zero_address())
+
+    signed_tx_hash =
+      raw_tx
+      |> Transaction.sign(alice.priv, <<>>)
+      |> Transaction.Signed.hash
+
+    assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, alice.addr, nil)
 
     #spending utxo with fee
-    tx =
+    raw_tx =
       %Transaction{
-        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 8, newowner2: alice, amount2: 2, fee: 1,
+        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 1, oindex2: 0,
+        newowner1: bob.addr, amount1: 8, newowner2: alice.addr, amount2: 2, fee: 1,
       }
-    assert_amounts_dont_add_up(state, tx, alice, Transaction.zero_address())
+
+    signed_tx_hash =
+      raw_tx
+      |> Transaction.sign(alice.priv, <<>>)
+      |> Transaction.Signed.hash
+
+    assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, alice.addr, nil)
 
     #spending from second input
-    tx =
+    raw_tx =
       %Transaction{
         blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 1, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 8, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 8, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-    assert_amounts_dont_add_up(state, tx, Transaction.zero_address(), alice)
+
+    signed_tx_hash =
+      raw_tx
+      |> Transaction.sign(alice.priv, bob.priv)
+      |> Transaction.Signed.hash
+
+    assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, nil, alice.addr)
 
     #spending both outputs
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 2, newowner2: alice, amount2: 8, fee: 0,
+        newowner1: bob.addr, amount1: 2, newowner2: alice.addr, amount2: 8, fee: 0,
       }
-      |> TestHelper.signed
+
+    signed_tx_hash =
+      raw_tx
+      |> Transaction.sign(alice.priv, bob.priv)
+      |> Transaction.Signed.hash
 
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    tx = %Transaction{
+    raw_tx = %Transaction{
       blknum1: 2, txindex1: 0, oindex1: 0, blknum2: 2, txindex2: 0, oindex2: 1,
-      newowner1: alice, amount1: 8, newowner2: bob, amount2: 3, fee: 0,
+      newowner1: alice.addr, amount1: 8, newowner2: bob.addr, amount2: 3, fee: 0,
     }
-    assert_amounts_dont_add_up(state, tx, bob, alice)
+
+    signed_tx_hash =
+      raw_tx
+      |> Transaction.sign(alice.priv, bob.priv)
+      |> Transaction.Signed.hash
+
+    assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, bob.addr, alice.addr)
   end
 
-  defp assert_amounts_dont_add_up(state, transaction, spender1, spender2) do
-    signed_tx = transaction |> TestHelper.signed
-    %Transaction.Recovered{signed: signed_tx, spender1: spender1, spender2: spender2}
+  defp assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, spender1, spender2) do
+    %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: spender1, spender2: spender2}
     |> Core.exec(state) |> fail?(:amounts_dont_add_up) |> same?(state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can't spend other people's funds", %{alice: alice, bob: bob, state_alice_deposit: state}  do
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 8, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 8, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
-    %Transaction.Recovered{signed: signed_tx, spender1: bob}
+
+    %Transaction.Recovered{raw_tx: raw_tx, spender1: bob.addr}
     |> Core.exec(state) |> fail?(:incorrect_spender) |> same?(state)
 
-    signed_tx =
+    raw_tx =
       %Transaction{
-        blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 1, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 8, newowner2: alice, amount2: 3, fee: 0,
+        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 1, txindex2: 0, oindex2: 0,
+        newowner1: bob.addr, amount1: 8, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
 
-    %Transaction.Recovered{signed: signed_tx, spender1: bob}
+    %Transaction.Recovered{raw_tx: raw_tx, spender1: bob.addr}
     |> Core.exec(state) |> fail?(:incorrect_spender) |> same?(state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can't spend spent", %{alice: alice, bob: bob, state_alice_deposit: state}  do
     # FIXME dry - we need many cases since attempt to spend spend might be done in 4 different ways
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+
     state1 =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 1, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+
     state2 =
-      %Transaction.Recovered{signed: signed_tx, spender2: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, spender2: alice.addr}
       |> Core.exec(state) |> success?
 
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+
     [state1, state2]
     |> Enum.map(fn state ->
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
       |> Core.exec(state) |> fail?(:utxo_not_found) |> same?(state)
     end)
 
-    signed_tx = %Transaction{
+    raw_tx = %Transaction{
       blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 1, txindex2: 0, oindex2: 0,
-      newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+      newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
     }
-    |> TestHelper.signed
+
     [state1, state2]
     |> Enum.map(fn state ->
-      %Transaction.Recovered{signed: signed_tx, spender2: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, spender2: alice.addr}
       |> Core.exec(state) |> fail?(:utxo_not_found) |> same?(state)
     end)
   end
 
   @tag fixtures: [:alice, :bob, :carol, :state_alice_deposit]
   test "can spend change and merge coins", %{alice: alice, bob: bob, carol: carol, state_alice_deposit: state}  do
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
 
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 2, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: carol, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
+        newowner1: carol.addr, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
       }
-      |> TestHelper.signed
+
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: bob}
+      %Transaction.Recovered{raw_tx: raw_tx, spender1: bob.addr}
       |> Core.exec(state) |> success?
 
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 2, txindex1: 0, oindex1: 1, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: carol, amount1: 3, newowner2: 0, amount2: 0, fee: 0,
+        newowner1: carol.addr, amount1: 3, newowner2: 0, amount2: 0, fee: 0,
       }
-      |> TestHelper.signed
+
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 2, txindex1: 1, oindex1: 0, blknum2: 2, txindex2: 2, oindex2: 0,
-        newowner1: alice, amount1: 10, newowner2: 0, amount2: 0, fee: 0,
+        newowner1: alice.addr, amount1: 10, newowner2: 0, amount2: 0, fee: 0,
       }
-      |> TestHelper.signed
-    %Transaction.Recovered{signed: signed_tx, spender1: carol, spender2: carol}
+
+    %Transaction.Recovered{raw_tx: raw_tx, spender1: carol.addr, spender2: carol.addr}
     |> Core.exec(state) |> success?
   end
 
@@ -233,83 +236,106 @@ defmodule OmiseGO.API.State.CoreTest do
   test "can spend after block is formed", %{alice: alice, bob: bob, state_alice_deposit: state}  do
     {:ok, {_, _, _, state}} = Core.form_block(state.height, state.height + 1, state)
 
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 3, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
       }
-      |> TestHelper.signed
-    %Transaction.Recovered{signed: signed_tx, spender1: bob}
+
+    %Transaction.Recovered{raw_tx: raw_tx, spender1: bob.addr}
     |> Core.exec(state) |> success?
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "forming block doesn't unspend", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+
+    signed_tx_hash =
+      raw_tx
+      |> Transaction.sign(alice.priv, bob.priv)
+      |> Transaction.Signed.hash
 
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
     {:ok, {_, _, _, state}} = Core.form_block(state.height, state.height + 1, state)
 
-    %Transaction.Recovered{signed: signed_tx, spender1: alice}
+    %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
     |> Core.exec(state) |> fail?(:utxo_not_found)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "spending emits event trigger", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+
+    signed_tx_hash =
+      raw_tx
+      |> Transaction.sign(alice.priv, bob.priv)
+      |> Transaction.Signed.hash
 
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
     assert {:ok, {_, [trigger], _, _}} = Core.form_block(state.height, state.height + 1, state)
 
-    assert trigger == %{tx: signed_tx}
+    assert trigger ==
+      %{tx:
+        %Transaction.Recovered{raw_tx: raw_tx,
+          signed_tx_hash: signed_tx_hash,
+          spender1: alice.addr}
+      }
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "every spending emits event triggers", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+
+    signed_tx_hash =
+      raw_tx
+      |> Transaction.sign(alice.priv, bob.priv)
+      |> Transaction.Signed.hash
+
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 2, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: alice, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
+        newowner1: alice.addr, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
       }
-      |> TestHelper.signed
+
+    signed_tx_hash =
+      raw_tx
+      |> Transaction.sign(alice.priv, bob.priv)
+      |> Transaction.Signed.hash
+
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: bob}
+      %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: bob.addr}
       |> Core.exec(state) |> success?
 
     assert {:ok, {_, [_trigger1, _trigger2], _, _}} = Core.form_block(state.height, state.height + 1, state)
@@ -317,14 +343,14 @@ defmodule OmiseGO.API.State.CoreTest do
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "only successful spending emits event trigger", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 1, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
       |> Core.exec(state) |> same?(state)
 
     assert {:ok, {_, [], _, _}} = Core.form_block(state.height, state.height + 1, state)
@@ -341,50 +367,71 @@ defmodule OmiseGO.API.State.CoreTest do
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "empty blocks emit empty event triggers", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    signed_tx =
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
       }
-      |> TestHelper.signed
+
+    signed_tx_hash =
+      raw_tx
+      |> Transaction.sign(alice.priv, bob.priv)
+      |> Transaction.Signed.hash
+
     state =
-      %Transaction.Recovered{signed: signed_tx, spender1: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
     assert {:ok, {_, [_trigger], _, state}} = Core.form_block(state.height, state.height + 1, state)
     assert {:ok, {_, [], _, _}} = Core.form_block(state.height, state.height + 1, state)
   end
 
-  @tag fixtures: [:alice, :bob, :state_alice_deposit]
+  @tag fixtures: [:stable_alice, :stable_bob, :state_stable_alice_deposit]
   test "forming block puts all transactions in a block",
-     %{alice: alice, bob: bob, state_alice_deposit: state} do
+     %{stable_alice: alice, stable_bob: bob, state_stable_alice_deposit: state} do
 
-    signed_tx_1 =
+    raw_tx_1 =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0
       }
-      |> TestHelper.signed
+
+    signed_tx_hash_1 =
+      raw_tx_1
+      |> Transaction.sign(bob.priv, alice.priv)
+      |> Transaction.Signed.hash
+
+    recovered_tx_1 =
+      %Transaction.Recovered{raw_tx: raw_tx_1, signed_tx_hash: signed_tx_hash_1, spender1: alice.addr}
+
     state =
-      %Transaction.Recovered{signed: signed_tx_1, spender1: alice}
+      recovered_tx_1
       |> Core.exec(state) |> success?
 
-    signed_tx_2 =
+    raw_tx_2 =
       %Transaction{
         blknum1: 2, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: alice, amount1: 2, newowner2: bob, amount2: 5, fee: 0
+        newowner1: alice.addr, amount1: 2, newowner2: bob.addr, amount2: 5, fee: 0
       }
-      |> TestHelper.signed
+
+    signed_tx_hash_2 =
+      raw_tx_2
+      |> Transaction.sign(alice.priv, bob.priv)
+      |> Transaction.Signed.hash
+
+    recovered_tx_2 =
+      %Transaction.Recovered{raw_tx: raw_tx_2, signed_tx_hash: signed_tx_hash_2, spender1: bob.addr}
+
     state =
-      %Transaction.Recovered{signed: signed_tx_2, spender1: bob}
+      recovered_tx_2
       |> Core.exec(state) |> success?
 
     expected_block =
       %Block{
-        transactions: [signed_tx_1, signed_tx_2],
-        hash: <<222, 21, 36, 237, 108, 161, 96, 234, 25, 28, 102, 22,
-                210, 192, 45, 101, 109, 90, 220, 253, 39, 134, 197, 129, 139,
-                135, 120, 214, 203, 233, 76, 186>>
+        transactions: [recovered_tx_1, recovered_tx_2],
+        hash: <<202, 27, 137, 247, 249, 36, 44, 110, 164, 9, 65, 161, 33, 136,
+                217, 47, 243, 72, 189, 78, 23, 158, 2, 142, 136, 147, 210,
+                40, 225, 224, 68, 155>>
       }
     {:ok, {^expected_block, _, _, _}} = Core.form_block(state.height, state.height + 1, state)
   end
@@ -392,14 +439,19 @@ defmodule OmiseGO.API.State.CoreTest do
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "forming block empty block after a non-empty block",
        %{alice: alice, bob: bob, state_alice_deposit: state} do
-    signed_tx_1 =
+    raw_tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0
       }
-      |> TestHelper.signed
+
+    signed_tx_hash =
+      raw_tx
+      |> Transaction.sign(alice.priv, bob.priv)
+      |> Transaction.Signed.hash
+
     state =
-      %Transaction.Recovered{signed: signed_tx_1, spender1: alice}
+      %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
     {:ok, {_, _, _, state}} = Core.form_block(state.height, state.height + 1, state)
@@ -453,7 +505,7 @@ defmodule OmiseGO.API.State.CoreTest do
     #
     # state =
     #   %Transaction{blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-    #                newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0}
+    #                newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0}
     #   |> Core.exec(state) |> success?
     # {[deposit_trigger], [deposit_db_update], state} = Core.deposit(alice, 4, state)
     #
@@ -470,7 +522,7 @@ defmodule OmiseGO.API.State.CoreTest do
     # state = Core.extract_initial_state("utxo1, utxo2 etc")
     # state =
     #   %Transaction{blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-    #                newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0}
+    #                newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0}
     #   |> Core.exec(state) |> success?
 
   end
@@ -478,12 +530,6 @@ defmodule OmiseGO.API.State.CoreTest do
   test "core generates the db query" do
     # NOTE: trivial test, considering current behavior, but might evolve... hm
     # FIXME
-  end
-
-  defp do_deposit(state, owner, amount) do
-    {_, _, new_state} =
-      Core.deposit(owner, amount, state)
-    new_state
   end
 
   defp success?(result) do
@@ -500,8 +546,10 @@ defmodule OmiseGO.API.State.CoreTest do
     assert expected_state == state
     state
   end
+
   defp same?(state, expected_state) do
     assert expected_state == state
     state
   end
+
 end
