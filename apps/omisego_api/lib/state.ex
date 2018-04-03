@@ -37,7 +37,6 @@ defmodule OmiseGO.API.State do
     with {:ok, height_query_result} <- DB.child_top_block_number(),
          {:ok, last_deposit_query_result} <- DB.last_deposit_height(),
          {:ok, utxos_query_result} <- DB.utxos() do
-       Supervisor.init([OmiseGO.API.Depositor], strategy: :one_for_one)
        {:ok, Core.extract_initial_state(utxos_query_result, height_query_result, last_deposit_query_result)}
     end
   end

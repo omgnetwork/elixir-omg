@@ -5,10 +5,9 @@ defmodule OmiseGO.API.Depositor.Core do
 
   @block_finality_margin Application.get_env(:omisego_api, :depositor_block_finality_margin)
   @max_blocks_in_fetch Application.get_env(:omisego_api, :depositor_max_block_range_in_deposits_query)
-  @contract_deployment_block Application.get_env(:omisego_api, :contract_deployment_block)
   @get_deposits_interval Application.get_env(:omisego_api, :depositor_get_deposits_interval_ms)
 
-  defstruct last_deposit_block: @contract_deployment_block
+  defstruct last_deposit_block: 1
 
   def get_deposit_block_range(%__MODULE__{last_deposit_block: last_deposit_block} = state, current_ethereum_block) do
     max_block = current_ethereum_block - @block_finality_margin

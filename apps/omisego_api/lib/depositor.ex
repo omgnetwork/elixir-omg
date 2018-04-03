@@ -20,8 +20,10 @@ defmodule OmiseGO.API.Depositor do
 
   def init(:ok) do
     #TODO: initialize state with the last ethereum block we have seen deposits from
-    schedule_get_deposits(0)
-    {:ok, %Core{}}
+    with {:ok, parent_start} <- Eth.get_root_deployment_height() do
+      schedule_get_deposits(0)
+      {:ok, %Core{last_deposit_block: parent_start}}
+    end
   end
 
   def handle_info(:get_deposits, state) do
