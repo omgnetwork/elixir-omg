@@ -5,22 +5,72 @@ defmodule OmiseGO.API.State.Transaction do
 
   alias OmiseGO.API.Crypto
 
-  @zero_address <<0>> |> List.duplicate(20) |> Enum.join
+  @zero_address <<0>> |> List.duplicate(20) |> Enum.join()
 
   # TODO: probably useful to structure these fields somehow ore readable like
   # defstruct [:input1, :input2, :output1, :output2, :fee], with in/outputs as structs or tuples?
-  defstruct [:blknum1,
-             :txindex1,
-             :oindex1,
-             :blknum2,
-             :txindex2,
-             :oindex2,
-             :newowner1,
-             :amount1,
-             :newowner2,
-             :amount2,
-             :fee,
-             ]
+  defstruct blknum1: 0,
+            txindex1: 0,
+            oindex1: 0,
+            blknum2: 0,
+            txindex2: 0,
+            oindex2: 0,
+            newowner1: 0,
+            amount1: 0,
+            newowner2: 0,
+            amount2: 0,
+            fee: 0
+
+  def create_from_utxo(
+        %{"address" => my_address, "utxos" => utxos},
+        %{address: receiver_address, amount: amount_receiver},
+        fee
+      ) do
+    stream_parts_transaction =
+      utxos |> Stream.with_index(1)
+      |> Stream.map(fn {utxo, number} ->
+        %{
+          :"blknum#{number}" => utxo["blknum"],
+          :"txindex#{number}" => utxo["txindex"],
+          :"oindex#{number}" => utxo["oindex"],
+          amount: utxo["amount"]
+        }
+      end)
+
+    {transaction, all_amount} =
+      List.foldl(Enum.to_list(stream_parts_transaction), {%{}, 0}, fn utxo,
+                                                                      {from_transaction,
+                                                                       full_amount} ->
+        {amout_local, utxo} = Map.pop(utxo, :amount)
+        {Map.merge(utxo, from_transaction), full_amount + amout_local}
+      end)
+
+    transaction =
+      struct!(
+        __MODULE__,
+        Map.merge(transaction, %{
+          newowner1: receiver_address,
+          amount1: amount_receiver,
+          newowner2: my_address,
+          amount2: all_amount - amount_receiver - fee,
+          fee: fee
+        })
+      )
+
+    case validate(transaction) do
+      :ok -> {:ok, transaction}
+      error -> error
+    end
+  end
+
+  def validate(%__MODULE__{} = transaction) do
+    case transaction do
+      %{amount1: amount} when amount < 0 -> {:error, :amount_negative_value}
+      %{amount2: amount} when amount < 0 -> {:error, :amount_negative_value}
+      %{fee: fee} when fee < 0 -> {:error, :fee_negative_value}
+      %{} -> :ok
+    end
+  end
 
   defmodule Signed do
     @moduledoc false
@@ -30,9 +80,9 @@ defmodule OmiseGO.API.State.Transaction do
       hash =
         (OmiseGO.API.State.Transaction.hash(tx) <> sig1 <> sig2)
         |> Crypto.hash()
+
       %{signed | hash: hash}
     end
-
   end
 
   defmodule Recovered do
@@ -42,17 +92,19 @@ defmodule OmiseGO.API.State.Transaction do
     """
 
     # FIXME: refactor to somewhere to avoid dupliaction
-    @zero_address <<0>> |> List.duplicate(20) |> Enum.join
+    @zero_address <<0>> |> List.duplicate(20) |> Enum.join()
 
     # FIXME: rethink default values
     defstruct [:signed, spender1: @zero_address, spender2: @zero_address]
 
-    def recover_from(%OmiseGO.API.State.Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2} = signed) do
-       hash_no_spenders = OmiseGO.API.State.Transaction.hash(raw_tx)
-       spender1 = Crypto.recover_address(hash_no_spenders, sig1)
-       spender2 = Crypto.recover_address(hash_no_spenders, sig2)
-       %__MODULE__{signed: signed, spender1: spender1, spender2: spender2}
-     end
+    def recover_from(
+          %OmiseGO.API.State.Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2} = signed
+        ) do
+      hash_no_spenders = OmiseGO.API.State.Transaction.hash(raw_tx)
+      spender1 = Crypto.recover_address(hash_no_spenders, sig1)
+      spender2 = Crypto.recover_address(hash_no_spenders, sig2)
+      %__MODULE__{signed: signed, spender1: spender1, spender2: spender2}
+    end
   end
 
   # TODO: add convenience function for creating common transactions (1in-1out, 1in-2out-with-change, etc.)
@@ -62,18 +114,20 @@ defmodule OmiseGO.API.State.Transaction do
   def account_address?(address), do: address != @zero_address
 
   def hash(%__MODULE__{} = transaction) do
-    [transaction.blknum1,
-     transaction.txindex1,
-     transaction.oindex1,
-     transaction.blknum2,
-     transaction.txindex2,
-     transaction.oindex2,
-     transaction.newowner1,
-     transaction.amount1,
-     transaction.newowner2,
-     transaction.amount2,
-     transaction.fee]
-    |> ExRLP.encode
+    [
+      transaction.blknum1,
+      transaction.txindex1,
+      transaction.oindex1,
+      transaction.blknum2,
+      transaction.txindex2,
+      transaction.oindex2,
+      transaction.newowner1,
+      transaction.amount1,
+      transaction.newowner2,
+      transaction.amount2,
+      transaction.fee
+    ]
+    |> ExRLP.encode()
     |> OmiseGO.API.Crypto.hash()
   end
 end
