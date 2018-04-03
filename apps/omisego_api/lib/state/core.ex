@@ -3,7 +3,7 @@ defmodule OmiseGO.API.State.Core do
   Functional core for State.
   """
 
-  @maximum_block_size 65536
+  @maximum_block_size 65_536
 
   # TODO: consider structuring and naming files/modules differently, to not have bazillions of `X.Core` modules?
   defstruct [:height, :last_deposit_height, :utxos, pending_txs: [], tx_index: 0]
