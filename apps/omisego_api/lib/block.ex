@@ -18,7 +18,7 @@ defmodule OmiseGO.API.Block do
   def merkle_hash(%__MODULE__{transactions: txs}) do
     hashed_txs =
       txs
-      |> Enum.map(&(&1.hash))
+      |> Enum.map(&(&1.signed_tx_hash))
     leaves = hashed_txs ++
              List.duplicate(@empty_transaction_hash, @transactions_in_block - length(hashed_txs))
     root = MerkleTree.build(leaves, &Crypto.hash/1)
