@@ -7,7 +7,7 @@ defmodule OmiseGO.API.Block do
   alias OmiseGO.API.Crypto
 
   @empty_transaction_hash <<0>> |> List.duplicate(32) |> Enum.join
-  @transactions_in_block 65536
+  @transactions_in_block 65_536
 
   defstruct [:transactions, :hash]
 
