@@ -18,8 +18,8 @@ defmodule OmiseGO.API.State do
     GenServer.call(__MODULE__, {:form_block, current_block_num, next_block_num})
   end
 
-  def deposit(owner, amount) do
-    GenServer.call(__MODULE__, {:deposit, owner, amount})
+  def deposit(deposits) do
+    GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
   ### Server
@@ -34,9 +34,11 @@ defmodule OmiseGO.API.State do
   Start processing state using the database entries
   """
   def init(:ok) do
-    with {:ok, utxos_query_result} <- DB.utxos(),
-         {:ok, height_query_result} <- DB.child_top_block_number(),
-         do: {:ok, Core.extract_initial_state(utxos_query_result, height_query_result)}
+    with {:ok, height_query_result} <- DB.child_top_block_number(),
+         {:ok, last_deposit_query_result} <- DB.last_deposit_height(),
+         {:ok, utxos_query_result} <- DB.utxos() do
+       {:ok, Core.extract_initial_state(utxos_query_result, height_query_result, last_deposit_query_result)}
+    end
   end
 
   @doc """
@@ -50,8 +52,8 @@ defmodule OmiseGO.API.State do
   @doc """
   Includes a deposit done on the root chain contract (see above - not sure about this)
   """
-  def handle_call({:deposit, owner, amount}, _from, state) do
-    {event_triggers, db_updates, new_state} = Core.deposit(owner, amount, state)
+  def handle_call({:deposits, deposits}, _from, state) do
+    {event_triggers, db_updates, new_state} = Core.deposit(deposits, state)
     # GenServer.cast
     Eventer.notify(event_triggers)
     # GenServer.call
