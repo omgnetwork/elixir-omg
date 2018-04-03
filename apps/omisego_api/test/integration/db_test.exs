@@ -36,11 +36,12 @@ defmodule OmiseGO.API.Integration.DBTest do
   # FIXME: copied from eth/fixtures - DRY
   deffixture contract(geth) do
     _ = geth
-    {from, contract_address} = OmiseGO.Eth.TestHelpers.create_new_contract()
+    {from, {txhash, contract_address}} = OmiseGO.Eth.TestHelpers.create_new_contract()
 
     %{
       address: contract_address,
-      from: from
+      from: from,
+      txhash: txhash
     }
   end
 
@@ -50,12 +51,14 @@ defmodule OmiseGO.API.Integration.DBTest do
 
     Application.put_env(:omisego_eth, :contract, contract.address, persistent: true)
     Application.put_env(:omisego_eth, :omg_addr, contract.from, persistent: true)
+    Application.put_env(:omisego_eth, :txhash_contract, contract.txhash, persistent: true)
 
     {:ok, started_apps} = Application.ensure_all_started(:omisego_eth)
 
     on_exit fn ->
       Application.put_env(:omisego_eth, :contract, "0x0")
       Application.put_env(:omisego_eth, :omg_addr, "0x0")
+      Application.put_env(:omisego_eth, :txhash_contract, "0x0")
       started_apps
         |> Enum.reverse()
         |> Enum.map(fn app -> :ok = Application.stop(app) end)

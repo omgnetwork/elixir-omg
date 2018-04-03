@@ -22,12 +22,32 @@ defmodule OmiseGO.Eth do
     @type plasma_block_num() :: pos_integer()
 
     @type t() :: %{
-      num: plasma_block_num(),
-      hash: hash(),
-      nonce: non_neg_integer(),
-      gas_price: pos_integer()
-    }
+            num: plasma_block_num(),
+            hash: hash(),
+            nonce: non_neg_integer(),
+            gas_price: pos_integer()
+          }
     defstruct [:num, :hash, :nonce, :gas_price]
+  end
+
+  @spec get_root_deployment_height(binary() | nil, binary() | nil) ::
+          {:ok, integer()} | Ethereumex.HttpClient.error()
+  def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
+  
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+    txhash = txhash || Application.get_env(:omisego_eth, :txhash_contract)
+    
+    case Ethereumex.HttpClient.eth_get_transaction_receipt(txhash) do
+      {:ok, %{"contractAddress" => ^contract, "blockNumber" => "0x" <> height_hex}} ->
+        {height, ""} = Integer.parse(height_hex, 16)
+        {:ok, height}
+
+      {:ok, _} ->
+        {:error, :wrong_contract_address}
+
+      other ->
+        other
+    end
   end
 
   def submit_block(
@@ -51,12 +71,12 @@ defmodule OmiseGO.Eth do
       gas: encode_eth_rpc_unsigned_int(gas),
       gasPrice: encode_eth_rpc_unsigned_int(gas_price),
       data: "0x#{data}",
-      nonce: encode_eth_rpc_unsigned_int(nonce),
+      nonce: encode_eth_rpc_unsigned_int(nonce)
     })
   end
 
   defp encode_eth_rpc_unsigned_int(value) do
-    "0x" <> (value |> :binary.encode_unsigned |> Base.encode16 |> String.trim_leading("0"))
+    "0x" <> (value |> :binary.encode_unsigned() |> Base.encode16() |> String.trim_leading("0"))
   end
 
   def get_ethereum_height do
@@ -104,12 +124,5 @@ defmodule OmiseGO.Eth do
       |> ABI.TypeDecoder.decode_raw([{:tuple, [:bytes32, {:uint, 256}]}])
 
     {:ok, {root, created_at}}
-  end
-
-  def get_root_deployment_height(contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
-
-    # FIXME
-    {:ok, 10}
   end
 end
