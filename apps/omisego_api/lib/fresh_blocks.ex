@@ -6,8 +6,7 @@ defmodule OmiseGO.FreshBlocks do
 
   # TODO remove this and import the true one
   defmodule Block do
-    @moduledoc """
-    """
+    @moduledoc false
     defstruct [:number]
   end
 

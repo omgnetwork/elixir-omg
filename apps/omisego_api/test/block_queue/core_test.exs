@@ -177,9 +177,9 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     end
 
     test "Old blocks are GCd" do
-      long  = 10000 |> make_chain() |> :erlang.term_to_binary() |> byte_size()
+      long  = 10_000 |> make_chain() |> :erlang.term_to_binary() |> byte_size()
       short = 100 |> make_chain() |> :erlang.term_to_binary() |> byte_size()
-      assert 0.9 < long/short and long/short < (1/0.9)
+      assert 0.9 < long / short and long / short < (1 / 0.9)
     end
 
     test "Pending tx can be resubmitted with new gas price" do
