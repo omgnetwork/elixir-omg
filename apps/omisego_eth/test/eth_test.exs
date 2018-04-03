@@ -15,7 +15,7 @@ defmodule OmiseGO.EthTest do
       num: nonce,
       hash: hash,
       gas_price: 20_000_000_000,
-      nonce: nonce
+      nonce: nonce,
     }
   end
 

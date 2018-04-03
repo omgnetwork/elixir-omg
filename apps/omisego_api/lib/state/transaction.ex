@@ -5,34 +5,122 @@ defmodule OmiseGO.API.State.Transaction do
 
   alias OmiseGO.API.Crypto
 
-  @zero_address <<0>> |> List.duplicate(20) |> Enum.join
+  @zero_address <<0::size(160)>>
 
   # TODO: probably useful to structure these fields somehow ore readable like
   # defstruct [:input1, :input2, :output1, :output2, :fee], with in/outputs as structs or tuples?
-  defstruct [:blknum1,
-             :txindex1,
-             :oindex1,
-             :blknum2,
-             :txindex2,
-             :oindex2,
-             :newowner1,
-             :amount1,
-             :newowner2,
-             :amount2,
-             :fee,
-             ]
+  defstruct [
+    :blknum1,
+    :txindex1,
+    :oindex1,
+    :blknum2,
+    :txindex2,
+    :oindex2,
+    :newowner1,
+    :amount1,
+    :newowner2,
+    :amount2,
+    :fee
+  ]
 
   defmodule Signed do
     @moduledoc false
-    defstruct [:raw_tx, :sig1, :sig2, :hash]
 
-    def hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2} = signed) do
-      hash =
-        (OmiseGO.API.State.Transaction.hash(tx) <> sig1 <> sig2)
-        |> Crypto.hash()
-      %{signed | hash: hash}
+    alias OmiseGO.API.State.Transaction
+
+    @signature_length 65
+
+    defstruct [:raw_tx, :sig1, :sig2]
+
+    def hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
+      (Transaction.hash(tx) <> sig1 <> sig2)
+      |> Crypto.hash()
     end
 
+    def encode(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
+      [
+        tx.blknum1,
+        tx.txindex1,
+        tx.oindex1,
+        tx.blknum2,
+        tx.txindex2,
+        tx.oindex2,
+        tx.newowner1,
+        tx.amount1,
+        tx.newowner2,
+        tx.amount2,
+        tx.fee,
+        sig1,
+        sig2
+      ]
+      |> ExRLP.encode()
+    end
+
+    def decode(line) do
+      with {:ok, tx} <- rlp_decode(line),
+           {:ok, tx} <- reconstruct_tx(tx),
+           do: {:ok, tx}
+    end
+
+    defp int_parse(int), do: :binary.decode_unsigned(int, :big)
+
+    defp rlp_decode(line) do
+      try do
+        {:ok, ExRLP.decode(line)}
+      catch
+        _ ->
+          {:error, :malformed_transaction_rlp}
+      end
+    end
+
+    defp reconstruct_tx(encoded_singed_tx) do
+      case encoded_singed_tx do
+        [
+          blknum1,
+          txindex1,
+          oindex1,
+          blknum2,
+          txindex2,
+          oindex2,
+          newowner1,
+          amount1,
+          newowner2,
+          amount2,
+          fee,
+          sig1,
+          sig2
+        ] ->
+          with :ok <- signature_length?(sig1),
+               :ok <- signature_length?(sig2) do
+            tx = %Transaction{
+              blknum1: int_parse(blknum1),
+              txindex1: int_parse(txindex1),
+              oindex1: int_parse(oindex1),
+              blknum2: int_parse(blknum2),
+              txindex2: int_parse(txindex2),
+              oindex2: int_parse(oindex2),
+              newowner1: newowner1,
+              amount1: int_parse(amount1),
+              newowner2: newowner2,
+              amount2: int_parse(amount2),
+              fee: int_parse(fee)
+            }
+
+            {:ok,
+             %__MODULE__{
+               raw_tx: tx,
+               sig1: sig1,
+               sig2: sig2
+             }}
+          end
+
+        _tx ->
+          {:error, :malformed_transaction}
+      end
+    end
+
+    defp signature_length?(sig) when byte_size(sig) == @signature_length, do: :ok
+    defp signature_length?(_sig), do: {:error, :bad_signature_length}
   end
 
   defmodule Recovered do
@@ -41,18 +129,32 @@ defmodule OmiseGO.API.State.Transaction do
     Intent is to allow concurent processing of signatures outside of serial processing in state.ex
     """
 
-    # FIXME: refactor to somewhere to avoid dupliaction
-    @zero_address <<0>> |> List.duplicate(20) |> Enum.join
+    alias OmiseGO.API.State.Transaction
 
-    # FIXME: rethink default values
-    defstruct [:signed, spender1: @zero_address, spender2: @zero_address]
+    @empty_signature <<0::size(520)>>
 
-    def recover_from(%OmiseGO.API.State.Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2} = signed) do
-       hash_no_spenders = OmiseGO.API.State.Transaction.hash(raw_tx)
-       spender1 = Crypto.recover_address(hash_no_spenders, sig1)
-       spender2 = Crypto.recover_address(hash_no_spenders, sig2)
-       %__MODULE__{signed: signed, spender1: spender1, spender2: spender2}
-     end
+    defstruct [:raw_tx, :signed_tx_hash, spender1: nil, spender2: nil]
+
+    def recover_from(%Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2} = signed_tx) do
+      hash_no_spenders = Transaction.hash(raw_tx)
+      spender1 = get_spender(hash_no_spenders, sig1)
+      spender2 = get_spender(hash_no_spenders, sig2)
+
+      hash = Transaction.Signed.hash(signed_tx)
+
+      %__MODULE__{raw_tx: raw_tx, signed_tx_hash: hash, spender1: spender1, spender2: spender2}
+    end
+
+    defp get_spender(hash_no_spenders, sig) do
+      case sig do
+        @empty_signature ->
+          nil
+
+        _ ->
+          {:ok, spender} = Crypto.recover_address(hash_no_spenders, sig)
+          spender
+      end
+    end
   end
 
   # TODO: add convenience function for creating common transactions (1in-1out, 1in-2out-with-change, etc.)
@@ -61,19 +163,34 @@ defmodule OmiseGO.API.State.Transaction do
 
   def account_address?(address), do: address != @zero_address
 
-  def hash(%__MODULE__{} = transaction) do
-    [transaction.blknum1,
-     transaction.txindex1,
-     transaction.oindex1,
-     transaction.blknum2,
-     transaction.txindex2,
-     transaction.oindex2,
-     transaction.newowner1,
-     transaction.amount1,
-     transaction.newowner2,
-     transaction.amount2,
-     transaction.fee]
-    |> ExRLP.encode
-    |> OmiseGO.API.Crypto.hash()
+  def encode(%__MODULE__{} = tx) do
+    [
+      tx.blknum1,
+      tx.txindex1,
+      tx.oindex1,
+      tx.blknum2,
+      tx.txindex2,
+      tx.oindex2,
+      tx.newowner1,
+      tx.amount1,
+      tx.newowner2,
+      tx.amount2,
+      tx.fee
+    ]
+    |> ExRLP.encode()
+  end
+
+  def hash(%__MODULE__{} = tx) do
+    tx
+    |> encode
+    |> Crypto.hash()
+  end
+
+  def sign(%__MODULE__{} = tx, priv1, priv2) do
+    encoded_tx = encode(tx)
+    signature1 = Crypto.signature(encoded_tx, priv1)
+    signature2 = Crypto.signature(encoded_tx, priv2)
+
+    %Signed{raw_tx: tx, sig1: signature1, sig2: signature2}
   end
 end
