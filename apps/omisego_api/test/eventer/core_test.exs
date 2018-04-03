@@ -12,8 +12,9 @@ defmodule OmiseGO.API.Eventer.CoreTest do
   end
 
   @tag fixtures: [:alice]
-  @tag :skip
   test "receiver is notified about deposit", %{alice: %{priv: alice_priv, addr: alice_addr}} do
+    # TODO: first draft
+
     raw_tx = %Transaction{
       blknum1: 1,
       txindex1: 0,
@@ -28,14 +29,15 @@ defmodule OmiseGO.API.Eventer.CoreTest do
       fee: 0
     }
 
+  # TODO: We're ignoring second spedner. Rethink this
     encoded_singed_tx =
       raw_tx
-      |> Transaction.signed(alice_priv, <<>>)
+      |> Transaction.sign(alice_priv, <<>>)
       |> Transaction.Signed.encode()
 
     {:ok, recovered_tx} = API.Core.recover_tx(encoded_singed_tx)
 
-    [{%Received{tx: ^recovered_tx}, "transactions/received/" <> ^alice_addr}] =
+    assert [_, _, {%Received{tx: ^recovered_tx}, "transactions/received/" <> ^alice_addr}] =
       Eventer.Core.notify([%{tx: recovered_tx}])
   end
 

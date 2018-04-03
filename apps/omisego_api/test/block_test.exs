@@ -25,20 +25,19 @@ defmodule OmiseGO.API.BlockTest do
     encoded_singed_tx =
       raw_tx
       |> Transaction.sign(alice.priv, bob.priv)
-      |> Transaction.Signed.encode
+      |> Transaction.Signed.encode()
 
     {:ok, recovered_tx} = Core.recover_tx(encoded_singed_tx)
 
     block = %Block{transactions: [recovered_tx]}
 
-    expected =
-      %Block{
-        transactions: [recovered_tx],
-        hash: <<39, 49, 253, 85, 4, 152, 15, 89, 68, 191, 248, 101, 94, 133,
-                166, 205, 152, 186, 3, 97, 5, 27, 75, 135, 36, 207, 221,
-                100, 239, 85, 109, 27>>
-       }
+    expected = %Block{
+      transactions: [recovered_tx],
+      hash:
+        <<39, 49, 253, 85, 4, 152, 15, 89, 68, 191, 248, 101, 94, 133, 166, 205, 152, 186, 3, 97,
+          5, 27, 75, 135, 36, 207, 221, 100, 239, 85, 109, 27>>
+    }
+
     assert expected == Block.merkle_hash(block)
   end
-
 end

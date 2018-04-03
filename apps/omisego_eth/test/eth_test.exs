@@ -47,4 +47,10 @@ defmodule OmiseGO.EthTest do
     {:ok, {child_chain_hash, _child_chain_time}} = Eth.get_child_chain(4, contract.address)
     assert String.downcase(block.hash) == child_chain_hash |> Base.encode16(case: :lower)
   end
+
+  @tag fixtures: [:contract]
+  test "get contract deployment height", %{contract: contract} do
+    {:ok, number} = Eth.get_root_deployment_height(contract.txhash, contract.address)
+    assert is_integer(number)
+  end
 end

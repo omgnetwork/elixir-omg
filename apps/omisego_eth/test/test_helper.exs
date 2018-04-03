@@ -13,7 +13,7 @@ defmodule OmiseGO.Eth.TestHelpers do
 
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     {:ok, %{"contractAddress" => contract_address}} = WaitFor.eth_receipt(txhash, 10_000)
-    contract_address
+    {txhash, contract_address}
   end
 
   def create_new_contract do

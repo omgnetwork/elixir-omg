@@ -46,7 +46,6 @@ defmodule OmiseGO.API.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
-  @tag :skip
   test "amounts must add up", %{alice: alice, bob: bob, state_alice_deposit: state} do
     raw_tx =
       %Transaction{
@@ -56,10 +55,10 @@ defmodule OmiseGO.API.State.CoreTest do
 
     signed_tx_hash =
       raw_tx
-      |> Transaction.sign(alice.priv, alice.priv)
+      |> Transaction.sign(alice.priv, <<>>)
       |> Transaction.Signed.hash
 
-    assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, alice.addr, bob.addr)
+    assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, alice.addr, nil)
 
     #spending utxo with fee
     raw_tx =
@@ -70,10 +69,10 @@ defmodule OmiseGO.API.State.CoreTest do
 
     signed_tx_hash =
       raw_tx
-      |> Transaction.sign(alice.priv, bob.priv)
+      |> Transaction.sign(alice.priv, <<>>)
       |> Transaction.Signed.hash
 
-    assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, alice.addr, Transaction.zero_address())
+    assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, alice.addr, nil)
 
     #spending from second input
     raw_tx =
@@ -87,7 +86,7 @@ defmodule OmiseGO.API.State.CoreTest do
       |> Transaction.sign(alice.priv, bob.priv)
       |> Transaction.Signed.hash
 
-    assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, Transaction.zero_address(), alice.addr)
+    assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, nil, alice.addr)
 
     #spending both outputs
     raw_tx =

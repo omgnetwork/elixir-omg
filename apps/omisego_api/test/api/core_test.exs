@@ -6,6 +6,7 @@ defmodule OmiseGO.API.Api.CoreTest do
   alias OmiseGO.API.Core
 
   @empty_signature <<0::size(520)>>
+  @signature <<1::size(520)>>
 
   @tag fixtures: [:alice, :bob]
   test "signed transaction is valid", %{
@@ -71,7 +72,7 @@ defmodule OmiseGO.API.Api.CoreTest do
         amount2: 3,
         fee: 1
       },
-      sig1: <<>>,
+      sig1: @signature,
       sig2: @empty_signature
     }
 
@@ -96,7 +97,7 @@ defmodule OmiseGO.API.Api.CoreTest do
         fee: 1
       },
       sig1: @empty_signature,
-      sig2: <<>>
+      sig2: @signature,
     }
 
     encoded_signed_tx = Transaction.Signed.encode(signed_tx)

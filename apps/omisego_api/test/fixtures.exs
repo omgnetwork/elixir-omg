@@ -11,7 +11,7 @@ defmodule OmiseGO.API.Fixtures do
       bob: generate_entity(),
       carol: generate_entity(),
 
-      # Deterministic alice, bob entities. Use only when truly needed.
+      # Deterministic entities. Use only when truly needed.
       stable_alice: %{
         priv:
           <<54, 43, 207, 67, 140, 160, 190, 135, 18, 162, 70, 120, 36, 245, 106, 165, 5, 101, 183,

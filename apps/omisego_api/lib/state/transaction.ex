@@ -5,7 +5,7 @@ defmodule OmiseGO.API.State.Transaction do
 
   alias OmiseGO.API.Crypto
 
-  @zero_address <<0>> |> List.duplicate(20) |> Enum.join()
+  @zero_address <<0::size(160)>>
 
   # TODO: probably useful to structure these fields somehow ore readable like
   # defstruct [:input1, :input2, :output1, :output2, :fee], with in/outputs as structs or tuples?
@@ -90,29 +90,29 @@ defmodule OmiseGO.API.State.Transaction do
           sig1,
           sig2
         ] ->
-          signature_length?(sig1)
-          signature_length?(sig2)
+          with :ok <- signature_length?(sig1),
+               :ok <- signature_length?(sig2) do
+            tx = %Transaction{
+              blknum1: int_parse(blknum1),
+              txindex1: int_parse(txindex1),
+              oindex1: int_parse(oindex1),
+              blknum2: int_parse(blknum2),
+              txindex2: int_parse(txindex2),
+              oindex2: int_parse(oindex2),
+              newowner1: newowner1,
+              amount1: int_parse(amount1),
+              newowner2: newowner2,
+              amount2: int_parse(amount2),
+              fee: int_parse(fee)
+            }
 
-          tx = %Transaction{
-            blknum1: int_parse(blknum1),
-            txindex1: int_parse(txindex1),
-            oindex1: int_parse(oindex1),
-            blknum2: int_parse(blknum2),
-            txindex2: int_parse(txindex2),
-            oindex2: int_parse(oindex2),
-            newowner1: newowner1,
-            amount1: int_parse(amount1),
-            newowner2: newowner2,
-            amount2: int_parse(amount2),
-            fee: int_parse(fee)
-          }
-
-          {:ok,
-           %__MODULE__{
-             raw_tx: tx,
-             sig1: sig1,
-             sig2: sig2
-           }}
+            {:ok,
+             %__MODULE__{
+               raw_tx: tx,
+               sig1: sig1,
+               sig2: sig2
+             }}
+          end
 
         _tx ->
           {:error, :malformed_transaction}
@@ -131,7 +131,7 @@ defmodule OmiseGO.API.State.Transaction do
 
     alias OmiseGO.API.State.Transaction
 
-    @empty_signature <<0>> |> List.duplicate(65) |> :binary.list_to_bin()
+    @empty_signature <<0::size(520)>>
 
     defstruct [:raw_tx, :signed_tx_hash, spender1: nil, spender2: nil]
 

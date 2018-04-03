@@ -43,10 +43,9 @@ defmodule OmiseGO.API.Core do
            txindex2: 0,
            oindex2: 0
          },
-         sig1:  @empty_signature
+         sig1: @empty_signature
        }),
        do: {:error, :signature_missing_for_input}
 
   defp valid?(%Transaction.Signed{}), do: :ok
-
 end
