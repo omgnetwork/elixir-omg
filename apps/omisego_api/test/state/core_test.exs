@@ -6,6 +6,7 @@ defmodule OmiseGO.API.State.CoreTest do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.Transaction
 
+  @block_interval 100
   @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232,
                       237, 80, 242, 60, 209, 253, 249, 76, 145, 84, 237, 58, 118, 9,
                       162, 241, 255, 152, 31>>
@@ -25,12 +26,61 @@ defmodule OmiseGO.API.State.CoreTest do
 
     raw_tx =
       %Transaction{
-        blknum1: 2, txindex1: 0, oindex1: 1, blknum2: 0, txindex2: 0, oindex2: 0,
+        blknum1: @block_interval, txindex1: 0, oindex1: 1, blknum2: 0, txindex2: 0, oindex2: 0,
         newowner1: bob.addr, amount1: 3, newowner2: 0, amount2: 0, fee: 0,
       }
 
     %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
       |> Core.exec(state) |> success?
+  end
+
+  @tag fixtures: [:alice, :bob, :state_empty]
+  test "can spend a batch of deposits", %{alice: alice, bob: bob, state_empty: state} do
+    deposits = [
+      %{owner: alice.addr, amount: 10, block_height: 1},
+      %{owner: bob.addr, amount: 20, block_height: 2}
+    ]
+
+    {_, [{:last_deposit_block_height, 2}], state} = Core.deposit(deposits, state)
+
+    raw_tx_1 =
+      %Transaction{
+        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        newowner1: bob.addr, amount1: 10, newowner2: <<>>, amount2: 0, fee: 0,
+      }
+
+    signed_tx_hash_alice =
+      raw_tx_1
+      |> Transaction.sign(alice.priv, <<>>)
+      |> Transaction.Signed.hash
+
+      %Transaction.Recovered{raw_tx: raw_tx_1, signed_tx_hash: signed_tx_hash_alice, spender1: alice.addr}
+        |> Core.exec(state) |> success?
+
+      raw_tx_2 =
+        %Transaction{
+          blknum1: 2, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+          newowner1: alice.addr, amount1: 20, newowner2: <<>>, amount2: 0, fee: 0,
+        }
+
+      signed_tx_hash_bob =
+        raw_tx_2
+        |> Transaction.sign(bob.priv, <<>>)
+        |> Transaction.Signed.hash
+
+      %Transaction.Recovered{raw_tx: raw_tx_2, signed_tx_hash: signed_tx_hash_bob, spender1: bob.addr}
+        |> Core.exec(state) |> success?
+  end
+
+  @tag fixtures: [:alice, :bob, :state_empty]
+  test "ignores deposits from blocks not higher than the block with the last previously received deposit",
+    %{alice: alice, bob: bob, state_empty: state} do
+      deposits = [
+        %{owner: alice.addr, amount: 20, block_height: 2}
+      ]
+      {_, [{:last_deposit_block_height, 2}], state} = Core.deposit(deposits, state)
+
+      assert {[], [], state} == Core.deposit([%{owner: bob.addr, amount: 20, block_height: 1}], state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -105,7 +155,8 @@ defmodule OmiseGO.API.State.CoreTest do
       |> Core.exec(state) |> success?
 
     raw_tx = %Transaction{
-      blknum1: 2, txindex1: 0, oindex1: 0, blknum2: 2, txindex2: 0, oindex2: 1,
+      blknum1: @block_interval, txindex1: 0, oindex1: 0,
+      blknum2: @block_interval, txindex2: 0, oindex2: 1,
       newowner1: alice.addr, amount1: 8, newowner2: bob.addr, amount2: 3, fee: 0,
     }
 
@@ -204,7 +255,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
     raw_tx =
       %Transaction{
-        blknum1: 2, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        blknum1: @block_interval, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
         newowner1: carol.addr, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
       }
 
@@ -214,7 +265,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
     raw_tx =
       %Transaction{
-        blknum1: 2, txindex1: 0, oindex1: 1, blknum2: 0, txindex2: 0, oindex2: 0,
+        blknum1: @block_interval, txindex1: 0, oindex1: 1, blknum2: 0, txindex2: 0, oindex2: 0,
         newowner1: carol.addr, amount1: 3, newowner2: 0, amount2: 0, fee: 0,
       }
 
@@ -224,7 +275,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
     raw_tx =
       %Transaction{
-        blknum1: 2, txindex1: 1, oindex1: 0, blknum2: 2, txindex2: 2, oindex2: 0,
+        blknum1: @block_interval, txindex1: 1, oindex1: 0, blknum2: @block_interval, txindex2: 2, oindex2: 0,
         newowner1: alice.addr, amount1: 10, newowner2: 0, amount2: 0, fee: 0,
       }
 
@@ -233,8 +284,9 @@ defmodule OmiseGO.API.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
-  test "can spend after block is formed", %{alice: alice, bob: bob, state_alice_deposit: state}  do
-    {:ok, {_, _, _, state}} = Core.form_block(state.height, state.height + 1, state)
+  test "can spend after block is formed", %{alice: alice, bob: bob, state_alice_deposit: state} do
+    next_block_height = 2 * @block_interval
+    {:ok, {_, _, _, state}} = Core.form_block(state, @block_interval, next_block_height)
 
     raw_tx =
       %Transaction{
@@ -248,8 +300,8 @@ defmodule OmiseGO.API.State.CoreTest do
 
     raw_tx =
       %Transaction{
-        blknum1: 3, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob.addr, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
+        blknum1: next_block_height, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        newowner1: bob, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
       }
 
     %Transaction.Recovered{raw_tx: raw_tx, spender1: bob.addr}
@@ -273,7 +325,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    {:ok, {_, _, _, state}} = Core.form_block(state.height, state.height + 1, state)
+    {:ok, {_, _, _, state}} = Core.form_block(state, @block_interval, 2 * @block_interval)
 
     %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
     |> Core.exec(state) |> fail?(:utxo_not_found)
@@ -296,7 +348,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    assert {:ok, {_, [trigger], _, _}} = Core.form_block(state.height, state.height + 1, state)
+    assert {:ok, {_, [trigger], _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
 
     assert trigger ==
       %{tx:
@@ -325,7 +377,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
     raw_tx =
       %Transaction{
-        blknum1: 2, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        blknum1: @block_interval, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
         newowner1: alice.addr, amount1: 7, newowner2: 0, amount2: 0, fee: 0,
       }
 
@@ -338,7 +390,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: bob.addr}
       |> Core.exec(state) |> success?
 
-    assert {:ok, {_, [_trigger1, _trigger2], _, _}} = Core.form_block(state.height, state.height + 1, state)
+    assert {:ok, {_, [_trigger1, _trigger2], _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -353,16 +405,16 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
       |> Core.exec(state) |> same?(state)
 
-    assert {:ok, {_, [], _, _}} = Core.form_block(state.height, state.height + 1, state)
+    assert {:ok, {_, [], _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
   end
 
   @tag fixtures: [:alice, :state_empty]
   test "deposits emit event triggers, they don't leak into next block", %{alice: alice, state_empty: state} do
-    assert {[trigger], _, state} = Core.deposit(alice, 4, state)
+    assert {[trigger], _, state} = Core.deposit([%{owner: alice, amount: 4, block_height: @block_interval}], state)
 
     assert trigger == %{deposit: %{owner: alice, amount: 4}}
 
-    assert {:ok, {_, [], _, _}} = Core.form_block(state.height, state.height + 1, state)
+    assert {:ok, {_, [], _, _}} = Core.form_block(state, 1, @block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -382,8 +434,9 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    assert {:ok, {_, [_trigger], _, state}} = Core.form_block(state.height, state.height + 1, state)
-    assert {:ok, {_, [], _, _}} = Core.form_block(state.height, state.height + 1, state)
+    next_block_height = 2 * @block_interval
+    assert {:ok, {_, [_trigger], _, state}} = Core.form_block(state, @block_interval, next_block_height)
+    assert {:ok, {_, [], _, _}} = Core.form_block(state, next_block_height, next_block_height + @block_interval)
   end
 
   @tag fixtures: [:stable_alice, :stable_bob, :state_stable_alice_deposit]
@@ -410,7 +463,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
     raw_tx_2 =
       %Transaction{
-        blknum1: 2, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        blknum1: @block_interval, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
         newowner1: alice.addr, amount1: 2, newowner2: bob.addr, amount2: 5, fee: 0
       }
 
@@ -429,11 +482,11 @@ defmodule OmiseGO.API.State.CoreTest do
     expected_block =
       %Block{
         transactions: [recovered_tx_1, recovered_tx_2],
-        hash: <<202, 27, 137, 247, 249, 36, 44, 110, 164, 9, 65, 161, 33, 136,
-                217, 47, 243, 72, 189, 78, 23, 158, 2, 142, 136, 147, 210,
-                40, 225, 224, 68, 155>>
+        hash: <<184, 233, 72, 82, 81, 153, 40, 165, 254, 183, 7, 94,
+                  141, 8, 114, 85, 48, 130, 237, 102, 254, 53, 34, 136, 53, 159,
+                  39, 128, 142, 182, 188, 162>>
       }
-    {:ok, {^expected_block, _, _, _}} = Core.form_block(state.height, state.height + 1, state)
+    assert {:ok, {^expected_block, _, _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -454,21 +507,23 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    {:ok, {_, _, _, state}} = Core.form_block(state.height, state.height + 1, state)
+    next_block_height = 2 * @block_interval
+    {:ok, {_, _, _, state}} = Core.form_block(state, @block_interval, next_block_height)
 
+    next_block_height = 2 * @block_interval
     expected_block = %Block{transactions: [], hash: @empty_block_hash}
-    {:ok, {^expected_block, _, _, _}} = Core.form_block(state.height, state.height + 1, state)
+    {:ok, {^expected_block, _, _, _}} = Core.form_block(state, next_block_height, next_block_height + @block_interval)
   end
 
   @tag fixtures: [:state_empty]
   test "return error when current block numbers do not match when forming block", %{state_empty: state} do
-    assert {:error, :invalid_current_block_number} == Core.form_block(2, 3, state)
+    assert {:error, :invalid_current_block_number} == Core.form_block(state, 2, 3)
   end
 
   @tag fixtures: [:state_empty]
   test "no pending transactions at start (no events, empty block, no db updates)", %{state_empty: state} do
     expected_block = %Block{transactions: [], hash: @empty_block_hash}
-    {:ok, {^expected_block, [], [], _}} = Core.form_block(state.height, state.height + 1, state)
+    {:ok, {^expected_block, [], [], _}} = Core.form_block(state, 1, @block_interval)
   end
 
   test "spending produces db updates, that don't leak to next block" do
