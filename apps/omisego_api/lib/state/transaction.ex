@@ -32,9 +32,11 @@ defmodule OmiseGO.API.State.Transaction do
 
     defstruct [:raw_tx, :sig1, :sig2]
 
+    @doc """
+    Returns transaction hash follow by singatures from both inputs
+    """
     def hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
-      (Transaction.hash(tx) <> sig1 <> sig2)
-      |> Crypto.hash()
+      Transaction.hash(tx) <> sig1 <> sig2
     end
 
     def encode(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do

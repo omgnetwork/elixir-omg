@@ -21,3 +21,6 @@ erl_crash.dump
 
 
 populus/build/
+
+# Dev sqllite db
+*ecto_simple.sqlite3
