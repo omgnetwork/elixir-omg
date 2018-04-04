@@ -21,14 +21,14 @@ defmodule OmiseGO.API.State.Transaction do
             amount2: 0,
             fee: 0
 
-  def create_from_utxo(
-        %{"address" => my_address, "utxos" => utxos},
-        %{address: receiver_address, amount: amount_receiver},
+  def create_from_utxos(
+        %{"address" => change_address, "utxos" => utxos},
+        %{address: receiver_address, amount: amount},
         fee
       ) do
     stream_parts_transaction =
-      utxos |> Stream.with_index(1)
-      |> Stream.map(fn {utxo, number} ->
+      utxos |> Enum.with_index(1)
+      |> Enum.map(fn {utxo, number} ->
         %{
           :"blknum#{number}" => utxo["blknum"],
           :"txindex#{number}" => utxo["txindex"],
@@ -37,12 +37,12 @@ defmodule OmiseGO.API.State.Transaction do
         }
       end)
 
-    {transaction, all_amount} =
-      List.foldl(Enum.to_list(stream_parts_transaction), {%{}, 0}, fn utxo,
-                                                                      {from_transaction,
-                                                                       full_amount} ->
-        {amout_local, utxo} = Map.pop(utxo, :amount)
-        {Map.merge(utxo, from_transaction), full_amount + amout_local}
+    all_amount = Enum.reduce(stream_parts_transaction, 0, &(&1.amount + &2))
+
+    transaction =
+      Enum.reduce(stream_parts_transaction, %{}, fn part_transaction, acc ->
+        {_, part_transaction} = Map.pop(part_transaction, :amount)
+        Map.merge(acc, part_transaction)
       end)
 
     transaction =
@@ -50,25 +50,25 @@ defmodule OmiseGO.API.State.Transaction do
         __MODULE__,
         Map.merge(transaction, %{
           newowner1: receiver_address,
-          amount1: amount_receiver,
-          newowner2: my_address,
-          amount2: all_amount - amount_receiver - fee,
+          amount1: amount,
+          newowner2: change_address,
+          amount2: all_amount - amount - fee,
           fee: fee
         })
       )
 
     case validate(transaction) do
       :ok -> {:ok, transaction}
-      error -> error
+      {:error, _reason} = error -> error
     end
   end
 
   def validate(%__MODULE__{} = transaction) do
-    case transaction do
-      %{amount1: amount} when amount < 0 -> {:error, :amount_negative_value}
-      %{amount2: amount} when amount < 0 -> {:error, :amount_negative_value}
-      %{fee: fee} when fee < 0 -> {:error, :fee_negative_value}
-      %{} -> :ok
+    cond do
+      transaction.amount1 < 0 -> {:error, :amount_negative_value}
+      transaction.amount2 < 0 -> {:error, :amount_negative_value}
+      transaction.fee < 0 -> {:error, :fee_negative_value}
+      true -> :ok
     end
   end
 

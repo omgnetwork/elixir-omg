@@ -43,7 +43,7 @@ defmodule OmiseGO.API.State.TransactionTest do
 
   test "crete transaction" do
     {:ok, transaction} =
-      Transaction.create_from_utxo(
+      Transaction.create_from_utxos(
         %{
           "address" => "McDuck",
           "utxos" => [
