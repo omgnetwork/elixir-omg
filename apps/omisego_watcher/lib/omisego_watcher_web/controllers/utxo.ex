@@ -3,7 +3,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   Operations related to utxo.
   Modify the state in the database.
   """
-  alias OmiseGOWatcher.{Repo, TransactionDB}
+  alias OmiseGOWatcher.{Repo, UtxoDB}
   use OmiseGOWatcherWeb, :controller
   import Ecto.Query, only: [from: 2]
   alias OmiseGO.API.{Block}
@@ -20,7 +20,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
     txbytes = inspect(signed_transaction)
 
     make_transaction_db = fn transaction, number ->
-      %TransactionDB{
+      %UtxoDB{
         address: Map.get(transaction, :"newowner#{number}"),
         amount: Map.get(transaction, :"amount#{number}"),
         blknum: block_number,
@@ -43,7 +43,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
       oindex = Map.get(transaction, :"oindex#{number}")
 
       elements_to_remove = from(
-        transactionDb in TransactionDB,
+        transactionDb in UtxoDB,
         where:
           transactionDb.txindex == ^txindex and transactionDb.blknum == ^blknum and
             transactionDb.oindex == ^oindex
@@ -65,8 +65,8 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   end
 
   def available(conn, %{"address" => address}) do
-    transactions = Repo.all(from(tr in TransactionDB, where: tr.address == ^address, select: tr))
-    fields_names = List.delete(TransactionDB.field_names(), :address)
+    transactions = Repo.all(from(tr in UtxoDB, where: tr.address == ^address, select: tr))
+    fields_names = List.delete(UtxoDB.field_names(), :address)
 
     json(conn, %{
       address: address,
