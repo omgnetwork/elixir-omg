@@ -28,7 +28,6 @@ defmodule OmiseGO.API.State do
 
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Eventer
-  alias OmiseGO.API.BlockQueue
   alias OmiseGO.DB
 
   @doc """
@@ -63,12 +62,13 @@ defmodule OmiseGO.API.State do
   @doc """
   Wraps up accumulated transactions into a block, triggers events, triggers db update, returns block hash
   """
-  def handle_cast({:form_block, block_num_to_form}, _from, state) do
+  def handle_call({:form_block, block_num_to_form}, from, state) do
     result = Core.form_block(state, block_num_to_form)
     with {:ok, {block, event_triggers, db_updates, new_state}} <- result,
-         :ok <- DB.multi_update(db_updates),
-         BlockQueue.enqueue_block(block),
-         Eventer.notify(event_triggers),
-         do: {:noreply, new_state}
+         :ok <- DB.multi_update(db_updates) do
+      GenServer.reply(from, {:ok, block})
+      Eventer.notify(event_triggers)
+      {:noreply, new_state}
+    end
  end
 end

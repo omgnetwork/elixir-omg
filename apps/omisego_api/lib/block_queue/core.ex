@@ -111,13 +111,14 @@ defmodule OmiseGO.API.BlockQueue.Core do
   @doc """
   Set height of Ethereum chain.
   """
-  @spec set_ethereum_height(Core.t(), BlockQueue.eth_height()) :: Core.t()
+  @spec set_ethereum_height(Core.t(), BlockQueue.eth_height())
+        :: {:do_form_block, Core.t(), pos_integer} | {:dont_form_block, Core.t()}
   def set_ethereum_height(%Core{formed_child_block_num: formed_num} = state, parent_height) do
     new_state = %{state | parent_height: parent_height}
     if should_form_block?(new_state) do
-      {%{new_state | wait_for_enqueue: true}, [formed_num]}
+      {:do_form_block, %{new_state | wait_for_enqueue: true}, formed_num}
     else
-      {new_state, []}
+      {:dont_form_block, new_state}
     end
   end
 
@@ -153,7 +154,6 @@ defmodule OmiseGO.API.BlockQueue.Core do
     |> Enum.sort_by(& &1.num)
     |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
   end
-
 
   # Check if new child block should be formed basing on blocks formed so far and
   # age of RootChain contract in ethereum blocks
