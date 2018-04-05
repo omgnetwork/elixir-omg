@@ -6,8 +6,7 @@ defmodule OmiseGO.FreshBlocks do
 
   # TODO remove this and import the true one
   defmodule Block do
-    @moduledoc """
-    """
+    @moduledoc false
     defstruct [:number]
   end
 
@@ -23,10 +22,6 @@ defmodule OmiseGO.FreshBlocks do
 
   def push(%Block{} = block) do
     GenServer.cast(__MODULE__, {:push, block})
-  end
-
-  def get_top_blocks(_number) do
-    {:ok, []}
   end
 
   ##### Core

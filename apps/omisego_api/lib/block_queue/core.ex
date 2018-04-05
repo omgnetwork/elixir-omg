@@ -9,6 +9,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
   alias OmiseGO.Eth.BlockSubmission
   alias OmiseGO.API.BlockQueue.Core
 
+  @zero_bytes32 <<0::size(256)>>
+
   defstruct [
     :blocks,
     :mined_child_block_num,
@@ -112,11 +114,12 @@ defmodule OmiseGO.API.BlockQueue.Core do
   Set height of Ethereum chain.
   """
   @spec set_ethereum_height(Core.t(), BlockQueue.eth_height())
-        :: {:do_form_block, Core.t(), pos_integer} | {:dont_form_block, Core.t()}
+        :: {:do_form_block, Core.t(), pos_integer, pos_integer} | {:dont_form_block, Core.t()}
   def set_ethereum_height(%Core{formed_child_block_num: formed_num} = state, parent_height) do
     new_state = %{state | parent_height: parent_height}
     if should_form_block?(new_state) do
-      {:do_form_block, %{new_state | wait_for_enqueue: true}, formed_num}
+      next_formed_num = formed_num + state.child_block_interval
+      {:do_form_block, %{new_state | wait_for_enqueue: true}, formed_num, next_formed_num}
     else
       {:dont_form_block, new_state}
     end
@@ -186,17 +189,25 @@ defmodule OmiseGO.API.BlockQueue.Core do
   # Some blocks might have been submitted and lost/rejected/reorged by Ethereum in the mean time.
   # To properly restart the process we get last blocks known to DB and split them into mined
   # blocks (might still need tracking!) and blocks not yet submitted.
-  @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [BlockQueue.hash()]) ::
-          {:ok, Core.t()} | false
-  defp enqueue_existing_blocks(state, top_mined_hash, hashes) do
-    with true <- Enum.member?(hashes, top_mined_hash) do
-      index = Enum.find_index(hashes, &(&1 == top_mined_hash))
-      {mined, fresh} = Enum.split(hashes, index + 1)
-      bottom_mined = state.mined_child_block_num - state.child_block_interval * (length(mined) - 1)
-      nums = make_range(bottom_mined, state.mined_child_block_num, state.child_block_interval)
 
-      mined_blocks =
-        for {num, hash} <- Enum.zip(nums, mined) do
+  # NOTE: handles both the case when there aren't any hashes in database and there are
+  @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [BlockQueue.hash()]) ::
+          {:ok, Core.t()} | {:error, atom}
+  defp enqueue_existing_blocks(state, @zero_bytes32, [] = _known_hahes) do
+    # we start a fresh queue from db and fresh contract
+    {:ok, %{state | formed_child_block_num: 0}}
+  end
+  defp enqueue_existing_blocks(_state, _top_mined_hash, [] = _known_hashes) do
+    # something's wrong - no hashes in db and top_mined hash isn't a zero hash as required
+    {:error, :contract_ahead_of_db}
+  end
+
+  defp enqueue_existing_blocks(state, top_mined_hash, hashes) do
+    if Enum.member?(hashes, top_mined_hash) do
+      {mined_blocks, fresh_blocks} = split_existing_blocks(state, top_mined_hash, hashes)
+
+      mined_submissions =
+        for {num, hash} <- mined_blocks do
           {num,
            %BlockSubmission{
              num: num,
@@ -209,10 +220,23 @@ defmodule OmiseGO.API.BlockQueue.Core do
       state = %{
         state
         | formed_child_block_num: state.mined_child_block_num + state.child_block_interval,
-          blocks: mined_blocks
+          blocks: mined_submissions
       }
 
-      {:ok, Enum.reduce(fresh, state, fn hash, acc -> enqueue_block(acc, hash) end)}
+      {:ok, Enum.reduce(fresh_blocks, state, fn hash, acc -> enqueue_block(acc, hash) end)}
+    else
+      {:error, :mined_hash_not_found_in_db}
     end
+  end
+
+  # splits into ones that are before top_mined_hash and those after
+  # the mined ones are zipped with their numbers to submit
+  defp split_existing_blocks(state, top_mined_hash, hashes) do
+    index = Enum.find_index(hashes, &(&1 == top_mined_hash))
+    {mined, fresh} = Enum.split(hashes, index + 1)
+    bottom_mined = state.mined_child_block_num - state.child_block_interval * (length(mined) - 1)
+    nums = make_range(bottom_mined, state.mined_child_block_num, state.child_block_interval)
+
+    {Enum.zip(nums, mined), fresh}
   end
 end

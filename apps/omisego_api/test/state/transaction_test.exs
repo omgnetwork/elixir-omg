@@ -35,7 +35,7 @@ defmodule OmiseGO.API.State.TransactionTest do
     expected = <<175, 208, 164, 69, 22, 38, 193, 134, 95, 170, 119, 86, 39, 147, 95, 123, 166,
                 91, 185, 190, 80, 98, 29, 44, 143, 195, 28, 143, 188, 155, 136, 149>>
 
-    %Transaction.Signed{hash: actual} = Transaction.Signed.hash(signed)
+    actual = Transaction.Signed.hash(signed)
     assert actual == expected
   end
 

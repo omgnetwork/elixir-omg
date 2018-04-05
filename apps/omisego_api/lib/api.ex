@@ -7,11 +7,10 @@ defmodule OmiseGO.API do
   alias OmiseGO.API.Core
   alias OmiseGO.DB
 
-  def submit(tx) do
-
-    # TODO: consider having StatelessValidatonWorker to scale this, instead scaling API
-    with {:ok, decoded_tx} <- Core.statelessly_valid?(tx), # stateless validity (EDIT: most likely an ecrecover on sigs)
-         tx_result <- State.exec(decoded_tx), # GenServer.call
+  @spec submit(byte) :: {:ok} | {:error, any}
+  def submit(encoded_singed_tx) do
+    with {:ok, recovered_tx} <- Core.recover_tx(encoded_singed_tx),
+         tx_result <- State.exec(recovered_tx),
          do: tx_result
   end
 
@@ -19,17 +18,8 @@ defmodule OmiseGO.API do
     # BlockCache.get_block(height)
   end
 
+  # TODO: this will likely be dropped from the OmiseGO.API and here
   def tx(hash) do
     DB.tx(hash)
   end
-
-  defmodule Core do
-    @moduledoc """
-    Functional core work-horse for OmiseGO.API
-    """
-    def statelessly_valid?(_tx) do
-      # well formed, signed etc, returns decoded tx
-    end
-  end
-
 end
