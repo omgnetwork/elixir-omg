@@ -64,6 +64,20 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
     |> Enum.to_list()
   end
 
+  def record_deposits(deposits) do
+    make_transaction_db = fn deposit ->
+      %UtxoDB{
+        address: deposit.owner,
+        amount: deposit.amount,
+        blknum: deposit.block_height,
+        txindex: 0,
+        oindex: 0,
+        txbytes: <<>>
+    }
+    end
+    Enum.each(deposits, fn deposit -> Repo.insert(make_transaction_db.(deposit)) end)
+  end
+
   def available(conn, %{"address" => address}) do
     utxos = Repo.all(from(tr in UtxoDB, where: tr.address == ^address, select: tr))
     fields_names = List.delete(UtxoDB.field_names(), :address)

@@ -75,6 +75,12 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     %{"utxos" => []} = get_utxo("Matilda")
   end
 
+  test "deposits are a part of utxo set" do
+    assert %{"utxos" => []} = get_utxo("Leon")
+    Utxo.record_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
+    assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Leon")
+  end
+
   defp get_utxo(address) do
     request = conn(:get, "account/utxo?address=#{address}")
     response = request |> send_request
