@@ -162,7 +162,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
   # age of RootChain contract in ethereum blocks
   @spec should_form_block?(Core.t()) :: true | false
   defp should_form_block?(state) do
-    due_child_block_num(state) > state.formed_child_block_num && ! state.wait_for_enqueue
+    (due_child_block_num(state) > state.formed_child_block_num) && ! state.wait_for_enqueue
   end
 
   # private (core)

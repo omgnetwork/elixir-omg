@@ -169,6 +169,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     end
 
     test "Ethereum updates can back off and jump independent from enqueues" do
+      # NOTE: theoretically the back off is ver hard to get - testing if this rare occasion doesn't make the state weird
       assert {:dont_form_block, queue} =
         empty()
         |> set_mined(0)
