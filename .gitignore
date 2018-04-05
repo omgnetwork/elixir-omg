@@ -24,4 +24,4 @@ ecto_simple.sqlite3
 
 populus/build/
 
-ecto_simple\.sqlite3
+ecto_simple.sqlite3*
