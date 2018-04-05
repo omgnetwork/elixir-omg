@@ -22,7 +22,7 @@ defmodule OmiseGO.API.State.Transaction do
             fee: 0
 
   def create_from_utxos(
-        %{"address" => change_address, "utxos" => utxos},
+        %{address: change_address, utxos: utxos},
         %{address: receiver_address, amount: amount},
         fee
       ) do
@@ -30,10 +30,10 @@ defmodule OmiseGO.API.State.Transaction do
       utxos |> Enum.with_index(1)
       |> Enum.map(fn {utxo, number} ->
         %{
-          :"blknum#{number}" => utxo["blknum"],
-          :"txindex#{number}" => utxo["txindex"],
-          :"oindex#{number}" => utxo["oindex"],
-          amount: utxo["amount"]
+          String.to_existing_atom("blknum#{number}") => utxo.blknum,
+          String.to_existing_atom("txindex#{number}") => utxo.txindex,
+          String.to_existing_atom("oindex#{number}") => utxo.oindex,
+          amount: utxo.amount
         }
       end)
 
@@ -59,11 +59,11 @@ defmodule OmiseGO.API.State.Transaction do
 
     case validate(transaction) do
       :ok -> {:ok, transaction}
-      {:error, _reason} = error -> error
+      {:error, _} = error -> error
     end
   end
 
-  def validate(%__MODULE__{} = transaction) do
+  defp validate(%__MODULE__{} = transaction) do
     cond do
       transaction.amount1 < 0 -> {:error, :amount_negative_value}
       transaction.amount2 < 0 -> {:error, :amount_negative_value}

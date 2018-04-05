@@ -22,6 +22,28 @@ defmodule OmiseGO.API.State.TransactionTest do
     }
   end
 
+  deffixture utxos do
+    %{
+      address: "McDuck",
+      utxos: [
+        %{
+          amount: 100,
+          blknum: 20,
+          oindex: 1,
+          txbytes: "not important",
+          txindex: 42
+        },
+        %{
+          amount: 43,
+          blknum: 2,
+          oindex: 0,
+          txbytes: "ble ble bla",
+          txindex: 21
+        }
+      ]
+    }
+  end
+
   @tag fixtures: [:transaction]
   test "transaction hash is correct", %{transaction: transaction} do
     assert Transaction.hash(transaction) ==
@@ -41,31 +63,10 @@ defmodule OmiseGO.API.State.TransactionTest do
     assert actual == expected
   end
 
-  test "crete transaction" do
+  @tag fixtures: [:utxos]
+  test "crete transaction", %{utxos: utxos} do
     {:ok, transaction} =
-      Transaction.create_from_utxos(
-        %{
-          "address" => "McDuck",
-          "utxos" => [
-            %{
-              "amount" => 100,
-              "blknum" => 20,
-              "oindex" => 1,
-              "txbytes" => "not important",
-              "txindex" => 42
-            },
-            %{
-              "amount" => 43,
-              "blknum" => 2,
-              "oindex" => 0,
-              "txbytes" => "ble ble bla",
-              "txindex" => 21
-            }
-          ]
-        },
-        %{address: "Joe Black", amount: 53},
-        50
-      )
+      Transaction.create_from_utxos(utxos, %{address: "Joe Black", amount: 53}, 50)
 
     assert transaction == %Transaction{
              blknum1: 20,
@@ -82,11 +83,15 @@ defmodule OmiseGO.API.State.TransactionTest do
            }
   end
 
-  @tag fixtures: [:transaction]
-  test "validation transaction", %{transaction: transaction} do
-    assert :ok == Transaction.validate(transaction)
-    assert {:error, :amount_negative_value} == Transaction.validate(%{transaction | amount1: -4})
-    assert {:error, :amount_negative_value} == Transaction.validate(%{transaction | amount2: -1})
-    assert {:error, :fee_negative_value} == Transaction.validate(%{transaction | fee: -2})
+  @tag fixtures: [:utxos]
+  test "checking error messages", %{utxos: utxos} do
+    assert {:error, :amount_negative_value} ==
+             Transaction.create_from_utxos(utxos, %{address: "Joe", amount: -4}, 2)
+
+    assert {:error, :amount_negative_value} ==
+             Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30000}, 0)
+
+    assert {:error, :fee_negative_value} ==
+             Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30}, -2)
   end
 end
