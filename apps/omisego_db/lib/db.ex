@@ -2,7 +2,7 @@ defmodule OmiseGO.DB do
   @moduledoc """
   Our-types-aware port/adapter to the db backend
   """
-  # TODO 2: still needs to be integrated into other components and integration-tested
+  # TODO: still needs to be integrated into other components and integration-tested
 
   ### Client (port)
 
@@ -25,6 +25,10 @@ defmodule OmiseGO.DB do
 
   def utxos(server_name \\ @server_name) do
     GenServer.call(server_name, {:utxos})
+  end
+
+  def last_deposit_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_deposit_block_height)
   end
 
   def block_hashes(block_numbers_to_fetch, server_name \\ @server_name) do
