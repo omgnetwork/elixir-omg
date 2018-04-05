@@ -8,7 +8,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   alias OmiseGO.API.{Block}
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
 
-  @moduletag :requires_postgres
+  @moduletag :watcher_tests
 
   @empty %Transaction{
     blknum1: 0,

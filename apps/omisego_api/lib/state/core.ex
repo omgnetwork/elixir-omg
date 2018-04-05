@@ -137,8 +137,8 @@ defmodule OmiseGO.API.State.Core do
   """
   def form_block(
     %Core{pending_txs: reverse_txs, height: height} = state,
-    current_block_num,
-    next_block_num
+    block_num_to_form,
+    next_block_num_to_form
   ) do
     with :ok <- validate_block_number(current_block_num, state) do
 
@@ -177,7 +177,7 @@ defmodule OmiseGO.API.State.Core do
       new_state = %Core{
         state
         | tx_index: 0,
-          height: next_block_num,
+          height: next_block_num_to_form,
           pending_txs: []
       }
 

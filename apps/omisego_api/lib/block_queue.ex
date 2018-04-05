@@ -25,6 +25,10 @@ defmodule OmiseGO.API.BlockQueue do
     GenServer.cast(__MODULE__.Server, {:update_gas_price, price})
   end
 
+  def enqueue_block(block_hash) do
+    GenServer.call(__MODULE__.Server, {:enqueue_block, block_hash})
+  end
+
   defmodule Server do
     @moduledoc """
     Stores core's state, handles timing of calls to root chain.
@@ -90,26 +94,18 @@ defmodule OmiseGO.API.BlockQueue do
 
     def handle_info(:check_ethereum_height, state) do
       with {:ok, height} <- Eth.get_ethereum_height(),
-           state1 <- Core.set_ethereum_height(state, height),
-           true <- create_block(state1),
-           {:ok, to_form} <- Core.get_formed_block_num(state, +1),
-           {:ok, following} <- Core.get_formed_block_num(state, +2),
-           {:ok, block_hash} <- OmiseGO.API.State.form_block(to_form, following),
-           state2 <- Core.enqueue_block(state1, block_hash) do
+           {:do_form_block, state1, block_num, next_block_num} <- Core.set_ethereum_height(state, height),
+           {:ok, block_hash} <- OmiseGO.API.State.form_block(block_num, next_block_num) do
+        state2 = Core.enqueue_block(state1, block_hash)
         submit_blocks(state2)
         {:noreply, state2}
+      else
+        {:dont_form_block, state1} -> {:noreply, state1}
+        other -> other
       end
     end
 
     # private (server)
-
-    @spec create_block(Core.t()) :: true | {:noreply, Core.t()}
-    def create_block(state) do
-      case Core.create_block?(state) do
-        true -> true
-        false -> {:noreply, state}
-      end
-    end
 
     @spec submit_blocks(Core.t()) :: :ok
     defp submit_blocks(state) do

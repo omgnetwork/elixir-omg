@@ -1,3 +1,5 @@
 ExUnit.start()
-ExUnit.configure(exclude: [requires_postgres: true])
-Ecto.Adapters.SQL.Sandbox.mode(OmiseGOWatcher.Repo, :manual)
+ExUnit.configure(exclude: [watcher_tests: true])
+if :omisego_watcher in Application.started_applications() do
+  Ecto.Adapters.SQL.Sandbox.mode(OmiseGOWatcher.Repo, :manual)
+end
