@@ -2,7 +2,8 @@ defmodule OmiseGO.API.State.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OmiseGO.API.State.Transaction
+  alias OmiseGO.API.State.{Transaction, Transaction.Recovered, Core}
+  alias OmiseGO.API.TestHelper
 
   @signature <<1>> |> List.duplicate(65) |> :binary.list_to_bin()
 
@@ -93,5 +94,42 @@ defmodule OmiseGO.API.State.TransactionTest do
 
     assert {:error, :fee_negative_value} ==
              Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30}, -2)
+
+    assert {:error, :to_many_utxo} ==
+             Transaction.create_from_utxos(
+               %{utxos | utxos: utxos.utxos ++ utxos.utxos},
+               %{address: "Joe", amount: 3},
+               0
+             )
+  end
+
+  @tag fixtures: [:alice, :state_empty, :bob]
+  test "using created transaction in Core.exec", %{alice: alice, bob: bob, state_empty: state} do
+    state =
+      state |> TestHelper.do_deposit(alice.addr, 100, 1)
+      |> TestHelper.do_deposit(alice.addr, 10, 2)
+
+    utxos_json = """
+    {
+      "address": "#{Base.encode16(alice.addr)}",
+      "utxos": [
+        { "amount": 100, "blknum": 1, "oindex": 0, "txindex": 0 },
+        { "amount": 10, "blknum": 2, "oindex": 0, "txindex": 0 }
+      ]
+    }
+    """
+
+    utxos = Poison.Parser.parse!(utxos_json, keys: :atoms!)
+    {:ok, decode_address} = Base.decode16(utxos.address)
+    utxos = %{utxos | address: decode_address}
+
+    {:ok, transaction} =
+      Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42}, 10)
+
+    assert {:ok, _state} =
+             transaction
+             |> Transaction.sign(alice.priv, alice.priv)
+             |> Recovered.recover_from()
+             |> Core.exec(state)
   end
 end

@@ -22,6 +22,7 @@ defmodule OmiseGO.API.State.Transaction do
             amount2: 0,
             fee: 0
 
+  def create_from_utxos(%{utxos: [_,_,_ | _]}, _,_) do {:error, :to_many_utxo} end
   def create_from_utxos(
         %{address: change_address, utxos: utxos},
         %{address: receiver_address, amount: amount},
