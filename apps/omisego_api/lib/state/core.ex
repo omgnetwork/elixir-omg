@@ -3,36 +3,39 @@ defmodule OmiseGO.API.State.Core do
   Functional core for State.
   """
 
-  @maximum_block_size 65536
+  @maximum_block_size 65_536
 
   # TODO: consider structuring and naming files/modules differently, to not have bazillions of `X.Core` modules?
-  defstruct [:height, :utxos, pending_txs: [], tx_index: 0]
+  defstruct [:height, :last_deposit_height, :utxos, pending_txs: [], tx_index: 0]
 
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Block
 
-  def extract_initial_state(_utxos_query_result, _height_query_result) do
-    # extract height and utxos from query result
+  def extract_initial_state(_utxos_query_result, _height_query_result, _last_deposit_height_query_result) do
+    # extract height, last deposit height and utxos from query result
     # FIXME
     height = 1
     # FIXME
     utxos = %{}
-    %__MODULE__{height: height, utxos: utxos}
+    %__MODULE__{height: height, last_deposit_height: 0, utxos: utxos}
   end
 
-  #TODO: Add specs
-  def exec(%Transaction.Recovered{signed: signed, spender1: spender1, spender2: spender2},
-           %Core{utxos: utxos} = state) do
-    %Transaction.Signed{raw_tx: %Transaction{amount1: amount1, amount2: amount2, fee: fee} = tx} = signed
+  #TODO: Add specs :raw_tx, :signed_tx_hash, spender1: @zero_address, spender2: @zero_address
+  def exec(%Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: _signed_tx_hash,
+                                  spender1: spender1, spender2: spender2} = recovered_tx,
+                                  %Core{utxos: utxos} = state) do
+
+    %Transaction{amount1: amount1, amount2: amount2, fee: fee} = raw_tx
+
     with :ok <- validate_block_size(state),
-         {:ok, in_amount1} <- correct_input?(utxos, tx, 0, spender1),
-         {:ok, in_amount2} <- correct_input?(utxos, tx, 1, spender2),
+         {:ok, in_amount1} <- correct_input?(utxos, raw_tx, 0, spender1),
+         {:ok, in_amount2} <- correct_input?(utxos, raw_tx, 1, spender2),
          :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2 + fee) do
       {:ok,
        state
-       |> add_pending_tx(signed)
-       |> apply_spend(tx)}
+       |> add_pending_tx(recovered_tx)
+       |> apply_spend(raw_tx)}
     else
       {:error, _reason} = error -> {error, state}
     end
@@ -41,6 +44,9 @@ defmodule OmiseGO.API.State.Core do
   defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, new_tx) do
     %Core{state | pending_txs: [{tx_index, new_tx}] ++ pending_txs}
   end
+
+  # if there's no spender, make sure we cannot spend
+  defp correct_input?(_, _, _, nil), do: {:ok, 0}
 
   # FIXME dry and move spender figuring out elsewhere
   defp correct_input?(
@@ -67,7 +73,7 @@ defmodule OmiseGO.API.State.Core do
          do: {:ok, owner_has}
   end
 
-  defp get_utxo(_utxos, {0, 0, 0}), do: {:ok, %{amount: 0, owner: Transaction.zero_address()}}
+  defp get_utxo(_utxos, {0, 0, 0}), do: {:error, :cant_spend_zero_utxo}
 
   defp get_utxo(utxos, {blknum, txindex, oindex}) do
     case Map.get(utxos, {blknum, txindex, oindex}) do
@@ -96,6 +102,7 @@ defmodule OmiseGO.API.State.Core do
            oindex2: oindex2
          } = tx
        ) do
+
     new_utxos = get_non_zero_amount_utxos(height, tx_index, tx)
     %Core{
       state
@@ -129,9 +136,9 @@ defmodule OmiseGO.API.State.Core do
    - processes pending txs gathered, updates height etc
   """
   def form_block(
+    %Core{pending_txs: reverse_txs, height: height} = state,
     current_block_num,
-    next_block_num,
-    %Core{pending_txs: reverse_txs, height: height} = state
+    next_block_num
   ) do
     with :ok <- validate_block_number(current_block_num, state) do
 
@@ -182,20 +189,49 @@ defmodule OmiseGO.API.State.Core do
     if expected_block_num == height, do: :ok, else: {:error, :invalid_current_block_number}
   end
 
-  def deposit(owner, amount, %Core{height: height, utxos: utxos} = state) do
-    new_utxos = %{{height, 0, 0} => %{amount: amount, owner: owner}}
+  def deposit(deposits, %Core{utxos: utxos, last_deposit_height: last_deposit_height} = state) do
+    deposits = deposits |> Enum.filter(&(&1.block_height > last_deposit_height))
 
-    event_triggers = [%{deposit: %{amount: amount, owner: owner}}]
+    new_utxos =
+      deposits
+      |> Map.new(
+          fn %{block_height: height, owner: owner, amount: amount} ->
+            {{height, 0, 0}, %{amount: amount, owner: owner}}
+          end)
 
-    db_updates = [{:put, :utxo, new_utxos}]
+    event_triggers =
+      deposits
+      |> Enum.map(fn %{owner: owner, amount: amount} -> %{deposit: %{amount: amount, owner: owner}} end)
 
-    new_state = %Core{
-      state
-      | height: height + 1,
-        utxos: Map.merge(utxos, new_utxos)
-    }
+    last_deposit_height = get_last_deposit_height(deposits, last_deposit_height)
+    
+    db_updates = [{:put, :utxo, new_utxos}] ++ last_deposit_height_db_update(deposits, last_deposit_height)
+
+    new_state =
+      %Core{state |
+       utxos: Map.merge(utxos, new_utxos),
+       last_deposit_height: last_deposit_height
+     }
 
     {event_triggers, db_updates, new_state}
+  end
+
+  defp get_last_deposit_height(deposits, current_height) do
+    if Enum.empty?(deposits) do
+      current_height
+    else
+        deposits
+        |> Enum.max_by(&(&1.block_height))
+        |> Map.get(:block_height)
+    end
+  end
+
+  defp last_deposit_height_db_update(deposits, last_deposit_height) do
+    if Enum.empty?(deposits) do
+      []
+    else
+      [{:put, :last_deposit_block_height, last_deposit_height}]
+    end
   end
 
   defp validate_block_size(

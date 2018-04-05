@@ -11,7 +11,6 @@ defmodule OmiseGO.DB.LevelDBCore do
   end
 
   defp parse_multi_update({:put, type, tx}), do: {:put, key(type, tx), encode_value(type, tx)}
-
   defp parse_multi_update({:delete, type, tx}), do: {:delete, key(type, tx)}
 
   defp decode_response(_type, db_response) do
@@ -80,4 +79,7 @@ defmodule OmiseGO.DB.LevelDBCore do
   def key(:utxo, {_blknum, _txindex, _oindex} = utxo_id) do
     "u" <> :erlang.term_to_binary(utxo_id)
   end
+  def key(:last_deposit_block_height, _), do: key(:last_deposit_block_height)
+
+  def key(:last_deposit_block_height), do: "last_deposit_block_height"
 end

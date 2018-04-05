@@ -8,10 +8,10 @@ defmodule OmiseGO.API do
   alias OmiseGO.API.FreshBlocks
   alias OmiseGO.DB
 
-  def submit(tx) do
-
-    # FIXME: revert to have the decode tx step
-    with tx_result <- State.exec(tx),
+  @spec submit(byte) :: {:ok} | {:error, any}
+  def submit(encoded_singed_tx) do
+    with {:ok, recovered_tx} <- Core.recover_tx(encoded_singed_tx),
+         tx_result <- State.exec(recovered_tx),
          do: tx_result
   end
 
@@ -23,14 +23,4 @@ defmodule OmiseGO.API do
   def tx(hash) do
     DB.tx(hash)
   end
-
-  defmodule Core do
-    @moduledoc """
-    Functional core work-horse for OmiseGO.API
-    """
-    def statelessly_valid?(_tx) do
-      # well formed, signed etc, returns decoded tx
-    end
-  end
-
 end
