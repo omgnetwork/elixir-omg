@@ -33,10 +33,10 @@ defmodule OmiseGO.Eth do
   @spec get_root_deployment_height(binary() | nil, binary() | nil) ::
           {:ok, integer()} | Ethereumex.HttpClient.error()
   def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
-  
+
     contract = contract || Application.get_env(:omisego_eth, :contract)
     txhash = txhash || Application.get_env(:omisego_eth, :txhash_contract)
-    
+
     case Ethereumex.HttpClient.eth_get_transaction_receipt(txhash) do
       {:ok, %{"contractAddress" => ^contract, "blockNumber" => "0x" <> height_hex}} ->
         {height, ""} = Integer.parse(height_hex, 16)
@@ -129,7 +129,9 @@ defmodule OmiseGO.Eth do
   @doc """
   Returns lists of deposits sorted by child chain block number
   """
-  def get_deposits(block_from, block_to, contract \\ @contract) do
+  def get_deposits(block_from, block_to, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+
     event = encode_event_signature("Deposit(address,uint256,uint256)")
 
     parse_deposit =
