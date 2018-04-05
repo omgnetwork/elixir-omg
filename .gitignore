@@ -23,3 +23,5 @@ erl_crash.dump
 ecto_simple.sqlite3
 
 populus/build/
+
+ecto_simple\.sqlite3

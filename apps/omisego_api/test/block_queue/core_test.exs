@@ -16,10 +16,15 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
   end
 
   def make_chain(length) do
+    {:dont_form_block, queue} =
     1..length
-    |> Enum.reduce(set_mined(empty(), 0), fn(hash, state) -> enqueue_block(state, hash) end)
+    |> Enum.reduce(set_mined(empty(), 0), fn(hash, state) ->
+      {:do_form_block, state, _, _} = set_ethereum_height(state, hash)
+      enqueue_block(state, hash)
+    end)
     |> set_ethereum_height(length)
-    |> set_mined(length * 1000)
+
+    queue
   end
 
   def recover(known_hashes, mined_child_block_num) do
@@ -116,12 +121,75 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         |> hashes()
     end
 
-    test "Produced child block numbers are as expected" do
-      assert {:ok, 1000} =
+    test "Produced child block numbers to form are as expected" do
+      assert {:do_form_block, queue, 0, 1000} =
         empty()
         |> set_mined(0)
+        |> set_ethereum_height(1)
+
+      assert {:do_form_block, _, 1000, 2000} =
+        queue
         |> enqueue_block("1")
-        |> get_formed_block_num(0)
+        |> set_mined(1)
+        |> set_ethereum_height(2)
+    end
+
+    test "Produced child blocks to form aren't repeated, if none are enqueued" do
+      assert {:do_form_block, queue, 0, 1000} =
+        empty()
+        |> set_mined(0)
+        |> set_ethereum_height(1)
+
+      assert {:dont_form_block, _} =
+        queue
+        |> set_ethereum_height(2)
+    end
+
+    test "Ethereum updates and enqueues can go interleaved" do
+      assert {:dont_form_block, queue} =
+        empty()
+        |> set_mined(0)
+        |> set_ethereum_height(1) |> elem(1)
+        |> set_ethereum_height(2) |> elem(1)
+        |> set_ethereum_height(3)
+
+      assert {:do_form_block, queue, 1000, 2000} =
+        queue
+        |> enqueue_block("1")
+        |> set_ethereum_height(4)
+
+      assert {:dont_form_block, queue} =
+        queue
+        |> set_ethereum_height(5)
+
+      assert {:do_form_block, _queue, 2000, 3000} =
+        queue
+        |> enqueue_block("2")
+        |> set_ethereum_height(6)
+    end
+
+    test "Ethereum updates can back off and jump independent from enqueues" do
+      # NOTE: theoretically the back off is ver hard to get - testing if this rare occasion doesn't make the state weird
+      assert {:dont_form_block, queue} =
+        empty()
+        |> set_mined(0)
+        |> set_ethereum_height(1) |> elem(1)
+        |> set_ethereum_height(2) |> elem(1)
+        |> set_ethereum_height(1)
+
+      assert {:do_form_block, queue, 1000, 2000} =
+        queue
+        |> enqueue_block("1")
+        |> set_ethereum_height(2)
+
+      assert {:dont_form_block, queue} =
+        queue
+        |> enqueue_block("2")
+        |> set_ethereum_height(1)
+
+      assert {:do_form_block, _queue, 2000, 3000} =
+        queue
+        |> set_ethereum_height(3)
     end
 
     test "Produced blocks submission requests have nonces in order" do
@@ -134,35 +202,32 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     end
 
     test "Block generation is driven by Ethereum height" do
-      queue =
+      assert {:do_form_block, queue, 0, 1000} =
         empty()
         |> set_mined(0)
         |> set_ethereum_height(1)
-      assert create_block?(queue)
-      queue =
+
+      assert {:dont_form_block, queue} =
         queue
         |> enqueue_block("1")
-      assert not create_block?(queue)
-      queue =
-        queue
         |> set_ethereum_height(0)
-      assert not create_block?(queue)
-      queue =
+
+      assert {:dont_form_block, queue} =
         queue
         |> set_ethereum_height(1)
-      assert not create_block?(queue)
-      queue =
+
+      assert {:do_form_block, queue, 1000, 2000} =
         queue
         |> set_ethereum_height(2)
-      assert create_block?(queue)
-      queue =
+
+      assert {:dont_form_block, _} =
         queue
         |> enqueue_block("2")
-      assert not create_block?(queue)
+        |> set_ethereum_height(2)
     end
 
     test "Smoke test" do
-      assert ["3", "4", "5"] =
+      assert {:dont_form_block, queue} =
         empty()
         |> set_mined(0)
         |> enqueue_block("1")
@@ -172,24 +237,41 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         |> enqueue_block("5")
         |> set_mined(2000)
         |> set_ethereum_height(3)
+
+      assert ["3", "4", "5"] =
+        queue
         |> get_blocks_to_submit()
         |> hashes()
     end
 
-    test "Old blocks are GCd" do
-      long  = 10_000 |> make_chain() |> :erlang.term_to_binary() |> byte_size()
-      short = 100 |> make_chain() |> :erlang.term_to_binary() |> byte_size()
-      assert 0.9 < long / short and long / short < (1 / 0.9)
+    test "Old blocks are GCd, but only after they're mined" do
+      long_length = 10_000
+      short_length = 100
+
+      long  = long_length |> make_chain()
+      long_size = long |> :erlang.term_to_binary() |> byte_size()
+      short_size = short_length |> make_chain() |> :erlang.term_to_binary() |> byte_size()
+
+      # sanity check if we haven't GCd too early
+      assert long_size > long_length / short_length * short_size
+
+      long_mined_size =
+        long
+        |> set_mined((long_length - short_length) * 1000)
+        |> :erlang.term_to_binary() |> byte_size()
+
+      assert_in_delta(long_mined_size / short_size, 1, 0.2)
     end
 
     test "Pending tx can be resubmitted with new gas price" do
-      queue =
+      {_, queue, _, _} =
         empty()
         |> set_mined(0)
         |> set_gas_price(1)
         |> enqueue_block("1")
         |> enqueue_block("2")
         |> set_ethereum_height(5)
+
       blocks = get_blocks_to_submit(queue)
       assert %BlockSubmission{gas_price: 1} = hd(blocks)
       blocks2 =
