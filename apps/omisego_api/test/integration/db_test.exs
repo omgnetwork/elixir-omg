@@ -78,45 +78,55 @@ defmodule OmiseGO.API.Integration.DBTest do
     :ok
   end
 
-  @tag fixtures: [:db_path_config, :contract, :geth, :root_chain_contract_config, :omisego]
-  test "saves state in DB", %{contract: root_chain} do
+  # FIXME dry the fixtures for entities
+  import OmiseGO.API.TestHelper
 
-    alice = "Alice"
-    bob = "Bob"
+  deffixture entities do
+    %{
+      alice: generate_entity(),
+      bob: generate_entity(),
+      carol: generate_entity(),
+    }
+  end
 
-    signed_tx =
+  deffixture(alice(entities), do: entities.alice)
+  deffixture(bob(entities), do: entities.bob)
+  deffixture(carol(entities), do: entities.carol)
+
+  @tag fixtures: [:alice, :bob, :db_path_config, :contract, :geth, :root_chain_contract_config, :omisego]
+  test "saves state in DB", %{alice: alice, bob: bob, contract: root_chain} do
+
+    tx =
       %Transaction{
         blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
-      } |> TestHelper.signed
-
-    tx = %Transaction.Recovered{signed: signed_tx, spender1: alice}
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
+      }
+      |> Transaction.sign(alice.priv, <<>>)
+      |> Transaction.Signed.encode()
 
     {:error, :utxo_not_found} = OmiseGO.API.submit(tx)
 
-    :ok = OmiseGO.API.State.deposit(alice, 10)
+    # FIXME should actually be called from Eth-driven Depositor
+    :ok = OmiseGO.API.State.deposit([%{owner: alice.addr, amount: 10, block_height: 1}])
 
     :ok = OmiseGO.API.submit(tx)
 
     # FIXME: should actuallly be called by the Eth-driven BlockQueue
-    OmiseGO.API.State.form_block(2, 3)
-
-    dat_hash = <<20, 9, 184, 82, 130, 252, 199, 222, 114, 107, 24, 253, 47, 120,
-                 250, 1, 224, 25, 79, 194, 87, 231, 47, 71, 192, 53, 223, 149, 190, 183,
-                 170, 215>>
+    # FIXME: block hash should be axquired from the contract too
+    {:ok, block_hash} = OmiseGO.API.State.form_block(1000, 2000)
 
     assert :not_found = OmiseGO.API.get_block(<<0::size(256)>>)
-    assert %OmiseGO.API.Block{hash: ^dat_hash} = OmiseGO.API.get_block(dat_hash)
+    assert %OmiseGO.API.Block{hash: ^block_hash} = OmiseGO.API.get_block(block_hash)
 
     # FIXME - should actually stop and start apps to check if persistence works fine
     assert {:ok, [
-      %{{2, 0, 0} => %{amount: 7, owner: ^bob}},
-      %{{2, 0, 1} => %{amount: 3, owner: ^alice}}
-    ]} = DB.utxos()
+      %{{1000, 0, 0} => %{amount: 7, owner: bob.addr}},
+      %{{1000, 0, 1} => %{amount: 3, owner: alice.addr}}
+    ]} == DB.utxos()
 
     {:error, :utxo_not_found} = OmiseGO.API.submit(tx)
 
-    OmiseGO.API.State.form_block(2, 3)
+    {:ok, _block_hash} = OmiseGO.API.State.form_block(2000, 3000)
   end
 
 end

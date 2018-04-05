@@ -36,7 +36,7 @@ defmodule OmiseGO.API.State do
   """
   def init(:ok) do
     with {:ok, height_query_result} <- DB.child_top_block_number(),
-         {:ok, last_deposit_query_result} <- DB.last_deposit_height(),
+         {:ok, last_deposit_query_result} <- {:ok, 0}, # FIXME DB.last_deposit_height(),
          {:ok, utxos_query_result} <- DB.utxos() do
        {:ok, Core.extract_initial_state(utxos_query_result, height_query_result, last_deposit_query_result)}
     end
@@ -66,7 +66,7 @@ defmodule OmiseGO.API.State do
   Wraps up accumulated transactions into a block, triggers events, triggers db update, returns block hash
   """
   def handle_call({:form_block, current_block_num, next_block_num}, _from, state) do
-   case Core.form_block(current_block_num, next_block_num, state) do
+   case Core.form_block(state, current_block_num, next_block_num) do
      {:error, reason} -> {:reply, {:error, reason}, state}
      {:ok, {block, event_triggers, db_updates, new_state}} ->
        # GenServer.cast

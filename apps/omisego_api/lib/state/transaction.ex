@@ -55,9 +55,12 @@ defmodule OmiseGO.API.State.Transaction do
 
   def sign(%__MODULE__{} = tx, priv1, priv2) do
     encoded_tx = encode(tx)
-    signature1 = Crypto.signature(encoded_tx, priv1)
-    signature2 = Crypto.signature(encoded_tx, priv2)
+    signature1 = signature(encoded_tx, priv1)
+    signature2 = signature(encoded_tx, priv2)
 
     %Signed{raw_tx: tx, sig1: signature1, sig2: signature2}
   end
+
+  defp signature(encoded_tx, <<>>), do: <<0::size(520)>>
+  defp signature(encoded_tx, priv), do: Crypto.signature(encoded_tx, priv)
 end

@@ -204,8 +204,13 @@ defmodule OmiseGO.API.State.Core do
       |> Enum.map(fn %{owner: owner, amount: amount} -> %{deposit: %{amount: amount, owner: owner}} end)
 
     last_deposit_height = get_last_deposit_height(deposits, last_deposit_height)
-    
-    db_updates = [{:put, :utxo, new_utxos}] ++ last_deposit_height_db_update(deposits, last_deposit_height)
+
+    # FIXME dry the function transforming utxos to db puts
+    db_updates_new_utxos =
+      new_utxos
+      |> Enum.map(fn {new_utxo_key, new_utxo} -> {:put, :utxo, %{new_utxo_key => new_utxo}} end)
+
+    db_updates = db_updates_new_utxos ++ last_deposit_height_db_update(deposits, last_deposit_height)
 
     new_state =
       %Core{state |

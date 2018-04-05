@@ -70,10 +70,12 @@ defmodule OmiseGO.DB.LevelDBServer do
 
   def handle_call(:last_deposit_block_height, _from, %__MODULE__{db_ref: db_ref} = state) do
     #TODO: initialize db with height 0
-    with key <- LevelDBCore.key(:last_deposit_block_height),
-         {:ok, height} <- get(db_ref, key),
-         {:ok, last_depost_block_height} <- LevelDBCore.decode_value(:last_deposit_block_height, height),
-         do: {:reply, last_depost_block_height, state}
+    result =
+      with key <- LevelDBCore.key(:last_deposit_block_height),
+           {:ok, height} <- get(key, db_ref),
+           do: LevelDBCore.decode_value(:last_deposit_block_height, height)
+
+    {:reply, result, state}
   end
 
   # Argument order flipping tools :(
