@@ -140,7 +140,7 @@ defmodule OmiseGO.API.State.Core do
     block_num_to_form,
     next_block_num_to_form
   ) do
-    with :ok <- validate_block_number(current_block_num, state) do
+    with :ok <- validate_block_number(block_num_to_form, state) do
 
       txs = Enum.reverse(reverse_txs)
 
