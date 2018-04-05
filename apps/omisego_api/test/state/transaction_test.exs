@@ -90,7 +90,7 @@ defmodule OmiseGO.API.State.TransactionTest do
              Transaction.create_from_utxos(utxos, %{address: "Joe", amount: -4}, 2)
 
     assert {:error, :amount_negative_value} ==
-             Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30000}, 0)
+             Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30_000}, 0)
 
     assert {:error, :fee_negative_value} ==
              Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30}, -2)
