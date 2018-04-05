@@ -12,10 +12,10 @@ defmodule OmiseGO.API.State.Core do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Block
 
-  def extract_initial_state(_utxos_query_result, _height_query_result, _last_deposit_height_query_result) do
+  def extract_initial_state(_utxos_query_result, height_query_result, _last_deposit_height_query_result) do
     # extract height, last deposit height and utxos from query result
     # FIXME
-    height = 1
+    height = height_query_result + 1000
     # FIXME
     utxos = %{}
     %__MODULE__{height: height, last_deposit_height: 0, utxos: utxos}

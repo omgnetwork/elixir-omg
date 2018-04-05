@@ -6,7 +6,7 @@ defmodule OmiseGO.API.State.CoreTest do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.Transaction
 
-  @block_interval 100
+  @block_interval 1000
   @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232,
                       237, 80, 242, 60, 209, 253, 249, 76, 145, 84, 237, 58, 118, 9,
                       162, 241, 255, 152, 31>>
@@ -325,7 +325,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    {:ok, {_, _, _, state}} = Core.form_block(state, @block_interval, 2 * @block_interval)
+    {:ok, {_, _, _, state}} = Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
 
     %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
     |> Core.exec(state) |> fail?(:utxo_not_found)
@@ -348,7 +348,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    assert {:ok, {_, [trigger], _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
+    assert {:ok, {_, [trigger], _, _}} = Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
 
     assert trigger ==
       %{tx:
@@ -390,7 +390,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: bob.addr}
       |> Core.exec(state) |> success?
 
-    assert {:ok, {_, [_trigger1, _trigger2], _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
+    assert {:ok, {_, [_trigger1, _trigger2], _, _}} = Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -405,7 +405,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
       |> Core.exec(state) |> same?(state)
 
-    assert {:ok, {_, [], _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
+    assert {:ok, {_, [], _, _}} = Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -414,7 +414,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
     assert trigger == %{deposit: %{owner: alice, amount: 4}}
 
-    assert {:ok, {_, [], _, _}} = Core.form_block(state, 1, @block_interval)
+    assert {:ok, {_, [], _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -482,11 +482,11 @@ defmodule OmiseGO.API.State.CoreTest do
     expected_block =
       %Block{
         transactions: [recovered_tx_1, recovered_tx_2],
-        hash: <<184, 233, 72, 82, 81, 153, 40, 165, 254, 183, 7, 94,
-                  141, 8, 114, 85, 48, 130, 237, 102, 254, 53, 34, 136, 53, 159,
-                  39, 128, 142, 182, 188, 162>>
+        hash: <<55, 238, 15, 109, 162, 182, 182, 232, 239, 10, 74, 217,
+                  211, 216, 106, 14, 241, 109, 22, 112, 113, 68, 0, 104, 64,
+                  155, 200, 143, 162, 206, 182, 179>>
       }
-    assert {:ok, {^expected_block, _, _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
+    assert {:ok, {^expected_block, _, _, _}} = Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -524,7 +524,7 @@ defmodule OmiseGO.API.State.CoreTest do
     expected_block = empty_block()
 
     assert {:ok, {^expected_block, [], [{:put, :block, ^expected_block}], _}} =
-      Core.form_block(state, 1, @block_interval)
+      Core.form_block(state, @block_interval, 2 * @block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -546,7 +546,7 @@ defmodule OmiseGO.API.State.CoreTest do
       |> Core.exec(state) |> success?
 
     {:ok, {_, _, db_updates, state}} =
-      Core.form_block(state, @block_interval, 2 * @block_interval)
+      Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
 
     assert [
       {:put, :utxo, new_utxo1},
@@ -609,12 +609,12 @@ defmodule OmiseGO.API.State.CoreTest do
     assert utxo_update == {:put, :utxo, %{{1, 0, 0} => %{owner: alice.addr, amount: 10}}}
     assert height_update == {:put, :last_deposit_block_height, 1}
 
-    assert {:ok, {_, _, [{:put, :block, _}], _}} = Core.form_block(state, 1, @block_interval)
+    assert {:ok, {_, _, [{:put, :block, _}], _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
   end
 
   @tag fixtures: [:state_empty]
   test "empty blocks are pushed to db", %{state_empty: state} do
-    {:ok, {_, _, db_updates, _}} = Core.form_block(state, 1, @block_interval)
+    {:ok, {_, _, db_updates, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
 
     is_block_put? = fn {operation, type, _} -> operation == :put && type == :block end
     assert Enum.count(db_updates, is_block_put?) == 1

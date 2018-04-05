@@ -72,8 +72,8 @@ defmodule OmiseGO.DB.LevelDBServer do
     #TODO: initialize db with height 0
     result =
       with key <- LevelDBCore.key(:last_deposit_block_height),
-           {:ok, height} <- get(key, db_ref),
-           do: LevelDBCore.decode_value(:last_deposit_block_height, height)
+           response <- get(key, db_ref),
+           do: LevelDBCore.decode_value(response, :last_deposit_block_height)
 
     {:reply, result, state}
   end

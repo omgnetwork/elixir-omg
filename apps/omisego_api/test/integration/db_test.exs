@@ -5,7 +5,6 @@ defmodule OmiseGO.API.Integration.DBTest do
 
   alias OmiseGO.DB
 
-  alias OmiseGO.API.TestHelper
   alias OmiseGO.API.State.Transaction
 
   # FIXME remove
@@ -66,8 +65,17 @@ defmodule OmiseGO.API.Integration.DBTest do
     :ok
   end
 
-  deffixture omisego(root_chain_contract_config) do
+  deffixture db_initialized(db_path_config) do
+    :ok = db_path_config
+    :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
+    # FIXME the latter doesn't work yet
+    # OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
+    :ok
+  end
+
+  deffixture omisego(root_chain_contract_config, db_initialized) do
     :ok = root_chain_contract_config
+    :ok = db_initialized
     {:ok, started_apps} = Application.ensure_all_started(:omisego_api)
 
     on_exit fn ->
@@ -93,8 +101,8 @@ defmodule OmiseGO.API.Integration.DBTest do
   deffixture(bob(entities), do: entities.bob)
   deffixture(carol(entities), do: entities.carol)
 
-  @tag fixtures: [:alice, :bob, :db_path_config, :contract, :geth, :root_chain_contract_config, :omisego]
-  test "saves state in DB", %{alice: alice, bob: bob, contract: root_chain} do
+  @tag fixtures: [:alice, :bob, :db_initialized, :contract, :geth, :root_chain_contract_config, :omisego]
+  test "saves state in DB", %{alice: alice, bob: bob} do
 
     tx =
       %Transaction{
