@@ -1,4 +1,7 @@
-defmodule OmiseGO.API.Integration.DBTest do
+defmodule OmiseGO.API.Integration.HappyPathTest do
+  @moduledoc """
+  Tests a simple happy path of all the pieces working together
+  """
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
@@ -7,8 +10,7 @@ defmodule OmiseGO.API.Integration.DBTest do
 
   alias OmiseGO.API.State.Transaction
 
-  # FIXME remove
-  @moduletag :new
+  @moduletag :requires_geth
 
   deffixture db_path_config() do
     dir = Temp.mkdir!()
@@ -101,8 +103,8 @@ defmodule OmiseGO.API.Integration.DBTest do
   deffixture(bob(entities), do: entities.bob)
   deffixture(carol(entities), do: entities.carol)
 
-  @tag fixtures: [:alice, :bob, :db_initialized, :contract, :geth, :root_chain_contract_config, :omisego]
-  test "saves state in DB", %{alice: alice, bob: bob} do
+  @tag fixtures: [:alice, :bob, :omisego]
+  test "deposit, spend, exit, restart etc works fine", %{alice: alice, bob: bob} do
 
     tx =
       %Transaction{
