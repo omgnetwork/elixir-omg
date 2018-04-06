@@ -24,7 +24,7 @@ defmodule OmiseGOWatcher.TransactionDB do
   ]
   def field_names, do: @field_names
 
-  derive {Poison.Encoder, except: [:__meta__]}
+  @derive {Poison.Encoder, except: [:__meta__]}
   schema "transactions" do
     field(:blknum1, :integer)
     field(:txindex1, :integer)
