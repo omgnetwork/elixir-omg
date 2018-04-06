@@ -60,20 +60,22 @@ defmodule OmiseGO.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call({:block_hashes, _block_numbers_to_fetch}, _from, %__MODULE__{db_ref: _db_ref} = _state) do
-    :not_implemented
+  def handle_call({:block_hashes, _block_numbers_to_fetch}, _from, %__MODULE__{db_ref: _db_ref} = state) do
+    {:reply, {:ok, []}, state}
   end
 
-  def handle_call({:child_top_block_number}, _from, %__MODULE__{db_ref: _db_ref} = _state) do
-    :not_implemented
+  def handle_call({:child_top_block_number}, _from, %__MODULE__{db_ref: _db_ref} = state) do
+    {:reply, {:ok, 0}, state}
   end
 
   def handle_call(:last_deposit_block_height, _from, %__MODULE__{db_ref: db_ref} = state) do
     #TODO: initialize db with height 0
-    with key <- LevelDBCore.key(:last_deposit_block_height),
-         {:ok, height} <- get(key, db_ref),
-         {:ok, last_depost_block_height} <- LevelDBCore.decode_value(:last_deposit_block_height, height),
-         do: {:reply, last_depost_block_height, state}
+    result =
+      with key <- LevelDBCore.key(:last_deposit_block_height),
+           response <- get(key, db_ref),
+           do: LevelDBCore.decode_value(response, :last_deposit_block_height)
+
+    {:reply, result, state}
   end
 
   # Argument order flipping tools :(

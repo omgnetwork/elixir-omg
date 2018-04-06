@@ -1,17 +1,16 @@
-defmodule OmiseGO.FreshBlocksTest do
+defmodule OmiseGO.API.FreshBlocksTest do
   use ExUnit.Case, async: true
-  doctest OmiseGO.FreshBlocks
 
-  alias OmiseGO.FreshBlocks.Core, as: FreshBlocks
-  alias OmiseGO.FreshBlocks.Block, as: Block
+  alias OmiseGO.API.FreshBlocks.Core, as: FreshBlocks
+  alias OmiseGO.API.Block
 
   def generate_blocks(range) do
-    Enum.map(range, &%Block{number: &1})
+    Enum.map(range, &%Block{hash: &1})
   end
 
   def generate_fresh_block(size, max_size \\ 1024) do
     update_state = fn state, block ->
-      with {:ok, n_state} <- FreshBlocks.update(state, block) do
+      with {:ok, n_state} <- FreshBlocks.push(state, block) do
         n_state
       end
     end
@@ -29,6 +28,6 @@ defmodule OmiseGO.FreshBlocksTest do
   test "getting Block" do
     range = 20..80
     state = generate_fresh_block(90)
-    for number <- range, do: {%Block{number: ^number}, []} = FreshBlocks.get(number, state)
+    for hash <- range, do: {%Block{hash: ^hash}, []} = FreshBlocks.get(hash, state)
   end
 end

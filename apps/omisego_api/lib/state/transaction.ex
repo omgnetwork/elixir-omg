@@ -81,7 +81,9 @@ defmodule OmiseGO.API.State.Transaction do
 
   def zero_address, do: @zero_address
 
-  def account_address?(address), do: address != @zero_address
+  def account_address?(@zero_address), do: false
+  def account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
+  def account_address?(_), do: false
 
   def encode(%__MODULE__{} = tx) do
     [
@@ -108,9 +110,12 @@ defmodule OmiseGO.API.State.Transaction do
 
   def sign(%__MODULE__{} = tx, priv1, priv2) do
     encoded_tx = encode(tx)
-    signature1 = Crypto.signature(encoded_tx, priv1)
-    signature2 = Crypto.signature(encoded_tx, priv2)
+    signature1 = signature(encoded_tx, priv1)
+    signature2 = signature(encoded_tx, priv2)
 
     %Signed{raw_tx: tx, sig1: signature1, sig2: signature2}
   end
+
+  defp signature(_encoded_tx, <<>>), do: <<0::size(520)>>
+  defp signature(encoded_tx, priv), do: Crypto.signature(encoded_tx, priv)
 end

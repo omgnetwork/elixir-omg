@@ -6,7 +6,7 @@ defmodule OmiseGO.API.State.CoreTest do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.Transaction
 
-  @block_interval 100
+  @block_interval 1000
   @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232,
                       237, 80, 242, 60, 209, 253, 249, 76, 145, 84, 237, 58, 118, 9,
                       162, 241, 255, 152, 31>>
@@ -41,7 +41,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %{owner: bob.addr, amount: 20, block_height: 2}
     ]
 
-    {_, [{:last_deposit_block_height, 2}], state} = Core.deposit(deposits, state)
+    {_, _, state} = Core.deposit(deposits, state)
 
     raw_tx_1 =
       %Transaction{
@@ -78,9 +78,16 @@ defmodule OmiseGO.API.State.CoreTest do
       deposits = [
         %{owner: alice.addr, amount: 20, block_height: 2}
       ]
-      {_, [{:last_deposit_block_height, 2}], state} = Core.deposit(deposits, state)
+      assert {_, [_, {:put, :last_deposit_block_height, 2}], state} = Core.deposit(deposits, state)
 
-      assert {[], [], state} == Core.deposit([%{owner: bob.addr, amount: 20, block_height: 1}], state)
+      assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, amount: 20, block_height: 1}], state)
+  end
+
+  @tag fixtures: [:bob]
+  test "ignores deposits from blocks not higher than the deposit height read from db", %{bob: bob} do
+      state = Core.extract_initial_state(%{}, 0, 1, @block_interval)
+
+      assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, amount: 20, block_height: 1}], state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -325,10 +332,10 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    {:ok, {_, _, _, state}} = Core.form_block(state, @block_interval, 2 * @block_interval)
+    {:ok, {_, _, _, state}} = Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
 
     %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
-    |> Core.exec(state) |> fail?(:utxo_not_found)
+    |> Core.exec(state) |> fail?(:utxo_not_found) |> same?(state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -348,7 +355,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
       |> Core.exec(state) |> success?
 
-    assert {:ok, {_, [trigger], _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
+    assert {:ok, {_, [trigger], _, _}} = Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
 
     assert trigger ==
       %{tx:
@@ -390,7 +397,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: bob.addr}
       |> Core.exec(state) |> success?
 
-    assert {:ok, {_, [_trigger1, _trigger2], _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
+    assert {:ok, {_, [_trigger1, _trigger2], _, _}} = Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -405,7 +412,7 @@ defmodule OmiseGO.API.State.CoreTest do
       %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
       |> Core.exec(state) |> same?(state)
 
-    assert {:ok, {_, [], _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
+    assert {:ok, {_, [], _, _}} = Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -414,7 +421,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
     assert trigger == %{deposit: %{owner: alice, amount: 4}}
 
-    assert {:ok, {_, [], _, _}} = Core.form_block(state, 1, @block_interval)
+    assert {:ok, {_, [], _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -482,11 +489,11 @@ defmodule OmiseGO.API.State.CoreTest do
     expected_block =
       %Block{
         transactions: [recovered_tx_1, recovered_tx_2],
-        hash: <<184, 233, 72, 82, 81, 153, 40, 165, 254, 183, 7, 94,
-                  141, 8, 114, 85, 48, 130, 237, 102, 254, 53, 34, 136, 53, 159,
-                  39, 128, 142, 182, 188, 162>>
+        hash: <<55, 238, 15, 109, 162, 182, 182, 232, 239, 10, 74, 217,
+                  211, 216, 106, 14, 241, 109, 22, 112, 113, 68, 0, 104, 64,
+                  155, 200, 143, 162, 206, 182, 179>>
       }
-    assert {:ok, {^expected_block, _, _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
+    assert {:ok, {^expected_block, _, _, _}} = Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -510,8 +517,7 @@ defmodule OmiseGO.API.State.CoreTest do
     next_block_height = 2 * @block_interval
     {:ok, {_, _, _, state}} = Core.form_block(state, @block_interval, next_block_height)
 
-    next_block_height = 2 * @block_interval
-    expected_block = %Block{transactions: [], hash: @empty_block_hash}
+    expected_block = empty_block()
     {:ok, {^expected_block, _, _, _}} = Core.form_block(state, next_block_height, next_block_height + @block_interval)
   end
 
@@ -522,64 +528,122 @@ defmodule OmiseGO.API.State.CoreTest do
 
   @tag fixtures: [:state_empty]
   test "no pending transactions at start (no events, empty block, no db updates)", %{state_empty: state} do
-    expected_block = %Block{transactions: [], hash: @empty_block_hash}
-    {:ok, {^expected_block, [], [], _}} = Core.form_block(state, 1, @block_interval)
+    expected_block = empty_block()
+
+    assert {:ok, {^expected_block, [], [{:put, :block, ^expected_block}], _}} =
+      Core.form_block(state, @block_interval, 2 * @block_interval)
   end
 
-  test "spending produces db updates, that don't leak to next block" do
-    # FIXME
-    # FIXME check new tx and block in db_updates
+  @tag fixtures: [:alice, :bob, :state_alice_deposit]
+  test "spending produces db updates, that don't leak to next block",
+       %{alice: alice, bob: bob, state_alice_deposit: state} do
+    raw_tx_1 =
+      %Transaction{
+        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0
+      }
 
-    # {_, _, [], _} = Core.form_block(state)
+    signed_tx_hash_1 =
+      raw_tx_1
+      |> Transaction.sign(alice.priv, <<>>)
+      |> Transaction.Signed.signed_hash
+
+    state =
+      %Transaction.Recovered{raw_tx: raw_tx_1, signed_tx_hash: signed_tx_hash_1, spender1: alice.addr}
+      |> Core.exec(state) |> success?
+
+    {:ok, {_, _, db_updates, state}} =
+      Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
+
+    assert [
+      {:put, :utxo, new_utxo1},
+      {:put, :utxo, new_utxo2},
+      {:delete, :utxo, {1, 0, 0}},
+      {:put, :block, _}
+    ] = db_updates
+
+    assert new_utxo1 == %{{@block_interval, 0, 0} => %{owner: bob.addr, amount: 7}}
+    assert new_utxo2 == %{{@block_interval, 0, 1} => %{owner: alice.addr, amount: 3}}
+
+    assert {:ok, {_, _, [{:put, :block, _}], state}} =
+      Core.form_block(state, 2 * @block_interval, 3 * @block_interval)
+
+    # check double inputey-spends
+    raw_tx_2 =
+      %Transaction{
+        blknum1: @block_interval, txindex1: 0, oindex1: 0, blknum2: @block_interval, txindex2: 0, oindex2: 1,
+        newowner1: bob.addr, amount1: 10, newowner2: 0, amount2: 0, fee: 0
+      }
+
+    signed_tx_hash_2 =
+      raw_tx_2
+      |> Transaction.sign(bob.priv, alice.priv)
+      |> Transaction.Signed.signed_hash
+
+    state =
+      %Transaction.Recovered{
+        raw_tx: raw_tx_2,
+        signed_tx_hash: signed_tx_hash_2,
+        spender1: bob.addr,
+        spender2: alice.addr
+      }
+      |> Core.exec(state)
+      |> success?
+
+    {:ok, {_, _, db_updates2, state}} =
+      Core.form_block(state, 3 * @block_interval, 4 * @block_interval)
+
+    assert [
+      {:put, :utxo, new_utxo},
+      {:delete, :utxo, {@block_interval, 0, 0}},
+      {:delete, :utxo, {@block_interval, 0, 1}},
+      {:put, :block, _}
+    ] = db_updates2
+
+    assert new_utxo == %{{3 * @block_interval, 0, 0} => %{owner: bob.addr, amount: 10}}
+
+    assert {:ok, {_, _, [{:put, :block, _}], _}} =
+      Core.form_block(state, 4 * @block_interval, 5 * @block_interval)
+
   end
 
-  test "depositing produces db updates, that don't leak to next block" do
-    # FIXME
-    # FIXME check block and transaction in db updates
+  @tag fixtures: [:alice, :state_empty]
+  test "depositing produces db updates, that don't leak to next block", %{alice: alice, state_empty: state} do
 
-    # {_, _, [], _} = Core.form_block(state)
+    assert {_, [utxo_update, height_update], state} =
+      Core.deposit([%{owner: alice.addr, amount: 10, block_height: 1}], state)
+
+    assert utxo_update == {:put, :utxo, %{{1, 0, 0} => %{owner: alice.addr, amount: 10}}}
+    assert height_update == {:put, :last_deposit_block_height, 1}
+
+    assert {:ok, {_, _, [{:put, :block, _}], _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
   end
 
-  test "spending removes/adds utxos from db" do
+  @tag fixtures: [:state_empty]
+  test "empty blocks are pushed to db", %{state_empty: state} do
+    {:ok, {_, _, db_updates, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
 
-    # FIXME
-    # FIXME check removal/add of utxos
+    is_block_put? = fn {operation, type, _} -> operation == :put && type == :block end
+    assert Enum.count(db_updates, is_block_put?) == 1
+
+    expected_block = empty_block()
+
+    assert {:put, :block, ^expected_block} = Enum.find(db_updates, is_block_put?)
   end
 
-  test "empty blocks are pushed to db" do
-    # {_, _, db_updates, _} = Core.form_block(state)
+  @tag fixtures: [:alice]
+  test "utxos get initialized by query result from db and are spendable", %{alice: alice} do
 
-    # FIXME empty block in db_udates and height bump
-  end
+    state = Core.extract_initial_state(%{{1, 0, 0} => %{amount: 10, owner: alice.addr}}, 0, 1, @block_interval)
 
-  test "blocks with deposits and spends are pushed to db and events properly" do
-    # alice = "" # FIXME
-    # bob = ""
-    #
-    # state = "alice deposited"
-    #
-    # state =
-    #   %Transaction{blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-    #                newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0}
-    #   |> Core.exec(state) |> success?
-    # {[deposit_trigger], [deposit_db_update], state} = Core.deposit(alice, 4, state)
-    #
-    # {block, [spend_trigger], [spend_db_update], _} = Core.form_block(state)
+    raw_tx =
+      %Transaction{
+        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        newowner1: alice.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
+      }
 
-    # FIXME check both ok in db and events and block
-  end
-
-  test "utxos get initialized by query result from db and are spendable" do
-    # alice = "" # FIXME
-    # bob = ""
-
-    # TODO: use actual code to generate query result for utxos
-    # state = Core.extract_initial_state("utxo1, utxo2 etc")
-    # state =
-    #   %Transaction{blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-    #                newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0}
-    #   |> Core.exec(state) |> success?
-
+    %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
+    |> Core.exec(state) |> success?
   end
 
   test "core generates the db query" do
@@ -607,4 +671,7 @@ defmodule OmiseGO.API.State.CoreTest do
     state
   end
 
+  defp empty_block do
+    %Block{transactions: [], hash: @empty_block_hash}
+  end
 end
