@@ -3,11 +3,9 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   Operations related to utxo.
   Modify the state in the database.
   """
-  use OmiseGOWatcherWeb, :controller
-
-  import Ecto.Query, only: [from: 2]
-
   alias OmiseGOWatcher.{Repo, UtxoDB}
+  use OmiseGOWatcherWeb, :controller
+  import Ecto.Query, only: [from: 2]
   alias OmiseGO.API.{Block}
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
 
@@ -21,34 +19,34 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
     # TODO change this to encode from OmiseGo.API.State.Transaction
     txbytes = inspect(signed_transaction)
 
-    make_transaction_db = fn transaction, number ->
+    make_utxo_db = fn transaction, number ->
       %UtxoDB{
         address: Map.get(transaction, :"newowner#{number}"),
         amount: Map.get(transaction, :"amount#{number}"),
         blknum: block_number,
+        txindex: txindex,
         oindex: Map.get(transaction, :"oindex#{number}"),
-        txbytes: txbytes,
-        txindex: txindex
+        txbytes: txbytes
       }
     end
 
-    {Repo.insert(make_transaction_db.(transaction, 1)),
-     Repo.insert(make_transaction_db.(transaction, 2))}
+    {Repo.insert(make_utxo_db.(transaction, 1)),
+     Repo.insert(make_utxo_db.(transaction, 2))}
   end
 
   defp remove_utxo(%Signed{
          raw_tx: %Transaction{} = transaction
        }) do
     remove_from = fn transaction, number ->
-      txindex = Map.get(transaction, :"txindex#{number}")
       blknum = Map.get(transaction, :"blknum#{number}")
+      txindex = Map.get(transaction, :"txindex#{number}")
       oindex = Map.get(transaction, :"oindex#{number}")
 
       elements_to_remove = from(
-        transactionDb in UtxoDB,
+        utxoDb in UtxoDB,
         where:
-          transactionDb.txindex == ^txindex and transactionDb.blknum == ^blknum and
-            transactionDb.oindex == ^oindex
+          utxoDb.blknum == ^blknum and utxoDb.txindex == ^txindex and
+            utxoDb.oindex == ^oindex
       )
       elements_to_remove |> Repo.delete_all()
     end
@@ -66,13 +64,27 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
     |> Enum.to_list()
   end
 
+  def record_deposits(deposits) do
+    make_transaction_db = fn deposit ->
+      %UtxoDB{
+        address: deposit.owner,
+        amount: deposit.amount,
+        blknum: deposit.block_height,
+        txindex: 0,
+        oindex: 0,
+        txbytes: <<>>
+    }
+    end
+    Enum.for_each(fn deposit -> Repo.insert(make_transaction_db.(deposit)) end)
+  end
+
   def available(conn, %{"address" => address}) do
-    transactions = Repo.all(from(tr in UtxoDB, where: tr.address == ^address, select: tr))
+    utxos = Repo.all(from(tr in UtxoDB, where: tr.address == ^address, select: tr))
     fields_names = List.delete(UtxoDB.field_names(), :address)
 
     json(conn, %{
       address: address,
-      utxos: Enum.map(transactions, &Map.take(&1, fields_names))
+      utxos: Enum.map(utxos, &Map.take(&1, fields_names))
     })
   end
 end

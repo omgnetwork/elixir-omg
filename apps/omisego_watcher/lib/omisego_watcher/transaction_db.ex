@@ -24,6 +24,7 @@ defmodule OmiseGOWatcher.TransactionDB do
   ]
   def field_names, do: @field_names
 
+  derive {Poison.Encoder, except: [:__meta__]}
   schema "transactions" do
     field(:blknum1, :integer)
     field(:txindex1, :integer)
@@ -50,5 +51,4 @@ defmodule OmiseGOWatcher.TransactionDB do
     |> cast(attrs, @field_names)
     |> validate_required(@field_names)
   end
-
 end
