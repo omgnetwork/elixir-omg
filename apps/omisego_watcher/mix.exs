@@ -42,7 +42,7 @@ defmodule OmiseGOWatcher.Mixfile do
       {:postgrex, ">= 0.13.5", only: [:prod]},
       {:gettext, "~> 0.15"},
       {:sqlite_ecto2, "~> 2.2", only: [:dev, :test]},
-      #
+      {:cowboy, "~> 1.1"},
       {:omisego_api, in_umbrella: true, runtime: false},
     ]
   end
