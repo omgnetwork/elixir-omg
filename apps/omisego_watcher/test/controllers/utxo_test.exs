@@ -89,6 +89,35 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       Utxo.record_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Leon")
     end
+
+    test "Deposit utxo are moved to new owner if spent " do
+      assert %{"utxos" => []} = get_utxo("Leon")
+      assert %{"utxos" => []} = get_utxo("Matilda")
+      Utxo.record_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
+      assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Leon")
+
+      spent = %{
+        newowner1: "Matilda",
+        amount1: 1,
+        blknum1: 1,
+        txindex1: 0,
+        oindex1: 0
+      }
+
+      Utxo.consume_block(
+        %Block{
+          transactions: [
+            @empty
+            |> Map.merge(spent)
+            |> signed
+          ]
+        },
+        2
+      )
+
+      assert %{"utxos" => []} = get_utxo("Leon")
+      assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Matilda")
+    end
   end
 
   defp get_utxo(address) do

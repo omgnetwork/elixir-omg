@@ -64,6 +64,9 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
     |> Enum.to_list()
   end
 
+  @spec record_deposits([%{owner: <<_::160>>,
+                           amount: non_neg_integer(),
+                           block_height: pos_integer()}]) :: :ok
   def record_deposits(deposits) do
     make_transaction_db = fn deposit ->
       %UtxoDB{
