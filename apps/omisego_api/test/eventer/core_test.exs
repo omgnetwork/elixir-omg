@@ -37,7 +37,7 @@ defmodule OmiseGO.API.Eventer.CoreTest do
 
     {:ok, recovered_tx} = API.Core.recover_tx(encoded_singed_tx)
 
-    assert [_, _, {%Received{tx: ^recovered_tx}, "transactions/received/" <> ^alice_addr}] =
+    assert [_, {%Received{tx: ^recovered_tx}, "transactions/received/" <> ^alice_addr}] =
       Eventer.Core.notify([%{tx: recovered_tx}])
   end
 
