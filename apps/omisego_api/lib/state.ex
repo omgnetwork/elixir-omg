@@ -69,7 +69,7 @@ defmodule OmiseGO.API.State do
     result = Core.form_block(state, block_num_to_form, next_block_num_to_form)
     with {:ok, {block, event_triggers, db_updates, new_state}} <- result,
          :ok <- DB.multi_update(db_updates) do
-      GenServer.reply(from, {:ok, block})
+      GenServer.reply(from, {:ok, block.hash})
       Eventer.notify(event_triggers)
       :ok = FreshBlocks.push(block)
       {:noreply, new_state}

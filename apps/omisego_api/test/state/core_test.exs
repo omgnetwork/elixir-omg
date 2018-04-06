@@ -80,7 +80,14 @@ defmodule OmiseGO.API.State.CoreTest do
       ]
       assert {_, [_, {:put, :last_deposit_block_height, 2}], state} = Core.deposit(deposits, state)
 
-      assert {[], [], state} == Core.deposit([%{owner: bob.addr, amount: 20, block_height: 1}], state)
+      assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, amount: 20, block_height: 1}], state)
+  end
+
+  @tag fixtures: [:bob]
+  test "ignores deposits from blocks not higher than the deposit height read from db", %{bob: bob} do
+      state = Core.extract_initial_state(%{}, 0, 1)
+
+      assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, amount: 20, block_height: 1}], state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -328,7 +335,7 @@ defmodule OmiseGO.API.State.CoreTest do
     {:ok, {_, _, _, state}} = Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
 
     %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
-    |> Core.exec(state) |> fail?(:utxo_not_found)
+    |> Core.exec(state) |> fail?(:utxo_not_found) |> same?(state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -624,17 +631,19 @@ defmodule OmiseGO.API.State.CoreTest do
     assert {:put, :block, ^expected_block} = Enum.find(db_updates, is_block_put?)
   end
 
-  test "utxos get initialized by query result from db and are spendable" do
-    # alice = "" # FIXME
-    # bob = ""
+  @tag fixtures: [:alice]
+  test "utxos get initialized by query result from db and are spendable", %{alice: alice} do
 
-    # TODO: use actual code to generate query result for utxos
-    # state = Core.extract_initial_state("utxo1, utxo2 etc")
-    # state =
-    #   %Transaction{blknum1: 0, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-    #                newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0}
-    #   |> Core.exec(state) |> success?
+    state = Core.extract_initial_state(%{{1, 0, 0} => %{amount: 10, owner: alice.addr}}, 0, 1)
 
+    raw_tx =
+      %Transaction{
+        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        newowner1: alice.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
+      }
+
+    %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
+    |> Core.exec(state) |> success?
   end
 
   test "core generates the db query" do
