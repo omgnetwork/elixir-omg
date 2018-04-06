@@ -31,7 +31,7 @@ defmodule OmiseGO.API.State.Transaction do
         %{address: receiver_address, amount: amount},
         fee
       ) do
-    stream_parts_transaction =
+    parts_transaction =
       utxos |> Enum.with_index(1)
       |> Enum.map(fn {utxo, number} ->
         %{
@@ -42,10 +42,10 @@ defmodule OmiseGO.API.State.Transaction do
         }
       end)
 
-    all_amount = Enum.reduce(stream_parts_transaction, 0, &(&1.amount + &2))
+    all_amount = Enum.reduce(parts_transaction, 0, &(&1.amount + &2))
 
     transaction =
-      Enum.reduce(stream_parts_transaction, %{}, fn part_transaction, acc ->
+      Enum.reduce(parts_transaction, %{}, fn part_transaction, acc ->
         {_, part_transaction} = Map.pop(part_transaction, :amount)
         Map.merge(acc, part_transaction)
       end)
