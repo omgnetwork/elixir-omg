@@ -29,7 +29,7 @@ defmodule OmiseGO.API.Api.CoreTest do
 
     signed_tx = Transaction.sign(raw_tx, alice_priv, bob_priv)
 
-    signed_tx_hash = Transaction.Signed.hash(signed_tx)
+    signed_tx_hash = Transaction.Signed.signed_hash(signed_tx)
 
     encoded_signed_tx = Transaction.Signed.encode(signed_tx)
 

@@ -61,7 +61,7 @@ defmodule OmiseGO.API.State.TransactionTest do
                 signed.sig1 <>
                 signed.sig2
 
-    actual = Transaction.Signed.hash(signed)
+    actual = Transaction.Signed.signed_hash(signed)
     assert actual == expected
   end
 

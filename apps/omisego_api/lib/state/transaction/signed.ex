@@ -7,7 +7,7 @@ defmodule OmiseGO.API.State.Transaction.Signed do
 
   defstruct [:raw_tx, :sig1, :sig2]
 
-  def hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
+  def signed_hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
     Transaction.hash(tx) <> sig1 <> sig2
   end
 
