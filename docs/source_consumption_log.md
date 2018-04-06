@@ -32,6 +32,9 @@ Identifies each module of pre-existing source code used in developing source cod
   * `gettext`, Apache 2.0, https://github.com/elixir-lang/gettext
   * `postgrex`, Apache 2.0, https://github.com/elixir-ecto/postgrex
   * `sqlite_ecto2`, MIT, https://github.com/scouten/sqlite_ecto2
+  * `cowboy`, ISC License, https://github.com/ninenines/cowboy
+  * `cowlib`, ISC License, https://github.com/ninenines/cowlib
+  * `ranch`, ISC License, https://github.com/ninenines/ranch 
 
 
 ## Likely to be redistributed

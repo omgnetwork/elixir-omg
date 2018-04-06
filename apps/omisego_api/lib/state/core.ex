@@ -129,12 +129,12 @@ defmodule OmiseGO.API.State.Core do
     }
   end
 
-  def form_block(%Core{pending_txs: txs} = state, current_block_num, next_block_num) do
+  def form_block(%Core{pending_txs: txs} = state, block_num_to_form, next_block_num_to_form) do
     # block generation
     # generating event triggers
     # generate requests to persistence
     # drop pending txs from state, update height etc.
-    with :ok <- validate_block_number(current_block_num, state) do
+    with :ok <- validate_block_number(block_num_to_form, state) do
       block = %Block{transactions: Enum.reverse(txs)} |> Block.merkle_hash()
 
       event_triggers =
@@ -146,7 +146,7 @@ defmodule OmiseGO.API.State.Core do
       new_state = %Core{
         state
         | tx_index: 0,
-          height: next_block_num,
+          height: next_block_num_to_form,
           pending_txs: []
       }
 
