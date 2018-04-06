@@ -12,9 +12,14 @@ defmodule OmiseGO.API.State.Core do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Block
 
-  def extract_initial_state(utxos_query_result, height_query_result, last_deposit_height_query_result) do
+  def extract_initial_state(
+        utxos_query_result,
+        height_query_result,
+        last_deposit_height_query_result,
+        child_block_interval
+      ) do
     # extract height, last deposit height and utxos from query result
-    height = height_query_result + 1000
+    height = height_query_result + child_block_interval
 
     utxos =
       utxos_query_result
@@ -48,7 +53,7 @@ defmodule OmiseGO.API.State.Core do
   end
 
   defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, new_tx) do
-    %Core{state | pending_txs: [{tx_index, new_tx}] ++ pending_txs}
+    %Core{state | pending_txs: [{tx_index, new_tx} | pending_txs]}
   end
 
   # if there's no spender, make sure we cannot spend
@@ -109,7 +114,7 @@ defmodule OmiseGO.API.State.Core do
          } = tx
        ) do
 
-    new_utxos = get_non_zero_amount_utxos(height, tx_index, tx)
+    new_utxos = get_non_zero_amount_utxos(tx, height, tx_index)
     %Core{
       state
       | tx_index: tx_index + 1,
@@ -121,19 +126,22 @@ defmodule OmiseGO.API.State.Core do
     }
   end
 
-  defp get_non_zero_amount_utxos(_, _, %Transaction{amount1: 0, amount2: 0}), do: %{}
-  defp get_non_zero_amount_utxos(height, tx_index, %Transaction{amount1: 0} = tx) do
-    %{{height, tx_index, 1} => %{owner: tx.newowner2, amount: tx.amount2}}
+  defp get_non_zero_amount_utxos(%Transaction{} = tx, height, tx_index) do
+    tx
+    |> get_utxos_at(height, tx_index)
+    |> Enum.filter(fn {_key, value} -> is_non_zero_amount?(value) end)
+    |> Map.new
   end
-  defp get_non_zero_amount_utxos(height, tx_index, %Transaction{amount2: 0} = tx) do
-    %{{height, tx_index, 0} => %{owner: tx.newowner1, amount: tx.amount1}}
-  end
-  defp get_non_zero_amount_utxos(height, tx_index, %Transaction{} = tx) do
+
+  defp get_utxos_at(%Transaction{} = tx, height, tx_index) do
     %{
       {height, tx_index, 0} => %{owner: tx.newowner1, amount: tx.amount1},
       {height, tx_index, 1} => %{owner: tx.newowner2, amount: tx.amount2}
     }
   end
+
+  defp is_non_zero_amount?(%{amount: 0}), do: false
+  defp is_non_zero_amount?(%{amount: _}), do: true
 
   @doc """
    - Generates block and calculates it's root hash for submission
@@ -163,7 +171,7 @@ defmodule OmiseGO.API.State.Core do
       # TODO: consider calculating this along with updating the `utxos` field in the state for consistency
       db_updates_new_utxos =
         txs
-        |> Enum.flat_map(fn {tx_index, %{raw_tx: tx}} -> get_non_zero_amount_utxos(height, tx_index, tx) end)
+        |> Enum.flat_map(fn {tx_index, %{raw_tx: tx}} -> get_non_zero_amount_utxos(tx, height, tx_index) end)
         |> Enum.map(fn {new_utxo_key, new_utxo} -> {:put, :utxo, %{new_utxo_key => new_utxo}} end)
 
       db_updates_spent_utxos =

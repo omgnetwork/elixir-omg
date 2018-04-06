@@ -85,7 +85,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
   @tag fixtures: [:bob]
   test "ignores deposits from blocks not higher than the deposit height read from db", %{bob: bob} do
-      state = Core.extract_initial_state(%{}, 0, 1)
+      state = Core.extract_initial_state(%{}, 0, 1, @block_interval)
 
       assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, amount: 20, block_height: 1}], state)
   end
@@ -634,7 +634,7 @@ defmodule OmiseGO.API.State.CoreTest do
   @tag fixtures: [:alice]
   test "utxos get initialized by query result from db and are spendable", %{alice: alice} do
 
-    state = Core.extract_initial_state(%{{1, 0, 0} => %{amount: 10, owner: alice.addr}}, 0, 1)
+    state = Core.extract_initial_state(%{{1, 0, 0} => %{amount: 10, owner: alice.addr}}, 0, 1, @block_interval)
 
     raw_tx =
       %Transaction{

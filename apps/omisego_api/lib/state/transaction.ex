@@ -29,7 +29,7 @@ defmodule OmiseGO.API.State.Transaction do
   def zero_address, do: @zero_address
 
   def account_address?(@zero_address), do: false
-  def account_address?(address) when is_binary(address), do: true
+  def account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
   def account_address?(_), do: false
 
   def encode(%__MODULE__{} = tx) do
