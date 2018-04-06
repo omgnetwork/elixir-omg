@@ -16,9 +16,9 @@ defmodule OmiseGO.API.State.Transaction.Recovered do
     spender1 = get_spender(hash_no_spenders, sig1)
     spender2 = get_spender(hash_no_spenders, sig2)
 
-    hash = Transaction.Signed.hash(signed_tx)
+    signed_hash = Transaction.Signed.signed_hash(signed_tx)
 
-    %__MODULE__{raw_tx: raw_tx, signed_tx_hash: hash, spender1: spender1, spender2: spender2}
+    %__MODULE__{raw_tx: raw_tx, signed_tx_hash: signed_hash, spender1: spender1, spender2: spender2}
   end
 
   defp get_spender(hash_no_spenders, sig) do

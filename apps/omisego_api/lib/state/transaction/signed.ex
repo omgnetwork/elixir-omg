@@ -2,15 +2,13 @@ defmodule OmiseGO.API.State.Transaction.Signed do
   @moduledoc false
 
   alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.Crypto
 
   @signature_length 65
 
   defstruct [:raw_tx, :sig1, :sig2]
 
-  def hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
-    (Transaction.hash(tx) <> sig1 <> sig2)
-    |> Crypto.hash()
+  def signed_hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
+    Transaction.hash(tx) <> sig1 <> sig2
   end
 
   def encode(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do

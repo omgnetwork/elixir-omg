@@ -52,7 +52,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash_alice =
       raw_tx_1
       |> Transaction.sign(alice.priv, <<>>)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
       %Transaction.Recovered{raw_tx: raw_tx_1, signed_tx_hash: signed_tx_hash_alice, spender1: alice.addr}
         |> Core.exec(state) |> success?
@@ -66,7 +66,7 @@ defmodule OmiseGO.API.State.CoreTest do
       signed_tx_hash_bob =
         raw_tx_2
         |> Transaction.sign(bob.priv, <<>>)
-        |> Transaction.Signed.hash
+        |> Transaction.Signed.signed_hash
 
       %Transaction.Recovered{raw_tx: raw_tx_2, signed_tx_hash: signed_tx_hash_bob, spender1: bob.addr}
         |> Core.exec(state) |> success?
@@ -113,7 +113,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash =
       raw_tx
       |> Transaction.sign(alice.priv, <<>>)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, alice.addr, nil)
 
@@ -127,7 +127,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash =
       raw_tx
       |> Transaction.sign(alice.priv, <<>>)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, alice.addr, nil)
 
@@ -141,7 +141,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash =
       raw_tx
       |> Transaction.sign(alice.priv, bob.priv)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, nil, alice.addr)
 
@@ -155,7 +155,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash =
       raw_tx
       |> Transaction.sign(alice.priv, bob.priv)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     state =
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
@@ -170,7 +170,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash =
       raw_tx
       |> Transaction.sign(alice.priv, bob.priv)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     assert_amounts_dont_add_up(state, raw_tx, signed_tx_hash, bob.addr, alice.addr)
   end
@@ -326,7 +326,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash =
       raw_tx
       |> Transaction.sign(alice.priv, bob.priv)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     state =
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
@@ -349,7 +349,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash =
       raw_tx
       |> Transaction.sign(alice.priv, bob.priv)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     state =
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
@@ -376,7 +376,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash =
       raw_tx
       |> Transaction.sign(alice.priv, bob.priv)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     state =
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
@@ -391,7 +391,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash =
       raw_tx
       |> Transaction.sign(alice.priv, bob.priv)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     state =
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: bob.addr}
@@ -435,7 +435,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash =
       raw_tx
       |> Transaction.sign(alice.priv, bob.priv)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     state =
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
@@ -459,7 +459,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash_1 =
       raw_tx_1
       |> Transaction.sign(bob.priv, alice.priv)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     recovered_tx_1 =
       %Transaction.Recovered{raw_tx: raw_tx_1, signed_tx_hash: signed_tx_hash_1, spender1: alice.addr}
@@ -477,7 +477,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash_2 =
       raw_tx_2
       |> Transaction.sign(alice.priv, bob.priv)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     recovered_tx_2 =
       %Transaction.Recovered{raw_tx: raw_tx_2, signed_tx_hash: signed_tx_hash_2, spender1: bob.addr}
@@ -508,7 +508,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash =
       raw_tx
       |> Transaction.sign(alice.priv, bob.priv)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     state =
       %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash, spender1: alice.addr}
@@ -546,7 +546,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash_1 =
       raw_tx_1
       |> Transaction.sign(alice.priv, <<>>)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     state =
       %Transaction.Recovered{raw_tx: raw_tx_1, signed_tx_hash: signed_tx_hash_1, spender1: alice.addr}
@@ -578,7 +578,7 @@ defmodule OmiseGO.API.State.CoreTest do
     signed_tx_hash_2 =
       raw_tx_2
       |> Transaction.sign(bob.priv, alice.priv)
-      |> Transaction.Signed.hash
+      |> Transaction.Signed.signed_hash
 
     state =
       %Transaction.Recovered{
