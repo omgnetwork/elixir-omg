@@ -1,8 +1,10 @@
 defmodule OmiseGOWatcher.TransactionDB do
   @moduledoc """
-  Template for creating (mix ecto.migrate) and using tables (database).
+  Ecto Schema representing TransactionDB.
   """
+
   use Ecto.Schema
+
   import Ecto.Changeset
 
   @field_names [
@@ -43,10 +45,10 @@ defmodule OmiseGOWatcher.TransactionDB do
     field(:txindex, :integer)
   end
 
-  @doc false
   def changeset(transaction_db, attrs) do
     transaction_db
     |> cast(attrs, @field_names)
     |> validate_required(@field_names)
   end
+
 end
