@@ -79,6 +79,48 @@ defmodule OmiseGO.API.State.Transaction do
 
   # TODO: add convenience function for creating common transactions (1in-1out, 1in-2out-with-change, etc.)
 
+  @number_of_transactions 2
+  def new(inputs, outputs, fee) do
+
+    inputs =
+      inputs ++
+        List.duplicate(
+          %{blknum: 0, txindex: 0, oindex: 0},
+          @number_of_transactions - Kernel.length(inputs)
+        )
+
+    outputs =
+      outputs ++
+        List.duplicate(
+          %{newowner: 0, amount: 0},
+          @number_of_transactions - Kernel.length(outputs)
+        )
+
+    inputs =
+      inputs
+      |> Enum.with_index(1)
+      |> Enum.map(fn {input, index} ->
+        %{
+          String.to_existing_atom("blknum#{index}") => input.blknum,
+          String.to_existing_atom("txindex#{index}") => input.txindex,
+          String.to_existing_atom("oindex#{index}") => input.oindex
+        }
+      end) |> Enum.reduce(%{}, &Map.merge/2)
+
+    outputs =
+      outputs
+      |> Enum.with_index(1)
+      |> Enum.map(fn {output, index} ->
+        %{
+          String.to_existing_atom("newowner#{index}") => output.newowner,
+          String.to_existing_atom("amount#{index}") => output.amount
+        }
+      end)
+      |> Enum.reduce(%{}, &Map.merge/2)
+
+    struct(__MODULE__, Map.put(Map.merge(inputs, outputs),  :fee, fee))
+  end
+
   def zero_address, do: @zero_address
 
   def account_address?(@zero_address), do: false
