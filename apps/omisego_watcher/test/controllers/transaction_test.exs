@@ -35,17 +35,16 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     txindex = 0
 
     {:ok, %TransactionDB{id: id}} = TransactionDB.insert(@empty_signed_tx, txblknum, txindex)
-    actual_transaction = TransactionDB.get(id)
 
-    expected_transaction_2 = expected_transaction(txblknum, txindex)
+    expected_transaction = create_expected_transaction(id, txblknum, txindex)
 
-    assert expected_transaction = actual_transaction
+    assert expected_transaction == TransactionDB.get(id) |> delete_meta
   end
 
   test "insert and retrive block of transactions " do
     txblknum = 0
 
-    [{:ok, %TransactionDB{id: tx_id_1}}, {:ok, %TransactionDB{id: tx_id_2}}] =
+    [{:ok, %TransactionDB{id: txid_1}}, {:ok, %TransactionDB{id: txid_2}}] =
       TransactionDB.insert(
         %Block{
           transactions: [
@@ -56,24 +55,25 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
         txblknum
       )
 
-    actual_transaction_1 = TransactionDB.get(tx_id_1)
-    actual_transaction_2 = TransactionDB.get(tx_id_2)
+    expected_transaction_1 = create_expected_transaction(txid_1, txblknum, 0)
+    expected_transaction_2 = create_expected_transaction(txid_2, txblknum, 1)
 
-    expected_transaction_2 = expected_transaction(txblknum, 0)
-    expected_transaction_2 = expected_transaction(txblknum, 1)
-
-    assert expected_transaction_1 = actual_transaction_1
-    assert expected_transaction_2 = actual_transaction_2
+    assert expected_transaction_1 == TransactionDB.get(txid_1) |> delete_meta
+    assert expected_transaction_2 == TransactionDB.get(txid_2) |> delete_meta
   end
 
-  defp expected_transaction(txblknum, txindex) do
-    @empty_signed_tx.raw_tx
-    |> (&Map.merge(
-          %TransactionDB{
-            txblknum: txblknum,
-            txindex: txindex
-          },
-          &1
-        )).()
+  defp create_expected_transaction(txid, txblknum, txindex) do
+    %TransactionDB{
+      txblknum: txblknum,
+      txindex: txindex,
+      id: txid
+    }
+    |> Map.merge(Map.from_struct( @empty_signed_tx.raw_tx))
+    |> delete_meta
   end
+
+  defp delete_meta(%TransactionDB{} = transaction) do
+    Map.delete(transaction, :__meta__)
+  end
+
 end

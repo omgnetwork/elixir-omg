@@ -4,7 +4,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
   use Plug.Test
 
-  alias OmiseGOWatcherWeb.Controller.Utxo
+  alias OmiseGOWatcher.UtxoDB
   alias OmiseGO.API.{Block}
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
 
@@ -33,7 +33,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   end
 
   test "deposit new utxo amount" do
-    Utxo.consume_block(
+    UtxoDB.consume_block(
       %Block{
         transactions: [
           @empty |> Map.merge(%{newowner1: "McDuck", amount1: 1947}) |> signed,
@@ -50,7 +50,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   end
 
   test "spend utxo/update utxos" do
-    Utxo.consume_block(
+    UtxoDB.consume_block(
       %Block{
         transactions: [
           @empty |> Map.merge(%{newowner1: "Ebenezer", amount1: 1843}) |> signed,
@@ -60,7 +60,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       1
     )
     %{"utxos" => [%{"amount" => 1871}]} = get_utxo("Matilda")
-    Utxo.consume_block(
+    UtxoDB.consume_block(
       %Block{
         transactions: [
           @empty
