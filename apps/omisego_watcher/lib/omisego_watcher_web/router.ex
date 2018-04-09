@@ -10,7 +10,7 @@ defmodule OmiseGOWatcherWeb.Router do
   end
 
   scope "/transactions", OmiseGOWatcherWeb do
-    get "/:id", Controller.Transaction, :get_transaction
+    get "/:id", Controller.Transaction, :get
   end
 
 end

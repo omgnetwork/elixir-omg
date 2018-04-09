@@ -10,9 +10,9 @@ defmodule OmiseGOWatcherWeb.Controller.Transaction do
   @doc """
   Retrieves a specific transaction by id.
   """
-  def get_transaction(conn, %{"id" => id}) do
-    TransactionDB
-    |> Repo.get(id)
+  def get(conn, %{"id" => id}) do
+    id
+    |> TransactionDB.get
     |> respond_single(conn)
   end
 
