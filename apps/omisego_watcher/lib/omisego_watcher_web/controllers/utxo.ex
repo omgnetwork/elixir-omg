@@ -64,21 +64,21 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
     |> Enum.to_list()
   end
 
-  @spec record_deposits([%{owner: <<_::160>>,
-                           amount: non_neg_integer(),
-                           block_height: pos_integer()}]) :: :ok
+  @spec record_deposits([
+          %{owner: <<_::160>>, amount: non_neg_integer(), block_height: pos_integer()}
+        ]) :: :ok
   def record_deposits(deposits) do
-    make_transaction_db = fn deposit ->
-      %UtxoDB{
+    deposits
+    |> Enum.each(fn deposit ->
+      Repo.insert(%UtxoDB{
         address: deposit.owner,
         amount: deposit.amount,
         blknum: deposit.block_height,
         txindex: 0,
         oindex: 0,
         txbytes: <<>>
-    }
-    end
-    Enum.each(deposits, fn deposit -> Repo.insert(make_transaction_db.(deposit)) end)
+      })
+    end)
   end
 
   def available(conn, %{"address" => address}) do
