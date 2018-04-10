@@ -48,6 +48,7 @@ defmodule OmiseGO.API.BlockQueue do
       finality = 12
       try do
         with true <- Eth.node_ready(),
+             true <- Eth.contract_ready(),
              {:ok, parent_height} <- Eth.get_ethereum_height(),
              {:ok, mined_num} <- Eth.get_current_child_block(),
              {:ok, parent_start} <- Eth.get_root_deployment_height(),

@@ -27,6 +27,16 @@ defmodule OmiseGO.Eth do
     end
   end
 
+  @spec contract_ready() :: true | {:error, :root_chain_contract_not_available}
+  def contract_ready do
+    try do
+      {:ok, _mined_num} = get_current_child_block()
+      true
+    rescue
+      _ -> {:error, :root_chain_contract_not_available}
+    end
+  end
+
   defmodule BlockSubmission do
     @moduledoc false
 
