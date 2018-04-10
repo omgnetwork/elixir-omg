@@ -18,6 +18,15 @@ defmodule OmiseGO.Eth do
     {:ok, on_exit}
   end
 
+  @spec node_ready() :: true | {:error, :geth_still_syncing | :geth_not_listening}
+  def node_ready do
+    case Ethereumex.HttpClient.eth_syncing() do
+      {:ok, false} -> true
+      {:ok, true} -> {:error, :geth_still_syncing}
+      {:error, :econnrefused} -> {:error, :geth_not_listening}
+    end
+  end
+
   defmodule BlockSubmission do
     @moduledoc false
 
