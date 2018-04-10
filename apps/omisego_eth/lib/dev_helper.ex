@@ -1,6 +1,25 @@
 defmodule OmiseGO.Eth.DevHelpers do
   alias OmiseGO.Eth.WaitFor, as: WaitFor
 
+  def prep_dev_env do
+    {addr, {txhash, contract_address}} = create_new_contract("./")
+    body =
+      """
+      use Mix.Config
+      # File is automatically generated, don't edit!
+      # To deploy contract and fill values below, run:
+      # mix run --no-start -e 'OmiseGO.Eth.DevHelpers.prep_dev_env()'
+
+      config :omisego_eth,
+        contract: #{inspect contract_address},
+        txhash_contract: #{inspect txhash},
+        omg_addr: #{inspect addr},
+        root_path: "../../"
+      """
+    {:ok, file} = File.open("apps/omisego_eth/config/dev.exs", [:write])
+    IO.puts(file, body)
+  end
+
   defp deploy_contract(addr, bytecode, types, args) do
     enc_args = encode_constructor_params(types, args)
     txmap = %{from: addr, data: bytecode <> enc_args, gas: "0x3D0900"}
@@ -11,10 +30,13 @@ defmodule OmiseGO.Eth.DevHelpers do
   end
 
   def create_new_contract do
+    path_project_root = Application.get_env(:omisego_eth, :root_path)
+    create_new_contract(path_project_root)
+  end
+
+  def create_new_contract(path_project_root) do
     _ = Application.ensure_all_started(:ethereumex)
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
-
-    path_project_root = Application.get_env(:omisego_eth, :root_path)
 
     %{"RootChain" => %{"bytecode" => bytecode}} =
       (path_project_root <> "populus/build/contracts.json") |> File.read!() |> Poison.decode!()
