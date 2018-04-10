@@ -37,7 +37,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   # FIXME: copied from eth/fixtures - DRY
   deffixture contract(geth) do
     _ = geth
-    {from, {txhash, contract_address}} = OmiseGO.Eth.TestHelpers.create_new_contract()
+    {from, {txhash, contract_address}} = OmiseGO.Eth.DevHelpers.create_new_contract()
 
     %{
       address: contract_address,
