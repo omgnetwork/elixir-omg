@@ -6,8 +6,7 @@ defmodule OmiseGO.API.Block do
   alias OmiseGO.API.Block
   alias OmiseGO.API.Crypto
 
-  @empty_transaction_hash <<0>> |> List.duplicate(32) |> Enum.join
-  @transactions_in_block 65_536
+  @transaction_merkle_tree_height 16
 
   defstruct [:transactions, :hash]
 
@@ -16,12 +15,8 @@ defmodule OmiseGO.API.Block do
   """
   @spec merkle_hash(%__MODULE__{}) :: %__MODULE__{}
   def merkle_hash(%__MODULE__{transactions: txs}) do
-    hashed_txs =
-      txs
-      |> Enum.map(&(&1.signed_tx_hash))
-    leaves = hashed_txs ++
-             List.duplicate(@empty_transaction_hash, @transactions_in_block - length(hashed_txs))
-    root = MerkleTree.build(leaves, &Crypto.hash/1)
+    hashed_txs = txs |> Enum.map(&(&1.signed_tx_hash))
+    {:ok, root} =  MerkleTree.build(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height)
     %Block{transactions: txs, hash: root.value}
   end
 end
