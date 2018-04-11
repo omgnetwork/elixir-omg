@@ -82,7 +82,7 @@ defmodule OmiseGO.Eth do
 
     data =
       "submitBlock(bytes32)"
-      |> ABI.encode([hash |> Base.decode16!()])
+      |> ABI.encode([hash])
       |> Base.encode16()
 
     gas = 100_000
