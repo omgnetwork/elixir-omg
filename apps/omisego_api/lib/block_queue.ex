@@ -113,7 +113,7 @@ defmodule OmiseGO.API.BlockQueue do
       state
       |> Core.get_blocks_to_submit()
       |> Enum.each(fn submission ->
-        {:ok, _txhash} = OmiseGO.Eth.submit_block(submission.nonce, submission.hash, submission.gas)
+        {:ok, _txhash} = OmiseGO.Eth.submit_block(submission)
       end)
     end
   end
