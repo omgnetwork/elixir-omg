@@ -1,7 +1,6 @@
 defmodule OmiseGO.API.State.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
-
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.TestHelper, as: Test
@@ -14,20 +13,9 @@ defmodule OmiseGO.API.State.CoreTest do
   test "can spend deposits", %{alice: alice, bob: bob, state_empty: state} do
     state
     |> Test.do_deposit(alice, %{amount: 10, block_height: 1})
-    |> (&Core.exec(
-          Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: alice}], [
-            %{newowner: bob, amount: 7},
-            %{newowner: alice, amount: 3}
-          ]),
-          &1
-        )).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
     |> success?
-    |> (&Core.exec(
-          Test.create_recover([%{blknum: @block_interval, txindex: 0, oindex: 1, owner: alice}], [
-            %{newowner: bob, amount: 3}
-          ]),
-          &1
-        )).()
+    |> (&Core.exec(Test.create_recovered([{@block_interval, 0, 1, alice}], [{bob, 3}]), &1)).()
     |> success?
   end
 
@@ -36,19 +24,9 @@ defmodule OmiseGO.API.State.CoreTest do
     state
     |> Test.do_deposit(alice, %{amount: 10, block_height: 1})
     |> Test.do_deposit(bob, %{amount: 20, block_height: 2})
-    |> (&Core.exec(
-          Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: alice}], [
-            %{newowner: bob, amount: 10}
-          ]),
-          &1
-        )).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 10}]), &1)).()
     |> success?
-    |> (&Core.exec(
-          Test.create_recover([%{blknum: 2, txindex: 0, oindex: 0, owner: bob}], [
-            %{newowner: alice, amount: 20}
-          ]),
-          &1
-        )).()
+    |> (&Core.exec(Test.create_recovered([{2, 0, 0, bob}], [{alice, 20}]), &1)).()
     |> success?
   end
 
@@ -56,7 +34,6 @@ defmodule OmiseGO.API.State.CoreTest do
   test "ignores deposits from blocks not higher than the block with the last previously received deposit",
        %{alice: alice, bob: bob, state_empty: state} do
     deposits = [%{owner: alice.addr, amount: 20, block_height: 2}]
-
     assert {_, [_, {:put, :last_deposit_block_height, 2}], state} = Core.deposit(deposits, state)
 
     assert {[], [], ^state} =
@@ -76,13 +53,7 @@ defmodule OmiseGO.API.State.CoreTest do
     state_deposit = state |> Test.do_deposit(alice, %{amount: 10, block_height: 1})
 
     state_deposit
-    |> (&Core.exec(
-          Test.create_recover([%{blknum: 1, txindex: 1, oindex: 0, owner: alice}], [
-            %{newowner: bob, amount: 7},
-            %{newowner: alice, amount: 3}
-          ]),
-          &1
-        )).()
+    |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
     |> fail?(:utxo_not_found)
     |> same?(state_deposit)
   end
@@ -93,52 +64,24 @@ defmodule OmiseGO.API.State.CoreTest do
 
     state =
       state
-      |> (&Core.exec(
-            Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: alice}], [
-              %{newowner: alice, amount: 8},
-              %{newowner: bob, amount: 3}
-            ]),
-            &1
-          )).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{alice, 8}, {bob, 3}]), &1)).()
       |> fail?(:amounts_dont_add_up)
       |> same?(state)
-      |> (&Core.exec(
-            Test.create_recover(
-              [%{blknum: 1, txindex: 0, oindex: 0, owner: alice}],
-              [%{newowner: bob, amount: 8}, %{newowner: alice, amount: 2}],
-              1
-            ),
-            &1
-          )).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 8}, {alice, 2}], 1), &1)).()
       |> fail?(:amounts_dont_add_up)
       |> same?(state)
-      |> (&Core.exec(
-            Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: alice}], [
-              %{newowner: bob, amount: 8},
-              %{newowner: alice, amount: 3}
-            ]),
-            &1
-          )).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 8}, {alice, 3}]), &1)).()
       |> fail?(:amounts_dont_add_up)
       |> same?(state)
-      |> (&Core.exec(
-            Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: alice}], [
-              %{newowner: bob, amount: 2},
-              %{newowner: alice, amount: 8}
-            ]),
-            &1
-          )).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 2}, {alice, 8}]), &1)).()
       |> success?
 
     state
     |> (&Core.exec(
-          Test.create_recover(
-            [
-              %{blknum: @block_interval, txindex: 0, oindex: 0, owner: bob},
-              %{blknum: @block_interval, txindex: 0, oindex: 1, owner: alice}
-            ],
-            [%{newowner: alice, amount: 8}, %{newowner: bob, amount: 3}]
-          ),
+          Test.create_recovered([{@block_interval, 0, 0, bob}, {@block_interval, 0, 1, alice}], [
+            {alice, 8},
+            {bob, 3}
+          ]),
           &1
         )).()
     |> fail?(:amounts_dont_add_up)
@@ -148,22 +91,10 @@ defmodule OmiseGO.API.State.CoreTest do
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can't spend other people's funds", %{alice: alice, bob: bob, state_alice_deposit: state} do
     state
-    |> (&Core.exec(
-          Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: bob}], [
-            %{newowner: bob, amount: 8},
-            %{newowner: alice, amount: 3}
-          ]),
-          &1
-        )).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, bob}], [{bob, 8}, {alice, 3}]), &1)).()
     |> fail?(:incorrect_spender)
     |> same?(state)
-    |> (&Core.exec(
-          Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: bob}], [
-            %{newowner: bob, amount: 8},
-            %{newowner: alice, amount: 3}
-          ]),
-          &1
-        )).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, bob}], [{alice, 10}]), &1)).()
     |> fail?(:incorrect_spender)
     |> same?(state)
   end
@@ -171,30 +102,17 @@ defmodule OmiseGO.API.State.CoreTest do
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can't spend spent", %{alice: alice, bob: bob, state_alice_deposit: state} do
     transactions = [
-      Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: alice}], [
-        %{newowner: bob, amount: 7},
-        %{newowner: alice, amount: 3}
-      ]),
-      Test.create_recover(
-        [
-          %{blknum: 0, txindex: 0, oindex: 0, owner: %{priv: <<>>, addr: nil}},
-          %{blknum: 1, txindex: 0, oindex: 0, owner: alice}
-        ],
-        [%{newowner: bob, amount: 7}, %{newowner: alice, amount: 3}]
-      )
+      Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]),
+      Test.create_recovered([{0, 0, 0, %{priv: <<>>, addr: nil}}, {1, 0, 0, alice}], [
+        {bob, 7},
+        {alice, 3}
+      ])
     ]
 
     for first <- transactions,
         second <- transactions do
-      state2 =
-        state
-        |> (&Core.exec(first, &1)).()
-        |> success?
-
-      state2
-      |> (&Core.exec(second, &1)).()
-      |> fail?(:utxo_not_found)
-      |> same?(state2)
+      state2 = state |> (&Core.exec(first, &1)).() |> success?
+      state2 |> (&Core.exec(second, &1)).() |> fail?(:utxo_not_found) |> same?(state2)
     end
   end
 
@@ -206,35 +124,16 @@ defmodule OmiseGO.API.State.CoreTest do
     state_alice_deposit: state
   } do
     state
-    |> (&Core.exec(
-          Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: alice}], [
-            %{newowner: bob, amount: 7},
-            %{newowner: alice, amount: 3}
-          ]),
-          &1
-        )).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
+    |> success?
+    |> (&Core.exec(Test.create_recovered([{@block_interval, 0, 0, bob}], [{carol, 7}]), &1)).()
+    |> success?
+    |> (&Core.exec(Test.create_recovered([{@block_interval, 0, 1, alice}], [{carol, 3}]), &1)).()
     |> success?
     |> (&Core.exec(
-          Test.create_recover([%{blknum: @block_interval, txindex: 0, oindex: 0, owner: bob}], [
-            %{newowner: carol, amount: 7}
-          ]),
-          &1
-        )).()
-    |> success?
-    |> (&Core.exec(
-          Test.create_recover([%{blknum: @block_interval, txindex: 0, oindex: 1, owner: alice}], [
-            %{newowner: carol, amount: 3}
-          ]),
-          &1
-        )).()
-    |> success?
-    |> (&Core.exec(
-          Test.create_recover(
-            [
-              %{blknum: @block_interval, txindex: 1, oindex: 0, owner: carol},
-              %{blknum: @block_interval, txindex: 2, oindex: 0, owner: carol}
-            ],
-            [%{newowner: alice, amount: 10}]
+          Test.create_recovered(
+            [{@block_interval, 1, 0, carol}, {@block_interval, 2, 0, carol}],
+            [{alice, 10}]
           ),
           &1
         )).()
@@ -247,31 +146,15 @@ defmodule OmiseGO.API.State.CoreTest do
     {:ok, {_, _, _, state}} = Core.form_block(state, @block_interval, next_block_height)
 
     state
-    |> (&Core.exec(
-          Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: alice}], [
-            %{newowner: bob, amount: 7},
-            %{newowner: alice, amount: 3}
-          ]),
-          &1
-        )).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
     |> success?
-    |> (&Core.exec(
-          Test.create_recover([%{blknum: next_block_height, txindex: 0, oindex: 0, owner: bob}], [
-            %{newowner: bob, amount: 7}
-          ]),
-          &1
-        )).()
+    |> (&Core.exec(Test.create_recovered([{next_block_height, 0, 0, bob}], [{bob, 7}]), &1)).()
     |> success?
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "forming block doesn't unspend", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    recovered =
-      Test.create_recover(
-        [%{blknum: 1, txindex: 0, oindex: 0, owner: alice}],
-        [%{newowner: bob, amount: 7}, %{newowner: alice, amount: 3}],
-        0
-      )
+    recovered = Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}])
 
     {:ok, {_, _, _, state}} =
       state
@@ -279,23 +162,17 @@ defmodule OmiseGO.API.State.CoreTest do
       |> success?
       |> Core.form_block(1 * @block_interval, 2 * @block_interval)
 
-    recovered
-    |> Core.exec(state)
-    |> fail?(:utxo_not_found)
-    |> same?(state)
+    recovered |> Core.exec(state) |> fail?(:utxo_not_found) |> same?(state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "spending emits event trigger", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    recover =
-      Test.create_recover(
-        [%{blknum: 1, txindex: 0, oindex: 0, owner: alice}],
-        [%{newowner: bob, amount: 7}, %{newowner: alice, amount: 3}],
-        0
-      )
+    recover = Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}])
 
     assert {:ok, {_, [trigger], _, _}} =
-             state |> (&Core.exec(recover, &1)).() |> success?
+             state
+             |> (&Core.exec(recover, &1)).()
+             |> success?
              |> Core.form_block(1 * @block_interval, 2 * @block_interval)
 
     assert trigger == %{tx: recover}
@@ -309,20 +186,9 @@ defmodule OmiseGO.API.State.CoreTest do
   } do
     state =
       state
-      |> (&Core.exec(
-            Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: alice}], [
-              %{newowner: bob, amount: 7},
-              %{newowner: alice, amount: 3}
-            ]),
-            &1
-          )).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
       |> success?
-      |> (&Core.exec(
-            Test.create_recover([%{blknum: @block_interval, txindex: 0, oindex: 0, owner: bob}], [
-              %{newowner: alice, amount: 7}
-            ]),
-            &1
-          )).()
+      |> (&Core.exec(Test.create_recovered([{@block_interval, 0, 0, bob}], [{alice, 7}]), &1)).()
       |> success?
 
     assert {:ok, {_, [_trigger1, _trigger2], _, _}} =
@@ -336,13 +202,7 @@ defmodule OmiseGO.API.State.CoreTest do
     state_alice_deposit: state
   } do
     state
-    |> (&Core.exec(
-          Test.create_recover([%{blknum: 1, txindex: 1, oindex: 0, owner: alice}], [
-            %{newowner: bob, amount: 7},
-            %{newowner: alice, amount: 3}
-          ]),
-          &1
-        )).()
+    |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
     |> same?(state)
 
     assert {:ok, {_, [], _, _}} = Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
@@ -357,7 +217,6 @@ defmodule OmiseGO.API.State.CoreTest do
              Core.deposit([%{owner: alice, amount: 4, block_height: @block_interval}], state)
 
     assert trigger == %{deposit: %{owner: alice, amount: 4}}
-
     assert {:ok, {_, [], _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
   end
 
@@ -369,13 +228,7 @@ defmodule OmiseGO.API.State.CoreTest do
   } do
     state =
       state
-      |> (&Core.exec(
-            Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: alice}], [
-              %{newowner: bob, amount: 7},
-              %{newowner: alice, amount: 3}
-            ]),
-            &1
-          )).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
       |> success?
 
     next_block_height = 2 * @block_interval
@@ -393,19 +246,10 @@ defmodule OmiseGO.API.State.CoreTest do
     stable_bob: bob,
     state_stable_alice_deposit: state
   } do
-    recovered_tx_1 =
-      Test.create_recover(
-        [%{blknum: 1, txindex: 0, oindex: 0, owner: alice}],
-        [%{newowner: bob, amount: 7}, %{newowner: alice, amount: 3}],
-        0
-      )
+    recovered_tx_1 = Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}], 0)
 
     recovered_tx_2 =
-      Test.create_recover(
-        [%{blknum: @block_interval, txindex: 0, oindex: 0, owner: bob}],
-        [%{newowner: alice, amount: 2}, %{newowner: bob, amount: 5}],
-        0
-      )
+      Test.create_recovered([{@block_interval, 0, 0, bob}], [{alice, 2}, {bob, 5}], 0)
 
     state =
       state
@@ -436,18 +280,11 @@ defmodule OmiseGO.API.State.CoreTest do
   } do
     state =
       state
-      |> (&Core.exec(
-            Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: alice}], [
-              %{newowner: bob, amount: 7},
-              %{newowner: alice, amount: 3}
-            ]),
-            &1
-          )).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
       |> success?
 
     next_block_height = 2 * @block_interval
     {:ok, {_, _, _, state}} = Core.form_block(state, @block_interval, next_block_height)
-
     expected_block = empty_block()
 
     {:ok, {^expected_block, _, _, _}} =
@@ -479,13 +316,7 @@ defmodule OmiseGO.API.State.CoreTest do
   } do
     {:ok, {_, _, db_updates, state}} =
       state
-      |> (&Core.exec(
-            Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: alice}], [
-              %{newowner: bob, amount: 7},
-              %{newowner: alice, amount: 3}
-            ]),
-            &1
-          )).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
       |> success?
       |> Core.form_block(1 * @block_interval, 2 * @block_interval)
 
@@ -506,12 +337,12 @@ defmodule OmiseGO.API.State.CoreTest do
     {:ok, {_, _, db_updates2, state}} =
       state
       |> (&Core.exec(
-            Test.create_recover(
+            Test.create_recovered(
               [
                 %{blknum: @block_interval, txindex: 0, oindex: 0, owner: bob},
                 %{blknum: @block_interval, txindex: 0, oindex: 1, owner: alice}
               ],
-              [%{newowner: bob, amount: 10}]
+              [{bob, 10}]
             ),
             &1
           )).()
@@ -549,12 +380,9 @@ defmodule OmiseGO.API.State.CoreTest do
   @tag fixtures: [:state_empty]
   test "empty blocks are pushed to db", %{state_empty: state} do
     {:ok, {_, _, db_updates, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
-
     is_block_put? = fn {operation, type, _} -> operation == :put && type == :block end
     assert Enum.count(db_updates, is_block_put?) == 1
-
     expected_block = empty_block()
-
     assert {:put, :block, ^expected_block} = Enum.find(db_updates, is_block_put?)
   end
 
@@ -569,13 +397,7 @@ defmodule OmiseGO.API.State.CoreTest do
       )
 
     state
-    |> (&Core.exec(
-          Test.create_recover([%{blknum: 1, txindex: 0, oindex: 0, owner: alice}], [
-            %{newowner: alice, amount: 7},
-            %{newowner: alice, amount: 3}
-          ]),
-          &1
-        )).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{alice, 7}, {alice, 3}]), &1)).()
     |> success?
   end
 

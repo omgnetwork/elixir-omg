@@ -21,16 +21,24 @@ defmodule OmiseGO.API.TestHelper do
     new_state
   end
 
-  def create_recover(input, output, fee \\ 0) do
+  def create_recovered(inputs, outputs, fee \\ 0) do
+    inputs = inputs |> Enum.map(fn
+        %{} = elem -> elem
+        {blknum, txindex, oindex, owner} -> %{blknum: blknum, txindex: txindex, oindex: oindex, owner: owner}
+    end)
+    outputs = outputs |> Enum.map(fn
+        %{} = elem -> elem
+        {newowner, amount} -> %{newowner: newowner, amount: amount}
+    end)
     raw_tx =
       Transaction.new(
-        input |> Enum.map(&Map.delete(&1, :owner)),
-        output |> Enum.map(&%{&1 | newowner: &1.newowner.addr}),
+        inputs |> Enum.map(&Map.delete(&1, :owner)),
+        outputs |> Enum.map(&%{&1 | newowner: &1.newowner.addr}),
         fee
       )
 
     [sig1, sig2 | _] =
-      input |> Enum.map(fn %{owner: owner} -> owner.priv end) |> Enum.concat([<<>>, <<>>])
+      inputs |> Enum.map(fn %{owner: owner} -> owner.priv end) |> Enum.concat([<<>>, <<>>])
 
     Transaction.Recovered.recover_from(Transaction.sign(raw_tx, sig1, sig2))
   end
