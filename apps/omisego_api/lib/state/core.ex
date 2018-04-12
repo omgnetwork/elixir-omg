@@ -261,4 +261,28 @@ defmodule OmiseGO.API.State.Core do
       false -> :ok
     end
   end
+
+  @doc """
+  Spends exited utxos
+  """
+  def exit_utxos(exiting_utxos, %Core{height: height, tx_index: tx_index, utxos: utxos} = state) do
+    exiting_utxos =
+      exiting_utxos
+      |> Enum.filter(fn %{block_height: block_height, txindex: txindex, oindex: oindex} ->
+          Map.has_key?(utxos, {block_height, txindex, oindex}) end)
+
+    event_triggers = exiting_utxos
+      |> Enum.map(fn %{owner: owner, block_height: block_height, txindex: txindex, oindex: oindex} ->
+        %{exit: %{owner: owner, block_height: block_height, txindex: txindex, oindex: oindex}} end)
+    state =
+      exiting_utxos
+      |> Enum.reduce(state, fn (%{block_height: block_height, txindex: txindex, oindex: oindex}, state) ->
+        %{state | utxos: Map.delete(state.utxos, {block_height, txindex, oindex})} end)
+    deletes =
+      exiting_utxos
+      |> Enum.map(fn %{block_height: block_height, txindex: txindex, oindex: oindex} ->
+        {:delete, :utxo, {block_height, txindex, oindex}} end)
+
+    {event_triggers, deletes, state}
+  end
 end

@@ -3,6 +3,9 @@ defmodule OmiseGO.Eth do
   Adapter/port to ethereum
   """
 
+  @block_offset 1_000_000_000
+  @transaction_offset 10_000
+
   def geth do
     _ = Application.ensure_all_started(:porcelain)
     _ = Application.ensure_all_started(:ethereumex)
@@ -174,5 +177,30 @@ defmodule OmiseGO.Eth do
     catch
       _ -> {:error, :failed_to_get_deposits}
     end
+  end
+
+  @doc """
+  Returns lists of deposits sorted by child chain block number
+  """
+  def get_exits(block_from, block_to, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+
+    event = encode_event_signature("Exit(address,uint256)")
+    parse_exit =
+      fn "0x" <> deposit ->
+        [owner, utxo_position] =
+          deposit
+          |> Base.decode16!(case: :lower)
+          |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}])
+        owner = "0x" <> Base.encode16(owner, case: :lower)
+        block_height = div(utxo_position, @block_offset)
+        txindex = utxo_position |> rem(@block_offset) |> div(@transaction_offset)
+        oindex = utxo_position - block_height * @block_offset - txindex * @transaction_offset
+        %{owner: owner, block_height: block_height, txindex: txindex, oindex: oindex}
+      end
+
+    with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
+         exits <- get_logs(unfiltered_logs, parse_exit),
+         do: {:ok, Enum.sort(exits, &(&1.block_height > &2.block_height))}
   end
 end

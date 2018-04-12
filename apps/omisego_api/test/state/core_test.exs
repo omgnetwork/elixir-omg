@@ -651,6 +651,66 @@ defmodule OmiseGO.API.State.CoreTest do
     # FIXME
   end
 
+  @tag fixtures: [:alice, :state_alice_deposit]
+  test "spends utxo when exiting", %{alice: alice, state_alice_deposit: state} do
+    raw_tx =
+      %Transaction{
+        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        newowner1: alice.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
+      }
+
+    state =
+      %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
+      |> Core.exec(state) |> success?
+
+    expected_owner = alice.addr
+    {[%{exit: %{owner: ^expected_owner, block_height: @block_interval, txindex: 0, oindex: 0}},
+      %{exit: %{owner: ^expected_owner, block_height: @block_interval, txindex: 0, oindex: 1}}],
+     [{:delete, :utxo, {@block_interval, 0, 0}}, {:delete, :utxo, {@block_interval, 0, 1}}],
+     state} =
+      [%{owner: alice.addr, block_height: @block_interval, txindex: 0, oindex: 0},
+       %{owner: alice.addr, block_height: @block_interval, txindex: 0, oindex: 1}]
+      |> Core.exit_utxos(state)
+
+    exited_spend_1 = %Transaction{
+      blknum1: @block_interval, txindex1: 1, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+      newowner1: alice.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
+    }
+    %Transaction.Recovered{raw_tx: exited_spend_1, spender1: alice.addr}
+    |> Core.exec(state) |> fail?(:utxo_not_found) |> same?(state)
+
+    exited_spend_2 = %Transaction{
+      blknum1: @block_interval, txindex1: 1, oindex1: 1, blknum2: 0, txindex2: 0, oindex2: 0,
+      newowner1: alice.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
+    }
+    %Transaction.Recovered{raw_tx: exited_spend_2, spender1: alice.addr}
+    |> Core.exec(state) |> fail?(:utxo_not_found) |> same?(state)
+  end
+
+  @tag fixtures: [:alice, :state_alice_deposit]
+  test "does not change when exiting spent utxo", %{alice: alice, state_alice_deposit: state} do
+    raw_tx =
+      %Transaction{
+        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        newowner1: alice.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
+      }
+
+    state =
+      %Transaction.Recovered{raw_tx: raw_tx, spender1: alice.addr}
+      |> Core.exec(state) |> success?
+
+    {[], [], ^state} =
+      [%{owner: alice.addr, block_height: 1, txindex: 0, oindex: 0}]
+      |> Core.exit_utxos(state)
+  end
+
+  @tag fixtures: [:state_empty]
+  test "does not change when exiting non-existent utxo", %{state_empty: state} do
+    {[], [], ^state} =
+      [%{owner: "owner", block_height: 1, txindex: 0, oindex: 0}]
+      |> Core.exit_utxos(state)
+  end
+
   defp success?(result) do
     assert {:ok, state} = result
     state
