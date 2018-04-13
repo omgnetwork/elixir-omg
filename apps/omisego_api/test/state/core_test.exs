@@ -338,10 +338,7 @@ defmodule OmiseGO.API.State.CoreTest do
       state
       |> (&Core.exec(
             Test.create_recovered(
-              [
-                %{blknum: @block_interval, txindex: 0, oindex: 0, owner: bob},
-                %{blknum: @block_interval, txindex: 0, oindex: 1, owner: alice}
-              ],
+              [{@block_interval, 0, 0, bob}, {@block_interval, 0, 1, alice}],
               [{bob, 10}]
             ),
             &1

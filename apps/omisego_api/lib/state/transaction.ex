@@ -97,42 +97,31 @@ defmodule OmiseGO.API.State.Transaction do
   @number_of_transactions 2
   @doc """
    assumptions:
-     length(inputs) <= @nmber_of_transaction 
+     length(inputs) <= @number_of_transaction
      length(outputs) <= @number_of_transaction
    behavior:
      at first expant inputs and outputs to size of @number_of_transaction
-      for inputs add %{blknum: 0, txindex: 0, oindex: 0}
-      for outpust add %{newowner: 0, amount: 0}
-     merge all inputs and outputs where key atom are expand by index (start from 1) then add key fee  
+      for inputs add {0, 0, 0} where {blknum, txindex, oindex}
+      for outpust add {0, 0} where {newowner, amount}
+     merge all inputs and outputs where key atom are expand by index (start from 1) then add key fee
   """
   @spec new(
-          list(%{blknum: pos_integer, txindex: pos_integer, oindex: 0 | 1}),
-          list(%{newowner: <<_::256>>, amount: pos_integer}),
+          list({pos_integer, pos_integer, 0 | 1}),
+          list({<<_::256>>, pos_integer}),
           pos_integer
-        )  :: __MODULE__.t()
+        ) :: __MODULE__.t()
   def new(inputs, outputs, fee) do
-    inputs =
-      inputs ++
-        List.duplicate(
-          %{blknum: 0, txindex: 0, oindex: 0},
-          @number_of_transactions - Kernel.length(inputs)
-        )
-
-    outputs =
-      outputs ++
-        List.duplicate(
-          %{newowner: 0, amount: 0},
-          @number_of_transactions - Kernel.length(outputs)
-        )
+    inputs = inputs ++ List.duplicate({0, 0, 0}, @number_of_transactions - Kernel.length(inputs))
+    outputs = outputs ++ List.duplicate({0, 0}, @number_of_transactions - Kernel.length(outputs))
 
     inputs =
       inputs
       |> Enum.with_index(1)
-      |> Enum.map(fn {input, index} ->
+      |> Enum.map(fn {{blknum, txindex, oindex}, index} ->
         %{
-          String.to_existing_atom("blknum#{index}") => input.blknum,
-          String.to_existing_atom("txindex#{index}") => input.txindex,
-          String.to_existing_atom("oindex#{index}") => input.oindex
+          String.to_existing_atom("blknum#{index}") => blknum,
+          String.to_existing_atom("txindex#{index}") => txindex,
+          String.to_existing_atom("oindex#{index}") => oindex
         }
       end)
       |> Enum.reduce(%{}, &Map.merge/2)
@@ -140,10 +129,10 @@ defmodule OmiseGO.API.State.Transaction do
     outputs =
       outputs
       |> Enum.with_index(1)
-      |> Enum.map(fn {output, index} ->
+      |> Enum.map(fn {{newowner, amount}, index} ->
         %{
-          String.to_existing_atom("newowner#{index}") => output.newowner,
-          String.to_existing_atom("amount#{index}") => output.amount
+          String.to_existing_atom("newowner#{index}") => newowner,
+          String.to_existing_atom("amount#{index}") => amount
         }
       end)
       |> Enum.reduce(%{}, &Map.merge/2)
