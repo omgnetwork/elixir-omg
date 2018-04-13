@@ -6,7 +6,7 @@ defmodule OmiseGO.DB do
 
   ### Client (port)
 
-  @server_name Application.get_env(:omisego_db, :server_name)
+  @server_name OmiseGO.DB.LevelDBServer
 
   def multi_update(db_updates, server_name \\ @server_name) do
     GenServer.call(server_name, {:multi_update, db_updates})
@@ -18,7 +18,7 @@ defmodule OmiseGO.DB do
   end
 
   # TODO: FreshBlocks fetches by block number and returns by block number, while we probably want by block hash
-  @spec blocks(block_to_fetch :: list()) :: {:ok, map} | {:error, any}
+  @spec blocks(block_to_fetch :: list()) :: {:ok, list()} | {:error, any}
   def blocks(blocks_to_fetch, server_name \\ @server_name) do
     GenServer.call(server_name, {:blocks, blocks_to_fetch})
   end

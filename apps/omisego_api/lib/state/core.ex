@@ -12,13 +12,24 @@ defmodule OmiseGO.API.State.Core do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Block
 
-  def extract_initial_state(_utxos_query_result, _height_query_result, _last_deposit_height_query_result) do
+  def extract_initial_state(
+        utxos_query_result,
+        height_query_result,
+        last_deposit_height_query_result,
+        child_block_interval
+      ) do
     # extract height, last deposit height and utxos from query result
-    # FIXME
-    height = 1
-    # FIXME
-    utxos = %{}
-    %__MODULE__{height: height, last_deposit_height: 0, utxos: utxos}
+    height = height_query_result + child_block_interval
+
+    utxos =
+      utxos_query_result
+      |> Enum.into(%{})
+
+    %__MODULE__{
+      height: height,
+      last_deposit_height: last_deposit_height_query_result,
+      utxos: utxos
+    }
   end
 
   #TODO: Add specs :raw_tx, :signed_tx_hash, spender1: @zero_address, spender2: @zero_address
@@ -34,15 +45,15 @@ defmodule OmiseGO.API.State.Core do
          :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2 + fee) do
       {:ok,
        state
-       |> apply_spend(raw_tx)
-       |> add_pending_tx(recovered_tx)}
+       |> add_pending_tx(recovered_tx)
+       |> apply_spend(raw_tx)}
     else
       {:error, _reason} = error -> {error, state}
     end
   end
 
-  defp add_pending_tx(%Core{pending_txs: pending_txs} = state, new_tx) do
-    %Core{state | pending_txs: [new_tx] ++ pending_txs}
+  defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, new_tx) do
+    %Core{state | pending_txs: [{tx_index, new_tx} | pending_txs]}
   end
 
   # if there's no spender, make sure we cannot spend
@@ -103,7 +114,7 @@ defmodule OmiseGO.API.State.Core do
          } = tx
        ) do
 
-    new_utxos = get_non_zero_amount_utxos(height, tx_index, tx)
+    new_utxos = get_non_zero_amount_utxos(tx, height, tx_index)
     %Core{
       state
       | tx_index: tx_index + 1,
@@ -115,33 +126,67 @@ defmodule OmiseGO.API.State.Core do
     }
   end
 
-  defp get_non_zero_amount_utxos(_, _, %Transaction{amount1: 0, amount2: 0}), do: %{}
-  defp get_non_zero_amount_utxos(height, tx_index, %Transaction{amount1: 0} = tx) do
-    %{{height, tx_index, 1} => %{owner: tx.newowner2, amount: tx.amount2}}
+  defp get_non_zero_amount_utxos(%Transaction{} = tx, height, tx_index) do
+    tx
+    |> get_utxos_at(height, tx_index)
+    |> Enum.filter(fn {_key, value} -> is_non_zero_amount?(value) end)
+    |> Map.new
   end
-  defp get_non_zero_amount_utxos(height, tx_index, %Transaction{amount2: 0} = tx) do
-    %{{height, tx_index, 0} => %{owner: tx.newowner1, amount: tx.amount1}}
-  end
-  defp get_non_zero_amount_utxos(height, tx_index, %Transaction{} = tx) do
+
+  defp get_utxos_at(%Transaction{} = tx, height, tx_index) do
     %{
       {height, tx_index, 0} => %{owner: tx.newowner1, amount: tx.amount1},
       {height, tx_index, 1} => %{owner: tx.newowner2, amount: tx.amount2}
     }
   end
 
-  def form_block(%Core{pending_txs: txs} = state, block_num_to_form, next_block_num_to_form) do
-    # block generation
-    # generating event triggers
-    # generate requests to persistence
-    # drop pending txs from state, update height etc.
+  defp is_non_zero_amount?(%{amount: 0}), do: false
+  defp is_non_zero_amount?(%{amount: _}), do: true
+
+  @doc """
+   - Generates block and calculates it's root hash for submission
+   - generates triggers for events
+   - generates requests to the persistence layer for a block
+   - processes pending txs gathered, updates height etc
+  """
+  def form_block(
+    %Core{pending_txs: reverse_txs, height: height} = state,
+    block_num_to_form,
+    next_block_num_to_form
+  ) do
     with :ok <- validate_block_number(block_num_to_form, state) do
-      block = %Block{transactions: Enum.reverse(txs)} |> Block.merkle_hash()
+
+      txs = Enum.reverse(reverse_txs)
+
+      block =
+        txs
+        |> Enum.map(fn {_tx_index, tx} -> tx end)
+        |> (fn txs -> %Block{transactions: txs} end).()
+        |> Block.merkle_hash()
 
       event_triggers =
         txs
-        |> Enum.map(fn tx -> %{tx: tx} end)
+        |> Enum.map(fn {_tx_index, tx} -> %{tx: tx} end)
 
-      db_updates = []
+      # TODO: consider calculating this along with updating the `utxos` field in the state for consistency
+      db_updates_new_utxos =
+        txs
+        |> Enum.flat_map(fn {tx_index, %{raw_tx: tx}} -> get_non_zero_amount_utxos(tx, height, tx_index) end)
+        |> Enum.map(fn {new_utxo_key, new_utxo} -> {:put, :utxo, %{new_utxo_key => new_utxo}} end)
+
+      db_updates_spent_utxos =
+        txs
+        |> Enum.flat_map(fn {_tx_index, %{raw_tx: tx}} ->
+          [{tx.blknum1, tx.txindex1, tx.oindex1}, {tx.blknum2, tx.txindex2, tx.oindex2}]
+        end)
+        |> Enum.filter(fn utxo_key -> utxo_key != {0, 0, 0} end)
+        |> Enum.map(fn utxo_key -> {:delete, :utxo, utxo_key} end)
+
+      db_updates_block = [{:put, :block, block}]
+
+      db_updates =
+        [db_updates_new_utxos, db_updates_spent_utxos, db_updates_block]
+        |> Enum.concat()
 
       new_state = %Core{
         state
@@ -173,7 +218,13 @@ defmodule OmiseGO.API.State.Core do
       |> Enum.map(fn %{owner: owner, amount: amount} -> %{deposit: %{amount: amount, owner: owner}} end)
 
     last_deposit_height = get_last_deposit_height(deposits, last_deposit_height)
-    db_updates = deposit_db_updates(deposits, last_deposit_height)
+
+    # FIXME dry the function transforming utxos to db puts
+    db_updates_new_utxos =
+      new_utxos
+      |> Enum.map(fn {new_utxo_key, new_utxo} -> {:put, :utxo, %{new_utxo_key => new_utxo}} end)
+
+    db_updates = db_updates_new_utxos ++ last_deposit_height_db_update(deposits, last_deposit_height)
 
     new_state =
       %Core{state |
@@ -194,11 +245,11 @@ defmodule OmiseGO.API.State.Core do
     end
   end
 
-  defp deposit_db_updates(deposits, last_deposit_height) do
+  defp last_deposit_height_db_update(deposits, last_deposit_height) do
     if Enum.empty?(deposits) do
       []
     else
-      [{:last_deposit_block_height, last_deposit_height}]
+      [{:put, :last_deposit_block_height, last_deposit_height}]
     end
   end
 

@@ -19,7 +19,9 @@ defmodule OmiseGO.DB.MixProject do
   def application do
     [
       env: [
-        db_path: "",
+        leveldb_path: Path.join([System.get_env("HOME"), ".omisego/data"]),
+        server_module: OmiseGO.DB.LevelDBServer,
+        server_name: OmiseGO.DB.LevelDBServer,
       ],
       extra_applications: [:logger],
       mod: {OmiseGO.DB.Application, []}

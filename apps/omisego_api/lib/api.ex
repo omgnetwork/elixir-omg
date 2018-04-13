@@ -5,6 +5,7 @@ defmodule OmiseGO.API do
 
   alias OmiseGO.API.State
   alias OmiseGO.API.Core
+  alias OmiseGO.API.FreshBlocks
   alias OmiseGO.DB
 
   @spec submit(byte) :: {:ok} | {:error, any}
@@ -14,8 +15,8 @@ defmodule OmiseGO.API do
          do: {tx_result, recovered_tx.signed_tx_hash}
   end
 
-  def get_block(_height) do
-    # BlockCache.get_block(height)
+  def get_block(hash) do
+    FreshBlocks.get(hash)
   end
 
   # TODO: this will likely be dropped from the OmiseGO.API and here

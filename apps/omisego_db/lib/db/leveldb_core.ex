@@ -10,8 +10,8 @@ defmodule OmiseGO.DB.LevelDBCore do
     |> Enum.map(&parse_multi_update/1)
   end
 
-  defp parse_multi_update({:put, type, tx}), do: {:put, key(type, tx), encode_value(type, tx)}
-  defp parse_multi_update({:delete, type, tx}), do: {:delete, key(type, tx)}
+  defp parse_multi_update({:put, type, item}), do: {:put, key(type, item), encode_value(type, item)}
+  defp parse_multi_update({:delete, type, item}), do: {:delete, key(type, item)}
 
   defp decode_response(_type, db_response) do
     case db_response do

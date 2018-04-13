@@ -6,7 +6,7 @@ defmodule OmiseGO.API.State do
 
   ### Client
 
-  def start_link do
+  def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
@@ -28,6 +28,7 @@ defmodule OmiseGO.API.State do
 
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Eventer
+  alias OmiseGO.API.FreshBlocks
   alias OmiseGO.DB
 
   @doc """
@@ -37,7 +38,16 @@ defmodule OmiseGO.API.State do
     with {:ok, height_query_result} <- DB.child_top_block_number(),
          {:ok, last_deposit_query_result} <- DB.last_deposit_height(),
          {:ok, utxos_query_result} <- DB.utxos() do
-       {:ok, Core.extract_initial_state(utxos_query_result, height_query_result, last_deposit_query_result)}
+      {
+        :ok,
+        Core.extract_initial_state(
+          utxos_query_result,
+          height_query_result,
+          last_deposit_query_result,
+          # FIXME provide from somewhere
+          1000
+        )
+      }
     end
   end
 
@@ -68,8 +78,9 @@ defmodule OmiseGO.API.State do
     result = Core.form_block(state, block_num_to_form, next_block_num_to_form)
     with {:ok, {block, event_triggers, db_updates, new_state}} <- result,
          :ok <- DB.multi_update(db_updates) do
-      GenServer.reply(from, {:ok, block})
+      GenServer.reply(from, {:ok, block.hash})
       Eventer.notify(event_triggers)
+      :ok = FreshBlocks.push(block)
       {:noreply, new_state}
     end
  end
