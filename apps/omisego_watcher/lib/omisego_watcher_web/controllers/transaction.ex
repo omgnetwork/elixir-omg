@@ -5,14 +5,14 @@ defmodule OmiseGOWatcherWeb.Controller.Transaction do
 
   use OmiseGOWatcherWeb, :controller
 
-  alias OmiseGOWatcher.{Repo, TransactionDB}
+  alias OmiseGOWatcher.{TransactionDB}
 
   @doc """
   Retrieves a specific transaction by id.
   """
   def get(conn, %{"id" => id}) do
     id
-    |> TransactionDB.get
+    |> TransactionDB.get()
     |> respond_single(conn)
   end
 

@@ -39,9 +39,9 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
 
     {:ok, %TransactionDB{txid: id}} = TransactionDB.insert(id, @signed_tx, txblknum, txindex)
 
-    expected_transaction = create_expected_transaction(id,  @signed_tx, txblknum, txindex)
+    expected_transaction = create_expected_transaction(id, @signed_tx, txblknum, txindex)
 
-    assert expected_transaction == TransactionDB.get(id) |> delete_meta
+    assert expected_transaction == delete_meta(TransactionDB.get(id))
   end
 
   test "insert and retrive block of transactions " do
@@ -61,11 +61,11 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
         txblknum
       )
 
-    expected_transaction_1 = create_expected_transaction(txid_1,  signed_tx_1, txblknum, 0)
-    expected_transaction_2 = create_expected_transaction(txid_2,  signed_tx_2, txblknum, 1)
+    expected_transaction_1 = create_expected_transaction(txid_1, signed_tx_1, txblknum, 0)
+    expected_transaction_2 = create_expected_transaction(txid_2, signed_tx_2, txblknum, 1)
 
-    assert expected_transaction_1 == TransactionDB.get(txid_1) |> delete_meta
-    assert expected_transaction_2 == TransactionDB.get(txid_2) |> delete_meta
+    assert expected_transaction_1 == delete_meta(TransactionDB.get(txid_1))
+    assert expected_transaction_2 == delete_meta(TransactionDB.get(txid_2))
   end
 
   defp create_expected_transaction(txid, signed_tx, txblknum, txindex) do
@@ -81,5 +81,4 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   defp delete_meta(%TransactionDB{} = transaction) do
     Map.delete(transaction, :__meta__)
   end
-
 end
