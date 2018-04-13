@@ -32,20 +32,22 @@ defmodule OmiseGO.API.State.CoreTest do
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "ignores deposits from blocks not higher than the block with the last previously received deposit",
-       %{alice: alice, bob: bob, state_empty: state} do
+       %{
+         alice: alice,
+         bob: bob,
+         state_empty: state
+       } do
     deposits = [%{owner: alice.addr, amount: 20, block_height: 2}]
     assert {_, [_, {:put, :last_deposit_block_height, 2}], state} = Core.deposit(deposits, state)
 
-    assert {[], [], ^state} =
-             Core.deposit([%{owner: bob.addr, amount: 20, block_height: 1}], state)
+    assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, amount: 20, block_height: 1}], state)
   end
 
   @tag fixtures: [:bob]
   test "ignores deposits from blocks not higher than the deposit height read from db", %{bob: bob} do
     state = Core.extract_initial_state(%{}, 0, 1, @block_interval)
 
-    assert {[], [], ^state} =
-             Core.deposit([%{owner: bob.addr, amount: 20, block_height: 1}], state)
+    assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, amount: 20, block_height: 1}], state)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
@@ -131,10 +133,9 @@ defmodule OmiseGO.API.State.CoreTest do
     |> (&Core.exec(Test.create_recovered([{@block_interval, 0, 1, alice}], [{carol, 3}]), &1)).()
     |> success?
     |> (&Core.exec(
-          Test.create_recovered(
-            [{@block_interval, 1, 0, carol}, {@block_interval, 2, 0, carol}],
-            [{alice, 10}]
-          ),
+          Test.create_recovered([{@block_interval, 1, 0, carol}, {@block_interval, 2, 0, carol}], [
+            {alice, 10}
+          ]),
           &1
         )).()
     |> success?
@@ -337,10 +338,9 @@ defmodule OmiseGO.API.State.CoreTest do
     {:ok, {_, _, db_updates2, state}} =
       state
       |> (&Core.exec(
-            Test.create_recovered(
-              [{@block_interval, 0, 0, bob}, {@block_interval, 0, 1, alice}],
-              [{bob, 10}]
-            ),
+            Test.create_recovered([{@block_interval, 0, 0, bob}, {@block_interval, 0, 1, alice}], [
+              {bob, 10}
+            ]),
             &1
           )).()
       |> success?
