@@ -10,17 +10,33 @@ defmodule OmiseGO.API.State.Transaction do
 
   # TODO: probably useful to structure these fields somehow ore readable like
   # defstruct [:input1, :input2, :output1, :output2, :fee], with in/outputs as structs or tuples?
-  defstruct blknum1: 0,
-            txindex1: 0,
-            oindex1: 0,
-            blknum2: 0,
-            txindex2: 0,
-            oindex2: 0,
-            newowner1: 0,
-            amount1: 0,
-            newowner2: 0,
-            amount2: 0,
-            fee: 0
+  defstruct [
+    :blknum1,
+    :txindex1,
+    :oindex1,
+    :blknum2,
+    :txindex2,
+    :oindex2,
+    :newowner1,
+    :amount1,
+    :newowner2,
+    :amount2,
+    :fee
+  ]
+
+  @type t() :: %__MODULE__{
+          blknum1: pos_integer(),
+          txindex1: pos_integer(),
+          oindex1: pos_integer(),
+          blknum2: pos_integer(),
+          txindex2: pos_integer(),
+          oindex2: pos_integer(),
+          newowner1: pos_integer(),
+          amount1: pos_integer(),
+          newowner2: pos_integer(),
+          amount2: pos_integer(),
+          fee: pos_integer()
+        }
 
   def create_from_utxos(%{utxos: [_, _, _ | _]}, _, _) do
     {:error, :too_many_utxo}
@@ -32,7 +48,8 @@ defmodule OmiseGO.API.State.Transaction do
         fee
       ) do
     parts_transaction =
-      utxos |> Enum.with_index(1)
+      utxos
+      |> Enum.with_index(1)
       |> Enum.map(fn {utxo, number} ->
         %{
           String.to_existing_atom("blknum#{number}") => utxo.blknum,
@@ -77,7 +94,51 @@ defmodule OmiseGO.API.State.Transaction do
     end
   end
 
-  # TODO: add convenience function for creating common transactions (1in-1out, 1in-2out-with-change, etc.)
+  @number_of_transactions 2
+  @doc """
+   assumptions:
+     length(inputs) <= @number_of_transaction
+     length(outputs) <= @number_of_transaction
+   behavior:
+     at first expant inputs and outputs to size of @number_of_transaction
+      for inputs add {0, 0, 0} where {blknum, txindex, oindex}
+      for outpust add {0, 0} where {newowner, amount}
+     merge all inputs and outputs where key atom are expand by index (start from 1) then add key fee
+  """
+  @spec new(
+          list({pos_integer, pos_integer, 0 | 1}),
+          list({<<_::256>>, pos_integer}),
+          pos_integer
+        ) :: __MODULE__.t()
+  def new(inputs, outputs, fee) do
+    inputs = inputs ++ List.duplicate({0, 0, 0}, @number_of_transactions - Kernel.length(inputs))
+    outputs = outputs ++ List.duplicate({0, 0}, @number_of_transactions - Kernel.length(outputs))
+
+    inputs =
+      inputs
+      |> Enum.with_index(1)
+      |> Enum.map(fn {{blknum, txindex, oindex}, index} ->
+        %{
+          String.to_existing_atom("blknum#{index}") => blknum,
+          String.to_existing_atom("txindex#{index}") => txindex,
+          String.to_existing_atom("oindex#{index}") => oindex
+        }
+      end)
+      |> Enum.reduce(%{}, &Map.merge/2)
+
+    outputs =
+      outputs
+      |> Enum.with_index(1)
+      |> Enum.map(fn {{newowner, amount}, index} ->
+        %{
+          String.to_existing_atom("newowner#{index}") => newowner,
+          String.to_existing_atom("amount#{index}") => amount
+        }
+      end)
+      |> Enum.reduce(%{}, &Map.merge/2)
+
+    struct(__MODULE__, Map.put(Map.merge(inputs, outputs), :fee, fee))
+  end
 
   def zero_address, do: @zero_address
 
