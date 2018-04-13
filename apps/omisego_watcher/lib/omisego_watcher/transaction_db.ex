@@ -64,7 +64,7 @@ defmodule OmiseGOWatcher.TransactionDB do
     numbered_transactions
     |> Stream.map(fn {%Signed{} = signed, txindex} ->
       signed
-      |> Signed.hash()
+      |> Signed.signed_hash()
       |> insert(signed, block_number, txindex)
     end)
     |> Enum.to_list()

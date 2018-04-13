@@ -35,7 +35,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   test "insert and retrive transaction" do
     txblknum = 0
     txindex = 0
-    id = Signed.hash(@signed_tx)
+    id = Signed.signed_hash(@signed_tx)
 
     {:ok, %TransactionDB{txid: id}} = TransactionDB.insert(id, @signed_tx, txblknum, txindex)
 
