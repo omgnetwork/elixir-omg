@@ -39,7 +39,7 @@ defmodule OmiseGOWatcher.Mixfile do
     [
       {:phoenix, "~> 1.3.2"},
       {:phoenix_ecto, "~> 3.3"},
-      {:postgrex, ">= 0.13.5", only: [:prod]},
+      {:postgrex, ">= 0.13.5", only: [:test]},
       {:gettext, "~> 0.15"},
       {:sqlite_ecto2, "~> 2.2", only: [:dev, :test]},
       {:cowboy, "~> 1.1"},
