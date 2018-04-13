@@ -6,16 +6,10 @@ defmodule OmiseGO.API.EthereumEventListener do
 
   alias OmiseGO.Eth
   alias OmiseGO.API.EthereumEventListener.Core
-  alias OmiseGO.API.State
 
   ### Client
 
-  def start_link(%{
-      block_finality_margin: finality_margin,
-      max_blocks_in_fetch: max_blocks,
-      get_events_interval: get_events_interval
-    } = config,
-    state_callback) do
+  def start_link(config, state_callback) do
     GenServer.start_link(__MODULE__, {config, state_callback}, name: __MODULE__)
   end
 

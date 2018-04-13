@@ -3,6 +3,7 @@ defmodule OmiseGO.API.Application do
 
   use Application
   import Supervisor.Spec
+  alias OmiseGO.API.State
 
   def start(_type, _args) do
     depositor_config = get_depositor_config()

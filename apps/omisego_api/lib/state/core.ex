@@ -265,7 +265,7 @@ defmodule OmiseGO.API.State.Core do
   @doc """
   Spends exited utxos
   """
-  def exit_utxos(exiting_utxos, %Core{height: height, tx_index: tx_index, utxos: utxos} = state) do
+  def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
     exiting_utxos =
       exiting_utxos
       |> Enum.filter(fn %{block_height: block_height, txindex: txindex, oindex: oindex} ->
