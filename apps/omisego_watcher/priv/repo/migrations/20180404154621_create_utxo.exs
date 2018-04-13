@@ -3,12 +3,12 @@ defmodule OmiseGOWatcher.Repo.Migrations.CreateUtxo do
 
   def change do
     create table(:utxos) do
-      add :address, :string
-      add :amount, :integer
-      add :blknum, :integer
-      add :oindex, :integer
-      add :txbytes, :text
-      add :txindex, :integer
+      add :address, :string, null: false
+      add :amount, :integer, null: false
+      add :blknum, :integer, null: false
+      add :oindex, :integer, null: false
+      add :txbytes, :text, null: false
+      add :txindex, :integer, null: false
     end
   end
 
