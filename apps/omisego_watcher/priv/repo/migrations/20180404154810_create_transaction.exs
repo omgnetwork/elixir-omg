@@ -2,7 +2,9 @@ defmodule OmiseGOWatcher.Repo.Migrations.CreateTransaction do
   use Ecto.Migration
 
   def change do
-    create table(:transactions) do
+    create table(:transactions, primary_key: false) do
+      add :txid, :binary, primary_key: true
+
       add :blknum1, :integer
       add :txindex1, :integer
       add :oindex1, :integer

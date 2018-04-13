@@ -10,7 +10,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
 
   @moduletag :watcher_tests
 
-  @empty_signed_tx %Signed{
+  @signed_tx %Signed{
     raw_tx: %Transaction{
       blknum1: 0,
       txindex1: 0,
@@ -23,7 +23,9 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
       newowner2: "",
       amount2: 0,
       fee: 0
-    }
+    },
+    sig1: <<>>,
+    sig2: <<>>
   }
 
   setup do
@@ -33,10 +35,11 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   test "insert and retrive transaction" do
     txblknum = 0
     txindex = 0
+    id = Signed.hash(@signed_tx)
 
-    {:ok, %TransactionDB{id: id}} = TransactionDB.insert(@empty_signed_tx, txblknum, txindex)
+    {:ok, %TransactionDB{txid: id}} = TransactionDB.insert(id, @signed_tx, txblknum, txindex)
 
-    expected_transaction = create_expected_transaction(id, txblknum, txindex)
+    expected_transaction = create_expected_transaction(id,  @signed_tx, txblknum, txindex)
 
     assert expected_transaction == TransactionDB.get(id) |> delete_meta
   end
@@ -44,31 +47,34 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   test "insert and retrive block of transactions " do
     txblknum = 0
 
-    [{:ok, %TransactionDB{id: txid_1}}, {:ok, %TransactionDB{id: txid_2}}] =
+    signed_tx_1 = @signed_tx
+    signed_tx_2 = put_in(@signed_tx.raw_tx.blknum1, 1)
+
+    [{:ok, %TransactionDB{txid: txid_1}}, {:ok, %TransactionDB{txid: txid_2}}] =
       TransactionDB.insert(
         %Block{
           transactions: [
-            @empty_signed_tx,
-            @empty_signed_tx
+            signed_tx_1,
+            signed_tx_2
           ]
         },
         txblknum
       )
 
-    expected_transaction_1 = create_expected_transaction(txid_1, txblknum, 0)
-    expected_transaction_2 = create_expected_transaction(txid_2, txblknum, 1)
+    expected_transaction_1 = create_expected_transaction(txid_1,  signed_tx_1, txblknum, 0)
+    expected_transaction_2 = create_expected_transaction(txid_2,  signed_tx_2, txblknum, 1)
 
     assert expected_transaction_1 == TransactionDB.get(txid_1) |> delete_meta
     assert expected_transaction_2 == TransactionDB.get(txid_2) |> delete_meta
   end
 
-  defp create_expected_transaction(txid, txblknum, txindex) do
+  defp create_expected_transaction(txid, signed_tx, txblknum, txindex) do
     %TransactionDB{
       txblknum: txblknum,
       txindex: txindex,
-      id: txid
+      txid: txid
     }
-    |> Map.merge(Map.from_struct( @empty_signed_tx.raw_tx))
+    |> Map.merge(Map.from_struct(signed_tx.raw_tx))
     |> delete_meta
   end
 
