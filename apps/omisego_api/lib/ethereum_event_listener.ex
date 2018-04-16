@@ -2,6 +2,7 @@ defmodule OmiseGO.API.EthereumEventListener do
   @moduledoc """
   Periodically fetches events made on dynamically changing block range
   on parent chain and feeds them to state.
+  For code simplicity it listens for events in blocks with a configured finality margin.
   """
 
   alias OmiseGO.Eth
@@ -9,8 +10,8 @@ defmodule OmiseGO.API.EthereumEventListener do
 
   ### Client
 
-  def start_link(config, state_callback) do
-    GenServer.start_link(__MODULE__, {config, state_callback}, name: __MODULE__)
+  def start_link(config, get_events_callback, process_events_callback) do
+    GenServer.start_link(__MODULE__, {config, get_events_callback, process_events_callback})
   end
 
   ### Server
@@ -23,7 +24,8 @@ defmodule OmiseGO.API.EthereumEventListener do
       max_blocks_in_fetch: max_blocks,
       get_events_interval: get_events_interval
     },
-    state_callback}) do
+    get_ethereum_events_callback,
+    process_events_callback}) do
 
     #TODO: initialize state with the last ethereum block we have seen events from
 
@@ -34,8 +36,9 @@ defmodule OmiseGO.API.EthereumEventListener do
          last_event_block: parent_start,
          block_finality_margin: finality_margin,
          max_blocks_in_fetch: max_blocks,
-         get_events_inerval: get_events_interval,
-         state_callback: state_callback
+         get_events_interval: get_events_interval,
+         get_ethereum_events_callback: get_ethereum_events_callback,
+         process_events_callback: process_events_callback
        }
       }
     end
@@ -45,15 +48,15 @@ defmodule OmiseGO.API.EthereumEventListener do
     with {:ok, eth_block_height} <- Eth.get_ethereum_height(),
          {:ok, new_state, next_get_events_interval, eth_block_from, eth_block_to} <-
            Core.get_events_block_range(state, eth_block_height),
-         {:ok, exits} <- Eth.get_exits(eth_block_from, eth_block_to),
-         :ok <- state.state_callback.(exits) do
+         {:ok, events} <- state.get_ethereum_events_callback.(eth_block_from, eth_block_to),
+         :ok <- state.process_events_callback.(events) do
       schedule_get_events(next_get_events_interval)
       {:no_reply, new_state}
     else
       {:no_blocks_with_event, state, next_get_events_interval} ->
         schedule_get_events(next_get_events_interval)
-        {:no_reply, state}
-      _ -> {:stop, :failed_to_get_events, state}
+        {:noreply, state}
+      _ -> {:stop, :failed_to_get_ethereum_events, state}
     end
   end
 

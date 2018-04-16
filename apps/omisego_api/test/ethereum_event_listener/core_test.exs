@@ -13,7 +13,7 @@ defmodule OmiseGO.API.EthereumEventListener.CoreTest do
       last_event_block: 0,
       block_finality_margin: @block_finality_margin,
       max_blocks_in_fetch: @max_blocks_in_fetch,
-      get_events_inerval: @get_events_interval
+      get_events_interval: @get_events_interval
     }
 
   @tag fixtures: [:initial_state]

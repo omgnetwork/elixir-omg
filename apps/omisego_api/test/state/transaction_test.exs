@@ -106,8 +106,8 @@ defmodule OmiseGO.API.State.TransactionTest do
   @tag fixtures: [:alice, :state_empty, :bob]
   test "using created transaction in Core.exec", %{alice: alice, bob: bob, state_empty: state} do
     state =
-      state |> TestHelper.do_deposit(alice, %{amount: 100, block_height: 1})
-      |> TestHelper.do_deposit(alice, %{amount: 10, block_height: 2})
+      state |> TestHelper.do_deposit(alice, %{amount: 100, blknum: 1})
+      |> TestHelper.do_deposit(alice, %{amount: 10, blknum: 2})
 
     utxos_json = """
     {

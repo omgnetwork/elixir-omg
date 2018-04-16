@@ -4,14 +4,14 @@ defmodule OmiseGO.API.EthereumEventListener.Core do
   """
 
   defstruct [last_event_block: 1, block_finality_margin: 10, max_blocks_in_fetch: 5,
-             get_events_inerval: 60_000, state_callback: nil]
+             get_events_interval: 60_000, get_ethereum_events_callback: nil, process_events_callback: nil]
 
   def get_events_block_range(
     %__MODULE__{
       last_event_block: last_event_block,
       block_finality_margin: block_finality_margin,
       max_blocks_in_fetch: max_blocks_in_fetch,
-      get_events_inerval: get_events_interval
+      get_events_interval: get_events_interval
     } = state,
     current_ethereum_block) do
 

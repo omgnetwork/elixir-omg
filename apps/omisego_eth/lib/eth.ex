@@ -139,17 +139,17 @@ defmodule OmiseGO.Eth do
 
     parse_deposit =
       fn "0x" <> deposit ->
-        [owner, amount, block_height] =
+        [owner, amount, blknum] =
           deposit
           |> Base.decode16!(case: :lower)
           |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, {:uint, 256}])
         owner = "0x" <> Base.encode16(owner, case: :lower)
-        %{owner: owner, amount: amount, block_height: block_height}
+        %{owner: owner, amount: amount, blknum: blknum}
       end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
          deposits <- get_logs(unfiltered_logs, parse_deposit),
-         do: {:ok, Enum.sort(deposits, &(&1.block_height > &2.block_height))}
+         do: {:ok, Enum.sort(deposits, &(&1.blknum > &2.blknum))}
   end
 
   defp encode_event_signature(signature) do
@@ -175,7 +175,7 @@ defmodule OmiseGO.Eth do
         topics: ["0x#{event}"]
       })
     catch
-      _ -> {:error, :failed_to_get_deposits}
+      _ -> {:error, :failed_to_get_ethereum_events}
     end
   end
 
@@ -193,10 +193,10 @@ defmodule OmiseGO.Eth do
           |> Base.decode16!(case: :lower)
           |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}])
         owner = "0x" <> Base.encode16(owner, case: :lower)
-        block_height = div(utxo_position, @block_offset)
+        blknum = div(utxo_position, @block_offset)
         txindex = utxo_position |> rem(@block_offset) |> div(@transaction_offset)
-        oindex = utxo_position - block_height * @block_offset - txindex * @transaction_offset
-        %{owner: owner, block_height: block_height, txindex: txindex, oindex: oindex}
+        oindex = utxo_position - blknum * @block_offset - txindex * @transaction_offset
+        %{owner: owner, blknum: blknum, txindex: txindex, oindex: oindex}
       end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
