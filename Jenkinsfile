@@ -30,7 +30,9 @@ podTemplate(
 
         stage('Test Watcher') {
             withEnv(["MIX_ENV=test"]) {
-                sh("mix test --only watcher_tests")
+                dir("apps/omisego_watcher") {
+                    sh("mix test --only watcher_tests")
+                }
             }
         }
 
