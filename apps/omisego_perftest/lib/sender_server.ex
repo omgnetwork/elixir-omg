@@ -1,6 +1,6 @@
 defmodule SenderServer do
   @moduledoc """
-  Sender synchronously sends transaction to chain server
+  The SenderServer process synchronously sends requested number of transactions to the blockchain server.
   """
 
   use GenServer

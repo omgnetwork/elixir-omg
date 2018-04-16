@@ -56,7 +56,7 @@ defmodule OmiseGO.API.State do
   """
   def handle_call({:exec, tx}, _from, state) do
     {tx_result, new_state} = Core.exec(tx, state)
-    {:reply, tx_result, new_state}
+    {:reply, {tx_result, new_state.tx_index}, new_state}
   end
 
   @doc """

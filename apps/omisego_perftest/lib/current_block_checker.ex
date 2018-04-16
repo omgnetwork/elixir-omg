@@ -1,6 +1,6 @@
 defmodule CurrentBlockChecker do
   @moduledoc """
-  Checks the current block number in a chain an broadcast it to the senders
+  Checks the current block number in the chain an broadcast it to the senders.
   """
 
   use GenServer
