@@ -3,7 +3,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   Operations related to utxo.
   Modify the state in the database.
   """
-  alias OmiseGOWatcher.{Repo, TransactionDB}
+  alias OmiseGOWatcher.{Repo, UtxoDB}
   use OmiseGOWatcherWeb, :controller
   import Ecto.Query, only: [from: 2]
   alias OmiseGO.API.{Block}
@@ -19,34 +19,34 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
     # TODO change this to encode from OmiseGo.API.State.Transaction
     txbytes = inspect(signed_transaction)
 
-    make_transaction_db = fn transaction, number ->
-      %TransactionDB{
+    make_utxo_db = fn transaction, number ->
+      %UtxoDB{
         address: Map.get(transaction, :"newowner#{number}"),
         amount: Map.get(transaction, :"amount#{number}"),
         blknum: block_number,
+        txindex: txindex,
         oindex: Map.get(transaction, :"oindex#{number}"),
-        txbytes: txbytes,
-        txindex: txindex
+        txbytes: txbytes
       }
     end
 
-    {Repo.insert(make_transaction_db.(transaction, 1)),
-     Repo.insert(make_transaction_db.(transaction, 2))}
+    {Repo.insert(make_utxo_db.(transaction, 1)),
+     Repo.insert(make_utxo_db.(transaction, 2))}
   end
 
   defp remove_utxo(%Signed{
          raw_tx: %Transaction{} = transaction
        }) do
     remove_from = fn transaction, number ->
-      txindex = Map.get(transaction, :"txindex#{number}")
       blknum = Map.get(transaction, :"blknum#{number}")
+      txindex = Map.get(transaction, :"txindex#{number}")
       oindex = Map.get(transaction, :"oindex#{number}")
 
       elements_to_remove = from(
-        transactionDb in TransactionDB,
+        utxoDb in UtxoDB,
         where:
-          transactionDb.txindex == ^txindex and transactionDb.blknum == ^blknum and
-            transactionDb.oindex == ^oindex
+          utxoDb.blknum == ^blknum and utxoDb.txindex == ^txindex and
+            utxoDb.oindex == ^oindex
       )
       elements_to_remove |> Repo.delete_all()
     end
@@ -64,13 +64,30 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
     |> Enum.to_list()
   end
 
+  @spec record_deposits([
+          %{owner: <<_::160>>, amount: non_neg_integer(), block_height: pos_integer()}
+        ]) :: :ok
+  def record_deposits(deposits) do
+    deposits
+    |> Enum.each(fn deposit ->
+      Repo.insert(%UtxoDB{
+        address: deposit.owner,
+        amount: deposit.amount,
+        blknum: deposit.block_height,
+        txindex: 0,
+        oindex: 0,
+        txbytes: <<>>
+      })
+    end)
+  end
+
   def available(conn, %{"address" => address}) do
-    transactions = Repo.all(from(tr in TransactionDB, where: tr.address == ^address, select: tr))
-    fields_names = List.delete(TransactionDB.field_names(), :address)
+    utxos = Repo.all(from(tr in UtxoDB, where: tr.address == ^address, select: tr))
+    fields_names = List.delete(UtxoDB.field_names(), :address)
 
     json(conn, %{
       address: address,
-      utxos: Enum.map(transactions, &Map.take(&1, fields_names))
+      utxos: Enum.map(utxos, &Map.take(&1, fields_names))
     })
   end
 end
