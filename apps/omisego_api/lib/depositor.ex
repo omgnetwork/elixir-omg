@@ -32,6 +32,7 @@ defmodule OmiseGO.API.Depositor do
            Core.get_deposit_block_range(state, eth_block_height),
          {:ok, deposits} <- Eth.get_deposits(eth_block_from, eth_block_to),
          :ok <- State.deposit(deposits) do
+      OmiseGOWatcherWeb.Controller.Utxo.record_deposits(deposits)
       schedule_get_deposits(next_get_deposits_interval)
       {:no_reply, new_state}
     else

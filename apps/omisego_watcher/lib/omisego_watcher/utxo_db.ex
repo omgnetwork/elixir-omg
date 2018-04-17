@@ -4,32 +4,23 @@ defmodule OmiseGOWatcher.UtxoDB do
   """
   use Ecto.Schema
 
+  alias OmiseGOWatcher.Repo
+  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
+  alias OmiseGO.API.{Block}
+
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
-  alias OmiseGOWatcher.Repo
-  alias OmiseGO.API.{Block}
-  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
-
-  @field_names [:address, :amount, :blknum, :oindex, :txbytes, :txindex]
+  @field_names [:address, :amount, :blknum, :txindex, :oindex, :txbytes]
   def field_names, do: @field_names
 
   schema "utxos" do
     field(:address, :string)
     field(:amount, :integer)
     field(:blknum, :integer)
+    field(:txindex, :integer)
     field(:oindex, :integer)
     field(:txbytes, :string)
-    field(:txindex, :integer)
-  end
-
-  def consume_block(%Block{transactions: transactions}, block_number) do
-    transactions
-    |> Stream.with_index
-    |> Stream.map(fn {%Signed{} = signed, txindex} ->
-      {remove_utxo(signed), consume_transaction(signed, txindex, block_number)}
-    end)
-    |> Enum.to_list()
   end
 
   defp consume_transaction(
@@ -77,9 +68,36 @@ defmodule OmiseGOWatcher.UtxoDB do
     {remove_from.(transaction, 1), remove_from.(transaction, 2)}
   end
 
+  def consume_block(%Block{transactions: transactions}, block_number) do
+    numbered_transactions = Stream.with_index(transactions)
+
+    numbered_transactions
+    |> Stream.map(fn {%Signed{} = signed, txindex} ->
+      {remove_utxo(signed), consume_transaction(signed, txindex, block_number)}
+    end)
+    |> Enum.to_list()
+  end
+
+  @spec record_deposits([
+          %{owner: <<_::160>>, amount: non_neg_integer(), block_height: pos_integer()}
+        ]) :: :ok
+  def record_deposits(deposits) do
+    deposits
+    |> Enum.each(fn deposit ->
+      Repo.insert(%__MODULE__{
+        address: deposit.owner,
+        amount: deposit.amount,
+        blknum: deposit.block_height,
+        txindex: 0,
+        oindex: 0,
+        txbytes: <<>>
+      })
+    end)
+  end
+
   @doc false
-  def changeset(transaction_db, attrs) do
-    transaction_db
+  def changeset(utxo_db, attrs) do
+    utxo_db
     |> cast(attrs, @field_names)
     |> validate_required(@field_names)
   end
