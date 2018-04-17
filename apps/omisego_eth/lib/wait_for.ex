@@ -29,6 +29,17 @@ defmodule OmiseGO.Eth.WaitFor do
     |> Task.await(timeout)
   end
 
+  def eth_height(n) do
+    f = fn ->
+      height = OmiseGO.Eth.get_ethereum_height
+      case height do
+        {:ok, x} when x >= n -> {:ok, x}
+        _ -> :repeat
+      end
+    end
+    repeat_until_ok(f)
+  end
+
   def repeat_until_ok(f) do
     try do
       {:ok, _} = f.()

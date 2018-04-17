@@ -8,7 +8,7 @@ defmodule OmiseGO.Eth.Geth do
     # NOTE: Dropping Temp or using Porcelain.Result instead of Process prevents warnings
     Temp.track!()
     homedir = Temp.mkdir!(%{prefix: "honted_eth_test_homedir"})
-    res = launch("geth --dev --rpc --datadir #{homedir} 2>&1")
+    res = launch("geth --dev --rpc --rpcapi=personal,eth,web3 --datadir #{homedir} 2>&1")
     {:ok, :ready} = OmiseGO.Eth.WaitFor.eth_rpc()
     res
   end
@@ -26,9 +26,9 @@ defmodule OmiseGO.Eth.Geth do
 
     geth_proc =
       %Porcelain.Process{err: nil, out: geth_out} = Porcelain.spawn_shell(cmd, out: :stream)
+    wait_for_geth_start(geth_out)
 
     geth_pids_after = geth_os_pids()
-    wait_for_geth_start(geth_out)
     [geth_os_pid] = geth_pids_after -- geth_pids
     geth_os_pid = String.trim(geth_os_pid)
     {geth_proc, geth_os_pid, geth_out}

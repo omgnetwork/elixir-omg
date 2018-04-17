@@ -28,10 +28,10 @@ defmodule OmiseGO.Eth do
   end
 
   @spec contract_ready() :: true | {:error, :root_chain_contract_not_available}
-  def contract_ready do
+  def contract_ready(contract \\ nil) do
     try do
-      {:ok, _mined_num} = get_current_child_block()
-      true
+      {:ok, addr} = authority(contract)
+      addr != <<0::256>>
     rescue
       _ -> {:error, :root_chain_contract_not_available}
     end
@@ -72,13 +72,17 @@ defmodule OmiseGO.Eth do
     end
   end
 
+  def submit_block_no_struct(hash, nonce, gas_price) do
+    submit_block(%BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price})
+  end
+
   def submit_block(
         %BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price},
         from \\ nil,
         contract \\ nil
       ) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
-    from = from || Application.get_env(:omisego_eth, :omg_addr)
+    from = from || Application.get_env(:omisego_eth, :authority_addr)
 
     data =
       "submitBlock(bytes32)"
@@ -112,40 +116,23 @@ defmodule OmiseGO.Eth do
     end
   end
 
+  # returns next num that is supposed to be mined by operator
   def get_current_child_block(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
-
-    data = "currentChildBlock()" |> ABI.encode([]) |> Base.encode16()
-
-    {:ok, "0x" <> enc_return} =
-      Ethereumex.HttpClient.eth_call(%{
-        to: contract,
-        data: "0x#{data}"
-      })
-
-    [child_block] =
-      enc_return |> Base.decode16!(case: :lower) |> ABI.TypeDecoder.decode_raw([{:uint, 256}])
-
-    {:ok, child_block}
+    {:ok, _next} = call_contract_value(contract, "currentChildBlock()")
   end
 
-  def get_child_chain(block_number, contract \\ nil) do
+  # returns blknum was already mined by operator (with exception for 0)
+  def mined_child_block(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
+    {:ok, next} = call_contract_value(contract, "currentChildBlock()")
+    {:ok, next - 1000}
+  end
 
-    data = "getChildChain(uint256)" |> ABI.encode([block_number]) |> Base.encode16()
-
-    {:ok, "0x" <> enc_return} =
-      Ethereumex.HttpClient.eth_call(%{
-        to: contract,
-        data: "0x#{data}"
-      })
-
-    [{root, created_at}] =
-      enc_return
-      |> Base.decode16!(case: :lower)
-      |> ABI.TypeDecoder.decode_raw([{:tuple, [:bytes32, {:uint, 256}]}])
-
-    {:ok, {root, created_at}}
+  def authority(contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+    {:ok, [addr]} = call_contract(contract, "authority()", [], [:address])
+    {:ok, addr}
   end
 
   @doc """
@@ -221,5 +208,33 @@ defmodule OmiseGO.Eth do
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
          exits <- get_logs(unfiltered_logs, parse_exit),
          do: {:ok, Enum.sort(exits, &(&1.block_height > &2.block_height))}
+  end
+
+  def get_child_chain(blknum) do
+    contract = Application.get_env(:omisego_eth, :contract)
+
+    {:ok, [root, created_at]} =
+      call_contract(contract, "getChildChain(uint256)", [blknum], [:bytes32, {:uint, 256}])
+    {:ok, {root, created_at}}
+  end
+
+  defp call_contract_value(contract, signature) do
+    {:ok, [value]} = call_contract(contract, signature, [], [{:uint, 256}])
+    {:ok, value}
+  end
+
+  defp call_contract(contract, signature, args, return_types) do
+    data = signature |> ABI.encode(args) |> Base.encode16
+    {:ok, "0x" <> enc_return} =
+      Ethereumex.HttpClient.eth_call(%{to: contract, data: "0x#{data}"})
+    decode_answer(enc_return, return_types)
+  end
+
+  defp decode_answer(enc_return, return_types) do
+    return =
+      enc_return
+      |> Base.decode16!(case: :lower)
+      |> ABI.TypeDecoder.decode_raw(return_types)
+    {:ok, return}
   end
 end

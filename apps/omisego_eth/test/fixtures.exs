@@ -9,11 +9,10 @@ defmodule OmiseGO.Eth.Fixtures do
 
   deffixture contract(geth) do
     _ = geth
-    {from, {txhash, contract_address}} = OmiseGO.Eth.DevHelpers.create_new_contract()
-
+    {:ok, contract_address, txhash, authority} = OmiseGO.Eth.DevHelpers.prepare_env("../../")
     %{
       address: contract_address,
-      from: from,
+      from: authority,
       txhash: txhash
     }
   end
