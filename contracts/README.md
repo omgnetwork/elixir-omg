@@ -1,4 +1,4 @@
 
 repository: git@github.com:omisego/plasma-mvp.git
-commit: f24d2489e1b941a155764548f62d21ed51ddc1ae
+commit: 2c1d6d324ea164b2081c628170da4bae59c9018e
 folder: ./plasma/root_chain/contracts
