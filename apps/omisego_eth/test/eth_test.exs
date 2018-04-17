@@ -2,7 +2,6 @@ defmodule OmiseGO.EthTest do
   alias OmiseGO.Eth, as: Eth
   alias OmiseGO.Eth.WaitFor, as: WaitFor
 
-  use ExUnitFixtures
   use ExUnit.Case, async: false
 
   @timeout 10_000
@@ -25,14 +24,17 @@ defmodule OmiseGO.EthTest do
 
   defp deposit(contract) do
     data = "deposit()" |> ABI.encode([]) |> Base.encode16()
-    {:ok, transaction_hash} = Ethereumex.HttpClient.eth_send_transaction(%{
-      from: contract.from,
-      to: contract.address,
-      data: "0x#{data}",
-      gas: "0x2D0900",
-      gasPrice: "0x1",
-      value: "0x1"
-    })
+
+    {:ok, transaction_hash} =
+      Ethereumex.HttpClient.eth_send_transaction(%{
+        from: contract.from,
+        to: contract.address,
+        data: "0x#{data}",
+        gas: "0x2D0900",
+        gasPrice: "0x1",
+        value: "0x1"
+      })
+
     {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
   end
 
@@ -53,8 +55,7 @@ defmodule OmiseGO.EthTest do
 
   defp add_bloks(range, contract) do
     for nonce <- range do
-      {:ok, txhash} =
-        Eth.submit_block(generate_transaction(nonce), contract.from, contract.address)
+      {:ok, txhash} = Eth.submit_block(generate_transaction(nonce), contract.from, contract.address)
 
       {:ok, _} = WaitFor.eth_receipt(txhash, @timeout)
     end
@@ -84,8 +85,9 @@ defmodule OmiseGO.EthTest do
   test "gets deposits from a range of blocks", %{contract: contract} do
     deposit(contract)
     {:ok, height} = Eth.get_ethereum_height()
-    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.from}]} ==
-      Eth.get_deposits(1, height, contract.address)
+
+    assert {:ok, [%{amount: 1, block_height: 1, owner: contract.from}]} ==
+             Eth.get_deposits(1, height, contract.address)
   end
 
   @tag fixtures: [:contract]
