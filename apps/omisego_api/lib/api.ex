@@ -8,7 +8,7 @@ defmodule OmiseGO.API do
   alias OmiseGO.API.FreshBlocks
   alias OmiseGO.DB
 
-  @spec submit(byte) :: {:ok} | {:error, any}
+  @spec submit(byte) :: {:ok, byte} | {:error, any}
   def submit(encoded_singed_tx) do
     with {:ok, recovered_tx} <- Core.recover_tx(encoded_singed_tx),
          tx_result <- State.exec(recovered_tx),

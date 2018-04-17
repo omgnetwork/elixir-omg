@@ -24,9 +24,8 @@ defmodule OmiseGOWatcher.UtxoDB do
   end
 
   def consume_block(%Block{transactions: transactions}, block_number) do
-    numbered_transactions = Stream.with_index(transactions)
-
-    numbered_transactions
+    transactions
+    |> Stream.with_index
     |> Stream.map(fn {%Signed{} = signed, txindex} ->
       {remove_utxo(signed), consume_transaction(signed, txindex, block_number)}
     end)
