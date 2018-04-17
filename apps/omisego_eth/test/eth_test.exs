@@ -13,7 +13,6 @@ defmodule OmiseGO.EthTest do
 
   defp generate_transaction(nonce) do
     hash = :crypto.hash(:sha256, to_charlist(nonce))
-    hash = hash |> Base.encode16()
 
     %Eth.BlockSubmission{
       num: nonce,
@@ -81,7 +80,7 @@ defmodule OmiseGO.EthTest do
     add_blocks(1..8, contract)
     block = generate_transaction(4)
     {:ok, {child_chain_hash, _child_chain_time}} = Eth.get_child_chain(contract.address, 4000)
-    assert String.downcase(block.hash) == child_chain_hash |> Base.encode16(case: :lower)
+    assert block.hash == child_chain_hash
   end
 
   @tag fixtures: [:contract]
