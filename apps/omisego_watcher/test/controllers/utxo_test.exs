@@ -4,7 +4,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
   use Plug.Test
 
-  alias OmiseGOWatcherWeb.Controller.Utxo
+  alias OmiseGOWatcher.UtxoDB
   alias OmiseGO.API.{Block}
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
 
@@ -34,7 +34,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     end
 
     test "Consumed block contents are available." do
-      Utxo.consume_block(
+      UtxoDB.consume_block(
         %Block{
           transactions: [
             @empty |> Map.merge(%{newowner1: "McDuck", amount1: 1947}) |> signed,
@@ -51,7 +51,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     end
 
     test "Spent utxos are moved to new owner." do
-      Utxo.consume_block(
+      UtxoDB.consume_block(
         %Block{
           transactions: [
             @empty |> Map.merge(%{newowner1: "Ebenezer", amount1: 1843}) |> signed,
@@ -63,7 +63,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
       %{"utxos" => [%{"amount" => 1871}]} = get_utxo("Matilda")
 
-      Utxo.consume_block(
+      UtxoDB.consume_block(
         %Block{
           transactions: [
             @empty
@@ -86,14 +86,14 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
     test "Deposits are a part of utxo set." do
       assert %{"utxos" => []} = get_utxo("Leon")
-      Utxo.record_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
+      UtxoDB.record_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Leon")
     end
 
     test "Deposit utxo are moved to new owner if spent " do
       assert %{"utxos" => []} = get_utxo("Leon")
       assert %{"utxos" => []} = get_utxo("Matilda")
-      Utxo.record_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
+      UtxoDB.record_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Leon")
 
       spent = %{
@@ -104,7 +104,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
         oindex1: 0
       }
 
-      Utxo.consume_block(
+      UtxoDB.consume_block(
         %Block{
           transactions: [
             @empty

@@ -7,7 +7,10 @@ defmodule OmiseGOWatcherWeb.Router do
 
   scope "/", OmiseGOWatcherWeb do
     get "/account/utxo", Controller.Utxo, :available
+  end
 
+  scope "/transactions", OmiseGOWatcherWeb do
+    get "/:id", Controller.Transaction, :get
   end
 
 end
