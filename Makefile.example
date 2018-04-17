@@ -1,0 +1,55 @@
+.PHONY: default help build test geth env eth_block run remsh remsherl shell dialyzer cover credo perf
+
+default: build
+
+help:        ## show this help.
+	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
+
+build:       ## compile
+	mix compile
+
+test:        ## run tests
+test: build
+	mix test --no-start --include watcher_tests
+
+geth:        ## `geth --dev` with personal api enabled
+geth:
+	geth --dev --rpc --rpcapi personal,web3,eth
+
+env:         ## deploy contract, fund authority address and write dev.exs file
+	mix run --no-start -e 'OmiseGO.Eth.DevHelpers.prepare_dev_env()'
+
+eth_block:   ## force `geth --dev` to mine a block
+	mix run --no-start -e 'OmiseGO.Eth.DevHelpers.mine_eth_dev_block()'
+
+run:         ## run the node in dev mode; see also `geth`, `env` and `eth_block` targets
+run: build
+	iex --sname main -S mix
+
+remsh:       ## iex shell to running node
+remsh:
+	iex --sname shell --remsh 'main@$(hostname -f)' -S mix run --no-start
+
+remsherl:    ## erl shell to running node
+remsherl:
+	erl --sname shell --remsh 'main@$(hostname -f)'
+
+shell:       ## iex with all code loaded
+shell:
+	iex -S mix run --no-start
+
+dialyzer:    ## dialyze
+dialyzer: build
+	mix dialyzer
+
+cover:       ## check coverage
+cover:
+	mix coveralls.html --umbrella --no-start --include integration
+
+credo:       ## run linter
+credo:
+	mix coveralls.html --umbrella --no-start --include integration
+
+perf:        ## run performance test
+perf:
+	echo "iex --sname main -S mix run apps/honted_integration/scripts/performance.exs --nstreams 100 --fill-in 0 --duration 120"
