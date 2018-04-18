@@ -1,4 +1,4 @@
-.PHONY: default help build test geth env eth_block run remsh remsherl shell dialyzer cover credo perf
+.PHONY: default help build test geth env run remsh remsherl shell dialyzer cover credo perf
 
 default: build
 
@@ -14,13 +14,10 @@ test: build
 
 geth:        ## `geth --dev` with personal api enabled
 geth:
-	geth --dev --rpc --rpcapi personal,web3,eth
+	geth --dev --dev.period 2 --rpc --rpcapi personal,web3,eth
 
 env:         ## deploy contract, fund authority address and write dev.exs file
 	mix run --no-start -e 'OmiseGO.Eth.DevHelpers.prepare_dev_env()'
-
-eth_block:   ## force `geth --dev` to mine a block
-	mix run --no-start -e 'OmiseGO.Eth.DevHelpers.mine_eth_dev_block()'
 
 run:         ## run the node in dev mode; see also `geth`, `env` and `eth_block` targets
 run: build

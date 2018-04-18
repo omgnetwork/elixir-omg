@@ -23,7 +23,7 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(authority, "", 60 * 60 * 24 * 7)
     txmap = %{from: addr, to: authority, value: "0x99999999999999999999999"}
     {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    {:ok, _receipt} = WaitFor.eth_receipt(tx_fund, 1_000)
+    {:ok, _receipt} = WaitFor.eth_receipt(tx_fund, 10_000)
     {:ok, authority}
   end
 
