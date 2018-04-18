@@ -1,15 +1,15 @@
-.PHONY: default help build test geth env run remsh remsherl shell dialyzer cover credo perf
+.PHONY: default help compile test geth env run remsh remsherl shell dialyzer cover credo perf
 
-default: build
+default: compile
 
 help:        ## show this help.
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
 
-build:       ## compile
+compile:     ## compile
 	mix compile
 
 test:        ## run tests
-test: build
+test: compile
 	mix test --no-start --include watcher_tests
 
 geth:        ## `geth --dev` with personal api enabled
@@ -20,7 +20,7 @@ env:         ## deploy contract, fund authority address and write dev.exs file
 	mix run --no-start -e 'OmiseGO.Eth.DevHelpers.prepare_dev_env()'
 
 run:         ## run the node in dev mode; see also `geth`, `env` and `eth_block` targets
-run: build
+run: compile
 	iex --sname main -S mix
 
 remsh:       ## iex shell to running node
@@ -36,7 +36,7 @@ shell:
 	iex -S mix run --no-start
 
 dialyzer:    ## dialyze
-dialyzer: build
+dialyzer: compile
 	mix dialyzer
 
 cover:       ## check coverage
