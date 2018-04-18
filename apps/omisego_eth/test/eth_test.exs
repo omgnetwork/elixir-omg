@@ -79,6 +79,7 @@ defmodule OmiseGO.EthTest do
   test "get child chain", %{contract: contract} do
     add_blocks(1..8, contract)
     block = generate_transaction(4)
+    {:ok, 8000} = Eth.mined_child_block(contract.address)
     {:ok, {child_chain_hash, _child_chain_time}} = Eth.get_child_chain(4000, contract.address)
     assert block.hash == child_chain_hash
   end
@@ -118,13 +119,5 @@ defmodule OmiseGO.EthTest do
   test "get authority for deployed contract", %{contract: contract} do
     {:ok, addr} = Eth.authority(contract.address)
     assert contract.from == "0x" <> Base.encode16(addr, case: :lower)
-  end
-
-  @tag fixtures: [:contract]
-  test "get mined block hash", %{contract: contract} do
-    {:ok, number} = Eth.mined_child_block(contract.address)
-    assert is_integer(number)
-    {:ok, {hash, _}} = Eth.get_child_chain(number, contract.address)
-    assert <<0::size(256)>> == hash
   end
 end
