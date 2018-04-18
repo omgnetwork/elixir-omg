@@ -210,8 +210,8 @@ defmodule OmiseGO.Eth do
          do: {:ok, Enum.sort(exits, &(&1.block_height > &2.block_height))}
   end
 
-  def get_child_chain(blknum) do
-    contract = Application.get_env(:omisego_eth, :contract)
+  def get_child_chain(blknum, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
 
     {:ok, [root, created_at]} =
       call_contract(contract, "getChildChain(uint256)", [blknum], [:bytes32, {:uint, 256}])

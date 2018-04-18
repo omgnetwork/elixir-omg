@@ -135,7 +135,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     # get hash of first mined block from Ethereum
     contract = Application.get_env(:omisego_eth, :contract)
-    {:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(contract, 1000)
+    {:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(1000, contract)
 
     # check if operator is propagating block with such hash
     assert %OmiseGO.API.Block{hash: ^block_hash} = OmiseGO.API.get_block(block_hash)
