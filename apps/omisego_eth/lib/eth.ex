@@ -129,7 +129,7 @@ defmodule OmiseGO.Eth do
     {:ok, _next} = call_contract_value(contract, "currentChildBlock()")
   end
 
-  # returns blknum was already mined by operator (with exception for 0)
+  # returns blknum that was already mined by operator (with exception for 0)
   def mined_child_block(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
     {:ok, next} = call_contract_value(contract, "currentChildBlock()")
