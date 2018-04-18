@@ -113,7 +113,9 @@ defmodule OmiseGO.API.BlockQueue do
       state
       |> Core.get_blocks_to_submit()
       |> Enum.each(fn submission ->
-        {:ok, _txhash} = OmiseGO.Eth.submit_block(submission)
+        # TODO: accept "known transaction" and {:ok, txhash} here
+        # TODO: fix currentChildBlock being at 1000 at all times problem
+        _ = OmiseGO.Eth.submit_block(submission)
       end)
     end
   end
