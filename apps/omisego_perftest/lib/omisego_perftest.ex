@@ -17,6 +17,7 @@ defmodule OmiseGO.PerfTest do
     {:ok, _} = Registry.start_link(keys: :duplicate, name: OmiseGO.PerfTest.Registry)
 
     # fire async transaction senders
+    #TODO: Consider running senders in supervisor - but would they restore their state?
     1..nusers |> Enum.map(fn senderid -> SenderServer.start_link({senderid, nrequests, @init_blocknum}) end)
 
     # fire async current block checker

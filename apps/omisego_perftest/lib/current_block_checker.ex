@@ -23,7 +23,7 @@ defmodule CurrentBlockChecker do
   @spec init(init_state :: tuple) :: {:ok, state :: tuple}
   def init(args = {blocknum}) do
     IO.puts "CurrentBlockChecker - init/1 called with args: '#{blocknum}'"
-    send(self(), {:do})
+    send(self(), :do)
 
     {:ok, args}
   end
@@ -33,8 +33,8 @@ defmodule CurrentBlockChecker do
   When any sender left schedules call to itself in @check_for_new_blocks_every_ms miliseconds,
   stops otherwise.
   """
-  @spec handle_info({:do}, state :: tuple) :: {:noreply, new_state :: tuple} | {:stop, :shutdown, nil}
-  def handle_info({:do}, {blocknum}) do
+  @spec handle_info(:do, state :: tuple) :: {:noreply, new_state :: tuple} | {:stop, :shutdown, nil}
+  def handle_info(:do, {blocknum}) do
     senders = Registry.lookup(OmiseGO.PerfTest.Registry, :sender)
 
     unless Enum.empty?(senders) do
@@ -66,6 +66,6 @@ defmodule CurrentBlockChecker do
       Enum.each(senders, fn {pid, _} -> GenServer.cast(pid, {:update, blocknum}) end)
     end)
 
-    Process.send_after(self(), {:do}, @check_for_new_blocks_every_ms)
+    Process.send_after(self(), :do, @check_for_new_blocks_every_ms)
   end
 end

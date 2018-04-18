@@ -20,7 +20,7 @@ defmodule SenderServer do
   def init({senderid, nrequests, init_blocknum}) do
     IO.puts "SenderServer[#{senderid}] - init/1 called with requests: '#{nrequests}'"
     Registry.register(OmiseGO.PerfTest.Registry, :sender, "Sender: #{senderid}")
-    send(self(), {:do})
+    send(self(), :do)
     {:ok, {senderid, nrequests, init_blocknum}}
   end
 
@@ -28,14 +28,13 @@ defmodule SenderServer do
   Submits translaction then schedules call to itself if any requests left.
   Otherwise unregisters from the Registry and stops.
   """
-  @spec handle_info({:do}, state :: {senderid :: integer, nrequests :: integer, blocknum :: integer}) :: {:noreply, new_state :: tuple} | {:stop, :normal, nil}
-  def handle_info({:do}, state) do
-    submit_tx(state)
+  @spec handle_info(:do, state :: {senderid :: integer, nrequests :: integer, blocknum :: integer}) :: {:noreply, new_state :: tuple} | {:stop, :normal, nil}
+  def handle_info(:do, {senderid, nrequests, blocknum}) do
+    submit_tx({senderid, nrequests, blocknum})
 
-    {senderid, nrequests, _} = state
     if nrequests > 0 do
-      send(self(), {:do})
-      {:noreply, put_elem(state, 1, nrequests-1)}
+      send(self(), :do)
+      {:noreply, {senderid, nrequests-1, blocknum}}
     else
       Registry.unregister(OmiseGO.PerfTest.Registry, :sender)
       IO.puts "SenderServer[#{senderid}] - Stoping..."
@@ -46,7 +45,7 @@ defmodule SenderServer do
   @doc """
   Updates state with current block number sent by CurrentBlockChecker process.
   """
-  @spec handle_cast({:update, blocknum :: integer}, state :: tuple) :: {:no_reply, new_state :: tuple}
+  @spec handle_cast({:update, blocknum :: integer}, state :: tuple) :: {:noreply, new_state :: tuple}
   def handle_cast({:update, blocknum}, state) do
     {:noreply, put_elem(state, 2, blocknum)}
   end
