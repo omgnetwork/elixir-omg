@@ -206,13 +206,13 @@ defmodule OmiseGO.API.State.Core do
   end
 
   def deposit(deposits, %Core{utxos: utxos, last_deposit_height: last_deposit_height} = state) do
-    deposits = deposits |> Enum.filter(&(&1.block_height > last_deposit_height))
+    deposits = deposits |> Enum.filter(&(&1.blknum > last_deposit_height))
 
     new_utxos =
       deposits
       |> Map.new(
-          fn %{block_height: height, owner: owner, amount: amount} ->
-            {{height, 0, 0}, %{amount: amount, owner: owner}}
+          fn %{blknum: blknum, owner: owner, amount: amount} ->
+            {{blknum, 0, 0}, %{amount: amount, owner: owner}}
           end)
 
     event_triggers =
@@ -242,8 +242,8 @@ defmodule OmiseGO.API.State.Core do
       current_height
     else
         deposits
-        |> Enum.max_by(&(&1.block_height))
-        |> Map.get(:block_height)
+        |> Enum.max_by(&(&1.blknum))
+        |> Map.get(:blknum)
     end
   end
 
@@ -262,5 +262,29 @@ defmodule OmiseGO.API.State.Core do
       true -> {:error, :too_many_transactions_in_block}
       false -> :ok
     end
+  end
+
+  @doc """
+  Spends exited utxos
+  """
+  def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
+    exiting_utxos =
+      exiting_utxos
+      |> Enum.filter(fn %{blknum: blknum, txindex: txindex, oindex: oindex} ->
+          Map.has_key?(utxos, {blknum, txindex, oindex}) end)
+
+    event_triggers = exiting_utxos
+      |> Enum.map(fn %{owner: owner, blknum: blknum, txindex: txindex, oindex: oindex} ->
+        %{exit: %{owner: owner, blknum: blknum, txindex: txindex, oindex: oindex}} end)
+    state =
+      exiting_utxos
+      |> Enum.reduce(state, fn (%{blknum: blknum, txindex: txindex, oindex: oindex}, state) ->
+        %{state | utxos: Map.delete(state.utxos, {blknum, txindex, oindex})} end)
+    deletes =
+      exiting_utxos
+      |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} ->
+        {:delete, :utxo, {blknum, txindex, oindex}} end)
+
+    {event_triggers, deletes, state}
   end
 end

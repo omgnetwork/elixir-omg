@@ -117,7 +117,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     {:error, :utxo_not_found} = OmiseGO.API.submit(tx)
 
     # FIXME should actually be called from Eth-driven Depositor
-    :ok = OmiseGO.API.State.deposit([%{owner: alice.addr, amount: 10, block_height: 1}])
+    :ok = OmiseGO.API.State.deposit([%{owner: alice.addr, amount: 10, blknum: 1}])
 
     :ok = OmiseGO.API.submit(tx)
 

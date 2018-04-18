@@ -6,6 +6,8 @@ defmodule OmiseGO.EthTest do
   use ExUnit.Case, async: false
 
   @timeout 10_000
+  @block_offset 1_000_000_000
+  @transaction_offset 10_000
 
   @moduletag :requires_geth
 
@@ -33,6 +35,21 @@ defmodule OmiseGO.EthTest do
     })
     {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
   end
+
+  defp exit_deposit(contract) do
+    deposit_pos = utxo_position(1, 0, 0)
+    data = "startDepositExit(uint256,uint256)" |> ABI.encode([deposit_pos, 1]) |> Base.encode16()
+    {:ok, transaction_hash} = Ethereumex.HttpClient.eth_send_transaction(%{
+      from: contract.from,
+      to: contract.address,
+      data: "0x#{data}",
+      gas: "0x2D0900"
+    })
+    {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
+  end
+
+  defp utxo_position(block_height, txindex, oindex),
+    do: @block_offset * block_height + txindex * @transaction_offset + oindex
 
   defp add_bloks(range, contract) do
     for nonce <- range do
@@ -67,7 +84,7 @@ defmodule OmiseGO.EthTest do
   test "gets deposits from a range of blocks", %{contract: contract} do
     deposit(contract)
     {:ok, height} = Eth.get_ethereum_height()
-    assert {:ok, [%{amount: 1, block_height: 1, owner: contract.from}]} ==
+    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.from}]} ==
       Eth.get_deposits(1, height, contract.address)
   end
 
@@ -75,5 +92,14 @@ defmodule OmiseGO.EthTest do
   test "get contract deployment height", %{contract: contract} do
     {:ok, number} = Eth.get_root_deployment_height(contract.txhash, contract.address)
     assert is_integer(number)
+  end
+
+  @tag fixtures: [:contract]
+  test "get exits from a range of blocks", %{contract: contract} do
+    deposit(contract)
+    exit_deposit(contract)
+    {:ok, height} = Eth.get_ethereum_height()
+    assert {:ok, [%{owner: contract.from, blknum: 1, txindex: 0, oindex: 0}]} ==
+      Eth.get_exits(1, height, contract.address)
   end
 end

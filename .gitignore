@@ -19,13 +19,7 @@ erl_crash.dump
 # Also ignore archive artifacts (built via "mix archive.build").
 *.ez
 
-#test database
-ecto_simple.sqlite3
-
 populus/build/
 
 # Dev sqllite db
-*ecto_simple.sqlite3
-
-# other build & test artifacts
-.elixir_ls/
+*ecto_simple.sqlite3*

@@ -55,11 +55,10 @@ defmodule OmiseGO.API.State.TransactionTest do
   @tag fixtures: [:transaction]
   test "signed transaction hash is correct", %{transaction: transaction} do
     signed = %Transaction.Signed{raw_tx: transaction, sig1: @signature, sig2: @signature}
-    expected = <<206, 180, 169, 245, 52, 190, 189, 248, 33, 15, 103, 145, 4, 195,
-                 170, 59, 137, 102, 245, 238, 22, 172, 18, 240, 21, 132, 30, 1,
-                 197, 112, 101, 192>> <>
-                signed.sig1 <>
-                signed.sig2
+
+    expected =
+      <<206, 180, 169, 245, 52, 190, 189, 248, 33, 15, 103, 145, 4, 195, 170, 59, 137, 102, 245,
+        238, 22, 172, 18, 240, 21, 132, 30, 1, 197, 112, 101, 192>> <> signed.sig1 <> signed.sig2
 
     actual = Transaction.Signed.signed_hash(signed)
     assert actual == expected
@@ -107,8 +106,8 @@ defmodule OmiseGO.API.State.TransactionTest do
   @tag fixtures: [:alice, :state_empty, :bob]
   test "using created transaction in Core.exec", %{alice: alice, bob: bob, state_empty: state} do
     state =
-      state |> TestHelper.do_deposit(alice.addr, 100, 1)
-      |> TestHelper.do_deposit(alice.addr, 10, 2)
+      state |> TestHelper.do_deposit(alice, %{amount: 100, blknum: 1})
+      |> TestHelper.do_deposit(alice, %{amount: 10, blknum: 2})
 
     utxos_json = """
     {

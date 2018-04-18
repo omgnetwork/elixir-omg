@@ -22,6 +22,10 @@ defmodule OmiseGO.API.State do
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
+  def exit_utxos(utxos) do
+    GenServer.call(__MODULE__, {:exit_utxos, utxos})
+  end
+
   ### Server
 
   use GenServer
@@ -64,6 +68,18 @@ defmodule OmiseGO.API.State do
   """
   def handle_call({:deposits, deposits}, _from, state) do
     {event_triggers, db_updates, new_state} = Core.deposit(deposits, state)
+    # GenServer.cast
+    Eventer.notify(event_triggers)
+    # GenServer.call
+    :ok = DB.multi_update(db_updates)
+    {:reply, :ok, new_state}
+  end
+
+  @doc """
+  Exits (spends) utxos on child chain
+  """
+  def handle_call({:exit_utxos, utxos}, _from, state) do
+    {event_triggers, db_updates, new_state} = Core.exit_utxos(utxos, state)
     # GenServer.cast
     Eventer.notify(event_triggers)
     # GenServer.call
