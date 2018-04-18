@@ -18,20 +18,27 @@ defmodule OmiseGO.Eth do
     {:ok, on_exit}
   end
 
-  @spec node_ready() :: true | {:error, :geth_still_syncing | :geth_not_listening}
+  @spec node_ready() :: :ok | {:error, :geth_still_syncing | :geth_not_listening}
   def node_ready do
     case Ethereumex.HttpClient.eth_syncing() do
-      {:ok, false} -> true
+      {:ok, false} -> :ok
       {:ok, true} -> {:error, :geth_still_syncing}
       {:error, :econnrefused} -> {:error, :geth_not_listening}
     end
   end
 
-  @spec contract_ready() :: true | {:error, :root_chain_contract_not_available}
+  @spec contract_ready(binary | nil) ::
+          :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
   def contract_ready(contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+
     try do
       {:ok, addr} = authority(contract)
-      addr != <<0::256>>
+
+      case addr != <<0::256>> do
+        true -> :ok
+        false -> {:error, :root_chain_authority_is_nil}
+      end
     rescue
       _ -> {:error, :root_chain_contract_not_available}
     end
