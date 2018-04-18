@@ -45,7 +45,7 @@ cover:
 
 credo:       ## run linter
 credo:
-	mix coveralls.html --umbrella --no-start --include integration
+	mix credo
 
 perf:        ## run performance test
 perf:
