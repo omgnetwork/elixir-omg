@@ -45,7 +45,6 @@ defmodule OmiseGO.API.BlockQueue do
     end
 
     def init(:ok) do
-      finality = 12
       try do
         with :ok <- Eth.node_ready(),
              :ok <- Eth.contract_ready(),
@@ -68,7 +67,7 @@ defmodule OmiseGO.API.BlockQueue do
             child_block_interval: 1000,
             chain_start_parent_height: parent_start,
             submit_period: 1,
-            finality_threshold: finality
+            finality_threshold: 12
           )
           {:ok, _} = :timer.send_interval(1000, self(), :check_mined_child_head)
           {:ok, _} = :timer.send_interval(1000, self(), :check_ethereum_height)
