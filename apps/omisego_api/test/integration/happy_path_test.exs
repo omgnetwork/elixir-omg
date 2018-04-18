@@ -29,7 +29,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
   # FIXME: copied from eth/fixtures - DRY
   deffixture geth do
-    {:ok, exit_fn} = OmiseGO.Eth.geth()
+    {:ok, exit_fn} = OmiseGO.Eth.dev_geth()
     on_exit(exit_fn)
     :ok
   end

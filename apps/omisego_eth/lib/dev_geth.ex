@@ -1,4 +1,4 @@
-defmodule OmiseGO.Eth.Geth do
+defmodule OmiseGO.Eth.DevGeth do
   @moduledoc """
   Helper module for deployment of contracts to dev geth.
   """

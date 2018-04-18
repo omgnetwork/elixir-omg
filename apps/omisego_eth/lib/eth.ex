@@ -6,13 +6,13 @@ defmodule OmiseGO.Eth do
   @block_offset 1_000_000_000
   @transaction_offset 10_000
 
-  def geth do
+  def dev_geth do
     _ = Application.ensure_all_started(:porcelain)
     _ = Application.ensure_all_started(:ethereumex)
-    {ref, geth_os_pid, _} = OmiseGO.Eth.Geth.start()
+    {ref, geth_os_pid, _} = OmiseGO.Eth.DevGeth.start()
 
     on_exit = fn ->
-      OmiseGO.Eth.Geth.stop(ref, geth_os_pid)
+      OmiseGO.Eth.DevGeth.stop(ref, geth_os_pid)
     end
 
     {:ok, on_exit}
