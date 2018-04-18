@@ -1,6 +1,10 @@
 defmodule OmiseGO.Eth.DevHelpers do
   alias OmiseGO.Eth.WaitFor, as: WaitFor
 
+  @moduledoc """
+  Collection of helpers used in MIX_ENV dev and test
+  """
+
   def prepare_dev_env do
     {:ok, contract_address, txhash, authority} = prepare_env("./")
     write_conf_file("dev", contract_address, txhash, authority)
