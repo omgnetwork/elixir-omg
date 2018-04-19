@@ -23,8 +23,7 @@ defmodule OmiseGO.Umbrella.MixProject do
       # NOTE: we're overriding for the sake of `omisego_api` mix.exs deps. Otherwise the override is ignored
       # TODO: making it consistent is advised: maybe discuss with exth_crypto and submit pr there?
 
-      {:libsecp256k1, git: "https://github.com/omisego/libsecp256k1.git",
-       compile: "${HOME}/.mix/rebar compile", override: true},
+      {:libsecp256k1, "~> 0.1.4",compile: "${HOME}/.mix/rebar compile", override: true},
     ]
   end
 end
