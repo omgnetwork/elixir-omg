@@ -11,6 +11,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   alias OmiseGO.API.State.Transaction
 
   @moduletag :requires_geth
+  @moduletag :happy
 
   deffixture db_path_config() do
     dir = Temp.mkdir!()
@@ -38,12 +39,11 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   deffixture contract(geth) do
     _ = geth
     _ = Application.ensure_all_started(:ethereumex)
-    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
-    {from, {txhash, contract_address}} = OmiseGO.Eth.DevHelpers.create_new_contract("../../", addr)
+    {:ok, contract_address, txhash, authority} = OmiseGO.Eth.DevHelpers.prepare_env("../../")
 
     %{
       address: contract_address,
-      from: from,
+      from: authority,
       txhash: txhash
     }
   end
@@ -131,12 +131,13 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     OmiseGO.Eth.DevHelpers.mine_eth_dev_block()
 
     # let operator and Ethereum to mine few blocks
-    OmiseGO.Eth.WaitFor.eth_height(started_at + 2)
+    OmiseGO.Eth.WaitFor.eth_height(started_at + 2, true)
 
     # get hash of first mined block from Ethereum
     contract = Application.get_env(:omisego_eth, :contract)
     {:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(1000, contract)
 
+    IO.puts("get block")
     # check if operator is propagating block with such hash
     assert %OmiseGO.API.Block{hash: ^block_hash} = OmiseGO.API.get_block(block_hash)
 
