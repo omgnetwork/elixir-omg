@@ -44,7 +44,7 @@ defmodule CurrentBlockChecker do
       {:noreply, {blocknum}}
     else
       IO.puts "CurrentBlockChecker - Stoping..."
-      {:stop, :shutdown, nil}
+      {:stop, :normal, nil}
     end
   end
 

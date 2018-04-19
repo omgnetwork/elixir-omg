@@ -1,6 +1,6 @@
-defmodule OmiseGO.PerfTest do
+defmodule OmiseGO.PerfTest.Runner do
   @moduledoc """
-  Tooling to run OmiseGO performance tests - orchestration and running tests
+  OmiseGO performance tests - orchestration and running tests
   """
 
   @init_blocknum 1000
@@ -22,6 +22,13 @@ defmodule OmiseGO.PerfTest do
 
     # fire async current block checker
     CurrentBlockChecker.start_link()
+
+    # Wait all senders do thier job, checker will stop when it happens and stops itself
+    ref = Process.monitor(CurrentBlockChecker)
+    receive do
+      {:DOWN, ^ref, :process, _obj, reason} ->
+        IO.puts "Stoping performance tests, reason: #{reason}"
+    end
 
     :ok
   end

@@ -20,25 +20,29 @@ defmodule SenderServer do
   def init({senderid, nrequests, init_blocknum}) do
     IO.puts "SenderServer[#{senderid}] - init/1 called with requests: '#{nrequests}'"
     Registry.register(OmiseGO.PerfTest.Registry, :sender, "Sender: #{senderid}")
+
+    sender_addr = generate_participant_address()
+    IO.puts "[#{senderid}]: Address #{Base.encode64(sender_addr.addr)}"
+
     send(self(), :do)
-    {:ok, {senderid, nrequests, init_blocknum}}
+    {:ok, {senderid, sender_addr, nrequests, init_blocknum}}
   end
 
   @doc """
   Submits translaction then schedules call to itself if any requests left.
   Otherwise unregisters from the Registry and stops.
   """
-  @spec handle_info(:do, state :: {senderid :: integer, nrequests :: integer, blocknum :: integer}) :: {:noreply, new_state :: tuple} | {:stop, :normal, nil}
-  def handle_info(:do, {senderid, nrequests, blocknum}) do
-    submit_tx({senderid, nrequests, blocknum})
+  @spec handle_info(:do, state :: {senderid :: integer, sender_addr :: <<>>, nrequests :: integer, blocknum :: integer}) :: {:noreply, new_state :: tuple} | {:stop, :normal, nil}
+  def handle_info(:do, state = {senderid, sender_addr, nrequests, blocknum}) do
+    submit_tx(state)
 
     if nrequests > 0 do
       send(self(), :do)
-      {:noreply, {senderid, nrequests-1, blocknum}}
+      {:noreply, {senderid, sender_addr, nrequests-1, blocknum}}
     else
       Registry.unregister(OmiseGO.PerfTest.Registry, :sender)
       IO.puts "SenderServer[#{senderid}] - Stoping..."
-      {:stop, :normal, nil}
+      {:stop, :normal, {senderid, sender_addr, nrequests, blocknum}}
     end
   end
 
@@ -47,17 +51,44 @@ defmodule SenderServer do
   """
   @spec handle_cast({:update, blocknum :: integer}, state :: tuple) :: {:noreply, new_state :: tuple}
   def handle_cast({:update, blocknum}, state) do
-    {:noreply, put_elem(state, 2, blocknum)}
+    {:noreply, put_elem(state, 3, blocknum)}
   end
 
   @doc """
   Submits new transaction to the blockchain server.
   """
   #FIXME: Add spec - SenderServer.submit_tx()
-  def submit_tx({senderid, nrequests, blocknum}) do
+  def submit_tx({senderid, sender_addr, nrequests, blocknum}) do
+    alias OmiseGO.API.State.Transaction
+
     IO.puts "[#{senderid}] Sending requests #{nrequests} to block #{blocknum}"
 
     # simulating time elapsed for tx send
-    Process.sleep(1000 + Enum.random([-500, -250, 0, 500, 750, 1250]))
+    Process.sleep(500 + Enum.random([-500, -250, 0, 500, 750, 1250]))
+
+    receipient = generate_participant_address()
+    IO.puts "[#{senderid}]: Sending to new owner #{Base.encode64(receipient.addr)}"
+
+    tx =
+      %Transaction{
+        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
+        newowner1: receipient.addr, amount1: 7, newowner2: sender_addr.addr, amount2: 3, fee: 0,
+      }
+      |> Transaction.sign(sender_addr.priv, <<>>)
+      |> Transaction.Signed.encode()
+
+      {result, _} = OmiseGO.API.submit(tx)
+      case result do
+        {{:error,  reason}, _} -> IO.puts "[#{senderid}] Transaction submition has failed, reason: #{reason}"
+        {:ok, _} -> IO.puts "[#{senderid}] Transaction submitted successfully"
+      end
+  end
+
+  def generate_participant_address() do
+    alias OmiseGO.API.Crypto
+    {:ok, priv} = Crypto.generate_private_key()
+    {:ok, pub} = Crypto.generate_public_key(priv)
+    {:ok, addr} = Crypto.generate_address(pub)
+    %{priv: priv, addr: addr}
   end
 end
