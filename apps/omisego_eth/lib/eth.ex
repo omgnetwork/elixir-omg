@@ -79,10 +79,6 @@ defmodule OmiseGO.Eth do
     end
   end
 
-  def submit_block_no_struct(hash, nonce, gas_price) do
-    submit_block(%BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price})
-  end
-
   def submit_block(
         %BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price},
         from \\ nil,
@@ -122,14 +118,17 @@ defmodule OmiseGO.Eth do
         other
     end
   end
-
-  # returns next num that is supposed to be mined by operator
+  @doc """
+  Returns next blknum that is supposed to be mined by operator
+  """
   def get_current_child_block(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
     {:ok, _next} = call_contract_value(contract, "currentChildBlock()")
   end
 
-  # returns blknum that was already mined by operator (with exception for 0)
+  @doc """
+  Returns blknum that was already mined by operator (with exception for 0)
+  """
   def mined_child_block(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
     {:ok, next} = call_contract_value(contract, "currentChildBlock()")
