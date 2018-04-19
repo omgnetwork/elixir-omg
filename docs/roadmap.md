@@ -8,7 +8,7 @@ The Fuseki milestone was achieved in Q1 2018. Fuseki delivered the OmiseGO eWall
 
 The code for the eWallet SDK may be found in [GitHub](https://github.com/omisego/ewallet).
 
-## Sente (Active)
+## Sente (In Progress)
 The Sente milestone includes feedback from users of the closed beta and from Fuseki. Notable changes in the eWallet SDK from Fuseki to Sente includes:
 * A re-designed administrative dashboard
 * Transaction request flow (QR codes) to enable peer to peer payments between users
@@ -16,8 +16,8 @@ The Sente milestone includes feedback from users of the closed beta and from Fus
 ## Honte (Discontinued)
 OmiseGO has stopped on the Honte milestone. The repository for Honte may be found [here](https://github.com/omisego/honted). The full design of the blockchain and decentralized exchange on Tendermint may be found [here](https://github.com/omisego/honted/blob/develop/docs/tendermint_blockchain_design.md) and [here](https://github.com/omisego/honted/blob/develop/docs/tendermint_blockchain_design.md) respectively.
 
-## Tesuji (Active)
-When the Tesuji milestone is reached, we will deliver OmiseGO's first implementation of Plasma. The design of Tesuji Plasma may be found [here](http://completeme).
+## Tesuji (In Progress)
+When the Tesuji milestone is reached, we will deliver OmiseGO's first implementation of Plasma. Whilst centralized, Tesuji Plasma  does not compromise on security or performance. The design of Tesuji Plasma may be found [here](http://completeme).
 
 * Proof of Authority run on OmiseGO servers.
 * Exit to Ethereum for final safety.
@@ -27,42 +27,51 @@ When the Tesuji milestone is reached, we will deliver OmiseGO's first implementa
 
 We are actively seeking exchanges who wish to build an exchange front end and matching engine for Tesuji Plasma.
 
-## Tengen
+## Aji (On Deck)
+* Support fiat, debit/credit cards, top-up/cash-out, Omise Payment
+* Plugin support in the eWallet SDK for cash in/cash out
+
+## Tengen Phase 1
+The implementation of the decentralized exchange is split across two phases. The first Tengen phase maintains a centralized service to provide an order matching services. However, the order matching service does not have custody of funds at any time.
+
 * Account simulation support
 * Non-custodial on child chain order settlement
 * Initial integration of eWallet SDK with ERC20 token support
 
-## Tengen 2
+## Tengen Phase 2
+Tengen phase 2 decentralizes the exchange by moving the order book and order matching processes into the Plasma chain.
 * Decentralized order matching
 * Initial integration of eWallet SDK with Plasma
 
-## Step Up
+## TBN (To Be Named)
 * Removal of confirmation messages in Tesuji Plasma
 * Conditional payments
 
-## Tickets and Game items
+## TBN (To Be Named)
+There are use cases where non-fungible tokens are useful, such as ticketing, unique in game items.
+
 * Non-fungible tokens
 
-## Limited proof of stake
+## Limited Proof of Stake
+This milestone will commence the phase-in of staking.
+
 * Validators and the operator share the responsibility of securing the Plasma chain
 
-## Aji
-* Support fiat, debit/credit cards, top-up/cash-out, Omise Payment
-* Plugin support in the eWallet SDK for cash in/cash out
-
 ## Shinte
+The Shinte milestone includes enhancements to the dencentralized exchange.
 * Provisions against validator/operator front-running
 * Order blinding
 
-## PoS
-* Full proof of stake where the operator is removed
+## Proof of Stake
+* Full proof of stake where the operator is no longer required
 
 ## On the Horizon and Approaching
-* Direct exchange between wallet providers for tokens that are not issued on the blockchain
-* Interchain communication
+Although these items may be at the bottom of this roadmap, it does not mean that they are low priority. Items in the `On the Horizon and Approaching` section may be prioritized and moved into a named milestone.
+* Delegated exit initialization - Allows users who are unable to watch the Plasma chain all of the time to delegate responsibility to watch the Plasma and to exit on the user's behalf.
+* Direct exchange between wallet providers for tokens that are not issued on the blockchain - This feature will enable functionality such as direct interchange of loyalty points between wallet providers.
 * Multiple root chains. ie different root chains for safety
-* Child chain independence of root chain
-* delegated exit initialization
+* Interchain communication - The ability for different child chains to communicate and transact.
+* Child chain independence of root chain - increase safety of the Plasma chain which would in turn reduce dependency on the availability of the root chain
 * Economic incentives for exit and challenges (add bonds)
 * Multiple child chains to a single root chain and nested chains
 * Bitcoin clearinghouse
