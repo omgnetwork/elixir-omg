@@ -2,18 +2,17 @@ defmodule OmiseGO.Eth.Fixtures do
   use ExUnitFixtures.FixtureModule
 
   deffixture geth do
-    {:ok, exit_fn} = OmiseGO.Eth.geth()
+    {:ok, exit_fn} = OmiseGO.Eth.dev_geth()
     on_exit(exit_fn)
     :ok
   end
 
   deffixture contract(geth) do
     _ = geth
-    {from, {txhash, contract_address}} = OmiseGO.Eth.TestHelpers.create_new_contract()
-
+    {:ok, contract_address, txhash, authority} = OmiseGO.Eth.DevHelpers.prepare_env("../../")
     %{
       address: contract_address,
-      from: from,
+      from: authority,
       txhash: txhash
     }
   end

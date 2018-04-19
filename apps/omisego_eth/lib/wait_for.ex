@@ -29,9 +29,25 @@ defmodule OmiseGO.Eth.WaitFor do
     |> Task.await(timeout)
   end
 
+  def eth_height(n) do
+    f = fn ->
+      height = OmiseGO.Eth.get_ethereum_height
+      case height do
+        {:ok, x} when x >= n -> {:ok, x}
+        _ -> :repeat
+      end
+    end
+    repeat_until_ok(f)
+  end
+
+  # Repeats fun until fun returns {:ok, ...} OR exception is raised (see :erlang.exit, :erlang.error)
+  # Simple throws and :badmatch are treated as signals to repeat
   def repeat_until_ok(f) do
     try do
-      {:ok, _} = f.()
+      case f.() do
+        {:ok, _} = return -> return
+        _ -> repeat_until_ok(f)
+      end
     catch
       _something ->
         Process.sleep(100)

@@ -29,7 +29,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
   # FIXME: copied from eth/fixtures - DRY
   deffixture geth do
-    {:ok, exit_fn} = OmiseGO.Eth.geth()
+    {:ok, exit_fn} = OmiseGO.Eth.dev_geth()
     on_exit(exit_fn)
     :ok
   end
@@ -37,7 +37,9 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   # FIXME: copied from eth/fixtures - DRY
   deffixture contract(geth) do
     _ = geth
-    {from, {txhash, contract_address}} = OmiseGO.Eth.TestHelpers.create_new_contract()
+    _ = Application.ensure_all_started(:ethereumex)
+    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
+    {from, {txhash, contract_address}} = OmiseGO.Eth.DevHelpers.create_new_contract("../../", addr)
 
     %{
       address: contract_address,
@@ -51,14 +53,14 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     :ok = geth
 
     Application.put_env(:omisego_eth, :contract, contract.address, persistent: true)
-    Application.put_env(:omisego_eth, :omg_addr, contract.from, persistent: true)
+    Application.put_env(:omisego_eth, :authority_addr, contract.from, persistent: true)
     Application.put_env(:omisego_eth, :txhash_contract, contract.txhash, persistent: true)
 
     {:ok, started_apps} = Application.ensure_all_started(:omisego_eth)
 
     on_exit fn ->
       Application.put_env(:omisego_eth, :contract, "0x0")
-      Application.put_env(:omisego_eth, :omg_addr, "0x0")
+      Application.put_env(:omisego_eth, :authority_addr, "0x0")
       Application.put_env(:omisego_eth, :txhash_contract, "0x0")
       started_apps
         |> Enum.reverse()
@@ -114,19 +116,33 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
       |> Transaction.sign(alice.priv, <<>>)
       |> Transaction.Signed.encode()
 
-    {:error, :utxo_not_found} = OmiseGO.API.submit(tx)
+    {{:error, :utxo_not_found}, _} = OmiseGO.API.submit(tx)
 
-    # FIXME should actually be called from Eth-driven Depositor
+    # FIXME should actually be called from Ethereum-driven Depositor
     :ok = OmiseGO.API.State.deposit([%{owner: alice.addr, amount: 10, blknum: 1}])
 
-    :ok = OmiseGO.API.submit(tx)
+    # spend the deposit
+    {:ok, _} = OmiseGO.API.submit(tx)
 
-    # FIXME: should actuallly be called by the Eth-driven BlockQueue
-    # FIXME: block hash should be axquired from the contract too
-    {:ok, block_hash} = OmiseGO.API.State.form_block(1000, 2000)
+    # mine the block that spends the deposit
+    {:ok, started_at} = OmiseGO.Eth.get_root_deployment_height()
 
-    assert :not_found = OmiseGO.API.get_block(<<0::size(256)>>)
+    # force `geth --dev` chain to mine (this initiates indirect recursion mining)
+    OmiseGO.Eth.DevHelpers.mine_eth_dev_block()
+
+    # let operator and Ethereum to mine few blocks
+    OmiseGO.Eth.WaitFor.eth_height(started_at + 2)
+
+    # get hash of first mined block from Ethereum
+    contract = Application.get_env(:omisego_eth, :contract)
+    {:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(1000, contract)
+
+    # check if operator is propagating block with such hash
     assert %OmiseGO.API.Block{hash: ^block_hash} = OmiseGO.API.get_block(block_hash)
+
+    # sanity checks
+    assert <<0::256>> != block_hash
+    assert :not_found = OmiseGO.API.get_block(<<0::size(256)>>)
 
     # FIXME - should actually stop and start apps to check if persistence works fine
     assert {:ok, [
@@ -134,9 +150,8 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
       %{{1000, 0, 1} => %{amount: 3, owner: alice.addr}}
     ]} == DB.utxos()
 
-    {:error, :utxo_not_found} = OmiseGO.API.submit(tx)
-
-    {:ok, _block_hash} = OmiseGO.API.State.form_block(2000, 3000)
+    # attempt to double-spend on child chain should fail
+    assert {{:error, :utxo_not_found}, _} = OmiseGO.API.submit(tx)
   end
 
 end
