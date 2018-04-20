@@ -125,17 +125,8 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     {:ok, _} = OmiseGO.API.submit(tx)
 
     # mine the block that spends the deposit
-    {:ok, started_at} = OmiseGO.Eth.get_root_deployment_height()
-
-    # force `geth --dev` chain to mine (this initiates indirect recursion mining)
-    OmiseGO.Eth.DevHelpers.mine_eth_dev_block()
-
-    # let operator and Ethereum to mine few blocks
-    OmiseGO.Eth.WaitFor.eth_height(started_at + 2, true)
-
-    # get hash of first mined block from Ethereum
-    contract = Application.get_env(:omisego_eth, :contract)
-    {:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(1000, contract)
+    {:ok, _} = OmiseGO.Eth.WaitFor.current_child_block(2000, true)
+    {:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(1000)
 
     # check if operator is propagating block with hash submitted to RootChain
     assert %OmiseGO.API.Block{:hash => ^block_hash} = OmiseGO.API.get_block(block_hash)

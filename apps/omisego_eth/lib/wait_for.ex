@@ -44,6 +44,21 @@ defmodule OmiseGO.Eth.WaitFor do
     |> Task.async |> Task.await(timeout)
   end
 
+  def current_child_block(blknum, dev \\ false, timeout \\ 10_000) do
+    f = fn() ->
+      {:ok, next_num} = OmiseGO.Eth.get_current_child_block()
+      case next_num < blknum do
+        true ->
+          _ = maybe_mine(dev)
+          :repeat
+        false ->
+          {:ok, next_num}
+      end
+    end
+    fn() -> repeat_until_ok(f) end
+    |> Task.async |> Task.await(timeout)
+  end
+
   # Repeats fun until fun returns {:ok, ...} OR exception is raised (see :erlang.exit, :erlang.error)
   # Simple throws and :badmatch are treated as signals to repeat
   def repeat_until_ok(f) do
