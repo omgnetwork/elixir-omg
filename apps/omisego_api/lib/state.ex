@@ -59,8 +59,8 @@ defmodule OmiseGO.API.State do
   Checks (stateful validity) and executes a spend transaction. Assuming stateless validity!
   """
   def handle_call({:exec, tx}, _from, state) do
-    {tx_result, new_state} = Core.exec(tx, state)
-    {:reply, {tx_result, new_state.tx_index}, new_state}
+    {tx_result, new_state, tx_ind} = Core.exec(tx, state)
+    {:reply, {tx_result, tx_ind}, new_state}
   end
 
   @doc """

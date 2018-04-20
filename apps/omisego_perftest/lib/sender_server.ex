@@ -1,4 +1,4 @@
-defmodule SenderServer do
+defmodule OmiseGO.PerfTest.SenderServer do
   @moduledoc """
   The SenderServer process synchronously sends requested number of transactions to the blockchain server.
   """
@@ -65,13 +65,11 @@ defmodule SenderServer do
   def submit_tx({senderid, sender_addr, nrequests, blocknum}) do
     alias OmiseGO.API.State.Transaction
 
-    IO.puts "[#{senderid}]: Sending requests #{nrequests} to block #{blocknum}"
-
     # simulating time elapsed for tx send
-    Process.sleep(500 + Enum.random([-500, -250, 0, 500, 750, 1250]))
+    Process.sleep(500 + Enum.random([-250, 0, 250,]))
 
     receipient = generate_participant_address()
-    IO.puts "[#{senderid}]: Sending to new owner #{Base.encode64(receipient.addr)}"
+    IO.puts "[#{senderid}]: Sending Tx to new owner #{Base.encode64(receipient.addr)}"
 
     tx =
       %Transaction{

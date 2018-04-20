@@ -1,4 +1,4 @@
-defmodule CurrentBlockChecker do
+defmodule OmiseGO.PerfTest.CurrentBlockChecker do
   @moduledoc """
   Checks the current block number in the chain an broadcast it to the senders.
   """

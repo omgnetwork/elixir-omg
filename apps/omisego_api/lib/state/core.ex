@@ -50,7 +50,7 @@ defmodule OmiseGO.API.State.Core do
        state.tx_index
        }
     else
-      {:error, _reason} = error -> {error, state}
+      {:error, _reason} = error -> {error, state, state.tx_index}
     end
   end
 
