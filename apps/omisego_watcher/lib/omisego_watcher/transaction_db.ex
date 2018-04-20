@@ -6,6 +6,7 @@ defmodule OmiseGOWatcher.TransactionDB do
   use Ecto.Schema
 
   import Ecto.Changeset
+  import Ecto.Query
 
   alias OmiseGOWatcher.Repo
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
@@ -90,5 +91,34 @@ defmodule OmiseGOWatcher.TransactionDB do
     transaction_db
     |> cast(attrs, @field_names)
     |> validate_required(@field_names)
+  end
+
+  @doc """
+  Gets transaction that spends given utxo
+  """
+  @spec get_transaction_spending_utxo(map()) :: {:ok, map()} | :utxo_not_spent
+  def get_transaction_spending_utxo(%{blknum: blknum, txindex: txindex, oindex: oindex}) do
+    query = from(
+      t in __MODULE__,
+      where:
+        (t.blknum1 == ^blknum and t.txindex1 == ^txindex and t.oindex1 == ^oindex) or
+        (t.blknum2 == ^blknum and t.txindex2 == ^txindex and t.oindex2 == ^oindex)
+    )
+    case Repo.all(query) do
+      [] -> :utxo_not_spent
+      [tx] -> {:ok, tx}
+    end
+  end
+
+  @doc """
+  Gets all transactions from the block
+  """
+  @spec get_transactions_by_block(non_neg_integer()) :: list(map())
+  def get_transactions_by_block(txblknum) do
+    query = from(
+      t in __MODULE__,
+      where: t.txbklnum == ^txblknum
+    )
+    Repo.all(query)
   end
 end

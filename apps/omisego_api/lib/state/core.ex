@@ -285,4 +285,15 @@ defmodule OmiseGO.API.State.Core do
 
     {event_triggers, deletes, state}
   end
+
+  @doc """
+  Checks if utxo exists
+  """
+  @spec utxo_exists(map(), %__MODULE__{}) :: :utxo_exists | :utxo_does_not_exist
+  def utxo_exists(%{blknum: blknum, txindex: txindex, oindex: oindex}, %Core{utxos: utxos}) do
+    case Map.has_key?(utxos, {blknum, txindex, oindex}) do
+      true -> :utxo_exists
+      false -> :utxo_does_not_exist
+    end
+  end
 end

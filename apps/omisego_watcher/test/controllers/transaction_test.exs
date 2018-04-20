@@ -32,7 +32,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
   end
 
-  test "insert and retrive transaction" do
+  test "insert and retrieve transaction" do
     txblknum = 0
     txindex = 0
     id = Signed.signed_hash(@signed_tx)
@@ -44,7 +44,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     assert expected_transaction == delete_meta(TransactionDB.get(id))
   end
 
-  test "insert and retrive block of transactions " do
+  test "insert and retrieve block of transactions" do
     txblknum = 0
 
     signed_tx_1 = @signed_tx
@@ -66,6 +66,21 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
 
     assert expected_transaction_1 == delete_meta(TransactionDB.get(txid_1))
     assert expected_transaction_2 == delete_meta(TransactionDB.get(txid_2))
+  end
+
+  describe "get transaction spending utxo" do
+
+    test "returns transaction that spends utxo" do
+      id = Signed.signed_hash(@signed_tx)
+      {:ok, %TransactionDB{txid: ^id}} = TransactionDB.insert(id, @signed_tx, 1, 1)
+
+      utxo = %{blknum: @signed_tx.blknum1, txindex: @signed_tx.txindex1, oindex: @signed_tx.oindex1}
+      {:ok, %TransactionDB{txid: ^id}} = TransactionDB.get_transaction_spending_utxo(utxo)
+    end
+
+    test "signals when spending transaction does not exist" do
+    end
+
   end
 
   defp create_expected_transaction(txid, signed_tx, txblknum, txindex) do
