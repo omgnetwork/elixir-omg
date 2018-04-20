@@ -137,9 +137,8 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     contract = Application.get_env(:omisego_eth, :contract)
     {:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(1000, contract)
 
-    IO.puts("get block")
-    # check if operator is propagating block with such hash
-    assert %OmiseGO.API.Block{hash: ^block_hash} = OmiseGO.API.get_block(block_hash)
+    # check if operator is propagating block with hash submitted to RootChain
+    assert %OmiseGO.API.Block{:hash => ^block_hash} = OmiseGO.API.get_block(block_hash)
 
     # sanity checks
     assert <<0::256>> != block_hash
