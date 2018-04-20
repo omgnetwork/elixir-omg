@@ -22,7 +22,7 @@ defmodule CurrentBlockChecker do
   """
   @spec init(init_state :: tuple) :: {:ok, state :: tuple}
   def init(args = {blocknum}) do
-    IO.puts "CurrentBlockChecker - init/1 called with args: '#{blocknum}'"
+    IO.puts "[CBC] +++ init/1 called with args: '#{blocknum}' +++"
     send(self(), :do)
 
     {:ok, args}
@@ -39,11 +39,12 @@ defmodule CurrentBlockChecker do
 
     unless Enum.empty?(senders) do
       blocknum = get_current_block_number(blocknum)
-      broadcast_new_block(senders, blocknum)
+      #broadcast_new_block(senders, blocknum)
 
+      Process.send_after(self(), :do, @check_for_new_blocks_every_ms)
       {:noreply, {blocknum}}
     else
-      IO.puts "CurrentBlockChecker - Stoping..."
+      IO.puts "[CBC] +++ Stoping... +++"
       {:stop, :normal, nil}
     end
   end
@@ -61,11 +62,9 @@ defmodule CurrentBlockChecker do
   """
   #FIXME: Add spec - CurrentBlockChecker.broadcast_new_block()
   def broadcast_new_block(senders, blocknum) do
-    IO.puts "CurrentBlockChecker - sending new block number: #{blocknum} to #{Enum.count(senders)} senders"
+    IO.puts "[CBC]: Sending new block number: #{blocknum} to #{Enum.count(senders)} senders"
     Registry.dispatch(OmiseGO.PerfTest.Registry, :sender, fn senders ->
       Enum.each(senders, fn {pid, _} -> GenServer.cast(pid, {:update, blocknum}) end)
     end)
-
-    Process.send_after(self(), :do, @check_for_new_blocks_every_ms)
   end
 end

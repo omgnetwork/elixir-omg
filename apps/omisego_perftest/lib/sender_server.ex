@@ -18,11 +18,15 @@ defmodule SenderServer do
   """
   @spec init({senderid :: integer, nrequests :: integer, init_blocknum :: integer}) :: {:ok, init_state :: tuple}
   def init({senderid, nrequests, init_blocknum}) do
-    IO.puts "SenderServer[#{senderid}] - init/1 called with requests: '#{nrequests}'"
+    IO.puts "[#{senderid}] +++ init/1 called with requests: '#{nrequests}' +++"
     Registry.register(OmiseGO.PerfTest.Registry, :sender, "Sender: #{senderid}")
 
     sender_addr = generate_participant_address()
     IO.puts "[#{senderid}]: Address #{Base.encode64(sender_addr.addr)}"
+
+    deposit_value = 10 * nrequests
+    :ok = OmiseGO.API.State.deposit([%{owner: sender_addr.addr, amount: deposit_value, blknum: 1}])
+    IO.puts "[#{senderid}]: Deposited #{deposit_value} OMG"
 
     send(self(), :do)
     {:ok, {senderid, sender_addr, nrequests, init_blocknum}}
@@ -41,7 +45,7 @@ defmodule SenderServer do
       {:noreply, {senderid, sender_addr, nrequests-1, blocknum}}
     else
       Registry.unregister(OmiseGO.PerfTest.Registry, :sender)
-      IO.puts "SenderServer[#{senderid}] - Stoping..."
+      IO.puts "[#{senderid}] +++ Stoping... +++"
       {:stop, :normal, {senderid, sender_addr, nrequests, blocknum}}
     end
   end
@@ -61,7 +65,7 @@ defmodule SenderServer do
   def submit_tx({senderid, sender_addr, nrequests, blocknum}) do
     alias OmiseGO.API.State.Transaction
 
-    IO.puts "[#{senderid}] Sending requests #{nrequests} to block #{blocknum}"
+    IO.puts "[#{senderid}]: Sending requests #{nrequests} to block #{blocknum}"
 
     # simulating time elapsed for tx send
     Process.sleep(500 + Enum.random([-500, -250, 0, 500, 750, 1250]))
@@ -79,8 +83,8 @@ defmodule SenderServer do
 
       {result, _} = OmiseGO.API.submit(tx)
       case result do
-        {{:error,  reason}, _} -> IO.puts "[#{senderid}] Transaction submition has failed, reason: #{reason}"
-        {:ok, _} -> IO.puts "[#{senderid}] Transaction submitted successfully"
+        {{:error,  reason}, _} -> IO.puts "[#{senderid}]: Transaction submition has failed, reason: #{reason}"
+        {:ok, _} -> IO.puts "[#{senderid}]: Transaction submitted successfully"
       end
   end
 
