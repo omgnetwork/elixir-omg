@@ -3,7 +3,7 @@ podTemplate(
     containers: [
         containerTemplate(
             name: 'jnlp',
-            image: 'gcr.io/omise-go/jenkins-slave-elixir:latest',
+            image: 'omisegoimages/blockchain-base:latest',
             args: '${computer.jnlpmac} ${computer.name}',
             alwaysPullImage: true
         ),
