@@ -28,6 +28,7 @@ podTemplate(
             }
         }
 
+/*
         stage('Test Watcher') {
             withEnv(["MIX_ENV=test"]) {
                 dir("apps/omisego_watcher") {
@@ -35,6 +36,7 @@ podTemplate(
                 }
             }
         }
+*/
 
         stage('Lint') {
             withEnv(["MIX_ENV=test"]) {
