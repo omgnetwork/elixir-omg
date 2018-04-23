@@ -5,8 +5,8 @@ defmodule OmiseGO.PerfTest.CurrentBlockChecker do
 
   use GenServer
 
-  @init_block_num  1000
-  @check_for_new_blocks_every_ms 2250
+  @init_block_num  0
+  @check_for_new_blocks_every_ms 500
 
   @doc """
   Starts the server.
@@ -39,7 +39,7 @@ defmodule OmiseGO.PerfTest.CurrentBlockChecker do
 
     unless Enum.empty?(senders) do
       blocknum = get_current_block_number(blocknum)
-      #broadcast_new_block(senders, blocknum)
+      broadcast_new_block(senders, blocknum)
 
       Process.send_after(self(), :do, @check_for_new_blocks_every_ms)
       {:noreply, {blocknum}}

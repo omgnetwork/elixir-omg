@@ -20,9 +20,9 @@ defmodule OmiseGO.PerfTest do
     ]
     Supervisor.start_link(children, [strategy: :one_for_one])
 
-    #Runner.run(nrequests, nusers, opt)
+    Runner.run(nrequests, nusers, opt)
 
-    #testdown(started_apps)
+    testdown(started_apps)
   end
 
   defp testup() do

@@ -18,10 +18,10 @@ defmodule OmiseGO.PerfTest.Runner do
 
     # fire async transaction senders
     #TODO: Consider running senders in supervisor - but would they restore their state?
-    1..nusers |> Enum.map(fn senderid -> SenderServer.start_link({senderid, nrequests, @init_blocknum}) end)
+    1..nusers |> Enum.map(fn senderid -> OmiseGO.PerfTest.SenderServer.start_link({senderid, nrequests}) end)
 
     # fire async current block checker
-    CurrentBlockChecker.start_link()
+    OmiseGO.PerfTest.CurrentBlockChecker.start_link()
 
     # Wait all senders do thier job, checker will stop when it happens and stops itself
     ref = Process.monitor(CurrentBlockChecker)

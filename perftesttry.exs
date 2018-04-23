@@ -24,6 +24,7 @@ defmodule QuickStart do
       blknum1: 1000, txindex1: 0, oindex1: 1, blknum2: 0, txindex2: 0, oindex2: 0, amount1: 3, amount2: 6, fee: 0,
       newowner1: bob.addr, newowner2: alice.addr }
 
-    tx2 |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
+    txe2 = tx2 |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
+    {result, ind, hash} = OmiseGO.API.submit(txe2)
   end
 end
