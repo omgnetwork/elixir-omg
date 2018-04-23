@@ -39,7 +39,7 @@ defmodule OmiseGO.Eth.DevHelpers do
       contract: #{inspect contract_address},
       txhash_contract: #{inspect txhash},
       authority_addr: #{inspect authority},
-      root_path: "../../"
+      root_path: "../../"\
       """
     {:ok, file} = File.open("apps/omisego_eth/config/#{mix_env}.exs", [:write])
     IO.puts(file, body)
