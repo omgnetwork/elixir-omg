@@ -90,14 +90,13 @@ defmodule OmiseGO.API.State do
   @doc """
   Wraps up accumulated transactions into a block, triggers events, triggers db update, returns block hash
   """
-  def handle_call({:form_block, block_num_to_form, next_block_num_to_form}, from, state) do
+  def handle_call({:form_block, block_num_to_form, next_block_num_to_form}, _from, state) do
     result = Core.form_block(state, block_num_to_form, next_block_num_to_form)
     with {:ok, {block, event_triggers, db_updates, new_state}} <- result,
          :ok <- DB.multi_update(db_updates) do
       Eventer.notify(event_triggers)
       :ok = FreshBlocks.push(block)
-      GenServer.reply(from, {:ok, block.hash})
-      {:noreply, new_state}
+      {:reply, {:ok, block.hash}, new_state}
     end
  end
 end

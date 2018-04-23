@@ -49,7 +49,7 @@ defmodule OmiseGO.API.BlockQueue do
         with :ok <- Eth.node_ready(),
              :ok <- Eth.contract_ready(),
              {:ok, parent_height} <- Eth.get_ethereum_height(),
-             {:ok, mined_num} <- Eth.mined_child_block(),
+             {:ok, mined_num} <- Eth.get_mined_child_block(),
              {:ok, parent_start} <- Eth.get_root_deployment_height(),
              {:ok, stored_child_top_num} <- OmiseGO.DB.child_top_block_number(),
              # TODO: taking all stored hashes now. While still being feasible DB-wise ("just" many hashes)
@@ -86,7 +86,7 @@ defmodule OmiseGO.API.BlockQueue do
     end
 
     def handle_info(:check_mined_child_head, state) do
-      {:ok, mined_num} = Eth.mined_child_block()
+      {:ok, mined_num} = Eth.get_mined_child_block()
       state1 = Core.set_mined(state, mined_num)
       submit_blocks(state1)
       {:noreply, state1}

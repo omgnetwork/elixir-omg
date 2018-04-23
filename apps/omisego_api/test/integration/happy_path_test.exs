@@ -125,7 +125,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     {:ok, _} = OmiseGO.API.submit(tx)
 
     # mine the block that spends the deposit
-    {:ok, _} = OmiseGO.Eth.WaitFor.current_child_block(2000, true)
+    {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(2000, true)
     {:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(1000)
 
     # check if operator is propagating block with hash submitted to RootChain

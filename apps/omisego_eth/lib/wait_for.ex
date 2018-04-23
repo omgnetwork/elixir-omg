@@ -29,36 +29,6 @@ defmodule OmiseGO.Eth.WaitFor do
     |> Task.await(timeout)
   end
 
-  def eth_height(n, dev \\ false, timeout \\ 10_000) do
-    f = fn() ->
-      {:ok, height} = OmiseGO.Eth.get_ethereum_height
-      case height < n do
-        true ->
-          _ = maybe_mine(dev)
-          :repeat
-        false ->
-          {:ok, height}
-      end
-    end
-    fn() -> repeat_until_ok(f) end
-    |> Task.async |> Task.await(timeout)
-  end
-
-  def current_child_block(blknum, dev \\ false, timeout \\ 10_000) do
-    f = fn() ->
-      {:ok, next_num} = OmiseGO.Eth.get_current_child_block()
-      case next_num < blknum do
-        true ->
-          _ = maybe_mine(dev)
-          :repeat
-        false ->
-          {:ok, next_num}
-      end
-    end
-    fn() -> repeat_until_ok(f) end
-    |> Task.async |> Task.await(timeout)
-  end
-
   # Repeats fun until fun returns {:ok, ...} OR exception is raised (see :erlang.exit, :erlang.error)
   # Simple throws and :badmatch are treated as signals to repeat
   def repeat_until_ok(f) do
@@ -76,13 +46,5 @@ defmodule OmiseGO.Eth.WaitFor do
         Process.sleep(100)
         repeat_until_ok(f)
     end
-  end
-
-  defp maybe_mine(false), do: :noop
-  defp maybe_mine(true) do
-    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
-    txmap = %{from: addr, to: addr, value: "0x1"}
-    {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    {:ok, _receipt} = eth_receipt(txhash, 1_000)
   end
 end

@@ -114,7 +114,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       catch_error get_blocks_to_submit(new())
     end
 
-    test "All new block are emitted ASAP" do
+    test "A new block is emitted ASAP" do
       assert ["2"] =
         empty()
         |> set_mined(1000)

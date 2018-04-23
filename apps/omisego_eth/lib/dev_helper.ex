@@ -17,6 +17,21 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, contract_address, txhash, authority}
   end
 
+  def wait_for_current_child_block(blknum, dev \\ false, timeout \\ 10_000) do
+    f = fn() ->
+      {:ok, next_num} = OmiseGO.Eth.get_current_child_block()
+      case next_num < blknum do
+        true ->
+          _ = maybe_mine(dev)
+          :repeat
+        false ->
+          {:ok, next_num}
+      end
+    end
+    fn() -> OmiseGO.Eth.WaitFor.repeat_until_ok(f) end
+    |> Task.async |> Task.await(timeout)
+  end
+
   def create_and_fund_authority_addr do
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
     {:ok, authority} = Ethereumex.HttpClient.personal_new_account("")
@@ -25,6 +40,14 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     {:ok, _receipt} = WaitFor.eth_receipt(tx_fund, 10_000)
     {:ok, authority}
+  end
+
+  defp maybe_mine(false), do: :noop
+  defp maybe_mine(true) do
+    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
+    txmap = %{from: addr, to: addr, value: "0x1"}
+    {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+    {:ok, _receipt} = OmiseGO.Eth.WaitFor.eth_receipt(txhash, 1_000)
   end
 
   defp write_conf_file(mix_env, contract_address, txhash, authority) do

@@ -2,6 +2,9 @@ defmodule OmiseGO.API.BlockQueue.Core do
   @moduledoc """
   Maintains a queue of to-be-mined blocks. Has no side-effects or side-causes.
 
+  Note that first nonce (zero) of authority account is used to deploy RootChain.
+  Every next nonce is used to submit operator blocks.
+
   (thus, it handles config values as internal variables)
   """
 
@@ -164,11 +167,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
   # private (core)
 
-  # First nonce is used to deploy RootChain; every next nonce is used to submit operator block.
   defp calc_nonce(height, interval) do
-    nonce = trunc(height / interval)
-    # IO.puts("height: #{inspect height}; nonce: #{inspect nonce}")
-    nonce
+    trunc(height / interval)
   end
 
   defp due_child_block_num(state) do
