@@ -3,7 +3,7 @@ podTemplate(
     containers: [
         containerTemplate(
             name: 'jnlp',
-            image: 'omisegoimages/blockchain-base:latest',
+            image: 'omisegoimages/blockchain-base:1.6-otp20-stretch',
             args: '${computer.jnlpmac} ${computer.name}',
             alwaysPullImage: true
         ),
