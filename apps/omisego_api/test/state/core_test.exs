@@ -12,7 +12,7 @@ defmodule OmiseGO.API.State.CoreTest do
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend deposits", %{alice: alice, bob: bob, state_empty: state} do
     state
-    |> Test.do_deposit(alice, %{amount: 10, block_height: 1})
+    |> Test.do_deposit(alice, %{amount: 10, blknum: 1})
     |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
     |> success?
     |> (&Core.exec(Test.create_recovered([{@block_interval, 0, 1, alice}], [{bob, 3}]), &1)).()
@@ -22,8 +22,8 @@ defmodule OmiseGO.API.State.CoreTest do
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend a batch of deposits", %{alice: alice, bob: bob, state_empty: state} do
     state
-    |> Test.do_deposit(alice, %{amount: 10, block_height: 1})
-    |> Test.do_deposit(bob, %{amount: 20, block_height: 2})
+    |> Test.do_deposit(alice, %{amount: 10, blknum: 1})
+    |> Test.do_deposit(bob, %{amount: 20, blknum: 2})
     |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 10}]), &1)).()
     |> success?
     |> (&Core.exec(Test.create_recovered([{2, 0, 0, bob}], [{alice, 20}]), &1)).()
@@ -37,22 +37,22 @@ defmodule OmiseGO.API.State.CoreTest do
          bob: bob,
          state_empty: state
        } do
-    deposits = [%{owner: alice.addr, amount: 20, block_height: 2}]
+    deposits = [%{owner: alice.addr, amount: 20, blknum: 2}]
     assert {_, [_, {:put, :last_deposit_block_height, 2}], state} = Core.deposit(deposits, state)
 
-    assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, amount: 20, block_height: 1}], state)
+    assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, amount: 20, blknum: 1}], state)
   end
 
   @tag fixtures: [:bob]
   test "ignores deposits from blocks not higher than the deposit height read from db", %{bob: bob} do
     state = Core.extract_initial_state(%{}, 0, 1, @block_interval)
 
-    assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, amount: 20, block_height: 1}], state)
+    assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, amount: 20, blknum: 1}], state)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can't spend nonexistent", %{alice: alice, bob: bob, state_empty: state} do
-    state_deposit = state |> Test.do_deposit(alice, %{amount: 10, block_height: 1})
+    state_deposit = state |> Test.do_deposit(alice, %{amount: 10, blknum: 1})
 
     state_deposit
     |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
@@ -62,7 +62,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit, :state_empty]
   test "amounts must add up", %{alice: alice, bob: bob, state_empty: state} do
-    state = Test.do_deposit(state, alice, %{amount: 10, block_height: 1})
+    state = Test.do_deposit(state, alice, %{amount: 10, blknum: 1})
 
     state =
       state
@@ -215,7 +215,7 @@ defmodule OmiseGO.API.State.CoreTest do
     state_empty: state
   } do
     assert {[trigger], _, state} =
-             Core.deposit([%{owner: alice, amount: 4, block_height: @block_interval}], state)
+             Core.deposit([%{owner: alice, amount: 4, blknum: @block_interval}], state)
 
     assert trigger == %{deposit: %{owner: alice, amount: 4}}
     assert {:ok, {_, [], _, _}} = Core.form_block(state, @block_interval, 2 * @block_interval)
@@ -365,7 +365,7 @@ defmodule OmiseGO.API.State.CoreTest do
     state_empty: state
   } do
     assert {_, [utxo_update, height_update], state} =
-             Core.deposit([%{owner: alice.addr, amount: 10, block_height: 1}], state)
+             Core.deposit([%{owner: alice.addr, amount: 10, blknum: 1}], state)
 
     assert utxo_update == {:put, :utxo, %{{1, 0, 0} => %{owner: alice.addr, amount: 10}}}
     assert height_update == {:put, :last_deposit_block_height, 1}
@@ -401,6 +401,50 @@ defmodule OmiseGO.API.State.CoreTest do
   test "core generates the db query" do
     # NOTE: trivial test, considering current behavior, but might evolve... hm
     # FIXME
+  end
+
+  @tag fixtures: [:alice, :state_alice_deposit]
+  test "spends utxo when exiting", %{alice: alice, state_alice_deposit: state} do
+    state =
+      state
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{alice, 7}, {alice, 3}]), &1)).()
+      |> success?
+
+    expected_owner = alice.addr
+    {[%{exit: %{owner: ^expected_owner, blknum: @block_interval, txindex: 0, oindex: 0}},
+      %{exit: %{owner: ^expected_owner, blknum: @block_interval, txindex: 0, oindex: 1}}],
+     [{:delete, :utxo, {@block_interval, 0, 0}}, {:delete, :utxo, {@block_interval, 0, 1}}],
+     state} =
+      [%{owner: alice.addr, blknum: @block_interval, txindex: 0, oindex: 0},
+       %{owner: alice.addr, blknum: @block_interval, txindex: 0, oindex: 1}]
+      |> Core.exit_utxos(state)
+
+    state
+    |> (&Core.exec(Test.create_recovered([{@block_interval, 1, 0, alice}], [{alice, 7}]), &1)).()
+    |> fail?(:utxo_not_found)
+    |> same?(state)
+    |> (&Core.exec(Test.create_recovered([{@block_interval, 1, 1, alice}], [{alice, 3}]), &1)).()
+    |> fail?(:utxo_not_found)
+    |> same?(state)
+  end
+
+  @tag fixtures: [:alice, :state_alice_deposit]
+  test "does not change when exiting spent utxo", %{alice: alice, state_alice_deposit: state} do
+    state =
+      state
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{alice, 7}, {alice, 3}]), &1)).()
+      |> success?
+
+    {[], [], ^state} =
+      [%{owner: alice.addr, blknum: 1, txindex: 0, oindex: 0}]
+      |> Core.exit_utxos(state)
+  end
+
+  @tag fixtures: [:state_empty]
+  test "does not change when exiting non-existent utxo", %{state_empty: state} do
+    {[], [], ^state} =
+      [%{owner: "owner", blknum: 1, txindex: 0, oindex: 0}]
+      |> Core.exit_utxos(state)
   end
 
   defp success?(result) do

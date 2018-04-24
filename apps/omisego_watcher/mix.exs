@@ -39,11 +39,13 @@ defmodule OmiseGOWatcher.Mixfile do
     [
       {:phoenix, "~> 1.3.2"},
       {:phoenix_ecto, "~> 3.3"},
-      {:postgrex, ">= 0.13.5", only: [:prod]},
+      {:postgrex, ">= 0.13.5", only: [:prod, :dev]},
       {:gettext, "~> 0.15"},
-      {:sqlite_ecto2, "~> 2.2", only: [:dev, :test]},
+      {:sqlite_ecto2, "~> 2.2", only: [:test]},
       {:cowboy, "~> 1.1"},
       {:omisego_api, in_umbrella: true, runtime: false},
+      {:libsecp256k1, git: "https://github.com/omisego/libsecp256k1.git",
+       compile: "${HOME}/.mix/rebar compile", override: true}
     ]
   end
 
