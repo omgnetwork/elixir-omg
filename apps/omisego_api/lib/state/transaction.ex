@@ -182,6 +182,6 @@ defmodule OmiseGO.API.State.Transaction do
     %Signed{raw_tx: tx, sig1: signature1, sig2: signature2}
   end
 
-  defp signature(_encoded_tx, <<>>), do: <<0::size(256)>>
+  defp signature(_encoded_tx, <<>>), do: <<0::size(520)>>
   defp signature(encoded_tx, priv), do: Crypto.signature(encoded_tx, priv)
 end

@@ -8,8 +8,8 @@ defmodule OmiseGO.API.State.Transaction.Signed do
   defstruct [:raw_tx, :sig1, :sig2]
   @type t() :: %__MODULE__{
     raw_tx: Transaction.t(),
-    sig1: <<_::256>>,
-    sig2: <<_::256>>
+    sig1: <<_::520>>,
+    sig2: <<_::520>>
   }
 
   def signed_hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
