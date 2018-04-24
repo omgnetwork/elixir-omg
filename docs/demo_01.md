@@ -11,6 +11,9 @@ iex -S mix run --no-start
 ```
 
 ```elixir
+
+{:ok, contract_address, txhash, authority} =
+
 dir = Temp.mkdir!()
 
 Application.put_env(:omisego_db, :leveldb_path, dir, persistent: true)
@@ -27,7 +30,14 @@ alias OmiseGO.API.State.Transaction
 {:ok, alice_priv} = Crypto.generate_private_key; {:ok, alice_pub} = Crypto.generate_public_key alice_priv; {:ok, alice} = Crypto.generate_address alice_pub
 {:ok, bob_priv} = Crypto.generate_private_key; {:ok, bob_pub} = Crypto.generate_public_key bob_priv; {:ok, bob} = Crypto.generate_address bob_pub
 
-:ok = OmiseGO.API.State.deposit([%{owner: alice, amount: 10, blknum: 1}])
+alice_priv_enc = Base.encode16(alice_priv)
+alice_to_compare = "0x" <> Base.encode16(alice, case: :lower)
+
+{:ok, ^alice_to_compare} = Ethereumex.HttpClient.personal_import_raw_key(alice_priv_enc, "")
+{:ok, true} = Ethereumex.HttpClient.personal_unlock_account(alice_to_compare, "", 0)
+
+# :ok = OmiseGO.API.State.deposit([%{owner: alice, amount: 10, blknum: 1}])
+{:ok, deposit_tx_hash} = Eth.deposit(10, 1, "0x#{Base.encode16(alice)}", contract_address)
 
 tx =
   %Transaction{

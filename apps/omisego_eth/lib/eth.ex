@@ -104,6 +104,29 @@ defmodule OmiseGO.Eth do
     })
   end
 
+  def deposit(value, nonce, from \\ nil, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+    from = from || Application.get_env(:omisego_eth, :authority_addr)
+
+    data =
+      "deposit()"
+      |> ABI.encode([])
+      |> Base.encode16()
+
+    gas = 100_000
+
+    Ethereumex.HttpClient.eth_send_transaction(%{
+      from: from,
+      to: contract,
+      gas: encode_eth_rpc_unsigned_int(gas),
+      # FIXME: how do we API-fy this, along with value and nonce?
+      gasPrice: encode_eth_rpc_unsigned_int(21_000_000_000),
+      value: encode_eth_rpc_unsigned_int(value),
+      data: "0x#{data}",
+      nonce: encode_eth_rpc_unsigned_int(nonce)
+    })
+  end
+
   defp encode_eth_rpc_unsigned_int(value) do
     "0x" <> (value |> :binary.encode_unsigned() |> Base.encode16() |> String.trim_leading("0"))
   end

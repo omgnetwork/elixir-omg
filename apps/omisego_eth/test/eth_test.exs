@@ -23,15 +23,7 @@ defmodule OmiseGO.EthTest do
   end
 
   defp deposit(contract) do
-    data = "deposit()" |> ABI.encode([]) |> Base.encode16()
-    {:ok, transaction_hash} = Ethereumex.HttpClient.eth_send_transaction(%{
-      from: contract.from,
-      to: contract.address,
-      data: "0x#{data}",
-      gas: "0x2D0900",
-      gasPrice: "0x1",
-      value: "0x1"
-    })
+    {:ok, transaction_hash} = Eth.deposit(1, 1, contract.from, contract.address)
     {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
   end
 
