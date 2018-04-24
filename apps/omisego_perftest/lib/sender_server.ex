@@ -5,23 +5,27 @@ defmodule OmiseGO.PerfTest.SenderServer do
 
   use GenServer
 
+  defmodule LastTx do
+    defstruct [:blknum, :txindex, :oindex, :amount]
+    @type t :: %__MODULE__{blknum: integer, txindex: integer, oindex: integer, amount: integer}
+  end
+
   @doc """
   Defines a structure for the State of the server.
   """
   defstruct [
-    :senderid,
-    :sender_addr,
+    :seqnum,
     :nrequests,
-    :blknum,      # initial state has to set to :senderid
-    :txindex,
-    :amount,
+    :spender,
+    :blknum,      # new tx blknum. Initial state has to be :seqnum
+    :last_tx,     #{blknum, txindex, oindex, amount}
   ]
-  @opaque state :: %__MODULE__{senderid: integer, sender_addr: <<>>, nrequests: integer, blknum: integer, txindex: integer, amount: integer}
+  @opaque state :: %__MODULE__{seqnum: integer, nrequests: integer, spender: map, blknum: integer, last_tx: LastTx.t}
 
   @doc """
   Starts the server.
   """
-  @spec start_link({senderid :: integer, nrequests :: integer}) :: {:ok, pid}
+  @spec start_link({seqnum :: integer, nrequests :: integer}) :: {:ok, pid}
   def start_link(args) do
     GenServer.start_link(__MODULE__, args)
   end
@@ -32,20 +36,20 @@ defmodule OmiseGO.PerfTest.SenderServer do
     * Sender ids are sequencial positive int starting from 1, senders are initialized in order of sender id.
       This ensures all senders' deposits are accepted.
   """
-  @spec init({senderid :: integer, nrequests :: integer}) :: {:ok, init_state :: __MODULE__.state}
-  def init({senderid, nrequests}) do
-    IO.puts "[#{senderid}] +++ init/1 called with requests: '#{nrequests}' +++"
-    Registry.register(OmiseGO.PerfTest.Registry, :sender, "Sender: #{senderid}")
+  @spec init({seqnum :: integer, nrequests :: integer}) :: {:ok, init_state :: __MODULE__.state}
+  def init({seqnum, nrequests}) do
+    IO.puts "[#{seqnum}] +++ init/1 called with requests: '#{nrequests}' +++"
+    Registry.register(OmiseGO.PerfTest.Registry, :sender, "Sender: #{seqnum}")
 
-    sender_addr = generate_participant_address()
-    IO.puts "[#{senderid}]: Address #{Base.encode64(sender_addr.addr)}"
+    spender = generate_participant_address()
+    IO.puts "[#{seqnum}]: Address #{Base.encode64(spender.addr)}"
 
     deposit_value = 10 * nrequests
-    :ok = OmiseGO.API.State.deposit([%{owner: sender_addr.addr, amount: deposit_value, blknum: senderid}])
-    IO.puts "[#{senderid}]: Deposited #{deposit_value} OMG"
+    :ok = OmiseGO.API.State.deposit([%{owner: spender.addr, amount: deposit_value, blknum: seqnum}])
+    IO.puts "[#{seqnum}]: Deposited #{deposit_value} OMG"
 
     send(self(), :do)
-    {:ok, {senderid, sender_addr, nrequests, senderid, 0, deposit_value}}
+    {:ok, init_state(seqnum, nrequests, spender)}
   end
 
   @doc """
@@ -53,13 +57,14 @@ defmodule OmiseGO.PerfTest.SenderServer do
   Otherwise unregisters from the Registry and stops.
   """
   @spec handle_info(:do, state :: __MODULE__.state) :: {:noreply, new_state :: __MODULE__.state} | {:stop, :normal, nil}
-  def handle_info(:do, state = {senderid, sender_addr, nrequests, blknum, txindex, amount}) do
+  def handle_info(:do, state = %__MODULE__{seqnum: seqnum, nrequests: nrequests}) do
     if nrequests > 0 do
       {:ok, newtxindex, newvalue} = submit_tx(state)
-      {:noreply, {senderid, sender_addr, nrequests-1, blknum, newtxindex, newvalue}}
+
+      {:noreply, %__MODULE__{state | nrequests: nrequests-1} |> with_tx(newtxindex, newvalue)}
     else
       Registry.unregister(OmiseGO.PerfTest.Registry, :sender)
-      IO.puts "[#{senderid}] +++ Stoping... +++"
+      IO.puts "[#{seqnum}] +++ Stoping... +++"
       {:stop, :normal, state}
     end
   end
@@ -72,33 +77,33 @@ defmodule OmiseGO.PerfTest.SenderServer do
     send(self(), :do)
 
     #{:noreply, put_elem(state, 3, blknum)}
-    {:noreply, put_elem(state, 3, 1000)}   # ignoring block from BlockChecker and sending always 1k
+    {:noreply, %__MODULE__{state | blknum: 1000}}   # ignoring block from BlockChecker and sending always 1k
   end
 
   @doc """
   Submits new transaction to the blockchain server.
   """
   #FIXME: Add spec - SenderServer.submit_tx()
-  def submit_tx({senderid, sender_addr, nrequests, blknum, txindex, amount}) do
+  def submit_tx(%__MODULE__{seqnum: seqnum, spender: spender, blknum: blknum, last_tx: last_tx}) do
     alias OmiseGO.API.State.Transaction
 
     to_spent = 9
-    newamount = amount - to_spent
+    newamount = last_tx.amount - to_spent
     receipient = generate_participant_address()
-    IO.puts "[#{senderid}]: Sending Tx to new owner #{Base.encode64(receipient.addr)}"
+    IO.puts "[#{seqnum}]: Sending Tx to new owner #{Base.encode64(receipient.addr)}, left: #{newamount}"
 
     tx =
       %Transaction{
-        blknum1: blknum, txindex1: txindex, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner2: receipient.addr, amount2: to_spent, newowner1: sender_addr.addr, amount1: newamount, fee: 0,
+        blknum1: blknum, txindex1: last_tx.txindex, oindex1: last_tx.oindex, blknum2: 0, txindex2: 0, oindex2: 0,
+        newowner2: receipient.addr, amount2: to_spent, newowner1: spender.addr, amount1: newamount, fee: 0,
       }
-      |> Transaction.sign(sender_addr.priv, <<>>)
+      |> Transaction.sign(spender.priv, <<>>)
       |> Transaction.Signed.encode()
 
       {result, txindex, _} = OmiseGO.API.submit(tx)
       case result do
-        {:error,  reason} -> IO.puts "[#{senderid}]: Transaction submition has failed, reason: #{reason}"
-        :ok -> IO.puts "[#{senderid}]: Transaction submitted successfully"
+        {:error,  reason} -> IO.puts "[#{seqnum}]: Transaction submition has failed, reason: #{reason}"
+        :ok -> IO.puts "[#{seqnum}]: Transaction submitted successfully"
       end
 
       {result, txindex, newamount}
@@ -110,5 +115,15 @@ defmodule OmiseGO.PerfTest.SenderServer do
     {:ok, pub} = Crypto.generate_public_key(priv)
     {:ok, addr} = Crypto.generate_address(pub)
     %{priv: priv, addr: addr}
+  end
+
+  defp init_state(seqnum, nreq, spender) do
+    %__MODULE__{seqnum: seqnum, nrequests: nreq, spender: spender, blknum: seqnum,
+      last_tx: %LastTx{blknum: seqnum, txindex: 0, oindex: 0, amount: 10*nreq}
+    }
+  end
+
+  defp with_tx(state, txindex, amount) do
+    %__MODULE__{state | last_tx: %LastTx{state.last_tx | blknum: state.blknum, txindex: txindex, amount: amount}}
   end
 end
