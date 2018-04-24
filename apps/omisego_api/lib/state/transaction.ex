@@ -169,6 +169,11 @@ defmodule OmiseGO.API.State.Transaction do
     |> Crypto.hash()
   end
 
+  @doc """
+    private keys are in the form: <<54, 43, 207, 67, 140, 160, 190, 135, 18, 162, 70, 120, 36, 245, 106, 165, 5, 101, 183,
+      55, 11, 117, 126, 135, 49, 50, 12, 228, 173, 219, 183, 175>>
+  """
+  @spec sign(__MODULE__.t(), <<_::256>>, <<_::256>>) :: Signed.t()
   def sign(%__MODULE__{} = tx, priv1, priv2) do
     encoded_tx = encode(tx)
     signature1 = signature(encoded_tx, priv1)
@@ -177,6 +182,6 @@ defmodule OmiseGO.API.State.Transaction do
     %Signed{raw_tx: tx, sig1: signature1, sig2: signature2}
   end
 
-  defp signature(_encoded_tx, <<>>), do: <<0::size(520)>>
+  defp signature(_encoded_tx, <<>>), do: <<0::size(256)>>
   defp signature(encoded_tx, priv), do: Crypto.signature(encoded_tx, priv)
 end
