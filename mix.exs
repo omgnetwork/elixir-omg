@@ -27,7 +27,7 @@ defmodule OmiseGO.Umbrella.MixProject do
        compile: "${HOME}/.mix/rebar compile", override: true},
 
       # TODO: on 25th April pc (as dependency to rebar3) broke, breaking our build of esqlite ("undef" error)
-      {:pc, "~> 1.6.0", only: [:dev, :test], override: true},
+      {:pc, "~> 1.6.0", only: [:dev, :test]},
     ]
   end
 end
