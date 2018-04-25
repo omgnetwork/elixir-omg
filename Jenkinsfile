@@ -24,7 +24,7 @@ podTemplate(
 
         stage('Test Child Chain Server') {
             withEnv(["MIX_ENV=test"]) {
-                sh("mix coveralls.html --no-start --umbrella")
+                sh("mix coveralls.html --no-start --umbrella --include requires_geth")
             }
         }
 
