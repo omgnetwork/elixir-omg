@@ -14,10 +14,10 @@ The Sente milestone includes feedback from users of the closed beta and from Fus
 * Transaction request flow (QR codes) to enable peer to peer payments between users
 
 ## Honte (Discontinued)
-OmiseGO has stopped on the Honte milestone. The repository for Honte may be found [here](https://github.com/omisego/honted). The full design of the blockchain and decentralized exchange on Tendermint may be found [here](https://github.com/omisego/honted/blob/develop/docs/tendermint_blockchain_design.md) and [here](https://github.com/omisego/honted/blob/develop/docs/tendermint_blockchain_design.md) respectively.
+OmiseGO has stopped on the Honte milestone. The repository for Honte may be found [here](https://github.com/omisego/honted). The full design of the blockchain and decentralized exchange on Tendermint may be found [here](https://github.com/omisego/honted/blob/develop/docs/tendermint_blockchain_design.md) and [here](https://github.com/omisego/honted/blob/develop/docs/batch_matching.md) respectively.
 
 ## Tesuji (In Progress)
-When the Tesuji milestone is reached, we will deliver OmiseGO's first implementation of Plasma. Whilst centralized, Tesuji Plasma  does not compromise on security or performance. The design of Tesuji Plasma may be found [here](http://completeme).
+When the Tesuji milestone is reached, we will deliver OmiseGO's first implementation of Plasma. Whilst not decentralized, Tesuji Plasma  does not compromise on security or performance. The design of Tesuji Plasma may be found [here](http://completeme).
 
 * Proof of Authority run on OmiseGO servers.
 * Exit to Ethereum for final safety.
@@ -45,10 +45,10 @@ Tengen phase 2 decentralizes the exchange by moving the order book and order mat
 
 ## TBN (To Be Named)
 * Removal of confirmation messages in Tesuji Plasma
-* Conditional payments
+* Conditional payments - where payments made only when conditions are met
 
 ## TBN (To Be Named)
-There are use cases where non-fungible tokens are useful, such as ticketing, unique in game items.
+There are use cases where non-fungible tokens are useful, such as ticketing, unique in-game items.
 
 * Non-fungible tokens
 
@@ -58,7 +58,9 @@ This milestone will commence the phase-in of staking.
 * Validators and the operator share the responsibility of securing the Plasma chain
 
 ## Shinte
-The Shinte milestone includes enhancements to the dencentralized exchange.
+The Shinte milestone includes enhancements to the decentralized exchange to mitigate  unfair advantages that validators, the operator or other users may have over other users of the decentralized exchange.
+
+Order blinding would allow users place an order whose details are not revealed until the order is live in the order book. This
 * Provisions against validator/operator front-running
 * Order blinding
 
@@ -74,5 +76,5 @@ Although these items may be at the bottom of this roadmap, it does not mean that
 * Child chain independence of root chain - increase safety of the Plasma chain which would in turn reduce dependency on the availability of the root chain
 * Economic incentives for exit and challenges (add bonds)
 * Multiple child chains to a single root chain and nested chains
-* Bitcoin clearinghouse
+* Bitcoin clearinghouse to enable trading on the decentralized exchange Bitcoin and Bitcoin-like cryptocurrencies
 * Mobile light client, mobile trading app
