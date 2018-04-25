@@ -1,3 +1,3 @@
-ExUnit.configure(exclude: [requires_geth: true])
+ExUnit.configure(exclude: [integration: true])
 ExUnitFixtures.start()
 ExUnit.start()

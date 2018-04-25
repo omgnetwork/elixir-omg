@@ -22,9 +22,15 @@ podTemplate(
             }
         }
 
-        stage('Test Child Chain Server') {
+        stage('Unit test Child Chain Server') {
             withEnv(["MIX_ENV=test"]) {
-                sh("mix coveralls.html --no-start --umbrella --include requires_geth")
+                sh("mix coveralls.html --no-start --umbrella")
+            }
+        }
+
+        stage('Integration test Child Chain Server') {
+            withEnv(["MIX_ENV=test"]) {
+                sh("mix test --no-start --only integration")
             }
         }
 
