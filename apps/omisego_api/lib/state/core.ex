@@ -47,10 +47,11 @@ defmodule OmiseGO.API.State.Core do
        state
        |> add_pending_tx(recovered_tx)
        |> apply_spend(raw_tx),
+       state.height,
        state.tx_index
        }
     else
-      {:error, _reason} = error -> {error, state, state.tx_index}
+      {:error, _reason} = error -> {error, state, state.height, state.tx_index}
     end
   end
 

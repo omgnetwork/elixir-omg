@@ -2,6 +2,6 @@ use Mix.Config
 
 config :logger,
   backends: [:console],
-  level: :info
+  level: :debug
 
 #     import_config "#{Mix.env}.exs"

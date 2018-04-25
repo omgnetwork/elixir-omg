@@ -19,10 +19,10 @@ defmodule OmiseGO.PerfTest.Runner do
     1..nusers |> Enum.map(fn senderid -> OmiseGO.PerfTest.SenderServer.start_link({senderid, nrequests}) end)
 
     # fire async current block checker
-    OmiseGO.PerfTest.CurrentBlockChecker.start_link()
+    #OmiseGO.PerfTest.CurrentBlockChecker.start_link()
 
     # Wait all senders do thier job, checker will stop when it happens and stops itself
-    ref = Process.monitor(CurrentBlockChecker)
+    ref = Process.monitor(OmiseGO.PerfTest.Registry)
     receive do
       {:DOWN, ^ref, :process, _obj, reason} ->
         Logger.info "Stoping performance tests, reason: #{reason}"
