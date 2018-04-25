@@ -2,7 +2,7 @@ defmodule OmiseGO.PerfTest do
   @moduledoc """
 
   """
-
+  require Logger
   import Supervisor.Spec
   alias OmiseGO.PerfTest.Runner
 
@@ -10,7 +10,8 @@ defmodule OmiseGO.PerfTest do
 
   """
   def setup_and_run(nrequests, nusers, opt \\ %{}) do
-    {:ok, started_apps} = testup()
+    {:ok, started_apps, testid} = testup()
+    Logger.info "OmiseGO PerfTest ##{testid} - users: #{nusers}, reqs: #{nrequests}."
 
     children = [
       supervisor(Phoenix.PubSub.PG2, [:eventer, []]),
@@ -42,6 +43,6 @@ defmodule OmiseGO.PerfTest do
 
     :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
 
-    {:ok, started_apps}
+    {:ok, started_apps, String.slice(dbdir, -13..-1)}
   end
 end

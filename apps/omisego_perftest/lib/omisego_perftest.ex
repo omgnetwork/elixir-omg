@@ -3,7 +3,7 @@ defmodule OmiseGO.PerfTest.Runner do
   OmiseGO performance tests - orchestration and running tests
   """
 
-  @init_blocknum 1000
+  require Logger
 
   @doc """
   Assumes test suite setup is done earlier, before running this function.
@@ -11,8 +11,6 @@ defmodule OmiseGO.PerfTest.Runner do
   """
   @spec run(nrequests :: integer, nusers :: integer, opt :: map) :: :ok
   def run(nrequests, nusers, opt \\ %{}) do
-    IO.puts "OmiseGO PerfTest - users: #{nusers}, reqs: #{nrequests}."
-
     # init proces registry
     {:ok, _} = Registry.start_link(keys: :duplicate, name: OmiseGO.PerfTest.Registry)
 
@@ -27,7 +25,7 @@ defmodule OmiseGO.PerfTest.Runner do
     ref = Process.monitor(CurrentBlockChecker)
     receive do
       {:DOWN, ^ref, :process, _obj, reason} ->
-        IO.puts "Stoping performance tests, reason: #{reason}"
+        Logger.info "Stoping performance tests, reason: #{reason}"
     end
 
     :ok

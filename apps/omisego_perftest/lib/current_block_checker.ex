@@ -3,10 +3,11 @@ defmodule OmiseGO.PerfTest.CurrentBlockChecker do
   Checks the current block number in the chain an broadcast it to the senders.
   """
 
+  require Logger
   use GenServer
 
   @init_block_num  0
-  @check_for_new_blocks_every_ms 500
+  @check_for_new_blocks_every_ms 100
 
   @doc """
   Starts the server.
@@ -22,7 +23,7 @@ defmodule OmiseGO.PerfTest.CurrentBlockChecker do
   """
   @spec init(init_state :: tuple) :: {:ok, state :: tuple}
   def init(args = {blocknum}) do
-    IO.puts "[CBC] +++ init/1 called with args: '#{blocknum}' +++"
+    Logger.debug "[CBC] +++ init/1 called with args: '#{blocknum}' +++"
     send(self(), :do)
 
     {:ok, args}
@@ -44,7 +45,7 @@ defmodule OmiseGO.PerfTest.CurrentBlockChecker do
       Process.send_after(self(), :do, @check_for_new_blocks_every_ms)
       {:noreply, {blocknum}}
     else
-      IO.puts "[CBC] +++ Stoping... +++"
+      Logger.debug "[CBC] +++ Stoping... +++"
       {:stop, :normal, nil}
     end
   end
@@ -62,7 +63,7 @@ defmodule OmiseGO.PerfTest.CurrentBlockChecker do
   """
   #FIXME: Add spec - CurrentBlockChecker.broadcast_new_block()
   def broadcast_new_block(senders, blocknum) do
-    IO.puts "[CBC]: Sending new block number: #{blocknum} to #{Enum.count(senders)} senders"
+    Logger.debug "[CBC]: Sending new block number: #{blocknum} to #{Enum.count(senders)} senders"
     Registry.dispatch(OmiseGO.PerfTest.Registry, :sender, fn senders ->
       Enum.each(senders, fn {pid, _} -> GenServer.cast(pid, {:update, blocknum}) end)
     end)

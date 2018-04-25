@@ -3,6 +3,7 @@ defmodule OmiseGO.PerfTest.SenderServer do
   The SenderServer process synchronously sends requested number of transactions to the blockchain server.
   """
 
+  require Logger
   use GenServer
 
   defmodule LastTx do
@@ -38,15 +39,15 @@ defmodule OmiseGO.PerfTest.SenderServer do
   """
   @spec init({seqnum :: integer, nrequests :: integer}) :: {:ok, init_state :: __MODULE__.state}
   def init({seqnum, nrequests}) do
-    IO.puts "[#{seqnum}] +++ init/1 called with requests: '#{nrequests}' +++"
+    Logger.debug "[#{seqnum}] +++ init/1 called with requests: '#{nrequests}' +++"
     Registry.register(OmiseGO.PerfTest.Registry, :sender, "Sender: #{seqnum}")
 
     spender = generate_participant_address()
-    IO.puts "[#{seqnum}]: Address #{Base.encode64(spender.addr)}"
+    Logger.debug "[#{seqnum}]: Address #{Base.encode64(spender.addr)}"
 
     deposit_value = 10 * nrequests
     :ok = OmiseGO.API.State.deposit([%{owner: spender.addr, amount: deposit_value, blknum: seqnum}])
-    IO.puts "[#{seqnum}]: Deposited #{deposit_value} OMG"
+    Logger.debug "[#{seqnum}]: Deposited #{deposit_value} OMG"
 
     send(self(), :do)
     {:ok, init_state(seqnum, nrequests, spender)}
@@ -60,11 +61,11 @@ defmodule OmiseGO.PerfTest.SenderServer do
   def handle_info(:do, state = %__MODULE__{seqnum: seqnum, nrequests: nrequests}) do
     if nrequests > 0 do
       {:ok, newtxindex, newvalue} = submit_tx(state)
-
+      send(self(), :do)
       {:noreply, %__MODULE__{state | nrequests: nrequests-1} |> with_tx(newtxindex, newvalue)}
     else
       Registry.unregister(OmiseGO.PerfTest.Registry, :sender)
-      IO.puts "[#{seqnum}] +++ Stoping... +++"
+      Logger.debug "[#{seqnum}] +++ Stoping... +++"
       {:stop, :normal, state}
     end
   end
@@ -74,8 +75,6 @@ defmodule OmiseGO.PerfTest.SenderServer do
   """
   @spec handle_cast({:update, blknum :: integer}, state :: __MODULE__.state) :: {:noreply, new_state :: __MODULE__.state}
   def handle_cast({:update, blknum}, state) do
-    send(self(), :do)
-
     #{:noreply, put_elem(state, 3, blknum)}
     {:noreply, %__MODULE__{state | blknum: 1000}}   # ignoring block from BlockChecker and sending always 1k
   end
@@ -90,7 +89,7 @@ defmodule OmiseGO.PerfTest.SenderServer do
     to_spent = 9
     newamount = last_tx.amount - to_spent
     receipient = generate_participant_address()
-    IO.puts "[#{seqnum}]: Sending Tx to new owner #{Base.encode64(receipient.addr)}, left: #{newamount}"
+    Logger.debug "[#{seqnum}]: Sending Tx to new owner #{Base.encode64(receipient.addr)}, left: #{newamount}"
 
     tx =
       %Transaction{
@@ -102,8 +101,8 @@ defmodule OmiseGO.PerfTest.SenderServer do
 
       {result, txindex, _} = OmiseGO.API.submit(tx)
       case result do
-        {:error,  reason} -> IO.puts "[#{seqnum}]: Transaction submition has failed, reason: #{reason}"
-        :ok -> IO.puts "[#{seqnum}]: Transaction submitted successfully"
+        {:error,  reason} -> Logger.debug "[#{seqnum}]: Transaction submition has failed, reason: #{reason}"
+        :ok -> Logger.debug "[#{seqnum}]: Transaction submitted successfully"
       end
 
       {result, txindex, newamount}
