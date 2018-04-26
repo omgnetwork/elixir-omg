@@ -28,7 +28,7 @@ defmodule OmiseGO.PerfTest do
   end
 
   @doc """
-  Test setup
+  The test setup
   """
   @spec testup(testid :: integer) :: {:ok, [pid()]}
   defp testup(testid) do
@@ -43,7 +43,7 @@ defmodule OmiseGO.PerfTest do
   end
 
   @doc """
-  Test teardown
+  The test teardown
   """
   @spec testdown([pid()]) :: :ok
   defp testdown(started_apps) do
@@ -52,7 +52,7 @@ defmodule OmiseGO.PerfTest do
   end
 
   @doc """
-  Executes test runner
+  Executes the test runner
   """
   @spec run(args :: list(), profile :: boolean) :: :ok
   defp run(args, profile) do
