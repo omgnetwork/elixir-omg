@@ -2,6 +2,9 @@ defmodule OmiseGO.API.BlockQueue.Core do
   @moduledoc """
   Maintains a queue of to-be-mined blocks. Has no side-effects or side-causes.
 
+  Note that first nonce (zero) of authority account is used to deploy RootChain.
+  Every next nonce is used to submit operator blocks.
+
   (thus, it handles config values as internal variables)
   """
 
@@ -13,11 +16,11 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
   defstruct [
     :blocks,
-    :mined_child_block_num,
-    :formed_child_block_num,
     :parent_height,
+    formed_child_block_num: 0,
     wait_for_enqueue: false,
     gas_price_to_use: 20_000_000_000,
+    mined_child_block_num: 0,
     # config:
     child_block_interval: 1000,
     chain_start_parent_height: 1,
@@ -28,9 +31,9 @@ defmodule OmiseGO.API.BlockQueue.Core do
   @type t() :: %__MODULE__{
           blocks: %{pos_integer() => %BlockSubmission{}},
           # last mined block num
-          mined_child_block_num: nil | BlockQueue.plasma_block_num(),
+          mined_child_block_num: BlockQueue.plasma_block_num(),
           # newest formed block num
-          formed_child_block_num: nil | BlockQueue.plasma_block_num(),
+          formed_child_block_num: BlockQueue.plasma_block_num(),
           # current Ethereum block height
           parent_height: nil | BlockQueue.eth_height(),
           # whether we're pending an enqueue signal with a new block
@@ -97,10 +100,6 @@ defmodule OmiseGO.API.BlockQueue.Core do
   contain holes so we care only about the highest number.
   """
   @spec set_mined(Core.t(), BlockQueue.plasma_block_num()) :: Core.t()
-  def set_mined(%{formed_child_block_num: nil} = state, mined_child_block_num) do
-    set_mined(%{state | formed_child_block_num: mined_child_block_num}, mined_child_block_num)
-  end
-
   def set_mined(state, mined_child_block_num) do
     num_threshold = mined_child_block_num - state.child_block_interval * state.finality_threshold
     young? = fn {_, block} -> block.num > num_threshold end
@@ -119,7 +118,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
     new_state = %{state | parent_height: parent_height}
     if should_form_block?(new_state) do
       next_formed_num = formed_num + state.child_block_interval
-      {:do_form_block, %{new_state | wait_for_enqueue: true}, formed_num, next_formed_num}
+      followup_num = next_formed_num + state.child_block_interval
+      {:do_form_block, %{new_state | wait_for_enqueue: true}, next_formed_num, followup_num}
     else
       {:dont_form_block, new_state}
     end
@@ -174,8 +174,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
   defp due_child_block_num(state) do
     root_chain_age_in_ethereum_blocks = state.parent_height - state.chain_start_parent_height
     child_chain_blocks_due = trunc(root_chain_age_in_ethereum_blocks / state.submit_period)
-    # add one because child block numbering starts from 1 * state.child_block_interval
-    (1 + child_chain_blocks_due) * state.child_block_interval
+    child_chain_blocks_due * state.child_block_interval
   end
 
   # :lists.seq/3 throws, so wrapper
