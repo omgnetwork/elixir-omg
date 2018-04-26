@@ -19,6 +19,20 @@ defmodule OmiseGO.API.State.CoreTest do
     |> success?
   end
 
+  @tag fixtures: [:alice, :state_empty]
+  test "can decode deposits in Core", %{alice: alice, state_empty: state} do
+    alice_enc = "0x" <> Base.encode16(alice.addr, case: :lower)
+    deposits = [%{owner: alice_enc, amount: 10, blknum: 1}]
+    assert {_, _, state} =
+      deposits
+      |> Enum.map(&Core.decode_deposit/1)
+      |> Core.deposit(state)
+
+    state
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{alice, 10}]), &1)).()
+    |> success?
+  end
+
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend a batch of deposits", %{alice: alice, bob: bob, state_empty: state} do
     state

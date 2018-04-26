@@ -203,6 +203,10 @@ defmodule OmiseGO.API.State.Core do
     if expected_block_num == height, do: :ok, else: {:error, :invalid_current_block_number}
   end
 
+  def decode_deposit(%{owner: "0x" <> owner_enc} = deposit) do
+    %{deposit | owner: Base.decode16!(owner_enc, case: :lower)}
+  end
+
   def deposit(deposits, %Core{utxos: utxos, last_deposit_height: last_deposit_height} = state) do
     deposits = deposits |> Enum.filter(&(&1.blknum > last_deposit_height))
 
