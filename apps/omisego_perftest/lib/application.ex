@@ -1,13 +1,15 @@
 defmodule OmiseGO.PerfTest do
   @moduledoc """
-
+  OmiseGO performance test suite module
   """
+
   require Logger
   import Supervisor.Spec
 
   @doc """
-
+  Setup dependencies, then submits {nrequests} transcations for each of {nusers} users.
   """
+  @spec setup_and_run(nrequests :: pos_integer, nusers :: pos_integer, opt :: list) :: :ok
   def setup_and_run(nrequests, nusers, opt \\ []) do
     testid = :os.system_time(:millisecond)
     {:ok, started_apps} = testup(testid)
@@ -17,7 +19,6 @@ defmodule OmiseGO.PerfTest do
       supervisor(Phoenix.PubSub.PG2, [:eventer, []]),
       {OmiseGO.API.State, []},
       {OmiseGO.API.FreshBlocks, []},
-
     ]
     Supervisor.start_link(children, [strategy: :one_for_one])
 
@@ -26,6 +27,10 @@ defmodule OmiseGO.PerfTest do
     testdown(started_apps)
   end
 
+  @doc """
+  Test setup
+  """
+  @spec testup(testid :: integer) :: {:ok, [pid()]}
   defp testup(testid) do
     dbdir = "/tmp/perftest-#{testid}"
     Application.put_env(:omisego_db, :leveldb_path, dbdir, persistent: true)
@@ -37,11 +42,19 @@ defmodule OmiseGO.PerfTest do
     {:ok, started_apps}
   end
 
+  @doc """
+  Test teardown
+  """
+  @spec testdown([pid()]) :: :ok
   defp testdown(started_apps) do
     started_apps |> Enum.reverse |> Enum.map(&Application.stop/1)
     Application.put_env(:omisego_db, :leveldb_path, nil)
   end
 
+  @doc """
+  Executes test runner
+  """
+  @spec run(args :: list(), profile :: boolean) :: :ok
   defp run(args, profile) do
     {:ok, data} = apply(
                     OmiseGO.PerfTest.Runner,

@@ -1,6 +1,7 @@
 defmodule OmiseGO.PerfTest.WaitFor do
   @moduledoc """
-  Checks whether registry has sender proceses registered
+  Checks every @check_registry_every_ms milliseconds whether registry has sender proceses registered yet.
+  Stops if there is no running senders.
   """
 
   require Logger
@@ -39,5 +40,9 @@ defmodule OmiseGO.PerfTest.WaitFor do
     end
   end
 
+  @doc """
+  Sends :check message to itself in @check_registry_every_ms milliseconds. Message will be processed by module's :handle_info function.
+  """
+  @spec reschedule_check() :: :ok
   defp reschedule_check(), do: Process.send_after(self(), :check, @check_registry_every_ms)
 end

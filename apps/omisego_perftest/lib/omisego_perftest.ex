@@ -20,9 +20,6 @@ defmodule OmiseGO.PerfTest.Runner do
     #TODO: Consider running senders in supervisor - but would they restore their state?
     1..nusers |> Enum.map(fn senderid -> OmiseGO.PerfTest.SenderServer.start_link({senderid, nrequests}) end)
 
-    # fire async current block checker
-    #OmiseGO.PerfTest.CurrentBlockChecker.start_link()
-
     # Wait all senders do thier job, checker will stop when it happens and stops itself
     wait_for(OmiseGO.PerfTest.Registry)
     stop = :os.system_time(:millisecond)
@@ -30,7 +27,10 @@ defmodule OmiseGO.PerfTest.Runner do
     {:ok, "{ total_runtime_in_ms: #{stop-start}, testid: #{testid} }"}
   end
 
-  @spec profile_and_run(testid :: integer, nrequests :: integer, nusers :: integer) :: :ok
+  @doc """
+  Runs above :run function with :fprof profiler. Profiler analysis is written to the temp file.
+  """
+  @spec profile_and_run(testid :: integer, nrequests :: pos_integer, nusers :: pos_integer) :: :ok
   def profile_and_run(testid, nrequests, nusers) do
     :fprof.apply(&OmiseGO.PerfTest.Runner.run/3, [testid, nrequests, nusers], [procs: [:all]])
     :fprof.profile()
@@ -47,6 +47,10 @@ defmodule OmiseGO.PerfTest.Runner do
     {:ok, "The :fprof output written to #{destfile}."}
   end
 
+  @doc """
+  Waits until all sender processes ends sending Tx and deregister themselves from the registry
+  """
+  @spec wait_for(registry :: pid() | atom()) :: :ok
   defp wait_for(registry) do
     ref = Process.monitor(OmiseGO.PerfTest.WaitFor.start(registry))
     receive do

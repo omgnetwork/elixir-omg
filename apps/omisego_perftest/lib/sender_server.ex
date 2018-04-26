@@ -72,7 +72,7 @@ defmodule OmiseGO.PerfTest.SenderServer do
   @doc """
   Submits new transaction to the blockchain server.
   """
-  #FIXME: Add spec - SenderServer.submit_tx()
+  @spec submit_tx(__MODULE__.state) :: {result :: tuple, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
   def submit_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx}) do
     alias OmiseGO.API.State.Transaction
 
@@ -98,6 +98,10 @@ defmodule OmiseGO.PerfTest.SenderServer do
       {result, blknum, txindex, newamount}
   end
 
+  @doc """
+  Generates participant private key and address
+  """
+  @spec generate_participant_address() :: %{priv: <<_::256>>, addr: <<_::160>>}
   def generate_participant_address() do
     alias OmiseGO.API.Crypto
     {:ok, priv} = Crypto.generate_private_key()
@@ -106,12 +110,20 @@ defmodule OmiseGO.PerfTest.SenderServer do
     %{priv: priv, addr: addr}
   end
 
+  @doc """
+  Generates module's initial state
+  """
+  @spec init_state(seqnum :: pos_integer, nreq :: pos_integer, spender :: %{priv: <<_::256>>, addr: <<_::160>>}) :: __MODULE__.state
   defp init_state(seqnum, nreq, spender) do
     %__MODULE__{seqnum: seqnum, nrequests: nreq, spender: spender,
       last_tx: %LastTx{blknum: seqnum, txindex: 0, oindex: 0, amount: 10*nreq}
     }
   end
 
+  @doc """
+  Generates next module's state
+  """
+  @spec with_tx(state :: __MODULE__.state, blknum :: pos_integer, txindex :: pos_integer, amount :: pos_integer) :: __MODULE__.state
   defp with_tx(state, blknum, txindex, amount) do
     %__MODULE__{state | last_tx: %LastTx{state.last_tx | blknum: blknum, txindex: txindex, amount: amount}}
   end
