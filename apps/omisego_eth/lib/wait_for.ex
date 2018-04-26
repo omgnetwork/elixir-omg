@@ -16,7 +16,7 @@ defmodule OmiseGO.Eth.WaitFor do
     |> Task.await(10_000)
   end
 
-  def eth_receipt(txhash, timeout \\ 15000) do
+  def eth_receipt(txhash, timeout \\ 15_000) do
     f = fn ->
       case Ethereumex.HttpClient.eth_get_transaction_receipt(txhash) do
         {:ok, receipt} when receipt != nil -> {:ok, receipt}
