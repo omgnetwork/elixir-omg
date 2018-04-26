@@ -10,8 +10,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
   alias OmiseGO.API.State.Transaction
 
-  @moduletag :requires_geth
-  @moduletag :happy
+  @moduletag :integration
 
   deffixture db_path_config() do
     dir = Temp.mkdir!()

@@ -58,6 +58,6 @@ defmodule OmiseGO.Eth.DevGeth do
   end
 
   defp wait_for_geth_start(geth_out) do
-    wait_for_start(geth_out, "IPC endpoint opened", 3000)
+    wait_for_start(geth_out, "IPC endpoint opened", 15_000)
   end
 end
