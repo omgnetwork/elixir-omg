@@ -29,7 +29,7 @@ podTemplate(
         }
 
         stage('Build Contracts') {
-            withEnv(["SOLC_BINARY=${HOME}/.py-solc/solc-v0.4.18/bin/solc"]) {
+            withEnv(["SOLC_BINARY=/home/jenkins/.py-solc/solc-v0.4.18/bin/solc"]) {
                 dir("populus") {
                     sh("pip install -r requirements.txt && python -m solc.install v0.4.18 && pip install eth-utils==0.8.1 web3==3.16.5 && populus compile")
                 }

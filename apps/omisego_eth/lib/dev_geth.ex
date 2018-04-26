@@ -46,7 +46,6 @@ defmodule OmiseGO.Eth.DevGeth do
     # Monitors the stdout coming out of a process for signal of successful startup
     waiting_task_function = fn ->
       outstream
-      |> Stream.map(&IO.inspect/1)
       |> Stream.take_while(fn line -> not String.contains?(line, look_for) end)
       |> Enum.to_list()
     end
@@ -59,6 +58,6 @@ defmodule OmiseGO.Eth.DevGeth do
   end
 
   defp wait_for_geth_start(geth_out) do
-    wait_for_start(geth_out, "IPC endpoint opened", 3000)
+    wait_for_start(geth_out, "IPC endpoint opened", 15000)
   end
 end
