@@ -45,7 +45,7 @@ Tengen phase 2 decentralizes the exchange by moving the order book and order mat
 
 ## TBN (To Be Named)
 * Removal of confirmation messages in Tesuji Plasma
-* Conditional payments - where payments made only when conditions are met
+* Conditional payments - Where payments are only made when a condition such as a date and time has passed, or when multiple signatures are present
 
 ## TBN (To Be Named)
 There are use cases where non-fungible tokens are useful, such as ticketing, unique in-game items.
@@ -60,7 +60,7 @@ This milestone will commence the phase-in of staking.
 ## Shinte
 The Shinte milestone includes enhancements to the decentralized exchange to mitigate  unfair advantages that validators, the operator or other users may have over other users of the decentralized exchange.
 
-Order blinding would allow users place an order whose details are not revealed until the order is live in the order book. This
+Order blinding would allow users place an order whose details are not revealed until the order is live in the order book.
 * Provisions against validator/operator front-running
 * Order blinding
 
