@@ -9,8 +9,10 @@ defmodule OmiseGO.PerfTest.Runner do
   Assumes test suite setup is done earlier, before running this function.
   Foreach user runs n submit_transaction requests to the chain server. Requests are done sequencially.
   """
-  @spec run(nrequests :: integer, nusers :: integer, opt :: map) :: :ok
-  def run(nrequests, nusers, opt \\ %{}) do
+  @spec run(testid :: integer, nrequests :: integer, nusers :: integer) :: :ok
+  def run(testid, nrequests, nusers) do
+    start = :os.system_time(:millisecond)
+
     # init proces registry
     {:ok, _} = Registry.start_link(keys: :duplicate, name: OmiseGO.PerfTest.Registry)
 
@@ -23,20 +25,26 @@ defmodule OmiseGO.PerfTest.Runner do
 
     # Wait all senders do thier job, checker will stop when it happens and stops itself
     wait_for(OmiseGO.PerfTest.Registry)
+    stop = :os.system_time(:millisecond)
 
-    :ok
+    {:ok, "{ total_runtime_in_ms: #{stop-start}, testid: #{testid} }"}
   end
 
-  def profile_and_run(fn_to_profile, args) do
-    :fprof.apply(fn_to_profile, args, [procs: [:all]])
+  @spec profile_and_run(testid :: integer, nrequests :: integer, nusers :: integer) :: :ok
+  def profile_and_run(testid, nrequests, nusers) do
+    :fprof.apply(&OmiseGO.PerfTest.Runner.run/3, [testid, nrequests, nusers], [procs: [:all]])
     :fprof.profile()
 
-    [callers: true,
-     sort: :own,
-     totals: true,
-     details: true]
+    destfile = "/tmp/perftest-tx#{nrequests}-u#{nusers}-#{testid}.analysis"
+    [   callers: true,
+        sort: :own,
+        totals: true,
+        details: true,
+        dest: String.to_charlist(destfile),]
     |> :fprof.analyse()
     |> IO.puts
+
+    {:ok, "The :fprof output written to #{destfile}."}
   end
 
   defp wait_for(registry) do

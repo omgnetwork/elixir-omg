@@ -4,13 +4,13 @@ defmodule OmiseGO.PerfTest do
   """
   require Logger
   import Supervisor.Spec
-  alias OmiseGO.PerfTest.Runner
 
   @doc """
 
   """
-  def setup_and_run(nrequests, nusers, opt \\ %{}) do
-    {:ok, started_apps, testid} = testup()
+  def setup_and_run(nrequests, nusers, opt \\ []) do
+    testid = :os.system_time(:millisecond)
+    {:ok, started_apps} = testup(testid)
     Logger.info "OmiseGO PerfTest ##{testid} - users: #{nusers}, reqs: #{nrequests}."
 
     children = [
@@ -21,13 +21,20 @@ defmodule OmiseGO.PerfTest do
     ]
     Supervisor.start_link(children, [strategy: :one_for_one])
 
-    Runner.run(nrequests, nusers, opt)
+    run([testid, nrequests, nusers], opt[:profile])
 
     testdown(started_apps)
   end
 
-  defp testup() do
-    setup_leveldb()
+  defp testup(testid) do
+    dbdir = "/tmp/perftest-#{testid}"
+    Application.put_env(:omisego_db, :leveldb_path, dbdir, persistent: true)
+
+    {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
+
+    :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
+
+    {:ok, started_apps}
   end
 
   defp testdown(started_apps) do
@@ -35,14 +42,11 @@ defmodule OmiseGO.PerfTest do
     Application.put_env(:omisego_db, :leveldb_path, nil)
   end
 
-  defp setup_leveldb() do
-    dbdir = "/tmp/perftest-#{:os.system_time(:millisecond)}"
-    Application.put_env(:omisego_db, :leveldb_path, dbdir, persistent: true)
-
-    {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
-
-    :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
-
-    {:ok, started_apps, String.slice(dbdir, -13..-1)}
+  defp run(args, profile) do
+    {:ok, data} = apply(
+                    OmiseGO.PerfTest.Runner,
+                    (if profile, do: :profile_and_run, else: :run),
+                    args)
+    Logger.info data
   end
 end
