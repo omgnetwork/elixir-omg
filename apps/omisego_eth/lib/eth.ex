@@ -123,7 +123,7 @@ defmodule OmiseGO.Eth do
       gasPrice: encode_eth_rpc_unsigned_int(21_000_000_000),
       value: encode_eth_rpc_unsigned_int(value),
       data: "0x#{data}",
-      nonce: encode_eth_rpc_unsigned_int(nonce)
+      nonce: (if nonce == 0, do: "0x0", else: encode_eth_rpc_unsigned_int(nonce))
     })
   end
 
