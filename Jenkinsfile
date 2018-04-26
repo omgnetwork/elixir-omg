@@ -3,7 +3,7 @@ podTemplate(
     containers: [
         containerTemplate(
             name: 'jnlp',
-            image: 'gcr.io/omise-go/jenkins-slave-elixir:latest',
+            image: 'omisegoimages/blockchain-base:1.6-otp20-stretch',
             args: '${computer.jnlpmac} ${computer.name}',
             alwaysPullImage: true
         ),
@@ -22,9 +22,23 @@ podTemplate(
             }
         }
 
-        stage('Test Child Chain Server') {
+        stage('Unit test Child Chain Server') {
             withEnv(["MIX_ENV=test"]) {
                 sh("mix coveralls.html --no-start --umbrella")
+            }
+        }
+
+        stage('Build Contracts') {
+            withEnv(["SOLC_BINARY=/home/jenkins/.py-solc/solc-v0.4.18/bin/solc"]) {
+                dir("populus") {
+                    sh("pip install -r requirements.txt && python -m solc.install v0.4.18 && pip install eth-utils==0.8.1 web3==3.16.5 && populus compile")
+                }
+            }
+        }
+
+        stage('Integration test Child Chain Server') {
+            withEnv(["MIX_ENV=test"]) {
+                sh("mix test --no-start --only integration")
             }
         }
 

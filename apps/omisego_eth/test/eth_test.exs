@@ -9,7 +9,7 @@ defmodule OmiseGO.EthTest do
   @block_offset 1_000_000_000
   @transaction_offset 10_000
 
-  @moduletag :requires_geth
+  @moduletag :integration
 
   defp generate_transaction(nonce) do
     hash = :crypto.hash(:sha256, to_charlist(nonce))
