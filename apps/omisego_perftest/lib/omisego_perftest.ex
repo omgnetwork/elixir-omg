@@ -22,12 +22,28 @@ defmodule OmiseGO.PerfTest.Runner do
     #OmiseGO.PerfTest.CurrentBlockChecker.start_link()
 
     # Wait all senders do thier job, checker will stop when it happens and stops itself
-    ref = Process.monitor(OmiseGO.PerfTest.Registry)
+    wait_for(OmiseGO.PerfTest.Registry)
+
+    :ok
+  end
+
+  def profile_and_run(fn_to_profile, args) do
+    :fprof.apply(fn_to_profile, args, [procs: [:all]])
+    :fprof.profile()
+
+    [callers: true,
+     sort: :own,
+     totals: true,
+     details: true]
+    |> :fprof.analyse()
+    |> IO.puts
+  end
+
+  defp wait_for(registry) do
+    ref = Process.monitor(OmiseGO.PerfTest.WaitFor.start(registry))
     receive do
       {:DOWN, ^ref, :process, _obj, reason} ->
         Logger.info "Stoping performance tests, reason: #{reason}"
     end
-
-    :ok
   end
 end
