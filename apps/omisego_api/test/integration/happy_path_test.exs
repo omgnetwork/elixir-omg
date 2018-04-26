@@ -38,12 +38,11 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   deffixture contract(geth) do
     _ = geth
     _ = Application.ensure_all_started(:ethereumex)
-    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
-    {from, {txhash, contract_address}} = OmiseGO.Eth.DevHelpers.create_new_contract("../../", addr)
+    {:ok, contract_address, txhash, authority} = OmiseGO.Eth.DevHelpers.prepare_env("../../")
 
     %{
       address: contract_address,
-      from: from,
+      from: authority,
       txhash: txhash
     }
   end
@@ -125,20 +124,11 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     {:ok, _} = OmiseGO.API.submit(tx)
 
     # mine the block that spends the deposit
-    {:ok, started_at} = OmiseGO.Eth.get_root_deployment_height()
+    {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(2000, true)
+    {:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(1000)
 
-    # force `geth --dev` chain to mine (this initiates indirect recursion mining)
-    OmiseGO.Eth.DevHelpers.mine_eth_dev_block()
-
-    # let operator and Ethereum to mine few blocks
-    OmiseGO.Eth.WaitFor.eth_height(started_at + 2)
-
-    # get hash of first mined block from Ethereum
-    contract = Application.get_env(:omisego_eth, :contract)
-    {:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(1000, contract)
-
-    # check if operator is propagating block with such hash
-    assert %OmiseGO.API.Block{hash: ^block_hash} = OmiseGO.API.get_block(block_hash)
+    # check if operator is propagating block with hash submitted to RootChain
+    assert %OmiseGO.API.Block{:hash => ^block_hash} = OmiseGO.API.get_block(block_hash)
 
     # sanity checks
     assert <<0::256>> != block_hash
