@@ -1,18 +1,20 @@
 
 
 ```bash
-# elsewhere run go-ethereum
+# elsewhere run geth like:
 geth --dev --rpc --rpcapi eth,personal
 
-# following the advice in omisego_eth/convig/dev.exs
+# following the advice in omisego_eth/config/dev.exs
 mix run --no-start -e 'OmiseGO.Eth.DevHelpers.prepare_dev_env()'              #'
 
+# start Elixir REPL
 iex -S mix run --no-start
 ```
 
 ```elixir
 
-{:ok, contract_address, txhash, authority} =
+### PREPARATIONS
+{:ok, contract_address, _txhash, _authority} =
 
 dir = Temp.mkdir!()
 
@@ -20,42 +22,51 @@ Application.put_env(:omisego_db, :leveldb_path, dir, persistent: true)
 {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
 
 :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
+:ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
 
 {:ok, started_apps} = Application.ensure_all_started(:omisego_api)
 
+Code.load_file("apps/omisego_api/test/testlib/test_helper.ex")
 alias OmiseGO.{API, Eth}
 alias OmiseGO.API.Crypto
 alias OmiseGO.API.State.Transaction
+alias OmiseGO.API.TestHelper
 
-{:ok, alice_priv} = Crypto.generate_private_key; {:ok, alice_pub} = Crypto.generate_public_key alice_priv; {:ok, alice} = Crypto.generate_address alice_pub
-{:ok, bob_priv} = Crypto.generate_private_key; {:ok, bob_pub} = Crypto.generate_public_key bob_priv; {:ok, bob} = Crypto.generate_address bob_pub
+alice = TestHelper.generate_entity()
+bob = TestHelper.generate_entity()
 
-alice_priv_enc = Base.encode16(alice_priv)
-alice_enc = "0x" <> Base.encode16(alice, case: :lower)
+{:ok, alice_enc} = TestHelper.import_unlock_fund(alice)
 
-{:ok, ^alice_enc} = Ethereumex.HttpClient.personal_import_raw_key(alice_priv_enc, "")
-{:ok, true} = Ethereumex.HttpClient.personal_unlock_account(alice_enc, "", 0)
 
-{:ok, [eth_source_address | _]} = Ethereumex.HttpClient.eth_accounts()
-txmap = %{from: eth_source_address, to: alice_enc, value: "0x99999999999999999999999"}
-{:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+### START DEMO HERE
 
+# sends a deposit transaction _to Ethereum_
 {:ok, deposit_tx_hash} = Eth.deposit(10, 0, alice_enc, contract_address)
+
+# need to wait until its mined
 {:ok, _} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
 
+# we need to uncover the height at which the deposit went through on the root chain
+# to do this, look in the logs inside the receipt printed just above
 deposit_height_enc =
-
 {deposit_height, ""} = Integer.parse(deposit_height_enc, 16)
 
+# create and prepare transaction for singing
 tx =
   Transaction.new([{deposit_height, 0, 0}], [{bob.addr, 7}, {alice.addr, 3}], 0) |>
   Transaction.sign(alice.priv, <<>>) |>
   Transaction.Signed.encode()
 
+# submits a transaction to the child chain
+# this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 {:ok, child_tx_hash} = OmiseGO.API.submit(tx)
 
-{:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(2000, true)
-{:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(74000)
+# FIXME: getting the block number where the tx was included and submited
+OmiseGO.DB.utxos
 
+# with that block, we can ask the root chain to give us the block hash
+{:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(___)
+
+# with the block hash we can get the whole block
 OmiseGO.API.get_block(block_hash)
 ```

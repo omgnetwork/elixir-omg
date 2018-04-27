@@ -9,6 +9,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   alias OmiseGO.DB
   alias OmiseGO.Eth
   alias OmiseGO.API.State.Transaction
+  alias OmiseGO.API.TestHelper
 
   @moduletag :integration
 
@@ -90,42 +91,11 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     :ok
   end
 
-  # FIXME dry the fixtures for entities
-  import OmiseGO.API.TestHelper
-
-  deffixture entities do
-    %{
-      alice: generate_entity(),
-      bob: generate_entity(),
-      carol: generate_entity(),
-    }
-  end
-
-  deffixture(alice(entities), do: entities.alice)
-  deffixture(bob(entities), do: entities.bob)
-  deffixture(carol(entities), do: entities.carol)
-
-  def import_unlock_fund(account) do
-
-    account_priv_enc = Base.encode16(account.priv)
-    account_enc = "0x" <> Base.encode16(account.addr, case: :lower)
-
-    {:ok, ^account_enc} = Ethereumex.HttpClient.personal_import_raw_key(account_priv_enc, "")
-    {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(account_enc, "", 0)
-
-    {:ok, [eth_source_address | _]} = Ethereumex.HttpClient.eth_accounts()
-    txmap = %{from: eth_source_address, to: account_enc, value: "0x99999999999999999999999"}
-    {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    {:ok, _} = Eth.WaitFor.eth_receipt(tx_fund)
-
-    {:ok, account_enc}
-  end
-
   @tag fixtures: [:alice, :bob, :omisego]
   @tag :happy
   test "deposit, spend, exit, restart etc works fine", %{alice: alice, bob: bob} do
 
-    {:ok, alice_enc} = import_unlock_fund(alice)
+    {:ok, alice_enc} = TestHelper.import_unlock_fund(alice)
 
     {:ok, pre_deposit_child_block} = Eth.get_current_child_block()
 
@@ -165,9 +135,13 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
       ]
     } = OmiseGO.API.get_block(block_hash)
 
+    # Restart everything to check persistance and revival
     [:omisego_api, :omisego_eth, :omisego_db]
-    |> Enum.map(fn app -> :ok = Application.stop(app); app end)
-    |> Enum.each(fn app -> {:ok, _} = Application.ensure_all_started(app) end)
+    |> Enum.each(&Application.stop/1)
+
+    {:ok, started_apps} = Application.ensure_all_started(:omisego_api)
+    # sanity check, did-we restart really?
+    assert Enum.member?(started_apps, :omisego_api)
 
     # repeat spending to see if all works
 
@@ -200,7 +174,6 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     } = OmiseGO.API.get_block(block_hash2)
 
     # sanity checks
-    assert {:ok, {^block_hash, _}} = OmiseGO.Eth.get_child_chain(spend_child_block)
     assert %OmiseGO.API.Block{} = OmiseGO.API.get_block(block_hash)
     assert :not_found = OmiseGO.API.get_block(<<0::size(256)>>)
     assert {{:error, :utxo_not_found}, _} = OmiseGO.API.submit(tx)
