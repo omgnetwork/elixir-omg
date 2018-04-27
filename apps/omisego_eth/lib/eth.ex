@@ -2,6 +2,7 @@ defmodule OmiseGO.Eth do
   @moduledoc """
   Adapter/port to ethereum
   """
+  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
 
   @block_offset 1_000_000_000
   @transaction_offset 10_000
@@ -76,6 +77,70 @@ defmodule OmiseGO.Eth do
       data: "0x#{data}",
       nonce: encode_eth_rpc_unsigned_int(nonce)
     })
+  end
+
+  def deposit(value, gas_price, from \\ nil, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+    from = from || Application.get_env(:omisego_eth, :omg_addr)
+
+    data =
+      "deposit()"
+      |> ABI.encode([])
+      |> Base.encode16()
+
+    gas = 100_000
+
+    Ethereumex.HttpClient.eth_send_transaction(%{
+      from: from,
+      to: contract,
+      data: "0x#{data}",
+      gas: encode_eth_rpc_unsigned_int(gas),
+      gasPrice: encode_eth_rpc_unsigned_int(gas_price),
+      value: encode_eth_rpc_unsigned_int(value)
+    })
+
+  end
+
+  def start_deposit_exit(deposit_positon, value, gas_price, from \\ nil, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+    from = from || Application.get_env(:omisego_eth, :omg_addr)
+
+    data =
+      "startDepositExit(uint256,uint256)"
+      |> ABI.encode([deposit_positon, value])
+      |> Base.encode16()
+
+    gas = 100_0000
+
+    Ethereumex.HttpClient.eth_send_transaction(%{
+      from: from,
+      to: contract,
+      data: "0x#{data}",
+      gas: encode_eth_rpc_unsigned_int(gas),
+      gasPrice: encode_eth_rpc_unsigned_int(gas_price)
+    })
+
+  end
+  
+  def start_exit(utxo_position, proof, %Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2}, gas_price, from \\ nil, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+    from = from || Application.get_env(:omisego_eth, :omg_addr)
+
+    data =
+      "startExit(uint256,bytes,bytes,bytes)"
+      |> ABI.encode([utxo_position, raw_tx, proof, sig1 <> sig2 ])
+      |> Base.encode16()
+
+    gas = 100_0000
+
+    Ethereumex.HttpClient.eth_send_transaction(%{
+      from: from,
+      to: contract,
+      data: "0x#{data}",
+      gas: encode_eth_rpc_unsigned_int(gas),
+      gasPrice: encode_eth_rpc_unsigned_int(gas_price)
+    })
+
   end
 
   defp encode_eth_rpc_unsigned_int(value) do
