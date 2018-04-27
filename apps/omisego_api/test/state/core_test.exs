@@ -277,7 +277,8 @@ defmodule OmiseGO.API.State.CoreTest do
       transactions: [recovered_tx_1, recovered_tx_2],
       hash:
         <<166, 149, 246, 209, 144, 15, 143, 85, 224, 230, 228, 51, 1, 242, 85, 166, 162, 138, 204,
-          220, 45, 30, 102, 107, 5, 173, 160, 181, 187, 25, 232, 33>>
+          220, 45, 30, 102, 107, 5, 173, 160, 181, 187, 25, 232, 33>>,
+      number: 1000
     }
 
     {:ok, {exp_block, _, _, _}} = Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
@@ -300,9 +301,9 @@ defmodule OmiseGO.API.State.CoreTest do
 
     next_block_height = 2 * @block_interval
     {:ok, {_, _, _, state}} = Core.form_block(state, @block_interval, next_block_height)
-    expected_block = empty_block()
+    expected_block = empty_block(2000)
 
-    {:ok, {^expected_block, _, _, _}} =
+    assert {:ok, {^expected_block, _, _, _}} =
       Core.form_block(state, next_block_height, next_block_height + @block_interval)
   end
 
@@ -481,7 +482,7 @@ defmodule OmiseGO.API.State.CoreTest do
     state
   end
 
-  defp empty_block do
-    %Block{transactions: [], hash: @empty_block_hash}
+  defp empty_block(number \\ 1000) do
+    %Block{transactions: [], hash: @empty_block_hash, number: number}
   end
 end
