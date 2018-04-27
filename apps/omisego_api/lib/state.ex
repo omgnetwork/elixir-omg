@@ -95,7 +95,7 @@ defmodule OmiseGO.API.State do
   Tells if utxo exists
   """
   def handle_call({:utxo_exists, utxos}, _from, state) do
-    {:reply, :Core.utxo_exists(utxos, state), state}
+    {:reply, Core.utxo_exists(utxos, state), state}
   end
 
   @doc """

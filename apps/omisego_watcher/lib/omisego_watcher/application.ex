@@ -16,11 +16,12 @@ defmodule OmiseGOWatcher.Application do
       supervisor(OmiseGOWatcherWeb.Endpoint, []),
       {OmiseGO.API.State, []},
       # Start workers
-      worker(OmiseGOWatcher.ExitValidator, []),
+      worker(OmiseGOWatcher.FastExitValidator, []),
       worker(
         OmiseGO.API.EthereumEventListener,
-        [get_event_listener_config(), &OmiseGO.Eth.get_exits/3, &ExitValidator.validate_exit/1],
-        [id: :exiter]
+        [get_event_listener_config(), &OmiseGO.Eth.get_exits/2,
+         &OmiseGOWatcher.FastExitValidator.validate_exit/1],
+        [id: :fast_exiter_listener]
       )
     ]
 
