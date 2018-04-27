@@ -7,7 +7,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   use ExUnit.Case, async: false
 
   alias OmiseGO.DB
-
+  alias OmiseGO.Eth
   alias OmiseGO.API.State.Transaction
 
   @moduletag :integration
@@ -71,14 +71,15 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   deffixture db_initialized(db_path_config) do
     :ok = db_path_config
     :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
-    # FIXME the latter doesn't work yet
-    # OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
+    :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
     :ok
   end
 
   deffixture omisego(root_chain_contract_config, db_initialized) do
     :ok = root_chain_contract_config
     :ok = db_initialized
+    Application.put_env(:omisego_api, :ethereum_event_block_finality_margin, 2, persistent: true)
+    Application.put_env(:omisego_api, :ethereum_event_get_deposits_interval_ms, 1000, persistent: true)
     {:ok, started_apps} = Application.ensure_all_started(:omisego_api)
 
     on_exit fn ->
@@ -104,43 +105,104 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   deffixture(bob(entities), do: entities.bob)
   deffixture(carol(entities), do: entities.carol)
 
+  def import_unlock_fund(account) do
+
+    account_priv_enc = Base.encode16(account.priv)
+    account_enc = "0x" <> Base.encode16(account.addr, case: :lower)
+
+    {:ok, ^account_enc} = Ethereumex.HttpClient.personal_import_raw_key(account_priv_enc, "")
+    {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(account_enc, "", 0)
+
+    {:ok, [eth_source_address | _]} = Ethereumex.HttpClient.eth_accounts()
+    txmap = %{from: eth_source_address, to: account_enc, value: "0x99999999999999999999999"}
+    {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+    {:ok, _} = Eth.WaitFor.eth_receipt(tx_fund)
+
+    {:ok, account_enc}
+  end
+
   @tag fixtures: [:alice, :bob, :omisego]
+  @tag :happy
   test "deposit, spend, exit, restart etc works fine", %{alice: alice, bob: bob} do
 
+    {:ok, alice_enc} = import_unlock_fund(alice)
+
+    {:ok, pre_deposit_child_block} = Eth.get_current_child_block()
+
+    {:ok, deposit_tx_hash} = Eth.deposit(10, 0, alice_enc)
+    {:ok, _} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
+
+    # mine the block that spends the deposit
+    post_deposit_child_block =
+      pre_deposit_child_block + Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) * 1000
+    {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true)
+
+    # TODO: hacky way to get the deposit height, fix sometime
+    {:ok, [utxos]} = DB.utxos()
+    [{deposit_block, _, _}] = Map.keys(utxos)
+
+    raw_tx = Transaction.new([{deposit_block, 0, 0}], [{bob.addr, 7}, {alice.addr, 3}], 0)
     tx =
-      %Transaction{
-        blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner1: bob.addr, amount1: 7, newowner2: alice.addr, amount2: 3, fee: 0,
-      }
+      raw_tx
       |> Transaction.sign(alice.priv, <<>>)
       |> Transaction.Signed.encode()
 
-    {{:error, :utxo_not_found}, _} = OmiseGO.API.submit(tx)
-
-    # FIXME should actually be called from Ethereum-driven Depositor
-    :ok = OmiseGO.API.State.deposit([%{owner: "0x" <> Base.encode16(alice.addr, case: :lower), amount: 10, blknum: 1}])
+    {:ok, spend_child_block} = Eth.get_current_child_block()
 
     # spend the deposit
     {:ok, _} = OmiseGO.API.submit(tx)
 
-    # mine the block that spends the deposit
-    {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(2000, true)
-    {:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(1000)
+    post_spend_child_block = spend_child_block + 1000
+    {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block, true)
 
     # check if operator is propagating block with hash submitted to RootChain
-    assert %OmiseGO.API.Block{:hash => ^block_hash} = OmiseGO.API.get_block(block_hash)
+    {:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(spend_child_block)
+    assert %OmiseGO.API.Block{
+      transactions: [
+        %Transaction.Recovered{
+          raw_tx: ^raw_tx
+        }
+      ]
+    } = OmiseGO.API.get_block(block_hash)
+
+    [:omisego_api, :omisego_eth, :omisego_db]
+    |> Enum.map(fn app -> :ok = Application.stop(app); app end)
+    |> Enum.each(fn app -> {:ok, _} = Application.ensure_all_started(app) end)
+
+    # repeat spending to see if all works
+
+    raw_tx2 = Transaction.new(
+      [{spend_child_block, 0, 0}, {spend_child_block, 0, 1}],
+      [{alice.addr, 10}],
+      0
+    )
+    tx2 =
+      raw_tx2
+      |> Transaction.sign(bob.priv, alice.priv)
+      |> Transaction.Signed.encode()
+
+    {:ok, spend_child_block2} = Eth.get_current_child_block()
+
+    # spend the deposit
+    {:ok, _} = OmiseGO.API.submit(tx2)
+
+    post_spend_child_block2 = spend_child_block2 + 1000
+    {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block2, true)
+
+    # check if operator is propagating block with hash submitted to RootChain
+    {:ok, {block_hash2, _}} = OmiseGO.Eth.get_child_chain(spend_child_block2)
+    assert %OmiseGO.API.Block{
+      transactions: [
+        %Transaction.Recovered{
+          raw_tx: ^raw_tx2
+        }
+      ]
+    } = OmiseGO.API.get_block(block_hash2)
 
     # sanity checks
-    assert <<0::256>> != block_hash
+    assert {:ok, {^block_hash, _}} = OmiseGO.Eth.get_child_chain(spend_child_block)
+    assert %OmiseGO.API.Block{} = OmiseGO.API.get_block(block_hash)
     assert :not_found = OmiseGO.API.get_block(<<0::size(256)>>)
-
-    # FIXME - should actually stop and start apps to check if persistence works fine
-    assert {:ok, [
-      %{{1000, 0, 0} => %{amount: 7, owner: bob.addr}},
-      %{{1000, 0, 1} => %{amount: 3, owner: alice.addr}}
-    ]} == DB.utxos()
-
-    # attempt to double-spend on child chain should fail
     assert {{:error, :utxo_not_found}, _} = OmiseGO.API.submit(tx)
   end
 

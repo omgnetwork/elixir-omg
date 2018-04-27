@@ -218,7 +218,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
       state = %{
         state
-        | formed_child_block_num: state.mined_child_block_num + state.child_block_interval,
+        | formed_child_block_num: state.mined_child_block_num,
           blocks: mined_submissions
       }
 

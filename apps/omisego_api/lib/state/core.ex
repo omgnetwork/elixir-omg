@@ -23,6 +23,10 @@ defmodule OmiseGO.API.State.Core do
 
     utxos =
       utxos_query_result
+      |> Enum.map(fn utxo_map ->
+        [{key, value}] = Map.to_list(utxo_map)
+        {key, value}
+      end)
       |> Enum.into(%{})
 
     %__MODULE__{
@@ -161,7 +165,7 @@ defmodule OmiseGO.API.State.Core do
       block =
         txs
         |> Enum.map(fn {_tx_index, tx} -> tx end)
-        |> (fn txs -> %Block{transactions: txs} end).()
+        |> (fn txs -> %Block{transactions: txs, number: height} end).()
         |> Block.merkle_hash()
 
       event_triggers =

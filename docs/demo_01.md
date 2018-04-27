@@ -48,10 +48,9 @@ deposit_height_enc =
 {deposit_height, ""} = Integer.parse(deposit_height_enc, 16)
 
 tx =
-  %Transaction{
-    blknum1: deposit_height, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0,
-    newowner1: bob, amount1: 7, newowner2: alice, amount2: 3, fee: 0,
-  } |> Transaction.sign(alice_priv, <<>>) |> Transaction.Signed.encode()
+  Transaction.new([{deposit_height, 0, 0}], [{bob.addr, 7}, {alice.addr, 3}], 0) |>
+  Transaction.sign(alice.priv, <<>>) |>
+  Transaction.Signed.encode()
 
 {:ok, child_tx_hash} = OmiseGO.API.submit(tx)
 

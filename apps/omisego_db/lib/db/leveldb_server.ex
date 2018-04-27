@@ -60,12 +60,23 @@ defmodule OmiseGO.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call({:block_hashes, _block_numbers_to_fetch}, _from, %__MODULE__{db_ref: _db_ref} = state) do
-    {:reply, {:ok, []}, state}
+  def handle_call({:block_hashes, block_numbers_to_fetch}, _from, %__MODULE__{db_ref: db_ref} = state) do
+    result =
+      block_numbers_to_fetch
+      |> Enum.map(fn block_number -> LevelDBCore.key(:block_hash, block_number) end)
+      |> Enum.map(fn key -> get(key, db_ref) end)
+      |> LevelDBCore.decode_values(:block_hash)
+    {:reply, result, state}
   end
 
-  def handle_call({:child_top_block_number}, _from, %__MODULE__{db_ref: _db_ref} = state) do
-    {:reply, {:ok, 0}, state}
+  def handle_call({:child_top_block_number}, _from, %__MODULE__{db_ref: db_ref} = state) do
+    #TODO: initialize db with height 0
+    result =
+      with key <- LevelDBCore.key(:child_top_block_number),
+           response <- get(key, db_ref),
+           do: LevelDBCore.decode_value(response, :child_top_block_number)
+
+    {:reply, result, state}
   end
 
   def handle_call(:last_deposit_block_height, _from, %__MODULE__{db_ref: db_ref} = state) do

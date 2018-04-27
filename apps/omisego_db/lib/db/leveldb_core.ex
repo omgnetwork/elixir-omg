@@ -7,11 +7,19 @@ defmodule OmiseGO.DB.LevelDBCore do
 
   def parse_multi_updates(db_updates) do
     db_updates
-    |> Enum.map(&parse_multi_update/1)
+    |> Enum.flat_map(&parse_multi_update/1)
   end
 
-  defp parse_multi_update({:put, type, item}), do: {:put, key(type, item), encode_value(type, item)}
-  defp parse_multi_update({:delete, type, item}), do: {:delete, key(type, item)}
+  defp parse_multi_update({:put, :block, %OmiseGO.API.Block{number: number, hash: hash} = item}) do
+    [
+      {:put, key(:block, item), encode_value(:block, item)},
+      {:put, key(:block_hash, number), encode_value(:block_hash, hash)},
+      {:put, key(:child_top_block_number), encode_value(:child_top_block_number, number)}
+    ]
+  end
+
+  defp parse_multi_update({:put, type, item}), do: [{:put, key(type, item), encode_value(type, item)}]
+  defp parse_multi_update({:delete, type, item}), do: [{:delete, key(type, item)}]
 
   defp decode_response(_type, db_response) do
     case db_response do
@@ -72,6 +80,8 @@ defmodule OmiseGO.DB.LevelDBCore do
   def key(:block, %{hash: hash} = _block), do: key(:block, hash)
   def key(:block, hash), do: "b" <> hash
 
+  def key(:block_hash, number), do: "bn" <> :erlang.term_to_binary(number)
+
   def key(:utxo, utxo) when is_map(utxo) do
     [utxo_id] = Map.keys(utxo)
     key(:utxo, utxo_id)
@@ -79,7 +89,10 @@ defmodule OmiseGO.DB.LevelDBCore do
   def key(:utxo, {_blknum, _txindex, _oindex} = utxo_id) do
     "u" <> :erlang.term_to_binary(utxo_id)
   end
-  def key(:last_deposit_block_height, _), do: key(:last_deposit_block_height)
 
+  def key(:last_deposit_block_height, _), do: key(:last_deposit_block_height)
   def key(:last_deposit_block_height), do: "last_deposit_block_height"
+
+  def key(:child_top_block_number, _), do: key(:child_top_block_number)
+  def key(:child_top_block_number), do: "child_top_block_number"
 end
