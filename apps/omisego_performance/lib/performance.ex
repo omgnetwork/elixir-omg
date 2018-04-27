@@ -1,20 +1,31 @@
 defmodule OmiseGO.Performance do
   @moduledoc """
-  OmiseGO performance test suite module
+  OmiseGO performance test entrypoint. Setup and runs performance tests.
+
+  # Examples
+
+  ## 1 - running 3 senders each sending 5 transactions test.
+  Run from terminal:
+   > mix run --no-start -e 'OmiseGO.Performance.setup_and_run(5, 3)'
+
+  ## 2 - running 3 senders with 5 transactions each with profiler
+   > mix run --no-start -e 'OmiseGO.Performance.setup_and_run(5, 3, profile: true)'
+
   """
 
   require Logger
   import Supervisor.Spec
 
   @doc """
-  Setup dependencies, then submits {nrequests} transcations for each of {nusers} users.
+  Setup dependencies, then submits {ntx_to_send} transcations for each of {nusers} users.
   """
-  @spec setup_and_run(nrequests :: pos_integer, nusers :: pos_integer, opt :: list) :: :ok
-  def setup_and_run(nrequests, nusers, opt \\ []) do
+  @spec setup_and_run(ntx_to_send :: pos_integer, nusers :: pos_integer, opt :: list) :: :ok
+  def setup_and_run(ntx_to_send, nusers, opt \\ []) do
     testid = :os.system_time(:millisecond)
     {:ok, started_apps} = testup(testid)
-    Logger.info "OmiseGO PerfTest ##{testid} - users: #{nusers}, reqs: #{nrequests}."
+    Logger.info "OmiseGO PerfTest ##{testid} - users: #{nusers}, reqs: #{ntx_to_send}."
 
+    # select just neccessary components to run the tests
     children = [
       supervisor(Phoenix.PubSub.PG2, [:eventer, []]),
       {OmiseGO.API.State, []},
@@ -22,7 +33,7 @@ defmodule OmiseGO.Performance do
     ]
     Supervisor.start_link(children, [strategy: :one_for_one])
 
-    run([testid, nrequests, nusers], opt[:profile])
+    run([testid, ntx_to_send, nusers], opt[:profile])
 
     testdown(started_apps)
   end

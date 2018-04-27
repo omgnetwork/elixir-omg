@@ -30,13 +30,13 @@ defmodule OmiseGO.Performance.WaitFor do
   def handle_info(:check, registry) do
     senders = Registry.lookup(registry, :sender)
 
-    unless Enum.empty?(senders) do
+    if Enum.empty?(senders) do
+      Logger.debug "[WF] +++ Stoping... +++"
+      {:stop, :normal, registry}
+    else
       Logger.debug "[WF]: Senders are alive"
       reschedule_check()
       {:noreply, registry}
-    else
-      Logger.debug "[WF] +++ Stoping... +++"
-      {:stop, :normal, registry}
     end
   end
 
