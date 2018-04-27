@@ -16,4 +16,9 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
       utxos: Enum.map(utxos, &Map.take(&1, fields_names))
     })
   end
+
+  def compose_utxo_exit(conn, %{}) do
+
+  end
+
 end

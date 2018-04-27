@@ -9,8 +9,8 @@ defmodule OmiseGO.API.FreshBlocksTest do
   end
 
   def generate_fresh_block(size, max_size \\ 1024) do
-    update_state = fn state, block ->
-      with {:ok, n_state} <- FreshBlocks.push(state, block) do
+    update_state = fn block, state ->
+      with {:ok, n_state} <- FreshBlocks.push(block, state) do
         n_state
       end
     end

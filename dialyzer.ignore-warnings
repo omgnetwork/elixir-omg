@@ -4,3 +4,8 @@ Function start/0 has no local return
 Function launch/1 will never be called
 Function geth_os_pids/0 will never be called
 Function wait_for_geth_start/1 will never be called
+Function prepare_dev_env/0 has no local return
+Function prepare_env/1 has no local return
+Function create_and_fund_authority_addr/0 has no local return
+The call 'Elixir.Ethereumex.HttpClient':personal_unlock_account(Vauthority@1::any(),#{}#,604800) will never return since it differs in the 3rd argument from the success typing arguments: (binary() | map(),binary() | map(),binary() | map())
+Function write_conf_file/4 will never be called

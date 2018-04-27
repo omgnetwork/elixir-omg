@@ -45,11 +45,11 @@ defmodule OmiseGO.API.BlockQueue do
     end
 
     def init(:ok) do
-      finality = 12
-      # NOTE: something throws, suspect: ethereumex
       try do
-        with {:ok, parent_height} <- Eth.get_ethereum_height(),
-             {:ok, mined_num} <- Eth.get_current_child_block(),
+        with :ok <- Eth.node_ready(),
+             :ok <- Eth.contract_ready(),
+             {:ok, parent_height} <- Eth.get_ethereum_height(),
+             {:ok, mined_num} <- Eth.get_mined_child_block(),
              {:ok, parent_start} <- Eth.get_root_deployment_height(),
              {:ok, stored_child_top_num} <- OmiseGO.DB.child_top_block_number(),
              # TODO: taking all stored hashes now. While still being feasible DB-wise ("just" many hashes)
@@ -58,7 +58,7 @@ defmodule OmiseGO.API.BlockQueue do
              #       OmiseGO.DB.block_hashes(stored_child_top_num - cutoff..stored_child_top_num)
              #       Leaving a chore to handle that in the future
              {:ok, known_hashes} <- OmiseGO.DB.block_hashes(0..stored_child_top_num),
-             {:ok, {top_mined_hash, _time}} = Eth.get_child_chain(mined_num) do
+             {:ok, {top_mined_hash, _}} = Eth.get_child_chain(mined_num) do
           {:ok, state} = Core.new(
             mined_child_block_num: mined_num,
             known_hashes: known_hashes,
@@ -67,7 +67,7 @@ defmodule OmiseGO.API.BlockQueue do
             child_block_interval: 1000,
             chain_start_parent_height: parent_start,
             submit_period: 1,
-            finality_threshold: finality
+            finality_threshold: 12
           )
           {:ok, _} = :timer.send_interval(1000, self(), :check_mined_child_head)
           {:ok, _} = :timer.send_interval(1000, self(), :check_ethereum_height)
@@ -86,7 +86,7 @@ defmodule OmiseGO.API.BlockQueue do
     end
 
     def handle_info(:check_mined_child_head, state) do
-      {:ok, mined_num} = Eth.get_current_child_block()
+      {:ok, mined_num} = Eth.get_mined_child_block()
       state1 = Core.set_mined(state, mined_num)
       submit_blocks(state1)
       {:noreply, state1}
@@ -107,12 +107,15 @@ defmodule OmiseGO.API.BlockQueue do
 
     # private (server)
 
-    @spec submit_blocks(Core.t()) :: :ok
+    @spec submit_blocks(Core.t()) :: :ok | :no_return
     defp submit_blocks(state) do
       state
       |> Core.get_blocks_to_submit()
       |> Enum.each(fn submission ->
-        {:ok, _txhash} = OmiseGO.Eth.submit_block(submission.nonce, submission.hash, submission.gas)
+        case OmiseGO.Eth.submit_block(submission) do
+          {:ok, _txhash} -> :ok
+          {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} -> :ok
+        end
       end)
     end
   end
