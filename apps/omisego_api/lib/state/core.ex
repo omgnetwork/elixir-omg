@@ -33,14 +33,6 @@ defmodule OmiseGO.API.State.Core do
   end
 
   @doc """
-  Returns last transaction block number and index, which identifies Tx in incomming block
-  """
-  @spec get_last_tx_coord(state :: %Core{}) :: {blknum :: integer, tx_index :: integer}
-  def get_last_tx_coord(%Core{height: height, tx_index: tx_index}) do
-    {height, tx_index-1}
-  end
-
-  @doc """
   Includes the transaction into the state when valid, rejects otherwise.
   """
   @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{}) :: %Core{}
@@ -54,7 +46,8 @@ defmodule OmiseGO.API.State.Core do
          {:ok, in_amount1} <- correct_input?(utxos, raw_tx, 0, spender1),
          {:ok, in_amount2} <- correct_input?(utxos, raw_tx, 1, spender2),
          :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2 + fee) do
-      {:ok,
+      {
+       {:ok, recovered_tx.signed_tx_hash, state.height, state.tx_index},
        state
        |> add_pending_tx(recovered_tx)
        |> apply_spend(raw_tx)

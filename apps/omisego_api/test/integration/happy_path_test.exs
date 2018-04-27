@@ -116,7 +116,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
       |> Transaction.sign(alice.priv, <<>>)
       |> Transaction.Signed.encode()
 
-    {{:error, :utxo_not_found}, _, _, _} = OmiseGO.API.submit(tx)
+    {:error, :utxo_not_found} = OmiseGO.API.submit(tx)
 
     # FIXME should actually be called from Ethereum-driven Depositor
     :ok = OmiseGO.API.State.deposit([%{owner: alice.addr, amount: 10, blknum: 1}])
@@ -142,7 +142,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     ]} == DB.utxos()
 
     # attempt to double-spend on child chain should fail
-    assert {{:error, :utxo_not_found}, _, _, _} = OmiseGO.API.submit(tx)
+    assert {:error, :utxo_not_found} = OmiseGO.API.submit(tx)
   end
 
 end

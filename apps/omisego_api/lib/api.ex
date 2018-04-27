@@ -11,8 +11,8 @@ defmodule OmiseGO.API do
   @spec submit(byte) :: {:ok, integer, integer, byte} | {:error, any}
   def submit(encoded_singed_tx) do
     with {:ok, recovered_tx} <- Core.recover_tx(encoded_singed_tx),
-         {tx_result, {blknum, txindex}} <- State.exec(recovered_tx),
-         do: {tx_result, blknum, txindex, recovered_tx.signed_tx_hash}
+         tx_result <- State.exec(recovered_tx),
+         do: tx_result
   end
 
   def get_block(hash) do
