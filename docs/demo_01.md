@@ -7,6 +7,9 @@ geth --dev --rpc --rpcapi eth,personal
 # following the advice in omisego_eth/config/dev.exs
 mix run --no-start -e 'OmiseGO.Eth.DevHelpers.prepare_dev_env()'              #'
 
+# wipe your omisego child chain db
+rm -rf ~/.omisego
+
 # start Elixir REPL
 iex -S mix run --no-start
 ```
@@ -16,9 +19,6 @@ iex -S mix run --no-start
 ### PREPARATIONS
 {:ok, contract_address, _txhash, _authority} =
 
-dir = Temp.mkdir!()
-
-Application.put_env(:omisego_db, :leveldb_path, dir, persistent: true)
 {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
 
 :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
