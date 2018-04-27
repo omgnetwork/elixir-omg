@@ -1,4 +1,4 @@
-defmodule OmiseGO.PerfTest.SenderServer do
+defmodule OmiseGO.Performance.SenderServer do
   @moduledoc """
   The SenderServer process synchronously sends requested number of transactions to the blockchain server.
   """
@@ -39,7 +39,7 @@ defmodule OmiseGO.PerfTest.SenderServer do
   @spec init({seqnum :: integer, nrequests :: integer}) :: {:ok, init_state :: __MODULE__.state}
   def init({seqnum, nrequests}) do
     Logger.debug "[#{seqnum}] +++ init/1 called with requests: '#{nrequests}' +++"
-    Registry.register(OmiseGO.PerfTest.Registry, :sender, "Sender: #{seqnum}")
+    Registry.register(OmiseGO.Performance.Registry, :sender, "Sender: #{seqnum}")
 
     spender = generate_participant_address()
     Logger.debug "[#{seqnum}]: Address #{Base.encode64(spender.addr)}"
@@ -61,9 +61,9 @@ defmodule OmiseGO.PerfTest.SenderServer do
     if nrequests > 0 do
       {:ok, newblknum, newtxindex, newvalue} = submit_tx(state)
       send(self(), :do)
-      {:noreply, %__MODULE__{state | nrequests: nrequests-1} |> with_tx(newblknum, newtxindex, newvalue)}
+      {:noreply, state |> next_state(newblknum, newtxindex, newvalue)}
     else
-      Registry.unregister(OmiseGO.PerfTest.Registry, :sender)
+      Registry.unregister(OmiseGO.Performance.Registry, :sender)
       Logger.debug "[#{seqnum}] +++ Stoping... +++"
       {:stop, :normal, state}
     end
@@ -115,16 +115,31 @@ defmodule OmiseGO.PerfTest.SenderServer do
   """
   @spec init_state(seqnum :: pos_integer, nreq :: pos_integer, spender :: %{priv: <<_::256>>, addr: <<_::160>>}) :: __MODULE__.state
   defp init_state(seqnum, nreq, spender) do
-    %__MODULE__{seqnum: seqnum, nrequests: nreq, spender: spender,
-      last_tx: %LastTx{blknum: seqnum, txindex: 0, oindex: 0, amount: 10*nreq}
+    %__MODULE__{
+      seqnum: seqnum,
+      nrequests: nreq,
+      spender: spender,
+      last_tx: %LastTx{
+        blknum: seqnum,   # initial state takes deposited value, put there on :init
+        txindex: 0,
+        oindex: 0,
+        amount: 10 * nreq,
+      },
     }
   end
 
   @doc """
   Generates next module's state
   """
-  @spec with_tx(state :: __MODULE__.state, blknum :: pos_integer, txindex :: pos_integer, amount :: pos_integer) :: __MODULE__.state
-  defp with_tx(state, blknum, txindex, amount) do
-    %__MODULE__{state | last_tx: %LastTx{state.last_tx | blknum: blknum, txindex: txindex, amount: amount}}
+  @spec next_state(state :: __MODULE__.state, blknum :: pos_integer, txindex :: pos_integer, amount :: pos_integer) :: __MODULE__.state
+  defp next_state(state = %__MODULE__{nrequests: nrequests}, blknum, txindex, amount) do
+    %__MODULE__{
+      state |
+      nrequests: nrequests-1,
+      last_tx: %LastTx{
+        state.last_tx |
+        blknum: blknum, txindex: txindex, amount: amount
+      }
+    }
   end
 end

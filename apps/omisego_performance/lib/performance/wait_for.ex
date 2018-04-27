@@ -1,4 +1,4 @@
-defmodule OmiseGO.PerfTest.WaitFor do
+defmodule OmiseGO.Performance.WaitFor do
   @moduledoc """
   Checks every @check_registry_every_ms milliseconds whether registry has sender proceses registered yet.
   Stops if there is no running senders.

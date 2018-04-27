@@ -1,4 +1,4 @@
-defmodule OmiseGO.PerfTest.Runner do
+defmodule OmiseGO.Performance.Runner do
   @moduledoc """
   OmiseGO performance tests - orchestration and running tests
   """
@@ -14,14 +14,14 @@ defmodule OmiseGO.PerfTest.Runner do
     start = :os.system_time(:millisecond)
 
     # init proces registry
-    {:ok, _} = Registry.start_link(keys: :duplicate, name: OmiseGO.PerfTest.Registry)
+    {:ok, _} = Registry.start_link(keys: :duplicate, name: OmiseGO.Performance.Registry)
 
     # fire async transaction senders
     #TODO: Consider running senders in supervisor - but would they restore their state?
-    1..nusers |> Enum.map(fn senderid -> OmiseGO.PerfTest.SenderServer.start_link({senderid, nrequests}) end)
+    1..nusers |> Enum.map(fn senderid -> OmiseGO.Performance.SenderServer.start_link({senderid, nrequests}) end)
 
     # Wait all senders do thier job, checker will stop when it happens and stops itself
-    wait_for(OmiseGO.PerfTest.Registry)
+    wait_for(OmiseGO.Performance.Registry)
     stop = :os.system_time(:millisecond)
 
     {:ok, "{ total_runtime_in_ms: #{stop-start}, testid: #{testid} }"}
@@ -32,7 +32,7 @@ defmodule OmiseGO.PerfTest.Runner do
   """
   @spec profile_and_run(testid :: integer, nrequests :: pos_integer, nusers :: pos_integer) :: :ok
   def profile_and_run(testid, nrequests, nusers) do
-    :fprof.apply(&OmiseGO.PerfTest.Runner.run/3, [testid, nrequests, nusers], [procs: [:all]])
+    :fprof.apply(&OmiseGO.Performance.Runner.run/3, [testid, nrequests, nusers], [procs: [:all]])
     :fprof.profile()
 
     destfile = "/tmp/perftest-tx#{nrequests}-u#{nusers}-#{testid}.analysis"
@@ -52,7 +52,7 @@ defmodule OmiseGO.PerfTest.Runner do
   """
   @spec wait_for(registry :: pid() | atom()) :: :ok
   defp wait_for(registry) do
-    ref = Process.monitor(OmiseGO.PerfTest.WaitFor.start(registry))
+    ref = Process.monitor(OmiseGO.Performance.WaitFor.start(registry))
     receive do
       {:DOWN, ^ref, :process, _obj, reason} ->
         Logger.info "Stoping performance tests, reason: #{reason}"

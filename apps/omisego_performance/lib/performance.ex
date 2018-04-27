@@ -1,4 +1,4 @@
-defmodule OmiseGO.PerfTest do
+defmodule OmiseGO.Performance do
   @moduledoc """
   OmiseGO performance test suite module
   """
@@ -57,7 +57,7 @@ defmodule OmiseGO.PerfTest do
   @spec run(args :: list(), profile :: boolean) :: :ok
   defp run(args, profile) do
     {:ok, data} = apply(
-                    OmiseGO.PerfTest.Runner,
+                    OmiseGO.Performance.Runner,
                     (if profile, do: :profile_and_run, else: :run),
                     args)
     Logger.info data
