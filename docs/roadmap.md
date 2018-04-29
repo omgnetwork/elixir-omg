@@ -13,7 +13,7 @@ The Sente milestone includes feedback from users of the closed beta and from Fus
 * A re-designed administrative dashboard
 * Transaction request flow (QR codes) to enable peer to peer payments between users
 
-## Honte (Discontinued)
+## Honte (Spooned)
 OmiseGO has stopped on the Honte milestone. The repository for Honte may be found [here](https://github.com/omisego/honted). The full design of the blockchain and decentralized exchange on Tendermint may be found [here](https://github.com/omisego/honted/blob/develop/docs/tendermint_blockchain_design.md) and [here](https://github.com/omisego/honted/blob/develop/docs/batch_matching.md) respectively.
 
 ## Tesuji (In Progress)
@@ -52,19 +52,19 @@ There are use cases where non-fungible tokens are useful, such as ticketing, uni
 
 * Non-fungible tokens
 
-## Limited Proof of Stake
+## TBN (To Be Named - Limited Proof of Stake)
 This milestone will commence the phase-in of staking.
 
 * Validators and the operator share the responsibility of securing the Plasma chain
 
 ## Shinte
-The Shinte milestone includes enhancements to the decentralized exchange to mitigate  unfair advantages that validators, the operator or other users may have over other users of the decentralized exchange.
+The Shinte milestone includes enhancements to the decentralized exchange to mitigate unfair advantages that validators, the operator or other users may have over other users of the decentralized exchange.
 
 Order blinding would allow users place an order whose details are not revealed until the order is live in the order book.
 * Provisions against validator/operator front-running
 * Order blinding
 
-## Proof of Stake
+## TBN (To Be Named - Proof of Stake)
 * Full proof of stake where the operator is no longer required
 
 ## On the Horizon and Approaching
