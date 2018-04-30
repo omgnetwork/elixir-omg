@@ -18,7 +18,7 @@ defmodule OmiseGO.Performance.WaitFor do
   end
 
   def init(args) do
-    Logger.debug "[WF] +++ init/1 called with args: '#{args}' +++"
+    Logger.debug(fn -> "[WF] +++ init/1 called with args: '#{args}' +++" end)
     reschedule_check()
     {:ok, args}
   end
@@ -26,15 +26,16 @@ defmodule OmiseGO.Performance.WaitFor do
   @doc """
   Checks whether registry has sender proceses registered
   """
-  @spec handle_info(:check, state :: pid | atom) :: {:noreply, newstate :: pid | atom} | {:stop, :shutdown, state :: pid | atom}
+  @spec handle_info(:check, state :: pid | atom)
+  :: {:noreply, newstate :: pid | atom} | {:stop, :shutdown, state :: pid | atom}
   def handle_info(:check, registry) do
     senders = Registry.lookup(registry, :sender)
 
     if Enum.empty?(senders) do
-      Logger.debug "[WF] +++ Stoping... +++"
+      Logger.debug(fn -> "[WF] +++ Stoping... +++" end)
       {:stop, :normal, registry}
     else
-      Logger.debug "[WF]: Senders are alive"
+      Logger.debug(fn -> "[WF]: Senders are alive" end)
       reschedule_check()
       {:noreply, registry}
     end
@@ -44,5 +45,5 @@ defmodule OmiseGO.Performance.WaitFor do
   Sends :check message to itself in @check_registry_every_ms milliseconds. Message will be processed by module's :handle_info function.
   """
   @spec reschedule_check() :: :ok
-  defp reschedule_check(), do: Process.send_after(self(), :check, @check_registry_every_ms)
+  defp reschedule_check, do: Process.send_after(self(), :check, @check_registry_every_ms)
 end

@@ -17,7 +17,7 @@ defmodule OmiseGO.Performance.Runner do
     {:ok, _} = Registry.start_link(keys: :duplicate, name: OmiseGO.Performance.Registry)
 
     # fire async transaction senders
-    1..nusers |> Enum.map(fn senderid -> OmiseGO.Performance.SenderServer.start_link({senderid, ntx_to_send}) end)
+    1..nusers |> Enum.each(fn senderid -> OmiseGO.Performance.SenderServer.start_link({senderid, ntx_to_send}) end)
 
     # Wait all senders do thier job, checker will stop when it happens and stops itself
     wait_for(OmiseGO.Performance.Registry)
@@ -36,11 +36,12 @@ defmodule OmiseGO.Performance.Runner do
 
     destdir = Application.get_env(:omisego_performance, :fprof_analysis_dir)
     destfile = "#{destdir}/perftest-tx#{ntx_to_send}-u#{nusers}-#{testid}.analysis"
-    [   callers: true,
-        sort: :own,
-        totals: true,
-        details: true,
-        dest: String.to_charlist(destfile),]
+    [callers: true,
+      sort: :own,
+      totals: true,
+      details: true,
+      dest: String.to_charlist(destfile),
+    ]
     |> :fprof.analyse()
 
     {:ok, "The :fprof output written to #{destfile}."}

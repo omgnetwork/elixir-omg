@@ -58,7 +58,7 @@ defmodule OmiseGO.Performance do
   """
   @spec testdown([pid()]) :: :ok
   defp testdown(started_apps) do
-    started_apps |> Enum.reverse |> Enum.map(&Application.stop/1)
+    started_apps |> Enum.reverse |> Enum.each(&Application.stop/1)
     Application.put_env(:omisego_db, :leveldb_path, nil)
   end
 

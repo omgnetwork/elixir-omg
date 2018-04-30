@@ -7,6 +7,9 @@ defmodule OmiseGO.Performance.SenderServer do
   use GenServer
 
   defmodule LastTx do
+    @moduledoc """
+    Submodule defines structure to keep last transaction sent by sender remembered fo the next submission.
+    """
     defstruct [:blknum, :txindex, :oindex, :amount]
     @type t :: %__MODULE__{blknum: integer, txindex: integer, oindex: integer, amount: integer}
   end
@@ -38,15 +41,15 @@ defmodule OmiseGO.Performance.SenderServer do
   """
   @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, init_state :: __MODULE__.state}
   def init({seqnum, ntx_to_send}) do
-    Logger.debug "[#{seqnum}] +++ init/1 called with requests: '#{ntx_to_send}' +++"
+    Logger.debug(fn -> "[#{seqnum}] +++ init/1 called with requests: '#{ntx_to_send}' +++" end)
     Registry.register(OmiseGO.Performance.Registry, :sender, "Sender: #{seqnum}")
 
     spender = generate_participant_address()
-    Logger.debug "[#{seqnum}]: Address #{Base.encode64(spender.addr)}"
+    Logger.debug(fn -> "[#{seqnum}]: Address #{Base.encode64(spender.addr)}" end)
 
     deposit_value = 10 * ntx_to_send
     :ok = OmiseGO.API.State.deposit([%{owner: spender.addr, amount: deposit_value, blknum: seqnum}])
-    Logger.debug "[#{seqnum}]: Deposited #{deposit_value} OMG"
+    Logger.debug(fn -> "[#{seqnum}]: Deposited #{deposit_value} OMG" end)
 
     send(self(), :do)
     {:ok, init_state(seqnum, ntx_to_send, spender)}
@@ -57,14 +60,14 @@ defmodule OmiseGO.Performance.SenderServer do
   Otherwise unregisters from the Registry and stops.
   """
   @spec handle_info(:do, state :: __MODULE__.state) :: {:noreply, new_state :: __MODULE__.state} | {:stop, :normal, nil}
-  def handle_info(:do, state = %__MODULE__{seqnum: seqnum, ntx_to_send: ntx_to_send}) do
+  def handle_info(:do, %__MODULE__{seqnum: seqnum, ntx_to_send: ntx_to_send} = state) do
     if ntx_to_send > 0 do
       {:ok, newblknum, newtxindex, newvalue} = submit_tx(state)
       send(self(), :do)
       {:noreply, state |> next_state(newblknum, newtxindex, newvalue)}
     else
       Registry.unregister(OmiseGO.Performance.Registry, :sender)
-      Logger.debug "[#{seqnum}] +++ Stoping... +++"
+      Logger.debug(fn -> "[#{seqnum}] +++ Stoping... +++" end)
       {:stop, :normal, state}
     end
   end
@@ -72,18 +75,20 @@ defmodule OmiseGO.Performance.SenderServer do
   @doc """
   Submits new transaction to the blockchain server.
   """
-  @spec submit_tx(__MODULE__.state) :: {result :: tuple, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
+  @spec submit_tx(__MODULE__.state)
+  :: {result :: tuple, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
   def submit_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx}) do
     alias OmiseGO.API.State.Transaction
 
     to_spend = 9
     newamount = last_tx.amount - to_spend
     recipient = generate_participant_address()
-    Logger.debug "[#{seqnum}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{newamount}"
+    Logger.debug(fn -> "[#{seqnum}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{newamount}" end)
 
     tx =
       %Transaction{
-        blknum1: last_tx.blknum, txindex1: last_tx.txindex, oindex1: last_tx.oindex, blknum2: 0, txindex2: 0, oindex2: 0,
+        blknum1: last_tx.blknum, txindex1: last_tx.txindex, oindex1: last_tx.oindex,
+        blknum2: 0, txindex2: 0, oindex2: 0,
         newowner2: recipient.addr, amount2: to_spend, newowner1: spender.addr, amount1: newamount, fee: 0,
       }
       |> Transaction.sign(spender.priv, <<>>)
@@ -92,11 +97,11 @@ defmodule OmiseGO.Performance.SenderServer do
       result = OmiseGO.API.submit(tx)
       case result do
         {:error,  reason} ->
-          Logger.debug "[#{seqnum}]: Transaction submission has failed, reason: #{reason}"
+          Logger.debug(fn -> "[#{seqnum}]: Transaction submission has failed, reason: #{reason}" end)
           {:error, reason}
 
         {:ok, _, blknum, txindex} ->
-          Logger.debug "[#{seqnum}]: Transaction submitted successfully"
+          Logger.debug(fn -> "[#{seqnum}]: Transaction submitted successfully" end)
           {:ok, blknum, txindex, newamount}
       end
   end
@@ -105,7 +110,7 @@ defmodule OmiseGO.Performance.SenderServer do
   Generates participant private key and address
   """
   @spec generate_participant_address() :: %{priv: <<_::256>>, addr: <<_::160>>}
-  def generate_participant_address() do
+  def generate_participant_address do
     alias OmiseGO.API.Crypto
     {:ok, priv} = Crypto.generate_private_key()
     {:ok, pub} = Crypto.generate_public_key(priv)
@@ -116,7 +121,12 @@ defmodule OmiseGO.Performance.SenderServer do
   @doc """
   Generates module's initial state
   """
-  @spec init_state(seqnum :: pos_integer, nreq :: pos_integer, spender :: %{priv: <<_::256>>, addr: <<_::160>>}) :: __MODULE__.state
+  @spec init_state(
+    seqnum :: pos_integer,
+    nreq :: pos_integer,
+    spender :: %{priv: <<_::256>>,
+    addr: <<_::160>>})
+  :: __MODULE__.state
   defp init_state(seqnum, nreq, spender) do
     %__MODULE__{
       seqnum: seqnum,
@@ -134,11 +144,16 @@ defmodule OmiseGO.Performance.SenderServer do
   @doc """
   Generates next module's state
   """
-  @spec next_state(state :: __MODULE__.state, blknum :: pos_integer, txindex :: pos_integer, amount :: pos_integer) :: __MODULE__.state
-  defp next_state(state = %__MODULE__{ntx_to_send: ntx_to_send}, blknum, txindex, amount) do
+  @spec next_state(
+    state :: __MODULE__.state,
+    blknum :: pos_integer,
+    txindex :: pos_integer,
+    amount :: pos_integer)
+  :: __MODULE__.state
+  defp next_state(%__MODULE__{ntx_to_send: ntx_to_send} = state, blknum, txindex, amount) do
     %__MODULE__{
       state |
-      ntx_to_send: ntx_to_send-1,
+      ntx_to_send: ntx_to_send - 1,
       last_tx: %LastTx{
         state.last_tx |
         blknum: blknum, txindex: txindex, amount: amount
