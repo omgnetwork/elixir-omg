@@ -85,12 +85,9 @@ defmodule OmiseGO.Performance.SenderServer do
     recipient = generate_participant_address()
     Logger.debug(fn -> "[#{seqnum}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{newamount}" end)
 
-    tx =
-      %Transaction{
-        blknum1: last_tx.blknum, txindex1: last_tx.txindex, oindex1: last_tx.oindex,
-        blknum2: 0, txindex2: 0, oindex2: 0,
-        newowner2: recipient.addr, amount2: to_spend, newowner1: spender.addr, amount1: newamount, fee: 0,
-      }
+    tx = Transaction.new(
+        [{last_tx.blknum, last_tx.txindex, last_tx.oindex}],
+        [{spender.addr, newamount}, {recipient.addr, to_spend}], 0)
       |> Transaction.sign(spender.priv, <<>>)
       |> Transaction.Signed.encode()
 
