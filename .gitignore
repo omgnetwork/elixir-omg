@@ -23,3 +23,5 @@ populus/build/
 
 # Dev sqllite db
 *ecto_simple.sqlite3*
+
+Makefile
