@@ -59,13 +59,10 @@ tx =
 
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
-{:ok, child_tx_hash} = OmiseGO.API.submit(tx)
-
-# FIXME: getting the block number where the tx was included and submited
-OmiseGO.DB.utxos
+{:ok, child_tx_hash, child_tx_block_number, child_tx_index} = OmiseGO.API.submit(tx)
 
 # with that block, we can ask the root chain to give us the block hash
-{:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(___)
+{:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(child_tx_block_number)
 
 # with the block hash we can get the whole block
 OmiseGO.API.get_block(block_hash)

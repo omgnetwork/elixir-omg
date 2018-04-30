@@ -117,10 +117,8 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
       |> Transaction.sign(alice.priv, <<>>)
       |> Transaction.Signed.encode()
 
-    {:ok, spend_child_block} = Eth.get_current_child_block()
-
     # spend the deposit
-    {:ok, _, _, _} = OmiseGO.API.submit(tx)
+    {:ok, _, spend_child_block, _} = OmiseGO.API.submit(tx)
 
     post_spend_child_block = spend_child_block + 1000
     {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block, true)
@@ -155,10 +153,8 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
       |> Transaction.sign(bob.priv, alice.priv)
       |> Transaction.Signed.encode()
 
-    {:ok, spend_child_block2} = Eth.get_current_child_block()
-
     # spend the deposit
-    {:ok, _, _, _} = OmiseGO.API.submit(tx2)
+    {:ok, _, spend_child_block2, _} = OmiseGO.API.submit(tx2)
 
     post_spend_child_block2 = spend_child_block2 + 1000
     {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block2, true)
