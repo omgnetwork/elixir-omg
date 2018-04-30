@@ -126,7 +126,7 @@ defmodule OmiseGO.API.State.TransactionTest do
     {:ok, transaction} =
       Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42}, 10)
 
-    assert {:ok, _state} =
+    assert {{:ok, _, _, _}, _state} =
              transaction
              |> Transaction.sign(alice.priv, alice.priv)
              |> Recovered.recover_from()
