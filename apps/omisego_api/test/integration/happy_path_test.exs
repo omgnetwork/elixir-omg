@@ -120,7 +120,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     {:ok, spend_child_block} = Eth.get_current_child_block()
 
     # spend the deposit
-    {:ok, _} = OmiseGO.API.submit(tx)
+    {:ok, _, _, _} = OmiseGO.API.submit(tx)
 
     post_spend_child_block = spend_child_block + 1000
     {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block, true)
@@ -158,7 +158,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     {:ok, spend_child_block2} = Eth.get_current_child_block()
 
     # spend the deposit
-    {:ok, _} = OmiseGO.API.submit(tx2)
+    {:ok, _, _, _} = OmiseGO.API.submit(tx2)
 
     post_spend_child_block2 = spend_child_block2 + 1000
     {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block2, true)
@@ -176,7 +176,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # sanity checks
     assert %OmiseGO.API.Block{} = OmiseGO.API.get_block(block_hash)
     assert :not_found = OmiseGO.API.get_block(<<0::size(256)>>)
-    assert {{:error, :utxo_not_found}, _} = OmiseGO.API.submit(tx)
+    assert {:error, :utxo_not_found} = OmiseGO.API.submit(tx)
   end
 
 end

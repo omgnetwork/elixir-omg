@@ -36,7 +36,10 @@ defmodule OmiseGO.API.State.Core do
     }
   end
 
-  #TODO: Add specs :raw_tx, :signed_tx_hash, spender1: @zero_address, spender2: @zero_address
+  @doc """
+  Includes the transaction into the state when valid, rejects otherwise.
+  """
+  @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{}) :: %Core{}
   def exec(%Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: _signed_tx_hash,
                                   spender1: spender1, spender2: spender2} = recovered_tx,
                                   %Core{utxos: utxos} = state) do
@@ -47,10 +50,12 @@ defmodule OmiseGO.API.State.Core do
          {:ok, in_amount1} <- correct_input?(utxos, raw_tx, 0, spender1),
          {:ok, in_amount2} <- correct_input?(utxos, raw_tx, 1, spender2),
          :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2 + fee) do
-      {:ok,
+      {
+       {:ok, recovered_tx.signed_tx_hash, state.height, state.tx_index},
        state
        |> add_pending_tx(recovered_tx)
-       |> apply_spend(raw_tx)}
+       |> apply_spend(raw_tx)
+      }
     else
       {:error, _reason} = error -> {error, state}
     end

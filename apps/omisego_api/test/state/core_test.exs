@@ -463,7 +463,7 @@ defmodule OmiseGO.API.State.CoreTest do
   end
 
   defp success?(result) do
-    assert {:ok, state} = result
+    assert {{:ok, _hash, _blknum, _txind}, state} = result
     state
   end
 
