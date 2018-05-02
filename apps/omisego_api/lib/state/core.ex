@@ -5,7 +5,6 @@ defmodule OmiseGO.API.State.Core do
 
   @maximum_block_size 65_536
 
-  # TODO: consider structuring and naming files/modules differently, to not have bazillions of `X.Core` modules?
   defstruct [:height, :last_deposit_height, :utxos, pending_txs: [], tx_index: 0]
 
   alias OmiseGO.API.State.Transaction
@@ -180,7 +179,6 @@ defmodule OmiseGO.API.State.Core do
         txs
         |> Enum.map(fn tx -> %{tx: tx} end)
 
-      # TODO: consider calculating this along with updating the `utxos` field in the state for consistency
       db_updates_new_utxos =
         txs
         |> Enum.with_index()

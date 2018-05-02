@@ -9,8 +9,6 @@ defmodule OmiseGO.API.State.Transaction do
   @zero_address <<0::size(160)>>
   @number_of_transactions 2
 
-  # TODO: probably useful to structure these fields somehow ore readable like
-  # defstruct [:input1, :input2, :output1, :output2, :fee], with in/outputs as structs or tuples?
   defstruct [
     :blknum1,
     :txindex1,
