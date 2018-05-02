@@ -320,8 +320,13 @@ defmodule OmiseGO.API.State.CoreTest do
   test "no pending transactions at start (no events, empty block, no db updates)", %{state_empty: state} do
     expected_block = empty_block()
 
-    assert {:ok, {^expected_block, [], [{:put, :block, _}, {:put, :child_top_block_number, @child_block_interval}], _}} =
-             form_block_check(state, @child_block_interval, @child_block_2)
+    assert {:ok, {
+      ^expected_block,
+      [],
+      [{:put, :block, _},
+      {:put, :child_top_block_number, @child_block_interval}],
+      _
+    }} = form_block_check(state, @child_block_interval, @child_block_2)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
