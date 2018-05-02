@@ -7,6 +7,8 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   alias OmiseGOWatcher.UtxoDB
   alias OmiseGO.API.{Block}
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
+  alias OmiseGOWatcher.TransactionDB
+  alias OmiseGOWatcherWeb.Controller.Utxo
 
   @moduletag :watcher_tests
 
@@ -22,6 +24,12 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     newowner2: "",
     amount2: 0,
     fee: 0
+  }
+
+  @signed_tx %Signed{
+    raw_tx: @empty,
+    sig1: <<>>,
+    sig2: <<>>
   }
 
   setup do
@@ -120,8 +128,31 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     end
   end
 
+  test "compose proof from valid utxo" do
+    TransactionDB.insert(<<1>>, @signed_tx, 1, 1)
+    TransactionDB.insert(<<2>>, @signed_tx, 1, 2)
+    TransactionDB.insert(<<3>>, @signed_tx, 1, 3)
+
+    %{"utxo_pos" => utxo_pos, "tx_bytes" => tx_bytes, "proof"=> proof} = compose_utxo_exit(1, 2, 0)
+
+  end
+
+  defp compose_utxo_exit(block_height, txindex, oindex) do
+    conn(:get, "account/utxo/compose_exit?block_height=#{block_height}&txindex=#{txindex}&oindex=#{oindex}")
+      |> check_request
+  end
+
   defp get_utxo(address) do
-    request = conn(:get, "account/utxo?address=#{address}")
+    conn(:get, "account/utxo?address=#{address}")
+      |> check_request
+  end
+
+  defp get_utxo(address) do
+    conn(:get, "account/utxo?address=#{address}")
+      |> check_request
+  end
+
+  defp check_request(request) do
     response = request |> send_request
     assert response.status == 200
     Poison.decode!(response.resp_body)

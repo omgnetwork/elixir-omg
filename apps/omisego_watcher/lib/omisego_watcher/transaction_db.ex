@@ -6,6 +6,7 @@ defmodule OmiseGOWatcher.TransactionDB do
   use Ecto.Schema
 
   import Ecto.Changeset
+  import Ecto.Query, only: [from: 2]
 
   alias OmiseGOWatcher.Repo
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
@@ -58,6 +59,10 @@ defmodule OmiseGOWatcher.TransactionDB do
     |> Repo.get(id)
   end
 
+  def find_by_txblknum(txblknum) do
+    Repo.all(from(tr in __MODULE__, where: tr.txblknum == ^txblknum, select: tr))
+  end
+
   def insert(%Block{transactions: transactions}, block_number) do
     transactions
     |> Stream.with_index
@@ -72,7 +77,9 @@ defmodule OmiseGOWatcher.TransactionDB do
   def insert(
         id,
         %Signed{
-          raw_tx: %Transaction{} = transaction
+          raw_tx: %Transaction{} = transaction,
+          sig1: sig1,
+          sig2: sig2
         },
         block_number,
         txindex
@@ -80,10 +87,30 @@ defmodule OmiseGOWatcher.TransactionDB do
     %__MODULE__{
       txid: id,
       txblknum: block_number,
-      txindex: txindex
+      txindex: txindex,
     }
     |> Map.merge(Map.from_struct(transaction))
     |> Repo.insert()
+  end
+
+  def encode(%__MODULE__{} = tx) do
+    [
+      tx.txid,
+      tx.blknum1,
+      tx.txindex1,
+      tx.oindex1,
+      tx.blknum2,
+      tx.txindex2,
+      tx.oindex2,
+      tx.newowner1,
+      tx.amount1,
+      tx.newowner2,
+      tx.amount2,
+      tx.fee,
+      tx.txblknum,
+      tx.txindex
+    ]
+    |> ExRLP.encode()
   end
 
   def changeset(transaction_db, attrs) do

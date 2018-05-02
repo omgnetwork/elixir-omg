@@ -5,8 +5,9 @@ defmodule OmiseGOWatcherWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/", OmiseGOWatcherWeb do
-    get "/account/utxo", Controller.Utxo, :available
+  scope "/account/utxo", OmiseGOWatcherWeb do
+    get "/", Controller.Utxo, :available
+    get "/compose_exit", Controller.Utxo, :compose_utxo_exit
   end
 
   scope "/transactions", OmiseGOWatcherWeb do
