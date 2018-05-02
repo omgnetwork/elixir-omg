@@ -3,8 +3,6 @@ defmodule OmiseGO.DB.LevelDBCore do
   Responsible for converting type-aware, logic-specific queries (updates) into backend specific queries (updates)
   """
 
-  alias OmiseGO.API.Block
-
   # adapter - testable, if we really really want to
 
   def parse_multi_updates(db_updates) do
@@ -12,7 +10,7 @@ defmodule OmiseGO.DB.LevelDBCore do
     |> Enum.flat_map(&parse_multi_update/1)
   end
 
-  defp parse_multi_update({:put, :block, %Block{number: number, hash: hash} = item}) do
+  defp parse_multi_update({:put, :block, %{number: number, hash: hash} = item}) do
     [
       {:put, key(:block, item), encode_value(:block, item)},
       {:put, key(:block_hash, number), encode_value(:block_hash, hash)}
