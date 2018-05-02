@@ -3,6 +3,8 @@ defmodule OmiseGO.DB.LevelDBCore do
   Responsible for converting type-aware, logic-specific queries (updates) into backend specific queries (updates)
   """
 
+  alias OmiseGO.API.Block
+
   # adapter - testable, if we really really want to
 
   def parse_multi_updates(db_updates) do
@@ -10,11 +12,11 @@ defmodule OmiseGO.DB.LevelDBCore do
     |> Enum.flat_map(&parse_multi_update/1)
   end
 
-  defp parse_multi_update({:put, :block, %OmiseGO.API.Block{number: number, hash: hash} = item}) do
+  defp parse_multi_update({:put, :block, %Block{number: number, hash: hash} = item}) do
     [
       {:put, key(:block, item), encode_value(:block, item)},
       {:put, key(:block_hash, number), encode_value(:block_hash, hash)},
-      {:put, key(:child_top_block_number), encode_value(:child_top_block_number, number)}
+      {:put, key(:child_top_block_number, nil), encode_value(:child_top_block_number, number)}
     ]
   end
 
@@ -90,9 +92,6 @@ defmodule OmiseGO.DB.LevelDBCore do
     "u" <> :erlang.term_to_binary(utxo_id)
   end
 
-  def key(:last_deposit_block_height, _), do: key(:last_deposit_block_height)
-  def key(:last_deposit_block_height), do: "last_deposit_block_height"
-
-  def key(:child_top_block_number, _), do: key(:child_top_block_number)
-  def key(:child_top_block_number), do: "child_top_block_number"
+  def key(:last_deposit_block_height, _), do: "last_deposit_block_height"
+  def key(:child_top_block_number, _), do: "child_top_block_number"
 end

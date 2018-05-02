@@ -72,7 +72,7 @@ defmodule OmiseGO.DB.LevelDBServer do
   def handle_call({:child_top_block_number}, _from, %__MODULE__{db_ref: db_ref} = state) do
     #TODO: initialize db with height 0
     result =
-      with key <- LevelDBCore.key(:child_top_block_number),
+      with key <- LevelDBCore.key(:child_top_block_number, nil),
            response <- get(key, db_ref),
            do: LevelDBCore.decode_value(response, :child_top_block_number)
 
@@ -82,7 +82,7 @@ defmodule OmiseGO.DB.LevelDBServer do
   def handle_call(:last_deposit_block_height, _from, %__MODULE__{db_ref: db_ref} = state) do
     #TODO: initialize db with height 0
     result =
-      with key <- LevelDBCore.key(:last_deposit_block_height),
+      with key <- LevelDBCore.key(:last_deposit_block_height, nil),
            response <- get(key, db_ref),
            do: LevelDBCore.decode_value(response, :last_deposit_block_height)
 
