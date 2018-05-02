@@ -47,9 +47,7 @@ defmodule OmiseGO.Performance.Runner do
     {:ok, "The :fprof output written to #{destfile}."}
   end
 
-  @doc """
-  Waits until all sender processes ends sending Tx and deregister themselves from the registry
-  """
+  # Waits until all sender processes ends sending Tx and deregister themselves from the registry
   @spec wait_for(registry :: pid() | atom()) :: :ok
   defp wait_for(registry) do
     ref = Process.monitor(OmiseGO.Performance.WaitFor.start(registry))

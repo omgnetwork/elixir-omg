@@ -38,9 +38,7 @@ defmodule OmiseGO.Performance do
     testdown(started_apps)
   end
 
-  @doc """
-  The test setup
-  """
+  # The test setup
   @spec testup(testid :: integer) :: {:ok, [pid()]}
   defp testup(testid) do
     dbdir = "/tmp/perftest-#{testid}"
@@ -53,18 +51,14 @@ defmodule OmiseGO.Performance do
     {:ok, started_apps}
   end
 
-  @doc """
-  The test teardown
-  """
+  # The test teardown
   @spec testdown([pid()]) :: :ok
   defp testdown(started_apps) do
     started_apps |> Enum.reverse |> Enum.each(&Application.stop/1)
     Application.put_env(:omisego_db, :leveldb_path, nil)
   end
 
-  @doc """
-  Executes the test runner
-  """
+  # Executes the test runner
   @spec run(args :: list(), profile :: boolean) :: :ok
   defp run(args, profile) do
     {:ok, data} = apply(

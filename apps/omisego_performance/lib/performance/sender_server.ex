@@ -85,9 +85,9 @@ defmodule OmiseGO.Performance.SenderServer do
     recipient = generate_participant_address()
     Logger.debug(fn -> "[#{seqnum}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{newamount}" end)
 
-    tx = Transaction.new(
-        [{last_tx.blknum, last_tx.txindex, last_tx.oindex}],
-        [{spender.addr, newamount}, {recipient.addr, to_spend}], 0)
+    tx =
+      [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
+      |> Transaction.new([{spender.addr, newamount}, {recipient.addr, to_spend}], 0)
       |> Transaction.sign(spender.priv, <<>>)
       |> Transaction.Signed.encode()
 
@@ -115,9 +115,7 @@ defmodule OmiseGO.Performance.SenderServer do
     %{priv: priv, addr: addr}
   end
 
-  @doc """
-  Generates module's initial state
-  """
+  # Generates module's initial state
   @spec init_state(
     seqnum :: pos_integer,
     nreq :: pos_integer,
@@ -138,9 +136,7 @@ defmodule OmiseGO.Performance.SenderServer do
     }
   end
 
-  @doc """
-  Generates next module's state
-  """
+  # Generates next module's state
   @spec next_state(
     state :: __MODULE__.state,
     blknum :: pos_integer,
