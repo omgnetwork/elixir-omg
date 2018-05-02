@@ -31,31 +31,31 @@ We are actively seeking exchanges who wish to build an exchange front end and ma
 * Support fiat, debit/credit cards, top-up/cash-out, Omise Payment
 * Plugin support in the eWallet SDK for cash in/cash out
 
-## Tengen Phase 1
-The implementation of the decentralized exchange is split across two phases. The first Tengen phase maintains a centralized service to provide an order matching services. However, the order matching service does not have custody of funds at any time.
+## TBN (To Be Named DEX Phase 1)
+The implementation of the decentralized exchange is split across two phases. The first DEX phase maintains a centralized service to provide an order matching services. However, the order matching service does not have custody of funds at any time.
 
-* Account simulation support
+* Incentivize UTXO set reduction
 * Non-custodial on child chain order settlement
 * Initial integration of eWallet SDK with ERC20 token support
 
-## Tengen Phase 2
-Tengen phase 2 decentralizes the exchange by moving the order book and order matching processes into the Plasma chain.
+## TBN (To be Named DEX Phase 2)
+DEX phase 2 fully decentralizes the exchange by moving the order book and order matching processes into the Plasma chain.
 * Decentralized order matching
 * Initial integration of eWallet SDK with Plasma
 
 ## TBN (To Be Named)
+There are use cases where non-fungible tokens are useful, such as ticketing, unique in-game items.
 * Removal of confirmation messages in Tesuji Plasma
 * Conditional payments - Where payments are only made when a condition such as a date and time has passed, or when multiple signatures are present
-
-## TBN (To Be Named)
-There are use cases where non-fungible tokens are useful, such as ticketing, unique in-game items.
-
 * Non-fungible tokens
 
 ## TBN (To Be Named - Limited Proof of Stake)
 This milestone will commence the phase-in of staking.
 
 * Validators and the operator share the responsibility of securing the Plasma chain
+
+## TBN (To Be Named - Proof of Stake)
+* Full proof of stake where the operator is no longer required
 
 ## Shinte
 The Shinte milestone includes enhancements to the decentralized exchange to mitigate unfair advantages that validators, the operator or other users may have over other users of the decentralized exchange.
@@ -64,8 +64,14 @@ Order blinding would allow users place an order whose details are not revealed u
 * Provisions against validator/operator front-running
 * Order blinding
 
-## TBN (To Be Named - Proof of Stake)
-* Full proof of stake where the operator is no longer required
+## Tengen (Goal)
+The Tengen milestone is reached when the OMG Network:
+* Has a decentralized exchange
+* Uses Proof of Stake consensus
+* Is highly scalable through multiple child chains
+* Is able to interoperate with multiple different blockchains
+
+Note that we plan to continue adding functionality and improving the OmiseGO network after we reach Tengen.
 
 ## On the Horizon and Approaching
 Although these items may be at the bottom of this roadmap, it does not mean that they are low priority. Items in the `On the Horizon and Approaching` section may be prioritized and moved into a named milestone.
