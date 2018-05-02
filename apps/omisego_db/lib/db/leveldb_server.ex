@@ -21,6 +21,15 @@ defmodule OmiseGO.DB.LevelDBServer do
          do: {:ok, %__MODULE__{db_ref: db_ref}}
   end
 
+  def handle_call({:multi_update, db_updates}, _from, %__MODULE__{db_ref: db_ref} = state) do
+    result =
+      db_updates
+      |> LevelDBCore.parse_multi_updates()
+      |> write(db_ref)
+
+    {:reply, result, state}
+  end
+
   def handle_call({:tx, hash}, _from, %__MODULE__{db_ref: db_ref} = state) do
     key = LevelDBCore.key(:tx, hash)
 
@@ -51,15 +60,6 @@ defmodule OmiseGO.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call({:multi_update, db_updates}, _from, %__MODULE__{db_ref: db_ref} = state) do
-    result =
-      db_updates
-      |> LevelDBCore.parse_multi_updates()
-      |> write(db_ref)
-
-    {:reply, result, state}
-  end
-
   def handle_call({:block_hashes, block_numbers_to_fetch}, _from, %__MODULE__{db_ref: db_ref} = state) do
     result =
       block_numbers_to_fetch
@@ -70,7 +70,6 @@ defmodule OmiseGO.DB.LevelDBServer do
   end
 
   def handle_call({:child_top_block_number}, _from, %__MODULE__{db_ref: db_ref} = state) do
-    #TODO: initialize db with height 0
     result =
       with key <- LevelDBCore.key(:child_top_block_number, nil),
            response <- get(key, db_ref),
@@ -80,7 +79,6 @@ defmodule OmiseGO.DB.LevelDBServer do
   end
 
   def handle_call(:last_deposit_block_height, _from, %__MODULE__{db_ref: db_ref} = state) do
-    #TODO: initialize db with height 0
     result =
       with key <- LevelDBCore.key(:last_deposit_block_height, nil),
            response <- get(key, db_ref),

@@ -15,8 +15,7 @@ defmodule OmiseGO.DB.LevelDBCore do
   defp parse_multi_update({:put, :block, %Block{number: number, hash: hash} = item}) do
     [
       {:put, key(:block, item), encode_value(:block, item)},
-      {:put, key(:block_hash, number), encode_value(:block_hash, hash)},
-      {:put, key(:child_top_block_number, nil), encode_value(:child_top_block_number, number)}
+      {:put, key(:block_hash, number), encode_value(:block_hash, hash)}
     ]
   end
 

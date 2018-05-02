@@ -193,8 +193,10 @@ defmodule OmiseGO.API.State.Core do
 
       db_updates_block = [{:put, :block, block}]
 
+      db_updates_top_block_number = [{:put, :child_top_block_number, height}]
+
       db_updates =
-        [db_updates_new_utxos, db_updates_spent_utxos, db_updates_block]
+        [db_updates_new_utxos, db_updates_spent_utxos, db_updates_block, db_updates_top_block_number]
         |> Enum.concat()
 
       new_state = %Core{

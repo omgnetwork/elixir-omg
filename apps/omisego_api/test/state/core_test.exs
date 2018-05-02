@@ -284,8 +284,11 @@ defmodule OmiseGO.API.State.CoreTest do
     {:ok, {exp_block, _, _, _}} = Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
     assert exp_block == expected_block
 
-    assert {:ok, {^expected_block, _, _, _}} =
+    assert {:ok, {^expected_block, _, db_updates, _}} =
              Core.form_block(state, 1 * @block_interval, 2 * @block_interval)
+
+    assert Enum.member?(db_updates, {:put, :block, expected_block})
+    assert Enum.member?(db_updates, {:put, :child_top_block_number, 1000})
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -320,7 +323,7 @@ defmodule OmiseGO.API.State.CoreTest do
   } do
     expected_block = empty_block()
 
-    assert {:ok, {^expected_block, [], [{:put, :block, ^expected_block}], _}} =
+    assert {:ok, {^expected_block, [], [{:put, :block, ^expected_block}, {:put, :child_top_block_number, 1000}], _}} =
              Core.form_block(state, @block_interval, 2 * @block_interval)
   end
 
@@ -340,13 +343,14 @@ defmodule OmiseGO.API.State.CoreTest do
              {:put, :utxo, new_utxo1},
              {:put, :utxo, new_utxo2},
              {:delete, :utxo, {1, 0, 0}},
-             {:put, :block, _}
+             {:put, :block, _},
+             {:put, :child_top_block_number, 1000}
            ] = db_updates
 
     assert new_utxo1 == %{{@block_interval, 0, 0} => %{owner: bob.addr, amount: 7}}
     assert new_utxo2 == %{{@block_interval, 0, 1} => %{owner: alice.addr, amount: 3}}
 
-    assert {:ok, {_, _, [{:put, :block, _}], state}} =
+    assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, 2000}], state}} =
              Core.form_block(state, 2 * @block_interval, 3 * @block_interval)
 
     # check double inputey-spends
@@ -365,12 +369,13 @@ defmodule OmiseGO.API.State.CoreTest do
              {:put, :utxo, new_utxo},
              {:delete, :utxo, {@block_interval, 0, 0}},
              {:delete, :utxo, {@block_interval, 0, 1}},
-             {:put, :block, _}
+             {:put, :block, _},
+             {:put, :child_top_block_number, 3000}
            ] = db_updates2
 
     assert new_utxo == %{{3 * @block_interval, 0, 0} => %{owner: bob.addr, amount: 10}}
 
-    assert {:ok, {_, _, [{:put, :block, _}], _}} =
+    assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, 4000}], _}} =
              Core.form_block(state, 4 * @block_interval, 5 * @block_interval)
   end
 
@@ -385,7 +390,7 @@ defmodule OmiseGO.API.State.CoreTest do
     assert utxo_update == {:put, :utxo, %{{1, 0, 0} => %{owner: alice.addr, amount: 10}}}
     assert height_update == {:put, :last_deposit_block_height, 1}
 
-    assert {:ok, {_, _, [{:put, :block, _}], _}} =
+    assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, _}], _}} =
              Core.form_block(state, @block_interval, 2 * @block_interval)
   end
 
