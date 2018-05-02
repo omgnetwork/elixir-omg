@@ -398,11 +398,6 @@ defmodule OmiseGO.API.State.CoreTest do
     |> success?
   end
 
-  test "core generates the db query" do
-    # NOTE: trivial test, considering current behavior, but might evolve... hm
-    # FIXME
-  end
-
   @tag fixtures: [:alice, :state_alice_deposit]
   test "spends utxo when exiting", %{alice: alice, state_alice_deposit: state} do
     state =
