@@ -50,7 +50,7 @@ defmodule OmiseGO.Eth do
     @moduledoc false
 
     @type hash() :: <<_::256>>
-    @type plasma_block_num() :: pos_integer()
+    @type plasma_block_num() :: non_neg_integer()
 
     @type t() :: %{
             num: plasma_block_num(),

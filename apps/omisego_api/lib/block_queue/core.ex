@@ -55,6 +55,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
     {:ok, %__MODULE__{blocks: Map.new()}}
   end
 
+  @spec new(keyword) :: {:ok, Core.t} | {:error, :mined_hash_not_found_in_db}
   def new(
         mined_child_block_num: mined_child_block_num,
         known_hashes: known_hashes,

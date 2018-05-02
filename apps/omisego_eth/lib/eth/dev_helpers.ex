@@ -44,10 +44,14 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, authority}
   end
 
-  def import_unlock_fund(account) do
+  @doc """
+  Will take a map with eth-account information (from &generate_entity/0) and then
+  import priv key->unlock->fund with lots of ether on that account
+  """
+  def import_unlock_fund(%{priv: account_priv, addr: account_addr} = _account) do
 
-    account_priv_enc = Base.encode16(account.priv)
-    account_enc = "0x" <> Base.encode16(account.addr, case: :lower)
+    account_priv_enc = Base.encode16(account_priv)
+    account_enc = "0x" <> Base.encode16(account_addr, case: :lower)
 
     {:ok, ^account_enc} = Ethereumex.HttpClient.personal_import_raw_key(account_priv_enc, "")
     {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(account_enc, "", 0)

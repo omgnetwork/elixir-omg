@@ -113,7 +113,7 @@ defmodule OmiseGO.API.BlockQueue do
 
     # private (server)
 
-    @spec submit_blocks(Core.t()) :: :ok | :no_return
+    @spec submit_blocks(Core.t()) :: :ok
     defp submit_blocks(state) do
       state
       |> Core.get_blocks_to_submit()
