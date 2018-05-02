@@ -79,7 +79,8 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     :ok = root_chain_contract_config
     :ok = db_initialized
     Application.put_env(:omisego_api, :ethereum_event_block_finality_margin, 2, persistent: true)
-    Application.put_env(:omisego_api, :ethereum_event_get_deposits_interval_ms, 1000, persistent: true)
+    # need to overide that to very often, so that many checks fall in between a single child chain block submission
+    Application.put_env(:omisego_api, :ethereum_event_get_deposits_interval_ms, 10, persistent: true)
     {:ok, started_apps} = Application.ensure_all_started(:omisego_api)
 
     on_exit fn ->
