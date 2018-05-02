@@ -29,6 +29,10 @@ defmodule OmiseGO.API.BlockQueue do
     GenServer.call(__MODULE__.Server, {:enqueue_block, block_hash})
   end
 
+  # CONFIG constant functions
+  # TODO rethink. Possibly fetch from
+  def child_block_interval, do: Application.get_env(:omisego_eth, :child_block_interval)
+
   defmodule Server do
     @moduledoc """
     Stores core's state, handles timing of calls to root chain.
@@ -39,6 +43,7 @@ defmodule OmiseGO.API.BlockQueue do
     use GenServer
 
     alias OmiseGO.Eth
+    alias OmiseGO.API.BlockQueue
 
     def start_link(_args) do
       GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -53,7 +58,9 @@ defmodule OmiseGO.API.BlockQueue do
              {:ok, parent_start} <- Eth.get_root_deployment_height(),
              {:ok, stored_child_top_num} <- OmiseGO.DB.child_top_block_number(),
              # FIXME: ugh, do something about this
-             range <- 1000 |> Stream.iterate(&(&1 + 1000)) |> Enum.take_while(&(&1 <= stored_child_top_num)),
+             range <- BlockQueue.child_block_interval()
+                      |> Stream.iterate(&(&1 + BlockQueue.child_block_interval()))
+                      |> Enum.take_while(&(&1 <= stored_child_top_num)),
              # TODO: taking all stored hashes now. While still being feasible DB-wise ("just" many hashes)
              #       it might be prohibitive, if we create BlockSubmissions out of the unfiltered batch
              #       (see enqueue_existing_blocks). Probably we want to set a hard cutoff and do
@@ -66,7 +73,7 @@ defmodule OmiseGO.API.BlockQueue do
             known_hashes: known_hashes,
             top_mined_hash: top_mined_hash,
             parent_height: parent_height,
-            child_block_interval: 1000,
+            child_block_interval: BlockQueue.child_block_interval(),
             chain_start_parent_height: parent_start,
             submit_period: 1,
             finality_threshold: 12

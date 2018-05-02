@@ -104,7 +104,8 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     # mine the block that spends the deposit
     post_deposit_child_block =
-      pre_deposit_child_block + Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) * 1000
+      pre_deposit_child_block +
+      Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) * OmiseGO.API.BlockQueue.child_block_interval()
     {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true)
 
     # TODO: hacky way to get the deposit height, fix sometime
@@ -120,7 +121,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # spend the deposit
     {:ok, _, spend_child_block, _} = OmiseGO.API.submit(tx)
 
-    post_spend_child_block = spend_child_block + 1000
+    post_spend_child_block = spend_child_block + OmiseGO.API.BlockQueue.child_block_interval()
     {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block, true)
 
     # check if operator is propagating block with hash submitted to RootChain
@@ -156,7 +157,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # spend the deposit
     {:ok, _, spend_child_block2, _} = OmiseGO.API.submit(tx2)
 
-    post_spend_child_block2 = spend_child_block2 + 1000
+    post_spend_child_block2 = spend_child_block2 + OmiseGO.API.BlockQueue.child_block_interval()
     {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block2, true)
 
     # check if operator is propagating block with hash submitted to RootChain

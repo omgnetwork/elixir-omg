@@ -7,6 +7,7 @@ defmodule OmiseGO.API.State do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Eventer
   alias OmiseGO.API.FreshBlocks
+  alias OmiseGO.API.BlockQueue
   alias OmiseGO.DB
 
   ### Client
@@ -49,8 +50,7 @@ defmodule OmiseGO.API.State do
           utxos_query_result,
           height_query_result,
           last_deposit_query_result,
-          # FIXME provide from somewhere
-          1000
+          BlockQueue.child_block_interval()
         )
       }
     end
