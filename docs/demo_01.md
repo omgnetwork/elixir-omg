@@ -35,7 +35,7 @@ alias OmiseGO.API.TestHelper
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
 
-{:ok, alice_enc} = TestHelper.import_unlock_fund(alice)
+{:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
 
 
 ### START DEMO HERE
@@ -44,12 +44,11 @@ bob = TestHelper.generate_entity()
 {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc, contract_address)
 
 # need to wait until its mined
-{:ok, _} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
+{:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
 
 # we need to uncover the height at which the deposit went through on the root chain
 # to do this, look in the logs inside the receipt printed just above
-deposit_height_enc =
-{deposit_height, ""} = Integer.parse(deposit_height_enc, 16)
+deposit_height = Eth.DevHelpers.deposit_height_from_receipt(receipt)
 
 # create and prepare transaction for singing
 tx =
@@ -62,7 +61,7 @@ tx =
 {:ok, child_tx_hash, child_tx_block_number, child_tx_index} = OmiseGO.API.submit(tx)
 
 # with that block, we can ask the root chain to give us the block hash
-{:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(child_tx_block_number)
+{:ok, {block_hash, _}} = Eth.get_child_chain(child_tx_block_number)
 
 # with the block hash we can get the whole block
 OmiseGO.API.get_block(block_hash)

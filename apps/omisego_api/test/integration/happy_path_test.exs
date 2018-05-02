@@ -6,10 +6,8 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  alias OmiseGO.DB
   alias OmiseGO.Eth
   alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.TestHelper
   alias OmiseGO.API.BlockQueue
 
   @moduletag :integration
@@ -33,14 +31,14 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   # possible solution 1: remove eth_test and cover behaviors here
   # possible solution 2: move current eth smoke test to integration level tests of omisego_api and move fixtures too
   deffixture geth do
-    {:ok, exit_fn} = OmiseGO.Eth.dev_geth()
+    {:ok, exit_fn} = Eth.dev_geth()
     on_exit(exit_fn)
     :ok
   end
   deffixture contract(geth) do
     _ = geth
     _ = Application.ensure_all_started(:ethereumex)
-    {:ok, contract_address, txhash, authority} = OmiseGO.Eth.DevHelpers.prepare_env("../../")
+    {:ok, contract_address, txhash, authority} = Eth.DevHelpers.prepare_env("../../")
 
     %{
       address: contract_address,
@@ -93,27 +91,23 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   end
 
   @tag fixtures: [:alice, :bob, :omisego]
-  @tag :happy
   test "deposit, spend, exit, restart etc works fine", %{alice: alice, bob: bob} do
 
-    {:ok, alice_enc} = TestHelper.import_unlock_fund(alice)
-
-    {:ok, pre_deposit_child_block} = Eth.get_current_child_block()
+    {:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
 
     {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc)
-    {:ok, _} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
+    {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
 
-    # mine the block that spends the deposit
+    deposit_height = Eth.DevHelpers.deposit_height_from_receipt(receipt)
+
+    # wait until the deposit is recognized by child chain
     post_deposit_child_block =
-      pre_deposit_child_block +
-      Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) * BlockQueue.child_block_interval()
-    {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true)
+      deposit_height - 1 +
+      (Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) + 1) *
+      BlockQueue.child_block_interval()
+    {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true)
 
-    # TODO: hacky way to get the deposit height, fix sometime
-    {:ok, [utxos]} = DB.utxos()
-    [{deposit_block, _, _}] = Map.keys(utxos)
-
-    raw_tx = Transaction.new([{deposit_block, 0, 0}], [{bob.addr, 7}, {alice.addr, 3}], 0)
+    raw_tx = Transaction.new([{deposit_height, 0, 0}], [{bob.addr, 7}, {alice.addr, 3}], 0)
     tx =
       raw_tx
       |> Transaction.sign(alice.priv, <<>>)
@@ -122,11 +116,11 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # spend the deposit
     {:ok, _, spend_child_block, _} = OmiseGO.API.submit(tx)
 
-    post_spend_child_block = spend_child_block + OmiseGO.API.BlockQueue.child_block_interval()
-    {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block, true)
+    post_spend_child_block = spend_child_block + BlockQueue.child_block_interval()
+    {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block, true)
 
     # check if operator is propagating block with hash submitted to RootChain
-    {:ok, {block_hash, _}} = OmiseGO.Eth.get_child_chain(spend_child_block)
+    {:ok, {block_hash, _}} = Eth.get_child_chain(spend_child_block)
     assert %OmiseGO.API.Block{
       transactions: [
         %Transaction.Recovered{
@@ -159,10 +153,10 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     {:ok, _, spend_child_block2, _} = OmiseGO.API.submit(tx2)
 
     post_spend_child_block2 = spend_child_block2 + BlockQueue.child_block_interval()
-    {:ok, _} = OmiseGO.Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block2, true)
+    {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block2, true)
 
     # check if operator is propagating block with hash submitted to RootChain
-    {:ok, {block_hash2, _}} = OmiseGO.Eth.get_child_chain(spend_child_block2)
+    {:ok, {block_hash2, _}} = Eth.get_child_chain(spend_child_block2)
     assert %OmiseGO.API.Block{
       transactions: [
         %Transaction.Recovered{
@@ -175,6 +169,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     assert %OmiseGO.API.Block{} = OmiseGO.API.get_block(block_hash)
     assert :not_found = OmiseGO.API.get_block(<<0::size(256)>>)
     assert {:error, :utxo_not_found} = OmiseGO.API.submit(tx)
+    assert {:error, :utxo_not_found} = OmiseGO.API.submit(tx2)
   end
 
 end

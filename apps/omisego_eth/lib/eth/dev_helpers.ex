@@ -30,7 +30,7 @@ defmodule OmiseGO.Eth.DevHelpers do
           {:ok, next_num}
       end
     end
-    fn() -> OmiseGO.Eth.WaitFor.repeat_until_ok(f) end
+    fn() -> WaitFor.repeat_until_ok(f) end
     |> Task.async |> Task.await(timeout)
   end
 
@@ -44,12 +44,28 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, authority}
   end
 
+  def import_unlock_fund(account) do
+
+    account_priv_enc = Base.encode16(account.priv)
+    account_enc = "0x" <> Base.encode16(account.addr, case: :lower)
+
+    {:ok, ^account_enc} = Ethereumex.HttpClient.personal_import_raw_key(account_priv_enc, "")
+    {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(account_enc, "", 0)
+
+    {:ok, [eth_source_address | _]} = Ethereumex.HttpClient.eth_accounts()
+    txmap = %{from: eth_source_address, to: account_enc, value: "0x99999999999999999999999"}
+    {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+    {:ok, _} = WaitFor.eth_receipt(tx_fund)
+
+    {:ok, account_enc}
+  end
+
   defp maybe_mine(false), do: :noop
   defp maybe_mine(true) do
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
     txmap = %{from: addr, to: addr, value: "0x1"}
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    {:ok, _receipt} = OmiseGO.Eth.WaitFor.eth_receipt(txhash, 1_000)
+    {:ok, _receipt} = WaitFor.eth_receipt(txhash, 1_000)
   end
 
   defp write_conf_file(mix_env, contract_address, txhash, authority) do
@@ -99,6 +115,13 @@ defmodule OmiseGO.Eth.DevHelpers do
       data: "0x#{data}",
       nonce: (if nonce == 0, do: "0x0", else: encode_eth_rpc_unsigned_int(nonce))
     })
+  end
+
+  def deposit_height_from_receipt(receipt) do
+    %{"logs" => [%{"data" => logs_data}]} = receipt
+    <<"0x", _::size(512), _::size(512), deposit_height_enc::binary>> = logs_data
+    {deposit_height, ""} = Integer.parse(deposit_height_enc, 16)
+    deposit_height
   end
 
   def mine_eth_dev_block do
