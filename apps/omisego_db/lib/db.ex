@@ -2,7 +2,7 @@ defmodule OmiseGO.DB do
   @moduledoc """
   Our-types-aware port/adapter to the db backend
   """
-  
+
   ### Client (port)
 
   @server_name OmiseGO.DB.LevelDBServer
