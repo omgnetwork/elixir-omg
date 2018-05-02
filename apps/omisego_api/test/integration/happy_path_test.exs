@@ -28,14 +28,14 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     :ok
   end
 
-  # FIXME: copied from eth/fixtures - DRY
+  # TODO: geth and contract fixtures copied from eth/fixtures - DRY
+  # possible solution 1: remove eth_test and cover behaviors here
+  # possible solution 2: move current eth smoke test to integration level tests of omisego_api and move fixtures too
   deffixture geth do
     {:ok, exit_fn} = OmiseGO.Eth.dev_geth()
     on_exit(exit_fn)
     :ok
   end
-
-  # FIXME: copied from eth/fixtures - DRY
   deffixture contract(geth) do
     _ = geth
     _ = Application.ensure_all_started(:ethereumex)
