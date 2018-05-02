@@ -28,86 +28,11 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     sig2: <<>>
   }
 
-  deffixture db_path_config() do
-    dir = Temp.mkdir!()
-
-    Application.put_env(:omisego_db, :leveldb_path, dir, persistent: true)
-    {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
-
-    on_exit fn ->
-      Application.put_env(:omisego_db, :leveldb_path, nil)
-      started_apps
-        |> Enum.reverse()
-        |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end
-    :ok
-  end
-
-  # FIXME: copied from eth/fixtures - DRY
-  deffixture geth do
-    {:ok, exit_fn} = OmiseGO.Eth.dev_geth()
-    on_exit(exit_fn)
-    :ok
-  end
-
-  # FIXME: copied from eth/fixtures - DRY
-  deffixture contract(geth) do
-    _ = geth
-    _ = Application.ensure_all_started(:ethereumex)
-    {:ok, contract_address, txhash, authority} = OmiseGO.Eth.DevHelpers.prepare_env("../../")
-
-    %{
-      address: contract_address,
-      from: authority,
-      txhash: txhash
-    }
-  end
-
-  deffixture root_chain_contract_config(geth, contract) do
-    # prevent warnings
-    :ok = geth
-
-    Application.put_env(:omisego_eth, :contract, contract.address, persistent: true)
-    Application.put_env(:omisego_eth, :authority_addr, contract.from, persistent: true)
-    Application.put_env(:omisego_eth, :txhash_contract, contract.txhash, persistent: true)
-
-    {:ok, started_apps} = Application.ensure_all_started(:omisego_eth)
-
-    on_exit fn ->
-      Application.put_env(:omisego_eth, :contract, "0x0")
-      Application.put_env(:omisego_eth, :authority_addr, "0x0")
-      Application.put_env(:omisego_eth, :txhash_contract, "0x0")
-      started_apps
-        |> Enum.reverse()
-        |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end
-    :ok
-  end
-
-  deffixture db_initialized(db_path_config) do
-    :ok = db_path_config
-    :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
-    # FIXME the latter doesn't work yet
-    # OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
-    :ok
-  end
-
-  deffixture omisego(root_chain_contract_config, db_initialized) do
-    :ok = root_chain_contract_config
-    :ok = db_initialized
-    {:ok, started_apps} = Application.ensure_all_started(:omisego_watcher)
+  setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
-
-    on_exit fn ->
-      started_apps
-        |> Enum.reverse()
-        |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end
-    :ok
   end
 
-  @tag fixtures: [:omisego]
-  test "insert and retrieve transaction" do
+  test "insert and retrive transaction" do
     txblknum = 0
     txindex = 0
     id = Signed.signed_hash(@signed_tx)
@@ -119,8 +44,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     assert expected_transaction == delete_meta(TransactionDB.get(id))
   end
 
-  @tag fixtures: [:omisego]
-  test "insert and retrieve block of transactions" do
+  test "insert and retrive block of transactions " do
     txblknum = 0
 
     signed_tx_1 = @signed_tx
@@ -142,23 +66,6 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
 
     assert expected_transaction_1 == delete_meta(TransactionDB.get(txid_1))
     assert expected_transaction_2 == delete_meta(TransactionDB.get(txid_2))
-  end
-
-  describe "get transaction spending utxo" do
-
-    @tag fixtures: [:omisego]
-    test "returns transaction that spends utxo" do
-      id = Signed.signed_hash(@signed_tx)
-      {:ok, %TransactionDB{txid: ^id}} = TransactionDB.insert(id, @signed_tx, 1, 1)
-
-      utxo = %{blknum: @signed_tx.blknum1, txindex: @signed_tx.txindex1, oindex: @signed_tx.oindex1}
-      {:ok, %TransactionDB{txid: ^id}} = TransactionDB.get_transaction_spending_utxo(utxo)
-    end
-
-    @tag fixtures: [:omisego]
-    test "signals when spending transaction does not exist" do
-    end
-
   end
 
   defp create_expected_transaction(txid, signed_tx, txblknum, txindex) do
