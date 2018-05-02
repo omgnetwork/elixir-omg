@@ -158,6 +158,19 @@ defmodule OmiseGO.API.BlockQueue.Core do
     |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
   end
 
+  # generates an enumberable of block numbers since genesis till a particular block number (inclusive
+  @spec child_block_nums_to_init_with(non_neg_integer) :: list
+  def child_block_nums_to_init_with(until_child_block_num) do
+    # equivalent of range(BlockQueue.child_block_interval(),
+    #                     until_child_block_num + BlockQueue.child_block_interval(),
+    #                     BlockQueue.child_block_interval()
+    #                     )
+
+    BlockQueue.child_block_interval()
+    |> Stream.iterate(&(&1 + BlockQueue.child_block_interval()))
+    |> Enum.take_while(&(&1 <= until_child_block_num))
+  end
+
   # Check if new child block should be formed basing on blocks formed so far and
   # age of RootChain contract in ethereum blocks
   @spec should_form_block?(Core.t()) :: true | false

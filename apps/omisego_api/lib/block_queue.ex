@@ -57,10 +57,7 @@ defmodule OmiseGO.API.BlockQueue do
              {:ok, mined_num} <- Eth.get_mined_child_block(),
              {:ok, parent_start} <- Eth.get_root_deployment_height(),
              {:ok, stored_child_top_num} <- OmiseGO.DB.child_top_block_number(),
-             # FIXME: ugh, do something about this
-             range <- BlockQueue.child_block_interval()
-                      |> Stream.iterate(&(&1 + BlockQueue.child_block_interval()))
-                      |> Enum.take_while(&(&1 <= stored_child_top_num)),
+             range <- Core.child_block_nums_to_init_with(stored_child_top_num),
              # TODO: taking all stored hashes now. While still being feasible DB-wise ("just" many hashes)
              #       it might be prohibitive, if we create BlockSubmissions out of the unfiltered batch
              #       (see enqueue_existing_blocks). Probably we want to set a hard cutoff and do
