@@ -41,9 +41,8 @@ defmodule OmiseGO.Performance.WaitFor do
     end
   end
 
-  @doc """
-  Sends :check message to itself in @check_registry_every_ms milliseconds. Message will be processed by module's :handle_info function.
-  """
+  # Sends :check message to itself in @check_registry_every_ms milliseconds.
+  # Message will be processed by module's :handle_info function.
   @spec reschedule_check() :: :ok
   defp reschedule_check, do: Process.send_after(self(), :check, @check_registry_every_ms)
 end
