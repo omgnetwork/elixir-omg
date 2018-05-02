@@ -99,7 +99,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     {:ok, pre_deposit_child_block} = Eth.get_current_child_block()
 
-    {:ok, deposit_tx_hash} = Eth.deposit(10, 0, alice_enc)
+    {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc)
     {:ok, _} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
 
     # mine the block that spends the deposit

@@ -1,5 +1,6 @@
 defmodule OmiseGO.Eth.DevHelpers do
   alias OmiseGO.Eth.WaitFor, as: WaitFor
+  import OmiseGO.Eth.Encoding
 
   @moduledoc """
   Helpers used in MIX_ENV dev and test
@@ -76,6 +77,28 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     {:ok, %{"contractAddress" => contract_address}} = WaitFor.eth_receipt(txhash, 10_000)
     {txhash, contract_address}
+  end
+
+  def deposit(value, nonce, from \\ nil, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+    from = from || Application.get_env(:omisego_eth, :authority_addr)
+
+    data =
+      "deposit()"
+      |> ABI.encode([])
+      |> Base.encode16()
+
+    gas = 100_000
+
+    Ethereumex.HttpClient.eth_send_transaction(%{
+      from: from,
+      to: contract,
+      gas: encode_eth_rpc_unsigned_int(gas),
+      gasPrice: encode_eth_rpc_unsigned_int(21_000_000_000),
+      value: encode_eth_rpc_unsigned_int(value),
+      data: "0x#{data}",
+      nonce: (if nonce == 0, do: "0x0", else: encode_eth_rpc_unsigned_int(nonce))
+    })
   end
 
   def mine_eth_dev_block do

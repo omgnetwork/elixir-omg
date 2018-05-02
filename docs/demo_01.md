@@ -41,7 +41,7 @@ bob = TestHelper.generate_entity()
 ### START DEMO HERE
 
 # sends a deposit transaction _to Ethereum_
-{:ok, deposit_tx_hash} = Eth.deposit(10, 0, alice_enc, contract_address)
+{:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc, contract_address)
 
 # need to wait until its mined
 {:ok, _} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
