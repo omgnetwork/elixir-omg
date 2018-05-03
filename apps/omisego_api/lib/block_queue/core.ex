@@ -55,7 +55,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
     {:ok, %__MODULE__{blocks: Map.new()}}
   end
 
-  @spec new(keyword) :: {:ok, Core.t} | {:error, :mined_hash_not_found_in_db}
+  @spec new(keyword) :: {:ok, Core.t} | {:error, :mined_hash_not_found_in_db} | {:error, :contract_ahead_of_db}
   def new(
         mined_child_block_num: mined_child_block_num,
         known_hashes: known_hashes,
@@ -166,10 +166,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
     #                     until_child_block_num + BlockQueue.child_block_interval(),
     #                     BlockQueue.child_block_interval()
     #                     )
-
-    BlockQueue.child_block_interval()
-    |> Stream.iterate(&(&1 + BlockQueue.child_block_interval()))
-    |> Enum.take_while(&(&1 <= until_child_block_num))
+    interval = BlockQueue.child_block_interval()
+    make_range(interval, until_child_block_num, interval)
   end
 
   # Check if new child block should be formed basing on blocks formed so far and

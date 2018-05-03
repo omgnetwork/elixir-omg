@@ -69,20 +69,16 @@ defmodule OmiseGO.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call({:child_top_block_number}, _from, %__MODULE__{db_ref: db_ref} = state) do
-    result =
-      with key <- LevelDBCore.key(:child_top_block_number, nil),
-           response <- get(key, db_ref),
-           do: LevelDBCore.decode_value(response, :child_top_block_number)
+  @single_value_parameter_names [:child_top_block_number, :last_deposit_block_height]
 
-    {:reply, result, state}
-  end
-
-  def handle_call(:last_deposit_block_height, _from, %__MODULE__{db_ref: db_ref} = state) do
+  def handle_call(parameter, _from, %__MODULE__{db_ref: db_ref} = state)
+      when is_atom(parameter) and parameter in @single_value_parameter_names
+  do
     result =
-      with key <- LevelDBCore.key(:last_deposit_block_height, nil),
-           response <- get(key, db_ref),
-           do: LevelDBCore.decode_value(response, :last_deposit_block_height)
+      parameter
+      |> LevelDBCore.key(nil)
+      |> get(db_ref)
+      |> LevelDBCore.decode_value(parameter)
 
     {:reply, result, state}
   end

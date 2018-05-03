@@ -303,7 +303,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
     next_block_height = @child_block_2
     {:ok, {_, _, _, state}} = form_block_check(state, @child_block_interval, next_block_height)
-    expected_block = empty_block(2000)
+    expected_block = empty_block(@child_block_2)
 
     assert {:ok, {^expected_block, _, _, _}} =
       form_block_check(state, next_block_height, next_block_height + @child_block_interval)
@@ -408,6 +408,24 @@ defmodule OmiseGO.API.State.CoreTest do
 
     state
     |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{alice, 7}, {alice, 3}]), &1)).()
+    |> success?
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "all utxos get initialized by query result from db and are spendable", %{alice: alice, bob: bob} do
+    state =
+      Core.extract_initial_state(
+        [
+          %{{1, 0, 0} => %{amount: 10, owner: alice.addr}},
+          %{{1001, 10, 1} => %{amount: 8, owner: bob.addr}}
+        ],
+        0,
+        1,
+        @child_block_interval
+      )
+
+    state
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}, {1001, 10, 1, bob}], [{alice, 15}, {alice, 3}]), &1)).()
     |> success?
   end
 

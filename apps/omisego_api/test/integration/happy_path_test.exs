@@ -150,7 +150,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
       |> Transaction.sign(bob.priv, alice.priv)
       |> Transaction.Signed.encode()
 
-    # spend the deposit
+    # spend the output of the first transaction
     {:ok, _, spend_child_block2, _} = OmiseGO.API.submit(tx2)
 
     post_spend_child_block2 = spend_child_block2 + BlockQueue.child_block_interval()
