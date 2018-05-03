@@ -33,6 +33,8 @@ defmodule OmiseGO.Eth.MixProject do
         git: "https://github.com/omisego/plasma-mvp.git",
         ref: "2c1d6d324ea164b2081c628170da4bae59c9018e",
         sparse: "plasma/root_chain/contracts/",
+        compile: false,
+        app: false,
       },
     ]
   end
