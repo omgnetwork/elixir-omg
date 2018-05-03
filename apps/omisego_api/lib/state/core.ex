@@ -5,7 +5,6 @@ defmodule OmiseGO.API.State.Core do
 
   @maximum_block_size 65_536
 
-  # TODO: consider structuring and naming files/modules differently, to not have bazillions of `X.Core` modules?
   defstruct [:height, :last_deposit_height, :utxos, pending_txs: [], tx_index: 0]
 
   alias OmiseGO.API.State.Transaction
@@ -35,21 +34,26 @@ defmodule OmiseGO.API.State.Core do
   """
   @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{})
         :: {{:ok, <<_::256>>, pos_integer, pos_integer}, %Core{}} | {:error, %Core{}}
-  def exec(%Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: _signed_tx_hash,
-                                  spender1: spender1, spender2: spender2} = recovered_tx,
-                                  %Core{utxos: utxos} = state) do
-
+  def exec(
+        %Transaction.Recovered{
+          raw_tx: raw_tx,
+          signed_tx_hash: _signed_tx_hash,
+          spender1: spender1,
+          spender2: spender2
+        } = recovered_tx,
+        state
+      ) do
     %Transaction{amount1: amount1, amount2: amount2, fee: fee} = raw_tx
 
     with :ok <- validate_block_size(state),
-         {:ok, in_amount1} <- correct_input?(utxos, raw_tx, 0, spender1),
-         {:ok, in_amount2} <- correct_input?(utxos, raw_tx, 1, spender2),
+         {:ok, in_amount1} <- correct_input_in_position?(1, state, raw_tx, spender1),
+         {:ok, in_amount2} <- correct_input_in_position?(2, state, raw_tx, spender2),
          :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2 + fee) do
       {
-       {:ok, recovered_tx.signed_tx_hash, state.height, state.tx_index},
-       state
-       |> add_pending_tx(recovered_tx)
-       |> apply_spend(raw_tx)
+        {:ok, recovered_tx.signed_tx_hash, state.height, state.tx_index},
+        state
+        |> apply_spend(raw_tx)
+        |> add_pending_tx(recovered_tx)
       }
     else
       {:error, _reason} = error -> {error, state}
@@ -57,34 +61,37 @@ defmodule OmiseGO.API.State.Core do
   end
 
   defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, new_tx) do
-    %Core{state | pending_txs: [{tx_index, new_tx} | pending_txs]}
+    %Core{
+      state
+      | tx_index: tx_index + 1,
+        pending_txs: [new_tx | pending_txs]
+    }
   end
 
-  # if there's no spender, make sure we cannot spend
-  defp correct_input?(_, _, _, nil), do: {:ok, 0}
+  # if there's no spender, make sure we cannot spend, but everything's valid
+  defp correct_input_in_position?(_, _, _, nil), do: {:ok, 0}
 
-  # FIXME dry and move spender figuring out elsewhere
-  defp correct_input?(
-         utxos,
-         %Transaction{blknum1: blknum, txindex1: txindex, oindex1: oindex},
-         0,
-         spender1
-       ) do
-    with {:ok, utxo} <- get_utxo(utxos, {blknum, txindex, oindex}),
-         %{owner: owner, amount: owner_has} <- utxo,
-         :ok <- is_spender?(owner, spender1),
-         do: {:ok, owner_has}
-  end
-
-  defp correct_input?(
-         utxos,
-         %Transaction{blknum2: blknum, txindex2: txindex, oindex2: oindex},
+  defp correct_input_in_position?(
          1,
-         spender2
+         state,
+         %Transaction{blknum1: blknum, txindex1: txindex, oindex1: oindex},
+         spender
        ) do
-    with {:ok, utxo} <- get_utxo(utxos, {blknum, txindex, oindex}),
-         %{owner: owner, amount: owner_has} <- utxo,
-         :ok <- is_spender?(owner, spender2),
+    check_utxo_and_extract_amount(state, {blknum, txindex, oindex}, spender)
+  end
+
+  defp correct_input_in_position?(
+         2,
+         state,
+         %Transaction{blknum2: blknum, txindex2: txindex, oindex2: oindex},
+         spender
+       ) do
+    check_utxo_and_extract_amount(state, {blknum, txindex, oindex}, spender)
+  end
+
+  defp check_utxo_and_extract_amount(%Core{utxos: utxos}, {blknum, txindex, oindex}, spender) do
+    with {:ok, %{owner: owner, amount: owner_has} = _utxo} <- get_utxo(utxos, {blknum, txindex, oindex}),
+         :ok <- is_spender?(owner, spender),
          do: {:ok, owner_has}
   end
 
@@ -117,31 +124,32 @@ defmodule OmiseGO.API.State.Core do
            oindex2: oindex2
          } = tx
        ) do
+    new_utxos_map =
+      tx
+      |> non_zero_utxos_from(height, tx_index)
+      |> Map.new()
 
-    new_utxos = get_non_zero_amount_utxos(tx, height, tx_index)
     %Core{
       state
-      | tx_index: tx_index + 1,
-        utxos:
+      | utxos:
           utxos
-          |> Map.merge(new_utxos)
           |> Map.delete({blknum1, txindex1, oindex1})
           |> Map.delete({blknum2, txindex2, oindex2})
+          |> Map.merge(new_utxos_map)
     }
   end
 
-  defp get_non_zero_amount_utxos(%Transaction{} = tx, height, tx_index) do
+  defp non_zero_utxos_from(%Transaction{} = tx, height, tx_index) do
     tx
-    |> get_utxos_at(height, tx_index)
+    |> utxos_from(height, tx_index)
     |> Enum.filter(fn {_key, value} -> is_non_zero_amount?(value) end)
-    |> Map.new
   end
 
-  defp get_utxos_at(%Transaction{} = tx, height, tx_index) do
-    %{
-      {height, tx_index, 0} => %{owner: tx.newowner1, amount: tx.amount1},
-      {height, tx_index, 1} => %{owner: tx.newowner2, amount: tx.amount2}
-    }
+  defp utxos_from(%Transaction{} = tx, height, tx_index) do
+    [
+      {{height, tx_index, 0}, %{owner: tx.newowner1, amount: tx.amount1}},
+      {{height, tx_index, 1}, %{owner: tx.newowner2, amount: tx.amount2}}
+    ]
   end
 
   defp is_non_zero_amount?(%{amount: 0}), do: false
@@ -154,33 +162,30 @@ defmodule OmiseGO.API.State.Core do
    - processes pending txs gathered, updates height etc
   """
   def form_block(
-    %Core{pending_txs: reverse_txs, height: height} = state,
-    block_num_to_form,
-    next_block_num_to_form
-  ) do
+        %Core{pending_txs: reverse_txs, height: height} = state,
+        block_num_to_form,
+        next_block_num_to_form
+      ) do
     with :ok <- validate_block_number(block_num_to_form, state) do
-
       txs = Enum.reverse(reverse_txs)
 
       block =
-        txs
-        |> Enum.map(fn {_tx_index, tx} -> tx end)
-        |> (fn txs -> %Block{transactions: txs, number: height} end).()
+        %Block{transactions: txs, number: height}
         |> Block.merkle_hash()
 
       event_triggers =
         txs
-        |> Enum.map(fn {_tx_index, tx} -> %{tx: tx} end)
+        |> Enum.map(fn tx -> %{tx: tx} end)
 
-      # TODO: consider calculating this along with updating the `utxos` field in the state for consistency
       db_updates_new_utxos =
         txs
-        |> Enum.flat_map(fn {tx_index, %{raw_tx: tx}} -> get_non_zero_amount_utxos(tx, height, tx_index) end)
-        |> Enum.map(fn {new_utxo_key, new_utxo} -> {:put, :utxo, %{new_utxo_key => new_utxo}} end)
+        |> Enum.with_index()
+        |> Enum.flat_map(fn {%Transaction.Recovered{raw_tx: tx}, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
+        |> Enum.map(&utxo_to_db_put/1)
 
       db_updates_spent_utxos =
         txs
-        |> Enum.flat_map(fn {_tx_index, %{raw_tx: tx}} ->
+        |> Enum.flat_map(fn %Transaction.Recovered{raw_tx: tx} ->
           [{tx.blknum1, tx.txindex1, tx.oindex1}, {tx.blknum2, tx.txindex2, tx.oindex2}]
         end)
         |> Enum.filter(fn utxo_key -> utxo_key != {0, 0, 0} end)
@@ -218,10 +223,7 @@ defmodule OmiseGO.API.State.Core do
 
     new_utxos =
       deposits
-      |> Map.new(
-          fn %{blknum: blknum, owner: owner, amount: amount} ->
-            {{blknum, 0, 0}, %{amount: amount, owner: owner}}
-          end)
+      |> Enum.map(&deposit_to_utxo/1)
 
     event_triggers =
       deposits
@@ -229,29 +231,34 @@ defmodule OmiseGO.API.State.Core do
 
     last_deposit_height = get_last_deposit_height(deposits, last_deposit_height)
 
-    # FIXME dry the function transforming utxos to db puts
     db_updates_new_utxos =
       new_utxos
-      |> Enum.map(fn {new_utxo_key, new_utxo} -> {:put, :utxo, %{new_utxo_key => new_utxo}} end)
+      |> Enum.map(&utxo_to_db_put/1)
 
     db_updates = db_updates_new_utxos ++ last_deposit_height_db_update(deposits, last_deposit_height)
 
-    new_state =
-      %Core{state |
-       utxos: Map.merge(utxos, new_utxos),
-       last_deposit_height: last_deposit_height
-     }
+    new_state = %Core{
+      state
+      | utxos: Map.merge(utxos, Map.new(new_utxos)),
+        last_deposit_height: last_deposit_height
+    }
 
     {event_triggers, db_updates, new_state}
+  end
+
+  defp utxo_to_db_put({utxo_position, utxo}), do: {:put, :utxo, %{utxo_position => utxo}}
+
+  defp deposit_to_utxo(%{blknum: blknum, owner: owner, amount: amount}) do
+    {{blknum, 0, 0}, %{amount: amount, owner: owner}}
   end
 
   defp get_last_deposit_height(deposits, current_height) do
     if Enum.empty?(deposits) do
       current_height
     else
-        deposits
-        |> Enum.max_by(&(&1.blknum))
-        |> Map.get(:blknum)
+      deposits
+      |> Enum.max_by(& &1.blknum)
+      |> Map.get(:blknum)
     end
   end
 
@@ -263,9 +270,7 @@ defmodule OmiseGO.API.State.Core do
     end
   end
 
-  defp validate_block_size(
-      %__MODULE__{tx_index: number_of_transactions_in_block}
-    ) do
+  defp validate_block_size(%__MODULE__{tx_index: number_of_transactions_in_block}) do
     case number_of_transactions_in_block == @maximum_block_size do
       true -> {:error, :too_many_transactions_in_block}
       false -> :ok
@@ -279,19 +284,26 @@ defmodule OmiseGO.API.State.Core do
     exiting_utxos =
       exiting_utxos
       |> Enum.filter(fn %{blknum: blknum, txindex: txindex, oindex: oindex} ->
-          Map.has_key?(utxos, {blknum, txindex, oindex}) end)
+        Map.has_key?(utxos, {blknum, txindex, oindex})
+      end)
 
-    event_triggers = exiting_utxos
+    event_triggers =
+      exiting_utxos
       |> Enum.map(fn %{owner: owner, blknum: blknum, txindex: txindex, oindex: oindex} ->
-        %{exit: %{owner: owner, blknum: blknum, txindex: txindex, oindex: oindex}} end)
+        %{exit: %{owner: owner, blknum: blknum, txindex: txindex, oindex: oindex}}
+      end)
+
     state =
       exiting_utxos
-      |> Enum.reduce(state, fn (%{blknum: blknum, txindex: txindex, oindex: oindex}, state) ->
-        %{state | utxos: Map.delete(state.utxos, {blknum, txindex, oindex})} end)
+      |> Enum.reduce(state, fn %{blknum: blknum, txindex: txindex, oindex: oindex}, state ->
+        %{state | utxos: Map.delete(state.utxos, {blknum, txindex, oindex})}
+      end)
+
     deletes =
       exiting_utxos
       |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} ->
-        {:delete, :utxo, {blknum, txindex, oindex}} end)
+        {:delete, :utxo, {blknum, txindex, oindex}}
+      end)
 
     {event_triggers, deletes, state}
   end
