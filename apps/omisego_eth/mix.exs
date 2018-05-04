@@ -35,6 +35,7 @@ defmodule OmiseGO.Eth.MixProject do
         sparse: "plasma/root_chain/contracts/",
         compile: false,
         app: false,
+        only: [:dev, :test],
       },
     ]
   end
