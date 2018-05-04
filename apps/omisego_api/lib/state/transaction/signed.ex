@@ -78,9 +78,9 @@ defmodule OmiseGO.API.State.Transaction.Signed do
             blknum2: int_parse(blknum2),
             txindex2: int_parse(txindex2),
             oindex2: int_parse(oindex2),
-            newowner1: newowner1,
+            newowner1: address_parse(newowner1),
             amount1: int_parse(amount1),
-            newowner2: newowner2,
+            newowner2: address_parse(newowner2),
             amount2: int_parse(amount2),
             fee: int_parse(fee)
           }
@@ -97,6 +97,10 @@ defmodule OmiseGO.API.State.Transaction.Signed do
         {:error, :malformed_transaction}
     end
   end
+
+  # necessary, because RLP handles empty string equally to integer 0
+  defp address_parse(""), do: 0
+  defp address_parse(<<_::160>> = address_bytes), do: address_bytes
 
   defp signature_length?(sig) when byte_size(sig) == @signature_length, do: :ok
   defp signature_length?(_sig), do: {:error, :bad_signature_length}

@@ -6,6 +6,8 @@ defmodule OmiseGO.Eth do
   @block_offset 1_000_000_000
   @transaction_offset 10_000
 
+  import OmiseGO.Eth.Encoding
+
   def dev_geth do
     _ = Application.ensure_all_started(:porcelain)
     _ = Application.ensure_all_started(:ethereumex)
@@ -48,7 +50,7 @@ defmodule OmiseGO.Eth do
     @moduledoc false
 
     @type hash() :: <<_::256>>
-    @type plasma_block_num() :: pos_integer()
+    @type plasma_block_num() :: non_neg_integer()
 
     @type t() :: %{
             num: plasma_block_num(),
@@ -102,10 +104,6 @@ defmodule OmiseGO.Eth do
       data: "0x#{data}",
       nonce: encode_eth_rpc_unsigned_int(nonce)
     })
-  end
-
-  defp encode_eth_rpc_unsigned_int(value) do
-    "0x" <> (value |> :binary.encode_unsigned() |> Base.encode16() |> String.trim_leading("0"))
   end
 
   def get_ethereum_height do

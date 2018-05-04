@@ -47,6 +47,7 @@ defmodule OmiseGO.Performance do
     {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
 
     :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
+    :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
 
     {:ok, started_apps}
   end

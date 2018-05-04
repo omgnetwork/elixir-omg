@@ -1,5 +1,6 @@
 defmodule OmiseGO.Eth.DevHelpers do
   alias OmiseGO.Eth.WaitFor, as: WaitFor
+  import OmiseGO.Eth.Encoding
 
   @moduledoc """
   Helpers used in MIX_ENV dev and test
@@ -8,6 +9,7 @@ defmodule OmiseGO.Eth.DevHelpers do
   def prepare_dev_env do
     {:ok, contract_address, txhash, authority} = prepare_env("./")
     write_conf_file("dev", contract_address, txhash, authority)
+    IO.puts inspect {:ok, contract_address, txhash, authority}
   end
 
   def prepare_env(root_path) do
@@ -28,18 +30,38 @@ defmodule OmiseGO.Eth.DevHelpers do
           {:ok, next_num}
       end
     end
-    fn() -> OmiseGO.Eth.WaitFor.repeat_until_ok(f) end
+    fn() -> WaitFor.repeat_until_ok(f) end
     |> Task.async |> Task.await(timeout)
   end
 
   def create_and_fund_authority_addr do
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
     {:ok, authority} = Ethereumex.HttpClient.personal_new_account("")
-    {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(authority, "", 60 * 60 * 24 * 7)
+    {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(authority, "", 0)
     txmap = %{from: addr, to: authority, value: "0x99999999999999999999999"}
     {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     {:ok, _receipt} = WaitFor.eth_receipt(tx_fund, 10_000)
     {:ok, authority}
+  end
+
+  @doc """
+  Will take a map with eth-account information (from &generate_entity/0) and then
+  import priv key->unlock->fund with lots of ether on that account
+  """
+  def import_unlock_fund(%{priv: account_priv, addr: account_addr} = _account) do
+
+    account_priv_enc = Base.encode16(account_priv)
+    account_enc = "0x" <> Base.encode16(account_addr, case: :lower)
+
+    {:ok, ^account_enc} = Ethereumex.HttpClient.personal_import_raw_key(account_priv_enc, "")
+    {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(account_enc, "", 0)
+
+    {:ok, [eth_source_address | _]} = Ethereumex.HttpClient.eth_accounts()
+    txmap = %{from: eth_source_address, to: account_enc, value: "0x99999999999999999999999"}
+    {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+    {:ok, _} = WaitFor.eth_receipt(tx_fund)
+
+    {:ok, account_enc}
   end
 
   defp maybe_mine(false), do: :noop
@@ -47,7 +69,7 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
     txmap = %{from: addr, to: addr, value: "0x1"}
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    {:ok, _receipt} = OmiseGO.Eth.WaitFor.eth_receipt(txhash, 1_000)
+    {:ok, _receipt} = WaitFor.eth_receipt(txhash, 1_000)
   end
 
   defp write_conf_file(mix_env, contract_address, txhash, authority) do
@@ -75,6 +97,35 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     {:ok, %{"contractAddress" => contract_address}} = WaitFor.eth_receipt(txhash, 10_000)
     {txhash, contract_address}
+  end
+
+  def deposit(value, nonce, from \\ nil, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+    from = from || Application.get_env(:omisego_eth, :authority_addr)
+
+    data =
+      "deposit()"
+      |> ABI.encode([])
+      |> Base.encode16()
+
+    gas = 100_000
+
+    Ethereumex.HttpClient.eth_send_transaction(%{
+      from: from,
+      to: contract,
+      gas: encode_eth_rpc_unsigned_int(gas),
+      gasPrice: encode_eth_rpc_unsigned_int(21_000_000_000),
+      value: encode_eth_rpc_unsigned_int(value),
+      data: "0x#{data}",
+      nonce: (if nonce == 0, do: "0x0", else: encode_eth_rpc_unsigned_int(nonce))
+    })
+  end
+
+  def deposit_height_from_receipt(receipt) do
+    %{"logs" => [%{"data" => logs_data}]} = receipt
+    <<"0x", _::size(512), _::size(512), deposit_height_enc::binary>> = logs_data
+    {deposit_height, ""} = Integer.parse(deposit_height_enc, 16)
+    deposit_height
   end
 
   def mine_eth_dev_block do
