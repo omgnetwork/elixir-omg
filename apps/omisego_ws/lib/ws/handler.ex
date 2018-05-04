@@ -63,7 +63,7 @@ defmodule OmiseGO.WS.Handler do
     {:reply, {:text, encoded}, req, state}
   end
 
-  def websocket_info({:timeout, pid, msg}, req, state) do
+  def websocket_info({:timeout, _pid, msg}, req, state) do
     {:reply, {:text, msg}, req, state}
   end
 
