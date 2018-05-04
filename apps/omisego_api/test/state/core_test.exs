@@ -11,8 +11,8 @@ defmodule OmiseGO.API.State.CoreTest do
   @child_block_4 @child_block_interval * 4
   @child_block_5 @child_block_interval * 5
 
-  @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232, 237, 80, 242, 60,
-                      209, 253, 249, 76, 145, 84, 237, 58, 118, 9, 162, 241, 255, 152, 31>>
+  @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232, 237, 80, 242, 60, 209, 253, 249, 76,
+                      145, 84, 237, 58, 118, 9, 162, 241, 255, 152, 31>>
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend deposits", %{alice: alice, bob: bob, state_empty: state} do
@@ -28,10 +28,11 @@ defmodule OmiseGO.API.State.CoreTest do
   test "can decode deposits in Core", %{alice: alice, state_empty: state} do
     alice_enc = "0x" <> Base.encode16(alice.addr, case: :lower)
     deposits = [%{owner: alice_enc, amount: 10, blknum: 1}]
+
     assert {_, _, state} =
-      deposits
-      |> Enum.map(&Core.decode_deposit/1)
-      |> Core.deposit(state)
+             deposits
+             |> Enum.map(&Core.decode_deposit/1)
+             |> Core.deposit(state)
 
     state
     |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{alice, 10}]), &1)).()
@@ -50,12 +51,11 @@ defmodule OmiseGO.API.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
-  test "ignores deposits from blocks not higher than the block with the last previously received deposit",
-       %{
-         alice: alice,
-         bob: bob,
-         state_empty: state
-       } do
+  test "ignores deposits from blocks not higher than the block with the last previously received deposit", %{
+    alice: alice,
+    bob: bob,
+    state_empty: state
+  } do
     deposits = [%{owner: alice.addr, amount: 20, blknum: 2}]
     assert {_, [_, {:put, :last_deposit_block_height, 2}], state} = Core.deposit(deposits, state)
 
@@ -211,8 +211,7 @@ defmodule OmiseGO.API.State.CoreTest do
       |> (&Core.exec(Test.create_recovered([{@child_block_interval, 0, 0, bob}], [{alice, 7}]), &1)).()
       |> success?
 
-    assert {:ok, {_, [_trigger1, _trigger2], _, _}} =
-             form_block_check(state, @child_block_interval, @child_block_2)
+    assert {:ok, {_, [_trigger1, _trigger2], _, _}} = form_block_check(state, @child_block_interval, @child_block_2)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -233,8 +232,7 @@ defmodule OmiseGO.API.State.CoreTest do
     alice: alice,
     state_empty: state
   } do
-    assert {[trigger], _, state} =
-             Core.deposit([%{owner: alice, amount: 4, blknum: @child_block_interval}], state)
+    assert {[trigger], _, state} = Core.deposit([%{owner: alice, amount: 4, blknum: @child_block_interval}], state)
 
     assert trigger == %{deposit: %{owner: alice, amount: 4}}
     assert {:ok, {_, [], _, _}} = form_block_check(state, @child_block_interval, @child_block_2)
@@ -253,11 +251,9 @@ defmodule OmiseGO.API.State.CoreTest do
 
     next_block_height = @child_block_2
 
-    assert {:ok, {_, [_trigger], _, state}} =
-             form_block_check(state, @child_block_interval, next_block_height)
+    assert {:ok, {_, [_trigger], _, state}} = form_block_check(state, @child_block_interval, next_block_height)
 
-    assert {:ok, {_, [], _, _}} =
-             form_block_check(state, next_block_height, next_block_height + @child_block_interval)
+    assert {:ok, {_, [], _, _}} = form_block_check(state, next_block_height, next_block_height + @child_block_interval)
   end
 
   @tag fixtures: [:stable_alice, :stable_bob, :state_stable_alice_deposit]
@@ -268,8 +264,7 @@ defmodule OmiseGO.API.State.CoreTest do
   } do
     recovered_tx_1 = Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}], 0)
 
-    recovered_tx_2 =
-      Test.create_recovered([{@child_block_interval, 0, 0, bob}], [{alice, 2}, {bob, 5}], 0)
+    recovered_tx_2 = Test.create_recovered([{@child_block_interval, 0, 0, bob}], [{alice, 2}, {bob, 5}], 0)
 
     state =
       state
@@ -281,13 +276,12 @@ defmodule OmiseGO.API.State.CoreTest do
     expected_block = %Block{
       transactions: [recovered_tx_1, recovered_tx_2],
       hash:
-        <<166, 149, 246, 209, 144, 15, 143, 85, 224, 230, 228, 51, 1, 242, 85, 166, 162, 138, 204,
-          220, 45, 30, 102, 107, 5, 173, 160, 181, 187, 25, 232, 33>>,
+        <<166, 149, 246, 209, 144, 15, 143, 85, 224, 230, 228, 51, 1, 242, 85, 166, 162, 138, 204, 220, 45, 30, 102,
+          107, 5, 173, 160, 181, 187, 25, 232, 33>>,
       number: @child_block_interval
     }
 
-    assert {:ok, {^expected_block, _, _, _}} =
-             form_block_check(state, @child_block_interval, @child_block_2)
+    assert {:ok, {^expected_block, _, _, _}} = form_block_check(state, @child_block_interval, @child_block_2)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -306,7 +300,7 @@ defmodule OmiseGO.API.State.CoreTest do
     expected_block = empty_block(@child_block_2)
 
     assert {:ok, {^expected_block, _, _, _}} =
-      form_block_check(state, next_block_height, next_block_height + @child_block_interval)
+             form_block_check(state, next_block_height, next_block_height + @child_block_interval)
   end
 
   @tag fixtures: [:state_empty]
@@ -320,13 +314,13 @@ defmodule OmiseGO.API.State.CoreTest do
   test "no pending transactions at start (no events, empty block, no db updates)", %{state_empty: state} do
     expected_block = empty_block()
 
-    assert {:ok, {
-      ^expected_block,
-      [],
-      [{:put, :block, _},
-      {:put, :child_top_block_number, @child_block_interval}],
-      _
-    }} = form_block_check(state, @child_block_interval, @child_block_2)
+    assert {:ok,
+            {
+              ^expected_block,
+              [],
+              [{:put, :block, _}, {:put, :child_top_block_number, @child_block_interval}],
+              _
+            }} = form_block_check(state, @child_block_interval, @child_block_2)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -386,8 +380,7 @@ defmodule OmiseGO.API.State.CoreTest do
     alice: alice,
     state_empty: state
   } do
-    assert {_, [utxo_update, height_update], state} =
-             Core.deposit([%{owner: alice.addr, amount: 10, blknum: 1}], state)
+    assert {_, [utxo_update, height_update], state} = Core.deposit([%{owner: alice.addr, amount: 10, blknum: 1}], state)
 
     assert utxo_update == {:put, :utxo, %{{1, 0, 0} => %{owner: alice.addr, amount: 10}}}
     assert height_update == {:put, :last_deposit_block_height, 1}
@@ -437,12 +430,16 @@ defmodule OmiseGO.API.State.CoreTest do
       |> success?
 
     expected_owner = alice.addr
-    {[%{exit: %{owner: ^expected_owner, blknum: @child_block_interval, txindex: 0, oindex: 0}},
-      %{exit: %{owner: ^expected_owner, blknum: @child_block_interval, txindex: 0, oindex: 1}}],
-     [{:delete, :utxo, {@child_block_interval, 0, 0}}, {:delete, :utxo, {@child_block_interval, 0, 1}}],
+
+    {[
+       %{exit: %{owner: ^expected_owner, blknum: @child_block_interval, txindex: 0, oindex: 0}},
+       %{exit: %{owner: ^expected_owner, blknum: @child_block_interval, txindex: 0, oindex: 1}}
+     ], [{:delete, :utxo, {@child_block_interval, 0, 0}}, {:delete, :utxo, {@child_block_interval, 0, 1}}],
      state} =
-      [%{owner: alice.addr, blknum: @child_block_interval, txindex: 0, oindex: 0},
-       %{owner: alice.addr, blknum: @child_block_interval, txindex: 0, oindex: 1}]
+      [
+        %{owner: alice.addr, blknum: @child_block_interval, txindex: 0, oindex: 0},
+        %{owner: alice.addr, blknum: @child_block_interval, txindex: 0, oindex: 1}
+      ]
       |> Core.exit_utxos(state)
 
     state
