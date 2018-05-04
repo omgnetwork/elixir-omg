@@ -10,13 +10,17 @@ defmodule OmiseGO.API.Block do
 
   defstruct [:transactions, :hash]
 
+  @type t() :: %__MODULE__{
+          transactions: list(OmiseGO.API.State.Transaction.Signed.t()),
+          hash: <<_::768>>
+        }
   @doc """
   Returns block with merkle hash
   """
   @spec merkle_hash(%__MODULE__{}) :: %__MODULE__{}
   def merkle_hash(%__MODULE__{transactions: txs}) do
-    hashed_txs = txs |> Enum.map(&(&1.signed_tx_hash))
-    {:ok, root} =  MerkleTree.build(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height)
+    hashed_txs = txs |> Enum.map(& &1.signed_tx_hash)
+    {:ok, root} = MerkleTree.build(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height)
     %Block{transactions: txs, hash: root.value}
   end
 end

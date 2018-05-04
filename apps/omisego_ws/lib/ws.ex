@@ -12,8 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-defmodule OmiseGO.JSONRPC do
+defmodule OmiseGO.WS do
   @moduledoc """
-  A JSONRPC 2.0 gateway to `omisego_api` - automatically exposed via `ExposeSpec`
+  A Websockets gateway to `omisego_api` - automatically exposed via `ExposeSpec`
   """
 end

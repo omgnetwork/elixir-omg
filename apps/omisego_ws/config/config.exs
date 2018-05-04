@@ -12,8 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-defmodule OmiseGO.JSONRPC do
-  @moduledoc """
-  A JSONRPC 2.0 gateway to `omisego_api` - automatically exposed via `ExposeSpec`
-  """
-end
+use Mix.Config
+
+config :omisego_ws, omisego_api_ws_port: 4004

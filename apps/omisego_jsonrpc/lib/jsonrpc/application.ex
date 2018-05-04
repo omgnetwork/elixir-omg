@@ -12,8 +12,19 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-defmodule OmiseGO.JSONRPC do
-  @moduledoc """
-  A JSONRPC 2.0 gateway to `omisego_api` - automatically exposed via `ExposeSpec`
-  """
+defmodule OmiseGO.JSONRPC.Application do
+  @moduledoc false
+
+  use Application
+
+  def start(_type, _args) do
+    omisego_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
+
+    children = [
+      JSONRPC2.Servers.HTTP.child_spec(:http, OmiseGO.JSONRPC.Server.Handler, port: omisego_port)
+    ]
+
+    opts = [strategy: :one_for_one, name: OmiseGO.JSONRPC.Supervisor]
+    Supervisor.start_link(children, opts)
+  end
 end

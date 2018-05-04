@@ -12,8 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-defmodule OmiseGO.JSONRPC do
+defmodule OmiseGO.JSONRPC.ServerTest do
   @moduledoc """
-  A JSONRPC 2.0 gateway to `omisego_api` - automatically exposed via `ExposeSpec`
+  No test here. This is de facto tested during integration tests. This module serves only as an integration with JSONRPC2 package
   """
 end

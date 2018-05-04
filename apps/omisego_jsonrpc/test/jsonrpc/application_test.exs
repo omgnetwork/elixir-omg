@@ -12,8 +12,17 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-defmodule OmiseGO.JSONRPC do
+defmodule OmiseGO.JSONRPC.Application.Test do
   @moduledoc """
-  A JSONRPC 2.0 gateway to `omisego_api` - automatically exposed via `ExposeSpec`
+  Test the supervision tree stuff of the app
   """
+
+  use ExUnitFixtures
+  use ExUnit.Case, async: false
+
+  test "OmiseGO json rpc should start fine" do
+    assert {:ok, started} = Application.ensure_all_started(:omisego_jsonrpc)
+    assert :omisego_jsonrpc in started
+    for app <- started, do: :ok = Application.stop(app)
+  end
 end

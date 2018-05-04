@@ -12,8 +12,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-defmodule OmiseGO.JSONRPC do
-  @moduledoc """
-  A JSONRPC 2.0 gateway to `omisego_api` - automatically exposed via `ExposeSpec`
-  """
+defmodule OmiseGO.WS.Application do
+  @moduledoc false
+
+  use Application
+
+  def start(_type, _args) do
+    children = [OmiseGO.WS.Server]
+    opts = [strategy: :one_for_one, name: OmiseGO.WS.Supervisor]
+    Supervisor.start_link(children, opts)
+  end
 end
