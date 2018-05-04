@@ -51,7 +51,7 @@ defmodule OmiseGO.API.EthereumEventListener do
          {:ok, events} <- state.get_ethereum_events_callback.(eth_block_from, eth_block_to),
          :ok <- state.process_events_callback.(events) do
       schedule_get_events(next_get_events_interval)
-      {:no_reply, new_state}
+      {:noreply, new_state}
     else
       {:no_blocks_with_event, state, next_get_events_interval} ->
         schedule_get_events(next_get_events_interval)

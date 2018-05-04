@@ -14,12 +14,12 @@ defmodule OmiseGO.API.Application do
       {OmiseGO.API.FreshBlocks, []},
       worker(
         OmiseGO.API.EthereumEventListener,
-        [event_listener_config, &OmiseGO.Eth.get_deposits/3, &State.deposit/1],
+        [event_listener_config, &OmiseGO.Eth.get_deposits/2, &State.deposit/1],
         [id: :depositor]
       ),
       worker(
         OmiseGO.API.EthereumEventListener,
-        [event_listener_config, &OmiseGO.Eth.get_exits/3, &State.exit_utxos/1],
+        [event_listener_config, &OmiseGO.Eth.get_exits/2, &State.exit_utxos/1],
         [id: :exiter]
       )
     ]

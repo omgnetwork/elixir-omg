@@ -20,9 +20,7 @@ defmodule OmiseGO.API.State.Core do
     # extract height, last deposit height and utxos from query result
     height = height_query_result + child_block_interval
 
-    utxos =
-      utxos_query_result
-      |> Enum.into(%{})
+    utxos = Enum.reduce(utxos_query_result, %{}, &Map.merge/2)
 
     %__MODULE__{
       height: height,
@@ -34,7 +32,8 @@ defmodule OmiseGO.API.State.Core do
   @doc """
   Includes the transaction into the state when valid, rejects otherwise.
   """
-  @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{}) :: %Core{}
+  @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{})
+        :: {{:ok, <<_::256>>, pos_integer, pos_integer}, %Core{}} | {:error, %Core{}}
   def exec(
         %Transaction.Recovered{
           raw_tx: raw_tx,
@@ -171,8 +170,7 @@ defmodule OmiseGO.API.State.Core do
       txs = Enum.reverse(reverse_txs)
 
       block =
-        txs
-        |> (fn txs -> %Block{transactions: txs} end).()
+        %Block{transactions: txs, number: height}
         |> Block.merkle_hash()
 
       event_triggers =
@@ -195,8 +193,10 @@ defmodule OmiseGO.API.State.Core do
 
       db_updates_block = [{:put, :block, block}]
 
+      db_updates_top_block_number = [{:put, :child_top_block_number, height}]
+
       db_updates =
-        [db_updates_new_utxos, db_updates_spent_utxos, db_updates_block]
+        [db_updates_new_utxos, db_updates_spent_utxos, db_updates_block, db_updates_top_block_number]
         |> Enum.concat()
 
       new_state = %Core{
@@ -212,6 +212,10 @@ defmodule OmiseGO.API.State.Core do
 
   defp validate_block_number(expected_block_num, %Core{height: height}) do
     if expected_block_num == height, do: :ok, else: {:error, :invalid_current_block_number}
+  end
+
+  def decode_deposit(%{owner: "0x" <> owner_enc} = deposit) do
+    %{deposit | owner: Base.decode16!(owner_enc, case: :lower)}
   end
 
   def deposit(deposits, %Core{utxos: utxos, last_deposit_height: last_deposit_height} = state) do
