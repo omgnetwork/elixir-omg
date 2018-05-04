@@ -47,7 +47,7 @@ defmodule OmiseGO.WS.Application.Test do
 
   test "OmiseGO Websockets should start fine" do
     assert {:ok, started} = Application.ensure_all_started(:omisego_ws)
-    assert :omisego_ws in started
+    assert :omisego_ws in (Application.started_applications() |> Enum.map(fn {atom, _, _} -> atom end))
     for app <- started, do: :ok = Application.stop(app)
   end
 

@@ -40,11 +40,13 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     process_info = Port.open({:spawn, comand}, [:stream])
     info_pid = Port.info(process_info, :os_pid)
 
-    Logger.debug("""
-    running process:
-        proces_info:\t#{inspect(process_info)}
-        pid:\t#{inspect(info_pid)}
-    """)
+    Logger.debug(fn ->
+      """
+      running process:
+          proces_info:\t#{inspect(process_info)}
+          pid:\t#{inspect(info_pid)}
+      """
+    end)
 
     {:ok,
      fn ->
@@ -55,10 +57,10 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
            System.cmd("pkill", ["-P", Integer.to_string(system_pid)])
            # kill process
            System.cmd("kill", ["-9", Integer.to_string(system_pid)])
-           Logger.debug("kill process: #{comand}\n\tpid: #{system_pid}")
+           Logger.debug(fn -> "kill process: #{comand}\n\tpid: #{system_pid}" end)
 
          _ ->
-           Logger.debug("kill process: #{comand}\n\tthe process was killed earlier")
+           Logger.debug(fn -> "kill process: #{comand}\n\tthe process was killed earlier" end)
        end
      end}
   end
@@ -72,9 +74,9 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
   deffixture contract(geth) do
     _ = geth
     {:ok, contract_address, txhash, authority} = OmiseGO.Eth.DevHelpers.prepare_env("../../")
-    #TODO think about another solution
-    Application.put_env(:omisego_watcher, OmiseGOWatcher.TrackerOmisego, %{
-      contract_address: contract_address})
+    # TODO think about another solution
+    Application.put_env(:omisego_watcher, OmiseGOWatcher.TrackerOmisego, %{contract_address: contract_address})
+
     %{
       address: contract_address,
       from: authority,
@@ -89,12 +91,12 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     |> File.open!([:write])
     |> IO.binwrite(
       OmiseGO.Eth.DevHelpers.create_conf_file(contract.address, contract.txhash, contract.from) <>
-        "\n" <> String.replace( ("../omisego_api/config/config.exs" |> File.read() |> elem(1)) ,"use Mix.Config","")
+        "\n" <> String.replace("../omisego_api/config/config.exs" |> File.read() |> elem(1), "use Mix.Config", "")
     )
     |> File.close()
 
     {:ok, config} = File.read(file_path)
-    Logger.debug(IO.ANSI.format([:blue, :bright, config], true))
+    Logger.debug(fn -> IO.ANSI.format([:blue, :bright, config], true) end)
 
     {:ok, kill_process} =
       run_process("./run_child.sh #{file_path}", fn msg ->
