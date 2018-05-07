@@ -26,8 +26,9 @@ defmodule OmiseGO.API.State do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
   end
 
+  @spec utxo_exists(%{blknum: number, txindex: number, oindex: number}) :: :utxo_exists | :utxo_does_not_exist
   def utxo_exists(utxo) do
-    GenServer.call(__MODULE__, {:utxo_exists, utxo})
+    GenServer.call(__MODULE__, {:utxo_exists, utxo})::
   end
 
   ### Server
@@ -94,8 +95,8 @@ defmodule OmiseGO.API.State do
   @doc """
   Tells if utxo exists
   """
-  def handle_call({:utxo_exists, utxos}, _from, state) do
-    {:reply, Core.utxo_exists(utxos, state), state}
+  def handle_call({:utxo_exists, utxo}, _from, state) do
+    {:reply, Core.utxo_exists(utxo, state), state}
   end
 
   @doc """

@@ -20,7 +20,7 @@ defmodule OmiseGOWatcher.Application do
       worker(
         OmiseGO.API.EthereumEventListener,
         [get_event_listener_config(), &OmiseGO.Eth.get_exits/2,
-         &OmiseGOWatcher.FastExitValidator.validate_exit/1],
+         &OmiseGOWatcher.FastExitValidator.validate_exits/1],
         [id: :fast_exiter_listener]
       )
     ]
