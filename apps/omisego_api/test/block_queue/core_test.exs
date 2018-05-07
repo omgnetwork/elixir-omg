@@ -43,6 +43,13 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
   end
 
   describe "Block queue." do
+    test "Requests correct block range on initialization" do
+      assert [] == child_block_nums_to_init_with(0)
+      assert [] == child_block_nums_to_init_with(99)
+      assert [1000] == child_block_nums_to_init_with(1000)
+      assert [1000, 2000, 3000] == child_block_nums_to_init_with(3000)
+    end
+
     test "Recovers after restart to proper mined height" do
       assert ["8", "9"] =
         ["5", "6", "7", "8", "9"]

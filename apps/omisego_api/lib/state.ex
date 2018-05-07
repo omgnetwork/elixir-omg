@@ -4,6 +4,12 @@ defmodule OmiseGO.API.State do
   """
   # TODO: file skipped in coveralls.json - this should be undone, when some integration tests land for this
 
+  alias OmiseGO.API.State.Core
+  alias OmiseGO.API.Eventer
+  alias OmiseGO.API.FreshBlocks
+  alias OmiseGO.API.BlockQueue
+  alias OmiseGO.DB
+
   ### Client
 
   def start_link(_args) do
@@ -18,7 +24,8 @@ defmodule OmiseGO.API.State do
     GenServer.call(__MODULE__, {:form_block, block_num_to_form, next_block_num_to_form})
   end
 
-  def deposit(deposits) do
+  def deposit(deposits_enc) do
+    deposits = Enum.map(deposits_enc, &Core.decode_deposit/1)
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
@@ -35,11 +42,6 @@ defmodule OmiseGO.API.State do
 
   use GenServer
 
-  alias OmiseGO.API.State.Core
-  alias OmiseGO.API.Eventer
-  alias OmiseGO.API.FreshBlocks
-  alias OmiseGO.DB
-
   @doc """
   Start processing state using the database entries
   """
@@ -53,8 +55,7 @@ defmodule OmiseGO.API.State do
           utxos_query_result,
           height_query_result,
           last_deposit_query_result,
-          # FIXME provide from somewhere
-          1000
+          BlockQueue.child_block_interval()
         )
       }
     end

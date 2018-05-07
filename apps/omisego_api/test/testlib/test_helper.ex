@@ -39,4 +39,5 @@ defmodule OmiseGO.API.TestHelper do
 
     Transaction.Recovered.recover_from(Transaction.sign(raw_tx, sig1, sig2))
   end
+
 end
