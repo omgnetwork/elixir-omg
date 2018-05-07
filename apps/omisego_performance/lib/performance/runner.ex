@@ -19,6 +19,9 @@ defmodule OmiseGO.Performance.Runner do
     # fire async transaction senders
     1..nusers |> Enum.each(fn senderid -> OmiseGO.Performance.SenderServer.start_link({senderid, ntx_to_send}) end)
 
+    # fire block creator
+    OmiseGO.Performance.BlockCreator.start_link()
+
     # Wait all senders do thier job, checker will stop when it happens and stops itself
     wait_for(OmiseGO.Performance.Registry)
     stop = :os.system_time(:millisecond)

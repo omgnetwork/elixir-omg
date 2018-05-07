@@ -86,6 +86,8 @@ defmodule OmiseGO.Performance.SenderServer do
   def submit_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx}) do
     alias OmiseGO.API.State.Transaction
 
+    sleep(seqnum)
+
     to_spend = 9
     newamount = last_tx.amount - to_spend
     recipient = generate_participant_address()
@@ -104,10 +106,10 @@ defmodule OmiseGO.Performance.SenderServer do
         Logger.debug(fn -> "[#{seqnum}]: Transaction submission has failed, reason: #{reason}" end)
         {:error, reason}
 
-      {:ok, %{blknum: blknum, tx_index: txindex}} ->
-        Logger.debug(fn -> "[#{seqnum}]: Transaction submitted successfully" end)
-        {:ok, blknum, txindex, newamount}
-    end
+        {:ok, _, blknum, txindex} ->
+          Logger.debug(fn -> "[#{seqnum}]: Transaction submitted successfully {#{blknum}, #{txindex}, #{newamount}}" end)
+          {:ok, blknum, txindex, newamount}
+      end
   end
 
   @doc """
@@ -154,5 +156,10 @@ defmodule OmiseGO.Performance.SenderServer do
             amount: amount
         }
     }
+  end
+
+  defp sleep(seqnum) do
+    Logger.debug(fn -> "[#{seqnum}]: Need some sleep" end)
+    [500, 800, 1000, 1300] |> Enum.random |> Process.sleep
   end
 end
