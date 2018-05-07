@@ -35,7 +35,7 @@ defmodule OmiseGO.API.State do
 
   @spec utxo_exists(%{blknum: number, txindex: number, oindex: number}) :: :utxo_exists | :utxo_does_not_exist
   def utxo_exists(utxo) do
-    GenServer.call(__MODULE__, {:utxo_exists, utxo})::
+    GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end
 
   ### Server

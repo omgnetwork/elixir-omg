@@ -19,9 +19,13 @@ geth:
 env:         ## deploy contract, fund authority address and write dev.exs file
 	mix run --no-start -e 'OmiseGO.Eth.DevHelpers.prepare_dev_env()'
 
-run:         ## run the node in dev mode; see also `geth`, `env` and `eth_block` targets
-run: compile
-	iex --sname main -S mix
+run operator:         ## run the node in dev mode; see also `geth`, `env` and `eth_block` targets
+run operator: compile
+	cd apps/omisego_api; iex --sname main -S mix
+
+run watcher:  ## run watcher in dev mode; see also `geth`, `env` and `eth_block` targets
+run watcher: compile
+	cd apps/omisego_watcher; iex --sname main -S mix
 
 remsh:       ## iex shell to running node
 remsh:
