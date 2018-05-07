@@ -5,8 +5,6 @@ defmodule OmiseGO.API.Fixtures do
 
   import OmiseGO.API.TestHelper
 
-  @child_block_interval 1000
-
   deffixture entities do
     %{
       alice: generate_entity(),
@@ -41,7 +39,7 @@ defmodule OmiseGO.API.Fixtures do
   deffixture(stable_bob(entities), do: entities.stable_bob)
 
   deffixture state_empty() do
-    Core.extract_initial_state([], 0, 0, @child_block_interval)
+    Core.extract_initial_state([], 0, 0, OmiseGO.API.BlockQueue.child_block_interval())
   end
 
   deffixture state_alice_deposit(state_empty, alice) do

@@ -10,7 +10,7 @@ compile:     ## compile
 
 test:        ## run tests
 test: compile
-	mix test --no-start --include requires_geth
+	mix test --no-start --include integration
 
 geth:        ## `geth --dev` with personal api enabled
 geth:

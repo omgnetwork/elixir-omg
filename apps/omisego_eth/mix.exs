@@ -27,7 +27,16 @@ defmodule OmiseGO.Eth.MixProject do
       {:abi, git: "https://github.com/omisego/abi.git", branch: "add_bytes32"},
       {:ethereumex, git: "https://github.com/omisego/ethereumex.git", branch: "personal__api", override: true},
       {:temp, "~> 0.4"},
-      {:porcelain, "~> 2.0"}
+      {:porcelain, "~> 2.0"},
+      {
+        :plasma_mvp_contracts,
+        git: "https://github.com/omisego/plasma-mvp.git",
+        ref: "2c1d6d324ea164b2081c628170da4bae59c9018e",
+        sparse: "plasma/root_chain/contracts/",
+        compile: false,
+        app: false,
+        only: [:dev, :test],
+      },
     ]
   end
 end

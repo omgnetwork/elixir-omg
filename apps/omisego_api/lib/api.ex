@@ -8,13 +8,11 @@ defmodule OmiseGO.API do
   alias OmiseGO.API.FreshBlocks
   alias OmiseGO.DB
 
-  use OmiseGO.API.ExposeSpec
-
-  @spec submit(byte) :: {:ok | :error, binary}
+  @spec submit(byte) :: {:ok, integer, integer, byte} | {:error, any}
   def submit(encoded_singed_tx) do
     with {:ok, recovered_tx} <- Core.recover_tx(encoded_singed_tx),
          tx_result <- State.exec(recovered_tx),
-         do: {tx_result, recovered_tx.signed_tx_hash}
+         do: tx_result
   end
 
   def get_block(hash) do
