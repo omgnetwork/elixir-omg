@@ -24,7 +24,7 @@ podTemplate(
 
         stage('Unit test Child Chain Server') {
             withEnv(["MIX_ENV=test"]) {
-                sh("mix coveralls.html --no-start --umbrella")
+                sh("mix do compile --warnings-as-errors --force, coveralls.html --no-start --umbrella")
             }
         }
 
