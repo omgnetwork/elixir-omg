@@ -7,7 +7,6 @@ defmodule OmiseGO.JSONRPC.Server.Handler do
   use JSONRPC2.Server.Handler
 
   def handle_request(method, params) do
-    IO.puts("handle_request <<")
     OmiseGO.JSONRPC.Exposer.handle_request_on_api(method, params, OmiseGO.API)
   end
 end
