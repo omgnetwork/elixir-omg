@@ -46,9 +46,8 @@ defmodule OmiseGO.API.State.Transaction.Signed do
   defp rlp_decode(line) do
     try do
       {:ok, ExRLP.decode(line)}
-    catch
-      _ ->
-        {:error, :malformed_transaction_rlp}
+    rescue
+      _ -> {:error, :malformed_transaction_rlp}
     end
   end
 

@@ -21,12 +21,29 @@ defmodule OmiseGO.API.TestHelper do
     new_state
   end
 
+  @doc """
+  convenience function around Transaction.new to create recovered transactions,
+  by allowing to provider private keys of utxo owners along with the inputs
+  """
   @spec create_recovered(
-          list({pos_integer, pos_integer, 0 | 1}),
+          list({pos_integer, pos_integer, 0 | 1, map}),
           list({<<_::256>>, pos_integer}),
           pos_integer
         ) :: Transaction.Recovered.t()
   def create_recovered(inputs, outputs, fee \\ 0) do
+    {signed_tx, _raw_tx} = create_signed(inputs, outputs, fee)
+    Transaction.Recovered.recover_from(signed_tx)
+  end
+
+  @doc """
+  convenience function around Transaction.new to create signed transactions (see create_recovered)
+  """
+  @spec create_signed(
+          list({pos_integer, pos_integer, 0 | 1, map}),
+          list({<<_::256>>, pos_integer}),
+          pos_integer
+        ) :: {Transaction.Signed.t(), Transaction.t()}
+  def create_signed(inputs, outputs, fee \\ 0) do
     raw_tx =
       Transaction.new(
         inputs |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end),
@@ -34,10 +51,10 @@ defmodule OmiseGO.API.TestHelper do
         fee
       )
 
-    [sig1, sig2 | _] =
+    [priv1, priv2 | _] =
       inputs |> Enum.map(fn {_, _, _, owner} -> owner.priv end) |> Enum.concat([<<>>, <<>>])
 
-    Transaction.Recovered.recover_from(Transaction.sign(raw_tx, sig1, sig2))
+    {Transaction.sign(raw_tx, priv1, priv2), raw_tx}
   end
 
 end
