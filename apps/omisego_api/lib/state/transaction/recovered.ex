@@ -34,11 +34,5 @@ defmodule OmiseGO.API.State.Transaction.Recovered do
   end
 
   defp get_spender(_hash_no_spenders, @empty_signature), do: {:ok, nil}
-
-  defp get_spender(hash_no_spenders, sig) do
-    case Crypto.recover_address(hash_no_spenders, sig) do
-      {:error, "Recovery id invalid 0-3"} -> {:error, :signature_corrupt}
-      other -> other
-    end
-  end
+  defp get_spender(hash_no_spenders, sig), do: Crypto.recover_address(hash_no_spenders, sig)
 end

@@ -44,19 +44,25 @@ defmodule OmiseGO.API.Crypto do
   @doc """
   Recovers address of signer from binary-encoded signature.
   """
-  @spec recover_address(<<_::256>>, <<_::520>>) :: {:ok, <<_::160>>}
+  @spec recover_address(<<_::256>>, <<_::520>>) :: {:ok, <<_::160>>} | {:error, :signature_corrupt}
   def recover_address(<<digest :: binary-size(32)>>, <<packed_signature :: binary-size(65)>>) do
-    with {:ok, pub} <- recover_public(digest, packed_signature),
-         do: generate_address(pub)
+    with {:ok, pub} <- recover_public(digest, packed_signature) do
+      generate_address(pub)
+    end
   end
 
   @doc """
   Recovers public key of signer from binary-encoded signature.
   """
-  @spec recover_public(<<_::256>>, <<_::520>>) :: {:ok, <<_::512>>}
+  @spec recover_public(<<_::256>>, <<_::520>>) :: {:ok, <<_::512>>} | {:error, :signature_corrupt}
   def recover_public(<<digest :: binary-size(32)>>, <<packed_signature :: binary-size(65)>>) do
     {v, r, s} = unpack_signature(packed_signature)
-    Blockchain.Transaction.Signature.recover_public(digest, v, r, s)
+    with {:ok, pub} = result <- Blockchain.Transaction.Signature.recover_public(digest, v, r, s) do
+      result
+    else
+      {:error, "Recovery id invalid 0-3"} -> {:error, :signature_corrupt}
+      other -> other
+    end
   end
 
   @doc """
