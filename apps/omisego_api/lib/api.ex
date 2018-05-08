@@ -19,8 +19,7 @@ defmodule OmiseGO.API do
          do: {:ok, %{tx_hash: Base.encode64(tx_hash), blknum: blknum, tx_index: tx_index}}
   end
 
-  # return json
-  @spec get_block(hash :: String.t()) :: any
+  @spec get_block(hash :: String.t()) :: none | {:ok, any}
   def get_block(hash), do: {:ok, encode(FreshBlocks.get(Base.decode16!(hash)))}
 
   def encode(arg) when is_binary(arg), do: Base.encode16(arg)
