@@ -58,7 +58,7 @@ podTemplate(
 
         stage('Cleanbuild') {
             withEnv(["MIX_ENV=test"]) {
-                sh("mix compile --force --warnings-as-errors")
+                sh("mix do compile --warnings-as-errors --force, test --no-start --exclude test")
             }
         }
 /*
