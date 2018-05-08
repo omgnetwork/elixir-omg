@@ -28,7 +28,7 @@ defmodule OmiseGO.API do
     arg = Map.from_struct(arg)
 
     for {key, value} <- arg, into: %{} do
-      {to_string(key), encode(value)}
+      {key, encode(value)}
     end
   end
 
