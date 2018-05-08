@@ -13,17 +13,14 @@ defmodule OmiseGO.Performance.Runner do
   def run(testid, ntx_to_send, nusers) do
     start = :os.system_time(:millisecond)
 
-    # init proces registry
-    {:ok, _} = Registry.start_link(keys: :duplicate, name: OmiseGO.Performance.Registry)
-
     # fire async transaction senders
-    1..nusers |> Enum.each(fn senderid -> OmiseGO.Performance.SenderServer.start_link({senderid, ntx_to_send}) end)
+    manager = OmiseGO.Performance.SenderManager.start(ntx_to_send, nusers)
 
     # fire block creator
     OmiseGO.Performance.BlockCreator.start_link()
 
     # Wait all senders do thier job, checker will stop when it happens and stops itself
-    wait_for(OmiseGO.Performance.Registry)
+    wait_for(manager)
     stop = :os.system_time(:millisecond)
 
     {:ok, "{ total_runtime_in_ms: #{stop - start}, testid: #{testid} }"}
@@ -49,8 +46,7 @@ defmodule OmiseGO.Performance.Runner do
   # Waits until all sender processes ends sending Tx and deregister themselves from the registry
   @spec wait_for(registry :: pid() | atom()) :: :ok
   defp wait_for(registry) do
-    ref = Process.monitor(OmiseGO.Performance.WaitFor.start(registry))
-
+    ref = Process.monitor(registry)
     receive do
       {:DOWN, ^ref, :process, _obj, reason} ->
         Logger.info("Stoping performance tests, reason: #{reason}")

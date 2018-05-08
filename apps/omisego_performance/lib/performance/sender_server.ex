@@ -3,6 +3,9 @@ defmodule OmiseGO.Performance.SenderServer do
   The SenderServer process synchronously sends requested number of transactions to the blockchain server.
   """
 
+  # Waiting time (in milliseconds) before unsuccessful Tx submittion is retried.
+  @tx_retry_waiting_time_ms 333
+
   require Logger
   use GenServer
 
@@ -45,7 +48,6 @@ defmodule OmiseGO.Performance.SenderServer do
   @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, init_state :: __MODULE__.state()}
   def init({seqnum, ntx_to_send}) do
     Logger.debug(fn -> "[#{seqnum}] +++ init/1 called with requests: '#{ntx_to_send}' +++" end)
-    Registry.register(OmiseGO.Performance.Registry, :sender, "Sender: #{seqnum}")
 
     spender = generate_participant_address()
     Logger.debug(fn -> "[#{seqnum}]: Address #{Base.encode64(spender.addr)}" end)
@@ -64,18 +66,24 @@ defmodule OmiseGO.Performance.SenderServer do
   Submits transaction then schedules call to itself if more left.
   Otherwise unregisters from the Registry and stops.
   """
-  @spec handle_info(:do, state :: __MODULE__.state()) ::
-          {:noreply, new_state :: __MODULE__.state()} | {:stop, :normal, nil}
-  def handle_info(:do, %__MODULE__{seqnum: seqnum, ntx_to_send: ntx_to_send} = state) do
-    if ntx_to_send > 0 do
-      {:ok, newblknum, newtxindex, newvalue} = submit_tx(state)
-      send(self(), :do)
-      {:noreply, state |> next_state(newblknum, newtxindex, newvalue)}
-    else
-      Registry.unregister(OmiseGO.Performance.Registry, :sender)
-      Logger.debug(fn -> "[#{seqnum}] +++ Stoping... +++" end)
-      {:stop, :normal, state}
+  @spec handle_info(:do, state :: __MODULE__.state) :: {:noreply, new_state :: __MODULE__.state} | {:stop, :normal, nil}
+  def handle_info(:do, %__MODULE__{ntx_to_send: 0} = state) do
+    OmiseGO.Performance.SenderManager.sender_completed(state.seqnum)
+    Logger.debug(fn -> "[#{state.seqnum}] +++ Stoping... +++" end)
+    {:stop, :normal, state}
+  end
+
+  def handle_info(:do, %__MODULE__{} = state) do
+    newstate = case submit_tx(state) do
+      {:ok, newblknum, newtxindex, newvalue} ->
+        send(self(), :do)
+        state |> next_state(newblknum, newtxindex, newvalue)
+
+      :retry ->
+        Process.send_after(self(), :do, @tx_retry_waiting_time_ms)
+        state
     end
+    {:noreply, newstate}
   end
 
   @doc """
@@ -86,7 +94,7 @@ defmodule OmiseGO.Performance.SenderServer do
   def submit_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx}) do
     alias OmiseGO.API.State.Transaction
 
-    sleep(seqnum)
+    random_sleep(seqnum)
 
     to_spend = 9
     newamount = last_tx.amount - to_spend
@@ -99,12 +107,24 @@ defmodule OmiseGO.Performance.SenderServer do
       |> Transaction.sign(spender.priv, <<>>)
       |> Transaction.Signed.encode()
 
+<<<<<<< 5a03a3300d88cd0ad20e66ffc9c880b63431833f
     result = OmiseGO.API.submit(Base.encode16(tx))
 
     case result do
       {:error, reason} ->
         Logger.debug(fn -> "[#{seqnum}]: Transaction submission has failed, reason: #{reason}" end)
         {:error, reason}
+=======
+      result = OmiseGO.API.submit(tx)
+      case result do
+        {:error, :too_many_transactions_in_block} ->
+          Logger.info(fn -> "[#{seqnum}]: Transaction submittion will be retried, block #{last_tx.blknum} is full." end)
+          :retry
+
+        {:error,  reason} ->
+          Logger.debug(fn -> "[#{seqnum}]: Transaction submission has failed, reason: #{reason}" end)
+          {:error, reason}
+>>>>>>> Integrating senders registry and wait_for into single SenderManager module
 
         {:ok, _, blknum, txindex} ->
           Logger.debug(fn -> "[#{seqnum}]: Transaction submitted successfully {#{blknum}, #{txindex}, #{newamount}}" end)
@@ -158,7 +178,8 @@ defmodule OmiseGO.Performance.SenderServer do
     }
   end
 
-  defp sleep(seqnum) do
+  # Helper function to test interaction between Performance modules
+  defp random_sleep(seqnum) do
     Logger.debug(fn -> "[#{seqnum}]: Need some sleep" end)
     [500, 800, 1000, 1300] |> Enum.random |> Process.sleep
   end

@@ -6,21 +6,29 @@ defmodule OmiseGO.Performance.BlockCreator do
   require Logger
   use GenServer
 
-  @request_block_creation_every_ms 2500
+  @request_block_creation_every_ms 4300
+  @initial_block_number 1000
 
   def start_link do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    GenServer.start_link(__MODULE__, @initial_block_number, name: __MODULE__)
   end
 
   def init(args) do
     Logger.debug(fn -> "[BC] +++ init/1 called with args: '#{inspect args}' +++" end)
-    Process.send_after(self(), :do, @request_block_creation_every_ms)
+    reschedule_task()
     {:ok, args}
   end
 
-  def handle_info(:do, state) do
-    Logger.debug(fn -> "[BC]: Forming new block {which?}" end)
-    OmiseGO.API.State.form_block(1000, 2000)
-    {:noreply, state}
+  def handle_info(:do, blknum) do
+    newblknum = blknum + 1000
+    Logger.debug(fn -> "[BC]: Forming block #{blknum}, next #{newblknum}" end)
+    OmiseGO.API.State.form_block(blknum, newblknum)
+
+    reschedule_task()
+    {:noreply, newblknum}
+  end
+
+  defp reschedule_task do
+    Process.send_after(self(), :do, @request_block_creation_every_ms)
   end
 end
