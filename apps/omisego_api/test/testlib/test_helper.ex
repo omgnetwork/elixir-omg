@@ -32,7 +32,8 @@ defmodule OmiseGO.API.TestHelper do
         ) :: Transaction.Recovered.t()
   def create_recovered(inputs, outputs, fee \\ 0) do
     {signed_tx, _raw_tx} = create_signed(inputs, outputs, fee)
-    Transaction.Recovered.recover_from(signed_tx)
+    {:ok, recovered} = Transaction.Recovered.recover_from(signed_tx)
+    recovered
   end
 
   @doc """

@@ -46,8 +46,8 @@ defmodule OmiseGO.API.Crypto do
   """
   @spec recover_address(<<_::256>>, <<_::520>>) :: {:ok, <<_::160>>}
   def recover_address(<<digest :: binary-size(32)>>, <<packed_signature :: binary-size(65)>>) do
-    {:ok, pub} = recover_public(digest, packed_signature)
-    generate_address(pub)
+    with {:ok, pub} <- recover_public(digest, packed_signature),
+         do: generate_address(pub)
   end
 
   @doc """

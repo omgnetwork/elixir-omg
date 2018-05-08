@@ -40,11 +40,10 @@ defmodule OmiseGO.API.Api.CoreTest do
     |> Enum.map(parametrized_tester)
   end
 
-  test "encoded transaction is malformed" do
-    empty_tx = <<192>>
-    assert {:error, :malformed_transaction} = Core.recover_tx(empty_tx)
-    empty_tx = <<0x80>>
-    assert {:error, :malformed_transaction} = Core.recover_tx(empty_tx)
+  test "encoded transaction is malformed or empty" do
+    assert {:error, :malformed_transaction} = Core.recover_tx(<<192>>)
+    assert {:error, :malformed_transaction} = Core.recover_tx(<<0x80>>)
+    assert {:error, :malformed_transaction} = Core.recover_tx(<<>>)
   end
 
   @tag fixtures: [:alice, :bob]
@@ -61,12 +60,6 @@ defmodule OmiseGO.API.Api.CoreTest do
     assert {:error, :malformed_transaction_rlp} = Core.recover_tx(malformed2)
     assert {:error, :malformed_transaction_rlp} = Core.recover_tx(malformed3)
     assert {:error, :malformed_transaction_rlp} = Core.recover_tx(malformed4)
-  end
-
-  test "encoded transaction is empty" do
-    empty_tx = <<>>
-
-    assert {:error, :malformed_transaction} = Core.recover_tx(empty_tx)
   end
 
   @tag fixtures: [:alice, :bob]
@@ -121,7 +114,7 @@ defmodule OmiseGO.API.Api.CoreTest do
   end
 
   @tag fixtures: [:alice]
-  test "transaction is not allowed to have 2 empty inputs", %{alice: alice}  do
+  test "transaction is never allowed to have 2 empty inputs", %{alice: alice}  do
     {double_zero_tx1, _} =
       create_encoded([{0, 0, 0, %{priv: <<>>}}, {0, 0, 0, %{priv: <<>>}}], [{alice, 7}])
     {double_zero_tx2, _} =
