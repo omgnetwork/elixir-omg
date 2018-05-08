@@ -34,8 +34,15 @@ defmodule OmiseGO.Performance.SenderManager do
     {:ok, %{senders: senders, events: []}}
   end
 
+  @doc """
+  Removes sender process which has done sending from a registry.
+  """
   def sender_completed(seqnum) do
     GenServer.cast(__MODULE__, {:done, seqnum})
+  end
+
+  def sender_stats(seqnum, blknum, txindex, txs_left) do
+    GenServer.cast(__MODULE__, {:stats, {seqnum, blknum, txindex, txs_left, :os.system_time(:millisecond)}})
   end
 
   @doc """
@@ -45,6 +52,7 @@ defmodule OmiseGO.Performance.SenderManager do
   :: {:noreply, newstate :: pid | atom} | {:stop, :shutdown, state :: pid | atom}
   def handle_info(:check, %{senders: senders} = state) when length(senders) == 0 do
     Logger.debug(fn -> "[SM] +++ Stoping... +++" end)
+    IO.puts "Manager state:\n#{inspect state}"  #TODO: remove
     {:stop, :normal, state}
   end
 
@@ -60,6 +68,13 @@ defmodule OmiseGO.Performance.SenderManager do
   @spec handle_cast({:done, seqnum :: integer}, state :: map()) :: {:noreply, map()}
   def handle_cast({:done, seqnum}, %{senders: senders} = state) do
     {:noreply, %{state | senders: Enum.reject(senders, &(match?({^seqnum, _}, &1)))}}
+  end
+
+  @doc """
+  Register performance statistics event received from sender process.
+  """
+  def handle_cast({:stats, event}, state) do
+    {:noreply, %{state | events: [event | state.events]}}
   end
 
   # Sends :check message to itself in @check_senders_done_every_ms milliseconds.

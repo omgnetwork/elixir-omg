@@ -6,7 +6,7 @@ defmodule OmiseGO.Performance.BlockCreator do
   require Logger
   use GenServer
 
-  @request_block_creation_every_ms 4300
+  @request_block_creation_every_ms 9000
   @initial_block_number 1000
 
   def start_link do

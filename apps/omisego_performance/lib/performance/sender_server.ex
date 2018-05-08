@@ -68,8 +68,11 @@ defmodule OmiseGO.Performance.SenderServer do
   """
   @spec handle_info(:do, state :: __MODULE__.state) :: {:noreply, new_state :: __MODULE__.state} | {:stop, :normal, nil}
   def handle_info(:do, %__MODULE__{ntx_to_send: 0} = state) do
-    OmiseGO.Performance.SenderManager.sender_completed(state.seqnum)
     Logger.debug(fn -> "[#{state.seqnum}] +++ Stoping... +++" end)
+
+    %__MODULE__{seqnum: seqnum, ntx_to_send: ntx_to_send, last_tx: %LastTx{blknum: blknum, txindex: txindex}} = state
+    OmiseGO.Performance.SenderManager.sender_stats(seqnum, blknum, txindex, ntx_to_send)
+    OmiseGO.Performance.SenderManager.sender_completed(state.seqnum)
     {:stop, :normal, state}
   end
 
@@ -89,9 +92,9 @@ defmodule OmiseGO.Performance.SenderServer do
   @doc """
   Submits new transaction to the blockchain server.
   """
-  @spec submit_tx(__MODULE__.state()) ::
-          {result :: tuple, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
-  def submit_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx}) do
+  @spec submit_tx(__MODULE__.state)
+  :: {result :: tuple, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
+  def submit_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx} = state) do
     alias OmiseGO.API.State.Transaction
 
     random_sleep(seqnum)
@@ -128,6 +131,7 @@ defmodule OmiseGO.Performance.SenderServer do
 
         {:ok, _, blknum, txindex} ->
           Logger.debug(fn -> "[#{seqnum}]: Transaction submitted successfully {#{blknum}, #{txindex}, #{newamount}}" end)
+          if blknum > last_tx.blknum, do: OmiseGO.Performance.SenderManager.sender_stats(seqnum, last_tx.blknum, last_tx.txindex, state.ntx_to_send)
           {:ok, blknum, txindex, newamount}
       end
   end
