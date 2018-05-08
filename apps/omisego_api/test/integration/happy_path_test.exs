@@ -13,7 +13,6 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   @moduletag :integration
 
   deffixture db_path_config() do
-    a = 1
     dir = Temp.mkdir!()
 
     Application.put_env(:omisego_db, :leveldb_path, dir, persistent: true)
