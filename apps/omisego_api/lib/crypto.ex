@@ -57,7 +57,7 @@ defmodule OmiseGO.API.Crypto do
   @spec recover_public(<<_::256>>, <<_::520>>) :: {:ok, <<_::512>>} | {:error, :signature_corrupt}
   def recover_public(<<digest :: binary-size(32)>>, <<packed_signature :: binary-size(65)>>) do
     {v, r, s} = unpack_signature(packed_signature)
-    with {:ok, pub} = result <- Blockchain.Transaction.Signature.recover_public(digest, v, r, s) do
+    with {:ok, _pub} = result <- Blockchain.Transaction.Signature.recover_public(digest, v, r, s) do
       result
     else
       {:error, "Recovery id invalid 0-3"} -> {:error, :signature_corrupt}
