@@ -22,8 +22,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
     gas_price_to_use: 20_000_000_000,
     mined_child_block_num: 0,
     # config:
-    child_block_interval: 1000,
-    chain_start_parent_height: 1,
+    child_block_interval: nil,
+    chain_start_parent_height: nil,
     submit_period: 1,
     finality_threshold: 12
   ]
