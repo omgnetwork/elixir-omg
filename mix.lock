@@ -14,7 +14,7 @@
   "ecto": {:hex, :ecto, "2.2.10", "e7366dc82f48f8dd78fcbf3ab50985ceeb11cb3dc93435147c6e13f2cda0992e", [:mix], [{:db_connection, "~> 1.1", [hex: :db_connection, repo: "hexpm", optional: true]}, {:decimal, "~> 1.2", [hex: :decimal, repo: "hexpm", optional: false]}, {:mariaex, "~> 0.8.0", [hex: :mariaex, repo: "hexpm", optional: true]}, {:poison, "~> 2.2 or ~> 3.0", [hex: :poison, repo: "hexpm", optional: true]}, {:poolboy, "~> 1.5", [hex: :poolboy, repo: "hexpm", optional: false]}, {:postgrex, "~> 0.13.0", [hex: :postgrex, repo: "hexpm", optional: true]}, {:sbroker, "~> 1.0", [hex: :sbroker, repo: "hexpm", optional: true]}], "hexpm"},
   "eleveldb": {:hex, :eleveldb, "2.2.20", "1fff63a5055bbf4bf821f797ef76065882b193f5e8095f95fcd9287187773b58", [:rebar3], [], "hexpm"},
   "esqlite": {:hex, :esqlite, "0.2.3", "1a8b60877fdd3d50a8a84b342db04032c0231cc27ecff4ddd0d934485d4c0cd5", [:rebar3], [], "hexpm"},
-  "ethereumex": {:git, "https://github.com/omisego/ethereumex.git", "c17695ce1ce1d0a09f7422b3871dc510499befc8", [branch: "personal__api"]},
+  "ethereumex": {:git, "https://github.com/omisego/ethereumex.git", "a76177c3027a7c8e200df3e44a3d11cedfa86807", [branch: "request_timeout"]},
   "evm": {:hex, :evm, "0.1.14", "59a3fd332beb6a529cd7c2571a87a7f63c51200f2de381a412ee9bb02f5cbbcc", [:mix], [{:keccakf1600, "~> 2.0.0", [hex: :keccakf1600_orig, repo: "hexpm", optional: false]}, {:merkle_patricia_tree, "~> 0.2.5", [hex: :merkle_patricia_tree, repo: "hexpm", optional: false]}], "hexpm"},
   "ex_rlp": {:hex, :ex_rlp, "0.2.1", "bd320900d6316cdfe01d365d4bda22eb2f39b359798daeeffd3bd1ca7ba958ec", [:mix], [], "hexpm"},
   "ex_unit_fixtures": {:hex, :ex_unit_fixtures, "0.3.1", "8ea3fcf6973529c016792b9a424d9e94101e9f7f01a111bd41a2d4e13cc5fa59", [:mix], [], "hexpm"},
