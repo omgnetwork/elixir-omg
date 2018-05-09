@@ -10,30 +10,36 @@ defmodule OmiseGO.API do
 
   use OmiseGO.API.ExposeSpec
 
-  @spec submit(encoded_signed_tx :: String.t()) :: {:ok, %{tx_hash: String.t(), blknum: integer, tx_index: integer}}
+  @spec submit(encoded_signed_tx :: String.t()) ::
+          {:ok, %{tx_hash: String.t(), blknum: integer, tx_index: integer}} | :error
   def submit(transaction_hash) do
-    encoded_singed_tx = Base.decode16!(transaction_hash)
-
-    with {:ok, recovered_tx} <- Core.recover_tx(encoded_singed_tx),
+    with {:ok, encoded_singed_tx} <- decode(transaction_hash),
+         {:ok, recovered_tx} <- Core.recover_tx(encoded_singed_tx),
          {:ok, tx_hash, blknum, tx_index} <- State.exec(recovered_tx),
-         do: {:ok, %{tx_hash: Base.encode64(tx_hash), blknum: blknum, tx_index: tx_index}}
+         encode_tx_hash <- decode(tx_hash),
+         do: {:ok, %{tx_hash: encode_tx_hash, blknum: blknum, tx_index: tx_index}}
   end
 
   @spec get_block(hash :: String.t()) :: none | {:ok, any}
-  def get_block(hash), do: {:ok, encode(FreshBlocks.get(Base.decode16!(hash)))}
+  def get_block(encoded_hash) do
+    with {:ok, hash} <- decode(encoded_hash), do: {:ok, encode(FreshBlocks.get(hash))}
+  end
 
-  def encode(arg) when is_binary(arg), do: Base.encode16(arg)
+  # TODO https://www.pivotaltracker.com/story/show/157423307
+  defp encode(arg) when is_binary(arg), do: Base.encode16(arg)
 
-  def encode(arg) when is_map(arg) do
+  defp encode(arg) when is_map(arg) do
     arg = Map.from_struct(arg)
 
     for {key, value} <- arg, into: %{} do
-      {to_string(key), encode(value)}
+      {key, encode(value)}
     end
   end
 
-  def encode(arg) when is_list(arg), do: for(value <- arg, into: [], do: encode(value))
-  def encode(arg), do: arg
+  defp encode(arg) when is_list(arg), do: for(value <- arg, into: [], do: encode(value))
+  defp encode(arg), do: arg
+
+  defp decode(arg), do: Base.decode16(arg)
 
   # TODO: this will likely be dropped from the OmiseGO.API and here
   def tx(hash) do

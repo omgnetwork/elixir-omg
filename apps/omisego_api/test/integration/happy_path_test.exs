@@ -134,7 +134,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash, _}} = Eth.get_child_chain(spend_child_block)
-    encoded_raw_tx = OmiseGO.API.encode(raw_tx)
+    encoded_raw_tx = encode(raw_tx)
 
     assert {:ok, %{"transactions" => [%{"raw_tx" => ^encoded_raw_tx}]}} =
              jsonrpc(:get_block, %{hash: Base.encode16(block_hash)})
@@ -149,7 +149,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # repeat spending to see if all works
 
     raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, 10}], 0)
-    encoded_raw_tx2 = OmiseGO.API.encode(raw_tx2)
+    encoded_raw_tx2 = encode(raw_tx2)
     tx2 = raw_tx2 |> Transaction.sign(bob.priv, alice.priv) |> Transaction.Signed.encode()
 
     # spend the output of the first transaction
@@ -173,4 +173,18 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     assert {:error, {_, "Internal error", "utxo_not_found"}} =
              jsonrpc(:submit, %{encoded_signed_tx: Base.encode16(tx2)})
   end
+
+  defp encode(arg) when is_binary(arg), do: Base.encode16(arg)
+
+  defp encode(arg) when is_map(arg) do
+    arg = Map.from_struct(arg)
+
+    for {key, value} <- arg, into: %{} do
+      {to_string(key), encode(value)}
+    end
+  end
+
+  defp encode(arg) when is_list(arg), do: for(value <- arg, into: [], do: encode(value))
+  defp encode(arg), do: arg
+
 end
