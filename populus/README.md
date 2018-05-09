@@ -17,6 +17,8 @@ SOLC_BINARY=${HOME}/.py-solc/solc-v0.4.18/bin/solc populus compile
 
 **NOTE** `requirements.txt` is the frozen set of versioned dependencies, effect of running
 ```bash
-pip install -r requirements-to-freeze.txt && pip freeze > requirements.txt
+pip install -r requirements-to-freeze.txt && pip uninstall -y pkg-resources==0.0.0 && pip freeze > requirements.txt
 ```
 see [a better pip workflow^TM here](https://www.kennethreitz.org/essays/a-better-pip-workflow) for rationale.
+
+**NOTE** `uninstall pkg-resources` comes from [here](https://stackoverflow.com/a/48365609)
