@@ -30,14 +30,13 @@ defmodule OmiseGO.API.MixProject do
       {:phoenix_pubsub, "~> 1.0"},
       {:ex_rlp, "~> 0.2.1"},
       {:blockchain, "~> 0.1.6"},
-      {:merkle_tree, git: "https://github.com/omisego/merkle_tree.git"},
-      {:libsecp256k1, "~> 0.1.2", compile: "${HOME}/.mix/rebar compile", override: true},
-
-      {:omisego_db, in_umbrella: true},
-      {:omisego_eth, in_umbrella: true},
-
       {:ex_unit_fixtures, "~> 0.3.1", only: [:test]},
       {:jsonrpc2, "~> 1.0", only: [:test]}
+      {:merkle_tree, git: "https://github.com/omisego/merkle_tree.git"},
+      {:libsecp256k1, "~> 0.1.2", compile: "${HOME}/.mix/rebar compile", override: true},
+      #
+      {:omisego_db, in_umbrella: true},
+      {:omisego_eth, in_umbrella: true},
     ]
   end
 end
