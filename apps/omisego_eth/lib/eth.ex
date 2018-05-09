@@ -2,7 +2,8 @@ defmodule OmiseGO.Eth do
   @moduledoc """
   Adapter/port to ethereum
   """
-  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
+
+  alias OmiseGO.API.State.Transaction
 
   @block_offset 1_000_000_000
   @transaction_offset 10_000
@@ -147,7 +148,7 @@ defmodule OmiseGO.Eth do
     })
 
   end
-  
+
   def start_exit(utxo_position, proof, %Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2}, gas_price, from \\ nil, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
     from = from || Application.get_env(:omisego_eth, :omg_addr)

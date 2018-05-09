@@ -4,6 +4,7 @@ defmodule OmiseGO.EthTest do
   alias OmiseGO.Eth.WaitFor, as: WaitFor
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.Crypto
+  alias OmiseGOWatcher.UtxoDB
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
@@ -57,6 +58,25 @@ defmodule OmiseGO.EthTest do
     add_blocks(1..4, contract)
     # current child block is a num of the next operator block:
     {:ok, 5000} = Eth.get_current_child_block(contract.address)
+  end
+
+
+  @tag fixtures: [:contract]
+  test "start_exit", %{contract: contract} do
+    # utxo_position, proof, %Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2}, gas_price, from \\ nil, contract \\ nil
+    deposit(1, 1, contract)
+    utxo_position = utxo_position(1, 0, 0)
+
+    # %{
+    #   utxo_pos: calculate_utxo_pos(block_height, txindex, oindex),
+    #   tx_bytes: tx_bytes,
+    #   proof: Enum.map(proof.hashes, bin_to_list)
+    # }
+
+    IO.inspect UtxoDB.compose_utxo_exit(@block_offset, 0, 0)
+
+    # Eth.start_exit(utxo_position, )
+
   end
 
   @tag fixtures: [:geth]

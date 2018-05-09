@@ -7,12 +7,16 @@ defmodule OmiseGOWatcher.UtxoDB do
   alias OmiseGOWatcher.Repo
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
   alias OmiseGO.API.{Block}
+  alias OmiseGO.API.Crypto
+  alias OmiseGOWatcher.TransactionDB
 
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
   @field_names [:address, :amount, :blknum, :txindex, :oindex, :txbytes]
   def field_names, do: @field_names
+
+  @transaction_merkle_tree_height 16
 
   schema "utxos" do
     field(:address, :string)
@@ -93,6 +97,40 @@ defmodule OmiseGOWatcher.UtxoDB do
         txbytes: <<>>
       })
     end)
+  end
+
+  def compose_utxo_exit(block_height, txindex, oindex) do
+    txs = TransactionDB.find_by_txblknum(block_height)
+
+    hashed_txs = txs |> Enum.map(&(&1.txid))
+
+    {:ok, mt} = MerkleTree.new(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height)
+
+    tx_index = Enum.find_index(txs, fn(tx) -> tx.txindex == String.to_integer(txindex) end)
+
+    proof = MerkleTree.Proof.prove(mt, tx_index)
+
+    bin_to_list = fn x -> :binary.bin_to_list(x) end
+
+    tx_bytes =
+      txs
+      |> Enum.at(tx_index)
+      |> TransactionDB.encode
+      |> bin_to_list.()
+
+    %{
+      utxo_pos: calculate_utxo_pos(block_height, txindex, oindex),
+      tx_bytes: tx_bytes,
+      proof: Enum.map(proof.hashes, bin_to_list)
+    }
+
+  end
+
+  defp calculate_utxo_pos(block_height, txindex, oindex) do
+    {block_height, _} = Integer.parse(block_height)
+    {txindex, _} = Integer.parse(txindex)
+    {oindex, _} = Integer.parse(oindex)
+    block_height + txindex + oindex
   end
 
   @doc false
