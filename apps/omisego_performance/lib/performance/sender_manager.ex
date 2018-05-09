@@ -6,7 +6,23 @@ defmodule OmiseGO.Performance.SenderManager do
   require Logger
   use GenServer
 
+  @initial_blknum 1000
   @check_senders_done_every_ms 500
+
+  @doc """
+  Removes sender process which has done sending from a registry.
+  """
+  def sender_completed(seqnum) do
+    GenServer.cast(__MODULE__, {:done, seqnum})
+  end
+
+  def sender_stats(seqnum, blknum, txindex, txs_left) do
+    GenServer.cast(__MODULE__, {:stats, {seqnum, blknum, txindex, txs_left, System.monotonic_time(:millisecond)}})
+  end
+
+  def block_forming_time(blknum, total_ms) do
+    GenServer.cast(__MODULE__, {:blkform, blknum, total_ms})
+  end
 
   @doc """
   Starts the sender's manager process
@@ -31,18 +47,13 @@ defmodule OmiseGO.Performance.SenderManager do
             end)
 
     reschedule_check()
-    {:ok, %{senders: senders, events: []}}
-  end
-
-  @doc """
-  Removes sender process which has done sending from a registry.
-  """
-  def sender_completed(seqnum) do
-    GenServer.cast(__MODULE__, {:done, seqnum})
-  end
-
-  def sender_stats(seqnum, blknum, txindex, txs_left) do
-    GenServer.cast(__MODULE__, {:stats, {seqnum, blknum, txindex, txs_left, :os.system_time(:millisecond)}})
+    {:ok, %{
+      senders: senders,
+      events: [],
+      block_times: [],
+      goal: ntx_to_send,
+      start_time: System.monotonic_time(:millisecond)
+    }}
   end
 
   @doc """
@@ -52,7 +63,11 @@ defmodule OmiseGO.Performance.SenderManager do
   :: {:noreply, newstate :: pid | atom} | {:stop, :shutdown, state :: pid | atom}
   def handle_info(:check, %{senders: senders} = state) when length(senders) == 0 do
     Logger.debug(fn -> "[SM] +++ Stoping... +++" end)
-    IO.puts "Manager state:\n#{inspect state}"  #TODO: remove
+
+    stats = analyze(state)
+    Logger.info("Block forming times:\n#{inspect state.block_times}")
+    Logger.info("Performance statistics:\n#{inspect stats}")
+
     {:stop, :normal, state}
   end
 
@@ -77,8 +92,56 @@ defmodule OmiseGO.Performance.SenderManager do
     {:noreply, %{state | events: [event | state.events]}}
   end
 
+  def handle_cast({:blkform, blknum, total_ms}, state) do
+    {:noreply, %{state | block_times: [{blknum, total_ms} | state.block_times]}}
+  end
+
   # Sends :check message to itself in @check_senders_done_every_ms milliseconds.
   # Message will be processed by module's :handle_info function.
   @spec reschedule_check() :: :ok
   defp reschedule_check, do: Process.send_after(self(), :check, @check_senders_done_every_ms)
+
+  defp analyze(%{events: events, start_time: start}) do
+    events_by_blknum = events |> Enum.group_by(&(elem(&1, 1)))
+
+    ordered_keys = @initial_blknum
+      |> Stream.iterate(&(&1 + @initial_blknum))
+      |> Enum.take_while(&(Map.has_key?(events_by_blknum, &1)))
+
+    {_, block_stats} = ordered_keys
+      |> Enum.map(&(Map.fetch!(events_by_blknum, &1)))
+      |> Enum.map(&collect_block/1)
+      |> Enum.reduce_while({start, []}, &analyze_block/2)
+
+    block_stats |> Enum.reverse()
+  end
+
+  defp collect_block(array) do
+    blknum = array |> hd |> elem(1)
+    tx_max_index = array |> Enum.map(&(elem(&1, 2))) |> Enum.max()
+    time = array |> Enum.map(&(elem(&1, 4))) |> Enum.min()
+
+    {blknum, tx_max_index + 1, time}
+  end
+
+  defp analyze_block({blknum, txs_in_blk, time}, {start, list}) do
+    span_ms = time - start
+    if span_ms > 1000 do
+      {:cont,
+        {time,
+          [{
+            blknum,
+            txs_in_blk,
+            avg_txs_in_second(txs_in_blk, span_ms),
+            span_ms
+          } | list]
+        }
+      }
+    else
+      {:halt, {start, list}}
+    end
+  end
+
+  defp avg_txs_in_second(txs_count, interval_ms), do:
+    txs_count * 1000 / interval_ms |> Float.round(2)
 end

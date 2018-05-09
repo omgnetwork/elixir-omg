@@ -11,7 +11,7 @@ defmodule OmiseGO.Performance.Runner do
   """
   @spec run(testid :: integer, ntx_to_send :: integer, nusers :: integer) :: :ok
   def run(testid, ntx_to_send, nusers) do
-    start = :os.system_time(:millisecond)
+    start = System.monotonic_time(:millisecond)
 
     # fire async transaction senders
     manager = OmiseGO.Performance.SenderManager.start(ntx_to_send, nusers)
@@ -21,7 +21,7 @@ defmodule OmiseGO.Performance.Runner do
 
     # Wait all senders do thier job, checker will stop when it happens and stops itself
     wait_for(manager)
-    stop = :os.system_time(:millisecond)
+    stop = System.monotonic_time(:millisecond)
 
     {:ok, "{ total_runtime_in_ms: #{stop - start}, testid: #{testid} }"}
   end

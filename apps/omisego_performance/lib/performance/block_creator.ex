@@ -6,7 +6,7 @@ defmodule OmiseGO.Performance.BlockCreator do
   require Logger
   use GenServer
 
-  @request_block_creation_every_ms 9000
+  @request_block_creation_every_ms 4000
   @initial_block_number 1000
 
   def start_link do
@@ -22,7 +22,11 @@ defmodule OmiseGO.Performance.BlockCreator do
   def handle_info(:do, blknum) do
     newblknum = blknum + 1000
     Logger.debug(fn -> "[BC]: Forming block #{blknum}, next #{newblknum}" end)
+
+    start = System.monotonic_time(:millisecond)
     OmiseGO.API.State.form_block(blknum, newblknum)
+    stop = System.monotonic_time(:millisecond)
+    OmiseGO.Performance.SenderManager.block_forming_time(blknum, stop-start)
 
     reschedule_task()
     {:noreply, newblknum}
