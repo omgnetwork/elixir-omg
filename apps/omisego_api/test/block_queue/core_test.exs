@@ -19,7 +19,9 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       top_mined_hash: <<0::256>>,
       parent_height: 1,
       child_block_interval: 1000,
-      chain_start_parent_height: 1
+      chain_start_parent_height: 1,
+      submit_period: 1,
+      finality_threshold: 12
     )
     state
   end
@@ -44,8 +46,9 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       top_mined_hash: top_mined_hash,
       parent_height: 10,
       child_block_interval: 1000,
-      chain_start_parent_height: 1
-    )
+      chain_start_parent_height: 1,
+      submit_period: 1,
+      finality_threshold: 12)
   end
 
   describe "Block queue." do
@@ -72,7 +75,9 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         top_mined_hash: <<0::size(256)>>,
         parent_height: 10,
         child_block_interval: 1000,
-        chain_start_parent_height: 1
+        chain_start_parent_height: 1,
+        submit_period: 1,
+        finality_threshold: 12
       )
 
       assert [] ==
@@ -88,7 +93,9 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         top_mined_hash: <<1::size(256)>>,
         parent_height: 10,
         child_block_interval: 1000,
-        chain_start_parent_height: 1
+        chain_start_parent_height: 1,
+        submit_period: 1,
+        finality_threshold: 12
       )
     end
 
@@ -99,7 +106,9 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         top_mined_hash: <<1::size(256)>>,
         parent_height: 10,
         child_block_interval: 1000,
-        chain_start_parent_height: 1
+        chain_start_parent_height: 1,
+        submit_period: 1,
+        finality_threshold: 12
       )
     end
 
