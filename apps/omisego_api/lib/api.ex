@@ -13,8 +13,8 @@ defmodule OmiseGO.API do
   @spec submit(transaction :: String.t()) ::
           {:ok, %{tx_hash: String.t(), blknum: integer, tx_index: integer}} | {:error, atom}
   def submit(transaction) do
-    with {:ok, encoded_singed_tx} <- decode(transaction),
-         {:ok, recovered_tx} <- Core.recover_tx(encoded_singed_tx),
+    with {:ok, singed_tx} <- decode(transaction),
+         {:ok, recovered_tx} <- Core.recover_tx(singed_tx),
          {:ok, tx_hash, blknum, tx_index} <- State.exec(recovered_tx),
          encode_tx_hash <- encode(tx_hash) do
       {:ok, %{tx_hash: encode_tx_hash, blknum: blknum, tx_index: tx_index}}
