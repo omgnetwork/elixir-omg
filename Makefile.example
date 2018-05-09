@@ -2,21 +2,21 @@
 
 default: compile
 
-help: ## show this help.
+help:     ## show this help.
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
 
-compile: ## compile
+compile:  ## compile
 	mix compile
 
-test: ## run tests
+test:     ## run tests
 test: compile
 	mix test --no-start --include integration
 
-geth: ## `geth --dev` with personal api enabled
+geth:     ## `geth --dev` with personal api enabled
 geth:
 	geth --dev --dev.period 2 --rpc --rpcapi personal,web3,eth
 
-env: ## deploy contract, fund authority address and write dev.exs file
+env:      ## deploy contract, fund authority address and write dev.exs file
 	mix run --no-start -e 'OmiseGO.Eth.DevHelpers.prepare_dev_env()'
 	cd apps/omisego_db; mix run init_db.exs
 
@@ -24,11 +24,11 @@ operator: ## run child chain operator in dev mode; see also `geth`, `env` and `e
 operator: compile
 	cd apps/omisego_api; iex --sname main -S mix
 
-watcher: ## run watcher in dev mode; see also `geth`, `env` and `eth_block` targets
+watcher:  ## run watcher in dev mode; see also `geth`, `env` and `eth_block` targets
 watcher: compile
 	cd apps/omisego_watcher; iex --sname main -S mix
 
-remsh: ## iex shell to running node
+remsh:    ## iex shell to running node
 remsh:
 	iex --sname shell --remsh 'main@$(hostname -f)' -S mix run --no-start
 
@@ -36,22 +36,22 @@ remsherl: ## erl shell to running node
 remsherl:
 	erl --sname shell --remsh 'main@$(hostname -f)'
 
-shell: ## iex with all code loaded
+shell:    ## iex with all code loaded
 shell:
 	iex -S mix run --no-start
 
-dialyzer:    ## dialyze
+dialyzer: ## dialyze
 dialyzer: compile
 	mix dialyzer
 
-cover: ## check coverage
+cover:    ## check coverage
 cover:
 	mix coveralls.html --umbrella --no-start --include integration
 
-credo: ## run linter
+credo:    ## run linter
 credo:
 	mix credo
 
-perf: ## run performance test
+perf:     ## run performance test
 perf:
 	echo "iex --sname main -S mix run apps/honted_integration/scripts/performance.exs --nstreams 100 --fill-in 0 --duration 120"

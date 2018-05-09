@@ -17,12 +17,6 @@ defmodule OmiseGOWatcher.Application do
       {OmiseGO.API.State, []},
       # Start workers
       worker(OmiseGOWatcher.FastExitValidator, []),
-      worker(
-        OmiseGO.API.EthereumEventListener,
-        [get_event_listener_config(), &OmiseGO.Eth.get_exits/2,
-         &OmiseGOWatcher.FastExitValidator.validate_exits/1],
-        [id: :fast_exiter_listener]
-      )
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
