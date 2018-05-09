@@ -127,7 +127,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
     # spend the deposit
-    {:ok, %{"blknum" => spend_child_block}} = jsonrpc(:submit, %{encoded_signed_tx: Base.encode16(tx)})
+    {:ok, %{"blknum" => spend_child_block}} = jsonrpc(:submit, %{transaction: Base.encode16(tx)})
 
     post_spend_child_block = spend_child_block + BlockQueue.child_block_interval()
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block, true)
@@ -153,7 +153,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     tx2 = raw_tx2 |> Transaction.sign(bob.priv, alice.priv) |> Transaction.Signed.encode()
 
     # spend the output of the first transaction
-    {:ok, %{"blknum" => spend_child_block2}} = jsonrpc(:submit, %{encoded_signed_tx: Base.encode16(tx2)})
+    {:ok, %{"blknum" => spend_child_block2}} = jsonrpc(:submit, %{transaction: Base.encode16(tx2)})
 
     post_spend_child_block2 = spend_child_block2 + BlockQueue.child_block_interval()
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block2, true)
@@ -168,10 +168,10 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     assert {:ok, %{}} = jsonrpc(:get_block, %{hash: Base.encode16(block_hash)})
     assert {:ok, "not_found"} = jsonrpc(:get_block, %{hash: Base.encode16(<<0::size(256)>>)})
 
-    assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, %{encoded_signed_tx: Base.encode16(tx)})
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, %{transaction: Base.encode16(tx)})
 
     assert {:error, {_, "Internal error", "utxo_not_found"}} =
-             jsonrpc(:submit, %{encoded_signed_tx: Base.encode16(tx2)})
+             jsonrpc(:submit, %{transaction: Base.encode16(tx2)})
   end
 
   defp encode(arg) when is_binary(arg), do: Base.encode16(arg)

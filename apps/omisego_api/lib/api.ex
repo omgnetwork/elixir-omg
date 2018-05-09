@@ -10,14 +10,18 @@ defmodule OmiseGO.API do
 
   use OmiseGO.API.ExposeSpec
 
-  @spec submit(encoded_signed_tx :: String.t()) ::
-          {:ok, %{tx_hash: String.t(), blknum: integer, tx_index: integer}} | :error
-  def submit(transaction_hash) do
-    with {:ok, encoded_singed_tx} <- decode(transaction_hash),
+  @spec submit(transaction :: String.t()) ::
+          {:ok, %{tx_hash: String.t(), blknum: integer, tx_index: integer}} | {:error, atom}
+  def submit(transaction) do
+    with {:ok, encoded_singed_tx} <- decode(transaction),
          {:ok, recovered_tx} <- Core.recover_tx(encoded_singed_tx),
          {:ok, tx_hash, blknum, tx_index} <- State.exec(recovered_tx),
-         encode_tx_hash <- decode(tx_hash),
-         do: {:ok, %{tx_hash: encode_tx_hash, blknum: blknum, tx_index: tx_index}}
+         encode_tx_hash <- encode(tx_hash) do
+      {:ok, %{tx_hash: encode_tx_hash, blknum: blknum, tx_index: tx_index}}
+    else
+      :error -> {:error, :decode}
+      {:error, attom} -> {:error, attom}
+    end
   end
 
   @spec get_block(hash :: String.t()) :: none | {:ok, any}
