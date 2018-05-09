@@ -72,11 +72,12 @@ defmodule OmiseGO.API.BlockQueue do
             parent_height: parent_height,
             child_block_interval: BlockQueue.child_block_interval(),
             chain_start_parent_height: parent_start,
-            submit_period: 1,
-            finality_threshold: 12
+            submit_period: Application.get_env(:omisego_api, :child_block_submit_period),
+            finality_threshold: Application.get_env(:omisego_api, :ethereum_event_block_finality_margin)
           )
-          {:ok, _} = :timer.send_interval(1000, self(), :check_mined_child_head)
-          {:ok, _} = :timer.send_interval(1000, self(), :check_ethereum_height)
+          interval = Application.get_env(:omisego_api, :ethereum_event_check_height_interval_ms)
+          {:ok, _} = :timer.send_interval(interval, self(), :check_mined_child_head)
+          {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_height)
           {:ok, state}
         end
       catch
