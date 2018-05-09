@@ -93,16 +93,17 @@ defmodule OmiseGO.Performance.SenderServer do
       |> Transaction.sign(spender.priv, <<>>)
       |> Transaction.Signed.encode()
 
-      result = OmiseGO.API.submit(tx)
+      result = OmiseGO.API.submit(Base.encode16(tx))
       case result do
-        {:error,  reason} ->
+        {:error, reason} ->
           Logger.debug(fn -> "[#{seqnum}]: Transaction submission has failed, reason: #{reason}" end)
           {:error, reason}
 
-        {:ok, _, blknum, txindex} ->
+        {:ok, %{blknum: blknum, tx_index: txindex}} ->
           Logger.debug(fn -> "[#{seqnum}]: Transaction submitted successfully" end)
           {:ok, blknum, txindex, newamount}
       end
+
   end
 
   @doc """

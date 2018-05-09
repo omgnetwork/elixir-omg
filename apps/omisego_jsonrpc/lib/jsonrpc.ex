@@ -1,5 +1,5 @@
 defmodule OmiseGO.JSONRPC do
   @moduledoc """
-  JSONRPC2 handler for the automatically exposed OmiseGO.API
+  A JSONRPC 2.0 gateway to `omisego_api` - automatically exposed via `ExposeSpec`
   """
 end
