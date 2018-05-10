@@ -2,7 +2,6 @@ defmodule OmiseGO.API.State do
   @moduledoc """
   Imperative shell for the state
   """
-  # TODO: file skipped in coveralls.json - this should be undone, when some integration tests land for this
 
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Eventer

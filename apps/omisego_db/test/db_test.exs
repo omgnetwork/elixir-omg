@@ -1,6 +1,8 @@
 defmodule OmiseGO.DBTest do
   @moduledoc """
   A smoke test of the LevelDB support (temporary, remove if it breaks, and we have an all-omisego integration test)
+
+  NOTE: it broke, but fixed easily, still useful, since integration test is thin still
   """
   use ExUnitFixtures
   use ExUnit.Case, async: false
@@ -18,49 +20,40 @@ defmodule OmiseGO.DBTest do
     {:ok, %{dir: dir}}
   end
 
-  test "multiupdates, puts, deletes, gets txs and blocks" do
+  test "handles block storage", %{dir: dir} do
 
     :ok = DB.multi_update(
       [
-        {:put, :tx, %{hash: "abcd"}},
-        {:put, :tx, %{hash: "abcd"}},
-        {:put, :tx, %{hash: "abcde"}},
-      ],
-      TestDBServer
-    )
-    assert {:ok, %{hash: "abcd"}} == DB.tx("abcd", TestDBServer)
-    assert {:ok, %{hash: "abcde"}} == DB.tx("abcde", TestDBServer)
-    assert {:ok, :not_found} == DB.tx("abcdef", TestDBServer)
-
-    :ok = DB.multi_update(
-      [
-        {:put, :tx, %{hash: "abcdef"}},
-        {:delete, :tx, "abcd"},
         {:put, :block, %{hash: "xyz"}},
         {:put, :block, %{hash: "vxyz"}},
         {:put, :block, %{hash: "wvxyz"}},
       ],
       TestDBServer
     )
-    assert {:ok, :not_found} == DB.tx("abcd", TestDBServer)
-    assert {:ok, %{hash: "abcde"}} == DB.tx("abcde", TestDBServer)
-    assert {:ok, %{hash: "abcdef"}} == DB.tx("abcdef", TestDBServer)
     assert {:ok, [%{hash: "wvxyz"}, %{hash: "xyz"}]} ==
       DB.blocks(["wvxyz", "xyz"], TestDBServer)
-  end
 
-  test "check db actually does persist", %{dir: dir} do
-    :ok = DB.multi_update([{:put, :tx, %{hash: "abcdef"}}], TestDBServer)
-    :ok = GenServer.stop(TestDBServer)
-    {:ok, _pid} = GenServer.start_link(
-      OmiseGO.DB.LevelDBServer,
-      %{db_path: dir},
-      name: TestDBServer
+    :ok = DB.multi_update(
+      [
+        {:delete, :block, %{hash: "xyz"}},
+      ],
+      TestDBServer
     )
-    assert {:ok, %{hash: "abcdef"}} == DB.tx("abcdef", TestDBServer)
+
+    checks = fn ->
+      assert {:ok, [%{hash: "wvxyz"}, :not_found, %{hash: "vxyz"}]} ==
+        DB.blocks(["wvxyz", "xyz", "vxyz"], TestDBServer)
+    end
+
+    checks.()
+
+    # check actual persistence
+    restart(dir)
+    checks.()
+
   end
 
-  test "handles utxo storage" do
+  test "handles utxo storage and that it actually persists", %{dir: dir} do
 
     :ok = DB.multi_update(
       [
@@ -74,11 +67,28 @@ defmodule OmiseGO.DBTest do
       TestDBServer
     )
 
-    assert {:ok, [
-      %{{10, 30, 0} => %{amount: 10, owner: "alice1"}},
-      %{{11, 30, 0} => %{amount: 10, owner: "alice2"}},
-      %{{11, 31, 0} => %{amount: 10, owner: "alice3"}},
-      %{{11, 31, 1} => %{amount: 10, owner: "alice4"}},
-    ]} == DB.utxos(TestDBServer)
+    checks = fn ->
+      assert {:ok, [
+        %{{10, 30, 0} => %{amount: 10, owner: "alice1"}},
+        %{{11, 30, 0} => %{amount: 10, owner: "alice2"}},
+        %{{11, 31, 0} => %{amount: 10, owner: "alice3"}},
+        %{{11, 31, 1} => %{amount: 10, owner: "alice4"}},
+      ]} == DB.utxos(TestDBServer)
+    end
+
+    checks.()
+
+    # check actual persistence
+    restart(dir)
+    checks.()
+  end
+
+  defp restart(dir) do
+    :ok = GenServer.stop(TestDBServer)
+    {:ok, _pid} = GenServer.start_link(
+      OmiseGO.DB.LevelDBServer,
+      %{db_path: dir},
+      name: TestDBServer
+    )
   end
 end

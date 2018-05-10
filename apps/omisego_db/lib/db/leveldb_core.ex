@@ -71,11 +71,6 @@ defmodule OmiseGO.DB.LevelDBCore do
     end)
   end
 
-  def key(:tx, %{hash: hash} = _tx) do
-    key(:tx, hash)
-  end
-  def key(:tx, hash), do: "t" <> hash
-
   def key(:block, %{hash: hash} = _block), do: key(:block, hash)
   def key(:block, hash), do: "b" <> hash
 

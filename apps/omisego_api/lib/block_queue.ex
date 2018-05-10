@@ -6,7 +6,8 @@ defmodule OmiseGO.API.BlockQueue do
   Relies on RootChain contract having reorg protection ('decimals for deposits' part).
   Relies on RootChain contract's 'authority' account not being used to send any other tx.
 
-  TODO: react to changing gas price and submitBlock txes not being mined; needs external gas price oracle
+  It reacts to extarnal requests of changing gas price and resubmits submitBlock txes not being mined
+  For changing the gas price it needs external singlas (e.g. from a price oracle)
   """
 
   alias OmiseGO.API.BlockQueue.Core, as: Core
@@ -30,7 +31,7 @@ defmodule OmiseGO.API.BlockQueue do
   end
 
   # CONFIG constant functions
-  # TODO rethink. Possibly fetch from
+  # TODO rethink. Possibly fetch from the contract? (would complicate things, but we must unconditionally match that)
   def child_block_interval, do: Application.get_env(:omisego_eth, :child_block_interval)
 
   defmodule Server do
@@ -62,7 +63,7 @@ defmodule OmiseGO.API.BlockQueue do
              #       it might be prohibitive, if we create BlockSubmissions out of the unfiltered batch
              #       (see enqueue_existing_blocks). Probably we want to set a hard cutoff and do
              #       OmiseGO.DB.block_hashes(stored_child_top_num - cutoff..stored_child_top_num)
-             #       Leaving a chore to handle that in the future
+             #       Leaving a chore to handle that in the future: OMG-83
              {:ok, known_hashes} <- OmiseGO.DB.block_hashes(range),
              {:ok, {top_mined_hash, _}} = Eth.get_child_chain(mined_num) do
           {:ok, state} = Core.new(

@@ -30,16 +30,6 @@ defmodule OmiseGO.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call({:tx, hash}, _from, %__MODULE__{db_ref: db_ref} = state) do
-    key = LevelDBCore.key(:tx, hash)
-
-    result =
-      key
-      |> get(db_ref)
-      |> LevelDBCore.decode_value(:tx)
-    {:reply, result, state}
-  end
-
   def handle_call({:blocks, blocks_to_fetch}, _from, %__MODULE__{db_ref: db_ref} = state) do
     result =
       blocks_to_fetch
