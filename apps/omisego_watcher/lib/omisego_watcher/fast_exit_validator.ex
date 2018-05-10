@@ -28,10 +28,8 @@ defmodule OmiseGOWatcher.FastExitValidator do
     end
   end
 
-  def handle_cast({:validate_exits, }, synced_eth_height, state) do
-    state = Core.sync_eth_height(state)
-
-    with {block_from, block_to, state, db_updates} <- Core.get_exits_block_range(state),
+  def handle_cast({:validate_exits, synced_eth_height}, state) do
+    with {block_from, block_to, state, db_updates} <- Core.get_exits_block_range(state, synced_eth_height),
          utxo_exits <- OmiseGO.Eth.get_exits(block_from, block_to),
          :ok <- validate_exits(utxo_exits),
          :ok <- OmiseGO.DB.multi_update(db_updates) do

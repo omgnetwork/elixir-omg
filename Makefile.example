@@ -22,11 +22,11 @@ env:      ## deploy contract, fund authority address and write dev.exs file
 
 operator: ## run child chain operator in dev mode; see also `geth`, `env` and `eth_block` targets
 operator: compile
-	cd apps/omisego_api; iex --sname main -S mix
+	cd apps/omisego_api; iex --sname operator -S mix
 
 watcher:  ## run watcher in dev mode; see also `geth`, `env` and `eth_block` targets
 watcher: compile
-	cd apps/omisego_watcher; iex --sname main -S mix
+	cd apps/omisego_watcher; iex --sname watcher -S mix
 
 remsh:    ## iex shell to running node
 remsh:
