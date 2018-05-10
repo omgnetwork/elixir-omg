@@ -2,7 +2,8 @@ defmodule OmiseGO.API.State.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OmiseGO.API.State.{Transaction, Transaction.Recovered, Core}
+  alias OmiseGO.API.State.{Transaction, Core}
+  alias OmiseGO.API
   alias OmiseGO.API.TestHelper
 
   @signature <<1>> |> List.duplicate(65) |> :binary.list_to_bin()
@@ -101,7 +102,7 @@ defmodule OmiseGO.API.State.TransactionTest do
   end
 
   @tag fixtures: [:alice, :state_empty, :bob]
-  test "using created transaction in Core.exec", %{alice: alice, bob: bob, state_empty: state} do
+  test "using created transaction in child chain", %{alice: alice, bob: bob, state_empty: state} do
     state =
       state
       |> TestHelper.do_deposit(alice, %{amount: 100, blknum: 1})
@@ -121,12 +122,16 @@ defmodule OmiseGO.API.State.TransactionTest do
     {:ok, decode_address} = Base.decode16(utxos.address)
     utxos = %{utxos | address: decode_address}
 
-    {:ok, transaction} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42}, 10)
+    {:ok, raw_transaction} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42}, 10)
+
+    {:ok, transaction} =
+      raw_transaction
+      |> Transaction.sign(alice.priv, alice.priv)
+      |> Transaction.Signed.encode()
+      |> API.Core.recover_tx()
 
     assert {{:ok, _, _, _}, _state} =
              transaction
-             |> Transaction.sign(alice.priv, alice.priv)
-             |> Recovered.recover_from()
              |> Core.exec(state)
   end
 end
