@@ -11,6 +11,7 @@ defmodule OmiseGO.Performance.Runner do
   """
   @spec run(testid :: integer, ntx_to_send :: integer, nusers :: integer) :: :ok
   def run(testid, ntx_to_send, nusers) do
+    Application.put_env(:omisego_performance, :test_env, {testid, ntx_to_send, nusers})
     start = System.monotonic_time(:millisecond)
 
     # fire async transaction senders
@@ -34,13 +35,17 @@ defmodule OmiseGO.Performance.Runner do
     :fprof.apply(&OmiseGO.Performance.Runner.run/3, [testid, ntx_to_send, nusers], procs: [:all])
     :fprof.profile()
 
-    destdir = Application.get_env(:omisego_performance, :fprof_analysis_dir)
+    destdir = Application.get_env(:omisego_performance, :analysis_output_dir)
     destfile = "#{destdir}/perftest-tx#{ntx_to_send}-u#{nusers}-#{testid}.analysis"
 
     [callers: true, sort: :own, totals: true, details: true, dest: String.to_charlist(destfile)]
     |> :fprof.analyse()
 
     {:ok, "The :fprof output written to #{destfile}."}
+  end
+
+  def get_test_env do
+    Application.get_env(:omisego_performance, :test_env)
   end
 
   # Waits until all sender processes ends sending Tx and deregister themselves from the registry

@@ -38,6 +38,7 @@ defmodule OmiseGO.Performance.SenderManager do
   """
   @spec init(tuple) :: map()
   def init({ntx_to_send, nusers}) do
+    Process.flag(:trap_exit, true)
     Logger.debug(fn -> "[SM] +++ init/1 called with #{nusers} users, each to send #{ntx_to_send} +++" end)
 
     senders = 1..nusers
@@ -57,17 +58,20 @@ defmodule OmiseGO.Performance.SenderManager do
   end
 
   @doc """
+  Handles the trapped exit call
+  """
+  def handle_info({:EXIT, _from, reason}, state) do
+    write_stats(state)
+    IO.puts("[SM] +++ Stoping (reason: #{inspect reason})... +++")
+    {:stop, reason, state}
+  end
+
+  @doc """
   Checks whether registry has sender proceses registered
   """
   @spec handle_info(:check, state :: pid | atom)
   :: {:noreply, newstate :: pid | atom} | {:stop, :shutdown, state :: pid | atom}
   def handle_info(:check, %{senders: senders} = state) when length(senders) == 0 do
-    Logger.debug(fn -> "[SM] +++ Stoping... +++" end)
-
-    stats = analyze(state)
-    Logger.info("Block forming times:\n#{inspect state.block_times}")
-    Logger.info("Performance statistics:\n#{inspect stats}")
-
     {:stop, :normal, state}
   end
 
@@ -144,4 +148,18 @@ defmodule OmiseGO.Performance.SenderManager do
 
   defp avg_txs_in_second(txs_count, interval_ms), do:
     txs_count * 1000 / interval_ms |> Float.round(2)
+
+  # handle termination
+  def write_stats(state) do
+    destdir = Application.get_env(:omisego_performance, :analysis_output_dir)
+    {testid, ntx_to_send, nusers} = OmiseGO.Performance.Runner.get_test_env()
+    destfile = "#{destdir}/perftest-tx#{ntx_to_send}-u#{nusers}-#{testid}.statistics"
+
+    data = "Block forming times:\n#{inspect(state.block_times,limit: :infinity, pretty: true)}\n"
+    stats = analyze(state)
+    data = data <> "\nPerformance statistics:\n#{inspect(stats,limit: :infinity, pretty: true)}\n"
+    File.write(destfile, data)
+    IO.puts "Performance statistics written to file: #{destfile}"
+    :ok
+  end
 end
