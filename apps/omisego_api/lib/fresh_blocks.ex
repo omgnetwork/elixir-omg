@@ -39,7 +39,7 @@ defmodule OmiseGO.API.FreshBlocks do
       container = Map.put(state.container, block.hash, block)
 
       if state.max_size < Kernel.map_size(container) do
-        {{:value, key_to_remove}, keys_queue} = :queue.out(state.keys_queue)
+        {{:value, key_to_remove}, keys_queue} = :queue.out(keys_queue)
 
         {:ok, %{state | keys_queue: keys_queue, container: Map.delete(container, key_to_remove)}}
       else
