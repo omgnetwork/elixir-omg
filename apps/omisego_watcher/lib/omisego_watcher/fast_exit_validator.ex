@@ -9,13 +9,6 @@ defmodule OmiseGOWatcher.FastExitValidator do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def validate(utxo_exits) do
-    for utxo_exit <- utxo_exits do
-      :ok = GenServer.call(__MODULE__, {:exit_utxo, utxo_exit})
-    end
-    :ok
-  end
-
   def sync_eth_height(synced_eth_height) do
     GenServer.cast(__MODULE__, {:validate_exits, synced_eth_height})
   end

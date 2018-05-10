@@ -7,7 +7,7 @@ defmodule OmiseGOWatcher.ExitValidator.CoreTest do
   deffixture initial_state(), do: %Core{last_exit_eth_height: 0}
 
   @tag fixtures: [:initial_state]
-  test "lower bound of a block range does not ecceed synced Ethereum height",
+  test "lower bound of a block range does not exceed synced Ethereum height",
     %{initial_state: state} do
       {1, 10, state, [{:put, :last_exit_block_height, 10}]} = Core.get_exits_block_range(state, 10)
       assert :empty_range == Core.get_exits_block_range(state, 10)

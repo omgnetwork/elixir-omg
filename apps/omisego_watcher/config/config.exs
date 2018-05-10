@@ -22,6 +22,9 @@ config :omisego_watcher, OmiseGOWatcherWeb.Endpoint,
   pubsub: [name: OmiseGOWatcher.PubSub,
            adapter: Phoenix.PubSub.PG2]
 
+ config :omisego_db,
+   leveldb_path: Path.join([System.get_env("HOME"), ".omisego/watcher_data"])
+
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",

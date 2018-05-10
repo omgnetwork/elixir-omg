@@ -31,12 +31,4 @@ defmodule OmiseGOWatcher.Application do
     OmiseGOWatcherWeb.Endpoint.config_change(changed, removed)
     :ok
   end
-
-  defp get_event_listener_config do
-    %{
-      block_finality_margin: Application.get_env(:omisego_api, :ethereum_event_block_finality_margin),
-      max_blocks_in_fetch: Application.get_env(:omisego_api, :ethereum_event_max_block_range_in_deposits_query),
-      get_events_interval: Application.get_env(:omisego_api, :ethereum_event_get_deposits_interval_ms)
-    }
-  end
 end

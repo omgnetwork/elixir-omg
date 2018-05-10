@@ -11,7 +11,7 @@ defmodule OmiseGO.API.FreshBlocks do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @spec get(block_hash :: integer) :: Block | :not_found | {:error, any}
+  @spec get(block_hash :: binary) :: Block | :not_found | {:error, any}
   def get(block_hash) do
     GenServer.call(__MODULE__, {:get, block_hash})
   end
