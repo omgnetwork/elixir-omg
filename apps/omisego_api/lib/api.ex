@@ -6,7 +6,6 @@ defmodule OmiseGO.API do
   alias OmiseGO.API.State
   alias OmiseGO.API.Core
   alias OmiseGO.API.FreshBlocks
-  alias OmiseGO.DB
 
   use OmiseGO.API.ExposeSpec
 
@@ -42,10 +41,6 @@ defmodule OmiseGO.API do
   defp encode(arg) when is_list(arg), do: for(value <- arg, into: [], do: encode(value))
   defp encode(arg), do: arg
 
-
-  # TODO: this will likely be dropped from the OmiseGO.API and here
-  def tx(hash) do
-    DB.tx(hash)
   defp decode(arg) do
     case Base.decode16(arg) do
       :error -> {:error, :argument_decode_error}
