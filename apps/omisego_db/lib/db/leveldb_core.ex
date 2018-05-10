@@ -80,6 +80,7 @@ defmodule OmiseGO.DB.LevelDBCore do
     [utxo_id] = Map.keys(utxo)
     key(:utxo, utxo_id)
   end
+
   def key(:utxo, {_blknum, _txindex, _oindex} = utxo_id) do
     "u" <> :erlang.term_to_binary(utxo_id)
   end

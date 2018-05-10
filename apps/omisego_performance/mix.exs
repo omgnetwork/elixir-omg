@@ -23,7 +23,7 @@ defmodule OmiseGO.Performance.MixProject do
 
   defp deps do
     [
-      {:omisego_api, in_umbrella: true},
+      {:omisego_api, in_umbrella: true}
     ]
   end
 end

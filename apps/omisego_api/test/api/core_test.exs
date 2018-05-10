@@ -50,7 +50,7 @@ defmodule OmiseGO.API.Api.CoreTest do
     [
       {alice_priv, bob_priv, alice_addr, bob_addr},
       {alice_priv, <<>>, alice_addr, nil},
-      {<<>>, bob_priv, nil, bob_addr},
+      {<<>>, bob_priv, nil, bob_addr}
     ]
     |> Enum.map(parametrized_tester)
   end
@@ -104,7 +104,7 @@ defmodule OmiseGO.API.Api.CoreTest do
         fee: 1
       },
       sig1: @empty_signature,
-      sig2: @signature,
+      sig2: @signature
     }
 
     encoded_signed_tx = Transaction.Signed.encode(signed_tx)

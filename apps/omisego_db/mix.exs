@@ -12,7 +12,7 @@ defmodule OmiseGO.DB.MixProject do
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      test_coverage: [tool: ExCoveralls],
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
@@ -21,7 +21,7 @@ defmodule OmiseGO.DB.MixProject do
       env: [
         leveldb_path: Path.join([System.get_env("HOME"), ".omisego/data"]),
         server_module: OmiseGO.DB.LevelDBServer,
-        server_name: OmiseGO.DB.LevelDBServer,
+        server_name: OmiseGO.DB.LevelDBServer
       ],
       extra_applications: [:logger],
       mod: {OmiseGO.DB.Application, []}
@@ -30,7 +30,8 @@ defmodule OmiseGO.DB.MixProject do
 
   defp deps do
     [
-      {:exleveldb, "~> 0.11"}, # version caused by dependency in merkle_patricia_tree from blockchain
+      # version caused by dependency in merkle_patricia_tree from blockchain
+      {:exleveldb, "~> 0.11"}
     ]
   end
 end

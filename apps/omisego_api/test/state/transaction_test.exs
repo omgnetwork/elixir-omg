@@ -48,8 +48,8 @@ defmodule OmiseGO.API.State.TransactionTest do
   @tag fixtures: [:transaction]
   test "transaction hash is correct", %{transaction: transaction} do
     assert Transaction.hash(transaction) ==
-             <<206, 180, 169, 245, 52, 190, 189, 248, 33, 15, 103, 145, 4, 195, 170, 59, 137, 102,
-               245, 238, 22, 172, 18, 240, 21, 132, 30, 1, 197, 112, 101, 192>>
+             <<206, 180, 169, 245, 52, 190, 189, 248, 33, 15, 103, 145, 4, 195, 170, 59, 137, 102, 245, 238, 22, 172,
+               18, 240, 21, 132, 30, 1, 197, 112, 101, 192>>
   end
 
   @tag fixtures: [:transaction]
@@ -57,8 +57,8 @@ defmodule OmiseGO.API.State.TransactionTest do
     signed = %Transaction.Signed{raw_tx: transaction, sig1: @signature, sig2: @signature}
 
     expected =
-      <<206, 180, 169, 245, 52, 190, 189, 248, 33, 15, 103, 145, 4, 195, 170, 59, 137, 102, 245,
-        238, 22, 172, 18, 240, 21, 132, 30, 1, 197, 112, 101, 192>> <> signed.sig1 <> signed.sig2
+      <<206, 180, 169, 245, 52, 190, 189, 248, 33, 15, 103, 145, 4, 195, 170, 59, 137, 102, 245, 238, 22, 172, 18, 240,
+        21, 132, 30, 1, 197, 112, 101, 192>> <> signed.sig1 <> signed.sig2
 
     actual = Transaction.Signed.signed_hash(signed)
     assert actual == expected
@@ -66,8 +66,7 @@ defmodule OmiseGO.API.State.TransactionTest do
 
   @tag fixtures: [:utxos]
   test "crete transaction", %{utxos: utxos} do
-    {:ok, transaction} =
-      Transaction.create_from_utxos(utxos, %{address: "Joe Black", amount: 53}, 50)
+    {:ok, transaction} = Transaction.create_from_utxos(utxos, %{address: "Joe Black", amount: 53}, 50)
 
     assert transaction == %Transaction{
              blknum1: 20,
@@ -86,14 +85,12 @@ defmodule OmiseGO.API.State.TransactionTest do
 
   @tag fixtures: [:utxos]
   test "checking error messages", %{utxos: utxos} do
-    assert {:error, :amount_negative_value} ==
-             Transaction.create_from_utxos(utxos, %{address: "Joe", amount: -4}, 2)
+    assert {:error, :amount_negative_value} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: -4}, 2)
 
     assert {:error, :amount_negative_value} ==
              Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30_000}, 0)
 
-    assert {:error, :fee_negative_value} ==
-             Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30}, -2)
+    assert {:error, :fee_negative_value} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30}, -2)
 
     assert {:error, :too_many_utxo} ==
              Transaction.create_from_utxos(
@@ -106,7 +103,8 @@ defmodule OmiseGO.API.State.TransactionTest do
   @tag fixtures: [:alice, :state_empty, :bob]
   test "using created transaction in Core.exec", %{alice: alice, bob: bob, state_empty: state} do
     state =
-      state |> TestHelper.do_deposit(alice, %{amount: 100, blknum: 1})
+      state
+      |> TestHelper.do_deposit(alice, %{amount: 100, blknum: 1})
       |> TestHelper.do_deposit(alice, %{amount: 10, blknum: 2})
 
     utxos_json = """
@@ -123,8 +121,7 @@ defmodule OmiseGO.API.State.TransactionTest do
     {:ok, decode_address} = Base.decode16(utxos.address)
     utxos = %{utxos | address: decode_address}
 
-    {:ok, transaction} =
-      Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42}, 10)
+    {:ok, transaction} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42}, 10)
 
     assert {{:ok, _, _, _}, _state} =
              transaction

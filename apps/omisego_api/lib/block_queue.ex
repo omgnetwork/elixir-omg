@@ -66,16 +66,18 @@ defmodule OmiseGO.API.BlockQueue do
              #       Leaving a chore to handle that in the future: OMG-83
              {:ok, known_hashes} <- OmiseGO.DB.block_hashes(range),
              {:ok, {top_mined_hash, _}} = Eth.get_child_chain(mined_num) do
-          {:ok, state} = Core.new(
-            mined_child_block_num: mined_num,
-            known_hashes: known_hashes,
-            top_mined_hash: top_mined_hash,
-            parent_height: parent_height,
-            child_block_interval: BlockQueue.child_block_interval(),
-            chain_start_parent_height: parent_start,
-            submit_period: 1,
-            finality_threshold: 12
-          )
+          {:ok, state} =
+            Core.new(
+              mined_child_block_num: mined_num,
+              known_hashes: known_hashes,
+              top_mined_hash: top_mined_hash,
+              parent_height: parent_height,
+              child_block_interval: BlockQueue.child_block_interval(),
+              chain_start_parent_height: parent_start,
+              submit_period: 1,
+              finality_threshold: 12
+            )
+
           {:ok, _} = :timer.send_interval(1000, self(), :check_mined_child_head)
           {:ok, _} = :timer.send_interval(1000, self(), :check_ethereum_height)
           {:ok, state}

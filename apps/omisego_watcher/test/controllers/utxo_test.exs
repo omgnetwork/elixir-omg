@@ -44,8 +44,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
         2
       )
 
-      %{"address" => "McDuck", "utxos" => [%{"amount" => amount1}, %{"amount" => amount2}]} =
-        get_utxo("McDuck")
+      %{"address" => "McDuck", "utxos" => [%{"amount" => amount1}, %{"amount" => amount2}]} = get_utxo("McDuck")
 
       assert Enum.sort([amount1, amount2]) == [1947, 1952]
     end

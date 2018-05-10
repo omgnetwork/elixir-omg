@@ -15,8 +15,7 @@ defmodule OmiseGO.API.TestHelper do
   end
 
   def do_deposit(state, owner, %{amount: amount, blknum: blknum}) do
-    {_, _, new_state} =
-      Core.deposit([%{owner: owner.addr, amount: amount, blknum: blknum}], state)
+    {_, _, new_state} = Core.deposit([%{owner: owner.addr, amount: amount, blknum: blknum}], state)
 
     new_state
   end
@@ -34,10 +33,8 @@ defmodule OmiseGO.API.TestHelper do
         fee
       )
 
-    [sig1, sig2 | _] =
-      inputs |> Enum.map(fn {_, _, _, owner} -> owner.priv end) |> Enum.concat([<<>>, <<>>])
+    [sig1, sig2 | _] = inputs |> Enum.map(fn {_, _, _, owner} -> owner.priv end) |> Enum.concat([<<>>, <<>>])
 
     Transaction.Recovered.recover_from(Transaction.sign(raw_tx, sig1, sig2))
   end
-
 end

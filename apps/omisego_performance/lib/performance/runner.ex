@@ -23,7 +23,7 @@ defmodule OmiseGO.Performance.Runner do
     wait_for(OmiseGO.Performance.Registry)
     stop = :os.system_time(:millisecond)
 
-    {:ok, "{ total_runtime_in_ms: #{stop-start}, testid: #{testid} }"}
+    {:ok, "{ total_runtime_in_ms: #{stop - start}, testid: #{testid} }"}
   end
 
   @doc """
@@ -31,17 +31,13 @@ defmodule OmiseGO.Performance.Runner do
   """
   @spec profile_and_run(testid :: integer, ntx_to_send :: pos_integer, nusers :: pos_integer) :: :ok
   def profile_and_run(testid, ntx_to_send, nusers) do
-    :fprof.apply(&OmiseGO.Performance.Runner.run/3, [testid, ntx_to_send, nusers], [procs: [:all]])
+    :fprof.apply(&OmiseGO.Performance.Runner.run/3, [testid, ntx_to_send, nusers], procs: [:all])
     :fprof.profile()
 
     destdir = Application.get_env(:omisego_performance, :fprof_analysis_dir)
     destfile = "#{destdir}/perftest-tx#{ntx_to_send}-u#{nusers}-#{testid}.analysis"
-    [callers: true,
-      sort: :own,
-      totals: true,
-      details: true,
-      dest: String.to_charlist(destfile),
-    ]
+
+    [callers: true, sort: :own, totals: true, details: true, dest: String.to_charlist(destfile)]
     |> :fprof.analyse()
 
     {:ok, "The :fprof output written to #{destfile}."}
@@ -51,9 +47,10 @@ defmodule OmiseGO.Performance.Runner do
   @spec wait_for(registry :: pid() | atom()) :: :ok
   defp wait_for(registry) do
     ref = Process.monitor(OmiseGO.Performance.WaitFor.start(registry))
+
     receive do
       {:DOWN, ^ref, :process, _obj, reason} ->
-        Logger.info "Stoping performance tests, reason: #{reason}"
+        Logger.info("Stoping performance tests, reason: #{reason}")
     end
   end
 end
