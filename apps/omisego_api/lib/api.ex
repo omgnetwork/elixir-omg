@@ -27,7 +27,7 @@ defmodule OmiseGO.API do
          do: {:ok, encode(block)}
   end
 
-  # TODO https://www.pivotaltracker.com/story/show/157423307
+  # TODO OMG-137 might move encode/decode elsewhere
   defp encode(arg) when is_binary(arg), do: Base.encode16(arg)
 
   defp encode(arg) when is_map(arg) do

@@ -63,8 +63,7 @@ defmodule OmiseGO.API.BlockQueue do
              #       it might be prohibitive, if we create BlockSubmissions out of the unfiltered batch
              #       (see enqueue_existing_blocks). Probably we want to set a hard cutoff and do
              #       OmiseGO.DB.block_hashes(stored_child_top_num - cutoff..stored_child_top_num)
-             #       Leaving a chore to handle that in the future:
-             #       https://www.pivotaltracker.com/story/show/156271246
+             #       Leaving a chore to handle that in the future: OMG-83
              {:ok, known_hashes} <- OmiseGO.DB.block_hashes(range),
              {:ok, {top_mined_hash, _}} = Eth.get_child_chain(mined_num) do
           {:ok, state} = Core.new(
