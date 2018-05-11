@@ -6,12 +6,14 @@ defmodule OmiseGO.API.FreshBlocks do
 
   alias OmiseGO.API.Block
 
+  @type getting_result :: Block | :not_found
+
   ##### Client
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @spec get(block_hash :: binary) :: Block | :not_found | {:error, any}
+  @spec get(block_hash :: binary) :: {:ok, getting_result()} | {:error, any}
   def get(block_hash) do
     GenServer.call(__MODULE__, {:get, block_hash})
   end
@@ -46,6 +48,9 @@ defmodule OmiseGO.API.FreshBlocks do
         {:ok, %{state | keys_queue: keys_queue, container: container}}
       end
     end
+
+    def combine_getting_results(nil = _fresh_block, {:ok, [db_block] = _fetched_blocks} = _db_result), do: db_block
+    def combine_getting_results(fresh_block, _db_result), do: fresh_block
   end
 
   ##### Server
@@ -57,11 +62,9 @@ defmodule OmiseGO.API.FreshBlocks do
 
   def handle_call({:get, block_hash}, _from, %Core{} = state) do
     result =
-      with {block, block_hashes_to_fetch} <- Core.get(block_hash, state),
-           {:ok, fetched_blocks} <- DB.blocks(block_hashes_to_fetch),
-           # FIXME: this is clearly a violation of rules. How should I combine these two results?
-           fetched_blocks <- (if fetched_blocks == [], do: %{}, else: %{block_hash => hd(fetched_blocks)}),
-           do: Map.get(fetched_blocks, block_hash, block)
+      with {fresh_block, block_hashes_to_fetch} <- Core.get(block_hash, state),
+           {:ok, _} = db_result <- DB.blocks(block_hashes_to_fetch),
+           do: {:ok, Core.combine_getting_results(fresh_block, db_result)}
 
     {:reply, result, state}
   end

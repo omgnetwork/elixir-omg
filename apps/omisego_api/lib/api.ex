@@ -6,7 +6,6 @@ defmodule OmiseGO.API do
   alias OmiseGO.API.State
   alias OmiseGO.API.Core
   alias OmiseGO.API.FreshBlocks
-  alias OmiseGO.DB
 
   use OmiseGO.API.ExposeSpec
 
@@ -18,18 +17,17 @@ defmodule OmiseGO.API do
          {:ok, tx_hash, blknum, tx_index} <- State.exec(recovered_tx),
          encode_tx_hash <- encode(tx_hash) do
       {:ok, %{tx_hash: encode_tx_hash, blknum: blknum, tx_index: tx_index}}
-    else
-      :error -> {:error, :decode}
-      {:error, attom} -> {:error, attom}
     end
   end
 
-  @spec get_block(hash :: String.t()) :: none | {:ok, any}
-  def get_block(encoded_hash) do
-    with {:ok, hash} <- decode(encoded_hash), do: {:ok, encode(FreshBlocks.get(hash))}
+  @spec get_block(hash :: String.t()) :: {:ok, map | atom} | {:error, atom}
+  def get_block(hash) do
+    with {:ok, decoded_hash} <- decode(hash),
+         {:ok, block} <- FreshBlocks.get(decoded_hash),
+         do: {:ok, encode(block)}
   end
 
-  # TODO https://www.pivotaltracker.com/story/show/157423307
+  # TODO OMG-137 might move encode/decode elsewhere
   defp encode(arg) when is_binary(arg), do: Base.encode16(arg)
 
   defp encode(arg) when is_map(arg) do
@@ -43,10 +41,10 @@ defmodule OmiseGO.API do
   defp encode(arg) when is_list(arg), do: for(value <- arg, into: [], do: encode(value))
   defp encode(arg), do: arg
 
-  defp decode(arg), do: Base.decode16(arg)
-
-  # TODO: this will likely be dropped from the OmiseGO.API and here
-  def tx(hash) do
-    DB.tx(hash)
+  defp decode(arg) do
+    case Base.decode16(arg) do
+      :error -> {:error, :argument_decode_error}
+      other -> other
+    end
   end
 end

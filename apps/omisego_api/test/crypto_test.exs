@@ -1,5 +1,6 @@
 defmodule OmiseGO.API.CryptoTest do
   use ExUnit.Case, async: true
+
   @moduledoc """
   A sanity and compatibility check of the crypto implementation.
   """
@@ -23,13 +24,15 @@ defmodule OmiseGO.API.CryptoTest do
     {:ok, pub} = Crypto.generate_public_key(priv)
     {:ok, _} = Crypto.generate_address(pub)
     # this test vector was generated using plasma.utils.utils.sign/2 from plasma-mvp
-    py_signature = "b8670d619701733e1b4d10149bc90eb4eb276760d2f77a08a5428d4cbf2eadbd656f374c187b1ac80ce31d8c62076af26150e52ef1f33bfc07c6d244da7ca38c1c"
+    py_signature =
+      "b8670d619701733e1b4d10149bc90eb4eb276760d2f77a08a5428d4cbf2eadbd656f374c187b1ac80ce31d8c62076af26150e52ef1f33bfc07c6d244da7ca38c1c"
+
     sig = Crypto.signature_digest(msg, priv)
     assert ^sig = Base.decode16!(py_signature, case: :lower)
   end
 
   test "digest sign, recover" do
-    {:ok, priv} = Crypto.generate_private_key
+    {:ok, priv} = Crypto.generate_private_key()
     {:ok, pub} = Crypto.generate_public_key(priv)
     {:ok, address} = Crypto.generate_address(pub)
     msg = :crypto.strong_rand_bytes(32)
@@ -38,7 +41,7 @@ defmodule OmiseGO.API.CryptoTest do
   end
 
   test "sign, verify" do
-    {:ok, priv} = Crypto.generate_private_key
+    {:ok, priv} = Crypto.generate_private_key()
     {:ok, pub} = Crypto.generate_public_key(priv)
     {:ok, address} = Crypto.generate_address(pub)
 
@@ -47,5 +50,4 @@ defmodule OmiseGO.API.CryptoTest do
     assert {:ok, true} == Crypto.verify("message", signature, address)
     assert {:ok, false} == Crypto.verify("message2", signature, address)
   end
-
 end
