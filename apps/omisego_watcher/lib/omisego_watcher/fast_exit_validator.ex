@@ -16,13 +16,13 @@ defmodule OmiseGOWatcher.FastExitValidator do
   use GenServer
 
   def init(:ok) do
-    with {:ok, last_exit_eth_height} <- OmiseGO.DB.last_exit_block_height() do
-      {:ok, %Core{last_exit_eth_height: last_exit_eth_height}}
+    with {:ok, last_exit_block_height} <- OmiseGO.DB.last_exit_block_height() do
+      {:ok, %Core{last_exit_block_height: last_exit_block_height}}
     end
   end
 
-  def handle_cast({:validate_exits, synced_eth_height}, state) do
-    with {block_from, block_to, state, db_updates} <- Core.get_exits_block_range(state, synced_eth_height),
+  def handle_cast({:validate_exits, synced_eth_block_height}, state) do
+    with {block_from, block_to, state, db_updates} <- Core.get_exits_block_range(state, synced_eth_block_height),
          utxo_exits <- OmiseGO.Eth.get_exits(block_from, block_to),
          :ok <- validate_exits(utxo_exits),
          :ok <- OmiseGO.DB.multi_update(db_updates) do

@@ -12,11 +12,11 @@ defmodule OmiseGOWatcher.Application do
     children = [
       # Start the Ecto repository
       supervisor(OmiseGOWatcher.Repo, []),
-      # Start the endpoint when the application starts
-      supervisor(OmiseGOWatcherWeb.Endpoint, []),
-      {OmiseGO.API.State, []},
       # Start workers
-      worker(OmiseGOWatcher.FastExitValidator, [])
+      {OmiseGO.API.State, []},
+      worker(OmiseGOWatcher.FastExitValidator, []),
+      # Start the endpoint when the application starts
+      supervisor(OmiseGOWatcherWeb.Endpoint, [])
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
