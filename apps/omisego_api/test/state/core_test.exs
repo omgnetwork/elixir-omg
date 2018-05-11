@@ -472,17 +472,17 @@ defmodule OmiseGO.API.State.CoreTest do
 
   @tag fixtures: [:alice, :state_empty]
   test "tells if utxo exists", %{alice: alice, state_empty: state} do
-    :utxo_does_not_exist =
-      Core.utxo_exists(%{blknum: 1, txindex: 0, oindex: 0}, state)
+    :utxo_does_not_exist = Core.utxo_exists(%{blknum: 1, txindex: 0, oindex: 0}, state)
 
     state = state |> Test.do_deposit(alice, %{amount: 10, blknum: 1})
     :utxo_exists = Core.utxo_exists(%{blknum: 1, txindex: 0, oindex: 0}, state)
 
-    state = state
+    state =
+      state
       |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{alice, 10}]), &1)).()
       |> success?
-    :utxo_does_not_exist =
-      Core.utxo_exists(%{blknum: 1, txindex: 0, oindex: 0}, state)
+
+    :utxo_does_not_exist = Core.utxo_exists(%{blknum: 1, txindex: 0, oindex: 0}, state)
   end
 
   defp success?(result) do

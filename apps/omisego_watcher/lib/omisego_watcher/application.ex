@@ -16,7 +16,7 @@ defmodule OmiseGOWatcher.Application do
       supervisor(OmiseGOWatcherWeb.Endpoint, []),
       {OmiseGO.API.State, []},
       # Start workers
-      worker(OmiseGOWatcher.FastExitValidator, []),
+      worker(OmiseGOWatcher.FastExitValidator, [])
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

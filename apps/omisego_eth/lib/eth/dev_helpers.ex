@@ -13,7 +13,7 @@ defmodule OmiseGO.Eth.DevHelpers do
   defp do_prepare(env) do
     {:ok, contract_address, txhash, authority} = prepare_env("./")
     write_conf_file(env, contract_address, txhash, authority)
-    IO.puts inspect {:ok, contract_address, txhash, authority}
+    IO.puts(inspect({:ok, contract_address, txhash, authority}))
   end
 
   def prepare_env(root_path) do

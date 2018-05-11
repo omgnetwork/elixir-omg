@@ -1,5 +1,5 @@
 defmodule OmiseGOWatcher.FastExitValidator do
-  @moduledoc"""
+  @moduledoc """
   Detects exits for spent utxos and notifies challenger
   """
 
@@ -36,6 +36,7 @@ defmodule OmiseGOWatcher.FastExitValidator do
     for utxo_exit <- utxo_exits do
       :ok = validate_exit(utxo_exit)
     end
+
     :ok
   end
 
@@ -47,5 +48,4 @@ defmodule OmiseGOWatcher.FastExitValidator do
       :utxo_exists -> :ok
     end
   end
-
 end

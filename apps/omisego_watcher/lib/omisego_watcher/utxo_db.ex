@@ -1,5 +1,5 @@
 defmodule OmiseGOWatcher.UtxoDB do
-  @moduledoc"""
+  @moduledoc """
   Ecto schema for utxo
   """
   use Ecto.Schema
