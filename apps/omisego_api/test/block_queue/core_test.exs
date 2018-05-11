@@ -13,7 +13,18 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
   end
 
   def empty do
-    {:ok, state} = new()
+    {:ok, state} =
+      new(
+        mined_child_block_num: 0,
+        known_hashes: [],
+        top_mined_hash: <<0::256>>,
+        parent_height: 1,
+        child_block_interval: 1000,
+        chain_start_parent_height: 1,
+        submit_period: 1,
+        finality_threshold: 12
+      )
+
     state
   end
 
