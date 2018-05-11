@@ -121,17 +121,23 @@ defmodule OmiseGO.Performance.SenderServer do
       result = OmiseGO.API.submit(tx)
       case result do
         {:error, :too_many_transactions_in_block} ->
-          Logger.info(fn -> "[#{seqnum}]: Transaction submittion will be retried, block #{last_tx.blknum} is full." end)
+          Logger.info(fn ->
+            "[#{seqnum}]: Transaction submittion will be retried, block #{last_tx.blknum} is full." end)
           :retry
 
         {:error,  reason} ->
-          Logger.debug(fn -> "[#{seqnum}]: Transaction submission has failed, reason: #{reason}" end)
+          Logger.debug(fn ->
+            "[#{seqnum}]: Transaction submission has failed, reason: #{reason}" end)
           {:error, reason}
 >>>>>>> Integrating senders registry and wait_for into single SenderManager module
 
         {:ok, _, blknum, txindex} ->
-          Logger.debug(fn -> "[#{seqnum}]: Transaction submitted successfully {#{blknum}, #{txindex}, #{newamount}}" end)
-          if blknum > last_tx.blknum, do: OmiseGO.Performance.SenderManager.sender_stats(seqnum, last_tx.blknum, last_tx.txindex, state.ntx_to_send)
+          Logger.debug(fn ->
+            "[#{seqnum}]: Transaction submitted successfully {#{blknum}, #{txindex}, #{newamount}}" end)
+
+          if blknum > last_tx.blknum, do:
+            OmiseGO.Performance.SenderManager.sender_stats(seqnum, last_tx.blknum, last_tx.txindex, state.ntx_to_send)
+
           {:ok, blknum, txindex, newamount}
       end
   end

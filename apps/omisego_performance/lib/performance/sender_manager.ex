@@ -71,7 +71,7 @@ defmodule OmiseGO.Performance.SenderManager do
   """
   @spec handle_info(:check, state :: pid | atom)
   :: {:noreply, newstate :: pid | atom} | {:stop, :shutdown, state :: pid | atom}
-  def handle_info(:check, %{senders: senders} = state) when length(senders) == 0 do
+  def handle_info(:check, %{senders: senders} = state) when senders == [] do
     {:stop, :normal, state}
   end
 
@@ -108,7 +108,9 @@ defmodule OmiseGO.Performance.SenderManager do
   @spec reschedule_check() :: :ok
   defp reschedule_check, do: Process.send_after(self(), :check, @check_senders_done_every_ms)
 
-
+  # Collects statistics regarding tx submittion and block forming.
+  # Returns array of tuples, each tuple contains four fields:
+  # * {blknum,   total_txs_in_blk,   avg_txs_in_sec,   time_between_blocks_ms}
   defp analyze(%{events: events, start_time: start}) do
     events_by_blknum = events |> Enum.group_by(&(elem(&1, 1)))
 

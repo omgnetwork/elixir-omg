@@ -37,7 +37,7 @@ defmodule OmiseGO.Performance.BlockCreator do
     start = System.monotonic_time(:millisecond)
     OmiseGO.API.State.form_block(blknum, newblknum)
     stop = System.monotonic_time(:millisecond)
-    OmiseGO.Performance.SenderManager.block_forming_time(blknum, stop-start)
+    OmiseGO.Performance.SenderManager.block_forming_time(blknum, stop - start)
 
     reschedule_task()
     {:noreply, newblknum}
