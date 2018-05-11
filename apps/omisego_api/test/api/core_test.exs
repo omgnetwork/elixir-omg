@@ -35,7 +35,7 @@ defmodule OmiseGO.API.Api.CoreTest do
     [
       {{1, 2, 3, alice}, {2, 3, 4, bob}, alice.addr, bob.addr},
       {{1, 2, 3, alice}, {0, 0, 0, %{priv: <<>>}}, alice.addr, nil},
-      {{0, 0, 0, %{priv: <<>>}}, {2, 3, 4, bob}, nil, bob.addr},
+      {{0, 0, 0, %{priv: <<>>}}, {2, 3, 4, bob}, nil, bob.addr}
     ]
     |> Enum.map(parametrized_tester)
   end
@@ -64,25 +64,23 @@ defmodule OmiseGO.API.Api.CoreTest do
 
   @tag fixtures: [:alice, :bob]
   test "transaction is not allowed to have input and empty sig", %{alice: alice, bob: bob} do
-    {full_signed_tx, _} =
-      TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, bob}], [{alice, 7}])
+    {full_signed_tx, _} = TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, bob}], [{alice, 7}])
 
     missing1 =
       %Transaction.Signed{full_signed_tx | sig1: @empty_signature}
       |> Transaction.Signed.encode()
+
     missing2 =
       %Transaction.Signed{full_signed_tx | sig2: @empty_signature}
       |> Transaction.Signed.encode()
 
-    {partial_signed_tx1, _} =
-      TestHelper.create_signed([{1, 2, 3, alice}], [{alice, 7}])
+    {partial_signed_tx1, _} = TestHelper.create_signed([{1, 2, 3, alice}], [{alice, 7}])
 
     missing3 =
       %Transaction.Signed{partial_signed_tx1 | sig1: @empty_signature}
       |> Transaction.Signed.encode()
 
-    {partial_signed_tx2, _} =
-      TestHelper.create_signed([{0, 0, 0, %{priv: <<>>}}, {1, 2, 3, alice}], [{alice, 7}])
+    {partial_signed_tx2, _} = TestHelper.create_signed([{0, 0, 0, %{priv: <<>>}}, {1, 2, 3, alice}], [{alice, 7}])
 
     missing4 =
       %Transaction.Signed{partial_signed_tx2 | sig2: @empty_signature}
@@ -96,12 +94,12 @@ defmodule OmiseGO.API.Api.CoreTest do
 
   @tag fixtures: [:alice]
   test "transactions with corrupt signatures don't do harm", %{alice: alice} do
-    {full_signed_tx, _} =
-      TestHelper.create_signed([{1, 2, 3, alice}], [{alice, 7}])
+    {full_signed_tx, _} = TestHelper.create_signed([{1, 2, 3, alice}], [{alice, 7}])
 
     corrupt =
       %Transaction.Signed{full_signed_tx | sig1: <<1::size(520)>>}
       |> Transaction.Signed.encode()
+
     assert {:error, :signature_corrupt} == Core.recover_tx(corrupt)
   end
 
@@ -114,15 +112,11 @@ defmodule OmiseGO.API.Api.CoreTest do
   end
 
   @tag fixtures: [:alice]
-  test "transaction is never allowed to have 2 empty inputs", %{alice: alice}  do
-    {double_zero_tx1, _} =
-      create_encoded([{0, 0, 0, %{priv: <<>>}}, {0, 0, 0, %{priv: <<>>}}], [{alice, 7}])
-    {double_zero_tx2, _} =
-      create_encoded([{0, 0, 0, alice}, {0, 0, 0, %{priv: <<>>}}], [{alice, 7}])
-    {double_zero_tx3, _} =
-      create_encoded([{0, 0, 0, %{priv: <<>>}}, {0, 0, 0, alice}], [{alice, 7}])
-    {double_zero_tx4, _} =
-      create_encoded([{0, 0, 0, alice}, {0, 0, 0, alice}], [{alice, 7}])
+  test "transaction is never allowed to have 2 empty inputs", %{alice: alice} do
+    {double_zero_tx1, _} = create_encoded([{0, 0, 0, %{priv: <<>>}}, {0, 0, 0, %{priv: <<>>}}], [{alice, 7}])
+    {double_zero_tx2, _} = create_encoded([{0, 0, 0, alice}, {0, 0, 0, %{priv: <<>>}}], [{alice, 7}])
+    {double_zero_tx3, _} = create_encoded([{0, 0, 0, %{priv: <<>>}}, {0, 0, 0, alice}], [{alice, 7}])
+    {double_zero_tx4, _} = create_encoded([{0, 0, 0, alice}, {0, 0, 0, alice}], [{alice, 7}])
 
     assert {:error, :no_inputs} == Core.recover_tx(double_zero_tx1)
     assert {:error, :no_inputs} == Core.recover_tx(double_zero_tx2)

@@ -26,8 +26,8 @@ defmodule OmiseGO.Performance.WaitFor do
   @doc """
   Checks whether registry has sender proceses registered
   """
-  @spec handle_info(:check, state :: pid | atom)
-  :: {:noreply, newstate :: pid | atom} | {:stop, :shutdown, state :: pid | atom}
+  @spec handle_info(:check, state :: pid | atom) ::
+          {:noreply, newstate :: pid | atom} | {:stop, :shutdown, state :: pid | atom}
   def handle_info(:check, registry) do
     senders = Registry.lookup(registry, :sender)
 

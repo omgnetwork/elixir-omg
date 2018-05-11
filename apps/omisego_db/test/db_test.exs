@@ -11,38 +11,41 @@ defmodule OmiseGO.DBTest do
 
   setup do
     dir = Temp.mkdir!()
-    {:ok, pid} = GenServer.start_link(
-      OmiseGO.DB.LevelDBServer,
-      %{db_path: dir},
-      name: TestDBServer
-    )
-    on_exit fn -> if Process.alive?(pid), do: :ok = GenServer.stop(TestDBServer), else: :ok end
+
+    {:ok, pid} =
+      GenServer.start_link(
+        OmiseGO.DB.LevelDBServer,
+        %{db_path: dir},
+        name: TestDBServer
+      )
+
+    on_exit(fn -> if Process.alive?(pid), do: :ok = GenServer.stop(TestDBServer), else: :ok end)
     {:ok, %{dir: dir}}
   end
 
   test "handles block storage", %{dir: dir} do
+    :ok =
+      DB.multi_update(
+        [
+          {:put, :block, %{hash: "xyz"}},
+          {:put, :block, %{hash: "vxyz"}},
+          {:put, :block, %{hash: "wvxyz"}}
+        ],
+        TestDBServer
+      )
 
-    :ok = DB.multi_update(
-      [
-        {:put, :block, %{hash: "xyz"}},
-        {:put, :block, %{hash: "vxyz"}},
-        {:put, :block, %{hash: "wvxyz"}},
-      ],
-      TestDBServer
-    )
-    assert {:ok, [%{hash: "wvxyz"}, %{hash: "xyz"}]} ==
-      DB.blocks(["wvxyz", "xyz"], TestDBServer)
+    assert {:ok, [%{hash: "wvxyz"}, %{hash: "xyz"}]} == DB.blocks(["wvxyz", "xyz"], TestDBServer)
 
-    :ok = DB.multi_update(
-      [
-        {:delete, :block, %{hash: "xyz"}},
-      ],
-      TestDBServer
-    )
+    :ok =
+      DB.multi_update(
+        [
+          {:delete, :block, %{hash: "xyz"}}
+        ],
+        TestDBServer
+      )
 
     checks = fn ->
-      assert {:ok, [%{hash: "wvxyz"}, :not_found, %{hash: "vxyz"}]} ==
-        DB.blocks(["wvxyz", "xyz", "vxyz"], TestDBServer)
+      assert {:ok, [%{hash: "wvxyz"}, :not_found, %{hash: "vxyz"}]} == DB.blocks(["wvxyz", "xyz", "vxyz"], TestDBServer)
     end
 
     checks.()
@@ -50,30 +53,30 @@ defmodule OmiseGO.DBTest do
     # check actual persistence
     restart(dir)
     checks.()
-
   end
 
   test "handles utxo storage and that it actually persists", %{dir: dir} do
-
-    :ok = DB.multi_update(
-      [
-        {:put, :utxo, %{{10, 30, 0} => %{amount: 10, owner: "alice1"}}},
-        {:put, :utxo, %{{11, 30, 0} => %{amount: 10, owner: "alice2"}}},
-        {:put, :utxo, %{{11, 31, 0} => %{amount: 10, owner: "alice3"}}},
-        {:put, :utxo, %{{11, 31, 1} => %{amount: 10, owner: "alice4"}}},
-        {:put, :utxo, %{{50, 30, 0} => %{amount: 10, owner: "alice5"}}},
-        {:delete, :utxo, {50, 30, 0}},
-      ],
-      TestDBServer
-    )
+    :ok =
+      DB.multi_update(
+        [
+          {:put, :utxo, %{{10, 30, 0} => %{amount: 10, owner: "alice1"}}},
+          {:put, :utxo, %{{11, 30, 0} => %{amount: 10, owner: "alice2"}}},
+          {:put, :utxo, %{{11, 31, 0} => %{amount: 10, owner: "alice3"}}},
+          {:put, :utxo, %{{11, 31, 1} => %{amount: 10, owner: "alice4"}}},
+          {:put, :utxo, %{{50, 30, 0} => %{amount: 10, owner: "alice5"}}},
+          {:delete, :utxo, {50, 30, 0}}
+        ],
+        TestDBServer
+      )
 
     checks = fn ->
-      assert {:ok, [
-        %{{10, 30, 0} => %{amount: 10, owner: "alice1"}},
-        %{{11, 30, 0} => %{amount: 10, owner: "alice2"}},
-        %{{11, 31, 0} => %{amount: 10, owner: "alice3"}},
-        %{{11, 31, 1} => %{amount: 10, owner: "alice4"}},
-      ]} == DB.utxos(TestDBServer)
+      assert {:ok,
+              [
+                %{{10, 30, 0} => %{amount: 10, owner: "alice1"}},
+                %{{11, 30, 0} => %{amount: 10, owner: "alice2"}},
+                %{{11, 31, 0} => %{amount: 10, owner: "alice3"}},
+                %{{11, 31, 1} => %{amount: 10, owner: "alice4"}}
+              ]} == DB.utxos(TestDBServer)
     end
 
     checks.()
@@ -85,10 +88,12 @@ defmodule OmiseGO.DBTest do
 
   defp restart(dir) do
     :ok = GenServer.stop(TestDBServer)
-    {:ok, _pid} = GenServer.start_link(
-      OmiseGO.DB.LevelDBServer,
-      %{db_path: dir},
-      name: TestDBServer
-    )
+
+    {:ok, _pid} =
+      GenServer.start_link(
+        OmiseGO.DB.LevelDBServer,
+        %{db_path: dir},
+        name: TestDBServer
+      )
   end
 end

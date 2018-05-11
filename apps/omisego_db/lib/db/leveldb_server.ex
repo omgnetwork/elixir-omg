@@ -11,7 +11,7 @@ defmodule OmiseGO.DB.LevelDBServer do
 
   alias Exleveldb
 
-  def start_link([name: name, db_path: db_path]) do
+  def start_link(name: name, db_path: db_path) do
     GenServer.start_link(__MODULE__, %{db_path: db_path}, name: name)
   end
 
@@ -36,6 +36,7 @@ defmodule OmiseGO.DB.LevelDBServer do
       |> Enum.map(fn block -> LevelDBCore.key(:block, block) end)
       |> Enum.map(fn key -> get(key, db_ref) end)
       |> LevelDBCore.decode_values(:block)
+
     {:reply, result, state}
   end
 
@@ -47,6 +48,7 @@ defmodule OmiseGO.DB.LevelDBServer do
       |> LevelDBCore.filter_utxos()
       |> Enum.map(fn key -> get(key, db_ref) end)
       |> LevelDBCore.decode_values(:utxo)
+
     {:reply, result, state}
   end
 
@@ -56,14 +58,14 @@ defmodule OmiseGO.DB.LevelDBServer do
       |> Enum.map(fn block_number -> LevelDBCore.key(:block_hash, block_number) end)
       |> Enum.map(fn key -> get(key, db_ref) end)
       |> LevelDBCore.decode_values(:block_hash)
+
     {:reply, result, state}
   end
 
   @single_value_parameter_names [:child_top_block_number, :last_deposit_block_height]
 
   def handle_call(parameter, _from, %__MODULE__{db_ref: db_ref} = state)
-      when is_atom(parameter) and parameter in @single_value_parameter_names
-  do
+      when is_atom(parameter) and parameter in @single_value_parameter_names do
     result =
       parameter
       |> LevelDBCore.key(nil)

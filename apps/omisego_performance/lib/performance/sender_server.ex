@@ -18,12 +18,15 @@ defmodule OmiseGO.Performance.SenderServer do
   Defines a structure for the State of the server.
   """
   defstruct [
-    :seqnum,      # increasing number to ensure sender's deposit is accepted, @seealso @doc to :init
+    # increasing number to ensure sender's deposit is accepted, @seealso @doc to :init
+    :seqnum,
     :ntx_to_send,
     :spender,
-    :last_tx,     # {blknum, txindex, oindex, amount}, @see %LastTx above
+    # {blknum, txindex, oindex, amount}, @see %LastTx above
+    :last_tx
   ]
-  @opaque state :: %__MODULE__{seqnum: integer, ntx_to_send: integer, spender: map, last_tx: LastTx.t}
+
+  @opaque state :: %__MODULE__{seqnum: integer, ntx_to_send: integer, spender: map, last_tx: LastTx.t()}
 
   @doc """
   Starts the server.
@@ -39,7 +42,7 @@ defmodule OmiseGO.Performance.SenderServer do
     * Senders are assigned sequential positive int starting from 1, senders are initialized in order of seqnum.
       This ensures all senders' deposits are accepted.
   """
-  @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, init_state :: __MODULE__.state}
+  @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, init_state :: __MODULE__.state()}
   def init({seqnum, ntx_to_send}) do
     Logger.debug(fn -> "[#{seqnum}] +++ init/1 called with requests: '#{ntx_to_send}' +++" end)
     Registry.register(OmiseGO.Performance.Registry, :sender, "Sender: #{seqnum}")
@@ -61,7 +64,8 @@ defmodule OmiseGO.Performance.SenderServer do
   Submits transaction then schedules call to itself if more left.
   Otherwise unregisters from the Registry and stops.
   """
-  @spec handle_info(:do, state :: __MODULE__.state) :: {:noreply, new_state :: __MODULE__.state} | {:stop, :normal, nil}
+  @spec handle_info(:do, state :: __MODULE__.state()) ::
+          {:noreply, new_state :: __MODULE__.state()} | {:stop, :normal, nil}
   def handle_info(:do, %__MODULE__{seqnum: seqnum, ntx_to_send: ntx_to_send} = state) do
     if ntx_to_send > 0 do
       {:ok, newblknum, newtxindex, newvalue} = submit_tx(state)
@@ -77,8 +81,8 @@ defmodule OmiseGO.Performance.SenderServer do
   @doc """
   Submits new transaction to the blockchain server.
   """
-  @spec submit_tx(__MODULE__.state)
-  :: {result :: tuple, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
+  @spec submit_tx(__MODULE__.state()) ::
+          {result :: tuple, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
   def submit_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx}) do
     alias OmiseGO.API.State.Transaction
 
@@ -93,17 +97,17 @@ defmodule OmiseGO.Performance.SenderServer do
       |> Transaction.sign(spender.priv, <<>>)
       |> Transaction.Signed.encode()
 
-      result = OmiseGO.API.submit(Base.encode16(tx))
-      case result do
-        {:error, reason} ->
-          Logger.debug(fn -> "[#{seqnum}]: Transaction submission has failed, reason: #{reason}" end)
-          {:error, reason}
+    result = OmiseGO.API.submit(Base.encode16(tx))
 
-        {:ok, %{blknum: blknum, tx_index: txindex}} ->
-          Logger.debug(fn -> "[#{seqnum}]: Transaction submitted successfully" end)
-          {:ok, blknum, txindex, newamount}
-      end
+    case result do
+      {:error, reason} ->
+        Logger.debug(fn -> "[#{seqnum}]: Transaction submission has failed, reason: #{reason}" end)
+        {:error, reason}
 
+      {:ok, %{blknum: blknum, tx_index: txindex}} ->
+        Logger.debug(fn -> "[#{seqnum}]: Transaction submitted successfully" end)
+        {:ok, blknum, txindex, newamount}
+    end
   end
 
   @doc """
@@ -119,41 +123,36 @@ defmodule OmiseGO.Performance.SenderServer do
   end
 
   # Generates module's initial state
-  @spec init_state(
-    seqnum :: pos_integer,
-    nreq :: pos_integer,
-    spender :: %{priv: <<_::256>>,
-    addr: <<_::160>>})
-  :: __MODULE__.state
+  @spec init_state(seqnum :: pos_integer, nreq :: pos_integer, spender :: %{priv: <<_::256>>, addr: <<_::160>>}) ::
+          __MODULE__.state()
   defp init_state(seqnum, nreq, spender) do
     %__MODULE__{
       seqnum: seqnum,
       ntx_to_send: nreq,
       spender: spender,
       last_tx: %LastTx{
-        blknum: seqnum,   # initial state takes deposited value, put there on :init
+        # initial state takes deposited value, put there on :init
+        blknum: seqnum,
         txindex: 0,
         oindex: 0,
-        amount: 10 * nreq,
-      },
+        amount: 10 * nreq
+      }
     }
   end
 
   # Generates next module's state
-  @spec next_state(
-    state :: __MODULE__.state,
-    blknum :: pos_integer,
-    txindex :: pos_integer,
-    amount :: pos_integer)
-  :: __MODULE__.state
+  @spec next_state(state :: __MODULE__.state(), blknum :: pos_integer, txindex :: pos_integer, amount :: pos_integer) ::
+          __MODULE__.state()
   defp next_state(%__MODULE__{ntx_to_send: ntx_to_send} = state, blknum, txindex, amount) do
     %__MODULE__{
-      state |
-      ntx_to_send: ntx_to_send - 1,
-      last_tx: %LastTx{
-        state.last_tx |
-        blknum: blknum, txindex: txindex, amount: amount
-      }
+      state
+      | ntx_to_send: ntx_to_send - 1,
+        last_tx: %LastTx{
+          state.last_tx
+          | blknum: blknum,
+            txindex: txindex,
+            amount: amount
+        }
     }
   end
 end

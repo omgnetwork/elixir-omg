@@ -28,8 +28,9 @@ defmodule OmiseGOWatcherWeb do
 
   def view do
     quote do
-      use Phoenix.View, root: "lib/omisego_watcher_web/templates",
-                        namespace: OmiseGOWatcherWeb
+      use Phoenix.View,
+        root: "lib/omisego_watcher_web/templates",
+        namespace: OmiseGOWatcherWeb
 
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_flash: 2, view_module: 1]
