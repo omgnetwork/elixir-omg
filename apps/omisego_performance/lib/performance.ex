@@ -54,10 +54,11 @@ defmodule OmiseGO.Performance do
   end
 
   # The test teardown
-  @spec testdown([pid()]) :: :ok
+  @spec testdown([]) :: :ok
   defp testdown(started_apps) do
     started_apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
     Application.put_env(:omisego_db, :leveldb_path, nil)
+    :ok
   end
 
   # Executes the test runner
@@ -65,5 +66,6 @@ defmodule OmiseGO.Performance do
   defp run(args, profile) do
     {:ok, data} = apply(OmiseGO.Performance.Runner, if(profile, do: :profile_and_run, else: :run), args)
     Logger.info(data)
+    :ok
   end
 end

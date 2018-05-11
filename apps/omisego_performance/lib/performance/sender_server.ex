@@ -66,7 +66,8 @@ defmodule OmiseGO.Performance.SenderServer do
   Submits transaction then schedules call to itself if more left.
   Otherwise unregisters from the Registry and stops.
   """
-  @spec handle_info(:do, state :: __MODULE__.state) :: {:noreply, new_state :: __MODULE__.state} | {:stop, :normal, nil}
+  @spec handle_info(:do, state :: __MODULE__.state()) ::
+          {:noreply, new_state :: __MODULE__.state()} | {:stop, :normal, __MODULE__.state()}
   def handle_info(:do, %__MODULE__{ntx_to_send: 0} = state) do
     Logger.debug(fn -> "[#{state.seqnum}] +++ Stoping... +++" end)
 
@@ -77,27 +78,31 @@ defmodule OmiseGO.Performance.SenderServer do
   end
 
   def handle_info(:do, %__MODULE__{} = state) do
-    newstate = case submit_tx(state) do
-      {:ok, newblknum, newtxindex, newvalue} ->
-        send(self(), :do)
-        state |> next_state(newblknum, newtxindex, newvalue)
+    newstate =
+      case submit_tx(state) do
+        {:ok, newblknum, newtxindex, newvalue} ->
+          send(self(), :do)
+          state |> next_state(newblknum, newtxindex, newvalue)
 
-      :retry ->
-        Process.send_after(self(), :do, @tx_retry_waiting_time_ms)
-        state
-    end
+        :retry ->
+          Process.send_after(self(), :do, @tx_retry_waiting_time_ms)
+          state
+      end
+
     {:noreply, newstate}
   end
 
   @doc """
   Submits new transaction to the blockchain server.
   """
-  @spec submit_tx(__MODULE__.state)
-  :: {result :: tuple, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
+  @spec submit_tx(__MODULE__.state()) ::
+          {:ok, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer} |
+          {:error, any()} |
+          :retry
   def submit_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx} = state) do
     alias OmiseGO.API.State.Transaction
 
-    #random_sleep(seqnum)
+    # random_sleep(seqnum)
 
     to_spend = 9
     newamount = last_tx.amount - to_spend
@@ -111,27 +116,33 @@ defmodule OmiseGO.Performance.SenderServer do
       |> Transaction.Signed.encode()
       |> Base.encode16()
 
-      result = OmiseGO.API.submit(tx)
-      case result do
-        {:error, :too_many_transactions_in_block} ->
-          Logger.info(fn ->
-            "[#{seqnum}]: Transaction submittion will be retried, block #{last_tx.blknum} is full." end)
-          :retry
+    result = OmiseGO.API.submit(tx)
 
-        {:error,  reason} ->
-          Logger.debug(fn ->
-            "[#{seqnum}]: Transaction submission has failed, reason: #{reason}" end)
-          {:error, reason}
+    case result do
+      {:error, :too_many_transactions_in_block} ->
+        Logger.info(fn ->
+          "[#{seqnum}]: Transaction submittion will be retried, block #{last_tx.blknum} is full."
+        end)
 
-        {:ok, %{blknum: blknum, tx_index: txindex}} ->
-          Logger.debug(fn ->
-            "[#{seqnum}]: Transaction submitted successfully {#{blknum}, #{txindex}, #{newamount}}" end)
+        :retry
 
-          if blknum > last_tx.blknum, do:
-            OmiseGO.Performance.SenderManager.sender_stats(seqnum, last_tx.blknum, last_tx.txindex, state.ntx_to_send)
+      {:error, reason} ->
+        Logger.debug(fn ->
+          "[#{seqnum}]: Transaction submission has failed, reason: #{reason}"
+        end)
 
-          {:ok, blknum, txindex, newamount}
-      end
+        {:error, reason}
+
+      {:ok, %{blknum: blknum, tx_index: txindex}} ->
+        Logger.debug(fn ->
+          "[#{seqnum}]: Transaction submitted successfully {#{blknum}, #{txindex}, #{newamount}}"
+        end)
+
+        if blknum > last_tx.blknum,
+          do: OmiseGO.Performance.SenderManager.sender_stats(seqnum, last_tx.blknum, last_tx.txindex, state.ntx_to_send)
+
+        {:ok, blknum, txindex, newamount}
+    end
   end
 
   @doc """
@@ -183,19 +194,6 @@ defmodule OmiseGO.Performance.SenderServer do
   # Helper function to test interaction between Performance modules
   defp random_sleep(seqnum) do
     Logger.debug(fn -> "[#{seqnum}]: Need some sleep" end)
-    [500, 800, 1000, 1300] |> Enum.random |> Process.sleep
+    [500, 800, 1000, 1300] |> Enum.random() |> Process.sleep()
   end
-
-  defp encode(arg) when is_binary(arg), do: Base.encode16(arg)
-
-  defp encode(arg) when is_map(arg) do
-    arg = Map.from_struct(arg)
-
-    for {key, value} <- arg, into: %{} do
-      {key, encode(value)}
-    end
-  end
-
-  defp encode(arg) when is_list(arg), do: for(value <- arg, into: [], do: encode(value))
-  defp encode(arg), do: arg
 end

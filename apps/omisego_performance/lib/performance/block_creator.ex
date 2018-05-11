@@ -21,7 +21,7 @@ defmodule OmiseGO.Performance.BlockCreator do
   Reschedules call to itself wchich starts block forming loop.
   """
   def init(blknum) do
-    Logger.debug(fn -> "[BC] +++ init/1 called with args: '#{inspect blknum}' +++" end)
+    Logger.debug(fn -> "[BC] +++ init/1 called with args: '#{inspect(blknum)}' +++" end)
     reschedule_task()
     {:ok, blknum}
   end
