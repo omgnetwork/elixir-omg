@@ -4,41 +4,61 @@ defmodule OmiseGO.Eth.DevGeth do
   """
 
   def start do
-    # NOTE: Warnings produced here are result of Temp+Porcelain.Process being broken
-    # NOTE: Dropping Temp or using Porcelain.Result instead of Process prevents warnings
-    Temp.track!()
-    homedir = Temp.mkdir!(%{prefix: "honted_eth_test_homedir"})
+    homedir = "/tmp/omisego_dev_geth_home"
+    {:ok, []} = :exec.run("mkdir -p #{homedir}" |> String.to_charlist, [:sync])
     res = launch("geth --dev --rpc --rpcapi=personal,eth,web3 --datadir #{homedir} 2>&1")
     {:ok, :ready} = OmiseGO.Eth.WaitFor.eth_rpc()
     res
   end
 
-  def stop(pid, os_pid) do
-    # NOTE: `goon` is broken, and because of that signal does not work and we do kill -9 instead
-    #       Same goes for basic driver.
-    Porcelain.Process.stop(pid)
-    Porcelain.shell("kill -9 #{os_pid}")
+  def stop(pid, _os_pid) do
+    :exec.stop(pid)
   end
 
   # PRIVATE
   defp launch(cmd) do
-    geth_pids = geth_os_pids()
+    {:ok, helper_server, geth_out} = create_line_stream()
+    {:ok, geth_proc, _} = :exec.run(String.to_charlist(cmd), stdout: helper_server)
 
-    geth_proc = %Porcelain.Process{err: nil, out: geth_out} = Porcelain.spawn_shell(cmd, out: :stream)
     wait_for_geth_start(geth_out)
 
-    geth_pids_after = geth_os_pids()
-    [geth_os_pid] = geth_pids_after -- geth_pids
-    geth_os_pid = String.trim(geth_os_pid)
-    {geth_proc, geth_os_pid, geth_out}
+    {geth_proc, nil, geth_out}
   end
 
-  defp geth_os_pids do
-    %{out: out} = Porcelain.shell("pidof geth")
+  defp create_line_stream do
+    pid = spawn(&stdout_server_cmd/0)
+    stream = Stream.unfold(pid, &get_line/1)
+    {:ok, pid, stream}
+  end
 
-    out
-    |> String.trim()
-    |> String.split()
+  defp get_line(pid) do
+    ref = Process.monitor(pid)
+    send(pid, {:get_line, self()})
+    receive do
+      {:line, line} ->
+        _ = Process.demonitor(ref, [:flush])
+        {line, pid}
+      {'DOWN', aref, :process, _pid, :normal} when ref == aref ->
+        nil
+      {'DOWN', aref, :process, apid, reason} when ref == aref and pid == apid ->
+        Process.exit(self(), {:unexpected_crash_of_stream_reader, reason})
+    end
+  end
+
+  defp stdout_server_cmd do
+    receive do
+      {:get_line, caller} ->
+        stdout_server_get(caller)
+        stdout_server_cmd()
+      :stop ->
+        :normal
+    end
+  end
+
+  defp stdout_server_get(caller) do
+    receive do
+      {:stdout, _, line} -> send(caller, {:line, line})
+    end
   end
 
   def wait_for_start(outstream, look_for, timeout) do
@@ -56,7 +76,7 @@ defmodule OmiseGO.Eth.DevGeth do
     :ok
   end
 
-  defp wait_for_geth_start(geth_out) do
+  def wait_for_geth_start(geth_out) do
     wait_for_start(geth_out, "IPC endpoint opened", 15_000)
   end
 end
