@@ -2,7 +2,6 @@ defmodule OmiseGO.API.State do
   @moduledoc """
   Imperative shell for the state
   """
-  # TODO: file skipped in coveralls.json - this should be undone, when some integration tests land for this
 
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Eventer
@@ -93,11 +92,12 @@ defmodule OmiseGO.API.State do
   """
   def handle_call({:form_block, block_num_to_form, next_block_num_to_form}, _from, state) do
     result = Core.form_block(state, block_num_to_form, next_block_num_to_form)
+
     with {:ok, {block, event_triggers, db_updates, new_state}} <- result,
          :ok <- DB.multi_update(db_updates) do
       Eventer.notify(event_triggers)
       :ok = FreshBlocks.push(block)
       {:reply, {:ok, block.hash}, new_state}
     end
- end
+  end
 end

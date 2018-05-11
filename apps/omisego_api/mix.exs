@@ -27,7 +27,7 @@ defmodule OmiseGO.API.MixProject do
         child_block_submit_period: 1
       ],
       extra_applications: [:logger],
-      mod: {OmiseGO.API.Application, []},
+      mod: {OmiseGO.API.Application, []}
     ]
   end
 
@@ -43,7 +43,7 @@ defmodule OmiseGO.API.MixProject do
       {:libsecp256k1, "~> 0.1.2", compile: "${HOME}/.mix/rebar compile", override: true},
       #
       {:omisego_db, in_umbrella: true},
-      {:omisego_eth, in_umbrella: true},
+      {:omisego_eth, in_umbrella: true}
     ]
   end
 end

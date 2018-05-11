@@ -17,8 +17,8 @@ defmodule OmiseGO.API.ExposeSpec do
   # x + 1
   # end
 
-  FIXME: functions with the same name but different arity are not yet supported
-  FIXME: spec AST parser is primitive, it does not handle all correct possibilities
+  NOTE: functions with the same name but different arity are not yet supported
+  NOTE: spec AST parser is primitive, it does not handle all correct possibilities
   """
 
   @typedoc """

@@ -12,7 +12,7 @@ defmodule OmiseGO.Eth.MixProject do
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      test_coverage: [tool: ExCoveralls],
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
@@ -35,8 +35,8 @@ defmodule OmiseGO.Eth.MixProject do
         sparse: "plasma/root_chain/contracts/",
         compile: false,
         app: false,
-        only: [:dev, :test],
-      },
+        only: [:dev, :test]
+      }
     ]
   end
 end

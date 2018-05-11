@@ -11,11 +11,6 @@ defmodule OmiseGO.DB do
     GenServer.call(server_name, {:multi_update, db_updates})
   end
 
-  # TODO: this will likely be dropped from the OmiseGO.API and here
-  def tx(hash, server_name \\ @server_name) do
-    GenServer.call(server_name, {:tx, hash})
-  end
-
   @spec blocks(block_to_fetch :: list()) :: {:ok, list()} | {:error, any}
   def blocks(blocks_to_fetch, server_name \\ @server_name) do
     GenServer.call(server_name, {:blocks, blocks_to_fetch})

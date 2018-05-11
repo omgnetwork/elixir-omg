@@ -1,6 +1,5 @@
 defmodule OmiseGO.API.Notification do
-
-  @type t :: Received.t | Sent.t | BlockFinalized.t
+  @type t :: Received.t() | Sent.t() | BlockFinalized.t()
 
   defmodule Received do
     @moduledoc """
@@ -10,8 +9,8 @@ defmodule OmiseGO.API.Notification do
     defstruct [:tx]
 
     @type t :: %Received{
-      tx: any()
-    }
+            tx: any()
+          }
   end
 
   defmodule Spent do
@@ -22,8 +21,8 @@ defmodule OmiseGO.API.Notification do
     defstruct [:tx]
 
     @type t :: %Spent{
-      tx: any()
-    }
+            tx: any()
+          }
   end
 
   defmodule BlockFinalized do
@@ -34,8 +33,8 @@ defmodule OmiseGO.API.Notification do
     defstruct [:number, :hash]
 
     @type t :: %BlockFinalized{
-      number: pos_integer(),
-      hash: binary()
-    }
+            number: pos_integer(),
+            hash: binary()
+          }
   end
 end

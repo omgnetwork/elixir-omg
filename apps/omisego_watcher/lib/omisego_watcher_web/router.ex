@@ -2,15 +2,14 @@ defmodule OmiseGOWatcherWeb.Router do
   use OmiseGOWatcherWeb, :router
 
   pipeline :api do
-    plug :accepts, ["json"]
+    plug(:accepts, ["json"])
   end
 
   scope "/", OmiseGOWatcherWeb do
-    get "/account/utxo", Controller.Utxo, :available
+    get("/account/utxo", Controller.Utxo, :available)
   end
 
   scope "/transactions", OmiseGOWatcherWeb do
-    get "/:id", Controller.Transaction, :get
+    get("/:id", Controller.Transaction, :get)
   end
-
 end

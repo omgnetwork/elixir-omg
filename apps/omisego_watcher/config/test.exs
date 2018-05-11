@@ -14,5 +14,4 @@ config :omisego_watcher, OmiseGOWatcher.Repo,
   adapter: Sqlite.Ecto2,
   database: "ecto_simple.sqlite3"
 
-config :omisego_watcher, OmiseGOWatcher.Repo,
-  pool: Ecto.Adapters.SQL.Sandbox
+config :omisego_watcher, OmiseGOWatcher.Repo, pool: Ecto.Adapters.SQL.Sandbox

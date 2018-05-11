@@ -36,27 +36,33 @@ defmodule OmiseGO.API.Crypto do
   """
   @spec verify(binary, binary, binary) :: {:ok, boolean}
   def verify(msg, signature, address) do
-    {:ok, recovered_address} =
-      msg |> hash() |> recover_address(signature)
+    {:ok, recovered_address} = msg |> hash() |> recover_address(signature)
     {:ok, address == recovered_address}
   end
 
   @doc """
   Recovers address of signer from binary-encoded signature.
   """
-  @spec recover_address(<<_::256>>, <<_::520>>) :: {:ok, <<_::160>>}
-  def recover_address(<<digest :: binary-size(32)>>, <<packed_signature :: binary-size(65)>>) do
-    {:ok, pub} = recover_public(digest, packed_signature)
-    generate_address(pub)
+  @spec recover_address(<<_::256>>, <<_::520>>) :: {:ok, <<_::160>>} | {:error, :signature_corrupt}
+  def recover_address(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
+    with {:ok, pub} <- recover_public(digest, packed_signature) do
+      generate_address(pub)
+    end
   end
 
   @doc """
   Recovers public key of signer from binary-encoded signature.
   """
-  @spec recover_public(<<_::256>>, <<_::520>>) :: {:ok, <<_::512>>}
-  def recover_public(<<digest :: binary-size(32)>>, <<packed_signature :: binary-size(65)>>) do
+  @spec recover_public(<<_::256>>, <<_::520>>) :: {:ok, <<_::512>>} | {:error, :signature_corrupt}
+  def recover_public(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
     {v, r, s} = unpack_signature(packed_signature)
-    Blockchain.Transaction.Signature.recover_public(digest, v, r, s)
+
+    with {:ok, _pub} = result <- Blockchain.Transaction.Signature.recover_public(digest, v, r, s) do
+      result
+    else
+      {:error, "Recovery id invalid 0-3"} -> {:error, :signature_corrupt}
+      other -> other
+    end
   end
 
   @doc """
@@ -70,7 +76,7 @@ defmodule OmiseGO.API.Crypto do
   Given a private key, returns public key.
   """
   @spec generate_public_key(<<_::256>>) :: {:ok, <<_::512>>}
-  def generate_public_key(<<priv :: binary-size(32)>>) do
+  def generate_public_key(<<priv::binary-size(32)>>) do
     {:ok, der_pub} = Blockchain.Transaction.Signature.get_public_key(priv)
     {:ok, der_to_raw(der_pub)}
   end
@@ -79,8 +85,8 @@ defmodule OmiseGO.API.Crypto do
   Given public key, returns an address.
   """
   @spec generate_address(<<_::512>>) :: {:ok, <<_::160>>}
-  def generate_address(<<pub :: binary-size(64)>>) do
-    <<_ :: binary-size(12), address :: binary-size(20)>> = :keccakf1600.sha3_256(pub)
+  def generate_address(<<pub::binary-size(64)>>) do
+    <<_::binary-size(12), address::binary-size(20)>> = :keccakf1600.sha3_256(pub)
     {:ok, address}
   end
 
@@ -105,16 +111,15 @@ defmodule OmiseGO.API.Crypto do
 
   # private
 
-  defp der_to_raw(<<4 :: integer-size(8), data :: binary>>), do: data
+  defp der_to_raw(<<4::integer-size(8), data::binary>>), do: data
 
   # Pack a {v,r,s} signature as 65-bytes binary.
   defp pack_signature(v, r, s) do
-    <<r :: integer-size(256), s :: integer-size(256), v :: integer-size(8)>>
+    <<r::integer-size(256), s::integer-size(256), v::integer-size(8)>>
   end
 
   # Unpack 65-bytes binary signature into {v,r,s} tuple.
-  defp unpack_signature(<<r :: integer-size(256), s :: integer-size(256), v :: integer-size(8)>>) do
+  defp unpack_signature(<<r::integer-size(256), s::integer-size(256), v::integer-size(8)>>) do
     {v, r, s}
   end
-
 end

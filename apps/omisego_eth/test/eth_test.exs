@@ -81,8 +81,7 @@ defmodule OmiseGO.EthTest do
     deposit(contract)
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.from}]} ==
-             Eth.get_deposits(1, height, contract.address)
+    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.from}]} == Eth.get_deposits(1, height, contract.address)
   end
 
   @tag fixtures: [:contract]
