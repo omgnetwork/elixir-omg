@@ -36,10 +36,10 @@ defmodule OmiseGO.Performance.SenderManager do
   @doc """
   Starts sender processes and reschedule check whether they are done.
   """
-  @spec init({integer ,integer}) :: {:ok, map()}
+  @spec init({integer, integer}) :: {:ok, map()}
   def init({ntx_to_send, nusers}) do
     Process.flag(:trap_exit, true)
-    Logger.debug(fn -> "[SM] +++ init/1 called with #{nusers} users, each to send #{ntx_to_send} +++" end)
+    _ = Logger.debug(fn -> "[SM] +++ init/1 called with #{nusers} users, each to send #{ntx_to_send} +++" end)
 
     senders =
       1..nusers
@@ -72,14 +72,13 @@ defmodule OmiseGO.Performance.SenderManager do
   @doc """
   Checks whether registry has sender proceses registered
   """
-  @spec handle_info(:check, state :: pid | atom) ::
-          {:noreply, newstate :: map()} | {:stop, :normal, state :: map()}
+  @spec handle_info(:check, state :: pid | atom) :: {:noreply, newstate :: map()} | {:stop, :normal, state :: map()}
   def handle_info(:check, %{senders: senders} = state) when senders == [] do
     {:stop, :normal, state}
   end
 
   def handle_info(:check, state) do
-    Logger.debug(fn -> "[SM]: Senders are alive" end)
+    _ = Logger.debug(fn -> "[SM]: Senders are alive" end)
     reschedule_check()
     {:noreply, state}
   end
@@ -173,7 +172,7 @@ defmodule OmiseGO.Performance.SenderManager do
     data = "Block forming times:\n#{inspect(state.block_times, limit: :infinity, pretty: true)}\n"
     stats = analyze(state)
     data = data <> "\nPerformance statistics:\n#{inspect(stats, limit: :infinity, pretty: true)}\n"
-    File.write(destfile, data)
+    :ok = File.write(destfile, data)
     IO.puts("Performance statistics written to file: #{destfile}")
     :ok
   end

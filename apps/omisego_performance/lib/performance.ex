@@ -23,7 +23,7 @@ defmodule OmiseGO.Performance do
   def setup_and_run(ntx_to_send, nusers, opt \\ []) do
     testid = :os.system_time(:millisecond)
     {:ok, started_apps} = testup(testid)
-    Logger.info("OmiseGO PerfTest ##{testid} - users: #{nusers}, reqs: #{ntx_to_send}.")
+    _ = Logger.info("OmiseGO PerfTest ##{testid} - users: #{nusers}, reqs: #{ntx_to_send}.")
 
     # select just neccessary components to run the tests
     children = [
@@ -32,7 +32,7 @@ defmodule OmiseGO.Performance do
       {OmiseGO.API.FreshBlocks, []}
     ]
 
-    Supervisor.start_link(children, strategy: :one_for_one)
+    {:ok, _pid} = Supervisor.start_link(children, strategy: :one_for_one)
 
     run([testid, ntx_to_send, nusers], opt[:profile])
 
@@ -65,7 +65,7 @@ defmodule OmiseGO.Performance do
   @spec run(args :: list(), profile :: boolean) :: :ok
   defp run(args, profile) do
     {:ok, data} = apply(OmiseGO.Performance.Runner, if(profile, do: :profile_and_run, else: :run), args)
-    Logger.info(data)
+    _ = Logger.info(data)
     :ok
   end
 end

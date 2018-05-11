@@ -20,8 +20,9 @@ defmodule OmiseGO.Performance.BlockCreator do
   Initializes the process with @initial_block_number stored in the process state.
   Reschedules call to itself wchich starts block forming loop.
   """
+  @spec init(integer) :: {:ok, integer}
   def init(blknum) do
-    Logger.debug(fn -> "[BC] +++ init/1 called with args: '#{inspect(blknum)}' +++" end)
+    _ = Logger.debug(fn -> "[BC] +++ init/1 called with args: '#{inspect(blknum)}' +++" end)
     reschedule_task()
     {:ok, blknum}
   end
@@ -32,7 +33,7 @@ defmodule OmiseGO.Performance.BlockCreator do
   """
   def handle_info(:do, blknum) do
     newblknum = blknum + 1000
-    Logger.debug(fn -> "[BC]: Forming block #{blknum}, next #{newblknum}" end)
+    _ = Logger.debug(fn -> "[BC]: Forming block #{blknum}, next #{newblknum}" end)
 
     start = System.monotonic_time(:millisecond)
     OmiseGO.API.State.form_block(blknum, newblknum)

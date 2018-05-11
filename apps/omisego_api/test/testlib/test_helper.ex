@@ -8,10 +8,11 @@ defmodule OmiseGO.API.TestHelper do
   alias OmiseGO.API.State.Transaction
 
   def generate_entity do
-    {:ok, priv} = Crypto.generate_private_key()
-    {:ok, pub} = Crypto.generate_public_key(priv)
-    {:ok, addr} = Crypto.generate_address(pub)
-    %{priv: priv, addr: addr}
+    with {:ok, priv} = Crypto.generate_private_key()
+      {:ok, pub} = Crypto.generate_public_key(priv)
+      {:ok, addr} = Crypto.generate_address(pub) do
+      %{priv: priv, addr: addr}
+    end
   end
 
   def do_deposit(state, owner, %{amount: amount, blknum: blknum}) do
