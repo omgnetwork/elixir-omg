@@ -109,15 +109,8 @@ defmodule OmiseGO.Performance.SenderServer do
       |> Transaction.new([{spender.addr, newamount}, {recipient.addr, to_spend}], 0)
       |> Transaction.sign(spender.priv, <<>>)
       |> Transaction.Signed.encode()
+      |> Base.encode16()
 
-<<<<<<< 5a03a3300d88cd0ad20e66ffc9c880b63431833f
-    result = OmiseGO.API.submit(Base.encode16(tx))
-
-    case result do
-      {:error, reason} ->
-        Logger.debug(fn -> "[#{seqnum}]: Transaction submission has failed, reason: #{reason}" end)
-        {:error, reason}
-=======
       result = OmiseGO.API.submit(tx)
       case result do
         {:error, :too_many_transactions_in_block} ->
@@ -129,9 +122,8 @@ defmodule OmiseGO.Performance.SenderServer do
           Logger.debug(fn ->
             "[#{seqnum}]: Transaction submission has failed, reason: #{reason}" end)
           {:error, reason}
->>>>>>> Integrating senders registry and wait_for into single SenderManager module
 
-        {:ok, _, blknum, txindex} ->
+        {:ok, %{blknum: blknum, tx_index: txindex}} ->
           Logger.debug(fn ->
             "[#{seqnum}]: Transaction submitted successfully {#{blknum}, #{txindex}, #{newamount}}" end)
 
@@ -193,4 +185,17 @@ defmodule OmiseGO.Performance.SenderServer do
     Logger.debug(fn -> "[#{seqnum}]: Need some sleep" end)
     [500, 800, 1000, 1300] |> Enum.random |> Process.sleep
   end
+
+  defp encode(arg) when is_binary(arg), do: Base.encode16(arg)
+
+  defp encode(arg) when is_map(arg) do
+    arg = Map.from_struct(arg)
+
+    for {key, value} <- arg, into: %{} do
+      {key, encode(value)}
+    end
+  end
+
+  defp encode(arg) when is_list(arg), do: for(value <- arg, into: [], do: encode(value))
+  defp encode(arg), do: arg
 end
