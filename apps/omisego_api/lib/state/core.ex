@@ -32,8 +32,8 @@ defmodule OmiseGO.API.State.Core do
   @doc """
   Includes the transaction into the state when valid, rejects otherwise.
   """
-  @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{})
-        :: {{:ok, <<_::256>>, pos_integer, pos_integer}, %Core{}} | {:error, %Core{}}
+  @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{}) ::
+          {{:ok, <<_::256>>, pos_integer, pos_integer}, %Core{}} | {:error, %Core{}}
   def exec(
         %Transaction.Recovered{
           raw_tx: raw_tx,
@@ -113,8 +113,7 @@ defmodule OmiseGO.API.State.Core do
   end
 
   defp apply_spend(
-         %Core{height: height, tx_index: tx_index, utxos: utxos} =
-           state,
+         %Core{height: height, tx_index: tx_index, utxos: utxos} = state,
          %Transaction{
            blknum1: blknum1,
            txindex1: txindex1,

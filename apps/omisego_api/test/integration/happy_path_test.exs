@@ -90,7 +90,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     {:ok, started_jsonrpc} = Application.ensure_all_started(:omisego_jsonrpc)
 
     on_exit(fn ->
-      started_apps ++ started_jsonrpc
+      (started_apps ++ started_jsonrpc)
       |> Enum.reverse()
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
@@ -170,8 +170,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, %{transaction: Base.encode16(tx)})
 
-    assert {:error, {_, "Internal error", "utxo_not_found"}} =
-             jsonrpc(:submit, %{transaction: Base.encode16(tx2)})
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, %{transaction: Base.encode16(tx2)})
   end
 
   defp encode(arg) when is_binary(arg), do: Base.encode16(arg)
@@ -186,5 +185,4 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
   defp encode(arg) when is_list(arg), do: for(value <- arg, into: [], do: encode(value))
   defp encode(arg), do: arg
-
 end

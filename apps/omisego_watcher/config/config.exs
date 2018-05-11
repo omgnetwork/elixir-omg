@@ -19,11 +19,9 @@ config :omisego_watcher, OmiseGOWatcherWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "grt5Ef/y/jpx7AfLmrlUS/nfYJUOq+2e+1xmU4nphTm2x8WB7nLFCJ91atbSBrv5",
   render_errors: [view: OmiseGOWatcherWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: OmiseGOWatcher.PubSub,
-           adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: OmiseGOWatcher.PubSub, adapter: Phoenix.PubSub.PG2]
 
- config :omisego_db,
-   leveldb_path: Path.join([System.get_env("HOME"), ".omisego/watcher_data"])
+config :omisego_db, leveldb_path: Path.join([System.get_env("HOME"), ".omisego/watcher_data"])
 
 # Configures Elixir's Logger
 config :logger, :console,
@@ -32,4 +30,4 @@ config :logger, :console,
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
-import_config "#{Mix.env}.exs"
+import_config "#{Mix.env()}.exs"

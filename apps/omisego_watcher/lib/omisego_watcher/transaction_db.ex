@@ -60,7 +60,7 @@ defmodule OmiseGOWatcher.TransactionDB do
 
   def insert(%Block{transactions: transactions}, block_number) do
     transactions
-    |> Stream.with_index
+    |> Stream.with_index()
     |> Stream.map(fn {%Signed{} = signed, txindex} ->
       signed
       |> Signed.signed_hash()

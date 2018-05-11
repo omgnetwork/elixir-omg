@@ -20,27 +20,19 @@ defmodule OmiseGO.API.State.Transaction.Recovered do
 
   def recover_from(%Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2} = signed_tx) do
     hash_no_spenders = Transaction.hash(raw_tx)
-    spender1 = get_spender(hash_no_spenders, sig1)
-    spender2 = get_spender(hash_no_spenders, sig2)
 
-    signed_hash = Transaction.Signed.signed_hash(signed_tx)
-
-    %__MODULE__{
-      raw_tx: raw_tx,
-      signed_tx_hash: signed_hash,
-      spender1: spender1,
-      spender2: spender2
-    }
+    with {:ok, spender1} <- get_spender(hash_no_spenders, sig1),
+         {:ok, spender2} <- get_spender(hash_no_spenders, sig2),
+         do:
+           {:ok,
+            %__MODULE__{
+              raw_tx: raw_tx,
+              signed_tx_hash: Transaction.Signed.signed_hash(signed_tx),
+              spender1: spender1,
+              spender2: spender2
+            }}
   end
 
-  defp get_spender(hash_no_spenders, sig) do
-    case sig do
-      @empty_signature ->
-        nil
-
-      _ ->
-        {:ok, spender} = Crypto.recover_address(hash_no_spenders, sig)
-        spender
-    end
-  end
+  defp get_spender(_hash_no_spenders, @empty_signature), do: {:ok, nil}
+  defp get_spender(hash_no_spenders, sig), do: Crypto.recover_address(hash_no_spenders, sig)
 end

@@ -9,4 +9,4 @@ config :ethereumex,
   url: "http://localhost:8545",
   request_timeout: 5000
 
-import_config "#{Mix.env}.exs"
+import_config "#{Mix.env()}.exs"

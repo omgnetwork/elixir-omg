@@ -24,8 +24,7 @@ defmodule OmiseGO.Eth.DevGeth do
   defp launch(cmd) do
     geth_pids = geth_os_pids()
 
-    geth_proc =
-      %Porcelain.Process{err: nil, out: geth_out} = Porcelain.spawn_shell(cmd, out: :stream)
+    geth_proc = %Porcelain.Process{err: nil, out: geth_out} = Porcelain.spawn_shell(cmd, out: :stream)
     wait_for_geth_start(geth_out)
 
     geth_pids_after = geth_os_pids()

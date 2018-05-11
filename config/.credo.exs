@@ -69,9 +69,6 @@
         # NOTE: setting to 0, this is less stringent than fixmes
         {Credo.Check.Design.TagTODO, exit_status: 0},
 
-        # TODO: temporarily setting to 0, to pickup serious stuff during linting
-        {Credo.Check.Design.TagFIXME, exit_status: 0},
-
         {Credo.Check.Readability.FunctionNames},
         {Credo.Check.Readability.LargeNumbers},
         # NOTE: bump this to a more modern value
