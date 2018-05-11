@@ -1,24 +1,35 @@
 defmodule OmiseGO.Performance.BlockCreator do
   @moduledoc """
-  Module simulates forming new block on childchain on specified time intervals
+  Module simulates forming new block on childchain at specified time intervals
   """
 
   require Logger
   use GenServer
 
-  @request_block_creation_every_ms 4000
+  @request_block_creation_every_ms 2000
   @initial_block_number 1000
 
+  @doc """
+  Starts the process. Only one process of BlockCreator can be started.
+  """
   def start_link do
     GenServer.start_link(__MODULE__, @initial_block_number, name: __MODULE__)
   end
 
-  def init(args) do
-    Logger.debug(fn -> "[BC] +++ init/1 called with args: '#{inspect args}' +++" end)
+  @doc """
+  Initializes the process with @initial_block_number stored in the process state.
+  Reschedules call to itself wchich starts block forming loop.
+  """
+  def init(blknum) do
+    Logger.debug(fn -> "[BC] +++ init/1 called with args: '#{inspect blknum}' +++" end)
     reschedule_task()
-    {:ok, args}
+    {:ok, blknum}
   end
 
+  @doc """
+  Forms new block, reports time consumed by API response and reschedule next call
+  in @request_block_creation_every_ms milliseconds.
+  """
   def handle_info(:do, blknum) do
     newblknum = blknum + 1000
     Logger.debug(fn -> "[BC]: Forming block #{blknum}, next #{newblknum}" end)

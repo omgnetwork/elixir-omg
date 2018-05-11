@@ -32,7 +32,7 @@ defmodule OmiseGO.Performance.SenderServer do
   @opaque state :: %__MODULE__{seqnum: integer, ntx_to_send: integer, spender: map, last_tx: LastTx.t()}
 
   @doc """
-  Starts the server.
+  Starts the process.
   """
   @spec start_link({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, pid}
   def start_link(args) do

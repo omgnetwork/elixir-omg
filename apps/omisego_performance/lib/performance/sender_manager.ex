@@ -58,7 +58,7 @@ defmodule OmiseGO.Performance.SenderManager do
   end
 
   @doc """
-  Handles the trapped exit call
+  Handles the trapped exit call and writes collected statistics to the file.
   """
   def handle_info({:EXIT, _from, reason}, state) do
     write_stats(state)
@@ -90,12 +90,15 @@ defmodule OmiseGO.Performance.SenderManager do
   end
 
   @doc """
-  Register performance statistics event received from sender process.
+  Register performance statistics received from senders processes.
   """
   def handle_cast({:stats, event}, state) do
     {:noreply, %{state | events: [event | state.events]}}
   end
 
+  @doc """
+  Register block forming time received from the BlockCreator process.
+  """
   def handle_cast({:blkform, blknum, total_ms}, state) do
     {:noreply, %{state | block_times: [{blknum, total_ms} | state.block_times]}}
   end
@@ -104,6 +107,7 @@ defmodule OmiseGO.Performance.SenderManager do
   # Message will be processed by module's :handle_info function.
   @spec reschedule_check() :: :ok
   defp reschedule_check, do: Process.send_after(self(), :check, @check_senders_done_every_ms)
+
 
   defp analyze(%{events: events, start_time: start}) do
     events_by_blknum = events |> Enum.group_by(&(elem(&1, 1)))
@@ -120,6 +124,7 @@ defmodule OmiseGO.Performance.SenderManager do
     block_stats |> Enum.reverse()
   end
 
+  # Receives all events from Senders processes related to the same block and computes block's statistics.
   defp collect_block(array) do
     blknum = array |> hd |> elem(1)
     tx_max_index = array |> Enum.map(&(elem(&1, 2))) |> Enum.max()
@@ -128,6 +133,7 @@ defmodule OmiseGO.Performance.SenderManager do
     {blknum, tx_max_index + 1, time}
   end
 
+  # Reducer function, computes average tx submitted per second and timespan from previous block.
   defp analyze_block({blknum, txs_in_blk, time}, {start, list}) do
     span_ms = time - start
     if span_ms > 1000 do
