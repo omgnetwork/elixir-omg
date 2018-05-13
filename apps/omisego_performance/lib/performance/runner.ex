@@ -15,7 +15,7 @@ defmodule OmiseGO.Performance.Runner do
     start = System.monotonic_time(:millisecond)
 
     # fire async transaction senders
-    manager = OmiseGO.Performance.SenderManager.start(ntx_to_send, nusers)
+    manager = OmiseGO.Performance.SenderManager.start_link_all_senders(ntx_to_send, nusers)
 
     # fire block creator
     _ = OmiseGO.Performance.BlockCreator.start_link()

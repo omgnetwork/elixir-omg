@@ -102,8 +102,6 @@ defmodule OmiseGO.Performance.SenderServer do
   def submit_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx} = state) do
     alias OmiseGO.API.State.Transaction
 
-    # random_sleep(seqnum)
-
     to_spend = 9
     newamount = last_tx.amount - to_spend
     recipient = generate_participant_address()

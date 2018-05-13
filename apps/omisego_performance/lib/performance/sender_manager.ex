@@ -27,8 +27,8 @@ defmodule OmiseGO.Performance.SenderManager do
   @doc """
   Starts the sender's manager process
   """
-  @spec start(ntx_to_send :: integer, nusers :: integer) :: pid
-  def start(ntx_to_send, nusers) do
+  @spec start_link_all_senders(ntx_to_send :: integer, nusers :: integer) :: pid
+  def start_link_all_senders(ntx_to_send, nusers) do
     {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, nusers}, name: __MODULE__)
     mypid
   end
@@ -135,23 +135,23 @@ defmodule OmiseGO.Performance.SenderManager do
   defp collect_block(array) do
     blknum = array |> hd |> elem(1)
     tx_max_index = array |> Enum.map(&elem(&1, 2)) |> Enum.max()
-    time = array |> Enum.map(&elem(&1, 4)) |> Enum.min()
+    block_formed_timestamp = array |> Enum.map(&elem(&1, 4)) |> Enum.min()
 
-    {blknum, tx_max_index + 1, time}
+    {blknum, tx_max_index + 1, block_formed_timestamp}
   end
 
   # Reducer function, computes average tx submitted per second and timespan from previous block.
-  defp analyze_block({blknum, txs_in_blk, time}, {start, list}) do
-    span_ms = time - start
+  defp analyze_block({blknum, txs_in_blk, block_formed_timestamp}, {start, list}) do
+    span_ms = block_formed_timestamp - start
 
     if span_ms > 1000 do
       {:cont,
-       {time,
+       {block_formed_timestamp,
         [
           {
             blknum,
             txs_in_blk,
-            avg_txs_in_second(txs_in_blk, span_ms),
+            txs_in_second(txs_in_blk, span_ms),
             span_ms
           }
           | list
@@ -161,10 +161,10 @@ defmodule OmiseGO.Performance.SenderManager do
     end
   end
 
-  defp avg_txs_in_second(txs_count, interval_ms), do: (txs_count * 1000 / interval_ms) |> Float.round(2)
+  defp txs_in_second(txs_count, interval_ms), do: (txs_count * 1000 / interval_ms) |> Float.round(2)
 
   # handle termination
-  def write_stats(state) do
+  defp write_stats(state) do
     destdir = Application.get_env(:omisego_performance, :analysis_output_dir)
     {testid, ntx_to_send, nusers} = OmiseGO.Performance.Runner.get_test_env()
     destfile = "#{destdir}/perftest-tx#{ntx_to_send}-u#{nusers}-#{testid}.statistics"
