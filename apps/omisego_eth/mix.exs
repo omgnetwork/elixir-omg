@@ -27,7 +27,7 @@ defmodule OmiseGO.Eth.MixProject do
       {:abi, git: "https://github.com/omisego/abi.git", branch: "add_bytes32"},
       {:ethereumex, git: "https://github.com/omisego/ethereumex.git", branch: "request_timeout", override: true},
       {:temp, "~> 0.4"},
-      {:erlexec, "~> 1.7.4", runtime: true},
+      {:exexec, git: "https://github.com/paulperegud/exexec.git", branch: "add_streams", runtime: true},
       {
         :plasma_mvp_contracts,
         git: "https://github.com/omisego/plasma-mvp.git",
