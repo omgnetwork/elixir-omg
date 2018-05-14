@@ -10,9 +10,8 @@ defmodule OmiseGO.API.FreshBlocksTest do
 
   def generate_fresh_block(size, max_size \\ 1024) do
     update_state = fn block, state ->
-      with {:ok, n_state} <- FreshBlocks.push(block, state) do
-        n_state
-      end
+      assert {:ok, n_state} = FreshBlocks.push(block, state)
+      n_state
     end
 
     Enum.reduce(generate_blocks(0..(size - 1)), %FreshBlocks{max_size: max_size}, update_state)
@@ -21,14 +20,28 @@ defmodule OmiseGO.API.FreshBlocksTest do
   test "slicing oldest to max size cache" do
     max_size = 10
     state = generate_fresh_block(max_size + 1, max_size)
-    {nil, [0]} = FreshBlocks.get(0, state)
-    {_, []} = FreshBlocks.get(1, state)
+    assert {nil, [0]} = FreshBlocks.get(0, state)
+    assert {_, []} = FreshBlocks.get(1, state)
   end
 
   test "getting Block" do
     range = 20..80
     state = generate_fresh_block(90)
-    for hash <- range, do: {%Block{hash: ^hash}, []} = FreshBlocks.get(hash, state)
+    for hash <- range, do: assert({%Block{hash: ^hash}, []} = FreshBlocks.get(hash, state))
+  end
+
+  test "can push and pop a lot of blocks from queue" do
+    state = generate_fresh_block(200, 3)
+    # those that are fresh
+    for hash <- 197..199, do: assert({%Block{hash: ^hash}, []} = FreshBlocks.get(hash, state))
+    # old ones
+    for hash <- 0..196, do: assert({nil, [^hash]} = FreshBlocks.get(hash, state))
+  end
+
+  test "empty fresh blocks makes sense" do
+    state = %FreshBlocks{}
+    hash = "anything"
+    assert {nil, [^hash]} = FreshBlocks.get(hash, state)
   end
 
   test "combines a fresh block with db result" do
