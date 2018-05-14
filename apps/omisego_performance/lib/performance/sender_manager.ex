@@ -161,7 +161,7 @@ defmodule OmiseGO.Performance.SenderManager do
     end
   end
 
-  defp txs_in_second(txs_count, interval_ms), do: (txs_count * 1000 / interval_ms) |> Float.round(2)
+  defp txs_in_second(txs_count, interval_ms), do: Float.round(txs_count * 1000 / interval_ms, 2)
 
   # handle termination
   defp write_stats(state) do
