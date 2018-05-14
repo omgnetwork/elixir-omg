@@ -85,14 +85,14 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
     test "Deposits are a part of utxo set." do
       assert %{"utxos" => []} = get_utxo("Leon")
-      UtxoDB.record_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
+      UtxoDB.insert_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Leon")
     end
 
     test "Deposit utxo are moved to new owner if spent " do
       assert %{"utxos" => []} = get_utxo("Leon")
       assert %{"utxos" => []} = get_utxo("Matilda")
-      UtxoDB.record_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
+      UtxoDB.insert_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Leon")
 
       spent = %{

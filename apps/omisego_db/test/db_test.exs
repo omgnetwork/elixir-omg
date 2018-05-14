@@ -96,4 +96,10 @@ defmodule OmiseGO.DBTest do
         name: TestDBServer
       )
   end
+
+  test "handles last exit height storage" do
+    :ok = DB.multi_update([{:put, :last_exit_block_height, 12}], TestDBServer)
+
+    assert {:ok, 12} == DB.last_exit_block_height(TestDBServer)
+  end
 end

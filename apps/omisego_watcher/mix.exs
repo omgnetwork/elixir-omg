@@ -44,6 +44,8 @@ defmodule OmiseGOWatcher.Mixfile do
       {:sqlite_ecto2, "~> 2.2", only: [:test]},
       {:cowboy, "~> 1.1"},
       {:omisego_api, in_umbrella: true, runtime: false},
+      {:omisego_eth, in_umbrella: true, runtime: true},
+      {:omisego_db, in_umbrella: true, runtime: true},
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true}
     ]
   end

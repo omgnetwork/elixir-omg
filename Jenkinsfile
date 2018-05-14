@@ -44,10 +44,8 @@ podTemplate(
 
         stage('Test Watcher') {
             withEnv(["MIX_ENV=test"]) {
-                dir("apps/omisego_watcher") {
-                    sh("mix test --only watcher_tests")
-                }
-            }
+                sh("./watcher_tests.sh")
+             }
         }
 
         stage('Cleanbuild') {

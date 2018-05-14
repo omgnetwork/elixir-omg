@@ -6,9 +6,13 @@ defmodule OmiseGO.Eth.DevHelpers do
   Helpers used in MIX_ENV dev and test
   """
 
-  def prepare_dev_env do
+  def prepare_dev_env, do: do_prepare("dev")
+
+  def prepare_test_env, do: do_prepare("test")
+
+  defp do_prepare(env) do
     {:ok, contract_address, txhash, authority} = prepare_env("./")
-    write_conf_file("dev", contract_address, txhash, authority)
+    write_conf_file(env, contract_address, txhash, authority)
     IO.puts(inspect({:ok, contract_address, txhash, authority}))
   end
 
