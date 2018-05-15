@@ -4,11 +4,13 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   Modify the state in the database.
   """
   alias OmiseGOWatcher.{Repo, UtxoDB}
+  alias OmiseGO.JSONRPC
   use OmiseGOWatcherWeb, :controller
   import Ecto.Query, only: [from: 2]
 
   def available(conn, %{"address" => address}) do
-    utxos = Repo.all(from(tr in UtxoDB, where: tr.address == ^address, select: tr))
+    address_decode = JSONRPC.Helper.decode(:bitstring, address)
+    utxos = Repo.all(from(tr in UtxoDB, where: tr.address == ^address_decode, select: tr))
     fields_names = List.delete(UtxoDB.field_names(), :address)
 
     json(conn, %{
