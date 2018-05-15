@@ -5,11 +5,12 @@ defmodule OmiseGO.API.State.Transaction.Signed do
 
   @signature_length 65
 
-  defstruct [:raw_tx, :sig1, :sig2]
+  defstruct [:raw_tx, :sig1, :sig2, :signed_tx_bytes]
   @type t() :: %__MODULE__{
     raw_tx: Transaction.t(),
     sig1: <<_::520>>,
-    sig2: <<_::520>>
+    sig2: <<_::520>>,
+    signed_tx_bytes: bitstring()
   }
 
   def signed_hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
@@ -37,7 +38,7 @@ defmodule OmiseGO.API.State.Transaction.Signed do
 
   def decode(line) do
     with {:ok, tx} <- rlp_decode(line),
-         {:ok, tx} <- reconstruct_tx(tx),
+         {:ok, tx} <- reconstruct_tx(tx, line),
          do: {:ok, tx}
   end
 
@@ -52,7 +53,7 @@ defmodule OmiseGO.API.State.Transaction.Signed do
     end
   end
 
-  defp reconstruct_tx(encoded_singed_tx) do
+  defp reconstruct_tx(encoded_singed_tx, signed_tx_bytes) do
     case encoded_singed_tx do
       [
         blknum1,
@@ -89,7 +90,8 @@ defmodule OmiseGO.API.State.Transaction.Signed do
            %__MODULE__{
              raw_tx: tx,
              sig1: sig1,
-             sig2: sig2
+             sig2: sig2,
+             signed_tx_bytes: signed_tx_bytes
            }}
         end
 

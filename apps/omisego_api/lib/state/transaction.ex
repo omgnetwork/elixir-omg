@@ -7,6 +7,7 @@ defmodule OmiseGO.API.State.Transaction do
   alias OmiseGO.API.Crypto
 
   @zero_address <<0::size(160)>>
+  @type owner_type :: <<_::256>>
   @number_of_transactions 2
 
   defstruct [
@@ -30,9 +31,9 @@ defmodule OmiseGO.API.State.Transaction do
           blknum2: pos_integer(),
           txindex2: pos_integer(),
           oindex2: pos_integer(),
-          newowner1: pos_integer(),
+          newowner1: __MODULE__.owner_type(),
           amount1: pos_integer(),
-          newowner2: pos_integer(),
+          newowner2: __MODULE__.owner_type(),
           amount2: pos_integer(),
           fee: pos_integer()
         }
