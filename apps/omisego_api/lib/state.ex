@@ -32,6 +32,10 @@ defmodule OmiseGO.API.State do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
   end
 
+  def exit_not_spent_utxo(utxo) do
+    GenServer.call(__MODULE__, {:exit_not_spent_utxo, utxo})
+  end
+
   @spec utxo_exists(%{blknum: number, txindex: number, oindex: number}) :: :utxo_exists | :utxo_does_not_exist
   def utxo_exists(utxo) do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
@@ -84,12 +88,18 @@ defmodule OmiseGO.API.State do
   Exits (spends) utxos on child chain
   """
   def handle_call({:exit_utxos, utxos}, _from, state) do
-    {event_triggers, db_updates, new_state} = Core.exit_utxos(utxos, state)
-    # GenServer.cast
-    Eventer.notify(event_triggers)
-    # GenServer.call
-    :ok = DB.multi_update(db_updates)
-    {:reply, :ok, new_state}
+    do_exit_utxos(utxos, state)
+  end
+
+  @doc """
+  Exits (spends) utxos on child chain if it has not been previously spent
+  """
+  def handle_call({:exit_not_spent_utxo, utxo}, _from, state) do
+    with :utxo_exists <- Core.utxo_exists(utxo, state) do
+      do_exit_utxos([utxo], state)
+    else
+      :utxo_does_not_exist -> {:reply, :utxo_does_not_exist, state}
+    end
   end
 
   @doc """
@@ -111,5 +121,14 @@ defmodule OmiseGO.API.State do
       :ok = FreshBlocks.push(block)
       {:reply, {:ok, block.hash}, new_state}
     end
+  end
+
+  defp do_exit_utxos(utxos, state) do
+    {event_triggers, db_updates, new_state} = Core.exit_utxos(utxos, state)
+    # GenServer.cast
+    Eventer.notify(event_triggers)
+    # GenServer.call
+    :ok = DB.multi_update(db_updates)
+    {:reply, :ok, new_state}
   end
 end

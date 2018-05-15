@@ -9,12 +9,15 @@ defmodule OmiseGOWatcher.Application do
     import Supervisor.Spec
 
     # Define workers and child supervisors to be supervised
+    slow_exit_validator_block_margin = Application.get_env(:omisego_api, :slow_exit_validator_block_margin)
+
     children = [
       # Start the Ecto repository
       supervisor(OmiseGOWatcher.Repo, []),
       # Start workers
       {OmiseGO.API.State, []},
       worker(OmiseGOWatcher.FastExitValidator, []),
+      worker(OmiseGOWatcher.SlowExitValidator, [slow_exit_validator_block_margin]),
       # Start the endpoint when the application starts
       supervisor(OmiseGOWatcherWeb.Endpoint, [])
     ]

@@ -1,12 +1,12 @@
-defmodule OmiseGOWatcher.FastExitValidator do
+defmodule OmiseGOWatcher.SlowExitValidator do
   @moduledoc """
   Detects exits for spent utxos and notifies challenger
   """
 
   alias OmiseGOWatcher.ExitValidator.Core
 
-  def start_link do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(slow_exit_validator_block_margin) do
+    GenServer.start_link(__MODULE__, slow_exit_validator_block_margin, name: __MODULE__)
   end
 
   def sync_eth_height(synced_eth_height) do
@@ -15,13 +15,13 @@ defmodule OmiseGOWatcher.FastExitValidator do
 
   use GenServer
 
-  def init(:ok) do
-    with {:ok, last_exit_block_height} <- OmiseGO.DB.last_fast_exit_block_height() do
+  def init(slow_exit_validator_block_margin) do
+    with {:ok, last_exit_block_height} <- OmiseGO.DB.last_slow_exit_block_height() do
       {:ok,
        %Core{
          last_exit_block_height: last_exit_block_height,
-         margin_on_synced_block: 0,
-         update_key: :last_fast_exit_block_height
+         update_key: :last_slow_exit_block_height,
+         margin_on_synced_block: slow_exit_validator_block_margin
        }}
     end
   end
@@ -50,7 +50,17 @@ defmodule OmiseGOWatcher.FastExitValidator do
          :challenged <- OmiseGOWatcher.Challenger.challenge(utxo_exit) do
       :ok
     else
-      :utxo_exists -> :ok
+      :utxo_exists -> spend_utxo(utxo_exit)
+    end
+  end
+
+  defp spend_utxo(utxo_exit) do
+    with :ok <- OmiseGO.API.State.exit_utxos([utxo_exit]) do
+      :ok
+    else
+      :utxo_does_not_exist ->
+        :ok = OmiseGOWatcher.ChainExiter.exit()
+        :child_chain_exit
     end
   end
 end
