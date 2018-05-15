@@ -89,7 +89,16 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
 #    Regex.replace(~r/(?<=#{to_string(atom)}:\s).*?((\s*\S*:)|$)/, string, new_value <> "\\1")
 #  end
 
-  deffixture child_chain(contract) do
+  deffixture config(contract) do
+    %{
+      contract: contract,
+      child_block_interval: 1000,
+      ethereum_event_block_finality_margin: 1,
+      ethereum_event_get_deposit_interval_ms: 5
+    }
+  end
+
+  deffixture child_chain(contract, config) do
     test_sid = Integer.to_string(:rand.uniform(10_000_000))
     file_path = "/tmp/config_" <> test_sid <> ".exs"
     db_path = "/tmp/db_" <> test_sid
@@ -101,9 +110,10 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
       config :omisego_db,
         leveldb_path: "#{db_path}"
       config :omisego_eth,
-        child_block_interval: 1000
+        child_block_interval: #{config.child_block_interval}
       config :omisego_api,
-        ethereum_event_block_finality_margin: 1
+        ethereum_event_block_finality_margin: #{config.ethereum_event_block_finality_margin},
+        ethereum_event_get_deposit_interval_ms: #{config.ethereum_event_get_deposit_interval_ms}
     """)
     |> File.close()
 
