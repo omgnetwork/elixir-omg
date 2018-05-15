@@ -90,7 +90,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     {:ok, started_jsonrpc} = Application.ensure_all_started(:omisego_jsonrpc)
 
     on_exit(fn ->
-      started_apps ++ started_jsonrpc
+      (started_apps ++ started_jsonrpc)
       |> Enum.reverse()
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
@@ -134,10 +134,9 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash, _}} = Eth.get_child_chain(spend_child_block)
-    encoded_raw_tx = encode(raw_tx)
-
-    assert {:ok, %{"transactions" => [%{"raw_tx" => ^encoded_raw_tx}]}} =
-             jsonrpc(:get_block, %{hash: Base.encode16(block_hash)})
+    {:ok, %{"transactions" => [line_transaction]}} = jsonrpc(:get_block, %{hash: Base.encode16(block_hash)})
+    {:ok, %{raw_tx: raw_tx_decoded}} = Transaction.Signed.decode(Base.decode16!(line_transaction))
+    assert raw_tx_decoded == raw_tx
 
     # Restart everything to check persistance and revival
     [:omisego_api, :omisego_eth, :omisego_db] |> Enum.each(&Application.stop/1)
@@ -149,7 +148,6 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # repeat spending to see if all works
 
     raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, 10}], 0)
-    encoded_raw_tx2 = encode(raw_tx2)
     tx2 = raw_tx2 |> Transaction.sign(bob.priv, alice.priv) |> Transaction.Signed.encode()
 
     # spend the output of the first transaction
@@ -161,17 +159,17 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash2, _}} = Eth.get_child_chain(spend_child_block2)
 
-    assert {:ok, %{"transactions" => [%{"raw_tx" => ^encoded_raw_tx2}]}} =
-             jsonrpc(:get_block, %{hash: Base.encode16(block_hash2)})
+    {:ok, %{"transactions" => [line_transaction2]}} = jsonrpc(:get_block, %{hash: Base.encode16(block_hash2)})
+    {:ok, %{raw_tx: raw_tx_decoded2}} = Transaction.Signed.decode(Base.decode16!(line_transaction2))
+    assert raw_tx2 == raw_tx_decoded2
 
     # sanity checks
     assert {:ok, %{}} = jsonrpc(:get_block, %{hash: Base.encode16(block_hash)})
-    assert {:ok, "not_found"} = jsonrpc(:get_block, %{hash: Base.encode16(<<0::size(256)>>)})
+    assert {:error, {_, "Internal error", "not_found"}} = jsonrpc(:get_block, %{hash: Base.encode16(<<0::size(256)>>)})
 
     assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, %{transaction: Base.encode16(tx)})
 
-    assert {:error, {_, "Internal error", "utxo_not_found"}} =
-             jsonrpc(:submit, %{transaction: Base.encode16(tx2)})
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, %{transaction: Base.encode16(tx2)})
   end
 
   defp encode(arg) when is_binary(arg), do: Base.encode16(arg)
@@ -186,5 +184,4 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
   defp encode(arg) when is_list(arg), do: for(value <- arg, into: [], do: encode(value))
   defp encode(arg), do: arg
-
 end
