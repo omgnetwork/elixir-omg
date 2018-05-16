@@ -32,7 +32,7 @@ defmodule OmiseGO.API.State do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
   end
 
-  def exit_not_spent_utxo(utxo) do
+  def exit_if_not_spent(utxo) do
     GenServer.call(__MODULE__, {:exit_not_spent_utxo, utxo})
   end
 
@@ -92,7 +92,7 @@ defmodule OmiseGO.API.State do
   end
 
   @doc """
-  Exits (spends) utxos on child chain if it has not been previously spent
+  Exits (spends) utxos on child chain, explicitly signals if utxo has already been spent
   """
   def handle_call({:exit_not_spent_utxo, utxo}, _from, state) do
     with :utxo_exists <- Core.utxo_exists(utxo, state) do

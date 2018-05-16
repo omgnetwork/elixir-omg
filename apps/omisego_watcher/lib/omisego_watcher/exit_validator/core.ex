@@ -3,7 +3,7 @@ defmodule OmiseGOWatcher.ExitValidator.Core do
   Functional core of exit validator
   """
 
-  defstruct last_exit_block_height: nil, margin_on_synced_block: 0, update_key: nil
+  defstruct last_exit_block_height: nil, margin_on_synced_block: 0, update_key: nil, utxo_exists_callback: nil
 
   @spec get_exits_block_range(%__MODULE__{}, pos_integer) ::
           {pos_integer, pos_integer, %__MODULE__{}, list()} | :empty_range
