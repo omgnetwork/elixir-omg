@@ -85,10 +85,6 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     }
   end
 
-#  def replace_value(string, atom, new_value) do
-#    Regex.replace(~r/(?<=#{to_string(atom)}:\s).*?((\s*\S*:)|$)/, string, new_value <> "\\1")
-#  end
-
   deffixture config(contract) do
     %{
       contract: contract,

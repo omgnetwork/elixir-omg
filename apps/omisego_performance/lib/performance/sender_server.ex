@@ -114,7 +114,6 @@ defmodule OmiseGO.Performance.SenderServer do
       |> Transaction.new([{spender.addr, newamount}, {recipient.addr, to_spend}], 0)
       |> Transaction.sign(spender.priv, <<>>)
       |> Transaction.Signed.encode()
-      |> Base.encode16()
 
     result = OmiseGO.API.submit(tx)
 
