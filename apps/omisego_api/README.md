@@ -1,5 +1,7 @@
 # OmiseGO child chain server
 
+**IMPORTANT NOTICE: Heavily WIP, expect anything**
+
 `:omisego_api` is the Elixir app which runs the child chain server, whose API can be exposed by running `:omisego_jsonrpc` additionally.
 
 For the responsibilities and design of the child chain server see [Tesuji Plasma Blockchain Design document](FIXME link pending).
@@ -8,16 +10,25 @@ For the responsibilities and design of the child chain server see [Tesuji Plasma
 
 ### Setting up
 
-1. Provide an Ethereum node (e.g. `geth --dev --rpc` for a disposable developer's private network).
-2. Deploy `RootChain.sol` contract (**FIXME** settle for a developer's tool to do that - currently we have more than one)
-3. Initialize the child chain database (**FIXME** how? this is being changed now, should adapt)
-4. Configure `omisego_eth` with contract address, operator (authority) address and hash of contract-deploying transaction (see `omisego_eth/config/config.exs`) (**FIXME** how? this is being changed now, should adapt)
+1. Provide an Ethereum node connected to the appropriate network
+2. Deploy `RootChain.sol` contract and prepare operator's authority address
+3. Initialize the child chain database (**FIXME** how? this is being changed now from `cd apps/omisego_db; mix run init_db.exs`, should adapt)
+4. Produce a configuration file with `omisego_eth` configured to the contract address, operator (authority) address and hash of contract-deploying transaction (see `omisego_eth/config/config.exs`) (**FIXME** how? this is being changed now, should adapt)
+
+#### Setting up (developer's environment)
+
+This is an example of how to quickly setup the developer's environment to run the child chain server.
+
+1. For the Ethereum node: `geth --dev --dev.period 2 --rpc --rpcapi personal,web3,eth` gives a disposable private network
+2. For the contract/authority address: (**FIXME** settle for a developer's tool to do that - currently we have `mix run --no-start -e 'OmiseGO.Eth.DevHelpers.prepare_dev_env()'` but it's scheduled for removal)
+3. Setup database and configure `omisego_eth` normally
+4. Next you'll need to create some Alices and Bobs, fund their addresses deposit etc. **FIXME**: this is in `demo_01` - but how do we expose and document this...??
 
 ### Starting the child chain server
 
-  - `mix run`
-  - or `iex -S mix` then in the `iex` REPL you can run commands mentioned in demos (see `docs/...`, don't pick `OBSOLETE` demos)
-    FIXME: update that demo?
+  - `cd apps/omisego_jsonrpc`
+  - `mix run --no-halt --config path/to/config.exs`
+  - or `iex --sname operator -S mix run --config path/to/config.exs` then in the `iex` REPL you can run commands mentioned in demos (see `docs/...`, don't pick `OBSOLETE` demos)
 
 ### Funding the operator address
 
