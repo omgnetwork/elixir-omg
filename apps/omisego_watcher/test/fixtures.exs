@@ -85,7 +85,7 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     }
   end
 
-  deffixture config(contract) do
+  deffixture config_map(contract) do
     %{
       contract: contract,
       child_block_interval: 1000,
@@ -94,7 +94,7 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     }
   end
 
-  deffixture child_chain(contract, config) do
+  deffixture child_chain(config_map) do
     test_sid = Integer.to_string(:rand.uniform(10_000_000))
     file_path = "/tmp/config_" <> test_sid <> ".exs"
     db_path = "/tmp/db_" <> test_sid
@@ -102,14 +102,14 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     file_path
     |> File.open!([:write])
     |> IO.binwrite("""
-      #{OmiseGO.Eth.DevHelpers.create_conf_file(contract.address, contract.txhash, contract.from)}
+      #{OmiseGO.Eth.DevHelpers.create_conf_file(config_map.contract.address, config_map.contract.txhash, config_map.contract.from)}
       config :omisego_db,
         leveldb_path: "#{db_path}"
       config :omisego_eth,
-        child_block_interval: #{config.child_block_interval}
+        child_block_interval: #{config_map.child_block_interval}
       config :omisego_api,
-        ethereum_event_block_finality_margin: #{config.ethereum_event_block_finality_margin},
-        ethereum_event_get_deposit_interval_ms: #{config.ethereum_event_get_deposit_interval_ms}
+        ethereum_event_block_finality_margin: #{config_map.ethereum_event_block_finality_margin},
+        ethereum_event_get_deposit_interval_ms: #{config_map.ethereum_event_get_deposit_interval_ms}
     """)
     |> File.close()
 
@@ -138,6 +138,12 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     :ok
   end
 
+  deffixture watcher do
+     Application.ensure_all_started(:omisego_watcher)
+     :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
+     :ok = OmiseGO.DB.multi_update([{:put, :last_exit_block_height, 0}])
+     :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
+  end
   deffixture(alice, do: generate_entity())
   deffixture(bob, do: generate_entity())
 end

@@ -7,6 +7,8 @@ defmodule OmiseGOWatcher.TrackerOmisegoTest do
   alias OmiseGO.Eth
   alias OmiseGO.API.State.Transaction
 
+  @moduletag :watcher_tests
+
   def jsonrpc(method, params) do
     jsonrpc_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
 
@@ -29,24 +31,24 @@ defmodule OmiseGOWatcher.TrackerOmisegoTest do
     deposit_height
   end
 
-  @tag fixtures: [:config, :geth, :child_chain, :alice, :bob], timeout: 200_000
-  test "run_omisego_api", %{alice: alice, config: config, bob: bob} do
+  @tag fixtures: [:config_map, :geth, :watcher, :child_chain, :alice, :bob]
+  test "run_omisego_api", %{config_map: config_map, alice: alice, bob: bob} do
     Application.put_env(:omisego_watcher, OmiseGOWatcher.TrackerOmisego, %{
-      contract_address: config.contract.address
+      contract_address: config_map.contract.address
     })
 
-    GenServer.start_link(OmiseGOWatcher.TrackerOmisego, %{contract_address: config.contract.address})
+    GenServer.start_link(OmiseGOWatcher.TrackerOmisego, %{contract_address: config_map.contract.address})
 
-    deposit_height = deposit_to_child_chain(alice, 10, config)
+    deposit_height = deposit_to_child_chain(alice, 10, config_map)
     raw_tx = Transaction.new([{deposit_height, 0, 0}], [{alice.addr, 7}, {bob.addr, 3}], 0)
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
     {:ok, %{"blknum" => block_nr}} = jsonrpc(:submit, %{transaction: Base.encode16(tx)})
 
     Eth.DevHelpers.wait_for_current_child_block(
-      block_nr + 2 * config.child_block_interval,
+      block_nr + 2 * config_map.child_block_interval,
       true,
       60_000,
-      config.contract.address
+      config_map.contract.address
     )
 
     [%{"amount" => amout_bob}] =  get_utxo(bob)

@@ -43,8 +43,10 @@ podTemplate(
         }
 
         stage('Test Watcher') {
+            sh("mix run --no-start -e 'OmiseGO.DB.init()'")
             withEnv(["MIX_ENV=test"]) {
-                sh("./watcher_tests.sh")
+                dir("apps/omisego_watcher")
+                sh("mix test --only watcher_tests")
              }
         }
 

@@ -16,7 +16,7 @@ defmodule OmiseGOWatcher.TrackerOmisego do
       UtxoDB.consume_block(block, from)
       ask_for_block(from + Application.get_env(:omisego_eth, :child_block_interval), to, contract)
     else
-      err ->
+      _ ->
         {:error, from - 1_000}
     end
   end
@@ -45,7 +45,7 @@ defmodule OmiseGOWatcher.TrackerOmisego do
 
     cond do
       child_block > state.child_block_number ->
-        {:ok, child_block_number} =
+        {_, child_block_number} =
           ask_for_block(state.child_block_number + child_block_interval, child_block, state.contract_address)
 
         {:noreply, %{state | child_block_number: child_block_number}}
