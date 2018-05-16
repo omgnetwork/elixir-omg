@@ -71,11 +71,6 @@ defmodule OmiseGO.DB.LevelDBCore do
     end)
   end
 
-  def key(:tx, %{hash: hash} = _tx) do
-    key(:tx, hash)
-  end
-  def key(:tx, hash), do: "t" <> hash
-
   def key(:block, %{hash: hash} = _block), do: key(:block, hash)
   def key(:block, hash), do: "b" <> hash
 
@@ -85,10 +80,12 @@ defmodule OmiseGO.DB.LevelDBCore do
     [utxo_id] = Map.keys(utxo)
     key(:utxo, utxo_id)
   end
+
   def key(:utxo, {_blknum, _txindex, _oindex} = utxo_id) do
     "u" <> :erlang.term_to_binary(utxo_id)
   end
 
   def key(:last_deposit_block_height, _), do: "last_deposit_block_height"
   def key(:child_top_block_number, _), do: "child_top_block_number"
+  def key(:last_exit_block_height, _), do: "last_exit_block_height"
 end

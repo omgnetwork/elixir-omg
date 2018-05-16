@@ -12,7 +12,7 @@ defmodule OmiseGO.Eth.MixProject do
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      test_coverage: [tool: ExCoveralls],
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
@@ -25,7 +25,7 @@ defmodule OmiseGO.Eth.MixProject do
   defp deps do
     [
       {:abi, git: "https://github.com/omisego/abi.git", branch: "add_bytes32"},
-      {:ethereumex, git: "https://github.com/omisego/ethereumex.git", branch: "personal__api", override: true},
+      {:ethereumex, git: "https://github.com/omisego/ethereumex.git", branch: "request_timeout", override: true},
       {:temp, "~> 0.4"},
       {:porcelain, "~> 2.0"},
       {
@@ -35,8 +35,8 @@ defmodule OmiseGO.Eth.MixProject do
         sparse: "plasma/root_chain/contracts/",
         compile: false,
         app: false,
-        only: [:dev, :test],
-      },
+        only: [:dev, :test]
+      }
     ]
   end
 end

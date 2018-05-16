@@ -6,9 +6,14 @@ defmodule OmiseGO.Eth.DevHelpers do
   Helpers used in MIX_ENV dev and test
   """
 
-  def prepare_dev_env(root_path \\ "./") do
+  def prepare_dev_env, do: do_prepare("dev")
+
+  def prepare_test_env, do: do_prepare("test")
+
+  def do_prepare(env, root_path \\ "./") do
     {:ok, contract_address, txhash, authority} = prepare_env(root_path)
     write_conf_file("dev", contract_address, txhash, authority)
+    IO.puts(inspect({:ok, contract_address, txhash, authority}))
   end
 
   def prepare_env(root_path) do
@@ -64,7 +69,6 @@ defmodule OmiseGO.Eth.DevHelpers do
   import priv key->unlock->fund with lots of ether on that account
   """
   def import_unlock_fund(%{priv: account_priv, addr: account_addr} = _account) do
-
     account_priv_enc = Base.encode16(account_priv)
     account_enc = "0x" <> Base.encode16(account_addr, case: :lower)
 
@@ -120,7 +124,7 @@ defmodule OmiseGO.Eth.DevHelpers do
       gasPrice: encode_eth_rpc_unsigned_int(21_000_000_000),
       value: encode_eth_rpc_unsigned_int(value),
       data: "0x#{data}",
-      nonce: (if nonce == 0, do: "0x0", else: encode_eth_rpc_unsigned_int(nonce))
+      nonce: if(nonce == 0, do: "0x0", else: encode_eth_rpc_unsigned_int(nonce))
     })
   end
 

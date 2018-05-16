@@ -29,7 +29,7 @@ defmodule OmiseGO.API.Eventer.CoreTest do
       fee: 0
     }
 
-  # TODO: We're ignoring second spedner. Rethink this
+    # TODO: We're ignoring second spedner. Rethink this
     encoded_singed_tx =
       raw_tx
       |> Transaction.sign(alice_priv, <<>>)
@@ -38,7 +38,7 @@ defmodule OmiseGO.API.Eventer.CoreTest do
     {:ok, recovered_tx} = API.Core.recover_tx(encoded_singed_tx)
 
     assert [_, {%Received{tx: ^recovered_tx}, "transactions/received/" <> ^alice_addr}] =
-      Eventer.Core.notify([%{tx: recovered_tx}])
+             Eventer.Core.notify([%{tx: recovered_tx}])
   end
 
   test "spenders are notified about transactions" do

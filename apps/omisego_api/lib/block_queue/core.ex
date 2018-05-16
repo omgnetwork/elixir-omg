@@ -22,8 +22,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
     gas_price_to_use: 20_000_000_000,
     mined_child_block_num: 0,
     # config:
-    child_block_interval: 1000,
-    chain_start_parent_height: 1,
+    child_block_interval: nil,
+    chain_start_parent_height: nil,
     submit_period: 1,
     finality_threshold: 12
   ]
@@ -55,7 +55,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
     {:ok, %__MODULE__{blocks: Map.new()}}
   end
 
-  @spec new(keyword) :: {:ok, Core.t} | {:error, :mined_hash_not_found_in_db} | {:error, :contract_ahead_of_db}
+  @spec new(keyword) :: {:ok, Core.t()} | {:error, :mined_hash_not_found_in_db} | {:error, :contract_ahead_of_db}
   def new(
         mined_child_block_num: mined_child_block_num,
         known_hashes: known_hashes,
@@ -113,10 +113,11 @@ defmodule OmiseGO.API.BlockQueue.Core do
   @doc """
   Set height of Ethereum chain.
   """
-  @spec set_ethereum_height(Core.t(), BlockQueue.eth_height())
-        :: {:do_form_block, Core.t(), pos_integer, pos_integer} | {:dont_form_block, Core.t()}
+  @spec set_ethereum_height(Core.t(), BlockQueue.eth_height()) ::
+          {:do_form_block, Core.t(), pos_integer, pos_integer} | {:dont_form_block, Core.t()}
   def set_ethereum_height(%Core{formed_child_block_num: formed_num} = state, parent_height) do
     new_state = %{state | parent_height: parent_height}
+
     if should_form_block?(new_state) do
       next_formed_num = formed_num + state.child_block_interval
       followup_num = next_formed_num + state.child_block_interval
@@ -174,7 +175,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
   # age of RootChain contract in ethereum blocks
   @spec should_form_block?(Core.t()) :: true | false
   defp should_form_block?(state) do
-    (due_child_block_num(state) > state.formed_child_block_num) && ! state.wait_for_enqueue
+    due_child_block_num(state) > state.formed_child_block_num && !state.wait_for_enqueue
   end
 
   # private (core)
@@ -202,12 +203,12 @@ defmodule OmiseGO.API.BlockQueue.Core do
   # blocks (might still need tracking!) and blocks not yet submitted.
 
   # NOTE: handles both the case when there aren't any hashes in database and there are
-  @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [BlockQueue.hash()]) ::
-          {:ok, Core.t()} | {:error, atom}
+  @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [BlockQueue.hash()]) :: {:ok, Core.t()} | {:error, atom}
   defp enqueue_existing_blocks(state, @zero_bytes32, [] = _known_hahes) do
     # we start a fresh queue from db and fresh contract
     {:ok, %{state | formed_child_block_num: 0}}
   end
+
   defp enqueue_existing_blocks(_state, _top_mined_hash, [] = _known_hashes) do
     # something's wrong - no hashes in db and top_mined hash isn't a zero hash as required
     {:error, :contract_ahead_of_db}

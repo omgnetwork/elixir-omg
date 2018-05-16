@@ -44,16 +44,8 @@ podTemplate(
 
         stage('Test Watcher') {
             withEnv(["MIX_ENV=test"]) {
-                dir("apps/omisego_watcher") {
-                    sh("mix test --only watcher_tests")
-                }
-            }
-        }
-
-        stage('Lint') {
-            withEnv(["MIX_ENV=test"]) {
-                sh("mix credo")
-            }
+                sh("./watcher_tests.sh")
+             }
         }
 
         stage('Cleanbuild') {
@@ -66,5 +58,11 @@ podTemplate(
             sh("mix dialyzer --halt-exit-status")
         }
 */
+        stage('Lint') {
+            withEnv(["MIX_ENV=test"]) {
+                sh("mix do credo, format --check-formatted --dry-run")
+            }
+        }
+
     }
 }

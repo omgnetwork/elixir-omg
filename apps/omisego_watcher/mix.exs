@@ -45,14 +45,15 @@ defmodule OmiseGOWatcher.Mixfile do
       {:cowboy, "~> 1.1"},
       {:omisego_api, in_umbrella: true, runtime: false},
       {:omisego_jsonrpc, in_umbrella: true, runtime: false},
-      {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
       {:socket, "~> 0.3"},
       {:jsonrpc2, "~> 1.0"},
       {:ethereumex,
        git: "https://github.com/omisego/ethereumex.git",
-       branch: "personal__api",
+       branch: "request_timeout",
        override: true},
-       #{:omisego_eth, in_umbrella: true, only: [:test]}
+       #{:omisego_eth, in_umbrella: true, only: [:test]}      {:omisego_eth, in_umbrella: true, runtime: true},
+      {:omisego_db, in_umbrella: true, runtime: true},
+      {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true}
     ]
   end
 

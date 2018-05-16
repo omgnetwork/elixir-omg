@@ -18,19 +18,18 @@ defmodule OmiseGO.API.EthereumEventListener do
 
   use GenServer
 
-  def init({
-    %{
-      block_finality_margin: finality_margin,
-      max_blocks_in_fetch: max_blocks,
-      get_events_interval: get_events_interval
-    },
-    get_ethereum_events_callback,
-    process_events_callback}) do
-
-    #TODO: initialize state with the last ethereum block we have seen events from
+  def init(
+        {%{
+           block_finality_margin: finality_margin,
+           max_blocks_in_fetch: max_blocks,
+           get_events_interval: get_events_interval
+         }, get_ethereum_events_callback, process_events_callback}
+      ) do
+    # TODO: initialize state with the last ethereum block we have seen events from
 
     with {:ok, parent_start} <- Eth.get_root_deployment_height() do
       schedule_get_events(0)
+
       {:ok,
        %Core{
          last_event_block: parent_start,
@@ -39,8 +38,7 @@ defmodule OmiseGO.API.EthereumEventListener do
          get_events_interval: get_events_interval,
          get_ethereum_events_callback: get_ethereum_events_callback,
          process_events_callback: process_events_callback
-       }
-      }
+       }}
     end
   end
 
@@ -56,7 +54,9 @@ defmodule OmiseGO.API.EthereumEventListener do
       {:no_blocks_with_event, state, next_get_events_interval} ->
         schedule_get_events(next_get_events_interval)
         {:noreply, state}
-      _ -> {:stop, :failed_to_get_ethereum_events, state}
+
+      _ ->
+        {:stop, :failed_to_get_ethereum_events, state}
     end
   end
 

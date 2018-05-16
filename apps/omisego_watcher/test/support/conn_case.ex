@@ -28,10 +28,11 @@ defmodule OmiseGOWatcherWeb.ConnCase do
 
   setup tags do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
+
     unless tags[:async] do
       Ecto.Adapters.SQL.Sandbox.mode(OmiseGOWatcher.Repo, {:shared, self()})
     end
+
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
-
 end

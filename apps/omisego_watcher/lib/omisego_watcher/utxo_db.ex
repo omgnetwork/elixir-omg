@@ -1,6 +1,6 @@
 defmodule OmiseGOWatcher.UtxoDB do
-  @moduledoc"""
-  Template for creating (mix ecto.migrate) and using tables (database).
+  @moduledoc """
+  Ecto schema for utxo
   """
   use Ecto.Schema
 
@@ -51,8 +51,7 @@ defmodule OmiseGOWatcher.UtxoDB do
       }
     end
 
-    {Repo.insert(make_utxo_db.(transaction, 1)),
-     Repo.insert(make_utxo_db.(transaction, 2))}
+    {Repo.insert(make_utxo_db.(transaction, 1)), Repo.insert(make_utxo_db.(transaction, 2))}
   end
 
   defp remove_utxo(%Signed{
@@ -63,12 +62,12 @@ defmodule OmiseGOWatcher.UtxoDB do
       txindex = Map.get(transaction, :"txindex#{number}")
       oindex = Map.get(transaction, :"oindex#{number}")
 
-      elements_to_remove = from(
-        utxoDb in __MODULE__,
-        where:
-          utxoDb.blknum == ^blknum and utxoDb.txindex == ^txindex and
-            utxoDb.oindex == ^oindex
-      )
+      elements_to_remove =
+        from(
+          utxoDb in __MODULE__,
+          where: utxoDb.blknum == ^blknum and utxoDb.txindex == ^txindex and utxoDb.oindex == ^oindex
+        )
+
       elements_to_remove |> Repo.delete_all()
     end
 
@@ -85,10 +84,10 @@ defmodule OmiseGOWatcher.UtxoDB do
     |> Enum.to_list()
   end
 
-  @spec record_deposits([
+  @spec insert_deposits([
           %{owner: <<_::160>>, amount: non_neg_integer(), block_height: pos_integer()}
         ]) :: :ok
-  def record_deposits(deposits) do
+  def insert_deposits(deposits) do
     deposits
     |> Enum.each(fn deposit ->
       Repo.insert(%__MODULE__{
@@ -101,6 +100,8 @@ defmodule OmiseGOWatcher.UtxoDB do
       })
     end)
   end
+
+  def get_all, do: Repo.all(__MODULE__)
 
   @doc false
   def changeset(utxo_db, attrs) do
