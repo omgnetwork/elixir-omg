@@ -1,7 +1,10 @@
 defmodule OmiseGO.Eth do
   @moduledoc """
-  Adapter/port to ethereum
+  Adapter/port to ethereum.
+
+  All sending of transactions and listening to events goes here
   """
+  # TODO: decide how type and logic aware this should be. Presently it's quite mixed
 
   @block_offset 1_000_000_000
   @transaction_offset 10_000

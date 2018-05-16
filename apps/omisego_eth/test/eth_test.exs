@@ -1,4 +1,9 @@
 defmodule OmiseGO.EthTest do
+  @moduledoc """
+  Thin smoke test of the Ethereum port/adapter.
+  """
+  # TODO: if proves to be brittle and we cover that functionality in other integration test then consider removing
+
   alias OmiseGO.Eth, as: Eth
   alias OmiseGO.Eth.WaitFor, as: WaitFor
 

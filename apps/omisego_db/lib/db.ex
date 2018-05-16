@@ -1,6 +1,7 @@
 defmodule OmiseGO.DB do
   @moduledoc """
-  Our-types-aware port/adapter to the db backend
+  Our-types-aware port/adapter to the db backend.
+  Call these functions to access the data stored in the database
   """
 
   ### Client (port)

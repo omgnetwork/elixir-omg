@@ -19,7 +19,7 @@ For generic information, keep on reading.
 Only **Linux** platforms supported now. Known to work with Ubuntu 16.04
 
 Install [Elixir](http://elixir-lang.github.io/install.html#unix-and-unix-like).
-Make sure `rebar` is in your path, e.g. `export PATH=$PATH:~/.mix` (mileage may vary).
+Make sure `rebar` is in your path, e.g. `export PATH=$PATH:~/.mix` (your mileage may vary).
 
 Install or provide access to an Ethereum node (e.g. [geth](https://github.com/ethereum/go-ethereum/wiki/geth)).
 

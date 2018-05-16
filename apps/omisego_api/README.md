@@ -1,20 +1,22 @@
 # OmiseGO child chain server
 
-**TODO**
+`:omisego_api` is the Elixir app which runs the child chain server, whose API can be exposed by running `:omisego_jsonrpc` additionally.
 
-## Setting up the child chain
-
-1. Provide an Ethereum node, e.g. `geth --dev --rpc`
-2. Deploy `RootChain.sol` contract
-3. Initialize the child chain database (**FIXME** how? this is being changed now, should adapt)
-4. Configure `omisego_eth` with contract address, operator (authority) address and hash of contract-deploying transaction (see `omisego_eth/config/config.exs`) (**FIXME** how? this is being changed now, should adapt)
+For the responsibilities and design of the child chain server see [Tesuji Plasma Blockchain Design document](FIXME link pending).
 
 ## Running the child chain server as operator
 
+### Setting up
+
+1. Provide an Ethereum node (e.g. `geth --dev --rpc` for a disposable developer's private network).
+2. Deploy `RootChain.sol` contract (**FIXME** settle for a developer's tool to do that - currently we have more than one)
+3. Initialize the child chain database (**FIXME** how? this is being changed now, should adapt)
+4. Configure `omisego_eth` with contract address, operator (authority) address and hash of contract-deploying transaction (see `omisego_eth/config/config.exs`) (**FIXME** how? this is being changed now, should adapt)
+
 ### Starting the child chain server
 
-  - `iex -S mix`
-  - then in the `iex` REPL you can run commands mentioned in demos (see `docs/...`, don't pick `OBSOLETE` demos)
+  - `mix run`
+  - or `iex -S mix` then in the `iex` REPL you can run commands mentioned in demos (see `docs/...`, don't pick `OBSOLETE` demos)
     FIXME: update that demo?
 
 ### Funding the operator address
@@ -91,11 +93,13 @@ The argument names are indicated by the `@spec` clauses.
 
 OmiseGO is an umbrella app comprising several Elixir applications.
 Apps listed below belong to the child chain server application, for Watcher-related apps see `apps/omisego_watcher/README.md`.
-See the apps' `moduledoc`'s' for their respective overviews and documentation.
 
 The general idea of the apps responsibilities is:
   - `omisego_api` - child chain server and main entrypoint to the functionality
-  - `omisego_db` - wrapper around the child chain server's database to store the UTXO set and blocks
-  - `omisego_eth` - wrapper around [Ethereum RPC client](https://github.com/exthereum/ethereumex)
+    - tracks Ethereum for things happening in the root chain contract (deposits/exits)
+    - gathers transactions, decides on validity, forms blocks, persists
+    - submits blocks to the root chain contract
+  - `omisego_db` - wrapper around the child chain server's database to store the UTXO set and blocks necessary for state persistence
+  - `omisego_eth` - wrapper around the [Ethereum RPC client](https://github.com/exthereum/ethereumex)
   - `omisego_jsonrpc` - a JSONRPC 2.0 server being the gateway to `omisego_api`
   - `omisego_performance` - performance tester for the child chain server
