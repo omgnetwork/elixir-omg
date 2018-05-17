@@ -36,7 +36,7 @@ defmodule OmiseGO.DB do
     GenServer.call(server_name, :last_exit_block_height)
   end
 
-  def init() do
+  def init do
     path = Application.get_env(:omisego_db, :leveldb_path)
     File.mkdir(path)
 

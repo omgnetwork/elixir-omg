@@ -9,6 +9,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   alias OmiseGO.Eth
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.BlockQueue
+  alias OmiseGO.JSONRPC.Helper
 
   @moduletag :integration
 
@@ -127,15 +128,15 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
     # spend the deposit
-    {:ok, %{"blknum" => spend_child_block}} = jsonrpc(:submit, %{transaction: Base.encode16(tx)})
+    {:ok, %{"blknum" => spend_child_block}} = jsonrpc(:submit, %{transaction: Helper.encode(tx)})
 
     post_spend_child_block = spend_child_block + BlockQueue.child_block_interval()
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block, true)
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash, _}} = Eth.get_child_chain(spend_child_block)
-    {:ok, %{"transactions" => [line_transaction]}} = jsonrpc(:get_block, %{hash: Base.encode16(block_hash)})
-    {:ok, %{raw_tx: raw_tx_decoded}} = Transaction.Signed.decode(Base.decode16!(line_transaction))
+    {:ok, %{"transactions" => [line_transaction]}} = jsonrpc(:get_block, %{hash: Helper.encode(block_hash)})
+    {:ok, %{raw_tx: raw_tx_decoded}} = Transaction.Signed.decode(Helper.decode(line_transaction))
     assert raw_tx_decoded == raw_tx
 
     # Restart everything to check persistance and revival
@@ -151,7 +152,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     tx2 = raw_tx2 |> Transaction.sign(bob.priv, alice.priv) |> Transaction.Signed.encode()
 
     # spend the output of the first transaction
-    {:ok, %{"blknum" => spend_child_block2}} = jsonrpc(:submit, %{transaction: Base.encode16(tx2)})
+    {:ok, %{"blknum" => spend_child_block2}} = jsonrpc(:submit, %{transaction: Helper.encode(tx2)})
 
     post_spend_child_block2 = spend_child_block2 + BlockQueue.child_block_interval()
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block2, true)
@@ -159,29 +160,16 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash2, _}} = Eth.get_child_chain(spend_child_block2)
 
-    {:ok, %{"transactions" => [line_transaction2]}} = jsonrpc(:get_block, %{hash: Base.encode16(block_hash2)})
-    {:ok, %{raw_tx: raw_tx_decoded2}} = Transaction.Signed.decode(Base.decode16!(line_transaction2))
+    {:ok, %{"transactions" => [line_transaction2]}} = jsonrpc(:get_block, %{hash: Helper.encode(block_hash2)})
+    {:ok, %{raw_tx: raw_tx_decoded2}} = Transaction.Signed.decode(Helper.decode(line_transaction2))
     assert raw_tx2 == raw_tx_decoded2
 
     # sanity checks
-    assert {:ok, %{}} = jsonrpc(:get_block, %{hash: Base.encode16(block_hash)})
-    assert {:error, {_, "Internal error", "not_found"}} = jsonrpc(:get_block, %{hash: Base.encode16(<<0::size(256)>>)})
+    assert {:ok, %{}} = jsonrpc(:get_block, %{hash: Helper.encode(block_hash)})
+    assert {:error, {_, "Internal error", "not_found"}} = jsonrpc(:get_block, %{hash: Helper.encode(<<0::size(256)>>)})
 
-    assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, %{transaction: Base.encode16(tx)})
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, %{transaction: Helper.encode(tx)})
 
-    assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, %{transaction: Base.encode16(tx2)})
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, %{transaction: Helper.encode(tx2)})
   end
-
-  defp encode(arg) when is_binary(arg), do: Base.encode16(arg)
-
-  defp encode(arg) when is_map(arg) do
-    arg = Map.from_struct(arg)
-
-    for {key, value} <- arg, into: %{} do
-      {to_string(key), encode(value)}
-    end
-  end
-
-  defp encode(arg) when is_list(arg), do: for(value <- arg, into: [], do: encode(value))
-  defp encode(arg), do: arg
 end

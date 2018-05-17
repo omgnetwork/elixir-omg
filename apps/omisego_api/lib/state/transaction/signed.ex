@@ -6,12 +6,13 @@ defmodule OmiseGO.API.State.Transaction.Signed do
   @signature_length 65
 
   defstruct [:raw_tx, :sig1, :sig2, :signed_tx_bytes]
+
   @type t() :: %__MODULE__{
-    raw_tx: Transaction.t(),
-    sig1: <<_::520>>,
-    sig2: <<_::520>>,
-    signed_tx_bytes: bitstring()
-  }
+          raw_tx: Transaction.t(),
+          sig1: <<_::520>>,
+          sig2: <<_::520>>,
+          signed_tx_bytes: bitstring() | nil
+        }
 
   def signed_hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
     Transaction.hash(tx) <> sig1 <> sig2

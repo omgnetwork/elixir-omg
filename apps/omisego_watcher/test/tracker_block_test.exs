@@ -37,7 +37,7 @@ defmodule OmiseGOWatcher.TrackerOmisegoTest do
       contract_address: config_map.contract.address
     })
 
-    GenServer.start_link(OmiseGOWatcher.TrackerOmisego, %{contract_address: config_map.contract.address})
+    {:ok, _pid} = GenServer.start_link(OmiseGOWatcher.TrackerOmisego, %{contract_address: config_map.contract.address})
 
     deposit_height = deposit_to_child_chain(alice, 10, config_map)
     raw_tx = Transaction.new([{deposit_height, 0, 0}], [{alice.addr, 7}, {bob.addr, 3}], 0)

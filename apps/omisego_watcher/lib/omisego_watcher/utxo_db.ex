@@ -23,13 +23,6 @@ defmodule OmiseGOWatcher.UtxoDB do
     field(:txbytes, :string)
   end
 
-  def top_block_number() do
-    case hd(Repo.all(from utxoDb in __MODULE__, select: max(utxoDb.blknum))) do
-      nil -> 0 #1000
-      number -> number
-    end
-  end
-
   defp consume_transaction(
          %Signed{
            raw_tx: %Transaction{} = transaction
@@ -74,7 +67,7 @@ defmodule OmiseGOWatcher.UtxoDB do
     {remove_from.(transaction, 1), remove_from.(transaction, 2)}
   end
 
-  def consume_block(%Block{transactions: transactions},  block_number) do
+  def consume_block(%Block{transactions: transactions}, block_number) do
     numbered_transactions = Stream.with_index(transactions)
 
     numbered_transactions

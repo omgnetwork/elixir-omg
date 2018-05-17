@@ -17,21 +17,13 @@ defmodule OmiseGO.API do
   end
 
   @spec get_block(hash :: bitstring) ::
-          {:ok, %{hash: bitstring, transactions: list}} | {:error, :not_found | any | :internal_error}
+          {:ok, %{hash: bitstring, transactions: list}} | {:error, :not_found | :internal_error}
   def get_block(hash) do
     case FreshBlocks.get(hash) do
       {:ok, %Block{hash: ^hash, transactions: transactions}} ->
         {:ok, %{hash: hash, transactions: transactions |> Enum.map(& &1.signed_tx_bytes)}}
 
-      {:ok, :not_found} ->
-        {:error, :not_found}
-
-      {:error, msg} ->
-        {:error, msg}
-
-      msg ->
-        IO.puts("error: " <> inspect(msg))
-        {:error, :internal_error}
+      {:error, msg} -> {:error, msg}
     end
   end
 end

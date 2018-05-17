@@ -41,11 +41,13 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     process_info = Port.open({:spawn, comand}, [:stream])
     info_pid = Port.info(process_info, :os_pid)
 
-    Logger.debug("""
-    running process:
-        proces_info:\t#{inspect(process_info)}
-        pid:\t#{inspect(info_pid)}
-    """)
+    Logger.debug(fn ->
+      """
+      running process:
+          proces_info:\t#{inspect(process_info)}
+          pid:\t#{inspect(info_pid)}
+      """
+    end)
 
     {:ok,
      fn ->
@@ -56,10 +58,10 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
            System.cmd("pkill", ["-P", Integer.to_string(system_pid)])
            # kill process
            System.cmd("kill", ["-9", Integer.to_string(system_pid)])
-           Logger.debug("kill process: #{comand}\n\tpid: #{system_pid}")
+           Logger.debug(fn -> "kill process: #{comand}\n\tpid: #{system_pid}" end)
 
          _ ->
-           Logger.debug("kill process: #{comand}\n\tthe process was killed earlier")
+           Logger.debug(fn -> "kill process: #{comand}\n\tthe process was killed earlier" end)
        end
      end}
   end
@@ -102,7 +104,13 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     file_path
     |> File.open!([:write])
     |> IO.binwrite("""
-      #{OmiseGO.Eth.DevHelpers.create_conf_file(config_map.contract.address, config_map.contract.txhash, config_map.contract.from)}
+      #{
+      OmiseGO.Eth.DevHelpers.create_conf_file(
+        config_map.contract.address,
+        config_map.contract.txhash,
+        config_map.contract.from
+      )
+    }
       config :omisego_db,
         leveldb_path: "#{db_path}"
       config :omisego_eth,
@@ -139,11 +147,12 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
   end
 
   deffixture watcher do
-     Application.ensure_all_started(:omisego_watcher)
-     :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
-     :ok = OmiseGO.DB.multi_update([{:put, :last_exit_block_height, 0}])
-     :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
+    Application.ensure_all_started(:omisego_watcher)
+    :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
+    :ok = OmiseGO.DB.multi_update([{:put, :last_exit_block_height, 0}])
+    :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
   end
+
   deffixture(alice, do: generate_entity())
   deffixture(bob, do: generate_entity())
 end

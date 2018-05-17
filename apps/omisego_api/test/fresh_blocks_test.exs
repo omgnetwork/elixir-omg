@@ -49,20 +49,20 @@ defmodule OmiseGO.API.FreshBlocksTest do
 
     # fresh block
     {fresh_block, _block_hashes_to_fetch} = FreshBlocks.get(9, state)
-    assert ^fresh_block = FreshBlocks.combine_getting_results(fresh_block, {:ok, []})
+    assert {:ok, ^fresh_block} = FreshBlocks.combine_getting_results(fresh_block, {:ok, []})
 
     # db block
     {nil = fresh_block, [0]} = FreshBlocks.get(0, state)
-    assert %Block{hash: 0} = FreshBlocks.combine_getting_results(fresh_block, {:ok, [%Block{hash: 0}]})
+    assert {:ok, %Block{hash: 0}} = FreshBlocks.combine_getting_results(fresh_block, {:ok, [%Block{hash: 0}]})
 
     # missing block
     {nil = fresh_block, [11]} = FreshBlocks.get(11, state)
-    assert :not_found = FreshBlocks.combine_getting_results(fresh_block, {:ok, [:not_found]})
+    assert {:error, :not_found} = FreshBlocks.combine_getting_results(fresh_block, {:ok, [:not_found]})
 
     # tolerate spurrious/erroneous/missing db result, if found a fresh block
     {fresh_block, []} = FreshBlocks.get(9, state)
-    assert ^fresh_block = FreshBlocks.combine_getting_results(fresh_block, {:ok, [%Block{hash: 0}]})
-    assert ^fresh_block = FreshBlocks.combine_getting_results(fresh_block, {:ok, [%Block{hash: 9}]})
-    assert ^fresh_block = FreshBlocks.combine_getting_results(fresh_block, {:ok, [:not_found]})
+    assert {:ok, ^fresh_block} = FreshBlocks.combine_getting_results(fresh_block, {:ok, [%Block{hash: 0}]})
+    assert {:ok, ^fresh_block} = FreshBlocks.combine_getting_results(fresh_block, {:ok, [%Block{hash: 9}]})
+    assert {:ok, ^fresh_block} = FreshBlocks.combine_getting_results(fresh_block, {:ok, [:not_found]})
   end
 end

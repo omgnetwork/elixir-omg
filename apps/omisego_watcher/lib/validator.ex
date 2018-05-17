@@ -1,4 +1,7 @@
 defmodule OmiseGOWatcher.Validator do
+  @moduledoc """
+  check if Block is valid block
+  """
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
 
@@ -8,12 +11,10 @@ defmodule OmiseGOWatcher.Validator do
      %Block{
        transactions:
          transactions
-         |> Enum.map(&decode_transaction/1),#&Transaction.Signed.decode(Base.decode16!(&1))),
+         |> Enum.map(&decode_transaction/1),
        hash: Base.decode16!(hash),
        number: number
      }}
-
-    # Enum.map(&decode_transaction/1), hash: Base.decode16!(hash)}}
   end
 
   defp decode_transaction(line) do
