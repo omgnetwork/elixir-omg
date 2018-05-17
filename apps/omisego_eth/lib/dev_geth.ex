@@ -7,9 +7,7 @@ defmodule OmiseGO.Eth.DevGeth do
   Run geth in temp dir, kill it with SIGKILL when done.
   """
   def start do
-    rand = :rand.uniform(100_000)
-    homedir = "/tmp/omisego_dev_geth_home.#{rand}"
-    {:ok, _} = Exexec.run_link("mkdir -p #{homedir}", [{:sync, true}, {:stdout, true}])
+    {:ok, homedir} = Briefly.create(directory: true)
     res = launch("geth --dev --rpc --rpcapi=personal,eth,web3 --datadir #{homedir} 2>&1")
     {:ok, :ready} = OmiseGO.Eth.WaitFor.eth_rpc()
     res

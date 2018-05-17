@@ -2,6 +2,7 @@ defmodule OmiseGO.Eth.Fixtures do
   use ExUnitFixtures.FixtureModule
 
   deffixture geth do
+    Application.ensure_all_started(:briefly)
     {:ok, exit_fn} = OmiseGO.Eth.dev_geth()
     on_exit(exit_fn)
     :ok
