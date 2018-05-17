@@ -3,7 +3,7 @@ defmodule OmiseGO.Performance.SenderServer do
   The SenderServer process synchronously sends requested number of transactions to the blockchain server.
   """
 
-  # Waiting time (in milliseconds) before unsuccessful Tx submittion is retried.
+  # Waiting time (in milliseconds) before unsuccessful Tx submission is retried.
   @tx_retry_waiting_time_ms 333
 
   require Logger
@@ -54,8 +54,7 @@ defmodule OmiseGO.Performance.SenderServer do
     * Senders are assigned sequential positive int starting from 1, senders are initialized in order of seqnum.
       This ensures all senders' deposits are accepted.
   """
-  @spec init({seqnum :: integer, ntx_to_send :: integer, use_http :: boolean}) ::
-          {:ok, __MODULE__.state()}
+  @spec init({seqnum :: integer, ntx_to_send :: integer, use_http :: boolean}) :: {:ok, __MODULE__.state()}
   def init({seqnum, ntx_to_send, use_http}) do
     _ = Logger.debug(fn -> "[#{seqnum}] +++ init/1 called with requests: '#{ntx_to_send}' +++" end)
 
@@ -92,7 +91,7 @@ defmodule OmiseGO.Performance.SenderServer do
       state
       |> prepare_new_tx()
       |> submit_tx(state)
-      |> update_state_with_tx_submittion(state)
+      |> update_state_with_tx_submission(state)
 
     {:noreply, newstate}
   end
@@ -129,7 +128,7 @@ defmodule OmiseGO.Performance.SenderServer do
       {:error, :too_many_transactions_in_block} ->
         _ =
           Logger.info(fn ->
-            "[#{seqnum}]: Transaction submittion will be retried, block #{tx.blknum1} is full."
+            "[#{seqnum}]: Transaction submission will be retried, block #{tx.blknum1} is full."
           end)
 
         :retry
@@ -152,10 +151,10 @@ defmodule OmiseGO.Performance.SenderServer do
     end
   end
 
-  # Handles result of successful Tx submittion or retry request into new state and sends :do message
-  @spec update_state_with_tx_submittion(tx_submit_result :: {:ok, map} | {:error, any}, state :: __MODULE__.state()) ::
+  # Handles result of successful Tx submission or retry request into new state and sends :do message
+  @spec update_state_with_tx_submission(tx_submit_result :: {:ok, map} | {:error, any}, state :: __MODULE__.state()) ::
           __MODULE__.state()
-  defp update_state_with_tx_submittion(
+  defp update_state_with_tx_submission(
          tx_submit_result,
          %__MODULE__{seqnum: seqnum, ntx_to_send: ntx_to_send, last_tx: last_tx} = state
        ) do
@@ -186,7 +185,7 @@ defmodule OmiseGO.Performance.SenderServer do
   end
 
   # Helper function which makes JsonRPC call.
-  # For now test setup is done in the same bean process, so the `localhost` address is used.
+  # For now test setup is done in the same BEAM process, so the `localhost` address is used.
   defp jsonrpc(method, params) do
     jsonrpc_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
 

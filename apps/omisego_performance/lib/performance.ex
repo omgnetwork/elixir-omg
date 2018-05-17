@@ -33,7 +33,7 @@ defmodule OmiseGO.Performance do
   end
 
   # The test setup
-  @spec testup(testid :: integer) :: :ok
+  @spec testup(testid :: integer) :: {:ok, list}
   defp testup(testid) do
     dbdir = "/tmp/perftest-#{testid}"
     Application.put_env(:omisego_db, :leveldb_path, dbdir, persistent: true)
