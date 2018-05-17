@@ -23,17 +23,9 @@ defmodule OmiseGO.Performance do
   @spec setup_and_run(ntx_to_send :: pos_integer, nusers :: pos_integer, opt :: list) :: :ok
   def setup_and_run(ntx_to_send, nusers, opt \\ []) do
     testid = :os.system_time(:millisecond)
+    _ = Logger.info(fn -> "OmiseGO PerfTest ##{testid} - users: #{nusers}, reqs: #{ntx_to_send}." end)
+
     {:ok, started_apps} = testup(testid)
-    IO.puts("OmiseGO PerfTest ##{testid} - users: #{nusers}, reqs: #{ntx_to_send}.")
-
-    # select just neccessary components to run the tests
-    children = [
-      supervisor(Phoenix.PubSub.PG2, [:eventer, []]),
-      {OmiseGO.API.State, []},
-      {OmiseGO.API.FreshBlocks, []}
-    ]
-
-    {:ok, _pid} = Supervisor.start_link(children, strategy: :one_for_one)
 
     run([testid, ntx_to_send, nusers, opt], opt[:profile])
 
@@ -46,10 +38,22 @@ defmodule OmiseGO.Performance do
     dbdir = "/tmp/perftest-#{testid}"
     Application.put_env(:omisego_db, :leveldb_path, dbdir, persistent: true)
 
-    started_apps = ensure_all_started([:omisego_db, :omisego_jsonrpc, :hackney])
+    started_apps = ensure_all_started([:omisego_db, :jsonrpc2, :cowboy, :hackney])
 
     :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
     :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
+
+    omisego_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
+
+    # select just neccessary components to run the tests
+    children = [
+      supervisor(Phoenix.PubSub.PG2, [:eventer, []]),
+      {OmiseGO.API.State, []},
+      {OmiseGO.API.FreshBlocks, []},
+      JSONRPC2.Servers.HTTP.child_spec(:http, OmiseGO.JSONRPC.Server.Handler, port: omisego_port)
+    ]
+
+    {:ok, _pid} = Supervisor.start_link(children, strategy: :one_for_one)
 
     {:ok, started_apps}
   end
@@ -63,7 +67,7 @@ defmodule OmiseGO.Performance do
   end
 
   # Ensures all dependent applications are started.
-  # We're not basing on mix to maintain more controll of tested components.
+  # We're not basing on mix to start all neccessary test's components.
   defp ensure_all_started(app_list) do
     app_list
     |> Enum.reduce([], fn app, list ->

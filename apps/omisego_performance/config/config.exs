@@ -6,4 +6,4 @@ config :omisego_performance,
 
 config :logger,
   backends: [:console],
-  level: :debug
+  level: :info
