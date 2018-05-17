@@ -56,7 +56,7 @@ defmodule OmiseGO.Performance.SenderServer do
   def init({seqnum, ntx_to_send}) do
     _ = Logger.debug(fn -> "[#{seqnum}] +++ init/1 called with requests: '#{ntx_to_send}' +++" end)
 
-    spender = generate_participant_address()
+    spender = generate_entity()
     _ = Logger.debug(fn -> "[#{seqnum}]: Address #{Base.encode64(spender.addr)}" end)
 
     deposit_value = 10 * ntx_to_send
@@ -97,7 +97,7 @@ defmodule OmiseGO.Performance.SenderServer do
   defp prepare_new_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx}) do
     to_spend = 9
     newamount = last_tx.amount - to_spend
-    recipient = generate_participant_address()
+    recipient = generate_entity()
 
     _ =
       Logger.debug(fn -> "[#{seqnum}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{newamount}" end)
@@ -190,8 +190,9 @@ defmodule OmiseGO.Performance.SenderServer do
   end
 
   # Generates participant private key and address
-  @spec generate_participant_address() :: %{priv: <<_::256>>, addr: <<_::160>>}
-  defp generate_participant_address do
+  # TODO: DRY this, used also in omisego_api/test, omisego_eth
+  @spec generate_entity() :: %{priv: <<_::256>>, addr: <<_::160>>}
+  defp generate_entity do
     alias OmiseGO.API.Crypto
     {:ok, priv} = Crypto.generate_private_key()
     {:ok, pub} = Crypto.generate_public_key(priv)
