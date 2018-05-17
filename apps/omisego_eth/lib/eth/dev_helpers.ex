@@ -57,7 +57,7 @@ defmodule OmiseGO.Eth.DevHelpers do
   def create_and_fund_authority_addr do
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
     {:ok, authority} = Ethereumex.HttpClient.personal_new_account("")
-    {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(authority, "", 0)
+    {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(authority, "", 30)
     txmap = %{from: addr, to: authority, value: "0x99999999999999999999999"}
     {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     {:ok, _receipt} = WaitFor.eth_receipt(tx_fund, 10_000)

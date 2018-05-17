@@ -136,7 +136,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash, _}} = Eth.get_child_chain(spend_child_block)
     {:ok, %{"transactions" => [line_transaction]}} = jsonrpc(:get_block, %{hash: Helper.encode(block_hash)})
-    {:ok, %{raw_tx: raw_tx_decoded}} = Transaction.Signed.decode(Helper.decode(line_transaction))
+    {:ok, %{raw_tx: raw_tx_decoded}} = Transaction.Signed.decode(Helper.decode(:bitstring, line_transaction))
     assert raw_tx_decoded == raw_tx
 
     # Restart everything to check persistance and revival
@@ -161,7 +161,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     {:ok, {block_hash2, _}} = Eth.get_child_chain(spend_child_block2)
 
     {:ok, %{"transactions" => [line_transaction2]}} = jsonrpc(:get_block, %{hash: Helper.encode(block_hash2)})
-    {:ok, %{raw_tx: raw_tx_decoded2}} = Transaction.Signed.decode(Helper.decode(line_transaction2))
+    {:ok, %{raw_tx: raw_tx_decoded2}} = Transaction.Signed.decode(Helper.decode(:bitstring, line_transaction2))
     assert raw_tx2 == raw_tx_decoded2
 
     # sanity checks
