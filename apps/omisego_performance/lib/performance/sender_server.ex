@@ -28,22 +28,20 @@ defmodule OmiseGO.Performance.SenderServer do
     :ntx_to_send,
     :spender,
     # {blknum, txindex, oindex, amount}, @see %LastTx above
-    :last_tx,
-    :use_http
+    :last_tx
   ]
 
   @opaque state :: %__MODULE__{
             seqnum: integer,
             ntx_to_send: integer,
             spender: map,
-            last_tx: LastTx.t(),
-            use_http: boolean
+            last_tx: LastTx.t()
           }
 
   @doc """
   Starts the process.
   """
-  @spec start_link({seqnum :: integer, ntx_to_send :: integer, use_http :: boolean}) :: {:ok, pid}
+  @spec start_link({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, pid}
   def start_link(args) do
     GenServer.start_link(__MODULE__, args)
   end
@@ -54,8 +52,8 @@ defmodule OmiseGO.Performance.SenderServer do
     * Senders are assigned sequential positive int starting from 1, senders are initialized in order of seqnum.
       This ensures all senders' deposits are accepted.
   """
-  @spec init({seqnum :: integer, ntx_to_send :: integer, use_http :: boolean}) :: {:ok, __MODULE__.state()}
-  def init({seqnum, ntx_to_send, use_http}) do
+  @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, __MODULE__.state()}
+  def init({seqnum, ntx_to_send}) do
     _ = Logger.debug(fn -> "[#{seqnum}] +++ init/1 called with requests: '#{ntx_to_send}' +++" end)
 
     spender = generate_participant_address()
@@ -68,7 +66,7 @@ defmodule OmiseGO.Performance.SenderServer do
     _ = Logger.debug(fn -> "[#{seqnum}]: Deposited #{deposit_value} OMG" end)
 
     send(self(), :do)
-    {:ok, init_state(seqnum, ntx_to_send, spender, use_http)}
+    {:ok, init_state(seqnum, ntx_to_send, spender)}
   end
 
   @doc """
@@ -115,14 +113,12 @@ defmodule OmiseGO.Performance.SenderServer do
           {:ok, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
           | {:error, any()}
           | :retry
-  defp submit_tx(tx, %__MODULE__{seqnum: seqnum, use_http: use_http}) do
-    submit_method = if use_http, do: &submit_tx_jsonrpc/1, else: &OmiseGO.API.submit/1
-
+  defp submit_tx(tx, %__MODULE__{seqnum: seqnum}) do
     result =
       tx
       |> Transaction.Signed.encode()
       |> Base.encode16()
-      |> submit_method.()
+      |> submit_tx_jsonrpc()
 
     case result do
       {:error, :too_many_transactions_in_block} ->
@@ -207,15 +203,13 @@ defmodule OmiseGO.Performance.SenderServer do
   @spec init_state(
           seqnum :: pos_integer,
           nreq :: pos_integer,
-          spender :: %{priv: <<_::256>>, addr: <<_::160>>},
-          use_http :: boolean
+          spender :: %{priv: <<_::256>>, addr: <<_::160>>}
         ) :: __MODULE__.state()
-  defp init_state(seqnum, nreq, spender, use_http) do
+  defp init_state(seqnum, nreq, spender) do
     %__MODULE__{
       seqnum: seqnum,
       ntx_to_send: nreq,
       spender: spender,
-      use_http: use_http,
       last_tx: %LastTx{
         # initial state takes deposited value, put there on :init
         blknum: seqnum,

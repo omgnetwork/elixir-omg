@@ -10,12 +10,12 @@ defmodule OmiseGO.Performance.Runner do
   Foreach user runs n submit_transaction requests to the chain server. Requests are done sequentially.
   """
   @spec run(testid :: integer, ntx_to_send :: integer, nusers :: integer, opt :: list) :: {:ok, String.t()}
-  def run(testid, ntx_to_send, nusers, opt) do
+  def run(testid, ntx_to_send, nusers, _opt) do
     Application.put_env(:omisego_performance, :test_env, {testid, ntx_to_send, nusers})
     start = System.monotonic_time(:millisecond)
 
     # fire async transaction senders
-    manager = OmiseGO.Performance.SenderManager.start_link_all_senders(ntx_to_send, nusers, opt[:use_http])
+    manager = OmiseGO.Performance.SenderManager.start_link_all_senders(ntx_to_send, nusers)
 
     # fire block creator
     _ = OmiseGO.Performance.BlockCreator.start_link()
