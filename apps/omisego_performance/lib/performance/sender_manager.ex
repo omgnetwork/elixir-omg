@@ -27,24 +27,24 @@ defmodule OmiseGO.Performance.SenderManager do
   @doc """
   Starts the sender's manager process
   """
-  @spec start_link_all_senders(ntx_to_send :: integer, nusers :: integer) :: pid
-  def start_link_all_senders(ntx_to_send, nusers) do
-    {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, nusers}, name: __MODULE__)
+  @spec start_link_all_senders(ntx_to_send :: integer, nusers :: integer, use_http :: boolean) :: pid
+  def start_link_all_senders(ntx_to_send, nusers, use_http) do
+    {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, nusers, use_http}, name: __MODULE__)
     mypid
   end
 
   @doc """
   Starts sender processes and reschedule check whether they are done.
   """
-  @spec init({integer, integer}) :: {:ok, map()}
-  def init({ntx_to_send, nusers}) do
+  @spec init({integer, integer, boolean}) :: {:ok, map()}
+  def init({ntx_to_send, nusers, use_http}) do
     Process.flag(:trap_exit, true)
     _ = Logger.debug(fn -> "[SM] +++ init/1 called with #{nusers} users, each to send #{ntx_to_send} +++" end)
 
     senders =
       1..nusers
       |> Enum.map(fn seqnum ->
-        {:ok, pid} = OmiseGO.Performance.SenderServer.start_link({seqnum, ntx_to_send})
+        {:ok, pid} = OmiseGO.Performance.SenderServer.start_link({seqnum, ntx_to_send, use_http})
         {seqnum, pid}
       end)
 

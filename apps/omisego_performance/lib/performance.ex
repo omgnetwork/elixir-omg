@@ -7,6 +7,7 @@ defmodule OmiseGO.Performance do
   ## 1 - running 3 senders each sending 5 transactions test.
   Run from terminal:
    > mix run --no-start -e 'OmiseGO.Performance.setup_and_run(5, 3)'
+  One can add `use_http: true` option to switch Tx submittion via http (JsonRPC) protocol.
 
   ## 2 - running 3 senders with 5 transactions each with profiler
    > mix run --no-start -e 'OmiseGO.Performance.setup_and_run(5, 3, profile: true)'
@@ -23,7 +24,7 @@ defmodule OmiseGO.Performance do
   def setup_and_run(ntx_to_send, nusers, opt \\ []) do
     testid = :os.system_time(:millisecond)
     {:ok, started_apps} = testup(testid)
-    _ = Logger.info("OmiseGO PerfTest ##{testid} - users: #{nusers}, reqs: #{ntx_to_send}.")
+    IO.puts("OmiseGO PerfTest ##{testid} - users: #{nusers}, reqs: #{ntx_to_send}.")
 
     # select just neccessary components to run the tests
     children = [
@@ -34,18 +35,18 @@ defmodule OmiseGO.Performance do
 
     {:ok, _pid} = Supervisor.start_link(children, strategy: :one_for_one)
 
-    run([testid, ntx_to_send, nusers], opt[:profile])
+    run([testid, ntx_to_send, nusers, opt], opt[:profile])
 
     testdown(started_apps)
   end
 
   # The test setup
-  @spec testup(testid :: integer) :: {:ok, [pid()]}
+  @spec testup(testid :: integer) :: :ok
   defp testup(testid) do
     dbdir = "/tmp/perftest-#{testid}"
     Application.put_env(:omisego_db, :leveldb_path, dbdir, persistent: true)
 
-    {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
+    started_apps = ensure_all_started([:omisego_db, :omisego_jsonrpc, :hackney])
 
     :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
     :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
@@ -61,11 +62,21 @@ defmodule OmiseGO.Performance do
     :ok
   end
 
-  # Executes the test runner
+  # Ensures all dependent applications are started.
+  # We're not basing on mix to maintain more controll of tested components.
+  defp ensure_all_started(app_list) do
+    app_list
+    |> Enum.reduce([], fn app, list ->
+      {:ok, started_apps} = Application.ensure_all_started(app)
+      list ++ started_apps
+    end)
+  end
+
+  # Executes the test runner with (or without) profiler.
   @spec run(args :: list(), profile :: boolean) :: :ok
   defp run(args, profile) do
     {:ok, data} = apply(OmiseGO.Performance.Runner, if(profile, do: :profile_and_run, else: :run), args)
-    _ = Logger.info(data)
+    IO.puts(data)
     :ok
   end
 end

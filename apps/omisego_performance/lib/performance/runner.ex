@@ -9,13 +9,13 @@ defmodule OmiseGO.Performance.Runner do
   Assumes test suite setup is done earlier, before running this function.
   Foreach user runs n submit_transaction requests to the chain server. Requests are done sequentially.
   """
-  @spec run(testid :: integer, ntx_to_send :: integer, nusers :: integer) :: {:ok, String.t()}
-  def run(testid, ntx_to_send, nusers) do
+  @spec run(testid :: integer, ntx_to_send :: integer, nusers :: integer, opt :: list) :: {:ok, String.t()}
+  def run(testid, ntx_to_send, nusers, opt) do
     Application.put_env(:omisego_performance, :test_env, {testid, ntx_to_send, nusers})
     start = System.monotonic_time(:millisecond)
 
     # fire async transaction senders
-    manager = OmiseGO.Performance.SenderManager.start_link_all_senders(ntx_to_send, nusers)
+    manager = OmiseGO.Performance.SenderManager.start_link_all_senders(ntx_to_send, nusers, opt[:use_http])
 
     # fire block creator
     _ = OmiseGO.Performance.BlockCreator.start_link()
@@ -30,9 +30,10 @@ defmodule OmiseGO.Performance.Runner do
   @doc """
   Runs above :run function with :fprof profiler. Profiler analysis is written to the temp file.
   """
-  @spec profile_and_run(testid :: integer, ntx_to_send :: pos_integer, nusers :: pos_integer) :: {:ok, String.t()}
-  def profile_and_run(testid, ntx_to_send, nusers) do
-    :fprof.apply(&OmiseGO.Performance.Runner.run/3, [testid, ntx_to_send, nusers], procs: [:all])
+  @spec profile_and_run(testid :: integer, ntx_to_send :: pos_integer, nusers :: pos_integer, opt :: list) ::
+          {:ok, String.t()}
+  def profile_and_run(testid, ntx_to_send, nusers, opt) do
+    :fprof.apply(&OmiseGO.Performance.Runner.run/4, [testid, ntx_to_send, nusers, opt], procs: [:all])
     :fprof.profile()
 
     destdir = Application.get_env(:omisego_performance, :analysis_output_dir)

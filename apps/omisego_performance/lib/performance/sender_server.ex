@@ -9,6 +9,8 @@ defmodule OmiseGO.Performance.SenderServer do
   require Logger
   use GenServer
 
+  alias OmiseGO.API.State.Transaction
+
   defmodule LastTx do
     @moduledoc """
     Submodule defines structure to keep last transaction sent by sender remembered fo the next submission.
@@ -26,15 +28,22 @@ defmodule OmiseGO.Performance.SenderServer do
     :ntx_to_send,
     :spender,
     # {blknum, txindex, oindex, amount}, @see %LastTx above
-    :last_tx
+    :last_tx,
+    :use_http
   ]
 
-  @opaque state :: %__MODULE__{seqnum: integer, ntx_to_send: integer, spender: map, last_tx: LastTx.t()}
+  @opaque state :: %__MODULE__{
+            seqnum: integer,
+            ntx_to_send: integer,
+            spender: map,
+            last_tx: LastTx.t(),
+            use_http: boolean
+          }
 
   @doc """
   Starts the process.
   """
-  @spec start_link({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, pid}
+  @spec start_link({seqnum :: integer, ntx_to_send :: integer, use_http :: boolean}) :: {:ok, pid}
   def start_link(args) do
     GenServer.start_link(__MODULE__, args)
   end
@@ -45,8 +54,9 @@ defmodule OmiseGO.Performance.SenderServer do
     * Senders are assigned sequential positive int starting from 1, senders are initialized in order of seqnum.
       This ensures all senders' deposits are accepted.
   """
-  @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, init_state :: __MODULE__.state()}
-  def init({seqnum, ntx_to_send}) do
+  @spec init({seqnum :: integer, ntx_to_send :: integer, use_http :: boolean}) ::
+          {:ok, __MODULE__.state()}
+  def init({seqnum, ntx_to_send, use_http}) do
     _ = Logger.debug(fn -> "[#{seqnum}] +++ init/1 called with requests: '#{ntx_to_send}' +++" end)
 
     spender = generate_participant_address()
@@ -59,7 +69,7 @@ defmodule OmiseGO.Performance.SenderServer do
     _ = Logger.debug(fn -> "[#{seqnum}]: Deposited #{deposit_value} OMG" end)
 
     send(self(), :do)
-    {:ok, init_state(seqnum, ntx_to_send, spender)}
+    {:ok, init_state(seqnum, ntx_to_send, spender, use_http)}
   end
 
   @doc """
@@ -79,29 +89,15 @@ defmodule OmiseGO.Performance.SenderServer do
 
   def handle_info(:do, %__MODULE__{} = state) do
     newstate =
-      case submit_tx(state) do
-        {:ok, newblknum, newtxindex, newvalue} ->
-          send(self(), :do)
-          state |> next_state(newblknum, newtxindex, newvalue)
-
-        :retry ->
-          Process.send_after(self(), :do, @tx_retry_waiting_time_ms)
-          state
-      end
+      state
+      |> prepare_new_tx()
+      |> submit_tx(state)
+      |> update_state_with_tx_submittion(state)
 
     {:noreply, newstate}
   end
 
-  @doc """
-  Submits new transaction to the blockchain server.
-  """
-  @spec submit_tx(__MODULE__.state()) ::
-          {:ok, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
-          | {:error, any()}
-          | :retry
-  def submit_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx} = state) do
-    alias OmiseGO.API.State.Transaction
-
+  defp prepare_new_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx}) do
     to_spend = 9
     newamount = last_tx.amount - to_spend
     recipient = generate_participant_address()
@@ -109,20 +105,31 @@ defmodule OmiseGO.Performance.SenderServer do
     _ =
       Logger.debug(fn -> "[#{seqnum}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{newamount}" end)
 
-    tx =
-      [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
-      |> Transaction.new([{spender.addr, newamount}, {recipient.addr, to_spend}], 0)
-      |> Transaction.sign(spender.priv, <<>>)
+    # create and return signed transaction
+    [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
+    |> Transaction.new([{spender.addr, newamount}, {recipient.addr, to_spend}], 0)
+    |> Transaction.sign(spender.priv, <<>>)
+  end
+
+  # Submits new transaction to the blockchain server.
+  @spec submit_tx(Transaction.Signed.t(), __MODULE__.state()) ::
+          {:ok, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
+          | {:error, any()}
+          | :retry
+  defp submit_tx(tx, %__MODULE__{seqnum: seqnum, use_http: use_http}) do
+    submit_method = if use_http, do: &submit_tx_jsonrpc/1, else: &OmiseGO.API.submit/1
+
+    result =
+      tx
       |> Transaction.Signed.encode()
       |> Base.encode16()
-
-    result = OmiseGO.API.submit(tx)
+      |> submit_method.()
 
     case result do
       {:error, :too_many_transactions_in_block} ->
         _ =
           Logger.info(fn ->
-            "[#{seqnum}]: Transaction submittion will be retried, block #{last_tx.blknum} is full."
+            "[#{seqnum}]: Transaction submittion will be retried, block #{tx.blknum1} is full."
           end)
 
         :retry
@@ -138,21 +145,58 @@ defmodule OmiseGO.Performance.SenderServer do
       {:ok, %{blknum: blknum, tx_index: txindex}} ->
         _ =
           Logger.debug(fn ->
-            "[#{seqnum}]: Transaction submitted successfully {#{blknum}, #{txindex}, #{newamount}}"
+            "[#{seqnum}]: Transaction submitted successfully {#{blknum}, #{txindex}}"
           end)
 
-        if blknum > last_tx.blknum,
-          do: OmiseGO.Performance.SenderManager.sender_stats(seqnum, last_tx.blknum, last_tx.txindex, state.ntx_to_send)
-
-        {:ok, blknum, txindex, newamount}
+        {:ok, blknum, txindex, tx.raw_tx.amount1}
     end
   end
 
-  @doc """
-  Generates participant private key and address
-  """
+  # Handles result of successful Tx submittion or retry request into new state and sends :do message
+  @spec update_state_with_tx_submittion(tx_submit_result :: {:ok, map} | {:error, any}, state :: __MODULE__.state()) ::
+          __MODULE__.state()
+  defp update_state_with_tx_submittion(
+         tx_submit_result,
+         %__MODULE__{seqnum: seqnum, ntx_to_send: ntx_to_send, last_tx: last_tx} = state
+       ) do
+    case tx_submit_result do
+      {:ok, newblknum, newtxindex, newvalue} ->
+        send(self(), :do)
+
+        if newblknum > last_tx.blknum,
+          do: OmiseGO.Performance.SenderManager.sender_stats(seqnum, last_tx.blknum, last_tx.txindex, ntx_to_send)
+
+        state |> next_state(newblknum, newtxindex, newvalue)
+
+      :retry ->
+        Process.send_after(self(), :do, @tx_retry_waiting_time_ms)
+        state
+    end
+  end
+
+  # Submits Tx to the childchain server via http (JsonRPC) and translates successful result to atom-keyed map.
+  @spec submit_tx_jsonrpc(binary) :: {:ok, map} | {:error, any}
+  defp submit_tx_jsonrpc(encoded_tx) do
+    with {:ok, result} <- jsonrpc(:submit, %{transaction: encoded_tx}) do
+      {:ok,
+       result
+       |> Enum.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
+       |> Map.new()}
+    end
+  end
+
+  # Helper function which makes JsonRPC call.
+  # For now test setup is done in the same bean process, so the `localhost` address is used.
+  defp jsonrpc(method, params) do
+    jsonrpc_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
+
+    "http://localhost:#{jsonrpc_port}"
+    |> JSONRPC2.Clients.HTTP.call(to_string(method), params)
+  end
+
+  # Generates participant private key and address
   @spec generate_participant_address() :: %{priv: <<_::256>>, addr: <<_::160>>}
-  def generate_participant_address do
+  defp generate_participant_address do
     alias OmiseGO.API.Crypto
     {:ok, priv} = Crypto.generate_private_key()
     {:ok, pub} = Crypto.generate_public_key(priv)
@@ -161,13 +205,18 @@ defmodule OmiseGO.Performance.SenderServer do
   end
 
   # Generates module's initial state
-  @spec init_state(seqnum :: pos_integer, nreq :: pos_integer, spender :: %{priv: <<_::256>>, addr: <<_::160>>}) ::
-          __MODULE__.state()
-  defp init_state(seqnum, nreq, spender) do
+  @spec init_state(
+          seqnum :: pos_integer,
+          nreq :: pos_integer,
+          spender :: %{priv: <<_::256>>, addr: <<_::160>>},
+          use_http :: boolean
+        ) :: __MODULE__.state()
+  defp init_state(seqnum, nreq, spender, use_http) do
     %__MODULE__{
       seqnum: seqnum,
       ntx_to_send: nreq,
       spender: spender,
+      use_http: use_http,
       last_tx: %LastTx{
         # initial state takes deposited value, put there on :init
         blknum: seqnum,
