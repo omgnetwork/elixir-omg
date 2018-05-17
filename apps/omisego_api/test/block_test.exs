@@ -40,4 +40,7 @@ defmodule OmiseGO.API.BlockTest do
 
     assert expected == Block.merkle_hash(block)
   end
+
+  test "block presents a proof that it contains a transaction" do
+  end
 end

@@ -1,4 +1,4 @@
-defmodule OmiseGOWatcher.BlockGetterTest do
+defmodule OmiseGOWatcher.ChallengeExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OmiseGO.API.Fixtures
@@ -46,12 +46,19 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     raw_tx = Transaction.new([{deposit_blknum, 0, 0}], Transaction.zero_address(), [{alice.addr, 7}, {bob.addr, 3}])
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
-    {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{"blknum" => exiting_utxo_block_nr}} = Client.call(:submit, %{transaction: tx})
 
-    # wait for BlockGetter to get the block
+    block_nr = exiting_utxo_block_nr
+
+    raw_tx2 = Transaction.new([{block_nr, 0, 0}], Transaction.zero_address(), [{alice.addr, 4}, {bob.addr, 3}])
+    tx2 = raw_tx2 |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
+    IO.inspect(raw_tx2)
+
+    {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx2})
+    IO.inspect(block_nr)
+
     fn ->
       Eth.WaitFor.repeat_until_ok(fn ->
-        # TODO use event system
         case GenServer.call(BlockGetter, :get_height) < block_nr do
           true -> :repeat
           false -> {:ok, block_nr}
@@ -61,14 +68,11 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     |> Task.async()
     |> Task.await(@timeout)
 
-    encode_tx = Client.encode(tx)
+    Client.call(:submit, %{transaction: tx2})
 
-    assert [%{"amount" => 3, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
-             get_utxo(bob.addr)
+    challenge = get_exit_challenge(exiting_utxo_block_nr, 0, 0)
 
-    assert [%{"amount" => 7, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
-             get_utxo(alice.addr)
-
+    #new
     %{
       utxo_pos: utxo_pos,
       tx_bytes: tx_bytes,
@@ -80,7 +84,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     {:ok, txhash} =
       Eth.start_exit(
-        utxo_pos * @block_offset,
+        2000 * @block_offset,
         tx_bytes,
         proof,
         sigs,
@@ -93,8 +97,29 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 7, blknum: block_nr, oindex: 0, owner: alice_address, txindex: 0, token: @zero_address}]} ==
+    assert {:ok, [%{amount: 7, blknum: 2000, oindex: 0, owner: alice_address, txindex: 0, token: @zero_address}]} ==
              Eth.get_exits(0, height, config_map.contract_addr)
+
+    IO.inspect(challenge)
+    {:ok, txhash} = OmiseGO.Eth.DevHelpers.challenge_exit(challenge.cutxopos, challenge.eutxoindex,
+     challenge.txbytes, challenge.proof, challenge.sigs, 1, alice_address, config_map.contract_addr)
+     {:ok, receipt} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+     IO.inspect(receipt)
+  end
+
+  defp get_exit_challenge(blknum, txindex, oindex) do
+    decoded_resp = Test.rest_call(:get, "challenges?utxo=#{Test.utxo_pos(blknum, txindex, oindex)}")
+    {:ok, txbytes} = Client.decode(:bitstring, decoded_resp["txbytes"])
+    {:ok, proof} = Client.decode(:bitstring, decoded_resp["proof"])
+    {:ok, sigs} = Client.decode(:bitstring, decoded_resp["sigs"])
+
+    %{
+      cutxopos: decoded_resp["cutxopos"],
+      eutxoindex: decoded_resp["eutxoindex"],
+      txbytes: txbytes,
+      proof: proof,
+      sigs: sigs
+    }
   end
 
   defp get_utxo(address) do

@@ -24,8 +24,8 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
       newowner2: @zero_address,
       amount2: 0
     },
-    sig1: <<>>,
-    sig2: <<>>
+    sig1: <<1, 8, 10, 12>>,
+    sig2: <<14, 16, 18, 20>>
   }
 
   @tag fixtures: [:watcher_sandbox]
@@ -64,24 +64,58 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     assert expected_transaction_2 == delete_meta(TransactionDB.get(txid_2))
   end
 
-  defp create_expected_transaction(
-         txid,
-         %Signed{
-           raw_tx: %Transaction{} = transaction,
-           sig1: sig1,
-           sig2: sig2
-         },
-         txblknum,
-         txindex
-       ) do
+  test "gets all transactions from a block" do
+    assert [] == TransactionDB.get_transactions_from_block(1)
+
+    tx1 = insert_tx(1, 0)
+    tx2 = insert_tx(1, 1)
+    insert_tx(2, 0)
+
+    assert [tx1, tx2] == TransactionDB.get_transactions_from_block(1)
+  end
+
+  defp insert_tx(blknum, txindex) do
+    {signed_tx, id} = create_tx_with_id(blknum, txindex)
+    {:ok, tx} = TransactionDB.insert(id, signed_tx, blknum, txindex)
+    tx
+  end
+
+  defp create_tx_with_id(blknum, txindex) do
+    tx = %{@signed_tx.raw_tx | blknum1: blknum, txindex1: txindex}
+    signed_tx = %Signed{raw_tx: tx, sig1: <<>>, sig2: <<>>}
+    id = Signed.signed_hash(signed_tx)
+    {signed_tx, id}
+  end
+
+  test "gets transaction that spends utxo" do
+    utxo1 = %{blknum: 1, txindex: 0, oindex: 0}
+    utxo2 = %{blknum: 2, txindex: 0, oindex: 0}
+    :utxo_not_spent = TransactionDB.get_transaction_spending_utxo(utxo1)
+    :utxo_not_spent = TransactionDB.get_transaction_spending_utxo(utxo2)
+
+    assert_transaction_spends_utxo(utxo1, 0)
+    :utxo_not_spent = TransactionDB.get_transaction_spending_utxo(utxo2)
+    assert_transaction_spends_utxo(utxo2, 1)
+  end
+
+  defp assert_transaction_spends_utxo(utxo, txindex) do
+    {signed_tx, id} = create_tx_with_id(utxo.blknum, 0)
+    {:ok, _} = TransactionDB.insert(id, signed_tx, 2, txindex)
+    expected_tx = create_expected_transaction(id, signed_tx, 2, txindex)
+
+    {:ok, actual_tx} = TransactionDB.get_transaction_spending_utxo(utxo)
+    assert expected_tx == delete_meta(actual_tx)
+  end
+
+  defp create_expected_transaction(txid, signed_tx, txblknum, txindex) do
     %TransactionDB{
       txblknum: txblknum,
       txindex: txindex,
       txid: txid,
-      sig1: sig1,
-      sig2: sig2
+      sig1: signed_tx.sig1,
+      sig2: signed_tx.sig2
     }
-    |> Map.merge(Map.from_struct(transaction))
+    |> Map.merge(Map.from_struct(signed_tx.raw_tx))
     |> delete_meta
   end
 

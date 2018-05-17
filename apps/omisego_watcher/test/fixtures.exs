@@ -6,14 +6,11 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   use OmiseGO.DB.Fixtures
 
   deffixture config_map(contract) do
-    Map.merge(
-      contract,
-      %{
-        child_block_interval: 1000,
-        ethereum_event_block_finality_margin: 1,
-        ethereum_event_get_deposits_interval_ms: 10
-      }
-    )
+    Map.merge(contract, %{
+      child_block_interval: 1000,
+      ethereum_event_block_finality_margin: 1,
+      ethereum_event_get_deposits_interval_ms: 10
+    })
   end
 
   deffixture child_chain(config_map) do
