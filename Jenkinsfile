@@ -31,7 +31,7 @@ podTemplate(
         stage('Build Contracts') {
             withEnv(["SOLC_BINARY=/home/jenkins/.py-solc/solc-v0.4.18/bin/solc"]) {
                 dir("populus") {
-                    sh("pip install -r requirements.txt && python -m solc.install v0.4.18 && pip install eth-utils==0.8.1 web3==3.16.5 && populus compile")
+                    sh("pip install -r requirements.txt && python -m solc.install v0.4.18 && populus compile")
                 }
             }
         }
@@ -58,7 +58,7 @@ podTemplate(
 
         stage('Cleanbuild') {
             withEnv(["MIX_ENV=test"]) {
-                sh("mix compile --force --warnings-as-errors")
+                sh("mix do compile --warnings-as-errors --force, test --no-start --exclude test")
             }
         }
 /*

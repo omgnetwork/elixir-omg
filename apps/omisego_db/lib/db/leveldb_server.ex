@@ -21,6 +21,15 @@ defmodule OmiseGO.DB.LevelDBServer do
          do: {:ok, %__MODULE__{db_ref: db_ref}}
   end
 
+  def handle_call({:multi_update, db_updates}, _from, %__MODULE__{db_ref: db_ref} = state) do
+    result =
+      db_updates
+      |> LevelDBCore.parse_multi_updates()
+      |> write(db_ref)
+
+    {:reply, result, state}
+  end
+
   def handle_call({:tx, hash}, _from, %__MODULE__{db_ref: db_ref} = state) do
     key = LevelDBCore.key(:tx, hash)
 
@@ -51,29 +60,25 @@ defmodule OmiseGO.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call({:multi_update, db_updates}, _from, %__MODULE__{db_ref: db_ref} = state) do
+  def handle_call({:block_hashes, block_numbers_to_fetch}, _from, %__MODULE__{db_ref: db_ref} = state) do
     result =
-      db_updates
-      |> LevelDBCore.parse_multi_updates()
-      |> write(db_ref)
-
+      block_numbers_to_fetch
+      |> Enum.map(fn block_number -> LevelDBCore.key(:block_hash, block_number) end)
+      |> Enum.map(fn key -> get(key, db_ref) end)
+      |> LevelDBCore.decode_values(:block_hash)
     {:reply, result, state}
   end
 
-  def handle_call({:block_hashes, _block_numbers_to_fetch}, _from, %__MODULE__{db_ref: _db_ref} = state) do
-    {:reply, {:ok, []}, state}
-  end
+  @single_value_parameter_names [:child_top_block_number, :last_deposit_block_height]
 
-  def handle_call({:child_top_block_number}, _from, %__MODULE__{db_ref: _db_ref} = state) do
-    {:reply, {:ok, 0}, state}
-  end
-
-  def handle_call(:last_deposit_block_height, _from, %__MODULE__{db_ref: db_ref} = state) do
-    #TODO: initialize db with height 0
+  def handle_call(parameter, _from, %__MODULE__{db_ref: db_ref} = state)
+      when is_atom(parameter) and parameter in @single_value_parameter_names
+  do
     result =
-      with key <- LevelDBCore.key(:last_deposit_block_height),
-           response <- get(key, db_ref),
-           do: LevelDBCore.decode_value(response, :last_deposit_block_height)
+      parameter
+      |> LevelDBCore.key(nil)
+      |> get(db_ref)
+      |> LevelDBCore.decode_value(parameter)
 
     {:reply, result, state}
   end

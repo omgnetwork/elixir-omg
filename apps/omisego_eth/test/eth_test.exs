@@ -5,6 +5,7 @@ defmodule OmiseGO.EthTest do
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.Crypto
   alias OmiseGOWatcher.UtxoDB
+  alias OmiseGO.API.TestHelper
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
@@ -12,6 +13,7 @@ defmodule OmiseGO.EthTest do
   @timeout 10_000
   @block_offset 1_000_000_000
   @transaction_offset 10_000
+  @transaction_merkle_tree_height 16
 
   @moduletag :integration
 
@@ -27,8 +29,8 @@ defmodule OmiseGO.EthTest do
   end
 
   defp deposit(value, gas_price, contract) do
-    {:ok, txhash} = Eth.deposit(value, gas_price, contract.from, contract.address)
-    {:ok, _} = WaitFor.eth_receipt(txhash, @timeout)
+    {:ok, transaction_hash} = Eth.DevHelpers.deposit(value, gas_price, contract.from, contract.address)
+    {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
   end
 
   defp start_deposit_exit(deposit_position, value, gas_price, contract) do
@@ -60,22 +62,83 @@ defmodule OmiseGO.EthTest do
     {:ok, 5000} = Eth.get_current_child_block(contract.address)
   end
 
-
   @tag fixtures: [:contract]
   test "start_exit", %{contract: contract} do
-    # utxo_position, proof, %Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2}, gas_price, from \\ nil, contract \\ nil
-    deposit(1, 1, contract)
-    utxo_position = utxo_position(1, 0, 0)
 
+    alice = %{
+      priv:
+        <<54, 43, 207, 67, 140, 160, 190, 135, 18, 162, 70, 120, 36, 245, 106, 165, 5, 101, 183,
+          55, 11, 117, 126, 135, 49, 50, 12, 228, 173, 219, 183, 175>>,
+      addr:
+        <<59, 159, 76, 29, 210, 110, 11, 229, 147, 55, 59, 29, 54, 206, 226, 0, 140, 190, 184,
+          55>>
+    }
+    bob = %{
+      priv:
+        <<208, 253, 134, 150, 198, 155, 175, 125, 158, 156, 21, 108, 208, 7, 103, 242, 9, 139,
+          26, 140, 118, 50, 144, 21, 226, 19, 156, 2, 210, 97, 84, 128>>,
+      addr:
+        <<207, 194, 79, 222, 88, 128, 171, 217, 153, 41, 195, 239, 138, 178, 227, 16, 72, 173,
+          118, 35>>
+    }
+
+    %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash} = TestHelper.create_recovered([{@block_offset, @transaction_offset, 0, bob}], [{bob, 8}, {alice, 3}])
+
+    {:ok, mt} = MerkleTree.new([signed_tx_hash], &Crypto.hash/1, @transaction_merkle_tree_height)
+
+    block = %Eth.BlockSubmission{
+      num: @block_offset,
+      hash: mt.root.value,
+      gas_price: 20_000_000_000,
+      nonce: 1
+    }
+
+    txs = [Map.merge(raw_tx, %{ txindex: @transaction_offset, txid: signed_tx_hash})]
+
+    Eth.submit_block(block, contract.from, contract.address)
+
+    %{
+      utxo_pos: utxo_pos,
+      tx_bytes: tx_bytes,
+      proof: proof
+    } = UtxoDB.compose_utxo_exit(txs, @block_offset, @transaction_offset, 0)
+
+    # IO.inspect "tut"
+    # IO.inspect tx_bytes
+    # IO.inspect proof
+    # IO.inspect  alice.priv <> bob.priv
+
+    bin_to_list = fn x -> :binary.bin_to_list(x) end
+
+    sigs = alice.priv <> bob.priv
+
+
+    {:ok, txhash} = Eth.start_exit(@block_offset + @transaction_offset, tx_bytes, proof, sigs,1 , contract.from, contract.address )
+    {:ok, _} = WaitFor.eth_receipt(txhash, @timeout)
+
+{:ok, height} = Eth.get_ethereum_height()
+IO.inspect height
+    IO.inspect Eth.get_exits(1, height, contract.address)
+
+    # deposit(1, 1, contract)
+    # utxo_position = utxo_position(1, 0, 0)
+    #
+    # UtxoDB.compose_utxo_exit(@block_offset, 0, 0)
+
+    # deposit(1, 1, contract)
+    # {:ok, height} = Eth.get_ethereum_height()
+    #   IO.inspect height
+    # deposit(1, 1, contract)
+    # {:ok, height} = Eth.get_ethereum_height()
+    #   IO.inspect height
     # %{
     #   utxo_pos: calculate_utxo_pos(block_height, txindex, oindex),
     #   tx_bytes: tx_bytes,
     #   proof: Enum.map(proof.hashes, bin_to_list)
     # }
 
-    IO.inspect UtxoDB.compose_utxo_exit(@block_offset, 0, 0)
-
-    # Eth.start_exit(utxo_position, )
+    # IO.inspect UtxoDB.compose_utxo_exit(@block_offset, 0, 0)
+# utxo_position, proof, %Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2}, gas_price, from \\ nil, contract \\ nil
 
   end
 

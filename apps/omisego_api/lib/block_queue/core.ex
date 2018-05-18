@@ -55,6 +55,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
     {:ok, %__MODULE__{blocks: Map.new()}}
   end
 
+  @spec new(keyword) :: {:ok, Core.t} | {:error, :mined_hash_not_found_in_db} | {:error, :contract_ahead_of_db}
   def new(
         mined_child_block_num: mined_child_block_num,
         known_hashes: known_hashes,
@@ -158,6 +159,17 @@ defmodule OmiseGO.API.BlockQueue.Core do
     |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
   end
 
+  # generates an enumberable of block numbers since genesis till a particular block number (inclusive
+  @spec child_block_nums_to_init_with(non_neg_integer) :: list
+  def child_block_nums_to_init_with(until_child_block_num) do
+    # equivalent of range(BlockQueue.child_block_interval(),
+    #                     until_child_block_num + BlockQueue.child_block_interval(),
+    #                     BlockQueue.child_block_interval()
+    #                     )
+    interval = BlockQueue.child_block_interval()
+    make_range(interval, until_child_block_num, interval)
+  end
+
   # Check if new child block should be formed basing on blocks formed so far and
   # age of RootChain contract in ethereum blocks
   @spec should_form_block?(Core.t()) :: true | false
@@ -218,7 +230,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
       state = %{
         state
-        | formed_child_block_num: state.mined_child_block_num + state.child_block_interval,
+        | formed_child_block_num: state.mined_child_block_num,
           blocks: mined_submissions
       }
 

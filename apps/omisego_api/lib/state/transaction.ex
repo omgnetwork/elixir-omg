@@ -7,9 +7,8 @@ defmodule OmiseGO.API.State.Transaction do
   alias OmiseGO.API.Crypto
 
   @zero_address <<0::size(160)>>
+  @number_of_transactions 2
 
-  # TODO: probably useful to structure these fields somehow ore readable like
-  # defstruct [:input1, :input2, :output1, :output2, :fee], with in/outputs as structs or tuples?
   defstruct [
     :blknum1,
     :txindex1,
@@ -38,9 +37,8 @@ defmodule OmiseGO.API.State.Transaction do
           fee: pos_integer()
         }
 
-  def create_from_utxos(%{utxos: [_, _, _ | _]}, _, _) do
-    {:error, :too_many_utxo}
-  end
+  def create_from_utxos(%{utxos: utxos_ble}, _, _) when length(utxos_ble) > @number_of_transactions,
+    do: {:error, :too_many_utxo}
 
   def create_from_utxos(
         %{address: change_address, utxos: utxos},
@@ -94,16 +92,15 @@ defmodule OmiseGO.API.State.Transaction do
     end
   end
 
-  @number_of_transactions 2
   @doc """
    assumptions:
      length(inputs) <= @number_of_transaction
      length(outputs) <= @number_of_transaction
    behavior:
-     at first expant inputs and outputs to size of @number_of_transaction
-      for inputs add {0, 0, 0} where {blknum, txindex, oindex}
-      for outpust add {0, 0} where {newowner, amount}
-     merge all inputs and outputs where key atom are expand by index (start from 1) then add key fee
+      Adjusts the inputs and outputs for each transaction with empty ones
+      to match the expected size of @number_of_transaction. Then adds the fee.
+       for inputs add {0, 0, 0} where {blknum, txindex, oindex}
+       for outpust add {0, 0} where {newowner, amount}
   """
   @spec new(
           list({pos_integer, pos_integer, 0 | 1}),
@@ -169,6 +166,11 @@ defmodule OmiseGO.API.State.Transaction do
     |> Crypto.hash()
   end
 
+  @doc """
+    private keys are in the form: <<54, 43, 207, 67, 140, 160, 190, 135, 18, 162, 70, 120, 36, 245, 106, 165, 5, 101, 183,
+      55, 11, 117, 126, 135, 49, 50, 12, 228, 173, 219, 183, 175>>
+  """
+  @spec sign(__MODULE__.t(), <<_::256>>, <<_::256>>) :: Signed.t()
   def sign(%__MODULE__{} = tx, priv1, priv2) do
     encoded_tx = encode(tx)
     signature1 = signature(encoded_tx, priv1)

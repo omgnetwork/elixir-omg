@@ -1,0 +1,212 @@
+Metadata-Version: 2.1
+Name: scrypt
+Version: 0.8.6
+Summary: Bindings for the scrypt key derivation function library
+Home-page: http://bitbucket.org/mhallin/py-scrypt
+Author: Magnus Hallin
+Author-email: mhallin@gmail.com
+Maintainer: Holger Nahrstaedt
+Maintainer-email: holger@nahrstaedt.de
+License: 2-clause BSD
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Topic :: Security :: Cryptography
+Classifier: Topic :: Software Development :: Libraries
+
+=========================
+ Python scrypt_ bindings
+=========================
+
+This is a set of Python_ bindings for the scrypt_ key derivation
+function.
+
+.. image:: https://img.shields.io/pypi/v/scrypt.svg
+    :target: https://pypi.python.org/pypi/scrypt/
+    :alt: Latest Version
+
+.. image:: https://anaconda.org/conda-forge/scrypt/badges/version.svg   
+    :target: https://anaconda.org/conda-forge/scrypt
+
+.. image:: https://anaconda.org/conda-forge/scrypt/badges/downloads.svg   
+    :target: https://anaconda.org/conda-forge/scrypt
+
+
+Scrypt is useful when encrypting password as it is possible to specify
+a *minimum* amount of time to use when encrypting and decrypting. If,
+for example, a password takes 0.05 seconds to verify, a user won't
+notice the slight delay when signing in, but doing a brute force
+search of several billion passwords will take a considerable amount of
+time. This is in contrast to more traditional hash functions such as
+MD5 or the SHA family which can be implemented extremely fast on cheap
+hardware.
+
+Installation
+============
+
+For Debian and Ubuntu, please ensure that the following packages are installed:
+
+.. code:: bash
+
+    $ sudo apt-get install build-essential libssl-dev python-dev
+
+For Fedora and RHEL-derivatives, please ensure that the following packages are installed:
+
+.. code:: bash
+
+    $ sudo yum install gcc openssl-devel python-devel
+
+For OSX, please do the following::
+
+    $ brew install openssl
+    $ export CFLAGS="-I$(brew --prefix openssl)/include $CFLAGS"
+    $ export LDFLAGS="-L$(brew --prefix openssl)/lib $LDFLAGS"
+
+For OSX, you can also use the precompiled wheels. They are installed by::
+
+    $ pip install scrypt 
+
+For Windows, please use the precompiled wheels. They are installed by::
+
+    $ pip install scrypt
+
+You can install py-scrypt from this repository if you want the latest
+but possibly non-compiling version::
+
+    $ hg clone http://bitbucket.org/mhallin/py-scrypt
+    $ cd py-scrypt
+    $ python setup.py build
+
+    Become superuser (or use virtualenv):
+    # python setup.py install
+
+    Run tests after install:
+    $ python setup.py test
+
+Or you can install the latest release from PyPi::
+
+    $ pip install scrypt
+
+Users of the Anaconda_ Python distribution can directly obtain pre-built
+Windows, Intel Linux or macOS / OSX binaries from the conda-forge channel.
+This can be done via::
+
+    $ conda install -c conda-forge scrypt
+
+
+If you want py-scrypt for your Python 3 environment, just run the
+above commands with your Python 3 interpreter. Py-scrypt supports both
+Python 2 and 3.
+
+From version 0.6.0 (not available on PyPi yet), py-scrypt supports
+PyPy as well.
+
+Changelog
+=========
+0.8.5
+-----
+
+* MANIFEST.in fixed
+* scrypt.py moved into own scrypt directory with __init__.py 
+* openssl library path for osx wheel repaired
+
+0.8.4
+-----
+
+* __version__ added to scrypt
+* missing void in sha256.c fixed
+
+0.8.3
+-----
+
+* scrypt updated to 1.2.1
+* Wheels are created for python 3.6
+
+Usage
+=====
+
+Fore encryption/decryption, the library exports two functions
+``encrypt`` and ``decrypt``::
+
+    >>> import scrypt
+    >>> data = scrypt.encrypt('a secret message', 'password', maxtime=0.1) # This will take at least 0.1 seconds
+    >>> data[:20]
+    'scrypt\x00\r\x00\x00\x00\x08\x00\x00\x00\x01RX9H'
+    >>> scrypt.decrypt(data, 'password', maxtime=0.1) # This will also take at least 0.1 seconds
+    'a secret message'
+    >>> scrypt.decrypt(data, 'password', maxtime=0.05) # scrypt won't be able to decrypt this data fast enough
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+    scrypt.error: decrypting file would take too long
+    >>> scrypt.decrypt(data, 'wrong password', maxtime=0.1) # scrypt will throw an exception if the password is incorrect
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+    scrypt.error: password is incorrect
+
+From these, one can make a simple password verifier using the following
+functions::
+
+    def hash_password(password, maxtime=0.5, datalength=64):
+        return scrypt.encrypt(os.urandom(datalength), password, maxtime=maxtime)
+
+    def verify_password(hashed_password, guessed_password, maxtime=0.5):
+        try:
+            scrypt.decrypt(hashed_password, guessed_password, maxtime)
+            return True
+        except scrypt.error:
+            return False
+
+
+But, if you want output that is deterministic and constant in size,
+you can use the ``hash`` function::
+
+    >>> import scrypt
+    >>> h1 = scrypt.hash('password', 'random salt')
+    >>> len(h1)  # The hash will be 64 bytes by default, but is overridable.
+    64
+    >>> h1[:10]
+    '\xfe\x87\xf3hS\tUo\xcd\xc8'
+    >>> h2 = scrypt.hash('password', 'random salt')
+    >>> h1 == h2 # The hash function is deterministic
+    True
+
+
+Acknowledgements
+================
+
+Scrypt_ was created by Colin Percival and is licensed as 2-clause BSD.
+Since scrypt does not normally build as a shared library, I have included
+the source for the currently latest version of the library in this
+repository. When a new version arrives, I will update these sources.
+
+`Kelvin Wong`_ on Bitbucket provided changes to make the library
+available on Mac OS X 10.6 and earlier, as well as changes to make the
+library work more like the command-line version of scrypt by
+default. Kelvin also contributed with the unit tests, lots of cross
+platform testing and work on the ``hash`` function.
+
+Burstaholic_ on Bitbucket provided the necessary changes to make
+the library build on Windows.
+
+The `python-appveyor-demo`_ repository for setting up automated Windows
+builds for a multitude of Python versions.
+
+License
+=======
+
+This library is licensed under the same license as scrypt; 2-clause BSD.
+
+.. _scrypt: http://www.tarsnap.com/scrypt.html
+.. _Python: http://python.org
+.. _Burstaholic: https://bitbucket.org/Burstaholic
+.. _Kelvin Wong: https://bitbucket.org/kelvinwong_ca
+.. _python-appveyor-demo: https://github.com/ogrisel/python-appveyor-demo
+.. _Anaconda: https://www.continuum.io
+
+

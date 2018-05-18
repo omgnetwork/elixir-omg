@@ -100,13 +100,17 @@ defmodule OmiseGOWatcher.UtxoDB do
   end
 
   def compose_utxo_exit(block_height, txindex, oindex) do
-    txs = TransactionDB.find_by_txblknum(block_height)
+      txs = TransactionDB.find_by_txblknum(block_height)
+      compose_utxo_exit(txs, block_height, txindex, oindex)
+  end
+
+  def compose_utxo_exit(txs, block_height, txindex, oindex) do
 
     hashed_txs = txs |> Enum.map(&(&1.txid))
 
     {:ok, mt} = MerkleTree.new(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height)
 
-    tx_index = Enum.find_index(txs, fn(tx) -> tx.txindex == String.to_integer(txindex) end)
+    tx_index = Enum.find_index(txs, fn(tx) -> tx.txindex == txindex end)
 
     proof = MerkleTree.Proof.prove(mt, tx_index)
 
@@ -115,21 +119,22 @@ defmodule OmiseGOWatcher.UtxoDB do
     tx_bytes =
       txs
       |> Enum.at(tx_index)
-      |> TransactionDB.encode
+      |> Transaction.encode
       |> bin_to_list.()
 
     %{
       utxo_pos: calculate_utxo_pos(block_height, txindex, oindex),
       tx_bytes: tx_bytes,
-      proof: Enum.map(proof.hashes, bin_to_list)
+      proof: proof.hashes |> Enum.map(bin_to_list) |> Enum.concat
     }
 
   end
 
   defp calculate_utxo_pos(block_height, txindex, oindex) do
-    {block_height, _} = Integer.parse(block_height)
-    {txindex, _} = Integer.parse(txindex)
-    {oindex, _} = Integer.parse(oindex)
+    # {block_height, _} = Integer.parse(block_height)
+    # {txindex, _} = Integer.parse(txindex)
+    # {oindex, _} = Integer.parse(oindex)
+    # IO.inspect  block_height + txindex + oindex
     block_height + txindex + oindex
   end
 

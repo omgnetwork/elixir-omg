@@ -8,6 +8,8 @@ defmodule OmiseGO.Eth do
   @block_offset 1_000_000_000
   @transaction_offset 10_000
 
+  import OmiseGO.Eth.Encoding
+
   def dev_geth do
     _ = Application.ensure_all_started(:porcelain)
     _ = Application.ensure_all_started(:ethereumex)
@@ -50,7 +52,7 @@ defmodule OmiseGO.Eth do
     @moduledoc false
 
     @type hash() :: <<_::256>>
-    @type plasma_block_num() :: pos_integer()
+    @type plasma_block_num() :: non_neg_integer()
 
     @type t() :: %{
             num: plasma_block_num(),
@@ -149,13 +151,13 @@ defmodule OmiseGO.Eth do
 
   end
 
-  def start_exit(utxo_position, proof, %Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2}, gas_price, from \\ nil, contract \\ nil) do
+  def start_exit(utxo_position, proof, txbytes, sigs, gas_price, from \\ nil, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
     from = from || Application.get_env(:omisego_eth, :omg_addr)
 
     data =
-      "startExit(uint256,bytes,bytes,bytes)"
-      |> ABI.encode([utxo_position, raw_tx, proof, sig1 <> sig2 ])
+      "startExit(uint256)"
+      |> ABI.encode([utxo_position, txbytes, proof, sigs ])
       |> Base.encode16()
 
     gas = 100_0000
@@ -168,10 +170,6 @@ defmodule OmiseGO.Eth do
       gasPrice: encode_eth_rpc_unsigned_int(gas_price)
     })
 
-  end
-
-  defp encode_eth_rpc_unsigned_int(value) do
-    "0x" <> (value |> :binary.encode_unsigned() |> Base.encode16() |> String.trim_leading("0"))
   end
 
   def get_ethereum_height do
