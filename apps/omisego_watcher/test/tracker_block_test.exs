@@ -45,7 +45,7 @@ defmodule OmiseGOWatcher.TrackerOmisegoTest do
     {:ok, %{"blknum" => block_nr}} = jsonrpc(:submit, %{transaction: Base.encode16(tx)})
 
     Eth.DevHelpers.wait_for_current_child_block(
-      block_nr + 2 * config_map.child_block_interval,
+      block_nr + 5 * config_map.child_block_interval,
       true,
       60_000,
       config_map.contract.address
