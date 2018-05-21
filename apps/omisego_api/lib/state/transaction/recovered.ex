@@ -8,17 +8,19 @@ defmodule OmiseGO.API.State.Transaction.Recovered do
   alias OmiseGO.API.Crypto
 
   @empty_signature <<0::size(520)>>
+  @type signed_tx_hash_t() :: <<_::768>>
 
   defstruct [:raw_tx, :signed_tx_hash, spender1: nil, spender2: nil, signed_tx_bytes: <<>>]
 
   @type t() :: %__MODULE__{
           raw_tx: Transaction.t(),
-          signed_tx_hash: <<_::768>>,
-          spender1: Transaction.owner_type(),
-          spender2: Transaction.owner_type(),
-          signed_tx_bytes: bitstring() #FIXME concret type get here
+          signed_tx_hash: signed_tx_hash_t(),
+          spender1: Crypto.address_t(),
+          spender2: Crypto.address_t(),
+          signed_tx_bytes: Transaction.signed_tx_bytes_t()
         }
 
+  @spec recover_from(Transaction.Signed.t()) :: {:ok, t()} | any
   def recover_from(%Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2, signed_tx_bytes: signed_tx_bytes} = signed_tx) do
     hash_no_spenders = Transaction.hash(raw_tx)
 

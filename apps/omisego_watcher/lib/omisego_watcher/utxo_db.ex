@@ -6,7 +6,7 @@ defmodule OmiseGOWatcher.UtxoDB do
 
   alias OmiseGOWatcher.Repo
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
-  alias OmiseGO.API.{Block}
+  alias OmiseGO.API.{Block, Crypto}
 
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
@@ -78,7 +78,7 @@ defmodule OmiseGOWatcher.UtxoDB do
   end
 
   @spec insert_deposits([
-          %{owner: <<_::160>>, amount: non_neg_integer(), block_height: pos_integer()}
+          %{owner: Crypto.address_t(), amount: non_neg_integer(), block_height: pos_integer()}
         ]) :: :ok
   def insert_deposits(deposits) do
     deposits

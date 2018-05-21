@@ -52,7 +52,7 @@ defmodule OmiseGO.Performance.SenderServer do
     * Senders are assigned sequential positive int starting from 1, senders are initialized in order of seqnum.
       This ensures all senders' deposits are accepted.
   """
-  @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, __MODULE__.state()}
+  @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, state()}
   def init({seqnum, ntx_to_send}) do
     _ = Logger.debug(fn -> "[#{seqnum}] +++ init/1 called with requests: '#{ntx_to_send}' +++" end)
 
@@ -191,7 +191,7 @@ defmodule OmiseGO.Performance.SenderServer do
 
   # Generates participant private key and address
   # TODO: DRY this, used also in omisego_api/test, omisego_eth
-  @spec generate_entity() :: %{priv: <<_::256>>, addr: <<_::160>>}
+  @spec generate_entity() :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
   defp generate_entity do
     alias OmiseGO.API.Crypto
     {:ok, priv} = Crypto.generate_private_key()
@@ -204,7 +204,7 @@ defmodule OmiseGO.Performance.SenderServer do
   @spec init_state(
           seqnum :: pos_integer,
           nreq :: pos_integer,
-          spender :: %{priv: <<_::256>>, addr: <<_::160>>}
+          spender :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
         ) :: __MODULE__.state()
   defp init_state(seqnum, nreq, spender) do
     %__MODULE__{

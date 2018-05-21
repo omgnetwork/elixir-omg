@@ -2,16 +2,18 @@ defmodule OmiseGO.API.State.Transaction.Signed do
   @moduledoc false
 
   alias OmiseGO.API.State.Transaction
+  alias OmiseGO.API.Crypto
 
   @signature_length 65
+  @type signed_tx_bytes_t() :: bitstring() | nil
 
   defstruct [:raw_tx, :sig1, :sig2, :signed_tx_bytes]
 
   @type t() :: %__MODULE__{
           raw_tx: Transaction.t(),
-          sig1: <<_::520>>,
-          sig2: <<_::520>>,
-          signed_tx_bytes: bitstring() | nil
+          sig1: Crypto.sig_t(),
+          sig2: Crypto.sig_t(),
+          signed_tx_bytes: signed_tx_bytes_t()
         }
 
   def signed_hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
@@ -37,9 +39,9 @@ defmodule OmiseGO.API.State.Transaction.Signed do
     |> ExRLP.encode()
   end
 
-  def decode(line) do
-    with {:ok, tx} <- rlp_decode(line),
-         {:ok, tx} <- reconstruct_tx(tx, line),
+  def decode(signed_tx_bytes) do
+    with {:ok, tx} <- rlp_decode(signed_tx_bytes),
+         {:ok, tx} <- reconstruct_tx(tx, signed_tx_bytes),
          do: {:ok, tx}
   end
 
@@ -101,6 +103,8 @@ defmodule OmiseGO.API.State.Transaction.Signed do
   end
 
   # necessary, because RLP handles empty string equally to integer 0
+  @spec address_parse(<<>> | Crypto.address_t()) :: integer() | Crypto.address_t()
+  defp address_parse(address)
   defp address_parse(""), do: 0
   defp address_parse(<<_::160>> = address_bytes), do: address_bytes
 

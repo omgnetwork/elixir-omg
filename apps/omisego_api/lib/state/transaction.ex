@@ -7,7 +7,6 @@ defmodule OmiseGO.API.State.Transaction do
   alias OmiseGO.API.Crypto
 
   @zero_address <<0::size(160)>>
-  @type owner_type :: <<_::256>>
   @number_of_transactions 2
 
   defstruct [
@@ -31,9 +30,9 @@ defmodule OmiseGO.API.State.Transaction do
           blknum2: pos_integer(),
           txindex2: pos_integer(),
           oindex2: pos_integer(),
-          newowner1: __MODULE__.owner_type(),
+          newowner1: Crypto.address_t(),
           amount1: pos_integer(),
-          newowner2: __MODULE__.owner_type(),
+          newowner2: Crypto.address_t(),
           amount2: pos_integer(),
           fee: pos_integer()
         }
@@ -105,9 +104,9 @@ defmodule OmiseGO.API.State.Transaction do
   """
   @spec new(
           list({pos_integer, pos_integer, 0 | 1}),
-          list({<<_::256>>, pos_integer}),
+          list({Crypto.address_t(), pos_integer}),
           pos_integer
-        ) :: __MODULE__.t()
+        ) :: t()
   def new(inputs, outputs, fee) do
     inputs = inputs ++ List.duplicate({0, 0, 0}, @number_of_transactions - Kernel.length(inputs))
     outputs = outputs ++ List.duplicate({0, 0}, @number_of_transactions - Kernel.length(outputs))
@@ -171,7 +170,7 @@ defmodule OmiseGO.API.State.Transaction do
     private keys are in the form: <<54, 43, 207, 67, 140, 160, 190, 135, 18, 162, 70, 120, 36, 245, 106, 165, 5, 101, 183,
       55, 11, 117, 126, 135, 49, 50, 12, 228, 173, 219, 183, 175>>
   """
-  @spec sign(__MODULE__.t(), <<_::256>>, <<_::256>>) :: Signed.t()
+  @spec sign(t(), Crypto.priv_key_t(), Crypto.priv_key_t()) :: Signed.t()
   def sign(%__MODULE__{} = tx, priv1, priv2) do
     encoded_tx = encode(tx)
     signature1 = signature(encoded_tx, priv1)

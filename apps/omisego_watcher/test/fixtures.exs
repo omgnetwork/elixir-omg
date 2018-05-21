@@ -146,13 +146,6 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     :ok
   end
 
-  deffixture watcher do
-    Application.ensure_all_started(:omisego_watcher)
-    :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
-    :ok = OmiseGO.DB.multi_update([{:put, :last_exit_block_height, 0}])
-    :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
-  end
-
   deffixture(alice, do: generate_entity())
   deffixture(bob, do: generate_entity())
 end

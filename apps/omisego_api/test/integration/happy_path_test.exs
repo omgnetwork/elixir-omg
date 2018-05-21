@@ -128,14 +128,14 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
     # spend the deposit
-    {:ok, %{"blknum" => spend_child_block}} = jsonrpc(:submit, %{transaction: Helper.encode(tx)})
+    {:ok, %{"blknum" => spend_child_block}} = jsonrpc(:submit, Helper.encode(%{transaction: tx}))
 
     post_spend_child_block = spend_child_block + BlockQueue.child_block_interval()
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block, true)
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash, _}} = Eth.get_child_chain(spend_child_block)
-    {:ok, %{"transactions" => [line_transaction]}} = jsonrpc(:get_block, %{hash: Helper.encode(block_hash)})
+    {:ok, %{"transactions" => [line_transaction]}} = jsonrpc(:get_block, Helper.encode(%{hash: block_hash}))
     {:ok, %{raw_tx: raw_tx_decoded}} = Transaction.Signed.decode(Helper.decode(:bitstring, line_transaction))
     assert raw_tx_decoded == raw_tx
 
@@ -152,7 +152,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     tx2 = raw_tx2 |> Transaction.sign(bob.priv, alice.priv) |> Transaction.Signed.encode()
 
     # spend the output of the first transaction
-    {:ok, %{"blknum" => spend_child_block2}} = jsonrpc(:submit, %{transaction: Helper.encode(tx2)})
+    {:ok, %{"blknum" => spend_child_block2}} = jsonrpc(:submit, Helper.encode(%{transaction: tx2}))
 
     post_spend_child_block2 = spend_child_block2 + BlockQueue.child_block_interval()
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block2, true)
@@ -160,16 +160,16 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash2, _}} = Eth.get_child_chain(spend_child_block2)
 
-    {:ok, %{"transactions" => [line_transaction2]}} = jsonrpc(:get_block, %{hash: Helper.encode(block_hash2)})
+    {:ok, %{"transactions" => [line_transaction2]}} = jsonrpc(:get_block, Helper.encode(%{hash: block_hash2}))
     {:ok, %{raw_tx: raw_tx_decoded2}} = Transaction.Signed.decode(Helper.decode(:bitstring, line_transaction2))
     assert raw_tx2 == raw_tx_decoded2
 
     # sanity checks
     assert {:ok, %{}} = jsonrpc(:get_block, %{hash: Helper.encode(block_hash)})
-    assert {:error, {_, "Internal error", "not_found"}} = jsonrpc(:get_block, %{hash: Helper.encode(<<0::size(256)>>)})
+    assert {:error, {_, "Internal error", "not_found"}} = jsonrpc(:get_block, Helper.encode(%{hash: <<0::size(256)>>}))
 
-    assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, %{transaction: Helper.encode(tx)})
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, Helper.encode(%{transaction: tx}))
 
-    assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, %{transaction: Helper.encode(tx2)})
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, Helper.encode(%{transaction: tx2}))
   end
 end
