@@ -35,6 +35,7 @@ Identifies each module of pre-existing source code used in developing source cod
   * `cowlib`, ISC License, https://github.com/ninenines/cowlib
   * `ranch`, ISC License, https://github.com/ninenines/ranch 
   * `erlexec`, BSD license, https://github.com/saleyn/erlexec
+  * `briefly`, Apache 2.0, https://github.com/CargoSense/briefly/
 
 
 ## Likely to be redistributed
