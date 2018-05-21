@@ -9,7 +9,7 @@ defmodule OmiseGO.Umbrella.MixProject do
       preferred_cli_env: [coveralls: :test, "coveralls.html": :test, "coveralls.detail": :test],
       dialyzer: [
         flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
-        plt_add_apps: [:briefly, :tools],
+        plt_add_apps: [:briefly],
         plt_add_deps: :transitive,
         ignore_warnings: "dialyzer.ignore-warnings"
       ],
