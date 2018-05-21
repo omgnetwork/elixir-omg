@@ -8,13 +8,12 @@ defmodule OmiseGOWatcher.ExitValidator do
   def start_link(last_exit_block_height_callback, utxo_exists_callback, synced_block_margin, update_key) do
     GenServer.start_link(
       __MODULE__,
-      {last_exit_block_height_callback, utxo_exists_callback, synced_block_margin, update_key},
-      name: __MODULE__
+      {last_exit_block_height_callback, utxo_exists_callback, synced_block_margin, update_key}
     )
   end
 
   def sync_eth_height(synced_eth_height) do
-    GenServer.cast(__MODULE__, {:validate_exits, synced_eth_height})
+    GenServer.call(__MODULE__, {:validate_exits, synced_eth_height})
   end
 
   use GenServer
@@ -31,7 +30,7 @@ defmodule OmiseGOWatcher.ExitValidator do
     end
   end
 
-  def handle_cast({:validate_exits, synced_eth_block_height}, state) do
+  def handle_call({:validate_exits, synced_eth_block_height}, _from, state) do
     with {block_from, block_to, state, db_updates} <- Core.get_exits_block_range(state, synced_eth_block_height),
          utxo_exits <- OmiseGO.Eth.get_exits(block_from, block_to),
          :ok <- validate_exits(utxo_exits, state),

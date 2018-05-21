@@ -18,13 +18,13 @@ defmodule OmiseGOWatcher.Application do
       {OmiseGO.API.State, []},
       worker(
         OmiseGOWatcher.ExitValidator,
-        [OmiseGO.DB.last_fast_exit_block_height(), fn _ -> :ok end, 0, :last_fast_exit_block_height],
+        [&OmiseGO.DB.last_fast_exit_block_height/0, fn _ -> :ok end, 0, :last_fast_exit_block_height],
         id: :fast_validator
       ),
       worker(
         OmiseGOWatcher.ExitValidator,
         [
-          OmiseGO.DB.last_slow_exit_block_height(),
+          &OmiseGO.DB.last_slow_exit_block_height/0,
           &slow_validator_utxo_exists_callback(&1),
           slow_exit_validator_block_margin,
           :last_slow_exit_block_height
