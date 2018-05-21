@@ -34,7 +34,8 @@ defmodule OmiseGO.Performance do
   # The test setup
   @spec testup(testid :: integer) :: {:ok, list}
   defp testup(testid) do
-    dbdir = "/tmp/perftest-#{testid}"
+    Application.ensure_all_started(:briefly)
+    {:ok, dbdir} = Briefly.create(directory: true)
     Application.put_env(:omisego_db, :leveldb_path, dbdir, persistent: true)
 
     started_apps = ensure_all_started([:omisego_db, :jsonrpc2, :cowboy, :hackney])
