@@ -8,8 +8,6 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
   alias OmiseGO.API.{Block}
 
-  @moduletag :watcher_tests
-
   @signed_tx %Signed{
     raw_tx: %Transaction{
       blknum1: 0,

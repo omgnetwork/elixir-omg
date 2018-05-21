@@ -7,7 +7,7 @@ config :omisego_watcher, OmiseGOWatcherWeb.Endpoint,
   server: false
 
 # Print only warnings and errors during test
-config :logger, level: :debug
+config :logger, level: :error
 
 # Configure your database
 config :omisego_watcher, OmiseGOWatcher.Repo,

@@ -128,9 +128,10 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
       run_process("./run_child.sh #{file_path}", fn msg ->
         case msg do
           {_port, {:data, data}} ->
-            data = String.replace_suffix(List.to_string(data), "\n", "")
-
-            IO.puts(IO.ANSI.format([:yellow, "child_chain: ", :green, :bright, data], true))
+            Logger.debug(fn ->
+              data = String.replace_suffix(List.to_string(data), "\n", "")
+              IO.puts(IO.ANSI.format([:yellow, "child_chain: ", :green, :bright, data], true))
+            end)
 
           _ ->
             nil
@@ -148,4 +149,20 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
 
   deffixture(alice, do: generate_entity())
   deffixture(bob, do: generate_entity())
+
+  deffixture(watcher, do: start_before())
+
+  def start_before do
+    test_sid = Integer.to_string(:rand.uniform(10_000_000))
+    dir = "/tmp/db_" <> test_sid
+    File.mkdir_p!(dir)
+
+    Application.put_env(:omisego_db, :leveldb_path, dir, persistent: true)
+
+    OmiseGO.DB.init()
+    {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
+
+    Application.ensure_all_started(:omisego_watcher)
+    Application.put_env(:omisego_db, :leveldb_path, nil)
+  end
 end

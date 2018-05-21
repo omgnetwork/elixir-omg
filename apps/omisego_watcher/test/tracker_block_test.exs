@@ -7,8 +7,6 @@ defmodule OmiseGOWatcher.TrackerOmisegoTest do
   alias OmiseGO.Eth
   alias OmiseGO.API.State.Transaction
 
-  @moduletag :watcher_tests
-
   def jsonrpc(method, params) do
     jsonrpc_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
 
@@ -31,7 +29,7 @@ defmodule OmiseGOWatcher.TrackerOmisegoTest do
     deposit_height
   end
 
-  @tag fixtures: [:config_map, :geth, :child_chain, :alice, :bob]
+  @tag fixtures: [:watcher, :config_map, :geth, :child_chain, :alice, :bob]
   test "run_omisego_api", %{config_map: config_map, alice: alice, bob: bob} do
     Application.put_env(:omisego_watcher, OmiseGOWatcher.TrackerOmisego, %{
       contract_address: config_map.contract.address
@@ -51,8 +49,8 @@ defmodule OmiseGOWatcher.TrackerOmisegoTest do
       config_map.contract.address
     )
 
-    [%{"amount" => amout_bob}] =  get_utxo(bob)
-    [%{"amount" => amout_alice}] =  get_utxo(alice)
+    [%{"amount" => amout_bob}] = get_utxo(bob)
+    [%{"amount" => amout_alice}] = get_utxo(alice)
     assert amout_bob == 3
     assert amout_alice == 7
   end

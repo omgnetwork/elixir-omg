@@ -9,8 +9,6 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
   alias OmiseGO.JSONRPC.Helper
 
-  @moduletag :watcher_tests
-
   @empty %Transaction{
     blknum1: 0,
     txindex1: 0,
@@ -26,6 +24,8 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   }
 
   setup do
+    OmiseGOWatcher.TrackerOmisego.Fixtures.start_before()
+    Ecto.Adapters.SQL.Sandbox.mode(OmiseGOWatcher.Repo, :manual)
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
   end
 

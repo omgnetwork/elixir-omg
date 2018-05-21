@@ -42,14 +42,6 @@ podTemplate(
             }
         }
 
-        stage('Test Watcher') {
-            sh("mix run --no-start -e 'OmiseGO.DB.init()'")
-            withEnv(["MIX_ENV=test"]) {
-                dir("apps/omisego_watcher")
-                sh("mix test --only watcher_tests")
-             }
-        }
-
         stage('Cleanbuild') {
             withEnv(["MIX_ENV=test"]) {
                 sh("mix do compile --warnings-as-errors --force, test --no-start --exclude test")
