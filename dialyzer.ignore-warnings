@@ -1,6 +1,3 @@
-Unknown type 'Elixir.BlockFinalized':t/0
-Unknown type 'Elixir.Received':t/0
-Unknown type 'Elixir.Sent':t/0
 Function get_child_chain/1 has no local return
 Function get_child_chain/2 has no local return
 Function prepare_dev_env/0 has no local return
