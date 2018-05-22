@@ -1,4 +1,5 @@
-# This config will be concatenated to test.config on jenkins
+use Mix.Config
+# This config will be loaded on jenkins
 
 # This setting is needed because we are running test from root on Jenkins
 # and erlexec's is hell-bent on doing it safely.
