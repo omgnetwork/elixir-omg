@@ -54,11 +54,11 @@ podTemplate(
                 sh("mix do compile --warnings-as-errors --force, test --no-start --exclude test")
             }
         }
-/*
+
         stage('Dialyze') {
             sh("mix dialyzer --halt-exit-status")
         }
-*/
+
         stage('Lint') {
             withEnv(["MIX_ENV=test"]) {
                 sh("mix do credo, format --check-formatted --dry-run")
