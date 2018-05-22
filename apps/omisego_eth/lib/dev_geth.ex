@@ -18,10 +18,10 @@ defmodule OmiseGO.Eth.DevGeth do
 
   def stop(pid) do
     ref = Process.monitor(pid)
-    :ok = Exexec.stop(pid)
-
-    receive do
-      {:DOWN, aref, _process, _pid, _reason} when aref == ref -> :ok
+    with :ok <- Exexec.stop(pid) do
+      receive do
+        {:DOWN, aref, _process, _pid, _reason} when aref == ref -> :ok
+      end
     end
   end
 
