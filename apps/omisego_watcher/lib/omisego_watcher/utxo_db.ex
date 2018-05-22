@@ -114,18 +114,15 @@ defmodule OmiseGOWatcher.UtxoDB do
 
     proof = MerkleTree.Proof.prove(mt, tx_index)
 
-    bin_to_list = fn x -> :binary.bin_to_list(x) end
-
     tx_bytes =
       txs
       |> Enum.at(tx_index)
       |> Transaction.encode
-      |> bin_to_list.()
 
     %{
       utxo_pos: calculate_utxo_pos(block_height, txindex, oindex),
       tx_bytes: tx_bytes,
-      proof: proof.hashes |> Enum.map(bin_to_list) |> Enum.concat
+      proof: proof.hashes |> Enum.reduce(fn(x, acc) -> acc <> x end)
     }
 
   end

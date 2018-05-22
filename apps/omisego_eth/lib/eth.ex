@@ -91,6 +91,8 @@ defmodule OmiseGO.Eth do
     contract = contract || Application.get_env(:omisego_eth, :contract)
     from = from || Application.get_env(:omisego_eth, :authority_addr)
 
+    IO.inspect "tut"
+    IO.inspect hash
     data =
       "submitBlock(bytes32)"
       |> ABI.encode([hash])
@@ -156,7 +158,7 @@ defmodule OmiseGO.Eth do
     from = from || Application.get_env(:omisego_eth, :omg_addr)
 
     data =
-      "startExit(uint256)"
+      "startExit(uint256,bytes,bytes,bytes)"
       |> ABI.encode([utxo_position, txbytes, proof, sigs ])
       |> Base.encode16()
 
