@@ -50,6 +50,8 @@ defmodule OmiseGO.DB do
 
     {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
     :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
+    :ok = OmiseGO.DB.multi_update([{:put, :last_fast_exit_block_height, 0}])
+    :ok = OmiseGO.DB.multi_update([{:put, :last_slow_exit_block_height, 0}])
     :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
     started_apps |> Enum.reverse() |> Enum.map(fn app -> :ok = Application.stop(app) end)
   end

@@ -181,7 +181,7 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
 
     Ecto.Adapters.SQL.Sandbox.mode(OmiseGOWatcher.Repo, :manual)
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
-    Ecto.Adapters.SQL.Sandbox.allow(OmiseGOWatcher.Repo,self(), self())
+    Ecto.Adapters.SQL.Sandbox.mode(OmiseGOWatcher.Repo, {:shared, self()})
 
     #FIXME  crashing issues
     #on_exit(fn ->

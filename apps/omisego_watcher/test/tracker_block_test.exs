@@ -29,7 +29,7 @@ defmodule OmiseGOWatcher.TrackerOmisegoTest do
     deposit_height
   end
 
-  @tag fixtures: [:watcher, :config_map, :geth, :child_chain, :alice, :bob]
+  @tag fixtures: [:sandbox, :config_map, :geth, :child_chain, :alice, :bob]
   test "run_omisego_api", %{config_map: config_map, alice: alice, bob: bob} do
     Application.put_env(:omisego_watcher, OmiseGOWatcher.TrackerOmisego, %{
       contract_address: config_map.contract.address
