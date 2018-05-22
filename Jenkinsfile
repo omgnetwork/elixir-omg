@@ -38,7 +38,7 @@ podTemplate(
 
         stage('Integration test Child Chain Server') {
             withEnv(["MIX_ENV=test"]) {
-                sh("mix test --no-start --only integration")
+                sh("mix do loadconfig config/test.config.jenkins, test --no-start --only integration")
             }
         }
 
@@ -53,11 +53,11 @@ podTemplate(
                 sh("mix do compile --warnings-as-errors --force, test --no-start --exclude test")
             }
         }
-/*
+
         stage('Dialyze') {
             sh("mix dialyzer --halt-exit-status")
         }
-*/
+
         stage('Lint') {
             withEnv(["MIX_ENV=test"]) {
                 sh("mix do credo, format --check-formatted --dry-run")
