@@ -98,8 +98,8 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
 
   deffixture child_chain(config_map) do
     test_sid = Integer.to_string(:rand.uniform(10_000_000))
-    file_path = "/tmp/config_" <> test_sid <> ".exs"
-    db_path = "/tmp/db_" <> test_sid
+    file_path = "/tmp/omisego/config_" <> test_sid <> ".exs"
+    db_path = "/tmp/omisego/db_" <> test_sid
 
     file_path
     |> File.open!([:write])
@@ -150,13 +150,16 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
   deffixture(alice, do: generate_entity())
   deffixture(bob, do: generate_entity())
 
-  deffixture watcher do
+  deffixture db_init do
     test_sid = Integer.to_string(:rand.uniform(10_000_000))
-    dir = "/tmp/db_" <> test_sid
+    dir = "/tmp/omisego/db_" <> test_sid
     File.mkdir_p!(dir)
 
     Application.put_env(:omisego_db, :leveldb_path, dir, persistent: true)
     OmiseGO.DB.init()
+  end
+
+  deffixture watcher(db_init) do
     {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omisego_watcher)
 
@@ -169,26 +172,7 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     end)
   end
 
-  deffixture sandbox() do
-    test_sid = Integer.to_string(:rand.uniform(10_000_000))
-    dir = "/tmp/db_" <> test_sid
-    File.mkdir_p!(dir)
-
-    Application.put_env(:omisego_db, :leveldb_path, dir, persistent: true)
-    OmiseGO.DB.init()
-    {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
-    {:ok, started_watcher} = Application.ensure_all_started(:omisego_watcher)
-
-    Ecto.Adapters.SQL.Sandbox.mode(OmiseGOWatcher.Repo, :manual)
+  deffixture watcher_sandbox(watcher) do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
-    Ecto.Adapters.SQL.Sandbox.mode(OmiseGOWatcher.Repo, {:shared, self()})
-
-    #FIXME  crashing issues
-    #on_exit(fn ->
-    #  (started_apps ++ started_watcher)
-    #  |> Enum.reverse()
-    #  |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    #  Application.put_env(:omisego_db, :leveldb_path, nil)
-    #end)
   end
 end

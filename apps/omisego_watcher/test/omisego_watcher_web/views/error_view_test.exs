@@ -1,8 +1,6 @@
 defmodule OmiseGOWatcherWeb.ErrorViewTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  #use OmiseGOWatcherWeb.ConnCase, async: true
-  use OmiseGOWatcherWeb.ConnCase, async: false
 
   @moduletag :watcher_tests
 

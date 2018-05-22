@@ -24,12 +24,12 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   }
 
   describe "UTXO database." do
-    @tag fixtures: [:sandbox]
+    @tag fixtures: [:watcher_sandbox]
     test "No utxo are returned for non-existing addresses." do
       assert get_utxo("cthulhu") == %{"utxos" => [], "address" => Helper.encode("cthulhu")}
     end
 
-    @tag fixtures: [:sandbox]
+    @tag fixtures: [:watcher_sandbox]
     test "Consumed block contents are available." do
       UtxoDB.consume_block(
         %Block{
@@ -46,7 +46,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       assert Enum.sort([amount1, amount2]) == [1947, 1952]
     end
 
-    @tag fixtures: [:sandbox]
+    @tag fixtures: [:watcher_sandbox]
     test "Spent utxos are moved to new owner." do
       UtxoDB.consume_block(
         %Block{
@@ -81,14 +81,14 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       %{"utxos" => []} = get_utxo("Matilda")
     end
 
-    @tag fixtures: [:sandbox]
+    @tag fixtures: [:watcher_sandbox]
     test "Deposits are a part of utxo set." do
       assert %{"utxos" => []} = get_utxo("Leon")
       UtxoDB.insert_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Leon")
     end
 
-    @tag fixtures: [:sandbox]
+    @tag fixtures: [:watcher_sandbox]
     test "Deposit utxo are moved to new owner if spent " do
       assert %{"utxos" => []} = get_utxo("Leon")
       assert %{"utxos" => []} = get_utxo("Matilda")
