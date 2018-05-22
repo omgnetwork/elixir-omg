@@ -9,7 +9,8 @@ use Mix.Config
 config :omisego_watcher,
   child_chain_url: "http://localhost",
   namespace: OmiseGOWatcher,
-  ecto_repos: [OmiseGOWatcher.Repo]
+  ecto_repos: [OmiseGOWatcher.Repo],
+  slow_exit_validator_block_margin: 10
 
 # Configures the endpoint
 config :omisego_watcher, OmiseGOWatcherWeb.Endpoint,

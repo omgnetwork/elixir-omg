@@ -5,7 +5,7 @@ defmodule OmiseGO.EthTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  @timeout 10_000
+  @timeout 20_000
   @block_offset 1_000_000_000
   @transaction_offset 10_000
 

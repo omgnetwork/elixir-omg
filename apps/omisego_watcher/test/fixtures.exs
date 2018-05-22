@@ -150,19 +150,45 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
   deffixture(alice, do: generate_entity())
   deffixture(bob, do: generate_entity())
 
-  deffixture(watcher, do: start_before())
-
-  def start_before do
+  deffixture watcher do
     test_sid = Integer.to_string(:rand.uniform(10_000_000))
     dir = "/tmp/db_" <> test_sid
     File.mkdir_p!(dir)
 
     Application.put_env(:omisego_db, :leveldb_path, dir, persistent: true)
-
     OmiseGO.DB.init()
     {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
+    {:ok, started_watcher} = Application.ensure_all_started(:omisego_watcher)
 
-    Application.ensure_all_started(:omisego_watcher)
-    Application.put_env(:omisego_db, :leveldb_path, nil)
+    on_exit(fn ->
+      Application.put_env(:omisego_db, :leveldb_path, nil)
+
+      (started_apps ++ started_watcher)
+      |> Enum.reverse()
+      |> Enum.map(fn app -> :ok = Application.stop(app) end)
+    end)
+  end
+
+  deffixture sandbox() do
+    test_sid = Integer.to_string(:rand.uniform(10_000_000))
+    dir = "/tmp/db_" <> test_sid
+    File.mkdir_p!(dir)
+
+    Application.put_env(:omisego_db, :leveldb_path, dir, persistent: true)
+    OmiseGO.DB.init()
+    {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
+    {:ok, started_watcher} = Application.ensure_all_started(:omisego_watcher)
+
+    Ecto.Adapters.SQL.Sandbox.mode(OmiseGOWatcher.Repo, :manual)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
+    Ecto.Adapters.SQL.Sandbox.allow(OmiseGOWatcher.Repo,self(), self())
+
+    #FIXME  crashing issues
+    #on_exit(fn ->
+    #  (started_apps ++ started_watcher)
+    #  |> Enum.reverse()
+    #  |> Enum.map(fn app -> :ok = Application.stop(app) end)
+    #  Application.put_env(:omisego_db, :leveldb_path, nil)
+    #end)
   end
 end

@@ -32,8 +32,12 @@ defmodule OmiseGO.DB do
     GenServer.call(server_name, :child_top_block_number)
   end
 
-  def last_exit_block_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_exit_block_height)
+  def last_fast_exit_block_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_fast_exit_block_height)
+  end
+
+  def last_slow_exit_block_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_slow_exit_block_height)
   end
 
   def init do
