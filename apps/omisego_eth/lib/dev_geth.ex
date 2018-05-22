@@ -8,6 +8,7 @@ defmodule OmiseGO.Eth.DevGeth do
   """
   def start do
     {:ok, homedir} = Briefly.create(directory: true)
+    :ok = File.chmod(homedir, 0o777)
     res = launch("geth --dev --rpc --rpcapi=personal,eth,web3 --datadir #{homedir} 2>&1")
     {:ok, :ready} = OmiseGO.Eth.WaitFor.eth_rpc()
     res
