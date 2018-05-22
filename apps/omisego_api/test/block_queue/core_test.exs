@@ -22,7 +22,10 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         child_block_interval: 1000,
         chain_start_parent_height: 1,
         submit_period: 1,
-        finality_threshold: 12
+        finality_threshold: 12,
+        gas_price_raise_min_queue_length: 2,
+        gas_price_lowering_factor: 0.1,
+        gas_price_raising_factor: 2.0
       )
 
     state
@@ -51,7 +54,10 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       child_block_interval: 1000,
       chain_start_parent_height: 1,
       submit_period: 1,
-      finality_threshold: 12
+      finality_threshold: 12,
+      gas_price_raise_min_queue_length: 2,
+      gas_price_lowering_factor: 0.1,
+      gas_price_raising_factor: 2.0
     )
   end
 
@@ -82,7 +88,10 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
           child_block_interval: 1000,
           chain_start_parent_height: 1,
           submit_period: 1,
-          finality_threshold: 12
+          finality_threshold: 12,
+          gas_price_raise_min_queue_length: 2,
+          gas_price_lowering_factor: 0.1,
+          gas_price_raising_factor: 2.0
         )
 
       assert [] ==
@@ -101,7 +110,10 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                  child_block_interval: 1000,
                  chain_start_parent_height: 1,
                  submit_period: 1,
-                 finality_threshold: 12
+                 finality_threshold: 12,
+                 gas_price_raise_min_queue_length: 2,
+                 gas_price_lowering_factor: 0.1,
+                 gas_price_raising_factor: 2.0
                )
     end
 
@@ -115,7 +127,10 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                  child_block_interval: 1000,
                  chain_start_parent_height: 1,
                  submit_period: 1,
-                 finality_threshold: 12
+                 finality_threshold: 12,
+                 gas_price_raise_min_queue_length: 2,
+                 gas_price_lowering_factor: 0.1,
+                 gas_price_raising_factor: 2.0
                )
     end
 
@@ -308,6 +323,74 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
 
       assert %BlockSubmission{gas_price: 555} = hd(blocks2)
       assert length(blocks) == length(blocks2)
+    end
+  end
+
+  defp new_state(keyword_list) do
+    empty() |> Map.merge(keyword_list |> Map.new)
+  end
+
+  describe "Adjusting gas price" do
+    test "Lower gas price when queue is short. New gas price is rounded to closest integer" do
+      lowering_factor = 0.5
+      gas_price = 11
+      expected = 6
+
+      state = new_state(formed_child_block_num: 2, mined_child_block_num: 2,
+                gas_price_lowering_factor: lowering_factor)
+
+      actual = state
+        |> set_gas_price(gas_price)
+        |> adjust_gas_price()
+
+      assert actual == expected
+    end
+
+    test "Raise gas price when queue grows. New gas price is rounded to closest integer" do
+      raising_factor = 3
+      gas_price = 5.5
+      expected = 17
+
+      state = new_state(formed_child_block_num: 10, mined_child_block_num: 0, gas_price_raising_factor: raising_factor)
+
+      actual = state
+        |> set_gas_price(gas_price)
+        |> adjust_gas_price()
+
+      assert actual == expected
+    end
+
+    test "Lower gas price when queue empty" do
+      gas_price = 1
+      state = new_state(formed_child_block_num: 0, mined_child_block_num: 0)
+
+      actual = state
+        |> set_gas_price(gas_price)
+        |> adjust_gas_price()
+
+      assert actual < gas_price
+    end
+
+    test "Lower gas price when queue length is lower gas_price_raise_min_queue_length param" do
+      gas_price = 1
+      state = new_state(formed_child_block_num: 4, mined_child_block_num: 0, gas_price_raise_min_queue_length: 5)
+
+      actual = state
+        |> set_gas_price(gas_price)
+        |> adjust_gas_price()
+
+      assert actual < gas_price
+    end
+
+    test "Raise gas price when queue length is (or above) gas_price_raise_min_queue_length param" do
+      gas_price = 1
+      state = new_state(formed_child_block_num: 4, mined_child_block_num: 0, gas_price_raise_min_queue_length: 4)
+
+      actual = state
+        |> set_gas_price(gas_price)
+        |> adjust_gas_price()
+
+      assert actual > gas_price
     end
   end
 end

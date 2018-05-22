@@ -25,7 +25,10 @@ defmodule OmiseGO.API.BlockQueue.Core do
     child_block_interval: nil,
     chain_start_parent_height: nil,
     submit_period: 1,
-    finality_threshold: 12
+    finality_threshold: 12,
+    gas_price_raise_min_queue_length: 2,
+    gas_price_lowering_factor: 0.9,
+    gas_price_raising_factor: 2.0,
   ]
 
   @type t() :: %__MODULE__{
@@ -48,7 +51,13 @@ defmodule OmiseGO.API.BlockQueue.Core do
           # number of Ethereum blocks per child block
           submit_period: pos_integer(),
           # depth of max reorg we take into account
-          finality_threshold: pos_integer()
+          finality_threshold: pos_integer(),
+          # minimum blocks queue length that gas price will be raised
+          gas_price_raise_min_queue_length: pos_integer(),
+          # the factor the gas price will be decreased by
+          gas_price_lowering_factor: float(),
+          # the factor the gas price will be increased by
+          gas_price_raising_factor: float(),
         }
 
   def new do
@@ -64,7 +73,10 @@ defmodule OmiseGO.API.BlockQueue.Core do
         child_block_interval: child_block_interval,
         chain_start_parent_height: child_start_parent_height,
         submit_period: submit_period,
-        finality_threshold: finality_threshold
+        finality_threshold: finality_threshold,
+        gas_price_raise_min_queue_length: gas_price_raise_min_queue_length,
+        gas_price_lowering_factor: gas_price_lowering_factor,
+        gas_price_raising_factor: gas_price_raising_factor
       ) do
     state = %__MODULE__{
       blocks: Map.new(),
@@ -73,7 +85,10 @@ defmodule OmiseGO.API.BlockQueue.Core do
       child_block_interval: child_block_interval,
       chain_start_parent_height: child_start_parent_height,
       submit_period: submit_period,
-      finality_threshold: finality_threshold
+      finality_threshold: finality_threshold,
+      gas_price_raise_min_queue_length: gas_price_raise_min_queue_length,
+      gas_price_lowering_factor: gas_price_lowering_factor,
+      gas_price_raising_factor: gas_price_raising_factor,
     }
 
     enqueue_existing_blocks(state, top_mined_hash, known_hashes)
@@ -134,6 +149,29 @@ defmodule OmiseGO.API.BlockQueue.Core do
   """
   def set_gas_price(state, price) do
     %{state | gas_price_to_use: price}
+  end
+
+  @doc """
+  Adjusts the gas price basing on simple strategy to raise the gas price by gas_price_raising_factor
+  when blocks queue is growing and droping the price by gas_price_lowering_factor when queue is short
+  """
+  @spec adjust_gas_price(Core.t()) :: pos_integer()
+  def adjust_gas_price(%Core{
+    formed_child_block_num: formed_child_block_num,
+    mined_child_block_num: mined_child_block_num,
+    gas_price_to_use: gas_price_to_use,
+    gas_price_raise_min_queue_length: gas_price_raise_min_queue_length,
+    gas_price_lowering_factor: gas_price_lowering_factor,
+    gas_price_raising_factor: gas_price_raising_factor
+  }) do
+    new_gas_price =
+      if formed_child_block_num - mined_child_block_num < gas_price_raise_min_queue_length do
+        gas_price_lowering_factor * gas_price_to_use
+      else
+        gas_price_raising_factor * gas_price_to_use
+      end
+
+    new_gas_price |> Kernel.round()
   end
 
   @doc """
