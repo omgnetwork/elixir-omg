@@ -195,7 +195,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
     |> elem(0)
     |> Map.values()
     |> Enum.sort_by(& &1.num)
-    |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
+    |> Enum.map(&Map.put(&1, :gas_price, adjust_gas_price(state)))
   end
 
   # generates an enumberable of block numbers since genesis till a particular block number (inclusive
