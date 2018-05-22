@@ -10,7 +10,8 @@ defmodule OmiseGO.DBTest do
   alias OmiseGO.DB
 
   setup do
-    dir = Temp.mkdir!()
+    Application.ensure_all_started(:briefly)
+    {:ok, dir} = Briefly.create(directory: true)
 
     {:ok, pid} =
       GenServer.start_link(

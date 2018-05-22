@@ -160,6 +160,7 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
   end
 
   deffixture watcher(db_init) do
+    _ = db_init
     {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omisego_watcher)
 
@@ -173,6 +174,7 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
   end
 
   deffixture watcher_sandbox(watcher) do
+    _ = watcher
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
   end
 end

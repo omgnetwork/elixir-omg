@@ -24,7 +24,6 @@ Identifies each module of pre-existing source code used in developing source cod
   * `exleveldb`, Apache 2.0, https://hex.pm/packages/exleveldb
   * `merkle_tree`, MIT, https://hex.pm/packages/merkle_tree
   * `abi`, MIT , https://github.com/omisego/abi.git
-  * `porcelain`, MIT, https://hex.pm/packages/porcelain
   * `temp`, MIT, https://hex.pm/packages/temp
   * `ethereumex`, MIT, https://github.com/omisego/ethereumex.git
   * `phoenix`, MIT, https://github.com/phoenixframework/phoenix
@@ -35,6 +34,8 @@ Identifies each module of pre-existing source code used in developing source cod
   * `cowboy`, ISC License, https://github.com/ninenines/cowboy
   * `cowlib`, ISC License, https://github.com/ninenines/cowlib
   * `ranch`, ISC License, https://github.com/ninenines/ranch 
+  * `erlexec`, BSD license, https://github.com/saleyn/erlexec
+  * `briefly`, Apache 2.0, https://github.com/CargoSense/briefly/
 
 
 ## Likely to be redistributed
