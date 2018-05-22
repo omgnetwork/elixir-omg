@@ -5,6 +5,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
 
   import OmiseGO.API.BlockQueue.Core
   alias OmiseGO.Eth.BlockSubmission
+  alias OmiseGO.API.BlockQueue.GasPriceAdjustmentStrategyParams, as: GasPriceParams
 
   @moduletag :blockqueue
 
@@ -23,9 +24,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         chain_start_parent_height: 1,
         submit_period: 1,
         finality_threshold: 12,
-        gas_price_raise_min_queue_length: 2,
-        gas_price_lowering_factor: 0.1,
-        gas_price_raising_factor: 2.0
+        gas_price_adj_params: %GasPriceParams{}
       )
 
     state
@@ -55,9 +54,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       chain_start_parent_height: 1,
       submit_period: 1,
       finality_threshold: 12,
-      gas_price_raise_min_queue_length: 2,
-      gas_price_lowering_factor: 0.1,
-      gas_price_raising_factor: 2.0
+      gas_price_adj_params: %GasPriceParams{}
     )
   end
 
@@ -89,9 +86,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
           chain_start_parent_height: 1,
           submit_period: 1,
           finality_threshold: 12,
-          gas_price_raise_min_queue_length: 2,
-          gas_price_lowering_factor: 0.1,
-          gas_price_raising_factor: 2.0
+          gas_price_adj_params: %GasPriceParams{}
         )
 
       assert [] ==
@@ -111,9 +106,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                  chain_start_parent_height: 1,
                  submit_period: 1,
                  finality_threshold: 12,
-                 gas_price_raise_min_queue_length: 2,
-                 gas_price_lowering_factor: 0.1,
-                 gas_price_raising_factor: 2.0
+                 gas_price_adj_params: %GasPriceParams{}
                )
     end
 
@@ -128,9 +121,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                  chain_start_parent_height: 1,
                  submit_period: 1,
                  finality_threshold: 12,
-                 gas_price_raise_min_queue_length: 2,
-                 gas_price_lowering_factor: 0.1,
-                 gas_price_raising_factor: 2.0
+                 gas_price_adj_params: %GasPriceParams{}
                )
     end
 
@@ -326,8 +317,9 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     end
   end
 
-  defp new_state(keyword_list) do
-    empty() |> Map.merge(keyword_list |> Map.new)
+  defp state_with_gas_params(gas_params, keyword_list) do
+    state = empty() |> Map.merge(keyword_list |> Map.new())
+    %{state | gas_price_adj_params: gas_params}
   end
 
   describe "Adjusting gas price" do
@@ -336,12 +328,17 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       gas_price = 11
       expected = 6
 
-      state = new_state(formed_child_block_num: 2, mined_child_block_num: 2,
-                gas_price_lowering_factor: lowering_factor)
+      state =
+        state_with_gas_params(
+          %GasPriceParams{gas_price_lowering_factor: lowering_factor},
+          formed_child_block_num: 2,
+          mined_child_block_num: 2
+        )
 
-      actual = state
+      actual =
+        state
         |> set_gas_price(gas_price)
-        |> adjust_gas_price()
+        |> calculate_gas_price()
 
       assert actual == expected
     end
@@ -351,46 +348,80 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       gas_price = 5.5
       expected = 17
 
-      state = new_state(formed_child_block_num: 10, mined_child_block_num: 0, gas_price_raising_factor: raising_factor)
+      state =
+        state_with_gas_params(
+          %GasPriceParams{gas_price_raising_factor: raising_factor},
+          formed_child_block_num: 10,
+          mined_child_block_num: 0
+        )
 
-      actual = state
+      actual =
+        state
         |> set_gas_price(gas_price)
-        |> adjust_gas_price()
+        |> calculate_gas_price()
 
       assert actual == expected
     end
 
-    test "Lower gas price when queue empty" do
-      gas_price = 1
-      state = new_state(formed_child_block_num: 0, mined_child_block_num: 0)
+    test "Lower gas price when queue length is lower than queue_length_when_raising param" do
+      gas_price = 10
 
-      actual = state
+      state =
+        state_with_gas_params(
+          %GasPriceParams{queue_length_when_raising: 5},
+          formed_child_block_num: 4,
+          mined_child_block_num: 0
+        )
+
+      actual =
+        state
         |> set_gas_price(gas_price)
-        |> adjust_gas_price()
-
-      assert actual < gas_price
-    end
-
-    test "Lower gas price when queue length is lower gas_price_raise_min_queue_length param" do
-      gas_price = 1
-      state = new_state(formed_child_block_num: 4, mined_child_block_num: 0, gas_price_raise_min_queue_length: 5)
-
-      actual = state
-        |> set_gas_price(gas_price)
-        |> adjust_gas_price()
+        |> calculate_gas_price()
 
       assert actual < gas_price
     end
 
     test "Raise gas price when queue length is (or above) gas_price_raise_min_queue_length param" do
       gas_price = 1
-      state = new_state(formed_child_block_num: 4, mined_child_block_num: 0, gas_price_raise_min_queue_length: 4)
 
-      actual = state
+      state =
+        state_with_gas_params(
+          %GasPriceParams{queue_length_when_raising: 4},
+          formed_child_block_num: 4,
+          mined_child_block_num: 0
+        )
+
+      actual =
+        state
         |> set_gas_price(gas_price)
-        |> adjust_gas_price()
+        |> calculate_gas_price()
 
       assert actual > gas_price
+    end
+
+    test "Aplling gas price calculation several times return correct result" do
+      start_gas_price = 25
+      gas_price_params = GasPriceParams.new(1.7, 0.7)
+      # raise by 1.7 then lower by 0.7
+      expected = Kernel.round(0.7 * Kernel.round(1.7 * start_gas_price))
+
+      state1 = state_with_gas_params(gas_price_params, formed_child_block_num: 4, mined_child_block_num: 0)
+
+      dumped_gas_price =
+        state1
+        |> set_gas_price(start_gas_price)
+        |> calculate_gas_price()
+
+      assert dumped_gas_price > start_gas_price
+
+      state2 = state_with_gas_params(gas_price_params, [])
+
+      final_price =
+        state2
+        |> set_gas_price(dumped_gas_price)
+        |> calculate_gas_price()
+
+      assert expected == final_price
     end
   end
 end
