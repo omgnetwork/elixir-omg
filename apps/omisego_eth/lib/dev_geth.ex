@@ -25,7 +25,7 @@ defmodule OmiseGO.Eth.DevGeth do
   # PRIVATE
 
   defp launch(cmd) do
-    {:ok, geth_proc, _ref, [{:stream, geth_out, stream_server}]} =
+    {:ok, geth_proc, _ref, [{:stream, geth_out, _stream_server}]} =
       Exexec.run(cmd, stdout: :stream, kill_command: "kill -9 $(pidof geth)")
     wait_for_geth_start(geth_out)
     geth_proc

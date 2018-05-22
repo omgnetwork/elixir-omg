@@ -33,7 +33,7 @@ defmodule OmiseGO.Performance do
 
   # The test setup
   @spec testup(testid :: integer) :: {:ok, list}
-  defp testup(testid) do
+  defp testup(_testid) do
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true)
     Application.put_env(:omisego_db, :leveldb_path, dbdir, persistent: true)
