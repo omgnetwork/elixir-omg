@@ -17,8 +17,9 @@ defmodule OmiseGO.Eth.DevGeth do
   def stop(pid) do
     ref = Process.monitor(pid)
     :ok = Exexec.stop(pid)
+
     receive do
-      {:"DOWN", aref, _process, _pid, _reason} when aref == ref -> :ok
+      {:DOWN, aref, _process, _pid, _reason} when aref == ref -> :ok
     end
   end
 
@@ -27,6 +28,7 @@ defmodule OmiseGO.Eth.DevGeth do
   defp launch(cmd) do
     {:ok, geth_proc, _ref, [{:stream, geth_out, _stream_server}]} =
       Exexec.run(cmd, stdout: :stream, kill_command: "kill -9 $(pidof geth)")
+
     wait_for_geth_start(geth_out)
     geth_proc
   end

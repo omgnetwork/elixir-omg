@@ -22,7 +22,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     on_exit(fn ->
       Application.put_env(:omisego_db, :leveldb_path, nil)
 
-      briefly ++ started_apps
+      (briefly ++ started_apps)
       |> Enum.reverse()
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
