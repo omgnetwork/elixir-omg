@@ -72,7 +72,7 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     db_out
     |> Enum.each(fn line -> Logger.debug(fn -> "db_init: " <> line end) end)
 
-    # FIXME I wish we could ensure_started just one app here, but in test env jsonrpc doesn't depend on api :(
+    # TODO I wish we could ensure_started just one app here, but in test env jsonrpc doesn't depend on api :(
     child_chain_mix_cmd =
       "mix run --no-start --no-halt --config #{file_path} -e " <>
         "'Application.ensure_all_started(:omisego_api); Application.ensure_all_started(:omisego_jsonrpc)' 2>&1"
@@ -92,13 +92,9 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     |> Task.async()
 
     on_exit(fn ->
-      # FIXME DRY: stopping taken from dev_geth
-      ref = Process.monitor(child_chain_proc)
-      :ok = Exexec.stop(child_chain_proc)
-
-      receive do
-        {:DOWN, aref, _process, _pid, _reason} when aref == ref -> :ok
-      end
+      # NOTE see DevGeth.stop/1 for details
+      _ = Process.monitor(child_chain_proc)
+      :normal = Exexec.stop_and_wait(child_chain_proc)
 
       File.rm(file_path)
       File.rm_rf(db_path)

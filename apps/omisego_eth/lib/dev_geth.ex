@@ -17,12 +17,10 @@ defmodule OmiseGO.Eth.DevGeth do
   end
 
   def stop(pid) do
-    ref = Process.monitor(pid)
-    :ok = Exexec.stop(pid)
-
-    receive do
-      {:DOWN, aref, _process, _pid, _reason} when aref == ref -> :ok
-    end
+    # NOTE: monitor is required to stop_and_wait, wtf? monitor: true on run doesn't work
+    _ = Process.monitor(pid)
+    {:exit_status, 35_072} = Exexec.stop_and_wait(pid)
+    :ok
   end
 
   # PRIVATE

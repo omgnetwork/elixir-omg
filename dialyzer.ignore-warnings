@@ -30,3 +30,6 @@ The specification for 'Elixir.OmiseGO.Performance.SenderServer':generate_entity/
 Function generate_entity/0 has no local return
 Function init_state/3 will never be called
 Function next_state/4 will never be called
+# Exexec related problems from dev_geth.ex. stop and wait is badly specced in Exexec
+Function stop/1 has no local return
+The pattern {'exit_status', 35072} can never match the type 'ok' | {'error',_}
