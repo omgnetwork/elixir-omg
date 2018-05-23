@@ -66,15 +66,16 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
       Exexec.run_link(
         "mix run --no-start -e 'OmiseGO.DB.init()' --config #{file_path} 2>&1",
         stdout: :stream,
-        cd: "../..")
+        cd: "../.."
+      )
 
     db_out
     |> Enum.each(fn line -> Logger.debug(fn -> "db_init: " <> line end) end)
 
     # FIXME I wish we could ensure_started just one app here, but in test env jsonrpc doesn't depend on api :(
-    child_chain_mix_cmd = "mix run --no-start --no-halt --config #{file_path} -e " <>
-      "'Application.ensure_all_started(:omisego_api); " <>
-      "Application.ensure_all_started(:omisego_jsonrpc)' 2>&1"
+    child_chain_mix_cmd =
+      "mix run --no-start --no-halt --config #{file_path} -e " <>
+        "'Application.ensure_all_started(:omisego_api); Application.ensure_all_started(:omisego_jsonrpc)' 2>&1"
 
     {:ok, child_chain_proc, _ref, [{:stream, child_chain_out, _stream_server}]} =
       Exexec.run(

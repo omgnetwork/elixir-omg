@@ -43,15 +43,14 @@ defmodule OmiseGOWatcher.Mixfile do
       {:gettext, "~> 0.15"},
       {:sqlite_ecto2, "~> 2.2", only: [:test]},
       {:cowboy, "~> 1.1"},
+      # NOTE, locked to 1.5.0 because of depracation warnings with reraise/3 in a macro in router.ex in watcher...
+      {:plug, "1.5.0", override: true},
       {:omisego_api, in_umbrella: true, runtime: false},
       {:omisego_jsonrpc, in_umbrella: true, runtime: false},
       {:socket, "~> 0.3"},
       {:jsonrpc2, "~> 1.0"},
-      {:ethereumex,
-       git: "https://github.com/omisego/ethereumex.git",
-       branch: "request_timeout",
-       override: true},
-       #{:omisego_eth, in_umbrella: true, only: [:test]}      {:omisego_eth, in_umbrella: true, runtime: true},
+      {:ethereumex, git: "https://github.com/omisego/ethereumex.git", branch: "request_timeout", override: true},
+      # {:omisego_eth, in_umbrella: true, only: [:test]}      {:omisego_eth, in_umbrella: true, runtime: true},
       {:omisego_db, in_umbrella: true, runtime: true},
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true}
     ]

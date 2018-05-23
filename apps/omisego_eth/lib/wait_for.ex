@@ -33,6 +33,7 @@ defmodule OmiseGO.Eth.WaitFor do
   # Simple throws and :badmatch are treated as signals to repeat
   def repeat_until_ok(f) do
     Process.sleep(100)
+
     try do
       case f.() do
         {:ok, _} = return -> return

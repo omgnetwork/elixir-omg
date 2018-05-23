@@ -10,6 +10,7 @@ defmodule OmiseGO.Performance.SenderServer do
   use GenServer
 
   alias OmiseGO.API.State.Transaction
+  alias OmiseGO.API.Crypto
 
   defmodule LastTx do
     @moduledoc """

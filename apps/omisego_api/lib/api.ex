@@ -23,7 +23,8 @@ defmodule OmiseGO.API do
       {:ok, %Block{hash: ^hash, transactions: transactions}} ->
         {:ok, %{hash: hash, transactions: transactions |> Enum.map(& &1.signed_tx_bytes)}}
 
-      {:error, msg} -> {:error, msg}
+      {:error, msg} ->
+        {:error, msg}
     end
   end
 end

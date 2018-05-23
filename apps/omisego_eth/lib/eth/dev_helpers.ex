@@ -41,6 +41,7 @@ defmodule OmiseGO.Eth.DevHelpers do
   def wait_for_current_child_block(blknum, dev \\ false, timeout \\ 10_000, contract \\ nil) do
     f = fn ->
       {:ok, next_num} = OmiseGO.Eth.get_current_child_block(contract)
+
       case next_num < blknum do
         true ->
           _ = maybe_mine(dev)

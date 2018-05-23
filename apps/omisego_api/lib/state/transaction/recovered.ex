@@ -17,11 +17,13 @@ defmodule OmiseGO.API.State.Transaction.Recovered do
           signed_tx_hash: signed_tx_hash_t(),
           spender1: Crypto.address_t(),
           spender2: Crypto.address_t(),
-          signed_tx_bytes: Transaction.signed_tx_bytes_t()
+          signed_tx_bytes: Transaction.Signed.signed_tx_bytes_t()
         }
 
   @spec recover_from(Transaction.Signed.t()) :: {:ok, t()} | any
-  def recover_from(%Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2, signed_tx_bytes: signed_tx_bytes} = signed_tx) do
+  def recover_from(
+        %Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2, signed_tx_bytes: signed_tx_bytes} = signed_tx
+      ) do
     hash_no_spenders = Transaction.hash(raw_tx)
 
     with {:ok, spender1} <- get_spender(hash_no_spenders, sig1),

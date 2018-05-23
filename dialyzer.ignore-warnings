@@ -4,6 +4,7 @@ Function get_child_chain/2 has no local return
 Function prepare_dev_env/0 has no local return
 Function prepare_test_env/0 has no local return
 Function do_prepare/1 has no local return
+Function do_prepare/2 has no local return
 Function prepare_env/1 has no local return
 Function create_and_fund_authority_addr/0 has no local return
 The call 'Elixir.Ethereumex.HttpClient':personal_unlock_account
