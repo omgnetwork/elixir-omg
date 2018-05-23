@@ -7,6 +7,8 @@ defmodule OmiseGOWatcher.TrackerOmisegoTest do
   alias OmiseGO.Eth
   alias OmiseGO.API.State.Transaction
 
+  @moduletag :integration
+
   def jsonrpc(method, params) do
     jsonrpc_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
 

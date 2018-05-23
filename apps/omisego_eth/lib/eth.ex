@@ -9,6 +9,7 @@ defmodule OmiseGO.Eth do
   import OmiseGO.Eth.Encoding
 
   def dev_geth do
+    _ = Application.ensure_all_started(:briefly)
     _ = Application.ensure_all_started(:erlexec)
     _ = Application.ensure_all_started(:ethereumex)
     geth_pid = OmiseGO.Eth.DevGeth.start()

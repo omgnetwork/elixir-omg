@@ -35,7 +35,6 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   # possible solution 1: remove eth_test and cover behaviors here
   # possible solution 2: move current eth smoke test to integration level tests of omisego_api and move fixtures too
   deffixture geth do
-    Application.ensure_all_started(:briefly)
     {:ok, exit_fn} = Eth.dev_geth()
     on_exit(exit_fn)
     :ok
