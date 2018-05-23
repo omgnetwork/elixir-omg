@@ -1,4 +1,7 @@
-defmodule OmiseGO.Eth.Fixtures do
+defmodule OmisegoTestkit.Geth do
+  @moduledoc """
+  Contains fixtures for tests that require geth and contract
+  """
   use ExUnitFixtures.FixtureModule
 
   deffixture geth do

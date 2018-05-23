@@ -4,6 +4,7 @@ defmodule OmiseGO.EthTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
+  use OmisegoTestkit.Geth
 
   @timeout 20_000
   @block_offset 1_000_000_000
