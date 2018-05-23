@@ -91,8 +91,8 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     %{
       contract: contract,
       child_block_interval: 1000,
-      ethereum_event_block_finality_margin: 1,
-      ethereum_event_get_deposit_interval_ms: 5
+      ethereum_event_block_finality_margin: 2,
+      ethereum_event_get_deposit_interval_ms: 10
     }
   end
 
@@ -128,11 +128,7 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
       run_process("./run_child.sh #{file_path}", fn msg ->
         case msg do
           {_port, {:data, data}} ->
-            Logger.debug(fn ->
-              data = String.replace_suffix(List.to_string(data), "\n", "")
-              IO.puts(IO.ANSI.format([:yellow, "child_chain: ", :green, :bright, data], true))
-            end)
-
+            Logger.debug(fn -> "child_chain: " <> to_string(data) end)
           _ ->
             nil
         end

@@ -32,19 +32,15 @@ defmodule OmiseGO.Eth.WaitFor do
   # Repeats fun until fun returns {:ok, ...} OR exception is raised (see :erlang.exit, :erlang.error)
   # Simple throws and :badmatch are treated as signals to repeat
   def repeat_until_ok(f) do
+    Process.sleep(100)
     try do
       case f.() do
         {:ok, _} = return -> return
         _ -> repeat_until_ok(f)
       end
     catch
-      _something ->
-        Process.sleep(100)
-        repeat_until_ok(f)
-
-      :error, {:badmatch, _} = _error ->
-        Process.sleep(100)
-        repeat_until_ok(f)
+      _something -> repeat_until_ok(f)
+      :error, {:badmatch, _} = _error -> repeat_until_ok(f)
     end
   end
 end
