@@ -1,15 +1,21 @@
+def label = "omisego-${UUID.randomUUID().toString()}"
+
 podTemplate(
-    label: 'omisego',
+    label: label,
     containers: [
         containerTemplate(
             name: 'jnlp',
             image: 'omisegoimages/blockchain-base:1.6-otp20-stretch',
             args: '${computer.jnlpmac} ${computer.name}',
-            alwaysPullImage: true
+            alwaysPullImage: true,
+            resourceRequestCpu: '1750m',
+            resourceLimitCpu: '2000m',
+            resourceRequestMemory: '2048Mi',
+            resourceLimitMemory: '2048Mi'
         ),
     ],
 ) {
-    node('omisego') {
+    node(label) {
         stage('Checkout') {
             checkout scm
         }
