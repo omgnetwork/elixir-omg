@@ -3,69 +3,6 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
   use ExUnitFixtures.FixtureModule
   require Logger
 
-  defp run_process(comand, printer) do
-    pid_proces =
-      spawn(fn ->
-        {:ok, exit_fn} = run_process(comand)
-
-        (& &1.(&1, exit_fn, printer)).(fn continue, kill, consume ->
-          receive do
-            :kill_then_end_process ->
-              kill.()
-              send(self(), :end_proces)
-              # consume last message
-              continue.(continue, kill, consume)
-
-            :end_proces ->
-              nil
-
-            msg ->
-              consume.(msg)
-              continue.(continue, kill, consume)
-          end
-        end)
-      end)
-
-    {:ok,
-     fn ->
-       send(pid_proces, :kill_then_end_process)
-       ref = Process.monitor(pid_proces)
-
-       receive do
-         {:DOWN, ^ref, _, _, _} -> nil
-       end
-     end}
-  end
-
-  defp run_process(comand) do
-    process_info = Port.open({:spawn, comand}, [:stream])
-    info_pid = Port.info(process_info, :os_pid)
-
-    Logger.debug(fn ->
-      """
-      running process:
-          proces_info:\t#{inspect(process_info)}
-          pid:\t#{inspect(info_pid)}
-      """
-    end)
-
-    {:ok,
-     fn ->
-       case info_pid do
-         {_, system_pid} ->
-           Process.exit(process_info, :normal)
-           # kill all child process of pid
-           System.cmd("pkill", ["-P", Integer.to_string(system_pid)])
-           # kill process
-           System.cmd("kill", ["-9", Integer.to_string(system_pid)])
-           Logger.debug(fn -> "kill process: #{comand}\n\tpid: #{system_pid}" end)
-
-         _ ->
-           Logger.debug(fn -> "kill process: #{comand}\n\tthe process was killed earlier" end)
-       end
-     end}
-  end
-
   deffixture geth do
     {:ok, exit_fn} = OmiseGO.Eth.dev_geth()
     on_exit(exit_fn)
@@ -113,6 +50,7 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     }
       config :omisego_db,
         leveldb_path: "#{db_path}"
+      config :logger, level: :debug
       config :omisego_eth,
         child_block_interval: #{config_map.child_block_interval}
       config :omisego_api,
@@ -124,18 +62,43 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     {:ok, config} = File.read(file_path)
     Logger.debug(fn -> IO.ANSI.format([:blue, :bright, config], true) end)
 
-    {:ok, kill_process} =
-      run_process("./run_child.sh #{file_path}", fn msg ->
-        case msg do
-          {_port, {:data, data}} ->
-            Logger.debug(fn -> "child_chain: " <> to_string(data) end)
-          _ ->
-            nil
-        end
-      end)
+    {:ok, _db_proc, _ref, [{:stream, db_out, _stream_server}]} =
+      Exexec.run_link(
+        "mix run --no-start -e 'OmiseGO.DB.init()' --config #{file_path} 2>&1",
+        stdout: :stream,
+        cd: "../..")
+
+    db_out
+    |> Enum.each(fn line -> Logger.debug(fn -> "db_init: " <> line end) end)
+
+    # FIXME I wish we could ensure_started just one app here, but in test env jsonrpc doesn't depend on api :(
+    child_chain_mix_cmd = "mix run --no-start --no-halt --config #{file_path} -e " <>
+      "'Application.ensure_all_started(:omisego_api); " <>
+      "Application.ensure_all_started(:omisego_jsonrpc)' 2>&1"
+
+    {:ok, child_chain_proc, _ref, [{:stream, child_chain_out, _stream_server}]} =
+      Exexec.run(
+        child_chain_mix_cmd,
+        stdout: :stream,
+        kill_timeout: 0,
+        cd: "../.."
+      )
+
+    fn ->
+      child_chain_out
+      |> Enum.each(fn line -> Logger.debug(fn -> "child_chain: " <> line end) end)
+    end
+    |> Task.async()
 
     on_exit(fn ->
-      kill_process.()
+      # FIXME DRY: stopping taken from dev_geth
+      ref = Process.monitor(child_chain_proc)
+      :ok = Exexec.stop(child_chain_proc)
+
+      receive do
+        {:DOWN, aref, _process, _pid, _reason} when aref == ref -> :ok
+      end
+
       File.rm(file_path)
       File.rm_rf(db_path)
     end)
