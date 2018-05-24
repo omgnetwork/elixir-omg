@@ -62,6 +62,8 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     {:ok, config} = File.read(file_path)
     Logger.debug(fn -> IO.ANSI.format([:blue, :bright, config], true) end)
 
+    Logger.debug(fn -> "Starting db_init" end)
+
     {:ok, _db_proc, _ref, [{:stream, db_out, _stream_server}]} =
       Exexec.run_link(
         "mix run --no-start -e 'OmiseGO.DB.init()' --config #{file_path} 2>&1",
@@ -69,13 +71,14 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
         cd: "../.."
       )
 
-    db_out
-    |> Enum.each(fn line -> Logger.debug(fn -> "db_init: " <> line end) end)
+    db_out |> Enum.each(&log_output("db_init", &1))
 
     # TODO I wish we could ensure_started just one app here, but in test env jsonrpc doesn't depend on api :(
     child_chain_mix_cmd =
       "mix run --no-start --no-halt --config #{file_path} -e " <>
         "'Application.ensure_all_started(:omisego_api); Application.ensure_all_started(:omisego_jsonrpc)' 2>&1"
+
+    Logger.debug(fn -> "Starting child_chain" end)
 
     {:ok, child_chain_proc, _ref, [{:stream, child_chain_out, _stream_server}]} =
       Exexec.run(
@@ -86,8 +89,7 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
       )
 
     fn ->
-      child_chain_out
-      |> Enum.each(fn line -> Logger.debug(fn -> "child_chain: " <> line end) end)
+      child_chain_out |> Enum.each(&log_output("child_chain", &1))
     end
     |> Task.async()
 
@@ -101,6 +103,11 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     end)
 
     :ok
+  end
+
+  defp log_output(prefix, line) do
+    Logger.debug(fn -> "#{prefix}: " <> line end)
+    line
   end
 
   deffixture(alice, do: generate_entity())
