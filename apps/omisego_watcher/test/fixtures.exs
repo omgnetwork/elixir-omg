@@ -66,12 +66,12 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     exexec_opts_for_mix = [
       stdout: :stream,
       cd: "../..",
-      env: ["MIX_ENV=" <> to_string(Mix.env())]
+      env: %{"MIX_ENV" => to_string(Mix.env())}
     ]
 
     {:ok, _db_proc, _ref, [{:stream, db_out, _stream_server}]} =
       Exexec.run_link(
-        "mix run --no-start -e 'IO.puts Mix.env(); OmiseGO.DB.init()' --config #{config_file_path} 2>&1",
+        "mix run --no-start -e 'OmiseGO.DB.init()' --config #{config_file_path} 2>&1",
         exexec_opts_for_mix
       )
 
@@ -80,7 +80,7 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
     # TODO I wish we could ensure_started just one app here, but in test env jsonrpc doesn't depend on api :(
     child_chain_mix_cmd =
       "mix run --no-start --no-halt --config #{config_file_path} -e " <>
-        "'IO.puts Mix.env(); Application.ensure_all_started(:omisego_api); Application.ensure_all_started(:omisego_jsonrpc)' 2>&1"
+        "'Application.ensure_all_started(:omisego_api); Application.ensure_all_started(:omisego_jsonrpc)' 2>&1"
 
     Logger.debug(fn -> "Starting child_chain" end)
 
@@ -113,10 +113,14 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
   deffixture(bob, do: generate_entity())
 
   deffixture db_init do
+    {:ok, _} = Application.ensure_all_started(:briefly)
     db_path = Briefly.create!(directory: true)
 
     Application.put_env(:omisego_db, :leveldb_path, db_path, persistent: true)
     OmiseGO.DB.init()
+
+    # TODO: possible source of flakiness is omisego_db not cleaning up fast enough? find a better solution
+    Process.sleep(500)
   end
 
   deffixture watcher(db_init) do

@@ -143,6 +143,9 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # Restart everything to check persistance and revival
     [:omisego_api, :omisego_eth, :omisego_db] |> Enum.each(&Application.stop/1)
 
+    # TODO: possible source of flakiness is omisego_db not cleaning up fast enough? find a better solution
+    Process.sleep(500)
+
     {:ok, started_apps} = Application.ensure_all_started(:omisego_api)
     # sanity check, did-we restart really?
     assert Enum.member?(started_apps, :omisego_api)

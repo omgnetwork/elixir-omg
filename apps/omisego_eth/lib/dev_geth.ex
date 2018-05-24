@@ -11,9 +11,6 @@ defmodule OmiseGO.Eth.DevGeth do
 
   def start do
     {:ok, homedir} = Briefly.create(directory: true)
-    # On jenkins `geth` will be executed with regular user permissions
-    # while directory is created by root. Make it writeable for `geth`.
-    :ok = File.chmod(homedir, 0o777)
     res = launch("geth --dev --rpc --rpcapi=personal,eth,web3 --datadir #{homedir} 2>&1")
     {:ok, :ready} = OmiseGO.Eth.WaitFor.eth_rpc()
     res
