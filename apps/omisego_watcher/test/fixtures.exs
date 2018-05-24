@@ -68,7 +68,8 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
       Exexec.run_link(
         "mix run --no-start -e 'OmiseGO.DB.init()' --config #{file_path} 2>&1",
         stdout: :stream,
-        cd: "../.."
+        cd: "../..",
+        env: [{"MIX_ENV", Mix.env()}]
       )
 
     db_out |> Enum.each(&log_output("db_init", &1))
@@ -85,7 +86,8 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
         child_chain_mix_cmd,
         stdout: :stream,
         kill_timeout: 0,
-        cd: "../.."
+        cd: "../..",
+        env: [{"MIX_ENV", Mix.env()}]
       )
 
     fn ->
