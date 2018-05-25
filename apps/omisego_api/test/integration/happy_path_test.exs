@@ -5,7 +5,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use Omisego.Eth.GethFixtures
+  use Omisego.Eth.Fixtures
 
   alias OmiseGO.Eth
   alias OmiseGO.API.State.Transaction
