@@ -122,7 +122,7 @@ defmodule OmiseGOWatcher.UtxoDB do
     %{
       utxo_pos: calculate_utxo_pos(block_height, txindex, oindex),
       tx_bytes: tx_bytes,
-      proof: proof.hashes |> Enum.reduce(fn(x, acc) -> acc <> x end)
+      proof: proof.hashes |> Enum.reverse |> Enum.reduce(fn(x, acc) -> acc <> x end)
     }
 
   end

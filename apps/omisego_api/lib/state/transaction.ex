@@ -154,10 +154,9 @@ defmodule OmiseGO.API.State.Transaction do
       tx.newowner1,
       tx.amount1,
       tx.newowner2,
-      tx.amount2,
-      tx.fee
+      tx.amount2
     ]
-    |> ExRLP.encode()
+    |> ExRLP.encode
   end
 
   def hash(%__MODULE__{} = tx) do
@@ -175,6 +174,10 @@ defmodule OmiseGO.API.State.Transaction do
     encoded_tx = encode(tx)
     signature1 = signature(encoded_tx, priv1)
     signature2 = signature(encoded_tx, priv2)
+
+    IO.inspect "sig"
+    IO.inspect signature1
+      IO.inspect signature2
 
     %Signed{raw_tx: tx, sig1: signature1, sig2: signature2}
   end

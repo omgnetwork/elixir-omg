@@ -37,7 +37,6 @@ defmodule OmiseGO.API.TestHelper do
     [sig1, sig2 | _] =
       inputs |> Enum.map(fn {_, _, _, owner} -> owner.priv end) |> Enum.concat([<<>>, <<>>])
 
-    IO.inspect sig1
     Transaction.Recovered.recover_from(Transaction.sign(raw_tx, sig1, sig2))
   end
 

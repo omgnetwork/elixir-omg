@@ -91,8 +91,6 @@ defmodule OmiseGO.Eth do
     contract = contract || Application.get_env(:omisego_eth, :contract)
     from = from || Application.get_env(:omisego_eth, :authority_addr)
 
-    IO.inspect "tut"
-    IO.inspect hash
     data =
       "submitBlock(bytes32)"
       |> ABI.encode([hash])
@@ -153,13 +151,13 @@ defmodule OmiseGO.Eth do
 
   end
 
-  def start_exit(utxo_position, proof, txbytes, sigs, gas_price, from \\ nil, contract \\ nil) do
+  def start_exit(utxo_position, txbytes, proof, sigs, gas_price, from \\ nil, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
     from = from || Application.get_env(:omisego_eth, :omg_addr)
 
     data =
       "startExit(uint256,bytes,bytes,bytes)"
-      |> ABI.encode([utxo_position, txbytes, proof, sigs ])
+      |> ABI.encode([utxo_position, txbytes, proof, sigs])
       |> Base.encode16()
 
     gas = 100_0000
@@ -280,6 +278,14 @@ defmodule OmiseGO.Eth do
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
          exits <- get_logs(unfiltered_logs, parse_exit),
          do: {:ok, Enum.sort(exits, &(&1.block_height > &2.block_height))}
+  end
+
+  def get_exit(utxo_pos, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+
+    {:ok, [address, amount]} =
+      call_contract(contract, "getExit(uint256)", [utxo_pos], [:bytes32, {:uint, 256}])
+    {:ok, {address, amount}}
   end
 
   def get_child_chain(blknum, contract \\ nil) do

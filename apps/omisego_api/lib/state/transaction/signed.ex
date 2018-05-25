@@ -14,7 +14,11 @@ defmodule OmiseGO.API.State.Transaction.Signed do
   }
 
   def signed_hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
-    Transaction.hash(tx) <> sig1 <> sig2
+    hash = Transaction.hash(tx) <> sig1 <> sig2
+
+    IO.inspect "elo"
+    IO.inspect hash
+    hash
   end
 
   def encode(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
