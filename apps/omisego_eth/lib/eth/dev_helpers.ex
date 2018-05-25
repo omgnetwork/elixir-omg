@@ -42,12 +42,9 @@ defmodule OmiseGO.Eth.DevHelpers do
   end
 
   def create_and_fund_authority_addr do
-    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
     {:ok, authority} = Ethereumex.HttpClient.personal_new_account("")
-    {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(authority, "", 0)
-    txmap = %{from: addr, to: authority, value: "0x99999999999999999999999"}
-    {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    {:ok, _receipt} = WaitFor.eth_receipt(tx_fund, 10_000)
+    {:ok, _} = unlock_fund(authority)
+
     {:ok, authority}
   end
 
@@ -60,14 +57,18 @@ defmodule OmiseGO.Eth.DevHelpers do
     account_enc = "0x" <> Base.encode16(account_addr, case: :lower)
 
     {:ok, ^account_enc} = Ethereumex.HttpClient.personal_import_raw_key(account_priv_enc, "")
+    {:ok, _} = unlock_fund(account_enc)
+
+    {:ok, account_enc}
+  end
+
+  defp unlock_fund(account_enc) do
     {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(account_enc, "", 0)
 
     {:ok, [eth_source_address | _]} = Ethereumex.HttpClient.eth_accounts()
     txmap = %{from: eth_source_address, to: account_enc, value: "0x99999999999999999999999"}
     {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    {:ok, _} = WaitFor.eth_receipt(tx_fund)
-
-    {:ok, account_enc}
+    WaitFor.eth_receipt(tx_fund, 10_000)
   end
 
   defp maybe_mine(false), do: :noop

@@ -47,8 +47,12 @@ This is an example of how to quickly setup the developer's environment to run th
             '
 
     To deploy and prepare environment and create `your_config_file.exs` in one fell swoop.
+    These lines:
+      - create, fund and unlock the authority address
+      - deploy the root chain contract
+      - create the config file and print essential contract information to stdout
 
-    You'll need to pass this configuration file to `mix` and `iex -S mix run` invocations with `--config your_config_file.exs` flag
+    You'll need to pass the configuration file to `mix` and `iex -S mix run` invocations with `--config your_config_file.exs` flag
 
 4. Next you'll need to create some Alices and Bobs, fund their addresses deposit etc. **FIXME**: this is in `demo_01` - but how do we expose and document this...??
 

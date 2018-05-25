@@ -1,11 +1,12 @@
 # ethereumex related problems, dev_helpers.ex:
 Function get_child_chain/1 has no local return
 Function get_child_chain/2 has no local return
-Function prepare_env/0 has no local return
-Function prepare_env/1 has no local return
+Function 'prepare_env!'/0 has no local return
+Function 'prepare_env!'/1 has no local return
 Function create_and_fund_authority_addr/0 has no local return
 The call 'Elixir.Ethereumex.HttpClient':personal_unlock_account
 Function import_unlock_fund/1 has no local return
+Function unlock_fund/1 has no local return
 # Blockchain.Transaction.Signature.get_public_key/1 related problems, sender_server.ex:
 Function init/1 has no local return
 The created fun has no local return
