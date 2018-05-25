@@ -9,7 +9,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   import Ecto.Query, only: [from: 2]
 
   def available(conn, %{"address" => address}) do
-    address_decode = JSONRPC.Helper.decode(:bitstring, address)
+    address_decode = JSONRPC.Client.decode(:bitstring, address)
     utxos = Repo.all(from(tr in UtxoDB, where: tr.address == ^address_decode, select: tr))
     fields_names = List.delete(UtxoDB.field_names(), :address)
 

@@ -118,7 +118,6 @@ defmodule OmiseGO.Performance.SenderServer do
     result =
       tx
       |> Transaction.Signed.encode()
-      |> Base.encode16()
       |> submit_tx_jsonrpc()
 
     case result do
@@ -173,21 +172,12 @@ defmodule OmiseGO.Performance.SenderServer do
   # Submits Tx to the childchain server via http (JsonRPC) and translates successful result to atom-keyed map.
   @spec submit_tx_jsonrpc(binary) :: {:ok, map} | {:error, any}
   defp submit_tx_jsonrpc(encoded_tx) do
-    with {:ok, result} <- jsonrpc(:submit, %{transaction: encoded_tx}) do
+    with {:ok, result} <- OmiseGO.JSONRPC.Client.call(:submit, %{transaction: encoded_tx}) do
       {:ok,
        result
        |> Enum.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
        |> Map.new()}
     end
-  end
-
-  # Helper function which makes JsonRPC call.
-  # For now test setup is done in the same BEAM process, so the `localhost` address is used.
-  defp jsonrpc(method, params) do
-    jsonrpc_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
-
-    "http://localhost:#{jsonrpc_port}"
-    |> JSONRPC2.Clients.HTTP.call(to_string(method), params)
   end
 
   # Generates participant private key and address

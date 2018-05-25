@@ -1,4 +1,4 @@
-defmodule OmiseGOWatcher.TrackerOmisegoTest do
+defmodule OmiseGOWatcher.BlockGetterTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
@@ -8,13 +8,6 @@ defmodule OmiseGOWatcher.TrackerOmisegoTest do
   alias OmiseGO.API.State.Transaction
 
   @moduletag :integration
-
-  def jsonrpc(method, params) do
-    jsonrpc_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
-
-    "http://localhost:#{jsonrpc_port}"
-    |> JSONRPC2.Clients.HTTP.call(to_string(method), params)
-  end
 
   defp deposit_to_child_chain(to, value, config) do
     {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
@@ -33,23 +26,31 @@ defmodule OmiseGOWatcher.TrackerOmisegoTest do
 
   @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :alice, :bob]
   test "run_omisego_api", %{config_map: config_map, alice: alice, bob: bob} do
-    Application.put_env(:omisego_watcher, OmiseGOWatcher.TrackerOmisego, %{
-      contract_address: config_map.contract.address
-    })
+    Application.put_env(:omisego_eth, :contract_address, config_map.contract.address)
 
-    {:ok, _pid} = GenServer.start_link(OmiseGOWatcher.TrackerOmisego, %{contract_address: config_map.contract.address})
+    {:ok, _pid} =
+      GenServer.start_link(
+        OmiseGOWatcher.BlockGetter,
+        %{contract_address: config_map.contract.address},
+        name: BlockGetter
+      )
 
     deposit_height = deposit_to_child_chain(alice, 10, config_map)
     raw_tx = Transaction.new([{deposit_height, 0, 0}], [{alice.addr, 7}, {bob.addr, 3}], 0)
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
-    {:ok, %{"blknum" => block_nr}} = jsonrpc(:submit, %{transaction: Base.encode16(tx)})
+    {:ok, %{"blknum" => block_nr}} = OmiseGO.JSONRPC.Client.call(:submit, %{transaction: tx})
 
-    Eth.DevHelpers.wait_for_current_child_block(
-      block_nr + 5 * config_map.child_block_interval,
-      true,
-      60_000,
-      config_map.contract.address
-    )
+    # wait for BlockGetter get the block
+    fn ->
+      Eth.WaitFor.repeat_until_ok(fn ->
+        case GenServer.call(BlockGetter, :get_height) < block_nr do
+          true -> :repeat
+          false -> {:ok, block_nr}
+        end
+      end)
+    end
+    |> Task.async()
+    |> Task.await(10_000)
 
     [%{"amount" => amout_bob}] = get_utxo(bob)
     [%{"amount" => amout_alice}] = get_utxo(alice)
@@ -60,7 +61,7 @@ defmodule OmiseGOWatcher.TrackerOmisegoTest do
   defp get_utxo(from) do
     response =
       :get
-      |> conn("account/utxo?address=#{OmiseGO.JSONRPC.Helper.encode(from.addr)}")
+      |> conn("account/utxo?address=#{OmiseGO.JSONRPC.Client.encode(from.addr)}")
       |> put_private(:plug_skip_csrf_protection, true)
       |> OmiseGOWatcherWeb.Endpoint.call([])
 

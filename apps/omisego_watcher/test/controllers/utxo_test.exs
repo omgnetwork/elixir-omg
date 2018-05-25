@@ -7,7 +7,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   alias OmiseGOWatcher.UtxoDB
   alias OmiseGO.API.{Block}
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
-  alias OmiseGO.JSONRPC.Helper
+  alias OmiseGO.JSONRPC.Client
 
   @empty %Transaction{
     blknum1: 0,
@@ -26,7 +26,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   describe "UTXO database." do
     @tag fixtures: [:watcher_sandbox]
     test "No utxo are returned for non-existing addresses." do
-      assert get_utxo("cthulhu") == %{"utxos" => [], "address" => Helper.encode("cthulhu")}
+      assert get_utxo("cthulhu") == %{"utxos" => [], "address" => Client.encode("cthulhu")}
     end
 
     @tag fixtures: [:watcher_sandbox]
@@ -120,7 +120,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   end
 
   defp get_utxo(address) do
-    request = conn(:get, "account/utxo?address=#{Helper.encode(address)}")
+    request = conn(:get, "account/utxo?address=#{Client.encode(address)}")
     response = request |> send_request
     assert response.status == 200
     Poison.decode!(response.resp_body)

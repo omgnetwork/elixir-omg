@@ -1,4 +1,4 @@
-defmodule OmiseGO.JSONRPC.Helper do
+defmodule OmiseGO.JSONRPC.Client do
   @moduledoc """
   helper to encode and decode elixir values
   (see also expose_spec)
@@ -21,8 +21,15 @@ defmodule OmiseGO.JSONRPC.Helper do
   def encode(arg) when is_tuple(arg), do: encode(Tuple.to_list(arg))
   def encode(arg), do: arg
 
-  def jsonrpc(url, method, params) do
-    JSONRPC2.Clients.HTTP.call(url, to_string(method), params)
+  def get_url do
+    jsonrpc_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
+    host = Application.get_env(:omisego_jsonrpc, :child_chain_url)
+    "#{host}:#{jsonrpc_port}"
+  end
+
+  @spec call(atom, map, binary) :: {:error | :ok, any}
+  def call(method, params, url \\ get_url()) do
+    JSONRPC2.Clients.HTTP.call(url, to_string(method), encode(params))
   end
 
   def decode(:bitstring, value), do: Base.decode16!(value)

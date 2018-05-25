@@ -18,14 +18,10 @@ defmodule OmiseGO.JSONRPC.Exposer do
              method,
              params,
              api.get_specs(),
-             &OmiseGO.JSONRPC.Helper.on_match/3
+             &OmiseGO.JSONRPC.Client.on_match/3
            ),
          {:ok, result} <- apply_call(api, fname, args) do
-      try do
-        OmiseGO.JSONRPC.Helper.encode(result)
-      rescue
-        _ -> throw({:internal_error, :encode_result})
-      end
+      OmiseGO.JSONRPC.Client.encode(result)
     else
       # JSONRPC requires to throw whatever fails, for proper handling of jsonrpc errors
       error ->

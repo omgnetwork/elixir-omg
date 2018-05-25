@@ -1,7 +1,6 @@
-defmodule OmiseGOWatcher.Validator do
-  @moduledoc """
-  check if Block is valid block
-  """
+defmodule OmiseGOWatcher.BlockValidator do
+  @moduledoc false
+
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
 

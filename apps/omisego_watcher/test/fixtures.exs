@@ -1,4 +1,4 @@
-defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
+defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   import OmiseGO.API.TestHelper
   use ExUnitFixtures.FixtureModule
   require Logger
@@ -12,10 +12,6 @@ defmodule OmiseGOWatcher.TrackerOmisego.Fixtures do
   deffixture contract(geth) do
     _ = geth
     {:ok, contract_address, txhash, authority} = OmiseGO.Eth.DevHelpers.prepare_env("../../")
-    # TODO think about another solution
-    Application.put_env(:omisego_watcher, OmiseGOWatcher.TrackerOmisego, %{
-      contract_address: contract_address
-    })
 
     %{
       address: contract_address,
