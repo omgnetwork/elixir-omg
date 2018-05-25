@@ -6,9 +6,7 @@
 
 For the responsibilities and design of the child chain server see [Tesuji Plasma Blockchain Design document](FIXME link pending).
 
-## Running the child chain server as operator
-
-### Setting up
+## Setting up
 
 1. Provide an Ethereum node connected to the appropriate network
 2. Deploy `RootChain.sol` contract and prepare operator's authority address
@@ -26,7 +24,7 @@ config :omisego_eth,
   txhash_contract: "0x0"
 ```
 
-#### Setting up (developer's environment)
+### Setting up (developer's environment)
 
 This is an example of how to quickly setup the developer's environment to run the child chain server.
 
@@ -40,27 +38,117 @@ This is an example of how to quickly setup the developer's environment to run th
           mix run --no-start -e \
             '
               OmiseGO.Eth.DevHelpers.prepare_env!
-              |> IO.inspect
               |> OmiseGO.Eth.DevHelpers.create_conf_file
-              |> List.wrap
-              |> Enum.into(File.stream!("your_config_file.exs"))
-            '
+              |> IO.puts
+            ' > your_config_file.exs
 
-    To deploy and prepare environment and create `your_config_file.exs` in one fell swoop.
-    These lines:
+    The above lines:
       - create, fund and unlock the authority address
       - deploy the root chain contract
-      - create the config file and print essential contract information to stdout
+      - create the config file
 
     You'll need to pass the configuration file to `mix` and `iex -S mix run` invocations with `--config your_config_file.exs` flag
 
-4. Next you'll need to create some Alices and Bobs, fund their addresses deposit etc. **FIXME**: this is in `demo_01` - but how do we expose and document this...??
+## Starting the child chain server
 
-### Starting the child chain server
+- `cd apps/omisego_jsonrpc`
+- `mix run --no-halt --config path/to/config.exs`
 
-  - `cd apps/omisego_jsonrpc`
-  - `mix run --no-halt --config path/to/config.exs`
-  - or `iex --sname operator -S mix run --config path/to/config.exs` then in the `iex` REPL you can run commands mentioned in demos (see `docs/...`, don't pick `OBSOLETE` demos)
+### Playing around with the child chain server
+
+You can run an IEx REPL to gain access to helper functions: from `omisego` root dir do `iex -S mix run --no-start --config path/to/config.exs`.
+In the REPL you can run commands mentioned in demos (see `docs/...`, don't pick `OBSOLETE` demos)
+
+## Using the child chain server's API
+
+### JSONRPC 2.0
+
+JSONRPC 2.0 requests are listened on on the port specified in `omisego_jsonrpc`'s `config` (`9656` by default).
+The available RPC calls are defined by `omisego_api` in `api.ex` - the functions are `method` names and their respective arguments make the dictionary sent as `params`.
+The argument names are indicated by the `@spec` clauses.
+
+#### `submit`
+
+##### Request
+
+```json
+{
+  "params":{
+    "transaction":"rlp encoded plasma transaction in hex"
+  },
+  "method":"submit",
+  "jsonrpc":"2.0",
+  "id":0
+}
+```
+
+##### Response
+
+```json
+{
+    "id": 0,
+    "jsonrpc": "2.0",
+    "result": {
+        "blknum": 995000,
+        "tx_hash": "tx hash in hex",
+        "tx_index": 0
+    }
+}
+```
+
+#### `get_block`
+
+##### Request
+
+```json
+{
+  "params":{
+    "hash":"block hash in hex"
+  },
+  "method":"get_block",
+  "jsonrpc":"2.0",
+  "id":0
+}
+```
+
+##### Response
+
+```json
+{
+    "id": 0,
+    "jsonrpc": "2.0",
+    "result": {
+        "hash": "block hash in hex",
+        "transactions": [
+            "transaction bytes in hex",
+            "..."
+        ]
+    }
+}
+```
+
+### Websockets
+
+**TODO** consider if we want to expose at all
+
+## Overview of apps
+
+OmiseGO is an umbrella app comprising several Elixir applications.
+Apps listed below belong to the child chain server application, for Watcher-related apps see `apps/omisego_watcher/README.md`.
+
+The general idea of the apps responsibilities is:
+  - `omisego_api` - child chain server and main entrypoint to the functionality
+    - tracks Ethereum for things happening in the root chain contract (deposits/exits)
+    - gathers transactions, decides on validity, forms blocks, persists
+    - submits blocks to the root chain contract
+  - `omisego_db` - wrapper around the child chain server's database to store the UTXO set and blocks necessary for state persistence
+  - `omisego_eth` - wrapper around the [Ethereum RPC client](https://github.com/exthereum/ethereumex)
+  - `omisego_jsonrpc` - a JSONRPC 2.0 server being the gateway to `omisego_api`
+  - `omisego_performance` - performance tester for the child chain server
+
+## Running a child chain in practice
+
+**TODO** other sections
 
 ### Funding the operator address
 
@@ -93,56 +181,3 @@ we get
 ```
 gas_reserve ~= 4 * 60 * 24 / 1 * 7 * 75071 * 40 / 10**9  ~= 121 ETH
 ```
-
-## Using the child chain server's API
-
-### JSONRPC 2.0
-
-JSONRPC 2.0 requests are listened on on the port specified in `omisego_jsonrpc`'s `config`.
-The available RPC calls are defined by `omisego_api` in `api.ex` - the functions are `method` names and their respective arguments make the dictionary sent as `params`.
-The argument names are indicated by the `@spec` clauses.
-
-#### `submit`
-
-```json
-{
-  "params":{
-    "transaction":"rlp encoded plasma transaction in hex"
-  },
-  "method":"submit",
-  "jsonrpc":"2.0",
-  "id":0
-}
-```
-
-#### `get_block`
-
-```json
-{
-  "params":{
-    "hash":"5A747C1AB90FEC15BD1D95FDFEB9B23D652BA043F7841AF114BBB7F39488B510"
-  },
-  "method":"get_block",
-  "jsonrpc":"2.0",
-  "id":0
-}
-```
-
-### Websockets
-
-**TODO** consider if we want to expose at all
-
-## Overview of apps
-
-OmiseGO is an umbrella app comprising several Elixir applications.
-Apps listed below belong to the child chain server application, for Watcher-related apps see `apps/omisego_watcher/README.md`.
-
-The general idea of the apps responsibilities is:
-  - `omisego_api` - child chain server and main entrypoint to the functionality
-    - tracks Ethereum for things happening in the root chain contract (deposits/exits)
-    - gathers transactions, decides on validity, forms blocks, persists
-    - submits blocks to the root chain contract
-  - `omisego_db` - wrapper around the child chain server's database to store the UTXO set and blocks necessary for state persistence
-  - `omisego_eth` - wrapper around the [Ethereum RPC client](https://github.com/exthereum/ethereumex)
-  - `omisego_jsonrpc` - a JSONRPC 2.0 server being the gateway to `omisego_api`
-  - `omisego_performance` - performance tester for the child chain server

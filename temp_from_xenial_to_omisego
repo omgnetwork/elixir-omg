@@ -1,0 +1,65 @@
+docker run -ti ubuntu:xenial /bin/bash
+
+##
+## within container:
+##
+
+apt-get update
+
+# wget
+apt-get install -y wget
+wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb
+
+# python
+apt-get remove -y python2.7
+apt autoremove -y
+apt-get install -y libssl-dev git python3 python3-pip autoconf libtool libgmp3-dev httpie
+
+# elixir
+dpkg -i erlang-solutions_1.0_all.deb
+apt-get update
+apt-get install -y esl-erlang elixir
+
+# geth
+apt-get install -y software-properties-common
+add-apt-repository -y ppa:ethereum/ethereum
+apt-get update
+apt-get install -y ethereum
+
+# user
+useradd -m omisegoer
+su omisegoer
+
+cd
+alias python=`which python3`
+alias pip=`which pip3`
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
+mix do local.hex --force, local.rebar --force
+export PATH=${PATH}:~/.local/bin
+
+# check
+geth version && python --version && pip --version && elixir --version && git --version && http --version
+
+# omisego
+#
+#
+
+git clone https://github.com/omisego/omisego
+cd omisego
+mix deps.get
+
+cd populus
+pip install -r requirements.txt
+python -m solc.install v0.4.18
+
+SOLC_BINARY=${HOME}/.py-solc/solc-v0.4.18/bin/solc populus compile
+cd ..
+
+# tests
+mix test --no-start
+mix test --no-start --only integration
+
+# starting child chain API
+nohup geth --dev --dev.period 2 --rpc --rpcapi personal,web3,eth --verbosity=2&
+http localhost:8545

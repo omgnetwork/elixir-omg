@@ -1,16 +1,17 @@
+# Submitting transactions and getting a submitted block from the child chain API
 
-
-```bash
-# wipe your omisego child chain db
-rm -rf ~/.omisego
-
-# follow the developer's environment instructions to get a fresh child chain API running
-```
+The following demo is a mix of commands executed in IEx (Elixir's) REPL (see README.md for instructions) and shell.
+**NOTE**: start IEx REPL with code and config loaded, as described in README.md instructions.
 
 ```elixir
 
 ### PREPARATIONS
-{:ok, contract_address, _txhash, _authority} =
+
+# we're going to be using the exthereum's client to geth's JSON RPC
+{:ok, _} = Application.ensure_all_started(:ethereumex)
+
+# (paste output from `prepare_env!` to setup the REPL environment)
+contract_address = Application.get_env(:omisego_eth, :contract)
 
 Code.load_file("apps/omisego_api/test/testlib/test_helper.ex")
 alias OmiseGO.{API, Eth}
@@ -42,14 +43,44 @@ tx =
   Transaction.sign(alice.priv, <<>>) |>
   Transaction.Signed.encode() |>
   Base.encode16()
+```
 
+```bash
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
-{:ok, child_tx_hash, child_tx_block_number, child_tx_index} = OmiseGO.API.submit(tx)
+# use the hex-encoded tx bytes and `submit` JSONRPC method descibed in README.md for child chain server
+# E.g. using httpie:
 
-# with that block, we can ask the root chain to give us the block hash
+echo '{
+  "params":{
+    "transaction":""
+  },
+  "method":"submit",
+  "jsonrpc":"2.0",
+  "id":0
+}
+' | http localhost:9656
+```
+
+```elixir
+# with that block number, we can ask the root chain to give us the block hash
+child_tx_block_number =
 {:ok, {block_hash, _}} = Eth.get_child_chain(child_tx_block_number)
+Base.encode16(block_hash)
+```
 
+```bash
 # with the block hash we can get the whole block
-OmiseGO.API.get_block(Base.encode16(block_hash))
+
+echo '{
+  "params":{
+    "hash":"A79BFBB205EEE6D3021C46EFEAA2AE699A56219A61FD282A91499E646080CB08"
+  },
+  "method":"get_block",
+  "jsonrpc":"2.0",
+  "id":0
+}
+' | http localhost:9656
+
+# if you were watching, you could have decoded and validated the transaction bytes in the block
 ```
