@@ -1,40 +1,26 @@
 defmodule OmiseGO.Eth.DevHelpers do
+  @moduledoc """
+  Helpers used when setting up development environment and test fixtures, related to contracts and ethereum
+  """
+
   alias OmiseGO.Eth.WaitFor, as: WaitFor
   import OmiseGO.Eth.Encoding
 
-  @moduledoc """
-  Helpers used in MIX_ENV dev and test
-  """
-
-  def prepare_dev_env, do: do_prepare("dev")
-
-  def prepare_test_env, do: do_prepare("test")
-
-  def do_prepare(env, root_path \\ "./") do
-    {:ok, contract_address, txhash, authority} = prepare_env(root_path)
-    write_conf_file(env, contract_address, txhash, authority)
-    IO.puts(inspect({:ok, contract_address, txhash, authority}))
-  end
-
-  def prepare_env(root_path) do
-    _ = Application.ensure_all_started(:ethereumex)
+  def prepare_env(root_path \\ "./") do
+    {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, authority} = create_and_fund_authority_addr()
-    {_, {txhash, contract_address}} = create_new_contract(root_path, authority)
-    {:ok, contract_address, txhash, authority}
+    {:ok, txhash, contract_address} = create_new_contract(root_path, authority)
+    {:ok, %{contract: contract_address, txhash_contract: txhash, authority_addr: authority}}
   end
 
   def create_conf_file(contract_address, txhash, authority) do
     """
     use Mix.Config
-    # File is automatically generated, don't edit!
-    # To deploy contract and fill values below, run:
-    # mix run --no-start -e 'OmiseGO.Eth.DevHelpers.prepare_dev_env()'
 
     config :omisego_eth,
-    contract: #{inspect(contract_address)},
-    txhash_contract: #{inspect(txhash)},
-    authority_addr: #{inspect(authority)},
-    root_path: "../../"\
+      contract: #{inspect(contract_address)},
+      txhash_contract: #{inspect(txhash)},
+      authority_addr: #{inspect(authority)}
     """
   end
 
@@ -93,18 +79,13 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, _receipt} = WaitFor.eth_receipt(txhash, 4_000)
   end
 
-  defp write_conf_file(mix_env, contract_address, txhash, authority) do
-    {:ok, file} = File.open("apps/omisego_eth/config/#{mix_env}.exs", [:write])
-    IO.puts(file, create_conf_file(contract_address, txhash, authority))
-  end
-
   defp deploy_contract(addr, bytecode, types, args) do
     enc_args = encode_constructor_params(types, args)
     txmap = %{from: addr, data: bytecode <> enc_args, gas: "0x3D0900"}
 
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     {:ok, %{"contractAddress" => contract_address}} = WaitFor.eth_receipt(txhash, 10_000)
-    {txhash, contract_address}
+    {:ok, txhash, contract_address}
   end
 
   def deposit(value, nonce, from \\ nil, contract \\ nil) do
@@ -148,7 +129,7 @@ defmodule OmiseGO.Eth.DevHelpers do
     %{"RootChain" => %{"bytecode" => bytecode}} =
       (path_project_root <> "populus/build/contracts.json") |> File.read!() |> Poison.decode!()
 
-    {addr, deploy_contract(addr, bytecode, [], [])}
+    deploy_contract(addr, bytecode, [], [])
   end
 
   defp encode_constructor_params(args, types) do

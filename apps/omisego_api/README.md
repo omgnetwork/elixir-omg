@@ -20,8 +20,9 @@ For the responsibilities and design of the child chain server see [Tesuji Plasma
 This is an example of how to quickly setup the developer's environment to run the child chain server.
 
 1. For the Ethereum node: `geth --dev --dev.period 2 --rpc --rpcapi personal,web3,eth` gives a disposable private network
-2. For the contract/authority address: (**FIXME** settle for a developer's tool to do that - currently we have `mix run --no-start -e 'OmiseGO.Eth.DevHelpers.prepare_dev_env()'` but it's scheduled for removal)
-3. Setup database and configure `omisego_eth` normally
+2. For the contract/authority address: (`mix run --no-start -e 'IO.inspect OmiseGO.Eth.DevHelpers.prepare_env()'`)
+3. Initialize child chain database normally
+3. Configure `omisego_eth` normally
 4. Next you'll need to create some Alices and Bobs, fund their addresses deposit etc. **FIXME**: this is in `demo_01` - but how do we expose and document this...??
 
 ### Starting the child chain server
