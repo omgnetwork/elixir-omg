@@ -6,14 +6,14 @@ defmodule OmiseGO.Eth.DevHelpers do
   alias OmiseGO.Eth.WaitFor, as: WaitFor
   import OmiseGO.Eth.Encoding
 
-  def prepare_env(root_path \\ "./") do
+  def prepare_env!(root_path \\ "./") do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, authority} = create_and_fund_authority_addr()
     {:ok, txhash, contract_address} = create_new_contract(root_path, authority)
-    {:ok, %{contract: contract_address, txhash_contract: txhash, authority_addr: authority}}
+    %{contract: contract_address, txhash_contract: txhash, authority_addr: authority}
   end
 
-  def create_conf_file(contract_address, txhash, authority) do
+  def create_conf_file(%{contract: contract_address, txhash_contract: txhash, authority_addr: authority}) do
     """
     use Mix.Config
 

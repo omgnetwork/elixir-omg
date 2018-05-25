@@ -12,17 +12,44 @@ For the responsibilities and design of the child chain server see [Tesuji Plasma
 
 1. Provide an Ethereum node connected to the appropriate network
 2. Deploy `RootChain.sol` contract and prepare operator's authority address
-3. Initialize the child chain database (**FIXME** how? this is being changed now from `cd apps/omisego_db; mix run init_db.exs`, should adapt)
-4. Produce a configuration file with `omisego_eth` configured to the contract address, operator (authority) address and hash of contract-deploying transaction (see `omisego_eth/config/config.exs`) (**FIXME** how? this is being changed now, should adapt)
+3. Initialize the child chain database.
+Do that with `mix run --no-start -e 'OmiseGO.DB.init()'`
+4. Produce a configuration file with `omisego_eth` configured to the contract address, operator (authority) address and hash of contract-deploying transaction.
+To do that use the template, filling it with details on the contract:
+
+```
+use Mix.Config
+
+config :omisego_eth,
+  contract: "0x0",
+  authority_addr: "0x0",
+  txhash_contract: "0x0"
+```
 
 #### Setting up (developer's environment)
 
 This is an example of how to quickly setup the developer's environment to run the child chain server.
 
 1. For the Ethereum node: `geth --dev --dev.period 2 --rpc --rpcapi personal,web3,eth` gives a disposable private network
-2. For the contract/authority address: (`mix run --no-start -e 'IO.inspect OmiseGO.Eth.DevHelpers.prepare_env()'`)
-3. Initialize child chain database normally
-3. Configure `omisego_eth` normally
+2. For the contract/authority address: (`mix run --no-start -e 'IO.inspect OmiseGO.Eth.DevHelpers.prepare_env!()'`)
+3. Initialize child chain database normally.
+**NOTE** It will use the default db path always (`~/.omisego/data`) so when running child chain and watcher side by side you need to configure more.
+3. Configure `omisego_eth` normally, using data from `prepare_env!`.
+    You can also shortcut with this little Elixir hocus-pocus:
+
+          mix run --no-start -e \
+            '
+              OmiseGO.Eth.DevHelpers.prepare_env!
+              |> IO.inspect
+              |> OmiseGO.Eth.DevHelpers.create_conf_file
+              |> List.wrap
+              |> Enum.into(File.stream!("your_config_file.exs"))
+            '
+
+    To deploy and prepare environment and create `your_config_file.exs` in one fell swoop.
+
+    You'll need to pass this configuration file to `mix` and `iex -S mix run` invocations with `--config your_config_file.exs` flag
+
 4. Next you'll need to create some Alices and Bobs, fund their addresses deposit etc. **FIXME**: this is in `demo_01` - but how do we expose and document this...??
 
 ### Starting the child chain server

@@ -4,6 +4,8 @@ defmodule OmiseGO.Eth.Fixtures do
   """
   use ExUnitFixtures.FixtureModule
 
+  alias OmiseGO.Eth
+
   deffixture geth do
     Application.ensure_all_started(:erlexec)
     {:ok, exit_fn} = OmiseGO.Eth.dev_geth()
@@ -14,8 +16,8 @@ defmodule OmiseGO.Eth.Fixtures do
   deffixture contract(geth) do
     _ = geth
 
-    {:ok, %{contract: contract_address, txhash_contract: txhash, authority_addr: authority}} =
-      OmiseGO.Eth.DevHelpers.prepare_env("../../")
+    %{contract: contract_address, txhash_contract: txhash, authority_addr: authority} =
+      Eth.DevHelpers.prepare_env!("../../")
 
     %{
       address: contract_address,

@@ -6,12 +6,14 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   use OmiseGO.DB.Fixtures
 
   deffixture config_map(contract) do
-    %{
-      contract: contract,
-      child_block_interval: 1000,
-      ethereum_event_block_finality_margin: 1,
-      ethereum_event_get_deposits_interval_ms: 10
-    }
+    Map.merge(
+      contract,
+      %{
+        child_block_interval: 1000,
+        ethereum_event_block_finality_margin: 1,
+        ethereum_event_get_deposit_interval_ms: 10
+      }
+    )
   end
 
   deffixture child_chain(config_map) do
@@ -21,13 +23,8 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     config_file_path
     |> File.open!([:write])
     |> IO.binwrite("""
-      #{
-      OmiseGO.Eth.DevHelpers.create_conf_file(
-        config_map.contract.address,
-        config_map.contract.txhash,
-        config_map.contract.from
-      )
-    }
+      #{OmiseGO.Eth.DevHelpers.create_conf_file(config_map)}
+
       config :omisego_db,
         leveldb_path: "#{db_path}"
       config :logger, level: :debug
