@@ -13,6 +13,8 @@ defmodule OmiseGO.API.BlockQueue do
   alias OmiseGO.API.BlockQueue.Core, as: Core
   alias OmiseGO.Eth.BlockSubmission
 
+  require Logger
+
   @type eth_height() :: non_neg_integer()
   @type hash() :: BlockSubmission.hash()
   @type plasma_block_num() :: BlockSubmission.plasma_block_num()
@@ -58,6 +60,13 @@ defmodule OmiseGO.API.BlockQueue do
              {:ok, mined_num} <- Eth.get_mined_child_block(),
              {:ok, parent_start} <- Eth.get_root_deployment_height(),
              {:ok, stored_child_top_num} <- OmiseGO.DB.child_top_block_number(),
+             _ =
+               Logger.info(fn ->
+                 """
+                 Starting BlockQueue at parent_height: #{parent_height}, mined_child_block: #{mined_num}
+                                        parent_start: #{parent_start}, stored_child_tob_block: #{stored_child_top_num}
+                 """
+               end),
              range <- Core.child_block_nums_to_init_with(stored_child_top_num),
              # TODO: taking all stored hashes now. While still being feasible DB-wise ("just" many hashes)
              #       it might be prohibitive, if we create BlockSubmissions out of the unfiltered batch
@@ -121,12 +130,20 @@ defmodule OmiseGO.API.BlockQueue do
     defp submit_blocks(state) do
       state
       |> Core.get_blocks_to_submit()
-      |> Enum.each(fn submission ->
-        case OmiseGO.Eth.submit_block(submission) do
-          {:ok, _txhash} -> :ok
-          {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} -> :ok
-        end
-      end)
+      |> Enum.each(&submit/1)
+    end
+
+    defp submit(submission) do
+      _ = Logger.info(fn -> "Submitting: #{inspect(submission)}" end)
+
+      case OmiseGO.Eth.submit_block(submission) do
+        {:ok, txhash} ->
+          _ = Logger.info(fn -> "Submitted at: #{inspect(txhash)}" end)
+          :ok
+
+        {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} ->
+          :ok
+      end
     end
   end
 end
