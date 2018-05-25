@@ -118,7 +118,7 @@ defmodule OmiseGO.EthTest do
       utxo_pos: utxo_pos,
       tx_bytes: tx_bytes,
       proof: proof
-    } = UtxoDB.compose_utxo_exit(txs, 1000, 0, 0)
+    } = UtxoDB.compose_utxo_exit(txs, 1000*1000000000, 0, 0)
 
     sigs = singed_tx.sig1 <> singed_tx.sig2
 
@@ -132,7 +132,7 @@ defmodule OmiseGO.EthTest do
 
     IO.inspect height
 
-    IO.inspect Eth.get_exit(1000* 1000000000, contract.address)
+    IO.inspect Eth.get_exit(1000 * 1000000000, contract.address)
     IO.inspect Eth.get_exits(1, height, contract.address)
   IO.inspect Eth.get_current_child_block(contract.address)
   end
