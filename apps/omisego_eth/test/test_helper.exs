@@ -1,5 +1,4 @@
 ExUnit.configure(exclude: [integration: true])
 ExUnitFixtures.start()
-Code.require_file("../../fixtures/geth/fixtures.exs")
 ExUnitFixtures.load_fixture_files()
 ExUnit.start()
