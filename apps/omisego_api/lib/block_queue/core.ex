@@ -143,6 +143,41 @@ defmodule OmiseGO.API.BlockQueue.Core do
     %{state | gas_price_to_use: price}
   end
 
+  # TODO: add doc & spec
+  @doc """
+  ...
+  """
+  # spec ...
+  def adjust_gas_price(%Core{parent_height: nil} = state), do: state
+
+  def adjust_gas_price(%Core{gas_price_adj_params: %GasPriceParams{last_block_mined: nil}} = state) do
+    # initializes last block mined
+    %__MODULE__{
+      gas_price_adj_params: %GasPriceParams{
+        last_block_mined: {state.parent_height, state.mined_child_block_num}
+      }
+    }
+  end
+
+  def adjust_gas_price(
+        %Core{
+          parent_height: parent_height,
+          gas_price_adj_params: %GasPriceParams{last_block_mined: {last_parent_height, _mined_block_num}}
+        } = state
+      )
+      when parent_height == last_parent_height,
+      do: state
+
+  def adjust_gas_price(%Core{} = state) do
+    gas_params = state.gas_price_adj_params
+    {_lastechecked_parent_height, lastchecked_mined_block_num} = gas_params.last_block_mined
+    are_blocks_mined = new_blocks_mined?(state.mined_child_block_num, lastchecked_mined_block_num)
+
+    new_gas_price = calculate_gas_price(state)
+
+    state
+  end
+
   @doc """
   Calculates the gas price basing on simple strategy to raise the gas price by gas_price_raising_factor
   when blocks queue is growing and droping the price by gas_price_lowering_factor when queue is short
@@ -152,22 +187,39 @@ defmodule OmiseGO.API.BlockQueue.Core do
         formed_child_block_num: formed_child_block_num,
         mined_child_block_num: mined_child_block_num,
         gas_price_to_use: gas_price_to_use,
+        parent_height: parent_height,
         gas_price_adj_params: %GasPriceParams{
-          queue_length_when_raising: queue_length_when_raising,
           gas_price_lowering_factor: gas_price_lowering_factor,
-          gas_price_raising_factor: gas_price_raising_factor
+          gas_price_raising_factor: gas_price_raising_factor,
+          eth_gap_without_child_blocks: eth_gap_without_child_blocks,
+          last_block_mined: {lastchecked_parent_height, lastchecked_mined_block_num}
         }
       }) do
     multiplier =
-      case formed_child_block_num - mined_child_block_num do
-        queue_length when queue_length < queue_length_when_raising ->
-          gas_price_lowering_factor
-
-        _ ->
-          gas_price_raising_factor
+      with true <- blocks_needs_be_mined?(formed_child_block_num, mined_child_block_num),
+           true <- eth_blocks_gap_filled?(parent_height, lastchecked_parent_height, eth_gap_without_child_blocks),
+           false <- new_blocks_mined?(mined_child_block_num, lastchecked_mined_block_num) do
+        gas_price_raising_factor
+      else
+        _ -> gas_price_lowering_factor
       end
 
     Kernel.round(multiplier * gas_price_to_use)
+  end
+
+  defp blocks_needs_be_mined?(formed_child_block_num, mined_child_block_num) do
+    formed_child_block_num > mined_child_block_num
+  end
+
+  defp eth_blocks_gap_filled?(parent_height, last_height, eth_gap_without_child_blocks) do
+    parent_height - last_height >= eth_gap_without_child_blocks
+  end
+
+  defp new_blocks_mined?(mined_child_block_num, last_mined_block_num) do
+    mined_child_block_num > last_mined_block_num
+  end
+
+  def update_last_checked_mined_block_num() do
   end
 
   @doc """

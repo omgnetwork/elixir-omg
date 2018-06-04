@@ -323,16 +323,25 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
   end
 
   describe "Adjusting gas price" do
-    test "Lower gas price when queue is short. New gas price is rounded to closest integer" do
+    alias OmiseGO.API.BlockQueue.Core, as: State
+
+    test "Lower gas price when eth blocks gap isn't filled. New gas price is rounded to closest integer" do
       lowering_factor = 0.5
       gas_price = 11
       expected = 6
 
+      gas_params =
+        %GasPriceParams{
+          eth_gap_without_child_blocks: 3,
+          gas_price_lowering_factor: lowering_factor}
+        |> GasPriceParams.with(1, 1000)
+
       state =
         state_with_gas_params(
-          %GasPriceParams{gas_price_lowering_factor: lowering_factor},
-          formed_child_block_num: 2,
-          mined_child_block_num: 2
+          gas_params,
+          parent_height: 3,
+          formed_child_block_num: 1000,
+          mined_child_block_num: 1000
         )
 
       actual =
@@ -343,16 +352,23 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       assert actual == expected
     end
 
-    test "Raise gas price when queue grows. New gas price is rounded to closest integer" do
+    test "Raise gas price when eth blocks gap is filled. New gas price is rounded to closest integer" do
       raising_factor = 3
       gas_price = 5.5
       expected = 17
 
+      gas_params =
+        %GasPriceParams{
+          eth_gap_without_child_blocks: 2,
+          gas_price_raising_factor: raising_factor}
+        |> GasPriceParams.with(1, 1000)
+
       state =
         state_with_gas_params(
-          %GasPriceParams{gas_price_raising_factor: raising_factor},
-          formed_child_block_num: 10,
-          mined_child_block_num: 0
+          gas_params,
+          parent_height: 3,
+          formed_child_block_num: 5000,
+          mined_child_block_num: 1000
         )
 
       actual =
@@ -363,14 +379,21 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       assert actual == expected
     end
 
-    test "Lower gas price when queue length is lower than queue_length_when_raising param" do
+    test "Lower gas price when eth blocks gap is filled but blocks were mined since last check" do
       gas_price = 10
+
+      gas_params = GasPriceParams.with(
+        %GasPriceParams{
+          eth_gap_without_child_blocks: 2},
+          2,
+          3000)
 
       state =
         state_with_gas_params(
-          %GasPriceParams{queue_length_when_raising: 5},
-          formed_child_block_num: 4,
-          mined_child_block_num: 0
+          gas_params,
+          parent_height: 6,
+          formed_child_block_num: 5000,
+          mined_child_block_num: 4000
         )
 
       actual =
@@ -381,31 +404,20 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       assert actual < gas_price
     end
 
-    test "Raise gas price when queue length is (or above) gas_price_raise_min_queue_length param" do
-      gas_price = 1
-
-      state =
-        state_with_gas_params(
-          %GasPriceParams{queue_length_when_raising: 4},
-          formed_child_block_num: 4,
-          mined_child_block_num: 0
-        )
-
-      actual =
-        state
-        |> set_gas_price(gas_price)
-        |> calculate_gas_price()
-
-      assert actual > gas_price
-    end
-
     test "Aplling gas price calculation several times return correct result" do
       start_gas_price = 25
-      gas_price_params = GasPriceParams.new(1.7, 0.7)
+      gas_price_params = GasPriceParams.with(GasPriceParams.new(1.7, 0.7), 1, 1000)
+
       # raise by 1.7 then lower by 0.7
       expected = Kernel.round(0.7 * Kernel.round(1.7 * start_gas_price))
 
-      state1 = state_with_gas_params(gas_price_params, formed_child_block_num: 4, mined_child_block_num: 0)
+      state1 =
+        state_with_gas_params(
+          gas_price_params,
+          parent_height: 5,
+          formed_child_block_num: 4000,
+          mined_child_block_num: 1000
+        )
 
       dumped_gas_price =
         state1
@@ -414,7 +426,13 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
 
       assert dumped_gas_price > start_gas_price
 
-      state2 = state_with_gas_params(gas_price_params, [])
+      state2 =
+        state_with_gas_params(
+          GasPriceParams.with(gas_price_params, 5, 4000),
+          parent_height: 6,
+          formed_child_block_num: 7000,
+          mined_child_block_num: 5000
+        )
 
       final_price =
         state2
@@ -422,6 +440,59 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         |> calculate_gas_price()
 
       assert expected == final_price
+    end
+
+    test "adjust_gas_price won't change gas price params if eth height not set" do
+      state = %State{empty() | parent_height: nil}
+
+      newstate = state |> adjust_gas_price()
+
+      assert match?(%State{parent_height: nil, gas_price_adj_params: %GasPriceParams{last_block_mined: nil}}, newstate)
+    end
+
+    test "adjust_gas_price initializes gas price params if not set before" do
+      state = empty()
+      expected = {state.parent_height, state.mined_child_block_num}
+
+      newstate = state |> adjust_gas_price()
+
+      assert match?(expected, newstate.gas_price_adj_params)
+    end
+
+    test "adjust_gas_price won't change gas price params if there is no new eth blocks" do
+      state = %State{
+        empty()
+        | parent_height: 210,
+          gas_price_adj_params: %GasPriceParams{last_block_mined: {210, 1000}}
+      }
+
+      newstate = state |> adjust_gas_price()
+
+      assert state == newstate
+    end
+
+    test "adjust_gas_price adjusts gas price parameters into the state" do
+      state = %State{empty() | parent_height: 210, gas_price_adj_params: %GasPriceParams{last_block_mined: {200, 1000}}}
+      expected_gas_price = calculate_gas_price(state)
+
+      newstate = state |> adjust_gas_price()
+
+      assert expected_gas_price == newstate.gas_price_to_use
+    end
+
+    test "adjust_gas_price updates last checked information in the state" do
+      state = %State{
+        empty()
+        | parent_height: 211,
+          formed_child_block_num: 7000,
+          mined_child_block_num: 5000,
+          gas_price_adj_params: %GasPriceParams{last_block_mined: {210, 4000}}
+      }
+
+      newstate = state |> adjust_gas_price()
+
+      assert state.gas_price_to_use > newstate.gas_price_to_use
+      assert {211, 5000} == newstate.gas_price_adj_params.last_block_mined
     end
   end
 end
