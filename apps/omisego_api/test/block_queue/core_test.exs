@@ -4,8 +4,6 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
   use ExUnit.Case, async: true
 
   import OmiseGO.API.BlockQueue.Core
-  alias OmiseGO.Eth.BlockSubmission
-  alias OmiseGO.API.BlockQueue.GasPriceAdjustmentStrategyParams, as: GasPriceParams
 
   @moduletag :blockqueue
 
@@ -273,7 +271,6 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                |> hashes()
     end
 
-    @tag :wuuj
     test "Old blocks are GCd, but only after they're mined" do
       long_length = 10_000
       short_length = 100
@@ -290,232 +287,122 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
 
       assert_in_delta(long_mined_size / short_size, 1, 0.2)
     end
-
-    test "Pending tx can be resubmitted with new gas price" do
-      {_, queue, _, _} =
-        empty()
-        |> set_mined(0)
-        |> set_gas_price(1)
-        |> enqueue_block("1")
-        |> enqueue_block("2")
-        |> set_ethereum_height(5)
-
-      blocks = get_blocks_to_submit(queue)
-      assert %BlockSubmission{gas_price: 1} = hd(blocks)
-
-      blocks2 =
-        queue
-        |> set_gas_price(555)
-        |> get_blocks_to_submit()
-
-      assert %BlockSubmission{gas_price: 555} = hd(blocks2)
-      assert length(blocks) == length(blocks2)
-    end
   end
 
-  defp state_with_gas_params(gas_params, keyword_list) do
-    state = empty() |> Map.merge(keyword_list |> Map.new())
-    %{state | gas_price_adj_params: gas_params}
+  defp empty_with_gas_params do
+    state = %{empty() |
+      formed_child_block_num: 5,
+      mined_child_block_num: 3,
+      gas_price_to_use: 100}
+
+    {:dont_form_block, state} =
+        state
+        |> set_ethereum_height(1)
+
+    # assertions - to be explicit how state looks like
+    assert {1, 3} = state.gas_price_adj_params.last_block_mined
+
+    state
   end
 
   describe "Adjusting gas price" do
-    alias OmiseGO.API.BlockQueue.Core, as: State
+    test "Calling with empty state will initailize gas information" do
+      {:dont_form_block, state} =
+        empty()
+        |> set_ethereum_height(1)
 
-    test "Lower gas price when eth blocks gap isn't filled. New gas price is rounded to closest integer" do
-      lowering_factor = 0.5
-      gas_price = 11
-      expected = 6
+      gas_params = state.gas_price_adj_params
+      assert gas_params != nil
+      assert {1, 0} == gas_params.last_block_mined
+    end
 
+    test "Calling with current ethereum height doesn't change the gas params" do
+      state = empty_with_gas_params()
+
+      current_height = state.parent_height
+      current_price = state.gas_price_to_use
+      current_params = state.gas_price_adj_params
+
+      {:dont_form_block, newstate} =
+        state
+        |> set_ethereum_height(1)
+
+      assert current_height == newstate.parent_height
+      assert current_price == newstate.gas_price_to_use
+      assert current_params == newstate.gas_price_adj_params
+    end
+
+    test "Gas price is lowered when ethereum gas isn't filled" do
+      state = empty_with_gas_params()
+      current_price = state.gas_price_to_use
+
+      {:do_form_block, newstate, _, _} =
+        state
+        |> set_ethereum_height(2)
+
+      assert current_price > newstate.gas_price_to_use
+
+      # assert the actual gas price based on parameters value - test could fail if params or calculation will change
+      assert 90 == newstate.gas_price_to_use
+    end
+
+    test "Gas price is raised when ethereum gas is filled" do
+      state = empty_with_gas_params()
+      current_price = state.gas_price_to_use
+      eth_gap = state.gas_price_adj_params.eth_gap_without_child_blocks
+
+      {:do_form_block, newstate, _, _} =
+        state
+        |> set_ethereum_height(1 + eth_gap)
+
+      assert current_price < newstate.gas_price_to_use
+
+      # assert the actual gas price based on parameters value - test could fail if params or calculation will change
+      assert 200 == newstate.gas_price_to_use
+    end
+
+    test "Gas price is lowered and then raised when ethereum gas gets filled" do
+      state = empty_with_gas_params()
       gas_params =
-        %GasPriceParams{eth_gap_without_child_blocks: 3, gas_price_lowering_factor: lowering_factor}
-        |> GasPriceParams.with(1, 1000)
+        %{state.gas_price_adj_params | eth_gap_without_child_blocks: 3}
+      state1 = %{state | gas_price_adj_params: gas_params}
 
-      state =
-        state_with_gas_params(
-          gas_params,
-          parent_height: 3,
-          formed_child_block_num: 1000,
-          mined_child_block_num: 1000
-        )
-
-      actual =
-        state
-        |> set_gas_price(gas_price)
-        |> calculate_gas_price()
-
-      assert actual == expected
-    end
-
-    test "Raise gas price when eth blocks gap is filled. New gas price is rounded to closest integer" do
-      raising_factor = 3
-      gas_price = 5.5
-      expected = 17
-
-      gas_params =
-        %GasPriceParams{eth_gap_without_child_blocks: 2, gas_price_raising_factor: raising_factor}
-        |> GasPriceParams.with(1, 1000)
-
-      state =
-        state_with_gas_params(
-          gas_params,
-          parent_height: 3,
-          formed_child_block_num: 5000,
-          mined_child_block_num: 1000
-        )
-
-      actual =
-        state
-        |> set_gas_price(gas_price)
-        |> calculate_gas_price()
-
-      assert actual == expected
-    end
-
-    test "Lower gas price when eth blocks gap is filled but blocks were mined since last check" do
-      gas_price = 10
-
-      gas_params = GasPriceParams.with(%GasPriceParams{eth_gap_without_child_blocks: 2}, 2, 3000)
-
-      state =
-        state_with_gas_params(
-          gas_params,
-          parent_height: 6,
-          formed_child_block_num: 5000,
-          mined_child_block_num: 4000
-        )
-
-      actual =
-        state
-        |> set_gas_price(gas_price)
-        |> calculate_gas_price()
-
-      assert actual < gas_price
-    end
-
-    test "Gas price cannot be raised indefinitely and is limited by parameter" do
-      gas_params = GasPriceParams.with(%GasPriceParams{}, 1, 1000)
-
-      state =
-        state_with_gas_params(
-          gas_params,
-          parent_height: 3,
-          formed_child_block_num: 2000,
-          mined_child_block_num: 1000
-        )
-
-      doubled_price =
-        state
-        |> set_gas_price(10)
-        |> calculate_gas_price()
-
-      assert doubled_price == 20
-
-      # setting limit
-      new_state = %{state | gas_price_adj_params: %{gas_params | max_gas_price: 15}}
-
-      limited_price =
-        new_state
-        |> set_gas_price(11)
-        |> calculate_gas_price()
-
-      assert limited_price == 15
-    end
-
-    test "Aplling gas price calculation several times return correct result" do
-      start_gas_price = 25
-      gas_price_params = GasPriceParams.with(GasPriceParams.new(1.7, 0.7), 1, 1000)
-
-      # raise by 1.7 then lower by 0.7
-      expected = Kernel.round(0.7 * Kernel.round(1.7 * start_gas_price))
-
-      state1 =
-        state_with_gas_params(
-          gas_price_params,
-          parent_height: 5,
-          formed_child_block_num: 4000,
-          mined_child_block_num: 1000
-        )
-
-      dumped_gas_price =
+      {:do_form_block, state2, _, _} =
         state1
-        |> set_gas_price(start_gas_price)
-        |> calculate_gas_price()
+        |> set_ethereum_height(2)
 
-      assert dumped_gas_price > start_gas_price
+      assert state.gas_price_to_use > state2.gas_price_to_use
 
-      state2 =
-        state_with_gas_params(
-          GasPriceParams.with(gas_price_params, 5, 4000),
-          parent_height: 6,
-          formed_child_block_num: 7000,
-          mined_child_block_num: 5000
-        )
-
-      final_price =
+      {:dont_form_block, state3} =
         state2
-        |> set_gas_price(dumped_gas_price)
-        |> calculate_gas_price()
+        |> set_ethereum_height(3)
 
-      assert expected == final_price
+      assert state2.gas_price_to_use > state3.gas_price_to_use
+
+      # Now the ethereum block gap without child blocks is reached
+      {:dont_form_block, state4} =
+        state2
+        |> set_ethereum_height(4)
+
+      assert state3.gas_price_to_use < state4.gas_price_to_use
     end
 
-    test "adjust_gas_price won't change gas price params if eth height not set" do
-      state = %State{empty() | parent_height: nil}
-
-      newstate = state |> adjust_gas_price()
-
-      assert match?(%State{parent_height: nil, gas_price_adj_params: %GasPriceParams{last_block_mined: nil}}, newstate)
-    end
-
-    test "adjust_gas_price initializes gas price params if not set before" do
-      state = empty()
-
-      newstate = state |> adjust_gas_price()
-
-      assert {state.parent_height, state.mined_child_block_num} == newstate.gas_price_adj_params.last_block_mined
-    end
-
-    test "adjust_gas_price won't change gas price params if there is no new eth blocks" do
-      state = %State{
-        empty()
-        | parent_height: 210,
-          gas_price_adj_params: %GasPriceParams{last_block_mined: {210, 1000}}
+    test "Gas price calculation cannot be raised above limit" do
+      state = empty_with_gas_params()
+      expected_max_price = 5 * state.gas_price_to_use
+      gas_params =
+        %{state.gas_price_adj_params |
+          gas_price_raising_factor: 10,
+          max_gas_price: expected_max_price
       }
+      state1 = %{state | gas_price_adj_params: gas_params}
+      eth_gap = state1.gas_price_adj_params.eth_gap_without_child_blocks
 
-      newstate = state |> adjust_gas_price()
+      {:do_form_block, newstate, _, _} =
+        state1
+        |> set_ethereum_height(1 + eth_gap)
 
-      assert state == newstate
-    end
-
-    test "adjust_gas_price adjusts gas price parameters into the state" do
-      state = %State{empty() | parent_height: 210, gas_price_adj_params: %GasPriceParams{last_block_mined: {200, 1000}}}
-      expected_gas_price = calculate_gas_price(state)
-
-      newstate = state |> adjust_gas_price()
-
-      assert expected_gas_price == newstate.gas_price_to_use
-    end
-
-    test "adjust_gas_price updates last checked information in the state" do
-      state = %State{
-        empty()
-        | parent_height: 211,
-          formed_child_block_num: 7000,
-          mined_child_block_num: 5000,
-          gas_price_adj_params: %GasPriceParams{last_block_mined: {210, 4000}}
-      }
-
-      newstate = state |> adjust_gas_price()
-
-      assert state.gas_price_to_use > newstate.gas_price_to_use
-      assert {211, 5000} == newstate.gas_price_adj_params.last_block_mined
-    end
-
-    test "set_ethereum_height is calling adjust_gas_price with the state with new parent_height field set" do
-      state = empty()
-      {:do_form_block, newstate, _, _} = state |> set_ethereum_height(state.parent_height + 1)
-
-      assert {state.parent_height + 1, state.mined_child_block_num} == newstate.gas_price_adj_params.last_block_mined
+      assert expected_max_price == newstate.gas_price_to_use
     end
   end
 end

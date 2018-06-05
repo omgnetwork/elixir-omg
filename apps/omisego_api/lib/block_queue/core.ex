@@ -134,28 +134,17 @@ defmodule OmiseGO.API.BlockQueue.Core do
     end
   end
 
-  @doc """
-  Change gas price for tx sent in future. This includes all re-submissions.
-
-  Allows to react to changes of Ethereum mempool utilization.
-  """
-  def set_gas_price(state, price) do
-    %{state | gas_price_to_use: price}
-  end
-
-  @doc """
-  Updates gas price to use basing on :calculate_gas_price function, updates current parent height
-  and last mined child block number in the state which used by gas price calculations
-  """
+  # Updates gas price to use basing on :calculate_gas_price function, updates current parent height
+  # and last mined child block number in the state which used by gas price calculations
   @spec adjust_gas_price(Core.t()) :: Core.t()
-  def adjust_gas_price(%Core{parent_height: nil} = state), do: state
+  defp adjust_gas_price(%Core{parent_height: nil} = state), do: state
 
-  def adjust_gas_price(%Core{gas_price_adj_params: %GasPriceParams{last_block_mined: nil} = gas_params} = state) do
+  defp adjust_gas_price(%Core{gas_price_adj_params: %GasPriceParams{last_block_mined: nil} = gas_params} = state) do
     # initializes last block mined
     %{state | gas_price_adj_params: GasPriceParams.with(gas_params, state.parent_height, state.mined_child_block_num)}
   end
 
-  def adjust_gas_price(
+  defp adjust_gas_price(
         %Core{
           parent_height: parent_height,
           gas_price_adj_params: %GasPriceParams{last_block_mined: {last_parent_height, _mined_block_num}}
@@ -164,7 +153,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
       when parent_height == last_parent_height,
       do: state
 
-  def adjust_gas_price(%Core{} = state) do
+  defp adjust_gas_price(%Core{} = state) do
     new_gas_price = calculate_gas_price(state)
 
     state
@@ -172,12 +161,10 @@ defmodule OmiseGO.API.BlockQueue.Core do
     |> update_last_checked_mined_block_num()
   end
 
-  @doc """
-  Calculates the gas price basing on simple strategy to raise the gas price by gas_price_raising_factor
-  when gap of mined parent blocks is growing and droping the price by gas_price_lowering_factor otherwise
-  """
+  # Calculates the gas price basing on simple strategy to raise the gas price by gas_price_raising_factor
+  # when gap of mined parent blocks is growing and droping the price by gas_price_lowering_factor otherwise
   @spec calculate_gas_price(Core.t()) :: pos_integer()
-  def calculate_gas_price(%Core{
+  defp calculate_gas_price(%Core{
         formed_child_block_num: formed_child_block_num,
         mined_child_block_num: mined_child_block_num,
         gas_price_to_use: gas_price_to_use,
@@ -205,11 +192,9 @@ defmodule OmiseGO.API.BlockQueue.Core do
     )
   end
 
-  @doc """
-  Updates the state with information about last parent height and mined child block number
-  """
+  # Updates the state with information about last parent height and mined child block number
   @spec update_last_checked_mined_block_num(Core.t()) :: Core.t()
-  def update_last_checked_mined_block_num(
+  defp update_last_checked_mined_block_num(
         %Core{
           parent_height: parent_height,
           mined_child_block_num: mined_child_block_num,
@@ -238,6 +223,10 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
   defp new_blocks_mined?(mined_child_block_num, last_mined_block_num) do
     mined_child_block_num > last_mined_block_num
+  end
+
+  defp set_gas_price(state, price) do
+    %{state | gas_price_to_use: price}
   end
 
   @doc """
