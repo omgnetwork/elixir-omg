@@ -9,7 +9,7 @@ defmodule OmiseGOWatcher.BlockGetter do
 
   @dialyzer {:nowarn_function, get_block: 2}
   @spec get_block(pos_integer(), Eth.contract_t()) :: {:ok, Block.t()} | {:error, :get_block}
-  def get_block(number, contract) do #errror
+  def get_block(number, contract) do
     with {:ok, {hash, _time}} <- Eth.get_child_chain(number, contract),
          {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: hash}) do
       {:ok, %Block{}} = BlockValidator.json_to_block(json_block, number)
@@ -79,7 +79,7 @@ defmodule OmiseGOWatcher.BlockGetter do
               {:ok, block_number}
 
             error ->
-              {:ok,_} = Task.shutdown(task, :brutal_kill)
+              {:ok, _} = Task.shutdown(task, :brutal_kill)
               error
           end
         end)
