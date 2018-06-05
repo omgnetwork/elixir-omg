@@ -22,7 +22,6 @@ podTemplate(
 
         stage('Build') {
             sh("mix do local.hex --force, local.rebar --force")
-            sh("apt-get install -y libgmp3-dev")
             withEnv(["MIX_ENV=test"]) {
                 sh("mix do deps.get, deps.compile, compile")
             }
