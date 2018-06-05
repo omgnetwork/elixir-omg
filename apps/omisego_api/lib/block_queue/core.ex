@@ -143,21 +143,16 @@ defmodule OmiseGO.API.BlockQueue.Core do
     %{state | gas_price_to_use: price}
   end
 
-  # TODO: add doc & spec
   @doc """
-  ...
+  Updates gas price to use basing on :calculate_gas_price function, updates current parent height
+  and last mined child block number in the state which used by gas price calculations
   """
-  # spec ...
+  @spec adjust_gas_price(Core.t()) :: Core.t()
   def adjust_gas_price(%Core{parent_height: nil} = state), do: state
 
   def adjust_gas_price(%Core{gas_price_adj_params: %GasPriceParams{last_block_mined: nil} = gas_params} = state) do
     # initializes last block mined
-    %{state
-      | gas_price_adj_params: GasPriceParams.with(
-          gas_params,
-          state.parent_height,
-          state.mined_child_block_num)
-    }
+    %{state | gas_price_adj_params: GasPriceParams.with(gas_params, state.parent_height, state.mined_child_block_num)}
   end
 
   def adjust_gas_price(
@@ -173,8 +168,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
     new_gas_price = calculate_gas_price(state)
 
     state
-      |> set_gas_price(new_gas_price)
-      |> update_last_checked_mined_block_num()
+    |> set_gas_price(new_gas_price)
+    |> update_last_checked_mined_block_num()
   end
 
   @doc """

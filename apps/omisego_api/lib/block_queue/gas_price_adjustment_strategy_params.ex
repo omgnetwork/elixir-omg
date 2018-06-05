@@ -16,6 +16,8 @@ defmodule OmiseGO.API.BlockQueue.GasPriceAdjustmentStrategyParams do
           gas_price_lowering_factor: float(),
           # the factor the gas price will be increased by
           gas_price_raising_factor: float(),
+          # maximum gas price above which raising has no effect
+          max_gas_price: pos_integer(),
           # remembers ethereum height and last child block mined
           last_block_mined: tuple()
         }

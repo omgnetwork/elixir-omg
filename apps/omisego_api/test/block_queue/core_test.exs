@@ -393,10 +393,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     end
 
     test "Gas price cannot be raised indefinitely and is limited by parameter" do
-      gas_params = GasPriceParams.with(
-        %GasPriceParams{},
-        1,
-        1000)
+      gas_params = GasPriceParams.with(%GasPriceParams{}, 1, 1000)
 
       state =
         state_with_gas_params(
@@ -414,12 +411,10 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       assert doubled_price == 20
 
       # setting limit
-      new_state = %{state
-        | gas_price_adj_params: %{gas_params | max_gas_price: 15}
-      }
+      new_state = %{state | gas_price_adj_params: %{gas_params | max_gas_price: 15}}
 
       limited_price =
-      new_state
+        new_state
         |> set_gas_price(11)
         |> calculate_gas_price()
 
