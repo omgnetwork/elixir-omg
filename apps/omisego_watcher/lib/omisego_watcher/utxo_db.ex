@@ -67,14 +67,13 @@ defmodule OmiseGOWatcher.UtxoDB do
     {remove_from.(transaction, 1), remove_from.(transaction, 2)}
   end
 
-  def consume_block(%Block{transactions: transactions}, block_number) do
+  def consume_block(%Block{transactions: transactions, number: block_number}) do
     numbered_transactions = Stream.with_index(transactions)
 
     numbered_transactions
-    |> Stream.map(fn {%Signed{} = signed, txindex} ->
+    |> Enum.map(fn {%Signed{} = signed, txindex} ->
       {remove_utxo(signed), consume_transaction(signed, txindex, block_number)}
     end)
-    |> Enum.to_list()
   end
 
   @spec insert_deposits([

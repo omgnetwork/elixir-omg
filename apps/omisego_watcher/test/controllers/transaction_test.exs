@@ -52,9 +52,9 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
           transactions: [
             signed_tx_1,
             signed_tx_2
-          ]
-        },
-        txblknum
+          ],
+          number: txblknum
+        }
       )
 
     expected_transaction_1 = create_expected_transaction(txid_1, signed_tx_1, txblknum, 0)

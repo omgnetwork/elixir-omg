@@ -36,9 +36,9 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
           transactions: [
             @empty |> Map.merge(%{newowner1: "McDuck", amount1: 1947}) |> signed,
             @empty |> Map.merge(%{newowner1: "McDuck", amount1: 1952}) |> signed
-          ]
-        },
-        2
+          ],
+          number: 2
+        }
       )
 
       %{"utxos" => [%{"amount" => amount1}, %{"amount" => amount2}]} = get_utxo("McDuck")
@@ -53,9 +53,9 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
           transactions: [
             @empty |> Map.merge(%{newowner1: "Ebenezer", amount1: 1843}) |> signed,
             @empty |> Map.merge(%{newowner1: "Matilda", amount1: 1871}) |> signed
-          ]
-        },
-        1
+          ],
+          number: 1
+        }
       )
 
       %{"utxos" => [%{"amount" => 1871}]} = get_utxo("Matilda")
@@ -72,9 +72,9 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
               oindex1: 0
             })
             |> signed
-          ]
-        },
-        2
+          ],
+          number: 2
+        }
       )
 
       %{"utxos" => [%{"amount" => 1000}]} = get_utxo("McDuck")
@@ -109,9 +109,9 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
             @empty
             |> Map.merge(spent)
             |> signed
-          ]
-        },
-        2
+          ],
+          number: 2
+        }
       )
 
       assert %{"utxos" => []} = get_utxo("Leon")
