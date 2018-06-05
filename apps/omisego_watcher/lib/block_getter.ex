@@ -7,19 +7,28 @@ defmodule OmiseGOWatcher.BlockGetter do
   alias OmiseGO.API.Block
   alias OmiseGO.Eth
 
-  defp ask_for_block(from, to, contract) when from <= to do
-    with {:ok, {hash, _time}} <- Eth.get_child_chain(from, contract),
-         {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: hash}),
-         {:ok, %Block{} = block} <- BlockValidator.json_to_block(json_block, from) do
-      UtxoDB.consume_block(block, from)
-      OmiseGOWatcher.TransactionDB.insert(block, from)
-      ask_for_block(from + Application.get_env(:omisego_eth, :child_block_interval), to, contract)
+  @dialyzer {:nowarn_function, get_block: 2}
+  @spec get_block(pos_integer(), Eth.contract_t()) :: {:ok, Block.t()} | {:error, :get_block}
+  def get_block(number, contract) do #errror
+    with {:ok, {hash, _time}} <- Eth.get_child_chain(number, contract),
+         {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: hash}) do
+      {:ok, %Block{}} = BlockValidator.json_to_block(json_block, number)
     else
-      _ -> {:error, from - 1_000}
+      _ -> {:error, :get_block}
     end
   end
 
-  defp ask_for_block(_, to, _), do: {:ok, to}
+  @dialyzer {:nowarn_function, get_blocks_async: 3}
+  def get_blocks_async(from, to, contract) do
+    blocks_numbers = :lists.seq(from, to, Application.get_env(:omisego_eth, :child_block_interval))
+    blocks_numbers |> Enum.map(&Task.async(fn -> {&1, get_block(&1, contract)} end))
+  end
+
+  def consume_block(%Block{} = block) do
+    _ = OmiseGOWatcher.TransactionDB.insert(block)
+    _ = UtxoDB.consume_block(block)
+    :ok
+  end
 
   def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -42,14 +51,38 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:reply, state.child_block_number, state}
   end
 
-  def handle_info(:check_for_new_block, state) do
-    {:ok, child_block} = OmiseGO.Eth.get_current_child_block(state.contract_address)
+  def get_current_block_number(contract) do
+    {:ok, next_child_block} = OmiseGO.Eth.get_current_child_block(contract)
     child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
-    child_block = child_block - child_block_interval
+    child_block = next_child_block - child_block_interval
+    child_block
+  end
+
+  def handle_info(:check_for_new_block, state) do
+    child_block = get_current_block_number(state.contract_address)
 
     if child_block > state.child_block_number do
-      {_, child_block_number} =
-        ask_for_block(state.child_block_number + child_block_interval, child_block, state.contract_address)
+      blocks_async =
+        get_blocks_async(
+          state.child_block_number + Application.get_env(:omisego_eth, :child_block_interval),
+          child_block,
+          state.contract_address
+        )
+
+      {:ok, child_block_number} =
+        blocks_async
+        |> Enum.reduce({:ok, 0}, fn task, acc ->
+          case acc do
+            {:ok, _} ->
+              {block_number, {:ok, block}} = Task.await(task)
+              consume_block(block)
+              {:ok, block_number}
+
+            error ->
+              {:ok,_} = Task.shutdown(task, :brutal_kill)
+              error
+          end
+        end)
 
       {:ok, _} =
         :timer.send_after(Application.get_env(:omisego_watcher, :get_block_interval), self(), :check_for_new_block)
