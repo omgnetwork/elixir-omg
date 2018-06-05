@@ -184,7 +184,6 @@ defmodule OmiseGO.Performance.SenderServer do
   # TODO: DRY this, used also in omisego_api/test, omisego_eth
   @spec generate_entity() :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
   defp generate_entity do
-    alias OmiseGO.API.Crypto
     {:ok, priv} = Crypto.generate_private_key()
     {:ok, pub} = Crypto.generate_public_key(priv)
     {:ok, addr} = Crypto.generate_address(pub)
