@@ -13,14 +13,9 @@ Function write_conf_file/4 will never be called
 # Blockchain.Transaction.Signature.get_public_key/1 related problems, sender_server.ex:
 Function init/1 has no local return
 The created fun has no local return
-The created fun has no local return
 Function prepare_new_tx/1 has no local return
-The created fun has no local return
 The specification for 'Elixir.OmiseGO.Performance.SenderServer':submit_tx/2 states that the function might also return 'retry' | {'error',_} | {'ok',pos_integer(),pos_integer(),pos_integer()} but the inferred return is none()
 Function submit_tx/2 will never be called
-The created fun has no local return
-The created fun has no local return
-The created fun has no local return
 Invalid type specification for function 'Elixir.OmiseGO.Performance.SenderServer':update_state_with_tx_submission/2. The success typing is ('retry' | {'ok',pos_integer(),pos_integer(),pos_integer()},'Elixir.OmiseGO.Performance.SenderServer':state() | #{'__struct__':='Elixir.OmiseGO.Performance.SenderServer', 'last_tx':=_, 'ntx_to_send':=_, 'seqnum':=_, _=>_}) -> 'Elixir.OmiseGO.Performance.SenderServer':state() | #{'__struct__':='Elixir.OmiseGO.Performance.SenderServer', 'last_tx':=_, 'ntx_to_send':=_, 'seqnum':=_, _=>_}
 Function update_state_with_tx_submission/2 will never be called
 The specification for 'Elixir.OmiseGO.Performance.SenderServer':submit_tx_jsonrpc/1 states that the function might also return {'error',_} | {'ok',map()} but the inferred return is none()
