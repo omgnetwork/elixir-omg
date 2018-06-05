@@ -69,8 +69,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
         child_block_interval: child_block_interval,
         chain_start_parent_height: child_start_parent_height,
         submit_period: submit_period,
-        finality_threshold: finality_threshold,
-        gas_price_adj_params: gas_price_adj_params
+        finality_threshold: finality_threshold
       ) do
     state = %__MODULE__{
       blocks: Map.new(),
@@ -80,7 +79,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
       chain_start_parent_height: child_start_parent_height,
       submit_period: submit_period,
       finality_threshold: finality_threshold,
-      gas_price_adj_params: gas_price_adj_params
+      gas_price_adj_params: %GasPriceParams{}
     }
 
     enqueue_existing_blocks(state, top_mined_hash, known_hashes)
@@ -124,6 +123,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
           {:do_form_block, Core.t(), pos_integer, pos_integer} | {:dont_form_block, Core.t()}
   def set_ethereum_height(%Core{formed_child_block_num: formed_num} = state, parent_height) do
     new_state = %{state | parent_height: parent_height}
+    new_state = adjust_gas_price(new_state)
 
     if should_form_block?(new_state) do
       next_formed_num = formed_num + state.child_block_interval
@@ -150,12 +150,13 @@ defmodule OmiseGO.API.BlockQueue.Core do
   # spec ...
   def adjust_gas_price(%Core{parent_height: nil} = state), do: state
 
-  def adjust_gas_price(%Core{gas_price_adj_params: %GasPriceParams{last_block_mined: nil}} = state) do
+  def adjust_gas_price(%Core{gas_price_adj_params: %GasPriceParams{last_block_mined: nil} = gas_params} = state) do
     # initializes last block mined
-    %__MODULE__{
-      gas_price_adj_params: %GasPriceParams{
-        last_block_mined: {state.parent_height, state.mined_child_block_num}
-      }
+    %{state
+      | gas_price_adj_params: GasPriceParams.with(
+          gas_params,
+          state.parent_height,
+          state.mined_child_block_num)
     }
   end
 
@@ -169,18 +170,16 @@ defmodule OmiseGO.API.BlockQueue.Core do
       do: state
 
   def adjust_gas_price(%Core{} = state) do
-    gas_params = state.gas_price_adj_params
-    {_lastechecked_parent_height, lastchecked_mined_block_num} = gas_params.last_block_mined
-    are_blocks_mined = new_blocks_mined?(state.mined_child_block_num, lastchecked_mined_block_num)
-
     new_gas_price = calculate_gas_price(state)
 
     state
+      |> set_gas_price(new_gas_price)
+      |> update_last_checked_mined_block_num()
   end
 
   @doc """
   Calculates the gas price basing on simple strategy to raise the gas price by gas_price_raising_factor
-  when blocks queue is growing and droping the price by gas_price_lowering_factor when queue is short
+  when gap of mined parent blocks is growing and droping the price by gas_price_lowering_factor otherwise
   """
   @spec calculate_gas_price(Core.t()) :: pos_integer()
   def calculate_gas_price(%Core{
@@ -192,6 +191,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
           gas_price_lowering_factor: gas_price_lowering_factor,
           gas_price_raising_factor: gas_price_raising_factor,
           eth_gap_without_child_blocks: eth_gap_without_child_blocks,
+          max_gas_price: max_gas_price,
           last_block_mined: {lastchecked_parent_height, lastchecked_mined_block_num}
         }
       }) do
@@ -204,7 +204,33 @@ defmodule OmiseGO.API.BlockQueue.Core do
         _ -> gas_price_lowering_factor
       end
 
-    Kernel.round(multiplier * gas_price_to_use)
+    Kernel.min(
+      max_gas_price,
+      Kernel.round(multiplier * gas_price_to_use)
+    )
+  end
+
+  @doc """
+  Updates the state with information about last parent height and mined child block number
+  """
+  @spec update_last_checked_mined_block_num(Core.t()) :: Core.t()
+  def update_last_checked_mined_block_num(
+        %Core{
+          parent_height: parent_height,
+          mined_child_block_num: mined_child_block_num,
+          gas_price_adj_params: %GasPriceParams{
+            last_block_mined: {_lastechecked_parent_height, lastchecked_mined_block_num}
+          }
+        } = state
+      ) do
+    if lastchecked_mined_block_num < mined_child_block_num do
+      %Core{
+        state
+        | gas_price_adj_params: GasPriceParams.with(state.gas_price_adj_params, parent_height, mined_child_block_num)
+      }
+    else
+      state
+    end
   end
 
   defp blocks_needs_be_mined?(formed_child_block_num, mined_child_block_num) do
@@ -217,9 +243,6 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
   defp new_blocks_mined?(mined_child_block_num, last_mined_block_num) do
     mined_child_block_num > last_mined_block_num
-  end
-
-  def update_last_checked_mined_block_num() do
   end
 
   @doc """

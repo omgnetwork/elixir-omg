@@ -23,8 +23,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         child_block_interval: 1000,
         chain_start_parent_height: 1,
         submit_period: 1,
-        finality_threshold: 12,
-        gas_price_adj_params: %GasPriceParams{}
+        finality_threshold: 12
       )
 
     state
@@ -53,8 +52,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       child_block_interval: 1000,
       chain_start_parent_height: 1,
       submit_period: 1,
-      finality_threshold: 12,
-      gas_price_adj_params: %GasPriceParams{}
+      finality_threshold: 12
     )
   end
 
@@ -85,8 +83,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
           child_block_interval: 1000,
           chain_start_parent_height: 1,
           submit_period: 1,
-          finality_threshold: 12,
-          gas_price_adj_params: %GasPriceParams{}
+          finality_threshold: 12
         )
 
       assert [] ==
@@ -105,8 +102,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                  child_block_interval: 1000,
                  chain_start_parent_height: 1,
                  submit_period: 1,
-                 finality_threshold: 12,
-                 gas_price_adj_params: %GasPriceParams{}
+                 finality_threshold: 12
                )
     end
 
@@ -120,8 +116,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                  child_block_interval: 1000,
                  chain_start_parent_height: 1,
                  submit_period: 1,
-                 finality_threshold: 12,
-                 gas_price_adj_params: %GasPriceParams{}
+                 finality_threshold: 12
                )
     end
 
@@ -278,6 +273,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                |> hashes()
     end
 
+    @tag :wuuj
     test "Old blocks are GCd, but only after they're mined" do
       long_length = 10_000
       short_length = 100
@@ -331,9 +327,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       expected = 6
 
       gas_params =
-        %GasPriceParams{
-          eth_gap_without_child_blocks: 3,
-          gas_price_lowering_factor: lowering_factor}
+        %GasPriceParams{eth_gap_without_child_blocks: 3, gas_price_lowering_factor: lowering_factor}
         |> GasPriceParams.with(1, 1000)
 
       state =
@@ -358,9 +352,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       expected = 17
 
       gas_params =
-        %GasPriceParams{
-          eth_gap_without_child_blocks: 2,
-          gas_price_raising_factor: raising_factor}
+        %GasPriceParams{eth_gap_without_child_blocks: 2, gas_price_raising_factor: raising_factor}
         |> GasPriceParams.with(1, 1000)
 
       state =
@@ -382,11 +374,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     test "Lower gas price when eth blocks gap is filled but blocks were mined since last check" do
       gas_price = 10
 
-      gas_params = GasPriceParams.with(
-        %GasPriceParams{
-          eth_gap_without_child_blocks: 2},
-          2,
-          3000)
+      gas_params = GasPriceParams.with(%GasPriceParams{eth_gap_without_child_blocks: 2}, 2, 3000)
 
       state =
         state_with_gas_params(
@@ -402,6 +390,40 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         |> calculate_gas_price()
 
       assert actual < gas_price
+    end
+
+    test "Gas price cannot be raised indefinitely and is limited by parameter" do
+      gas_params = GasPriceParams.with(
+        %GasPriceParams{},
+        1,
+        1000)
+
+      state =
+        state_with_gas_params(
+          gas_params,
+          parent_height: 3,
+          formed_child_block_num: 2000,
+          mined_child_block_num: 1000
+        )
+
+      doubled_price =
+        state
+        |> set_gas_price(10)
+        |> calculate_gas_price()
+
+      assert doubled_price == 20
+
+      # setting limit
+      new_state = %{state
+        | gas_price_adj_params: %{gas_params | max_gas_price: 15}
+      }
+
+      limited_price =
+      new_state
+        |> set_gas_price(11)
+        |> calculate_gas_price()
+
+      assert limited_price == 15
     end
 
     test "Aplling gas price calculation several times return correct result" do
@@ -452,11 +474,10 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
 
     test "adjust_gas_price initializes gas price params if not set before" do
       state = empty()
-      expected = {state.parent_height, state.mined_child_block_num}
 
       newstate = state |> adjust_gas_price()
 
-      assert match?(expected, newstate.gas_price_adj_params)
+      assert {state.parent_height, state.mined_child_block_num} == newstate.gas_price_adj_params.last_block_mined
     end
 
     test "adjust_gas_price won't change gas price params if there is no new eth blocks" do
@@ -493,6 +514,13 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
 
       assert state.gas_price_to_use > newstate.gas_price_to_use
       assert {211, 5000} == newstate.gas_price_adj_params.last_block_mined
+    end
+
+    test "set_ethereum_height is calling adjust_gas_price with the state with new parent_height field set" do
+      state = empty()
+      {:do_form_block, newstate, _, _} = state |> set_ethereum_height(state.parent_height + 1)
+
+      assert {state.parent_height + 1, state.mined_child_block_num} == newstate.gas_price_adj_params.last_block_mined
     end
   end
 end

@@ -6,6 +6,7 @@ defmodule OmiseGO.API.BlockQueue.GasPriceAdjustmentStrategyParams do
   defstruct eth_gap_without_child_blocks: 2,
             gas_price_lowering_factor: 0.9,
             gas_price_raising_factor: 2.0,
+            max_gas_price: 20_000_000_000,
             last_block_mined: nil
 
   @type t() :: %__MODULE__{
@@ -29,6 +30,6 @@ defmodule OmiseGO.API.BlockQueue.GasPriceAdjustmentStrategyParams do
   end
 
   def with(state, lastchecked_parent_height, lastchecked_mined_child_block_num) do
-    %__MODULE__{state | last_block_mined: {lastchecked_parent_height, lastchecked_mined_child_block_num}}
+    %{state | last_block_mined: {lastchecked_parent_height, lastchecked_mined_child_block_num}}
   end
 end
