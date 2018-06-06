@@ -47,15 +47,13 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     signed_tx_2 = put_in(@signed_tx.raw_tx.blknum1, 1)
 
     [{:ok, %TransactionDB{txid: txid_1}}, {:ok, %TransactionDB{txid: txid_2}}] =
-      TransactionDB.insert(
-        %Block{
-          transactions: [
-            signed_tx_1,
-            signed_tx_2
-          ],
-          number: txblknum
-        }
-      )
+      TransactionDB.insert(%Block{
+        transactions: [
+          signed_tx_1,
+          signed_tx_2
+        ],
+        number: txblknum
+      })
 
     expected_transaction_1 = create_expected_transaction(txid_1, signed_tx_1, txblknum, 0)
     expected_transaction_2 = create_expected_transaction(txid_2, signed_tx_2, txblknum, 1)

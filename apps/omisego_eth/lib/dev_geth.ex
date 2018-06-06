@@ -38,12 +38,13 @@ defmodule OmiseGO.Eth.DevGeth do
 
     wait_for_geth_start(geth_out)
 
-    %Task{} =
+    _ =
       if Application.get_env(:omisego_eth, :geth_logging_in_debug) do
-        fn ->
-          geth_out |> Enum.each(&log_geth_output/1)
-        end
-        |> Task.async()
+        %Task{} =
+          fn ->
+            geth_out |> Enum.each(&log_geth_output/1)
+          end
+          |> Task.async()
       end
 
     geth_proc

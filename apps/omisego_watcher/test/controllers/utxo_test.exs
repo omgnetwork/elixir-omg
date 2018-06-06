@@ -31,15 +31,13 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
     @tag fixtures: [:watcher_sandbox]
     test "Consumed block contents are available." do
-      UtxoDB.consume_block(
-        %Block{
-          transactions: [
-            @empty |> Map.merge(%{newowner1: "McDuck", amount1: 1947}) |> signed,
-            @empty |> Map.merge(%{newowner1: "McDuck", amount1: 1952}) |> signed
-          ],
-          number: 2
-        }
-      )
+      UtxoDB.consume_block(%Block{
+        transactions: [
+          @empty |> Map.merge(%{newowner1: "McDuck", amount1: 1947}) |> signed,
+          @empty |> Map.merge(%{newowner1: "McDuck", amount1: 1952}) |> signed
+        ],
+        number: 2
+      })
 
       %{"utxos" => [%{"amount" => amount1}, %{"amount" => amount2}]} = get_utxo("McDuck")
 
@@ -48,34 +46,30 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
     @tag fixtures: [:watcher_sandbox]
     test "Spent utxos are moved to new owner." do
-      UtxoDB.consume_block(
-        %Block{
-          transactions: [
-            @empty |> Map.merge(%{newowner1: "Ebenezer", amount1: 1843}) |> signed,
-            @empty |> Map.merge(%{newowner1: "Matilda", amount1: 1871}) |> signed
-          ],
-          number: 1
-        }
-      )
+      UtxoDB.consume_block(%Block{
+        transactions: [
+          @empty |> Map.merge(%{newowner1: "Ebenezer", amount1: 1843}) |> signed,
+          @empty |> Map.merge(%{newowner1: "Matilda", amount1: 1871}) |> signed
+        ],
+        number: 1
+      })
 
       %{"utxos" => [%{"amount" => 1871}]} = get_utxo("Matilda")
 
-      UtxoDB.consume_block(
-        %Block{
-          transactions: [
-            @empty
-            |> Map.merge(%{
-              newowner1: "McDuck",
-              amount1: 1000,
-              blknum1: 1,
-              txindex1: 1,
-              oindex1: 0
-            })
-            |> signed
-          ],
-          number: 2
-        }
-      )
+      UtxoDB.consume_block(%Block{
+        transactions: [
+          @empty
+          |> Map.merge(%{
+            newowner1: "McDuck",
+            amount1: 1000,
+            blknum1: 1,
+            txindex1: 1,
+            oindex1: 0
+          })
+          |> signed
+        ],
+        number: 2
+      })
 
       %{"utxos" => [%{"amount" => 1000}]} = get_utxo("McDuck")
       %{"utxos" => []} = get_utxo("Matilda")
@@ -103,16 +97,14 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
         oindex1: 0
       }
 
-      UtxoDB.consume_block(
-        %Block{
-          transactions: [
-            @empty
-            |> Map.merge(spent)
-            |> signed
-          ],
-          number: 2
-        }
-      )
+      UtxoDB.consume_block(%Block{
+        transactions: [
+          @empty
+          |> Map.merge(spent)
+          |> signed
+        ],
+        number: 2
+      })
 
       assert %{"utxos" => []} = get_utxo("Leon")
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Matilda")
