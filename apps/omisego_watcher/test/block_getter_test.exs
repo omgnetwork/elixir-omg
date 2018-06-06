@@ -6,6 +6,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
   alias OmiseGO.Eth
   alias OmiseGO.API.State.Transaction
+  alias OmiseGO.JSONRPC.Client
 
   @moduletag :integration
 
@@ -17,10 +18,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     post_deposit_child_block =
       deposit_height - 1 + (config.ethereum_event_block_finality_margin + 1) * config.child_block_interval
-
     {:ok, _} =
       Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000, config.contract.address)
-
     deposit_height
   end
 
@@ -38,7 +37,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     deposit_height = deposit_to_child_chain(alice, 10, config_map)
     raw_tx = Transaction.new([{deposit_height, 0, 0}], [{alice.addr, 7}, {bob.addr, 3}], 0)
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
-    {:ok, %{"blknum" => block_nr}} = OmiseGO.JSONRPC.Client.call(:submit, %{transaction: tx})
+
+    {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx})
 
     # wait for BlockGetter get the block
     fn ->
@@ -53,16 +53,19 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     |> Task.async()
     |> Task.await(10_000)
 
-    [%{"amount" => amount_bob}] = get_utxo(bob)
-    [%{"amount" => amount_alice}] = get_utxo(alice)
-    assert amount_bob == 3
-    assert amount_alice == 7
+    encode_tx = Client.encode(tx)
+
+    assert [%{"amount" => 3, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
+             get_utxo(bob)
+
+    assert [%{"amount" => 7, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
+             get_utxo(alice)
   end
 
   defp get_utxo(from) do
     response =
       :get
-      |> conn("account/utxo?address=#{OmiseGO.JSONRPC.Client.encode(from.addr)}")
+      |> conn("account/utxo?address=#{Client.encode(from.addr)}")
       |> put_private(:plug_skip_csrf_protection, true)
       |> OmiseGOWatcherWeb.Endpoint.call([])
 

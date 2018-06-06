@@ -20,7 +20,7 @@ defmodule OmiseGOWatcher.UtxoDB do
     field(:blknum, :integer)
     field(:txindex, :integer)
     field(:oindex, :integer)
-    field(:txbytes, :string)
+    field(:txbytes, :binary)
   end
 
   defp consume_transaction(
@@ -30,8 +30,6 @@ defmodule OmiseGOWatcher.UtxoDB do
          txindex,
          block_number
        ) do
-    # TODO change this to encode from OmiseGo.API.State.Transaction
-    txbytes = inspect(signed_transaction)
 
     make_utxo_db = fn transaction, number ->
       %__MODULE__{
@@ -40,7 +38,7 @@ defmodule OmiseGOWatcher.UtxoDB do
         blknum: block_number,
         txindex: txindex,
         oindex: Map.get(transaction, :"oindex#{number}"),
-        txbytes: txbytes
+        txbytes: signed_transaction |> Transaction.Signed.encode()
       }
     end
 

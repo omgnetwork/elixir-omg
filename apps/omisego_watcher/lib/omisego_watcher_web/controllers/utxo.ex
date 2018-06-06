@@ -15,7 +15,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
 
     json(conn, %{
       address: address,
-      utxos: Enum.map(utxos, &Map.take(&1, fields_names))
+      utxos: JSONRPC.Client.encode(Enum.map(utxos, &Map.take(&1, fields_names)))
     })
   end
 end
