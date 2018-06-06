@@ -42,7 +42,6 @@ defmodule OmiseGO.DB do
 
   def init do
     path = Application.get_env(:omisego_db, :leveldb_path)
-    :ok = File.mkdir_p(path)
 
     if !Enum.empty?(File.ls!(path)) do
       raise("creatin omisego_db \n\tfolder should be empty:\t" <> path)
