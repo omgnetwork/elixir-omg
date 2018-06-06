@@ -3,8 +3,7 @@ defmodule OmiseGO.API do
   Entrypoint for all the exposed public functions of the child chain API
   """
 
-  alias OmiseGO.API.{Core, State, Block}
-  alias OmiseGO.API.FreshBlocks
+  alias OmiseGO.API.{Block, Core, FreshBlocks, State}
   use OmiseGO.API.ExposeSpec
 
   @spec submit(transaction :: bitstring) ::

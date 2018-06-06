@@ -3,10 +3,10 @@ defmodule OmiseGO.API.State do
   Imperative shell for the state
   """
 
-  alias OmiseGO.API.State.Core
+  alias OmiseGO.API.BlockQueue
   alias OmiseGO.API.Eventer
   alias OmiseGO.API.FreshBlocks
-  alias OmiseGO.API.BlockQueue
+  alias OmiseGO.API.State.Core
   alias OmiseGO.DB
 
   ### Client

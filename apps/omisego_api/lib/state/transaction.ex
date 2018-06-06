@@ -3,8 +3,8 @@ defmodule OmiseGO.API.State.Transaction do
   Internal representation of a spend transaction on Plasma chain
   """
 
-  alias OmiseGO.API.State.Transaction.{Signed}
   alias OmiseGO.API.Crypto
+  alias OmiseGO.API.State.Transaction.{Signed}
 
   @zero_address <<0::size(160)>>
   @number_of_transactions 2

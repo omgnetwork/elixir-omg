@@ -3,8 +3,9 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   Operations related to utxo.
   Modify the state in the database.
   """
-  alias OmiseGOWatcher.{Repo, UtxoDB}
+
   alias OmiseGO.JSONRPC
+  alias OmiseGOWatcher.{Repo, UtxoDB}
   use OmiseGOWatcherWeb, :controller
   import Ecto.Query, only: [from: 2]
 

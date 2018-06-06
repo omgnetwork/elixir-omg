@@ -3,22 +3,8 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   use ExUnitFixtures.FixtureModule
   require Logger
 
-  deffixture geth do
-    {:ok, exit_fn} = OmiseGO.Eth.dev_geth()
-    on_exit(exit_fn)
-    :ok
-  end
-
-  deffixture contract(geth) do
-    _ = geth
-    {:ok, contract_address, txhash, authority} = OmiseGO.Eth.DevHelpers.prepare_env("../../")
-
-    %{
-      address: contract_address,
-      from: authority,
-      txhash: txhash
-    }
-  end
+  use OmiseGO.Eth.Fixtures
+  use OmiseGO.DB.Fixtures
 
   deffixture config_map(contract) do
     %{
@@ -108,19 +94,8 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   deffixture(alice, do: generate_entity())
   deffixture(bob, do: generate_entity())
 
-  deffixture db_init do
-    {:ok, _} = Application.ensure_all_started(:briefly)
-    db_path = Briefly.create!(directory: true)
-
-    Application.put_env(:omisego_db, :leveldb_path, db_path, persistent: true)
-    OmiseGO.DB.init()
-
-    # TODO: possible source of flakiness is omisego_db not cleaning up fast enough? find a better solution
-    Process.sleep(500)
-  end
-
-  deffixture watcher(db_init) do
-    _ = db_init
+  deffixture watcher(db_initialized) do
+    :ok = db_initialized
     {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omisego_watcher)
 

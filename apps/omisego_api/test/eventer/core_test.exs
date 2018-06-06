@@ -2,8 +2,8 @@ defmodule OmiseGO.API.Eventer.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OmiseGO.API.Eventer
   alias OmiseGO.API
+  alias OmiseGO.API.Eventer
   alias OmiseGO.API.Notification.Received
   alias OmiseGO.API.State.Transaction
 

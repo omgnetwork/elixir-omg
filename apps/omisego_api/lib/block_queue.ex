@@ -43,8 +43,8 @@ defmodule OmiseGO.API.BlockQueue do
 
     use GenServer
 
-    alias OmiseGO.Eth
     alias OmiseGO.API.BlockQueue
+    alias OmiseGO.Eth
 
     def start_link(_args) do
       GenServer.start_link(__MODULE__, :ok, name: __MODULE__)

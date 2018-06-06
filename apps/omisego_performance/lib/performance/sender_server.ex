@@ -9,8 +9,8 @@ defmodule OmiseGO.Performance.SenderServer do
   require Logger
   use GenServer
 
-  alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.Crypto
+  alias OmiseGO.API.State.Transaction
 
   defmodule LastTx do
     @moduledoc """

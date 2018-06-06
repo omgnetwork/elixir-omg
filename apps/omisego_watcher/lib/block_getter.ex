@@ -3,9 +3,9 @@ defmodule OmiseGOWatcher.BlockGetter do
   tracking block on child chain
   """
   use GenServer
-  alias OmiseGOWatcher.{UtxoDB, BlockValidator}
   alias OmiseGO.API.Block
   alias OmiseGO.Eth
+  alias OmiseGOWatcher.{BlockValidator, UtxoDB}
 
   @dialyzer {:nowarn_function, get_block: 2}
   @spec get_block(pos_integer(), Eth.contract_t()) :: {:ok, Block.t()} | {:error, :get_block}

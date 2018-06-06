@@ -4,9 +4,9 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
 
   use Plug.Test
 
-  alias OmiseGOWatcher.TransactionDB
+  alias OmiseGO.API.Block
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
-  alias OmiseGO.API.{Block}
+  alias OmiseGOWatcher.TransactionDB
 
   @signed_tx %Signed{
     raw_tx: %Transaction{

@@ -7,9 +7,9 @@ defmodule OmiseGOWatcher.TransactionDB do
 
   import Ecto.Changeset
 
-  alias OmiseGOWatcher.Repo
-  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
   alias OmiseGO.API.Block
+  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
+  alias OmiseGOWatcher.Repo
 
   @field_names [
     :txid,

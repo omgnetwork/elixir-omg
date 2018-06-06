@@ -4,8 +4,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
   use Plug.Test
 
-  alias OmiseGO.Eth
   alias OmiseGO.API.State.Transaction
+  alias OmiseGO.Eth
   alias OmiseGO.JSONRPC.Client
 
   @moduletag :integration

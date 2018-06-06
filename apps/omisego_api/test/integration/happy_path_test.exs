@@ -5,32 +5,15 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use Omisego.Eth.Fixtures
+  use OmiseGO.Eth.Fixtures
+  use OmiseGO.DB.Fixtures
 
-  alias OmiseGO.Eth
-  alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.BlockQueue
+  alias OmiseGO.API.State.Transaction
+  alias OmiseGO.Eth
   alias OmiseGO.JSONRPC.Client
 
   @moduletag :integration
-
-  deffixture db_path_config() do
-    {:ok, briefly} = Application.ensure_all_started(:briefly)
-    {:ok, dir} = Briefly.create(directory: true)
-
-    Application.put_env(:omisego_db, :leveldb_path, dir, persistent: true)
-    {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
-
-    on_exit(fn ->
-      Application.put_env(:omisego_db, :leveldb_path, nil)
-
-      (briefly ++ started_apps)
-      |> Enum.reverse()
-      |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end)
-
-    :ok
-  end
 
   deffixture root_chain_contract_config(geth, contract) do
     # prevent warnings
@@ -52,13 +35,6 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
 
-    :ok
-  end
-
-  deffixture db_initialized(db_path_config) do
-    :ok = db_path_config
-    :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
-    :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
     :ok
   end
 

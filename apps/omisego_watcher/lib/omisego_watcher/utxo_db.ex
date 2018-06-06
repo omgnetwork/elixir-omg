@@ -4,9 +4,9 @@ defmodule OmiseGOWatcher.UtxoDB do
   """
   use Ecto.Schema
 
-  alias OmiseGOWatcher.Repo
-  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
   alias OmiseGO.API.{Block, Crypto}
+  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
+  alias OmiseGOWatcher.Repo
 
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
@@ -30,7 +30,6 @@ defmodule OmiseGOWatcher.UtxoDB do
          txindex,
          block_number
        ) do
-
     make_utxo_db = fn transaction, number ->
       %__MODULE__{
         address: Map.get(transaction, :"newowner#{number}"),

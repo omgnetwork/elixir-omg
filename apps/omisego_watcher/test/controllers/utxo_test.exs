@@ -4,10 +4,10 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
   use Plug.Test
 
-  alias OmiseGOWatcher.UtxoDB
   alias OmiseGO.API.{Block}
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
   alias OmiseGO.JSONRPC.Client
+  alias OmiseGOWatcher.UtxoDB
 
   @empty %Transaction{
     blknum1: 0,
@@ -16,9 +16,9 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     blknum2: 0,
     txindex2: 0,
     oindex2: 0,
-    newowner1: "",
+    newowner1: <<>>,
     amount1: 0,
-    newowner2: "",
+    newowner2: <<>>,
     amount2: 0,
     fee: 0
   }
@@ -119,7 +119,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   end
 
   defp signed(transaction) do
-    %Signed{raw_tx: transaction}
+    %Signed{raw_tx: transaction, sig1: <<>>, sig2: <<>>}
   end
 
   defp send_request(conn) do

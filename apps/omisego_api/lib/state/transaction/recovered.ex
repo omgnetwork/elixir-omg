@@ -4,8 +4,8 @@ defmodule OmiseGO.API.State.Transaction.Recovered do
   Intent is to allow concurent processing of signatures outside of serial processing in state.ex
   """
 
-  alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.Crypto
+  alias OmiseGO.API.State.Transaction
 
   @empty_signature <<0::size(520)>>
   @type signed_tx_hash_t() :: <<_::768>>

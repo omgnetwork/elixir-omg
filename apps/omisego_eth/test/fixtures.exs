@@ -1,4 +1,4 @@
-defmodule Omisego.Eth.Fixtures do
+defmodule OmiseGO.Eth.Fixtures do
   @moduledoc """
   Contains fixtures for tests that require geth and contract
   """
