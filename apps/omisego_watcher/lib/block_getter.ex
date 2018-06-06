@@ -47,6 +47,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     end
   end
 
+  # TODO get_height used in tests instead of an event system, remove when event system is here
   def handle_call(:get_height, _from, state) do
     {:reply, state.child_block_number, state}
   end

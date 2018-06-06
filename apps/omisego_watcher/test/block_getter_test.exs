@@ -16,7 +16,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     deposit_height = Eth.DevHelpers.deposit_height_from_receipt(receipt)
 
     post_deposit_child_block =
-      deposit_height - 1 + (config.ethereum_event_block_finality_margin + 5) * config.child_block_interval
+      deposit_height - 1 + (config.ethereum_event_block_finality_margin + 1) * config.child_block_interval
 
     {:ok, _} =
       Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000, config.contract.address)
@@ -43,6 +43,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     # wait for BlockGetter get the block
     fn ->
       Eth.WaitFor.repeat_until_ok(fn ->
+        # TODO use event system
         case GenServer.call(BlockGetter, :get_height) < block_nr do
           true -> :repeat
           false -> {:ok, block_nr}
@@ -52,10 +53,10 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     |> Task.async()
     |> Task.await(10_000)
 
-    [%{"amount" => amout_bob}] = get_utxo(bob)
-    [%{"amount" => amout_alice}] = get_utxo(alice)
-    assert amout_bob == 3
-    assert amout_alice == 7
+    [%{"amount" => amount_bob}] = get_utxo(bob)
+    [%{"amount" => amount_alice}] = get_utxo(alice)
+    assert amount_bob == 3
+    assert amount_alice == 7
   end
 
   defp get_utxo(from) do
