@@ -296,8 +296,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
   # blocks (might still need tracking!) and blocks not yet submitted.
 
   # NOTE: handles both the case when there aren't any hashes in database and there are
-  @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [BlockQueue.hash()])
-  :: {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_hash_not_found_in_db}
+  @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [BlockQueue.hash()]) ::
+          {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_hash_not_found_in_db}
   defp enqueue_existing_blocks(state, @zero_bytes32, [] = _known_hahes) do
     # we start a fresh queue from db and fresh contract
     {:ok, %{state | formed_child_block_num: 0}}
