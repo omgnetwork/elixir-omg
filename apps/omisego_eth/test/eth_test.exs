@@ -65,13 +65,14 @@ defmodule OmiseGO.EthTest do
   @tag fixtures: [:contract]
   test "start_exit", %{contract: contract} do
 
+    # TODO clean alice and bob
     alice = %{
       priv:
-        <<54, 43, 207, 67, 140, 160, 190, 135, 18, 162, 70, 120, 36, 245, 106, 165, 5, 101, 183,
-          55, 11, 117, 126, 135, 49, 50, 12, 228, 173, 219, 183, 175>>,
+        <<54, 43, 207, 67, 140, 160, 190, 135, 18, 162, 70, 120, 36, 245, 106, 165,
+          5, 101, 183, 55, 11, 117, 126, 135, 49, 50, 12, 228, 173, 219, 183, 175>>,
       addr:
-        <<59, 159, 76, 29, 210, 110, 11, 229, 147, 55, 59, 29, 54, 206, 226, 0, 140, 190, 184,
-          55>>
+        <<59, 159, 76, 29, 210, 110, 11, 229, 147, 55, 59, 29, 54, 206, 226, 0,
+          140, 190, 184, 55>>
     }
     bob = %{
       priv:
@@ -82,7 +83,7 @@ defmodule OmiseGO.EthTest do
           118, 35>>
     }
 
-    raw = %OmiseGO.API.State.Transaction{
+    raw_tx = %OmiseGO.API.State.Transaction{
       amount1: 8,
       amount2: 3,
       blknum1: 0,
@@ -96,45 +97,50 @@ defmodule OmiseGO.EthTest do
       txindex2: 0
     }
 
-  singed_tx = Transaction.sign(raw, bob.priv, alice.priv)
+    singed_tx = Transaction.sign(raw_tx, bob.priv, alice.priv)
 
-  %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash} = Transaction.Recovered.recover_from(singed_tx)
+    %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash} = Transaction.Recovered.recover_from(singed_tx)
 
     {:ok, mt} = MerkleTree.new([signed_tx_hash], &Crypto.hash/1, @transaction_merkle_tree_height)
 
+    {:ok, child_blknum} = Eth.get_current_child_block(contract.address)
     block = %Eth.BlockSubmission{
-      num: 1000,
+      num: child_blknum,
       hash: mt.root.value,
       gas_price: 20_000_000_000,
       nonce: 1
     }
+
+    assert child_blknum == 1000
+
     IO.inspect "root"
     IO.inspect mt.root.value
-    IO.inspect Eth.get_current_child_block(contract.address)
+
     Eth.submit_block(block, contract.from, contract.address)
 
     txs = [Map.merge(raw_tx, %{ txindex: 0, txid: signed_tx_hash})]
+
     %{
       utxo_pos: utxo_pos,
       tx_bytes: tx_bytes,
-      proof: proof
-    } = UtxoDB.compose_utxo_exit(txs, 1000*1000000000, 0, 0)
+      proof: proof } = UtxoDB.compose_utxo_exit(txs, 1000000000, 10000*0, 0)
 
     sigs = singed_tx.sig1 <> singed_tx.sig2
 
     IO.inspect tx_bytes,limit: :infinity
-        IO.inspect proof, limit: :infinity
-              IO.inspect sigs,limit: :infinity
-    {:ok, txhash} = Eth.start_exit(1000*1000000000, tx_bytes, proof, sigs, 1, contract.from, contract.address)
+    IO.inspect proof, limit: :infinity
+    IO.inspect sigs,limit: :infinity
+
+    {:ok, txhash} = Eth.start_exit(1000000000 + 10000*0 + 0, tx_bytes, proof, sigs, 1, contract.from, contract.address)
     {:ok, _} = WaitFor.eth_receipt(txhash, @timeout)
 
     {:ok, height} = Eth.get_ethereum_height()
 
     IO.inspect height
 
-    IO.inspect Eth.get_exit(1000 * 1000000000, contract.address)
+    IO.inspect Eth.get_exit(1000000000, contract.address)
     IO.inspect Eth.get_exits(1, height, contract.address)
-  IO.inspect Eth.get_current_child_block(contract.address)
+    IO.inspect Eth.get_current_child_block(contract.address)
   end
 
   @tag fixtures: [:geth]

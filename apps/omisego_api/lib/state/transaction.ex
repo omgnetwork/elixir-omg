@@ -174,11 +174,7 @@ defmodule OmiseGO.API.State.Transaction do
     encoded_tx = encode(tx)
     signature1 = signature(encoded_tx, priv1)
     signature2 = signature(encoded_tx, priv2)
-
-    IO.inspect "sig"
-    IO.inspect signature1
-      IO.inspect signature2
-
+    
     %Signed{raw_tx: tx, sig1: signature1, sig2: signature2}
   end
 

@@ -133,7 +133,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     TransactionDB.insert(<<2>>, @signed_tx, 1, 2)
     TransactionDB.insert(<<3>>, @signed_tx, 1, 3)
 
-    IO.inspect compose_utxo_exit(1, 1, 0), limit: :infinity
+    # IO.inspect compose_utxo_exit(1, 1, 0), limit: :infinity
     # %{"utxo_pos" => utxo_pos, "tx_bytes" => tx_bytes, "proof"=> proof} = compose_utxo_exit(1, 2, 0)
 
   end
