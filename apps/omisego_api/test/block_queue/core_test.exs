@@ -327,7 +327,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       assert current_params == newstate.gas_price_adj_params
     end
 
-    test "Gas price is lowered when ethereum gas isn't filled" do
+    test "Gas price is lowered when ethereum blocks gap isn't filled" do
       state = empty_with_gas_params()
       current_price = state.gas_price_to_use
 
@@ -341,7 +341,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       assert 90 == newstate.gas_price_to_use
     end
 
-    test "Gas price is raised when ethereum gas is filled" do
+    test "Gas price is raised when ethereum blocks gap is filled" do
       state = empty_with_gas_params()
       current_price = state.gas_price_to_use
       eth_gap = state.gas_price_adj_params.eth_gap_without_child_blocks
@@ -356,7 +356,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       assert 200 == newstate.gas_price_to_use
     end
 
-    test "Gas price is lowered and then raised when ethereum gas gets filled" do
+    test "Gas price is lowered and then raised when ethereum blocks gap gets filled" do
       state = empty_with_gas_params()
       gas_params = %{state.gas_price_adj_params | eth_gap_without_child_blocks: 3}
       state1 = %{state | gas_price_adj_params: gas_params}
