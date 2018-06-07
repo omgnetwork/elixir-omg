@@ -18,8 +18,10 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     post_deposit_child_block =
       deposit_height - 1 + (config.ethereum_event_block_finality_margin + 1) * config.child_block_interval
+
     {:ok, _} =
       Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000, config.contract.address)
+
     deposit_height
   end
 

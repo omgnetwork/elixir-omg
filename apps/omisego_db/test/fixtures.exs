@@ -9,9 +9,9 @@ defmodule OmiseGO.DB.Fixtures do
     db_path = Briefly.create!(directory: true)
 
     Application.put_env(:omisego_db, :leveldb_path, db_path, persistent: true)
-    OmiseGO.DB.init()
 
-    Application.put_env(:omisego_db, :leveldb_path, db_path, persistent: true)
+    :ok = OmiseGO.DB.init()
+
     {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
 
     on_exit(fn ->
@@ -22,8 +22,9 @@ defmodule OmiseGO.DB.Fixtures do
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
 
+    # TODO: possible source of flakiness is omisego_db not cleaning up fast enough? find a better solution
+    Process.sleep(500)
+
     :ok
-#    # TODO: possible source of flakiness is omisego_db not cleaning up fast enough? find a better solution
-#    Process.sleep(500)
   end
 end
