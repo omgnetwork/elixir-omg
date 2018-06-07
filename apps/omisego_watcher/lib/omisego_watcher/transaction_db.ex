@@ -7,9 +7,9 @@ defmodule OmiseGOWatcher.TransactionDB do
 
   import Ecto.Changeset
 
-  alias OmiseGOWatcher.Repo
-  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
   alias OmiseGO.API.Block
+  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
+  alias OmiseGOWatcher.Repo
 
   @field_names [
     :txid,
@@ -58,7 +58,7 @@ defmodule OmiseGOWatcher.TransactionDB do
     |> Repo.get(id)
   end
 
-  def insert(%Block{transactions: transactions}, block_number) do
+  def insert(%Block{transactions: transactions, number: block_number}) do
     transactions
     |> Stream.with_index()
     |> Stream.map(fn {%Signed{} = signed, txindex} ->

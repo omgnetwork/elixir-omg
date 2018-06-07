@@ -4,9 +4,9 @@ defmodule OmiseGOWatcher.UtxoDB do
   """
   use Ecto.Schema
 
-  alias OmiseGOWatcher.Repo
+  alias OmiseGO.API.{Block, Crypto}
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
-  alias OmiseGO.API.{Block}
+  alias OmiseGOWatcher.Repo
 
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
@@ -20,7 +20,7 @@ defmodule OmiseGOWatcher.UtxoDB do
     field(:blknum, :integer)
     field(:txindex, :integer)
     field(:oindex, :integer)
-    field(:txbytes, :string)
+    field(:txbytes, :binary)
   end
 
   defp consume_transaction(
@@ -30,9 +30,6 @@ defmodule OmiseGOWatcher.UtxoDB do
          txindex,
          block_number
        ) do
-    # TODO change this to encode from OmiseGo.API.State.Transaction
-    txbytes = inspect(signed_transaction)
-
     make_utxo_db = fn transaction, number ->
       %__MODULE__{
         address: Map.get(transaction, :"newowner#{number}"),
@@ -40,7 +37,7 @@ defmodule OmiseGOWatcher.UtxoDB do
         blknum: block_number,
         txindex: txindex,
         oindex: Map.get(transaction, :"oindex#{number}"),
-        txbytes: txbytes
+        txbytes: signed_transaction |> Transaction.Signed.encode()
       }
     end
 
@@ -67,18 +64,17 @@ defmodule OmiseGOWatcher.UtxoDB do
     {remove_from.(transaction, 1), remove_from.(transaction, 2)}
   end
 
-  def consume_block(%Block{transactions: transactions}, block_number) do
+  def consume_block(%Block{transactions: transactions, number: block_number}) do
     numbered_transactions = Stream.with_index(transactions)
 
     numbered_transactions
-    |> Stream.map(fn {%Signed{} = signed, txindex} ->
+    |> Enum.map(fn {%Signed{} = signed, txindex} ->
       {remove_utxo(signed), consume_transaction(signed, txindex, block_number)}
     end)
-    |> Enum.to_list()
   end
 
   @spec insert_deposits([
-          %{owner: <<_::160>>, amount: non_neg_integer(), block_height: pos_integer()}
+          %{owner: Crypto.address_t(), amount: non_neg_integer(), block_height: pos_integer()}
         ]) :: :ok
   def insert_deposits(deposits) do
     deposits

@@ -5,8 +5,6 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
 
   import OmiseGO.API.BlockQueue.Core
 
-  @moduletag :blockqueue
-
   def hashes(blocks) do
     for block <- blocks, do: block.hash
   end

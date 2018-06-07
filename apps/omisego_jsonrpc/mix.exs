@@ -20,7 +20,7 @@ defmodule OmiseGO.JSONRPC.Mixfile do
     [
       env: [
         # our own rpc port where OmiseGO.API is exposed
-        omisego_api_rpc_port: 4000
+        omisego_api_rpc_port: 9656
       ],
       extra_applications: [:logger],
       mod: {OmiseGO.JSONRPC.Application, []}

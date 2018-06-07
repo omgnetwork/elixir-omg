@@ -3,9 +3,9 @@ defmodule OmiseGO.API.Eventer.Core do
   Functional core of eventer
   """
 
+  alias OmiseGO.API.Block
   alias OmiseGO.API.Notification
   alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.Block
 
   @block_finalized_topic "block_finalized"
   @transaction_spent_topic_prefix "transactions/spent/"

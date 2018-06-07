@@ -8,9 +8,12 @@ defmodule OmiseGO.Eth do
 
   import OmiseGO.Eth.Encoding
 
+  @type contract_t() :: binary | nil
+
   def dev_geth do
-    _ = Application.ensure_all_started(:erlexec)
-    _ = Application.ensure_all_started(:ethereumex)
+    {:ok, _} = Application.ensure_all_started(:briefly)
+    {:ok, _} = Application.ensure_all_started(:erlexec)
+    {:ok, _} = Application.ensure_all_started(:ethereumex)
     geth_pid = OmiseGO.Eth.DevGeth.start()
 
     on_exit = fn ->
@@ -29,7 +32,7 @@ defmodule OmiseGO.Eth do
     end
   end
 
-  @spec contract_ready(binary | nil) ::
+  @spec contract_ready(contract_t()) ::
           :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
   def contract_ready(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
@@ -52,7 +55,7 @@ defmodule OmiseGO.Eth do
     @type hash() :: <<_::256>>
     @type plasma_block_num() :: non_neg_integer()
 
-    @type t() :: %{
+    @type t() :: %__MODULE__{
             num: plasma_block_num(),
             hash: hash(),
             nonce: non_neg_integer(),
@@ -61,7 +64,7 @@ defmodule OmiseGO.Eth do
     defstruct [:num, :hash, :nonce, :gas_price]
   end
 
-  @spec get_root_deployment_height(binary() | nil, binary() | nil) :: {:ok, integer()} | Ethereumex.HttpClient.error()
+  @spec get_root_deployment_height(binary() | nil, contract_t()) :: {:ok, integer()} | Ethereumex.HttpClient.error()
   def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
     txhash = txhash || Application.get_env(:omisego_eth, :txhash_contract)
@@ -79,6 +82,9 @@ defmodule OmiseGO.Eth do
     end
   end
 
+  @spec submit_block(BlockSubmission.t(), OmiseGO.API.Crypto.address_t() | nil, contract_t()) ::
+          {:error, binary() | atom() | map()}
+          | {:ok, binary()}
   def submit_block(
         %BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price},
         from \\ nil,
@@ -194,7 +200,6 @@ defmodule OmiseGO.Eth do
   """
   def get_exits(block_from, block_to, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
-
     event = encode_event_signature("Exit(address,uint256)")
 
     parse_exit = fn "0x" <> deposit ->
@@ -217,7 +222,6 @@ defmodule OmiseGO.Eth do
 
   def get_child_chain(blknum, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
-
     {:ok, [root, created_at]} = call_contract(contract, "getChildChain(uint256)", [blknum], [:bytes32, {:uint, 256}])
     {:ok, {root, created_at}}
   end

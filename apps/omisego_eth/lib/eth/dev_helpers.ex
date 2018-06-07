@@ -10,8 +10,8 @@ defmodule OmiseGO.Eth.DevHelpers do
 
   def prepare_test_env, do: do_prepare("test")
 
-  defp do_prepare(env) do
-    {:ok, contract_address, txhash, authority} = prepare_env("./")
+  def do_prepare(env, root_path \\ "./") do
+    {:ok, contract_address, txhash, authority} = prepare_env(root_path)
     write_conf_file(env, contract_address, txhash, authority)
     IO.puts(inspect({:ok, contract_address, txhash, authority}))
   end
@@ -23,9 +23,24 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, contract_address, txhash, authority}
   end
 
-  def wait_for_current_child_block(blknum, dev \\ false, timeout \\ 10_000) do
+  def create_conf_file(contract_address, txhash, authority) do
+    """
+    use Mix.Config
+    # File is automatically generated, don't edit!
+    # To deploy contract and fill values below, run:
+    # mix run --no-start -e 'OmiseGO.Eth.DevHelpers.prepare_dev_env()'
+
+    config :omisego_eth,
+    contract: #{inspect(contract_address)},
+    txhash_contract: #{inspect(txhash)},
+    authority_addr: #{inspect(authority)},
+    root_path: "../../"\
+    """
+  end
+
+  def wait_for_current_child_block(blknum, dev \\ false, timeout \\ 10_000, contract \\ nil) do
     f = fn ->
-      {:ok, next_num} = OmiseGO.Eth.get_current_child_block()
+      {:ok, next_num} = OmiseGO.Eth.get_current_child_block(contract)
 
       case next_num < blknum do
         true ->
@@ -75,25 +90,12 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
     txmap = %{from: addr, to: addr, value: "0x1"}
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    {:ok, _receipt} = WaitFor.eth_receipt(txhash, 1_000)
+    {:ok, _receipt} = WaitFor.eth_receipt(txhash, 4_000)
   end
 
   defp write_conf_file(mix_env, contract_address, txhash, authority) do
-    body = """
-    use Mix.Config
-    # File is automatically generated, don't edit!
-    # To deploy contract and fill values below, run:
-    # mix run --no-start -e 'OmiseGO.Eth.DevHelpers.prepare_dev_env()'
-
-    config :omisego_eth,
-    contract: #{inspect(contract_address)},
-    txhash_contract: #{inspect(txhash)},
-    authority_addr: #{inspect(authority)},
-    root_path: "../../"\
-    """
-
     {:ok, file} = File.open("apps/omisego_eth/config/#{mix_env}.exs", [:write])
-    IO.puts(file, body)
+    IO.puts(file, create_conf_file(contract_address, txhash, authority))
   end
 
   defp deploy_contract(addr, bytecode, types, args) do
