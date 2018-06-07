@@ -3,8 +3,8 @@ defmodule OmiseGO.API.Eventer do
   Imperative shell for handling events
   """
 
-  alias Phoenix.PubSub
   alias OmiseGO.API.Eventer.Core
+  alias Phoenix.PubSub
 
   @pubsub :eventer
 

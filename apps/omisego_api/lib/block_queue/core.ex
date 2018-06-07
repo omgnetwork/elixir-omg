@@ -8,8 +8,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
   (thus, it handles config values as internal variables)
   """
 
-  alias OmiseGO.API.BlockQueue, as: BlockQueue
   alias OmiseGO.Eth.BlockSubmission
+  alias OmiseGO.API.BlockQueue, as: BlockQueue
   alias OmiseGO.API.BlockQueue.Core
 
   @zero_bytes32 <<0::size(256)>>

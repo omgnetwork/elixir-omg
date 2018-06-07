@@ -7,9 +7,9 @@ defmodule OmiseGO.API.State.Core do
 
   defstruct [:height, :last_deposit_height, :utxos, pending_txs: [], tx_index: 0]
 
-  alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.State.Core
   alias OmiseGO.API.Block
+  alias OmiseGO.API.State.Core
+  alias OmiseGO.API.State.Transaction
 
   def extract_initial_state(
         utxos_query_result,
@@ -33,7 +33,7 @@ defmodule OmiseGO.API.State.Core do
   Includes the transaction into the state when valid, rejects otherwise.
   """
   @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{}) ::
-          {{:ok, <<_::256>>, pos_integer, pos_integer}, %Core{}} | {:error, %Core{}}
+          {{:ok, Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, %Core{}} | {:error, %Core{}}
   def exec(
         %Transaction.Recovered{
           raw_tx: raw_tx,

@@ -2,9 +2,9 @@ defmodule OmiseGO.API.BlockTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.Block
   alias OmiseGO.API.Core
+  alias OmiseGO.API.State.Transaction
 
   @tag fixtures: [:stable_alice, :stable_bob]
   test "block has a correct hash", %{stable_alice: alice, stable_bob: bob} do

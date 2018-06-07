@@ -13,9 +13,15 @@ defmodule OmiseGO.JSONRPC.Exposer do
 
   @spec handle_request_on_api(method :: binary, params :: %{required(binary) => any}, api :: atom) :: any
   def handle_request_on_api(method, params, api) do
-    with {:ok, fname, args} <- OmiseGO.API.ExposeSpec.RPCTranslate.to_fa(method, params, api.get_specs()),
+    with {:ok, fname, args} <-
+           OmiseGO.API.ExposeSpec.RPCTranslate.to_fa(
+             method,
+             params,
+             api.get_specs(),
+             &OmiseGO.JSONRPC.Client.on_match/3
+           ),
          {:ok, result} <- apply_call(api, fname, args) do
-      result
+      OmiseGO.JSONRPC.Client.encode(result)
     else
       # JSONRPC requires to throw whatever fails, for proper handling of jsonrpc errors
       error ->

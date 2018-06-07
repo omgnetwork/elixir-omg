@@ -2,8 +2,8 @@ defmodule OmiseGO.API.State.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OmiseGO.API.State.{Transaction, Core}
   alias OmiseGO.API
+  alias OmiseGO.API.State.{Core, Transaction}
   alias OmiseGO.API.TestHelper
 
   @signature <<1>> |> List.duplicate(65) |> :binary.list_to_bin()

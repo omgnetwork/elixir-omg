@@ -22,13 +22,12 @@ podTemplate(
 
         stage('Build') {
             sh("mix do local.hex --force, local.rebar --force")
-            sh("apt-get install -y libgmp3-dev")
             withEnv(["MIX_ENV=test"]) {
                 sh("mix do deps.get, deps.compile, compile")
             }
         }
 
-        stage('Unit test Child Chain Server') {
+        stage('Unit test') {
             withEnv(["MIX_ENV=test"]) {
                 sh("mix coveralls.html --no-start --umbrella")
             }
@@ -42,16 +41,10 @@ podTemplate(
             }
         }
 
-        stage('Integration test Child Chain Server') {
-            withEnv(["MIX_ENV=test"]) {
-                sh("mix do loadconfig config/test.config.jenkins, test --no-start --only integration")
-            }
-        }
-
-        stage('Test Watcher') {
-            withEnv(["MIX_ENV=test"]) {
-                sh("./watcher_tests.sh")
-             }
+        stage('Integration test') {
+           withEnv(["MIX_ENV=test", "SHELL=/bin/bash"]) {
+               sh("mix test --no-start --only integration")
+           }
         }
 
         stage('Cleanbuild') {

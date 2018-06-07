@@ -11,7 +11,7 @@ defmodule OmiseGO.API.Block do
   defstruct [:transactions, :hash, :number]
 
   @type t() :: %__MODULE__{
-          transactions: list(OmiseGO.API.State.Transaction.Signed.t()),
+          transactions: list(OmiseGO.API.State.Transaction.Recovered.t()),
           hash: <<_::768>>,
           number: pos_integer
         }

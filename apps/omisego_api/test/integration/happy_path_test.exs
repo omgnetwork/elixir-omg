@@ -5,31 +5,15 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use Omisego.Eth.Fixtures
+  use OmiseGO.Eth.Fixtures
+  use OmiseGO.DB.Fixtures
 
-  alias OmiseGO.Eth
-  alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.BlockQueue
+  alias OmiseGO.API.State.Transaction
+  alias OmiseGO.Eth
+  alias OmiseGO.JSONRPC.Client
 
   @moduletag :integration
-
-  deffixture db_path_config() do
-    {:ok, briefly} = Application.ensure_all_started(:briefly)
-    {:ok, dir} = Briefly.create(directory: true)
-
-    Application.put_env(:omisego_db, :leveldb_path, dir, persistent: true)
-    {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
-
-    on_exit(fn ->
-      Application.put_env(:omisego_db, :leveldb_path, nil)
-
-      (briefly ++ started_apps)
-      |> Enum.reverse()
-      |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end)
-
-    :ok
-  end
 
   deffixture root_chain_contract_config(geth, contract) do
     # prevent warnings
@@ -54,13 +38,6 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     :ok
   end
 
-  deffixture db_initialized(db_path_config) do
-    :ok = db_path_config
-    :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
-    :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
-    :ok
-  end
-
   deffixture omisego(root_chain_contract_config, db_initialized) do
     :ok = root_chain_contract_config
     :ok = db_initialized
@@ -77,13 +54,6 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     end)
 
     :ok
-  end
-
-  def jsonrpc(method, params) do
-    jsonrpc_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
-
-    "http://localhost:#{jsonrpc_port}"
-    |> JSONRPC2.Clients.HTTP.call(to_string(method), params)
   end
 
   @tag fixtures: [:alice, :bob, :omisego]
@@ -108,20 +78,22 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
     # spend the deposit
-    {:ok, %{"blknum" => spend_child_block}} = jsonrpc(:submit, %{transaction: Base.encode16(tx)})
+    {:ok, %{"blknum" => spend_child_block}} = Client.call(:submit, %{transaction: tx})
 
     post_spend_child_block = spend_child_block + BlockQueue.child_block_interval()
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block, true)
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash, _}} = Eth.get_child_chain(spend_child_block)
-    encoded_raw_tx = encode(raw_tx)
-
-    assert {:ok, %{"transactions" => [%{"raw_tx" => ^encoded_raw_tx}]}} =
-             jsonrpc(:get_block, %{hash: Base.encode16(block_hash)})
+    {:ok, %{"transactions" => [line_transaction]}} = Client.call(:get_block, %{hash: block_hash})
+    {:ok, %{raw_tx: raw_tx_decoded}} = Transaction.Signed.decode(Client.decode(:bitstring, line_transaction))
+    assert raw_tx_decoded == raw_tx
 
     # Restart everything to check persistance and revival
     [:omisego_api, :omisego_eth, :omisego_db] |> Enum.each(&Application.stop/1)
+
+    # TODO: possible source of flakiness is omisego_db not cleaning up fast enough? find a better solution
+    Process.sleep(500)
 
     {:ok, started_apps} = Application.ensure_all_started(:omisego_api)
     # sanity check, did-we restart really?
@@ -130,11 +102,10 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # repeat spending to see if all works
 
     raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, 10}], 0)
-    encoded_raw_tx2 = encode(raw_tx2)
     tx2 = raw_tx2 |> Transaction.sign(bob.priv, alice.priv) |> Transaction.Signed.encode()
 
     # spend the output of the first transaction
-    {:ok, %{"blknum" => spend_child_block2}} = jsonrpc(:submit, %{transaction: Base.encode16(tx2)})
+    {:ok, %{"blknum" => spend_child_block2}} = Client.call(:submit, %{transaction: tx2})
 
     post_spend_child_block2 = spend_child_block2 + BlockQueue.child_block_interval()
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block2, true)
@@ -142,28 +113,16 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash2, _}} = Eth.get_child_chain(spend_child_block2)
 
-    assert {:ok, %{"transactions" => [%{"raw_tx" => ^encoded_raw_tx2}]}} =
-             jsonrpc(:get_block, %{hash: Base.encode16(block_hash2)})
+    {:ok, %{"transactions" => [line_transaction2]}} = Client.call(:get_block, %{hash: block_hash2})
+    {:ok, %{raw_tx: raw_tx_decoded2}} = Transaction.Signed.decode(Client.decode(:bitstring, line_transaction2))
+    assert raw_tx2 == raw_tx_decoded2
 
     # sanity checks
-    assert {:ok, %{}} = jsonrpc(:get_block, %{hash: Base.encode16(block_hash)})
-    assert {:ok, "not_found"} = jsonrpc(:get_block, %{hash: Base.encode16(<<0::size(256)>>)})
+    assert {:ok, %{}} = Client.call(:get_block, %{hash: block_hash})
+    assert {:error, {_, "Internal error", "not_found"}} = Client.call(:get_block, %{hash: <<0::size(256)>>})
 
-    assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, %{transaction: Base.encode16(tx)})
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx})
 
-    assert {:error, {_, "Internal error", "utxo_not_found"}} = jsonrpc(:submit, %{transaction: Base.encode16(tx2)})
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
   end
-
-  defp encode(arg) when is_binary(arg), do: Base.encode16(arg)
-
-  defp encode(arg) when is_map(arg) do
-    arg = Map.from_struct(arg)
-
-    for {key, value} <- arg, into: %{} do
-      {to_string(key), encode(value)}
-    end
-  end
-
-  defp encode(arg) when is_list(arg), do: for(value <- arg, into: [], do: encode(value))
-  defp encode(arg), do: arg
 end

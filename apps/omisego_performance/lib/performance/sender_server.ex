@@ -9,6 +9,7 @@ defmodule OmiseGO.Performance.SenderServer do
   require Logger
   use GenServer
 
+  alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Transaction
 
   defmodule LastTx do
@@ -52,7 +53,7 @@ defmodule OmiseGO.Performance.SenderServer do
     * Senders are assigned sequential positive int starting from 1, senders are initialized in order of seqnum.
       This ensures all senders' deposits are accepted.
   """
-  @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, __MODULE__.state()}
+  @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, state()}
   def init({seqnum, ntx_to_send}) do
     _ = Logger.debug(fn -> "[#{seqnum}] +++ init/1 called with requests: '#{ntx_to_send}' +++" end)
 
@@ -117,7 +118,6 @@ defmodule OmiseGO.Performance.SenderServer do
     result =
       tx
       |> Transaction.Signed.encode()
-      |> Base.encode16()
       |> submit_tx_jsonrpc()
 
     case result do
@@ -172,7 +172,7 @@ defmodule OmiseGO.Performance.SenderServer do
   # Submits Tx to the childchain server via http (JsonRPC) and translates successful result to atom-keyed map.
   @spec submit_tx_jsonrpc(binary) :: {:ok, map} | {:error, any}
   defp submit_tx_jsonrpc(encoded_tx) do
-    with {:ok, result} <- jsonrpc(:submit, %{transaction: encoded_tx}) do
+    with {:ok, result} <- OmiseGO.JSONRPC.Client.call(:submit, %{transaction: encoded_tx}) do
       {:ok,
        result
        |> Enum.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
@@ -180,20 +180,10 @@ defmodule OmiseGO.Performance.SenderServer do
     end
   end
 
-  # Helper function which makes JsonRPC call.
-  # For now test setup is done in the same BEAM process, so the `localhost` address is used.
-  defp jsonrpc(method, params) do
-    jsonrpc_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
-
-    "http://localhost:#{jsonrpc_port}"
-    |> JSONRPC2.Clients.HTTP.call(to_string(method), params)
-  end
-
   # Generates participant private key and address
   # TODO: DRY this, used also in omisego_api/test, omisego_eth
-  @spec generate_entity() :: %{priv: <<_::256>>, addr: <<_::160>>}
+  @spec generate_entity() :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
   defp generate_entity do
-    alias OmiseGO.API.Crypto
     {:ok, priv} = Crypto.generate_private_key()
     {:ok, pub} = Crypto.generate_public_key(priv)
     {:ok, addr} = Crypto.generate_address(pub)
@@ -204,7 +194,7 @@ defmodule OmiseGO.Performance.SenderServer do
   @spec init_state(
           seqnum :: pos_integer,
           nreq :: pos_integer,
-          spender :: %{priv: <<_::256>>, addr: <<_::160>>}
+          spender :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
         ) :: __MODULE__.state()
   defp init_state(seqnum, nreq, spender) do
     %__MODULE__{

@@ -5,8 +5,8 @@ defmodule OmiseGO.API.EthereumEventListener do
   For code simplicity it listens for events in blocks with a configured finality margin.
   """
 
-  alias OmiseGO.Eth
   alias OmiseGO.API.EthereumEventListener.Core
+  alias OmiseGO.Eth
 
   ### Client
 
