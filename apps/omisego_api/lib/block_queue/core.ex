@@ -145,13 +145,13 @@ defmodule OmiseGO.API.BlockQueue.Core do
   end
 
   defp adjust_gas_price(
-        %Core{
-          parent_height: parent_height,
-          gas_price_adj_params: %GasPriceParams{last_block_mined: {last_parent_height, _mined_block_num}}
-        } = state
-      )
-      when parent_height == last_parent_height,
-      do: state
+         %Core{
+           parent_height: parent_height,
+           gas_price_adj_params: %GasPriceParams{last_block_mined: {last_parent_height, _mined_block_num}}
+         } = state
+       )
+       when parent_height == last_parent_height,
+       do: state
 
   defp adjust_gas_price(%Core{} = state) do
     new_gas_price = calculate_gas_price(state)
@@ -165,18 +165,18 @@ defmodule OmiseGO.API.BlockQueue.Core do
   # when gap of mined parent blocks is growing and droping the price by gas_price_lowering_factor otherwise
   @spec calculate_gas_price(Core.t()) :: pos_integer()
   defp calculate_gas_price(%Core{
-        formed_child_block_num: formed_child_block_num,
-        mined_child_block_num: mined_child_block_num,
-        gas_price_to_use: gas_price_to_use,
-        parent_height: parent_height,
-        gas_price_adj_params: %GasPriceParams{
-          gas_price_lowering_factor: gas_price_lowering_factor,
-          gas_price_raising_factor: gas_price_raising_factor,
-          eth_gap_without_child_blocks: eth_gap_without_child_blocks,
-          max_gas_price: max_gas_price,
-          last_block_mined: {lastchecked_parent_height, lastchecked_mined_block_num}
-        }
-      }) do
+         formed_child_block_num: formed_child_block_num,
+         mined_child_block_num: mined_child_block_num,
+         gas_price_to_use: gas_price_to_use,
+         parent_height: parent_height,
+         gas_price_adj_params: %GasPriceParams{
+           gas_price_lowering_factor: gas_price_lowering_factor,
+           gas_price_raising_factor: gas_price_raising_factor,
+           eth_gap_without_child_blocks: eth_gap_without_child_blocks,
+           max_gas_price: max_gas_price,
+           last_block_mined: {lastchecked_parent_height, lastchecked_mined_block_num}
+         }
+       }) do
     multiplier =
       with true <- blocks_needs_be_mined?(formed_child_block_num, mined_child_block_num),
            true <- eth_blocks_gap_filled?(parent_height, lastchecked_parent_height, eth_gap_without_child_blocks),
@@ -195,14 +195,14 @@ defmodule OmiseGO.API.BlockQueue.Core do
   # Updates the state with information about last parent height and mined child block number
   @spec update_last_checked_mined_block_num(Core.t()) :: Core.t()
   defp update_last_checked_mined_block_num(
-        %Core{
-          parent_height: parent_height,
-          mined_child_block_num: mined_child_block_num,
-          gas_price_adj_params: %GasPriceParams{
-            last_block_mined: {_lastechecked_parent_height, lastchecked_mined_block_num}
-          }
-        } = state
-      ) do
+         %Core{
+           parent_height: parent_height,
+           mined_child_block_num: mined_child_block_num,
+           gas_price_adj_params: %GasPriceParams{
+             last_block_mined: {_lastechecked_parent_height, lastchecked_mined_block_num}
+           }
+         } = state
+       ) do
     if lastchecked_mined_block_num < mined_child_block_num do
       %Core{
         state
@@ -296,7 +296,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
   # blocks (might still need tracking!) and blocks not yet submitted.
 
   # NOTE: handles both the case when there aren't any hashes in database and there are
-  @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [BlockQueue.hash()]) :: {:ok, Core.t()} | {:error, atom}
+  @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [BlockQueue.hash()])
+  :: {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_hash_not_found_in_db}
   defp enqueue_existing_blocks(state, @zero_bytes32, [] = _known_hahes) do
     # we start a fresh queue from db and fresh contract
     {:ok, %{state | formed_child_block_num: 0}}

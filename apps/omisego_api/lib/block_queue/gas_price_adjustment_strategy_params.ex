@@ -19,7 +19,7 @@ defmodule OmiseGO.API.BlockQueue.GasPriceAdjustmentStrategyParams do
           # maximum gas price above which raising has no effect, limits the gas price calculation
           max_gas_price: pos_integer(),
           # remembers ethereum height and last child block mined, used for the gas price calculation
-          last_block_mined: tuple()
+          last_block_mined: tuple() | nil
         }
 
   def new(raising_factor, lowering_factor, eth_blocks_gap \\ 2) do

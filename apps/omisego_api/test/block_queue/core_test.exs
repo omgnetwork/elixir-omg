@@ -290,14 +290,11 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
   end
 
   defp empty_with_gas_params do
-    state = %{empty() |
-      formed_child_block_num: 5,
-      mined_child_block_num: 3,
-      gas_price_to_use: 100}
+    state = %{empty() | formed_child_block_num: 5, mined_child_block_num: 3, gas_price_to_use: 100}
 
     {:dont_form_block, state} =
-        state
-        |> set_ethereum_height(1)
+      state
+      |> set_ethereum_height(1)
 
     # assertions - to be explicit how state looks like
     assert {1, 3} = state.gas_price_adj_params.last_block_mined
@@ -363,8 +360,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
 
     test "Gas price is lowered and then raised when ethereum gas gets filled" do
       state = empty_with_gas_params()
-      gas_params =
-        %{state.gas_price_adj_params | eth_gap_without_child_blocks: 3}
+      gas_params = %{state.gas_price_adj_params | eth_gap_without_child_blocks: 3}
       state1 = %{state | gas_price_adj_params: gas_params}
 
       {:do_form_block, state2, _, _} =
@@ -390,11 +386,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     test "Gas price calculation cannot be raised above limit" do
       state = empty_with_gas_params()
       expected_max_price = 5 * state.gas_price_to_use
-      gas_params =
-        %{state.gas_price_adj_params |
-          gas_price_raising_factor: 10,
-          max_gas_price: expected_max_price
-      }
+      gas_params = %{state.gas_price_adj_params | gas_price_raising_factor: 10, max_gas_price: expected_max_price}
       state1 = %{state | gas_price_adj_params: gas_params}
       eth_gap = state1.gas_price_adj_params.eth_gap_without_child_blocks
 
