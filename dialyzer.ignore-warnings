@@ -28,3 +28,5 @@ Function next_state/4 will never be called
 # Exexec related problems from dev_geth.ex. stop and wait is badly specced in Exexec
 Function stop/1 has no local return
 The pattern {'exit_status', 35072} can never match the type 'ok' | {'error',_}
+Invalid type specification for function 'Elixir.OmiseGO.API.Crypto':generate_public_key/1. The success typing is (<<_:256>>) -> {'ok',<<_:504>>}
+Function get_block/2 has no local return
