@@ -49,7 +49,12 @@ defmodule OmiseGO.DB do
       :ok = OmiseGO.DB.multi_update([{:put, :last_fast_exit_block_height, 0}])
       :ok = OmiseGO.DB.multi_update([{:put, :last_slow_exit_block_height, 0}])
       :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
-      started_apps |> Enum.reverse() |> Enum.map(fn app -> :ok = Application.stop(app) end)
+      started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
+
+      # TODO: possible source of flakiness is omisego_db not cleaning up fast enough? find a better solution
+      Process.sleep(500)
+
+      :ok
     else
       {:error, :folder_not_empty}
     end

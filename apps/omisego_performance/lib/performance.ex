@@ -38,10 +38,9 @@ defmodule OmiseGO.Performance do
     {:ok, dbdir} = Briefly.create(directory: true)
     Application.put_env(:omisego_db, :leveldb_path, dbdir, persistent: true)
 
-    started_apps = ensure_all_started([:omisego_db, :jsonrpc2, :cowboy, :hackney])
+    :ok = OmiseGO.DB.init()
 
-    :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
-    :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
+    started_apps = ensure_all_started([:omisego_db, :jsonrpc2, :cowboy, :hackney])
 
     omisego_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
 

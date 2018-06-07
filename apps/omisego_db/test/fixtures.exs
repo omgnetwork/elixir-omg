@@ -22,9 +22,6 @@ defmodule OmiseGO.DB.Fixtures do
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
 
-    # TODO: possible source of flakiness is omisego_db not cleaning up fast enough? find a better solution
-    Process.sleep(500)
-
     :ok
   end
 end
