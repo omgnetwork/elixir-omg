@@ -11,7 +11,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
       %{
         child_block_interval: 1000,
         ethereum_event_block_finality_margin: 1,
-        ethereum_event_get_deposit_interval_ms: 10
+        ethereum_event_get_deposits_interval_ms: 10
       }
     )
   end

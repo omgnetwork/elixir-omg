@@ -28,7 +28,7 @@ defmodule OmiseGO.EthTest do
   end
 
   defp deposit(contract) do
-    {:ok, transaction_hash} = Eth.DevHelpers.deposit(1, 1, contract.from, contract.address)
+    {:ok, transaction_hash} = Eth.DevHelpers.deposit(1, 1, contract.authority_addr, contract.contract_addr)
     {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
   end
 
@@ -38,8 +38,8 @@ defmodule OmiseGO.EthTest do
 
     {:ok, transaction_hash} =
       Ethereumex.HttpClient.eth_send_transaction(%{
-        from: contract.from,
-        to: contract.address,
+        from: contract.authority_addr,
+        to: contract.contract_addr,
         data: "0x#{data}",
         gas: "0x2D0900"
       })
@@ -52,9 +52,9 @@ defmodule OmiseGO.EthTest do
 
   defp add_blocks(range, contract) do
     for nonce <- range do
-      {:ok, txhash} = Eth.submit_block(generate_transaction(nonce), contract.from, contract.address)
+      {:ok, txhash} = Eth.submit_block(generate_transaction(nonce), contract.authority_addr, contract.contract_addr)
       {:ok, _receipt} = WaitFor.eth_receipt(txhash, @timeout)
-      {:ok, next_num} = Eth.get_current_child_block(contract.address)
+      {:ok, next_num} = Eth.get_current_child_block(contract.contract_addr)
       assert next_num == (nonce + 1) * 1000
     end
   end
@@ -63,7 +63,7 @@ defmodule OmiseGO.EthTest do
   test "child block increment after add block", %{contract: contract} do
     add_blocks(1..4, contract)
     # current child block is a num of the next operator block:
-    {:ok, 5000} = Eth.get_current_child_block(contract.address)
+    {:ok, 5000} = Eth.get_current_child_block(contract.contract_addr)
   end
 
   @tag fixtures: [:geth]
@@ -76,8 +76,8 @@ defmodule OmiseGO.EthTest do
   test "get child chain", %{contract: contract} do
     add_blocks(1..8, contract)
     block = generate_transaction(4)
-    {:ok, 8000} = Eth.get_mined_child_block(contract.address)
-    {:ok, {child_chain_hash, _child_chain_time}} = Eth.get_child_chain(4000, contract.address)
+    {:ok, 8000} = Eth.get_mined_child_block(contract.contract_addr)
+    {:ok, {child_chain_hash, _child_chain_time}} = Eth.get_child_chain(4000, contract.contract_addr)
     assert block.hash == child_chain_hash
   end
 
@@ -86,12 +86,13 @@ defmodule OmiseGO.EthTest do
     deposit(contract)
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.from}]} == Eth.get_deposits(1, height, contract.address)
+    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.authority_addr}]} ==
+             Eth.get_deposits(1, height, contract.contract_addr)
   end
 
   @tag fixtures: [:contract]
   test "get contract deployment height", %{contract: contract} do
-    {:ok, number} = Eth.get_root_deployment_height(contract.txhash, contract.address)
+    {:ok, number} = Eth.get_root_deployment_height(contract.txhash_contract, contract.contract_addr)
     assert is_integer(number)
   end
 
@@ -101,19 +102,19 @@ defmodule OmiseGO.EthTest do
     exit_deposit(contract)
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{owner: contract.from, blknum: 1, txindex: 0, oindex: 0}]} ==
-             Eth.get_exits(1, height, contract.address)
+    assert {:ok, [%{owner: contract.authority_addr, blknum: 1, txindex: 0, oindex: 0}]} ==
+             Eth.get_exits(1, height, contract.contract_addr)
   end
 
   @tag fixtures: [:contract]
   test "get mined block number", %{contract: contract} do
-    {:ok, number} = Eth.get_mined_child_block(contract.address)
+    {:ok, number} = Eth.get_mined_child_block(contract.contract_addr)
     assert is_integer(number)
   end
 
   @tag fixtures: [:contract]
   test "get authority for deployed contract", %{contract: contract} do
-    {:ok, addr} = Eth.authority(contract.address)
-    assert contract.from == "0x" <> Base.encode16(addr, case: :lower)
+    {:ok, addr} = Eth.authority(contract.contract_addr)
+    assert contract.authority_addr == "0x" <> Base.encode16(addr, case: :lower)
   end
 end

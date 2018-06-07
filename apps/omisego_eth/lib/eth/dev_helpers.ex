@@ -10,10 +10,10 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, authority} = create_and_fund_authority_addr()
     {:ok, txhash, contract_address} = create_new_contract(root_path, authority)
-    %{contract: contract_address, txhash_contract: txhash, authority_addr: authority}
+    %{contract_addr: contract_address, txhash_contract: txhash, authority_addr: authority}
   end
 
-  def create_conf_file(%{contract: contract_address, txhash_contract: txhash, authority_addr: authority}) do
+  def create_conf_file(%{contract_addr: contract_address, txhash_contract: txhash, authority_addr: authority}) do
     """
     use Mix.Config
 

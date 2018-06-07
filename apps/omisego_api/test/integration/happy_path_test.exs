@@ -19,9 +19,9 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # prevent warnings
     :ok = geth
 
-    Application.put_env(:omisego_eth, :contract, contract.address, persistent: true)
-    Application.put_env(:omisego_eth, :authority_addr, contract.from, persistent: true)
-    Application.put_env(:omisego_eth, :txhash_contract, contract.txhash, persistent: true)
+    Application.put_env(:omisego_eth, :contract, contract.contract_addr, persistent: true)
+    Application.put_env(:omisego_eth, :authority_addr, contract.authority_addr, persistent: true)
+    Application.put_env(:omisego_eth, :txhash_contract, contract.txhash_contract, persistent: true)
 
     {:ok, started_apps} = Application.ensure_all_started(:omisego_eth)
 
