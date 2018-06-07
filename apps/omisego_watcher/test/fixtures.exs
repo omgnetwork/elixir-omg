@@ -1,5 +1,4 @@
 defmodule OmiseGOWatcher.BlockGetter.Fixtures do
-  import OmiseGO.API.TestHelper
   use ExUnitFixtures.FixtureModule
   require Logger
 
@@ -90,9 +89,6 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     Logger.debug(fn -> "#{prefix}: " <> line end)
     line
   end
-
-  deffixture(alice, do: generate_entity())
-  deffixture(bob, do: generate_entity())
 
   deffixture watcher(db_initialized) do
     :ok = db_initialized

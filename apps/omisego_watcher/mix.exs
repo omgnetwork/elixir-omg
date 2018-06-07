@@ -46,6 +46,8 @@ defmodule OmiseGOWatcher.Mixfile do
       {:plug, "~> 1.5.0", override: true},
       {:socket, "~> 0.3"},
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
+      # NOTE: need this explictly, since :omisego_jsonrpc won't start jsonrpc2 automatically
+      {:jsonrpc2, "~> 1.0"},
       #
       {:omisego_api, in_umbrella: true, runtime: false},
       {:omisego_jsonrpc, in_umbrella: true, runtime: false},

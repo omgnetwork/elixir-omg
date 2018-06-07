@@ -1,6 +1,7 @@
 defmodule OmiseGOWatcher.BlockGetterTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
+  use OmiseGO.API.Fixtures
 
   use Plug.Test
 
