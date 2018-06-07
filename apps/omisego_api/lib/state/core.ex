@@ -160,57 +160,47 @@ defmodule OmiseGO.API.State.Core do
    - generates requests to the persistence layer for a block
    - processes pending txs gathered, updates height etc
   """
-  def form_block(
-        %Core{pending_txs: reverse_txs, height: height} = state,
-        block_num_to_form,
-        next_block_num_to_form
-      ) do
-    with :ok <- validate_block_number(block_num_to_form, state) do
-      txs = Enum.reverse(reverse_txs)
+  def form_block(%Core{pending_txs: reverse_txs, height: height} = state, child_block_interval) do
+    txs = Enum.reverse(reverse_txs)
 
-      block =
-        %Block{transactions: txs, number: height}
-        |> Block.merkle_hash()
+    block =
+      %Block{transactions: txs, number: height}
+      |> Block.merkle_hash()
 
-      event_triggers =
-        txs
-        |> Enum.map(fn tx -> %{tx: tx} end)
+    event_triggers =
+      txs
+      |> Enum.map(fn tx -> %{tx: tx} end)
 
-      db_updates_new_utxos =
-        txs
-        |> Enum.with_index()
-        |> Enum.flat_map(fn {%Transaction.Recovered{raw_tx: tx}, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
-        |> Enum.map(&utxo_to_db_put/1)
+    db_updates_new_utxos =
+      txs
+      |> Enum.with_index()
+      |> Enum.flat_map(fn {%Transaction.Recovered{raw_tx: tx}, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
+      |> Enum.map(&utxo_to_db_put/1)
 
-      db_updates_spent_utxos =
-        txs
-        |> Enum.flat_map(fn %Transaction.Recovered{raw_tx: tx} ->
-          [{tx.blknum1, tx.txindex1, tx.oindex1}, {tx.blknum2, tx.txindex2, tx.oindex2}]
-        end)
-        |> Enum.filter(fn utxo_key -> utxo_key != {0, 0, 0} end)
-        |> Enum.map(fn utxo_key -> {:delete, :utxo, utxo_key} end)
+    db_updates_spent_utxos =
+      txs
+      |> Enum.flat_map(fn %Transaction.Recovered{raw_tx: tx} ->
+        [{tx.blknum1, tx.txindex1, tx.oindex1}, {tx.blknum2, tx.txindex2, tx.oindex2}]
+      end)
+      |> Enum.filter(fn utxo_key -> utxo_key != {0, 0, 0} end)
+      |> Enum.map(fn utxo_key -> {:delete, :utxo, utxo_key} end)
 
-      db_updates_block = [{:put, :block, block}]
+    db_updates_block = [{:put, :block, block}]
 
-      db_updates_top_block_number = [{:put, :child_top_block_number, height}]
+    db_updates_top_block_number = [{:put, :child_top_block_number, height}]
 
-      db_updates =
-        [db_updates_new_utxos, db_updates_spent_utxos, db_updates_block, db_updates_top_block_number]
-        |> Enum.concat()
+    db_updates =
+      [db_updates_new_utxos, db_updates_spent_utxos, db_updates_block, db_updates_top_block_number]
+      |> Enum.concat()
 
-      new_state = %Core{
-        state
-        | tx_index: 0,
-          height: next_block_num_to_form,
-          pending_txs: []
-      }
+    new_state = %Core{
+      state
+      | tx_index: 0,
+        height: height + child_block_interval,
+        pending_txs: []
+    }
 
-      {:ok, {block, event_triggers, db_updates, new_state}}
-    end
-  end
-
-  defp validate_block_number(expected_block_num, %Core{height: height}) do
-    if expected_block_num == height, do: :ok, else: {:error, :invalid_current_block_number}
+    {:ok, {block, event_triggers, db_updates, new_state}}
   end
 
   def decode_deposit(%{owner: "0x" <> owner_enc} = deposit) do
