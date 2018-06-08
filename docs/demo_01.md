@@ -11,7 +11,7 @@ The following demo is a mix of commands executed in IEx (Elixir's) REPL (see REA
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
 # (paste output from `prepare_env!` to setup the REPL environment)
-contract_address = Application.get_env(:omisego_eth, :contract)
+contract_address = Application.get_env(:omisego_eth, :contract_addr)
 
 Code.load_file("apps/omisego_api/test/testlib/test_helper.ex")
 alias OmiseGO.{API, Eth}
@@ -43,6 +43,7 @@ tx =
   Transaction.sign(alice.priv, <<>>) |>
   Transaction.Signed.encode() |>
   Base.encode16()
+
 ```
 
 ```bash

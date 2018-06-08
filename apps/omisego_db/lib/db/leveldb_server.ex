@@ -17,8 +17,7 @@ defmodule OmiseGO.DB.LevelDBServer do
   end
 
   def init(%{db_path: db_path}) do
-    with :ok <- File.mkdir_p(db_path),
-         {:ok, db_ref} <- Exleveldb.open(db_path),
+    with {:ok, db_ref} <- Exleveldb.open(db_path),
          do: {:ok, %__MODULE__{db_ref: db_ref}}
   end
 

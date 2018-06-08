@@ -68,7 +68,7 @@ defmodule OmiseGO.API.BlockQueue do
              #       Leaving a chore to handle that in the future: OMG-83
              {:ok, known_hashes} <- OmiseGO.DB.block_hashes(range),
              {:ok, {top_mined_hash, _}} = Eth.get_child_chain(mined_num) do
-          _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{top_mined_hash}" end)
+          _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{inspect(top_mined_hash)}" end)
 
           {:ok, state} =
             Core.new(
@@ -124,14 +124,19 @@ defmodule OmiseGO.API.BlockQueue do
     end
 
     defp submit(submission) do
-      _ = Logger.info(fn -> "Submitting: #{inspect(submission)}" end)
+      _ = Logger.debug(fn -> "Submitting: #{inspect(submission)}" end)
 
       case OmiseGO.Eth.submit_block(submission) do
         {:ok, txhash} ->
-          _ = Logger.info(fn -> "Submitted at: #{inspect(txhash)}" end)
+          _ = Logger.info(fn -> "Submitted #{inspect(submission)} at: #{inspect(txhash)}" end)
           :ok
 
         {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} ->
+          _ = Logger.debug(fn -> "Submission is known transaction - ignored" end)
+          :ok
+
+        {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}} ->
+          _ = Logger.debug(fn -> "Submission is known, but with higher price - ignored" end)
           :ok
       end
     end

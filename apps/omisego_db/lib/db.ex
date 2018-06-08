@@ -43,6 +43,7 @@ defmodule OmiseGO.DB do
 
   def init do
     path = Application.get_env(:omisego_db, :leveldb_path)
+    :ok = File.mkdir_p(path)
 
     if Enum.empty?(File.ls!(path)) do
       {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
