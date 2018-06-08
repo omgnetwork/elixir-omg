@@ -7,8 +7,7 @@ defmodule OmiseGO.Eth.Fixtures do
   alias OmiseGO.Eth
 
   deffixture geth do
-    Application.ensure_all_started(:erlexec)
-    {:ok, exit_fn} = OmiseGO.Eth.dev_geth()
+    {:ok, exit_fn} = Eth.DevGeth.start()
     on_exit(exit_fn)
     :ok
   end

@@ -8,7 +8,7 @@ config :ethereumex,
   request_timeout: 5000
 
 config :omisego_eth,
-  contract: nil,
+  contract_addr: nil,
   authority_addr: nil,
   txhash_contract: nil,
   geth_logging_in_debug: true

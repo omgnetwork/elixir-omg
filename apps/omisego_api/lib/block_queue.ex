@@ -57,10 +57,8 @@ defmodule OmiseGO.API.BlockQueue do
              {:ok, stored_child_top_num} <- OmiseGO.DB.child_top_block_number(),
              _ =
                Logger.info(fn ->
-                 """
-                 Starting BlockQueue at parent_height: #{parent_height}, mined_child_block: #{mined_num}
-                                        parent_start: #{parent_start}, stored_child_tob_block: #{stored_child_top_num}
-                 """
+                 "Starting BlockQueue at parent_height: #{parent_height}, mined_child_block: #{mined_num}, " <>
+                   "parent_start: #{parent_start}, stored_child_top_block: #{stored_child_top_num}"
                end),
              range <- Core.child_block_nums_to_init_with(stored_child_top_num),
              # TODO: taking all stored hashes now. While still being feasible DB-wise ("just" many hashes)
@@ -70,6 +68,8 @@ defmodule OmiseGO.API.BlockQueue do
              #       Leaving a chore to handle that in the future: OMG-83
              {:ok, known_hashes} <- OmiseGO.DB.block_hashes(range),
              {:ok, {top_mined_hash, _}} = Eth.get_child_chain(mined_num) do
+          _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{top_mined_hash}" end)
+
           {:ok, state} =
             Core.new(
               mined_child_block_num: mined_num,
@@ -85,6 +85,8 @@ defmodule OmiseGO.API.BlockQueue do
           interval = Application.get_env(:omisego_api, :ethereum_event_check_height_interval_ms)
           {:ok, _} = :timer.send_interval(interval, self(), :check_mined_child_head)
           {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_height)
+
+          _ = Logger.info(fn -> "Started BlockQueue" end)
           {:ok, state}
         end
       catch

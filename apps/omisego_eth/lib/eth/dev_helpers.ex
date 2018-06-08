@@ -9,18 +9,18 @@ defmodule OmiseGO.Eth.DevHelpers do
   def prepare_env!(root_path \\ "./") do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, authority} = create_and_fund_authority_addr()
-    {:ok, txhash, contract_address} = create_new_contract(root_path, authority)
-    %{contract_addr: contract_address, txhash_contract: txhash, authority_addr: authority}
+    {:ok, txhash, contract_addr} = create_new_contract(root_path, authority)
+    %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
   end
 
-  def create_conf_file(%{contract_addr: contract_address, txhash_contract: txhash, authority_addr: authority}) do
+  def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
     """
     use Mix.Config
 
     config :omisego_eth,
-      contract: #{inspect(contract_address)},
+      contract_addr: #{inspect(contract_addr)},
       txhash_contract: #{inspect(txhash)},
-      authority_addr: #{inspect(authority)}
+      authority_addr: #{inspect(authority_addr)}
     """
   end
 
@@ -72,13 +72,7 @@ defmodule OmiseGO.Eth.DevHelpers do
   end
 
   defp maybe_mine(false), do: :noop
-
-  defp maybe_mine(true) do
-    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
-    txmap = %{from: addr, to: addr, value: "0x1"}
-    {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    {:ok, _receipt} = WaitFor.eth_receipt(txhash, 4_000)
-  end
+  defp maybe_mine(true), do: mine_eth_dev_block()
 
   defp deploy_contract(addr, bytecode, types, args) do
     enc_args = encode_constructor_params(types, args)
@@ -90,7 +84,7 @@ defmodule OmiseGO.Eth.DevHelpers do
   end
 
   def deposit(value, nonce, from \\ nil, contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     from = from || Application.get_env(:omisego_eth, :authority_addr)
 
     data =
@@ -119,7 +113,6 @@ defmodule OmiseGO.Eth.DevHelpers do
   end
 
   def mine_eth_dev_block do
-    _ = Application.ensure_all_started(:ethereumex)
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
     txmap = %{from: addr, to: addr, value: "0x1"}
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)

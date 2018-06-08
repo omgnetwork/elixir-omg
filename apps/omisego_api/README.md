@@ -19,7 +19,7 @@ To do that use the template, filling it with details on the contract:
 use Mix.Config
 
 config :omisego_eth,
-  contract: "0x0",
+  contract_addr: "0x0",
   authority_addr: "0x0",
   txhash_contract: "0x0"
 ```

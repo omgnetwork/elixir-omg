@@ -58,7 +58,8 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     # TODO I wish we could ensure_started just one app here, but in test env jsonrpc doesn't depend on api :(
     child_chain_mix_cmd =
       "mix run --no-start --no-halt --config #{config_file_path} -e " <>
-        "'Application.ensure_all_started(:omisego_api); Application.ensure_all_started(:omisego_jsonrpc)' 2>&1"
+        "'{:ok, _} = Application.ensure_all_started(:omisego_api);" <>
+        " {:ok, _} = Application.ensure_all_started(:omisego_jsonrpc)' " <> "2>&1"
 
     Logger.debug(fn -> "Starting child_chain" end)
 

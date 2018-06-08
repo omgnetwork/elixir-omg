@@ -13,19 +13,6 @@ defmodule OmiseGO.Eth do
 
   @type contract_t() :: binary | nil
 
-  def dev_geth do
-    {:ok, _} = Application.ensure_all_started(:briefly)
-    {:ok, _} = Application.ensure_all_started(:erlexec)
-    {:ok, _} = Application.ensure_all_started(:ethereumex)
-    geth_pid = OmiseGO.Eth.DevGeth.start()
-
-    on_exit = fn ->
-      OmiseGO.Eth.DevGeth.stop(geth_pid)
-    end
-
-    {:ok, on_exit}
-  end
-
   @spec node_ready() :: :ok | {:error, :geth_still_syncing | :geth_not_listening}
   def node_ready do
     case Ethereumex.HttpClient.eth_syncing() do
@@ -38,7 +25,7 @@ defmodule OmiseGO.Eth do
   @spec contract_ready(contract_t()) ::
           :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
   def contract_ready(contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
 
     try do
       {:ok, addr} = authority(contract)
@@ -69,7 +56,7 @@ defmodule OmiseGO.Eth do
 
   @spec get_root_deployment_height(binary() | nil, contract_t()) :: {:ok, integer()} | Ethereumex.HttpClient.error()
   def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     txhash = txhash || Application.get_env(:omisego_eth, :txhash_contract)
 
     case Ethereumex.HttpClient.eth_get_transaction_receipt(txhash) do
@@ -93,7 +80,7 @@ defmodule OmiseGO.Eth do
         from \\ nil,
         contract \\ nil
       ) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     from = from || Application.get_env(:omisego_eth, :authority_addr)
 
     data =
@@ -128,7 +115,7 @@ defmodule OmiseGO.Eth do
   Returns next blknum that is supposed to be mined by operator
   """
   def get_current_child_block(contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     {:ok, _next} = call_contract_value(contract, "currentChildBlock()")
   end
 
@@ -136,13 +123,13 @@ defmodule OmiseGO.Eth do
   Returns blknum that was already mined by operator (with exception for 0)
   """
   def get_mined_child_block(contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     {:ok, next} = call_contract_value(contract, "currentChildBlock()")
     {:ok, next - 1000}
   end
 
   def authority(contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     {:ok, [addr]} = call_contract(contract, "authority()", [], [:address])
     {:ok, addr}
   end
@@ -151,7 +138,7 @@ defmodule OmiseGO.Eth do
   Returns lists of deposits sorted by child chain block number
   """
   def get_deposits(block_from, block_to, contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
 
     event = encode_event_signature("Deposit(address,uint256,uint256)")
 
@@ -202,7 +189,7 @@ defmodule OmiseGO.Eth do
   Returns lists of deposits sorted by child chain block number
   """
   def get_exits(block_from, block_to, contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     event = encode_event_signature("Exit(address,uint256)")
 
     parse_exit = fn "0x" <> deposit ->
@@ -224,7 +211,7 @@ defmodule OmiseGO.Eth do
   end
 
   def get_child_chain(blknum, contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     {:ok, [root, created_at]} = call_contract(contract, "getChildChain(uint256)", [blknum], [:bytes32, {:uint, 256}])
     {:ok, {root, created_at}}
   end
