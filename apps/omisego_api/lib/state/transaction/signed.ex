@@ -2,7 +2,6 @@ defmodule OmiseGO.API.State.Transaction.Signed do
   @moduledoc false
 
   alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.Crypto
 
   @signature_length 65
 

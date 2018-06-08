@@ -38,8 +38,8 @@ defmodule OmiseGO.EthTest do
     {:ok, _} = WaitFor.eth_receipt(txhash, @timeout)
   end
 
-  defp start_exit(utxo_position, proof, %Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2} = signed_tx, gas_price, contract) do
-    {:ok, txhash} = Eth.start_exit(utxo_position, proof, signed_tx, gas_price, contract.from, contract.address)
+  defp start_exit(utxo_position, txbytes, proof, sigs, gas_price, contract) do
+    {:ok, txhash} = Eth.start_exit(utxo_position, txbytes, proof, sigs, gas_price, contract.from, contract.address)
     {:ok, _} = WaitFor.eth_receipt(txhash, @timeout)
   end
 
@@ -131,8 +131,7 @@ defmodule OmiseGO.EthTest do
     IO.inspect proof, limit: :infinity
     IO.inspect sigs,limit: :infinity
 
-    {:ok, txhash} = Eth.start_exit(1000000000 + 10000*0 + 0, tx_bytes, proof, sigs, 1, contract.from, contract.address)
-    {:ok, _} = WaitFor.eth_receipt(txhash, @timeout)
+    {:ok, _} = start_exit(1000000000 + 10000*0 + 0, tx_bytes, proof, sigs, 1, contract)
 
     {:ok, height} = Eth.get_ethereum_height()
 

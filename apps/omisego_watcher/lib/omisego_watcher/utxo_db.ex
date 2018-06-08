@@ -106,32 +106,22 @@ defmodule OmiseGOWatcher.UtxoDB do
 
   def compose_utxo_exit(txs, block_height, txindex, oindex) do
 
-    hashed_txs = txs |> Enum.map(&(&1.txid))
-
-    {:ok, mt} = MerkleTree.new(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height)
+    proof = Block.create_utxo_proof(txs, txindex)
 
     tx_index = Enum.find_index(txs, fn(tx) -> tx.txindex == txindex end)
 
-    proof = MerkleTree.Proof.prove(mt, tx_index)
-
-    tx_bytes =
-      txs
-      |> Enum.at(tx_index)
-      |> Transaction.encode
+    tx = Enum.at(txs, tx_index)
 
     %{
       utxo_pos: calculate_utxo_pos(block_height, txindex, oindex),
-      tx_bytes: tx_bytes,
-      proof: proof.hashes |> Enum.reverse |> Enum.reduce(fn(x, acc) -> acc <> x end)
+      tx_bytes: Transaction.encode(tx),
+      proof: proof,
+      sigs: tx.sig1 <> tx.sig2
     }
 
   end
 
   defp calculate_utxo_pos(block_height, txindex, oindex) do
-    # {block_height, _} = Integer.parse(block_height)
-    # {txindex, _} = Integer.parse(txindex)
-    # {oindex, _} = Integer.parse(oindex)
-    # IO.inspect  block_height + txindex + oindex
     block_height + txindex + oindex
   end
 
