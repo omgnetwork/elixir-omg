@@ -1,16 +1,16 @@
 defmodule OmiseGO.EthTest do
 
+  alias OmiseGO.API.Crypto
+  alias OmiseGO.API.TestHelper
   alias OmiseGO.Eth, as: Eth
   alias OmiseGO.Eth.WaitFor, as: WaitFor
   alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.Crypto
   alias OmiseGOWatcher.UtxoDB
-  alias OmiseGO.API.TestHelper
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  @timeout 10_000
+  @timeout 20_000
   @block_offset 1_000_000_000
   @transaction_offset 10_000
   @transaction_merkle_tree_height 16
@@ -62,86 +62,6 @@ defmodule OmiseGO.EthTest do
     {:ok, 5000} = Eth.get_current_child_block(contract.address)
   end
 
-  @tag fixtures: [:contract]
-  test "start_exit", %{contract: contract} do
-
-    # TODO clean alice and bob
-    alice = %{
-      priv:
-        <<54, 43, 207, 67, 140, 160, 190, 135, 18, 162, 70, 120, 36, 245, 106, 165,
-          5, 101, 183, 55, 11, 117, 126, 135, 49, 50, 12, 228, 173, 219, 183, 175>>,
-      addr:
-        <<59, 159, 76, 29, 210, 110, 11, 229, 147, 55, 59, 29, 54, 206, 226, 0,
-          140, 190, 184, 55>>
-    }
-    bob = %{
-      priv:
-        <<208, 253, 134, 150, 198, 155, 175, 125, 158, 156, 21, 108, 208, 7, 103, 242, 9, 139,
-          26, 140, 118, 50, 144, 21, 226, 19, 156, 2, 210, 97, 84, 128>>,
-      addr:
-        <<207, 194, 79, 222, 88, 128, 171, 217, 153, 41, 195, 239, 138, 178, 227, 16, 72, 173,
-          118, 35>>
-    }
-
-    raw_tx = %OmiseGO.API.State.Transaction{
-      amount1: 8,
-      amount2: 3,
-      blknum1: 0,
-      blknum2: 0,
-      fee: 0,
-      newowner1: bob.addr,
-      newowner2: alice.addr,
-      oindex1: 0,
-      oindex2: 0,
-      txindex1: 0,
-      txindex2: 0
-    }
-
-    singed_tx = Transaction.sign(raw_tx, bob.priv, alice.priv)
-
-    %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash} = Transaction.Recovered.recover_from(singed_tx)
-
-    {:ok, mt} = MerkleTree.new([signed_tx_hash], &Crypto.hash/1, @transaction_merkle_tree_height)
-
-    {:ok, child_blknum} = Eth.get_current_child_block(contract.address)
-    block = %Eth.BlockSubmission{
-      num: child_blknum,
-      hash: mt.root.value,
-      gas_price: 20_000_000_000,
-      nonce: 1
-    }
-
-    assert child_blknum == 1000
-
-    IO.inspect "root"
-    IO.inspect mt.root.value
-
-    Eth.submit_block(block, contract.from, contract.address)
-
-    txs = [Map.merge(raw_tx, %{ txindex: 0, txid: signed_tx_hash})]
-
-    %{
-      utxo_pos: utxo_pos,
-      tx_bytes: tx_bytes,
-      proof: proof } = UtxoDB.compose_utxo_exit(txs, 1000000000, 10000*0, 0)
-
-    sigs = singed_tx.sig1 <> singed_tx.sig2
-
-    IO.inspect tx_bytes,limit: :infinity
-    IO.inspect proof, limit: :infinity
-    IO.inspect sigs,limit: :infinity
-
-    {:ok, _} = start_exit(1000000000 + 10000*0 + 0, tx_bytes, proof, sigs, 1, contract)
-
-    {:ok, height} = Eth.get_ethereum_height()
-
-    IO.inspect height
-
-    IO.inspect Eth.get_exit(1000000000, contract.address)
-    IO.inspect Eth.get_exits(1, height, contract.address)
-    IO.inspect Eth.get_current_child_block(contract.address)
-  end
-
   @tag fixtures: [:geth]
   test "get_ethereum_height return integer" do
     {:ok, number} = Eth.get_ethereum_height()
@@ -162,8 +82,7 @@ defmodule OmiseGO.EthTest do
     deposit(1, 1, contract)
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.from}]} ==
-             Eth.get_deposits(1, height, contract.address)
+    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.from}]} == Eth.get_deposits(1, height, contract.address)
   end
 
   @tag fixtures: [:contract]

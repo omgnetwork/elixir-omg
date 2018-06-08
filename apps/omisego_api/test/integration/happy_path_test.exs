@@ -5,47 +5,15 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
+  use OmiseGO.Eth.Fixtures
+  use OmiseGO.DB.Fixtures
 
-  alias OmiseGO.Eth
-  alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.BlockQueue
+  alias OmiseGO.API.State.Transaction
+  alias OmiseGO.Eth
+  alias OmiseGO.JSONRPC.Client
 
   @moduletag :integration
-
-  deffixture db_path_config() do
-    dir = Temp.mkdir!()
-
-    Application.put_env(:omisego_db, :leveldb_path, dir, persistent: true)
-    {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
-
-    on_exit fn ->
-      Application.put_env(:omisego_db, :leveldb_path, nil)
-      started_apps
-        |> Enum.reverse()
-        |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end
-    :ok
-  end
-
-  # TODO: geth and contract fixtures copied from eth/fixtures - DRY
-  # possible solution 1: remove eth_test and cover behaviors here
-  # possible solution 2: move current eth smoke test to integration level tests of omisego_api and move fixtures too
-  deffixture geth do
-    {:ok, exit_fn} = Eth.dev_geth()
-    on_exit(exit_fn)
-    :ok
-  end
-  deffixture contract(geth) do
-    _ = geth
-    _ = Application.ensure_all_started(:ethereumex)
-    {:ok, contract_address, txhash, authority} = Eth.DevHelpers.prepare_env("../../")
-
-    %{
-      address: contract_address,
-      from: authority,
-      txhash: txhash
-    }
-  end
 
   deffixture root_chain_contract_config(geth, contract) do
     # prevent warnings
@@ -57,21 +25,16 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     {:ok, started_apps} = Application.ensure_all_started(:omisego_eth)
 
-    on_exit fn ->
+    on_exit(fn ->
       Application.put_env(:omisego_eth, :contract, "0x0")
       Application.put_env(:omisego_eth, :authority_addr, "0x0")
       Application.put_env(:omisego_eth, :txhash_contract, "0x0")
-      started_apps
-        |> Enum.reverse()
-        |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end
-    :ok
-  end
 
-  deffixture db_initialized(db_path_config) do
-    :ok = db_path_config
-    :ok = OmiseGO.DB.multi_update([{:put, :last_deposit_block_height, 0}])
-    :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
+      started_apps
+      |> Enum.reverse()
+      |> Enum.map(fn app -> :ok = Application.stop(app) end)
+    end)
+
     :ok
   end
 
@@ -82,18 +45,19 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # need to overide that to very often, so that many checks fall in between a single child chain block submission
     Application.put_env(:omisego_api, :ethereum_event_get_deposits_interval_ms, 10, persistent: true)
     {:ok, started_apps} = Application.ensure_all_started(:omisego_api)
+    {:ok, started_jsonrpc} = Application.ensure_all_started(:omisego_jsonrpc)
 
-    on_exit fn ->
-      started_apps
-        |> Enum.reverse()
-        |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end
+    on_exit(fn ->
+      (started_apps ++ started_jsonrpc)
+      |> Enum.reverse()
+      |> Enum.map(fn app -> :ok = Application.stop(app) end)
+    end)
+
     :ok
   end
 
   @tag fixtures: [:alice, :bob, :omisego]
   test "deposit, spend, exit, restart etc works fine", %{alice: alice, bob: bob} do
-
     {:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
 
     {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc)
@@ -104,35 +68,32 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # wait until the deposit is recognized by child chain
     post_deposit_child_block =
       deposit_height - 1 +
-      (Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) + 1) *
-      BlockQueue.child_block_interval()
+        (Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) + 1) *
+          BlockQueue.child_block_interval()
+
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true)
 
     raw_tx = Transaction.new([{deposit_height, 0, 0}], [{bob.addr, 7}, {alice.addr, 3}], 0)
-    tx =
-      raw_tx
-      |> Transaction.sign(alice.priv, <<>>)
-      |> Transaction.Signed.encode()
+
+    tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
     # spend the deposit
-    {:ok, _, spend_child_block, _} = OmiseGO.API.submit(tx)
+    {:ok, %{"blknum" => spend_child_block}} = Client.call(:submit, %{transaction: tx})
 
     post_spend_child_block = spend_child_block + BlockQueue.child_block_interval()
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block, true)
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash, _}} = Eth.get_child_chain(spend_child_block)
-    assert %OmiseGO.API.Block{
-      transactions: [
-        %Transaction.Recovered{
-          raw_tx: ^raw_tx
-        }
-      ]
-    } = OmiseGO.API.get_block(block_hash)
+    {:ok, %{"transactions" => [line_transaction]}} = Client.call(:get_block, %{hash: block_hash})
+    {:ok, %{raw_tx: raw_tx_decoded}} = Transaction.Signed.decode(Client.decode(:bitstring, line_transaction))
+    assert raw_tx_decoded == raw_tx
 
     # Restart everything to check persistance and revival
-    [:omisego_api, :omisego_eth, :omisego_db]
-    |> Enum.each(&Application.stop/1)
+    [:omisego_api, :omisego_eth, :omisego_db] |> Enum.each(&Application.stop/1)
+
+    # TODO: possible source of flakiness is omisego_db not cleaning up fast enough? find a better solution
+    Process.sleep(500)
 
     {:ok, started_apps} = Application.ensure_all_started(:omisego_api)
     # sanity check, did-we restart really?
@@ -140,37 +101,28 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     # repeat spending to see if all works
 
-    raw_tx2 = Transaction.new(
-      [{spend_child_block, 0, 0}, {spend_child_block, 0, 1}],
-      [{alice.addr, 10}],
-      0
-    )
-    tx2 =
-      raw_tx2
-      |> Transaction.sign(bob.priv, alice.priv)
-      |> Transaction.Signed.encode()
+    raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, 10}], 0)
+    tx2 = raw_tx2 |> Transaction.sign(bob.priv, alice.priv) |> Transaction.Signed.encode()
 
     # spend the output of the first transaction
-    {:ok, _, spend_child_block2, _} = OmiseGO.API.submit(tx2)
+    {:ok, %{"blknum" => spend_child_block2}} = Client.call(:submit, %{transaction: tx2})
 
     post_spend_child_block2 = spend_child_block2 + BlockQueue.child_block_interval()
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block2, true)
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash2, _}} = Eth.get_child_chain(spend_child_block2)
-    assert %OmiseGO.API.Block{
-      transactions: [
-        %Transaction.Recovered{
-          raw_tx: ^raw_tx2
-        }
-      ]
-    } = OmiseGO.API.get_block(block_hash2)
+
+    {:ok, %{"transactions" => [line_transaction2]}} = Client.call(:get_block, %{hash: block_hash2})
+    {:ok, %{raw_tx: raw_tx_decoded2}} = Transaction.Signed.decode(Client.decode(:bitstring, line_transaction2))
+    assert raw_tx2 == raw_tx_decoded2
 
     # sanity checks
-    assert %OmiseGO.API.Block{} = OmiseGO.API.get_block(block_hash)
-    assert :not_found = OmiseGO.API.get_block(<<0::size(256)>>)
-    assert {:error, :utxo_not_found} = OmiseGO.API.submit(tx)
-    assert {:error, :utxo_not_found} = OmiseGO.API.submit(tx2)
-  end
+    assert {:ok, %{}} = Client.call(:get_block, %{hash: block_hash})
+    assert {:error, {_, "Internal error", "not_found"}} = Client.call(:get_block, %{hash: <<0::size(256)>>})
 
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx})
+
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
+  end
 end

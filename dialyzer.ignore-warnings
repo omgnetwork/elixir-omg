@@ -1,11 +1,34 @@
-Function geth/0 has no local return
-The created fun has no local return
-Function start/0 has no local return
-Function launch/1 will never be called
-Function geth_os_pids/0 will never be called
-Function wait_for_geth_start/1 will never be called
+# ethereumex related problems, dev_helpers.ex:
+Function get_child_chain/1 has no local return
+Function get_child_chain/2 has no local return
+Function get_exit/1 has no local return
+Function get_exit/2 has no local return
 Function prepare_dev_env/0 has no local return
+Function prepare_test_env/0 has no local return
+Function do_prepare/1 has no local return
+Function do_prepare/2 has no local return
 Function prepare_env/1 has no local return
 Function create_and_fund_authority_addr/0 has no local return
-The call 'Elixir.Ethereumex.HttpClient':personal_unlock_account(Vauthority@1::any(),#{}#,604800) will never return since it differs in the 3rd argument from the success typing arguments: (binary() | map(),binary() | map(),binary() | map())
+The call 'Elixir.Ethereumex.HttpClient':personal_unlock_account
+Function import_unlock_fund/1 has no local return
 Function write_conf_file/4 will never be called
+# Blockchain.Transaction.Signature.get_public_key/1 related problems, sender_server.ex:
+Function init/1 has no local return
+The created fun has no local return
+Function prepare_new_tx/1 has no local return
+The specification for 'Elixir.OmiseGO.Performance.SenderServer':submit_tx/2 states that the function might also return 'retry' | {'error',_} | {'ok',pos_integer(),pos_integer(),pos_integer()} but the inferred return is none()
+Function submit_tx/2 will never be called
+Invalid type specification for function 'Elixir.OmiseGO.Performance.SenderServer':update_state_with_tx_submission/2. The success typing is ('retry' | {'ok',pos_integer(),pos_integer(),pos_integer()},'Elixir.OmiseGO.Performance.SenderServer':state() | #{'__struct__':='Elixir.OmiseGO.Performance.SenderServer', 'last_tx':=_, 'ntx_to_send':=_, 'seqnum':=_, _=>_}) -> 'Elixir.OmiseGO.Performance.SenderServer':state() | #{'__struct__':='Elixir.OmiseGO.Performance.SenderServer', 'last_tx':=_, 'ntx_to_send':=_, 'seqnum':=_, _=>_}
+Function update_state_with_tx_submission/2 will never be called
+The specification for 'Elixir.OmiseGO.Performance.SenderServer':submit_tx_jsonrpc/1 states that the function might also return {'error',_} | {'ok',map()} but the inferred return is none()
+Function submit_tx_jsonrpc/1 will never be called
+Function jsonrpc/2 will never be called
+The specification for 'Elixir.OmiseGO.Performance.SenderServer':generate_entity/0 states that the function might also return #{'addr':=<<_:160>>, 'priv':=<<_:256>>} but the inferred return is none()
+Function generate_entity/0 has no local return
+Function init_state/3 will never be called
+Function next_state/4 will never be called
+# Exexec related problems from dev_geth.ex. stop and wait is badly specced in Exexec
+Function stop/1 has no local return
+The pattern {'exit_status', 35072} can never match the type 'ok' | {'error',_}
+Invalid type specification for function 'Elixir.OmiseGO.API.Crypto':generate_public_key/1. The success typing is (<<_:256>>) -> {'ok',<<_:504>>}
+Function get_block/2 has no local return

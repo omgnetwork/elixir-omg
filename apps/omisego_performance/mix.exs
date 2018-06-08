@@ -17,13 +17,16 @@ defmodule OmiseGO.Performance.MixProject do
 
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger, :tools]
     ]
   end
 
   defp deps do
     [
-      {:omisego_api, in_umbrella: true},
+      {:jsonrpc2, "~> 1.0"},
+      {:hackney, "~> 1.7"},
+      {:omisego_api, in_umbrella: true, runtime: false},
+      {:omisego_jsonrpc, in_umbrella: true, runtime: false}
     ]
   end
 end

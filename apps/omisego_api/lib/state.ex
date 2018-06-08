@@ -2,12 +2,11 @@ defmodule OmiseGO.API.State do
   @moduledoc """
   Imperative shell for the state
   """
-  # TODO: file skipped in coveralls.json - this should be undone, when some integration tests land for this
 
-  alias OmiseGO.API.State.Core
+  alias OmiseGO.API.BlockQueue
   alias OmiseGO.API.Eventer
   alias OmiseGO.API.FreshBlocks
-  alias OmiseGO.API.BlockQueue
+  alias OmiseGO.API.State.Core
   alias OmiseGO.DB
 
   ### Client
@@ -31,6 +30,15 @@ defmodule OmiseGO.API.State do
 
   def exit_utxos(utxos) do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
+  end
+
+  def exit_if_not_spent(utxo) do
+    GenServer.call(__MODULE__, {:exit_not_spent_utxo, utxo})
+  end
+
+  @spec utxo_exists(%{blknum: number, txindex: number, oindex: number}) :: :utxo_exists | :utxo_does_not_exist
+  def utxo_exists(utxo) do
+    GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end
 
   ### Server
@@ -80,12 +88,25 @@ defmodule OmiseGO.API.State do
   Exits (spends) utxos on child chain
   """
   def handle_call({:exit_utxos, utxos}, _from, state) do
-    {event_triggers, db_updates, new_state} = Core.exit_utxos(utxos, state)
-    # GenServer.cast
-    Eventer.notify(event_triggers)
-    # GenServer.call
-    :ok = DB.multi_update(db_updates)
-    {:reply, :ok, new_state}
+    do_exit_utxos(utxos, state)
+  end
+
+  @doc """
+  Exits (spends) utxos on child chain, explicitly signals if utxo has already been spent
+  """
+  def handle_call({:exit_not_spent_utxo, utxo}, _from, state) do
+    with :utxo_exists <- Core.utxo_exists(utxo, state) do
+      do_exit_utxos([utxo], state)
+    else
+      :utxo_does_not_exist -> {:reply, :utxo_does_not_exist, state}
+    end
+  end
+
+  @doc """
+  Tells if utxo exists
+  """
+  def handle_call({:utxo_exists, utxo}, _from, state) do
+    {:reply, Core.utxo_exists(utxo, state), state}
   end
 
   @doc """
@@ -93,11 +114,21 @@ defmodule OmiseGO.API.State do
   """
   def handle_call({:form_block, block_num_to_form, next_block_num_to_form}, _from, state) do
     result = Core.form_block(state, block_num_to_form, next_block_num_to_form)
+
     with {:ok, {block, event_triggers, db_updates, new_state}} <- result,
          :ok <- DB.multi_update(db_updates) do
       Eventer.notify(event_triggers)
       :ok = FreshBlocks.push(block)
       {:reply, {:ok, block.hash}, new_state}
     end
- end
+  end
+
+  defp do_exit_utxos(utxos, state) do
+    {event_triggers, db_updates, new_state} = Core.exit_utxos(utxos, state)
+    # GenServer.cast
+    Eventer.notify(event_triggers)
+    # GenServer.call
+    :ok = DB.multi_update(db_updates)
+    {:reply, :ok, new_state}
+  end
 end

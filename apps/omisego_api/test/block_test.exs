@@ -2,9 +2,9 @@ defmodule OmiseGO.API.BlockTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.Block
   alias OmiseGO.API.Core
+  alias OmiseGO.API.State.Transaction
 
   @tag fixtures: [:stable_alice, :stable_bob]
   test "block has a correct hash", %{stable_alice: alice, stable_bob: bob} do
@@ -34,8 +34,8 @@ defmodule OmiseGO.API.BlockTest do
     expected = %Block{
       transactions: [recovered_tx],
       hash:
-        <<39, 49, 253, 85, 4, 152, 15, 89, 68, 191, 248, 101, 94, 133, 166, 205, 152, 186, 3, 97,
-          5, 27, 75, 135, 36, 207, 221, 100, 239, 85, 109, 27>>
+        <<39, 49, 253, 85, 4, 152, 15, 89, 68, 191, 248, 101, 94, 133, 166, 205, 152, 186, 3, 97, 5, 27, 75, 135, 36,
+          207, 221, 100, 239, 85, 109, 27>>
     }
 
     assert expected == Block.merkle_hash(block)

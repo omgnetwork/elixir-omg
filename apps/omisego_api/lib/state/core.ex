@@ -7,9 +7,9 @@ defmodule OmiseGO.API.State.Core do
 
   defstruct [:height, :last_deposit_height, :utxos, pending_txs: [], tx_index: 0]
 
-  alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.State.Core
   alias OmiseGO.API.Block
+  alias OmiseGO.API.State.Core
+  alias OmiseGO.API.State.Transaction
 
   def extract_initial_state(
         utxos_query_result,
@@ -32,8 +32,8 @@ defmodule OmiseGO.API.State.Core do
   @doc """
   Includes the transaction into the state when valid, rejects otherwise.
   """
-  @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{})
-        :: {{:ok, <<_::256>>, pos_integer, pos_integer}, %Core{}} | {:error, %Core{}}
+  @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{}) ::
+          {{:ok, Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, %Core{}} | {:error, %Core{}}
   def exec(
         %Transaction.Recovered{
           raw_tx: raw_tx,
@@ -113,8 +113,7 @@ defmodule OmiseGO.API.State.Core do
   end
 
   defp apply_spend(
-         %Core{height: height, tx_index: tx_index, utxos: utxos} =
-           state,
+         %Core{height: height, tx_index: tx_index, utxos: utxos} = state,
          %Transaction{
            blknum1: blknum1,
            txindex1: txindex1,
@@ -306,5 +305,16 @@ defmodule OmiseGO.API.State.Core do
       end)
 
     {event_triggers, deletes, state}
+  end
+
+  @doc """
+  Checks if utxo exists
+  """
+  @spec utxo_exists(map(), %__MODULE__{}) :: :utxo_exists | :utxo_does_not_exist
+  def utxo_exists(%{blknum: blknum, txindex: txindex, oindex: oindex}, %Core{utxos: utxos}) do
+    case Map.has_key?(utxos, {blknum, txindex, oindex}) do
+      true -> :utxo_exists
+      false -> :utxo_does_not_exist
+    end
   end
 end

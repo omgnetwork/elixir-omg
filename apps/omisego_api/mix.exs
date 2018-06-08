@@ -19,8 +19,15 @@ defmodule OmiseGO.API.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
+      env: [
+        ethereum_event_block_finality_margin: 10,
+        ethereum_event_get_deposits_interval_ms: 5_000,
+        ethereum_event_check_height_interval_ms: 1_000,
+        ethereum_event_max_block_range_in_deposits_query: 5,
+        child_block_submit_period: 1
+      ],
       extra_applications: [:logger],
-      mod: {OmiseGO.API.Application, []},
+      mod: {OmiseGO.API.Application, []}
     ]
   end
 
@@ -31,11 +38,12 @@ defmodule OmiseGO.API.MixProject do
       {:ex_rlp, "~> 0.2.1"},
       {:blockchain, "~> 0.1.6"},
       {:ex_unit_fixtures, "~> 0.3.1", only: [:test]},
+      {:jsonrpc2, "~> 1.0", only: [:test]},
       {:merkle_tree, git: "https://github.com/omisego/merkle_tree.git"},
       {:libsecp256k1, "~> 0.1.2", compile: "${HOME}/.mix/rebar compile", override: true},
       #
       {:omisego_db, in_umbrella: true},
-      {:omisego_eth, in_umbrella: true},
+      {:omisego_eth, in_umbrella: true}
     ]
   end
 end

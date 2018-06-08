@@ -1,28 +1,33 @@
+def label = "omisego-${UUID.randomUUID().toString()}"
+
 podTemplate(
-    label: 'omisego',
+    label: label,
     containers: [
         containerTemplate(
             name: 'jnlp',
             image: 'omisegoimages/blockchain-base:1.6-otp20-stretch',
             args: '${computer.jnlpmac} ${computer.name}',
-            alwaysPullImage: true
+            alwaysPullImage: true,
+            resourceRequestCpu: '1750m',
+            resourceLimitCpu: '2000m',
+            resourceRequestMemory: '2048Mi',
+            resourceLimitMemory: '2048Mi'
         ),
     ],
 ) {
-    node('omisego') {
+    node(label) {
         stage('Checkout') {
             checkout scm
         }
 
         stage('Build') {
             sh("mix do local.hex --force, local.rebar --force")
-            sh("apt-get install -y libgmp3-dev")
             withEnv(["MIX_ENV=test"]) {
                 sh("mix do deps.get, deps.compile, compile")
             }
         }
 
-        stage('Unit test Child Chain Server') {
+        stage('Unit test') {
             withEnv(["MIX_ENV=test"]) {
                 sh("mix coveralls.html --no-start --umbrella")
             }
@@ -36,24 +41,10 @@ podTemplate(
             }
         }
 
-        stage('Integration test Child Chain Server') {
-            withEnv(["MIX_ENV=test"]) {
-                sh("mix test --no-start --only integration")
-            }
-        }
-
-        stage('Test Watcher') {
-            withEnv(["MIX_ENV=test"]) {
-                dir("apps/omisego_watcher") {
-                    sh("mix test --only watcher_tests")
-                }
-            }
-        }
-
-        stage('Lint') {
-            withEnv(["MIX_ENV=test"]) {
-                sh("mix credo")
-            }
+        stage('Integration test') {
+           withEnv(["MIX_ENV=test", "SHELL=/bin/bash"]) {
+               sh("mix test --no-start --only integration")
+           }
         }
 
         stage('Cleanbuild') {
@@ -61,10 +52,16 @@ podTemplate(
                 sh("mix do compile --warnings-as-errors --force, test --no-start --exclude test")
             }
         }
-/*
+
         stage('Dialyze') {
             sh("mix dialyzer --halt-exit-status")
         }
-*/
+
+        stage('Lint') {
+            withEnv(["MIX_ENV=test"]) {
+                sh("mix do credo, format --check-formatted --dry-run")
+            }
+        }
+
     }
 }

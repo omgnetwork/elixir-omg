@@ -1,4 +1,4 @@
-defmodule OmiseGO.JSONRPC.MixProject do
+defmodule OmiseGO.JSONRPC.Mixfile do
   use Mix.Project
 
   def project do
@@ -12,20 +12,29 @@ defmodule OmiseGO.JSONRPC.MixProject do
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      test_coverage: [tool: ExCoveralls],
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
   def application do
     [
-      extra_applications: [:logger]
+      env: [
+        # our own rpc port where OmiseGO.API is exposed
+        omisego_api_rpc_port: 9656
+      ],
+      extra_applications: [:logger],
+      mod: {OmiseGO.JSONRPC.Application, []}
     ]
   end
 
   defp deps do
     [
-      #
-      {:omisego_api, in_umbrella: true},
+      {:jsonrpc2, "~> 1.0"},
+      {:cowboy, "~> 1.1"},
+      {:plug, "~> 1.5"},
+      {:poison, "~> 3.1"},
+      # test can't run omisego_apis
+      {:omisego_api, in_umbrella: true, only: [:dev, :prod]}
     ]
   end
 end

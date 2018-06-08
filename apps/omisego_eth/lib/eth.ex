@@ -10,14 +10,15 @@ defmodule OmiseGO.Eth do
 
   import OmiseGO.Eth.Encoding
 
-  def dev_geth do
-    _ = Application.ensure_all_started(:porcelain)
-    _ = Application.ensure_all_started(:ethereumex)
-    {ref, geth_os_pid, _} = OmiseGO.Eth.DevGeth.start()
+  @type contract_t() :: binary | nil
 
-    on_exit = fn ->
-      OmiseGO.Eth.DevGeth.stop(ref, geth_os_pid)
-    end
+  def dev_geth do
+    {:ok, _} = Application.ensure_all_started(:briefly)
+    {:ok, _} = Application.ensure_all_started(:erlexec)
+    {:ok, _} = Application.ensure_all_started(:ethereumex)
+    geth_pid = OmiseGO.Eth.DevGeth.start()
+
+    on_exit = fn -> OmiseGO.Eth.DevGeth.stop(geth_pid) end
 
     {:ok, on_exit}
   end
@@ -139,7 +140,7 @@ defmodule OmiseGO.Eth do
       |> ABI.encode([deposit_positon, value])
       |> Base.encode16()
 
-    gas = 100_0000
+    gas = 1_000_000
 
     Ethereumex.HttpClient.eth_send_transaction(%{
       from: from,
@@ -160,7 +161,7 @@ defmodule OmiseGO.Eth do
       |> ABI.encode([utxo_position, txbytes, proof, sigs])
       |> Base.encode16()
 
-    gas = 100_0000
+    gas = 1_000_000
 
     Ethereumex.HttpClient.eth_send_transaction(%{
       from: from,

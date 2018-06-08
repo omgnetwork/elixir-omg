@@ -1,13 +1,12 @@
 defmodule OmiseGOWatcher.UtxoDB do
-  @moduledoc"""
-  Template for creating (mix ecto.migrate) and using tables (database).
+  @moduledoc """
+  Ecto schema for utxo
   """
   use Ecto.Schema
 
-  alias OmiseGOWatcher.Repo
+  alias OmiseGO.API.{Block, Crypto}
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
-  alias OmiseGO.API.{Block}
-  alias OmiseGO.API.Crypto
+  alias OmiseGOWatcher.Repo
   alias OmiseGOWatcher.TransactionDB
 
   import Ecto.Changeset
@@ -24,7 +23,7 @@ defmodule OmiseGOWatcher.UtxoDB do
     field(:blknum, :integer)
     field(:txindex, :integer)
     field(:oindex, :integer)
-    field(:txbytes, :string)
+    field(:txbytes, :binary)
   end
 
   defp consume_transaction(
@@ -34,9 +33,6 @@ defmodule OmiseGOWatcher.UtxoDB do
          txindex,
          block_number
        ) do
-    # TODO change this to encode from OmiseGo.API.State.Transaction
-    txbytes = inspect(signed_transaction)
-
     make_utxo_db = fn transaction, number ->
       %__MODULE__{
         address: Map.get(transaction, :"newowner#{number}"),
@@ -44,12 +40,11 @@ defmodule OmiseGOWatcher.UtxoDB do
         blknum: block_number,
         txindex: txindex,
         oindex: Map.get(transaction, :"oindex#{number}"),
-        txbytes: txbytes
+        txbytes: signed_transaction |> Transaction.Signed.encode()
       }
     end
 
-    {Repo.insert(make_utxo_db.(transaction, 1)),
-     Repo.insert(make_utxo_db.(transaction, 2))}
+    {Repo.insert(make_utxo_db.(transaction, 1)), Repo.insert(make_utxo_db.(transaction, 2))}
   end
 
   defp remove_utxo(%Signed{
@@ -60,32 +55,31 @@ defmodule OmiseGOWatcher.UtxoDB do
       txindex = Map.get(transaction, :"txindex#{number}")
       oindex = Map.get(transaction, :"oindex#{number}")
 
-      elements_to_remove = from(
-        utxoDb in __MODULE__,
-        where:
-          utxoDb.blknum == ^blknum and utxoDb.txindex == ^txindex and
-            utxoDb.oindex == ^oindex
-      )
+      elements_to_remove =
+        from(
+          utxoDb in __MODULE__,
+          where: utxoDb.blknum == ^blknum and utxoDb.txindex == ^txindex and utxoDb.oindex == ^oindex
+        )
+
       elements_to_remove |> Repo.delete_all()
     end
 
     {remove_from.(transaction, 1), remove_from.(transaction, 2)}
   end
 
-  def consume_block(%Block{transactions: transactions}, block_number) do
+  def consume_block(%Block{transactions: transactions, number: block_number}) do
     numbered_transactions = Stream.with_index(transactions)
 
     numbered_transactions
-    |> Stream.map(fn {%Signed{} = signed, txindex} ->
+    |> Enum.map(fn {%Signed{} = signed, txindex} ->
       {remove_utxo(signed), consume_transaction(signed, txindex, block_number)}
     end)
-    |> Enum.to_list()
   end
 
-  @spec record_deposits([
-          %{owner: <<_::160>>, amount: non_neg_integer(), block_height: pos_integer()}
+  @spec insert_deposits([
+          %{owner: Crypto.address_t(), amount: non_neg_integer(), block_height: pos_integer()}
         ]) :: :ok
-  def record_deposits(deposits) do
+  def insert_deposits(deposits) do
     deposits
     |> Enum.each(fn deposit ->
       Repo.insert(%__MODULE__{
@@ -124,6 +118,8 @@ defmodule OmiseGOWatcher.UtxoDB do
   defp calculate_utxo_pos(block_height, txindex, oindex) do
     block_height + txindex + oindex
   end
+
+  def get_all, do: Repo.all(__MODULE__)
 
   @doc false
   def changeset(utxo_db, attrs) do

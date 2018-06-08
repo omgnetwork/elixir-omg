@@ -3,24 +3,23 @@ defmodule OmiseGO.API do
   Entrypoint for all the exposed public functions of the child chain API
   """
 
-  alias OmiseGO.API.State
-  alias OmiseGO.API.Core
-  alias OmiseGO.API.FreshBlocks
-  alias OmiseGO.DB
+  alias OmiseGO.API.{Block, Core, FreshBlocks, State}
+  use OmiseGO.API.ExposeSpec
 
-  @spec submit(byte) :: {:ok, integer, integer, byte} | {:error, any}
-  def submit(encoded_singed_tx) do
-    with {:ok, recovered_tx} <- Core.recover_tx(encoded_singed_tx),
-         tx_result <- State.exec(recovered_tx),
-         do: tx_result
+  @spec submit(transaction :: bitstring) ::
+          {:ok, %{tx_hash: bitstring, blknum: integer, tx_index: integer}} | {:error, atom}
+  def submit(transaction) do
+    with {:ok, recovered_tx} <- Core.recover_tx(transaction),
+         {:ok, tx_hash, blknum, tx_index} <- State.exec(recovered_tx) do
+      {:ok, %{tx_hash: tx_hash, blknum: blknum, tx_index: tx_index}}
+    end
   end
 
+  @spec get_block(hash :: bitstring) ::
+          {:ok, %{hash: bitstring, transactions: list}} | {:error, :not_found | :internal_error}
   def get_block(hash) do
-    FreshBlocks.get(hash)
-  end
-
-  # TODO: this will likely be dropped from the OmiseGO.API and here
-  def tx(hash) do
-    DB.tx(hash)
+    with {:ok, %Block{hash: ^hash, transactions: transactions}} <- FreshBlocks.get(hash) do
+      {:ok, %{hash: hash, transactions: transactions |> Enum.map(& &1.signed_tx_bytes)}}
+    end
   end
 end

@@ -7,6 +7,7 @@ defmodule OmiseGO.API.Application do
 
   def start(_type, _args) do
     event_listener_config = get_event_listener_config()
+
     children = [
       supervisor(Phoenix.PubSub.PG2, [:eventer, []]),
       {OmiseGO.API.State, []},
@@ -15,14 +16,15 @@ defmodule OmiseGO.API.Application do
       worker(
         OmiseGO.API.EthereumEventListener,
         [event_listener_config, &OmiseGO.Eth.get_deposits/2, &State.deposit/1],
-        [id: :depositor]
+        id: :depositor
       ),
       worker(
         OmiseGO.API.EthereumEventListener,
         [event_listener_config, &OmiseGO.Eth.get_exits/2, &State.exit_utxos/1],
-        [id: :exiter]
+        id: :exiter
       )
     ]
+
     opts = [strategy: :one_for_one]
     Supervisor.start_link(children, opts)
   end

@@ -11,7 +11,7 @@ defmodule OmiseGO.API.FreshBlocks do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @spec get(block_hash :: integer) :: Block | :not_found | {:error, any}
+  @spec get(block_hash :: binary) :: {:ok, Block.t()} | {:error, :not_found | any}
   def get(block_hash) do
     GenServer.call(__MODULE__, {:get, block_hash})
   end
@@ -39,13 +39,21 @@ defmodule OmiseGO.API.FreshBlocks do
       container = Map.put(state.container, block.hash, block)
 
       if state.max_size < Kernel.map_size(container) do
-        {{:value, key_to_remove}, keys_queue} = :queue.out(state.keys_queue)
+        {{:value, key_to_remove}, keys_queue} = :queue.out(keys_queue)
 
         {:ok, %{state | keys_queue: keys_queue, container: Map.delete(container, key_to_remove)}}
       else
         {:ok, %{state | keys_queue: keys_queue, container: container}}
       end
     end
+
+    def combine_getting_results(nil = _fresh_block, {:ok, [:not_found] = _fetched_blocks} = _db_result),
+      do: {:error, :not_found}
+
+    def combine_getting_results(nil = _fresh_block, {:ok, [db_block] = _fetched_blocks} = _db_result),
+      do: {:ok, db_block}
+
+    def combine_getting_results(fresh_block, _db_result), do: {:ok, fresh_block}
   end
 
   ##### Server
@@ -57,11 +65,9 @@ defmodule OmiseGO.API.FreshBlocks do
 
   def handle_call({:get, block_hash}, _from, %Core{} = state) do
     result =
-      with {block, block_hashes_to_fetch} <- Core.get(block_hash, state),
-           {:ok, fetched_blocks} <- DB.blocks(block_hashes_to_fetch),
-           # FIXME: this is clearly a violation of rules. How should I combine these two results?
-           fetched_blocks <- (if fetched_blocks == [], do: %{}, else: %{block_hash => hd(fetched_blocks)}),
-           do: Map.get(fetched_blocks, block_hash, block)
+      with {fresh_block, block_hashes_to_fetch} <- Core.get(block_hash, state),
+           {:ok, _} = db_result <- DB.blocks(block_hashes_to_fetch),
+           do: Core.combine_getting_results(fresh_block, db_result)
 
     {:reply, result, state}
   end

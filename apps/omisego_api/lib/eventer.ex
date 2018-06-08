@@ -3,8 +3,8 @@ defmodule OmiseGO.API.Eventer do
   Imperative shell for handling events
   """
 
-  alias Phoenix.PubSub
   alias OmiseGO.API.Eventer.Core
+  alias Phoenix.PubSub
 
   @pubsub :eventer
 
@@ -38,9 +38,9 @@ defmodule OmiseGO.API.Eventer do
 
   def handle_cast({:notify, event_triggers}, state) do
     event_triggers
-    |> Core.notify
+    |> Core.notify()
     |> Enum.each(fn {notification, topic} -> PubSub.broadcast(:eventer, topic, notification) end)
+
     {:noreply, state}
   end
-
 end

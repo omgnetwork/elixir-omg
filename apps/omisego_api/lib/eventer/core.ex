@@ -3,9 +3,9 @@ defmodule OmiseGO.API.Eventer.Core do
   Functional core of eventer
   """
 
+  alias OmiseGO.API.Block
   alias OmiseGO.API.Notification
   alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.Block
 
   @block_finalized_topic "block_finalized"
   @transaction_spent_topic_prefix "transactions/spent/"
@@ -24,14 +24,11 @@ defmodule OmiseGO.API.Eventer.Core do
 
   defp get_notification_with_topic(%{block: %Block{} = block}) do
     [
-      {%Notification.BlockFinalized{number: block.number, hash: block.hash},
-       @block_finalized_topic}
+      {%Notification.BlockFinalized{number: block.number, hash: block.hash}, @block_finalized_topic}
     ]
   end
 
-  defp get_spender_notifications(
-         %Transaction.Recovered{spender1: spender1, spender2: spender2} = recovered_tx
-       ) do
+  defp get_spender_notifications(%Transaction.Recovered{spender1: spender1, spender2: spender2} = recovered_tx) do
     [spender1, spender2]
     |> Enum.filter(&Transaction.account_address?/1)
     |> Enum.map(&create_spender_notification(recovered_tx, &1))
