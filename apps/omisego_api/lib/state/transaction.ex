@@ -143,7 +143,7 @@ defmodule OmiseGO.API.State.Transaction do
   def account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
   def account_address?(_), do: false
 
-  def encode(%__MODULE__{} = tx) do
+  def encode(tx) do
     [
       tx.blknum1,
       tx.txindex1,
@@ -174,7 +174,7 @@ defmodule OmiseGO.API.State.Transaction do
     encoded_tx = encode(tx)
     signature1 = signature(encoded_tx, priv1)
     signature2 = signature(encoded_tx, priv2)
-    
+
     %Signed{raw_tx: tx, sig1: signature1, sig2: signature2}
   end
 
