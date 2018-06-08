@@ -23,11 +23,6 @@ defmodule OmiseGO.API.BlockQueue do
 
   ### Client
 
-  @spec update_gas_price(price :: pos_integer()) :: :ok
-  def update_gas_price(price) do
-    GenServer.cast(__MODULE__.Server, {:update_gas_price, price})
-  end
-
   def enqueue_block(block_hash) do
     GenServer.call(__MODULE__.Server, {:enqueue_block, block_hash})
   end
@@ -95,13 +90,6 @@ defmodule OmiseGO.API.BlockQueue do
       catch
         error -> {:stop, {:unable_to_init_block_queue, error}}
       end
-    end
-
-    def handle_cast({:update_gas_price, price}, state) do
-      state1 = Core.set_gas_price(state, price)
-      # resubmit pending tx with updated gas price; allowing them to be mined if price is higher
-      submit_blocks(state1)
-      {:noreply, state1}
     end
 
     def handle_info(:check_mined_child_head, state) do
