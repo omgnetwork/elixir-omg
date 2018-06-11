@@ -1,3 +1,10 @@
+###
+#
+# This file is a temporary way to test completeness of installation steps done over a clean ubuntu xenial container.
+# NOTE: do not use this for anything else
+#
+# TODO: REMOVE when becomes obsolete or useless
+
 docker run -ti ubuntu:xenial /bin/bash
 
 ##
