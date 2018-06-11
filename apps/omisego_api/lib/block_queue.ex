@@ -90,10 +90,10 @@ defmodule OmiseGO.API.BlockQueue do
       {:noreply, state1}
     end
 
-    def handle_info(:check_ethereum_height, state) do
+    def handle_info(:check_ethereum_height, %Core{child_block_interval: child_block_interval} = state) do
       with {:ok, height} <- Eth.get_ethereum_height(),
-           {:do_form_block, state1, block_num, next_block_num} <- Core.set_ethereum_height(state, height),
-           {:ok, block_hash} <- OmiseGO.API.State.form_block(block_num, next_block_num) do
+           {:do_form_block, state1} <- Core.set_ethereum_height(state, height),
+           {:ok, block_hash} <- OmiseGO.API.State.form_block(child_block_interval) do
         state2 = Core.enqueue_block(state1, block_hash)
         submit_blocks(state2)
         {:noreply, state2}

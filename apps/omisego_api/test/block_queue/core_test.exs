@@ -29,7 +29,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     {:dont_form_block, queue} =
       2..length
       |> Enum.reduce(empty(), fn hash, state ->
-        {:do_form_block, state, _, _} = set_ethereum_height(state, hash)
+        {:do_form_block, state} = set_ethereum_height(state, hash)
         enqueue_block(state, hash)
       end)
       |> set_ethereum_height(length)
@@ -150,14 +150,14 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                |> set_mined(0)
                |> set_ethereum_height(1)
 
-      assert {:do_form_block, _, 1000, 2000} =
+      assert {:do_form_block, _} =
                queue
                |> set_mined(0)
                |> set_ethereum_height(2)
     end
 
     test "Produced child blocks to form aren't repeated, if none are enqueued" do
-      assert {:do_form_block, queue, 1000, 2000} =
+      assert {:do_form_block, queue} =
                empty()
                |> set_ethereum_height(2)
 
@@ -176,7 +176,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                |> elem(1)
                |> set_ethereum_height(3)
 
-      assert {:do_form_block, queue, 2000, 3000} =
+      assert {:do_form_block, queue} =
                queue
                |> enqueue_block("1")
                |> set_ethereum_height(4)
@@ -185,7 +185,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                queue
                |> set_ethereum_height(5)
 
-      assert {:do_form_block, _queue, 3000, 4000} =
+      assert {:do_form_block, _queue} =
                queue
                |> enqueue_block("2")
                |> set_ethereum_height(6)
@@ -202,7 +202,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                |> elem(1)
                |> set_ethereum_height(1)
 
-      assert {:do_form_block, queue, 2000, 3000} =
+      assert {:do_form_block, queue} =
                queue
                |> enqueue_block("1")
                |> set_ethereum_height(3)
@@ -212,7 +212,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                |> enqueue_block("2")
                |> set_ethereum_height(2)
 
-      assert {:do_form_block, _queue, 3000, 4000} =
+      assert {:do_form_block, _queue} =
                queue
                |> set_ethereum_height(4)
     end
@@ -331,7 +331,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       state = empty_with_gas_params()
       current_price = state.gas_price_to_use
 
-      {:do_form_block, newstate, _, _} =
+      {:do_form_block, newstate} =
         state
         |> set_ethereum_height(2)
 
@@ -346,7 +346,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       current_price = state.gas_price_to_use
       eth_gap = state.gas_price_adj_params.eth_gap_without_child_blocks
 
-      {:do_form_block, newstate, _, _} =
+      {:do_form_block, newstate} =
         state
         |> set_ethereum_height(1 + eth_gap)
 
@@ -361,7 +361,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       gas_params = %{state.gas_price_adj_params | eth_gap_without_child_blocks: 3}
       state1 = %{state | gas_price_adj_params: gas_params}
 
-      {:do_form_block, state2, _, _} =
+      {:do_form_block, state2} =
         state1
         |> set_ethereum_height(2)
 
@@ -388,7 +388,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       state1 = %{state | gas_price_adj_params: gas_params}
       eth_gap = state1.gas_price_adj_params.eth_gap_without_child_blocks
 
-      {:do_form_block, newstate, _, _} =
+      {:do_form_block, newstate} =
         state1
         |> set_ethereum_height(1 + eth_gap)
 
