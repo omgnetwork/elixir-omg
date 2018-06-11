@@ -1,6 +1,9 @@
 defmodule OmiseGO.API.BlockQueue do
   @moduledoc """
   Responsible for keeping a queue of blocks lined up nicely for submission to Eth.
+  Responsible for determining the cadence of forming/submitting blocks to Ethereum.
+  Responsible for determining correct gas price and ensuring submissions get mined eventually.
+
   In particular responsible for picking up, where it's left off (crashed) gracefully.
 
   Relies on RootChain contract having reorg protection ('decimals for deposits' part).

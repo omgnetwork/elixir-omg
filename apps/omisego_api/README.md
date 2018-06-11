@@ -15,14 +15,16 @@ Do that with `mix run --no-start -e 'OmiseGO.DB.init()'`
 4. Produce a configuration file with `omisego_eth` configured to the contract address, operator (authority) address and hash of contract-deploying transaction.
 To do that use the template, filling it with details on the contract:
 
-```
-use Mix.Config
+        use Mix.Config
 
-config :omisego_eth,
-  contract_addr: "0x0",
-  authority_addr: "0x0",
-  txhash_contract: "0x0"
-```
+        config :omisego_eth,
+          contract_addr: "0x0",
+          authority_addr: "0x0",
+          txhash_contract: "0x0"
+
+5. Start the child chain server with the JSON-RPC activated
+  - `cd apps/omisego_jsonrpc`
+  - `mix run --no-halt --config path/to/config.exs`
 
 ### Setting up (developer's environment)
 
@@ -47,16 +49,9 @@ This is an example of how to quickly setup the developer's environment to run th
       - deploy the root chain contract
       - create the config file
 
-    You'll need to pass the configuration file to `mix` and `iex -S mix run` invocations with `--config your_config_file.exs` flag
+    You'll need to pass the configuration file to `mix` invocations with `--config your_config_file.exs` flag
 
-## Starting the child chain server
-
-- `cd apps/omisego_jsonrpc`
-- `mix run --no-halt --config path/to/config.exs`
-
-### Playing around with the child chain server
-
-You can run an IEx REPL to gain access to helper functions: from `omisego` root dir do `iex -S mix run --no-start --config path/to/config.exs`.
+To play around with the child chain server, you can run an IEx REPL to gain access to helper functions: from `omisego` root dir do `iex -S mix run --no-start --config path/to/config.exs`.
 In the REPL you can run commands mentioned in demos (see `docs/...`, don't pick `OBSOLETE` demos)
 
 ## Using the child chain server's API
@@ -141,6 +136,7 @@ The general idea of the apps responsibilities is:
     - tracks Ethereum for things happening in the root chain contract (deposits/exits)
     - gathers transactions, decides on validity, forms blocks, persists
     - submits blocks to the root chain contract
+    - see `lib/api/application.ex` for a rundown of children processes involved
   - `omisego_db` - wrapper around the child chain server's database to store the UTXO set and blocks necessary for state persistence
   - `omisego_eth` - wrapper around the [Ethereum RPC client](https://github.com/exthereum/ethereumex)
   - `omisego_jsonrpc` - a JSONRPC 2.0 server being the gateway to `omisego_api`

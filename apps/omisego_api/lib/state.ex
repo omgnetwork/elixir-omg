@@ -1,10 +1,11 @@
 defmodule OmiseGO.API.State do
   @moduledoc """
-  Imperative shell for the state
+  Imperative shell for the state.
+  The state meant here is the state of the ledger (UTXO set), that determines spendability of coins and forms blocks
+  All spend transactions, deposits and exits should sync on this for validity of moving funds
   """
 
   alias OmiseGO.API.BlockQueue
-  alias OmiseGO.API.Eventer
   alias OmiseGO.API.FreshBlocks
   alias OmiseGO.API.State.Core
   alias OmiseGO.DB
@@ -76,9 +77,9 @@ defmodule OmiseGO.API.State do
   Includes a deposit done on the root chain contract (see above - not sure about this)
   """
   def handle_call({:deposits, deposits}, _from, state) do
-    {event_triggers, db_updates, new_state} = Core.deposit(deposits, state)
-    # GenServer.cast
-    Eventer.notify(event_triggers)
+    # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
+    {_event_triggers, db_updates, new_state} = Core.deposit(deposits, state)
+
     # GenServer.call
     :ok = DB.multi_update(db_updates)
     {:reply, :ok, new_state}
@@ -115,18 +116,18 @@ defmodule OmiseGO.API.State do
   def handle_call({:form_block, block_num_to_form, next_block_num_to_form}, _from, state) do
     result = Core.form_block(state, block_num_to_form, next_block_num_to_form)
 
-    with {:ok, {block, event_triggers, db_updates, new_state}} <- result,
+    # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
+    with {:ok, {block, _event_triggers, db_updates, new_state}} <- result,
          :ok <- DB.multi_update(db_updates) do
-      Eventer.notify(event_triggers)
       :ok = FreshBlocks.push(block)
       {:reply, {:ok, block.hash}, new_state}
     end
   end
 
   defp do_exit_utxos(utxos, state) do
-    {event_triggers, db_updates, new_state} = Core.exit_utxos(utxos, state)
-    # GenServer.cast
-    Eventer.notify(event_triggers)
+    # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
+    {_event_triggers, db_updates, new_state} = Core.exit_utxos(utxos, state)
+
     # GenServer.call
     :ok = DB.multi_update(db_updates)
     {:reply, :ok, new_state}

@@ -1,13 +1,17 @@
-defmodule OmiseGO.API.Eventer.CoreTest do
+defmodule OmiseGOWatcher.Eventer.CoreTest do
+  @moduledoc false
+
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OmiseGO.API
-  alias OmiseGO.API.Eventer
-  alias OmiseGO.API.Notification.Received
-  alias OmiseGO.API.State.Transaction
+  use OmiseGO.API.Fixtures
 
-  # TODO: implement all tests
+  alias OmiseGO.API
+  alias OmiseGO.API.State.Transaction
+  alias OmiseGOWatcher.Eventer
+  alias OmiseGOWatcher.Eventer.Notification.Received
+
+  # TODO: implement all tests and write moduledoc
   test "notifications for finalied block event are created" do
   end
 
