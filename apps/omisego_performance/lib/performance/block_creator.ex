@@ -36,7 +36,7 @@ defmodule OmiseGO.Performance.BlockCreator do
     _ = Logger.debug(fn -> "[BC]: Forming block #{blknum}, next #{newblknum}" end)
 
     start = System.monotonic_time(:millisecond)
-    OmiseGO.API.State.form_block(blknum, newblknum)
+    OmiseGO.API.State.form_block(newblknum - blknum)
     stop = System.monotonic_time(:millisecond)
     OmiseGO.Performance.SenderManager.block_forming_time(blknum, stop - start)
 

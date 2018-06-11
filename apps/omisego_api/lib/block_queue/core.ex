@@ -121,14 +121,12 @@ defmodule OmiseGO.API.BlockQueue.Core do
   """
   @spec set_ethereum_height(Core.t(), BlockQueue.eth_height()) ::
           {:do_form_block, Core.t(), pos_integer, pos_integer} | {:dont_form_block, Core.t()}
-  def set_ethereum_height(%Core{formed_child_block_num: formed_num} = state, parent_height) do
+  def set_ethereum_height(state, parent_height) do
     new_state = %{state | parent_height: parent_height}
     new_state = adjust_gas_price(new_state)
 
     if should_form_block?(new_state) do
-      next_formed_num = formed_num + state.child_block_interval
-      followup_num = next_formed_num + state.child_block_interval
-      {:do_form_block, %{new_state | wait_for_enqueue: true}, next_formed_num, followup_num}
+      {:do_form_block, %{new_state | wait_for_enqueue: true}}
     else
       {:dont_form_block, new_state}
     end
