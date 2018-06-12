@@ -14,8 +14,8 @@ defmodule OmiseGO.API.TestHelper do
     %{priv: priv, addr: addr}
   end
 
-  def do_deposit(state, owner, %{amount: amount, blknum: blknum}) do
-    {_, _, new_state} = Core.deposit([%{owner: owner.addr, amount: amount, blknum: blknum}], state)
+  def do_deposit(state, owner, %{amount: amount, currency: cur, blknum: blknum}) do
+    {_, _, new_state} = Core.deposit([%{owner: owner.addr, currency: cur, amount: amount, blknum: blknum}], state)
 
     new_state
   end
@@ -26,11 +26,12 @@ defmodule OmiseGO.API.TestHelper do
   """
   @spec create_recovered(
           list({pos_integer, pos_integer, 0 | 1, map}),
+          <<_::256>>,
           list({<<_::256>>, pos_integer}),
           pos_integer
         ) :: Transaction.Recovered.t()
-  def create_recovered(inputs, outputs, fee \\ 0) do
-    {signed_tx, _raw_tx} = create_signed(inputs, outputs, fee)
+  def create_recovered(inputs, currency, outputs, fee \\ 0) do
+    {signed_tx, _raw_tx} = create_signed(inputs, currency, outputs, fee)
     {:ok, recovered} = Transaction.Recovered.recover_from(signed_tx)
     recovered
   end
@@ -40,13 +41,15 @@ defmodule OmiseGO.API.TestHelper do
   """
   @spec create_signed(
           list({pos_integer, pos_integer, 0 | 1, map}),
+          <<_::256>>,
           list({<<_::256>>, pos_integer}),
           pos_integer
         ) :: {Transaction.Signed.t(), Transaction.t()}
-  def create_signed(inputs, outputs, fee \\ 0) do
+  def create_signed(inputs, currency, outputs, fee \\ 0) do
     raw_tx =
       Transaction.new(
         inputs |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end),
+        currency,
         outputs |> Enum.map(fn {newowner, amout} -> {newowner.addr, amout} end),
         fee
       )

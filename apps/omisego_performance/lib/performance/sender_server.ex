@@ -32,6 +32,8 @@ defmodule OmiseGO.Performance.SenderServer do
     :last_tx
   ]
 
+  def eth, do: Transaction.zero_address()
+
   @opaque state :: %__MODULE__{
             seqnum: integer,
             ntx_to_send: integer,
@@ -105,7 +107,7 @@ defmodule OmiseGO.Performance.SenderServer do
 
     # create and return signed transaction
     [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
-    |> Transaction.new([{spender.addr, newamount}, {recipient.addr, to_spend}], 0)
+    |> Transaction.new(eth(), [{spender.addr, newamount}, {recipient.addr, to_spend}], 0)
     |> Transaction.sign(spender.priv, <<>>)
   end
 

@@ -149,16 +149,17 @@ defmodule OmiseGO.Eth do
   def get_deposits(block_from, block_to, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
 
-    event = encode_event_signature("Deposit(address,uint256,uint256)")
+    event = encode_event_signature("Deposit(address,uint256,address,uint256)")
 
     parse_deposit = fn "0x" <> deposit ->
-      [owner, blknum, amount] =
+      [owner, blknum, token, amount] =
         deposit
         |> Base.decode16!(case: :lower)
-        |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, {:uint, 256}])
+        |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, :address, {:uint, 256}])
 
       owner = "0x" <> Base.encode16(owner, case: :lower)
-      %{owner: owner, amount: amount, blknum: blknum}
+      token = "0x" <> Base.encode16(token, case: :lower)
+      %{owner: owner, currency: token, amount: amount, blknum: blknum}
     end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
