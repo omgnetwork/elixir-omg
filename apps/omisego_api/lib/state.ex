@@ -119,7 +119,7 @@ defmodule OmiseGO.API.State do
          :ok <- DB.multi_update(db_updates) do
       Eventer.notify(event_triggers)
       :ok = FreshBlocks.push(block)
-      {:reply, {:ok, block.hash}, new_state}
+      {:reply, {:ok, block.hash, block.number}, new_state}
     end
   end
 

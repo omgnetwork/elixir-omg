@@ -85,8 +85,25 @@ defmodule OmiseGO.API.BlockQueue.Core do
     enqueue_existing_blocks(state, top_mined_hash, known_hashes)
   end
 
-  @spec enqueue_block(Core.t(), BlockQueue.hash()) :: Core.t()
-  def enqueue_block(state, hash) do
+  @spec enqueue_block(Core.t(), BlockQueue.hash(), BlockQueue.plasma_block_num()) ::
+          Core.t() | {:error, :unexpected_block_number}
+  def enqueue_block(state, hash, expected_block_number) do
+    own_height = state.formed_child_block_num + state.child_block_interval
+
+    with :ok <- validate_block_number(expected_block_number, own_height) do
+      enqueue_block(state, hash)
+    end
+  end
+
+  defp validate_block_number(block_number, own_height) do
+    if block_number == own_height do
+      :ok
+    else
+      {:error, :unexpected_block_number}
+    end
+  end
+
+  defp enqueue_block(state, hash) do
     own_height = state.formed_child_block_num + state.child_block_interval
 
     block = %BlockSubmission{
@@ -334,13 +351,14 @@ defmodule OmiseGO.API.BlockQueue.Core do
   end
 
   # splits into ones that are before top_mined_hash and those after
-  # the mined ones are zipped with their numbers to submit
+  # mined are zipped with their numbers to submit
   defp split_existing_blocks(state, top_mined_hash, hashes) do
     index = Enum.find_index(hashes, &(&1 == top_mined_hash))
     {mined, fresh} = Enum.split(hashes, index + 1)
-    bottom_mined = state.mined_child_block_num - state.child_block_interval * (length(mined) - 1)
-    nums = make_range(bottom_mined, state.mined_child_block_num, state.child_block_interval)
 
-    {Enum.zip(nums, mined), fresh}
+    bottom_mined = state.mined_child_block_num - state.child_block_interval * (length(mined) - 1)
+    mined_nums = make_range(bottom_mined, state.mined_child_block_num, state.child_block_interval)
+
+    {Enum.zip(mined_nums, mined), fresh}
   end
 end
