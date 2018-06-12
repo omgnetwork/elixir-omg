@@ -95,13 +95,8 @@ defmodule OmiseGO.API.BlockQueue.Core do
     end
   end
 
-  defp validate_block_number(block_number, own_height) do
-    if block_number == own_height do
-      :ok
-    else
-      {:error, :unexpected_block_number}
-    end
-  end
+  defp validate_block_number(block_number, own_height) when block_number == own_height, do: :ok
+  defp validate_block_number(_, _), do: {:error, :unexpected_block_number}
 
   defp enqueue_block(state, hash) do
     own_height = state.formed_child_block_num + state.child_block_interval
