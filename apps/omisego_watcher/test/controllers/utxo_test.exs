@@ -9,7 +9,6 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.TransactionDB
   alias OmiseGOWatcher.UtxoDB
-  alias OmiseGOWatcherWeb.Controller.Utxo
 
   @empty %Transaction{
     blknum1: 0,
@@ -18,9 +17,9 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     blknum2: 0,
     txindex2: 0,
     oindex2: 0,
-    newowner1: <<>>,
+    newowner1: "",
     amount1: 0,
-    newowner2: <<>>,
+    newowner2: "",
     amount2: 0,
     fee: 0
   }
@@ -118,8 +117,8 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Matilda")
     end
   end
-
-# TODO Complete test
+  
+  @tag fixtures: [:watcher_sandbox]
   test "compose proof from valid utxo" do
     TransactionDB.insert(<<1>>, @signed_tx, 1, 1)
     TransactionDB.insert(<<2>>, @signed_tx, 1, 2)
@@ -170,12 +169,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   end
 
   defp get_utxo(address) do
-    conn(:get, "account/utxo?address=#{address}")
-      |> check_request
-  end
-
-  defp get_utxo(address) do
-    conn(:get, "account/utxo?address=#{address}")
+    conn(:get, "account/utxo?address=#{Client.encode(address)}")
       |> check_request
   end
 
