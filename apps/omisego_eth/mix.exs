@@ -24,7 +24,7 @@ defmodule OmiseGO.Eth.MixProject do
 
   defp deps do
     [
-      {:abi, git: "https://github.com/omisego/abi.git", branch: "add_bytes32"},
+      {:abi, git: "https://github.com/omisego/abi.git", branch: "add_support_for_bytes"},
       {:ethereumex, git: "https://github.com/omisego/ethereumex.git", branch: "request_timeout", override: true},
       {:exexec, git: "https://github.com/paulperegud/exexec.git", branch: "add_streams", runtime: true},
       {

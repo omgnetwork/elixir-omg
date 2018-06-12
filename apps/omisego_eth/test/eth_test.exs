@@ -78,6 +78,7 @@ defmodule OmiseGO.EthTest do
   end
 
   @tag fixtures: [:contract]
+  @tag :skip
   test "gets deposits from a range of blocks", %{contract: contract} do
     deposit(1, 1, contract)
     {:ok, height} = Eth.get_ethereum_height()
@@ -92,6 +93,7 @@ defmodule OmiseGO.EthTest do
   end
 
   @tag fixtures: [:contract]
+  @tag :skip
   test "get exits from a range of blocks", %{contract: contract} do
     deposit(1, 1, contract)
     deposit_position = utxo_position(1, 0, 0)

@@ -216,7 +216,7 @@ defmodule OmiseGO.Eth do
 
     parse_deposit =
       fn "0x" <> deposit ->
-        [owner, amount, blknum] =
+        [owner, blknum, amount] =
           deposit
           |> Base.decode16!(case: :lower)
           |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, {:uint, 256}])
@@ -262,13 +262,13 @@ defmodule OmiseGO.Eth do
   def get_exits(block_from, block_to, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
 
-    event = encode_event_signature("Exit(address,uint256)")
+    event = encode_event_signature("ExitStarted(address,uint256,uint256)")
     parse_exit =
       fn "0x" <> deposit ->
-        [owner, utxo_position] =
+        [owner, utxo_position, amount] =
           deposit
           |> Base.decode16!(case: :lower)
-          |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}])
+          |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, {:uint, 256}])
         owner = "0x" <> Base.encode16(owner, case: :lower)
         blknum = div(utxo_position, @block_offset)
         txindex = utxo_position |> rem(@block_offset) |> div(@transaction_offset)
