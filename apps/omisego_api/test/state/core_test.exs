@@ -15,6 +15,7 @@ defmodule OmiseGO.API.State.CoreTest do
                       145, 84, 237, 58, 118, 9, 162, 241, 255, 152, 31>>
 
   def eth, do: Transaction.zero_address()
+  def not_eth, do: <<0::size(159), 1::size(1)>>
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend deposits", %{alice: alice, bob: bob, state_empty: state} do
@@ -24,6 +25,23 @@ defmodule OmiseGO.API.State.CoreTest do
     |> success?
     |> (&Core.exec(Test.create_recovered([{@child_block_interval, 0, 1, alice}], eth(), [{bob, 3}]), &1)).()
     |> success?
+  end
+
+  @tag fixtures: [:alice, :bob, :state_empty]
+  test "when spending currency must match", %{alice: alice, bob: bob, state_empty: state} do
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], not_eth(), [{bob, 7}, {alice, 3}]), &1)).()
+    |> fail?(:incorrect_currency)
+  end
+
+  @tag fixtures: [:alice, :bob, :state_empty]
+  test "when spending inputs must have the same currency", %{alice: alice, bob: bob, state_empty: state} do
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> Test.do_deposit(alice, %{amount: 0, currency: not_eth(), blknum: 2})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), &1)).()
+    |> fail?(:incorrect_currency)
   end
 
   @tag fixtures: [:alice, :state_empty]
