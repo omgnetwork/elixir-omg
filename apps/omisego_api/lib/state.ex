@@ -1,8 +1,8 @@
 defmodule OmiseGO.API.State do
   @moduledoc """
   Imperative shell for the state.
-  The state meant here is the state of the ledger (UTXO set), that determines spendability of coins and forms blocks
-  All spend transactions, deposits and exits should sync on this for validity of moving funds
+  The state meant here is the state of the ledger (UTXO set), that determines spendability of coins and forms blocks.
+  All spend transactions, deposits and exits should sync on this for validity of moving funds.
   """
 
   alias OmiseGO.API.BlockQueue

@@ -1,6 +1,6 @@
 defmodule OmiseGO.API.Block do
   @moduledoc """
-  Representation of a OmiseGO child chain block
+  Representation of a OmiseGO child chain block.
   """
 
   alias OmiseGO.API.Crypto

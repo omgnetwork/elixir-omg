@@ -1,6 +1,6 @@
 defmodule OmiseGO.API.FreshBlocks do
   @moduledoc """
-  Allows for quick access to a fresh subset of blocks by keeping them in memory, independent of OmiseGO.DB
+  Allows for quick access to a fresh subset of blocks by keeping them in memory, independent of OmiseGO.DB.
   """
 
   alias OmiseGO.API.Block

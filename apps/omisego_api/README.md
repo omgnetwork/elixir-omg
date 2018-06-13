@@ -163,7 +163,7 @@ where
 child_blocks_per_day = ethereum_blocks_per_day / submit_period
 ```
 **Submit period** is the number of Ethereum blocks per a single child block submission) - configured in `:omisego_api, :child_block_submit_period`
-**Highest gas price** is the maximum gas price which operator allows when trying to have the block submission mined (operator always tries to pay less than that maximum, but has to adapt to Ethereum traffic) - configured in (**TODO** when doing [OMG-47](https://www.pivotaltracker.com/story/show/156037267))
+**Highest gas price** is the maximum gas price which operator allows when trying to have the block submission mined (operator always tries to pay less than that maximum, but has to adapt to Ethereum traffic) - configured in (**TODO** when doing OMG-47 task)
 
 #### Example
 

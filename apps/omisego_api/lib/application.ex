@@ -1,7 +1,7 @@
 defmodule OmiseGO.API.Application do
   @moduledoc """
   The application here is the Child chain server and its API.
-  See here (children) for the processes that compose into the Child Chain server
+  See here (children) for the processes that compose into the Child Chain server.
   """
 
   use Application
