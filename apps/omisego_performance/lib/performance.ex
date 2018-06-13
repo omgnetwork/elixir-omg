@@ -21,22 +21,22 @@ defmodule OmiseGO.Performance do
   """
   @spec setup_and_run(ntx_to_send :: pos_integer, nusers :: pos_integer, opt :: list) :: :ok
   def setup_and_run(ntx_to_send, nusers, opt \\ []) do
-    testid = :os.system_time(:millisecond)
-    _ = Logger.info(fn -> "OmiseGO PerfTest ##{testid} - users: #{nusers}, reqs: #{ntx_to_send}." end)
+    _ = Logger.info(fn -> "OmiseGO PerfTest users: #{nusers}, reqs: #{ntx_to_send}." end)
 
-    {:ok, started_apps} = testup(testid)
+    {:ok, started_apps} = testup()
 
-    run([testid, ntx_to_send, nusers, opt], opt[:profile])
+    run([ntx_to_send, nusers, opt], opt[:profile])
 
     testdown(started_apps)
   end
 
   # The test setup
-  @spec testup(testid :: integer) :: {:ok, list}
-  defp testup(_testid) do
+  @spec testup :: {:ok, list}
+  defp testup() do
     {:ok, _} = Application.ensure_all_started(:briefly)
-    {:ok, dbdir} = Briefly.create(directory: true)
+    {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
     Application.put_env(:omisego_db, :leveldb_path, dbdir, persistent: true)
+    _ = Logger.info(fn -> "Perftest leveldb path: #{dbdir}" end)
 
     :ok = OmiseGO.DB.init()
 
@@ -61,6 +61,8 @@ defmodule OmiseGO.Performance do
   @spec testdown([]) :: :ok
   defp testdown(started_apps) do
     started_apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
+    _ = Application.stop(:briefly)
+
     Application.put_env(:omisego_db, :leveldb_path, nil)
     :ok
   end
@@ -79,7 +81,7 @@ defmodule OmiseGO.Performance do
   @spec run(args :: list(), profile :: boolean) :: :ok
   defp run(args, profile) do
     {:ok, data} = apply(OmiseGO.Performance.Runner, if(profile, do: :profile_and_run, else: :run), args)
-    IO.puts(data)
+    _ = Logger.info(fn -> "#{inspect data}" end)
     :ok
   end
 end
