@@ -93,8 +93,8 @@ defmodule OmiseGO.API.BlockQueue do
     def handle_info(:check_ethereum_height, %Core{child_block_interval: child_block_interval} = state) do
       with {:ok, height} <- Eth.get_ethereum_height(),
            {:do_form_block, state1} <- Core.set_ethereum_height(state, height),
-           {:ok, block_hash} <- OmiseGO.API.State.form_block(child_block_interval) do
-        state2 = Core.enqueue_block(state1, block_hash)
+           {:ok, block_hash, block_number} <- OmiseGO.API.State.form_block(child_block_interval) do
+        state2 = Core.enqueue_block(state1, block_hash, block_number)
         submit_blocks(state2)
         {:noreply, state2}
       else
@@ -106,7 +106,7 @@ defmodule OmiseGO.API.BlockQueue do
     # private (server)
 
     @spec submit_blocks(Core.t()) :: :ok
-    defp submit_blocks(state) do
+    defp submit_blocks(%Core{} = state) do
       state
       |> Core.get_blocks_to_submit()
       |> Enum.each(fn submission ->
