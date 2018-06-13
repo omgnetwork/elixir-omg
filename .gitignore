@@ -28,6 +28,3 @@ populus/build/
 *ecto_simple.sqlite3*
 
 Makefile
-
-# Performance test results
-*.statistics
