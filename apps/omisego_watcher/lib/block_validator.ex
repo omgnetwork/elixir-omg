@@ -4,8 +4,8 @@ defmodule OmiseGOWatcher.BlockValidator do
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
 
-  @spec json_to_block(block :: map, number :: integer) :: {:ok, Block.t()}
-  def json_to_block(%{"hash" => hash, "transactions" => transactions}, number) do
+  @spec json_to_block(block :: map) :: {:ok, Block.t()}
+  def json_to_block(%{"hash" => hash, "transactions" => transactions, "number" => number}) do
     {:ok,
      %Block{
        transactions:
@@ -16,8 +16,8 @@ defmodule OmiseGOWatcher.BlockValidator do
      }}
   end
 
-  defp decode_transaction(line) do
-    {:ok, transaction} = Transaction.Signed.decode(decode(line))
+  defp decode_transaction(signed_tx_bytes) do
+    {:ok, transaction} = Transaction.Signed.decode(decode(signed_tx_bytes))
     transaction
   end
 
