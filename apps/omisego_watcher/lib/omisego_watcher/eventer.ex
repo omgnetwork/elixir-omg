@@ -1,9 +1,9 @@
-defmodule OmiseGO.API.Eventer do
+defmodule OmiseGOWatcher.Eventer do
   @moduledoc """
   Imperative shell for handling events
   """
 
-  alias OmiseGO.API.Eventer.Core
+  alias OmiseGOWatcher.Eventer.Core
   alias Phoenix.PubSub
 
   @pubsub :eventer

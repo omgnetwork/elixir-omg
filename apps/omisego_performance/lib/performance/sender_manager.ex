@@ -151,7 +151,7 @@ defmodule OmiseGO.Performance.SenderManager do
           {
             blknum,
             txs_in_blk,
-            txs_in_second(txs_in_blk, span_ms),
+            txs_per_second(txs_in_blk, span_ms),
             span_ms
           }
           | list
@@ -161,7 +161,7 @@ defmodule OmiseGO.Performance.SenderManager do
     end
   end
 
-  defp txs_in_second(txs_count, interval_ms), do: Float.round(txs_count * 1000 / interval_ms, 2)
+  defp txs_per_second(txs_count, interval_ms), do: Float.round(txs_count * 1000 / interval_ms, 2)
 
   # handle termination
   defp write_stats(state) do

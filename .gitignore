@@ -31,3 +31,6 @@ Makefile
 
 # Performance test results
 *.statistics
+
+# Developers config file
+your_config_file.exs

@@ -13,27 +13,26 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
   defp deposit_to_child_chain(to, value, config) do
     {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
-    {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(value, 0, destiny_enc, config.contract.address)
+    {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(value, 0, destiny_enc, config.contract_addr)
     {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
     deposit_height = Eth.DevHelpers.deposit_height_from_receipt(receipt)
 
     post_deposit_child_block =
       deposit_height - 1 + (config.ethereum_event_block_finality_margin + 1) * config.child_block_interval
 
-    {:ok, _} =
-      Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000, config.contract.address)
+    {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000, config.contract_addr)
 
     deposit_height
   end
 
   @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :alice, :bob]
   test "get the blocks from child chain after transaction", %{config_map: config_map, alice: alice, bob: bob} do
-    Application.put_env(:omisego_eth, :contract_address, config_map.contract.address)
+    Application.put_env(:omisego_eth, :contract_address, config_map.contract_addr)
 
     {:ok, _pid} =
       GenServer.start_link(
         OmiseGOWatcher.BlockGetter,
-        %{contract_address: config_map.contract.address},
+        %{contract_address: config_map.contract_addr},
         name: BlockGetter
       )
 
