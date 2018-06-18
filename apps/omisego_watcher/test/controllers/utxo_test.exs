@@ -2,12 +2,12 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  use Plug.Test
-
   alias OmiseGO.API.{Block}
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.UtxoDB
+  alias OmiseGOWatcher.TestHelper, as: Test
+
 
   @empty %Transaction{
     blknum1: 0,
@@ -112,19 +112,10 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   end
 
   defp get_utxo(address) do
-    request = conn(:get, "account/utxo?address=#{Client.encode(address)}")
-    response = request |> send_request
-    assert response.status == 200
-    Poison.decode!(response.resp_body)
+    Test.rest_call(:get, "account/utxo?address=#{Client.encode(address)}")
   end
 
   defp signed(transaction) do
     %Signed{raw_tx: transaction, sig1: <<>>, sig2: <<>>}
-  end
-
-  defp send_request(conn) do
-    conn
-    |> put_private(:plug_skip_csrf_protection, true)
-    |> OmiseGOWatcherWeb.Endpoint.call([])
   end
 end
