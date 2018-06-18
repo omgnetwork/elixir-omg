@@ -5,6 +5,6 @@ config :logger,
   level: :info
 
 config :briefly,
-  directory: [ "/tmp/omisego"]
+  directory: ["/tmp/omisego"]
 
 import_config "#{Mix.env()}.exs"

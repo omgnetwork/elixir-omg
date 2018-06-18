@@ -29,8 +29,7 @@ defmodule OmiseGO.Performance.Runner do
   @doc """
   Runs above :run function with :fprof profiler. Profiler analysis is written to the temp file.
   """
-  @spec profile_and_run(ntx_to_send :: pos_integer, nusers :: pos_integer, opt :: list) ::
-          {:ok, String.t()}
+  @spec profile_and_run(ntx_to_send :: pos_integer, nusers :: pos_integer, opt :: list) :: {:ok, String.t()}
   def profile_and_run(ntx_to_send, nusers, opt) do
     :fprof.apply(&OmiseGO.Performance.Runner.run/3, [ntx_to_send, nusers, opt], procs: [:all])
     :fprof.profile()

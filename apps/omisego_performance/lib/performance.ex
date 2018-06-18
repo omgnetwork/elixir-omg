@@ -32,7 +32,7 @@ defmodule OmiseGO.Performance do
 
   # The test setup
   @spec testup :: {:ok, list}
-  defp testup() do
+  defp testup do
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
     Application.put_env(:omisego_db, :leveldb_path, dbdir, persistent: true)
@@ -81,7 +81,7 @@ defmodule OmiseGO.Performance do
   @spec run(args :: list(), profile :: boolean) :: :ok
   defp run(args, profile) do
     {:ok, data} = apply(OmiseGO.Performance.Runner, if(profile, do: :profile_and_run, else: :run), args)
-    _ = Logger.info(fn -> "#{inspect data}" end)
+    _ = Logger.info(fn -> "#{inspect(data)}" end)
     :ok
   end
 end
