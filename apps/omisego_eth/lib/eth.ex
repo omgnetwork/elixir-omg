@@ -216,6 +216,7 @@ defmodule OmiseGO.Eth do
 
     parse_deposit =
       fn "0x" <> deposit ->
+        IO.inspect deposit
         [owner, blknum, amount] =
           deposit
           |> Base.decode16!(case: :lower)

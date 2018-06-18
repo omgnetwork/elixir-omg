@@ -116,6 +116,7 @@ defmodule OmiseGO.Eth.DevHelpers do
       |> ABI.encode([])
       |> Base.encode16()
 
+    IO.inspect data
     gas = 100_000
 
     Ethereumex.HttpClient.eth_send_transaction(%{
