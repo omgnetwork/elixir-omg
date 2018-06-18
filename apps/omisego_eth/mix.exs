@@ -44,8 +44,6 @@ defmodule OmiseGO.Eth.MixProject do
   end
 
   defp contracts_compile do
-    mixfile_path = File.cwd!()
-
     case solc_binary_override() do
       :no_solc ->
         Logger.warn(
@@ -56,7 +54,24 @@ defmodule OmiseGO.Eth.MixProject do
         false
 
       solc_override ->
+        populus_compile_command(solc_override)
+    end
+  end
+
+  defp populus_compile_command(solc_override) do
+    mixfile_path = File.cwd!()
+
+    case System.cmd("which", ["populus"]) do
+      {_, 0} ->
         "cd #{mixfile_path}/../../populus && #{solc_override} populus compile"
+
+      {_, 1} ->
+        Logger.warn(
+          "Can't find populus, contracts may not compile. " <>
+            "If you need contracts, ensure you have populus in path (see populus/README.md)"
+        )
+
+        false
     end
   end
 
