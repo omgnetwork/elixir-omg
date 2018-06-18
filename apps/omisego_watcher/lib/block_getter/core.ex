@@ -2,65 +2,73 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   @moduledoc """
   Functional core for BlockGetter
   """
-  def init(block_number, child_block_interval) do
-    %{
+
+  defstruct [:block_info, :block_to_consume, :task]
+
+  @type t() :: %__MODULE__{
+          block_info: %{consume: non_neg_integer, started_height: non_neg_integer, interval: pos_integer},
+          block_to_consume: list(OmiseGO.API.Block.t()),
+          task: %{run: non_neg_integer, max: pos_integer}
+        }
+
+  @spec init(non_neg_integer, pos_integer, pos_integer) :: %__MODULE__{}
+  def init(block_number, child_block_interval, chunk_size \\ 10) do
+    %__MODULE__{
       block_info: %{
         consume: block_number,
         started_height: block_number,
-        height: block_number,
         interval: child_block_interval
       },
-      acc: %{},
-      task: %{run: 0, max: 10}
+      block_to_consume: %{},
+      task: %{run: 0, max: chunk_size}
     }
   end
 
-  def get_new_block_number_stream(state, next_child) do
+  @spec get_new_blocks_numbers(%__MODULE__{}, non_neg_integer) :: {%__MODULE__{}, list(non_neg_integer)}
+  def get_new_blocks_numbers(state, next_child) do
     first_block_number = state.block_info.started_height + state.block_info.interval
-
-    first_block_number
-    |> Stream.iterate(&(&1 + state.block_info.interval))
-    |> Enum.take_while(&(&1 < next_child))
-  end
-
-  def chunk(task_asynch, state) do
     empty_slot = state.task.max - state.task.run
-    started_task = Enum.take(task_asynch, empty_slot)
 
-    started_height =
-      case List.last(started_task) do
-        nil -> state.block_info.started_height
-        {block_number, _pid} -> block_number
-      end
+    blocks_numbers =
+      first_block_number
+      |> Stream.iterate(&(&1 + state.block_info.interval))
+      |> Stream.take_while(&(&1 < next_child))
+      |> Enum.take(empty_slot)
 
-    %{
-      state
-      | task: %{state.task | run: length(started_task) + state.task.run},
-        block_info: %{state.block_info | started_height: started_height}
-    }
+    {%{
+       state
+       | task: %{state.task | run: length(blocks_numbers) + state.task.run},
+         block_info: %{
+           state.block_info
+           | started_height: hd(Enum.take([state.block_info.started_height] ++ blocks_numbers, -1))
+         }
+     }, blocks_numbers}
   end
 
+  @spec add_block(%__MODULE__{}, OmiseGO.API.Block.t()) :: %__MODULE__{}
   def add_block(state, block) do
-    %{state | acc: Map.put(state.acc, block.number, block)}
+    %{state | block_to_consume: Map.put(state.block_to_consume, block.number, block)}
   end
 
+  @spec get_blocks_to_consume(%__MODULE__{}) :: {%__MODULE__{}, list(OmiseGO.API.Block.t())}
   def get_blocks_to_consume(state) do
     first_block_number = state.block_info.consume + state.block_info.interval
 
     elem =
       first_block_number
       |> Stream.iterate(&(&1 + state.block_info.interval))
-      |> Enum.take_while(&Map.has_key?(state.acc, &1))
+      |> Enum.take_while(&Map.has_key?(state.block_to_consume, &1))
 
-    block_to_consume = elem |> Enum.map(&Map.get(state.acc, &1))
-    new_acc = Map.drop(state.acc, elem)
+    block_to_consume = elem |> Enum.map(&Map.get(state.block_to_consume, &1))
+    new_block_to_comsume = Map.drop(state.block_to_consume, elem)
 
     {%{
        state
-       | acc: new_acc,
+       | block_to_consume: new_block_to_comsume,
          block_info: %{state.block_info | consume: List.last([state.block_info.consume] ++ elem)}
      }, block_to_consume}
   end
 
-  def process_down(state, _proccess), do: %{state | task: %{state.task | run: state.task.run - 1}}
+  @spec task_complited(%__MODULE__{}) :: %__MODULE__{}
+  def task_complited(state), do: %{state | task: %{state.task | run: state.task.run - 1}}
 end

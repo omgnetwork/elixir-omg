@@ -47,32 +47,35 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:noreply, new_state}
   end
 
-  def handle_info({_ref, {:ok, block}}, state) do
-    {new_state, block} =
+  def handle_info({_ref, {:got_block, {:ok, block}}}, state) do
+    {new_state, blocks_to_consume} =
       state
       |> Core.add_block(block)
       |> Core.get_blocks_to_consume()
 
     new_state = run_block_get_task(new_state)
-    _ = block |> Enum.map(&consume_block/1)
+    _ = blocks_to_consume |> Enum.map(&consume_block/1)
     {:noreply, new_state}
   end
 
-  def handle_info({:DOWN, _ref, :process, _pid, :normal} = process, state) do
-    {:noreply, Core.process_down(state, process)}
+  def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state) do
+    {:noreply, Core.task_complited(state)}
   end
 
   defp run_block_get_task(state) do
     contract_address = Application.get_env(:omisego_eth, :contract_address)
     {:ok, next_child} = Eth.get_current_child_block(contract_address)
 
-    state
-    |> Core.get_new_block_number_stream(next_child)
-    |> Stream.map(fn block_number ->
-      # catch result in handle_info({_ref, {:ok, block}}, state)
-      # handle_info({:DOWN, _ref, :process, _pid, :normal}, state) change pull task setting (process down)
-      {block_number, Task.async(fn -> get_block(block_number, contract_address) end)}
-    end)
-    |> Core.chunk(state)
+    {new_state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
+
+    _task_list =
+      blocks_numbers
+      |> Enum.map(
+        # catch result in handle_info({_ref, {:ok, block}}, state)
+        # handle_info({:DOWN, _ref, :process, _pid, :normal}, state) change pull task setting (process down)
+        &Task.async(fn -> {:got_block, get_block(&1, contract_address)} end)
+      )
+
+    new_state
   end
 end
