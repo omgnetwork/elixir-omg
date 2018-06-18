@@ -152,7 +152,7 @@ defmodule OmiseGO.Eth do
     event = encode_event_signature("Deposit(address,uint256,uint256)")
 
     parse_deposit = fn "0x" <> deposit ->
-      [owner, amount, blknum] =
+      [owner, blknum, amount] =
         deposit
         |> Base.decode16!(case: :lower)
         |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, {:uint, 256}])
