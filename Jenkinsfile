@@ -35,9 +35,7 @@ podTemplate(
 
         stage('Build Contracts') {
             withEnv(["HOME=/home/jenkins"]) {
-                dir("populus") {
-                    sh("pip install -r requirements.txt && python -m solc.install v0.4.18 && populus compile")
-                }
+                sh("pip install -r populus/requirements.txt && python -m solc.install v0.4.18 && mix deps.compile plasma_mvp_contracts")
             }
         }
 
