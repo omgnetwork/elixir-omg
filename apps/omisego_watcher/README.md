@@ -1,19 +1,31 @@
-# OmiseGOWatcher
+# OmiseGO Watcher
 
-To start your Phoenix server:
+**IMPORTANT NOTICE: Heavily WIP, expect anything**
 
-  * Install dependencies with `mix deps.get`
-  * Create and migrate your database with `mix ecto.create && mix ecto.migrate`
-  * Start Phoenix endpoint with `mix phx.server`
+The Watcher is a observing node that connects to Ethereum and the child chain server's API.
+It exposes the information it gathers via a REST interface (Phoenix)
+For the responsibilities and design of the watcher see [Tesuji Plasma Blockchain Design document](FIXME link pending).
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+**TODO** write proper README after we distill how to run this.
 
-Ready to run in production? Please [check our deployment guides](http://www.phoenixframework.org/docs/deployment).
+## Setting up and running the watcher
 
-## Learn more
+```
+cd apps/omisego_watcher
+# FIXME: wouldn't work yet but would belong here: mix run --no-start -e 'OmiseGO.DB.init()'
+iex --sname watcher -S mix
+```
 
-  * Official website: http://www.phoenixframework.org/
-  * Guides: http://phoenixframework.org/docs/overview
-  * Docs: https://hexdocs.pm/phoenix
-  * Mailing list: http://groups.google.com/group/phoenix-talk
-  * Source: https://github.com/phoenixframework/phoenix
+## Setting up (developer's environment)
+
+  - setup and run the child chain server in developer's environment
+  - setup and run the watcher pointing to the same `omisego_eth` configuration (with the contract address) as the child chain server
+
+## Using the watcher
+
+FIXME adapt to how it actually works
+
+### Endpoints
+
+`/utxos/<address>`
+`/transactions/<tx_hash>`

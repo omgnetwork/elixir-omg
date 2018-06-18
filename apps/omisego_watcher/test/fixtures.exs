@@ -6,12 +6,14 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   use OmiseGO.DB.Fixtures
 
   deffixture config_map(contract) do
-    %{
-      contract: contract,
-      child_block_interval: 1000,
-      ethereum_event_block_finality_margin: 1,
-      ethereum_event_get_deposits_interval_ms: 10
-    }
+    Map.merge(
+      contract,
+      %{
+        child_block_interval: 1000,
+        ethereum_event_block_finality_margin: 1,
+        ethereum_event_get_deposits_interval_ms: 10
+      }
+    )
   end
 
   deffixture child_chain(config_map) do
@@ -21,13 +23,8 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     config_file_path
     |> File.open!([:write])
     |> IO.binwrite("""
-      #{
-      OmiseGO.Eth.DevHelpers.create_conf_file(
-        config_map.contract.address,
-        config_map.contract.txhash,
-        config_map.contract.from
-      )
-    }
+      #{OmiseGO.Eth.DevHelpers.create_conf_file(config_map)}
+
       config :omisego_db,
         leveldb_path: "#{db_path}"
       config :logger, level: :debug
@@ -61,7 +58,8 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     # TODO I wish we could ensure_started just one app here, but in test env jsonrpc doesn't depend on api :(
     child_chain_mix_cmd =
       "mix run --no-start --no-halt --config #{config_file_path} -e " <>
-        "'Application.ensure_all_started(:omisego_api); Application.ensure_all_started(:omisego_jsonrpc)' 2>&1"
+        "'{:ok, _} = Application.ensure_all_started(:omisego_api);" <>
+        " {:ok, _} = Application.ensure_all_started(:omisego_jsonrpc)' " <> "2>&1"
 
     Logger.debug(fn -> "Starting child_chain" end)
 

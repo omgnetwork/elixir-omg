@@ -94,25 +94,6 @@ defmodule OmiseGO.API.Crypto do
     {:ok, address}
   end
 
-  @spec address_to_hex(binary) :: binary()
-  def address_to_hex(bin) when is_binary(bin) and byte_size(bin) == 20 do
-    Base.encode16(bin, case: :lower)
-  end
-
-  @spec hex_to_address(binary) :: {:ok, binary()} | {:error, :bad_hex_encoding_of_address}
-  def hex_to_address(hex) when is_binary(hex) and byte_size(hex) == 40 do
-    case Base.decode16(hex, case: :lower) do
-      {:ok, bin} -> {:ok, bin}
-      :error -> {:error, :bad_hex_encoding_of_address}
-    end
-  end
-
-  @spec hex_to_address!(binary) :: binary()
-  def hex_to_address!(hex) do
-    {:ok, address} = hex_to_address(hex)
-    address
-  end
-
   # private
 
   defp der_to_raw(<<4::integer-size(8), data::binary>>), do: data

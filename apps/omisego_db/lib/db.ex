@@ -1,6 +1,7 @@
 defmodule OmiseGO.DB do
   @moduledoc """
-  Our-types-aware port/adapter to the db backend
+  Our-types-aware port/adapter to the db backend.
+  Call these functions to access the data stored in the database
   """
 
   ### Client (port)
@@ -42,6 +43,7 @@ defmodule OmiseGO.DB do
 
   def init do
     path = Application.get_env(:omisego_db, :leveldb_path)
+    :ok = File.mkdir_p(path)
 
     if Enum.empty?(File.ls!(path)) do
       {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
