@@ -47,7 +47,7 @@ defmodule OmiseGO.Eth.MixProject do
     case solc_binary_override() do
       :no_solc ->
         Logger.warn(
-          "Can't find solc, contracts may not compile. " <>
+          "Can't find solc, contracts may not compile. NOTE that solc in $PATH is ignored. " <>
             "If you need contracts, either define SOLC_BINARY or follow populus/README.md to install solc in homedir"
         )
 
