@@ -5,14 +5,14 @@
 To install populus and solc 0.4.18
 ```bash
 sudo apt-get install libssl-dev
-cd populus
-pip install -r requirements.txt
+pip install -r populus/requirements.txt
 python -m solc.install v0.4.18
 ```
 
-To compile contracts
+Contracts will compile automatically as a regular mix dependency.
+To compile contracts manually:
 ```
-SOLC_BINARY=${HOME}/.py-solc/solc-v0.4.18/bin/solc populus compile
+mix deps.compile plasma_mvp_contracts
 ```
 
 **DEV NOTE** `requirements.txt` is the frozen set of versioned dependencies, effect of running

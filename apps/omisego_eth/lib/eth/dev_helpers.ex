@@ -121,9 +121,24 @@ defmodule OmiseGO.Eth.DevHelpers do
 
   def create_new_contract(path_project_root, addr) do
     %{"RootChain" => %{"bytecode" => bytecode}} =
-      (path_project_root <> "populus/build/contracts.json") |> File.read!() |> Poison.decode!()
+      path_project_root
+      |> read_contracts_json!()
+      |> Poison.decode!()
 
     deploy_contract(addr, bytecode, [], [])
+  end
+
+  defp read_contracts_json!(path_project_root) do
+    case File.read(Path.join(path_project_root, "populus/build/contracts.json")) do
+      {:ok, contracts_json} ->
+        contracts_json
+
+      {:error, reason} ->
+        raise(
+          File.Error,
+          "populus/build/contracts.json not read because #{reason}, try running mix deps.compile plasma_mvp_contracts"
+        )
+    end
   end
 
   defp encode_constructor_params(args, types) do

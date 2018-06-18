@@ -56,12 +56,8 @@ git clone https://github.com/omisego/omisego
 cd omisego
 mix deps.get
 
-cd populus
-pip install -r requirements.txt
+pip install -r populus/requirements.txt
 python -m solc.install v0.4.18
-
-SOLC_BINARY=${HOME}/.py-solc/solc-v0.4.18/bin/solc populus compile
-cd ..
 
 # tests
 mix test --no-start
