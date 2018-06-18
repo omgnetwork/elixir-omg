@@ -10,8 +10,8 @@ defmodule OmiseGO.API.Api.CoreTest do
 
   def eth, do: Transaction.zero_address()
 
-  defp create_encoded(inputs, cur12, outputs, fee \\ 0) do
-    {signed_tx, raw_tx} = TestHelper.create_signed(inputs, cur12, outputs, fee)
+  defp create_encoded(inputs, cur12, outputs) do
+    {signed_tx, raw_tx} = TestHelper.create_signed(inputs, cur12, outputs)
 
     encoded_signed_tx = Transaction.Signed.encode(signed_tx)
 
@@ -24,7 +24,7 @@ defmodule OmiseGO.API.Api.CoreTest do
     bob: bob
   } do
     parametrized_tester = fn {input1, input2, spender1, spender2} ->
-      {encoded_signed_tx, raw_tx} = create_encoded([input1, input2], eth(), [{alice, 7}, {bob, 3}], 1)
+      {encoded_signed_tx, raw_tx} = create_encoded([input1, input2], eth(), [{alice, 7}, {bob, 3}])
 
       assert {:ok,
               %Transaction.Recovered{

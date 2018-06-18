@@ -21,8 +21,6 @@ defmodule OmiseGOWatcher.Repo.Migrations.CreateTransaction do
       add :newowner2, :string, null: false
       add :amount2, :integer, null: false
 
-      add :fee, :integer, null: false
-
       add :txblknum, :integer, null: false
       add :txindex, :integer, null: false
     end

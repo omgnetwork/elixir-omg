@@ -19,8 +19,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     newowner1: <<>>,
     amount1: 0,
     newowner2: <<>>,
-    amount2: 0,
-    fee: 0
+    amount2: 0
   }
 
   describe "UTXO database." do

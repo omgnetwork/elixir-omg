@@ -33,7 +33,6 @@ defmodule OmiseGO.API.State.Transaction.Signed do
       tx.amount1,
       tx.newowner2,
       tx.amount2,
-      tx.fee,
       sig1,
       sig2
     ]
@@ -70,7 +69,6 @@ defmodule OmiseGO.API.State.Transaction.Signed do
         amount1,
         newowner2,
         amount2,
-        fee,
         sig1,
         sig2
       ] ->
@@ -87,8 +85,7 @@ defmodule OmiseGO.API.State.Transaction.Signed do
             newowner1: address_parse(newowner1),
             amount1: int_parse(amount1),
             newowner2: address_parse(newowner2),
-            amount2: int_parse(amount2),
-            fee: int_parse(fee)
+            amount2: int_parse(amount2)
           }
 
           {:ok,

@@ -108,12 +108,6 @@ defmodule OmiseGO.API.State.CoreTest do
       |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 8}, {bob, 3}]), &1)).()
       |> fail?(:amounts_dont_add_up)
       |> same?(state)
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 8}, {alice, 2}], 1), &1)).()
-      |> fail?(:amounts_dont_add_up)
-      |> same?(state)
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 8}, {alice, 3}]), &1)).()
-      |> fail?(:amounts_dont_add_up)
-      |> same?(state)
       |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 2}, {alice, 8}]), &1)).()
       |> success?
 

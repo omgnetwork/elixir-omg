@@ -33,6 +33,8 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     :ok
   end
 
+  defp eth, do: Transaction.zero_address()
+
   @tag fixtures: [:alice, :bob, :omisego]
   test "deposit, spend, exit, restart etc works fine", %{alice: alice, bob: bob} do
     {:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
@@ -50,7 +52,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true)
 
-    raw_tx = Transaction.new([{deposit_height, 0, 0}], [{bob.addr, 7}, {alice.addr, 3}], 0)
+    raw_tx = Transaction.new([{deposit_blknum, 0, 0}], eth(), [{bob.addr, 7}, {alice.addr, 3}])
 
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
@@ -78,7 +80,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     # repeat spending to see if all works
 
-    raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, 10}], 0)
+    raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], eth(), [{alice.addr, 10}])
     tx2 = raw_tx2 |> Transaction.sign(bob.priv, alice.priv) |> Transaction.Signed.encode()
 
     # spend the output of the first transaction

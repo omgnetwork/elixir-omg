@@ -22,8 +22,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
       newowner1: @zero_address,
       amount1: 1,
       newowner2: @zero_address,
-      amount2: 0,
-      fee: 0
+      amount2: 0
     },
     sig1: <<>>,
     sig2: <<>>

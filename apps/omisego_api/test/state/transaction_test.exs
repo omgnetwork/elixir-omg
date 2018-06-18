@@ -20,8 +20,7 @@ defmodule OmiseGO.API.State.TransactionTest do
       newowner1: "alicealicealicealice",
       amount1: 1,
       newowner2: "carolcarolcarolcarol",
-      amount2: 2,
-      fee: 0
+      amount2: 2
     }
   end
 
@@ -74,7 +73,7 @@ defmodule OmiseGO.API.State.TransactionTest do
 
   @tag fixtures: [:utxos]
   test "crete transaction", %{utxos: utxos} do
-    {:ok, transaction} = Transaction.create_from_utxos(utxos, %{address: "Joe Black", amount: 53}, 50)
+    {:ok, transaction} = Transaction.create_from_utxos(utxos, %{address: "Joe Black", amount: 53})
 
     assert transaction == %Transaction{
              blknum1: 20,
@@ -87,25 +86,20 @@ defmodule OmiseGO.API.State.TransactionTest do
              newowner1: "Joe Black",
              amount1: 53,
              newowner2: "McDuck",
-             amount2: 40,
-             fee: 50
+             amount2: 90
            }
   end
 
   @tag fixtures: [:utxos]
   test "checking error messages", %{utxos: utxos} do
-    assert {:error, :amount_negative_value} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: -4}, 2)
+    assert {:error, :amount_negative_value} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: -4})
 
-    assert {:error, :amount_negative_value} ==
-             Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30_000}, 0)
-
-    assert {:error, :fee_negative_value} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30}, -2)
+    assert {:error, :amount_negative_value} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30_000})
 
     assert {:error, :too_many_utxo} ==
              Transaction.create_from_utxos(
                %{utxos | utxos: utxos.utxos ++ utxos.utxos},
-               %{address: "Joe", amount: 3},
-               0
+               %{address: "Joe", amount: 3}
              )
   end
 
@@ -124,7 +118,7 @@ defmodule OmiseGO.API.State.TransactionTest do
       ]
     }
 
-    {:ok, raw_transaction} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42}, 10)
+    {:ok, raw_transaction} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42})
 
     {:ok, transaction} =
       raw_transaction

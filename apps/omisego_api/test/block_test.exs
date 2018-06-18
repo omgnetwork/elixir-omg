@@ -21,8 +21,7 @@ defmodule OmiseGO.API.BlockTest do
   #     newowner1: alice.addr,
   #     amount1: 1,
   #     newowner2: bob.addr,
-  #     amount2: 2,
-  #     fee: 0
+  #     amount2: 2
   #   }
 
   #   encoded_singed_tx =

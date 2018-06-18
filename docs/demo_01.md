@@ -39,7 +39,7 @@ deposit_height = Eth.DevHelpers.deposit_height_from_receipt(receipt)
 
 # create and prepare transaction for singing
 tx =
-  Transaction.new([{deposit_height, 0, 0}], [{bob.addr, 7}, {alice.addr, 3}], 0) |>
+  Transaction.new([{deposit_height, 0, 0}], "0x0000000000000000000000000000000000000000" [{bob.addr, 7}, {alice.addr, 3}]) |>
   Transaction.sign(alice.priv, <<>>) |>
   Transaction.Signed.encode() |>
   Base.encode16()

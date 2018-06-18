@@ -53,12 +53,12 @@ defmodule OmiseGO.API.State.Core do
         } = recovered_tx,
         state
       ) do
-    %Transaction{amount1: amount1, amount2: amount2, fee: fee} = raw_tx
+    %Transaction{amount1: amount1, amount2: amount2} = raw_tx
 
     with :ok <- validate_block_size(state),
          {:ok, in_amount1} <- correct_input_in_position?(1, state, raw_tx, spender1),
          {:ok, in_amount2} <- correct_input_in_position?(2, state, raw_tx, spender2),
-         :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2 + fee) do
+         :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2) do
       {
         {:ok, recovered_tx.signed_tx_hash, state.height, state.tx_index},
         state
@@ -123,8 +123,9 @@ defmodule OmiseGO.API.State.Core do
     if utxo_currency == spent_currency, do: :ok, else: {:error, :incorrect_currency}
   end
 
+  # fee is implicit - it's the difference between funds owned and spend
   defp amounts_add_up?(has, spends) do
-    if has == spends, do: :ok, else: {:error, :amounts_dont_add_up}
+    if has >= spends, do: :ok, else: {:error, :amounts_dont_add_up}
   end
 
   defp apply_spend(

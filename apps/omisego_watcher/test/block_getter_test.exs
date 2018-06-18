@@ -34,7 +34,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       )
 
     deposit_height = deposit_to_child_chain(alice, 10, config_map)
-    raw_tx = Transaction.new([{deposit_height, 0, 0}], Transaction.zero_address(), [{alice.addr, 7}, {bob.addr, 3}], 0)
+    raw_tx = Transaction.new([{deposit_blknum, 0, 0}], Transaction.zero_address(), [{alice.addr, 7}, {bob.addr, 3}])
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
     {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx})

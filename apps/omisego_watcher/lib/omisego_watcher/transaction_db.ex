@@ -24,7 +24,6 @@ defmodule OmiseGOWatcher.TransactionDB do
     :amount1,
     :newowner2,
     :amount2,
-    :fee,
     :txblknum,
     :txindex
   ]
@@ -49,8 +48,6 @@ defmodule OmiseGOWatcher.TransactionDB do
 
     field(:newowner2, :string)
     field(:amount2, :integer)
-
-    field(:fee, :integer)
 
     field(:txblknum, :integer)
     field(:txindex, :integer)
