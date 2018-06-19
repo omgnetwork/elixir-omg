@@ -4,8 +4,8 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
   use Plug.Test
 
-  alias OmiseGO.API.{Block}
-  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
+  alias OmiseGO.API.Block
+  alias OmiseGO.API.State.Transaction
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.UtxoDB
 
@@ -33,8 +33,8 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     test "Consumed block contents are available." do
       UtxoDB.consume_block(%Block{
         transactions: [
-          @empty |> Map.merge(%{newowner1: "McDuck", amount1: 1947}) |> signed,
-          @empty |> Map.merge(%{newowner1: "McDuck", amount1: 1952}) |> signed
+          @empty |> Map.merge(%{newowner1: "McDuck", amount1: 1947}) |> Transaction.make_recovered(),
+          @empty |> Map.merge(%{newowner1: "McDuck", amount1: 1952}) |> Transaction.make_recovered()
         ],
         number: 2
       })
@@ -48,8 +48,8 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     test "Spent utxos are moved to new owner." do
       UtxoDB.consume_block(%Block{
         transactions: [
-          @empty |> Map.merge(%{newowner1: "Ebenezer", amount1: 1843}) |> signed,
-          @empty |> Map.merge(%{newowner1: "Matilda", amount1: 1871}) |> signed
+          @empty |> Map.merge(%{newowner1: "Ebenezer", amount1: 1843}) |> Transaction.make_recovered(),
+          @empty |> Map.merge(%{newowner1: "Matilda", amount1: 1871}) |> Transaction.make_recovered()
         ],
         number: 1
       })
@@ -66,7 +66,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
             txindex1: 1,
             oindex1: 0
           })
-          |> signed
+          |> Transaction.make_recovered()
         ],
         number: 2
       })
@@ -101,7 +101,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
         transactions: [
           @empty
           |> Map.merge(spent)
-          |> signed
+          |> Transaction.make_recovered()
         ],
         number: 2
       })
@@ -116,10 +116,6 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     response = request |> send_request
     assert response.status == 200
     Poison.decode!(response.resp_body)
-  end
-
-  defp signed(transaction) do
-    %Signed{raw_tx: transaction, sig1: <<>>, sig2: <<>>}
   end
 
   defp send_request(conn) do

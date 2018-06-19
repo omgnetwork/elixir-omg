@@ -5,7 +5,7 @@ defmodule OmiseGOWatcher.UtxoDB do
   use Ecto.Schema
 
   alias OmiseGO.API.{Block, Crypto}
-  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
+  alias OmiseGO.API.State.{Transaction, Transaction.Recovered}
   alias OmiseGOWatcher.Repo
 
   import Ecto.Changeset
@@ -24,9 +24,7 @@ defmodule OmiseGOWatcher.UtxoDB do
   end
 
   defp consume_transaction(
-         %Signed{
-           raw_tx: %Transaction{} = transaction
-         } = signed_transaction,
+         %Recovered{raw_tx: %Transaction{} = transaction, signed_tx_bytes: signed_tx_bytes},
          txindex,
          block_number
        ) do
@@ -37,14 +35,14 @@ defmodule OmiseGOWatcher.UtxoDB do
         blknum: block_number,
         txindex: txindex,
         oindex: Map.get(transaction, :"oindex#{number}"),
-        txbytes: signed_transaction |> Transaction.Signed.encode()
+        txbytes: signed_tx_bytes
       }
     end
 
     {Repo.insert(make_utxo_db.(transaction, 1)), Repo.insert(make_utxo_db.(transaction, 2))}
   end
 
-  defp remove_utxo(%Signed{
+  defp remove_utxo(%Recovered{
          raw_tx: %Transaction{} = transaction
        }) do
     remove_from = fn transaction, number ->
@@ -68,8 +66,8 @@ defmodule OmiseGOWatcher.UtxoDB do
     numbered_transactions = Stream.with_index(transactions)
 
     numbered_transactions
-    |> Enum.map(fn {%Signed{} = signed, txindex} ->
-      {remove_utxo(signed), consume_transaction(signed, txindex, block_number)}
+    |> Enum.map(fn {%Recovered{} = recovered, txindex} ->
+      {remove_utxo(recovered), consume_transaction(recovered, txindex, block_number)}
     end)
   end
 

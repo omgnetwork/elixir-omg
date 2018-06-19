@@ -8,7 +8,7 @@ defmodule OmiseGOWatcher.TransactionDB do
   import Ecto.Changeset
 
   alias OmiseGO.API.Block
-  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
+  alias OmiseGO.API.State.Transaction.Recovered
   alias OmiseGOWatcher.Repo
 
   @field_names [
@@ -61,24 +61,15 @@ defmodule OmiseGOWatcher.TransactionDB do
   def insert(%Block{transactions: transactions, number: block_number}) do
     transactions
     |> Stream.with_index()
-    |> Stream.map(fn {%Signed{} = signed, txindex} ->
-      signed
-      |> Signed.signed_hash()
-      |> insert(signed, block_number, txindex)
+    |> Stream.map(fn {%Recovered{} = recovered, txindex} ->
+      insert(recovered, txindex, block_number)
     end)
     |> Enum.to_list()
   end
 
-  def insert(
-        id,
-        %Signed{
-          raw_tx: %Transaction{} = transaction
-        },
-        block_number,
-        txindex
-      ) do
+  def insert(%Recovered{raw_tx: transaction} = recover_transaction, txindex, block_number) do
     %__MODULE__{
-      txid: id,
+      txid: recover_transaction.signed_tx_hash,
       txblknum: block_number,
       txindex: txindex
     }

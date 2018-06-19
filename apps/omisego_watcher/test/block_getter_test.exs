@@ -56,7 +56,6 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     |> Task.await(10_000)
 
     encode_tx = Client.encode(tx)
-
     assert [%{"amount" => 3, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
              get_utxo(bob)
 
