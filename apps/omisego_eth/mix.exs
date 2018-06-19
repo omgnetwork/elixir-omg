@@ -80,7 +80,7 @@ defmodule OmiseGO.Eth.MixProject do
 
     cond do
       # user overrode the binary themselves, no need to re-override
-      System.get_env("solc_binary_override") ->
+      System.get_env("SOLC_BINARY") ->
         ""
 
       # revert to whatever populus installed at specific version, if ${HOME} is present
