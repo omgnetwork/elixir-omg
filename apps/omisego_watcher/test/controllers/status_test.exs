@@ -4,14 +4,24 @@ defmodule OmiseGOWatcherWeb.Controller.StatusTest do
 
   alias OmiseGOWatcher.TestHelper, as: Test
 
-  @tag fixtures: [:watcher_sandbox]
+  @moduletag :integration
+
+  @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]
   test "status endpoint provides expected information" do
+    expected_keys = [
+      "last_child_block_height",
+      "last_mined_block_number",
+      "last_mined_block_timestamp",
+      "syncing_status"
+    ]
+
     status = Test.rest_call(:get, "/status")
 
-    assert %{"last_child_block_height" => _,
-      "last_mined_block_number" => _,
-      "last_mined_block_timestamp" => _,
-      "syncing_status" => _,
-    } = status
+    assert expected_keys == Map.keys(status)
+
+    assert is_integer(Map.fetch!(status, "last_child_block_height"))
+    assert is_integer(Map.fetch!(status, "last_mined_block_number"))
+    assert is_integer(Map.fetch!(status, "last_mined_block_timestamp"))
+    assert is_atom(Map.fetch!(status, "syncing_status"))
   end
 end

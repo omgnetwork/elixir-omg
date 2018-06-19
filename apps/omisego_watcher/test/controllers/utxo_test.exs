@@ -8,7 +8,6 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   alias OmiseGOWatcher.UtxoDB
   alias OmiseGOWatcher.TestHelper, as: Test
 
-
   @empty %Transaction{
     blknum1: 0,
     txindex1: 0,

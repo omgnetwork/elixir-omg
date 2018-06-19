@@ -307,4 +307,12 @@ defmodule OmiseGO.API.State.Core do
       false -> :utxo_does_not_exist
     end
   end
+
+  @doc """
+  Gets the current block's height
+  """
+  @spec get_current_child_block_height(%__MODULE__{}) :: pos_integer
+  def get_current_child_block_height(%{height: height, last_deposit_height: last_deposit_height}) do
+    max(height, last_deposit_height)
+  end
 end

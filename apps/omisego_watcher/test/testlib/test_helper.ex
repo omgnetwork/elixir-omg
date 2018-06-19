@@ -1,4 +1,8 @@
 defmodule OmiseGOWatcher.TestHelper do
+  @moduledoc """
+  The TestHelper module
+  """
+
   use ExUnit.Case, async: true
   use Plug.Test
 
