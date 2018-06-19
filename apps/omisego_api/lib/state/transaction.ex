@@ -30,12 +30,14 @@ defmodule OmiseGO.API.State.Transaction do
           blknum2: non_neg_integer(),
           txindex2: non_neg_integer(),
           oindex2: 0 | 1,
-          cur12: Crypto.address_t(),
+          cur12: currency(),
           newowner1: Crypto.address_t(),
           amount1: pos_integer(),
           newowner2: Crypto.address_t(),
           amount2: non_neg_integer()
         }
+
+  @type currency :: Crypto.address_t()
 
   def create_from_utxos(%{utxos: utxos}, _) when length(utxos) > @max_inputs,
     do: {:error, :too_many_utxo}
@@ -88,13 +90,10 @@ defmodule OmiseGO.API.State.Transaction do
     end
   end
 
-  defp validate_currency([%{currency: cur1}, %{currency: cur2}]) when cur1 != cur2 do
-    {:error, :currency_mixing_not_possible}
-  end
+  defp validate_currency([%{currency: cur1}, %{currency: cur2}]) when cur1 != cur2,
+    do: {:error, :currency_mixing_not_possible}
 
-  defp validate_currency([%{currency: cur1} | _]) do
-    {:ok, cur1}
-  end
+  defp validate_currency([%{currency: cur1} | _]), do: {:ok, cur1}
 
   defp validate(%__MODULE__{} = transaction) do
     cond do

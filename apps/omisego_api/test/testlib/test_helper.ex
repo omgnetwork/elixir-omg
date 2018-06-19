@@ -26,8 +26,8 @@ defmodule OmiseGO.API.TestHelper do
   """
   @spec create_recovered(
           list({pos_integer, pos_integer, 0 | 1, map}),
-          <<_::256>>,
-          list({<<_::256>>, pos_integer})
+          Transaction.currency(),
+          list({Crypto.address_t(), pos_integer})
         ) :: Transaction.Recovered.t()
   def create_recovered(inputs, currency, outputs) do
     {signed_tx, _raw_tx} = create_signed(inputs, currency, outputs)
@@ -40,8 +40,8 @@ defmodule OmiseGO.API.TestHelper do
   """
   @spec create_signed(
           list({pos_integer, pos_integer, 0 | 1, map}),
-          <<_::256>>,
-          list({<<_::256>>, pos_integer})
+          Transaction.currency(),
+          list({Crypto.address_t(), pos_integer})
         ) :: {Transaction.Signed.t(), Transaction.t()}
   def create_signed(inputs, currency, outputs) do
     raw_tx =
