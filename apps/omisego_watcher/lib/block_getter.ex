@@ -52,7 +52,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:reply, state.child_block_number, state}
   end
 
-  def get_current_block_number(contract) do
+  def get_current_block_number(contract \\ nil) do
     {:ok, next_child_block} = OmiseGO.Eth.get_current_child_block(contract)
     child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
     child_block = next_child_block - child_block_interval
