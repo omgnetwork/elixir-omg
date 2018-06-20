@@ -1,13 +1,13 @@
 defmodule OmiseGOWatcherWeb.Controller.Status do
   @moduledoc """
-  Watcher status operations
+  Module provides operation related to childchain health status, like: geth syncing status, last minned block
+  number and time and last block verified by watcher.
   """
 
   use OmiseGOWatcherWeb, :controller
 
   alias OmiseGO.API.State
   alias OmiseGO.Eth
-  alias OmiseGOWatcher.BlockGetter
 
   @doc """
   Gets plasma network status
@@ -31,7 +31,8 @@ defmodule OmiseGOWatcherWeb.Controller.Status do
   end
 
   defp get_last_mined_child_block_number do
-    BlockGetter.get_current_block_number()
+    {:ok, blknum} = Eth.get_mined_child_block()
+    blknum
   end
 
   defp get_last_mined_child_block_timestamp(last_mined_child_block_number) do
