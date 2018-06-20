@@ -41,7 +41,7 @@ defmodule OmiseGO.Eth.DevGeth do
     _ = Logger.debug(fn -> "Starting geth" end)
 
     {:ok, geth_proc, _ref, [{:stream, geth_out, _stream_server}]} =
-      Exexec.run(cmd, stdout: :stream, kill_command: "kill -9 $(pidof geth)")
+      Exexec.run(cmd, stdout: :stream, kill_command: "pkill -9 geth")
 
     wait_for_geth_start(geth_out)
 
