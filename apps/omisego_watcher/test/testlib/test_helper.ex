@@ -1,6 +1,6 @@
 defmodule OmiseGOWatcher.TestHelper do
   @moduledoc """
-  The TestHelper module
+  Module provides common testing functions used by App's tests.
   """
 
   use ExUnit.Case, async: true
