@@ -4,7 +4,7 @@ use Mix.Config
 # mix run --no-start -e 'OmiseGO.Eth.DevHelpers.prepare_dev_env()'
 
 config :omisego_eth,
-contract: "0x885e8f840229396ebdef213cdbb27ca11f46323c",
-txhash_contract: "0x0798380b95f3bba289752f06f7b9f5f26577a62527f67d11f1028b521ed2bdfa",
-authority_addr: "0xf2c065e626be2791f5971fbacf8422b8844f490c",
+contract: "0x723800a478e9d9867605e23921d380fb4b4f6949",
+txhash_contract: "0x2c28c1ed41f359fee1406d72732052ec7c293af2654f04057d80f1cf448b622c",
+authority_addr: "0x322b02ce248fa1ec649f252a04c7c97010d9b5cd",
 root_path: "../../"

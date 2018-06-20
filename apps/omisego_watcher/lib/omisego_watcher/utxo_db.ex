@@ -110,7 +110,7 @@ defmodule OmiseGOWatcher.UtxoDB do
       utxo_pos: calculate_utxo_pos(block_height, txindex, oindex),
       tx_bytes: Transaction.encode(tx),
       proof: proof,
-      sigs: tx.sig1 <> tx.sig2
+      # sigs: tx.sig1 <> tx.sig2
     }
 
   end

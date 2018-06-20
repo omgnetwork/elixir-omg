@@ -238,6 +238,7 @@ defmodule OmiseGO.Eth do
   defp int_to_hex(int), do: "0x" <> Integer.to_string(int, 16)
 
   defp get_logs(logs, parse_log) do
+    IO.inspect logs
     logs
     |> Enum.filter(&(not Map.get(&1, "removed", true)))
     |> Enum.map(&(Map.get(&1, "data")))
