@@ -16,7 +16,6 @@ defmodule OmiseGO.API.MixProject do
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
       env: [
@@ -31,7 +30,6 @@ defmodule OmiseGO.API.MixProject do
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:phoenix_pubsub, "~> 1.0"},

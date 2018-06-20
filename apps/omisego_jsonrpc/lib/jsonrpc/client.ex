@@ -32,5 +32,17 @@ defmodule OmiseGO.JSONRPC.Client do
     JSONRPC2.Clients.HTTP.call(url, to_string(method), encode(params))
   end
 
-  def decode(:bitstring, value), do: Base.decode16!(value)
+  def decode(:bitstring, arg) do
+    case Base.decode16(arg, case: :mixed) do
+      :error -> {:error, :argument_decode_error}
+      other -> other
+    end
+  end
+
+  def decode!(type, arg) do
+    case decode(type, arg) do
+      {:ok, decoded} -> decoded
+      {:error, reason} -> raise(ArgumentError, message: inspect(reason))
+    end
+  end
 end

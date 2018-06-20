@@ -9,8 +9,12 @@ defmodule OmiseGO.DBTest do
 
   alias OmiseGO.DB
 
+  setup_all do
+    {:ok, _} = Application.ensure_all_started(:briefly)
+    :ok
+  end
+
   setup do
-    Application.ensure_all_started(:briefly)
     {:ok, dir} = Briefly.create(directory: true)
 
     {:ok, pid} =

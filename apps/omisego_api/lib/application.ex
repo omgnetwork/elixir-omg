@@ -1,5 +1,8 @@
 defmodule OmiseGO.API.Application do
-  @moduledoc false
+  @moduledoc """
+  The application here is the Child chain server and its API.
+  See here (children) for the processes that compose into the Child Chain server.
+  """
 
   use Application
   import Supervisor.Spec
@@ -9,7 +12,6 @@ defmodule OmiseGO.API.Application do
     event_listener_config = get_event_listener_config()
 
     children = [
-      supervisor(Phoenix.PubSub.PG2, [:eventer, []]),
       {OmiseGO.API.State, []},
       {OmiseGO.API.BlockQueue.Server, []},
       {OmiseGO.API.FreshBlocks, []},

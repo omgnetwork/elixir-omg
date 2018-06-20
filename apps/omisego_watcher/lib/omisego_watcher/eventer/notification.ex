@@ -1,8 +1,8 @@
-defmodule OmiseGO.API.Notification do
+defmodule OmiseGOWatcher.Eventer.Notification do
   @type t ::
-          OmiseGO.API.Notification.Received.t()
-          | OmiseGO.API.Notification.Spent.t()
-          | OmiseGO.API.Notification.BlockFinalized.t()
+          OmiseGOWatcher.Eventer.Notification.Received.t()
+          | OmiseGOWatcher.Eventer.Notification.Spent.t()
+          | OmiseGOWatcher.Eventer.Notification.BlockFinalized.t()
 
   defmodule Received do
     @moduledoc """
