@@ -7,6 +7,7 @@ defmodule OmiseGOWatcherWeb.Router do
 
   scope "/", OmiseGOWatcherWeb do
     get("/account/utxo", Controller.Utxo, :available)
+    get("/status", Controller.Status, :get)
   end
 
   scope "/transactions", OmiseGOWatcherWeb do
