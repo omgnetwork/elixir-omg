@@ -106,6 +106,8 @@ defmodule OmiseGOWatcher.UtxoDB do
 
     tx = Enum.at(txs, tx_index)
 
+    IO.inspect "tx_bytes"
+    IO.inspect tx
     %{
       utxo_pos: calculate_utxo_pos(block_height, txindex, oindex),
       tx_bytes: Transaction.encode(tx),

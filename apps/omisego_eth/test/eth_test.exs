@@ -79,7 +79,7 @@ defmodule OmiseGO.EthTest do
     raw_tx = %OmiseGO.API.State.Transaction{
       amount1: 8,
       amount2: 3,
-      blknum1: 0,
+      blknum1: 1,
       blknum2: 0,
       fee: 0,
       newowner1: bob.addr,
@@ -98,7 +98,7 @@ defmodule OmiseGO.EthTest do
 
     {:ok, child_blknum} = Eth.get_current_child_block(contract.address)
     block = %Eth.BlockSubmission{
-      num: child_blknum,
+      num: 1,
       hash: mt.root.value,
       gas_price: 20_000_000_000,
       nonce: 1
@@ -116,7 +116,7 @@ defmodule OmiseGO.EthTest do
     %{
       utxo_pos: utxo_pos,
       tx_bytes: tx_bytes,
-      proof: proof } = UtxoDB.compose_utxo_exit(txs, 1000000000, 10000*0, 0)
+      proof: proof } = UtxoDB.compose_utxo_exit(txs, child_blknum*1000000000, 10000*0, 0)
 
     sigs = singed_tx.sig1 <> singed_tx.sig2
 
@@ -124,13 +124,13 @@ defmodule OmiseGO.EthTest do
     IO.inspect proof, limit: :infinity
     IO.inspect sigs,limit: :infinity
 
-    {:ok, _} = start_exit(1000000000 + 10000*0 + 0, tx_bytes, proof, sigs, 1, contract)
+    {:ok, _} = start_exit(child_blknum*1000000000 + 10000*0 + 0, tx_bytes, proof, sigs, 1, contract)
 
     {:ok, height} = Eth.get_ethereum_height()
 
     IO.inspect height
 
-    IO.inspect Eth.get_exit(1000000000, contract.address)
+    IO.inspect Eth.get_exit(child_blknum*1000000000, contract.address)
     IO.inspect Eth.get_exits(1, height, contract.address)
     IO.inspect Eth.get_current_child_block(contract.address)
     IO.inspect contract
