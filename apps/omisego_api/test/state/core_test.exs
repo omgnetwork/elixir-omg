@@ -473,6 +473,21 @@ defmodule OmiseGO.API.State.CoreTest do
     :utxo_does_not_exist = Core.utxo_exists(%{blknum: 1, txindex: 0, oindex: 0}, state)
   end
 
+  @tag fixtures: [:state_empty]
+  test "Getting current block height on empty state", %{state_empty: state} do
+    blknum = Core.get_current_child_block_height(state)
+
+    assert blknum == @child_block_interval
+  end
+
+  @tag fixtures: [:state_empty]
+  test "Getting current block height with one formed block", %{state_empty: state} do
+    {:ok, {_, _, _, newstate}} = state |> form_block_check(@child_block_interval)
+    blknum = Core.get_current_child_block_height(newstate)
+
+    assert blknum == @child_block_interval + @child_block_interval
+  end
+
   defp success?(result) do
     assert {{:ok, _hash, _blknum, _txind}, state} = result
     state

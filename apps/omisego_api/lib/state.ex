@@ -42,6 +42,11 @@ defmodule OmiseGO.API.State do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end
 
+  @spec get_current_child_block_height :: pos_integer
+  def get_current_child_block_height do
+    GenServer.call(__MODULE__, :get_current_height)
+  end
+
   ### Server
 
   use GenServer
@@ -108,6 +113,13 @@ defmodule OmiseGO.API.State do
   """
   def handle_call({:utxo_exists, utxo}, _from, state) do
     {:reply, Core.utxo_exists(utxo, state), state}
+  end
+
+  @doc """
+  Gets the current block's height
+  """
+  def handle_call(:get_current_height, _from, state) do
+    {:reply, Core.get_current_child_block_height(state), state}
   end
 
   @doc """

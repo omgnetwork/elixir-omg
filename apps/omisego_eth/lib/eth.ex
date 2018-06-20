@@ -22,6 +22,15 @@ defmodule OmiseGO.Eth do
     end
   end
 
+  @doc """
+  Check geth syncing status, errors are treated as not synced.
+  Returns:
+   * false - geth is synced
+   * true  - geth is still syncing.
+  """
+  @spec syncing?() :: boolean
+  def syncing?, do: node_ready() != :ok
+
   @spec contract_ready(contract_t()) ::
           :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
   def contract_ready(contract \\ nil) do
