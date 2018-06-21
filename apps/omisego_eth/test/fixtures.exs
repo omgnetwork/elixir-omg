@@ -15,17 +15,7 @@ defmodule OmiseGO.Eth.Fixtures do
   deffixture contract(geth) do
     :ok = geth
 
-    %{contract_addr: contract_addr, txhash_contract: txhash} = env = OmiseGO.Eth.DevHelpers.prepare_env!("../../")
-
-    Application.put_env(:omisego_eth, :contract_addr, contract_addr, persistent: true)
-    Application.put_env(:omisego_eth, :txhash_contract, txhash, persistent: true)
-
-    on_exit(fn ->
-      Application.put_env(:omisego_eth, :contract, nil)
-      Application.put_env(:omisego_eth, :txhash_contract, nil)
-    end)
-
-    env
+    Eth.DevHelpers.prepare_env!("../../")
   end
 
   deffixture root_chain_contract_config(contract) do

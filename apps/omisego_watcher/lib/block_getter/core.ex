@@ -1,6 +1,9 @@
 defmodule OmiseGOWatcher.BlockGetter.Core do
   @moduledoc false
 
+  alias OmiseGO.API.Block
+  alias OmiseGO.API.State.Transaction
+
   defstruct [
     :last_consumed_block,
     :started_height_block,
@@ -87,4 +90,24 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     {%{state | block_to_consume: new_block_to_consume, last_consumed_block: List.last([last_consumed_block] ++ elem)},
      list_block_to_consume}
   end
+
+  @spec decode_block(block :: map) :: {:ok, Block.t()}
+  def decode_block(%{"hash" => hash, "transactions" => transactions, "number" => number}) do
+    {:ok,
+     %Block{
+       transactions:
+         transactions
+         |> Enum.map(&decode_transaction/1),
+       hash: Base.decode16!(hash),
+       number: number
+     }}
+  end
+
+  defp decode_transaction(signed_tx_bytes) do
+    {:ok, transaction} = Transaction.Signed.decode(decode(signed_tx_bytes))
+    transaction
+  end
+
+  defp decode(nil), do: nil
+  defp decode(value), do: Base.decode16!(value)
 end

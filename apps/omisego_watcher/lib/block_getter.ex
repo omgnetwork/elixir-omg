@@ -6,13 +6,13 @@ defmodule OmiseGOWatcher.BlockGetter do
   alias OmiseGO.API.Block
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
-  alias OmiseGOWatcher.{BlockValidator, UtxoDB}
+  alias OmiseGOWatcher.UtxoDB
 
   @spec get_block(pos_integer()) :: {:ok, Block.t()}
   def get_block(number) do
     with {:ok, {hash, _time}} <- Eth.get_child_chain(number),
          {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: hash}) do
-      {:ok, %Block{}} = BlockValidator.to_block(Map.put(json_block, "number", number))
+      {:ok, %Block{}} = Core.decode_block(Map.put(json_block, "number", number))
     end
   end
 

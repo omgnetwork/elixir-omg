@@ -24,7 +24,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     deposit_height
   end
 
-  @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :alice, :bob]
+  @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
   test "get the blocks from child chain after transaction", %{config_map: config_map, alice: alice, bob: bob} do
     Application.put_env(:omisego_eth, :contract_address, config_map.contract_addr)
 
