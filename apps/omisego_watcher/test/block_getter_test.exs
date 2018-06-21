@@ -45,14 +45,14 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     fn ->
       Eth.WaitFor.repeat_until_ok(fn ->
         # TODO use event system
-        case GenServer.call(BlockGetter, :get_height) < block_nr do
+        case GenServer.call(BlockGetter, :get_height, 10_000) < block_nr do
           true -> :repeat
           false -> {:ok, block_nr}
         end
       end)
     end
     |> Task.async()
-    |> Task.await(10_000)
+    |> Task.await(60_000)
 
     encode_tx = Client.encode(tx)
     assert [%{"amount" => 3, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
