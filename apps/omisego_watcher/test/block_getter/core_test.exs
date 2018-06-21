@@ -89,4 +89,13 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
              |> Core.add_block(%Block{number: 7_200})
              |> Core.get_blocks_to_consume()
   end
+
+  test "mismatch in hash" do
+    assert {:error, :incorrect_hash} ==
+             Core.decode_block(%{
+               "hash" => "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+               "transactions" => [],
+               "number" => 23
+             })
+  end
 end
