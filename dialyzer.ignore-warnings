@@ -1,15 +1,12 @@
 # ethereumex related problems, dev_helpers.ex:
 Function get_child_chain/1 has no local return
 Function get_child_chain/2 has no local return
-Function prepare_dev_env/0 has no local return
-Function prepare_test_env/0 has no local return
-Function do_prepare/1 has no local return
-Function do_prepare/2 has no local return
-Function prepare_env/1 has no local return
+Function 'prepare_env!'/0 has no local return
+Function 'prepare_env!'/1 has no local return
 Function create_and_fund_authority_addr/0 has no local return
 The call 'Elixir.Ethereumex.HttpClient':personal_unlock_account
 Function import_unlock_fund/1 has no local return
-Function write_conf_file/4 will never be called
+Function unlock_fund/1 has no local return
 # Blockchain.Transaction.Signature.get_public_key/1 related problems, sender_server.ex:
 Function init/1 has no local return
 The created fun has no local return
@@ -29,4 +26,6 @@ Function next_state/4 will never be called
 Function stop/1 has no local return
 The pattern {'exit_status', 35072} can never match the type 'ok' | {'error',_}
 Invalid type specification for function 'Elixir.OmiseGO.API.Crypto':generate_public_key/1. The success typing is (<<_:256>>) -> {'ok',<<_:504>>}
-Function get_block/2 has no local return
+Function get_block/1 has no local return
+Function get_last_mined_child_block_timestamp/1 has no local return
+Function get/2 has no local return

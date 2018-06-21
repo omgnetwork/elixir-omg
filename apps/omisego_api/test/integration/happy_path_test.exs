@@ -15,29 +15,6 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
   @moduletag :integration
 
-  deffixture root_chain_contract_config(geth, contract) do
-    # prevent warnings
-    :ok = geth
-
-    Application.put_env(:omisego_eth, :contract, contract.address, persistent: true)
-    Application.put_env(:omisego_eth, :authority_addr, contract.from, persistent: true)
-    Application.put_env(:omisego_eth, :txhash_contract, contract.txhash, persistent: true)
-
-    {:ok, started_apps} = Application.ensure_all_started(:omisego_eth)
-
-    on_exit(fn ->
-      Application.put_env(:omisego_eth, :contract, "0x0")
-      Application.put_env(:omisego_eth, :authority_addr, "0x0")
-      Application.put_env(:omisego_eth, :txhash_contract, "0x0")
-
-      started_apps
-      |> Enum.reverse()
-      |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end)
-
-    :ok
-  end
-
   deffixture omisego(root_chain_contract_config, db_initialized) do
     :ok = root_chain_contract_config
     :ok = db_initialized
@@ -86,7 +63,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash, _}} = Eth.get_child_chain(spend_child_block)
     {:ok, %{"transactions" => [line_transaction]}} = Client.call(:get_block, %{hash: block_hash})
-    {:ok, %{raw_tx: raw_tx_decoded}} = Transaction.Signed.decode(Client.decode(:bitstring, line_transaction))
+    {:ok, %{raw_tx: raw_tx_decoded}} = Transaction.Signed.decode(Client.decode!(:bitstring, line_transaction))
     assert raw_tx_decoded == raw_tx
 
     # Restart everything to check persistance and revival
@@ -114,7 +91,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     {:ok, {block_hash2, _}} = Eth.get_child_chain(spend_child_block2)
 
     {:ok, %{"transactions" => [line_transaction2]}} = Client.call(:get_block, %{hash: block_hash2})
-    {:ok, %{raw_tx: raw_tx_decoded2}} = Transaction.Signed.decode(Client.decode(:bitstring, line_transaction2))
+    {:ok, %{raw_tx: raw_tx_decoded2}} = Transaction.Signed.decode(Client.decode!(:bitstring, line_transaction2))
     assert raw_tx2 == raw_tx_decoded2
 
     # sanity checks

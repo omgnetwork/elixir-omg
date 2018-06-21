@@ -1,10 +1,11 @@
 defmodule OmiseGO.API.State do
   @moduledoc """
-  Imperative shell for the state
+  Imperative shell for the state.
+  The state meant here is the state of the ledger (UTXO set), that determines spendability of coins and forms blocks.
+  All spend transactions, deposits and exits should sync on this for validity of moving funds.
   """
 
   alias OmiseGO.API.BlockQueue
-  alias OmiseGO.API.Eventer
   alias OmiseGO.API.FreshBlocks
   alias OmiseGO.API.State.Core
   alias OmiseGO.DB
@@ -39,6 +40,11 @@ defmodule OmiseGO.API.State do
   @spec utxo_exists(%{blknum: number, txindex: number, oindex: number}) :: :utxo_exists | :utxo_does_not_exist
   def utxo_exists(utxo) do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
+  end
+
+  @spec get_current_child_block_height :: pos_integer
+  def get_current_child_block_height do
+    GenServer.call(__MODULE__, :get_current_height)
   end
 
   ### Server
@@ -76,9 +82,9 @@ defmodule OmiseGO.API.State do
   Includes a deposit done on the root chain contract (see above - not sure about this)
   """
   def handle_call({:deposits, deposits}, _from, state) do
-    {event_triggers, db_updates, new_state} = Core.deposit(deposits, state)
-    # GenServer.cast
-    Eventer.notify(event_triggers)
+    # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
+    {_event_triggers, db_updates, new_state} = Core.deposit(deposits, state)
+
     # GenServer.call
     :ok = DB.multi_update(db_updates)
     {:reply, :ok, new_state}
@@ -110,23 +116,30 @@ defmodule OmiseGO.API.State do
   end
 
   @doc """
+  Gets the current block's height
+  """
+  def handle_call(:get_current_height, _from, state) do
+    {:reply, Core.get_current_child_block_height(state), state}
+  end
+
+  @doc """
   Wraps up accumulated transactions into a block, triggers events, triggers db update, returns block hash
   """
   def handle_call({:form_block, child_block_interval}, _from, state) do
     result = Core.form_block(state, child_block_interval)
 
-    with {:ok, {block, event_triggers, db_updates, new_state}} <- result,
+    # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
+    with {:ok, {block, _event_triggers, db_updates, new_state}} <- result,
          :ok <- DB.multi_update(db_updates) do
-      Eventer.notify(event_triggers)
       :ok = FreshBlocks.push(block)
-      {:reply, {:ok, block.hash}, new_state}
+      {:reply, {:ok, block.hash, block.number}, new_state}
     end
   end
 
   defp do_exit_utxos(utxos, state) do
-    {event_triggers, db_updates, new_state} = Core.exit_utxos(utxos, state)
-    # GenServer.cast
-    Eventer.notify(event_triggers)
+    # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
+    {_event_triggers, db_updates, new_state} = Core.exit_utxos(utxos, state)
+
     # GenServer.call
     :ok = DB.multi_update(db_updates)
     {:reply, :ok, new_state}

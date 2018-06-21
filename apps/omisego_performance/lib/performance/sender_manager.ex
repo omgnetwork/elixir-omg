@@ -65,7 +65,7 @@ defmodule OmiseGO.Performance.SenderManager do
   """
   def handle_info({:EXIT, _from, reason}, state) do
     write_stats(state)
-    IO.puts("[SM] +++ Stoping (reason: #{inspect(reason)})... +++")
+    _ = Logger.debug(fn -> "[SM] +++ Stoping (reason: #{inspect(reason)})... +++" end)
     {:stop, reason, state}
   end
 
@@ -151,7 +151,7 @@ defmodule OmiseGO.Performance.SenderManager do
           {
             blknum,
             txs_in_blk,
-            txs_in_second(txs_in_blk, span_ms),
+            txs_per_second(txs_in_blk, span_ms),
             span_ms
           }
           | list
@@ -161,19 +161,17 @@ defmodule OmiseGO.Performance.SenderManager do
     end
   end
 
-  defp txs_in_second(txs_count, interval_ms), do: Float.round(txs_count * 1000 / interval_ms, 2)
+  defp txs_per_second(txs_count, interval_ms), do: Float.round(txs_count * 1000 / interval_ms, 2)
 
   # handle termination
   defp write_stats(state) do
-    destdir = Application.get_env(:omisego_performance, :analysis_output_dir)
-    {testid, ntx_to_send, nusers} = OmiseGO.Performance.Runner.get_test_env()
-    destfile = "#{destdir}/perftest-tx#{ntx_to_send}-u#{nusers}-#{testid}.statistics"
+    {:ok, destfile} = Briefly.create(prefix: "perftest", extname: ".statistics")
 
     data = "Block forming times:\n#{inspect(state.block_times, limit: :infinity, pretty: true)}\n"
     stats = analyze(state)
     data = data <> "\nPerformance statistics:\n#{inspect(stats, limit: :infinity, pretty: true)}\n"
     :ok = File.write(destfile, data)
-    IO.puts("Performance statistics written to file: #{destfile}")
+    _ = Logger.info(fn -> "Performance statistics written to file: #{destfile}" end)
     :ok
   end
 end
