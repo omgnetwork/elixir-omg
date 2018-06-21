@@ -20,7 +20,6 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
         }
 
   @spec init(non_neg_integer, pos_integer, pos_integer) :: %__MODULE__{}
-  # FIXME change name of chunk_size mabe on max_get_block_tasks
   def init(block_number, child_block_interval, maximum_number_of_pending_blocks \\ 10) do
     %__MODULE__{
       last_consumed_block: block_number,
