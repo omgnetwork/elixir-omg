@@ -63,15 +63,15 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   end
 
   defp create_expected_transaction(
-    txid,
-    %Signed{
-      raw_tx: %Transaction{} = transaction,
-      sig1: sig1,
-      sig2: sig2
-    },
-    txblknum,
-    txindex
-    ) do
+         txid,
+         %Signed{
+           raw_tx: %Transaction{} = transaction,
+           sig1: sig1,
+           sig2: sig2
+         },
+         txblknum,
+         txindex
+       ) do
     %TransactionDB{
       txblknum: txblknum,
       txindex: txindex,

@@ -3,7 +3,7 @@ defmodule OmiseGO.Eth.Fixtures do
   Contains fixtures for tests that require geth and contract
   """
   use ExUnitFixtures.FixtureModule
-  #use OmiseGO.API.Fixtures
+  # use OmiseGO.API.Fixtures
 
   alias OmiseGO.Eth
 

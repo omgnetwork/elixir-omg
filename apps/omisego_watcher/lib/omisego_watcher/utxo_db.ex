@@ -92,15 +92,14 @@ defmodule OmiseGOWatcher.UtxoDB do
   end
 
   def compose_utxo_exit(block_height, txindex, oindex) do
-      txs = TransactionDB.find_by_txblknum(block_height)
-      compose_utxo_exit(txs, block_height, txindex, oindex)
+    txs = TransactionDB.find_by_txblknum(block_height)
+    compose_utxo_exit(txs, block_height, txindex, oindex)
   end
 
   def compose_utxo_exit(txs, block_height, txindex, oindex) do
-
     proof = Block.create_utxo_proof(txs, txindex)
 
-    tx_index = Enum.find_index(txs, fn(tx) -> tx.txindex == txindex end)
+    tx_index = Enum.find_index(txs, fn tx -> tx.txindex == txindex end)
 
     tx = Enum.at(txs, tx_index)
 
@@ -110,7 +109,6 @@ defmodule OmiseGOWatcher.UtxoDB do
       proof: proof,
       sigs: tx.sig1 <> tx.sig2
     }
-
   end
 
   defp calculate_utxo_pos(block_height, txindex, oindex) do

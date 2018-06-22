@@ -63,8 +63,7 @@ defmodule OmiseGO.Eth do
     defstruct [:num, :hash, :nonce, :gas_price]
   end
 
-  @spec get_root_deployment_height(binary() | nil, binary() | nil) ::
-          {:ok, integer()} | Ethereumex.HttpClient.error()
+  @spec get_root_deployment_height(binary() | nil, binary() | nil) :: {:ok, integer()} | Ethereumex.HttpClient.error()
   def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     txhash = txhash || Application.get_env(:omisego_eth, :txhash_contract)
@@ -126,7 +125,6 @@ defmodule OmiseGO.Eth do
       gasPrice: encode_eth_rpc_unsigned_int(gas_price),
       value: encode_eth_rpc_unsigned_int(value)
     })
-
   end
 
   def start_deposit_exit(deposit_positon, value, gas_price, from \\ nil, contract \\ nil) do
@@ -147,7 +145,6 @@ defmodule OmiseGO.Eth do
       gas: encode_eth_rpc_unsigned_int(gas),
       gasPrice: encode_eth_rpc_unsigned_int(gas_price)
     })
-
   end
 
   def start_exit(utxo_position, txbytes, proof, sigs, gas_price, from \\ nil, contract \\ nil) do
@@ -168,7 +165,6 @@ defmodule OmiseGO.Eth do
       gas: encode_eth_rpc_unsigned_int(gas),
       gasPrice: encode_eth_rpc_unsigned_int(gas_price)
     })
-
   end
 
   def get_ethereum_height do
@@ -181,6 +177,7 @@ defmodule OmiseGO.Eth do
         other
     end
   end
+
   @doc """
   Returns next blknum that is supposed to be mined by operator
   """
@@ -212,15 +209,15 @@ defmodule OmiseGO.Eth do
 
     event = encode_event_signature("Deposit(address,uint256,uint256)")
 
-    parse_deposit =
-      fn "0x" <> deposit ->
-        [owner, blknum, amount] =
-          deposit
-          |> Base.decode16!(case: :lower)
-          |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, {:uint, 256}])
-        owner = "0x" <> Base.encode16(owner, case: :lower)
-        %{owner: owner, amount: amount, blknum: blknum}
-      end
+    parse_deposit = fn "0x" <> deposit ->
+      [owner, blknum, amount] =
+        deposit
+        |> Base.decode16!(case: :lower)
+        |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, {:uint, 256}])
+
+      owner = "0x" <> Base.encode16(owner, case: :lower)
+      %{owner: owner, amount: amount, blknum: blknum}
+    end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
          deposits <- get_logs(unfiltered_logs, parse_deposit),
@@ -228,7 +225,7 @@ defmodule OmiseGO.Eth do
   end
 
   defp encode_event_signature(signature) do
-    #TODO: move crypto to a umbrella app and use it across other apps
+    # TODO: move crypto to a umbrella app and use it across other apps
     signature |> :keccakf1600.sha3_256() |> Base.encode16(case: :lower)
   end
 
@@ -237,7 +234,7 @@ defmodule OmiseGO.Eth do
   defp get_logs(logs, parse_log) do
     logs
     |> Enum.filter(&(not Map.get(&1, "removed", true)))
-    |> Enum.map(&(Map.get(&1, "data")))
+    |> Enum.map(&Map.get(&1, "data"))
     |> Enum.map(parse_log)
   end
 
@@ -282,8 +279,7 @@ defmodule OmiseGO.Eth do
   def get_exit(utxo_pos, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
 
-    {:ok, [address, amount]} =
-      call_contract(contract, "getExit(uint256)", [utxo_pos], [:bytes32, {:uint, 256}])
+    {:ok, [address, amount]} = call_contract(contract, "getExit(uint256)", [utxo_pos], [:bytes32, {:uint, 256}])
     {:ok, {address, amount}}
   end
 
@@ -299,9 +295,8 @@ defmodule OmiseGO.Eth do
   end
 
   defp call_contract(contract, signature, args, return_types) do
-    data = signature |> ABI.encode(args) |> Base.encode16
-    {:ok, "0x" <> enc_return} =
-      Ethereumex.HttpClient.eth_call(%{to: contract, data: "0x#{data}"})
+    data = signature |> ABI.encode(args) |> Base.encode16()
+    {:ok, "0x" <> enc_return} = Ethereumex.HttpClient.eth_call(%{to: contract, data: "0x#{data}"})
     decode_answer(enc_return, return_types)
   end
 
@@ -310,6 +305,7 @@ defmodule OmiseGO.Eth do
       enc_return
       |> Base.decode16!(case: :lower)
       |> ABI.TypeDecoder.decode_raw(return_types)
+
     {:ok, return}
   end
 end

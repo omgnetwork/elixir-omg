@@ -22,11 +22,8 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   end
 
   def compose_utxo_exit(conn, %{"block_height" => block_height, "txindex" => txindex, "oindex" => oindex}) do
-
     composed_utxo_exit = UtxoDB.compose_utxo_exit(block_height, txindex, oindex)
 
     json(conn, composed_utxo_exit)
-
   end
-
 end

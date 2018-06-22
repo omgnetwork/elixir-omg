@@ -156,7 +156,7 @@ defmodule OmiseGO.API.State.Transaction do
       tx.newowner2,
       tx.amount2
     ]
-    |> ExRLP.encode
+    |> ExRLP.encode()
   end
 
   def hash(%__MODULE__{} = tx) do

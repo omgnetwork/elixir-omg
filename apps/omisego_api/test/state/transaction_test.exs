@@ -49,9 +49,8 @@ defmodule OmiseGO.API.State.TransactionTest do
   @tag fixtures: [:transaction]
   test "transaction hash is correct", %{transaction: transaction} do
     assert Transaction.hash(transaction) ==
-             <<204, 238, 74, 144, 230, 127, 34, 158, 0, 227, 29, 20, 146, 214,
-              197, 5, 221, 167, 231, 108, 84, 86, 189, 191, 156, 180, 26, 37,
-              93, 4, 75, 249>>
+             <<204, 238, 74, 144, 230, 127, 34, 158, 0, 227, 29, 20, 146, 214, 197, 5, 221, 167, 231, 108, 84, 86, 189,
+               191, 156, 180, 26, 37, 93, 4, 75, 249>>
   end
 
   @tag fixtures: [:transaction]
@@ -59,9 +58,8 @@ defmodule OmiseGO.API.State.TransactionTest do
     signed = %Transaction.Signed{raw_tx: transaction, sig1: @signature, sig2: @signature}
 
     expected =
-      <<204, 238, 74, 144, 230, 127, 34, 158, 0, 227, 29, 20, 146, 214,
-        197, 5, 221, 167, 231, 108, 84, 86, 189, 191, 156, 180, 26, 37,
-        93, 4, 75, 249>> <> signed.sig1 <> signed.sig2
+      <<204, 238, 74, 144, 230, 127, 34, 158, 0, 227, 29, 20, 146, 214, 197, 5, 221, 167, 231, 108, 84, 86, 189, 191,
+        156, 180, 26, 37, 93, 4, 75, 249>> <> signed.sig1 <> signed.sig2
 
     actual = Transaction.Signed.signed_hash(signed)
     assert actual == expected
