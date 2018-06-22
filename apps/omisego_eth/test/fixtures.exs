@@ -3,6 +3,7 @@ defmodule OmiseGO.Eth.Fixtures do
   Contains fixtures for tests that require geth and contract
   """
   use ExUnitFixtures.FixtureModule
+  #use OmiseGO.API.Fixtures
 
   deffixture geth do
     Application.ensure_all_started(:erlexec)

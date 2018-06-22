@@ -3,13 +3,11 @@ defmodule OmiseGO.Eth do
   Adapter/port to ethereum
   """
 
-  alias OmiseGO.API.State.Transaction
+  import OmiseGO.Eth.Encoding
 
   @block_offset 1_000_000_000
   @transaction_offset 10_000
-
-  import OmiseGO.Eth.Encoding
-
+  
   @type contract_t() :: binary | nil
 
   def dev_geth do
@@ -216,7 +214,6 @@ defmodule OmiseGO.Eth do
 
     parse_deposit =
       fn "0x" <> deposit ->
-        IO.inspect deposit
         [owner, blknum, amount] =
           deposit
           |> Base.decode16!(case: :lower)
@@ -238,7 +235,6 @@ defmodule OmiseGO.Eth do
   defp int_to_hex(int), do: "0x" <> Integer.to_string(int, 16)
 
   defp get_logs(logs, parse_log) do
-    IO.inspect logs
     logs
     |> Enum.filter(&(not Map.get(&1, "removed", true)))
     |> Enum.map(&(Map.get(&1, "data")))
@@ -275,7 +271,7 @@ defmodule OmiseGO.Eth do
         blknum = div(utxo_position, @block_offset)
         txindex = utxo_position |> rem(@block_offset) |> div(@transaction_offset)
         oindex = utxo_position - blknum * @block_offset - txindex * @transaction_offset
-        %{owner: owner, blknum: blknum, txindex: txindex, oindex: oindex}
+        %{owner: owner, blknum: blknum, txindex: txindex, oindex: oindex, amount: amount}
       end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),

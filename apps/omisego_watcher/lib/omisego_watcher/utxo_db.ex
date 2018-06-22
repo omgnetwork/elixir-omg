@@ -15,8 +15,6 @@ defmodule OmiseGOWatcher.UtxoDB do
   @field_names [:address, :amount, :blknum, :txindex, :oindex, :txbytes]
   def field_names, do: @field_names
 
-  @transaction_merkle_tree_height 16
-
   schema "utxos" do
     field(:address, :string)
     field(:amount, :integer)
@@ -106,13 +104,11 @@ defmodule OmiseGOWatcher.UtxoDB do
 
     tx = Enum.at(txs, tx_index)
 
-    IO.inspect "tx_bytes"
-    IO.inspect tx
     %{
       utxo_pos: calculate_utxo_pos(block_height, txindex, oindex),
       tx_bytes: Transaction.encode(tx),
       proof: proof,
-      # sigs: tx.sig1 <> tx.sig2
+      sigs: tx.sig1 <> tx.sig2
     }
 
   end

@@ -117,7 +117,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Matilda")
     end
   end
-  
+
   @tag fixtures: [:watcher_sandbox]
   test "compose proof from valid utxo" do
     TransactionDB.insert(<<1>>, @signed_tx, 1, 1)
@@ -164,13 +164,11 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   end
 
   defp compose_utxo_exit(block_height, txindex, oindex) do
-    conn(:get, "account/utxo/compose_exit?block_height=#{block_height}&txindex=#{txindex}&oindex=#{oindex}")
-      |> check_request
+    check_request(conn(:get, "account/utxo/compose_exit?block_height=#{block_height}&txindex=#{txindex}&oindex=#{oindex}"))
   end
 
   defp get_utxo(address) do
-    conn(:get, "account/utxo?address=#{Client.encode(address)}")
-      |> check_request
+    check_request(conn(:get, "account/utxo?address=#{Client.encode(address)}"))
   end
 
   defp check_request(request) do
