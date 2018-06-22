@@ -61,7 +61,7 @@ defmodule OmiseGOWatcher.TransactionDB do
   def insert(%Block{transactions: transactions, number: block_number}) do
     transactions
     |> Stream.with_index()
-    |> Stream.map(fn {%Recovered{} = recovered, txindex} ->
+    |> Enum.map(fn {%Recovered{} = recovered, txindex} ->
       insert(recovered, txindex, block_number)
     end)
   end

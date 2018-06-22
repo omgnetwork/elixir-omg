@@ -10,13 +10,11 @@ defmodule OmiseGOWatcher.Application do
 
     # Define workers and child supervisors to be supervised
     slow_exit_validator_block_margin = Application.get_env(:omisego_api, :slow_exit_validator_block_margin)
-    #FIXME use value from config!!! and remove pirnt
     event_listener_config = %{
-      block_finality_margin: 10, #Application.get_env(:omisego_api, :ethereum_event_block_finality_margin),
-      max_blocks_in_fetch: 5, #Application.get_env(:omisego_api, :ethereum_event_max_block_range_in_deposits_query),
-      get_events_interval: 50, #Application.get_env(:omisego_api, :ethereum_event_get_deposits_interval_ms)
+      block_finality_margin: Application.get_env(:omisego_api, :ethereum_event_block_finality_margin),
+      max_blocks_in_fetch: Application.get_env(:omisego_api, :ethereum_event_max_block_range_in_deposits_query),
+      get_events_interval: Application.get_env(:omisego_api, :ethereum_event_get_deposits_interval_ms)
     }
-    IO.puts(inspect(event_listener_config))
 
     children = [
       # Start the Ecto repository

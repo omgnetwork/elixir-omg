@@ -88,11 +88,11 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     line
   end
 
-  deffixture watcher(db_initialized) do
+  deffixture watcher(db_initialized, root_chain_contract_config) do
+    _ = root_chain_contract_config
     :ok = db_initialized
     {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omisego_watcher)
-
     on_exit(fn ->
       Application.put_env(:omisego_db, :leveldb_path, nil)
 
