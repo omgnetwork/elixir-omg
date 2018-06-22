@@ -5,7 +5,6 @@ defmodule OmiseGO.EthTest do
   # TODO: if proves to be brittle and we cover that functionality in other integration test then consider removing
 
   alias OmiseGO.API.Crypto
-  alias OmiseGO.API.TestHelper
   alias OmiseGO.Eth, as: Eth
   alias OmiseGO.Eth.WaitFor, as: WaitFor
   alias OmiseGO.API.State.Transaction
@@ -43,19 +42,6 @@ defmodule OmiseGO.EthTest do
       Eth.start_deposit_exit(deposit_position, value, gas_price, contract.authority_addr, contract.contract_addr)
 
     {:ok, _} = WaitFor.eth_receipt(txhash, @timeout)
-  end
-
-  defp exit_deposit(contract) do
-    deposit_pos = utxo_position(1, 0, 0)
-    data = "startDepositExit(uint256,uint256)" |> ABI.encode([deposit_pos, 1]) |> Base.encode16()
-
-    {:ok, transaction_hash} =
-      Ethereumex.HttpClient.eth_send_transaction(%{
-        from: contract.authority_addr,
-        to: contract.contract_addr,
-        data: "0x#{data}",
-        gas: "0x2D0900"
-      })
   end
 
   defp start_exit(utxo_position, txbytes, proof, sigs, gas_price, contract) do
@@ -116,9 +102,7 @@ defmodule OmiseGO.EthTest do
     %{utxo_pos: utxo_pos, tx_bytes: tx_bytes, proof: proof, sigs: sigs} =
       UtxoDB.compose_utxo_exit(txs, child_blknum * @block_offset, 0, 0)
 
-    {:ok, _} = start_exit(child_blknum * @block_offset, tx_bytes, proof, sigs, 1, contract)
-
-    {:ok, height} = Eth.get_ethereum_height()
+    {:ok, _} = start_exit(utxo_pos, tx_bytes, proof, sigs, 1, contract)
 
     # TODO add assert Eth.get_exit(child_blknum * @block_offset, contract.address)
   end
