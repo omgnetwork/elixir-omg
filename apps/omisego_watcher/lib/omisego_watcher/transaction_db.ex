@@ -61,12 +61,11 @@ defmodule OmiseGOWatcher.TransactionDB do
   def insert(%Block{transactions: transactions, number: block_number}) do
     transactions
     |> Stream.with_index()
-    |> Stream.map(fn {%Signed{} = signed, txindex} ->
+    |> Enum.map(fn {%Signed{} = signed, txindex} ->
       signed
       |> Signed.signed_hash()
       |> insert(signed, block_number, txindex)
     end)
-    |> Enum.to_list()
   end
 
   def insert(
@@ -77,7 +76,7 @@ defmodule OmiseGOWatcher.TransactionDB do
         block_number,
         txindex
       ) do
-    %__MODULE__{
+    {:ok, _} = %__MODULE__{
       txid: id,
       txblknum: block_number,
       txindex: txindex

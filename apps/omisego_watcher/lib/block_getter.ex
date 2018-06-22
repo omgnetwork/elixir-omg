@@ -17,8 +17,9 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def consume_block(%Block{} = block) do
-    _ = OmiseGOWatcher.TransactionDB.insert(block)
-    _ = UtxoDB.consume_block(block)
+    # TODO add check after synch with deposit and exit
+    OmiseGOWatcher.TransactionDB.insert(block)
+    UtxoDB.consume_block(block)
     :ok
   end
 
@@ -63,9 +64,9 @@ defmodule OmiseGOWatcher.BlockGetter do
 
     {:ok, next_child} = Eth.get_current_child_block()
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
-    _ = run_block_get_task(blocks_numbers)
+    :ok = run_block_get_task(blocks_numbers)
 
-    _ = blocks_to_consume |> Enum.map(&consume_block/1)
+    :ok = blocks_to_consume |> Enum.each(&consume_block/1)
     {:noreply, new_state}
   end
 
@@ -73,7 +74,7 @@ defmodule OmiseGOWatcher.BlockGetter do
 
   defp run_block_get_task(blocks_numbers) do
     blocks_numbers
-    |> Enum.map(
+    |> Enum.each(
       # captures the result in handle_info/2 with the atom: got_block
       &Task.async(fn -> {:got_block, get_block(&1)} end)
     )

@@ -29,11 +29,13 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   test "getting block to consume" do
     block_height = 0
     interval = 1_000
-    chunk_size = 4
+    chunk_size = 6
 
     state =
       block_height
       |> Core.init(interval, chunk_size)
+      |> Core.get_new_blocks_numbers(7_000)
+      |> elem(0)
       |> Core.add_block(%Block{number: 2_000})
       |> Core.add_block(%Block{number: 3_000})
       |> Core.add_block(%Block{number: 6_000})
@@ -62,20 +64,6 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
              |> Core.get_blocks_to_consume()
   end
 
-  test "same block arrive two times" do
-    block_height = 0
-    interval = 1_000
-    chunk_size = 4
-
-    assert {_, [%Block{number: 1_000}, %Block{number: 2_000, hash: "new"}]} =
-             block_height
-             |> Core.init(interval, chunk_size)
-             |> Core.add_block(%Block{number: 2_000, hash: "old"})
-             |> Core.add_block(%Block{number: 1_000})
-             |> Core.add_block(%Block{number: 2_000, hash: "new"})
-             |> Core.get_blocks_to_consume()
-  end
-
   test "start block height is not zero" do
     block_height = 7_000
     interval = 100
@@ -88,5 +76,18 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
              |> Core.add_block(%Block{number: 7_100})
              |> Core.add_block(%Block{number: 7_200})
              |> Core.get_blocks_to_consume()
+  end
+
+  test "next_child increases or decreses in calls to get_new_blocks_nmbers" do
+    block_height = 0
+    interval = 1_000
+    chunk_size = 5
+
+    {state, [1_000, 2_000, 3_000]} =
+      block_height
+      |> Core.init(interval, chunk_size)
+      |> Core.get_new_blocks_numbers(4_000)
+    assert {^state, []} = Core.get_new_blocks_numbers(state, 2_000)
+    assert {_, [4_000, 5_000]} = Core.get_new_blocks_numbers(state, 8_000)
   end
 end
