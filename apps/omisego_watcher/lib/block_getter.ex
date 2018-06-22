@@ -12,14 +12,14 @@ defmodule OmiseGOWatcher.BlockGetter do
   def get_block(number) do
     with {:ok, {hash, _time}} <- Eth.get_child_chain(number),
          {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: hash}) do
-      {:ok, %Block{}} = Core.decode_block(Map.put(json_block, "number", number))
+      Core.decode_block(Map.put(json_block, "number", number))
     end
   end
 
   def consume_block(%Block{} = block) do
     # TODO add check after synch with deposit and exit
-    OmiseGOWatcher.TransactionDB.insert(block)
-    UtxoDB.consume_block(block)
+    _ = OmiseGOWatcher.TransactionDB.insert(block)
+    _ = UtxoDB.consume_block(block)
     :ok
   end
 
@@ -40,27 +40,18 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:reply, state.last_consumed_block, state}
   end
 
-  def get_current_block_number(contract \\ nil) do
-    {:ok, next_child_block} = OmiseGO.Eth.get_current_child_block(contract)
-    child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
-    child_block = next_child_block - child_block_interval
-    child_block
-  end
-
   def handle_info(:producer, state) do
     {:ok, next_child} = Eth.get_current_child_block()
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
-    _ = run_block_get_task(blocks_numbers)
+    :ok = run_block_get_task(blocks_numbers)
 
     {:ok, _} = :timer.send_after(2_000, self(), :producer)
     {:noreply, new_state}
   end
 
-  def handle_info({_ref, {:got_block, {:ok, block}}}, state) do
-    {new_state, blocks_to_consume} =
-      state
-      |> Core.add_block(block)
-      |> Core.get_blocks_to_consume()
+  def handle_info({_ref, {:got_block, {:ok, %Block{} = block}}}, state) do
+    {:ok, state} = Core.add_block(state, block)
+    {new_state, blocks_to_consume} = Core.get_blocks_to_consume(state)
 
     {:ok, next_child} = Eth.get_current_child_block()
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)

@@ -65,7 +65,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   end
 
   @doc " add block to \"block to consume\" and decrese number of pending block"
-  @spec add_block(%__MODULE__{}, OmiseGO.API.Block.t()) :: %__MODULE__{}
+  @spec add_block(%__MODULE__{}, OmiseGO.API.Block.t()) ::
+          {:ok, %__MODULE__{}} | {:error, :duplicate | :unexpected_blok}
   def add_block(
         %__MODULE__{
           block_to_consume: block_to_consume,
@@ -75,14 +76,17 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
         } = state,
         %Block{number: number} = block
       ) do
-    false = Map.has_key?(block_to_consume, number)
-    true = last_consumed_block < number and number <= started_height_block
-
-    %{
-      state
-      | block_to_consume: Map.put(block_to_consume, number, block),
-        waiting_for_blocks: waiting_for_blocks - 1
-    }
+    with :ok <- if(Map.has_key?(block_to_consume, number), do: :duplicate, else: :ok),
+         :ok <- if(last_consumed_block < number and number <= started_height_block, do: :ok, else: :unexpected_blok) do
+      {:ok,
+       %{
+         state
+         | block_to_consume: Map.put(block_to_consume, number, block),
+           waiting_for_blocks: waiting_for_blocks - 1
+       }}
+    else
+      error -> {:error, error}
+    end
   end
 
   @doc " Returns a consecutive continuous list of finished blocks."
