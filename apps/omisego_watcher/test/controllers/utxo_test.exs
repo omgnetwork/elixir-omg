@@ -162,10 +162,6 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     } = UtxoDB.compose_utxo_exit(1, 1, 0)
   end
 
-  defp compose_utxo_exit(block_height, txindex, oindex) do
-    Test.rest_call(:get, "account/utxo/compose_exit?block_height=#{block_height}&txindex=#{txindex}&oindex=#{oindex}")
-  end
-
   defp get_utxo(address) do
     Test.rest_call(:get, "account/utxo?address=#{Client.encode(address)}")
   end
