@@ -21,7 +21,7 @@ defmodule OmiseGO.API.State do
   end
 
   def form_block(child_block_interval) do
-    GenServer.call(__MODULE__, {:form_block, child_block_interval})
+    GenServer.cast(__MODULE__, {:form_block, child_block_interval})
   end
 
   def deposit(deposits_enc) do
@@ -123,17 +123,16 @@ defmodule OmiseGO.API.State do
   end
 
   @doc """
-  Wraps up accumulated transactions into a block, triggers events, triggers db update, returns block hash
+  Wraps up accumulated transactions into a block, triggers db update,
+  publishes block and enqueues for submission
   """
-  def handle_call({:form_block, child_block_interval}, _from, state) do
-    result = Core.form_block(state, child_block_interval)
-
+  def handle_cast({:form_block, child_block_interval}, state) do
     # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
-    with {:ok, {block, _event_triggers, db_updates, new_state}} <- result,
-         :ok <- DB.multi_update(db_updates) do
-      :ok = FreshBlocks.push(block)
-      {:reply, {:ok, block.hash, block.number}, new_state}
-    end
+    {:ok, {block, _event_triggers, db_updates, new_state}} = Core.form_block(state, child_block_interval)
+    :ok = DB.multi_update(db_updates)
+    :ok = FreshBlocks.push(block)
+    :ok = BlockQueue.enqueue_block(block.hash, block.number)
+    {:noreply, new_state}
   end
 
   defp do_exit_utxos(utxos, state) do
