@@ -5,6 +5,8 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
 
   import OmiseGO.API.BlockQueue.Core
 
+  @child_block_interval 1000
+
   def hashes(blocks) do
     for block <- blocks, do: block.hash
   end
@@ -16,7 +18,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
         known_hashes: [],
         top_mined_hash: <<0::256>>,
         parent_height: 1,
-        child_block_interval: 1000,
+        child_block_interval: @child_block_interval,
         chain_start_parent_height: 1,
         submit_period: 1,
         finality_threshold: 12
@@ -29,8 +31,8 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     {:dont_form_block, queue} =
       2..length
       |> Enum.reduce(empty(), fn hash, state ->
-        {:do_form_block, state, _, _} = set_ethereum_height(state, hash)
-        enqueue_block(state, hash)
+        {:do_form_block, state} = set_ethereum_height(state, hash)
+        enqueue_block(state, hash, (hash - 1) * @child_block_interval)
       end)
       |> set_ethereum_height(length)
 
@@ -121,7 +123,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                ["5", "6", "7", "8", "9"]
                |> recover(7000)
                |> elem(1)
-               |> enqueue_block("10")
+               |> enqueue_block("10", 10 * @child_block_interval)
                |> get_blocks_to_submit()
                |> hashes()
     end
@@ -138,7 +140,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       assert ["2"] =
                empty()
                |> set_mined(1000)
-               |> enqueue_block("2")
+               |> enqueue_block("2", 2 * @child_block_interval)
                |> get_blocks_to_submit()
                |> hashes()
     end
@@ -150,14 +152,14 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                |> set_mined(0)
                |> set_ethereum_height(1)
 
-      assert {:do_form_block, _, 1000, 2000} =
+      assert {:do_form_block, _} =
                queue
                |> set_mined(0)
                |> set_ethereum_height(2)
     end
 
     test "Produced child blocks to form aren't repeated, if none are enqueued" do
-      assert {:do_form_block, queue, 1000, 2000} =
+      assert {:do_form_block, queue} =
                empty()
                |> set_ethereum_height(2)
 
@@ -176,18 +178,18 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                |> elem(1)
                |> set_ethereum_height(3)
 
-      assert {:do_form_block, queue, 2000, 3000} =
+      assert {:do_form_block, queue} =
                queue
-               |> enqueue_block("1")
+               |> enqueue_block("1", @child_block_interval)
                |> set_ethereum_height(4)
 
       assert {:dont_form_block, queue} =
                queue
                |> set_ethereum_height(5)
 
-      assert {:do_form_block, _queue, 3000, 4000} =
+      assert {:do_form_block, _queue} =
                queue
-               |> enqueue_block("2")
+               |> enqueue_block("2", 2 * @child_block_interval)
                |> set_ethereum_height(6)
     end
 
@@ -202,27 +204,33 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                |> elem(1)
                |> set_ethereum_height(1)
 
-      assert {:do_form_block, queue, 2000, 3000} =
+      assert {:do_form_block, queue} =
                queue
-               |> enqueue_block("1")
+               |> enqueue_block("1", @child_block_interval)
                |> set_ethereum_height(3)
 
       assert {:dont_form_block, queue} =
                queue
-               |> enqueue_block("2")
+               |> enqueue_block("2", 2 * @child_block_interval)
                |> set_ethereum_height(2)
 
-      assert {:do_form_block, _queue, 3000, 4000} =
+      assert {:do_form_block, _queue} =
                queue
                |> set_ethereum_height(4)
+    end
+
+    test "Block is not enqueued when number of enqueued block does not match expected block number" do
+      {:error, :unexpected_block_number} =
+        empty()
+        |> enqueue_block("1", 2 * @child_block_interval)
     end
 
     test "Produced blocks submission requests have nonces in order" do
       assert [_, %{nonce: 2}] =
                empty()
                |> set_mined(0)
-               |> enqueue_block("1")
-               |> enqueue_block("2")
+               |> enqueue_block("1", @child_block_interval)
+               |> enqueue_block("2", 2 * @child_block_interval)
                |> get_blocks_to_submit()
     end
 
@@ -234,7 +242,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
 
       assert {:dont_form_block, queue} =
                queue
-               |> enqueue_block("1")
+               |> enqueue_block("1", @child_block_interval)
                |> set_ethereum_height(0)
 
       assert {:dont_form_block, queue} =
@@ -247,7 +255,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
 
       assert {:dont_form_block, _} =
                queue
-               |> enqueue_block("2")
+               |> enqueue_block("2", 2 * @child_block_interval)
                |> set_ethereum_height(2)
     end
 
@@ -255,11 +263,11 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       assert {:dont_form_block, queue} =
                empty()
                |> set_mined(0)
-               |> enqueue_block("1")
-               |> enqueue_block("2")
-               |> enqueue_block("3")
-               |> enqueue_block("4")
-               |> enqueue_block("5")
+               |> enqueue_block("1", 1 * @child_block_interval)
+               |> enqueue_block("2", 2 * @child_block_interval)
+               |> enqueue_block("3", 3 * @child_block_interval)
+               |> enqueue_block("4", 4 * @child_block_interval)
+               |> enqueue_block("5", 5 * @child_block_interval)
                |> set_mined(2000)
                |> set_ethereum_height(3)
 
@@ -331,7 +339,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       state = empty_with_gas_params()
       current_price = state.gas_price_to_use
 
-      {:do_form_block, newstate, _, _} =
+      {:do_form_block, newstate} =
         state
         |> set_ethereum_height(2)
 
@@ -346,7 +354,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       current_price = state.gas_price_to_use
       eth_gap = state.gas_price_adj_params.eth_gap_without_child_blocks
 
-      {:do_form_block, newstate, _, _} =
+      {:do_form_block, newstate} =
         state
         |> set_ethereum_height(1 + eth_gap)
 
@@ -361,7 +369,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       gas_params = %{state.gas_price_adj_params | eth_gap_without_child_blocks: 3}
       state1 = %{state | gas_price_adj_params: gas_params}
 
-      {:do_form_block, state2, _, _} =
+      {:do_form_block, state2} =
         state1
         |> set_ethereum_height(2)
 
@@ -388,7 +396,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       state1 = %{state | gas_price_adj_params: gas_params}
       eth_gap = state1.gas_price_adj_params.eth_gap_without_child_blocks
 
-      {:do_form_block, newstate, _, _} =
+      {:do_form_block, newstate} =
         state1
         |> set_ethereum_height(1 + eth_gap)
 

@@ -10,14 +10,21 @@ defmodule OmiseGO.Eth.DevGeth do
   require Logger
 
   def start do
+    {:ok, _} = Application.ensure_all_started(:briefly)
+    {:ok, _} = Application.ensure_all_started(:erlexec)
+    {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, homedir} = Briefly.create(directory: true)
-    res = launch("geth --dev --rpc --rpcapi=personal,eth,web3 --datadir #{homedir} 2>&1")
+
+    geth_pid = launch("geth --dev --rpc --rpcapi=personal,eth,web3 --datadir #{homedir} 2>&1")
     {:ok, :ready} = OmiseGO.Eth.WaitFor.eth_rpc()
-    res
+
+    on_exit = fn -> stop(geth_pid) end
+
+    {:ok, on_exit}
   end
 
-  def stop(pid) do
-    # NOTE: monitor is required to stop_and_wait, wtf? monitor: true on run doesn't work
+  defp stop(pid) do
+    # NOTE: monitor is required to stop_and_wait, don't know why? `monitor: true` on run doesn't work
     _ = Process.monitor(pid)
     {:exit_status, 35_072} = Exexec.stop_and_wait(pid)
     :ok
@@ -34,7 +41,7 @@ defmodule OmiseGO.Eth.DevGeth do
     _ = Logger.debug(fn -> "Starting geth" end)
 
     {:ok, geth_proc, _ref, [{:stream, geth_out, _stream_server}]} =
-      Exexec.run(cmd, stdout: :stream, kill_command: "kill -9 $(pidof geth)")
+      Exexec.run(cmd, stdout: :stream, kill_command: "pkill -9 geth")
 
     wait_for_geth_start(geth_out)
 

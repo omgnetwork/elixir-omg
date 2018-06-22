@@ -1,6 +1,9 @@
 defmodule OmiseGO.API.BlockQueue do
   @moduledoc """
   Responsible for keeping a queue of blocks lined up nicely for submission to Eth.
+  Responsible for determining the cadence of forming/submitting blocks to Ethereum.
+  Responsible for determining correct gas price and ensuring submissions get mined eventually.
+
   In particular responsible for picking up, where it's left off (crashed) gracefully.
 
   Relies on RootChain contract having reorg protection ('decimals for deposits' part).
@@ -12,6 +15,8 @@ defmodule OmiseGO.API.BlockQueue do
 
   alias OmiseGO.API.BlockQueue.Core, as: Core
   alias OmiseGO.Eth.BlockSubmission
+
+  require Logger
 
   @type eth_height() :: non_neg_integer()
   @type hash() :: BlockSubmission.hash()
@@ -53,6 +58,11 @@ defmodule OmiseGO.API.BlockQueue do
              {:ok, mined_num} <- Eth.get_mined_child_block(),
              {:ok, parent_start} <- Eth.get_root_deployment_height(),
              {:ok, stored_child_top_num} <- OmiseGO.DB.child_top_block_number(),
+             _ =
+               Logger.info(fn ->
+                 "Starting BlockQueue at parent_height: #{parent_height}, mined_child_block: #{mined_num}, " <>
+                   "parent_start: #{parent_start}, stored_child_top_block: #{stored_child_top_num}"
+               end),
              range <- Core.child_block_nums_to_init_with(stored_child_top_num),
              # TODO: taking all stored hashes now. While still being feasible DB-wise ("just" many hashes)
              #       it might be prohibitive, if we create BlockSubmissions out of the unfiltered batch
@@ -61,6 +71,8 @@ defmodule OmiseGO.API.BlockQueue do
              #       Leaving a chore to handle that in the future: OMG-83
              {:ok, known_hashes} <- OmiseGO.DB.block_hashes(range),
              {:ok, {top_mined_hash, _}} = Eth.get_child_chain(mined_num) do
+          _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{inspect(top_mined_hash)}" end)
+
           {:ok, state} =
             Core.new(
               mined_child_block_num: mined_num,
@@ -76,6 +88,8 @@ defmodule OmiseGO.API.BlockQueue do
           interval = Application.get_env(:omisego_api, :ethereum_event_check_height_interval_ms)
           {:ok, _} = :timer.send_interval(interval, self(), :check_mined_child_head)
           {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_height)
+
+          _ = Logger.info(fn -> "Started BlockQueue" end)
           {:ok, state}
         end
       catch
@@ -90,11 +104,11 @@ defmodule OmiseGO.API.BlockQueue do
       {:noreply, state1}
     end
 
-    def handle_info(:check_ethereum_height, state) do
+    def handle_info(:check_ethereum_height, %Core{child_block_interval: child_block_interval} = state) do
       with {:ok, height} <- Eth.get_ethereum_height(),
-           {:do_form_block, state1, block_num, next_block_num} <- Core.set_ethereum_height(state, height),
-           {:ok, block_hash} <- OmiseGO.API.State.form_block(block_num, next_block_num) do
-        state2 = Core.enqueue_block(state1, block_hash)
+           {:do_form_block, state1} <- Core.set_ethereum_height(state, height),
+           {:ok, block_hash, block_number} <- OmiseGO.API.State.form_block(child_block_interval) do
+        state2 = Core.enqueue_block(state1, block_hash, block_number)
         submit_blocks(state2)
         {:noreply, state2}
       else
@@ -106,15 +120,28 @@ defmodule OmiseGO.API.BlockQueue do
     # private (server)
 
     @spec submit_blocks(Core.t()) :: :ok
-    defp submit_blocks(state) do
+    defp submit_blocks(%Core{} = state) do
       state
       |> Core.get_blocks_to_submit()
-      |> Enum.each(fn submission ->
-        case OmiseGO.Eth.submit_block(submission) do
-          {:ok, _txhash} -> :ok
-          {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} -> :ok
-        end
-      end)
+      |> Enum.each(&submit/1)
+    end
+
+    defp submit(submission) do
+      _ = Logger.debug(fn -> "Submitting: #{inspect(submission)}" end)
+
+      case OmiseGO.Eth.submit_block(submission) do
+        {:ok, txhash} ->
+          _ = Logger.info(fn -> "Submitted #{inspect(submission)} at: #{inspect(txhash)}" end)
+          :ok
+
+        {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} ->
+          _ = Logger.debug(fn -> "Submission is known transaction - ignored" end)
+          :ok
+
+        {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}} ->
+          _ = Logger.debug(fn -> "Submission is known, but with higher price - ignored" end)
+          :ok
+      end
     end
   end
 end

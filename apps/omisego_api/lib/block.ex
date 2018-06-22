@@ -1,9 +1,8 @@
 defmodule OmiseGO.API.Block do
   @moduledoc """
-  Representation of a OmiseGO block
+  Representation of a OmiseGO child chain block.
   """
 
-  alias OmiseGO.API.Block
   alias OmiseGO.API.Crypto
 
   @transaction_merkle_tree_height 16
@@ -15,6 +14,7 @@ defmodule OmiseGO.API.Block do
           hash: <<_::768>>,
           number: pos_integer
         }
+
   @doc """
   Returns block with merkle hash
   """
@@ -22,7 +22,7 @@ defmodule OmiseGO.API.Block do
   def merkle_hash(%__MODULE__{transactions: txs} = block) do
     hashed_txs = txs |> Enum.map(& &1.signed_tx_hash)
     {:ok, root} = MerkleTree.build(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height)
-    %Block{block | hash: root.value}
+    %__MODULE__{block | hash: root.value}
   end
 
   def create_utxo_proof(txs, txindex) do
