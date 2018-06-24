@@ -62,13 +62,24 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     assert expected_transaction_2 == delete_meta(TransactionDB.get(txid_2))
   end
 
-  defp create_expected_transaction(txid, signed_tx, txblknum, txindex) do
+  defp create_expected_transaction(
+         txid,
+         %Signed{
+           raw_tx: %Transaction{} = transaction,
+           sig1: sig1,
+           sig2: sig2
+         },
+         txblknum,
+         txindex
+       ) do
     %TransactionDB{
       txblknum: txblknum,
       txindex: txindex,
-      txid: txid
+      txid: txid,
+      sig1: sig1,
+      sig2: sig2
     }
-    |> Map.merge(Map.from_struct(signed_tx.raw_tx))
+    |> Map.merge(Map.from_struct(transaction))
     |> delete_meta
   end
 

@@ -5,7 +5,7 @@ defmodule OmiseGOWatcher.BlockGetter do
   use GenServer
   alias OmiseGO.API.Block
   alias OmiseGO.Eth
-  alias OmiseGOWatcher.{BlockValidator, UtxoDB}
+  alias OmiseGOWatcher.{BlockValidator, TransactionDB, UtxoDB}
 
   @dialyzer {:nowarn_function, get_block: 2}
   @spec get_block(pos_integer(), Eth.contract_t()) :: {:ok, Block.t()} | {:error, :get_block}
@@ -25,7 +25,7 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def consume_block(%Block{} = block) do
-    _ = OmiseGOWatcher.TransactionDB.insert(block)
+    _ = TransactionDB.insert(block)
     _ = UtxoDB.consume_block(block)
     :ok
   end
@@ -52,7 +52,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:reply, state.child_block_number, state}
   end
 
-  def get_current_block_number(contract \\ nil) do
+  def get_current_block_number(contract) do
     {:ok, next_child_block} = OmiseGO.Eth.get_current_child_block(contract)
     child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
     child_block = next_child_block - child_block_interval
