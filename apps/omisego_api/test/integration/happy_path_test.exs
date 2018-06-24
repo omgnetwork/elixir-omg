@@ -34,6 +34,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   end
 
   @tag fixtures: [:alice, :bob, :omisego]
+  @tag :skip
   test "deposit, spend, exit, restart etc works fine", %{alice: alice, bob: bob} do
     {:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
 
