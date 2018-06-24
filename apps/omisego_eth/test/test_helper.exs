@@ -1,4 +1,6 @@
 ExUnit.configure(exclude: [integration: true])
 ExUnitFixtures.start()
+Code.require_file("../omisego_api/test/testlib/test_helper.ex")
+Code.require_file("../omisego_api/test/fixtures.exs")
 ExUnitFixtures.load_fixture_files()
 ExUnit.start()
