@@ -54,7 +54,7 @@ defmodule OmiseGO.Eth do
     @type hash() :: <<_::256>>
     @type plasma_block_num() :: non_neg_integer()
 
-    @type t() :: %{
+    @type t() :: %__MODULE__{
             num: plasma_block_num(),
             hash: hash(),
             nonce: non_neg_integer(),
@@ -63,7 +63,7 @@ defmodule OmiseGO.Eth do
     defstruct [:num, :hash, :nonce, :gas_price]
   end
 
-  @spec get_root_deployment_height(binary() | nil, binary() | nil) :: {:ok, integer()} | Ethereumex.HttpClient.error()
+  @spec get_root_deployment_height(binary() | nil, contract_t()) :: {:ok, integer()} | Ethereumex.HttpClient.error()
   def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     txhash = txhash || Application.get_env(:omisego_eth, :txhash_contract)
@@ -82,8 +82,8 @@ defmodule OmiseGO.Eth do
   end
 
   @spec submit_block(BlockSubmission.t(), OmiseGO.API.Crypto.address_t() | nil, contract_t()) ::
-            {:error, binary() | atom() | map()}
-            | {:ok, binary()}
+          {:error, binary() | atom() | map()}
+          | {:ok, binary()}
   def submit_block(
         %BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price},
         from \\ nil,
