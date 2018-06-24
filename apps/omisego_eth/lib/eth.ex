@@ -228,9 +228,9 @@ defmodule OmiseGO.Eth do
   end
 
   defp encode_event_signature(signature) do
-    # TODO: consider moving crypto to a umbrella app and use it across other apps
-    # "consider" because `omisego_api` is now our "imported_by_all" app, and we're kind of "fine". To reevaluate
-    signature |> :keccakf1600.sha3_256() |> Base.encode16(case: :lower)
+   # TODO: consider moving crypto to a umbrella app and use it across other apps
+   # "consider" because `omisego_api` is now our "imported_by_all" app, and we're kind of "fine". To reevaluate
+   signature |> :keccakf1600.sha3_256() |> Base.encode16(case: :lower)
   end
 
   defp int_to_hex(int), do: "0x" <> Integer.to_string(int, 16)
