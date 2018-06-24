@@ -3,49 +3,65 @@ defmodule OmiseGO.Eth.DevGeth do
   Helper module for deployment of contracts to dev geth.
   """
 
+  @doc """
+  Run geth in temp dir, kill it with SIGKILL when done.
+  """
+
+  require Logger
+
   def start do
-    # NOTE: Warnings produced here are result of Temp+Porcelain.Process being broken
-    # NOTE: Dropping Temp or using Porcelain.Result instead of Process prevents warnings
-    Temp.track!()
-    homedir = Temp.mkdir!(%{prefix: "honted_eth_test_homedir"})
-    res = launch("geth --dev --rpc --rpcapi=personal,eth,web3 --datadir #{homedir} 2>&1")
+    {:ok, _} = Application.ensure_all_started(:briefly)
+    {:ok, _} = Application.ensure_all_started(:erlexec)
+    {:ok, _} = Application.ensure_all_started(:ethereumex)
+    {:ok, homedir} = Briefly.create(directory: true)
+
+    geth_pid = launch("geth --dev --rpc --rpcapi=personal,eth,web3 --datadir #{homedir} 2>&1")
     {:ok, :ready} = OmiseGO.Eth.WaitFor.eth_rpc()
-    res
+
+    on_exit = fn -> stop(geth_pid) end
+
+    {:ok, on_exit}
   end
 
-  def stop(pid, os_pid) do
-    # NOTE: `goon` is broken, and because of that signal does not work and we do kill -9 instead
-    #       Same goes for basic driver.
-    Porcelain.Process.stop(pid)
-    Porcelain.shell("kill -9 #{os_pid}")
+  defp stop(pid) do
+    # NOTE: monitor is required to stop_and_wait, don't know why? `monitor: true` on run doesn't work
+    _ = Process.monitor(pid)
+    {:exit_status, 35_072} = Exexec.stop_and_wait(pid)
+    :ok
   end
 
   # PRIVATE
-  defp launch(cmd) do
-    geth_pids = geth_os_pids()
 
-    geth_proc =
-      %Porcelain.Process{err: nil, out: geth_out} = Porcelain.spawn_shell(cmd, out: :stream)
-    wait_for_geth_start(geth_out)
-
-    geth_pids_after = geth_os_pids()
-    [geth_os_pid] = geth_pids_after -- geth_pids
-    geth_os_pid = String.trim(geth_os_pid)
-    {geth_proc, geth_os_pid, geth_out}
+  defp log_geth_output(line) do
+    _ = Logger.debug(fn -> "geth: " <> line end)
+    line
   end
 
-  defp geth_os_pids do
-    %{out: out} = Porcelain.shell("pidof geth")
+  defp launch(cmd) do
+    _ = Logger.debug(fn -> "Starting geth" end)
 
-    out
-    |> String.trim()
-    |> String.split()
+    {:ok, geth_proc, _ref, [{:stream, geth_out, _stream_server}]} =
+      Exexec.run(cmd, stdout: :stream, kill_command: "pkill -9 geth")
+
+    wait_for_geth_start(geth_out)
+
+    _ =
+      if Application.get_env(:omisego_eth, :geth_logging_in_debug) do
+        %Task{} =
+          fn ->
+            geth_out |> Enum.each(&log_geth_output/1)
+          end
+          |> Task.async()
+      end
+
+    geth_proc
   end
 
   def wait_for_start(outstream, look_for, timeout) do
     # Monitors the stdout coming out of a process for signal of successful startup
     waiting_task_function = fn ->
       outstream
+      |> Stream.map(&log_geth_output/1)
       |> Stream.take_while(fn line -> not String.contains?(line, look_for) end)
       |> Enum.to_list()
     end

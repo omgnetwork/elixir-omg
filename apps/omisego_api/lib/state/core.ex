@@ -7,9 +7,9 @@ defmodule OmiseGO.API.State.Core do
 
   defstruct [:height, :last_deposit_height, :utxos, pending_txs: [], tx_index: 0]
 
-  alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.State.Core
   alias OmiseGO.API.Block
+  alias OmiseGO.API.State.Core
+  alias OmiseGO.API.State.Transaction
 
   def extract_initial_state(
         utxos_query_result,
@@ -32,8 +32,8 @@ defmodule OmiseGO.API.State.Core do
   @doc """
   Includes the transaction into the state when valid, rejects otherwise.
   """
-  @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{})
-        :: {{:ok, <<_::256>>, pos_integer, pos_integer}, %Core{}} | {:error, %Core{}}
+  @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{}) ::
+          {{:ok, Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, %Core{}} | {:error, %Core{}}
   def exec(
         %Transaction.Recovered{
           raw_tx: raw_tx,
@@ -113,8 +113,7 @@ defmodule OmiseGO.API.State.Core do
   end
 
   defp apply_spend(
-         %Core{height: height, tx_index: tx_index, utxos: utxos} =
-           state,
+         %Core{height: height, tx_index: tx_index, utxos: utxos} = state,
          %Transaction{
            blknum1: blknum1,
            txindex1: txindex1,
@@ -161,57 +160,47 @@ defmodule OmiseGO.API.State.Core do
    - generates requests to the persistence layer for a block
    - processes pending txs gathered, updates height etc
   """
-  def form_block(
-        %Core{pending_txs: reverse_txs, height: height} = state,
-        block_num_to_form,
-        next_block_num_to_form
-      ) do
-    with :ok <- validate_block_number(block_num_to_form, state) do
-      txs = Enum.reverse(reverse_txs)
+  def form_block(%Core{pending_txs: reverse_txs, height: height} = state, child_block_interval) do
+    txs = Enum.reverse(reverse_txs)
 
-      block =
-        %Block{transactions: txs, number: height}
-        |> Block.merkle_hash()
+    block =
+      %Block{transactions: txs, number: height}
+      |> Block.merkle_hash()
 
-      event_triggers =
-        txs
-        |> Enum.map(fn tx -> %{tx: tx} end)
+    event_triggers =
+      txs
+      |> Enum.map(fn tx -> %{tx: tx} end)
 
-      db_updates_new_utxos =
-        txs
-        |> Enum.with_index()
-        |> Enum.flat_map(fn {%Transaction.Recovered{raw_tx: tx}, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
-        |> Enum.map(&utxo_to_db_put/1)
+    db_updates_new_utxos =
+      txs
+      |> Enum.with_index()
+      |> Enum.flat_map(fn {%Transaction.Recovered{raw_tx: tx}, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
+      |> Enum.map(&utxo_to_db_put/1)
 
-      db_updates_spent_utxos =
-        txs
-        |> Enum.flat_map(fn %Transaction.Recovered{raw_tx: tx} ->
-          [{tx.blknum1, tx.txindex1, tx.oindex1}, {tx.blknum2, tx.txindex2, tx.oindex2}]
-        end)
-        |> Enum.filter(fn utxo_key -> utxo_key != {0, 0, 0} end)
-        |> Enum.map(fn utxo_key -> {:delete, :utxo, utxo_key} end)
+    db_updates_spent_utxos =
+      txs
+      |> Enum.flat_map(fn %Transaction.Recovered{raw_tx: tx} ->
+        [{tx.blknum1, tx.txindex1, tx.oindex1}, {tx.blknum2, tx.txindex2, tx.oindex2}]
+      end)
+      |> Enum.filter(fn utxo_key -> utxo_key != {0, 0, 0} end)
+      |> Enum.map(fn utxo_key -> {:delete, :utxo, utxo_key} end)
 
-      db_updates_block = [{:put, :block, block}]
+    db_updates_block = [{:put, :block, block}]
 
-      db_updates_top_block_number = [{:put, :child_top_block_number, height}]
+    db_updates_top_block_number = [{:put, :child_top_block_number, height}]
 
-      db_updates =
-        [db_updates_new_utxos, db_updates_spent_utxos, db_updates_block, db_updates_top_block_number]
-        |> Enum.concat()
+    db_updates =
+      [db_updates_new_utxos, db_updates_spent_utxos, db_updates_block, db_updates_top_block_number]
+      |> Enum.concat()
 
-      new_state = %Core{
-        state
-        | tx_index: 0,
-          height: next_block_num_to_form,
-          pending_txs: []
-      }
+    new_state = %Core{
+      state
+      | tx_index: 0,
+        height: height + child_block_interval,
+        pending_txs: []
+    }
 
-      {:ok, {block, event_triggers, db_updates, new_state}}
-    end
-  end
-
-  defp validate_block_number(expected_block_num, %Core{height: height}) do
-    if expected_block_num == height, do: :ok, else: {:error, :invalid_current_block_number}
+    {:ok, {block, event_triggers, db_updates, new_state}}
   end
 
   def decode_deposit(%{owner: "0x" <> owner_enc} = deposit) do
@@ -307,4 +296,21 @@ defmodule OmiseGO.API.State.Core do
 
     {event_triggers, deletes, state}
   end
+
+  @doc """
+  Checks if utxo exists
+  """
+  @spec utxo_exists(map(), %__MODULE__{}) :: :utxo_exists | :utxo_does_not_exist
+  def utxo_exists(%{blknum: blknum, txindex: txindex, oindex: oindex}, %Core{utxos: utxos}) do
+    case Map.has_key?(utxos, {blknum, txindex, oindex}) do
+      true -> :utxo_exists
+      false -> :utxo_does_not_exist
+    end
+  end
+
+  @doc """
+  Gets the current block's height
+  """
+  @spec get_current_child_block_height(%__MODULE__{}) :: pos_integer
+  def get_current_child_block_height(%{height: height}), do: height
 end

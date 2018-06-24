@@ -2,7 +2,8 @@ defmodule OmiseGO.API.State.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OmiseGO.API.State.{Transaction, Transaction.Recovered, Core}
+  alias OmiseGO.API
+  alias OmiseGO.API.State.{Core, Transaction}
   alias OmiseGO.API.TestHelper
 
   @signature <<1>> |> List.duplicate(65) |> :binary.list_to_bin()
@@ -48,8 +49,8 @@ defmodule OmiseGO.API.State.TransactionTest do
   @tag fixtures: [:transaction]
   test "transaction hash is correct", %{transaction: transaction} do
     assert Transaction.hash(transaction) ==
-             <<206, 180, 169, 245, 52, 190, 189, 248, 33, 15, 103, 145, 4, 195, 170, 59, 137, 102,
-               245, 238, 22, 172, 18, 240, 21, 132, 30, 1, 197, 112, 101, 192>>
+             <<204, 238, 74, 144, 230, 127, 34, 158, 0, 227, 29, 20, 146, 214, 197, 5, 221, 167, 231, 108, 84, 86, 189,
+               191, 156, 180, 26, 37, 93, 4, 75, 249>>
   end
 
   @tag fixtures: [:transaction]
@@ -57,8 +58,8 @@ defmodule OmiseGO.API.State.TransactionTest do
     signed = %Transaction.Signed{raw_tx: transaction, sig1: @signature, sig2: @signature}
 
     expected =
-      <<206, 180, 169, 245, 52, 190, 189, 248, 33, 15, 103, 145, 4, 195, 170, 59, 137, 102, 245,
-        238, 22, 172, 18, 240, 21, 132, 30, 1, 197, 112, 101, 192>> <> signed.sig1 <> signed.sig2
+      <<204, 238, 74, 144, 230, 127, 34, 158, 0, 227, 29, 20, 146, 214, 197, 5, 221, 167, 231, 108, 84, 86, 189, 191,
+        156, 180, 26, 37, 93, 4, 75, 249>> <> signed.sig1 <> signed.sig2
 
     actual = Transaction.Signed.signed_hash(signed)
     assert actual == expected
@@ -66,8 +67,7 @@ defmodule OmiseGO.API.State.TransactionTest do
 
   @tag fixtures: [:utxos]
   test "crete transaction", %{utxos: utxos} do
-    {:ok, transaction} =
-      Transaction.create_from_utxos(utxos, %{address: "Joe Black", amount: 53}, 50)
+    {:ok, transaction} = Transaction.create_from_utxos(utxos, %{address: "Joe Black", amount: 53}, 50)
 
     assert transaction == %Transaction{
              blknum1: 20,
@@ -86,14 +86,12 @@ defmodule OmiseGO.API.State.TransactionTest do
 
   @tag fixtures: [:utxos]
   test "checking error messages", %{utxos: utxos} do
-    assert {:error, :amount_negative_value} ==
-             Transaction.create_from_utxos(utxos, %{address: "Joe", amount: -4}, 2)
+    assert {:error, :amount_negative_value} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: -4}, 2)
 
     assert {:error, :amount_negative_value} ==
              Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30_000}, 0)
 
-    assert {:error, :fee_negative_value} ==
-             Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30}, -2)
+    assert {:error, :fee_negative_value} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30}, -2)
 
     assert {:error, :too_many_utxo} ==
              Transaction.create_from_utxos(
@@ -104,9 +102,10 @@ defmodule OmiseGO.API.State.TransactionTest do
   end
 
   @tag fixtures: [:alice, :state_empty, :bob]
-  test "using created transaction in Core.exec", %{alice: alice, bob: bob, state_empty: state} do
+  test "using created transaction in child chain", %{alice: alice, bob: bob, state_empty: state} do
     state =
-      state |> TestHelper.do_deposit(alice, %{amount: 100, blknum: 1})
+      state
+      |> TestHelper.do_deposit(alice, %{amount: 100, blknum: 1})
       |> TestHelper.do_deposit(alice, %{amount: 10, blknum: 2})
 
     utxos_json = """
@@ -123,13 +122,16 @@ defmodule OmiseGO.API.State.TransactionTest do
     {:ok, decode_address} = Base.decode16(utxos.address)
     utxos = %{utxos | address: decode_address}
 
+    {:ok, raw_transaction} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42}, 10)
+
     {:ok, transaction} =
-      Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42}, 10)
+      raw_transaction
+      |> Transaction.sign(alice.priv, alice.priv)
+      |> Transaction.Signed.encode()
+      |> API.Core.recover_tx()
 
     assert {{:ok, _, _, _}, _state} =
              transaction
-             |> Transaction.sign(alice.priv, alice.priv)
-             |> Recovered.recover_from()
              |> Core.exec(state)
   end
 end

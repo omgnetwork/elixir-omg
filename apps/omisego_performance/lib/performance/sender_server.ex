@@ -3,8 +3,14 @@ defmodule OmiseGO.Performance.SenderServer do
   The SenderServer process synchronously sends requested number of transactions to the blockchain server.
   """
 
+  # Waiting time (in milliseconds) before unsuccessful Tx submission is retried.
+  @tx_retry_waiting_time_ms 333
+
   require Logger
   use GenServer
+
+  alias OmiseGO.API.Crypto
+  alias OmiseGO.API.State.Transaction
 
   defmodule LastTx do
     @moduledoc """
@@ -18,15 +24,23 @@ defmodule OmiseGO.Performance.SenderServer do
   Defines a structure for the State of the server.
   """
   defstruct [
-    :seqnum,      # increasing number to ensure sender's deposit is accepted, @seealso @doc to :init
+    # increasing number to ensure sender's deposit is accepted, @seealso @doc to :init
+    :seqnum,
     :ntx_to_send,
     :spender,
-    :last_tx,     # {blknum, txindex, oindex, amount}, @see %LastTx above
+    # {blknum, txindex, oindex, amount}, @see %LastTx above
+    :last_tx
   ]
-  @opaque state :: %__MODULE__{seqnum: integer, ntx_to_send: integer, spender: map, last_tx: LastTx.t}
+
+  @opaque state :: %__MODULE__{
+            seqnum: integer,
+            ntx_to_send: integer,
+            spender: map,
+            last_tx: LastTx.t()
+          }
 
   @doc """
-  Starts the server.
+  Starts the process.
   """
   @spec start_link({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, pid}
   def start_link(args) do
@@ -39,19 +53,18 @@ defmodule OmiseGO.Performance.SenderServer do
     * Senders are assigned sequential positive int starting from 1, senders are initialized in order of seqnum.
       This ensures all senders' deposits are accepted.
   """
-  @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, init_state :: __MODULE__.state}
+  @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, state()}
   def init({seqnum, ntx_to_send}) do
-    Logger.debug(fn -> "[#{seqnum}] +++ init/1 called with requests: '#{ntx_to_send}' +++" end)
-    Registry.register(OmiseGO.Performance.Registry, :sender, "Sender: #{seqnum}")
+    _ = Logger.debug(fn -> "[#{seqnum}] +++ init/1 called with requests: '#{ntx_to_send}' +++" end)
 
-    spender = generate_participant_address()
-    Logger.debug(fn -> "[#{seqnum}]: Address #{Base.encode64(spender.addr)}" end)
+    spender = generate_entity()
+    _ = Logger.debug(fn -> "[#{seqnum}]: Address #{Base.encode64(spender.addr)}" end)
 
     deposit_value = 10 * ntx_to_send
     owner_enc = "0x" <> Base.encode16(spender.addr, case: :lower)
     :ok = OmiseGO.API.State.deposit([%{owner: owner_enc, amount: deposit_value, blknum: seqnum}])
 
-    Logger.debug(fn -> "[#{seqnum}]: Deposited #{deposit_value} OMG" end)
+    _ = Logger.debug(fn -> "[#{seqnum}]: Deposited #{deposit_value} OMG" end)
 
     send(self(), :do)
     {:ok, init_state(seqnum, ntx_to_send, spender)}
@@ -61,56 +74,116 @@ defmodule OmiseGO.Performance.SenderServer do
   Submits transaction then schedules call to itself if more left.
   Otherwise unregisters from the Registry and stops.
   """
-  @spec handle_info(:do, state :: __MODULE__.state) :: {:noreply, new_state :: __MODULE__.state} | {:stop, :normal, nil}
-  def handle_info(:do, %__MODULE__{seqnum: seqnum, ntx_to_send: ntx_to_send} = state) do
-    if ntx_to_send > 0 do
-      {:ok, newblknum, newtxindex, newvalue} = submit_tx(state)
-      send(self(), :do)
-      {:noreply, state |> next_state(newblknum, newtxindex, newvalue)}
-    else
-      Registry.unregister(OmiseGO.Performance.Registry, :sender)
-      Logger.debug(fn -> "[#{seqnum}] +++ Stoping... +++" end)
-      {:stop, :normal, state}
+  @spec handle_info(:do, state :: __MODULE__.state()) ::
+          {:noreply, new_state :: __MODULE__.state()} | {:stop, :normal, __MODULE__.state()}
+  def handle_info(:do, %__MODULE__{ntx_to_send: 0} = state) do
+    _ = Logger.debug(fn -> "[#{state.seqnum}] +++ Stoping... +++" end)
+
+    %__MODULE__{seqnum: seqnum, ntx_to_send: ntx_to_send, last_tx: %LastTx{blknum: blknum, txindex: txindex}} = state
+    OmiseGO.Performance.SenderManager.sender_stats(seqnum, blknum, txindex, ntx_to_send)
+    OmiseGO.Performance.SenderManager.sender_completed(state.seqnum)
+    {:stop, :normal, state}
+  end
+
+  def handle_info(:do, %__MODULE__{} = state) do
+    newstate =
+      state
+      |> prepare_new_tx()
+      |> submit_tx(state)
+      |> update_state_with_tx_submission(state)
+
+    {:noreply, newstate}
+  end
+
+  defp prepare_new_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx}) do
+    to_spend = 9
+    newamount = last_tx.amount - to_spend
+    recipient = generate_entity()
+
+    _ =
+      Logger.debug(fn -> "[#{seqnum}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{newamount}" end)
+
+    # create and return signed transaction
+    [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
+    |> Transaction.new([{spender.addr, newamount}, {recipient.addr, to_spend}], 0)
+    |> Transaction.sign(spender.priv, <<>>)
+  end
+
+  # Submits new transaction to the blockchain server.
+  @spec submit_tx(Transaction.Signed.t(), __MODULE__.state()) ::
+          {:ok, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
+          | {:error, any()}
+          | :retry
+  defp submit_tx(tx, %__MODULE__{seqnum: seqnum}) do
+    result =
+      tx
+      |> Transaction.Signed.encode()
+      |> submit_tx_jsonrpc()
+
+    case result do
+      {:error, :too_many_transactions_in_block} ->
+        _ =
+          Logger.info(fn ->
+            "[#{seqnum}]: Transaction submission will be retried, block #{tx.blknum1} is full."
+          end)
+
+        :retry
+
+      {:error, reason} ->
+        _ =
+          Logger.debug(fn ->
+            "[#{seqnum}]: Transaction submission has failed, reason: #{reason}"
+          end)
+
+        {:error, reason}
+
+      {:ok, %{blknum: blknum, tx_index: txindex}} ->
+        _ =
+          Logger.debug(fn ->
+            "[#{seqnum}]: Transaction submitted successfully {#{blknum}, #{txindex}}"
+          end)
+
+        {:ok, blknum, txindex, tx.raw_tx.amount1}
     end
   end
 
-  @doc """
-  Submits new transaction to the blockchain server.
-  """
-  @spec submit_tx(__MODULE__.state)
-  :: {result :: tuple, blknum :: pos_integer, txindex :: pos_integer, newamount :: pos_integer}
-  def submit_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx}) do
-    alias OmiseGO.API.State.Transaction
+  # Handles result of successful Tx submission or retry request into new state and sends :do message
+  @spec update_state_with_tx_submission(tx_submit_result :: {:ok, map} | {:error, any}, state :: __MODULE__.state()) ::
+          __MODULE__.state()
+  defp update_state_with_tx_submission(
+         tx_submit_result,
+         %__MODULE__{seqnum: seqnum, ntx_to_send: ntx_to_send, last_tx: last_tx} = state
+       ) do
+    case tx_submit_result do
+      {:ok, newblknum, newtxindex, newvalue} ->
+        send(self(), :do)
 
-    to_spend = 9
-    newamount = last_tx.amount - to_spend
-    recipient = generate_participant_address()
-    Logger.debug(fn -> "[#{seqnum}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{newamount}" end)
+        if newblknum > last_tx.blknum,
+          do: OmiseGO.Performance.SenderManager.sender_stats(seqnum, last_tx.blknum, last_tx.txindex, ntx_to_send)
 
-    tx =
-      [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
-      |> Transaction.new([{spender.addr, newamount}, {recipient.addr, to_spend}], 0)
-      |> Transaction.sign(spender.priv, <<>>)
-      |> Transaction.Signed.encode()
+        state |> next_state(newblknum, newtxindex, newvalue)
 
-      result = OmiseGO.API.submit(tx)
-      case result do
-        {:error,  reason} ->
-          Logger.debug(fn -> "[#{seqnum}]: Transaction submission has failed, reason: #{reason}" end)
-          {:error, reason}
-
-        {:ok, _, blknum, txindex} ->
-          Logger.debug(fn -> "[#{seqnum}]: Transaction submitted successfully" end)
-          {:ok, blknum, txindex, newamount}
-      end
+      :retry ->
+        Process.send_after(self(), :do, @tx_retry_waiting_time_ms)
+        state
+    end
   end
 
-  @doc """
-  Generates participant private key and address
-  """
-  @spec generate_participant_address() :: %{priv: <<_::256>>, addr: <<_::160>>}
-  def generate_participant_address do
-    alias OmiseGO.API.Crypto
+  # Submits Tx to the childchain server via http (JsonRPC) and translates successful result to atom-keyed map.
+  @spec submit_tx_jsonrpc(binary) :: {:ok, map} | {:error, any}
+  defp submit_tx_jsonrpc(encoded_tx) do
+    with {:ok, result} <- OmiseGO.JSONRPC.Client.call(:submit, %{transaction: encoded_tx}) do
+      {:ok,
+       result
+       |> Enum.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
+       |> Map.new()}
+    end
+  end
+
+  # Generates participant private key and address
+  # TODO: DRY this, used also in omisego_api/test, omisego_eth
+  @spec generate_entity() :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
+  defp generate_entity do
     {:ok, priv} = Crypto.generate_private_key()
     {:ok, pub} = Crypto.generate_public_key(priv)
     {:ok, addr} = Crypto.generate_address(pub)
@@ -119,40 +192,48 @@ defmodule OmiseGO.Performance.SenderServer do
 
   # Generates module's initial state
   @spec init_state(
-    seqnum :: pos_integer,
-    nreq :: pos_integer,
-    spender :: %{priv: <<_::256>>,
-    addr: <<_::160>>})
-  :: __MODULE__.state
+          seqnum :: pos_integer,
+          nreq :: pos_integer,
+          spender :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
+        ) :: __MODULE__.state()
   defp init_state(seqnum, nreq, spender) do
     %__MODULE__{
       seqnum: seqnum,
       ntx_to_send: nreq,
       spender: spender,
       last_tx: %LastTx{
-        blknum: seqnum,   # initial state takes deposited value, put there on :init
+        # initial state takes deposited value, put there on :init
+        blknum: seqnum,
         txindex: 0,
         oindex: 0,
-        amount: 10 * nreq,
-      },
+        amount: 10 * nreq
+      }
     }
   end
 
   # Generates next module's state
-  @spec next_state(
-    state :: __MODULE__.state,
-    blknum :: pos_integer,
-    txindex :: pos_integer,
-    amount :: pos_integer)
-  :: __MODULE__.state
+  @spec next_state(state :: __MODULE__.state(), blknum :: pos_integer, txindex :: pos_integer, amount :: pos_integer) ::
+          __MODULE__.state()
   defp next_state(%__MODULE__{ntx_to_send: ntx_to_send} = state, blknum, txindex, amount) do
     %__MODULE__{
-      state |
-      ntx_to_send: ntx_to_send - 1,
-      last_tx: %LastTx{
-        state.last_tx |
-        blknum: blknum, txindex: txindex, amount: amount
-      }
+      state
+      | ntx_to_send: ntx_to_send - 1,
+        last_tx: %LastTx{
+          state.last_tx
+          | blknum: blknum,
+            txindex: txindex,
+            amount: amount
+        }
     }
+  end
+
+  @doc """
+  Helper function to test interaction between Performance modules by adding random delay
+  NOTE: Made public to avoid compilation error when function isn't used.
+  """
+  @spec random_sleep(integer) :: :ok
+  def random_sleep(seqnum) do
+    _ = Logger.debug(fn -> "[#{seqnum}]: Need some sleep" end)
+    [500, 800, 1000, 1300] |> Enum.random() |> Process.sleep()
   end
 end

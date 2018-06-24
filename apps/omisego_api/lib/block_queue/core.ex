@@ -8,11 +8,13 @@ defmodule OmiseGO.API.BlockQueue.Core do
   (thus, it handles config values as internal variables)
   """
 
-  alias OmiseGO.API.BlockQueue, as: BlockQueue
   alias OmiseGO.Eth.BlockSubmission
+  alias OmiseGO.API.BlockQueue, as: BlockQueue
   alias OmiseGO.API.BlockQueue.Core
 
   @zero_bytes32 <<0::size(256)>>
+
+  alias OmiseGO.API.BlockQueue.GasPriceAdjustmentStrategyParams, as: GasPriceParams
 
   defstruct [
     :blocks,
@@ -22,10 +24,11 @@ defmodule OmiseGO.API.BlockQueue.Core do
     gas_price_to_use: 20_000_000_000,
     mined_child_block_num: 0,
     # config:
-    child_block_interval: 1000,
-    chain_start_parent_height: 1,
+    child_block_interval: nil,
+    chain_start_parent_height: nil,
     submit_period: 1,
-    finality_threshold: 12
+    finality_threshold: 12,
+    gas_price_adj_params: %GasPriceParams{}
   ]
 
   @type t() :: %__MODULE__{
@@ -48,14 +51,16 @@ defmodule OmiseGO.API.BlockQueue.Core do
           # number of Ethereum blocks per child block
           submit_period: pos_integer(),
           # depth of max reorg we take into account
-          finality_threshold: pos_integer()
+          finality_threshold: pos_integer(),
+          # the gas price adjustment strategy parameters
+          gas_price_adj_params: GasPriceParams.t()
         }
 
   def new do
     {:ok, %__MODULE__{blocks: Map.new()}}
   end
 
-  @spec new(keyword) :: {:ok, Core.t} | {:error, :mined_hash_not_found_in_db} | {:error, :contract_ahead_of_db}
+  @spec new(keyword) :: {:ok, Core.t()} | {:error, :mined_hash_not_found_in_db} | {:error, :contract_ahead_of_db}
   def new(
         mined_child_block_num: mined_child_block_num,
         known_hashes: known_hashes,
@@ -73,14 +78,27 @@ defmodule OmiseGO.API.BlockQueue.Core do
       child_block_interval: child_block_interval,
       chain_start_parent_height: child_start_parent_height,
       submit_period: submit_period,
-      finality_threshold: finality_threshold
+      finality_threshold: finality_threshold,
+      gas_price_adj_params: %GasPriceParams{}
     }
 
     enqueue_existing_blocks(state, top_mined_hash, known_hashes)
   end
 
-  @spec enqueue_block(Core.t(), BlockQueue.hash()) :: Core.t()
-  def enqueue_block(state, hash) do
+  @spec enqueue_block(Core.t(), BlockQueue.hash(), BlockQueue.plasma_block_num()) ::
+          Core.t() | {:error, :unexpected_block_number}
+  def enqueue_block(state, hash, expected_block_number) do
+    own_height = state.formed_child_block_num + state.child_block_interval
+
+    with :ok <- validate_block_number(expected_block_number, own_height) do
+      enqueue_block(state, hash)
+    end
+  end
+
+  defp validate_block_number(block_number, own_height) when block_number == own_height, do: :ok
+  defp validate_block_number(_, _), do: {:error, :unexpected_block_number}
+
+  defp enqueue_block(state, hash) do
     own_height = state.formed_child_block_num + state.child_block_interval
 
     block = %BlockSubmission{
@@ -113,25 +131,111 @@ defmodule OmiseGO.API.BlockQueue.Core do
   @doc """
   Set height of Ethereum chain.
   """
-  @spec set_ethereum_height(Core.t(), BlockQueue.eth_height())
-        :: {:do_form_block, Core.t(), pos_integer, pos_integer} | {:dont_form_block, Core.t()}
-  def set_ethereum_height(%Core{formed_child_block_num: formed_num} = state, parent_height) do
+  @spec set_ethereum_height(Core.t(), BlockQueue.eth_height()) ::
+          {:do_form_block, Core.t(), pos_integer, pos_integer} | {:dont_form_block, Core.t()}
+  def set_ethereum_height(state, parent_height) do
     new_state = %{state | parent_height: parent_height}
+    new_state = adjust_gas_price(new_state)
+
     if should_form_block?(new_state) do
-      next_formed_num = formed_num + state.child_block_interval
-      followup_num = next_formed_num + state.child_block_interval
-      {:do_form_block, %{new_state | wait_for_enqueue: true}, next_formed_num, followup_num}
+      {:do_form_block, %{new_state | wait_for_enqueue: true}}
     else
       {:dont_form_block, new_state}
     end
   end
 
-  @doc """
-  Change gas price for tx sent in future. This includes all re-submissions.
+  # Updates gas price to use basing on :calculate_gas_price function, updates current parent height
+  # and last mined child block number in the state which used by gas price calculations
+  @spec adjust_gas_price(Core.t()) :: Core.t()
+  defp adjust_gas_price(%Core{parent_height: nil} = state), do: state
 
-  Allows to react to changes of Ethereum mempool utilization.
-  """
-  def set_gas_price(state, price) do
+  defp adjust_gas_price(%Core{gas_price_adj_params: %GasPriceParams{last_block_mined: nil} = gas_params} = state) do
+    # initializes last block mined
+    %{state | gas_price_adj_params: GasPriceParams.with(gas_params, state.parent_height, state.mined_child_block_num)}
+  end
+
+  defp adjust_gas_price(
+         %Core{
+           parent_height: parent_height,
+           gas_price_adj_params: %GasPriceParams{last_block_mined: {last_parent_height, _mined_block_num}}
+         } = state
+       )
+       when parent_height == last_parent_height,
+       do: state
+
+  defp adjust_gas_price(%Core{} = state) do
+    new_gas_price = calculate_gas_price(state)
+
+    state
+    |> set_gas_price(new_gas_price)
+    |> update_last_checked_mined_block_num()
+  end
+
+  # Calculates the gas price basing on simple strategy to raise the gas price by gas_price_raising_factor
+  # when gap of mined parent blocks is growing and droping the price by gas_price_lowering_factor otherwise
+  @spec calculate_gas_price(Core.t()) :: pos_integer()
+  defp calculate_gas_price(%Core{
+         formed_child_block_num: formed_child_block_num,
+         mined_child_block_num: mined_child_block_num,
+         gas_price_to_use: gas_price_to_use,
+         parent_height: parent_height,
+         gas_price_adj_params: %GasPriceParams{
+           gas_price_lowering_factor: gas_price_lowering_factor,
+           gas_price_raising_factor: gas_price_raising_factor,
+           eth_gap_without_child_blocks: eth_gap_without_child_blocks,
+           max_gas_price: max_gas_price,
+           last_block_mined: {lastchecked_parent_height, lastchecked_mined_block_num}
+         }
+       }) do
+    multiplier =
+      with true <- blocks_needs_be_mined?(formed_child_block_num, mined_child_block_num),
+           true <- eth_blocks_gap_filled?(parent_height, lastchecked_parent_height, eth_gap_without_child_blocks),
+           false <- new_blocks_mined?(mined_child_block_num, lastchecked_mined_block_num) do
+        gas_price_raising_factor
+      else
+        _ -> gas_price_lowering_factor
+      end
+
+    Kernel.min(
+      max_gas_price,
+      Kernel.round(multiplier * gas_price_to_use)
+    )
+  end
+
+  # Updates the state with information about last parent height and mined child block number
+  @spec update_last_checked_mined_block_num(Core.t()) :: Core.t()
+  defp update_last_checked_mined_block_num(
+         %Core{
+           parent_height: parent_height,
+           mined_child_block_num: mined_child_block_num,
+           gas_price_adj_params: %GasPriceParams{
+             last_block_mined: {_lastechecked_parent_height, lastchecked_mined_block_num}
+           }
+         } = state
+       ) do
+    if lastchecked_mined_block_num < mined_child_block_num do
+      %Core{
+        state
+        | gas_price_adj_params: GasPriceParams.with(state.gas_price_adj_params, parent_height, mined_child_block_num)
+      }
+    else
+      state
+    end
+  end
+
+  defp blocks_needs_be_mined?(formed_child_block_num, mined_child_block_num) do
+    formed_child_block_num > mined_child_block_num
+  end
+
+  defp eth_blocks_gap_filled?(parent_height, last_height, eth_gap_without_child_blocks) do
+    parent_height - last_height >= eth_gap_without_child_blocks
+  end
+
+  defp new_blocks_mined?(mined_child_block_num, last_mined_block_num) do
+    mined_child_block_num > last_mined_block_num
+  end
+
+  defp set_gas_price(state, price) do
     %{state | gas_price_to_use: price}
   end
 
@@ -174,7 +278,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
   # age of RootChain contract in ethereum blocks
   @spec should_form_block?(Core.t()) :: true | false
   defp should_form_block?(state) do
-    (due_child_block_num(state) > state.formed_child_block_num) && ! state.wait_for_enqueue
+    due_child_block_num(state) > state.formed_child_block_num && !state.wait_for_enqueue
   end
 
   # private (core)
@@ -203,11 +307,12 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
   # NOTE: handles both the case when there aren't any hashes in database and there are
   @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [BlockQueue.hash()]) ::
-          {:ok, Core.t()} | {:error, atom}
+          {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_hash_not_found_in_db}
   defp enqueue_existing_blocks(state, @zero_bytes32, [] = _known_hahes) do
     # we start a fresh queue from db and fresh contract
     {:ok, %{state | formed_child_block_num: 0}}
   end
+
   defp enqueue_existing_blocks(_state, _top_mined_hash, [] = _known_hashes) do
     # something's wrong - no hashes in db and top_mined hash isn't a zero hash as required
     {:error, :contract_ahead_of_db}
@@ -241,13 +346,14 @@ defmodule OmiseGO.API.BlockQueue.Core do
   end
 
   # splits into ones that are before top_mined_hash and those after
-  # the mined ones are zipped with their numbers to submit
+  # mined are zipped with their numbers to submit
   defp split_existing_blocks(state, top_mined_hash, hashes) do
     index = Enum.find_index(hashes, &(&1 == top_mined_hash))
     {mined, fresh} = Enum.split(hashes, index + 1)
-    bottom_mined = state.mined_child_block_num - state.child_block_interval * (length(mined) - 1)
-    nums = make_range(bottom_mined, state.mined_child_block_num, state.child_block_interval)
 
-    {Enum.zip(nums, mined), fresh}
+    bottom_mined = state.mined_child_block_num - state.child_block_interval * (length(mined) - 1)
+    mined_nums = make_range(bottom_mined, state.mined_child_block_num, state.child_block_interval)
+
+    {Enum.zip(mined_nums, mined), fresh}
   end
 end

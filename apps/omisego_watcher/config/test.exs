@@ -7,22 +7,11 @@ config :omisego_watcher, OmiseGOWatcherWeb.Endpoint,
   server: false
 
 # Print only warnings and errors during test
-config :logger, level: :warn
+config :logger, level: :error
 
 # Configure your database
-# config :omisego_watcher, OmiseGOWatcher.Repo,
-#   adapter: Sqlite.Ecto2,
-#   database: "ecto_simple.sqlite3"
-
 config :omisego_watcher, OmiseGOWatcher.Repo,
-  pool: Ecto.Adapters.SQL.Sandbox
+  adapter: Sqlite.Ecto2,
+  database: "/tmp/omisego/ecto_simple_" <> Integer.to_string(:rand.uniform(10_000_000)) <> ".sqlite3"
 
-
-# Configure your database
-  config :omisego_watcher, OmiseGOWatcher.Repo,
-    adapter: Ecto.Adapters.Postgres,
-    username: "omisego",
-    password: "12345678",
-    database: "test_development",
-    hostname: "localhost",
-    pool_size: 10
+config :omisego_watcher, OmiseGOWatcher.Repo, pool: Ecto.Adapters.SQL.Sandbox

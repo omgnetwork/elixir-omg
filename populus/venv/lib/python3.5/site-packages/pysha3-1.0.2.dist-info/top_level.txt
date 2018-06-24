@@ -1,2 +1,0 @@
-_pysha3
-sha3

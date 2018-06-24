@@ -10,9 +10,9 @@ defmodule OmiseGOWatcher.Mixfile do
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
       elixir: "~> 1.4",
-      elixirc_paths: elixirc_paths(Mix.env),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers,
-      start_permanent: Mix.env == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
+      compilers: [:phoenix, :gettext] ++ Mix.compilers(),
+      start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps()
     ]
@@ -30,7 +30,7 @@ defmodule OmiseGOWatcher.Mixfile do
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_),     do: ["lib"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Specifies your project dependencies.
   #
@@ -43,8 +43,15 @@ defmodule OmiseGOWatcher.Mixfile do
       {:gettext, "~> 0.15"},
       {:sqlite_ecto2, "~> 2.2", only: [:test]},
       {:cowboy, "~> 1.1"},
+      {:plug, "~> 1.5.0", override: true},
+      {:socket, "~> 0.3"},
+      {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
+      # NOTE: need this explictly, since :omisego_jsonrpc won't start jsonrpc2 automatically
+      {:jsonrpc2, "~> 1.0"},
+      #
       {:omisego_api, in_umbrella: true, runtime: false},
-      {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true}
+      {:omisego_jsonrpc, in_umbrella: true, runtime: false},
+      {:omisego_db, in_umbrella: true, runtime: true}
     ]
   end
 
@@ -58,7 +65,7 @@ defmodule OmiseGOWatcher.Mixfile do
     [
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      "test": ["ecto.create --quiet", "ecto.migrate", "test"]
+      test: ["ecto.create --quiet", "ecto.migrate", "test"]
     ]
   end
 end
