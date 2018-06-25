@@ -10,6 +10,8 @@ defmodule OmiseGO.API.State do
   alias OmiseGO.API.State.Core
   alias OmiseGO.DB
 
+  require Logger
+
   ### Client
 
   def start_link(_args) do
@@ -127,11 +129,22 @@ defmodule OmiseGO.API.State do
   publishes block and enqueues for submission
   """
   def handle_cast({:form_block, child_block_interval}, state) do
+    _ = Logger.debug(fn -> "Forming new block..." end)
+    start = System.monotonic_time(:millisecond)
+
     # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
     {:ok, {block, _event_triggers, db_updates, new_state}} = Core.form_block(state, child_block_interval)
+
+    duration = System.monotonic_time(:millisecond) - start
+    _ = Logger.info(fn -> "Calculations for forming block #{block.number} done in #{duration} ms" end)
+
     :ok = DB.multi_update(db_updates)
     :ok = FreshBlocks.push(block)
     :ok = BlockQueue.enqueue_block(block.hash, block.number)
+
+    duration = System.monotonic_time(:millisecond) - start
+    _ = Logger.info(fn -> "Done forming block #{block.number} in #{duration} ms" end)
+
     {:noreply, new_state}
   end
 

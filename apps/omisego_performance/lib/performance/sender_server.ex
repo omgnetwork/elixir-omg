@@ -121,18 +121,18 @@ defmodule OmiseGO.Performance.SenderServer do
       |> submit_tx_jsonrpc()
 
     case result do
-      {:error, :too_many_transactions_in_block} ->
+      {:error, {-32603, "Internal error", "too_many_transactions_in_block"}} ->
         _ =
           Logger.info(fn ->
-            "[#{seqnum}]: Transaction submission will be retried, block #{tx.blknum1} is full."
+            "[#{seqnum}]: Transaction submission will be retried, block is full."
           end)
 
         :retry
 
       {:error, reason} ->
         _ =
-          Logger.debug(fn ->
-            "[#{seqnum}]: Transaction submission has failed, reason: #{reason}"
+          Logger.info(fn ->
+            "[#{seqnum}]: Transaction submission has failed, reason: #{inspect reason}"
           end)
 
         {:error, reason}

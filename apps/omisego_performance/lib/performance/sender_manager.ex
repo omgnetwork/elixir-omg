@@ -167,9 +167,8 @@ defmodule OmiseGO.Performance.SenderManager do
   defp write_stats(state) do
     {:ok, destfile} = Briefly.create(prefix: "perftest", extname: ".statistics")
 
-    data = "Block forming times:\n#{inspect(state.block_times, limit: :infinity, pretty: true)}\n"
     stats = analyze(state)
-    data = data <> "\nPerformance statistics:\n#{inspect(stats, limit: :infinity, pretty: true)}\n"
+    data = "Performance statistics:\n#{inspect(stats, limit: :infinity, pretty: true)}\n"
     :ok = File.write(destfile, data)
     _ = Logger.info(fn -> "Performance statistics written to file: #{destfile}" end)
     :ok
