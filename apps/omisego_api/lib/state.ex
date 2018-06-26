@@ -130,20 +130,26 @@ defmodule OmiseGO.API.State do
   """
   def handle_cast({:form_block, child_block_interval}, state) do
     _ = Logger.debug(fn -> "Forming new block..." end)
-    start = System.monotonic_time(:millisecond)
+    {duration, result} = :timer.tc(fn -> do_form_block(child_block_interval, state) end)
+    _ = Logger.info(fn -> "Done forming block in #{round(duration / 1000)} ms" end)
+    result
+  end
 
+  defp do_form_block(child_block_interval, state) do
     # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
-    {:ok, {block, _event_triggers, db_updates, new_state}} = Core.form_block(state, child_block_interval)
+    {core_form_block_duration, core_form_block_result} =
+      :timer.tc(fn -> Core.form_block(state, child_block_interval) end)
 
-    duration = System.monotonic_time(:millisecond) - start
-    _ = Logger.info(fn -> "Calculations for forming block #{block.number} done in #{duration} ms" end)
+    {:ok, {block, _event_triggers, db_updates, new_state}} = core_form_block_result
+
+    _ =
+      Logger.info(fn ->
+        "Calculations for forming block #{block.number} done in #{round(core_form_block_duration / 1000)} ms"
+      end)
 
     :ok = DB.multi_update(db_updates)
     :ok = FreshBlocks.push(block)
     :ok = BlockQueue.enqueue_block(block.hash, block.number)
-
-    duration = System.monotonic_time(:millisecond) - start
-    _ = Logger.info(fn -> "Done forming block #{block.number} in #{duration} ms" end)
 
     {:noreply, new_state}
   end

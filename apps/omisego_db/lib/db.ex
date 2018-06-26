@@ -11,10 +11,8 @@ defmodule OmiseGO.DB do
   @server_name OmiseGO.DB.LevelDBServer
 
   def multi_update(db_updates, server_name \\ @server_name) do
-    start = System.monotonic_time(:millisecond)
-    result = GenServer.call(server_name, {:multi_update, db_updates})
-    duration = System.monotonic_time(:millisecond) - start
-    _ = Logger.info(fn -> "DB.multi_update done in #{duration} ms" end)
+    {duration, result} = :timer.tc(fn -> GenServer.call(server_name, {:multi_update, db_updates}) end)
+    _ = Logger.info(fn -> "DB.multi_update done in #{round(duration / 1000)} ms" end)
     result
   end
 
