@@ -90,6 +90,10 @@ defmodule OmiseGO.API.State.Core do
   end
 
   defp check_utxo_and_extract_amount(%Core{utxos: utxos}, {blknum, txindex, oindex}, spender) do
+    IO.inspect("1")
+    IO.inspect(utxos)
+    IO.inspect("2")
+    IO.inspect({blknum, txindex, oindex})
     with {:ok, %{owner: owner, amount: owner_has} = _utxo} <- get_utxo(utxos, {blknum, txindex, oindex}),
          :ok <- is_spender?(owner, spender),
          do: {:ok, owner_has}

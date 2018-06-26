@@ -5,7 +5,7 @@ defmodule OmiseGOWatcher.UtxoDB do
   use Ecto.Schema
 
   alias OmiseGO.API.{Block, Crypto}
-  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
+  alias OmiseGO.API.State.{Transaction, Transaction.Signed, Transaction.Recovered}
   alias OmiseGOWatcher.Repo
   alias OmiseGOWatcher.TransactionDB
 
@@ -97,11 +97,14 @@ defmodule OmiseGOWatcher.UtxoDB do
   end
 
   def compose_utxo_exit(txs, block_height, txindex, oindex) do
-    proof = Block.create_utxo_proof(txs, txindex)
+    sorted_txs = Enum.sort_by(txs, &(&1.txindex))
+    recovered_txs = Enum.map_every(sorted_txs, 1, fn tx -> %Recovered{signed_tx_hash: tx.txid} end)
 
-    tx_index = Enum.find_index(txs, fn tx -> tx.txindex == txindex end)
+    block = %Block{transactions: recovered_txs}
 
-    tx = Enum.at(txs, tx_index)
+    proof = Block.create_tx_proof(block, txindex)
+
+    tx = Enum.at(sorted_txs, txindex)
 
     %{
       utxo_pos: calculate_utxo_pos(block_height, txindex, oindex),

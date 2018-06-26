@@ -25,14 +25,12 @@ defmodule OmiseGO.API.Block do
     %__MODULE__{block | hash: root.value}
   end
 
-  def create_utxo_proof(txs, txindex) do
-    hashed_txs = txs |> Enum.map(& &1.txid)
+  def create_tx_proof(%__MODULE__{transactions: txs}, txindex) do
+    hashed_txs = txs |> Enum.map(& &1.signed_tx_hash)
 
     {:ok, mt} = MerkleTree.new(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height)
 
-    tx_index = Enum.find_index(txs, fn tx -> tx.txindex == txindex end)
-
-    proof = MerkleTree.Proof.prove(mt, tx_index)
+    proof = MerkleTree.Proof.prove(mt, txindex)
 
     proof.hashes
     |> Enum.reverse()

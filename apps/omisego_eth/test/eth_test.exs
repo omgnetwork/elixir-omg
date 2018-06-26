@@ -79,10 +79,10 @@ defmodule OmiseGO.EthTest do
       txindex2: 0
     }
 
-    singed_tx = Transaction.sign(raw_tx, bob.priv, alice.priv)
+    signed_tx = Transaction.sign(raw_tx, bob.priv, alice.priv)
 
     {:ok, %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash}} =
-      Transaction.Recovered.recover_from(singed_tx)
+      Transaction.Recovered.recover_from(signed_tx)
 
     {:ok, mt} = MerkleTree.new([signed_tx_hash], &Crypto.hash/1, @transaction_merkle_tree_height)
 
@@ -97,14 +97,15 @@ defmodule OmiseGO.EthTest do
 
     Eth.submit_block(block, contract.authority_addr, contract.contract_addr)
 
-    txs = [Map.merge(raw_tx, %{txindex: 0, txid: signed_tx_hash, sig1: singed_tx.sig1, sig2: singed_tx.sig2})]
+    txs = [Map.merge(raw_tx, %{txindex: 0, txid: signed_tx_hash, sig1: signed_tx.sig1, sig2: signed_tx.sig2})]
 
     %{utxo_pos: utxo_pos, tx_bytes: tx_bytes, proof: proof, sigs: sigs} =
       UtxoDB.compose_utxo_exit(txs, child_blknum * @block_offset, 0, 0)
 
     {:ok, _} = start_exit(utxo_pos, tx_bytes, proof, sigs, 1, contract)
 
-    # TODO add assert Eth.get_exit(child_blknum * @block_offset, contract.address)
+    IO.inspect  Eth.get_exit(child_blknum * @block_offset, contract.address)
+    # TODO add assert Eth.get_exit(child_blknum * @block_offset, contract.address) , Currently ABI library is broken
   end
 
   @tag fixtures: [:contract]
