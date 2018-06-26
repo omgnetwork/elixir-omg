@@ -76,13 +76,14 @@ defmodule OmiseGOWatcher.TransactionDB do
         block_number,
         txindex
       ) do
-    {:ok, _} = %__MODULE__{
-      txid: id,
-      txblknum: block_number,
-      txindex: txindex
-    }
-    |> Map.merge(Map.from_struct(transaction))
-    |> Repo.insert()
+    {:ok, _} =
+      %__MODULE__{
+        txid: id,
+        txblknum: block_number,
+        txindex: txindex
+      }
+      |> Map.merge(Map.from_struct(transaction))
+      |> Repo.insert()
   end
 
   def changeset(transaction_db, attrs) do

@@ -97,7 +97,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     assert {_, [4_000, 5_000]} = Core.get_new_blocks_numbers(state, 8_000)
   end
 
-  test "check errro return by add_block" do
+  test "check error return by add_block" do
     block_height = 0
     interval = 1_000
     chunk_size = 5
