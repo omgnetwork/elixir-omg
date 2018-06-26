@@ -33,8 +33,8 @@ defmodule OmiseGOWatcher.ExitValidator do
   def handle_call({:validate_exits, synced_eth_block_height}, _from, state) do
     with {block_from, block_to, state, db_updates} <- Core.get_exits_block_range(state, synced_eth_block_height),
          utxo_exits <- OmiseGO.Eth.get_exits(block_from, block_to),
-         :ok <- validate_exits(utxo_exits, state),
-         :ok <- OmiseGO.DB.multi_update(db_updates) do
+         :ok <- validate_exits(utxo_exits, state) do
+      :ok = OmiseGO.DB.multi_update(db_updates)
       {:noreply, state}
     else
       :empty_range -> {:noreply, state}
