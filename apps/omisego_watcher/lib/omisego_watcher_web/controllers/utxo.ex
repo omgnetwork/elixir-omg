@@ -28,7 +28,6 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
 
     composed_utxo_exit = UtxoDB.compose_utxo_exit(block_height, txindex, oindex)
 
-    IO.inspect composed_utxo_exit
     json(conn, JSONRPC.Client.encode(composed_utxo_exit))
   end
 end

@@ -28,7 +28,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   end
 
   @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :alice, :bob]
-  test "get the blocks from child chain after transaction", %{config_map: config_map, alice: alice, bob: bob} do
+  test "get the blocks from child chain after transaction and start exits", %{config_map: config_map, alice: alice, bob: bob} do
     Application.put_env(:omisego_eth, :contract_address, config_map.contract_addr)
 
     {:ok, _pid} =
@@ -42,7 +42,6 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     raw_tx = Transaction.new([{deposit_height, 0, 0}], [{alice.addr, 7}, {bob.addr, 3}], 0)
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
-    IO.inspect(raw_tx)
     {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx})
 
     # wait for BlockGetter get the block
@@ -66,17 +65,17 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     assert [%{"amount" => 7, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
              get_utxo(alice)
 
-    # %{
-    #   utxo_pos: utxo_pos,
-    #   tx_bytes: tx_bytes,
-    #   proof: proof,
-    #   sigs: sigs
-    # } = compose_utxo_exit(block_nr, 0, 0);
+    %{
+      utxo_pos: utxo_pos,
+      tx_bytes: tx_bytes,
+      proof: proof,
+      sigs: sigs
+    } = compose_utxo_exit(block_nr, 0, 0);
 
-    # {:ok, txhash} = Eth.start_exit(utxo_pos, tx_bytes, proof, sigs, 1, config_map.authority_addr, config_map.contract_addr)
-    # {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
-    #
-    # IO.inspect Eth.get_exit(utxo_pos, config_map.contract_addr)
+    {:ok, txhash} = Eth.start_exit(utxo_pos, tx_bytes, proof, sigs, 1, config_map.authority_addr, config_map.contract_addr)
+    {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+
+    # TODO add assert Eth.get_exit(child_blknum * @block_offset, contract.address) , Currently ABI library is broken
 
   end
 

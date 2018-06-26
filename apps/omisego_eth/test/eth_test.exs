@@ -104,7 +104,7 @@ defmodule OmiseGO.EthTest do
 
     {:ok, _} = start_exit(utxo_pos, tx_bytes, proof, sigs, 1, contract)
 
-    IO.inspect  Eth.get_exit(child_blknum * @block_offset, contract.address)
+    # IO.inspect Eth.get_exit(utxo_pos, contract.contract_addr)
     # TODO add assert Eth.get_exit(child_blknum * @block_offset, contract.address) , Currently ABI library is broken
   end
 

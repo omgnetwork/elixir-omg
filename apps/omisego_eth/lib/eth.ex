@@ -283,13 +283,13 @@ defmodule OmiseGO.Eth do
   def get_exit(utxo_pos, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
 
-    {:ok, [address, amount]} = call_contract(contract, "getExit(uint256)", [utxo_pos], [:bytes32, {:uint, 256}])
+    {:ok, [address, amount]} = call_contract(contract, "getExit(uint256)", [utxo_pos], [{:bytes, 32}, {:uint, 256}])
     {:ok, {address, amount}}
   end
 
   def get_child_chain(blknum, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    {:ok, [root, created_at]} = call_contract(contract, "getChildChain(uint256)", [blknum], [:bytes32, {:uint, 256}])
+    {:ok, [root, created_at]} = call_contract(contract, "getChildChain(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
     {:ok, {root, created_at}}
   end
 

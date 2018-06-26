@@ -1,5 +1,5 @@
 %{
-  "abi": {:git, "https://github.com/omisego/abi.git", "3b99793f6aada8a659346db3e1dfc35ee2993b36", [branch: "fix_dynamic_types"]},
+  "abi": {:git, "https://github.com/omisego/abi.git", "e9284f78d721040196a66e9b7b08e58b32f78edd", [branch: "encode_dynamic_types"]},
   "binary": {:hex, :binary, "0.0.4", "dd077db70c0ded3e85c132b802338e14b80694684a7e2277666bfa4004b7fa66", [:mix], [], "hexpm"},
   "blockchain": {:hex, :blockchain, "0.1.7", "6efdadb84242cbbe201f78ab3a472b2a155c1e86b8787eeb7fbc83ea58f94b99", [:mix], [{:evm, "~> 0.1.14", [hex: :evm, repo: "hexpm", optional: false]}, {:ex_rlp, "~> 0.2.1", [hex: :ex_rlp, repo: "hexpm", optional: false]}, {:keccakf1600, "~> 2.0.0", [hex: :keccakf1600_orig, repo: "hexpm", optional: false]}, {:libsecp256k1, "~> 0.1.4", [hex: :libsecp256k1, repo: "hexpm", optional: false]}, {:merkle_patricia_tree, "~> 0.2.6", [hex: :merkle_patricia_tree, repo: "hexpm", optional: false]}, {:poison, "~> 3.1.0", [hex: :poison, repo: "hexpm", optional: false]}], "hexpm"},
   "briefly": {:hex, :briefly, "0.3.0", "16e6b76d2070ebc9cbd025fa85cf5dbaf52368c4bd896fb482b5a6b95a540c2f", [:mix], [], "hexpm"},
