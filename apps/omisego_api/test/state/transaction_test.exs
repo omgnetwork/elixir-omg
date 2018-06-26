@@ -50,26 +50,21 @@ defmodule OmiseGO.API.State.TransactionTest do
 
   def eth, do: Transaction.zero_address()
 
-  # FIXME: restore this test! (needs hash values)
-  # @tag fixtures: [:transaction]
-  # test "transaction hash is correct", %{transaction: transaction} do
-  #   assert Transaction.hash(transaction) ==
-  #            <<206, 180, 169, 245, 52, 190, 189, 248, 33, 15, 103, 145, 4, 195, 170, 59, 137, 102, 245, 238, 22, 172,
-  #              18, 240, 21, 132, 30, 1, 197, 112, 101, 192>>
-  # end
+  @tag fixtures: [:transaction]
+  test "transaction hash is correct", %{transaction: transaction} do
+    {:ok, hash_value} = Base.decode16("f09d08d506a269f4237f712a7cdc8259489f0435b0775b4e08050523788268a8", case: :lower)
+    assert Transaction.hash(transaction) == hash_value
+  end
 
-  # FIXME: restore this test! (needs hash values)
-  # @tag fixtures: [:transaction]
-  # test "signed transaction hash is correct", %{transaction: transaction} do
-  #   signed = %Transaction.Signed{raw_tx: transaction, sig1: @signature, sig2: @signature}
+  @tag fixtures: [:transaction]
+  test "signed transaction hash is correct", %{transaction: transaction} do
+    signed = %Transaction.Signed{raw_tx: transaction, sig1: @signature, sig2: @signature}
 
-  #   expected =
-  # <<206, 180, 169, 245, 52, 190, 189, 248, 33, 15, 103, 145, 4, 195, 170, 59, 137, 102, 245, 238, 22, 172, 18, 240,
-  #       21, 132, 30, 1, 197, 112, 101, 192>> <> signed.sig1 <> signed.sig2
-
-  #   actual = Transaction.Signed.signed_hash(signed)
-  #   assert actual == expected
-  # end
+    {:ok, hash_value} = Base.decode16("f09d08d506a269f4237f712a7cdc8259489f0435b0775b4e08050523788268a8", case: :lower)
+    expected = hash_value <> signed.sig1 <> signed.sig2
+    actual = Transaction.Signed.signed_hash(signed)
+    assert actual == expected
+  end
 
   @tag fixtures: [:utxos]
   test "crete transaction", %{utxos: utxos} do

@@ -277,34 +277,33 @@ defmodule OmiseGO.API.State.CoreTest do
     assert {:ok, {_, [], _, _}} = form_block_check(state, @child_block_interval)
   end
 
-  # FIXME: restore this test; needs hash value
+  @tag fixtures: [:stable_alice, :stable_bob, :state_stable_alice_deposit]
+  test "forming block puts all transactions in a block", %{
+    stable_alice: alice,
+    stable_bob: bob,
+    state_stable_alice_deposit: state
+  } do
+    recovered_tx_1 = Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}])
 
-  # @tag fixtures: [:stable_alice, :stable_bob, :state_stable_alice_deposit]
-  # test "forming block puts all transactions in a block", %{
-  #   stable_alice: alice,
-  #   stable_bob: bob,
-  #   state_stable_alice_deposit: state
-  # } do
-  #   recovered_tx_1 = Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}], 0)
+    recovered_tx_2 = Test.create_recovered([{@child_block_interval, 0, 0, bob}], eth(), [{alice, 2}, {bob, 5}])
 
-  #   recovered_tx_2 = Test.create_recovered([{@child_block_interval, 0, 0, bob}], eth(), [{alice, 2}, {bob, 5}], 0)
+    state =
+      state
+      |> (&Core.exec(recovered_tx_1, &1)).()
+      |> success?
+      |> (&Core.exec(recovered_tx_2, &1)).()
+      |> success?
 
-  #   state =
-  #     state
-  #     |> (&Core.exec(recovered_tx_1, &1)).()
-  #     |> success?
-  #     |> (&Core.exec(recovered_tx_2, &1)).()
-  #     |> success?
-  #   expected_block = %Block{
-  #     transactions: [recovered_tx_1, recovered_tx_2],
-  #     hash:
-  #       <<166, 149, 246, 209, 144, 15, 143, 85, 224, 230, 228, 51, 1, 242, 85, 166, 162, 138, 204, 220, 45, 30, 102,
-  #         107, 5, 173, 160, 181, 187, 25, 232, 33>>,
-  #     number: @child_block_interval
-  #   }
+    hash = "3e8de246ba9be94f87ea8cec20626705dc407eefa827545ebf03fa7582b13fca" |> Base.decode16!(case: :lower)
 
-  #   assert {:ok, {^expected_block, _, _, _}} = form_block_check(state, @child_block_interval)
-  # end
+    expected_block = %Block{
+      transactions: [recovered_tx_1, recovered_tx_2],
+      hash: hash,
+      number: @child_block_interval
+    }
+
+    assert {:ok, {^expected_block, _, _, _}} = form_block_check(state, @child_block_interval)
+  end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "forming block empty block after a non-empty block", %{
