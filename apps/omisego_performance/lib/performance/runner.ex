@@ -11,19 +11,19 @@ defmodule OmiseGO.Performance.Runner do
   """
   @spec run(ntx_to_send :: integer, nusers :: integer, opt :: list) :: {:ok, String.t()}
   def run(ntx_to_send, nusers, _opt) do
-    start = System.monotonic_time(:millisecond)
+    {duration, _result} =
+      :timer.tc(fn ->
+        # fire async transaction senders
+        manager = OmiseGO.Performance.SenderManager.start_link_all_senders(ntx_to_send, nusers)
 
-    # fire async transaction senders
-    manager = OmiseGO.Performance.SenderManager.start_link_all_senders(ntx_to_send, nusers)
+        # fire block creator
+        _ = OmiseGO.Performance.BlockCreator.start_link()
 
-    # fire block creator
-    _ = OmiseGO.Performance.BlockCreator.start_link()
+        # Wait all senders do thier job, checker will stop when it happens and stops itself
+        wait_for(manager)
+      end)
 
-    # Wait all senders do thier job, checker will stop when it happens and stops itself
-    wait_for(manager)
-    stop = System.monotonic_time(:millisecond)
-
-    {:ok, "{ total_runtime_in_ms: #{stop - start} }"}
+    {:ok, "{ total_runtime_in_ms: #{round(duration / 1000)} }"}
   end
 
   @doc """
