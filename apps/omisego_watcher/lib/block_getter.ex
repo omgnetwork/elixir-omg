@@ -1,6 +1,8 @@
 defmodule OmiseGOWatcher.BlockGetter do
   @moduledoc """
-  tracking block on child chain
+  Checking if there are new block from child chain on ethereum.
+  Checking if Block from child chain is valid
+  Download new block from child chain and update State, TransactionDB, UtxoDB.
   """
   use GenServer
   alias OmiseGO.API.Block

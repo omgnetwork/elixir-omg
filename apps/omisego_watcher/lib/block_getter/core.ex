@@ -36,7 +36,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
 
   @doc """
    Returns additional blocks number on which the Core will be waiting.
-   The number of epected block is limited by maximum_number_of_pending_blocks.
+   The number of expected block is limited by maximum_number_of_pending_blocks.
   """
   @spec get_new_blocks_numbers(%__MODULE__{}, non_neg_integer) :: {%__MODULE__{}, list(non_neg_integer)}
   def get_new_blocks_numbers(
@@ -64,7 +64,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
      }, blocks_numbers}
   end
 
-  @doc " add block to \"block to consume\" and decrese number of pending block"
+  @doc " add block to \"block to consume\" and decrease number of pending block"
   @spec add_block(%__MODULE__{}, OmiseGO.API.Block.t()) ::
           {:ok, %__MODULE__{}} | {:error, :duplicate | :unexpected_blok}
   def add_block(

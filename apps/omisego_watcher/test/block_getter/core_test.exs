@@ -8,7 +8,6 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   alias OmiseGOWatcher.BlockGetter.Core
 
   @moduletag :integration
-
   defp add_block(state, block) do
     assert {:ok, new_state} = Core.add_block(state, block)
     new_state
@@ -83,7 +82,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
              |> Core.get_blocks_to_consume()
   end
 
-  test "next_child increases or decreses in calls to get_new_blocks_nmbers" do
+  test "next_child increases or decrease in calls to get_new_blocks_numbers" do
     block_height = 0
     interval = 1_000
     chunk_size = 5
