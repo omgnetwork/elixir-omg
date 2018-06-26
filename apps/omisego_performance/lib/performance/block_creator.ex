@@ -32,16 +32,13 @@ defmodule OmiseGO.Performance.BlockCreator do
   in @request_block_creation_every_ms milliseconds.
   """
   def handle_info(:do, blknum) do
-    newblknum = blknum + 1000
-    _ = Logger.debug(fn -> "[BC]: Forming block #{blknum}, next #{newblknum}" end)
+    child_block_interval = 1000
 
-    start = System.monotonic_time(:millisecond)
-    OmiseGO.API.State.form_block(newblknum - blknum)
-    stop = System.monotonic_time(:millisecond)
-    OmiseGO.Performance.SenderManager.block_forming_time(blknum, stop - start)
+    OmiseGO.API.State.form_block(child_block_interval)
+    OmiseGO.Performance.SenderManager.block_forming_time(blknum, 0)
 
     reschedule_task()
-    {:noreply, newblknum}
+    {:noreply, blknum + child_block_interval}
   end
 
   defp reschedule_task do

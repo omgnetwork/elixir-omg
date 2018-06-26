@@ -26,8 +26,8 @@ defmodule OmiseGO.API.BlockQueue do
 
   ### Client
 
-  def enqueue_block(block_hash) do
-    GenServer.call(__MODULE__.Server, {:enqueue_block, block_hash})
+  def enqueue_block(block_hash, block_number) do
+    GenServer.cast(__MODULE__.Server, {:enqueue_block, block_hash, block_number})
   end
 
   # CONFIG constant functions
@@ -105,16 +105,25 @@ defmodule OmiseGO.API.BlockQueue do
     end
 
     def handle_info(:check_ethereum_height, %Core{child_block_interval: child_block_interval} = state) do
-      with {:ok, height} <- Eth.get_ethereum_height(),
-           {:do_form_block, state1} <- Core.set_ethereum_height(state, height),
-           {:ok, block_hash, block_number} <- OmiseGO.API.State.form_block(child_block_interval) do
-        state2 = Core.enqueue_block(state1, block_hash, block_number)
-        submit_blocks(state2)
-        {:noreply, state2}
+      {:ok, height} = Eth.get_ethereum_height()
+
+      # TODO: submit_blocks is called throughout here a lot, and for now it's ok. Consider regaining more control
+      #       over how it is done. E.g. we may submit_blocks only in certain spots, or have it have its own timer
+      submit_blocks(state)
+
+      with {:do_form_block, state1} <- Core.set_ethereum_height(state, height) do
+        :ok = OmiseGO.API.State.form_block(child_block_interval)
+        {:noreply, state1}
       else
         {:dont_form_block, state1} -> {:noreply, state1}
         other -> other
       end
+    end
+
+    def handle_cast({:enqueue_block, block_hash, block_number}, %Core{} = state) do
+      state2 = Core.enqueue_block(state, block_hash, block_number)
+      submit_blocks(state2)
+      {:noreply, state2}
     end
 
     # private (server)
