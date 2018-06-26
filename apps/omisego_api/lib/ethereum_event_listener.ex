@@ -27,19 +27,18 @@ defmodule OmiseGO.API.EthereumEventListener do
       ) do
     # TODO: initialize state with the last ethereum block we have seen events from
 
-    with {:ok, parent_start} <- Eth.get_root_deployment_height() do
-      schedule_get_events(0)
+    {:ok, parent_start} = Eth.get_root_deployment_height()
+    schedule_get_events(0)
 
-      {:ok,
-       %Core{
-         last_event_block: parent_start,
-         block_finality_margin: finality_margin,
-         max_blocks_in_fetch: max_blocks,
-         get_events_interval: get_events_interval,
-         get_ethereum_events_callback: get_ethereum_events_callback,
-         process_events_callback: process_events_callback
-       }}
-    end
+    {:ok,
+     %Core{
+       last_event_block: parent_start,
+       block_finality_margin: finality_margin,
+       max_blocks_in_fetch: max_blocks,
+       get_events_interval: get_events_interval,
+       get_ethereum_events_callback: get_ethereum_events_callback,
+       process_events_callback: process_events_callback
+     }}
   end
 
   def handle_info(:get_events, state) do

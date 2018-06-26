@@ -19,15 +19,15 @@ defmodule OmiseGOWatcher.ExitValidator do
   use GenServer
 
   def init({last_exit_block_height_callback, utxo_exists_callback, synced_block_margin, update_key}) do
-    with {:ok, last_exit_block_height} <- last_exit_block_height_callback.() do
-      {:ok,
-       %Core{
-         last_exit_block_height: last_exit_block_height,
-         update_key: update_key,
-         margin_on_synced_block: synced_block_margin,
-         utxo_exists_callback: utxo_exists_callback
-       }}
-    end
+    {:ok, last_exit_block_height} = last_exit_block_height_callback.()
+
+    {:ok,
+     %Core{
+       last_exit_block_height: last_exit_block_height,
+       update_key: update_key,
+       margin_on_synced_block: synced_block_margin,
+       utxo_exists_callback: utxo_exists_callback
+     }}
   end
 
   def handle_call({:validate_exits, synced_eth_block_height}, _from, state) do

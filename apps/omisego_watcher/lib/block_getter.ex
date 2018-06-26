@@ -35,16 +35,14 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def init(_opts) do
-    with {:ok, block_number} <- OmiseGO.DB.child_top_block_number(),
-         {:ok, _} <- :timer.send_after(0, self(), :check_for_new_block) do
-      {:ok,
-       %{
-         child_block_number: block_number,
-         contract_address: Application.get_env(:omisego_eth, :contract_address)
-       }}
-    else
-      _ -> {:error, :init_block_getter}
-    end
+    {:ok, block_number} = OmiseGO.DB.child_top_block_number()
+    {:ok, _} = :timer.send_after(0, self(), :check_for_new_block)
+
+    {:ok,
+     %{
+       child_block_number: block_number,
+       contract_address: Application.get_env(:omisego_eth, :contract_address)
+     }}
   end
 
   # TODO get_height used in tests instead of an event system, remove when event system is here
