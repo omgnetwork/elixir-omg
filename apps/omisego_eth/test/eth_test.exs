@@ -60,6 +60,19 @@ defmodule OmiseGO.EthTest do
   end
 
   @tag fixtures: [:contract]
+  test "transaction with already used nonce should be rejected", %{contract: contract} do
+    nonce = 1
+    tx = generate_transaction(nonce)
+
+    # 1st submission
+    {:ok, txhash} = Eth.submit_block(tx, contract.authority_addr, contract.contract_addr)
+
+    # 2nd submission
+    {:error, %{"message" => message}} = Eth.submit_block(tx, contract.authority_addr, contract.contract_addr)
+    assert String.starts_with?(message, "known transaction: ")
+  end
+
+  @tag fixtures: [:contract]
   test "child block increment after add block", %{contract: contract} do
     add_blocks(1..4, contract)
     # current child block is a num of the next operator block:

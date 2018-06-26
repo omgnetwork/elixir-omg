@@ -89,7 +89,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
           Core.t() | {:error, :unexpected_block_number}
   def enqueue_block(state, hash, expected_block_number) do
     own_height = state.formed_child_block_num + state.child_block_interval
-
+    IO.puts " >> enqueue_block -- expected_block_number: #{expected_block_number}, own_height: #{own_height}"
     with :ok <- validate_block_number(expected_block_number, own_height) do
       enqueue_block(state, hash)
     end
@@ -321,6 +321,11 @@ defmodule OmiseGO.API.BlockQueue.Core do
   defp enqueue_existing_blocks(state, top_mined_hash, hashes) do
     if Enum.member?(hashes, top_mined_hash) do
       {mined_blocks, fresh_blocks} = split_existing_blocks(state, top_mined_hash, hashes)
+
+      IO.puts " >> enqueue_existing_blocks:\nMined blocks:"
+      IO.inspect mined_blocks
+      IO.puts "Fresh blocks:"
+      IO.inspect fresh_blocks
 
       mined_submissions =
         for {num, hash} <- mined_blocks do

@@ -96,13 +96,15 @@ defmodule OmiseGO.API.BlockQueue do
     end
 
     def handle_info(:check_mined_child_head, state) do
+      IO.puts "handle_info :check_mined_child_head"
       {:ok, mined_num} = Eth.get_mined_child_block()
       state1 = Core.set_mined(state, mined_num)
-      submit_blocks(state1)
+      submit_blocks(state1, :check_mined_child_head)
       {:noreply, state1}
     end
 
     def handle_info(:check_ethereum_height, %Core{child_block_interval: child_block_interval} = state) do
+<<<<<<< 91a149480f33010a8c16bcfee5b6dd7dd63018be
       {:ok, height} = Eth.get_ethereum_height()
 
       # TODO: submit_blocks is called throughout here a lot, and for now it's ok. Consider regaining more control
@@ -112,6 +114,15 @@ defmodule OmiseGO.API.BlockQueue do
       with {:do_form_block, state1} <- Core.set_ethereum_height(state, height) do
         :ok = OmiseGO.API.State.form_block(child_block_interval)
         {:noreply, state1}
+=======
+      IO.puts "handle_info :check_ethereum_height"
+      with {:ok, height} <- Eth.get_ethereum_height(),
+           {:do_form_block, state1} <- Core.set_ethereum_height(state, height),
+           {:ok, block_hash, block_number} <- OmiseGO.API.State.form_block(child_block_interval) do
+        state2 = Core.enqueue_block(state1, block_hash, block_number)
+        submit_blocks(state2, :check_ethereum_height)
+        {:noreply, state2}
+>>>>>>> Investigating the bug
       else
         {:dont_form_block, state1} -> {:noreply, state1}
         other -> other
@@ -126,10 +137,17 @@ defmodule OmiseGO.API.BlockQueue do
 
     # private (server)
 
-    @spec submit_blocks(Core.t()) :: :ok
-    defp submit_blocks(%Core{} = state) do
+    defp tee(any) do
+      IO.puts " >> tee: #{inspect any}"
+      any
+    end
+
+    @spec submit_blocks(Core.t(), atom()) :: :ok
+    defp submit_blocks(%Core{} = state, from) do
+      IO.puts " >> [#{from}] submit_blocks - called"
       state
       |> Core.get_blocks_to_submit()
+      |> tee()
       |> Enum.each(&submit/1)
     end
 
@@ -142,11 +160,11 @@ defmodule OmiseGO.API.BlockQueue do
           :ok
 
         {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} ->
-          _ = Logger.debug(fn -> "Submission is known transaction - ignored" end)
+          _ = Logger.info(fn -> "Submission is known transaction - ignored" end)
           :ok
 
         {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}} ->
-          _ = Logger.debug(fn -> "Submission is known, but with higher price - ignored" end)
+          _ = Logger.info(fn -> "Submission is known, but with higher price - ignored" end)
           :ok
       end
     end
