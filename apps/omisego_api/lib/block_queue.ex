@@ -106,6 +106,9 @@ defmodule OmiseGO.API.BlockQueue do
 
     def handle_info(:check_ethereum_height, %Core{child_block_interval: child_block_interval} = state) do
       {:ok, height} = Eth.get_ethereum_height()
+
+      # TODO: submit_blocks is called throughout here a lot, and for now it's ok. Consider regaining more control
+      #       over how it is done. E.g. we may submit_blocks only in certain spots, or have it have its own timer
       submit_blocks(state)
 
       with {:do_form_block, state1} <- Core.set_ethereum_height(state, height) do
