@@ -2,7 +2,6 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OmiseGO.API.Fixtures
-
   use Plug.Test
 
   alias OmiseGO.API.State.Transaction
@@ -25,10 +24,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     deposit_height
   end
 
-  @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :alice, :bob]
+  @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
   test "get the blocks from child chain after transaction", %{config_map: config_map, alice: alice, bob: bob} do
-    Application.put_env(:omisego_eth, :contract_address, config_map.contract_addr)
-
     {:ok, _pid} =
       GenServer.start_link(
         OmiseGOWatcher.BlockGetter,
