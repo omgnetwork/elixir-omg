@@ -222,7 +222,10 @@ defmodule OmiseGO.Eth do
 
   def get_child_chain(blknum, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    {:ok, [root, created_at]} = call_contract(contract, "getChildChain(uint256)", [blknum], [:bytes32, {:uint, 256}])
+
+    {:ok, [root, created_at]} =
+      call_contract(contract, "getChildChain(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
+
     {:ok, {root, created_at}}
   end
 
