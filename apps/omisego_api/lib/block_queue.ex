@@ -97,8 +97,8 @@ defmodule OmiseGO.API.BlockQueue do
 
     def handle_info(:check_mined_child_head, state) do
       IO.puts "handle_info :check_mined_child_head"
-      {:ok, mined_num} = Eth.get_mined_child_block()
-      state1 = Core.set_mined(state, mined_num)
+      {:ok, mined_blknum} = Eth.get_mined_child_block()
+      state1 = Core.set_mined(state, mined_blknum)
       submit_blocks(state1, :check_mined_child_head)
       {:noreply, state1}
     end
@@ -137,17 +137,11 @@ defmodule OmiseGO.API.BlockQueue do
 
     # private (server)
 
-    defp tee(any) do
-      IO.puts " >> tee: #{inspect any}"
-      any
-    end
-
     @spec submit_blocks(Core.t(), atom()) :: :ok
     defp submit_blocks(%Core{} = state, from) do
-      IO.puts " >> [#{from}] submit_blocks - called"
+      IO.puts " >> [#{from}] submit_blocks with mined_child_block_num: #{state.mined_child_block_num} - called"
       state
       |> Core.get_blocks_to_submit()
-      |> tee()
       |> Enum.each(&submit/1)
     end
 

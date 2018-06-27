@@ -53,12 +53,13 @@ defmodule OmiseGO.DB.LevelDBServer do
   end
 
   def handle_call({:block_hashes, block_numbers_to_fetch}, _from, %__MODULE__{db_ref: db_ref} = state) do
-    result =
+    {:ok, hashes} =
       block_numbers_to_fetch
       |> Enum.map(fn block_number -> LevelDBCore.key(:block_hash, block_number) end)
       |> Enum.map(fn key -> get(key, db_ref) end)
       |> LevelDBCore.decode_values(:block_hash)
 
+    result = {:ok, Enum.zip(block_numbers_to_fetch, hashes)}
     {:reply, result, state}
   end
 
