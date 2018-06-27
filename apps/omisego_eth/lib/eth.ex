@@ -200,19 +200,19 @@ defmodule OmiseGO.Eth do
   """
   def get_exits(block_from, block_to, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    event = encode_event_signature("Exit(address,uint256)")
+    event = encode_event_signature("Exit(address,address,uint256)")
 
     parse_exit = fn "0x" <> deposit ->
-      [owner, utxo_position] =
+      [owner, token, utxo_position] =
         deposit
         |> Base.decode16!(case: :lower)
-        |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}])
+        |> ABI.TypeDecoder.decode_raw([:address, :address, {:uint, 256}])
 
       owner = "0x" <> Base.encode16(owner, case: :lower)
       blknum = div(utxo_position, @block_offset)
       txindex = utxo_position |> rem(@block_offset) |> div(@transaction_offset)
       oindex = utxo_position - blknum * @block_offset - txindex * @transaction_offset
-      %{owner: owner, blknum: blknum, txindex: txindex, oindex: oindex}
+      %{owner: owner, blknum: blknum, txindex: txindex, oindex: oindex, token: token}
     end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),

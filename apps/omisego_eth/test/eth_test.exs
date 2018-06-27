@@ -27,6 +27,10 @@ defmodule OmiseGO.EthTest do
     }
   end
 
+  defp eth do
+    "0x0000000000000000000000000000000000000000"
+  end
+
   defp deposit(contract) do
     {:ok, transaction_hash} = Eth.DevHelpers.deposit(1, 1, contract.authority_addr, contract.contract_addr)
     {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
@@ -86,7 +90,7 @@ defmodule OmiseGO.EthTest do
     deposit(contract)
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.authority_addr}]} ==
+    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.authority_addr, currency: eth()}]} ==
              Eth.get_deposits(1, height, contract.contract_addr)
   end
 

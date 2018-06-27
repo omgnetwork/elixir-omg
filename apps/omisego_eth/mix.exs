@@ -33,9 +33,8 @@ defmodule OmiseGO.Eth.MixProject do
       {:exexec, git: "https://github.com/paulperegud/exexec.git", branch: "add_streams", runtime: true},
       {
         :plasma_mvp_contracts,
-        # warning: broken exits!
         git: "https://github.com/paulperegud/plasma-mvp.git",
-        ref: "4e4f4bc099993d97cdc4a113883a9224865d47c2",
+        ref: "a7a8a7384178d51afa37f395368eb711277b01c3",
         sparse: "plasma/root_chain/contracts/",
         compile: contracts_compile(),
         app: false,
