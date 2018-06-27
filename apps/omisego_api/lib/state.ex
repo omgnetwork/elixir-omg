@@ -57,19 +57,19 @@ defmodule OmiseGO.API.State do
   Start processing state using the database entries
   """
   def init(:ok) do
-    with {:ok, height_query_result} <- DB.child_top_block_number(),
-         {:ok, last_deposit_query_result} <- DB.last_deposit_height(),
-         {:ok, utxos_query_result} <- DB.utxos() do
-      {
-        :ok,
-        Core.extract_initial_state(
-          utxos_query_result,
-          height_query_result,
-          last_deposit_query_result,
-          BlockQueue.child_block_interval()
-        )
-      }
-    end
+    {:ok, height_query_result} = DB.child_top_block_number()
+    {:ok, last_deposit_query_result} = DB.last_deposit_height()
+    {:ok, utxos_query_result} = DB.utxos()
+
+    {
+      :ok,
+      Core.extract_initial_state(
+        utxos_query_result,
+        height_query_result,
+        last_deposit_query_result,
+        BlockQueue.child_block_interval()
+      )
+    }
   end
 
   @doc """

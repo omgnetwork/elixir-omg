@@ -17,8 +17,8 @@ defmodule OmiseGO.DB.LevelDBServer do
   end
 
   def init(%{db_path: db_path}) do
-    with {:ok, db_ref} <- Exleveldb.open(db_path),
-         do: {:ok, %__MODULE__{db_ref: db_ref}}
+    {:ok, db_ref} = Exleveldb.open(db_path)
+    {:ok, %__MODULE__{db_ref: db_ref}}
   end
 
   def handle_call({:multi_update, db_updates}, _from, %__MODULE__{db_ref: db_ref} = state) do
