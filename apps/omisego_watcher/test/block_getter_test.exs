@@ -12,6 +12,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   @moduletag :integration
 
   @timeout 20_000
+  @block_offset 1_000_000_000
 
   defp deposit_to_child_chain(to, value, config) do
     {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
@@ -78,7 +79,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     {:ok, txhash} =
       Eth.start_exit(
-        utxo_pos * 1_000_000_000,
+        utxo_pos * @block_offset,
         tx_bytes,
         proof,
         sigs,
