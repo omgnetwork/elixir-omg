@@ -17,7 +17,7 @@ defmodule OmiseGO.Performance.SenderManager do
   end
 
   def sender_stats(new_stats) do
-    GenServer.cast(__MODULE__, {:stats, new_stats})
+    GenServer.cast(__MODULE__, {:stats, Map.put(new_stats, :timestamp, System.monotonic_time(:millisecond))})
   end
 
   def block_forming_time(blknum, total_ms) do
@@ -97,7 +97,7 @@ defmodule OmiseGO.Performance.SenderManager do
   """
   @spec handle_cast({:stats, event :: tuple()}, state :: map()) :: {:noreply, map()}
   def handle_cast({:stats, event}, state) do
-    {:noreply, %{state | events: [Map.put(event, :timestamp, System.monotonic_time(:millisecond)) | state.events]}}
+    {:noreply, %{state | events: [event | state.events]}}
   end
 
   @doc """
