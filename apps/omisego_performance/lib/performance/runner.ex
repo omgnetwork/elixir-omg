@@ -9,7 +9,7 @@ defmodule OmiseGO.Performance.Runner do
   Assumes test suite setup is done earlier, before running this function.
   Foreach user runs n submit_transaction requests to the chain server. Requests are done sequentially.
   """
-  @spec run(ntx_to_send :: integer, nusers :: integer, opt :: list) :: {:ok, String.t()}
+  @spec run(ntx_to_send :: integer, nusers :: integer, opt :: map) :: {:ok, String.t()}
   def run(ntx_to_send, nusers, opt) do
     {duration, _result} =
       :timer.tc(fn ->
@@ -29,7 +29,7 @@ defmodule OmiseGO.Performance.Runner do
   @doc """
   Runs above :run function with :fprof profiler. Profiler analysis is written to the temp file.
   """
-  @spec profile_and_run(ntx_to_send :: pos_integer, nusers :: pos_integer, opt :: list) :: {:ok, String.t()}
+  @spec profile_and_run(ntx_to_send :: pos_integer, nusers :: pos_integer, opt :: map) :: {:ok, String.t()}
   def profile_and_run(ntx_to_send, nusers, opt) do
     :fprof.apply(&OmiseGO.Performance.Runner.run/3, [ntx_to_send, nusers, opt], procs: [:all])
     :fprof.profile()

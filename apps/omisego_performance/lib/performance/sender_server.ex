@@ -79,8 +79,8 @@ defmodule OmiseGO.Performance.SenderServer do
   def handle_info(:do, %__MODULE__{ntx_to_send: 0} = state) do
     _ = Logger.debug(fn -> "[#{state.seqnum}] +++ Stoping... +++" end)
 
-    %__MODULE__{seqnum: seqnum, ntx_to_send: ntx_to_send, last_tx: %LastTx{blknum: blknum, txindex: txindex}} = state
-    OmiseGO.Performance.SenderManager.sender_stats(seqnum, blknum, txindex, ntx_to_send)
+    %__MODULE__{seqnum: seqnum, last_tx: %LastTx{blknum: blknum, txindex: txindex}} = state
+    OmiseGO.Performance.SenderManager.sender_stats(%{seqnum: seqnum, blknum: blknum, txindex: txindex})
     OmiseGO.Performance.SenderManager.sender_completed(state.seqnum)
     {:stop, :normal, state}
   end
@@ -148,18 +148,25 @@ defmodule OmiseGO.Performance.SenderServer do
   end
 
   # Handles result of successful Tx submission or retry request into new state and sends :do message
-  @spec update_state_with_tx_submission(tx_submit_result :: {:ok, map} | {:error, any}, state :: __MODULE__.state()) ::
-          __MODULE__.state()
+  @spec update_state_with_tx_submission(
+          tx_submit_result :: {:ok, map} | :retry | {:error, any},
+          state :: __MODULE__.state()
+        ) :: __MODULE__.state()
   defp update_state_with_tx_submission(
          tx_submit_result,
-         %__MODULE__{seqnum: seqnum, ntx_to_send: ntx_to_send, last_tx: last_tx} = state
+         %__MODULE__{seqnum: seqnum, last_tx: last_tx} = state
        ) do
     case tx_submit_result do
       {:ok, newblknum, newtxindex, newvalue} ->
         send(self(), :do)
 
         if newblknum > last_tx.blknum,
-          do: OmiseGO.Performance.SenderManager.sender_stats(seqnum, last_tx.blknum, last_tx.txindex, ntx_to_send)
+          do:
+            OmiseGO.Performance.SenderManager.sender_stats(%{
+              seqnum: seqnum,
+              blknum: last_tx.blknum,
+              txindex: last_tx.txindex
+            })
 
         state |> next_state(newblknum, newtxindex, newvalue)
 

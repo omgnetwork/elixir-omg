@@ -16,8 +16,8 @@ defmodule OmiseGO.Performance.SenderManager do
     GenServer.cast(__MODULE__, {:done, seqnum})
   end
 
-  def sender_stats(seqnum, blknum, txindex, txs_left) do
-    GenServer.cast(__MODULE__, {:stats, {seqnum, blknum, txindex, txs_left, System.monotonic_time(:millisecond)}})
+  def sender_stats(new_stats) do
+    GenServer.cast(__MODULE__, {:stats, new_stats})
   end
 
   def block_forming_time(blknum, total_ms) do
@@ -27,9 +27,9 @@ defmodule OmiseGO.Performance.SenderManager do
   @doc """
   Starts the sender's manager process
   """
-  @spec start_link_all_senders(ntx_to_send :: integer, nusers :: integer, opt :: list) :: pid
-  def start_link_all_senders(ntx_to_send, nusers, opt) do
-    {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, nusers, opt[:destdir]}, name: __MODULE__)
+  @spec start_link_all_senders(ntx_to_send :: integer, nusers :: integer, opt :: map) :: pid
+  def start_link_all_senders(ntx_to_send, nusers, %{destdir: destdir} = _opt) do
+    {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, nusers, destdir}, name: __MODULE__)
     mypid
   end
 
@@ -97,7 +97,7 @@ defmodule OmiseGO.Performance.SenderManager do
   """
   @spec handle_cast({:stats, event :: tuple()}, state :: map()) :: {:noreply, map()}
   def handle_cast({:stats, event}, state) do
-    {:noreply, %{state | events: [event | state.events]}}
+    {:noreply, %{state | events: [Map.put(event, :timestamp, System.monotonic_time(:millisecond)) | state.events]}}
   end
 
   @doc """
@@ -116,12 +116,14 @@ defmodule OmiseGO.Performance.SenderManager do
   # Returns array of tuples, each tuple contains four fields:
   # * {blknum,   total_txs_in_blk,   avg_txs_in_sec,   time_between_blocks_ms}
   defp analyze(%{events: events, start_time: start}) do
-    events_by_blknum = events |> Enum.group_by(&elem(&1, 1))
+    events_by_blknum = events |> Enum.group_by(& &1.blknum)
 
     ordered_keys =
-      @initial_blknum
-      |> Stream.iterate(&(&1 + @initial_blknum))
-      |> Enum.take_while(&Map.has_key?(events_by_blknum, &1))
+      events_by_blknum
+      |> Map.keys()
+      |> Enum.sort()
+      # we don't want the deposit blocks that end up in the events
+      |> Enum.filter(fn blknum -> blknum >= @initial_blknum end)
 
     {_, block_stats} =
       ordered_keys
@@ -134,9 +136,9 @@ defmodule OmiseGO.Performance.SenderManager do
 
   # Receives all events from Senders processes related to the same block and computes block's statistics.
   defp collect_block(array) do
-    blknum = array |> hd |> elem(1)
-    tx_max_index = array |> Enum.map(&elem(&1, 2)) |> Enum.max()
-    block_formed_timestamp = array |> Enum.map(&elem(&1, 4)) |> Enum.min()
+    blknum = array |> hd |> Map.get(:blknum)
+    tx_max_index = array |> Enum.map(& &1.txindex) |> Enum.max()
+    block_formed_timestamp = array |> Enum.map(& &1.timestamp) |> Enum.min()
 
     {blknum, tx_max_index + 1, block_formed_timestamp}
   end
@@ -149,11 +151,11 @@ defmodule OmiseGO.Performance.SenderManager do
       {:cont,
        {block_formed_timestamp,
         [
-          {
-            blknum,
-            txs_in_blk,
-            txs_per_second(txs_in_blk, span_ms),
-            span_ms
+          %{
+            blknum: blknum,
+            txs: txs_in_blk,
+            tps: txs_per_second(txs_in_blk, span_ms),
+            span_ms: span_ms
           }
           | list
         ]}}
