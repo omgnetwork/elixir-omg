@@ -39,8 +39,8 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     queue
   end
 
-  def recover(known_hashes, mined_child_block_num) do
-    top_mined_hash = "#{inspect(trunc(mined_child_block_num / 1000))}"
+  def recover(known_hashes, mined_child_block_num, mined_hash \\ nil) do
+    top_mined_hash = mined_hash || "#{inspect(trunc(mined_child_block_num / 1000))}"
 
     new(
       mined_child_block_num: mined_child_block_num,
@@ -66,6 +66,15 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
       assert ["8", "9"] =
                [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}]
                |> recover(7000)
+               |> elem(1)
+               |> get_blocks_to_submit()
+               |> hashes()
+    end
+
+    test "Recovers after restart even when only empty blocks were mined" do
+      assert ["0", "0"] ==
+               [{5000, "0"}, {6000, "0"}, {7000, "0"}, {8000, "0"}, {9000, "0"}]
+               |> recover(7000, "0")
                |> elem(1)
                |> get_blocks_to_submit()
                |> hashes()
