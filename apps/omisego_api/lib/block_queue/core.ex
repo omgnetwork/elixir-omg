@@ -89,7 +89,6 @@ defmodule OmiseGO.API.BlockQueue.Core do
           Core.t() | {:error, :unexpected_block_number}
   def enqueue_block(state, hash, expected_block_number) do
     own_height = state.formed_child_block_num + state.child_block_interval
-    IO.puts(" >> enqueue_block -- expected_block_number: #{expected_block_number}, own_height: #{own_height}")
 
     with :ok <- validate_block_number(expected_block_number, own_height) do
       enqueue_block(state, hash)
@@ -308,7 +307,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
   # NOTE: handles both the case when there aren't any hashes in database and there are
   @spec enqueue_existing_blocks(Core.t(), BlockQueue.hash(), [{pos_integer(), BlockQueue.hash()}]) ::
-          {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_hash_not_found_in_db}
+          {:ok, Core.t()} | {:error, :contract_ahead_of_db | :mined_blknum_not_found_in_db | :hashes_dont_match}
   defp enqueue_existing_blocks(state, @zero_bytes32, [] = _known_hahes) do
     # we start a fresh queue from db and fresh contract
     {:ok, %{state | formed_child_block_num: 0}}
@@ -322,11 +321,6 @@ defmodule OmiseGO.API.BlockQueue.Core do
   defp enqueue_existing_blocks(state, top_mined_hash, hashes) do
     with :ok <- block_number_and_hash_valid?(top_mined_hash, state.mined_child_block_num, hashes) do
       {mined_blocks, fresh_blocks} = split_existing_blocks(state, hashes)
-
-      IO.puts(" >> enqueue_existing_blocks:\nMined blocks:")
-      IO.inspect(mined_blocks)
-      IO.puts("Fresh blocks:")
-      IO.inspect(fresh_blocks)
 
       mined_submissions =
         for {num, hash} <- mined_blocks do
@@ -355,7 +349,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
     index = Enum.find_index(blknums_and_hashes, &(elem(&1, 0) == blknum))
 
     {mined, fresh} = Enum.split(blknums_and_hashes, index + 1)
-    fresh_hashes = Enum.map(fresh, &(elem(&1, 1)))
+    fresh_hashes = Enum.map(fresh, &elem(&1, 1))
 
     {mined, fresh_hashes}
   end

@@ -65,7 +65,7 @@ defmodule OmiseGO.EthTest do
     tx = generate_transaction(nonce)
 
     # 1st submission
-    {:ok, txhash} = Eth.submit_block(tx, contract.authority_addr, contract.contract_addr)
+    {:ok, _txhash} = Eth.submit_block(tx, contract.authority_addr, contract.contract_addr)
 
     # 2nd submission
     {:error, %{"message" => message}} = Eth.submit_block(tx, contract.authority_addr, contract.contract_addr)
