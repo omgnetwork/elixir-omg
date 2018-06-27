@@ -15,13 +15,13 @@ defmodule OmiseGOWatcherWeb.Controller.Status do
   def get(conn, _params) do
     with last_validated_child_block_number <- get_last_validated_child_block_number(),
          last_mined_child_block_number <- get_last_mined_child_block_number(),
-         syncing_status <- get_syncing_status(),
+         geth_syncing_status <- get_geth_syncing_status(),
          last_mined_child_block_timestamp <- get_last_mined_child_block_timestamp(last_mined_child_block_number) do
       json(conn, %{
         last_validated_child_block_number: last_validated_child_block_number,
         last_mined_child_block_number: last_mined_child_block_number,
         last_mined_child_block_timestamp: last_mined_child_block_timestamp,
-        syncing_status: syncing_status
+        geth_syncing_status: geth_syncing_status
       })
     end
   end
@@ -40,7 +40,7 @@ defmodule OmiseGOWatcherWeb.Controller.Status do
     created_at
   end
 
-  defp get_syncing_status do
+  defp get_geth_syncing_status do
     Eth.syncing?()
   end
 end

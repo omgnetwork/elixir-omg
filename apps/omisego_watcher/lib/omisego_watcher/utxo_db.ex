@@ -15,7 +15,7 @@ defmodule OmiseGOWatcher.UtxoDB do
   def field_names, do: @field_names
 
   schema "utxos" do
-    field(:address, :string)
+    field(:address, :binary)
     field(:amount, :integer)
     field(:blknum, :integer)
     field(:txindex, :integer)

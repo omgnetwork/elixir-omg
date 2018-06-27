@@ -13,10 +13,10 @@ defmodule OmiseGOWatcher.Repo.Migrations.CreateTransaction do
       add :txindex2, :integer, null: false
       add :oindex2, :integer, null: false
 
-      add :newowner1, :string, null: false
+      add :newowner1, :binary, null: false
       add :amount1, :integer, null: false
 
-      add :newowner2, :string, null: false
+      add :newowner2, :binary, null: false
       add :amount2, :integer, null: false
 
       add :fee, :integer, null: false
