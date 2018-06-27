@@ -1,8 +1,8 @@
 # OmiseGO
 
-For child chain server specific `README.md` see `apps/omisego_api`.
+For the child chain server, see [apps/omisego_api](apps/omisego_api).
 
-For watcher specific `README.md` see `apps/omisego_watcher`.
+For the watcher, see [apps/omisego_watcher](apps/omisego_watcher).
 
 For generic information, keep on reading.
 
