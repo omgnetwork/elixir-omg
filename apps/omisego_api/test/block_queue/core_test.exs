@@ -143,7 +143,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
 
     test "Recovers after restart and is able to process more blocks" do
       assert ["8", "9", "10"] ==
-              [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}]
+               [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}]
                |> recover(7000)
                |> elem(1)
                |> enqueue_block("10", 10 * @child_block_interval)
