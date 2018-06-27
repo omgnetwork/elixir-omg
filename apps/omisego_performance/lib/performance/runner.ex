@@ -17,7 +17,7 @@ defmodule OmiseGO.Performance.Runner do
         manager = OmiseGO.Performance.SenderManager.start_link_all_senders(ntx_to_send, nusers, opt)
 
         # fire block creator
-        _ = OmiseGO.Performance.BlockCreator.start_link()
+        _ = OmiseGO.Performance.BlockCreator.start_link(opt[:block_every_ms])
 
         # Wait all senders do thier job, checker will stop when it happens and stops itself
         wait_for(manager)

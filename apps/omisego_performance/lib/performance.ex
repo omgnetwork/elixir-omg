@@ -11,6 +11,14 @@ defmodule OmiseGO.Performance do
   ## 2 - running 3 senders with 5 transactions each with profiler
    > mix run --no-start -e 'OmiseGO.Performance.setup_and_run(5, 3, %{profile: true})'
 
+  # Options
+
+  The following options can be sent in a map as last parameters (defaults given)
+  %{
+    destdir: ".", # directory where the results will be put
+    profile: false,
+    block_every_ms: 2000 # how often do you want the tester to force a block being formed
+  }
   """
 
   require Logger
@@ -25,7 +33,7 @@ defmodule OmiseGO.Performance do
 
     {:ok, started_apps} = testup()
 
-    defaults = %{destdir: ".", profile: false}
+    defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
 
     opt = Map.merge(defaults, opt)
 
