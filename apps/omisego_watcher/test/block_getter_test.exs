@@ -11,7 +11,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
   @moduletag :integration
 
-  @timeout 10_000
+  @timeout 20_000
 
   defp deposit_to_child_chain(to, value, config) do
     {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
@@ -72,10 +72,17 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       sigs: sigs
     } = compose_utxo_exit(block_nr, 0, 0);
 
+      IO.inspect block_nr
+    IO.inspect utxo_pos
+    IO.inspect tx_bytes
+    IO.inspect proof
+    IO.inspect sigs
+
     {:ok, txhash} = Eth.start_exit(utxo_pos, tx_bytes, proof, sigs, 1, config_map.authority_addr, config_map.contract_addr)
     {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
-
-    # TODO add assert Eth.get_exit(child_blknum * @block_offset, contract.address) , Currently ABI library is broken
+    :timer.sleep(1000)
+    assert {:ok, [%{amount: 8, blknum: 1000, oindex: 0, owner: config_map.authority_addr, txindex: 0}]} ==
+             Eth.get_exits(0, 10, config_map.contract_addr)
 
   end
 

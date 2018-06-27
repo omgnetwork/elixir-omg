@@ -4,7 +4,7 @@ defmodule OmiseGO.EthTest do
   """
   # TODO: if proves to be brittle and we cover that functionality in other integration test then consider removing
 
-  alias OmiseGO.API.Crypto
+  alias OmiseGO.API.{Block, Crypto}
   alias OmiseGO.Eth, as: Eth
   alias OmiseGO.Eth.WaitFor, as: WaitFor
   alias OmiseGO.API.State.Transaction
@@ -44,9 +44,8 @@ defmodule OmiseGO.EthTest do
     {:ok, _} = WaitFor.eth_receipt(txhash, @timeout)
   end
 
-  defp start_exit(utxo_position, txbytes, proof, sigs, gas_price, contract) do
-    {:ok, txhash} =
-      Eth.start_exit(utxo_position, txbytes, proof, sigs, gas_price, contract.authority_addr, contract.contract_addr)
+  defp start_exit(utxo_position, txbytes, proof, sigs, gas_price, from, contract) do
+    {:ok, txhash} = Eth.start_exit(utxo_position, txbytes, proof, sigs, gas_price, from, contract)
 
     {:ok, _} = WaitFor.eth_receipt(txhash, @timeout)
   end
@@ -65,6 +64,9 @@ defmodule OmiseGO.EthTest do
 
   @tag fixtures: [:contract, :alice, :bob]
   test "start_exit", %{contract: contract, alice: alice, bob: bob} do
+    {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
+    {:ok, _} = Eth.DevHelpers.import_unlock_fund(bob)
+
     raw_tx = %OmiseGO.API.State.Transaction{
       amount1: 8,
       amount2: 3,
@@ -81,38 +83,40 @@ defmodule OmiseGO.EthTest do
 
     signed_tx = Transaction.sign(raw_tx, bob.priv, alice.priv)
 
-    {:ok, %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash}} =
+    {:ok, %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash} = recovered_tx} =
       Transaction.Recovered.recover_from(signed_tx)
 
-    {:ok, mt} = MerkleTree.new([signed_tx_hash], &Crypto.hash/1, @transaction_merkle_tree_height)
+    block =
+      %Block{transactions: [recovered_tx]}
+      |> Block.merkle_hash()
 
-    {:ok, child_blknum} = Eth.get_current_child_block(contract.contract_addr)
-
-    block = %Eth.BlockSubmission{
+    %Eth.BlockSubmission{
       num: 1,
-      hash: mt.root.value,
+      hash: block.hash,
       gas_price: 20_000_000_000,
       nonce: 1
     }
-
-    Eth.submit_block(block, contract.authority_addr, contract.contract_addr)
+    |> Eth.submit_block(contract.authority_addr, contract.contract_addr)
 
     txs = [Map.merge(raw_tx, %{txindex: 0, txid: signed_tx_hash, sig1: signed_tx.sig1, sig2: signed_tx.sig2})]
+
+    {:ok, child_blknum} = Eth.get_current_child_block(contract.contract_addr)
 
     %{utxo_pos: utxo_pos, tx_bytes: tx_bytes, proof: proof, sigs: sigs} =
       UtxoDB.compose_utxo_exit(txs, child_blknum * @block_offset, 0, 0)
 
-    {:ok, _} = start_exit(utxo_pos, tx_bytes, proof, sigs, 1, contract)
+    bob_address = "0x" <> Base.encode16(bob.addr, case: :lower)
+    {:ok, _} = start_exit(utxo_pos, tx_bytes, proof, sigs, 1, bob_address, contract.contract_addr)
 
-    # IO.inspect Eth.get_exit(utxo_pos, contract.contract_addr)
-    # TODO add assert Eth.get_exit(child_blknum * @block_offset, contract.address) , Currently ABI library is broken
+    assert {:ok, [%{amount: 8, blknum: 1000, oindex: 0, owner: bob_address, txindex: 0}]} ==
+             Eth.get_exits(0, 1000, contract.contract_addr)
   end
 
   @tag fixtures: [:contract]
   test "child block increment after add block", %{contract: contract} do
     add_blocks(1..4, contract)
     # current child block is a num of the next operator block:
-    {:ok, 5000} = Eth.get_current_child_block(contract.contract_addr)
+    {:ok, 5000} == Eth.get_current_child_block(contract.contract_addr)
   end
 
   @tag fixtures: [:geth]
