@@ -96,15 +96,17 @@ defmodule OmiseGO.EthTest do
     assert is_integer(number)
   end
 
-  @tag fixtures: [:contract]
-  test "get exits from a range of blocks", %{contract: contract} do
-    deposit(contract)
-    exit_deposit(contract)
-    {:ok, height} = Eth.get_ethereum_height()
+  #FIXME: requires working proofs implementation in Elixir
+  # @tag fixtures: [:contract]
+  # test "get exits from a range of blocks", %{contract: contract} do
+  #   deposit(contract)
+  #   exit_deposit(contract)
+  #   {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{owner: contract.authority_addr, blknum: 1, txindex: 0, oindex: 0}]} ==
-             Eth.get_exits(1, height, contract.contract_addr)
-  end
+  #   assert {:ok, [%{owner: contract.authority_addr, blknum: 1, txindex: 0,
+  #                   oindex: 0, token: eth()}]} ==
+  #            Eth.get_exits(1, height, contract.contract_addr)
+  # end
 
   @tag fixtures: [:contract]
   test "get mined block number", %{contract: contract} do
