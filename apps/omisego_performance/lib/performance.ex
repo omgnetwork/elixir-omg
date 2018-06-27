@@ -9,7 +9,7 @@ defmodule OmiseGO.Performance do
    > mix run --no-start -e 'OmiseGO.Performance.setup_and_run(5, 3)'
 
   ## 2 - running 3 senders with 5 transactions each with profiler
-   > mix run --no-start -e 'OmiseGO.Performance.setup_and_run(5, 3, profile: true)'
+   > mix run --no-start -e 'OmiseGO.Performance.setup_and_run(5, 3, %{profile: true})'
 
   """
 
@@ -19,11 +19,15 @@ defmodule OmiseGO.Performance do
   @doc """
   Setup dependencies, then submits {ntx_to_send} transcations for each of {nusers} users.
   """
-  @spec setup_and_run(ntx_to_send :: pos_integer, nusers :: pos_integer, opt :: list) :: :ok
-  def setup_and_run(ntx_to_send, nusers, opt \\ []) do
+  @spec setup_and_run(ntx_to_send :: pos_integer, nusers :: pos_integer, opt :: map) :: :ok
+  def setup_and_run(ntx_to_send, nusers, opt \\ %{}) do
     _ = Logger.info(fn -> "OmiseGO PerfTest users: #{nusers}, reqs: #{ntx_to_send}." end)
 
     {:ok, started_apps} = testup()
+
+    defaults = %{destdir: ".", profile: false}
+
+    opt = Map.merge(defaults, opt)
 
     run([ntx_to_send, nusers, opt], opt[:profile])
 

@@ -31,3 +31,7 @@ Makefile
 
 # Developers config file
 your_config_file.exs
+
+# results of perftesting and profiling with default arguments
+fprof.trace
+perf_result_*

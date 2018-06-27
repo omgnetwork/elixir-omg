@@ -10,11 +10,11 @@ defmodule OmiseGO.Performance.Runner do
   Foreach user runs n submit_transaction requests to the chain server. Requests are done sequentially.
   """
   @spec run(ntx_to_send :: integer, nusers :: integer, opt :: list) :: {:ok, String.t()}
-  def run(ntx_to_send, nusers, _opt) do
+  def run(ntx_to_send, nusers, opt) do
     {duration, _result} =
       :timer.tc(fn ->
         # fire async transaction senders
-        manager = OmiseGO.Performance.SenderManager.start_link_all_senders(ntx_to_send, nusers)
+        manager = OmiseGO.Performance.SenderManager.start_link_all_senders(ntx_to_send, nusers, opt)
 
         # fire block creator
         _ = OmiseGO.Performance.BlockCreator.start_link()
@@ -34,7 +34,7 @@ defmodule OmiseGO.Performance.Runner do
     :fprof.apply(&OmiseGO.Performance.Runner.run/3, [ntx_to_send, nusers, opt], procs: [:all])
     :fprof.profile()
 
-    {:ok, destfile} = Briefly.create(prefix: "perftest", extname: ".analysis")
+    destfile = Path.join(opt[:destdir], "perf_result_#{:os.system_time(:seconds)}_profiling")
 
     [callers: true, sort: :own, totals: true, details: true, dest: String.to_charlist(destfile)]
     |> :fprof.analyse()

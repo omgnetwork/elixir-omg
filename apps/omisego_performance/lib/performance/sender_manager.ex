@@ -27,17 +27,17 @@ defmodule OmiseGO.Performance.SenderManager do
   @doc """
   Starts the sender's manager process
   """
-  @spec start_link_all_senders(ntx_to_send :: integer, nusers :: integer) :: pid
-  def start_link_all_senders(ntx_to_send, nusers) do
-    {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, nusers}, name: __MODULE__)
+  @spec start_link_all_senders(ntx_to_send :: integer, nusers :: integer, opt :: list) :: pid
+  def start_link_all_senders(ntx_to_send, nusers, opt) do
+    {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, nusers, opt[:destdir]}, name: __MODULE__)
     mypid
   end
 
   @doc """
   Starts sender processes and reschedule check whether they are done.
   """
-  @spec init({integer, integer}) :: {:ok, map()}
-  def init({ntx_to_send, nusers}) do
+  @spec init({integer, integer, binary}) :: {:ok, map()}
+  def init({ntx_to_send, nusers, destdir}) do
     Process.flag(:trap_exit, true)
     _ = Logger.debug(fn -> "[SM] +++ init/1 called with #{nusers} users, each to send #{ntx_to_send} +++" end)
 
@@ -56,7 +56,8 @@ defmodule OmiseGO.Performance.SenderManager do
        events: [],
        block_times: [],
        goal: ntx_to_send,
-       start_time: System.monotonic_time(:millisecond)
+       start_time: System.monotonic_time(:millisecond),
+       destdir: destdir
      }}
   end
 
@@ -164,8 +165,8 @@ defmodule OmiseGO.Performance.SenderManager do
   defp txs_per_second(txs_count, interval_ms), do: Float.round(txs_count * 1000 / interval_ms, 2)
 
   # handle termination
-  defp write_stats(state) do
-    {:ok, destfile} = Briefly.create(prefix: "perftest", extname: ".statistics")
+  defp write_stats(%{destdir: destdir} = state) do
+    destfile = Path.join(destdir, "perf_result_#{:os.system_time(:seconds)}_stats")
 
     stats = analyze(state)
     data = "Performance statistics:\n#{inspect(stats, limit: :infinity, pretty: true)}\n"
