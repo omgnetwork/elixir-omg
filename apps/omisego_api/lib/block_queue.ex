@@ -103,8 +103,6 @@ defmodule OmiseGO.API.BlockQueue do
     end
 
     def handle_info(:check_ethereum_height, %Core{child_block_interval: child_block_interval} = state) do
-<<<<<<< fbf6bb1597e8e94738fe5841640f51ff3c581265
-<<<<<<< 91a149480f33010a8c16bcfee5b6dd7dd63018be
       {:ok, height} = Eth.get_ethereum_height()
 
       # TODO: submit_blocks is called throughout here a lot, and for now it's ok. Consider regaining more control
@@ -114,17 +112,6 @@ defmodule OmiseGO.API.BlockQueue do
       with {:do_form_block, state1} <- Core.set_ethereum_height(state, height) do
         :ok = OmiseGO.API.State.form_block(child_block_interval)
         {:noreply, state1}
-=======
-      IO.puts "handle_info :check_ethereum_height"
-=======
->>>>>>> Cleaning, format, credo, dialyzer
-      with {:ok, height} <- Eth.get_ethereum_height(),
-           {:do_form_block, state1} <- Core.set_ethereum_height(state, height),
-           {:ok, block_hash, block_number} <- OmiseGO.API.State.form_block(child_block_interval) do
-        state2 = Core.enqueue_block(state1, block_hash, block_number)
-        submit_blocks(state2)
-        {:noreply, state2}
->>>>>>> Investigating the bug
       else
         {:dont_form_block, state1} -> {:noreply, state1}
         other -> other
