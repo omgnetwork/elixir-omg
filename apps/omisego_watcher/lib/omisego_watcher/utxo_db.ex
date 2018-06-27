@@ -94,16 +94,14 @@ defmodule OmiseGOWatcher.UtxoDB do
   def compose_utxo_exit(block_height, txindex, oindex) do
     txs = TransactionDB.find_by_txblknum(block_height)
 
-    case Enum.any?(txs, fn(tx) -> tx.txindex == txindex end) do
+    case Enum.any?(txs, fn tx -> tx.txindex == txindex end) do
       false -> {:error, :no_tx_for_given_block_height}
       true -> compose_utxo_exit(txs, block_height, txindex, oindex)
     end
-
   end
 
   def compose_utxo_exit(txs, block_height, txindex, oindex) do
-
-    sorted_txs = Enum.sort_by(txs, &(&1.txindex))
+    sorted_txs = Enum.sort_by(txs, & &1.txindex)
 
     recovered_txs = Enum.map_every(sorted_txs, 1, fn tx -> %Recovered{signed_tx_hash: tx.txid} end)
 

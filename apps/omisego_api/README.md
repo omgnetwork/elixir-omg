@@ -9,10 +9,10 @@ For the responsibilities and design of the child chain server see [Tesuji Plasma
 ## Setting up
 
 1. Provide an Ethereum node connected to the appropriate network
-2. Deploy `RootChain.sol` contract and prepare operator's authority address
-3. Initialize the child chain database.
+1. Deploy `RootChain.sol` contract and prepare operator's authority address
+1. Initialize the child chain database.
 Do that with `mix run --no-start -e 'OmiseGO.DB.init()'`
-4. Produce a configuration file with `omisego_eth` configured to the contract address, operator (authority) address and hash of contract-deploying transaction.
+1. Produce a configuration file with `omisego_eth` configured to the contract address, operator (authority) address and hash of contract-deploying transaction.
 To do that use the template, filling it with details on the contract:
 
         use Mix.Config
@@ -22,19 +22,19 @@ To do that use the template, filling it with details on the contract:
           authority_addr: "0x0",
           txhash_contract: "0x0"
 
-5. Start the child chain server with the JSON-RPC activated
+1. Start the child chain server, referencing the configuration file from the previous step with the JSON-RPC interface activated
   - `cd apps/omisego_jsonrpc`
   - `mix run --no-halt --config path/to/config.exs`
 
-### Setting up (developer's environment)
+### Setting up (the developer's environment)
 
 This is an example of how to quickly setup the developer's environment to run the child chain server.
 
 1. For the Ethereum node: `geth --dev --dev.period 2 --rpc --rpcapi personal,web3,eth` gives a disposable private network
-2. For the contract/authority address: (`mix run --no-start -e 'IO.inspect OmiseGO.Eth.DevHelpers.prepare_env!()'`)
-3. Initialize child chain database normally.
+1. For the contract/authority address: (`mix run --no-start -e 'IO.inspect OmiseGO.Eth.DevHelpers.prepare_env!()'`)
+1. Initialize child chain database normally.
 **NOTE** It will use the default db path always (`~/.omisego/data`) so when running child chain and watcher side by side you need to configure more.
-3. Configure `omisego_eth` normally, using data from `prepare_env!`.
+1. Configure `omisego_eth` normally, using data from `prepare_env!`.
     You can also shortcut with this little Elixir hocus-pocus:
 
           mix run --no-start -e \
@@ -58,8 +58,8 @@ In the REPL you can run commands mentioned in demos (see `docs/...`, don't pick 
 
 ### JSONRPC 2.0
 
-JSONRPC 2.0 requests are listened on on the port specified in `omisego_jsonrpc`'s `config` (`9656` by default).
-The available RPC calls are defined by `omisego_api` in `api.ex` - the functions are `method` names and their respective arguments make the dictionary sent as `params`.
+JSONRPC 2.0 requests are served up on the port specified in `omisego_jsonrpc`'s `config` (`9656` by default).
+The available RPC calls are defined by `omisego_api` in `api.ex` - the functions are `method` names and their respective arguments must be sent in a `params` dictionary.
 The argument names are indicated by the `@spec` clauses.
 
 #### `submit`
@@ -128,8 +128,8 @@ The argument names are indicated by the `@spec` clauses.
 
 ## Overview of apps
 
-OmiseGO is an umbrella app comprising several Elixir applications.
-Apps listed below belong to the child chain server application, for Watcher-related apps see `apps/omisego_watcher/README.md`.
+OmiseGO is an umbrella app comprising of several Elixir applications.
+The apps listed below belong to the child chain server application, for Watcher-related apps see `apps/omisego_watcher/README.md`.
 
 The general idea of the apps responsibilities is:
   - `omisego_api` - child chain server and main entrypoint to the functionality
@@ -148,12 +148,12 @@ The general idea of the apps responsibilities is:
 
 ### Funding the operator address
 
-The address that is running the child chain server and submitting blocks needs to be funded with ether.
-At current stage this is designed as a manual process, i.e. we assume that every **gas reserve checkpoint interval**, someone will ensure that **gas reserve** worth of ether is accessible for transactions.
+The address that is running the child chain server and submitting blocks needs to be funded with Ether.
+At the current stage this is designed as a manual process, i.e. we assume that every **gas reserve checkpoint interval**, someone will ensure that **gas reserve** worth of Ether is available for transactions.
 
-Gas reserve must be enough to cover gas reserve checkpoint interval of submitting blocks, assuming the most pessimistic scenario of gas price.
+Gas reserve must be enough to cover the gas reserve checkpoint interval of submitting blocks, assuming the most pessimistic scenario of gas price.
 
-Calculate as follows:
+Calculate the gas reserve as follows:
 
 ```
 gas_reserve = child_blocks_per_day * days_in_interval * gas_per_submission * highest_gas_price
@@ -163,12 +163,13 @@ where
 child_blocks_per_day = ethereum_blocks_per_day / submit_period
 ```
 **Submit period** is the number of Ethereum blocks per a single child block submission) - configured in `:omisego_api, :child_block_submit_period`
-**Highest gas price** is the maximum gas price which operator allows when trying to have the block submission mined (operator always tries to pay less than that maximum, but has to adapt to Ethereum traffic) - configured in (**TODO** when doing OMG-47 task)
+
+**Highest gas price** is the maximum gas price which the operator allows for when trying to have the block submission mined (operator always tries to pay less than that maximum, but has to adapt to Ethereum traffic) - configured in (**TODO** when doing OMG-47 task)
 
 #### Example
 
 Assuming:
-- submitting a child block every Ethereum block
+- submission of a child block every Ethereum block
 - weekly cadence of funding
 - highest gas price 40 Gwei
 - 75071 gas per submission (checked for `RootChain.sol` used  [at this revision](https://github.com/omisego/omisego/commit/21dfb32fae82a59824aa19bbe7db87ecf33ecd04))

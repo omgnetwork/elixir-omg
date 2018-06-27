@@ -2,7 +2,7 @@
 
 **IMPORTANT NOTICE: Heavily WIP, expect anything**
 
-The Watcher is a observing node that connects to Ethereum and the child chain server's API.
+The Watcher is an observing node that connects to Ethereum and the child chain server's API.
 It exposes the information it gathers via a REST interface (Phoenix)
 For the responsibilities and design of the watcher see [Tesuji Plasma Blockchain Design document](FIXME link pending).
 
