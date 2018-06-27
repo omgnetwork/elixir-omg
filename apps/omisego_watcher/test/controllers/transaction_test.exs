@@ -5,28 +5,13 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   use Plug.Test
 
   alias OmiseGO.API.Block
-  alias OmiseGO.API.State.Transaction
   alias OmiseGOWatcher.TransactionDB
-
-  @transaction %Transaction{
-    blknum1: 0,
-    txindex1: 0,
-    oindex1: 0,
-    blknum2: 0,
-    txindex2: 0,
-    oindex2: 0,
-    newowner1: "",
-    amount1: 0,
-    newowner2: "",
-    amount2: 0,
-    fee: 0
-  }
 
   @tag fixtures: [:watcher_sandbox]
   test "insert and retrive transaction" do
     txblknum = 0
     txindex = 0
-    recovered = Transaction.make_recovered(@transaction)
+    recovered = OmiseGO.API.TestHelper.create_recovered([],[])
     {:ok, %TransactionDB{txid: id}} = TransactionDB.insert(recovered, txblknum, txindex)
     expected_transaction = create_expected_transaction(id, recovered, txblknum, txindex)
     assert expected_transaction == delete_meta(TransactionDB.get(id))
@@ -35,9 +20,8 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   @tag fixtures: [:watcher_sandbox]
   test "insert and retrive block of transactions " do
     txblknum = 0
-    recovered1 = Transaction.make_recovered(@transaction)
-    recovered2 = Transaction.make_recovered(put_in(@transaction.blknum1, 1))
-
+    recovered1 = OmiseGO.API.TestHelper.create_recovered([],[])
+    recovered2 = OmiseGO.API.TestHelper.create_recovered([{1,0,0,%{priv: <<>>}}],[])
     [{:ok, %TransactionDB{txid: txid_1}}, {:ok, %TransactionDB{txid: txid_2}}] =
       TransactionDB.insert(%Block{
         transactions: [
