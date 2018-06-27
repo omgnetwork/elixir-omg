@@ -4,7 +4,7 @@ defmodule OmiseGO.EthTest do
   """
   # TODO: if proves to be brittle and we cover that functionality in other integration test then consider removing
 
-  alias OmiseGO.API.{Block, Crypto}
+  alias OmiseGO.API.Block
   alias OmiseGO.Eth, as: Eth
   alias OmiseGO.Eth.WaitFor, as: WaitFor
   alias OmiseGO.API.State.Transaction
@@ -17,7 +17,6 @@ defmodule OmiseGO.EthTest do
   @timeout 20_000
   @block_offset 1_000_000_000
   @transaction_offset 10_000
-  @transaction_merkle_tree_height 16
 
   @moduletag :integration
 
@@ -116,7 +115,7 @@ defmodule OmiseGO.EthTest do
   test "child block increment after add block", %{contract: contract} do
     add_blocks(1..4, contract)
     # current child block is a num of the next operator block:
-    {:ok, 5000} == Eth.get_current_child_block(contract.contract_addr)
+    {:ok, 5000} = Eth.get_current_child_block(contract.contract_addr)
   end
 
   @tag fixtures: [:geth]

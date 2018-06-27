@@ -118,34 +118,35 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   end
 
   @tag fixtures: [:watcher_sandbox]
-  test "The proof format is valid" do
+  test "compose_utxo_exit should return proper proof format" do
     TransactionDB.insert(<<1>>, @signed_tx, 1, 1)
     TransactionDB.insert(<<2>>, @signed_tx, 1, 2)
     TransactionDB.insert(<<3>>, @signed_tx, 1, 3)
 
     %{
-      utxo_pos: utxo_pos,
-      tx_bytes: tx_bytes,
+      utxo_pos: _utxo_pos,
+      tx_bytes: _tx_bytes,
       proof: proof,
-      sigs: sigs
+      sigs: _sigs
     } = UtxoDB.compose_utxo_exit(1, 1, 0)
 
-    assert << proof :: bytes-size(512)>> = proof
+    assert << _proof :: bytes-size(512)>> = proof
 
+  end
+MethodName_StateUnderTest_ExpectedBehavior
+
+  @tag fixtures: [:watcher_sandbox]
+  test "compose_utxo_exit should return error when there is no txs in specfic block" do
+    {:error, :no_tx_for_given_block_height}  = UtxoDB.compose_utxo_exit(1, 1, 0)
   end
 
   @tag fixtures: [:watcher_sandbox]
-  test "The Utxo doesn't exsits" do
-    
-    %{
-      utxo_pos: utxo_pos,
-      tx_bytes: tx_bytes,
-      proof: proof,
-      sigs: sigs
-    } = UtxoDB.compose_utxo_exit(1, 1, 0)
+  test "compose_utxo_exit should return error when there is no tx in specfic block" do
+    TransactionDB.insert(<<2>>, @signed_tx, 1, 2)
+    TransactionDB.insert(<<1>>, @signed_tx, 1, 2)
+    TransactionDB.insert(<<3>>, @signed_tx, 1, 3)
 
-    assert << proof :: bytes-size(512)>> = proof
-
+    {:error, :no_tx_for_given_block_height}  = UtxoDB.compose_utxo_exit(1, 4, 0)
   end
 
   defp get_utxo(address) do
