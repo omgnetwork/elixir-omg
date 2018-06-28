@@ -1,0 +1,3 @@
+[console_scripts]
+testrpc-py = testrpc.cli:runserver
+

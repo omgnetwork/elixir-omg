@@ -86,11 +86,11 @@ defmodule OmiseGOWatcher.BlockGetterTest do
         alice_address,
         config_map.contract_addr
       )
-
     {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
 
+    {:ok, height} = Eth.get_ethereum_height()
     assert {:ok, [%{amount: 7, blknum: block_nr, oindex: 0, owner: alice_address, txindex: 0}]} ==
-             Eth.get_exits(0, 5000, config_map.contract_addr)
+             Eth.get_exits(0, height, config_map.contract_addr)
   end
 
   defp get_utxo(from) do

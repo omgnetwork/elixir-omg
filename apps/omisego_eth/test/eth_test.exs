@@ -109,8 +109,9 @@ defmodule OmiseGO.EthTest do
 
     Process.sleep(1000)
 
+    {:ok, height} = Eth.get_ethereum_height()
     assert {:ok, [%{amount: 8, blknum: 1000, oindex: 0, owner: bob_address, txindex: 0}]} ==
-             Eth.get_exits(0, 1000, contract.contract_addr)
+             Eth.get_exits(1, height, contract.contract_addr)
   end
 
   @tag fixtures: [:contract]

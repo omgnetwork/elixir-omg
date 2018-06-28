@@ -1,0 +1,6 @@
+[console_scripts]
+populus = populus.cli:main
+
+[pytest11]
+ethereum = populus.plugin
+
