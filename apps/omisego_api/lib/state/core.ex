@@ -221,6 +221,16 @@ defmodule OmiseGO.API.State.Core do
 
   def decode_deposit(%{owner: "0x" <> owner_enc} = deposit) do
     %{deposit | owner: Base.decode16!(owner_enc, case: :lower)}
+    |> decode_deposit()
+  end
+
+  def decode_deposit(%{currency: "0x" <> currency_enc} = deposit) do
+    %{deposit | currency: Base.decode16!(currency_enc, case: :lower)}
+    |> decode_deposit()
+  end
+
+  def decode_deposit(deposit) do
+    deposit
   end
 
   def deposit(deposits, %Core{utxos: utxos, last_deposit_height: last_deposit_height} = state) do

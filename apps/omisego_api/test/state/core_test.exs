@@ -47,7 +47,8 @@ defmodule OmiseGO.API.State.CoreTest do
   @tag fixtures: [:alice, :state_empty]
   test "can decode deposits in Core", %{alice: alice, state_empty: state} do
     alice_enc = "0x" <> Base.encode16(alice.addr, case: :lower)
-    deposits = [%{owner: alice_enc, currency: eth(), amount: 10, blknum: 1}]
+    eth_enc = "0x0000000000000000000000000000000000000000"
+    deposits = [%{owner: alice_enc, currency: eth_enc, amount: 10, blknum: 1}]
 
     assert {_, _, state} =
              deposits
