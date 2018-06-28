@@ -39,8 +39,12 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     queue
   end
 
-  def recover(known_hashes, mined_child_block_num, mined_hash \\ nil) do
-    top_mined_hash = mined_hash || "#{inspect(trunc(mined_child_block_num / 1000))}"
+  @doc """
+  Create the block_queue new state with non-initial parameters like it was recovered from db after restart / crash
+  If top_mined_hash parameter is ommited it will be generated from mined_child_block_num
+  """
+  def recover(known_hashes, mined_child_block_num, top_mined_hash \\ nil) do
+    top_mined_hash = top_mined_hash || "#{inspect(trunc(mined_child_block_num / 1000))}"
 
     new(
       mined_child_block_num: mined_child_block_num,

@@ -357,7 +357,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
   defp block_number_and_hash_valid?(expected_hash, blknum, blknums_and_hashes) do
     validate_block_hash(
       expected_hash,
-      Enum.find(blknums_and_hashes, nil, &(blknum == elem(&1, 0)))
+      Enum.find(blknums_and_hashes, fn {num, _hash} -> blknum == num end)
     )
   end
 

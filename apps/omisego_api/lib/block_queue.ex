@@ -78,7 +78,7 @@ defmodule OmiseGO.API.BlockQueue do
       {:ok, state} =
         Core.new(
           mined_child_block_num: mined_num,
-          known_hashes: known_hashes,
+          known_hashes: Enum.zip(range, known_hashes),
           top_mined_hash: top_mined_hash,
           parent_height: parent_height,
           child_block_interval: BlockQueue.child_block_interval(),
