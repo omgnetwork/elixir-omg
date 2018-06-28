@@ -107,9 +107,13 @@ defmodule OmiseGO.Eth.DevHelpers do
 
   def deposit_height_from_receipt(receipt) do
     %{"logs" => [%{"data" => logs_data}]} = receipt
-    <<"0x", _::size(512), _::size(512), deposit_height_enc::binary>> = logs_data
-    {deposit_height, ""} = Integer.parse(deposit_height_enc, 16)
-    deposit_height
+    # parsing log corresponding to Deposit(address,uint256,address,uint256)
+    # TODO: this is too fragile. Use proper library to parse this log
+    <<"0x", _depositor_hex_padded::binary-size(64), deposit_blknum_enc::binary-size(64), _token::binary-size(64),
+      _amount::binary-size(64)>> = logs_data
+
+    {deposit_blknum, ""} = Integer.parse(deposit_blknum_enc, 16)
+    deposit_blknum
   end
 
   def mine_eth_dev_block do
