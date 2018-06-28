@@ -19,13 +19,15 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def consume_block(%Block{transactions: transactions} = block) do
-    #FIXME check if sllep couth be in diffrent place (waiting for deposit includ to state)
+    # TODO remove sleep and add check in UtxoDB after deposit handle correctly
     :timer.sleep(3_000)
-    for tx <- transactions, do: {:ok, _, _, _} = OmiseGO.API.State.exec(tx)
-    # TODO add check after synch with deposit and exit
-    _ = OmiseGOWatcher.TransactionDB.insert(block)
-    _ = UtxoDB.consume_block(block)
-    :ok
+
+    with state_exec <- for(tx <- transactions, do: OmiseGO.API.State.exec(tx)),
+         nil <- Enum.find(state_exec, &(!match?({:ok, _, _, _}, &1))),
+         response <- OmiseGOWatcher.TransactionDB.insert(block),
+         nil <- Enum.find(response, &(!match?({:ok, _}, &1))),
+         _ <- UtxoDB.consume_block(block),
+         do: :ok
   end
 
   def start_link(_args) do

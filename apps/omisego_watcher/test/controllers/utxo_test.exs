@@ -6,8 +6,8 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   alias OmiseGO.API.Block
   alias OmiseGO.API.TestHelper, as: API_Helper
   alias OmiseGO.JSONRPC.Client
-  alias OmiseGOWatcher.UtxoDB
   alias OmiseGOWatcher.TestHelper
+  alias OmiseGOWatcher.UtxoDB
 
   describe "UTXO database." do
     @tag fixtures: [:watcher_sandbox, :alice]
@@ -33,7 +33,10 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     @tag fixtures: [:watcher_sandbox, :alice, :bob, :carol]
     test "Spent utxos are moved to new owner.", %{alice: alice, bob: bob, carol: carol} do
       UtxoDB.consume_block(%Block{
-        transactions: [API_Helper.create_recovered([], [{alice, 1843}]), API_Helper.create_recovered([], [{bob, 1871}])],
+        transactions: [
+          API_Helper.create_recovered([], [{alice, 1843}]),
+          API_Helper.create_recovered([], [{bob, 1871}])
+        ],
         number: 1
       })
 
