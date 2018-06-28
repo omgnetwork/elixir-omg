@@ -4,7 +4,7 @@ defmodule OmiseGO.API.State.Transaction do
   """
 
   alias OmiseGO.API.Crypto
-  alias OmiseGO.API.State.Transaction.{Recovered, Signed}
+  alias OmiseGO.API.State.Transaction.Signed
 
   @zero_address <<0::size(160)>>
   @number_of_transactions 2

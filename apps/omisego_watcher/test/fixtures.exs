@@ -139,7 +139,8 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   end
 
   deffixture watcher(db_initialized, root_chain_contract_config, ethereum_event_env) do
-    _ = root_chain_contract_config
+    :ok = root_chain_contract_config
+    :ok = ethereum_event_env
     :ok = db_initialized
     {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omisego_watcher)

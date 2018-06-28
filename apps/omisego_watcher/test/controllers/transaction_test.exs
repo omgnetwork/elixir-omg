@@ -7,6 +7,8 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   alias OmiseGO.API.Block
   alias OmiseGOWatcher.TransactionDB
 
+  @moduletag :integration
+
   @tag fixtures: [:watcher_sandbox]
   test "insert and retrive transaction" do
     txblknum = 0

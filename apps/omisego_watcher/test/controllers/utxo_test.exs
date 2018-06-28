@@ -9,6 +9,8 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   alias OmiseGOWatcher.TestHelper
   alias OmiseGOWatcher.UtxoDB
 
+  @moduletag :integration
+
   describe "UTXO database." do
     @tag fixtures: [:watcher_sandbox, :alice]
     test "No utxo are returned for non-existing addresses.", %{alice: alice} do
