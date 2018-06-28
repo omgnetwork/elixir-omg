@@ -90,7 +90,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
 
     assert {:ok, [%{amount: 7, blknum: block_nr, oindex: 0, owner: alice_address, txindex: 0}]} ==
-             Eth.get_exits(0, 10, config_map.contract_addr)
+             Eth.get_exits(0, 5000, config_map.contract_addr)
   end
 
   defp get_utxo(from) do
