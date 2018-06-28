@@ -107,6 +107,8 @@ defmodule OmiseGO.EthTest do
     bob_address = "0x" <> Base.encode16(bob.addr, case: :lower)
     {:ok, _} = start_exit(utxo_pos, tx_bytes, proof, sigs, 1, bob_address, contract.contract_addr)
 
+    Process.sleep(1000)
+
     assert {:ok, [%{amount: 8, blknum: 1000, oindex: 0, owner: bob_address, txindex: 0}]} ==
              Eth.get_exits(0, 1000, contract.contract_addr)
   end
