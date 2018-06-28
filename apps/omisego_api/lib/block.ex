@@ -24,4 +24,16 @@ defmodule OmiseGO.API.Block do
     {:ok, root} = MerkleTree.build(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height)
     %__MODULE__{block | hash: root.value}
   end
+
+  def create_tx_proof(%__MODULE__{transactions: txs}, txindex) do
+    hashed_txs = txs |> Enum.map(& &1.signed_tx_hash)
+
+    {:ok, mt} = MerkleTree.new(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height)
+
+    proof = MerkleTree.Proof.prove(mt, txindex)
+
+    proof.hashes
+    |> Enum.reverse()
+    |> Enum.reduce(fn x, acc -> acc <> x end)
+  end
 end

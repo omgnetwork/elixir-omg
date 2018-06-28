@@ -5,8 +5,9 @@ defmodule OmiseGOWatcher.UtxoDB do
   use Ecto.Schema
 
   alias OmiseGO.API.{Block, Crypto}
-  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
+  alias OmiseGO.API.State.{Transaction, Transaction.Recovered, Transaction.Signed}
   alias OmiseGOWatcher.Repo
+  alias OmiseGOWatcher.TransactionDB
 
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
@@ -88,6 +89,38 @@ defmodule OmiseGOWatcher.UtxoDB do
         txbytes: <<>>
       })
     end)
+  end
+
+  def compose_utxo_exit(blknum, txindex, oindex) do
+    txs = TransactionDB.find_by_txblknum(blknum)
+
+    case Enum.any?(txs, fn tx -> tx.txindex == txindex end) do
+      false -> {:error, :no_tx_for_given_blknum}
+      true -> compose_utxo_exit(txs, blknum, txindex, oindex)
+    end
+  end
+
+  def compose_utxo_exit(txs, blknum, txindex, oindex) do
+    sorted_txs = Enum.sort_by(txs, & &1.txindex)
+
+    recovered_txs = Enum.map_every(sorted_txs, 1, fn tx -> %Recovered{signed_tx_hash: tx.txid} end)
+
+    block = %Block{transactions: recovered_txs}
+
+    proof = Block.create_tx_proof(block, txindex)
+
+    tx = Enum.at(sorted_txs, txindex)
+
+    %{
+      utxo_pos: calculate_utxo_pos(blknum, txindex, oindex),
+      tx_bytes: Transaction.encode(tx),
+      proof: proof,
+      sigs: tx.sig1 <> tx.sig2
+    }
+  end
+
+  defp calculate_utxo_pos(blknum, txindex, oindex) do
+    blknum + txindex + oindex
   end
 
   def get_all, do: Repo.all(__MODULE__)

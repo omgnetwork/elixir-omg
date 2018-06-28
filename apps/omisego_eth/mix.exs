@@ -28,13 +28,13 @@ defmodule OmiseGO.Eth.MixProject do
 
   defp deps do
     [
-      {:abi, git: "https://github.com/omisego/abi.git", branch: "add_bytes32"},
+      {:abi, git: "https://github.com/omisego/abi.git", branch: "encode_dynamic_types"},
       {:ethereumex, git: "https://github.com/omisego/ethereumex.git", branch: "request_timeout", override: true},
       {:exexec, git: "https://github.com/paulperegud/exexec.git", branch: "add_streams", runtime: true},
       {
         :plasma_mvp_contracts,
-        git: "https://github.com/omisego/plasma-mvp.git",
-        ref: "2c1d6d324ea164b2081c628170da4bae59c9018e",
+        git: "https://github.com/purbanow/plasma-mvp",
+        branch: "indexed_keyword_sigs",
         sparse: "plasma/root_chain/contracts/",
         compile: contracts_compile(),
         app: false,
