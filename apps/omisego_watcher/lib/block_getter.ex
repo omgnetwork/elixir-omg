@@ -35,11 +35,11 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def init(_opts) do
-    with {:ok, block_number} <- OmiseGO.DB.child_top_block_number(),
-         child_block_interval <- Application.get_env(:omisego_eth, :child_block_interval),
-         {:ok, _} <- :timer.send_after(0, self(), :producer) do
-      {:ok, Core.init(block_number, child_block_interval)}
-    end
+    {:ok, block_number} = OmiseGO.DB.child_top_block_number()
+    child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
+    {:ok, _} = :timer.send_after(0, self(), :producer)
+
+    {:ok, Core.init(block_number, child_block_interval)}
   end
 
   # TODO get_height used in tests instead of an event system, remove when event system is here

@@ -9,7 +9,6 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.BlockGetter.Core
 
-  @moduletag :integration
   defp add_block(state, block) do
     assert {:ok, new_state} = Core.add_block(state, block)
     new_state

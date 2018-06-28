@@ -26,8 +26,8 @@ defmodule OmiseGO.API.BlockQueue do
 
   ### Client
 
-  def enqueue_block(block_hash) do
-    GenServer.call(__MODULE__.Server, {:enqueue_block, block_hash})
+  def enqueue_block(block_hash, block_number) do
+    GenServer.cast(__MODULE__.Server, {:enqueue_block, block_hash, block_number})
   end
 
   # CONFIG constant functions
@@ -51,50 +51,48 @@ defmodule OmiseGO.API.BlockQueue do
     end
 
     def init(:ok) do
-      try do
-        with :ok <- Eth.node_ready(),
-             :ok <- Eth.contract_ready(),
-             {:ok, parent_height} <- Eth.get_ethereum_height(),
-             {:ok, mined_num} <- Eth.get_mined_child_block(),
-             {:ok, parent_start} <- Eth.get_root_deployment_height(),
-             {:ok, stored_child_top_num} <- OmiseGO.DB.child_top_block_number(),
-             _ =
-               Logger.info(fn ->
-                 "Starting BlockQueue at parent_height: #{parent_height}, mined_child_block: #{mined_num}, " <>
-                   "parent_start: #{parent_start}, stored_child_top_block: #{stored_child_top_num}"
-               end),
-             range <- Core.child_block_nums_to_init_with(stored_child_top_num),
-             # TODO: taking all stored hashes now. While still being feasible DB-wise ("just" many hashes)
-             #       it might be prohibitive, if we create BlockSubmissions out of the unfiltered batch
-             #       (see enqueue_existing_blocks). Probably we want to set a hard cutoff and do
-             #       OmiseGO.DB.block_hashes(stored_child_top_num - cutoff..stored_child_top_num)
-             #       Leaving a chore to handle that in the future: OMG-83
-             {:ok, known_hashes} <- OmiseGO.DB.block_hashes(range),
-             {:ok, {top_mined_hash, _}} = Eth.get_child_chain(mined_num) do
-          _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{inspect(top_mined_hash)}" end)
+      :ok = Eth.node_ready()
+      :ok = Eth.contract_ready()
+      {:ok, parent_height} = Eth.get_ethereum_height()
+      {:ok, mined_num} = Eth.get_mined_child_block()
+      {:ok, parent_start} = Eth.get_root_deployment_height()
+      {:ok, stored_child_top_num} = OmiseGO.DB.child_top_block_number()
 
-          {:ok, state} =
-            Core.new(
-              mined_child_block_num: mined_num,
-              known_hashes: known_hashes,
-              top_mined_hash: top_mined_hash,
-              parent_height: parent_height,
-              child_block_interval: BlockQueue.child_block_interval(),
-              chain_start_parent_height: parent_start,
-              submit_period: Application.get_env(:omisego_api, :child_block_submit_period),
-              finality_threshold: Application.get_env(:omisego_api, :ethereum_event_block_finality_margin)
-            )
+      _ =
+        Logger.info(fn ->
+          "Starting BlockQueue at parent_height: #{parent_height}, mined_child_block: #{mined_num}, " <>
+            "parent_start: #{parent_start}, stored_child_top_block: #{stored_child_top_num}"
+        end)
 
-          interval = Application.get_env(:omisego_api, :ethereum_event_check_height_interval_ms)
-          {:ok, _} = :timer.send_interval(interval, self(), :check_mined_child_head)
-          {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_height)
+      range = Core.child_block_nums_to_init_with(stored_child_top_num)
 
-          _ = Logger.info(fn -> "Started BlockQueue" end)
-          {:ok, state}
-        end
-      catch
-        error -> {:stop, {:unable_to_init_block_queue, error}}
-      end
+      # TODO: taking all stored hashes now. While still being feasible DB-wise ("just" many hashes)
+      #       it might be prohibitive, if we create BlockSubmissions out of the unfiltered batch
+      #       (see enqueue_existing_blocks). Probably we want to set a hard cutoff and do
+      #       OmiseGO.DB.block_hashes(stored_child_top_num - cutoff..stored_child_top_num)
+      #       Leaving a chore to handle that in the future: OMG-83
+      {:ok, known_hashes} = OmiseGO.DB.block_hashes(range)
+      {:ok, {top_mined_hash, _}} = Eth.get_child_chain(mined_num)
+      _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{inspect(top_mined_hash)}" end)
+
+      {:ok, state} =
+        Core.new(
+          mined_child_block_num: mined_num,
+          known_hashes: known_hashes,
+          top_mined_hash: top_mined_hash,
+          parent_height: parent_height,
+          child_block_interval: BlockQueue.child_block_interval(),
+          chain_start_parent_height: parent_start,
+          submit_period: Application.get_env(:omisego_api, :child_block_submit_period),
+          finality_threshold: Application.get_env(:omisego_api, :ethereum_event_block_finality_margin)
+        )
+
+      interval = Application.get_env(:omisego_api, :ethereum_event_check_height_interval_ms)
+      {:ok, _} = :timer.send_interval(interval, self(), :check_mined_child_head)
+      {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_height)
+
+      _ = Logger.info(fn -> "Started BlockQueue" end)
+      {:ok, state}
     end
 
     def handle_info(:check_mined_child_head, state) do
@@ -105,16 +103,25 @@ defmodule OmiseGO.API.BlockQueue do
     end
 
     def handle_info(:check_ethereum_height, %Core{child_block_interval: child_block_interval} = state) do
-      with {:ok, height} <- Eth.get_ethereum_height(),
-           {:do_form_block, state1} <- Core.set_ethereum_height(state, height),
-           {:ok, block_hash, block_number} <- OmiseGO.API.State.form_block(child_block_interval) do
-        state2 = Core.enqueue_block(state1, block_hash, block_number)
-        submit_blocks(state2)
-        {:noreply, state2}
+      {:ok, height} = Eth.get_ethereum_height()
+
+      # TODO: submit_blocks is called throughout here a lot, and for now it's ok. Consider regaining more control
+      #       over how it is done. E.g. we may submit_blocks only in certain spots, or have it have its own timer
+      submit_blocks(state)
+
+      with {:do_form_block, state1} <- Core.set_ethereum_height(state, height) do
+        :ok = OmiseGO.API.State.form_block(child_block_interval)
+        {:noreply, state1}
       else
         {:dont_form_block, state1} -> {:noreply, state1}
         other -> other
       end
+    end
+
+    def handle_cast({:enqueue_block, block_hash, block_number}, %Core{} = state) do
+      state2 = Core.enqueue_block(state, block_hash, block_number)
+      submit_blocks(state2)
+      {:noreply, state2}
     end
 
     # private (server)

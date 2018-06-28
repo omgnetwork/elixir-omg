@@ -39,7 +39,7 @@ defmodule OmiseGOWatcher.Eventer do
   def handle_cast({:notify, event_triggers}, state) do
     event_triggers
     |> Core.notify()
-    |> Enum.each(fn {notification, topic} -> PubSub.broadcast(:eventer, topic, notification) end)
+    |> Enum.each(fn {notification, topic} -> :ok = PubSub.broadcast(:eventer, topic, notification) end)
 
     {:noreply, state}
   end

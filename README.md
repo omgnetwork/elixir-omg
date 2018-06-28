@@ -1,8 +1,8 @@
 # OmiseGO
 
-For child chain server specific `README.md` see `apps/omisego_api`.
+For the child chain server, see [apps/omisego_api](apps/omisego_api).
 
-For watcher specific `README.md` see `apps/omisego_watcher`.
+For the watcher, see [apps/omisego_watcher](apps/omisego_watcher).
 
 For generic information, keep on reading.
 
@@ -19,6 +19,8 @@ Only **Linux** platforms supported now. Known to work with Ubuntu 16.04
   - Install [Elixir](http://elixir-lang.github.io/install.html#unix-and-unix-like).
     Make sure `rebar` is in your path, e.g. `mix do local.hex --force, local.rebar --force`
   - Install or provide access to an Ethereum node (e.g. [geth](https://github.com/ethereum/go-ethereum/wiki/geth))
+  - If required, install the following packages:
+    `sudo apt-get install build-essential autoconf libtool libgmp3-dev`
 
 ### OmiseGO child chain server and watcher
 

@@ -10,6 +10,8 @@ defmodule OmiseGO.API.State do
   alias OmiseGO.API.State.Core
   alias OmiseGO.DB
 
+  require Logger
+
   ### Client
 
   def start_link(_args) do
@@ -21,7 +23,7 @@ defmodule OmiseGO.API.State do
   end
 
   def form_block(child_block_interval) do
-    GenServer.call(__MODULE__, {:form_block, child_block_interval})
+    GenServer.cast(__MODULE__, {:form_block, child_block_interval})
   end
 
   def deposit(deposits_enc) do
@@ -55,19 +57,19 @@ defmodule OmiseGO.API.State do
   Start processing state using the database entries
   """
   def init(:ok) do
-    with {:ok, height_query_result} <- DB.child_top_block_number(),
-         {:ok, last_deposit_query_result} <- DB.last_deposit_height(),
-         {:ok, utxos_query_result} <- DB.utxos() do
-      {
-        :ok,
-        Core.extract_initial_state(
-          utxos_query_result,
-          height_query_result,
-          last_deposit_query_result,
-          BlockQueue.child_block_interval()
-        )
-      }
-    end
+    {:ok, height_query_result} = DB.child_top_block_number()
+    {:ok, last_deposit_query_result} = DB.last_deposit_height()
+    {:ok, utxos_query_result} = DB.utxos()
+
+    {
+      :ok,
+      Core.extract_initial_state(
+        utxos_query_result,
+        height_query_result,
+        last_deposit_query_result,
+        BlockQueue.child_block_interval()
+      )
+    }
   end
 
   @doc """
@@ -123,17 +125,33 @@ defmodule OmiseGO.API.State do
   end
 
   @doc """
-  Wraps up accumulated transactions into a block, triggers events, triggers db update, returns block hash
+  Wraps up accumulated transactions into a block, triggers db update,
+  publishes block and enqueues for submission
   """
-  def handle_call({:form_block, child_block_interval}, _from, state) do
-    result = Core.form_block(state, child_block_interval)
+  def handle_cast({:form_block, child_block_interval}, state) do
+    _ = Logger.debug(fn -> "Forming new block..." end)
+    {duration, result} = :timer.tc(fn -> do_form_block(child_block_interval, state) end)
+    _ = Logger.info(fn -> "Done forming block in #{round(duration / 1000)} ms" end)
+    result
+  end
 
+  defp do_form_block(child_block_interval, state) do
     # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
-    with {:ok, {block, _event_triggers, db_updates, new_state}} <- result,
-         :ok <- DB.multi_update(db_updates) do
-      :ok = FreshBlocks.push(block)
-      {:reply, {:ok, block.hash, block.number}, new_state}
-    end
+    {core_form_block_duration, core_form_block_result} =
+      :timer.tc(fn -> Core.form_block(state, child_block_interval) end)
+
+    {:ok, {block, _event_triggers, db_updates, new_state}} = core_form_block_result
+
+    _ =
+      Logger.info(fn ->
+        "Calculations for forming block #{block.number} done in #{round(core_form_block_duration / 1000)} ms"
+      end)
+
+    :ok = DB.multi_update(db_updates)
+    :ok = FreshBlocks.push(block)
+    :ok = BlockQueue.enqueue_block(block.hash, block.number)
+
+    {:noreply, new_state}
   end
 
   defp do_exit_utxos(utxos, state) do
