@@ -10,6 +10,8 @@ defmodule OmiseGOWatcher.BlockGetter do
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.UtxoDB
 
+  require Logger
+
   @spec get_block(pos_integer()) :: {:ok, Block.t()}
   def get_block(number) do
     with {:ok, {hash, _time}} <- Eth.get_child_chain(number),
@@ -45,13 +47,19 @@ defmodule OmiseGOWatcher.BlockGetter do
   def handle_info(:producer, state) do
     {:ok, next_child} = Eth.get_current_child_block()
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
+    _ = Logger.info(fn -> "Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}" end)
     :ok = run_block_get_task(blocks_numbers)
 
     {:ok, _} = :timer.send_after(2_000, self(), :producer)
     {:noreply, new_state}
   end
 
-  def handle_info({_ref, {:got_block, {:ok, %Block{} = block}}}, state) do
+  def handle_info({_ref, {:got_block, {:ok, %Block{number: blknum, transactions: txs, hash: hash} = block}}}, state) do
+    _ =
+      Logger.info(fn ->
+        "Received block \##{inspect(blknum)} #{hash |> Base.encode16() |> Binary.drop(-48)}... with #{length(txs)} txs"
+      end)
+
     {:ok, state} = Core.add_block(state, block)
     {new_state, blocks_to_consume} = Core.get_blocks_to_consume(state)
 

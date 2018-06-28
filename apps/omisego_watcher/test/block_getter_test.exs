@@ -26,13 +26,6 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
   @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
   test "get the blocks from child chain after transaction", %{config_map: config_map, alice: alice, bob: bob} do
-    {:ok, _pid} =
-      GenServer.start_link(
-        OmiseGOWatcher.BlockGetter,
-        %{contract_address: config_map.contract_addr},
-        name: BlockGetter
-      )
-
     deposit_height = deposit_to_child_chain(alice, 10, config_map)
     raw_tx = Transaction.new([{deposit_height, 0, 0}], [{alice.addr, 7}, {bob.addr, 3}], 0)
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
@@ -43,7 +36,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     fn ->
       Eth.WaitFor.repeat_until_ok(fn ->
         # TODO use event system
-        case GenServer.call(BlockGetter, :get_height) < block_nr do
+        case GenServer.call(OmiseGOWatcher.BlockGetter, :get_height) < block_nr do
           true -> :repeat
           false -> {:ok, block_nr}
         end

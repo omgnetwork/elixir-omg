@@ -30,14 +30,14 @@ To do that use the template, filling it with details on the contract:
 
 This is an example of how to quickly setup the developer's environment to run the child chain server.
 
-1. For the Ethereum node: `geth --dev --dev.period 2 --rpc --rpcapi personal,web3,eth` gives a disposable private network
+1. For the Ethereum node: `geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth` gives a disposable private network
 1. For the contract/authority address: (`mix run --no-start -e 'IO.inspect OmiseGO.Eth.DevHelpers.prepare_env!()'`)
 1. Initialize child chain database normally.
 **NOTE** It will use the default db path always (`~/.omisego/data`) so when running child chain and watcher side by side you need to configure more.
 1. Configure `omisego_eth` normally, using data from `prepare_env!`.
     You can also shortcut with this little Elixir hocus-pocus:
 
-          mix run --no-start -e \
+          mix compile && mix run --no-start -e \
             '
               OmiseGO.Eth.DevHelpers.prepare_env!
               |> OmiseGO.Eth.DevHelpers.create_conf_file
