@@ -39,8 +39,12 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     queue
   end
 
-  def recover(known_hashes, mined_child_block_num) do
-    top_mined_hash = "#{inspect(trunc(mined_child_block_num / 1000))}"
+  @doc """
+  Create the block_queue new state with non-initial parameters like it was recovered from db after restart / crash
+  If top_mined_hash parameter is ommited it will be generated from mined_child_block_num
+  """
+  def recover(known_hashes, mined_child_block_num, top_mined_hash \\ nil) do
+    top_mined_hash = top_mined_hash || "#{inspect(trunc(mined_child_block_num / 1000))}"
 
     new(
       mined_child_block_num: mined_child_block_num,
@@ -64,8 +68,17 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
 
     test "Recovers after restart to proper mined height" do
       assert ["8", "9"] =
-               ["5", "6", "7", "8", "9"]
+               [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}]
                |> recover(7000)
+               |> elem(1)
+               |> get_blocks_to_submit()
+               |> hashes()
+    end
+
+    test "Recovers after restart even when only empty blocks were mined" do
+      assert ["0", "0"] ==
+               [{5000, "0"}, {6000, "0"}, {7000, "0"}, {8000, "0"}, {9000, "0"}]
+               |> recover(7000, "0")
                |> elem(1)
                |> get_blocks_to_submit()
                |> hashes()
@@ -91,7 +104,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     end
 
     test "Won't recover if is contract is ahead of db" do
-      assert {:error, :contract_ahead_of_db} =
+      assert {:error, :contract_ahead_of_db} ==
                new(
                  mined_child_block_num: 0,
                  known_hashes: [],
@@ -104,11 +117,11 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                )
     end
 
-    test "Won't recover if there is a mined hash absent in db" do
-      assert {:error, :mined_hash_not_found_in_db} =
+    test "Won't recover if mined hash doesn't match with hash in db" do
+      assert {:error, :hashes_dont_match} ==
                new(
-                 mined_child_block_num: 0,
-                 known_hashes: [<<2::size(256)>>],
+                 mined_child_block_num: 1000,
+                 known_hashes: [{1000, <<2::size(256)>>}],
                  top_mined_hash: <<1::size(256)>>,
                  parent_height: 10,
                  child_block_interval: 1000,
@@ -118,9 +131,23 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
                )
     end
 
+    test "Won't recover if mined block number doesn't match with db" do
+      assert {:error, :mined_blknum_not_found_in_db} ==
+               new(
+                 mined_child_block_num: 2000,
+                 known_hashes: [{1000, <<1::size(256)>>}],
+                 top_mined_hash: <<2::size(256)>>,
+                 parent_height: 10,
+                 child_block_interval: 1000,
+                 chain_start_parent_height: 1,
+                 submit_period: 1,
+                 finality_threshold: 12
+               )
+    end
+
     test "Recovers after restart and is able to process more blocks" do
-      assert ["8", "9", "10"] =
-               ["5", "6", "7", "8", "9"]
+      assert ["8", "9", "10"] ==
+               [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}]
                |> recover(7000)
                |> elem(1)
                |> enqueue_block("10", 10 * @child_block_interval)
@@ -129,7 +156,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     end
 
     test "Recovery will fail if DB is corrupted" do
-      assert {:error, :mined_hash_not_found_in_db} = recover(["5", "6"], 7000)
+      assert {:error, :mined_blknum_not_found_in_db} == recover([{5000, "5"}, {6000, "6"}], 7000)
     end
 
     test "No submitBlock will be sent until properly initialized" do
@@ -137,7 +164,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
     end
 
     test "A new block is emitted ASAP" do
-      assert ["2"] =
+      assert ["2"] ==
                empty()
                |> set_mined(1000)
                |> enqueue_block("2", 2 * @child_block_interval)
