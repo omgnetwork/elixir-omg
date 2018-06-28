@@ -42,11 +42,11 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc)
     {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
 
-    deposit_height = Eth.DevHelpers.deposit_height_from_receipt(receipt)
+    deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
 
     # wait until the deposit is recognized by child chain
     post_deposit_child_block =
-      deposit_height - 1 +
+      deposit_blknum - 1 +
         (Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) + 1) *
           BlockQueue.child_block_interval()
 

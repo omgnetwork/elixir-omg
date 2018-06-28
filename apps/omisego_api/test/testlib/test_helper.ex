@@ -48,7 +48,7 @@ defmodule OmiseGO.API.TestHelper do
       Transaction.new(
         inputs |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end),
         currency,
-        outputs |> Enum.map(fn {newowner, amout} -> {newowner.addr, amout} end)
+        outputs |> Enum.map(fn {newowner, amount} -> {newowner.addr, amount} end)
       )
 
     [priv1, priv2 | _] = inputs |> Enum.map(fn {_, _, _, owner} -> owner.priv end) |> Enum.concat([<<>>, <<>>])
