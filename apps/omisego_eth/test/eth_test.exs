@@ -65,11 +65,10 @@ defmodule OmiseGO.EthTest do
     tx = generate_transaction(nonce)
 
     # 1st submission
-    {:ok, _txhash} = Eth.submit_block(tx, contract.authority_addr, contract.contract_addr)
+    assert {:ok, _txhash} = Eth.submit_block(tx, contract.authority_addr, contract.contract_addr)
 
     # 2nd submission
-    {:error, %{"message" => message}} = Eth.submit_block(tx, contract.authority_addr, contract.contract_addr)
-    assert String.starts_with?(message, "known transaction: ")
+    assert {:error, _errmsg} = Eth.submit_block(tx, contract.authority_addr, contract.contract_addr)
   end
 
   @tag fixtures: [:contract]
