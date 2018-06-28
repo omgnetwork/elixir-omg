@@ -125,4 +125,17 @@ defmodule OmiseGO.API.State.TransactionTest do
              transaction
              |> Core.exec(state)
   end
+
+  @tag fixtures: [:alice, :bob]
+  test "different signers, one output", %{alice: alice, bob: bob} do
+    tx =
+      [{3000, 0, 0}, {3000, 0, 1}]
+      |> Transaction.new(Transaction.zero_address(), [{alice.addr, 10}])
+      |> Transaction.sign(bob.priv, alice.priv)
+      |> Transaction.Signed.encode()
+
+    {:ok, recovered} = tx |> OmiseGO.API.Core.recover_tx()
+    assert recovered.spender1 == bob.addr
+    assert recovered.spender2 == alice.addr
+  end
 end

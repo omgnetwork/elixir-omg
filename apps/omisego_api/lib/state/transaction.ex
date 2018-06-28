@@ -118,7 +118,7 @@ defmodule OmiseGO.API.State.Transaction do
         ) :: t()
   def new(inputs, currency, outputs) do
     inputs = inputs ++ List.duplicate({0, 0, 0}, @max_inputs - Kernel.length(inputs))
-    outputs = outputs ++ List.duplicate({0, 0}, @max_inputs - Kernel.length(outputs))
+    outputs = outputs ++ List.duplicate({zero_address(), 0}, @max_inputs - Kernel.length(outputs))
 
     inputs =
       inputs
