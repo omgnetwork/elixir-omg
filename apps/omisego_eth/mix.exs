@@ -34,7 +34,7 @@ defmodule OmiseGO.Eth.MixProject do
       {
         :plasma_mvp_contracts,
         git: "https://github.com/paulperegud/plasma-mvp.git",
-        ref: "a7a8a7384178d51afa37f395368eb711277b01c3",
+        ref: "92cf4787adab2df3832bf864370a87f6dd6946e7",
         sparse: "plasma/root_chain/contracts/",
         compile: contracts_compile(),
         app: false,
