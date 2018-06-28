@@ -2,6 +2,9 @@
 
 This is a high-level rundown of the architecture of `OmiseGO` apps.
 
+For an even higher-level rundown of various pieces, where this umbrella app fits in, see **[High-level diagram](https://docs.google.com/drawings/d/1wvyQPKrrBnjlA1BfhMYxHFXbbn0ixL5WaSavGTaj14s/edit)**.
+**NOTE** only use the high-level diagram to get a vague idea, meaning of boxes/arrows is very imprecise.
+
 ## Interactions
 
 **[Diagram](https://docs.google.com/drawings/d/11ugr_VQzqh0afU6NPpHW893jww182POaGE3sYhgm9Gw/edit?usp=sharing)** illustrates the interactions described below.
