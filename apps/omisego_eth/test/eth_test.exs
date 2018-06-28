@@ -63,8 +63,7 @@ defmodule OmiseGO.EthTest do
 
   @tag fixtures: [:contract, :alice, :bob]
   test "start_exit", %{contract: contract, alice: alice, bob: bob} do
-    {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
-    {:ok, _} = Eth.DevHelpers.import_unlock_fund(bob)
+    {:ok, bob_address} = Eth.DevHelpers.import_unlock_fund(bob)
 
     raw_tx = %OmiseGO.API.State.Transaction{
       amount1: 8,
@@ -89,28 +88,30 @@ defmodule OmiseGO.EthTest do
       %Block{transactions: [recovered_tx]}
       |> Block.merkle_hash()
 
-    %Eth.BlockSubmission{
-      num: 1,
-      hash: block.hash,
-      gas_price: 20_000_000_000,
-      nonce: 1
-    }
-    |> Eth.submit_block(contract.authority_addr, contract.contract_addr)
+    {:ok, txhash} =
+      %Eth.BlockSubmission{
+        num: 1,
+        hash: block.hash,
+        gas_price: 20_000_000_000,
+        nonce: 1
+      }
+      |> Eth.submit_block(contract.authority_addr, contract.contract_addr)
+
+    {:ok, _} = WaitFor.eth_receipt(txhash, @timeout)
 
     txs = [Map.merge(raw_tx, %{txindex: 0, txid: signed_tx_hash, sig1: signed_tx.sig1, sig2: signed_tx.sig2})]
 
-    {:ok, child_blknum} = Eth.get_current_child_block(contract.contract_addr)
+    {:ok, child_blknum} = Eth.get_mined_child_block(contract.contract_addr)
 
     %{utxo_pos: utxo_pos, tx_bytes: tx_bytes, proof: proof, sigs: sigs} =
       UtxoDB.compose_utxo_exit(txs, child_blknum * @block_offset, 0, 0)
 
-    bob_address = "0x" <> Base.encode16(bob.addr, case: :lower)
     {:ok, _} = start_exit(utxo_pos, tx_bytes, proof, sigs, 1, bob_address, contract.contract_addr)
 
-    Process.sleep(1000)
+    {:ok, height} = Eth.get_ethereum_height()
 
     assert {:ok, [%{amount: 8, blknum: 1000, oindex: 0, owner: bob_address, txindex: 0}]} ==
-             Eth.get_exits(1, child_blknum, contract.contract_addr)
+             Eth.get_exits(1, height, contract.contract_addr)
   end
 
   @tag fixtures: [:contract]

@@ -45,8 +45,11 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # wait until the deposit is recognized by child chain
     post_deposit_child_block =
       deposit_height - 1 +
-        (Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) + 2) *
+        (Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) + 1) *
           BlockQueue.child_block_interval()
+
+    # TODO: possible source of flakiness is that State did not process deposit on time
+    Process.sleep(500)
 
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true)
 
