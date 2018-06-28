@@ -10,10 +10,11 @@ defmodule OmiseGOWatcher.Application do
 
     # Define workers and child supervisors to be supervised
     slow_exit_validator_block_margin = Application.get_env(:omisego_api, :slow_exit_validator_block_margin)
+
     event_listener_config = %{
-      block_finality_margin: Application.get_env(:omisego_api, :ethereum_event_block_finality_margin),
-      max_blocks_in_fetch: Application.get_env(:omisego_api, :ethereum_event_max_block_range_in_deposits_query),
-      get_events_interval: Application.get_env(:omisego_api, :ethereum_event_get_deposits_interval_ms)
+      block_finality_margin: Application.get_env(:omisego_eth, :ethereum_event_block_finality_margin),
+      max_blocks_in_fetch: Application.get_env(:omisego_eth, :ethereum_event_max_block_range_in_deposits_query),
+      get_events_interval: Application.get_env(:omisego_eth, :ethereum_event_get_deposits_interval_ms)
     }
 
     children = [
@@ -21,7 +22,7 @@ defmodule OmiseGOWatcher.Application do
       supervisor(OmiseGOWatcher.Repo, []),
       # Start workers
       {OmiseGO.API.State, []},
-       worker(
+      worker(
         OmiseGO.API.EthereumEventListener,
         [event_listener_config, &OmiseGO.Eth.get_deposits/2, &OmiseGO.API.State.deposit/1],
         id: :depositor

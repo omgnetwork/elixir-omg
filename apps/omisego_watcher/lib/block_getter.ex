@@ -20,7 +20,7 @@ defmodule OmiseGOWatcher.BlockGetter do
 
   def consume_block(%Block{transactions: transactions} = block) do
     # TODO remove sleep and add check in UtxoDB after deposit handle correctly
-    :timer.sleep(3_000)
+    :timer.sleep(2_000)
 
     with state_exec <- for(tx <- transactions, do: OmiseGO.API.State.exec(tx)),
          nil <- Enum.find(state_exec, &(!match?({:ok, _, _, _}, &1))),

@@ -11,9 +11,59 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
       %{
         child_block_interval: 1000,
         ethereum_event_block_finality_margin: 1,
-        ethereum_event_get_deposits_interval_ms: 10
+        ethereum_event_get_deposits_interval_ms: 10,
+        ethereum_event_check_height_interval_ms: 10,
+        ethereum_event_max_block_range_in_deposits_query: 1,
+        child_block_submit_period: 1
       }
     )
+  end
+
+  deffixture ethereum_event_env(config_map) do
+    Application.put_env(
+      :omisego_eth,
+      :ethereum_event_block_finality_margin,
+      config_map.ethereum_event_block_finality_margin,
+      persistent: true
+    )
+
+    Application.put_env(
+      :omisego_eth,
+      :ethereum_event_get_deposits_interval_ms,
+      config_map.ethereum_event_get_deposits_interval_ms,
+      persistent: true
+    )
+
+    Application.put_env(
+      :omisego_eth,
+      :ethereum_event_check_height_interval_ms,
+      config_map.ethereum_event_check_height_interval_ms,
+      persistent: true
+    )
+
+    Application.put_env(
+      :omisego_eth,
+      :ethereum_event_max_block_range_in_deposits_query,
+      config_map.ethereum_event_max_block_range_in_deposits_query,
+      persistent: true
+    )
+
+    Application.put_env(
+      :omisego_eth,
+      :child_block_submit_period,
+      config_map.child_block_submit_period,
+      persistent: true
+    )
+
+    on_exit(fn ->
+      Application.put_env(:omisego_eth, :ethereum_event_block_finality_margin, nil)
+      Application.put_env(:omisego_eth, :ethereum_event_get_deposits_interval_ms, nil)
+      Application.put_env(:omisego_eth, :ethereum_event_check_height_interval_ms, nil)
+      Application.put_env(:omisego_eth, :ethereum_event_max_block_range_in_deposits_query, nil)
+      Application.put_env(:omisego_eth, :child_block_submit_period, nil)
+    end)
+
+    :ok
   end
 
   deffixture child_chain(config_map) do
@@ -88,11 +138,12 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     line
   end
 
-  deffixture watcher(db_initialized, root_chain_contract_config) do
+  deffixture watcher(db_initialized, root_chain_contract_config, ethereum_event_env) do
     _ = root_chain_contract_config
     :ok = db_initialized
     {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omisego_watcher)
+
     on_exit(fn ->
       Application.put_env(:omisego_db, :leveldb_path, nil)
 
