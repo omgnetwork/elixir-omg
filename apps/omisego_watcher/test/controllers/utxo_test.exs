@@ -133,11 +133,9 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     assert <<_proof::bytes-size(512)>> = proof
   end
 
-  MethodName_StateUnderTest_ExpectedBehavior
-
   @tag fixtures: [:watcher_sandbox]
   test "compose_utxo_exit should return error when there is no txs in specfic block" do
-    {:error, :no_tx_for_given_block_height} = UtxoDB.compose_utxo_exit(1, 1, 0)
+    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 1, 0)
   end
 
   @tag fixtures: [:watcher_sandbox]
@@ -146,7 +144,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     TransactionDB.insert(<<1>>, @signed_tx, 1, 2)
     TransactionDB.insert(<<3>>, @signed_tx, 1, 3)
 
-    {:error, :no_tx_for_given_block_height} = UtxoDB.compose_utxo_exit(1, 4, 0)
+    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 4, 0)
   end
 
   defp get_utxo(address) do

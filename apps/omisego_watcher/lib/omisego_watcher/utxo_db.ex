@@ -91,16 +91,16 @@ defmodule OmiseGOWatcher.UtxoDB do
     end)
   end
 
-  def compose_utxo_exit(block_height, txindex, oindex) do
-    txs = TransactionDB.find_by_txblknum(block_height)
+  def compose_utxo_exit(blknum, txindex, oindex) do
+    txs = TransactionDB.find_by_txblknum(blknum)
 
     case Enum.any?(txs, fn tx -> tx.txindex == txindex end) do
-      false -> {:error, :no_tx_for_given_block_height}
-      true -> compose_utxo_exit(txs, block_height, txindex, oindex)
+      false -> {:error, :no_tx_for_given_blknum}
+      true -> compose_utxo_exit(txs, blknum, txindex, oindex)
     end
   end
 
-  def compose_utxo_exit(txs, block_height, txindex, oindex) do
+  def compose_utxo_exit(txs, blknum, txindex, oindex) do
     sorted_txs = Enum.sort_by(txs, & &1.txindex)
 
     recovered_txs = Enum.map_every(sorted_txs, 1, fn tx -> %Recovered{signed_tx_hash: tx.txid} end)
@@ -112,15 +112,15 @@ defmodule OmiseGOWatcher.UtxoDB do
     tx = Enum.at(sorted_txs, txindex)
 
     %{
-      utxo_pos: calculate_utxo_pos(block_height, txindex, oindex),
+      utxo_pos: calculate_utxo_pos(blknum, txindex, oindex),
       tx_bytes: Transaction.encode(tx),
       proof: proof,
       sigs: tx.sig1 <> tx.sig2
     }
   end
 
-  defp calculate_utxo_pos(block_height, txindex, oindex) do
-    block_height + txindex + oindex
+  defp calculate_utxo_pos(blknum, txindex, oindex) do
+    blknum + txindex + oindex
   end
 
   def get_all, do: Repo.all(__MODULE__)

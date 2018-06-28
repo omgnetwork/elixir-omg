@@ -28,7 +28,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   end
 
   @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
-  test "get the blocks from child chain after transaction", %{config_map: config_map, alice: alice, bob: bob} do
+  test "get the blocks from child chain after transaction and start exit", %{config_map: config_map, alice: alice, bob: bob} do
     {:ok, _pid} =
       GenServer.start_link(
         OmiseGOWatcher.BlockGetter,
@@ -70,6 +70,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       sigs: sigs
     } = compose_utxo_exit(block_nr, 0, 0)
 
+    alice_address = "0x" <> Base.encode16(alice.addr, case: :lower)
+
     {:ok, txhash} =
       Eth.start_exit(
         utxo_pos * @block_offset,
@@ -77,13 +79,13 @@ defmodule OmiseGOWatcher.BlockGetterTest do
         proof,
         sigs,
         1,
-        config_map.authority_addr,
+        alice_address,
         config_map.contract_addr
       )
 
     {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
 
-    assert {:ok, [%{amount: 7, blknum: block_nr, oindex: 0, owner: config_map.authority_addr, txindex: 0}]} ==
+    assert {:ok, [%{amount: 7, blknum: block_nr, oindex: 0, owner: alice_address, txindex: 0}]} ==
              Eth.get_exits(0, 10, config_map.contract_addr)
   end
 
