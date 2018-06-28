@@ -219,18 +219,20 @@ defmodule OmiseGO.API.State.Core do
     {:ok, {block, event_triggers, db_updates, new_state}}
   end
 
-  def decode_deposit(%{owner: "0x" <> owner_enc} = deposit) do
-    %{deposit | owner: Base.decode16!(owner_enc, case: :lower)}
-    |> decode_deposit()
+  def decode_deposit(%{owner: owner, currency: currency} = deposit) do
+    %{deposit | owner: decode_address(owner), currency: decode_address(currency)}
   end
 
-  def decode_deposit(%{currency: "0x" <> currency_enc} = deposit) do
-    %{deposit | currency: Base.decode16!(currency_enc, case: :lower)}
-    |> decode_deposit()
+  defp decode_address(<<"0x", hex_encoded::binary-size(40)>>) do
+    decode_address(hex_encoded)
   end
 
-  def decode_deposit(deposit) do
-    deposit
+  defp decode_address(<<hex_encoded::binary-size(40)>>) do
+    Base.decode16!(hex_encoded, case: :lower)
+  end
+
+  defp decode_address(<<raw::binary-size(20)>>) do
+    raw
   end
 
   def deposit(deposits, %Core{utxos: utxos, last_deposit_height: last_deposit_height} = state) do
