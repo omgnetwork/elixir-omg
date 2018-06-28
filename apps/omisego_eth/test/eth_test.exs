@@ -103,6 +103,8 @@ defmodule OmiseGO.EthTest do
 
     {:ok, child_blknum} = Eth.get_mined_child_block(contract.contract_addr)
 
+    # TODO re: brittleness and dirtyness of this - test requires UtxoDB calls,
+    # duplicates our integrations tests - another reason to drop or redesign eth_test.exs sometime
     %{utxo_pos: utxo_pos, tx_bytes: tx_bytes, proof: proof, sigs: sigs} =
       UtxoDB.compose_utxo_exit(txs, child_blknum * @block_offset, 0, 0)
 

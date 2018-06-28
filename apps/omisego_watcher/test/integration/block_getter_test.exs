@@ -7,6 +7,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.Eth
   alias OmiseGO.JSONRPC.Client
+  alias OmiseGOWatcher.TestHelper, as: Test
 
   @moduletag :integration
 
@@ -62,10 +63,10 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     encode_tx = Client.encode(tx)
 
     assert [%{"amount" => 3, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
-             get_utxo(bob)
+             get_utxo(bob.addr)
 
     assert [%{"amount" => 7, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
-             get_utxo(alice)
+             get_utxo(alice.addr)
 
     %{
       utxo_pos: utxo_pos,
@@ -88,30 +89,21 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       )
 
     {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+
     {:ok, height} = Eth.get_ethereum_height()
 
     assert {:ok, [%{amount: 7, blknum: block_nr, oindex: 0, owner: alice_address, txindex: 0}]} ==
              Eth.get_exits(0, height, config_map.contract_addr)
   end
 
-  defp get_utxo(from) do
-    response =
-      :get
-      |> conn("account/utxo?address=#{Client.encode(from.addr)}")
-      |> put_private(:plug_skip_csrf_protection, true)
-      |> OmiseGOWatcherWeb.Endpoint.call([])
-
-    Poison.decode!(response.resp_body)["utxos"]
+  defp get_utxo(address) do
+    decoded_resp = Test.rest_call(:get, "account/utxo?address=#{Client.encode(address)}")
+    decoded_resp["utxos"]
   end
 
   defp compose_utxo_exit(block_height, txindex, oindex) do
-    response =
-      :get
-      |> conn("account/utxo/compose_exit?block_height=#{block_height}&txindex=#{txindex}&oindex=#{oindex}")
-      |> put_private(:plug_skip_csrf_protection, true)
-      |> OmiseGOWatcherWeb.Endpoint.call([])
-
-    decoded_resp = Poison.decode!(response.resp_body)
+    decoded_resp =
+      Test.rest_call(:get, "account/utxo/compose_exit?block_height=#{block_height}&txindex=#{txindex}&oindex=#{oindex}")
 
     {:ok, tx_bytes} = Client.decode(:bitstring, decoded_resp["tx_bytes"])
     {:ok, proof} = Client.decode(:bitstring, decoded_resp["proof"])
