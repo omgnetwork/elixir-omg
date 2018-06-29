@@ -11,8 +11,8 @@ defmodule OmiseGO.EthTest do
   use ExUnit.Case, async: false
 
   @timeout 20_000
-  @block_offset 1_000_000_000
-  @transaction_offset 10_000
+  # @block_offset 1_000_000_000
+  # @transaction_offset 10_000
 
   @moduletag :integration
 
@@ -27,28 +27,32 @@ defmodule OmiseGO.EthTest do
     }
   end
 
+  defp eth do
+    "0x0000000000000000000000000000000000000000"
+  end
+
   defp deposit(contract) do
     {:ok, transaction_hash} = Eth.DevHelpers.deposit(1, 1, contract.authority_addr, contract.contract_addr)
     {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
   end
 
-  defp exit_deposit(contract) do
-    deposit_pos = utxo_position(1, 0, 0)
-    data = "startDepositExit(uint256,uint256)" |> ABI.encode([deposit_pos, 1]) |> Base.encode16()
+  # defp exit_deposit(contract) do
+  #   deposit_pos = utxo_position(1, 0, 0)
+  #   data = "startDepositExit(uint256,uint256)" |> ABI.encode([deposit_pos, 1]) |> Base.encode16()
 
-    {:ok, transaction_hash} =
-      Ethereumex.HttpClient.eth_send_transaction(%{
-        from: contract.authority_addr,
-        to: contract.contract_addr,
-        data: "0x#{data}",
-        gas: "0x2D0900"
-      })
+  #   {:ok, transaction_hash} =
+  #     Ethereumex.HttpClient.eth_send_transaction(%{
+  #       from: contract.authority_addr,
+  #       to: contract.contract_addr,
+  #       data: "0x#{data}",
+  #       gas: "0x2D0900"
+  #     })
 
-    {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
-  end
+  #   {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
+  # end
 
-  defp utxo_position(block_height, txindex, oindex),
-    do: @block_offset * block_height + txindex * @transaction_offset + oindex
+  # defp utxo_position(block_height, txindex, oindex),
+  #   do: @block_offset * block_height + txindex * @transaction_offset + oindex
 
   defp add_blocks(range, contract) do
     for nonce <- range do
@@ -86,7 +90,7 @@ defmodule OmiseGO.EthTest do
     deposit(contract)
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.authority_addr}]} ==
+    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.authority_addr, currency: eth()}]} ==
              Eth.get_deposits(1, height, contract.contract_addr)
   end
 
@@ -96,15 +100,17 @@ defmodule OmiseGO.EthTest do
     assert is_integer(number)
   end
 
-  @tag fixtures: [:contract]
-  test "get exits from a range of blocks", %{contract: contract} do
-    deposit(contract)
-    exit_deposit(contract)
-    {:ok, height} = Eth.get_ethereum_height()
+  # TODO: requires working proofs implementation in Elixir
+  # @tag fixtures: [:contract]
+  # test "get exits from a range of blocks", %{contract: contract} do
+  #   deposit(contract)
+  #   exit_deposit(contract)
+  #   {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{owner: contract.authority_addr, blknum: 1, txindex: 0, oindex: 0}]} ==
-             Eth.get_exits(1, height, contract.contract_addr)
-  end
+  #   assert {:ok, [%{owner: contract.authority_addr, blknum: 1, txindex: 0,
+  #                   oindex: 0, token: eth()}]} ==
+  #            Eth.get_exits(1, height, contract.contract_addr)
+  # end
 
   @tag fixtures: [:contract]
   test "get mined block number", %{contract: contract} do

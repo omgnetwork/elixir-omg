@@ -15,8 +15,8 @@ defmodule OmiseGO.API.State.Transaction.Recovered do
   @type t() :: %__MODULE__{
           raw_tx: Transaction.t(),
           signed_tx_hash: signed_tx_hash_t(),
-          spender1: Crypto.address_t(),
-          spender2: Crypto.address_t(),
+          spender1: Crypto.address_t() | nil,
+          spender2: Crypto.address_t() | nil,
           signed_tx_bytes: Transaction.Signed.signed_tx_bytes_t()
         }
 

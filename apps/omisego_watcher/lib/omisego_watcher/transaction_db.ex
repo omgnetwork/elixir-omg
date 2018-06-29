@@ -19,11 +19,11 @@ defmodule OmiseGOWatcher.TransactionDB do
     :blknum2,
     :txindex2,
     :oindex2,
+    :cur12,
     :newowner1,
     :amount1,
     :newowner2,
     :amount2,
-    :fee,
     :txblknum,
     :txindex
   ]
@@ -41,13 +41,13 @@ defmodule OmiseGOWatcher.TransactionDB do
     field(:txindex2, :integer)
     field(:oindex2, :integer)
 
+    field(:cur12, :string)
+
     field(:newowner1, :string)
     field(:amount1, :integer)
 
     field(:newowner2, :string)
     field(:amount2, :integer)
-
-    field(:fee, :integer)
 
     field(:txblknum, :integer)
     field(:txindex, :integer)

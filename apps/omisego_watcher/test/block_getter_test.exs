@@ -14,14 +14,14 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
     {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(value, 0, destiny_enc, config.contract_addr)
     {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
-    deposit_height = Eth.DevHelpers.deposit_height_from_receipt(receipt)
+    deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
 
     post_deposit_child_block =
-      deposit_height - 1 + (config.ethereum_event_block_finality_margin + 1) * config.child_block_interval
+      deposit_blknum - 1 + (config.ethereum_event_block_finality_margin + 1) * config.child_block_interval
 
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000, config.contract_addr)
 
-    deposit_height
+    deposit_blknum
   end
 
   @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
@@ -33,8 +33,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
         name: BlockGetter
       )
 
-    deposit_height = deposit_to_child_chain(alice, 10, config_map)
-    raw_tx = Transaction.new([{deposit_height, 0, 0}], [{alice.addr, 7}, {bob.addr, 3}], 0)
+    deposit_blknum = deposit_to_child_chain(alice, 10, config_map)
+    raw_tx = Transaction.new([{deposit_blknum, 0, 0}], Transaction.zero_address(), [{alice.addr, 7}, {bob.addr, 3}])
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
     {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx})

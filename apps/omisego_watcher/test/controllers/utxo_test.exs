@@ -15,11 +15,11 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     blknum2: 0,
     txindex2: 0,
     oindex2: 0,
+    cur12: Transaction.zero_address(),
     newowner1: <<>>,
     amount1: 0,
     newowner2: <<>>,
-    amount2: 0,
-    fee: 0
+    amount2: 0
   }
 
   describe "UTXO database." do

@@ -16,11 +16,11 @@ defmodule OmiseGO.API.State.TransactionTest do
       blknum2: 1,
       txindex2: 2,
       oindex2: 1,
+      cur12: eth(),
       newowner1: "alicealicealicealice",
       amount1: 1,
       newowner2: "carolcarolcarolcarol",
-      amount2: 2,
-      fee: 0
+      amount2: 2
     }
   end
 
@@ -32,6 +32,7 @@ defmodule OmiseGO.API.State.TransactionTest do
           amount: 100,
           blknum: 20,
           oindex: 1,
+          currency: eth(),
           txbytes: "not important",
           txindex: 42
         },
@@ -39,6 +40,7 @@ defmodule OmiseGO.API.State.TransactionTest do
           amount: 43,
           blknum: 2,
           oindex: 0,
+          currency: eth(),
           txbytes: "ble ble bla",
           txindex: 21
         }
@@ -46,28 +48,27 @@ defmodule OmiseGO.API.State.TransactionTest do
     }
   end
 
+  def eth, do: Transaction.zero_address()
+
   @tag fixtures: [:transaction]
   test "transaction hash is correct", %{transaction: transaction} do
-    assert Transaction.hash(transaction) ==
-             <<206, 180, 169, 245, 52, 190, 189, 248, 33, 15, 103, 145, 4, 195, 170, 59, 137, 102, 245, 238, 22, 172,
-               18, 240, 21, 132, 30, 1, 197, 112, 101, 192>>
+    {:ok, hash_value} = Base.decode16("f09d08d506a269f4237f712a7cdc8259489f0435b0775b4e08050523788268a8", case: :lower)
+    assert Transaction.hash(transaction) == hash_value
   end
 
   @tag fixtures: [:transaction]
   test "signed transaction hash is correct", %{transaction: transaction} do
     signed = %Transaction.Signed{raw_tx: transaction, sig1: @signature, sig2: @signature}
 
-    expected =
-      <<206, 180, 169, 245, 52, 190, 189, 248, 33, 15, 103, 145, 4, 195, 170, 59, 137, 102, 245, 238, 22, 172, 18, 240,
-        21, 132, 30, 1, 197, 112, 101, 192>> <> signed.sig1 <> signed.sig2
-
+    {:ok, hash_value} = Base.decode16("f09d08d506a269f4237f712a7cdc8259489f0435b0775b4e08050523788268a8", case: :lower)
+    expected = hash_value <> signed.sig1 <> signed.sig2
     actual = Transaction.Signed.signed_hash(signed)
     assert actual == expected
   end
 
   @tag fixtures: [:utxos]
   test "crete transaction", %{utxos: utxos} do
-    {:ok, transaction} = Transaction.create_from_utxos(utxos, %{address: "Joe Black", amount: 53}, 50)
+    {:ok, transaction} = Transaction.create_from_utxos(utxos, %{address: "Joe Black", amount: 53})
 
     assert transaction == %Transaction{
              blknum1: 20,
@@ -76,28 +77,24 @@ defmodule OmiseGO.API.State.TransactionTest do
              blknum2: 2,
              txindex2: 21,
              oindex2: 0,
+             cur12: eth(),
              newowner1: "Joe Black",
              amount1: 53,
              newowner2: "McDuck",
-             amount2: 40,
-             fee: 50
+             amount2: 90
            }
   end
 
   @tag fixtures: [:utxos]
   test "checking error messages", %{utxos: utxos} do
-    assert {:error, :amount_negative_value} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: -4}, 2)
+    assert {:error, :amount_negative_value} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: -4})
 
-    assert {:error, :amount_negative_value} ==
-             Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30_000}, 0)
-
-    assert {:error, :fee_negative_value} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30}, -2)
+    assert {:error, :amount_negative_value} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30_000})
 
     assert {:error, :too_many_utxo} ==
              Transaction.create_from_utxos(
                %{utxos | utxos: utxos.utxos ++ utxos.utxos},
-               %{address: "Joe", amount: 3},
-               0
+               %{address: "Joe", amount: 3}
              )
   end
 
@@ -105,24 +102,18 @@ defmodule OmiseGO.API.State.TransactionTest do
   test "using created transaction in child chain", %{alice: alice, bob: bob, state_empty: state} do
     state =
       state
-      |> TestHelper.do_deposit(alice, %{amount: 100, blknum: 1})
-      |> TestHelper.do_deposit(alice, %{amount: 10, blknum: 2})
+      |> TestHelper.do_deposit(alice, %{amount: 100, currency: eth(), blknum: 1})
+      |> TestHelper.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 2})
 
-    utxos_json = """
-    {
-      "address": "#{Base.encode16(alice.addr)}",
-      "utxos": [
-        { "amount": 100, "blknum": 1, "oindex": 0, "txindex": 0 },
-        { "amount": 10, "blknum": 2, "oindex": 0, "txindex": 0 }
+    utxos = %{
+      address: alice.addr,
+      utxos: [
+        %{amount: 100, currency: eth(), blknum: 1, oindex: 0, txindex: 0},
+        %{amount: 10, currency: eth(), blknum: 2, oindex: 0, txindex: 0}
       ]
     }
-    """
 
-    utxos = Poison.Parser.parse!(utxos_json, keys: :atoms!)
-    {:ok, decode_address} = Base.decode16(utxos.address)
-    utxos = %{utxos | address: decode_address}
-
-    {:ok, raw_transaction} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42}, 10)
+    {:ok, raw_transaction} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42})
 
     {:ok, transaction} =
       raw_transaction
@@ -133,5 +124,18 @@ defmodule OmiseGO.API.State.TransactionTest do
     assert {{:ok, _, _, _}, _state} =
              transaction
              |> Core.exec(state)
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "different signers, one output", %{alice: alice, bob: bob} do
+    tx =
+      [{3000, 0, 0}, {3000, 0, 1}]
+      |> Transaction.new(Transaction.zero_address(), [{alice.addr, 10}])
+      |> Transaction.sign(bob.priv, alice.priv)
+      |> Transaction.Signed.encode()
+
+    {:ok, recovered} = tx |> OmiseGO.API.Core.recover_tx()
+    assert recovered.spender1 == bob.addr
+    assert recovered.spender2 == alice.addr
   end
 end
