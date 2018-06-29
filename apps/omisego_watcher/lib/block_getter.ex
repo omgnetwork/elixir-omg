@@ -60,16 +60,17 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def handle_info({_ref, {:got_block, {:ok, %Block{number: blknum, transactions: txs, hash: hash} = block}}}, state) do
-    _ =
-      Logger.info(fn ->
-        "Received block \##{inspect(blknum)} #{hash |> Base.encode16() |> Binary.drop(-48)}... with #{length(txs)} txs"
-      end)
 
     {:ok, state} = Core.add_block(state, block)
     {new_state, blocks_to_consume} = Core.get_blocks_to_consume(state)
 
     {:ok, next_child} = Eth.get_current_child_block()
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
+    _ =
+      Logger.info(fn ->
+        "Received block \##{inspect(blknum)} #{hash |> Base.encode16() |> Binary.drop(-48)}... with #{length(txs)} txs." <>
+          " Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}"
+      end)
     :ok = run_block_get_task(blocks_numbers)
 
     :ok = blocks_to_consume |> Enum.each(&consume_block/1)
