@@ -5,6 +5,8 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   use Plug.Test
 
   alias OmiseGO.API.Block
+  alias OmiseGO.API.TestHelper, as: API_Helper
+  alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.BlockGetter.Core
 
   defp add_block(state, block) do
@@ -104,5 +106,40 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     assert {:error, :duplicate} = state |> add_block(%Block{number: 1_000}) |> Core.add_block(%Block{number: 1_000})
     assert {:error, :unexpected_blok} = state |> Core.add_block(%Block{number: 2_000})
+  end
+
+  test "simple decode block" do
+    %Block{transactions: transactions} =
+      block =
+      Block.merkle_hash(%Block{
+        transactions: [API_Helper.create_recovered([], [], 0), API_Helper.create_recovered([], [], 0)],
+        number: 1_000
+      })
+
+    json =
+      for {key, val} <- Map.from_struct(Map.put(block, :transactions, Enum.map(transactions, & &1.signed_tx_bytes))),
+          into: %{},
+          do: {Atom.to_string(key), val}
+
+    assert {:ok, block} == Core.decode_block(Client.encode(json))
+  end
+
+  test "check error return by decode_block" do
+    assert {:error, :incorrect_hash} ==
+             Core.decode_block(%{
+               "hash" => String.duplicate("A", 64),
+               "transactions" => [Client.encode(API_Helper.create_recovered([], [], 0).signed_tx_bytes)],
+               "number" => 23
+             })
+
+    assert {:error, :malformed_transaction_rlp} ==
+             Core.decode_block(%{
+               "hash" => "",
+               "transactions" => [
+                 Client.encode(API_Helper.create_recovered([], [], 0).signed_tx_bytes),
+                 "12321231AB2331"
+               ],
+               "number" => 1
+             })
   end
 end

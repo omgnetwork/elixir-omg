@@ -4,7 +4,7 @@ defmodule OmiseGO.API.State.Transaction do
   """
 
   alias OmiseGO.API.Crypto
-  alias OmiseGO.API.State.Transaction.{Signed}
+  alias OmiseGO.API.State.Transaction.Signed
 
   @zero_address <<0::size(160)>>
   @number_of_transactions 2
@@ -100,7 +100,7 @@ defmodule OmiseGO.API.State.Transaction do
       Adjusts the inputs and outputs for each transaction with empty ones
       to match the expected size of @number_of_transaction. Then adds the fee.
        for inputs add {0, 0, 0} where {blknum, txindex, oindex}
-       for outpust add {0, 0} where {newowner, amount}
+       for outpust add {Crypto.empty_address, 0} where {newowner, amount}
   """
   @spec new(
           list({pos_integer, pos_integer, 0 | 1}),
@@ -109,7 +109,7 @@ defmodule OmiseGO.API.State.Transaction do
         ) :: t()
   def new(inputs, outputs, fee) do
     inputs = inputs ++ List.duplicate({0, 0, 0}, @number_of_transactions - Kernel.length(inputs))
-    outputs = outputs ++ List.duplicate({0, 0}, @number_of_transactions - Kernel.length(outputs))
+    outputs = outputs ++ List.duplicate({Crypto.empty_address(), 0}, @number_of_transactions - Kernel.length(outputs))
 
     inputs =
       inputs
@@ -176,7 +176,8 @@ defmodule OmiseGO.API.State.Transaction do
     signature1 = signature(encoded_tx, priv1)
     signature2 = signature(encoded_tx, priv2)
 
-    %Signed{raw_tx: tx, sig1: signature1, sig2: signature2, signed_tx_bytes: nil}
+    transaction = %Signed{raw_tx: tx, sig1: signature1, sig2: signature2}
+    %{transaction | signed_tx_bytes: Signed.encode(transaction)}
   end
 
   defp signature(_encoded_tx, <<>>), do: <<0::size(520)>>
