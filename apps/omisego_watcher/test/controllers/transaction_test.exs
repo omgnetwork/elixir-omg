@@ -7,7 +7,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   alias OmiseGO.API.Block
   alias OmiseGOWatcher.TransactionDB
 
-  @tag fixtures: [:watcher_repo]
+  @tag fixtures: [:phoenix_ecto_sandbox]
   test "insert and retrive transaction" do
     txblknum = 0
     txindex = 0
@@ -17,7 +17,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     assert expected_transaction == delete_meta(TransactionDB.get(id))
   end
 
-  @tag fixtures: [:watcher_repo]
+  @tag fixtures: [:phoenix_ecto_sandbox]
   test "insert and retrive block of transactions " do
     txblknum = 0
     recovered1 = OmiseGO.API.TestHelper.create_recovered([], [])

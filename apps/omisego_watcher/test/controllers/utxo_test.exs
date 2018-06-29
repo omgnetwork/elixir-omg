@@ -10,21 +10,12 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   alias OmiseGOWatcher.UtxoDB
 
   describe "UTXO database." do
-
-    @tag :wip
-    @tag fixtures: [:watcher_repo]
-    test "try use watcher_repo" do
-      IO.puts("=======test running=======")
-      :ok
-    end
-
-
-    @tag fixtures: [:watcher_repo, :alice]
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "No utxo are returned for non-existing addresses.", %{alice: alice} do
       assert get_utxo(alice.addr) == %{"utxos" => [], "address" => Client.encode(alice.addr)}
     end
 
-    @tag fixtures: [:watcher_repo, :alice]
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "Consumed block contents are available.", %{alice: alice} do
       UtxoDB.consume_block(%Block{
         transactions: [
@@ -39,7 +30,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       assert Enum.sort([amount1, amount2]) == [1947, 1952]
     end
 
-    @tag fixtures: [:watcher_repo, :alice, :bob, :carol]
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob, :carol]
     test "Spent utxos are moved to new owner.", %{alice: alice, bob: bob, carol: carol} do
       UtxoDB.consume_block(%Block{
         transactions: [
@@ -60,14 +51,14 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       %{"utxos" => []} = get_utxo(bob.addr)
     end
 
-    @tag fixtures: [:watcher_repo, :alice]
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "Deposits are a part of utxo set.", %{alice: alice} do
       assert %{"utxos" => []} = get_utxo(alice.addr)
       UtxoDB.insert_deposits([%{owner: alice.addr, amount: 1, block_height: 1}])
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo(alice.addr)
     end
 
-    @tag fixtures: [:watcher_repo, :alice, :bob]
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
     test "Deposit utxo are moved to new owner if spent ", %{alice: alice, bob: bob} do
       assert %{"utxos" => []} = get_utxo(alice.addr)
       assert %{"utxos" => []} = get_utxo(bob.addr)
