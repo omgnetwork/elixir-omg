@@ -7,7 +7,7 @@ defmodule OmiseGO.API.State.Transaction do
   alias OmiseGO.API.State.Transaction.Signed
 
   @zero_address <<0::size(160)>>
-  @number_of_transactions 2
+  @max_inputs 2
 
   defstruct [
     :blknum1,
@@ -16,35 +16,44 @@ defmodule OmiseGO.API.State.Transaction do
     :blknum2,
     :txindex2,
     :oindex2,
+    :cur12,
     :newowner1,
     :amount1,
     :newowner2,
-    :amount2,
-    :fee
+    :amount2
   ]
 
   @type t() :: %__MODULE__{
-          blknum1: pos_integer(),
-          txindex1: pos_integer(),
-          oindex1: pos_integer(),
-          blknum2: pos_integer(),
-          txindex2: pos_integer(),
-          oindex2: pos_integer(),
+          blknum1: non_neg_integer(),
+          txindex1: non_neg_integer(),
+          oindex1: 0 | 1,
+          blknum2: non_neg_integer(),
+          txindex2: non_neg_integer(),
+          oindex2: 0 | 1,
+          cur12: currency(),
           newowner1: Crypto.address_t(),
           amount1: pos_integer(),
           newowner2: Crypto.address_t(),
-          amount2: pos_integer(),
-          fee: pos_integer()
+          amount2: non_neg_integer()
         }
 
-  def create_from_utxos(%{utxos: utxos_ble}, _, _) when length(utxos_ble) > @number_of_transactions,
+  @type currency :: Crypto.address_t()
+
+  # TODO: a helper function with limited functionality, used in tests; move to test helpers
+  def create_from_utxos(%{utxos: utxos}, _) when length(utxos) > @max_inputs,
     do: {:error, :too_many_utxo}
 
-  def create_from_utxos(
-        %{address: change_address, utxos: utxos},
-        %{address: receiver_address, amount: amount},
-        fee
-      ) do
+  def create_from_utxos(%{utxos: utxos} = inputs, receiver) do
+    with {:ok, cur1} <- validate_currency(utxos) do
+      do_create_from_utxos(inputs, cur1, receiver)
+    end
+  end
+
+  defp do_create_from_utxos(
+         %{address: change_address, utxos: utxos},
+         cur1,
+         %{address: receiver_address, amount: amount}
+       ) do
     parts_transaction =
       utxos
       |> Enum.with_index(1)
@@ -60,7 +69,7 @@ defmodule OmiseGO.API.State.Transaction do
     all_amount = Enum.reduce(parts_transaction, 0, &(&1.amount + &2))
 
     transaction =
-      Enum.reduce(parts_transaction, %{}, fn part_transaction, acc ->
+      Enum.reduce(parts_transaction, %{cur12: cur1}, fn part_transaction, acc ->
         {_, part_transaction} = Map.pop(part_transaction, :amount)
         Map.merge(acc, part_transaction)
       end)
@@ -72,8 +81,7 @@ defmodule OmiseGO.API.State.Transaction do
           newowner1: receiver_address,
           amount1: amount,
           newowner2: change_address,
-          amount2: all_amount - amount - fee,
-          fee: fee
+          amount2: all_amount - amount
         })
       )
 
@@ -83,33 +91,35 @@ defmodule OmiseGO.API.State.Transaction do
     end
   end
 
+  defp validate_currency([%{currency: cur1}, %{currency: cur2}]) when cur1 != cur2,
+    do: {:error, :currency_mixing_not_possible}
+
+  defp validate_currency([%{currency: cur1} | _]), do: {:ok, cur1}
+
   defp validate(%__MODULE__{} = transaction) do
     cond do
       transaction.amount1 < 0 -> {:error, :amount_negative_value}
       transaction.amount2 < 0 -> {:error, :amount_negative_value}
-      transaction.fee < 0 -> {:error, :fee_negative_value}
       true -> :ok
     end
   end
 
   @doc """
    assumptions:
-     length(inputs) <= @number_of_transaction
-     length(outputs) <= @number_of_transaction
+     length(inputs) <= 2
+     length(outputs) <= 2
    behavior:
-      Adjusts the inputs and outputs for each transaction with empty ones
-      to match the expected size of @number_of_transaction. Then adds the fee.
-       for inputs add {0, 0, 0} where {blknum, txindex, oindex}
-       for outpust add {Crypto.empty_address, 0} where {newowner, amount}
+      Adds empty (zeroes) inputs and/or outputs to reach the expected size
+      of 2 inputs and 2 outputs.
   """
   @spec new(
           list({pos_integer, pos_integer, 0 | 1}),
-          list({Crypto.address_t(), pos_integer}),
-          pos_integer
+          Crypto.address_t(),
+          list({Crypto.address_t(), pos_integer})
         ) :: t()
-  def new(inputs, outputs, fee) do
-    inputs = inputs ++ List.duplicate({0, 0, 0}, @number_of_transactions - Kernel.length(inputs))
-    outputs = outputs ++ List.duplicate({Crypto.empty_address(), 0}, @number_of_transactions - Kernel.length(outputs))
+  def new(inputs, currency, outputs) do
+    inputs = inputs ++ List.duplicate({0, 0, 0}, @max_inputs - Kernel.length(inputs))
+    outputs = outputs ++ List.duplicate({zero_address(), 0}, @max_inputs - Kernel.length(outputs))
 
     inputs =
       inputs
@@ -132,9 +142,9 @@ defmodule OmiseGO.API.State.Transaction do
           String.to_existing_atom("amount#{index}") => amount
         }
       end)
-      |> Enum.reduce(%{}, &Map.merge/2)
+      |> Enum.reduce(%{cur12: currency}, &Map.merge/2)
 
-    struct(__MODULE__, Map.put(Map.merge(inputs, outputs), :fee, fee))
+    struct(__MODULE__, Map.merge(inputs, outputs))
   end
 
   def zero_address, do: @zero_address
@@ -151,11 +161,11 @@ defmodule OmiseGO.API.State.Transaction do
       tx.blknum2,
       tx.txindex2,
       tx.oindex2,
+      tx.cur12,
       tx.newowner1,
       tx.amount1,
       tx.newowner2,
-      tx.amount2,
-      tx.fee
+      tx.amount2
     ]
     |> ExRLP.encode()
   end
