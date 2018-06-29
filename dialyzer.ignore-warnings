@@ -1,6 +1,8 @@
 # ethereumex related problems, dev_helpers.ex:
 Function get_child_chain/1 has no local return
 Function get_child_chain/2 has no local return
+Function get_exit/1 has no local return
+Function get_exit/2 has no local return
 Function 'prepare_env!'/0 has no local return
 Function 'prepare_env!'/1 has no local return
 Function create_and_fund_authority_addr/0 has no local return

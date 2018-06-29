@@ -5,6 +5,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   alias OmiseGO.API.{Block}
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
   alias OmiseGO.JSONRPC.Client
+  alias OmiseGOWatcher.TransactionDB
   alias OmiseGOWatcher.UtxoDB
   alias OmiseGOWatcher.TestHelper, as: Test
 
@@ -20,6 +21,12 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     amount1: 0,
     newowner2: <<>>,
     amount2: 0
+  }
+
+  @signed_tx %Signed{
+    raw_tx: @empty,
+    sig1: <<>>,
+    sig2: <<>>
   }
 
   describe "UTXO database." do
@@ -108,6 +115,36 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       assert %{"utxos" => []} = get_utxo("Leon")
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Matilda")
     end
+  end
+
+  @tag fixtures: [:watcher_sandbox]
+  test "compose_utxo_exit should return proper proof format" do
+    TransactionDB.insert(<<1>>, @signed_tx, 1, 1)
+    TransactionDB.insert(<<2>>, @signed_tx, 1, 2)
+    TransactionDB.insert(<<3>>, @signed_tx, 1, 3)
+
+    %{
+      utxo_pos: _utxo_pos,
+      tx_bytes: _tx_bytes,
+      proof: proof,
+      sigs: _sigs
+    } = UtxoDB.compose_utxo_exit(1, 1, 0)
+
+    assert <<_proof::bytes-size(512)>> = proof
+  end
+
+  @tag fixtures: [:watcher_sandbox]
+  test "compose_utxo_exit should return error when there is no txs in specfic block" do
+    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 1, 0)
+  end
+
+  @tag fixtures: [:watcher_sandbox]
+  test "compose_utxo_exit should return error when there is no tx in specfic block" do
+    TransactionDB.insert(<<2>>, @signed_tx, 1, 2)
+    TransactionDB.insert(<<1>>, @signed_tx, 1, 2)
+    TransactionDB.insert(<<3>>, @signed_tx, 1, 3)
+
+    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 4, 0)
   end
 
   defp get_utxo(address) do

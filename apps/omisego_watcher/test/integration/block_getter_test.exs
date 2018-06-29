@@ -7,8 +7,13 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.Eth
   alias OmiseGO.JSONRPC.Client
+  alias OmiseGOWatcher.TestHelper, as: Test
 
   @moduletag :integration
+
+  @timeout 20_000
+  @block_offset 1_000_000_000
+  @zero_address <<0::size(160)>>
 
   defp deposit_to_child_chain(to, value, config) do
     {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
@@ -25,7 +30,11 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   end
 
   @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
-  test "get the blocks from child chain after transaction", %{config_map: config_map, alice: alice, bob: bob} do
+  test "get the blocks from child chain after transaction and start exit", %{
+    config_map: config_map,
+    alice: alice,
+    bob: bob
+  } do
     {:ok, _pid} =
       GenServer.start_link(
         OmiseGOWatcher.BlockGetter,
@@ -50,24 +59,62 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       end)
     end
     |> Task.async()
-    |> Task.await(10_000)
+    |> Task.await(@timeout)
 
     encode_tx = Client.encode(tx)
 
     assert [%{"amount" => 3, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
-             get_utxo(bob)
+             get_utxo(bob.addr)
 
     assert [%{"amount" => 7, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
-             get_utxo(alice)
+             get_utxo(alice.addr)
+
+    %{
+      utxo_pos: utxo_pos,
+      tx_bytes: tx_bytes,
+      proof: proof,
+      sigs: sigs
+    } = compose_utxo_exit(block_nr, 0, 0)
+
+    alice_address = "0x" <> Base.encode16(alice.addr, case: :lower)
+
+    {:ok, txhash} =
+      Eth.start_exit(
+        utxo_pos * @block_offset,
+        tx_bytes,
+        proof,
+        sigs,
+        1,
+        alice_address,
+        config_map.contract_addr
+      )
+
+    {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+
+    {:ok, height} = Eth.get_ethereum_height()
+
+    assert {:ok, [%{amount: 7, blknum: block_nr, oindex: 0, owner: alice_address, txindex: 0, token: @zero_address}]} ==
+             Eth.get_exits(0, height, config_map.contract_addr)
   end
 
-  defp get_utxo(from) do
-    response =
-      :get
-      |> conn("account/utxo?address=#{Client.encode(from.addr)}")
-      |> put_private(:plug_skip_csrf_protection, true)
-      |> OmiseGOWatcherWeb.Endpoint.call([])
+  defp get_utxo(address) do
+    decoded_resp = Test.rest_call(:get, "account/utxo?address=#{Client.encode(address)}")
+    decoded_resp["utxos"]
+  end
 
-    Poison.decode!(response.resp_body)["utxos"]
+  defp compose_utxo_exit(block_height, txindex, oindex) do
+    decoded_resp =
+      Test.rest_call(:get, "account/utxo/compose_exit?block_height=#{block_height}&txindex=#{txindex}&oindex=#{oindex}")
+
+    {:ok, tx_bytes} = Client.decode(:bitstring, decoded_resp["tx_bytes"])
+    {:ok, proof} = Client.decode(:bitstring, decoded_resp["proof"])
+    {:ok, sigs} = Client.decode(:bitstring, decoded_resp["sigs"])
+
+    %{
+      utxo_pos: decoded_resp["utxo_pos"],
+      tx_bytes: tx_bytes,
+      proof: proof,
+      sigs: sigs
+    }
   end
 end
