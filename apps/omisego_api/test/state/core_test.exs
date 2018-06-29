@@ -3,6 +3,7 @@ defmodule OmiseGO.API.State.CoreTest do
   use ExUnit.Case, async: true
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Core
+  alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.TestHelper, as: Test
 
   @child_block_interval OmiseGO.API.BlockQueue.child_block_interval()
@@ -13,20 +14,41 @@ defmodule OmiseGO.API.State.CoreTest do
   @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232, 237, 80, 242, 60, 209, 253, 249, 76,
                       145, 84, 237, 58, 118, 9, 162, 241, 255, 152, 31>>
 
+  def eth, do: Transaction.zero_address()
+  def not_eth, do: <<0::size(159), 1::size(1)>>
+
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend deposits", %{alice: alice, bob: bob, state_empty: state} do
     state
-    |> Test.do_deposit(alice, %{amount: 10, blknum: 1})
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), &1)).()
     |> success?
-    |> (&Core.exec(Test.create_recovered([{@child_block_interval, 0, 1, alice}], [{bob, 3}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{@child_block_interval, 0, 1, alice}], eth(), [{bob, 3}]), &1)).()
     |> success?
+  end
+
+  @tag fixtures: [:alice, :bob, :state_empty]
+  test "when spending currency must match", %{alice: alice, bob: bob, state_empty: state} do
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], not_eth(), [{bob, 7}, {alice, 3}]), &1)).()
+    |> fail?(:incorrect_currency)
+  end
+
+  @tag fixtures: [:alice, :bob, :state_empty]
+  test "when spending inputs must have the same currency", %{alice: alice, bob: bob, state_empty: state} do
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> Test.do_deposit(alice, %{amount: 0, currency: not_eth(), blknum: 2})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), &1)).()
+    |> fail?(:incorrect_currency)
   end
 
   @tag fixtures: [:alice, :state_empty]
   test "can decode deposits in Core", %{alice: alice, state_empty: state} do
     alice_enc = "0x" <> Base.encode16(alice.addr, case: :lower)
-    deposits = [%{owner: alice_enc, amount: 10, blknum: 1}]
+    eth_enc = "0x" <> String.duplicate("00", 20)
+    deposits = [%{owner: alice_enc, currency: eth_enc, amount: 10, blknum: 1}]
 
     assert {_, _, state} =
              deposits
@@ -34,18 +56,18 @@ defmodule OmiseGO.API.State.CoreTest do
              |> Core.deposit(state)
 
     state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{alice, 10}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 10}]), &1)).()
     |> success?
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend a batch of deposits", %{alice: alice, bob: bob, state_empty: state} do
     state
-    |> Test.do_deposit(alice, %{amount: 10, blknum: 1})
-    |> Test.do_deposit(bob, %{amount: 20, blknum: 2})
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 10}]), &1)).()
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> Test.do_deposit(bob, %{amount: 20, currency: eth(), blknum: 2})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 10}]), &1)).()
     |> success?
-    |> (&Core.exec(Test.create_recovered([{2, 0, 0, bob}], [{alice, 20}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{2, 0, 0, bob}], eth(), [{alice, 20}]), &1)).()
     |> success?
   end
 
@@ -55,50 +77,44 @@ defmodule OmiseGO.API.State.CoreTest do
     bob: bob,
     state_empty: state
   } do
-    deposits = [%{owner: alice.addr, amount: 20, blknum: 2}]
+    deposits = [%{owner: alice.addr, currency: eth(), amount: 20, blknum: 2}]
     assert {_, [_, {:put, :last_deposit_block_height, 2}], state} = Core.deposit(deposits, state)
 
-    assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, amount: 20, blknum: 1}], state)
+    assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, currency: eth(), amount: 20, blknum: 1}], state)
   end
 
   @tag fixtures: [:bob]
   test "ignores deposits from blocks not higher than the deposit height read from db", %{bob: bob} do
     state = Core.extract_initial_state([], 0, 1, @child_block_interval)
 
-    assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, amount: 20, blknum: 1}], state)
+    assert {[], [], ^state} = Core.deposit([%{owner: bob.addr, currency: eth(), amount: 20, blknum: 1}], state)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can't spend nonexistent", %{alice: alice, bob: bob, state_empty: state} do
-    state_deposit = state |> Test.do_deposit(alice, %{amount: 10, blknum: 1})
+    state_deposit = state |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
 
     state_deposit
-    |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), &1)).()
     |> fail?(:utxo_not_found)
     |> same?(state_deposit)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit, :state_empty]
   test "amounts must add up", %{alice: alice, bob: bob, state_empty: state} do
-    state = Test.do_deposit(state, alice, %{amount: 10, blknum: 1})
+    state = Test.do_deposit(state, alice, %{amount: 10, currency: eth(), blknum: 1})
 
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{alice, 8}, {bob, 3}]), &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 8}, {bob, 3}]), &1)).()
       |> fail?(:amounts_dont_add_up)
       |> same?(state)
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 8}, {alice, 2}], 1), &1)).()
-      |> fail?(:amounts_dont_add_up)
-      |> same?(state)
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 8}, {alice, 3}]), &1)).()
-      |> fail?(:amounts_dont_add_up)
-      |> same?(state)
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 2}, {alice, 8}]), &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 2}, {alice, 8}]), &1)).()
       |> success?
 
     state
     |> (&Core.exec(
-          Test.create_recovered([{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}], [
+          Test.create_recovered([{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}], eth(), [
             {alice, 8},
             {bob, 3}
           ]),
@@ -111,10 +127,10 @@ defmodule OmiseGO.API.State.CoreTest do
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can't spend other people's funds", %{alice: alice, bob: bob, state_alice_deposit: state} do
     state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, bob}], [{bob, 8}, {alice, 3}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, bob}], eth(), [{bob, 8}, {alice, 3}]), &1)).()
     |> fail?(:incorrect_spender)
     |> same?(state)
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, bob}], [{alice, 10}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, bob}], eth(), [{alice, 10}]), &1)).()
     |> fail?(:incorrect_spender)
     |> same?(state)
   end
@@ -122,8 +138,8 @@ defmodule OmiseGO.API.State.CoreTest do
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can't spend spent", %{alice: alice, bob: bob, state_alice_deposit: state} do
     transactions = [
-      Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]),
-      Test.create_recovered([{0, 0, 0, %{priv: <<>>, addr: nil}}, {1, 0, 0, alice}], [
+      Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]),
+      Test.create_recovered([{0, 0, 0, %{priv: <<>>, addr: nil}}, {1, 0, 0, alice}], eth(), [
         {bob, 7},
         {alice, 3}
       ])
@@ -144,16 +160,20 @@ defmodule OmiseGO.API.State.CoreTest do
     state_alice_deposit: state
   } do
     state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), &1)).()
     |> success?
-    |> (&Core.exec(Test.create_recovered([{@child_block_interval, 0, 0, bob}], [{carol, 7}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{@child_block_interval, 0, 0, bob}], eth(), [{carol, 7}]), &1)).()
     |> success?
-    |> (&Core.exec(Test.create_recovered([{@child_block_interval, 0, 1, alice}], [{carol, 3}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{@child_block_interval, 0, 1, alice}], eth(), [{carol, 3}]), &1)).()
     |> success?
     |> (&Core.exec(
-          Test.create_recovered([{@child_block_interval, 1, 0, carol}, {@child_block_interval, 2, 0, carol}], [
-            {alice, 10}
-          ]),
+          Test.create_recovered(
+            [{@child_block_interval, 1, 0, carol}, {@child_block_interval, 2, 0, carol}],
+            eth(),
+            [
+              {alice, 10}
+            ]
+          ),
           &1
         )).()
     |> success?
@@ -165,15 +185,15 @@ defmodule OmiseGO.API.State.CoreTest do
     {:ok, {_, _, _, state}} = form_block_check(state, @child_block_interval)
 
     state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), &1)).()
     |> success?
-    |> (&Core.exec(Test.create_recovered([{next_block_height, 0, 0, bob}], [{bob, 7}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{next_block_height, 0, 0, bob}], eth(), [{bob, 7}]), &1)).()
     |> success?
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "forming block doesn't unspend", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    recovered = Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}])
+    recovered = Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}])
 
     {:ok, {_, _, _, state}} =
       state
@@ -186,7 +206,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "spending emits event trigger", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    recover = Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}])
+    recover = Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}])
 
     assert {:ok, {_, [trigger], _, _}} =
              state
@@ -205,9 +225,9 @@ defmodule OmiseGO.API.State.CoreTest do
   } do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), &1)).()
       |> success?
-      |> (&Core.exec(Test.create_recovered([{@child_block_interval, 0, 0, bob}], [{alice, 7}]), &1)).()
+      |> (&Core.exec(Test.create_recovered([{@child_block_interval, 0, 0, bob}], eth(), [{alice, 7}]), &1)).()
       |> success?
 
     assert {:ok, {_, [_trigger1, _trigger2], _, _}} = form_block_check(state, @child_block_interval)
@@ -220,7 +240,7 @@ defmodule OmiseGO.API.State.CoreTest do
     state_alice_deposit: state
   } do
     state
-    |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), &1)).()
     |> same?(state)
 
     assert {:ok, {_, [], _, _}} = form_block_check(state, @child_block_interval)
@@ -231,7 +251,8 @@ defmodule OmiseGO.API.State.CoreTest do
     alice: alice,
     state_empty: state
   } do
-    assert {[trigger], _, state} = Core.deposit([%{owner: alice, amount: 4, blknum: @child_block_interval}], state)
+    assert {[trigger], _, state} =
+             Core.deposit([%{owner: alice, currency: eth(), amount: 4, blknum: @child_block_interval}], state)
 
     assert trigger == %{deposit: %{owner: alice, amount: 4}}
     assert {:ok, {_, [], _, _}} = form_block_check(state, @child_block_interval)
@@ -245,7 +266,7 @@ defmodule OmiseGO.API.State.CoreTest do
   } do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), &1)).()
       |> success?
 
     assert {:ok, {_, [_trigger], _, state}} = form_block_check(state, @child_block_interval)
@@ -259,9 +280,9 @@ defmodule OmiseGO.API.State.CoreTest do
     stable_bob: bob,
     state_stable_alice_deposit: state
   } do
-    recovered_tx_1 = Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}], 0)
+    recovered_tx_1 = Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}])
 
-    recovered_tx_2 = Test.create_recovered([{@child_block_interval, 0, 0, bob}], [{alice, 2}, {bob, 5}], 0)
+    recovered_tx_2 = Test.create_recovered([{@child_block_interval, 0, 0, bob}], eth(), [{alice, 2}, {bob, 5}])
 
     state =
       state
@@ -272,9 +293,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
     expected_block = %Block{
       transactions: [recovered_tx_1, recovered_tx_2],
-      hash:
-        <<118, 4, 146, 193, 112, 146, 124, 210, 113, 227, 94, 30, 105, 189, 222, 36, 252, 180, 222, 68, 144, 67, 85, 69,
-          207, 2, 91, 78, 120, 23, 8, 77>>,
+      hash: "3e8de246ba9be94f87ea8cec20626705dc407eefa827545ebf03fa7582b13fca" |> Base.decode16!(case: :lower),
       number: @child_block_interval
     }
 
@@ -289,7 +308,7 @@ defmodule OmiseGO.API.State.CoreTest do
   } do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), &1)).()
       |> success?
 
     {:ok, {_, _, _, state}} = form_block_check(state, @child_block_interval)
@@ -319,7 +338,7 @@ defmodule OmiseGO.API.State.CoreTest do
   } do
     {:ok, {_, _, db_updates, state}} =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{bob, 7}, {alice, 3}]), &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), &1)).()
       |> success?
       |> form_block_check(@child_block_interval)
 
@@ -331,8 +350,8 @@ defmodule OmiseGO.API.State.CoreTest do
              {:put, :child_top_block_number, @child_block_interval}
            ] = db_updates
 
-    assert new_utxo1 == %{{@child_block_interval, 0, 0} => %{owner: bob.addr, amount: 7}}
-    assert new_utxo2 == %{{@child_block_interval, 0, 1} => %{owner: alice.addr, amount: 3}}
+    assert new_utxo1 == %{{@child_block_interval, 0, 0} => %{owner: bob.addr, currency: eth(), amount: 7}}
+    assert new_utxo2 == %{{@child_block_interval, 0, 1} => %{owner: alice.addr, currency: eth(), amount: 3}}
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_2}], state}} =
              form_block_check(state, @child_block_interval)
@@ -341,9 +360,13 @@ defmodule OmiseGO.API.State.CoreTest do
     {:ok, {_, _, db_updates2, state}} =
       state
       |> (&Core.exec(
-            Test.create_recovered([{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}], [
-              {bob, 10}
-            ]),
+            Test.create_recovered(
+              [{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}],
+              eth(),
+              [
+                {bob, 10}
+              ]
+            ),
             &1
           )).()
       |> success?
@@ -357,7 +380,7 @@ defmodule OmiseGO.API.State.CoreTest do
              {:put, :child_top_block_number, @child_block_3}
            ] = db_updates2
 
-    assert new_utxo == %{{@child_block_3, 0, 0} => %{owner: bob.addr, amount: 10}}
+    assert new_utxo == %{{@child_block_3, 0, 0} => %{owner: bob.addr, currency: eth(), amount: 10}}
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_4}], _}} =
              form_block_check(state, @child_block_interval)
@@ -368,9 +391,10 @@ defmodule OmiseGO.API.State.CoreTest do
     alice: alice,
     state_empty: state
   } do
-    assert {_, [utxo_update, height_update], state} = Core.deposit([%{owner: alice.addr, amount: 10, blknum: 1}], state)
+    assert {_, [utxo_update, height_update], state} =
+             Core.deposit([%{owner: alice.addr, currency: eth(), amount: 10, blknum: 1}], state)
 
-    assert utxo_update == {:put, :utxo, %{{1, 0, 0} => %{owner: alice.addr, amount: 10}}}
+    assert utxo_update == {:put, :utxo, %{{1, 0, 0} => %{owner: alice.addr, currency: eth(), amount: 10}}}
     assert height_update == {:put, :last_deposit_block_height, 1}
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_interval}], _}} =
@@ -381,14 +405,14 @@ defmodule OmiseGO.API.State.CoreTest do
   test "utxos get initialized by query result from db and are spendable", %{alice: alice} do
     state =
       Core.extract_initial_state(
-        [%{{1, 0, 0} => %{amount: 10, owner: alice.addr}}],
+        [%{{1, 0, 0} => %{amount: 10, currency: eth(), owner: alice.addr}}],
         0,
         1,
         @child_block_interval
       )
 
     state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{alice, 7}, {alice, 3}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), &1)).()
     |> success?
   end
 
@@ -397,8 +421,8 @@ defmodule OmiseGO.API.State.CoreTest do
     state =
       Core.extract_initial_state(
         [
-          %{{1, 0, 0} => %{amount: 10, owner: alice.addr}},
-          %{{1001, 10, 1} => %{amount: 8, owner: bob.addr}}
+          %{{1, 0, 0} => %{amount: 10, currency: eth(), owner: alice.addr}},
+          %{{1001, 10, 1} => %{amount: 8, currency: eth(), owner: bob.addr}}
         ],
         0,
         1,
@@ -406,7 +430,10 @@ defmodule OmiseGO.API.State.CoreTest do
       )
 
     state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}, {1001, 10, 1, bob}], [{alice, 15}, {alice, 3}]), &1)).()
+    |> (&Core.exec(
+          Test.create_recovered([{1, 0, 0, alice}, {1001, 10, 1, bob}], eth(), [{alice, 15}, {alice, 3}]),
+          &1
+        )).()
     |> success?
   end
 
@@ -414,7 +441,7 @@ defmodule OmiseGO.API.State.CoreTest do
   test "spends utxo when exiting", %{alice: alice, state_alice_deposit: state} do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{alice, 7}, {alice, 3}]), &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), &1)).()
       |> success?
 
     expected_owner = alice.addr
@@ -431,10 +458,10 @@ defmodule OmiseGO.API.State.CoreTest do
       |> Core.exit_utxos(state)
 
     state
-    |> (&Core.exec(Test.create_recovered([{@child_block_interval, 1, 0, alice}], [{alice, 7}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{@child_block_interval, 1, 0, alice}], eth(), [{alice, 7}]), &1)).()
     |> fail?(:utxo_not_found)
     |> same?(state)
-    |> (&Core.exec(Test.create_recovered([{@child_block_interval, 1, 1, alice}], [{alice, 3}]), &1)).()
+    |> (&Core.exec(Test.create_recovered([{@child_block_interval, 1, 1, alice}], eth(), [{alice, 3}]), &1)).()
     |> fail?(:utxo_not_found)
     |> same?(state)
   end
@@ -443,7 +470,7 @@ defmodule OmiseGO.API.State.CoreTest do
   test "does not change when exiting spent utxo", %{alice: alice, state_alice_deposit: state} do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{alice, 7}, {alice, 3}]), &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), &1)).()
       |> success?
 
     {[], [], ^state} =
@@ -462,12 +489,12 @@ defmodule OmiseGO.API.State.CoreTest do
   test "tells if utxo exists", %{alice: alice, state_empty: state} do
     :utxo_does_not_exist = Core.utxo_exists(%{blknum: 1, txindex: 0, oindex: 0}, state)
 
-    state = state |> Test.do_deposit(alice, %{amount: 10, blknum: 1})
+    state = state |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
     :utxo_exists = Core.utxo_exists(%{blknum: 1, txindex: 0, oindex: 0}, state)
 
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], [{alice, 10}]), &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 10}]), &1)).()
       |> success?
 
     :utxo_does_not_exist = Core.utxo_exists(%{blknum: 1, txindex: 0, oindex: 0}, state)

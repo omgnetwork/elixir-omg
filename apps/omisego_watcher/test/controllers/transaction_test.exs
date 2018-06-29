@@ -8,6 +8,8 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   alias OmiseGO.API.State.{Transaction, Transaction.Signed}
   alias OmiseGOWatcher.TransactionDB
 
+  @zero_address <<0::size(160)>>
+
   @signed_tx %Signed{
     raw_tx: %Transaction{
       blknum1: 0,
@@ -16,11 +18,11 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
       blknum2: 0,
       txindex2: 0,
       oindex2: 0,
-      newowner1: "",
-      amount1: 0,
-      newowner2: "",
-      amount2: 0,
-      fee: 0
+      cur12: @zero_address,
+      newowner1: @zero_address,
+      amount1: 1,
+      newowner2: @zero_address,
+      amount2: 0
     },
     sig1: <<>>,
     sig2: <<>>

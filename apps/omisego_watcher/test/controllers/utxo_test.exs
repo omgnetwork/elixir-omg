@@ -16,11 +16,11 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     blknum2: 0,
     txindex2: 0,
     oindex2: 0,
-    newowner1: "",
+    cur12: Transaction.zero_address(),
+    newowner1: <<>>,
     amount1: 0,
-    newowner2: "",
-    amount2: 0,
-    fee: 0
+    newowner2: <<>>,
+    amount2: 0
   }
 
   @signed_tx %Signed{

@@ -28,11 +28,11 @@ defmodule OmiseGO.API.State.Transaction.Signed do
       tx.blknum2,
       tx.txindex2,
       tx.oindex2,
+      tx.cur12,
       tx.newowner1,
       tx.amount1,
       tx.newowner2,
       tx.amount2,
-      tx.fee,
       sig1,
       sig2
     ]
@@ -64,11 +64,11 @@ defmodule OmiseGO.API.State.Transaction.Signed do
         blknum2,
         txindex2,
         oindex2,
+        cur12,
         newowner1,
         amount1,
         newowner2,
         amount2,
-        fee,
         sig1,
         sig2
       ] ->
@@ -81,11 +81,11 @@ defmodule OmiseGO.API.State.Transaction.Signed do
             blknum2: int_parse(blknum2),
             txindex2: int_parse(txindex2),
             oindex2: int_parse(oindex2),
+            cur12: address_parse(cur12),
             newowner1: address_parse(newowner1),
             amount1: int_parse(amount1),
             newowner2: address_parse(newowner2),
-            amount2: int_parse(amount2),
-            fee: int_parse(fee)
+            amount2: int_parse(amount2)
           }
 
           {:ok,
@@ -103,9 +103,9 @@ defmodule OmiseGO.API.State.Transaction.Signed do
   end
 
   # necessary, because RLP handles empty string equally to integer 0
-  @spec address_parse(<<>> | Crypto.address_t()) :: integer() | Crypto.address_t()
+  @spec address_parse(<<>> | Crypto.address_t()) :: Crypto.address_t()
   defp address_parse(address)
-  defp address_parse(""), do: 0
+  defp address_parse(""), do: <<0::160>>
   defp address_parse(<<_::160>> = address_bytes), do: address_bytes
 
   defp signature_length?(sig) when byte_size(sig) == @signature_length, do: :ok

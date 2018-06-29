@@ -17,6 +17,7 @@ defmodule OmiseGO.EthTest do
   @timeout 20_000
   @block_offset 1_000_000_000
   @transaction_offset 10_000
+  @zero_address <<0::size(160)>>
 
   @moduletag :integration
 
@@ -31,22 +32,34 @@ defmodule OmiseGO.EthTest do
     }
   end
 
-  defp deposit(value, gas_price, contract) do
-    {:ok, transaction_hash} = Eth.DevHelpers.deposit(value, gas_price, contract.authority_addr, contract.contract_addr)
-    {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
+  defp eth do
+    "0x0000000000000000000000000000000000000000"
   end
 
-  defp start_deposit_exit(deposit_position, value, gas_price, contract) do
-    {:ok, txhash} =
-      Eth.start_deposit_exit(deposit_position, value, gas_price, contract.authority_addr, contract.contract_addr)
-
-    {:ok, _} = WaitFor.eth_receipt(txhash, @timeout)
+  defp deposit(contract) do
+    {:ok, transaction_hash} = Eth.DevHelpers.deposit(1, 1, contract.authority_addr, contract.contract_addr)
+    {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
   end
 
   defp start_exit(utxo_position, txbytes, proof, sigs, gas_price, from, contract) do
     {:ok, txhash} = Eth.start_exit(utxo_position, txbytes, proof, sigs, gas_price, from, contract)
 
     {:ok, _} = WaitFor.eth_receipt(txhash, @timeout)
+  end
+
+  defp exit_deposit(contract) do
+    deposit_pos = utxo_position(1, 0, 0)
+    data = "startDepositExit(uint256,address,uint256)" |> ABI.encode([deposit_pos, @zero_address, 1]) |> Base.encode16()
+
+    {:ok, transaction_hash} =
+      Ethereumex.HttpClient.eth_send_transaction(%{
+        from: contract.authority_addr,
+        to: contract.contract_addr,
+        data: "0x#{data}",
+        gas: "0x2D0900"
+      })
+
+    {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
   end
 
   defp utxo_position(block_height, txindex, oindex),
@@ -65,14 +78,14 @@ defmodule OmiseGO.EthTest do
   test "start_exit", %{contract: contract, alice: alice, bob: bob} do
     {:ok, bob_address} = Eth.DevHelpers.import_unlock_fund(bob)
 
-    raw_tx = %OmiseGO.API.State.Transaction{
+    raw_tx = %Transaction{
       amount1: 8,
       amount2: 3,
       blknum1: 1,
       blknum2: 0,
-      fee: 0,
       newowner1: bob.addr,
       newowner2: alice.addr,
+      cur12: @zero_address,
       oindex1: 0,
       oindex2: 0,
       txindex1: 0,
@@ -112,7 +125,7 @@ defmodule OmiseGO.EthTest do
 
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 8, blknum: 1000, oindex: 0, owner: bob_address, txindex: 0}]} ==
+    assert {:ok, [%{amount: 8, blknum: 1000, oindex: 0, owner: bob_address, txindex: 0, token: @zero_address}]} ==
              Eth.get_exits(1, height, contract.contract_addr)
   end
 
@@ -140,10 +153,10 @@ defmodule OmiseGO.EthTest do
 
   @tag fixtures: [:contract]
   test "gets deposits from a range of blocks", %{contract: contract} do
-    deposit(1, 1, contract)
+    deposit(contract)
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.authority_addr}]} ==
+    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.authority_addr, currency: eth()}]} ==
              Eth.get_deposits(1, height, contract.contract_addr)
   end
 
@@ -155,14 +168,14 @@ defmodule OmiseGO.EthTest do
 
   @tag fixtures: [:contract]
   test "get exits from a range of blocks", %{contract: contract} do
-    deposit(1, 1, contract)
-    deposit_position = utxo_position(1, 0, 0)
-
-    start_deposit_exit(deposit_position, 1, 1, contract)
+    deposit(contract)
+    exit_deposit(contract)
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{owner: contract.authority_addr, blknum: 1, txindex: 0, oindex: 0, amount: 1}]} ==
-             Eth.get_exits(1, height, contract.contract_addr)
+    assert(
+      {:ok, [%{owner: contract.authority_addr, blknum: 1, txindex: 0, oindex: 0, token: @zero_address, amount: 1}]} ==
+        Eth.get_exits(1, height, contract.contract_addr)
+    )
   end
 
   @tag fixtures: [:contract]
