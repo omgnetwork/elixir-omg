@@ -47,7 +47,7 @@ defmodule OmiseGO.API.State.CoreTest do
   @tag fixtures: [:alice, :state_empty]
   test "can decode deposits in Core", %{alice: alice, state_empty: state} do
     alice_enc = "0x" <> Base.encode16(alice.addr, case: :lower)
-    eth_enc = "0x0000000000000000000000000000000000000000"
+    eth_enc = "0x" <> String.duplicate("00", 20)
     deposits = [%{owner: alice_enc, currency: eth_enc, amount: 10, blknum: 1}]
 
     assert {_, _, state} =
@@ -114,14 +114,10 @@ defmodule OmiseGO.API.State.CoreTest do
 
     state
     |> (&Core.exec(
-          Test.create_recovered(
-            [{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}],
-            eth(),
-            [
-              {alice, 8},
-              {bob, 3}
-            ]
-          ),
+          Test.create_recovered([{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}], eth(), [
+            {alice, 8},
+            {bob, 3}
+          ]),
           &1
         )).()
     |> fail?(:amounts_dont_add_up)
@@ -295,11 +291,9 @@ defmodule OmiseGO.API.State.CoreTest do
       |> (&Core.exec(recovered_tx_2, &1)).()
       |> success?
 
-    hash = "3e8de246ba9be94f87ea8cec20626705dc407eefa827545ebf03fa7582b13fca" |> Base.decode16!(case: :lower)
-
     expected_block = %Block{
       transactions: [recovered_tx_1, recovered_tx_2],
-      hash: hash,
+      hash: "3e8de246ba9be94f87ea8cec20626705dc407eefa827545ebf03fa7582b13fca" |> Base.decode16!(case: :lower),
       number: @child_block_interval
     }
 

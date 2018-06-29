@@ -39,6 +39,7 @@ defmodule OmiseGO.API.State.Transaction do
 
   @type currency :: Crypto.address_t()
 
+  # TODO: a helper function with limited functionality, used in tests; move to test helpers
   def create_from_utxos(%{utxos: utxos}, _) when length(utxos) > @max_inputs,
     do: {:error, :too_many_utxo}
 
