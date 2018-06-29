@@ -3,7 +3,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   use ExUnit.Case, async: false
   use OmiseGO.API.Fixtures
 
-  alias OmiseGO.API.Block
+  alias OmiseGO.API.{Block, State.Transaction}
   alias OmiseGO.API.TestHelper, as: API_Helper
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.TestHelper
@@ -19,8 +19,8 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     test "Consumed block contents are available.", %{alice: alice} do
       UtxoDB.consume_block(%Block{
         transactions: [
-          API_Helper.create_recovered([], [{alice, 1947}], 0),
-          API_Helper.create_recovered([], [{alice, 1952}], 0)
+          API_Helper.create_recovered([], Transaction.zero_address(), [{alice, 1947}]),
+          API_Helper.create_recovered([], Transaction.zero_address(), [{alice, 1952}])
         ],
         number: 2
       })
@@ -34,8 +34,8 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     test "Spent utxos are moved to new owner.", %{alice: alice, bob: bob, carol: carol} do
       UtxoDB.consume_block(%Block{
         transactions: [
-          API_Helper.create_recovered([], [{alice, 1843}]),
-          API_Helper.create_recovered([], [{bob, 1871}])
+          API_Helper.create_recovered([], Transaction.zero_address(), [{alice, 1843}]),
+          API_Helper.create_recovered([], Transaction.zero_address(), [{bob, 1871}])
         ],
         number: 1
       })
@@ -43,7 +43,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       %{"utxos" => [%{"amount" => 1871}]} = get_utxo(bob.addr)
 
       UtxoDB.consume_block(%Block{
-        transactions: [API_Helper.create_recovered([{1, 1, 0, bob}], [{carol, 1000}])],
+        transactions: [API_Helper.create_recovered([{1, 1, 0, bob}], Transaction.zero_address(), [{carol, 1000}])],
         number: 2
       })
 
@@ -66,7 +66,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo(alice.addr)
 
       UtxoDB.consume_block(%Block{
-        transactions: [API_Helper.create_recovered([{1, 0, 0, alice}], [{bob, 1}])],
+        transactions: [API_Helper.create_recovered([{1, 0, 0, alice}], Transaction.zero_address(), [{bob, 1}])],
         number: 2
       })
 

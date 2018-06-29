@@ -67,13 +67,15 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   test "try consume block with invalid transaction", %{alice: alice} do
     assert {:error, :amounts_dont_add_up} ==
              OmiseGOWatcher.BlockGetter.consume_block(%Block{
-               transactions: [API_Helper.create_recovered([], [{alice, 1200}], 0)],
+               transactions: [API_Helper.create_recovered([], Transaction.zero_address(), [{alice, 1200}])],
                number: 1_000
              })
 
     assert {:error, :utxo_not_found} ==
              OmiseGOWatcher.BlockGetter.consume_block(%Block{
-               transactions: [API_Helper.create_recovered([{1_000, 0, 0, alice}], [{alice, 1200}], 0)],
+               transactions: [
+                 API_Helper.create_recovered([{1_000, 0, 0, alice}], Transaction.zero_address(), [{alice, 1200}])
+               ],
                number: 1_000
              })
   end
@@ -87,15 +89,23 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     assert :ok ==
              OmiseGO.API.State.deposit([
-               %{owner: "0x" <> Base.encode16(alice.addr, case: :lower), amount: 1_000, blknum: 1_001},
-               %{owner: "0x" <> Base.encode16(bob.addr, case: :lower), amount: 1_000, blknum: 1_002}
+               %{owner: alice.addr, currency: Transaction.zero_address(), amount: 1_000, blknum: 1_001},
+               %{owner: bob.addr, currency: Transaction.zero_address(), amount: 1_000, blknum: 1_002}
              ])
 
     assert :ok ==
              OmiseGOWatcher.BlockGetter.consume_block(%Block{
                transactions: [
-                 API_Helper.create_recovered([{1_001, 0, 0, alice}], [{alice, 700}, {carol, 200}], 100),
-                 API_Helper.create_recovered([{1_002, 0, 0, bob}], [{carol, 500}, {bob, 400}], 100)
+                 API_Helper.create_recovered(
+                   [{1_001, 0, 0, alice}],
+                   Transaction.zero_address(),
+                   [{alice, 700}, {carol, 200}]
+                 ),
+                 API_Helper.create_recovered(
+                   [{1_002, 0, 0, bob}],
+                   Transaction.zero_address(),
+                   [{carol, 500}, {bob, 400}]
+                 )
                ],
                number: 2_000
              })
