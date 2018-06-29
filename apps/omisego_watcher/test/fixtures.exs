@@ -158,4 +158,47 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     _ = watcher
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
   end
+
+  deffixture watcher_repo do
+    Process.flag(:trap_exit, true)
+    {typ, pid} =
+      Supervisor.start_link(
+        [
+          {OmiseGOWatcher.Repo, {OmiseGOWatcher.Repo, :start_link, []}, :permanent, :infinity, :supervisor,
+           [OmiseGOWatcher.Repo]},
+          {OmiseGOWatcherWeb.Endpoint, {OmiseGOWatcherWeb.Endpoint, :start_link, []}, :permanent, :infinity,
+           :supervisor, [OmiseGOWatcherWeb.Endpoint]}
+        ],
+        strategy: :one_for_one,
+        #name: OmiseGOWatcher.Supervisor
+      )
+
+    IO.puts(":> start repo:(#{inspect(typ)}, #{inspect(pid)})")
+    #:ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
+    Supervisor.count_children(pid)
+    on_exit(fn ->
+      # Supervisor.count_children(pid)
+      # Supervisor.delete_child(pid, OmiseGOWatcherWeb.Endpoint)
+      IO.puts("try to kill :>#{inspect(pid)}")
+      #try do
+      #  Process.flag(:trap_exit, true)
+      if Process.alive?(pid) do
+        IO.puts("process: #{inspect(Process.alive?(pid))}")
+        IO.puts("stop: #{inspect(Supervisor.stop(pid, :shutdown))}")
+      else
+        IO.puts("allive")
+      end
+      #true =
+      #  IO.puts("stopping supervisor")
+      #  Supervisor.stop(pid, :shutdown)#:normal)
+      #  IO.puts("returned")
+      #rescue
+      #  msg -> IO.puts(":>#{inspect(msg)}")
+      #end
+
+      #         response = Supervisor.stop(pid,:shutdown)#:normal)
+      # IO.puts("on_exit #{inspect(response)}")
+      :ok
+    end)
+  end
 end

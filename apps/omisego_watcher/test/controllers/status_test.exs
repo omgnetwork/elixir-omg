@@ -4,8 +4,6 @@ defmodule OmiseGOWatcherWeb.Controller.StatusTest do
 
   alias OmiseGOWatcher.TestHelper, as: Test
 
-  @moduletag :integration
-
   @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]
   test "status endpoint provides expected information" do
     expected_keys = [
