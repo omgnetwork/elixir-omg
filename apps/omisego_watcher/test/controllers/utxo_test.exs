@@ -79,7 +79,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     end
   end
 
-  @tag fixtures: [:watcher_sandbox, :alice]
+  @tag fixtures: [:phoenix_ecto_sandbox, :alice]
   test "compose_utxo_exit should return proper proof format", %{alice: alice} do
     TransactionDB.insert(API_Helper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}]), 1, 1)
     TransactionDB.insert(API_Helper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 110}]), 2, 1)
@@ -95,12 +95,12 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     assert <<_proof::bytes-size(512)>> = proof
   end
 
-  @tag fixtures: [:watcher_sandbox]
+  @tag fixtures: [:phoenix_ecto_sandbox]
   test "compose_utxo_exit should return error when there is no txs in specfic block" do
     {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 1, 0)
   end
 
-  @tag fixtures: [:watcher_sandbox, :alice]
+  @tag fixtures: [:phoenix_ecto_sandbox, :alice]
   test "compose_utxo_exit should return error when there is no tx in specfic block", %{alice: alice} do
     TransactionDB.insert(API_Helper.create_recovered([{1, 0, 0, alice}], Transaction.zero_address(), []), 1, 2)
     TransactionDB.insert(API_Helper.create_recovered([{1, 1, 0, alice}], Transaction.zero_address(), []), 1, 2)
