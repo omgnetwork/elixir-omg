@@ -21,8 +21,6 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def consume_block(%Block{transactions: transactions} = block) do
-    # TODO remove sleep and add check in UtxoDB after deposit handle correctly
-    :timer.sleep(2_000)
 
     with state_exec <- for(tx <- transactions, do: OmiseGO.API.State.exec(tx)),
          nil <- Enum.find(state_exec, &(!match?({:ok, _, _, _}, &1))),
@@ -51,6 +49,10 @@ defmodule OmiseGOWatcher.BlockGetter do
 
   def handle_info(:producer, state) do
     {:ok, next_child} = Eth.get_current_child_block()
+
+    # TODO remove sleep and add check in UtxoDB after deposit handle correctly
+    :timer.sleep(2_000)
+
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
     _ = Logger.info(fn -> "Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}" end)
     :ok = run_block_get_task(blocks_numbers)
