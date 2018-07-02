@@ -106,4 +106,34 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     _ = watcher
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
   end
+
+  deffixture phoenix_ecto_sandbox do
+    import Supervisor.Spec
+
+    {:ok, pid} =
+      Supervisor.start_link(
+        [supervisor(OmiseGOWatcher.Repo, []), supervisor(OmiseGOWatcherWeb.Endpoint, [])],
+        strategy: :one_for_one,
+        name: OmiseGOWatcher.Supervisor
+      )
+
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
+
+    on_exit(fn ->
+      wait_for_process(pid)
+      :ok
+    end)
+  end
+
+  defp wait_for_process(pid, timeout \\ :infinity) do
+    ref = Process.monitor(pid)
+
+    receive do
+      {:DOWN, ^ref, :process, _, _} ->
+        :ok
+    after
+      timeout ->
+        throw({:timeouted_waiting_for, pid})
+    end
+  end
 end
