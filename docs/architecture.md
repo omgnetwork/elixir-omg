@@ -20,6 +20,8 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 - for `OmiseGO.Performance` look in `apps/omisego_performance`
 - for `OmiseGO.JSONRPC` look in `apps/omisego_jsonrpc`
 
+**NOTE 2** The hexagonal shape hints towards component being a wrapper (port/adapter) to something external, versus rectangular shape being an internal component.
+
 ### `OmiseGO.API.State`
 
 - writes blocks and UTXO set to `OmiseGO.DB`
