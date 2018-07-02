@@ -26,6 +26,10 @@ defmodule OmiseGO.API.State do
     GenServer.cast(__MODULE__, {:form_block, child_block_interval})
   end
 
+  def close_block(child_block_interval) do
+    GenServer.call(__MODULE__, {:close_block, child_block_interval})
+  end
+
   def deposit(deposits_enc) do
     deposits = Enum.map(deposits_enc, &Core.decode_deposit/1)
     GenServer.call(__MODULE__, {:deposits, deposits})
@@ -122,6 +126,20 @@ defmodule OmiseGO.API.State do
   """
   def handle_call(:get_current_height, _from, state) do
     {:reply, Core.get_current_child_block_height(state), state}
+  end
+
+  @doc """
+    Wraps up accumulated transactions into a block, triggers db update.
+  """
+  def handle_call({:close_block, child_block_interval}, _from, state) do
+    {_core_form_block_duration, core_form_block_result} =
+      :timer.tc(fn -> Core.form_block(state, child_block_interval) end)
+
+    {:ok, {_block, event_triggers, db_updates, new_state}} = core_form_block_result
+
+    :ok = DB.multi_update(db_updates)
+
+    {:reply, {event_triggers}, new_state}
   end
 
   @doc """

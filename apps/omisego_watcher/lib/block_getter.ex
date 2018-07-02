@@ -5,10 +5,11 @@ defmodule OmiseGOWatcher.BlockGetter do
   Download new block from child chain and update State, TransactionDB, UtxoDB.
   """
   use GenServer
-  alias OmiseGO.API.Block
+  alias OmiseGO.API.{Block, State}
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.UtxoDB
+  alias OmiseGO.API.BlockQueue
 
   @spec get_block(pos_integer()) :: {:ok, Block.t()}
   def get_block(number) do
@@ -22,6 +23,12 @@ defmodule OmiseGOWatcher.BlockGetter do
     # TODO add check after synch with deposit and exit
     _ = OmiseGOWatcher.TransactionDB.insert(block)
     _ = UtxoDB.consume_block(block)
+
+    child_block_interval = BlockQueue.child_block_interval()
+
+    {event_triggers} = State.close_block(child_block_interval)
+    # TODO pass event_triggers to Eventer
+
     :ok
   end
 
