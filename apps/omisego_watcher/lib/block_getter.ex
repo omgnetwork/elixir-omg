@@ -50,10 +50,12 @@ defmodule OmiseGOWatcher.BlockGetter do
   def handle_info(:producer, state) do
     {:ok, next_child} = Eth.get_current_child_block()
 
-    # TODO remove sleep and add check in UtxoDB after deposit handle correctly
-    :timer.sleep(2_000)
+    # TODO probably_synced_next_child and the "look back" should be removed after eth height is synced via Coordinator
+    # Also remember to assert on actions in `consume_block` after that works
+    # Otherwise blocks might process before respective deposits
+    probably_synced_next_child = next_child - 3_000
 
-    {new_state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
+    {new_state, blocks_numbers} = Core.get_new_blocks_numbers(state, probably_synced_next_child)
     _ = Logger.info(fn -> "Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}" end)
     :ok = run_block_get_task(blocks_numbers)
 
@@ -66,7 +68,11 @@ defmodule OmiseGOWatcher.BlockGetter do
     {new_state, blocks_to_consume} = Core.get_blocks_to_consume(state)
 
     {:ok, next_child} = Eth.get_current_child_block()
-    {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
+
+    # TODO see other todo about this
+    probably_synced_next_child = next_child - 3_000
+
+    {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, probably_synced_next_child)
 
     _ =
       Logger.info(fn ->
