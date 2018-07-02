@@ -153,7 +153,7 @@ defmodule OmiseGO.API.State.Transaction do
   def account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
   def account_address?(_), do: false
 
-  def encode(%__MODULE__{} = tx) do
+  def encode(tx) do
     [
       tx.blknum1,
       tx.txindex1,

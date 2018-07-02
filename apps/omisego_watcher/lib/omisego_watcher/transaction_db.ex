@@ -6,6 +6,7 @@ defmodule OmiseGOWatcher.TransactionDB do
   use Ecto.Schema
 
   import Ecto.Changeset
+  import Ecto.Query, only: [from: 2]
 
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction.Recovered
@@ -25,7 +26,9 @@ defmodule OmiseGOWatcher.TransactionDB do
     :newowner2,
     :amount2,
     :txblknum,
-    :txindex
+    :txindex,
+    :sig1,
+    :sig2
   ]
   def field_names, do: @field_names
 
@@ -51,11 +54,18 @@ defmodule OmiseGOWatcher.TransactionDB do
 
     field(:txblknum, :integer)
     field(:txindex, :integer)
+
+    field(:sig1, :binary)
+    field(:sig2, :binary)
   end
 
   def get(id) do
     __MODULE__
     |> Repo.get(id)
+  end
+
+  def find_by_txblknum(txblknum) do
+    Repo.all(from(tr in __MODULE__, where: tr.txblknum == ^txblknum, select: tr))
   end
 
   def insert(%Block{transactions: transactions, number: block_number}) do
@@ -66,11 +76,19 @@ defmodule OmiseGOWatcher.TransactionDB do
     end)
   end
 
-  def insert(%Recovered{raw_tx: transaction} = recover_transaction, txindex, block_number) do
+  def insert(
+        %Recovered{raw_tx: transaction, signed_tx_hash: signed_tx_hash} = recover_transaction,
+        txindex,
+        block_number
+      ) do
+    {sig1, sig2} = Recovered.get_sigs(recover_transaction)
+
     %__MODULE__{
-      txid: recover_transaction.signed_tx_hash,
+      txid: signed_tx_hash,
       txblknum: block_number,
-      txindex: txindex
+      txindex: txindex,
+      sig1: sig1,
+      sig2: sig2
     }
     |> Map.merge(Map.from_struct(transaction))
     |> Repo.insert()

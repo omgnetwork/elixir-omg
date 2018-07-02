@@ -3,11 +3,15 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   use ExUnit.Case, async: false
   use OmiseGO.API.Fixtures
 
-  alias OmiseGO.API.{Block, State.Transaction}
+  alias OmiseGO.API.Block
+  alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.TestHelper, as: API_Helper
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.TestHelper
+  alias OmiseGOWatcher.TransactionDB
   alias OmiseGOWatcher.UtxoDB
+
+  @eth Transaction.zero_address()
 
   describe "UTXO database." do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -19,8 +23,8 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     test "Consumed block contents are available.", %{alice: alice} do
       UtxoDB.consume_block(%Block{
         transactions: [
-          API_Helper.create_recovered([], Transaction.zero_address(), [{alice, 1947}]),
-          API_Helper.create_recovered([], Transaction.zero_address(), [{alice, 1952}])
+          API_Helper.create_recovered([], @eth, [{alice, 1947}]),
+          API_Helper.create_recovered([], @eth, [{alice, 1952}])
         ],
         number: 2
       })
@@ -34,8 +38,8 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     test "Spent utxos are moved to new owner.", %{alice: alice, bob: bob, carol: carol} do
       UtxoDB.consume_block(%Block{
         transactions: [
-          API_Helper.create_recovered([], Transaction.zero_address(), [{alice, 1843}]),
-          API_Helper.create_recovered([], Transaction.zero_address(), [{bob, 1871}])
+          API_Helper.create_recovered([], @eth, [{alice, 1843}]),
+          API_Helper.create_recovered([], @eth, [{bob, 1871}])
         ],
         number: 1
       })
@@ -43,7 +47,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       %{"utxos" => [%{"amount" => 1871}]} = get_utxo(bob.addr)
 
       UtxoDB.consume_block(%Block{
-        transactions: [API_Helper.create_recovered([{1, 1, 0, bob}], Transaction.zero_address(), [{carol, 1000}])],
+        transactions: [API_Helper.create_recovered([{1, 1, 0, bob}], @eth, [{carol, 1000}])],
         number: 2
       })
 
@@ -66,13 +70,43 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo(alice.addr)
 
       UtxoDB.consume_block(%Block{
-        transactions: [API_Helper.create_recovered([{1, 0, 0, alice}], Transaction.zero_address(), [{bob, 1}])],
+        transactions: [API_Helper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 1}])],
         number: 2
       })
 
       assert %{"utxos" => []} = get_utxo(alice.addr)
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo(bob.addr)
     end
+  end
+
+  @tag fixtures: [:watcher_sandbox, :alice]
+  test "compose_utxo_exit should return proper proof format", %{alice: alice} do
+    TransactionDB.insert(API_Helper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}]), 1, 1)
+    TransactionDB.insert(API_Helper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 110}]), 2, 1)
+    TransactionDB.insert(API_Helper.create_recovered([{2, 0, 0, alice}], @eth, []), 3, 1)
+
+    %{
+      utxo_pos: _utxo_pos,
+      tx_bytes: _tx_bytes,
+      proof: proof,
+      sigs: _sigs
+    } = UtxoDB.compose_utxo_exit(1, 1, 0)
+
+    assert <<_proof::bytes-size(512)>> = proof
+  end
+
+  @tag fixtures: [:watcher_sandbox]
+  test "compose_utxo_exit should return error when there is no txs in specfic block" do
+    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 1, 0)
+  end
+
+  @tag fixtures: [:watcher_sandbox, :alice]
+  test "compose_utxo_exit should return error when there is no tx in specfic block", %{alice: alice} do
+    TransactionDB.insert(API_Helper.create_recovered([{1, 0, 0, alice}], Transaction.zero_address(), []), 1, 2)
+    TransactionDB.insert(API_Helper.create_recovered([{1, 1, 0, alice}], Transaction.zero_address(), []), 1, 2)
+    TransactionDB.insert(API_Helper.create_recovered([], Transaction.zero_address(), []), 1, 3)
+
+    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 4, 0)
   end
 
   defp get_utxo(address) do

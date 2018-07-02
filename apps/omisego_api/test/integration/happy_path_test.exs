@@ -50,6 +50,9 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
         (Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) + 1) *
           BlockQueue.child_block_interval()
 
+    # TODO: possible source of flakiness is that State did not process deposit on time
+    Process.sleep(500)
+
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true)
 
     raw_tx = Transaction.new([{deposit_blknum, 0, 0}], eth(), [{bob.addr, 7}, {alice.addr, 3}])

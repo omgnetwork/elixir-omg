@@ -33,8 +33,8 @@ defmodule OmiseGO.Eth.MixProject do
       {:exexec, git: "https://github.com/paulperegud/exexec.git", branch: "add_streams", runtime: true},
       {
         :plasma_mvp_contracts,
-        git: "https://github.com/paulperegud/plasma-mvp.git",
-        ref: "92cf4787adab2df3832bf864370a87f6dd6946e7",
+        git: "https://github.com/purbanow/plasma-mvp",
+        branch: "handle-ETH-as-zero-token-INDEXED-SIGS",
         sparse: "plasma/root_chain/contracts/",
         compile: contracts_compile(),
         app: false,
