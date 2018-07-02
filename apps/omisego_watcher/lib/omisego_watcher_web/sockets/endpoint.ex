@@ -1,7 +1,7 @@
 defmodule OmiseGOWatcherWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :omisego_watcher
 
-  socket("/socket", OmiseGOWatcherWeb.UserSocket)
+  socket("/socket", OmiseGOWatcherWeb.Socket)
 
   # Serve at "/" the static files from "priv/static" directory.
   #

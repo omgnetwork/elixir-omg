@@ -10,6 +10,7 @@ defmodule OmiseGOWatcher.BlockGetter do
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.UtxoDB
   alias OmiseGO.API.BlockQueue
+  alias OmiseGOWatcher.Eventer
 
   @spec get_block(pos_integer()) :: {:ok, Block.t()}
   def get_block(number) do
@@ -27,7 +28,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     child_block_interval = BlockQueue.child_block_interval()
 
     {event_triggers} = State.close_block(child_block_interval)
-    # TODO pass event_triggers to Eventer
+    Eventer.notify(event_triggers)
 
     :ok
   end
