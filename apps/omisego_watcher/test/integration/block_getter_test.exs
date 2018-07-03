@@ -15,7 +15,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
   @timeout 20_000
   @block_offset 1_000_000_000
-  @zero_address <<0::size(160)>>
+  @eth OmiseGO.API.Crypto.zero_address()
 
   defp deposit_to_child_chain(to, value, config) do
     {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
@@ -42,7 +42,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       )
 
     deposit_blknum = deposit_to_child_chain(alice, 10, config_map)
-    raw_tx = Transaction.new([{deposit_blknum, 0, 0}], Transaction.zero_address(), [{alice.addr, 7}, {bob.addr, 3}])
+    raw_tx = Transaction.new([{deposit_blknum, 0, 0}], @eth, [{alice.addr, 7}, {bob.addr, 3}])
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
     {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx})
@@ -92,7 +92,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 7, blknum: block_nr, oindex: 0, owner: alice_address, txindex: 0, token: @zero_address}]} ==
+    assert {:ok, [%{amount: 7, blknum: block_nr, oindex: 0, owner: alice_address, txindex: 0, token: @eth}]} ==
              Eth.get_exits(0, height, config_map.contract_addr)
   end
 
@@ -100,14 +100,14 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   test "try consume block with invalid transaction", %{alice: alice} do
     assert {:error, :amounts_dont_add_up} ==
              OmiseGOWatcher.BlockGetter.consume_block(%Block{
-               transactions: [API_Helper.create_recovered([], Transaction.zero_address(), [{alice, 1200}])],
+               transactions: [API_Helper.create_recovered([], @eth, [{alice, 1200}])],
                number: 1_000
              })
 
     assert {:error, :utxo_not_found} ==
              OmiseGOWatcher.BlockGetter.consume_block(%Block{
                transactions: [
-                 API_Helper.create_recovered([{1_000, 0, 0, alice}], Transaction.zero_address(), [{alice, 1200}])
+                 API_Helper.create_recovered([{1_000, 0, 0, alice}], @eth, [{alice, 1200}])
                ],
                number: 1_000
              })
@@ -122,23 +122,15 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     assert :ok ==
              OmiseGO.API.State.deposit([
-               %{owner: alice.addr, currency: Transaction.zero_address(), amount: 1_000, blknum: 1_001},
-               %{owner: bob.addr, currency: Transaction.zero_address(), amount: 1_000, blknum: 1_002}
+               %{owner: alice.addr, currency: @eth, amount: 1_000, blknum: 1_001},
+               %{owner: bob.addr, currency: @eth, amount: 1_000, blknum: 1_002}
              ])
 
     assert :ok ==
              OmiseGOWatcher.BlockGetter.consume_block(%Block{
                transactions: [
-                 API_Helper.create_recovered(
-                   [{1_001, 0, 0, alice}],
-                   Transaction.zero_address(),
-                   [{alice, 700}, {carol, 200}]
-                 ),
-                 API_Helper.create_recovered(
-                   [{1_002, 0, 0, bob}],
-                   Transaction.zero_address(),
-                   [{carol, 500}, {bob, 400}]
-                 )
+                 API_Helper.create_recovered([{1_001, 0, 0, alice}], @eth, [{alice, 700}, {carol, 200}]),
+                 API_Helper.create_recovered([{1_002, 0, 0, bob}], @eth, [{carol, 500}, {bob, 400}])
                ],
                number: 2_000
              })

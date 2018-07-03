@@ -4,14 +4,13 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   use OmiseGO.API.Fixtures
 
   alias OmiseGO.API.Block
-  alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.TestHelper, as: API_Helper
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.TestHelper
   alias OmiseGOWatcher.TransactionDB
   alias OmiseGOWatcher.UtxoDB
 
-  @eth Transaction.zero_address()
+  @eth OmiseGO.API.Crypto.zero_address()
 
   describe "UTXO database." do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -102,9 +101,9 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
   test "compose_utxo_exit should return error when there is no tx in specfic block", %{alice: alice} do
-    TransactionDB.insert(API_Helper.create_recovered([{1, 0, 0, alice}], Transaction.zero_address(), []), 1, 2)
-    TransactionDB.insert(API_Helper.create_recovered([{1, 1, 0, alice}], Transaction.zero_address(), []), 1, 2)
-    TransactionDB.insert(API_Helper.create_recovered([], Transaction.zero_address(), []), 1, 3)
+    TransactionDB.insert(API_Helper.create_recovered([{1, 0, 0, alice}], @eth, []), 1, 2)
+    TransactionDB.insert(API_Helper.create_recovered([{1, 1, 0, alice}], @eth, []), 1, 2)
+    TransactionDB.insert(API_Helper.create_recovered([], @eth, []), 1, 3)
 
     {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 4, 0)
   end

@@ -8,7 +8,7 @@ defmodule OmiseGO.API.Api.CoreTest do
 
   @empty_signature <<0::size(520)>>
 
-  def eth, do: Transaction.zero_address()
+  def eth, do: OmiseGO.API.Crypto.zero_address()
 
   defp create_encoded(inputs, cur12, outputs) do
     {signed_tx, raw_tx} = TestHelper.create_signed(inputs, cur12, outputs)

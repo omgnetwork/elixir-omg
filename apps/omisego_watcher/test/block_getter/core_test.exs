@@ -4,10 +4,12 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   use OmiseGO.API.Fixtures
   use Plug.Test
 
-  alias OmiseGO.API.{Block, State.Transaction}
+  alias OmiseGO.API.Block
   alias OmiseGO.API.TestHelper, as: API_Helper
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.BlockGetter.Core
+
+  @eth OmiseGO.API.Crypto.zero_address()
 
   defp add_block(state, block) do
     assert {:ok, new_state} = Core.add_block(state, block)
@@ -114,10 +116,8 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
       block =
       Block.merkle_hash(%Block{
         transactions: [
-          API_Helper.create_recovered([{1_000, 20, 0, alice}, {3_000, 1, 1, bob}], Transaction.zero_address(), [
-            {alice, 300}
-          ]),
-          API_Helper.create_recovered([{5_000, 1, 0, alice}], Transaction.zero_address(), [{bob, 100}, {bob, 200}])
+          API_Helper.create_recovered([{1_000, 20, 0, alice}, {3_000, 1, 1, bob}], @eth, [{alice, 300}]),
+          API_Helper.create_recovered([{5_000, 1, 0, alice}], @eth, [{bob, 100}, {bob, 200}])
         ],
         number: 30_000
       })
@@ -134,9 +134,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     assert {:error, :incorrect_hash} ==
              Core.decode_block(%{
                "hash" => String.duplicate("A", 64),
-               "transactions" => [
-                 Client.encode(API_Helper.create_recovered([], Transaction.zero_address(), []).signed_tx_bytes)
-               ],
+               "transactions" => [Client.encode(API_Helper.create_recovered([], @eth, []).signed_tx_bytes)],
                "number" => 23
              })
 
@@ -144,7 +142,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
              Core.decode_block(%{
                "hash" => "",
                "transactions" => [
-                 Client.encode(API_Helper.create_recovered([], Transaction.zero_address(), []).signed_tx_bytes),
+                 Client.encode(API_Helper.create_recovered([], @eth, []).signed_tx_bytes),
                  "12321231AB2331"
                ],
                "number" => 1

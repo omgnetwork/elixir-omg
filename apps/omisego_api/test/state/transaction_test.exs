@@ -48,7 +48,7 @@ defmodule OmiseGO.API.State.TransactionTest do
     }
   end
 
-  def eth, do: Transaction.zero_address()
+  def eth, do: OmiseGO.API.Crypto.zero_address()
 
   @tag fixtures: [:transaction]
   test "transaction hash is correct", %{transaction: transaction} do
@@ -130,7 +130,7 @@ defmodule OmiseGO.API.State.TransactionTest do
   test "different signers, one output", %{alice: alice, bob: bob} do
     tx =
       [{3000, 0, 0}, {3000, 0, 1}]
-      |> Transaction.new(Transaction.zero_address(), [{alice.addr, 10}])
+      |> Transaction.new(eth(), [{alice.addr, 10}])
       |> Transaction.sign(bob.priv, alice.priv)
       |> Transaction.Signed.encode()
 

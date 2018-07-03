@@ -15,7 +15,7 @@ defmodule OmiseGO.API.BlockTest do
       blknum2: 1,
       txindex2: 2,
       oindex2: 1,
-      cur12: Transaction.zero_address(),
+      cur12: OmiseGO.API.Crypto.zero_address(),
       newowner1: alice.addr,
       amount1: 1,
       newowner2: bob.addr,

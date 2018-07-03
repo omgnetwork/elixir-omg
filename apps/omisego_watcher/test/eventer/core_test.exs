@@ -26,10 +26,10 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
       blknum2: 0,
       txindex2: 0,
       oindex2: 0,
-      cur12: Transaction.zero_address(),
+      cur12: OmiseGO.API.Crypto.zero_address(),
       newowner1: alice_addr,
       amount1: 100,
-      newowner2: Transaction.zero_address(),
+      newowner2: OmiseGO.API.Crypto.zero_address(),
       amount2: 0
     }
 

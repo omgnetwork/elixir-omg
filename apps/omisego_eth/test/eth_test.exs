@@ -17,7 +17,8 @@ defmodule OmiseGO.EthTest do
   @timeout 20_000
   @block_offset 1_000_000_000
   @transaction_offset 10_000
-  @zero_address <<0::size(160)>>
+
+  @eth OmiseGO.API.Crypto.zero_address()
 
   @moduletag :integration
 
@@ -32,8 +33,8 @@ defmodule OmiseGO.EthTest do
     }
   end
 
-  defp eth do
-    "0x0000000000000000000000000000000000000000"
+  defp eth_str do
+    "0x" <> String.duplicate("00", 20)
   end
 
   defp deposit(contract) do
@@ -49,7 +50,7 @@ defmodule OmiseGO.EthTest do
 
   defp exit_deposit(contract) do
     deposit_pos = utxo_position(1, 0, 0)
-    data = "startDepositExit(uint256,address,uint256)" |> ABI.encode([deposit_pos, @zero_address, 1]) |> Base.encode16()
+    data = "startDepositExit(uint256,address,uint256)" |> ABI.encode([deposit_pos, @eth, 1]) |> Base.encode16()
 
     {:ok, transaction_hash} =
       Ethereumex.HttpClient.eth_send_transaction(%{
@@ -85,7 +86,7 @@ defmodule OmiseGO.EthTest do
       blknum2: 0,
       newowner1: bob.addr,
       newowner2: alice.addr,
-      cur12: @zero_address,
+      cur12: @eth,
       oindex1: 0,
       oindex2: 0,
       txindex1: 0,
@@ -125,7 +126,7 @@ defmodule OmiseGO.EthTest do
 
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 8, blknum: 1000, oindex: 0, owner: bob_address, txindex: 0, token: @zero_address}]} ==
+    assert {:ok, [%{amount: 8, blknum: 1000, oindex: 0, owner: bob_address, txindex: 0, token: @eth}]} ==
              Eth.get_exits(1, height, contract.contract_addr)
   end
 
@@ -156,7 +157,7 @@ defmodule OmiseGO.EthTest do
     deposit(contract)
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.authority_addr, currency: eth()}]} ==
+    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.authority_addr, currency: eth_str()}]} ==
              Eth.get_deposits(1, height, contract.contract_addr)
   end
 
@@ -173,7 +174,7 @@ defmodule OmiseGO.EthTest do
     {:ok, height} = Eth.get_ethereum_height()
 
     assert(
-      {:ok, [%{owner: contract.authority_addr, blknum: 1, txindex: 0, oindex: 0, token: @zero_address, amount: 1}]} ==
+      {:ok, [%{owner: contract.authority_addr, blknum: 1, txindex: 0, oindex: 0, token: @eth, amount: 1}]} ==
         Eth.get_exits(1, height, contract.contract_addr)
     )
   end
