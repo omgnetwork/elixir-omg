@@ -182,7 +182,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
       )
 
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
-
+    # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
       wait_for_process(pid)
       :ok
