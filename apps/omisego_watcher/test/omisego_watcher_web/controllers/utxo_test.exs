@@ -1,127 +1,89 @@
 defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
+  use OmiseGO.API.Fixtures
 
-  alias OmiseGO.API.{Block}
-  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
+  alias OmiseGO.API.Block
+  alias OmiseGO.API.State.Transaction
+  alias OmiseGO.API.TestHelper, as: API_Helper
   alias OmiseGO.JSONRPC.Client
+  alias OmiseGOWatcher.TestHelper
   alias OmiseGOWatcher.TransactionDB
   alias OmiseGOWatcher.UtxoDB
-  alias OmiseGOWatcher.TestHelper, as: Test
 
-  @empty %Transaction{
-    blknum1: 0,
-    txindex1: 0,
-    oindex1: 0,
-    blknum2: 0,
-    txindex2: 0,
-    oindex2: 0,
-    cur12: Transaction.zero_address(),
-    newowner1: <<>>,
-    amount1: 0,
-    newowner2: <<>>,
-    amount2: 0
-  }
-
-  @signed_tx %Signed{
-    raw_tx: @empty,
-    sig1: <<>>,
-    sig2: <<>>
-  }
+  @eth Transaction.zero_address()
 
   describe "UTXO database." do
-    @tag fixtures: [:watcher_sandbox]
-    test "No utxo are returned for non-existing addresses." do
-      assert get_utxo("cthulhu") == %{"utxos" => [], "address" => Client.encode("cthulhu")}
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "No utxo are returned for non-existing addresses.", %{alice: alice} do
+      assert get_utxo(alice.addr) == %{"utxos" => [], "address" => Client.encode(alice.addr)}
     end
 
-    @tag fixtures: [:watcher_sandbox]
-    test "Consumed block contents are available." do
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "Consumed block contents are available.", %{alice: alice} do
       UtxoDB.consume_block(%Block{
         transactions: [
-          @empty |> Map.merge(%{newowner1: "McDuck", amount1: 1947}) |> signed,
-          @empty |> Map.merge(%{newowner1: "McDuck", amount1: 1952}) |> signed
+          API_Helper.create_recovered([], @eth, [{alice, 1947}]),
+          API_Helper.create_recovered([], @eth, [{alice, 1952}])
         ],
         number: 2
       })
 
-      %{"utxos" => [%{"amount" => amount1}, %{"amount" => amount2}]} = get_utxo("McDuck")
+      %{"utxos" => [%{"amount" => amount1}, %{"amount" => amount2}]} = get_utxo(alice.addr)
 
       assert Enum.sort([amount1, amount2]) == [1947, 1952]
     end
 
-    @tag fixtures: [:watcher_sandbox]
-    test "Spent utxos are moved to new owner." do
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob, :carol]
+    test "Spent utxos are moved to new owner.", %{alice: alice, bob: bob, carol: carol} do
       UtxoDB.consume_block(%Block{
         transactions: [
-          @empty |> Map.merge(%{newowner1: "Ebenezer", amount1: 1843}) |> signed,
-          @empty |> Map.merge(%{newowner1: "Matilda", amount1: 1871}) |> signed
+          API_Helper.create_recovered([], @eth, [{alice, 1843}]),
+          API_Helper.create_recovered([], @eth, [{bob, 1871}])
         ],
         number: 1
       })
 
-      %{"utxos" => [%{"amount" => 1871}]} = get_utxo("Matilda")
+      %{"utxos" => [%{"amount" => 1871}]} = get_utxo(bob.addr)
 
       UtxoDB.consume_block(%Block{
-        transactions: [
-          @empty
-          |> Map.merge(%{
-            newowner1: "McDuck",
-            amount1: 1000,
-            blknum1: 1,
-            txindex1: 1,
-            oindex1: 0
-          })
-          |> signed
-        ],
+        transactions: [API_Helper.create_recovered([{1, 1, 0, bob}], @eth, [{carol, 1000}])],
         number: 2
       })
 
-      %{"utxos" => [%{"amount" => 1000}]} = get_utxo("McDuck")
-      %{"utxos" => []} = get_utxo("Matilda")
+      %{"utxos" => [%{"amount" => 1000}]} = get_utxo(carol.addr)
+      %{"utxos" => []} = get_utxo(bob.addr)
     end
 
-    @tag fixtures: [:watcher_sandbox]
-    test "Deposits are a part of utxo set." do
-      assert %{"utxos" => []} = get_utxo("Leon")
-      UtxoDB.insert_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
-      assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Leon")
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "Deposits are a part of utxo set.", %{alice: alice} do
+      assert %{"utxos" => []} = get_utxo(alice.addr)
+      UtxoDB.insert_deposits([%{owner: alice.addr, amount: 1, block_height: 1}])
+      assert %{"utxos" => [%{"amount" => 1}]} = get_utxo(alice.addr)
     end
 
-    @tag fixtures: [:watcher_sandbox]
-    test "Deposit utxo are moved to new owner if spent " do
-      assert %{"utxos" => []} = get_utxo("Leon")
-      assert %{"utxos" => []} = get_utxo("Matilda")
-      UtxoDB.insert_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
-      assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Leon")
-
-      spent = %{
-        newowner1: "Matilda",
-        amount1: 1,
-        blknum1: 1,
-        txindex1: 0,
-        oindex1: 0
-      }
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+    test "Deposit utxo are moved to new owner if spent ", %{alice: alice, bob: bob} do
+      assert %{"utxos" => []} = get_utxo(alice.addr)
+      assert %{"utxos" => []} = get_utxo(bob.addr)
+      UtxoDB.insert_deposits([%{owner: alice.addr, amount: 1, block_height: 1}])
+      assert %{"utxos" => [%{"amount" => 1}]} = get_utxo(alice.addr)
 
       UtxoDB.consume_block(%Block{
-        transactions: [
-          @empty
-          |> Map.merge(spent)
-          |> signed
-        ],
+        transactions: [API_Helper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 1}])],
         number: 2
       })
 
-      assert %{"utxos" => []} = get_utxo("Leon")
-      assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Matilda")
+      assert %{"utxos" => []} = get_utxo(alice.addr)
+      assert %{"utxos" => [%{"amount" => 1}]} = get_utxo(bob.addr)
     end
   end
 
-  @tag fixtures: [:watcher_sandbox]
-  test "compose_utxo_exit should return proper proof format" do
-    TransactionDB.insert(<<1>>, @signed_tx, 1, 1)
-    TransactionDB.insert(<<2>>, @signed_tx, 1, 2)
-    TransactionDB.insert(<<3>>, @signed_tx, 1, 3)
+  @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+  test "compose_utxo_exit should return proper proof format", %{alice: alice} do
+    TransactionDB.insert(API_Helper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}]), 1, 1)
+    TransactionDB.insert(API_Helper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 110}]), 2, 1)
+    TransactionDB.insert(API_Helper.create_recovered([{2, 0, 0, alice}], @eth, []), 3, 1)
 
     %{
       utxo_pos: _utxo_pos,
@@ -133,25 +95,21 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     assert <<_proof::bytes-size(512)>> = proof
   end
 
-  @tag fixtures: [:watcher_sandbox]
+  @tag fixtures: [:phoenix_ecto_sandbox]
   test "compose_utxo_exit should return error when there is no txs in specfic block" do
     {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 1, 0)
   end
 
-  @tag fixtures: [:watcher_sandbox]
-  test "compose_utxo_exit should return error when there is no tx in specfic block" do
-    TransactionDB.insert(<<2>>, @signed_tx, 1, 2)
-    TransactionDB.insert(<<1>>, @signed_tx, 1, 2)
-    TransactionDB.insert(<<3>>, @signed_tx, 1, 3)
+  @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+  test "compose_utxo_exit should return error when there is no tx in specfic block", %{alice: alice} do
+    TransactionDB.insert(API_Helper.create_recovered([{1, 0, 0, alice}], Transaction.zero_address(), []), 1, 2)
+    TransactionDB.insert(API_Helper.create_recovered([{1, 1, 0, alice}], Transaction.zero_address(), []), 1, 2)
+    TransactionDB.insert(API_Helper.create_recovered([], Transaction.zero_address(), []), 1, 3)
 
     {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 4, 0)
   end
 
   defp get_utxo(address) do
-    Test.rest_call(:get, "account/utxo?address=#{Client.encode(address)}")
-  end
-
-  defp signed(transaction) do
-    %Signed{raw_tx: transaction, sig1: <<>>, sig2: <<>>}
+    TestHelper.rest_call(:get, "account/utxo?address=#{Client.encode(address)}")
   end
 end

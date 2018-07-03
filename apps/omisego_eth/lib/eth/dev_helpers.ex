@@ -16,6 +16,7 @@ defmodule OmiseGO.Eth.DevHelpers do
   def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
     """
     use Mix.Config
+
     config :omisego_eth,
       contract_addr: #{inspect(contract_addr)},
       txhash_contract: #{inspect(txhash)},

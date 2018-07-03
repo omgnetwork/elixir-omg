@@ -4,7 +4,7 @@ defmodule OmiseGO.API.State.Transaction do
   """
 
   alias OmiseGO.API.Crypto
-  alias OmiseGO.API.State.Transaction.{Signed}
+  alias OmiseGO.API.State.Transaction.Signed
 
   @zero_address <<0::size(160)>>
   @max_inputs 2
@@ -186,7 +186,8 @@ defmodule OmiseGO.API.State.Transaction do
     signature1 = signature(encoded_tx, priv1)
     signature2 = signature(encoded_tx, priv2)
 
-    %Signed{raw_tx: tx, sig1: signature1, sig2: signature2, signed_tx_bytes: nil}
+    transaction = %Signed{raw_tx: tx, sig1: signature1, sig2: signature2}
+    %{transaction | signed_tx_bytes: Signed.encode(transaction)}
   end
 
   defp signature(_encoded_tx, <<>>), do: <<0::size(520)>>

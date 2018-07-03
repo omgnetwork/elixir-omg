@@ -9,6 +9,7 @@ defmodule OmiseGO.API.State do
   alias OmiseGO.API.FreshBlocks
   alias OmiseGO.API.State.Core
   alias OmiseGO.DB
+  alias OmiseGOWatcher.Eventer
 
   require Logger
 
@@ -27,7 +28,7 @@ defmodule OmiseGO.API.State do
   end
 
   def close_block(child_block_interval) do
-    GenServer.call(__MODULE__, {:close_block, child_block_interval})
+    GenServer.cast(__MODULE__, {:close_block, child_block_interval})
   end
 
   def deposit(deposits_enc) do
@@ -129,9 +130,10 @@ defmodule OmiseGO.API.State do
   end
 
   @doc """
-    Wraps up accumulated transactions into a block, triggers db update.
+    Wraps up accumulated transactions into a block, triggers db update and emits
+    events to Eventer
   """
-  def handle_call({:close_block, child_block_interval}, _from, state) do
+  def handle_cast({:close_block, child_block_interval}, state) do
     {_core_form_block_duration, core_form_block_result} =
       :timer.tc(fn -> Core.form_block(state, child_block_interval) end)
 
@@ -139,7 +141,9 @@ defmodule OmiseGO.API.State do
 
     :ok = DB.multi_update(db_updates)
 
-    {:reply, {event_triggers}, new_state}
+    Eventer.notify(event_triggers)
+
+    {:noreply, new_state}
   end
 
   @doc """

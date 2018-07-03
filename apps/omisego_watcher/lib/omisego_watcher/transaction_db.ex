@@ -9,7 +9,7 @@ defmodule OmiseGOWatcher.TransactionDB do
   import Ecto.Query, only: [from: 2]
 
   alias OmiseGO.API.Block
-  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
+  alias OmiseGO.API.State.Transaction.Recovered
   alias OmiseGOWatcher.Repo
 
   @field_names [
@@ -71,33 +71,27 @@ defmodule OmiseGOWatcher.TransactionDB do
   def insert(%Block{transactions: transactions, number: block_number}) do
     transactions
     |> Stream.with_index()
-    |> Enum.map(fn {%Signed{} = signed, txindex} ->
-      signed
-      |> Signed.signed_hash()
-      |> insert(signed, block_number, txindex)
+    |> Enum.map(fn {%Recovered{} = recovered, txindex} ->
+      insert(recovered, txindex, block_number)
     end)
   end
 
   def insert(
-        id,
-        %Signed{
-          raw_tx: %Transaction{} = transaction,
-          sig1: sig1,
-          sig2: sig2
-        },
-        block_number,
-        txindex
+        %Recovered{raw_tx: transaction, signed_tx_hash: signed_tx_hash} = recover_transaction,
+        txindex,
+        block_number
       ) do
-    {:ok, _} =
-      %__MODULE__{
-        txid: id,
-        txblknum: block_number,
-        txindex: txindex,
-        sig1: sig1,
-        sig2: sig2
-      }
-      |> Map.merge(Map.from_struct(transaction))
-      |> Repo.insert()
+    {sig1, sig2} = Recovered.get_sigs(recover_transaction)
+
+    %__MODULE__{
+      txid: signed_tx_hash,
+      txblknum: block_number,
+      txindex: txindex,
+      sig1: sig1,
+      sig2: sig2
+    }
+    |> Map.merge(Map.from_struct(transaction))
+    |> Repo.insert()
   end
 
   def changeset(transaction_db, attrs) do

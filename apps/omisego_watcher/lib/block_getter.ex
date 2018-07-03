@@ -9,8 +9,6 @@ defmodule OmiseGOWatcher.BlockGetter do
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.UtxoDB
-  alias OmiseGO.API.BlockQueue
-  alias OmiseGOWatcher.Eventer
 
   @spec get_block(pos_integer()) :: {:ok, Block.t()}
   def get_block(number) do
@@ -20,17 +18,17 @@ defmodule OmiseGOWatcher.BlockGetter do
     end
   end
 
-  def consume_block(%Block{} = block) do
-    # TODO add check after synch with deposit and exit
-    _ = OmiseGOWatcher.TransactionDB.insert(block)
-    _ = UtxoDB.consume_block(block)
+  def consume_block(%Block{transactions: transactions} = block) do
+    # TODO remove sleep and add check in UtxoDB after deposit handle correctly
+    :timer.sleep(2_000)
 
-    child_block_interval = BlockQueue.child_block_interval()
-
-    {event_triggers} = State.close_block(child_block_interval)
-    Eventer.notify(event_triggers)
-
-    :ok
+    with state_exec <- for(tx <- transactions, do: OmiseGO.API.State.exec(tx)),
+         nil <- Enum.find(state_exec, &(!match?({:ok, _, _, _}, &1))),
+         response <- OmiseGOWatcher.TransactionDB.insert(block),
+         nil <- Enum.find(response, &(!match?({:ok, _}, &1))),
+         _ <- UtxoDB.consume_block(block),
+         _ <- State.close_block(block.number),
+         do: :ok
   end
 
   def start_link(_args) do

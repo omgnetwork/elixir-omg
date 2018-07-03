@@ -5,15 +5,77 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   use OmiseGO.Eth.Fixtures
   use OmiseGO.DB.Fixtures
 
+  defp wait_for_process(pid, timeout \\ :infinity) do
+    ref = Process.monitor(pid)
+
+    receive do
+      {:DOWN, ^ref, :process, _, _} ->
+        :ok
+    after
+      timeout ->
+        throw({:timeouted_waiting_for, pid})
+    end
+  end
+
   deffixture config_map(contract) do
     Map.merge(
       contract,
       %{
         child_block_interval: 1000,
         ethereum_event_block_finality_margin: 1,
-        ethereum_event_get_deposits_interval_ms: 10
+        ethereum_event_get_deposits_interval_ms: 10,
+        ethereum_event_check_height_interval_ms: 10,
+        ethereum_event_max_block_range_in_deposits_query: 1,
+        child_block_submit_period: 1
       }
     )
+  end
+
+  deffixture ethereum_event_env(config_map) do
+    Application.put_env(
+      :omisego_eth,
+      :ethereum_event_block_finality_margin,
+      config_map.ethereum_event_block_finality_margin,
+      persistent: true
+    )
+
+    Application.put_env(
+      :omisego_eth,
+      :ethereum_event_get_deposits_interval_ms,
+      config_map.ethereum_event_get_deposits_interval_ms,
+      persistent: true
+    )
+
+    Application.put_env(
+      :omisego_eth,
+      :ethereum_event_check_height_interval_ms,
+      config_map.ethereum_event_check_height_interval_ms,
+      persistent: true
+    )
+
+    Application.put_env(
+      :omisego_eth,
+      :ethereum_event_max_block_range_in_deposits_query,
+      config_map.ethereum_event_max_block_range_in_deposits_query,
+      persistent: true
+    )
+
+    Application.put_env(
+      :omisego_eth,
+      :child_block_submit_period,
+      config_map.child_block_submit_period,
+      persistent: true
+    )
+
+    on_exit(fn ->
+      Application.put_env(:omisego_eth, :ethereum_event_block_finality_margin, nil)
+      Application.put_env(:omisego_eth, :ethereum_event_get_deposits_interval_ms, nil)
+      Application.put_env(:omisego_eth, :ethereum_event_check_height_interval_ms, nil)
+      Application.put_env(:omisego_eth, :ethereum_event_max_block_range_in_deposits_query, nil)
+      Application.put_env(:omisego_eth, :child_block_submit_period, nil)
+    end)
+
+    :ok
   end
 
   deffixture child_chain(config_map) do
@@ -88,7 +150,9 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     line
   end
 
-  deffixture watcher(db_initialized) do
+  deffixture watcher(db_initialized, root_chain_contract_config, ethereum_event_env) do
+    :ok = root_chain_contract_config
+    :ok = ethereum_event_env
     :ok = db_initialized
     {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omisego_watcher)
@@ -118,22 +182,10 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
       )
 
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
-
+    # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
       wait_for_process(pid)
       :ok
     end)
-  end
-
-  defp wait_for_process(pid, timeout \\ :infinity) do
-    ref = Process.monitor(pid)
-
-    receive do
-      {:DOWN, ^ref, :process, _, _} ->
-        :ok
-    after
-      timeout ->
-        throw({:timeouted_waiting_for, pid})
-    end
   end
 end
