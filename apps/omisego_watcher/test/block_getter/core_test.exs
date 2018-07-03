@@ -108,15 +108,18 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     assert {:error, :unexpected_blok} = state |> Core.add_block(%Block{number: 2_000})
   end
 
-  test "simple decode block" do
+  @tag fixtures: [:alice, :bob]
+  test "simple decode block", %{alice: alice, bob: bob} do
     %Block{transactions: transactions} =
       block =
       Block.merkle_hash(%Block{
         transactions: [
-          API_Helper.create_recovered([], Transaction.zero_address(), []),
-          API_Helper.create_recovered([], Transaction.zero_address(), [])
+          API_Helper.create_recovered([{1_000, 20, 0, alice}, {3_000, 1, 1, bob}], Transaction.zero_address(), [
+            {alice, 300}
+          ]),
+          API_Helper.create_recovered([{5_000, 1, 0, alice}], Transaction.zero_address(), [{bob, 100}, {bob, 200}])
         ],
-        number: 1_000
+        number: 30_000
       })
 
     json =
