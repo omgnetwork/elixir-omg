@@ -3,7 +3,6 @@ defmodule OmiseGO.API.BlockTest do
   use ExUnit.Case, async: true
 
   alias OmiseGO.API.Block
-  alias OmiseGO.API.Core
   alias OmiseGO.API.State.Transaction
 
   @tag fixtures: [:stable_alice, :stable_bob]
@@ -25,16 +24,13 @@ defmodule OmiseGO.API.BlockTest do
     encoded_singed_tx =
       raw_tx
       |> Transaction.sign(alice.priv, bob.priv)
-      |> Transaction.Signed.encode()
 
-    {:ok, recovered_tx} = Core.recover_tx(encoded_singed_tx)
-
-    block = %Block{transactions: [recovered_tx]}
+    block = %Block{transactions: [encoded_singed_tx]}
 
     hash = "6bf9be56ea0c58ad2d473f6bb634526371dea358f5a2762a808fb535a4481626" |> Base.decode16!(case: :lower)
 
     expected = %Block{
-      transactions: [recovered_tx],
+      transactions: [encoded_singed_tx],
       hash: hash
     }
 

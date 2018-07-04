@@ -126,9 +126,6 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   end
 
   defp decode_transaction(signed_tx_bytes) do
-    with {:ok, transaction} <- Base.decode16(signed_tx_bytes),
-         {:ok, transaction_sign} <- Transaction.Signed.decode(transaction) do
-      Transaction.Recovered.recover_from(transaction_sign)
-    end
+    with {:ok, transaction} <- Base.decode16(signed_tx_bytes), do: Transaction.Signed.decode(transaction)
   end
 end

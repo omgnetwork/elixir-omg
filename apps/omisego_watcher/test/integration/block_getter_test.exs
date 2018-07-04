@@ -10,6 +10,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   alias OmiseGO.Eth
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.TestHelper, as: Test
+  alias OmiseGOWatcher.BlockGetter
 
   @moduletag :integration
 
@@ -34,14 +35,9 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
   test "get the blocks from child chain after transaction and start exit",
        %{config_map: config_map, alice: alice, bob: bob} do
-    {:ok, _pid} =
-      GenServer.start_link(
-        OmiseGOWatcher.BlockGetter,
-        %{contract_address: config_map.contract_addr},
-        name: BlockGetter
-      )
-
     deposit_blknum = deposit_to_child_chain(alice, 10, config_map)
+    # TODO remove slpeep after synch deposit synch
+    :timer.sleep(1000)
     raw_tx = Transaction.new([{deposit_blknum, 0, 0}], @eth, [{alice.addr, 7}, {bob.addr, 3}])
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
@@ -100,14 +96,14 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   test "try consume block with invalid transaction", %{alice: alice} do
     assert {:error, :amounts_dont_add_up} ==
              OmiseGOWatcher.BlockGetter.consume_block(%Block{
-               transactions: [API_Helper.create_recovered([], @eth, [{alice, 1200}])],
+               transactions: [API_Helper.create_signed([], @eth, [{alice, 1200}])],
                number: 1_000
              })
 
     assert {:error, :utxo_not_found} ==
              OmiseGOWatcher.BlockGetter.consume_block(%Block{
                transactions: [
-                 API_Helper.create_recovered([{1_000, 0, 0, alice}], @eth, [{alice, 1200}])
+                 API_Helper.create_signed([{1_000, 0, 0, alice}], @eth, [{alice, 1200}])
                ],
                number: 1_000
              })
@@ -129,8 +125,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     assert :ok ==
              OmiseGOWatcher.BlockGetter.consume_block(%Block{
                transactions: [
-                 API_Helper.create_recovered([{1_001, 0, 0, alice}], @eth, [{alice, 700}, {carol, 200}]),
-                 API_Helper.create_recovered([{1_002, 0, 0, bob}], @eth, [{carol, 500}, {bob, 400}])
+                 API_Helper.create_signed([{1_001, 0, 0, alice}], @eth, [{alice, 700}, {carol, 200}]),
+                 API_Helper.create_signed([{1_002, 0, 0, bob}], @eth, [{carol, 500}, {bob, 400}])
                ],
                number: 2_000
              })

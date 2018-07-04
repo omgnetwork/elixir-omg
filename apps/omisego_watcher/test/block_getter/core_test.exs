@@ -4,8 +4,9 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   use OmiseGO.API.Fixtures
   use Plug.Test
 
+  alias OmiseGO.API
+  alias OmiseGO.API.TestHelper
   alias OmiseGO.API.Block
-  alias OmiseGO.API.TestHelper, as: API_Helper
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.BlockGetter.Core
 
@@ -116,8 +117,8 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
       block =
       Block.merkle_hash(%Block{
         transactions: [
-          API_Helper.create_recovered([{1_000, 20, 0, alice}, {3_000, 1, 1, bob}], @eth, [{alice, 300}]),
-          API_Helper.create_recovered([{5_000, 1, 0, alice}], @eth, [{bob, 100}, {bob, 200}])
+          API.TestHelper.create_signed([{1_000, 20, 0, alice}, {3_000, 1, 1, bob}], @eth, [{alice, 300}]),
+          API.TestHelper.create_signed([{5_000, 1, 0, alice}], @eth, [{bob, 100}, {bob, 200}])
         ],
         number: 30_000
       })
@@ -134,7 +135,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     assert {:error, :incorrect_hash} ==
              Core.decode_block(%{
                "hash" => String.duplicate("A", 64),
-               "transactions" => [Client.encode(API_Helper.create_recovered([], @eth, []).signed_tx_bytes)],
+               "transactions" => [Client.encode(API.TestHelper.create_signed([], @eth, []).signed_tx_bytes)],
                "number" => 23
              })
 
@@ -142,7 +143,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
              Core.decode_block(%{
                "hash" => "",
                "transactions" => [
-                 Client.encode(API_Helper.create_recovered([], @eth, []).signed_tx_bytes),
+                 Client.encode(API.TestHelper.create_signed([], @eth, []).signed_tx_bytes),
                  "12321231AB2331"
                ],
                "number" => 1

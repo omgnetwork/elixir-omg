@@ -15,3 +15,12 @@ config :omisego_watcher, OmiseGOWatcher.Repo,
   database: "/tmp/omisego/ecto_simple_" <> Integer.to_string(:rand.uniform(10_000_000)) <> ".sqlite3"
 
 config :omisego_watcher, OmiseGOWatcher.Repo, pool: Ecto.Adapters.SQL.Sandbox
+
+config :omisego_api,
+  ethereum_event_block_finality_margin: 1,
+  ethereum_event_get_deposits_interval_ms: 10,
+  ethereum_event_check_height_interval_ms: 10,
+  ethereum_event_max_block_range_in_deposits_query: 1,
+  child_block_submit_period: 1
+
+#

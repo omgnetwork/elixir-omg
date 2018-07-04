@@ -7,7 +7,6 @@ defmodule OmiseGO.API.State.Transaction.Recovered do
   alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Transaction
 
-  @signature_length 65
   @empty_signature <<0::size(520)>>
   @type signed_tx_hash_t() :: <<_::768>>
 
@@ -38,16 +37,6 @@ defmodule OmiseGO.API.State.Transaction.Recovered do
               spender2: spender2,
               signed_tx_bytes: signed_tx_bytes
             }}
-  end
-
-  @spec get_sigs(%__MODULE__{}) :: {Crypto.sig_t(), Crypto.sig_t()}
-  def get_sigs(%__MODULE__{signed_tx_hash: signed_hash}) do
-    hash_size = byte_size(signed_hash) - 2 * @signature_length
-
-    <<_hash::binary-size(hash_size), sig1::binary-size(@signature_length), sig2::binary-size(@signature_length)>> =
-      signed_hash
-
-    {sig1, sig2}
   end
 
   defp get_spender(_hash_no_spenders, @empty_signature), do: {:ok, nil}

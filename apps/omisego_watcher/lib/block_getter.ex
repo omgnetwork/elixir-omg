@@ -7,6 +7,7 @@ defmodule OmiseGOWatcher.BlockGetter do
   use GenServer
   alias OmiseGO.API.Block
   alias OmiseGO.Eth
+  alias OmiseGO.API.State.Transaction.Recovered
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.UtxoDB
 
@@ -21,11 +22,13 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def consume_block(%Block{transactions: transactions} = block) do
-    # TODO remove sleep and add check in UtxoDB after deposit handle correctly
-    :timer.sleep(2_000)
+    # TODO add check in UtxoDB after deposit handle correctly
+    state_exec =
+      for tx <- transactions do
+        with {:ok, recover_tx} <- Recovered.recover_from(tx), do: OmiseGO.API.State.exec(recover_tx)
+      end
 
-    with state_exec <- for(tx <- transactions, do: OmiseGO.API.State.exec(tx)),
-         nil <- Enum.find(state_exec, &(!match?({:ok, _, _, _}, &1))),
+    with nil <- Enum.find(state_exec, &(!match?({:ok, _, _, _}, &1))),
          response <- OmiseGOWatcher.TransactionDB.insert(block),
          nil <- Enum.find(response, &(!match?({:ok, _}, &1))),
          _ <- UtxoDB.consume_block(block),
@@ -73,7 +76,7 @@ defmodule OmiseGOWatcher.BlockGetter do
 
     :ok = run_block_get_task(blocks_numbers)
 
-    :ok = blocks_to_consume |> Enum.each(&consume_block/1)
+    :ok = blocks_to_consume |> Enum.each(&(:ok = consume_block(&1)))
     {:noreply, new_state}
   end
 
