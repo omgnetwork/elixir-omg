@@ -44,7 +44,7 @@ defmodule OmiseGO.Performance.SenderManager do
     senders =
       1..nusers
       |> Enum.map(fn seqnum ->
-        {:ok, pid} = OmiseGO.Performance.SenderServer.start_link({seqnum, ntx_to_send})
+        {:ok, pid} = OmiseGO.Performance.SenderServer.start({seqnum, ntx_to_send})
         {seqnum, pid}
       end)
 
@@ -66,15 +66,17 @@ defmodule OmiseGO.Performance.SenderManager do
   """
   def handle_info({:EXIT, _from, reason}, state) do
     write_stats(state)
-    _ = Logger.debug(fn -> "[SM] +++ Stoping (reason: #{inspect(reason)})... +++" end)
+    _ = Logger.info(fn -> "[SM] +++ Manager Exiting (reason: #{inspect(reason)})... +++" end)
     {:stop, reason, state}
   end
 
   @doc """
-  Checks whether registry has sender proceses registered
+  Checks whether registry has any sender processes registered, if not then wraps up and stops
   """
   @spec handle_info(:check, state :: pid | atom) :: {:noreply, newstate :: map()} | {:stop, :normal, state :: map()}
-  def handle_info(:check, %{senders: senders} = state) when senders == [] do
+  def handle_info(:check, %{senders: []} = state) do
+    write_stats(state)
+    _ = Logger.info(fn -> "[SM]: Senders are all done. Stopping manager" end)
     {:stop, :normal, state}
   end
 
@@ -88,8 +90,8 @@ defmodule OmiseGO.Performance.SenderManager do
   Removes sender process which has done sending from a registry.
   """
   @spec handle_cast({:done, seqnum :: integer}, state :: map()) :: {:noreply, map()}
-  def handle_cast({:done, seqnum}, %{senders: senders} = state) do
-    {:noreply, %{state | senders: Enum.reject(senders, &match?({^seqnum, _}, &1))}}
+  def handle_cast({:done, done_seqnum}, %{senders: senders} = state) do
+    {:noreply, %{state | senders: Enum.filter(senders, fn {seqnum, _} -> seqnum != done_seqnum end)}}
   end
 
   @doc """

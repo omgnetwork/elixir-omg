@@ -44,9 +44,9 @@ defmodule OmiseGO.Performance.SenderServer do
   @doc """
   Starts the process.
   """
-  @spec start_link({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, pid}
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args)
+  @spec start({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, pid}
+  def start(args) do
+    GenServer.start(__MODULE__, args)
   end
 
   @doc """
@@ -78,12 +78,14 @@ defmodule OmiseGO.Performance.SenderServer do
   """
   @spec handle_info(:do, state :: __MODULE__.state()) ::
           {:noreply, new_state :: __MODULE__.state()} | {:stop, :normal, __MODULE__.state()}
-  def handle_info(:do, %__MODULE__{ntx_to_send: 0} = state) do
-    _ = Logger.debug(fn -> "[#{state.seqnum}] +++ Stoping... +++" end)
+  def handle_info(
+        :do,
+        %__MODULE__{ntx_to_send: 0, seqnum: seqnum, last_tx: %LastTx{blknum: blknum, txindex: txindex}} = state
+      ) do
+    _ = Logger.info(fn -> "[#{seqnum}] +++ Stoping... +++" end)
 
-    %__MODULE__{seqnum: seqnum, last_tx: %LastTx{blknum: blknum, txindex: txindex}} = state
     OmiseGO.Performance.SenderManager.sender_stats(%{seqnum: seqnum, blknum: blknum, txindex: txindex})
-    OmiseGO.Performance.SenderManager.sender_completed(state.seqnum)
+    OmiseGO.Performance.SenderManager.sender_completed(seqnum)
     {:stop, :normal, state}
   end
 
