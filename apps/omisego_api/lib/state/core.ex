@@ -43,24 +43,25 @@ defmodule OmiseGO.API.State.Core do
 
   NOTE that tx is assumed to have distinct inputs, that should be checked in prior state-less validation
   """
-  @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{}) ::
+  @spec exec(tx :: %Transaction.Recovered{}, input_fees :: map(), state :: %Core{}) ::
           {{:ok, Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, %Core{}}
           | {{:error, exec_error}, %Core{}}
   def exec(
         %Transaction.Recovered{
           raw_tx: raw_tx,
-          signed_tx_hash: _signed_tx_hash,
           spender1: spender1,
           spender2: spender2
         } = recovered_tx,
+        input_fees,
         state
       ) do
-    %Transaction{amount1: amount1, amount2: amount2} = raw_tx
+    # Now we support only one currency
+    minimum_acceptable_input = input_fees |> Map.values() |> hd
 
     with :ok <- validate_block_size(state),
          {:ok, in_amount1} <- correct_input_in_position?(1, state, raw_tx, spender1),
          {:ok, in_amount2} <- correct_input_in_position?(2, state, raw_tx, spender2),
-         :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2) do
+         :ok <- amounts_add_up?(in_amount1 + in_amount2, minimum_acceptable_input) do
       {
         {:ok, recovered_tx.signed_tx_hash, state.height, state.tx_index},
         state

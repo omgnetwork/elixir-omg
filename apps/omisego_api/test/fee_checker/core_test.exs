@@ -22,28 +22,39 @@ defmodule OmiseGO.API.FeeChecker.CoreTest do
   end
 
   describe "Transaction fees" do
-    test "transaction validation" do
-      assert {:ok, _} = transaction_fees(tx(@valid_currency, 3, 2), %{})
+    test "flat fee - minimal inputs value is sum of outputs and fee" do
+      fees_config = [%{token: @valid_currency, flat_fee: 1}]
+      total_with_fee = 3 + 2 + 1
+
+      result = transaction_fees(tx(@valid_currency, 3, 2), fees_config)
+
+      assert {:ok, %{@valid_currency => ^total_with_fee}} = result
+    end
+
+    test "allows zero fee - minimal inputs value is sum of outputs" do
+      fees_config = [%{token: @valid_currency, flat_fee: 0}]
+      total_with_fee = 3 + 2 + 0
+
+      result = transaction_fees(tx(@valid_currency, 3, 2), fees_config)
+
+      assert {:ok, %{@valid_currency => ^total_with_fee}} = result
+    end
+
+    test "allows zero fee - swapping currencies" do
+      fees_config = [%{token: @invalid_currency, flat_fee: 0}]
+      total_with_fee = 3 + 2 + 0
+
+      result = transaction_fees(tx(@invalid_currency, 3, 2), fees_config)
+
+      assert {:ok, %{@invalid_currency => ^total_with_fee}} = result
     end
 
     test "returns error :token_not_allowed when token is unknown" do
-      # TODO
-    end
+      fees_config = [%{token: @valid_currency, flat_fee: 1}]
 
-    test "returns error :fee_too_low when sum of amounts is less than flat fee" do
-      # TODO
-    end
+      result = transaction_fees(tx(@invalid_currency, 3, 2), fees_config)
 
-    test "allows tx without fee when fee is zero" do
-      # TODO
-    end
-
-    test "flat fee greater returns minum input based on flat fee" do
-      # TODO
-    end
-
-    test "total rate fee greater returns minum input based on tx total" do
-      # TODO
+      assert {:error, :token_not_allowed} = result
     end
   end
 end

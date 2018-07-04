@@ -18,8 +18,8 @@ defmodule OmiseGO.API.State do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def exec(tx) do
-    GenServer.call(__MODULE__, {:exec, tx})
+  def exec(tx, input_fees) do
+    GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
 
   def form_block(child_block_interval) do
@@ -75,8 +75,8 @@ defmodule OmiseGO.API.State do
   @doc """
   Checks (stateful validity) and executes a spend transaction. Assuming stateless validity!
   """
-  def handle_call({:exec, tx}, _from, state) do
-    {tx_result, new_state} = Core.exec(tx, state)
+  def handle_call({:exec, tx, input_fees}, _from, state) do
+    {tx_result, new_state} = Core.exec(tx, state, input_fees)
     {:reply, tx_result, new_state}
   end
 
