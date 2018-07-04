@@ -7,13 +7,11 @@ defmodule OmiseGO.API.FeeChecker do
   alias OmiseGO.API.FeeChecker.Core
   alias OmiseGO.API.State.Transaction.Recovered
 
-
   @doc """
   Calculates fee from tx and checks whether token is allowed and both percentage and flat fee limits are met
   """
-  @spec transaction_fees(Recovered.t()) ::
-          {:ok, map()} | {:error, :token_not_allowed}
+  @spec transaction_fees(Recovered.t()) :: {:ok, Core.token_fee_t()} | {:error, :token_not_allowed}
   def transaction_fees(recovered_tx) do
-    Core.transaction_fees(recovered_tx, %{})
+    Core.transaction_fees(recovered_tx, [])
   end
 end
