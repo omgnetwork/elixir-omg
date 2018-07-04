@@ -3,19 +3,25 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   use ExUnit.Case, async: false
   use OmiseGO.API.Fixtures
   use Plug.Test
+  use Phoenix.ChannelTest
 
+  alias OmiseGO.API
   alias OmiseGO.API.Block
   alias OmiseGO.API.TestHelper, as: API_Helper
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.Eth
   alias OmiseGO.JSONRPC.Client
+  alias OmiseGOWatcherWeb.AddressChannel
   alias OmiseGOWatcher.TestHelper, as: Test
+  alias OmiseGOWatcher.Eventer.Event
 
   @moduletag :integration
 
   @timeout 20_000
   @block_offset 1_000_000_000
   @zero_address <<0::size(160)>>
+
+  @endpoint OmiseGOWatcherWeb.Endpoint
 
   defp deposit_to_child_chain(to, value, config) do
     {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
@@ -34,6 +40,10 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
   test "get the blocks from child chain after transaction and start exit",
        %{config_map: config_map, alice: alice, bob: bob} do
+    alice_address = "0x" <> Base.encode16(alice.addr, case: :lower)
+
+    {:ok, _, _socket} = subscribe_and_join(socket(), AddressChannel, "address:" <> alice_address)
+
     {:ok, _pid} =
       GenServer.start_link(
         OmiseGOWatcher.BlockGetter,
@@ -68,14 +78,15 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     assert [%{"amount" => 7, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
              get_utxo(alice)
 
+    {:ok, recovered_tx} = API.Core.recover_tx(tx)
+    assert_push("address_received", %Event.AddressReceived{tx: ^recovered_tx})
+
     %{
       utxo_pos: utxo_pos,
       tx_bytes: tx_bytes,
       proof: proof,
       sigs: sigs
     } = compose_utxo_exit(block_nr, 0, 0)
-
-    alice_address = "0x" <> Base.encode16(alice.addr, case: :lower)
 
     {:ok, txhash} =
       Eth.start_exit(

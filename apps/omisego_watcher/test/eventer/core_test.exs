@@ -3,57 +3,73 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: true
-
   use OmiseGO.API.Fixtures
 
   alias OmiseGO.API
   alias OmiseGO.API.State.Transaction
   alias OmiseGOWatcher.Eventer
-  alias OmiseGOWatcher.Eventer.Notification.Received
+  alias OmiseGOWatcher.Eventer.Event
 
-  # TODO: implement all tests and write moduledoc
-  test "notifications for finalied block event are created" do
-  end
-
-  @tag fixtures: [:alice]
-  test "receiver is notified about deposit", %{alice: %{priv: alice_priv, addr: alice_addr}} do
-    # TODO: first draft
-
+  @tag fixtures: [:alice, :bob]
+  test "notify function generates 2 proper address_received events", %{alice: alice, bob: bob} do
     raw_tx = %Transaction{
       blknum1: 1,
       txindex1: 0,
       oindex1: 0,
-      blknum2: 0,
+      blknum2: 1,
       txindex2: 0,
       oindex2: 0,
       cur12: Transaction.zero_address(),
-      newowner1: alice_addr,
+      newowner1: alice.addr,
+      amount1: 100,
+      newowner2: bob.addr,
+      amount2: 0
+    }
+
+    encoded_singed_tx =
+      raw_tx
+      |> Transaction.sign(alice.priv, bob.priv)
+      |> Transaction.Signed.encode()
+
+    {:ok, recovered_tx} = API.Core.recover_tx(encoded_singed_tx)
+
+    encoded_alice_address = "0x" <> Base.encode16(alice.addr, case: :lower)
+    encoded_bob_address = "0x" <> Base.encode16(bob.addr, case: :lower)
+
+    event_1 = {"address:" <> encoded_alice_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
+
+    event_2 = {"address:" <> encoded_bob_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
+
+    assert [event_1, event_2] == Eventer.Core.notify([%{tx: recovered_tx}])
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "notify function generates 1 proper address_received events", %{alice: alice} do
+    raw_tx = %Transaction{
+      blknum1: 1,
+      txindex1: 0,
+      oindex1: 0,
+      blknum2: 1,
+      txindex2: 0,
+      oindex2: 0,
+      cur12: Transaction.zero_address(),
+      newowner1: alice.addr,
       amount1: 100,
       newowner2: Transaction.zero_address(),
       amount2: 0
     }
 
-    # TODO: We're ignoring second spedner. Rethink this
     encoded_singed_tx =
       raw_tx
-      |> Transaction.sign(alice_priv, <<>>)
+      |> Transaction.sign(alice.priv, alice.priv)
       |> Transaction.Signed.encode()
 
     {:ok, recovered_tx} = API.Core.recover_tx(encoded_singed_tx)
 
-    assert [_, {%Received{tx: ^recovered_tx}, "transactions/received/" <> ^alice_addr}] =
-             Eventer.Core.notify([%{tx: recovered_tx}])
-  end
+    encoded_alice_address = "0x" <> Base.encode16(alice.addr, case: :lower)
 
-  test "spenders are notified about transactions" do
-  end
+    event_owner_1 = {"address:" <> encoded_alice_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
 
-  test "spender is notified only once when both transaction input are hers" do
-  end
-
-  test "receivers are notified about transactions" do
-  end
-
-  test "transaction receiver is notified once when both transaction outputs are hers" do
+    assert [event_owner_1] == Eventer.Core.notify([%{tx: recovered_tx}])
   end
 end

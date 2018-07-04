@@ -1,4 +1,8 @@
 defmodule OmiseGOWatcherWeb.AddressChannel do
+  @moduledoc """
+  Channel Address
+  """
+
   use Phoenix.Channel
 
   def join("address:" <> _address, _params, socket) do

@@ -1,14 +1,16 @@
 defmodule OmiseGOWatcher.Eventer.Event do
-  @type t :: OmiseGOWatcher.Eventer.Event.Address_Received.t()
+  @type t :: OmiseGOWatcher.Eventer.Event.AddressReceived.t()
 
-  defmodule Address_Received do
+  defmodule AddressReceived do
     @moduledoc """
     Notifies about received funds by particular address
     """
 
+    def name, do: "address_received"
+
     defstruct [:tx]
 
-    @type t :: %Address_Received{
+    @type t :: %AddressReceived{
             tx: any()
           }
   end

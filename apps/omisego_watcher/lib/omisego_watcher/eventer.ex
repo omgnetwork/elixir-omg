@@ -4,6 +4,7 @@ defmodule OmiseGOWatcher.Eventer do
   """
 
   alias OmiseGOWatcher.Eventer.Core
+  alias OmiseGOWatcherWeb.Endpoint
 
   ### Client
 
@@ -24,15 +25,10 @@ defmodule OmiseGOWatcher.Eventer do
   end
 
   def handle_cast({:notify, event_triggers}, state) do
-    IO.inspect("Client notify handle_cast")
-    IO.inspect(event_triggers)
+    event_triggers
+    |> Core.notify()
+    |> Enum.each(fn {topic, event_name, event} -> Endpoint.broadcast!(topic, event_name, event) end)
 
-    data =
-      event_triggers
-      |> Core.notify()
-
-    # |> Enum.each(fn {notification, topic} -> :ok = PubSub.broadcast(:eventer, topic, notification) end)
-    IO.inspect(data)
     {:noreply, state}
   end
 end

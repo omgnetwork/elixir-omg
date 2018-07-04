@@ -3,13 +3,12 @@ defmodule OmiseGOWatcher.Eventer.Core do
   Functional core of eventer
   """
 
-  alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
   alias OmiseGOWatcher.Eventer.Event
 
   @address_topic "address"
 
-  @spec notify(any()) :: list({Notification.t(), binary()})
+  @spec notify(any()) :: list({Event.t(), binary()})
   def notify(event_triggers) do
     Enum.flat_map(event_triggers, &get_events_with_topic(&1))
   end
@@ -31,7 +30,8 @@ defmodule OmiseGOWatcher.Eventer.Core do
   defp create_address_received_event(%Transaction.Recovered{} = transaction, address) do
     encoded_address = "0x" <> Base.encode16(address, case: :lower)
     subtopic = create_subtopic(@address_topic, encoded_address)
-    {%Event.Address_Received{tx: transaction}, subtopic}
+
+    {subtopic, Event.AddressReceived.name(), %Event.AddressReceived{tx: transaction}}
   end
 
   defp create_subtopic(main_topic, subtopic), do: main_topic <> ":" <> subtopic
