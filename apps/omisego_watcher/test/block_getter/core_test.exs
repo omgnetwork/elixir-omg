@@ -5,7 +5,6 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   use Plug.Test
 
   alias OmiseGO.API
-  alias OmiseGO.API.TestHelper
   alias OmiseGO.API.Block
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.BlockGetter.Core
@@ -123,30 +122,46 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
         number: 30_000
       })
 
-    json =
+    json_block =
       for {key, val} <- Map.from_struct(Map.put(block, :transactions, Enum.map(transactions, & &1.signed_tx_bytes))),
           into: %{},
           do: {Atom.to_string(key), val}
 
-    assert {:ok, block} == Core.decode_block(Client.encode(json))
+    assert {:ok, block} == Core.decode_block(Client.encode(json_block))
   end
 
-  test "check error return by decode_block" do
+  @tag fixtures: [:alice]
+  test "check error return by decode_block", %{alice: alice} do
     assert {:error, :incorrect_hash} ==
-             Core.decode_block(%{
+             %{
                "hash" => String.duplicate("A", 64),
-               "transactions" => [Client.encode(API.TestHelper.create_signed([], @eth, []).signed_tx_bytes)],
+               "transactions" => [
+                 API.TestHelper.create_signed([{1_000, 20, 0, alice}], @eth, [{alice, 100}]).signed_tx_bytes
+               ],
                "number" => 23
-             })
+             }
+             |> Client.encode()
+             |> Core.decode_block()
 
     assert {:error, :malformed_transaction_rlp} ==
-             Core.decode_block(%{
+             %{
                "hash" => "",
                "transactions" => [
-                 Client.encode(API.TestHelper.create_signed([], @eth, []).signed_tx_bytes),
+                 API.TestHelper.create_signed([{1_000, 20, 0, alice}], @eth, [{alice, 100}]).signed_tx_bytes,
                  "12321231AB2331"
                ],
                "number" => 1
-             })
+             }
+             |> Client.encode()
+             |> Core.decode_block()
+
+    assert {:error, :no_inputs} ==
+             %{
+               "hash" => "",
+               "transactions" => [API.TestHelper.create_signed([], @eth, []).signed_tx_bytes],
+               "number" => 1
+             }
+             |> Client.encode()
+             |> Core.decode_block()
   end
 end

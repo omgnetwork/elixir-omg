@@ -2,7 +2,6 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   @moduledoc false
 
   alias OmiseGO.API.Block
-  alias OmiseGO.API.State.Transaction
 
   defstruct [
     :last_consumed_block,
@@ -116,16 +115,19 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           {:ok, Block.t()}
           | {:error, :incorrect_hash | :malformed_transaction_rlp | :malformed_transaction | :bad_signature_length}
   def decode_block(%{"hash" => hash, "transactions" => transactions, "number" => number}) do
-    with transactions <- Enum.map(transactions, &decode_transaction/1),
+    with transactions <- Enum.map(transactions, &decode_validate_transaction/1),
          nil <- Enum.find(transactions, &(!match?({:ok, _}, &1))),
          transactions <- Enum.map(transactions, &elem(&1, 1)),
-         %Block{hash: calculate_hash} = block_with_hash <-
+         %Block{hash: calculated_hash} = block_with_hash <-
            Block.merkle_hash(%Block{transactions: transactions, number: number}) do
-      if {:ok, calculate_hash} == Base.decode16(hash), do: {:ok, block_with_hash}, else: {:error, :incorrect_hash}
+      if {:ok, calculated_hash} == Base.decode16(hash), do: {:ok, block_with_hash}, else: {:error, :incorrect_hash}
     end
   end
 
-  defp decode_transaction(signed_tx_bytes) do
-    with {:ok, transaction} <- Base.decode16(signed_tx_bytes), do: Transaction.Signed.decode(transaction)
+  defp decode_validate_transaction(signed_tx_bytes) do
+    with {:ok, encoded_signed_tx} <- Base.decode16(signed_tx_bytes),
+         {:ok, transaction} <- OmiseGO.API.Core.signed_tx(encoded_signed_tx) do
+      {:ok, transaction}
+    end
   end
 end

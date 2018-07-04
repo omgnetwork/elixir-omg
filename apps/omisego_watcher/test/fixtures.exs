@@ -113,6 +113,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
   end
 
+  @doc "run only database in sandbox and endpoint to make request"
   deffixture phoenix_ecto_sandbox do
     import Supervisor.Spec
 

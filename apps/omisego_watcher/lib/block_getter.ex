@@ -6,8 +6,8 @@ defmodule OmiseGOWatcher.BlockGetter do
   """
   use GenServer
   alias OmiseGO.API.Block
-  alias OmiseGO.Eth
   alias OmiseGO.API.State.Transaction.Recovered
+  alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.UtxoDB
 

@@ -55,4 +55,9 @@ defmodule OmiseGO.API.TestHelper do
 
     Transaction.sign(raw_tx, priv1, priv2)
   end
+
+  def create_encoded(inputs, cur12, outputs) do
+    signed_tx = create_signed(inputs, cur12, outputs)
+    Transaction.Signed.encode(signed_tx)
+  end
 end
