@@ -40,6 +40,8 @@ defmodule OmiseGO.API.State.Core do
 
   @doc """
   Includes the transaction into the state when valid, rejects otherwise.
+
+  NOTE that tx is assumed to have distinct inputs, that should be checked in prior state-less validation
   """
   @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{}) ::
           {{:ok, Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, %Core{}}
