@@ -17,37 +17,27 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     end
   end
 
-  deffixture config_map(contract) do
-    Map.merge(
-      contract,
-      %{
-        child_block_interval: 1000,
-        ethereum_event_block_finality_margin: 1,
-        ethereum_event_get_deposits_interval_ms: 10,
-        ethereum_event_check_height_interval_ms: 10,
-        ethereum_event_max_block_range_in_deposits_query: 1,
-        child_block_submit_period: 1
-      }
-    )
-  end
-
-  deffixture child_chain(config_map) do
+  deffixture child_chain(contract) do
     config_file_path = Briefly.create!(extname: ".exs")
     db_path = Briefly.create!(directory: true)
 
     config_file_path
     |> File.open!([:write])
     |> IO.binwrite("""
-      #{OmiseGO.Eth.DevHelpers.create_conf_file(config_map)}
+      #{OmiseGO.Eth.DevHelpers.create_conf_file(contract)}
 
       config :omisego_db,
         leveldb_path: "#{db_path}"
-      config :logger, level: :debug
+      config :logger, level: :error
       config :omisego_eth,
-        child_block_interval: #{config_map.child_block_interval}
+        child_block_interval: #{Application.get_env(:omisego_eth, :child_block_interval)}
       config :omisego_api,
-        ethereum_event_block_finality_margin: #{config_map.ethereum_event_block_finality_margin},
-        ethereum_event_get_deposits_interval_ms: #{config_map.ethereum_event_get_deposits_interval_ms}
+        ethereum_event_block_finality_margin: #{
+      Application.get_env(:omisego_api, :ethereum_event_block_finality_margin)
+    },
+        ethereum_event_get_deposits_interval_ms: #{
+      Application.get_env(:omisego_api, :ethereum_event_get_deposits_interval_ms)
+    }
     """)
     |> File.close()
 

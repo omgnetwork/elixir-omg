@@ -25,19 +25,21 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
 
     post_deposit_child_block =
-      deposit_blknum - 1 + (config.ethereum_event_block_finality_margin + 1) * config.child_block_interval
+      deposit_blknum - 1 +
+        (Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) + 1) *
+          Application.get_env(:omisego_api, :child_block_interval)
 
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000, config.contract_addr)
 
     deposit_blknum
   end
 
-  @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
+  @tag fixtures: [:watcher_sandbox, :contract, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
   test "get the blocks from child chain after transaction and start exit",
-       %{config_map: config_map, alice: alice, bob: bob} do
-    deposit_blknum = deposit_to_child_chain(alice, 10, config_map)
+       %{contract: contract, alice: alice, bob: bob} do
+    deposit_blknum = deposit_to_child_chain(alice, 10, contract)
     # TODO remove slpeep after synch deposit synch
-    :timer.sleep(1000)
+    :timer.sleep(100)
     raw_tx = Transaction.new([{deposit_blknum, 0, 0}], @eth, [{alice.addr, 7}, {bob.addr, 3}])
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
@@ -81,7 +83,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
         sigs,
         1,
         alice_address,
-        config_map.contract_addr
+        contract.contract_addr
       )
 
     {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
@@ -89,7 +91,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     {:ok, height} = Eth.get_ethereum_height()
 
     assert {:ok, [%{amount: 7, blknum: block_nr, oindex: 0, owner: alice_address, txindex: 0, token: @eth}]} ==
-             Eth.get_exits(0, height, config_map.contract_addr)
+             Eth.get_exits(0, height, contract.contract_addr)
   end
 
   @tag fixtures: [:watcher_sandbox, :alice]
