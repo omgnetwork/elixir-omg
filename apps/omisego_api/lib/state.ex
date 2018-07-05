@@ -137,9 +137,16 @@ defmodule OmiseGO.API.State do
     {_core_form_block_duration, core_form_block_result} =
       :timer.tc(fn -> Core.form_block(state, child_block_interval) end)
 
-    {:ok, {_block, event_triggers, db_updates, new_state}} = core_form_block_result
+    {:ok, {block, event_triggers, db_updates, new_state}} = core_form_block_result
 
     :ok = DB.multi_update(db_updates)
+
+    event_triggers =
+      Enum.map(event_triggers, fn event_trigger ->
+        event_trigger
+        |> Map.put(:child_block_hash, block.hash)
+        |> Map.put(:child_blknum, block.number)
+      end)
 
     Eventer.notify(event_triggers)
 

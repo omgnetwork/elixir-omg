@@ -8,7 +8,7 @@ defmodule OmiseGOWatcher.Eventer.Event do
 
     def name, do: "address_received"
 
-    defstruct [:tx]
+    defstruct [:tx, :child_blknum, :child_block_hash, :submited_at_ethheight]
 
     @type t :: %AddressReceived{
             tx: any()
