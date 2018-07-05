@@ -14,6 +14,10 @@ defmodule OmiseGO.API.FeeChecker do
 
   @file_changed_check_interval 10_000
 
+  def start_link(_args) do
+    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  end
+
   def init(args) do
     :ok = ensure_ets_init()
     :ok = update_fee_spec()
@@ -55,13 +59,21 @@ defmodule OmiseGO.API.FeeChecker do
          {:ok, content} <- File.read(path),
          {:ok, specs} <- parse_file_content(content) do
       :ok = save_fees(specs, changed_at)
-      _ = Logger.debug(fn -> "Reloaded #{Enum.count(specs)} fee specs from file, changed at #{changed_at}" end)
+      _ = Logger.info(fn -> "Reloaded #{Enum.count(specs)} fee specs from file, changed at #{changed_at}" end)
 
       :ok
     else
       {:file_unchanged, last_change_at} ->
         _ = Logger.debug(fn -> "File unchanged, last modified at #{last_change_at}" end)
         :file_unchanged
+
+      {:error, :enoent} ->
+        _ =
+          Logger.error(fn ->
+            "The fee specification file #{path} not found in #{System.get_env("PWD")}"
+          end)
+
+        {:error, :fee_spec_not_found}
 
       error ->
         _ = Logger.warn(fn -> "Unable to update fees from file. Reason: #{inspect(error)}" end)
@@ -109,14 +121,14 @@ defmodule OmiseGO.API.FeeChecker do
   defp ensure_ets_init do
     _ =
       if :undefined == :ets.info(:fees_bucket),
-        do: :ets.new(:fees_bucket, [:set, :private, :named_table])
+        do: :ets.new(:fees_bucket, [:set, :public, :named_table])
 
     _ = :ets.insert(:fees_bucket, {:last_loaded, 0})
     :ok
   end
 
   defp handle_parser_output({[], fee_specs}) do
-    _ = Logger.info(fn -> "Parsing fee specification file completes successfully." end)
+    _ = Logger.debug(fn -> "Parsing fee specification file completes successfully." end)
     {:ok, fee_specs}
   end
 

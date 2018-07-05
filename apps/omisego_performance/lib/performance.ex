@@ -61,6 +61,7 @@ defmodule OmiseGO.Performance do
       supervisor(Phoenix.PubSub.PG2, [:eventer, []]),
       {OmiseGO.API.State, []},
       {OmiseGO.API.FreshBlocks, []},
+      {OmiseGO.API.FeeChecker, []},
       JSONRPC2.Servers.HTTP.child_spec(:http, OmiseGO.JSONRPC.Server.Handler, port: omisego_port)
     ]
 
