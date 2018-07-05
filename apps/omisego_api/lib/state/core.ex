@@ -2,6 +2,7 @@ defmodule OmiseGO.API.State.Core do
   @moduledoc """
   Functional core for State.
   """
+  use OmiseGO.API.GenServerHelper
 
   @maximum_block_size 65_536
 
@@ -348,4 +349,5 @@ defmodule OmiseGO.API.State.Core do
   """
   @spec get_current_child_block_height(%__MODULE__{}) :: pos_integer
   def get_current_child_block_height(%{height: height}), do: height
+
 end
