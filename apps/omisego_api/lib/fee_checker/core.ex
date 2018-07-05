@@ -32,4 +32,40 @@ defmodule OmiseGO.API.FeeChecker.Core do
 
   defp extract_fee(%{token: _, flat_fee: flat_fee}), do: {:ok, flat_fee}
   defp extract_fee(nil), do: {:error, :token_not_allowed}
+
+  def parse_fee_specs(json) do
+    fee_specs = json |> Enum.map(&parse_fee_spec/1)
+
+    errors =
+      fee_specs
+      |> Enum.with_index(1)
+      |> Enum.filter(&match?({{:error, _}, _index}, &1))
+
+    {errors, fee_specs}
+  end
+
+  defp parse_fee_spec(%{"flat_fee" => fee, "token" => token}) do
+    # defensive code against user input
+    with {:ok, fee} <- validate_fee(fee),
+         {:ok, addr} <- validate_token(token) do
+      %{token: addr, flat_fee: fee}
+    end
+  end
+
+  defp parse_fee_spec(_), do: {:error, :invalid_fee_spec}
+
+  defp validate_fee(fee) when is_integer(fee) and fee >= 0, do: {:ok, fee}
+  defp validate_fee(_fee), do: {:error, :invalid_fee}
+
+  defp validate_token(token) do
+    case is_binary(token) && parse_token_address(token) do
+      {:ok, addr} when byte_size(addr) == 20 ->
+        {:ok, addr}
+
+      _ ->
+        {:error, :invalid_token}
+    end
+  end
+
+  defp parse_token_address(token), do: token |> String.trim_leading("0x") |> String.upcase() |> Base.decode16()
 end
