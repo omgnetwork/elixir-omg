@@ -19,7 +19,7 @@ defmodule OmiseGO.API.FeeChecker.ParserTest do
   @eth_str "0x0000000000000000000000000000000000000000"
 
   test "Parsing fee config file" do
-    fees = parse_file_content(@fee_config_file)
+    assert {:ok, fees} = parse_file_content(@fee_config_file)
     assert is_list(fees)
     assert Enum.count(fees) == 5
 
@@ -32,15 +32,15 @@ defmodule OmiseGO.API.FeeChecker.ParserTest do
   end
 
   test "Parsing empty fee spec list" do
-    assert [] = parse_file_content("[]")
+    assert {:ok, []} = parse_file_content("[]")
   end
 
   test "Parsing compressed json string" do
-    assert [%{flat_fee: 0, token: @eth}] = parse_file_content(~s([{"token":"#{@eth_str}","flat_fee":0}]))
+    assert {:ok, [%{flat_fee: 0, token: @eth}]} = parse_file_content(~s([{"token":"#{@eth_str}","flat_fee":0}]))
   end
 
   test "Parsing fee spec - additional keys are ignored" do
-    assert [%{flat_fee: 1, token: @eth}] =
+    assert {:ok, [%{flat_fee: 1, token: @eth}]} =
              parse_file_content(~s([{"token": "#{@eth_str}", "flat_fee": 1, "name": "eth"}]))
   end
 
