@@ -64,6 +64,13 @@ defmodule OmiseGO.API.Api.CoreTest do
     assert {:error, :malformed_transaction_rlp} = Core.recover_tx(malformed4)
   end
 
+  @tag fixtures: [:alice]
+  test "transaction must have distinct inputs", %{alice: alice} do
+    {duplicate_inputs, _} = create_encoded([{1, 2, 3, alice}, {1, 2, 3, alice}], eth(), [{alice, 7}])
+
+    assert {:error, :duplicate_inputs} = Core.recover_tx(duplicate_inputs)
+  end
+
   @tag fixtures: [:alice, :bob]
   test "transaction is not allowed to have input and empty sig", %{alice: alice, bob: bob} do
     {full_signed_tx, _} = TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, bob}], eth(), [{alice, 7}])

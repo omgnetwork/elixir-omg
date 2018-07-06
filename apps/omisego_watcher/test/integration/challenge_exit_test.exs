@@ -52,10 +52,8 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
 
     raw_tx2 = Transaction.new([{block_nr, 0, 0}], Transaction.zero_address(), [{alice.addr, 4}, {bob.addr, 3}])
     tx2 = raw_tx2 |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
-    IO.inspect(raw_tx2)
 
     {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx2})
-    IO.inspect(block_nr)
 
     fn ->
       Eth.WaitFor.repeat_until_ok(fn ->
@@ -72,9 +70,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
 
     challenge = get_exit_challenge(exiting_utxo_block_nr, 0, 0)
 
-    #new
     %{
-      utxo_pos: utxo_pos,
       tx_bytes: tx_bytes,
       proof: proof,
       sigs: sigs
@@ -100,11 +96,9 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     assert {:ok, [%{amount: 7, blknum: 2000, oindex: 0, owner: alice_address, txindex: 0, token: @zero_address}]} ==
              Eth.get_exits(0, height, config_map.contract_addr)
 
-    IO.inspect(challenge)
     {:ok, txhash} = OmiseGO.Eth.DevHelpers.challenge_exit(challenge.cutxopos, challenge.eutxoindex,
      challenge.txbytes, challenge.proof, challenge.sigs, 1, alice_address, config_map.contract_addr)
-     {:ok, receipt} = Eth.WaitFor.eth_receipt(txhash, @timeout)
-     IO.inspect(receipt)
+     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
   end
 
   defp get_exit_challenge(blknum, txindex, oindex) do
@@ -120,11 +114,6 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
       proof: proof,
       sigs: sigs
     }
-  end
-
-  defp get_utxo(address) do
-    decoded_resp = Test.rest_call(:get, "account/utxo?address=#{Client.encode(address)}")
-    decoded_resp["utxos"]
   end
 
   defp compose_utxo_exit(block_height, txindex, oindex) do

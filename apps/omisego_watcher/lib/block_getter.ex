@@ -20,7 +20,6 @@ defmodule OmiseGOWatcher.BlockGetter do
 
   def consume_block(%Block{} = block) do
     # TODO add check after synch with deposit and exit
-    #IO.inspect(block)
     _ = OmiseGOWatcher.TransactionDB.insert(block)
     _ = UtxoDB.consume_block(block)
     :ok
