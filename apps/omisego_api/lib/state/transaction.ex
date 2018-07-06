@@ -40,8 +40,7 @@ defmodule OmiseGO.API.State.Transaction do
   @type currency :: Crypto.address_t()
 
   # TODO: a helper function with limited functionality, used in tests; move to test helpers
-  def create_from_utxos(%{utxos: utxos}, _) when length(utxos) > @max_inputs,
-    do: {:error, :too_many_utxo}
+  def create_from_utxos(%{utxos: utxos}, _) when length(utxos) > @max_inputs, do: {:error, :too_many_utxo}
 
   def create_from_utxos(%{utxos: utxos} = inputs, receiver) do
     with {:ok, cur1} <- validate_currency(utxos) do
@@ -49,11 +48,7 @@ defmodule OmiseGO.API.State.Transaction do
     end
   end
 
-  defp do_create_from_utxos(
-         %{address: change_address, utxos: utxos},
-         cur1,
-         %{address: receiver_address, amount: amount}
-       ) do
+  defp do_create_from_utxos(%{address: change_address, utxos: utxos}, cur1, %{address: receiver_address, amount: amount}) do
     parts_transaction =
       utxos
       |> Enum.with_index(1)

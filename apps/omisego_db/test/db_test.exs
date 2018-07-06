@@ -115,10 +115,4 @@ defmodule OmiseGO.DBTest do
     assert {:ok, 12} == DB.last_fast_exit_block_height(TestDBServer)
     assert {:ok, 10} == DB.last_slow_exit_block_height(TestDBServer)
   end
-
-  test "gets all transactions from a block" do
-  end
-
-  test "gets transaction that spends utxo" do
-  end
 end

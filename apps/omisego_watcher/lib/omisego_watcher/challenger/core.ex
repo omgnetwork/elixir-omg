@@ -3,11 +3,11 @@ defmodule OmiseGOWatcher.Challenger.Core do
   Functional core of challenger
   """
 
-  alias OmiseGOWatcher.TransactionDB
+  alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.State.Transaction.Recovered
-  alias OmiseGO.API.Block
   alias OmiseGOWatcher.Challenger.Challenge
+  alias OmiseGOWatcher.TransactionDB
 
   @block_offset 1_000_000_000
   @transaction_offset 10_000
@@ -17,10 +17,12 @@ defmodule OmiseGOWatcher.Challenger.Core do
     txbytes = encode(offending_tx)
     eutxoindex = get_eutxo_index(offending_tx, utxo_exit)
     cutxopos = challenging_utxo_pos(offending_tx)
+
     recovered_txs =
       txs
       |> Enum.sort_by(& &1.txindex)
       |> Enum.map(fn tx -> %Recovered{signed_tx_hash: tx.txid} end)
+
     proof = Block.create_tx_proof(%Block{transactions: recovered_txs}, offending_tx.txindex)
 
     Challenge.create(cutxopos, eutxoindex, txbytes, proof, offending_tx.sig1 <> offending_tx.sig2)
@@ -56,7 +58,14 @@ defmodule OmiseGOWatcher.Challenger.Core do
     Transaction.encode(tx)
   end
 
-  defp get_eutxo_index(%TransactionDB{blknum1: blknum1, txindex1: txindex1, oindex1: oindex1}, %{blknum: blknum, txindex: txindex, oindex: oindex}) when blknum == blknum1 and txindex == txindex1 and oindex == oindex1, do: 0
+  defp get_eutxo_index(%TransactionDB{blknum1: blknum1, txindex1: txindex1, oindex1: oindex1}, %{
+         blknum: blknum,
+         txindex: txindex,
+         oindex: oindex
+       })
+       when blknum == blknum1 and txindex == txindex1 and oindex == oindex1,
+       do: 0
+
   defp get_eutxo_index(_, _), do: 1
 
   defp challenging_utxo_pos(offending_tx) do

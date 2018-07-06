@@ -167,13 +167,9 @@ defmodule OmiseGO.API.State.CoreTest do
     |> (&Core.exec(Test.create_recovered([{@child_block_interval, 0, 1, alice}], eth(), [{carol, 3}]), &1)).()
     |> success?
     |> (&Core.exec(
-          Test.create_recovered(
-            [{@child_block_interval, 1, 0, carol}, {@child_block_interval, 2, 0, carol}],
-            eth(),
-            [
-              {alice, 10}
-            ]
-          ),
+          Test.create_recovered([{@child_block_interval, 1, 0, carol}, {@child_block_interval, 2, 0, carol}], eth(), [
+            {alice, 10}
+          ]),
           &1
         )).()
     |> success?
@@ -360,13 +356,9 @@ defmodule OmiseGO.API.State.CoreTest do
     {:ok, {_, _, db_updates2, state}} =
       state
       |> (&Core.exec(
-            Test.create_recovered(
-              [{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}],
-              eth(),
-              [
-                {bob, 10}
-              ]
-            ),
+            Test.create_recovered([{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}], eth(), [
+              {bob, 10}
+            ]),
             &1
           )).()
       |> success?

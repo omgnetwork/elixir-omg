@@ -12,6 +12,7 @@ defmodule OmiseGOWatcherWeb.Controller.Challenge do
   """
   def challenge(conn, %{"utxo" => utxo}) do
     {utxo, _} = Integer.parse(utxo)
+
     utxo
     |> OmiseGOWatcher.Challenger.create_challenge()
     |> respond_single(conn)

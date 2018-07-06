@@ -2,12 +2,12 @@ defmodule OmiseGOWatcher.Challenger.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OmiseGOWatcher.Challenger.Core
-  alias OmiseGOWatcher.Challenger.Challenge
-  alias OmiseGOWatcher.TransactionDB
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.State.Transaction.Signed
+  alias OmiseGOWatcher.Challenger.Challenge
+  alias OmiseGOWatcher.Challenger.Core
   alias OmiseGOWatcher.TestHelper
+  alias OmiseGOWatcher.TransactionDB
 
   deffixture transactions do
     [

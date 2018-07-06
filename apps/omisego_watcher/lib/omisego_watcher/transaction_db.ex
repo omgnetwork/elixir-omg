@@ -63,10 +63,6 @@ defmodule OmiseGOWatcher.TransactionDB do
     |> Repo.get(id)
   end
 
-  def all() do
-    Repo.all(__MODULE__)
-  end
-
   def find_by_txblknum(txblknum) do
     Repo.all(from(tr in __MODULE__, where: tr.txblknum == ^txblknum, select: tr))
   end
@@ -125,11 +121,5 @@ defmodule OmiseGOWatcher.TransactionDB do
       [] -> :utxo_not_spent
       [tx] -> {:ok, tx}
     end
-  end
-
-  @spec get_transactions_from_block(pos_integer) :: list(map())
-  def get_transactions_from_block(blknum) do
-    query = from(tx_db in __MODULE__, where: tx_db.txblknum == ^blknum)
-    Repo.all(query)
   end
 end
