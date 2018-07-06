@@ -9,6 +9,7 @@ defmodule OmiseGO.API.State do
   alias OmiseGO.API.FreshBlocks
   alias OmiseGO.API.State.Core
   alias OmiseGO.DB
+  alias OmiseGO.Eth
   alias OmiseGOWatcher.Eventer
 
   require Logger
@@ -130,7 +131,7 @@ defmodule OmiseGO.API.State do
   end
 
   @doc """
-    Wraps up accumulated transactions into a block, triggers db update and emits
+    Wraps up accumulated transactions submissionsinto a block, triggers db update and emits
     events to Eventer
   """
   def handle_cast({:close_block, child_block_interval}, state) do
@@ -141,11 +142,14 @@ defmodule OmiseGO.API.State do
 
     :ok = DB.multi_update(db_updates)
 
+    block_submission = Eth.get_block_submission(block.hash)
+
     event_triggers =
       Enum.map(event_triggers, fn event_trigger ->
         event_trigger
         |> Map.put(:child_block_hash, block.hash)
         |> Map.put(:child_blknum, block.number)
+        |> Map.put(:submited_at_ethheight, block_submission && block_submission.eth_height)
       end)
 
     Eventer.notify(event_triggers)

@@ -34,7 +34,7 @@ defmodule OmiseGO.Eth.MixProject do
       {
         :plasma_mvp_contracts,
         git: "https://github.com/purbanow/plasma-mvp",
-        branch: "handle-ETH-as-zero-token-INDEXED-SIGS",
+        branch: "indexed-sigs-blocksubbmited",
         sparse: "plasma/root_chain/contracts/",
         compile: contracts_compile(),
         app: false,

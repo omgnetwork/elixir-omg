@@ -224,8 +224,40 @@ defmodule OmiseGO.Eth do
     end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
-         deposits <- get_logs(unfiltered_logs, parse_deposit),
+         deposits <- get_logs_data(unfiltered_logs, parse_deposit),
          do: {:ok, Enum.sort(deposits, &(&1.blknum > &2.blknum))}
+  end
+
+  @doc """
+  Returns lists of block submissions sorted by timestamp
+  """
+  def get_block_submissions(block_from, block_to, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
+
+    event = encode_event_signature("BlockSubmitted(bytes32,uint256)")
+
+    parse_block_submissions = fn "0x" <> block_submission ->
+      [root, timestamp] =
+        block_submission
+        |> Base.decode16!(case: :lower)
+        |> ABI.TypeDecoder.decode_raw([{:bytes, 32}, {:uint, 256}])
+
+      %{root: root, timestamp: timestamp}
+    end
+
+    with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
+         block_submissions <- get_logs(unfiltered_logs, parse_block_submissions),
+         do: {:ok, Enum.sort(block_submissions, &(&1.timestamp > &2.timestamp))}
+  end
+
+  @doc """
+  Returns associated information to block submission
+  """
+  def get_block_submission(block_hash) do
+    # TODO rethink what to do with first argument of get_block_submissions
+    with {:ok, height} = get_ethereum_height(),
+         {:ok, block_submissions} = get_block_submissions(1, height),
+         do: block_submissions |> Enum.find(&(&1.root == block_hash))
   end
 
   defp encode_event_signature(signature) do
@@ -236,11 +268,31 @@ defmodule OmiseGO.Eth do
 
   defp int_to_hex(int), do: "0x" <> Integer.to_string(int, 16)
 
-  defp get_logs(logs, parse_log) do
+  # TODO rethink if having only get_logs will be better
+  defp get_logs_data(logs, parse_log) do
     logs
     |> Enum.filter(&(not Map.get(&1, "removed", true)))
     |> Enum.map(&Map.get(&1, "data"))
     |> Enum.map(parse_log)
+  end
+
+  defp get_logs(logs, parse_log_data) do
+    for log <- logs do
+      unless Map.get(log, "removed", true) do
+        event_data =
+          log
+          |> Map.get("data")
+          |> parse_log_data.()
+
+        "0x" <> hex_block_number =
+          log
+          |> Map.get("blockNumber")
+
+        {eth_height, ""} = Integer.parse(hex_block_number, 16)
+
+        Map.put(event_data, :eth_height, eth_height)
+      end
+    end
   end
 
   defp get_ethereum_logs(block_from, block_to, event, contract) do
@@ -277,7 +329,7 @@ defmodule OmiseGO.Eth do
     end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
-         exits <- get_logs(unfiltered_logs, parse_exit),
+         exits <- get_logs_data(unfiltered_logs, parse_exit),
          do: {:ok, Enum.sort(exits, &(&1.block_height > &2.block_height))}
   end
 
