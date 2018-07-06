@@ -17,7 +17,7 @@ defmodule OmiseGO.API.State.CoreTest do
   def eth, do: Transaction.zero_address()
   def not_eth, do: <<1::size(160)>>
 
-  @input_fee_map %{"any_addr" => 0}
+  @input_fee_map %{<<0::size(160)>> => 0}
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend deposits", %{alice: alice, bob: bob, state_empty: state} do
@@ -118,7 +118,8 @@ defmodule OmiseGO.API.State.CoreTest do
       state
       |> (&Core.exec(
             Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 8}, {bob, 3}]),
-            %{"any_addr" => 8 + 3},
+            # outputs exceed inputs, no fee
+            %{eth() => 0},
             &1
           )).()
       |> fail?(:amounts_dont_add_up)
@@ -129,10 +130,11 @@ defmodule OmiseGO.API.State.CoreTest do
     state
     |> (&Core.exec(
           Test.create_recovered([{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}], eth(), [
-            {alice, 8},
-            {bob, 3}
+            {alice, 7},
+            {bob, 2}
           ]),
-          %{"any_addr" => 8 + 3},
+          # outputs exceed inputs, no fee
+          %{eth() => 2},
           &1
         )).()
     |> fail?(:amounts_dont_add_up)
@@ -556,34 +558,34 @@ defmodule OmiseGO.API.State.CoreTest do
   describe "Transaction with fees" do
     @tag fixtures: [:alice, :bob, :state_empty]
     test "Inputs sums up exactly to outputs plus fee", %{alice: alice, bob: bob, state_empty: state} do
-      # with fee == 2
-      min_inputs = %{eth() => 5 + 3 + 2}
+      # outputs: 5 + 3 + 2 == 10 <- inputs
+      fee = %{eth() => 2}
 
       state
       |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 5}, {alice, 3}]), min_inputs, &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 5}, {alice, 3}]), fee, &1)).()
       |> success?
     end
 
     @tag fixtures: [:alice, :bob, :state_empty]
     test "Inputs exceeds outputs plus fee", %{alice: alice, bob: bob, state_empty: state} do
-      # with fee == 2
-      min_inputs = %{eth() => 4 + 3 + 2}
+      # outputs: 4 + 3 + 2 < 10 <- inputs
+      fee = %{eth() => 2}
 
       state
       |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 4}, {alice, 3}]), min_inputs, &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 4}, {alice, 3}]), fee, &1)).()
       |> success?
     end
 
     @tag fixtures: [:alice, :bob, :state_empty]
     test "Inputs are not sufficient for outputs plus fee", %{alice: alice, bob: bob, state_empty: state} do
-      # with fee == 2
-      min_inputs = %{eth() => 6 + 3 + 2}
+      # outputs: 6 + 3 + 2 > 10 <- inputs
+      fee = %{eth() => 2}
 
       state
       |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 6}, {alice, 3}]), min_inputs, &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 6}, {alice, 3}]), fee, &1)).()
       |> fail?(:amounts_dont_add_up)
     end
   end

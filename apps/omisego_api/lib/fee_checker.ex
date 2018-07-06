@@ -6,13 +6,12 @@ defmodule OmiseGO.API.FeeChecker do
 
   alias OmiseGO.API.FeeChecker.Core
   alias OmiseGO.API.State.Transaction.Recovered
-  alias Poison, as: Json
 
   require Logger
 
   use GenServer
 
-  @file_changed_check_interval 10_000
+  @file_changed_check_interval_ms 10_000
 
   def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -22,14 +21,14 @@ defmodule OmiseGO.API.FeeChecker do
     :ok = ensure_ets_init()
     :ok = update_fee_spec()
 
-    {:ok, _} = :timer.apply_interval(@file_changed_check_interval, __MODULE__, :update_fee_spec, [])
+    {:ok, _} = :timer.apply_interval(@file_changed_check_interval_ms, __MODULE__, :update_fee_spec, [])
 
     _ = Logger.info(fn -> "Started FeeChecker" end)
     {:ok, args}
   end
 
   @doc """
-  Calculates fee from tx and checks whether token is allowed and both percentage and flat fee limits are met
+  Calculates fee from tx and checks whether token is allowed and flat fee limits are met
   """
   @spec transaction_fees(Recovered.t()) :: {:ok, Core.token_fee_t()} | {:error, :token_not_allowed}
   def transaction_fees(recovered_tx) do
@@ -41,10 +40,8 @@ defmodule OmiseGO.API.FeeChecker do
   """
   @spec parse_file_content(binary()) :: {:ok, list(Core.fee_spec_t())} | {:error, reason :: atom()}
   def parse_file_content(file_content) do
-    {:ok, json} = Json.decode(file_content)
-
-    json
-    |> Core.parse_fee_specs()
+    file_content
+    |> Core.parse_file_content()
     |> handle_parser_output()
   end
 
@@ -88,8 +85,7 @@ defmodule OmiseGO.API.FeeChecker do
   end
 
   defp load_fees do
-    [{:fees_map_key, fee_specs}] = :ets.lookup(:fees_bucket, :fees_map_key)
-    fee_specs
+    :ets.lookup_element(:fees_bucket, :fees_map_key, 2)
   end
 
   defp should_load_file(path) do
@@ -102,19 +98,20 @@ defmodule OmiseGO.API.FeeChecker do
   end
 
   defp get_last_loaded_file_timestamp do
-    case :ets.lookup(:fees_bucket, :last_loaded) do
-      [{:last_loaded, timestamp}] ->
-        timestamp
+    [{:last_loaded, timestamp}] = :ets.lookup(:fees_bucket, :last_loaded)
+    # When not matched we prefer immediate crash here as this should never happened
 
-      _ ->
-        0
-    end
+    timestamp
   end
 
   defp get_file_last_modified_timestamp(path) do
     case File.stat(path, time: :posix) do
-      {:ok, %File.Stat{mtime: mtime}} -> mtime
-      _ -> :os.system_time(:second)
+      {:ok, %File.Stat{mtime: mtime}} ->
+        mtime
+
+      # possibly wrong path - returns current timestamp to force file reload where file errors are handled
+      _ ->
+        :os.system_time(:second)
     end
   end
 
@@ -123,7 +120,7 @@ defmodule OmiseGO.API.FeeChecker do
       if :undefined == :ets.info(:fees_bucket),
         do: :ets.new(:fees_bucket, [:set, :public, :named_table])
 
-    _ = :ets.insert(:fees_bucket, {:last_loaded, 0})
+    true = :ets.insert(:fees_bucket, {:last_loaded, 0})
     :ok
   end
 
@@ -135,10 +132,9 @@ defmodule OmiseGO.API.FeeChecker do
   defp handle_parser_output({[{error, _index} | _] = errors, _fee_specs}) do
     _ = Logger.warn(fn -> "Parsing fee specification file fails with errors:" end)
 
-    _ =
-      Enum.each(errors, fn {{:error, reason}, index} ->
-        _ = Logger.warn(fn -> " * ##{index} fee spec parser failed with error: #{inspect(reason)}" end)
-      end)
+    Enum.each(errors, fn {{:error, reason}, index} ->
+      _ = Logger.warn(fn -> " * ##{index} fee spec parser failed with error: #{inspect(reason)}" end)
+    end)
 
     # return first error
     error
