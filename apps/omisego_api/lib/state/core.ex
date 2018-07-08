@@ -14,8 +14,14 @@ defmodule OmiseGO.API.State.Core do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.Transaction
 
-  @type deposit() :: term()
+  @type deposit() :: %{
+    blknum: pos_integer(),
+    currency: <<_::160>>,
+    owner: <<_::160>>,
+    amount: pos_integer()
+  }
   @type utxo() :: term()
+  @type side_effects() :: term()
 
   @type exec_error ::
           :cant_spend_zero_utxo
@@ -51,7 +57,7 @@ defmodule OmiseGO.API.State.Core do
   NOTE that tx is assumed to have distinct inputs, that should be checked in prior state-less validation
   """
   @spec exec(tx :: %Transaction.Recovered{}, fees :: map(), state :: %Core{}) ::
-          {{:ok, Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, %Core{}}
+          {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, %Core{}}
           | {{:error, exec_error}, %Core{}}
   def exec(
         %Transaction.Recovered{
@@ -71,11 +77,10 @@ defmodule OmiseGO.API.State.Core do
          {:ok, in_amount1} <- correct_input_in_position?(1, state, raw_tx, spender1),
          {:ok, in_amount2} <- correct_input_in_position?(2, state, raw_tx, spender2),
          :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2 + fee) do
-      {
-        {:ok, recovered_tx.signed_tx_hash, state.height, state.tx_index},
-        state
-        |> apply_spend(raw_tx)
-        |> add_pending_tx(recovered_tx)
+      {:ok, {recovered_tx.signed_tx_hash, state.height, state.tx_index},
+       state
+       |> apply_spend(raw_tx)
+       |> add_pending_tx(recovered_tx)
       }
     else
       {:error, _reason} = error -> {error, state}
@@ -249,9 +254,8 @@ defmodule OmiseGO.API.State.Core do
     raw
   end
 
-  @spec deposit(deposits :: [deposit()], state :: %Core{}) :: {:ok, term(), new_state :: %Core{}}
+  @spec deposit(deposits :: [deposit()], state :: %Core{}) :: {:ok, side_effects(), new_state :: %Core{}}
   def deposit(deposits, %Core{utxos: utxos, last_deposit_height: last_deposit_height} = state) do
-    IO.puts("deposits are #{inspect deposits}")
     deposits = deposits |> Enum.filter(&(&1.blknum > last_deposit_height))
 
     new_utxos =
@@ -276,7 +280,7 @@ defmodule OmiseGO.API.State.Core do
         last_deposit_height: last_deposit_height
     }
 
-    {event_triggers, db_updates, new_state}
+    {:ok, {event_triggers, db_updates}, new_state}
   end
 
   defp utxo_to_db_put({utxo_position, utxo}), do: {:put, :utxo, %{utxo_position => utxo}}
@@ -313,7 +317,7 @@ defmodule OmiseGO.API.State.Core do
   @doc """
   Spends exited utxos
   """
-  @spec exit_utxos(exiting_utxos :: [utxo()], state :: %Core{}) :: {:ok, term, new_state :: %Core{}}
+  @spec exit_utxos(exiting_utxos :: [utxo()], state :: %Core{}) :: {:ok, side_effects(), new_state :: %Core{}}
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
     exiting_utxos =
       exiting_utxos
