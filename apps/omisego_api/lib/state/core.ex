@@ -30,7 +30,6 @@ defmodule OmiseGO.API.State.Core do
           | :amounts_dont_add_up
           | :invalid_current_block_number
           | :utxo_not_found
-          | :cant_spend_zero_utxo
 
   def extract_initial_state(
         utxos_query_result,
@@ -193,12 +192,14 @@ defmodule OmiseGO.API.State.Core do
    - generates requests to the persistence layer for a block
    - processes pending txs gathered, updates height etc
   """
+  @spec form_block(pos_integer(), state :: %Core{}) :: {:ok, side_effects(), new_state :: %Core{}}
   def form_block(child_block_interval, %Core{pending_txs: reverse_txs, height: height} = state) do
     txs = Enum.reverse(reverse_txs)
 
-    block =
-      %Block{transactions: txs, number: height}
-      |> Block.merkle_hash()
+    # block =
+    #   %Block{transactions: txs, number: height}
+    #   |> Block.merkle_hash()
+    block = <<123::160>>
 
     event_triggers =
       txs

@@ -82,6 +82,9 @@ defmodule OmiseGO.API.BlackBoxMe do
             {{:error, error}, new_state} ->
               Process.put(unquote(core), new_state)
               {:error, error}
+            unexpected ->
+              IO.puts("unexpected output #{inspect unquote(func_name)(unquote_splicing(args))} :: #{inspect unexpected}")
+              :erlang.error({:badreturn, unexpected})
           end
         end
       end
