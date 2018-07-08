@@ -12,6 +12,9 @@ defmodule OmiseGO.API.State.Core do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.Transaction
 
+  @type deposit() :: term()
+  @type utxo() :: term()
+
   @type exec_error ::
           :cant_spend_zero_utxo
           | :incorrect_spender
@@ -32,11 +35,12 @@ defmodule OmiseGO.API.State.Core do
 
     utxos = Enum.reduce(utxos_query_result, %{}, &Map.merge/2)
 
-    %__MODULE__{
+    state = %__MODULE__{
       height: height,
       last_deposit_height: last_deposit_height_query_result,
       utxos: utxos
     }
+    {:ok, state}
   end
 
   @doc """
@@ -182,7 +186,7 @@ defmodule OmiseGO.API.State.Core do
    - generates requests to the persistence layer for a block
    - processes pending txs gathered, updates height etc
   """
-  def form_block(%Core{pending_txs: reverse_txs, height: height} = state, child_block_interval) do
+  def form_block(child_block_interval, %Core{pending_txs: reverse_txs, height: height} = state) do
     txs = Enum.reverse(reverse_txs)
 
     block =
@@ -224,7 +228,7 @@ defmodule OmiseGO.API.State.Core do
         pending_txs: []
     }
 
-    {:ok, {block, event_triggers, db_updates, new_state}}
+    {:ok, {block, event_triggers, db_updates}, new_state}
   end
 
   def decode_deposit(%{owner: owner, currency: currency} = deposit) do
@@ -243,7 +247,9 @@ defmodule OmiseGO.API.State.Core do
     raw
   end
 
+  @spec deposit(deposits :: [deposit()], state :: %Core{}) :: {:ok, term(), new_state :: %Core{}}
   def deposit(deposits, %Core{utxos: utxos, last_deposit_height: last_deposit_height} = state) do
+    IO.puts("deposits are #{inspect deposits}")
     deposits = deposits |> Enum.filter(&(&1.blknum > last_deposit_height))
 
     new_utxos =
@@ -305,6 +311,7 @@ defmodule OmiseGO.API.State.Core do
   @doc """
   Spends exited utxos
   """
+  @spec exit_utxos(exiting_utxos :: [utxo()], state :: %Core{}) :: {:ok, term, new_state :: %Core{}}
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
     exiting_utxos =
       exiting_utxos
@@ -330,13 +337,13 @@ defmodule OmiseGO.API.State.Core do
         {:delete, :utxo, {blknum, txindex, oindex}}
       end)
 
-    {event_triggers, deletes, state}
+    {:ok, {event_triggers, deletes}, state}
   end
 
   @doc """
   Checks if utxo exists
   """
-  @spec utxo_exists(map(), %__MODULE__{}) :: :utxo_exists | :utxo_does_not_exist
+  @spec utxo_exists(utxo(), %Core{}) :: :utxo_exists | :utxo_does_not_exist
   def utxo_exists(%{blknum: blknum, txindex: txindex, oindex: oindex}, %Core{utxos: utxos}) do
     case Map.has_key?(utxos, {blknum, txindex, oindex}) do
       true -> :utxo_exists

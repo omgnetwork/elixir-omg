@@ -7,22 +7,19 @@ defmodule OmiseGO.API.State.PropTest do
   use PropCheck.StateM
   use ExUnit.Case
   alias OmiseGO.API.State.Core
+  alias OmiseGO.API.State.CoreGS
   alias OmiseGO.API.State.Transaction
   @moduletag capture_log: true
-
-  defmodule Model do
-    defstruct [
-      :op,  # keeps state of SUT
-      :eth, # state of Ethereum chain
-    ]
-  end
 
   @tag :prop
   property "core handles deposits", [:verbose, max_size: 100] do
     forall cmds <- more_commands(100, commands(__MODULE__)) do
       trap_exit do
+        {:ok, state} = Core.extract_initial_state([], 0, 0, 1000)
+        {:ok, :state_managed_by_helper} = CoreGS.init(state)
         r = run_commands(__MODULE__, cmds)
         {history, state, result} = r
+        CoreGS.reset()
         (result == :ok)
         |> when_fail(
           IO.puts("""
@@ -46,13 +43,13 @@ defmodule OmiseGO.API.State.PropTest do
            entities.stable_mallory.addr])
   end
 
-  def deposit(height) do
-    %{
-      blknum: height - 6000,
-      currency: <<0::size(160)>>,
-      owner: address(),
-      amount: integer()
-    }
+  def deposit() do
+    [%{
+        blknum: pos_integer(),
+        currency: <<0::size(160)>>,
+        owner: address(),
+        amount: integer()
+     }]
   end
 
   # def tx() do
@@ -73,51 +70,42 @@ defmodule OmiseGO.API.State.PropTest do
 
   # callbacks
 
-  def command(model) do
+  def command({_op, eth}) do
     oneof([
       {:call, __MODULE__, :eth_mine_block, []},
-      {:call, Core, :deposit, [deposit(model.eth.height), model.op]},
-      # {:call, Core, :exec, [tx(), model.op]},
-      # {:call, Core, :form_block, [model.op, 1000]},
-      # {:call, Core, :exit_utxos, [[exit_utxo()], model.op]},
+      {:call, CoreGS, :deposit, [deposit()]},
+      # {:call, CoreGS, :exec, [tx()]},
+      # {:call, CoreGS, :form_block, [1000]},
+      # {:call, CoreGS, :exit_utxos, [[exit_utxo()]]},
     ])
   end
 
   def initial_state do
-    %Model{
-      state: %Core{
-        last_deposit_height: 1,
-        utxos: []
-      },
-      op: %{
-        utxos: []
-      },
-      eth: %{
-        height: 1
-      }
-    }
+    op = %{utxos: []}
+    eth = %{height: 1}
+    {op, eth}
   end
 
-  def next_state(%OmiseGO.API.State.PropTest.Model{eth: eth} = model,
-    _result,
-    {_, _, :eth_mine_block, _}) do
-    %{model | eth: %{eth | height: eth_height + 1}}
+  def next_state({op, eth}, _result, {_, _, :eth_mine_block, _}) do
+    IO.puts("eth is #{inspect eth}")
+    {op, %{eth | height: eth.height + 1}}
   end
-  def next_state(model, _result, {_, _, :deposit, [dep, _]}) do
-    %{model | }
+  def next_state({op, eth}, _result, {_, _, :deposit, [dep]}) do
+    op = %{op | utxos: [dep | op.utxos]}
+    {op, eth}
   end
 
-  def precondition(model, {_, _, :deposit, _}) # when height < 7
-    do
-    %Model{eth: %{:height => height}} = model
-    IO.puts("height: #{inspect height}")
-    height > 6
-  end
+  # def precondition({_op, %{height: height}}, {_, _, :deposit, %{blknum: blknum}}) when height*1000 > blknum - 6000 do
+  #   true
+  # end
+  # def precondition(_model, {_, _, :deposit, _}) do
+  #   false
+  # end
   def precondition(_model, _call) do
     true
   end
 
-  def postcondition(%Model{eth: _, op: %{height: height}}, _call, _result) do
+  def postcondition({_op, _eth}, _call, _result) do
     true
   end
 end
