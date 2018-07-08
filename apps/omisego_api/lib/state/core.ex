@@ -2,7 +2,9 @@ defmodule OmiseGO.API.State.Core do
   @moduledoc """
   Functional core for State.
   """
-  use OmiseGO.API.GenServerHelper
+
+  # this `use` generates OmiseGO.API.State.CoreGS module:
+  use OmiseGO.API.BlackBoxMe
 
   @maximum_block_size 65_536
 
