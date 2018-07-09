@@ -5,7 +5,6 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   use Plug.Test
 
   alias OmiseGO.API
-  alias OmiseGO.API.Block
   alias OmiseGO.Eth
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.BlockGetter
@@ -98,48 +97,6 @@ defmodule OmiseGOWatcher.BlockGetterTest do
              Eth.get_exits(0, height, contract.contract_addr)
   end
 
-  @tag fixtures: [:watcher_sandbox, :alice]
-  test "try consume block with invalid transaction", %{alice: alice} do
-    assert {:error, :amounts_dont_add_up} ==
-             OmiseGOWatcher.BlockGetter.consume_block(%Block{
-               transactions: [API.TestHelper.create_signed([], @eth, [{alice, 1200}])],
-               number: 1_000
-             })
-
-    assert {:error, :utxo_not_found} ==
-             OmiseGOWatcher.BlockGetter.consume_block(%Block{
-               transactions: [
-                 API.TestHelper.create_signed([{1_000, 0, 0, alice}], @eth, [{alice, 1200}])
-               ],
-               number: 1_000
-             })
-  end
-
-  @tag fixtures: [:watcher_sandbox, :contract, :geth, :child_chain, :root_chain_contract_config, :alice, :carol, :bob]
-  test "consume block with valid transactions", %{alice: alice, carol: carol, bob: bob, contract: contract} do
-    [deposit_alice, deposit_bob] =
-      [deposit_to_child_chain(alice, 1_000, contract), deposit_to_child_chain(bob, 1_000, contract)]
-      |> Enum.map(&wait_for_deposit(&1, contract))
-
-    :timer.sleep(200)
-
-    block_nr =
-      [
-        API.TestHelper.create_encoded([{deposit_alice, 0, 0, alice}], @eth, [{alice, 700}, {carol, 200}]),
-        API.TestHelper.create_encoded([{deposit_bob, 0, 0, bob}], @eth, [{carol, 500}, {bob, 400}])
-      ]
-      |> Enum.map(fn tx ->
-        {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx})
-        block_nr
-      end)
-      |> Enum.max()
-
-    wait_for_block_getter_get_block(block_nr)
-    assert [%{"amount" => 700, "oindex" => 0}] = get_utxo(alice)
-    assert [%{"amount" => 400, "oindex" => 0}] = get_utxo(bob)
-    assert [%{"amount" => 200, "oindex" => 0}, %{"amount" => 500, "oindex" => 0}] = get_utxo(carol)
-  end
-
   @tag fixtures: [:watcher_sandbox, :contract, :alice]
   test "diffrent hash send by child chain", %{alice: alice, contract: contract} do
     defmodule BadChildChainHash do
@@ -165,6 +122,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       )
 
     # TODO receive information about errro
+    TestHelper.wait_for_process(Process.whereis(:omisego_watcher))
+
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainHash)
   end
 
@@ -201,6 +160,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
         contract.contract_addr
       )
 
+    TestHelper.wait_for_process(Process.whereis(:omisego_watcher))
     # TODO receive information about errro
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainTransaction)
   end

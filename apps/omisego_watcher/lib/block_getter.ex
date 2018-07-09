@@ -78,16 +78,7 @@ defmodule OmiseGOWatcher.BlockGetter do
 
     :ok =
       blocks_to_consume
-      |> Enum.each(
-        &case consume_block(&1) do
-          :ok ->
-            :ok
-
-          {:error, _error} ->
-            # TODO send to user information
-            :ok
-        end
-      )
+      |> Enum.each(&(:ok = consume_block(&1)))
 
     {:noreply, new_state}
   end

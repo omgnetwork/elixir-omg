@@ -4,18 +4,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
 
   use OmiseGO.Eth.Fixtures
   use OmiseGO.DB.Fixtures
-
-  defp wait_for_process(pid, timeout \\ :infinity) do
-    ref = Process.monitor(pid)
-
-    receive do
-      {:DOWN, ^ref, :process, _, _} ->
-        :ok
-    after
-      timeout ->
-        throw({:timeouted_waiting_for, pid})
-    end
-  end
+  alias OmiseGOWatcher.TestHelper
 
   deffixture child_chain(contract) do
     config_file_path = Briefly.create!(extname: ".exs")
@@ -128,7 +117,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
-      wait_for_process(pid)
+      TestHelper.wait_for_process(pid)
       :ok
     end)
   end
