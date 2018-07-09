@@ -61,7 +61,7 @@ defmodule OmiseGO.Performance.SenderManager do
 
   Any unexpected child reportind :EXIT should result in a crash
   """
-  def handle_info({:EXIT, from_pid, reason}, %{senders: [{_last_seqnum, from_pid} = last_sender]} = state) do
+  def handle_info({:EXIT, from_pid, _reason}, %{senders: [{_last_seqnum, from_pid} = last_sender]} = state) do
     _ = Logger.info(fn -> "[SM]: Senders are all done, last sender: #{inspect(last_sender)}. Stopping manager" end)
     write_stats(state)
     {:stop, :normal, state}
