@@ -19,7 +19,7 @@ defmodule OmiseGOWatcher.Eventer.Event do
   @type t ::
           OmiseGOWatcher.Eventer.Event.AddressReceived.t()
           | OmiseGOWatcher.Eventer.Event.InvalidBlock.t()
-          | OmiseGOWatcher.Eventer.Event.BlockWithHolding.t()
+          | OmiseGOWatcher.Eventer.Event.BlockWithholding.t()
 
   defmodule AddressReceived do
     @moduledoc """
@@ -71,7 +71,7 @@ defmodule OmiseGOWatcher.Eventer.Event do
           }
   end
 
-  defmodule BlockWithHolding do
+  defmodule BlockWithholding do
     @moduledoc """
     Notifies about block-withholding
     """

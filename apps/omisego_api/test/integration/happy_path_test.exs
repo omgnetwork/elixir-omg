@@ -37,7 +37,6 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     _ = token_contract_config
     Application.put_env(:omisego_api, :ethereum_event_block_finality_margin, 2, persistent: true)
     # need to overide that to very often, so that many checks fall in between a single child chain block submission
-    Application.put_env(:omisego_api, :ethereum_event_get_deposits_interval_ms, 10, persistent: true)
     {:ok, started_apps} = Application.ensure_all_started(:omisego_api)
     {:ok, started_jsonrpc} = Application.ensure_all_started(:omisego_jsonrpc)
 
@@ -83,7 +82,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
           BlockQueue.child_block_interval()
 
     # TODO: possible source of flakiness is that State did not process deposit on time
-    Process.sleep(500)
+    Process.sleep(2000)
 
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true)
 

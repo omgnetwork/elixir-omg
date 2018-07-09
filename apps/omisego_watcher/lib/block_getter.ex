@@ -21,6 +21,7 @@ defmodule OmiseGOWatcher.BlockGetter do
   Detects byzantine situations like BlockWithholding and InvalidBlock and passes this events to Eventer
   """
   alias OmiseGO.API.Block
+  alias OmiseGO.API.RootChainCoordinator
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.Eventer
@@ -38,11 +39,11 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def handle_cast(
-        {:consume_block, %{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block},
+        {:consume_block, %{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block,
+         block_rootchain_height},
         state
       ) do
     state_exec_results = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
-
     {continue, events} = Core.check_tx_executions(state_exec_results, block)
 
     Eventer.emit_events(events)
@@ -53,7 +54,7 @@ defmodule OmiseGOWatcher.BlockGetter do
       _ = UtxoDB.update_with(block)
       _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end)
       {:ok, next_child} = Eth.get_current_child_block()
-      {new_state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
+      {state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
       :ok = run_block_get_task(blocks_numbers)
 
       _ =
@@ -63,12 +64,10 @@ defmodule OmiseGOWatcher.BlockGetter do
 
       child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
 
-      # TODO: substitute for Ethereum height where this block originated from (see bugs in tracker)
-      #       after we have a way to cheaply get it using RootChainCoordinator
-      eth_height = 0
-      :ok = OmiseGO.API.State.close_block(child_block_interval, eth_height)
+      :ok = OmiseGO.API.State.close_block(child_block_interval, block_rootchain_height)
 
-      {:noreply, new_state}
+      state = Core.consume_block(state, blknum)
+      {:noreply, state}
     else
       {:needs_stopping, reason} ->
         _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(reason)}" end)
@@ -81,8 +80,15 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def init(_opts) do
+    {:ok, deployment_height} = Eth.get_root_deployment_height()
+    {:ok, last_synced_height} = OmiseGO.DB.last_block_getter_block_height()
+    synced_height = max(deployment_height, last_synced_height)
+    :ok = RootChainCoordinator.set_service_height(synced_height, :block_getter)
+
     {:ok, block_number} = OmiseGO.DB.child_top_block_number()
     child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
+
+    schedule_sync_height()
     {:ok, _} = :timer.send_after(0, self(), :producer)
 
     maximum_block_withholding_time_ms = Application.get_env(:omisego_watcher, :maximum_block_withholding_time_ms)
@@ -129,12 +135,11 @@ defmodule OmiseGOWatcher.BlockGetter do
 
   def handle_info({_ref, {:got_block, response}}, state) do
     # 1/ process the block that arrived and consume
-    {continue, new_state, blocks_to_consume, events} = Core.got_block(state, response)
+    {continue, new_state, events} = Core.got_block(state, response)
 
     Eventer.emit_events(events)
 
     with :ok <- continue do
-      Enum.each(blocks_to_consume, fn block -> GenServer.cast(__MODULE__, {:consume_block, block}) end)
       {:noreply, new_state}
     else
       {:needs_stopping, reason} ->
@@ -145,11 +150,35 @@ defmodule OmiseGOWatcher.BlockGetter do
 
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
 
+  def handle_info(:sync, state) do
+    with {:sync, next_synced_height} <- RootChainCoordinator.get_height() do
+      {block_range, state} = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
+      {:ok, submissions} = Eth.get_block_submitted_events(block_range)
+
+      {blocks_to_consume, synced_height, db_updates, state} =
+        Core.get_blocks_to_consume(state, submissions, next_synced_height)
+
+      Enum.each(blocks_to_consume, fn {block, eth_height} ->
+        GenServer.cast(__MODULE__, {:consume_block, block, eth_height})
+      end)
+
+      :ok = OmiseGO.DB.multi_update(db_updates)
+      :ok = RootChainCoordinator.set_service_height(synced_height, :block_getter)
+      {:noreply, state}
+    else
+      :nosync -> {:noreply, state}
+    end
+  end
+
   defp run_block_get_task(blocks_numbers) do
     blocks_numbers
     |> Enum.each(
       # captures the result in handle_info/2 with the atom: got_block
       &Task.async(fn -> {:got_block, get_block(&1)} end)
     )
+  end
+
+  defp schedule_sync_height(interval \\ 100) do
+    :timer.send_interval(interval, self(), :sync)
   end
 end

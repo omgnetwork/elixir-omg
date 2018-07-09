@@ -15,7 +15,7 @@
 defmodule OmiseGOWatcherWeb.ByzantineChannel do
   @moduledoc """
   Channel Byzantine is responsible for emitting folllowing events:
-  InvalidBlock, BlockWithHolding, InvalidExit
+  InvalidBlock, BlockWithholding, InvalidExit
   """
 
   use Phoenix.Channel

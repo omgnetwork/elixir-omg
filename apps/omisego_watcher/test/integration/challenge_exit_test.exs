@@ -28,18 +28,17 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
 
   @moduletag :integration
 
-  @timeout 20_000
-  @zero_address Crypto.zero_address()
+  @timeout 40_000
+  @zero_address OmiseGO.API.Crypto.zero_address()
 
   @tag fixtures: [:watcher_sandbox, :contract, :token, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
   test "challenges invalid exit; exit token", %{contract: contract, token: token, alice: alice, bob: bob} do
     deposit_blknum = IntegrationTest.deposit_to_child_chain(alice, 10, contract)
     # TODO remove slpeep after synch deposit synch
-    :timer.sleep(100)
+    :timer.sleep(2000)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @zero_address, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: exiting_utxo_block_nr}} = Client.call(:submit, %{transaction: tx})
     block_nr = exiting_utxo_block_nr
-
     IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
 
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @zero_address, [{alice, 4}, {bob, 3}])

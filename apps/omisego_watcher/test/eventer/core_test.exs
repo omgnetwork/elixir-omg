@@ -28,11 +28,10 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
   @tag fixtures: [:alice, :bob]
   test "notify function generates 2 proper address_received events", %{alice: alice, bob: bob} do
     recovered_tx =
-      API.TestHelper.create_recovered(
-        [{1, 0, 0, alice}, {2, 0, 0, bob}],
-        API.Crypto.zero_address(),
-        [{alice, 100}, {bob, 5}]
-      )
+      API.TestHelper.create_recovered([{1, 0, 0, alice}, {2, 0, 0, bob}], API.Crypto.zero_address(), [
+        {alice, 100},
+        {bob, 5}
+      ])
 
     {:ok, encoded_alice_address} = Crypto.encode_address(alice.addr)
     {:ok, encoded_bob_address} = Crypto.encode_address(bob.addr)
@@ -70,7 +69,7 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
   end
 
   test "prepare_events function generates one block_withholdings event" do
-    block_withholding_event = %Event.BlockWithHolding{blknum: 1}
+    block_withholding_event = %Event.BlockWithholding{blknum: 1}
     event = {"byzantine", "block_withholding", block_withholding_event}
 
     assert [event] == Eventer.Core.prepare_events([block_withholding_event])

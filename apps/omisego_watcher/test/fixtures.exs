@@ -42,9 +42,6 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
         fee_specs_file_path: "#{fees_path}",
         ethereum_event_block_finality_margin: #{
       Application.get_env(:omisego_api, :ethereum_event_block_finality_margin)
-    },
-        ethereum_event_get_deposits_interval_ms: #{
-      Application.get_env(:omisego_api, :ethereum_event_get_deposits_interval_ms)
     }
     """)
     |> File.close()
@@ -120,7 +117,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
 
   deffixture watcher_sandbox(watcher) do
     :ok = watcher
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo, ownership_timeout: 60_000)
     Ecto.Adapters.SQL.Sandbox.mode(OmiseGOWatcher.Repo, {:shared, self()})
   end
 

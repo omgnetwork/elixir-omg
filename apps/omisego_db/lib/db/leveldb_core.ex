@@ -102,4 +102,5 @@ defmodule OmiseGO.DB.LevelDBCore do
   def key(:child_top_block_number, _), do: "child_top_block_number"
   def key(:last_fast_exit_block_height, _), do: "last_fast_exit_block_height"
   def key(:last_slow_exit_block_height, _), do: "last_slow_exit_block_height"
+  def key(:last_block_getter_synced_height, _), do: "last_block_getter_synced_height"
 end

@@ -35,7 +35,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
   @moduletag :integration
 
-  @timeout 20_000
+  @timeout 40_000
   @eth Crypto.zero_address()
   @eth_hex String.duplicate("00", 20)
 
@@ -50,7 +50,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
 
     deposit_blknum = Integration.TestHelper.deposit_to_child_chain(alice, 10, contract)
-    # TODO remove slpeep after synch deposit synch
+    # TODO remove sleep after synch deposit synch
     :timer.sleep(100)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
@@ -89,15 +89,14 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
     {:ok, {block_hash, _}} = Eth.get_child_chain(block_nr)
 
-    # TODO: this is turned off now and set to zero. Rethink test after this gets fixed (possibly test differently)
-    eth_height = 0
+    event_eth_height = get_block_submitted_event_height(block_nr)
 
     address_received_event =
       Client.encode(%Event.AddressReceived{
         tx: recovered_tx,
         child_blknum: block_nr,
         child_block_hash: block_hash,
-        submited_at_ethheight: eth_height
+        submited_at_ethheight: event_eth_height
       })
 
     address_spent_event =
@@ -105,7 +104,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
         tx: recovered_tx,
         child_blknum: block_nr,
         child_block_hash: block_hash,
-        submited_at_ethheight: eth_height
+        submited_at_ethheight: event_eth_height
       })
 
     assert_push("address_received", ^address_received_event)
@@ -138,6 +137,13 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice_address, token: @eth}]} ==
              Eth.get_exits(0, height, contract.contract_addr)
+  end
+
+  defp get_block_submitted_event_height(block_number) do
+    {:ok, height} = Eth.get_ethereum_height()
+    {:ok, block_submissions} = Eth.get_block_submitted_events({1, height})
+    [%{eth_height: eth_height}] = Enum.filter(block_submissions, fn submission -> submission.blknum == block_number end)
+    eth_height
   end
 
   @tag fixtures: [:watcher_sandbox, :geth, :contract, :alice]
