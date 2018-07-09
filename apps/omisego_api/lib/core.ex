@@ -1,11 +1,29 @@
 defmodule OmiseGO.API.Core do
   @moduledoc """
-  Functional core work-horse for OmiseGO.API
+  Functional core work-horse for OmiseGO.API.
   """
   alias OmiseGO.API.State.Transaction
 
   @empty_signature <<0::size(520)>>
 
+  @doc """
+  Transforms an RLP-encoded child chain transaction (binary) into a:
+    - decoded
+    - statelessly valid (mainly inputs logic)
+    - recovered (i.e. signatures get recovered into spenders)
+  transaction
+  """
+  @spec recover_tx(binary) ::
+          Transaction.Recovered.t()
+          | {:error,
+             :bad_signature_length
+             | :duplicate_inputs
+             | :input_missing_for_signature
+             | :malformed_transaction
+             | :malformed_transaction_rlp
+             | :no_inputs
+             | :signature_corrupt
+             | :signature_missing_for_input}
   def recover_tx(encoded_signed_tx) do
     with {:ok, signed_tx} <- Transaction.Signed.decode(encoded_signed_tx),
          :ok <- valid?(signed_tx),
@@ -29,6 +47,18 @@ defmodule OmiseGO.API.Core do
          }
        }),
        do: {:error, :no_inputs}
+
+  defp valid?(%Transaction.Signed{
+         raw_tx: %Transaction{
+           blknum1: blknum,
+           txindex1: txindex,
+           oindex1: oindex,
+           blknum2: blknum,
+           txindex2: txindex,
+           oindex2: oindex
+         }
+       }),
+       do: {:error, :duplicate_inputs}
 
   defp valid?(%Transaction.Signed{
          raw_tx: %Transaction{
