@@ -7,7 +7,6 @@ defmodule OmiseGO.Performance.SenderManager do
   use GenServer
 
   @initial_blknum 1000
-  @check_senders_done_every_ms 500
 
   def sender_stats(new_stats) do
     GenServer.cast(__MODULE__, {:stats, Map.put(new_stats, :timestamp, System.monotonic_time(:millisecond))})
@@ -40,8 +39,6 @@ defmodule OmiseGO.Performance.SenderManager do
         {:ok, pid} = OmiseGO.Performance.SenderServer.start_link({seqnum, ntx_to_send})
         {seqnum, pid}
       end)
-
-    reschedule_check()
 
     {:ok,
      %{
@@ -85,12 +82,6 @@ defmodule OmiseGO.Performance.SenderManager do
     {:stop, reason, state}
   end
 
-  def handle_info(:check, state) do
-    _ = Logger.debug(fn -> "[SM]: Senders are alive" end)
-    reschedule_check()
-    {:noreply, state}
-  end
-
   @doc """
   Register performance statistics received from senders processes.
   """
@@ -106,10 +97,6 @@ defmodule OmiseGO.Performance.SenderManager do
   def handle_cast({:blkform, blknum, total_ms}, state) do
     {:noreply, %{state | block_times: [{blknum, total_ms} | state.block_times]}}
   end
-
-  # Sends :check message to itself in @check_senders_done_every_ms milliseconds.
-  # Message will be processed by module's :handle_info function.
-  defp reschedule_check, do: Process.send_after(self(), :check, @check_senders_done_every_ms)
 
   # Collects statistics regarding tx submittion and block forming.
   # Returns array of tuples, each tuple contains four fields:
