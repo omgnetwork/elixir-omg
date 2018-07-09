@@ -44,9 +44,9 @@ defmodule OmiseGO.Performance.SenderServer do
   @doc """
   Starts the process.
   """
-  @spec start({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, pid}
-  def start(args) do
-    GenServer.start(__MODULE__, args)
+  @spec start_link({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, pid}
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args)
   end
 
   @doc """
@@ -85,7 +85,6 @@ defmodule OmiseGO.Performance.SenderServer do
     _ = Logger.info(fn -> "[#{seqnum}] +++ Stoping... +++" end)
 
     OmiseGO.Performance.SenderManager.sender_stats(%{seqnum: seqnum, blknum: blknum, txindex: txindex})
-    OmiseGO.Performance.SenderManager.sender_completed(seqnum)
     {:stop, :normal, state}
   end
 

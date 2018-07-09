@@ -9,13 +9,6 @@ defmodule OmiseGO.Performance.SenderManager do
   @initial_blknum 1000
   @check_senders_done_every_ms 500
 
-  @doc """
-  Removes sender process which has done sending from a registry.
-  """
-  def sender_completed(seqnum) do
-    GenServer.cast(__MODULE__, {:done, seqnum})
-  end
-
   def sender_stats(new_stats) do
     GenServer.cast(__MODULE__, {:stats, Map.put(new_stats, :timestamp, System.monotonic_time(:millisecond))})
   end
@@ -44,7 +37,7 @@ defmodule OmiseGO.Performance.SenderManager do
     senders =
       1..nusers
       |> Enum.map(fn seqnum ->
-        {:ok, pid} = OmiseGO.Performance.SenderServer.start({seqnum, ntx_to_send})
+        {:ok, pid} = OmiseGO.Performance.SenderServer.start_link({seqnum, ntx_to_send})
         {seqnum, pid}
       end)
 
@@ -63,35 +56,39 @@ defmodule OmiseGO.Performance.SenderManager do
 
   @doc """
   Handles the trapped exit call and writes collected statistics to the file.
+  Removes sender process which has done sending from a registry.
+  If it is the last sender then writes stats and tears down sender manager
+
+  Any unexpected child reportind :EXIT should result in a crash
   """
+  def handle_info({:EXIT, from_pid, reason}, %{senders: [{_last_seqnum, from_pid} = last_sender]} = state) do
+    _ = Logger.info(fn -> "[SM]: Senders are all done, last sender: #{inspect(last_sender)}. Stopping manager" end)
+    write_stats(state)
+    {:stop, :normal, state}
+  end
+
+  def handle_info({:EXIT, from_pid, reason}, %{senders: senders} = state) do
+    case Enum.find(senders, fn {_seqnum, pid} -> pid == from_pid end) do
+      nil ->
+        {:stop, {:unknown_child_exited, from_pid, reason}, state}
+
+      {_done_seqnum, done_pid} = done_sender ->
+        remaining_senders = Enum.filter(senders, fn {_seqnum, pid} -> pid != done_pid end)
+        _ = Logger.info(fn -> "[SM]: Sender #{inspect(done_sender)} done. Manager continues..." end)
+        {:noreply, %{state | senders: remaining_senders}}
+    end
+  end
+
   def handle_info({:EXIT, _from, reason}, state) do
     write_stats(state)
     _ = Logger.info(fn -> "[SM] +++ Manager Exiting (reason: #{inspect(reason)})... +++" end)
     {:stop, reason, state}
   end
 
-  @doc """
-  Checks whether registry has any sender processes registered, if not then wraps up and stops
-  """
-  @spec handle_info(:check, state :: pid | atom) :: {:noreply, newstate :: map()} | {:stop, :normal, state :: map()}
-  def handle_info(:check, %{senders: []} = state) do
-    write_stats(state)
-    _ = Logger.info(fn -> "[SM]: Senders are all done. Stopping manager" end)
-    {:stop, :normal, state}
-  end
-
   def handle_info(:check, state) do
     _ = Logger.debug(fn -> "[SM]: Senders are alive" end)
     reschedule_check()
     {:noreply, state}
-  end
-
-  @doc """
-  Removes sender process which has done sending from a registry.
-  """
-  @spec handle_cast({:done, seqnum :: integer}, state :: map()) :: {:noreply, map()}
-  def handle_cast({:done, done_seqnum}, %{senders: senders} = state) do
-    {:noreply, %{state | senders: Enum.filter(senders, fn {seqnum, _} -> seqnum != done_seqnum end)}}
   end
 
   @doc """
