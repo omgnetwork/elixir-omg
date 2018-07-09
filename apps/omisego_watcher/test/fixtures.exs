@@ -24,9 +24,6 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
         fee_specs_file_path: "./fee_specs.json",
         ethereum_event_block_finality_margin: #{
       Application.get_env(:omisego_api, :ethereum_event_block_finality_margin)
-    },
-        ethereum_event_get_deposits_interval_ms: #{
-      Application.get_env(:omisego_api, :ethereum_event_get_deposits_interval_ms)
     }
     """)
     |> File.close()

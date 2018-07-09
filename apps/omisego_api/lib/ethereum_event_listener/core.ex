@@ -3,36 +3,38 @@ defmodule OmiseGO.API.EthereumEventListener.Core do
   Functional core of event listener
   """
 
-  defstruct last_event_block: 1,
+  defstruct current_block_height: nil,
+            service_name: nil,
             block_finality_margin: 10,
-            max_blocks_in_fetch: 5,
-            get_events_interval: 60_000,
             get_ethereum_events_callback: nil,
             process_events_callback: nil
 
-  def get_events_block_range(
+  @type t() :: %__MODULE__{
+          current_block_height: pos_integer(),
+          service_name: atom(),
+          block_finality_margin: non_neg_integer(),
+          get_ethereum_events_callback: fun(),
+          process_events_callback: fun()
+        }
+
+  @doc """
+  Returns next Ethereum height to get events from.
+  """
+  @spec next_events_block_height(t(), pos_integer) :: {:get_events, pos_integer(), t()} | {:dont_get_events, t()}
+  def next_events_block_height(
         %__MODULE__{
-          last_event_block: last_event_block,
-          block_finality_margin: block_finality_margin,
-          max_blocks_in_fetch: max_blocks_in_fetch,
-          get_events_interval: get_events_interval
+          current_block_height: current_block_height,
+          block_finality_margin: block_finality_margin
         } = state,
-        current_ethereum_block
-      ) do
-    max_block = current_ethereum_block - block_finality_margin
+        next_sync_height
+      )
+      when next_sync_height == current_block_height + 1 do
+    new_state = %{state | current_block_height: next_sync_height}
+    {:get_events, next_sync_height - block_finality_margin, new_state}
+  end
 
-    cond do
-      max_block <= last_event_block ->
-        {:no_blocks_with_event, state, get_events_interval}
-
-      last_event_block + max_blocks_in_fetch < max_block ->
-        next_last_event_block = last_event_block + max_blocks_in_fetch
-        state = %{state | last_event_block: next_last_event_block}
-        {:ok, state, 0, last_event_block + 1, next_last_event_block}
-
-      true ->
-        state = %{state | last_event_block: max_block}
-        {:ok, state, get_events_interval, last_event_block + 1, max_block}
-    end
+  def next_events_block_height(%__MODULE__{current_block_height: current_block_height} = state, next_sync_height)
+      when next_sync_height <= current_block_height do
+    {:dont_get_events, state}
   end
 end

@@ -196,8 +196,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   end
 
   @tag fixtures: [:alice]
-  test "check error return by decode_block, one of API.Core.recover_tx checks",
-       %{alice: alice} do
+  test "check error return by decode_block, one of API.Core.recover_tx checks", %{alice: alice} do
     # NOTE: this test only test if API.Core.recover_tx-specific checks are run and errors returned
     #       the more extensive testing of such checks is done in API.CoreTest where it belongs
 

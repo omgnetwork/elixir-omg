@@ -195,8 +195,7 @@ defmodule OmiseGO.Eth do
   def get_mined_child_block(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
 
-    with {:ok, next} <- call_contract_value(contract, "currentChildBlock()"),
-         do: {:ok, next - 1000}
+    with {:ok, next} <- call_contract_value(contract, "currentChildBlock()"), do: {:ok, next - 1000}
   end
 
   def authority(contract \\ nil) do
@@ -319,9 +318,7 @@ defmodule OmiseGO.Eth do
   end
 
   defp call_contract_value(contract, signature) do
-    with {:ok, values} <- call_contract(contract, signature, [], [{:uint, 256}]),
-         {value} = values,
-         do: {:ok, value}
+    with {:ok, values} <- call_contract(contract, signature, [], [{:uint, 256}]), {value} = values, do: {:ok, value}
   end
 
   defp call_contract(contract, signature, args, return_types) do

@@ -6,6 +6,7 @@ defmodule OmiseGO.API.EthereumEventListener do
   """
 
   alias OmiseGO.API.EthereumEventListener.Core
+  alias OmiseGO.API.RootChainCoordinator
   alias OmiseGO.Eth
   use OmiseGO.API.LoggerExt
 
@@ -20,54 +21,54 @@ defmodule OmiseGO.API.EthereumEventListener do
   use GenServer
 
   def init(
-        {%{
-           block_finality_margin: finality_margin,
-           max_blocks_in_fetch: max_blocks,
-           get_events_interval: get_events_interval
-         }, get_ethereum_events_callback, process_events_callback}
+        {%{block_finality_margin: finality_margin, service_name: service_name}, get_ethereum_events_callback,
+         process_events_callback}
       ) do
     # TODO: initialize state with the last ethereum block we have seen events from
+    {:ok, parent_start_height} = Eth.get_root_deployment_height()
 
-    {:ok, parent_start} = Eth.get_root_deployment_height()
-    schedule_get_events(0)
+    schedule_get_events()
 
     _ = Logger.info(fn -> "Starting EthereumEventListener" end)
 
     {:ok,
      %Core{
-       last_event_block: parent_start,
+       current_block_height: parent_start_height,
+       service_name: service_name,
        block_finality_margin: finality_margin,
-       max_blocks_in_fetch: max_blocks,
-       get_events_interval: get_events_interval,
        get_ethereum_events_callback: get_ethereum_events_callback,
        process_events_callback: process_events_callback
      }}
   end
 
   def handle_info(:get_events, state) do
-    {:ok, eth_block_height} = Eth.get_ethereum_height()
+    {:ok, next_sync_height} = RootChainCoordinator.synced(state.current_block_height, state.service_name)
 
-    with {:ok, new_state, next_get_events_interval, eth_block_from, eth_block_to} <-
-           Core.get_events_block_range(state, eth_block_height) do
-      {:ok, events} = state.get_ethereum_events_callback.(eth_block_from, eth_block_to)
-      :ok = state.process_events_callback.(events)
+    new_state =
+      case Core.next_events_block_height(state, next_sync_height) do
+        {:get_events, eth_block_height_with_events, state} ->
+          {:ok, events} =
+            state.get_ethereum_events_callback.(eth_block_height_with_events, eth_block_height_with_events)
 
-      _ =
-        Logger.debug(fn ->
-          "get_events called successfully with '#{inspect(Enum.count(events))}' events processed."
-        end)
+          :ok = state.process_events_callback.(events)
 
-      schedule_get_events(next_get_events_interval)
-      {:noreply, new_state}
-    else
-      {:no_blocks_with_event, state, next_get_events_interval} ->
-        _ = Logger.debug(fn -> "get_events - no blocks with event" end)
-        schedule_get_events(next_get_events_interval)
-        {:noreply, state}
-    end
+          _ =
+            Logger.debug(fn ->
+              "get_events called successfully with '#{inspect(Enum.count(events))}' events processed."
+            end)
+
+          state
+
+        {:dont_get_events, state} ->
+          _ = Logger.debug(fn -> "No blocks with event" end)
+          state
+      end
+
+    schedule_get_events()
+    {:noreply, new_state}
   end
 
-  defp schedule_get_events(interval) do
-    Process.send_after(self(), :get_events, interval)
+  defp schedule_get_events do
+    Process.send_after(self(), :get_events, 0)
   end
 end
