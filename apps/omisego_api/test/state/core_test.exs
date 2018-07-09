@@ -14,20 +14,19 @@ defmodule OmiseGO.API.State.CoreTest do
   @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232, 237, 80, 242, 60, 209, 253, 249, 76,
                       145, 84, 237, 58, 118, 9, 162, 241, 255, 152, 31>>
 
-  def eth, do: Transaction.zero_address()
-  def not_eth, do: <<1::size(160)>>
-
-  @input_fee_map %{<<0::size(160)>> => 0}
+  defp eth, do: Transaction.zero_address()
+  defp not_eth, do: <<1::size(160)>>
+  defp zero_fees_map, do: %{eth() => 0}
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend deposits", %{alice: alice, bob: bob, state_empty: state} do
     state
     |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), @input_fee_map, &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
     |> success?
     |> (&Core.exec(
           Test.create_recovered([{@child_block_interval, 0, 1, alice}], eth(), [{bob, 3}]),
-          @input_fee_map,
+          zero_fees_map(),
           &1
         )).()
     |> success?
@@ -37,7 +36,7 @@ defmodule OmiseGO.API.State.CoreTest do
   test "when spending currency must match", %{alice: alice, bob: bob, state_empty: state} do
     state
     |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], not_eth(), [{bob, 7}, {alice, 3}]), @input_fee_map, &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], not_eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
     |> fail?(:incorrect_currency)
   end
 
@@ -48,7 +47,7 @@ defmodule OmiseGO.API.State.CoreTest do
     |> Test.do_deposit(alice, %{amount: 0, currency: not_eth(), blknum: 2})
     |> (&Core.exec(
           Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]),
-          @input_fee_map,
+          zero_fees_map(),
           &1
         )).()
     |> fail?(:incorrect_currency)
@@ -66,7 +65,7 @@ defmodule OmiseGO.API.State.CoreTest do
              |> Core.deposit(state)
 
     state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 10}]), @input_fee_map, &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 10}]), zero_fees_map(), &1)).()
     |> success?
   end
 
@@ -75,9 +74,9 @@ defmodule OmiseGO.API.State.CoreTest do
     state
     |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
     |> Test.do_deposit(bob, %{amount: 20, currency: eth(), blknum: 2})
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 10}]), @input_fee_map, &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 10}]), zero_fees_map(), &1)).()
     |> success?
-    |> (&Core.exec(Test.create_recovered([{2, 0, 0, bob}], eth(), [{alice, 20}]), @input_fee_map, &1)).()
+    |> (&Core.exec(Test.create_recovered([{2, 0, 0, bob}], eth(), [{alice, 20}]), zero_fees_map(), &1)).()
     |> success?
   end
 
@@ -105,7 +104,7 @@ defmodule OmiseGO.API.State.CoreTest do
     state_deposit = state |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
 
     state_deposit
-    |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), @input_fee_map, &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
     |> fail?(:utxo_not_found)
     |> same?(state_deposit)
   end
@@ -124,7 +123,7 @@ defmodule OmiseGO.API.State.CoreTest do
           )).()
       |> fail?(:amounts_dont_add_up)
       |> same?(state)
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 2}, {alice, 8}]), @input_fee_map, &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 2}, {alice, 8}]), zero_fees_map(), &1)).()
       |> success?
 
     state
@@ -144,10 +143,10 @@ defmodule OmiseGO.API.State.CoreTest do
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can't spend other people's funds", %{alice: alice, bob: bob, state_alice_deposit: state} do
     state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, bob}], eth(), [{bob, 8}, {alice, 3}]), @input_fee_map, &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, bob}], eth(), [{bob, 8}, {alice, 3}]), zero_fees_map(), &1)).()
     |> fail?(:incorrect_spender)
     |> same?(state)
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, bob}], eth(), [{alice, 10}]), @input_fee_map, &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, bob}], eth(), [{alice, 10}]), zero_fees_map(), &1)).()
     |> fail?(:incorrect_spender)
     |> same?(state)
   end
@@ -164,8 +163,8 @@ defmodule OmiseGO.API.State.CoreTest do
 
     for first <- transactions,
         second <- transactions do
-      state2 = state |> (&Core.exec(first, @input_fee_map, &1)).() |> success?
-      state2 |> (&Core.exec(second, @input_fee_map, &1)).() |> fail?(:utxo_not_found) |> same?(state2)
+      state2 = state |> (&Core.exec(first, zero_fees_map(), &1)).() |> success?
+      state2 |> (&Core.exec(second, zero_fees_map(), &1)).() |> fail?(:utxo_not_found) |> same?(state2)
     end
   end
 
@@ -177,17 +176,17 @@ defmodule OmiseGO.API.State.CoreTest do
     state_alice_deposit: state
   } do
     state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), @input_fee_map, &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
     |> success?
     |> (&Core.exec(
           Test.create_recovered([{@child_block_interval, 0, 0, bob}], eth(), [{carol, 7}]),
-          @input_fee_map,
+          zero_fees_map(),
           &1
         )).()
     |> success?
     |> (&Core.exec(
           Test.create_recovered([{@child_block_interval, 0, 1, alice}], eth(), [{carol, 3}]),
-          @input_fee_map,
+          zero_fees_map(),
           &1
         )).()
     |> success?
@@ -199,7 +198,7 @@ defmodule OmiseGO.API.State.CoreTest do
               {alice, 10}
             ]
           ),
-          @input_fee_map,
+          zero_fees_map(),
           &1
         )).()
     |> success?
@@ -211,9 +210,9 @@ defmodule OmiseGO.API.State.CoreTest do
     {:ok, {_, _, _, state}} = form_block_check(state, @child_block_interval)
 
     state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), @input_fee_map, &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
     |> success?
-    |> (&Core.exec(Test.create_recovered([{next_block_height, 0, 0, bob}], eth(), [{bob, 7}]), @input_fee_map, &1)).()
+    |> (&Core.exec(Test.create_recovered([{next_block_height, 0, 0, bob}], eth(), [{bob, 7}]), zero_fees_map(), &1)).()
     |> success?
   end
 
@@ -223,11 +222,11 @@ defmodule OmiseGO.API.State.CoreTest do
 
     {:ok, {_, _, _, state}} =
       state
-      |> (&Core.exec(recovered, @input_fee_map, &1)).()
+      |> (&Core.exec(recovered, zero_fees_map(), &1)).()
       |> success?
       |> form_block_check(@child_block_interval)
 
-    recovered |> Core.exec(@input_fee_map, state) |> fail?(:utxo_not_found) |> same?(state)
+    recovered |> Core.exec(zero_fees_map(), state) |> fail?(:utxo_not_found) |> same?(state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -236,7 +235,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
     assert {:ok, {_, [trigger], _, _}} =
              state
-             |> (&Core.exec(recover, @input_fee_map, &1)).()
+             |> (&Core.exec(recover, zero_fees_map(), &1)).()
              |> success?
              |> form_block_check(@child_block_interval)
 
@@ -251,11 +250,11 @@ defmodule OmiseGO.API.State.CoreTest do
   } do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), @input_fee_map, &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
       |> success?
       |> (&Core.exec(
             Test.create_recovered([{@child_block_interval, 0, 0, bob}], eth(), [{alice, 7}]),
-            @input_fee_map,
+            zero_fees_map(),
             &1
           )).()
       |> success?
@@ -270,7 +269,7 @@ defmodule OmiseGO.API.State.CoreTest do
     state_alice_deposit: state
   } do
     state
-    |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), @input_fee_map, &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
     |> same?(state)
 
     assert {:ok, {_, [], _, _}} = form_block_check(state, @child_block_interval)
@@ -296,7 +295,7 @@ defmodule OmiseGO.API.State.CoreTest do
   } do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), @input_fee_map, &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
       |> success?
 
     assert {:ok, {_, [_trigger], _, state}} = form_block_check(state, @child_block_interval)
@@ -316,9 +315,9 @@ defmodule OmiseGO.API.State.CoreTest do
 
     state =
       state
-      |> (&Core.exec(recovered_tx_1, @input_fee_map, &1)).()
+      |> (&Core.exec(recovered_tx_1, zero_fees_map(), &1)).()
       |> success?
-      |> (&Core.exec(recovered_tx_2, @input_fee_map, &1)).()
+      |> (&Core.exec(recovered_tx_2, zero_fees_map(), &1)).()
       |> success?
 
     expected_block = %Block{
@@ -338,7 +337,7 @@ defmodule OmiseGO.API.State.CoreTest do
   } do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), @input_fee_map, &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
       |> success?
 
     {:ok, {_, _, _, state}} = form_block_check(state, @child_block_interval)
@@ -368,7 +367,7 @@ defmodule OmiseGO.API.State.CoreTest do
   } do
     {:ok, {_, _, db_updates, state}} =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), @input_fee_map, &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
       |> success?
       |> form_block_check(@child_block_interval)
 
@@ -397,7 +396,7 @@ defmodule OmiseGO.API.State.CoreTest do
                 {bob, 10}
               ]
             ),
-            @input_fee_map,
+            zero_fees_map(),
             &1
           )).()
       |> success?
@@ -443,7 +442,7 @@ defmodule OmiseGO.API.State.CoreTest do
       )
 
     state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), @input_fee_map, &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), zero_fees_map(), &1)).()
     |> success?
   end
 
@@ -463,7 +462,7 @@ defmodule OmiseGO.API.State.CoreTest do
     state
     |> (&Core.exec(
           Test.create_recovered([{1, 0, 0, alice}, {1001, 10, 1, bob}], eth(), [{alice, 15}, {alice, 3}]),
-          @input_fee_map,
+          zero_fees_map(),
           &1
         )).()
     |> success?
@@ -473,7 +472,7 @@ defmodule OmiseGO.API.State.CoreTest do
   test "spends utxo when exiting", %{alice: alice, state_alice_deposit: state} do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), @input_fee_map, &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), zero_fees_map(), &1)).()
       |> success?
 
     expected_owner = alice.addr
@@ -492,14 +491,14 @@ defmodule OmiseGO.API.State.CoreTest do
     state
     |> (&Core.exec(
           Test.create_recovered([{@child_block_interval, 1, 0, alice}], eth(), [{alice, 7}]),
-          @input_fee_map,
+          zero_fees_map(),
           &1
         )).()
     |> fail?(:utxo_not_found)
     |> same?(state)
     |> (&Core.exec(
           Test.create_recovered([{@child_block_interval, 1, 1, alice}], eth(), [{alice, 3}]),
-          @input_fee_map,
+          zero_fees_map(),
           &1
         )).()
     |> fail?(:utxo_not_found)
@@ -510,7 +509,7 @@ defmodule OmiseGO.API.State.CoreTest do
   test "does not change when exiting spent utxo", %{alice: alice, state_alice_deposit: state} do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), @input_fee_map, &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), zero_fees_map(), &1)).()
       |> success?
 
     {[], [], ^state} =
@@ -534,7 +533,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 10}]), @input_fee_map, &1)).()
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 10}]), zero_fees_map(), &1)).()
       |> success?
 
     :utxo_does_not_exist = Core.utxo_exists(%{blknum: 1, txindex: 0, oindex: 0}, state)

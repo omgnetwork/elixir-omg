@@ -61,8 +61,7 @@ Actually `OmiseGO.API.EthereumEventListener` setup with `:depositor`.
 - tracks Ethereum height and child chain block submission mining via `OmiseGO.Eth` and `OmiseGO.API.RootChainCoordinator`
 
 ### `OmiseGO.API.FeeChecker`
-- provides actual fees per token (currency) which it loads from configuration file pointed by `:omisego_api :fee_specs_file_path` configuration value.
-- validates whether transaction contains fee in acceptable amount and currency
+- `OmiseGO.API` calls it to get acceptable currencies and actual fee amounts to validate transactions
 
 ### `OmiseGOWatcher.BlockGetter`
 
