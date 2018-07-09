@@ -5,8 +5,6 @@ defmodule OmiseGO.API.FeeChecker.CoreTest do
   use ExUnit.Case, async: true
 
   alias OmiseGO.API.TestHelper, as: Test
-  # alias OmiseGO.API.State.Transaction
-  # alias OmiseGO.API.State.Transaction.Recovered
 
   import OmiseGO.API.FeeChecker.Core
 
