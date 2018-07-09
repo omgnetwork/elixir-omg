@@ -131,7 +131,7 @@ defmodule OmiseGO.Performance.SenderManager do
       ordered_keys
       |> Enum.map(&Map.fetch!(events_by_blknum, &1))
       |> Enum.map(&collect_block/1)
-      |> Enum.reduce_while({start, []}, &analyze_block/2)
+      |> Enum.reduce({start, []}, &analyze_block/2)
 
     block_stats |> Enum.reverse()
   end
@@ -149,32 +149,26 @@ defmodule OmiseGO.Performance.SenderManager do
   defp analyze_block({blknum, txs_in_blk, block_formed_timestamp}, {start, list}) do
     span_ms = block_formed_timestamp - start
 
-    if span_ms > 1000 do
-      {:cont,
-       {block_formed_timestamp,
-        [
-          %{
-            blknum: blknum,
-            txs: txs_in_blk,
-            tps: txs_per_second(txs_in_blk, span_ms),
-            span_ms: span_ms
-          }
-          | list
-        ]}}
-    else
-      {:halt, {start, list}}
-    end
+    {block_formed_timestamp,
+     [
+       %{
+         blknum: blknum,
+         txs: txs_in_blk,
+         tps: txs_per_second(txs_in_blk, span_ms),
+         span_ms: span_ms
+       }
+       | list
+     ]}
   end
 
   defp txs_per_second(txs_count, interval_ms), do: Float.round(txs_count * 1000 / interval_ms, 2)
 
   # handle termination
   defp write_stats(%{destdir: destdir} = state) do
-    destfile = Path.join(destdir, "perf_result_#{:os.system_time(:seconds)}_stats")
+    destfile = Path.join(destdir, "perf_result_#{:os.system_time(:seconds)}_stats.json")
 
     stats = analyze(state)
-    data = "Performance statistics:\n#{inspect(stats, limit: :infinity, pretty: true)}\n"
-    :ok = File.write(destfile, data)
+    :ok = File.write(destfile, Poison.encode!(stats))
     _ = Logger.info(fn -> "Performance statistics written to file: #{destfile}" end)
     :ok
   end
