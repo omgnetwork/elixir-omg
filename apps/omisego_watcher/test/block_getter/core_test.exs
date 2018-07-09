@@ -127,7 +127,14 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
           into: %{},
           do: {Atom.to_string(key), val}
 
-    assert {:ok, block} == Core.decode_block(Client.encode(json_block))
+    assert {:ok, block} == Core.decode_validate_block(Client.encode(json_block))
+
+    block_height = 25_000
+    interval = 1_000
+    chunk_size = 10
+
+    {state, _} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(35_000)
+    assert {:ok, _} = Core.add_block(state, block)
   end
 
   @tag fixtures: [:alice]
@@ -141,7 +148,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
                "number" => 23
              }
              |> Client.encode()
-             |> Core.decode_block()
+             |> Core.decode_validate_block()
 
     assert {:error, :malformed_transaction_rlp} ==
              %{
@@ -153,7 +160,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
                "number" => 1
              }
              |> Client.encode()
-             |> Core.decode_block()
+             |> Core.decode_validate_block()
 
     assert {:error, :no_inputs} ==
              %{
@@ -162,6 +169,6 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
                "number" => 1
              }
              |> Client.encode()
-             |> Core.decode_block()
+             |> Core.decode_validate_block()
   end
 end

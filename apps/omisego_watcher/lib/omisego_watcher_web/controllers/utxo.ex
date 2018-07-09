@@ -12,12 +12,10 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
 
   def available(conn, %{"address" => address}) do
     {:ok, address_decode} = JSONRPC.Client.decode(:bitstring, address)
-    utxos = Repo.all(from(tr in UtxoDB, where: tr.address == ^address_decode, select: tr))
-    fields_names = List.delete(UtxoDB.field_names(), :address)
 
     json(conn, %{
       address: address,
-      utxos: JSONRPC.Client.encode(Enum.map(utxos, &Map.take(&1, fields_names)))
+      utxos: JSONRPC.Client.encode(UtxoDB.get(address_decode))
     })
   end
 

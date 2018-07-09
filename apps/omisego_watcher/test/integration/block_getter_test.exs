@@ -37,16 +37,16 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     deposit_blknum
   end
 
-  defp wait_for_BlockGetter_get_block(block_number) do
-    fn ->
-      Eth.WaitFor.repeat_until_ok(fn ->
-        # TODO use event system
-        case GenServer.call(BlockGetter, :get_height, 10_000) < block_number do
-          true -> :repeat
-          false -> {:ok, block_number}
-        end
-      end)
+  defp wait_for_block_getter_get_block(block_number) do
+    block_has_been_reached = fn ->
+      # TODO use event system
+      case GenServer.call(BlockGetter, :get_height, 10_000) < block_number do
+        true -> :repeat
+        false -> {:ok, block_number}
+      end
     end
+
+    fn -> Eth.WaitFor.repeat_until_ok(block_has_been_reached) end
     |> Task.async()
     |> Task.await(@timeout)
   end
@@ -60,7 +60,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx})
 
-    wait_for_BlockGetter_get_block(block_nr)
+    wait_for_block_getter_get_block(block_nr)
 
     encode_tx = Client.encode(tx)
 
@@ -115,31 +115,95 @@ defmodule OmiseGOWatcher.BlockGetterTest do
              })
   end
 
-  #  @tag fixtures: [:watcher_sandbox, :contract,
-  #                  :geth, :child_chain, :root_chain_contract_config, :alice, :carol, :bob]
-  #  test "consume block with valid transactions", %{alice: alice, carol: carol, bob: bob, contract: contract} do
-  #    [deposit_alice, deposit_bob] =
-  #      [deposit_to_child_chain(alice, 1_000, contract), deposit_to_child_chain(bob, 1_000, contract)]
-  #      |> Enum.map(&wait_for_deposit(&1, contract))
-  #
-  #    :timer.sleep(200)
-  #
-  #    block_nr =
-  #      [
-  #        API.TestHelper.create_encoded([{deposit_alice, 0, 0, alice}], @eth, [{alice, 700}, {carol, 200}]),
-  #        API.TestHelper.create_encoded([{deposit_bob, 0, 0, bob}], @eth, [{carol, 500}, {bob, 400}])
-  #      ]
-  #      |> Enum.map(fn tx ->
-  #        {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx})
-  #        block_nr
-  #      end)
-  #      |> Enum.max()
-  #
-  #    wait_for_BlockGetter_get_block(block_nr)
-  #    assert [%{"amount" => 700, "oindex" => 0}] = get_utxo(alice)
-  #    assert [%{"amount" => 400, "oindex" => 0}] = get_utxo(bob)
-  #    assert [%{"amount" => 200, "oindex" => 0}, %{"amount" => 500, "oindex" => 0}] = get_utxo(carol)
-  #  end
+  @tag fixtures: [:watcher_sandbox, :contract, :geth, :child_chain, :root_chain_contract_config, :alice, :carol, :bob]
+  test "consume block with valid transactions", %{alice: alice, carol: carol, bob: bob, contract: contract} do
+    [deposit_alice, deposit_bob] =
+      [deposit_to_child_chain(alice, 1_000, contract), deposit_to_child_chain(bob, 1_000, contract)]
+      |> Enum.map(&wait_for_deposit(&1, contract))
+
+    :timer.sleep(200)
+
+    block_nr =
+      [
+        API.TestHelper.create_encoded([{deposit_alice, 0, 0, alice}], @eth, [{alice, 700}, {carol, 200}]),
+        API.TestHelper.create_encoded([{deposit_bob, 0, 0, bob}], @eth, [{carol, 500}, {bob, 400}])
+      ]
+      |> Enum.map(fn tx ->
+        {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx})
+        block_nr
+      end)
+      |> Enum.max()
+
+    wait_for_block_getter_get_block(block_nr)
+    assert [%{"amount" => 700, "oindex" => 0}] = get_utxo(alice)
+    assert [%{"amount" => 400, "oindex" => 0}] = get_utxo(bob)
+    assert [%{"amount" => 200, "oindex" => 0}, %{"amount" => 500, "oindex" => 0}] = get_utxo(carol)
+  end
+
+  @tag fixtures: [:watcher_sandbox, :contract, :alice]
+  test "diffrent hash send by child chain", %{alice: alice, contract: contract} do
+    defmodule BadChildChainHash do
+      use JSONRPC2.Server.Handler
+
+      def handle_request(_, _) do
+        %{hash: "8BE7BCF154F9484A7762268C93B02D2507EE8475CF02F8F94A3032A3BE5FC7D8", transactions: []}
+      end
+    end
+
+    JSONRPC2.Servers.HTTP.http(BadChildChainHash, port: Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port))
+
+    {:ok, _txhash} =
+      Eth.submit_block(
+        %Eth.BlockSubmission{
+          num: 1_000,
+          hash: OmiseGO.API.Crypto.zero_address(),
+          nonce: 1,
+          gas_price: 20_000_000_000
+        },
+        contract.authority_addr,
+        contract.contract_addr
+      )
+
+    # TODO receive information about errro
+    JSONRPC2.Servers.HTTP.shutdown(BadChildChainHash)
+  end
+
+  @tag fixtures: [:watcher_sandbox, :contract, :alice]
+  test "bad transaction", %{alice: alice, contract: contract} do
+    defmodule BadChildChainTransaction do
+      use JSONRPC2.Server.Handler
+
+      def handle_request(_, _) do
+        %{
+          hash: "8BE7BCF154F9484A7762268C93B02D2507EE8475CF02F8F94A3032A3BE5FC7D8",
+          transactions: [
+            "F8D28207D1808080808094000000000000000000000000000000000000000094DF97E6CC462B33C784214708B3365B42768AC9848202BC948315C85F760DBD875395B2169EB2BFCCE3FD855B81C8B8415050FC74F82E49684D3D14F42AA161714FADDB3BC7F78DE75CB92903CCEE024A73292302E69230C45E7967F5F0630E4247C733D2A8B3AA9DB518E8B680F124241CB8410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "F8D38279198080808080940000000000000000000000000000000000000000948315C85F760DBD875395B2169EB2BFCCE3FD855B8201F494B882E2B1513B5CEC838DCBE55D3F38FB61EEEBF0820190B84165CABB615E2F1969CFD2F81945E1DBD47AB471183728EB5586482A44ECD9550325B75545CCB5DDD17BE0322A7D978379458DC31435FACBFF4A7275D6909D93321CB8410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+          ]
+        }
+      end
+    end
+
+    JSONRPC2.Servers.HTTP.http(
+      BadChildChainTransaction,
+      port: Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
+    )
+
+    {:ok, _txhash} =
+      Eth.submit_block(
+        %Eth.BlockSubmission{
+          num: 1_000,
+          hash: Base.decode16!("8BE7BCF154F9484A7762268C93B02D2507EE8475CF02F8F94A3032A3BE5FC7D8"),
+          nonce: 1,
+          gas_price: 20_000_000_000
+        },
+        contract.authority_addr,
+        contract.contract_addr
+      )
+
+    # TODO receive information about errro
+    JSONRPC2.Servers.HTTP.shutdown(BadChildChainTransaction)
+  end
 
   defp get_utxo(%{addr: address}) do
     decoded_resp = TestHelper.rest_call(:get, "account/utxo?address=#{Client.encode(address)}")

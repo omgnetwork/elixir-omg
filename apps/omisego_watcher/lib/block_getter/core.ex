@@ -111,10 +111,10 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
      list_block_to_consume}
   end
 
-  @spec decode_block(block :: map) ::
+  @spec decode_validate_block(block :: map) ::
           {:ok, Block.t()}
           | {:error, :incorrect_hash | :malformed_transaction_rlp | :malformed_transaction | :bad_signature_length}
-  def decode_block(%{"hash" => hash, "transactions" => transactions, "number" => number}) do
+  def decode_validate_block(%{"hash" => hash, "transactions" => transactions, "number" => number}) do
     with transactions <- Enum.map(transactions, &decode_validate_transaction/1),
          nil <- Enum.find(transactions, &(!match?({:ok, _}, &1))),
          transactions <- Enum.map(transactions, &elem(&1, 1)),

@@ -116,6 +116,12 @@ defmodule OmiseGOWatcher.UtxoDB do
 
   def get_all, do: Repo.all(__MODULE__)
 
+  def get(addres) do
+    utxos = Repo.all(from(tr in __MODULE__, where: tr.address == ^addres, select: tr))
+    fields_names = List.delete(@field_names, :address)
+    Enum.map(utxos, &Map.take(&1, fields_names))
+  end
+
   @doc false
   def changeset(utxo_db, attrs) do
     utxo_db

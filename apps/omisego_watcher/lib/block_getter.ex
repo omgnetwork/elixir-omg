@@ -17,7 +17,7 @@ defmodule OmiseGOWatcher.BlockGetter do
   def get_block(number) do
     with {:ok, {hash, _time}} <- Eth.get_child_chain(number),
          {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: hash}) do
-      Core.decode_block(Map.put(json_block, "number", number))
+      Core.decode_validate_block(Map.put(json_block, "number", number))
     end
   end
 
@@ -76,7 +76,19 @@ defmodule OmiseGOWatcher.BlockGetter do
 
     :ok = run_block_get_task(blocks_numbers)
 
-    :ok = blocks_to_consume |> Enum.each(&(:ok = consume_block(&1)))
+    :ok =
+      blocks_to_consume
+      |> Enum.each(
+        &case consume_block(&1) do
+          :ok ->
+            :ok
+
+          {:error, _error} ->
+            # TODO send to user information
+            :ok
+        end
+      )
+
     {:noreply, new_state}
   end
 

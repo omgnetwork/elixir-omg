@@ -28,7 +28,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
 
       config :omisego_db,
         leveldb_path: "#{db_path}"
-      config :logger, level: :error
+      config :logger, level: :debug
       config :omisego_eth,
         child_block_interval: #{Application.get_env(:omisego_eth, :child_block_interval)}
       config :omisego_api,
@@ -43,13 +43,14 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
 
     {:ok, config} = File.read(config_file_path)
     Logger.debug(fn -> IO.ANSI.format([:blue, :bright, config], true) end)
-
     Logger.debug(fn -> "Starting db_init" end)
 
     exexec_opts_for_mix = [
       stdout: :stream,
       cd: "../..",
-      env: %{"MIX_ENV" => to_string(Mix.env())}
+      env: %{"MIX_ENV" => to_string(Mix.env())},
+      group: 0,
+      kill_group: true
     ]
 
     {:ok, _db_proc, _ref, [{:stream, db_out, _stream_server}]} =
@@ -109,7 +110,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   end
 
   deffixture watcher_sandbox(watcher) do
-    _ = watcher
+    :ok = watcher
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
   end
 
