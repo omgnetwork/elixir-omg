@@ -5,10 +5,9 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   """
 
   alias OmiseGO.JSONRPC
-  alias OmiseGOWatcher.{Repo, UtxoDB}
+  alias OmiseGOWatcher.UtxoDB
 
   use OmiseGOWatcherWeb, :controller
-  import Ecto.Query, only: [from: 2]
 
   def available(conn, %{"address" => address}) do
     {:ok, address_decode} = JSONRPC.Client.decode(:bitstring, address)

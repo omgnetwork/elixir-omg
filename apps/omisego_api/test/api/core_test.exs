@@ -65,7 +65,7 @@ defmodule OmiseGO.API.Api.CoreTest do
 
   @tag fixtures: [:alice]
   test "transaction must have distinct inputs", %{alice: alice} do
-    {duplicate_inputs, _} = create_encoded([{1, 2, 3, alice}, {1, 2, 3, alice}], eth(), [{alice, 7}])
+    duplicate_inputs = TestHelper.create_encoded([{1, 2, 3, alice}, {1, 2, 3, alice}], eth(), [{alice, 7}])
 
     assert {:error, :duplicate_inputs} = Core.recover_tx(duplicate_inputs)
   end
