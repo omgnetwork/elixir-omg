@@ -115,13 +115,10 @@ defmodule OmiseGO.Eth.DevHelpers do
     deposit_blknum
   end
 
-  def challenge_exit(cutxopo, eutxopos, txbytes, proof, sigs, gas_price, from \\ nil, contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
-    from = from || Application.get_env(:omisego_eth, :omg_addr)
-
+  def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, gas_price, from, contract) do
     data =
       "challengeExit(uint256,uint256,bytes,bytes,bytes)"
-      |> ABI.encode([cutxopo, eutxopos, txbytes, proof, sigs])
+      |> ABI.encode([cutxopo, eutxoindex, txbytes, proof, sigs])
       |> Base.encode16()
 
     gas = 1_000_000

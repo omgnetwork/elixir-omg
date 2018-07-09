@@ -92,20 +92,20 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   test "gets transaction that spends utxo" do
     utxo1 = %{blknum: 1, txindex: 0, oindex: 0}
     utxo2 = %{blknum: 2, txindex: 0, oindex: 0}
-    :utxo_not_spent = TransactionDB.get_transaction_spending_utxo(utxo1)
-    :utxo_not_spent = TransactionDB.get_transaction_spending_utxo(utxo2)
+    :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo1)
+    :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo2)
 
-    assert_transaction_spends_utxo(utxo1, 0)
-    :utxo_not_spent = TransactionDB.get_transaction_spending_utxo(utxo2)
-    assert_transaction_spends_utxo(utxo2, 1)
+    test_transaction_spends_utxo(utxo1, 0)
+    :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo2)
+    test_transaction_spends_utxo(utxo2, 1)
   end
 
-  defp assert_transaction_spends_utxo(utxo, txindex) do
+  defp test_transaction_spends_utxo(utxo, txindex) do
     {signed_tx, id} = create_tx_with_id(utxo.blknum, 0)
     {:ok, _} = TransactionDB.insert(id, signed_tx, 2, txindex)
     expected_tx = create_expected_transaction(id, signed_tx, 2, txindex)
 
-    {:ok, actual_tx} = TransactionDB.get_transaction_spending_utxo(utxo)
+    {:ok, actual_tx} = TransactionDB.get_transaction_challenging_utxo(utxo)
     assert expected_tx == delete_meta(actual_tx)
   end
 

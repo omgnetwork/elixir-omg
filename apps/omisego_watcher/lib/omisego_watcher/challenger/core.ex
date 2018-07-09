@@ -13,19 +13,19 @@ defmodule OmiseGOWatcher.Challenger.Core do
   @transaction_offset 10_000
 
   @spec create_challenge(%TransactionDB{}, list(%TransactionDB{}), map()) :: Challenge.t()
-  def create_challenge(offending_tx, txs, utxo_exit) do
-    txbytes = encode(offending_tx)
-    eutxoindex = get_eutxo_index(offending_tx, utxo_exit)
-    cutxopos = challenging_utxo_pos(offending_tx)
+  def create_challenge(challenging_tx, txs, utxo_exit) do
+    txbytes = encode(challenging_tx)
+    eutxoindex = get_eutxo_index(challenging_tx, utxo_exit)
+    cutxopos = challenging_utxo_pos(challenging_tx)
 
     recovered_txs =
       txs
       |> Enum.sort_by(& &1.txindex)
       |> Enum.map(fn tx -> %Recovered{signed_tx_hash: tx.txid} end)
 
-    proof = Block.create_tx_proof(%Block{transactions: recovered_txs}, offending_tx.txindex)
+    proof = Block.create_tx_proof(%Block{transactions: recovered_txs}, challenging_tx.txindex)
 
-    Challenge.create(cutxopos, eutxoindex, txbytes, proof, offending_tx.sig1 <> offending_tx.sig2)
+    Challenge.create(cutxopos, eutxoindex, txbytes, proof, challenging_tx.sig1 <> challenging_tx.sig2)
   end
 
   defp encode(%TransactionDB{
@@ -68,8 +68,8 @@ defmodule OmiseGOWatcher.Challenger.Core do
 
   defp get_eutxo_index(_, _), do: 1
 
-  defp challenging_utxo_pos(offending_tx) do
-    offending_tx
+  defp challenging_utxo_pos(challenging_tx) do
+    challenging_tx
     |> get_challenging_utxo()
     |> utxo_pos()
   end

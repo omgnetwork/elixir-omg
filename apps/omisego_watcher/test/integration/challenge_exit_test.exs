@@ -13,10 +13,10 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
   @moduletag :integration
 
   @timeout 20_000
-  @block_offset 1_000_000_000
+  @zero_address <<0>> |> List.duplicate(20) |> Enum.reduce(&<>/2)
 
   @tag fixtures: [:watcher_sandbox, :config_map, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
-  test "get the blocks from child chain after transaction and start exit", %{
+  test "challenges invalid exit", %{
     config_map: config,
     alice: alice,
     bob: bob
@@ -44,9 +44,11 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
 
     alice_address = "0x" <> Base.encode16(alice.addr, case: :lower)
 
+    utxo_pos = Test.utxo_pos(block_nr, 0, 0)
+
     {:ok, txhash} =
       Eth.start_exit(
-        2000 * @block_offset,
+        utxo_pos,
         tx_bytes,
         proof,
         sigs,
@@ -58,6 +60,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
 
     challenge = get_exit_challenge(exiting_utxo_block_nr, 0, 0)
+    assert {:ok, {alice.addr, @zero_address, 7}} == Eth.get_exit(utxo_pos, config.contract_addr)
 
     {:ok, txhash} =
       OmiseGO.Eth.DevHelpers.challenge_exit(
@@ -72,6 +75,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
       )
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    assert {:ok, {@zero_address, @zero_address, 7}} == Eth.get_exit(utxo_pos, config.contract_addr)
   end
 
   defp get_exit_challenge(blknum, txindex, oindex) do

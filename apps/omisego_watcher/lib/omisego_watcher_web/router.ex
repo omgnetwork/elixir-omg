@@ -9,13 +9,10 @@ defmodule OmiseGOWatcherWeb.Router do
     get("/account/utxo", Controller.Utxo, :available)
     get("/account/utxo/compose_exit", Controller.Utxo, :compose_utxo_exit)
     get("/status", Controller.Status, :get)
+    get("/challenges", Controller.Challenge, :challenge)
   end
 
   scope "/transactions", OmiseGOWatcherWeb do
     get("/:id", Controller.Transaction, :get)
-  end
-
-  scope "/challenges", OmiseGOWatcherWeb do
-    get("", Controller.Challenge, :challenge)
   end
 end

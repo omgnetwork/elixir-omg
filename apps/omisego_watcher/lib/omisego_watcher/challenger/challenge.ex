@@ -3,6 +3,9 @@ defmodule OmiseGOWatcher.Challenger.Challenge do
   Represents a challenge
   """
 
+  # NOTE: eutxoindex and cutxopos names were chosen for consistency with Solidity contract source code
+  # eutoxoindex is index of exiting utxo in challenging transaction
+  # cutxopos is position of challenging utxo
   defstruct cutxopos: 0, eutxoindex: 0, txbytes: nil, proof: nil, sigs: nil
 
   @type t() :: %__MODULE__{

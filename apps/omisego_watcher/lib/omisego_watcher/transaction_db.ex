@@ -105,8 +105,8 @@ defmodule OmiseGOWatcher.TransactionDB do
     |> validate_required(@field_names)
   end
 
-  @spec get_transaction_spending_utxo(map()) :: {:ok, map()} | :utxo_not_spent
-  def get_transaction_spending_utxo(%{blknum: blknum, txindex: txindex, oindex: oindex}) do
+  @spec get_transaction_challenging_utxo(map()) :: {:ok, map()} | :utxo_not_spent
+  def get_transaction_challenging_utxo(%{blknum: blknum, txindex: txindex, oindex: oindex}) do
     query =
       from(
         tx_db in __MODULE__,
