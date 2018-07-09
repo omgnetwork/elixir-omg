@@ -15,7 +15,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
 
     json(conn, %{
       address: address,
-      utxos: JSONRPC.Client.encode(UtxoDB.get(address_decode))
+      utxos: JSONRPC.Client.encode(UtxoDB.get_utxo(address_decode))
     })
   end
 
