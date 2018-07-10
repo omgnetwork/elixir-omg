@@ -36,7 +36,11 @@ defmodule OmiseGO.API.State.CoreTest do
   test "when spending currency must match", %{alice: alice, bob: bob, state_empty: state} do
     state
     |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], not_eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+    |> (&Core.exec(
+          Test.create_recovered([{1, 0, 0, alice}], not_eth(), [{bob, 7}, {alice, 3}]),
+          zero_fees_map(),
+          &1
+        )).()
     |> fail?(:incorrect_currency)
   end
 
@@ -472,7 +476,11 @@ defmodule OmiseGO.API.State.CoreTest do
   test "spends utxo when exiting", %{alice: alice, state_alice_deposit: state} do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+      |> (&Core.exec(
+            Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]),
+            zero_fees_map(),
+            &1
+          )).()
       |> success?
 
     expected_owner = alice.addr
@@ -509,7 +517,11 @@ defmodule OmiseGO.API.State.CoreTest do
   test "does not change when exiting spent utxo", %{alice: alice, state_alice_deposit: state} do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+      |> (&Core.exec(
+            Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]),
+            zero_fees_map(),
+            &1
+          )).()
       |> success?
 
     {[], [], ^state} =
