@@ -107,4 +107,22 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     _ = watcher
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
   end
+
+  deffixture phoenix_ecto_sandbox do
+    import Supervisor.Spec
+
+    {:ok, pid} =
+      Supervisor.start_link(
+        [supervisor(OmiseGOWatcher.Repo, []), supervisor(OmiseGOWatcherWeb.Endpoint, [])],
+        strategy: :one_for_one,
+        name: OmiseGOWatcher.Supervisor
+      )
+
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
+    # setup and body test are performed in one process, `on_exit` is performed in another
+    on_exit(fn ->
+      OmiseGOWatcher.TestHelper.wait_for_process(pid)
+      :ok
+    end)
+  end
 end

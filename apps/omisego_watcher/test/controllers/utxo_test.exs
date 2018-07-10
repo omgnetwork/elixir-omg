@@ -30,12 +30,12 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   }
 
   describe "UTXO database." do
-    @tag fixtures: [:watcher_sandbox]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "No utxo are returned for non-existing addresses." do
       assert get_utxo("cthulhu") == %{"utxos" => [], "address" => Client.encode("cthulhu")}
     end
 
-    @tag fixtures: [:watcher_sandbox]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "Consumed block contents are available." do
       UtxoDB.consume_block(%Block{
         transactions: [
@@ -50,7 +50,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       assert Enum.sort([amount1, amount2]) == [1947, 1952]
     end
 
-    @tag fixtures: [:watcher_sandbox]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "Spent utxos are moved to new owner." do
       UtxoDB.consume_block(%Block{
         transactions: [
@@ -81,14 +81,14 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       %{"utxos" => []} = get_utxo("Matilda")
     end
 
-    @tag fixtures: [:watcher_sandbox]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "Deposits are a part of utxo set." do
       assert %{"utxos" => []} = get_utxo("Leon")
       UtxoDB.insert_deposits([%{owner: "Leon", amount: 1, block_height: 1}])
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo("Leon")
     end
 
-    @tag fixtures: [:watcher_sandbox]
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "Deposit utxo are moved to new owner if spent " do
       assert %{"utxos" => []} = get_utxo("Leon")
       assert %{"utxos" => []} = get_utxo("Matilda")
@@ -117,7 +117,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     end
   end
 
-  @tag fixtures: [:watcher_sandbox]
+  @tag fixtures: [:phoenix_ecto_sandbox]
   test "compose_utxo_exit should return proper proof format" do
     TransactionDB.insert(<<1>>, @signed_tx, 1, 1)
     TransactionDB.insert(<<2>>, @signed_tx, 1, 2)
@@ -133,12 +133,12 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     assert <<_proof::bytes-size(512)>> = proof
   end
 
-  @tag fixtures: [:watcher_sandbox]
+  @tag fixtures: [:phoenix_ecto_sandbox]
   test "compose_utxo_exit should return error when there is no txs in specfic block" do
     {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 1, 0)
   end
 
-  @tag fixtures: [:watcher_sandbox]
+  @tag fixtures: [:phoenix_ecto_sandbox]
   test "compose_utxo_exit should return error when there is no tx in specfic block" do
     TransactionDB.insert(<<2>>, @signed_tx, 1, 2)
     TransactionDB.insert(<<1>>, @signed_tx, 1, 2)

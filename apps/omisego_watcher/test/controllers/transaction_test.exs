@@ -28,7 +28,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     sig2: <<14, 16, 18, 20>>
   }
 
-  @tag fixtures: [:watcher_sandbox]
+  @tag fixtures: [:phoenix_ecto_sandbox]
   test "insert and retrive transaction" do
     txblknum = 0
     txindex = 0
@@ -41,7 +41,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     assert expected_transaction == delete_meta(TransactionDB.get(id))
   end
 
-  @tag fixtures: [:watcher_sandbox]
+  @tag fixtures: [:phoenix_ecto_sandbox]
   test "insert and retrive block of transactions" do
     txblknum = 0
 
@@ -64,7 +64,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     assert expected_transaction_2 == delete_meta(TransactionDB.get(txid_2))
   end
 
-  @tag fixtures: [:watcher_sandbox]
+  @tag fixtures: [:phoenix_ecto_sandbox]
   test "gets all transactions from a block" do
     assert [] == TransactionDB.find_by_txblknum(1)
 
@@ -88,7 +88,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     {signed_tx, id}
   end
 
-  @tag fixtures: [:watcher_sandbox]
+  @tag fixtures: [:phoenix_ecto_sandbox]
   test "gets transaction that spends utxo" do
     utxo1 = %{blknum: 1, txindex: 0, oindex: 0}
     utxo2 = %{blknum: 2, txindex: 0, oindex: 0}
