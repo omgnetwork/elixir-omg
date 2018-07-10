@@ -60,6 +60,9 @@ Actually `OmiseGO.API.EthereumEventListener` setup with `:depositor`.
 - requests `form_block` on `OmiseGO.API.State` and takes block hashes in return
 - tracks Ethereum height and child chain block submission mining via `OmiseGO.Eth` and `OmiseGO.API.RootChainCoordinator`
 
+### `OmiseGO.API.FeeChecker`
+- `OmiseGO.API` calls it to get acceptable currencies and actual fee amounts to validate transactions
+
 ### `OmiseGOWatcher.BlockGetter`
 
 - tracks child chain blocks via `OmiseGO.API.RootChainCoordinator`
