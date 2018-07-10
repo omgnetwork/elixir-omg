@@ -21,8 +21,6 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     alice: alice,
     bob: bob
   } do
-    IntegrationTest.start_block_getter(config)
-
     deposit_blknum = IntegrationTest.deposit_to_child_chain(alice, 10, config)
     raw_tx = Transaction.new([{deposit_blknum, 0, 0}], Transaction.zero_address(), [{alice.addr, 7}, {bob.addr, 3}])
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()

@@ -33,15 +33,6 @@ defmodule OmiseGOWatcher.Integration.TestHelper do
     }
   end
 
-  def start_block_getter(config) do
-    {:ok, _} =
-      GenServer.start_link(
-        OmiseGOWatcher.BlockGetter,
-        %{contract_address: config.contract_addr},
-        name: BlockGetter
-      )
-  end
-
   def wait_until_block_getter_fetches_block(block_nr, timeout) do
     fn ->
       Eth.WaitFor.repeat_until_ok(wait_for_block(block_nr))
@@ -52,7 +43,7 @@ defmodule OmiseGOWatcher.Integration.TestHelper do
 
   defp wait_for_block(block_nr) do
     fn ->
-      case GenServer.call(BlockGetter, :get_height) < block_nr do
+      case GenServer.call(OmiseGOWatcher.BlockGetter, :get_height) < block_nr do
         true -> :repeat
         false -> {:ok, block_nr}
       end

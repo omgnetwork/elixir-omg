@@ -22,8 +22,6 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     alice: alice,
     bob: bob
   } do
-    IntegrationTest.start_block_getter(config)
-
     deposit_blknum = IntegrationTest.deposit_to_child_chain(alice, 10, config)
     raw_tx = Transaction.new([{deposit_blknum, 0, 0}], Transaction.zero_address(), [{alice.addr, 7}, {bob.addr, 3}])
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
@@ -60,7 +58,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
         config.contract_addr
       )
 
-    {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
 
     {:ok, height} = Eth.get_ethereum_height()
 
