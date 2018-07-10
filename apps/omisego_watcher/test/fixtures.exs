@@ -28,6 +28,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
       config :omisego_eth,
         child_block_interval: #{config_map.child_block_interval}
       config :omisego_api,
+        fee_specs_file_path: "./fee_specs.json",
         ethereum_event_block_finality_margin: #{config_map.ethereum_event_block_finality_margin},
         ethereum_event_get_deposits_interval_ms: #{config_map.ethereum_event_get_deposits_interval_ms}
     """)

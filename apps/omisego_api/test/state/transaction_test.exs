@@ -120,7 +120,7 @@ defmodule OmiseGO.API.State.TransactionTest do
 
     assert {{:ok, _, _, _}, _state} =
              transaction
-             |> Core.exec(state)
+             |> Core.exec(%{eth() => 0}, state)
   end
 
   @tag fixtures: [:alice, :bob]
