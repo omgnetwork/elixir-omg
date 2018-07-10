@@ -46,6 +46,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
       stdout: :stream,
       cd: "../..",
       env: %{"MIX_ENV" => to_string(Mix.env())},
+      # group 0 will create a new process group, equal to the OS pid of that process
       group: 0,
       kill_group: true
     ]
