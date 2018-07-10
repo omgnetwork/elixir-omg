@@ -25,7 +25,8 @@ defmodule OmiseGOWatcher.BlockGetter do
     # TODO add check in UtxoDB after deposit handle correctly
     state_exec =
       for tx <- transactions do
-        with {:ok, recover_tx} <- Recovered.recover_from(tx), do: OmiseGO.API.State.exec(recover_tx)
+        with {:ok, recover_tx} <- Recovered.recover_from(tx),
+             do: OmiseGO.API.State.exec(recover_tx, %{OmiseGO.API.Crypto.zero_address() => 0})
       end
 
     with nil <- Enum.find(state_exec, &(!match?({:ok, _, _, _}, &1))),

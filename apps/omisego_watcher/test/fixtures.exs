@@ -21,6 +21,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
       config :omisego_eth,
         child_block_interval: #{Application.get_env(:omisego_eth, :child_block_interval)}
       config :omisego_api,
+        fee_specs_file_path: "./fee_specs.json",
         ethereum_event_block_finality_margin: #{
       Application.get_env(:omisego_api, :ethereum_event_block_finality_margin)
     },
@@ -38,6 +39,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
       stdout: :stream,
       cd: "../..",
       env: %{"MIX_ENV" => to_string(Mix.env())},
+      # group 0 will create a new process group, equal to the OS pid of that process
       group: 0,
       kill_group: true
     ]

@@ -10,38 +10,63 @@ Identifies each module of pre-existing source code used in developing source cod
   * `Elixir`, Apache 2.0, https://github.com/elixir-lang/elixir
   * `Erlang`, Apache 2.0, https://www.erlang.org
   * `BEAM/OTP`, Apache 2.0, https://github.com/erlang/otp
-* MIX deps, as listed by the `mix.exs` files of applications in `omisego` repo
-  * `credo`, MIT, https://hex.pm/packages/credo
-  * `dialyxir`, Apache 2.0, https://hex.pm/packages/dialyxir
-  * `ex_unit_fixtures`, MIT, https://hex.pm/packages/ex_unit_fixtures
-  * `jsonrpc2`, Apache 2.0, https://hex.pm/packages/jsonrpc2
-  * `poison`, CC0-1.0, https://hex.pm/packages/poison
-  * `excoveralls`, MIT, https://hex.pm/packages/excoveralls
-  * `phoenix_pubsub`, MIT, https://hex.pm/packages/phoenix_pubsub
-  * `ex_rlp`, MIT, https://hex.pm/packages/ex_rlp
-  * `blockchain`, MIT, https://hex.pm/packages/blockchain
-  * `libsecp256k1`, MIT, https://hex.pm/packages/libsecp256k1
-  * `exleveldb`, Apache 2.0, https://hex.pm/packages/exleveldb
-  * `merkle_tree`, MIT, https://hex.pm/packages/merkle_tree
-  * `abi`, MIT , https://github.com/omisego/abi.git
-  * `temp`, MIT, https://hex.pm/packages/temp
-  * `ethereumex`, MIT, https://github.com/omisego/ethereumex.git
-  * `phoenix`, MIT, https://github.com/phoenixframework/phoenix
-  * `phoenix_ecto`, MIT, https://github.com/phoenixframework/phoenix_ecto
-  * `gettext`, Apache 2.0, https://github.com/elixir-lang/gettext
-  * `postgrex`, Apache 2.0, https://github.com/elixir-ecto/postgrex
-  * `sqlite_ecto2`, MIT, https://github.com/scouten/sqlite_ecto2
-  * `cowboy`, ISC License, https://github.com/ninenines/cowboy
-  * `cowlib`, ISC License, https://github.com/ninenines/cowlib
-  * `ranch`, ISC License, https://github.com/ninenines/ranch 
-  * `erlexec`, BSD license, https://github.com/saleyn/erlexec
-  * `briefly`, Apache 2.0, https://github.com/CargoSense/briefly/
-
+* MIX deps, as listed `mix licenses` ([licensir](https://github.com/unnawut/licensir/)), cleaned/completed manually.
+**NOTE**, unless otherwise noted, package is obtained from `hex.pm/packages/<package_name>`:
+```
+abi 0.1.12              -> MIT
+binary 0.0.4            -> MIT
+blockchain 0.1.7        -> MIT
+bunt 0.2.0              -> MIT
+briefly 0.3.0           -> Apache 2.0
+certifi 2.3.1           -> BSD
+cowboy 1.1.2            -> ISC
+cowlib 1.0.2            -> ISC
+credo 0.9.3             -> MIT
+db_connection 1.1.3     -> Apache 2.0
+decimal 1.5.0           -> Apache 2.0
+dialyxir 0.5.1          -> Apache 2.0
+ecto 2.2.10             -> Apache 2.0
+eleveldb 2.2.20         -> Apache 2.0
+erlexec 1.7.5           -> BSD
+esqlite                 -> Apache 2
+ethereumex 0.3.2        -> MIT
+evm 0.1.14              -> MIT
+ex_rlp 0.2.1            -> MIT
+ex_unit_fixtures        -> MIT
+exexec 0.1.0            -> Apache 2.0
+exleveldb 0.11.1        -> Apache 2.0
+exth_crypto 0.1.4       -> MIT
+hackney 1.12.1          -> Apache 2
+hex_prefix 0.1.0        -> MIT
+httpoison 1.1.1         -> MIT
+idna 5.1.1              -> BSD
+jsonrpc2 1.0.3          -> Apache 2.0
+keccakf1600 2.0.0       -> MPL 2.0 (ok'd by legal, compliant with our Apache 2.0)
+libsecp256k1 0.1.4      -> MIT
+licensir 0.2.7          -> MIT
+merkle_patricia_tree 0.2.6-> MIT
+merkle_tree 1.3.0       -> MIT
+metrics 1.0.1           -> BSD
+mime 1.3.0              -> Apache 2
+mimerl 1.0.2            -> MIT
+parse_trans 3.2.0       -> Apache 2.0
+phoenix 1.3.2           -> MIT
+phoenix_ecto 3.3.0      -> Apache 2.0
+phoenix_pubsub 1.0.2    -> MIT
+plug 1.5.0              -> Apache 2
+poison 3.1.0            -> CC0-1.0 (ok'd by legal, compliant with our Apache 2.0)
+postgrex 0.13.5         -> Apache 2.0
+ranch 1.3.2             -> ISC
+poolboy 1.5.1           -> Apache 2.0
+sbroker                 -> Apache 2
+socket 0.3.13           -> WTFPL
+sqlitex                 -> MIT
+ssl_verify_fun 1.1.1    -> MIT
+unicode_util_compat 0.3.1-> Apache 2.0
+```
 
 ## Likely to be redistributed
 
-* MIX deps...
-  * <non yet>
 * `geth`, LGPL 3.0, https://github.com/ethereum/go-ethereum, (used via an interface, so ok)
 * `zeppelin-solidity`, MIT, https://github.com/OpenZeppelin/zeppelin-solidity
 

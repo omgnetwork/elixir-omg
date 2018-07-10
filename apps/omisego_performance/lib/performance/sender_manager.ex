@@ -7,14 +7,6 @@ defmodule OmiseGO.Performance.SenderManager do
   use GenServer
 
   @initial_blknum 1000
-  @check_senders_done_every_ms 500
-
-  @doc """
-  Removes sender process which has done sending from a registry.
-  """
-  def sender_completed(seqnum) do
-    GenServer.cast(__MODULE__, {:done, seqnum})
-  end
 
   def sender_stats(new_stats) do
     GenServer.cast(__MODULE__, {:stats, Map.put(new_stats, :timestamp, System.monotonic_time(:millisecond))})
@@ -48,8 +40,6 @@ defmodule OmiseGO.Performance.SenderManager do
         {seqnum, pid}
       end)
 
-    reschedule_check()
-
     {:ok,
      %{
        senders: senders,
@@ -63,33 +53,33 @@ defmodule OmiseGO.Performance.SenderManager do
 
   @doc """
   Handles the trapped exit call and writes collected statistics to the file.
-  """
-  def handle_info({:EXIT, _from, reason}, state) do
-    write_stats(state)
-    _ = Logger.debug(fn -> "[SM] +++ Stoping (reason: #{inspect(reason)})... +++" end)
-    {:stop, reason, state}
-  end
+  Removes sender process which has done sending from a registry.
+  If it is the last sender then writes stats and tears down sender manager
 
-  @doc """
-  Checks whether registry has sender proceses registered
+  Any unexpected child reportind :EXIT should result in a crash
   """
-  @spec handle_info(:check, state :: pid | atom) :: {:noreply, newstate :: map()} | {:stop, :normal, state :: map()}
-  def handle_info(:check, %{senders: senders} = state) when senders == [] do
+  def handle_info({:EXIT, from_pid, _reason}, %{senders: [{_last_seqnum, from_pid} = last_sender]} = state) do
+    _ = Logger.info(fn -> "[SM]: Senders are all done, last sender: #{inspect(last_sender)}. Stopping manager" end)
+    write_stats(state)
     {:stop, :normal, state}
   end
 
-  def handle_info(:check, state) do
-    _ = Logger.debug(fn -> "[SM]: Senders are alive" end)
-    reschedule_check()
-    {:noreply, state}
+  def handle_info({:EXIT, from_pid, reason}, %{senders: senders} = state) do
+    case Enum.find(senders, fn {_seqnum, pid} -> pid == from_pid end) do
+      nil ->
+        {:stop, {:unknown_child_exited, from_pid, reason}, state}
+
+      {_done_seqnum, done_pid} = done_sender ->
+        remaining_senders = Enum.filter(senders, fn {_seqnum, pid} -> pid != done_pid end)
+        _ = Logger.info(fn -> "[SM]: Sender #{inspect(done_sender)} done. Manager continues..." end)
+        {:noreply, %{state | senders: remaining_senders}}
+    end
   end
 
-  @doc """
-  Removes sender process which has done sending from a registry.
-  """
-  @spec handle_cast({:done, seqnum :: integer}, state :: map()) :: {:noreply, map()}
-  def handle_cast({:done, seqnum}, %{senders: senders} = state) do
-    {:noreply, %{state | senders: Enum.reject(senders, &match?({^seqnum, _}, &1))}}
+  def handle_info({:EXIT, _from, reason}, state) do
+    write_stats(state)
+    _ = Logger.info(fn -> "[SM] +++ Manager Exiting (reason: #{inspect(reason)})... +++" end)
+    {:stop, reason, state}
   end
 
   @doc """
@@ -108,10 +98,6 @@ defmodule OmiseGO.Performance.SenderManager do
     {:noreply, %{state | block_times: [{blknum, total_ms} | state.block_times]}}
   end
 
-  # Sends :check message to itself in @check_senders_done_every_ms milliseconds.
-  # Message will be processed by module's :handle_info function.
-  defp reschedule_check, do: Process.send_after(self(), :check, @check_senders_done_every_ms)
-
   # Collects statistics regarding tx submittion and block forming.
   # Returns array of tuples, each tuple contains four fields:
   # * {blknum,   total_txs_in_blk,   avg_txs_in_sec,   time_between_blocks_ms}
@@ -129,7 +115,7 @@ defmodule OmiseGO.Performance.SenderManager do
       ordered_keys
       |> Enum.map(&Map.fetch!(events_by_blknum, &1))
       |> Enum.map(&collect_block/1)
-      |> Enum.reduce_while({start, []}, &analyze_block/2)
+      |> Enum.reduce({start, []}, &analyze_block/2)
 
     block_stats |> Enum.reverse()
   end
@@ -147,32 +133,26 @@ defmodule OmiseGO.Performance.SenderManager do
   defp analyze_block({blknum, txs_in_blk, block_formed_timestamp}, {start, list}) do
     span_ms = block_formed_timestamp - start
 
-    if span_ms > 1000 do
-      {:cont,
-       {block_formed_timestamp,
-        [
-          %{
-            blknum: blknum,
-            txs: txs_in_blk,
-            tps: txs_per_second(txs_in_blk, span_ms),
-            span_ms: span_ms
-          }
-          | list
-        ]}}
-    else
-      {:halt, {start, list}}
-    end
+    {block_formed_timestamp,
+     [
+       %{
+         blknum: blknum,
+         txs: txs_in_blk,
+         tps: txs_per_second(txs_in_blk, span_ms),
+         span_ms: span_ms
+       }
+       | list
+     ]}
   end
 
   defp txs_per_second(txs_count, interval_ms), do: Float.round(txs_count * 1000 / interval_ms, 2)
 
   # handle termination
   defp write_stats(%{destdir: destdir} = state) do
-    destfile = Path.join(destdir, "perf_result_#{:os.system_time(:seconds)}_stats")
+    destfile = Path.join(destdir, "perf_result_#{:os.system_time(:seconds)}_stats.json")
 
     stats = analyze(state)
-    data = "Performance statistics:\n#{inspect(stats, limit: :infinity, pretty: true)}\n"
-    :ok = File.write(destfile, data)
+    :ok = File.write(destfile, Poison.encode!(stats))
     _ = Logger.info(fn -> "Performance statistics written to file: #{destfile}" end)
     :ok
   end

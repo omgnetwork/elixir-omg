@@ -6,14 +6,15 @@ defmodule OmiseGO.API do
   (but not transport-specific encoding like hex).
   """
 
-  alias OmiseGO.API.{Block, Core, FreshBlocks, State}
+  alias OmiseGO.API.{Block, Core, FeeChecker, FreshBlocks, State}
   use OmiseGO.API.ExposeSpec
 
   @spec submit(transaction :: bitstring) ::
           {:ok, %{tx_hash: bitstring, blknum: integer, tx_index: integer}} | {:error, atom}
   def submit(transaction) do
     with {:ok, recovered_tx} <- Core.recover_tx(transaction),
-         {:ok, tx_hash, blknum, tx_index} <- State.exec(recovered_tx) do
+         {:ok, fees} <- FeeChecker.transaction_fees(recovered_tx),
+         {:ok, tx_hash, blknum, tx_index} <- State.exec(recovered_tx, fees) do
       {:ok, %{tx_hash: tx_hash, blknum: blknum, tx_index: tx_index}}
     end
   end

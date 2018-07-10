@@ -31,7 +31,7 @@ defmodule OmiseGO.Performance do
   def setup_and_run(ntx_to_send, nusers, opt \\ %{}) do
     _ = Logger.info(fn -> "OmiseGO PerfTest users: #{nusers}, reqs: #{ntx_to_send}." end)
 
-    {:ok, started_apps} = testup()
+    {:ok, started_apps, api_children_supervisor} = testup()
 
     defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
 
@@ -39,11 +39,11 @@ defmodule OmiseGO.Performance do
 
     run([ntx_to_send, nusers, opt], opt[:profile])
 
-    testdown(started_apps)
+    testdown(started_apps, api_children_supervisor)
   end
 
   # The test setup
-  @spec testup :: {:ok, list}
+  @spec testup :: {:ok, list, pid}
   defp testup do
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
@@ -61,18 +61,22 @@ defmodule OmiseGO.Performance do
       supervisor(Phoenix.PubSub.PG2, [:eventer, []]),
       {OmiseGO.API.State, []},
       {OmiseGO.API.FreshBlocks, []},
+      {OmiseGO.API.FeeChecker, []},
       JSONRPC2.Servers.HTTP.child_spec(:http, OmiseGO.JSONRPC.Server.Handler, port: omisego_port)
     ]
 
-    {:ok, _pid} = Supervisor.start_link(children, strategy: :one_for_one)
+    {:ok, api_children_supervisor} = Supervisor.start_link(children, strategy: :one_for_one)
 
-    {:ok, started_apps}
+    {:ok, started_apps, api_children_supervisor}
   end
 
   # The test teardown
-  @spec testdown([]) :: :ok
-  defp testdown(started_apps) do
+  @spec testdown([], pid) :: :ok
+  defp testdown(started_apps, api_children_supervisor) do
+    :ok = Supervisor.stop(api_children_supervisor)
+
     started_apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
+
     _ = Application.stop(:briefly)
 
     Application.put_env(:omisego_db, :leveldb_path, nil)

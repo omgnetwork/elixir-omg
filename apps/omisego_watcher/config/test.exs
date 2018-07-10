@@ -6,9 +6,6 @@ config :omisego_watcher, OmiseGOWatcherWeb.Endpoint,
   http: [port: 4001],
   server: false
 
-# Print only warnings and errors during test
-config :logger, level: :error
-
 # Configure your database
 config :omisego_watcher, OmiseGOWatcher.Repo,
   adapter: Sqlite.Ecto2,
