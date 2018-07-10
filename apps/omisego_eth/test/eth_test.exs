@@ -95,8 +95,9 @@ defmodule OmiseGO.EthTest do
 
     signed_tx = Transaction.sign(raw_tx, bob.priv, alice.priv)
 
-    {:ok, %Transaction.Recovered{raw_tx: raw_tx, signed_tx_hash: signed_tx_hash} = recovered_tx} =
-      Transaction.Recovered.recover_from(signed_tx)
+    {:ok,
+     %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}, signed_tx_hash: signed_tx_hash} =
+       recovered_tx} = Transaction.Recovered.recover_from(signed_tx)
 
     block =
       %Block{transactions: [recovered_tx]}

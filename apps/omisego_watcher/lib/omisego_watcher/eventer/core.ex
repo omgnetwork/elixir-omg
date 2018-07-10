@@ -39,7 +39,7 @@ defmodule OmiseGOWatcher.Eventer.Core do
     {%Notification.Spent{tx: transaction}, @transaction_spent_topic_prefix <> spender}
   end
 
-  defp get_receiver_notifications(%Transaction.Recovered{raw_tx: raw_tx} = recovered_tx) do
+  defp get_receiver_notifications(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}} = recovered_tx) do
     [raw_tx.newowner1, raw_tx.newowner2]
     |> Enum.filter(&Transaction.account_address?/1)
     |> Enum.map(&create_receiver_notification(recovered_tx, &1))

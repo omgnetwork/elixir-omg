@@ -27,7 +27,7 @@ defmodule OmiseGO.API.Api.CoreTest do
 
       assert {:ok,
               %Transaction.Recovered{
-                raw_tx: ^raw_tx,
+                signed_tx: %Transaction.Signed{raw_tx: ^raw_tx},
                 spender1: ^spender1,
                 spender2: ^spender2
               }} = Core.recover_tx(encoded_signed_tx)
