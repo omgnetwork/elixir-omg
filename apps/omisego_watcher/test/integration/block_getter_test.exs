@@ -80,6 +80,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
     assert_push("address_received", %Event.AddressReceived{tx: ^recovered_tx})
+    assert_push("address_spent", %Event.AddressSpent{tx: ^recovered_tx})
 
     %{
       utxo_pos: utxo_pos,

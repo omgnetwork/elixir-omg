@@ -32,7 +32,7 @@ defmodule OmiseGOWatcher.Eventer.Core do
 
     [spender1, spender2]
     |> Enum.filter(&Transaction.account_address?/1)
-    |> Enum.map(&(create_address_spent_event(signed, &1)))
+    |> Enum.map(&(create_address_spent_event(event_trigger, &1)))
     |> Enum.uniq()
   end
 

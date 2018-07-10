@@ -36,11 +36,12 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
     encoded_alice_address = "0x" <> Base.encode16(alice.addr, case: :lower)
     encoded_bob_address = "0x" <> Base.encode16(bob.addr, case: :lower)
 
-    event_1 = {"address:" <> encoded_alice_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
+    event_received_1 = {"address:" <> encoded_alice_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
+    event_received_2 = {"address:" <> encoded_bob_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
+    event_spender_1 = {"address:" <> encoded_alice_address, "address_spent", %Event.AddressSpent{tx: recovered_tx}}
+    event_spender_2 = {"address:" <> encoded_bob_address, "address_spent", %Event.AddressSpent{tx: recovered_tx}}
 
-    event_2 = {"address:" <> encoded_bob_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
-
-    assert [event_1, event_2] == Eventer.Core.notify([%{tx: recovered_tx}])
+    assert [event_received_1, event_received_2, event_spender_1, event_spender_2] == Eventer.Core.notify([%{tx: recovered_tx}])
   end
 
   @tag fixtures: [:alice, :bob]
@@ -68,8 +69,9 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
 
     encoded_alice_address = "0x" <> Base.encode16(alice.addr, case: :lower)
 
-    event_owner_1 = {"address:" <> encoded_alice_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
+    event_received_1 = {"address:" <> encoded_alice_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
+    event_spender_1 = {"address:" <> encoded_alice_address, "address_spent", %Event.AddressSpent{tx: recovered_tx}}
 
-    assert [event_owner_1] == Eventer.Core.notify([%{tx: recovered_tx}])
+    assert [event_received_1, event_spender_1] == Eventer.Core.notify([%{tx: recovered_tx}])
   end
 end
