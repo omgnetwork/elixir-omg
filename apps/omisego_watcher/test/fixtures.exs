@@ -42,7 +42,10 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     exexec_opts_for_mix = [
       stdout: :stream,
       cd: "../..",
-      env: %{"MIX_ENV" => to_string(Mix.env())}
+      env: %{"MIX_ENV" => to_string(Mix.env())},
+      # group 0 will create a new process group, equal to the OS pid of that process
+      group: 0,
+      kill_group: true
     ]
 
     {:ok, _db_proc, _ref, [{:stream, db_out, _stream_server}]} =
