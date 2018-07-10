@@ -11,7 +11,28 @@ defmodule OmiseGOWatcher.Eventer.Event do
     defstruct [:tx, :child_blknum, :child_block_hash, :submited_at_ethheight]
 
     @type t :: %AddressReceived{
-            tx: any()
-          }
+                 tx: any(),
+                 child_blknum: integer(),
+                 child_block_hash: <<_::768>>,
+                 submited_at_ethheight: integer()
+               }
   end
+
+  defmodule AddressSpent do
+    @moduledoc """
+    Notifies about spent funds by particular address
+    """
+
+    def name, do: "address_spent"
+
+    defstruct [:tx, :child_blknum, :child_block_hash, :submited_at_ethheight]
+
+    @type t :: %AddressSpent{
+                 tx: any(),
+                 child_blknum: integer(),
+                 child_block_hash: <<_::768>>,
+                 submited_at_ethheight: integer()
+               }
+  end
+
 end
