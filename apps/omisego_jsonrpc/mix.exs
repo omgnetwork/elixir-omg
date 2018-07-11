@@ -29,9 +29,13 @@ defmodule OmiseGO.JSONRPC.Mixfile do
 
   defp deps do
     [
-      {:jsonrpc2, "~> 1.0"},
+      # required to avoid silencing legitimate FunctionClauseErrors that are raised in handler
+      # TODO: make the PR merged and revert to a released version
+      #       after that check with forcing a FunctionClauseError be raised when handling a JSONRPC call
+      {:jsonrpc2,
+       git: "https://github.com/omisego/jsonrpc2-elixir.git", branch: "precise_handling_of_FunctionClauseError"},
       {:cowboy, "~> 1.1"},
-      {:plug, "~> 1.5"},
+      {:plug, "1.5.0", override: true},
       {:poison, "~> 3.1"},
       # test can't run omisego_apis
       {:omisego_api, in_umbrella: true, only: [:dev, :prod]}
