@@ -106,6 +106,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   deffixture watcher_sandbox(watcher) do
     _ = watcher
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(OmiseGOWatcher.Repo, {:shared, self()})
   end
 
   deffixture phoenix_ecto_sandbox do
