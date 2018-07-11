@@ -61,7 +61,6 @@ defmodule OmiseGO.API.State.Transaction do
     end
   end
 
-  @dialyzer {:no_match, [do_create_from_utxos: 4]}
   defp do_create_from_utxos(
          %{address: sender_address, utxos: utxos},
          currency,
@@ -79,17 +78,16 @@ defmodule OmiseGO.API.State.Transaction do
         {blknum, txindex, oindex}
       end)
 
+    amount2 = total_amount - amount - fee
+
     outputs = [
       {receiver_address, amount},
-      {sender_address, total_amount - amount - fee}
+      {sender_address, amount2}
     ]
 
-    transaction = new(inputs, currency, outputs)
-
-    case validate(transaction) do
-      :ok -> {:ok, transaction}
-      {:error, _} = error -> error
-    end
+    with :ok <- validate_amount(amount),
+         :ok <- validate_amount(amount2),
+         do: {:ok, new(inputs, currency, outputs)}
   end
 
   defp validate_currency([%{currency: cur1}, %{currency: cur2}]) when cur1 != cur2,
@@ -97,14 +95,8 @@ defmodule OmiseGO.API.State.Transaction do
 
   defp validate_currency([%{currency: cur1} | _]), do: {:ok, cur1}
 
-  @dialyzer {:no_match, [validate: 1]}
-  defp validate(%__MODULE__{amount1: amount1, amount2: amount2}) do
-    cond do
-      amount1 < 0 -> {:error, :amount_negative_value}
-      amount2 < 0 -> {:error, :amount_negative_value}
-      true -> :ok
-    end
-  end
+  defp validate_amount(output_amount) when output_amount < 0, do: {:error, :amount_negative_value}
+  defp validate_amount(output_amount) when is_integer(output_amount), do: :ok
 
   @doc """
    assumptions:
