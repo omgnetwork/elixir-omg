@@ -64,6 +64,25 @@ defmodule OmiseGO.API.Api.CoreTest do
     assert {:error, :malformed_transaction_rlp} = Core.recover_tx(malformed4)
   end
 
+  @tag fixtures: [:alice, :bob]
+  test "address in encoded transaction malformed", %{alice: alice, bob: bob} do
+    malformed_alice = %{addr: "0x0000000000000000000000000000000000000000"}
+    malformed_eth = "0x0000000000000000000000000000000000000000"
+    {malformed_signed1, _} = TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, bob}], eth(), [{malformed_alice, 7}])
+    {malformed_signed2, _} = TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, bob}], malformed_eth, [{alice, 7}])
+
+    {malformed_signed3, _} =
+      TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, bob}], eth(), [{alice, 7}, {malformed_alice, 3}])
+
+    malformed1 = Transaction.Signed.encode(malformed_signed1)
+    malformed2 = Transaction.Signed.encode(malformed_signed2)
+    malformed3 = Transaction.Signed.encode(malformed_signed3)
+
+    assert {:error, :malformed_address} = Core.recover_tx(malformed1)
+    assert {:error, :malformed_address} = Core.recover_tx(malformed2)
+    assert {:error, :malformed_address} = Core.recover_tx(malformed3)
+  end
+
   @tag fixtures: [:alice]
   test "transaction must have distinct inputs", %{alice: alice} do
     {duplicate_inputs, _} = create_encoded([{1, 2, 3, alice}, {1, 2, 3, alice}], eth(), [{alice, 7}])
