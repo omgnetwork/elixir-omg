@@ -6,7 +6,8 @@ defmodule OmiseGOWatcher.BlockGetter do
   """
   use GenServer
   alias OmiseGO.API.Block
-  alias OmiseGO.API.State.Transaction.Recovered
+  alias OmiseGO.API.State.Transaction
+  alias OmiseGO.API.State.Transaction.{Recovered, Signed}
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.UtxoDB
@@ -24,9 +25,9 @@ defmodule OmiseGOWatcher.BlockGetter do
   def consume_block(%Block{transactions: transactions} = block) do
     # TODO add check in UtxoDB after deposit handle correctly
     state_exec =
-      for tx <- transactions do
+      for %Signed{raw_tx: %Transaction{cur12: cur12}} = tx <- transactions do
         with {:ok, recover_tx} <- Recovered.recover_from(tx),
-             do: OmiseGO.API.State.exec(recover_tx, %{OmiseGO.API.Crypto.zero_address() => 0})
+             do: OmiseGO.API.State.exec(recover_tx, %{cur12 => 0})
       end
 
     with nil <- Enum.find(state_exec, &(!match?({:ok, _, _, _}, &1))),
