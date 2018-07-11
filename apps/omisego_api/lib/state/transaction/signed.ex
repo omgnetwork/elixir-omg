@@ -75,7 +75,7 @@ defmodule OmiseGO.API.State.Transaction.Signed do
          {:ok, parsed_cur12} <- address_parse(cur12),
          {:ok, parsed_newowner1} <- address_parse(newowner1),
          {:ok, parsed_newowner2} <- address_parse(newowner2) do
-      tx = %Transaction{
+      raw_tx = %Transaction{
         blknum1: int_parse(blknum1),
         txindex1: int_parse(txindex1),
         oindex1: int_parse(oindex1),
@@ -91,7 +91,7 @@ defmodule OmiseGO.API.State.Transaction.Signed do
 
       {:ok,
        %__MODULE__{
-         raw_tx: tx,
+         raw_tx: raw_tx,
          sig1: sig1,
          sig2: sig2,
          signed_tx_bytes: signed_tx_bytes
