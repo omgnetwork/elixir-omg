@@ -126,6 +126,55 @@ defmodule OmiseGO.API.State.TransactionTest do
              |> Core.exec(%{eth() => 0}, state)
   end
 
+  @tag fixtures: [:alice, :state_empty, :bob]
+  test "using created transaction with one input in child chain", %{alice: alice, bob: bob, state_empty: state} do
+    # FIXME: dry the tests (this and above)!
+    state =
+      state
+      |> TestHelper.do_deposit(alice, %{amount: 100, currency: eth(), blknum: 1})
+
+    utxos = %{
+      address: alice.addr,
+      utxos: [
+        %{amount: 100, currency: eth(), blknum: 1, oindex: 0, txindex: 0}
+      ]
+    }
+
+    {:ok, raw_transaction} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42})
+
+    {:ok, transaction} =
+      raw_transaction
+      |> Transaction.sign(alice.priv, <<>>)
+      |> Transaction.Signed.encode()
+      |> API.Core.recover_tx()
+
+    assert {{:ok, _, _, _}, _state} =
+             transaction
+             |> Core.exec(%{eth() => 0}, state)
+  end
+
+  @tag fixtures: [:alice, :state_empty, :bob]
+  test "Transactions created by :new and :create_from_utxos should be equal", %{alice: alice, bob: bob} do
+    utxos = %{
+      address: alice.addr,
+      utxos: [
+        %{amount: 10, currency: eth(), blknum: 1, oindex: 0, txindex: 0},
+        %{amount: 11, currency: eth(), blknum: 2, oindex: 0, txindex: 0}
+      ]
+    }
+
+    {:ok, tx1} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 16})
+
+    tx2 =
+      Transaction.new(
+        [{1, 0, 0}, {2, 0, 0}],
+        eth(),
+        [{bob.addr, 16}, {alice.addr, 5}]
+      )
+
+    assert tx1 == tx2
+  end
+
   @tag fixtures: [:alice, :bob]
   test "different signers, one output", %{alice: alice, bob: bob} do
     tx =

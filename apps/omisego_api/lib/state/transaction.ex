@@ -39,51 +39,52 @@ defmodule OmiseGO.API.State.Transaction do
 
   @type currency :: Crypto.address_t()
 
-  # TODO: a helper function with limited functionality, used in tests; move to test helpers
-  def create_from_utxos(%{utxos: utxos}, _) when length(utxos) > @max_inputs,
-    do: {:error, :too_many_utxo}
+  @doc """
+  Creates transaction from utxos where first output belongs to receiver and second belongs to owner of utxos
+  and the amount decreased by receiver's amount and the fee.
 
-  def create_from_utxos(%{utxos: utxos} = inputs, receiver) do
-    with {:ok, cur1} <- validate_currency(utxos) do
-      do_create_from_utxos(inputs, cur1, receiver)
+  assumptions:
+   length(utxos) = 1 | 2
+  """
+  @spec create_from_utxos(
+          %{address: Crypto.address_t(), utxos: map()},
+          %{address: Crypto.address_t(), amount: pos_integer()},
+          fee :: non_neg_integer()
+        ) :: {:ok, t()} | {:error, atom()}
+  def create_from_utxos(sender_utxos, receiver, fee \\ 0)
+  def create_from_utxos(_utxos, _receiver, fee) when fee < 0, do: {:error, :invalid_fee}
+  def create_from_utxos(%{utxos: utxos}, _, _) when length(utxos) > @max_inputs, do: {:error, :too_many_utxo}
+
+  def create_from_utxos(%{utxos: utxos} = inputs, receiver, fee) do
+    with {:ok, currency} <- validate_currency(utxos) do
+      do_create_from_utxos(inputs, currency, receiver, fee)
     end
   end
 
+  @dialyzer {:no_match, [do_create_from_utxos: 4]}
   defp do_create_from_utxos(
-         %{address: change_address, utxos: utxos},
-         cur1,
-         %{address: receiver_address, amount: amount}
+         %{address: sender_address, utxos: utxos},
+         currency,
+         %{address: receiver_address, amount: amount},
+         fee
        ) do
-    parts_transaction =
+    total_amount =
       utxos
-      |> Enum.with_index(1)
-      |> Enum.map(fn {utxo, number} ->
-        %{
-          String.to_existing_atom("blknum#{number}") => utxo.blknum,
-          String.to_existing_atom("txindex#{number}") => utxo.txindex,
-          String.to_existing_atom("oindex#{number}") => utxo.oindex,
-          amount: utxo.amount
-        }
+      |> Enum.map(&Map.fetch!(&1, :amount))
+      |> Enum.sum()
+
+    inputs =
+      utxos
+      |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} ->
+        {blknum, txindex, oindex}
       end)
 
-    all_amount = Enum.reduce(parts_transaction, 0, &(&1.amount + &2))
+    outputs = [
+      {receiver_address, amount},
+      {sender_address, total_amount - amount - fee}
+    ]
 
-    transaction =
-      Enum.reduce(parts_transaction, %{cur12: cur1}, fn part_transaction, acc ->
-        {_, part_transaction} = Map.pop(part_transaction, :amount)
-        Map.merge(acc, part_transaction)
-      end)
-
-    transaction =
-      struct!(
-        __MODULE__,
-        Map.merge(transaction, %{
-          newowner1: receiver_address,
-          amount1: amount,
-          newowner2: change_address,
-          amount2: all_amount - amount
-        })
-      )
+    transaction = new(inputs, currency, outputs)
 
     case validate(transaction) do
       :ok -> {:ok, transaction}
@@ -96,10 +97,11 @@ defmodule OmiseGO.API.State.Transaction do
 
   defp validate_currency([%{currency: cur1} | _]), do: {:ok, cur1}
 
-  defp validate(%__MODULE__{} = transaction) do
+  @dialyzer {:no_match, [validate: 1]}
+  defp validate(%__MODULE__{amount1: amount1, amount2: amount2}) do
     cond do
-      transaction.amount1 < 0 -> {:error, :amount_negative_value}
-      transaction.amount2 < 0 -> {:error, :amount_negative_value}
+      amount1 < 0 -> {:error, :amount_negative_value}
+      amount2 < 0 -> {:error, :amount_negative_value}
       true -> :ok
     end
   end
