@@ -30,12 +30,6 @@ defmodule OmiseGO.API.Core do
          do: Transaction.Recovered.recover_from(signed_tx)
   end
 
-  def signed_tx(encoded_signed_tx) do
-    with {:ok, signed_tx} <- Transaction.Signed.decode(encoded_signed_tx),
-         :ok <- valid?(signed_tx),
-         do: {:ok, signed_tx}
-  end
-
   defp valid?(%Transaction.Signed{
          raw_tx: %Transaction{
            blknum1: 0,

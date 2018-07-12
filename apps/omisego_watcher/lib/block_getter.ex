@@ -18,17 +18,17 @@ defmodule OmiseGOWatcher.BlockGetter do
   def get_block(number) do
     with {:ok, {hash, _time}} <- Eth.get_child_chain(number),
          {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: hash}) do
-      Core.decode_validate_block(Map.put(json_block, "number", number))
+      if {:ok, hash} == Base.decode16(json_block["hash"]),
+        do: Core.decode_validate_block(Map.put(json_block, "number", number)),
+        else: {:error, :block_hash}
     end
   end
 
   def consume_block(%Block{transactions: transactions} = block) do
     # TODO add check in UtxoDB after deposit handle correctly
     state_exec =
-      for %Signed{raw_tx: %Transaction{cur12: cur12}} = tx <- transactions do
-        with {:ok, recover_tx} <- Recovered.recover_from(tx),
-             do: OmiseGO.API.State.exec(recover_tx, %{cur12 => 0})
-      end
+      for %Recovered{signed_tx: %Signed{raw_tx: %Transaction{cur12: cur12}}} = tx <- transactions,
+          do: OmiseGO.API.State.exec(tx, %{cur12 => 0})
 
     with nil <- Enum.find(state_exec, &(!match?({:ok, _, _, _}, &1))),
          response <- OmiseGOWatcher.TransactionDB.insert(block),

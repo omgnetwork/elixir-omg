@@ -97,7 +97,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
              Eth.get_exits(0, height, contract.contract_addr)
   end
 
-  @tag fixtures: [:watcher_sandbox, :contract, :alice]
+  @tag fixtures: [:watcher_sandbox, :geth, :contract, :alice]
   test "diffrent hash send by child chain", %{alice: alice, contract: contract} do
     defmodule BadChildChainHash do
       use JSONRPC2.Server.Handler
@@ -123,23 +123,27 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     # TODO receive information about errro
     TestHelper.wait_for_process(Process.whereis(:omisego_watcher))
-
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainHash)
   end
 
-  @tag fixtures: [:watcher_sandbox, :contract, :alice]
-  test "bad transaction", %{alice: alice, contract: contract} do
+  @tag fixtures: [:watcher_sandbox, :contract, :geth, :alice]
+  test "bad transaction with not existing utxo", %{alice: alice, contract: contract} do
     defmodule BadChildChainTransaction do
       use JSONRPC2.Server.Handler
 
       def handle_request(_, _) do
-        %{
-          hash: "8BE7BCF154F9484A7762268C93B02D2507EE8475CF02F8F94A3032A3BE5FC7D8",
-          transactions: [
-            "F8D28207D1808080808094000000000000000000000000000000000000000094DF97E6CC462B33C784214708B3365B42768AC9848202BC948315C85F760DBD875395B2169EB2BFCCE3FD855B81C8B8415050FC74F82E49684D3D14F42AA161714FADDB3BC7F78DE75CB92903CCEE024A73292302E69230C45E7967F5F0630E4247C733D2A8B3AA9DB518E8B680F124241CB8410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-            "F8D38279198080808080940000000000000000000000000000000000000000948315C85F760DBD875395B2169EB2BFCCE3FD855B8201F494B882E2B1513B5CEC838DCBE55D3F38FB61EEEBF0820190B84165CABB615E2F1969CFD2F81945E1DBD47AB471183728EB5586482A44ECD9550325B75545CCB5DDD17BE0322A7D978379458DC31435FACBFF4A7275D6909D93321CB8410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-          ]
+        alice = %{
+          addr: <<24, 220, 32, 219, 73, 254, 191, 110, 255, 199, 70, 131, 226, 124, 105, 88, 140, 140, 20, 83>>,
+          priv:
+            <<28, 154, 156, 164, 46, 175, 188, 174, 214, 255, 70, 155, 142, 175, 44, 193, 21, 122, 229, 84, 131, 20,
+              125, 164, 97, 75, 230, 92, 255, 5, 25, 96>>
         }
+
+        recovered =
+          OmiseGO.API.TestHelper.create_recovered([{0, 0, 0, alice}], OmiseGO.API.Crypto.zero_address(), [{alice, 10}])
+
+        block = %API.Block{transactions: [recovered], number: 1} |> API.Block.merkle_hash()
+        OmiseGO.JSONRPC.Client.encode(%{block | transactions: [recovered.signed_tx.signed_tx_bytes]})
       end
     end
 
@@ -152,7 +156,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       Eth.submit_block(
         %Eth.BlockSubmission{
           num: 1_000,
-          hash: Base.decode16!("8BE7BCF154F9484A7762268C93B02D2507EE8475CF02F8F94A3032A3BE5FC7D8"),
+          hash: Base.decode16!("7F2D25B4C585D9DEE0A88E93742A097B6BEEA2F5A7B374199D3F68B8870D98BE"),
           nonce: 1,
           gas_price: 20_000_000_000
         },

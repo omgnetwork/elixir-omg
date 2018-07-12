@@ -116,14 +116,15 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
       block =
       Block.merkle_hash(%Block{
         transactions: [
-          API.TestHelper.create_signed([{1_000, 20, 0, alice}, {3_000, 1, 1, bob}], @eth, [{alice, 300}]),
-          API.TestHelper.create_signed([{5_000, 1, 0, alice}], @eth, [{bob, 100}, {bob, 200}])
+          API.TestHelper.create_recovered([{1_000, 20, 0, alice}, {3_000, 1, 1, bob}], @eth, [{alice, 300}]),
+          API.TestHelper.create_recovered([{5_000, 1, 0, alice}], @eth, [{bob, 100}, {bob, 200}])
         ],
         number: 30_000
       })
 
     json_block =
-      for {key, val} <- Map.from_struct(Map.put(block, :transactions, Enum.map(transactions, & &1.signed_tx_bytes))),
+      for {key, val} <-
+            Map.from_struct(Map.put(block, :transactions, Enum.map(transactions, & &1.signed_tx.signed_tx_bytes))),
           into: %{},
           do: {Atom.to_string(key), val}
 
@@ -143,7 +144,11 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
              %{
                "hash" => String.duplicate("A", 64),
                "transactions" => [
-                 API.TestHelper.create_signed([{1_000, 20, 0, alice}], @eth, [{alice, 100}]).signed_tx_bytes
+                 API.TestHelper.create_recovered(
+                   [{1_000, 20, 0, alice}],
+                   @eth,
+                   [{alice, 100}]
+                 ).signed_tx.signed_tx_bytes
                ],
                "number" => 23
              }
@@ -154,7 +159,11 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
              %{
                "hash" => "",
                "transactions" => [
-                 API.TestHelper.create_signed([{1_000, 20, 0, alice}], @eth, [{alice, 100}]).signed_tx_bytes,
+                 API.TestHelper.create_recovered(
+                   [{1_000, 20, 0, alice}],
+                   @eth,
+                   [{alice, 100}]
+                 ).signed_tx.signed_tx_bytes,
                  "12321231AB2331"
                ],
                "number" => 1
@@ -165,7 +174,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     assert {:error, :no_inputs} ==
              %{
                "hash" => "",
-               "transactions" => [API.TestHelper.create_signed([], @eth, []).signed_tx_bytes],
+               "transactions" => [API.TestHelper.create_recovered([], @eth, []).signed_tx.signed_tx_bytes],
                "number" => 1
              }
              |> Client.encode()
