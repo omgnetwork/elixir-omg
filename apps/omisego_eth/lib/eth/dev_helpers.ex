@@ -156,7 +156,7 @@ defmodule OmiseGO.Eth.DevHelpers do
       {:error, reason} ->
         raise(
           RuntimeError,
-          "populus/build/contracts.json not read because #{reason}, try running mix deps.compile plasma_mvp_contracts"
+          "populus/build/contracts.json not read because #{reason}, try running mix deps.compile plasma_contracts"
         )
     end
   end
