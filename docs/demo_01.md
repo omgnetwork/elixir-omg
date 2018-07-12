@@ -37,9 +37,11 @@ bob = TestHelper.generate_entity()
 # to do this, look in the logs inside the receipt printed just above
 deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
 
+eth = Transaction.zero_address()
+
 # create and prepare transaction for singing
 tx =
-  Transaction.new([{deposit_blknum, 0, 0}], "0x0000000000000000000000000000000000000000", [{bob.addr, 7}, {alice.addr, 3}]) |>
+  Transaction.new([{deposit_blknum, 0, 0}], eth, [{bob.addr, 7}, {alice.addr, 3}]) |>
   Transaction.sign(alice.priv, <<>>) |>
   Transaction.Signed.encode() |>
   Base.encode16()

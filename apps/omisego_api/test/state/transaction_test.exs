@@ -92,10 +92,7 @@ defmodule OmiseGO.API.State.TransactionTest do
     assert {:error, :amount_negative_value} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30_000})
 
     assert {:error, :too_many_utxo} ==
-             Transaction.create_from_utxos(
-               %{utxos | utxos: utxos.utxos ++ utxos.utxos},
-               %{address: "Joe", amount: 3}
-             )
+             Transaction.create_from_utxos(%{utxos | utxos: utxos.utxos ++ utxos.utxos}, %{address: "Joe", amount: 3})
 
     assert {:error, :invalid_fee} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 4}, -1)
 
@@ -104,11 +101,7 @@ defmodule OmiseGO.API.State.TransactionTest do
     utxos_with_more_currencies =
       update_in(
         utxos[:utxos],
-        &List.replace_at(
-          &1,
-          0,
-          %{first_utxo | currency: <<1::size(160)>>}
-        )
+        &List.replace_at(&1, 0, %{first_utxo | currency: <<1::size(160)>>})
       )
 
     assert {:error, :currency_mixing_not_possible} ==
@@ -182,12 +175,7 @@ defmodule OmiseGO.API.State.TransactionTest do
 
     {:ok, tx1} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 16})
 
-    tx2 =
-      Transaction.new(
-        [{1, 0, 0}, {2, 0, 0}],
-        eth(),
-        [{bob.addr, 16}, {alice.addr, 5}]
-      )
+    tx2 = Transaction.new([{1, 0, 0}, {2, 0, 0}], eth(), [{bob.addr, 16}, {alice.addr, 5}])
 
     assert tx1 == tx2
   end
