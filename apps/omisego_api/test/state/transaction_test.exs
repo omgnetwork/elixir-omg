@@ -92,10 +92,7 @@ defmodule OmiseGO.API.State.TransactionTest do
     assert {:error, :amount_negative_value} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 30_000})
 
     assert {:error, :too_many_utxo} ==
-             Transaction.create_from_utxos(
-               %{utxos | utxos: utxos.utxos ++ utxos.utxos},
-               %{address: "Joe", amount: 3}
-             )
+             Transaction.create_from_utxos(%{utxos | utxos: utxos.utxos ++ utxos.utxos}, %{address: "Joe", amount: 3})
   end
 
   @tag fixtures: [:alice, :state_empty, :bob]

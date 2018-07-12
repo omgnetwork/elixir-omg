@@ -36,5 +36,7 @@ your_config_file.exs
 fprof.trace
 perf_result_*
 
+*.statistics
+
 # Common virtualenv directory
 env/

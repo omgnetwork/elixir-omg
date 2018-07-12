@@ -6,14 +6,11 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   use OmiseGO.DB.Fixtures
 
   deffixture config_map(contract) do
-    Map.merge(
-      contract,
-      %{
-        child_block_interval: 1000,
-        ethereum_event_block_finality_margin: 1,
-        ethereum_event_get_deposits_interval_ms: 10
-      }
-    )
+    Map.merge(contract, %{
+      child_block_interval: 1000,
+      ethereum_event_block_finality_margin: 1,
+      ethereum_event_get_deposits_interval_ms: 10
+    })
   end
 
   deffixture child_chain(config_map) do
@@ -109,5 +106,24 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   deffixture watcher_sandbox(watcher) do
     _ = watcher
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(OmiseGOWatcher.Repo, {:shared, self()})
+  end
+
+  deffixture phoenix_ecto_sandbox do
+    import Supervisor.Spec
+
+    {:ok, pid} =
+      Supervisor.start_link(
+        [supervisor(OmiseGOWatcher.Repo, []), supervisor(OmiseGOWatcherWeb.Endpoint, [])],
+        strategy: :one_for_one,
+        name: OmiseGOWatcher.Supervisor
+      )
+
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
+    # setup and body test are performed in one process, `on_exit` is performed in another
+    on_exit(fn ->
+      OmiseGOWatcher.TestHelper.wait_for_process(pid)
+      :ok
+    end)
   end
 end

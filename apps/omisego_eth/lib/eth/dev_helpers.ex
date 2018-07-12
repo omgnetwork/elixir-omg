@@ -115,6 +115,23 @@ defmodule OmiseGO.Eth.DevHelpers do
     deposit_blknum
   end
 
+  def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, gas_price, from, contract) do
+    data =
+      "challengeExit(uint256,uint256,bytes,bytes,bytes)"
+      |> ABI.encode([cutxopo, eutxoindex, txbytes, proof, sigs])
+      |> Base.encode16()
+
+    gas = 1_000_000
+
+    Ethereumex.HttpClient.eth_send_transaction(%{
+      from: from,
+      to: contract,
+      data: "0x#{data}",
+      gas: encode_eth_rpc_unsigned_int(gas),
+      gasPrice: encode_eth_rpc_unsigned_int(gas_price)
+    })
+  end
+
   def mine_eth_dev_block do
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
     txmap = %{from: addr, to: addr, value: "0x1"}
