@@ -126,12 +126,13 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainHash)
   end
 
-  @tag fixtures: [:watcher_sandbox, :contract, :geth, :alice]
-  test "bad transaction with not existing utxo", %{alice: alice, contract: contract} do
+  @tag fixtures: [:watcher_sandbox, :contract, :geth]
+  test "bad transaction with not existing utxo", %{contract: contract} do
     defmodule BadChildChainTransaction do
       use JSONRPC2.Server.Handler
+      alias OmiseGO.API.State.Transaction.{Recovered, Signed}
 
-      def handle_request(_, _) do
+      def block_with_incorrect_transaction do
         alice = %{
           addr: <<24, 220, 32, 219, 73, 254, 191, 110, 255, 199, 70, 131, 226, 124, 105, 88, 140, 140, 20, 83>>,
           priv:
@@ -140,10 +141,17 @@ defmodule OmiseGOWatcher.BlockGetterTest do
         }
 
         recovered =
-          OmiseGO.API.TestHelper.create_recovered([{0, 0, 0, alice}], OmiseGO.API.Crypto.zero_address(), [{alice, 10}])
+          OmiseGO.API.TestHelper.create_recovered([{1, 0, 0, alice}], OmiseGO.API.Crypto.zero_address(), [{alice, 10}])
 
-        block = %API.Block{transactions: [recovered], number: 1} |> API.Block.merkle_hash()
-        OmiseGO.JSONRPC.Client.encode(%{block | transactions: [recovered.signed_tx.signed_tx_bytes]})
+        %API.Block{transactions: [recovered], number: 1} |> API.Block.merkle_hash()
+      end
+
+      def handle_request(_, _) do
+        %API.Block{
+          transactions: [%Recovered{signed_tx: %Signed{signed_tx_bytes: signed_tx_bytes}}]
+        } = block = block_with_incorrect_transaction()
+
+        OmiseGO.JSONRPC.Client.encode(%{block | transactions: [signed_tx_bytes]})
       end
     end
 
@@ -152,11 +160,13 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       port: Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
     )
 
+    %API.Block{hash: hash} = BadChildChainTransaction.block_with_incorrect_transaction()
+
     {:ok, _txhash} =
       Eth.submit_block(
         %Eth.BlockSubmission{
           num: 1_000,
-          hash: Base.decode16!("7F2D25B4C585D9DEE0A88E93742A097B6BEEA2F5A7B374199D3F68B8870D98BE"),
+          hash: hash,
           nonce: 1,
           gas_price: 20_000_000_000
         },
