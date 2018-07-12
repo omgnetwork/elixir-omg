@@ -128,7 +128,7 @@ defmodule OmiseGO.API.State.TransactionTest do
 
   @tag fixtures: [:alice, :state_empty, :bob]
   test "using created transaction with one input in child chain", %{alice: alice, bob: bob, state_empty: state} do
-    # FIXME: dry the tests (this and above)!
+    # TODO: dry the tests (this and above)!
     state =
       state
       |> TestHelper.do_deposit(alice, %{amount: 100, currency: eth(), blknum: 1})
