@@ -9,6 +9,8 @@ defmodule OmiseGOWatcher.BlockGetter do
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.UtxoDB
+  alias OmiseGOWatcher.Eventer
+  alias OmiseGOWatcher.Eventer.Event
 
   @spec get_block(pos_integer()) :: {:ok, Block.t()}
   def get_block(number) do
@@ -39,6 +41,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:ok, block_number} = OmiseGO.DB.child_top_block_number()
     child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
     {:ok, _} = :timer.send_after(0, self(), :producer)
+    {:ok, _} = :timer.send_after(0, self(), :check_block_withholding)
 
     {:ok, Core.init(block_number, child_block_interval)}
   end
@@ -57,7 +60,39 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:noreply, new_state}
   end
 
-  def handle_info({_ref, {:got_block, {:ok, %Block{} = block}}}, state) do
+
+  def handle_info(:check_block_withholding, state) do
+    with  {:ok, new_state} <- Core.check_potential_block_withholdings(state),
+          {:ok, _} <- :timer.send_after(60_000, self(), :check_block_withholding) do
+      {:noreply, new_state}
+    else
+      error ->
+        Eventer.notify(%Event.BlockWithHoldings{blknums: elem(error, 1)})
+        {:stop, error, state}
+    end
+  end
+
+  def handle_info({_ref, {:got_block_failure, blknum}}, state) do
+    new_state = Core.add_potential_block_withholding(state, blknum)
+
+    receive do
+    after
+      30_000 ->
+        &Task.async(
+          fn -> case get_block(blknum) do
+                  {:ok, block} ->
+                    Core.remove_potential_block_withholding(state, blknum)
+                    {:got_block_success, block}
+                  {:error, _} -> {:got_block_failure, blknum}
+                end
+          end
+        )
+    end
+
+    {:noreply, new_state}
+  end
+
+  def handle_info({_ref, {:got_block_success, %Block{} = block}}, state) do
     {:ok, state} = Core.add_block(state, block)
     {new_state, blocks_to_consume} = Core.get_blocks_to_consume(state)
 
@@ -65,7 +100,8 @@ defmodule OmiseGOWatcher.BlockGetter do
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
     :ok = run_block_get_task(blocks_numbers)
 
-    :ok = blocks_to_consume |> Enum.each(&consume_block/1)
+    :ok = blocks_to_consume
+          |> Enum.each(&consume_block/1)
     {:noreply, new_state}
   end
 
@@ -74,8 +110,14 @@ defmodule OmiseGOWatcher.BlockGetter do
   defp run_block_get_task(blocks_numbers) do
     blocks_numbers
     |> Enum.each(
-      # captures the result in handle_info/2 with the atom: got_block
-      &Task.async(fn -> {:got_block, get_block(&1)} end)
-    )
+         # captures the result in handle_info/2 with got_block_success atom and handle_info/3 with got_block_failure atom
+         &Task.async(
+           fn -> case get_block(&1) do
+                   {:ok, block} -> {:got_block_success, block}
+                   {:error, _} -> {:got_block_failure, &1}
+                 end
+           end
+         )
+       )
   end
 end

@@ -147,4 +147,20 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
                "number" => 1
              })
   end
+
+  test "check error return by check_potential_block_withholdings" do
+    block_height = 0
+    interval = 1_000
+    chunk_size = 4
+    maximum_block_withholding_time = 0
+    state = Core.init(block_height, interval, chunk_size, maximum_block_withholding_time)
+
+    state = Core.add_potential_block_withholding(state, 1)
+    state = Core.add_potential_block_withholding(state, 2)
+
+    Process.sleep(1000)
+
+    assert {:error, :block_withholdings, [1, 2]} = Core.check_potential_block_withholdings(state)
+  end
+
 end

@@ -18,6 +18,12 @@ defmodule OmiseGOWatcher.Eventer.Core do
     address_received_events
   end
 
+  defp get_events_with_topic(%Event.BlockWithHoldings{} = event) do
+    [
+      {subtopic, Event.BlockWithHoldings.name(), event}
+    ]
+  end
+
   defp get_address_received_events(
          %{
            tx: %Transaction.Recovered{raw_tx: %Transaction{newowner1: newowner1, newowner2: newowner2}}

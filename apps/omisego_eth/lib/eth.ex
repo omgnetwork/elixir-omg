@@ -242,7 +242,7 @@ defmodule OmiseGO.Eth do
         |> Base.decode16!(case: :lower)
         |> ABI.TypeDecoder.decode_raw([{:bytes, 32}, {:uint, 256}])
 
-      %{root: root, tgimestamp: timestamp}
+      %{root: root, timestamp: timestamp}
     end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
