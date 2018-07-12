@@ -7,7 +7,8 @@ defmodule OmiseGOWatcherWeb.Socket do
   use Phoenix.Socket
 
   ## Channels
-  channel("address:*", OmiseGOWatcherWeb.RoomChannel)
+  channel("address:*", OmiseGOWatcherWeb.AddressChannel)
+  channel("byzantine", OmiseGOWatcherWeb.ByzantineChannel)
 
   ## Transports
   transport(:websocket, Phoenix.Transports.WebSocket)

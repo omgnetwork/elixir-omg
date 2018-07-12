@@ -40,7 +40,7 @@ defmodule OmiseGOWatcher.Eventer.Event do
     defstruct [:blknums]
 
     @type t :: %BlockWithHoldings{
-                blknum: list(pos_integer)
+                blknums: list(pos_integer)
                }
   end
 

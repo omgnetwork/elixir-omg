@@ -67,7 +67,7 @@ defmodule OmiseGOWatcher.BlockGetter do
       {:noreply, new_state}
     else
       error ->
-        Eventer.notify(%Event.BlockWithHoldings{blknums: elem(error, 1)})
+        Eventer.emit_event(%Event.BlockWithHoldings{blknums: elem(error, 1)})
         {:stop, error, state}
     end
   end
@@ -78,7 +78,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     receive do
     after
       30_000 ->
-        &Task.async(
+        Task.async(
           fn -> case get_block(blknum) do
                   {:ok, block} ->
                     Core.remove_potential_block_withholding(state, blknum)

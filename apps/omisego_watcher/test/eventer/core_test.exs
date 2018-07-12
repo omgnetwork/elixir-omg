@@ -40,7 +40,7 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
 
     event_2 = {"address:" <> encoded_bob_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
 
-    assert [event_1, event_2] == Eventer.Core.notify([%{tx: recovered_tx}])
+    assert [event_1, event_2] == Eventer.Core.prepare_events([%{tx: recovered_tx}])
   end
 
   @tag fixtures: [:alice, :bob]
@@ -70,6 +70,15 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
 
     event_owner_1 = {"address:" <> encoded_alice_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
 
-    assert [event_owner_1] == Eventer.Core.notify([%{tx: recovered_tx}])
+    assert [event_owner_1] == Eventer.Core.prepare_events([%{tx: recovered_tx}])
   end
+
+  test "notify function generates one block_withholdings event" do
+
+    block_withholding_event = %Event.BlockWithHoldings{blknums: [1, 2]}
+    event = {"byzantine", "block_withholdings", block_withholding_event}
+
+    assert event == Eventer.Core.prepare_event(block_withholding_event)
+  end
+
 end

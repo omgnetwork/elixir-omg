@@ -7,21 +7,25 @@ defmodule OmiseGOWatcher.Eventer.Core do
   alias OmiseGOWatcher.Eventer.Event
 
   @address_topic "address"
+  @byzantine_topic "byzantine"
 
-  @spec notify(any()) :: list({Event.t(), binary()})
-  def notify(event_triggers) do
+  @spec prepare_events(any()) :: list({binary(), binary(), Event.t()})
+  def prepare_events(event_triggers) do
     Enum.flat_map(event_triggers, &get_events_with_topic(&1))
+  end
+
+  @spec prepare_event(Event.t()) :: {binary(), binary(), Event.t()}
+  def prepare_event(event) do
+    get_event_with_topic(event)
+  end
+
+  defp get_event_with_topic(%Event.BlockWithHoldings{} = event) do
+      {@byzantine_topic, Event.BlockWithHoldings.name(), event}
   end
 
   defp get_events_with_topic(event_trigger) do
     address_received_events = get_address_received_events(event_trigger)
     address_received_events
-  end
-
-  defp get_events_with_topic(%Event.BlockWithHoldings{} = event) do
-    [
-      {subtopic, Event.BlockWithHoldings.name(), event}
-    ]
   end
 
   defp get_address_received_events(
