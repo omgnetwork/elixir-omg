@@ -96,6 +96,23 @@ defmodule OmiseGO.API.State.TransactionTest do
                %{utxos | utxos: utxos.utxos ++ utxos.utxos},
                %{address: "Joe", amount: 3}
              )
+
+    assert {:error, :invalid_fee} == Transaction.create_from_utxos(utxos, %{address: "Joe", amount: 4}, -1)
+
+    first_utxo = utxos[:utxos] |> hd
+
+    utxos_with_more_currencies =
+      update_in(
+        utxos[:utxos],
+        &List.replace_at(
+          &1,
+          0,
+          %{first_utxo | currency: <<1::size(160)>>}
+        )
+      )
+
+    assert {:error, :currency_mixing_not_possible} ==
+             Transaction.create_from_utxos(utxos_with_more_currencies, %{address: "Joe", amount: 4})
   end
 
   @tag fixtures: [:alice, :state_empty, :bob]
