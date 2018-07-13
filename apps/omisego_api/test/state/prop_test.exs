@@ -236,9 +236,8 @@ defmodule OmiseGO.API.State.PropTest do
      {{height, txindex, 1}, {nwr2, token, a2}}}
   end
 
-  defp split_to_amounts(utxo1, nil, _) do
-    {_, {_, _, left}} = utxo1
-    {left, 0}
+  defp split_to_amounts({_pos1, {_, _, left}}, nil, split) do
+    split_to_amounts(left, split)
   end
   defp split_to_amounts({_pos1, {_, _, left}}, {_pos2, {_, _, right}}, split) do
     split_to_amounts(left + right, split)
@@ -271,34 +270,5 @@ defmodule OmiseGO.API.State.PropTest do
 
     first = hd(cmds)
     assert {:set, {:var, 1}, {:call, __MODULE__, _, _}} = first
-  end
-
-  #################
-  # mad scenarios #
-  #################
-
-  @tag :scenario1
-  test "mad scenario 1" do
-    init()
-    {:ok, {side, _}} = CoreGS.deposit([%{amount: 10, blknum: 2001, currency: :eth, owner: :alice}])
-    assert length(side) > 0
-    eth_mine_block()
-    eth_mine_block() # 1
-    eth_mine_block() # 2
-    assert {:ok, _} = exec(
-      {{2001, 0, 0}, {:alice, :eth, 10}},
-      nil,
-      :carol,
-      :alice,
-      0.00868878925056881
-    )
-    eth_mine_block()
-    assert {:ok, _} = exec(
-      {{4000, 0, 1}, {:alice, :eth, 9}},
-      {{4000, 0, 0}, {:carol, :eth, 1}},
-      :carol,
-      :mallory,
-      0.8094797383430808
-    )
   end
 end
