@@ -5,7 +5,6 @@ defmodule OmiseGOWatcher.Challenger.Core do
 
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.State.Transaction.Recovered
   alias OmiseGOWatcher.Challenger.Challenge
   alias OmiseGOWatcher.TransactionDB
 

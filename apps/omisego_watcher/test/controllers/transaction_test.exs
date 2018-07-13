@@ -55,7 +55,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     assert [
              create_expected_transaction(txid_alice, alice_spend_recovered, 1, 0),
              create_expected_transaction(txid_bob, bob_spend_recovered, 1, 1)
-           ] == TransactionDB.find_by_txblknum(1) |> Enum.map(&delete_meta/1)
+           ] == 1 |> TransactionDB.find_by_txblknum() |> Enum.map(&delete_meta/1)
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -88,11 +88,6 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
 
     assert create_expected_transaction(txid_bob, bob_spend_recovered, 2, 0) ==
              delete_meta(TransactionDB.get_transaction_challenging_utxo(utxo2))
-  end
-
-  defp insert_and_assert_create_expected_transaction(%Block{transactions: transactions} = block) do
-    insert_info = TransactionDB.insert(block)
-    Transaction
   end
 
   defp create_expected_transaction(

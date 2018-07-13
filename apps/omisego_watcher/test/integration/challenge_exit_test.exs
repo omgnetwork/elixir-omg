@@ -5,7 +5,6 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
   use Plug.Test
 
   alias OmiseGO.API
-  alias OmiseGO.API.State.Transaction
   alias OmiseGO.Eth
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.Integration.TestHelper, as: IntegrationTest

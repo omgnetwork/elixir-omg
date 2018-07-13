@@ -7,10 +7,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   alias OmiseGO.API
   alias OmiseGO.Eth
   alias OmiseGO.JSONRPC.Client
-  alias OmiseGOWatcher.BlockGetter
   alias OmiseGOWatcher.TestHelper
   alias OmiseGOWatcher.Integration.TestHelper, as: IntegrationTest
-  alias OmiseGOWatcher.TestHelper, as: Test
 
   @moduletag :integration
 

@@ -147,7 +147,7 @@ defmodule OmiseGO.API.State do
     {_core_form_block_duration, core_form_block_result} =
       :timer.tc(fn -> Core.form_block(state, child_block_interval) end)
 
-    {:ok, {block, event_triggers, db_updates, new_state}} = core_form_block_result
+    {:ok, {_block, _event_triggers, db_updates, new_state}} = core_form_block_result
 
     :ok = DB.multi_update(db_updates)
     {:noreply, new_state}
