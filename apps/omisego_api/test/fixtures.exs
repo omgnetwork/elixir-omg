@@ -18,7 +18,8 @@ defmodule OmiseGO.API.Fixtures do
   deffixture(stable_bob(entities), do: entities.stable_bob)
 
   deffixture state_empty() do
-    Core.extract_initial_state([], 0, 0, OmiseGO.API.BlockQueue.child_block_interval())
+    {:ok, state} = Core.extract_initial_state([], 0, 0, OmiseGO.API.BlockQueue.child_block_interval())
+    state
   end
 
   deffixture state_alice_deposit(state_empty, alice) do
