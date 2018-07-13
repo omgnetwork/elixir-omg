@@ -40,8 +40,7 @@ defmodule OmiseGO.API.State.Transaction.Signed do
   end
 
   def decode(signed_tx_bytes) do
-    with {:ok, tx} <- rlp_decode(signed_tx_bytes),
-         do: reconstruct_tx(tx, signed_tx_bytes)
+    with {:ok, tx} <- rlp_decode(signed_tx_bytes), do: reconstruct_tx(tx, signed_tx_bytes)
   end
 
   defp rlp_decode(line) do
