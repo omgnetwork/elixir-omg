@@ -67,12 +67,7 @@ defmodule OmiseGO.API.State.PropTest do
   # helpers # (to be replaced by other moving parts of the system)
   ###########
 
-  # Commands (alias, wrappers, etc) (aliases are needed because of
-  # limitations of generators).
-
-  def eth_mine_block do
-    CoreGS.form_block(1000)
-  end
+  # Commands (alias, wrappers, etc)
 
   def exec(utxo1, utxo2, newowner1, newowner2, split) do
     {_, {spender1, _, _}} = utxo1
@@ -111,7 +106,7 @@ defmodule OmiseGO.API.State.PropTest do
                    false -> []
                  end
     rest = [
-      {:call, __MODULE__, :eth_mine_block, []},
+      {:call, CoreGS, :form_block, [1000]},
       # {:call, CoreGS, :exit_utxos, [[exit_utxo()]]},
     ]
     oneof(tx ++ deposit ++ rest)
@@ -129,7 +124,7 @@ defmodule OmiseGO.API.State.PropTest do
     trunc(blknum / 1000) * 1000 + 1000
   end
 
-  def next_state({op, eth}, _, {_, _, :eth_mine_block, _}) do
+  def next_state({op, eth}, _, {_, _, :form_block, _}) do
     {%{op | txindex: 0}, %{eth | blknum: next_blknum(eth.blknum)}}
   end
 
@@ -192,7 +187,7 @@ defmodule OmiseGO.API.State.PropTest do
     end
   end
 
-  def postcondition({_, _}, {_, _, :eth_mine_block, []}, {:ok, _}) do
+  def postcondition({_, _}, {_, _, :form_block, _}, {:ok, _}) do
     true
   end
 
