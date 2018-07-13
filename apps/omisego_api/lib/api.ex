@@ -23,7 +23,7 @@ defmodule OmiseGO.API do
           {:ok, %{hash: bitstring, transactions: list}} | {:error, :not_found | :internal_error}
   def get_block(hash) do
     with {:ok, %Block{hash: ^hash, transactions: transactions}} <- FreshBlocks.get(hash) do
-      {:ok, %{hash: hash, transactions: transactions |> Enum.map(& &1.signed_tx_bytes)}}
+      {:ok, %{hash: hash, transactions: transactions |> Enum.map(& &1.signed_tx.signed_tx_bytes)}}
     end
   end
 end

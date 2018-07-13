@@ -3,16 +3,19 @@ defmodule OmiseGOWatcher.Integration.TestHelper do
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.TestHelper, as: Test
 
-  def deposit_to_child_chain(to, value, config) do
+  def deposit_to_child_chain(to, value, contract) do
     {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
-    {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(value, 0, destiny_enc, config.contract_addr)
+    {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(value, 0, destiny_enc, contract.contract_addr)
     {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
     deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
 
     post_deposit_child_block =
-      deposit_blknum - 1 + (config.ethereum_event_block_finality_margin + 1) * config.child_block_interval
+      deposit_blknum - 1 +
+        (Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) + 1) *
+          Application.get_env(:omisego_eth, :child_block_interval)
 
-    {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000, config.contract_addr)
+    {:ok, _} =
+      Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000, contract.contract_addr)
 
     deposit_blknum
   end

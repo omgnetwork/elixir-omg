@@ -1,124 +1,114 @@
 defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-
+  use OmiseGO.API.Fixtures
   use Plug.Test
 
   alias OmiseGO.API.Block
-  alias OmiseGO.API.State.{Transaction, Transaction.Signed}
+  alias OmiseGO.API.State.Transaction.{Recovered, Signed}
   alias OmiseGOWatcher.TransactionDB
 
-  @zero_address <<0::size(160)>>
-
-  @signed_tx %Signed{
-    raw_tx: %Transaction{
-      blknum1: 0,
-      txindex1: 0,
-      oindex1: 0,
-      blknum2: 0,
-      txindex2: 0,
-      oindex2: 0,
-      cur12: @zero_address,
-      newowner1: @zero_address,
-      amount1: 1,
-      newowner2: @zero_address,
-      amount2: 0
-    },
-    sig1: <<1, 8, 10, 12>>,
-    sig2: <<14, 16, 18, 20>>
-  }
+  @eth OmiseGO.API.Crypto.zero_address()
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "insert and retrive transaction" do
     txblknum = 0
     txindex = 0
-    id = Signed.signed_hash(@signed_tx)
-
-    {:ok, %TransactionDB{txid: id}} = TransactionDB.insert(id, @signed_tx, txblknum, txindex)
-
-    expected_transaction = create_expected_transaction(id, @signed_tx, txblknum, txindex)
-
+    recovered_tx = OmiseGO.API.TestHelper.create_recovered([], @eth, [])
+    {:ok, %TransactionDB{txid: id}} = TransactionDB.insert(recovered_tx.signed_tx, txblknum, txindex)
+    expected_transaction = create_expected_transaction(id, recovered_tx, txblknum, txindex)
     assert expected_transaction == delete_meta(TransactionDB.get(id))
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
-  test "insert and retrive block of transactions" do
+  @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+  test "insert and retrive block of transactions ", %{alice: alice, bob: bob} do
     txblknum = 0
-
-    signed_tx_1 = @signed_tx
-    signed_tx_2 = put_in(@signed_tx.raw_tx.blknum1, 1)
+    recovered_tx1 = OmiseGO.API.TestHelper.create_recovered([{2, 3, 1, bob}], @eth, [{alice, 200}])
+    recovered_tx2 = OmiseGO.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [])
 
     [{:ok, %TransactionDB{txid: txid_1}}, {:ok, %TransactionDB{txid: txid_2}}] =
       TransactionDB.insert(%Block{
         transactions: [
-          signed_tx_1,
-          signed_tx_2
+          recovered_tx1,
+          recovered_tx2
         ],
         number: txblknum
       })
 
-    expected_transaction_1 = create_expected_transaction(txid_1, signed_tx_1, txblknum, 0)
-    expected_transaction_2 = create_expected_transaction(txid_2, signed_tx_2, txblknum, 1)
-
-    assert expected_transaction_1 == delete_meta(TransactionDB.get(txid_1))
-    assert expected_transaction_2 == delete_meta(TransactionDB.get(txid_2))
+    assert create_expected_transaction(txid_1, recovered_tx1, txblknum, 0) == delete_meta(TransactionDB.get(txid_1))
+    assert create_expected_transaction(txid_2, recovered_tx2, txblknum, 1) == delete_meta(TransactionDB.get(txid_2))
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
-  test "gets all transactions from a block" do
+  @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+  test "gets all transactions from a block", %{alice: alice, bob: bob} do
     assert [] == TransactionDB.find_by_txblknum(1)
 
-    tx1 = insert_tx(1, 0)
-    tx2 = insert_tx(1, 1)
-    insert_tx(2, 0)
+    alice_spend_recovered = OmiseGO.API.TestHelper.create_recovered([], @eth, [{alice, 100}])
+    bob_spend_recovered = OmiseGO.API.TestHelper.create_recovered([], @eth, [{bob, 200}])
 
-    assert [tx1, tx2] == TransactionDB.find_by_txblknum(1)
+    [{:ok, %TransactionDB{txid: txid_alice}}, {:ok, %TransactionDB{txid: txid_bob}}] =
+      TransactionDB.insert(%Block{
+        transactions: [alice_spend_recovered, bob_spend_recovered],
+        number: 1
+      })
+
+    assert [
+             create_expected_transaction(txid_alice, alice_spend_recovered, 1, 0),
+             create_expected_transaction(txid_bob, bob_spend_recovered, 1, 1)
+           ] == 1 |> TransactionDB.find_by_txblknum() |> Enum.map(&delete_meta/1)
   end
 
-  defp insert_tx(blknum, txindex) do
-    {signed_tx, id} = create_tx_with_id(blknum, txindex)
-    {:ok, tx} = TransactionDB.insert(id, signed_tx, blknum, txindex)
-    tx
-  end
-
-  defp create_tx_with_id(blknum, txindex) do
-    tx = %{@signed_tx.raw_tx | blknum1: blknum, txindex1: txindex}
-    signed_tx = %Signed{raw_tx: tx, sig1: <<>>, sig2: <<>>}
-    id = Signed.signed_hash(signed_tx)
-    {signed_tx, id}
-  end
-
-  @tag fixtures: [:phoenix_ecto_sandbox]
-  test "gets transaction that spends utxo" do
+  @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+  test "gets transaction that spends utxo", %{alice: alice, bob: bob} do
     utxo1 = %{blknum: 1, txindex: 0, oindex: 0}
     utxo2 = %{blknum: 2, txindex: 0, oindex: 0}
     :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo1)
     :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo2)
 
-    test_transaction_spends_utxo(utxo1, 0)
+    alice_spend_recovered = OmiseGO.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [])
+
+    [{:ok, %TransactionDB{txid: txid_alice}}] =
+      TransactionDB.insert(%Block{
+        transactions: [alice_spend_recovered],
+        number: 1
+      })
+
+    assert create_expected_transaction(txid_alice, alice_spend_recovered, 1, 0) ==
+             delete_meta(TransactionDB.get_transaction_challenging_utxo(utxo1))
+
     :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo2)
-    test_transaction_spends_utxo(utxo2, 1)
+
+    bob_spend_recovered = OmiseGO.API.TestHelper.create_recovered([{2, 0, 0, bob}], @eth, [])
+
+    [{:ok, %TransactionDB{txid: txid_bob}}] =
+      TransactionDB.insert(%Block{
+        transactions: [bob_spend_recovered],
+        number: 2
+      })
+
+    assert create_expected_transaction(txid_bob, bob_spend_recovered, 2, 0) ==
+             delete_meta(TransactionDB.get_transaction_challenging_utxo(utxo2))
   end
 
-  defp test_transaction_spends_utxo(utxo, txindex) do
-    {signed_tx, id} = create_tx_with_id(utxo.blknum, 0)
-    {:ok, _} = TransactionDB.insert(id, signed_tx, 2, txindex)
-    expected_tx = create_expected_transaction(id, signed_tx, 2, txindex)
-
-    {:ok, actual_tx} = TransactionDB.get_transaction_challenging_utxo(utxo)
-    assert expected_tx == delete_meta(actual_tx)
-  end
-
-  defp create_expected_transaction(txid, signed_tx, txblknum, txindex) do
+  defp create_expected_transaction(
+         txid,
+         %Recovered{signed_tx: %Signed{raw_tx: transaction, sig1: sig1, sig2: sig2}},
+         txblknum,
+         txindex
+       ) do
     %TransactionDB{
       txblknum: txblknum,
       txindex: txindex,
       txid: txid,
-      sig1: signed_tx.sig1,
-      sig2: signed_tx.sig2
+      sig1: sig1,
+      sig2: sig2
     }
-    |> Map.merge(Map.from_struct(signed_tx.raw_tx))
+    |> Map.merge(Map.from_struct(transaction))
     |> delete_meta
+  end
+
+  defp delete_meta({:ok, %TransactionDB{} = transaction}) do
+    Map.delete(transaction, :__meta__)
   end
 
   defp delete_meta(%TransactionDB{} = transaction) do

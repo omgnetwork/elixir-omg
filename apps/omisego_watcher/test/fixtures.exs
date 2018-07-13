@@ -4,39 +4,35 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
 
   use OmiseGO.Eth.Fixtures
   use OmiseGO.DB.Fixtures
+  alias OmiseGOWatcher.TestHelper
 
-  deffixture config_map(contract) do
-    Map.merge(contract, %{
-      child_block_interval: 1000,
-      ethereum_event_block_finality_margin: 1,
-      ethereum_event_get_deposits_interval_ms: 10
-    })
-  end
-
-  deffixture child_chain(config_map) do
+  deffixture child_chain(contract) do
     config_file_path = Briefly.create!(extname: ".exs")
     db_path = Briefly.create!(directory: true)
 
     config_file_path
     |> File.open!([:write])
     |> IO.binwrite("""
-      #{OmiseGO.Eth.DevHelpers.create_conf_file(config_map)}
+      #{OmiseGO.Eth.DevHelpers.create_conf_file(contract)}
 
       config :omisego_db,
         leveldb_path: "#{db_path}"
       config :logger, level: :debug
       config :omisego_eth,
-        child_block_interval: #{config_map.child_block_interval}
+        child_block_interval: #{Application.get_env(:omisego_eth, :child_block_interval)}
       config :omisego_api,
         fee_specs_file_path: "./fee_specs.json",
-        ethereum_event_block_finality_margin: #{config_map.ethereum_event_block_finality_margin},
-        ethereum_event_get_deposits_interval_ms: #{config_map.ethereum_event_get_deposits_interval_ms}
+        ethereum_event_block_finality_margin: #{
+      Application.get_env(:omisego_api, :ethereum_event_block_finality_margin)
+    },
+        ethereum_event_get_deposits_interval_ms: #{
+      Application.get_env(:omisego_api, :ethereum_event_get_deposits_interval_ms)
+    }
     """)
     |> File.close()
 
     {:ok, config} = File.read(config_file_path)
     Logger.debug(fn -> IO.ANSI.format([:blue, :bright, config], true) end)
-
     Logger.debug(fn -> "Starting db_init" end)
 
     exexec_opts_for_mix = [
@@ -89,7 +85,8 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     line
   end
 
-  deffixture watcher(db_initialized) do
+  deffixture watcher(db_initialized, root_chain_contract_config) do
+    :ok = root_chain_contract_config
     :ok = db_initialized
     {:ok, started_apps} = Application.ensure_all_started(:omisego_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omisego_watcher)
@@ -104,11 +101,12 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   end
 
   deffixture watcher_sandbox(watcher) do
-    _ = watcher
+    :ok = watcher
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
     Ecto.Adapters.SQL.Sandbox.mode(OmiseGOWatcher.Repo, {:shared, self()})
   end
 
+  @doc "run only database in sandbox and endpoint to make request"
   deffixture phoenix_ecto_sandbox do
     import Supervisor.Spec
 
@@ -122,7 +120,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(OmiseGOWatcher.Repo)
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
-      OmiseGOWatcher.TestHelper.wait_for_process(pid)
+      TestHelper.wait_for_process(pid)
       :ok
     end)
   end

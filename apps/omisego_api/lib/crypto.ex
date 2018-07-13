@@ -6,8 +6,9 @@ defmodule OmiseGO.API.Crypto do
 
   @type sig_t() :: <<_::520>>
   @type pub_key_t() :: <<_::512>>
-  @type priv_key_t() :: <<_::256>>
+  @type priv_key_t() :: <<_::256>> | <<>>
   @type address_t() :: <<_::160>>
+  def zero_address, do: <<0::160>>
   @dialyzer {:nowarn_function, generate_public_key: 1}
 
   @doc """

@@ -25,9 +25,7 @@ defmodule OmiseGOWatcher.UtxoDB do
   end
 
   defp consume_transaction(
-         %Signed{
-           raw_tx: %Transaction{} = transaction
-         } = signed_transaction,
+         %Signed{raw_tx: %Transaction{} = transaction, signed_tx_bytes: signed_tx_bytes},
          txindex,
          block_number
        ) do
@@ -38,16 +36,14 @@ defmodule OmiseGOWatcher.UtxoDB do
         blknum: block_number,
         txindex: txindex,
         oindex: Map.get(transaction, :"oindex#{number}"),
-        txbytes: signed_transaction |> Transaction.Signed.encode()
+        txbytes: signed_tx_bytes
       }
     end
 
     {Repo.insert(make_utxo_db.(transaction, 1)), Repo.insert(make_utxo_db.(transaction, 2))}
   end
 
-  defp remove_utxo(%Signed{
-         raw_tx: %Transaction{} = transaction
-       }) do
+  defp remove_utxo(%Signed{raw_tx: %Transaction{} = transaction}) do
     remove_from = fn transaction, number ->
       blknum = Map.get(transaction, :"blknum#{number}")
       txindex = Map.get(transaction, :"txindex#{number}")
@@ -69,7 +65,7 @@ defmodule OmiseGOWatcher.UtxoDB do
     numbered_transactions = Stream.with_index(transactions)
 
     numbered_transactions
-    |> Enum.map(fn {%Signed{} = signed, txindex} ->
+    |> Enum.map(fn {%Recovered{signed_tx: signed}, txindex} ->
       {remove_utxo(signed), consume_transaction(signed, txindex, block_number)}
     end)
   end
@@ -102,13 +98,8 @@ defmodule OmiseGOWatcher.UtxoDB do
 
   def compose_utxo_exit(txs, blknum, txindex, oindex) do
     sorted_txs = Enum.sort_by(txs, & &1.txindex)
-
-    recovered_txs = Enum.map_every(sorted_txs, 1, fn tx -> %Recovered{signed_tx_hash: tx.txid} end)
-
-    block = %Block{transactions: recovered_txs}
-
-    proof = Block.create_tx_proof(block, txindex)
-
+    hashed_txs = Enum.map_every(sorted_txs, 1, fn tx -> tx.txid end)
+    proof = Block.create_tx_proof(hashed_txs, txindex)
     tx = Enum.at(sorted_txs, txindex)
 
     %{
@@ -124,6 +115,12 @@ defmodule OmiseGOWatcher.UtxoDB do
   end
 
   def get_all, do: Repo.all(__MODULE__)
+
+  def get_utxo(addres) do
+    utxos = Repo.all(from(tr in __MODULE__, where: tr.address == ^addres, select: tr))
+    fields_names = List.delete(@field_names, :address)
+    Enum.map(utxos, &Map.take(&1, fields_names))
+  end
 
   @doc false
   def changeset(utxo_db, attrs) do

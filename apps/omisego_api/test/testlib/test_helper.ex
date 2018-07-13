@@ -30,7 +30,7 @@ defmodule OmiseGO.API.TestHelper do
           list({Crypto.address_t(), pos_integer})
         ) :: Transaction.Recovered.t()
   def create_recovered(inputs, currency, outputs) do
-    {signed_tx, _raw_tx} = create_signed(inputs, currency, outputs)
+    signed_tx = create_signed(inputs, currency, outputs)
     {:ok, recovered} = Transaction.Recovered.recover_from(signed_tx)
     recovered
   end
@@ -53,6 +53,11 @@ defmodule OmiseGO.API.TestHelper do
 
     [priv1, priv2 | _] = inputs |> Enum.map(fn {_, _, _, owner} -> owner.priv end) |> Enum.concat([<<>>, <<>>])
 
-    {Transaction.sign(raw_tx, priv1, priv2), raw_tx}
+    Transaction.sign(raw_tx, priv1, priv2)
+  end
+
+  def create_encoded(inputs, cur12, outputs) do
+    signed_tx = create_signed(inputs, cur12, outputs)
+    Transaction.Signed.encode(signed_tx)
   end
 end

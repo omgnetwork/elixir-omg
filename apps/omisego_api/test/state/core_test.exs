@@ -3,7 +3,6 @@ defmodule OmiseGO.API.State.CoreTest do
   use ExUnit.Case, async: true
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Core
-  alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.TestHelper, as: Test
 
   @child_block_interval OmiseGO.API.BlockQueue.child_block_interval()
@@ -14,7 +13,7 @@ defmodule OmiseGO.API.State.CoreTest do
   @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232, 237, 80, 242, 60, 209, 253, 249, 76,
                       145, 84, 237, 58, 118, 9, 162, 241, 255, 152, 31>>
 
-  defp eth, do: Transaction.zero_address()
+  defp eth, do: OmiseGO.API.Crypto.zero_address()
   defp not_eth, do: <<1::size(160)>>
   defp zero_fees_map, do: %{eth() => 0}
 

@@ -48,14 +48,15 @@ defmodule OmiseGO.API.State.Core do
           | {{:error, exec_error}, %Core{}}
   def exec(
         %Transaction.Recovered{
-          raw_tx: raw_tx,
+          signed_tx: %Transaction.Signed{
+            raw_tx: raw_tx = %Transaction{amount1: amount1, amount2: amount2, cur12: currency}
+          },
           spender1: spender1,
           spender2: spender2
         } = recovered_tx,
         fees,
         state
       ) do
-    %Transaction{amount1: amount1, amount2: amount2, cur12: currency} = raw_tx
     # for now just 1 currency supported
     fee = fees[currency]
 
@@ -194,12 +195,14 @@ defmodule OmiseGO.API.State.Core do
     db_updates_new_utxos =
       txs
       |> Enum.with_index()
-      |> Enum.flat_map(fn {%Transaction.Recovered{raw_tx: tx}, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
+      |> Enum.flat_map(fn {%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}}, tx_idx} ->
+        non_zero_utxos_from(tx, height, tx_idx)
+      end)
       |> Enum.map(&utxo_to_db_put/1)
 
     db_updates_spent_utxos =
       txs
-      |> Enum.flat_map(fn %Transaction.Recovered{raw_tx: tx} ->
+      |> Enum.flat_map(fn %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}} ->
         [{tx.blknum1, tx.txindex1, tx.oindex1}, {tx.blknum2, tx.txindex2, tx.oindex2}]
       end)
       |> Enum.filter(fn utxo_key -> utxo_key != {0, 0, 0} end)

@@ -4,9 +4,9 @@ defmodule OmiseGO.API.State.Transaction do
   """
 
   alias OmiseGO.API.Crypto
-  alias OmiseGO.API.State.Transaction.{Signed}
+  alias OmiseGO.API.State.Transaction.Signed
 
-  @zero_address <<0::size(160)>>
+  @zero_address Crypto.zero_address()
   @max_inputs 2
 
   defstruct [
@@ -113,7 +113,7 @@ defmodule OmiseGO.API.State.Transaction do
         ) :: t()
   def new(inputs, currency, outputs) do
     inputs = inputs ++ List.duplicate({0, 0, 0}, @max_inputs - Kernel.length(inputs))
-    outputs = outputs ++ List.duplicate({zero_address(), 0}, @max_inputs - Kernel.length(outputs))
+    outputs = outputs ++ List.duplicate({@zero_address, 0}, @max_inputs - Kernel.length(outputs))
 
     inputs =
       inputs
@@ -140,8 +140,6 @@ defmodule OmiseGO.API.State.Transaction do
 
     struct(__MODULE__, Map.merge(inputs, outputs))
   end
-
-  def zero_address, do: @zero_address
 
   def account_address?(@zero_address), do: false
   def account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
@@ -180,7 +178,8 @@ defmodule OmiseGO.API.State.Transaction do
     signature1 = signature(encoded_tx, priv1)
     signature2 = signature(encoded_tx, priv2)
 
-    %Signed{raw_tx: tx, sig1: signature1, sig2: signature2, signed_tx_bytes: nil}
+    transaction = %Signed{raw_tx: tx, sig1: signature1, sig2: signature2}
+    %{transaction | signed_tx_bytes: Signed.encode(transaction)}
   end
 
   defp signature(_encoded_tx, <<>>), do: <<0::size(520)>>

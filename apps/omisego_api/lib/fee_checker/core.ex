@@ -16,7 +16,7 @@ defmodule OmiseGO.API.FeeChecker.Core do
   """
   @spec transaction_fees(Recovered.t(), token_fee_t()) :: {:ok, token_fee_t()} | {:error, :token_not_allowed}
   def transaction_fees(
-        %Recovered{raw_tx: %Transaction{cur12: cur12}},
+        %Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}},
         token_fees
       ) do
     currencies = [cur12]

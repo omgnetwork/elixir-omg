@@ -30,7 +30,7 @@
   "hex_prefix": {:hex, :hex_prefix, "0.1.0", "e96b5cbb6ad8493196ce193726240023f5ce0ae0753118a19a5b43e2db0267ca", [:mix], [], "hexpm"},
   "httpoison": {:hex, :httpoison, "1.1.1", "96ed7ab79f78a31081bb523eefec205fd2900a02cda6dbc2300e7a1226219566", [:mix], [{:hackney, "~> 1.8", [hex: :hackney, repo: "hexpm", optional: false]}], "hexpm"},
   "idna": {:hex, :idna, "5.1.2", "e21cb58a09f0228a9e0b95eaa1217f1bcfc31a1aaa6e1fdf2f53a33f7dbd9494", [:rebar3], [{:unicode_util_compat, "0.3.1", [hex: :unicode_util_compat, repo: "hexpm", optional: false]}], "hexpm"},
-  "jsonrpc2": {:git, "https://github.com/omisego/jsonrpc2-elixir.git", "5544c46d0db6096d2c986d500d8296d794aac5a8", [branch: "precise_handling_of_FunctionClauseError"]},
+  "jsonrpc2": {:git, "https://github.com/omisego/jsonrpc2-elixir.git", "35590ba250c5a2897501c593a4b9d1be28312dea", [branch: "precise_handling_of_FunctionClauseError"]},
   "jsx": {:hex, :jsx, "2.8.3", "a05252d381885240744d955fbe3cf810504eb2567164824e19303ea59eef62cf", [:mix, :rebar3], [], "hexpm"},
   "keccakf1600": {:hex, :keccakf1600_orig, "2.0.0", "0a7217ddb3ee8220d449bbf7575ec39d4e967099f220a91e3dfca4dbaef91963", [:rebar3], [], "hexpm"},
   "libsecp256k1": {:hex, :libsecp256k1, "0.1.4", "42b7f76d8e32f85f578ccda0abfdb1afa0c5c231d1fd8aeab9cda352731a2d83", [:rebar3], [], "hexpm"},
