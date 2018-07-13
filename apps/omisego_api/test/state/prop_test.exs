@@ -13,6 +13,7 @@ defmodule OmiseGO.API.State.PropTest do
   alias OmiseGO.API.State.Transaction.Recovered
   @moduletag capture_log: true
 
+  #TODO: make aggregation and statistics informative
   @tag :prop
   property "core handles deposits", [:verbose, max_size: 100] do
     forall cmds <- commands(__MODULE__) do
@@ -111,7 +112,7 @@ defmodule OmiseGO.API.State.PropTest do
     ]
     oneof(tx ++ deposit ++ rest)
   end
-
+ 
   def initial_state do
     op = %{utxos: %{},   # {blknum, txindex, oindex} => {owner, token, amount}
            history: %{}, # {blknum, txindex, oindex} => {owner, token, amount}
