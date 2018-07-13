@@ -18,6 +18,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
   @tag fixtures: [:watcher_sandbox, :contract, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
   test "challenges invalid exit", %{contract: contract, alice: alice, bob: bob} do
     deposit_blknum = IntegrationTest.deposit_to_child_chain(alice, 10, contract)
+    # TODO remove slpeep after synch deposit synch
     :timer.sleep(100)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @zero_address, [{alice, 7}, {bob, 3}])
     {:ok, %{"blknum" => exiting_utxo_block_nr}} = Client.call(:submit, %{transaction: tx})

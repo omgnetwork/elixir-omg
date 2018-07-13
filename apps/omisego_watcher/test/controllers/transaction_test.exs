@@ -58,8 +58,8 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
            ] == 1 |> TransactionDB.find_by_txblknum() |> Enum.map(&delete_meta/1)
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-  test "gets transaction that spends utxo", %{alice: alice} do
+  @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+  test "gets transaction that spends utxo", %{alice: alice, bob: bob} do
     utxo1 = %{blknum: 1, txindex: 0, oindex: 0}
     utxo2 = %{blknum: 2, txindex: 0, oindex: 0}
     :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo1)
@@ -78,7 +78,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
 
     :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo2)
 
-    bob_spend_recovered = OmiseGO.API.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [])
+    bob_spend_recovered = OmiseGO.API.TestHelper.create_recovered([{2, 0, 0, bob}], @eth, [])
 
     [{:ok, %TransactionDB{txid: txid_bob}}] =
       TransactionDB.insert(%Block{

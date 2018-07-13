@@ -99,8 +99,8 @@ defmodule OmiseGO.API.State.Transaction.Signed do
     end
   end
 
-  # essentially - wrong number of fields after rlp deconding
-  defp reconstruct_tx(__singed_tx, _signed_tx_bytes) do
+  # essentially - wrong number of fields after rlp decoding
+  defp reconstruct_tx(_singed_tx, _signed_tx_bytes) do
     {:error, :malformed_transaction}
   end
 

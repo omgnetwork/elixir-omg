@@ -17,12 +17,12 @@ defmodule OmiseGOWatcher.Challenger.Core do
     eutxoindex = get_eutxo_index(challenging_tx, utxo_exit)
     cutxopos = challenging_utxo_pos(challenging_tx)
 
-    recovered_txs =
+    hashed_txs =
       txs
       |> Enum.sort_by(& &1.txindex)
       |> Enum.map(fn tx -> tx.txid end)
 
-    proof = Block.create_tx_proof(recovered_txs, challenging_tx.txindex)
+    proof = Block.create_tx_proof(hashed_txs, challenging_tx.txindex)
 
     Challenge.create(cutxopos, eutxoindex, txbytes, proof, challenging_tx.sig1 <> challenging_tx.sig2)
   end
