@@ -265,20 +265,4 @@ defmodule OmiseGO.API.State.PropTest do
       _ -> [{newowner1, a1}, {newowner2, a2}]
     end
   end
-
-  ###########################
-  # Testing the command generators and such
-  ###########################
-
-  @tag :gen_test
-  test "commands produces something" do
-    cmd_gen = commands(__MODULE__)
-    size = 10
-    {:ok, cmds} = produce(cmd_gen, size)
-
-    assert is_list(cmds)
-
-    first = hd(cmds)
-    assert {:set, {:var, 1}, {:call, __MODULE__, _, _}} = first
-  end
 end
