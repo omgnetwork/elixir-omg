@@ -39,6 +39,62 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     assert create_expected_transaction(txid_2, recovered_tx2, txblknum, 1) == delete_meta(TransactionDB.get(txid_2))
   end
 
+  @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+  test "gets all transactions from a block", %{alice: alice, bob: bob} do
+    assert [] == TransactionDB.find_by_txblknum(1)
+
+    alice_spend_recovered = OmiseGO.API.TestHelper.create_recovered([], @eth, [{alice, 100}])
+    bob_spend_recovered = OmiseGO.API.TestHelper.create_recovered([], @eth, [{bob, 200}])
+
+    [{:ok, %TransactionDB{txid: txid_alice}}, {:ok, %TransactionDB{txid: txid_bob}}] =
+      TransactionDB.insert(%Block{
+        transactions: [alice_spend_recovered, bob_spend_recovered],
+        number: 1
+      })
+
+    assert [
+             create_expected_transaction(txid_alice, alice_spend_recovered, 1, 0),
+             create_expected_transaction(txid_bob, bob_spend_recovered, 1, 1)
+           ] == TransactionDB.find_by_txblknum(1) |> Enum.map(&delete_meta/1)
+  end
+
+  @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+  test "gets transaction that spends utxo", %{alice: alice} do
+    utxo1 = %{blknum: 1, txindex: 0, oindex: 0}
+    utxo2 = %{blknum: 2, txindex: 0, oindex: 0}
+    :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo1)
+    :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo2)
+
+    alice_spend_recovered = OmiseGO.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [])
+
+    [{:ok, %TransactionDB{txid: txid_alice}}] =
+      TransactionDB.insert(%Block{
+        transactions: [alice_spend_recovered],
+        number: 1
+      })
+
+    assert create_expected_transaction(txid_alice, alice_spend_recovered, 1, 0) ==
+             delete_meta(TransactionDB.get_transaction_challenging_utxo(utxo1))
+
+    :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo2)
+
+    bob_spend_recovered = OmiseGO.API.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [])
+
+    [{:ok, %TransactionDB{txid: txid_bob}}] =
+      TransactionDB.insert(%Block{
+        transactions: [bob_spend_recovered],
+        number: 2
+      })
+
+    assert create_expected_transaction(txid_bob, bob_spend_recovered, 2, 0) ==
+             delete_meta(TransactionDB.get_transaction_challenging_utxo(utxo2))
+  end
+
+  defp insert_and_assert_create_expected_transaction(%Block{transactions: transactions} = block) do
+    insert_info = TransactionDB.insert(block)
+    Transaction
+  end
+
   defp create_expected_transaction(
          txid,
          %Recovered{signed_tx: %Signed{raw_tx: transaction, sig1: sig1, sig2: sig2}},
@@ -54,6 +110,10 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     }
     |> Map.merge(Map.from_struct(transaction))
     |> delete_meta
+  end
+
+  defp delete_meta({:ok, %TransactionDB{} = transaction}) do
+    Map.delete(transaction, :__meta__)
   end
 
   defp delete_meta(%TransactionDB{} = transaction) do

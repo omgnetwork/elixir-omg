@@ -31,8 +31,7 @@ defmodule OmiseGO.API.FreshBlocks.Core do
   def combine_getting_results(nil = _fresh_block, {:ok, [:not_found] = _fetched_blocks} = _db_result),
     do: {:error, :not_found}
 
-  def combine_getting_results(nil = _fresh_block, {:ok, [db_block] = _fetched_blocks} = _db_result),
-    do: {:ok, db_block}
+  def combine_getting_results(nil = _fresh_block, {:ok, [db_block] = _fetched_blocks} = _db_result), do: {:ok, db_block}
 
   def combine_getting_results(fresh_block, _db_result), do: {:ok, fresh_block}
 end

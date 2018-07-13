@@ -2,7 +2,6 @@ defmodule OmiseGOWatcher.TransactionDB do
   @moduledoc """
   Ecto Schema representing TransactionDB.
   """
-
   use Ecto.Schema
 
   import Ecto.Changeset
@@ -55,8 +54,8 @@ defmodule OmiseGOWatcher.TransactionDB do
     field(:txblknum, :integer)
     field(:txindex, :integer)
 
-    field(:sig1, :binary)
-    field(:sig2, :binary)
+    field(:sig1, :binary, default: <<>>)
+    field(:sig2, :binary, default: <<>>)
   end
 
   def get(id) do
@@ -103,5 +102,23 @@ defmodule OmiseGOWatcher.TransactionDB do
     transaction_db
     |> cast(attrs, @field_names)
     |> validate_required(@field_names)
+  end
+
+  @spec get_transaction_challenging_utxo(map()) :: {:ok, map()} | :utxo_not_spent
+  def get_transaction_challenging_utxo(%{blknum: blknum, txindex: txindex, oindex: oindex}) do
+    query =
+      from(
+        tx_db in __MODULE__,
+        where:
+          (tx_db.blknum1 == ^blknum and tx_db.txindex1 == ^txindex and tx_db.oindex1 == ^oindex) or
+            (tx_db.blknum2 == ^blknum and tx_db.txindex2 == ^txindex and tx_db.oindex2 == ^oindex)
+      )
+
+    txs = Repo.all(query)
+
+    case txs do
+      [] -> :utxo_not_spent
+      [tx] -> {:ok, tx}
+    end
   end
 end

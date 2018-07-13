@@ -9,6 +9,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.BlockGetter
   alias OmiseGOWatcher.TestHelper
+  alias OmiseGOWatcher.Integration.TestHelper, as: IntegrationTest
+  alias OmiseGOWatcher.TestHelper, as: Test
 
   @moduletag :integration
 
@@ -16,50 +18,16 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   @block_offset 1_000_000_000
   @eth OmiseGO.API.Crypto.zero_address()
 
-  defp deposit_to_child_chain(to, value, contract) do
-    {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
-    Eth.DevHelpers.deposit(value, 0, destiny_enc, contract.contract_addr)
-  end
-
-  defp wait_for_deposit({:ok, deposit_tx_hash}, contract) do
-    {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
-    deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
-
-    post_deposit_child_block =
-      deposit_blknum - 1 +
-        (Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) + 1) *
-          Application.get_env(:omisego_eth, :child_block_interval)
-
-    {:ok, _} =
-      Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000, contract.contract_addr)
-
-    deposit_blknum
-  end
-
-  defp wait_for_block_getter_get_block(block_number) do
-    block_has_been_reached = fn ->
-      # TODO use event system
-      case GenServer.call(BlockGetter, :get_height, 10_000) < block_number do
-        true -> :repeat
-        false -> {:ok, block_number}
-      end
-    end
-
-    fn -> Eth.WaitFor.repeat_until_ok(block_has_been_reached) end
-    |> Task.async()
-    |> Task.await(@timeout)
-  end
-
   @tag fixtures: [:watcher_sandbox, :contract, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
   test "get the blocks from child chain after transaction and start exit",
        %{contract: contract, alice: alice, bob: bob} do
-    deposit_blknum = alice |> deposit_to_child_chain(10, contract) |> wait_for_deposit(contract)
+    deposit_blknum = IntegrationTest.deposit_to_child_chain(alice, 10, contract)
     # TODO remove slpeep after synch deposit synch
     :timer.sleep(100)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx})
 
-    wait_for_block_getter_get_block(block_nr)
+    IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
 
     encode_tx = Client.encode(tx)
 
@@ -74,7 +42,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       tx_bytes: tx_bytes,
       proof: proof,
       sigs: sigs
-    } = compose_utxo_exit(block_nr, 0, 0)
+    } = IntegrationTest.compose_utxo_exit(block_nr, 0, 0)
 
     alice_address = "0x" <> Base.encode16(alice.addr, case: :lower)
 
@@ -89,7 +57,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
         contract.contract_addr
       )
 
-    {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
 
     {:ok, height} = Eth.get_ethereum_height()
 
@@ -113,7 +81,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       Eth.submit_block(
         %Eth.BlockSubmission{
           num: 1_000,
-          hash: OmiseGO.API.Crypto.zero_address(),
+          hash: @eth,
           nonce: 1,
           gas_price: 20_000_000_000
         },
@@ -130,6 +98,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   test "bad transaction with not existing utxo", %{contract: contract} do
     defmodule BadChildChainTransaction do
       use JSONRPC2.Server.Handler
+      alias OmiseGO.API
       alias OmiseGO.API.State.Transaction.{Recovered, Signed}
 
       def block_with_incorrect_transaction do
@@ -141,7 +110,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
         }
 
         recovered =
-          OmiseGO.API.TestHelper.create_recovered([{1, 0, 0, alice}], OmiseGO.API.Crypto.zero_address(), [{alice, 10}])
+          API.TestHelper.create_recovered([{1, 0, 0, alice}], OmiseGO.API.Crypto.zero_address(), [{alice, 10}])
 
         %API.Block{transactions: [recovered], number: 1} |> API.Block.merkle_hash()
       end
@@ -182,24 +151,5 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   defp get_utxo(%{addr: address}) do
     decoded_resp = TestHelper.rest_call(:get, "account/utxo?address=#{Client.encode(address)}")
     decoded_resp["utxos"]
-  end
-
-  defp compose_utxo_exit(block_height, txindex, oindex) do
-    decoded_resp =
-      TestHelper.rest_call(
-        :get,
-        "account/utxo/compose_exit?block_height=#{block_height}&txindex=#{txindex}&oindex=#{oindex}"
-      )
-
-    {:ok, tx_bytes} = Client.decode(:bitstring, decoded_resp["tx_bytes"])
-    {:ok, proof} = Client.decode(:bitstring, decoded_resp["proof"])
-    {:ok, sigs} = Client.decode(:bitstring, decoded_resp["sigs"])
-
-    %{
-      utxo_pos: decoded_resp["utxo_pos"],
-      tx_bytes: tx_bytes,
-      proof: proof,
-      sigs: sigs
-    }
   end
 end
