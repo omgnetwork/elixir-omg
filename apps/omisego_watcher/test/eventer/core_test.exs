@@ -75,8 +75,8 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
 
   test "notify function generates one block_withholdings event" do
 
-    block_withholding_event = %Event.BlockWithHoldings{blknums: [1, 2]}
-    event = {"byzantine", "block_withholdings", block_withholding_event}
+    block_withholding_event = %Event.BlockWithHolding{blknum: 1}
+    event = {"byzantine", "block_withholding", block_withholding_event}
 
     assert event == Eventer.Core.prepare_event(block_withholding_event)
   end

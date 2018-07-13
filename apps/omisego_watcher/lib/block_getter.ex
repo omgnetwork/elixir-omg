@@ -41,7 +41,6 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:ok, block_number} = OmiseGO.DB.child_top_block_number()
     child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
     {:ok, _} = :timer.send_after(0, self(), :producer)
-    {:ok, _} = :timer.send_after(0, self(), :check_block_withholding)
 
     {:ok, Core.init(block_number, child_block_interval)}
   end
@@ -60,36 +59,28 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:noreply, new_state}
   end
 
-
-  def handle_info(:check_block_withholding, state) do
-    with  {:ok, new_state} <- Core.check_potential_block_withholdings(state),
-          {:ok, _} <- :timer.send_after(60_000, self(), :check_block_withholding) do
+  def handle_info({_ref, {:got_block_failure, blknum}}, state) do
+    with  {:ok, new_state} <- Core.add_potential_block_withholding(state, blknum) do
+      receive do
+      after
+        30_000 ->
+          Task.async(
+            fn -> case get_block(blknum) do
+                    {:ok, block} ->
+                      Core.remove_potential_block_withholding(state, blknum)
+                      {:got_block_success, block}
+                    {:error, _} -> {:got_block_failure, blknum}
+                  end
+            end
+          )
+      end
       {:noreply, new_state}
     else
-      error ->
-        Eventer.emit_event(%Event.BlockWithHoldings{blknums: elem(error, 1)})
-        {:stop, error, state}
-    end
-  end
-
-  def handle_info({_ref, {:got_block_failure, blknum}}, state) do
-    new_state = Core.add_potential_block_withholding(state, blknum)
-
-    receive do
-    after
-      30_000 ->
-        Task.async(
-          fn -> case get_block(blknum) do
-                  {:ok, block} ->
-                    Core.remove_potential_block_withholding(state, blknum)
-                    {:got_block_success, block}
-                  {:error, _} -> {:got_block_failure, blknum}
-                end
-          end
-        )
+      {:error, :block_withholding, blknum} ->
+        Eventer.emit_event(%Event.BlockWithHolding{blknum: blknum})
+        {:stop, {:block_withholding, blknum}, state}
     end
 
-    {:noreply, new_state}
   end
 
   def handle_info({_ref, {:got_block_success, %Block{} = block}}, state) do

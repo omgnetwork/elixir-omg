@@ -152,7 +152,7 @@ defmodule OmiseGO.API.State do
         |> Map.put(:submited_at_ethheight, block_submission && block_submission.eth_height)
       end)
 
-    Eventer.notify(event_triggers)
+    Eventer.emit_events(event_triggers)
 
     {:noreply, new_state}
   end

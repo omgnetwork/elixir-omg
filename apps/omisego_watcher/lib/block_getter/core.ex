@@ -140,19 +140,28 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   end
 
   @doc "add potential block withholding"
-  @spec add_potential_block_withholding(%__MODULE__{}, non_neg_integer) :: {%__MODULE__{}}
+  @spec add_potential_block_withholding(%__MODULE__{}, non_neg_integer) :: {:ok, %__MODULE__{}} | {
+    :error,
+    :block_withholding,
+    list(non_neg_integer)
+  }
   def add_potential_block_withholding(
         %__MODULE__{
           potential_block_withholdings: potential_block_withholdings,
+          maximum_block_withholding_time: maximum_block_withholding_time
         } = state,
         blknum
       ) do
 
     current_time = :os.system_time(:millisecond)
+    blknum_time = Map.get(potential_block_withholdings, blknum)
 
-    potential_block_withholdings = Map.put_new(potential_block_withholdings, blknum, current_time)
-
-    %{state | potential_block_withholdings: potential_block_withholdings}
+    if blknum_time && current_time - blknum_time > maximum_block_withholding_time do
+      {:error, :block_withholding, blknum}
+    else
+      potential_block_withholdings = Map.put(potential_block_withholdings, blknum, current_time)
+      {:ok, %{state | potential_block_withholdings: potential_block_withholdings}}
+    end
   end
 
   @doc "remove potential block withholding"
@@ -167,33 +176,6 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     potential_block_withholdings = Map.delete(potential_block_withholdings, blknum)
 
     %{state | potential_block_withholdings: potential_block_withholdings}
-  end
-
-  @doc "check potential block withholdings"
-  @spec check_potential_block_withholdings(%__MODULE__{}) :: {:ok, %__MODULE__{}} | {
-    :error,
-    :block_withholdings,
-    list(non_neg_integer)
-  }
-  def check_potential_block_withholdings(
-        %__MODULE__{
-          potential_block_withholdings: potential_block_withholdings,
-          maximum_block_withholding_time: maximum_block_withholding_time
-        } = state
-      ) do
-    current_time = :os.system_time(:millisecond)
-
-    blknum_withholdings =
-      potential_block_withholdings
-      |> Enum.filter(fn {_blknum, time} -> current_time - time > maximum_block_withholding_time  end)
-      |> Enum.flat_map(fn {blknum, _time} -> [blknum] end)
-
-    if Enum.empty?(blknum_withholdings) do
-      {:ok, state}
-    else
-      {:error, :block_withholdings, blknum_withholdings}
-    end
-
   end
 
   @spec decode_block(block :: map) :: {:ok, Block.t()} | {:error, :incorrect_hash}

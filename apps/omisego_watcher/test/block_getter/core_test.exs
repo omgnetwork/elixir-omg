@@ -49,20 +49,26 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     assert {_, []} = Core.get_blocks_to_consume(state)
 
     assert {new_state, [%Block{number: 1_000}, %Block{number: 2_000}, %Block{number: 3_000}]} =
-             state |> add_block(%Block{number: 1_000}) |> Core.get_blocks_to_consume()
+             state
+             |> add_block(%Block{number: 1_000})
+             |> Core.get_blocks_to_consume()
 
     assert {_, [%Block{number: 4_000}, %Block{number: 5_000}, %Block{number: 6_000}]} =
-             new_state |> add_block(%Block{number: 4_000}) |> Core.get_blocks_to_consume()
+             new_state
+             |> add_block(%Block{number: 4_000})
+             |> Core.get_blocks_to_consume()
 
-    assert {_,
-            [
-              %Block{number: 1_000},
-              %Block{number: 2_000},
-              %Block{number: 3_000},
-              %Block{number: 4_000},
-              %Block{number: 5_000},
-              %Block{number: 6_000}
-            ]} =
+    assert {
+             _,
+             [
+               %Block{number: 1_000},
+               %Block{number: 2_000},
+               %Block{number: 3_000},
+               %Block{number: 4_000},
+               %Block{number: 5_000},
+               %Block{number: 6_000}
+             ]
+           } =
              state
              |> add_block(%Block{number: 1_000})
              |> add_block(%Block{number: 4_000})
@@ -102,22 +108,29 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     interval = 1_000
     chunk_size = 5
 
-    {state, [1_000]} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(2_000)
+    {state, [1_000]} = block_height
+                       |> Core.init(interval, chunk_size)
+                       |> Core.get_new_blocks_numbers(2_000)
 
-    assert {:error, :duplicate} = state |> add_block(%Block{number: 1_000}) |> Core.add_block(%Block{number: 1_000})
-    assert {:error, :unexpected_blok} = state |> Core.add_block(%Block{number: 2_000})
+    assert {:error, :duplicate} = state
+                                  |> add_block(%Block{number: 1_000})
+                                  |> Core.add_block(%Block{number: 1_000})
+    assert {:error, :unexpected_blok} = state
+                                        |> Core.add_block(%Block{number: 2_000})
   end
 
   test "simple decode block" do
     %Block{transactions: transactions} =
       block =
-      Block.merkle_hash(%Block{
-        transactions: [
-          API_Helper.create_recovered([], Transaction.zero_address(), []),
-          API_Helper.create_recovered([], Transaction.zero_address(), [])
-        ],
-        number: 1_000
-      })
+        Block.merkle_hash(
+          %Block{
+            transactions: [
+              API_Helper.create_recovered([], Transaction.zero_address(), []),
+              API_Helper.create_recovered([], Transaction.zero_address(), [])
+            ],
+            number: 1_000
+          }
+        )
 
     json =
       for {key, val} <- Map.from_struct(Map.put(block, :transactions, Enum.map(transactions, & &1.signed_tx_bytes))),
@@ -129,38 +142,41 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
   test "check error return by decode_block" do
     assert {:error, :incorrect_hash} ==
-             Core.decode_block(%{
-               "hash" => String.duplicate("A", 64),
-               "transactions" => [
-                 Client.encode(API_Helper.create_recovered([], Transaction.zero_address(), []).signed_tx_bytes)
-               ],
-               "number" => 23
-             })
+             Core.decode_block(
+               %{
+                 "hash" => String.duplicate("A", 64),
+                 "transactions" => [
+                   Client.encode(API_Helper.create_recovered([], Transaction.zero_address(), []).signed_tx_bytes)
+                 ],
+                 "number" => 23
+               }
+             )
 
     assert {:error, :malformed_transaction_rlp} ==
-             Core.decode_block(%{
-               "hash" => "",
-               "transactions" => [
-                 Client.encode(API_Helper.create_recovered([], Transaction.zero_address(), []).signed_tx_bytes),
-                 "12321231AB2331"
-               ],
-               "number" => 1
-             })
+             Core.decode_block(
+               %{
+                 "hash" => "",
+                 "transactions" => [
+                   Client.encode(API_Helper.create_recovered([], Transaction.zero_address(), []).signed_tx_bytes),
+                   "12321231AB2331"
+                 ],
+                 "number" => 1
+               }
+             )
   end
 
-  test "check error return by check_potential_block_withholdings" do
+  test "check error return by add_potential_block_withholding" do
     block_height = 0
     interval = 1_000
     chunk_size = 4
     maximum_block_withholding_time = 0
     state = Core.init(block_height, interval, chunk_size, maximum_block_withholding_time)
 
-    state = Core.add_potential_block_withholding(state, 1)
-    state = Core.add_potential_block_withholding(state, 2)
+    {:ok, new_state} = Core.add_potential_block_withholding(state, 1)
 
     Process.sleep(1000)
 
-    assert {:error, :block_withholdings, [1, 2]} = Core.check_potential_block_withholdings(state)
+    assert {:error, :block_withholding, 1} == Core.add_potential_block_withholding(new_state, 1)
   end
 
 end

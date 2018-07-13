@@ -19,8 +19,8 @@ defmodule OmiseGOWatcher.Eventer.Core do
     get_event_with_topic(event)
   end
 
-  defp get_event_with_topic(%Event.BlockWithHoldings{} = event) do
-      {@byzantine_topic, Event.BlockWithHoldings.name(), event}
+  defp get_event_with_topic(%Event.BlockWithHolding{} = event) do
+      {@byzantine_topic, Event.BlockWithHolding.name(), event}
   end
 
   defp get_events_with_topic(event_trigger) do

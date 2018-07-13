@@ -30,17 +30,17 @@ defmodule OmiseGOWatcher.Eventer.Event do
     @type t :: %InvalidBlock{}
   end
 
-  defmodule BlockWithHoldings do
+  defmodule BlockWithHolding do
     @moduledoc """
     Notifies about block-withholding
     """
 
-    def name, do: "block_withholdings"
+    def name, do: "block_withholding"
 
-    defstruct [:blknums]
+    defstruct [:blknum]
 
-    @type t :: %BlockWithHoldings{
-                blknums: list(pos_integer)
+    @type t :: %BlockWithHolding{
+                blknum: pos_integer
                }
   end
 
