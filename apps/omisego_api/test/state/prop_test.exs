@@ -142,7 +142,7 @@ defmodule OmiseGO.API.State.PropTest do
   end
 
   def next_state({op, eth} = state, _, {_, _, :exec, [utxo1, utxo2, nwr1, nwr2, split]}) do
-    case valid_utxos(op, [utxo1, utxo2]) do
+    case valid_utxos?(op, [utxo1, utxo2]) do
       true ->
         {{npos1, nval1}, {npos2, nval2}} =
           tx_to_utxo(next_blknum(eth.blknum), op.txindex, utxo1, utxo2, nwr1, nwr2, split)
@@ -150,7 +150,7 @@ defmodule OmiseGO.API.State.PropTest do
           op.utxos
           |> Map.split(inputs([utxo1, utxo2]))
           |> elem(1)
-          |> Map.merge(Map.new([{npos1, nval1}, {npos2, nval2}]))
+          |> Map.merge(Map.new(filter_zero_or_nil_utxo([{npos1, nval1}, {npos2, nval2}])))
         new_history = Map.merge(op.history, Map.new([{npos1, nval1}, {npos2, nval2}]))
         new_op = %{op | utxos: new_utxos, history: new_history, txindex: op.txindex + 1}
         {new_op, eth}
@@ -159,21 +159,28 @@ defmodule OmiseGO.API.State.PropTest do
     end
   end
 
+  # don't spent if deposits where not executed yet
   def precondition({%{utxos: utxos}, _eth}, {_, _, :exec, _}) when map_size(utxos) == 0, do: false
+  # tx should spent utxo known to model
   def precondition({op, eth}, {_, _, :exec, [utxo1, utxo2, _, _, _]}) do
-    non_zero_utxos([utxo1, utxo2])
-    and valid_utxos(op, [utxo1, utxo2])
-    and possible_utxos(eth, [utxo1, utxo2])
+    non_zero_utxos?([utxo1, utxo2])
+    and valid_utxos?(op, [utxo1, utxo2])
+    and possible_utxos?(eth, [utxo1, utxo2])
   end
   def precondition(_model, _call), do: true
 
+  # deposit is always successful and updates model
   def postcondition({_op, _eth}, {_, _, :deposit, [[_dep]]}, result) do
     {:ok, {_event_triggers, db_updates}} = result
     length(db_updates) > 0
   end
 
-  def postcondition({op, _eth}, {_, _, :exec, args}, result) do
-    case match?({:ok, _}, result) do
+  # spent is successful IFF utxos are known to model
+  def postcondition({op, eth}, {_, _, :exec, [utxo1, utxo2, _, _, _] = args}, result) do
+    spent_ok = non_zero_utxos?([utxo1, utxo2])
+               and valid_utxos?(op, [utxo1, utxo2])
+               and possible_utxos?(eth, [utxo1, utxo2])
+    case match?({:ok, _}, result) == spent_ok do
       true -> true
       false ->
         IO.puts("===============================")
@@ -201,21 +208,28 @@ defmodule OmiseGO.API.State.PropTest do
     |> elem(0)
   end
 
-  defp non_zero_utxos(list) when is_list(list) do
+  defp non_zero_utxos?(list) when is_list(list) do
     Enum.all?(list, fn
       ({_, {_, _, x}}) -> x > 0
       (nil) -> true
     end)
   end
 
-  def possible_utxos(eth, list) when is_list(list) do
+  defp filter_zero_or_nil_utxo(list) when is_list(list) do
+    Enum.filter(list, fn
+      ({_, {_, _, x}}) -> x > 0
+      (nil) -> false
+    end)
+  end
+
+  def possible_utxos?(eth, list) when is_list(list) do
     Enum.all?(list, fn
       ({{blknum, _, _}, _}) -> blknum <= eth.blknum
       (nil) -> true
     end)
   end
 
-  defp valid_utxos(op, list) when is_list(list) do
+  defp valid_utxos?(op, list) when is_list(list) do
     Enum.all?(list, &(valid_utxo(op, &1)))
   end
   defp valid_utxo(_, nil), do: true
