@@ -59,9 +59,7 @@ defmodule OmiseGO.API.State.TransactionTest do
   @tag fixtures: [:transaction]
   test "signed transaction hash is correct", %{transaction: transaction} do
     signed = %Transaction.Signed{raw_tx: transaction, sig1: @signature, sig2: @signature}
-
-    {:ok, hash_value} = Base.decode16("f09d08d506a269f4237f712a7cdc8259489f0435b0775b4e08050523788268a8", case: :lower)
-    expected = hash_value <> signed.sig1 <> signed.sig2
+    {:ok, expected} = Base.decode16("61c4551565f6beefd2e9129f3dc104e6d53e9862c2775de41cd20029a6037181", case: :lower)
     actual = Transaction.Signed.signed_hash(signed)
     assert actual == expected
   end

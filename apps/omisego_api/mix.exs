@@ -41,7 +41,8 @@ defmodule OmiseGO.API.MixProject do
        git: "https://github.com/omisego/jsonrpc2-elixir.git",
        branch: "precise_handling_of_FunctionClauseError",
        only: [:test]},
-      {:merkle_tree, git: "https://github.com/omisego/merkle_tree.git"},
+      {:merkle_tree,
+       git: "https://github.com/omisego/merkle_tree.git", branch: "feature/omg-184-add-option-to-not-hash-leaves"},
       {:libsecp256k1, "~> 0.1.2", compile: "${HOME}/.mix/rebar compile", override: true},
       #
       {:omisego_db, in_umbrella: true},
