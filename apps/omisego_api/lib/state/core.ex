@@ -196,10 +196,9 @@ defmodule OmiseGO.API.State.Core do
   def form_block(child_block_interval, %Core{pending_txs: reverse_txs, height: height} = state) do
     txs = Enum.reverse(reverse_txs)
 
-    # block =
-    #   %Block{transactions: txs, number: height}
-    #   |> Block.merkle_hash()
-    block = <<123::160>>
+    block =
+      %Block{transactions: txs, number: height}
+      |> Block.merkle_hash()
 
     event_triggers =
       txs
