@@ -23,11 +23,9 @@ defmodule OmiseGOWatcher.Eventer.Core do
   defp get_address_spent_events(
          %{
            tx: %Transaction.Recovered{
-             raw_tx: %Transaction{},
              spender1: spender1,
              spender2: spender2
-           }
-         } = event_trigger
+         }} = event_trigger
        ) do
 
     [spender1, spender2]
@@ -45,10 +43,7 @@ defmodule OmiseGOWatcher.Eventer.Core do
   defp get_address_received_events(
          %{
            tx: %Transaction.Recovered{
-             raw_tx: %Transaction{
-               newowner1: newowner1,
-               newowner2: newowner2
-             }
+             signed_tx: %Transaction.Signed{raw_tx: %Transaction{newowner1: newowner1, newowner2: newowner2}}
            }
          } = event_trigger
        ) do

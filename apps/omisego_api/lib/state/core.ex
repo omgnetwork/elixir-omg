@@ -40,25 +40,30 @@ defmodule OmiseGO.API.State.Core do
 
   @doc """
   Includes the transaction into the state when valid, rejects otherwise.
+
+  NOTE that tx is assumed to have distinct inputs, that should be checked in prior state-less validation
   """
-  @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{}) ::
+  @spec exec(tx :: %Transaction.Recovered{}, fees :: map(), state :: %Core{}) ::
           {{:ok, Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, %Core{}}
           | {{:error, exec_error}, %Core{}}
   def exec(
         %Transaction.Recovered{
-          raw_tx: raw_tx,
-          signed_tx_hash: _signed_tx_hash,
+          signed_tx: %Transaction.Signed{
+            raw_tx: raw_tx = %Transaction{amount1: amount1, amount2: amount2, cur12: currency}
+          },
           spender1: spender1,
           spender2: spender2
         } = recovered_tx,
+        fees,
         state
       ) do
-    %Transaction{amount1: amount1, amount2: amount2} = raw_tx
+    # for now just 1 currency supported
+    fee = fees[currency]
 
     with :ok <- validate_block_size(state),
          {:ok, in_amount1} <- correct_input_in_position?(1, state, raw_tx, spender1),
          {:ok, in_amount2} <- correct_input_in_position?(2, state, raw_tx, spender2),
-         :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2) do
+         :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2 + fee) do
       {
         {:ok, recovered_tx.signed_tx_hash, state.height, state.tx_index},
         state
@@ -190,12 +195,14 @@ defmodule OmiseGO.API.State.Core do
     db_updates_new_utxos =
       txs
       |> Enum.with_index()
-      |> Enum.flat_map(fn {%Transaction.Recovered{raw_tx: tx}, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
+      |> Enum.flat_map(fn {%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}}, tx_idx} ->
+        non_zero_utxos_from(tx, height, tx_idx)
+      end)
       |> Enum.map(&utxo_to_db_put/1)
 
     db_updates_spent_utxos =
       txs
-      |> Enum.flat_map(fn %Transaction.Recovered{raw_tx: tx} ->
+      |> Enum.flat_map(fn %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}} ->
         [{tx.blknum1, tx.txindex1, tx.oindex1}, {tx.blknum2, tx.txindex2, tx.oindex2}]
       end)
       |> Enum.filter(fn utxo_key -> utxo_key != {0, 0, 0} end)

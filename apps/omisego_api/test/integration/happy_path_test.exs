@@ -33,7 +33,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     :ok
   end
 
-  defp eth, do: Transaction.zero_address()
+  defp eth, do: OmiseGO.API.Crypto.zero_address()
 
   @tag fixtures: [:alice, :bob, :omisego]
   test "deposit, spend, exit, restart etc works fine", %{alice: alice, bob: bob} do

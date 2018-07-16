@@ -14,34 +14,50 @@ defmodule OmiseGO.PerformanceTest do
 
   @tag fixtures: [:destdir]
   test "Smoke test - run tests and see if they don't crash", %{destdir: destdir} do
-    assert :ok = OmiseGO.Performance.setup_and_run(3000, 2, %{destdir: destdir})
+    ntxs = 3000
+    nsenders = 2
+    assert :ok = OmiseGO.Performance.setup_and_run(ntxs, nsenders, %{destdir: destdir})
 
     assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
-    smoke_test_statistics(Path.join(destdir, perf_result))
+    smoke_test_statistics(Path.join(destdir, perf_result), ntxs * nsenders)
   end
 
   @tag fixtures: [:destdir]
   test "Smoke test - run tests and see if they don't crash - with profiling", %{destdir: destdir} do
+    ntxs = 3
+    nsenders = 2
     assert :ok = OmiseGO.Performance.setup_and_run(3, 2, %{destdir: destdir, profile: true})
 
     assert ["perf_result" <> _, "perf_result" <> _] = result_files = File.ls!(destdir)
 
     prof_results = Enum.find(result_files, fn name -> String.contains?(name, "profiling") end)
+    perf_results = Enum.find(result_files, fn name -> String.contains?(name, "stats") end)
 
     assert String.contains?(File.read!(Path.join(destdir, prof_results)), "%% Analysis results:\n{")
+
+    smoke_test_statistics(Path.join(destdir, perf_results), ntxs * nsenders)
   end
 
   @tag fixtures: [:destdir]
   test "Smoke test - run tests and see if they don't crash - overiding block creation", %{destdir: destdir} do
-    assert :ok = OmiseGO.Performance.setup_and_run(3000, 2, %{destdir: destdir, block_every_ms: 1000})
+    ntxs = 3000
+    nsenders = 2
+    assert :ok = OmiseGO.Performance.setup_and_run(3000, 2, %{destdir: destdir, block_every_ms: 3000})
 
     assert ["perf_result" <> _] = File.ls!(destdir)
 
     assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
-    smoke_test_statistics(Path.join(destdir, perf_result))
+    smoke_test_statistics(Path.join(destdir, perf_result), ntxs * nsenders)
   end
 
-  defp smoke_test_statistics(path) do
-    assert String.contains?(File.read!(path), "Performance statistics:")
+  defp smoke_test_statistics(path, expected_txs) do
+    assert {:ok, stats} = Poison.decode(File.read!(path))
+
+    txs_count =
+      stats
+      |> Enum.map(fn entry -> entry["txs"] end)
+      |> Enum.sum()
+
+    assert txs_count == expected_txs
   end
 end
