@@ -33,7 +33,7 @@ defmodule OmiseGO.API.MixProject do
   defp deps do
     [
       {:poison, "~> 3.1"},
-      {:propcheck, "~> 1.0", runtime: true},
+      {:propcheck, "~> 1.0", only: [:dev, :test]},
       {:phoenix_pubsub, "~> 1.0"},
       {:ex_rlp, "~> 0.2.1"},
       {:blockchain, "~> 0.1.6"},
