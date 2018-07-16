@@ -1,6 +1,7 @@
 defmodule OmiseGO.API.Fixtures do
   use ExUnitFixtures.FixtureModule
 
+  alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Core
 
   import OmiseGO.API.TestHelper
@@ -40,11 +41,11 @@ defmodule OmiseGO.API.Fixtures do
 
   deffixture state_alice_deposit(state_empty, alice) do
     state_empty
-    |> do_deposit(alice, %{amount: 10, blknum: 1})
+    |> do_deposit(alice, %{amount: 10, currency: Crypto.zero_address(), blknum: 1})
   end
 
   deffixture state_stable_alice_deposit(state_empty, stable_alice) do
     state_empty
-    |> do_deposit(stable_alice, %{amount: 10, blknum: 1})
+    |> do_deposit(stable_alice, %{amount: 10, currency: Crypto.zero_address(), blknum: 1})
   end
 end

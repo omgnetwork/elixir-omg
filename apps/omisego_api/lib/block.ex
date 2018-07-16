@@ -18,10 +18,19 @@ defmodule OmiseGO.API.Block do
   @doc """
   Returns block with merkle hash
   """
-  @spec merkle_hash(%__MODULE__{}) :: %__MODULE__{}
+  # @spec merkle_hash(%__MODULE__{}) :: %__MODULE__{}
   def merkle_hash(%__MODULE__{transactions: txs} = block) do
     hashed_txs = txs |> Enum.map(& &1.signed_tx_hash)
     {:ok, root} = MerkleTree.build(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height)
     %__MODULE__{block | hash: root.value}
+  end
+
+  def create_tx_proof(hashed_txs, txindex) do
+    {:ok, mt} = MerkleTree.new(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height)
+    proof = MerkleTree.Proof.prove(mt, txindex)
+
+    proof.hashes
+    |> Enum.reverse()
+    |> Enum.reduce(fn x, acc -> acc <> x end)
   end
 end

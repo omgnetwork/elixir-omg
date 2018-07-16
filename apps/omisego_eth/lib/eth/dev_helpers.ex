@@ -16,7 +16,6 @@ defmodule OmiseGO.Eth.DevHelpers do
   def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
     """
     use Mix.Config
-
     config :omisego_eth,
       contract_addr: #{inspect(contract_addr)},
       txhash_contract: #{inspect(txhash)},
@@ -105,11 +104,32 @@ defmodule OmiseGO.Eth.DevHelpers do
     })
   end
 
-  def deposit_height_from_receipt(receipt) do
+  def deposit_blknum_from_receipt(receipt) do
     %{"logs" => [%{"data" => logs_data}]} = receipt
-    <<"0x", _::size(512), _::size(512), deposit_height_enc::binary>> = logs_data
-    {deposit_height, ""} = Integer.parse(deposit_height_enc, 16)
-    deposit_height
+    # parsing log corresponding to Deposit(address,uint256,address,uint256)
+    # TODO: this is too fragile. Use proper library to parse this log
+    <<"0x", _depositor_hex_padded::binary-size(64), deposit_blknum_enc::binary-size(64), _token::binary-size(64),
+      _amount::binary-size(64)>> = logs_data
+
+    {deposit_blknum, ""} = Integer.parse(deposit_blknum_enc, 16)
+    deposit_blknum
+  end
+
+  def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, gas_price, from, contract) do
+    data =
+      "challengeExit(uint256,uint256,bytes,bytes,bytes)"
+      |> ABI.encode([cutxopo, eutxoindex, txbytes, proof, sigs])
+      |> Base.encode16()
+
+    gas = 1_000_000
+
+    Ethereumex.HttpClient.eth_send_transaction(%{
+      from: from,
+      to: contract,
+      data: "0x#{data}",
+      gas: encode_eth_rpc_unsigned_int(gas),
+      gasPrice: encode_eth_rpc_unsigned_int(gas_price)
+    })
   end
 
   def mine_eth_dev_block do

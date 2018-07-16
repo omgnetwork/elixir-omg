@@ -14,8 +14,8 @@ defmodule OmiseGO.API.TestHelper do
     %{priv: priv, addr: addr}
   end
 
-  def do_deposit(state, owner, %{amount: amount, blknum: blknum}) do
-    {_, _, new_state} = Core.deposit([%{owner: owner.addr, amount: amount, blknum: blknum}], state)
+  def do_deposit(state, owner, %{amount: amount, currency: cur, blknum: blknum}) do
+    {_, _, new_state} = Core.deposit([%{owner: owner.addr, currency: cur, amount: amount, blknum: blknum}], state)
 
     new_state
   end
@@ -26,11 +26,11 @@ defmodule OmiseGO.API.TestHelper do
   """
   @spec create_recovered(
           list({pos_integer, pos_integer, 0 | 1, map}),
-          list({<<_::256>>, pos_integer}),
-          pos_integer
+          Transaction.currency(),
+          list({Crypto.address_t(), pos_integer})
         ) :: Transaction.Recovered.t()
-  def create_recovered(inputs, outputs, fee \\ 0) do
-    {signed_tx, _raw_tx} = create_signed(inputs, outputs, fee)
+  def create_recovered(inputs, currency, outputs) do
+    signed_tx = create_signed(inputs, currency, outputs)
     {:ok, recovered} = Transaction.Recovered.recover_from(signed_tx)
     recovered
   end
@@ -40,19 +40,24 @@ defmodule OmiseGO.API.TestHelper do
   """
   @spec create_signed(
           list({pos_integer, pos_integer, 0 | 1, map}),
-          list({<<_::256>>, pos_integer}),
-          pos_integer
+          Transaction.currency(),
+          list({Crypto.address_t(), pos_integer})
         ) :: {Transaction.Signed.t(), Transaction.t()}
-  def create_signed(inputs, outputs, fee \\ 0) do
+  def create_signed(inputs, currency, outputs) do
     raw_tx =
       Transaction.new(
         inputs |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end),
-        outputs |> Enum.map(fn {newowner, amout} -> {newowner.addr, amout} end),
-        fee
+        currency,
+        outputs |> Enum.map(fn {newowner, amount} -> {newowner.addr, amount} end)
       )
 
     [priv1, priv2 | _] = inputs |> Enum.map(fn {_, _, _, owner} -> owner.priv end) |> Enum.concat([<<>>, <<>>])
 
-    {Transaction.sign(raw_tx, priv1, priv2), raw_tx}
+    Transaction.sign(raw_tx, priv1, priv2)
+  end
+
+  def create_encoded(inputs, cur12, outputs) do
+    signed_tx = create_signed(inputs, cur12, outputs)
+    Transaction.Signed.encode(signed_tx)
   end
 end

@@ -6,6 +6,8 @@ defmodule OmiseGOWatcher.BlockGetter do
   """
   use GenServer
   alias OmiseGO.API.Block
+  alias OmiseGO.API.State.Transaction
+  alias OmiseGO.API.State.Transaction.{Recovered, Signed}
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.UtxoDB
@@ -16,13 +18,21 @@ defmodule OmiseGOWatcher.BlockGetter do
   def get_block(number) do
     with {:ok, {hash, _time}} <- Eth.get_child_chain(number),
          {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: hash}) do
-      Core.decode_block(Map.put(json_block, "number", number))
+      if {:ok, hash} == Base.decode16(json_block["hash"]),
+        do: Core.decode_validate_block(Map.put(json_block, "number", number)),
+        else: {:error, :block_hash}
     end
   end
 
   def consume_block(%Block{transactions: transactions, number: blknum} = block) do
-    with state_exec <- for(tx <- transactions, do: OmiseGO.API.State.exec(tx)),
-         nil <- Enum.find(state_exec, &(!match?({:ok, _, _, _}, &1))),
+    # TODO add check in UtxoDB after deposit handle correctly
+    state_exec =
+      for %Recovered{signed_tx: %Signed{raw_tx: %Transaction{cur12: cur12}}} = tx <- transactions,
+          do: OmiseGO.API.State.exec(tx, %{cur12 => 0})
+
+    OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
+
+    with nil <- Enum.find(state_exec, &(!match?({:ok, _, _, _}, &1))),
          response <- OmiseGOWatcher.TransactionDB.insert(block),
          nil <- Enum.find(response, &(!match?({:ok, _}, &1))),
          _ <- UtxoDB.consume_block(block),
@@ -82,7 +92,10 @@ defmodule OmiseGOWatcher.BlockGetter do
 
     :ok = run_block_get_task(blocks_numbers)
 
-    :ok = blocks_to_consume |> Enum.each(&consume_block/1)
+    :ok =
+      blocks_to_consume
+      |> Enum.each(&(:ok = consume_block(&1)))
+
     {:noreply, new_state}
   end
 

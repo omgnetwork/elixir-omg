@@ -35,11 +35,13 @@ bob = TestHelper.generate_entity()
 
 # we need to uncover the height at which the deposit went through on the root chain
 # to do this, look in the logs inside the receipt printed just above
-deposit_height = Eth.DevHelpers.deposit_height_from_receipt(receipt)
+deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
+
+eth = Transaction.zero_address()
 
 # create and prepare transaction for singing
 tx =
-  Transaction.new([{deposit_height, 0, 0}], [{bob.addr, 7}, {alice.addr, 3}], 0) |>
+  Transaction.new([{deposit_blknum, 0, 0}], eth, [{bob.addr, 7}, {alice.addr, 3}]) |>
   Transaction.sign(alice.priv, <<>>) |>
   Transaction.Signed.encode() |>
   Base.encode16()

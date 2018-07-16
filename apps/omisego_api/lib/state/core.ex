@@ -11,6 +11,15 @@ defmodule OmiseGO.API.State.Core do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.Transaction
 
+  @type exec_error ::
+          :cant_spend_zero_utxo
+          | :incorrect_spender
+          | :incorrect_currency
+          | :amounts_dont_add_up
+          | :invalid_current_block_number
+          | :utxo_not_found
+          | :cant_spend_zero_utxo
+
   def extract_initial_state(
         utxos_query_result,
         height_query_result,
@@ -31,19 +40,25 @@ defmodule OmiseGO.API.State.Core do
 
   @doc """
   Includes the transaction into the state when valid, rejects otherwise.
+
+  NOTE that tx is assumed to have distinct inputs, that should be checked in prior state-less validation
   """
-  @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{}) ::
-          {{:ok, Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, %Core{}} | {:error, %Core{}}
+  @spec exec(tx :: %Transaction.Recovered{}, fees :: map(), state :: %Core{}) ::
+          {{:ok, Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, %Core{}}
+          | {{:error, exec_error}, %Core{}}
   def exec(
         %Transaction.Recovered{
-          raw_tx: raw_tx,
-          signed_tx_hash: _signed_tx_hash,
+          signed_tx: %Transaction.Signed{
+            raw_tx: raw_tx = %Transaction{amount1: amount1, amount2: amount2, cur12: currency}
+          },
           spender1: spender1,
           spender2: spender2
         } = recovered_tx,
+        fees,
         state
       ) do
-    %Transaction{amount1: amount1, amount2: amount2, fee: fee} = raw_tx
+    # for now just 1 currency supported
+    fee = fees[currency]
 
     with :ok <- validate_block_size(state),
          {:ok, in_amount1} <- correct_input_in_position?(1, state, raw_tx, spender1),
@@ -74,24 +89,25 @@ defmodule OmiseGO.API.State.Core do
   defp correct_input_in_position?(
          1,
          state,
-         %Transaction{blknum1: blknum, txindex1: txindex, oindex1: oindex},
+         %Transaction{blknum1: blknum, txindex1: txindex, oindex1: oindex, cur12: spent_cur},
          spender
        ) do
-    check_utxo_and_extract_amount(state, {blknum, txindex, oindex}, spender)
+    check_utxo_and_extract_amount(state, {blknum, txindex, oindex}, spender, spent_cur)
   end
 
   defp correct_input_in_position?(
          2,
          state,
-         %Transaction{blknum2: blknum, txindex2: txindex, oindex2: oindex},
+         %Transaction{blknum2: blknum, txindex2: txindex, oindex2: oindex, cur12: spent_cur},
          spender
        ) do
-    check_utxo_and_extract_amount(state, {blknum, txindex, oindex}, spender)
+    check_utxo_and_extract_amount(state, {blknum, txindex, oindex}, spender, spent_cur)
   end
 
-  defp check_utxo_and_extract_amount(%Core{utxos: utxos}, {blknum, txindex, oindex}, spender) do
-    with {:ok, %{owner: owner, amount: owner_has} = _utxo} <- get_utxo(utxos, {blknum, txindex, oindex}),
+  defp check_utxo_and_extract_amount(%Core{utxos: utxos}, {blknum, txindex, oindex}, spender, spent_cur) do
+    with {:ok, %{owner: owner, currency: cur, amount: owner_has}} <- get_utxo(utxos, {blknum, txindex, oindex}),
          :ok <- is_spender?(owner, spender),
+         :ok <- same_currency?(cur, spent_cur),
          do: {:ok, owner_has}
   end
 
@@ -108,8 +124,13 @@ defmodule OmiseGO.API.State.Core do
     if owner == spender, do: :ok, else: {:error, :incorrect_spender}
   end
 
+  defp same_currency?(utxo_currency, spent_currency) do
+    if utxo_currency == spent_currency, do: :ok, else: {:error, :incorrect_currency}
+  end
+
+  # fee is implicit - it's the difference between funds owned and spend
   defp amounts_add_up?(has, spends) do
-    if has == spends, do: :ok, else: {:error, :amounts_dont_add_up}
+    if has >= spends, do: :ok, else: {:error, :amounts_dont_add_up}
   end
 
   defp apply_spend(
@@ -146,8 +167,8 @@ defmodule OmiseGO.API.State.Core do
 
   defp utxos_from(%Transaction{} = tx, height, tx_index) do
     [
-      {{height, tx_index, 0}, %{owner: tx.newowner1, amount: tx.amount1}},
-      {{height, tx_index, 1}, %{owner: tx.newowner2, amount: tx.amount2}}
+      {{height, tx_index, 0}, %{owner: tx.newowner1, currency: tx.cur12, amount: tx.amount1}},
+      {{height, tx_index, 1}, %{owner: tx.newowner2, currency: tx.cur12, amount: tx.amount2}}
     ]
   end
 
@@ -174,12 +195,14 @@ defmodule OmiseGO.API.State.Core do
     db_updates_new_utxos =
       txs
       |> Enum.with_index()
-      |> Enum.flat_map(fn {%Transaction.Recovered{raw_tx: tx}, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
+      |> Enum.flat_map(fn {%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}}, tx_idx} ->
+        non_zero_utxos_from(tx, height, tx_idx)
+      end)
       |> Enum.map(&utxo_to_db_put/1)
 
     db_updates_spent_utxos =
       txs
-      |> Enum.flat_map(fn %Transaction.Recovered{raw_tx: tx} ->
+      |> Enum.flat_map(fn %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}} ->
         [{tx.blknum1, tx.txindex1, tx.oindex1}, {tx.blknum2, tx.txindex2, tx.oindex2}]
       end)
       |> Enum.filter(fn utxo_key -> utxo_key != {0, 0, 0} end)
@@ -203,8 +226,20 @@ defmodule OmiseGO.API.State.Core do
     {:ok, {block, event_triggers, db_updates, new_state}}
   end
 
-  def decode_deposit(%{owner: "0x" <> owner_enc} = deposit) do
-    %{deposit | owner: Base.decode16!(owner_enc, case: :lower)}
+  def decode_deposit(%{owner: owner, currency: currency} = deposit) do
+    %{deposit | owner: decode_address(owner), currency: decode_address(currency)}
+  end
+
+  defp decode_address(<<"0x", hex_encoded::binary-size(40)>>) do
+    decode_address(hex_encoded)
+  end
+
+  defp decode_address(<<hex_encoded::binary-size(40)>>) do
+    Base.decode16!(hex_encoded, case: :lower)
+  end
+
+  defp decode_address(<<raw::binary-size(20)>>) do
+    raw
   end
 
   def deposit(deposits, %Core{utxos: utxos, last_deposit_height: last_deposit_height} = state) do
@@ -237,8 +272,8 @@ defmodule OmiseGO.API.State.Core do
 
   defp utxo_to_db_put({utxo_position, utxo}), do: {:put, :utxo, %{utxo_position => utxo}}
 
-  defp deposit_to_utxo(%{blknum: blknum, owner: owner, amount: amount}) do
-    {{blknum, 0, 0}, %{amount: amount, owner: owner}}
+  defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount}) do
+    {{blknum, 0, 0}, %{amount: amount, currency: cur, owner: owner}}
   end
 
   defp get_last_deposit_height(deposits, current_height) do

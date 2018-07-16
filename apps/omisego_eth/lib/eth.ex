@@ -6,10 +6,10 @@ defmodule OmiseGO.Eth do
   """
   # TODO: decide how type and logic aware this should be. Presently it's quite mixed
 
+  import OmiseGO.Eth.Encoding
+
   @block_offset 1_000_000_000
   @transaction_offset 10_000
-
-  import OmiseGO.Eth.Encoding
 
   @type contract_t() :: binary | nil
 
@@ -109,6 +109,67 @@ defmodule OmiseGO.Eth do
     })
   end
 
+  def deposit(value, gas_price, from \\ nil, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+    from = from || Application.get_env(:omisego_eth, :omg_addr)
+
+    data =
+      "deposit()"
+      |> ABI.encode([])
+      |> Base.encode16()
+
+    gas = 100_000
+
+    Ethereumex.HttpClient.eth_send_transaction(%{
+      from: from,
+      to: contract,
+      data: "0x#{data}",
+      gas: encode_eth_rpc_unsigned_int(gas),
+      gasPrice: encode_eth_rpc_unsigned_int(gas_price),
+      value: encode_eth_rpc_unsigned_int(value)
+    })
+  end
+
+  def start_deposit_exit(deposit_positon, value, gas_price, from \\ nil, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+    from = from || Application.get_env(:omisego_eth, :omg_addr)
+
+    data =
+      "startDepositExit(uint256,uint256)"
+      |> ABI.encode([deposit_positon, value])
+      |> Base.encode16()
+
+    gas = 1_000_000
+
+    Ethereumex.HttpClient.eth_send_transaction(%{
+      from: from,
+      to: contract,
+      data: "0x#{data}",
+      gas: encode_eth_rpc_unsigned_int(gas),
+      gasPrice: encode_eth_rpc_unsigned_int(gas_price)
+    })
+  end
+
+  def start_exit(utxo_position, txbytes, proof, sigs, gas_price, from \\ nil, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+    from = from || Application.get_env(:omisego_eth, :omg_addr)
+
+    data =
+      "startExit(uint256,bytes,bytes,bytes)"
+      |> ABI.encode([utxo_position, txbytes, proof, sigs])
+      |> Base.encode16()
+
+    gas = 1_000_000
+
+    Ethereumex.HttpClient.eth_send_transaction(%{
+      from: from,
+      to: contract,
+      data: "0x#{data}",
+      gas: encode_eth_rpc_unsigned_int(gas),
+      gasPrice: encode_eth_rpc_unsigned_int(gas_price)
+    })
+  end
+
   def get_ethereum_height do
     case Ethereumex.HttpClient.eth_block_number() do
       {:ok, "0x" <> height_hex} ->
@@ -149,16 +210,17 @@ defmodule OmiseGO.Eth do
   def get_deposits(block_from, block_to, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
 
-    event = encode_event_signature("Deposit(address,uint256,uint256)")
+    event = encode_event_signature("Deposit(address,uint256,address,uint256)")
 
     parse_deposit = fn "0x" <> deposit ->
-      [owner, amount, blknum] =
+      [owner, blknum, token, amount] =
         deposit
         |> Base.decode16!(case: :lower)
-        |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, {:uint, 256}])
+        |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, :address, {:uint, 256}])
 
       owner = "0x" <> Base.encode16(owner, case: :lower)
-      %{owner: owner, amount: amount, blknum: blknum}
+      token = "0x" <> Base.encode16(token, case: :lower)
+      %{owner: owner, currency: token, amount: amount, blknum: blknum}
     end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
@@ -195,23 +257,23 @@ defmodule OmiseGO.Eth do
   end
 
   @doc """
-  Returns lists of deposits sorted by child chain block number
+  Returns exits from a range of blocks. Collects exits from Ethereum logs.
   """
   def get_exits(block_from, block_to, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    event = encode_event_signature("Exit(address,uint256)")
-
+    event = encode_event_signature("ExitStarted(address,uint256,address,uint256)")
+    # ExitStarted(msg.sender, utxoPos, token, amount);
     parse_exit = fn "0x" <> deposit ->
-      [owner, utxo_position] =
+      [owner, utxo_position, token, amount] =
         deposit
         |> Base.decode16!(case: :lower)
-        |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}])
+        |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, :address, {:uint, 256}])
 
       owner = "0x" <> Base.encode16(owner, case: :lower)
       blknum = div(utxo_position, @block_offset)
       txindex = utxo_position |> rem(@block_offset) |> div(@transaction_offset)
       oindex = utxo_position - blknum * @block_offset - txindex * @transaction_offset
-      %{owner: owner, blknum: blknum, txindex: txindex, oindex: oindex}
+      %{owner: owner, blknum: blknum, txindex: txindex, oindex: oindex, amount: amount, token: token}
     end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
@@ -219,9 +281,24 @@ defmodule OmiseGO.Eth do
          do: {:ok, Enum.sort(exits, &(&1.block_height > &2.block_height))}
   end
 
+  @doc """
+  Returns exit for a specific utxo. Calls contract method.
+  """
+  def get_exit(utxo_pos, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract)
+
+    {:ok, [owner, currency, amount]} =
+      call_contract(contract, "getExit(uint256)", [utxo_pos], [:address, :address, {:uint, 256}])
+
+    {:ok, {owner, currency, amount}}
+  end
+
   def get_child_chain(blknum, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    {:ok, [root, created_at]} = call_contract(contract, "getChildChain(uint256)", [blknum], [:bytes32, {:uint, 256}])
+
+    {:ok, [root, created_at]} =
+      call_contract(contract, "getChildChain(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
+
     {:ok, {root, created_at}}
   end
 

@@ -18,8 +18,8 @@ defmodule OmiseGO.API.State do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def exec(tx) do
-    GenServer.call(__MODULE__, {:exec, tx})
+  def exec(tx, input_fees) do
+    GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
 
   def form_block(child_block_interval) do
@@ -49,6 +49,10 @@ defmodule OmiseGO.API.State do
     GenServer.call(__MODULE__, :get_current_height)
   end
 
+  def close_block(child_block_interval) do
+    GenServer.cast(__MODULE__, {:close_block, child_block_interval})
+  end
+
   ### Server
 
   use GenServer
@@ -75,8 +79,8 @@ defmodule OmiseGO.API.State do
   @doc """
   Checks (stateful validity) and executes a spend transaction. Assuming stateless validity!
   """
-  def handle_call({:exec, tx}, _from, state) do
-    {tx_result, new_state} = Core.exec(tx, state)
+  def handle_call({:exec, tx, fees}, _from, state) do
+    {tx_result, new_state} = Core.exec(tx, fees, state)
     {:reply, tx_result, new_state}
   end
 
@@ -133,6 +137,18 @@ defmodule OmiseGO.API.State do
     {duration, result} = :timer.tc(fn -> do_form_block(child_block_interval, state) end)
     _ = Logger.info(fn -> "Done forming block in #{round(duration / 1000)} ms" end)
     result
+  end
+
+  @doc """
+    Wraps up accumulated transactions submissionsinto a block, triggers db update and emits
+    events to Eventer
+  """
+  def handle_cast({:close_block, child_block_interval}, state) do
+    {_core_form_block_duration, {:ok, {_block, _event_triggers, db_updates, new_state}}} =
+      :timer.tc(fn -> Core.form_block(state, child_block_interval) end)
+
+    :ok = DB.multi_update(db_updates)
+    {:noreply, new_state}
   end
 
   defp do_form_block(child_block_interval, state) do

@@ -5,8 +5,9 @@ defmodule OmiseGOWatcher.UtxoDB do
   use Ecto.Schema
 
   alias OmiseGO.API.{Block, Crypto}
-  alias OmiseGO.API.State.{Transaction, Transaction.Recovered}
+  alias OmiseGO.API.State.{Transaction, Transaction.Recovered, Transaction.Signed}
   alias OmiseGOWatcher.Repo
+  alias OmiseGOWatcher.TransactionDB
 
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
@@ -24,7 +25,7 @@ defmodule OmiseGOWatcher.UtxoDB do
   end
 
   defp consume_transaction(
-         %Recovered{raw_tx: %Transaction{} = transaction, signed_tx_bytes: signed_tx_bytes},
+         %Signed{raw_tx: %Transaction{} = transaction, signed_tx_bytes: signed_tx_bytes},
          txindex,
          block_number
        ) do
@@ -42,9 +43,7 @@ defmodule OmiseGOWatcher.UtxoDB do
     {Repo.insert(make_utxo_db.(transaction, 1)), Repo.insert(make_utxo_db.(transaction, 2))}
   end
 
-  defp remove_utxo(%Recovered{
-         raw_tx: %Transaction{} = transaction
-       }) do
+  defp remove_utxo(%Signed{raw_tx: %Transaction{} = transaction}) do
     remove_from = fn transaction, number ->
       blknum = Map.get(transaction, :"blknum#{number}")
       txindex = Map.get(transaction, :"txindex#{number}")
@@ -66,8 +65,8 @@ defmodule OmiseGOWatcher.UtxoDB do
     numbered_transactions = Stream.with_index(transactions)
 
     numbered_transactions
-    |> Enum.map(fn {%Recovered{} = recovered, txindex} ->
-      {remove_utxo(recovered), consume_transaction(recovered, txindex, block_number)}
+    |> Enum.map(fn {%Recovered{signed_tx: signed}, txindex} ->
+      {remove_utxo(signed), consume_transaction(signed, txindex, block_number)}
     end)
   end
 
@@ -88,7 +87,40 @@ defmodule OmiseGOWatcher.UtxoDB do
     end)
   end
 
+  def compose_utxo_exit(blknum, txindex, oindex) do
+    txs = TransactionDB.find_by_txblknum(blknum)
+
+    case Enum.any?(txs, fn tx -> tx.txindex == txindex end) do
+      false -> {:error, :no_tx_for_given_blknum}
+      true -> compose_utxo_exit(txs, blknum, txindex, oindex)
+    end
+  end
+
+  def compose_utxo_exit(txs, blknum, txindex, oindex) do
+    sorted_txs = Enum.sort_by(txs, & &1.txindex)
+    hashed_txs = Enum.map_every(sorted_txs, 1, fn tx -> tx.txid end)
+    proof = Block.create_tx_proof(hashed_txs, txindex)
+    tx = Enum.at(sorted_txs, txindex)
+
+    %{
+      utxo_pos: calculate_utxo_pos(blknum, txindex, oindex),
+      tx_bytes: Transaction.encode(tx),
+      proof: proof,
+      sigs: tx.sig1 <> tx.sig2
+    }
+  end
+
+  defp calculate_utxo_pos(blknum, txindex, oindex) do
+    blknum + txindex + oindex
+  end
+
   def get_all, do: Repo.all(__MODULE__)
+
+  def get_utxo(addres) do
+    utxos = Repo.all(from(tr in __MODULE__, where: tr.address == ^addres, select: tr))
+    fields_names = List.delete(@field_names, :address)
+    Enum.map(utxos, &Map.take(&1, fields_names))
+  end
 
   @doc false
   def changeset(utxo_db, attrs) do

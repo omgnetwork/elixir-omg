@@ -35,3 +35,8 @@ your_config_file.exs
 # results of perftesting and profiling with default arguments
 fprof.trace
 perf_result_*
+
+*.statistics
+
+# Common virtualenv directory
+env/

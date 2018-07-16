@@ -9,6 +9,7 @@
       "ECRecovery.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/ECRecovery.sol",
       "Math.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/Math.sol",
       "Merkle.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/Merkle.sol",
+      "PlasmaRLP.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/PlasmaRLP.sol",
       "RLP.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/RLP.sol",
       "Validate.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/Validate.sol",
       "PriorityQueue.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/DataStructures/PriorityQueue.sol"

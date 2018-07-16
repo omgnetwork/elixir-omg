@@ -33,6 +33,8 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     :ok
   end
 
+  defp eth, do: OmiseGO.API.Crypto.zero_address()
+
   @tag fixtures: [:alice, :bob, :omisego]
   test "deposit, spend, exit, restart etc works fine", %{alice: alice, bob: bob} do
     {:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
@@ -40,17 +42,20 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc)
     {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
 
-    deposit_height = Eth.DevHelpers.deposit_height_from_receipt(receipt)
+    deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
 
     # wait until the deposit is recognized by child chain
     post_deposit_child_block =
-      deposit_height - 1 +
+      deposit_blknum - 1 +
         (Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) + 1) *
           BlockQueue.child_block_interval()
 
+    # TODO: possible source of flakiness is that State did not process deposit on time
+    Process.sleep(500)
+
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true)
 
-    raw_tx = Transaction.new([{deposit_height, 0, 0}], [{bob.addr, 7}, {alice.addr, 3}], 0)
+    raw_tx = Transaction.new([{deposit_blknum, 0, 0}], eth(), [{bob.addr, 7}, {alice.addr, 3}])
 
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
@@ -78,7 +83,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     # repeat spending to see if all works
 
-    raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, 10}], 0)
+    raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], eth(), [{alice.addr, 10}])
     tx2 = raw_tx2 |> Transaction.sign(bob.priv, alice.priv) |> Transaction.Signed.encode()
 
     # spend the output of the first transaction

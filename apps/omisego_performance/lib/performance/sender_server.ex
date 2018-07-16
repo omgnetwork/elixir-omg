@@ -32,6 +32,8 @@ defmodule OmiseGO.Performance.SenderServer do
     :last_tx
   ]
 
+  @eth Crypto.zero_address()
+
   @opaque state :: %__MODULE__{
             seqnum: integer,
             ntx_to_send: integer,
@@ -62,7 +64,7 @@ defmodule OmiseGO.Performance.SenderServer do
 
     deposit_value = 10 * ntx_to_send
     owner_enc = "0x" <> Base.encode16(spender.addr, case: :lower)
-    :ok = OmiseGO.API.State.deposit([%{owner: owner_enc, amount: deposit_value, blknum: seqnum}])
+    :ok = OmiseGO.API.State.deposit([%{owner: owner_enc, currency: @eth, amount: deposit_value, blknum: seqnum}])
 
     _ = Logger.debug(fn -> "[#{seqnum}]: Deposited #{deposit_value} OMG" end)
 
@@ -76,12 +78,13 @@ defmodule OmiseGO.Performance.SenderServer do
   """
   @spec handle_info(:do, state :: __MODULE__.state()) ::
           {:noreply, new_state :: __MODULE__.state()} | {:stop, :normal, __MODULE__.state()}
-  def handle_info(:do, %__MODULE__{ntx_to_send: 0} = state) do
-    _ = Logger.debug(fn -> "[#{state.seqnum}] +++ Stoping... +++" end)
+  def handle_info(
+        :do,
+        %__MODULE__{ntx_to_send: 0, seqnum: seqnum, last_tx: %LastTx{blknum: blknum, txindex: txindex}} = state
+      ) do
+    _ = Logger.info(fn -> "[#{seqnum}] +++ Stoping... +++" end)
 
-    %__MODULE__{seqnum: seqnum, last_tx: %LastTx{blknum: blknum, txindex: txindex}} = state
     OmiseGO.Performance.SenderManager.sender_stats(%{seqnum: seqnum, blknum: blknum, txindex: txindex})
-    OmiseGO.Performance.SenderManager.sender_completed(state.seqnum)
     {:stop, :normal, state}
   end
 
@@ -105,7 +108,7 @@ defmodule OmiseGO.Performance.SenderServer do
 
     # create and return signed transaction
     [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
-    |> Transaction.new([{spender.addr, newamount}, {recipient.addr, to_spend}], 0)
+    |> Transaction.new(@eth, [{spender.addr, newamount}, {recipient.addr, to_spend}])
     |> Transaction.sign(spender.priv, <<>>)
   end
 
