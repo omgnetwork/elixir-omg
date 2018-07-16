@@ -9,9 +9,6 @@ defmodule OmiseGO.API.State.PropTest do
   use ExUnit.Case
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.CoreGS
-  alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.State.Transaction.Signed
-  alias OmiseGO.API.State.Transaction.Recovered
   @moduletag capture_log: true
 
   # TODO: make aggregation and statistics informative
@@ -51,7 +48,7 @@ defmodule OmiseGO.API.State.PropTest do
       %{
         blknum: blknum,
         # currency
-        currency: :eth,
+        currency: <<0::160>>,
         # owner
         owner: owner,
         # amount
@@ -61,7 +58,13 @@ defmodule OmiseGO.API.State.PropTest do
   end
 
   def address do
-    oneof([:alice, :bob, :carol, :mallory])
+    addresses =
+      OmiseGO.API.TestHelper.entities()
+      |> Map.split([:stable_alice, :stable_bob, :stable_mallory])
+      |> elem(0)
+      |> Map.values()
+      |> Enum.map(&(Map.get(&1, :addr)))
+    oneof(addresses)
   end
 
   ###########
@@ -71,24 +74,10 @@ defmodule OmiseGO.API.State.PropTest do
   # Commands (alias, wrappers, etc)
 
   def exec(utxo1, utxo2, newowner1, newowner2, split) do
-    {_, {spender1, _, _}} = utxo1
-    outs = outputs(utxo1, utxo2, newowner1, newowner2, split)
-
-    tx =
-      [utxo1, utxo2]
-      |> inputs()
-      |> Transaction.new(:eth, outs)
-
-    signed = %Signed{raw_tx: tx}
-    rec = %Recovered{signed_tx: signed, signed_tx_hash: <<0::512>>, spender1: spender1}
-
-    rec =
-      case utxo2 do
-        nil -> rec
-        {_, {spender2, _, _}} -> %{rec | spender2: spender2}
-      end
-
-    CoreGS.exec(rec, %{eth: 0})
+    outs = outputs(utxo1, utxo2, keypair(newowner1), keypair(newowner2), split)
+    ins = tagged_inputs([utxo1, utxo2])
+    rec = OmiseGO.API.TestHelper.create_recovered(ins, <<0::160>>, outs)
+    CoreGS.exec(rec, %{<<0::160>> => 0})
   end
 
   #############
@@ -221,6 +210,15 @@ defmodule OmiseGO.API.State.PropTest do
     |> elem(0)
   end
 
+  defp tagged_inputs(utxo_list) do
+    utxo_list
+    |> Enum.filter(&(&1 != nil))
+    |> Enum.filter(&(&1 != {nil, nil}))
+    |> Enum.map(fn({{blknum, txindex, oindex}, {owner_addr, _, _}}) ->
+      {blknum, txindex, oindex, keypair(owner_addr)}
+    end)
+  end
+
   defp non_zero_utxos?(list) when is_list(list) do
     Enum.all?(list, fn
       {_, {_, _, x}} -> x > 0
@@ -289,4 +287,16 @@ defmodule OmiseGO.API.State.PropTest do
   defp next_blknum(blknum) do
     trunc(blknum / 1000) * 1000 + 1000
   end
+
+  defp keypair(nil), do: nil
+  defp keypair(<<0::160>>), do: nil
+  defp keypair(addr) do
+    OmiseGO.API.TestHelper.entities()
+    |> Map.values()
+    |> Enum.filter(fn(map) ->
+      Map.get(map, :addr) == addr
+    end)
+    |> hd
+  end
+
 end
