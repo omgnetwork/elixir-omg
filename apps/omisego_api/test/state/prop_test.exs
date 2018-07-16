@@ -131,12 +131,12 @@ defmodule OmiseGO.API.State.PropTest do
     {%{op | txindex: 0}, %{eth | blknum: next_blknum(eth.blknum)}}
   end
 
-  def next_state({op, eth}, _, {_, _, :deposit, [[dep]]}) do
-    {pos, value} = dep_to_utxo(dep)
+  def next_state({op, eth}, _, {_, _, :deposit, [[deposit]]}) do
+    {pos, value} = dep_to_utxo(deposit)
     op = %{op | utxos: Map.put(op.utxos, pos, value),
            history: Map.put(op.history, pos, value)}
     true = map_size(op.history) > 0
-    {op, %{eth | blknum: dep.blknum}}
+    {op, %{eth | blknum: deposit.blknum}}
   end
 
   def next_state({op, eth} = state, _, {_, _, :exec, [utxo1, utxo2, newowner1, newowner2, split]}) do
@@ -168,7 +168,7 @@ defmodule OmiseGO.API.State.PropTest do
   def precondition(_model, _call), do: true
 
   # deposit is always successful and updates model
-  def postcondition({_op, _eth}, {_, _, :deposit, [[_dep]]}, result) do
+  def postcondition({_op, _eth}, {_, _, :deposit, [[_deposit]]}, result) do
     {:ok, {_event_triggers, db_updates}} = result
     length(db_updates) > 0
   end
