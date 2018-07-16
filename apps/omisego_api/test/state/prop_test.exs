@@ -84,15 +84,19 @@ defmodule OmiseGO.API.State.PropTest do
   # callbacks #
   #############
 
-  defp exec_call(model) do
-    [{:call, __MODULE__, :exec, [oneof(model.history), oneof([nil, oneof(model.history)]), address(), address(), float(0.0, 1.0)]}]
+  defp exec_call(spendable) do
+    [{:call, __MODULE__, :exec, [oneof(spendable), oneof([nil, oneof(spendable)]), address(), address(), float(0.0, 1.0)]}]
   end
 
   def command({model, eth}) do
+    has_utxo = map_size(model.utxos) > 0
+    spendable = spendable(model.history)
+    has_utxo_by_history = length(spendable) > 0
+    assert has_utxo_by_history == has_utxo
     tx =
-      case map_size(model.utxos) > 0 do
+      case has_utxo do
         true ->
-          exec_call(model)
+          exec_call(spendable)
 
         false ->
           []
@@ -206,6 +210,21 @@ defmodule OmiseGO.API.State.PropTest do
   # utilities #
   #############
 
+  defp spendable(history) do
+    spendable(Enum.reverse(history), %{})
+  end
+
+  defp spendable([], unspent) do
+    Map.to_list(unspent)
+  end
+
+  defp spendable([{:tx, inputs, outputs} | newer], unspent) do
+    input_pos = inputs |> Enum.unzip |> elem(0)
+    unspent = unspent |> Map.split(input_pos) |> elem(1)
+    unspent = Map.merge(unspent, Map.new(outputs))
+    spendable(newer, unspent)
+  end
+
   defp inputs(utxo_list) do
     utxo_list
     |> Enum.filter(&(&1 != nil))
@@ -277,6 +296,11 @@ defmodule OmiseGO.API.State.PropTest do
     amount1 = trunc(Float.ceil(sum * split))
     amount2 = sum - amount1
     {amount1, amount2}
+  end
+
+  defp get_outputs_of_historical_txes(list) do
+    f = fn({:tx, _, outs}) -> outs end
+    list |> Enum.map(f) |> List.flatten() |> filter_zero_or_nil_utxo() |> Enum.take(2)
   end
 
   defp outputs(utxo1, utxo2, newowner1, newowner2, split) do
