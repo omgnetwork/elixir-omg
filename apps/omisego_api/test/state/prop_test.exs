@@ -84,19 +84,19 @@ defmodule OmiseGO.API.State.PropTest do
   # callbacks #
   #############
 
-  defp exec_call(spendable) do
+  defp exec_call(spendable_map) do
+    spendable = Map.to_list(spendable_map)
     [{:call, __MODULE__, :exec, [oneof(spendable), oneof([nil, oneof(spendable)]), address(), address(), float(0.0, 1.0)]}]
   end
 
   def command({model, eth}) do
-    has_utxo = map_size(model.utxos) > 0
-    spendable = spendable(model.history)
-    has_utxo_by_history = length(spendable) > 0
-    assert has_utxo_by_history == has_utxo
+    spendable_map =
+      model.history
+      |> spendable()
     tx =
-      case has_utxo do
+      case map_size(spendable_map) > 0 do
         true ->
-          exec_call(spendable)
+          exec_call(spendable_map)
 
         false ->
           []
@@ -119,8 +119,6 @@ defmodule OmiseGO.API.State.PropTest do
   def initial_state do
     # Child Chain model
     model = %{
-      # spendable utxos: {blknum, txindex, oindex} => {owner, token, amount}
-      utxos: %{},
       # historical transactions, young first
       # [{:tx, [input, ...], [output, ...]}, ...]
       history: [],
@@ -138,29 +136,21 @@ defmodule OmiseGO.API.State.PropTest do
 
   def next_state({model, eth}, _, {_, _, :deposit, [[deposit]]}) do
     {position, value} = dep_to_utxo(deposit)
-    new_history = [{:tx, [], [{position, value}]} | model.history]
-    model = %{model | utxos: Map.put(model.utxos, position, value), history: new_history}
-    true = length(model.history) > 0
+    model = %{model | history: [{:tx, [], [{position, value}]} | model.history]}
     {model, %{eth | blknum: deposit.blknum}}
   end
 
   def next_state({model, eth} = state, _, {_, _, :exec, [utxo1, utxo2, newowner1, newowner2, split]}) do
-    case valid_utxos?(model, [utxo1, utxo2]) do
+    case valid_utxos?(spendable(model.history), [utxo1, utxo2]) do
       true ->
         {new_utxo1, new_utxo2} =
           tx_to_utxo(next_blknum(eth.blknum), model.txindex, utxo1, utxo2, newowner1, newowner2, split)
-
-        new_utxos =
-          model.utxos
-          |> Map.split(inputs([utxo1, utxo2]))
-          |> elem(1)
-          |> Map.merge(Map.new(filter_zero_or_nil_utxo([new_utxo1, new_utxo2])))
 
         tx = {:tx,
               filter_zero_or_nil_utxo([utxo1, utxo2]),
               filter_zero_or_nil_utxo([new_utxo2, new_utxo1])}
         new_history = [tx | model.history]
-        new_model = %{model | utxos: new_utxos, history: new_history, txindex: model.txindex + 1}
+        new_model = %{model | history: new_history, txindex: model.txindex + 1}
         {new_model, eth}
 
       _ ->
@@ -172,7 +162,8 @@ defmodule OmiseGO.API.State.PropTest do
   def precondition({%{utxos: utxos}, _eth}, {_, _, :exec, _}) when map_size(utxos) == 0, do: false
   # tx should spent utxo known to model
   def precondition({model, eth}, {_, _, :exec, [utxo1, utxo2, _, _, _]}) do
-    non_zero_utxos?([utxo1, utxo2]) and valid_utxos?(model, [utxo1, utxo2]) and possible_utxos?(eth, [utxo1, utxo2])
+    spendable_map = spendable(model.history)
+    non_zero_utxos?([utxo1, utxo2]) and valid_utxos?(spendable_map, [utxo1, utxo2]) and possible_utxos?(eth, [utxo1, utxo2])
   end
 
   def precondition(_model, _call), do: true
@@ -185,17 +176,19 @@ defmodule OmiseGO.API.State.PropTest do
 
   # spent is successful IFF utxos are known to model
   def postcondition({model, eth}, {_, _, :exec, [utxo1, utxo2, _, _, _] = args}, result) do
+    spendable = spendable(model.history)
     spent_ok =
-      non_zero_utxos?([utxo1, utxo2]) and valid_utxos?(model, [utxo1, utxo2]) and possible_utxos?(eth, [utxo1, utxo2])
+      non_zero_utxos?([utxo1, utxo2]) and valid_utxos?(spendable, [utxo1, utxo2]) and possible_utxos?(eth, [utxo1, utxo2])
 
     case match?({:ok, _}, result) == spent_ok do
       true ->
         true
 
       false ->
+        tagged = Enum.zip([:in1, :in2, :owner1, :owner2, :split], args)
         IO.puts("===============================")
-        IO.puts("model.utxos is #{inspect(model.utxos)}")
-        IO.puts("transaction is #{inspect(args)}")
+        IO.puts("spendable is #{inspect(spendable(model.history))}")
+        IO.puts("transaction is #{inspect tagged}")
         IO.puts("result is #{inspect(result)}")
         IO.puts("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
         false
@@ -215,7 +208,7 @@ defmodule OmiseGO.API.State.PropTest do
   end
 
   defp spendable([], unspent) do
-    Map.to_list(unspent)
+    unspent
   end
 
   defp spendable([{:tx, inputs, outputs} | newer], unspent) do
@@ -223,14 +216,6 @@ defmodule OmiseGO.API.State.PropTest do
     unspent = unspent |> Map.split(input_pos) |> elem(1)
     unspent = Map.merge(unspent, Map.new(outputs))
     spendable(newer, unspent)
-  end
-
-  defp inputs(utxo_list) do
-    utxo_list
-    |> Enum.filter(&(&1 != nil))
-    |> Enum.filter(&(&1 != {nil, nil}))
-    |> Enum.unzip()
-    |> elem(0)
   end
 
   defp tagged_inputs(utxo_list) do
@@ -263,12 +248,12 @@ defmodule OmiseGO.API.State.PropTest do
     end)
   end
 
-  defp valid_utxos?(model, list) when is_list(list) do
-    Enum.all?(list, &valid_utxo(model, &1))
+  defp valid_utxos?(spendable, list) when is_list(list) do
+    Enum.all?(list, &valid_utxo(spendable, &1))
   end
 
   defp valid_utxo(_, nil), do: true
-  defp valid_utxo(model, {position, value}), do: value == Map.get(model.utxos, position, nil)
+  defp valid_utxo(spendable, {position, value}), do: value == Map.get(spendable, position, nil)
 
   defp dep_to_utxo(%{blknum: blknum, currency: currency, owner: owner, amount: amount}) do
     {{blknum, 0, 0}, {owner, currency, amount}}
@@ -296,11 +281,6 @@ defmodule OmiseGO.API.State.PropTest do
     amount1 = trunc(Float.ceil(sum * split))
     amount2 = sum - amount1
     {amount1, amount2}
-  end
-
-  defp get_outputs_of_historical_txes(list) do
-    f = fn({:tx, _, outs}) -> outs end
-    list |> Enum.map(f) |> List.flatten() |> filter_zero_or_nil_utxo() |> Enum.take(2)
   end
 
   defp outputs(utxo1, utxo2, newowner1, newowner2, split) do
