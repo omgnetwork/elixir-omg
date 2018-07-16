@@ -14,7 +14,7 @@ defmodule OmiseGO.API.State.PropTest do
   alias OmiseGO.API.State.Transaction.Recovered
   @moduletag capture_log: true
 
-  #TODO: make aggregation and statistics informative
+  # TODO: make aggregation and statistics informative
   property "core handles deposits", [:verbose, max_size: 100] do
     forall cmds <- commands(__MODULE__) do
       trap_exit do
@@ -73,16 +73,21 @@ defmodule OmiseGO.API.State.PropTest do
   def exec(utxo1, utxo2, newowner1, newowner2, split) do
     {_, {spender1, _, _}} = utxo1
     outs = outputs(utxo1, utxo2, newowner1, newowner2, split)
+
     tx =
       [utxo1, utxo2]
       |> inputs()
       |> Transaction.new(:eth, outs)
+
     signed = %Signed{raw_tx: tx}
     rec = %Recovered{signed_tx: signed, signed_tx_hash: <<0::512>>, spender1: spender1}
-    rec = case utxo2 do
-            nil -> rec
-            {_, {spender2, _, _}} -> %{rec | spender2: spender2}
-          end
+
+    rec =
+      case utxo2 do
+        nil -> rec
+        {_, {spender2, _, _}} -> %{rec | spender2: spender2}
+      end
+
     CoreGS.exec(rec, %{eth: 0})
   end
 
@@ -90,67 +95,77 @@ defmodule OmiseGO.API.State.PropTest do
   # callbacks #
   #############
 
-  def command({op, eth}) do
-    history = Map.to_list(op.history)
-    tx = case map_size(op.utxos) > 0 do
-              true ->
-                [{:call, __MODULE__, :exec, [
-                     oneof(history),                 # input1
-                     oneof([nil, oneof(history)]),   # input2
-                     address(),                      # newowner1
-                     address(),                      # newowner2
-                     float(0.0, 1.0) # split between 1 and 2 IF newowner2 is non-zero
-                   ]}]
-              false -> []
-            end
-    deposit = case (eth.blknum - (eth.blknum / 1000)) != 999 do
-                   true -> [{:call, CoreGS, :deposit, [[deposit(eth.blknum + 1)]]}]
-                   false -> []
-                 end
+  defp exec_call(model) do
+    history = Map.to_list(model.history)
+    [{:call, __MODULE__, :exec, [oneof(history), oneof([nil, oneof(history)]), address(), address(), float(0.0, 1.0)]}]
+  end
+
+  def command({model, eth}) do
+    tx =
+      case map_size(model.utxos) > 0 do
+        true ->
+          exec_call(model)
+
+        false ->
+          []
+      end
+
+    deposit =
+      case eth.blknum - eth.blknum / 1000 != 999 do
+        true -> [{:call, CoreGS, :deposit, [[deposit(eth.blknum + 1)]]}]
+        false -> []
+      end
+
     rest = [
-      {:call, CoreGS, :form_block, [1000]},
+      {:call, CoreGS, :form_block, [1000]}
       # {:call, CoreGS, :exit_utxos, [[exit_utxo()]]},
     ]
+
     oneof(tx ++ deposit ++ rest)
   end
- 
+
   def initial_state do
-    op = %{utxos: %{},   # {blknum, txindex, oindex} => {owner, token, amount}
-           history: %{}, # {blknum, txindex, oindex} => {owner, token, amount}
-           txindex: 0}
+    # Child Chain model
+    model = %{
+      # spendable utxos: {blknum, txindex, oindex} => {owner, token, amount}
+      utxos: %{},
+      # historical utxos: {blknum, txindex, oindex} => {owner, token, amount}
+      history: %{},
+      txindex: 0
+    }
+
+    # Ethereum state
     eth = %{blknum: 0}
-    {op, eth}
+    {model, eth}
   end
 
-  defp next_blknum(blknum) do
-    trunc(blknum / 1000) * 1000 + 1000
+  def next_state({model, eth}, _, {_, _, :form_block, _}) do
+    {%{model | txindex: 0}, %{eth | blknum: next_blknum(eth.blknum)}}
   end
 
-  def next_state({op, eth}, _, {_, _, :form_block, _}) do
-    {%{op | txindex: 0}, %{eth | blknum: next_blknum(eth.blknum)}}
+  def next_state({model, eth}, _, {_, _, :deposit, [[deposit]]}) do
+    {position, value} = dep_to_utxo(deposit)
+    model = %{model | utxos: Map.put(model.utxos, position, value), history: Map.put(model.history, position, value)}
+    true = map_size(model.history) > 0
+    {model, %{eth | blknum: deposit.blknum}}
   end
 
-  def next_state({op, eth}, _, {_, _, :deposit, [[deposit]]}) do
-    {pos, value} = dep_to_utxo(deposit)
-    op = %{op | utxos: Map.put(op.utxos, pos, value),
-           history: Map.put(op.history, pos, value)}
-    true = map_size(op.history) > 0
-    {op, %{eth | blknum: deposit.blknum}}
-  end
-
-  def next_state({op, eth} = state, _, {_, _, :exec, [utxo1, utxo2, newowner1, newowner2, split]}) do
-    case valid_utxos?(op, [utxo1, utxo2]) do
+  def next_state({model, eth} = state, _, {_, _, :exec, [utxo1, utxo2, newowner1, newowner2, split]}) do
+    case valid_utxos?(model, [utxo1, utxo2]) do
       true ->
         {{npos1, nval1}, {npos2, nval2}} =
-          tx_to_utxo(next_blknum(eth.blknum), op.txindex, utxo1, utxo2, newowner1, newowner2, split)
+          tx_to_utxo(next_blknum(eth.blknum), model.txindex, utxo1, utxo2, newowner1, newowner2, split)
+
         new_utxos =
-          op.utxos
+          model.utxos
           |> Map.split(inputs([utxo1, utxo2]))
           |> elem(1)
           |> Map.merge(Map.new(filter_zero_or_nil_utxo([{npos1, nval1}, {npos2, nval2}])))
-        new_history = Map.merge(op.history, Map.new([{npos1, nval1}, {npos2, nval2}]))
-        new_op = %{op | utxos: new_utxos, history: new_history, txindex: op.txindex + 1}
-        {new_op, eth}
+
+        new_history = Map.merge(model.history, Map.new([{npos1, nval1}, {npos2, nval2}]))
+        new_model = %{model | utxos: new_utxos, history: new_history, txindex: model.txindex + 1}
+        {new_model, eth}
+
       _ ->
         state
     end
@@ -159,31 +174,32 @@ defmodule OmiseGO.API.State.PropTest do
   # don't spent if deposits where not executed yet
   def precondition({%{utxos: utxos}, _eth}, {_, _, :exec, _}) when map_size(utxos) == 0, do: false
   # tx should spent utxo known to model
-  def precondition({op, eth}, {_, _, :exec, [utxo1, utxo2, _, _, _]}) do
-    non_zero_utxos?([utxo1, utxo2])
-    and valid_utxos?(op, [utxo1, utxo2])
-    and possible_utxos?(eth, [utxo1, utxo2])
+  def precondition({model, eth}, {_, _, :exec, [utxo1, utxo2, _, _, _]}) do
+    non_zero_utxos?([utxo1, utxo2]) and valid_utxos?(model, [utxo1, utxo2]) and possible_utxos?(eth, [utxo1, utxo2])
   end
+
   def precondition(_model, _call), do: true
 
   # deposit is always successful and updates model
-  def postcondition({_op, _eth}, {_, _, :deposit, [[_deposit]]}, result) do
+  def postcondition({_model, _eth}, {_, _, :deposit, [[_deposit]]}, result) do
     {:ok, {_event_triggers, db_updates}} = result
     length(db_updates) > 0
   end
 
   # spent is successful IFF utxos are known to model
-  def postcondition({op, eth}, {_, _, :exec, [utxo1, utxo2, _, _, _] = args}, result) do
-    spent_ok = non_zero_utxos?([utxo1, utxo2])
-               and valid_utxos?(op, [utxo1, utxo2])
-               and possible_utxos?(eth, [utxo1, utxo2])
+  def postcondition({model, eth}, {_, _, :exec, [utxo1, utxo2, _, _, _] = args}, result) do
+    spent_ok =
+      non_zero_utxos?([utxo1, utxo2]) and valid_utxos?(model, [utxo1, utxo2]) and possible_utxos?(eth, [utxo1, utxo2])
+
     case match?({:ok, _}, result) == spent_ok do
-      true -> true
+      true ->
+        true
+
       false ->
         IO.puts("===============================")
-        IO.puts("op.utxos is #{inspect op.utxos}")
-        IO.puts("transaction is #{inspect args}")
-        IO.puts("result is #{inspect result}")
+        IO.puts("model.utxos is #{inspect(model.utxos)}")
+        IO.puts("transaction is #{inspect(args)}")
+        IO.puts("result is #{inspect(result)}")
         IO.puts("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
         false
     end
@@ -207,30 +223,31 @@ defmodule OmiseGO.API.State.PropTest do
 
   defp non_zero_utxos?(list) when is_list(list) do
     Enum.all?(list, fn
-      ({_, {_, _, x}}) -> x > 0
-      (nil) -> true
+      {_, {_, _, x}} -> x > 0
+      nil -> true
     end)
   end
 
   defp filter_zero_or_nil_utxo(list) when is_list(list) do
     Enum.filter(list, fn
-      ({_, {_, _, x}}) -> x > 0
-      (nil) -> false
+      {_, {_, _, x}} -> x > 0
+      nil -> false
     end)
   end
 
   def possible_utxos?(eth, list) when is_list(list) do
     Enum.all?(list, fn
-      ({{blknum, _, _}, _}) -> blknum <= eth.blknum
-      (nil) -> true
+      {{blknum, _, _}, _} -> blknum <= eth.blknum
+      nil -> true
     end)
   end
 
-  defp valid_utxos?(op, list) when is_list(list) do
-    Enum.all?(list, &(valid_utxo(op, &1)))
+  defp valid_utxos?(model, list) when is_list(list) do
+    Enum.all?(list, &valid_utxo(model, &1))
   end
+
   defp valid_utxo(_, nil), do: true
-  defp valid_utxo(op, {pos, value}), do: value == Map.get(op.utxos, pos, nil)
+  defp valid_utxo(model, {position, value}), do: value == Map.get(model.utxos, position, nil)
 
   defp dep_to_utxo(%{blknum: blknum, currency: currency, owner: owner, amount: amount}) do
     {{blknum, 0, 0}, {owner, currency, amount}}
@@ -239,19 +256,21 @@ defmodule OmiseGO.API.State.PropTest do
   defp tx_to_utxo(height, txindex, input1, nil, newowner1, newowner2, split) do
     tx_to_utxo(height, txindex, input1, {nil, {nil, nil, 0}}, newowner1, newowner2, split)
   end
+
   defp tx_to_utxo(height, txindex, {_pos1, {_, token, left}}, {_pos2, {_, _, right}}, newowner1, newowner2, split)
-  when split >= 0 do
+       when split >= 0 do
     {a1, a2} = split_to_amounts(left + right, split)
-    {{{height, txindex, 0}, {newowner1, token, a1}},
-     {{height, txindex, 1}, {newowner2, token, a2}}}
+    {{{height, txindex, 0}, {newowner1, token, a1}}, {{height, txindex, 1}, {newowner2, token, a2}}}
   end
 
   defp split_to_amounts({_pos1, {_, _, left}}, nil, split) do
     split_to_amounts(left, split)
   end
+
   defp split_to_amounts({_pos1, {_, _, left}}, {_pos2, {_, _, right}}, split) do
     split_to_amounts(left + right, split)
   end
+
   defp split_to_amounts(sum, split) do
     amount1 = trunc(Float.ceil(sum * split))
     amount2 = sum - amount1
@@ -260,9 +279,14 @@ defmodule OmiseGO.API.State.PropTest do
 
   defp outputs(utxo1, utxo2, newowner1, newowner2, split) do
     {a1, a2} = split_to_amounts(utxo1, utxo2, split)
+
     case newowner2 do
       nil -> [{newowner1, a1}]
       _ -> [{newowner1, a1}, {newowner2, a2}]
     end
+  end
+
+  defp next_blknum(blknum) do
+    trunc(blknum / 1000) * 1000 + 1000
   end
 end
