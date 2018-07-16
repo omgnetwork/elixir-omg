@@ -139,11 +139,11 @@ defmodule OmiseGO.API.State.PropTest do
     {op, %{eth | blknum: dep.blknum}}
   end
 
-  def next_state({op, eth} = state, _, {_, _, :exec, [utxo1, utxo2, nwr1, nwr2, split]}) do
+  def next_state({op, eth} = state, _, {_, _, :exec, [utxo1, utxo2, newowner1, newowner2, split]}) do
     case valid_utxos?(op, [utxo1, utxo2]) do
       true ->
         {{npos1, nval1}, {npos2, nval2}} =
-          tx_to_utxo(next_blknum(eth.blknum), op.txindex, utxo1, utxo2, nwr1, nwr2, split)
+          tx_to_utxo(next_blknum(eth.blknum), op.txindex, utxo1, utxo2, newowner1, newowner2, split)
         new_utxos =
           op.utxos
           |> Map.split(inputs([utxo1, utxo2]))
@@ -233,19 +233,18 @@ defmodule OmiseGO.API.State.PropTest do
   defp valid_utxo(_, nil), do: true
   defp valid_utxo(op, {pos, value}), do: value == Map.get(op.utxos, pos, nil)
 
-
   defp dep_to_utxo(%{blknum: blknum, currency: currency, owner: owner, amount: amount}) do
     {{blknum, 0, 0}, {owner, currency, amount}}
   end
 
-  defp tx_to_utxo(height, txindex, input1, nil, nwr1, nwr2, split) do
-    tx_to_utxo(height, txindex, input1, {nil, {nil, nil, 0}}, nwr1, nwr2, split)
+  defp tx_to_utxo(height, txindex, input1, nil, newowner1, newowner2, split) do
+    tx_to_utxo(height, txindex, input1, {nil, {nil, nil, 0}}, newowner1, newowner2, split)
   end
-  defp tx_to_utxo(height, txindex, {_pos1, {_, token, left}}, {_pos2, {_, _, right}}, nwr1, nwr2, split)
+  defp tx_to_utxo(height, txindex, {_pos1, {_, token, left}}, {_pos2, {_, _, right}}, newowner1, newowner2, split)
   when split >= 0 do
     {a1, a2} = split_to_amounts(left + right, split)
-    {{{height, txindex, 0}, {nwr1, token, a1}},
-     {{height, txindex, 1}, {nwr2, token, a2}}}
+    {{{height, txindex, 0}, {newowner1, token, a1}},
+     {{height, txindex, 1}, {newowner2, token, a2}}}
   end
 
   defp split_to_amounts({_pos1, {_, _, left}}, nil, split) do
