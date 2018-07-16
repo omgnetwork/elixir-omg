@@ -15,6 +15,7 @@ defmodule OmiseGO.API.Application do
       {OmiseGO.API.State, []},
       {OmiseGO.API.BlockQueue.Server, []},
       {OmiseGO.API.FreshBlocks, []},
+      {OmiseGO.API.FeeChecker, []},
       worker(
         OmiseGO.API.EthereumEventListener,
         [event_listener_config, &OmiseGO.Eth.get_deposits/2, &State.deposit/1],

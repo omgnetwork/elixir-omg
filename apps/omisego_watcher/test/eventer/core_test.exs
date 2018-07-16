@@ -12,64 +12,32 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
 
   @tag fixtures: [:alice, :bob]
   test "notify function generates 2 proper address_received events", %{alice: alice, bob: bob} do
-    raw_tx = %Transaction{
-      blknum1: 1,
-      txindex1: 0,
-      oindex1: 0,
-      blknum2: 1,
-      txindex2: 0,
-      oindex2: 0,
-      cur12: Transaction.zero_address(),
-      newowner1: alice.addr,
-      amount1: 100,
-      newowner2: bob.addr,
-      amount2: 0
-    }
+    recovered_tx =
+      API.TestHelper.create_recovered([{1, 0, 0, alice}, {2, 0, 0, bob}], API.Crypto.zero_address(), [
+        {alice, 100},
+        {bob, 5}
+      ])
 
-    encoded_singed_tx =
-      raw_tx
-      |> Transaction.sign(alice.priv, bob.priv)
-      |> Transaction.Signed.encode()
+    encoded_alice_address = API.TestHelper.encode_address(alice.addr)
+    encoded_bob_address = API.TestHelper.encode_address(bob.addr)
 
-    {:ok, recovered_tx} = API.Core.recover_tx(encoded_singed_tx)
+    {topic_1, event_name_1, event_1} = {"address:" <> encoded_alice_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
 
-    encoded_alice_address = "0x" <> Base.encode16(alice.addr, case: :lower)
-    encoded_bob_address = "0x" <> Base.encode16(bob.addr, case: :lower)
+    {topic_2, event_name_2, event_2} = {"address:" <> encoded_bob_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
 
-    event_1 = {"address:" <> encoded_alice_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
-
-    event_2 = {"address:" <> encoded_bob_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
-
-    assert [event_1, event_2] == Eventer.Core.notify([%{tx: recovered_tx}])
+    assert [{topic_1, event_name_1, event_1}, {topic_2, event_name_2, event_2}] == Eventer.Core.notify([%{tx: recovered_tx}])
   end
 
   @tag fixtures: [:alice, :bob]
   test "notify function generates 1 proper address_received events", %{alice: alice} do
-    raw_tx = %Transaction{
-      blknum1: 1,
-      txindex1: 0,
-      oindex1: 0,
-      blknum2: 1,
-      txindex2: 0,
-      oindex2: 0,
-      cur12: Transaction.zero_address(),
-      newowner1: alice.addr,
-      amount1: 100,
-      newowner2: Transaction.zero_address(),
-      amount2: 0
-    }
+    recovered_tx =
+      API.TestHelper.create_recovered([{1, 0, 0, alice}], API.Crypto.zero_address(), [{alice, 100}])
 
-    encoded_singed_tx =
-      raw_tx
-      |> Transaction.sign(alice.priv, alice.priv)
-      |> Transaction.Signed.encode()
+    encoded_alice_address = API.TestHelper.encode_address(alice.addr)
 
-    {:ok, recovered_tx} = API.Core.recover_tx(encoded_singed_tx)
+    {topic, event_name, event} =
+      {"address:" <> encoded_alice_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
 
-    encoded_alice_address = "0x" <> Base.encode16(alice.addr, case: :lower)
-
-    event_owner_1 = {"address:" <> encoded_alice_address, "address_received", %Event.AddressReceived{tx: recovered_tx}}
-
-    assert [event_owner_1] == Eventer.Core.notify([%{tx: recovered_tx}])
+    assert [{topic, event_name, event}] == Eventer.Core.notify([%{tx: recovered_tx}])
   end
 end

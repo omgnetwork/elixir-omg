@@ -32,11 +32,15 @@ defmodule OmiseGO.API.MixProject do
 
   defp deps do
     [
+      {:poison, "~> 3.1"},
       {:phoenix_pubsub, "~> 1.0"},
       {:ex_rlp, "~> 0.2.1"},
       {:blockchain, "~> 0.1.6"},
       {:ex_unit_fixtures, "~> 0.3.1", only: [:test]},
-      {:jsonrpc2, "~> 1.0", only: [:test]},
+      {:jsonrpc2,
+       git: "https://github.com/omisego/jsonrpc2-elixir.git",
+       branch: "precise_handling_of_FunctionClauseError",
+       only: [:test]},
       {:merkle_tree, git: "https://github.com/omisego/merkle_tree.git"},
       {:libsecp256k1, "~> 0.1.2", compile: "${HOME}/.mix/rebar compile", override: true},
       #
