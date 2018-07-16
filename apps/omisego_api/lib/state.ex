@@ -20,8 +20,8 @@ defmodule OmiseGO.API.State do
   end
 
   @spec exec(tx :: %Transaction.Recovered{}, fees :: map()) ::
-  {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}}
-  | {:error, Core.exec_error}
+          {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}}
+          | {:error, Core.exec_error()}
   def exec(tx, input_fees) do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
@@ -69,6 +69,7 @@ defmodule OmiseGO.API.State do
     {:ok, height_query_result} = DB.child_top_block_number()
     {:ok, last_deposit_query_result} = DB.last_deposit_height()
     {:ok, utxos_query_result} = DB.utxos()
+
     Core.extract_initial_state(
       utxos_query_result,
       height_query_result,
@@ -84,6 +85,7 @@ defmodule OmiseGO.API.State do
     case Core.exec(tx, fees, state) do
       {:ok, tx_result, new_state} ->
         {:reply, {:ok, tx_result}, new_state}
+
       {tx_result, new_state} ->
         {:reply, tx_result, new_state}
     end

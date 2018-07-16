@@ -43,7 +43,8 @@ defmodule OmiseGO.API.TestHelper do
   end
 
   def do_deposit(state, owner, %{amount: amount, currency: cur, blknum: blknum}) do
-   {:ok, {_, _}, new_state} = Core.deposit([%{owner: owner.addr, currency: cur, amount: amount, blknum: blknum}], state)
+    {:ok, {_, _}, new_state} =
+      Core.deposit([%{owner: owner.addr, currency: cur, amount: amount, blknum: blknum}], state)
 
     new_state
   end

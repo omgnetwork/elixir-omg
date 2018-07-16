@@ -39,63 +39,76 @@ defmodule OmiseGO.API.BlackBoxMe do
 
   defmacro __before_compile__(opts) do
     specials = [__info__: 1, __struct__: 0, __struct__: 1, module_info: 0, module_info: 1]
-    core =  hd(opts.context_modules)
+    core = hd(opts.context_modules)
     exports = Module.definitions_in(core, :def)
     exports = exports -- specials
 
-    module_static = quote do
-      def init(state) do
-        Process.put(unquote(core), state)
-        {:ok, :state_managed_by_helper}
-      end
+    module_static =
+      quote do
+        def init(state) do
+          Process.put(unquote(core), state)
+          {:ok, :state_managed_by_helper}
+        end
 
-      def reset do
-        Process.put(unquote(core), nil)
-      end
+        def reset do
+          Process.put(unquote(core), nil)
+        end
 
-      def get_state do
-        Process.get(unquote(core))
+        def get_state do
+          Process.get(unquote(core))
+        end
       end
-    end
 
     contents = [module_static]
 
-    exports = for {func_name, arity} <- exports do
-      args = for x <- :lists.seq(1, arity-1) do
-        argname = String.to_atom("arg#{inspect x}")
-        {argname, [], nil}
-      end
-      {func_name, args}
-    end
+    exports =
+      for {func_name, arity} <- exports do
+        args =
+          for x <- :lists.seq(1, arity - 1) do
+            argname = String.to_atom("arg#{inspect(x)}")
+            {argname, [], nil}
+          end
 
-    module_api = Enum.map(exports, fn({func_name, args}) ->
-      quote do
-        def unquote(func_name)(unquote_splicing(args)) do
-          state = Process.get(unquote(core))
-          case :erlang.apply(unquote(core), unquote(func_name), unquote(args) ++ [state]) do
-            {:ok, sideeffects, new_state} ->
-              Process.put(unquote(core), new_state)
-              {:ok, sideeffects}
-            {:ok, new_state} ->
-              Process.put(unquote(core), new_state)
-              :ok
-            {{:error, error}, new_state} ->
-              Process.put(unquote(core), new_state)
-              {:error, error}
-            unexpected ->
-              IO.puts("unexpected output #{inspect unquote(func_name)(unquote_splicing(args))} :: #{inspect unexpected}")
-              :erlang.error({:badreturn, unexpected})
+        {func_name, args}
+      end
+
+    module_api =
+      Enum.map(exports, fn {func_name, args} ->
+        quote do
+          def unquote(func_name)(unquote_splicing(args)) do
+            state = Process.get(unquote(core))
+
+            case :erlang.apply(unquote(core), unquote(func_name), unquote(args) ++ [state]) do
+              {:ok, sideeffects, new_state} ->
+                Process.put(unquote(core), new_state)
+                {:ok, sideeffects}
+
+              {:ok, new_state} ->
+                Process.put(unquote(core), new_state)
+                :ok
+
+              {{:error, error}, new_state} ->
+                Process.put(unquote(core), new_state)
+                {:error, error}
+
+              unexpected ->
+                IO.puts(
+                  "unexpected output #{inspect(unquote(func_name)(unquote_splicing(args)))} :: #{inspect(unexpected)}"
+                )
+
+                :erlang.error({:badreturn, unexpected})
+            end
           end
         end
-      end
-    end)
+      end)
+
     contents = contents ++ module_api
 
     module_name =
       core
-      |> Atom.to_string
+      |> Atom.to_string()
       |> Kernel.<>("GS")
-      |> String.to_atom
+      |> String.to_atom()
 
     # generate the helper module:
     {:module, _, _, _} = Module.create(module_name, contents, Macro.Env.location(__ENV__))

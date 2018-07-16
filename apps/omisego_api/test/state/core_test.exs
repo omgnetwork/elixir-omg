@@ -349,13 +349,8 @@ defmodule OmiseGO.API.State.CoreTest do
   test "no pending transactions at start (no events, empty block, no db updates)", %{state_empty: state} do
     expected_block = empty_block()
 
-    assert {:ok,
-            {
-              ^expected_block,
-              [],
-              [{:put, :block, _}, {:put, :child_top_block_number, @child_block_interval}]},
-              _state
-            } = form_block_check(state, @child_block_interval)
+    assert {:ok, {^expected_block, [], [{:put, :block, _}, {:put, :child_top_block_number, @child_block_interval}]},
+            _state} = form_block_check(state, @child_block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -435,6 +430,7 @@ defmodule OmiseGO.API.State.CoreTest do
         1,
         @child_block_interval
       )
+
     state
     |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), zero_fees_map(), &1)).()
     |> success?
@@ -475,11 +471,12 @@ defmodule OmiseGO.API.State.CoreTest do
 
     expected_owner = alice.addr
 
-    {:ok, {[
-       %{exit: %{owner: ^expected_owner, blknum: @child_block_interval, txindex: 0, oindex: 0}},
-       %{exit: %{owner: ^expected_owner, blknum: @child_block_interval, txindex: 0, oindex: 1}}
-     ], [{:delete, :utxo, {@child_block_interval, 0, 0}}, {:delete, :utxo, {@child_block_interval, 0, 1}}],
-     }, state} =
+    {:ok,
+     {[
+        %{exit: %{owner: ^expected_owner, blknum: @child_block_interval, txindex: 0, oindex: 0}},
+        %{exit: %{owner: ^expected_owner, blknum: @child_block_interval, txindex: 0, oindex: 1}}
+      ], [{:delete, :utxo, {@child_block_interval, 0, 0}}, {:delete, :utxo, {@child_block_interval, 0, 1}}]},
+     state} =
       [
         %{owner: alice.addr, blknum: @child_block_interval, txindex: 0, oindex: 0},
         %{owner: alice.addr, blknum: @child_block_interval, txindex: 0, oindex: 1}

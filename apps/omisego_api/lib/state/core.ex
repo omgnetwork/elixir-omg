@@ -15,11 +15,11 @@ defmodule OmiseGO.API.State.Core do
   alias OmiseGO.API.State.Transaction
 
   @type deposit() :: %{
-    blknum: pos_integer(),
-    currency: <<_::160>>,
-    owner: <<_::160>>,
-    amount: pos_integer()
-  }
+          blknum: pos_integer(),
+          currency: <<_::160>>,
+          owner: <<_::160>>,
+          amount: pos_integer()
+        }
   @type utxo() :: term()
   @type side_effects() :: term()
 
@@ -47,6 +47,7 @@ defmodule OmiseGO.API.State.Core do
       last_deposit_height: last_deposit_height_query_result,
       utxos: utxos
     }
+
     {:ok, state}
   end
 
@@ -79,8 +80,7 @@ defmodule OmiseGO.API.State.Core do
       {:ok, {recovered_tx.signed_tx_hash, state.height, state.tx_index},
        state
        |> apply_spend(raw_tx)
-       |> add_pending_tx(recovered_tx)
-      }
+       |> add_pending_tx(recovered_tx)}
     else
       {:error, _reason} = error -> {error, state}
     end
@@ -362,5 +362,4 @@ defmodule OmiseGO.API.State.Core do
   """
   @spec get_current_child_block_height(%__MODULE__{}) :: pos_integer
   def get_current_child_block_height(%{height: height}), do: height
-
 end

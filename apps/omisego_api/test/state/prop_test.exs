@@ -63,7 +63,8 @@ defmodule OmiseGO.API.State.PropTest do
       |> Map.split([:stable_alice, :stable_bob, :stable_mallory])
       |> elem(0)
       |> Map.values()
-      |> Enum.map(&(Map.get(&1, :addr)))
+      |> Enum.map(&Map.get(&1, :addr))
+
     oneof(addresses)
   end
 
@@ -86,13 +87,18 @@ defmodule OmiseGO.API.State.PropTest do
 
   defp exec_call(spendable_map) do
     spendable = Map.to_list(spendable_map)
-    [{:call, __MODULE__, :exec, [oneof(spendable), oneof([nil, oneof(spendable)]), address(), address(), float(0.0, 1.0)]}]
+
+    [
+      {:call, __MODULE__, :exec,
+       [oneof(spendable), oneof([nil, oneof(spendable)]), address(), address(), float(0.0, 1.0)]}
+    ]
   end
 
   def command({model, eth}) do
     spendable_map =
       model.history
       |> spendable()
+
     tx =
       case map_size(spendable_map) > 0 do
         true ->
@@ -146,9 +152,7 @@ defmodule OmiseGO.API.State.PropTest do
         {new_utxo1, new_utxo2} =
           tx_to_utxo(next_blknum(eth.blknum), model.txindex, utxo1, utxo2, newowner1, newowner2, split)
 
-        tx = {:tx,
-              filter_zero_or_nil_utxo([utxo1, utxo2]),
-              filter_zero_or_nil_utxo([new_utxo2, new_utxo1])}
+        tx = {:tx, filter_zero_or_nil_utxo([utxo1, utxo2]), filter_zero_or_nil_utxo([new_utxo2, new_utxo1])}
         new_history = [tx | model.history]
         new_model = %{model | history: new_history, txindex: model.txindex + 1}
         {new_model, eth}
@@ -163,7 +167,9 @@ defmodule OmiseGO.API.State.PropTest do
   # tx should spent utxo known to model
   def precondition({model, eth}, {_, _, :exec, [utxo1, utxo2, _, _, _]}) do
     spendable_map = spendable(model.history)
-    non_zero_utxos?([utxo1, utxo2]) and valid_utxos?(spendable_map, [utxo1, utxo2]) and possible_utxos?(eth, [utxo1, utxo2])
+
+    non_zero_utxos?([utxo1, utxo2]) and valid_utxos?(spendable_map, [utxo1, utxo2]) and
+      possible_utxos?(eth, [utxo1, utxo2])
   end
 
   def precondition(_model, _call), do: true
@@ -177,8 +183,10 @@ defmodule OmiseGO.API.State.PropTest do
   # spent is successful IFF utxos are known to model
   def postcondition({model, eth}, {_, _, :exec, [utxo1, utxo2, _, _, _] = args}, result) do
     spendable = spendable(model.history)
+
     spent_ok =
-      non_zero_utxos?([utxo1, utxo2]) and valid_utxos?(spendable, [utxo1, utxo2]) and possible_utxos?(eth, [utxo1, utxo2])
+      non_zero_utxos?([utxo1, utxo2]) and valid_utxos?(spendable, [utxo1, utxo2]) and
+        possible_utxos?(eth, [utxo1, utxo2])
 
     case match?({:ok, _}, result) == spent_ok do
       true ->
@@ -188,7 +196,7 @@ defmodule OmiseGO.API.State.PropTest do
         tagged = Enum.zip([:in1, :in2, :owner1, :owner2, :split], args)
         IO.puts("===============================")
         IO.puts("spendable is #{inspect(spendable(model.history))}")
-        IO.puts("transaction is #{inspect tagged}")
+        IO.puts("transaction is #{inspect(tagged)}")
         IO.puts("result is #{inspect(result)}")
         IO.puts("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
         false
@@ -212,7 +220,7 @@ defmodule OmiseGO.API.State.PropTest do
   end
 
   defp spendable([{:tx, inputs, outputs} | newer], unspent) do
-    input_pos = inputs |> Enum.unzip |> elem(0)
+    input_pos = inputs |> Enum.unzip() |> elem(0)
     unspent = unspent |> Map.split(input_pos) |> elem(1)
     unspent = Map.merge(unspent, Map.new(outputs))
     spendable(newer, unspent)
@@ -222,7 +230,7 @@ defmodule OmiseGO.API.State.PropTest do
     utxo_list
     |> Enum.filter(&(&1 != nil))
     |> Enum.filter(&(&1 != {nil, nil}))
-    |> Enum.map(fn({{blknum, txindex, oindex}, {owner_addr, _, _}}) ->
+    |> Enum.map(fn {{blknum, txindex, oindex}, {owner_addr, _, _}} ->
       {blknum, txindex, oindex, keypair(owner_addr)}
     end)
   end
@@ -298,13 +306,13 @@ defmodule OmiseGO.API.State.PropTest do
 
   defp keypair(nil), do: nil
   defp keypair(<<0::160>>), do: nil
+
   defp keypair(addr) do
     OmiseGO.API.TestHelper.entities()
     |> Map.values()
-    |> Enum.filter(fn(map) ->
+    |> Enum.filter(fn map ->
       Map.get(map, :addr) == addr
     end)
     |> hd
   end
-
 end
