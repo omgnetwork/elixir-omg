@@ -85,8 +85,7 @@ defmodule OmiseGO.API.State.PropTest do
   #############
 
   defp exec_call(model) do
-    history = Map.to_list(model.history)
-    [{:call, __MODULE__, :exec, [oneof(history), oneof([nil, oneof(history)]), address(), address(), float(0.0, 1.0)]}]
+    [{:call, __MODULE__, :exec, [oneof(model.history), oneof([nil, oneof(model.history)]), address(), address(), float(0.0, 1.0)]}]
   end
 
   def command({model, eth}) do
@@ -118,8 +117,9 @@ defmodule OmiseGO.API.State.PropTest do
     model = %{
       # spendable utxos: {blknum, txindex, oindex} => {owner, token, amount}
       utxos: %{},
-      # historical utxos: {blknum, txindex, oindex} => {owner, token, amount}
-      history: %{},
+      # historical transactions, young first
+      # [{:tx, [input, ...], [output, ...]}, ...]
+      history: [],
       txindex: 0
     }
 
@@ -134,24 +134,28 @@ defmodule OmiseGO.API.State.PropTest do
 
   def next_state({model, eth}, _, {_, _, :deposit, [[deposit]]}) do
     {position, value} = dep_to_utxo(deposit)
-    model = %{model | utxos: Map.put(model.utxos, position, value), history: Map.put(model.history, position, value)}
-    true = map_size(model.history) > 0
+    new_history = [{:tx, [], [{position, value}]} | model.history]
+    model = %{model | utxos: Map.put(model.utxos, position, value), history: new_history}
+    true = length(model.history) > 0
     {model, %{eth | blknum: deposit.blknum}}
   end
 
   def next_state({model, eth} = state, _, {_, _, :exec, [utxo1, utxo2, newowner1, newowner2, split]}) do
     case valid_utxos?(model, [utxo1, utxo2]) do
       true ->
-        {{npos1, nval1}, {npos2, nval2}} =
+        {new_utxo1, new_utxo2} =
           tx_to_utxo(next_blknum(eth.blknum), model.txindex, utxo1, utxo2, newowner1, newowner2, split)
 
         new_utxos =
           model.utxos
           |> Map.split(inputs([utxo1, utxo2]))
           |> elem(1)
-          |> Map.merge(Map.new(filter_zero_or_nil_utxo([{npos1, nval1}, {npos2, nval2}])))
+          |> Map.merge(Map.new(filter_zero_or_nil_utxo([new_utxo1, new_utxo2])))
 
-        new_history = Map.merge(model.history, Map.new([{npos1, nval1}, {npos2, nval2}]))
+        tx = {:tx,
+              filter_zero_or_nil_utxo([utxo1, utxo2]),
+              filter_zero_or_nil_utxo([new_utxo2, new_utxo1])}
+        new_history = [tx | model.history]
         new_model = %{model | utxos: new_utxos, history: new_history, txindex: model.txindex + 1}
         {new_model, eth}
 
@@ -221,14 +225,14 @@ defmodule OmiseGO.API.State.PropTest do
 
   defp non_zero_utxos?(list) when is_list(list) do
     Enum.all?(list, fn
-      {_, {_, _, x}} -> x > 0
+      {_, {_, _, amount}} -> amount > 0
       nil -> true
     end)
   end
 
   defp filter_zero_or_nil_utxo(list) when is_list(list) do
     Enum.filter(list, fn
-      {_, {_, _, x}} -> x > 0
+      {_, {_, _, amount}} -> amount > 0
       nil -> false
     end)
   end
