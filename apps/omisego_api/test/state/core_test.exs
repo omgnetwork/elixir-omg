@@ -5,8 +5,6 @@ defmodule OmiseGO.API.State.CoreTest do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.TestHelper, as: Test
 
-  @moduletag :current
-
   @child_block_interval OmiseGO.API.BlockQueue.child_block_interval()
   @child_block_2 @child_block_interval * 2
   @child_block_3 @child_block_interval * 3

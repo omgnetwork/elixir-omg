@@ -8,8 +8,6 @@ defmodule OmiseGO.API.State.TransactionTest do
 
   @signature <<1>> |> List.duplicate(65) |> :binary.list_to_bin()
 
-  @moduletag :current
-
   deffixture transaction do
     %Transaction{
       blknum1: 1,
