@@ -12,7 +12,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     :maximum_number_of_pending_blocks,
     :block_to_consume,
     :potential_block_withholdings,
-    :maximum_block_withholding_time
+    :maximum_block_withholding_time,
+    :potential_block_withholding_delay_time
   ]
 
   @type t() :: %__MODULE__{
@@ -27,7 +28,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
                  potential_block_withholdings: %{
                    non_neg_integer => pos_integer
                  },
-                 maximum_block_withholding_time: pos_integer
+                 maximum_block_withholding_time: pos_integer,
+                 potential_block_withholding_delay_time: pos_integer
                }
 
   @spec init(non_neg_integer, pos_integer, pos_integer) :: %__MODULE__{}
@@ -35,7 +37,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
         block_number,
         child_block_interval,
         maximum_number_of_pending_blocks \\ 10,
-        maximum_block_withholding_time \\ 240_000
+        maximum_block_withholding_time \\ 0,
+        potential_block_withholding_delay_time \\ 0
       ) do
     %__MODULE__{
       last_consumed_block: block_number,
@@ -45,7 +48,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       maximum_number_of_pending_blocks: maximum_number_of_pending_blocks,
       block_to_consume: %{},
       potential_block_withholdings: %{},
-      maximum_block_withholding_time: maximum_block_withholding_time
+      maximum_block_withholding_time: maximum_block_withholding_time,
+      potential_block_withholding_delay_time: potential_block_withholding_delay_time
     }
   end
 

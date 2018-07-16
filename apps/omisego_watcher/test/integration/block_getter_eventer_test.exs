@@ -11,7 +11,12 @@ defmodule OmiseGOWatcher.BlockGetterEventerTest do
   @moduletag :integration
 
   @tag fixtures: [:watcher_sandbox]
-  test "test" do
+  test "emit blockwithholding event" do
+
+  end
+
+  @tag fixtures: [:watcher_sandbox]
+  test "detect potential block withholding and then cancel detecion" do
 
   end
 

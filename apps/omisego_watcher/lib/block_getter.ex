@@ -63,7 +63,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     with  {:ok, new_state} <- Core.add_potential_block_withholding(state, blknum) do
       receive do
       after
-        30_000 ->
+        state.potential_block_withholding_delay_time ->
           Task.async(
             fn -> case get_block(blknum) do
                     {:ok, block} ->

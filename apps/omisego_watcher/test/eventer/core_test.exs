@@ -11,7 +11,7 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
   alias OmiseGOWatcher.Eventer.Event
 
   @tag fixtures: [:alice, :bob]
-  test "notify function generates 2 proper address_received events", %{alice: alice, bob: bob} do
+  test "prepare_events function generates 2 proper address_received events", %{alice: alice, bob: bob} do
     raw_tx = %Transaction{
       blknum1: 1,
       txindex1: 0,
@@ -44,7 +44,7 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob]
-  test "notify function generates 1 proper address_received events", %{alice: alice} do
+  test "prepare_events function generates 1 proper address_received events", %{alice: alice} do
     raw_tx = %Transaction{
       blknum1: 1,
       txindex1: 0,
@@ -73,7 +73,7 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
     assert [event_owner_1] == Eventer.Core.prepare_events([%{tx: recovered_tx}])
   end
 
-  test "notify function generates one block_withholdings event" do
+  test "prepare_event function generates one block_withholdings event" do
 
     block_withholding_event = %Event.BlockWithHolding{blknum: 1}
     event = {"byzantine", "block_withholding", block_withholding_event}
