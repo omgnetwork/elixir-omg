@@ -10,6 +10,7 @@ defmodule OmiseGO.API.State.PropTest do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.CoreGS
   alias OmiseGO.API.State.Transaction
+  alias OmiseGO.API.State.Transaction.Signed
   alias OmiseGO.API.State.Transaction.Recovered
   @moduletag capture_log: true
 
@@ -77,7 +78,8 @@ defmodule OmiseGO.API.State.PropTest do
       [utxo1, utxo2]
       |> inputs()
       |> Transaction.new(:eth, outs)
-    rec = %Recovered{raw_tx: tx, signed_tx_hash: <<0::512>>, spender1: spender1}
+    signed = %Signed{raw_tx: tx}
+    rec = %Recovered{signed_tx: signed, signed_tx_hash: <<0::512>>, spender1: spender1}
     rec = case utxo2 do
             nil -> rec
             {_, {spender2, _, _}} -> %{rec | spender2: spender2}
