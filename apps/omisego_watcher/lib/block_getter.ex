@@ -99,6 +99,11 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:noreply, new_state}
   end
 
+  def handle_info({_ref, {:got_block, {:error, :block_hash}}}, state) do
+    _ = Logger.error(fn -> "Received block with mismatching hash, stopping BlockGetter" end)
+    {:stop, :normal, state}
+  end
+
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
 
   defp run_block_get_task(blocks_numbers) do
