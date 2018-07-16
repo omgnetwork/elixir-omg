@@ -1,6 +1,6 @@
 defmodule OmiseGOWatcher.ChainExiter do
   @moduledoc """
-  Exits child chain
+  Handles child chain exits
   """
 
   def exit do

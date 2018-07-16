@@ -24,8 +24,8 @@ defmodule OmiseGOWatcher.Repo.Migrations.CreateTransaction do
       add(:txblknum, :integer, null: false)
       add(:txindex, :integer, null: false)
 
-      add(:sig1, :binary, null: true)
-      add(:sig2, :binary, null: true)
+      add(:sig1, :binary, null: false)
+      add(:sig2, :binary, null: false)
     end
   end
 end

@@ -309,7 +309,7 @@ defmodule OmiseGO.Eth do
   end
 
   @doc """
-  Returns lists of deposits sorted by child chain block number
+  Returns exits from a range of blocks. Collects exits from Ethereum logs.
   """
   def get_exits(block_from, block_to, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
@@ -333,11 +333,16 @@ defmodule OmiseGO.Eth do
          do: {:ok, Enum.sort(exits, &(&1.block_height > &2.block_height))}
   end
 
+  @doc """
+  Returns exit for a specific utxo. Calls contract method.
+  """
   def get_exit(utxo_pos, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
 
-    {:ok, [address, amount]} = call_contract(contract, "getExit(uint256)", [utxo_pos], [{:bytes, 32}, {:uint, 256}])
-    {:ok, {address, amount}}
+    {:ok, [owner, currency, amount]} =
+      call_contract(contract, "getExit(uint256)", [utxo_pos], [:address, :address, {:uint, 256}])
+
+    {:ok, {owner, currency, amount}}
   end
 
   def get_child_chain(blknum, contract \\ nil) do
