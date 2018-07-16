@@ -74,6 +74,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     end
 
     JSONRPC2.Servers.HTTP.http(BadChildChainHash, port: Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port))
+
     {:ok, _txhash} =
       Eth.submit_block(
         %Eth.BlockSubmission{
@@ -146,7 +147,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainTransaction)
   end
 
-  defp assert_block_getter_down() do
+  defp assert_block_getter_down do
     :ok = TestHelper.wait_for_process(Process.whereis(OmiseGOWatcher.BlockGetter))
   end
 
