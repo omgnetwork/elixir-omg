@@ -9,6 +9,7 @@ defmodule OmiseGO.API.State do
   alias OmiseGO.API.FreshBlocks
   alias OmiseGO.API.State.Core
   alias OmiseGO.DB
+  alias OmiseGO.API.State.Transaction
 
   require Logger
 
@@ -18,6 +19,9 @@ defmodule OmiseGO.API.State do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
+  @spec exec(tx :: %Transaction.Recovered{}, fees :: map()) ::
+  {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}}
+  | {:error, Core.exec_error}
   def exec(tx, input_fees) do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
@@ -26,6 +30,7 @@ defmodule OmiseGO.API.State do
     GenServer.cast(__MODULE__, {:form_block, child_block_interval})
   end
 
+  @spec deposit(deposits :: [Core.deposit()]) :: {:ok, Core.side_effects()}
   def deposit(deposits_enc) do
     deposits = Enum.map(deposits_enc, &Core.decode_deposit/1)
     GenServer.call(__MODULE__, {:deposits, deposits})
