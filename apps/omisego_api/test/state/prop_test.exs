@@ -163,8 +163,6 @@ defmodule OmiseGO.API.State.PropTest do
     end
   end
 
-  # don't spent if deposits where not executed yet
-  def precondition({%{utxos: utxos}, _eth}, {_, _, :exec, _}) when map_size(utxos) == 0, do: false
   # tx should spent utxo known to model
   def precondition({model, eth}, {_, _, :exec, [utxo1, utxo2, _, _, _]}) do
     spendable_map = spendable(model.history)
