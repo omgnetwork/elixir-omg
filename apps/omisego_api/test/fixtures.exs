@@ -6,9 +6,7 @@ defmodule OmiseGO.API.Fixtures do
 
   import OmiseGO.API.TestHelper
 
-  deffixture entities do
-    entities()
-  end
+  deffixture entities, do: entities()
 
   deffixture(alice(entities), do: entities.alice)
   deffixture(bob(entities), do: entities.bob)
