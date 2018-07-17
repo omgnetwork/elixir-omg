@@ -4,6 +4,7 @@ defmodule OmiseGO.API.State.Core do
   """
 
   # this `use` generates OmiseGO.API.State.CoreGS module:
+  # TODO: rework macro so it can be called from test code only
   use OmiseGO.API.BlackBoxMe
 
   @maximum_block_size 65_536
