@@ -32,7 +32,7 @@ defmodule OmiseGOWatcher.BlockGetter do
 
     OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
 
-    with nil <- Enum.find(state_exec, &(!match?({:ok, _, _, _}, &1))),
+    with nil <- Enum.find(state_exec, &(!match?({:ok, {_, _, _}}, &1))),
          response <- OmiseGOWatcher.TransactionDB.insert(block),
          nil <- Enum.find(response, &(!match?({:ok, _}, &1))),
          _ <- UtxoDB.consume_block(block),
