@@ -53,7 +53,8 @@ defmodule OmiseGOWatcher.Mixfile do
       #
       {:omisego_api, in_umbrella: true, runtime: false},
       {:omisego_jsonrpc, in_umbrella: true, runtime: false},
-      {:omisego_db, in_umbrella: true, runtime: true}
+      {:omisego_db, in_umbrella: true},
+      {:omisego_eth, in_umbrella: true}
     ]
   end
 

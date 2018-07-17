@@ -79,7 +79,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       use JSONRPC2.Server.Handler
 
       def handle_request(_, _) do
-        %{hash: "8BE7BCF154F9484A7762268C93B02D2507EE8475CF02F8F94A3032A3BE5FC7D8", transactions: []}
+        %API.Block{transactions: [], number: 1} |> API.Block.merkle_hash() |> Client.encode()
       end
     end
 
@@ -88,8 +88,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     {:ok, _txhash} =
       Eth.submit_block(
         %Eth.BlockSubmission{
-          num: 1_000,
-          hash: @eth,
+          num: 1000,
+          hash: <<0::256>>,
           nonce: 1,
           gas_price: 20_000_000_000
         },
@@ -98,7 +98,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       )
 
     # TODO receive information about errro
-    TestHelper.wait_for_process(Process.whereis(:omisego_watcher))
+    assert_block_getter_down()
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainHash)
   end
 
@@ -124,6 +124,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       end
 
       def handle_request(_, _) do
+        # we need to deep-transform the block to make it contain only signed_tx_bytes over the wire, needs cleanup
         %API.Block{
           transactions: [%Recovered{signed_tx: %Signed{signed_tx_bytes: signed_tx_bytes}}]
         } = block = block_with_incorrect_transaction()
@@ -151,9 +152,13 @@ defmodule OmiseGOWatcher.BlockGetterTest do
         contract.contract_addr
       )
 
-    TestHelper.wait_for_process(Process.whereis(:omisego_watcher))
     # TODO receive information about errro
+    assert_block_getter_down()
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainTransaction)
+  end
+
+  defp assert_block_getter_down do
+    :ok = TestHelper.wait_for_process(Process.whereis(OmiseGOWatcher.BlockGetter))
   end
 
   defp get_utxo(%{addr: address}) do
