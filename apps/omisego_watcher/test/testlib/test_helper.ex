@@ -9,7 +9,7 @@ defmodule OmiseGOWatcher.TestHelper do
   @block_offset 1_000_000_000
   @transaction_offset 10_000
 
-  def wait_for_process(pid, timeout \\ :infinity) do
+  def wait_for_process(pid, timeout \\ :infinity) when is_pid(pid) do
     ref = Process.monitor(pid)
 
     receive do
