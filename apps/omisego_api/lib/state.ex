@@ -8,8 +8,8 @@ defmodule OmiseGO.API.State do
   alias OmiseGO.API.BlockQueue
   alias OmiseGO.API.FreshBlocks
   alias OmiseGO.API.State.Core
-  alias OmiseGO.DB
   alias OmiseGO.API.State.Transaction
+  alias OmiseGO.DB
 
   require Logger
 

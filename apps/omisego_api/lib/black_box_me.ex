@@ -37,27 +37,37 @@ defmodule OmiseGO.API.BlackBoxMe do
     end
   end
 
+  defp insert_static(core) do
+    quote do
+      def init(state) do
+        Process.put(unquote(core), state)
+        {:ok, :state_managed_by_helper}
+      end
+
+      def reset do
+        Process.put(unquote(core), nil)
+      end
+
+      def get_state do
+        Process.get(unquote(core))
+      end
+    end
+  end
+
+  defp make_module_name(core) do
+    core
+    |> Atom.to_string()
+    |> Kernel.<>("GS")
+    |> String.to_atom()
+  end
+
   defmacro __before_compile__(opts) do
     specials = [__info__: 1, __struct__: 0, __struct__: 1, module_info: 0, module_info: 1]
     core = hd(opts.context_modules)
     exports = Module.definitions_in(core, :def)
     exports = exports -- specials
 
-    module_static =
-      quote do
-        def init(state) do
-          Process.put(unquote(core), state)
-          {:ok, :state_managed_by_helper}
-        end
-
-        def reset do
-          Process.put(unquote(core), nil)
-        end
-
-        def get_state do
-          Process.get(unquote(core))
-        end
-      end
+    module_static = insert_static(core)
 
     contents = [module_static]
 
@@ -104,11 +114,7 @@ defmodule OmiseGO.API.BlackBoxMe do
 
     contents = contents ++ module_api
 
-    module_name =
-      core
-      |> Atom.to_string()
-      |> Kernel.<>("GS")
-      |> String.to_atom()
+    module_name = make_module_name(core)
 
     # generate the helper module:
     {:module, _, _, _} = Module.create(module_name, contents, Macro.Env.location(__ENV__))

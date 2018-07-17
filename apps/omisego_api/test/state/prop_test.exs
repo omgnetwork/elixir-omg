@@ -16,11 +16,12 @@ defmodule OmiseGO.API.State.PropTest do
     forall cmds <- commands(__MODULE__) do
       trap_exit do
         init()
-        r = run_commands(__MODULE__, cmds)
-        {history, state, result} = r
+        {history, state, result} = run_commands(__MODULE__, cmds)
         CoreGS.reset()
 
-        (result == :ok)
+        success = result == :ok
+
+        success
         |> when_fail(
           IO.puts("""
           History: #{inspect(history, pretty: true)}
