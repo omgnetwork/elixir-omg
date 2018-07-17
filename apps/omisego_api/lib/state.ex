@@ -4,7 +4,7 @@ defmodule OmiseGO.API.State do
   The state meant here is the state of the ledger (UTXO set), that determines spendability of coins and forms blocks.
   All spend transactions, deposits and exits should sync on this for validity of moving funds.
   """
-
+  alias OmiseGO.API.Block
   alias OmiseGO.API.BlockQueue
   alias OmiseGO.API.FreshBlocks
   alias OmiseGO.API.State.Core
@@ -138,18 +138,19 @@ defmodule OmiseGO.API.State do
     {_core_form_block_duration, core_form_block_result} =
       :timer.tc(fn -> Core.form_block(state, child_block_interval) end)
 
-    {:ok, {block, event_triggers, db_updates, new_state}} = core_form_block_result
+    {:ok, {%Block{hash: block_hash, number: block_number}, event_triggers, db_updates, new_state}} =
+      core_form_block_result
 
     :ok = DB.multi_update(db_updates)
 
-    block_submission = Eth.get_block_submission(block.hash)
+    %{eth_height: eth_height} = Eth.get_block_submission(block_hash)
 
     event_triggers =
       Enum.map(event_triggers, fn event_trigger ->
         event_trigger
-        |> Map.put(:child_block_hash, block.hash)
-        |> Map.put(:child_blknum, block.number)
-        |> Map.put(:submited_at_ethheight, block_submission && block_submission.eth_height)
+        |> Map.put(:child_block_hash, block_hash)
+        |> Map.put(:child_blknum, block_number)
+        |> Map.put(:submited_at_ethheight, eth_height)
       end)
 
     Eventer.notify(event_triggers)
@@ -169,7 +170,6 @@ defmodule OmiseGO.API.State do
   end
 
   defp do_form_block(child_block_interval, state) do
-    # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
     {core_form_block_duration, core_form_block_result} =
       :timer.tc(fn -> Core.form_block(state, child_block_interval) end)
 
@@ -188,7 +188,6 @@ defmodule OmiseGO.API.State do
   end
 
   defp do_exit_utxos(utxos, state) do
-    # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
     {_event_triggers, db_updates, new_state} = Core.exit_utxos(utxos, state)
 
     # GenServer.call

@@ -212,7 +212,7 @@ defmodule OmiseGO.Eth do
 
     event = encode_event_signature("Deposit(address,uint256,address,uint256)")
 
-    parse_deposit = fn "0x" <> deposit ->
+    parse_deposit = fn %{"data" => "0x" <> deposit} ->
       [owner, blknum, token, amount] =
         deposit
         |> Base.decode16!(case: :lower)
@@ -236,7 +236,7 @@ defmodule OmiseGO.Eth do
 
     event = encode_event_signature("BlockSubmitted(bytes32,uint256)")
 
-    parse_block_submissions = fn "0x" <> block_submission ->
+    parse_block_submissions = fn %{"data" => "0x" <> block_submission} ->
       [root, timestamp] =
         block_submission
         |> Base.decode16!(case: :lower)
@@ -268,31 +268,28 @@ defmodule OmiseGO.Eth do
 
   defp int_to_hex(int), do: "0x" <> Integer.to_string(int, 16)
 
-  # TODO rethink if having only get_logs will be better
   defp get_logs_data(logs, parse_log) do
     logs
     |> Enum.filter(&(not Map.get(&1, "removed", true)))
-    |> Enum.map(&Map.get(&1, "data"))
     |> Enum.map(parse_log)
   end
 
-  defp get_logs(logs, parse_log_data) do
-    for log <- logs do
-      unless Map.get(log, "removed", true) do
-        event_data =
-          log
-          |> Map.get("data")
-          |> parse_log_data.()
+  defp get_logs(logs, parse_log) do
+    logs
+    |> Enum.filter(&(not Map.get(&1, "removed", true)))
+    |> Enum.map(fn log ->
+      event_data =
+        log
+        |> parse_log.()
 
-        "0x" <> hex_block_number =
-          log
-          |> Map.get("blockNumber")
+      "0x" <> hex_block_number =
+        log
+        |> Map.get("blockNumber")
 
-        {eth_height, ""} = Integer.parse(hex_block_number, 16)
+      {eth_height, ""} = Integer.parse(hex_block_number, 16)
 
-        Map.put(event_data, :eth_height, eth_height)
-      end
-    end
+      Map.put(event_data, :eth_height, eth_height)
+    end)
   end
 
   defp get_ethereum_logs(block_from, block_to, event, contract) do
@@ -315,9 +312,9 @@ defmodule OmiseGO.Eth do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     event = encode_event_signature("ExitStarted(address,uint256,address,uint256)")
     # ExitStarted(msg.sender, utxoPos, token, amount);
-    parse_exit = fn "0x" <> deposit ->
+    parse_exit = fn %{"data" => "0x" <> exits} ->
       [owner, utxo_position, token, amount] =
-        deposit
+        exits
         |> Base.decode16!(case: :lower)
         |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, :address, {:uint, 256}])
 
