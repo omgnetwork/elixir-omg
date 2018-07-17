@@ -36,7 +36,7 @@
   "libsecp256k1": {:hex, :libsecp256k1, "0.1.4", "42b7f76d8e32f85f578ccda0abfdb1afa0c5c231d1fd8aeab9cda352731a2d83", [:rebar3], [], "hexpm"},
   "licensir": {:hex, :licensir, "0.2.7", "ad902c337560ccd70de843e5b208c1db08ba2f879ee01c9389023b779131f30a", [:mix], [], "hexpm"},
   "merkle_patricia_tree": {:hex, :merkle_patricia_tree, "0.2.6", "4adcc768318582b4ee1cc7ec10b8851fa5708804ead5b7ca9153cec07d57bbdc", [:mix], [{:ex_rlp, "~> 0.2.0", [hex: :ex_rlp, repo: "hexpm", optional: false]}, {:exleveldb, "~> 0.11.1", [hex: :exleveldb, repo: "hexpm", optional: false]}, {:hex_prefix, "~> 0.1.0", [hex: :hex_prefix, repo: "hexpm", optional: false]}, {:keccakf1600, "~> 2.0.0", [hex: :keccakf1600_orig, repo: "hexpm", optional: false]}], "hexpm"},
-  "merkle_tree": {:git, "https://github.com/omisego/merkle_tree.git", "23fc174f2d63963fe7898750f69fdb7951a26f3d", []},
+  "merkle_tree": {:git, "https://github.com/omisego/merkle_tree.git", "3dd116b91115141f18fd0b00095c47d7bfb3a04e", [branch: "feature/omg-184-add-option-to-not-hash-leaves"]},
   "metrics": {:hex, :metrics, "1.0.1", "25f094dea2cda98213cecc3aeff09e940299d950904393b2a29d191c346a8486", [:rebar3], [], "hexpm"},
   "mime": {:hex, :mime, "1.3.0", "5e8d45a39e95c650900d03f897fbf99ae04f60ab1daa4a34c7a20a5151b7a5fe", [:mix], [], "hexpm"},
   "mimerl": {:hex, :mimerl, "1.0.2", "993f9b0e084083405ed8252b99460c4f0563e41729ab42d9074fd5e52439be88", [:rebar3], [], "hexpm"},
