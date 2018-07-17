@@ -9,7 +9,7 @@ defmodule OmiseGOWatcherWeb.Controller.StatusTest do
   @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]
   test "status endpoint provides expected information" do
     expected_keys = [
-      "geth_syncing_status",
+      "eth_syncing",
       "last_mined_child_block_number",
       "last_mined_child_block_timestamp",
       "last_validated_child_block_number"
@@ -22,6 +22,6 @@ defmodule OmiseGOWatcherWeb.Controller.StatusTest do
     assert is_integer(Map.fetch!(status, "last_validated_child_block_number"))
     assert is_integer(Map.fetch!(status, "last_mined_child_block_number"))
     assert is_integer(Map.fetch!(status, "last_mined_child_block_timestamp"))
-    assert is_atom(Map.fetch!(status, "geth_syncing_status"))
+    assert is_atom(Map.fetch!(status, "eth_syncing"))
   end
 end
