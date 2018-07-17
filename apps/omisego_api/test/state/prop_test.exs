@@ -164,11 +164,10 @@ defmodule OmiseGO.API.State.PropTest do
   end
 
   # tx should spent utxo known to model
-  def precondition({model, eth}, {_, _, :exec, [utxo1, utxo2, _, _, _]}) do
+  def precondition({model, _eth}, {_, _, :exec, [utxo1, utxo2, _, _, _]}) do
     spendable_map = spendable(model.history)
 
-    non_zero_utxos?([utxo1, utxo2]) and valid_utxos?(spendable_map, [utxo1, utxo2]) and
-      possible_utxos?(eth, [utxo1, utxo2])
+    non_zero_utxos?([utxo1, utxo2]) and valid_utxos?(spendable_map, [utxo1, utxo2])
   end
 
   def precondition(_model, _call), do: true
@@ -180,12 +179,10 @@ defmodule OmiseGO.API.State.PropTest do
   end
 
   # spent is successful IFF utxos are known to model
-  def postcondition({model, eth}, {_, _, :exec, [utxo1, utxo2, _, _, _] = args}, result) do
+  def postcondition({model, _eth}, {_, _, :exec, [utxo1, utxo2, _, _, _] = args}, result) do
     spendable = spendable(model.history)
 
-    spent_ok =
-      non_zero_utxos?([utxo1, utxo2]) and valid_utxos?(spendable, [utxo1, utxo2]) and
-        possible_utxos?(eth, [utxo1, utxo2])
+    spent_ok = non_zero_utxos?([utxo1, utxo2]) and valid_utxos?(spendable, [utxo1, utxo2])
 
     case match?({:ok, _}, result) == spent_ok do
       true ->
@@ -245,13 +242,6 @@ defmodule OmiseGO.API.State.PropTest do
     Enum.filter(list, fn
       {_, {_, _, amount}} -> amount > 0
       nil -> false
-    end)
-  end
-
-  def possible_utxos?(eth, list) when is_list(list) do
-    Enum.all?(list, fn
-      {{blknum, _, _}, _} -> blknum <= eth.blknum
-      nil -> true
     end)
   end
 
