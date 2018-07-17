@@ -129,7 +129,7 @@ defmodule OmiseGO.API.State.TransactionTest do
       |> Transaction.Signed.encode()
       |> API.Core.recover_tx()
 
-    assert {{:ok, _, _, _}, _state} =
+    assert {:ok, {_, _, _}, _state} =
              transaction
              |> Core.exec(%{eth() => 0}, state)
   end
@@ -156,7 +156,7 @@ defmodule OmiseGO.API.State.TransactionTest do
       |> Transaction.Signed.encode()
       |> API.Core.recover_tx()
 
-    assert {{:ok, _, _, _}, _state} =
+    assert {:ok, {_, _, _}, _state} =
              transaction
              |> Core.exec(%{eth() => 0}, state)
   end
