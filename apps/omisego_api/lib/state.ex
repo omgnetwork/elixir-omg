@@ -142,8 +142,7 @@ defmodule OmiseGO.API.State do
     events to Eventer
   """
   def handle_cast({:close_block, child_block_interval}, state) do
-    {_core_form_block_duration,
-     {:ok, {%Block{hash: block_hash}, event_triggers, db_updates}, new_state}} =
+    {_core_form_block_duration, {:ok, {%Block{hash: block_hash}, event_triggers, db_updates}, new_state}} =
       :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
 
     :ok = DB.multi_update(db_updates)

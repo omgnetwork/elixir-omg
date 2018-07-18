@@ -1,6 +1,5 @@
 defmodule OmiseGOWatcher.Eventer.Event do
-
-  alias OmiseGO.API.State.Transaction.Recovered
+  alias OmiseGO.API.State.Transaction
 
   @type t :: OmiseGOWatcher.Eventer.Event.AddressReceived.t()
 
