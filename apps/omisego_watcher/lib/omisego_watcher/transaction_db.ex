@@ -67,7 +67,7 @@ defmodule OmiseGOWatcher.TransactionDB do
     Repo.all(from(tr in __MODULE__, where: tr.txblknum == ^txblknum, select: tr))
   end
 
-  def insert(%Block{transactions: transactions, number: block_number}) do
+  def insert(%{transactions: transactions, number: block_number}) do
     transactions
     |> Stream.with_index()
     |> Enum.map(fn {%Recovered{signed_tx: %Signed{} = signed}, txindex} ->

@@ -110,25 +110,28 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     assert {:error, :unexpected_blok} = state |> Core.add_block(%Block{number: 2_000})
   end
 
-  @tag fixtures: [:alice, :bob]
-  test "simple decode block", %{alice: alice, bob: bob} do
+  @tag fixtures: [:alice, :bob, :state_alice_deposit]
+  test "simple decode block", %{alice: alice, bob: bob, state_alice_deposit: state_alice_deposit} do
     block =
       Block.hashed_txs_at(
         [
-          API.TestHelper.create_recovered([{1_000, 20, 0, alice}, {3_000, 1, 1, bob}], @eth, [{alice, 300}]),
-          API.TestHelper.create_recovered([{5_000, 1, 0, alice}], @eth, [{bob, 100}, {bob, 200}])
+          API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
         ],
-        30_000
+        26_000
       )
 
-    assert {:ok, block} == Core.decode_validate_block(Client.encode(block))
+    assert {:ok, decoded_block} = Core.decode_validate_block(Client.encode(block))
 
     block_height = 25_000
     interval = 1_000
     chunk_size = 10
 
     {state, _} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(35_000)
-    assert {:ok, _} = Core.add_block(state, block)
+    assert {:ok, state} = Core.add_block(state, decoded_block)
+    assert {_, [%{transactions: [tx]}]} = Core.get_blocks_to_consume(state)
+
+    # check feasability of transactions from block to consume at the API.State
+    assert {:ok, _, _} = API.State.Core.exec(tx, %{@eth => 0}, state_alice_deposit)
   end
 
   @tag fixtures: [:alice]

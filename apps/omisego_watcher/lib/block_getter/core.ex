@@ -73,7 +73,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           started_height_block: started_height_block,
           last_consumed_block: last_consumed_block
         } = state,
-        %Block{number: number} = block
+        %{number: number} = block
       ) do
     with :ok <- if(Map.has_key?(block_to_consume, number), do: :duplicate, else: :ok),
          :ok <- if(last_consumed_block < number and number <= started_height_block, do: :ok, else: :unexpected_blok) do
@@ -118,8 +118,10 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     with transaction_decode_results <- Enum.map(transactions, &decode_validate_transaction/1),
          nil <- Enum.find(transaction_decode_results, &(!match?({:ok, _}, &1))),
          transactions <- Enum.map(transaction_decode_results, &elem(&1, 1)),
-         %Block{hash: calculated_hash} = block_with_hash = Block.hashed_txs_at(transactions, number) do
-      if {:ok, calculated_hash} == Base.decode16(hash), do: {:ok, block_with_hash}, else: {:error, :incorrect_hash}
+         %Block{hash: calculated_hash} = Block.hashed_txs_at(transactions, number) do
+      if {:ok, calculated_hash} == Base.decode16(hash),
+        do: {:ok, %{transactions: transactions, number: number, hash: hash}},
+        else: {:error, :incorrect_hash}
     end
   end
 

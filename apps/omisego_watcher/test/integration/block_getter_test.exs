@@ -69,7 +69,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       use JSONRPC2.Server.Handler
 
       def handle_request(_, _) do
-        API.Block.hashed_txs_at([], 1000) |> Client.encode()
+        [] |> API.Block.hashed_txs_at(1000) |> Client.encode()
       end
     end
 
@@ -96,7 +96,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   test "bad transaction with not existing utxo", %{contract: contract} do
     defmodule BadChildChainTransaction do
       use JSONRPC2.Server.Handler
-      
+
       def block_with_incorrect_transaction do
         alice = %{
           addr: <<24, 220, 32, 219, 73, 254, 191, 110, 255, 199, 70, 131, 226, 124, 105, 88, 140, 140, 20, 83>>,
@@ -105,8 +105,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
               125, 164, 97, 75, 230, 92, 255, 5, 25, 96>>
         }
 
-        recovered =
-          API.TestHelper.create_recovered([{1, 0, 0, alice}], API.Crypto.zero_address(), [{alice, 10}])
+        recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], API.Crypto.zero_address(), [{alice, 10}])
 
         API.Block.hashed_txs_at([recovered], 1000)
       end

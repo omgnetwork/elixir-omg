@@ -20,8 +20,9 @@ defmodule OmiseGO.API do
   end
 
   @spec get_block(hash :: bitstring) ::
-          {:ok, %{hash: bitstring, transactions: list}} | {:error, :not_found | :internal_error}
+          {:ok, %{hash: bitstring, transactions: list, number: integer}} | {:error, :not_found | :internal_error}
   def get_block(hash) do
-    FreshBlocks.get(hash)
+    with {:ok, struct_block} <- FreshBlocks.get(hash),
+         do: {:ok, Map.from_struct(struct_block)}
   end
 end
