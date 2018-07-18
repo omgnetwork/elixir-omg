@@ -13,5 +13,5 @@ import_config "../apps/*/config/config.exs"
 
 config :logger, :console,
   level: :debug,
-  format: "$date $time [$level] $metadata$message\n",
+  format: "$date $time [$level] $metadata⋅$message⋅\n",
   metadata: [:module, :function]
