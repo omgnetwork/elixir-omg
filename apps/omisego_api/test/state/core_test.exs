@@ -232,7 +232,7 @@ defmodule OmiseGO.API.State.CoreTest do
   test "spending emits event trigger", %{alice: alice, bob: bob, state_alice_deposit: state} do
     recover = Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}])
 
-    assert {:ok, {%Block{hash: block_hash, number: block_number}, [trigger], _, _}} =
+    assert {:ok, {%Block{hash: block_hash, number: block_number}, [trigger], _}, _} =
              state
              |> (&Core.exec(recover, zero_fees_map(), &1)).()
              |> success?

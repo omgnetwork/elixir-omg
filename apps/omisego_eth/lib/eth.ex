@@ -186,7 +186,7 @@ defmodule OmiseGO.Eth do
   """
   def get_current_child_block(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    {:ok, _next} = call_contract_value(contract, "currentChildBlock()")
+    call_contract_value(contract, "currentChildBlock()")
   end
 
   @doc """
@@ -194,14 +194,17 @@ defmodule OmiseGO.Eth do
   """
   def get_mined_child_block(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    {:ok, next} = call_contract_value(contract, "currentChildBlock()")
-    {:ok, next - 1000}
+
+    with {:ok, next} <- call_contract_value(contract, "currentChildBlock()"),
+         do: {:ok, next - 1000}
   end
 
   def authority(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    {:ok, [addr]} = call_contract(contract, "authority()", [], [:address])
-    {:ok, addr}
+
+    with {:ok, addresses} <- call_contract(contract, "authority()", [], [:address]),
+         {addr} = addresses,
+         do: {:ok, addr}
   end
 
   @doc """
@@ -318,30 +321,27 @@ defmodule OmiseGO.Eth do
   def get_exit(utxo_pos, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
 
-    {:ok, [owner, currency, amount]} =
-      call_contract(contract, "getExit(uint256)", [utxo_pos], [:address, :address, {:uint, 256}])
-
-    {:ok, {owner, currency, amount}}
+    call_contract(contract, "getExit(uint256)", [utxo_pos], [:address, :address, {:uint, 256}])
   end
 
   def get_child_chain(blknum, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
 
-    {:ok, [root, created_at]} =
-      call_contract(contract, "getChildChain(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
-
-    {:ok, {root, created_at}}
+    call_contract(contract, "getChildChain(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
   end
 
   defp call_contract_value(contract, signature) do
-    {:ok, [value]} = call_contract(contract, signature, [], [{:uint, 256}])
-    {:ok, value}
+    with {:ok, values} <- call_contract(contract, signature, [], [{:uint, 256}]),
+         {value} = values,
+         do: {:ok, value}
   end
 
   defp call_contract(contract, signature, args, return_types) do
     data = signature |> ABI.encode(args) |> Base.encode16()
-    {:ok, "0x" <> enc_return} = Ethereumex.HttpClient.eth_call(%{to: contract, data: "0x#{data}"})
-    decode_answer(enc_return, return_types)
+
+    with {:ok, return} <- Ethereumex.HttpClient.eth_call(%{to: contract, data: "0x#{data}"}),
+         "0x" <> enc_return = return,
+         do: decode_answer(enc_return, return_types)
   end
 
   defp decode_answer(enc_return, return_types) do
@@ -349,6 +349,7 @@ defmodule OmiseGO.Eth do
       enc_return
       |> Base.decode16!(case: :lower)
       |> ABI.TypeDecoder.decode_raw(return_types)
+      |> List.to_tuple()
 
     {:ok, return}
   end

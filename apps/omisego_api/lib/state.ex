@@ -143,7 +143,7 @@ defmodule OmiseGO.API.State do
   """
   def handle_cast({:close_block, child_block_interval}, state) do
     {_core_form_block_duration,
-     {:ok, {%Block{hash: block_hash, number: block_number}, event_triggers, db_updates}, new_state}} =
+     {:ok, {%Block{hash: block_hash}, event_triggers, db_updates}, new_state}} =
       :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
 
     :ok = DB.multi_update(db_updates)
@@ -171,18 +171,6 @@ defmodule OmiseGO.API.State do
     {duration, result} = :timer.tc(fn -> do_form_block(child_block_interval, state) end)
     _ = Logger.info(fn -> "Done forming block in #{round(duration / 1000)} ms" end)
     result
-  end
-
-  @doc """
-    Wraps up accumulated transactions submissionsinto a block, triggers db update and emits
-    events to Eventer
-  """
-  def handle_cast({:close_block, child_block_interval}, state) do
-    {_core_form_block_duration, {:ok, {_block, _event_triggers, db_updates}, new_state}} =
-      :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
-
-    :ok = DB.multi_update(db_updates)
-    {:noreply, new_state}
   end
 
   defp do_form_block(child_block_interval, state) do
