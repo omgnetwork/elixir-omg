@@ -75,3 +75,5 @@ unicode_util_compat 0.3.1-> Apache 2.0
 * `populus/web3.py/et al.`, MIT, https://pypi.python.org/pypi/populus/1.11.0
 * `solc`, GPL 3.0, https://github.com/ethereum/solidity
 * `postgresql`, PostgreSQL License, https://www.postgresql.org
+* `proper`, GPL 3.0, https://github.com/proper-testing/proper/
+* `propcheck`, GPL 3.0, https://github.com/alfert/propcheck/
