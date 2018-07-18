@@ -7,7 +7,6 @@ defmodule OmiseGOWatcher.TransactionDB do
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
-  alias OmiseGO.API.Block
   alias OmiseGO.API.State.{Transaction, Transaction.Recovered, Transaction.Signed}
   alias OmiseGOWatcher.Repo
 

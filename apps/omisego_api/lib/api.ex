@@ -6,7 +6,7 @@ defmodule OmiseGO.API do
   (but not transport-specific encoding like hex).
   """
 
-  alias OmiseGO.API.{Block, Core, FeeChecker, FreshBlocks, State}
+  alias OmiseGO.API.{Core, FeeChecker, FreshBlocks, State}
   use OmiseGO.API.ExposeSpec
 
   @spec submit(transaction :: bitstring) ::
