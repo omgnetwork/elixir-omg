@@ -35,4 +35,6 @@ defmodule OmiseGOWatcher.TestHelper do
   end
 
   def utxo_pos(blknum, txindex, oindex), do: @block_offset * blknum + @transaction_offset * txindex + oindex
+
+  def create_topic(main_topic, subtopic), do: main_topic <> ":" <> subtopic
 end

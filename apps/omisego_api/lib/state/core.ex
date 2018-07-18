@@ -184,15 +184,9 @@ defmodule OmiseGO.API.State.Core do
   def form_block(%Core{pending_txs: reverse_txs, height: height} = state, child_block_interval) do
     txs = Enum.reverse(reverse_txs)
 
-    %Block{hash: block_hash, number: block_number} = block  =
+    block =
       %Block{transactions: txs, number: height}
       |> Block.merkle_hash()
-
-    event_triggers =
-      txs
-      |> Enum.map(fn tx -> %{tx: tx} end)
-      |> Map.put(:child_blknum, block_number)
-      |> Map.put(:child_block_hash, block_hash)
 
     db_updates_new_utxos =
       txs
@@ -224,6 +218,12 @@ defmodule OmiseGO.API.State.Core do
         height: height + child_block_interval,
         pending_txs: []
     }
+
+    event_triggers =
+      txs
+      |> Enum.map(fn tx ->
+        %{tx: tx, child_blknum: block.number, child_block_hash: block.hash}
+      end)
 
     {:ok, {block, event_triggers, db_updates, new_state}}
   end

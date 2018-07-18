@@ -24,9 +24,9 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   @tag fixtures: [:watcher_sandbox, :contract, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
   test "get the blocks from child chain after transaction and start exit",
        %{contract: contract, alice: alice, bob: bob} do
-    alice_address = "0x" <> Base.encode16(alice.addr, case: :lower)
+    alice_address = API.TestHelper.encode_address(alice.addr)
 
-    {:ok, _, _socket} = subscribe_and_join(socket(), AddressChannel, "address:" <> alice_address)
+    {:ok, _, _socket} = subscribe_and_join(socket(), AddressChannel, TestHelper.create_topic("address", alice_address))
 
     deposit_blknum = IntegrationTest.deposit_to_child_chain(alice, 10, contract)
     # TODO remove slpeep after synch deposit synch

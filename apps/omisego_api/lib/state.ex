@@ -144,7 +144,8 @@ defmodule OmiseGO.API.State do
     %{eth_height: eth_height} = Eth.get_block_submission(block_hash)
 
     event_triggers =
-      Enum.map(event_triggers, fn event_trigger ->
+      event_triggers
+      |> Enum.map(fn event_trigger ->
         event_trigger
         |> Map.put(:submited_at_ethheight, eth_height)
       end)
