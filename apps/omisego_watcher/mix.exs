@@ -50,6 +50,7 @@ defmodule OmiseGOWatcher.Mixfile do
       # NOTE: need this explictly, since :omisego_jsonrpc won't start jsonrpc2 automatically
       {:jsonrpc2,
        git: "https://github.com/omisego/jsonrpc2-elixir.git", branch: "precise_handling_of_FunctionClauseError"},
+      {:briefly, "~> 0.3", only: [:dev, :test]},
       #
       {:omisego_api, in_umbrella: true, runtime: false},
       {:omisego_jsonrpc, in_umbrella: true, runtime: false},

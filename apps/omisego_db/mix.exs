@@ -31,7 +31,8 @@ defmodule OmiseGO.DB.MixProject do
   defp deps do
     [
       # version caused by dependency in merkle_patricia_tree from blockchain
-      {:exleveldb, "~> 0.11"}
+      {:exleveldb, "~> 0.11"},
+      {:briefly, "~> 0.3", only: [:dev, :test]}
     ]
   end
 end

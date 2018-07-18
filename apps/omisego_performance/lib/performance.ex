@@ -5,7 +5,7 @@ defmodule OmiseGO.Performance do
   # Examples
 
   ## 1 - running 3 senders each sending 5 transactions test.
-  Run from terminal:
+  Run from terminal, from within `apps/omisego_performance`:
    > mix run --no-start -e 'OmiseGO.Performance.setup_and_run(5, 3)'
 
   ## 2 - running 3 senders with 5 transactions each with profiler
