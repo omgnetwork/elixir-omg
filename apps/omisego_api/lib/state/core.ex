@@ -198,8 +198,8 @@ defmodule OmiseGO.API.State.Core do
     txs = Enum.reverse(reverse_txs)
 
     block =
-      %Block{transactions: txs, number: height}
-      |> Block.merkle_hash()
+      txs
+      |> Block.hashed_txs_at(height)
 
     event_triggers =
       txs

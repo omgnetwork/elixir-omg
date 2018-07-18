@@ -13,7 +13,7 @@ defmodule OmiseGO.JSONRPC.Client do
 
   def encode(arg) when is_map(arg) do
     for {key, value} <- arg, into: %{} do
-      {key, encode(value)}
+      {to_string(key), encode(value)}
     end
   end
 

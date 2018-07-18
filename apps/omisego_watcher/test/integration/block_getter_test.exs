@@ -69,7 +69,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       use JSONRPC2.Server.Handler
 
       def handle_request(_, _) do
-        %API.Block{transactions: [], number: 1} |> API.Block.merkle_hash() |> Client.encode()
+        API.Block.hashed_txs_at([], 1000) |> Client.encode()
       end
     end
 
@@ -96,9 +96,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   test "bad transaction with not existing utxo", %{contract: contract} do
     defmodule BadChildChainTransaction do
       use JSONRPC2.Server.Handler
-      alias OmiseGO.API
-      alias OmiseGO.API.State.Transaction.{Recovered, Signed}
-
+      
       def block_with_incorrect_transaction do
         alice = %{
           addr: <<24, 220, 32, 219, 73, 254, 191, 110, 255, 199, 70, 131, 226, 124, 105, 88, 140, 140, 20, 83>>,
@@ -108,18 +106,13 @@ defmodule OmiseGOWatcher.BlockGetterTest do
         }
 
         recovered =
-          API.TestHelper.create_recovered([{1, 0, 0, alice}], OmiseGO.API.Crypto.zero_address(), [{alice, 10}])
+          API.TestHelper.create_recovered([{1, 0, 0, alice}], API.Crypto.zero_address(), [{alice, 10}])
 
-        %API.Block{transactions: [recovered], number: 1} |> API.Block.merkle_hash()
+        API.Block.hashed_txs_at([recovered], 1000)
       end
 
       def handle_request(_, _) do
-        # we need to deep-transform the block to make it contain only signed_tx_bytes over the wire, needs cleanup
-        %API.Block{
-          transactions: [%Recovered{signed_tx: %Signed{signed_tx_bytes: signed_tx_bytes}}]
-        } = block = block_with_incorrect_transaction()
-
-        OmiseGO.JSONRPC.Client.encode(%{block | transactions: [signed_tx_bytes]})
+        Client.encode(block_with_incorrect_transaction())
       end
     end
 

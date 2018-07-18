@@ -320,7 +320,7 @@ defmodule OmiseGO.API.State.CoreTest do
       |> success?
 
     expected_block = %Block{
-      transactions: [recovered_tx_1, recovered_tx_2],
+      transactions: [recovered_tx_1.signed_tx.signed_tx_bytes, recovered_tx_2.signed_tx.signed_tx_bytes],
       hash: "3e8de246ba9be94f87ea8cec20626705dc407eefa827545ebf03fa7582b13fca" |> Base.decode16!(case: :lower),
       number: @child_block_interval
     }

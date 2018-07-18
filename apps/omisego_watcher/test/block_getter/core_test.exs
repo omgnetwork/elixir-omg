@@ -112,23 +112,16 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
   @tag fixtures: [:alice, :bob]
   test "simple decode block", %{alice: alice, bob: bob} do
-    %Block{transactions: transactions} =
-      block =
-      Block.merkle_hash(%Block{
-        transactions: [
+    block =
+      Block.hashed_txs_at(
+        [
           API.TestHelper.create_recovered([{1_000, 20, 0, alice}, {3_000, 1, 1, bob}], @eth, [{alice, 300}]),
           API.TestHelper.create_recovered([{5_000, 1, 0, alice}], @eth, [{bob, 100}, {bob, 200}])
         ],
-        number: 30_000
-      })
+        30_000
+      )
 
-    json_block =
-      for {key, val} <-
-            Map.from_struct(Map.put(block, :transactions, Enum.map(transactions, & &1.signed_tx.signed_tx_bytes))),
-          into: %{},
-          do: {Atom.to_string(key), val}
-
-    assert {:ok, block} == Core.decode_validate_block(Client.encode(json_block))
+    assert {:ok, block} == Core.decode_validate_block(Client.encode(block))
 
     block_height = 25_000
     interval = 1_000
