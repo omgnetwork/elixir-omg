@@ -33,8 +33,7 @@ defmodule OmiseGO.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        # FIXME: apply the necessary changes onto plasma-contracts
-        # branch: "eth_as_zero_token_no_indexed_no_confirmation_sigs",
+        branch: "develop",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
