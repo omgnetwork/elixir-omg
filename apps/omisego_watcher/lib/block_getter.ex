@@ -24,7 +24,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     end
   end
 
-  def consume_block(%Block{transactions: transactions} = block) do
+  def consume_block(%Block{transactions: transactions, number: blknum} = block) do
     # TODO add check in UtxoDB after deposit handle correctly
     state_exec =
       for %Recovered{signed_tx: %Signed{raw_tx: %Transaction{cur12: cur12}}} = tx <- transactions,
@@ -32,10 +32,11 @@ defmodule OmiseGOWatcher.BlockGetter do
 
     OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
 
-    with nil <- Enum.find(state_exec, &(!match?({:ok, _, _, _}, &1))),
+    with nil <- Enum.find(state_exec, &(!match?({:ok, {_, _, _}}, &1))),
          response <- OmiseGOWatcher.TransactionDB.insert(block),
          nil <- Enum.find(response, &(!match?({:ok, _}, &1))),
          _ <- UtxoDB.consume_block(block),
+         _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end),
          do: :ok
   end
 
@@ -58,7 +59,9 @@ defmodule OmiseGOWatcher.BlockGetter do
 
   def handle_info(:producer, state) do
     {:ok, next_child} = Eth.get_current_child_block()
+
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
+    _ = Logger.info(fn -> "Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}" end)
     :ok = run_block_get_task(blocks_numbers)
 
     {:ok, _} = :timer.send_after(2_000, self(), :producer)
@@ -70,6 +73,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     {new_state, blocks_to_consume} = Core.get_blocks_to_consume(state)
 
     {:ok, next_child} = Eth.get_current_child_block()
+
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
 
     _ =
@@ -85,6 +89,11 @@ defmodule OmiseGOWatcher.BlockGetter do
       |> Enum.each(&(:ok = consume_block(&1)))
 
     {:noreply, new_state}
+  end
+
+  def handle_info({_ref, {:got_block, {:error, :block_hash}}}, state) do
+    _ = Logger.error(fn -> "Received block with mismatching hash, stopping BlockGetter" end)
+    {:stop, :normal, state}
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}

@@ -31,6 +31,7 @@ defmodule OmiseGO.Eth.MixProject do
       {:abi, git: "https://github.com/omisego/abi.git", branch: "encode_dynamic_types"},
       {:ethereumex, git: "https://github.com/omisego/ethereumex.git", branch: "request_timeout", override: true},
       {:exexec, git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", runtime: true},
+      {:briefly, "~> 0.3", only: [:dev, :test]},
       {
         :plasma_mvp_contracts,
         git: "https://github.com/purbanow/plasma-mvp",

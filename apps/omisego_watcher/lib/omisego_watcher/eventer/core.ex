@@ -19,13 +19,12 @@ defmodule OmiseGOWatcher.Eventer.Core do
     address_received_events ++ address_spent_events
   end
 
-
   defp get_address_spent_events(
          %{
            tx: %Transaction.Recovered{
              spender1: spender1,
              spender2: spender2
-         }} = event_trigger
+           }} = event_trigger
        ) do
 
     [spender1, spender2]
@@ -38,7 +37,6 @@ defmodule OmiseGOWatcher.Eventer.Core do
     subtopic = create_address_subtopic(address)
     {subtopic, Event.AddressSpent.name(), struct(Event.AddressSpent, event_trigger)}
   end
-
 
   defp get_address_received_events(
          %{
@@ -65,5 +63,4 @@ defmodule OmiseGOWatcher.Eventer.Core do
   end
 
   defp create_subtopic(main_topic, subtopic), do: main_topic <> ":" <> subtopic
-
 end

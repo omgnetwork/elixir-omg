@@ -22,8 +22,6 @@ defmodule OmiseGO.Umbrella.MixProject do
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
       {:credo, "~> 0.9", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.8", only: [:test], runtime: false},
-      # temporary dir creation:
-      {:briefly, "~> 0.3"},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
       # NOTE: we're overriding for the sake of `omisego_api` mix.exs deps. Otherwise the override is ignored
       # TODO: making it consistent is advised: maybe discuss with exth_crypto and submit pr there?

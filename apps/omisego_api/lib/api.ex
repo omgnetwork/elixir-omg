@@ -14,7 +14,7 @@ defmodule OmiseGO.API do
   def submit(transaction) do
     with {:ok, recovered_tx} <- Core.recover_tx(transaction),
          {:ok, fees} <- FeeChecker.transaction_fees(recovered_tx),
-         {:ok, tx_hash, blknum, tx_index} <- State.exec(recovered_tx, fees) do
+         {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
       {:ok, %{tx_hash: tx_hash, blknum: blknum, tx_index: tx_index}}
     end
   end

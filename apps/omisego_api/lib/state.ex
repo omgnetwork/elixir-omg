@@ -4,10 +4,11 @@ defmodule OmiseGO.API.State do
   The state meant here is the state of the ledger (UTXO set), that determines spendability of coins and forms blocks.
   All spend transactions, deposits and exits should sync on this for validity of moving funds.
   """
-
+  alias OmiseGO.API.Block
   alias OmiseGO.API.BlockQueue
   alias OmiseGO.API.FreshBlocks
   alias OmiseGO.API.State.Core
+  alias OmiseGO.API.State.Transaction
   alias OmiseGO.DB
   alias OmiseGO.Eth
   alias OmiseGOWatcher.Eventer
@@ -20,6 +21,9 @@ defmodule OmiseGO.API.State do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
+  @spec exec(tx :: %Transaction.Recovered{}, fees :: map()) ::
+          {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}}
+          | {:error, Core.exec_error()}
   def exec(tx, input_fees) do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
@@ -32,6 +36,7 @@ defmodule OmiseGO.API.State do
     GenServer.cast(__MODULE__, {:close_block, child_block_interval})
   end
 
+  @spec deposit(deposits :: [Core.deposit()]) :: {:ok, Core.side_effects()}
   def deposit(deposits_enc) do
     deposits = Enum.map(deposits_enc, &Core.decode_deposit/1)
     GenServer.call(__MODULE__, {:deposits, deposits})
@@ -67,23 +72,25 @@ defmodule OmiseGO.API.State do
     {:ok, last_deposit_query_result} = DB.last_deposit_height()
     {:ok, utxos_query_result} = DB.utxos()
 
-    {
-      :ok,
-      Core.extract_initial_state(
-        utxos_query_result,
-        height_query_result,
-        last_deposit_query_result,
-        BlockQueue.child_block_interval()
-      )
-    }
+    Core.extract_initial_state(
+      utxos_query_result,
+      height_query_result,
+      last_deposit_query_result,
+      BlockQueue.child_block_interval()
+    )
   end
 
   @doc """
   Checks (stateful validity) and executes a spend transaction. Assuming stateless validity!
   """
   def handle_call({:exec, tx, fees}, _from, state) do
-    {tx_result, new_state} = Core.exec(tx, fees, state)
-    {:reply, tx_result, new_state}
+    case Core.exec(tx, fees, state) do
+      {:ok, tx_result, new_state} ->
+        {:reply, {:ok, tx_result}, new_state}
+
+      {tx_result, new_state} ->
+        {:reply, tx_result, new_state}
+    end
   end
 
   @doc """
@@ -91,7 +98,7 @@ defmodule OmiseGO.API.State do
   """
   def handle_call({:deposits, deposits}, _from, state) do
     # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
-    {_event_triggers, db_updates, new_state} = Core.deposit(deposits, state)
+    {:ok, {_event_triggers, db_updates}, new_state} = Core.deposit(deposits, state)
 
     # GenServer.call
     :ok = DB.multi_update(db_updates)
@@ -135,21 +142,18 @@ defmodule OmiseGO.API.State do
     events to Eventer
   """
   def handle_cast({:close_block, child_block_interval}, state) do
-    {_core_form_block_duration, core_form_block_result} =
-      :timer.tc(fn -> Core.form_block(state, child_block_interval) end)
-
-    {:ok, {block, event_triggers, db_updates, new_state}} = core_form_block_result
+    {:ok, {%Block{hash: block_hash}, event_triggers, db_updates}, new_state} =
+      Core.form_block(child_block_interval, state)
 
     :ok = DB.multi_update(db_updates)
 
-    block_submission = Eth.get_block_submission(block.hash)
+    %{eth_height: eth_height} = Eth.get_block_submission(block_hash)
 
     event_triggers =
-      Enum.map(event_triggers, fn event_trigger ->
+      event_triggers
+      |> Enum.map(fn event_trigger ->
         event_trigger
-        |> Map.put(:child_block_hash, block.hash)
-        |> Map.put(:child_blknum, block.number)
-        |> Map.put(:submited_at_ethheight, block_submission && block_submission.eth_height)
+        |> Map.put(:submited_at_ethheight, eth_height)
       end)
 
     Eventer.notify(event_triggers)
@@ -169,11 +173,10 @@ defmodule OmiseGO.API.State do
   end
 
   defp do_form_block(child_block_interval, state) do
-    # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
     {core_form_block_duration, core_form_block_result} =
-      :timer.tc(fn -> Core.form_block(state, child_block_interval) end)
+      :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
 
-    {:ok, {block, _event_triggers, db_updates, new_state}} = core_form_block_result
+    {:ok, {block, _event_triggers, db_updates}, new_state} = core_form_block_result
 
     _ =
       Logger.info(fn ->
@@ -188,8 +191,7 @@ defmodule OmiseGO.API.State do
   end
 
   defp do_exit_utxos(utxos, state) do
-    # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
-    {_event_triggers, db_updates, new_state} = Core.exit_utxos(utxos, state)
+    {:ok, {_event_triggers, db_updates}, new_state} = Core.exit_utxos(utxos, state)
 
     # GenServer.call
     :ok = DB.multi_update(db_updates)

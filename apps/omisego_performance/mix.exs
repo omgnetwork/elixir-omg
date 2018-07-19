@@ -25,6 +25,7 @@ defmodule OmiseGO.Performance.MixProject do
     [
       {:jsonrpc2,
        git: "https://github.com/omisego/jsonrpc2-elixir.git", branch: "precise_handling_of_FunctionClauseError"},
+      {:briefly, "~> 0.3", only: [:dev, :test]},
       {:hackney, "~> 1.7"},
       {:omisego_api, in_umbrella: true, runtime: false},
       {:omisego_jsonrpc, in_umbrella: true, runtime: false}
