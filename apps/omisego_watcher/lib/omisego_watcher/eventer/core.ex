@@ -24,12 +24,12 @@ defmodule OmiseGOWatcher.Eventer.Core do
            tx: %Transaction.Recovered{
              spender1: spender1,
              spender2: spender2
-           }} = event_trigger
+           }
+         } = event_trigger
        ) do
-
     [spender1, spender2]
     |> Enum.filter(&Transaction.account_address?/1)
-    |> Enum.map(&(create_address_spent_event(event_trigger, &1)))
+    |> Enum.map(&create_address_spent_event(event_trigger, &1))
     |> Enum.uniq()
   end
 
