@@ -3,57 +3,52 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: true
-
   use OmiseGO.API.Fixtures
 
   alias OmiseGO.API
-  alias OmiseGO.API.State.Transaction
   alias OmiseGOWatcher.Eventer
-  alias OmiseGOWatcher.Eventer.Notification.Received
+  alias OmiseGOWatcher.Eventer.Event
+  alias OmiseGOWatcher.TestHelper
 
-  # TODO: implement all tests and write moduledoc
-  test "notifications for finalied block event are created" do
-  end
+  @tag fixtures: [:alice, :bob]
+  test "notify function generates 2 proper address_received events", %{alice: alice, bob: bob} do
+    recovered_tx =
+      API.TestHelper.create_recovered(
+        [{1, 0, 0, alice}, {2, 0, 0, bob}],
+        API.Crypto.zero_address(),
+        [{alice, 100}, {bob, 5}]
+      )
 
-  @tag fixtures: [:alice]
-  test "receiver is notified about deposit", %{alice: %{priv: alice_priv, addr: alice_addr}} do
-    # TODO: first draft
+    encoded_alice_address = API.TestHelper.encode_address(alice.addr)
+    encoded_bob_address = API.TestHelper.encode_address(bob.addr)
 
-    raw_tx = %Transaction{
-      blknum1: 1,
-      txindex1: 0,
-      oindex1: 0,
-      blknum2: 0,
-      txindex2: 0,
-      oindex2: 0,
-      cur12: OmiseGO.API.Crypto.zero_address(),
-      newowner1: alice_addr,
-      amount1: 100,
-      newowner2: OmiseGO.API.Crypto.zero_address(),
-      amount2: 0
-    }
+    {topic_1, event_name_1, event_1} =
+      {TestHelper.create_topic("address", encoded_alice_address), "address_received",
+       %Event.AddressReceived{tx: recovered_tx}}
 
-    # TODO: We're ignoring second spedner. Rethink this
-    encoded_singed_tx =
-      raw_tx
-      |> Transaction.sign(alice_priv, <<>>)
-      |> Transaction.Signed.encode()
+    {topic_2, event_name_2, event_2} =
+      {TestHelper.create_topic("address", encoded_bob_address), "address_received",
+       %Event.AddressReceived{tx: recovered_tx}}
 
-    {:ok, recovered_tx} = API.Core.recover_tx(encoded_singed_tx)
-
-    assert [_, {%Received{tx: ^recovered_tx}, "transactions/received/" <> ^alice_addr}] =
+    assert [{topic_1, event_name_1, event_1}, {topic_2, event_name_2, event_2}] ==
              Eventer.Core.notify([%{tx: recovered_tx}])
   end
 
-  test "spenders are notified about transactions" do
-  end
+  @tag fixtures: [:alice, :bob]
+  test "notify function generates 1 proper address_received events", %{alice: alice} do
+    recovered_tx =
+      API.TestHelper.create_recovered(
+        [{1, 0, 0, alice}],
+        API.Crypto.zero_address(),
+        [{alice, 100}]
+      )
 
-  test "spender is notified only once when both transaction input are hers" do
-  end
+    encoded_alice_address = API.TestHelper.encode_address(alice.addr)
 
-  test "receivers are notified about transactions" do
-  end
+    {topic, event_name, event} =
+      {TestHelper.create_topic("address", encoded_alice_address), "address_received",
+       %Event.AddressReceived{tx: recovered_tx}}
 
-  test "transaction receiver is notified once when both transaction outputs are hers" do
+    assert [{topic, event_name, event}] == Eventer.Core.notify([%{tx: recovered_tx}])
   end
 end

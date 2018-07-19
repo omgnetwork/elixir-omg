@@ -4,28 +4,16 @@ defmodule OmiseGOWatcher.Eventer do
   """
 
   alias OmiseGOWatcher.Eventer.Core
-  alias Phoenix.PubSub
-
-  @pubsub :eventer
+  alias OmiseGOWatcherWeb.Endpoint
 
   ### Client
 
+  def start_link(_args) do
+    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  end
+
   def notify(event_triggers) do
     GenServer.cast(__MODULE__, {:notify, event_triggers})
-  end
-
-  def subscribe(topic) when is_binary(topic) do
-    case PubSub.subscribe(@pubsub, topic) do
-      :ok -> :ok
-      {:error, _message} -> :error
-    end
-  end
-
-  def unsubscribe(topic) when is_binary(topic) do
-    case PubSub.unsubscribe(@pubsub, topic) do
-      :ok -> :ok
-      {:error, _message} -> :error
-    end
   end
 
   ### Server
@@ -39,7 +27,7 @@ defmodule OmiseGOWatcher.Eventer do
   def handle_cast({:notify, event_triggers}, state) do
     event_triggers
     |> Core.notify()
-    |> Enum.each(fn {notification, topic} -> :ok = PubSub.broadcast(:eventer, topic, notification) end)
+    |> Enum.each(fn {topic, event_name, event} -> :ok = Endpoint.broadcast!(topic, event_name, event) end)
 
     {:noreply, state}
   end

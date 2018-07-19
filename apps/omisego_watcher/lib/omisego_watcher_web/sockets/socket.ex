@@ -1,8 +1,13 @@
-defmodule OmiseGOWatcherWeb.UserSocket do
+defmodule OmiseGOWatcherWeb.Socket do
+  @moduledoc """
+  This module is the entry points for websocket connections to the watcher API. It contains the
+  channels to which providers/clients can connect to listen and receive events.
+  """
+
   use Phoenix.Socket
 
   ## Channels
-  # channel "room:*", OmiseGOWatcherWeb.RoomChannel
+  channel("address:*", OmiseGOWatcherWeb.AddressChannel)
 
   ## Transports
   transport(:websocket, Phoenix.Transports.WebSocket)

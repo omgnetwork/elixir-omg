@@ -203,7 +203,9 @@ defmodule OmiseGO.API.State.Core do
 
     event_triggers =
       txs
-      |> Enum.map(fn tx -> %{tx: tx} end)
+      |> Enum.map(fn tx ->
+        %{tx: tx, child_blknum: block.number, child_block_hash: block.hash}
+      end)
 
     db_updates_new_utxos =
       txs
