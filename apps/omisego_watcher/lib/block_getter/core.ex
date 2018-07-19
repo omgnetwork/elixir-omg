@@ -111,17 +111,42 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
      list_block_to_consume}
   end
 
-  @spec decode_validate_block(block :: map) ::
+  @doc """
+  Statelessly decodes and validates a downloaded block, does all the checks before handing off to State.exec-checking
+  requested_hash is given to compare to always have a consistent data structure coming out
+  requested_number is given to _override_ since we're getting by hash, we can have empty blocks with same hashes!
+  """
+  @spec decode_validate_block(block :: map, requested_hash :: binary, requested_number :: pos_integer) ::
           {:ok, Block.t()}
-          | {:error, :incorrect_hash | :malformed_transaction_rlp | :malformed_transaction | :bad_signature_length}
-  def decode_validate_block(%{"hash" => hash, "transactions" => transactions, "number" => number}) do
+          | {:error,
+             :incorrect_hash
+             | :malformed_transaction_rlp
+             | :malformed_transaction
+             | :bad_signature_length
+             | :hash_decoding_error}
+  def decode_validate_block(
+        %{"hash" => returned_hash, "transactions" => transactions, "number" => number},
+        requested_hash,
+        requested_number
+      ) do
     with transaction_decode_results <- Enum.map(transactions, &decode_validate_transaction/1),
          nil <- Enum.find(transaction_decode_results, &(!match?({:ok, _}, &1))),
          transactions <- Enum.map(transaction_decode_results, &elem(&1, 1)),
-         %Block{hash: calculated_hash} = Block.hashed_txs_at(transactions, number) do
-      if {:ok, calculated_hash} == Base.decode16(hash),
-        do: {:ok, %{transactions: transactions, number: number, hash: hash}},
+         {:ok, returned_decoded_hash} <- decode_hash(returned_hash),
+         true <- returned_decoded_hash == requested_hash || {:error, :bad_returned_hash} do
+      # hash the block yourself and compare
+      %Block{hash: calculated_hash} = Block.hashed_txs_at(transactions, number)
+
+      if calculated_hash == requested_hash,
+        do: {:ok, %{transactions: transactions, number: requested_number, hash: returned_decoded_hash}},
         else: {:error, :incorrect_hash}
+    end
+  end
+
+  defp decode_hash(hash) do
+    case Base.decode16(hash) do
+      {:ok, _decoded} = result -> result
+      :error -> {:error, {:hash_decoding_error, inspect(hash)}}
     end
   end
 

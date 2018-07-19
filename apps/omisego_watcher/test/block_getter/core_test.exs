@@ -6,10 +6,12 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
   alias OmiseGO.API
   alias OmiseGO.API.Block
+  alias OmiseGO.API.Crypto
+  alias OmiseGO.API.State.Transaction
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.BlockGetter.Core
 
-  @eth OmiseGO.API.Crypto.zero_address()
+  @eth Crypto.zero_address()
 
   defp add_block(state, block) do
     assert {:ok, new_state} = Core.add_block(state, block)
@@ -112,7 +114,8 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "simple decode block", %{alice: alice, bob: bob, state_alice_deposit: state_alice_deposit} do
-    block =
+    %Block{hash: requested_hash} =
+      block =
       Block.hashed_txs_at(
         [
           API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
@@ -120,7 +123,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
         26_000
       )
 
-    assert {:ok, decoded_block} = Core.decode_validate_block(Client.encode(block))
+    assert {:ok, decoded_block} = Core.decode_validate_block(Client.encode(block), requested_hash, 26_000)
 
     block_height = 25_000
     interval = 1_000
@@ -135,45 +138,87 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   end
 
   @tag fixtures: [:alice]
-  test "check error return by decode_block", %{alice: alice} do
+  test "check error return by decode_block, incorrect_hash", %{alice: alice} do
+    matching_bad_returned_hash = String.duplicate("A", 64)
+
     assert {:error, :incorrect_hash} ==
              %{
-               "hash" => String.duplicate("A", 64),
+               "hash" => matching_bad_returned_hash,
                "transactions" => [
-                 API.TestHelper.create_recovered(
+                 API.TestHelper.create_encoded(
                    [{1_000, 20, 0, alice}],
                    @eth,
                    [{alice, 100}]
-                 ).signed_tx.signed_tx_bytes
+                 )
                ],
                "number" => 23
              }
              |> Client.encode()
-             |> Core.decode_validate_block()
+             |> Core.decode_validate_block(matching_bad_returned_hash, 23)
+  end
+
+  @tag fixtures: [:alice]
+  test "check error return by decode_block, rlp decoding checks", %{alice: alice} do
+    badly_rlped = "12321231AB2331"
+
+    %Block{hash: hash} =
+      block =
+      Block.hashed_txs_at(
+        [
+          API.TestHelper.create_recovered(
+            [{1_000, 20, 0, alice}],
+            @eth,
+            [{alice, 100}]
+          ),
+          # NOTE: need to use internals b/c need a malformed tx
+          %Transaction.Recovered{
+            signed_tx: %Transaction.Signed{signed_tx_bytes: badly_rlped},
+            signed_tx_hash: Crypto.hash(badly_rlped)
+          }
+        ],
+        1
+      )
 
     assert {:error, :malformed_transaction_rlp} ==
-             %{
-               "hash" => "",
-               "transactions" => [
-                 API.TestHelper.create_recovered(
-                   [{1_000, 20, 0, alice}],
-                   @eth,
-                   [{alice, 100}]
-                 ).signed_tx.signed_tx_bytes,
-                 "12321231AB2331"
-               ],
-               "number" => 1
-             }
+             block
              |> Client.encode()
-             |> Core.decode_validate_block()
+             |> Core.decode_validate_block(hash, 1)
+  end
+
+  test "check error return by decode_block, hash mismatch checks" do
+    %Block{hash: _hash} = block = Block.hashed_txs_at([], 1)
+
+    assert {:error, :bad_returned_hash} ==
+             block
+             |> Client.encode()
+             |> Core.decode_validate_block(String.duplicate("A", 64), 1)
+  end
+
+  test "check error return by decode_block, hash decoding error" do
+    %Block{hash: hash} = block = Block.hashed_txs_at([], 1)
+
+    assert {:error, {:hash_decoding_error, _}} =
+             block
+             |> Client.encode()
+             |> (fn block -> %{block | "hash" => String.duplicate("Z", 64)} end).()
+             |> Core.decode_validate_block(hash, 1)
+  end
+
+  test "check error return by decode_block, API.Core.recover_tx checks" do
+    %Block{hash: hash} = block = Block.hashed_txs_at([API.TestHelper.create_recovered([], @eth, [])], 1)
 
     assert {:error, :no_inputs} ==
-             %{
-               "hash" => "",
-               "transactions" => [API.TestHelper.create_recovered([], @eth, []).signed_tx.signed_tx_bytes],
-               "number" => 1
-             }
+             block
              |> Client.encode()
-             |> Core.decode_validate_block()
+             |> Core.decode_validate_block(hash, 1)
+  end
+
+  test "the blknum is overriden by the requested one" do
+    %Block{hash: hash} = block = Block.hashed_txs_at([], 1)
+
+    assert {:ok, %{number: 2 = _overriden_number}} =
+             block
+             |> Client.encode()
+             |> Core.decode_validate_block(hash, 2)
   end
 end

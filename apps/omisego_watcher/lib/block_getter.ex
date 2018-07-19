@@ -15,13 +15,10 @@ defmodule OmiseGOWatcher.BlockGetter do
   require Logger
 
   @spec get_block(pos_integer()) :: {:ok, Block.t()}
-  def get_block(number) do
-    with {:ok, {hash, _time}} <- Eth.get_child_chain(number),
-         {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: hash}) do
-      if {:ok, hash} == Base.decode16(json_block["hash"]),
-        do: Core.decode_validate_block(Map.put(json_block, "number", number)),
-        else: {:error, :block_hash}
-    end
+  def get_block(requested_number) do
+    with {:ok, {requested_hash, _time}} <- Eth.get_child_chain(requested_number),
+         {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: requested_hash}),
+         do: Core.decode_validate_block(json_block, requested_hash, requested_number)
   end
 
   def consume_block(%{transactions: transactions, number: blknum} = block) do
