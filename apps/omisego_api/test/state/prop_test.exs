@@ -14,7 +14,7 @@ defmodule OmiseGO.API.State.PropTest do
   # TODO: make aggregation and statistics informative
 
   describe "core handles deposits" do
-    property "quick test of property test", [:quiet, max_size: 10] do
+    property "quick test of property test", [:quiet, max_size: 100, numtests: 10] do
       do_core_handles_deposits()
     end
 
