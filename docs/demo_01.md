@@ -37,7 +37,7 @@ bob = TestHelper.generate_entity()
 # to do this, look in the logs inside the receipt printed just above
 deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
 
-eth = Transaction.zero_address()
+eth = Crypto.zero_address()
 
 # create and prepare transaction for singing
 tx =
