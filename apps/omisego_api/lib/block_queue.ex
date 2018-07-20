@@ -97,6 +97,8 @@ defmodule OmiseGO.API.BlockQueue do
 
     def handle_info(:check_mined_child_head, state) do
       {:ok, mined_blknum} = Eth.get_mined_child_block()
+      _ = Logger.debug(fn -> "check mined child head '#{mined_blknum}'" end)
+
       state1 = Core.set_mined(state, mined_blknum)
       submit_blocks(state1)
       {:noreply, state1}
@@ -104,6 +106,7 @@ defmodule OmiseGO.API.BlockQueue do
 
     def handle_info(:check_ethereum_height, %Core{child_block_interval: child_block_interval} = state) do
       {:ok, height} = Eth.get_ethereum_height()
+      _ = Logger.debug(fn -> "check ethereum height '#{height}'" end)
 
       # TODO: submit_blocks is called throughout here a lot, and for now it's ok. Consider regaining more control
       #       over how it is done. E.g. we may submit_blocks only in certain spots, or have it have its own timer
@@ -120,6 +123,7 @@ defmodule OmiseGO.API.BlockQueue do
 
     def handle_cast({:enqueue_block, block_hash, block_number}, %Core{} = state) do
       state2 = Core.enqueue_block(state, block_hash, block_number)
+      _ = Logger.info(fn -> "Enqueing block num '#{block_number}', hash '#{block_hash}'" end)
       submit_blocks(state2)
       {:noreply, state2}
     end
