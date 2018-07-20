@@ -1,18 +1,6 @@
 {
   "version":"7",
   "compilation":{
-    "contracts_source_dirs": ["../deps/plasma_mvp_contracts/plasma/root_chain/contracts"],
-    "import_remappings": [
-      "SafeMath.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/SafeMath.sol",
-      "../deps/plasma_mvp_contracts/plasma/root_chain/contracts/DataStructures/SafeMath.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/SafeMath.sol",
-      "ByteUtils.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/ByteUtils.sol",
-      "ECRecovery.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/ECRecovery.sol",
-      "Math.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/Math.sol",
-      "Merkle.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/Merkle.sol",
-      "PlasmaRLP.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/PlasmaRLP.sol",
-      "RLP.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/RLP.sol",
-      "Validate.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/Libraries/Validate.sol",
-      "PriorityQueue.sol=../deps/plasma_mvp_contracts/plasma/root_chain/contracts/DataStructures/PriorityQueue.sol"
-    ]
+    "contracts_source_dirs": ["../deps/plasma_contracts/contracts"]
   }
 }
