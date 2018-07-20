@@ -72,6 +72,11 @@ defmodule OmiseGO.API.State do
     {:ok, last_deposit_query_result} = DB.last_deposit_height()
     {:ok, utxos_query_result} = DB.utxos()
 
+    _ =
+      Logger.info(fn ->
+        "Started State, height '#{height_query_result}', deposit height '#{last_deposit_query_result}'"
+      end)
+    
     Core.extract_initial_state(
       utxos_query_result,
       height_query_result,
@@ -172,6 +177,23 @@ defmodule OmiseGO.API.State do
     result
   end
 
+<<<<<<< 7adb151a0ecefd2d249e848ae2018858fa90c562
+=======
+  @doc """
+    Wraps up accumulated transactions submissions into a block, triggers db update and emits
+    events to Eventer
+  """
+  def handle_cast({:close_block, child_block_interval}, state) do
+    {duration, {:ok, {_block, _event_triggers, db_updates, new_state}}} =
+      :timer.tc(fn -> Core.form_block(state, child_block_interval) end)
+
+    _ = Logger.info(fn -> "Done closing block in #{round(duration / 1000)} ms" end)
+
+    :ok = DB.multi_update(db_updates)
+    {:noreply, new_state}
+  end
+
+>>>>>>> Extended logging
   defp do_form_block(child_block_interval, state) do
     {core_form_block_duration, core_form_block_result} =
       :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
@@ -192,6 +214,15 @@ defmodule OmiseGO.API.State do
 
   defp do_exit_utxos(utxos, state) do
     {:ok, {_event_triggers, db_updates}, new_state} = Core.exit_utxos(utxos, state)
+
+    _ =
+      Logger.debug(fn ->
+        utxos =
+          db_updates
+          |> Enum.map(fn {:delete, :utxo, utxo} -> "#{inspect(utxo)}" end)
+
+        "UTXOS: " <> Enum.join(utxos, ", ")
+      end)
 
     # GenServer.call
     :ok = DB.multi_update(db_updates)
