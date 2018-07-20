@@ -37,7 +37,9 @@ defmodule OmiseGO.API.State.Core do
         height_query_result,
         last_deposit_height_query_result,
         child_block_interval
-      ) do
+      )
+      when is_list(utxos_query_result) and is_integer(height_query_result) and
+             is_integer(last_deposit_height_query_result) and is_integer(child_block_interval) do
     # extract height, last deposit height and utxos from query result
     height = height_query_result + child_block_interval
 
