@@ -25,7 +25,31 @@ iex --sname watcher -S mix
 
 FIXME adapt to how it actually works
 
-### Endpoints
+## Using the watcher API
 
-`/utxos/<address>`
-`/transactions/<tx_hash>`
+### Endpoints
+TODO
+ 
+### Websockets
+TODO
+
+#### Events:
+TODO add description
+
+##### address_received
+Event informing about that particular address received funds.
+ 
+##### address_spent
+Event informing about that particular address spent funds.
+
+##### invalid_block
+Event informing about that particular block is invalid.
+ 
+##### invalid_exit
+Event informing about that particular exit is invalid.
+
+##### block_withholding
+Event informing about that the child chain is withholding block.
+
+
+

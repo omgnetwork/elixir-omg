@@ -201,10 +201,8 @@ defmodule OmiseGO.Eth do
 
   def authority(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-
-    with {:ok, addresses} <- call_contract(contract, "authority()", [], [:address]),
-         {addr} = addresses,
-         do: {:ok, addr}
+    {:ok, {operator_address}} = call_contract(contract, "operator()", [], [:address])
+    {:ok, operator_address}
   end
 
   @doc """
@@ -215,7 +213,7 @@ defmodule OmiseGO.Eth do
 
     event = encode_event_signature("Deposit(address,uint256,address,uint256)")
 
-    parse_deposit = fn "0x" <> deposit ->
+    parse_deposit = fn %{"data" => "0x" <> deposit} ->
       [owner, blknum, token, amount] =
         deposit
         |> Base.decode16!(case: :lower)
@@ -227,8 +225,43 @@ defmodule OmiseGO.Eth do
     end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
-         deposits <- get_logs(unfiltered_logs, parse_deposit),
+         deposits <- unfiltered_logs |> filter_not_removed |> Enum.map(parse_deposit),
          do: {:ok, Enum.sort(deposits, &(&1.blknum > &2.blknum))}
+  end
+
+  @doc """
+  Returns lists of block submissions sorted by timestamp
+  """
+  def get_block_submissions(block_from, block_to, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
+
+    event = encode_event_signature("BlockSubmitted(bytes32,uint256)")
+
+    parse_block_submissions = fn %{"data" => "0x" <> block_submission, "blockNumber" => "0x" <> hex_block_number} ->
+      {eth_height, ""} = Integer.parse(hex_block_number, 16)
+
+      [root, timestamp] =
+        block_submission
+        |> Base.decode16!(case: :lower)
+        |> ABI.TypeDecoder.decode_raw([{:bytes, 32}, {:uint, 256}])
+
+      %{root: root, timestamp: timestamp, eth_height: eth_height}
+    end
+
+    with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
+         block_submissions <- unfiltered_logs |> filter_not_removed |> Enum.map(parse_block_submissions),
+         do: {:ok, Enum.sort(block_submissions, &(&1.timestamp > &2.timestamp))}
+  end
+
+  @doc """
+  Returns associated information to block submission
+  """
+  @spec get_block_submission(binary()) :: %{root: binary, timestamp: pos_integer, eth_height: pos_integer}
+  def get_block_submission(block_hash) do
+    # TODO rethink what to do with first argument of get_block_submissions
+    with {:ok, height} = get_ethereum_height(),
+         {:ok, block_submissions} = get_block_submissions(1, height),
+         do: block_submissions |> Enum.find(&(&1.root == block_hash))
   end
 
   defp encode_event_signature(signature) do
@@ -239,11 +272,8 @@ defmodule OmiseGO.Eth do
 
   defp int_to_hex(int), do: "0x" <> Integer.to_string(int, 16)
 
-  defp get_logs(logs, parse_log) do
-    logs
-    |> Enum.filter(&(not Map.get(&1, "removed", true)))
-    |> Enum.map(&Map.get(&1, "data"))
-    |> Enum.map(parse_log)
+  defp filter_not_removed(logs) do
+    logs |> Enum.filter(&(not Map.get(&1, "removed", true)))
   end
 
   defp get_ethereum_logs(block_from, block_to, event, contract) do
@@ -266,9 +296,9 @@ defmodule OmiseGO.Eth do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     event = encode_event_signature("ExitStarted(address,uint256,address,uint256)")
     # ExitStarted(msg.sender, utxoPos, token, amount);
-    parse_exit = fn "0x" <> deposit ->
+    parse_exit = fn %{"data" => "0x" <> exits} ->
       [owner, utxo_position, token, amount] =
-        deposit
+        exits
         |> Base.decode16!(case: :lower)
         |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, :address, {:uint, 256}])
 
@@ -280,7 +310,7 @@ defmodule OmiseGO.Eth do
     end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
-         exits <- get_logs(unfiltered_logs, parse_exit),
+         exits <- unfiltered_logs |> filter_not_removed |> Enum.map(parse_exit),
          do: {:ok, Enum.sort(exits, &(&1.block_height > &2.block_height))}
   end
 

@@ -3,8 +3,6 @@ defmodule OmiseGO.Eth.MixProject do
 
   require Logger
 
-  @default_solc_version "v0.4.18"
-
   def project do
     [
       app: :omisego_eth,
@@ -33,10 +31,10 @@ defmodule OmiseGO.Eth.MixProject do
       {:exexec, git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", runtime: true},
       {:briefly, "~> 0.3", only: [:dev, :test]},
       {
-        :plasma_mvp_contracts,
-        git: "https://github.com/purbanow/plasma-mvp",
-        branch: "eth_as_zero_token_no_indexed_no_confirmation_sigs",
-        sparse: "plasma/root_chain/contracts/",
+        :plasma_contracts,
+        git: "https://github.com/omisego/plasma-contracts",
+        branch: "develop",
+        sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
         only: [:dev, :test]
@@ -48,8 +46,8 @@ defmodule OmiseGO.Eth.MixProject do
     case solc_binary_override() do
       :no_solc ->
         Logger.warn(
-          "Can't find solc, contracts may not compile. NOTE that solc in $PATH is ignored. " <>
-            "If you need contracts, either define SOLC_BINARY or follow populus/README.md to install solc in homedir"
+          "Can't find solc, contracts may not compile. " <>
+            "If you need contracts, either define SOLC_BINARY or follow populus/README.md to install solc"
         )
 
         false
@@ -77,16 +75,16 @@ defmodule OmiseGO.Eth.MixProject do
   end
 
   defp solc_binary_override do
-    default = Path.join(System.get_env("HOME"), "/.py-solc/solc-#{@default_solc_version}/bin/solc")
+    # NOTE: used to default to a populus-frozen version. To revert to that, see blame
 
     cond do
       # user overrode the binary themselves, no need to re-override
       System.get_env("SOLC_BINARY") ->
         ""
 
-      # revert to whatever populus installed at specific version, if ${HOME} is present
-      File.exists?(default) ->
-        "SOLC_BINARY=" <> default
+      # revert to one installed in path
+      match?({_, 0}, System.cmd("which", ["solc"])) ->
+        ""
 
       # no other default - never want to use `solc` from `$PATH`
       true ->

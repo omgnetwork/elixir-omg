@@ -22,6 +22,7 @@ defmodule OmiseGOWatcher.Application do
       supervisor(OmiseGOWatcher.Repo, []),
       # Start workers
       {OmiseGO.API.State, []},
+      {OmiseGOWatcher.Eventer, []},
       worker(
         OmiseGO.API.EthereumEventListener,
         [event_listener_config, &OmiseGO.Eth.get_deposits/2, &OmiseGO.API.State.deposit/1],

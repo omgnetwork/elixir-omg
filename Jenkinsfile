@@ -22,6 +22,7 @@ podTemplate(
 
         stage('Build') {
             sh("mix do local.hex --force, local.rebar --force")
+            sh("pip install -r populus/requirements.txt")
             withEnv(["MIX_ENV=test"]) {
                 sh("mix do deps.get, deps.compile, compile")
             }
@@ -30,12 +31,6 @@ podTemplate(
         stage('Unit test') {
             withEnv(["MIX_ENV=test"]) {
                 sh("mix coveralls.html --no-start --umbrella")
-            }
-        }
-
-        stage('Build Contracts') {
-            withEnv(["HOME=/home/jenkins"]) {
-                sh("pip install -r populus/requirements.txt && python -m solc.install v0.4.18 && mix deps.compile plasma_mvp_contracts")
             }
         }
 
