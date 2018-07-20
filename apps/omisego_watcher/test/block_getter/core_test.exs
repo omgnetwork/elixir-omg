@@ -4,10 +4,12 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   use OmiseGO.API.Fixtures
   use Plug.Test
 
-  alias OmiseGO.API.{Block, State.Transaction}
-  alias OmiseGO.API.TestHelper, as: API_Helper
+  alias OmiseGO.API
+  alias OmiseGO.API.Block
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.BlockGetter.Core
+
+  @eth OmiseGO.API.Crypto.zero_address()
 
   defp add_block(state, block) do
     assert {:ok, new_state} = Core.add_block(state, block)
@@ -49,26 +51,20 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     assert {_, []} = Core.get_blocks_to_consume(state)
 
     assert {new_state, [%Block{number: 1_000}, %Block{number: 2_000}, %Block{number: 3_000}]} =
-             state
-             |> add_block(%Block{number: 1_000})
-             |> Core.get_blocks_to_consume()
+             state |> add_block(%Block{number: 1_000}) |> Core.get_blocks_to_consume()
 
     assert {_, [%Block{number: 4_000}, %Block{number: 5_000}, %Block{number: 6_000}]} =
-             new_state
-             |> add_block(%Block{number: 4_000})
-             |> Core.get_blocks_to_consume()
+             new_state |> add_block(%Block{number: 4_000}) |> Core.get_blocks_to_consume()
 
-    assert {
-             _,
-             [
-               %Block{number: 1_000},
-               %Block{number: 2_000},
-               %Block{number: 3_000},
-               %Block{number: 4_000},
-               %Block{number: 5_000},
-               %Block{number: 6_000}
-             ]
-           } =
+    assert {_,
+            [
+              %Block{number: 1_000},
+              %Block{number: 2_000},
+              %Block{number: 3_000},
+              %Block{number: 4_000},
+              %Block{number: 5_000},
+              %Block{number: 6_000}
+            ]} =
              state
              |> add_block(%Block{number: 1_000})
              |> add_block(%Block{number: 4_000})
@@ -108,61 +104,81 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     interval = 1_000
     chunk_size = 5
 
-    {state, [1_000]} = block_height
-                       |> Core.init(interval, chunk_size)
-                       |> Core.get_new_blocks_numbers(2_000)
+    {state, [1_000]} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(2_000)
 
-    assert {:error, :duplicate} = state
-                                  |> add_block(%Block{number: 1_000})
-                                  |> Core.add_block(%Block{number: 1_000})
-    assert {:error, :unexpected_blok} = state
-                                        |> Core.add_block(%Block{number: 2_000})
+    assert {:error, :duplicate} = state |> add_block(%Block{number: 1_000}) |> Core.add_block(%Block{number: 1_000})
+    assert {:error, :unexpected_blok} = state |> Core.add_block(%Block{number: 2_000})
   end
 
-  test "simple decode block" do
+  @tag fixtures: [:alice, :bob]
+  test "simple decode block", %{alice: alice, bob: bob} do
     %Block{transactions: transactions} =
       block =
-        Block.merkle_hash(
-          %Block{
-            transactions: [
-              API_Helper.create_recovered([], Transaction.zero_address(), []),
-              API_Helper.create_recovered([], Transaction.zero_address(), [])
-            ],
-            number: 1_000
-          }
-        )
+      Block.merkle_hash(%Block{
+        transactions: [
+          API.TestHelper.create_recovered([{1_000, 20, 0, alice}, {3_000, 1, 1, bob}], @eth, [{alice, 300}]),
+          API.TestHelper.create_recovered([{5_000, 1, 0, alice}], @eth, [{bob, 100}, {bob, 200}])
+        ],
+        number: 30_000
+      })
 
-    json =
-      for {key, val} <- Map.from_struct(Map.put(block, :transactions, Enum.map(transactions, & &1.signed_tx_bytes))),
+    json_block =
+      for {key, val} <-
+            Map.from_struct(Map.put(block, :transactions, Enum.map(transactions, & &1.signed_tx.signed_tx_bytes))),
           into: %{},
           do: {Atom.to_string(key), val}
 
-    assert {:ok, block} == Core.decode_block(Client.encode(json))
+    assert {:ok, block} == Core.decode_validate_block(Client.encode(json_block))
+
+    block_height = 25_000
+    interval = 1_000
+    chunk_size = 10
+
+    {state, _} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(35_000)
+    assert {:ok, _} = Core.add_block(state, block)
   end
 
-  test "check error return by decode_block" do
+  @tag fixtures: [:alice]
+  test "check error return by decode_block", %{alice: alice} do
     assert {:error, :incorrect_hash} ==
-             Core.decode_block(
-               %{
-                 "hash" => String.duplicate("A", 64),
-                 "transactions" => [
-                   Client.encode(API_Helper.create_recovered([], Transaction.zero_address(), []).signed_tx_bytes)
-                 ],
-                 "number" => 23
-               }
-             )
+             %{
+               "hash" => String.duplicate("A", 64),
+               "transactions" => [
+                 API.TestHelper.create_recovered(
+                   [{1_000, 20, 0, alice}],
+                   @eth,
+                   [{alice, 100}]
+                 ).signed_tx.signed_tx_bytes
+               ],
+               "number" => 23
+             }
+             |> Client.encode()
+             |> Core.decode_validate_block()
 
     assert {:error, :malformed_transaction_rlp} ==
-             Core.decode_block(
-               %{
-                 "hash" => "",
-                 "transactions" => [
-                   Client.encode(API_Helper.create_recovered([], Transaction.zero_address(), []).signed_tx_bytes),
-                   "12321231AB2331"
-                 ],
-                 "number" => 1
-               }
-             )
+             %{
+               "hash" => "",
+               "transactions" => [
+                 API.TestHelper.create_recovered(
+                   [{1_000, 20, 0, alice}],
+                   @eth,
+                   [{alice, 100}]
+                 ).signed_tx.signed_tx_bytes,
+                 "12321231AB2331"
+               ],
+               "number" => 1
+             }
+             |> Client.encode()
+             |> Core.decode_validate_block()
+
+    assert {:error, :no_inputs} ==
+             %{
+               "hash" => "",
+               "transactions" => [API.TestHelper.create_recovered([], @eth, []).signed_tx.signed_tx_bytes],
+               "number" => 1
+             }
+             |> Client.encode()
+             |> Core.decode_validate_block()
   end
 
   test "check error return by add_potential_block_withholding" do

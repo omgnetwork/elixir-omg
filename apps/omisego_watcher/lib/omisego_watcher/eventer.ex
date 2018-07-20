@@ -31,13 +31,13 @@ defmodule OmiseGOWatcher.Eventer do
   def handle_cast({:emit_events, event_triggers}, state) do
     event_triggers
     |> Core.prepare_events()
-    |> Enum.each(fn {topic, event_name, event} -> Endpoint.broadcast!(topic, event_name, event) end)
+    |> Enum.each(fn {topic, event_name, event} -> :ok = Endpoint.broadcast!(topic, event_name, event) end)
 
     {:noreply, state}
   end
 
-  def handle_cast({:emit_event, event_triggers}, state) do
-    {topic, event_name, event}  = Core.prepare_event()
+  def handle_cast({:emit_event, event_trigger}, state) do
+    {topic, event_name, event}  = Core.prepare_event(event_trigger)
 
     Endpoint.broadcast!(topic, event_name, event)
 

@@ -17,7 +17,10 @@ For generic information, keep on reading.
 Only **Linux** platforms supported now. Known to work with Ubuntu 16.04
 
   - Install [Elixir](http://elixir-lang.github.io/install.html#unix-and-unix-like).
-    Make sure `rebar` is in your path, e.g. `mix do local.hex --force, local.rebar --force`
+    **OTP 20 is required**, meaning that on Ubuntu, you should modify steps in the linked instructions:
+    `sudo apt install esl-erlang=1:20.3.6`
+
+    **TODO**: revert the requirement when we migrate to OTP 21 in OMG-181
   - Install or provide access to an Ethereum node (e.g. [geth](https://github.com/ethereum/go-ethereum/wiki/geth))
   - If required, install the following packages:
     `sudo apt-get install build-essential autoconf libtool libgmp3-dev`

@@ -43,15 +43,19 @@ defmodule OmiseGOWatcher.Mixfile do
       {:gettext, "~> 0.15"},
       {:sqlite_ecto2, "~> 2.2", only: [:test]},
       {:cowboy, "~> 1.1"},
-      {:plug, "~> 1.5.0", override: true},
+      # NOTE: fixed version needed b/c Plug.Conn.WrapperError.reraise/3 is deprecated... 2 occurences in umbrella.
+      {:plug, "1.5.0", override: true},
       {:socket, "~> 0.3"},
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
       # NOTE: need this explictly, since :omisego_jsonrpc won't start jsonrpc2 automatically
-      {:jsonrpc2, "~> 1.0"},
+      {:jsonrpc2,
+       git: "https://github.com/omisego/jsonrpc2-elixir.git", branch: "precise_handling_of_FunctionClauseError"},
+      {:briefly, "~> 0.3", only: [:dev, :test]},
       #
       {:omisego_api, in_umbrella: true, runtime: false},
       {:omisego_jsonrpc, in_umbrella: true, runtime: false},
-      {:omisego_db, in_umbrella: true, runtime: true}
+      {:omisego_db, in_umbrella: true},
+      {:omisego_eth, in_umbrella: true}
     ]
   end
 

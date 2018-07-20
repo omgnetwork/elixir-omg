@@ -16,7 +16,6 @@ defmodule OmiseGO.Eth.DevHelpers do
   def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
     """
     use Mix.Config
-
     config :omisego_eth,
       contract_addr: #{inspect(contract_addr)},
       txhash_contract: #{inspect(txhash)},
@@ -114,6 +113,23 @@ defmodule OmiseGO.Eth.DevHelpers do
 
     {deposit_blknum, ""} = Integer.parse(deposit_blknum_enc, 16)
     deposit_blknum
+  end
+
+  def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, gas_price, from, contract) do
+    data =
+      "challengeExit(uint256,uint256,bytes,bytes,bytes)"
+      |> ABI.encode([cutxopo, eutxoindex, txbytes, proof, sigs])
+      |> Base.encode16()
+
+    gas = 1_000_000
+
+    Ethereumex.HttpClient.eth_send_transaction(%{
+      from: from,
+      to: contract,
+      data: "0x#{data}",
+      gas: encode_eth_rpc_unsigned_int(gas),
+      gasPrice: encode_eth_rpc_unsigned_int(gas_price)
+    })
   end
 
   def mine_eth_dev_block do

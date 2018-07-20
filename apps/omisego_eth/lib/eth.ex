@@ -186,7 +186,7 @@ defmodule OmiseGO.Eth do
   """
   def get_current_child_block(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    {:ok, _next} = call_contract_value(contract, "currentChildBlock()")
+    call_contract_value(contract, "currentChildBlock()")
   end
 
   @doc """
@@ -194,14 +194,17 @@ defmodule OmiseGO.Eth do
   """
   def get_mined_child_block(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    {:ok, next} = call_contract_value(contract, "currentChildBlock()")
-    {:ok, next - 1000}
+
+    with {:ok, next} <- call_contract_value(contract, "currentChildBlock()"),
+         do: {:ok, next - 1000}
   end
 
   def authority(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    {:ok, [addr]} = call_contract(contract, "authority()", [], [:address])
-    {:ok, addr}
+
+    with {:ok, addresses} <- call_contract(contract, "authority()", [], [:address]),
+         {addr} = addresses,
+         do: {:ok, addr}
   end
 
   @doc """
@@ -212,7 +215,7 @@ defmodule OmiseGO.Eth do
 
     event = encode_event_signature("Deposit(address,uint256,address,uint256)")
 
-    parse_deposit = fn "0x" <> deposit ->
+    parse_deposit = fn %{"data" => "0x" <> deposit} ->
       [owner, blknum, token, amount] =
         deposit
         |> Base.decode16!(case: :lower)
@@ -224,7 +227,7 @@ defmodule OmiseGO.Eth do
     end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
-         deposits <- get_logs_data(unfiltered_logs, parse_deposit),
+         deposits <- unfiltered_logs |> filter_not_removed |> Enum.map(parse_deposit),
          do: {:ok, Enum.sort(deposits, &(&1.blknum > &2.blknum))}
   end
 
@@ -236,23 +239,26 @@ defmodule OmiseGO.Eth do
 
     event = encode_event_signature("BlockSubmitted(bytes32,uint256)")
 
-    parse_block_submissions = fn "0x" <> block_submission ->
+    parse_block_submissions = fn %{"data" => "0x" <> block_submission, "blockNumber" => "0x" <> hex_block_number} ->
+      {eth_height, ""} = Integer.parse(hex_block_number, 16)
+
       [root, timestamp] =
         block_submission
         |> Base.decode16!(case: :lower)
         |> ABI.TypeDecoder.decode_raw([{:bytes, 32}, {:uint, 256}])
 
-      %{root: root, timestamp: timestamp}
+      %{root: root, timestamp: timestamp, eth_height: eth_height}
     end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
-         block_submissions <- get_logs(unfiltered_logs, parse_block_submissions),
+         block_submissions <- unfiltered_logs |> filter_not_removed |> Enum.map(parse_block_submissions),
          do: {:ok, Enum.sort(block_submissions, &(&1.timestamp > &2.timestamp))}
   end
 
   @doc """
   Returns associated information to block submission
   """
+  @spec get_block_submission(binary()) :: %{root: binary, timestamp: integer, eth_height: integer}
   def get_block_submission(block_hash) do
     # TODO rethink what to do with first argument of get_block_submissions
     with {:ok, height} = get_ethereum_height(),
@@ -268,31 +274,8 @@ defmodule OmiseGO.Eth do
 
   defp int_to_hex(int), do: "0x" <> Integer.to_string(int, 16)
 
-  # TODO rethink if having only get_logs will be better
-  defp get_logs_data(logs, parse_log) do
-    logs
-    |> Enum.filter(&(not Map.get(&1, "removed", true)))
-    |> Enum.map(&Map.get(&1, "data"))
-    |> Enum.map(parse_log)
-  end
-
-  defp get_logs(logs, parse_log_data) do
-    for log <- logs do
-      unless Map.get(log, "removed", true) do
-        event_data =
-          log
-          |> Map.get("data")
-          |> parse_log_data.()
-
-        "0x" <> hex_block_number =
-          log
-          |> Map.get("blockNumber")
-
-        {eth_height, ""} = Integer.parse(hex_block_number, 16)
-
-        Map.put(event_data, :eth_height, eth_height)
-      end
-    end
+  defp filter_not_removed(logs) do
+    logs |> Enum.filter(&(not Map.get(&1, "removed", true)))
   end
 
   defp get_ethereum_logs(block_from, block_to, event, contract) do
@@ -309,15 +292,15 @@ defmodule OmiseGO.Eth do
   end
 
   @doc """
-  Returns lists of deposits sorted by child chain block number
+  Returns exits from a range of blocks. Collects exits from Ethereum logs.
   """
   def get_exits(block_from, block_to, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     event = encode_event_signature("ExitStarted(address,uint256,address,uint256)")
     # ExitStarted(msg.sender, utxoPos, token, amount);
-    parse_exit = fn "0x" <> deposit ->
+    parse_exit = fn %{"data" => "0x" <> exits} ->
       [owner, utxo_position, token, amount] =
-        deposit
+        exits
         |> Base.decode16!(case: :lower)
         |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, :address, {:uint, 256}])
 
@@ -329,35 +312,37 @@ defmodule OmiseGO.Eth do
     end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
-         exits <- get_logs_data(unfiltered_logs, parse_exit),
+         exits <- unfiltered_logs |> filter_not_removed |> Enum.map(parse_exit),
          do: {:ok, Enum.sort(exits, &(&1.block_height > &2.block_height))}
   end
 
+  @doc """
+  Returns exit for a specific utxo. Calls contract method.
+  """
   def get_exit(utxo_pos, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract)
 
-    {:ok, [address, amount]} = call_contract(contract, "getExit(uint256)", [utxo_pos], [{:bytes, 32}, {:uint, 256}])
-    {:ok, {address, amount}}
+    call_contract(contract, "getExit(uint256)", [utxo_pos], [:address, :address, {:uint, 256}])
   end
 
   def get_child_chain(blknum, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
 
-    {:ok, [root, created_at]} =
-      call_contract(contract, "getChildChain(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
-
-    {:ok, {root, created_at}}
+    call_contract(contract, "getChildChain(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
   end
 
   defp call_contract_value(contract, signature) do
-    {:ok, [value]} = call_contract(contract, signature, [], [{:uint, 256}])
-    {:ok, value}
+    with {:ok, values} <- call_contract(contract, signature, [], [{:uint, 256}]),
+         {value} = values,
+         do: {:ok, value}
   end
 
   defp call_contract(contract, signature, args, return_types) do
     data = signature |> ABI.encode(args) |> Base.encode16()
-    {:ok, "0x" <> enc_return} = Ethereumex.HttpClient.eth_call(%{to: contract, data: "0x#{data}"})
-    decode_answer(enc_return, return_types)
+
+    with {:ok, return} <- Ethereumex.HttpClient.eth_call(%{to: contract, data: "0x#{data}"}),
+         "0x" <> enc_return = return,
+         do: decode_answer(enc_return, return_types)
   end
 
   defp decode_answer(enc_return, return_types) do
@@ -365,6 +350,7 @@ defmodule OmiseGO.Eth do
       enc_return
       |> Base.decode16!(case: :lower)
       |> ABI.TypeDecoder.decode_raw(return_types)
+      |> List.to_tuple()
 
     {:ok, return}
   end

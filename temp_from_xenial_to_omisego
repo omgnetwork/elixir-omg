@@ -25,7 +25,8 @@ apt-get install -y libssl-dev git python3 python3-pip autoconf libtool libgmp3-d
 wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb
 dpkg -i erlang-solutions_1.0_all.deb
 apt-get update
-apt-get install -y esl-erlang elixir
+# TODO revert the requirement when we migrate to OTP 21 in OMG-181
+apt-get install -y esl-erlang=1:20.3.6 elixir
 
 # geth
 apt-get install -y software-properties-common

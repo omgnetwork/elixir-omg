@@ -3,6 +3,10 @@ defmodule OmiseGO.API.State.Core do
   Functional core for State.
   """
 
+  # this `use` generates OmiseGO.API.State.CoreGS module:
+  # TODO: rework macro so it can be called from test code only
+  use OmiseGO.API.BlackBoxMe
+
   @maximum_block_size 65_536
 
   defstruct [:height, :last_deposit_height, :utxos, pending_txs: [], tx_index: 0]
@@ -11,6 +15,15 @@ defmodule OmiseGO.API.State.Core do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.Transaction
 
+  @type deposit() :: %{
+          blknum: pos_integer(),
+          currency: <<_::160>>,
+          owner: <<_::160>>,
+          amount: pos_integer()
+        }
+  @type utxo() :: term()
+  @type side_effects() :: term()
+
   @type exec_error ::
           :cant_spend_zero_utxo
           | :incorrect_spender
@@ -18,7 +31,6 @@ defmodule OmiseGO.API.State.Core do
           | :amounts_dont_add_up
           | :invalid_current_block_number
           | :utxo_not_found
-          | :cant_spend_zero_utxo
 
   def extract_initial_state(
         utxos_query_result,
@@ -31,40 +43,45 @@ defmodule OmiseGO.API.State.Core do
 
     utxos = Enum.reduce(utxos_query_result, %{}, &Map.merge/2)
 
-    %__MODULE__{
+    state = %__MODULE__{
       height: height,
       last_deposit_height: last_deposit_height_query_result,
       utxos: utxos
     }
+
+    {:ok, state}
   end
 
   @doc """
   Includes the transaction into the state when valid, rejects otherwise.
+
+  NOTE that tx is assumed to have distinct inputs, that should be checked in prior state-less validation
   """
-  @spec exec(tx :: %Transaction.Recovered{}, state :: %Core{}) ::
-          {{:ok, Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, %Core{}}
+  @spec exec(tx :: %Transaction.Recovered{}, fees :: map(), state :: %Core{}) ::
+          {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, %Core{}}
           | {{:error, exec_error}, %Core{}}
   def exec(
         %Transaction.Recovered{
-          raw_tx: raw_tx,
-          signed_tx_hash: _signed_tx_hash,
+          signed_tx: %Transaction.Signed{
+            raw_tx: raw_tx = %Transaction{amount1: amount1, amount2: amount2, cur12: currency}
+          },
           spender1: spender1,
           spender2: spender2
         } = recovered_tx,
+        fees,
         state
       ) do
-    %Transaction{amount1: amount1, amount2: amount2} = raw_tx
+    # for now just 1 currency supported
+    fee = fees[currency]
 
     with :ok <- validate_block_size(state),
          {:ok, in_amount1} <- correct_input_in_position?(1, state, raw_tx, spender1),
          {:ok, in_amount2} <- correct_input_in_position?(2, state, raw_tx, spender2),
-         :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2) do
-      {
-        {:ok, recovered_tx.signed_tx_hash, state.height, state.tx_index},
-        state
-        |> apply_spend(raw_tx)
-        |> add_pending_tx(recovered_tx)
-      }
+         :ok <- amounts_add_up?(in_amount1 + in_amount2, amount1 + amount2 + fee) do
+      {:ok, {recovered_tx.signed_tx_hash, state.height, state.tx_index},
+       state
+       |> apply_spend(raw_tx)
+       |> add_pending_tx(recovered_tx)}
     else
       {:error, _reason} = error -> {error, state}
     end
@@ -176,7 +193,8 @@ defmodule OmiseGO.API.State.Core do
    - generates requests to the persistence layer for a block
    - processes pending txs gathered, updates height etc
   """
-  def form_block(%Core{pending_txs: reverse_txs, height: height} = state, child_block_interval) do
+  @spec form_block(pos_integer(), state :: %Core{}) :: {:ok, side_effects(), new_state :: %Core{}}
+  def form_block(child_block_interval, %Core{pending_txs: reverse_txs, height: height} = state) do
     txs = Enum.reverse(reverse_txs)
 
     block =
@@ -185,17 +203,21 @@ defmodule OmiseGO.API.State.Core do
 
     event_triggers =
       txs
-      |> Enum.map(fn tx -> %{tx: tx} end)
+      |> Enum.map(fn tx ->
+        %{tx: tx, child_blknum: block.number, child_block_hash: block.hash}
+      end)
 
     db_updates_new_utxos =
       txs
       |> Enum.with_index()
-      |> Enum.flat_map(fn {%Transaction.Recovered{raw_tx: tx}, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
+      |> Enum.flat_map(fn {%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}}, tx_idx} ->
+        non_zero_utxos_from(tx, height, tx_idx)
+      end)
       |> Enum.map(&utxo_to_db_put/1)
 
     db_updates_spent_utxos =
       txs
-      |> Enum.flat_map(fn %Transaction.Recovered{raw_tx: tx} ->
+      |> Enum.flat_map(fn %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}} ->
         [{tx.blknum1, tx.txindex1, tx.oindex1}, {tx.blknum2, tx.txindex2, tx.oindex2}]
       end)
       |> Enum.filter(fn utxo_key -> utxo_key != {0, 0, 0} end)
@@ -216,7 +238,7 @@ defmodule OmiseGO.API.State.Core do
         pending_txs: []
     }
 
-    {:ok, {block, event_triggers, db_updates, new_state}}
+    {:ok, {block, event_triggers, db_updates}, new_state}
   end
 
   def decode_deposit(%{owner: owner, currency: currency} = deposit) do
@@ -235,6 +257,7 @@ defmodule OmiseGO.API.State.Core do
     raw
   end
 
+  @spec deposit(deposits :: [deposit()], state :: %Core{}) :: {:ok, side_effects(), new_state :: %Core{}}
   def deposit(deposits, %Core{utxos: utxos, last_deposit_height: last_deposit_height} = state) do
     deposits = deposits |> Enum.filter(&(&1.blknum > last_deposit_height))
 
@@ -260,7 +283,7 @@ defmodule OmiseGO.API.State.Core do
         last_deposit_height: last_deposit_height
     }
 
-    {event_triggers, db_updates, new_state}
+    {:ok, {event_triggers, db_updates}, new_state}
   end
 
   defp utxo_to_db_put({utxo_position, utxo}), do: {:put, :utxo, %{utxo_position => utxo}}
@@ -297,6 +320,7 @@ defmodule OmiseGO.API.State.Core do
   @doc """
   Spends exited utxos
   """
+  @spec exit_utxos(exiting_utxos :: [utxo()], state :: %Core{}) :: {:ok, side_effects(), new_state :: %Core{}}
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
     exiting_utxos =
       exiting_utxos
@@ -322,13 +346,13 @@ defmodule OmiseGO.API.State.Core do
         {:delete, :utxo, {blknum, txindex, oindex}}
       end)
 
-    {event_triggers, deletes, state}
+    {:ok, {event_triggers, deletes}, state}
   end
 
   @doc """
   Checks if utxo exists
   """
-  @spec utxo_exists(map(), %__MODULE__{}) :: :utxo_exists | :utxo_does_not_exist
+  @spec utxo_exists(utxo(), %Core{}) :: :utxo_exists | :utxo_does_not_exist
   def utxo_exists(%{blknum: blknum, txindex: txindex, oindex: oindex}, %Core{utxos: utxos}) do
     case Map.has_key?(utxos, {blknum, txindex, oindex}) do
       true -> :utxo_exists
