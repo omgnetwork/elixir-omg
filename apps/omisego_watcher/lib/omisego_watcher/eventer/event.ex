@@ -1,5 +1,6 @@
 defmodule OmiseGOWatcher.Eventer.Event do
   alias OmiseGO.API.State.Transaction
+  alias OmiseGO.API.Block
 
   @type t :: OmiseGOWatcher.Eventer.Event.AddressReceived.t()
 
@@ -15,7 +16,7 @@ defmodule OmiseGOWatcher.Eventer.Event do
     @type t :: %AddressReceived{
             tx: Transaction.Recovered.t(),
             child_blknum: integer(),
-            child_block_hash: <<_::768>>,
+            child_block_hash: Block.block_hash_t(),
             submited_at_ethheight: integer()
           }
   end
@@ -32,7 +33,7 @@ defmodule OmiseGOWatcher.Eventer.Event do
     @type t :: %AddressSpent{
             tx: Transaction.Recovered.t(),
             child_blknum: integer(),
-            child_block_hash: <<_::768>>,
+            child_block_hash: Block.block_hash_t(),
             submited_at_ethheight: integer()
           }
   end
