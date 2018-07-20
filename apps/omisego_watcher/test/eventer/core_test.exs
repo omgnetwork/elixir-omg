@@ -21,17 +21,18 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
 
     encoded_alice_address = API.TestHelper.encode_address(alice.addr)
     encoded_bob_address = API.TestHelper.encode_address(bob.addr)
+    topic_alice = TestHelper.create_topic("address", encoded_alice_address)
+    topic_bob = TestHelper.create_topic("address", encoded_bob_address)
 
-    {topic_1, event_name_1, event_1} =
-      {TestHelper.create_topic("address", encoded_alice_address), "address_received",
-       %Event.AddressReceived{tx: recovered_tx}}
+    event_1 = {topic_alice, "address_received", %Event.AddressReceived{tx: recovered_tx}}
 
-    {topic_2, event_name_2, event_2} =
-      {TestHelper.create_topic("address", encoded_bob_address), "address_received",
-       %Event.AddressReceived{tx: recovered_tx}}
+    event_2 = {topic_bob, "address_received", %Event.AddressReceived{tx: recovered_tx}}
 
-    assert [{topic_1, event_name_1, event_1}, {topic_2, event_name_2, event_2}] ==
-             Eventer.Core.notify([%{tx: recovered_tx}])
+    event_3 = {topic_alice, "address_spent", %Event.AddressSpent{tx: recovered_tx}}
+
+    event_4 = {topic_bob, "address_spent", %Event.AddressSpent{tx: recovered_tx}}
+
+    assert [event_1, event_2, event_3, event_4] == Eventer.Core.notify([%{tx: recovered_tx}])
   end
 
   @tag fixtures: [:alice, :bob]
@@ -44,11 +45,12 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
       )
 
     encoded_alice_address = API.TestHelper.encode_address(alice.addr)
+    topic = TestHelper.create_topic("address", encoded_alice_address)
 
-    {topic, event_name, event} =
-      {TestHelper.create_topic("address", encoded_alice_address), "address_received",
-       %Event.AddressReceived{tx: recovered_tx}}
+    event_1 = {topic, "address_received", %Event.AddressReceived{tx: recovered_tx}}
 
-    assert [{topic, event_name, event}] == Eventer.Core.notify([%{tx: recovered_tx}])
+    event_2 = {topic, "address_spent", %Event.AddressSpent{tx: recovered_tx}}
+
+    assert [event_1, event_2] == Eventer.Core.notify([%{tx: recovered_tx}])
   end
 end

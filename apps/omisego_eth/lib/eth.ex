@@ -258,6 +258,7 @@ defmodule OmiseGO.Eth do
   @doc """
   Returns associated information to block submission
   """
+  @spec get_block_submission(binary()) :: %{root: binary, timestamp: pos_integer, eth_height: pos_integer}
   def get_block_submission(block_hash) do
     # TODO rethink what to do with first argument of get_block_submissions
     with {:ok, height} = get_ethereum_height(),

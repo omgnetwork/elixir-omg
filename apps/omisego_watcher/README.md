@@ -39,8 +39,17 @@ TODO add description
 ##### address_received
 Event informing about that particular address received funds.
  
-TODO ADD response
-
 ##### address_spent
 Event informing about that particular address spent funds.
+
+##### invalid_block
+Event informing about that particular block is invalid.
+ 
+##### invalid_exit
+Event informing about that particular exit is invalid.
+
+##### block_withholding
+Event informing about that the child chain is withholding block.
+
+
 
