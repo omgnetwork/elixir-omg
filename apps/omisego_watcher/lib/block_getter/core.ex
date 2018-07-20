@@ -16,20 +16,20 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   ]
 
   @type t() :: %__MODULE__{
-                 last_consumed_block: non_neg_integer,
-                 started_height_block: non_neg_integer,
-                 block_interval: pos_integer,
-                 waiting_for_blocks: non_neg_integer,
-                 maximum_number_of_pending_blocks: pos_integer,
-                 block_to_consume: %{
-                   non_neg_integer => OmiseGO.API.Block.t()
-                 },
-                 potential_block_withholdings: %{
-                   non_neg_integer => pos_integer
-                 },
-                 maximum_block_withholding_time: pos_integer,
-                 potential_block_withholding_delay_time: pos_integer
-               }
+          last_consumed_block: non_neg_integer,
+          started_height_block: non_neg_integer,
+          block_interval: pos_integer,
+          waiting_for_blocks: non_neg_integer,
+          maximum_number_of_pending_blocks: pos_integer,
+          block_to_consume: %{
+            non_neg_integer => OmiseGO.API.Block.t()
+          },
+          potential_block_withholdings: %{
+            non_neg_integer => pos_integer
+          },
+          maximum_block_withholding_time: pos_integer,
+          potential_block_withholding_delay_time: pos_integer
+        }
 
   @spec init(non_neg_integer, pos_integer, pos_integer) :: %__MODULE__{}
   def init(
@@ -78,9 +78,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     {
       %{
         state
-      |
-        waiting_for_blocks: length(blocks_numbers) + waiting_for_blocks,
-        started_height_block: hd(Enum.take([started_height_block] ++ blocks_numbers, -1))
+        | waiting_for_blocks: length(blocks_numbers) + waiting_for_blocks,
+          started_height_block: hd(Enum.take([started_height_block] ++ blocks_numbers, -1))
       },
       blocks_numbers
     }
@@ -104,9 +103,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
         :ok,
         %{
           state
-        |
-          block_to_consume: Map.put(block_to_consume, number, block),
-          waiting_for_blocks: waiting_for_blocks - 1
+          | block_to_consume: Map.put(block_to_consume, number, block),
+            waiting_for_blocks: waiting_for_blocks - 1
         }
       }
     else
@@ -143,11 +141,13 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   end
 
   @doc "add potential block withholding"
-  @spec add_potential_block_withholding(%__MODULE__{}, non_neg_integer) :: {:ok, %__MODULE__{}} | {
-    :error,
-    :block_withholding,
-    list(non_neg_integer)
-  }
+  @spec add_potential_block_withholding(%__MODULE__{}, non_neg_integer) ::
+          {:ok, %__MODULE__{}}
+          | {
+              :error,
+              :block_withholding,
+              list(non_neg_integer)
+            }
   def add_potential_block_withholding(
         %__MODULE__{
           potential_block_withholdings: potential_block_withholdings,
@@ -155,7 +155,6 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
         } = state,
         blknum
       ) do
-
     current_time = :os.system_time(:millisecond)
     blknum_time = Map.get(potential_block_withholdings, blknum)
 
@@ -171,11 +170,10 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   @spec remove_potential_block_withholding(%__MODULE__{}, non_neg_integer) :: {%__MODULE__{}}
   def remove_potential_block_withholding(
         %__MODULE__{
-          potential_block_withholdings: potential_block_withholdings,
+          potential_block_withholdings: potential_block_withholdings
         } = state,
         blknum
       ) do
-
     potential_block_withholdings = Map.delete(potential_block_withholdings, blknum)
 
     %{state | potential_block_withholdings: potential_block_withholdings}

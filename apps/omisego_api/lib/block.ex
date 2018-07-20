@@ -6,12 +6,13 @@ defmodule OmiseGO.API.Block do
   alias OmiseGO.API.Crypto
 
   @transaction_merkle_tree_height 16
+  @type block_hash_t() :: <<_::768>>
 
   defstruct [:transactions, :hash, :number]
 
   @type t() :: %__MODULE__{
           transactions: list(OmiseGO.API.State.Transaction.Recovered.t()),
-          hash: <<_::768>>,
+          hash: block_hash_t(),
           number: pos_integer
         }
 

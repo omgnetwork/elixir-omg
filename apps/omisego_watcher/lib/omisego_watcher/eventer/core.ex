@@ -20,13 +20,11 @@ defmodule OmiseGOWatcher.Eventer.Core do
   end
 
   defp get_event_with_topic(%Event.BlockWithHolding{} = event) do
-      {@byzantine_topic, Event.BlockWithHolding.name(), event}
+    {@byzantine_topic, Event.BlockWithHolding.name(), event}
   end
 
   defp get_events_with_topic(event_trigger) do
-    address_received_events = get_address_received_events(event_trigger)
-    address_spent_events = get_address_spent_events(event_trigger)
-    address_received_events ++ address_spent_events
+    get_address_received_events(event_trigger) ++ get_address_spent_events(event_trigger)
   end
 
   defp get_address_spent_events(

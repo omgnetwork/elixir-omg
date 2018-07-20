@@ -37,11 +37,10 @@ defmodule OmiseGOWatcher.Eventer do
   end
 
   def handle_cast({:emit_event, event_trigger}, state) do
-    {topic, event_name, event}  = Core.prepare_event(event_trigger)
+    {topic, event_name, event} = Core.prepare_event(event_trigger)
 
     Endpoint.broadcast!(topic, event_name, event)
 
     {:noreply, state}
   end
-
 end

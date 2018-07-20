@@ -194,5 +194,4 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     assert {:error, :block_withholding, 1} == Core.add_potential_block_withholding(new_state, 1)
   end
-
 end

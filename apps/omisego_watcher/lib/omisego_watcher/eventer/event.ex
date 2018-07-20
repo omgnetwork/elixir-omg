@@ -1,10 +1,12 @@
 defmodule OmiseGOWatcher.Eventer.Event do
+  alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
 
-  @type t :: OmiseGOWatcher.Eventer.Event.AddressReceived.t() |
-             OmiseGOWatcher.Eventer.Event.InvalidBlock.t() |
-             OmiseGOWatcher.Eventer.Event.BlockWithHolding.t() |
-             OmiseGOWatcher.Eventer.Event.InvalidExit.t()
+  @type t ::
+          OmiseGOWatcher.Eventer.Event.AddressReceived.t()
+          | OmiseGOWatcher.Eventer.Event.InvalidBlock.t()
+          | OmiseGOWatcher.Eventer.Event.BlockWithHolding.t()
+          | OmiseGOWatcher.Eventer.Event.InvalidExit.t()
 
   defmodule AddressReceived do
     @moduledoc """
@@ -18,7 +20,24 @@ defmodule OmiseGOWatcher.Eventer.Event do
     @type t :: %AddressReceived{
             tx: Transaction.Recovered.t(),
             child_blknum: integer(),
-            child_block_hash: <<_::768>>,
+            child_block_hash: Block.block_hash_t(),
+            submited_at_ethheight: integer()
+          }
+  end
+
+  defmodule AddressSpent do
+    @moduledoc """
+    Notifies about spent funds by particular address
+    """
+
+    def name, do: "address_spent"
+
+    defstruct [:tx, :child_blknum, :child_block_hash, :submited_at_ethheight]
+
+    @type t :: %AddressSpent{
+            tx: Transaction.Recovered.t(),
+            child_blknum: integer(),
+            child_block_hash: Block.block_hash_t(),
             submited_at_ethheight: integer()
           }
   end
@@ -62,8 +81,8 @@ defmodule OmiseGOWatcher.Eventer.Event do
     defstruct [:blknum]
 
     @type t :: %BlockWithHolding{
-                blknum: pos_integer
-               }
+            blknum: pos_integer
+          }
   end
 
   defmodule InvalidExit do
@@ -77,5 +96,4 @@ defmodule OmiseGOWatcher.Eventer.Event do
 
     @type t :: %InvalidExit{}
   end
-
 end

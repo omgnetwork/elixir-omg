@@ -10,9 +10,9 @@ defmodule OmiseGOWatcher.BlockGetter do
   alias OmiseGO.API.State.Transaction.{Recovered, Signed}
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
-  alias OmiseGOWatcher.UtxoDB
   alias OmiseGOWatcher.Eventer
   alias OmiseGOWatcher.Eventer.Event
+  alias OmiseGOWatcher.UtxoDB
 
   require Logger
 
@@ -70,28 +70,29 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:noreply, new_state}
   end
 
-  def handle_info({_ref, {:got_block_failure, blknum}}, state) do
-    with  {:ok, new_state} <- Core.add_potential_block_withholding(state, blknum) do
+  def handle_info({_ref, {:get_block_failure, blknum}}, state) do
+    with {:ok, new_state} <- Core.add_potential_block_withholding(state, blknum) do
       receive do
       after
         state.potential_block_withholding_delay_time ->
-          Task.async(
-            fn -> case get_block(blknum) do
-                    {:ok, block} ->
-                      Core.remove_potential_block_withholding(state, blknum)
-                      {:got_block_success, block}
-                    {:error, _} -> {:got_block_failure, blknum}
-                  end
+          Task.async(fn ->
+            case get_block(blknum) do
+              {:ok, block} ->
+                Core.remove_potential_block_withholding(state, blknum)
+                {:got_block_success, block}
+
+              {:error, _} ->
+                {:got_block_failure, blknum}
             end
-          )
+          end)
       end
+
       {:noreply, new_state}
     else
       {:error, :block_withholding, blknum} ->
         Eventer.emit_event(%Event.BlockWithHolding{blknum: blknum})
         {:stop, {:block_withholding, blknum}, state}
     end
-
   end
 
   def handle_info({_ref, {:got_block_success, %Block{number: blknum, transactions: txs, hash: hash} = block}}, state) do
@@ -127,14 +128,13 @@ defmodule OmiseGOWatcher.BlockGetter do
   defp run_block_get_task(blocks_numbers) do
     blocks_numbers
     |> Enum.each(
-         # captures the result in handle_info/2 with got_block_success atom and handle_info/3 with got_block_failure atom
-         &Task.async(
-           fn -> case get_block(&1) do
-                   {:ok, block} -> {:got_block_success, block}
-                   {:error, _} -> {:got_block_failure, &1}
-                 end
-           end
-         )
-       )
+      # captures the result in handle_info/2 with got_block_success atom and handle_info/3 with got_block_failure atom
+      &Task.async(fn ->
+        case get_block(&1) do
+          {:ok, block} -> {:got_block_success, block}
+          {:error, _} -> {:got_block_failure, &1}
+        end
+      end)
+    )
   end
 end
