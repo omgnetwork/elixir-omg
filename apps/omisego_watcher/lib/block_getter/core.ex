@@ -118,7 +118,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   requested_number is given to _override_ since we're getting by hash, we can have empty blocks with same hashes!
   """
   @spec decode_validate_block(block :: map, requested_hash :: binary, requested_number :: pos_integer) ::
-          {:ok, Block.t()}
+          {:ok, map}
           | {:error,
              :incorrect_hash
              | :malformed_transaction_rlp
@@ -126,15 +126,14 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
              | :bad_signature_length
              | :hash_decoding_error}
   def decode_validate_block(
-        %{"hash" => returned_hash, "transactions" => transactions, "number" => number},
+        %{hash: returned_hash, transactions: transactions, number: number},
         requested_hash,
         requested_number
       ) do
-    with transaction_decode_results <- Enum.map(transactions, &decode_validate_transaction/1),
+    with transaction_decode_results <- Enum.map(transactions, &OmiseGO.API.Core.recover_tx/1),
          nil <- Enum.find(transaction_decode_results, &(!match?({:ok, _}, &1))),
          transactions <- Enum.map(transaction_decode_results, &elem(&1, 1)),
-         {:ok, returned_decoded_hash} <- decode_hash(returned_hash),
-         true <- returned_decoded_hash == requested_hash || {:error, :bad_returned_hash} do
+         true <- returned_hash == requested_hash || {:error, :bad_returned_hash} do
       # hash the block yourself and compare
       %Block{hash: calculated_hash} = Block.hashed_txs_at(transactions, number)
 
@@ -151,24 +150,10 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
            %{
              transactions: transactions,
              number: requested_number,
-             hash: returned_decoded_hash,
+             hash: returned_hash,
              zero_fee_requirements: zero_fee_requirements
            }},
         else: {:error, :incorrect_hash}
-    end
-  end
-
-  defp decode_hash(hash) do
-    case Base.decode16(hash) do
-      {:ok, _decoded} = result -> result
-      :error -> {:error, {:hash_decoding_error, inspect(hash)}}
-    end
-  end
-
-  defp decode_validate_transaction(signed_tx_bytes) do
-    with {:ok, encoded_signed_tx} <- Base.decode16(signed_tx_bytes),
-         {:ok, transaction} <- OmiseGO.API.Core.recover_tx(encoded_signed_tx) do
-      {:ok, transaction}
     end
   end
 end

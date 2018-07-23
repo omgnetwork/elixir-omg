@@ -197,9 +197,7 @@ defmodule OmiseGO.API.State.Core do
   def form_block(child_block_interval, %Core{pending_txs: reverse_txs, height: height} = state) do
     txs = Enum.reverse(reverse_txs)
 
-    block =
-      txs
-      |> Block.hashed_txs_at(height)
+    block = txs |> Block.hashed_txs_at(height)
 
     event_triggers =
       txs
