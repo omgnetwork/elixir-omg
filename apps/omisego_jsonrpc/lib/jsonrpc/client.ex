@@ -30,17 +30,17 @@ defmodule OmiseGO.JSONRPC.Client do
   @spec call(atom, map, binary) :: {:error | :ok, any}
   def call(method, params, url \\ get_url()) do
     with {:ok, server_response} <- JSONRPC2.Clients.HTTP.call(url, to_string(method), encode(params)),
-         do: decode(method, server_response)
+         do: decode_payload(method, server_response)
   end
 
-  def decode(:bitstring, arg) do
+  defp decode(:bitstring, arg) do
     case Base.decode16(arg, case: :mixed) do
       :error -> {:error, :argument_decode_error}
       other -> other
     end
   end
 
-  def decode(:get_block, response_payload) do
+  defp decode_payload(:get_block, response_payload) do
     with {:ok, %{transactions: encoded_txs, hash: encoded_hash} = atomized_block} <-
            atomize(response_payload, [:hash, :transactions, :number]),
          decode_txs_result = for(tx <- encoded_txs, do: decode(:bitstring, tx)),
@@ -56,18 +56,11 @@ defmodule OmiseGO.JSONRPC.Client do
             }}
   end
 
-  def decode(:submit, response_payload) do
+  defp decode_payload(:submit, response_payload) do
     with {:ok, %{tx_hash: encoded_tx_hash} = atomized_response} <-
            atomize(response_payload, [:tx_hash, :blknum, :tx_index]),
          {:ok, decoded_tx_hash} <- decode(:bitstring, encoded_tx_hash),
          do: {:ok, %{atomized_response | tx_hash: decoded_tx_hash}}
-  end
-
-  def decode!(type, arg) do
-    case decode(type, arg) do
-      {:ok, decoded} -> decoded
-      {:error, reason} -> raise(ArgumentError, message: inspect(reason))
-    end
   end
 
   defp atomize(map, allowed_atoms) when is_map(map) do

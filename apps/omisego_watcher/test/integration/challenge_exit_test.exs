@@ -75,9 +75,9 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
 
   defp get_exit_challenge(blknum, txindex, oindex) do
     decoded_resp = Test.rest_call(:get, "challenges?utxo=#{Test.utxo_pos(blknum, txindex, oindex)}")
-    {:ok, txbytes} = Client.decode(:bitstring, decoded_resp["txbytes"])
-    {:ok, proof} = Client.decode(:bitstring, decoded_resp["proof"])
-    {:ok, sigs} = Client.decode(:bitstring, decoded_resp["sigs"])
+    {:ok, txbytes} = Base.decode16(decoded_resp["txbytes"], case: :mixed)
+    {:ok, proof} = Base.decode16(decoded_resp["proof"], case: :mixed)
+    {:ok, sigs} = Base.decode16(decoded_resp["sigs"], case: :mixed)
 
     %{
       cutxopos: decoded_resp["cutxopos"],

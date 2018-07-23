@@ -10,7 +10,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   use OmiseGOWatcherWeb, :controller
 
   def available(conn, %{"address" => address}) do
-    {:ok, address_decode} = JSONRPC.Client.decode(:bitstring, address)
+    {:ok, address_decode} = Base.decode16(address, case: :mixed)
 
     json(conn, %{
       address: address,

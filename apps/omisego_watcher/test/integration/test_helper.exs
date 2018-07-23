@@ -1,6 +1,5 @@
 defmodule OmiseGOWatcher.Integration.TestHelper do
   alias OmiseGO.Eth
-  alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.TestHelper, as: Test
 
   def deposit_to_child_chain(to, value, contract) do
@@ -24,9 +23,9 @@ defmodule OmiseGOWatcher.Integration.TestHelper do
     decoded_resp =
       Test.rest_call(:get, "account/utxo/compose_exit?block_height=#{block_height}&txindex=#{txindex}&oindex=#{oindex}")
 
-    {:ok, tx_bytes} = Client.decode(:bitstring, decoded_resp["tx_bytes"])
-    {:ok, proof} = Client.decode(:bitstring, decoded_resp["proof"])
-    {:ok, sigs} = Client.decode(:bitstring, decoded_resp["sigs"])
+    {:ok, tx_bytes} = Base.decode16(decoded_resp["tx_bytes"], case: :mixed)
+    {:ok, proof} = Base.decode16(decoded_resp["proof"], case: :mixed)
+    {:ok, sigs} = Base.decode16(decoded_resp["sigs"], case: :mixed)
 
     %{
       utxo_pos: decoded_resp["utxo_pos"],
