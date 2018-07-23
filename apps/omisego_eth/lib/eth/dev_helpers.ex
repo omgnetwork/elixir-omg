@@ -76,10 +76,10 @@ defmodule OmiseGO.Eth.DevHelpers do
 
   defp deploy_contract(addr, bytecode, types, args) do
     enc_args = encode_constructor_params(types, args)
-    txmap = %{from: addr, data: bytecode <> enc_args, gas: "0x3D0900"}
+    txmap = %{from: addr, data: bytecode <> enc_args, gas: "0x3FF2D9"}
 
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    {:ok, %{"contractAddress" => contract_address}} = WaitFor.eth_receipt(txhash, 10_000)
+    {:ok, %{"contractAddress" => contract_address, "status" => "0x1"}} = WaitFor.eth_receipt(txhash, 10_000)
     {:ok, txhash, contract_address}
   end
 
