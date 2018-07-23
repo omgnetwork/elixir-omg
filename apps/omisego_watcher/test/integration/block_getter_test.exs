@@ -32,7 +32,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     # TODO remove slpeep after synch deposit synch
     :timer.sleep(100)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
-    {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
 
     IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
 
@@ -94,7 +94,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       use JSONRPC2.Server.Handler
 
       def handle_request(_, _) do
-        %API.Block{transactions: [], number: 1} |> API.Block.merkle_hash() |> Client.encode()
+        [] |> API.Block.hashed_txs_at(1000) |> Client.encode()
       end
     end
 
@@ -121,8 +121,6 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   test "bad transaction with not existing utxo", %{contract: contract} do
     defmodule BadChildChainTransaction do
       use JSONRPC2.Server.Handler
-      alias OmiseGO.API
-      alias OmiseGO.API.State.Transaction.{Recovered, Signed}
 
       def block_with_incorrect_transaction do
         alice = %{
@@ -132,19 +130,13 @@ defmodule OmiseGOWatcher.BlockGetterTest do
               125, 164, 97, 75, 230, 92, 255, 5, 25, 96>>
         }
 
-        recovered =
-          API.TestHelper.create_recovered([{1, 0, 0, alice}], OmiseGO.API.Crypto.zero_address(), [{alice, 10}])
+        recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], API.Crypto.zero_address(), [{alice, 10}])
 
-        %API.Block{transactions: [recovered], number: 1} |> API.Block.merkle_hash()
+        API.Block.hashed_txs_at([recovered], 1000)
       end
 
       def handle_request(_, _) do
-        # we need to deep-transform the block to make it contain only signed_tx_bytes over the wire, needs cleanup
-        %API.Block{
-          transactions: [%Recovered{signed_tx: %Signed{signed_tx_bytes: signed_tx_bytes}}]
-        } = block = block_with_incorrect_transaction()
-
-        OmiseGO.JSONRPC.Client.encode(%{block | transactions: [signed_tx_bytes]})
+        Client.encode(block_with_incorrect_transaction())
       end
     end
 

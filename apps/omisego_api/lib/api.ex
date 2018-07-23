@@ -6,7 +6,7 @@ defmodule OmiseGO.API do
   (but not transport-specific encoding like hex).
   """
 
-  alias OmiseGO.API.{Block, Core, FeeChecker, FreshBlocks, State}
+  alias OmiseGO.API.{Core, FeeChecker, FreshBlocks, State}
   use OmiseGO.API.ExposeSpec
 
   @spec submit(transaction :: bitstring) ::
@@ -20,10 +20,9 @@ defmodule OmiseGO.API do
   end
 
   @spec get_block(hash :: bitstring) ::
-          {:ok, %{hash: bitstring, transactions: list}} | {:error, :not_found | :internal_error}
+          {:ok, %{hash: bitstring, transactions: list, number: integer}} | {:error, :not_found | :internal_error}
   def get_block(hash) do
-    with {:ok, %Block{hash: ^hash, transactions: transactions}} <- FreshBlocks.get(hash) do
-      {:ok, %{hash: hash, transactions: transactions |> Enum.map(& &1.signed_tx.signed_tx_bytes)}}
-    end
+    with {:ok, struct_block} <- FreshBlocks.get(hash),
+         do: {:ok, Map.from_struct(struct_block)}
   end
 end

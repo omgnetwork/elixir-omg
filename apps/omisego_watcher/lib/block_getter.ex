@@ -18,13 +18,13 @@ defmodule OmiseGOWatcher.BlockGetter do
   def get_block(number) do
     with {:ok, {hash, _time}} <- Eth.get_child_chain(number),
          {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: hash}) do
-      if {:ok, hash} == Base.decode16(json_block["hash"]),
-        do: Core.decode_validate_block(Map.put(json_block, "number", number)),
+      if hash == json_block.hash,
+        do: Core.decode_validate_block(Map.put(json_block, :number, number)),
         else: {:error, :block_hash}
     end
   end
 
-  def consume_block(%Block{transactions: transactions, number: blknum} = block) do
+  def consume_block(%{transactions: transactions, number: blknum} = block) do
     # TODO add check in UtxoDB after deposit handle correctly
     state_exec =
       for %Recovered{signed_tx: %Signed{raw_tx: %Transaction{cur12: cur12}}} = tx <- transactions,
@@ -68,7 +68,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:noreply, new_state}
   end
 
-  def handle_info({_ref, {:got_block, {:ok, %Block{number: blknum, transactions: txs, hash: hash} = block}}}, state) do
+  def handle_info({_ref, {:got_block, {:ok, %{number: blknum, transactions: txs, hash: hash} = block}}}, state) do
     {:ok, state} = Core.add_block(state, block)
     {new_state, blocks_to_consume} = Core.get_blocks_to_consume(state)
 

@@ -73,7 +73,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           started_height_block: started_height_block,
           last_consumed_block: last_consumed_block
         } = state,
-        %Block{number: number} = block
+        %{number: number} = block
       ) do
     with :ok <- if(Map.has_key?(block_to_consume, number), do: :duplicate, else: :ok),
          :ok <- if(last_consumed_block < number and number <= started_height_block, do: :ok, else: :unexpected_blok) do
@@ -112,22 +112,16 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   end
 
   @spec decode_validate_block(block :: map) ::
-          {:ok, Block.t()}
+          {:ok, map}
           | {:error, :incorrect_hash | :malformed_transaction_rlp | :malformed_transaction | :bad_signature_length}
-  def decode_validate_block(%{"hash" => hash, "transactions" => transactions, "number" => number}) do
-    with transactions <- Enum.map(transactions, &decode_validate_transaction/1),
-         nil <- Enum.find(transactions, &(!match?({:ok, _}, &1))),
-         transactions <- Enum.map(transactions, &elem(&1, 1)),
-         %Block{hash: calculated_hash} = block_with_hash <-
-           Block.merkle_hash(%Block{transactions: transactions, number: number}) do
-      if {:ok, calculated_hash} == Base.decode16(hash), do: {:ok, block_with_hash}, else: {:error, :incorrect_hash}
-    end
-  end
-
-  defp decode_validate_transaction(signed_tx_bytes) do
-    with {:ok, encoded_signed_tx} <- Base.decode16(signed_tx_bytes),
-         {:ok, transaction} <- OmiseGO.API.Core.recover_tx(encoded_signed_tx) do
-      {:ok, transaction}
+  def decode_validate_block(%{hash: hash, transactions: transactions, number: number}) do
+    with transaction_decode_results <- Enum.map(transactions, &OmiseGO.API.Core.recover_tx/1),
+         nil <- Enum.find(transaction_decode_results, &(!match?({:ok, _}, &1))),
+         transactions <- Enum.map(transaction_decode_results, &elem(&1, 1)),
+         %Block{hash: calculated_hash} = Block.hashed_txs_at(transactions, number) do
+      if calculated_hash == hash,
+        do: {:ok, %{transactions: transactions, number: number, hash: hash}},
+        else: {:error, :incorrect_hash}
     end
   end
 end
