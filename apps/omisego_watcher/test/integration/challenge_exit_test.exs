@@ -21,13 +21,13 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     # TODO remove slpeep after synch deposit synch
     :timer.sleep(100)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @zero_address, [{alice, 7}, {bob, 3}])
-    {:ok, %{"blknum" => exiting_utxo_block_nr}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: exiting_utxo_block_nr}} = Client.call(:submit, %{transaction: tx})
     block_nr = exiting_utxo_block_nr
 
     IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
 
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @zero_address, [{alice, 4}, {bob, 3}])
-    {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx2})
+    {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx2})
 
     IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
 

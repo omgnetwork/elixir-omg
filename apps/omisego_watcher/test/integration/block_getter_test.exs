@@ -32,7 +32,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     # TODO remove slpeep after synch deposit synch
     :timer.sleep(100)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
-    {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
 
     IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
 

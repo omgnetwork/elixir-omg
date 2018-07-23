@@ -18,8 +18,8 @@ defmodule OmiseGOWatcher.BlockGetter do
   def get_block(number) do
     with {:ok, {hash, _time}} <- Eth.get_child_chain(number),
          {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: hash}) do
-      if {:ok, hash} == Base.decode16(json_block["hash"]),
-        do: Core.decode_validate_block(Map.put(json_block, "number", number)),
+      if hash == json_block.hash,
+        do: Core.decode_validate_block(Map.put(json_block, :number, number)),
         else: {:error, :block_hash}
     end
   end

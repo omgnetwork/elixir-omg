@@ -6,7 +6,6 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
   alias OmiseGO.API
   alias OmiseGO.API.Block
-  alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.BlockGetter.Core
 
   @eth OmiseGO.API.Crypto.zero_address()
@@ -120,7 +119,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
         26_000
       )
 
-    assert {:ok, decoded_block} = Core.decode_validate_block(Client.encode(block))
+    assert {:ok, decoded_block} = Core.decode_validate_block(block)
 
     block_height = 25_000
     interval = 1_000
@@ -137,24 +136,23 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   @tag fixtures: [:alice]
   test "check error return by decode_block", %{alice: alice} do
     assert {:error, :incorrect_hash} ==
-             %{
-               "hash" => String.duplicate("A", 64),
-               "transactions" => [
+             %Block{
+               hash: <<"A", 256>>,
+               transactions: [
                  API.TestHelper.create_recovered(
                    [{1_000, 20, 0, alice}],
                    @eth,
                    [{alice, 100}]
                  ).signed_tx.signed_tx_bytes
                ],
-               "number" => 23
+               number: 23
              }
-             |> Client.encode()
              |> Core.decode_validate_block()
 
     assert {:error, :malformed_transaction_rlp} ==
-             %{
-               "hash" => "",
-               "transactions" => [
+             %Block{
+               hash: <<0::256>>,
+               transactions: [
                  API.TestHelper.create_recovered(
                    [{1_000, 20, 0, alice}],
                    @eth,
@@ -162,18 +160,16 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
                  ).signed_tx.signed_tx_bytes,
                  "12321231AB2331"
                ],
-               "number" => 1
+               number: 1
              }
-             |> Client.encode()
              |> Core.decode_validate_block()
 
     assert {:error, :no_inputs} ==
-             %{
-               "hash" => "",
-               "transactions" => [API.TestHelper.create_recovered([], @eth, []).signed_tx.signed_tx_bytes],
-               "number" => 1
+             %Block{
+               hash: <<0::256>>,
+               transactions: [API.TestHelper.create_recovered([], @eth, []).signed_tx.signed_tx_bytes],
+               number: 1
              }
-             |> Client.encode()
              |> Core.decode_validate_block()
   end
 end

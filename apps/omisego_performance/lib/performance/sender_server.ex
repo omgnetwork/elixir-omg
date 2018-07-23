@@ -182,12 +182,7 @@ defmodule OmiseGO.Performance.SenderServer do
   # Submits Tx to the childchain server via http (JsonRPC) and translates successful result to atom-keyed map.
   @spec submit_tx_jsonrpc(binary) :: {:ok, map} | {:error, any}
   defp submit_tx_jsonrpc(encoded_tx) do
-    with {:ok, result} <- OmiseGO.JSONRPC.Client.call(:submit, %{transaction: encoded_tx}) do
-      {:ok,
-       result
-       |> Enum.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
-       |> Map.new()}
-    end
+    OmiseGO.JSONRPC.Client.call(:submit, %{transaction: encoded_tx})
   end
 
   # Generates participant private key and address
