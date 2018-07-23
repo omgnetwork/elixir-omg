@@ -6,8 +6,6 @@ defmodule OmiseGOWatcher.BlockGetter do
   """
   use GenServer
   alias OmiseGO.API.Block
-  alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.State.Transaction.{Recovered, Signed}
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.UtxoDB
@@ -21,11 +19,9 @@ defmodule OmiseGOWatcher.BlockGetter do
          do: Core.decode_validate_block(json_block, requested_hash, requested_number)
   end
 
-  def consume_block(%{transactions: transactions, number: blknum} = block) do
+  def consume_block(%{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block) do
     # TODO add check in UtxoDB after deposit handle correctly
-    state_exec =
-      for %Recovered{signed_tx: %Signed{raw_tx: %Transaction{cur12: cur12}}} = tx <- transactions,
-          do: OmiseGO.API.State.exec(tx, %{cur12 => 0})
+    state_exec = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
 
     OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
 

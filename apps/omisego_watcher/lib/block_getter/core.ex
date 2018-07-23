@@ -2,6 +2,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   @moduledoc false
 
   alias OmiseGO.API.Block
+  alias OmiseGO.API.State.Transaction
 
   defstruct [
     :last_consumed_block,
@@ -137,8 +138,22 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       # hash the block yourself and compare
       %Block{hash: calculated_hash} = Block.hashed_txs_at(transactions, number)
 
+      zero_fee_requirements =
+        transactions
+        |> Enum.reduce(%{}, fn tx, fee_map ->
+          %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}} = tx
+          Map.put(fee_map, cur12, 0)
+        end)
+
       if calculated_hash == requested_hash,
-        do: {:ok, %{transactions: transactions, number: requested_number, hash: returned_decoded_hash}},
+        do:
+          {:ok,
+           %{
+             transactions: transactions,
+             number: requested_number,
+             hash: returned_decoded_hash,
+             zero_fee_requirements: zero_fee_requirements
+           }},
         else: {:error, :incorrect_hash}
     end
   end

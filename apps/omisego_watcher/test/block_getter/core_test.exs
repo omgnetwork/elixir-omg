@@ -114,8 +114,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "simple decode block", %{alice: alice, bob: bob, state_alice_deposit: state_alice_deposit} do
-    %Block{hash: requested_hash} =
-      block =
+    block =
       Block.hashed_txs_at(
         [
           API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
@@ -123,18 +122,45 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
         26_000
       )
 
-    assert {:ok, decoded_block} = Core.decode_validate_block(Client.encode(block), requested_hash, 26_000)
+    assert {:ok, state} = process_single_block(block)
+    assert {_, [%{transactions: [tx], zero_fee_requirements: fees}]} = Core.get_blocks_to_consume(state)
 
+    # check feasability of transactions from block to consume at the API.State
+    assert {:ok, _, _} = API.State.Core.exec(tx, fees, state_alice_deposit)
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "can decode and exec tx with different currencies, always with no fee required", %{alice: alice, bob: bob} do
+    other_currency = <<1::160>>
+
+    block =
+      Block.hashed_txs_at(
+        [
+          API.TestHelper.create_recovered([{1, 0, 0, alice}], other_currency, [{bob, 7}, {alice, 3}]),
+          API.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
+        ],
+        26_000
+      )
+
+    assert {:ok, state} = process_single_block(block)
+
+    assert {_, [%{transactions: [_tx1, _tx2], zero_fee_requirements: fees}]} = Core.get_blocks_to_consume(state)
+
+    assert fees == %{@eth => 0, other_currency => 0}
+  end
+
+  defp process_single_block(%Block{hash: requested_hash} = block) do
     block_height = 25_000
     interval = 1_000
     chunk_size = 10
 
-    {state, _} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(35_000)
-    assert {:ok, state} = Core.add_block(state, decoded_block)
-    assert {_, [%{transactions: [tx]}]} = Core.get_blocks_to_consume(state)
+    {state, _} =
+      block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(block_height + 2 * interval)
 
-    # check feasability of transactions from block to consume at the API.State
-    assert {:ok, _, _} = API.State.Core.exec(tx, %{@eth => 0}, state_alice_deposit)
+    assert {:ok, decoded_block} =
+             Core.decode_validate_block(Client.encode(block), requested_hash, block_height + interval)
+
+    Core.add_block(state, decoded_block)
   end
 
   @tag fixtures: [:alice]
