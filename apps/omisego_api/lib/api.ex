@@ -6,24 +6,45 @@ defmodule OmiseGO.API do
   (but not transport-specific encoding like hex).
   """
 
+  require Logger
+
   alias OmiseGO.API.{Block, Core, FeeChecker, FreshBlocks, State}
   use OmiseGO.API.ExposeSpec
+  import OmiseGO.API.LoggerHelpers
 
   @spec submit(transaction :: bitstring) ::
           {:ok, %{tx_hash: bitstring, blknum: integer, tx_index: integer}} | {:error, atom}
   def submit(transaction) do
-    with {:ok, recovered_tx} <- Core.recover_tx(transaction),
-         {:ok, fees} <- FeeChecker.transaction_fees(recovered_tx),
-         {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
-      {:ok, %{tx_hash: tx_hash, blknum: blknum, tx_index: tx_index}}
-    end
+    result =
+      with {:ok, recovered_tx} <- Core.recover_tx(transaction),
+           {:ok, fees} <- FeeChecker.transaction_fees(recovered_tx),
+           {:ok, tx_hash, blknum, tx_index} <- State.exec(recovered_tx, fees) do
+        {:ok, %{tx_hash: tx_hash, blknum: blknum, tx_index: tx_index}}
+      end
+
+    _ =
+      result
+      |> log_result([:tx_hash, :tx_index])
+      |> with_context(%{tx: transaction})
+      |> Logger.debug()
+
+    result
   end
 
   @spec get_block(hash :: bitstring) ::
           {:ok, %{hash: bitstring, transactions: list}} | {:error, :not_found | :internal_error}
   def get_block(hash) do
-    with {:ok, %Block{hash: ^hash, transactions: transactions}} <- FreshBlocks.get(hash) do
-      {:ok, %{hash: hash, transactions: transactions |> Enum.map(& &1.signed_tx.signed_tx_bytes)}}
-    end
+    result =
+      with {:ok, %Block{hash: ^hash, transactions: transactions}} <- FreshBlocks.get(hash) do
+        {:ok, %{hash: hash, transactions: transactions |> Enum.map(& &1.signed_tx.signed_tx_bytes)}}
+      end
+
+    _ =
+      result
+      |> log_result()
+      |> with_context(%{hash: hash})
+      |> Logger.debug()
+
+    result
   end
 end
