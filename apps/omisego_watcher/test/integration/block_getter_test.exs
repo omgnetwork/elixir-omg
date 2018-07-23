@@ -22,6 +22,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   @timeout 20_000
   @block_offset 1_000_000_000
   @eth Crypto.zero_address()
+  @eth_hex String.duplicate("00", 20)
 
   @endpoint OmiseGOWatcherWeb.Endpoint
 
@@ -43,11 +44,27 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     encode_tx = Client.encode(tx)
 
-    assert [%{"amount" => 3, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
-             get_utxo(bob)
+    assert [
+             %{
+               "currency" => @eth_hex,
+               "amount" => 3,
+               "blknum" => block_nr,
+               "oindex" => 0,
+               "txindex" => 0,
+               "txbytes" => encode_tx
+             }
+           ] == get_utxo(bob)
 
-    assert [%{"amount" => 7, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
-             get_utxo(alice)
+    assert [
+             %{
+               "currency" => @eth_hex,
+               "amount" => 7,
+               "blknum" => block_nr,
+               "oindex" => 0,
+               "txindex" => 0,
+               "txbytes" => encode_tx
+             }
+           ] == get_utxo(alice)
 
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
     {:ok, {block_hash, _}} = Eth.get_child_chain(block_nr)
