@@ -137,7 +137,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   test "check error return by decode_block", %{alice: alice} do
     assert {:error, :incorrect_hash} ==
              %Block{
-               hash: <<"A", 256>>,
+               hash: <<12::256>>,
                transactions: [
                  API.TestHelper.create_recovered(
                    [{1_000, 20, 0, alice}],
