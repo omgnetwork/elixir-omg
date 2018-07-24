@@ -48,19 +48,25 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     {:ok, {block_hash, _}} = Eth.get_child_chain(block_nr)
     %{eth_height: eth_height} = Eth.get_block_submission(block_hash)
 
-    assert_push("address_received", %Event.AddressReceived{
-      tx: ^recovered_tx,
-      child_blknum: ^block_nr,
-      child_block_hash: ^block_hash,
-      submited_at_ethheight: ^eth_height
-    })
+    address_received_event =
+      Client.encode(%Event.AddressReceived{
+        tx: recovered_tx,
+        child_blknum: block_nr,
+        child_block_hash: block_hash,
+        submited_at_ethheight: eth_height
+      })
 
-    assert_push("address_spent", %Event.AddressSpent{
-      tx: ^recovered_tx,
-      child_blknum: ^block_nr,
-      child_block_hash: ^block_hash,
-      submited_at_ethheight: ^eth_height
-    })
+    address_spent_event =
+      Client.encode(%Event.AddressSpent{
+        tx: recovered_tx,
+        child_blknum: block_nr,
+        child_block_hash: block_hash,
+        submited_at_ethheight: eth_height
+      })
+
+    assert_push("address_received", ^address_received_event)
+
+    assert_push("address_spent", ^address_spent_event)
 
     %{
       utxo_pos: utxo_pos,

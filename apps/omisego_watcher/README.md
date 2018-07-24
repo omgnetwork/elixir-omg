@@ -34,13 +34,53 @@ TODO
 TODO
 
 #### Events:
-TODO add description
 
-##### address_received
-Event informing about that particular address received funds.
- 
-##### address_spent
-Event informing about that particular address spent funds.
+##### address_received and address_spent
+address_received event informing about that particular address received funds.
+
+address_spent vent informing about that particular address spent funds.
+
+Blocks are validated by the Watcher after a short (not-easily-configurable) finality margin. By consequence, above events will be emitted no earlier than that finality margin.
+
+```json
+{
+  "topic": "address:0xfd5374cd3fe7ba8626b173a1ca1db68696ff3692",
+  "ref": null,
+  "payload": {
+    "child_blknum": 10000,
+    "child_block_hash": "DB32876CC6F26E96B9291682F3AF4A04C2AA2269747839F14F1A8C529CF90225",
+    "submited_at_ethheight": 14,
+    "tx": {
+      "signed_tx": {
+        "raw_tx": {
+          "amount1": 7,
+          "amount2": 3,
+          "blknum1": 2001,
+          "blknum2": 0,
+          "cur12": "0000000000000000000000000000000000000000",
+          "newowner1": "051902B7A7D6DCB915CE8FFD3BF46B5E0E16BB9C",
+          "newowner2": "E6E3F1307219F68AE4B271CFD493EC8F932C34D9",
+          "oindex1": 0,
+          "oindex2": 0,
+          "txindex1": 0,
+          "txindex2": 0
+        },
+        "sig1": "7B52AB0A5FBB5498B5DB7BD8D36D9940E09348BE332A5EEF4A2D17C453D0C17F47F20357E53171999DC517E6E9E2DD07F2ADB2B3EA486D7A9FF016F6526A59BE1C",
+        "sig2": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "signed_tx_bytes": "F8CF8207D1808080808094000000000000000000000000000000000000000094051902B7A7D6DCB915CE8FFD3BF46B5E0E16BB9C0794E6E3F1307219F68AE4B271CFD493EC8F932C34D903B8417B52AB0A5FBB5498B5DB7BD8D36D9940E09348BE332A5EEF4A2D17C453D0C17F47F20357E53171999DC517E6E9E2DD07F2ADB2B3EA486D7A9FF016F6526A59BE1CB8410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "signed_tx_hash": "0768DC526A093C8C058303832FF3AB45893466D731A34BCF1BF2F866586C0FE6",
+      "spender1": "051902B7A7D6DCB915CE8FFD3BF46B5E0E16BB9C",
+      "spender2": "E6E3F1307219F68AE4B271CFD493EC8F932C34D9"
+    }
+  },
+  "join_ref": null,
+  "event": "address_received"
+}
+```
+
+##### block_finalization
+Consequence of serving submited_at_ethheight in address_received and address_spent events is that this event will be never be triggered because client can wait the additional eth blocks on their own.
 
 ##### invalid_block
 Event informing about that particular block is invalid.
