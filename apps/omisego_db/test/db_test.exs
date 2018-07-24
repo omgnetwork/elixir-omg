@@ -31,6 +31,7 @@ defmodule OmiseGO.DBTest do
         :exit, _ -> :yeah_it_has_already_stopped
       end
     end)
+
     {:ok, %{dir: dir}}
   end
 
