@@ -62,9 +62,11 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def handle_info({_ref, {:got_block, {:ok, %{number: blknum, transactions: txs, hash: hash} = block}}}, state) do
-    {:ok, state} = Core.add_block(state, block)
-    {new_state, blocks_to_consume} = Core.get_blocks_to_consume(state)
+    # 1/ process the block that arrived and consume
+    {:ok, new_state, blocks_to_consume} = Core.got_block(state, block)
+    :ok = blocks_to_consume |> Enum.each(&(:ok = consume_block(&1)))
 
+    # 2/ try continuing the getting process immediately
     {:ok, next_child} = Eth.get_current_child_block()
 
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
@@ -76,10 +78,6 @@ defmodule OmiseGOWatcher.BlockGetter do
       end)
 
     :ok = run_block_get_task(blocks_numbers)
-
-    :ok =
-      blocks_to_consume
-      |> Enum.each(&(:ok = consume_block(&1)))
 
     {:noreply, new_state}
   end

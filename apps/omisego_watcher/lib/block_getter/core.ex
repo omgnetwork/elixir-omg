@@ -64,10 +64,13 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
      }, blocks_numbers}
   end
 
-  @doc " add block to \"block to consume\" and decrease number of pending block"
-  @spec add_block(%__MODULE__{}, OmiseGO.API.Block.t()) ::
-          {:ok, %__MODULE__{}} | {:error, :duplicate | :unexpected_blok}
-  def add_block(
+  @doc """
+  Add block to \"block to consume\" tick off the block from pending blocks.
+  Returns the consumable, contiguous list of ordered blocks
+  """
+  @spec got_block(%__MODULE__{}, OmiseGO.API.Block.t()) ::
+          {:ok, %__MODULE__{}, list(OmiseGO.API.Block.t())} | {:error, :duplicate | :unexpected_blok}
+  def got_block(
         %__MODULE__{
           block_to_consume: block_to_consume,
           waiting_for_blocks: waiting_for_blocks,
@@ -78,26 +81,27 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       ) do
     with :ok <- if(Map.has_key?(block_to_consume, number), do: :duplicate, else: :ok),
          :ok <- if(last_consumed_block < number and number <= started_height_block, do: :ok, else: :unexpected_blok) do
-      {:ok,
-       %{
-         state
-         | block_to_consume: Map.put(block_to_consume, number, block),
-           waiting_for_blocks: waiting_for_blocks - 1
-       }}
+      state1 = %{
+        state
+        | block_to_consume: Map.put(block_to_consume, number, block),
+          waiting_for_blocks: waiting_for_blocks - 1
+      }
+
+      {state2, list_block_to_consume} = get_blocks_to_consume(state1)
+      {:ok, state2, list_block_to_consume}
     else
       error -> {:error, error}
     end
   end
 
-  @doc " Returns a consecutive continuous list of finished blocks."
-  @spec get_blocks_to_consume(%__MODULE__{}) :: {%__MODULE__{}, list(OmiseGO.API.Block.t())}
-  def get_blocks_to_consume(
-        %__MODULE__{
-          last_consumed_block: last_consumed_block,
-          block_interval: interval,
-          block_to_consume: block_to_consume
-        } = state
-      ) do
+  # Returns a consecutive continuous list of finished blocks, that always begins with oldest unconsumed block
+  defp get_blocks_to_consume(
+         %__MODULE__{
+           last_consumed_block: last_consumed_block,
+           block_interval: interval,
+           block_to_consume: block_to_consume
+         } = state
+       ) do
     first_block_number = last_consumed_block + interval
 
     elem =
