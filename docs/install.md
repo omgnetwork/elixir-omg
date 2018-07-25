@@ -1,5 +1,6 @@
 # 1. Installation via Vagrant
-Ensure that Vagrant installed on your local machine
+## Prerequisites
+* Ensure that [Vagrant](https://www.vagrantup.com/) installed on your local machine
 
 Create a directory and the following Vagrantfile:
 ```
@@ -13,7 +14,7 @@ Vagrant.configure("2") do |config|
 end
 ```
 
-In the same directory Create a bash file name: bootstrap.sh with the contents of
+In the same directory, create a bash file named `bootstrap.sh` with the following contents
 https://gist.github.com/Pongch/b38bf178ee9f14dd31cd05fb34e96dce
 
 Run:
@@ -58,14 +59,6 @@ Only **Linux** platforms are supported now. These instructions have been tested 
 * Erlang OTP 20
 * Python '>=3.5, <4'
 * solc 0.4.24
-
-<!-- - Install [Elixir](http://elixir-lang.github.io/install.html#unix-and-unix-like).
-    **OTP 20 is required**, meaning that on Ubuntu, you should modify steps in the linked instructions:
-    `sudo apt install esl-erlang=1:20.3.6`
-
-  - Install or provide access to an Ethereum node (e.g. [geth](https://github.com/ethereum/go-ethereum/wiki/geth))
-  - If required, install the following packages:
-    `sudo apt-get install build-essential autoconf libtool libgmp3-dev` -->
 
 ## Install prerequisite packages
 ```
