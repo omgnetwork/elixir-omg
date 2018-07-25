@@ -13,7 +13,7 @@ defmodule OmiseGO.API.State do
   alias OmiseGO.Eth
   alias OmiseGOWatcher.Eventer
 
-  require Logger
+  use OmiseGO.API.LoggerExt
 
   ### Client
 

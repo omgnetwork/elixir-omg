@@ -4,7 +4,6 @@ defmodule OmiseGOWatcher.BlockGetter do
   Checking if Block from child chain is valid
   Download new block from child chain and update State, TransactionDB, UtxoDB.
   """
-  use GenServer
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.State.Transaction.{Recovered, Signed}
@@ -12,7 +11,8 @@ defmodule OmiseGOWatcher.BlockGetter do
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.UtxoDB
 
-  require Logger
+  use GenServer
+  use OmiseGO.API.LoggerExt
 
   @spec get_block(pos_integer()) :: {:ok, Block.t()}
   def get_block(number) do

@@ -1,10 +1,9 @@
 defmodule OmiseGO.PerformanceTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-
   import ExUnit.CaptureIO
 
-  require Logger
+  use OmiseGO.API.LoggerExt
 
   @moduletag :integration
 

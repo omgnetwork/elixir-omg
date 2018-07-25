@@ -13,7 +13,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
   alias OmiseGO.API.BlockQueue.Core
   alias OmiseGO.API.BlockQueue.GasPriceAdjustmentStrategyParams, as: GasPriceParams
 
-  require Logger
+  use OmiseGO.API.LoggerExt
 
   @zero_bytes32 <<0::size(256)>>
 

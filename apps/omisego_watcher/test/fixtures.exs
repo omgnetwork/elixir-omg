@@ -1,9 +1,9 @@
 defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   use ExUnitFixtures.FixtureModule
-  require Logger
 
   use OmiseGO.Eth.Fixtures
   use OmiseGO.DB.Fixtures
+  use OmiseGO.API.LoggerExt
   alias OmiseGOWatcher.TestHelper
 
   deffixture child_chain(contract) do

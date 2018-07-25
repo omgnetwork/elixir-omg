@@ -3,8 +3,8 @@ defmodule OmiseGO.Performance.BlockCreator do
   Module simulates forming new block on childchain at specified time intervals
   """
 
-  require Logger
   use GenServer
+  use OmiseGO.API.LoggerExt
 
   @initial_block_number 1000
 

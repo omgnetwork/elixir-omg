@@ -3,8 +3,8 @@ defmodule OmiseGO.Performance.SenderManager do
   Registry-kind module to manage sender processes, helps to create and start senders and waits when all are done.
   """
 
-  require Logger
   use GenServer
+  use OmiseGO.API.LoggerExt
 
   @initial_blknum 1000
 

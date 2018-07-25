@@ -6,8 +6,8 @@ defmodule OmiseGO.Performance.SenderServer do
   # Waiting time (in milliseconds) before unsuccessful Tx submission is retried.
   @tx_retry_waiting_time_ms 333
 
-  require Logger
   use GenServer
+  use OmiseGO.API.LoggerExt
 
   alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Transaction

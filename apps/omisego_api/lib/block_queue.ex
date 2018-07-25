@@ -16,8 +16,6 @@ defmodule OmiseGO.API.BlockQueue do
   alias OmiseGO.API.BlockQueue.Core, as: Core
   alias OmiseGO.Eth.BlockSubmission
 
-  require Logger
-
   @type eth_height() :: non_neg_integer()
   @type hash() :: BlockSubmission.hash()
   @type plasma_block_num() :: BlockSubmission.plasma_block_num()
@@ -42,6 +40,7 @@ defmodule OmiseGO.API.BlockQueue do
     """
 
     use GenServer
+    use OmiseGO.API.LoggerExt
 
     alias OmiseGO.API.BlockQueue
     alias OmiseGO.Eth

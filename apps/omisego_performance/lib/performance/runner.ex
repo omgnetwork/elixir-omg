@@ -3,7 +3,7 @@ defmodule OmiseGO.Performance.Runner do
   OmiseGO performance tests - orchestration and running tests
   """
 
-  require Logger
+  use OmiseGO.API.LoggerExt
 
   @doc """
   Assumes test suite setup is done earlier, before running this function.
