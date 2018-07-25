@@ -29,11 +29,11 @@ defmodule OmiseGO.API do
           {:ok, %{hash: bitstring, transactions: list, number: integer}} | {:error, :not_found | :internal_error}
   def get_block(hash) do
     with {:ok, struct_block} <- FreshBlocks.get(hash) do
-      _ = Logger.debug(fn -> " resulted successfully" end)
+      _ = Logger.debug(fn -> " resulted successfully, hash '#{inspect(hash)}'" end)
       {:ok, Map.from_struct(struct_block)}
     else
       error ->
-        _ = Logger.debug(fn -> " resulted with error #{inspect(error)}" end)
+        _ = Logger.debug(fn -> " resulted with error #{inspect(error)}, hash '#{inspect(hash)}'" end)
         error
     end
   end
