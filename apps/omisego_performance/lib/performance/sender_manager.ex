@@ -31,7 +31,7 @@ defmodule OmiseGO.Performance.SenderManager do
   @spec init({integer, integer, binary}) :: {:ok, map()}
   def init({ntx_to_send, nusers, destdir}) do
     Process.flag(:trap_exit, true)
-    _ = Logger.debug(fn -> "[SM] +++ init/1 called with #{nusers} users, each to send #{ntx_to_send} +++" end)
+    _ = Logger.debug(fn -> "init called with #{nusers} users, each to send #{ntx_to_send}" end)
 
     senders =
       1..nusers

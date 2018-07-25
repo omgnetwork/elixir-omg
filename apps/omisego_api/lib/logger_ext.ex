@@ -25,9 +25,8 @@ defmodule OmiseGO.API.LoggerExt do
       require Logger
 
       # Uncommenting following code with replace Kernel.inspect/1 function with your own implementation.
-      # Before uncommenting please ensure no changes will be committed to the main branch.
+      # Before uncommenting please ensure no changes will be committed to the main branch (e.g add fix-me).
 
-      # FIXME_remove_: Revert changes to this file!
       # import Kernel, except: [inspect: 1]
       # def inspect(term) do
       #   Kernel.inspect(term, pretty: true, width: 40, limit: :infinity)
