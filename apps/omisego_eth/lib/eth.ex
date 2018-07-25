@@ -202,10 +202,8 @@ defmodule OmiseGO.Eth do
 
   def authority(contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-
-    with {:ok, addresses} <- call_contract(contract, "authority()", [], [:address]),
-         {addr} = addresses,
-         do: {:ok, addr}
+    {:ok, {operator_address}} = call_contract(contract, "operator()", [], [:address])
+    {:ok, operator_address}
   end
 
   @doc """

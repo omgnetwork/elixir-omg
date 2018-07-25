@@ -31,3 +31,13 @@ run on
 ```
 4x version: Intel(R) Core(TM) i7-4790K CPU @ 4.00GHz
 ```
+
+## `685b5f75b283ab64b56ae5b6ac046b99692d3fbd`, 2018-07-18
+
+Command:
+
+```
+mix run --no-start -e ':observer.start(); OmiseGO.Performance.setup_and_run(8_000, 32, %{block_every_ms: 15_000})'
+```
+
+Observer tells us that peak memory usage (total) is ~600MB, oscillating around ~400MB most of the time.

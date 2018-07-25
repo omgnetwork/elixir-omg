@@ -19,14 +19,20 @@ defmodule OmiseGOWatcher.BlockGetter do
   @spec get_block(pos_integer()) :: {:ok, Block.t()}
   def get_block(number) do
     with {:ok, {hash, _time}} <- Eth.get_child_chain(number),
-         {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: hash}) do
-      if {:ok, hash} == Base.decode16(json_block["hash"]),
-        do: Core.decode_validate_block(Map.put(json_block, "number", number)),
-        else: {:error, :block_hash}
+         {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: hash}),
+         {:error , error_type } <- Core.decode_validate_block(Map.put(json_block, :number, number)) do
+      Eventer.emit_event(%Event.InvalidBlock{
+        eth_hash_block: hash,
+        child_chain_hash_block: json_block.hash,
+        transactions: json_block.transactions,
+        number: number,
+        error_type: error_type
+      })
     end
+
   end
 
-  def consume_block(%Block{transactions: transactions, number: blknum} = block) do
+  def consume_block(%{transactions: transactions, number: blknum} = block) do
     # TODO add check in UtxoDB after deposit handle correctly
     state_exec =
       for %Recovered{signed_tx: %Signed{raw_tx: %Transaction{cur12: cur12}}} = tx <- transactions,
@@ -70,7 +76,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:noreply, new_state}
   end
 
-  def handle_info({_ref, {:get_block_failure, blknum}}, state) do
+  def handle_info({_ref, {:get_block_failure, blknum, error_type}}, state) do
     with {:ok, new_state} <- Core.add_potential_block_withholding(state, blknum) do
       receive do
       after
@@ -81,8 +87,8 @@ defmodule OmiseGOWatcher.BlockGetter do
                 Core.remove_potential_block_withholding(state, blknum)
                 {:got_block_success, block}
 
-              {:error, _} ->
-                {:got_block_failure, blknum}
+              {:error, error_type} ->
+                {:get_block_failure, blknum, error_type}
             end
           end)
       end
@@ -95,7 +101,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     end
   end
 
-  def handle_info({_ref, {:got_block_success, %Block{number: blknum, transactions: txs, hash: hash} = block}}, state) do
+  def handle_info({_ref, {:got_block_success, %{number: blknum, transactions: txs, hash: hash} = block}}, state) do
     {:ok, state} = Core.add_block(state, block)
     {new_state, blocks_to_consume} = Core.get_blocks_to_consume(state)
 
@@ -132,7 +138,7 @@ defmodule OmiseGOWatcher.BlockGetter do
       &Task.async(fn ->
         case get_block(&1) do
           {:ok, block} -> {:got_block_success, block}
-          {:error, _} -> {:got_block_failure, &1}
+          {:error, _} -> {:get_block_failure, &1}
         end
       end)
     )

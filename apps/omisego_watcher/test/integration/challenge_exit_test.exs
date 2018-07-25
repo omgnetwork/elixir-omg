@@ -21,13 +21,13 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     # TODO remove slpeep after synch deposit synch
     :timer.sleep(100)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @zero_address, [{alice, 7}, {bob, 3}])
-    {:ok, %{"blknum" => exiting_utxo_block_nr}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: exiting_utxo_block_nr}} = Client.call(:submit, %{transaction: tx})
     block_nr = exiting_utxo_block_nr
 
     IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
 
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @zero_address, [{alice, 4}, {bob, 3}])
-    {:ok, %{"blknum" => block_nr}} = Client.call(:submit, %{transaction: tx2})
+    {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx2})
 
     IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
 
@@ -75,9 +75,9 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
 
   defp get_exit_challenge(blknum, txindex, oindex) do
     decoded_resp = Test.rest_call(:get, "challenges?utxo=#{Test.utxo_pos(blknum, txindex, oindex)}")
-    {:ok, txbytes} = Client.decode(:bitstring, decoded_resp["txbytes"])
-    {:ok, proof} = Client.decode(:bitstring, decoded_resp["proof"])
-    {:ok, sigs} = Client.decode(:bitstring, decoded_resp["sigs"])
+    {:ok, txbytes} = Base.decode16(decoded_resp["txbytes"], case: :mixed)
+    {:ok, proof} = Base.decode16(decoded_resp["proof"], case: :mixed)
+    {:ok, sigs} = Base.decode16(decoded_resp["sigs"], case: :mixed)
 
     %{
       cutxopos: decoded_resp["cutxopos"],

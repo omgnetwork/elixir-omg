@@ -42,23 +42,6 @@ defmodule OmiseGOWatcher.Eventer.Event do
           }
   end
 
-  defmodule AddressSpent do
-    @moduledoc """
-    Notifies about spent funds by particular address
-    """
-
-    def name, do: "address_spent"
-
-    defstruct [:tx, :child_blknum, :child_block_hash, :submited_at_ethheight]
-
-    @type t :: %AddressSpent{
-            tx: Transaction.Recovered.t(),
-            child_blknum: integer(),
-            child_block_hash: <<_::768>>,
-            submited_at_ethheight: integer()
-          }
-  end
-
   defmodule InvalidBlock do
     @moduledoc """
     Notifies about invalid block
@@ -66,9 +49,15 @@ defmodule OmiseGOWatcher.Eventer.Event do
 
     def name, do: "invalid_block"
 
-    defstruct []
+    defstruct [:eth_hash_block, :child_chain_hash_block, :transactions, :number, :error_type]
 
-    @type t :: %InvalidBlock{}
+    @type t :: %InvalidBlock{
+                 eth_hash_block: Block.block_hash_t(),
+                 child_chain_hash_block: Block.block_hash_t(),
+                 transactions: list(map()),
+                 number: integer(),
+                 error_type: atom(),
+               }
   end
 
   defmodule BlockWithHolding do
