@@ -6,8 +6,6 @@ defmodule OmiseGOWatcher.BlockGetter do
   """
   use GenServer
   alias OmiseGO.API.Block
-  alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.State.Transaction.{Recovered, Signed}
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.Eventer
@@ -17,26 +15,28 @@ defmodule OmiseGOWatcher.BlockGetter do
   require Logger
 
   @spec get_block(pos_integer()) :: {:ok, Block.t()}
-  def get_block(number) do
-    with {:ok, {hash, _time}} <- Eth.get_child_chain(number),
-         {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: hash}),
-         {:error , error_type } <- Core.decode_validate_block(Map.put(json_block, :number, number)) do
-      Eventer.emit_event(%Event.InvalidBlock{
-        eth_hash_block: hash,
-        child_chain_hash_block: json_block.hash,
-        transactions: json_block.transactions,
-        number: number,
-        error_type: error_type
-      })
+  def get_block(requested_number) do
+    with {:ok, {requested_hash, _time}} <- Eth.get_child_chain(requested_number),
+         {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: requested_hash}) do
+      case Core.decode_validate_block(json_block, requested_hash, requested_number) do
+        {:ok, map } ->
+          {:ok, map}
+          {:error , error_type } ->
+            Eventer.emit_event(%Event.InvalidBlock{
+              eth_hash_block: requested_hash,
+              child_chain_hash_block: json_block.hash,
+              transactions: json_block.transactions,
+              number: requested_number,
+              error_type: error_type
+            })
+            {:error , error_type }
+      end
     end
-
   end
 
-  def consume_block(%{transactions: transactions, number: blknum} = block) do
+  def consume_block(%{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block) do
     # TODO add check in UtxoDB after deposit handle correctly
-    state_exec =
-      for %Recovered{signed_tx: %Signed{raw_tx: %Transaction{cur12: cur12}}} = tx <- transactions,
-          do: OmiseGO.API.State.exec(tx, %{cur12 => 0})
+    state_exec = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
 
     OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
 
@@ -102,9 +102,11 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def handle_info({_ref, {:got_block_success, %{number: blknum, transactions: txs, hash: hash} = block}}, state) do
-    {:ok, state} = Core.add_block(state, block)
-    {new_state, blocks_to_consume} = Core.get_blocks_to_consume(state)
+    # 1/ process the block that arrived and consume
+    {:ok, new_state, blocks_to_consume} = Core.got_block(state, block)
+    :ok = blocks_to_consume |> Enum.each(&(:ok = consume_block(&1)))
 
+    # 2/ try continuing the getting process immediately
     {:ok, next_child} = Eth.get_current_child_block()
 
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
@@ -112,21 +114,12 @@ defmodule OmiseGOWatcher.BlockGetter do
     _ =
       Logger.info(fn ->
         "Received block \##{inspect(blknum)} #{hash |> Base.encode16() |> Binary.drop(-48)}... with #{length(txs)} txs." <>
-          " Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}"
+        " Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}"
       end)
 
     :ok = run_block_get_task(blocks_numbers)
 
-    :ok =
-      blocks_to_consume
-      |> Enum.each(&(:ok = consume_block(&1)))
-
     {:noreply, new_state}
-  end
-
-  def handle_info({_ref, {:got_block, {:error, :block_hash}}}, state) do
-    _ = Logger.error(fn -> "Received block with mismatching hash, stopping BlockGetter" end)
-    {:stop, :normal, state}
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}

@@ -19,6 +19,10 @@ defmodule OmiseGOWatcher.Eventer.Core do
     get_event_with_topic(event)
   end
 
+  defp get_event_with_topic(%Event.InvalidBlock{} = event) do
+    {@byzantine_topic, Event.InvalidBlock.name(), event}
+  end
+
   defp get_event_with_topic(%Event.BlockWithHolding{} = event) do
     {@byzantine_topic, Event.BlockWithHolding.name(), event}
   end

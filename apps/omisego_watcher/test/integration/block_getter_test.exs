@@ -13,6 +13,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   alias OmiseGOWatcher.Integration.TestHelper, as: IntegrationTest
   alias OmiseGO.JSONRPC.Client
 
+  import ExUnit.CaptureLog
+
   @moduletag :integration
 
   @timeout 20_000
@@ -93,42 +95,46 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     defmodule BadChildChainHash do
       use JSONRPC2.Server.Handler
 
+      def empty_block, do: [] |> API.Block.hashed_txs_at(1000)
+      def different_hash, do: <<0::256>>
+
       def handle_request(_, _) do
-        [] |> API.Block.hashed_txs_at(1000) |> Client.encode()
+        Client.encode(%API.Block{empty_block() | hash: different_hash()})
       end
     end
 
     JSONRPC2.Servers.HTTP.http(BadChildChainHash, port: Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port))
 
-    {:ok, _txhash} =
-      Eth.submit_block(
-        %Eth.BlockSubmission{
-          num: 1000,
-          hash: <<0::256>>,
-          nonce: 1,
-          gas_price: 20_000_000_000
-        },
-        contract.authority_addr,
-        contract.contract_addr
-      )
+    # TODO asserting correctness of logs printed out, consider checking the event too
+    assert capture_log(fn ->
+             {:ok, _txhash} =
+               Eth.submit_block(
+                 %Eth.BlockSubmission{
+                   num: 1000,
+                   hash: BadChildChainHash.different_hash(),
+                   nonce: 1,
+                   gas_price: 20_000_000_000
+                 },
+                 contract.authority_addr,
+                 contract.contract_addr
+               )
 
-    # TODO receive information about errro
-    assert_block_getter_down()
+             assert_block_getter_down()
+           end) =~ inspect({:error, :incorrect_hash})
+
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainHash)
   end
 
   @tag fixtures: [:watcher_sandbox, :contract, :geth]
-  test "bad transaction with not existing utxo", %{contract: contract} do
+  test "bad transaction with not existing utxo, detected by interactions with State", %{contract: contract} do
     defmodule BadChildChainTransaction do
       use JSONRPC2.Server.Handler
 
+      # using module attribute to have a stable alice (we can't use fixtures, because modules don't see the parent
+      @alice API.TestHelper.generate_entity()
+
       def block_with_incorrect_transaction do
-        alice = %{
-          addr: <<24, 220, 32, 219, 73, 254, 191, 110, 255, 199, 70, 131, 226, 124, 105, 88, 140, 140, 20, 83>>,
-          priv:
-            <<28, 154, 156, 164, 46, 175, 188, 174, 214, 255, 70, 155, 142, 175, 44, 193, 21, 122, 229, 84, 131, 20,
-              125, 164, 97, 75, 230, 92, 255, 5, 25, 96>>
-        }
+        alice = @alice
 
         recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], API.Crypto.zero_address(), [{alice, 10}])
 
@@ -147,20 +153,23 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     %API.Block{hash: hash} = BadChildChainTransaction.block_with_incorrect_transaction()
 
-    {:ok, _txhash} =
-      Eth.submit_block(
-        %Eth.BlockSubmission{
-          num: 1_000,
-          hash: hash,
-          nonce: 1,
-          gas_price: 20_000_000_000
-        },
-        contract.authority_addr,
-        contract.contract_addr
-      )
+    # TODO asserting correctness of logs printed out, consider checking the event too
+    assert capture_log(fn ->
+             {:ok, _txhash} =
+               Eth.submit_block(
+                 %Eth.BlockSubmission{
+                   num: 1_000,
+                   hash: hash,
+                   nonce: 1,
+                   gas_price: 20_000_000_000
+                 },
+                 contract.authority_addr,
+                 contract.contract_addr
+               )
 
-    # TODO receive information about errro
-    assert_block_getter_down()
+             assert_block_getter_down()
+           end) =~ inspect({:error, :utxo_not_found})
+
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainTransaction)
   end
 
