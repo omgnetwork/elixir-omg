@@ -52,6 +52,8 @@ mix test --no-start
 
 **NOTE**: Currently the child chain server and watcher are bundled within a single umbrella app.
 
+**TODO** hex-ify the package.
+
 Only **Linux** platforms are supported now. These instructions have been tested on a fresh Linode 2048 instance with Ubuntu 16.04.
 
 ## Prerequisites
