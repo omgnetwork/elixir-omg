@@ -19,7 +19,9 @@ defmodule OmiseGO.API.State.Core do
   @type t() :: %__MODULE__{
           height: non_neg_integer(),
           last_deposit_height: non_neg_integer(),
-          utxos: utxos
+          utxos: utxos,
+          pending_txs: list(Transaction.Recovered.t()),
+          tx_index: non_neg_integer()
         }
 
   @type deposit() :: %{
