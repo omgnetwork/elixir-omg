@@ -22,6 +22,13 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           block_to_consume: %{non_neg_integer => OmiseGO.API.Block.t()}
         }
 
+  @type block_error() ::
+          :incorrect_hash
+          | :malformed_transaction_rlp
+          | :malformed_transaction
+          | :bad_signature_length
+          | :hash_decoding_error
+
   @spec init(non_neg_integer, pos_integer, pos_integer) :: %__MODULE__{}
   def init(block_number, child_block_interval, maximum_number_of_pending_blocks \\ 10) do
     %__MODULE__{
@@ -123,12 +130,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   """
   @spec decode_validate_block(block :: map, requested_hash :: binary, requested_number :: pos_integer) ::
           {:ok, map}
-          | {:error,
-             :incorrect_hash
-             | :malformed_transaction_rlp
-             | :malformed_transaction
-             | :bad_signature_length
-             | :hash_decoding_error}
+          | {:error, block_error()}
   def decode_validate_block(
         %{hash: returned_hash, transactions: transactions, number: number},
         requested_hash,
