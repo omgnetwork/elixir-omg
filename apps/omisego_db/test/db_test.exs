@@ -24,7 +24,14 @@ defmodule OmiseGO.DBTest do
         name: TestDBServer
       )
 
-    on_exit(fn -> if Process.alive?(pid), do: :ok = GenServer.stop(TestDBServer), else: :ok end)
+    on_exit(fn ->
+      try do
+        GenServer.stop(pid)
+      catch
+        :exit, _ -> :yeah_it_has_already_stopped
+      end
+    end)
+
     {:ok, %{dir: dir}}
   end
 

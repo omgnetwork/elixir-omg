@@ -57,9 +57,6 @@ defmodule OmiseGO.DB do
       :ok = OmiseGO.DB.multi_update([{:put, :child_top_block_number, 0}])
       started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
 
-      # TODO: possible source of flakiness is omisego_db not cleaning up fast enough? find a better solution
-      Process.sleep(500)
-
       :ok
     else
       {:error, :folder_not_empty}
