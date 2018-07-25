@@ -1,6 +1,7 @@
 defmodule OmiseGOWatcher.BlockGetter.Core do
   @moduledoc false
 
+  alias OmiseGO.API
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
 
@@ -24,10 +25,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
 
   @type block_error() ::
           :incorrect_hash
-          | :malformed_transaction_rlp
-          | :malformed_transaction
-          | :bad_signature_length
-          | :hash_decoding_error
+          | :bad_returned_hash
+          | API.Core.recover_tx_error()
 
   @spec init(non_neg_integer, pos_integer, pos_integer) :: %__MODULE__{}
   def init(block_number, child_block_interval, maximum_number_of_pending_blocks \\ 10) do
@@ -136,19 +135,15 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
         requested_hash,
         requested_number
       ) do
-    with transaction_decode_results <- Enum.map(transactions, &OmiseGO.API.Core.recover_tx/1),
+    with transaction_decode_results <- Enum.map(transactions, &API.Core.recover_tx/1),
          nil <- Enum.find(transaction_decode_results, &(!match?({:ok, _}, &1))),
          transactions <- Enum.map(transaction_decode_results, &elem(&1, 1)),
          true <- returned_hash == requested_hash || {:error, :bad_returned_hash} do
       # hash the block yourself and compare
       %Block{hash: calculated_hash} = Block.hashed_txs_at(transactions, number)
 
-      zero_fee_requirements =
-        transactions
-        |> Enum.reduce(%{}, fn tx, fee_map ->
-          %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}} = tx
-          Map.put(fee_map, cur12, 0)
-        end)
+      # we as the Watcher don't care about the fees, so we fix all currencies to require 0 fee
+      zero_fee_requirements = transactions |> Enum.reduce(%{}, &zero_fee_for/2)
 
       if calculated_hash == requested_hash,
         do:
@@ -161,5 +156,10 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
            }},
         else: {:error, :incorrect_hash}
     end
+  end
+
+  # adds a new zero fee to a map of zero fee requirements
+  defp zero_fee_for(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}}, fee_map) do
+    Map.put(fee_map, cur12, 0)
   end
 end
