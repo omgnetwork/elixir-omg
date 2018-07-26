@@ -223,17 +223,17 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     assert {:ok, %{number: 2 = _overriden_number}} = Core.decode_validate_block(block, hash, 2)
   end
 
-  test "check error return by add_potential_block_withholding" do
-    block_height = 0
-    interval = 1_000
-    chunk_size = 4
-    maximum_block_withholding_time = 0
-    state = Core.init(block_height, interval, chunk_size, maximum_block_withholding_time)
-
-    {:ok, new_state} = Core.add_potential_block_withholding(state, 1)
-
-    Process.sleep(1000)
-
-    assert {:error, :block_withholding, 1} == Core.add_potential_block_withholding(new_state, 1)
-  end
+#  test "check error return by add_potential_block_withholding" do
+#    block_height = 0
+#    interval = 1_000
+#    chunk_size = 4
+#    maximum_block_withholding_time = 0
+#    state = Core.init(block_height, interval, chunk_size, maximum_block_withholding_time)
+#
+#    {:ok, new_state} = Core.add_potential_block_withholding(state, 1)
+#
+#    Process.sleep(1000)
+#
+#    assert {:error, :block_withholding, 1} == Core.add_potential_block_withholding(new_state, 1)
+#  end
 end

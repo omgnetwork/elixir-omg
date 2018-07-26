@@ -16,22 +16,25 @@ defmodule OmiseGOWatcher.BlockGetter do
 
   @spec get_block(pos_integer()) :: {:ok, Block.t()}
   def get_block(requested_number) do
-    with {:ok, {requested_hash, _time}} <- Eth.get_child_chain(requested_number),
-         {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: requested_hash}) do
-      case Core.decode_validate_block(json_block, requested_hash, requested_number) do
-        {:ok, map } ->
-          {:ok, map}
-          {:error , error_type } ->
-            Eventer.emit_event(%Event.InvalidBlock{
-              eth_hash_block: requested_hash,
-              child_chain_hash_block: json_block.hash,
-              transactions: json_block.transactions,
-              number: requested_number,
-              error_type: error_type
-            })
-            {:error , error_type }
-      end
-    end
+#    with {:ok, {requested_hash, _time}} <- Eth.get_child_chain(requested_number),
+#         {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: requested_hash}) do
+#      case Core.decode_validate_block(json_block, requested_hash, requested_number) do
+#        {:ok, map } ->
+#          {:ok, map}
+#          {:error , error_type } ->
+#            Eventer.emit_event(%Event.InvalidBlock{
+#              eth_hash_block: requested_hash,
+#              child_chain_hash_block: json_block.hash,
+#              transactions: json_block.transactions,
+#              number: requested_number,
+#              error_type: error_type
+#            })
+#            {:error , error_type }
+#      end
+#    end
+    {:ok, {requested_hash, _time}} = Eth.get_child_chain(requested_number)
+    rpc_response = OmiseGO.JSONRPC.Client.call(:get_block, %{hash: requested_hash})
+    Core.decode_validate_block(rpc_response, requested_hash, requested_number)
   end
 
   def consume_block(%{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block) do
@@ -76,34 +79,58 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:noreply, new_state}
   end
 
-  def handle_info({_ref, {:get_block_failure, blknum, error_type}}, state) do
-    with {:ok, new_state} <- Core.add_potential_block_withholding(state, blknum) do
-      receive do
-      after
-        state.potential_block_withholding_delay_time ->
-          Task.async(fn ->
-            case get_block(blknum) do
-              {:ok, block} ->
-                Core.remove_potential_block_withholding(state, blknum)
-                {:got_block_success, block}
+#  def handle_info({_ref, {:get_block_failure, blknum, error_type}}, state) do
+#    with {:ok, new_state} <- Core.add_potential_block_withholding(state, blknum) do
+#      receive do
+#      after
+#        state.potential_block_withholding_delay_time ->
+#          Task.async(fn ->
+#            case get_block(blknum) do
+#              {:ok, block} ->
+#                Core.remove_potential_block_withholding(state, blknum)
+#                {:got_block_success, block}
+#
+#              {:error, error_type} ->
+#                {:get_block_failure, blknum, error_type}
+#            end
+#          end)
+#      end
+#
+#      {:noreply, new_state}
+#    else
+#      {:error, :block_withholding, blknum} ->
+#        Eventer.emit_event(%Event.BlockWithHolding{blknum: blknum})
+#        {:stop, {:block_withholding, blknum}, state}
+#    end
+#  end
+#
+#  def handle_info({_ref, {:got_block_success, %{number: blknum, transactions: txs, hash: hash} = block}}, state) do
+#    # 1/ process the block that arrived and consume
+#    {:ok, new_state, blocks_to_consume} = Core.got_block(state, block)
+#    :ok = blocks_to_consume |> Enum.each(&(:ok = consume_block(&1)))
+#
+#    # 2/ try continuing the getting process immediately
+#    {:ok, next_child} = Eth.get_current_child_block()
+#
+#    {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
+#
+#    _ =
+#      Logger.info(fn ->
+#        "Received block \##{inspect(blknum)} #{hash |> Base.encode16() |> Binary.drop(-48)}... with #{length(txs)} txs." <>
+#        " Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}"
+#      end)
+#
+#    :ok = run_block_get_task(blocks_numbers)
+#
+#    {:noreply, new_state}
+#  end
 
-              {:error, error_type} ->
-                {:get_block_failure, blknum, error_type}
-            end
-          end)
-      end
-
-      {:noreply, new_state}
-    else
-      {:error, :block_withholding, blknum} ->
-        Eventer.emit_event(%Event.BlockWithHolding{blknum: blknum})
-        {:stop, {:block_withholding, blknum}, state}
-    end
-  end
-
-  def handle_info({_ref, {:got_block_success, %{number: blknum, transactions: txs, hash: hash} = block}}, state) do
+  def handle_info({_ref, {:got_block, {:ok, maybe_block}}}, state) do
     # 1/ process the block that arrived and consume
-    {:ok, new_state, blocks_to_consume} = Core.got_block(state, block)
+    {:ok, new_state, blocks_to_consume, event} = Core.got_block(state, maybe_block)
+
+    Eventer.emit_event(event)
+
     :ok = blocks_to_consume |> Enum.each(&(:ok = consume_block(&1)))
 
     # 2/ try continuing the getting process immediately
@@ -111,29 +138,29 @@ defmodule OmiseGOWatcher.BlockGetter do
 
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
 
-    _ =
-      Logger.info(fn ->
-        "Received block \##{inspect(blknum)} #{hash |> Base.encode16() |> Binary.drop(-48)}... with #{length(txs)} txs." <>
-        " Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}"
-      end)
+#    _ =
+#      Logger.info(fn ->
+#        "Received block \##{inspect(blknum)} #{hash |> Base.encode16() |> Binary.drop(-48)}... with #{length(txs)} txs." <>
+#        " Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}"
+#      end)
 
     :ok = run_block_get_task(blocks_numbers)
 
     {:noreply, new_state}
   end
 
+#  def handle_info({_ref, {:got_block, {:error, :block_hash}}}, state) do
+#    _ = Logger.error(fn -> "Received block with mismatching hash, stopping BlockGetter" end)
+#    {:stop, :normal, state}
+#  end
+
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
 
   defp run_block_get_task(blocks_numbers) do
     blocks_numbers
     |> Enum.each(
-      # captures the result in handle_info/2 with got_block_success atom and handle_info/3 with got_block_failure atom
-      &Task.async(fn ->
-        case get_block(&1) do
-          {:ok, block} -> {:got_block_success, block}
-          {:error, _} -> {:get_block_failure, &1}
-        end
-      end)
+      # captures the result in handle_info/2 with the atom: got_block
+      &Task.async(fn -> {:got_block, get_block(&1)} end)
     )
   end
 end

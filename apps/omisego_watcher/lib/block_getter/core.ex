@@ -4,6 +4,16 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
 
+  defmodule PotentialWithholding do
+    @moduledoc false
+
+    defstruct [:blknum]
+
+    @type t :: %__MODULE__{
+                 blknum: pos_integer
+               }
+  end
+
   defstruct [
     :last_consumed_block,
     :started_height_block,
@@ -63,6 +73,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           started_height_block: started_height_block,
           block_interval: block_interval,
           waiting_for_blocks: waiting_for_blocks,
+          potential_block_withholdings: potential_block_withholdings,
           maximum_number_of_pending_blocks: maximum_number_of_pending_blocks
         } = state,
         next_child
@@ -97,7 +108,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           block_to_consume: block_to_consume,
           waiting_for_blocks: waiting_for_blocks,
           started_height_block: started_height_block,
-          last_consumed_block: last_consumed_block
+          last_consumed_block: last_consumed_block,
+          potential_block_withholdings: potential_block_withholdings
         } = state,
         %{number: number} = block
       ) do
@@ -110,10 +122,45 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       }
 
       {state2, list_block_to_consume} = get_blocks_to_consume(state1)
-      {:ok, state2, list_block_to_consume}
+
+      state2 = %{state2 | potential_block_withholdings: Map.delete(potential_block_withholdings, number)}
+
+      {:ok, state2, list_block_to_consume, nil}
     else
       error -> {:error, error}
     end
+  end
+# ianvlid block handling
+#  def got_block(%__MODULE__{withholdings: withholdings}, %Withholding{number: number}) do
+#    # register withholding
+#    # mark block number number as "processed" so it is retried _automatically_ whenever get_new_blocks_numbers is called (no additional Task running!)
+#    # if too many withholdings return a non-empty list of event_triggers that get streamed into Eventer.notify
+#    # {:ok, state, [], either [] (all okay) or [:block_withholding_event_trigger]}
+#  end
+
+  def got_block(%__MODULE__{potential_block_withholdings: potential_block_withholdings} = state, %PotentialWithholding{blknum: blknum}) do
+
+    current_time = :os.system_time(:millisecond)
+    blknum_time = Map.get(potential_block_withholdings, blknum)
+
+    if blknum_time && current_time - blknum_time > maximum_block_withholding_time do
+      {:error, :block_withholding, blknum}
+      {:ok, state, [], %Event.BlockWithHolding{blknum: blknum}}
+
+    else
+      potential_block_withholdings = Map.put(potential_block_withholdings, blknum, current_time)
+
+      {state, list_block_to_consume} = get_blocks_to_consume(state)
+
+      state = %{state2 | potential_block_withholdings: potential_block_withholdings}
+
+      {:ok, state, list_block_to_consume, nil}
+    end
+
+    # register withholding
+    # mark block number number as "processed" so it is retried _automatically_ whenever get_new_blocks_numbers is called (no additional Task running!)
+    # if too many withholdings return a non-empty list of event_triggers that get streamed into Eventer.notify
+    # {:ok, state, [], either [] (all okay) or [:block_withholding_event_trigger]}
   end
 
   # Returns a consecutive continuous list of finished blocks, that always begins with oldest unconsumed block
@@ -143,44 +190,44 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     }
   end
 
-  @doc "add potential block withholding"
-  @spec add_potential_block_withholding(%__MODULE__{}, non_neg_integer) ::
-          {:ok, %__MODULE__{}}
-          | {
-              :error,
-              :block_withholding,
-              list(non_neg_integer)
-            }
-  def add_potential_block_withholding(
-        %__MODULE__{
-          potential_block_withholdings: potential_block_withholdings,
-          maximum_block_withholding_time: maximum_block_withholding_time
-        } = state,
-        blknum
-      ) do
-    current_time = :os.system_time(:millisecond)
-    blknum_time = Map.get(potential_block_withholdings, blknum)
-
-    if blknum_time && current_time - blknum_time > maximum_block_withholding_time do
-      {:error, :block_withholding, blknum}
-    else
-      potential_block_withholdings = Map.put(potential_block_withholdings, blknum, current_time)
-      {:ok, %{state | potential_block_withholdings: potential_block_withholdings}}
-    end
-  end
-
-  @doc "remove potential block withholding"
-  @spec remove_potential_block_withholding(%__MODULE__{}, non_neg_integer) :: {%__MODULE__{}}
-  def remove_potential_block_withholding(
-        %__MODULE__{
-          potential_block_withholdings: potential_block_withholdings
-        } = state,
-        blknum
-      ) do
-    potential_block_withholdings = Map.delete(potential_block_withholdings, blknum)
-
-    %{state | potential_block_withholdings: potential_block_withholdings}
-  end
+#  @doc "add potential block withholding"
+#  @spec add_potential_block_withholding(%__MODULE__{}, non_neg_integer) ::
+#          {:ok, %__MODULE__{}}
+#          | {
+#              :error,
+#              :block_withholding,
+#              list(non_neg_integer)
+#            }
+#  def add_potential_block_withholding(
+#        %__MODULE__{
+#          potential_block_withholdings: potential_block_withholdings,
+#          maximum_block_withholding_time: maximum_block_withholding_time
+#        } = state,
+#        blknum
+#      ) do
+#    current_time = :os.system_time(:millisecond)
+#    blknum_time = Map.get(potential_block_withholdings, blknum)
+#
+#    if blknum_time && current_time - blknum_time > maximum_block_withholding_time do
+#      {:error, :block_withholding, blknum}
+#    else
+#      potential_block_withholdings = Map.put(potential_block_withholdings, blknum, current_time)
+#      {:ok, %{state | potential_block_withholdings: potential_block_withholdings}}
+#    end
+#  end
+#
+#  @doc "remove potential block withholding"
+#  @spec remove_potential_block_withholding(%__MODULE__{}, non_neg_integer) :: {%__MODULE__{}}
+#  def remove_potential_block_withholding(
+#        %__MODULE__{
+#          potential_block_withholdings: potential_block_withholdings
+#        } = state,
+#        blknum
+#      ) do
+#    potential_block_withholdings = Map.delete(potential_block_withholdings, blknum)
+#
+#    %{state | potential_block_withholdings: potential_block_withholdings}
+#  end
 
   @doc """
   Statelessly decodes and validates a downloaded block, does all the checks before handing off to State.exec-checking
@@ -196,7 +243,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
              | :bad_signature_length
              | :hash_decoding_error}
   def decode_validate_block(
-        %{hash: returned_hash, transactions: transactions, number: number},
+        {:ok, %{hash: returned_hash, transactions: transactions, number: number}},
         requested_hash,
         requested_number
       ) do
@@ -226,4 +273,9 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
         else: {:error, :incorrect_hash}
     end
   end
+
+  def decode_validate_block({:error, _}, _requested_hash, requested_number) do
+    {:ok, %PotentialWithholding{blknum: requested_number}}
+  end
+
 end
