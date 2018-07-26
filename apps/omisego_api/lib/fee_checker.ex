@@ -7,9 +7,8 @@ defmodule OmiseGO.API.FeeChecker do
   alias OmiseGO.API.FeeChecker.Core
   alias OmiseGO.API.State.Transaction.Recovered
 
-  require Logger
-
   use GenServer
+  use OmiseGO.API.LoggerExt
 
   @file_changed_check_interval_ms 10_000
 

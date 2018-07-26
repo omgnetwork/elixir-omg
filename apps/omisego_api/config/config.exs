@@ -10,6 +10,4 @@ config :omisego_api,
   ethereum_event_max_block_range_in_deposits_query: 5,
   child_block_submit_period: 1
 
-config :logger, level: :warn
-
 import_config "#{Mix.env()}.exs"

@@ -3,6 +3,8 @@ defmodule OmiseGO.API.FreshBlocks do
   Allows for quick access to a fresh subset of blocks by keeping them in memory, independent of OmiseGO.DB.
   """
 
+  use OmiseGO.API.LoggerExt
+
   alias OmiseGO.API.Block
   alias OmiseGO.API.FreshBlocks.Core
   alias OmiseGO.DB
@@ -34,11 +36,15 @@ defmodule OmiseGO.API.FreshBlocks do
            {:ok, _} = db_result <- DB.blocks(block_hashes_to_fetch),
            do: Core.combine_getting_results(fresh_block, db_result)
 
+    _ = Logger.debug(fn -> "get block resulted with '#{inspect(result)}', block_hash '#{inspect(block_hash)}'" end)
+
     {:reply, result, state}
   end
 
   def handle_cast({:push, block}, state) do
     {:ok, new_state} = Core.push(block, state)
+    _ = Logger.debug(fn -> "new block pushed, blknum '#{block.number}', hash '#{block.hash}'" end)
+
     {:noreply, new_state}
   end
 end

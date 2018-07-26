@@ -3,8 +3,8 @@ defmodule OmiseGO.Performance.SenderManager do
   Registry-kind module to manage sender processes, helps to create and start senders and waits when all are done.
   """
 
-  require Logger
   use GenServer
+  use OmiseGO.API.LoggerExt
 
   @initial_blknum 1000
 
@@ -31,7 +31,7 @@ defmodule OmiseGO.Performance.SenderManager do
   @spec init({integer, integer, binary}) :: {:ok, map()}
   def init({ntx_to_send, nusers, destdir}) do
     Process.flag(:trap_exit, true)
-    _ = Logger.debug(fn -> "[SM] +++ init/1 called with #{nusers} users, each to send #{ntx_to_send} +++" end)
+    _ = Logger.debug(fn -> "init called with #{nusers} users, each to send #{ntx_to_send}" end)
 
     senders =
       1..nusers

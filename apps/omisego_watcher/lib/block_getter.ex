@@ -5,13 +5,13 @@ defmodule OmiseGOWatcher.BlockGetter do
   Download new block from child chain and update State, TransactionDB, UtxoDB.
   Manage simultaneous getting and stateless-processing of blocks and manage the results of that
   """
-  use GenServer
   alias OmiseGO.API.Block
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.UtxoDB
 
-  require Logger
+  use GenServer
+  use OmiseGO.API.LoggerExt
 
   @spec get_block(pos_integer()) :: {:ok, Block.t()}
   def get_block(requested_number) do

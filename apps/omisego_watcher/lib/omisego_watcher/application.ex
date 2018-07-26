@@ -4,6 +4,7 @@ defmodule OmiseGOWatcher.Application do
   for more information on OTP Applications
   """
   use Application
+  use OmiseGO.API.LoggerExt
 
   def start(_type, _args) do
     import Supervisor.Spec
@@ -52,6 +53,8 @@ defmodule OmiseGOWatcher.Application do
       # Start the endpoint when the application starts
       supervisor(OmiseGOWatcherWeb.Endpoint, [])
     ]
+
+    _ = Logger.info(fn -> "Started application OmiseGOWatcher.Application" end)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

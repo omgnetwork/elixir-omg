@@ -11,10 +11,11 @@ defmodule OmiseGO.API.BlockQueue.Core do
   alias OmiseGO.Eth.BlockSubmission
   alias OmiseGO.API.BlockQueue, as: BlockQueue
   alias OmiseGO.API.BlockQueue.Core
+  alias OmiseGO.API.BlockQueue.GasPriceAdjustmentStrategyParams, as: GasPriceParams
+
+  use OmiseGO.API.LoggerExt
 
   @zero_bytes32 <<0::size(256)>>
-
-  alias OmiseGO.API.BlockQueue.GasPriceAdjustmentStrategyParams, as: GasPriceParams
 
   defstruct [
     :blocks,
@@ -165,6 +166,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
   defp adjust_gas_price(%Core{} = state) do
     new_gas_price = calculate_gas_price(state)
+    _ = Logger.debug(fn -> "using new gas price '#{new_gas_price}'" end)
 
     state
     |> set_gas_price(new_gas_price)
@@ -253,7 +255,10 @@ defmodule OmiseGO.API.BlockQueue.Core do
       child_block_interval: block_interval
     } = state
 
-    block_nums = make_range(mined_child_block_num + block_interval, formed, block_interval)
+    first_blknum = mined_child_block_num + block_interval
+    block_nums = make_range(first_blknum, formed, block_interval)
+
+    _ = Logger.debug(fn -> "preparing blocks #{first_blknum}..#{formed} for submission" end)
 
     blocks
     |> Map.split(block_nums)
@@ -338,6 +343,14 @@ defmodule OmiseGO.API.BlockQueue.Core do
         | formed_child_block_num: state.mined_child_block_num,
           blocks: mined_submissions
       }
+
+      _ =
+        Logger.info(fn ->
+          {first, _} = mined_blocks |> hd
+          last = state.mined_child_block_num
+
+          "Block queue loaded with #{first}..#{last} already mined and #{Enum.count(fresh_blocks)} fresh blocks enqueued"
+        end)
 
       {:ok, Enum.reduce(fresh_blocks, state, fn hash, acc -> enqueue_block(acc, hash) end)}
     end
