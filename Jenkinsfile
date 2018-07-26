@@ -36,7 +36,7 @@ podTemplate(
 
         stage('Integration test') {
            withEnv(["MIX_ENV=test", "SHELL=/bin/bash"]) {
-               sh("mix test --no-start --only integration")
+               sh("mix test --no-start --only integration --only wrappers")
            }
         }
 
