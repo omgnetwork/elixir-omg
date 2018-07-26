@@ -1,7 +1,9 @@
 defmodule OmiseGOWatcher.BlockGetter.Core do
   @moduledoc false
 
+  alias OmiseGO.API
   alias OmiseGO.API.Block
+  alias OmiseGO.API.State.Transaction
 
   defstruct [
     :last_consumed_block,
@@ -20,6 +22,11 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           maximum_number_of_pending_blocks: pos_integer,
           block_to_consume: %{non_neg_integer => OmiseGO.API.Block.t()}
         }
+
+  @type block_error() ::
+          :incorrect_hash
+          | :bad_returned_hash
+          | API.Core.recover_tx_error()
 
   @spec init(non_neg_integer, pos_integer, pos_integer) :: %__MODULE__{}
   def init(block_number, child_block_interval, maximum_number_of_pending_blocks \\ 10) do
@@ -63,10 +70,13 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
      }, blocks_numbers}
   end
 
-  @doc " add block to \"block to consume\" and decrease number of pending block"
-  @spec add_block(%__MODULE__{}, OmiseGO.API.Block.t()) ::
-          {:ok, %__MODULE__{}} | {:error, :duplicate | :unexpected_blok}
-  def add_block(
+  @doc """
+  Add block to \"block to consume\" tick off the block from pending blocks.
+  Returns the consumable, contiguous list of ordered blocks
+  """
+  @spec got_block(%__MODULE__{}, OmiseGO.API.Block.t()) ::
+          {:ok, %__MODULE__{}, list(OmiseGO.API.Block.t())} | {:error, :duplicate | :unexpected_blok}
+  def got_block(
         %__MODULE__{
           block_to_consume: block_to_consume,
           waiting_for_blocks: waiting_for_blocks,
@@ -77,26 +87,27 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       ) do
     with :ok <- if(Map.has_key?(block_to_consume, number), do: :duplicate, else: :ok),
          :ok <- if(last_consumed_block < number and number <= started_height_block, do: :ok, else: :unexpected_blok) do
-      {:ok,
-       %{
-         state
-         | block_to_consume: Map.put(block_to_consume, number, block),
-           waiting_for_blocks: waiting_for_blocks - 1
-       }}
+      state1 = %{
+        state
+        | block_to_consume: Map.put(block_to_consume, number, block),
+          waiting_for_blocks: waiting_for_blocks - 1
+      }
+
+      {state2, list_block_to_consume} = get_blocks_to_consume(state1)
+      {:ok, state2, list_block_to_consume}
     else
       error -> {:error, error}
     end
   end
 
-  @doc " Returns a consecutive continuous list of finished blocks."
-  @spec get_blocks_to_consume(%__MODULE__{}) :: {%__MODULE__{}, list(OmiseGO.API.Block.t())}
-  def get_blocks_to_consume(
-        %__MODULE__{
-          last_consumed_block: last_consumed_block,
-          block_interval: interval,
-          block_to_consume: block_to_consume
-        } = state
-      ) do
+  # Returns a consecutive continuous list of finished blocks, that always begins with oldest unconsumed block
+  defp get_blocks_to_consume(
+         %__MODULE__{
+           last_consumed_block: last_consumed_block,
+           block_interval: interval,
+           block_to_consume: block_to_consume
+         } = state
+       ) do
     first_block_number = last_consumed_block + interval
 
     elem =
@@ -111,17 +122,44 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
      list_block_to_consume}
   end
 
-  @spec decode_validate_block(block :: map) ::
+  @doc """
+  Statelessly decodes and validates a downloaded block, does all the checks before handing off to State.exec-checking
+  requested_hash is given to compare to always have a consistent data structure coming out
+  requested_number is given to _override_ since we're getting by hash, we can have empty blocks with same hashes!
+  """
+  @spec decode_validate_block(block :: map, requested_hash :: binary, requested_number :: pos_integer) ::
           {:ok, map}
-          | {:error, :incorrect_hash | :malformed_transaction_rlp | :malformed_transaction | :bad_signature_length}
-  def decode_validate_block(%{hash: hash, transactions: transactions, number: number}) do
-    with transaction_decode_results <- Enum.map(transactions, &OmiseGO.API.Core.recover_tx/1),
+          | {:error, block_error()}
+  def decode_validate_block(
+        %{hash: returned_hash, transactions: transactions, number: number},
+        requested_hash,
+        requested_number
+      ) do
+    with transaction_decode_results <- Enum.map(transactions, &API.Core.recover_tx/1),
          nil <- Enum.find(transaction_decode_results, &(!match?({:ok, _}, &1))),
          transactions <- Enum.map(transaction_decode_results, &elem(&1, 1)),
-         %Block{hash: calculated_hash} = Block.hashed_txs_at(transactions, number) do
-      if calculated_hash == hash,
-        do: {:ok, %{transactions: transactions, number: number, hash: hash}},
+         true <- returned_hash == requested_hash || {:error, :bad_returned_hash} do
+      # hash the block yourself and compare
+      %Block{hash: calculated_hash} = Block.hashed_txs_at(transactions, number)
+
+      # we as the Watcher don't care about the fees, so we fix all currencies to require 0 fee
+      zero_fee_requirements = transactions |> Enum.reduce(%{}, &zero_fee_for/2)
+
+      if calculated_hash == requested_hash,
+        do:
+          {:ok,
+           %{
+             transactions: transactions,
+             number: requested_number,
+             hash: returned_hash,
+             zero_fee_requirements: zero_fee_requirements
+           }},
         else: {:error, :incorrect_hash}
     end
+  end
+
+  # adds a new zero fee to a map of zero fee requirements
+  defp zero_fee_for(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}}, fee_map) do
+    Map.put(fee_map, cur12, 0)
   end
 end

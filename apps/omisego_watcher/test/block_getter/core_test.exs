@@ -6,12 +6,13 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
   alias OmiseGO.API
   alias OmiseGO.API.Block
+  alias OmiseGO.API.Crypto
   alias OmiseGOWatcher.BlockGetter.Core
 
-  @eth OmiseGO.API.Crypto.zero_address()
+  @eth Crypto.zero_address()
 
-  defp add_block(state, block) do
-    assert {:ok, new_state} = Core.add_block(state, block)
+  defp got_block(state, block) do
+    assert {:ok, new_state, _} = Core.got_block(state, block)
     new_state
   end
 
@@ -26,8 +27,8 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     state_after_proces_down =
       state_after_chunk
-      |> add_block(%Block{number: 4_000})
-      |> add_block(%Block{number: 2_000})
+      |> got_block(%Block{number: 4_000})
+      |> got_block(%Block{number: 2_000})
 
     assert {_, [5_000, 6_000]} = Core.get_new_blocks_numbers(state_after_proces_down, 20_000)
   end
@@ -42,32 +43,34 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
       |> Core.init(interval, chunk_size)
       |> Core.get_new_blocks_numbers(7_000)
       |> elem(0)
-      |> add_block(%Block{number: 2_000})
-      |> add_block(%Block{number: 3_000})
-      |> add_block(%Block{number: 6_000})
-      |> add_block(%Block{number: 5_000})
+      |> got_block(%Block{number: 2_000})
+      |> got_block(%Block{number: 3_000})
+      |> got_block(%Block{number: 6_000})
 
-    assert {_, []} = Core.get_blocks_to_consume(state)
+    assert {:ok, state1, []} = Core.got_block(state, %Block{number: 5_000})
 
-    assert {new_state, [%Block{number: 1_000}, %Block{number: 2_000}, %Block{number: 3_000}]} =
-             state |> add_block(%Block{number: 1_000}) |> Core.get_blocks_to_consume()
+    assert {:ok, state2, [%Block{number: 1_000}, %Block{number: 2_000}, %Block{number: 3_000}]} =
+             state1 |> Core.got_block(%Block{number: 1_000})
 
-    assert {_, [%Block{number: 4_000}, %Block{number: 5_000}, %Block{number: 6_000}]} =
-             new_state |> add_block(%Block{number: 4_000}) |> Core.get_blocks_to_consume()
+    assert {:ok, _, [%Block{number: 4_000}, %Block{number: 5_000}, %Block{number: 6_000}]} =
+             state2 |> Core.got_block(%Block{number: 4_000})
+  end
 
-    assert {_,
-            [
-              %Block{number: 1_000},
-              %Block{number: 2_000},
-              %Block{number: 3_000},
-              %Block{number: 4_000},
-              %Block{number: 5_000},
-              %Block{number: 6_000}
-            ]} =
-             state
-             |> add_block(%Block{number: 1_000})
-             |> add_block(%Block{number: 4_000})
-             |> Core.get_blocks_to_consume()
+  test "getting blocks to consume out of order" do
+    block_height = 0
+    interval = 1_000
+    chunk_size = 6
+
+    assert {:ok, state, []} =
+             block_height
+             |> Core.init(interval, chunk_size)
+             |> Core.get_new_blocks_numbers(7_000)
+             |> elem(0)
+             |> got_block(%Block{number: 3_000})
+             |> Core.got_block(%Block{number: 2_000})
+
+    assert {:ok, _, [%Block{number: 1_000}, %Block{number: 2_000}, %Block{number: 3_000}]} =
+             state |> Core.got_block(%Block{number: 1_000})
   end
 
   test "start block height is not zero" do
@@ -77,11 +80,10 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     state = Core.init(block_height, interval, chunk_size)
     assert {state, [7_100, 7_200, 7_300, 7_400]} = Core.get_new_blocks_numbers(state, 20_000)
 
-    assert {_, [%Block{number: 7_100}, %Block{number: 7_200}]} =
+    assert {:ok, _, [%Block{number: 7_100}, %Block{number: 7_200}]} =
              state
-             |> add_block(%Block{number: 7_100})
-             |> add_block(%Block{number: 7_200})
-             |> Core.get_blocks_to_consume()
+             |> got_block(%Block{number: 7_200})
+             |> Core.got_block(%Block{number: 7_100})
   end
 
   test "next_child increases or decrease in calls to get_new_blocks_numbers" do
@@ -98,15 +100,15 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     assert {_, [4_000, 5_000]} = Core.get_new_blocks_numbers(state, 8_000)
   end
 
-  test "check error return by add_block" do
+  test "check error return by got_block" do
     block_height = 0
     interval = 1_000
     chunk_size = 5
 
-    {state, [1_000]} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(2_000)
+    {state, [1_000, 2_000]} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(3_000)
 
-    assert {:error, :duplicate} = state |> add_block(%Block{number: 1_000}) |> Core.add_block(%Block{number: 1_000})
-    assert {:error, :unexpected_blok} = state |> Core.add_block(%Block{number: 2_000})
+    assert {:error, :duplicate} = state |> got_block(%Block{number: 2_000}) |> Core.got_block(%Block{number: 2_000})
+    assert {:error, :unexpected_blok} = state |> Core.got_block(%Block{number: 3_000})
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -119,57 +121,95 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
         26_000
       )
 
-    assert {:ok, decoded_block} = Core.decode_validate_block(block)
+    assert {:ok, _, [%{transactions: [tx], zero_fee_requirements: fees}]} = process_single_block(block)
 
+    # check feasability of transactions from block to consume at the API.State
+    assert {:ok, _, _} = API.State.Core.exec(tx, fees, state_alice_deposit)
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "can decode and exec tx with different currencies, always with no fee required", %{alice: alice, bob: bob} do
+    other_currency = <<1::160>>
+
+    block =
+      Block.hashed_txs_at(
+        [
+          API.TestHelper.create_recovered([{1, 0, 0, alice}], other_currency, [{bob, 7}, {alice, 3}]),
+          API.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
+        ],
+        26_000
+      )
+
+    assert {:ok, _, [%{transactions: [_tx1, _tx2], zero_fee_requirements: fees}]} = process_single_block(block)
+
+    assert fees == %{@eth => 0, other_currency => 0}
+  end
+
+  defp process_single_block(%Block{hash: requested_hash} = block) do
     block_height = 25_000
     interval = 1_000
     chunk_size = 10
 
-    {state, _} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(35_000)
-    assert {:ok, state} = Core.add_block(state, decoded_block)
-    assert {_, [%{transactions: [tx]}]} = Core.get_blocks_to_consume(state)
+    {state, _} =
+      block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(block_height + 2 * interval)
 
-    # check feasability of transactions from block to consume at the API.State
-    assert {:ok, _, _} = API.State.Core.exec(tx, %{@eth => 0}, state_alice_deposit)
+    assert {:ok, decoded_block} = Core.decode_validate_block(block, requested_hash, block_height + interval)
+
+    Core.got_block(state, decoded_block)
   end
 
   @tag fixtures: [:alice]
-  test "check error return by decode_block", %{alice: alice} do
-    assert {:error, :incorrect_hash} ==
-             %Block{
-               hash: <<12::256>>,
-               transactions: [
-                 API.TestHelper.create_recovered(
-                   [{1_000, 20, 0, alice}],
-                   @eth,
-                   [{alice, 100}]
-                 ).signed_tx.signed_tx_bytes
-               ],
-               number: 23
-             }
-             |> Core.decode_validate_block()
+  test "check error return by decode_block, incorrect_hash", %{alice: alice} do
+    matching_bad_returned_hash = <<12::256>>
 
-    assert {:error, :malformed_transaction_rlp} ==
-             %Block{
-               hash: <<0::256>>,
-               transactions: [
-                 API.TestHelper.create_recovered(
-                   [{1_000, 20, 0, alice}],
-                   @eth,
-                   [{alice, 100}]
-                 ).signed_tx.signed_tx_bytes,
-                 "12321231AB2331"
-               ],
-               number: 1
-             }
-             |> Core.decode_validate_block()
+    block = %Block{
+      Block.hashed_txs_at(
+        [
+          API.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}])
+        ],
+        1
+      )
+      | hash: matching_bad_returned_hash
+    }
 
-    assert {:error, :no_inputs} ==
-             %Block{
-               hash: <<0::256>>,
-               transactions: [API.TestHelper.create_recovered([], @eth, []).signed_tx.signed_tx_bytes],
-               number: 1
-             }
-             |> Core.decode_validate_block()
+    assert {:error, :incorrect_hash} == Core.decode_validate_block(block, matching_bad_returned_hash, 1)
+  end
+
+  @tag fixtures: [:alice]
+  test "check error return by decode_block, one of API.Core.recover_tx checks",
+       %{alice: alice} do
+    # NOTE: this test only test if API.Core.recover_tx-specific checks are run and errors returned
+    #       the more extensive testing of such checks is done in API.CoreTest where it belongs
+
+    %Block{hash: hash} =
+      block =
+      Block.hashed_txs_at(
+        [
+          API.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}]),
+          API.TestHelper.create_recovered([], @eth, [{alice, 100}])
+        ],
+        1
+      )
+
+    # a particular API.Core.recover_tx_error instance
+    assert {:error, :no_inputs} == Core.decode_validate_block(block, hash, 1)
+  end
+
+  test "check error return by decode_block, hash mismatch checks" do
+    block = Block.hashed_txs_at([], 1)
+
+    assert {:error, :bad_returned_hash} == Core.decode_validate_block(block, <<12::256>>, 1)
+  end
+
+  test "check error return by decode_block, API.Core.recover_tx checks" do
+    %Block{hash: hash} = block = Block.hashed_txs_at([API.TestHelper.create_recovered([], @eth, [])], 1)
+
+    assert {:error, :no_inputs} == Core.decode_validate_block(block, hash, 1)
+  end
+
+  test "the blknum is overriden by the requested one" do
+    %Block{hash: hash} = block = Block.hashed_txs_at([], 1)
+
+    assert {:ok, %{number: 2 = _overriden_number}} = Core.decode_validate_block(block, hash, 2)
   end
 end

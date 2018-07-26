@@ -6,6 +6,16 @@ defmodule OmiseGO.API.Core do
 
   @empty_signature <<0::size(520)>>
 
+  @type recover_tx_error() ::
+          :bad_signature_length
+          | :duplicate_inputs
+          | :input_missing_for_signature
+          | :malformed_transaction
+          | :malformed_transaction_rlp
+          | :no_inputs
+          | :signature_corrupt
+          | :signature_missing_for_input
+
   @doc """
   Transforms an RLP-encoded child chain transaction (binary) into a:
     - decoded
@@ -15,15 +25,7 @@ defmodule OmiseGO.API.Core do
   """
   @spec recover_tx(binary) ::
           Transaction.Recovered.t()
-          | {:error,
-             :bad_signature_length
-             | :duplicate_inputs
-             | :input_missing_for_signature
-             | :malformed_transaction
-             | :malformed_transaction_rlp
-             | :no_inputs
-             | :signature_corrupt
-             | :signature_missing_for_input}
+          | {:error, recover_tx_error()}
   def recover_tx(encoded_signed_tx) do
     with {:ok, signed_tx} <- Transaction.Signed.decode(encoded_signed_tx),
          :ok <- valid?(signed_tx),
