@@ -6,8 +6,8 @@ defmodule OmiseGO.Performance.SenderServer do
   # Waiting time (in milliseconds) before unsuccessful Tx submission is retried.
   @tx_retry_waiting_time_ms 333
 
-  require Logger
   use GenServer
+  use OmiseGO.API.LoggerExt
 
   alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Transaction
@@ -57,7 +57,7 @@ defmodule OmiseGO.Performance.SenderServer do
   """
   @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, state()}
   def init({seqnum, ntx_to_send}) do
-    _ = Logger.debug(fn -> "[#{seqnum}] +++ init/1 called with requests: '#{ntx_to_send}' +++" end)
+    _ = Logger.debug(fn -> "[#{seqnum}] init called with requests: '#{ntx_to_send}'" end)
 
     spender = generate_entity()
     _ = Logger.debug(fn -> "[#{seqnum}]: Address #{Base.encode64(spender.addr)}" end)
@@ -82,7 +82,7 @@ defmodule OmiseGO.Performance.SenderServer do
         :do,
         %__MODULE__{ntx_to_send: 0, seqnum: seqnum, last_tx: %LastTx{blknum: blknum, txindex: txindex}} = state
       ) do
-    _ = Logger.info(fn -> "[#{seqnum}] +++ Stoping... +++" end)
+    _ = Logger.info(fn -> "[#{seqnum}] Stoping..." end)
 
     OmiseGO.Performance.SenderManager.sender_stats(%{seqnum: seqnum, blknum: blknum, txindex: txindex})
     {:stop, :normal, state}

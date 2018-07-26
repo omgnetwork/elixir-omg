@@ -7,6 +7,7 @@ defmodule OmiseGO.API.EthereumEventListener do
 
   alias OmiseGO.API.EthereumEventListener.Core
   alias OmiseGO.Eth
+  use OmiseGO.API.LoggerExt
 
   ### Client
 
@@ -30,6 +31,8 @@ defmodule OmiseGO.API.EthereumEventListener do
     {:ok, parent_start} = Eth.get_root_deployment_height()
     schedule_get_events(0)
 
+    _ = Logger.info(fn -> "Starting EthereumEventListener" end)
+
     {:ok,
      %Core{
        last_event_block: parent_start,
@@ -48,11 +51,13 @@ defmodule OmiseGO.API.EthereumEventListener do
            Core.get_events_block_range(state, eth_block_height) do
       {:ok, events} = state.get_ethereum_events_callback.(eth_block_from, eth_block_to)
       :ok = state.process_events_callback.(events)
+      _ = Logger.debug(fn -> "get_events called successfully with '#{Enum.count(events)}' events processed." end)
 
       schedule_get_events(next_get_events_interval)
       {:noreply, new_state}
     else
       {:no_blocks_with_event, state, next_get_events_interval} ->
+        _ = Logger.debug(fn -> "get_events - no blocks with event" end)
         schedule_get_events(next_get_events_interval)
         {:noreply, state}
     end

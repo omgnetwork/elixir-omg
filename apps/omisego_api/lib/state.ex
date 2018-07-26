@@ -13,7 +13,7 @@ defmodule OmiseGO.API.State do
   alias OmiseGO.Eth
   alias OmiseGOWatcher.Eventer
 
-  require Logger
+  use OmiseGO.API.LoggerExt
 
   ### Client
 
@@ -36,7 +36,7 @@ defmodule OmiseGO.API.State do
     GenServer.cast(__MODULE__, {:close_block, child_block_interval})
   end
 
-  @spec deposit(deposits :: [Core.deposit()]) :: {:ok, Core.side_effects()}
+  @spec deposit(deposits :: [Core.deposit()]) :: :ok
   def deposit(deposits_enc) do
     deposits = Enum.map(deposits_enc, &Core.decode_deposit/1)
     GenServer.call(__MODULE__, {:deposits, deposits})
@@ -71,6 +71,11 @@ defmodule OmiseGO.API.State do
     {:ok, height_query_result} = DB.child_top_block_number()
     {:ok, last_deposit_query_result} = DB.last_deposit_height()
     {:ok, utxos_query_result} = DB.utxos()
+
+    _ =
+      Logger.info(fn ->
+        "Started State, height '#{height_query_result}', deposit height '#{last_deposit_query_result}'"
+      end)
 
     Core.extract_initial_state(
       utxos_query_result,
@@ -138,12 +143,14 @@ defmodule OmiseGO.API.State do
   end
 
   @doc """
-    Wraps up accumulated transactions submissionsinto a block, triggers db update and emits
+    Wraps up accumulated transactions submissions into a block, triggers db update and emits
     events to Eventer
   """
   def handle_cast({:close_block, child_block_interval}, state) do
-    {:ok, {%Block{hash: block_hash}, event_triggers, db_updates}, new_state} =
-      Core.form_block(child_block_interval, state)
+    {duration, {:ok, {%Block{hash: block_hash}, event_triggers, db_updates}, new_state}} =
+      :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
+
+    _ = Logger.info(fn -> "Done closing block in #{round(duration / 1000)} ms" end)
 
     :ok = DB.multi_update(db_updates)
 
@@ -192,6 +199,15 @@ defmodule OmiseGO.API.State do
 
   defp do_exit_utxos(utxos, state) do
     {:ok, {_event_triggers, db_updates}, new_state} = Core.exit_utxos(utxos, state)
+
+    _ =
+      Logger.debug(fn ->
+        utxos =
+          db_updates
+          |> Enum.map(fn {:delete, :utxo, utxo} -> "#{inspect(utxo)}" end)
+
+        "UTXOS: " <> Enum.join(utxos, ", ")
+      end)
 
     # GenServer.call
     :ok = DB.multi_update(db_updates)

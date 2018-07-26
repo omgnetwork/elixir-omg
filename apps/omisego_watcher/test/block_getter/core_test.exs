@@ -7,7 +7,6 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   alias OmiseGO.API
   alias OmiseGO.API.Block
   alias OmiseGO.API.Crypto
-  alias OmiseGO.API.State.Transaction
   alias OmiseGOWatcher.BlockGetter.Core
 
   @eth Crypto.zero_address()
@@ -166,11 +165,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     block = %Block{
       Block.hashed_txs_at(
         [
-          API.TestHelper.create_recovered(
-            [{1_000, 20, 0, alice}],
-            @eth,
-            [{alice, 100}]
-          )
+          API.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}])
         ],
         1
       )
@@ -181,28 +176,23 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   end
 
   @tag fixtures: [:alice]
-  test "check error return by decode_block, rlp decoding checks", %{alice: alice} do
-    badly_rlped = "12321231AB2331"
+  test "check error return by decode_block, one of API.Core.recover_tx checks",
+       %{alice: alice} do
+    # NOTE: this test only test if API.Core.recover_tx-specific checks are run and errors returned
+    #       the more extensive testing of such checks is done in API.CoreTest where it belongs
 
     %Block{hash: hash} =
       block =
       Block.hashed_txs_at(
         [
-          API.TestHelper.create_recovered(
-            [{1_000, 20, 0, alice}],
-            @eth,
-            [{alice, 100}]
-          ),
-          # NOTE: need to use internals b/c need a malformed tx
-          %Transaction.Recovered{
-            signed_tx: %Transaction.Signed{signed_tx_bytes: badly_rlped},
-            signed_tx_hash: Crypto.hash(badly_rlped)
-          }
+          API.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}]),
+          API.TestHelper.create_recovered([], @eth, [{alice, 100}])
         ],
         1
       )
 
-    assert {:error, :malformed_transaction_rlp} == Core.decode_validate_block(block, hash, 1)
+    # a particular API.Core.recover_tx_error instance
+    assert {:error, :no_inputs} == Core.decode_validate_block(block, hash, 1)
   end
 
   test "check error return by decode_block, hash mismatch checks" do

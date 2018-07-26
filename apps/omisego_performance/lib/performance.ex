@@ -21,7 +21,7 @@ defmodule OmiseGO.Performance do
   }
   """
 
-  require Logger
+  use OmiseGO.API.LoggerExt
   import Supervisor.Spec
 
   @doc """

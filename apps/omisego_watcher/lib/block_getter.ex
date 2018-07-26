@@ -3,8 +3,8 @@ defmodule OmiseGOWatcher.BlockGetter do
   Checking if there are new block from child chain on ethereum.
   Checking if Block from child chain is valid
   Download new block from child chain and update State, TransactionDB, UtxoDB.
+  Manage simultaneous getting and stateless-processing of blocks and manage the results of that
   """
-  use GenServer
   alias OmiseGO.API.Block
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
@@ -12,7 +12,8 @@ defmodule OmiseGOWatcher.BlockGetter do
   alias OmiseGOWatcher.Eventer.Event
   alias OmiseGOWatcher.UtxoDB
 
-  require Logger
+  use GenServer
+  use OmiseGO.API.LoggerExt
 
   @spec get_block(pos_integer()) :: {:ok, Block.t()}
   def get_block(requested_number) do
@@ -67,6 +68,15 @@ defmodule OmiseGOWatcher.BlockGetter do
   def handle_call(:get_height, _from, state) do
     {:reply, state.last_consumed_block, state}
   end
+
+  @spec handle_info(
+          :producer
+          | {reference(), {:got_block, {:ok, map}}}
+          | {reference(), {:got_block, {:error, Core.block_error()}}}
+          | {:DOWN, reference(), :process, pid, :normal},
+          Core.t()
+        ) :: {:noreply, Core.t()} | {:stop, :normal, Core.t()}
+  def handle_info(msg, state)
 
   def handle_info(:producer, state) do
     {:ok, next_child} = Eth.get_current_child_block()
@@ -149,10 +159,10 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:noreply, new_state}
   end
 
-#  def handle_info({_ref, {:got_block, {:error, :block_hash}}}, state) do
-#    _ = Logger.error(fn -> "Received block with mismatching hash, stopping BlockGetter" end)
-#    {:stop, :normal, state}
-#  end
+  def handle_info({_ref, {:got_block, {:error, _other_reason} = error}}, state) do
+    _ = Logger.error(fn -> "Problem receiveing block: #{inspect(error)}  stopping BlockGetter" end)
+    {:stop, :normal, state}
+  end
 
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
 

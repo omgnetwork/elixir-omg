@@ -1,8 +1,10 @@
 defmodule OmiseGOWatcher.BlockGetter.Core do
   @moduledoc false
 
+  alias OmiseGO.API
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
+  alias OmiseGOWatcher.Eventer.Event
 
   defmodule PotentialWithholding do
     @moduledoc false
@@ -10,8 +12,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     defstruct [:blknum]
 
     @type t :: %__MODULE__{
-                 blknum: pos_integer
-               }
+            blknum: pos_integer
+          }
   end
 
   defstruct [
@@ -41,6 +43,11 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           maximum_block_withholding_time: pos_integer,
           potential_block_withholding_delay_time: pos_integer
         }
+
+  @type block_error() ::
+          :incorrect_hash
+          | :bad_returned_hash
+          | API.Core.recover_tx_error()
 
   @spec init(non_neg_integer, pos_integer, pos_integer) :: %__MODULE__{}
   def init(
@@ -79,13 +86,16 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
         next_child
       ) do
     first_block_number = started_height_block + block_interval
-    empty_slot = maximum_number_of_pending_blocks - waiting_for_blocks
+    number_of_empty_slots = maximum_number_of_pending_blocks - waiting_for_blocks - length(potential_block_withholdings)
 
     blocks_numbers =
-      first_block_number
-      |> Stream.iterate(&(&1 + block_interval))
-      |> Stream.take_while(&(&1 < next_child))
-      |> Enum.take(empty_slot)
+      (
+        Map.keys(potential_block_withholdings) ++
+        first_block_number
+        |> Stream.iterate(&(&1 + block_interval))
+        |> Stream.take_while(&(&1 < next_child))
+        )
+        |> Enum.take(number_of_empty_slots)
 
     {
       %{
@@ -130,29 +140,34 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       error -> {:error, error}
     end
   end
-# ianvlid block handling
-#  def got_block(%__MODULE__{withholdings: withholdings}, %Withholding{number: number}) do
-#    # register withholding
-#    # mark block number number as "processed" so it is retried _automatically_ whenever get_new_blocks_numbers is called (no additional Task running!)
-#    # if too many withholdings return a non-empty list of event_triggers that get streamed into Eventer.notify
-#    # {:ok, state, [], either [] (all okay) or [:block_withholding_event_trigger]}
-#  end
 
-  def got_block(%__MODULE__{potential_block_withholdings: potential_block_withholdings} = state, %PotentialWithholding{blknum: blknum}) do
+  # ianvlid block handling
+  #  def got_block(%__MODULE__{withholdings: withholdings}, %Withholding{number: number}) do
+  #    # register withholding
+  #    # mark block number number as "processed" so it is retried _automatically_ whenever get_new_blocks_numbers is called (no additional Task running!)
+  #    # if too many withholdings return a non-empty list of event_triggers that get streamed into Eventer.notify
+  #    # {:ok, state, [], either [] (all okay) or [:block_withholding_event_trigger]}
+  #  end
 
+  def got_block(
+        %__MODULE__{
+          potential_block_withholdings: potential_block_withholdings,
+          maximum_block_withholding_time: maximum_block_withholding_time
+        } = state,
+        %PotentialWithholding{blknum: blknum}
+      ) do
     current_time = :os.system_time(:millisecond)
     blknum_time = Map.get(potential_block_withholdings, blknum)
 
     if blknum_time && current_time - blknum_time > maximum_block_withholding_time do
       {:error, :block_withholding, blknum}
       {:ok, state, [], %Event.BlockWithHolding{blknum: blknum}}
-
     else
       potential_block_withholdings = Map.put(potential_block_withholdings, blknum, current_time)
 
       {state, list_block_to_consume} = get_blocks_to_consume(state)
 
-      state = %{state2 | potential_block_withholdings: potential_block_withholdings}
+      state = %{state | potential_block_withholdings: potential_block_withholdings}
 
       {:ok, state, list_block_to_consume, nil}
     end
@@ -190,44 +205,44 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     }
   end
 
-#  @doc "add potential block withholding"
-#  @spec add_potential_block_withholding(%__MODULE__{}, non_neg_integer) ::
-#          {:ok, %__MODULE__{}}
-#          | {
-#              :error,
-#              :block_withholding,
-#              list(non_neg_integer)
-#            }
-#  def add_potential_block_withholding(
-#        %__MODULE__{
-#          potential_block_withholdings: potential_block_withholdings,
-#          maximum_block_withholding_time: maximum_block_withholding_time
-#        } = state,
-#        blknum
-#      ) do
-#    current_time = :os.system_time(:millisecond)
-#    blknum_time = Map.get(potential_block_withholdings, blknum)
-#
-#    if blknum_time && current_time - blknum_time > maximum_block_withholding_time do
-#      {:error, :block_withholding, blknum}
-#    else
-#      potential_block_withholdings = Map.put(potential_block_withholdings, blknum, current_time)
-#      {:ok, %{state | potential_block_withholdings: potential_block_withholdings}}
-#    end
-#  end
-#
-#  @doc "remove potential block withholding"
-#  @spec remove_potential_block_withholding(%__MODULE__{}, non_neg_integer) :: {%__MODULE__{}}
-#  def remove_potential_block_withholding(
-#        %__MODULE__{
-#          potential_block_withholdings: potential_block_withholdings
-#        } = state,
-#        blknum
-#      ) do
-#    potential_block_withholdings = Map.delete(potential_block_withholdings, blknum)
-#
-#    %{state | potential_block_withholdings: potential_block_withholdings}
-#  end
+  #  @doc "add potential block withholding"
+  #  @spec add_potential_block_withholding(%__MODULE__{}, non_neg_integer) ::
+  #          {:ok, %__MODULE__{}}
+  #          | {
+  #              :error,
+  #              :block_withholding,
+  #              list(non_neg_integer)
+  #            }
+  #  def add_potential_block_withholding(
+  #        %__MODULE__{
+  #          potential_block_withholdings: potential_block_withholdings,
+  #          maximum_block_withholding_time: maximum_block_withholding_time
+  #        } = state,
+  #        blknum
+  #      ) do
+  #    current_time = :os.system_time(:millisecond)
+  #    blknum_time = Map.get(potential_block_withholdings, blknum)
+  #
+  #    if blknum_time && current_time - blknum_time > maximum_block_withholding_time do
+  #      {:error, :block_withholding, blknum}
+  #    else
+  #      potential_block_withholdings = Map.put(potential_block_withholdings, blknum, current_time)
+  #      {:ok, %{state | potential_block_withholdings: potential_block_withholdings}}
+  #    end
+  #  end
+  #
+  #  @doc "remove potential block withholding"
+  #  @spec remove_potential_block_withholding(%__MODULE__{}, non_neg_integer) :: {%__MODULE__{}}
+  #  def remove_potential_block_withholding(
+  #        %__MODULE__{
+  #          potential_block_withholdings: potential_block_withholdings
+  #        } = state,
+  #        blknum
+  #      ) do
+  #    potential_block_withholdings = Map.delete(potential_block_withholdings, blknum)
+  #
+  #    %{state | potential_block_withholdings: potential_block_withholdings}
+  #  end
 
   @doc """
   Statelessly decodes and validates a downloaded block, does all the checks before handing off to State.exec-checking
@@ -236,30 +251,21 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   """
   @spec decode_validate_block(block :: map, requested_hash :: binary, requested_number :: pos_integer) ::
           {:ok, map}
-          | {:error,
-             :incorrect_hash
-             | :malformed_transaction_rlp
-             | :malformed_transaction
-             | :bad_signature_length
-             | :hash_decoding_error}
+          | {:error, block_error()}
   def decode_validate_block(
         {:ok, %{hash: returned_hash, transactions: transactions, number: number}},
         requested_hash,
         requested_number
       ) do
-    with transaction_decode_results <- Enum.map(transactions, &OmiseGO.API.Core.recover_tx/1),
+    with transaction_decode_results <- Enum.map(transactions, &API.Core.recover_tx/1),
          nil <- Enum.find(transaction_decode_results, &(!match?({:ok, _}, &1))),
          transactions <- Enum.map(transaction_decode_results, &elem(&1, 1)),
          true <- returned_hash == requested_hash || {:error, :bad_returned_hash} do
       # hash the block yourself and compare
       %Block{hash: calculated_hash} = Block.hashed_txs_at(transactions, number)
 
-      zero_fee_requirements =
-        transactions
-        |> Enum.reduce(%{}, fn tx, fee_map ->
-          %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}} = tx
-          Map.put(fee_map, cur12, 0)
-        end)
+      # we as the Watcher don't care about the fees, so we fix all currencies to require 0 fee
+      zero_fee_requirements = transactions |> Enum.reduce(%{}, &zero_fee_for/2)
 
       if calculated_hash == requested_hash,
         do:
@@ -278,4 +284,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     {:ok, %PotentialWithholding{blknum: requested_number}}
   end
 
+  # adds a new zero fee to a map of zero fee requirements
+  defp zero_fee_for(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}}, fee_map) do
+    Map.put(fee_map, cur12, 0)
+  end
 end

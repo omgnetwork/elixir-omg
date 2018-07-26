@@ -2,12 +2,16 @@ defmodule OmiseGO.DBTest do
   @moduledoc """
   A smoke test of the LevelDB support (temporary, remove if it breaks, and we have an all-omisego integration test)
 
+  Note the excluded moduletag, this test requires an explicit `--include`
+
   NOTE: it broke, but fixed easily, still useful, since integration test is thin still
   """
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
   alias OmiseGO.DB
+
+  @moduletag :wrappers
 
   setup_all do
     {:ok, _} = Application.ensure_all_started(:briefly)
@@ -24,7 +28,14 @@ defmodule OmiseGO.DBTest do
         name: TestDBServer
       )
 
-    on_exit(fn -> if Process.alive?(pid), do: :ok = GenServer.stop(TestDBServer), else: :ok end)
+    on_exit(fn ->
+      try do
+        GenServer.stop(pid)
+      catch
+        :exit, _ -> :yeah_it_has_already_stopped
+      end
+    end)
+
     {:ok, %{dir: dir}}
   end
 

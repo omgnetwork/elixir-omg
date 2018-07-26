@@ -5,6 +5,7 @@ defmodule OmiseGO.API.Application do
   """
 
   use Application
+  use OmiseGO.API.LoggerExt
   import Supervisor.Spec
   alias OmiseGO.API.State
 
@@ -28,6 +29,7 @@ defmodule OmiseGO.API.Application do
       )
     ]
 
+    _ = Logger.info(fn -> "Started application OmiseGO.API.Application" end)
     opts = [strategy: :one_for_one]
     Supervisor.start_link(children, opts)
   end
