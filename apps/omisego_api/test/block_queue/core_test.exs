@@ -44,7 +44,7 @@ defmodule OmiseGO.API.BlockQueue.CoreTest do
   If top_mined_hash parameter is ommited it will be generated from mined_child_block_num
   """
   def recover(known_hashes, mined_child_block_num, top_mined_hash \\ nil) do
-    top_mined_hash = top_mined_hash || "#{inspect(trunc(mined_child_block_num / 1000))}"
+    top_mined_hash = top_mined_hash || "#{Kernel.inspect(trunc(mined_child_block_num / 1000))}"
 
     new(
       mined_child_block_num: mined_child_block_num,
