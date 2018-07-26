@@ -15,3 +15,5 @@ config :logger, :console,
   level: :info,
   format: "$date $time [$level] $metadata⋅$message⋅\n",
   metadata: [:module, :function]
+
+import_config "#{Mix.env()}.exs"

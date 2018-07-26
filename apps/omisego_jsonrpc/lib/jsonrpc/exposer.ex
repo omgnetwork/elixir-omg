@@ -37,15 +37,9 @@ defmodule OmiseGO.JSONRPC.Exposer do
     case result do
       # NOTE: let's treat all errors in the called API as internal errors, this seems legit
       {:ok, any} ->
-        _ = Logger.debug(fn -> "call to #{inspect(fname)} handled in #{round(duration / 1000)} ms" end)
         {:ok, any}
 
       {:error, any} ->
-        _ =
-          Logger.error(fn ->
-            "call to #{inspect(fname)} has failed in #{round(duration / 1000)} ms, error '#{inspect(any)}'"
-          end)
-
         {:internal_error, any}
     end
   end
