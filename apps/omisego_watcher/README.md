@@ -36,7 +36,7 @@ Different events are emitted in each channel.
 
 ### Channels:
 
-### address:ethereum_address
+### transfer:ethereum_address
 
 #### Events:
 
@@ -85,18 +85,47 @@ In case extra finality is required for high-stakes transactions, the client is f
 }
 ```
 
-### byzantine
+### spends:ethereum_address
+
+#### Events:
+
+##### address_spent
+
+### receives:ethereum_address
+
+#### Events:
+
+##### address_received
+
+### byzantine_invalid_exit
+
+#### Events:
+
+##### in_flight_exit
+
+##### piggyback
+
+##### exit_from_spent
+
+### byzantine_bad_chain
 
 #### Events:
 
 ##### invalid_block
 Event informing about that particular block is invalid.
  
-##### invalid_exit
-Event informing about that particular exit is invalid.
-
 ##### block_withholding
 Event informing about that the child chain is withholding block.
 
+##### invalid_fee_exit
 
+### TODO block 
+
+### TODO deposit_spendable
+
+### TODO fees
+
+#### Events:
+
+##### fees_exited
 
