@@ -122,7 +122,7 @@ defmodule OmiseGO.API.BlockQueue do
 
     def handle_cast({:enqueue_block, block_hash, block_number}, %Core{} = state) do
       state2 = Core.enqueue_block(state, block_hash, block_number)
-      _ = Logger.info(fn -> "Enqueing block num '#{block_number}', hash '#{block_hash}'" end)
+      _ = Logger.info(fn -> "Enqueing block num '#{block_number}', hash '#{inspect(block_hash)}'" end)
       submit_blocks(state2)
       {:noreply, state2}
     end
