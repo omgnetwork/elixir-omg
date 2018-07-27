@@ -20,16 +20,16 @@ defmodule OmiseGOWatcher.BlockGetter do
          do: Core.decode_validate_block(json_block, requested_hash, requested_number)
   end
 
-  def consume_block(%{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block) do
+  defp consume_block(%{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block) do
     # TODO add check in UtxoDB after deposit handle correctly
     state_exec = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
 
     OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
 
     with nil <- Enum.find(state_exec, &(!match?({:ok, {_, _, _}}, &1))),
-         response <- OmiseGOWatcher.TransactionDB.insert(block),
+         response <- OmiseGOWatcher.TransactionDB.update_with(block),
          nil <- Enum.find(response, &(!match?({:ok, _}, &1))),
-         _ <- UtxoDB.consume_block(block),
+         _ <- UtxoDB.update_with(block),
          _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end),
          do: :ok
   end
