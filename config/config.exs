@@ -16,3 +16,5 @@ config :logger, :console,
   format: "$date $time [$level] $metadata⋅$message⋅\n",
   # format: {OmiseGO.API.LoggerExt, :format},
   metadata: [:module, :function, :line]
+
+import_config "#{Mix.env()}.exs"

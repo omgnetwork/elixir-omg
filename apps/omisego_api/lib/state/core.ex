@@ -12,17 +12,35 @@ defmodule OmiseGO.API.State.Core do
   defstruct [:height, :last_deposit_height, :utxos, pending_txs: [], tx_index: 0]
 
   alias OmiseGO.API.Block
+  alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.Transaction
 
+  @type t() :: %__MODULE__{
+          height: non_neg_integer(),
+          last_deposit_height: non_neg_integer(),
+          utxos: utxos,
+          pending_txs: list(Transaction.Recovered.t()),
+          tx_index: non_neg_integer()
+        }
+
   @type deposit() :: %{
-          blknum: pos_integer(),
-          currency: <<_::160>>,
-          owner: <<_::160>>,
+          blknum: non_neg_integer(),
+          currency: Crypto.address_t(),
+          owner: Crypto.address_t(),
           amount: pos_integer()
         }
-  @type utxo() :: term()
-  @type side_effects() :: term()
+  @type exit_t() :: %{
+          blknum: non_neg_integer(),
+          token: Crypto.address_t(),
+          owner: Crypto.address_t(),
+          amount: pos_integer(),
+          txindex: non_neg_integer(),
+          oindex: non_neg_integer()
+        }
+
+  @type utxo_position() :: {pos_integer, non_neg_integer, non_neg_integer}
+  @type utxos() :: %{utxo_position => %{owner: Crypto.address_t(), amount: pos_integer}}
 
   @type exec_error ::
           :cant_spend_zero_utxo
@@ -32,12 +50,33 @@ defmodule OmiseGO.API.State.Core do
           | :invalid_current_block_number
           | :utxo_not_found
 
+  @type deposit_event :: %{deposit: %{amount: non_neg_integer, owner: Crypto.address_t()}}
+  @type exit_event :: %{
+          exit: %{owner: Crypto.address_t(), blknum: pos_integer, txindex: non_neg_integer, oindex: non_neg_integer}
+        }
+  @type tx_event :: %{tx: Transaction.Recovered.t(), child_blknum: pos_integer, child_block_hash: Block.block_hash_t()}
+
+  @type db_update ::
+          {:put, :utxo, utxos}
+          | {:delete, :utxo, utxo_position}
+          | {:put, :child_top_block_number, pos_integer}
+          | {:put, :last_deposit_block_height, pos_integer}
+          | {:put, :block, Block.t()}
+
+  @spec extract_initial_state(
+          utxos_query_result :: [utxos],
+          height_query_result :: non_neg_integer,
+          last_deposit_height_query_result :: non_neg_integer,
+          child_block_interval :: pos_integer
+        ) :: {:ok, t()}
   def extract_initial_state(
         utxos_query_result,
         height_query_result,
         last_deposit_height_query_result,
         child_block_interval
-      ) do
+      )
+      when is_list(utxos_query_result) and is_integer(height_query_result) and
+             is_integer(last_deposit_height_query_result) and is_integer(child_block_interval) do
     # extract height, last deposit height and utxos from query result
     height = height_query_result + child_block_interval
 
@@ -57,9 +96,9 @@ defmodule OmiseGO.API.State.Core do
 
   NOTE that tx is assumed to have distinct inputs, that should be checked in prior state-less validation
   """
-  @spec exec(tx :: %Transaction.Recovered{}, fees :: map(), state :: %Core{}) ::
-          {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, %Core{}}
-          | {{:error, exec_error}, %Core{}}
+  @spec exec(tx :: Transaction.Recovered.t(), fees :: map(), state :: t()) ::
+          {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, t()}
+          | {{:error, exec_error}, t()}
   def exec(
         %Transaction.Recovered{
           signed_tx: %Transaction.Signed{
@@ -193,7 +232,7 @@ defmodule OmiseGO.API.State.Core do
    - generates requests to the persistence layer for a block
    - processes pending txs gathered, updates height etc
   """
-  @spec form_block(pos_integer(), state :: %Core{}) :: {:ok, side_effects(), new_state :: %Core{}}
+  @spec form_block(pos_integer(), state :: t()) :: {:ok, {Block.t(), [tx_event], [db_update]}, new_state :: t()}
   def form_block(child_block_interval, %Core{pending_txs: reverse_txs, height: height} = state) do
     txs = Enum.reverse(reverse_txs)
 
@@ -255,7 +294,7 @@ defmodule OmiseGO.API.State.Core do
     raw
   end
 
-  @spec deposit(deposits :: [deposit()], state :: %Core{}) :: {:ok, side_effects(), new_state :: %Core{}}
+  @spec deposit(deposits :: [deposit()], state :: t()) :: {:ok, {[deposit_event], [db_update]}, new_state :: t()}
   def deposit(deposits, %Core{utxos: utxos, last_deposit_height: last_deposit_height} = state) do
     deposits = deposits |> Enum.filter(&(&1.blknum > last_deposit_height))
 
@@ -318,7 +357,7 @@ defmodule OmiseGO.API.State.Core do
   @doc """
   Spends exited utxos
   """
-  @spec exit_utxos(exiting_utxos :: [utxo()], state :: %Core{}) :: {:ok, side_effects(), new_state :: %Core{}}
+  @spec exit_utxos(exiting_utxos :: [exit_t], state :: t()) :: {:ok, {[exit_event], [db_update]}, new_state :: t()}
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
     exiting_utxos =
       exiting_utxos
@@ -350,7 +389,7 @@ defmodule OmiseGO.API.State.Core do
   @doc """
   Checks if utxo exists
   """
-  @spec utxo_exists(utxo(), %Core{}) :: :utxo_exists | :utxo_does_not_exist
+  @spec utxo_exists(exit_t, t()) :: :utxo_exists | :utxo_does_not_exist
   def utxo_exists(%{blknum: blknum, txindex: txindex, oindex: oindex}, %Core{utxos: utxos}) do
     case Map.has_key?(utxos, {blknum, txindex, oindex}) do
       true -> :utxo_exists
@@ -361,6 +400,6 @@ defmodule OmiseGO.API.State.Core do
   @doc """
   Gets the current block's height
   """
-  @spec get_current_child_block_height(%__MODULE__{}) :: pos_integer
+  @spec get_current_child_block_height(t()) :: non_neg_integer()
   def get_current_child_block_height(%{height: height}), do: height
 end

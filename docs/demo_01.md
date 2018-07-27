@@ -28,7 +28,7 @@ bob = TestHelper.generate_entity()
 ### START DEMO HERE
 
 # sends a deposit transaction _to Ethereum_
-{:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc, contract_address)
+{:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc)
 
 # need to wait until its mined
 {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
@@ -52,17 +52,8 @@ tx =
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 # use the hex-encoded tx bytes and `submit` JSONRPC method descibed in README.md for child chain server
-# E.g. using httpie:
 
-echo '{
-  "params":{
-    "transaction":""
-  },
-  "method":"submit",
-  "jsonrpc":"2.0",
-  "id":0
-}
-' | http localhost:9656
+curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "jsonrpc": "2.0","id":0}'
 ```
 
 ```elixir
@@ -74,16 +65,7 @@ Base.encode16(block_hash)
 
 ```bash
 # with the block hash we can get the whole block
-
-echo '{
-  "params":{
-    "hash":"A79BFBB205EEE6D3021C46EFEAA2AE699A56219A61FD282A91499E646080CB08"
-  },
-  "method":"get_block",
-  "jsonrpc":"2.0",
-  "id":0
-}
-' | http localhost:9656
+curl "localhost:9656" -d '{"params":{"hash":""}, "method":"get_block", "jsonrpc":"2.0", "id":0}'
 
 # if you were watching, you could have decoded and validated the transaction bytes in the block
 ```

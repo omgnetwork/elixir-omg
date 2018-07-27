@@ -1,6 +1,8 @@
 defmodule OmiseGO.EthTest do
   @moduledoc """
   Thin smoke test of the Ethereum port/adapter.
+
+  Note the excluded moduletag, this test requires an explicit `--include`
   """
   # TODO: if proves to be brittle and we cover that functionality in other integration test then consider removing
 
@@ -20,7 +22,7 @@ defmodule OmiseGO.EthTest do
 
   @eth OmiseGO.API.Crypto.zero_address()
 
-  @moduletag :integration
+  @moduletag :wrappers
 
   defp generate_transaction(nonce) do
     hash = :crypto.hash(:sha256, to_charlist(nonce))
