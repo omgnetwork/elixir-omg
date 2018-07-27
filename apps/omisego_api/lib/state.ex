@@ -150,7 +150,7 @@ defmodule OmiseGO.API.State do
     {duration, {:ok, {%Block{hash: block_hash}, event_triggers, db_updates}, new_state}} =
       :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
 
-    _ = Logger.info(fn -> "Done closing block in #{inspect(round(duration / 1000))} ms" end)
+    _ = Logger.debug(fn -> "Done closing block in #{inspect(round(duration / 1000))} ms" end)
 
     :ok = DB.multi_update(db_updates)
 

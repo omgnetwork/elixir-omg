@@ -24,14 +24,14 @@ defmodule OmiseGOWatcher.BlockGetter do
     # TODO add check in UtxoDB after deposit handle correctly
     state_exec = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
 
-    OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
-
     with nil <- Enum.find(state_exec, &(!match?({:ok, {_, _, _}}, &1))),
          response <- OmiseGOWatcher.TransactionDB.update_with(block),
          nil <- Enum.find(response, &(!match?({:ok, _}, &1))),
-         _ <- UtxoDB.update_with(block),
-         _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end),
-         do: :ok
+         _ <- UtxoDB.update_with(block) do
+      _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end)
+      OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
+      :ok
+    end
   end
 
   def start_link(_args) do
@@ -78,6 +78,13 @@ defmodule OmiseGOWatcher.BlockGetter do
 
   def handle_info({_ref, {:got_block, {:ok, %{number: blknum, transactions: txs, hash: hash} = block}}}, state) do
     # 1/ process the block that arrived and consume
+    _ =
+      Logger.info(fn ->
+        short_hash = hash |> Base.encode16() |> Binary.drop(-48)
+
+        "Received block \##{inspect(blknum)} #{inspect(short_hash)}... with #{inspect(length(txs))} txs."
+      end)
+
     {:ok, new_state, blocks_to_consume} = Core.got_block(state, block)
     :ok = blocks_to_consume |> Enum.each(&(:ok = consume_block(&1)))
 
@@ -88,10 +95,7 @@ defmodule OmiseGOWatcher.BlockGetter do
 
     _ =
       Logger.info(fn ->
-        short_hash = hash |> Base.encode16() |> Binary.drop(-48)
-
-        "Received block \##{inspect(blknum)} #{short_hash}... with #{inspect(length(txs))} txs." <>
-          " Child chain seen at block \##{inspect(next_child)}. Getting blocks #{inspect(blocks_numbers)}"
+        "Child chain seen at block \##{inspect(next_child)}. Getting blocks #{inspect(blocks_numbers)}"
       end)
 
     :ok = run_block_get_task(blocks_numbers)
