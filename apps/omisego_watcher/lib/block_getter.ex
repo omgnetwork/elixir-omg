@@ -20,7 +20,7 @@ defmodule OmiseGOWatcher.BlockGetter do
          do: Core.decode_validate_block(json_block, requested_hash, requested_number)
   end
 
-  def update_with(%{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block) do
+  defp consume_block(%{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block) do
     # TODO add check in UtxoDB after deposit handle correctly
     state_exec = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
 
@@ -74,7 +74,7 @@ defmodule OmiseGOWatcher.BlockGetter do
   def handle_info({_ref, {:got_block, {:ok, %{number: blknum, transactions: txs, hash: hash} = block}}}, state) do
     # 1/ process the block that arrived and consume
     {:ok, new_state, blocks_to_consume} = Core.got_block(state, block)
-    :ok = blocks_to_consume |> Enum.each(&(:ok = update_with(&1)))
+    :ok = blocks_to_consume |> Enum.each(&(:ok = consume_block(&1)))
 
     # 2/ try continuing the getting process immediately
     {:ok, next_child} = Eth.get_current_child_block()
