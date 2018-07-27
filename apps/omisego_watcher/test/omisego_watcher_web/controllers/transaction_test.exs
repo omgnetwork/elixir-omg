@@ -13,7 +13,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
   test "insert and retrive transaction", %{alice: alice, bob: bob} do
     tester_f = fn {txblknum, txindex, recovered_tx} ->
-      [{:ok, %TransactionDB{txid: id}}] = TransactionDB.consume_block(%{transactions: [recovered_tx], number: txblknum})
+      [{:ok, %TransactionDB{txid: id}}] = TransactionDB.update_with(%{transactions: [recovered_tx], number: txblknum})
       expected_transaction = create_expected_transaction(id, recovered_tx, txblknum, txindex)
       assert expected_transaction == delete_meta(TransactionDB.get(id))
     end
@@ -35,7 +35,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     recovered_tx2 = OmiseGO.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [])
 
     [{:ok, %TransactionDB{txid: txid_1}}, {:ok, %TransactionDB{txid: txid_2}}] =
-      TransactionDB.consume_block(%Block{
+      TransactionDB.update_with(%Block{
         transactions: [
           recovered_tx1,
           recovered_tx2
@@ -55,7 +55,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     bob_spend_recovered = OmiseGO.API.TestHelper.create_recovered([], @eth, [{bob, 200}])
 
     [{:ok, %TransactionDB{txid: txid_alice}}, {:ok, %TransactionDB{txid: txid_bob}}] =
-      TransactionDB.consume_block(%Block{
+      TransactionDB.update_with(%Block{
         transactions: [alice_spend_recovered, bob_spend_recovered],
         number: 1
       })
@@ -76,7 +76,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     alice_spend_recovered = OmiseGO.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [])
 
     [{:ok, %TransactionDB{txid: txid_alice}}] =
-      TransactionDB.consume_block(%Block{
+      TransactionDB.update_with(%Block{
         transactions: [alice_spend_recovered],
         number: 1
       })
@@ -89,7 +89,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
     bob_spend_recovered = OmiseGO.API.TestHelper.create_recovered([{2, 0, 0, bob}], @eth, [])
 
     [{:ok, %TransactionDB{txid: txid_bob}}] =
-      TransactionDB.consume_block(%Block{
+      TransactionDB.update_with(%Block{
         transactions: [bob_spend_recovered],
         number: 2
       })

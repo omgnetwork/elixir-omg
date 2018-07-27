@@ -69,7 +69,7 @@ defmodule OmiseGOWatcher.TransactionDB do
   @doc """
   Inserts complete and sorted enumberable of transactions for particular block number
   """
-  def consume_block(%{transactions: transactions, number: block_number}) do
+  def update_with(%{transactions: transactions, number: block_number}) do
     transactions
     |> Stream.with_index()
     |> Enum.map(fn {tx, txindex} -> insert(tx, block_number, txindex) end)
