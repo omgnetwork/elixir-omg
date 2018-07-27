@@ -64,7 +64,12 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:ok, next_child} = Eth.get_current_child_block()
 
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
-    _ = Logger.info(fn -> "Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}" end)
+
+    _ =
+      Logger.info(fn ->
+        "Child chain seen at block \##{inspect(next_child)}. Getting blocks #{inspect(blocks_numbers)}"
+      end)
+
     :ok = run_block_get_task(blocks_numbers)
 
     {:ok, _} = :timer.send_after(2_000, self(), :producer)
@@ -83,8 +88,10 @@ defmodule OmiseGOWatcher.BlockGetter do
 
     _ =
       Logger.info(fn ->
-        "Received block \##{inspect(blknum)} #{hash |> Base.encode16() |> Binary.drop(-48)}... with #{length(txs)} txs." <>
-          " Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}"
+        short_hash = hash |> Base.encode16() |> Binary.drop(-48)
+
+        "Received block \##{inspect(blknum)} #{short_hash}... with #{inspect(length(txs))} txs." <>
+          " Child chain seen at block \##{inspect(next_child)}. Getting blocks #{inspect(blocks_numbers)}"
       end)
 
     :ok = run_block_get_task(blocks_numbers)

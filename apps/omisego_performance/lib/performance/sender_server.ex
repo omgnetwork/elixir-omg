@@ -57,16 +57,16 @@ defmodule OmiseGO.Performance.SenderServer do
   """
   @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, state()}
   def init({seqnum, ntx_to_send}) do
-    _ = Logger.debug(fn -> "[#{seqnum}] init called with requests: '#{ntx_to_send}'" end)
+    _ = Logger.debug(fn -> "[#{inspect(seqnum)}] init called with requests: '#{inspect(ntx_to_send)}'" end)
 
     spender = generate_entity()
-    _ = Logger.debug(fn -> "[#{seqnum}]: Address #{Base.encode64(spender.addr)}" end)
+    _ = Logger.debug(fn -> "[#{inspect(seqnum)}]: Address #{Base.encode64(spender.addr)}" end)
 
     deposit_value = 10 * ntx_to_send
     owner_enc = "0x" <> Base.encode16(spender.addr, case: :lower)
     :ok = OmiseGO.API.State.deposit([%{owner: owner_enc, currency: @eth, amount: deposit_value, blknum: seqnum}])
 
-    _ = Logger.debug(fn -> "[#{seqnum}]: Deposited #{deposit_value} OMG" end)
+    _ = Logger.debug(fn -> "[#{inspect(seqnum)}]: Deposited #{inspect(deposit_value)} OMG" end)
 
     send(self(), :do)
     {:ok, init_state(seqnum, ntx_to_send, spender)}
@@ -82,7 +82,7 @@ defmodule OmiseGO.Performance.SenderServer do
         :do,
         %__MODULE__{ntx_to_send: 0, seqnum: seqnum, last_tx: %LastTx{blknum: blknum, txindex: txindex}} = state
       ) do
-    _ = Logger.info(fn -> "[#{seqnum}] Stoping..." end)
+    _ = Logger.info(fn -> "[#{inspect(seqnum)}] Stoping..." end)
 
     OmiseGO.Performance.SenderManager.sender_stats(%{seqnum: seqnum, blknum: blknum, txindex: txindex})
     {:stop, :normal, state}
@@ -104,7 +104,9 @@ defmodule OmiseGO.Performance.SenderServer do
     recipient = generate_entity()
 
     _ =
-      Logger.debug(fn -> "[#{seqnum}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{newamount}" end)
+      Logger.debug(fn ->
+        "[#{inspect(seqnum)}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{inspect(newamount)}"
+      end)
 
     # create and return signed transaction
     [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
@@ -127,7 +129,7 @@ defmodule OmiseGO.Performance.SenderServer do
       {:error, {-32_603, "Internal error", "too_many_transactions_in_block"}} ->
         _ =
           Logger.info(fn ->
-            "[#{seqnum}]: Transaction submission will be retried, block is full."
+            "[#{inspect(seqnum)}]: Transaction submission will be retried, block is full."
           end)
 
         :retry
@@ -135,7 +137,7 @@ defmodule OmiseGO.Performance.SenderServer do
       {:error, reason} ->
         _ =
           Logger.info(fn ->
-            "[#{seqnum}]: Transaction submission has failed, reason: #{inspect(reason)}"
+            "[#{inspect(seqnum)}]: Transaction submission has failed, reason: #{inspect(reason)}"
           end)
 
         {:error, reason}
@@ -143,7 +145,7 @@ defmodule OmiseGO.Performance.SenderServer do
       {:ok, %{blknum: blknum, tx_index: txindex}} ->
         _ =
           Logger.debug(fn ->
-            "[#{seqnum}]: Transaction submitted successfully {#{blknum}, #{txindex}}"
+            "[#{inspect(seqnum)}]: Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}"
           end)
 
         {:ok, blknum, txindex, tx.raw_tx.amount1}
@@ -238,7 +240,7 @@ defmodule OmiseGO.Performance.SenderServer do
   """
   @spec random_sleep(integer) :: :ok
   def random_sleep(seqnum) do
-    _ = Logger.debug(fn -> "[#{seqnum}]: Need some sleep" end)
+    _ = Logger.debug(fn -> "[#{inspect(seqnum)}]: Need some sleep" end)
     [500, 800, 1000, 1300] |> Enum.random() |> Process.sleep()
   end
 end

@@ -12,7 +12,7 @@ defmodule OmiseGO.DB do
 
   def multi_update(db_updates, server_name \\ @server_name) do
     {duration, result} = :timer.tc(fn -> GenServer.call(server_name, {:multi_update, db_updates}) end)
-    _ = Logger.debug(fn -> "DB.multi_update done in #{round(duration / 1000)} ms" end)
+    _ = Logger.debug(fn -> "DB.multi_update done in #{inspect(round(duration / 1000))} ms" end)
     result
   end
 
