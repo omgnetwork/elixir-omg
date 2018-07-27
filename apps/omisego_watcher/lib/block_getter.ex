@@ -89,52 +89,6 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:noreply, new_state}
   end
 
-#  def handle_info({_ref, {:get_block_failure, blknum, error_type}}, state) do
-#    with {:ok, new_state} <- Core.add_potential_block_withholding(state, blknum) do
-#      receive do
-#      after
-#        state.potential_block_withholding_delay_time ->
-#          Task.async(fn ->
-#            case get_block(blknum) do
-#              {:ok, block} ->
-#                Core.remove_potential_block_withholding(state, blknum)
-#                {:got_block_success, block}
-#
-#              {:error, error_type} ->
-#                {:get_block_failure, blknum, error_type}
-#            end
-#          end)
-#      end
-#
-#      {:noreply, new_state}
-#    else
-#      {:error, :block_withholding, blknum} ->
-#        Eventer.emit_event(%Event.BlockWithHolding{blknum: blknum})
-#        {:stop, {:block_withholding, blknum}, state}
-#    end
-#  end
-#
-#  def handle_info({_ref, {:got_block_success, %{number: blknum, transactions: txs, hash: hash} = block}}, state) do
-#    # 1/ process the block that arrived and consume
-#    {:ok, new_state, blocks_to_consume} = Core.got_block(state, block)
-#    :ok = blocks_to_consume |> Enum.each(&(:ok = consume_block(&1)))
-#
-#    # 2/ try continuing the getting process immediately
-#    {:ok, next_child} = Eth.get_current_child_block()
-#
-#    {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
-#
-#    _ =
-#      Logger.info(fn ->
-#        "Received block \##{inspect(blknum)} #{hash |> Base.encode16() |> Binary.drop(-48)}... with #{length(txs)} txs." <>
-#        " Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}"
-#      end)
-#
-#    :ok = run_block_get_task(blocks_numbers)
-#
-#    {:noreply, new_state}
-#  end
-
   def handle_info({_ref, {:got_block, {:ok, maybe_block}}}, state) do
     # 1/ process the block that arrived and consume
     {:ok, new_state, blocks_to_consume, event} = Core.got_block(state, maybe_block)
@@ -148,20 +102,9 @@ defmodule OmiseGOWatcher.BlockGetter do
 
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
 
-#    _ =
-#      Logger.info(fn ->
-#        "Received block \##{inspect(blknum)} #{hash |> Base.encode16() |> Binary.drop(-48)}... with #{length(txs)} txs." <>
-#        " Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}"
-#      end)
-
     :ok = run_block_get_task(blocks_numbers)
 
     {:noreply, new_state}
-  end
-
-  def handle_info({_ref, {:got_block, {:error, _other_reason} = error}}, state) do
-    _ = Logger.error(fn -> "Problem receiveing block: #{inspect(error)}  stopping BlockGetter" end)
-    {:stop, :normal, state}
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}

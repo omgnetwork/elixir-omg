@@ -17,7 +17,7 @@ defmodule OmiseGOWatcher.Eventer.Event do
 
     defstruct [:tx, :child_blknum, :child_block_hash, :submited_at_ethheight]
 
-    @type t :: %AddressReceived{
+    @type t :: %__MODULE__{
             tx: Transaction.Recovered.t(),
             child_blknum: integer(),
             child_block_hash: Block.block_hash_t(),
@@ -34,7 +34,7 @@ defmodule OmiseGOWatcher.Eventer.Event do
 
     defstruct [:tx, :child_blknum, :child_block_hash, :submited_at_ethheight]
 
-    @type t :: %AddressSpent{
+    @type t :: %__MODULE__{
             tx: Transaction.Recovered.t(),
             child_blknum: integer(),
             child_block_hash: Block.block_hash_t(),
@@ -51,7 +51,7 @@ defmodule OmiseGOWatcher.Eventer.Event do
 
     defstruct [:eth_hash_block, :child_chain_hash_block, :transactions, :number, :error_type]
 
-    @type t :: %InvalidBlock{
+    @type t :: %__MODULE__{
                  eth_hash_block: Block.block_hash_t(),
                  child_chain_hash_block: Block.block_hash_t(),
                  transactions: list(map()),
@@ -69,7 +69,7 @@ defmodule OmiseGOWatcher.Eventer.Event do
 
     defstruct [:blknum]
 
-    @type t :: %BlockWithHolding{
+    @type t :: %__MODULE__{
             blknum: pos_integer
           }
   end
@@ -83,6 +83,6 @@ defmodule OmiseGOWatcher.Eventer.Event do
 
     defstruct []
 
-    @type t :: %InvalidExit{}
+    @type t :: %__MODULE__{}
   end
 end

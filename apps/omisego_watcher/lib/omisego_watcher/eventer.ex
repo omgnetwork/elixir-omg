@@ -36,6 +36,10 @@ defmodule OmiseGOWatcher.Eventer do
     {:noreply, state}
   end
 
+  def handle_cast({:emit_event, nil}, state) do
+    {:noreply, state}
+  end
+
   def handle_cast({:emit_event, event_trigger}, state) do
     {topic, event_name, event} = Core.prepare_event(event_trigger)
 
