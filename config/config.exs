@@ -14,4 +14,5 @@ import_config "../apps/*/config/config.exs"
 config :logger, :console,
   level: :info,
   format: "$date $time [$level] $metadata⋅$message⋅\n",
-  metadata: [:module, :function]
+  # format: {OmiseGO.API.LoggerExt, :format},
+  metadata: [:module, :function, :line]
