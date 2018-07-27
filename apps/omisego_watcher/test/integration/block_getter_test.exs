@@ -28,7 +28,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
        %{contract: contract, alice: alice, bob: bob} do
     alice_address = API.TestHelper.encode_address(alice.addr)
 
-    {:ok, _, _socket} = subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
+    {:ok, _, _socket} =
+      subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
 
     deposit_blknum = IntegrationTest.deposit_to_child_chain(alice, 10, contract)
     # TODO remove slpeep after synch deposit synch
