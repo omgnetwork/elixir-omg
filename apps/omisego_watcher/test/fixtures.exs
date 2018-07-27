@@ -32,7 +32,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     |> File.close()
 
     {:ok, config} = File.read(config_file_path)
-    Logger.debug(fn -> IO.ANSI.format([:blue, :bright, config], true) end)
+    Logger.debug(fn -> config end)
     Logger.debug(fn -> "Starting db_init" end)
 
     exexec_opts_for_mix = [
