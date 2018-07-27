@@ -81,9 +81,14 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
   test "compose_utxo_exit should return proper proof format", %{alice: alice} do
-    TransactionDB.insert(API.TestHelper.create_signed([{1, 1, 0, alice}], @eth, [{alice, 120}]), 1, 1)
-    TransactionDB.insert(API.TestHelper.create_signed([{1, 1, 0, alice}], @eth, [{alice, 110}]), 1, 2)
-    TransactionDB.insert(API.TestHelper.create_signed([{2, 0, 0, alice}], @eth, []), 1, 3)
+    TransactionDB.consume_block(%{
+      transactions: [
+        API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}]),
+        API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 110}]),
+        API.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [])
+      ],
+      number: 1
+    })
 
     %{
       utxo_pos: _utxo_pos,
@@ -102,9 +107,14 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
   test "compose_utxo_exit should return error when there is no tx in specfic block", %{alice: alice} do
-    TransactionDB.insert(API.TestHelper.create_signed([{1, 0, 0, alice}], @eth, []), 1, 2)
-    TransactionDB.insert(API.TestHelper.create_signed([{1, 1, 0, alice}], @eth, []), 1, 2)
-    TransactionDB.insert(API.TestHelper.create_signed([], @eth, []), 1, 3)
+    TransactionDB.consume_block(%{
+      transactions: [
+        API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, []),
+        API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, []),
+        API.TestHelper.create_recovered([], @eth, [])
+      ],
+      number: 1
+    })
 
     {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 4, 0)
   end

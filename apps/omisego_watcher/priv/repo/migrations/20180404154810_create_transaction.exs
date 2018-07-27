@@ -18,7 +18,7 @@ defmodule OmiseGOWatcher.Repo.Migrations.CreateTransaction do
       add(:newowner1, :binary, null: false)
       add(:amount1, :integer, null: false)
 
-      add(:newowner2, :string, null: false)
+      add(:newowner2, :binary, null: false)
       add(:amount2, :integer, null: false)
 
       add(:txblknum, :integer, null: false)

@@ -66,23 +66,27 @@ defmodule OmiseGOWatcher.TransactionDB do
     Repo.all(from(tr in __MODULE__, where: tr.txblknum == ^txblknum, select: tr))
   end
 
-  def insert(%{transactions: transactions, number: block_number}) do
+  @doc """
+  Inserts complete and sorted enumberable of transactions for particular block number
+  """
+  def consume_block(%{transactions: transactions, number: block_number}) do
     transactions
     |> Stream.with_index()
-    |> Enum.map(fn {%Recovered{signed_tx: %Signed{} = signed}, txindex} ->
-      insert(signed, block_number, txindex)
-    end)
+    |> Enum.map(fn {tx, txindex} -> insert(tx, block_number, txindex) end)
   end
 
-  def insert(
-        %Signed{
-          raw_tx: %Transaction{} = transaction,
-          sig1: sig1,
-          sig2: sig2
-        } = tx,
-        block_number,
-        txindex
-      ) do
+  defp insert(
+         %Recovered{
+           signed_tx:
+             %Signed{
+               raw_tx: %Transaction{} = transaction,
+               sig1: sig1,
+               sig2: sig2
+             } = tx
+         },
+         block_number,
+         txindex
+       ) do
     id = Signed.signed_hash(tx)
 
     {:ok, _} =
