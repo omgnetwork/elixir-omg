@@ -32,9 +32,9 @@ TODO
 ## Websockets
 
 Exposed websockets are using [Phoniex channels](https://hexdocs.pm/phoenix/channels.html) feature. 
-Different events are emitted in each channel.
+Different events are emitted for each topic.
 
-### Channels:
+### Topics:
 
 ### transfer:ethereum_address
 
@@ -50,7 +50,7 @@ In case extra finality is required for high-stakes transactions, the client is f
 
 ```json
 {
-  "topic": "address:0xfd5374cd3fe7ba8626b173a1ca1db68696ff3692",
+  "topic": "transfer:0xfd5374cd3fe7ba8626b173a1ca1db68696ff3692",
   "ref": null,
   "payload": {
     "child_blknum": 10000,
