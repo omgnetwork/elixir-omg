@@ -7,7 +7,7 @@ defmodule OmiseGOWatcherWeb.Socket do
   use Phoenix.Socket
 
   ## Channels
-  channel("address:*", OmiseGOWatcherWeb.AddressChannel)
+  channel("transfer:*", OmiseGOWatcherWeb.TransferChannel)
 
   ## Transports
   transport(:websocket, Phoenix.Transports.WebSocket)

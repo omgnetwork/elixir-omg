@@ -6,7 +6,7 @@ defmodule OmiseGOWatcher.Eventer.Core do
   alias OmiseGO.API.State.Transaction
   alias OmiseGOWatcher.Eventer.Event
 
-  @address_topic "address"
+  @transfer_topic "transfer"
 
   @spec notify(any()) :: list({Event.t(), binary()})
   def notify(event_triggers) do
@@ -32,7 +32,7 @@ defmodule OmiseGOWatcher.Eventer.Core do
   end
 
   defp create_address_spent_event(event_trigger, address) do
-    subtopic = create_address_subtopic(address)
+    subtopic = create_transfer_subtopic(address)
     {subtopic, Event.AddressSpent.name(), struct(Event.AddressSpent, event_trigger)}
   end
 
@@ -50,14 +50,14 @@ defmodule OmiseGOWatcher.Eventer.Core do
   end
 
   defp create_address_received_event(event_trigger, address) do
-    subtopic = create_address_subtopic(address)
+    subtopic = create_transfer_subtopic(address)
 
     {subtopic, Event.AddressReceived.name(), struct(Event.AddressReceived, event_trigger)}
   end
 
-  defp create_address_subtopic(address) do
+  defp create_transfer_subtopic(address) do
     encoded_address = "0x" <> Base.encode16(address, case: :lower)
-    create_subtopic(@address_topic, encoded_address)
+    create_subtopic(@transfer_topic, encoded_address)
   end
 
   defp create_subtopic(main_topic, subtopic), do: main_topic <> ":" <> subtopic

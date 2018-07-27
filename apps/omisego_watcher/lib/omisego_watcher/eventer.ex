@@ -3,6 +3,7 @@ defmodule OmiseGOWatcher.Eventer do
   Imperative shell for handling events
   """
 
+  alias OmiseGO.JSONRPC
   alias OmiseGOWatcher.Eventer.Core
   alias OmiseGOWatcherWeb.Endpoint
 
@@ -27,7 +28,9 @@ defmodule OmiseGOWatcher.Eventer do
   def handle_cast({:notify, event_triggers}, state) do
     event_triggers
     |> Core.notify()
-    |> Enum.each(fn {topic, event_name, event} -> :ok = Endpoint.broadcast!(topic, event_name, event) end)
+    |> Enum.each(fn {topic, event_name, event} ->
+      :ok = Endpoint.broadcast!(topic, event_name, JSONRPC.Client.encode(event))
+    end)
 
     {:noreply, state}
   end
