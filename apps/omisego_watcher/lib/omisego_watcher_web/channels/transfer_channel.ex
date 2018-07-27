@@ -1,11 +1,11 @@
-defmodule OmiseGOWatcherWeb.AddressChannel do
+defmodule OmiseGOWatcherWeb.TransferChannel do
   @moduledoc """
-  Channel Address
+  Channel Transfer
   """
 
   use Phoenix.Channel
 
-  def join("address:" <> _address, _params, socket) do
+  def join("transfer:" <> _address, _params, socket) do
     {:ok, socket}
   end
 
