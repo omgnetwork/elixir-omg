@@ -31,7 +31,7 @@ defmodule OmiseGO.Performance.SenderManager do
   @spec init({integer, integer, binary}) :: {:ok, map()}
   def init({ntx_to_send, nusers, destdir}) do
     Process.flag(:trap_exit, true)
-    _ = Logger.debug(fn -> "init called with #{nusers} users, each to send #{ntx_to_send}" end)
+    _ = Logger.debug(fn -> "init called with #{inspect(nusers)} users, each to send #{inspect(ntx_to_send)}" end)
 
     senders =
       1..nusers
@@ -153,7 +153,7 @@ defmodule OmiseGO.Performance.SenderManager do
 
     stats = analyze(state)
     :ok = File.write(destfile, Poison.encode!(stats))
-    _ = Logger.info(fn -> "Performance statistics written to file: #{destfile}" end)
+    _ = Logger.info(fn -> "Performance statistics written to file: #{inspect(destfile)}" end)
     :ok
   end
 end
