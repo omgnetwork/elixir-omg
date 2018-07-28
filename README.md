@@ -21,8 +21,8 @@ A public testnet for the OMG Network is not yet available. However, if you are b
 ### Install
 Firstly, **[install](docs/install.md)** the child chain server and watcher.
 
-### Start up Ethereum
-The easiest way to get started is if you have access to a developer instance of `geth`. The above installation instructions include an installation of `geth`.
+### Start up developer instance of Ethereum
+The easiest way to get started is if you have access to a developer instance of `geth`. If you don't already have access to a developer instance of `geth`, the above installation instructions will install `geth`.
 
 A developer instance of geth runs Ethereum locally and prefunds an account. However, when the process terminates, the state of the Ethereum network is lost.
 
@@ -30,9 +30,17 @@ A developer instance of geth runs Ethereum locally and prefunds an account. Howe
 geth --dev --dev.period 2 --rpc --rpcapi personal,web3,eth
 ```
 
+### Persistent developer instance
 Alternatively, a persistent developer instance can be started by:
 ```
 geth --dev --dev.period 2 --rpc --rpcapi personal,web3,eth  --datadir ~/.geth --ipc
+```
+
+After `geth` starts, the authority account must be unlocked
+
+```
+geth attach http://127.0.0.1:8545
+personal.unlockAccount(“<authority_addr from config.exs>”, '', 0)
 ```
 
 ### Configure the `omisego_eth` app
