@@ -63,10 +63,8 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, account_enc}
   end
 
-  def deposit(value, from \\ nil, contract \\ nil) do
+  def deposit(value, from, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    from = from || Application.get_env(:omisego_eth, :authority_addr)
-
     contract_transact(from, nil, value, contract, "deposit()", [])
   end
 
