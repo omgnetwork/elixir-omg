@@ -9,7 +9,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   alias OmiseGO.Eth
   alias OmiseGOWatcher.Eventer.Event
   alias OmiseGOWatcher.TestHelper
-  alias OmiseGOWatcherWeb.AddressChannel
+  alias OmiseGOWatcherWeb.TransferChannel
   alias OmiseGOWatcher.Integration.TestHelper, as: IntegrationTest
   alias OmiseGO.JSONRPC.Client
 
@@ -28,7 +28,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
        %{contract: contract, alice: alice, bob: bob} do
     alice_address = API.TestHelper.encode_address(alice.addr)
 
-    {:ok, _, _socket} = subscribe_and_join(socket(), AddressChannel, TestHelper.create_topic("address", alice_address))
+    {:ok, _, _socket} =
+      subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
 
     deposit_blknum = IntegrationTest.deposit_to_child_chain(alice, 10, contract)
     # TODO remove slpeep after synch deposit synch
@@ -50,19 +51,25 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     {:ok, {block_hash, _}} = Eth.get_child_chain(block_nr)
     %{eth_height: eth_height} = Eth.get_block_submission(block_hash)
 
-    assert_push("address_received", %Event.AddressReceived{
-      tx: ^recovered_tx,
-      child_blknum: ^block_nr,
-      child_block_hash: ^block_hash,
-      submited_at_ethheight: ^eth_height
-    })
+    address_received_event =
+      Client.encode(%Event.AddressReceived{
+        tx: recovered_tx,
+        child_blknum: block_nr,
+        child_block_hash: block_hash,
+        submited_at_ethheight: eth_height
+      })
 
-    assert_push("address_spent", %Event.AddressSpent{
-      tx: ^recovered_tx,
-      child_blknum: ^block_nr,
-      child_block_hash: ^block_hash,
-      submited_at_ethheight: ^eth_height
-    })
+    address_spent_event =
+      Client.encode(%Event.AddressSpent{
+        tx: recovered_tx,
+        child_blknum: block_nr,
+        child_block_hash: block_hash,
+        submited_at_ethheight: eth_height
+      })
+
+    assert_push("address_received", ^address_received_event)
+
+    assert_push("address_spent", ^address_spent_event)
 
     %{
       utxo_pos: utxo_pos,
@@ -173,7 +180,12 @@ defmodule OmiseGOWatcher.BlockGetterTest do
                )
 
              assert_block_getter_down()
-           end) =~ inspect({:error, :utxo_not_found})
+           end) =~
+             inspect(%Event.InvalidBlock{
+               error_type: :utxo_not_found,
+               hash: hash,
+               number: 1000
+             })
 
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainTransaction)
   end

@@ -166,7 +166,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
 
   defp adjust_gas_price(%Core{} = state) do
     new_gas_price = calculate_gas_price(state)
-    _ = Logger.debug(fn -> "using new gas price '#{new_gas_price}'" end)
+    _ = Logger.debug(fn -> "using new gas price '#{inspect(new_gas_price)}'" end)
 
     state
     |> set_gas_price(new_gas_price)
@@ -258,7 +258,7 @@ defmodule OmiseGO.API.BlockQueue.Core do
     first_blknum = mined_child_block_num + block_interval
     block_nums = make_range(first_blknum, formed, block_interval)
 
-    _ = Logger.debug(fn -> "preparing blocks #{first_blknum}..#{formed} for submission" end)
+    _ = Logger.debug(fn -> "preparing blocks #{inspect(first_blknum)}..#{inspect(formed)} for submission" end)
 
     blocks
     |> Map.split(block_nums)

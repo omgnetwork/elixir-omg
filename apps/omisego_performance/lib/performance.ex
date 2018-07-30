@@ -29,7 +29,7 @@ defmodule OmiseGO.Performance do
   """
   @spec setup_and_run(ntx_to_send :: pos_integer, nusers :: pos_integer, opt :: map) :: :ok
   def setup_and_run(ntx_to_send, nusers, opt \\ %{}) do
-    _ = Logger.info(fn -> "OmiseGO PerfTest users: #{nusers}, reqs: #{ntx_to_send}." end)
+    _ = Logger.info(fn -> "OmiseGO PerfTest users: #{inspect(nusers)}, reqs: #{inspect(ntx_to_send)}." end)
 
     {:ok, started_apps, api_children_supervisor} = testup()
 
@@ -48,7 +48,7 @@ defmodule OmiseGO.Performance do
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
     Application.put_env(:omisego_db, :leveldb_path, dbdir, persistent: true)
-    _ = Logger.info(fn -> "Perftest leveldb path: #{dbdir}" end)
+    _ = Logger.info(fn -> "Perftest leveldb path: #{inspect(dbdir)}" end)
 
     :ok = OmiseGO.DB.init()
 

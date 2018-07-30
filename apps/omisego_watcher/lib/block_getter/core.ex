@@ -114,7 +114,9 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   Returns the consumable, contiguous list of ordered blocks
   """
   @spec got_block(%__MODULE__{}, {:ok, OmiseGO.API.Block.t()} | {:error, block_error(), binary(), pos_integer()}) ::
-          {:ok, %__MODULE__{}, list(OmiseGO.API.Block.t()) | [], nil |  Event.InvalidBlock.t()} |  Event.BlockWithHolding.t() | {:error, :duplicate | :unexpected_blok}
+          {:ok, %__MODULE__{}, list(OmiseGO.API.Block.t()) | [], nil | Event.InvalidBlock.t()}
+          | Event.BlockWithHolding.t()
+          | {:error, :duplicate | :unexpected_blok}
   def got_block(
         %__MODULE__{
           block_to_consume: block_to_consume,
@@ -215,7 +217,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   requested_number is given to _override_ since we're getting by hash, we can have empty blocks with same hashes!
   """
   @spec decode_validate_block({:ok, map()} | {:error, block_error()}, binary(), pos_integer()) ::
-          {:ok, map |  PotentialWithholding.t()}
+          {:ok, map | PotentialWithholding.t()}
           | {:error, block_error()}
   def decode_validate_block(
         {:ok, %{hash: returned_hash, transactions: transactions, number: number}},
@@ -246,7 +248,11 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   end
 
   def decode_validate_block({:error, _} = error, requested_hash, requested_number) do
-    _ = Logger.info(fn -> "Detected potential block withholding  #{inspect(error)}, hash: #{requested_hash}, number: #{requested_number}" end)
+    _ =
+      Logger.info(fn ->
+        "Detected potential block withholding  #{inspect(error)}, hash: #{requested_hash}, number: #{requested_number}"
+      end)
+
     {:ok, %PotentialWithholding{blknum: requested_number}}
   end
 

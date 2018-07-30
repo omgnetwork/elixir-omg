@@ -51,7 +51,11 @@ defmodule OmiseGO.API.EthereumEventListener do
            Core.get_events_block_range(state, eth_block_height) do
       {:ok, events} = state.get_ethereum_events_callback.(eth_block_from, eth_block_to)
       :ok = state.process_events_callback.(events)
-      _ = Logger.debug(fn -> "get_events called successfully with '#{Enum.count(events)}' events processed." end)
+
+      _ =
+        Logger.debug(fn ->
+          "get_events called successfully with '#{inspect(Enum.count(events))}' events processed."
+        end)
 
       schedule_get_events(next_get_events_interval)
       {:noreply, new_state}

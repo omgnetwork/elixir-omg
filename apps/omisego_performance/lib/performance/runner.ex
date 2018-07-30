@@ -49,7 +49,7 @@ defmodule OmiseGO.Performance.Runner do
 
     receive do
       {:DOWN, ^ref, :process, _obj, reason} ->
-        Logger.info("Stoping performance tests, reason: #{reason}")
+        Logger.info("Stoping performance tests, reason: #{inspect(reason)}")
     end
   end
 end

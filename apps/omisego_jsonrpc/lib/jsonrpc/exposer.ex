@@ -32,20 +32,12 @@ defmodule OmiseGO.JSONRPC.Exposer do
   end
 
   defp apply_call(module, fname, args) do
-    {duration, result} = :timer.tc(fn -> apply(module, fname, args) end)
-
-    case result do
+    case apply(module, fname, args) do
       # NOTE: let's treat all errors in the called API as internal errors, this seems legit
       {:ok, any} ->
-        _ = Logger.debug(fn -> "call to #{inspect(fname)} handled in #{round(duration / 1000)} ms" end)
         {:ok, any}
 
       {:error, any} ->
-        _ =
-          Logger.error(fn ->
-            "call to #{inspect(fname)} has failed in #{round(duration / 1000)} ms, error '#{inspect(any)}'"
-          end)
-
         {:internal_error, any}
     end
   end

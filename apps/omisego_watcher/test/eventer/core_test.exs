@@ -21,8 +21,8 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
 
     encoded_alice_address = API.TestHelper.encode_address(alice.addr)
     encoded_bob_address = API.TestHelper.encode_address(bob.addr)
-    topic_alice = TestHelper.create_topic("address", encoded_alice_address)
-    topic_bob = TestHelper.create_topic("address", encoded_bob_address)
+    topic_alice = TestHelper.create_topic("transfer", encoded_alice_address)
+    topic_bob = TestHelper.create_topic("transfer", encoded_bob_address)
 
     event_1 = {topic_alice, "address_received", %Event.AddressReceived{tx: recovered_tx}}
 
@@ -45,7 +45,7 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
       )
 
     encoded_alice_address = API.TestHelper.encode_address(alice.addr)
-    topic = TestHelper.create_topic("address", encoded_alice_address)
+    topic = TestHelper.create_topic("transfer", encoded_alice_address)
 
     event_1 = {topic, "address_received", %Event.AddressReceived{tx: recovered_tx}}
 

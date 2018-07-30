@@ -55,18 +55,22 @@ defmodule OmiseGO.API.FeeChecker do
          {:ok, content} <- File.read(path),
          {:ok, specs} <- parse_file_content(content) do
       :ok = save_fees(specs, changed_at)
-      _ = Logger.info(fn -> "Reloaded #{Enum.count(specs)} fee specs from file, changed at #{changed_at}" end)
+
+      _ =
+        Logger.info(fn ->
+          "Reloaded #{inspect(Enum.count(specs))} fee specs from file, changed at #{inspect(changed_at)}"
+        end)
 
       :ok
     else
       {:file_unchanged, last_change_at} ->
-        _ = Logger.debug(fn -> "File unchanged, last modified at #{last_change_at}" end)
+        _ = Logger.debug(fn -> "File unchanged, last modified at #{inspect(last_change_at)}" end)
         :file_unchanged
 
       {:error, :enoent} ->
         _ =
           Logger.error(fn ->
-            "The fee specification file #{path} not found in #{System.get_env("PWD")}"
+            "The fee specification file #{inspect(path)} not found in #{System.get_env("PWD")}"
           end)
 
         {:error, :fee_spec_not_found}
@@ -130,7 +134,7 @@ defmodule OmiseGO.API.FeeChecker do
     _ = Logger.warn(fn -> "Parsing fee specification file fails with errors:" end)
 
     Enum.each(errors, fn {{:error, reason}, index} ->
-      _ = Logger.warn(fn -> " * ##{index} fee spec parser failed with error: #{inspect(reason)}" end)
+      _ = Logger.warn(fn -> " * ##{inspect(index)} fee spec parser failed with error: #{inspect(reason)}" end)
     end)
 
     # return first error

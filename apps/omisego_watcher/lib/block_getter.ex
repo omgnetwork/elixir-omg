@@ -15,7 +15,8 @@ defmodule OmiseGOWatcher.BlockGetter do
   use GenServer
   use OmiseGO.API.LoggerExt
 
-  @spec get_block(pos_integer()) :: {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
+  @spec get_block(pos_integer()) ::
+          {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
   def get_block(requested_number) do
     {:ok, {requested_hash, _time}} = Eth.get_child_chain(requested_number)
     rpc_response = OmiseGO.JSONRPC.Client.call(:get_block, %{hash: requested_hash})
@@ -29,16 +30,16 @@ defmodule OmiseGOWatcher.BlockGetter do
     end
   end
 
-  def consume_block(%{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block) do
+  defp consume_block(%{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block) do
     # TODO add check in UtxoDB after deposit handle correctly
     state_exec = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
 
     OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
 
     with nil <- Enum.find(state_exec, &(!match?({:ok, {_, _, _}}, &1))),
-         response <- OmiseGOWatcher.TransactionDB.insert(block),
+         response <- OmiseGOWatcher.TransactionDB.update_with(block),
          nil <- Enum.find(response, &(!match?({:ok, _}, &1))),
-         _ <- UtxoDB.consume_block(block),
+         _ <- UtxoDB.update_with(block),
          _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end),
          do: :ok
   end
@@ -73,7 +74,12 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:ok, next_child} = Eth.get_current_child_block()
 
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
-    _ = Logger.info(fn -> "Child chain seen at block \##{next_child}. Getting blocks #{inspect(blocks_numbers)}" end)
+
+    _ =
+      Logger.info(fn ->
+        "Child chain seen at block \##{inspect(next_child)}. Getting blocks #{inspect(blocks_numbers)}"
+      end)
+
     :ok = run_block_get_task(blocks_numbers)
 
     {:ok, _} = :timer.send_after(2_000, self(), :producer)
@@ -86,7 +92,28 @@ defmodule OmiseGOWatcher.BlockGetter do
 
     case event do
       nil ->
-        :ok = blocks_to_consume |> Enum.each(&(:ok = consume_block(&1)))
+        {:ok, %{number: blknum, transactions: _txs, hash: hash}} = response
+
+        :ok =
+          Enum.each(
+            blocks_to_consume,
+            &(:ok =
+                case consume_block(&1) do
+                  :ok ->
+                    :ok
+
+                  {:error, error_type} ->
+                    event = %Event.InvalidBlock{
+                      error_type: error_type,
+                      hash: hash,
+                      number: blknum
+                    }
+
+                    Eventer.emit_event(event)
+                    _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(event)}" end)
+                    {:error, error_type}
+                end)
+          )
 
         # 2/ try continuing the getting process immediately
         {:ok, next_child} = Eth.get_current_child_block()

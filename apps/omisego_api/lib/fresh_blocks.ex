@@ -43,7 +43,7 @@ defmodule OmiseGO.API.FreshBlocks do
 
   def handle_cast({:push, block}, state) do
     {:ok, new_state} = Core.push(block, state)
-    _ = Logger.debug(fn -> "new block pushed, blknum '#{block.number}', hash '#{block.hash}'" end)
+    _ = Logger.debug(fn -> "new block pushed, blknum '#{inspect(block.number)}', hash '#{inspect(block.hash)}'" end)
 
     {:noreply, new_state}
   end

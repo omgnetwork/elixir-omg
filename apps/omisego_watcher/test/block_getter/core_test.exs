@@ -224,7 +224,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     {state, [1_000, 2_000]} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(3_000)
 
-    assert {:ok, new_state, _, nil} = Core.got_block(state, {:ok, %Core.PotentialWithholding{blknum: 2_000}})
+    assert {:ok, _, _, nil} = Core.got_block(state, {:ok, %Core.PotentialWithholding{blknum: 2_000}})
   end
 
   test "got_block function called twice with PotentialWithholding returns BlockWithHolding event" do
@@ -240,7 +240,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     Process.sleep(500)
 
-    assert {:ok, state, _, %Event.BlockWithHolding{blknum: 2000}} =
+    assert {:ok, _, _, %Event.BlockWithHolding{blknum: 2000}} =
              Core.got_block(state, {:ok, %Core.PotentialWithholding{blknum: 2_000}})
   end
 
@@ -253,7 +253,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     state = Core.init(block_height, interval, chunk_size)
 
-    assert {:ok, _, _, %Event.InvalidBlock{error_type: :incorrect_hash, hash: hash, number: 1}} =
+    assert {:ok, _, _, %Event.InvalidBlock{error_type: :incorrect_hash, hash: ^hash, number: 1}} =
              Core.got_block(state, {:error, :incorrect_hash, hash, 1})
   end
 
