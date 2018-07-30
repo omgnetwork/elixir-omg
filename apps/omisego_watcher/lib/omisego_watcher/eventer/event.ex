@@ -49,15 +49,13 @@ defmodule OmiseGOWatcher.Eventer.Event do
 
     def name, do: "invalid_block"
 
-    defstruct [:eth_hash_block, :child_chain_hash_block, :transactions, :number, :error_type]
+    defstruct [:hash, :number, :error_type]
 
     @type t :: %__MODULE__{
-                 eth_hash_block: Block.block_hash_t(),
-                 child_chain_hash_block: Block.block_hash_t(),
-                 transactions: list(map()),
-                 number: integer(),
-                 error_type: atom(),
-               }
+            hash: Block.block_hash_t(),
+            number: integer(),
+            error_type: atom()
+          }
   end
 
   defmodule BlockWithHolding do

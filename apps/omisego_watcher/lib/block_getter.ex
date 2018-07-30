@@ -15,27 +15,18 @@ defmodule OmiseGOWatcher.BlockGetter do
   use GenServer
   use OmiseGO.API.LoggerExt
 
-  @spec get_block(pos_integer()) :: {:ok, Block.t()}
+  @spec get_block(pos_integer()) :: {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
   def get_block(requested_number) do
-#    with {:ok, {requested_hash, _time}} <- Eth.get_child_chain(requested_number),
-#         {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: requested_hash}) do
-#      case Core.decode_validate_block(json_block, requested_hash, requested_number) do
-#        {:ok, map } ->
-#          {:ok, map}
-#          {:error , error_type } ->
-#            Eventer.emit_event(%Event.InvalidBlock{
-#              eth_hash_block: requested_hash,
-#              child_chain_hash_block: json_block.hash,
-#              transactions: json_block.transactions,
-#              number: requested_number,
-#              error_type: error_type
-#            })
-#            {:error , error_type }
-#      end
-#    end
     {:ok, {requested_hash, _time}} = Eth.get_child_chain(requested_number)
     rpc_response = OmiseGO.JSONRPC.Client.call(:get_block, %{hash: requested_hash})
-    Core.decode_validate_block(rpc_response, requested_hash, requested_number)
+
+    case Core.decode_validate_block(rpc_response, requested_hash, requested_number) do
+      {:ok, map} ->
+        {:ok, map}
+
+      {:error, error_type} ->
+        {:error, error_type, requested_hash, requested_number}
+    end
   end
 
   def consume_block(%{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block) do
@@ -89,22 +80,27 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:noreply, new_state}
   end
 
-  def handle_info({_ref, {:got_block, {:ok, maybe_block}}}, state) do
+  def handle_info({_ref, {:got_block, response}}, state) do
     # 1/ process the block that arrived and consume
-    {:ok, new_state, blocks_to_consume, event} = Core.got_block(state, maybe_block)
+    {:ok, new_state, blocks_to_consume, event} = Core.got_block(state, response)
 
-    Eventer.emit_event(event)
+    case event do
+      nil ->
+        :ok = blocks_to_consume |> Enum.each(&(:ok = consume_block(&1)))
 
-    :ok = blocks_to_consume |> Enum.each(&(:ok = consume_block(&1)))
+        # 2/ try continuing the getting process immediately
+        {:ok, next_child} = Eth.get_current_child_block()
 
-    # 2/ try continuing the getting process immediately
-    {:ok, next_child} = Eth.get_current_child_block()
+        {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
 
-    {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
+        :ok = run_block_get_task(blocks_numbers)
+        {:noreply, new_state}
 
-    :ok = run_block_get_task(blocks_numbers)
-
-    {:noreply, new_state}
+      _ ->
+        Eventer.emit_event(event)
+        _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(event)}" end)
+        {:stop, :normal, state}
+    end
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}

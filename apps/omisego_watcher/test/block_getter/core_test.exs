@@ -7,13 +7,13 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   alias OmiseGO.API
   alias OmiseGO.API.Block
   alias OmiseGO.API.Crypto
-  alias OmiseGOWatcher.Eventer.Event
   alias OmiseGOWatcher.BlockGetter.Core
+  alias OmiseGOWatcher.Eventer.Event
 
   @eth Crypto.zero_address()
 
   defp got_block(state, block) do
-    assert {:ok, new_state, _, _} = Core.got_block(state, block)
+    assert {:ok, new_state, _, _} = Core.got_block(state, {:ok, block})
     new_state
   end
 
@@ -48,13 +48,13 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
       |> got_block(%Block{number: 3_000})
       |> got_block(%Block{number: 6_000})
 
-    assert {:ok, state1, [], _} = Core.got_block(state, %Block{number: 5_000})
+    assert {:ok, state1, [], _} = Core.got_block(state, {:ok, %Block{number: 5_000}})
 
     assert {:ok, state2, [%Block{number: 1_000}, %Block{number: 2_000}, %Block{number: 3_000}], _} =
-             state1 |> Core.got_block(%Block{number: 1_000})
+             state1 |> Core.got_block({:ok, %Block{number: 1_000}})
 
     assert {:ok, _, [%Block{number: 4_000}, %Block{number: 5_000}, %Block{number: 6_000}], _} =
-             state2 |> Core.got_block(%Block{number: 4_000})
+             state2 |> Core.got_block({:ok, %Block{number: 4_000}})
   end
 
   test "getting blocks to consume out of order" do
@@ -68,10 +68,10 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
              |> Core.get_new_blocks_numbers(7_000)
              |> elem(0)
              |> got_block(%Block{number: 3_000})
-             |> Core.got_block(%Block{number: 2_000})
+             |> Core.got_block({:ok, %Block{number: 2_000}})
 
     assert {:ok, _, [%Block{number: 1_000}, %Block{number: 2_000}, %Block{number: 3_000}], _} =
-             state |> Core.got_block(%Block{number: 1_000})
+             state |> Core.got_block({:ok, %Block{number: 1_000}})
   end
 
   test "start block height is not zero" do
@@ -84,7 +84,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     assert {:ok, _, [%Block{number: 7_100}, %Block{number: 7_200}], _} =
              state
              |> got_block(%Block{number: 7_200})
-             |> Core.got_block(%Block{number: 7_100})
+             |> Core.got_block({:ok, %Block{number: 7_100}})
   end
 
   test "next_child increases or decrease in calls to get_new_blocks_numbers" do
@@ -108,8 +108,10 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     {state, [1_000, 2_000]} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(3_000)
 
-    assert {:error, :duplicate} = state |> got_block(%Block{number: 2_000}) |> Core.got_block(%Block{number: 2_000})
-    assert {:error, :unexpected_blok} = state |> Core.got_block(%Block{number: 3_000})
+    assert {:error, :duplicate} =
+             state |> got_block(%Block{number: 2_000}) |> Core.got_block({:ok, %Block{number: 2_000}})
+
+    assert {:error, :unexpected_blok} = state |> Core.got_block({:ok, %Block{number: 3_000}})
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -156,7 +158,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     assert {:ok, decoded_block} = Core.decode_validate_block({:ok, block}, requested_hash, block_height + interval)
 
-    Core.got_block(state, decoded_block)
+    Core.got_block(state, {:ok, decoded_block})
   end
 
   @tag fixtures: [:alice]
@@ -197,9 +199,10 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   end
 
   test "check error return by decode_block, hash mismatch checks" do
+    hash = <<12::256>>
     block = Block.hashed_txs_at([], 1)
 
-    assert {:error, :bad_returned_hash} == Core.decode_validate_block({:ok, block}, <<12::256>>, 1)
+    assert {:error, :bad_returned_hash} == Core.decode_validate_block({:ok, block}, hash, 1)
   end
 
   test "check error return by decode_block, API.Core.recover_tx checks" do
@@ -221,7 +224,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     {state, [1_000, 2_000]} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(3_000)
 
-    assert {:ok, new_state, _, nil} = Core.got_block(state, %Core.PotentialWithholding{blknum: 2_000})
+    assert {:ok, new_state, _, nil} = Core.got_block(state, {:ok, %Core.PotentialWithholding{blknum: 2_000}})
   end
 
   test "got_block function called twice with PotentialWithholding returns BlockWithHolding event" do
@@ -230,13 +233,28 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     chunk_size = 5
     maximum_block_withholding_time = 0
 
-    {state, [1_000, 2_000]} = Core.init(block_height, interval, chunk_size, maximum_block_withholding_time) |> Core.get_new_blocks_numbers(3_000)
+    {state, [1_000, 2_000]} =
+      Core.get_new_blocks_numbers(Core.init(block_height, interval, chunk_size, maximum_block_withholding_time), 3_000)
 
-    assert {:ok, state, _, nil} = Core.got_block(state, %Core.PotentialWithholding{blknum: 2_000})
+    assert {:ok, state, _, nil} = Core.got_block(state, {:ok, %Core.PotentialWithholding{blknum: 2_000}})
 
     Process.sleep(500)
 
-    assert {:ok, state, _, %Event.BlockWithHolding{blknum: 2000}} = Core.got_block(state, %Core.PotentialWithholding{blknum: 2_000})
+    assert {:ok, state, _, %Event.BlockWithHolding{blknum: 2000}} =
+             Core.got_block(state, {:ok, %Core.PotentialWithholding{blknum: 2_000}})
+  end
+
+  test "got_block function called with error argument returns InvalidBlock event" do
+    block_height = 0
+    interval = 1_000
+    chunk_size = 5
+
+    hash = <<12::256>>
+
+    state = Core.init(block_height, interval, chunk_size)
+
+    assert {:ok, _, _, %Event.InvalidBlock{error_type: :incorrect_hash, hash: hash, number: 1}} =
+             Core.got_block(state, {:error, :incorrect_hash, hash, 1})
   end
 
   test "get_new_blocks_numbers function returns number of potential withholding block" do
@@ -245,15 +263,15 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     chunk_size = 4
     maximum_block_withholding_time = 0
 
-    {state, [1_000, 2_000, 3_000, 4_000]} = Core.init(block_height, interval, chunk_size, maximum_block_withholding_time) |> Core.get_new_blocks_numbers(20_000)
+    {state, [1_000, 2_000, 3_000, 4_000]} =
+      Core.get_new_blocks_numbers(Core.init(block_height, interval, chunk_size, maximum_block_withholding_time), 20_000)
 
     state_1 =
-          state
-          |> got_block(%Block{number: 1_000})
-          |> got_block(%Block{number: 2_000})
+      state
+      |> got_block(%Block{number: 1_000})
+      |> got_block(%Block{number: 2_000})
 
-    assert {:ok, state_2, _, nil} = Core.got_block(state_1, %Core.PotentialWithholding{blknum: 3_000})
-    assert {_, [3000, 5000, 6000]}  = Core.get_new_blocks_numbers(state_2, 20_000)
+    assert {:ok, state_2, _, nil} = Core.got_block(state_1, {:ok, %Core.PotentialWithholding{blknum: 3_000}})
+    assert {_, [3000, 5000, 6000]} = Core.get_new_blocks_numbers(state_2, 20_000)
   end
-
 end

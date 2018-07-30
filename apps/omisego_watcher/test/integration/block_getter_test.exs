@@ -105,7 +105,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     JSONRPC2.Servers.HTTP.http(BadChildChainHash, port: Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port))
 
-    # TODO asserting correctness of logs printed out, consider checking the event too
+    # TODO asserting correctness of logs printed out.
     assert capture_log(fn ->
              {:ok, _txhash} =
                Eth.submit_block(
@@ -120,7 +120,12 @@ defmodule OmiseGOWatcher.BlockGetterTest do
                )
 
              assert_block_getter_down()
-           end) =~ inspect({:error, :incorrect_hash})
+           end) =~
+             inspect(%Event.InvalidBlock{
+               error_type: :incorrect_hash,
+               hash: BadChildChainHash.different_hash(),
+               number: 1000
+             })
 
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainHash)
   end
