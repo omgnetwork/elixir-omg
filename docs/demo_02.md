@@ -1,8 +1,12 @@
-# Submitting transactions and getting a submitted block from the child chain API
+# Watching a valid and invalid child chain
 
 The following demo is a mix of commands executed in IEx (Elixir's) REPL (see README.md for instructions) and shell.
 
-Run a developer's Child chain server and start IEx REPL with code and config loaded, as described in README.md instructions.
+Run a developer's Child chain server, Watcher and start IEx REPL with code and config loaded, as described in README.md instructions.
+
+**NOTE** you'll find it useful to run the child chain server with a IEx to recompile:
+        iex -S mix run --config ...
+
 
 ```elixir
 
@@ -23,8 +27,6 @@ eth = Crypto.zero_address()
 
 {:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
 
-### START DEMO HERE
-
 # sends a deposit transaction _to Ethereum_
 {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc)
 
@@ -34,6 +36,12 @@ eth = Crypto.zero_address()
 # we need to uncover the height at which the deposit went through on the root chain
 # to do this, look in the logs inside the receipt printed just above
 deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
+
+### START DEMO HERE
+
+# we've got alice, bob prepared, also an honest child chain is running with a watcher connected
+
+# 1/ Demonstrate Watcher consuming honest transactions
 
 # create and prepare transaction for signing
 tx =
@@ -50,18 +58,32 @@ tx =
 # use the hex-encoded tx bytes and `submit` JSONRPC method described in README.md for child chain server
 
 curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "jsonrpc": "2.0","id":0}'
+
+# see the Watcher getting a 1-txs block
 ```
 
 ```elixir
-# with that block number, we can ask the root chain to give us the block hash
-child_tx_block_number =
-{:ok, {block_hash, _}} = Eth.get_child_chain(child_tx_block_number)
-Base.encode16(block_hash)
-```
 
-```bash
-# with the block hash we can get the whole block
-curl "localhost:9656" -d '{"params":{"hash":""}, "method":"get_block", "jsonrpc":"2.0", "id":0}'
+# 2/ let's break the Child chain now and say that duplicates every transaction submitted!
 
-# if you were watching, you could have decoded and validated the transaction bytes in the block
+# in order to do that you need to duplicate the `|> add_pending_tx(recovered_tx)` in API.State.Core module,
+# around line 123
+
+# now, with the code "broken" go to the `iex` repl and recompile the module
+
+r(OmiseGO.API.State.Core)
+
+# let's do a broken spend:
+
+# grab the child block number from child chain server's response to the first tx
+spend_blknum =
+
+tx2 =
+  Transaction.new([{spend_blknum, 0, 0}], eth, [{bob.addr, 7}]) |>
+  Transaction.sign(bob.priv, <<>>) |>
+  Transaction.Signed.encode() |>
+  Base.encode16()
+
+# and send using curl as above. See the Watcher puke out an error and stop (to be cleaned)
+
 ```
