@@ -60,6 +60,16 @@ defmodule OmiseGO.API.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :state_empty]
+  test "currency of created utxo matches currency of the input", %{alice: alice, state_empty: state} do
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+    |> success?
+    |> (&Core.exec(Test.create_recovered([{1000, 0, 0, alice}], eth(), [{alice, 3}]), zero_fees_map(), &1)).()
+    |> success?
+  end
+
+  @tag fixtures: [:alice, :state_empty]
   test "can decode deposits in Core", %{alice: alice, state_empty: state} do
     {:ok, alice_enc} = Crypto.encode_address(alice.addr)
     eth_enc = "0x" <> String.duplicate("00", 20)
