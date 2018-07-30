@@ -30,18 +30,24 @@ defmodule OmiseGOWatcher.BlockGetter do
     end
   end
 
+  defp consume_blocks(blocks) do
+    Enum.each(&(:ok = consume_block(&1)))
+    state_consume_blocks = for block <- blocks, do: consume_block(block)
+
+  end
+
   defp consume_block(%{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block) do
     # TODO add check in UtxoDB after deposit handle correctly
     state_exec = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
 
     OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
 
-    with nil <- Enum.find(state_exec, &(!match?({:ok, {_, _, _}}, &1))),
+    with events <- Core.check_tx_executions(state_exec),
          response <- OmiseGOWatcher.TransactionDB.update_with(block),
          nil <- Enum.find(response, &(!match?({:ok, _}, &1))),
          _ <- UtxoDB.update_with(block),
          _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end),
-         do: :ok
+         do: {:ok, events}
   end
 
   def start_link(_args) do

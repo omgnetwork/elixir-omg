@@ -256,6 +256,10 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     {:ok, %PotentialWithholding{blknum: requested_number}}
   end
 
+  def check_tx_executions(exces) do
+                            Enum.find(exces, &(!match?({:ok, {_, _, _}}, &1)
+  end
+
   # adds a new zero fee to a map of zero fee requirements
   defp zero_fee_for(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}}, fee_map) do
     Map.put(fee_map, cur12, 0)
