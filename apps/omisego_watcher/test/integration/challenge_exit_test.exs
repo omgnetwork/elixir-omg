@@ -65,7 +65,6 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
         challenge.txbytes,
         challenge.proof,
         challenge.sigs,
-        1,
         alice_address,
         contract.contract_addr
       )

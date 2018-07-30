@@ -1,6 +1,7 @@
 defmodule OmiseGO.Eth.DevHelpers do
   @moduledoc """
-  Helpers used when setting up development environment and test fixtures, related to contracts and ethereum
+  Helpers used when setting up development environment and test fixtures, related to contracts and ethereum.
+  Run against `geth --dev` and similar.
   """
 
   alias OmiseGO.API.Crypto
@@ -62,6 +63,49 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, account_enc}
   end
 
+  def deposit(value, from \\ nil, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
+    from = from || Application.get_env(:omisego_eth, :authority_addr)
+
+    contract_transact(from, nil, value, contract, "deposit()", [])
+  end
+
+  def deposit_blknum_from_receipt(receipt) do
+    %{"logs" => [%{"data" => logs_data}]} = receipt
+    # parsing log corresponding to Deposit(address,uint256,address,uint256)
+    # TODO: this is too fragile. Use proper library to parse this log
+    <<"0x", _depositor_hex_padded::binary-size(64), deposit_blknum_enc::binary-size(64), _token::binary-size(64),
+      _amount::binary-size(64)>> = logs_data
+
+    {deposit_blknum, ""} = Integer.parse(deposit_blknum_enc, 16)
+    deposit_blknum
+  end
+
+  def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, from, contract) do
+    signature = "challengeExit(uint256,uint256,bytes,bytes,bytes)"
+    args = [cutxopo, eutxoindex, txbytes, proof, sigs]
+    contract_transact(from, nil, nil, contract, signature, args)
+  end
+
+  def mine_eth_dev_block do
+    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
+    txmap = %{from: addr, to: addr, value: "0x1"}
+    {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+    {:ok, _receipt} = WaitFor.eth_receipt(txhash, 1_000)
+  end
+
+  def create_new_contract(path_project_root, addr) do
+    bytecode = get_bytecode!(path_project_root, "RootChain")
+    deploy_contract(addr, bytecode, [], [])
+  end
+
+  def create_new_token(path_project_root, addr) do
+    bytecode = get_bytecode!(path_project_root, "MintableToken")
+    deploy_contract(addr, bytecode, [], [])
+  end
+
+  # private
+
   defp unlock_fund(account_enc) do
     {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(account_enc, "", 0)
 
@@ -83,70 +127,29 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, txhash, contract_address}
   end
 
-  def deposit(value, nonce, from \\ nil, contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    from = from || Application.get_env(:omisego_eth, :authority_addr)
+  defp contract_transact(from, nonce, value, to, signature, args, gas \\ 4_190_937) do
+    data = encode_tx_data(signature, args)
 
-    data =
-      "deposit()"
-      |> ABI.encode([])
-      |> Base.encode16()
+    maybe_put = fn
+      map, _key, nil -> map
+      map, key, value -> Map.put(map, key, encode_eth_rpc_unsigned_int(value))
+    end
 
-    gas = 100_000
+    txmap =
+      %{from: from, to: to, data: "0x" <> data, gas: encode_eth_rpc_unsigned_int(gas)}
+      |> maybe_put.(:nonce, nonce)
+      |> maybe_put.(:value, value)
 
-    Ethereumex.HttpClient.eth_send_transaction(%{
-      from: from,
-      to: contract,
-      gas: encode_eth_rpc_unsigned_int(gas),
-      gasPrice: encode_eth_rpc_unsigned_int(21_000_000_000),
-      value: encode_eth_rpc_unsigned_int(value),
-      data: "0x#{data}",
-      nonce: if(nonce == 0, do: "0x0", else: encode_eth_rpc_unsigned_int(nonce))
-    })
+    {:ok, _txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
   end
 
-  def deposit_blknum_from_receipt(receipt) do
-    %{"logs" => [%{"data" => logs_data}]} = receipt
-    # parsing log corresponding to Deposit(address,uint256,address,uint256)
-    # TODO: this is too fragile. Use proper library to parse this log
-    <<"0x", _depositor_hex_padded::binary-size(64), deposit_blknum_enc::binary-size(64), _token::binary-size(64),
-      _amount::binary-size(64)>> = logs_data
-
-    {deposit_blknum, ""} = Integer.parse(deposit_blknum_enc, 16)
-    deposit_blknum
-  end
-
-  def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, gas_price, from, contract) do
-    data =
-      "challengeExit(uint256,uint256,bytes,bytes,bytes)"
-      |> ABI.encode([cutxopo, eutxoindex, txbytes, proof, sigs])
-      |> Base.encode16()
-
-    gas = 1_000_000
-
-    Ethereumex.HttpClient.eth_send_transaction(%{
-      from: from,
-      to: contract,
-      data: "0x#{data}",
-      gas: encode_eth_rpc_unsigned_int(gas),
-      gasPrice: encode_eth_rpc_unsigned_int(gas_price)
-    })
-  end
-
-  def mine_eth_dev_block do
-    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
-    txmap = %{from: addr, to: addr, value: "0x1"}
-    {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    {:ok, _receipt} = WaitFor.eth_receipt(txhash, 1_000)
-  end
-
-  def create_new_contract(path_project_root, addr) do
-    %{"RootChain" => %{"bytecode" => bytecode}} =
+  defp get_bytecode!(path_project_root, contract_name) do
+    %{^contract_name => %{"bytecode" => bytecode}} =
       path_project_root
       |> read_contracts_json!()
       |> Poison.decode!()
 
-    deploy_contract(addr, bytecode, [], [])
+    bytecode
   end
 
   defp read_contracts_json!(path_project_root) do
@@ -160,6 +163,14 @@ defmodule OmiseGO.Eth.DevHelpers do
           "populus/build/contracts.json not read because #{reason}, try running mix deps.compile plasma_contracts"
         )
     end
+  end
+
+  defp encode_tx_data(signature, args) do
+    args = for arg <- args, do: cleanup(arg)
+
+    signature
+    |> ABI.encode(args)
+    |> Base.encode16()
   end
 
   defp encode_constructor_params(args, types) do

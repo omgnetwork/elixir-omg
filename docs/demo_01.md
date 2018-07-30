@@ -26,7 +26,7 @@ eth = Crypto.zero_address()
 ### START DEMO HERE
 
 # sends a deposit transaction _to Ethereum_
-{:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc)
+{:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, alice_enc)
 
 # need to wait until its mined
 {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)

@@ -4,7 +4,7 @@ defmodule OmiseGOWatcher.Integration.TestHelper do
 
   def deposit_to_child_chain(to, value, contract) do
     {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
-    {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(value, 0, destiny_enc, contract.contract_addr)
+    {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(value, destiny_enc, contract.contract_addr)
     {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
     deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
 
