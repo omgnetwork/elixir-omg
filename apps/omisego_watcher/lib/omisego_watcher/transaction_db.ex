@@ -58,8 +58,20 @@ defmodule OmiseGOWatcher.TransactionDB do
   end
 
   def get(id) do
-    __MODULE__
-    |> Repo.get(id)
+    # FIXME: how should this be handled in good-phoenix code? consider enciding all binaries in DB?
+    resp =
+      __MODULE__
+      |> Repo.get(Base.decode16!(id))
+
+    %{
+      resp
+      | txid: Base.encode16(resp.txid),
+        cur12: Base.encode16(resp.cur12),
+        newowner1: Base.encode16(resp.newowner1),
+        newowner2: Base.encode16(resp.newowner2),
+        sig1: Base.encode16(resp.sig1),
+        sig2: Base.encode16(resp.sig2)
+    }
   end
 
   def find_by_txblknum(txblknum) do

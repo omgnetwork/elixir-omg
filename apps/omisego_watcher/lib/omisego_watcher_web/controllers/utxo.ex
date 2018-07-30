@@ -14,6 +14,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
 
     json(conn, %{
       address: address,
+      # FIXME we shouldn't use JSONRPC from here
       utxos: JSONRPC.Client.encode(UtxoDB.get_utxo(address_decode))
     })
   end
@@ -25,6 +26,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
 
     composed_utxo_exit = UtxoDB.compose_utxo_exit(block_height, txindex, oindex)
 
+    # FIXME we shouldn't use JSONRPC from here
     json(conn, JSONRPC.Client.encode(composed_utxo_exit))
   end
 end

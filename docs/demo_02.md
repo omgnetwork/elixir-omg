@@ -86,4 +86,15 @@ tx2 =
 
 # and send using curl as above. See the Watcher puke out an error and stop (to be cleaned)
 
+# 3/ Invalid exits
+
+# re-prepare everything for the invalid exit demo
+exiting_utxo_block_nr =
+
+tx2 =
+  Transaction.new([{exiting_utxo_block_nr, 0, 0}], eth, [{bob.addr, 7}]) |>
+  Transaction.sign(bob.priv, <<>>) |>
+  Transaction.Signed.encode() |>
+  Base.encode16()
+
 ```
