@@ -29,7 +29,12 @@ defmodule OmiseGOWatcher.BlockGetter do
          nil <- Enum.find(response, &(!match?({:ok, _}, &1))),
          _ <- UtxoDB.update_with(block) do
       _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end)
-      OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
+      child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
+
+      # TODO: substitute for Ethereum height where this block originated from (see bugs in tracker)
+      #       after we have a way to cheaply get it using RootChainCoordinator
+      eth_height = 0
+      :ok = OmiseGO.API.State.close_block(child_block_interval, eth_height)
       :ok
     end
   end

@@ -253,17 +253,6 @@ defmodule OmiseGO.Eth do
          do: {:ok, Enum.sort(block_submissions, &(&1.timestamp > &2.timestamp))}
   end
 
-  @doc """
-  Returns associated information to block submission
-  """
-  @spec get_block_submission(binary()) :: %{root: binary, timestamp: pos_integer, eth_height: pos_integer}
-  def get_block_submission(block_hash) do
-    # TODO rethink what to do with first argument of get_block_submissions
-    with {:ok, height} = get_ethereum_height(),
-         {:ok, block_submissions} = get_block_submissions(1, height),
-         do: block_submissions |> Enum.find(&(&1.root == block_hash))
-  end
-
   defp encode_event_signature(signature) do
     # TODO: consider moving crypto to a umbrella app and use it across other apps
     # "consider" because `omisego_api` is now our "imported_by_all" app, and we're kind of "fine". To reevaluate
