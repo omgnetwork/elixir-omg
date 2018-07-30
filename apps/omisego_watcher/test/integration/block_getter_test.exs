@@ -49,7 +49,9 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
     {:ok, {block_hash, _}} = Eth.get_child_chain(block_nr)
-    %{eth_height: eth_height} = Eth.get_block_submission(block_hash)
+
+    # TODO: this is turned off now and set to zero. Rethink test after this gets fixed (possibly test differently)
+    eth_height = 0
 
     address_received_event =
       Client.encode(%Event.AddressReceived{
