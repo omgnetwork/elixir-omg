@@ -17,10 +17,6 @@ defmodule OmiseGOWatcher.Eventer do
     GenServer.cast(__MODULE__, {:emit_events, event_triggers})
   end
 
-  def emit_event(event) do
-    GenServer.cast(__MODULE__, {:emit_event, event})
-  end
-
   ### Server
 
   use GenServer
@@ -35,18 +31,6 @@ defmodule OmiseGOWatcher.Eventer do
     |> Enum.each(fn {topic, event_name, event} ->
       :ok = Endpoint.broadcast!(topic, event_name, JSONRPC.Client.encode(event))
     end)
-
-    {:noreply, state}
-  end
-
-  def handle_cast({:emit_event, nil}, state) do
-    {:noreply, state}
-  end
-
-  def handle_cast({:emit_event, event_trigger}, state) do
-    {topic, event_name, event} = Core.prepare_event(event_trigger)
-
-    Endpoint.broadcast!(topic, event_name, event)
 
     {:noreply, state}
   end

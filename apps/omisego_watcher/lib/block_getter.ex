@@ -88,46 +88,63 @@ defmodule OmiseGOWatcher.BlockGetter do
 
   def handle_info({_ref, {:got_block, response}}, state) do
     # 1/ process the block that arrived and consume
-    {:ok, new_state, blocks_to_consume, event} = Core.got_block(state, response)
+    {continue, new_state, blocks_to_consume, events} = Core.got_block(state, response)
+    Eventer.emit_events(events)
+    consume_status = consume_blocks(blocks_to_consume)
 
-    case event do
-      nil ->
-        {:ok, %{number: blknum, transactions: _txs, hash: hash}} = response
-
-        :ok =
-          Enum.each(
-            blocks_to_consume,
-            &(:ok =
-                case consume_block(&1) do
-                  :ok ->
-                    :ok
-
-                  {:error, error_type} ->
-                    event = %Event.InvalidBlock{
-                      error_type: error_type,
-                      hash: hash,
-                      number: blknum
-                    }
-
-                    Eventer.emit_event(event)
-                    _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(event)}" end)
-                    {:error, error_type}
-                end)
-          )
-
-        # 2/ try continuing the getting process immediately
-        {:ok, next_child} = Eth.get_current_child_block()
-
-        {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
-
-        :ok = run_block_get_task(blocks_numbers)
-        {:noreply, new_state}
-
-      _ ->
-        Eventer.emit_event(event)
-        _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(event)}" end)
+    with :ok <- continue,
+         :ok <- consume_status do
+      # the next_child thing
+      {:noreply, new_status}
+    else
+      {:needs_stopping, reason} ->
+        # log
         {:stop, :normal, state}
     end
+
+#    {continue, new_state, blocks_to_consume, events} = Core.got_block(state,response)
+#    Enum.each(events, emit_event)
+#    consume_status = consume_blocks(blocks_to_consume) # this Enum.maps with consume_block and if anything isn't :ok returns that
+
+
+#    case event do
+#      nil ->
+#        {:ok, %{number: blknum, transactions: _txs, hash: hash}} = response
+#
+#        :ok =
+#          Enum.each(
+#            blocks_to_consume,
+#            &(:ok =
+#                case consume_block(&1) do
+#                  :ok ->
+#                    :ok
+#
+#                  {:error, error_type} ->
+#                    event = %Event.InvalidBlock{
+#                      error_type: error_type,
+#                      hash: hash,
+#                      number: blknum
+#                    }
+#
+#                    Eventer.emit_events([event])
+#                    _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(event)}" end)
+#                    {:error, error_type}
+#                end)
+#          )
+#
+#        # 2/ try continuing the getting process immediately
+#        {:ok, next_child} = Eth.get_current_child_block()
+#
+#        {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
+#
+#        :ok = run_block_get_task(blocks_numbers)
+#        {:noreply, new_state}
+#
+#      _ ->
+#        Eventer.emit_events([event])
+#        _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(event)}" end)
+#        {:stop, :normal, state}
+#    end
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
