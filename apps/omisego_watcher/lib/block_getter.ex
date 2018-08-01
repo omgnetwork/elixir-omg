@@ -9,7 +9,6 @@ defmodule OmiseGOWatcher.BlockGetter do
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.Eventer
-  alias OmiseGOWatcher.Eventer.Event
   alias OmiseGOWatcher.UtxoDB
 
   use GenServer
@@ -20,34 +19,44 @@ defmodule OmiseGOWatcher.BlockGetter do
   def get_block(requested_number) do
     {:ok, {requested_hash, _time}} = Eth.get_child_chain(requested_number)
     rpc_response = OmiseGO.JSONRPC.Client.call(:get_block, %{hash: requested_hash})
-
-    case Core.decode_validate_block(rpc_response, requested_hash, requested_number) do
-      {:ok, map} ->
-        {:ok, map}
-
-      {:error, error_type} ->
-        {:error, error_type, requested_hash, requested_number}
-    end
+    Core.decode_validate_block(rpc_response, requested_hash, requested_number)
   end
 
-  defp consume_blocks(blocks) do
-    Enum.each(&(:ok = consume_block(&1)))
-    state_consume_blocks = for block <- blocks, do: consume_block(block)
-
-  end
-
-  defp consume_block(%{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block) do
-    # TODO add check in UtxoDB after deposit handle correctly
-    state_exec = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
+  def handle_cast(
+        {:consume_block,
+         %{hash: hash, transactions: transactions, number: blknum, zero_fee_requirements: fees} = block},
+        state
+      ) do
+    state_exec_results = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
 
     OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
 
-    with events <- Core.check_tx_executions(state_exec),
+    {continue, events} = Core.check_tx_executions(state_exec_results, block)
+
+    Eventer.emit_events(events)
+
+    with :ok <- continue,
          response <- OmiseGOWatcher.TransactionDB.update_with(block),
          nil <- Enum.find(response, &(!match?({:ok, _}, &1))),
          _ <- UtxoDB.update_with(block),
-         _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end),
-         do: {:ok, events}
+         _ <- Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end),
+         {:ok, next_child} <- Eth.get_current_child_block(),
+         {new_state, blocks_numbers} <- Core.get_new_blocks_numbers(state, next_child),
+         :ok <- run_block_get_task(blocks_numbers) do
+      _ =
+        Logger.info(fn ->
+          short_hash = hash |> Base.encode16() |> Binary.drop(-48)
+
+          "Received block \##{inspect(blknum)} #{short_hash}... with #{inspect(length(transactions))} txs." <>
+            " Child chain seen at block \##{inspect(next_child)}. Getting blocks #{inspect(blocks_numbers)}"
+        end)
+
+      {:noreply, new_state}
+    else
+      _ ->
+        _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(events)}" end)
+        {:stop, :normal, state}
+    end
   end
 
   def start_link(_args) do
@@ -95,62 +104,17 @@ defmodule OmiseGOWatcher.BlockGetter do
   def handle_info({_ref, {:got_block, response}}, state) do
     # 1/ process the block that arrived and consume
     {continue, new_state, blocks_to_consume, events} = Core.got_block(state, response)
-    Eventer.emit_events(events)
-    consume_status = consume_blocks(blocks_to_consume)
 
-    with :ok <- continue,
-         :ok <- consume_status do
-      # the next_child thing
-      {:noreply, new_status}
+    Eventer.emit_events(events)
+
+    with :ok <- continue do
+      Enum.each(blocks_to_consume, fn block -> GenServer.cast(__MODULE__, {:consume_block, block}) end)
+      {:noreply, new_state}
     else
-      {:needs_stopping, reason} ->
-        # log
+      :error ->
+        _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(events)}" end)
         {:stop, :normal, state}
     end
-
-#    {continue, new_state, blocks_to_consume, events} = Core.got_block(state,response)
-#    Enum.each(events, emit_event)
-#    consume_status = consume_blocks(blocks_to_consume) # this Enum.maps with consume_block and if anything isn't :ok returns that
-
-
-#    case event do
-#      nil ->
-#        {:ok, %{number: blknum, transactions: _txs, hash: hash}} = response
-#
-#        :ok =
-#          Enum.each(
-#            blocks_to_consume,
-#            &(:ok =
-#                case consume_block(&1) do
-#                  :ok ->
-#                    :ok
-#
-#                  {:error, error_type} ->
-#                    event = %Event.InvalidBlock{
-#                      error_type: error_type,
-#                      hash: hash,
-#                      number: blknum
-#                    }
-#
-#                    Eventer.emit_events([event])
-#                    _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(event)}" end)
-#                    {:error, error_type}
-#                end)
-#          )
-#
-#        # 2/ try continuing the getting process immediately
-#        {:ok, next_child} = Eth.get_current_child_block()
-#
-#        {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
-#
-#        :ok = run_block_get_task(blocks_numbers)
-#        {:noreply, new_state}
-#
-#      _ ->
-#        Eventer.emit_events([event])
-#        _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(event)}" end)
-#        {:stop, :normal, state}
-#    end
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}

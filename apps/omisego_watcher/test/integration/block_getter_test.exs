@@ -9,6 +9,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   alias OmiseGO.Eth
   alias OmiseGOWatcher.Eventer.Event
   alias OmiseGOWatcher.TestHelper
+  alias OmiseGOWatcherWeb.ByzantineChannel
   alias OmiseGOWatcherWeb.TransferChannel
   alias OmiseGOWatcher.Integration.TestHelper, as: IntegrationTest
   alias OmiseGO.JSONRPC.Client
@@ -110,9 +111,11 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       end
     end
 
+    {:ok, _, _socket} = subscribe_and_join(socket(), ByzantineChannel, "byzantine")
+
     JSONRPC2.Servers.HTTP.http(BadChildChainHash, port: Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port))
 
-    # TODO asserting correctness of logs printed out.
+    # TODO asserting correctness of logs printed out, consider checking the event too
     assert capture_log(fn ->
              {:ok, _txhash} =
                Eth.submit_block(
@@ -182,7 +185,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
              assert_block_getter_down()
            end) =~
              inspect(%Event.InvalidBlock{
-               error_type: :utxo_not_found,
+               error_type: :tx_execution,
                hash: hash,
                number: 1000
              })

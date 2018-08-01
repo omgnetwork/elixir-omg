@@ -139,7 +139,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
 
       state2 = %{state2 | potential_block_withholdings: Map.delete(potential_block_withholdings, number)}
 
-      {:ok, state2, list_block_to_consume, nil}
+      {:ok, state2, list_block_to_consume, []}
     else
       error -> {:error, error}
     end
@@ -147,14 +147,16 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
 
   def got_block(%__MODULE__{} = state, {:error, error_type, hash, number}) do
     {
-      :ok,
+      :error,
       state,
       [],
-      %Event.InvalidBlock{
-        error_type: error_type,
-        hash: hash,
-        number: number
-      }
+      [
+        %Event.InvalidBlock{
+          error_type: error_type,
+          hash: hash,
+          number: number
+        }
+      ]
     }
   end
 
@@ -169,18 +171,23 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     current_time = :os.system_time(:millisecond)
     blknum_time = Map.get(potential_block_withholdings, blknum)
 
-    if blknum_time && current_time - blknum_time > maximum_block_withholding_time do
-      {:ok, state, [], %Event.BlockWithHolding{blknum: blknum}}
-    else
-      potential_block_withholdings = Map.put(potential_block_withholdings, blknum, current_time)
+    cond do
+      blknum_time == nil ->
+        potential_block_withholdings = Map.put(potential_block_withholdings, blknum, current_time)
 
-      state = %{
-        state
-        | potential_block_withholdings: potential_block_withholdings,
-          waiting_for_blocks: waiting_for_blocks - 1
-      }
+        state = %{
+          state
+          | potential_block_withholdings: potential_block_withholdings,
+            waiting_for_blocks: waiting_for_blocks - 1
+        }
 
-      {:ok, state, [], nil}
+        {:ok, state, [], []}
+
+      current_time - blknum_time > maximum_block_withholding_time ->
+        {:error, state, [], [%Event.BlockWithHolding{blknum: blknum}]}
+
+      true ->
+        {:ok, state, [], []}
     end
   end
 
@@ -243,7 +250,10 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
              hash: returned_hash,
              zero_fee_requirements: zero_fee_requirements
            }},
-        else: {:error, :incorrect_hash}
+        else: {:error, :incorrect_hash, requested_hash, requested_number}
+    else
+      {:error, error_type} ->
+        {:error, error_type, requested_hash, requested_number}
     end
   end
 
@@ -256,8 +266,20 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     {:ok, %PotentialWithholding{blknum: requested_number}}
   end
 
-  def check_tx_executions(exces) do
-                            Enum.find(exces, &(!match?({:ok, {_, _, _}}, &1)
+  def check_tx_executions(exces, %{hash: hash, number: blknum}) do
+    with nil <- Enum.find(exces, &(!match?({:ok, {_, _, _}}, &1))) do
+      {:ok, []}
+    else
+      _ ->
+        {:error,
+         [
+           %Event.InvalidBlock{
+             error_type: :tx_execution,
+             hash: hash,
+             number: blknum
+           }
+         ]}
+    end
   end
 
   # adds a new zero fee to a map of zero fee requirements
