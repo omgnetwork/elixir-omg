@@ -31,11 +31,11 @@ defmodule OmiseGOWatcher.BlockGetter do
 
     OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
 
-    {continue, events} = Core.check_tx_executions(state_exec_results, block)
+    {_, events} = response = Core.check_tx_executions(state_exec_results, block)
 
     Eventer.emit_events(events)
 
-    with :ok <- continue,
+    with {:ok, []} <- response,
          response <- OmiseGOWatcher.TransactionDB.update_with(block),
          nil <- Enum.find(response, &(!match?({:ok, _}, &1))),
          _ <- UtxoDB.update_with(block),
@@ -53,8 +53,8 @@ defmodule OmiseGOWatcher.BlockGetter do
 
       {:noreply, new_state}
     else
-      _ ->
-        _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(events)}" end)
+      {:error, reason} ->
+        _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(reason)}" end)
         {:stop, :normal, state}
     end
   end
