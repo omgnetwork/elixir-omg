@@ -18,6 +18,8 @@ defmodule OmiseGOWatcher.ExitValidator do
   def init({last_exit_block_height_callback, utxo_exists_callback, synced_block_margin, update_key, service_name}) do
     # gets last ethereum block height that we fetched exits from
     {:ok, last_exit_block_height} = last_exit_block_height_callback.()
+
+    :ok = RootChainCoordinator.set_service_height(last_exit_block_height, service_name)
     schedule_validate_exits()
 
     {:ok,
@@ -33,21 +35,25 @@ defmodule OmiseGOWatcher.ExitValidator do
 
   def handle_info(
         :validate_exits,
-        %Core{synced_height: synced_height, last_exit_block_height: last_exit_block_height} = state
+        %Core{last_exit_block_height: last_exit_block_height} = state
       ) do
-    {:ok, next_height} = RootChainCoordinator.synced(synced_height, state.service_name)
-
-    case Core.next_events_block_height(state, next_height) do
-      {block_height_to_get_exits_from, state, db_updates} ->
-        {:ok, utxo_exits} = OmiseGO.Eth.get_exits(last_exit_block_height, block_height_to_get_exits_from)
-        :ok = validate_exits(utxo_exits, state)
-        :ok = OmiseGO.DB.multi_update(db_updates)
-        schedule_validate_exits()
+    case RootChainCoordinator.get_height() do
+      :no_sync ->
         {:noreply, state}
 
-      :empty_range ->
-        schedule_validate_exits()
-        {:noreply, state}
+      {:sync, next_sync_height} ->
+        case Core.next_events_block_height(state, next_sync_height) do
+          {block_height_to_get_exits_from, state, db_updates} ->
+            {:ok, utxo_exits} = OmiseGO.Eth.get_exits(last_exit_block_height, block_height_to_get_exits_from)
+            :ok = validate_exits(utxo_exits, state)
+            :ok = OmiseGO.DB.multi_update(db_updates)
+            :ok = RootChainCoordinator.set_service_height(next_sync_height, state.service_name)
+
+            {:noreply, state}
+
+          :empty_range ->
+            {:noreply, state}
+        end
     end
   end
 
@@ -70,7 +76,7 @@ defmodule OmiseGOWatcher.ExitValidator do
     end
   end
 
-  defp schedule_validate_exits do
-    Process.send_after(self(), :validate_exits, 0)
+  defp schedule_validate_exits(interval \\ 200) do
+    :timer.send_interval(interval, self(), :validate_exits)
   end
 end

@@ -75,8 +75,6 @@ defmodule OmiseGOWatcher.Application do
   end
 
   defp slow_validator_utxo_exists_callback(utxo_exit) do
-    IO.puts("Slow validator spends #{inspect(utxo_exit)}")
-
     with :ok <- OmiseGO.API.State.exit_if_not_spent(utxo_exit) do
       :ok
     else

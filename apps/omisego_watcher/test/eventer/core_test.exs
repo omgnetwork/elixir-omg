@@ -35,18 +35,8 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob]
-<<<<<<< 7c2d63dcfac4f746e573fd8302469f55d2898e8a
   test "prepare_events function generates 1 proper address_received events", %{alice: alice} do
-    recovered_tx =
-      API.TestHelper.create_recovered(
-        [{1, 0, 0, alice}],
-        API.Crypto.zero_address(),
-        [{alice, 100}]
-      )
-=======
-  test "notify function generates 1 proper address_received events", %{alice: alice} do
     recovered_tx = API.TestHelper.create_recovered([{1, 0, 0, alice}], API.Crypto.zero_address(), [{alice, 100}])
->>>>>>> OMG-138 Sync on Ethereum block height when fetching deposits, exits, blocks
 
     encoded_alice_address = API.TestHelper.encode_address(alice.addr)
     topic = TestHelper.create_topic("transfer", encoded_alice_address)

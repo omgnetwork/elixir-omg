@@ -3,14 +3,16 @@ defmodule OmiseGO.API.EthereumEventListener.Core do
   Functional core of event listener
   """
 
-  defstruct current_block_height: nil,
+  defstruct next_event_height_lower_bound: nil,
+            synced_height: nil,
             service_name: nil,
             block_finality_margin: 10,
             get_ethereum_events_callback: nil,
             process_events_callback: nil
 
   @type t() :: %__MODULE__{
-          current_block_height: pos_integer(),
+          next_event_height_lower_bound: non_neg_integer(),
+          synced_height: non_neg_integer(),
           service_name: atom(),
           block_finality_margin: non_neg_integer(),
           get_ethereum_events_callback: fun(),
@@ -20,21 +22,27 @@ defmodule OmiseGO.API.EthereumEventListener.Core do
   @doc """
   Returns next Ethereum height to get events from.
   """
-  @spec next_events_block_height(t(), pos_integer) :: {:get_events, pos_integer(), t()} | {:dont_get_events, t()}
-  def next_events_block_height(
+  @spec next_events_block_range(t(), pos_integer) :: {:get_events, pos_integer(), t()} | {:dont_get_events, t()}
+  def next_events_block_range(%__MODULE__{synced_height: synced_height} = state, next_sync_height)
+      when next_sync_height <= synced_height do
+    {:dont_get_events, state}
+  end
+
+  def next_events_block_range(
         %__MODULE__{
-          current_block_height: current_block_height,
+          next_event_height_lower_bound: next_event_height_lower_bound,
           block_finality_margin: block_finality_margin
         } = state,
         next_sync_height
-      )
-      when next_sync_height == current_block_height + 1 do
-    new_state = %{state | current_block_height: next_sync_height}
-    {:get_events, next_sync_height - block_finality_margin, new_state}
-  end
+      ) do
+    next_event_height_upper_bound = next_sync_height - block_finality_margin
 
-  def next_events_block_height(%__MODULE__{current_block_height: current_block_height} = state, next_sync_height)
-      when next_sync_height <= current_block_height do
-    {:dont_get_events, state}
+    new_state = %{
+      state
+      | synced_height: next_sync_height,
+        next_event_height_lower_bound: next_event_height_upper_bound + 1
+    }
+
+    {:get_events, {next_event_height_lower_bound, next_event_height_upper_bound}, new_state}
   end
 end

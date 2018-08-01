@@ -10,63 +10,51 @@ defmodule OmiseGO.API.RootChainCoordinator.CoreTest do
 
   @tag fixtures: [:initial_state]
   test "does not synchronize service that is not allowed", %{initial_state: state} do
-    :service_not_allowed = Core.sync(state, {self(), :tag}, 10, :unallowed_service)
+    :service_not_allowed = Core.sync(state, :c.pid(0, 1, 0), 10, :unallowed_service)
   end
 
   @tag fixtures: [:initial_state]
   test "synchronizes services", %{initial_state: state} do
-    depositer_handle = {:c.pid(0, 1, 0), :depositer_handle}
-    exiter_handle = {:c.pid(0, 2, 0), :exiter_handle}
-    depositer_height = 9
-    {:no_sync, state} = Core.sync(state, depositer_handle, depositer_height, :depositer)
-
-    exiter_height = 8
-    {:sync, [^exiter_handle], ^depositer_height, state} = Core.sync(state, exiter_handle, exiter_height, :exiter)
-
-    exiter_height = 9
-    next_sync_height = 10
-
-    {:sync, [^depositer_handle, ^exiter_handle], ^next_sync_height, state} =
-      Core.sync(state, exiter_handle, exiter_height, :exiter)
-
-    depositer_height = 10
-    {:no_sync, state} = Core.sync(state, depositer_handle, depositer_height, :depositer)
-    exiter_height = 10
-    {:no_sync, _} = Core.sync(state, exiter_handle, exiter_height, :exiter)
-  end
-
-  @tag fixtures: [:initial_state]
-  test "deregisters a service", %{initial_state: state} do
-    depositor_pid = :c.pid(0, 1, 0)
-    depositer_handle = {depositor_pid, :depositer_handle}
+    depositer_pid = :c.pid(0, 1, 0)
     exiter_pid = :c.pid(0, 2, 0)
-    exiter_handle = {exiter_pid, :exiter_handle}
-    height = 8
-    next_sync_height = 9
-    {:no_sync, state} = Core.sync(state, depositer_handle, height, :depositer)
 
-    {:sync, [^depositer_handle, ^exiter_handle], ^next_sync_height, state} =
-      Core.sync(state, exiter_handle, height, :exiter)
+    {:ok, state} = Core.sync(state, exiter_pid, 1, :exiter)
+    :no_sync = Core.get_rootchain_height(state)
 
-    state = Core.deregister_service(state, exiter_pid)
+    {:ok, state} = Core.sync(state, depositer_pid, 2, :depositer)
+    {:sync, 2} = Core.get_rootchain_height(state)
 
-    {:no_sync, state} = Core.sync(state, depositer_handle, next_sync_height, :depositer)
-    {:sync, [^depositer_handle, ^exiter_handle], 10, _} = Core.sync(state, exiter_handle, next_sync_height, :exiter)
+    {:ok, state} = Core.sync(state, exiter_pid, 1, :exiter)
+    {:sync, 2} = Core.get_rootchain_height(state)
+    {:ok, state} = Core.sync(state, exiter_pid, 2, :exiter)
+    {:sync, 3} = Core.get_rootchain_height(state)
   end
 
   @tag fixtures: [:initial_state]
-  test "updates root height", %{initial_state: state} do
-    depositer_handle = {:c.pid(0, 1, 0), :depositer_handle}
-    exiter_handle = {:c.pid(0, 2, 0), :exiter_handle}
-    height = 9
-    next_sync_height = 10
-    {:no_sync, state} = Core.sync(state, exiter_handle, height, :exiter)
+  test "deregisters and registers a service", %{initial_state: state} do
+    depositer_pid = :c.pid(0, 1, 0)
+    exiter_pid = :c.pid(0, 2, 0)
 
-    {:sync, [^depositer_handle, ^exiter_handle], ^next_sync_height, state} =
-      Core.sync(state, depositer_handle, height, :depositer)
+    {:ok, state} = Core.sync(state, exiter_pid, 1, :exiter)
+    {:ok, state} = Core.sync(state, depositer_pid, 1, :depositer)
+    {:sync, 2} = Core.get_rootchain_height(state)
 
-    height = next_sync_height
-    {:no_sync, state} = Core.sync(state, exiter_handle, height, :exiter)
-    {:no_sync, _} = Core.sync(state, depositer_handle, height, :depositer)
+    {:ok, state} = Core.deregister_service(state, depositer_pid)
+    :no_sync = Core.get_rootchain_height(state)
+    {:ok, state} = Core.sync(state, depositer_pid, 1, :depositer)
+    {:sync, 2} = Core.get_rootchain_height(state)
+  end
+
+  @tag fixtures: [:initial_state]
+  test "updates rootchain height", %{initial_state: state} do
+    depositer_pid = :c.pid(0, 1, 0)
+    exiter_pid = :c.pid(0, 2, 0)
+
+    {:ok, state} = Core.sync(state, exiter_pid, 10, :exiter)
+    {:ok, state} = Core.sync(state, depositer_pid, 10, :depositer)
+    {:sync, 10} = Core.get_rootchain_height(state)
+
+    {:ok, state} = Core.update_rootchain_height(state, 11)
+    {:sync, 11} = Core.get_rootchain_height(state)
   end
 end

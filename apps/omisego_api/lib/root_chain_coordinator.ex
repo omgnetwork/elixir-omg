@@ -14,8 +14,16 @@ defmodule OmiseGO.API.RootChainCoordinator do
   Notifies that calling service with name `service_name` is synced up to height `synced_height`.
   `synced_height` is the height that the service is synced when calling this function.
   """
-  def synced(synced_height, service_name) do
-    GenServer.call(__MODULE__, {:service_synced, synced_height, service_name}, :infinity)
+  def set_service_height(synced_height, service_name) do
+    GenServer.call(__MODULE__, {:set_service_height, synced_height, service_name}, :infinity)
+  end
+
+  @doc """
+  Notifies that calling service with name `service_name` is synced up to height `synced_height`.
+  `synced_height` is the height that the service is synced when calling this function.
+  """
+  def get_height do
+    GenServer.call(__MODULE__, :get_rootchain_height, :infinity)
   end
 
   use GenServer
@@ -27,43 +35,27 @@ defmodule OmiseGO.API.RootChainCoordinator do
     {:ok, state}
   end
 
-  def handle_call({:service_synced, synced_height, service_name}, from, state) do
-    case Core.sync(state, from, synced_height, service_name) do
-      {:sync, services_waiting_for_next_height, next_height, state} ->
-        sync_services(services_waiting_for_next_height, next_height)
-        {:noreply, state}
-
-      {:no_sync, state} ->
-        {:noreply, state}
-    end
+  def handle_call({:set_service_height, synced_height, service_name}, {pid, _}, state) do
+    {:ok, state} = Core.sync(state, pid, synced_height, service_name)
+    {:reply, :ok, state}
   end
 
-  defp sync_services(services, next_height) do
-    for service <- services do
-      GenServer.reply(service, {:ok, next_height})
-    end
+  def handle_call(:get_rootchain_height, _from, state) do
+    {:reply, Core.get_rootchain_height(state), state}
   end
 
-  def handle_info(:get_ethereum_height, state) do
+  def handle_info(:update_rootchain_height, state) do
     {:ok, root_chain_height} = Eth.get_ethereum_height()
-    schedule_get_ethereum_height()
-
-    case Core.get_synchronizations_for_updated_root_chain_height(state, root_chain_height) do
-      {:sync, services_waiting_for_next_height, next_height, state} ->
-        sync_services(services_waiting_for_next_height, next_height)
-        {:noreply, state}
-
-      {:no_sync, state} ->
-        {:noreply, state}
-    end
-  end
-
-  def handle_info({:DOWN, _ref, :process, pid, _}, state) do
-    state = Core.deregister_service(state, pid)
+    {:ok, state} = Core.update_rootchain_height(state, root_chain_height)
     {:noreply, state}
   end
 
-  defp schedule_get_ethereum_height do
-    Process.send_after(self(), :get_ethereum_height, 1000)
+  def handle_info({:DOWN, _ref, :process, pid, _}, state) do
+    {:ok, state} = Core.deregister_service(state, pid)
+    {:noreply, state}
+  end
+
+  defp schedule_get_ethereum_height(interval \\ 200) do
+    :timer.send_interval(interval, self(), :update_rootchain_height)
   end
 end
