@@ -69,14 +69,22 @@ defmodule OmiseGO.Eth.DevHelpers do
   end
 
   def deposit_blknum_from_receipt(receipt) do
-    %{"logs" => [%{"data" => logs_data}]} = receipt
-    # parsing log corresponding to Deposit(address,uint256,address,uint256)
-    # TODO: this is too fragile. Use proper library to parse this log
-    <<"0x", _depositor_hex_padded::binary-size(64), deposit_blknum_enc::binary-size(64), _token::binary-size(64),
-      _amount::binary-size(64)>> = logs_data
-
-    {deposit_blknum, ""} = Integer.parse(deposit_blknum_enc, 16)
+    [{_, deposit_blknum, _, _}] =
+      filter_receipt_events(receipt["logs"], "Deposit(address,uint256,address,uint256)")
     deposit_blknum
+  end
+
+  @spec filter_receipt_events([%{"topics": [binary], "data": binary()}], binary) :: [tuple]
+  def filter_receipt_events(receipt_logs, signature) do
+    topic = signature |> OmiseGO.API.Crypto.hash() |> Base.encode16(case: :lower)
+    topic = "0x" <> topic
+    events = Enum.filter(receipt_logs, &(topic in &1["topics"]))
+    for event <- events do
+      "0x" <> data = event["data"]
+      signature
+      |> ABI.decode(Base.decode16!(data, case: :lower))
+      |> List.to_tuple
+    end
   end
 
   def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, from, contract) do
