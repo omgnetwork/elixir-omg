@@ -96,7 +96,7 @@ defmodule OmiseGO.API.Crypto do
   end
 
   @spec parse_address(string) :: {:ok, address_t} | {:error}
-  def parse_address("0x" <> address) when byte_size(address) == 40, do: {:ok, Base.decode16(address, case: :mixed)}
+  def parse_address("0x" <> address) when byte_size(address) == 40, do: Base.decode16(address, case: :mixed)
   def parse_address(_), do: {:error, :invalid_address}
 
   # private

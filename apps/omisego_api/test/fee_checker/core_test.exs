@@ -52,7 +52,6 @@ defmodule OmiseGO.API.FeeChecker.CoreTest do
       assert {[], fee_map} = parse_file_content(@fee_config_file)
 
       assert Enum.count(fee_map) == 5
-
       assert fee_map[@eth] == 2
     end
 
@@ -86,8 +85,8 @@ defmodule OmiseGO.API.FeeChecker.CoreTest do
       expected_errors = [
         {{:error, :invalid_fee_spec}, 1},
         {{:error, :invalid_fee}, 2},
-        {{:error, :invalid_token}, 3},
-        {{:error, :invalid_token}, 4}
+        {{:error, :invalid_address}, 3},
+        {{:error, :invalid_address}, 4}
       ]
 
       assert {^expected_errors, _} = parse_file_content(json)

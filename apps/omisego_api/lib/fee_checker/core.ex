@@ -55,18 +55,6 @@ defmodule OmiseGO.API.FeeChecker.Core do
   defp validate_fee(fee) when is_integer(fee) and fee >= 0, do: {:ok, fee}
   defp validate_fee(_fee), do: {:error, :invalid_fee}
 
-#  defp parse_token_address(token), do: token |> String.trim_leading("0x") |> String.upcase() |> Base.decode16()
-#
-#  defp validate_token(token) do
-#    case is_binary(token) && parse_token_address(token) do
-#      {:ok, addr} when byte_size(addr) == 20 ->
-#        {:ok, addr}
-#
-#      _ ->
-#        {:error, :invalid_token}
-#    end
-#  end
-
   defp spec_reducer(fee_spec, {errors, token_fee_map, spec_index}) do
     case fee_spec do
       # most errors can be detected parsing particular record

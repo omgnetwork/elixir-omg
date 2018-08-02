@@ -50,4 +50,14 @@ defmodule OmiseGO.API.CryptoTest do
     assert {:ok, true} == Crypto.verify("message", signature, address)
     assert {:ok, false} == Crypto.verify("message2", signature, address)
   end
+
+  test "checking parse_address function results for diffrent agruments" do
+
+    assert {:error,  :invalid_address} = Crypto.parse_address("0x0123456789abCdeF")
+    assert {:error,  :invalid_address} = Crypto.parse_address("this is not HEX")
+
+    assert {:ok, <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>} = Crypto.parse_address("0x0000000000000000000000000000000000000000")
+    assert {:ok, <<65, 86, 211, 52, 45, 92, 56, 90, 135, 210, 100, 249, 6, 83, 115, 53, 146, 0, 5, 129>>} = Crypto.parse_address("0x4156D3342D5c385a87D264F90653733592000581")
+  end
+
 end
