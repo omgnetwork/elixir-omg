@@ -8,6 +8,21 @@ For the responsibilities and design of the watcher see [Tesuji Plasma Blockchain
 
 **TODO** write proper README after we distill how to run this.
 
+## Configure the `omisego_watcher` app
+Create another copy of the configuration file. The values for `contract_addr`, `txhash_contract` and `authority_addr` should be the same as the `omisego_api` app. However, `leveldb_path` should be set to a different directory than `omisego_watcher`.
+
+The confiration file should look something like this:
+
+```
+use Mix.Config
+config :omisego_eth,
+  contract_addr: "0x005f49af1af9eee6da214e768683e1cc8ab222ac",
+  txhash_contract: "0x3afd2c1b48eaa3100823de1924d42bd48ee25db1fd497998158f903b6a841e92",
+  authority_addr: "0x5c1a5e5d94067c51ec51c6c00416da56aac6b9a3"
+  leveldb_path: Path.join([System.get_env("HOME"), "~/omisego/data_watcher"])
+
+```
+
 ## Setting up and running the watcher
 
 ```
