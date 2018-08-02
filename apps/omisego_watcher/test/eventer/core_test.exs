@@ -32,11 +32,11 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
 
     event_4 = {topic_bob, "address_spent", %Event.AddressSpent{tx: recovered_tx}}
 
-    assert [event_1, event_2, event_3, event_4] == Eventer.Core.notify([%{tx: recovered_tx}])
+    assert [event_1, event_2, event_3, event_4] == Eventer.Core.prepare_events([%{tx: recovered_tx}])
   end
 
   @tag fixtures: [:alice, :bob]
-  test "notify function generates 1 proper address_received events", %{alice: alice} do
+  test "prepare_events function generates 1 proper address_received events", %{alice: alice} do
     recovered_tx =
       API.TestHelper.create_recovered(
         [{1, 0, 0, alice}],
@@ -51,6 +51,13 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
 
     event_2 = {topic, "address_spent", %Event.AddressSpent{tx: recovered_tx}}
 
-    assert [event_1, event_2] == Eventer.Core.notify([%{tx: recovered_tx}])
+    assert [event_1, event_2] == Eventer.Core.prepare_events([%{tx: recovered_tx}])
+  end
+
+  test "prepare_events function generates one block_withholdings event" do
+    block_withholding_event = %Event.BlockWithHolding{blknum: 1}
+    event = {"byzantine", "block_withholding", block_withholding_event}
+
+    assert [event] == Eventer.Core.prepare_events([block_withholding_event])
   end
 end
