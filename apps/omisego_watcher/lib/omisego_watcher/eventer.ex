@@ -13,8 +13,8 @@ defmodule OmiseGOWatcher.Eventer do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def notify(event_triggers) do
-    GenServer.cast(__MODULE__, {:notify, event_triggers})
+  def emit_events(event_triggers) do
+    GenServer.cast(__MODULE__, {:emit_events, event_triggers})
   end
 
   ### Server
@@ -25,9 +25,9 @@ defmodule OmiseGOWatcher.Eventer do
     {:ok, nil}
   end
 
-  def handle_cast({:notify, event_triggers}, state) do
+  def handle_cast({:emit_events, event_triggers}, state) do
     event_triggers
-    |> Core.notify()
+    |> Core.prepare_events()
     |> Enum.each(fn {topic, event_name, event} ->
       :ok = Endpoint.broadcast!(topic, event_name, JSONRPC.Client.encode(event))
     end)

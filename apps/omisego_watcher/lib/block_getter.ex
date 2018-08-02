@@ -4,34 +4,61 @@ defmodule OmiseGOWatcher.BlockGetter do
   Checking if Block from child chain is valid
   Download new block from child chain and update State, TransactionDB, UtxoDB.
   Manage simultaneous getting and stateless-processing of blocks and manage the results of that
+  Detects byzantine situations like BlockWithholding and InvalidBlock and passes this events to Eventer
   """
   alias OmiseGO.API.Block
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
+  alias OmiseGOWatcher.Eventer
   alias OmiseGOWatcher.UtxoDB
 
   use GenServer
   use OmiseGO.API.LoggerExt
 
-  @spec get_block(pos_integer()) :: {:ok, Block.t()}
+  @spec get_block(pos_integer()) ::
+          {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
   def get_block(requested_number) do
-    with {:ok, {requested_hash, _time}} <- Eth.get_child_chain(requested_number),
-         {:ok, json_block} <- OmiseGO.JSONRPC.Client.call(:get_block, %{hash: requested_hash}),
-         do: Core.decode_validate_block(json_block, requested_hash, requested_number)
+    {:ok, {requested_hash, _time}} = Eth.get_child_chain(requested_number)
+    rpc_response = OmiseGO.JSONRPC.Client.call(:get_block, %{hash: requested_hash})
+    Core.validate_get_block_response(rpc_response, requested_hash, requested_number, :os.system_time(:millisecond))
   end
 
-  defp consume_block(%{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block) do
-    # TODO add check in UtxoDB after deposit handle correctly
-    state_exec = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
+  def handle_cast(
+        {:consume_block,
+         %{hash: hash, transactions: transactions, number: blknum, zero_fee_requirements: fees} = block},
+        state
+      ) do
+    state_exec_results = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
 
     OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
 
-    with nil <- Enum.find(state_exec, &(!match?({:ok, {_, _, _}}, &1))),
-         response <- OmiseGOWatcher.TransactionDB.update_with(block),
-         nil <- Enum.find(response, &(!match?({:ok, _}, &1))),
-         _ <- UtxoDB.update_with(block),
-         _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end),
-         do: :ok
+    {continue, events} = Core.check_tx_executions(state_exec_results, block)
+
+    Eventer.emit_events(events)
+
+    with :ok <- continue do
+      response = OmiseGOWatcher.TransactionDB.update_with(block)
+      nil = Enum.find(response, &(!match?({:ok, _}, &1)))
+      _ = UtxoDB.update_with(block)
+      _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end)
+      {:ok, next_child} = Eth.get_current_child_block()
+      {new_state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
+      :ok = run_block_get_task(blocks_numbers)
+
+      _ =
+        Logger.info(fn ->
+          short_hash = hash |> Base.encode16() |> Binary.drop(-48)
+
+          "Received block \##{inspect(blknum)} #{short_hash}... with #{inspect(length(transactions))} txs." <>
+            " Child chain seen at block \##{inspect(next_child)}. Getting blocks #{inspect(blocks_numbers)}"
+        end)
+
+      {:noreply, new_state}
+    else
+      {:needs_stopping, reason} ->
+        _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(reason)}" end)
+        {:stop, :shutdown, state}
+    end
   end
 
   def start_link(_args) do
@@ -76,32 +103,20 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:noreply, new_state}
   end
 
-  def handle_info({_ref, {:got_block, {:ok, %{number: blknum, transactions: txs, hash: hash} = block}}}, state) do
+  def handle_info({_ref, {:got_block, response}}, state) do
     # 1/ process the block that arrived and consume
-    {:ok, new_state, blocks_to_consume} = Core.got_block(state, block)
-    :ok = blocks_to_consume |> Enum.each(&(:ok = consume_block(&1)))
+    {continue, new_state, blocks_to_consume, events} = Core.got_block(state, response)
 
-    # 2/ try continuing the getting process immediately
-    {:ok, next_child} = Eth.get_current_child_block()
+    Eventer.emit_events(events)
 
-    {new_state, blocks_numbers} = Core.get_new_blocks_numbers(new_state, next_child)
-
-    _ =
-      Logger.info(fn ->
-        short_hash = hash |> Base.encode16() |> Binary.drop(-48)
-
-        "Received block \##{inspect(blknum)} #{short_hash}... with #{inspect(length(txs))} txs." <>
-          " Child chain seen at block \##{inspect(next_child)}. Getting blocks #{inspect(blocks_numbers)}"
-      end)
-
-    :ok = run_block_get_task(blocks_numbers)
-
-    {:noreply, new_state}
-  end
-
-  def handle_info({_ref, {:got_block, {:error, _other_reason} = error}}, state) do
-    _ = Logger.error(fn -> "Problem receiveing block: #{inspect(error)}  stopping BlockGetter" end)
-    {:stop, :normal, state}
+    with :ok <- continue do
+      Enum.each(blocks_to_consume, fn block -> GenServer.cast(__MODULE__, {:consume_block, block}) end)
+      {:noreply, new_state}
+    else
+      {:needs_stopping, reason} ->
+        _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(reason)}" end)
+        {:stop, :shutdown, state}
+    end
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}

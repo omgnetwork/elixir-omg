@@ -9,6 +9,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   alias OmiseGO.Eth
   alias OmiseGOWatcher.Eventer.Event
   alias OmiseGOWatcher.TestHelper
+  alias OmiseGOWatcherWeb.ByzantineChannel
   alias OmiseGOWatcherWeb.TransferChannel
   alias OmiseGOWatcher.Integration.TestHelper, as: IntegrationTest
   alias OmiseGO.JSONRPC.Client
@@ -110,9 +111,10 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       end
     end
 
+    {:ok, _, _socket} = subscribe_and_join(socket(), ByzantineChannel, "byzantine")
+
     JSONRPC2.Servers.HTTP.http(BadChildChainHash, port: Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port))
 
-    # TODO asserting correctness of logs printed out, consider checking the event too
     assert capture_log(fn ->
              {:ok, _txhash} =
                Eth.submit_block(
@@ -127,7 +129,16 @@ defmodule OmiseGOWatcher.BlockGetterTest do
                )
 
              assert_block_getter_down()
-           end) =~ inspect({:error, :incorrect_hash})
+           end) =~ inspect(:incorrect_hash)
+
+    invalid_block_event =
+      Client.encode(%Event.InvalidBlock{
+        error_type: :incorrect_hash,
+        hash: BadChildChainHash.different_hash(),
+        number: 1000
+      })
+
+    assert_push("invalid_block", ^invalid_block_event)
 
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainHash)
   end
@@ -153,6 +164,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       end
     end
 
+    {:ok, _, _socket} = subscribe_and_join(socket(), ByzantineChannel, "byzantine")
+
     JSONRPC2.Servers.HTTP.http(
       BadChildChainTransaction,
       port: Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
@@ -160,7 +173,6 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     %API.Block{hash: hash} = BadChildChainTransaction.block_with_incorrect_transaction()
 
-    # TODO asserting correctness of logs printed out, consider checking the event too
     assert capture_log(fn ->
              {:ok, _txhash} =
                Eth.submit_block(
@@ -175,7 +187,16 @@ defmodule OmiseGOWatcher.BlockGetterTest do
                )
 
              assert_block_getter_down()
-           end) =~ inspect({:error, :utxo_not_found})
+           end) =~ inspect(:tx_execution)
+
+    invalid_block_event =
+      Client.encode(%Event.InvalidBlock{
+        error_type: :tx_execution,
+        hash: hash,
+        number: 1000
+      })
+
+    assert_push("invalid_block", ^invalid_block_event)
 
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainTransaction)
   end

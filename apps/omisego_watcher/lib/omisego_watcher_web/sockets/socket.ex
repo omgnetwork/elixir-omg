@@ -8,6 +8,7 @@ defmodule OmiseGOWatcherWeb.Socket do
 
   ## Channels
   channel("transfer:*", OmiseGOWatcherWeb.TransferChannel)
+  channel("byzantine", OmiseGOWatcherWeb.ByzantineChannel)
 
   ## Transports
   transport(:websocket, Phoenix.Transports.WebSocket)

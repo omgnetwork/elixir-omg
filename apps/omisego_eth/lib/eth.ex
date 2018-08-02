@@ -6,6 +6,7 @@ defmodule OmiseGO.Eth do
   """
   # TODO: decide how type and logic aware this should be. Presently it's quite mixed
 
+  alias OmiseGO.API.Block
   import OmiseGO.Eth.Encoding
 
   @block_offset 1_000_000_000
@@ -256,7 +257,7 @@ defmodule OmiseGO.Eth do
   @doc """
   Returns associated information to block submission
   """
-  @spec get_block_submission(binary()) :: %{root: binary, timestamp: pos_integer, eth_height: pos_integer}
+  @spec get_block_submission(binary()) :: %{root: Block.block_hash_t(), timestamp: pos_integer, eth_height: pos_integer}
   def get_block_submission(block_hash) do
     # TODO rethink what to do with first argument of get_block_submissions
     with {:ok, height} = get_ethereum_height(),
