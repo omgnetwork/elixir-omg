@@ -20,7 +20,7 @@ defmodule OmiseGOWatcher.BlockGetter do
   def get_block(requested_number) do
     {:ok, {requested_hash, _time}} = Eth.get_child_chain(requested_number)
     rpc_response = OmiseGO.JSONRPC.Client.call(:get_block, %{hash: requested_hash})
-    Core.decode_validate_block(rpc_response, requested_hash, requested_number, :os.system_time(:millisecond))
+    Core.validate_get_block_response(rpc_response, requested_hash, requested_number, :os.system_time(:millisecond))
   end
 
   def handle_cast(

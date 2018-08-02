@@ -227,10 +227,10 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   requested_hash is given to compare to always have a consistent data structure coming out
   requested_number is given to _override_ since we're getting by hash, we can have empty blocks with same hashes!
   """
-  @spec decode_validate_block({:ok, map()} | {:error, block_error()}, binary(), pos_integer(), pos_integer()) ::
+  @spec validate_get_block_response({:ok, map()} | {:error, block_error()}, binary(), pos_integer(), pos_integer()) ::
           {:ok, map | PotentialWithholding.t()}
           | {:error, block_error(), binary(), pos_integer()}
-  def decode_validate_block(
+  def validate_get_block_response(
         {:ok, %{hash: returned_hash, transactions: transactions, number: number}},
         requested_hash,
         requested_number,
@@ -262,7 +262,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     end
   end
 
-  def decode_validate_block({:error, _} = error, requested_hash, requested_number, time) do
+  def validate_get_block_response({:error, _} = error, requested_hash, requested_number, time) do
     _ =
       Logger.info(fn ->
         "Detected potential block withholding  #{inspect(error)}, hash: #{requested_hash}, number: #{requested_number}"
