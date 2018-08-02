@@ -6,7 +6,6 @@ defmodule OmiseGOWatcher.Eventer.Event do
           OmiseGOWatcher.Eventer.Event.AddressReceived.t()
           | OmiseGOWatcher.Eventer.Event.InvalidBlock.t()
           | OmiseGOWatcher.Eventer.Event.BlockWithHolding.t()
-          | OmiseGOWatcher.Eventer.Event.InvalidExit.t()
 
   defmodule AddressReceived do
     @moduledoc """
@@ -70,17 +69,5 @@ defmodule OmiseGOWatcher.Eventer.Event do
     @type t :: %__MODULE__{
             blknum: pos_integer
           }
-  end
-
-  defmodule InvalidExit do
-    @moduledoc """
-    Notifies about invalid exit
-    """
-
-    def name, do: "invalid_exit"
-
-    defstruct []
-
-    @type t :: %__MODULE__{}
   end
 end

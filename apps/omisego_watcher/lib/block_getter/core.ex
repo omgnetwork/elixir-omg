@@ -27,8 +27,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     :maximum_number_of_pending_blocks,
     :block_to_consume,
     :potential_block_withholdings,
-    :maximum_block_withholding_time,
-    :potential_block_withholding_delay_time
+    :maximum_block_withholding_time
   ]
 
   @type t() :: %__MODULE__{
@@ -43,8 +42,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           potential_block_withholdings: %{
             non_neg_integer => pos_integer
           },
-          maximum_block_withholding_time: pos_integer,
-          potential_block_withholding_delay_time: pos_integer
+          maximum_block_withholding_time: pos_integer
         }
 
   @type block_error() ::
@@ -58,8 +56,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
         block_number,
         child_block_interval,
         maximum_number_of_pending_blocks \\ 10,
-        maximum_block_withholding_time \\ 0,
-        potential_block_withholding_delay_time \\ 0
+        maximum_block_withholding_time \\ 0
       ) do
     %__MODULE__{
       last_consumed_block: block_number,
@@ -69,8 +66,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       maximum_number_of_pending_blocks: maximum_number_of_pending_blocks,
       block_to_consume: %{},
       potential_block_withholdings: %{},
-      maximum_block_withholding_time: maximum_block_withholding_time,
-      potential_block_withholding_delay_time: potential_block_withholding_delay_time
+      maximum_block_withholding_time: maximum_block_withholding_time
     }
   end
 
@@ -273,8 +269,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
 
   @spec check_tx_executions(list({Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}), map) ::
           {:ok, []} | {{:needs_stopping, :tx_execution}, list(Event.InvalidBlock.t())}
-  def check_tx_executions(exces, %{hash: hash, number: blknum}) do
-    with nil <- Enum.find(exces, &(!match?({:ok, {_, _, _}}, &1))) do
+  def check_tx_executions(executions, %{hash: hash, number: blknum}) do
+    with nil <- Enum.find(executions, &(!match?({:ok, {_, _, _}}, &1))) do
       {:ok, []}
     else
       _ ->

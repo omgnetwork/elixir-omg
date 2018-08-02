@@ -115,7 +115,11 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
-  test "simple decode block", %{alice: alice, bob: bob, state_alice_deposit: state_alice_deposit} do
+  test "simple decode block and check_tx_executions function returns :ok", %{
+    alice: alice,
+    bob: bob,
+    state_alice_deposit: state_alice_deposit
+  } do
     block =
       Block.hashed_txs_at(
         [
@@ -127,7 +131,9 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     assert {:ok, _, [%{transactions: [tx], zero_fee_requirements: fees}], []} = process_single_block(block)
 
     # check feasability of transactions from block to consume at the API.State
-    assert {:ok, _, _} = API.State.Core.exec(tx, fees, state_alice_deposit)
+    assert {:ok, tx_result, _} = API.State.Core.exec(tx, fees, state_alice_deposit)
+
+    assert {:ok, []} = Core.check_tx_executions([{:ok, tx_result}], block)
   end
 
   @tag fixtures: [:alice, :bob]
@@ -302,5 +308,18 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     assert {{:needs_stopping, :withholding}, _state, [], [%Event.BlockWithHolding{blknum: 3_000}]} =
              Core.got_block(state, potential_withholding)
+  end
+
+  test "check_tx_executions function returns InvalidBlock event" do
+    block = %Block{number: 1, hash: <<>>}
+
+    assert {{:needs_stopping, :tx_execution},
+            [
+              %Event.InvalidBlock{
+                error_type: :tx_execution,
+                hash: "",
+                number: 1
+              }
+            ]} = Core.check_tx_executions([{:error, {}}], block)
   end
 end
