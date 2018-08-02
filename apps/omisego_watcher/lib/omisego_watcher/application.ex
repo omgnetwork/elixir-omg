@@ -49,11 +49,12 @@ defmodule OmiseGOWatcher.Application do
         ],
         id: :slow_validator
       ),
-      %{
-        id: :block_getter,
-        start: {OmiseGOWatcher.BlockGetter, :start_link, [[]]},
-        restart: :transient
-      },
+      worker(
+        OmiseGOWatcher.BlockGetter,
+        [[]],
+        restart: :transient,
+        id: :block_getter
+      ),
 
       # Start the endpoint when the application starts
       supervisor(OmiseGOWatcherWeb.Endpoint, [])
