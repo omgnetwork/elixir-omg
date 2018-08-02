@@ -4,7 +4,6 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   Modify the state in the database.
   """
 
-  alias OmiseGO.JSONRPC
   alias OmiseGOWatcher.UtxoDB
 
   use OmiseGOWatcherWeb, :controller
@@ -14,19 +13,43 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
 
     json(conn, %{
       address: address,
-      # FIXME we shouldn't use JSONRPC from here
-      utxos: JSONRPC.Client.encode(UtxoDB.get_utxo(address_decode))
+      utxos: encode(UtxoDB.get_utxo(address_decode))
     })
   end
 
-  def compose_utxo_exit(conn, %{"block_height" => block_height, "txindex" => txindex, "oindex" => oindex}) do
-    {block_height, _} = Integer.parse(block_height)
+  def compose_utxo_exit(conn, %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex}) do
+    {blknum, _} = Integer.parse(blknum)
     {txindex, _} = Integer.parse(txindex)
     {oindex, _} = Integer.parse(oindex)
 
-    composed_utxo_exit = UtxoDB.compose_utxo_exit(block_height, txindex, oindex)
+    composed_utxo_exit = UtxoDB.compose_utxo_exit(blknum, txindex, oindex)
 
-    # FIXME we shouldn't use JSONRPC from here
-    json(conn, JSONRPC.Client.encode(composed_utxo_exit))
+    json(conn, encode(composed_utxo_exit))
+  end
+
+  defp encode(list) when is_list(list), do: Enum.map(list, &encode/1)
+
+  defp encode(
+         %{
+           proof: _,
+           sigs: _,
+           tx_bytes: _
+         } = exit_composition
+       ) do
+    # TODO smarter encoding (see other TODO in controllers)
+    %{
+      exit_composition
+      | proof: Base.encode16(exit_composition.proof),
+        sigs: Base.encode16(exit_composition.sigs),
+        tx_bytes: Base.encode16(exit_composition.tx_bytes)
+    }
+  end
+
+  defp encode(%{txbytes: _} = utxo) do
+    # TODO smarter encoding (see other TODO in controllers)
+    %{
+      utxo
+      | txbytes: Base.encode16(utxo.txbytes)
+    }
   end
 end
