@@ -24,8 +24,7 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def handle_cast(
-        {:consume_block,
-         %{hash: hash, transactions: transactions, number: blknum, zero_fee_requirements: fees} = block},
+        {:consume_block, %{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block},
         state
       ) do
     state_exec_results = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
@@ -45,10 +44,7 @@ defmodule OmiseGOWatcher.BlockGetter do
 
       _ =
         Logger.info(fn ->
-          short_hash = hash |> Base.encode16() |> Binary.drop(-48)
-
-          "Received block \##{inspect(blknum)} #{short_hash}... with #{inspect(length(transactions))} txs." <>
-            " Child chain seen at block \##{inspect(next_child)}. Getting blocks #{inspect(blocks_numbers)}"
+          "Child chain seen at block \##{inspect(next_child)}. Getting blocks #{inspect(blocks_numbers)}"
         end)
 
       child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
