@@ -276,9 +276,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     assert {_, [3000, 5000, 6000]} = Core.get_new_blocks_numbers(state, 20_000)
 
-    state =
-      state
-      |> got_block(%Block{number: 3_000})
+    assert {:ok, state, [%Block{number: 3_000}], []} = Core.got_block(state, {:ok, %Block{number: 3_000}})
 
     assert {_, [5000, 6000, 7000, 8000]} = Core.get_new_blocks_numbers(state, 20_000)
   end
@@ -293,13 +291,11 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     potential_withholding = Core.decode_validate_block({:error, :error_reson}, <<>>, 3_000, 0)
 
-    assert {:ok, state, [], []} =
-             Core.got_block(state, potential_withholding)
+    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
 
     potential_withholding = Core.decode_validate_block({:error, :error_reson}, <<>>, 3_000, 500)
 
-    assert {:ok,state, [], []} =
-             Core.got_block(state, potential_withholding)
+    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
 
     potential_withholding = Core.decode_validate_block({:error, :error_reson}, <<>>, 3_000, 1000)
 
