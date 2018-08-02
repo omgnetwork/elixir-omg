@@ -57,7 +57,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     else
       {:needs_stopping, reason} ->
         _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(reason)}" end)
-        {:shutdown, :normal, state}
+        {:stop, :shutdown, state}
     end
   end
 
@@ -115,7 +115,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     else
       {:needs_stopping, reason} ->
         _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(reason)}" end)
-        {:shutdown, :normal, state}
+        {:stop, :shutdown, state}
     end
   end
 

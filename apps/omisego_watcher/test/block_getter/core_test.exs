@@ -156,7 +156,8 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     {state, _} =
       block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(block_height + 2 * interval)
 
-    assert {:ok, decoded_block} = Core.validate_get_block_response({:ok, block}, requested_hash, block_height + interval, 0)
+    assert {:ok, decoded_block} =
+             Core.validate_get_block_response({:ok, block}, requested_hash, block_height + interval, 0)
 
     Core.got_block(state, {:ok, decoded_block})
   end

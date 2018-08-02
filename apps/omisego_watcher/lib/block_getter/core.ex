@@ -271,6 +271,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     {:ok, %PotentialWithholding{blknum: requested_number, time: time}}
   end
 
+  @spec check_tx_executions(list({Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}), map) ::
+          {:ok, []} | {{:needs_stopping, :tx_execution}, list(Event.InvalidBlock.t())}
   def check_tx_executions(exces, %{hash: hash, number: blknum}) do
     with nil <- Enum.find(exces, &(!match?({:ok, {_, _, _}}, &1))) do
       {:ok, []}

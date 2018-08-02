@@ -14,6 +14,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   alias OmiseGOWatcher.Integration.TestHelper, as: IntegrationTest
   alias OmiseGO.JSONRPC.Client
 
+  import ExUnit.CaptureLog
+
   @moduletag :integration
 
   @timeout 20_000
@@ -113,19 +115,21 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     JSONRPC2.Servers.HTTP.http(BadChildChainHash, port: Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port))
 
-    {:ok, _txhash} =
-      Eth.submit_block(
-        %Eth.BlockSubmission{
-          num: 1000,
-          hash: BadChildChainHash.different_hash(),
-          nonce: 1,
-          gas_price: 20_000_000_000
-        },
-        contract.authority_addr,
-        contract.contract_addr
-      )
+    assert capture_log(fn ->
+             {:ok, _txhash} =
+               Eth.submit_block(
+                 %Eth.BlockSubmission{
+                   num: 1000,
+                   hash: BadChildChainHash.different_hash(),
+                   nonce: 1,
+                   gas_price: 20_000_000_000
+                 },
+                 contract.authority_addr,
+                 contract.contract_addr
+               )
 
-    assert_block_getter_down()
+             assert_block_getter_down()
+           end) =~ inspect(:incorrect_hash)
 
     invalid_block_event =
       Client.encode(%Event.InvalidBlock{
@@ -169,19 +173,21 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     %API.Block{hash: hash} = BadChildChainTransaction.block_with_incorrect_transaction()
 
-    {:ok, _txhash} =
-      Eth.submit_block(
-        %Eth.BlockSubmission{
-          num: 1_000,
-          hash: hash,
-          nonce: 1,
-          gas_price: 20_000_000_000
-        },
-        contract.authority_addr,
-        contract.contract_addr
-      )
+    assert capture_log(fn ->
+             {:ok, _txhash} =
+               Eth.submit_block(
+                 %Eth.BlockSubmission{
+                   num: 1_000,
+                   hash: hash,
+                   nonce: 1,
+                   gas_price: 20_000_000_000
+                 },
+                 contract.authority_addr,
+                 contract.contract_addr
+               )
 
-    assert_block_getter_down()
+             assert_block_getter_down()
+           end) =~ inspect(:tx_execution)
 
     invalid_block_event =
       Client.encode(%Event.InvalidBlock{
