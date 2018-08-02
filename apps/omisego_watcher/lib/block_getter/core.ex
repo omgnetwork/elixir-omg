@@ -11,10 +11,11 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   defmodule PotentialWithholding do
     @moduledoc false
 
-    defstruct [:blknum]
+    defstruct [:blknum, :time]
 
     @type t :: %__MODULE__{
-            blknum: pos_integer
+            blknum: pos_integer,
+            time: pos_integer
           }
   end
 
@@ -49,6 +50,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   @type block_error() ::
           :incorrect_hash
           | :bad_returned_hash
+          | :withholding
           | API.Core.recover_tx_error()
 
   @spec init(non_neg_integer, pos_integer, pos_integer) :: %__MODULE__{}
@@ -113,9 +115,12 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   Add block to \"block to consume\" tick off the block from pending blocks.
   Returns the consumable, contiguous list of ordered blocks
   """
-  @spec got_block(%__MODULE__{}, {:ok, OmiseGO.API.Block.t()} | {:error, block_error(), binary(), pos_integer()}) ::
-          {:ok, %__MODULE__{}, list(OmiseGO.API.Block.t()) | [], nil | Event.InvalidBlock.t()}
-          | Event.BlockWithHolding.t()
+  @spec got_block(
+          %__MODULE__{},
+          {:ok, OmiseGO.API.Block.t() | PotentialWithholding.t()} | {:error, block_error(), binary(), pos_integer()}
+        ) ::
+          {:ok | {:needs_stopping, block_error()}, %__MODULE__{}, list(OmiseGO.API.Block.t()) | [],
+           [] | list(Event.InvalidBlock.t()) | list(Event.BlockWithHolding.t())}
           | {:error, :duplicate | :unexpected_blok}
   def got_block(
         %__MODULE__{
@@ -147,7 +152,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
 
   def got_block(%__MODULE__{} = state, {:error, error_type, hash, number}) do
     {
-      :error,
+      {:needs_stopping, error_type},
       state,
       [],
       [
@@ -166,14 +171,13 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           maximum_block_withholding_time: maximum_block_withholding_time,
           waiting_for_blocks: waiting_for_blocks
         } = state,
-        {:ok, %PotentialWithholding{blknum: blknum}}
+        {:ok, %PotentialWithholding{blknum: blknum, time: time}}
       ) do
-    current_time = :os.system_time(:millisecond)
     blknum_time = Map.get(potential_block_withholdings, blknum)
 
     cond do
       blknum_time == nil ->
-        potential_block_withholdings = Map.put(potential_block_withholdings, blknum, current_time)
+        potential_block_withholdings = Map.put(potential_block_withholdings, blknum, time)
 
         state = %{
           state
@@ -183,8 +187,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
 
         {:ok, state, [], []}
 
-      current_time - blknum_time > maximum_block_withholding_time ->
-        {:error, state, [], [%Event.BlockWithHolding{blknum: blknum}]}
+      time - blknum_time >= maximum_block_withholding_time ->
+        {{:needs_stopping, :withholding}, state, [], [%Event.BlockWithHolding{blknum: blknum}]}
 
       true ->
         {:ok, state, [], []}
@@ -223,13 +227,14 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   requested_hash is given to compare to always have a consistent data structure coming out
   requested_number is given to _override_ since we're getting by hash, we can have empty blocks with same hashes!
   """
-  @spec decode_validate_block({:ok, map()} | {:error, block_error()}, binary(), pos_integer()) ::
+  @spec decode_validate_block({:ok, map()} | {:error, block_error()}, binary(), pos_integer(), pos_integer()) ::
           {:ok, map | PotentialWithholding.t()}
-          | {:error, block_error()}
+          | {:error, block_error(), binary(), pos_integer()}
   def decode_validate_block(
         {:ok, %{hash: returned_hash, transactions: transactions, number: number}},
         requested_hash,
-        requested_number
+        requested_number,
+        _time
       ) do
     with transaction_decode_results <- Enum.map(transactions, &API.Core.recover_tx/1),
          nil <- Enum.find(transaction_decode_results, &(!match?({:ok, _}, &1))),
@@ -257,13 +262,13 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     end
   end
 
-  def decode_validate_block({:error, _} = error, requested_hash, requested_number) do
+  def decode_validate_block({:error, _} = error, requested_hash, requested_number, time) do
     _ =
       Logger.info(fn ->
         "Detected potential block withholding  #{inspect(error)}, hash: #{requested_hash}, number: #{requested_number}"
       end)
 
-    {:ok, %PotentialWithholding{blknum: requested_number}}
+    {:ok, %PotentialWithholding{blknum: requested_number, time: time}}
   end
 
   def check_tx_executions(exces, %{hash: hash, number: blknum}) do
@@ -271,7 +276,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       {:ok, []}
     else
       _ ->
-        {:error,
+        {{:needs_stopping, :tx_execution},
          [
            %Event.InvalidBlock{
              error_type: :tx_execution,

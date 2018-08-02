@@ -124,7 +124,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
         26_000
       )
 
-    assert {:ok, _, [%{transactions: [tx], zero_fee_requirements: fees}], _} = process_single_block(block)
+    assert {:ok, _, [%{transactions: [tx], zero_fee_requirements: fees}], []} = process_single_block(block)
 
     # check feasability of transactions from block to consume at the API.State
     assert {:ok, _, _} = API.State.Core.exec(tx, fees, state_alice_deposit)
@@ -156,7 +156,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     {state, _} =
       block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(block_height + 2 * interval)
 
-    assert {:ok, decoded_block} = Core.decode_validate_block({:ok, block}, requested_hash, block_height + interval)
+    assert {:ok, decoded_block} = Core.decode_validate_block({:ok, block}, requested_hash, block_height + interval, 0)
 
     Core.got_block(state, {:ok, decoded_block})
   end
@@ -180,10 +180,10 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
       | hash: matching_bad_returned_hash
     }
 
-    assert {:error, :incorrect_hash, matching_bad_returned_hash, 1} ==
-             Core.decode_validate_block({:ok, block}, matching_bad_returned_hash, 1)
+    assert {:error, :incorrect_hash, matching_bad_returned_hash, 0} ==
+             Core.decode_validate_block({:ok, block}, matching_bad_returned_hash, 0, 0)
 
-    assert {:error, _, _,
+    assert {{:needs_stopping, :incorrect_hash}, _, [],
             [%Event.InvalidBlock{error_type: :incorrect_hash, hash: ^matching_bad_returned_hash, number: 1}]} =
              Core.got_block(state, {:error, :incorrect_hash, matching_bad_returned_hash, 1})
   end
@@ -205,26 +205,26 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
       )
 
     # a particular API.Core.recover_tx_error instance
-    assert {:error, :no_inputs, hash, 1} == Core.decode_validate_block({:ok, block}, hash, 1)
+    assert {:error, :no_inputs, hash, 1} == Core.decode_validate_block({:ok, block}, hash, 1, 0)
   end
 
   test "check error return by decode_block, hash mismatch checks" do
     hash = <<12::256>>
     block = Block.hashed_txs_at([], 1)
 
-    assert {:error, :bad_returned_hash, hash, 1} == Core.decode_validate_block({:ok, block}, hash, 1)
+    assert {:error, :bad_returned_hash, hash, 1} == Core.decode_validate_block({:ok, block}, hash, 1, 0)
   end
 
   test "check error return by decode_block, API.Core.recover_tx checks" do
     %Block{hash: hash} = block = Block.hashed_txs_at([API.TestHelper.create_recovered([], @eth, [])], 1)
 
-    assert {:error, :no_inputs, hash, 1} == Core.decode_validate_block({:ok, block}, hash, 1)
+    assert {:error, :no_inputs, hash, 1} == Core.decode_validate_block({:ok, block}, hash, 1, 0)
   end
 
   test "the blknum is overriden by the requested one" do
     %Block{hash: hash} = block = Block.hashed_txs_at([], 1)
 
-    assert {:ok, %{number: 2 = _overriden_number}} = Core.decode_validate_block({:ok, block}, hash, 2)
+    assert {:ok, %{number: 2 = _overriden_number}} = Core.decode_validate_block({:ok, block}, hash, 2, 0)
   end
 
   test "got_block function called once with PotentialWithholding don't returns BlockWithHolding event" do
@@ -234,7 +234,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     {state, [1_000, 2_000]} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(3_000)
 
-    potential_withholding = Core.decode_validate_block({:error, :error_reson}, <<>>, 2_000)
+    potential_withholding = Core.decode_validate_block({:error, :error_reson}, <<>>, 2_000, 0)
 
     assert {:ok, _, [], []} = Core.got_block(state, potential_withholding)
   end
@@ -248,14 +248,13 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     {state, [1_000, 2_000]} =
       Core.get_new_blocks_numbers(Core.init(block_height, interval, chunk_size, maximum_block_withholding_time), 3_000)
 
-    potential_withholding = Core.decode_validate_block({:error, :error_reson}, <<>>, 2_000)
-
+    potential_withholding = Core.decode_validate_block({:error, :error_reson}, <<>>, 2_000, 0)
     assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
 
-    Process.sleep(10)
+    potential_withholding = Core.decode_validate_block({:error, :error_reson}, <<>>, 2_000, 1)
 
-    assert {:error, _, [], [%Event.BlockWithHolding{blknum: 2000}]} =
-             Core.got_block(state, {:ok, %Core.PotentialWithholding{blknum: 2_000}})
+    assert {{:needs_stopping, :withholding}, _, [], [%Event.BlockWithHolding{blknum: 2000}]} =
+             Core.got_block(state, potential_withholding)
   end
 
   test "get_new_blocks_numbers function returns number of potential withholding block which next is canceled" do
@@ -272,7 +271,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
       |> got_block(%Block{number: 1_000})
       |> got_block(%Block{number: 2_000})
 
-    potential_withholding = Core.decode_validate_block({:error, :error_reson}, <<>>, 3_000)
+    potential_withholding = Core.decode_validate_block({:error, :error_reson}, <<>>, 3_000, 0)
     assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
 
     assert {_, [3000, 5000, 6000]} = Core.get_new_blocks_numbers(state, 20_000)
@@ -292,19 +291,19 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     state = Core.init(block_height, interval, chunk_size, maximum_block_withholding_time)
 
-    potential_withholding = Core.decode_validate_block({:error, :error_reson}, <<>>, 3_000)
+    potential_withholding = Core.decode_validate_block({:error, :error_reson}, <<>>, 3_000, 0)
 
-    assert {:ok, %Core{potential_block_withholdings: %{3_000 => first_time}} = state, [], []} =
+    assert {:ok, state, [], []} =
              Core.got_block(state, potential_withholding)
 
-    :timer.sleep(500)
-    assert :os.system_time(:millisecond) - first_time < maximum_block_withholding_time
+    potential_withholding = Core.decode_validate_block({:error, :error_reson}, <<>>, 3_000, 500)
 
-    assert {:ok, %Core{potential_block_withholdings: %{3_000 => second_time}} = state, [], []} =
+    assert {:ok,state, [], []} =
              Core.got_block(state, potential_withholding)
 
-    :timer.sleep(500)
-    assert :os.system_time(:millisecond) - second_time > maximum_block_withholding_time
-    assert {:error, state, [], [%Event.BlockWithHolding{blknum: 3_000}]} = Core.got_block(state, potential_withholding)
+    potential_withholding = Core.decode_validate_block({:error, :error_reson}, <<>>, 3_000, 1000)
+
+    assert {{:needs_stopping, :withholding}, _state, [], [%Event.BlockWithHolding{blknum: 3_000}]} =
+             Core.got_block(state, potential_withholding)
   end
 end
