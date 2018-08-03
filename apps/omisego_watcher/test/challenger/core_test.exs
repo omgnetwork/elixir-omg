@@ -4,6 +4,7 @@ defmodule OmiseGOWatcher.Challenger.CoreTest do
 
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.State.Transaction.Signed
+  alias OmiseGO.API.UtxoPosition
   alias OmiseGOWatcher.Challenger.Challenge
   alias OmiseGOWatcher.Challenger.Core
   alias OmiseGOWatcher.TransactionDB
@@ -58,22 +59,22 @@ defmodule OmiseGOWatcher.Challenger.CoreTest do
 
   @tag fixtures: [:transactions]
   test "creates a challenge for an exit", %{transactions: transactions} do
-    utxo_exit = %{blknum: 1, txindex: 0, oindex: 0}
+    utxo_exit = %UtxoPosition{blknum: 1, txindex: 0, oindex: 0}
     challenging_tx = hd(transactions)
-    # FIXME
-    expected_cutxopos = 2_000_010_000
+
+    expected_cutxopos = %UtxoPosition{blknum: 2, txindex: 1, oindex: 0} |> UtxoPosition.encode_utxo_position()
 
     %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} =
       Core.create_challenge(challenging_tx, transactions, utxo_exit)
 
     [_, challenging_tx | _] = transactions
-    # FIXME
-    expected_cutxopos = 2_000_020_001
+
+    expected_cutxopos = %UtxoPosition{blknum: 2, txindex: 2, oindex: 1} |> UtxoPosition.encode_utxo_position()
 
     %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} =
       Core.create_challenge(challenging_tx, transactions, utxo_exit)
 
-    utxo_exit = %{blknum: 1, txindex: 0, oindex: 1}
+    utxo_exit = %UtxoPosition{blknum: 1, txindex: 0, oindex: 1}
 
     %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 1} =
       Core.create_challenge(challenging_tx, transactions, utxo_exit)

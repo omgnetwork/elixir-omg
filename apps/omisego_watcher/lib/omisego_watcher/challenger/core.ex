@@ -5,13 +5,14 @@ defmodule OmiseGOWatcher.Challenger.Core do
 
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
+  alias OmiseGO.API.UtxoPosition
   alias OmiseGOWatcher.Challenger.Challenge
   alias OmiseGOWatcher.TransactionDB
 
   @block_offset 1_000_000_000
   @transaction_offset 10_000
 
-  @spec create_challenge(%TransactionDB{}, list(%TransactionDB{}), map()) :: Challenge.t()
+  @spec create_challenge(%TransactionDB{}, list(%TransactionDB{}), UtxoPosition.t()) :: Challenge.t()
   def create_challenge(challenging_tx, txs, utxo_exit) do
     txbytes = encode(challenging_tx)
     eutxoindex = get_eutxo_index(challenging_tx, utxo_exit)
@@ -57,7 +58,7 @@ defmodule OmiseGOWatcher.Challenger.Core do
     Transaction.encode(tx)
   end
 
-  defp get_eutxo_index(%TransactionDB{blknum1: blknum1, txindex1: txindex1, oindex1: oindex1}, %{
+  defp get_eutxo_index(%TransactionDB{blknum1: blknum1, txindex1: txindex1, oindex1: oindex1}, %UtxoPosition{
          blknum: blknum,
          txindex: txindex,
          oindex: oindex
@@ -70,22 +71,13 @@ defmodule OmiseGOWatcher.Challenger.Core do
   defp challenging_utxo_pos(challenging_tx) do
     challenging_tx
     |> get_challenging_utxo()
-    |> utxo_pos()
+    |> UtxoPosition.encode_utxo_position()
   end
 
   defp get_challenging_utxo(%TransactionDB{txblknum: blknum, txindex: txindex, amount1: 0}),
-    do: %{blknum: blknum, txindex: txindex, oindex: 1}
+    do: %UtxoPosition{blknum: blknum, txindex: txindex, oindex: 1}
 
   defp get_challenging_utxo(%TransactionDB{txblknum: blknum, txindex: txindex}),
-    do: %{blknum: blknum, txindex: txindex, oindex: 0}
+    do: %UtxoPosition{blknum: blknum, txindex: txindex, oindex: 0}
 
-  defp utxo_pos(%{blknum: blknum, txindex: txindex, oindex: oindex}),
-    do: blknum * @block_offset + txindex * @transaction_offset + oindex
-
-  def decode_utxo_pos(encoded) do
-    blknum = div(encoded, @block_offset)
-    txindex = encoded |> rem(@block_offset) |> div(@transaction_offset)
-    oindex = rem(encoded, @transaction_offset)
-    %{blknum: blknum, txindex: txindex, oindex: oindex}
-  end
 end
