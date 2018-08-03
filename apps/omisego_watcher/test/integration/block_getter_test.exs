@@ -6,6 +6,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   use Phoenix.ChannelTest
 
   alias OmiseGO.API
+  alias OmiseGO.API.Crypto
   alias OmiseGO.Eth
   alias OmiseGOWatcher.Eventer.Event
   alias OmiseGOWatcher.TestHelper
@@ -20,14 +21,14 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
   @timeout 20_000
   @block_offset 1_000_000_000
-  @eth OmiseGO.API.Crypto.zero_address()
+  @eth Crypto.zero_address()
 
   @endpoint OmiseGOWatcherWeb.Endpoint
 
   @tag fixtures: [:watcher_sandbox, :contract, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
   test "get the blocks from child chain after transaction and start exit",
        %{contract: contract, alice: alice, bob: bob} do
-    alice_address = API.TestHelper.encode_address(alice.addr)
+    {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
     {:ok, _, _socket} =
       subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
@@ -156,7 +157,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       def block_with_incorrect_transaction do
         alice = @alice
 
-        recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], API.Crypto.zero_address(), [{alice, 10}])
+        recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], Crypto.zero_address(), [{alice, 10}])
 
         API.Block.hashed_txs_at([recovered], 1000)
       end

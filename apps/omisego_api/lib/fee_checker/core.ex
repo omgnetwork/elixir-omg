@@ -45,7 +45,7 @@ defmodule OmiseGO.API.FeeChecker.Core do
   defp parse_fee_spec(%{"flat_fee" => fee, "token" => token}) do
     # defensive code against user input
     with {:ok, fee} <- validate_fee(fee),
-         {:ok, addr} <- Crypto.parse_address(token) do
+         {:ok, addr} <- Crypto.decode_address(token) do
       %{token: addr, flat_fee: fee}
     end
   end

@@ -6,6 +6,7 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
   use OmiseGO.API.Fixtures
 
   alias OmiseGO.API
+  alias OmiseGO.API.Crypto
   alias OmiseGOWatcher.Eventer
   alias OmiseGOWatcher.Eventer.Event
   alias OmiseGOWatcher.TestHelper
@@ -19,8 +20,8 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
         [{alice, 100}, {bob, 5}]
       )
 
-    encoded_alice_address = API.TestHelper.encode_address(alice.addr)
-    encoded_bob_address = API.TestHelper.encode_address(bob.addr)
+    {:ok, encoded_alice_address} = Crypto.encode_address(alice.addr)
+    {:ok, encoded_bob_address} = Crypto.encode_address(bob.addr)
     topic_alice = TestHelper.create_topic("transfer", encoded_alice_address)
     topic_bob = TestHelper.create_topic("transfer", encoded_bob_address)
 
@@ -40,11 +41,11 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
     recovered_tx =
       API.TestHelper.create_recovered(
         [{1, 0, 0, alice}],
-        API.Crypto.zero_address(),
+        Crypto.zero_address(),
         [{alice, 100}]
       )
 
-    encoded_alice_address = API.TestHelper.encode_address(alice.addr)
+    {:ok, encoded_alice_address} = Crypto.encode_address(alice.addr)
     topic = TestHelper.create_topic("transfer", encoded_alice_address)
 
     event_1 = {topic, "address_received", %Event.AddressReceived{tx: recovered_tx}}

@@ -5,13 +5,14 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
   alias OmiseGO.API
   alias OmiseGO.API.Block
+  alias OmiseGO.API.Crypto
   alias OmiseGO.API.TestHelper
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.TestHelper
   alias OmiseGOWatcher.TransactionDB
   alias OmiseGOWatcher.UtxoDB
 
-  @eth OmiseGO.API.Crypto.zero_address()
+  @eth Crypto.zero_address()
 
   describe "UTXO database." do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
