@@ -7,6 +7,7 @@ defmodule OmiseGOWatcher.BlockGetter do
   Detects byzantine situations like BlockWithholding and InvalidBlock and passes this events to Eventer
   """
   alias OmiseGO.API.Block
+  alias OmiseGO.API.RootChainCoordinator
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.Eventer
@@ -24,7 +25,7 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def handle_cast(
-        {:consume_block, %{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block},
+        {:consume_block, %{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block, block_rootchain_height},
         state
       ) do
     state_exec_results = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
@@ -49,10 +50,7 @@ defmodule OmiseGOWatcher.BlockGetter do
 
       child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
 
-      # TODO: substitute for Ethereum height where this block originated from (see bugs in tracker)
-      #       after we have a way to cheaply get it using RootChainCoordinator
-      eth_height = 0
-      :ok = OmiseGO.API.State.close_block(child_block_interval, eth_height)
+      :ok = OmiseGO.API.State.close_block(child_block_interval, block_rootchain_height)
 
       {:noreply, new_state}
     else
@@ -70,6 +68,9 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:ok, block_number} = OmiseGO.DB.child_top_block_number()
     child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
     {:ok, _} = :timer.send_after(0, self(), :producer)
+
+    {:ok, deployment_height} = Eth.get_root_deployment_height()
+    :ok = RootChainCoordinator.set_service_height(deployment_height, :block_getter)
 
     {:ok, Core.init(block_number, child_block_interval)}
   end
@@ -104,19 +105,33 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:noreply, new_state}
   end
 
-  def handle_info({_ref, {:got_block, response}}, state) do
+  def handle_info({_ref, {:got_block, block}}, state) do
     # 1/ process the block that arrived and consume
-    {continue, new_state, blocks_to_consume, events} = Core.got_block(state, response)
+    case RootChainCoordinator.get_height() do
+      :no_sync ->
+        {:ok, _} = :timer.send_after(2_000, self(), {:got_block, block})
+        {:noreply, state}
+      {:sync, next_synced_height} ->
+        new_state = if Core.block_heights_up_to_date?(state, next_synced_height) do
+          state
+        else
+          #TODO: how about keeping common block finality margin in root chain coordinator?
+          {:ok, submissions} = Eth.get_block_submissions(state.synced_height, next_synced_height)
+          Core.update_block_heights(submissions)
+        end
+        {continue, new_state, blocks_to_consume, events, block_rootchain_height} =
+          Core.got_block(new_state, block, synced_height)
 
-    Eventer.emit_events(events)
+        Eventer.emit_events(events)
 
-    with :ok <- continue do
-      Enum.each(blocks_to_consume, fn block -> GenServer.cast(__MODULE__, {:consume_block, block}) end)
-      {:noreply, new_state}
-    else
-      {:needs_stopping, reason} ->
-        _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(reason)}" end)
-        {:stop, :shutdown, state}
+        with :ok <- continue do
+          Enum.each(blocks_to_consume, fn block -> GenServer.cast(__MODULE__, {:consume_block, block, block_rootchain_height}) end)
+          {:noreply, new_state}
+        else
+          {:needs_stopping, reason} ->
+            _ = Logger.error(fn -> "Stopping BlockGetter because of #{inspect(reason)}" end)
+            {:stop, :shutdown, state}
+        end
     end
   end
 

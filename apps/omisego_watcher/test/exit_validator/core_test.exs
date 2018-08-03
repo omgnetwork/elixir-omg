@@ -3,16 +3,22 @@ defmodule OmiseGOWatcher.ExitValidator.CoreTest do
 
   alias OmiseGOWatcher.ExitValidator.Core
 
-  test "lower bound of a block range does not exceed synced Ethereum height" do
-    state = %Core{last_exit_block_height: 0, update_key: :update_key}
-    {1, 10, state, [{:put, :update_key, 10}]} = Core.get_exits_block_range(state, 10)
-    assert :empty_range == Core.get_exits_block_range(state, 10)
-    {11, 11, _, [{:put, :update_key, 11}]} = Core.get_exits_block_range(state, 11)
+  test "Ethereum block height to get exits from does not exceed synced Ethereum height" do
+    state = %Core{last_exit_block_height: 0, synced_height: 0, update_key: :fast_validator_block_height}
+    {10, state, [{:put, :fast_validator_block_height, 10}]} = Core.next_events_block_height(state, 10)
+    assert :empty_range == Core.next_events_block_height(state, 10)
+    {11, _, [{:put, :fast_validator_block_height, 11}]} = Core.next_events_block_height(state, 11)
   end
 
   test "margin over synced Ethereum height is respected" do
-    state = %Core{last_exit_block_height: 0, update_key: :update_key, margin_on_synced_block: 5}
-    {1, 5, state, [{:put, :update_key, 5}]} = Core.get_exits_block_range(state, 10)
-    assert :empty_range == Core.get_exits_block_range(state, 10)
+    state = %Core{
+      last_exit_block_height: 0,
+      synced_height: 0,
+      update_key: :fast_validator_block_height,
+      margin_on_synced_block: 5
+    }
+
+    {5, state, [{:put, :fast_validator_block_height, 5}]} = Core.next_events_block_height(state, 10)
+    assert :empty_range == Core.next_events_block_height(state, 10)
   end
 end
