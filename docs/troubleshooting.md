@@ -1,10 +1,4 @@
 # Troubleshooting
-## Could not compile dependency :plasma_mvp_contracts
-Ensure that the environment variable SOLC_BINARY is set:
-```
-export SOLC_BINARY=/home/j/.py-solc/solc-v0.4.18/bin/solc
-```
-
 ## Configuring the omisego_eth app fails with error
 ```
 ** (MatchError) no match of right hand side value: {:error, :econnrefused}
@@ -54,8 +48,12 @@ rm -rf ~/.omisego
 Last message: :check_mined_child_head
 ```
 Answer:
-rm -rf ~/.geth
-rm -rf ~/.omisego
+Unlock the authority account.
+
+```
+geth attach http://127.0.0.1:8545
+personal.unlockAccount(“<authority_addr from config.exs>”, '', 0)
+```
 
 ## Error Starting child chain server
 ```
@@ -73,8 +71,7 @@ Child chain database not initialized yet
 
 ## To compile or recompile the contracts
 ```
-cd ~/omisego/populus
-mix deps.compile plasma_mvp_contracts
+mix deps.compile plasma_contract
 ```
 
 ## To re-activate the virtualenv

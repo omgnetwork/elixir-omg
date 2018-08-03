@@ -106,17 +106,15 @@ source bin/activate
 ```
 
 ## Install populus
-[Ref](https://github.com/ethereum/populus/issues/450)
+[Ref](../populus/README.md)
 ```
-pip3 install populus
-pip3 install eth-utils==0.8.1 web3==3.16.5
+pip3 install -r populus/requirements.txt
 ```
 If an error is raised when installing the specific version of `eth-utils`, the error may be ignored for the purposes of this installation.
 
-## Install solc 0.4.24
-Note that solc 0.4.24 is required
+## Install solc
 ```
-python3 -m solc.install v0.4.24
+sudo apt-get install libssl-dev solc
 ```
 
 ## Install rebar

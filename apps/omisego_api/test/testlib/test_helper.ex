@@ -89,4 +89,9 @@ defmodule OmiseGO.API.TestHelper do
     signed_tx = create_signed(inputs, cur12, outputs)
     Transaction.Signed.encode(signed_tx)
   end
+
+  @spec encode_address(Crypto.address_t()) :: String.t()
+  def encode_address(address) do
+    "0x" <> Base.encode16(address, case: :lower)
+  end
 end

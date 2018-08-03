@@ -11,6 +11,8 @@ defmodule OmiseGO.JSONRPC.Exposer do
   of same name but different arity
   """
 
+  use OmiseGO.API.LoggerExt
+
   @spec handle_request_on_api(method :: binary, params :: %{required(binary) => any}, api :: atom) :: any
   def handle_request_on_api(method, params, api) do
     with {:ok, fname, args} <-
@@ -31,7 +33,7 @@ defmodule OmiseGO.JSONRPC.Exposer do
 
   defp apply_call(module, fname, args) do
     case apply(module, fname, args) do
-      # NOTE: let's treat all error in the called API as internal errors, this seems legit
+      # NOTE: let's treat all errors in the called API as internal errors, this seems legit
       {:ok, any} ->
         {:ok, any}
 

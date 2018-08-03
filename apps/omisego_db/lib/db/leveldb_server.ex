@@ -17,6 +17,8 @@ defmodule OmiseGO.DB.LevelDBServer do
   end
 
   def init(%{db_path: db_path}) do
+    # needed so that terminate callback is called on normal close
+    Process.flag(:trap_exit, true)
     {:ok, db_ref} = Exleveldb.open(db_path)
     {:ok, %__MODULE__{db_ref: db_ref}}
   end
@@ -78,6 +80,11 @@ defmodule OmiseGO.DB.LevelDBServer do
       |> LevelDBCore.decode_value(parameter)
 
     {:reply, result, state}
+  end
+
+  # WARNING, terminate below will be called only if :trap_exit is set to true
+  def terminate(_reason, %__MODULE__{db_ref: db_ref}) do
+    :ok = Exleveldb.close(db_ref)
   end
 
   # Argument order flipping tools :(

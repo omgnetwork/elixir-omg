@@ -3,50 +3,71 @@ defmodule OmiseGOWatcher.Eventer.Core do
   Functional core of eventer
   """
 
-  alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
-  alias OmiseGOWatcher.Eventer.Notification
+  alias OmiseGOWatcher.Eventer.Event
 
-  @block_finalized_topic "block_finalized"
-  @transaction_spent_topic_prefix "transactions/spent/"
-  @transaction_received_topic_prefix "transactions/received/"
+  @transfer_topic "transfer"
+  @byzantine_topic "byzantine"
 
-  @spec notify(any()) :: list({Notification.t(), binary()})
-  def notify(event_triggers) do
-    Enum.flat_map(event_triggers, &get_notification_with_topic(&1))
+  @spec prepare_events(any() | Event.t()) :: list({String.t(), String.t(), Event.t()})
+  def prepare_events(event_triggers) do
+    Enum.flat_map(event_triggers, &get_event_with_topic(&1))
   end
 
-  defp get_notification_with_topic(%{tx: %Transaction.Recovered{} = transaction}) do
-    spender_notifications = get_spender_notifications(transaction)
-    receiver_notifications = get_receiver_notifications(transaction)
-    spender_notifications ++ receiver_notifications
+  defp get_event_with_topic(%Event.InvalidBlock{} = event) do
+    [{@byzantine_topic, Event.InvalidBlock.name(), event}]
   end
 
-  defp get_notification_with_topic(%{block: %Block{} = block}) do
-    [
-      {%Notification.BlockFinalized{number: block.number, hash: block.hash}, @block_finalized_topic}
-    ]
+  defp get_event_with_topic(%Event.BlockWithHolding{} = event) do
+    [{@byzantine_topic, Event.BlockWithHolding.name(), event}]
   end
 
-  defp get_spender_notifications(%Transaction.Recovered{spender1: spender1, spender2: spender2} = recovered_tx) do
+  defp get_event_with_topic(event_trigger) do
+    get_address_received_events(event_trigger) ++ get_address_spent_events(event_trigger)
+  end
+
+  defp get_address_spent_events(
+         %{
+           tx: %Transaction.Recovered{
+             spender1: spender1,
+             spender2: spender2
+           }
+         } = event_trigger
+       ) do
     [spender1, spender2]
     |> Enum.filter(&Transaction.account_address?/1)
-    |> Enum.map(&create_spender_notification(recovered_tx, &1))
+    |> Enum.map(&create_address_spent_event(event_trigger, &1))
     |> Enum.uniq()
   end
 
-  defp create_spender_notification(%Transaction.Recovered{} = transaction, spender) do
-    {%Notification.Spent{tx: transaction}, @transaction_spent_topic_prefix <> spender}
+  defp create_address_spent_event(event_trigger, address) do
+    subtopic = create_transfer_subtopic(address)
+    {subtopic, Event.AddressSpent.name(), struct(Event.AddressSpent, event_trigger)}
   end
 
-  defp get_receiver_notifications(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}} = recovered_tx) do
-    [raw_tx.newowner1, raw_tx.newowner2]
+  defp get_address_received_events(
+         %{
+           tx: %Transaction.Recovered{
+             signed_tx: %Transaction.Signed{raw_tx: %Transaction{newowner1: newowner1, newowner2: newowner2}}
+           }
+         } = event_trigger
+       ) do
+    [newowner1, newowner2]
     |> Enum.filter(&Transaction.account_address?/1)
-    |> Enum.map(&create_receiver_notification(recovered_tx, &1))
+    |> Enum.map(&create_address_received_event(event_trigger, &1))
     |> Enum.uniq()
   end
 
-  defp create_receiver_notification(%Transaction.Recovered{} = transaction, receiver) do
-    {%Notification.Received{tx: transaction}, @transaction_received_topic_prefix <> receiver}
+  defp create_address_received_event(event_trigger, address) do
+    subtopic = create_transfer_subtopic(address)
+
+    {subtopic, Event.AddressReceived.name(), struct(Event.AddressReceived, event_trigger)}
   end
+
+  defp create_transfer_subtopic(address) do
+    encoded_address = "0x" <> Base.encode16(address, case: :lower)
+    create_subtopic(@transfer_topic, encoded_address)
+  end
+
+  defp create_subtopic(main_topic, subtopic), do: main_topic <> ":" <> subtopic
 end

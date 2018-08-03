@@ -4,6 +4,7 @@ defmodule OmiseGOWatcher.Application do
   for more information on OTP Applications
   """
   use Application
+  use OmiseGO.API.LoggerExt
 
   def start(_type, _args) do
     import Supervisor.Spec
@@ -22,6 +23,7 @@ defmodule OmiseGOWatcher.Application do
       supervisor(OmiseGOWatcher.Repo, []),
       # Start workers
       {OmiseGO.API.State, []},
+      {OmiseGOWatcher.Eventer, []},
       worker(
         OmiseGO.API.EthereumEventListener,
         [event_listener_config, &OmiseGO.Eth.get_deposits/2, &OmiseGO.API.State.deposit/1],
@@ -47,10 +49,18 @@ defmodule OmiseGOWatcher.Application do
         ],
         id: :slow_validator
       ),
-      {OmiseGOWatcher.BlockGetter, []},
+      worker(
+        OmiseGOWatcher.BlockGetter,
+        [[]],
+        restart: :transient,
+        id: :block_getter
+      ),
+
       # Start the endpoint when the application starts
       supervisor(OmiseGOWatcherWeb.Endpoint, [])
     ]
+
+    _ = Logger.info(fn -> "Started application OmiseGOWatcher.Application" end)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

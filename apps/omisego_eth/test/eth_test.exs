@@ -1,6 +1,8 @@
 defmodule OmiseGO.EthTest do
   @moduledoc """
   Thin smoke test of the Ethereum port/adapter.
+
+  Note the excluded moduletag, this test requires an explicit `--include`
   """
   # TODO: if proves to be brittle and we cover that functionality in other integration test then consider removing
 
@@ -20,7 +22,7 @@ defmodule OmiseGO.EthTest do
 
   @eth OmiseGO.API.Crypto.zero_address()
 
-  @moduletag :integration
+  @moduletag :wrappers
 
   defp generate_transaction(nonce) do
     hash = :crypto.hash(:sha256, to_charlist(nonce))
@@ -99,13 +101,11 @@ defmodule OmiseGO.EthTest do
      %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}, signed_tx_hash: signed_tx_hash} =
        recovered_tx} = Transaction.Recovered.recover_from(signed_tx)
 
-    block =
-      %Block{transactions: [recovered_tx]}
-      |> Block.merkle_hash()
+    block = Block.hashed_txs_at([recovered_tx], 1000)
 
     {:ok, txhash} =
       %Eth.BlockSubmission{
-        num: 1,
+        num: 1000,
         hash: block.hash,
         gas_price: 20_000_000_000,
         nonce: 1

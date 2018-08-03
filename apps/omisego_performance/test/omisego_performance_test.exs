@@ -1,6 +1,9 @@
 defmodule OmiseGO.PerformanceTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
+  import ExUnit.CaptureIO
+
+  use OmiseGO.API.LoggerExt
 
   @moduletag :integration
 
@@ -26,7 +29,14 @@ defmodule OmiseGO.PerformanceTest do
   test "Smoke test - run tests and see if they don't crash - with profiling", %{destdir: destdir} do
     ntxs = 3
     nsenders = 2
-    assert :ok = OmiseGO.Performance.setup_and_run(3, 2, %{destdir: destdir, profile: true})
+
+    fprof_io =
+      capture_io(fn -> assert :ok = OmiseGO.Performance.setup_and_run(3, 2, %{destdir: destdir, profile: true}) end)
+
+    # TODO a warning is printed out in fprof_io - check it out and possibly test against that
+    if fprof_io =~ "Warning", do: _ = Logger.warn(fn -> "fprof prints warnings during test" end)
+
+    assert fprof_io =~ "Done!"
 
     assert ["perf_result" <> _, "perf_result" <> _] = result_files = File.ls!(destdir)
 

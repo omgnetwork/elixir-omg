@@ -12,7 +12,19 @@ defmodule OmiseGO.API.State.PropTest do
   @moduletag capture_log: true
 
   # TODO: make aggregation and statistics informative
-  property "core handles deposits", [:verbose, max_size: 100] do
+
+  describe "core handles deposits" do
+    property "quick test of property test", [:quiet, max_size: 100, numtests: 10] do
+      do_core_handles_deposits()
+    end
+
+    @tag :property
+    property "core handles deposits", [:verbose, max_size: 100] do
+      do_core_handles_deposits()
+    end
+  end
+
+  defp do_core_handles_deposits do
     forall cmds <- commands(__MODULE__) do
       trap_exit do
         init()

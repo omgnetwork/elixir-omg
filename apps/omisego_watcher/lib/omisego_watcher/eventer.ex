@@ -3,29 +3,18 @@ defmodule OmiseGOWatcher.Eventer do
   Imperative shell for handling events
   """
 
+  alias OmiseGO.JSONRPC
   alias OmiseGOWatcher.Eventer.Core
-  alias Phoenix.PubSub
-
-  @pubsub :eventer
+  alias OmiseGOWatcherWeb.Endpoint
 
   ### Client
 
-  def notify(event_triggers) do
-    GenServer.cast(__MODULE__, {:notify, event_triggers})
+  def start_link(_args) do
+    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def subscribe(topic) when is_binary(topic) do
-    case PubSub.subscribe(@pubsub, topic) do
-      :ok -> :ok
-      {:error, _message} -> :error
-    end
-  end
-
-  def unsubscribe(topic) when is_binary(topic) do
-    case PubSub.unsubscribe(@pubsub, topic) do
-      :ok -> :ok
-      {:error, _message} -> :error
-    end
+  def emit_events(event_triggers) do
+    GenServer.cast(__MODULE__, {:emit_events, event_triggers})
   end
 
   ### Server
@@ -36,10 +25,12 @@ defmodule OmiseGOWatcher.Eventer do
     {:ok, nil}
   end
 
-  def handle_cast({:notify, event_triggers}, state) do
+  def handle_cast({:emit_events, event_triggers}, state) do
     event_triggers
-    |> Core.notify()
-    |> Enum.each(fn {notification, topic} -> :ok = PubSub.broadcast(:eventer, topic, notification) end)
+    |> Core.prepare_events()
+    |> Enum.each(fn {topic, event_name, event} ->
+      :ok = Endpoint.broadcast!(topic, event_name, JSONRPC.Client.encode(event))
+    end)
 
     {:noreply, state}
   end

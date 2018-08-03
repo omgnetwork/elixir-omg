@@ -50,13 +50,13 @@ The easiest way to get started is if you have access to a developer instance of 
 A developer instance of geth runs Ethereum locally and prefunds an account. However, when `geth` terminates, the state of the Ethereum network is lost.
 
 ```
-geth --dev --dev.period 2 --rpc --rpcapi personal,web3,eth
+geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth
 ```
 
 ### Persistent developer instance
 Alternatively, a persistent developer instance that does not lose state can be started with the following command:
 ```
-geth --dev --dev.period 2 --rpc --rpcapi personal,web3,eth  --datadir ~/.geth --ipc
+geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth  --datadir ~/.geth --ipc
 ```
 
 After `geth` is restarted with the above command, the authority account must be unlocked
@@ -68,7 +68,12 @@ personal.unlockAccount(“<authority_addr from config.exs>”, '', 0)
 
 ### Configure the `omisego_eth` app
 
-The following step will deploy the root chain contract and configure your app:
+The following step will:
+- create, fund and unlock the authority address
+- deploy the root chain contract
+- create the config file
+
+ deploy the root chain contract and configure your app:
 Note that `geth` needs to already be running for this step to work!
 ```
 mix run --no-start -e \
@@ -89,7 +94,10 @@ config :omisego_eth,
 ```
 The above values are only demonstrative, **do not** copy and paste!
 
-Initialize the child chain database with
+Note that you'll need to pass the configuration file each time you run `mix` with the following parameter `--config <your_config_file.exs>` flag
+
+### Initialize the child chain database
+Initialize the database with the following command:
 ```
 mix run --no-start -e 'OmiseGO.DB.init()'
 ```
@@ -97,8 +105,9 @@ mix run --no-start -e 'OmiseGO.DB.init()'
 ### Start it up!
 * Start up geth if not already started.
 * Start Up the child chain server
+
 ```
-cd ~/DEV/omisego/apps/omisego_jsonrpc
+cd omisego/apps/omisego_jsonrpc
 mix run --no-halt --config ~/config.exs
 ```
 

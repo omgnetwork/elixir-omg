@@ -14,7 +14,8 @@ defmodule OmiseGOWatcher.Mixfile do
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
@@ -48,8 +49,7 @@ defmodule OmiseGOWatcher.Mixfile do
       {:socket, "~> 0.3"},
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
       # NOTE: need this explictly, since :omisego_jsonrpc won't start jsonrpc2 automatically
-      {:jsonrpc2,
-       git: "https://github.com/omisego/jsonrpc2-elixir.git", branch: "precise_handling_of_FunctionClauseError"},
+      {:jsonrpc2, "~> 1.1"},
       {:briefly, "~> 0.3", only: [:dev, :test]},
       #
       {:omisego_api, in_umbrella: true, runtime: false},

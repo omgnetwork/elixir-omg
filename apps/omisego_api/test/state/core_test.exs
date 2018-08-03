@@ -1,6 +1,8 @@
 defmodule OmiseGO.API.State.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
+
+  alias OmiseGO.API
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.TestHelper, as: Test
@@ -232,13 +234,13 @@ defmodule OmiseGO.API.State.CoreTest do
   test "spending emits event trigger", %{alice: alice, bob: bob, state_alice_deposit: state} do
     recover = Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}])
 
-    assert {:ok, {_, [trigger], _}, _} =
+    assert {:ok, {%Block{hash: block_hash, number: block_number}, [trigger], _}, _} =
              state
              |> (&Core.exec(recover, zero_fees_map(), &1)).()
              |> success?
              |> form_block_check(@child_block_interval)
 
-    assert trigger == %{tx: recover}
+    assert trigger == %{tx: recover, child_blknum: block_number, child_block_hash: block_hash}
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -308,9 +310,10 @@ defmodule OmiseGO.API.State.CoreTest do
     stable_bob: bob,
     state_stable_alice_deposit: state
   } do
+    # odd number of transactions, just in case
     recovered_tx_1 = Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}])
-
     recovered_tx_2 = Test.create_recovered([{@child_block_interval, 0, 0, bob}], eth(), [{alice, 2}, {bob, 5}])
+    recovered_tx_3 = Test.create_recovered([{@child_block_interval, 0, 1, alice}], eth(), [{alice, 2}, {bob, 1}])
 
     state =
       state
@@ -318,14 +321,23 @@ defmodule OmiseGO.API.State.CoreTest do
       |> success?
       |> (&Core.exec(recovered_tx_2, zero_fees_map(), &1)).()
       |> success?
+      |> (&Core.exec(recovered_tx_3, zero_fees_map(), &1)).()
+      |> success?
 
-    expected_block = %Block{
-      transactions: [recovered_tx_1, recovered_tx_2],
-      hash: "3e8de246ba9be94f87ea8cec20626705dc407eefa827545ebf03fa7582b13fca" |> Base.decode16!(case: :lower),
-      number: @child_block_interval
-    }
+    assert {:ok,
+            {%Block{
+               transactions: [block_tx1, block_tx2, _third_tx],
+               hash: block_hash,
+               number: @child_block_interval
+             }, _, _}, _} = form_block_check(state, @child_block_interval)
 
-    assert {:ok, {^expected_block, _, _}, _} = form_block_check(state, @child_block_interval)
+    # precomputed fixed hash to check compliance with hashing algo
+    assert block_hash |> Base.encode16(case: :lower) ==
+             "d3e45b686ecb5d7c4580192861088c0add6246a0f4dc8f6eebd2ae8783945eaa"
+
+    # Check that contents of the block can be recovered again to original txs
+    assert {:ok, ^recovered_tx_1} = API.Core.recover_tx(block_tx1)
+    assert {:ok, ^recovered_tx_2} = API.Core.recover_tx(block_tx2)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]

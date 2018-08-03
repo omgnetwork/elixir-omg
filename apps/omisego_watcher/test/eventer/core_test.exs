@@ -3,57 +3,61 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: true
-
   use OmiseGO.API.Fixtures
 
   alias OmiseGO.API
-  alias OmiseGO.API.State.Transaction
   alias OmiseGOWatcher.Eventer
-  alias OmiseGOWatcher.Eventer.Notification.Received
+  alias OmiseGOWatcher.Eventer.Event
+  alias OmiseGOWatcher.TestHelper
 
-  # TODO: implement all tests and write moduledoc
-  test "notifications for finalied block event are created" do
+  @tag fixtures: [:alice, :bob]
+  test "notify function generates 2 proper address_received events", %{alice: alice, bob: bob} do
+    recovered_tx =
+      API.TestHelper.create_recovered(
+        [{1, 0, 0, alice}, {2, 0, 0, bob}],
+        API.Crypto.zero_address(),
+        [{alice, 100}, {bob, 5}]
+      )
+
+    encoded_alice_address = API.TestHelper.encode_address(alice.addr)
+    encoded_bob_address = API.TestHelper.encode_address(bob.addr)
+    topic_alice = TestHelper.create_topic("transfer", encoded_alice_address)
+    topic_bob = TestHelper.create_topic("transfer", encoded_bob_address)
+
+    event_1 = {topic_alice, "address_received", %Event.AddressReceived{tx: recovered_tx}}
+
+    event_2 = {topic_bob, "address_received", %Event.AddressReceived{tx: recovered_tx}}
+
+    event_3 = {topic_alice, "address_spent", %Event.AddressSpent{tx: recovered_tx}}
+
+    event_4 = {topic_bob, "address_spent", %Event.AddressSpent{tx: recovered_tx}}
+
+    assert [event_1, event_2, event_3, event_4] == Eventer.Core.prepare_events([%{tx: recovered_tx}])
   end
 
-  @tag fixtures: [:alice]
-  test "receiver is notified about deposit", %{alice: %{priv: alice_priv, addr: alice_addr}} do
-    # TODO: first draft
+  @tag fixtures: [:alice, :bob]
+  test "prepare_events function generates 1 proper address_received events", %{alice: alice} do
+    recovered_tx =
+      API.TestHelper.create_recovered(
+        [{1, 0, 0, alice}],
+        API.Crypto.zero_address(),
+        [{alice, 100}]
+      )
 
-    raw_tx = %Transaction{
-      blknum1: 1,
-      txindex1: 0,
-      oindex1: 0,
-      blknum2: 0,
-      txindex2: 0,
-      oindex2: 0,
-      cur12: OmiseGO.API.Crypto.zero_address(),
-      newowner1: alice_addr,
-      amount1: 100,
-      newowner2: OmiseGO.API.Crypto.zero_address(),
-      amount2: 0
-    }
+    encoded_alice_address = API.TestHelper.encode_address(alice.addr)
+    topic = TestHelper.create_topic("transfer", encoded_alice_address)
 
-    # TODO: We're ignoring second spedner. Rethink this
-    encoded_singed_tx =
-      raw_tx
-      |> Transaction.sign(alice_priv, <<>>)
-      |> Transaction.Signed.encode()
+    event_1 = {topic, "address_received", %Event.AddressReceived{tx: recovered_tx}}
 
-    {:ok, recovered_tx} = API.Core.recover_tx(encoded_singed_tx)
+    event_2 = {topic, "address_spent", %Event.AddressSpent{tx: recovered_tx}}
 
-    assert [_, {%Received{tx: ^recovered_tx}, "transactions/received/" <> ^alice_addr}] =
-             Eventer.Core.notify([%{tx: recovered_tx}])
+    assert [event_1, event_2] == Eventer.Core.prepare_events([%{tx: recovered_tx}])
   end
 
-  test "spenders are notified about transactions" do
-  end
+  test "prepare_events function generates one block_withholdings event" do
+    block_withholding_event = %Event.BlockWithHolding{blknum: 1}
+    event = {"byzantine", "block_withholding", block_withholding_event}
 
-  test "spender is notified only once when both transaction input are hers" do
-  end
-
-  test "receivers are notified about transactions" do
-  end
-
-  test "transaction receiver is notified once when both transaction outputs are hers" do
+    assert [event] == Eventer.Core.prepare_events([block_withholding_event])
   end
 end
