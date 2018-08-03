@@ -55,6 +55,9 @@ defmodule OmiseGOWatcher.TransactionDB do
 
     field(:sig1, :binary, default: <<>>)
     field(:sig2, :binary, default: <<>>)
+
+    field(:spender1, :binary)
+    field(:spender2, :binary)
   end
 
   def get(id) do
@@ -82,7 +85,9 @@ defmodule OmiseGOWatcher.TransactionDB do
                raw_tx: %Transaction{} = transaction,
                sig1: sig1,
                sig2: sig2
-             } = tx
+             } = tx,
+           spender1: spender1,
+           spender2: spender2
          },
          block_number,
          txindex
@@ -95,7 +100,9 @@ defmodule OmiseGOWatcher.TransactionDB do
         txblknum: block_number,
         txindex: txindex,
         sig1: sig1,
-        sig2: sig2
+        sig2: sig2,
+        spender1: spender1,
+        spender2: spender2
       }
       |> Map.merge(Map.from_struct(transaction))
       |> Repo.insert()

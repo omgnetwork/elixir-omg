@@ -100,16 +100,19 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
 
   defp create_expected_transaction(
          txid,
-         %Recovered{signed_tx: %Signed{raw_tx: transaction, sig1: sig1, sig2: sig2}},
+         %Recovered{signed_tx: %Signed{raw_tx: transaction, sig1: sig1, sig2: sig2}, spender1: spender1, spender2: spender2},
          txblknum,
          txindex
        ) do
+    # FIXME: just merge the 4 maps %(txblknum:...} and Map.take(recovered, [fields...]) and Map.take(signed...) etc
     %TransactionDB{
       txblknum: txblknum,
       txindex: txindex,
       txid: txid,
       sig1: sig1,
-      sig2: sig2
+      sig2: sig2,
+      spender1: spender1,
+      spender2: spender2
     }
     |> Map.merge(Map.from_struct(transaction))
     |> delete_meta
