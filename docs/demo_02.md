@@ -126,7 +126,7 @@ tx2 =
 {:ok, txhash} =
   Eth.start_exit(
     composed_exit.utxo_pos,
-    Base.decode16!(composed_exit.tx_bytes),
+    Base.decode16!(composed_exit.txbytes),
     Base.decode16!(composed_exit.proof),
     Base.decode16!(composed_exit.sigs),
     1,
