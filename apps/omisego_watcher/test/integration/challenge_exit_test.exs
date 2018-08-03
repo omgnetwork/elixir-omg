@@ -10,14 +10,15 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.Integration.TestHelper, as: IntegrationTest
   alias OmiseGOWatcher.TestHelper, as: Test
+  alias OmiseGO.API.State.Transaction
 
   @moduletag :integration
 
   @timeout 20_000
   @zero_address Crypto.zero_address()
 
-  @tag fixtures: [:watcher_sandbox, :contract, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
-  test "challenges invalid exit", %{contract: contract, alice: alice, bob: bob} do
+  @tag fixtures: [:watcher_sandbox, :contract, :token, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
+  test "challenges invalid exit; exit token", %{contract: contract, token: token, alice: alice, bob: bob} do
     deposit_blknum = IntegrationTest.deposit_to_child_chain(alice, 10, contract)
     # TODO remove slpeep after synch deposit synch
     :timer.sleep(100)
@@ -71,6 +72,57 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
     assert {:ok, {@zero_address, @zero_address, 7}} == Eth.get_exit(utxo_pos, contract.contract_addr)
+
+    alice_enc = "0x" <> Base.encode16(alice.addr, case: :lower)
+    _ = Eth.DevHelpers.token_mint(alice_enc, 20, token.address)
+
+    Eth.DevHelpers.token_approve(
+      alice_enc,
+      OmiseGO.API.TestHelper.decode_address(contract.contract_addr),
+      20,
+      token.address
+    )
+
+    {:ok, receipt} = Eth.DevHelpers.deposit_token(alice_enc, token.address, 20)
+    token_deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
+    # TODO: fix this flakyness! (wait lets CC process the deposit)
+    Process.sleep(1000)
+
+    token_raw_tx =
+      Transaction.new(
+        [{token_deposit_blknum, 0, 0}],
+        API.TestHelper.decode_address(token.address),
+        [{alice.addr, 20}]
+      )
+
+    token_tx = token_raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
+
+    # spend the token deposit
+    {:ok, %{blknum: spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
+
+    utxo_pos = Test.utxo_pos(spend_token_child_block, 0, 0)
+
+    IntegrationTest.wait_until_block_getter_fetches_block(spend_token_child_block, @timeout)
+    exit = IntegrationTest.compose_utxo_exit(spend_token_child_block, 0, 0)
+
+    %{
+      txbytes: tx_bytes,
+      proof: proof,
+      sigs: sigs
+    } = exit
+
+    {:ok, txhash} =
+      Eth.start_exit(
+        utxo_pos,
+        tx_bytes,
+        proof,
+        sigs,
+        1,
+        alice_address,
+        contract.contract_addr
+      )
+
+    {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
   end
 
   defp get_exit_challenge(blknum, txindex, oindex) do
