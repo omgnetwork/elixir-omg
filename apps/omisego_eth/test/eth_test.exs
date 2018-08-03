@@ -50,7 +50,7 @@ defmodule OmiseGO.EthTest do
   end
 
   defp exit_deposit(contract) do
-    deposit_pos = %UtxoPosition{blknum: 1, txindex: 0, oindex: 0} |> UtxoPosition.encode_utxo_position()
+    deposit_pos = UtxoPosition.new(1, 0, 0) |> UtxoPosition.encode()
 
     data = "startDepositExit(uint256,address,uint256)" |> ABI.encode([deposit_pos, @eth, 1]) |> Base.encode16()
 
@@ -118,13 +118,13 @@ defmodule OmiseGO.EthTest do
     # TODO re: brittleness and dirtyness of this - test requires UtxoDB calls,
     # duplicates our integrations tests - another reason to drop or redesign eth_test.exs sometime
     %{utxo_pos: utxo_pos, txbytes: txbytes, proof: proof, sigs: sigs} =
-      UtxoDB.compose_utxo_exit(txs, %UtxoPosition{blknum: child_blknum, txindex: 0, oindex: 0})
+      UtxoDB.compose_utxo_exit(txs, UtxoPosition.new(child_blknum, 0, 0))
 
     {:ok, _} = start_exit(utxo_pos, txbytes, proof, sigs, 1, bob_address, contract.contract_addr)
 
     {:ok, height} = Eth.get_ethereum_height()
 
-    utxo_pos = %UtxoPosition{blknum: 1000, txindex: 0, oindex: 0} |> UtxoPosition.encode_utxo_position()
+    utxo_pos = UtxoPosition.new(1000, 0, 0) |> UtxoPosition.encode()
 
     assert {:ok, [%{amount: 8, owner: bob_address, utxo_pos: utxo_pos, token: @eth}]} ==
              Eth.get_exits(1, height, contract.contract_addr)
@@ -173,7 +173,7 @@ defmodule OmiseGO.EthTest do
     exit_deposit(contract)
     {:ok, height} = Eth.get_ethereum_height()
 
-    utxo_pos = %UtxoPosition{blknum: 1, txindex: 0, oindex: 0} |> UtxoPosition.encode_utxo_position()
+    utxo_pos = UtxoPosition.new(1, 0, 0) |> UtxoPosition.encode()
 
     assert(
       {:ok, [%{owner: contract.authority_addr, utxo_pos: utxo_pos, token: @eth, amount: 1}]} ==

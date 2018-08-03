@@ -59,22 +59,22 @@ defmodule OmiseGOWatcher.Challenger.CoreTest do
 
   @tag fixtures: [:transactions]
   test "creates a challenge for an exit", %{transactions: transactions} do
-    utxo_exit = %UtxoPosition{blknum: 1, txindex: 0, oindex: 0}
+    utxo_exit = UtxoPosition.new(1, 0, 0)
     challenging_tx = hd(transactions)
 
-    expected_cutxopos = %UtxoPosition{blknum: 2, txindex: 1, oindex: 0} |> UtxoPosition.encode_utxo_position()
+    expected_cutxopos = UtxoPosition.new(2, 1, 0) |> UtxoPosition.encode()
 
     %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} =
       Core.create_challenge(challenging_tx, transactions, utxo_exit)
 
     [_, challenging_tx | _] = transactions
 
-    expected_cutxopos = %UtxoPosition{blknum: 2, txindex: 2, oindex: 1} |> UtxoPosition.encode_utxo_position()
+    expected_cutxopos = UtxoPosition.new(2, 2, 1) |> UtxoPosition.encode()
 
     %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} =
       Core.create_challenge(challenging_tx, transactions, utxo_exit)
 
-    utxo_exit = %UtxoPosition{blknum: 1, txindex: 0, oindex: 1}
+    utxo_exit = UtxoPosition.new(1, 0, 1)
 
     %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 1} =
       Core.create_challenge(challenging_tx, transactions, utxo_exit)

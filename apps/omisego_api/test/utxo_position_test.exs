@@ -5,11 +5,9 @@ defmodule OmiseGO.API.UtxoPositionTest do
 
   alias OmiseGO.API.UtxoPosition
 
-  test "encode_utxo_position checking for diffrent agruments" do
-    assert 4_000_050_001 == UtxoPosition.encode_utxo_position(%UtxoPosition{blknum: 4, txindex: 5, oindex: 1})
-  end
-
-  test "decode_utxo_position checking for diffrent agruments" do
-    assert %UtxoPosition{blknum: 4, txindex: 5, oindex: 1} == UtxoPosition.decode_utxo_position(4_000_050_001)
+  test "encode and decode the utxo position checking" do
+    decoded = UtxoPosition.new(4, 5, 1)
+    assert 4_000_050_001 = encoded = UtxoPosition.encode(decoded)
+    assert decoded == UtxoPosition.decode(encoded)
   end
 end

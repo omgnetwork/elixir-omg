@@ -69,8 +69,8 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
   test "gets transaction that spends utxo", %{alice: alice, bob: bob} do
-    utxo1 = %UtxoPosition{blknum: 1, txindex: 0, oindex: 0}
-    utxo2 = %UtxoPosition{blknum: 2, txindex: 0, oindex: 0}
+    utxo1 = UtxoPosition.new(1, 0, 0)
+    utxo2 = UtxoPosition.new(2, 0, 0)
     :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo1)
     :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo2)
 

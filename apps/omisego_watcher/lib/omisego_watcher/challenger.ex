@@ -17,7 +17,7 @@ defmodule OmiseGOWatcher.Challenger do
   """
   @spec create_challenge(pos_integer(), non_neg_integer(), non_neg_integer()) :: Challenge.t() | :exit_valid
   def create_challenge(blknum, txindex, oindex) do
-    utxo_exit = %UtxoPosition{blknum: blknum, txindex: txindex, oindex: oindex}
+    utxo_exit = UtxoPosition.new(blknum, txindex, oindex)
 
     with {:ok, challenging_tx} <- TransactionDB.get_transaction_challenging_utxo(utxo_exit) do
       txs_in_challenging_block = TransactionDB.find_by_txblknum(challenging_tx.txblknum)

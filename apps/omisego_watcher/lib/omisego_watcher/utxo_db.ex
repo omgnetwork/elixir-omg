@@ -91,7 +91,7 @@ defmodule OmiseGOWatcher.UtxoDB do
     end)
   end
 
-  def compose_utxo_exit(%UtxoPosition{blknum: blknum, txindex: txindex, oindex: oindex} = decoded_utxo_pos) do
+  def compose_utxo_exit({blknum, txindex, oindex} = decoded_utxo_pos) do
     txs = TransactionDB.find_by_txblknum(blknum)
 
     case Enum.any?(txs, fn tx -> tx.txindex == txindex end) do
@@ -100,13 +100,13 @@ defmodule OmiseGOWatcher.UtxoDB do
     end
   end
 
-  def compose_utxo_exit(txs, %UtxoPosition{blknum: blknum, txindex: txindex} = decoded_utxo_pos) do
+  def compose_utxo_exit(txs, {blknum, txindex, _} = decoded_utxo_pos) do
     sorted_txs = Enum.sort_by(txs, & &1.txindex)
     hashed_txs = Enum.map_every(sorted_txs, 1, fn tx -> tx.txid end)
     proof = Block.create_tx_proof(hashed_txs, txindex)
     tx = Enum.at(sorted_txs, txindex)
 
-    utxo_pos = decoded_utxo_pos |> UtxoPosition.encode_utxo_position()
+    utxo_pos = decoded_utxo_pos |> UtxoPosition.encode()
 
     %{
       utxo_pos: utxo_pos,

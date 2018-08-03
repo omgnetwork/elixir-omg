@@ -24,7 +24,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
     {oindex, ""} = Integer.parse(oindex)
 
     {:ok, composed_utxo_exit} =
-      UtxoDB.compose_utxo_exit(%UtxoPosition{blknum: blknum, txindex: txindex, oindex: oindex})
+      UtxoDB.compose_utxo_exit(UtxoPosition.new(blknum, txindex, oindex))
 
     json(conn, encode(composed_utxo_exit))
   end

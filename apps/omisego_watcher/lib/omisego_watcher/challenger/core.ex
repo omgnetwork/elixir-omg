@@ -58,10 +58,10 @@ defmodule OmiseGOWatcher.Challenger.Core do
     Transaction.encode(tx)
   end
 
-  defp get_eutxo_index(%TransactionDB{blknum1: blknum1, txindex1: txindex1, oindex1: oindex1}, %UtxoPosition{
-         blknum: blknum,
-         txindex: txindex,
-         oindex: oindex
+  defp get_eutxo_index(%TransactionDB{blknum1: blknum1, txindex1: txindex1, oindex1: oindex1}, {
+         blknum,
+         txindex,
+         oindex
        })
        when blknum == blknum1 and txindex == txindex1 and oindex == oindex1,
        do: 0
@@ -71,13 +71,13 @@ defmodule OmiseGOWatcher.Challenger.Core do
   defp challenging_utxo_pos(challenging_tx) do
     challenging_tx
     |> get_challenging_utxo()
-    |> UtxoPosition.encode_utxo_position()
+    |> UtxoPosition.encode()
   end
 
   defp get_challenging_utxo(%TransactionDB{txblknum: blknum, txindex: txindex, amount1: 0}),
-    do: %UtxoPosition{blknum: blknum, txindex: txindex, oindex: 1}
+    do: UtxoPosition.new(blknum, txindex, 1)
 
   defp get_challenging_utxo(%TransactionDB{txblknum: blknum, txindex: txindex}),
-    do: %UtxoPosition{blknum: blknum, txindex: txindex, oindex: 0}
+    do: UtxoPosition.new(blknum, txindex, 0)
 
 end
