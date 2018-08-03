@@ -89,4 +89,22 @@ defmodule OmiseGO.API.TestHelper do
     signed_tx = create_signed(inputs, cur12, outputs)
     Transaction.Signed.encode(signed_tx)
   end
+
+  @spec write_fee_file(%{Crypto.address_t() => non_neg_integer}) :: :ok
+  def write_fee_file(map) do
+    {:ok, json} =
+      map
+      |> Map.to_list()
+      |> Enum.map(fn {"0x" <> _ = k, v} -> %{token: k, flat_fee: v} end)
+      |> Poison.encode()
+
+    {:ok, path} = Briefly.create(prefix: "omisego_operator_test_fees_file")
+    :ok = File.write(path, json, [:write])
+    {:ok, path}
+  end
+
+  def get_fees do
+    OmiseGO.API.FeeChecker.update_fee_spec()
+    :ets.lookup_element(:fees_bucket, :fees_map_key, 2)
+  end
 end
