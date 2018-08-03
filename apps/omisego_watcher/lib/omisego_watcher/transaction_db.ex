@@ -8,6 +8,7 @@ defmodule OmiseGOWatcher.TransactionDB do
   import Ecto.Query, only: [from: 2]
 
   alias OmiseGO.API.State.{Transaction, Transaction.Recovered, Transaction.Signed}
+  alias OmiseGO.API.UtxoPosition
   alias OmiseGOWatcher.Repo
 
   @field_names [
@@ -115,7 +116,7 @@ defmodule OmiseGOWatcher.TransactionDB do
   end
 
   @spec get_transaction_challenging_utxo(map()) :: {:ok, map()} | :utxo_not_spent
-  def get_transaction_challenging_utxo(%{blknum: blknum, txindex: txindex, oindex: oindex}) do
+  def get_transaction_challenging_utxo(%UtxoPosition{blknum: blknum, txindex: txindex, oindex: oindex}) do
     query =
       from(
         tx_db in __MODULE__,
