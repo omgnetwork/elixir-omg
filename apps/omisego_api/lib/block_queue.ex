@@ -59,8 +59,10 @@ defmodule OmiseGO.API.BlockQueue do
 
       _ =
         Logger.info(fn ->
-          "Starting BlockQueue at parent_height: #{parent_height}, mined_child_block: #{mined_num}, " <>
-            "parent_start: #{parent_start}, stored_child_top_block: #{stored_child_top_num}"
+          "Starting BlockQueue at " <>
+            "parent_height: #{inspect(parent_height)}, " <>
+            "mined_child_block: #{inspect(mined_num)}, " <>
+            "parent_start: #{inspect(parent_start)}, stored_child_top_block: #{inspect(stored_child_top_num)}"
         end)
 
       range = Core.child_block_nums_to_init_with(stored_child_top_num)
@@ -72,7 +74,7 @@ defmodule OmiseGO.API.BlockQueue do
       #       Leaving a chore to handle that in the future: OMG-83
       {:ok, known_hashes} = OmiseGO.DB.block_hashes(range)
       {:ok, {top_mined_hash, _}} = Eth.get_child_chain(mined_num)
-      _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{inspect(top_mined_hash)}" end)
+      _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{inspect(Base.encode16(top_mined_hash))}" end)
 
       {:ok, state} =
         Core.new(
@@ -96,7 +98,7 @@ defmodule OmiseGO.API.BlockQueue do
 
     def handle_info(:check_mined_child_head, state) do
       {:ok, mined_blknum} = Eth.get_mined_child_block()
-      _ = Logger.debug(fn -> "check mined child head '#{mined_blknum}'" end)
+      _ = Logger.debug(fn -> "check mined child head '#{inspect(mined_blknum)}'" end)
 
       state1 = Core.set_mined(state, mined_blknum)
       submit_blocks(state1)
@@ -105,7 +107,7 @@ defmodule OmiseGO.API.BlockQueue do
 
     def handle_info(:check_ethereum_height, %Core{child_block_interval: child_block_interval} = state) do
       {:ok, height} = Eth.get_ethereum_height()
-      _ = Logger.debug(fn -> "check ethereum height '#{height}'" end)
+      _ = Logger.debug(fn -> "check ethereum height '#{inspect(height)}'" end)
 
       # TODO: submit_blocks is called throughout here a lot, and for now it's ok. Consider regaining more control
       #       over how it is done. E.g. we may submit_blocks only in certain spots, or have it have its own timer
@@ -122,7 +124,12 @@ defmodule OmiseGO.API.BlockQueue do
 
     def handle_cast({:enqueue_block, block_hash, block_number}, %Core{} = state) do
       state2 = Core.enqueue_block(state, block_hash, block_number)
-      _ = Logger.info(fn -> "Enqueing block num '#{block_number}', hash '#{block_hash}'" end)
+
+      _ =
+        Logger.info(fn ->
+          "Enqueing block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'"
+        end)
+
       submit_blocks(state2)
       {:noreply, state2}
     end

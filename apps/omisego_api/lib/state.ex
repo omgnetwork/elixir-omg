@@ -10,7 +10,6 @@ defmodule OmiseGO.API.State do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.DB
-  alias OmiseGO.Eth
   alias OmiseGOWatcher.Eventer
 
   use OmiseGO.API.LoggerExt
@@ -32,8 +31,8 @@ defmodule OmiseGO.API.State do
     GenServer.cast(__MODULE__, {:form_block, child_block_interval})
   end
 
-  def close_block(child_block_interval) do
-    GenServer.cast(__MODULE__, {:close_block, child_block_interval})
+  def close_block(child_block_interval, eth_height) do
+    GenServer.call(__MODULE__, {:close_block, child_block_interval, eth_height})
   end
 
   @spec deposit(deposits :: [Core.deposit()]) :: :ok
@@ -143,18 +142,17 @@ defmodule OmiseGO.API.State do
   end
 
   @doc """
-    Wraps up accumulated transactions submissions into a block, triggers db update and emits
-    events to Eventer
+  Wraps up accumulated transactions submissions into a block, triggers db update and emits events to Eventer.
+
+  eth_height given is the Ethereum chain height where the block being closed got submitted, to be used with events.
   """
-  def handle_cast({:close_block, child_block_interval}, state) do
-    {duration, {:ok, {%Block{hash: block_hash}, event_triggers, db_updates}, new_state}} =
+  def handle_call({:close_block, child_block_interval, eth_height}, _from, state) do
+    {duration, {:ok, {%Block{}, event_triggers, db_updates}, new_state}} =
       :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
 
-    _ = Logger.info(fn -> "Done closing block in #{inspect(round(duration / 1000))} ms" end)
+    _ = Logger.debug(fn -> "Closing block done in #{inspect(round(duration / 1000))} ms" end)
 
     :ok = DB.multi_update(db_updates)
-
-    %{eth_height: eth_height} = Eth.get_block_submission(block_hash)
 
     event_triggers =
       event_triggers
@@ -165,7 +163,7 @@ defmodule OmiseGO.API.State do
 
     Eventer.emit_events(event_triggers)
 
-    {:noreply, new_state}
+    {:reply, :ok, new_state}
   end
 
   @doc """
@@ -175,7 +173,7 @@ defmodule OmiseGO.API.State do
   def handle_cast({:form_block, child_block_interval}, state) do
     _ = Logger.debug(fn -> "Forming new block..." end)
     {duration, result} = :timer.tc(fn -> do_form_block(child_block_interval, state) end)
-    _ = Logger.info(fn -> "Done forming block in #{inspect(round(duration / 1000))} ms" end)
+    _ = Logger.info(fn -> "Forming block done in #{inspect(round(duration / 1000))} ms" end)
     result
   end
 
@@ -187,7 +185,7 @@ defmodule OmiseGO.API.State do
 
     _ =
       Logger.info(fn ->
-        "Calculations for forming block #{inspect(block.number)} done in #{
+        "Calculations for forming block number #{inspect(block.number)} done in #{
           inspect(round(core_form_block_duration / 1000))
         } ms"
       end)

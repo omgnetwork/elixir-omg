@@ -24,13 +24,10 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def handle_cast(
-        {:consume_block,
-         %{hash: hash, transactions: transactions, number: blknum, zero_fee_requirements: fees} = block},
+        {:consume_block, %{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block},
         state
       ) do
     state_exec_results = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
-
-    OmiseGO.API.State.close_block(Application.get_env(:omisego_eth, :child_block_interval))
 
     {continue, events} = Core.check_tx_executions(state_exec_results, block)
 
@@ -47,11 +44,15 @@ defmodule OmiseGOWatcher.BlockGetter do
 
       _ =
         Logger.info(fn ->
-          short_hash = hash |> Base.encode16() |> Binary.drop(-48)
-
-          "Received block \##{inspect(blknum)} #{short_hash}... with #{inspect(length(transactions))} txs." <>
-            " Child chain seen at block \##{inspect(next_child)}. Getting blocks #{inspect(blocks_numbers)}"
+          "Child chain seen at block \##{inspect(next_child)}. Getting blocks #{inspect(blocks_numbers)}"
         end)
+
+      child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
+
+      # TODO: substitute for Ethereum height where this block originated from (see bugs in tracker)
+      #       after we have a way to cheaply get it using RootChainCoordinator
+      eth_height = 0
+      :ok = OmiseGO.API.State.close_block(child_block_interval, eth_height)
 
       {:noreply, new_state}
     else

@@ -8,23 +8,11 @@ For the responsibilities and design of the child chain server see [Tesuji Plasma
 
 ## Setting up
 
-1. Provide an Ethereum node connected to the appropriate network
-1. Deploy `RootChain.sol` contract and prepare operator's authority address
-1. Initialize the child chain database.
-Do that with `mix run --no-start -e 'OmiseGO.DB.init()'`
-1. Produce a configuration file with `omisego_eth` configured to the contract address, operator (authority) address and hash of contract-deploying transaction.
-To do that use the template, filling it with details on the contract:
+1. Follow the generic **Setting up** from [here](../README.md)
+1. Start the child chain server, referencing the configuration file from the previous step
 
-        use Mix.Config
-
-        config :omisego_eth,
-          contract_addr: "0x0",
-          authority_addr: "0x0",
-          txhash_contract: "0x0"
-
-1. Start the child chain server, referencing the configuration file from the previous step with the JSON-RPC interface activated
-  - `cd apps/omisego_jsonrpc`
-  - `mix run --no-halt --config path/to/config.exs`
+        cd apps/omisego_jsonrpc
+        mix run --no-halt --config path/to/config.exs
 
 ### Setting up (the developer's environment)
 
@@ -32,11 +20,9 @@ This is an example of how to quickly setup the developer's environment to run th
 
 1. For the Ethereum node: `geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth` gives a disposable private network.
    **NOTE** you can use `--datadir path/to/some/persistent/location` to make the network persistent, but then remember to unlock the authority account after restarting `geth` and before running the child chain server
-1. For the contract/authority address: (`mix run --no-start -e 'IO.inspect OmiseGO.Eth.DevHelpers.prepare_env!()'`)
 1. Initialize child chain database normally.
-**NOTE** It will use the default db path always (`~/.omisego/data`) so when running child chain and watcher side by side you need to configure more.
-1. Configure `omisego_eth` normally, using data from `prepare_env!`.
-    You can also shortcut with this little Elixir hocus-pocus:
+**NOTE** It will use the default db path (`~/.omisego/data`). If you're running a Watcher on same machine, customize there
+1. For contract deployment, authority address and `omisego_eth` configuration you can use this script:
 
           mix compile && mix run --no-start -e \
             '
@@ -122,10 +108,6 @@ The argument names are indicated by the `@spec` clauses.
     }
 }
 ```
-
-### Websockets
-
-**TODO** consider if we want to expose at all
 
 ## Overview of apps
 

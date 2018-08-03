@@ -32,7 +32,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
 
     %{
-      tx_bytes: tx_bytes,
+      txbytes: txbytes,
       proof: proof,
       sigs: sigs
     } = IntegrationTest.compose_utxo_exit(exiting_utxo_block_nr, 0, 0)
@@ -44,7 +44,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     {:ok, txhash} =
       Eth.start_exit(
         utxo_pos,
-        tx_bytes,
+        txbytes,
         proof,
         sigs,
         1,

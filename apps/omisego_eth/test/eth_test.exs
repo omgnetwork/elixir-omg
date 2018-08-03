@@ -120,10 +120,10 @@ defmodule OmiseGO.EthTest do
 
     # TODO re: brittleness and dirtyness of this - test requires UtxoDB calls,
     # duplicates our integrations tests - another reason to drop or redesign eth_test.exs sometime
-    %{utxo_pos: utxo_pos, tx_bytes: tx_bytes, proof: proof, sigs: sigs} =
+    %{utxo_pos: utxo_pos, txbytes: txbytes, proof: proof, sigs: sigs} =
       UtxoDB.compose_utxo_exit(txs, child_blknum * @block_offset, 0, 0)
 
-    {:ok, _} = start_exit(utxo_pos, tx_bytes, proof, sigs, 1, bob_address, contract.contract_addr)
+    {:ok, _} = start_exit(utxo_pos, txbytes, proof, sigs, 1, bob_address, contract.contract_addr)
 
     {:ok, height} = Eth.get_ethereum_height()
 

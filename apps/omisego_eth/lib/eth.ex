@@ -6,7 +6,6 @@ defmodule OmiseGO.Eth do
   """
   # TODO: decide how type and logic aware this should be. Presently it's quite mixed
 
-  alias OmiseGO.API.Block
   import OmiseGO.Eth.Encoding
 
   @block_offset 1_000_000_000
@@ -252,17 +251,6 @@ defmodule OmiseGO.Eth do
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
          block_submissions <- unfiltered_logs |> filter_not_removed |> Enum.map(parse_block_submissions),
          do: {:ok, Enum.sort(block_submissions, &(&1.timestamp > &2.timestamp))}
-  end
-
-  @doc """
-  Returns associated information to block submission
-  """
-  @spec get_block_submission(binary()) :: %{root: Block.block_hash_t(), timestamp: pos_integer, eth_height: pos_integer}
-  def get_block_submission(block_hash) do
-    # TODO rethink what to do with first argument of get_block_submissions
-    with {:ok, height} = get_ethereum_height(),
-         {:ok, block_submissions} = get_block_submissions(1, height),
-         do: block_submissions |> Enum.find(&(&1.root == block_hash))
   end
 
   defp encode_event_signature(signature) do

@@ -6,32 +6,53 @@ The Watcher is an observing node that connects to Ethereum and the child chain s
 It exposes the information it gathers via a REST interface (Phoenix)
 For the responsibilities and design of the watcher see [Tesuji Plasma Blockchain Design document](FIXME link pending).
 
-**TODO** write proper README after we distill how to run this.
+## Setting up
 
-## Setting up and running the watcher
+1. Follow the generic **Setting up** from [here](../../README.md)
+1. Start the Watcher, referencing the configuration
 
-```
-cd apps/omisego_watcher
-# FIXME: wouldn't work yet but would belong here: mix run --no-start -e 'OmiseGO.DB.init()'
-iex --sname watcher -S mix
-```
+        cd apps/omisego_watcher
+        mix run --no-halt --config path/to/config.exs
 
 ## Setting up (developer's environment)
 
-  - setup and run the child chain server in developer's environment
-  - setup and run the watcher pointing to the same `omisego_eth` configuration (with the contract address) as the child chain server
+This assumes that you've got a developer's environment Child chain server set up and API running on `localhost:9656`, see [here](../omisego_api/README.md).
+
+1. Configure the PostgreSQL server with:
+
+        sudo -u postgres createuser omisego_dev
+        sudo -u postgres psql
+        alter user omisego_dev with encrypted password 'omisego_dev';
+        ALTER USER omisego_dev CREATEDB;
+
+1. Copy the configuration file used by the Child chain server to `your_config_file_watcher.exs`
+1. Configure a **different** location of the `OmiseGO.DB` for the Watcher in that file using:
+
+        config :omisego_db,
+          leveldb_path: Path.join([System.get_env("HOME"), ".omisego/data_watcher"])
+
+1. Initialize the `OmiseGO.DB` using the other location
+
+        mix run --no-start -e 'OmiseGO.DB.init()' --config path/to/your_config_file_watcher.exs
+
+1. Clean and create the PostgreSQL WatcherDB
+
+        mix do ecto.drop, ecto.create, ecto.migrate
+
+1. Start the Watcher and start syncing to the Child chain server
+
+        iex -S mix run --config path/to/your_config_file_watcher.exs
 
 ## Using the watcher
 
 FIXME adapt to how it actually works
 
-
 ##Endpoints
 TODO
- 
+
 ## Websockets
 
-Exposed websockets are using [Phoniex channels](https://hexdocs.pm/phoenix/channels.html) feature. 
+Exposed websockets are using [Phoenix channels](https://hexdocs.pm/phoenix/channels.html) feature.
 Different events are emitted for each topic.
 
 ### Topics:
@@ -113,13 +134,13 @@ In case extra finality is required for high-stakes transactions, the client is f
 
 ##### invalid_block
 Event informing about that particular block is invalid.
- 
+
 ##### block_withholding
 Event informing about that the child chain is withholding block.
 
 ##### invalid_fee_exit
 
-### TODO block 
+### TODO block
 
 ### TODO deposit_spendable
 
@@ -128,4 +149,3 @@ Event informing about that the child chain is withholding block.
 #### Events:
 
 ##### fees_exited
-
