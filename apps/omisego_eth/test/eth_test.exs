@@ -121,7 +121,7 @@ defmodule OmiseGO.EthTest do
     # TODO re: brittleness and dirtyness of this - test requires UtxoDB calls,
     # duplicates our integrations tests - another reason to drop or redesign eth_test.exs sometime
     %{utxo_pos: utxo_pos, txbytes: txbytes, proof: proof, sigs: sigs} =
-      UtxoDB.compose_utxo_exit(txs, child_blknum, 0, 0)
+      UtxoDB.compose_utxo_exit(txs, child_blknum * @block_offset, 0, 0)
 
     {:ok, _} = start_exit(utxo_pos, txbytes, proof, sigs, 1, bob_address, contract.contract_addr)
 
