@@ -10,6 +10,7 @@ For the responsibilities and design of the watcher see [Tesuji Plasma Blockchain
 
 1. Follow the generic **Setting up** from [here](../../README.md)
 1. Start the Watcher, referencing the configuration
+
         cd apps/omisego_watcher
         mix run --no-halt --config path/to/config.exs
 

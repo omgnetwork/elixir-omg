@@ -127,7 +127,7 @@ defmodule OmiseGO.API.BlockQueue do
 
       _ =
         Logger.info(fn ->
-          "Enqueing block num '#{inspect(block_number)}', " <> "hash '#{inspect(Base.encode16(block_hash))}'"
+          "Enqueing block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'"
         end)
 
       submit_blocks(state2)

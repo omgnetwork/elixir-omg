@@ -92,7 +92,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
     %{
       utxo_pos: _utxo_pos,
-      tx_bytes: _tx_bytes,
+      txbytes: _tx_bytes,
       proof: proof,
       sigs: _sigs
     } = UtxoDB.compose_utxo_exit(1, 1, 0)

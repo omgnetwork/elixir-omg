@@ -10,6 +10,7 @@ For the responsibilities and design of the child chain server see [Tesuji Plasma
 
 1. Follow the generic **Setting up** from [here](../README.md)
 1. Start the child chain server, referencing the configuration file from the previous step
+
         cd apps/omisego_jsonrpc
         mix run --no-halt --config path/to/config.exs
 

@@ -33,7 +33,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
          %{
            proof: _,
            sigs: _,
-           tx_bytes: _
+           txbytes: _
          } = exit_composition
        ) do
     # TODO smarter encoding (see other TODO in controllers)
@@ -41,7 +41,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
       exit_composition
       | proof: Base.encode16(exit_composition.proof),
         sigs: Base.encode16(exit_composition.sigs),
-        tx_bytes: Base.encode16(exit_composition.tx_bytes)
+        txbytes: Base.encode16(exit_composition.txbytes)
     }
   end
 

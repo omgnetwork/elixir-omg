@@ -30,7 +30,7 @@ eth = Crypto.zero_address()
 # sends a deposit transaction _to Ethereum_
 {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc)
 
-# need to wait until its mined
+# need to wait until it's mined
 {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
 
 # we need to uncover the height at which the deposit went through on the root chain

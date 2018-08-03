@@ -76,7 +76,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     %{
       utxo_pos: utxo_pos,
-      tx_bytes: tx_bytes,
+      txbytes: txbytes,
       proof: proof,
       sigs: sigs
     } = IntegrationTest.compose_utxo_exit(block_nr, 0, 0)
@@ -84,7 +84,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     {:ok, txhash} =
       Eth.start_exit(
         utxo_pos * @block_offset,
-        tx_bytes,
+        txbytes,
         proof,
         sigs,
         1,
