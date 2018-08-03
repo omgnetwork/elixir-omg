@@ -7,19 +7,18 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
   alias OmiseGO.API
   alias OmiseGO.Eth
+  alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.Eventer.Event
+  alias OmiseGOWatcher.Integration
   alias OmiseGOWatcher.TestHelper
   alias OmiseGOWatcherWeb.ByzantineChannel
   alias OmiseGOWatcherWeb.TransferChannel
-  alias OmiseGOWatcher.Integration.TestHelper, as: IntegrationTest
-  alias OmiseGO.JSONRPC.Client
 
   import ExUnit.CaptureLog
 
   @moduletag :integration
 
   @timeout 20_000
-  @block_offset 1_000_000_000
   @eth OmiseGO.API.Crypto.zero_address()
 
   @endpoint OmiseGOWatcherWeb.Endpoint
@@ -32,13 +31,13 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     {:ok, _, _socket} =
       subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
 
-    deposit_blknum = IntegrationTest.deposit_to_child_chain(alice, 10, contract)
+    deposit_blknum = Integration.TestHelper.deposit_to_child_chain(alice, 10, contract)
     # TODO remove slpeep after synch deposit synch
     :timer.sleep(100)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
 
-    IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
+    Integration.TestHelper.wait_until_block_getter_fetches_block(block_nr, @timeout)
 
     encode_tx = Client.encode(tx)
 
@@ -79,11 +78,11 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       txbytes: txbytes,
       proof: proof,
       sigs: sigs
-    } = IntegrationTest.compose_utxo_exit(block_nr, 0, 0)
+    } = Integration.TestHelper.compose_utxo_exit(block_nr, 0, 0)
 
     {:ok, txhash} =
       Eth.start_exit(
-        utxo_pos * @block_offset,
+        utxo_pos,
         txbytes,
         proof,
         sigs,

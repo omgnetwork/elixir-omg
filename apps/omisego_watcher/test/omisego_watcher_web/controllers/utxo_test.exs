@@ -90,12 +90,13 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       number: 1
     })
 
-    %{
-      utxo_pos: _utxo_pos,
-      txbytes: _tx_bytes,
-      proof: proof,
-      sigs: _sigs
-    } = UtxoDB.compose_utxo_exit(1, 1, 0)
+    {:ok,
+     %{
+       utxo_pos: _utxo_pos,
+       txbytes: _tx_bytes,
+       proof: proof,
+       sigs: _sigs
+     }} = UtxoDB.compose_utxo_exit(1, 1, 0)
 
     assert <<_proof::bytes-size(512)>> = proof
   end

@@ -18,11 +18,11 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   end
 
   def compose_utxo_exit(conn, %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex}) do
-    {blknum, _} = Integer.parse(blknum)
-    {txindex, _} = Integer.parse(txindex)
-    {oindex, _} = Integer.parse(oindex)
+    {blknum, ""} = Integer.parse(blknum)
+    {txindex, ""} = Integer.parse(txindex)
+    {oindex, ""} = Integer.parse(oindex)
 
-    composed_utxo_exit = UtxoDB.compose_utxo_exit(blknum, txindex, oindex)
+    {:ok, composed_utxo_exit} = UtxoDB.compose_utxo_exit(blknum, txindex, oindex)
 
     json(conn, encode(composed_utxo_exit))
   end

@@ -6,7 +6,6 @@ defmodule OmiseGOWatcher.Challenger.CoreTest do
   alias OmiseGO.API.State.Transaction.Signed
   alias OmiseGOWatcher.Challenger.Challenge
   alias OmiseGOWatcher.Challenger.Core
-  alias OmiseGOWatcher.TestHelper
   alias OmiseGOWatcher.TransactionDB
 
   deffixture transactions do
@@ -61,13 +60,15 @@ defmodule OmiseGOWatcher.Challenger.CoreTest do
   test "creates a challenge for an exit", %{transactions: transactions} do
     utxo_exit = %{blknum: 1, txindex: 0, oindex: 0}
     challenging_tx = hd(transactions)
-    expected_cutxopos = TestHelper.utxo_pos(2, 1, 0)
+    # FIXME
+    expected_cutxopos = 2_000_010_000
 
     %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} =
       Core.create_challenge(challenging_tx, transactions, utxo_exit)
 
     [_, challenging_tx | _] = transactions
-    expected_cutxopos = TestHelper.utxo_pos(2, 2, 1)
+    # FIXME
+    expected_cutxopos = 2_000_020_001
 
     %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} =
       Core.create_challenge(challenging_tx, transactions, utxo_exit)

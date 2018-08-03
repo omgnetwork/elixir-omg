@@ -12,6 +12,9 @@ defmodule OmiseGOWatcher.UtxoDB do
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
+  @block_offset 1_000_000_000
+  @transaction_offset 10_000
+
   @field_names [:address, :amount, :blknum, :txindex, :oindex, :txbytes]
   def field_names, do: @field_names
 
@@ -92,7 +95,7 @@ defmodule OmiseGOWatcher.UtxoDB do
 
     case Enum.any?(txs, fn tx -> tx.txindex == txindex end) do
       false -> {:error, :no_tx_for_given_blknum}
-      true -> compose_utxo_exit(txs, blknum, txindex, oindex)
+      true -> {:ok, compose_utxo_exit(txs, blknum, txindex, oindex)}
     end
   end
 
@@ -111,7 +114,7 @@ defmodule OmiseGOWatcher.UtxoDB do
   end
 
   defp calculate_utxo_pos(blknum, txindex, oindex) do
-    blknum + txindex + oindex
+    @block_offset * blknum + @transaction_offset * txindex + oindex
   end
 
   def get_all, do: Repo.all(__MODULE__)
