@@ -26,8 +26,10 @@ bob = TestHelper.generate_entity()
 eth = Crypto.zero_address()
 
 {:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
+{:ok, bob_enc} = Eth.DevHelpers.import_unlock_fund(bob)
 
 # sends a deposit transaction _to Ethereum_
+{:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc)
 {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc)
 
 # need to wait until it's mined
@@ -86,15 +88,70 @@ tx2 =
 
 # and send using curl as above. See the Watcher puke out an error and stop (to be cleaned)
 
-# 3/ Invalid exits
+# 3/ Using the Watcher,
 
-# re-prepare everything for the invalid exit demo
-exiting_utxo_block_nr =
+# re-prepare everything for the invalid exit demo until sending of tx1
+
+tx1_hash =
+
+"http GET 'localhost:4000/transactions/#{tx1_hash}'" |>
+to_charlist() |>
+:os.cmd() |>
+Poison.decode!()
+
+%{"utxos" => [%{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
+  "http GET 'localhost:4000/account/utxo?address=#{bob.addr |> Base.encode16}'" |>
+  to_charlist() |>
+  :os.cmd() |>
+  Poison.decode!()
+
+# 4/ Exiting, challenging invalid exits
+
+
+
+composed_exit =
+  "http GET 'localhost:4000/account/utxo/compose_exit?blknum=#{exiting_utxo_blknum}&txindex=0&oindex=0'" |>
+  to_charlist() |>
+  :os.cmd() |>
+  Poison.decode!()
 
 tx2 =
-  Transaction.new([{exiting_utxo_block_nr, 0, 0}], eth, [{bob.addr, 7}]) |>
+  Transaction.new([{exiting_utxo_blknum, 0, 0}], eth, [{bob.addr, 7}]) |>
   Transaction.sign(bob.priv, <<>>) |>
   Transaction.Signed.encode() |>
   Base.encode16()
+
+# FIRST you need to spend in transaction as above, so that the exit then is in fact invalid and challengeable
+
+{:ok, txhash} =
+  Eth.start_exit(
+    composed_exit.utxo_pos,
+    Base.decode16!(composed_exit.tx_bytes),
+    Base.decode16!(composed_exit.proof),
+    Base.decode16!(composed_exit.sigs),
+    1,
+    bob_enc
+  )
+Eth.WaitFor.eth_receipt(txhash)
+
+challenge =
+  "http GET 'localhost:4000/challenges?blknum=#{exiting_utxo_blknum}&txindex=0&oindex=0'" |>
+  to_charlist() |>
+  :os.cmd() |>
+  Poison.decode!()
+
+{:ok, txhash} =
+  OmiseGO.Eth.DevHelpers.challenge_exit(
+    challenge["cutxopos"],
+    challenge["eutxoindex"],
+    Base.decode16!(challenge["txbytes"]),
+    Base.decode16!(challenge["proof"]),
+    Base.decode16!(challenge["sigs"]),
+    1,
+    alice_enc
+  )
+
+{:ok, _} = Eth.WaitFor.eth_receipt(txhash)
+
 
 ```

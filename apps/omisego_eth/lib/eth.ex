@@ -109,9 +109,8 @@ defmodule OmiseGO.Eth do
     })
   end
 
-  def deposit(value, gas_price, from \\ nil, contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
-    from = from || Application.get_env(:omisego_eth, :omg_addr)
+  def deposit(value, gas_price, from, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
 
     data =
       "deposit()"
@@ -130,9 +129,8 @@ defmodule OmiseGO.Eth do
     })
   end
 
-  def start_deposit_exit(deposit_positon, value, gas_price, from \\ nil, contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
-    from = from || Application.get_env(:omisego_eth, :omg_addr)
+  def start_deposit_exit(deposit_positon, value, gas_price, from, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
 
     data =
       "startDepositExit(uint256,uint256)"
@@ -150,9 +148,8 @@ defmodule OmiseGO.Eth do
     })
   end
 
-  def start_exit(utxo_position, txbytes, proof, sigs, gas_price, from \\ nil, contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
-    from = from || Application.get_env(:omisego_eth, :omg_addr)
+  def start_exit(utxo_position, txbytes, proof, sigs, gas_price, from, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
 
     data =
       "startExit(uint256,bytes,bytes,bytes)"
@@ -284,7 +281,7 @@ defmodule OmiseGO.Eth do
   def get_exits(block_from, block_to, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     event = encode_event_signature("ExitStarted(address,uint256,address,uint256)")
-    # ExitStarted(msg.sender, utxoPos, token, amount);
+
     parse_exit = fn %{"data" => "0x" <> exits} ->
       [owner, utxo_position, token, amount] =
         exits
@@ -307,7 +304,7 @@ defmodule OmiseGO.Eth do
   Returns exit for a specific utxo. Calls contract method.
   """
   def get_exit(utxo_pos, contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract)
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
 
     call_contract(contract, "getExit(uint256)", [utxo_pos], [:address, :address, {:uint, 256}])
   end

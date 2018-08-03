@@ -82,6 +82,8 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, txhash, contract_address}
   end
 
+  # FIXME: there are two deposit functions. The idea was for this to only be for tests/dev experiments
+  #        while eth.ex is what is used in production _only_ (so only submit_block wrapper)
   def deposit(value, nonce, from \\ nil, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     from = from || Application.get_env(:omisego_eth, :authority_addr)
@@ -115,7 +117,9 @@ defmodule OmiseGO.Eth.DevHelpers do
     deposit_blknum
   end
 
-  def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, gas_price, from, contract) do
+  def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, gas_price, from, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
+
     data =
       "challengeExit(uint256,uint256,bytes,bytes,bytes)"
       |> ABI.encode([cutxopo, eutxoindex, txbytes, proof, sigs])

@@ -51,7 +51,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
         contract.contract_addr
       )
 
-    {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
 
     challenge = get_exit_challenge(exiting_utxo_block_nr, 0, 0)
     assert {:ok, {alice.addr, @zero_address, 7}} == Eth.get_exit(utxo_pos, contract.contract_addr)
