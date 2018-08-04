@@ -385,8 +385,8 @@ defmodule OmiseGO.API.State.CoreTest do
              {:put, :child_top_block_number, @child_block_interval}
            ] = db_updates
 
-    assert new_utxo1 == %{{@child_block_interval, 0, 0} => %{owner: bob.addr, currency: eth(), amount: 7}}
-    assert new_utxo2 == %{{@child_block_interval, 0, 1} => %{owner: alice.addr, currency: eth(), amount: 3}}
+    assert new_utxo1 == {{@child_block_interval, 0, 0}, %{owner: bob.addr, currency: eth(), amount: 7}}
+    assert new_utxo2 == {{@child_block_interval, 0, 1}, %{owner: alice.addr, currency: eth(), amount: 3}}
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_2}]}, state} =
              form_block_check(state, @child_block_interval)
@@ -412,7 +412,7 @@ defmodule OmiseGO.API.State.CoreTest do
              {:put, :child_top_block_number, @child_block_3}
            ] = db_updates2
 
-    assert new_utxo == %{{@child_block_3, 0, 0} => %{owner: bob.addr, currency: eth(), amount: 10}}
+    assert new_utxo == {{@child_block_3, 0, 0}, %{owner: bob.addr, currency: eth(), amount: 10}}
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_4}]}, _} =
              form_block_check(state, @child_block_interval)
@@ -426,7 +426,7 @@ defmodule OmiseGO.API.State.CoreTest do
     assert {:ok, {_, [utxo_update, height_update]}, state} =
              Core.deposit([%{owner: alice.addr, currency: eth(), amount: 10, blknum: 1}], state)
 
-    assert utxo_update == {:put, :utxo, %{{1, 0, 0} => %{owner: alice.addr, currency: eth(), amount: 10}}}
+    assert utxo_update == {:put, :utxo, {{1, 0, 0}, %{owner: alice.addr, currency: eth(), amount: 10}}}
     assert height_update == {:put, :last_deposit_block_height, 1}
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_interval}]}, _} =
@@ -437,7 +437,7 @@ defmodule OmiseGO.API.State.CoreTest do
   test "utxos get initialized by query result from db and are spendable", %{alice: alice} do
     {:ok, state} =
       Core.extract_initial_state(
-        [%{{1, 0, 0} => %{amount: 10, currency: eth(), owner: alice.addr}}],
+        [{{1, 0, 0}, %{amount: 10, currency: eth(), owner: alice.addr}}],
         0,
         1,
         @child_block_interval
@@ -453,8 +453,8 @@ defmodule OmiseGO.API.State.CoreTest do
     {:ok, state} =
       Core.extract_initial_state(
         [
-          %{{1, 0, 0} => %{amount: 10, currency: eth(), owner: alice.addr}},
-          %{{1001, 10, 1} => %{amount: 8, currency: eth(), owner: bob.addr}}
+          {{1, 0, 0}, %{amount: 10, currency: eth(), owner: alice.addr}},
+          {{1001, 10, 1}, %{amount: 8, currency: eth(), owner: bob.addr}}
         ],
         0,
         1,

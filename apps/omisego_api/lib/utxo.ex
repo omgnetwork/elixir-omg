@@ -1,12 +1,11 @@
 defmodule OmiseGO.API.Utxo do
   @moduledoc false
 
-  alias OmiseGO.API.Utxo.Position
+  alias OmiseGO.API.Crypto
 
-  defstruct [:position, :owner, :currency, :amount]
+  defstruct [:owner, :currency, :amount]
 
   @type t() :: %__MODULE__{
-    position: Position.t(),
     owner: Crypto.address_t(),
     currency: Crypto.address_t(),
     amount: non_neg_integer

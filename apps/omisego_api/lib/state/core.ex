@@ -44,8 +44,7 @@ defmodule OmiseGO.API.State.Core do
   @type utxos() :: %{Utxo.Position.t() => Utxo.t()}
 
   @type exec_error ::
-          :cant_spend_zero_utxo
-          | :incorrect_spender
+          :incorrect_spender
           | :incorrect_currency
           | :amounts_dont_add_up
           | :invalid_current_block_number
@@ -58,9 +57,8 @@ defmodule OmiseGO.API.State.Core do
   @type tx_event :: %{tx: Transaction.Recovered.t(), child_blknum: pos_integer, child_block_hash: Block.block_hash_t()}
 
   @type db_update ::
-          {:put, :utxo, utxos}
-          # FIXME term
-          | {:delete, :utxo, term}
+          {:put, :utxo, {{pos_integer, non_neg_integer, non_neg_integer}, map}}
+          | {:delete, :utxo, {pos_integer, non_neg_integer, non_neg_integer}}
           | {:put, :child_top_block_number, pos_integer}
           | {:put, :last_deposit_block_height, pos_integer}
           | {:put, :block, Block.t()}
@@ -82,13 +80,12 @@ defmodule OmiseGO.API.State.Core do
     # extract height, last deposit height and utxos from query result
     height = height_query_result + child_block_interval
 
-    # FIXME: use in DB querries? Temporarily processing the old way
     utxos =
-      Enum.reduce(utxos_query_result, %{}, fn old_utxo, acc_map ->
-        [{blknum, txindex, oindex}] = Map.keys(old_utxo)
-        [%{owner: owner, currency: currency, amount: amount}] = Map.values(old_utxo)
+      Enum.reduce(utxos_query_result, %{}, fn {raw_position, raw_utxo}, acc_map ->
+        {blknum, txindex, oindex} = raw_position
+        %{owner: owner, currency: currency, amount: amount} = raw_utxo
         new_position = Utxo.position(blknum, txindex, oindex)
-        new_utxo = %Utxo{position: new_position, owner: owner, currency: currency, amount: amount}
+        new_utxo = %Utxo{owner: owner, currency: currency, amount: amount}
         Map.put(acc_map, new_position, new_utxo)
       end)
 
@@ -166,13 +163,11 @@ defmodule OmiseGO.API.State.Core do
   end
 
   defp check_utxo_and_extract_amount(%Core{utxos: utxos}, position, spender, spent_cur) do
-    with {:ok, %{owner: owner, currency: cur, amount: owner_has}} <- get_utxo(utxos, position),
+    with {:ok, %Utxo{owner: owner, currency: cur, amount: owner_has}} <- get_utxo(utxos, position),
          :ok <- is_spender?(owner, spender),
          :ok <- same_currency?(cur, spent_cur),
          do: {:ok, owner_has}
   end
-
-  defp get_utxo(_utxos, {0, 0, 0}), do: {:error, :cant_spend_zero_utxo}
 
   defp get_utxo(utxos, position) do
     case Map.get(utxos, position) do
@@ -227,13 +222,9 @@ defmodule OmiseGO.API.State.Core do
   end
 
   defp utxos_from(%Transaction{} = tx, height, tx_index) do
-    # FIXME utxo shouldn't contain the position
-    position1 = Utxo.position(height, tx_index, 0)
-    position2 = Utxo.position(height, tx_index, 1)
-
     [
-      {position1, %Utxo{position: position1, owner: tx.newowner1, currency: tx.cur12, amount: tx.amount1}},
-      {position2, %Utxo{position: position2, owner: tx.newowner2, currency: tx.cur12, amount: tx.amount2}}
+      {Utxo.position(height, tx_index, 0), %Utxo{owner: tx.newowner1, currency: tx.cur12, amount: tx.amount1}},
+      {Utxo.position(height, tx_index, 1), %Utxo{owner: tx.newowner2, currency: tx.cur12, amount: tx.amount2}}
     ]
   end
 
@@ -269,10 +260,10 @@ defmodule OmiseGO.API.State.Core do
     db_updates_spent_utxos =
       txs
       |> Enum.flat_map(fn %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}} ->
-        [{tx.blknum1, tx.txindex1, tx.oindex1}, {tx.blknum2, tx.txindex2, tx.oindex2}]
+        [Utxo.position(tx.blknum1, tx.txindex1, tx.oindex1), Utxo.position(tx.blknum2, tx.txindex2, tx.oindex2)]
       end)
-      |> Enum.filter(fn utxo_key -> utxo_key != {0, 0, 0} end)
-      |> Enum.map(fn utxo_key -> {:delete, :utxo, utxo_key} end)
+      |> Enum.filter(fn position -> position != Utxo.position(0, 0, 0) end)
+      |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :utxo, {blknum, txindex, oindex}} end)
 
     db_updates_block = [{:put, :block, block}]
 
@@ -337,21 +328,11 @@ defmodule OmiseGO.API.State.Core do
     {:ok, {event_triggers, db_updates}, new_state}
   end
 
-  # FIXME this should be simpler and without ripping the utxo/position apart
-  defp utxo_to_db_put(
-         {position,
-          %Utxo{
-            position: Utxo.position(blknum, txindex, oindex) = position,
-            amount: amount,
-            currency: currency,
-            owner: owner
-          } = utxo}
-       ),
-       do: {:put, :utxo, %{{blknum, txindex, oindex} => %{amount: amount, owner: owner, currency: currency}}}
+  defp utxo_to_db_put({Utxo.position(blknum, txindex, oindex), %Utxo{} = utxo}),
+    do: {:put, :utxo, {{blknum, txindex, oindex}, Map.from_struct(utxo)}}
 
   defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount}) do
-    position = Utxo.position(blknum, 0, 0)
-    {position, %Utxo{position: position, amount: amount, currency: cur, owner: owner}}
+    {Utxo.position(blknum, 0, 0), %Utxo{amount: amount, currency: cur, owner: owner}}
   end
 
   defp get_last_deposit_height(deposits, current_height) do
