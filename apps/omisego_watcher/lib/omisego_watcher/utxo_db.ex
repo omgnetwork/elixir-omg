@@ -7,6 +7,7 @@ defmodule OmiseGOWatcher.UtxoDB do
   alias OmiseGO.API.{Block, Crypto}
   alias OmiseGO.API.State.{Transaction, Transaction.Recovered, Transaction.Signed}
   alias OmiseGO.API.UtxoPosition
+  require UtxoPosition
   alias OmiseGOWatcher.Repo
   alias OmiseGOWatcher.TransactionDB
 
@@ -91,7 +92,7 @@ defmodule OmiseGOWatcher.UtxoDB do
     end)
   end
 
-  def compose_utxo_exit({blknum, txindex, oindex} = decoded_utxo_pos) do
+  def compose_utxo_exit(UtxoPosition.new(blknum, txindex, _) = decoded_utxo_pos) do
     txs = TransactionDB.find_by_txblknum(blknum)
 
     case Enum.any?(txs, fn tx -> tx.txindex == txindex end) do
@@ -100,7 +101,7 @@ defmodule OmiseGOWatcher.UtxoDB do
     end
   end
 
-  def compose_utxo_exit(txs, {blknum, txindex, _} = decoded_utxo_pos) do
+  def compose_utxo_exit(txs, UtxoPosition.new(_blknum, txindex, _) = decoded_utxo_pos) do
     sorted_txs = Enum.sort_by(txs, & &1.txindex)
     hashed_txs = Enum.map_every(sorted_txs, 1, fn tx -> tx.txid end)
     proof = Block.create_tx_proof(hashed_txs, txindex)

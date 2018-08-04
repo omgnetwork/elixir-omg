@@ -5,6 +5,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   """
 
   alias OmiseGO.API.UtxoPosition
+  require UtxoPosition
   alias OmiseGOWatcher.UtxoDB
 
   use OmiseGOWatcherWeb, :controller

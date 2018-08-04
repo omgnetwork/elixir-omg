@@ -7,6 +7,7 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction.{Recovered, Signed}
   alias OmiseGO.API.UtxoPosition
+  require UtxoPosition
   alias OmiseGOWatcher.TransactionDB
 
   @eth OmiseGO.API.Crypto.zero_address()

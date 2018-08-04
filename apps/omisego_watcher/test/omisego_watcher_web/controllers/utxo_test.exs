@@ -7,6 +7,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   alias OmiseGO.API.Block
   alias OmiseGO.API.TestHelper
   alias OmiseGO.API.UtxoPosition
+  require UtxoPosition
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.TestHelper
   alias OmiseGOWatcher.TransactionDB

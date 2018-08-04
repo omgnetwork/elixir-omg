@@ -8,6 +8,7 @@ defmodule OmiseGO.EthTest do
 
   alias OmiseGO.API.Block
   alias OmiseGO.API.UtxoPosition
+  require UtxoPosition
   alias OmiseGO.Eth, as: Eth
   alias OmiseGO.Eth.WaitFor, as: WaitFor
   alias OmiseGO.API.State.Transaction

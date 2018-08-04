@@ -12,16 +12,15 @@ defmodule OmiseGO.API.UtxoPosition do
           non_neg_integer
         }
 
-  @spec new(pos_integer, non_neg_integer, non_neg_integer) :: t()
-  def new(blknum, txindex, oindex), do: {blknum, txindex, oindex}
-  # defmacro new(blknum, txindex, oindex) do
-  #   quote do
-        # {blknum, txindex, oindex}
-      # end
+  defmacro new(blknum, txindex, oindex) do
+    quote do
+      {unquote(blknum), unquote(txindex), unquote(oindex)}
+    end
+  end
 
 
   @spec encode(t()) :: pos_integer()
-  def encode({blknum, txindex, oindex}),
+  def encode(new(blknum, txindex, oindex)),
     do: blknum * @block_offset + txindex * @transaction_offset + oindex
 
   @spec decode(pos_integer()) :: t()
@@ -30,6 +29,6 @@ defmodule OmiseGO.API.UtxoPosition do
     txindex = encoded |> rem(@block_offset) |> div(@transaction_offset)
     oindex = rem(encoded, @transaction_offset)
 
-    {blknum, txindex, oindex}
+    new(blknum, txindex, oindex)
   end
 end

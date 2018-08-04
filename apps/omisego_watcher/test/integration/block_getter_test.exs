@@ -7,6 +7,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
   alias OmiseGO.API
   alias OmiseGO.API.UtxoPosition
+  require UtxoPosition
   alias OmiseGO.Eth
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.Eventer.Event

@@ -6,6 +6,7 @@ defmodule OmiseGOWatcher.Challenger.Core do
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.UtxoPosition
+  require UtxoPosition
   alias OmiseGOWatcher.Challenger.Challenge
   alias OmiseGOWatcher.TransactionDB
 

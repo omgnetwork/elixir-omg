@@ -4,6 +4,7 @@ defmodule OmiseGO.API.UtxoPositionTest do
   use ExUnit.Case, async: true
 
   alias OmiseGO.API.UtxoPosition
+  require UtxoPosition
 
   test "encode and decode the utxo position checking" do
     decoded = UtxoPosition.new(4, 5, 1)
