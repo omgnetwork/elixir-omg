@@ -6,8 +6,8 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
 
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction.{Recovered, Signed}
-  alias OmiseGO.API.UtxoPosition
-  require UtxoPosition
+  alias OmiseGO.API.Utxo
+  require Utxo
   alias OmiseGOWatcher.TransactionDB
 
   @eth OmiseGO.API.Crypto.zero_address()
@@ -70,8 +70,8 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
   test "gets transaction that spends utxo", %{alice: alice, bob: bob} do
-    utxo1 = UtxoPosition.new(1, 0, 0)
-    utxo2 = UtxoPosition.new(2, 0, 0)
+    utxo1 = Utxo.position(1, 0, 0)
+    utxo2 = Utxo.position(2, 0, 0)
     :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo1)
     :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo2)
 

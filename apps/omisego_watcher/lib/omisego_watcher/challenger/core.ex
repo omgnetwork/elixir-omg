@@ -5,15 +5,15 @@ defmodule OmiseGOWatcher.Challenger.Core do
 
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.UtxoPosition
-  require UtxoPosition
+  alias OmiseGO.API.Utxo
+  require Utxo
   alias OmiseGOWatcher.Challenger.Challenge
   alias OmiseGOWatcher.TransactionDB
 
   @block_offset 1_000_000_000
   @transaction_offset 10_000
 
-  @spec create_challenge(%TransactionDB{}, list(%TransactionDB{}), UtxoPosition.t()) :: Challenge.t()
+  @spec create_challenge(%TransactionDB{}, list(%TransactionDB{}), Utxo.Position.t()) :: Challenge.t()
   def create_challenge(challenging_tx, txs, utxo_exit) do
     txbytes = encode(challenging_tx)
     eutxoindex = get_eutxo_index(challenging_tx, utxo_exit)
@@ -61,25 +61,25 @@ defmodule OmiseGOWatcher.Challenger.Core do
 
   defp get_eutxo_index(
          %TransactionDB{blknum1: blknum, txindex1: txindex, oindex1: oindex},
-         UtxoPosition.new(blknum, txindex, oindex)
+         Utxo.position(blknum, txindex, oindex)
        ),
        do: 0
 
   defp get_eutxo_index(
          %TransactionDB{blknum2: blknum, txindex2: txindex, oindex2: oindex},
-         UtxoPosition.new(blknum, txindex, oindex)
+         Utxo.position(blknum, txindex, oindex)
        ),
        do: 1
 
   defp challenging_utxo_pos(challenging_tx) do
     challenging_tx
     |> get_challenging_utxo()
-    |> UtxoPosition.encode()
+    |> Utxo.Position.encode()
   end
 
   defp get_challenging_utxo(%TransactionDB{txblknum: blknum, txindex: txindex, amount1: 0}),
-    do: UtxoPosition.new(blknum, txindex, 1)
+    do: Utxo.position(blknum, txindex, 1)
 
   defp get_challenging_utxo(%TransactionDB{txblknum: blknum, txindex: txindex}),
-    do: UtxoPosition.new(blknum, txindex, 0)
+    do: Utxo.position(blknum, txindex, 0)
 end

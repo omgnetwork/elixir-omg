@@ -6,8 +6,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   use Phoenix.ChannelTest
 
   alias OmiseGO.API
-  alias OmiseGO.API.UtxoPosition
-  require UtxoPosition
+  alias OmiseGO.API.Utxo
+  require Utxo
   alias OmiseGO.Eth
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.Eventer.Event
@@ -97,7 +97,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     {:ok, height} = Eth.get_ethereum_height()
 
-    utxo_pos = UtxoPosition.new(block_nr, 0, 0) |> UtxoPosition.encode()
+    utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
 
     assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice_address, token: @eth}]} ==
              Eth.get_exits(0, height, contract.contract_addr)

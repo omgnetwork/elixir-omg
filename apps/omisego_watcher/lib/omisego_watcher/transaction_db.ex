@@ -8,8 +8,8 @@ defmodule OmiseGOWatcher.TransactionDB do
   import Ecto.Query, only: [from: 2]
 
   alias OmiseGO.API.State.{Transaction, Transaction.Recovered, Transaction.Signed}
-  alias OmiseGO.API.UtxoPosition
-  require UtxoPosition
+  alias OmiseGO.API.Utxo
+  require Utxo
   alias OmiseGOWatcher.Repo
 
   @field_names [
@@ -116,8 +116,8 @@ defmodule OmiseGOWatcher.TransactionDB do
     |> validate_required(@field_names)
   end
 
-  @spec get_transaction_challenging_utxo(UtxoPosition.t()) :: {:ok, map()} | :utxo_not_spent
-  def get_transaction_challenging_utxo(UtxoPosition.new(blknum, txindex, oindex)) do
+  @spec get_transaction_challenging_utxo(Utxo.Position.t()) :: {:ok, map()} | :utxo_not_spent
+  def get_transaction_challenging_utxo(Utxo.position(blknum, txindex, oindex)) do
     query =
       from(
         tx_db in __MODULE__,
