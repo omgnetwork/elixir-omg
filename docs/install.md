@@ -65,7 +65,7 @@ Only **Linux** platforms are supported now. These instructions have been tested 
 ## Install prerequisite packages
 ```
 sudo apt-get update
-sudo apt-get -y install build-essential autoconf libtool libgmp3-dev libssl-dev
+sudo apt-get -y install build-essential autoconf libtool libgmp3-dev libssl-dev wget git
 ```
 
 ## Install Erlang OTP 20
@@ -101,13 +101,13 @@ This step is optional but recommended to isolate the python environment. [Ref](h
 ```
 sudo pip3 install virtualenv
 virtualenv DEV
-cd DEV
-source bin/activate
+source DEV/bin/activate
 ```
 
 ## Install populus
 [Ref](../populus/README.md)
 ```
+wget https://github.com/omisego/omisego/blob/develop/populus/requirements.txt
 pip3 install -r populus/requirements.txt
 ```
 If an error is raised when installing the specific version of `eth-utils`, the error may be ignored for the purposes of this installation.
@@ -123,9 +123,6 @@ mix do local.hex --force, local.rebar --force
 ```
 ## Clone repo and build
 ```
-# solc in the path is ignored. Explicitly specify path to binary
-Export SOLC_BINARY=~/.py-solc/solc-v0.4.18/bin/solc
-
 # populus requires character encoding to be set
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
@@ -145,3 +142,6 @@ To run integration tests (requires compiling contracts)
 ```
 mix test --no-start --only integration
 ```
+
+## Next steps
+Follow the README steps for the [child chain server](../apps/omisego_api/README.md).
