@@ -1,3 +1,5 @@
+<img src="assets/logo.png" align="right" />
+
 # OmiseGO
 The OmiseGO repository contains OmiseGO's implementation of Plasma and forms the basis for the OMG Network.
 
