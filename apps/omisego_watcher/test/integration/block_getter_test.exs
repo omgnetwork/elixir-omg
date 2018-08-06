@@ -209,7 +209,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   end
 
   defp get_utxo(%{addr: address}) do
-    decoded_resp = TestHelper.rest_call(:get, "account/utxo?address=#{Client.encode(address)}")
+    {:ok, address_encode} = Crypto.encode_address(address)
+    decoded_resp = TestHelper.rest_call(:get, "account/utxo?address=#{address_encode}")
     decoded_resp["utxos"]
   end
 end

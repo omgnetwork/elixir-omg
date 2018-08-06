@@ -59,13 +59,13 @@ defmodule OmiseGO.API.CryptoTest do
              Crypto.decode_address("0x0000000000000000000000000000000000000000")
 
     assert {:ok, <<65, 86, 211, 52, 45, 92, 56, 90, 135, 210, 100, 249, 6, 83, 115, 53, 146, 0, 5, 129>>} =
-             Crypto.decode_address("0x4156D3342D5c385a87D264F90653733592000581")
+             Crypto.decode_address("0x4156d3342d5c385a87d264f90653733592000581")
   end
 
   test "checking encode_address function for diffrent agruments" do
-    assert {:error, :invalid_address} = Crypto.encode_address(<<>>)
-    assert {:error, :invalid_address} = Crypto.encode_address("this is not address")
-    assert {:error, :invalid_address} = Crypto.encode_address(<<5, 86, 211, 52, 45, 92, 56, 90, 135>>)
+    assert {:error, :bad_address_encoding} = Crypto.encode_address(<<>>)
+    assert {:error, :bad_address_encoding} = Crypto.encode_address("this is not address")
+    assert {:error, :bad_address_encoding} = Crypto.encode_address(<<5, 86, 211, 52, 45, 92, 56, 90, 135>>)
 
     assert {:ok, "0x0000000000000000000000000000000000000000"} =
              Crypto.encode_address(<<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>)
