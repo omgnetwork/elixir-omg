@@ -4,6 +4,8 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   Modify the state in the database.
   """
 
+  alias OmiseGO.API.Utxo
+  require Utxo
   alias OmiseGOWatcher.UtxoDB
 
   use OmiseGOWatcherWeb, :controller
@@ -22,7 +24,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
     {txindex, ""} = Integer.parse(txindex)
     {oindex, ""} = Integer.parse(oindex)
 
-    {:ok, composed_utxo_exit} = UtxoDB.compose_utxo_exit(blknum, txindex, oindex)
+    {:ok, composed_utxo_exit} = UtxoDB.compose_utxo_exit(Utxo.position(blknum, txindex, oindex))
 
     json(conn, encode(composed_utxo_exit))
   end
