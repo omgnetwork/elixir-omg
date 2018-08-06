@@ -34,8 +34,6 @@ Set ENVs to compile
 source DEV/bin/activate
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
-python3 -m solc.install v0.4.18
-export SOLC_BINARY=/home/vagrant/.py-solc/solc-v0.4.18/bin/solc
 ```
 
 Get the code and pull elixir dependencies
