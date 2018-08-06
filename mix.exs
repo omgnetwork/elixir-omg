@@ -13,7 +13,12 @@ defmodule OmiseGO.Umbrella.MixProject do
         plt_add_deps: :transitive,
         ignore_warnings: "dialyzer.ignore-warnings"
       ],
-      test_coverage: [tool: ExCoveralls]
+      test_coverage: [tool: ExCoveralls],
+      aliases: [
+        test: ["test --no-start"],
+        coveralls: ["coveralls --no-start"],
+        "coveralls.html": ["coveralls.html --no-start"]
+      ]
     ]
   end
 

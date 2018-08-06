@@ -37,8 +37,8 @@ Only **Linux** platforms supported now. Known to work with Ubuntu 16.04
 
 ## Testing & development
 
-  - quick test (no integration tests): `mix test --no-start`
-  - longer-running integration tests: `mix test --no-start --only integration` (requires compiling contracts)
+  - quick test (no integration tests): `mix test`
+  - longer-running integration tests: `mix test --only integration` (requires compiling contracts)
 
 For other kinds of checks, refer to the CI/CD pipeline (`Jenkinsfile`).
 
