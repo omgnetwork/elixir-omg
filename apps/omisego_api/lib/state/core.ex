@@ -5,6 +5,9 @@ defmodule OmiseGO.API.State.Core do
 
   # this `use` generates OmiseGO.API.State.CoreGS module:
   # TODO: rework macro so it can be called from test code only
+
+  require Logger
+
   use OmiseGO.API.BlackBoxMe
 
   @maximum_block_size 65_536
@@ -313,6 +316,8 @@ defmodule OmiseGO.API.State.Core do
       |> Enum.map(&utxo_to_db_put/1)
 
     db_updates = db_updates_new_utxos ++ last_deposit_height_db_update(deposits, last_deposit_height)
+
+    if deposits != [], do: _ = Logger.info("Recognized deposits #{inspect(deposits)}")
 
     new_state = %Core{
       state

@@ -11,7 +11,7 @@ config :omisego_watcher,
   namespace: OmiseGOWatcher,
   ecto_repos: [OmiseGOWatcher.Repo],
   slow_exit_validator_block_margin: 10,
-  get_block_interval: 1_000
+  maximum_block_withholding_time_ms: 10_000
 
 # Configures the endpoint
 config :omisego_watcher, OmiseGOWatcherWeb.Endpoint,
