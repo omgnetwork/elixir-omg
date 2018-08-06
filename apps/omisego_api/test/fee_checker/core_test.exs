@@ -13,10 +13,10 @@ defmodule OmiseGO.API.FeeChecker.CoreTest do
   @fee_config_file ~s(
     [
       { "token": "0x0000000000000000000000000000000000000000", "flat_fee": 2 },
-      { "token": "0xd26114cd6EE289AccF82350c8d8487fedB8A0C07", "flat_fee": 0 },
-      { "token": "0xa74476443119A942dE498590Fe1f2454d7D4aC0d", "flat_fee": 4 },
-      { "token": "0x4156D3342D5c385a87D264F90653733592000581", "flat_fee": 3 },
-      { "token": "0x81c9151de0C8bafCd325a57E3dB5a5dF1CEBf79c", "flat_fee": 5 }
+      { "token": "0xd26114cd6ee289accf82350c8d8487fedb8a0c07", "flat_fee": 0 },
+      { "token": "0xa74476443119a942de498590fe1f2454d7d4ac0d", "flat_fee": 4 },
+      { "token": "0x4156d3342d5c385a87d264f90653733592000581", "flat_fee": 3 },
+      { "token": "0x81c9151de0c8bafcd325a57e3db5a5df1cebf79c", "flat_fee": 5 }
     ]
   )
 
@@ -52,7 +52,6 @@ defmodule OmiseGO.API.FeeChecker.CoreTest do
       assert {[], fee_map} = parse_file_content(@fee_config_file)
 
       assert Enum.count(fee_map) == 5
-
       assert fee_map[@eth] == 2
     end
 
@@ -86,8 +85,8 @@ defmodule OmiseGO.API.FeeChecker.CoreTest do
       expected_errors = [
         {{:error, :invalid_fee_spec}, 1},
         {{:error, :invalid_fee}, 2},
-        {{:error, :invalid_token}, 3},
-        {{:error, :invalid_token}, 4}
+        {{:error, :bad_address_encoding}, 3},
+        {{:error, :bad_address_encoding}, 4}
       ]
 
       assert {^expected_errors, _} = parse_file_content(json)

@@ -5,6 +5,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
   use Plug.Test
 
   alias OmiseGO.API
+  alias OmiseGO.API.Crypto
   alias OmiseGO.Eth
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.Integration.TestHelper, as: IntegrationTest
@@ -13,7 +14,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
   @moduletag :integration
 
   @timeout 20_000
-  @zero_address OmiseGO.API.Crypto.zero_address()
+  @zero_address Crypto.zero_address()
 
   @tag fixtures: [:watcher_sandbox, :contract, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
   test "challenges invalid exit", %{contract: contract, alice: alice, bob: bob} do
@@ -37,7 +38,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
       sigs: sigs
     } = IntegrationTest.compose_utxo_exit(exiting_utxo_block_nr, 0, 0)
 
-    alice_address = "0x" <> Base.encode16(alice.addr, case: :lower)
+    {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
     utxo_pos = Test.utxo_pos(exiting_utxo_block_nr, 0, 0)
 

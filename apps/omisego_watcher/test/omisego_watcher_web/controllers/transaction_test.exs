@@ -5,10 +5,11 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   use Plug.Test
 
   alias OmiseGO.API.Block
+  alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Transaction.{Recovered, Signed}
   alias OmiseGOWatcher.TransactionDB
 
-  @eth OmiseGO.API.Crypto.zero_address()
+  @eth Crypto.zero_address()
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
   test "insert and retrive transaction", %{alice: alice, bob: bob} do

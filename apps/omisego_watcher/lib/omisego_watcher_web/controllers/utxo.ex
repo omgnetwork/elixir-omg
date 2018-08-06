@@ -4,12 +4,13 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   Modify the state in the database.
   """
 
+  alias OmiseGO.API.Crypto
   alias OmiseGOWatcher.UtxoDB
 
   use OmiseGOWatcherWeb, :controller
 
   def available(conn, %{"address" => address}) do
-    {:ok, address_decode} = Base.decode16(address, case: :mixed)
+    {:ok, address_decode} = Crypto.decode_address(address)
 
     json(conn, %{
       address: address,
