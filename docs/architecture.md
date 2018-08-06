@@ -4,7 +4,7 @@ This is a high-level rundown of the architecture of the `OmiseGO` apps.
 
 The below diagram demonstrates the various pieces and where this umbrella app fits in.
 
-![high level architecture overview diagram](assets/architecture overview.jpg)
+![high level architecture overview diagram](assets/architecture_overview.jpg)
 
 **NOTE** only use the high-level diagram to get a vague idea, meaning of boxes/arrows may be imprecise.
 
