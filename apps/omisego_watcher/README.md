@@ -11,7 +11,7 @@ For the responsibilities and design of the watcher see [Tesuji Plasma Blockchain
 ## Configure the `omisego_watcher` app
 Create another copy of the configuration file. The values for `contract_addr`, `txhash_contract` and `authority_addr` should be the same as the `omisego_api` app. However, `leveldb_path` should be set to a different directory than `omisego_watcher`.
 
-The confiration file should look something like this:
+The configuration file should look something like this:
 
 ```
 use Mix.Config
@@ -43,10 +43,10 @@ FIXME adapt to how it actually works
 
 ##Endpoints
 TODO
- 
+
 ## Websockets
 
-Exposed websockets are using [Phoniex channels](https://hexdocs.pm/phoenix/channels.html) feature. 
+Exposed websockets are using [Phoniex channels](https://hexdocs.pm/phoenix/channels.html) feature.
 Different events are emitted for each topic.
 
 ### Topics:
@@ -128,13 +128,13 @@ In case extra finality is required for high-stakes transactions, the client is f
 
 ##### invalid_block
 Event informing about that particular block is invalid.
- 
+
 ##### block_withholding
 Event informing about that the child chain is withholding block.
 
 ##### invalid_fee_exit
 
-### TODO block 
+### TODO block
 
 ### TODO deposit_spendable
 
@@ -143,4 +143,3 @@ Event informing about that the child chain is withholding block.
 #### Events:
 
 ##### fees_exited
-
