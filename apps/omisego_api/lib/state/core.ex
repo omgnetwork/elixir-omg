@@ -278,15 +278,6 @@ defmodule OmiseGO.API.State.Core do
     {:ok, {block, event_triggers, db_updates}, new_state}
   end
 
-  #  def decode_deposit(%{owner: owner, currency: currency} = deposit) do
-  #    IO.inspect owner
-  #    IO.inspect Crypto.decode_address(owner)
-  #    {:ok, owner_decode} = Crypto.decode_address(owner)
-  #    {:ok, currency_decode} = Crypto.decode_address(currency)
-  #
-  #    %{deposit | owner: owner, currency: currency}
-  #  end
-
   def decode_deposit(%{owner: owner, currency: currency} = deposit) do
     {:ok, owner_decode} = Crypto.decode_address(owner)
     {:ok, currency_decode} = Crypto.decode_address(currency)
