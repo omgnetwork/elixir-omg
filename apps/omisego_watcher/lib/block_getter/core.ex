@@ -20,6 +20,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   end
 
   defstruct [
+    :block_consume_batch,
     :last_consumed_block,
     :started_height_block,
     :block_interval,
@@ -31,6 +32,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   ]
 
   @type t() :: %__MODULE__{
+          block_consume_batch: {atom(), list()},
           last_consumed_block: non_neg_integer,
           started_height_block: non_neg_integer,
           block_interval: pos_integer,
@@ -68,6 +70,69 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       potential_block_withholdings: %{},
       maximum_block_withholding_time: maximum_block_withholding_time
     }
+  end
+
+  def has_block_consume_batch?(%__MODULE__{block_consume_batch: {:waiting_for_next_height, _}}) do
+    false
+  end
+
+  def has_block_consume_batch?(_) do
+    false
+  end
+
+  def set_block_consume_batch(%__MODULE__{} = state, submissions) do
+    %{state | block_consume_batch: {:downloading, submissions}}
+  end
+
+  def update_synced_height(%__MODULE__{} = state, next_synced_height) do
+    %{state | synced_height: next_synced_height}
+  end
+
+  def consume_blocks(%__MODULE__{block_consume_batch: {:downloading, []}} = state) do
+    state = %{state | block_consume_batch: {:waiting_for_next_height, []}}
+    {:blocks_consumed, state}
+  end
+
+  def consume_blocks(%__MODULE__{block_consume_batch: {:downloading, block_submissions}} = state) do
+    downloaded_blocks = get_downloaded_blocks(state, state.block_to_consume)
+
+    if length(block_submissions) == length(downloaded_blocks) do
+      state = %{state | block_consume_batch: {:downloaded, block_submissions}}
+      {:blocks_to_consume, downloaded_blocks, state}
+    else
+      :no_blocks_to_consume
+    end
+  end
+
+  def consume_blocks(%__MODULE__{block_consume_batch: {:downloaded, []}} = state) do
+    state = %{state | block_consume_batch: {:waiting_for_next_height, []}}
+    {:blocks_consumed, state}
+  end
+
+  def consume_blocks(%__MODULE__{block_consume_batch: {:downloaded, _}} = state) do
+    {:blocks_to_consume, [], state}
+  end
+
+  defp get_downloaded_blocks(downloaded_blocks, block_consume_batch) do
+    blocks =
+      block_consume_batch
+      |> Enum.map(fn %{blknum: blknum} -> Map.get(downloaded_blocks, blknum) end)
+
+    [blocks, block_consume_batch]
+    |> List.zip()
+    |> Enum.filter(fn {block, _} -> block == nil end)
+    |> Enum.map(fn {block, %{eth_height: eth_height}} -> {block, eth_height} end)
+  end
+
+  def block_consumed(state, blknum) do
+    {:downloaded, blocks} = state.blknums_to_consume
+
+    blocks =
+      blocks
+      |> Enum.filter(fn %{blknum: b} -> b != blknum end)
+
+    block_to_consume = Map.delete(state.block_to_consume, blknum)
+    %{state | blknums_to_consume: blocks, block_to_consume: block_to_consume}
   end
 
   @doc """
@@ -136,11 +201,9 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           waiting_for_blocks: waiting_for_blocks - 1
       }
 
-      {state2, list_block_to_consume} = get_blocks_to_consume(state1)
+      state2 = %{state1 | potential_block_withholdings: Map.delete(potential_block_withholdings, number)}
 
-      state2 = %{state2 | potential_block_withholdings: Map.delete(potential_block_withholdings, number)}
-
-      {:ok, state2, list_block_to_consume, []}
+      {:ok, state2, []}
     else
       error -> {:error, error}
     end
@@ -150,7 +213,6 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     {
       {:needs_stopping, error_type},
       state,
-      [],
       [
         %Event.InvalidBlock{
           error_type: error_type,
@@ -181,41 +243,14 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
             waiting_for_blocks: waiting_for_blocks - 1
         }
 
-        {:ok, state, [], []}
+        {:ok, state, []}
 
       time - blknum_time >= maximum_block_withholding_time ->
-        {{:needs_stopping, :withholding}, state, [], [%Event.BlockWithHolding{blknum: blknum}]}
+        {{:needs_stopping, :withholding}, state, [%Event.BlockWithHolding{blknum: blknum}]}
 
       true ->
-        {:ok, state, [], []}
+        {:ok, state, []}
     end
-  end
-
-  # Returns a consecutive continuous list of finished blocks, that always begins with oldest unconsumed block
-  defp get_blocks_to_consume(
-         %__MODULE__{
-           last_consumed_block: last_consumed_block,
-           block_interval: interval,
-           block_to_consume: block_to_consume
-         } = state
-       ) do
-    first_block_number = last_consumed_block + interval
-
-    elem =
-      first_block_number
-      |> Stream.iterate(&(&1 + interval))
-      |> Enum.take_while(&Map.has_key?(block_to_consume, &1))
-
-    list_block_to_consume =
-      elem
-      |> Enum.map(&Map.get(block_to_consume, &1))
-
-    new_block_to_consume = Map.drop(block_to_consume, elem)
-
-    {
-      %{state | block_to_consume: new_block_to_consume, last_consumed_block: List.last([last_consumed_block] ++ elem)},
-      list_block_to_consume
-    }
   end
 
   @doc """

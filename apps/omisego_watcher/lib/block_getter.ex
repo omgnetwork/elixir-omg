@@ -52,6 +52,7 @@ defmodule OmiseGOWatcher.BlockGetter do
 
       :ok = OmiseGO.API.State.close_block(child_block_interval, block_rootchain_height)
 
+      new_state = Core.block_consumed(new_state, blknum)
       {:noreply, new_state}
     else
       {:needs_stopping, reason} ->
@@ -105,37 +106,57 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:noreply, new_state}
   end
 
-  def handle_info({_ref, {:got_block, block}}, state) do
+  def handle_info({_ref, {:got_block, response}}, state) do
     # 1/ process the block that arrived and consume
-    case RootChainCoordinator.get_height() do
-      :no_sync ->
-        {:ok, _} = :timer.send_after(2_000, self(), {:got_block, block})
-        {:noreply, state}
-      {:sync, next_synced_height} ->
-        new_state = if Core.block_heights_up_to_date?(state, next_synced_height) do
-          state
-        else
-          #TODO: how about keeping common block finality margin in root chain coordinator?
-          {:ok, submissions} = Eth.get_block_submissions(state.synced_height, next_synced_height)
-          Core.update_block_heights(submissions)
-        end
-        {continue, new_state, blocks_to_consume, events, block_rootchain_height} =
-          Core.got_block(new_state, block, synced_height)
+    {continue, new_state, events} = Core.got_block(state, response)
 
-        Eventer.emit_events(events)
+    Eventer.emit_events(events)
 
-        with :ok <- continue do
-          Enum.each(blocks_to_consume, fn block -> GenServer.cast(__MODULE__, {:consume_block, block, block_rootchain_height}) end)
-          {:noreply, new_state}
-        else
-          {:needs_stopping, reason} ->
-            _ = Logger.error(fn -> "Stopping BlockGetter because of #{inspect(reason)}" end)
-            {:stop, :shutdown, state}
-        end
+    with :ok <- continue do
+      {:noreply, new_state}
+    else
+      {:needs_stopping, reason} ->
+        _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(reason)}" end)
+        {:stop, :shutdown, state}
     end
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
+
+  def handle_info(:sync, state) do
+    case RootChainCoordinator.get_height() do
+      {:sync, next_synced_height} ->
+        state =
+          state
+          |> set_blknums_for_synced_height(next_synced_height)
+          |> consume_blocks_from_height(next_synced_height)
+
+        {:noreply, state}
+      :nosync ->
+        {:noreply, state}
+    end
+  end
+
+  defp set_blknums_for_synced_height(state, next_synced_height) do
+    if Core.has_block_consume_batch?(state) do
+      state
+    else
+      {:ok, submissions} = Eth.get_block_submissions(state.synced_height, next_synced_height)
+      Core.set_block_consume_batch(state, submissions)
+    end
+  end
+
+  defp consume_blocks_from_height(state, next_synced_height) do
+    case Core.consume_blocks(state) do
+      {:blocks_consumed, state} ->
+        RootChainCoordinator.set_service_height(next_synced_height, :block_getter)
+        Core.update_synced_height(state, next_synced_height)
+      {:blocks_to_consume, blocks_to_consume, state} ->
+        Enum.each(blocks_to_consume, fn {block, eth_height} -> GenServer.cast(__MODULE__, {:consume_block, block, eth_height}) end)
+        state
+      {_, state} -> state
+    end
+  end
 
   defp run_block_get_task(blocks_numbers) do
     blocks_numbers

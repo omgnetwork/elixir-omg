@@ -234,22 +234,22 @@ defmodule OmiseGO.Eth do
   def get_block_submissions(block_from, block_to, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
 
-    event = encode_event_signature("BlockSubmitted(bytes32,uint256)")
+    event = encode_event_signature("BlockSubmitted(uint256)")
 
     parse_block_submissions = fn %{"data" => "0x" <> block_submission, "blockNumber" => "0x" <> hex_block_number} ->
       {eth_height, ""} = Integer.parse(hex_block_number, 16)
 
-      [root, timestamp] =
+      [blknum] =
         block_submission
         |> Base.decode16!(case: :lower)
-        |> ABI.TypeDecoder.decode_raw([{:bytes, 32}, {:uint, 256}])
+        |> ABI.TypeDecoder.decode_raw([{:uint, 256}])
 
-      %{root: root, timestamp: timestamp, eth_height: eth_height}
+      %{blknum: blknum, eth_height: eth_height}
     end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
          block_submissions <- unfiltered_logs |> filter_not_removed |> Enum.map(parse_block_submissions),
-         do: {:ok, Enum.sort(block_submissions, &(&1.timestamp > &2.timestamp))}
+         do: {:ok, Enum.sort(block_submissions, &(&1.blknum > &2.blknum))}
   end
 
   defp encode_event_signature(signature) do
