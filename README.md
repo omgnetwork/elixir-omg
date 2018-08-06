@@ -32,7 +32,8 @@ Solutions to common problems may be found in the [troubleshooting](docs/troubles
 
 - Quick test (no integration tests):
 ```
-mix test --no-start```
+mix test --no-start
+```
 - Longer-running integration tests: ```mix test --no-start --only integration``` (requires compiling contracts)
 
 For other kinds of checks, refer to the CI/CD pipeline (`Jenkinsfile`).
