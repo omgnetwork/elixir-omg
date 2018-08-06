@@ -82,7 +82,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
 
     Eth.DevHelpers.token_approve(
       alice_enc,
-      OmiseGO.API.TestHelper.decode_address(contract.contract_addr),
+      contract.contract_addr,
       20,
       token.address
     )
@@ -92,10 +92,12 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     # TODO: fix this flakyness! (wait lets CC process the deposit)
     Process.sleep(1000)
 
+    {:ok, currency} = API.Crypto.decode_address(token.address)
+
     token_raw_tx =
       Transaction.new(
         [{token_deposit_blknum, 0, 0}],
-        API.TestHelper.decode_address(token.address),
+        currency,
         [{alice.addr, 20}]
       )
 
@@ -107,6 +109,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     utxo_pos = Test.utxo_pos(spend_token_child_block, 0, 0)
 
     IntegrationTest.wait_until_block_getter_fetches_block(spend_token_child_block, @timeout)
+    Process.sleep(100)
     exit = IntegrationTest.compose_utxo_exit(spend_token_child_block, 0, 0)
 
     %{

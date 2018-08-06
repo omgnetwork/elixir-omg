@@ -92,20 +92,20 @@ defmodule OmiseGO.Eth.DevHelpers do
   def deposit_token(from, token, amount, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     signature = "depositFrom(address,address,uint256)"
-    contract_transact_sync!(from, nil, nil, contract, signature, [from, token, amount])
+    contract_transact_sync!(from, nil, nil, contract, signature, [cleanup(from), cleanup(token), amount])
   end
 
   def token_mint(owner, amount, token) do
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
-    contract_transact_sync!(from, nil, nil, token, "mint(address,uint256)", [owner, amount])
+    contract_transact_sync!(from, nil, nil, token, "mint(address,uint256)", [cleanup(owner), amount])
   end
 
   def token_transfer(from, owner, amount, token) do
-    contract_transact_sync!(from, nil, nil, token, "transfer(address,uint256)", [owner, amount])
+    contract_transact_sync!(from, nil, nil, token, "transfer(address,uint256)", [cleanup(owner), amount])
   end
 
   def token_approve(from, spender, amount, token) do
-    contract_transact_sync!(from, nil, nil, token, "approve(address,uint256)", [spender, amount])
+    contract_transact_sync!(from, nil, nil, token, "approve(address,uint256)", [cleanup(spender), amount])
   end
 
   def token_balance_of(owner, token) do
@@ -233,5 +233,5 @@ defmodule OmiseGO.Eth.DevHelpers do
   end
 
   defp cleanup("0x" <> hex), do: hex |> String.upcase() |> Base.decode16!()
-  defp cleanup(other), do: other
+  defp cleanup(raw), do: raw
 end

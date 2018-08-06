@@ -10,7 +10,8 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     config_file_path = Briefly.create!(extname: ".exs")
     db_path = Briefly.create!(directory: true)
 
-    fees = %{OmiseGO.API.TestHelper.encode_address(OmiseGO.API.Crypto.zero_address()) => 0, token.address => 0}
+    {:ok, eth} = OmiseGO.API.Crypto.encode_address(OmiseGO.API.Crypto.zero_address())
+    fees = %{eth => 0, token.address => 0}
     {:ok, fees_path} = OmiseGO.API.TestHelper.write_fee_file(fees)
 
     config_file_path

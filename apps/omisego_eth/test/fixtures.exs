@@ -49,7 +49,7 @@ defmodule OmiseGO.Eth.Fixtures do
   deffixture token_contract_config(token) do
     Application.put_env(:omisego_eth, :token_addr, token.address, persistent: true)
 
-    enc_eth = OmiseGO.API.TestHelper.encode_address(OmiseGO.API.Crypto.zero_address())
+    {:ok, enc_eth} = OmiseGO.API.Crypto.encode_address(OmiseGO.API.Crypto.zero_address())
     {:ok, path} = OmiseGO.API.TestHelper.write_fee_file(%{enc_eth => 0, token.address => 0})
     default_path = Application.get_env(:omisego_api, :fee_specs_file_path)
     Application.put_env(:omisego_api, :fee_specs_file_path, path, persistent: true)

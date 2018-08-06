@@ -50,7 +50,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     Eth.DevHelpers.token_approve(
       alice_enc,
-      OmiseGO.API.TestHelper.decode_address(contract.contract_addr),
+      contract.contract_addr,
       20,
       token.address
     )
@@ -76,10 +76,12 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     # spend the deposit
     {:ok, %{blknum: spend_child_block}} = Client.call(:submit, %{transaction: tx})
 
+    {:ok, token_addr} = OmiseGO.API.Crypto.decode_address(token.address)
+
     token_raw_tx =
       Transaction.new(
         [{token_deposit_blknum, 0, 0}],
-        OmiseGO.API.TestHelper.decode_address(token.address),
+        token_addr,
         [{bob.addr, 18}, {alice.addr, 2}]
       )
 
