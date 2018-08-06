@@ -20,8 +20,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   test "get blocks numbers to download" do
     block_height = 0
     interval = 1_000
-    chunk_size = 4
-    state = Core.init(block_height, interval, chunk_size)
+    state = Core.init(block_height, interval, maximum_number_of_pending_blocks: 4)
 
     {state_after_chunk, block_numbers} = Core.get_new_blocks_numbers(state, 20_000)
     assert block_numbers == [1_000, 2_000, 3_000, 4_000]
@@ -37,11 +36,10 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   test "getting block to consume" do
     block_height = 0
     interval = 1_000
-    chunk_size = 6
 
     state =
       block_height
-      |> Core.init(interval, chunk_size)
+      |> Core.init(interval, maximum_number_of_pending_blocks: 6)
       |> Core.get_new_blocks_numbers(7_000)
       |> elem(0)
       |> got_block(%Block{number: 2_000})
@@ -60,11 +58,10 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   test "getting blocks to consume out of order" do
     block_height = 0
     interval = 1_000
-    chunk_size = 6
 
     assert {:ok, state, [], []} =
              block_height
-             |> Core.init(interval, chunk_size)
+             |> Core.init(interval, maximum_number_of_pending_blocks: 6)
              |> Core.get_new_blocks_numbers(7_000)
              |> elem(0)
              |> got_block(%Block{number: 3_000})
@@ -77,8 +74,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   test "start block height is not zero" do
     block_height = 7_000
     interval = 100
-    chunk_size = 4
-    state = Core.init(block_height, interval, chunk_size)
+    state = Core.init(block_height, interval, maximum_number_of_pending_blocks: 4)
     assert {state, [7_100, 7_200, 7_300, 7_400]} = Core.get_new_blocks_numbers(state, 20_000)
 
     assert {:ok, _, [%Block{number: 7_100}, %Block{number: 7_200}], []} =
@@ -90,11 +86,10 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   test "next_child increases or decrease in calls to get_new_blocks_numbers" do
     block_height = 0
     interval = 1_000
-    chunk_size = 5
 
     {state, [1_000, 2_000, 3_000]} =
       block_height
-      |> Core.init(interval, chunk_size)
+      |> Core.init(interval, maximum_number_of_pending_blocks: 5)
       |> Core.get_new_blocks_numbers(4_000)
 
     assert {^state, []} = Core.get_new_blocks_numbers(state, 2_000)
@@ -104,9 +99,9 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   test "check error return by got_block" do
     block_height = 0
     interval = 1_000
-    chunk_size = 5
 
-    {state, [1_000, 2_000]} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(3_000)
+    {state, [1_000, 2_000]} =
+      block_height |> Core.init(interval, maximum_number_of_pending_blocks: 5) |> Core.get_new_blocks_numbers(3_000)
 
     assert {:error, :duplicate} =
              state |> got_block(%Block{number: 2_000}) |> Core.got_block({:ok, %Block{number: 2_000}})
@@ -157,10 +152,8 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   defp process_single_block(%Block{hash: requested_hash} = block) do
     block_height = 25_000
     interval = 1_000
-    chunk_size = 10
 
-    {state, _} =
-      block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(block_height + 2 * interval)
+    {state, _} = block_height |> Core.init(interval) |> Core.get_new_blocks_numbers(block_height + 2 * interval)
 
     assert {:ok, decoded_block} =
              Core.validate_get_block_response({:ok, block}, requested_hash, block_height + interval, 0)
@@ -172,10 +165,9 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   test "check error return by decode_block and got_block, incorrect_hash", %{alice: alice} do
     block_height = 0
     interval = 1_000
-    chunk_size = 5
     matching_bad_returned_hash = <<12::256>>
 
-    state = Core.init(block_height, interval, chunk_size)
+    state = Core.init(block_height, interval)
 
     block = %Block{
       Block.hashed_txs_at(
@@ -237,9 +229,8 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   test "got_block function called once with PotentialWithholding don't returns BlockWithHolding event" do
     block_height = 0
     interval = 1_000
-    chunk_size = 5
 
-    {state, [1_000, 2_000]} = block_height |> Core.init(interval, chunk_size) |> Core.get_new_blocks_numbers(3_000)
+    {state, [1_000, 2_000]} = block_height |> Core.init(interval) |> Core.get_new_blocks_numbers(3_000)
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
 
@@ -249,11 +240,9 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   test "got_block function called twice with PotentialWithholding returns BlockWithHolding event" do
     block_height = 0
     interval = 1_000
-    chunk_size = 5
-    maximum_block_withholding_time = 0
 
     {state, [1_000, 2_000]} =
-      Core.get_new_blocks_numbers(Core.init(block_height, interval, chunk_size, maximum_block_withholding_time), 3_000)
+      Core.get_new_blocks_numbers(Core.init(block_height, interval, maximum_block_withholding_time_ms: 0), 3_000)
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
     assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
@@ -267,11 +256,12 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   test "get_new_blocks_numbers function returns number of potential withholding block which next is canceled" do
     block_height = 0
     interval = 1_000
-    chunk_size = 4
-    maximum_block_withholding_time = 0
 
     {state, [1_000, 2_000, 3_000, 4_000]} =
-      Core.get_new_blocks_numbers(Core.init(block_height, interval, chunk_size, maximum_block_withholding_time), 20_000)
+      Core.get_new_blocks_numbers(
+        Core.init(block_height, interval, maximum_number_of_pending_blocks: 4, maximum_block_withholding_time_ms: 0),
+        20_000
+      )
 
     state =
       state
@@ -288,13 +278,11 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     assert {_, [5000, 6000, 7000, 8000]} = Core.get_new_blocks_numbers(state, 20_000)
   end
 
-  test "got_block function after maximum_block_withholding_time returns BlockWithHolding event" do
+  test "got_block function after maximum_block_withholding_time_ms returns BlockWithHolding event" do
     block_height = 0
     interval = 1_000
-    chunk_size = 4
-    maximum_block_withholding_time = 1000
 
-    state = Core.init(block_height, interval, chunk_size, maximum_block_withholding_time)
+    state = Core.init(block_height, interval, maximum_block_withholding_time_ms: 1000)
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 0)
 
