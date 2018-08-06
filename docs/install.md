@@ -1,50 +1,5 @@
 # 1. Installation via Vagrant
-## Prerequisites
-* Ensure that [Vagrant](https://www.vagrantup.com/) installed on your local machine
-
-Create a directory and the following Vagrantfile:
-```
-Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/xenial64"
-  config.vm.provision "shell", path: "bootstrap.sh"
-  config.vm.provider "virtualbox" do |v|https://appear.in/horde-omisego
-        v.memory = 4096
-        v.cpus = 2
-    end
-end
-```
-
-In the same directory, create a bash file named `bootstrap.sh` with the following contents
-https://gist.github.com/Pongch/b38bf178ee9f14dd31cd05fb34e96dce
-
-Run:
-```
-vagrant up --provision
-```
-
-Wait a few minutes for all the dependencies to finish installing
-
-SSH into vagrant:
-```
-vagrant ssh
-```
-
-Set ENVs to compile
-```
-source DEV/bin/activate
-export LC_ALL=C.UTF-8
-export LANG=C.UTF-8
-```
-
-Get the code and pull elixir dependencies
-```
-git clone https://github.com/omisego/omisego
-cd omisego
-HEX_HTTP_CONCURRENCY=1 HEX_HTTP_TIMEOUT=120 mix deps.get
-
-compile and test
-mix test --no-start
-```
+Refer to https://github.com/omisego/omisego-vagrant.
 
 # 2. Full installation
 
