@@ -54,7 +54,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
         contract.contract_addr
       )
 
-    {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
 
     challenge = get_exit_challenge(exiting_utxo_block_nr, 0, 0)
     assert {:ok, {alice.addr, @zero_address, 7}} == Eth.get_exit(utxo_pos, contract.contract_addr)
@@ -75,6 +75,10 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
 
     alice_enc = "0x" <> Base.encode16(alice.addr, case: :lower)
     _ = Eth.DevHelpers.token_mint(alice_enc, 20, token.address)
+
+    {:ok, false} = Eth.DevHelpers.has_token(token.address)
+    _ = Eth.DevHelpers.add_token(token.address)
+    {:ok, true} = Eth.DevHelpers.has_token(token.address)
 
     Eth.DevHelpers.token_approve(
       alice_enc,
@@ -106,7 +110,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     exit = IntegrationTest.compose_utxo_exit(spend_token_child_block, 0, 0)
 
     %{
-      txbytes: tx_bytes,
+      txbytes: txbytes,
       proof: proof,
       sigs: sigs
     } = exit
@@ -114,7 +118,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     {:ok, txhash} =
       Eth.start_exit(
         utxo_pos,
-        tx_bytes,
+        txbytes,
         proof,
         sigs,
         1,
@@ -122,7 +126,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
         contract.contract_addr
       )
 
-    {:ok, _} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
   end
 
   defp get_exit_challenge(blknum, txindex, oindex) do
