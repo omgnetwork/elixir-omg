@@ -110,7 +110,6 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
          txblknum,
          txindex
        ) do
-    # FIXME: just merge the 4 maps %(txblknum:...} and Map.take(recovered, [fields...]) and Map.take(signed...) etc
     %TransactionDB{
       txblknum: txblknum,
       txindex: txindex,

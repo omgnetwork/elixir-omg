@@ -52,11 +52,11 @@ defmodule OmiseGO.Eth do
     @type plasma_block_num() :: non_neg_integer()
 
     @type t() :: %__MODULE__{
-                   num: plasma_block_num(),
-                   hash: hash(),
-                   nonce: non_neg_integer(),
-                   gas_price: pos_integer()
-                 }
+            num: plasma_block_num(),
+            hash: hash(),
+            nonce: non_neg_integer(),
+            gas_price: pos_integer()
+          }
     defstruct [:num, :hash, :nonce, :gas_price]
   end
 
@@ -103,26 +103,6 @@ defmodule OmiseGO.Eth do
       gasPrice: encode_eth_rpc_unsigned_int(gas_price),
       data: "0x#{data}",
       nonce: encode_eth_rpc_unsigned_int(nonce)
-    })
-  end
-
-  def deposit(value, gas_price, from, contract \\ nil) do
-    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-
-    data =
-      "deposit()"
-      |> ABI.encode([])
-      |> Base.encode16()
-
-    gas = 100_000
-
-    Ethereumex.HttpClient.eth_send_transaction(%{
-      from: from,
-      to: contract,
-      data: "0x#{data}",
-      gas: encode_eth_rpc_unsigned_int(gas),
-      gasPrice: encode_eth_rpc_unsigned_int(gas_price),
-      value: encode_eth_rpc_unsigned_int(value)
     })
   end
 

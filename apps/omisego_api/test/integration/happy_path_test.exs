@@ -39,7 +39,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   test "deposit, spend, exit, restart etc works fine", %{alice: alice, bob: bob} do
     {:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
 
-    {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc)
+    {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, alice_enc)
     {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
 
     deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)

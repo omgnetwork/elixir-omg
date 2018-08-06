@@ -82,11 +82,8 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, txhash, contract_address}
   end
 
-  # FIXME: there are two deposit functions. The idea was for this to only be for tests/dev experiments
-  #        while eth.ex is what is used in production _only_ (so only submit_block wrapper)
-  def deposit(value, nonce, from \\ nil, contract \\ nil) do
+  def deposit(value, from, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    from = from || Application.get_env(:omisego_eth, :authority_addr)
 
     data =
       "deposit()"
@@ -98,11 +95,11 @@ defmodule OmiseGO.Eth.DevHelpers do
     Ethereumex.HttpClient.eth_send_transaction(%{
       from: from,
       to: contract,
+      data: "0x#{data}",
       gas: encode_eth_rpc_unsigned_int(gas),
       gasPrice: encode_eth_rpc_unsigned_int(21_000_000_000),
       value: encode_eth_rpc_unsigned_int(value),
-      data: "0x#{data}",
-      nonce: if(nonce == 0, do: "0x0", else: encode_eth_rpc_unsigned_int(nonce))
+      nonce: "0x0"
     })
   end
 
