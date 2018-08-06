@@ -85,8 +85,8 @@ defmodule OmiseGO.API.FeeChecker.CoreTest do
       expected_errors = [
         {{:error, :invalid_fee_spec}, 1},
         {{:error, :invalid_fee}, 2},
-        {{:error, :invalid_address}, 3},
-        {{:error, :invalid_address}, 4}
+        {{:error, :bad_address_encoding}, 3},
+        {{:error, :bad_address_encoding}, 4}
       ]
 
       assert {^expected_errors, _} = parse_file_content(json)

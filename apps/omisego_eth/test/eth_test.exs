@@ -191,6 +191,6 @@ defmodule OmiseGO.EthTest do
   test "get authority for deployed contract", %{contract: contract} do
     {:ok, addr} = Eth.authority(contract.contract_addr)
     {:ok, encoded_addr} = Crypto.encode_address(addr)
-    assert contract.authority_addr == Crypto.encode_address(encoded_addr)
+    assert contract.authority_addr == encoded_addr
   end
 end

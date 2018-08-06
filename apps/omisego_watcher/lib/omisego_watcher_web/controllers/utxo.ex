@@ -5,7 +5,6 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   """
 
   alias OmiseGO.API.Crypto
-  alias OmiseGO.JSONRPC
   alias OmiseGOWatcher.UtxoDB
 
   use OmiseGOWatcherWeb, :controller
