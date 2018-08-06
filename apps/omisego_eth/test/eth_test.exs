@@ -40,7 +40,7 @@ defmodule OmiseGO.EthTest do
   end
 
   defp deposit(contract) do
-    {:ok, transaction_hash} = Eth.DevHelpers.deposit(1, 1, contract.authority_addr, contract.contract_addr)
+    {:ok, transaction_hash} = Eth.DevHelpers.deposit(1, contract.authority_addr, contract.contract_addr)
     {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
   end
 

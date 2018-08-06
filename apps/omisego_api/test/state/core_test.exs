@@ -496,7 +496,7 @@ defmodule OmiseGO.API.State.CoreTest do
      {[
         %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_1}},
         %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_2}}
-      ], [{:delete, :utxo, ^utxo_pos_exit_1}, {:delete, :utxo, ^utxo_pos_exit_2}]},
+      ], [{:delete, :utxo, {@child_block_interval, 0, 0}}, {:delete, :utxo, {@child_block_interval, 0, 1}}]},
      state} =
       [
         %{owner: alice.addr, utxo_pos: utxo_pos_exit_1_encode},

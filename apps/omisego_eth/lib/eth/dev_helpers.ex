@@ -98,8 +98,7 @@ defmodule OmiseGO.Eth.DevHelpers do
       data: "0x#{data}",
       gas: encode_eth_rpc_unsigned_int(gas),
       gasPrice: encode_eth_rpc_unsigned_int(21_000_000_000),
-      value: encode_eth_rpc_unsigned_int(value),
-      nonce: "0x0"
+      value: encode_eth_rpc_unsigned_int(value)
     })
   end
 

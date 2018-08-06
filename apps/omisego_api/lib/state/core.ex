@@ -386,7 +386,8 @@ defmodule OmiseGO.API.State.Core do
     deletes =
       exiting_utxos
       |> Enum.map(fn %{utxo_pos: utxo_pos} ->
-        {:delete, :utxo, Utxo.Position.decode(utxo_pos)}
+        {:utxo_position, blknum, txindex, oindex} = Utxo.Position.decode(utxo_pos)
+        {:delete, :utxo, {blknum, txindex, oindex}}
       end)
 
     {:ok, {event_triggers, deletes}, state}
