@@ -14,9 +14,6 @@ defmodule OmiseGOWatcher.UtxoDB do
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
-  @block_offset 1_000_000_000
-  @transaction_offset 10_000
-
   @field_names [:address, :amount, :blknum, :txindex, :oindex, :txbytes]
   def field_names, do: @field_names
 

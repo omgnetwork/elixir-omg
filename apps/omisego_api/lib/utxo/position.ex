@@ -21,7 +21,7 @@ defmodule OmiseGO.API.Utxo.Position do
     do: blknum * @block_offset + txindex * @transaction_offset + oindex
 
   @spec decode(pos_integer()) :: t()
-  def decode(encoded) when encoded > @block_offset do
+  def decode(encoded) when encoded >= @block_offset do
     blknum = div(encoded, @block_offset)
     txindex = encoded |> rem(@block_offset) |> div(@transaction_offset)
     oindex = rem(encoded, @transaction_offset)

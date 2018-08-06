@@ -367,26 +367,26 @@ defmodule OmiseGO.API.State.Core do
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
     exiting_utxos =
       exiting_utxos
-      |> Enum.filter(fn %{blknum: blknum, txindex: txindex, oindex: oindex} ->
-        Map.has_key?(utxos, Utxo.position(blknum, txindex, oindex))
+      |> Enum.filter(fn %{utxo_pos: utxo_pos} ->
+        Map.has_key?(utxos, Utxo.Position.decode(utxo_pos))
       end)
 
     event_triggers =
       exiting_utxos
-      |> Enum.map(fn %{owner: owner, blknum: blknum, txindex: txindex, oindex: oindex} ->
-        %{exit: %{owner: owner, blknum: blknum, txindex: txindex, oindex: oindex}}
+      |> Enum.map(fn %{owner: owner, utxo_pos: utxo_pos} ->
+        %{exit: %{owner: owner, utxo_pos: Utxo.Position.decode(utxo_pos)}}
       end)
 
     state =
       exiting_utxos
-      |> Enum.reduce(state, fn %{blknum: blknum, txindex: txindex, oindex: oindex}, state ->
-        %{state | utxos: Map.delete(state.utxos, Utxo.position(blknum, txindex, oindex))}
+      |> Enum.reduce(state, fn %{utxo_pos: utxo_pos}, state ->
+        %{state | utxos: Map.delete(state.utxos, Utxo.Position.decode(utxo_pos))}
       end)
 
     deletes =
       exiting_utxos
-      |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} ->
-        {:delete, :utxo, {blknum, txindex, oindex}}
+      |> Enum.map(fn %{utxo_pos: utxo_pos} ->
+        {:delete, :utxo, Utxo.Position.decode(utxo_pos)}
       end)
 
     {:ok, {event_triggers, deletes}, state}

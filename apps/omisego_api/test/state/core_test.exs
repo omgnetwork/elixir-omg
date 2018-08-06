@@ -5,7 +5,10 @@ defmodule OmiseGO.API.State.CoreTest do
   alias OmiseGO.API
   alias OmiseGO.API.Block
   alias OmiseGO.API.State.Core
+  alias OmiseGO.API.Utxo
   alias OmiseGO.API.TestHelper, as: Test
+
+  require Utxo
 
   @child_block_interval OmiseGO.API.BlockQueue.child_block_interval()
   @child_block_2 @child_block_interval * 2
@@ -483,15 +486,21 @@ defmodule OmiseGO.API.State.CoreTest do
 
     expected_owner = alice.addr
 
+    utxo_pos_exit_1 = Utxo.position(@child_block_interval, 0, 0)
+    utxo_pos_exit_2 = Utxo.position(@child_block_interval, 0, 1)
+
+    utxo_pos_exit_1_encode = utxo_pos_exit_1 |> Utxo.Position.encode()
+    utxo_pos_exit_2_encode = utxo_pos_exit_2 |> Utxo.Position.encode()
+
     {:ok,
      {[
-        %{exit: %{owner: ^expected_owner, blknum: @child_block_interval, txindex: 0, oindex: 0}},
-        %{exit: %{owner: ^expected_owner, blknum: @child_block_interval, txindex: 0, oindex: 1}}
-      ], [{:delete, :utxo, {@child_block_interval, 0, 0}}, {:delete, :utxo, {@child_block_interval, 0, 1}}]},
+        %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_1}},
+        %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_2}}
+      ], [{:delete, :utxo, ^utxo_pos_exit_1}, {:delete, :utxo, ^utxo_pos_exit_2}]},
      state} =
       [
-        %{owner: alice.addr, blknum: @child_block_interval, txindex: 0, oindex: 0},
-        %{owner: alice.addr, blknum: @child_block_interval, txindex: 0, oindex: 1}
+        %{owner: alice.addr, utxo_pos: utxo_pos_exit_1_encode},
+        %{owner: alice.addr, utxo_pos: utxo_pos_exit_2_encode}
       ]
       |> Core.exit_utxos(state)
 
@@ -524,14 +533,14 @@ defmodule OmiseGO.API.State.CoreTest do
       |> success?
 
     {:ok, {[], []}, ^state} =
-      [%{owner: alice.addr, blknum: 1, txindex: 0, oindex: 0}]
+      [%{owner: alice.addr, utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}]
       |> Core.exit_utxos(state)
   end
 
   @tag fixtures: [:state_empty]
   test "does not change when exiting non-existent utxo", %{state_empty: state} do
     {:ok, {[], []}, ^state} =
-      [%{owner: "owner", blknum: 1, txindex: 0, oindex: 0}]
+      [%{owner: "owner", utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}]
       |> Core.exit_utxos(state)
   end
 

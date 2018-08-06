@@ -5,10 +5,11 @@ defmodule OmiseGOWatcher.Challenger.CoreTest do
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.State.Transaction.Signed
   alias OmiseGO.API.Utxo
-  require Utxo
   alias OmiseGOWatcher.Challenger.Challenge
   alias OmiseGOWatcher.Challenger.Core
   alias OmiseGOWatcher.TransactionDB
+
+  require Utxo
 
   deffixture transactions do
     [

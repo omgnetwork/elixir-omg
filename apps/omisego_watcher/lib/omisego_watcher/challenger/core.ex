@@ -10,9 +10,6 @@ defmodule OmiseGOWatcher.Challenger.Core do
   alias OmiseGOWatcher.Challenger.Challenge
   alias OmiseGOWatcher.TransactionDB
 
-  @block_offset 1_000_000_000
-  @transaction_offset 10_000
-
   @spec create_challenge(%TransactionDB{}, list(%TransactionDB{}), Utxo.Position.t()) :: Challenge.t()
   def create_challenge(challenging_tx, txs, utxo_exit) do
     txbytes = encode(challenging_tx)
