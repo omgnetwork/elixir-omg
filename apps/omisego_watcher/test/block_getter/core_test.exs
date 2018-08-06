@@ -1,4 +1,3 @@
-
 defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
@@ -101,7 +100,8 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     block_height = 0
     interval = 1_000
 
-    {state, [1_000, 2_000]} = block_height |> Core.init(interval, maximum_number_of_pending_blocks: 5) |> Core.get_new_blocks_numbers(3_000)
+    {state, [1_000, 2_000]} =
+      block_height |> Core.init(interval, maximum_number_of_pending_blocks: 5) |> Core.get_new_blocks_numbers(3_000)
 
     assert {:error, :duplicate} =
              state |> got_block(%Block{number: 2_000}) |> Core.got_block({:ok, %Block{number: 2_000}})
@@ -153,8 +153,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     block_height = 25_000
     interval = 1_000
 
-    {state, _} =
-      block_height |> Core.init(interval) |> Core.get_new_blocks_numbers(block_height + 2 * interval)
+    {state, _} = block_height |> Core.init(interval) |> Core.get_new_blocks_numbers(block_height + 2 * interval)
 
     assert {:ok, decoded_block} =
              Core.validate_get_block_response({:ok, block}, requested_hash, block_height + interval, 0)
@@ -259,7 +258,10 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     interval = 1_000
 
     {state, [1_000, 2_000, 3_000, 4_000]} =
-      Core.get_new_blocks_numbers(Core.init(block_height, interval, maximum_number_of_pending_blocks: 4, maximum_block_withholding_time_ms: 0), 20_000)
+      Core.get_new_blocks_numbers(
+        Core.init(block_height, interval, maximum_number_of_pending_blocks: 4, maximum_block_withholding_time_ms: 0),
+        20_000
+      )
 
     state =
       state
