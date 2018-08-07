@@ -322,7 +322,7 @@ defmodule OmiseGO.API.State.Core do
 
     db_updates = db_updates_new_utxos ++ last_deposit_height_db_update(deposits, last_deposit_height)
 
-    if deposits != [], do: _ = Logger.info("Recognized deposits #{inspect(deposits)}")
+    _ = if deposits != [], do: Logger.info(fn -> "Recognized deposits #{inspect(deposits)}" end)
 
     new_state = %Core{
       state
