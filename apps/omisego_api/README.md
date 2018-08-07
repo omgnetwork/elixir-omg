@@ -25,28 +25,16 @@ The general idea of the apps responsibilities is:
 ## General setup
 For specific instructions on setting up a developer environment, jump to the next section.
 
-1. Provide an Ethereum node connected to the appropriate network
-1. Deploy `RootChain.sol` contract and prepare operator's authority address
-1. Initialize the child chain database.
-Do that with `mix run --no-start -e 'OmiseGO.DB.init()'`
-1. Produce a configuration file with `omisego_eth` configured to the contract address, operator (authority) address and hash of contract-deploying transaction.
-To do that use the template, filling it with details on the contract:
+1. Follow the high-level **Setting up** from [here](../../README.md)
+1. Start the child chain server, referencing the configuration file from the previous step with the JSON-RPC interface activated
 
         cd apps/omisego_jsonrpc
         mix run --no-halt --config path/to/config.exs
 
-        config :omisego_eth,
-          contract_addr: "0x0",
-          authority_addr: "0x0",
-          txhash_contract: "0x0"
-
-1. Start the child chain server, referencing the configuration file from the previous step with the JSON-RPC interface activated
-  - `cd apps/omisego_jsonrpc`
-  - `mix run --no-halt --config path/to/config.exs`
 
 ## Setting up (a developer environment)
 ### Start up developer instance of Ethereum
-The easiest way to get started is if you have access to a developer instance of `geth`. If you don't already have access to a developer instance of `geth`, follow the [installation](../../installation.md) instructions.
+The easiest way to get started is if you have access to a developer instance of `geth`. If you don't already have access to a developer instance of `geth`, follow the [installation](../../docs/install.md) instructions.
 
 A developer instance of geth runs Ethereum locally and prefunds an account. However, when `geth` terminates, the state of the Ethereum network is lost.
 
@@ -64,7 +52,7 @@ After `geth` is restarted with the above command, the authority account must be 
 
 ```
 geth attach http://127.0.0.1:8545
-personal.unlockAccount(“<authority_addr from config.exs>”, '', 0)
+personal.unlockAccount(“<authority_addr from ~/config.exs>”, '', 0)
 ```
 
 ### Configure the `omisego_eth` app
@@ -77,7 +65,7 @@ The following step will:
  deploy the root chain contract and configure your app:
 Note that `geth` needs to already be running for this step to work!
 ```
-mix run --no-start -e \
+mix compile && mix run --no-start -e \
  '
    OmiseGO.Eth.DevHelpers.prepare_env!
    |> OmiseGO.Eth.DevHelpers.create_conf_file
@@ -95,7 +83,7 @@ config :omisego_eth,
 ```
 The above values are only demonstrative, **do not** copy and paste!
 
-Note that you'll need to pass the configuration file each time you run `mix` with the following parameter `--config <your_config_file.exs>` flag
+Note that you'll need to pass the configuration file each time you run `mix` with the following parameter `--config ~/config.exs` flag
 
 ### Initialize the child chain database
 Initialize the database with the following command:
