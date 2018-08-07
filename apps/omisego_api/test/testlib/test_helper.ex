@@ -94,7 +94,6 @@ defmodule OmiseGO.API.TestHelper do
   def write_fee_file(map) do
     {:ok, json} =
       map
-      |> Map.to_list()
       |> Enum.map(fn {"0x" <> _ = k, v} -> %{token: k, flat_fee: v} end)
       |> Poison.encode()
 
