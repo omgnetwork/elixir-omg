@@ -8,6 +8,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
 
   use OmiseGO.API.LoggerExt
 
+  @empty MapSet.new()
+
   defmodule PotentialWithholding do
     @moduledoc false
 
@@ -20,25 +22,27 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   end
 
   defstruct [
+    :synced_height,
     :block_consume_batch,
     :last_consumed_block,
-    :started_height_block,
+    :started_block_number,
     :block_interval,
     :waiting_for_blocks,
     :maximum_number_of_pending_blocks,
-    :block_to_consume,
+    :blocks_to_consume,
     :potential_block_withholdings,
     :maximum_block_withholding_time
   ]
 
   @type t() :: %__MODULE__{
+          synced_height: pos_integer(),
           block_consume_batch: {atom(), list()},
           last_consumed_block: non_neg_integer,
-          started_height_block: non_neg_integer,
+          started_block_number: non_neg_integer,
           block_interval: pos_integer,
           waiting_for_blocks: non_neg_integer,
           maximum_number_of_pending_blocks: pos_integer,
-          block_to_consume: %{
+          blocks_to_consume: %{
             non_neg_integer => OmiseGO.API.Block.t()
           },
           potential_block_withholdings: %{
@@ -53,86 +57,90 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           | :withholding
           | API.Core.recover_tx_error()
 
-  @spec init(non_neg_integer, pos_integer, pos_integer) :: %__MODULE__{}
+  @spec init(non_neg_integer, pos_integer, pos_integer, pos_integer, non_neg_integer) :: %__MODULE__{}
   def init(
         block_number,
         child_block_interval,
+        synced_height,
         maximum_number_of_pending_blocks \\ 10,
         maximum_block_withholding_time \\ 0
       ) do
     %__MODULE__{
+      block_consume_batch: {:downloading, []},
+      synced_height: synced_height,
       last_consumed_block: block_number,
-      started_height_block: block_number,
+      started_block_number: block_number,
       block_interval: child_block_interval,
       waiting_for_blocks: 0,
       maximum_number_of_pending_blocks: maximum_number_of_pending_blocks,
-      block_to_consume: %{},
+      blocks_to_consume: %{},
       potential_block_withholdings: %{},
       maximum_block_withholding_time: maximum_block_withholding_time
     }
   end
 
-  def has_block_consume_batch?(%__MODULE__{block_consume_batch: {:waiting_for_next_height, _}}) do
-    false
+  def consume_block(state, blknum) do
+    {:processing, blocks} = state.block_consume_batch
+
+    blocks = MapSet.delete(blocks, blknum)
+    blocks_to_consume = Map.delete(state.blocks_to_consume, blknum)
+
+    %{state | block_consume_batch: {:processing, blocks}, blocks_to_consume: blocks_to_consume}
   end
 
-  def has_block_consume_batch?(_) do
-    false
+  def get_eth_range_for_block_submitted_events(%__MODULE__{synced_height: synced_height} = state, next_synced_height)
+      when synced_height < next_synced_height do
+    {state.synced_height + 1, next_synced_height, state}
   end
 
-  def set_block_consume_batch(%__MODULE__{} = state, submissions) do
-    %{state | block_consume_batch: {:downloading, submissions}}
+  def get_eth_range_for_block_submitted_events(_state, _next_synced_height) do
+    :empty_range
   end
 
-  def update_synced_height(%__MODULE__{} = state, next_synced_height) do
-    %{state | synced_height: next_synced_height}
+  def get_blocks_to_consume(%__MODULE__{} = state, [], next_synced_height) do
+    state = %{state | synced_height: next_synced_height}
+    db_updates = [{:put, :block_getter_synced_height, next_synced_height}]
+    {[], next_synced_height, db_updates, state}
   end
 
-  def consume_blocks(%__MODULE__{block_consume_batch: {:downloading, []}} = state) do
-    state = %{state | block_consume_batch: {:waiting_for_next_height, []}}
-    {:blocks_consumed, state}
-  end
+  def get_blocks_to_consume(
+        %__MODULE__{block_consume_batch: {:downloading, _}, blocks_to_consume: blocks} = state,
+        submissions,
+        _next_synced_height
+      ) do
+    blocks_to_consume = get_downloaded_blocks(blocks, submissions)
 
-  def consume_blocks(%__MODULE__{block_consume_batch: {:downloading, block_submissions}} = state) do
-    downloaded_blocks = get_downloaded_blocks(state, state.block_to_consume)
+    if length(blocks_to_consume) == length(submissions) do
+      block_consume_batch =
+        submissions
+        |> Enum.map(& &1.blknum)
+        |> MapSet.new()
 
-    if length(block_submissions) == length(downloaded_blocks) do
-      state = %{state | block_consume_batch: {:downloaded, block_submissions}}
-      {:blocks_to_consume, downloaded_blocks, state}
+      state = %{state | block_consume_batch: {:processing, block_consume_batch}}
+      {blocks_to_consume, state.synced_height, [], state}
     else
-      :no_blocks_to_consume
+      {[], state.synced_height, [], state}
     end
   end
 
-  def consume_blocks(%__MODULE__{block_consume_batch: {:downloaded, []}} = state) do
-    state = %{state | block_consume_batch: {:waiting_for_next_height, []}}
-    {:blocks_consumed, state}
+  def get_blocks_to_consume(
+        %__MODULE__{block_consume_batch: {:processing, blocks_to_process}} = state,
+        _submissions,
+        next_synced_height
+      ) do
+    if blocks_to_process == MapSet.new() do
+      state = %{state | synced_height: next_synced_height, block_consume_batch: {:downloading, []}}
+      db_updates = [{:put, :block_getter_synced_height, next_synced_height}]
+      {[], next_synced_height, db_updates, state}
+    else
+      {[], state.synced_height, [], state}
+    end
   end
 
-  def consume_blocks(%__MODULE__{block_consume_batch: {:downloaded, _}} = state) do
-    {:blocks_to_consume, [], state}
-  end
-
-  defp get_downloaded_blocks(downloaded_blocks, block_consume_batch) do
-    blocks =
-      block_consume_batch
-      |> Enum.map(fn %{blknum: blknum} -> Map.get(downloaded_blocks, blknum) end)
-
-    [blocks, block_consume_batch]
-    |> List.zip()
-    |> Enum.filter(fn {block, _} -> block == nil end)
-    |> Enum.map(fn {block, %{eth_height: eth_height}} -> {block, eth_height} end)
-  end
-
-  def block_consumed(state, blknum) do
-    {:downloaded, blocks} = state.blknums_to_consume
-
-    blocks =
-      blocks
-      |> Enum.filter(fn %{blknum: b} -> b != blknum end)
-
-    block_to_consume = Map.delete(state.block_to_consume, blknum)
-    %{state | blknums_to_consume: blocks, block_to_consume: block_to_consume}
+  defp get_downloaded_blocks(downloaded_blocks, requested_blocks) do
+    requested_blocks
+    |> Enum.map(fn %{blknum: blknum, eth_height: eth_height} -> {Map.get(downloaded_blocks, blknum), eth_height} end)
+    |> Enum.filter(fn {block, _} -> block != nil end)
   end
 
   @doc """
@@ -142,7 +150,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   @spec get_new_blocks_numbers(%__MODULE__{}, non_neg_integer) :: {%__MODULE__{}, list(non_neg_integer)}
   def get_new_blocks_numbers(
         %__MODULE__{
-          started_height_block: started_height_block,
+          started_block_number: started_block_number,
           block_interval: block_interval,
           waiting_for_blocks: waiting_for_blocks,
           potential_block_withholdings: potential_block_withholdings,
@@ -150,7 +158,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
         } = state,
         next_child
       ) do
-    first_block_number = started_height_block + block_interval
+    first_block_number = started_block_number + block_interval
 
     number_of_empty_slots =
       maximum_number_of_pending_blocks - waiting_for_blocks - map_size(potential_block_withholdings)
@@ -166,7 +174,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       %{
         state
         | waiting_for_blocks: length(blocks_numbers) + waiting_for_blocks,
-          started_height_block: hd(([started_height_block] ++ blocks_numbers) |> Enum.sort() |> Enum.take(-1))
+          started_block_number: hd(([started_block_number] ++ blocks_numbers) |> Enum.sort() |> Enum.take(-1))
       },
       blocks_numbers
     }
@@ -180,24 +188,24 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           %__MODULE__{},
           {:ok, OmiseGO.API.Block.t() | PotentialWithholding.t()} | {:error, block_error(), binary(), pos_integer()}
         ) ::
-          {:ok | {:needs_stopping, block_error()}, %__MODULE__{}, list(OmiseGO.API.Block.t()) | [],
-           [] | list(Event.InvalidBlock.t()) | list(Event.BlockWithHolding.t())}
-          | {:error, :duplicate | :unexpected_blok}
+          {:ok | {:needs_stopping, block_error()}, %__MODULE__{},
+           [] | list(Event.InvalidBlock.t()) | list(Event.BlockWithholding.t())}
+          | {:error, :duplicate | :unexpected_block}
   def got_block(
         %__MODULE__{
-          block_to_consume: block_to_consume,
+          blocks_to_consume: blocks_to_consume,
           waiting_for_blocks: waiting_for_blocks,
-          started_height_block: started_height_block,
+          started_block_number: started_block_number,
           last_consumed_block: last_consumed_block,
           potential_block_withholdings: potential_block_withholdings
         } = state,
         {:ok, %{number: number} = block}
       ) do
-    with :ok <- if(Map.has_key?(block_to_consume, number), do: :duplicate, else: :ok),
-         :ok <- if(last_consumed_block < number and number <= started_height_block, do: :ok, else: :unexpected_blok) do
+    with :ok <- if(Map.has_key?(blocks_to_consume, number), do: :duplicate, else: :ok),
+         :ok <- if(last_consumed_block < number and number <= started_block_number, do: :ok, else: :unexpected_block) do
       state1 = %{
         state
-        | block_to_consume: Map.put(block_to_consume, number, block),
+        | blocks_to_consume: Map.put(blocks_to_consume, number, block),
           waiting_for_blocks: waiting_for_blocks - 1
       }
 
@@ -246,7 +254,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
         {:ok, state, []}
 
       time - blknum_time >= maximum_block_withholding_time ->
-        {{:needs_stopping, :withholding}, state, [%Event.BlockWithHolding{blknum: blknum}]}
+        {{:needs_stopping, :withholding}, state, [%Event.BlockWithholding{blknum: blknum}]}
 
       true ->
         {:ok, state, []}

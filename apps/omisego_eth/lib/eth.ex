@@ -231,7 +231,9 @@ defmodule OmiseGO.Eth do
   @doc """
   Returns lists of block submissions sorted by timestamp
   """
-  def get_block_submissions(block_from, block_to, contract \\ nil) do
+  def get_block_submitted_events(block_range, contract \\ nil)
+
+  def get_block_submitted_events({block_from, block_to}, contract) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
 
     event = encode_event_signature("BlockSubmitted(uint256)")
@@ -250,6 +252,10 @@ defmodule OmiseGO.Eth do
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
          block_submissions <- unfiltered_logs |> filter_not_removed |> Enum.map(parse_block_submissions),
          do: {:ok, Enum.sort(block_submissions, &(&1.blknum > &2.blknum))}
+  end
+
+  def get_block_submitted_events(:empty_range, _contract) do
+    {:ok, []}
   end
 
   defp encode_event_signature(signature) do

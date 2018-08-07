@@ -25,7 +25,8 @@ defmodule OmiseGOWatcher.BlockGetter do
   end
 
   def handle_cast(
-        {:consume_block, %{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block, block_rootchain_height},
+        {:consume_block, %{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block,
+         block_rootchain_height},
         state
       ) do
     state_exec_results = for tx <- transactions, do: OmiseGO.API.State.exec(tx, fees)
@@ -40,7 +41,7 @@ defmodule OmiseGOWatcher.BlockGetter do
       _ = UtxoDB.update_with(block)
       _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end)
       {:ok, next_child} = Eth.get_current_child_block()
-      {new_state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
+      {state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
       :ok = run_block_get_task(blocks_numbers)
 
       _ =
@@ -52,8 +53,8 @@ defmodule OmiseGOWatcher.BlockGetter do
 
       :ok = OmiseGO.API.State.close_block(child_block_interval, block_rootchain_height)
 
-      new_state = Core.block_consumed(new_state, blknum)
-      {:noreply, new_state}
+      state = Core.consume_block(state, blknum)
+      {:noreply, state}
     else
       {:needs_stopping, reason} ->
         _ = Logger.error(fn -> "Stopping BlockGetter becasue of #{inspect(reason)}" end)
@@ -73,7 +74,10 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:ok, deployment_height} = Eth.get_root_deployment_height()
     :ok = RootChainCoordinator.set_service_height(deployment_height, :block_getter)
 
-    {:ok, Core.init(block_number, child_block_interval)}
+    schedule_sync_height()
+
+    # FIXME: read synced height from db
+    {:ok, Core.init(block_number, child_block_interval, deployment_height)}
   end
 
   # TODO get_height used in tests instead of an event system, remove when event system is here
@@ -124,37 +128,22 @@ defmodule OmiseGOWatcher.BlockGetter do
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
 
   def handle_info(:sync, state) do
-    case RootChainCoordinator.get_height() do
-      {:sync, next_synced_height} ->
-        state =
-          state
-          |> set_blknums_for_synced_height(next_synced_height)
-          |> consume_blocks_from_height(next_synced_height)
+    with {:sync, next_synced_height} <- RootChainCoordinator.get_height() do
+      {block_range, state} = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
+      submissions = Eth.get_block_submitted_events(block_range)
 
-        {:noreply, state}
-      :nosync ->
-        {:noreply, state}
-    end
-  end
+      {blocks_to_consume, synced_height, db_updates, state} =
+        Core.get_blocks_to_consume(state, submissions, next_synced_height)
 
-  defp set_blknums_for_synced_height(state, next_synced_height) do
-    if Core.has_block_consume_batch?(state) do
-      state
+      Enum.each(blocks_to_consume, fn {block, eth_height} ->
+        GenServer.cast(__MODULE__, {:consume_block, block, eth_height})
+      end)
+
+      :ok = OmiseGO.DB.multi_update(db_updates)
+      :ok = RootChainCoordinator.set_service_height(synced_height, :block_getter)
+      {:noreply, state}
     else
-      {:ok, submissions} = Eth.get_block_submissions(state.synced_height, next_synced_height)
-      Core.set_block_consume_batch(state, submissions)
-    end
-  end
-
-  defp consume_blocks_from_height(state, next_synced_height) do
-    case Core.consume_blocks(state) do
-      {:blocks_consumed, state} ->
-        RootChainCoordinator.set_service_height(next_synced_height, :block_getter)
-        Core.update_synced_height(state, next_synced_height)
-      {:blocks_to_consume, blocks_to_consume, state} ->
-        Enum.each(blocks_to_consume, fn {block, eth_height} -> GenServer.cast(__MODULE__, {:consume_block, block, eth_height}) end)
-        state
-      {_, state} -> state
+      :nosync -> {:noreply, state}
     end
   end
 
@@ -164,5 +153,9 @@ defmodule OmiseGOWatcher.BlockGetter do
       # captures the result in handle_info/2 with the atom: got_block
       &Task.async(fn -> {:got_block, get_block(&1)} end)
     )
+  end
+
+  defp schedule_sync_height(interval \\ 500) do
+    :timer.send_interval(interval, self(), :sync)
   end
 end

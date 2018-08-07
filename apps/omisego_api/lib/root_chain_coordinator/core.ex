@@ -15,6 +15,10 @@ defmodule OmiseGO.API.RootChainCoordinator.Core do
           services: map()
         }
 
+  def init(allowed_services, root_chain_height) do
+    %__MODULE__{allowed_services: allowed_services, root_chain_height: root_chain_height}
+  end
+
   @doc """
   Updates Ethereum height on which a service is synchronized.
   """
