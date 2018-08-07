@@ -18,7 +18,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
   defp eth, do: Crypto.zero_address()
   defp not_eth, do: <<1::size(160)>>
-  defp zero_fees_map, do: %{eth() => 0}
+  defp zero_fees_map, do: %{eth() => 0, not_eth() => 0}
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend deposits", %{alice: alice, bob: bob, state_empty: state} do
@@ -59,13 +59,25 @@ defmodule OmiseGO.API.State.CoreTest do
     |> fail?(:incorrect_currency)
   end
 
+  @tag :buggy
   @tag fixtures: [:alice, :state_empty]
   test "currency of created utxo matches currency of the input", %{alice: alice, state_empty: state} do
-    state
-    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), zero_fees_map(), &1)).()
-    |> success?
-    |> (&Core.exec(Test.create_recovered([{1000, 0, 0, alice}], eth(), [{alice, 3}]), zero_fees_map(), &1)).()
+    state1 =
+      state
+      |> Test.do_deposit(alice, %{amount: 10, currency: not_eth(), blknum: 1})
+      |> (&Core.exec(
+            Test.create_recovered([{1, 0, 0, alice}], not_eth(), [{alice, 7}, {alice, 3}]),
+            zero_fees_map(),
+            &1
+          )).()
+      |> success?
+
+    state1
+    |> (&Core.exec(Test.create_recovered([{1000, 0, 0, alice}], eth(), [{alice, 9}]), zero_fees_map(), &1)).()
+    |> fail?(:incorrect_currency)
+
+    state1
+    |> (&Core.exec(Test.create_recovered([{1000, 0, 0, alice}], not_eth(), [{alice, 3}]), zero_fees_map(), &1)).()
     |> success?
   end
 
