@@ -7,6 +7,7 @@ defmodule OmiseGO.EthTest do
   # TODO: if proves to be brittle and we cover that functionality in other integration test then consider removing
 
   alias OmiseGO.API.Block
+  alias OmiseGO.API.Crypto
   alias OmiseGO.API.Utxo
   require Utxo
   alias OmiseGO.Eth, as: Eth
@@ -20,7 +21,7 @@ defmodule OmiseGO.EthTest do
 
   @timeout 20_000
 
-  @eth OmiseGO.API.Crypto.zero_address()
+  @eth Crypto.zero_address()
 
   @moduletag :wrappers
 
@@ -191,6 +192,7 @@ defmodule OmiseGO.EthTest do
   @tag fixtures: [:contract]
   test "get authority for deployed contract", %{contract: contract} do
     {:ok, addr} = Eth.authority(contract.contract_addr)
-    assert contract.authority_addr == "0x" <> Base.encode16(addr, case: :lower)
+    {:ok, encoded_addr} = Crypto.encode_address(addr)
+    assert contract.authority_addr == encoded_addr
   end
 end

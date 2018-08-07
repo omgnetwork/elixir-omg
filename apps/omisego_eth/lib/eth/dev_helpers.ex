@@ -3,6 +3,7 @@ defmodule OmiseGO.Eth.DevHelpers do
   Helpers used when setting up development environment and test fixtures, related to contracts and ethereum
   """
 
+  alias OmiseGO.API.Crypto
   alias OmiseGO.Eth.WaitFor, as: WaitFor
   import OmiseGO.Eth.Encoding
 
@@ -53,7 +54,7 @@ defmodule OmiseGO.Eth.DevHelpers do
   """
   def import_unlock_fund(%{priv: account_priv, addr: account_addr} = _account) do
     account_priv_enc = Base.encode16(account_priv)
-    account_enc = "0x" <> Base.encode16(account_addr, case: :lower)
+    {:ok, account_enc} = Crypto.encode_address(account_addr)
 
     {:ok, ^account_enc} = Ethereumex.HttpClient.personal_import_raw_key(account_priv_enc, "")
     {:ok, _} = unlock_fund(account_enc)

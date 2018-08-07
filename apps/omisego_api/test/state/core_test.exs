@@ -4,6 +4,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
   alias OmiseGO.API
   alias OmiseGO.API.Block
+  alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.Utxo
   alias OmiseGO.API.TestHelper, as: Test
@@ -18,7 +19,7 @@ defmodule OmiseGO.API.State.CoreTest do
   @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232, 237, 80, 242, 60, 209, 253, 249, 76,
                       145, 84, 237, 58, 118, 9, 162, 241, 255, 152, 31>>
 
-  defp eth, do: OmiseGO.API.Crypto.zero_address()
+  defp eth, do: Crypto.zero_address()
   defp not_eth, do: <<1::size(160)>>
   defp zero_fees_map, do: %{eth() => 0}
 
@@ -63,7 +64,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
   @tag fixtures: [:alice, :state_empty]
   test "can decode deposits in Core", %{alice: alice, state_empty: state} do
-    alice_enc = "0x" <> Base.encode16(alice.addr, case: :lower)
+    {:ok, alice_enc} = Crypto.encode_address(alice.addr)
     eth_enc = "0x" <> String.duplicate("00", 20)
     deposits = [%{owner: alice_enc, currency: eth_enc, amount: 10, blknum: 1}]
 

@@ -3,12 +3,13 @@ defmodule OmiseGO.API.Api.CoreTest do
   use ExUnit.Case, async: true
 
   alias OmiseGO.API.Core
+  alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.TestHelper
 
   @empty_signature <<0::size(520)>>
 
-  def eth, do: OmiseGO.API.Crypto.zero_address()
+  def eth, do: Crypto.zero_address()
 
   @tag fixtures: [:alice, :bob]
   test "signed transaction is valid in all input zeroing combinations", %{

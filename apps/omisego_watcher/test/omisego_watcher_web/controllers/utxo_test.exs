@@ -5,20 +5,21 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
 
   alias OmiseGO.API
   alias OmiseGO.API.Block
+  alias OmiseGO.API.Crypto
   alias OmiseGO.API.TestHelper
   alias OmiseGO.API.Utxo
   require Utxo
-  alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.TestHelper
   alias OmiseGOWatcher.TransactionDB
   alias OmiseGOWatcher.UtxoDB
 
-  @eth OmiseGO.API.Crypto.zero_address()
+  @eth Crypto.zero_address()
 
   describe "UTXO database." do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "No utxo are returned for non-existing addresses.", %{alice: alice} do
-      assert get_utxo(alice.addr) == %{"utxos" => [], "address" => Client.encode(alice.addr)}
+      {:ok, alice_address_encode} = Crypto.encode_address(alice.addr)
+      assert get_utxo(alice.addr) == %{"utxos" => [], "address" => alice_address_encode}
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -123,6 +124,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   end
 
   defp get_utxo(address) do
-    TestHelper.rest_call(:get, "account/utxo?address=#{Client.encode(address)}")
+    {:ok, address_encode} = Crypto.encode_address(address)
+    TestHelper.rest_call(:get, "account/utxo?address=#{address_encode}")
   end
 end

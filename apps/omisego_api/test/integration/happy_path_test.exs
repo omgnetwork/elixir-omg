@@ -9,6 +9,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   use OmiseGO.DB.Fixtures
 
   alias OmiseGO.API.BlockQueue
+  alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.Eth
   alias OmiseGO.JSONRPC.Client
@@ -33,7 +34,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     :ok
   end
 
-  defp eth, do: OmiseGO.API.Crypto.zero_address()
+  defp eth, do: Crypto.zero_address()
 
   @tag fixtures: [:alice, :bob, :omisego]
   test "deposit, spend, exit, restart etc works fine", %{alice: alice, bob: bob} do

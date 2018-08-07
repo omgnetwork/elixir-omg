@@ -6,6 +6,7 @@ defmodule OmiseGO.Eth do
   """
   # TODO: decide how type and logic aware this should be. Presently it's quite mixed
 
+  alias OmiseGO.API.Crypto
   import OmiseGO.Eth.Encoding
 
   @type contract_t() :: binary | nil
@@ -78,7 +79,7 @@ defmodule OmiseGO.Eth do
     end
   end
 
-  @spec submit_block(BlockSubmission.t(), OmiseGO.API.Crypto.address_t() | nil, contract_t()) ::
+  @spec submit_block(BlockSubmission.t(), Crypto.address_t() | nil, contract_t()) ::
           {:error, binary() | atom() | map()}
           | {:ok, binary()}
   def submit_block(
@@ -193,8 +194,8 @@ defmodule OmiseGO.Eth do
         |> Base.decode16!(case: :lower)
         |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, :address, {:uint, 256}])
 
-      owner = "0x" <> Base.encode16(owner, case: :lower)
-      token = "0x" <> Base.encode16(token, case: :lower)
+      {:ok, owner} = Crypto.encode_address(owner)
+      {:ok, token} = Crypto.encode_address(token)
       %{owner: owner, currency: token, amount: amount, blknum: blknum}
     end
 
@@ -265,7 +266,7 @@ defmodule OmiseGO.Eth do
         |> Base.decode16!(case: :lower)
         |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, :address, {:uint, 256}])
 
-      owner = "0x" <> Base.encode16(owner, case: :lower)
+      {:ok, owner} = Crypto.encode_address(owner)
 
       %{owner: owner, utxo_pos: utxo_pos, amount: amount, token: token}
     end

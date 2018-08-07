@@ -3,6 +3,7 @@ defmodule OmiseGOWatcher.Eventer.Core do
   Functional core of eventer
   """
 
+  alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Transaction
   alias OmiseGOWatcher.Eventer.Event
 
@@ -65,7 +66,7 @@ defmodule OmiseGOWatcher.Eventer.Core do
   end
 
   defp create_transfer_subtopic(address) do
-    encoded_address = "0x" <> Base.encode16(address, case: :lower)
+    {:ok, encoded_address} = Crypto.encode_address(address)
     create_subtopic(@transfer_topic, encoded_address)
   end
 
