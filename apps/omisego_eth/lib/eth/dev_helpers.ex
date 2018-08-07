@@ -9,6 +9,8 @@ defmodule OmiseGO.Eth.DevHelpers do
   import OmiseGO.Eth.Encoding
   alias OmiseGO.Eth
 
+  @lots_of_gas 5_000_000
+
   def prepare_env!(root_path \\ "./") do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, authority} = create_and_fund_authority_addr()
@@ -189,7 +191,7 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, _txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
   end
 
-  defp contract_transact_sync!(from, nonce, value, to, signature, args, gas \\ 4_190_937) do
+  defp contract_transact_sync!(from, nonce, value, to, signature, args, gas \\ @lots_of_gas) do
     {:ok, txhash} = contract_transact(from, nonce, value, to, signature, args, gas)
     {:ok, %{"status" => "0x1"}} = WaitFor.eth_receipt(txhash, 10_000)
   end
