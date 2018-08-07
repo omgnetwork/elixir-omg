@@ -46,8 +46,10 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
 
+    # mint some test tokens for Alice
     _ = Eth.DevHelpers.token_mint(alice_enc, 20, token.address)
 
+    # allow root chain contract to spend Alice tokens
     Eth.DevHelpers.token_approve(
       alice_enc,
       contract.contract_addr,
@@ -55,6 +57,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
       token.address
     )
 
+    # pull funds from Alice to root chain contract and deposit it
     {:ok, receipt} = Eth.DevHelpers.deposit_token(alice_enc, token.address, 20)
     token_deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
 
