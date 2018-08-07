@@ -6,6 +6,8 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   alias OmiseGO.API
   alias OmiseGO.API.Block
   alias OmiseGO.API.TestHelper
+  alias OmiseGO.API.Utxo
+  require Utxo
   alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.TestHelper
   alias OmiseGOWatcher.TransactionDB
@@ -96,14 +98,14 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
        txbytes: _tx_bytes,
        proof: proof,
        sigs: _sigs
-     }} = UtxoDB.compose_utxo_exit(1, 1, 0)
+     }} = UtxoDB.compose_utxo_exit(Utxo.position(1, 1, 0))
 
     assert <<_proof::bytes-size(512)>> = proof
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "compose_utxo_exit should return error when there is no txs in specfic block" do
-    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 1, 0)
+    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(Utxo.position(1, 1, 0))
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -117,7 +119,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       number: 1
     })
 
-    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 4, 0)
+    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(Utxo.position(1, 4, 0))
   end
 
   defp get_utxo(address) do
