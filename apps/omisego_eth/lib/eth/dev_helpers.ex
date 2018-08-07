@@ -178,15 +178,15 @@ defmodule OmiseGO.Eth.DevHelpers do
   defp contract_transact(from, nonce, value, to, signature, args, gas \\ 4_190_937) do
     data = encode_tx_data(signature, args)
 
-    maybe_put = fn
+    put_if_has_value = fn
       map, _key, nil -> map
       map, key, value -> Map.put(map, key, encode_eth_rpc_unsigned_int(value))
     end
 
     txmap =
       %{from: from, to: to, data: "0x" <> data, gas: encode_eth_rpc_unsigned_int(gas)}
-      |> maybe_put.(:nonce, nonce)
-      |> maybe_put.(:value, value)
+      |> put_if_has_value.(:nonce, nonce)
+      |> put_if_has_value.(:value, value)
 
     {:ok, _txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
   end
