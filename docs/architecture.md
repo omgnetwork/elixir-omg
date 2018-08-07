@@ -1,9 +1,10 @@
 # Architecture
 
-This is a high-level rundown of the architecture of `OmiseGO` apps.
+This is a high-level rundown of the architecture of the `OmiseGO` apps.
 
-For an even higher-level rundown of various pieces, where this umbrella app fits in, see **[High-level diagram](https://docs.google.com/drawings/d/1wvyQPKrrBnjlA1BfhMYxHFXbbn0ixL5WaSavGTaj14s/edit)**.
-**NOTE** only use the high-level diagram to get a vague idea, meaning of boxes/arrows is very imprecise.
+The below diagram demonstrates the various pieces and where this umbrella app fits in.
+![high level architecture overview diagram](assets/architecture_overview.jpg)
+**NOTE** only use the high-level diagram to get a vague idea, meaning of boxes/arrows may be imprecise.
 
 ## Interactions
 
