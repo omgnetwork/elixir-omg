@@ -11,6 +11,8 @@ defmodule OmiseGO.Eth.DevHelpers do
 
   @lots_of_gas 5_000_000
 
+  @one_hundred_eth trunc(:math.pow(10, 18) * 100)
+
   def prepare_env!(root_path \\ "./") do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, authority} = create_and_fund_authority_addr()
@@ -158,7 +160,7 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(account_enc, "", 0)
 
     {:ok, [eth_source_address | _]} = Ethereumex.HttpClient.eth_accounts()
-    txmap = %{from: eth_source_address, to: account_enc, value: "0x99999999999999999999999"}
+    txmap = %{from: eth_source_address, to: account_enc, value: encode_eth_rpc_unsigned_int(@one_hundred_eth)}
     {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     WaitFor.eth_receipt(tx_fund, 10_000)
   end

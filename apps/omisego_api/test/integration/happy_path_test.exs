@@ -17,6 +17,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   @moduletag :integration
 
   deffixture omisego(root_chain_contract_config, token_contract_config, db_initialized) do
+    # match variables to hide warnings:
     _ = root_chain_contract_config
     _ = db_initialized
     _ = token_contract_config
