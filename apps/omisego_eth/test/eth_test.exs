@@ -7,6 +7,7 @@ defmodule OmiseGO.EthTest do
   # TODO: if proves to be brittle and we cover that functionality in other integration test then consider removing
 
   alias OmiseGO.API.Block
+  alias OmiseGO.API.Crypto
   alias OmiseGO.Eth, as: Eth
   alias OmiseGO.Eth.WaitFor, as: WaitFor
   alias OmiseGO.API.State.Transaction
@@ -20,7 +21,7 @@ defmodule OmiseGO.EthTest do
   @block_offset 1_000_000_000
   @transaction_offset 10_000
 
-  @eth OmiseGO.API.Crypto.zero_address()
+  @eth Crypto.zero_address()
 
   @moduletag :wrappers
 
@@ -120,10 +121,10 @@ defmodule OmiseGO.EthTest do
 
     # TODO re: brittleness and dirtyness of this - test requires UtxoDB calls,
     # duplicates our integrations tests - another reason to drop or redesign eth_test.exs sometime
-    %{utxo_pos: utxo_pos, tx_bytes: tx_bytes, proof: proof, sigs: sigs} =
+    %{utxo_pos: utxo_pos, txbytes: txbytes, proof: proof, sigs: sigs} =
       UtxoDB.compose_utxo_exit(txs, child_blknum * @block_offset, 0, 0)
 
-    {:ok, _} = start_exit(utxo_pos, tx_bytes, proof, sigs, 1, bob_address, contract.contract_addr)
+    {:ok, _} = start_exit(utxo_pos, txbytes, proof, sigs, 1, bob_address, contract.contract_addr)
 
     {:ok, height} = Eth.get_ethereum_height()
 
@@ -189,6 +190,7 @@ defmodule OmiseGO.EthTest do
   @tag fixtures: [:contract]
   test "get authority for deployed contract", %{contract: contract} do
     {:ok, addr} = Eth.authority(contract.contract_addr)
-    assert contract.authority_addr == "0x" <> Base.encode16(addr, case: :lower)
+    {:ok, encoded_addr} = Crypto.encode_address(addr)
+    assert contract.authority_addr == encoded_addr
   end
 end

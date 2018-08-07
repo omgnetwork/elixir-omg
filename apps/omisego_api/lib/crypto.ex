@@ -95,6 +95,15 @@ defmodule OmiseGO.API.Crypto do
     {:ok, address}
   end
 
+  @spec decode_address(String.t() | binary) :: {:ok, address_t} | {:error, :bad_address_encoding}
+  def decode_address("0x" <> address) when byte_size(address) == 40, do: Base.decode16(address, case: :lower)
+  def decode_address(raw) when byte_size(raw) == 20, do: {:ok, raw}
+  def decode_address(_), do: {:error, :bad_address_encoding}
+
+  @spec encode_address(binary) :: {:ok, String.t()} | {:error, :invalid_address}
+  def encode_address(address) when byte_size(address) == 20, do: {:ok, "0x" <> Base.encode16(address, case: :lower)}
+  def encode_address(_), do: {:error, :invalid_address}
+
   # private
 
   defp der_to_raw(<<4::integer-size(8), data::binary>>), do: data

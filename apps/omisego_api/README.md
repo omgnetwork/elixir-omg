@@ -32,7 +32,8 @@ Do that with `mix run --no-start -e 'OmiseGO.DB.init()'`
 1. Produce a configuration file with `omisego_eth` configured to the contract address, operator (authority) address and hash of contract-deploying transaction.
 To do that use the template, filling it with details on the contract:
 
-        use Mix.Config
+        cd apps/omisego_jsonrpc
+        mix run --no-halt --config path/to/config.exs
 
         config :omisego_eth,
           contract_addr: "0x0",

@@ -3,6 +3,7 @@ defmodule OmiseGO.API.State.TransactionTest do
   use ExUnit.Case, async: true
 
   alias OmiseGO.API
+  alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.{Core, Transaction}
   alias OmiseGO.API.TestHelper
 
@@ -48,7 +49,7 @@ defmodule OmiseGO.API.State.TransactionTest do
     }
   end
 
-  def eth, do: OmiseGO.API.Crypto.zero_address()
+  def eth, do: Crypto.zero_address()
 
   @tag fixtures: [:transaction]
   test "transaction hash is correct", %{transaction: transaction} do

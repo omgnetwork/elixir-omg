@@ -232,6 +232,13 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
         requested_number,
         _time
       ) do
+    _ =
+      Logger.info(fn ->
+        short_hash = returned_hash |> Base.encode16() |> Binary.drop(-48)
+
+        "Validating block \##{inspect(requested_number)} #{short_hash}... with #{inspect(length(transactions))} txs"
+      end)
+
     with transaction_decode_results <- Enum.map(transactions, &API.Core.recover_tx/1),
          nil <- Enum.find(transaction_decode_results, &(!match?({:ok, _}, &1))),
          transactions <- Enum.map(transaction_decode_results, &elem(&1, 1)),

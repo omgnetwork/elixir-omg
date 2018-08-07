@@ -6,6 +6,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   use Phoenix.ChannelTest
 
   alias OmiseGO.API
+  alias OmiseGO.API.Crypto
   alias OmiseGO.Eth
   alias OmiseGOWatcher.Eventer.Event
   alias OmiseGOWatcher.TestHelper
@@ -20,14 +21,14 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
   @timeout 20_000
   @block_offset 1_000_000_000
-  @eth OmiseGO.API.Crypto.zero_address()
+  @eth Crypto.zero_address()
 
   @endpoint OmiseGOWatcherWeb.Endpoint
 
   @tag fixtures: [:watcher_sandbox, :contract, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
   test "get the blocks from child chain after transaction and start exit",
        %{contract: contract, alice: alice, bob: bob} do
-    alice_address = API.TestHelper.encode_address(alice.addr)
+    {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
     {:ok, _, _socket} =
       subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
@@ -50,7 +51,9 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
     {:ok, {block_hash, _}} = Eth.get_child_chain(block_nr)
-    %{eth_height: eth_height} = Eth.get_block_submission(block_hash)
+
+    # TODO: this is turned off now and set to zero. Rethink test after this gets fixed (possibly test differently)
+    eth_height = 0
 
     address_received_event =
       Client.encode(%Event.AddressReceived{
@@ -74,7 +77,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     %{
       utxo_pos: utxo_pos,
-      tx_bytes: tx_bytes,
+      txbytes: txbytes,
       proof: proof,
       sigs: sigs
     } = IntegrationTest.compose_utxo_exit(block_nr, 0, 0)
@@ -82,7 +85,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     {:ok, txhash} =
       Eth.start_exit(
         utxo_pos * @block_offset,
-        tx_bytes,
+        txbytes,
         proof,
         sigs,
         1,
@@ -154,7 +157,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       def block_with_incorrect_transaction do
         alice = @alice
 
-        recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], API.Crypto.zero_address(), [{alice, 10}])
+        recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], Crypto.zero_address(), [{alice, 10}])
 
         API.Block.hashed_txs_at([recovered], 1000)
       end
@@ -206,7 +209,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   end
 
   defp get_utxo(%{addr: address}) do
-    decoded_resp = TestHelper.rest_call(:get, "account/utxo?address=#{Client.encode(address)}")
+    {:ok, address_encode} = Crypto.encode_address(address)
+    decoded_resp = TestHelper.rest_call(:get, "account/utxo?address=#{address_encode}")
     decoded_resp["utxos"]
   end
 end

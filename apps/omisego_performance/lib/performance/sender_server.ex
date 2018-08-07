@@ -63,7 +63,7 @@ defmodule OmiseGO.Performance.SenderServer do
     _ = Logger.debug(fn -> "[#{inspect(seqnum)}]: Address #{Base.encode64(spender.addr)}" end)
 
     deposit_value = 10 * ntx_to_send
-    owner_enc = "0x" <> Base.encode16(spender.addr, case: :lower)
+    {:ok, owner_enc} = Crypto.encode_address(spender.addr)
     :ok = OmiseGO.API.State.deposit([%{owner: owner_enc, currency: @eth, amount: deposit_value, blknum: seqnum}])
 
     _ = Logger.debug(fn -> "[#{inspect(seqnum)}]: Deposited #{inspect(deposit_value)} OMG" end)

@@ -41,8 +41,8 @@ config :phoenix, :stacktrace_depth, 20
 # Configure your database
 config :omisego_watcher, OmiseGOWatcher.Repo,
   adapter: Ecto.Adapters.Postgres,
-  username: "omisego",
-  password: "12345678",
-  database: "test_development",
+  username: "omisego_dev",
+  password: "omisego_dev",
+  database: "omisego_dev",
   hostname: "localhost",
   pool_size: 10
