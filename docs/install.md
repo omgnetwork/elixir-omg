@@ -57,14 +57,6 @@ virtualenv DEV
 source DEV/bin/activate
 ```
 
-## Install populus
-[Ref](../populus/README.md)
-```
-wget https://github.com/omisego/omisego/blob/develop/populus/requirements.txt
-pip3 install -r populus/requirements.txt
-```
-If an error is raised when installing the specific version of `eth-utils`, the error may be ignored for the purposes of this installation.
-
 ## Install solc
 ```
 sudo apt-get install libssl-dev solc
@@ -74,13 +66,25 @@ sudo apt-get install libssl-dev solc
 ```
 mix do local.hex --force, local.rebar --force
 ```
-## Clone repo and build
+
+## Clone repo
+```
+git clone https://github.com/omisego/omisego
+```
+
+## Install populus
+[Ref](../populus/README.md)
+```
+pip3 install -r omisego/populus/requirements.txt
+```
+If an error is raised when installing the specific version of `eth-utils`, the error may be ignored for the purposes of this installation.
+
+## Build
 ```
 # populus requires character encoding to be set
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
-git clone https://github.com/omisego/omisego
 cd omisego
 mix deps.get
 ```
