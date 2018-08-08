@@ -27,8 +27,8 @@ defmodule OmiseGO.Performance do
   @doc """
   Setup dependencies, then submits {ntx_to_send} transcations for each of {nusers} users.
   """
-  @spec setup_and_run(ntx_to_send :: pos_integer, nusers :: pos_integer, opt :: map) :: :ok
-  def setup_and_run(ntx_to_send, nusers, opt \\ %{}) do
+  @spec run_without_geth(ntx_to_send :: pos_integer, nusers :: pos_integer, opt :: map) :: :ok
+  def run_without_geth(ntx_to_send, nusers, opt \\ %{}) do
     _ = Logger.info(fn -> "OmiseGO PerfTest users: #{inspect(nusers)}, reqs: #{inspect(ntx_to_send)}." end)
 
     {:ok, started_apps, api_children_supervisor} = testup()
@@ -40,6 +40,27 @@ defmodule OmiseGO.Performance do
     run([ntx_to_send, nusers, opt], opt[:profile])
 
     testdown(started_apps, api_children_supervisor)
+  end
+
+  def run_with_geth_child_chain(ntx_to_send, accounts, opt \\ %{}) do
+    _ = Logger.info(fn -> "OmiseGO PerfTest accounts: #{inspect(accounts)}, reqs: #{inspect(ntx_to_send)}." end)
+
+    defaults = %{destdir: ".", geth: "http://localhost:8545", child_chain: 2000}
+
+    opt = Map.merge(defaults, opt)
+
+    {:ok, _} = Application.ensure_all_started(:ethereumex)
+
+    Application.put_env(:ethereumex, :request_timeout, :infinity)
+    Application.put_env(:ethereumex, :http_options, [recv_timeout: :infinity])
+    Application.put_env(:ethereumex, :url, opt[:geth])
+
+    IO.inspect Ethereumex.HttpClient.eth_accounts
+#    accounts= %{priv: , add}
+    IO.inspect OmiseGO.Eth.DevHelpers.do_deposits(9999999,[%{ addr: <<192, 206, 18, 135, 18, 96, 150, 111, 205, 113, 160, 24, 75, 149, 42, 83, 190, 109, 123, 60>>, priv: <<246, 22, 164, 211 ,192 ,84, 217, 138, 68, 54, 157, 87, 152, 16, 80, 93, 220, 127, 25, 26, 159, 244, 183, 201, 213, 118, 2, 166, 195, 111, 240, 122>>}])
+#
+#    run([ntx_to_send, nusers, opt], opt[:profile])
+
   end
 
   # The test setup

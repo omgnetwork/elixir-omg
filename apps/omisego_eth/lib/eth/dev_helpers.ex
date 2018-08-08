@@ -63,12 +63,16 @@ defmodule OmiseGO.Eth.DevHelpers do
   end
 
   defp unlock_fund(account_enc) do
-    {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(account_enc, "", 0)
+    unlock(account_enc)
 
     {:ok, [eth_source_address | _]} = Ethereumex.HttpClient.eth_accounts()
     txmap = %{from: eth_source_address, to: account_enc, value: "0x99999999999999999999999"}
     {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     WaitFor.eth_receipt(tx_fund, 10_000)
+  end
+
+  defp unlock(account_enc) do
+    {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(account_enc, "", 0)
   end
 
   defp maybe_mine(false), do: :noop
@@ -103,6 +107,27 @@ defmodule OmiseGO.Eth.DevHelpers do
       data: "0x#{data}",
       nonce: if(nonce == 0, do: "0x0", else: encode_eth_rpc_unsigned_int(nonce))
     })
+  end
+
+#  FIXME
+  def do_deposits(value, accounts, contract \\ nil) do
+
+    deposit = fn account ->
+      {:ok, account_enc} = Crypto.encode_address(account.addr)
+
+      unlock(account_enc)
+
+      {:ok, deposit_tx_hash} = deposit(value, 15, account_enc, contract)
+      {:ok, receipt} = OmiseGO.Eth.WaitFor.eth_receipt(deposit_tx_hash)
+      deposit_blknum = deposit_blknum_from_receipt(receipt)
+
+      %{owner: account, utxo_pos: deposit_blknum, amount: value}
+    end
+
+    accounts
+    |> Enum.map(&(Task.async(fn -> deposit.(&1) end)))
+    |> Enum.map(fn task -> Task.await(task, :infinity) end)
+
   end
 
   def deposit_blknum_from_receipt(receipt) do
