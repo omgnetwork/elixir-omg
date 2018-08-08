@@ -12,9 +12,12 @@ defmodule OmiseGO.API.Utxo.Position do
 
   @type t() :: {
           :utxo_position,
-          pos_integer, # blknum
-          non_neg_integer, # txindex
-          non_neg_integer # oindex
+          # blknum
+          pos_integer,
+          # txindex
+          non_neg_integer,
+          # oindex
+          non_neg_integer
         }
 
   @spec encode(t()) :: pos_integer()
