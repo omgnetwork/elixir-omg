@@ -200,23 +200,23 @@ defmodule OmiseGO.Eth.DevHelpers do
   end
 
   defp get_bytecode!(path_project_root, contract_name) do
-    %{^contract_name => %{"bytecode" => bytecode}} =
+    %{"evm" => %{"bytecode" => %{"object" => bytecode}}} =
       path_project_root
-      |> read_contracts_json!()
+      |> read_contracts_json!(contract_name)
       |> Poison.decode!()
 
-    bytecode
+    "0x" <> bytecode
   end
 
-  defp read_contracts_json!(path_project_root) do
-    case File.read(Path.join(path_project_root, "populus/build/contracts.json")) do
-      {:ok, contracts_json} ->
-        contracts_json
-
+  defp read_contracts_json!(path_project_root, contract_name) do
+    path = "populus/mybuild/#{contract_name}.json"
+    case File.read(Path.join(path_project_root, path)) do
+      {:ok, contract_json} ->
+        contract_json
       {:error, reason} ->
         raise(
           RuntimeError,
-          "populus/build/contracts.json not read because #{reason}, try running mix deps.compile plasma_contracts"
+          "Can't read #{path} because #{inspect reason}, try running mix deps.compile plasma_contracts"
         )
     end
   end
