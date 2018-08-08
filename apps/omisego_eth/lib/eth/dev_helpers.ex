@@ -178,7 +178,7 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, txhash, contract_address}
   end
 
-  defp contract_transact(from, nonce, value, to, signature, args, gas \\ 4_190_937) do
+  defp contract_transact(from, nonce, value, to, signature, args, gas \\ @lots_of_gas) do
     data = encode_tx_data(signature, args)
 
     put_if_has_value = fn

@@ -59,7 +59,6 @@ defmodule OmiseGO.API.State.CoreTest do
     |> fail?(:incorrect_currency)
   end
 
-  @tag :buggy
   @tag fixtures: [:alice, :state_empty]
   test "currency of created utxo matches currency of the input", %{alice: alice, state_empty: state} do
     state1 =
