@@ -41,8 +41,8 @@ defmodule OmiseGO.EthTest do
   end
 
   defp deposit(contract) do
-    {:ok, transaction_hash} = Eth.DevHelpers.deposit(1, 1, contract.authority_addr, contract.contract_addr)
-    {:ok, _} = WaitFor.eth_receipt(transaction_hash, @timeout)
+    {:ok, txhash} = Eth.DevHelpers.deposit(1, contract.authority_addr, contract.contract_addr)
+    {:ok, %{"status" => "0x1"}} = WaitFor.eth_receipt(txhash, @timeout)
   end
 
   defp start_exit(utxo_position, txbytes, proof, sigs, gas_price, from, contract) do

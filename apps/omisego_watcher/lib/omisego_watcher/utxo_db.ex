@@ -12,11 +12,12 @@ defmodule OmiseGOWatcher.UtxoDB do
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
-  @field_names [:address, :amount, :blknum, :txindex, :oindex, :txbytes]
+  @field_names [:address, :currency, :amount, :blknum, :txindex, :oindex, :txbytes]
   def field_names, do: @field_names
 
   schema "utxos" do
     field(:address, :binary)
+    field(:currency, :binary)
     field(:amount, :integer)
     field(:blknum, :integer)
     field(:txindex, :integer)
@@ -32,6 +33,7 @@ defmodule OmiseGOWatcher.UtxoDB do
     make_utxo_db = fn transaction, number ->
       %__MODULE__{
         address: Map.get(transaction, :"newowner#{number}"),
+        currency: Map.get(transaction, :cur12),
         amount: Map.get(transaction, :"amount#{number}"),
         blknum: block_number,
         txindex: txindex,
@@ -71,13 +73,19 @@ defmodule OmiseGOWatcher.UtxoDB do
   end
 
   @spec insert_deposits([
-          %{owner: Crypto.address_t(), amount: non_neg_integer(), block_height: pos_integer()}
+          %{
+            owner: Crypto.address_t(),
+            currency: Crypto.address_t(),
+            amount: non_neg_integer(),
+            block_height: pos_integer()
+          }
         ]) :: :ok
   def insert_deposits(deposits) do
     deposits
     |> Enum.each(fn deposit ->
       Repo.insert(%__MODULE__{
         address: deposit.owner,
+        currency: deposit.currency,
         amount: deposit.amount,
         blknum: deposit.block_height,
         txindex: 0,
@@ -116,8 +124,8 @@ defmodule OmiseGOWatcher.UtxoDB do
 
   def get_all, do: Repo.all(__MODULE__)
 
-  def get_utxo(addres) do
-    utxos = Repo.all(from(tr in __MODULE__, where: tr.address == ^addres, select: tr))
+  def get_utxo(address) do
+    utxos = Repo.all(from(tr in __MODULE__, where: tr.address == ^address, select: tr))
     fields_names = List.delete(@field_names, :address)
     Enum.map(utxos, &Map.take(&1, fields_names))
   end
