@@ -1,5 +1,4 @@
-populus==2.2.0
-pytest-xdist
-flake8
-eth-utils==0.8.1
-web3==3.16.5
+ethereum==2.3.0
+web3==4.3.0
+rlp==0.6.0
+py-solc==3.1.0
