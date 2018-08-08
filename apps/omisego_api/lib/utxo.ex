@@ -1,5 +1,7 @@
 defmodule OmiseGO.API.Utxo do
-  @moduledoc false
+  @moduledoc """
+  Manipulates a single unspent transaction output (UTXO) held be the child chain state.
+  """
 
   alias OmiseGO.API.Crypto
 

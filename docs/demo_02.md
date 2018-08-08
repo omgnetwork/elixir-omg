@@ -43,6 +43,7 @@ deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
 
 # we've got alice, bob prepared, also an honest child chain is running with a watcher connected
 # NOTE: if you stopped and started geth after setting up alice and bob you need to unlock their accounts
+#       e.g. in shell `geth attach http://localhost:8545` then `personal.unlockAccount(alice_enc, "", 0)`
 
 # 1/ Demonstrate Watcher consuming honest transactions
 

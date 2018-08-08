@@ -3,6 +3,7 @@ defmodule OmiseGO.API.Utxo.Position do
   Representation of a UTXO position in the child chain, providing encoding/decoding to/from format digestible in Eth
   """
 
+  # these two offset constants are driven by the constants from the RootChain.sol contract
   @block_offset 1_000_000_000
   @transaction_offset 10_000
 
@@ -11,9 +12,9 @@ defmodule OmiseGO.API.Utxo.Position do
 
   @type t() :: {
           :utxo_position,
-          pos_integer,
-          non_neg_integer,
-          non_neg_integer
+          pos_integer, # blknum
+          non_neg_integer, # txindex
+          non_neg_integer # oindex
         }
 
   @spec encode(t()) :: pos_integer()
