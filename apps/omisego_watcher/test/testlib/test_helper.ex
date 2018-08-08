@@ -6,9 +6,6 @@ defmodule OmiseGOWatcher.TestHelper do
   use ExUnit.Case, async: true
   use Plug.Test
 
-  @block_offset 1_000_000_000
-  @transaction_offset 10_000
-
   def wait_for_process(pid, timeout \\ :infinity) when is_pid(pid) do
     ref = Process.monitor(pid)
 
@@ -33,8 +30,6 @@ defmodule OmiseGOWatcher.TestHelper do
     |> put_private(:plug_skip_csrf_protection, true)
     |> OmiseGOWatcherWeb.Endpoint.call([])
   end
-
-  def utxo_pos(blknum, txindex, oindex), do: @block_offset * blknum + @transaction_offset * txindex + oindex
 
   def create_topic(main_topic, subtopic), do: main_topic <> ":" <> subtopic
 end

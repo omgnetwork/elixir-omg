@@ -1,6 +1,6 @@
 # Watching a valid and invalid child chain
 
-The following demo is a mix of commands executed in IEx (Elixir's) REPL (see README.md for instructions) and shell.
+The following demo is a mix of commands executed in IEx and some Unix shell.
 
 Run a developer's Child chain server, Watcher and start IEx REPL with code and config loaded, as described in README.md instructions.
 
@@ -26,9 +26,11 @@ bob = TestHelper.generate_entity()
 eth = Crypto.zero_address()
 
 {:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
+{:ok, bob_enc} = Eth.DevHelpers.import_unlock_fund(bob)
 
 # sends a deposit transaction _to Ethereum_
-{:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, 0, alice_enc)
+{:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, bob_enc)
+{:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, alice_enc)
 
 # need to wait until it's mined
 {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
@@ -40,6 +42,8 @@ deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
 ### START DEMO HERE
 
 # we've got alice, bob prepared, also an honest child chain is running with a watcher connected
+# NOTE: if you stopped and started geth after setting up alice and bob you need to unlock their accounts
+#       e.g. in shell `geth attach http://localhost:8545` then `personal.unlockAccount(alice_enc, "", 0)`
 
 # 1/ Demonstrate Watcher consuming honest transactions
 
@@ -64,19 +68,103 @@ curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "js
 
 ```elixir
 
-# 2/ let's break the Child chain now and say that duplicates every transaction submitted!
+# 2/ Using the Watcher
 
-# in order to do that you need to duplicate the `|> add_pending_tx(recovered_tx)` in API.State.Core module,
+# re-prepare everything for the invalid exit demo until sending of tx1
+
+tx1_hash =
+
+"http GET 'localhost:4000/transactions/#{tx1_hash}'" |>
+to_charlist() |>
+:os.cmd() |>
+Poison.decode!()
+
+%{"utxos" => [%{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
+  "http GET 'localhost:4000/account/utxo?address=#{bob.addr |> Base.encode16}'" |>
+  to_charlist() |>
+  :os.cmd() |>
+  Poison.decode!()
+
+# 3/ Exiting, challenging invalid exits
+
+composed_exit =
+  "http GET 'localhost:4000/account/utxo/compose_exit?blknum=#{exiting_utxo_blknum}&txindex=0&oindex=0'" |>
+  to_charlist() |>
+  :os.cmd() |>
+  Poison.decode!()
+
+tx2 =
+  Transaction.new([{exiting_utxo_blknum, 0, 0}], eth, [{bob.addr, 7}]) |>
+  Transaction.sign(bob.priv, <<>>) |>
+  Transaction.Signed.encode() |>
+  Base.encode16()
+
+# FIRST you need to spend in transaction as above, so that the exit then is in fact invalid and challengeable
+
+{:ok, txhash} =
+  Eth.start_exit(
+    composed_exit["utxo_pos"],
+    Base.decode16!(composed_exit["txbytes"]),
+    Base.decode16!(composed_exit["proof"]),
+    Base.decode16!(composed_exit["sigs"]),
+    1,
+    bob_enc
+  )
+Eth.WaitFor.eth_receipt(txhash)
+
+challenge =
+  "http GET 'localhost:4000/challenges?blknum=#{exiting_utxo_blknum}&txindex=0&oindex=0'" |>
+  to_charlist() |>
+  :os.cmd() |>
+  Poison.decode!()
+
+{:ok, txhash} =
+  OmiseGO.Eth.DevHelpers.challenge_exit(
+    challenge["cutxopos"],
+    challenge["eutxoindex"],
+    Base.decode16!(challenge["txbytes"]),
+    Base.decode16!(challenge["proof"]),
+    Base.decode16!(challenge["sigs"]),
+    1,
+    alice_enc
+  )
+
+{:ok, _} = Eth.WaitFor.eth_receipt(txhash)
+
+# 4/ let's introduce a delay into the process of getting child block contents from the child chain server
+
+# If we introduce a 5 second sleep, the Watcher will have a hard time getting a block (requests time out in 5 seconds).
+# Some attempts will pass, some will fail and with the withholding threshold set to 10 seconds, we'll have block withholding stop the Watcher and print out an error (and fire events for machines)
+
+# put `Process.sleep 5_000` in API module, around line 31
+
+# now, with the code "broken" go to the `iex` REPL of the child chain and recompile the module
+
+r(OmiseGO.API)
+
+# see Watcher's console logs to see the struggle and final give-in. You can restart the Watcher many times
+
+# when you're done, undo the breakage and recompile again. Running the Watcher should allow it to sync
+
+# 5/ invalid block submitted
+
+# let's break the Child chain now and say that duplicates every transaction submitted!
+
+# in order to do that, you need to duplicate the `|> add_pending_tx(recovered_tx)` in API.State.Core module,
 # around line 123
 
-# now, with the code "broken" go to the `iex` repl and recompile the module
+# now, with the code "broken" go to the `iex` REPL of the child chain and recompile the module
 
 r(OmiseGO.API.State.Core)
 
 # let's do a broken spend:
 
-# grab the child block number from child chain server's response to the first tx
-spend_blknum =
+# grab a utxo that bob can spend
+%{"utxos" => [%{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]} =
+  "http GET 'localhost:4000/account/utxo?address=#{bob.addr |> Base.encode16}'" |>
+  to_charlist() |>
+  :os.cmd() |>
+  Poison.decode!()
 
 tx2 =
   Transaction.new([{spend_blknum, 0, 0}], eth, [{bob.addr, 7}]) |>
@@ -84,17 +172,6 @@ tx2 =
   Transaction.Signed.encode() |>
   Base.encode16()
 
-# and send using curl as above. See the Watcher puke out an error and stop (to be cleaned)
-
-# 3/ Invalid exits
-
-# re-prepare everything for the invalid exit demo
-exiting_utxo_block_nr =
-
-tx2 =
-  Transaction.new([{exiting_utxo_block_nr, 0, 0}], eth, [{bob.addr, 7}]) |>
-  Transaction.sign(bob.priv, <<>>) |>
-  Transaction.Signed.encode() |>
-  Base.encode16()
+# and send using curl as above. See the Watcher stop on an error
 
 ```

@@ -61,8 +61,8 @@ pip install -r populus/requirements.txt
 python -m solc.install v0.4.18
 
 # tests
-mix test --no-start
-mix test --no-start --only integration
+mix test
+mix test --only integration
 
 # starting child chain API
 nohup geth --dev --dev.period 2 --rpc --rpcapi personal,web3,eth --verbosity=2&

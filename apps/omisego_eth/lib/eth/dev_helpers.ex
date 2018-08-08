@@ -132,7 +132,7 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, has_token}
   end
 
-  def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, from, contract) do
+  def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, from, contract \\ nil) do
     signature = "challengeExit(uint256,uint256,bytes,bytes,bytes)"
     args = [cutxopo, eutxoindex, txbytes, proof, sigs]
     contract_transact(from, nil, nil, contract, signature, args)

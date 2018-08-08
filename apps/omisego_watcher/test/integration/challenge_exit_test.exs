@@ -36,12 +36,11 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     %{
       txbytes: txbytes,
       proof: proof,
-      sigs: sigs
+      sigs: sigs,
+      utxo_pos: utxo_pos
     } = IntegrationTest.compose_utxo_exit(exiting_utxo_block_nr, 0, 0)
 
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
-
-    utxo_pos = Test.utxo_pos(exiting_utxo_block_nr, 0, 0)
 
     {:ok, txhash} =
       Eth.start_exit(
@@ -106,17 +105,15 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     # spend the token deposit
     {:ok, %{blknum: spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
 
-    utxo_pos = Test.utxo_pos(spend_token_child_block, 0, 0)
-
     IntegrationTest.wait_until_block_getter_fetches_block(spend_token_child_block, @timeout)
     Process.sleep(100)
-    exit = IntegrationTest.compose_utxo_exit(spend_token_child_block, 0, 0)
 
     %{
       txbytes: txbytes,
       proof: proof,
-      sigs: sigs
-    } = exit
+      sigs: sigs,
+      utxo_pos: utxo_pos
+    } = IntegrationTest.compose_utxo_exit(spend_token_child_block, 0, 0)
 
     {:ok, txhash} =
       Eth.start_exit(
@@ -133,7 +130,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
   end
 
   defp get_exit_challenge(blknum, txindex, oindex) do
-    decoded_resp = Test.rest_call(:get, "challenges?utxo=#{Test.utxo_pos(blknum, txindex, oindex)}")
+    decoded_resp = Test.rest_call(:get, "challenges?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
     {:ok, txbytes} = Base.decode16(decoded_resp["txbytes"], case: :mixed)
     {:ok, proof} = Base.decode16(decoded_resp["proof"], case: :mixed)
     {:ok, sigs} = Base.decode16(decoded_resp["sigs"], case: :mixed)

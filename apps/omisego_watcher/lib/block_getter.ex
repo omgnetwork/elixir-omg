@@ -71,7 +71,16 @@ defmodule OmiseGOWatcher.BlockGetter do
     child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
     {:ok, _} = :timer.send_after(0, self(), :producer)
 
-    {:ok, Core.init(block_number, child_block_interval)}
+    maximum_block_withholding_time_ms = Application.get_env(:omisego_watcher, :maximum_block_withholding_time_ms)
+
+    {
+      :ok,
+      Core.init(
+        block_number,
+        child_block_interval,
+        maximum_block_withholding_time_ms: maximum_block_withholding_time_ms
+      )
+    }
   end
 
   # TODO get_height used in tests instead of an event system, remove when event system is here

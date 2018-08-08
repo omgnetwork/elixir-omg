@@ -92,12 +92,12 @@ mix deps.get
 ## Check this works!
 For a quick test (with no integration tests)
 ```
-mix test --no-start
+mix test
 ```
 
 To run integration tests (requires compiling contracts)
 ```
-mix test --no-start --only integration
+mix test --only integration
 ```
 
 ## Next steps

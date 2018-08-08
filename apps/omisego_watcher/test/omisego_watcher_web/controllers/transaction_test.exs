@@ -7,6 +7,8 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
   alias OmiseGO.API.Block
   alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Transaction.{Recovered, Signed}
+  alias OmiseGO.API.Utxo
+  require Utxo
   alias OmiseGOWatcher.TransactionDB
 
   @eth Crypto.zero_address()
@@ -69,8 +71,8 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
   test "gets transaction that spends utxo", %{alice: alice, bob: bob} do
-    utxo1 = %{blknum: 1, txindex: 0, oindex: 0}
-    utxo2 = %{blknum: 2, txindex: 0, oindex: 0}
+    utxo1 = Utxo.position(1, 0, 0)
+    utxo2 = Utxo.position(2, 0, 0)
     :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo1)
     :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo2)
 
@@ -101,7 +103,11 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
 
   defp create_expected_transaction(
          txid,
-         %Recovered{signed_tx: %Signed{raw_tx: transaction, sig1: sig1, sig2: sig2}},
+         %Recovered{
+           signed_tx: %Signed{raw_tx: transaction, sig1: sig1, sig2: sig2},
+           spender1: spender1,
+           spender2: spender2
+         },
          txblknum,
          txindex
        ) do
@@ -110,7 +116,9 @@ defmodule OmiseGOWatcherWeb.Controller.TransactionTest do
       txindex: txindex,
       txid: txid,
       sig1: sig1,
-      sig2: sig2
+      sig2: sig2,
+      spender1: spender1,
+      spender2: spender2
     }
     |> Map.merge(Map.from_struct(transaction))
     |> delete_meta
