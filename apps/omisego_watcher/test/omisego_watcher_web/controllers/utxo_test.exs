@@ -14,6 +14,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   alias OmiseGOWatcher.UtxoDB
 
   @eth Crypto.zero_address()
+  @eth_hex String.duplicate("00", 20)
 
   describe "UTXO database." do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -32,7 +33,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
         number: 2
       })
 
-      %{"utxos" => [%{"amount" => amount1}, %{"amount" => amount2}]} = get_utxo(alice.addr)
+      %{"utxos" => [%{"amount" => amount1, "currency" => @eth_hex}, %{"amount" => amount2}]} = get_utxo(alice.addr)
 
       assert Enum.sort([amount1, amount2]) == [1947, 1952]
     end
@@ -61,15 +62,15 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "Deposits are a part of utxo set.", %{alice: alice} do
       assert %{"utxos" => []} = get_utxo(alice.addr)
-      UtxoDB.insert_deposits([%{owner: alice.addr, amount: 1, block_height: 1}])
-      assert %{"utxos" => [%{"amount" => 1}]} = get_utxo(alice.addr)
+      UtxoDB.insert_deposits([%{owner: alice.addr, currency: @eth, amount: 1, block_height: 1}])
+      assert %{"utxos" => [%{"amount" => 1, "currency" => @eth_hex}]} = get_utxo(alice.addr)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
     test "Deposit utxo are moved to new owner if spent ", %{alice: alice, bob: bob} do
       assert %{"utxos" => []} = get_utxo(alice.addr)
       assert %{"utxos" => []} = get_utxo(bob.addr)
-      UtxoDB.insert_deposits([%{owner: alice.addr, amount: 1, block_height: 1}])
+      UtxoDB.insert_deposits([%{owner: alice.addr, currency: @eth, amount: 1, block_height: 1}])
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo(alice.addr)
 
       UtxoDB.update_with(%Block{

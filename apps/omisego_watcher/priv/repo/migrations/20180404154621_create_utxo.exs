@@ -4,6 +4,7 @@ defmodule OmiseGOWatcher.Repo.Migrations.CreateUtxo do
   def change do
     create table(:utxos) do
       add :address, :binary, null: false
+      add :currency, :binary, null: false
       add :amount, :integer, null: false
       add :blknum, :integer, null: false
       add :oindex, :integer, null: false

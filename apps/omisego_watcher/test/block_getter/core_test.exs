@@ -278,6 +278,25 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     assert {_, [5000, 6000, 7000, 8000]} = Core.get_new_blocks_numbers(state, 20_000)
   end
 
+  test "get_new_block_numbers function doesn't return next blocks if state doesn't have any empty slots left" do
+    block_height = 0
+    interval = 1_000
+
+    {state, [1_000, 2_000, 3_000]} =
+      Core.get_new_blocks_numbers(Core.init(block_height, interval, maximum_number_of_pending_blocks: 3), 20_000)
+
+    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 1_000, 0)
+    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
+
+    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
+    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
+
+    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 0)
+    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
+
+    assert {_, [1000, 2000, 3000]} = Core.get_new_blocks_numbers(state, 20_000)
+  end
+
   test "got_block function after maximum_block_withholding_time_ms returns BlockWithHolding event" do
     block_height = 0
     interval = 1_000

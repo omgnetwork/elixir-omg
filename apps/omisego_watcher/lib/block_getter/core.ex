@@ -94,15 +94,19 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       ) do
     first_block_number = started_height_block + block_interval
 
-    number_of_empty_slots =
-      maximum_number_of_pending_blocks - waiting_for_blocks - map_size(potential_block_withholdings)
+    number_of_empty_slots = maximum_number_of_pending_blocks - waiting_for_blocks
+
+    potential_block_withholding_numbers = Map.keys(potential_block_withholdings)
+
+    potential_next_block_numbers =
+      first_block_number
+      |> Stream.iterate(&(&1 + block_interval))
+      |> Stream.take_while(&(&1 < next_child))
+      |> Enum.to_list()
 
     blocks_numbers =
-      Map.keys(potential_block_withholdings) ++
-        (first_block_number
-         |> Stream.iterate(&(&1 + block_interval))
-         |> Stream.take_while(&(&1 < next_child))
-         |> Enum.take(number_of_empty_slots))
+      (potential_block_withholding_numbers ++ potential_next_block_numbers)
+      |> Enum.take(number_of_empty_slots)
 
     {
       %{

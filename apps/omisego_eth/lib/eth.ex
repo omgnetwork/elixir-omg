@@ -297,7 +297,7 @@ defmodule OmiseGO.Eth do
          do: {:ok, value}
   end
 
-  defp call_contract(contract, signature, args, return_types) do
+  def call_contract(contract, signature, args, return_types) do
     data = signature |> ABI.encode(args) |> Base.encode16()
 
     with {:ok, return} <- Ethereumex.HttpClient.eth_call(%{to: contract, data: "0x#{data}"}),

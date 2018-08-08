@@ -52,7 +52,8 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
     # TODO smarter encoding (see other TODO in controllers)
     %{
       utxo
-      | txbytes: Base.encode16(utxo.txbytes)
+      | txbytes: Base.encode16(utxo.txbytes),
+        currency: Base.encode16(utxo.currency)
     }
   end
 end

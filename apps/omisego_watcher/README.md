@@ -8,7 +8,7 @@ For the responsibilities and design of the watcher see [Tesuji Plasma Blockchain
 
 ## Setting up
 
-1. Follow the generic **Setting up** from [here](../../README.md)
+1. Follow the high-level **Setting up** from [here](../../README.md)
 1. Start the Watcher, referencing the configuration
 
         cd apps/omisego_watcher
@@ -25,15 +25,18 @@ This assumes that you've got a developer's environment Child chain server set up
         alter user omisego_dev with encrypted password 'omisego_dev';
         ALTER USER omisego_dev CREATEDB;
 
-1. Copy the configuration file used by the Child chain server to `your_config_file_watcher.exs`
-1. Configure a **different** location of the `OmiseGO.DB` for the Watcher in that file using:
+1. Copy the configuration file used by the Child chain server to `~/config_watcher.exs`
+
+        cp ~/config.exs ~/config_watcher.exs
+
+1. Configure a **different** location of the `OmiseGO.DB` for the Watcher in that new file using:
 
         config :omisego_db,
           leveldb_path: Path.join([System.get_env("HOME"), ".omisego/data_watcher"])
 
 1. Initialize the `OmiseGO.DB` using the other location
 
-        mix run --no-start -e 'OmiseGO.DB.init()' --config path/to/your_config_file_watcher.exs
+        mix run --no-start -e 'OmiseGO.DB.init()' --config ~/config_watcher.exs
 
 1. Clean and create the PostgreSQL WatcherDB
 
@@ -41,7 +44,7 @@ This assumes that you've got a developer's environment Child chain server set up
 
 1. Start the Watcher and start syncing to the Child chain server
 
-        iex -S mix run --config path/to/your_config_file_watcher.exs
+        iex -S mix run --config ~/config_watcher.exs
 
 ## Using the watcher
 
