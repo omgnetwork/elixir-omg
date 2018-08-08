@@ -1,6 +1,10 @@
 defmodule OmiseGOWatcher.Integration.TestHelper do
+  @moduledoc """
+  Common helper functions that are useful when integration-testing the watcher
+  """
+
   alias OmiseGO.Eth
-  alias OmiseGOWatcher.TestHelper, as: Test
+  import OmiseGOWatcher.TestHelper
 
   def deposit_to_child_chain(to, value, contract) do
     {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
@@ -20,8 +24,7 @@ defmodule OmiseGOWatcher.Integration.TestHelper do
   end
 
   def compose_utxo_exit(blknum, txindex, oindex) do
-    decoded_resp =
-      Test.rest_call(:get, "account/utxo/compose_exit?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
+    decoded_resp = rest_call(:get, "account/utxo/compose_exit?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
 
     {:ok, txbytes} = Base.decode16(decoded_resp["txbytes"], case: :mixed)
     {:ok, proof} = Base.decode16(decoded_resp["proof"], case: :mixed)
