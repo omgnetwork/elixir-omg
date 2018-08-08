@@ -82,15 +82,16 @@ defmodule OmiseGO.Eth.DevHelpers do
   def filter_receipt_events(receipt_logs, signature) do
     topic = signature |> OmiseGO.API.Crypto.hash() |> Base.encode16(case: :lower)
     topic = "0x" <> topic
-    events = Enum.filter(receipt_logs, &(topic in &1["topics"]))
 
-    for event <- events do
-      "0x" <> data = event["data"]
-
+    decode = fn %{"data" => "0x" <> data} ->
       signature
       |> ABI.decode(Base.decode16!(data, case: :lower))
       |> List.to_tuple()
     end
+
+    receipt_logs
+    |> Enum.filter(&(topic in &1["topics"]))
+    |> Enum.map(decode)
   end
 
   def deposit_token(from, token, amount, contract \\ nil) do
@@ -221,7 +222,7 @@ defmodule OmiseGO.Eth.DevHelpers do
   end
 
   defp encode_tx_data(signature, args) do
-    args = for arg <- args, do: cleanup(arg)
+    args = args |> Enum.map(&cleanup/1)
 
     signature
     |> ABI.encode(args)
