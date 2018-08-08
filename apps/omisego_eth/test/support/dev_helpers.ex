@@ -147,12 +147,12 @@ defmodule OmiseGO.Eth.DevHelpers do
 
   def create_new_contract(path_project_root, addr) do
     bytecode = get_bytecode!(path_project_root, "RootChain")
-    deploy_contract(addr, bytecode, [], [])
+    deploy_contract(addr, bytecode, [], [], "0x3ff2d9")
   end
 
   def create_new_token(path_project_root, addr) do
     bytecode = get_bytecode!(path_project_root, "MintableToken")
-    deploy_contract(addr, bytecode, [], [])
+    deploy_contract(addr, bytecode, [], [], "0x18466d")
   end
 
   # private
@@ -169,9 +169,9 @@ defmodule OmiseGO.Eth.DevHelpers do
   defp maybe_mine(false), do: :noop
   defp maybe_mine(true), do: mine_eth_dev_block()
 
-  defp deploy_contract(addr, bytecode, types, args) do
+  defp deploy_contract(addr, bytecode, types, args, gas) do
     enc_args = encode_constructor_params(types, args)
-    txmap = %{from: addr, data: bytecode <> enc_args, gas: "0x4FF2D9"}
+    txmap = %{from: addr, data: bytecode <> enc_args, gas: gas}
 
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     {:ok, %{"contractAddress" => contract_address, "status" => "0x1"}} = WaitFor.eth_receipt(txhash, 10_000)
@@ -209,7 +209,7 @@ defmodule OmiseGO.Eth.DevHelpers do
   end
 
   defp read_contracts_json!(path_project_root, contract_name) do
-    path = "populus/mybuild/#{contract_name}.json"
+    path = "populus/build/#{contract_name}.json"
     case File.read(Path.join(path_project_root, path)) do
       {:ok, contract_json} ->
         contract_json

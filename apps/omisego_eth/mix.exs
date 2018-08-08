@@ -70,7 +70,7 @@ defmodule OmiseGO.Eth.MixProject do
 
     case System.cmd("which", ["populus"]) do
       {_, 0} ->
-        "cd #{mixfile_path}/../../populus && #{solc_override} populus compile"
+        "cd #{mixfile_path}/../../ && ./populus/deployer.py -i deps/plasma_contracts/contracts/ -o populus/build/"
 
       {_, 1} ->
         Logger.warn(
