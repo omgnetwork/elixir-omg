@@ -1,11 +1,11 @@
-# Installing `populus` and compiling contracts
+# Installing dependencies and compiling contracts
 
 **Python3 is required**, [`virtualenv`](https://virtualenv.pypa.io/en/stable/) is recommended.
 
-To install populus:
+To install dependencies:
 ```bash
 sudo apt-get install libssl-dev solc
-pip install -r populus/requirements.txt
+pip install -r contracts/requirements.txt
 ```
 
 Contracts will compile automatically as a regular mix dependency.

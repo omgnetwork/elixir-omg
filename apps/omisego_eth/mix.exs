@@ -52,6 +52,6 @@ defmodule OmiseGO.Eth.MixProject do
 
   defp contracts_compile do
     mixfile_path = File.cwd!()
-    "cd #{mixfile_path}/../../ && ./populus/deployer.py -i deps/plasma_contracts/contracts/ -o populus/build/"
+    "cd #{mixfile_path}/../../ && ./contracts/deployer.py -i deps/plasma_contracts/contracts/ -o contracts/build/"
   end
 end

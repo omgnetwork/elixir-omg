@@ -12,9 +12,6 @@ from web3.contract import ConciseContract
 from web3 import Web3, HTTPProvider
 
 
-OUTPUT_DIR = 'populus/build/'
-
-
 class Deployer(object):
 
     def __init__(self, contracts_dir, output_dir, provider=HTTPProvider('http://localhost:8545')):

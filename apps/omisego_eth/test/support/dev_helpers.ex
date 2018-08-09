@@ -209,7 +209,7 @@ defmodule OmiseGO.Eth.DevHelpers do
   end
 
   defp read_contracts_json!(path_project_root, contract_name) do
-    path = "populus/build/#{contract_name}.json"
+    path = "contracts/build/#{contract_name}.json"
     case File.read(Path.join(path_project_root, path)) do
       {:ok, contract_json} ->
         contract_json
