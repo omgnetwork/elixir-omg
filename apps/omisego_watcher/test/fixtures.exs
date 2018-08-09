@@ -6,9 +6,13 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
   use OmiseGO.API.LoggerExt
   alias OmiseGOWatcher.TestHelper
 
-  deffixture child_chain(contract) do
+  deffixture child_chain(contract, token) do
     config_file_path = Briefly.create!(extname: ".exs")
     db_path = Briefly.create!(directory: true)
+
+    {:ok, eth} = OmiseGO.API.Crypto.encode_address(OmiseGO.API.Crypto.zero_address())
+    fees = %{eth => 0, token.address => 0}
+    {:ok, fees_path} = OmiseGO.API.TestHelper.write_fee_file(fees)
 
     config_file_path
     |> File.open!([:write])
@@ -21,7 +25,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
       config :omisego_eth,
         child_block_interval: #{Application.get_env(:omisego_eth, :child_block_interval)}
       config :omisego_api,
-        fee_specs_file_path: "./fee_specs.json",
+        fee_specs_file_path: "#{fees_path}",
         ethereum_event_block_finality_margin: #{
       Application.get_env(:omisego_api, :ethereum_event_block_finality_margin)
     },

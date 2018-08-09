@@ -5,6 +5,8 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   """
 
   alias OmiseGO.API.Crypto
+  alias OmiseGO.API.Utxo
+  require Utxo
   alias OmiseGOWatcher.UtxoDB
 
   use OmiseGOWatcherWeb, :controller
@@ -19,11 +21,11 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   end
 
   def compose_utxo_exit(conn, %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex}) do
-    {blknum, _} = Integer.parse(blknum)
-    {txindex, _} = Integer.parse(txindex)
-    {oindex, _} = Integer.parse(oindex)
+    {blknum, ""} = Integer.parse(blknum)
+    {txindex, ""} = Integer.parse(txindex)
+    {oindex, ""} = Integer.parse(oindex)
 
-    composed_utxo_exit = UtxoDB.compose_utxo_exit(blknum, txindex, oindex)
+    {:ok, composed_utxo_exit} = UtxoDB.compose_utxo_exit(Utxo.position(blknum, txindex, oindex))
 
     json(conn, encode(composed_utxo_exit))
   end
@@ -50,7 +52,8 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
     # TODO smarter encoding (see other TODO in controllers)
     %{
       utxo
-      | txbytes: Base.encode16(utxo.txbytes)
+      | txbytes: Base.encode16(utxo.txbytes),
+        currency: Base.encode16(utxo.currency)
     }
   end
 end

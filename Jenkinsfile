@@ -30,19 +30,19 @@ podTemplate(
 
         stage('Unit test') {
             withEnv(["MIX_ENV=test"]) {
-                sh("mix coveralls.html --no-start --umbrella")
+                sh("mix coveralls.html --umbrella")
             }
         }
 
         stage('Integration test') {
            withEnv(["MIX_ENV=test", "SHELL=/bin/bash"]) {
-               sh("mix test --no-start --only integration --only wrappers")
+               sh("mix test --only integration --only wrappers")
            }
         }
 
         stage('Cleanbuild') {
             withEnv(["MIX_ENV=test"]) {
-                sh("mix do compile --warnings-as-errors --force, test --no-start --exclude test")
+                sh("mix do compile --warnings-as-errors --force, test --exclude test")
             }
         }
 

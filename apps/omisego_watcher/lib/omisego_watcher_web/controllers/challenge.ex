@@ -10,12 +10,14 @@ defmodule OmiseGOWatcherWeb.Controller.Challenge do
   @doc """
   Challenges exits
   """
-  def challenge(conn, %{"utxo" => utxo}) do
-    {utxo, _} = Integer.parse(utxo)
+  def challenge(conn, %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex}) do
+    {blknum, ""} = Integer.parse(blknum)
+    {txindex, ""} = Integer.parse(txindex)
+    {oindex, ""} = Integer.parse(oindex)
 
-    utxo
-    |> OmiseGOWatcher.Challenger.create_challenge()
-    |> respond_single(conn)
+    challenge = OmiseGOWatcher.Challenger.create_challenge(blknum, txindex, oindex)
+
+    respond_single(challenge, conn)
   end
 
   defp respond_single(%Challenge{} = challenge, conn), do: json(conn, challenge)

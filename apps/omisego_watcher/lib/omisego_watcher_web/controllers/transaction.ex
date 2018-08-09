@@ -28,7 +28,9 @@ defmodule OmiseGOWatcherWeb.Controller.Transaction do
         newowner1: Base.encode16(transaction.newowner1),
         newowner2: Base.encode16(transaction.newowner2),
         sig1: Base.encode16(transaction.sig1),
-        sig2: Base.encode16(transaction.sig2)
+        sig2: Base.encode16(transaction.sig2),
+        spender1: transaction.spender1 && Base.encode16(transaction.spender1),
+        spender2: transaction.spender2 && Base.encode16(transaction.spender2)
     }
 
     json(conn, transaction)

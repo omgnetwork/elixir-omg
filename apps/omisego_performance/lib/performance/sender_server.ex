@@ -44,7 +44,7 @@ defmodule OmiseGO.Performance.SenderServer do
   @doc """
   Starts the process.
   """
-  @spec start_link({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, pid}
+  @spec start_link({seqnum :: integer, ntx_to_send :: integer, utxos :: list(API.State.Utxo.t()) | nil}) :: {:ok, pid}
   def start_link(args) do
     GenServer.start_link(__MODULE__, args)
   end
@@ -55,18 +55,20 @@ defmodule OmiseGO.Performance.SenderServer do
     * Senders are assigned sequential positive int starting from 1, senders are initialized in order of seqnum.
       This ensures all senders' deposits are accepted.
   """
-  @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, state()}
-  def init({seqnum, ntx_to_send}) do
-    _ = Logger.debug(fn -> "[#{inspect(seqnum)}] init called with requests: '#{inspect(ntx_to_send)}'" end)
-
-    spender = generate_entity()
-    _ = Logger.debug(fn -> "[#{inspect(seqnum)}]: Address #{Base.encode64(spender.addr)}" end)
+  @spec init({spender :: integer, ntx_to_send :: integer, utxos :: list(API.State.Utxo.t()) | nil}) :: {:ok, state()}
+  def init({spender, ntx_to_send}) do
+#    _ = Logger.debug(fn -> "[#{inspect(seqnum)}] init called with requests: '#{inspect(ntx_to_send)}'" end)
+#
+#    spender = generate_entity()
+#    _ = Logger.debug(fn -> "[#{inspect(seqnum)}]: Address #{Base.encode64(spender.addr)}" end)
 
     deposit_value = 10 * ntx_to_send
     {:ok, owner_enc} = Crypto.encode_address(spender.addr)
+
+
     :ok = OmiseGO.API.State.deposit([%{owner: owner_enc, currency: @eth, amount: deposit_value, blknum: seqnum}])
 
-    _ = Logger.debug(fn -> "[#{inspect(seqnum)}]: Deposited #{inspect(deposit_value)} OMG" end)
+#    _ = Logger.debug(fn -> "[#{inspect(seqnum)}]: Deposited #{inspect(deposit_value)} OMG" end)
 
     send(self(), :do)
     {:ok, init_state(seqnum, ntx_to_send, spender)}

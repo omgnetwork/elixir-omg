@@ -6,7 +6,10 @@ defmodule OmiseGO.API.State.CoreTest do
   alias OmiseGO.API.Block
   alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Core
+  alias OmiseGO.API.Utxo
   alias OmiseGO.API.TestHelper, as: Test
+
+  require Utxo
 
   @child_block_interval OmiseGO.API.BlockQueue.child_block_interval()
   @child_block_2 @child_block_interval * 2
@@ -18,7 +21,7 @@ defmodule OmiseGO.API.State.CoreTest do
 
   defp eth, do: Crypto.zero_address()
   defp not_eth, do: <<1::size(160)>>
-  defp zero_fees_map, do: %{eth() => 0}
+  defp zero_fees_map, do: %{eth() => 0, not_eth() => 0}
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend deposits", %{alice: alice, bob: bob, state_empty: state} do
@@ -57,6 +60,27 @@ defmodule OmiseGO.API.State.CoreTest do
           &1
         )).()
     |> fail?(:incorrect_currency)
+  end
+
+  @tag fixtures: [:alice, :state_empty]
+  test "currency of created utxo matches currency of the input", %{alice: alice, state_empty: state} do
+    state1 =
+      state
+      |> Test.do_deposit(alice, %{amount: 10, currency: not_eth(), blknum: 1})
+      |> (&Core.exec(
+            Test.create_recovered([{1, 0, 0, alice}], not_eth(), [{alice, 7}, {alice, 3}]),
+            zero_fees_map(),
+            &1
+          )).()
+      |> success?
+
+    state1
+    |> (&Core.exec(Test.create_recovered([{1000, 0, 0, alice}], eth(), [{alice, 9}]), zero_fees_map(), &1)).()
+    |> fail?(:incorrect_currency)
+
+    state1
+    |> (&Core.exec(Test.create_recovered([{1000, 0, 0, alice}], not_eth(), [{alice, 3}]), zero_fees_map(), &1)).()
+    |> success?
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -386,8 +410,8 @@ defmodule OmiseGO.API.State.CoreTest do
              {:put, :child_top_block_number, @child_block_interval}
            ] = db_updates
 
-    assert new_utxo1 == %{{@child_block_interval, 0, 0} => %{owner: bob.addr, currency: eth(), amount: 7}}
-    assert new_utxo2 == %{{@child_block_interval, 0, 1} => %{owner: alice.addr, currency: eth(), amount: 3}}
+    assert new_utxo1 == {{@child_block_interval, 0, 0}, %{owner: bob.addr, currency: eth(), amount: 7}}
+    assert new_utxo2 == {{@child_block_interval, 0, 1}, %{owner: alice.addr, currency: eth(), amount: 3}}
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_2}]}, state} =
              form_block_check(state, @child_block_interval)
@@ -413,7 +437,7 @@ defmodule OmiseGO.API.State.CoreTest do
              {:put, :child_top_block_number, @child_block_3}
            ] = db_updates2
 
-    assert new_utxo == %{{@child_block_3, 0, 0} => %{owner: bob.addr, currency: eth(), amount: 10}}
+    assert new_utxo == {{@child_block_3, 0, 0}, %{owner: bob.addr, currency: eth(), amount: 10}}
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_4}]}, _} =
              form_block_check(state, @child_block_interval)
@@ -427,7 +451,7 @@ defmodule OmiseGO.API.State.CoreTest do
     assert {:ok, {_, [utxo_update, height_update]}, state} =
              Core.deposit([%{owner: alice.addr, currency: eth(), amount: 10, blknum: 1}], state)
 
-    assert utxo_update == {:put, :utxo, %{{1, 0, 0} => %{owner: alice.addr, currency: eth(), amount: 10}}}
+    assert utxo_update == {:put, :utxo, {{1, 0, 0}, %{owner: alice.addr, currency: eth(), amount: 10}}}
     assert height_update == {:put, :last_deposit_block_height, 1}
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_interval}]}, _} =
@@ -438,7 +462,7 @@ defmodule OmiseGO.API.State.CoreTest do
   test "utxos get initialized by query result from db and are spendable", %{alice: alice} do
     {:ok, state} =
       Core.extract_initial_state(
-        [%{{1, 0, 0} => %{amount: 10, currency: eth(), owner: alice.addr}}],
+        [{{1, 0, 0}, %{amount: 10, currency: eth(), owner: alice.addr}}],
         0,
         1,
         @child_block_interval
@@ -454,8 +478,8 @@ defmodule OmiseGO.API.State.CoreTest do
     {:ok, state} =
       Core.extract_initial_state(
         [
-          %{{1, 0, 0} => %{amount: 10, currency: eth(), owner: alice.addr}},
-          %{{1001, 10, 1} => %{amount: 8, currency: eth(), owner: bob.addr}}
+          {{1, 0, 0}, %{amount: 10, currency: eth(), owner: alice.addr}},
+          {{1001, 10, 1}, %{amount: 8, currency: eth(), owner: bob.addr}}
         ],
         0,
         1,
@@ -484,15 +508,21 @@ defmodule OmiseGO.API.State.CoreTest do
 
     expected_owner = alice.addr
 
+    utxo_pos_exit_1 = Utxo.position(@child_block_interval, 0, 0)
+    utxo_pos_exit_2 = Utxo.position(@child_block_interval, 0, 1)
+
+    utxo_pos_exit_1_encode = utxo_pos_exit_1 |> Utxo.Position.encode()
+    utxo_pos_exit_2_encode = utxo_pos_exit_2 |> Utxo.Position.encode()
+
     {:ok,
      {[
-        %{exit: %{owner: ^expected_owner, blknum: @child_block_interval, txindex: 0, oindex: 0}},
-        %{exit: %{owner: ^expected_owner, blknum: @child_block_interval, txindex: 0, oindex: 1}}
+        %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_1}},
+        %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_2}}
       ], [{:delete, :utxo, {@child_block_interval, 0, 0}}, {:delete, :utxo, {@child_block_interval, 0, 1}}]},
      state} =
       [
-        %{owner: alice.addr, blknum: @child_block_interval, txindex: 0, oindex: 0},
-        %{owner: alice.addr, blknum: @child_block_interval, txindex: 0, oindex: 1}
+        %{owner: alice.addr, utxo_pos: utxo_pos_exit_1_encode},
+        %{owner: alice.addr, utxo_pos: utxo_pos_exit_2_encode}
       ]
       |> Core.exit_utxos(state)
 
@@ -525,14 +555,14 @@ defmodule OmiseGO.API.State.CoreTest do
       |> success?
 
     {:ok, {[], []}, ^state} =
-      [%{owner: alice.addr, blknum: 1, txindex: 0, oindex: 0}]
+      [%{owner: alice.addr, utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}]
       |> Core.exit_utxos(state)
   end
 
   @tag fixtures: [:state_empty]
   test "does not change when exiting non-existent utxo", %{state_empty: state} do
     {:ok, {[], []}, ^state} =
-      [%{owner: "owner", blknum: 1, txindex: 0, oindex: 0}]
+      [%{owner: "owner", utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}]
       |> Core.exit_utxos(state)
   end
 

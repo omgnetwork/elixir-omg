@@ -7,11 +7,14 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
   alias OmiseGO.API.Block
   alias OmiseGO.API.Crypto
   alias OmiseGO.API.TestHelper
+  alias OmiseGO.API.Utxo
+  require Utxo
   alias OmiseGOWatcher.TestHelper
   alias OmiseGOWatcher.TransactionDB
   alias OmiseGOWatcher.UtxoDB
 
   @eth Crypto.zero_address()
+  @eth_hex String.duplicate("00", 20)
 
   describe "UTXO database." do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -30,7 +33,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
         number: 2
       })
 
-      %{"utxos" => [%{"amount" => amount1}, %{"amount" => amount2}]} = get_utxo(alice.addr)
+      %{"utxos" => [%{"amount" => amount1, "currency" => @eth_hex}, %{"amount" => amount2}]} = get_utxo(alice.addr)
 
       assert Enum.sort([amount1, amount2]) == [1947, 1952]
     end
@@ -59,15 +62,15 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "Deposits are a part of utxo set.", %{alice: alice} do
       assert %{"utxos" => []} = get_utxo(alice.addr)
-      UtxoDB.insert_deposits([%{owner: alice.addr, amount: 1, block_height: 1}])
-      assert %{"utxos" => [%{"amount" => 1}]} = get_utxo(alice.addr)
+      UtxoDB.insert_deposits([%{owner: alice.addr, currency: @eth, amount: 1, block_height: 1}])
+      assert %{"utxos" => [%{"amount" => 1, "currency" => @eth_hex}]} = get_utxo(alice.addr)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
     test "Deposit utxo are moved to new owner if spent ", %{alice: alice, bob: bob} do
       assert %{"utxos" => []} = get_utxo(alice.addr)
       assert %{"utxos" => []} = get_utxo(bob.addr)
-      UtxoDB.insert_deposits([%{owner: alice.addr, amount: 1, block_height: 1}])
+      UtxoDB.insert_deposits([%{owner: alice.addr, currency: @eth, amount: 1, block_height: 1}])
       assert %{"utxos" => [%{"amount" => 1}]} = get_utxo(alice.addr)
 
       UtxoDB.update_with(%Block{
@@ -91,19 +94,20 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       number: 1
     })
 
-    %{
-      utxo_pos: _utxo_pos,
-      txbytes: _tx_bytes,
-      proof: proof,
-      sigs: _sigs
-    } = UtxoDB.compose_utxo_exit(1, 1, 0)
+    {:ok,
+     %{
+       utxo_pos: _utxo_pos,
+       txbytes: _tx_bytes,
+       proof: proof,
+       sigs: _sigs
+     }} = UtxoDB.compose_utxo_exit(Utxo.position(1, 1, 0))
 
     assert <<_proof::bytes-size(512)>> = proof
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "compose_utxo_exit should return error when there is no txs in specfic block" do
-    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 1, 0)
+    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(Utxo.position(1, 1, 0))
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -117,7 +121,7 @@ defmodule OmiseGOWatcherWeb.Controller.UtxoTest do
       number: 1
     })
 
-    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(1, 4, 0)
+    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(Utxo.position(1, 4, 0))
   end
 
   defp get_utxo(address) do

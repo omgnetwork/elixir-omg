@@ -26,6 +26,9 @@ defmodule OmiseGOWatcher.Repo.Migrations.CreateTransaction do
 
       add(:sig1, :binary, null: false)
       add(:sig2, :binary, null: false)
+
+      add(:spender1, :binary)
+      add(:spender2, :binary)
     end
   end
 end

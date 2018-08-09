@@ -27,7 +27,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     :maximum_number_of_pending_blocks,
     :block_to_consume,
     :potential_block_withholdings,
-    :maximum_block_withholding_time
+    :maximum_block_withholding_time_ms
   ]
 
   @type t() :: %__MODULE__{
@@ -42,7 +42,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           potential_block_withholdings: %{
             non_neg_integer => pos_integer
           },
-          maximum_block_withholding_time: pos_integer
+          maximum_block_withholding_time_ms: pos_integer
         }
 
   @type block_error() ::
@@ -51,22 +51,29 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           | :withholding
           | API.Core.recover_tx_error()
 
-  @spec init(non_neg_integer, pos_integer, pos_integer) :: %__MODULE__{}
+  @doc """
+  Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block
+  and using `child_block_interval` when progressing from one child block to another
+
+  Opts can be:
+    - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
+    - `:maximum_block_withholding_time_ms` - how much time should we wait after the first failed pull until we call it a block withholding byzantine condition of the child chain (0 ms)
+  """
+  @spec init(non_neg_integer, pos_integer) :: %__MODULE__{}
   def init(
         block_number,
         child_block_interval,
-        maximum_number_of_pending_blocks \\ 10,
-        maximum_block_withholding_time \\ 0
+        opts \\ []
       ) do
     %__MODULE__{
       last_consumed_block: block_number,
       started_height_block: block_number,
       block_interval: child_block_interval,
       waiting_for_blocks: 0,
-      maximum_number_of_pending_blocks: maximum_number_of_pending_blocks,
+      maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 10),
       block_to_consume: %{},
       potential_block_withholdings: %{},
-      maximum_block_withholding_time: maximum_block_withholding_time
+      maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0)
     }
   end
 
@@ -87,15 +94,19 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       ) do
     first_block_number = started_height_block + block_interval
 
-    number_of_empty_slots =
-      maximum_number_of_pending_blocks - waiting_for_blocks - map_size(potential_block_withholdings)
+    number_of_empty_slots = maximum_number_of_pending_blocks - waiting_for_blocks
+
+    potential_block_withholding_numbers = Map.keys(potential_block_withholdings)
+
+    potential_next_block_numbers =
+      first_block_number
+      |> Stream.iterate(&(&1 + block_interval))
+      |> Stream.take_while(&(&1 < next_child))
+      |> Enum.to_list()
 
     blocks_numbers =
-      Map.keys(potential_block_withholdings) ++
-        (first_block_number
-         |> Stream.iterate(&(&1 + block_interval))
-         |> Stream.take_while(&(&1 < next_child))
-         |> Enum.take(number_of_empty_slots))
+      (potential_block_withholding_numbers ++ potential_next_block_numbers)
+      |> Enum.take(number_of_empty_slots)
 
     {
       %{
@@ -164,7 +175,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   def got_block(
         %__MODULE__{
           potential_block_withholdings: potential_block_withholdings,
-          maximum_block_withholding_time: maximum_block_withholding_time,
+          maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
           waiting_for_blocks: waiting_for_blocks
         } = state,
         {:ok, %PotentialWithholding{blknum: blknum, time: time}}
@@ -183,7 +194,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
 
         {:ok, state, [], []}
 
-      time - blknum_time >= maximum_block_withholding_time ->
+      time - blknum_time >= maximum_block_withholding_time_ms ->
         {{:needs_stopping, :withholding}, state, [], [%Event.BlockWithHolding{blknum: blknum}]}
 
       true ->

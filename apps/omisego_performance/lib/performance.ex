@@ -27,45 +27,53 @@ defmodule OmiseGO.Performance do
   @doc """
   Setup dependencies, then submits {ntx_to_send} transcations for each of {nusers} users.
   """
-  @spec run_without_geth(ntx_to_send :: pos_integer, nusers :: pos_integer, opt :: map) :: :ok
-  def run_without_geth(ntx_to_send, nusers, opt \\ %{}) do
-    _ = Logger.info(fn -> "OmiseGO PerfTest users: #{inspect(nusers)}, reqs: #{inspect(ntx_to_send)}." end)
+  @spec start_simple_perf(ntx_to_send :: pos_integer, nspenders :: pos_integer, opt :: map) :: :ok
+  def start_simple_perf(ntx_to_send, nspenders, opts \\ %{}) do
+    _ = Logger.info(fn -> "OmiseGO PerfTest nspenders: #{inspect(spenders)}, reqs: #{inspect(ntx_to_send)}." end)
 
-    {:ok, started_apps, api_children_supervisor} = testup()
+    {:ok, started_apps, api_children_supervisor} = setup_simple_pref()
 
-    defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
+    defaults = %{destdir: ".", profile: false, block_every_ms: 2000, extended_perf: true}
 
-    opt = Map.merge(defaults, opt)
+    opts = Map.merge(defaults, opts)
 
-    run([ntx_to_send, nusers, opt], opt[:profile])
+    run([ntx_to_send, create_spenders(nspenders), opts])
 
-    testdown(started_apps, api_children_supervisor)
+    cleanup_simple_pref(started_apps, api_children_supervisor)
   end
 
-  def run_with_geth_child_chain(ntx_to_send, accounts, opt \\ %{}) do
-    _ = Logger.info(fn -> "OmiseGO PerfTest accounts: #{inspect(accounts)}, reqs: #{inspect(ntx_to_send)}." end)
+  def start_extended_perf(ntx_to_send, spenders, contract_addr, txhash_contract, opts \\ %{}) do
+    _ = Logger.info(fn -> "OmiseGO PerfTest spenders: #{inspect(spenders)}, reqs: #{inspect(ntx_to_send)}." end)
 
-    defaults = %{destdir: ".", geth: "http://localhost:8545", child_chain: 2000}
+#    FIXME
+    defaults = %{destdir: ".", geth: "http://localhost:8545", child_chain: "http://localhost:#9656", extended_perf: false}
 
-    opt = Map.merge(defaults, opt)
+    opts = Map.merge(defaults, opts)
 
+    setup_extended_pref(opts, contract_addr, txhash_contract)
+
+    utxos = OmiseGO.Eth.DevHelpers.make_deposits(10, spenders)
+
+    run([ntx_to_send, spenders, utxos, opts])
+
+  end
+
+  defp setup_extended_pref(opts, contract_addr, txhash_contract, spenders) do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
 
     Application.put_env(:ethereumex, :request_timeout, :infinity)
     Application.put_env(:ethereumex, :http_options, [recv_timeout: :infinity])
-    Application.put_env(:ethereumex, :url, opt[:geth])
+    Application.put_env(:ethereumex, :url, opts[:geth])
 
-    IO.inspect Ethereumex.HttpClient.eth_accounts
-#    accounts= %{priv: , add}
-    IO.inspect OmiseGO.Eth.DevHelpers.do_deposits(9999999,[%{ addr: <<192, 206, 18, 135, 18, 96, 150, 111, 205, 113, 160, 24, 75, 149, 42, 83, 190, 109, 123, 60>>, priv: <<246, 22, 164, 211 ,192 ,84, 217, 138, 68, 54, 157, 87, 152, 16, 80, 93, 220, 127, 25, 26, 159, 244, 183, 201, 213, 118, 2, 166, 195, 111, 240, 122>>}])
-#
-#    run([ntx_to_send, nusers, opt], opt[:profile])
+    Application.put_env(:omisego_eth, :contract_addr, contract_addr)
+    Application.put_env(:omisego_eth, :txhash_contract, txhash_contract)
+
+    Application.put_env(:omisego_eth, :child_chain_url, opts[:child_chain])
 
   end
 
-  # The test setup
-  @spec testup :: {:ok, list, pid}
-  defp testup do
+  @spec setup_simple_pref :: {:ok, list, pid}
+  defp setup_simple_pref do
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
     Application.put_env(:omisego_db, :leveldb_path, dbdir, persistent: true)
@@ -91,9 +99,8 @@ defmodule OmiseGO.Performance do
     {:ok, started_apps, api_children_supervisor}
   end
 
-  # The test teardown
-  @spec testdown([], pid) :: :ok
-  defp testdown(started_apps, api_children_supervisor) do
+  @spec cleanup_simple_pref([], pid) :: :ok
+  defp cleanup_simple_pref(started_apps, api_children_supervisor) do
     :ok = Supervisor.stop(api_children_supervisor)
 
     started_apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
@@ -114,11 +121,16 @@ defmodule OmiseGO.Performance do
     end)
   end
 
-  # Executes the test runner with (or without) profiler.
-  @spec run(args :: list(), profile :: boolean) :: :ok
-  defp run(args, profile) do
-    {:ok, data} = apply(OmiseGO.Performance.Runner, if(profile, do: :profile_and_run, else: :run), args)
+  @spec run(args :: list()) :: :ok
+  defp run(args) do
+    {:ok, data} = OmiseGO.Performance.Runner.run(args)
     _ = Logger.info(fn -> "#{inspect(data)}" end)
     :ok
   end
+
+  defp create_spenders(nspenders) do
+    1..nspenders
+    |> Enum.map(&OmiseGO.API.TestHelper.generate_entity)
+  end
+
 end

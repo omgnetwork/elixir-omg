@@ -7,21 +7,23 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
   alias OmiseGO.API
   alias OmiseGO.API.Crypto
+  alias OmiseGO.API.Utxo
+  require Utxo
   alias OmiseGO.Eth
+  alias OmiseGO.JSONRPC.Client
   alias OmiseGOWatcher.Eventer.Event
+  alias OmiseGOWatcher.Integration
   alias OmiseGOWatcher.TestHelper
   alias OmiseGOWatcherWeb.ByzantineChannel
   alias OmiseGOWatcherWeb.TransferChannel
-  alias OmiseGOWatcher.Integration.TestHelper, as: IntegrationTest
-  alias OmiseGO.JSONRPC.Client
 
   import ExUnit.CaptureLog
 
   @moduletag :integration
 
   @timeout 20_000
-  @block_offset 1_000_000_000
   @eth Crypto.zero_address()
+  @eth_hex String.duplicate("00", 20)
 
   @endpoint OmiseGOWatcherWeb.Endpoint
 
@@ -33,21 +35,42 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     {:ok, _, _socket} =
       subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
 
-    deposit_blknum = IntegrationTest.deposit_to_child_chain(alice, 10, contract)
+    deposit_blknum = Integration.TestHelper.deposit_to_child_chain(alice, 10, contract)
     # TODO remove slpeep after synch deposit synch
     :timer.sleep(100)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
 
-    IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
+    Integration.TestHelper.wait_until_block_getter_fetches_block(block_nr, @timeout)
 
     encode_tx = Client.encode(tx)
 
-    assert [%{"amount" => 3, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
-             get_utxo(bob)
+    # TODO write to db seems to be async and wait_until_block_getter_fetches_block
+    # returns too early
 
-    assert [%{"amount" => 7, "blknum" => block_nr, "oindex" => 0, "txindex" => 0, "txbytes" => encode_tx}] ==
-             get_utxo(alice)
+    :timer.sleep(100)
+
+    assert [
+             %{
+               "currency" => @eth_hex,
+               "amount" => 3,
+               "blknum" => block_nr,
+               "oindex" => 0,
+               "txindex" => 0,
+               "txbytes" => encode_tx
+             }
+           ] == get_utxo(bob)
+
+    assert [
+             %{
+               "currency" => @eth_hex,
+               "amount" => 7,
+               "blknum" => block_nr,
+               "oindex" => 0,
+               "txindex" => 0,
+               "txbytes" => encode_tx
+             }
+           ] == get_utxo(alice)
 
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
     {:ok, {block_hash, _}} = Eth.get_child_chain(block_nr)
@@ -80,11 +103,11 @@ defmodule OmiseGOWatcher.BlockGetterTest do
       txbytes: txbytes,
       proof: proof,
       sigs: sigs
-    } = IntegrationTest.compose_utxo_exit(block_nr, 0, 0)
+    } = Integration.TestHelper.compose_utxo_exit(block_nr, 0, 0)
 
     {:ok, txhash} =
       Eth.start_exit(
-        utxo_pos * @block_offset,
+        utxo_pos,
         txbytes,
         proof,
         sigs,
@@ -97,7 +120,9 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 7, blknum: block_nr, oindex: 0, owner: alice_address, txindex: 0, token: @eth}]} ==
+    utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
+
+    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice_address, token: @eth}]} ==
              Eth.get_exits(0, height, contract.contract_addr)
   end
 
