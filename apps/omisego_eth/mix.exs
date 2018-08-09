@@ -33,7 +33,7 @@ defmodule OmiseGO.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "add-ERC20-support-local",
+        branch: "develop",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
