@@ -6,10 +6,9 @@ defmodule OmiseGO.Umbrella.MixProject do
       apps_path: "apps",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      preferred_cli_env: [coveralls: :test, "coveralls.html": :test, "coveralls.detail": :test],
+      preferred_cli_env: [coveralls: :test, "coveralls.html": :test, "coveralls.detail": :test, dialyzer: :prod],
       dialyzer: [
         flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
-        plt_add_apps: [:briefly],
         plt_add_deps: :transitive,
         ignore_warnings: "dialyzer.ignore-warnings"
       ],
@@ -17,14 +16,15 @@ defmodule OmiseGO.Umbrella.MixProject do
       aliases: [
         test: ["test --no-start"],
         coveralls: ["coveralls --no-start"],
-        "coveralls.html": ["coveralls.html --no-start"]
+        "coveralls.html": ["coveralls.html --no-start"],
+        "coveralls.detail": ["coveralls.detail --no-start"]
       ]
     ]
   end
 
   defp deps do
     [
-      {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
+      {:dialyxir, "~> 0.5", only: [:prod], runtime: false},
       {:credo, "~> 0.9", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.8", only: [:test], runtime: false},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
