@@ -210,13 +210,15 @@ defmodule OmiseGO.Eth.DevHelpers do
 
   defp read_contracts_json!(path_project_root, contract_name) do
     path = "contracts/build/#{contract_name}.json"
+
     case File.read(Path.join(path_project_root, path)) do
       {:ok, contract_json} ->
         contract_json
+
       {:error, reason} ->
         raise(
           RuntimeError,
-          "Can't read #{path} because #{inspect reason}, try running mix deps.compile plasma_contracts"
+          "Can't read #{path} because #{inspect(reason)}, try running mix deps.compile plasma_contracts"
         )
     end
   end
