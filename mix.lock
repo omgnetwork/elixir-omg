@@ -19,7 +19,7 @@
   "ethereumex": {:git, "https://github.com/omisego/ethereumex.git", "6b85bd0523b4eb529050d1b283feac119e21ccd9", [branch: "request_timeout"]},
   "evm": {:hex, :evm, "0.1.14", "59a3fd332beb6a529cd7c2571a87a7f63c51200f2de381a412ee9bb02f5cbbcc", [:mix], [{:keccakf1600, "~> 2.0.0", [hex: :keccakf1600_orig, repo: "hexpm", optional: false]}, {:merkle_patricia_tree, "~> 0.2.5", [hex: :merkle_patricia_tree, repo: "hexpm", optional: false]}], "hexpm"},
   "ex_rlp": {:hex, :ex_rlp, "0.2.1", "bd320900d6316cdfe01d365d4bda22eb2f39b359798daeeffd3bd1ca7ba958ec", [:mix], [], "hexpm"},
-  "ex_unit_fixtures": {:hex, :ex_unit_fixtures, "0.3.1", "8ea3fcf6973529c016792b9a424d9e94101e9f7f01a111bd41a2d4e13cc5fa59", [:mix], [], "hexpm"},
+  "ex_unit_fixtures": {:git, "https://github.com/omisego/ex_unit_fixtures.git", "4a099c621dc70e0d65cb9619b38192e31ec5f504", [branch: "feature/require_files_not_load"]},
   "excoveralls": {:hex, :excoveralls, "0.8.2", "b941a08a1842d7aa629e0bbc969186a4cefdd035bad9fe15d43aaaaaeb8fae36", [:mix], [{:exjsx, ">= 3.0.0", [hex: :exjsx, repo: "hexpm", optional: false]}, {:hackney, ">= 0.12.0", [hex: :hackney, repo: "hexpm", optional: false]}], "hexpm"},
   "exexec": {:git, "https://github.com/pthomalla/exexec.git", "0b8e0a781f72d340355b61979f0d23505356fbe6", [branch: "add_streams"]},
   "exjsx": {:hex, :exjsx, "4.0.0", "60548841e0212df401e38e63c0078ec57b33e7ea49b032c796ccad8cde794b5c", [:mix], [{:jsx, "~> 2.8.0", [hex: :jsx, repo: "hexpm", optional: false]}], "hexpm"},
