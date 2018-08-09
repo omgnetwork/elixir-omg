@@ -41,7 +41,7 @@ defmodule OmiseGO.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "add-ERC20-support-local",
+        branch: "use_py_solc_simple",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
@@ -52,6 +52,6 @@ defmodule OmiseGO.Eth.MixProject do
 
   defp contracts_compile do
     mixfile_path = File.cwd!()
-    "cd #{mixfile_path}/../../ && ./contracts/deployer.py -i deps/plasma_contracts/contracts/ -o contracts/build/"
+    "cd #{mixfile_path}/../../ && py-solc-simple -i deps/plasma_contracts/contracts/ -o contracts/build/"
   end
 end
