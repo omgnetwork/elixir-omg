@@ -65,7 +65,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     Logger.debug(fn -> "Starting child_chain" end)
 
     {:ok, child_chain_proc, _ref, [{:stream, child_chain_out, _stream_server}]} =
-      Exexec.run(child_chain_mix_cmd, exexec_opts_for_mix)
+      Exexec.run_link(child_chain_mix_cmd, exexec_opts_for_mix)
 
     fn ->
       child_chain_out |> Enum.each(&log_output("child_chain", &1))
@@ -75,7 +75,15 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
     on_exit(fn ->
       # NOTE see DevGeth.stop/1 for details
       _ = Process.monitor(child_chain_proc)
-      :normal = Exexec.stop_and_wait(child_chain_proc)
+
+      case Exexec.stop_and_wait(child_chain_proc) do
+        normal ->
+          :ok
+
+        other ->
+          _ = Logger.warn(fn -> "When stopping child chain, it was already stopped" end)
+          other
+      end
 
       File.rm(config_file_path)
       File.rm_rf(db_path)
