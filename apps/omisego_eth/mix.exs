@@ -41,7 +41,7 @@ defmodule OmiseGO.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "use_py_solc_simple",
+        branch: "develop_py_solc_simple",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
