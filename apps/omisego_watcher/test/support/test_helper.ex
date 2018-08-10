@@ -3,7 +3,7 @@ defmodule OmiseGOWatcher.TestHelper do
   Module provides common testing functions used by App's tests.
   """
 
-  use ExUnit.Case, async: true
+  import ExUnit.Assertions
   use Plug.Test
 
   def wait_for_process(pid, timeout \\ :infinity) when is_pid(pid) do

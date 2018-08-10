@@ -24,7 +24,7 @@ defmodule OmiseGO.Performance.MixProject do
   defp deps do
     [
       {:jsonrpc2, "~> 1.1"},
-      {:briefly, "~> 0.3", only: [:dev, :test]},
+      {:briefly, "~> 0.3"},
       {:hackney, "~> 1.7"},
       {:omisego_api, in_umbrella: true, runtime: false},
       {:omisego_jsonrpc, in_umbrella: true, runtime: false}

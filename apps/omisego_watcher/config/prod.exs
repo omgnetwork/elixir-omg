@@ -18,6 +18,10 @@ config :omisego_watcher, OmiseGOWatcherWeb.Endpoint,
   url: [host: "example.com", port: 80],
   cache_static_manifest: "priv/static/cache_manifest.json"
 
+config :omisego_watcher, OmiseGOWatcher.Repo,
+  load_from_system_env: true,
+  adapter: Ecto.Adapters.Postgres
+
 # ## SSL Support
 #
 # To get SSL working, you will need to add the `https` key
@@ -58,4 +62,9 @@ config :omisego_watcher, OmiseGOWatcherWeb.Endpoint,
 
 # Finally import the config/prod.secret.exs
 # which should be versioned separately.
-import_config "prod.secret.exs"
+try do
+  import_config "prod.secret.exs"
+rescue
+  error in Mix.Config.LoadError ->
+    IO.puts(inspect(error))
+end
