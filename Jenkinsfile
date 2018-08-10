@@ -22,8 +22,8 @@ podTemplate(
 
         stage('Build') {
             sh("mix do local.hex --force, local.rebar --force")
-            sh("pip install -r populus/requirements.txt")
-            withEnv(["MIX_ENV=test"]) {
+            sh("pip install -r contracts/requirements.txt")
+            withEnv(["PATH+FIXPIPPATH=/home/jenkins/.local/bin/","MIX_ENV=test"]) {
                 sh("mix do deps.get, deps.compile, compile")
             }
         }
@@ -47,7 +47,9 @@ podTemplate(
         }
 
         stage('Dialyze') {
-            sh("mix dialyzer --halt-exit-status")
+            withEnv(["PATH+FIXPIPPATH=/home/jenkins/.local/bin/"]) {
+                sh("mix dialyzer --halt-exit-status")
+            }
         }
 
         stage('Lint') {

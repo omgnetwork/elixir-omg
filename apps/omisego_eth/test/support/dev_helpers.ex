@@ -147,12 +147,12 @@ defmodule OmiseGO.Eth.DevHelpers do
 
   def create_new_contract(path_project_root, addr) do
     bytecode = get_bytecode!(path_project_root, "RootChain")
-    deploy_contract(addr, bytecode, [], [])
+    deploy_contract(addr, bytecode, [], [], "0x3ff2d9")
   end
 
   def create_new_token(path_project_root, addr) do
     bytecode = get_bytecode!(path_project_root, "MintableToken")
-    deploy_contract(addr, bytecode, [], [])
+    deploy_contract(addr, bytecode, [], [], "0x18466d")
   end
 
   # private
@@ -169,9 +169,9 @@ defmodule OmiseGO.Eth.DevHelpers do
   defp maybe_mine(false), do: :noop
   defp maybe_mine(true), do: mine_eth_dev_block()
 
-  defp deploy_contract(addr, bytecode, types, args) do
+  defp deploy_contract(addr, bytecode, types, args, gas) do
     enc_args = encode_constructor_params(types, args)
-    txmap = %{from: addr, data: bytecode <> enc_args, gas: "0x4FF2D9"}
+    txmap = %{from: addr, data: bytecode <> enc_args, gas: gas}
 
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     {:ok, %{"contractAddress" => contract_address, "status" => "0x1"}} = WaitFor.eth_receipt(txhash, 10_000)
@@ -200,23 +200,25 @@ defmodule OmiseGO.Eth.DevHelpers do
   end
 
   defp get_bytecode!(path_project_root, contract_name) do
-    %{^contract_name => %{"bytecode" => bytecode}} =
+    %{"evm" => %{"bytecode" => %{"object" => bytecode}}} =
       path_project_root
-      |> read_contracts_json!()
+      |> read_contracts_json!(contract_name)
       |> Poison.decode!()
 
-    bytecode
+    "0x" <> bytecode
   end
 
-  defp read_contracts_json!(path_project_root) do
-    case File.read(Path.join(path_project_root, "populus/build/contracts.json")) do
-      {:ok, contracts_json} ->
-        contracts_json
+  defp read_contracts_json!(path_project_root, contract_name) do
+    path = "contracts/build/#{contract_name}.json"
+
+    case File.read(Path.join(path_project_root, path)) do
+      {:ok, contract_json} ->
+        contract_json
 
       {:error, reason} ->
         raise(
           RuntimeError,
-          "populus/build/contracts.json not read because #{reason}, try running mix deps.compile plasma_contracts"
+          "Can't read #{path} because #{inspect(reason)}, try running mix deps.compile plasma_contracts"
         )
     end
   end

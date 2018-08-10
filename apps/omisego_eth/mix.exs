@@ -41,7 +41,7 @@ defmodule OmiseGO.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "add-ERC20-support-local",
+        branch: "develop_py_solc_simple",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
@@ -51,52 +51,7 @@ defmodule OmiseGO.Eth.MixProject do
   end
 
   defp contracts_compile do
-    case solc_binary_override() do
-      :no_solc ->
-        Logger.warn(
-          "Can't find solc, contracts may not compile. " <>
-            "If you need contracts, either define SOLC_BINARY or follow populus/README.md to install solc"
-        )
-
-        false
-
-      solc_override ->
-        populus_compile_command(solc_override)
-    end
-  end
-
-  defp populus_compile_command(solc_override) do
     mixfile_path = File.cwd!()
-
-    case System.cmd("which", ["populus"]) do
-      {_, 0} ->
-        "cd #{mixfile_path}/../../populus && #{solc_override} populus compile"
-
-      {_, 1} ->
-        Logger.warn(
-          "Can't find populus, contracts may not compile. " <>
-            "If you need contracts, ensure you have populus in path (see populus/README.md)"
-        )
-
-        false
-    end
-  end
-
-  defp solc_binary_override do
-    # NOTE: used to default to a populus-frozen version. To revert to that, see blame
-
-    cond do
-      # user overrode the binary themselves, no need to re-override
-      System.get_env("SOLC_BINARY") ->
-        ""
-
-      # revert to one installed in path
-      match?({_, 0}, System.cmd("which", ["solc"])) ->
-        ""
-
-      # no other default - never want to use `solc` from `$PATH`
-      true ->
-        :no_solc
-    end
+    "cd #{mixfile_path}/../../ && py-solc-simple -i deps/plasma_contracts/contracts/ -o contracts/build/"
   end
 end
