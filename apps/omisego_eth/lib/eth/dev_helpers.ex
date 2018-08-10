@@ -71,7 +71,6 @@ defmodule OmiseGO.Eth.DevHelpers do
 
   def deposit(value, from, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
-    IO.inspect contract
     contract_transact(from, nil, value, contract, "deposit()", [])
   end
 

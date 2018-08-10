@@ -7,7 +7,7 @@ use Mix.Config
 
 # General application configuration
 config :omisego_watcher,
-  child_chain_url: "http://localhost:#9656",
+  child_chain_url: "http://localhost",
   namespace: OmiseGOWatcher,
   ecto_repos: [OmiseGOWatcher.Repo],
   slow_exit_validator_block_margin: 10,

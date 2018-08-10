@@ -22,44 +22,58 @@ defmodule OmiseGO.Performance do
   """
 
   use OmiseGO.API.LoggerExt
+
+  alias OmiseGO.API.Crypto
+
   import Supervisor.Spec
+
+# FIXME
+  @eth Crypto.zero_address()
 
   @doc """
   Setup dependencies, then submits {ntx_to_send} transcations for each of {nusers} users.
   """
-  @spec start_simple_perf(ntx_to_send :: pos_integer, nspenders :: pos_integer, opt :: map) :: :ok
+  @spec start_simple_perf(pos_integer(), pos_integer(), map()) :: :ok
   def start_simple_perf(ntx_to_send, nspenders, opts \\ %{}) do
-    _ = Logger.info(fn -> "OmiseGO PerfTest nspenders: #{inspect(spenders)}, reqs: #{inspect(ntx_to_send)}." end)
+    _ = Logger.info(fn -> "OmiseGO PerfTest nspenders: #{inspect(nspenders)}, reqs: #{inspect(ntx_to_send)}." end)
+
+    defaults = %{destdir: ".", profile: false, block_every_ms: 2000, simple_perf: true}
+    opts = Map.merge(defaults, opts)
 
     {:ok, started_apps, api_children_supervisor} = setup_simple_pref()
 
-    defaults = %{destdir: ".", profile: false, block_every_ms: 2000, extended_perf: true}
+    spenders = create_spenders(nspenders)
+    utxos = create_utxos_for_simple_pref(spenders, ntx_to_send)
 
-    opts = Map.merge(defaults, opts)
-
-    run([ntx_to_send, create_spenders(nspenders), opts])
+    run({ntx_to_send, utxos, opts, opts[:profile]})
 
     cleanup_simple_pref(started_apps, api_children_supervisor)
   end
 
+#  @spec start_simple_perf(pos_integer(), pos_integer(), map()) :: :ok
   def start_extended_perf(ntx_to_send, spenders, contract_addr, txhash_contract, opts \\ %{}) do
     _ = Logger.info(fn -> "OmiseGO PerfTest spenders: #{inspect(spenders)}, reqs: #{inspect(ntx_to_send)}." end)
 
 #    FIXME
-    defaults = %{destdir: ".", geth: "http://localhost:8545", child_chain: "http://localhost:#9656", extended_perf: false}
-
+    defaults = %{destdir: ".", geth: "http://localhost:8545", child_chain: "http://localhost:#9656", simple_perf: false}
     opts = Map.merge(defaults, opts)
 
-    setup_extended_pref(opts, contract_addr, txhash_contract)
+    {:ok, started_apps} = setup_extended_pref(opts, contract_addr, txhash_contract)
 
-    utxos = OmiseGO.Eth.DevHelpers.make_deposits(10, spenders)
+    utxos = create_utxos_for_extended_pref(spenders, ntx_to_send)
 
-    run([ntx_to_send, spenders, utxos, opts])
+    Process.sleep(30000)
+
+    run({ntx_to_send, utxos, opts, false})
+
+    cleanup_extended_pref(started_apps)
 
   end
 
-  defp setup_extended_pref(opts, contract_addr, txhash_contract, spenders) do
+  defp setup_extended_pref(opts, contract_addr, txhash_contract) do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
+
+    started_apps = ensure_all_started([ :jsonrpc2])
 
     Application.put_env(:ethereumex, :request_timeout, :infinity)
     Application.put_env(:ethereumex, :http_options, [recv_timeout: :infinity])
@@ -68,8 +82,9 @@ defmodule OmiseGO.Performance do
     Application.put_env(:omisego_eth, :contract_addr, contract_addr)
     Application.put_env(:omisego_eth, :txhash_contract, txhash_contract)
 
-    Application.put_env(:omisego_eth, :child_chain_url, opts[:child_chain])
+#    Application.put_env(:omisego_eth, :child_chain_url, opts[:child_chain])
 
+    {:ok, started_apps}
   end
 
   @spec setup_simple_pref :: {:ok, list, pid}
@@ -111,6 +126,12 @@ defmodule OmiseGO.Performance do
     :ok
   end
 
+  @spec cleanup_extended_pref([]) :: :ok
+  defp cleanup_extended_pref(started_apps) do
+    started_apps |> Enum.reverse() |> Enum.each(&Application.stop/1)
+    :ok
+  end
+
   # Ensures all dependent applications are started.
   # We're not basing on mix to start all neccessary test's components.
   defp ensure_all_started(app_list) do
@@ -121,7 +142,7 @@ defmodule OmiseGO.Performance do
     end)
   end
 
-  @spec run(args :: list()) :: :ok
+  @spec run(tuple()) :: :ok
   defp run(args) do
     {:ok, data} = OmiseGO.Performance.Runner.run(args)
     _ = Logger.info(fn -> "#{inspect(data)}" end)
@@ -130,7 +151,33 @@ defmodule OmiseGO.Performance do
 
   defp create_spenders(nspenders) do
     1..nspenders
-    |> Enum.map(&OmiseGO.API.TestHelper.generate_entity)
+    |> Enum.map(fn nspender-> generate_entity() end)
+  end
+
+#  FIXME  10*ntx_to_send
+  defp create_utxos_for_simple_pref(spenders, ntx_to_send) do
+      spenders
+      |> Enum.with_index(1)
+      |> Enum.map(fn {spender, index} ->
+        {:ok, spender_enc} = Crypto.encode_address(spender.addr)
+        :ok = OmiseGO.API.State.deposit([%{owner: spender_enc, currency: @eth, amount: 10*ntx_to_send, blknum: index}])
+#        _ = Logger.debug(fn -> "[#{inspect(seqnum)}]: Deposited #{inspect(deposit_value)} OMG" end)
+        %{owner: spender, utxo_pos: index, amount: 10*ntx_to_send}
+      end)
+  end
+
+  defp create_utxos_for_extended_pref(spenders, ntx_to_send) do
+    OmiseGO.Eth.DevHelpers.make_deposits(10*ntx_to_send, spenders)
+  end
+
+  # Generates participant private key and address
+  # TODO: DRY this, used also in omisego_api/test, omisego_eth
+  @spec generate_entity() :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
+  defp generate_entity do
+    {:ok, priv} = Crypto.generate_private_key()
+    {:ok, pub} = Crypto.generate_public_key(priv)
+    {:ok, addr} = Crypto.generate_address(pub)
+    %{priv: priv, addr: addr}
   end
 
 end

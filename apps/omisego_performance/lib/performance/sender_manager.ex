@@ -19,9 +19,9 @@ defmodule OmiseGO.Performance.SenderManager do
   @doc """
   Starts the sender's manager process
   """
-  @spec start_link_all_senders(ntx_to_send :: integer, nusers :: integer, opt :: map) :: pid
-  def start_link_all_senders(ntx_to_send, spenders, %{destdir: destdir} = _opt) do
-    {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, spenders, destdir}, name: __MODULE__)
+#  @spec start_link_all_senders(ntx_to_send :: integer, nusers :: integer, opt :: map) :: pid
+  def start_link_all_senders(ntx_to_send, utxos, %{destdir: destdir} = _opt) do
+    {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, utxos, destdir}, name: __MODULE__)
     mypid
   end
 
@@ -29,16 +29,16 @@ defmodule OmiseGO.Performance.SenderManager do
   Starts sender processes and reschedule check whether they are done.
   """
   @spec init({integer, integer, binary}) :: {:ok, map()}
-  def init({ntx_to_send, spenders, destdir}) do
+  def init({ntx_to_send, utxos, destdir}) do
     Process.flag(:trap_exit, true)
-    _ = Logger.debug(fn -> "init called with #{inspect(nusers)} users, each to send #{inspect(ntx_to_send)}" end)
+#    _ = Logger.debug(fn -> "init called with #{inspect(length(spenders))} users, each to send #{inspect(ntx_to_send)}" end)
 
     senders =
-      spenders
-      |> Enum.map(fn spender ->
-        {:ok, pid} = OmiseGO.Performance.SenderServer.start_link({spender, ntx_to_send})
-#        FIXME
-        {1, pid}
+      utxos
+      |> Enum.with_index(1)
+      |> Enum.map(fn {utxo, seqnum} ->
+        {:ok, pid} = OmiseGO.Performance.SenderServer.start_link({seqnum, utxo, ntx_to_send})
+        {seqnum, pid}
       end)
 
     {:ok,

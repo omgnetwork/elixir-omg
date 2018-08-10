@@ -22,11 +22,14 @@ defmodule OmiseGO.JSONRPC.Client do
   def encode(arg), do: arg
 
   def get_url do
-    Application.get_env(:omisego_jsonrpc, :child_chain_url)
+    jsonrpc_port = Application.get_env(:omisego_jsonrpc, :omisego_api_rpc_port)
+    host = Application.get_env(:omisego_jsonrpc, :child_chain_url)
+    "#{host}:#{jsonrpc_port}"
   end
 
   @spec call(atom, map, binary) :: {:error | :ok, any}
   def call(method, params, url \\ get_url()) do
+
     with {:ok, server_response} <- JSONRPC2.Clients.HTTP.call(url, to_string(method), encode(params)),
          do: decode_payload(method, server_response)
   end
