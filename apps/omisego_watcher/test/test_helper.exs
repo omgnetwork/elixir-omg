@@ -1,7 +1,4 @@
 ExUnit.configure(exclude: [integration: true])
-Code.require_file("test/testlib/test_helper.ex")
-Code.require_file("test/integration/test_helper.exs")
-Code.require_file("../omisego_api/test/testlib/test_helper.ex")
 Code.require_file("../omisego_eth/test/fixtures.exs")
 Code.require_file("../omisego_db/test/fixtures.exs")
 Code.require_file("../omisego_api/test/fixtures.exs")

@@ -15,7 +15,6 @@ Run a developer's Child chain server, Watcher and start IEx REPL with code and c
 # we're going to be using the exthereum's client to geth's JSON RPC
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
-Code.load_file("apps/omisego_api/test/testlib/test_helper.ex")
 alias OmiseGO.{API, Eth}
 alias OmiseGO.API.Crypto
 alias OmiseGO.API.State.Transaction

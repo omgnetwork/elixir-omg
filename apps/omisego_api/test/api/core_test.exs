@@ -1,4 +1,4 @@
-defmodule OmiseGO.API.Api.CoreTest do
+defmodule OmiseGO.API.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 

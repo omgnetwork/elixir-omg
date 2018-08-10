@@ -71,7 +71,7 @@ defmodule OmiseGO.API.TestHelper do
           list({pos_integer, pos_integer, 0 | 1, map}),
           Transaction.currency(),
           list({Crypto.address_t(), pos_integer})
-        ) :: {Transaction.Signed.t(), Transaction.t()}
+        ) :: Transaction.Signed.t()
   def create_signed(inputs, currency, outputs) do
     raw_tx =
       Transaction.new(
@@ -90,7 +90,7 @@ defmodule OmiseGO.API.TestHelper do
     Transaction.Signed.encode(signed_tx)
   end
 
-  @spec write_fee_file(%{Crypto.address_t() => non_neg_integer}) :: :ok
+  @spec write_fee_file(%{Crypto.address_t() => non_neg_integer}) :: {:ok, binary}
   def write_fee_file(map) do
     {:ok, json} =
       map
@@ -100,10 +100,5 @@ defmodule OmiseGO.API.TestHelper do
     {:ok, path} = Briefly.create(prefix: "omisego_operator_test_fees_file")
     :ok = File.write(path, json, [:write])
     {:ok, path}
-  end
-
-  def get_fees do
-    OmiseGO.API.FeeChecker.update_fee_spec()
-    :ets.lookup_element(:fees_bucket, :fees_map_key, 2)
   end
 end
