@@ -22,9 +22,9 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     # NOTE: we're explicitly skipping erc20 challenges here, because eth and erc20 exits/challenges work the exact same
     #       way, so the integration is tested with the eth test
 
-    deposit_blknum = IntegrationTest.deposit_to_child_chain(alice, 10)
-    # TODO remove slpeep after synch deposit synch
-    :timer.sleep(100)
+    {:ok, alice_address} = Eth.DevHelpers.import_unlock_fund(alice)
+    deposit_blknum = IntegrationTest.deposit_to_child_chain(alice_address, 10)
+
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: exiting_utxo_block_nr}} = Client.call(:submit, %{transaction: tx})
 

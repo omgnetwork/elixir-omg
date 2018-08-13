@@ -29,14 +29,13 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
   @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob]
   test "get the blocks from child chain after transaction and start exit", %{alice: alice, bob: bob} do
-    {:ok, alice_address} = Crypto.encode_address(alice.addr)
+    {:ok, alice_address} = Eth.DevHelpers.import_unlock_fund(alice)
+    deposit_blknum = Integration.TestHelper.deposit_to_child_chain(alice_address, 10)
 
     {:ok, _, _socket} =
       subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
 
-    deposit_blknum = Integration.TestHelper.deposit_to_child_chain(alice, 10)
-    # TODO remove slpeep after synch deposit synch
-    :timer.sleep(100)
+
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
 
@@ -129,27 +128,11 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
   end
 
-  @tag fixtures: [:watcher_sandbox, :contract, :token, :child_chain, :alice]
-  test "exit erc20, without challenging an invalid exit", %{contract: contract, token: token, alice: alice} do
+  @tag fixtures: [:watcher_sandbox, :token, :child_chain, :alice]
+  test "exit erc20, without challenging an invalid exit", %{token: token, alice: alice} do
     {:ok, alice_address} = Eth.DevHelpers.import_unlock_fund(alice)
 
-    _ = Eth.DevHelpers.token_mint(alice_address, 10, token.address)
-
-    {:ok, false} = Eth.DevHelpers.has_token(token.address)
-    _ = Eth.DevHelpers.add_token(token.address)
-    {:ok, true} = Eth.DevHelpers.has_token(token.address)
-
-    Eth.DevHelpers.token_approve(
-      alice_address,
-      contract.contract_addr,
-      10,
-      token.address
-    )
-
-    {:ok, receipt} = Eth.DevHelpers.deposit_token(alice_address, token.address, 10)
-    token_deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
-    # TODO: fix this flakyness! (wait lets CC process the deposit)
-    Process.sleep(1000)
+    token_deposit_blknum = Integration.TestHelper.deposit_to_child_chain(alice_address, 10, token)
 
     {:ok, currency} = API.Crypto.decode_address(token.address)
 
