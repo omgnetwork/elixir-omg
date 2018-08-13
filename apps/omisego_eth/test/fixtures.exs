@@ -18,8 +18,8 @@ defmodule OmiseGO.Eth.Fixtures do
     Eth.DevHelpers.prepare_env!("../../")
   end
 
-  deffixture token(contract) do
-    _ = contract
+  deffixture token(geth) do
+    :ok = geth
     root_path = "../../"
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
     {:ok, _, token_addr} = OmiseGO.Eth.DevHelpers.create_new_token(root_path, addr)

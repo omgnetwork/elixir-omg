@@ -6,9 +6,9 @@ defmodule OmiseGOWatcher.Integration.TestHelper do
   alias OmiseGO.Eth
   import OmiseGOWatcher.TestHelper
 
-  def deposit_to_child_chain(to, value, contract) do
+  def deposit_to_child_chain(to, value) do
     {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
-    {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(value, destiny_enc, contract.contract_addr)
+    {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(value, destiny_enc)
     {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
     deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
 
@@ -17,8 +17,7 @@ defmodule OmiseGOWatcher.Integration.TestHelper do
         (Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) + 1) *
           Application.get_env(:omisego_eth, :child_block_interval)
 
-    {:ok, _} =
-      Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000, contract.contract_addr)
+    {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000)
 
     deposit_blknum
   end
