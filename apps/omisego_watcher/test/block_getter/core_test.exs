@@ -140,8 +140,10 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   defp process_single_block(%Block{hash: requested_hash} = block) do
     block_height = 25_000
     interval = 1_000
+    synced_height = 1
 
-    {state, _} = block_height |> Core.init(interval) |> Core.get_new_blocks_numbers(block_height + 2 * interval)
+    {state, _} =
+      block_height |> Core.init(interval, synced_height) |> Core.get_new_blocks_numbers(block_height + 2 * interval)
 
     assert {:ok, decoded_block} =
              Core.validate_get_block_response({:ok, block}, requested_hash, block_height + interval, 0)
@@ -153,9 +155,10 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   test "does not validate block with invalid hash", %{alice: alice} do
     block_height = 0
     interval = 1_000
+    synced_height = 1
     matching_bad_returned_hash = <<12::256>>
 
-    state = Core.init(block_height, interval)
+    state = Core.init(block_height, interval, synced_height)
 
     block = %Block{
       Block.hashed_txs_at(
@@ -215,9 +218,10 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
   test "got_block function called once with PotentialWithholding doesn't return BlockWithholding event" do
     block_height = 0
+    synced_height = 1
     interval = 1_000
 
-    {state, [1_000, 2_000]} = block_height |> Core.init(interval) |> Core.get_new_blocks_numbers(3_000)
+    {state, [1_000, 2_000]} = block_height |> Core.init(interval, synced_height) |> Core.get_new_blocks_numbers(3_000)
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
 
@@ -231,7 +235,13 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     {state, [1_000, 2_000]} =
       Core.get_new_blocks_numbers(
-        Core.init(block_height, interval, synced_height, maximum_number_of_pending_blocks: 5, maximum_block_withholding_time_ms: 0),
+        Core.init(
+          block_height,
+          interval,
+          synced_height,
+          maximum_number_of_pending_blocks: 5,
+          maximum_block_withholding_time_ms: 0
+        ),
         3_000
       )
 
@@ -251,7 +261,13 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     {state, [1_000, 2_000, 3_000, 4_000]} =
       Core.get_new_blocks_numbers(
-        Core.init(block_height, interval, synced_height,  maximum_number_of_pending_blocks: 4, maximum_block_withholding_time_ms: 0),
+        Core.init(
+          block_height,
+          interval,
+          synced_height,
+          maximum_number_of_pending_blocks: 4,
+          maximum_block_withholding_time_ms: 0
+        ),
         20_000
       )
 
@@ -276,16 +292,19 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     synced_height = 1
 
     {state, [1_000, 2_000, 3_000]} =
-      Core.get_new_blocks_numbers(Core.init(block_height, interval, synced_height, maximum_number_of_pending_blocks: 3), 20_000)
+      Core.get_new_blocks_numbers(
+        Core.init(block_height, interval, synced_height, maximum_number_of_pending_blocks: 3),
+        20_000
+      )
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 1_000, 0)
-    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
+    assert {:ok, state, []} = Core.got_block(state, potential_withholding)
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
-    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
+    assert {:ok, state, []} = Core.got_block(state, potential_withholding)
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 0)
-    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
+    assert {:ok, state, []} = Core.got_block(state, potential_withholding)
 
     assert {_, [1000, 2000, 3000]} = Core.get_new_blocks_numbers(state, 20_000)
   end
@@ -295,7 +314,14 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     interval = 1_000
     synced_height = 1
 
-    state = Core.init(block_height, interval, synced_height, maximum_number_of_pending_blocks: 4, maximum_block_withholding_time_ms: 1000)
+    state =
+      Core.init(
+        block_height,
+        interval,
+        synced_height,
+        maximum_number_of_pending_blocks: 4,
+        maximum_block_withholding_time_ms: 1000
+      )
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 0)
 
@@ -326,7 +352,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
   test "does not return blocks to consume unless all blocks for a given parent height range are downloaded" do
     synced_height = 1
-    state = Core.init(1_000, 1_000, synced_height, 4)
+    state = Core.init(1_000, 1_000, synced_height)
     next_synced_height = 4
     {state, [2_000, 3_000, 4_000, 5_000]} = Core.get_new_blocks_numbers(state, 6_000)
 
@@ -348,17 +374,17 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   test "updates synced height when there are no new block submissions" do
     sync_height = 1
     rootchain_height = 2
-    state = Core.init(1_000, 1_000, sync_height, 4)
+    state = Core.init(1_000, 1_000, sync_height)
 
     coordinator =
-      OmiseGO.API.RootChainCoordinator.Core.init(MapSet.new([:block_getter, :other_service]), rootchain_height)
+      OmiseGO.API.RootchainCoordinator.Core.init(MapSet.new([:block_getter, :other_service]), rootchain_height)
 
     coordinator =
       coordinator
       |> sync(:c.pid(0, 1, 0), rootchain_height, :other_service)
       |> sync(:c.pid(0, 2, 0), sync_height, :block_getter)
 
-    {:sync, next_synced_height} = OmiseGO.API.RootChainCoordinator.Core.get_rootchain_height(coordinator)
+    {:sync, next_synced_height} = OmiseGO.API.RootchainCoordinator.Core.get_rootchain_height(coordinator)
 
     {{^next_synced_height, ^next_synced_height}, state} =
       Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
@@ -369,26 +395,26 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
       Core.get_blocks_to_consume(state, submissions, rootchain_height)
 
     coordinator = sync(coordinator, :c.pid(0, 2, 0), rootchain_height, :block_getter)
-    {:sync, ^rootchain_height} = OmiseGO.API.RootChainCoordinator.Core.get_rootchain_height(coordinator)
+    {:sync, ^rootchain_height} = OmiseGO.API.RootchainCoordinator.Core.get_rootchain_height(coordinator)
     {:empty_range, _} = Core.get_eth_range_for_block_submitted_events(state, rootchain_height)
   end
 
   defp sync(coordinator, pid, height, service_name) do
-    {:ok, coordinator} = OmiseGO.API.RootChainCoordinator.Core.sync(coordinator, pid, height, service_name)
+    {:ok, coordinator} = OmiseGO.API.RootchainCoordinator.Core.sync(coordinator, pid, height, service_name)
     coordinator
   end
 
   test "updates synced height after all batched blocks have been processed" do
     block_getter_pid = :c.pid(0, 1, 0)
     synced_height = 1
-    state = Core.init(1_000, 1_000, synced_height, 4)
+    state = Core.init(1_000, 1_000, synced_height)
     {state, _} = Core.get_new_blocks_numbers(state, 6_000)
 
     rootchain_height = 2
-    coordinator = OmiseGO.API.RootChainCoordinator.Core.init(MapSet.new([:block_getter]), rootchain_height)
+    coordinator = OmiseGO.API.RootchainCoordinator.Core.init(MapSet.new([:block_getter]), rootchain_height)
     coordinator = sync(coordinator, block_getter_pid, synced_height, :block_getter)
 
-    {:sync, next_synced_height} = OmiseGO.API.RootChainCoordinator.Core.get_rootchain_height(coordinator)
+    {:sync, next_synced_height} = OmiseGO.API.RootchainCoordinator.Core.get_rootchain_height(coordinator)
 
     state =
       state

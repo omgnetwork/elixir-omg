@@ -17,8 +17,11 @@ defmodule OmiseGOWatcher.ExitValidator do
   Detects exits for spent utxos and notifies challenger
   """
 
-  alias OmiseGO.API.RootChainCoordinator
+  alias OmiseGO.API.RootchainCoordinator
   alias OmiseGOWatcher.ExitValidator.Core
+
+  @block_offset 1_000_000_000
+  @transaction_offset 10_000
 
   def start_link(last_exit_block_height_callback, utxo_exists_callback, synced_block_margin, update_key, service_name) do
     GenServer.start_link(
@@ -33,7 +36,7 @@ defmodule OmiseGOWatcher.ExitValidator do
     # gets last ethereum block height that we fetched exits from
     {:ok, last_exit_block_height} = last_exit_block_height_callback.()
 
-    :ok = RootChainCoordinator.set_service_height(last_exit_block_height, service_name)
+    :ok = RootchainCoordinator.set_service_height(last_exit_block_height, service_name)
     schedule_validate_exits()
 
     {:ok,
@@ -51,7 +54,7 @@ defmodule OmiseGOWatcher.ExitValidator do
         :validate_exits,
         %Core{last_exit_block_height: last_exit_block_height} = state
       ) do
-    case RootChainCoordinator.get_height() do
+    case RootchainCoordinator.get_height() do
       :no_sync ->
         {:noreply, state}
 
@@ -61,7 +64,7 @@ defmodule OmiseGOWatcher.ExitValidator do
             {:ok, utxo_exits} = OmiseGO.Eth.get_exits(last_exit_block_height, block_height_to_get_exits_from)
             :ok = validate_exits(utxo_exits, state)
             :ok = OmiseGO.DB.multi_update(db_updates)
-            :ok = RootChainCoordinator.set_service_height(next_sync_height, state.service_name)
+            :ok = RootchainCoordinator.set_service_height(next_sync_height, state.service_name)
 
             {:noreply, state}
 
@@ -73,7 +76,11 @@ defmodule OmiseGOWatcher.ExitValidator do
 
   defp validate_exits(utxo_exits, state) do
     for utxo_exit <- utxo_exits do
-      :ok = validate_exit(utxo_exit, state)
+      utxo_position = utxo_exit.utxo_pos
+      blknum = div(utxo_position, @block_offset)
+      txindex = utxo_position |> rem(@block_offset) |> div(@transaction_offset)
+      oindex = utxo_position - blknum * @block_offset - txindex * @transaction_offset
+      :ok = validate_exit(%{blknum: blknum, txindex: txindex, oindex: oindex}, state)
     end
 
     :ok

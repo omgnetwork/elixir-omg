@@ -75,14 +75,14 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     {:ok, receipt} = Eth.DevHelpers.deposit_token(alice_enc, token.address, 20)
     token_deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
 
-    # wait until the both deposits are recognized by child chain
+    # wait until both deposits are recognized by child chain
     post_deposit_child_block =
       token_deposit_blknum - 1 +
         (Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) + 1) *
           BlockQueue.child_block_interval()
 
     # TODO: possible source of flakiness is that State did not process deposit on time
-    Process.sleep(2000)
+    Process.sleep(4000)
 
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true)
 
@@ -95,12 +95,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     {:ok, token_addr} = OmiseGO.API.Crypto.decode_address(token.address)
 
-    token_raw_tx =
-      Transaction.new(
-        [{token_deposit_blknum, 0, 0}],
-        token_addr,
-        [{bob.addr, 18}, {alice.addr, 2}]
-      )
+    token_raw_tx = Transaction.new([{token_deposit_blknum, 0, 0}], token_addr, [{bob.addr, 18}, {alice.addr, 2}])
 
     token_tx = token_raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 

@@ -51,12 +51,7 @@ defmodule OmiseGOWatcher.Eventer.CoreTest do
 
   @tag fixtures: [:alice, :bob]
   test "prepare_events function generates 1 proper address_received events", %{alice: alice} do
-    recovered_tx =
-      API.TestHelper.create_recovered(
-        [{1, 0, 0, alice}],
-        Crypto.zero_address(),
-        [{alice, 100}]
-      )
+    recovered_tx = API.TestHelper.create_recovered([{1, 0, 0, alice}], Crypto.zero_address(), [{alice, 100}])
 
     {:ok, encoded_alice_address} = Crypto.encode_address(alice.addr)
     topic = TestHelper.create_topic("transfer", encoded_alice_address)

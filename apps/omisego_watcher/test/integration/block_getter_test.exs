@@ -42,16 +42,15 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   @endpoint OmiseGOWatcherWeb.Endpoint
 
   @tag fixtures: [:watcher_sandbox, :contract, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
-  test "get the blocks from child chain after transaction and start exit",
-       %{contract: contract, alice: alice, bob: bob} do
+  test "get the blocks from child chain after transaction and start exit", %{contract: contract, alice: alice, bob: bob} do
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
     {:ok, _, _socket} =
       subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
 
     deposit_blknum = Integration.TestHelper.deposit_to_child_chain(alice, 10, contract)
-    # TODO remove sleep after synch deposit synch
-    :timer.sleep(100)
+    # TODO remove sleep after synch deposit sync
+    :timer.sleep(2000)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
 
@@ -62,7 +61,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     # TODO write to db seems to be async and wait_until_block_getter_fetches_block
     # returns too early
 
-    :timer.sleep(100)
+    :timer.sleep(2000)
 
     assert [
              %{

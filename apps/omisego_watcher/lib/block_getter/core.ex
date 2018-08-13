@@ -92,6 +92,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       block_interval: child_block_interval,
       waiting_for_blocks: 0,
       maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 10),
+      blocks_to_consume: %{},
       potential_block_withholdings: %{},
       maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0)
     }
@@ -200,7 +201,8 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       (potential_block_withholding_numbers ++ potential_next_block_numbers)
       |> Enum.take(number_of_empty_slots)
 
-    [started_block_number | _] = [started_block_number] ++ blocks_numbers |> Enum.sort(&(&1 > &2))
+    [started_block_number | _] = ([started_block_number] ++ blocks_numbers) |> Enum.sort(&(&1 > &2))
+
     {
       %{
         state
@@ -284,7 +286,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
 
         {:ok, state, []}
 
-      time - blknum_time >= maximum_block_withholding_time ->
+      time - blknum_time >= maximum_block_withholding_time_ms ->
         {{:needs_stopping, :withholding}, state, [%Event.BlockWithholding{blknum: blknum}]}
 
       true ->

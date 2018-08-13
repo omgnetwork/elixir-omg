@@ -35,7 +35,7 @@ defmodule OmiseGOWatcher.Application do
       # Start workers
       {OmiseGO.API.State, []},
       {OmiseGOWatcher.Eventer, []},
-      {OmiseGO.API.RootChainCoordinator,
+      {OmiseGO.API.RootchainCoordinator,
        MapSet.new([:depositer, :exiter, :fast_validator, :slow_validator, :block_getter])},
       worker(
         OmiseGO.API.EthereumEventListener,

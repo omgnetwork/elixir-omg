@@ -1,9 +1,9 @@
-defmodule OmiseGO.API.RootChainCoordinator.Core do
+defmodule OmiseGO.API.RootchainCoordinator.Core do
   @moduledoc """
   Functional core of root chain coordinator.
   """
 
-  alias OmiseGO.API.RootChainCoordinator.Service
+  alias OmiseGO.API.RootchainCoordinator.Service
 
   @empty MapSet.new()
 

@@ -91,6 +91,5 @@ defmodule OmiseGOWatcher.Challenger.Core do
   defp get_challenging_utxo(%TransactionDB{txblknum: blknum, txindex: txindex, amount1: 0}),
     do: Utxo.position(blknum, txindex, 1)
 
-  defp get_challenging_utxo(%TransactionDB{txblknum: blknum, txindex: txindex}),
-    do: Utxo.position(blknum, txindex, 0)
+  defp get_challenging_utxo(%TransactionDB{txblknum: blknum, txindex: txindex}), do: Utxo.position(blknum, txindex, 0)
 end

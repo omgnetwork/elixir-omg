@@ -1,9 +1,9 @@
-defmodule OmiseGO.API.RootChainCoordinator do
+defmodule OmiseGO.API.RootchainCoordinator do
   @moduledoc """
   Synchronizes services on root chain height.
   """
 
-  alias OmiseGO.API.RootChainCoordinator.Core
+  alias OmiseGO.API.RootchainCoordinator.Core
   alias OmiseGO.Eth
 
   def start_link(allowed_services) do

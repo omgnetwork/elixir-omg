@@ -1,4 +1,4 @@
-defmodule OmiseGO.API.RootChainCoordinator.Service do
+defmodule OmiseGO.API.RootchainCoordinator.Service do
   @moduledoc """
   Represents a service that is coordinated by root chain coordinator.
   """

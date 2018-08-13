@@ -102,16 +102,11 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     {:ok, receipt} = Eth.DevHelpers.deposit_token(alice_enc, token.address, 20)
     token_deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
     # TODO: fix this flakyness! (wait lets CC process the deposit)
-    Process.sleep(1000)
+    :timer.sleep(4000)
 
     {:ok, currency} = API.Crypto.decode_address(token.address)
 
-    token_raw_tx =
-      Transaction.new(
-        [{token_deposit_blknum, 0, 0}],
-        currency,
-        [{alice.addr, 20}]
-      )
+    token_raw_tx = Transaction.new([{token_deposit_blknum, 0, 0}], currency, [{alice.addr, 20}])
 
     token_tx = token_raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
@@ -119,7 +114,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     {:ok, %{blknum: spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
 
     IntegrationTest.wait_until_block_getter_fetches_block(spend_token_child_block, @timeout)
-    Process.sleep(100)
+    :timer.sleep(2000)
 
     %{
       txbytes: txbytes,

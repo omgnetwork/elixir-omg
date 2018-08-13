@@ -21,7 +21,7 @@ defmodule OmiseGOWatcher.BlockGetter do
   Detects byzantine situations like BlockWithholding and InvalidBlock and passes this events to Eventer
   """
   alias OmiseGO.API.Block
-  alias OmiseGO.API.RootChainCoordinator
+  alias OmiseGO.API.RootchainCoordinator
   alias OmiseGO.Eth
   alias OmiseGOWatcher.BlockGetter.Core
   alias OmiseGOWatcher.Eventer
@@ -83,7 +83,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:ok, deployment_height} = Eth.get_root_deployment_height()
     {:ok, last_synced_height} = OmiseGO.DB.last_block_getter_block_height()
     synced_height = max(deployment_height, last_synced_height)
-    :ok = RootChainCoordinator.set_service_height(synced_height, :block_getter)
+    :ok = RootchainCoordinator.set_service_height(synced_height, :block_getter)
 
     {:ok, block_number} = OmiseGO.DB.child_top_block_number()
     child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
@@ -98,6 +98,7 @@ defmodule OmiseGOWatcher.BlockGetter do
       Core.init(
         block_number,
         child_block_interval,
+        synced_height,
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms
       )
     }
@@ -151,7 +152,7 @@ defmodule OmiseGOWatcher.BlockGetter do
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
 
   def handle_info(:sync, state) do
-    with {:sync, next_synced_height} <- RootChainCoordinator.get_height() do
+    with {:sync, next_synced_height} <- RootchainCoordinator.get_height() do
       {block_range, state} = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
       {:ok, submissions} = Eth.get_block_submitted_events(block_range)
 
@@ -163,7 +164,7 @@ defmodule OmiseGOWatcher.BlockGetter do
       end)
 
       :ok = OmiseGO.DB.multi_update(db_updates)
-      :ok = RootChainCoordinator.set_service_height(synced_height, :block_getter)
+      :ok = RootchainCoordinator.set_service_height(synced_height, :block_getter)
       {:noreply, state}
     else
       :nosync -> {:noreply, state}

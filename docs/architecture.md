@@ -37,7 +37,7 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 
 - reverts to reading `OmiseGO.DB` for old blocks
 
-### `OmiseGO.RootChainCoordinator`
+### `OmiseGO.RootchainCoordinator`
 
 - reads Ethereum block height from `OmiseGO.Eth`
 - synchronizes view of Ethereum block height of all enrolled processes (see other processes descriptions)
@@ -47,26 +47,26 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 Actually `OmiseGO.API.EthereumEventListener` setup with `:exiter`.
 
 - pushes exits to `OmiseGO.API.State` on child chain server's side
-- tracks exits via `OmiseGO.API.RootChainCoordinator`
+- tracks exits via `OmiseGO.API.RootchainCoordinator`
 
 ### `:depositor`
 
 Actually `OmiseGO.API.EthereumEventListener` setup with `:depositor`.
 
 - pushes deposits to `OmiseGO.API.State`
-- tracks deposits via `OmiseGO.API.RootChainCoordinator`
+- tracks deposits via `OmiseGO.API.RootchainCoordinator`
 
 ### `OmiseGO.API.BlockQueue`
 
 - requests `form_block` on `OmiseGO.API.State` and takes block hashes in return
-- tracks Ethereum height and child chain block submission mining via `OmiseGO.Eth` and `OmiseGO.API.RootChainCoordinator`
+- tracks Ethereum height and child chain block submission mining via `OmiseGO.Eth` and `OmiseGO.API.RootchainCoordinator`
 
 ### `OmiseGO.API.FeeChecker`
 - `OmiseGO.API` calls it to get acceptable currencies and actual fee amounts to validate transactions
 
 ### `OmiseGOWatcher.BlockGetter`
 
-- tracks child chain blocks via `OmiseGO.API.RootChainCoordinator`
+- tracks child chain blocks via `OmiseGO.API.RootchainCoordinator`
 - manages concurrent `Task`'s to pull blocks from child chain server API (JSON-RPC)
 - pushes decoded and statelessly valid blocks to `OmiseGO.API.State`
 - pushes statefully valid blocks and transactions (acknowledged by `OmiseGO.API.State` above) to `WatcherDB`

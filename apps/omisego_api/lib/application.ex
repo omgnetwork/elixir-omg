@@ -32,7 +32,7 @@ defmodule OmiseGO.API.Application do
       {OmiseGO.API.BlockQueue.Server, []},
       {OmiseGO.API.FreshBlocks, []},
       {OmiseGO.API.FeeChecker, []},
-      {OmiseGO.API.RootChainCoordinator, MapSet.new([:depositer, :exiter])},
+      {OmiseGO.API.RootchainCoordinator, MapSet.new([:depositer, :exiter])},
       worker(
         OmiseGO.API.EthereumEventListener,
         [depositor_config, &OmiseGO.Eth.get_deposits/2, &State.deposit/1],

@@ -1,8 +1,8 @@
-defmodule OmiseGO.API.RootChainCoordinator.CoreTest do
+defmodule OmiseGO.API.RootchainCoordinator.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OmiseGO.API.RootChainCoordinator.Core
+  alias OmiseGO.API.RootchainCoordinator.Core
 
   deffixture initial_state() do
     %Core{allowed_services: MapSet.new([:exiter, :depositer]), root_chain_height: 10}
