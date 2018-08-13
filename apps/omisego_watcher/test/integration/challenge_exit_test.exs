@@ -11,6 +11,8 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
   alias OmiseGOWatcher.Integration.TestHelper, as: IntegrationTest
   alias OmiseGOWatcher.TestHelper, as: Test
 
+  import OmiseGO.Eth.Integration.DepositHelper
+
   @moduletag :integration
 
   @timeout 20_000
@@ -23,7 +25,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
     #       way, so the integration is tested with the eth test
 
     {:ok, alice_address} = Eth.DevHelpers.import_unlock_fund(alice)
-    deposit_blknum = IntegrationTest.deposit_to_child_chain(alice_address, 10)
+    deposit_blknum = deposit_to_child_chain(alice_address, 10)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: exiting_utxo_block_nr}} = Client.call(:submit, %{transaction: tx})

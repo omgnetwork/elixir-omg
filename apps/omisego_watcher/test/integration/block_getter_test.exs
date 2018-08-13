@@ -18,6 +18,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   alias OmiseGOWatcherWeb.TransferChannel
 
   import ExUnit.CaptureLog
+  import OmiseGO.Eth.Integration.DepositHelper
 
   @moduletag :integration
 
@@ -30,11 +31,10 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob]
   test "get the blocks from child chain after transaction and start exit", %{alice: alice, bob: bob} do
     {:ok, alice_address} = Eth.DevHelpers.import_unlock_fund(alice)
-    deposit_blknum = Integration.TestHelper.deposit_to_child_chain(alice_address, 10)
+    deposit_blknum = deposit_to_child_chain(alice_address, 10)
 
     {:ok, _, _socket} =
       subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
-
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
@@ -132,7 +132,7 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   test "exit erc20, without challenging an invalid exit", %{token: token, alice: alice} do
     {:ok, alice_address} = Eth.DevHelpers.import_unlock_fund(alice)
 
-    token_deposit_blknum = Integration.TestHelper.deposit_to_child_chain(alice_address, 10, token)
+    token_deposit_blknum = deposit_to_child_chain(alice_address, 10, token)
 
     {:ok, currency} = API.Crypto.decode_address(token.address)
 
