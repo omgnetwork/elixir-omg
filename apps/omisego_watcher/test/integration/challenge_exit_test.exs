@@ -17,21 +17,15 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
   @timeout 20_000
   @zero_address Crypto.zero_address()
 
-  @tag fixtures: [:watcher_sandbox, :contract, :token, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
-  test "challenges invalid exit; exit token", %{contract: contract, token: token, alice: alice, bob: bob} do
+  @tag fixtures: [:watcher_sandbox, :contract, :geth, :child_chain, :root_chain_contract_config, :alice]
+  test "exiting spends UTXO on child chain", %{contract: contract, alice: alice} do
     deposit_blknum = IntegrationTest.deposit_to_child_chain(alice, 10, contract)
     # TODO remove slpeep after synch deposit synch
     :timer.sleep(100)
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @zero_address, [{alice, 7}, {bob, 3}])
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @zero_address, [{alice, 10}])
     {:ok, %{blknum: exiting_utxo_block_nr}} = Client.call(:submit, %{transaction: tx})
-    block_nr = exiting_utxo_block_nr
 
-    IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
-
-    tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @zero_address, [{alice, 4}, {bob, 3}])
-    {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx2})
-
-    IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
+    IntegrationTest.wait_until_block_getter_fetches_block(exiting_utxo_block_nr, @timeout)
 
     %{
       txbytes: txbytes,
@@ -55,8 +49,52 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
 
+    # wait until the exit is recognized and attempt to spend the exited utxo
+    Process.sleep(1_000)
+    tx2 = API.TestHelper.create_encoded([{exiting_utxo_block_nr, 0, 0, alice}], @zero_address, [{alice, 10}])
+    {:error, {-32603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
+  end
+
+  @tag fixtures: [:watcher_sandbox, :contract, :geth, :child_chain, :root_chain_contract_config, :alice]
+  test "exit eth, with challenging an invalid exit", %{contract: contract, alice: alice} do
+    deposit_blknum = IntegrationTest.deposit_to_child_chain(alice, 10, contract)
+    # TODO remove slpeep after synch deposit synch
+    :timer.sleep(100)
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @zero_address, [{alice, 10}])
+    {:ok, %{blknum: exiting_utxo_block_nr}} = Client.call(:submit, %{transaction: tx})
+
+    IntegrationTest.wait_until_block_getter_fetches_block(exiting_utxo_block_nr, @timeout)
+
+    tx2 = API.TestHelper.create_encoded([{exiting_utxo_block_nr, 0, 0, alice}], @zero_address, [{alice, 10}])
+    {:ok, %{blknum: double_spend_block_nr}} = Client.call(:submit, %{transaction: tx2})
+
+    IntegrationTest.wait_until_block_getter_fetches_block(double_spend_block_nr, @timeout)
+
+    %{
+      txbytes: txbytes,
+      proof: proof,
+      sigs: sigs,
+      utxo_pos: utxo_pos
+    } = IntegrationTest.compose_utxo_exit(exiting_utxo_block_nr, 0, 0)
+
+    {:ok, alice_address} = Crypto.encode_address(alice.addr)
+
+    {:ok, txhash} =
+      Eth.start_exit(
+        utxo_pos,
+        txbytes,
+        proof,
+        sigs,
+        1,
+        alice_address,
+        contract.contract_addr
+      )
+
+    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+
+    # after a successful invalid exit starting, the Watcher should be able to assist in successful challenging
     challenge = get_exit_challenge(exiting_utxo_block_nr, 0, 0)
-    assert {:ok, {alice.addr, @zero_address, 7}} == Eth.get_exit(utxo_pos, contract.contract_addr)
+    assert {:ok, {alice.addr, @zero_address, 10}} == Eth.get_exit(utxo_pos, contract.contract_addr)
 
     {:ok, txhash} =
       OmiseGO.Eth.DevHelpers.challenge_exit(
@@ -70,23 +108,30 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
       )
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
-    assert {:ok, {@zero_address, @zero_address, 7}} == Eth.get_exit(utxo_pos, contract.contract_addr)
+    assert {:ok, {@zero_address, @zero_address, 10}} == Eth.get_exit(utxo_pos, contract.contract_addr)
+  end
 
-    alice_enc = "0x" <> Base.encode16(alice.addr, case: :lower)
-    _ = Eth.DevHelpers.token_mint(alice_enc, 20, token.address)
+  @tag fixtures: [:watcher_sandbox, :contract, :token, :geth, :child_chain, :root_chain_contract_config, :alice]
+  test "exit erc20, without challenging an invalid exit", %{contract: contract, token: token, alice: alice} do
+    # NOTE: we're explicitly skipping the challenge here, because eth and erc20 exits/challenges work the exact same
+    #       way, so the integration is tested with the eth test already
+
+    {:ok, alice_address} = Eth.DevHelpers.import_unlock_fund(alice)
+
+    _ = Eth.DevHelpers.token_mint(alice_address, 10, token.address)
 
     {:ok, false} = Eth.DevHelpers.has_token(token.address)
     _ = Eth.DevHelpers.add_token(token.address)
     {:ok, true} = Eth.DevHelpers.has_token(token.address)
 
     Eth.DevHelpers.token_approve(
-      alice_enc,
+      alice_address,
       contract.contract_addr,
-      20,
+      10,
       token.address
     )
 
-    {:ok, receipt} = Eth.DevHelpers.deposit_token(alice_enc, token.address, 20)
+    {:ok, receipt} = Eth.DevHelpers.deposit_token(alice_address, token.address, 10)
     token_deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
     # TODO: fix this flakyness! (wait lets CC process the deposit)
     Process.sleep(1000)
@@ -97,7 +142,7 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
       Transaction.new(
         [{token_deposit_blknum, 0, 0}],
         currency,
-        [{alice.addr, 20}]
+        [{alice.addr, 10}]
       )
 
     token_tx = token_raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
