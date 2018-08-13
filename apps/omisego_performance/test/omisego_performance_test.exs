@@ -1,6 +1,11 @@
 defmodule OmiseGO.PerformanceTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
+  use OmiseGO.Eth.Fixtures
+  use OmiseGO.Eth.Fixtures
+  use OmiseGOWatcher.BlockGetter.Fixtures
+  use OmiseGO.API.Fixtures
+
   import ExUnit.CaptureIO
 
   use OmiseGO.API.LoggerExt
@@ -16,22 +21,40 @@ defmodule OmiseGO.PerformanceTest do
   end
 
   @tag fixtures: [:destdir]
-  test "Smoke test - run tests and see if they don't crash", %{destdir: destdir} do
+  test "Smoke test - run start_simple_perf and see if it don't crash", %{destdir: destdir} do
     ntxs = 3000
     nsenders = 2
-    assert :ok = OmiseGO.Performance.setup_and_run(ntxs, nsenders, %{destdir: destdir})
+    assert :ok = OmiseGO.Performance.start_simple_perf(ntxs, nsenders, %{destdir: destdir})
 
     assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * nsenders)
   end
 
+  @tag fixtures: [:destdir, :contract, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
+  test "Smoke test - run start_extended_perf and see if it don't crash", %{
+    destdir: destdir,
+    contract: contract,
+    alice: alice,
+    bob: bob
+  } do
+    ntxs = 3000
+    senders = [alice, bob]
+
+    assert :ok = OmiseGO.Performance.start_extended_perf(ntxs, senders, contract.contract_addr, %{destdir: destdir})
+
+    assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
+    smoke_test_statistics(Path.join(destdir, perf_result), ntxs * length(senders))
+  end
+
   @tag fixtures: [:destdir]
-  test "Smoke test - run tests and see if they don't crash - with profiling", %{destdir: destdir} do
+  test "Smoke test - run start_simple_perf and see if it don't crash - with profiling", %{destdir: destdir} do
     ntxs = 3
     nsenders = 2
 
     fprof_io =
-      capture_io(fn -> assert :ok = OmiseGO.Performance.setup_and_run(3, 2, %{destdir: destdir, profile: true}) end)
+      capture_io(fn ->
+        assert :ok = OmiseGO.Performance.start_simple_perf(ntxs, nsenders, %{destdir: destdir, profile: true})
+      end)
 
     # TODO a warning is printed out in fprof_io - check it out and possibly test against that
     if fprof_io =~ "Warning", do: _ = Logger.warn(fn -> "fprof prints warnings during test" end)
@@ -49,10 +72,10 @@ defmodule OmiseGO.PerformanceTest do
   end
 
   @tag fixtures: [:destdir]
-  test "Smoke test - run tests and see if they don't crash - overiding block creation", %{destdir: destdir} do
+  test "Smoke test - run start_simple_perf and see if it don't crash - overiding block creation", %{destdir: destdir} do
     ntxs = 3000
     nsenders = 2
-    assert :ok = OmiseGO.Performance.setup_and_run(3000, 2, %{destdir: destdir, block_every_ms: 3000})
+    assert :ok = OmiseGO.Performance.start_simple_perf(ntxs, nsenders, %{destdir: destdir, block_every_ms: 3000})
 
     assert ["perf_result" <> _] = File.ls!(destdir)
 

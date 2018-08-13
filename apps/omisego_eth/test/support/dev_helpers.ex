@@ -5,9 +5,13 @@ defmodule OmiseGO.Eth.DevHelpers do
   """
 
   alias OmiseGO.API.Crypto
+  alias OmiseGO.API.Utxo
   alias OmiseGO.Eth.WaitFor, as: WaitFor
-  import OmiseGO.Eth.Encoding
   alias OmiseGO.Eth
+
+  require Utxo
+
+  import OmiseGO.Eth.Encoding
 
   @lots_of_gas 5_000_000
 
@@ -68,30 +72,26 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, account_enc}
   end
 
-
   def deposit(value, from, contract \\ nil) do
     contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     contract_transact(from, nil, value, contract, "deposit()", [])
   end
 
   def make_deposits(value, accounts, contract \\ nil) do
-
     deposit = fn account ->
-      {:ok, account_enc} = Crypto.encode_address(account.addr)
-
-      unlock(account_enc)
+      {:ok, account_enc} = import_unlock_fund(account)
 
       {:ok, deposit_tx_hash} = deposit(value, account_enc, contract)
       {:ok, receipt} = OmiseGO.Eth.WaitFor.eth_receipt(deposit_tx_hash)
       deposit_blknum = deposit_blknum_from_receipt(receipt)
 
-      %{owner: account, utxo_pos: deposit_blknum, amount: value}
+      utxo_pos = Utxo.position(deposit_blknum, 0, 0) |>  Utxo.Position.encode()
+      %{owner: account, utxo_pos: utxo_pos, amount: value}
     end
 
     accounts
-    |> Enum.map(&(Task.async(fn -> deposit.(&1) end)))
+    |> Enum.map(&Task.async(fn -> deposit.(&1) end))
     |> Enum.map(fn task -> Task.await(task, :infinity) end)
-
   end
 
   def deposit_blknum_from_receipt(receipt) do

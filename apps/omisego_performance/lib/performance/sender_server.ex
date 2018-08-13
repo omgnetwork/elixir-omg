@@ -11,6 +11,11 @@ defmodule OmiseGO.Performance.SenderServer do
 
   alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Transaction
+  alias OmiseGO.API.Utxo
+
+  require Utxo
+
+  @eth Crypto.zero_address()
 
   defmodule LastTx do
     @moduledoc """
@@ -32,8 +37,6 @@ defmodule OmiseGO.Performance.SenderServer do
     :last_tx
   ]
 
-  @eth Crypto.zero_address()
-
   @opaque state :: %__MODULE__{
             seqnum: integer,
             ntx_to_send: integer,
@@ -44,7 +47,7 @@ defmodule OmiseGO.Performance.SenderServer do
   @doc """
   Starts the process.
   """
-  @spec start_link({seqnum :: integer, ntx_to_send :: integer, utxos :: list(API.State.Utxo.t()) | nil}) :: {:ok, pid}
+  @spec start_link({pos_integer(), API.State.Utxo.t(), pos_integer()}) :: {:ok, pid}
   def start_link(args) do
     GenServer.start_link(__MODULE__, args)
   end
@@ -55,7 +58,7 @@ defmodule OmiseGO.Performance.SenderServer do
     * Senders are assigned sequential positive int starting from 1, senders are initialized in order of seqnum.
       This ensures all senders' deposits are accepted.
   """
-  @spec init({spender :: integer, ntx_to_send :: integer, utxos :: list(API.State.Utxo.t()) | nil}) :: {:ok, state()}
+  @spec init({pos_integer(), API.State.Utxo.t(), pos_integer()}) :: {:ok, state()}
   def init({seqnum, utxo, ntx_to_send}) do
     _ = Logger.debug(fn -> "[#{inspect(seqnum)}] init called with utxo: #{inspect(utxo)} and requests: '#{inspect(ntx_to_send)}'" end)
 
@@ -93,7 +96,7 @@ defmodule OmiseGO.Performance.SenderServer do
   defp prepare_new_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx}) do
     to_spend = 9
     newamount = last_tx.amount - to_spend
-    recipient = generate_entity()
+    recipient = OmiseGO.API.TestHelper.generate_entity()
 
     _ =
       Logger.debug(fn ->
@@ -180,33 +183,24 @@ defmodule OmiseGO.Performance.SenderServer do
     OmiseGO.JSONRPC.Client.call(:submit, %{transaction: encoded_tx})
   end
 
-  # Generates participant private key and address
-  # TODO: DRY this, used also in omisego_api/test, omisego_eth
-  @spec generate_entity() :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
-  defp generate_entity do
-    {:ok, priv} = Crypto.generate_private_key()
-    {:ok, pub} = Crypto.generate_public_key(priv)
-    {:ok, addr} = Crypto.generate_address(pub)
-    %{priv: priv, addr: addr}
-  end
-
   # Generates module's initial state
 #  @spec init_state(
 #          seqnum :: pos_integer,
 #          nreq :: pos_integer,
 #          spender :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
 #        ) :: __MODULE__.state()
-  defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount} = utxo, ntx_to_send) do
+  defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount}, ntx_to_send) do
+    {:utxo_position, blknum, txindex, oindex} = Utxo.Position.decode(utxo_pos)
+
     %__MODULE__{
       seqnum: seqnum,
       ntx_to_send: ntx_to_send,
       spender: spender,
       last_tx: %LastTx{
         # initial state takes deposited value, put there on :init
-#        FIXME
-        blknum: utxo_pos,
-        txindex: 0,
-        oindex: 0,
+        blknum: blknum,
+        txindex: txindex,
+        oindex: oindex,
         amount: amount
       }
     }
