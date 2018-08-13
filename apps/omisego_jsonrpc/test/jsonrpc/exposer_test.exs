@@ -48,6 +48,11 @@ defmodule OmiseGO.JSONRPC.ExposerTest do
     def is_map_values_even(_) do
       {:error, :badarg}
     end
+
+    @spec some_bitstring_f(x :: bitstring) :: {:ok, boolean}
+    def some_bitstring_f(x) when is_binary(x) do
+      {:ok, true}
+    end
   end
 
   # SUT (System Under Test):
@@ -82,5 +87,25 @@ defmodule OmiseGO.JSONRPC.ExposerTest do
                "message" => "Method not found"
              }
            } = f.(~s({"method": ":lists.filtermap", "params": {"x": -1}, "id": 1, "jsonrpc": "2.0"}))
+
+    assert %{"result" => true} =
+             f.(~s({"method": "some_bitstring_f", "params": {"x": "ABCD"}, "id": 1, "jsonrpc": "2.0"}))
+
+    missing_param_resp = %{
+      "error" => %{
+        "code" => -32_602,
+        "data" => %{
+          "msg" => "Please provide parameter `x` of type `:bitstring`",
+          "name" => "x",
+          "type" => "bitstring"
+        },
+        "message" => "Invalid params"
+      },
+      "id" => 1,
+      "jsonrpc" => "2.0"
+    }
+
+    assert ^missing_param_resp = f.(~s({"method": "some_bitstring_f", "params": {"x": 5}, "id": 1, "jsonrpc": "2.0"}))
+    assert ^missing_param_resp = f.(~s({"method": "some_bitstring_f", "params": {}, "id": 1, "jsonrpc": "2.0"}))
   end
 end
