@@ -4,7 +4,7 @@ defmodule OmiseGO.API.Integration.Fixtures do
 
   alias OmiseGO.Eth
 
-  import OmiseGO.Eth.Integration.DepositHelper
+  import OmiseGO.API.Integration.DepositHelper
 
   deffixture alice_deposits(alice, token) do
     {:ok, alice_address} = Eth.DevHelpers.import_unlock_fund(alice)

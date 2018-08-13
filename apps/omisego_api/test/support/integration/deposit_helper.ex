@@ -1,4 +1,4 @@
-defmodule OmiseGO.Eth.Integration.DepositHelper do
+defmodule OmiseGO.API.Integration.DepositHelper do
   @moduledoc """
   Common helper functions that are useful when integration-testing the child chain and watcher requiring deposits
   """
