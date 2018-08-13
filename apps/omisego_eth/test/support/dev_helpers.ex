@@ -9,7 +9,11 @@ defmodule OmiseGO.Eth.DevHelpers do
   import OmiseGO.Eth.Encoding
   alias OmiseGO.Eth
 
-  @lots_of_gas 5_000_000
+  # safe, reasonable amount, equal to the testnet block gas limit
+  @lots_of_gas 4_712_388
+
+  # about 4 Ethereum blocks on "realistic" networks, use to timeout synchronous operations in demos on testnets
+  @about_4_blocks_time 60_000
 
   @one_hundred_eth trunc(:math.pow(10, 18) * 100)
 
@@ -163,7 +167,7 @@ defmodule OmiseGO.Eth.DevHelpers do
     {:ok, [eth_source_address | _]} = Ethereumex.HttpClient.eth_accounts()
     txmap = %{from: eth_source_address, to: account_enc, value: encode_eth_rpc_unsigned_int(@one_hundred_eth)}
     {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    WaitFor.eth_receipt(tx_fund, 10_000)
+    WaitFor.eth_receipt(tx_fund, @about_4_blocks_time)
   end
 
   defp maybe_mine(false), do: :noop
@@ -174,7 +178,10 @@ defmodule OmiseGO.Eth.DevHelpers do
     txmap = %{from: addr, data: bytecode <> enc_args, gas: gas}
 
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    {:ok, %{"contractAddress" => contract_address, "status" => "0x1"}} = WaitFor.eth_receipt(txhash, 10_000)
+
+    {:ok, %{"contractAddress" => contract_address, "status" => "0x1"}} =
+      WaitFor.eth_receipt(txhash, @about_4_blocks_time)
+
     {:ok, txhash, contract_address}
   end
 
@@ -196,7 +203,7 @@ defmodule OmiseGO.Eth.DevHelpers do
 
   defp contract_transact_sync!(from, nonce, value, to, signature, args, gas \\ @lots_of_gas) do
     {:ok, txhash} = contract_transact(from, nonce, value, to, signature, args, gas)
-    {:ok, %{"status" => "0x1"}} = WaitFor.eth_receipt(txhash, 10_000)
+    {:ok, %{"status" => "0x1"}} = WaitFor.eth_receipt(txhash, @about_4_blocks_time)
   end
 
   defp get_bytecode!(path_project_root, contract_name) do
