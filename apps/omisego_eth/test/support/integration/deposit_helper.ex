@@ -23,10 +23,6 @@ defmodule OmiseGO.Eth.Integration.DepositHelper do
   def deposit_to_child_chain(to, value, token) do
     _ = Eth.DevHelpers.token_mint(to, value, token.address)
 
-    {:ok, false} = Eth.DevHelpers.has_token(token.address)
-    _ = Eth.DevHelpers.add_token(token.address)
-    {:ok, true} = Eth.DevHelpers.has_token(token.address)
-
     contract_addr = Application.fetch_env!(:omisego_eth, :contract_addr)
 
     Eth.DevHelpers.token_approve(to, contract_addr, value, token.address)
