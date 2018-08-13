@@ -7,7 +7,7 @@ defmodule OmiseGO.API.RootChainCoordinator do
   alias OmiseGO.Eth
 
   def start_link(allowed_services) do
-    GenServer.start_link(__MODULE__, {:ok, allowed_services}, name: __MODULE__)
+    GenServer.start_link(__MODULE__, allowed_services, name: __MODULE__)
   end
 
   @doc """
@@ -19,8 +19,7 @@ defmodule OmiseGO.API.RootChainCoordinator do
   end
 
   @doc """
-  Notifies that calling service with name `service_name` is synced up to height `synced_height`.
-  `synced_height` is the height that the service is synced when calling this function.
+  Gets Ethereum height that services can synchronize up to.
   """
   def get_height do
     GenServer.call(__MODULE__, :get_rootchain_height, :infinity)
@@ -28,7 +27,7 @@ defmodule OmiseGO.API.RootChainCoordinator do
 
   use GenServer
 
-  def init({:ok, allowed_services}) do
+  def init(allowed_services) do
     {:ok, root_chain_height} = Eth.get_ethereum_height()
     schedule_get_ethereum_height()
     state = Core.init(MapSet.new(allowed_services), root_chain_height)

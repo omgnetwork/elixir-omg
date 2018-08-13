@@ -46,7 +46,7 @@ defmodule OmiseGO.API.EthereumEventListener do
     _ = Logger.info(fn -> "Starting EthereumEventListener" end)
 
     :ok = RootChainCoordinator.set_service_height(parent_start_height, service_name)
-    # FIXME: store last_events_block_height as in exit validators
+
     {:ok,
      %Core{
        next_event_height_lower_bound: parent_start_height,

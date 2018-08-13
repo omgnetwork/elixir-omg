@@ -84,7 +84,6 @@ defmodule OmiseGO.API.RootChainCoordinator.Core do
   def deregister_service(state, pid) do
     {service_name, _} =
       state.services
-      |> Map.to_list()
       |> Enum.find(fn {_, service} -> service.pid == pid end)
 
     services = Map.delete(state.services, service_name)

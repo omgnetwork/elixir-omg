@@ -22,8 +22,6 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
 
   use OmiseGO.API.LoggerExt
 
-  @empty MapSet.new()
-
   defmodule PotentialWithholding do
     @moduledoc false
 
@@ -79,7 +77,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
     - `:maximum_block_withholding_time_ms` - how much time should we wait after the first failed pull until we call it a block withholding byzantine condition of the child chain (0 ms)
   """
-  @spec init(non_neg_integer, pos_integer) :: %__MODULE__{}
+  @spec init(non_neg_integer, pos_integer, non_neg_integer) :: %__MODULE__{}
   def init(
         block_number,
         child_block_interval,
@@ -94,7 +92,6 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       block_interval: child_block_interval,
       waiting_for_blocks: 0,
       maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 10),
-      block_to_consume: %{},
       potential_block_withholdings: %{},
       maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0)
     }
@@ -203,11 +200,12 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       (potential_block_withholding_numbers ++ potential_next_block_numbers)
       |> Enum.take(number_of_empty_slots)
 
+    [started_block_number | _] = [started_block_number] ++ blocks_numbers |> Enum.sort(&(&1 > &2))
     {
       %{
         state
         | waiting_for_blocks: length(blocks_numbers) + waiting_for_blocks,
-          started_block_number: hd(([started_block_number] ++ blocks_numbers) |> Enum.sort() |> Enum.take(-1))
+          started_block_number: started_block_number
       },
       blocks_numbers
     }
