@@ -47,11 +47,6 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
     encode_tx = Client.encode(tx)
 
-    # TODO write to db seems to be async and wait_until_block_getter_fetches_block
-    # returns too early
-
-    :timer.sleep(100)
-
     assert [
              %{
                "currency" => @eth_hex,
@@ -147,7 +142,6 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     {:ok, %{blknum: spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
 
     Integration.TestHelper.wait_until_block_getter_fetches_block(spend_token_child_block, @timeout)
-    Process.sleep(100)
 
     %{
       txbytes: txbytes,
