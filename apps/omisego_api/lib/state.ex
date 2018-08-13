@@ -34,6 +34,9 @@ defmodule OmiseGO.API.State do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
+  @doc """
+  Checks (stateful validity) and executes a spend transaction. Assuming stateless validity!
+  """
   @spec exec(tx :: %Transaction.Recovered{}, fees :: map()) ::
           {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}}
           | {:error, Core.exec_error()}
@@ -41,33 +44,57 @@ defmodule OmiseGO.API.State do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
 
+  @doc """
+  Wraps up accumulated transactions into a block, triggers db update,
+  publishes block and enqueues for submission
+  """
   def form_block(child_block_interval) do
     GenServer.cast(__MODULE__, {:form_block, child_block_interval})
   end
 
+  @doc """
+  Wraps up accumulated transactions submissions into a block, triggers db update and emits events to Eventer.
+
+  eth_height given is the Ethereum chain height where the block being closed got submitted, to be used with events.
+  """
   def close_block(child_block_interval, eth_height) do
     GenServer.call(__MODULE__, {:close_block, child_block_interval, eth_height})
   end
 
+  @doc """
+  Includes a deposit done on the root chain contract (see above - not sure about this)
+  """
   @spec deposit(deposits :: [Core.deposit()]) :: :ok
   def deposit(deposits_enc) do
     deposits = Enum.map(deposits_enc, &Core.decode_deposit/1)
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
+  @doc """
+  Exits (spends) utxos on child chain
+  """
   def exit_utxos(utxos) do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
   end
 
+  @doc """
+  Exits (spends) utxos on child chain, explicitly signals if utxo has already been spent
+  """
   def exit_if_not_spent(utxo) do
     GenServer.call(__MODULE__, {:exit_not_spent_utxo, utxo})
   end
 
+  @doc """
+  Tells if utxo exists in the utxo set of the state
+  """
   @spec utxo_exists(%{blknum: number, txindex: number, oindex: number}) :: :utxo_exists | :utxo_does_not_exist
   def utxo_exists(utxo) do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end
 
+  @doc """
+  Gets the current block's height
+  """
   @spec get_current_child_block_height :: pos_integer
   def get_current_child_block_height do
     GenServer.call(__MODULE__, :get_current_height)
@@ -98,9 +125,6 @@ defmodule OmiseGO.API.State do
     )
   end
 
-  @doc """
-  Checks (stateful validity) and executes a spend transaction. Assuming stateless validity!
-  """
   def handle_call({:exec, tx, fees}, _from, state) do
     case Core.exec(tx, fees, state) do
       {:ok, tx_result, new_state} ->
@@ -111,9 +135,6 @@ defmodule OmiseGO.API.State do
     end
   end
 
-  @doc """
-  Includes a deposit done on the root chain contract (see above - not sure about this)
-  """
   def handle_call({:deposits, deposits}, _from, state) do
     # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
     {:ok, {_event_triggers, db_updates}, new_state} = Core.deposit(deposits, state)
@@ -123,16 +144,10 @@ defmodule OmiseGO.API.State do
     {:reply, :ok, new_state}
   end
 
-  @doc """
-  Exits (spends) utxos on child chain
-  """
   def handle_call({:exit_utxos, utxos}, _from, state) do
     do_exit_utxos(utxos, state)
   end
 
-  @doc """
-  Exits (spends) utxos on child chain, explicitly signals if utxo has already been spent
-  """
   def handle_call({:exit_not_spent_utxo, utxo}, _from, state) do
     with :utxo_exists <- Core.utxo_exists(utxo, state) do
       do_exit_utxos([utxo], state)
@@ -141,25 +156,14 @@ defmodule OmiseGO.API.State do
     end
   end
 
-  @doc """
-  Tells if utxo exists
-  """
   def handle_call({:utxo_exists, utxo}, _from, state) do
     {:reply, Core.utxo_exists(utxo, state), state}
   end
 
-  @doc """
-  Gets the current block's height
-  """
   def handle_call(:get_current_height, _from, state) do
     {:reply, Core.get_current_child_block_height(state), state}
   end
 
-  @doc """
-  Wraps up accumulated transactions submissions into a block, triggers db update and emits events to Eventer.
-
-  eth_height given is the Ethereum chain height where the block being closed got submitted, to be used with events.
-  """
   def handle_call({:close_block, child_block_interval, eth_height}, _from, state) do
     {duration, {:ok, {%Block{}, event_triggers, db_updates}, new_state}} =
       :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
@@ -180,10 +184,6 @@ defmodule OmiseGO.API.State do
     {:reply, :ok, new_state}
   end
 
-  @doc """
-  Wraps up accumulated transactions into a block, triggers db update,
-  publishes block and enqueues for submission
-  """
   def handle_cast({:form_block, child_block_interval}, state) do
     _ = Logger.debug(fn -> "Forming new block..." end)
     {duration, result} = :timer.tc(fn -> do_form_block(child_block_interval, state) end)
