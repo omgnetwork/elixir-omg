@@ -28,6 +28,10 @@ defmodule OmiseGO.Umbrella.MixProject do
       {:credo, "~> 0.9", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.8", only: [:test], runtime: false},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
+      {
+        :ex_unit_fixtures,
+        git: "https://github.com/omisego/ex_unit_fixtures.git", branch: "feature/require_files_not_load", only: [:test]
+      },
       # NOTE: we're overriding for the sake of `omisego_api` mix.exs deps. Otherwise the override is ignored
       # TODO: making it consistent is advised: maybe discuss with exth_crypto and submit pr there?
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true}
