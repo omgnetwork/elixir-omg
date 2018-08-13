@@ -1,6 +1,8 @@
-defmodule Credo.LicenseCheck do
+defmodule Credo.Check.Custom.LicenseHeader do
   @moduledoc """
   Checks whether license header has been included in every file, except those where it shouldn't be
+
+  **Doesn't** check the correctness of the header, just that it exists, so it checks first line to say `# Copyright`
   """
 
   @explanation [
