@@ -1,8 +1,6 @@
 ExUnit.configure(exclude: [integration: true, property: true])
-Code.require_file("../omisego_eth/test/fixtures.exs")
-Code.require_file("../omisego_db/test/fixtures.exs")
 Application.ensure_all_started(:propcheck)
 ExUnitFixtures.start()
-# need to do this in umbrella apps
-ExUnitFixtures.load_fixture_files()
+# loading all fixture files from the whole umbrella project
+ExUnitFixtures.load_fixture_files("../**/test/**/fixtures.exs")
 ExUnit.start()
