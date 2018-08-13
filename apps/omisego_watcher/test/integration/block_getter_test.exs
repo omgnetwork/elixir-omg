@@ -2,6 +2,8 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OmiseGO.API.Fixtures
+  use OmiseGO.API.Integration.Fixtures
+
   use Plug.Test
   use Phoenix.ChannelTest
 
@@ -18,7 +20,6 @@ defmodule OmiseGOWatcher.BlockGetterTest do
   alias OmiseGOWatcherWeb.TransferChannel
 
   import ExUnit.CaptureLog
-  import OmiseGO.Eth.Integration.DepositHelper
 
   @moduletag :integration
 
@@ -28,10 +29,13 @@ defmodule OmiseGOWatcher.BlockGetterTest do
 
   @endpoint OmiseGOWatcherWeb.Endpoint
 
-  @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob]
-  test "get the blocks from child chain after transaction and start exit", %{alice: alice, bob: bob} do
-    {:ok, alice_address} = Eth.DevHelpers.import_unlock_fund(alice)
-    deposit_blknum = deposit_to_child_chain(alice_address, 10)
+  @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob, :alice_deposits]
+  test "get the blocks from child chain after transaction and start exit", %{
+    alice: alice,
+    bob: bob,
+    alice_deposits: {deposit_blknum, _}
+  } do
+    {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
     {:ok, _, _socket} =
       subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
@@ -128,12 +132,13 @@ defmodule OmiseGOWatcher.BlockGetterTest do
     {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
   end
 
-  @tag fixtures: [:watcher_sandbox, :token, :child_chain, :alice]
-  test "exit erc20, without challenging an invalid exit", %{token: token, alice: alice} do
-    {:ok, alice_address} = Eth.DevHelpers.import_unlock_fund(alice)
-
-    token_deposit_blknum = deposit_to_child_chain(alice_address, 10, token)
-
+  @tag fixtures: [:watcher_sandbox, :token, :child_chain, :alice, :alice_deposits]
+  test "exit erc20, without challenging an invalid exit", %{
+    token: token,
+    alice: alice,
+    alice_deposits: {_, token_deposit_blknum}
+  } do
+    {:ok, alice_address} = Crypto.encode_address(alice.addr)
     {:ok, currency} = API.Crypto.decode_address(token.address)
 
     token_tx = API.TestHelper.create_encoded([{token_deposit_blknum, 0, 0, alice}], currency, [{alice, 10}])

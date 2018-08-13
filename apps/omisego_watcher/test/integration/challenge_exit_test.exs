@@ -2,6 +2,8 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OmiseGO.API.Fixtures
+  use OmiseGO.API.Integration.Fixtures
+
   use Plug.Test
 
   alias OmiseGO.API
@@ -11,21 +13,16 @@ defmodule OmiseGOWatcher.ChallengeExitTest do
   alias OmiseGOWatcher.Integration.TestHelper, as: IntegrationTest
   alias OmiseGOWatcher.TestHelper, as: Test
 
-  import OmiseGO.Eth.Integration.DepositHelper
-
   @moduletag :integration
 
   @timeout 20_000
   @zero_address Crypto.zero_address()
   @eth @zero_address
 
-  @tag fixtures: [:watcher_sandbox, :child_chain, :alice]
-  test "exit eth, with challenging an invalid exit", %{alice: alice} do
+  @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :alice_deposits]
+  test "exit eth, with challenging an invalid exit", %{alice: alice, alice_deposits: {deposit_blknum, _}} do
     # NOTE: we're explicitly skipping erc20 challenges here, because eth and erc20 exits/challenges work the exact same
     #       way, so the integration is tested with the eth test
-
-    {:ok, alice_address} = Eth.DevHelpers.import_unlock_fund(alice)
-    deposit_blknum = deposit_to_child_chain(alice_address, 10)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: exiting_utxo_block_nr}} = Client.call(:submit, %{transaction: tx})

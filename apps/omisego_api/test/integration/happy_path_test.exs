@@ -14,8 +14,6 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
   alias OmiseGO.Eth
   alias OmiseGO.JSONRPC.Client
 
-  import OmiseGO.Eth.Integration.DepositHelper
-
   @moduletag :integration
 
   deffixture omisego(root_chain_contract_config, token_contract_config, db_initialized) do
@@ -40,14 +38,13 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
   defp eth, do: Crypto.zero_address()
 
-  @tag fixtures: [:alice, :bob, :omisego, :token]
-  test "deposit, spend, exit, restart etc works fine", %{alice: alice, bob: bob, token: token} do
-    {:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
-
-    # get some test eth and tokens for Alice
-    deposit_blknum = deposit_to_child_chain(alice_enc, 10)
-    token_deposit_blknum = deposit_to_child_chain(alice_enc, 20, token)
-
+  @tag fixtures: [:alice, :bob, :omisego, :token, :alice_deposits]
+  test "deposit, spend, exit, restart etc works fine", %{
+    alice: alice,
+    bob: bob,
+    token: token,
+    alice_deposits: {deposit_blknum, token_deposit_blknum}
+  } do
     raw_tx = Transaction.new([{deposit_blknum, 0, 0}], eth(), [{bob.addr, 7}, {alice.addr, 3}])
 
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
@@ -61,7 +58,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
       Transaction.new(
         [{token_deposit_blknum, 0, 0}],
         token_addr,
-        [{bob.addr, 18}, {alice.addr, 2}]
+        [{bob.addr, 8}, {alice.addr, 2}]
       )
 
     token_tx = token_raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
