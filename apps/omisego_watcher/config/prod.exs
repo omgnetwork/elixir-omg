@@ -65,6 +65,6 @@ config :omisego_watcher, OmiseGOWatcher.Repo,
 try do
   import_config "prod.secret.exs"
 rescue
-  error in Mix.Config.LoadError ->
+  error in Code.LoadError ->
     IO.puts(inspect(error))
 end
