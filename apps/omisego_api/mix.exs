@@ -42,7 +42,6 @@ defmodule OmiseGO.API.MixProject do
       {:phoenix_pubsub, "~> 1.0"},
       {:ex_rlp, "~> 0.2.1"},
       {:blockchain, "~> 0.1.6"},
-      {:ex_unit_fixtures, "~> 0.3.1", only: [:test]},
       {:jsonrpc2, "~> 1.1", only: [:test]},
       {:merkle_tree,
        git: "https://github.com/omisego/merkle_tree.git", branch: "feature/omg-184-add-option-to-not-hash-leaves"},

@@ -1,5 +1,0 @@
-populus==2.2.0
-pytest-xdist
-flake8
-eth-utils==0.8.1
-web3==3.16.5
