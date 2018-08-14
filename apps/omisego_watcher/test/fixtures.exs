@@ -90,14 +90,15 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
       # NOTE see DevGeth.stop/1 for details
       _ = Process.monitor(child_chain_proc)
 
-      case Exexec.stop_and_wait(child_chain_proc) do
-        normal ->
-          :ok
+      :ok =
+        case Exexec.stop_and_wait(child_chain_proc) do
+          normal ->
+            :ok
 
-        other ->
-          _ = Logger.warn(fn -> "When stopping child chain, it was already stopped" end)
-          other
-      end
+          other ->
+            _ = Logger.warn(fn -> "When stopping child chain, it was already stopped" end)
+            other
+        end
 
       File.rm(config_file_path)
       File.rm_rf(db_path)
