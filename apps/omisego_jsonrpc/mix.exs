@@ -32,9 +32,7 @@ defmodule OmiseGO.JSONRPC.Mixfile do
       {:jsonrpc2, "~> 1.1"},
       {:cowboy, "~> 1.1"},
       {:plug, "1.5.0", override: true},
-      {:poison, "~> 3.1"},
-      # test can't run omisego_apis
-      {:omisego_api, in_umbrella: true, only: [:dev, :prod]}
+      {:poison, "~> 3.1"}
     ]
   end
 end
