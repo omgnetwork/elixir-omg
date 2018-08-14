@@ -20,10 +20,10 @@ defmodule OmiseGO.Eth.DevHelpers do
 
   alias OmiseGO.API.Crypto
   alias OmiseGO.API.Utxo
+  require Utxo
   alias OmiseGO.Eth.WaitFor, as: WaitFor
   alias OmiseGO.Eth
 
-  require Utxo
 
   import OmiseGO.Eth.Encoding
 
