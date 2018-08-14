@@ -1,6 +1,24 @@
+# Copyright 2018 OmiseGO Pte Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 defmodule OmiseGOWatcher.Integration.TestHelper do
+  @moduledoc """
+  Common helper functions that are useful when integration-testing the watcher
+  """
+
   alias OmiseGO.Eth
-  alias OmiseGOWatcher.TestHelper, as: Test
+  import OmiseGOWatcher.TestHelper
 
   def deposit_to_child_chain(to, value, contract) do
     {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
@@ -20,8 +38,7 @@ defmodule OmiseGOWatcher.Integration.TestHelper do
   end
 
   def compose_utxo_exit(blknum, txindex, oindex) do
-    decoded_resp =
-      Test.rest_call(:get, "account/utxo/compose_exit?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
+    decoded_resp = rest_call(:get, "account/utxo/compose_exit?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
 
     {:ok, txbytes} = Base.decode16(decoded_resp["txbytes"], case: :mixed)
     {:ok, proof} = Base.decode16(decoded_resp["proof"], case: :mixed)

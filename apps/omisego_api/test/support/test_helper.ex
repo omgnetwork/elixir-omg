@@ -1,3 +1,17 @@
+# Copyright 2018 OmiseGO Pte Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 defmodule OmiseGO.API.TestHelper do
   @moduledoc """
   Various shared functions used in API tests
@@ -71,7 +85,7 @@ defmodule OmiseGO.API.TestHelper do
           list({pos_integer, pos_integer, 0 | 1, map}),
           Transaction.currency(),
           list({Crypto.address_t(), pos_integer})
-        ) :: {Transaction.Signed.t(), Transaction.t()}
+        ) :: Transaction.Signed.t()
   def create_signed(inputs, currency, outputs) do
     raw_tx =
       Transaction.new(
@@ -90,7 +104,7 @@ defmodule OmiseGO.API.TestHelper do
     Transaction.Signed.encode(signed_tx)
   end
 
-  @spec write_fee_file(%{Crypto.address_t() => non_neg_integer}) :: :ok
+  @spec write_fee_file(%{Crypto.address_t() => non_neg_integer}) :: {:ok, binary}
   def write_fee_file(map) do
     {:ok, json} =
       map
@@ -100,10 +114,5 @@ defmodule OmiseGO.API.TestHelper do
     {:ok, path} = Briefly.create(prefix: "omisego_operator_test_fees_file")
     :ok = File.write(path, json, [:write])
     {:ok, path}
-  end
-
-  def get_fees do
-    OmiseGO.API.FeeChecker.update_fee_spec()
-    :ets.lookup_element(:fees_bucket, :fees_map_key, 2)
   end
 end

@@ -72,7 +72,10 @@ unicode_util_compat 0.3.1-> Apache 2.0
 
 ## Likely to be used, but not redistributed
 
-* `populus/web3.py/et al.`, MIT, https://pypi.python.org/pypi/populus/1.11.0
+* `web3`, MIT, https://github.com/ethereum/web3.py
+* `ethereum`, MIT, https://github.com/ethereum/pyethereum
+* `rlp`, MIT, https://github.com/ethereum/pyrlp
+* `py-solc`, MIT, https://github.com/ethereum/py-solc
 * `solc`, GPL 3.0, https://github.com/ethereum/solidity
 * `postgresql`, PostgreSQL License, https://www.postgresql.org
 * `proper`, GPL 3.0, https://github.com/proper-testing/proper/

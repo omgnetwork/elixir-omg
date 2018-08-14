@@ -10,6 +10,7 @@ defmodule OmiseGO.API.MixProject do
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
       elixir: "~> 1.6",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       test_coverage: [tool: ExCoveralls]
@@ -30,6 +31,10 @@ defmodule OmiseGO.API.MixProject do
     ]
   end
 
+  # Specifies which paths to compile per environment.
+  defp elixirc_paths(:prod), do: ["lib"]
+  defp elixirc_paths(_), do: ["lib", "test/support"]
+
   defp deps do
     [
       {:poison, "~> 3.1"},
@@ -37,7 +42,6 @@ defmodule OmiseGO.API.MixProject do
       {:phoenix_pubsub, "~> 1.0"},
       {:ex_rlp, "~> 0.2.1"},
       {:blockchain, "~> 0.1.6"},
-      {:ex_unit_fixtures, "~> 0.3.1", only: [:test]},
       {:jsonrpc2, "~> 1.1", only: [:test]},
       {:merkle_tree,
        git: "https://github.com/omisego/merkle_tree.git", branch: "feature/omg-184-add-option-to-not-hash-leaves"},
