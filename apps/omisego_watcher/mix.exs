@@ -55,6 +55,8 @@ defmodule OmiseGOWatcher.Mixfile do
       #       [here](https://elixirforum.com/t/mix-dependency-is-not-locked-error-when-building-with-edeliver/7069/3)
       {:briefly, "~> 0.3"},
       #
+      {:omisego_api, in_umbrella: true, runtime: false},
+      {:omisego_jsonrpc, in_umbrella: true, runtime: false},
       {:omisego_db, in_umbrella: true},
       {:omisego_eth, in_umbrella: true}
     ]
