@@ -12,6 +12,7 @@ defmodule OmiseGO.Performance.SenderServer do
   alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Transaction
   alias OmiseGO.API.Utxo
+  alias OmiseGO.API.TestHelper
 
   require Utxo
 
@@ -47,7 +48,7 @@ defmodule OmiseGO.Performance.SenderServer do
   @doc """
   Starts the process.
   """
-  @spec start_link({pos_integer(), API.State.Utxo.t(), pos_integer()}) :: {:ok, pid}
+  @spec start_link({pos_integer(), map(), pos_integer()}) :: {:ok, pid}
   def start_link(args) do
     GenServer.start_link(__MODULE__, args)
   end
@@ -58,7 +59,7 @@ defmodule OmiseGO.Performance.SenderServer do
     * Senders are assigned sequential positive int starting from 1, senders are initialized in order of seqnum.
       This ensures all senders' deposits are accepted.
   """
-  @spec init({pos_integer(), API.State.Utxo.t(), pos_integer()}) :: {:ok, state()}
+  @spec init({pos_integer(), map(), pos_integer()}) :: {:ok, state()}
   def init({seqnum, utxo, ntx_to_send}) do
     _ = Logger.debug(fn -> "[#{inspect(seqnum)}] init called with utxo: #{inspect(utxo)} and requests: '#{inspect(ntx_to_send)}'" end)
 
@@ -94,9 +95,9 @@ defmodule OmiseGO.Performance.SenderServer do
   end
 
   defp prepare_new_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx}) do
-    to_spend = 9
+    to_spend = 1
     newamount = last_tx.amount - to_spend
-    recipient = OmiseGO.API.TestHelper.generate_entity()
+    recipient = TestHelper.generate_entity()
 
     _ =
       Logger.debug(fn ->
@@ -183,12 +184,8 @@ defmodule OmiseGO.Performance.SenderServer do
     OmiseGO.JSONRPC.Client.call(:submit, %{transaction: encoded_tx})
   end
 
-  # Generates module's initial state
-#  @spec init_state(
-#          seqnum :: pos_integer,
-#          nreq :: pos_integer,
-#          spender :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
-#        ) :: __MODULE__.state()
+#   Generates module's initial state
+  @spec init_state(pos_integer(), map(), pos_integer()) :: __MODULE__.state()
   defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount}, ntx_to_send) do
     {:utxo_position, blknum, txindex, oindex} = Utxo.Position.decode(utxo_pos)
 

@@ -7,6 +7,8 @@ defmodule OmiseGO.API.TestHelper do
   alias OmiseGO.API.State.Core
   alias OmiseGO.API.State.Transaction
 
+  @type entity :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
+
   def entities do
     %{
       alice: generate_entity(),
@@ -35,6 +37,7 @@ defmodule OmiseGO.API.TestHelper do
     }
   end
 
+  @spec generate_entity :: entity()
   def generate_entity do
     {:ok, priv} = Crypto.generate_private_key()
     {:ok, pub} = Crypto.generate_public_key(priv)

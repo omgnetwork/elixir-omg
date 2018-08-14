@@ -61,7 +61,7 @@ defmodule OmiseGO.Performance do
 
   @spec start_extended_perf(
           pos_integer(),
-          list(%{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}),
+          list(TestHelper.entity()),
           Crypto.address_t(),
           map()
         ) :: :ok
@@ -151,7 +151,7 @@ defmodule OmiseGO.Performance do
     :ok
   end
 
-  @spec run({pos_integer(), list(), map(), boolean()}) :: :ok
+  @spec run({pos_integer(), list(), %{atom => any()}, boolean()}) :: :ok
   defp run(args) do
     {:ok, data} = OmiseGO.Performance.Runner.run(args)
     _ = Logger.info(fn -> "#{inspect(data)}" end)
@@ -167,29 +167,26 @@ defmodule OmiseGO.Performance do
     end)
   end
 
-  @spec create_spenders(pos_integer()) :: list(%{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()})
+  @spec create_spenders(pos_integer()) :: list(TestHelper.entity())
   defp create_spenders(nspenders) do
     1..nspenders
     |> Enum.map(fn _nspender -> TestHelper.generate_entity() end)
   end
 
-  #  FIXME  10*ntx_to_send
-  @spec create_utxos_for_simple_pref(list(%{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}), pos_integer()) ::
-          list()
+  @spec create_utxos_for_simple_pref(list(TestHelper.entity()), pos_integer()) :: list()
   defp create_utxos_for_simple_pref(spenders, ntx_to_send) do
     spenders
     |> Enum.with_index(1)
     |> Enum.map(fn {spender, index} ->
       {:ok, spender_enc} = Crypto.encode_address(spender.addr)
-      :ok = OmiseGO.API.State.deposit([%{owner: spender_enc, currency: @eth, amount: 10 * ntx_to_send, blknum: index}])
+      :ok = OmiseGO.API.State.deposit([%{owner: spender_enc, currency: @eth, amount: ntx_to_send, blknum: index}])
 
       utxo_pos = Utxo.position(index, 0, 0) |>  Utxo.Position.encode()
-      %{owner: spender, utxo_pos: utxo_pos, amount: 10 * ntx_to_send}
+      %{owner: spender, utxo_pos: utxo_pos, amount: ntx_to_send}
     end)
   end
 
-  @spec create_utxos_for_extended_pref(list(%{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}), pos_integer()) ::
-          list()
+  @spec create_utxos_for_extended_pref(list(TestHelper.entity()), pos_integer()) :: list()
   defp create_utxos_for_extended_pref(spenders, ntx_to_send) do
     OmiseGO.Eth.DevHelpers.make_deposits(10 * ntx_to_send, spenders)
   end
