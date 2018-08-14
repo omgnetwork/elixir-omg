@@ -92,7 +92,7 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
 
       :ok =
         case Exexec.stop_and_wait(child_chain_proc) do
-          normal ->
+          :normal ->
             :ok
 
           other ->
