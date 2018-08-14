@@ -195,7 +195,7 @@ defmodule OmiseGO.Performance do
       {:ok, spender_enc} = Crypto.encode_address(spender.addr)
       :ok = OmiseGO.API.State.deposit([%{owner: spender_enc, currency: @eth, amount: ntx_to_send, blknum: index}])
 
-      utxo_pos = Utxo.position(index, 0, 0) |>  Utxo.Position.encode()
+      utxo_pos = Utxo.position(index, 0, 0) |> Utxo.Position.encode()
       %{owner: spender, utxo_pos: utxo_pos, amount: ntx_to_send}
     end)
   end

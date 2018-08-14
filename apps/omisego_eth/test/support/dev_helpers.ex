@@ -103,7 +103,7 @@ defmodule OmiseGO.Eth.DevHelpers do
       {:ok, receipt} = OmiseGO.Eth.WaitFor.eth_receipt(deposit_tx_hash)
       deposit_blknum = deposit_blknum_from_receipt(receipt)
 
-      utxo_pos = Utxo.position(deposit_blknum, 0, 0) |>  Utxo.Position.encode()
+      utxo_pos = Utxo.position(deposit_blknum, 0, 0) |> Utxo.Position.encode()
       %{owner: account, utxo_pos: utxo_pos, amount: value}
     end
 

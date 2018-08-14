@@ -25,8 +25,8 @@ defmodule OmiseGO.Performance.SenderServer do
 
   alias OmiseGO.API.Crypto
   alias OmiseGO.API.State.Transaction
-  alias OmiseGO.API.Utxo
   alias OmiseGO.API.TestHelper
+  alias OmiseGO.API.Utxo
 
   require Utxo
 
@@ -75,7 +75,10 @@ defmodule OmiseGO.Performance.SenderServer do
   """
   @spec init({pos_integer(), map(), pos_integer()}) :: {:ok, state()}
   def init({seqnum, utxo, ntx_to_send}) do
-    _ = Logger.debug(fn -> "[#{inspect(seqnum)}] init called with utxo: #{inspect(utxo)} and requests: '#{inspect(ntx_to_send)}'" end)
+    _ =
+      Logger.debug(fn ->
+        "[#{inspect(seqnum)}] init called with utxo: #{inspect(utxo)} and requests: '#{inspect(ntx_to_send)}'"
+      end)
 
     send(self(), :do)
 
@@ -171,7 +174,6 @@ defmodule OmiseGO.Performance.SenderServer do
          tx_submit_result,
          %__MODULE__{seqnum: seqnum, last_tx: last_tx} = state
        ) do
-
     case tx_submit_result do
       {:ok, newblknum, newtxindex, newvalue} ->
         send(self(), :do)
@@ -198,7 +200,7 @@ defmodule OmiseGO.Performance.SenderServer do
     OmiseGO.JSONRPC.Client.call(:submit, %{transaction: encoded_tx})
   end
 
-#   Generates module's initial state
+  #   Generates module's initial state
   @spec init_state(pos_integer(), map(), pos_integer()) :: __MODULE__.state()
   defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount}, ntx_to_send) do
     {:utxo_position, blknum, txindex, oindex} = Utxo.Position.decode(utxo_pos)
