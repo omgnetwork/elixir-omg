@@ -73,7 +73,6 @@ defmodule OmiseGO.API.EthereumEventListener do
     case Core.next_events_block_range(state, next_sync_height) do
       {:get_events, {event_height_lower_bound, event_height_upper_bound}, state} ->
         {:ok, events} = state.get_ethereum_events_callback.(event_height_lower_bound, event_height_upper_bound)
-        IO.puts("#{inspect(state.service_name)} - #{inspect(state.synced_height)} - #{inspect(events)}")
         :ok = state.process_events_callback.(events)
         :ok = RootchainCoordinator.set_service_height(next_sync_height, state.service_name)
 
