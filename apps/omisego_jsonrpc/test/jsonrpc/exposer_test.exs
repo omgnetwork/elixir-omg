@@ -22,6 +22,13 @@ defmodule OmiseGO.JSONRPC.ExposerTest do
     use OmiseGO.API.ExposeSpec
 
     @spec is_even_N(x :: integer) :: {:ok, boolean} | {:error, :badarg}
+    @expose_spec {:is_even_N,
+                  %{
+                    args: [x: :integer],
+                    arity: 1,
+                    name: :is_even_N,
+                    returns: {:alternative, [ok: :boolean, error: :badarg]}
+                  }}
     def is_even_N(x) when x > 0 and is_integer(x) do
       {:ok, rem(x, 2) == 0}
     end
@@ -31,6 +38,13 @@ defmodule OmiseGO.JSONRPC.ExposerTest do
     end
 
     @spec is_even_list(x :: [integer]) :: {:ok, boolean} | {:error, :badarg}
+    @expose_spec {:is_even_list,
+                  %{
+                    args: [x: [:integer]],
+                    arity: 1,
+                    name: :is_even_list,
+                    returns: {:alternative, [ok: :boolean, error: :badarg]}
+                  }}
     def is_even_list(x) when is_list(x) do
       {:ok, Enum.all?(x, fn x -> rem(x, 2) == 0 end)}
     end
@@ -40,6 +54,13 @@ defmodule OmiseGO.JSONRPC.ExposerTest do
     end
 
     @spec is_map_values_even(x :: %{:atom => integer}) :: {:ok, boolean} | {:error, :badarg}
+    @expose_spec {:is_map_values_even,
+                  %{
+                    args: [x: {:map, [atom: :integer]}],
+                    arity: 1,
+                    name: :is_map_values_even,
+                    returns: {:alternative, [ok: :boolean, error: :badarg]}
+                  }}
     def is_map_values_even(x) when is_map(x) do
       checker = fn x -> rem(x, 2) == 0 end
       {:ok, Enum.all?(Map.values(x), checker)}
