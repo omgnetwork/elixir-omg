@@ -93,7 +93,7 @@ defmodule OmiseGO.API.RootchainCoordinator.Core do
   @doc """
   Removes service from services participating in synchronization.
   """
-  @spec deregister_service(t(), pid()) :: t()
+  @spec deregister_service(t(), pid()) :: {:ok, t()}
   def deregister_service(state, pid) do
     {service_name, _} =
       state.services
@@ -104,7 +104,7 @@ defmodule OmiseGO.API.RootchainCoordinator.Core do
     {:ok, state}
   end
 
-  @spec update_rootchain_height(t(), pos_integer()) :: t()
+  @spec update_rootchain_height(t(), pos_integer()) :: {:ok, t()}
   def update_rootchain_height(state, rootchain_height) do
     {:ok, %{state | root_chain_height: rootchain_height}}
   end

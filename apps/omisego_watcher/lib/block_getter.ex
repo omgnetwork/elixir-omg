@@ -88,7 +88,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:ok, block_number} = OmiseGO.DB.child_top_block_number()
     child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
 
-    schedule_sync_height()
+    {:ok, _} = schedule_sync_height()
     {:ok, _} = :timer.send_after(0, self(), :producer)
 
     maximum_block_withholding_time_ms = Application.get_env(:omisego_watcher, :maximum_block_withholding_time_ms)

@@ -41,7 +41,7 @@ defmodule OmiseGO.API.EthereumEventListener do
     # TODO: initialize state with the last ethereum block we have seen events from
     {:ok, parent_start_height} = Eth.get_root_deployment_height()
 
-    schedule_get_events()
+    {:ok, _} = schedule_get_events()
 
     _ = Logger.info(fn -> "Starting EthereumEventListener" end)
 

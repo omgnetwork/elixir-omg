@@ -37,7 +37,7 @@ defmodule OmiseGOWatcher.ExitValidator do
     {:ok, last_exit_block_height} = last_exit_block_height_callback.()
 
     :ok = RootchainCoordinator.set_service_height(last_exit_block_height, service_name)
-    schedule_validate_exits()
+    {:ok, _} = schedule_validate_exits()
 
     {:ok,
      %Core{

@@ -42,7 +42,7 @@ defmodule OmiseGO.API.RootchainCoordinator do
 
   def init(allowed_services) do
     {:ok, root_chain_height} = Eth.get_ethereum_height()
-    schedule_get_ethereum_height()
+    {:ok, _} = schedule_get_ethereum_height()
     state = Core.init(MapSet.new(allowed_services), root_chain_height)
     {:ok, state}
   end

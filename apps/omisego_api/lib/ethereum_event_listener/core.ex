@@ -36,7 +36,10 @@ defmodule OmiseGO.API.EthereumEventListener.Core do
   @doc """
   Returns next Ethereum height to get events from.
   """
-  @spec next_events_block_range(t(), pos_integer) :: {:get_events, pos_integer(), t()} | {:dont_get_events, t()}
+  @spec next_events_block_range(t(), pos_integer) ::
+          {:get_events, {non_neg_integer(), non_neg_integer()}, t()} | {:dont_get_events, t()}
+  def next_events_block_range(state, next_sync_height)
+
   def next_events_block_range(%__MODULE__{synced_height: synced_height} = state, next_sync_height)
       when next_sync_height <= synced_height do
     {:dont_get_events, state}
