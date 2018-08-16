@@ -37,7 +37,9 @@ defmodule OmiseGOWatcher.ExitValidator do
     {:ok, last_exit_block_height} = last_exit_block_height_callback.()
 
     :ok = RootchainCoordinator.set_service_height(last_exit_block_height, service_name)
-    {:ok, _} = schedule_validate_exits()
+
+    height_sync_interval = Application.get_env(:omisego_api, :rootchain_height_sync_interval_ms)
+    {:ok, _} = schedule_validate_exits(height_sync_interval)
 
     {:ok,
      %Core{
@@ -97,7 +99,7 @@ defmodule OmiseGOWatcher.ExitValidator do
     end
   end
 
-  defp schedule_validate_exits(interval \\ 200) do
+  defp schedule_validate_exits(interval) do
     :timer.send_interval(interval, self(), :validate_exits)
   end
 end

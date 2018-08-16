@@ -42,7 +42,8 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
         fee_specs_file_path: "#{fees_path}",
         ethereum_event_block_finality_margin: #{
       Application.get_env(:omisego_api, :ethereum_event_block_finality_margin)
-    }
+    },
+        rootchain_height_sync_interval_ms: #{Application.get_env(:omisego_api, :rootchain_height_sync_interval_ms)}
     """)
     |> File.close()
 

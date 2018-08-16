@@ -13,11 +13,12 @@ config :omisego_watcher, OmiseGOWatcher.Repo,
 
 config :omisego_watcher, OmiseGOWatcher.Repo, pool: Ecto.Adapters.SQL.Sandbox
 
+config :omisego_watcher, block_getter_height_sync_interval_ms: 100
+
 config :omisego_api,
   ethereum_event_block_finality_margin: 2,
   ethereum_event_check_height_interval_ms: 50,
-  child_block_submit_period: 1
+  child_block_submit_period: 1,
+  rootchain_height_sync_interval_ms: 100
 
 config :omisego_eth, child_block_interval: 1_000
-
-#

@@ -376,10 +376,12 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
     state = Core.init(1_000, 1_000, sync_height)
 
     rootchain_height = 2
+
     coordinator =
       OmiseGO.API.RootchainCoordinator.Core.init(MapSet.new([:block_getter, :other_service]), rootchain_height)
 
     block_getter_pid = :c.pid(0, 2, 0)
+
     coordinator =
       coordinator
       |> sync(:c.pid(0, 1, 0), rootchain_height, :other_service)
@@ -391,6 +393,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
       Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
 
     submissions = []
+
     {[], ^rootchain_height, [{:put, :last_block_getter_synced_height, ^rootchain_height}], state} =
       Core.get_blocks_to_consume(state, submissions, rootchain_height)
 

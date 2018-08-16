@@ -44,7 +44,9 @@ defmodule OmiseGO.API.RootchainCoordinator do
 
   def init(allowed_services) do
     {:ok, rootchain_height} = Eth.get_ethereum_height()
-    {:ok, _} = schedule_get_ethereum_height()
+
+    height_sync_interval = Application.get_env(:omisego_api, :rootchain_height_sync_interval_ms)
+    {:ok, _} = schedule_get_ethereum_height(height_sync_interval)
     state = Core.init(MapSet.new(allowed_services), rootchain_height)
     {:ok, state}
   end
@@ -69,7 +71,7 @@ defmodule OmiseGO.API.RootchainCoordinator do
     {:noreply, state}
   end
 
-  defp schedule_get_ethereum_height(interval \\ 200) do
+  defp schedule_get_ethereum_height(interval) do
     :timer.send_interval(interval, self(), :update_rootchain_height)
   end
 end
