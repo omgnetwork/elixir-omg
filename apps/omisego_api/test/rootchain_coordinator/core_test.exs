@@ -18,7 +18,7 @@ defmodule OmiseGO.API.RootchainCoordinator.CoreTest do
   alias OmiseGO.API.RootchainCoordinator.Core
 
   deffixture initial_state() do
-    %Core{allowed_services: MapSet.new([:exiter, :depositer]), root_chain_height: 10}
+    %Core{allowed_services: MapSet.new([:exiter, :depositer]), rootchain_height: 10}
   end
 
   @tag fixtures: [:initial_state]
@@ -32,7 +32,7 @@ defmodule OmiseGO.API.RootchainCoordinator.CoreTest do
     exiter_pid = :c.pid(0, 2, 0)
 
     {:ok, state} = Core.sync(state, exiter_pid, 1, :exiter)
-    :no_sync = Core.get_rootchain_height(state)
+    :nosync = Core.get_rootchain_height(state)
 
     {:ok, state} = Core.sync(state, depositer_pid, 2, :depositer)
     {:sync, 2} = Core.get_rootchain_height(state)
@@ -52,8 +52,8 @@ defmodule OmiseGO.API.RootchainCoordinator.CoreTest do
     {:ok, state} = Core.sync(state, depositer_pid, 1, :depositer)
     {:sync, 2} = Core.get_rootchain_height(state)
 
-    {:ok, state} = Core.deregister_service(state, depositer_pid)
-    :no_sync = Core.get_rootchain_height(state)
+    {:ok, state} = Core.remove_service(state, depositer_pid)
+    :nosync = Core.get_rootchain_height(state)
     {:ok, state} = Core.sync(state, depositer_pid, 1, :depositer)
     {:sync, 2} = Core.get_rootchain_height(state)
   end

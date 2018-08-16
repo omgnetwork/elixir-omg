@@ -13,7 +13,7 @@
 # limitations under the License.
 defmodule OmiseGO.API.RootchainCoordinator.Service do
   @moduledoc """
-  Represents a service that is coordinated by root chain coordinator.
+  Represents a service that is coordinated by rootchain coordinator.
   """
 
   defstruct synced_height: nil, pid: nil

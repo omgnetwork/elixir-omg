@@ -27,6 +27,7 @@ defmodule OmiseGO.API.RootchainCoordinator do
   Notifies that calling service with name `service_name` is synced up to height `synced_height`.
   `synced_height` is the height that the service is synced when calling this function.
   """
+  @spec set_service_height(non_neg_integer(), atom()) :: :ok
   def set_service_height(synced_height, service_name) do
     GenServer.call(__MODULE__, {:set_service_height, synced_height, service_name}, :infinity)
   end
@@ -34,6 +35,7 @@ defmodule OmiseGO.API.RootchainCoordinator do
   @doc """
   Gets Ethereum height that services can synchronize up to.
   """
+  @spec get_height() :: {:sync, non_neg_integer()} | :nosync
   def get_height do
     GenServer.call(__MODULE__, :get_rootchain_height, :infinity)
   end
@@ -41,9 +43,9 @@ defmodule OmiseGO.API.RootchainCoordinator do
   use GenServer
 
   def init(allowed_services) do
-    {:ok, root_chain_height} = Eth.get_ethereum_height()
+    {:ok, rootchain_height} = Eth.get_ethereum_height()
     {:ok, _} = schedule_get_ethereum_height()
-    state = Core.init(MapSet.new(allowed_services), root_chain_height)
+    state = Core.init(MapSet.new(allowed_services), rootchain_height)
     {:ok, state}
   end
 
@@ -57,13 +59,13 @@ defmodule OmiseGO.API.RootchainCoordinator do
   end
 
   def handle_info(:update_rootchain_height, state) do
-    {:ok, root_chain_height} = Eth.get_ethereum_height()
-    {:ok, state} = Core.update_rootchain_height(state, root_chain_height)
+    {:ok, rootchain_height} = Eth.get_ethereum_height()
+    {:ok, state} = Core.update_rootchain_height(state, rootchain_height)
     {:noreply, state}
   end
 
   def handle_info({:DOWN, _ref, :process, pid, _}, state) do
-    {:ok, state} = Core.deregister_service(state, pid)
+    {:ok, state} = Core.remove_service(state, pid)
     {:noreply, state}
   end
 

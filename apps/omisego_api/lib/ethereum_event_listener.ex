@@ -60,7 +60,7 @@ defmodule OmiseGO.API.EthereumEventListener do
 
   def handle_info(:get_events, state) do
     case RootchainCoordinator.get_height() do
-      :no_sync ->
+      :nosync ->
         {:noreply, state}
 
       {:sync, next_sync_height} ->
@@ -70,7 +70,7 @@ defmodule OmiseGO.API.EthereumEventListener do
   end
 
   defp sync_height(state, next_sync_height) do
-    case Core.next_events_block_range(state, next_sync_height) do
+    case Core.get_events_height_range_for_next_sync(state, next_sync_height) do
       {:get_events, {event_height_lower_bound, event_height_upper_bound}, state} ->
         {:ok, events} = state.get_ethereum_events_callback.(event_height_lower_bound, event_height_upper_bound)
         :ok = state.process_events_callback.(events)

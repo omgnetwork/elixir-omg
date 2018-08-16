@@ -350,7 +350,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
             ]} = Core.check_tx_executions([{:error, {}}], block)
   end
 
-  test "does not return blocks to consume unless all blocks for a given parent height range are downloaded" do
+  test "does not return blocks to consume unless all blocks for a given rootchain height range are downloaded" do
     synced_height = 1
     state = Core.init(1_000, 1_000, synced_height)
     next_synced_height = 4
@@ -373,16 +373,17 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
   test "updates synced height when there are no new block submissions" do
     sync_height = 1
-    rootchain_height = 2
     state = Core.init(1_000, 1_000, sync_height)
 
+    rootchain_height = 2
     coordinator =
       OmiseGO.API.RootchainCoordinator.Core.init(MapSet.new([:block_getter, :other_service]), rootchain_height)
 
+    block_getter_pid = :c.pid(0, 2, 0)
     coordinator =
       coordinator
       |> sync(:c.pid(0, 1, 0), rootchain_height, :other_service)
-      |> sync(:c.pid(0, 2, 0), sync_height, :block_getter)
+      |> sync(block_getter_pid, sync_height, :block_getter)
 
     {:sync, next_synced_height} = OmiseGO.API.RootchainCoordinator.Core.get_rootchain_height(coordinator)
 
@@ -390,11 +391,10 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
       Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
 
     submissions = []
-
     {[], ^rootchain_height, [{:put, :last_block_getter_synced_height, ^rootchain_height}], state} =
       Core.get_blocks_to_consume(state, submissions, rootchain_height)
 
-    coordinator = sync(coordinator, :c.pid(0, 2, 0), rootchain_height, :block_getter)
+    coordinator = sync(coordinator, block_getter_pid, rootchain_height, :block_getter)
     {:sync, ^rootchain_height} = OmiseGO.API.RootchainCoordinator.Core.get_rootchain_height(coordinator)
     {:empty_range, _} = Core.get_eth_range_for_block_submitted_events(state, rootchain_height)
   end

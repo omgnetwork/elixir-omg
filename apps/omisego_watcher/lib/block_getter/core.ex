@@ -48,7 +48,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
 
   @type t() :: %__MODULE__{
           synced_height: pos_integer(),
-          block_consume_batch: {atom(), list()},
+          block_consume_batch: {atom(), MapSet.t()},
           last_consumed_block: non_neg_integer,
           started_block_number: non_neg_integer,
           block_interval: pos_integer,
@@ -70,8 +70,9 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
           | API.Core.recover_tx_error()
 
   @doc """
-  Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block
-  and using `child_block_interval` when progressing from one child block to another
+  Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block,
+  using `child_block_interval` when progressing from one child block to another
+  and `synced_height` as the rootchain height up to witch all published blocked were processed
 
   Opts can be:
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
@@ -98,9 +99,12 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     }
   end
 
-  def consume_block(state, blknum) do
+  @doc """
+  Marks that childchain block `blknum` was processed
+  """
+  @spec consume_block(t(), pos_integer()) :: t()
+  def consume_block(%__MODULE__{} = state, blknum) do
     {:processing, blocks} = state.block_consume_batch
-
     blocks = MapSet.delete(blocks, blknum)
     blocks_to_consume = Map.delete(state.blocks_to_consume, blknum)
     last_consumed_block = max(state.last_consumed_block, blknum)
@@ -113,6 +117,14 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
     }
   end
 
+  @doc """
+  Produces rootchain block height range to search for events of block submission.
+  If the range is not empty it spans from current synced rootchain height to `coordinator_height`.
+  """
+  @spec get_eth_range_for_block_submitted_events(t(), non_neg_integer()) ::
+          {pos_integer(), pos_integer(), t()} | {:empty_range, t()}
+  def get_eth_range_for_block_submitted_events(state, coordinator_height)
+
   def get_eth_range_for_block_submitted_events(%__MODULE__{synced_height: synced_height} = state, coordinator_height)
       when synced_height < coordinator_height do
     {{state.synced_height + 1, coordinator_height}, state}
@@ -121,6 +133,10 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
   def get_eth_range_for_block_submitted_events(state, _coordinator_height) do
     {:empty_range, state}
   end
+
+  @spec get_blocks_to_consume(t(), list(), non_neg_integer()) ::
+          {list({Block.t(), non_neg_integer()}), non_neg_integer(), list(), t()}
+  def get_blocks_to_consume(state, block_submitted_events, coordinator_height)
 
   def get_blocks_to_consume(%__MODULE__{} = state, [], coordinator_height) do
     next_synced_height = max(state.synced_height, coordinator_height)
@@ -136,6 +152,7 @@ defmodule OmiseGOWatcher.BlockGetter.Core do
       ) do
     blocks_to_consume = get_downloaded_blocks(blocks, submissions)
 
+    # consume blocks only if all blocks submitted to rootchain are downloaded
     if length(blocks_to_consume) == length(submissions) do
       block_consume_batch =
         submissions

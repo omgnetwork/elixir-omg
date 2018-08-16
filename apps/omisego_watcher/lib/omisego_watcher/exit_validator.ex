@@ -55,7 +55,7 @@ defmodule OmiseGOWatcher.ExitValidator do
         %Core{last_exit_block_height: last_exit_block_height} = state
       ) do
     case RootchainCoordinator.get_height() do
-      :no_sync ->
+      :nosync ->
         {:noreply, state}
 
       {:sync, next_sync_height} ->

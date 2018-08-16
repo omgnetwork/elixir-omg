@@ -20,16 +20,16 @@ defmodule OmiseGO.API.RootchainCoordinator.Core do
 
   @empty MapSet.new()
 
-  defstruct allowed_services: @empty, root_chain_height: 0, services: %{}
+  defstruct allowed_services: @empty, rootchain_height: 0, services: %{}
 
   @type t() :: %__MODULE__{
           allowed_services: MapSet.t(),
-          root_chain_height: non_neg_integer(),
+          rootchain_height: non_neg_integer(),
           services: map()
         }
 
-  def init(allowed_services, root_chain_height) do
-    %__MODULE__{allowed_services: allowed_services, root_chain_height: root_chain_height}
+  def init(allowed_services, rootchain_height) do
+    %__MODULE__{allowed_services: allowed_services, rootchain_height: rootchain_height}
   end
 
   @doc """
@@ -47,10 +47,10 @@ defmodule OmiseGO.API.RootchainCoordinator.Core do
   defp allowed?(allowed_services, service_name), do: MapSet.member?(allowed_services, service_name)
 
   defp update_service_synced_height(state, pid, service_current_sync_height, service_name) do
-    synced_service = %Service{synced_height: service_current_sync_height, pid: pid}
+    service = %Service{synced_height: service_current_sync_height, pid: pid}
 
-    if valid_sync_height_update?(state, synced_service, service_current_sync_height, service_name) do
-      services = Map.put(state.services, service_name, synced_service)
+    if valid_sync_height_update?(state, service, service_current_sync_height, service_name) do
+      services = Map.put(state.services, service_name, service)
       state = %{state | services: services}
       {:ok, state}
     else
@@ -60,17 +60,20 @@ defmodule OmiseGO.API.RootchainCoordinator.Core do
 
   defp valid_sync_height_update?(state, synced_service, service_current_sync_height, service_name) do
     service = Map.get(state.services, service_name, synced_service)
-    service.synced_height <= service_current_sync_height and state.root_chain_height >= service_current_sync_height
+    service.synced_height <= service_current_sync_height and state.rootchain_height >= service_current_sync_height
   end
 
-  @spec get_rootchain_height(t()) :: {:sync, non_neg_integer()} | :no_sync
+  @doc """
+  Gets synchronized height
+  """
+  @spec get_rootchain_height(t()) :: {:sync, non_neg_integer()} | :nosync
   def get_rootchain_height(state) do
     if all_services_registered?(state) do
       # do not allow syncing to Ethereum blocks higher than block last seen by synchronizer
-      next_sync_height = min(sync_height(state.services) + 1, state.root_chain_height)
+      next_sync_height = min(sync_height(state.services) + 1, state.rootchain_height)
       {:sync, next_sync_height}
     else
-      :no_sync
+      :nosync
     end
   end
 
@@ -91,10 +94,10 @@ defmodule OmiseGO.API.RootchainCoordinator.Core do
   end
 
   @doc """
-  Removes service from services participating in synchronization.
+  Removes service from services being synchronized
   """
-  @spec deregister_service(t(), pid()) :: {:ok, t()}
-  def deregister_service(state, pid) do
+  @spec remove_service(t(), pid()) :: {:ok, t()}
+  def remove_service(state, pid) do
     {service_name, _} =
       state.services
       |> Enum.find(fn {_, service} -> service.pid == pid end)
@@ -104,8 +107,11 @@ defmodule OmiseGO.API.RootchainCoordinator.Core do
     {:ok, state}
   end
 
+  @doc """
+  Sets rootchain height
+  """
   @spec update_rootchain_height(t(), pos_integer()) :: {:ok, t()}
   def update_rootchain_height(state, rootchain_height) do
-    {:ok, %{state | root_chain_height: rootchain_height}}
+    {:ok, %{state | rootchain_height: rootchain_height}}
   end
 end
