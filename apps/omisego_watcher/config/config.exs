@@ -20,6 +20,11 @@ config :omisego_watcher, OmiseGOWatcherWeb.Endpoint,
   render_errors: [view: OmiseGOWatcherWeb.ErrorView, accepts: ~w(json)],
   pubsub: [name: OmiseGOWatcher.PubSub, adapter: Phoenix.PubSub.PG2]
 
+config :omisego_watcher, :phoenix_swagger,
+  swagger_files: %{
+    "priv/api.json" => [router: OmiseGOWatcherWeb.Router]
+  }
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

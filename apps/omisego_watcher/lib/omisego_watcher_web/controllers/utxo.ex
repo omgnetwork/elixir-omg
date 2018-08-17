@@ -24,6 +24,7 @@ defmodule OmiseGOWatcherWeb.Controller.Utxo do
   alias OmiseGOWatcher.UtxoDB
 
   use OmiseGOWatcherWeb, :controller
+  use PhoenixSwagger
 
   def available(conn, %{"address" => address}) do
     {:ok, address_decode} = Crypto.decode_address(address)

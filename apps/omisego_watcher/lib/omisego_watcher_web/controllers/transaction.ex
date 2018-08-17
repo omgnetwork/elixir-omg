@@ -18,6 +18,7 @@ defmodule OmiseGOWatcherWeb.Controller.Transaction do
   """
 
   use OmiseGOWatcherWeb, :controller
+  use PhoenixSwagger
 
   alias OmiseGOWatcher.{TransactionDB}
 

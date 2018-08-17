@@ -19,6 +19,7 @@ defmodule OmiseGOWatcherWeb.Controller.Status do
   """
 
   use OmiseGOWatcherWeb, :controller
+  use PhoenixSwagger
 
   alias OmiseGO.API.State
   alias OmiseGO.Eth

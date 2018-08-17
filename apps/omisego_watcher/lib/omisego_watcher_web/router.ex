@@ -29,4 +29,17 @@ defmodule OmiseGOWatcherWeb.Router do
   scope "/transactions", OmiseGOWatcherWeb do
     get("/:id", Controller.Transaction, :get)
   end
+
+  scope "/api/swagger" do
+     forward "/", PhoenixSwagger.Plug.SwaggerUI, otp_app: :omisego_watcher, swagger_file: "swagger.json"
+   end
+
+  def swagger_info do
+    %{
+      info: %{
+        version: "1.0",
+        title: "OmiseGO Watcher"
+      }
+    }
+  end
 end
