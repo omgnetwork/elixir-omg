@@ -1,7 +1,7 @@
 <img src="assets/logo.png" align="right" />
 
 # elixir-omg
-The `elixir-omg` repository contains OmiseGO's implementation of Plasma and forms the basis for the OMG Network.
+The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma and forms the basis for the OMG Network.
 
 The first release of the OMG Network is based upon **Tesuji Plasma**, an iterative design step over [Plasma MVP](../plasma-mvp). The diagram below illustrates the relationship between the wallet provider and how wallet providers connect to **Tesuji Plasma**.
 
