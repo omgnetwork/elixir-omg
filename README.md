@@ -1,7 +1,7 @@
 <img src="assets/logo.png" align="right" />
 
-# OmiseGO
-The OmiseGO repository contains OmiseGO's implementation of Plasma and forms the basis for the OMG Network.
+# elixir-omg
+The `elixir-omg` repository contains OmiseGO's implementation of Plasma and forms the basis for the OMG Network.
 
 The first release of the OMG Network is based upon **Tesuji Plasma**, an iterative design step over [Plasma MVP](../plasma-mvp). The diagram below illustrates the relationship between the wallet provider and how wallet providers connect to **Tesuji Plasma**.
 
@@ -11,9 +11,9 @@ See the [Tesuji Plasma design document](FIXME) for a full description for the Ch
 
 A description of the [application architecture](docs/architecture.md) may be found in the `docs` directory.
 
-For specific documentation about the child chain server, see [apps/omisego_api](apps/omisego_api).
+For specific documentation about the child chain server, see [apps/omg_api](apps/omg_api).
 
-For specifics on the watcher, see [apps/omisego_watcher](apps/omisego_watcher).
+For specifics on the watcher, see [apps/omg_watcher](apps/omg_watcher).
 
 For generic information, keep on reading.
 
@@ -32,12 +32,12 @@ The setup process for the Child chain server and for the Watcher is quite simila
 1. Initialize the child chain server's `OmiseGO.DB` database.
 Do that with `mix run --no-start -e 'OmiseGO.DB.init()'`
 1. (**Child chain server only**) Deploy `RootChain.sol` contract and prepare operator's authority address
-1. Produce a configuration file with `omisego_eth` configured to the contract address, operator (authority) address and hash of contract-deploying transaction.
+1. Produce a configuration file with `omg_eth` configured to the contract address, operator (authority) address and hash of contract-deploying transaction.
 To do that use the template, filling it with details on the contract:
 
         use Mix.Config
 
-        config :omisego_eth,
+        config :omg_eth,
           contract_addr: "0x0",
           authority_addr: "0x0",
           txhash_contract: "0x0"
