@@ -95,8 +95,14 @@ defmodule OmiseGOWatcher.BlockGetter.Fixtures do
           :normal ->
             :ok
 
+          :shutdown ->
+            :ok
+
+          :noproc ->
+            :ok
+
           other ->
-            _ = Logger.warn(fn -> "When stopping child chain, it was already stopped" end)
+            _ = Logger.warn(fn -> "Child chain stopped with an unexpected reason" end)
             other
         end
 
