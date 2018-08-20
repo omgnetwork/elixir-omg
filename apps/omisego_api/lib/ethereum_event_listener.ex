@@ -26,6 +26,7 @@ defmodule OmiseGO.API.EthereumEventListener do
 
   ### Client
 
+  @spec start_link(map(), fun(), fun()) :: GenServer.on_start()
   def start_link(config, get_events_callback, process_events_callback) do
     GenServer.start_link(__MODULE__, {config, get_events_callback, process_events_callback})
   end

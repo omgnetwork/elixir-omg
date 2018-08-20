@@ -19,6 +19,7 @@ defmodule OmiseGO.API.RootchainCoordinator do
   alias OmiseGO.API.RootchainCoordinator.Core
   alias OmiseGO.Eth
 
+  @spec start_link(MapSet.t()) :: GenServer.on_start()
   def start_link(allowed_services) do
     GenServer.start_link(__MODULE__, allowed_services, name: __MODULE__)
   end

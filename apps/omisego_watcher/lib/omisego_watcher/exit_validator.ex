@@ -23,6 +23,7 @@ defmodule OmiseGOWatcher.ExitValidator do
   @block_offset 1_000_000_000
   @transaction_offset 10_000
 
+  @spec start_link(fun(), fun(), non_neg_integer(), atom(), atom()) :: GenServer.on_start()
   def start_link(last_exit_block_height_callback, utxo_exists_callback, synced_block_margin, update_key, service_name) do
     GenServer.start_link(
       __MODULE__,

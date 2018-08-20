@@ -28,6 +28,7 @@ defmodule OmiseGO.API.RootchainCoordinator.Core do
           services: map()
         }
 
+  @spec init(MapSet.t(), non_neg_integer()) :: t()
   def init(allowed_services, rootchain_height) do
     %__MODULE__{allowed_services: allowed_services, rootchain_height: rootchain_height}
   end
