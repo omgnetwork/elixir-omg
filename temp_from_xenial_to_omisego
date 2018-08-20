@@ -53,8 +53,8 @@ geth version && python --version && pip --version && elixir --version && git --v
 #
 #
 
-git clone https://github.com/omisego/omisego
-cd omisego
+git clone https://github.com/omisego/elixir-omg
+cd elixir-omg
 mix deps.get
 
 pip install -r populus/requirements.txt

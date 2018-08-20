@@ -15,10 +15,10 @@ Run a developer's Child chain server, Watcher and start IEx REPL with code and c
 # we're going to be using the exthereum's client to geth's JSON RPC
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
-alias OmiseGO.{API, Eth}
-alias OmiseGO.API.Crypto
-alias OmiseGO.API.State.Transaction
-alias OmiseGO.API.TestHelper
+alias OMG.{API, Eth}
+alias OMG.API.Crypto
+alias OMG.API.State.Transaction
+alias OMG.API.TestHelper
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
@@ -118,7 +118,7 @@ challenge =
   Poison.decode!()
 
 {:ok, txhash} =
-  OmiseGO.Eth.DevHelpers.challenge_exit(
+  OMG.Eth.DevHelpers.challenge_exit(
     challenge["cutxopos"],
     challenge["eutxoindex"],
     Base.decode16!(challenge["txbytes"]),
@@ -139,7 +139,7 @@ challenge =
 
 # now, with the code "broken" go to the `iex` REPL of the child chain and recompile the module
 
-r(OmiseGO.API)
+r(OMG.API)
 
 # see Watcher's console logs to see the struggle and final give-in. You can restart the Watcher many times
 
@@ -154,7 +154,7 @@ r(OmiseGO.API)
 
 # now, with the code "broken" go to the `iex` REPL of the child chain and recompile the module
 
-r(OmiseGO.API.State.Core)
+r(OMG.API.State.Core)
 
 # let's do a broken spend:
 
