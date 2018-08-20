@@ -96,7 +96,7 @@ mix run --no-start -e 'OmiseGO.DB.init()'
 * Start Up the child chain server
 
 ```
-cd omisego/apps/omisego_jsonrpc
+cd apps/omisego_jsonrpc
 mix run --no-halt --config ~/config.exs
 ```
 
