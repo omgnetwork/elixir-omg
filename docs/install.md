@@ -33,7 +33,7 @@ sudo apt-get install -y esl-erlang=1:20.3.6
 
 ## Install Elixir
 ```
-sudo apt-get install elixir
+sudo apt-get -y install elixir
 ```
 
 ## Stop Erlang and Elixir from being upgraded
