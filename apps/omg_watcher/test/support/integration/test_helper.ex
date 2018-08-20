@@ -20,23 +20,6 @@ defmodule OMGWatcher.Integration.TestHelper do
   alias OMG.Eth
   import OMGWatcher.TestHelper
 
-  def deposit_to_child_chain(to, value, contract) do
-    {:ok, destiny_enc} = Eth.DevHelpers.import_unlock_fund(to)
-    {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(value, destiny_enc, contract.contract_addr)
-    {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
-    deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
-
-    post_deposit_child_block =
-      deposit_blknum - 1 +
-        (Application.get_env(:omg_api, :ethereum_event_block_finality_margin) + 1) *
-          Application.get_env(:omg_eth, :child_block_interval)
-
-    {:ok, _} =
-      Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000, contract.contract_addr)
-
-    deposit_blknum
-  end
-
   def compose_utxo_exit(blknum, txindex, oindex) do
     decoded_resp = rest_call(:get, "account/utxo/compose_exit?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
 
@@ -58,6 +41,11 @@ defmodule OMGWatcher.Integration.TestHelper do
     end
     |> Task.async()
     |> Task.await(timeout)
+
+    # TODO write to db seems to be async and wait_until_block_getter_fetches_block
+    # returns too early
+
+    Process.sleep(100)
   end
 
   defp wait_for_block(block_nr) do

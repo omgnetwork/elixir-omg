@@ -40,9 +40,7 @@ defmodule OMGWatcher.BlockGetter.Fixtures do
         child_block_interval: #{Application.get_env(:omg_eth, :child_block_interval)}
       config :omg_api,
         fee_specs_file_path: "#{fees_path}",
-        ethereum_event_block_finality_margin: #{
-      Application.get_env(:omg_api, :ethereum_event_block_finality_margin)
-    },
+        ethereum_event_block_finality_margin: #{Application.get_env(:omg_api, :ethereum_event_block_finality_margin)},
         ethereum_event_get_deposits_interval_ms: #{
       Application.get_env(:omg_api, :ethereum_event_get_deposits_interval_ms)
     }

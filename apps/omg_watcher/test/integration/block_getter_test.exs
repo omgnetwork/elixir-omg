@@ -16,6 +16,8 @@ defmodule OMGWatcher.BlockGetterTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
+  use OMG.API.Integration.Fixtures
+
   use Plug.Test
   use Phoenix.ChannelTest
 
@@ -41,28 +43,23 @@ defmodule OMGWatcher.BlockGetterTest do
 
   @endpoint OMGWatcherWeb.Endpoint
 
-  @tag fixtures: [:watcher_sandbox, :contract, :geth, :child_chain, :root_chain_contract_config, :alice, :bob]
-  test "get the blocks from child chain after transaction and start exit",
-       %{contract: contract, alice: alice, bob: bob} do
+  @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob, :alice_deposits]
+  test "get the blocks from child chain after transaction and start exit", %{
+    alice: alice,
+    bob: bob,
+    alice_deposits: {deposit_blknum, _}
+  } do
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
     {:ok, _, _socket} =
       subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
 
-    deposit_blknum = Integration.TestHelper.deposit_to_child_chain(alice, 10, contract)
-    # TODO remove slpeep after synch deposit synch
-    :timer.sleep(100)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
 
     Integration.TestHelper.wait_until_block_getter_fetches_block(block_nr, @timeout)
 
     encode_tx = Client.encode(tx)
-
-    # TODO write to db seems to be async and wait_until_block_getter_fetches_block
-    # returns too early
-
-    :timer.sleep(100)
 
     assert [
              %{
@@ -126,8 +123,7 @@ defmodule OMGWatcher.BlockGetterTest do
         proof,
         sigs,
         1,
-        alice_address,
-        contract.contract_addr
+        alice_address
       )
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
@@ -136,12 +132,53 @@ defmodule OMGWatcher.BlockGetterTest do
 
     utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
 
-    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice_address, token: @eth}]} ==
-             Eth.get_exits(0, height, contract.contract_addr)
+    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice_address, token: @eth}]} == Eth.get_exits(0, height)
+
+    # exiting spends UTXO on child chain
+    # wait until the exit is recognized and attempt to spend the exited utxo
+    Process.sleep(1_000)
+    tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
+    {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
   end
 
-  @tag fixtures: [:watcher_sandbox, :geth, :contract, :alice]
-  test "diffrent hash send by child chain", %{alice: alice, contract: contract} do
+  @tag fixtures: [:watcher_sandbox, :token, :child_chain, :alice, :alice_deposits]
+  test "exit erc20, without challenging an invalid exit", %{
+    token: token,
+    alice: alice,
+    alice_deposits: {_, token_deposit_blknum}
+  } do
+    {:ok, alice_address} = Crypto.encode_address(alice.addr)
+    {:ok, currency} = API.Crypto.decode_address(token.address)
+
+    token_tx = API.TestHelper.create_encoded([{token_deposit_blknum, 0, 0, alice}], currency, [{alice, 10}])
+
+    # spend the token deposit
+    {:ok, %{blknum: spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
+
+    Integration.TestHelper.wait_until_block_getter_fetches_block(spend_token_child_block, @timeout)
+
+    %{
+      txbytes: txbytes,
+      proof: proof,
+      sigs: sigs,
+      utxo_pos: utxo_pos
+    } = Integration.TestHelper.compose_utxo_exit(spend_token_child_block, 0, 0)
+
+    {:ok, txhash} =
+      Eth.start_exit(
+        utxo_pos,
+        txbytes,
+        proof,
+        sigs,
+        1,
+        alice_address
+      )
+
+    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+  end
+
+  @tag fixtures: [:watcher_sandbox, :alice]
+  test "diffrent hash send by child chain", %{alice: alice} do
     defmodule BadChildChainHash do
       use JSONRPC2.Server.Handler
 
@@ -159,16 +196,12 @@ defmodule OMGWatcher.BlockGetterTest do
 
     assert capture_log(fn ->
              {:ok, _txhash} =
-               Eth.submit_block(
-                 %Eth.BlockSubmission{
-                   num: 1000,
-                   hash: BadChildChainHash.different_hash(),
-                   nonce: 1,
-                   gas_price: 20_000_000_000
-                 },
-                 contract.authority_addr,
-                 contract.contract_addr
-               )
+               Eth.submit_block(%Eth.BlockSubmission{
+                 num: 1000,
+                 hash: BadChildChainHash.different_hash(),
+                 nonce: 1,
+                 gas_price: 20_000_000_000
+               })
 
              assert_block_getter_down()
            end) =~ inspect(:incorrect_hash)
@@ -185,8 +218,8 @@ defmodule OMGWatcher.BlockGetterTest do
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainHash)
   end
 
-  @tag fixtures: [:watcher_sandbox, :contract, :geth]
-  test "bad transaction with not existing utxo, detected by interactions with State", %{contract: contract} do
+  @tag fixtures: [:watcher_sandbox]
+  test "bad transaction with not existing utxo, detected by interactions with State" do
     defmodule BadChildChainTransaction do
       use JSONRPC2.Server.Handler
 
@@ -217,16 +250,12 @@ defmodule OMGWatcher.BlockGetterTest do
 
     assert capture_log(fn ->
              {:ok, _txhash} =
-               Eth.submit_block(
-                 %Eth.BlockSubmission{
-                   num: 1_000,
-                   hash: hash,
-                   nonce: 1,
-                   gas_price: 20_000_000_000
-                 },
-                 contract.authority_addr,
-                 contract.contract_addr
-               )
+               Eth.submit_block(%Eth.BlockSubmission{
+                 num: 1_000,
+                 hash: hash,
+                 nonce: 1,
+                 gas_price: 20_000_000_000
+               })
 
              assert_block_getter_down()
            end) =~ inspect(:tx_execution)
