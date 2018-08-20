@@ -39,7 +39,7 @@ defmodule OmiseGO.API.ExposeSpec.RPCTranslate do
          do: {:ok, fname, args}
   end
 
-  defp on_match_default(_name, _type, value), do: value
+  defp on_match_default(_name, _type, value), do: {:ok, value}
 
   @spec existing_atom(method :: function_name) :: {:ok, atom} | {:method_not_found, map}
   defp existing_atom(method) do
@@ -65,11 +65,16 @@ defmodule OmiseGO.API.ExposeSpec.RPCTranslate do
       value = Map.get(params, Atom.to_string(name))
       value = on_match.(name, type, value)
 
+      # value has been looked-up in params and possibly decoded by handler-specific code.
+      # If either failed an arg was missing or given badly
       case value do
+        {:error, _} ->
+          {:halt, {:missing_arg, argspec}}
+
         nil ->
           {:halt, {:missing_arg, argspec}}
 
-        value ->
+        {:ok, value} ->
           {:cont, list ++ [value]}
       end
     end
