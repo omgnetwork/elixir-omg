@@ -65,6 +65,10 @@ config :omisego_watcher, OmiseGOWatcher.Repo,
 try do
   import_config "prod.secret.exs"
 rescue
+  # for Elixir >= v1.7
   error in Code.LoadError ->
+    IO.puts(inspect(error))
+  # for Elixir < v1.7
+  error in Mix.Config.LoadError ->
     IO.puts(inspect(error))
 end
