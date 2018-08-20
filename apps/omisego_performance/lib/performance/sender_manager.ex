@@ -97,17 +97,16 @@ defmodule OmiseGO.Performance.SenderManager do
   end
 
   @doc """
-  handle_cast/2 registers:
-    - `:stats` clause: performance statistics received from senders processes
-    - `:blkform` clause: block forming time received from the BlockCreator process
+  Register performance statistics received from senders processes.
   """
-  def handle_cast(_, _)
-
   @spec handle_cast({:stats, event :: tuple()}, state :: map()) :: {:noreply, map()}
   def handle_cast({:stats, event}, state) do
     {:noreply, %{state | events: [event | state.events]}}
   end
 
+  @doc """
+  Register block forming time received from the BlockCreator process.
+  """
   @spec handle_cast({:blkform, blknum :: integer, total_ms :: pos_integer()}, state :: map()) :: {:noreply, map()}
   def handle_cast({:blkform, blknum, total_ms}, state) do
     {:noreply, %{state | block_times: [{blknum, total_ms} | state.block_times]}}
