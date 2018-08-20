@@ -48,12 +48,12 @@ defmodule OmiseGOWatcher.UtxoDB do
        ) do
     make_utxo_db = fn transaction, number ->
       %__MODULE__{
-        address: Map.get(transaction, :"newowner#{number}"),
+        address: Map.get(transaction, String.to_existing_atom("newowner#{number}")),
         currency: Map.get(transaction, :cur12),
-        amount: Map.get(transaction, :"amount#{number}"),
+        amount: Map.get(transaction, String.to_existing_atom("amount#{number}")),
         blknum: block_number,
         txindex: txindex,
-        oindex: Map.get(transaction, :"oindex#{number}"),
+        oindex: Map.get(transaction, String.to_existing_atom("oindex#{number}")),
         txbytes: signed_tx_bytes
       }
     end
@@ -63,9 +63,9 @@ defmodule OmiseGOWatcher.UtxoDB do
 
   defp remove_utxo(%Signed{raw_tx: %Transaction{} = transaction}) do
     remove_from = fn transaction, number ->
-      blknum = Map.get(transaction, :"blknum#{number}")
-      txindex = Map.get(transaction, :"txindex#{number}")
-      oindex = Map.get(transaction, :"oindex#{number}")
+      blknum = Map.get(transaction, String.to_existing_atom("blknum#{number}"))
+      txindex = Map.get(transaction, String.to_existing_atom("txindex#{number}"))
+      oindex = Map.get(transaction, String.to_existing_atom("oindex#{number}"))
 
       elements_to_remove =
         from(
