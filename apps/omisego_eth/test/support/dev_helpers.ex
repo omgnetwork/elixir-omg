@@ -151,6 +151,7 @@ defmodule OmiseGO.Eth.DevHelpers do
   end
 
   def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, from, contract \\ nil) do
+    contract = contract || Application.get_env(:omisego_eth, :contract_addr)
     signature = "challengeExit(uint256,uint256,bytes,bytes,bytes)"
     args = [cutxopo, eutxoindex, txbytes, proof, sigs]
     contract_transact(from, nil, nil, contract, signature, args)
