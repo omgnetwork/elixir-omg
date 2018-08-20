@@ -1,6 +1,6 @@
 # Architecture
 
-This is a high-level rundown of the architecture of the `OmiseGO` apps.
+This is a high-level rundown of the architecture of the `elixir-omg` apps.
 
 The below diagram demonstrates the various pieces and where this umbrella app fits in.
 ![high level architecture overview diagram](assets/architecture_overview.jpg)
@@ -14,12 +14,12 @@ This lists only interactions between the different processes that build up both 
 For responsibilities of the processes/modules look into respective docs in `.ex` files.
 
 **NOTE**:
-- for `OmiseGO.API` modules/processes look in `apps/omisego_api`
-- for `OmiseGOWatcher` modules/processes look in `apps/omisego_watcher`
-- for `OmiseGO.Eth` look in `apps/omisego_eth`
-- for `OmiseGO.DB` look in `apps/omisego_db`
-- for `OmiseGO.Performance` look in `apps/omisego_performance`
-- for `OmiseGO.JSONRPC` look in `apps/omisego_jsonrpc`
+- for `OmiseGO.API` modules/processes look in `apps/omg_api`
+- for `OmiseGOWatcher` modules/processes look in `apps/omg_watcher`
+- for `OmiseGO.Eth` look in `apps/omg_eth`
+- for `OmiseGO.DB` look in `apps/omg_db`
+- for `OmiseGO.Performance` look in `apps/omg_performance`
+- for `OmiseGO.JSONRPC` look in `apps/omg_jsonrpc`
 
 **NOTE 2** The hexagonal shape hints towards component being a wrapper (port/adapter) to something external, versus rectangular shape being an internal component.
 

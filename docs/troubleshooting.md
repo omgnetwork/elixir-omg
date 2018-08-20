@@ -1,5 +1,5 @@
 # Troubleshooting
-## Configuring the omisego_eth app fails with error
+## Configuring the omg_eth app fails with error
 ```
 ** (MatchError) no match of right hand side value: {:error, :econnrefused}
     lib/eth/dev_helpers.ex:44: OmiseGO.Eth.DevHelpers.create_and_fund_authority_addr/0
