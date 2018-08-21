@@ -24,7 +24,7 @@ defmodule OMG.API.State do
   alias OMG.API.State.Core
   alias OMG.API.State.Transaction
   alias OMG.DB
-  alias OMGWatcher.Eventer
+  alias OMG.Watcher.Eventer
 
   use OMG.API.LoggerExt
 

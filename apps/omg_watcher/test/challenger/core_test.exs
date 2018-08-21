@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMGWatcher.Challenger.CoreTest do
+defmodule OMG.Watcher.Challenger.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
   alias OMG.API.State.Transaction
   alias OMG.API.State.Transaction.Signed
   alias OMG.API.Utxo
-  alias OMGWatcher.Challenger.Challenge
-  alias OMGWatcher.Challenger.Core
-  alias OMGWatcher.TransactionDB
+  alias OMG.Watcher.Challenger.Challenge
+  alias OMG.Watcher.Challenger.Core
+  alias OMG.Watcher.TransactionDB
 
   require Utxo
 

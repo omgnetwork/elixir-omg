@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMGWatcher.Eventer.CoreTest do
+defmodule OMG.Watcher.Eventer.CoreTest do
   @moduledoc false
 
   use ExUnitFixtures
@@ -21,9 +21,9 @@ defmodule OMGWatcher.Eventer.CoreTest do
 
   alias OMG.API
   alias OMG.API.Crypto
-  alias OMGWatcher.Eventer
-  alias OMGWatcher.Eventer.Event
-  alias OMGWatcher.TestHelper
+  alias OMG.Watcher.Eventer
+  alias OMG.Watcher.Eventer.Event
+  alias OMG.Watcher.TestHelper
 
   @tag fixtures: [:alice, :bob]
   test "notify function generates 2 proper address_received events", %{alice: alice, bob: bob} do

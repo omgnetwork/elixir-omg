@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMGWatcher.TestHelper do
+defmodule OMG.Watcher.TestHelper do
   @moduledoc """
   Module provides common testing functions used by App's tests.
   """
@@ -42,7 +42,7 @@ defmodule OMGWatcher.TestHelper do
   defp send_request(req) do
     req
     |> put_private(:plug_skip_csrf_protection, true)
-    |> OMGWatcherWeb.Endpoint.call([])
+    |> OMG.Watcher.Web.Endpoint.call([])
   end
 
   def create_topic(main_topic, subtopic), do: main_topic <> ":" <> subtopic

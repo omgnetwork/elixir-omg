@@ -15,7 +15,7 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 
 **NOTE**:
 - for `OMG.API` modules/processes look in `apps/omg_api`
-- for `OMGWatcher` modules/processes look in `apps/omg_watcher`
+- for `OMG.Watcher` modules/processes look in `apps/omg_watcher`
 - for `OMG.Eth` look in `apps/omg_eth`
 - for `OMG.DB` look in `apps/omg_db`
 - for `OMG.Performance` look in `apps/omg_performance`
@@ -64,28 +64,28 @@ Actually `OMG.API.EthereumEventListener` setup with `:depositor`.
 ### `OMG.API.FeeChecker`
 - `OMG.API` calls it to get acceptable currencies and actual fee amounts to validate transactions
 
-### `OMGWatcher.BlockGetter`
+### `OMG.Watcher.BlockGetter`
 
 - tracks child chain blocks via `OMG.API.RootChainCoordinator`
 - manages concurrent `Task`'s to pull blocks from child chain server API (JSON-RPC)
 - pushes decoded and statelessly valid blocks to `OMG.API.State`
 - pushes statefully valid blocks and transactions (acknowledged by `OMG.API.State` above) to `WatcherDB`
-- emits block, transaction, consensus events to `OMGWatcher.Eventer`
+- emits block, transaction, consensus events to `OMG.Watcher.Eventer`
 
-### `OMGWatcher.ExitValidator` (fast)
+### `OMG.Watcher.ExitValidator` (fast)
 
 TODO - possible requires sorting out of this vs `:exiter`
 
-### `OMGWatcher.ExitValidator` (slow)
+### `OMG.Watcher.ExitValidator` (slow)
 
 TODO
 
 ### `Phoenix app` (not a module - section name TODO)
 
 - uses data stored in the `WatcherDB` to server user's requests
-- subscribes to event buses to `OMGWatcher.Eventer`
+- subscribes to event buses to `OMG.Watcher.Eventer`
 
-### `OMGWatcher.Eventer`
+### `OMG.Watcher.Eventer`
 
 - pushes events to `Phoenix app`
 

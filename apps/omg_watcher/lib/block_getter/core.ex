@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMGWatcher.BlockGetter.Core do
+defmodule OMG.Watcher.BlockGetter.Core do
   @moduledoc false
 
   alias OMG.API
   alias OMG.API.Block
   alias OMG.API.State.Transaction
-  alias OMGWatcher.Eventer.Event
+  alias OMG.Watcher.Eventer.Event
 
   use OMG.API.LoggerExt
 

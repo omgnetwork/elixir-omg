@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMGWatcher.BlockGetter do
+defmodule OMG.Watcher.BlockGetter do
   @moduledoc """
   Checking if there are new block from child chain on ethereum.
   Checking if Block from child chain is valid
@@ -22,9 +22,9 @@ defmodule OMGWatcher.BlockGetter do
   """
   alias OMG.API.Block
   alias OMG.Eth
-  alias OMGWatcher.BlockGetter.Core
-  alias OMGWatcher.Eventer
-  alias OMGWatcher.UtxoDB
+  alias OMG.Watcher.BlockGetter.Core
+  alias OMG.Watcher.Eventer
+  alias OMG.Watcher.UtxoDB
 
   use GenServer
   use OMG.API.LoggerExt
@@ -48,7 +48,7 @@ defmodule OMGWatcher.BlockGetter do
     Eventer.emit_events(events)
 
     with :ok <- continue do
-      response = OMGWatcher.TransactionDB.update_with(block)
+      response = OMG.Watcher.TransactionDB.update_with(block)
       nil = Enum.find(response, &(!match?({:ok, _}, &1)))
       _ = UtxoDB.update_with(block)
       _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end)

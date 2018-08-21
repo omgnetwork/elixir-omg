@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMGWatcher.BlockGetter.CoreTest do
+defmodule OMG.Watcher.BlockGetter.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
   use OMG.API.Fixtures
@@ -21,8 +21,8 @@ defmodule OMGWatcher.BlockGetter.CoreTest do
   alias OMG.API
   alias OMG.API.Block
   alias OMG.API.Crypto
-  alias OMGWatcher.BlockGetter.Core
-  alias OMGWatcher.Eventer.Event
+  alias OMG.Watcher.BlockGetter.Core
+  alias OMG.Watcher.Eventer.Event
 
   @eth Crypto.zero_address()
 

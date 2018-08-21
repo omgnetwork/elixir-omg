@@ -8,17 +8,17 @@ use Mix.Config
 # General application configuration
 config :omg_watcher,
   child_chain_url: "http://localhost",
-  namespace: OMGWatcher,
-  ecto_repos: [OMGWatcher.Repo],
+  namespace: OMG.Watcher,
+  ecto_repos: [OMG.Watcher.Repo],
   slow_exit_validator_block_margin: 10,
   maximum_block_withholding_time_ms: 10_000
 
 # Configures the endpoint
-config :omg_watcher, OMGWatcherWeb.Endpoint,
+config :omg_watcher, OMG.Watcher.Web.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "grt5Ef/y/jpx7AfLmrlUS/nfYJUOq+2e+1xmU4nphTm2x8WB7nLFCJ91atbSBrv5",
-  render_errors: [view: OMGWatcherWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: OMGWatcher.PubSub, adapter: Phoenix.PubSub.PG2]
+  render_errors: [view: OMG.Watcher.Web.ErrorView, accepts: ~w(json)],
+  pubsub: [name: OMG.Watcher.PubSub, adapter: Phoenix.PubSub.PG2]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

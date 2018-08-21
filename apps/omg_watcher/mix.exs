@@ -1,4 +1,4 @@
-defmodule OMGWatcher.Mixfile do
+defmodule OMG.Watcher.Mixfile do
   use Mix.Project
 
   def project do
@@ -24,7 +24,7 @@ defmodule OMGWatcher.Mixfile do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {OMGWatcher.Application, []},
+      mod: {OMG.Watcher.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end

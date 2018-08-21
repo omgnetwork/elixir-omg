@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMGWatcher do
+defmodule OMG.Watcher do
   @moduledoc """
-  OMGWatcher keeps the contexts that define your domain
+  OMG.Watcher keeps the contexts that define your domain
   and business logic.
 
   Contexts are also responsible for managing your data, regardless
