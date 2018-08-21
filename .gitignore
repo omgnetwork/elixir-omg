@@ -40,3 +40,6 @@ perf_result_*
 
 # Common virtualenv directory
 env/
+
+# Elixirls data directory
+.elixir_ls

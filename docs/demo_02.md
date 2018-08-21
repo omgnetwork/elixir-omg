@@ -15,10 +15,10 @@ Run a developer's Child chain server, Watcher and start IEx REPL with code and c
 # we're going to be using the exthereum's client to geth's JSON RPC
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
-alias OmiseGO.{API, Eth}
-alias OmiseGO.API.Crypto
-alias OmiseGO.API.State.Transaction
-alias OmiseGO.API.TestHelper
+alias OMG.{API, Eth}
+alias OMG.API.Crypto
+alias OMG.API.State.Transaction
+alias OMG.API.TestHelper
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
@@ -79,7 +79,7 @@ to_charlist() |>
 Poison.decode!()
 
 %{"utxos" => [%{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
-  "http GET 'localhost:4000/account/utxo?address=#{bob.addr |> Base.encode16}'" |>
+  "http GET 'localhost:4000/account/utxo?address=#{bob_enc}'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
@@ -118,13 +118,12 @@ challenge =
   Poison.decode!()
 
 {:ok, txhash} =
-  OmiseGO.Eth.DevHelpers.challenge_exit(
+  OMG.Eth.DevHelpers.challenge_exit(
     challenge["cutxopos"],
     challenge["eutxoindex"],
     Base.decode16!(challenge["txbytes"]),
     Base.decode16!(challenge["proof"]),
     Base.decode16!(challenge["sigs"]),
-    1,
     alice_enc
   )
 
@@ -135,11 +134,11 @@ challenge =
 # If we introduce a 5 second sleep, the Watcher will have a hard time getting a block (requests time out in 5 seconds).
 # Some attempts will pass, some will fail and with the withholding threshold set to 10 seconds, we'll have block withholding stop the Watcher and print out an error (and fire events for machines)
 
-# put `Process.sleep 5_000` in API module, around line 31
+# put `Process.sleep 5_000` in API module, around line 69
 
 # now, with the code "broken" go to the `iex` REPL of the child chain and recompile the module
 
-r(OmiseGO.API)
+r(OMG.API)
 
 # see Watcher's console logs to see the struggle and final give-in. You can restart the Watcher many times
 
@@ -154,13 +153,13 @@ r(OmiseGO.API)
 
 # now, with the code "broken" go to the `iex` REPL of the child chain and recompile the module
 
-r(OmiseGO.API.State.Core)
+r(OMG.API.State.Core)
 
 # let's do a broken spend:
 
 # grab a utxo that bob can spend
 %{"utxos" => [%{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]} =
-  "http GET 'localhost:4000/account/utxo?address=#{bob.addr |> Base.encode16}'" |>
+  "http GET 'localhost:4000/account/utxo?address=#{bob_enc}'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
