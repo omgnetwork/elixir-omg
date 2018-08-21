@@ -22,9 +22,10 @@ defmodule OmiseGO.API.MixProject do
       env: [
         ethereum_event_block_finality_margin: 10,
         ethereum_event_get_deposits_interval_ms: 5_000,
-        ethereum_event_check_height_interval_ms: 1_000,
+        ethereum_event_check_height_interval_ms: 5_000,
         ethereum_event_max_block_range_in_deposits_query: 5,
-        child_block_submit_period: 1
+        child_block_submit_period: 1,
+        rootchain_height_sync_interval_ms: 5_000
       ],
       extra_applications: [:logger],
       mod: {OmiseGO.API.Application, []}

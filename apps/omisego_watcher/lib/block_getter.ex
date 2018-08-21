@@ -90,7 +90,7 @@ defmodule OmiseGOWatcher.BlockGetter do
 
     height_sync_interval = Application.get_env(:omisego_watcher, :block_getter_height_sync_interval_ms)
     {:ok, _} = schedule_sync_height(height_sync_interval)
-    {:ok, _} = :timer.send_after(0, self(), :producer)
+    :producer = send(self(), :producer)
 
     maximum_block_withholding_time_ms = Application.get_env(:omisego_watcher, :maximum_block_withholding_time_ms)
 

@@ -86,7 +86,7 @@ defmodule OmiseGO.API.EthereumEventListener do
         state
 
       {:dont_get_events, state} ->
-        _ = Logger.debug(fn -> "No blocks with event" end)
+        _ = Logger.debug(fn -> "Not getting events" end)
         state
     end
   end

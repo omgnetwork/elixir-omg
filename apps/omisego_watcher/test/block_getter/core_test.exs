@@ -223,7 +223,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
 
     {state, [1_000, 2_000]} = block_height |> Core.init(interval, synced_height) |> Core.get_new_blocks_numbers(3_000)
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 2_000, 0)
 
     assert {:ok, _, []} = Core.got_block(state, potential_withholding)
   end
@@ -245,10 +245,10 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
         3_000
       )
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 2_000, 0)
     assert {:ok, state, []} = Core.got_block(state, potential_withholding)
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 1)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 2_000, 1)
 
     assert {{:needs_stopping, :withholding}, _, [%Event.BlockWithholding{blknum: 2000}]} =
              Core.got_block(state, potential_withholding)
@@ -276,7 +276,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
       |> got_block(%Block{number: 1_000})
       |> got_block(%Block{number: 2_000})
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 0)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 3_000, 0)
     assert {:ok, state, []} = Core.got_block(state, potential_withholding)
 
     assert {_, [3000, 5000, 6000]} = Core.get_new_blocks_numbers(state, 20_000)
@@ -297,13 +297,13 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
         20_000
       )
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 1_000, 0)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 1_000, 0)
     assert {:ok, state, []} = Core.got_block(state, potential_withholding)
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 2_000, 0)
     assert {:ok, state, []} = Core.got_block(state, potential_withholding)
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 0)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 3_000, 0)
     assert {:ok, state, []} = Core.got_block(state, potential_withholding)
 
     assert {_, [1000, 2000, 3000]} = Core.get_new_blocks_numbers(state, 20_000)
@@ -323,15 +323,15 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
         maximum_block_withholding_time_ms: 1000
       )
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 0)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 3_000, 0)
 
     assert {:ok, state, []} = Core.got_block(state, potential_withholding)
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 500)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 3_000, 500)
 
     assert {:ok, state, []} = Core.got_block(state, potential_withholding)
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 1000)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 3_000, 1000)
 
     assert {{:needs_stopping, :withholding}, _state, [%Event.BlockWithholding{blknum: 3_000}]} =
              Core.got_block(state, potential_withholding)
@@ -403,7 +403,7 @@ defmodule OmiseGOWatcher.BlockGetter.CoreTest do
   end
 
   defp sync(coordinator, pid, height, service_name) do
-    {:ok, coordinator} = OmiseGO.API.RootchainCoordinator.Core.sync(coordinator, pid, height, service_name)
+    {:ok, coordinator} = OmiseGO.API.RootchainCoordinator.Core.check_in(coordinator, pid, height, service_name)
     coordinator
   end
 

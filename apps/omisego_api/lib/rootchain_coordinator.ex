@@ -53,7 +53,7 @@ defmodule OmiseGO.API.RootchainCoordinator do
   end
 
   def handle_call({:set_service_height, synced_height, service_name}, {pid, _}, state) do
-    {:ok, state} = Core.sync(state, pid, synced_height, service_name)
+    {:ok, state} = Core.check_in(state, pid, synced_height, service_name)
     {:reply, :ok, state}
   end
 
@@ -68,7 +68,7 @@ defmodule OmiseGO.API.RootchainCoordinator do
   end
 
   def handle_info({:DOWN, _ref, :process, pid, _}, state) do
-    {:ok, state} = Core.remove_service(state, pid)
+    {:ok, state} = Core.check_out(state, pid)
     {:noreply, state}
   end
 

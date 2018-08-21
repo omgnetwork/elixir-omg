@@ -24,13 +24,15 @@ defmodule OmiseGO.API.EthereumEventListener.Core do
             get_ethereum_events_callback: nil,
             process_events_callback: nil
 
+  @type event :: any
+
   @type t() :: %__MODULE__{
           next_event_height_lower_bound: non_neg_integer(),
           synced_height: non_neg_integer(),
           service_name: atom(),
           block_finality_margin: non_neg_integer(),
-          get_ethereum_events_callback: fun(),
-          process_events_callback: fun()
+          get_ethereum_events_callback: (non_neg_integer(), non_neg_integer() -> {:ok, [event]}),
+          process_events_callback: ([event] -> :ok)
         }
 
   @doc """

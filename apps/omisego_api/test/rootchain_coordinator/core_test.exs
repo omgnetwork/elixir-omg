@@ -23,7 +23,7 @@ defmodule OmiseGO.API.RootchainCoordinator.CoreTest do
 
   @tag fixtures: [:initial_state]
   test "does not synchronize service that is not allowed", %{initial_state: state} do
-    :service_not_allowed = Core.sync(state, :c.pid(0, 1, 0), 10, :unallowed_service)
+    :service_not_allowed = Core.check_in(state, :c.pid(0, 1, 0), 10, :unallowed_service)
   end
 
   @tag fixtures: [:initial_state]
@@ -31,15 +31,15 @@ defmodule OmiseGO.API.RootchainCoordinator.CoreTest do
     depositer_pid = :c.pid(0, 1, 0)
     exiter_pid = :c.pid(0, 2, 0)
 
-    {:ok, state} = Core.sync(state, exiter_pid, 1, :exiter)
+    {:ok, state} = Core.check_in(state, exiter_pid, 1, :exiter)
     :nosync = Core.get_rootchain_height(state)
 
-    {:ok, state} = Core.sync(state, depositer_pid, 2, :depositer)
+    {:ok, state} = Core.check_in(state, depositer_pid, 2, :depositer)
     {:sync, 2} = Core.get_rootchain_height(state)
 
-    {:ok, state} = Core.sync(state, exiter_pid, 1, :exiter)
+    {:ok, state} = Core.check_in(state, exiter_pid, 1, :exiter)
     {:sync, 2} = Core.get_rootchain_height(state)
-    {:ok, state} = Core.sync(state, exiter_pid, 2, :exiter)
+    {:ok, state} = Core.check_in(state, exiter_pid, 2, :exiter)
     {:sync, 3} = Core.get_rootchain_height(state)
   end
 
@@ -48,13 +48,13 @@ defmodule OmiseGO.API.RootchainCoordinator.CoreTest do
     depositer_pid = :c.pid(0, 1, 0)
     exiter_pid = :c.pid(0, 2, 0)
 
-    {:ok, state} = Core.sync(state, exiter_pid, 1, :exiter)
-    {:ok, state} = Core.sync(state, depositer_pid, 1, :depositer)
+    {:ok, state} = Core.check_in(state, exiter_pid, 1, :exiter)
+    {:ok, state} = Core.check_in(state, depositer_pid, 1, :depositer)
     {:sync, 2} = Core.get_rootchain_height(state)
 
-    {:ok, state} = Core.remove_service(state, depositer_pid)
+    {:ok, state} = Core.check_out(state, depositer_pid)
     :nosync = Core.get_rootchain_height(state)
-    {:ok, state} = Core.sync(state, depositer_pid, 1, :depositer)
+    {:ok, state} = Core.check_in(state, depositer_pid, 1, :depositer)
     {:sync, 2} = Core.get_rootchain_height(state)
   end
 
@@ -63,8 +63,8 @@ defmodule OmiseGO.API.RootchainCoordinator.CoreTest do
     depositer_pid = :c.pid(0, 1, 0)
     exiter_pid = :c.pid(0, 2, 0)
 
-    {:ok, state} = Core.sync(state, exiter_pid, 10, :exiter)
-    {:ok, state} = Core.sync(state, depositer_pid, 10, :depositer)
+    {:ok, state} = Core.check_in(state, exiter_pid, 10, :exiter)
+    {:ok, state} = Core.check_in(state, depositer_pid, 10, :depositer)
     {:sync, 10} = Core.get_rootchain_height(state)
 
     {:ok, state} = Core.update_rootchain_height(state, 11)

@@ -14,6 +14,9 @@
 defmodule OmiseGO.API.RootchainCoordinator.Service do
   @moduledoc """
   Represents a service that is coordinated by rootchain coordinator.
+  Such a service is expected to get rootchain height by calling `RootchainCoordinator.get_height()` method
+  and report processed height by calling `RootChainCoordiantor.set_service_height(height, service_name)`
+  where `service_name` is a unique name of that service.
   """
 
   defstruct synced_height: nil, pid: nil

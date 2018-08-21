@@ -13,7 +13,14 @@
 # limitations under the License.
 defmodule OmiseGO.API.RootchainCoordinator.Core do
   @moduledoc """
-  Functional core of root chain coordinator.
+  Synchronizes services on rootchain height.
+  Does not allow any service to move above current
+  Each synchronized service must have a unique name.
+  Service reports its height by calling 'check_in'.
+  After all the services are checked in, coordinator returns currently synchronized height.
+  In case a service fails, it is checked out and coordinator does not resume until the missing service checks_in again.
+  After all the services are checked in with the same height, coordinator returns the next rootchain height when calling `check_in`.
+  Coordinator periodically updates rootchain height.
   """
 
   alias OmiseGO.API.RootchainCoordinator.Service
@@ -28,6 +35,11 @@ defmodule OmiseGO.API.RootchainCoordinator.Core do
           services: map()
         }
 
+  @doc """
+  Initializes core.
+  `allowed_services` - set of names of services that are being synchronized
+  `rootchain_height` - current rootchain height
+  """
   @spec init(MapSet.t(), non_neg_integer()) :: t()
   def init(allowed_services, rootchain_height) do
     %__MODULE__{allowed_services: allowed_services, rootchain_height: rootchain_height}
@@ -36,8 +48,8 @@ defmodule OmiseGO.API.RootchainCoordinator.Core do
   @doc """
   Updates Ethereum height on which a service is synchronized.
   """
-  @spec sync(t(), pid(), pos_integer(), atom()) :: {:ok, t()} | :service_not_allowed
-  def sync(state, pid, service_height, service_name) do
+  @spec check_in(t(), pid(), pos_integer(), atom()) :: {:ok, t()} | :service_not_allowed
+  def check_in(state, pid, service_height, service_name) do
     if allowed?(state.allowed_services, service_name) do
       update_service_synced_height(state, pid, service_height, service_name)
     else
@@ -69,7 +81,7 @@ defmodule OmiseGO.API.RootchainCoordinator.Core do
   """
   @spec get_rootchain_height(t()) :: {:sync, non_neg_integer()} | :nosync
   def get_rootchain_height(state) do
-    if all_services_registered?(state) do
+    if all_services_checked_in?(state) do
       # do not allow syncing to Ethereum blocks higher than block last seen by synchronizer
       next_sync_height = min(sync_height(state.services) + 1, state.rootchain_height)
       {:sync, next_sync_height}
@@ -78,7 +90,7 @@ defmodule OmiseGO.API.RootchainCoordinator.Core do
     end
   end
 
-  defp all_services_registered?(state) do
+  defp all_services_checked_in?(state) do
     registered =
       state.services
       |> Map.keys()
@@ -97,8 +109,8 @@ defmodule OmiseGO.API.RootchainCoordinator.Core do
   @doc """
   Removes service from services being synchronized
   """
-  @spec remove_service(t(), pid()) :: {:ok, t()}
-  def remove_service(state, pid) do
+  @spec check_out(t(), pid()) :: {:ok, t()}
+  def check_out(state, pid) do
     {service_name, _} =
       state.services
       |> Enum.find(fn {_, service} -> service.pid == pid end)
