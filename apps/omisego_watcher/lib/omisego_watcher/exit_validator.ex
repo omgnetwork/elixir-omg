@@ -37,7 +37,7 @@ defmodule OmiseGOWatcher.ExitValidator do
     # gets last ethereum block height that we fetched exits from
     {:ok, last_exit_block_height} = last_exit_block_height_callback.()
 
-    :ok = RootchainCoordinator.set_service_height(last_exit_block_height, service_name)
+    :ok = RootchainCoordinator.check_in(last_exit_block_height, service_name)
 
     height_sync_interval = Application.get_env(:omisego_api, :rootchain_height_sync_interval_ms)
     {:ok, _} = schedule_validate_exits(height_sync_interval)
@@ -67,7 +67,7 @@ defmodule OmiseGOWatcher.ExitValidator do
             {:ok, utxo_exits} = OmiseGO.Eth.get_exits(last_exit_block_height, block_height_to_get_exits_from)
             :ok = validate_exits(utxo_exits, state)
             :ok = OmiseGO.DB.multi_update(db_updates)
-            :ok = RootchainCoordinator.set_service_height(next_sync_height, state.service_name)
+            :ok = RootchainCoordinator.check_in(next_sync_height, state.service_name)
 
             {:noreply, state}
 

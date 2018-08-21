@@ -47,7 +47,7 @@ defmodule OmiseGO.API.EthereumEventListener do
 
     _ = Logger.info(fn -> "Starting EthereumEventListener" end)
 
-    :ok = RootchainCoordinator.set_service_height(parent_start_height, service_name)
+    :ok = RootchainCoordinator.check_in(parent_start_height, service_name)
 
     {:ok,
      %Core{
@@ -76,7 +76,7 @@ defmodule OmiseGO.API.EthereumEventListener do
       {:get_events, {event_height_lower_bound, event_height_upper_bound}, state} ->
         {:ok, events} = state.get_ethereum_events_callback.(event_height_lower_bound, event_height_upper_bound)
         :ok = state.process_events_callback.(events)
-        :ok = RootchainCoordinator.set_service_height(next_sync_height, state.service_name)
+        :ok = RootchainCoordinator.check_in(next_sync_height, state.service_name)
 
         _ =
           Logger.debug(fn ->

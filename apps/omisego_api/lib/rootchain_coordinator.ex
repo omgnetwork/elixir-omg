@@ -28,9 +28,9 @@ defmodule OmiseGO.API.RootchainCoordinator do
   Notifies that calling service with name `service_name` is synced up to height `synced_height`.
   `synced_height` is the height that the service is synced when calling this function.
   """
-  @spec set_service_height(non_neg_integer(), atom()) :: :ok
-  def set_service_height(synced_height, service_name) do
-    GenServer.call(__MODULE__, {:set_service_height, synced_height, service_name}, :infinity)
+  @spec check_in(non_neg_integer(), atom()) :: :ok
+  def check_in(synced_height, service_name) do
+    GenServer.call(__MODULE__, {:check_in, synced_height, service_name}, :infinity)
   end
 
   @doc """
@@ -52,7 +52,7 @@ defmodule OmiseGO.API.RootchainCoordinator do
     {:ok, state}
   end
 
-  def handle_call({:set_service_height, synced_height, service_name}, {pid, _}, state) do
+  def handle_call({:check_in, synced_height, service_name}, {pid, _}, state) do
     {:ok, state} = Core.check_in(state, pid, synced_height, service_name)
     {:reply, :ok, state}
   end

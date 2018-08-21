@@ -83,7 +83,7 @@ defmodule OmiseGOWatcher.BlockGetter do
     {:ok, deployment_height} = Eth.get_root_deployment_height()
     {:ok, last_synced_height} = OmiseGO.DB.last_block_getter_block_height()
     synced_height = max(deployment_height, last_synced_height)
-    :ok = RootchainCoordinator.set_service_height(synced_height, :block_getter)
+    :ok = RootchainCoordinator.check_in(synced_height, :block_getter)
 
     {:ok, block_number} = OmiseGO.DB.child_top_block_number()
     child_block_interval = Application.get_env(:omisego_eth, :child_block_interval)
@@ -165,7 +165,7 @@ defmodule OmiseGOWatcher.BlockGetter do
       end)
 
       :ok = OmiseGO.DB.multi_update(db_updates)
-      :ok = RootchainCoordinator.set_service_height(synced_height, :block_getter)
+      :ok = RootchainCoordinator.check_in(synced_height, :block_getter)
       {:noreply, state}
     else
       :nosync -> {:noreply, state}

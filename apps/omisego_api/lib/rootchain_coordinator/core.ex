@@ -14,12 +14,11 @@
 defmodule OmiseGO.API.RootchainCoordinator.Core do
   @moduledoc """
   Synchronizes services on rootchain height.
-  Does not allow any service to move above current
   Each synchronized service must have a unique name.
   Service reports its height by calling 'check_in'.
   After all the services are checked in, coordinator returns currently synchronized height.
   In case a service fails, it is checked out and coordinator does not resume until the missing service checks_in again.
-  After all the services are checked in with the same height, coordinator returns the next rootchain height when calling `check_in`.
+  After all the services checked in with the same height, coordinator returns the next rootchain height when calling `check_in`.
   Coordinator periodically updates rootchain height.
   """
 
