@@ -25,6 +25,10 @@ This assumes that you've got a developer's environment Child chain server set up
         alter user omisego_dev with encrypted password 'omisego_dev';
         ALTER USER omisego_dev CREATEDB;
 
+1. Go to the directory with the Watcher app
+
+        cd apps/omg_watcher
+
 1. Copy the configuration file used by the Child chain server to `~/config_watcher.exs`
 
         cp ~/config.exs ~/config_watcher.exs

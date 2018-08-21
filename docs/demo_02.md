@@ -79,7 +79,7 @@ to_charlist() |>
 Poison.decode!()
 
 %{"utxos" => [%{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
-  "http GET 'localhost:4000/account/utxo?address=#{bob.addr |> Base.encode16}'" |>
+  "http GET 'localhost:4000/account/utxo?address=#{bob_enc}'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
@@ -124,7 +124,6 @@ challenge =
     Base.decode16!(challenge["txbytes"]),
     Base.decode16!(challenge["proof"]),
     Base.decode16!(challenge["sigs"]),
-    1,
     alice_enc
   )
 
@@ -135,7 +134,7 @@ challenge =
 # If we introduce a 5 second sleep, the Watcher will have a hard time getting a block (requests time out in 5 seconds).
 # Some attempts will pass, some will fail and with the withholding threshold set to 10 seconds, we'll have block withholding stop the Watcher and print out an error (and fire events for machines)
 
-# put `Process.sleep 5_000` in API module, around line 31
+# put `Process.sleep 5_000` in API module, around line 69
 
 # now, with the code "broken" go to the `iex` REPL of the child chain and recompile the module
 
@@ -160,7 +159,7 @@ r(OMG.API.State.Core)
 
 # grab a utxo that bob can spend
 %{"utxos" => [%{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]} =
-  "http GET 'localhost:4000/account/utxo?address=#{bob.addr |> Base.encode16}'" |>
+  "http GET 'localhost:4000/account/utxo?address=#{bob_enc}'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
