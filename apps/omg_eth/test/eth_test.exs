@@ -27,7 +27,7 @@ defmodule OMG.EthTest do
   alias OMG.Eth, as: Eth
   alias OMG.Eth.WaitFor, as: WaitFor
   alias OMG.API.State.Transaction
-  alias OMGWatcher.UtxoDB
+  alias OMG.Watcher.UtxoDB
 
   use ExUnitFixtures
   use ExUnit.Case, async: false

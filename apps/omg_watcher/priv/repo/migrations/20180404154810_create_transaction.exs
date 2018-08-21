@@ -1,4 +1,4 @@
-defmodule OMGWatcher.Repo.Migrations.CreateTransaction do
+defmodule OMG.Watcher.Repo.Migrations.CreateTransaction do
   use Ecto.Migration
 
   def change do

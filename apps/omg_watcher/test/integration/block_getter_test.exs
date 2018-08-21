@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMGWatcher.BlockGetterTest do
+defmodule OMG.Watcher.Integration.BlockGetterTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
@@ -27,11 +27,11 @@ defmodule OMGWatcher.BlockGetterTest do
   require Utxo
   alias OMG.Eth
   alias OMG.JSONRPC.Client
-  alias OMGWatcher.Eventer.Event
-  alias OMGWatcher.Integration
-  alias OMGWatcher.TestHelper
-  alias OMGWatcherWeb.ByzantineChannel
-  alias OMGWatcherWeb.TransferChannel
+  alias OMG.Watcher.Eventer.Event
+  alias OMG.Watcher.Integration
+  alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Web.ByzantineChannel
+  alias OMG.Watcher.Web.TransferChannel
 
   import ExUnit.CaptureLog
 
@@ -41,7 +41,7 @@ defmodule OMGWatcher.BlockGetterTest do
   @eth Crypto.zero_address()
   @eth_hex String.duplicate("00", 20)
 
-  @endpoint OMGWatcherWeb.Endpoint
+  @endpoint OMG.Watcher.Web.Endpoint
 
   @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob, :alice_deposits]
   test "get the blocks from child chain after transaction and start exit", %{
@@ -273,7 +273,7 @@ defmodule OMGWatcher.BlockGetterTest do
   end
 
   defp assert_block_getter_down do
-    :ok = TestHelper.wait_for_process(Process.whereis(OMGWatcher.BlockGetter))
+    :ok = TestHelper.wait_for_process(Process.whereis(OMG.Watcher.BlockGetter))
   end
 
   defp get_utxo(%{addr: address}) do

@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMGWatcher.ExitValidator.CoreTest do
+defmodule OMG.Watcher.ExitValidator.CoreTest do
   use ExUnit.Case, async: true
 
-  alias OMGWatcher.ExitValidator.Core
+  alias OMG.Watcher.ExitValidator.Core
 
   test "lower bound of a block range does not exceed synced Ethereum height" do
     state = %Core{last_exit_block_height: 0, update_key: :update_key}

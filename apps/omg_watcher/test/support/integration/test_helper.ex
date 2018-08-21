@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMGWatcher.Integration.TestHelper do
+defmodule OMG.Watcher.Integration.TestHelper do
   @moduledoc """
   Common helper functions that are useful when integration-testing the watcher
   """
 
   alias OMG.Eth
-  import OMGWatcher.TestHelper
+  import OMG.Watcher.TestHelper
 
   def compose_utxo_exit(blknum, txindex, oindex) do
     decoded_resp = rest_call(:get, "account/utxo/compose_exit?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
@@ -50,7 +50,7 @@ defmodule OMGWatcher.Integration.TestHelper do
 
   defp wait_for_block(block_nr) do
     fn ->
-      case GenServer.call(OMGWatcher.BlockGetter, :get_height) < block_nr do
+      case GenServer.call(OMG.Watcher.BlockGetter, :get_height) < block_nr do
         true -> :repeat
         false -> {:ok, block_nr}
       end

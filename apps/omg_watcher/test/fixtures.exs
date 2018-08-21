@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMGWatcher.BlockGetter.Fixtures do
+defmodule OMG.Watcher.Fixtures do
   use ExUnitFixtures.FixtureModule
 
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
   use OMG.API.LoggerExt
-  alias OMGWatcher.TestHelper
+  alias OMG.Watcher.TestHelper
 
   deffixture child_chain(contract, token) do
     config_file_path = Briefly.create!(extname: ".exs")
@@ -133,8 +133,8 @@ defmodule OMGWatcher.BlockGetter.Fixtures do
 
   deffixture watcher_sandbox(watcher) do
     :ok = watcher
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMGWatcher.Repo)
-    Ecto.Adapters.SQL.Sandbox.mode(OMGWatcher.Repo, {:shared, self()})
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(OMG.Watcher.Repo, {:shared, self()})
   end
 
   @doc "run only database in sandbox and endpoint to make request"
@@ -143,12 +143,12 @@ defmodule OMGWatcher.BlockGetter.Fixtures do
 
     {:ok, pid} =
       Supervisor.start_link(
-        [supervisor(OMGWatcher.Repo, []), supervisor(OMGWatcherWeb.Endpoint, [])],
+        [supervisor(OMG.Watcher.Repo, []), supervisor(OMG.Watcher.Web.Endpoint, [])],
         strategy: :one_for_one,
-        name: OMGWatcher.Supervisor
+        name: OMG.Watcher.Supervisor
       )
 
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMGWatcher.Repo)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.Repo)
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
       TestHelper.wait_for_process(pid)

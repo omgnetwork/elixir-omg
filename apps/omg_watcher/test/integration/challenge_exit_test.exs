@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMGWatcher.ChallengeExitTest do
+defmodule OMG.Watcher.Integration.ChallengeExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
@@ -24,8 +24,8 @@ defmodule OMGWatcher.ChallengeExitTest do
   alias OMG.API.Crypto
   alias OMG.Eth
   alias OMG.JSONRPC.Client
-  alias OMGWatcher.Integration.TestHelper, as: IntegrationTest
-  alias OMGWatcher.TestHelper, as: Test
+  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.TestHelper, as: Test
 
   @moduletag :integration
 

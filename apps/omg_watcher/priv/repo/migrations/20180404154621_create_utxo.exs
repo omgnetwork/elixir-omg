@@ -1,4 +1,4 @@
-defmodule OMGWatcher.Repo.Migrations.CreateUtxo do
+defmodule OMG.Watcher.Repo.Migrations.CreateUtxo do
   use Ecto.Migration
 
   def change do

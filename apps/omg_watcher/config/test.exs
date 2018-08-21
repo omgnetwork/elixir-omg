@@ -2,16 +2,16 @@ use Mix.Config
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
-config :omg_watcher, OMGWatcherWeb.Endpoint,
+config :omg_watcher, OMG.Watcher.Web.Endpoint,
   http: [port: 4001],
   server: false
 
 # Configure your database
-config :omg_watcher, OMGWatcher.Repo,
+config :omg_watcher, OMG.Watcher.Repo,
   adapter: Sqlite.Ecto2,
   database: "/tmp/omisego/ecto_simple_" <> Integer.to_string(:rand.uniform(10_000_000)) <> ".sqlite3"
 
-config :omg_watcher, OMGWatcher.Repo, pool: Ecto.Adapters.SQL.Sandbox
+config :omg_watcher, OMG.Watcher.Repo, pool: Ecto.Adapters.SQL.Sandbox
 
 config :omg_api,
   ethereum_event_block_finality_margin: 2,
