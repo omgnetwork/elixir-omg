@@ -18,11 +18,11 @@ defmodule OMG.Performance do
 
   # Examples
 
-  ## start_simple_perf runs test with 5 tx for each 3 senders with default options.
+  ## start_simple_perftest runs test with 5 transactions for each 3 senders and default options.
     > mix run --no-start -e 'OMG.Performance.start_simple_perftest(5, 3)'
   }
 
-  ## start_extended_perf runs test with 100tx for one account with default options.
+  ## start_extended_perftest runs test with 100 transactions for one specified account and default options.
     > mix run --no-start -e 'OMG.Performance.start_extended_perftest(100, [%{ addr: <<192, 206, 18, ...>>, priv: <<246, 22, 164, ...>>}], "0xbc5f ...")'
 
   """
