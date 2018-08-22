@@ -7,7 +7,7 @@ The first release of the OMG Network is based upon **Tesuji Plasma**, an iterati
 
 ![eWallet server and OMG Network](assets/OMG-network-eWallet.jpg)
 
-See the [Tesuji Plasma design document](tesuji_blockchain_design.md) for a full description for the Child Chain Server and Watcher.
+See the [Tesuji Plasma design document](docs/tesuji_blockchain_design.md) for a full description for the Child Chain Server and Watcher.
 
 A description of the [application architecture](docs/architecture.md) may be found in the `docs` directory.
 
