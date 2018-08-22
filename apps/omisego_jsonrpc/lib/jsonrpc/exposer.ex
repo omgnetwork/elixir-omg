@@ -34,7 +34,7 @@ defmodule OmiseGO.JSONRPC.Exposer do
              method,
              params,
              api.get_specs(),
-             &OmiseGO.JSONRPC.Client.on_match/3
+             &on_match/3
            ),
          {:ok, result} <- apply_call(api, fname, args) do
       OmiseGO.JSONRPC.Client.encode(result)
@@ -44,6 +44,9 @@ defmodule OmiseGO.JSONRPC.Exposer do
         throw(error)
     end
   end
+
+  defp on_match(_name, _type, nil), do: nil
+  defp on_match(_name, type, value), do: OmiseGO.JSONRPC.Client.decode(type, value)
 
   defp apply_call(module, fname, args) do
     case apply(module, fname, args) do

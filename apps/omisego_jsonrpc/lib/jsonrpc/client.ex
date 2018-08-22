@@ -18,9 +18,6 @@ defmodule OmiseGO.JSONRPC.Client do
   (see also expose_spec)
   """
 
-  def on_match(_name, :bitstring, value), do: Base.decode16!(value)
-  def on_match(_name, _type, value), do: value
-
   def encode(arg) when is_binary(arg), do: Base.encode16(arg)
 
   def encode(%{__struct__: _} = struct), do: encode(Map.from_struct(struct))
@@ -47,12 +44,15 @@ defmodule OmiseGO.JSONRPC.Client do
          do: decode_payload(method, server_response)
   end
 
-  defp decode(:bitstring, arg) do
+  def decode(:bitstring, arg) when is_binary(arg) do
     case Base.decode16(arg, case: :mixed) do
       :error -> {:error, :argument_decode_error}
       other -> other
     end
   end
+
+  def decode(:bitstring, _arg), do: {:error, :argument_decode_error}
+  def decode(_type, arg), do: {:ok, arg}
 
   defp decode_payload(:get_block, response_payload) do
     with {:ok, %{transactions: encoded_txs, hash: encoded_hash} = atomized_block} <-

@@ -51,41 +51,13 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
   defp eth, do: Crypto.zero_address()
 
-  @tag fixtures: [:alice, :bob, :omisego, :contract, :token]
-  test "deposit, spend, exit, restart etc works fine", %{alice: alice, bob: bob, contract: contract, token: token} do
-    {:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
-
-    {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, alice_enc)
-    {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
-
-    deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
-
-    # mint some test tokens for Alice
-    _ = Eth.DevHelpers.token_mint(alice_enc, 20, token.address)
-
-    # allow root chain contract to spend Alice tokens
-    Eth.DevHelpers.token_approve(
-      alice_enc,
-      contract.contract_addr,
-      20,
-      token.address
-    )
-
-    # pull funds from Alice to root chain contract and deposit it
-    {:ok, receipt} = Eth.DevHelpers.deposit_token(alice_enc, token.address, 20)
-    token_deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
-
-    # wait until both deposits are recognized by child chain
-    post_deposit_child_block =
-      token_deposit_blknum - 1 +
-        (Application.get_env(:omisego_api, :ethereum_event_block_finality_margin) + 1) *
-          BlockQueue.child_block_interval()
-
-    # TODO: possible source of flakiness is that State did not process deposit on time
-    Process.sleep(4000)
-
-    {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true)
-
+  @tag fixtures: [:alice, :bob, :omisego, :token, :alice_deposits]
+  test "deposit, spend, exit, restart etc works fine", %{
+    alice: alice,
+    bob: bob,
+    token: token,
+    alice_deposits: {deposit_blknum, token_deposit_blknum}
+  } do
     raw_tx = Transaction.new([{deposit_blknum, 0, 0}], eth(), [{bob.addr, 7}, {alice.addr, 3}])
 
     tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
@@ -95,7 +67,12 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
 
     {:ok, token_addr} = OmiseGO.API.Crypto.decode_address(token.address)
 
-    token_raw_tx = Transaction.new([{token_deposit_blknum, 0, 0}], token_addr, [{bob.addr, 18}, {alice.addr, 2}])
+    token_raw_tx =
+      Transaction.new(
+        [{token_deposit_blknum, 0, 0}],
+        token_addr,
+        [{bob.addr, 8}, {alice.addr, 2}]
+      )
 
     token_tx = token_raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
@@ -144,5 +121,7 @@ defmodule OmiseGO.API.Integration.HappyPathTest do
     assert {:error, {_, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx})
 
     assert {:error, {_, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
+
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: token_tx})
   end
 end

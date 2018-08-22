@@ -26,6 +26,18 @@ defmodule OmiseGO.API do
 
   @spec submit(transaction :: bitstring) ::
           {:ok, %{tx_hash: bitstring, blknum: integer, tx_index: integer}} | {:error, atom}
+  @expose_spec {:submit,
+                %{
+                  args: [transaction: :bitstring],
+                  arity: 1,
+                  name: :submit,
+                  returns:
+                    {:alternative,
+                     [
+                       ok: {:map, [tx_hash: :bitstring, blknum: :integer, tx_index: :integer]},
+                       error: :atom
+                     ]}
+                }}
   def submit(transaction) do
     result =
       with {:ok, recovered_tx} <- Core.recover_tx(transaction),
@@ -41,6 +53,18 @@ defmodule OmiseGO.API do
 
   @spec get_block(hash :: bitstring) ::
           {:ok, %{hash: bitstring, transactions: list, number: integer}} | {:error, :not_found | :internal_error}
+  @expose_spec {:get_block,
+                %{
+                  args: [hash: :bitstring],
+                  arity: 1,
+                  name: :get_block,
+                  returns:
+                    {:alternative,
+                     [
+                       ok: {:map, [hash: :bitstring, transactions: :list, number: :integer]},
+                       error: {:alternative, [:not_found, :internal_error]}
+                     ]}
+                }}
   def get_block(hash) do
     with {:ok, struct_block} <- FreshBlocks.get(hash) do
       _ = Logger.debug(fn -> " resulted successfully, hash '#{inspect(hash)}'" end)
