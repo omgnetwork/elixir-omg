@@ -4,7 +4,7 @@
 
 `:omg_api` is the Elixir app which runs the child chain server, whose API can be exposed by running `:omg_jsonrpc` additionally.
 
-For the responsibilities and design of the child chain server see [Tesuji Plasma Blockchain Design document](FIXME link pending).
+For the responsibilities and design of the child chain server see [Tesuji Plasma Blockchain Design document](../../docs/tesuji_blockchain_design.md).
 
 ## Overview of apps
 
