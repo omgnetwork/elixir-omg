@@ -23,7 +23,6 @@ defmodule OmiseGO.Performance.SenderManager do
   alias OmiseGO.API.Utxo
 
   require Utxo
-  @initial_blknum 1
 
   def sender_stats(new_stats) do
     GenServer.cast(__MODULE__, {:stats, Map.put(new_stats, :timestamp, System.monotonic_time(:millisecond))})
@@ -75,7 +74,7 @@ defmodule OmiseGO.Performance.SenderManager do
        goal: ntx_to_send,
        start_time: System.monotonic_time(:millisecond),
        destdir: destdir,
-       initial_blknums: initial_blknums ++ [@initial_blknum]
+       initial_blknums: initial_blknums
      }}
   end
 

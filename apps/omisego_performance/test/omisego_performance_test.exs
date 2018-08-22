@@ -38,7 +38,7 @@ defmodule OmiseGO.PerformanceTest do
   test "Smoke test - run start_simple_perf and see if it don't crash", %{destdir: destdir} do
     ntxs = 3000
     nsenders = 2
-    assert :ok = OmiseGO.Performance.start_simple_perf(ntxs, nsenders, %{destdir: destdir})
+    assert :ok = OmiseGO.Performance.start_simple_perftest(ntxs, nsenders, %{destdir: destdir})
 
     assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * nsenders)
@@ -54,7 +54,7 @@ defmodule OmiseGO.PerformanceTest do
     ntxs = 3000
     senders = [alice, bob]
 
-    assert :ok = OmiseGO.Performance.start_extended_perf(ntxs, senders, contract.contract_addr, %{destdir: destdir})
+    assert :ok = OmiseGO.Performance.start_extended_perftest(ntxs, senders, contract.contract_addr, %{destdir: destdir})
 
     assert ["perf_result" <> _ = perf_result] = File.ls!(destdir)
     smoke_test_statistics(Path.join(destdir, perf_result), ntxs * length(senders))
@@ -67,7 +67,7 @@ defmodule OmiseGO.PerformanceTest do
 
     fprof_io =
       capture_io(fn ->
-        assert :ok = OmiseGO.Performance.start_simple_perf(ntxs, nsenders, %{destdir: destdir, profile: true})
+        assert :ok = OmiseGO.Performance.start_simple_perftest(ntxs, nsenders, %{destdir: destdir, profile: true})
       end)
 
     # TODO a warning is printed out in fprof_io - check it out and possibly test against that
@@ -89,7 +89,7 @@ defmodule OmiseGO.PerformanceTest do
   test "Smoke test - run start_simple_perf and see if it don't crash - overiding block creation", %{destdir: destdir} do
     ntxs = 3000
     nsenders = 2
-    assert :ok = OmiseGO.Performance.start_simple_perf(ntxs, nsenders, %{destdir: destdir, block_every_ms: 3000})
+    assert :ok = OmiseGO.Performance.start_simple_perftest(ntxs, nsenders, %{destdir: destdir, block_every_ms: 3000})
 
     assert ["perf_result" <> _] = File.ls!(destdir)
 

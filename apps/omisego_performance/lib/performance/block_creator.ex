@@ -18,8 +18,8 @@ defmodule OmiseGO.Performance.BlockCreator do
   """
 
   use GenServer
-
   use OmiseGO.API.LoggerExt
+
   @initial_block_number 1000
 
   @doc """

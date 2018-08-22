@@ -19,11 +19,8 @@ defmodule OmiseGO.Eth.DevHelpers do
   """
 
   alias OmiseGO.API.Crypto
-  alias OmiseGO.API.Utxo
-  require Utxo
   alias OmiseGO.Eth.WaitFor, as: WaitFor
   alias OmiseGO.Eth
-
 
   import OmiseGO.Eth.Encoding
 
@@ -103,8 +100,7 @@ defmodule OmiseGO.Eth.DevHelpers do
       {:ok, receipt} = OmiseGO.Eth.WaitFor.eth_receipt(deposit_tx_hash)
       deposit_blknum = deposit_blknum_from_receipt(receipt)
 
-      utxo_pos = Utxo.position(deposit_blknum, 0, 0) |> Utxo.Position.encode()
-      %{owner: account, utxo_pos: utxo_pos, amount: value}
+      {:ok, account, deposit_blknum, value}
     end
 
     accounts
