@@ -25,6 +25,12 @@ defmodule OMG.Performance.SenderServer do
 
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction
+  alias OMG.API.TestHelper
+  alias OMG.API.Utxo
+
+  require Utxo
+
+  @eth Crypto.zero_address()
 
   defmodule LastTx do
     @moduledoc """
@@ -46,8 +52,6 @@ defmodule OMG.Performance.SenderServer do
     :last_tx
   ]
 
-  @eth Crypto.zero_address()
-
   @opaque state :: %__MODULE__{
             seqnum: integer,
             ntx_to_send: integer,
@@ -58,7 +62,7 @@ defmodule OMG.Performance.SenderServer do
   @doc """
   Starts the process.
   """
-  @spec start_link({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, pid}
+  @spec start_link({pos_integer(), map(), pos_integer()}) :: {:ok, pid}
   def start_link(args) do
     GenServer.start_link(__MODULE__, args)
   end
@@ -69,21 +73,16 @@ defmodule OMG.Performance.SenderServer do
     * Senders are assigned sequential positive int starting from 1, senders are initialized in order of seqnum.
       This ensures all senders' deposits are accepted.
   """
-  @spec init({seqnum :: integer, ntx_to_send :: integer}) :: {:ok, state()}
-  def init({seqnum, ntx_to_send}) do
-    _ = Logger.debug(fn -> "[#{inspect(seqnum)}] init called with requests: '#{inspect(ntx_to_send)}'" end)
-
-    spender = generate_entity()
-    _ = Logger.debug(fn -> "[#{inspect(seqnum)}]: Address #{Base.encode64(spender.addr)}" end)
-
-    deposit_value = 10 * ntx_to_send
-    {:ok, owner_enc} = Crypto.encode_address(spender.addr)
-    :ok = OMG.API.State.deposit([%{owner: owner_enc, currency: @eth, amount: deposit_value, blknum: seqnum}])
-
-    _ = Logger.debug(fn -> "[#{inspect(seqnum)}]: Deposited #{inspect(deposit_value)} OMG" end)
+  @spec init({pos_integer(), map(), pos_integer()}) :: {:ok, state()}
+  def init({seqnum, utxo, ntx_to_send}) do
+    _ =
+      Logger.debug(fn ->
+        "[#{inspect(seqnum)}] init called with utxo: #{inspect(utxo)} and requests: '#{inspect(ntx_to_send)}'"
+      end)
 
     send(self(), :do)
-    {:ok, init_state(seqnum, ntx_to_send, spender)}
+
+    {:ok, init_state(seqnum, utxo, ntx_to_send)}
   end
 
   @doc """
@@ -113,9 +112,9 @@ defmodule OMG.Performance.SenderServer do
   end
 
   defp prepare_new_tx(%__MODULE__{seqnum: seqnum, spender: spender, last_tx: last_tx}) do
-    to_spend = 9
+    to_spend = 1
     newamount = last_tx.amount - to_spend
-    recipient = generate_entity()
+    recipient = TestHelper.generate_entity()
 
     _ =
       Logger.debug(fn ->
@@ -201,33 +200,21 @@ defmodule OMG.Performance.SenderServer do
     OMG.JSONRPC.Client.call(:submit, %{transaction: encoded_tx})
   end
 
-  # Generates participant private key and address
-  # TODO: DRY this, used also in omg_api/test, omg_eth
-  @spec generate_entity() :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
-  defp generate_entity do
-    {:ok, priv} = Crypto.generate_private_key()
-    {:ok, pub} = Crypto.generate_public_key(priv)
-    {:ok, addr} = Crypto.generate_address(pub)
-    %{priv: priv, addr: addr}
-  end
+  #   Generates module's initial state
+  @spec init_state(pos_integer(), map(), pos_integer()) :: __MODULE__.state()
+  defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount}, ntx_to_send) do
+    {:utxo_position, blknum, txindex, oindex} = Utxo.Position.decode(utxo_pos)
 
-  # Generates module's initial state
-  @spec init_state(
-          seqnum :: pos_integer,
-          nreq :: pos_integer,
-          spender :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
-        ) :: __MODULE__.state()
-  defp init_state(seqnum, nreq, spender) do
     %__MODULE__{
       seqnum: seqnum,
-      ntx_to_send: nreq,
+      ntx_to_send: ntx_to_send,
       spender: spender,
       last_tx: %LastTx{
         # initial state takes deposited value, put there on :init
-        blknum: seqnum,
-        txindex: 0,
-        oindex: 0,
-        amount: 10 * nreq
+        blknum: blknum,
+        txindex: txindex,
+        oindex: oindex,
+        amount: amount
       }
     }
   end
