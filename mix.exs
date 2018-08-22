@@ -1,4 +1,4 @@
-defmodule OmiseGO.Umbrella.MixProject do
+defmodule OMG.Umbrella.MixProject do
   use Mix.Project
 
   def project do
@@ -9,11 +9,11 @@ defmodule OmiseGO.Umbrella.MixProject do
       preferred_cli_env: [coveralls: :test, "coveralls.html": :test, "coveralls.detail": :test, dialyzer: :prod],
       dialyzer: [
         paths: [
-          "_build/prod/lib/omisego_watcher/ebin",
-          "_build/prod/lib/omisego_jsonrpc/ebin",
-          "_build/prod/lib/omisego_api/ebin",
-          "_build/prod/lib/omisego_eth/ebin",
-          "_build/prod/lib/omisego_db/ebin"
+          "_build/prod/lib/omg_watcher/ebin",
+          "_build/prod/lib/omg_jsonrpc/ebin",
+          "_build/prod/lib/omg_api/ebin",
+          "_build/prod/lib/omg_eth/ebin",
+          "_build/prod/lib/omg_db/ebin"
         ],
         flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
         plt_add_deps: :transitive,
@@ -39,7 +39,7 @@ defmodule OmiseGO.Umbrella.MixProject do
         :ex_unit_fixtures,
         git: "https://github.com/omisego/ex_unit_fixtures.git", branch: "feature/require_files_not_load", only: [:test]
       },
-      # NOTE: we're overriding for the sake of `omisego_api` mix.exs deps. Otherwise the override is ignored
+      # NOTE: we're overriding for the sake of `omg_api` mix.exs deps. Otherwise the override is ignored
       # TODO: making it consistent is advised: maybe discuss with exth_crypto and submit pr there?
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true}
     ]
