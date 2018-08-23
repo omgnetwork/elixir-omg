@@ -1,9 +1,69 @@
 <img src="docs/assets/logo.png" align="right" />
 
-# elixir-omg
 The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma and forms the basis for the OMG Network.
 
 **IMPORTANT NOTICE: Heavily WIP, expect anything**
+
+**Table of Contents**
+
+<!--ts-->
+   * [Getting Started](#getting-started)
+      * [Install](#install)
+      * [Setup](#setup)
+         * [Setting up a child chain server (a developer environment)](#setting-up-a-child-chain-server-a-developer-environment)
+            * [Start up developer instance of Ethereum](#start-up-developer-instance-of-ethereum)
+               * [Persistent developer geth instance](#persistent-developer-geth-instance)
+            * [Configure the omg_eth app](#configure-the-omg_eth-app)
+            * [Initialize the child chain database](#initialize-the-child-chain-database)
+            * [Start it up!](#start-it-up)
+         * [Setting up a Watcher (a developer environment)](#setting-up-a-watcher-a-developer-environment)
+            * [Configure the PostgreSQL server with:](#configure-the-postgresql-server-with)
+            * [Configure the Watcher](#configure-the-watcher)
+            * [Initialize the Watcher's databases](#initialize-the-watchers-databases)
+            * [Start the Watcher](#start-the-watcher)
+         * [Follow the demos](#follow-the-demos)
+      * [Troubleshooting](#troubleshooting)
+   * [elixir-omg applications](#elixir-omg-applications)
+      * [Child chain server](#child-chain-server)
+         * [Using the child chain server's API](#using-the-child-chain-servers-api)
+            * [JSONRPC 2.0](#jsonrpc-20)
+               * [submit](#submit)
+               * [get_block](#get_block)
+         * [Running a child chain in practice](#running-a-child-chain-in-practice)
+            * [Funding the operator address](#funding-the-operator-address)
+               * [Example](#example)
+      * [Watcher](#watcher)
+         * [Using the watcher](#using-the-watcher)
+         * [Endpoints](#endpoints)
+         * [Websockets](#websockets)
+            * [transfer:ethereum_address](#transferethereum_address)
+               * [address_received and address_spent](#address_received-and-address_spent)
+            * [spends:ethereum_address](#spendsethereum_address)
+               * [address_spent](#address_spent)
+            * [receives:ethereum_address](#receivesethereum_address)
+               * [address_received](#address_received)
+            * [byzantine_invalid_exit](#byzantine_invalid_exit)
+               * [in_flight_exit](#in_flight_exit)
+               * [piggyback](#piggyback)
+               * [exit_from_spent](#exit_from_spent)
+            * [byzantine_bad_chain](#byzantine_bad_chain)
+               * [invalid_block](#invalid_block)
+               * [block_withholding](#block_withholding)
+               * [invalid_fee_exit](#invalid_fee_exit)
+            * [TODO block](#todo-block)
+            * [TODO deposit_spendable](#todo-deposit_spendable)
+            * [TODO fees](#todo-fees)
+               * [fees_exited](#fees_exited)
+      * [Contracts](#contracts)
+         * [Installing dependencies and compiling contracts](#installing-dependencies-and-compiling-contracts)
+   * [Testing &amp; development](#testing--development)
+
+<!-- Added by: user, at: 2018-08-23T17:00+02:00 -->
+
+<!--te-->
+
+<!-- Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc) -->
+<!-- .gh-md-toc --insert README.md -->
 
 The first release of the OMG Network is based upon **Tesuji Plasma**, an iterative design step over [Plasma MVP](github.com/omisego/plasma-mvp). The diagram below illustrates the relationship between the wallet provider and how wallet providers connect to **Tesuji Plasma**.
 
@@ -12,14 +72,14 @@ The first release of the OMG Network is based upon **Tesuji Plasma**, an iterati
 See the [Tesuji Plasma design document](docs/tesuji_blockchain_design.md) for a full description for the Child Chain Server and Watcher.
 **NOTE** not all parts of that design have been implemented!
 
-## Getting Started
+# Getting Started
 
 A public testnet for the OMG Network is not yet available. However, if you are brave and want to test being a Tesuji Plasma chain operator, read on!
 
-### Install
+## Install
 Firstly, **[install](docs/install.md)** the child chain server and watcher.
 
-### Setup
+## Setup
 The setup process for the Child chain server and for the Watcher is similar.
 A high level flow of the setup for both is outlined below.
 
@@ -44,8 +104,8 @@ Such configuration must become part of the [Mix configuration](https://hexdocs.p
 1. (**Watcher only**) Create and migrate the PostgreSQL `WatcherDB` database
 1. (**Watcher only**) At this point the Watcher should be properly setup to run by starting the `omg_watcher` Mix app
 
-#### Setting up a child chain server (a developer environment)
-##### Start up developer instance of Ethereum
+### Setting up a child chain server (a developer environment)
+#### Start up developer instance of Ethereum
 The easiest way to get started is if you have access to a developer instance of `geth`.
 If you don't already have access to a developer instance of `geth`, follow the [installation](docs/install.md) instructions.
 
@@ -56,13 +116,13 @@ However, when `geth` terminates, the state of the Ethereum network is lost.
 geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth
 ```
 
-###### Persistent developer `geth` instance
+##### Persistent developer `geth` instance
 Alternatively, a persistent developer instance that does not lose state can be started with the following command:
 ```
 geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth --datadir ~/.geth
 ```
 
-##### Configure the `omg_eth` app
+#### Configure the `omg_eth` app
 
 The following step will:
 - create, fund and unlock the authority address
@@ -98,7 +158,7 @@ geth attach http://127.0.0.1:8545
 personal.unlockAccount(“<authority_addr from ~/config.exs>”, '', 0)
 ```
 
-##### Initialize the child chain database
+#### Initialize the child chain database
 Initialize the database with the following command.
 **CAUTION** This wipes the old data clean!:
 ```
@@ -109,7 +169,7 @@ mix run --no-start -e 'OMG.DB.init()'
 The database files are put at the default location `~/.omg/data`.
 You need to re-initialize the database, in case you want to start a new child chain from scratch!
 
-##### Start it up!
+#### Start it up!
 * Start up geth if not already started.
 * Start Up the child chain server:
 
@@ -118,11 +178,11 @@ cd apps/omg_jsonrpc
 iex -S mix run --config ~/config.exs
 ```
 
-#### Setting up a Watcher (a developer environment)
+### Setting up a Watcher (a developer environment)
 
 This assumes that you've got a developer environment Child chain server set up and running on the default `localhost:9656`, see above.
 
-##### Configure the PostgreSQL server with:
+#### Configure the PostgreSQL server with:
 
 ```
 sudo -u postgres createuser omisego_dev
@@ -131,7 +191,7 @@ alter user omisego_dev with encrypted password 'omisego_dev';
 ALTER USER omisego_dev CREATEDB;
 ```
 
-##### Configure the Watcher
+#### Configure the Watcher
 
 Copy the configuration file used by the Child chain server to `~/config_watcher.exs`
 
@@ -146,7 +206,7 @@ config :omg_db,
   leveldb_path: Path.join([System.get_env("HOME"), ".omg/data_watcher"])
 ```
 
-##### Initialize the Watcher's databases
+#### Initialize the Watcher's databases
 
 **CAUTION** This wipes the old data clean!
 
@@ -155,7 +215,7 @@ rm -rf ~/.omg/data_watcher
 mix do ecto.drop, ecto.create, ecto.migrate, run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
 ```
 
-##### Start the Watcher
+#### Start the Watcher
 
 To start syncing to the Child chain server:
 
@@ -164,7 +224,7 @@ cd apps/omg_watcher
 iex -S mix run --config ~/config_watcher.exs
 ```
 
-#### Follow the demos
+### Follow the demos
 After starting the child chain server and/or Watcher as above, you may follow the steps in the demo scripts.
 Note that some steps should be performed in the Elixir shell (iex) and some in the shell directly.
 
@@ -175,10 +235,10 @@ iex -S mix run --no-start --config ~/config.exs
 
 Follow one of the scripts in the [docs](docs/) directory. Don't pick any `OBSOLETE` demos.
 
-### Troubleshooting
+## Troubleshooting
 Solutions to common problems may be found in the [troubleshooting](docs/troubleshooting.md) document.
 
-## `elixir-omg` applications
+# `elixir-omg` applications
 
 `elixir-omg` is an umbrella app comprising of several Elixir applications:
 
@@ -196,21 +256,21 @@ The general idea of the apps responsibilities is:
 
 See [application architecture](docs/architecture.md) for more details.
 
-### Child chain server
+## Child chain server
 
 `:omg_api` is the Elixir app which runs the child chain server, whose API can be exposed by running `:omg_jsonrpc`.
 
 For the responsibilities and design of the child chain server see [Tesuji Plasma Blockchain Design document](docs/tesuji_blockchain_design.md).
 
-#### Using the child chain server's API
+### Using the child chain server's API
 
-##### JSONRPC 2.0
+#### JSONRPC 2.0
 
 JSONRPC 2.0 requests are served up on the port specified in `omg_jsonrpc`'s `config` (`9656` by default).
 The available RPC calls are defined by `omg_api` in `api.ex` - the functions are `method` names and their respective arguments must be sent in a `params` dictionary.
 The argument names are indicated by the `@spec` clauses.
 
-###### `submit`
+##### `submit`
 
 Request:
 
@@ -239,7 +299,7 @@ Response:
 }
 ```
 
-###### `get_block`
+##### `get_block`
 
 Request:
 
@@ -270,11 +330,11 @@ Response:
 }
 ```
 
-#### Running a child chain in practice
+### Running a child chain in practice
 
 **TODO** other sections
 
-##### Funding the operator address
+#### Funding the operator address
 
 The address that is running the child chain server and submitting blocks needs to be funded with Ether.
 At the current stage this is designed as a manual process, i.e. we assume that every **gas reserve checkpoint interval**, someone will ensure that **gas reserve** worth of Ether is available for transactions.
@@ -294,7 +354,7 @@ child_blocks_per_day = ethereum_blocks_per_day / submit_period
 
 **Highest gas price** is the maximum gas price which the operator allows for when trying to have the block submission mined (operator always tries to pay less than that maximum, but has to adapt to Ethereum traffic) - configured in (**TODO** when doing OMG-47 task)
 
-###### Example
+##### Example
 
 Assuming:
 - submission of a child block every Ethereum block
@@ -307,7 +367,7 @@ we get
 gas_reserve ~= 4 * 60 * 24 / 1 * 7 * 75071 * 40 / 10**9  ~= 121 ETH
 ```
 
-### Watcher
+## Watcher
 
 The Watcher is an observing node that connects to Ethereum and the child chain server's API.
 It ensures that the child chain is valid and notifies otherwise.
@@ -316,23 +376,23 @@ It provides a secure proxy to the child chain server's API and to Ethereum, ensu
 
 For more on the responsibilities and design of the Watcher see [Tesuji Plasma Blockchain Design document](docs/tesuji_blockchain_design.md).
 
-#### Using the watcher
+### Using the watcher
 
-#### Endpoints
+### Endpoints
 TODO
 
-#### Websockets
+### Websockets
 
 Exposed websockets are using [Phoenix channels](https://hexdocs.pm/phoenix/channels.html) feature.
 Different events are emitted for each topic.
 
-##### Topics:
+There are the following topics:
 
-##### transfer:ethereum_address
+#### transfer:ethereum_address
 
 Events:
 
-###### address_received and address_spent
+##### address_received and address_spent
 `address_received` event informing about that particular address received funds.
 
 `address_spent` event informing about that particular address spent funds.
@@ -379,51 +439,51 @@ In case extra finality is required for high-stakes transactions, the client is f
 
 **TODO** the rest of the events' specs. First draft:
 
-##### spends:ethereum_address
+#### spends:ethereum_address
 
 Events:
 
-###### address_spent
+##### address_spent
 
-##### receives:ethereum_address
-
-Events:
-
-###### address_received
-
-##### byzantine_invalid_exit
+#### receives:ethereum_address
 
 Events:
 
-###### in_flight_exit
+##### address_received
 
-###### piggyback
-
-###### exit_from_spent
-
-##### byzantine_bad_chain
+#### byzantine_invalid_exit
 
 Events:
 
-###### invalid_block
+##### in_flight_exit
+
+##### piggyback
+
+##### exit_from_spent
+
+#### byzantine_bad_chain
+
+Events:
+
+##### invalid_block
 Event informing about that particular block is invalid.
 
-###### block_withholding
+##### block_withholding
 Event informing about that the child chain is withholding block.
 
-###### invalid_fee_exit
+##### invalid_fee_exit
 
-##### TODO block
+#### TODO block
 
-##### TODO deposit_spendable
+#### TODO deposit_spendable
 
-##### TODO fees
+#### TODO fees
 
 Events:
 
-###### fees_exited
+##### fees_exited
 
-### Contracts
+## Contracts
 
 OMG network uses contract code from [the contracts repo](http://github.com/omisego/plasma-contracts).
 Code from a particular branch in that repo is used, see [one of `mix.exs` configuration files](apps/omg_eth/mix.exs) for details.
@@ -431,7 +491,7 @@ Code from a particular branch in that repo is used, see [one of `mix.exs` config
 Contract code is downloaded automatically when getting dependencies of the Mix application with `mix deps.get`.
 You can find the downloaded version of that code under `deps/plasma_contracts`.
 
-#### Installing dependencies and compiling contracts
+### Installing dependencies and compiling contracts
 
 **Python3 is required**, [`virtualenv`](https://virtualenv.pypa.io/en/stable/) is recommended.
 
@@ -455,7 +515,7 @@ see [a better pip workflow^TM here](https://www.kennethreitz.org/essays/a-better
 
 **DEV NOTE** removing `pkg-resources` comes from [here](https://stackoverflow.com/a/48365609)
 
-## Testing & development
+# Testing & development
 
 Quick test (no integration tests):
 ```
