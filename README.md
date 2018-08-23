@@ -12,8 +12,6 @@ The first release of the OMG Network is based upon **Tesuji Plasma**, an iterati
 See the [Tesuji Plasma design document](docs/tesuji_blockchain_design.md) for a full description for the Child Chain Server and Watcher.
 **NOTE** not all parts of that design have been implemented!
 
-A description of the [application architecture](docs/architecture.md) may be found in the `docs` directory.
-
 ## Getting Started
 
 A public testnet for the OMG Network is not yet available. However, if you are brave and want to test being a Tesuji Plasma chain operator, read on!
@@ -25,26 +23,26 @@ Firstly, **[install](docs/install.md)** the child chain server and watcher.
 The setup process for the Child chain server and for the Watcher is similar.
 A high level flow of the setup for both is outlined below.
 
-**NOTE** If you are more interested in just getting things running quickly, skip the outline and scroll down to next sections for a set of more detailed instructions.
+**NOTE** If you are more interested in just getting things running quickly or unfamiliar with [Elixir and Mix](https://elixir-lang.org/), skip the outline and scroll down to the next sections for step-by-step instructions.
 
 1. Run an Ethereum node connected to the appropriate network and make sure it's ready to use
   - currently only connections via RPC over HTTP are supported, defaulting to `http://localhost:8545`.
   To customize that, configure `ethereumex`, with `url: "http://host:port"`
-  - `Byzantium` is required to be in effect on the Ethereum network you connect to
-1. (**Child chain server only**) Prepare the authority address and deploy `RootChain.sol`.
+  - `Byzantium` is required to be in effect
+1. (**Child chain server only**) Prepare the authority address and deploy `RootChain.sol`, see [Contracts section](#Contracts).
 **Authority address** belongs to the child chain operator, and is used to run the child chain (submit blocks to the root chain contract)
 1. Produce a configuration file for `omg_eth` with the contract address, authority address and hash of contract-deploying transaction.
 The configuration keys can be looked up at [`apps/omg_eth/config/config.exs`](`apps/omg_eth/config/config.exs`).
 Such configuration must become part of the [Mix configuration](https://hexdocs.pm/mix/Mix.Config.html) for the app you're going to be running.
 1. Initialize the child chain server's `OMG.DB` database.
-1. At this point the child chain server should be properly setup to run, by starting the `omg_jsonrpc` Mix app
+1. At this point the child chain server should be properly setup to run by starting the `omg_jsonrpc` Mix app
 1. (**Watcher only**) Configure PostgreSQL for `WatcherDB` database
 1. (**Watcher only**) Acquire the configuration file with root chain deployment data
 1. (**Watcher only**, optional) If running on the same machine as the child chain server, customize the location of `OMG.DB` database folder
 1. (**Watcher only**) Configure the child chain url (default is `http://localhost:9656`) by configuring `:omg_jsonrpc` with `child_chain_url: "http://host:port"`
 1. (**Watcher only**) Initialize the Watcher's `OMG.DB` database
 1. (**Watcher only**) Create and migrate the PostgreSQL `WatcherDB` database
-1. (**Watcher only**) At this point the Watcher should be properly setup to run, by starting the `omg_watcher` Mix app
+1. (**Watcher only**) At this point the Watcher should be properly setup to run by starting the `omg_watcher` Mix app
 
 #### Setting up a child chain server (a developer environment)
 ##### Start up developer instance of Ethereum
@@ -109,11 +107,11 @@ mix run --no-start -e 'OMG.DB.init()'
 ```
 
 The database files are put at the default location `~/.omg/data`.
-You need to initialize the database, in case you want to start a new child chain from scratch!
+You need to re-initialize the database, in case you want to start a new child chain from scratch!
 
 ##### Start it up!
 * Start up geth if not already started.
-* Start Up the child chain server
+* Start Up the child chain server:
 
 ```
 cd apps/omg_jsonrpc
@@ -122,7 +120,7 @@ iex -S mix run --config ~/config.exs
 
 #### Setting up a Watcher (a developer environment)
 
-This assumes that you've got a developer's environment Child chain server set up and API running on the default `localhost:9656`, see above.
+This assumes that you've got a developer environment Child chain server set up and running on the default `localhost:9656`, see above.
 
 ##### Configure the PostgreSQL server with:
 
@@ -154,8 +152,7 @@ config :omg_db,
 
 ```
 rm -rf ~/.omg/data_watcher
-mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
-mix do ecto.drop, ecto.create, ecto.migrate
+mix do ecto.drop, ecto.create, ecto.migrate, run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
 ```
 
 ##### Start the Watcher
@@ -183,19 +180,10 @@ Solutions to common problems may be found in the [troubleshooting](docs/troubles
 
 ## `elixir-omg` applications
 
-### Child chain server
-
-`:omg_api` is the Elixir app which runs the child chain server, whose API can be exposed by running `:omg_jsonrpc` additionally.
-
-For the responsibilities and design of the child chain server see [Tesuji Plasma Blockchain Design document](docs/tesuji_blockchain_design.md).
-
-#### Overview of apps
-
-`elixir-omg` is an umbrella app comprising of several Elixir applications.
-The apps listed below belong to the child chain server application, for Watcher-related apps see `apps/omg_watcher/README.md`.
+`elixir-omg` is an umbrella app comprising of several Elixir applications:
 
 The general idea of the apps responsibilities is:
-  - `omg_api` - child chain server and main entrypoint to the functionality
+  - `omg_api` - child chain server
     - tracks Ethereum for things happening in the root chain contract (deposits/exits)
     - gathers transactions, decides on validity, forms blocks, persists
     - submits blocks to the root chain contract
@@ -204,7 +192,15 @@ The general idea of the apps responsibilities is:
   - `omg_eth` - wrapper around the [Ethereum RPC client](https://github.com/exthereum/ethereumex)
   - `omg_jsonrpc` - a JSONRPC 2.0 server being the gateway to `omg_api`
   - `omg_performance` - performance tester for the child chain server
+  - `omg_watcher` - Phoenix app that runs the Watcher
 
+See [application architecture](docs/architecture.md) for more details.
+
+### Child chain server
+
+`:omg_api` is the Elixir app which runs the child chain server, whose API can be exposed by running `:omg_jsonrpc`.
+
+For the responsibilities and design of the child chain server see [Tesuji Plasma Blockchain Design document](docs/tesuji_blockchain_design.md).
 
 #### Using the child chain server's API
 
@@ -216,7 +212,7 @@ The argument names are indicated by the `@spec` clauses.
 
 ###### `submit`
 
-####### Request
+Request:
 
 ```json
 {
@@ -229,7 +225,7 @@ The argument names are indicated by the `@spec` clauses.
 }
 ```
 
-####### Response
+Response:
 
 ```json
 {
@@ -245,7 +241,7 @@ The argument names are indicated by the `@spec` clauses.
 
 ###### `get_block`
 
-####### Request
+Request:
 
 ```json
 {
@@ -258,7 +254,7 @@ The argument names are indicated by the `@spec` clauses.
 }
 ```
 
-####### Response
+Response:
 
 ```json
 {
@@ -432,7 +428,7 @@ Events:
 OMG network uses contract code from [the contracts repo](github.com/omisego/plasma-contracts).
 Code from a particular branch in that repo is used, see [one of `mix.exs` configuration files](`apps/omg_eth/mix.exs`) for details.
 
-Contract code is downloaded automatically when getting dependencies of the Mix application.
+Contract code is downloaded automatically when getting dependencies of the Mix application with `mix deps.get`.
 You can find the downloaded version of that code under `deps/plasma_contracts`.
 
 #### Installing dependencies and compiling contracts
