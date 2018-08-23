@@ -5,7 +5,7 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
 
 **IMPORTANT NOTICE: Heavily WIP, expect anything**
 
-The first release of the OMG Network is based upon **Tesuji Plasma**, an iterative design step over [Plasma MVP](../plasma-mvp). The diagram below illustrates the relationship between the wallet provider and how wallet providers connect to **Tesuji Plasma**.
+The first release of the OMG Network is based upon **Tesuji Plasma**, an iterative design step over [Plasma MVP](github.com/omisego/plasma-mvp). The diagram below illustrates the relationship between the wallet provider and how wallet providers connect to **Tesuji Plasma**.
 
 ![eWallet server and OMG Network](docs/assets/OMG-network-eWallet.jpg)
 
@@ -26,13 +26,13 @@ A high level flow of the setup for both is outlined below.
 **NOTE** If you are more interested in just getting things running quickly or unfamiliar with [Elixir and Mix](https://elixir-lang.org/), skip the outline and scroll down to the next sections for step-by-step instructions.
 
 1. Run an Ethereum node connected to the appropriate network and make sure it's ready to use
-  - currently only connections via RPC over HTTP are supported, defaulting to `http://localhost:8545`.
-  To customize that, configure `ethereumex`, with `url: "http://host:port"`
-  - `Byzantium` is required to be in effect
-1. (**Child chain server only**) Prepare the authority address and deploy `RootChain.sol`, see [Contracts section](#Contracts).
+    - currently only connections via RPC over HTTP are supported, defaulting to `http://localhost:8545`.
+    To customize that, configure `ethereumex`, with `url: "http://host:port"`
+    - `Byzantium` is required to be in effect
+1. (**Child chain server only**) Prepare the authority address and deploy `RootChain.sol`, see [Contracts section](#contracts).
 **Authority address** belongs to the child chain operator, and is used to run the child chain (submit blocks to the root chain contract)
 1. Produce a configuration file for `omg_eth` with the contract address, authority address and hash of contract-deploying transaction.
-The configuration keys can be looked up at [`apps/omg_eth/config/config.exs`](`apps/omg_eth/config/config.exs`).
+The configuration keys can be looked up at [`apps/omg_eth/config/config.exs`](apps/omg_eth/config/config.exs).
 Such configuration must become part of the [Mix configuration](https://hexdocs.pm/mix/Mix.Config.html) for the app you're going to be running.
 1. Initialize the child chain server's `OMG.DB` database.
 1. At this point the child chain server should be properly setup to run by starting the `omg_jsonrpc` Mix app
@@ -425,8 +425,8 @@ Events:
 
 ### Contracts
 
-OMG network uses contract code from [the contracts repo](github.com/omisego/plasma-contracts).
-Code from a particular branch in that repo is used, see [one of `mix.exs` configuration files](`apps/omg_eth/mix.exs`) for details.
+OMG network uses contract code from [the contracts repo](http://github.com/omisego/plasma-contracts).
+Code from a particular branch in that repo is used, see [one of `mix.exs` configuration files](apps/omg_eth/mix.exs) for details.
 
 Contract code is downloaded automatically when getting dependencies of the Mix application with `mix deps.get`.
 You can find the downloaded version of that code under `deps/plasma_contracts`.
