@@ -344,17 +344,32 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
             ]} = Core.check_tx_executions([{:error, {}}], block)
   end
 
-  test "waiting_for_blocks variable is equal 0 after detecting maximum possible potential_withholdings" do
+  test "after detecting twice same maximum possible potential withholdings get_new_blocks_numbers function still returns those blocks" do
     block_height = 0
     interval = 1_000
 
     {state, [1_000, 2_000]} =
-      Core.get_new_blocks_numbers(Core.init(block_height, interval, maximum_number_of_pending_blocks: 2), 20_000)
+      Core.get_new_blocks_numbers(
+        Core.init(
+          block_height,
+          interval,
+          maximum_number_of_pending_blocks: 2,
+          maximum_block_withholding_time_ms: 10_000
+        ),
+        20_000
+      )
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 1_000, 0)
-    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
+    potential_withholding_1_000 = Core.validate_get_block_response({:error, :error_reson}, <<>>, 1_000, 0)
+    potential_withholding_2_000 = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
-    assert {:ok, %{waiting_for_blocks: 0}, [], []} = Core.handle_got_block(state, potential_withholding)
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding_1_000)
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding_2_000)
+
+    assert {state, [1_000, 2_000]} = Core.get_new_blocks_numbers(state, 20_000)
+
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding_1_000)
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding_2_000)
+
+    assert {_state, [1_000, 2_000]} = Core.get_new_blocks_numbers(state, 20_000)
   end
 end
