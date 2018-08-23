@@ -31,34 +31,23 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
                * [get_block](#get_block)
          * [Running a child chain in practice](#running-a-child-chain-in-practice)
             * [Funding the operator address](#funding-the-operator-address)
-               * [Example](#example)
       * [Watcher](#watcher)
          * [Using the watcher](#using-the-watcher)
          * [Endpoints](#endpoints)
          * [Websockets](#websockets)
             * [transfer:ethereum_address](#transferethereum_address)
-               * [address_received and address_spent](#address_received-and-address_spent)
             * [spends:ethereum_address](#spendsethereum_address)
-               * [address_spent](#address_spent)
             * [receives:ethereum_address](#receivesethereum_address)
-               * [address_received](#address_received)
             * [byzantine_invalid_exit](#byzantine_invalid_exit)
-               * [in_flight_exit](#in_flight_exit)
-               * [piggyback](#piggyback)
-               * [exit_from_spent](#exit_from_spent)
             * [byzantine_bad_chain](#byzantine_bad_chain)
-               * [invalid_block](#invalid_block)
-               * [block_withholding](#block_withholding)
-               * [invalid_fee_exit](#invalid_fee_exit)
             * [TODO block](#todo-block)
             * [TODO deposit_spendable](#todo-deposit_spendable)
             * [TODO fees](#todo-fees)
-               * [fees_exited](#fees_exited)
       * [Contracts](#contracts)
          * [Installing dependencies and compiling contracts](#installing-dependencies-and-compiling-contracts)
    * [Testing &amp; development](#testing--development)
 
-<!-- Added by: user, at: 2018-08-23T17:00+02:00 -->
+<!-- Added by: user, at: 2018-08-23T17:54+02:00 -->
 
 <!--te-->
 
@@ -354,7 +343,7 @@ child_blocks_per_day = ethereum_blocks_per_day / submit_period
 
 **Highest gas price** is the maximum gas price which the operator allows for when trying to have the block submission mined (operator always tries to pay less than that maximum, but has to adapt to Ethereum traffic) - configured in (**TODO** when doing OMG-47 task)
 
-##### Example
+**Example**
 
 Assuming:
 - submission of a child block every Ethereum block
@@ -392,7 +381,8 @@ There are the following topics:
 
 Events:
 
-##### address_received and address_spent
+**address_received and address_spent**
+
 `address_received` event informing about that particular address received funds.
 
 `address_spent` event informing about that particular address spent funds.
@@ -443,35 +433,37 @@ In case extra finality is required for high-stakes transactions, the client is f
 
 Events:
 
-##### address_spent
+**address_spent**
 
 #### receives:ethereum_address
 
 Events:
 
-##### address_received
+**address_received**
 
 #### byzantine_invalid_exit
 
 Events:
 
-##### in_flight_exit
+**in_flight_exit**
 
-##### piggyback
+**piggyback**
 
-##### exit_from_spent
+**exit_from_spent**
 
 #### byzantine_bad_chain
 
 Events:
 
-##### invalid_block
+**invalid_block**
+
 Event informing about that particular block is invalid.
 
-##### block_withholding
+**block_withholding**
+
 Event informing about that the child chain is withholding block.
 
-##### invalid_fee_exit
+**invalid_fee_exit**
 
 #### TODO block
 
@@ -481,7 +473,7 @@ Event informing about that the child chain is withholding block.
 
 Events:
 
-##### fees_exited
+**fees_exited**
 
 ## Contracts
 
