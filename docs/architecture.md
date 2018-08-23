@@ -1,6 +1,6 @@
 # Architecture
 
-This is a high-level rundown of the architecture of the `OmiseGO` apps.
+This is a high-level rundown of the architecture of the `elixir-omg` apps.
 
 The below diagram demonstrates the various pieces and where this umbrella app fits in.
 ![high level architecture overview diagram](assets/architecture_overview.jpg)
@@ -14,98 +14,98 @@ This lists only interactions between the different processes that build up both 
 For responsibilities of the processes/modules look into respective docs in `.ex` files.
 
 **NOTE**:
-- for `OmiseGO.API` modules/processes look in `apps/omisego_api`
-- for `OmiseGOWatcher` modules/processes look in `apps/omisego_watcher`
-- for `OmiseGO.Eth` look in `apps/omisego_eth`
-- for `OmiseGO.DB` look in `apps/omisego_db`
-- for `OmiseGO.Performance` look in `apps/omisego_performance`
-- for `OmiseGO.JSONRPC` look in `apps/omisego_jsonrpc`
+- for `OMG.API` modules/processes look in `apps/omg_api`
+- for `OMG.Watcher` modules/processes look in `apps/omg_watcher`
+- for `OMG.Eth` look in `apps/omg_eth`
+- for `OMG.DB` look in `apps/omg_db`
+- for `OMG.Performance` look in `apps/omg_performance`
+- for `OMG.JSONRPC` look in `apps/omg_jsonrpc`
 
 **NOTE 2** The hexagonal shape hints towards component being a wrapper (port/adapter) to something external, versus rectangular shape being an internal component.
 
-### `OmiseGO.API.State`
+### `OMG.API.State`
 
-- writes blocks and UTXO set to `OmiseGO.DB`
-- pushes freshly formed blocks to `OmiseGO.API.FreshBlocks`
+- writes blocks and UTXO set to `OMG.DB`
+- pushes freshly formed blocks to `OMG.API.FreshBlocks`
 
-### `OmiseGO.API`
+### `OMG.API`
 
-- accepts child chain transactions, decodes, stateless-validates and executes on `OmiseGO.API.State`
-- forwards `get_block` requests to `OmiseGO.API.FreshBlocks`
+- accepts child chain transactions, decodes, stateless-validates and executes on `OMG.API.State`
+- forwards `get_block` requests to `OMG.API.FreshBlocks`
 
-### `OmiseGO.API.FreshBlocks`
+### `OMG.API.FreshBlocks`
 
-- reverts to reading `OmiseGO.DB` for old blocks
+- reverts to reading `OMG.DB` for old blocks
 
-### `OmiseGO.RootChainCoordinator`
+### `OMG.RootChainCoordinator`
 
-- reads Ethereum block height from `OmiseGO.Eth`
+- reads Ethereum block height from `OMG.Eth`
 - synchronizes view of Ethereum block height of all enrolled processes (see other processes descriptions)
 
 ### `:exiter`
 
-Actually `OmiseGO.API.EthereumEventListener` setup with `:exiter`.
+Actually `OMG.API.EthereumEventListener` setup with `:exiter`.
 
-- pushes exits to `OmiseGO.API.State` on child chain server's side
-- tracks exits via `OmiseGO.API.RootChainCoordinator`
+- pushes exits to `OMG.API.State` on child chain server's side
+- tracks exits via `OMG.API.RootChainCoordinator`
 
 ### `:depositor`
 
-Actually `OmiseGO.API.EthereumEventListener` setup with `:depositor`.
+Actually `OMG.API.EthereumEventListener` setup with `:depositor`.
 
-- pushes deposits to `OmiseGO.API.State`
-- tracks deposits via `OmiseGO.API.RootChainCoordinator`
+- pushes deposits to `OMG.API.State`
+- tracks deposits via `OMG.API.RootChainCoordinator`
 
-### `OmiseGO.API.BlockQueue`
+### `OMG.API.BlockQueue`
 
-- requests `form_block` on `OmiseGO.API.State` and takes block hashes in return
-- tracks Ethereum height and child chain block submission mining via `OmiseGO.Eth` and `OmiseGO.API.RootChainCoordinator`
+- requests `form_block` on `OMG.API.State` and takes block hashes in return
+- tracks Ethereum height and child chain block submission mining via `OMG.Eth` and `OMG.API.RootChainCoordinator`
 
-### `OmiseGO.API.FeeChecker`
-- `OmiseGO.API` calls it to get acceptable currencies and actual fee amounts to validate transactions
+### `OMG.API.FeeChecker`
+- `OMG.API` calls it to get acceptable currencies and actual fee amounts to validate transactions
 
-### `OmiseGOWatcher.BlockGetter`
+### `OMG.Watcher.BlockGetter`
 
-- tracks child chain blocks via `OmiseGO.API.RootChainCoordinator`
+- tracks child chain blocks via `OMG.API.RootChainCoordinator`
 - manages concurrent `Task`'s to pull blocks from child chain server API (JSON-RPC)
-- pushes decoded and statelessly valid blocks to `OmiseGO.API.State`
-- pushes statefully valid blocks and transactions (acknowledged by `OmiseGO.API.State` above) to `WatcherDB`
-- emits block, transaction, consensus events to `OmiseGOWatcher.Eventer`
+- pushes decoded and statelessly valid blocks to `OMG.API.State`
+- pushes statefully valid blocks and transactions (acknowledged by `OMG.API.State` above) to `WatcherDB`
+- emits block, transaction, consensus events to `OMG.Watcher.Eventer`
 
-### `OmiseGOWatcher.ExitValidator` (fast)
+### `OMG.Watcher.ExitValidator` (fast)
 
 TODO - possible requires sorting out of this vs `:exiter`
 
-### `OmiseGOWatcher.ExitValidator` (slow)
+### `OMG.Watcher.ExitValidator` (slow)
 
 TODO
 
 ### `Phoenix app` (not a module - section name TODO)
 
 - uses data stored in the `WatcherDB` to server user's requests
-- subscribes to event buses to `OmiseGOWatcher.Eventer`
+- subscribes to event buses to `OMG.Watcher.Eventer`
 
-### `OmiseGOWatcher.Eventer`
+### `OMG.Watcher.Eventer`
 
 - pushes events to `Phoenix app`
 
-### `OmiseGO.JSONRPC`
+### `OMG.JSONRPC`
 
-- exposes `OmiseGO.API` via a `cowboy`-driven JSON-RPC2 interface
+- exposes `OMG.API` via a `cowboy`-driven JSON-RPC2 interface
 
-### `OmiseGO.Performance`
+### `OMG.Performance`
 
-- executes requests to `OmiseGO.JSONRPC`
-- forces block forming by talking directly to `OmiseGO.API.State`
+- executes requests to `OMG.JSONRPC`
+- forces block forming by talking directly to `OMG.API.State`
 
 ## Databases
 
 The confusing (and to be probably amended in the future) part is that we have two databases
 
-### `OmiseGO.DB`
+### `OMG.DB`
 
-An "intimate" database for `OmiseGO.API.State` that holds the UTXO set and blocks.
-May be seen and read by other processes to sync on the persisted state of `OmiseGO.API.State` and UTXO set by consequence.
+An "intimate" database for `OMG.API.State` that holds the UTXO set and blocks.
+May be seen and read by other processes to sync on the persisted state of `OMG.API.State` and UTXO set by consequence.
 
 Non-relational data, so we're having a simple KV for this.
 
@@ -114,7 +114,7 @@ Each instance of either Child Chain Server or Watcher should have it's own insta
 
 Database necessary to properly ensure validity and availability of blocks and transactions
 
-- it is read by `OmiseGO.API.State` to discover the UTXO set on restart
+- it is read by `OMG.API.State` to discover the UTXO set on restart
 - it is read by many other processes to discover where they left off, on restart
 
 ### `WatcherDB` (TODO - name? there is no such module as `WatcherDB`)

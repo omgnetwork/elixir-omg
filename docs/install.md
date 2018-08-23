@@ -1,5 +1,5 @@
 # 1. Installation via Vagrant
-Refer to https://github.com/omisego/omisego-vagrant.
+Refer to https://github.com/omisego/omg-vagrant.
 
 # 2. Full installation
 
@@ -36,6 +36,13 @@ sudo apt-get install -y esl-erlang=1:20.3.6
 sudo apt-get -y install elixir
 ```
 
+## Stop Erlang and Elixir from being upgraded
+```
+sudo apt-mark hold esl-erlang
+sudo apt-mark hold elixir
+```
+
+
 ## Install Geth
 ```
 sudo apt-get install -y software-properties-common
@@ -69,22 +76,21 @@ mix do local.hex --force, local.rebar --force
 
 ## Clone repo
 ```
-git clone https://github.com/omisego/omisego
+git clone https://github.com/omisego/elixir-omg
 ```
 
 ## Install contract building machinery
 [Ref](../contracts/README.md)
 ```
-pip3 install -r omisego/contracts/requirements.txt
+# contract building requires character encoding to be set
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
+pip3 install -r elixir-omg/contracts/requirements.txt
 ```
 
 ## Build
 ```
-# contract building requires character encoding to be set
-export LC_ALL=C.UTF-8
-export LANG=C.UTF-8
-
-cd omisego
+cd elixir-omg
 mix deps.get
 ```
 
@@ -100,4 +106,4 @@ mix test --only integration
 ```
 
 ## Next steps
-Follow the README steps for the [child chain server](../apps/omisego_api/README.md).
+Follow the README steps for the [child chain server](../apps/omg_api/README.md).
