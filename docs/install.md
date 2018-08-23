@@ -84,12 +84,12 @@ git clone https://github.com/omisego/elixir-omg
 ```
 
 ## Install contract building machinery
-[Ref](../contracts/README.md)
+[Ref](../README.md#contracts)
 ```
 # contract building requires character encoding to be set
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
-pip3 install -r elixir-omg/contracts/requirements.txt
+pip3 install -r contracts/requirements.txt
 ```
 
 ## Build
