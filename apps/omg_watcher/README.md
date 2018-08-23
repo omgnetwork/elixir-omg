@@ -7,15 +7,14 @@ It exposes the information it gathers via a REST interface (Phoenix)
 
 For the responsibilities and design of the Watcher see [Tesuji Plasma Blockchain Design document](../../docs/tesuji_blockchain_design.md).
 
-## Setting up
-
+## General setup
 1. Follow the high-level **Setting up** from [here](../../README.md)
 1. Start the Watcher, referencing the configuration
 
         cd apps/omg_watcher
         mix run --no-halt --config path/to/config.exs
 
-## Setting up (developer's environment)
+## Setting up (a developer environment)
 
 This assumes that you've got a developer's environment Child chain server set up and API running on `localhost:9656`, see [here](../omg_api/README.md).
 

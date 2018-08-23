@@ -1,4 +1,12 @@
-# Installing dependencies and compiling contracts
+# Contracts
+
+OMG network uses contract code from [the contracts repo](github.com/omisego/plasma-contracts).
+Code from a particular branch in that repo is used, see [one of `mix.exs` configuration files](`../apps/omg_eth/mix.exs`) for details.
+
+Contract code is downloaded automatically when getting dependencies of the Mix application.
+You can find the downloaded version of that code under `deps/plasma_contracts`.
+
+## Installing dependencies and compiling contracts
 
 **Python3 is required**, [`virtualenv`](https://virtualenv.pypa.io/en/stable/) is recommended.
 
