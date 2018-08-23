@@ -48,11 +48,11 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
       Challenge:
         swagger_schema do
           title("Exit challenge")
-          description("")
+          description("Erroneus request from the user")
 
           properties do
             cutxopos(:string, "Challenging utxo position", required: true)
-            eutxoindex(:string, "Exiting utxo output index", required: true)
+            eutxoindex(:string, "Exiting utxo position", required: true)
             txbytes(:string, "Transaction that spends exiting utxo", required: true)
             proof(:string, "Proof that transaction is contained in a block", required: true)
             sigs(:string, "Signatures of users that participated in the challenging transaction", required: true)
@@ -71,8 +71,8 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
         end,
       BadRequestError:
         swagger_schema do
-          title("Error")
-          description("Error response from the API")
+          title("Bad request")
+          description("Erroneus request from the user")
 
           properties do
             error(:string, "The message of the error raised", required: true)

@@ -20,9 +20,9 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
   render_errors: [view: OMG.Watcher.Web.ErrorView, accepts: ~w(json)],
   pubsub: [name: OMG.Watcher.PubSub, adapter: Phoenix.PubSub.PG2]
 
-config :omisego_watcher, :phoenix_swagger,
+config :omg_watcher, :phoenix_swagger,
   swagger_files: %{
-    "priv/api.json" => [router: OmiseGOWatcherWeb.Router]
+    "priv/static/swagger.json" => [router: OMG.Watcher.Web.Router]
   }
 
 # Import environment specific config. This must remain at the bottom

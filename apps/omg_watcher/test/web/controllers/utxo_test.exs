@@ -111,9 +111,9 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
     {:ok,
      %{
        utxo_pos: _utxo_pos,
-       txbytes: _tx_bytes,
+       txbytes: txbytes,
        proof: proof,
-       sigs: _sigs
+       sigs: sigs
      }} = UtxoDB.compose_utxo_exit(Utxo.position(1, 1, 0))
 
     assert <<_proof::bytes-size(512)>> = proof

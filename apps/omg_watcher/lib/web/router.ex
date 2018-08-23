@@ -22,24 +22,15 @@ defmodule OMG.Watcher.Web.Router do
   scope "/", OMG.Watcher.Web do
     get("/account/utxo", Controller.Utxo, :available)
     get("/account/utxo/compose_exit", Controller.Utxo, :compose_utxo_exit)
-    get("/status", Controller.Status, :get)
+    get("/status", Controller.Status, :get_status)
     get("/challenges", Controller.Challenge, :challenge)
   end
 
   scope "/transactions", OMG.Watcher.Web do
-    get("/:id", Controller.Transaction, :get)
+    get("/:id", Controller.Transaction, :get_transaction)
   end
 
   scope "/api/swagger" do
-    forward("/", PhoenixSwagger.Plug.SwaggerUI, otp_app: :omisego_watcher, swagger_file: "swagger.json")
-  end
-
-  def swagger_info do
-    %{
-      info: %{
-        version: "1.0",
-        title: "OmiseGO Watcher"
-      }
-    }
+    forward("/", PhoenixSwagger.Plug.SwaggerUI, otp_app: :omg_watcher, swagger_file: "swagger.json")
   end
 end
