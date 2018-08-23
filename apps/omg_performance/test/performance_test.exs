@@ -21,6 +21,8 @@ defmodule OMG.PerformanceTest do
 
   use OMG.API.LoggerExt
 
+  alias OMG.Eth
+
   @moduletag :integration
 
   deffixture destdir do
@@ -50,6 +52,7 @@ defmodule OMG.PerformanceTest do
   } do
     ntxs = 3000
     senders = [alice, bob]
+    Enum.each(senders, &Eth.DevHelpers.import_unlock_fund/1)
 
     assert :ok = OMG.Performance.start_extended_perftest(ntxs, senders, contract.contract_addr, %{destdir: destdir})
 
