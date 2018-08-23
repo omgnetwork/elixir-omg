@@ -45,7 +45,7 @@ geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth
 ### Persistent developer instance
 Alternatively, a persistent developer instance that does not lose state can be started with the following command:
 ```
-geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth  --datadir ~/.geth --ipc
+geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth --datadir ~/.geth
 ```
 
 After `geth` is restarted with the above command, the authority account must be unlocked
