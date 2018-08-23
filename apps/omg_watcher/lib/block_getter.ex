@@ -129,7 +129,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   def handle_info({_ref, {:got_block, response}}, state) do
     # 1/ process the block that arrived and consume
-    {continue, new_state, blocks_to_consume, events} = Core.got_block(state, response)
+    {continue, new_state, blocks_to_consume, events} = Core.handle_got_block(state, response)
 
     Eventer.emit_events(events)
 
