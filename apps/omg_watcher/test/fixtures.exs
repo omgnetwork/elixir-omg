@@ -44,6 +44,9 @@ defmodule OMG.Watcher.Fixtures do
         ethereum_event_block_finality_margin: #{Application.get_env(:omg_api, :ethereum_event_block_finality_margin)},
         ethereum_event_get_deposits_interval_ms: #{
       Application.get_env(:omg_api, :ethereum_event_get_deposits_interval_ms)
+    },
+        ethereum_event_check_height_interval_ms: #{
+      Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms)
     }
     """)
     |> File.close()
@@ -134,7 +137,7 @@ defmodule OMG.Watcher.Fixtures do
 
   deffixture watcher_sandbox(watcher) do
     :ok = watcher
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.Repo, ownership_timeout: 60_000)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.Repo, ownership_timeout: 90_000)
     Ecto.Adapters.SQL.Sandbox.mode(OMG.Watcher.Repo, {:shared, self()})
   end
 
