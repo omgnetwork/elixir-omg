@@ -84,17 +84,6 @@ or
 Answer:
 Child chain database not initialized yet
 
-## Error compiling
-
-```
-===> Compiling erlexec
-===> Compiling src/exec.erl failed
-src/exec.erl:669: erlang:get_stacktrace/0: deprecated; use the new try/catch syntax for retrieving the stack backtrace
-```
-
-Answer:
-Revert Erlang to OTP 20 (see [installation instructions](./install.md)).
-
 ## Error compiling contracts
 
 ```

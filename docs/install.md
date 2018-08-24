@@ -8,10 +8,10 @@ Refer to https://github.com/omisego/omg-vagrant.
 Only **Linux** platforms are supported now. These instructions have been tested on a fresh Linode 2048 instance with Ubuntu 16.04.
 
 ## Prerequisites
-* **Erlang OTP 20**
-* **Elixir** (check both with `elixir --version`)
-* **Python** '>=3.5, <4' (check with `python --version`)
-* **solc** 0.4.24 (check with `solc --version`)
+* **Erlang OTP** `>=20` (check with `elixir --version`)
+* **Elixir** `>=1.6` (check with `elixir --version`)
+* **Python** `>=3.5, <4` (check with `python --version`)
+* **solc** `>=0.4.24` (check with `solc --version`)
 
 ## Install prerequisite packages
 ```
@@ -27,18 +27,6 @@ wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb
 sudo dpkg -i erlang-solutions_1.0_all.deb
 sudo apt-get update
 sudo apt-get install -y esl-erlang
-```
-
-### Downgrade to Erlang OTP 20
-**TODO**: This step is only required until we fully migrate to OTP 21 in OMG-181
-
-```
-sudo apt-get install -y esl-erlang=1:20.3.6
-```
-
-Optionally, to stop Erlang from being upgraded:
-```
-sudo apt-mark hold esl-erlang
 ```
 
 ## Install Elixir
