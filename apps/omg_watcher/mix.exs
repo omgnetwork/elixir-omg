@@ -50,10 +50,7 @@ defmodule OMG.Watcher.Mixfile do
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
       # NOTE: need this explictly, since :omg_jsonrpc won't start jsonrpc2 automatically
       {:jsonrpc2, "~> 1.1"},
-      # TODO: we only need in :dev and :test here, but we need in :prod too in performance
-      #       then there's some unexpected behavior of mix that won't allow to mix these, see
-      #       [here](https://elixirforum.com/t/mix-dependency-is-not-locked-error-when-building-with-edeliver/7069/3)
-      {:briefly, "~> 0.3"},
+      {:briefly, "~> 0.3", only: [:dev, :test]},
       #
       {:omg_api, in_umbrella: true, runtime: false},
       {:omg_jsonrpc, in_umbrella: true, runtime: false},

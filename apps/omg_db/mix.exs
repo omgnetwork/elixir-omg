@@ -9,7 +9,7 @@ defmodule OMG.DB.MixProject do
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
-      elixir: "~> 1.6",
+      elixir: "~> 1.7.2",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       test_coverage: [tool: ExCoveralls]
@@ -32,10 +32,7 @@ defmodule OMG.DB.MixProject do
     [
       # version caused by dependency in merkle_patricia_tree from blockchain
       {:exleveldb, "~> 0.11"},
-      # TODO: we only need in :dev and :test here, but we need in :prod too in performance
-      #       then there's some unexpected behavior of mix that won't allow to mix these, see
-      #       [here](https://elixirforum.com/t/mix-dependency-is-not-locked-error-when-building-with-edeliver/7069/3)
-      {:briefly, "~> 0.3"}
+      {:briefly, "~> 0.3", only: [:dev, :test]}
     ]
   end
 end

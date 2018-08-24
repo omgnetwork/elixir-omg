@@ -9,7 +9,7 @@ Only **Linux** platforms are supported now. These instructions have been tested 
 
 ## Prerequisites
 * **Erlang OTP** `>=20` (check with `elixir --version`)
-* **Elixir** `>=1.6` (check with `elixir --version`)
+* **Elixir** `>=1.7.2` (check with `elixir --version`)
 * **Python** `>=3.5, <4` (check with `python --version`)
 * **solc** `>=0.4.24` (check with `solc --version`)
 

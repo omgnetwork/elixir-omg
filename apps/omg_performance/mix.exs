@@ -9,7 +9,7 @@ defmodule OMG.Performance.MixProject do
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
-      elixir: "~> 1.6",
+      elixir: "~> 1.7.2",
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
