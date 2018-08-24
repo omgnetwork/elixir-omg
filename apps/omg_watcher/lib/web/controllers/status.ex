@@ -14,7 +14,7 @@
 
 defmodule OMG.Watcher.Web.Controller.Status do
   @moduledoc """
-  Module provides operation related to childchain health status, like: geth syncing status, last minned block
+  Module provides operation related to the child chain health status, like: geth syncing status, last minned block
   number and time and last block verified by watcher.
   """
 
