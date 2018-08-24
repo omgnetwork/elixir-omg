@@ -14,7 +14,7 @@
   "dialyxir": {:hex, :dialyxir, "0.5.1", "b331b091720fd93e878137add264bac4f644e1ddae07a70bf7062c7862c4b952", [:mix], [], "hexpm"},
   "ecto": {:hex, :ecto, "2.2.10", "e7366dc82f48f8dd78fcbf3ab50985ceeb11cb3dc93435147c6e13f2cda0992e", [:mix], [{:db_connection, "~> 1.1", [hex: :db_connection, repo: "hexpm", optional: true]}, {:decimal, "~> 1.2", [hex: :decimal, repo: "hexpm", optional: false]}, {:mariaex, "~> 0.8.0", [hex: :mariaex, repo: "hexpm", optional: true]}, {:poison, "~> 2.2 or ~> 3.0", [hex: :poison, repo: "hexpm", optional: true]}, {:poolboy, "~> 1.5", [hex: :poolboy, repo: "hexpm", optional: false]}, {:postgrex, "~> 0.13.0", [hex: :postgrex, repo: "hexpm", optional: true]}, {:sbroker, "~> 1.0", [hex: :sbroker, repo: "hexpm", optional: true]}], "hexpm"},
   "eleveldb": {:hex, :eleveldb, "2.2.20", "1fff63a5055bbf4bf821f797ef76065882b193f5e8095f95fcd9287187773b58", [:rebar3], [], "hexpm"},
-  "erlexec": {:hex, :erlexec, "1.7.5", "3c09adf19b217c24c31040c489a3f8b5bc28ba907749c211f2ab81b431e1b990", [:rebar3], [], "hexpm"},
+  "erlexec": {:hex, :erlexec, "1.9.3", "3d72ac65424ced35b9658a50e5a0c9dbd5f383e28ac9096e557f0d62926dd8e4", [:rebar3], [], "hexpm"},
   "esqlite": {:hex, :esqlite, "0.2.4", "3a8a352c190afe2d6b828b252a6fbff65b5cc1124647f38b15bdab3bf6fd4b3e", [:rebar3], [], "hexpm"},
   "ethereumex": {:git, "https://github.com/omisego/ethereumex.git", "6b85bd0523b4eb529050d1b283feac119e21ccd9", [branch: "request_timeout"]},
   "evm": {:hex, :evm, "0.1.14", "59a3fd332beb6a529cd7c2571a87a7f63c51200f2de381a412ee9bb02f5cbbcc", [:mix], [{:keccakf1600, "~> 2.0.0", [hex: :keccakf1600_orig, repo: "hexpm", optional: false]}, {:merkle_patricia_tree, "~> 0.2.5", [hex: :merkle_patricia_tree, repo: "hexpm", optional: false]}], "hexpm"},
