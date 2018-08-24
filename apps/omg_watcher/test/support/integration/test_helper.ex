@@ -17,6 +17,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   Common helper functions that are useful when integration-testing the watcher
   """
 
+  alias OMG.API.State
   alias OMG.Eth
   import OMG.Watcher.TestHelper
 
@@ -48,8 +49,9 @@ defmodule OMG.Watcher.Integration.TestHelper do
   end
 
   defp wait_for_block(block_nr) do
+    # TODO query to State used in tests instead of an event system, remove when event system is here
     fn ->
-      case GenServer.call(OMG.Watcher.BlockGetter, :get_height) < block_nr do
+      case State.get_current_child_block_height() <= block_nr do
         true -> :repeat
         false -> {:ok, block_nr}
       end
