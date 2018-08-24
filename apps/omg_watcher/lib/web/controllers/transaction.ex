@@ -67,13 +67,13 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
             oindex1(:integer, "Output index of first input utxo", required: true)
             blknum2(:integer, "Childchain block number of second input utxo", required: true)
             txindex2(:integer, "Transaction index of second input utxo", required: true)
-            oindex1(:integer, "Output index of second input utxo", required: true)
+            oindex2(:integer, "Output index of second input utxo", required: true)
             cur12(:string, "Currency of the transaction", required: true)
             newowner1(:string, "Address of the owner of first output utxo", required: true)
             amount1(:integer, "Amount of currency in first output utxo", required: true)
             newowner2(:string, "Address of the owner of second output utxo", required: true)
             amount2(:integer, "Amount of currency in second output utxo", required: true)
-            txblknum(:integer, "Childchain block number of the transaction", required: true)
+            txblknum(:integer, "Number of block that the transaction is included in", required: true)
             txindex(:integer, "Transaction index", required: true)
             sig1(:string, "Signature of owner of first input utxo", required: true)
             sig2(:string, "Signature of owner of second input utxo", required: true)
@@ -107,7 +107,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     }
   end
 
-  swagger_path :get do
+  swagger_path :get_transaction do
     get("/transactions")
     summary("Gets a transaction with the given id")
 

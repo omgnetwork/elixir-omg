@@ -76,7 +76,7 @@ defmodule OMG.Watcher.Web.Controller.Status do
     }
   end
 
-  swagger_path :status do
+  swagger_path :get_status do
     get("/status")
     summary("Gets plasma network and Watcher status")
 

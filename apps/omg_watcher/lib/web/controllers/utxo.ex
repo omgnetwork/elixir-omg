@@ -90,7 +90,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
             txindex(:integer, "Number of transaction that created the utxo", required: true)
             oindex(:integer, "Output index in the transaction", required: true)
-            txbytes(:string, "Signed hash of transaction", required: true)
+            txbytes(:string, "Signed hash of transaction that created the utxo", required: true)
           end
 
           example(%{
@@ -152,7 +152,6 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   end
 
   swagger_path :compose_utxo_exit do
-    # shouldn't that resource just be /account/exits ?
     get("/account/utxo/compose_exit")
     summary("Responds with exit for a given utxo")
 

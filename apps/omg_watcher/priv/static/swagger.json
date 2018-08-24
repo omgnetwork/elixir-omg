@@ -1,6 +1,52 @@
 {
   "swagger": "2.0",
   "paths": {
+    "/transactions": {
+      "get": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "Gets a transaction with the given id",
+        "responses": {
+          "200": {
+            "schema": {
+              "$ref": "#/definitions/Transaction"
+            },
+            "description": "OK"
+          }
+        },
+        "parameters": [
+          {
+            "type": "integer",
+            "required": true,
+            "name": "id",
+            "in": "path",
+            "description": "Id of the transaction"
+          }
+        ],
+        "operationId": "OMG.Watcher.Web.Controller.Transaction.get_transaction",
+        "description": ""
+      }
+    },
+    "/status": {
+      "get": {
+        "tags": [
+          "Status"
+        ],
+        "summary": "Gets plasma network and Watcher status",
+        "responses": {
+          "200": {
+            "schema": {
+              "$ref": "#/definitions/Status"
+            },
+            "description": "OK"
+          }
+        },
+        "parameters": [],
+        "operationId": "OMG.Watcher.Web.Controller.Status.get_status",
+        "description": ""
+      }
+    },
     "/challenges": {
       "get": {
         "tags": [
@@ -118,8 +164,8 @@
     }
   },
   "info": {
-    "version": "0.0.1",
-    "title": "<enter your title>"
+    "version": "1.0",
+    "title": "OMG Watcher"
   },
   "definitions": {
     "Utxos": {

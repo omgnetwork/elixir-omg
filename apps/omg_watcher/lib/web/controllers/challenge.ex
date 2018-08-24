@@ -48,7 +48,6 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
       Challenge:
         swagger_schema do
           title("Exit challenge")
-          description("Erroneus request from the user")
 
           properties do
             cutxopos(:string, "Challenging utxo position", required: true)
@@ -72,7 +71,7 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
       BadRequestError:
         swagger_schema do
           title("Bad request")
-          description("Erroneus request from the user")
+          description("Erroneous request from the user")
 
           properties do
             error(:string, "The message of the error raised", required: true)

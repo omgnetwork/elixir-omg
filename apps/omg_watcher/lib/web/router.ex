@@ -33,4 +33,13 @@ defmodule OMG.Watcher.Web.Router do
   scope "/api/swagger" do
     forward("/", PhoenixSwagger.Plug.SwaggerUI, otp_app: :omg_watcher, swagger_file: "swagger.json")
   end
+
+  def swagger_info do
+    %{
+      info: %{
+        version: "1.0",
+        title: "OMG Watcher"
+      }
+    }
+  end
 end
