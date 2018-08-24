@@ -63,7 +63,7 @@ defmodule OMG.Watcher.BlockGetter do
 
       child_block_interval = Application.get_env(:omg_eth, :child_block_interval)
 
-      # TODO: substitute for Ethereum height where this block originated from (see bugs in tracker)
+      # FIXME: substitute for Ethereum height where this block originated from (see bugs in tracker)
       #       after we have a way to cheaply get it using RootChainCoordinator
       eth_height = 0
       :ok = OMG.API.State.close_block(child_block_interval, eth_height)

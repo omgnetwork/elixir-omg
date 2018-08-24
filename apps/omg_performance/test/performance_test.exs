@@ -70,7 +70,7 @@ defmodule OMG.PerformanceTest do
         assert :ok = OMG.Performance.start_simple_perftest(ntxs, nsenders, %{destdir: destdir, profile: true})
       end)
 
-    # TODO a warning is printed out in fprof_io - check it out and possibly test against that
+    # FIXME: a warning is printed out in fprof_io - check it out and possibly test against that
     if fprof_io =~ "Warning", do: _ = Logger.warn(fn -> "fprof prints warnings during test" end)
 
     assert fprof_io =~ "Done!"

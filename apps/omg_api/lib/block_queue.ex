@@ -43,7 +43,7 @@ defmodule OMG.API.BlockQueue do
   end
 
   # CONFIG constant functions
-  # TODO rethink. Possibly fetch from the contract? (would complicate things, but we must unconditionally match that)
+  # FIXME rethink. Possibly fetch from the contract? (would complicate things, but we must unconditionally match that)
   def child_block_interval, do: Application.get_env(:omg_eth, :child_block_interval)
 
   defmodule Server do
@@ -81,7 +81,7 @@ defmodule OMG.API.BlockQueue do
 
       range = Core.child_block_nums_to_init_with(stored_child_top_num)
 
-      # TODO: taking all stored hashes now. While still being feasible DB-wise ("just" many hashes)
+      # FIXME: taking all stored hashes now. While still being feasible DB-wise ("just" many hashes)
       #       it might be prohibitive, if we create BlockSubmissions out of the unfiltered batch
       #       (see enqueue_existing_blocks). Probably we want to set a hard cutoff and do
       #       OMG.DB.block_hashes(stored_child_top_num - cutoff..stored_child_top_num)
@@ -123,7 +123,7 @@ defmodule OMG.API.BlockQueue do
       {:ok, height} = Eth.get_ethereum_height()
       _ = Logger.debug(fn -> "check ethereum height '#{inspect(height)}'" end)
 
-      # TODO: submit_blocks is called throughout here a lot, and for now it's ok. Consider regaining more control
+      # FIXME: submit_blocks is called throughout here a lot, and for now it's ok. Consider regaining more control
       #       over how it is done. E.g. we may submit_blocks only in certain spots, or have it have its own timer
       submit_blocks(state)
 

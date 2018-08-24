@@ -115,7 +115,7 @@ defmodule OMG.API.State do
   Includes a deposit done on the root chain contract (see above - not sure about this)
   """
   def handle_call({:deposits, deposits}, _from, state) do
-    # TODO event_triggers is ignored because Eventer is moving to Watcher - tidy this
+    # FIXME event_triggers is ignored because Eventer is moving to Watcher - tidy this
     {:ok, {_event_triggers, db_updates}, new_state} = Core.deposit(deposits, state)
 
     # GenServer.call

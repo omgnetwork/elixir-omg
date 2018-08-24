@@ -18,7 +18,8 @@ defmodule OMG.EthTest do
 
   Note the excluded moduletag, this test requires an explicit `--include`
   """
-  # TODO: if proves to be brittle and we cover that functionality in other integration test then consider removing
+  # FIXME: if proves to be brittle and we cover that functionality in other integration test then consider removing
+  #       UPDATE: up for revamp and reduction in OMG-225
 
   alias OMG.API.Block
   alias OMG.API.Crypto
@@ -131,7 +132,7 @@ defmodule OMG.EthTest do
 
     {:ok, child_blknum} = Eth.get_mined_child_block(contract.contract_addr)
 
-    # TODO re: brittleness and dirtyness of this - test requires UtxoDB calls,
+    # FIXME re: brittleness and dirtyness of this - test requires UtxoDB calls,
     # duplicates our integrations tests - another reason to drop or redesign eth_test.exs sometime
     %{utxo_pos: utxo_pos, txbytes: txbytes, proof: proof, sigs: sigs} =
       UtxoDB.compose_utxo_exit(txs, Utxo.position(child_blknum, 0, 0))

@@ -18,7 +18,8 @@ defmodule OMG.Eth do
 
   All sending of transactions and listening to events goes here
   """
-  # TODO: decide how type and logic aware this should be. Presently it's quite mixed
+  # FIXME: decide how type and logic aware this should be. Presently it's quite mixed
+  #       UPDATE: up for revamp and reduction in OMG-225
 
   alias OMG.API.Crypto
   import OMG.Eth.Encoding
