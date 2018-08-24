@@ -86,7 +86,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
     {:ok, {block_hash, _}} = Eth.get_child_chain(block_nr)
 
-    # TODO: this is turned off now and set to zero. Rethink test after this gets fixed (possibly test differently)
     eth_height = 0
 
     address_received_event =

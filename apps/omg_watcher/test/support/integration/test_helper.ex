@@ -42,9 +42,8 @@ defmodule OMG.Watcher.Integration.TestHelper do
     |> Task.async()
     |> Task.await(timeout)
 
-    # TODO write to db seems to be async and wait_until_block_getter_fetches_block
-    # returns too early
-
+    # write to db seems to be async and wait_until_block_getter_fetches_block would return too early, so sleep
+    # leverage `block` events if they get implemented
     Process.sleep(100)
   end
 
