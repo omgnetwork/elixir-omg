@@ -20,8 +20,9 @@ defmodule OMG.Eth.DevHelpers do
 
   alias OMG.API.Crypto
   alias OMG.Eth.WaitFor, as: WaitFor
-  import OMG.Eth.Encoding
   alias OMG.Eth
+
+  import OMG.Eth.Encoding
 
   # safe, reasonable amount, equal to the testnet block gas limit
   @lots_of_gas 4_712_388
@@ -89,6 +90,22 @@ defmodule OMG.Eth.DevHelpers do
   def deposit(value, from, contract \\ nil) do
     contract = contract || Application.get_env(:omg_eth, :contract_addr)
     contract_transact(from, nil, value, contract, "deposit()", [])
+  end
+
+  def make_deposits(value, accounts, contract \\ nil) do
+    deposit = fn account ->
+      {:ok, account_enc} = import_unlock_fund(account)
+
+      {:ok, deposit_tx_hash} = deposit(value, account_enc, contract)
+      {:ok, receipt} = OMG.Eth.WaitFor.eth_receipt(deposit_tx_hash)
+      deposit_blknum = deposit_blknum_from_receipt(receipt)
+
+      {:ok, account, deposit_blknum, value}
+    end
+
+    accounts
+    |> Enum.map(&Task.async(fn -> deposit.(&1) end))
+    |> Enum.map(fn task -> Task.await(task, :infinity) end)
   end
 
   def deposit_blknum_from_receipt(receipt) do

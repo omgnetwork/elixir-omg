@@ -7,7 +7,7 @@ use Mix.Config
 
 # General application configuration
 config :omg_watcher,
-  child_chain_url: "http://localhost",
+  child_chain_url: "http://localhost:9656",
   namespace: OMG.Watcher,
   ecto_repos: [OMG.Watcher.Repo],
   slow_exit_validator_block_margin: 10,

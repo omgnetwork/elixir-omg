@@ -20,7 +20,9 @@ defmodule OMG.Performance.SenderManager do
   use GenServer
   use OMG.API.LoggerExt
 
-  @initial_blknum 1000
+  alias OMG.API.Utxo
+
+  require Utxo
 
   def sender_stats(new_stats) do
     GenServer.cast(__MODULE__, {:stats, Map.put(new_stats, :timestamp, System.monotonic_time(:millisecond))})
@@ -33,25 +35,35 @@ defmodule OMG.Performance.SenderManager do
   @doc """
   Starts the sender's manager process
   """
-  @spec start_link_all_senders(ntx_to_send :: integer, nusers :: integer, opt :: map) :: pid
-  def start_link_all_senders(ntx_to_send, nusers, %{destdir: destdir} = _opt) do
-    {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, nusers, destdir}, name: __MODULE__)
+  @spec start_link_all_senders(pos_integer(), list(), map()) :: pid
+  def start_link_all_senders(ntx_to_send, utxos, %{destdir: destdir} = _opt) do
+    {:ok, mypid} = GenServer.start_link(__MODULE__, {ntx_to_send, utxos, destdir}, name: __MODULE__)
     mypid
   end
 
   @doc """
   Starts sender processes and reschedule check whether they are done.
   """
-  @spec init({integer, integer, binary}) :: {:ok, map()}
-  def init({ntx_to_send, nusers, destdir}) do
+  @spec init({pos_integer(), list(), binary}) :: {:ok, map()}
+  def init({ntx_to_send, utxos, destdir}) do
     Process.flag(:trap_exit, true)
-    _ = Logger.debug(fn -> "init called with #{inspect(nusers)} users, each to send #{inspect(ntx_to_send)}" end)
+
+    _ =
+      Logger.debug(fn -> "init called with utxos: #{inspect(length(utxos))}, ntx_to_send: #{inspect(ntx_to_send)}" end)
 
     senders =
-      1..nusers
-      |> Enum.map(fn seqnum ->
-        {:ok, pid} = OMG.Performance.SenderServer.start_link({seqnum, ntx_to_send})
+      utxos
+      |> Enum.with_index(1)
+      |> Enum.map(fn {utxo, seqnum} ->
+        {:ok, pid} = OMG.Performance.SenderServer.start_link({seqnum, utxo, ntx_to_send})
         {seqnum, pid}
+      end)
+
+    initial_blknums =
+      utxos
+      |> Enum.map(fn %{utxo_pos: utxo_pos} ->
+        {:utxo_position, blknum, _txindex, _oindex} = Utxo.Position.decode(utxo_pos)
+        blknum
       end)
 
     {:ok,
@@ -61,7 +73,8 @@ defmodule OMG.Performance.SenderManager do
        block_times: [],
        goal: ntx_to_send,
        start_time: System.monotonic_time(:millisecond),
-       destdir: destdir
+       destdir: destdir,
+       initial_blknums: initial_blknums
      }}
   end
 
@@ -115,15 +128,14 @@ defmodule OMG.Performance.SenderManager do
   # Collects statistics regarding tx submittion and block forming.
   # Returns array of tuples, each tuple contains four fields:
   # * {blknum,   total_txs_in_blk,   avg_txs_in_sec,   time_between_blocks_ms}
-  defp analyze(%{events: events, start_time: start}) do
+  defp analyze(%{events: events, start_time: start, initial_blknums: initial_blknums}) do
     events_by_blknum = events |> Enum.group_by(& &1.blknum)
 
+    # we don't want the initial blocks that end up in the events
     ordered_keys =
-      events_by_blknum
-      |> Map.keys()
-      |> Enum.sort()
-      # we don't want the deposit blocks that end up in the events
-      |> Enum.filter(fn blknum -> blknum >= @initial_blknum end)
+      (events_by_blknum
+       |> Map.keys()
+       |> Enum.sort()) -- initial_blknums
 
     {_, block_stats} =
       ordered_keys
@@ -159,6 +171,7 @@ defmodule OMG.Performance.SenderManager do
      ]}
   end
 
+  defp txs_per_second(txs_count, interval_ms) when interval_ms == 0, do: txs_count
   defp txs_per_second(txs_count, interval_ms), do: Float.round(txs_count * 1000 / interval_ms, 2)
 
   # handle termination

@@ -26,8 +26,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
   @eth Crypto.zero_address()
 
-  defp got_block(state, block) do
-    assert {:ok, new_state, _, []} = Core.got_block(state, {:ok, block})
+  defp handle_got_block(state, block) do
+    assert {:ok, new_state, _, []} = Core.handle_got_block(state, {:ok, block})
     new_state
   end
 
@@ -41,8 +41,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     state_after_proces_down =
       state_after_chunk
-      |> got_block(%Block{number: 4_000})
-      |> got_block(%Block{number: 2_000})
+      |> handle_got_block(%Block{number: 4_000})
+      |> handle_got_block(%Block{number: 2_000})
 
     assert {_, [5_000, 6_000]} = Core.get_new_blocks_numbers(state_after_proces_down, 20_000)
   end
@@ -56,17 +56,17 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       |> Core.init(interval, maximum_number_of_pending_blocks: 6)
       |> Core.get_new_blocks_numbers(7_000)
       |> elem(0)
-      |> got_block(%Block{number: 2_000})
-      |> got_block(%Block{number: 3_000})
-      |> got_block(%Block{number: 6_000})
+      |> handle_got_block(%Block{number: 2_000})
+      |> handle_got_block(%Block{number: 3_000})
+      |> handle_got_block(%Block{number: 6_000})
 
-    assert {:ok, state1, [], []} = Core.got_block(state, {:ok, %Block{number: 5_000}})
+    assert {:ok, state1, [], []} = Core.handle_got_block(state, {:ok, %Block{number: 5_000}})
 
     assert {:ok, state2, [%Block{number: 1_000}, %Block{number: 2_000}, %Block{number: 3_000}], []} =
-             state1 |> Core.got_block({:ok, %Block{number: 1_000}})
+             state1 |> Core.handle_got_block({:ok, %Block{number: 1_000}})
 
     assert {:ok, _, [%Block{number: 4_000}, %Block{number: 5_000}, %Block{number: 6_000}], []} =
-             state2 |> Core.got_block({:ok, %Block{number: 4_000}})
+             state2 |> Core.handle_got_block({:ok, %Block{number: 4_000}})
   end
 
   test "getting blocks to consume out of order" do
@@ -78,11 +78,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
              |> Core.init(interval, maximum_number_of_pending_blocks: 6)
              |> Core.get_new_blocks_numbers(7_000)
              |> elem(0)
-             |> got_block(%Block{number: 3_000})
-             |> Core.got_block({:ok, %Block{number: 2_000}})
+             |> handle_got_block(%Block{number: 3_000})
+             |> Core.handle_got_block({:ok, %Block{number: 2_000}})
 
     assert {:ok, _, [%Block{number: 1_000}, %Block{number: 2_000}, %Block{number: 3_000}], []} =
-             state |> Core.got_block({:ok, %Block{number: 1_000}})
+             state |> Core.handle_got_block({:ok, %Block{number: 1_000}})
   end
 
   test "start block height is not zero" do
@@ -93,8 +93,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     assert {:ok, _, [%Block{number: 7_100}, %Block{number: 7_200}], []} =
              state
-             |> got_block(%Block{number: 7_200})
-             |> Core.got_block({:ok, %Block{number: 7_100}})
+             |> handle_got_block(%Block{number: 7_200})
+             |> Core.handle_got_block({:ok, %Block{number: 7_100}})
   end
 
   test "next_child increases or decrease in calls to get_new_blocks_numbers" do
@@ -110,7 +110,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {_, [4_000, 5_000]} = Core.get_new_blocks_numbers(state, 8_000)
   end
 
-  test "check error return by got_block" do
+  test "check error return by handle_got_block" do
     block_height = 0
     interval = 1_000
 
@@ -118,9 +118,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       block_height |> Core.init(interval, maximum_number_of_pending_blocks: 5) |> Core.get_new_blocks_numbers(3_000)
 
     assert {:error, :duplicate} =
-             state |> got_block(%Block{number: 2_000}) |> Core.got_block({:ok, %Block{number: 2_000}})
+             state |> handle_got_block(%Block{number: 2_000}) |> Core.handle_got_block({:ok, %Block{number: 2_000}})
 
-    assert {:error, :unexpected_blok} = state |> Core.got_block({:ok, %Block{number: 3_000}})
+    assert {:error, :unexpected_blok} = state |> Core.handle_got_block({:ok, %Block{number: 3_000}})
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -172,11 +172,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {:ok, decoded_block} =
              Core.validate_get_block_response({:ok, block}, requested_hash, block_height + interval, 0)
 
-    Core.got_block(state, {:ok, decoded_block})
+    Core.handle_got_block(state, {:ok, decoded_block})
   end
 
   @tag fixtures: [:alice]
-  test "check error return by decode_block and got_block, incorrect_hash", %{alice: alice} do
+  test "check error return by decode_block and handle_got_block, incorrect_hash", %{alice: alice} do
     block_height = 0
     interval = 1_000
     matching_bad_returned_hash = <<12::256>>
@@ -198,7 +198,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     assert {{:needs_stopping, :incorrect_hash}, _, [],
             [%Event.InvalidBlock{error_type: :incorrect_hash, hash: ^matching_bad_returned_hash, number: 1}]} =
-             Core.got_block(state, {:error, :incorrect_hash, matching_bad_returned_hash, 1})
+             Core.handle_got_block(state, {:error, :incorrect_hash, matching_bad_returned_hash, 1})
   end
 
   @tag fixtures: [:alice]
@@ -239,7 +239,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {:ok, %{number: 2 = _overriden_number}} = Core.validate_get_block_response({:ok, block}, hash, 2, 0)
   end
 
-  test "got_block function called once with PotentialWithholding don't returns BlockWithHolding event" do
+  test "handle_got_block function called once with PotentialWithholding don't returns BlockWithHolding event" do
     block_height = 0
     interval = 1_000
 
@@ -247,10 +247,10 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
 
-    assert {:ok, _, [], []} = Core.got_block(state, potential_withholding)
+    assert {:ok, _, [], []} = Core.handle_got_block(state, potential_withholding)
   end
 
-  test "got_block function called twice with PotentialWithholding returns BlockWithHolding event" do
+  test "handle_got_block function called twice with PotentialWithholding returns BlockWithHolding event" do
     block_height = 0
     interval = 1_000
 
@@ -258,12 +258,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       Core.get_new_blocks_numbers(Core.init(block_height, interval, maximum_block_withholding_time_ms: 0), 3_000)
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
-    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 1)
 
     assert {{:needs_stopping, :withholding}, _, [], [%Event.BlockWithHolding{blknum: 2000}]} =
-             Core.got_block(state, potential_withholding)
+             Core.handle_got_block(state, potential_withholding)
   end
 
   test "get_new_blocks_numbers function returns number of potential withholding block which next is canceled" do
@@ -278,15 +278,15 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     state =
       state
-      |> got_block(%Block{number: 1_000})
-      |> got_block(%Block{number: 2_000})
+      |> handle_got_block(%Block{number: 1_000})
+      |> handle_got_block(%Block{number: 2_000})
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 0)
-    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
 
     assert {_, [3000, 5000, 6000]} = Core.get_new_blocks_numbers(state, 20_000)
 
-    assert {:ok, state, [%Block{number: 3_000}], []} = Core.got_block(state, {:ok, %Block{number: 3_000}})
+    assert {:ok, state, [%Block{number: 3_000}], []} = Core.handle_got_block(state, {:ok, %Block{number: 3_000}})
 
     assert {_, [5000, 6000, 7000, 8000]} = Core.get_new_blocks_numbers(state, 20_000)
   end
@@ -299,18 +299,18 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       Core.get_new_blocks_numbers(Core.init(block_height, interval, maximum_number_of_pending_blocks: 3), 20_000)
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 1_000, 0)
-    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
-    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 0)
-    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
 
     assert {_, [1000, 2000, 3000]} = Core.get_new_blocks_numbers(state, 20_000)
   end
 
-  test "got_block function after maximum_block_withholding_time_ms returns BlockWithHolding event" do
+  test "handle_got_block function after maximum_block_withholding_time_ms returns BlockWithHolding event" do
     block_height = 0
     interval = 1_000
 
@@ -318,16 +318,16 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 0)
 
-    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 500)
 
-    assert {:ok, state, [], []} = Core.got_block(state, potential_withholding)
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
 
     potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 1000)
 
     assert {{:needs_stopping, :withholding}, _state, [], [%Event.BlockWithHolding{blknum: 3_000}]} =
-             Core.got_block(state, potential_withholding)
+             Core.handle_got_block(state, potential_withholding)
   end
 
   test "check_tx_executions function returns InvalidBlock event" do
@@ -341,5 +341,34 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
                 number: 1
               }
             ]} = Core.check_tx_executions([{:error, {}}], block)
+  end
+
+  test "after detecting twice same maximum possible potential withholdings get_new_blocks_numbers function still returns those blocks" do
+    block_height = 0
+    interval = 1_000
+
+    {state, [1_000, 2_000]} =
+      Core.get_new_blocks_numbers(
+        Core.init(
+          block_height,
+          interval,
+          maximum_number_of_pending_blocks: 2,
+          maximum_block_withholding_time_ms: 10_000
+        ),
+        20_000
+      )
+
+    potential_withholding_1_000 = Core.validate_get_block_response({:error, :error_reson}, <<>>, 1_000, 0)
+    potential_withholding_2_000 = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
+
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding_1_000)
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding_2_000)
+
+    assert {state, [1_000, 2_000]} = Core.get_new_blocks_numbers(state, 20_000)
+
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding_1_000)
+    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding_2_000)
+
+    assert {_state, [1_000, 2_000]} = Core.get_new_blocks_numbers(state, 20_000)
   end
 end

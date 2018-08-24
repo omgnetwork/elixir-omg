@@ -160,7 +160,7 @@ Effectively, the block being submitted means that during exiting, ownership of f
 
 ### Network congestion
 
-(TODO: **Note: This is currently being researched and discussed** [here](https://github.com/omisego/docs/issues/8))
+(TODO: **Note: This is currently being researched and discussed**)
 
 The child chain will allow a maximum of N UTXOs at given time on the child chain.
 N is bound by root chain's bandwidth limitations and is the maximum amount of UTXOs that can safely requested to exit, if the child chain becomes invalid.

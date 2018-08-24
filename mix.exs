@@ -8,6 +8,13 @@ defmodule OMG.Umbrella.MixProject do
       deps: deps(),
       preferred_cli_env: [coveralls: :test, "coveralls.html": :test, "coveralls.detail": :test, dialyzer: :prod],
       dialyzer: [
+        paths: [
+          "_build/prod/lib/omg_watcher/ebin",
+          "_build/prod/lib/omg_jsonrpc/ebin",
+          "_build/prod/lib/omg_api/ebin",
+          "_build/prod/lib/omg_eth/ebin",
+          "_build/prod/lib/omg_db/ebin"
+        ],
         flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
         plt_add_deps: :transitive,
         ignore_warnings: "dialyzer.ignore-warnings"

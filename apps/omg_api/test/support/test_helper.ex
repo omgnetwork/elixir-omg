@@ -21,6 +21,8 @@ defmodule OMG.API.TestHelper do
   alias OMG.API.State.Core
   alias OMG.API.State.Transaction
 
+  @type entity :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
+
   def entities do
     %{
       alice: generate_entity(),
@@ -49,6 +51,7 @@ defmodule OMG.API.TestHelper do
     }
   end
 
+  @spec generate_entity :: entity()
   def generate_entity do
     {:ok, priv} = Crypto.generate_private_key()
     {:ok, pub} = Crypto.generate_public_key(priv)
