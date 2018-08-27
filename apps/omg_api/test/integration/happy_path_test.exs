@@ -68,12 +68,7 @@ defmodule OMG.API.Integration.HappyPathTest do
 
     {:ok, token_addr} = OMG.API.Crypto.decode_address(token.address)
 
-    token_raw_tx =
-      Transaction.new(
-        [{token_deposit_blknum, 0, 0}],
-        token_addr,
-        [{bob.addr, 8}, {alice.addr, 2}]
-      )
+    token_raw_tx = Transaction.new([{token_deposit_blknum, 0, 0}], token_addr, [{bob.addr, 8}, {alice.addr, 2}])
 
     token_tx = token_raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
 
