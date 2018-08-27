@@ -11,7 +11,7 @@ defmodule OMG.Watcher.Mixfile do
       lockfile: "../../mix.lock",
       elixir: "~> 1.4",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers(),
+      compilers: [:phoenix, :gettext, :phoenix_swagger] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
@@ -40,6 +40,7 @@ defmodule OMG.Watcher.Mixfile do
     [
       {:phoenix, "~> 1.3.2"},
       {:phoenix_ecto, "~> 3.3"},
+      {:phoenix_swagger, "~> 0.8.1"},
       {:postgrex, ">= 0.13.5", only: [:prod, :dev]},
       {:gettext, "~> 0.15"},
       {:sqlite_ecto2, "~> 2.2", only: [:test]},

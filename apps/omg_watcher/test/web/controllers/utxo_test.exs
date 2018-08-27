@@ -111,7 +111,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
     {:ok,
      %{
        utxo_pos: _utxo_pos,
-       txbytes: _tx_bytes,
+       txbytes: _txbytes,
        proof: proof,
        sigs: _sigs
      }} = UtxoDB.compose_utxo_exit(Utxo.position(1, 1, 0))

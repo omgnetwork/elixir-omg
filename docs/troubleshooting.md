@@ -1,4 +1,7 @@
 # Troubleshooting
+
+**TODO** - remove these hints and return meaningful error messages instead, wherever possible
+
 ## Configuring the omg_eth app fails with error
 ```
 ** (MatchError) no match of right hand side value: {:error, :econnrefused}
@@ -17,7 +20,7 @@
     (elixir) lib/code.ex:677: Code.require_file/2
 ```
 
-Answer: Ensure that the dev Ethereum instance is running: geth
+Answer: Ensure that an Ethereum instance is running: `geth ...``
 
 ## Error starting child chain server
 ```
@@ -30,8 +33,8 @@ Answer: Ensure that the dev Ethereum instance is running: geth
             (stdlib) proc_lib.erl:247: :proc_lib.init_p_do_apply/3
 ```
 
-Answer:
-rm -rf ~/.omg
+The child chain might have not been wiped clean when starting a child chain from scratch.
+Answer: follow the setting up of developer environment from the beginning.
 
 ## Error starting child chain server
 ```
@@ -57,17 +60,53 @@ personal.unlockAccount(“<authority_addr from config.exs>”, '', 0)
 
 ## Error Starting child chain server
 ```
-** (Mix) Could not start application omg_api: OMG.API.Application.start(:normal, []) returned an error: shutdown: failed to start child: OMG.API.State
+** (Mix) Could not start application omg_db: OMG.DB.Application.start(:normal, []) returned an error: shutdown: failed to start child: OMG.DB.LevelDBServer
     ** (EXIT) an exception was raised:
-        ** (ArithmeticError) bad argument in arithmetic expression
-            (omg_api) lib/state/core.ex:30: OMG.API.State.Core.extract_initial_state/4
-            (omg_api) lib/state.ex:70: OMG.API.State.init/1
-            (stdlib) gen_server.erl:365: :gen_server.init_it/2mix d
+        ** (MatchError) no match of right hand side value: {:error, {:db_open, 'IO error: /home/user/.omg/data/LOCK: No such file or directory'}}
+            (omg_db) lib/leveldb_server.ex:36: OMG.DB.LevelDBServer.init/1
+            (stdlib) gen_server.erl:365: :gen_server.init_it/2
             (stdlib) gen_server.erl:333: :gen_server.init_it/6
             (stdlib) proc_lib.erl:247: :proc_lib.init_p_do_apply/3
 ```
+
+or
+
+```
+** (Mix) Could not start application omg_api: OMG.API.Application.start(:normal, []) returned an error: shutdown: failed to start child: OMG.API.State
+    ** (EXIT) an exception was raised:
+        ** (FunctionClauseError) no function clause matching in OMG.API.State.Core.extract_initial_state/4
+            (omg_api) lib/state/core.ex:89: OMG.API.State.Core.extract_initial_state([], :not_found, :not_found, 1000)
+            (stdlib) gen_server.erl:365: :gen_server.init_it/2
+            (stdlib) gen_server.erl:333: :gen_server.init_it/6
+            (stdlib) proc_lib.erl:247: :proc_lib.init_p_do_apply/3
+
+```
 Answer:
 Child chain database not initialized yet
+
+## Error compiling contracts
+
+```
+    > command: `solc --allow-paths /elixir-omg/deps/plasma_contracts/contracts --standard-json`
+    > return code: `0`
+    > stderr:
+    {"contracts":{},"errors":[{"component":"general","formattedMessage":"RootChain.sol:92:16: ParserError: Expected identifier, got 'LParen'\n    constructor(
+)\n               ^\n","message":"Expected identifier, got 'LParen'","severity":"error","type":"ParserError"}],"sources":{}}
+```
+
+Answer:
+Ensure `solc` is at at least the required version (see [installation instructions](./install.md)).
+
+## Error compiling contracts
+
+```
+** (Mix) Could not compile dependency :plasma_contracts, "cd elixir-omg/apps/omg_eth/../../ && py-solc-simple -i deps/plasma_con
+tracts/contracts/ -o contracts/build/" command failed. You can recompile this dependency with "mix deps.compile plasma_contracts", update it with "mix deps.up
+date plasma_contracts" or clean it with "mix deps.clean plasma_contracts"
+```
+
+Answer: [install the contract building machinery](./install.md#install-contract-building-machinery)
+
 
 ## To compile or recompile the contracts
 ```

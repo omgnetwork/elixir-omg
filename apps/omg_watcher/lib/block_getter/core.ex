@@ -231,32 +231,42 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   @doc """
-  Add block to \"block to consume\" tick off the block from pending blocks.
-  Returns the consumable, contiguous list of ordered blocks
+  First scenario:
+    Add block to \"block to consume\" tick off the block from pending blocks.
+    Returns the consumable, contiguous list of ordered blocks
+  Second scenario:
+    In case of invalid block detecion
+    Returns InvalidBlock event.
+  Thrid scenario:
+    In case of potential withholding block detecion
+    Returns same state, state with new  potential_block_withholding or BlockWithHolding event
   """
-  @spec got_block(
+  @spec handle_got_block(
           %__MODULE__{},
           {:ok, OMG.API.Block.t() | PotentialWithholding.t()} | {:error, block_error(), binary(), pos_integer()}
         ) ::
           {:ok | {:needs_stopping, block_error()}, %__MODULE__{},
            [] | list(Event.InvalidBlock.t()) | list(Event.BlockWithholding.t())}
-          | {:error, :duplicate | :unexpected_block}
-  def got_block(
-        %__MODULE__{
-          blocks_to_consume: blocks_to_consume,
-          waiting_for_blocks: waiting_for_blocks,
-          started_block_number: started_block_number,
-          last_consumed_block: last_consumed_block,
-          potential_block_withholdings: potential_block_withholdings
-        } = state,
-        {:ok, %{number: number} = block}
-      ) do
+          | {:error, :duplicate | :unexpected_blok}
+  def handle_got_block(%__MODULE__{waiting_for_blocks: waiting_for_blocks} = state, response) do
+    state = %{state | waiting_for_blocks: waiting_for_blocks - 1}
+    validate_got_block(state, response)
+  end
+
+  defp validate_got_block(
+         %__MODULE__{
+           blocks_to_consume: blocks_to_consume,
+           started_block_number: started_block_number,
+           last_consumed_block: last_consumed_block,
+           potential_block_withholdings: potential_block_withholdings
+         } = state,
+         {:ok, %{number: number} = block}
+       ) do
     with :ok <- if(Map.has_key?(blocks_to_consume, number), do: :duplicate, else: :ok),
-         :ok <- if(last_consumed_block < number and number <= started_block_number, do: :ok, else: :unexpected_block) do
+         :ok <- if(last_consumed_block < number and number <= started_block_number, do: :ok, else: :unexpected_blok) do
       state1 = %{
         state
-        | blocks_to_consume: Map.put(blocks_to_consume, number, block),
-          waiting_for_blocks: waiting_for_blocks - 1
+        | blocks_to_consume: Map.put(blocks_to_consume, number, block)
       }
 
       state2 = %{state1 | potential_block_withholdings: Map.delete(potential_block_withholdings, number)}
@@ -267,7 +277,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     end
   end
 
-  def got_block(%__MODULE__{} = state, {:error, error_type, hash, number}) do
+  defp validate_got_block(%__MODULE__{} = state, {:error, error_type, hash, number}) do
     {
       {:needs_stopping, error_type},
       state,
@@ -281,14 +291,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
     }
   end
 
-  def got_block(
-        %__MODULE__{
-          potential_block_withholdings: potential_block_withholdings,
-          maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
-          waiting_for_blocks: waiting_for_blocks
-        } = state,
-        {:ok, %PotentialWithholding{blknum: blknum, time: time}}
-      ) do
+  defp validate_got_block(
+         %__MODULE__{
+           potential_block_withholdings: potential_block_withholdings,
+           maximum_block_withholding_time_ms: maximum_block_withholding_time_ms
+         } = state,
+         {:ok, %PotentialWithholding{blknum: blknum, time: time}}
+       ) do
     blknum_time = Map.get(potential_block_withholdings, blknum)
 
     cond do
@@ -297,8 +306,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
         state = %{
           state
-          | potential_block_withholdings: potential_block_withholdings,
-            waiting_for_blocks: waiting_for_blocks - 1
+          | potential_block_withholdings: potential_block_withholdings
         }
 
         {:ok, state, []}

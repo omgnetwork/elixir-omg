@@ -5,15 +5,13 @@ Refer to https://github.com/omisego/omg-vagrant.
 
 **NOTE**: Currently the child chain server and watcher are bundled within a single umbrella app.
 
-**TODO** hex-ify the package.
-
 Only **Linux** platforms are supported now. These instructions have been tested on a fresh Linode 2048 instance with Ubuntu 16.04.
 
 ## Prerequisites
-* Elixir
-* Erlang OTP 20
-* Python '>=3.5, <4'
-* solc 0.4.24
+* **Erlang OTP** `>=20` (check with `elixir --version`)
+* **Elixir** `>=1.6` (check with `elixir --version`)
+* **Python** `>=3.5, <4` (check with `python --version`)
+* **solc** `>=0.4.24` (check with `solc --version`)
 
 ## Install prerequisite packages
 ```
@@ -21,25 +19,19 @@ sudo apt-get update
 sudo apt-get -y install build-essential autoconf libtool libgmp3-dev libssl-dev wget git
 ```
 
-## Install Erlang OTP 20
-**TODO**: This step is only required until we migrate to OTP 21 in OMG-181
+## Install Erlang
 
-Add the Erlang Solutions repo
+Add the Erlang Solutions repo and install
 ```
-wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb && sudo dpkg -i erlang-solutions_1.0_all.deb
+wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb
+sudo dpkg -i erlang-solutions_1.0_all.deb
 sudo apt-get update
-sudo apt-get install -y esl-erlang=1:20.3.6
+sudo apt-get install -y esl-erlang
 ```
 
 ## Install Elixir
 ```
 sudo apt-get -y install elixir
-```
-
-## Stop Erlang and Elixir from being upgraded
-```
-sudo apt-mark hold esl-erlang
-sudo apt-mark hold elixir
 ```
 
 
@@ -69,7 +61,7 @@ source DEV/bin/activate
 sudo apt-get install libssl-dev solc
 ```
 
-## Install rebar
+## Install hex and rebar
 ```
 mix do local.hex --force, local.rebar --force
 ```
@@ -80,12 +72,12 @@ git clone https://github.com/omisego/elixir-omg
 ```
 
 ## Install contract building machinery
-[Ref](../contracts/README.md)
+[Ref](../README.md#contracts)
 ```
 # contract building requires character encoding to be set
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
-pip3 install -r elixir-omg/contracts/requirements.txt
+pip3 install -r contracts/requirements.txt
 ```
 
 ## Build
@@ -100,10 +92,7 @@ For a quick test (with no integration tests)
 mix test
 ```
 
-To run integration tests (requires compiling contracts)
+To run integration tests (requires compiling contracts and **not** having `geth` running in the background):
 ```
 mix test --only integration
 ```
-
-## Next steps
-Follow the README steps for the [child chain server](../apps/omg_api/README.md).
