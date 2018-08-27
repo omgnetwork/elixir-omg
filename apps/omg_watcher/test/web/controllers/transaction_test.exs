@@ -60,8 +60,6 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
         number: txblknum
       })
 
-    tx = TransactionDB.get(txid_1)
-
     assert create_expected_transaction(txid_1, recovered_tx1, txblknum, 0) == delete_meta(TransactionDB.get(txid_1))
     assert create_expected_transaction(txid_2, recovered_tx2, txblknum, 1) == delete_meta(TransactionDB.get(txid_2))
   end

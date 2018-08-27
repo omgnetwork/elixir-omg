@@ -67,8 +67,8 @@ defmodule OMG.Watcher.Web.Controller.Status do
           end
 
           example(%{
-            last_validated_child_block_number: 10000,
-            last_mined_child_block_number: 11000,
+            last_validated_child_block_number: 10_000,
+            last_mined_child_block_number: 11_000,
             last_mined_child_block_timestamp: 1_535_031_020,
             eth_syncing: true
           })
