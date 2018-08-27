@@ -16,7 +16,7 @@ defmodule OMG.Watcher.BlockGetter do
   @moduledoc """
   Checking if there are new block from child chain on ethereum.
   Checking if Block from child chain is valid
-  Download new block from child chain and update State, TransactionDB, UtxoDB.
+  Download new block from child chain and update State, TransactionDB, TxOutputDB.
   Manage simultaneous getting and stateless-processing of blocks and manage the results of that
   Detects byzantine situations like BlockWithholding and InvalidBlock and passes this events to Eventer
   """
@@ -25,7 +25,8 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.API.RootchainCoordinator
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter.Core
-  alias OMG.Watcher.UtxoDB
+  alias OMG.Watcher.Eventer
+  alias OMG.Watcher.TxOutputDB
 
   use GenServer
   use OMG.API.LoggerExt
@@ -52,7 +53,7 @@ defmodule OMG.Watcher.BlockGetter do
     with :ok <- continue do
       response = OMG.Watcher.TransactionDB.update_with(block)
       nil = Enum.find(response, &(!match?({:ok, _}, &1)))
-      _ = UtxoDB.update_with(block)
+      _ = TxOutputDB.update_with(block)
       _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end)
       {:ok, next_child} = Eth.RootChain.get_current_child_block()
       {state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)

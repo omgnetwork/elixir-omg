@@ -21,8 +21,10 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
   alias OMG.API.Crypto
   alias OMG.API.Utxo
-  alias OMG.Watcher.UtxoDB
+  alias OMG.Watcher.TxOutputDB
   alias OMG.Watcher.Web.View
+
+  require Utxo
 
   use PhoenixSwagger
   import OMG.Watcher.Web.ErrorHandler
@@ -32,7 +34,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
     available = %{
       address: address,
-      utxos: UtxoDB.get_utxos(address_decode)
+      utxos: TxOutput.get_utxos(address_decode)
     }
 
     render(conn, View.Utxo, :available, available: available)
@@ -43,7 +45,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
     utxo_pos
     |> Utxo.Position.decode()
-    |> UtxoDB.compose_utxo_exit()
+    |> TxOutput.compose_utxo_exit()
     |> respond(conn)
   end
 

@@ -33,7 +33,7 @@ defmodule OMG.Watcher.Challenger do
   @spec create_challenge(Utxo.Position.t()) :: Challenge.t() | {:error, :invalid_challenge_of_exit}
   def create_challenge(utxo_exit) do
     with {:ok, challenging_tx} <- TransactionDB.get_transaction_challenging_utxo(utxo_exit) do
-      txs_in_challenging_block = TransactionDB.find_by_txblknum(challenging_tx.txblknum)
+      txs_in_challenging_block = TransactionDB.find_by_blknum(challenging_tx.blknum)
       {:ok, Core.create_challenge(challenging_tx, txs_in_challenging_block, utxo_exit)}
     else
       {:error, :utxo_not_spent} -> {:error, :invalid_challenge_of_exit}
