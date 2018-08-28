@@ -20,12 +20,12 @@ defmodule OMG.API.State do
   """
   alias OMG.API.Block
   alias OMG.API.BlockQueue
+  alias OMG.API.EventerAPI
   alias OMG.API.FreshBlocks
   alias OMG.API.State.Core
   alias OMG.API.State.Transaction
   alias OMG.DB
   alias OMG.Eth
-  alias OMG.Watcher.Eventer
 
   use OMG.API.LoggerExt
 
@@ -117,11 +117,13 @@ defmodule OMG.API.State do
   Includes a deposit done on the root chain contract (see above - not sure about this)
   """
   def handle_call({:deposits, deposits}, _from, state) do
-    # FIXME event_triggers is ignored because Eventer is moving to Watcher - tidy this
-    {:ok, {_event_triggers, db_updates}, new_state} = Core.deposit(deposits, state)
+    {:ok, {event_triggers, db_updates}, new_state} = Core.deposit(deposits, state)
 
     # GenServer.call
     :ok = DB.multi_update(db_updates)
+
+    EventerAPI.emit_events(event_triggers)
+
     {:reply, :ok, new_state}
   end
 
@@ -179,7 +181,7 @@ defmodule OMG.API.State do
         |> Map.put(:submited_at_ethheight, eth_height)
       end)
 
-    Eventer.emit_events(event_triggers)
+    EventerAPI.emit_events(event_triggers)
 
     {:reply, :ok, new_state}
   end
@@ -201,7 +203,7 @@ defmodule OMG.API.State do
     {core_form_block_duration, core_form_block_result} =
       :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
 
-    {:ok, {block, _event_triggers, db_updates}, new_state} = core_form_block_result
+    {:ok, {block, event_triggers, db_updates}, new_state} = core_form_block_result
 
     _ =
       Logger.info(fn ->
@@ -211,6 +213,9 @@ defmodule OMG.API.State do
       end)
 
     :ok = DB.multi_update(db_updates)
+
+    # casts
+    EventerAPI.emit_events(event_triggers)
     :ok = FreshBlocks.push(block)
     :ok = BlockQueue.enqueue_block(block.hash, block.number)
 

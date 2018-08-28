@@ -21,9 +21,9 @@ defmodule OMG.Watcher.BlockGetter do
   Detects byzantine situations like BlockWithholding and InvalidBlock and passes this events to Eventer
   """
   alias OMG.API.Block
+  alias OMG.API.EventerAPI
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter.Core
-  alias OMG.Watcher.Eventer
   alias OMG.Watcher.UtxoDB
 
   use GenServer
@@ -45,7 +45,7 @@ defmodule OMG.Watcher.BlockGetter do
 
     {continue, events} = Core.check_tx_executions(state_exec_results, block)
 
-    Eventer.emit_events(events)
+    EventerAPI.emit_events(events)
 
     with :ok <- continue do
       response = OMG.Watcher.TransactionDB.update_with(block)
@@ -124,7 +124,7 @@ defmodule OMG.Watcher.BlockGetter do
     # 1/ process the block that arrived and consume
     {continue, new_state, blocks_to_consume, events} = Core.handle_got_block(state, response)
 
-    Eventer.emit_events(events)
+    EventerAPI.emit_events(events)
 
     with :ok <- continue do
       Enum.each(blocks_to_consume, fn block -> GenServer.cast(__MODULE__, {:consume_block, block}) end)
