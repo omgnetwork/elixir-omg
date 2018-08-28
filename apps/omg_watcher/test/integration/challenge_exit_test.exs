@@ -29,12 +29,12 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
 
   @moduletag :integration
 
-  @timeout 20_000
-  @zero_address Crypto.zero_address()
+  @timeout 40_000
+  @zero_address OMG.API.Crypto.zero_address()
   @eth @zero_address
 
   @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :alice_deposits]
-  test "exit eth, with challenging an invalid exit", %{alice: alice, alice_deposits: {deposit_blknum, _}} do
+  test "challenges invalid exit; exit token", %{alice: alice, alice_deposits: {deposit_blknum, _}} do
     # NOTE: we're explicitly skipping erc20 challenges here, because eth and erc20 exits/challenges work the exact same
     #       way, so the integration is tested with the eth test
 

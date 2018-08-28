@@ -19,7 +19,7 @@ defmodule OMG.Watcher.Eventer.Event do
   @type t ::
           OMG.Watcher.Eventer.Event.AddressReceived.t()
           | OMG.Watcher.Eventer.Event.InvalidBlock.t()
-          | OMG.Watcher.Eventer.Event.BlockWithHolding.t()
+          | OMG.Watcher.Eventer.Event.BlockWithholding.t()
 
   defmodule AddressReceived do
     @moduledoc """
@@ -71,7 +71,7 @@ defmodule OMG.Watcher.Eventer.Event do
           }
   end
 
-  defmodule BlockWithHolding do
+  defmodule BlockWithholding do
     @moduledoc """
     Notifies about block-withholding
     """

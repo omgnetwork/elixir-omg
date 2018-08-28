@@ -17,36 +17,51 @@ defmodule OMG.API.EthereumEventListener.Core do
   Functional core of event listener
   """
 
-  defstruct last_event_block: 1,
+  defstruct next_event_height_lower_bound: nil,
+            synced_height: nil,
+            service_name: nil,
             block_finality_margin: 10,
-            max_blocks_in_fetch: 5,
-            get_events_interval: 60_000,
             get_ethereum_events_callback: nil,
             process_events_callback: nil
 
-  def get_events_block_range(
+  @type event :: any
+
+  @type t() :: %__MODULE__{
+          next_event_height_lower_bound: non_neg_integer(),
+          synced_height: non_neg_integer(),
+          service_name: atom(),
+          block_finality_margin: non_neg_integer(),
+          get_ethereum_events_callback: (non_neg_integer(), non_neg_integer() -> {:ok, [event]}),
+          process_events_callback: ([event] -> :ok)
+        }
+
+  @doc """
+  Returns next Ethereum height to get events from.
+  """
+  @spec get_events_height_range_for_next_sync(t(), pos_integer) ::
+          {:get_events, {non_neg_integer(), non_neg_integer()}, t()} | {:dont_get_events, t()}
+  def get_events_height_range_for_next_sync(state, next_sync_height)
+
+  def get_events_height_range_for_next_sync(%__MODULE__{synced_height: synced_height} = state, next_sync_height)
+      when next_sync_height <= synced_height do
+    {:dont_get_events, state}
+  end
+
+  def get_events_height_range_for_next_sync(
         %__MODULE__{
-          last_event_block: last_event_block,
-          block_finality_margin: block_finality_margin,
-          max_blocks_in_fetch: max_blocks_in_fetch,
-          get_events_interval: get_events_interval
+          next_event_height_lower_bound: next_event_height_lower_bound,
+          block_finality_margin: block_finality_margin
         } = state,
-        current_ethereum_block
+        next_sync_height
       ) do
-    max_block = current_ethereum_block - block_finality_margin
+    next_event_height_upper_bound = next_sync_height - block_finality_margin
 
-    cond do
-      max_block <= last_event_block ->
-        {:no_blocks_with_event, state, get_events_interval}
+    new_state = %{
+      state
+      | synced_height: next_sync_height,
+        next_event_height_lower_bound: next_event_height_upper_bound + 1
+    }
 
-      last_event_block + max_blocks_in_fetch < max_block ->
-        next_last_event_block = last_event_block + max_blocks_in_fetch
-        state = %{state | last_event_block: next_last_event_block}
-        {:ok, state, 0, last_event_block + 1, next_last_event_block}
-
-      true ->
-        state = %{state | last_event_block: max_block}
-        {:ok, state, get_events_interval, last_event_block + 1, max_block}
-    end
+    {:get_events, {next_event_height_lower_bound, next_event_height_upper_bound}, new_state}
   end
 end

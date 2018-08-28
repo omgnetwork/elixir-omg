@@ -37,14 +37,14 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   @moduletag :integration
 
-  @timeout 20_000
+  @timeout 40_000
   @eth Crypto.zero_address()
   @eth_hex String.duplicate("00", 20)
 
   @endpoint OMG.Watcher.Web.Endpoint
 
   @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob, :alice_deposits]
-  test "get the blocks from child chain after transaction and start exit", %{
+  test "get the blocks from child chain after sending a transaction and start exit", %{
     alice: alice,
     bob: bob,
     alice_deposits: {deposit_blknum, _}
@@ -86,14 +86,14 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
     {:ok, {block_hash, _}} = Eth.get_child_chain(block_nr)
 
-    eth_height = 0
+    event_eth_height = get_block_submitted_event_height(block_nr)
 
     address_received_event =
       Client.encode(%Event.AddressReceived{
         tx: recovered_tx,
         child_blknum: block_nr,
         child_block_hash: block_hash,
-        submited_at_ethheight: eth_height
+        submited_at_ethheight: event_eth_height
       })
 
     address_spent_event =
@@ -101,7 +101,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         tx: recovered_tx,
         child_blknum: block_nr,
         child_block_hash: block_hash,
-        submited_at_ethheight: eth_height
+        submited_at_ethheight: event_eth_height
       })
 
     assert_push("address_received", ^address_received_event)
@@ -135,9 +135,16 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     # exiting spends UTXO on child chain
     # wait until the exit is recognized and attempt to spend the exited utxo
-    Process.sleep(1_000)
+    Process.sleep(4_000)
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
     {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
+  end
+
+  defp get_block_submitted_event_height(block_number) do
+    {:ok, height} = Eth.get_ethereum_height()
+    {:ok, block_submissions} = Eth.get_block_submitted_events({1, height})
+    [%{eth_height: eth_height}] = Enum.filter(block_submissions, fn submission -> submission.blknum == block_number end)
+    eth_height
   end
 
   @tag fixtures: [:watcher_sandbox, :token, :child_chain, :alice, :alice_deposits]

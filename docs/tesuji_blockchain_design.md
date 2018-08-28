@@ -327,6 +327,3 @@ The centralized exchange will be responsible for creating well formed Plasma tra
 ### Atomic swaps
 
 (FIXME: section taken from the former "User flows" secion. Rethink/rewrite)
-
-Decentralized Exchange:
-(removed because it became obsolete)

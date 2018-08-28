@@ -14,7 +14,7 @@
 
 defmodule OMG.Performance.BlockCreator do
   @moduledoc """
-  Module simulates forming new block on childchain at specified time intervals
+  Module simulates forming new block on the child chain at specified time intervals
   """
 
   use GenServer

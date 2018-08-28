@@ -178,7 +178,8 @@ defmodule OMG.Eth.DevHelpers do
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
     txmap = %{from: addr, to: addr, value: "0x1"}
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    {:ok, _receipt} = WaitFor.eth_receipt(txhash, 1_000)
+    # Dev geth is mining every second, that's why we need to wait longer than 1 s for receipt
+    {:ok, _receipt} = WaitFor.eth_receipt(txhash, 2_000)
   end
 
   def create_new_contract(path_project_root, addr) do

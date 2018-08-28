@@ -24,21 +24,23 @@ defmodule OMG.API.Application do
   alias OMG.API.State
 
   def start(_type, _args) do
-    event_listener_config = get_event_listener_config()
+    depositor_config = get_event_listener_config(:depositer)
+    exiter_config = get_event_listener_config(:exiter)
 
     children = [
       {OMG.API.State, []},
       {OMG.API.BlockQueue.Server, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeChecker, []},
+      {OMG.API.RootchainCoordinator, MapSet.new([:depositer, :exiter])},
       worker(
         OMG.API.EthereumEventListener,
-        [event_listener_config, &OMG.Eth.get_deposits/2, &State.deposit/1],
+        [depositor_config, &OMG.Eth.get_deposits/2, &State.deposit/1],
         id: :depositor
       ),
       worker(
         OMG.API.EthereumEventListener,
-        [event_listener_config, &OMG.Eth.get_exits/2, &State.exit_utxos/1],
+        [exiter_config, &OMG.Eth.get_exits/2, &State.exit_utxos/1],
         id: :exiter
       )
     ]
@@ -48,11 +50,12 @@ defmodule OMG.API.Application do
     Supervisor.start_link(children, opts)
   end
 
-  defp get_event_listener_config do
+  defp get_event_listener_config(service_name) do
     %{
       block_finality_margin: Application.get_env(:omg_api, :ethereum_event_block_finality_margin),
       max_blocks_in_fetch: Application.get_env(:omg_api, :ethereum_event_max_block_range_in_deposits_query),
-      get_events_interval: Application.get_env(:omg_api, :ethereum_event_get_deposits_interval_ms)
+      get_events_interval: Application.get_env(:omg_api, :ethereum_event_get_deposits_interval_ms),
+      service_name: service_name
     }
   end
 end
