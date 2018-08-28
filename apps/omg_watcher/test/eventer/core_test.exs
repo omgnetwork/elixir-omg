@@ -64,7 +64,7 @@ defmodule OMG.Watcher.Eventer.CoreTest do
   end
 
   test "prepare_events function generates one block_withholdings event" do
-    block_withholding_event = %Event.BlockWithHolding{blknum: 1}
+    block_withholding_event = %Event.BlockWithholding{blknum: 1}
     event = {"byzantine", "block_withholding", block_withholding_event}
 
     assert [event] == Eventer.Core.prepare_events([block_withholding_event])

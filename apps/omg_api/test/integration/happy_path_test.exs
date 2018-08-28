@@ -37,7 +37,6 @@ defmodule OMG.API.Integration.HappyPathTest do
     _ = token_contract_config
     Application.put_env(:omg_api, :ethereum_event_block_finality_margin, 2, persistent: true)
     # need to overide that to very often, so that many checks fall in between a single child chain block submission
-    Application.put_env(:omg_api, :ethereum_event_get_deposits_interval_ms, 10, persistent: true)
     {:ok, started_apps} = Application.ensure_all_started(:omg_api)
     {:ok, started_jsonrpc} = Application.ensure_all_started(:omg_jsonrpc)
 

@@ -11,18 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-defmodule OMG.Watcher.Web.ByzantineChannel do
+defmodule OMG.API.RootchainCoordinator.Service do
   @moduledoc """
-  Channel Byzantine is responsible for emitting folllowing events:
-  InvalidBlock, BlockWithholding, InvalidExit
+  Represents a service that is coordinated by rootchain coordinator.
+  Such a service is expected to get rootchain height by calling `RootchainCoordinator.get_height()` function
+  and report processed height by calling `RootChainCoordiantor.check_in(height, service_name)`
+  where `service_name` is a unique name of that service.
   """
 
-  use Phoenix.Channel
+  defstruct synced_height: nil, pid: nil
 
-  def join("byzantine", _params, socket) do
-    {:ok, socket}
-  end
-
-  def join(_, _, _), do: {:error, :invalid_parameter}
+  @type t() :: %__MODULE__{
+          synced_height: pos_integer(),
+          pid: pid()
+        }
 end

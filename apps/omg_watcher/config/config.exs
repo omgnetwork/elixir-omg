@@ -11,7 +11,8 @@ config :omg_watcher,
   namespace: OMG.Watcher,
   ecto_repos: [OMG.Watcher.Repo],
   slow_exit_validator_block_margin: 10,
-  maximum_block_withholding_time_ms: 10_000
+  maximum_block_withholding_time_ms: 10_000,
+  block_getter_height_sync_interval_ms: 2000
 
 # Configures the endpoint
 config :omg_watcher, OMG.Watcher.Web.Endpoint,

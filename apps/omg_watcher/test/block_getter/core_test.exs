@@ -27,14 +27,15 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   @eth Crypto.zero_address()
 
   defp handle_got_block(state, block) do
-    assert {:ok, new_state, _, []} = Core.handle_got_block(state, {:ok, block})
+    assert {:ok, new_state, []} = Core.handle_got_block(state, {:ok, block})
     new_state
   end
 
   test "get blocks numbers to download" do
-    block_height = 0
+    start_block_number = 0
     interval = 1_000
-    state = Core.init(block_height, interval, maximum_number_of_pending_blocks: 4)
+    synced_height = 1
+    state = Core.init(start_block_number, interval, synced_height, maximum_number_of_pending_blocks: 4)
 
     {state_after_chunk, block_numbers} = Core.get_new_blocks_numbers(state, 20_000)
     assert block_numbers == [1_000, 2_000, 3_000, 4_000]
@@ -47,70 +48,34 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {_, [5_000, 6_000]} = Core.get_new_blocks_numbers(state_after_proces_down, 20_000)
   end
 
-  test "getting block to consume" do
-    block_height = 0
-    interval = 1_000
-
-    state =
-      block_height
-      |> Core.init(interval, maximum_number_of_pending_blocks: 6)
-      |> Core.get_new_blocks_numbers(7_000)
-      |> elem(0)
-      |> handle_got_block(%Block{number: 2_000})
-      |> handle_got_block(%Block{number: 3_000})
-      |> handle_got_block(%Block{number: 6_000})
-
-    assert {:ok, state1, [], []} = Core.handle_got_block(state, {:ok, %Block{number: 5_000}})
-
-    assert {:ok, state2, [%Block{number: 1_000}, %Block{number: 2_000}, %Block{number: 3_000}], []} =
-             state1 |> Core.handle_got_block({:ok, %Block{number: 1_000}})
-
-    assert {:ok, _, [%Block{number: 4_000}, %Block{number: 5_000}, %Block{number: 6_000}], []} =
-             state2 |> Core.handle_got_block({:ok, %Block{number: 4_000}})
-  end
-
-  test "getting blocks to consume out of order" do
-    block_height = 0
-    interval = 1_000
-
-    assert {:ok, state, [], []} =
-             block_height
-             |> Core.init(interval, maximum_number_of_pending_blocks: 6)
-             |> Core.get_new_blocks_numbers(7_000)
-             |> elem(0)
-             |> handle_got_block(%Block{number: 3_000})
-             |> Core.handle_got_block({:ok, %Block{number: 2_000}})
-
-    assert {:ok, _, [%Block{number: 1_000}, %Block{number: 2_000}, %Block{number: 3_000}], []} =
-             state |> Core.handle_got_block({:ok, %Block{number: 1_000}})
-  end
-
-  test "start block height is not zero" do
-    block_height = 7_000
+  test "start block number is not zero" do
+    start_block_number = 7_000
     interval = 100
-    state = Core.init(block_height, interval, maximum_number_of_pending_blocks: 4)
+    synced_height = 1
+    state = Core.init(start_block_number, interval, synced_height, maximum_number_of_pending_blocks: 4)
     assert {state, [7_100, 7_200, 7_300, 7_400]} = Core.get_new_blocks_numbers(state, 20_000)
 
-    assert {:ok, _, [%Block{number: 7_100}, %Block{number: 7_200}], []} =
+    assert {:ok, _, []} =
              state
              |> handle_got_block(%Block{number: 7_200})
              |> Core.handle_got_block({:ok, %Block{number: 7_100}})
   end
 
-  test "next_child increases or decrease in calls to get_new_blocks_numbers" do
-    block_height = 0
+  test "does not get same blocks twice and respects increasing next block number" do
+    start_block_number = 0
     interval = 1_000
+    synced_height = 1
 
     {state, [1_000, 2_000, 3_000]} =
-      block_height
-      |> Core.init(interval, maximum_number_of_pending_blocks: 5)
+      start_block_number
+      |> Core.init(interval, synced_height, maximum_number_of_pending_blocks: 5)
       |> Core.get_new_blocks_numbers(4_000)
 
     assert {^state, []} = Core.get_new_blocks_numbers(state, 2_000)
     assert {_, [4_000, 5_000]} = Core.get_new_blocks_numbers(state, 8_000)
   end
 
-  test "check error return by handle_got_block" do
+  test "got duplicated and unexpected block" do
     block_height = 0
     interval = 1_000
 
@@ -124,7 +89,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
-  test "simple decode block and check_tx_executions function returns :ok", %{
+  test "decodes block and checks transaction execution", %{
     alice: alice,
     bob: bob,
     state_alice_deposit: state_alice_deposit
@@ -137,7 +102,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
         26_000
       )
 
-    assert {:ok, _, [%{transactions: [tx], zero_fee_requirements: fees}], []} = process_single_block(block)
+    assert {:ok, state, []} = process_single_block(block)
+    synced_height = 1
+
+    assert {[{%{transactions: [tx], zero_fee_requirements: fees}, 1}], _, _, _} =
+             Core.get_blocks_to_consume(state, [%{blknum: block.number, eth_height: synced_height}], synced_height)
 
     # check feasability of transactions from block to consume at the API.State
     assert {:ok, tx_result, _} = API.State.Core.exec(tx, fees, state_alice_deposit)
@@ -146,7 +115,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob]
-  test "can decode and exec tx with different currencies, always with no fee required", %{alice: alice, bob: bob} do
+  test "decodes and executes tx with different currencies, always with no fee required", %{alice: alice, bob: bob} do
     other_currency = <<1::160>>
 
     block =
@@ -158,7 +127,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
         26_000
       )
 
-    assert {:ok, _, [%{transactions: [_tx1, _tx2], zero_fee_requirements: fees}], []} = process_single_block(block)
+    assert {:ok, state, []} = process_single_block(block)
+
+    synced_height = 1
+
+    assert {[{%{transactions: [_tx1, _tx2], zero_fee_requirements: fees}, 1}], _, _, _} =
+             Core.get_blocks_to_consume(state, [%{blknum: block.number, eth_height: synced_height}], synced_height)
 
     assert fees == %{@eth => 0, other_currency => 0}
   end
@@ -166,8 +140,10 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   defp process_single_block(%Block{hash: requested_hash} = block) do
     block_height = 25_000
     interval = 1_000
+    synced_height = 1
 
-    {state, _} = block_height |> Core.init(interval) |> Core.get_new_blocks_numbers(block_height + 2 * interval)
+    {state, _} =
+      block_height |> Core.init(interval, synced_height) |> Core.get_new_blocks_numbers(block_height + 2 * interval)
 
     assert {:ok, decoded_block} =
              Core.validate_get_block_response({:ok, block}, requested_hash, block_height + interval, 0)
@@ -176,12 +152,13 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   @tag fixtures: [:alice]
-  test "check error return by decode_block and handle_got_block, incorrect_hash", %{alice: alice} do
+  test "does not validate block with invalid hash", %{alice: alice} do
     block_height = 0
     interval = 1_000
+    synced_height = 1
     matching_bad_returned_hash = <<12::256>>
 
-    state = Core.init(block_height, interval)
+    state = Core.init(block_height, interval, synced_height)
 
     block = %Block{
       Block.hashed_txs_at(
@@ -196,13 +173,13 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {:error, :incorrect_hash, matching_bad_returned_hash, 0} ==
              Core.validate_get_block_response({:ok, block}, matching_bad_returned_hash, 0, 0)
 
-    assert {{:needs_stopping, :incorrect_hash}, _, [],
+    assert {{:needs_stopping, :incorrect_hash}, _,
             [%Event.InvalidBlock{error_type: :incorrect_hash, hash: ^matching_bad_returned_hash, number: 1}]} =
              Core.handle_got_block(state, {:error, :incorrect_hash, matching_bad_returned_hash, 1})
   end
 
   @tag fixtures: [:alice]
-  test "check error return by decode_block, one of API.Core.recover_tx checks", %{alice: alice} do
+  test "check error returned by decode_block, one of API.Core.recover_tx checks", %{alice: alice} do
     # NOTE: this test only test if API.Core.recover_tx-specific checks are run and errors returned
     #       the more extensive testing of such checks is done in API.CoreTest where it belongs
 
@@ -220,14 +197,14 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {:error, :no_inputs, hash, 1} == Core.validate_get_block_response({:ok, block}, hash, 1, 0)
   end
 
-  test "check error return by decode_block, hash mismatch checks" do
+  test "check error returned by decode_block, hash mismatch checks" do
     hash = <<12::256>>
     block = Block.hashed_txs_at([], 1)
 
     assert {:error, :bad_returned_hash, hash, 1} == Core.validate_get_block_response({:ok, block}, hash, 1, 0)
   end
 
-  test "check error return by decode_block, API.Core.recover_tx checks" do
+  test "check error returned by decode_block, API.Core.recover_tx checks" do
     %Block{hash: hash} = block = Block.hashed_txs_at([API.TestHelper.create_recovered([], @eth, [])], 1)
 
     assert {:error, :no_inputs, hash, 1} == Core.validate_get_block_response({:ok, block}, hash, 1, 0)
@@ -239,40 +216,58 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {:ok, %{number: 2 = _overriden_number}} = Core.validate_get_block_response({:ok, block}, hash, 2, 0)
   end
 
-  test "handle_got_block function called once with PotentialWithholding don't returns BlockWithHolding event" do
+  test "got_block function called once with PotentialWithholding doesn't return BlockWithholding event" do
     block_height = 0
+    synced_height = 1
     interval = 1_000
 
-    {state, [1_000, 2_000]} = block_height |> Core.init(interval) |> Core.get_new_blocks_numbers(3_000)
+    {state, [1_000, 2_000]} = block_height |> Core.init(interval, synced_height) |> Core.get_new_blocks_numbers(3_000)
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 2_000, 0)
 
-    assert {:ok, _, [], []} = Core.handle_got_block(state, potential_withholding)
+    assert {:ok, _, []} = Core.handle_got_block(state, potential_withholding)
   end
 
-  test "handle_got_block function called twice with PotentialWithholding returns BlockWithHolding event" do
+  test "got_block function called twice with PotentialWithholding returns BlockWithholding event" do
     block_height = 0
     interval = 1_000
+    synced_height = 1
 
     {state, [1_000, 2_000]} =
-      Core.get_new_blocks_numbers(Core.init(block_height, interval, maximum_block_withholding_time_ms: 0), 3_000)
+      Core.get_new_blocks_numbers(
+        Core.init(
+          block_height,
+          interval,
+          synced_height,
+          maximum_number_of_pending_blocks: 5,
+          maximum_block_withholding_time_ms: 0
+        ),
+        3_000
+      )
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
-    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 2_000, 0)
+    assert {:ok, state, []} = Core.handle_got_block(state, potential_withholding)
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 1)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 2_000, 1)
 
-    assert {{:needs_stopping, :withholding}, _, [], [%Event.BlockWithHolding{blknum: 2000}]} =
+    assert {{:needs_stopping, :withholding}, _, [%Event.BlockWithholding{blknum: 2000}]} =
              Core.handle_got_block(state, potential_withholding)
   end
 
   test "get_new_blocks_numbers function returns number of potential withholding block which next is canceled" do
     block_height = 0
     interval = 1_000
+    synced_height = 1
 
     {state, [1_000, 2_000, 3_000, 4_000]} =
       Core.get_new_blocks_numbers(
-        Core.init(block_height, interval, maximum_number_of_pending_blocks: 4, maximum_block_withholding_time_ms: 0),
+        Core.init(
+          block_height,
+          interval,
+          synced_height,
+          maximum_number_of_pending_blocks: 4,
+          maximum_block_withholding_time_ms: 0
+        ),
         20_000
       )
 
@@ -281,12 +276,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       |> handle_got_block(%Block{number: 1_000})
       |> handle_got_block(%Block{number: 2_000})
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 0)
-    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 3_000, 0)
+    assert {:ok, state, []} = Core.handle_got_block(state, potential_withholding)
 
     assert {_, [3000, 5000, 6000]} = Core.get_new_blocks_numbers(state, 20_000)
 
-    assert {:ok, state, [%Block{number: 3_000}], []} = Core.handle_got_block(state, {:ok, %Block{number: 3_000}})
+    assert {:ok, state, []} = Core.handle_got_block(state, {:ok, %Block{number: 3_000}})
 
     assert {_, [5000, 6000, 7000, 8000]} = Core.get_new_blocks_numbers(state, 20_000)
   end
@@ -294,39 +289,51 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   test "get_new_block_numbers function doesn't return next blocks if state doesn't have any empty slots left" do
     block_height = 0
     interval = 1_000
+    synced_height = 1
 
     {state, [1_000, 2_000, 3_000]} =
-      Core.get_new_blocks_numbers(Core.init(block_height, interval, maximum_number_of_pending_blocks: 3), 20_000)
+      Core.get_new_blocks_numbers(
+        Core.init(block_height, interval, synced_height, maximum_number_of_pending_blocks: 3),
+        20_000
+      )
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 1_000, 0)
-    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 1_000, 0)
+    assert {:ok, state, []} = Core.handle_got_block(state, potential_withholding)
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
-    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 2_000, 0)
+    assert {:ok, state, []} = Core.handle_got_block(state, potential_withholding)
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 0)
-    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 3_000, 0)
+    assert {:ok, state, []} = Core.handle_got_block(state, potential_withholding)
 
     assert {_, [1000, 2000, 3000]} = Core.get_new_blocks_numbers(state, 20_000)
   end
 
-  test "handle_got_block function after maximum_block_withholding_time_ms returns BlockWithHolding event" do
+  test "got_block function after maximum_block_withholding_time_ms returns BlockWithholding event" do
     block_height = 0
     interval = 1_000
+    synced_height = 1
 
-    state = Core.init(block_height, interval, maximum_block_withholding_time_ms: 1000)
+    state =
+      Core.init(
+        block_height,
+        interval,
+        synced_height,
+        maximum_number_of_pending_blocks: 4,
+        maximum_block_withholding_time_ms: 1000
+      )
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 0)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 3_000, 0)
 
-    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
+    assert {:ok, state, []} = Core.handle_got_block(state, potential_withholding)
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 500)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 3_000, 500)
 
-    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding)
+    assert {:ok, state, []} = Core.handle_got_block(state, potential_withholding)
 
-    potential_withholding = Core.validate_get_block_response({:error, :error_reson}, <<>>, 3_000, 1000)
+    potential_withholding = Core.validate_get_block_response({:error, :error_reason}, <<>>, 3_000, 1000)
 
-    assert {{:needs_stopping, :withholding}, _state, [], [%Event.BlockWithHolding{blknum: 3_000}]} =
+    assert {{:needs_stopping, :withholding}, _state, [%Event.BlockWithholding{blknum: 3_000}]} =
              Core.handle_got_block(state, potential_withholding)
   end
 
@@ -346,12 +353,14 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   test "after detecting twice same maximum possible potential withholdings get_new_blocks_numbers function still returns those blocks" do
     block_height = 0
     interval = 1_000
+    synced_height = 1
 
     {state, [1_000, 2_000]} =
       Core.get_new_blocks_numbers(
         Core.init(
           block_height,
           interval,
+          synced_height,
           maximum_number_of_pending_blocks: 2,
           maximum_block_withholding_time_ms: 10_000
         ),
@@ -361,13 +370,13 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     potential_withholding_1_000 = Core.validate_get_block_response({:error, :error_reson}, <<>>, 1_000, 0)
     potential_withholding_2_000 = Core.validate_get_block_response({:error, :error_reson}, <<>>, 2_000, 0)
 
-    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding_1_000)
-    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding_2_000)
+    assert {:ok, state, []} = Core.handle_got_block(state, potential_withholding_1_000)
+    assert {:ok, state, []} = Core.handle_got_block(state, potential_withholding_2_000)
 
     assert {state, [1_000, 2_000]} = Core.get_new_blocks_numbers(state, 20_000)
 
-    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding_1_000)
-    assert {:ok, state, [], []} = Core.handle_got_block(state, potential_withholding_2_000)
+    assert {:ok, state, []} = Core.handle_got_block(state, potential_withholding_1_000)
+    assert {:ok, state, []} = Core.handle_got_block(state, potential_withholding_2_000)
 
     assert {_state, [1_000, 2_000]} = Core.get_new_blocks_numbers(state, 20_000)
   end

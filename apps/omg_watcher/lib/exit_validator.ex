@@ -17,47 +17,73 @@ defmodule OMG.Watcher.ExitValidator do
   Detects exits for spent utxos and notifies challenger
   """
 
+  alias OMG.API.RootchainCoordinator
   alias OMG.Watcher.ExitValidator.Core
 
-  def start_link(last_exit_block_height_callback, utxo_exists_callback, synced_block_margin, update_key) do
+  @block_offset 1_000_000_000
+  @transaction_offset 10_000
+
+  @spec start_link(fun(), fun(), non_neg_integer(), atom(), atom()) :: GenServer.on_start()
+  def start_link(last_exit_block_height_callback, utxo_exists_callback, synced_block_margin, update_key, service_name) do
     GenServer.start_link(
       __MODULE__,
-      {last_exit_block_height_callback, utxo_exists_callback, synced_block_margin, update_key}
+      {last_exit_block_height_callback, utxo_exists_callback, synced_block_margin, update_key, service_name}
     )
-  end
-
-  def sync_eth_height(synced_eth_height) do
-    GenServer.call(__MODULE__, {:validate_exits, synced_eth_height})
   end
 
   use GenServer
 
-  def init({last_exit_block_height_callback, utxo_exists_callback, synced_block_margin, update_key}) do
+  def init({last_exit_block_height_callback, utxo_exists_callback, synced_block_margin, update_key, service_name}) do
+    # gets last ethereum block height that we fetched exits from
     {:ok, last_exit_block_height} = last_exit_block_height_callback.()
+
+    :ok = RootchainCoordinator.check_in(last_exit_block_height, service_name)
+
+    height_sync_interval = Application.get_env(:omg_api, :rootchain_height_sync_interval_ms)
+    {:ok, _} = schedule_validate_exits(height_sync_interval)
 
     {:ok,
      %Core{
        last_exit_block_height: last_exit_block_height,
+       synced_height: last_exit_block_height,
        update_key: update_key,
        margin_on_synced_block: synced_block_margin,
-       utxo_exists_callback: utxo_exists_callback
+       utxo_exists_callback: utxo_exists_callback,
+       service_name: service_name
      }}
   end
 
-  def handle_call({:validate_exits, synced_eth_block_height}, _from, state) do
-    with {block_from, block_to, state, db_updates} <- Core.get_exits_block_range(state, synced_eth_block_height),
-         utxo_exits <- OMG.Eth.get_exits(block_from, block_to),
-         :ok <- validate_exits(utxo_exits, state) do
-      :ok = OMG.DB.multi_update(db_updates)
-      {:noreply, state}
-    else
-      :empty_range -> {:noreply, state}
+  def handle_info(
+        :validate_exits,
+        %Core{last_exit_block_height: last_exit_block_height} = state
+      ) do
+    case RootchainCoordinator.get_height() do
+      :nosync ->
+        {:noreply, state}
+
+      {:sync, next_sync_height} ->
+        case Core.next_events_block_height(state, next_sync_height) do
+          {block_height_to_get_exits_from, state, db_updates} ->
+            {:ok, utxo_exits} = OMG.Eth.get_exits(last_exit_block_height, block_height_to_get_exits_from)
+            :ok = validate_exits(utxo_exits, state)
+            :ok = OMG.DB.multi_update(db_updates)
+            :ok = RootchainCoordinator.check_in(next_sync_height, state.service_name)
+
+            {:noreply, state}
+
+          :empty_range ->
+            {:noreply, state}
+        end
     end
   end
 
   defp validate_exits(utxo_exits, state) do
     for utxo_exit <- utxo_exits do
-      :ok = validate_exit(utxo_exit, state)
+      utxo_position = utxo_exit.utxo_pos
+      blknum = div(utxo_position, @block_offset)
+      txindex = utxo_position |> rem(@block_offset) |> div(@transaction_offset)
+      oindex = utxo_position - blknum * @block_offset - txindex * @transaction_offset
+      :ok = validate_exit(%{blknum: blknum, txindex: txindex, oindex: oindex}, state)
     end
 
     :ok
@@ -72,5 +98,9 @@ defmodule OMG.Watcher.ExitValidator do
     else
       :utxo_exists -> utxo_exists_callback.(utxo_exit)
     end
+  end
+
+  defp schedule_validate_exits(interval) do
+    :timer.send_interval(interval, self(), :validate_exits)
   end
 end
