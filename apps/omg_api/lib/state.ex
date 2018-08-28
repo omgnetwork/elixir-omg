@@ -160,66 +160,57 @@ defmodule OMG.API.State do
   end
 
   @doc """
-  Wraps up accumulated transactions submissions into a block, triggers db update and emits events to Eventer.
+  Works exactly like handle_cast({:form_block}) but is synchronous
 
-  eth_height given is the Ethereum chain height where the block being closed got submitted, to be used with events.
+  Also, eth_height given is the Ethereum chain height where the block being closed got submitted, to be used with events.
+
+  Someday, one might want to skip some of computations done (like calculating the root hash, which is scrapped)
   """
   def handle_call({:close_block, eth_height}, _from, state) do
-    {:ok, child_block_interval} = Eth.get_child_block_interval()
-
-    {duration, {:ok, {%Block{}, event_triggers, db_updates}, new_state}} =
-      :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
-
+    {duration, {result, new_state}} = :timer.tc(fn -> do_form_block(state, eth_height) end)
     _ = Logger.debug(fn -> "Closing block done in #{inspect(round(duration / 1000))} ms" end)
-
-    :ok = DB.multi_update(db_updates)
-
-    event_triggers =
-      event_triggers
-      |> Enum.map(fn event_trigger ->
-        event_trigger
-        |> Map.put(:submited_at_ethheight, eth_height)
-      end)
-
-    EventerAPI.emit_events(event_triggers)
-
-    {:reply, :ok, new_state}
+    {:reply, result, new_state}
   end
 
   @doc """
-  Wraps up accumulated transactions into a block, triggers db update,
-  publishes block and enqueues for submission
+  Wraps up accumulated transactions submissions into a block, triggers db update and:
+   - emits events to Eventer (if it is running, i.e. in Watcher).
+   - pushes the new block into the respective service (if it is running, i.e. in Child Chain server)
+   - enqueues the new block for submission to BlockQueue (if it is running, i.e. in Child Chain server)
   """
   def handle_cast({:form_block}, state) do
     _ = Logger.debug(fn -> "Forming new block..." end)
-    {duration, result} = :timer.tc(fn -> do_form_block(state) end)
+    {duration, {_result, new_state}} = :timer.tc(fn -> do_form_block(state) end)
     _ = Logger.info(fn -> "Forming block done in #{inspect(round(duration / 1000))} ms" end)
-    result
+    {:noreply, new_state}
   end
 
-  defp do_form_block(state) do
+  defp do_form_block(state, eth_height \\ nil) do
     {:ok, child_block_interval} = Eth.get_child_block_interval()
 
-    {core_form_block_duration, core_form_block_result} =
+    {core_form_block_duration, {:ok, {%Block{number: blknum} = block, event_triggers, db_updates}, new_state}} =
       :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
-
-    {:ok, {block, event_triggers, db_updates}, new_state} = core_form_block_result
 
     _ =
       Logger.info(fn ->
-        "Calculations for forming block number #{inspect(block.number)} done in #{
+        "Calculations for forming block number #{inspect(blknum)} done in #{
           inspect(round(core_form_block_duration / 1000))
         } ms"
       end)
 
     :ok = DB.multi_update(db_updates)
 
-    # casts
-    EventerAPI.emit_events(event_triggers)
-    :ok = FreshBlocks.push(block)
-    :ok = BlockQueue.enqueue_block(block.hash, block.number)
+    ### casts, note these are no-ops if given processes are turned off
+    FreshBlocks.push(block)
+    BlockQueue.enqueue_block(block.hash, block.number)
+    # enrich the event triggers with the ethereum height supplied
+    event_triggers
+    |> Enum.map(&Map.put(&1, :submited_at_ethheight, eth_height))
+    |> EventerAPI.emit_events()
 
-    {:noreply, new_state}
+    ###
+
+    {:ok, new_state}
   end
 
   defp do_exit_utxos(utxos, state) do
