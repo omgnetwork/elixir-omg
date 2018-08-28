@@ -30,7 +30,7 @@ defmodule OMG.API.RootchainCoordinator do
   """
   @spec check_in(non_neg_integer(), atom()) :: :ok
   def check_in(synced_height, service_name) do
-    GenServer.call(__MODULE__, {:check_in, synced_height, service_name}, :infinity)
+    GenServer.call(__MODULE__, {:check_in, synced_height, service_name})
   end
 
   @doc """
@@ -38,7 +38,7 @@ defmodule OMG.API.RootchainCoordinator do
   """
   @spec get_height() :: {:sync, non_neg_integer()} | :nosync
   def get_height do
-    GenServer.call(__MODULE__, :get_rootchain_height, :infinity)
+    GenServer.call(__MODULE__, :get_rootchain_height)
   end
 
   use GenServer
