@@ -62,11 +62,20 @@ defmodule OMG.API.BlockQueue.CoreTest do
 
   describe "Block queue." do
     test "Requests correct block range on initialization" do
-      assert [] == child_block_nums_to_init_with(0, @child_block_interval)
-      assert [] == child_block_nums_to_init_with(9, @child_block_interval)
-      assert [1000] == child_block_nums_to_init_with(1000, @child_block_interval)
-      assert [1000, 2000, 3000] == child_block_nums_to_init_with(3000, @child_block_interval)
-      assert [100, 200, 300, 400] == child_block_nums_to_init_with(400, 100)
+      assert [] == child_block_nums_to_init_with(0, 0, @child_block_interval, 0)
+      assert [] == child_block_nums_to_init_with(0, 9, @child_block_interval, 0)
+      assert [1000] == child_block_nums_to_init_with(0, 1000, @child_block_interval, 0)
+      assert [1000, 2000, 3000] == child_block_nums_to_init_with(0, 3000, @child_block_interval, 0)
+      assert [100, 200, 300, 400] == child_block_nums_to_init_with(0, 400, 100, 0)
+      assert [2000, 3000] == child_block_nums_to_init_with(2000, 3000, @child_block_interval, 0)
+    end
+
+    test "Requests correct block range on initialization, non-zero finality threshold" do
+      assert [] == child_block_nums_to_init_with(0, 0, @child_block_interval, 2)
+      assert [] == child_block_nums_to_init_with(0, 9, @child_block_interval, 2)
+      assert [1000] == child_block_nums_to_init_with(0, 1000, @child_block_interval, 2)
+      assert [1000, 2000, 3000] == child_block_nums_to_init_with(0, 3000, @child_block_interval, 2)
+      assert [2000, 3000, 4000, 5000] == child_block_nums_to_init_with(4000, 5000, @child_block_interval, 2)
     end
 
     test "Recovers after restart to proper mined height" do

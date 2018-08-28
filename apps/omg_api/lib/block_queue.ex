@@ -66,22 +66,18 @@ defmodule OMG.API.BlockQueue do
       {:ok, parent_start} = Eth.get_root_deployment_height()
       {:ok, child_block_interval} = Eth.get_child_block_interval()
       {:ok, stored_child_top_num} = OMG.DB.child_top_block_number()
+      {:ok, finality_threshold} = Application.fetch_env(:omg_api, :ethereum_event_block_finality_margin)
 
       _ =
         Logger.info(fn ->
           "Starting BlockQueue at " <>
-            "parent_height: #{inspect(parent_height)}, " <>
-            "mined_child_block: #{inspect(mined_num)}, " <>
-            "parent_start: #{inspect(parent_start)}, stored_child_top_block: #{inspect(stored_child_top_num)}"
+            "parent_height: #{inspect(parent_height)}, parent_start: #{inspect(parent_start)}, " <>
+            "mined_child_block: #{inspect(mined_num)}, stored_child_top_block: #{inspect(stored_child_top_num)}"
         end)
 
-      range = Core.child_block_nums_to_init_with(stored_child_top_num, child_block_interval)
+      range =
+        Core.child_block_nums_to_init_with(mined_num, stored_child_top_num, child_block_interval, finality_threshold)
 
-      # FIXME: taking all stored hashes now. While still being feasible DB-wise ("just" many hashes)
-      #       it might be prohibitive, if we create BlockSubmissions out of the unfiltered batch
-      #       (see enqueue_existing_blocks). Probably we want to set a hard cutoff and do
-      #       OMG.DB.block_hashes(stored_child_top_num - cutoff..stored_child_top_num)
-      #       Leaving a chore to handle that in the future: OMG-83
       {:ok, known_hashes} = OMG.DB.block_hashes(range)
       {:ok, {top_mined_hash, _}} = Eth.get_child_chain(mined_num)
       _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{inspect(Base.encode16(top_mined_hash))}" end)
@@ -95,7 +91,7 @@ defmodule OMG.API.BlockQueue do
           child_block_interval: child_block_interval,
           chain_start_parent_height: parent_start,
           submit_period: Application.get_env(:omg_api, :child_block_submit_period),
-          finality_threshold: Application.get_env(:omg_api, :ethereum_event_block_finality_margin)
+          finality_threshold: finality_threshold
         )
 
       interval = Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms)
