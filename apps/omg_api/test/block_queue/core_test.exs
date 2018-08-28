@@ -62,10 +62,11 @@ defmodule OMG.API.BlockQueue.CoreTest do
 
   describe "Block queue." do
     test "Requests correct block range on initialization" do
-      assert [] == child_block_nums_to_init_with(0)
-      assert [] == child_block_nums_to_init_with(99)
-      assert [1000] == child_block_nums_to_init_with(1000)
-      assert [1000, 2000, 3000] == child_block_nums_to_init_with(3000)
+      assert [] == child_block_nums_to_init_with(0, @child_block_interval)
+      assert [] == child_block_nums_to_init_with(9, @child_block_interval)
+      assert [1000] == child_block_nums_to_init_with(1000, @child_block_interval)
+      assert [1000, 2000, 3000] == child_block_nums_to_init_with(3000, @child_block_interval)
+      assert [100, 200, 300, 400] == child_block_nums_to_init_with(400, 100)
     end
 
     test "Recovers after restart to proper mined height" do

@@ -22,7 +22,6 @@ defmodule OMG.API.Integration.HappyPathTest do
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
 
-  alias OMG.API.BlockQueue
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.Eth
@@ -79,8 +78,9 @@ defmodule OMG.API.Integration.HappyPathTest do
 
     # spend the token deposit
     {:ok, %{blknum: _spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
+    {:ok, child_block_interval} = Eth.get_child_block_interval()
 
-    post_spend_child_block = spend_child_block + BlockQueue.child_block_interval()
+    post_spend_child_block = spend_child_block + child_block_interval
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block, true)
 
     # check if operator is propagating block with hash submitted to RootChain
@@ -105,7 +105,7 @@ defmodule OMG.API.Integration.HappyPathTest do
     # spend the output of the first eth_tx
     {:ok, %{blknum: spend_child_block2}} = Client.call(:submit, %{transaction: tx2})
 
-    post_spend_child_block2 = spend_child_block2 + BlockQueue.child_block_interval()
+    post_spend_child_block2 = spend_child_block2 + child_block_interval
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block2, true)
 
     # check if operator is propagating block with hash submitted to RootChain

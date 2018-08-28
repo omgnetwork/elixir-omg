@@ -282,14 +282,9 @@ defmodule OMG.API.BlockQueue.Core do
     |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
   end
 
-  # generates an enumberable of block numbers since genesis till a particular block number (inclusive
-  @spec child_block_nums_to_init_with(non_neg_integer) :: list
-  def child_block_nums_to_init_with(until_child_block_num) do
-    # equivalent of range(BlockQueue.child_block_interval(),
-    #                     until_child_block_num + BlockQueue.child_block_interval(),
-    #                     BlockQueue.child_block_interval()
-    #                     )
-    interval = BlockQueue.child_block_interval()
+  # generates an enumberable of block numbers since genesis till a particular block number (inclusive)
+  @spec child_block_nums_to_init_with(non_neg_integer, pos_integer) :: list
+  def child_block_nums_to_init_with(until_child_block_num, interval) do
     make_range(interval, until_child_block_num, interval)
   end
 

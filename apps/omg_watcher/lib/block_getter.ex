@@ -61,12 +61,10 @@ defmodule OMG.Watcher.BlockGetter do
           "Child chain seen at block \##{inspect(next_child)}. Getting blocks #{inspect(blocks_numbers)}"
         end)
 
-      child_block_interval = Application.get_env(:omg_eth, :child_block_interval)
-
       # FIXME: substitute for Ethereum height where this block originated from (see bugs in tracker)
       #       after we have a way to cheaply get it using RootChainCoordinator
       eth_height = 0
-      :ok = OMG.API.State.close_block(child_block_interval, eth_height)
+      :ok = OMG.API.State.close_block(eth_height)
 
       {:noreply, new_state}
     else

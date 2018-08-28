@@ -24,6 +24,7 @@ defmodule OMG.API.State do
   alias OMG.API.State.Core
   alias OMG.API.State.Transaction
   alias OMG.DB
+  alias OMG.Eth
   alias OMG.Watcher.Eventer
 
   use OMG.API.LoggerExt
@@ -41,12 +42,12 @@ defmodule OMG.API.State do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
 
-  def form_block(child_block_interval) do
-    GenServer.cast(__MODULE__, {:form_block, child_block_interval})
+  def form_block do
+    GenServer.cast(__MODULE__, {:form_block})
   end
 
-  def close_block(child_block_interval, eth_height) do
-    GenServer.call(__MODULE__, {:close_block, child_block_interval, eth_height})
+  def close_block(eth_height) do
+    GenServer.call(__MODULE__, {:close_block, eth_height})
   end
 
   @spec deposit(deposits :: [Core.deposit()]) :: :ok
@@ -84,6 +85,7 @@ defmodule OMG.API.State do
     {:ok, height_query_result} = DB.child_top_block_number()
     {:ok, last_deposit_query_result} = DB.last_deposit_height()
     {:ok, utxos_query_result} = DB.utxos()
+    {:ok, child_block_interval} = Eth.get_child_block_interval()
 
     _ =
       Logger.info(fn ->
@@ -94,7 +96,7 @@ defmodule OMG.API.State do
       utxos_query_result,
       height_query_result,
       last_deposit_query_result,
-      BlockQueue.child_block_interval()
+      child_block_interval
     )
   end
 
@@ -160,7 +162,9 @@ defmodule OMG.API.State do
 
   eth_height given is the Ethereum chain height where the block being closed got submitted, to be used with events.
   """
-  def handle_call({:close_block, child_block_interval, eth_height}, _from, state) do
+  def handle_call({:close_block, eth_height}, _from, state) do
+    {:ok, child_block_interval} = Eth.get_child_block_interval()
+
     {duration, {:ok, {%Block{}, event_triggers, db_updates}, new_state}} =
       :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
 
@@ -184,14 +188,16 @@ defmodule OMG.API.State do
   Wraps up accumulated transactions into a block, triggers db update,
   publishes block and enqueues for submission
   """
-  def handle_cast({:form_block, child_block_interval}, state) do
+  def handle_cast({:form_block}, state) do
     _ = Logger.debug(fn -> "Forming new block..." end)
-    {duration, result} = :timer.tc(fn -> do_form_block(child_block_interval, state) end)
+    {duration, result} = :timer.tc(fn -> do_form_block(state) end)
     _ = Logger.info(fn -> "Forming block done in #{inspect(round(duration / 1000))} ms" end)
     result
   end
 
-  defp do_form_block(child_block_interval, state) do
+  defp do_form_block(state) do
+    {:ok, child_block_interval} = Eth.get_child_block_interval()
+
     {core_form_block_duration, core_form_block_result} =
       :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
 

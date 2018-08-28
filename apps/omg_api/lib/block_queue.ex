@@ -42,10 +42,6 @@ defmodule OMG.API.BlockQueue do
     GenServer.cast(__MODULE__.Server, {:enqueue_block, block_hash, block_number})
   end
 
-  # CONFIG constant functions
-  # FIXME rethink. Possibly fetch from the contract? (would complicate things, but we must unconditionally match that)
-  def child_block_interval, do: Application.get_env(:omg_eth, :child_block_interval)
-
   defmodule Server do
     @moduledoc """
     Stores core's state, handles timing of calls to root chain.
@@ -56,7 +52,6 @@ defmodule OMG.API.BlockQueue do
     use GenServer
     use OMG.API.LoggerExt
 
-    alias OMG.API.BlockQueue
     alias OMG.Eth
 
     def start_link(_args) do
@@ -69,6 +64,7 @@ defmodule OMG.API.BlockQueue do
       {:ok, parent_height} = Eth.get_ethereum_height()
       {:ok, mined_num} = Eth.get_mined_child_block()
       {:ok, parent_start} = Eth.get_root_deployment_height()
+      {:ok, child_block_interval} = Eth.get_child_block_interval()
       {:ok, stored_child_top_num} = OMG.DB.child_top_block_number()
 
       _ =
@@ -79,7 +75,7 @@ defmodule OMG.API.BlockQueue do
             "parent_start: #{inspect(parent_start)}, stored_child_top_block: #{inspect(stored_child_top_num)}"
         end)
 
-      range = Core.child_block_nums_to_init_with(stored_child_top_num)
+      range = Core.child_block_nums_to_init_with(stored_child_top_num, child_block_interval)
 
       # FIXME: taking all stored hashes now. While still being feasible DB-wise ("just" many hashes)
       #       it might be prohibitive, if we create BlockSubmissions out of the unfiltered batch
@@ -96,7 +92,7 @@ defmodule OMG.API.BlockQueue do
           known_hashes: Enum.zip(range, known_hashes),
           top_mined_hash: top_mined_hash,
           parent_height: parent_height,
-          child_block_interval: BlockQueue.child_block_interval(),
+          child_block_interval: child_block_interval,
           chain_start_parent_height: parent_start,
           submit_period: Application.get_env(:omg_api, :child_block_submit_period),
           finality_threshold: Application.get_env(:omg_api, :ethereum_event_block_finality_margin)
@@ -112,7 +108,7 @@ defmodule OMG.API.BlockQueue do
     @doc """
     Checks the status of both Ethereum root chain and the top mined child block number to decide what to do
     """
-    def handle_info(:check_ethereum_status, %Core{child_block_interval: child_block_interval} = state) do
+    def handle_info(:check_ethereum_status, %Core{} = state) do
       {:ok, height} = Eth.get_ethereum_height()
       {:ok, mined_blknum} = Eth.get_mined_child_block()
 
@@ -120,7 +116,7 @@ defmodule OMG.API.BlockQueue do
 
       state1 =
         with {:do_form_block, state1} <- Core.set_ethereum_status(state, height, mined_blknum) do
-          :ok = OMG.API.State.form_block(child_block_interval)
+          :ok = OMG.API.State.form_block()
           state1
         else
           {:dont_form_block, state1} -> state1

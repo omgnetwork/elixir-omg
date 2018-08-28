@@ -61,6 +61,9 @@ defmodule OMG.Eth do
     end
   end
 
+  @spec get_child_block_interval :: {:ok, pos_integer} | :error
+  def get_child_block_interval, do: Application.fetch_env(:omg_eth, :child_block_interval)
+
   defmodule BlockSubmission do
     @moduledoc false
 
