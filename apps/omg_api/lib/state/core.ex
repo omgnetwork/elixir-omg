@@ -167,7 +167,9 @@ defmodule OMG.API.State.Core do
          %Transaction{blknum1: blknum, txindex1: txindex, oindex1: oindex, cur12: spent_cur},
          spender
        ) do
-    check_utxo_and_extract_amount(state, Utxo.position(blknum, txindex, oindex), spender, spent_cur)
+    with :ok <- input_from_the_past?(state, {blknum, txindex}) do
+      check_utxo_and_extract_amount(state, Utxo.position(blknum, txindex, oindex), spender, spent_cur)
+    end
   end
 
   defp correct_input_in_position?(
@@ -176,7 +178,9 @@ defmodule OMG.API.State.Core do
          %Transaction{blknum2: blknum, txindex2: txindex, oindex2: oindex, cur12: spent_cur},
          spender
        ) do
-    check_utxo_and_extract_amount(state, Utxo.position(blknum, txindex, oindex), spender, spent_cur)
+    with :ok <- input_from_the_past?(state, {blknum, txindex}) do
+      check_utxo_and_extract_amount(state, Utxo.position(blknum, txindex, oindex), spender, spent_cur)
+    end
   end
 
   defp check_utxo_and_extract_amount(%Core{utxos: utxos}, position, spender, spent_cur) do
@@ -184,6 +188,14 @@ defmodule OMG.API.State.Core do
          :ok <- is_spender?(owner, spender),
          :ok <- same_currency?(cur, spent_cur),
          do: {:ok, owner_has}
+  end
+
+  defp input_from_the_past?(%__MODULE__{height: blknum, tx_index: txindex}, {input_blknum, input_txindex}) do
+    if blknum > input_blknum or (blknum == input_blknum and input_txindex < txindex) do
+      :ok
+    else
+      {:error, :input_utxo_ahead_of_state}
+    end
   end
 
   defp get_utxo(utxos, position) do

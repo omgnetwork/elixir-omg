@@ -495,7 +495,7 @@ defmodule OMG.API.State.CoreTest do
           {{1, 0, 0}, %{amount: 10, currency: eth(), owner: alice.addr}},
           {{1001, 10, 1}, %{amount: 8, currency: eth(), owner: bob.addr}}
         ],
-        0,
+        1000,
         1,
         @child_block_interval
       )
@@ -542,14 +542,14 @@ defmodule OMG.API.State.CoreTest do
 
     state
     |> (&Core.exec(
-          Test.create_recovered([{@child_block_interval, 1, 0, alice}], eth(), [{alice, 7}]),
+          Test.create_recovered([{@child_block_interval, 0, 0, alice}], eth(), [{alice, 7}]),
           zero_fees_map(),
           &1
         )).()
     |> fail?(:utxo_not_found)
     |> same?(state)
     |> (&Core.exec(
-          Test.create_recovered([{@child_block_interval, 1, 1, alice}], eth(), [{alice, 3}]),
+          Test.create_recovered([{@child_block_interval, 0, 1, alice}], eth(), [{alice, 3}]),
           zero_fees_map(),
           &1
         )).()
@@ -643,6 +643,53 @@ defmodule OMG.API.State.CoreTest do
       |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 6}, {alice, 3}]), fee, &1)).()
       |> fail?(:amounts_dont_add_up)
     end
+  end
+
+  @tag fixtures: [:alice, :bob, :state_empty]
+  test "Does not allow executing transactions with input utxos from the future", %{
+    alice: alice,
+    bob: bob,
+    state_empty: state
+  } do
+    fee = %{eth() => 0}
+
+    state = Test.do_deposit(state, alice, %{amount: 10, currency: eth(), blknum: 1})
+
+    # input utxo blknum is greater than state's blknum
+    state
+    |> (&Core.exec(
+          Test.create_recovered([{2 * OMG.API.BlockQueue.child_block_interval(), 0, 0, alice}], eth(), [
+            {bob, 6},
+            {alice, 4}
+          ]),
+          fee,
+          &1
+        )).()
+    |> fail?(:input_utxo_ahead_of_state)
+
+    state
+    |> (&Core.exec(
+          Test.create_recovered(
+            [{1, 0, 0, alice}, {2 * OMG.API.BlockQueue.child_block_interval(), 0, 0, alice}],
+            eth(),
+            [{bob, 6}, {alice, 4}]
+          ),
+          fee,
+          &1
+        )).()
+    |> fail?(:input_utxo_ahead_of_state)
+
+    # input utxo blknum equals state's blknum but txindex is greater than state's txindex
+    state
+    |> (&Core.exec(
+          Test.create_recovered([{OMG.API.BlockQueue.child_block_interval(), 1, 0, alice}], eth(), [
+            {bob, 6},
+            {alice, 4}
+          ]),
+          fee,
+          &1
+        )).()
+    |> fail?(:input_utxo_ahead_of_state)
   end
 
   defp success?(result) do
