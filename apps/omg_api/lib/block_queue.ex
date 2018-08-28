@@ -103,37 +103,31 @@ defmodule OMG.API.BlockQueue do
         )
 
       interval = Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms)
-      {:ok, _} = :timer.send_interval(interval, self(), :check_mined_child_head)
-      {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_height)
+      {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
       _ = Logger.info(fn -> "Started BlockQueue" end)
       {:ok, state}
     end
 
-    def handle_info(:check_mined_child_head, state) do
+    @doc """
+    Checks the status of both Ethereum root chain and the top mined child block number to decide what to do
+    """
+    def handle_info(:check_ethereum_status, %Core{child_block_interval: child_block_interval} = state) do
+      {:ok, height} = Eth.get_ethereum_height()
       {:ok, mined_blknum} = Eth.get_mined_child_block()
-      _ = Logger.debug(fn -> "check mined child head '#{inspect(mined_blknum)}'" end)
 
-      state1 = Core.set_mined(state, mined_blknum)
+      _ = Logger.debug(fn -> "Ethereum at \#'#{inspect(height)}', mined child at \#'#{inspect(mined_blknum)}'" end)
+
+      state1 =
+        with {:do_form_block, state1} <- Core.set_ethereum_status(state, height, mined_blknum) do
+          :ok = OMG.API.State.form_block(child_block_interval)
+          state1
+        else
+          {:dont_form_block, state1} -> state1
+        end
+
       submit_blocks(state1)
       {:noreply, state1}
-    end
-
-    def handle_info(:check_ethereum_height, %Core{child_block_interval: child_block_interval} = state) do
-      {:ok, height} = Eth.get_ethereum_height()
-      _ = Logger.debug(fn -> "check ethereum height '#{inspect(height)}'" end)
-
-      # FIXME: submit_blocks is called throughout here a lot, and for now it's ok. Consider regaining more control
-      #       over how it is done. E.g. we may submit_blocks only in certain spots, or have it have its own timer
-      submit_blocks(state)
-
-      with {:do_form_block, state1} <- Core.set_ethereum_height(state, height) do
-        :ok = OMG.API.State.form_block(child_block_interval)
-        {:noreply, state1}
-      else
-        {:dont_form_block, state1} -> {:noreply, state1}
-        other -> other
-      end
     end
 
     def handle_cast({:enqueue_block, block_hash, block_number}, %Core{} = state) do
