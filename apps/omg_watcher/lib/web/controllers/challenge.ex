@@ -36,9 +36,19 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
 
   defp respond_single(%Challenge{} = challenge, conn), do: json(conn, challenge)
 
-  defp respond_single(:exit_valid, conn) do
+  defp respond_single(:invalid_challenge_of_exit, conn) do
     conn
     |> put_status(400)
     |> json(%{error: "exit is valid"})
   end
+
+
+  defp respond({:ok, challenge}, conn) do
+    render(conn, View.Challenge, :challenge, challenge: challenge)
+  end
+
+  defp respond({:error, code}, conn) do
+    handle_error(conn, code)
+  end
+
 end

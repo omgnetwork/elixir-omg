@@ -118,6 +118,13 @@ defmodule OMG.API.Crypto do
   def encode_address(address) when byte_size(address) == 20, do: {:ok, "0x" <> Base.encode16(address, case: :lower)}
   def encode_address(_), do: {:error, :invalid_address}
 
+#  FIXME
+  @spec encode16(map()) :: map()
+  def encode16(data) when is_map(data) do
+    data
+    |> Enum.into(%{}, fn {k, v} -> {k, Base.encode16(v)} end)
+  end
+
   # private
 
   defp der_to_raw(<<4::integer-size(8), data::binary>>), do: data

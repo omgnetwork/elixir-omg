@@ -12,17 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.JsonFallback do
-  @moduledoc """
-  Handle internal errors from with's used in json-returning endpoints, relying on external factors,
-  e.g. Controller.Status depending on OMG.Eth
-  """
-
+defmodule OMG.Watcher.Web.Controller.Fallback do
   use Phoenix.Controller
 
-  def call(conn, {:error, reason}) do
-    conn
-    |> put_status(:internal_server_error)
-    |> json(%{:error => inspect(reason)})
+  import OMG.Watcher.Web.ErrorHandler
+
+  def not_found(conn, _attrs) do
+    handle_error(conn, :endpoint_not_found)
   end
+
 end

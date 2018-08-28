@@ -20,13 +20,16 @@ defmodule OMG.Watcher.Web.Router do
   end
 
   scope "/", OMG.Watcher.Web do
+    pipe_through([:api])
+
+    get("transactions/:id", Controller.Transaction, :get)
+
     get("/account/utxo", Controller.Utxo, :available)
     get("/account/utxo/compose_exit", Controller.Utxo, :compose_utxo_exit)
     get("/status", Controller.Status, :get)
     get("/challenges", Controller.Challenge, :challenge)
+
+    match(:*, "/*path", Controller.Fallback, :not_found)
   end
 
-  scope "/transactions", OMG.Watcher.Web do
-    get("/:id", Controller.Transaction, :get)
-  end
 end

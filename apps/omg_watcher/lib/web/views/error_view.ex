@@ -15,16 +15,36 @@
 defmodule OMG.Watcher.Web.ErrorView do
   use OMG.Watcher.Web, :view
 
-  # If you want to customize a particular status code
-  # for a certain format, you may uncomment below.
-  # def render("500.json", _assigns) do
-  #   %{errors: %{detail: "Internal Server Error"}}
-  # end
+  alias OMG.Watcher.Web.Serializer
 
-  # By default, Phoenix returns the status message from
-  # the template name. For example, "404.json" becomes
-  # "Not Found".
-  def template_not_found(template, _assigns) do
-    %{errors: %{detail: Phoenix.Controller.status_message_from_template(template)}}
+  @doc """
+  Supports internal server error thrown by Phoenix.
+  """
+  def render("500.json", %{reason: %{message: message}}) do
+    render_error("server:internal_server_error", message)
   end
+
+  @doc """
+  Supports bad request error thrown by Phoenix.
+  """
+  def render("400.json", %{reason: %{message: message}}) do
+    render_error("client:invalid_parameter", message)
+  end
+
+  @doc """
+  Renders error when no render clause matches or no template is found.
+  """
+  def template_not_found(_template, _assigns) do
+    render_error(
+      "server:internal_server_error",
+      "Something went wrong on the server"
+    )
+  end
+
+  defp render_error(code, message) do
+    code
+    |> Serializer.Error.serialize(message)
+    |> Serializer.Response.serialize("error")
+  end
+
 end

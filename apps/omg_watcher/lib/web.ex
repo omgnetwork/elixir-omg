@@ -36,7 +36,6 @@ defmodule OMG.Watcher.Web do
       use Phoenix.Controller, namespace: OMG.Watcher.Web
       import Plug.Conn
       import OMG.Watcher.Web.Router.Helpers
-      import OMG.Watcher.Web.Gettext
     end
   end
 
@@ -50,8 +49,6 @@ defmodule OMG.Watcher.Web do
       import Phoenix.Controller, only: [get_flash: 2, view_module: 1]
 
       import OMG.Watcher.Web.Router.Helpers
-      import OMG.Watcher.Web.ErrorHelpers
-      import OMG.Watcher.Web.Gettext
     end
   end
 
@@ -66,7 +63,6 @@ defmodule OMG.Watcher.Web do
   def channel do
     quote do
       use Phoenix.Channel
-      import OMG.Watcher.Web.Gettext
     end
   end
 
