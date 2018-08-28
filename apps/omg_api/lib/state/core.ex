@@ -167,7 +167,7 @@ defmodule OMG.API.State.Core do
          %Transaction{blknum1: blknum, txindex1: txindex, oindex1: oindex, cur12: spent_cur},
          spender
        ) do
-    with :ok <- input_from_the_past?(state, {blknum, txindex}) do
+    with :ok <- utxo_not_from_the_future_block?(state, blknum) do
       check_utxo_and_extract_amount(state, Utxo.position(blknum, txindex, oindex), spender, spent_cur)
     end
   end
@@ -178,7 +178,7 @@ defmodule OMG.API.State.Core do
          %Transaction{blknum2: blknum, txindex2: txindex, oindex2: oindex, cur12: spent_cur},
          spender
        ) do
-    with :ok <- input_from_the_past?(state, {blknum, txindex}) do
+    with :ok <- utxo_not_from_the_future_block?(state, blknum) do
       check_utxo_and_extract_amount(state, Utxo.position(blknum, txindex, oindex), spender, spent_cur)
     end
   end
@@ -190,8 +190,8 @@ defmodule OMG.API.State.Core do
          do: {:ok, owner_has}
   end
 
-  defp input_from_the_past?(%__MODULE__{height: blknum, tx_index: txindex}, {input_blknum, input_txindex}) do
-    if blknum > input_blknum or (blknum == input_blknum and input_txindex < txindex) do
+  defp utxo_not_from_the_future_block?(%__MODULE__{height: blknum}, input_blknum) do
+    if blknum >= input_blknum do
       :ok
     else
       {:error, :input_utxo_ahead_of_state}

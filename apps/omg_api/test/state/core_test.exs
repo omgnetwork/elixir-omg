@@ -645,20 +645,21 @@ defmodule OMG.API.State.CoreTest do
     end
   end
 
-  @tag fixtures: [:alice, :bob, :state_empty]
+  @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "Does not allow executing transactions with input utxos from the future", %{
     alice: alice,
     bob: bob,
-    state_empty: state
+    state_alice_deposit: state
   } do
     fee = %{eth() => 0}
 
-    state = Test.do_deposit(state, alice, %{amount: 10, currency: eth(), blknum: 1})
+    future_deposit_blknum = @child_block_interval + 1
+    state = Test.do_deposit(state, alice, %{amount: 10, currency: eth(), blknum: future_deposit_blknum})
 
     # input utxo blknum is greater than state's blknum
     state
     |> (&Core.exec(
-          Test.create_recovered([{2 * OMG.API.BlockQueue.child_block_interval(), 0, 0, alice}], eth(), [
+          Test.create_recovered([{future_deposit_blknum, 0, 0, alice}], eth(), [
             {bob, 6},
             {alice, 4}
           ]),
@@ -670,7 +671,7 @@ defmodule OMG.API.State.CoreTest do
     state
     |> (&Core.exec(
           Test.create_recovered(
-            [{1, 0, 0, alice}, {2 * OMG.API.BlockQueue.child_block_interval(), 0, 0, alice}],
+            [{1, 0, 0, alice}, {future_deposit_blknum, 0, 0, alice}],
             eth(),
             [{bob, 6}, {alice, 4}]
           ),
@@ -679,17 +680,17 @@ defmodule OMG.API.State.CoreTest do
         )).()
     |> fail?(:input_utxo_ahead_of_state)
 
-    # input utxo blknum equals state's blknum but txindex is greater than state's txindex
+    # when non-existent input comes with a blknum of the current block fail with :utxo_not_found
     state
     |> (&Core.exec(
-          Test.create_recovered([{OMG.API.BlockQueue.child_block_interval(), 1, 0, alice}], eth(), [
+          Test.create_recovered([{@child_block_interval, 1, 0, alice}], eth(), [
             {bob, 6},
             {alice, 4}
           ]),
           fee,
           &1
         )).()
-    |> fail?(:input_utxo_ahead_of_state)
+    |> fail?(:utxo_not_found)
   end
 
   defp success?(result) do
