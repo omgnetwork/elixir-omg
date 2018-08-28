@@ -11,6 +11,10 @@ defmodule OMG.Watcher.Web.ErrorHandler do
     invalid_challenge_of_exit: %{
       code: "challenge:invalid",
       description: "The challenge of particular exit is invalid"
+    },
+    transaction_not_found: %{
+      code: "transaction:not_found",
+      description: "The transacion doesn't exists"
     }
   }
 
@@ -36,9 +40,12 @@ defmodule OMG.Watcher.Web.ErrorHandler do
 
   @spec build_error(atom()) :: map()
   defp build_error(code) do
+
     case Map.fetch(@errors, code) do
-      {:ok, error} -> build(error.code, error.description)
-      _ -> build(:internal_server_error, code)
+      {:ok, error} ->
+        build(error.code, error.description)
+      _ ->
+        build(:internal_server_error, code)
     end
   end
 
@@ -54,7 +61,8 @@ defmodule OMG.Watcher.Web.ErrorHandler do
 
   @spec respond(atom(), Plug.Conn.t()) :: map()
   defp respond(data, conn) do
-    data = Serializer.Response.serialize(data, success: false)
+    data = Serializer.Response.serialize(data, "error")
+
     conn
     |> json(data)
     |> halt()

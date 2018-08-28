@@ -143,7 +143,7 @@ defmodule OMG.Watcher.TransactionDB do
     txs = Repo.all(query)
 
     case txs do
-      [] -> :utxo_not_spent
+      [] -> {:error, :utxo_not_spent}
       [tx] -> {:ok, tx}
     end
   end

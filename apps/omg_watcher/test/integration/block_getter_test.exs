@@ -110,10 +110,10 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert_push("address_spent", ^address_spent_event)
 
     %{
-      utxo_pos: utxo_pos,
-      txbytes: txbytes,
-      proof: proof,
-      sigs: sigs
+     "utxo_pos" => utxo_pos,
+      "txbytes" => txbytes,
+      "proof" => proof,
+      "sigs" => sigs
     } = Integration.TestHelper.compose_utxo_exit(block_nr, 0, 0)
 
     {:ok, txhash} =
@@ -158,10 +158,10 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     Integration.TestHelper.wait_until_block_getter_fetches_block(spend_token_child_block, @timeout)
 
     %{
-      txbytes: txbytes,
-      proof: proof,
-      sigs: sigs,
-      utxo_pos: utxo_pos
+      "txbytes" => txbytes,
+      "proof" => proof,
+      "sigs" => sigs,
+      "utxo_pos" => utxo_pos
     } = Integration.TestHelper.compose_utxo_exit(spend_token_child_block, 0, 0)
 
     {:ok, txhash} =
@@ -278,7 +278,13 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   defp get_utxo(%{addr: address}) do
     {:ok, address_encode} = Crypto.encode_address(address)
-    decoded_resp = TestHelper.rest_call(:get, "account/utxo?address=#{address_encode}")
-    decoded_resp["utxos"]
+    assert  %{
+              "result" => "success",
+              "data" => %{
+                "address" => ^address_encode,
+                "utxos" => utxos
+              }
+            } = TestHelper.rest_call(:get, "account/utxo?address=#{address_encode}")
+    utxos
   end
 end

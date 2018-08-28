@@ -49,12 +49,13 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
     IntegrationTest.wait_until_block_getter_fetches_block(double_spend_block_nr, @timeout)
 
     %{
-      txbytes: txbytes,
-      proof: proof,
-      sigs: sigs,
-      utxo_pos: utxo_pos
+      "txbytes" => txbytes,
+      "proof" => proof,
+      "sigs" => sigs,
+      "utxo_pos" => utxo_pos
     } = IntegrationTest.compose_utxo_exit(exiting_utxo_block_nr, 0, 0)
 
+    IO.inspect IntegrationTest.compose_utxo_exit(exiting_utxo_block_nr, 0, 0)
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
     {:ok, txhash} =
@@ -75,11 +76,11 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
 
     {:ok, txhash} =
       OMG.Eth.DevHelpers.challenge_exit(
-        challenge.cutxopos,
-        challenge.eutxoindex,
-        challenge.txbytes,
-        challenge.proof,
-        challenge.sigs,
+        challenge["cutxopos"],
+        challenge["eutxoindex"],
+        challenge["txbytes"],
+        challenge["proof"],
+        challenge["sigs"],
         alice_address
       )
 
@@ -88,17 +89,7 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
   end
 
   defp get_exit_challenge(blknum, txindex, oindex) do
-    decoded_resp = Test.rest_call(:get, "challenges?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
-    {:ok, txbytes} = Base.decode16(decoded_resp["txbytes"], case: :mixed)
-    {:ok, proof} = Base.decode16(decoded_resp["proof"], case: :mixed)
-    {:ok, sigs} = Base.decode16(decoded_resp["sigs"], case: :mixed)
-
-    %{
-      cutxopos: decoded_resp["cutxopos"],
-      eutxoindex: decoded_resp["eutxoindex"],
-      txbytes: txbytes,
-      proof: proof,
-      sigs: sigs
-    }
+    assert %{"result" => "success", "data" => decoded_data} = Test.rest_call(:get, "challenges?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
+    Crypto.decode16(decoded_data, ["txbytes", "proof", "sigs"])
   end
 end

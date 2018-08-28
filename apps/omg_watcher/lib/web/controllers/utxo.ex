@@ -17,21 +17,26 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   Operations related to utxo.
   Modify the state in the database.
   """
+  use OMG.Watcher.Web, :controller
 
   alias OMG.API.Crypto
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Watcher.UtxoDB
+  alias OMG.Watcher.Web.View
 
-  use OMG.Watcher.Web, :controller
+  import OMG.Watcher.Web.ErrorHandler
 
   def available(conn, %{"address" => address}) do
     {:ok, address_decode} = Crypto.decode_address(address)
 
-    json(conn, %{
+    available = %{
       address: address,
-      utxos: encode(UtxoDB.get_utxo(address_decode))
-    })
+      utxos: UtxoDB.get_utxo(address_decode)
+    }
+
+    render(conn, View.Utxo, :available, available: available)
+
   end
 
   def compose_utxo_exit(conn, %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex}) do
@@ -39,35 +44,17 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
     {txindex, ""} = Integer.parse(txindex)
     {oindex, ""} = Integer.parse(oindex)
 
-    {:ok, composed_utxo_exit} = UtxoDB.compose_utxo_exit(Utxo.position(blknum, txindex, oindex))
+    UtxoDB.compose_utxo_exit(Utxo.position(blknum, txindex, oindex))
+    |> respond(conn)
 
-    json(conn, encode(composed_utxo_exit))
   end
 
-  defp encode(list) when is_list(list), do: Enum.map(list, &encode/1)
-
-  defp encode(
-         %{
-           proof: _,
-           sigs: _,
-           txbytes: _
-         } = exit_composition
-       ) do
-    # TODO smarter encoding (see other TODO in controllers)
-    %{
-      exit_composition
-      | proof: Base.encode16(exit_composition.proof),
-        sigs: Base.encode16(exit_composition.sigs),
-        txbytes: Base.encode16(exit_composition.txbytes)
-    }
+  defp respond({:ok, utxo_exit}, conn) do
+    render(conn, View.Utxo, :utxo_exit, utxo_exit: utxo_exit)
   end
 
-  defp encode(%{txbytes: _} = utxo) do
-    # TODO smarter encoding (see other TODO in controllers)
-    %{
-      utxo
-      | txbytes: Base.encode16(utxo.txbytes),
-        currency: Base.encode16(utxo.currency)
-    }
+  defp respond({:error, code}, conn) do
+    handle_error(conn, code)
   end
+
 end

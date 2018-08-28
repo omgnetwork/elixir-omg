@@ -20,6 +20,9 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use OMG.Watcher.Web, :controller
 
   alias OMG.Watcher.{TransactionDB}
+  alias OMG.Watcher.Web.View
+
+  import OMG.Watcher.Web.ErrorHandler
 
   @doc """
   Retrieves a specific transaction by id.
@@ -28,28 +31,15 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     id
     |> Base.decode16!()
     |> TransactionDB.get()
-    |> respond_single(conn)
+    |> respond(conn)
   end
 
-  # Respond with a single transaction
-  defp respond_single(%TransactionDB{} = transaction, conn) do
-    # TODO: do the encoding in a smarter way
-    #       or just keep the binaries encoded in the database (increases disk footprint)
-    transaction = %{
-      transaction
-      | txid: Base.encode16(transaction.txid),
-        cur12: Base.encode16(transaction.cur12),
-        newowner1: Base.encode16(transaction.newowner1),
-        newowner2: Base.encode16(transaction.newowner2),
-        sig1: Base.encode16(transaction.sig1),
-        sig2: Base.encode16(transaction.sig2),
-        spender1: transaction.spender1 && Base.encode16(transaction.spender1),
-        spender2: transaction.spender2 && Base.encode16(transaction.spender2)
-    }
-
-    json(conn, transaction)
+  defp respond(%TransactionDB{} = transaction, conn) do
+    render(conn, View.Transaction, :transaction, transaction: transaction)
   end
 
-  # Responds when the transaction is not found
-  defp respond_single(nil, conn), do: send_resp(conn, :not_found, "")
+  defp respond(nil, conn) do
+    handle_error(conn, :transaction_not_found)
+  end
+
 end

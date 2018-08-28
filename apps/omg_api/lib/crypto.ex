@@ -118,11 +118,36 @@ defmodule OMG.API.Crypto do
   def encode_address(address) when byte_size(address) == 20, do: {:ok, "0x" <> Base.encode16(address, case: :lower)}
   def encode_address(_), do: {:error, :invalid_address}
 
-#  FIXME
-  @spec encode16(map()) :: map()
-  def encode16(data) when is_map(data) do
+#  FIXME clean this  Base.encode16(v)
+  @spec encode16(list(map()) | map(), list(String.t())) :: map()
+  def encode16(list, fields) when is_list(list) do
+    list |> Enum.map(&encode16(&1, fields))
+  end
+
+  def encode16(data, fields) when is_map(data) do
+    encoded_fields = data
+                     |> Enum.filter(fn {key, _value} ->
+      Enum.member?(fields, key) end)
+                     |> Enum.into(%{}, fn {k, v} -> {k, Base.encode16(v)} end)
     data
-    |> Enum.into(%{}, fn {k, v} -> {k, Base.encode16(v)} end)
+    |> Map.merge(encoded_fields)
+  end
+
+  @spec decode16(list(map()) | map(), list(String.t())) :: map()
+  def decode16(list, fields) when is_list(list) do
+    list |> Enum.map(&encode16(&1, fields))
+  end
+
+  def decode16(data, fields) when is_map(data) do
+    encoded_fields = data
+                     |> Enum.filter(fn {key, _value} ->
+      Enum.member?(fields, key) end)
+                     |> Enum.into(%{}, fn {k, v} ->
+
+      {:ok , decoded_v } =  Base.decode16(v, case: :mixed)
+      {k,decoded_v} end)
+    data
+    |> Map.merge(encoded_fields)
   end
 
   # private
@@ -138,4 +163,5 @@ defmodule OMG.API.Crypto do
   defp unpack_signature(<<r::integer-size(256), s::integer-size(256), v::integer-size(8)>>) do
     {v, r, s}
   end
+
 end

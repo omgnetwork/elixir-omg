@@ -41,9 +41,9 @@ defmodule OMG.Watcher.Web.Controller.Status do
       }
 
       respond({:ok, status},conn)
-#   FIXME
-#    else
-#      error -> respond(error, conn)
+    else
+      error ->
+        respond(error, conn)
     end
   end
 
@@ -51,9 +51,8 @@ defmodule OMG.Watcher.Web.Controller.Status do
     render(conn, View.Status, :status, status: status)
   end
 
-#  FIXME
-#  defp respond({:error, code, description}, conn) do
-#    handle_error(conn, code, description)
-#  end
+  defp respond({:error, code}, conn) do
+    handle_error(conn, code)
+  end
 
 end
