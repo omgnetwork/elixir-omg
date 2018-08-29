@@ -12,17 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.ByzantineChannel do
+defmodule OMG.Watcher.ViewCase do
   @moduledoc """
-  Channel Byzantine is responsible for emitting folllowing events:
-  InvalidBlock, BlockWithholding, InvalidExit
+  This module defines common behaviors shared between view tests.
   """
+  use ExUnit.CaseTemplate
 
-  use Phoenix.Channel
-
-  def join("byzantine", _params, socket) do
-    {:ok, socket}
+  using do
+    quote do
+      use ExUnit.Case
+      import Phoenix.View
+    end
   end
-
-  def join(_, _, _), do: {:error, :invalid_parameter}
 end

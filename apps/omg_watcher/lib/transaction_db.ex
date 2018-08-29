@@ -130,7 +130,7 @@ defmodule OMG.Watcher.TransactionDB do
     |> validate_required(@field_names)
   end
 
-  @spec get_transaction_challenging_utxo(Utxo.Position.t()) :: {:ok, map()} | :utxo_not_spent
+  @spec get_transaction_challenging_utxo(Utxo.Position.t()) :: {:ok, map()} | {:error, :utxo_not_spent}
   def get_transaction_challenging_utxo(Utxo.position(blknum, txindex, oindex)) do
     query =
       from(

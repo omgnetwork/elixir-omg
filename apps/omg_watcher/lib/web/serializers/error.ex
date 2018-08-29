@@ -17,7 +17,7 @@ defmodule OMG.Watcher.Web.Serializer.Error do
   Serializes data into JSON response format.
   """
 
-  @spec serialize(String.t(), String.t()) :: %{code: String.t(), description: String.t()}
+  @spec serialize(atom() | String.t(), String.t()) :: map()
   def serialize(code, description) do
     %{
       code: code,

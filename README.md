@@ -120,7 +120,8 @@ The following step will:
 
 Note that `geth` needs to already be running for this step to work!
 ```
-mix compile && mix run --no-start -e \
+mix compile
+mix run --no-start -e \
  '
    OMG.Eth.DevHelpers.prepare_env!
    |> OMG.Eth.DevHelpers.create_conf_file

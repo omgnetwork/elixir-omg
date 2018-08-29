@@ -59,7 +59,8 @@ defmodule OMG.API.Integration.DepositHelper do
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000)
 
     # sleeping some more until when the deposit is spendable
-    Process.sleep(Application.get_env(:omg_api, :ethereum_event_get_deposits_interval_ms) * 2)
+    geth_mining_period_ms = 1000
+    Process.sleep(geth_mining_period_ms + Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms) * 3)
 
     :ok
   end

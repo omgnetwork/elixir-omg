@@ -184,8 +184,7 @@ defmodule OMG.Eth do
   def get_mined_child_block(contract \\ nil) do
     contract = contract || Application.get_env(:omg_eth, :contract_addr)
 
-    with {:ok, next} <- call_contract_value(contract, "currentChildBlock()"),
-         do: {:ok, next - 1000}
+    with {:ok, next} <- call_contract_value(contract, "currentChildBlock()"), do: {:ok, next - 1000}
   end
 
   def authority(contract \\ nil) do
@@ -221,25 +220,31 @@ defmodule OMG.Eth do
   @doc """
   Returns lists of block submissions sorted by timestamp
   """
-  def get_block_submissions(block_from, block_to, contract \\ nil) do
+  def get_block_submitted_events(block_range, contract \\ nil)
+
+  def get_block_submitted_events({block_from, block_to}, contract) do
     contract = contract || Application.get_env(:omg_eth, :contract_addr)
 
-    event = encode_event_signature("BlockSubmitted(bytes32,uint256)")
+    event = encode_event_signature("BlockSubmitted(uint256)")
 
     parse_block_submissions = fn %{"data" => "0x" <> block_submission, "blockNumber" => "0x" <> hex_block_number} ->
       {eth_height, ""} = Integer.parse(hex_block_number, 16)
 
-      [root, timestamp] =
+      [blknum] =
         block_submission
         |> Base.decode16!(case: :lower)
-        |> ABI.TypeDecoder.decode_raw([{:bytes, 32}, {:uint, 256}])
+        |> ABI.TypeDecoder.decode_raw([{:uint, 256}])
 
-      %{root: root, timestamp: timestamp, eth_height: eth_height}
+      %{blknum: blknum, eth_height: eth_height}
     end
 
     with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
          block_submissions <- unfiltered_logs |> filter_not_removed |> Enum.map(parse_block_submissions),
-         do: {:ok, Enum.sort(block_submissions, &(&1.timestamp > &2.timestamp))}
+         do: {:ok, Enum.sort(block_submissions, &(&1.blknum > &2.blknum))}
+  end
+
+  def get_block_submitted_events(:empty_range, _contract) do
+    {:ok, []}
   end
 
   defp encode_event_signature(signature) do
@@ -306,9 +311,7 @@ defmodule OMG.Eth do
   end
 
   defp call_contract_value(contract, signature) do
-    with {:ok, values} <- call_contract(contract, signature, [], [{:uint, 256}]),
-         {value} = values,
-         do: {:ok, value}
+    with {:ok, values} <- call_contract(contract, signature, [], [{:uint, 256}]), {value} = values, do: {:ok, value}
   end
 
   def call_contract(contract, signature, args, return_types) do

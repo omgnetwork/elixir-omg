@@ -45,13 +45,13 @@ defmodule OMG.Watcher.Web.ErrorHandler do
   @doc """
   Handles response with default error code and description
   """
+  @spec handle_error(Plug.Conn.t(), atom()) :: Plug.Conn.t()
   def handle_error(conn, code) do
     code
     |> build_error()
     |> respond(conn)
   end
 
-  @spec build_error(atom()) :: map()
   defp build_error(code) do
     case Map.fetch(@errors, code) do
       {:ok, error} ->
@@ -62,17 +62,14 @@ defmodule OMG.Watcher.Web.ErrorHandler do
     end
   end
 
-  @spec build_error(atom(), String.t()) :: map()
   defp build_error(code, description) do
     build(code, description)
   end
 
-  @spec build(String.t(), String.t()) :: map()
   defp build(code, description) do
     Serializer.Error.serialize(code, description)
   end
 
-  @spec respond(map(), Plug.Conn.t()) :: none()
   defp respond(data, conn) do
     data = Serializer.Response.serialize(data, :error)
 

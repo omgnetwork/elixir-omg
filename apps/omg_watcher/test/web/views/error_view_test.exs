@@ -13,6 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.Web.ErrorViewTest do
+  @moduledoc false
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
@@ -31,7 +32,7 @@ defmodule OMG.Watcher.Web.ErrorViewTest do
       result: :error,
       data: %{
         code: "server:internal_server_error",
-        description: "Custom assigned error description",
+        description: "Custom assigned error description"
       }
     }
 
@@ -49,7 +50,7 @@ defmodule OMG.Watcher.Web.ErrorViewTest do
       result: :error,
       data: %{
         code: "client:invalid_parameter",
-        description: "Custom assigned error description",
+        description: "Custom assigned error description"
       }
     }
 
@@ -61,11 +62,10 @@ defmodule OMG.Watcher.Web.ErrorViewTest do
       result: :error,
       data: %{
         code: "server:internal_server_error",
-        description: "Something went wrong on the server",
+        description: "Something went wrong on the server"
       }
     }
 
     assert render(ErrorView, "invalid_template.json", []) == expected
   end
-
 end
