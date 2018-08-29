@@ -55,7 +55,6 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
       "utxo_pos" => utxo_pos
     } = IntegrationTest.compose_utxo_exit(exiting_utxo_block_nr, 0, 0)
 
-    IO.inspect IntegrationTest.compose_utxo_exit(exiting_utxo_block_nr, 0, 0)
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
     {:ok, txhash} =
@@ -89,7 +88,9 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
   end
 
   defp get_exit_challenge(blknum, txindex, oindex) do
-    assert %{"result" => "success", "data" => decoded_data} = Test.rest_call(:get, "challenges?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
+    assert %{"result" => "success", "data" => decoded_data} =
+             Test.rest_call(:get, "challenges?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
+
     Crypto.decode16(decoded_data, ["txbytes", "proof", "sigs"])
   end
 end

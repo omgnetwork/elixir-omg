@@ -16,16 +16,56 @@ defmodule OMG.Watcher.Web.ErrorViewTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  # Bring render/3 and render_to_string/3 for testing custom views
+  alias OMG.Watcher.Web.ErrorView
+
   import Phoenix.View
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
-  test "renders 404.json" do
-    assert render(OMG.Watcher.Web.ErrorView, "404.json", []) == %{errors: %{detail: "Not Found"}}
+  test "renders 500.json with correct structure given a custom description" do
+    assigns = %{
+      reason: %{
+        message: "Custom assigned error description"
+      }
+    }
+
+    expected = %{
+      result: :error,
+      data: %{
+        code: "server:internal_server_error",
+        description: "Custom assigned error description",
+      }
+    }
+
+    assert render(ErrorView, "500.json", assigns) == expected
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
-  test "renders 500.json" do
-    assert render(OMG.Watcher.Web.ErrorView, "500.json", []) == %{errors: %{detail: "Internal Server Error"}}
+  test "renders 400.json with correct structure given a custom description" do
+    assigns = %{
+      reason: %{
+        message: "Custom assigned error description"
+      }
+    }
+
+    expected = %{
+      result: :error,
+      data: %{
+        code: "client:invalid_parameter",
+        description: "Custom assigned error description",
+      }
+    }
+
+    assert render(ErrorView, "400.json", assigns) == expected
   end
+
+  test "renders invalid template as server error" do
+    expected = %{
+      result: :error,
+      data: %{
+        code: "server:internal_server_error",
+        description: "Something went wrong on the server",
+      }
+    }
+
+    assert render(ErrorView, "invalid_template.json", []) == expected
+  end
+
 end

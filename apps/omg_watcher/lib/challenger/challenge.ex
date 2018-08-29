@@ -31,7 +31,7 @@ defmodule OMG.Watcher.Challenger.Challenge do
         }
 
   def create(cutxopos, eutxoindex, txbytes, proof, sigs) do
-#    FIXME
+    #    FIXME
     txbytes = txbytes |> Base.encode16()
     proof = proof |> Base.encode16()
     sigs = sigs |> Base.encode16()

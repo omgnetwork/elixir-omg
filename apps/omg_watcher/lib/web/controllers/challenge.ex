@@ -43,5 +43,4 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   defp respond({:error, code}, conn) do
     handle_error(conn, code)
   end
-
 end

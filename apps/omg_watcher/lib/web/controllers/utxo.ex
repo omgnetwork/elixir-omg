@@ -36,7 +36,6 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
     }
 
     render(conn, View.Utxo, :available, available: available)
-
   end
 
   def compose_utxo_exit(conn, %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex}) do
@@ -46,7 +45,6 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
     UtxoDB.compose_utxo_exit(Utxo.position(blknum, txindex, oindex))
     |> respond(conn)
-
   end
 
   defp respond({:ok, utxo_exit}, conn) do
@@ -56,5 +54,4 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   defp respond({:error, code}, conn) do
     handle_error(conn, code)
   end
-
 end

@@ -32,7 +32,6 @@ defmodule OMG.Watcher.Web.Controller.Status do
   def get(conn, _params) do
     with {:ok, last_mined_child_block_number} <- Eth.get_mined_child_block(),
          {:ok, {_root, last_mined_child_block_timestamp}} <- Eth.get_child_chain(last_mined_child_block_number) do
-
       status = %{
         last_validated_child_block_number: State.get_current_child_block_height(),
         last_mined_child_block_number: last_mined_child_block_number,
@@ -40,7 +39,7 @@ defmodule OMG.Watcher.Web.Controller.Status do
         eth_syncing: Eth.syncing?()
       }
 
-      respond({:ok, status},conn)
+      respond({:ok, status}, conn)
     else
       error ->
         respond(error, conn)
@@ -54,5 +53,4 @@ defmodule OMG.Watcher.Web.Controller.Status do
   defp respond({:error, code}, conn) do
     handle_error(conn, code)
   end
-
 end

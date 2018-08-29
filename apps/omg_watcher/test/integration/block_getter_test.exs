@@ -110,7 +110,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert_push("address_spent", ^address_spent_event)
 
     %{
-     "utxo_pos" => utxo_pos,
+      "utxo_pos" => utxo_pos,
       "txbytes" => txbytes,
       "proof" => proof,
       "sigs" => sigs
@@ -278,13 +278,15 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   defp get_utxo(%{addr: address}) do
     {:ok, address_encode} = Crypto.encode_address(address)
-    assert  %{
-              "result" => "success",
-              "data" => %{
-                "address" => ^address_encode,
-                "utxos" => utxos
-              }
-            } = TestHelper.rest_call(:get, "account/utxo?address=#{address_encode}")
+
+    assert %{
+             "result" => "success",
+             "data" => %{
+               "address" => ^address_encode,
+               "utxos" => utxos
+             }
+           } = TestHelper.rest_call(:get, "account/utxo?address=#{address_encode}")
+
     utxos
   end
 end

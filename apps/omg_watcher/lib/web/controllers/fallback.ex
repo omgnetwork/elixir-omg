@@ -13,6 +13,10 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.Web.Controller.Fallback do
+  @moduledoc """
+  The fallback handler.
+  """
+
   use Phoenix.Controller
 
   import OMG.Watcher.Web.ErrorHandler
@@ -20,5 +24,4 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
   def not_found(conn, _attrs) do
     handle_error(conn, :endpoint_not_found)
   end
-
 end

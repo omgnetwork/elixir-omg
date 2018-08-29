@@ -17,13 +17,15 @@ defmodule OMG.Watcher.Integration.TestHelper do
   Common helper functions that are useful when integration-testing the watcher
   """
 
+  alias OMG.API.Crypto
   alias OMG.Eth
-  alias  OMG.API.Crypto
 
   import OMG.Watcher.TestHelper
 
   def compose_utxo_exit(blknum, txindex, oindex) do
-    %{"result" => "success", "data" => decoded_data} = rest_call(:get, "account/utxo/compose_exit?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
+    %{"result" => "success", "data" => decoded_data} =
+      rest_call(:get, "account/utxo/compose_exit?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
+
     Crypto.decode16(decoded_data, ["txbytes", "proof", "sigs"])
   end
 

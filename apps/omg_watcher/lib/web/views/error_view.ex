@@ -44,7 +44,6 @@ defmodule OMG.Watcher.Web.ErrorView do
   defp render_error(code, message) do
     code
     |> Serializer.Error.serialize(message)
-    |> Serializer.Response.serialize("error")
+    |> Serializer.Response.serialize(:error)
   end
-
 end

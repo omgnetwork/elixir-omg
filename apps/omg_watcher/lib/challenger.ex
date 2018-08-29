@@ -30,7 +30,8 @@ defmodule OMG.Watcher.Challenger do
   @doc """
   Returns challenge for an exit
   """
-  @spec create_challenge(pos_integer(), non_neg_integer(), non_neg_integer()) :: Challenge.t() | :invalid_challenge_of_exit
+  @spec create_challenge(pos_integer(), non_neg_integer(), non_neg_integer()) ::
+          Challenge.t() | {:error, :invalid_challenge_of_exit}
   def create_challenge(blknum, txindex, oindex) do
     utxo_exit = Utxo.position(blknum, txindex, oindex)
 

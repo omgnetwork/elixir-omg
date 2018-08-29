@@ -41,5 +41,4 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   defp respond(nil, conn) do
     handle_error(conn, :transaction_not_found)
   end
-
 end

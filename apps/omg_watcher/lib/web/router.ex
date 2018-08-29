@@ -31,5 +31,4 @@ defmodule OMG.Watcher.Web.Router do
 
     match(:*, "/*path", Controller.Fallback, :not_found)
   end
-
 end

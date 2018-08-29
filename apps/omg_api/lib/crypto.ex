@@ -118,7 +118,7 @@ defmodule OMG.API.Crypto do
   def encode_address(address) when byte_size(address) == 20, do: {:ok, "0x" <> Base.encode16(address, case: :lower)}
   def encode_address(_), do: {:error, :invalid_address}
 
-  @spec encode16(list(map()) | map(), list(String.t())) :: map()
+  @spec encode16(list(map()) | map(), list(String.t() | atom())) :: map()
   def encode16(list, fields) when is_list(list) do
     list |> Enum.map(&encode16(&1, fields))
   end
@@ -131,9 +131,9 @@ defmodule OMG.API.Crypto do
     )
   end
 
-  @spec decode16(list(map()) | map(), list(String.t())) :: map()
+  @spec decode16(list(map()) | map(), list(String.t() | atom())) :: map()
   def decode16(list, fields) when is_list(list) do
-    list |> Enum.map(&encode16(&1, fields))
+    list |> Enum.map(&decode16(&1, fields))
   end
 
   def decode16(map, fields) when is_map(map) do

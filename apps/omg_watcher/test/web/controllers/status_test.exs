@@ -42,7 +42,10 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "status fails gracefully when ethereum node is missing" do
     {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
-    assert %{"result" => "error", "data" => %{"code" => "internal_server_error", "description" => "econnrefused"}} = Test.rest_call(:get, "/status")
+
+    assert %{"result" => "error", "data" => %{"code" => "internal_server_error", "description" => "econnrefused"}} =
+             Test.rest_call(:get, "/status")
+
     started_apps |> Enum.each(fn app -> :ok = Application.stop(app) end)
   end
 end
