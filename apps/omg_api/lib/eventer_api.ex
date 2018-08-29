@@ -18,7 +18,7 @@ defmodule OMG.API.EventerAPI do
   """
 
   @doc """
-  Depending on whether Eventer is running in the application, it will cast or ignore the triggers
+  Depending on whether Eventer is started or not in the application, it will cast or ignore the triggers
   """
   def emit_events(event_triggers) do
     GenServer.cast(OMG.Watcher.Eventer, {:emit_events, event_triggers})

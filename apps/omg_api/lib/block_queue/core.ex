@@ -282,7 +282,7 @@ defmodule OMG.API.BlockQueue.Core do
     |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
   end
 
-  # generates an enumberable of block numbers since genesis till a particular block number
+  # generates an enumberable of block numbers to be starting the BlockQueue with
   # (inclusive and it takes `finality_threshold` blocks before the youngest mined block)
   @spec child_block_nums_to_init_with(non_neg_integer, non_neg_integer, pos_integer, non_neg_integer) :: list
   def child_block_nums_to_init_with(mined_num, until_child_block_num, interval, finality_threshold) do

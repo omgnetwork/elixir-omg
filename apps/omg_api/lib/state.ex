@@ -43,7 +43,7 @@ defmodule OMG.API.State do
   end
 
   def form_block do
-    GenServer.cast(__MODULE__, {:form_block})
+    GenServer.cast(__MODULE__, :form_block)
   end
 
   def close_block(eth_height) do
@@ -160,7 +160,7 @@ defmodule OMG.API.State do
   end
 
   @doc """
-  Works exactly like handle_cast({:form_block}) but is synchronous
+  Works exactly like handle_cast(:form_block) but is synchronous
 
   Also, eth_height given is the Ethereum chain height where the block being closed got submitted, to be used with events.
 
@@ -178,7 +178,7 @@ defmodule OMG.API.State do
    - pushes the new block into the respective service (if it is running, i.e. in Child Chain server)
    - enqueues the new block for submission to BlockQueue (if it is running, i.e. in Child Chain server)
   """
-  def handle_cast({:form_block}, state) do
+  def handle_cast(:form_block, state) do
     _ = Logger.debug(fn -> "Forming new block..." end)
     {duration, {_result, new_state}} = :timer.tc(fn -> do_form_block(state) end)
     _ = Logger.info(fn -> "Forming block done in #{inspect(round(duration / 1000))} ms" end)

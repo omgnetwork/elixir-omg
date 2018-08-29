@@ -14,7 +14,11 @@
 
 defmodule OMG.Watcher.Eventer do
   @moduledoc """
-  Imperative shell for handling events. See OMG.API.EventerAPI for the API to the GenServer
+  Imperative shell for handling events, which are exposed to the client of the Watcher application.
+  All handling of event triggers that are processed, transformed into events and pushed to Phoenix Channels
+  for their respective topics is intended to be done here.
+
+  See OMG.API.EventerAPI for the API to the GenServer
   """
 
   alias OMG.JSONRPC

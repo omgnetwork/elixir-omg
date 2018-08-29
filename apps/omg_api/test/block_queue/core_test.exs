@@ -319,7 +319,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
       long_length = 1_000
       short_length = 100
 
-      # make chains where no child blocks ever get mined to bload the object
+      # make chains where no child blocks ever get mined to bloat the object
       long = long_length |> make_chain()
       long_size = long |> :erlang.term_to_binary() |> byte_size()
       short_size = short_length |> make_chain() |> :erlang.term_to_binary() |> byte_size()
