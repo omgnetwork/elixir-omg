@@ -19,6 +19,7 @@ defmodule OMG.Eth do
   All sending of transactions and listening to events goes here
   """
   # TODO: decide how type and logic aware this should be. Presently it's quite mixed
+  #       UPDATE: up for revamp and reduction in OMG-225
 
   alias OMG.API.Crypto
   import OMG.Eth.Encoding
@@ -59,6 +60,9 @@ defmodule OMG.Eth do
       _ -> {:error, :root_chain_contract_not_available}
     end
   end
+
+  @spec get_child_block_interval :: {:ok, pos_integer} | :error
+  def get_child_block_interval, do: Application.fetch_env(:omg_eth, :child_block_interval)
 
   defmodule BlockSubmission do
     @moduledoc false
@@ -248,8 +252,6 @@ defmodule OMG.Eth do
   end
 
   defp encode_event_signature(signature) do
-    # TODO: consider moving crypto to a umbrella app and use it across other apps
-    # "consider" because `omg_api` is now our "imported_by_all" app, and we're kind of "fine". To reevaluate
     signature |> :keccakf1600.sha3_256() |> Base.encode16(case: :lower)
   end
 

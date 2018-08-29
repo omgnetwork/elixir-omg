@@ -17,6 +17,7 @@ defmodule OMG.API.Fixtures do
 
   alias OMG.API.Crypto
   alias OMG.API.State.Core
+  alias OMG.Eth
 
   import OMG.API.TestHelper
 
@@ -30,7 +31,9 @@ defmodule OMG.API.Fixtures do
   deffixture(stable_bob(entities), do: entities.stable_bob)
 
   deffixture state_empty() do
-    {:ok, state} = Core.extract_initial_state([], 0, 0, OMG.API.BlockQueue.child_block_interval())
+    {:ok, child_block_interval} = Eth.get_child_block_interval()
+
+    {:ok, state} = Core.extract_initial_state([], 0, 0, child_block_interval)
     state
   end
 

@@ -19,6 +19,7 @@ defmodule OMG.EthTest do
   Note the excluded moduletag, this test requires an explicit `--include`
   """
   # TODO: if proves to be brittle and we cover that functionality in other integration test then consider removing
+  #       UPDATE: up for revamp and reduction in OMG-225
 
   alias OMG.API.Block
   alias OMG.API.Crypto

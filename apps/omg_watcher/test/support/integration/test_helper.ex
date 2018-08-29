@@ -17,6 +17,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   Common helper functions that are useful when integration-testing the watcher
   """
 
+  alias OMG.API.State
   alias OMG.Eth
   import OMG.Watcher.TestHelper
 
@@ -42,15 +43,15 @@ defmodule OMG.Watcher.Integration.TestHelper do
     |> Task.async()
     |> Task.await(timeout)
 
-    # TODO write to db seems to be async and wait_until_block_getter_fetches_block
-    # returns too early
-
+    # write to db seems to be async and wait_until_block_getter_fetches_block would return too early, so sleep
+    # leverage `block` events if they get implemented
     Process.sleep(100)
   end
 
   defp wait_for_block(block_nr) do
+    # TODO query to State used in tests instead of an event system, remove when event system is here
     fn ->
-      case GenServer.call(OMG.Watcher.BlockGetter, :get_height) < block_nr do
+      case State.get_current_child_block_height() <= block_nr do
         true -> :repeat
         false -> {:ok, block_nr}
       end
