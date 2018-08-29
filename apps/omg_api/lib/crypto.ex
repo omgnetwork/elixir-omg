@@ -118,19 +118,17 @@ defmodule OMG.API.Crypto do
   def encode_address(address) when byte_size(address) == 20, do: {:ok, "0x" <> Base.encode16(address, case: :lower)}
   def encode_address(_), do: {:error, :invalid_address}
 
-#  FIXME clean this  Base.encode16(v)
   @spec encode16(list(map()) | map(), list(String.t())) :: map()
   def encode16(list, fields) when is_list(list) do
     list |> Enum.map(&encode16(&1, fields))
   end
 
-  def encode16(data, fields) when is_map(data) do
-    encoded_fields = data
-                     |> Enum.filter(fn {key, _value} ->
-      Enum.member?(fields, key) end)
-                     |> Enum.into(%{}, fn {k, v} -> {k, Base.encode16(v)} end)
-    data
-    |> Map.merge(encoded_fields)
+  def encode16(map, fields) when is_map(map) do
+    update_keys(
+      map,
+      fields,
+      fn {k, v} -> {k, Base.encode16(v)} end
+    )
   end
 
   @spec decode16(list(map()) | map(), list(String.t())) :: map()
@@ -138,16 +136,15 @@ defmodule OMG.API.Crypto do
     list |> Enum.map(&encode16(&1, fields))
   end
 
-  def decode16(data, fields) when is_map(data) do
-    encoded_fields = data
-                     |> Enum.filter(fn {key, _value} ->
-      Enum.member?(fields, key) end)
-                     |> Enum.into(%{}, fn {k, v} ->
-
-      {:ok , decoded_v } =  Base.decode16(v, case: :mixed)
-      {k,decoded_v} end)
-    data
-    |> Map.merge(encoded_fields)
+  def decode16(map, fields) when is_map(map) do
+    update_keys(
+      map,
+      fields,
+      fn {k, v} ->
+        {:ok, decoded_v} = Base.decode16(v, case: :mixed)
+        {k, decoded_v}
+      end
+    )
   end
 
   # private
@@ -164,4 +161,14 @@ defmodule OMG.API.Crypto do
     {v, r, s}
   end
 
+  @spec update_keys(map(), list(String.t()), fun()) :: map()
+  defp update_keys(map, fields, fun) when is_map(map) do
+    updated_fields =
+      map
+      |> Enum.filter(fn {key, _value} -> Enum.member?(fields, key) end)
+      |> Enum.into(%{}, &fun.(&1))
+
+    map
+    |> Map.merge(updated_fields)
+  end
 end

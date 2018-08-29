@@ -108,4 +108,22 @@ defmodule OMG.API.CryptoTest do
     assert expectedt_list == Crypto.encode16(list, ["key_2"])
   end
 
+  test "decode16 funciton decodes only specified fields" do
+    map = %{"key_1" => "value_1", "key_2" => "value_2", "key_3" => "value_3"}
+
+    expected_result = %{"key_1" => "value_1", "key_2" => Base.decode16("value_2"), "key_3" => "value_3"}
+
+    assert expected_result == Crypto.decode16(map, ["key_2"])
+  end
+
+  test "decode16 funciton decodes list of maps with only specified fields" do
+    map = %{"key_1" => "value_1", "key_2" => "value_2", "key_3" => "value_3"}
+    list = [map,map]
+
+    expected_map = %{"key_1" => "value_1", "key_2" => Base.decode16("value_2"), "key_3" => "value_3"}
+    expectedt_list = [expected_map, expected_map]
+
+    assert expectedt_list == Crypto.decode16(list, ["key_2"])
+  end
+
 end

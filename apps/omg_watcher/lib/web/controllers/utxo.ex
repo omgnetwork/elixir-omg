@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
     available = %{
       address: address,
-      utxos: UtxoDB.get_utxo(address_decode)
+      utxos: UtxoDB.get_utxos(address_decode)
     }
 
     render(conn, View.Utxo, :available, available: available)
