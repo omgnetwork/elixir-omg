@@ -39,7 +39,7 @@ defmodule OMG.API.EthereumEventListener do
         {%{block_finality_margin: finality_margin, service_name: service_name}, get_ethereum_events_callback,
          process_events_callback}
       ) do
-    # FIXME: initialize state with the last ethereum block we have seen events from
+    # TODO: initialize state with the last ethereum block we have seen events from
     {:ok, parent_start_height} = Eth.get_root_deployment_height()
 
     height_sync_interval = Application.get_env(:omg_api, :rootchain_height_sync_interval_ms)

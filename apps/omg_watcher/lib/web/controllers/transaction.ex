@@ -34,7 +34,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
 
   # Respond with a single transaction
   defp respond_single(%TransactionDB{} = transaction, conn) do
-    # FIXME: do the encoding in a smarter way
+    # TODO: do the encoding in a smarter way
     #       or just keep the binaries encoded in the database (increases disk footprint)
     transaction = %{
       transaction

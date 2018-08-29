@@ -18,7 +18,7 @@ defmodule OMG.Eth do
 
   All sending of transactions and listening to events goes here
   """
-  # FIXME: decide how type and logic aware this should be. Presently it's quite mixed
+  # TODO: decide how type and logic aware this should be. Presently it's quite mixed
   #       UPDATE: up for revamp and reduction in OMG-225
 
   alias OMG.API.Crypto

@@ -54,7 +54,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
            txbytes: _
          } = exit_composition
        ) do
-    # FIXME smarter encoding (see other FIXME in controllers)
+    # TODO smarter encoding (see other TODO in controllers)
     %{
       exit_composition
       | proof: Base.encode16(exit_composition.proof),
@@ -64,7 +64,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   end
 
   defp encode(%{txbytes: _} = utxo) do
-    # FIXME smarter encoding (see other FIXME in controllers)
+    # TODO smarter encoding (see other TODO in controllers)
     %{
       utxo
       | txbytes: Base.encode16(utxo.txbytes),
