@@ -15,10 +15,30 @@
 defmodule OMG.API.Integration.Fixtures do
   use ExUnitFixtures.FixtureModule
   use OMG.Eth.Fixtures
+  use OMG.DB.Fixtures
 
   alias OMG.Eth
 
   import OMG.API.Integration.DepositHelper
+
+  deffixture omg_child_chain(root_chain_contract_config, token_contract_config, db_initialized) do
+    # match variables to hide "unused var" warnings (can't be fixed by underscoring in line above, breaks macro):
+    _ = root_chain_contract_config
+    _ = db_initialized
+    _ = token_contract_config
+    Application.put_env(:omg_api, :ethereum_event_block_finality_margin, 2, persistent: true)
+    # need to overide that to very often, so that many checks fall in between a single child chain block submission
+    {:ok, started_apps} = Application.ensure_all_started(:omg_api)
+    {:ok, started_jsonrpc} = Application.ensure_all_started(:omg_jsonrpc)
+
+    on_exit(fn ->
+      (started_apps ++ started_jsonrpc)
+      |> Enum.reverse()
+      |> Enum.map(fn app -> :ok = Application.stop(app) end)
+    end)
+
+    :ok
+  end
 
   deffixture alice_deposits(alice, token) do
     {:ok, alice_address} = Eth.DevHelpers.import_unlock_fund(alice)
