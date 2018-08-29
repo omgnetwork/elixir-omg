@@ -103,4 +103,6 @@ defmodule OMG.DB.LevelDBCore do
   def key(:last_fast_exit_block_height, _), do: "last_fast_exit_block_height"
   def key(:last_slow_exit_block_height, _), do: "last_slow_exit_block_height"
   def key(:last_block_getter_synced_height, _), do: "last_block_getter_synced_height"
+  def key(:last_depositer_block_height, _), do: "last_depositer_block_height"
+  def key(:last_exiter_block_height, _), do: "last_exiter_block_height"
 end

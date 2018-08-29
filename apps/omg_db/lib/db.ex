@@ -63,6 +63,14 @@ defmodule OMG.DB do
     GenServer.call(server_name, :last_block_getter_synced_height)
   end
 
+  def last_depositer_block_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_depositer_block_height)
+  end
+
+  def last_exiter_block_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_exiter_block_height)
+  end
+
   def init do
     path = Application.get_env(:omg_db, :leveldb_path)
     :ok = File.mkdir_p(path)
@@ -76,7 +84,9 @@ defmodule OMG.DB do
           {:put, :last_fast_exit_block_height, 0},
           {:put, :last_slow_exit_block_height, 0},
           {:put, :child_top_block_number, 0},
-          {:put, :last_block_getter_synced_height, 0}
+          {:put, :last_block_getter_synced_height, 0},
+          {:put, :last_depositer_block_height, 0},
+          {:put, :last_exiter_block_height, 0}
         ])
 
       started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)

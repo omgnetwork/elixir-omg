@@ -26,8 +26,8 @@ defmodule OMG.Watcher.Application do
     # Define workers and child supervisors to be supervised
     slow_exit_validator_block_margin = Application.get_env(:omg_watcher, :slow_exit_validator_block_margin)
 
-    depositer_config = get_event_listener_config(:depositer)
-    exiter_config = get_event_listener_config(:exiter)
+    depositer_config = get_event_listener_config(:depositer, :last_depositer_block_height)
+    exiter_config = get_event_listener_config(:exiter, :last_exiter_block_height)
 
     children = [
       # Start the Ecto repository
@@ -39,27 +39,40 @@ defmodule OMG.Watcher.Application do
        MapSet.new([:depositer, :exiter, :fast_validator, :slow_validator, :block_getter])},
       worker(
         OMG.API.EthereumEventListener,
-        [depositer_config, &OMG.Eth.get_deposits/2, &OMG.API.State.deposit/1],
+        [depositer_config, &OMG.Eth.get_deposits/2, &OMG.API.State.deposit/1, &OMG.Eth.get_root_deployment_height/0],
         id: :depositer
       ),
       worker(
         OMG.API.EthereumEventListener,
-        [exiter_config, &OMG.Eth.get_exits/2, &OMG.API.State.exit_utxos/1],
+        [exiter_config, &OMG.Eth.get_exits/2, &OMG.API.State.exit_utxos/1, &OMG.Eth.get_root_deployment_height/0],
         id: :exiter
       ),
       worker(
-        OMG.Watcher.ExitValidator,
-        [&OMG.DB.last_fast_exit_block_height/0, fn _ -> :ok end, 0, :last_fast_exit_block_height, :fast_validator],
+        OMG.API.EthereumEventListener,
+        [
+          %{
+            block_finality_margin: 0,
+            synced_height_update_key: :last_fast_exit_block_height,
+            service_name: :fast_validator
+          },
+          &OMG.Eth.get_exits/2,
+          OMG.Watcher.ExitValidator.Validator.validate_exits(fn _ -> :ok end),
+          &OMG.DB.last_fast_exit_block_height/0
+        ],
         id: :fast_validator
       ),
       worker(
-        OMG.Watcher.ExitValidator,
+        OMG.API.EthereumEventListener,
         [
-          &OMG.DB.last_slow_exit_block_height/0,
-          &slow_validator_utxo_exists_callback(&1),
-          slow_exit_validator_block_margin,
-          :last_slow_exit_block_height,
-          :slow_validator
+          %{
+            block_finality_margin: slow_exit_validator_block_margin,
+            synced_height_update_key: :last_slow_exit_block_height,
+            service_name: :slow_validator
+          },
+          &OMG.Eth.get_exits/2,
+          OMG.Watcher.ExitValidator.Validator.validate_exits(&slow_validator_utxo_exists_callback/1),
+          # think of using commong method for all ethereum listeners
+          &OMG.DB.last_slow_exit_block_height/0
         ],
         id: :slow_validator
       ),
@@ -99,9 +112,10 @@ defmodule OMG.Watcher.Application do
     end
   end
 
-  defp get_event_listener_config(service_name) do
+  defp get_event_listener_config(service_name, synced_height_update_key) do
     %{
       block_finality_margin: Application.get_env(:omg_api, :ethereum_event_block_finality_margin),
+      synced_height_update_key: synced_height_update_key,
       service_name: service_name
     }
   end
