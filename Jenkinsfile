@@ -5,7 +5,7 @@ podTemplate(
     containers: [
         containerTemplate(
             name: 'jnlp',
-            image: 'omisegoimages/blockchain-base:1.7-otp20',
+            image: 'omisegoimages/blockchain-base:1.6-otp20',
             args: '${computer.jnlpmac} ${computer.name}',
             alwaysPullImage: true,
             resourceRequestCpu: '1750m',
