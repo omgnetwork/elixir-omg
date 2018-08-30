@@ -21,10 +21,10 @@ defmodule OMG.Watcher.BlockGetter do
   Detects byzantine situations like BlockWithholding and InvalidBlock and passes this events to Eventer
   """
   alias OMG.API.Block
+  alias OMG.API.EventerAPI
   alias OMG.API.RootchainCoordinator
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter.Core
-  alias OMG.Watcher.Eventer
   alias OMG.Watcher.UtxoDB
 
   use GenServer
@@ -47,7 +47,7 @@ defmodule OMG.Watcher.BlockGetter do
 
     {continue, events} = Core.check_tx_executions(state_exec_results, block)
 
-    Eventer.emit_events(events)
+    EventerAPI.emit_events(events)
 
     with :ok <- continue do
       response = OMG.Watcher.TransactionDB.update_with(block)
@@ -63,9 +63,7 @@ defmodule OMG.Watcher.BlockGetter do
           "Child chain seen at block \##{inspect(next_child)}. Getting blocks #{inspect(blocks_numbers)}"
         end)
 
-      child_block_interval = Application.get_env(:omg_eth, :child_block_interval)
-
-      :ok = OMG.API.State.close_block(child_block_interval, block_rootchain_height)
+      :ok = OMG.API.State.close_block(block_rootchain_height)
 
       state = Core.consume_block(state, blknum)
       {:noreply, state}
@@ -106,11 +104,6 @@ defmodule OMG.Watcher.BlockGetter do
     }
   end
 
-  # TODO get_height used in tests instead of an event system, remove when event system is here
-  def handle_call(:get_height, _from, state) do
-    {:reply, state.last_consumed_block, state}
-  end
-
   @spec handle_info(
           :producer
           | {reference(), {:got_block, {:ok, map}}}
@@ -140,7 +133,7 @@ defmodule OMG.Watcher.BlockGetter do
     # 1/ process the block that arrived and consume
     {continue, new_state, events} = Core.handle_got_block(state, response)
 
-    Eventer.emit_events(events)
+    EventerAPI.emit_events(events)
 
     with :ok <- continue do
       {:noreply, new_state}
