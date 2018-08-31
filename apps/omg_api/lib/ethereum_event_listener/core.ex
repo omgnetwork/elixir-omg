@@ -21,9 +21,7 @@ defmodule OMG.API.EthereumEventListener.Core do
             next_event_height_lower_bound: nil,
             synced_height: nil,
             service_name: nil,
-            block_finality_margin: 10,
-            get_ethereum_events_callback: nil,
-            process_events_callback: nil
+            block_finality_margin: 10
 
   @type event :: any
 
@@ -32,9 +30,7 @@ defmodule OMG.API.EthereumEventListener.Core do
           next_event_height_lower_bound: non_neg_integer(),
           synced_height: non_neg_integer(),
           service_name: atom(),
-          block_finality_margin: non_neg_integer(),
-          get_ethereum_events_callback: (non_neg_integer(), non_neg_integer() -> {:ok, [event]}),
-          process_events_callback: ([event] -> :ok)
+          block_finality_margin: non_neg_integer()
         }
 
   @doc """

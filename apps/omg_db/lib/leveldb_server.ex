@@ -78,18 +78,8 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  @single_value_parameter_names [
-    :child_top_block_number,
-    :last_deposit_block_height,
-    :last_fast_exit_block_height,
-    :last_slow_exit_block_height,
-    :last_block_getter_synced_height,
-    :last_depositer_block_height,
-    :last_exiter_block_height
-  ]
-
   def handle_call(parameter, _from, %__MODULE__{db_ref: db_ref} = state)
-      when is_atom(parameter) and parameter in @single_value_parameter_names do
+      when is_atom(parameter) do
     result =
       parameter
       |> LevelDBCore.key(nil)

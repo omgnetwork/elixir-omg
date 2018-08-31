@@ -98,11 +98,15 @@ defmodule OMG.DB.LevelDBCore do
     "u" <> :erlang.term_to_binary(position)
   end
 
-  def key(:last_deposit_block_height, _), do: "last_deposit_block_height"
-  def key(:child_top_block_number, _), do: "child_top_block_number"
-  def key(:last_fast_exit_block_height, _), do: "last_fast_exit_block_height"
-  def key(:last_slow_exit_block_height, _), do: "last_slow_exit_block_height"
-  def key(:last_block_getter_synced_height, _), do: "last_block_getter_synced_height"
-  def key(:last_depositer_block_height, _), do: "last_depositer_block_height"
-  def key(:last_exiter_block_height, _), do: "last_exiter_block_height"
+  @single_value_parameter_names [
+    :child_top_block_number,
+    :last_deposit_block_height,
+    :last_fast_exit_block_height,
+    :last_slow_exit_block_height,
+    :last_block_getter_synced_height,
+    :last_depositer_block_height,
+    :last_exiter_block_height
+  ]
+
+  def key(parameter, _) when parameter in @single_value_parameter_names, do: Atom.to_string(parameter)
 end

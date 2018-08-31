@@ -20,28 +20,26 @@ defmodule OMG.Watcher.ExitValidator.Validator do
   @block_offset 1_000_000_000
   @transaction_offset 10_000
 
-  def validate_exits(utxo_exists_callback) do
-    fn utxo_exits -> validate_exits(utxo_exits, utxo_exists_callback) end
-  end
+  @spec challenge_invalid_exits(fun()) :: (fun() -> :ok)
+  def challenge_invalid_exits(utxo_exists_callback) do
+    fn utxo_exits ->
+      for utxo_exit <- utxo_exits do
+        if exists?(utxo_exit) do
+          utxo_exists_callback.(utxo_exit)
+        else
+          :challenged = OMG.Watcher.Challenger.challenge(utxo_exit)
+        end
+      end
 
-  defp validate_exits(utxo_exits, utxo_exists_callback) do
-    for utxo_exit <- utxo_exits do
-      utxo_position = utxo_exit.utxo_pos
-      blknum = div(utxo_position, @block_offset)
-      txindex = utxo_position |> rem(@block_offset) |> div(@transaction_offset)
-      oindex = utxo_position - blknum * @block_offset - txindex * @transaction_offset
-      :ok = validate_exit(%{blknum: blknum, txindex: txindex, oindex: oindex}, utxo_exists_callback)
-    end
-
-    :ok
-  end
-
-  defp validate_exit(%{blknum: blknum, txindex: txindex, oindex: oindex} = utxo_exit, utxo_exists_callback) do
-    with :utxo_does_not_exist <- OMG.API.State.utxo_exists(%{blknum: blknum, txindex: txindex, oindex: oindex}),
-         :challenged <- OMG.Watcher.Challenger.challenge(utxo_exit) do
       :ok
-    else
-      :utxo_exists -> utxo_exists_callback.(utxo_exit)
     end
+  end
+
+  defp exists?(utxo_exit) do
+    utxo_position = utxo_exit.utxo_pos
+    blknum = div(utxo_position, @block_offset)
+    txindex = utxo_position |> rem(@block_offset) |> div(@transaction_offset)
+    oindex = utxo_position - blknum * @block_offset - txindex * @transaction_offset
+    OMG.API.State.utxo_exists?(%{blknum: blknum, txindex: txindex, oindex: oindex})
   end
 end
