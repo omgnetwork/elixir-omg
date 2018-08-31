@@ -30,7 +30,16 @@ defmodule OMG.Eth.RootChain do
   def submit_block(hash, nonce, gas_price, from \\ nil, contract \\ nil) do
     contract = contract || Application.get_env(:omg_eth, :contract_addr)
     from = from || Application.get_env(:omg_eth, :authority_addr)
-    Eth.contract_transact(from, nonce, 0, contract, "submitBlock(bytes32)", [hash], gas_price, 100_000)
+
+    Eth.contract_transact(
+      from,
+      contract,
+      "submitBlock(bytes32)",
+      [hash],
+      nonce: nonce,
+      gasPrice: gas_price,
+      gas: 100_000
+    )
   end
 
   def start_deposit_exit(deposit_positon, value, gas_price, from, contract \\ nil) do
@@ -38,13 +47,11 @@ defmodule OMG.Eth.RootChain do
 
     Eth.contract_transact(
       from,
-      nil,
-      0,
       contract,
       "startDepositExit(uint256,uint256)",
       [deposit_positon, value],
-      gas_price,
-      1_000_000
+      gasPrice: gas_price,
+      gas: 1_000_000
     )
   end
 
@@ -53,38 +60,36 @@ defmodule OMG.Eth.RootChain do
 
     Eth.contract_transact(
       from,
-      nil,
-      0,
       contract,
       "startExit(uint256,bytes,bytes,bytes)",
       [utxo_position, txbytes, proof, sigs],
-      gas_price,
-      1_000_000
+      gasPrice: gas_price,
+      gas: 1_000_000
     )
   end
 
   def deposit(value, from, contract \\ nil) do
     contract = contract || Application.get_env(:omg_eth, :contract_addr)
-    Eth.contract_transact(from, nil, value, contract, "deposit()", [])
+    Eth.contract_transact(from, contract, "deposit()", [], value: value)
   end
 
   def deposit_token(from, token, amount, contract \\ nil) do
     contract = contract || Application.get_env(:omg_eth, :contract_addr)
     signature = "depositFrom(address,address,uint256)"
-    Eth.contract_transact_sync!(from, nil, 0, contract, signature, [Eth.cleanup(from), Eth.cleanup(token), amount])
+    Eth.contract_transact_sync!(from, contract, signature, [Eth.cleanup(from), Eth.cleanup(token), amount])
   end
 
   def add_token(token, contract \\ nil) do
     contract = contract || Application.get_env(:omg_eth, :contract_addr)
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
-    Eth.contract_transact_sync!(from, nil, 0, contract, "addToken(address)", [token])
+    Eth.contract_transact_sync!(from, contract, "addToken(address)", [token])
   end
 
   def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, from, contract \\ nil) do
     contract = contract || Application.get_env(:omg_eth, :contract_addr)
     signature = "challengeExit(uint256,uint256,bytes,bytes,bytes)"
     args = [cutxopo, eutxoindex, txbytes, proof, sigs]
-    Eth.contract_transact(from, nil, 0, contract, signature, args)
+    Eth.contract_transact(from, contract, signature, args)
   end
 
   def create_new(path_project_root, addr) do

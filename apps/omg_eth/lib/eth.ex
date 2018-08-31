@@ -20,10 +20,15 @@ defmodule OMG.Eth do
   import OMG.Eth.Encoding
   alias OMG.Eth.WaitFor
 
+  @type address :: <<_::160>>
+
+  @type tx_option :: {tx_option_key, non_neg_integer}
+  @type tx_option_key :: :nonce | :value | :gasPrice | :gas
+
   # safe, reasonable amount, equal to the testnet block gas limit
   @lots_of_gas 4_712_388
 
-  # FIXME: such timeout works only in dev setting; on mainnet one must track its transactions carefully
+  # TODO: such timeout works only in dev setting; on mainnet one must track its transactions carefully
   @about_4_blocks_time 60_000
 
   def get_ethereum_height do
@@ -59,25 +64,25 @@ defmodule OMG.Eth do
     {:ok, return}
   end
 
-  def contract_transact(from, nonce, value, to, signature, args, gas_price \\ 20_000_000_000, gas \\ @lots_of_gas) do
+  @spec contract_transact(address, address, binary, [any], [tx_option]) :: {:ok, binary} | {:error, any}
+  def contract_transact(from, to, signature, args, opts \\ []) do
+    opts =
+      tx_defaults()
+      |> Map.merge(Map.new(opts))
+      |> Enum.map(fn {k, v} -> {k, encode_eth_rpc_unsigned_int(v)} end)
+      |> Map.new()
+
     data = encode_tx_data(signature, args)
 
-    put_if_has_value = fn
-      map, _key, nil -> map
-      map, key, value -> Map.put(map, key, encode_eth_rpc_unsigned_int(value))
-    end
-
     txmap =
-      %{from: from, to: to, data: "0x" <> data, gas: encode_eth_rpc_unsigned_int(gas)}
-      |> put_if_has_value.(:gasPrice, gas_price)
-      |> put_if_has_value.(:nonce, nonce)
-      |> put_if_has_value.(:value, value)
+      %{from: from, to: to, data: "0x" <> data}
+      |> Map.merge(opts)
 
     Ethereumex.HttpClient.eth_send_transaction(txmap)
   end
 
-  def contract_transact_sync!(from, nonce, value, to, signature, args, gas_price \\ 20_000_000_000, gas \\ @lots_of_gas) do
-    {:ok, txhash} = contract_transact(from, nonce, value, to, signature, args, gas_price, gas)
+  def contract_transact_sync!(from, to, signature, args, opts \\ []) do
+    {:ok, txhash} = contract_transact(from, to, signature, args, opts)
     {:ok, %{"status" => "0x1"}} = WaitFor.eth_receipt(txhash, @about_4_blocks_time)
   end
 
@@ -119,6 +124,11 @@ defmodule OMG.Eth do
       WaitFor.eth_receipt(txhash, @about_4_blocks_time)
 
     {:ok, txhash, contract_address}
+  end
+
+  defp tx_defaults do
+    [value: 0, gasPrice: 20_000_000_000, gas: @lots_of_gas]
+    |> Map.new()
   end
 
   defp read_contracts_json!(path_project_root, contract_name) do

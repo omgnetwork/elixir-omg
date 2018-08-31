@@ -51,10 +51,6 @@ defmodule OMG.EthTest do
     }
   end
 
-  defp eth_str do
-    "0x" <> String.duplicate("00", 20)
-  end
-
   defp deposit(contract) do
     {:ok, txhash} = Eth.RootChain.deposit(1, contract.authority_addr, contract.contract_addr)
     {:ok, %{"status" => "0x1"}} = WaitFor.eth_receipt(txhash, @timeout)
@@ -141,7 +137,7 @@ defmodule OMG.EthTest do
 
     utxo_pos = Utxo.position(1000, 0, 0) |> Utxo.Position.encode()
 
-    assert {:ok, [%{amount: 8, owner: bob_address, utxo_pos: utxo_pos, token: @eth}]} ==
+    assert {:ok, [%{amount: 8, owner: bob.addr, utxo_pos: utxo_pos, token: @eth}]} ==
              Eth.RootChain.get_exits(1, height, contract.contract_addr)
   end
 
@@ -172,7 +168,7 @@ defmodule OMG.EthTest do
     deposit(contract)
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.authority_addr, currency: eth_str()}]} ==
+    assert {:ok, [%{amount: 1, blknum: 1, owner: Crypto.decode_address!(contract.authority_addr), currency: @eth}]} ==
              Eth.RootChain.get_deposits(1, height, contract.contract_addr)
   end
 
@@ -191,7 +187,7 @@ defmodule OMG.EthTest do
     utxo_pos = Utxo.position(1, 0, 0) |> Utxo.Position.encode()
 
     assert(
-      {:ok, [%{owner: contract.authority_addr, utxo_pos: utxo_pos, token: @eth, amount: 1}]} ==
+      {:ok, [%{owner: Crypto.decode_address!(contract.authority_addr), utxo_pos: utxo_pos, token: @eth, amount: 1}]} ==
         Eth.RootChain.get_exits(1, height, contract.contract_addr)
     )
   end
@@ -204,7 +200,7 @@ defmodule OMG.EthTest do
 
   @tag fixtures: [:contract]
   test "get authority for deployed contract", %{contract: contract} do
-    {:ok, addr} = Eth.authority(contract.contract_addr)
+    {:ok, addr} = Eth.RootChain.authority(contract.contract_addr)
     {:ok, encoded_addr} = Crypto.encode_address(addr)
     assert contract.authority_addr == encoded_addr
   end

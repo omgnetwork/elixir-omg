@@ -25,15 +25,15 @@ defmodule OMG.Eth.Token do
 
   def mint(owner, amount, token) do
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
-    Eth.contract_transact_sync!(from, nil, nil, token, "mint(address,uint256)", [Eth.cleanup(owner), amount])
+    Eth.contract_transact_sync!(from, token, "mint(address,uint256)", [Eth.cleanup(owner), amount])
   end
 
   def transfer(from, owner, amount, token) do
-    Eth.contract_transact_sync!(from, nil, nil, token, "transfer(address,uint256)", [Eth.cleanup(owner), amount])
+    Eth.contract_transact_sync!(from, token, "transfer(address,uint256)", [Eth.cleanup(owner), amount])
   end
 
   def approve(from, spender, amount, token) do
-    Eth.contract_transact_sync!(from, nil, nil, token, "approve(address,uint256)", [Eth.cleanup(spender), amount])
+    Eth.contract_transact_sync!(from, token, "approve(address,uint256)", [Eth.cleanup(spender), amount])
   end
 
   def create_new(path_project_root, addr) do
