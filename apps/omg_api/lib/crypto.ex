@@ -118,35 +118,6 @@ defmodule OMG.API.Crypto do
   def encode_address(address) when byte_size(address) == 20, do: {:ok, "0x" <> Base.encode16(address, case: :lower)}
   def encode_address(_), do: {:error, :invalid_address}
 
-  @spec encode16(list(map()) | map(), list(String.t() | atom())) :: map()
-  def encode16(list, fields) when is_list(list) do
-    list |> Enum.map(&encode16(&1, fields))
-  end
-
-  def encode16(map, fields) when is_map(map) do
-    update_keys(
-      map,
-      fields,
-      fn {k, v} -> {k, Base.encode16(v)} end
-    )
-  end
-
-  @spec decode16(list(map()) | map(), list(String.t() | atom())) :: map()
-  def decode16(list, fields) when is_list(list) do
-    list |> Enum.map(&decode16(&1, fields))
-  end
-
-  def decode16(map, fields) when is_map(map) do
-    update_keys(
-      map,
-      fields,
-      fn {k, v} ->
-        {:ok, decoded_v} = Base.decode16(v, case: :mixed)
-        {k, decoded_v}
-      end
-    )
-  end
-
   # private
 
   defp der_to_raw(<<4::integer-size(8), data::binary>>), do: data
@@ -159,16 +130,5 @@ defmodule OMG.API.Crypto do
   # Unpack 65-bytes binary signature into {v,r,s} tuple.
   defp unpack_signature(<<r::integer-size(256), s::integer-size(256), v::integer-size(8)>>) do
     {v, r, s}
-  end
-
-  @spec update_keys(map(), list(String.t()), fun()) :: map()
-  defp update_keys(map, fields, fun) when is_map(map) do
-    updated_fields =
-      map
-      |> Enum.filter(fn {key, _value} -> Enum.member?(fields, key) end)
-      |> Enum.into(%{}, &fun.(&1))
-
-    map
-    |> Map.merge(updated_fields)
   end
 end

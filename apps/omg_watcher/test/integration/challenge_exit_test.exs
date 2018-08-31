@@ -24,6 +24,7 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
   alias OMG.API.Crypto
   alias OMG.Eth
   alias OMG.JSONRPC.Client
+  alias OMG.Watcher.Web.Serializer
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper, as: Test
 
@@ -91,6 +92,6 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
     assert %{"result" => "success", "data" => decoded_data} =
              Test.rest_call(:get, "challenges?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
 
-    Crypto.decode16(decoded_data, ["txbytes", "proof", "sigs"])
+    Serializer.Response.decode16(decoded_data, ["txbytes", "proof", "sigs"])
   end
 end

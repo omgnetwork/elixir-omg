@@ -16,7 +16,7 @@ defmodule OMG.Watcher.Web.TransactionViewTest do
   @moduledoc false
   use OMG.Watcher.ViewCase
 
-  alias OMG.API.Crypto
+  alias OMG.Watcher.Web.Serializer
   alias OMG.Watcher.Web.View
 
   test "renders transaction.json with correct response format" do
@@ -44,7 +44,16 @@ defmodule OMG.Watcher.Web.TransactionViewTest do
     expected = %{
       result: :success,
       data:
-        Crypto.encode16(transaction, ["txid", "cur12", "newowner1", "newowner2", "sig1", "sig2", "spender1", "spender2"])
+        Serializer.Response.encode16(transaction, [
+          "txid",
+          "cur12",
+          "newowner1",
+          "newowner2",
+          "sig1",
+          "sig2",
+          "spender1",
+          "spender2"
+        ])
     }
 
     assert View.Transaction.render("transaction.json", %{transaction: transaction}) == expected

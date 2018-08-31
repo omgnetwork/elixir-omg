@@ -16,7 +16,7 @@ defmodule OMG.Watcher.Web.UtxoViewTest do
   @moduledoc false
   use OMG.Watcher.ViewCase
 
-  alias OMG.API.Crypto
+  alias OMG.Watcher.Web.Serializer
   alias OMG.Watcher.Web.View
 
   test "renders utxo_exit.json with correct response format" do
@@ -29,7 +29,7 @@ defmodule OMG.Watcher.Web.UtxoViewTest do
 
     expected = %{
       result: :success,
-      data: Crypto.encode16(utxo_exit, [:proof, :sigs, :txbytes])
+      data: Serializer.Response.encode16(utxo_exit, [:proof, :sigs, :txbytes])
     }
 
     assert View.Utxo.render("utxo_exit.json", %{utxo_exit: utxo_exit}) == expected
@@ -58,7 +58,7 @@ defmodule OMG.Watcher.Web.UtxoViewTest do
       result: :success,
       data: %{
         address: address,
-        utxos: Crypto.encode16(utxos, [:txbytes, :currency])
+        utxos: Serializer.Response.encode16(utxos, [:txbytes, :currency])
       }
     }
 

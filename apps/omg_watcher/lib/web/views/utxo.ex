@@ -19,18 +19,17 @@ defmodule OMG.Watcher.Web.View.Utxo do
 
   use OMG.Watcher.Web, :view
 
-  alias OMG.API.Crypto
   alias OMG.Watcher.Web.Serializer
 
   def render("utxo_exit.json", %{utxo_exit: utxo_exit}) do
-    Crypto.encode16(utxo_exit, [:proof, :sigs, :txbytes])
+    Serializer.Response.encode16(utxo_exit, [:proof, :sigs, :txbytes])
     |> Serializer.Response.serialize(:success)
   end
 
   def render("available.json", %{available: %{address: address, utxos: utxos}}) do
     %{
       address: address,
-      utxos: Crypto.encode16(utxos, [:txbytes, :currency])
+      utxos: Serializer.Response.encode16(utxos, [:txbytes, :currency])
     }
     |> Serializer.Response.serialize(:success)
   end

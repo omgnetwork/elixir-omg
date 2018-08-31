@@ -24,11 +24,11 @@ defmodule OMG.Watcher.Web.ErrorHandler do
   @errors %{
     invalid_challenge_of_exit: %{
       code: "challenge:invalid",
-      description: "The challenge of particular exit is invalid"
+      description: "The challenge of particular exit is invalid because provided utxo is not spent"
     },
     transaction_not_found: %{
       code: "transaction:not_found",
-      description: "The transacion doesn't exists"
+      description: "Transaction doesn't exist for provided search criteria"
     }
   }
 

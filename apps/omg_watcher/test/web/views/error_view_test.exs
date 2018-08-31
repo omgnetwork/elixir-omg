@@ -62,7 +62,7 @@ defmodule OMG.Watcher.Web.ErrorViewTest do
       result: :error,
       data: %{
         code: "server:internal_server_error",
-        description: "Something went wrong on the server"
+        description: "Something went wrong on the server or template cannot be found."
       }
     }
 

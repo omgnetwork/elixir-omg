@@ -17,9 +17,9 @@ defmodule OMG.Watcher.Integration.TestHelper do
   Common helper functions that are useful when integration-testing the watcher
   """
 
-  alias OMG.API.Crypto
   alias OMG.API.State
   alias OMG.Eth
+  alias OMG.Watcher.Web.Serializer
 
   import OMG.Watcher.TestHelper
 
@@ -27,7 +27,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
     %{"result" => "success", "data" => decoded_data} =
       rest_call(:get, "account/utxo/compose_exit?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
 
-    Crypto.decode16(decoded_data, ["txbytes", "proof", "sigs"])
+    Serializer.Response.decode16(decoded_data, ["txbytes", "proof", "sigs"])
   end
 
   def wait_until_block_getter_fetches_block(block_nr, timeout) do

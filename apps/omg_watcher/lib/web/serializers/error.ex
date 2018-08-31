@@ -14,7 +14,7 @@
 
 defmodule OMG.Watcher.Web.Serializer.Error do
   @moduledoc """
-  Serializes data into JSON response format.
+  Serializes error's code and description provided in response's data field.
   """
 
   @spec serialize(atom() | String.t(), String.t()) :: map()

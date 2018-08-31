@@ -37,7 +37,7 @@ defmodule OMG.Watcher.Web.ErrorView do
   def template_not_found(_template, _assigns) do
     render_error(
       "server:internal_server_error",
-      "Something went wrong on the server"
+      "Something went wrong on the server or template cannot be found."
     )
   end
 
