@@ -25,7 +25,8 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   require Utxo
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.TransactionDB
-  alias OMG.Watcher.UtxoDB
+  alias OMG.Watcher.TxOutputDB
+  alias OMG.Watcher.EthEventDB
 
   @eth Crypto.zero_address()
   @eth_hex String.duplicate("00", 20)

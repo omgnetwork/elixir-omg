@@ -36,5 +36,5 @@ defmodule OMG.Watcher.Types.IntegerType do
 
   def dump(value) do
     {:ok, value}
-end
+  end
 end

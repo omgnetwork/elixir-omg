@@ -22,27 +22,29 @@ defmodule OMG.Watcher.EthEventDB do
   alias OMG.Watcher.Repo
   alias OMG.Watcher.TxOutputDB
 
-  import Ecto.Changeset
-  import Ecto.Query, only: [from: 2]
-
-  require Logger
-
-  @field_names [:address, :currency, :amount, :blknum, :txindex, :oindex, :txbytes]
-  def field_names, do: @field_names
-
   @primary_key {:hash, :binary, []}
   @derive {Phoenix.Param, key: :hash}
   schema "ethevents" do
-    field :deposit_blknum, :integer
-    field :deposit_txindex, :integer
-    field :event_type, OMG.Watcher.Types.AtomType
+    field(:deposit_blknum, :integer)
+    field(:deposit_txindex, :integer)
+    field(:event_type, OMG.Watcher.Types.AtomType)
 
-    has_one :created_utxo, TxOutputDB, foreign_key: :creating_deposit
-    has_one :exited_utxo, TxOutputDB, foreign_key: :spending_exit
+    has_one(:created_utxo, TxOutputDB, foreign_key: :creating_deposit)
+    has_one(:exited_utxo, TxOutputDB, foreign_key: :spending_exit)
   end
 
-  @spec insert_deposit(binary(), pos_integer(), Utxo.t()) :: {:ok, any()}
-  def insert_deposit(hash, blknum, %Utxo{owner: owner, currency: currency, amount: amount}) do
+  @spec insert_deposits(map()) :: [{:ok, %__MODULE__{}} | {:error, atom()}]
+  def insert_deposits(deposits) do
+    deposits
+    |> Enum.map(
+      fn %{hash: hash, blknum: blknum, owner: owner, currency: currency, amount: amount} ->
+        insert_deposit(hash, blknum, owner, currency, amount)
+      end)
+  end
+
+  @spec insert_deposit(binary(), pos_integer(), binary(), binary(), pos_integer())
+    :: {:ok, %__MODULE__{}} | {:error, atom()}
+  defp insert_deposit(hash, blknum, owner, currency, amount) do
     {:ok, _} =
       %__MODULE__{
         hash: hash,
@@ -54,15 +56,6 @@ defmodule OMG.Watcher.EthEventDB do
           currency: currency,
           amount: amount
         }
-      }
-      |> Repo.insert()
-  end
-
-  def insert_exit(hash) do
-    {:ok, _} =
-      %__MODULE__{
-        hash: hash,
-        event_type: :exit
       }
       |> Repo.insert()
   end

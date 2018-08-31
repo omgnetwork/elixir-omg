@@ -51,9 +51,8 @@ defmodule OMG.Watcher.BlockGetter do
     EventerAPI.emit_events(events)
 
     with :ok <- continue do
-      response = OMG.Watcher.TransactionDB.update_with(block)
+      response = OMG.Watcher.TransactionDB.update_with(to_block(block, block_rootchain_height))
       nil = Enum.find(response, &(!match?({:ok, _}, &1)))
-      _ = TxOutputDB.update_with(block)
       _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end)
       {:ok, next_child} = Eth.RootChain.get_current_child_block()
       {state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
@@ -169,6 +168,14 @@ defmodule OMG.Watcher.BlockGetter do
     else
       :nosync -> {:noreply, state}
     end
+  end
+
+  @spec to_block(map(), pos_integer()) :: Block.t()
+  defp to_block(block, eth_height) do
+    params = block
+    |> Map.put(:eth_height, eth_height)
+
+    Map.merge(%Block{}, params)
   end
 
   defp run_block_get_task(blocks_numbers) do

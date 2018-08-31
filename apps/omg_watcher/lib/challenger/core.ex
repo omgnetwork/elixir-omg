@@ -25,49 +25,41 @@ defmodule OMG.Watcher.Challenger.Core do
   alias OMG.Watcher.Challenger.Challenge
   alias OMG.Watcher.TransactionDB
 
-  @spec create_challenge(%TransactionDB{}, list(%TransactionDB{}), Utxo.Position.t()) :: Challenge.t()
-  def create_challenge(challenging_tx, txs, utxo_exit) do
-    txbytes = encode(challenging_tx)
-    eutxoindex = get_eutxo_index(challenging_tx, utxo_exit)
+  @spec create_challenge(%TransactionDB{}, list(%TransactionDB{})) :: Challenge.t()
+  def create_challenge(challenging_tx, txs) do
+    #See: [contract's challengeExit](https://github.com/omisego/plasma-contracts/blob/22936d561a036d49aa6a215531e70c5779df058f/contracts/RootChain.sol#L244)
+    # eUtxoIndex - The output position of the exiting utxo.
+    eutxoindex = get_eutxo_index(challenging_tx)
+    # cUtxoPos - The position of the challenging utxo.
     cutxopos = challenging_utxo_pos(challenging_tx)
 
-    hashed_txs =
-      txs
-      |> Enum.sort_by(& &1.txindex)
-      |> Enum.map(fn tx -> tx.txid end)
+    txs_hashes =
+    txs
+    |> Enum.sort_by(& &1.txindex)
+    |> Enum.map(& &1.txhash)
 
-    proof = Block.create_tx_proof(hashed_txs, challenging_tx.txindex)
+    proof = Block.create_tx_proof(txs_hashes, challenging_tx.txindex)
+    {:ok, signed_tx} = Signed.decode(challenging_tx.txbytes)
+    raw_txbytes = encode(challenging_tx)
 
-    Challenge.create(cutxopos, eutxoindex, txbytes, proof, challenging_tx.sig1 <> challenging_tx.sig2)
+    Challenge.create(cutxopos, eutxoindex, raw_txbytes, proof, signed_tx.sig1 <> signed_tx.sig2)
   end
 
   defp encode(%TransactionDB{txbytes: txbytes}) do
-    %Signed{raw_tx: raw_tx} = Signed.decode(txbytes)
+    {:ok, %Signed{raw_tx: raw_tx}} = Signed.decode(txbytes)
     Transaction.encode(raw_tx)
   end
 
-  # FIXME: get_eutxo_index
-  defp get_eutxo_index(
-         %TransactionDB{}, #was: {blknum1: blknum, txindex1: txindex, oindex1: oindex},
-         Utxo.position(blknum, txindex, oindex)
-       ),
-       do: 0
-
-  # defp get_eutxo_index(
-  #        %TransactionDB{blknum2: blknum, txindex2: txindex, oindex2: oindex},
-  #        Utxo.position(blknum, txindex, oindex)
-  #      ),
-  #      do: 1
-
-  defp challenging_utxo_pos(challenging_tx) do
-    challenging_tx
-    |> get_challenging_utxo()
+  defp challenging_utxo_pos(%TransactionDB{
+         outputs: [output | _],
+         blknum: blknum,
+         txindex: txindex
+       }) do
+    Utxo.position(blknum, txindex, output.creating_tx_oindex)
     |> Utxo.Position.encode()
   end
 
-  # FIXME: get_challenging_utxo
-  defp get_challenging_utxo(tx = %TransactionDB{}), #was:{txblknum: blknum, txindex: txindex, amount1: 0}),
-    do: Utxo.position(tx.blknum, tx.txindex, 1)
-
-  #defp get_challenging_utxo(%TransactionDB{txblknum: blknum, txindex: txindex}), do: Utxo.position(blknum, txindex, 0)
+  # here: challenging_tx is prepared to contain just utxo_exit input only, see: TransactionDB.get_transaction_challenging_utxo/1
+  defp get_eutxo_index(%TransactionDB{inputs: [input]}),
+    do: input.spending_tx_oindex
 end

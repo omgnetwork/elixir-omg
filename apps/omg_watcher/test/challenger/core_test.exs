@@ -81,18 +81,18 @@ defmodule OMG.Watcher.Challenger.CoreTest do
     expected_cutxopos = Utxo.position(2, 1, 0) |> Utxo.Position.encode()
 
     %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} =
-      Core.create_challenge(challenging_tx, transactions, utxo_exit)
+      Core.create_challenge(challenging_tx, transactions)
 
     [_, challenging_tx | _] = transactions
 
     expected_cutxopos = Utxo.position(2, 2, 1) |> Utxo.Position.encode()
 
     %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} =
-      Core.create_challenge(challenging_tx, transactions, utxo_exit)
+      Core.create_challenge(challenging_tx, transactions)
 
     utxo_exit = Utxo.position(1, 0, 1)
 
     %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 1} =
-      Core.create_challenge(challenging_tx, transactions, utxo_exit)
+      Core.create_challenge(challenging_tx, transactions)
   end
 end

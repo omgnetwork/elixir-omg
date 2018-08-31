@@ -18,6 +18,7 @@ defmodule OMG.Watcher.Playground do
   alias OMG.API.Utxo
   alias OMG.Watcher.Repo
   alias OMG.Watcher.TransactionDB
+  alias OMG.Watcher.TxOutputDB
   alias OMG.Watcher.EthEventDB
 
   import Ecto.Query
@@ -109,11 +110,36 @@ defmodule OMG.Watcher.Playground do
     {:ok, transaction} = Recovered.recover_from(signed_tx)
     #IO.puts(inspect transaction, pretty: true)
 
-    result = TransactionDB.insert(transaction, 2000, 111, 20890)
+    result = TransactionDB.insert(transaction, 3000, 101, 20990)
     #IO.inspect(result)
 
     txs_from_db = Repo.all(from t in TransactionDB, preload: [:inputs, :outputs])
-    IO.inspect txs_from_db
+    #IO.inspect txs_from_db
+
+    # Create next payment to bob using tx utxo
+    [utxo] = TxOutputDB.get_utxo(alice.addr)
+    utxos = %{
+      address: alice.addr,
+      utxos: [
+        %{
+          blknum: 3000,
+          txindex: 101,
+          oindex: utxo.creating_tx_oindex,
+          currency: @eth,
+          amount: utxo.amount
+        }
+      ]
+    }
+    to_spend = 333
+    {:ok, raw_tx} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: to_spend})
+    signed_tx = raw_tx |> Transaction.sign(alice.priv, <<>>)
+    {:ok, transaction} = Recovered.recover_from(signed_tx)
+    result = TransactionDB.insert(transaction, 5000, 7, 21009)
+
+    bob_utxo = TxOutputDB.get_by_position(5000, 7, 0)
+    IO.inspect bob_utxo, pretty: true
+
+
 
     # Clean up
     Logger.warn("Cleaning the playground")
