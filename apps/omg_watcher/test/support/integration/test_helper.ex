@@ -19,21 +19,15 @@ defmodule OMG.Watcher.Integration.TestHelper do
 
   alias OMG.API.State
   alias OMG.Eth
+  alias OMG.Watcher.Web.Serializer
+
   import OMG.Watcher.TestHelper
 
   def compose_utxo_exit(blknum, txindex, oindex) do
-    decoded_resp = rest_call(:get, "account/utxo/compose_exit?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
+    %{"result" => "success", "data" => decoded_data} =
+      rest_call(:get, "account/utxo/compose_exit?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
 
-    {:ok, txbytes} = Base.decode16(decoded_resp["txbytes"], case: :mixed)
-    {:ok, proof} = Base.decode16(decoded_resp["proof"], case: :mixed)
-    {:ok, sigs} = Base.decode16(decoded_resp["sigs"], case: :mixed)
-
-    %{
-      utxo_pos: decoded_resp["utxo_pos"],
-      txbytes: txbytes,
-      proof: proof,
-      sigs: sigs
-    }
+    Serializer.Response.decode16(decoded_data, ["txbytes", "proof", "sigs"])
   end
 
   def wait_until_block_getter_fetches_block(block_nr, timeout) do

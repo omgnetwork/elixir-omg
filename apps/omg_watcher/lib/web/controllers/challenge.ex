@@ -20,7 +20,10 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
-  alias OMG.Watcher.Challenger.Challenge
+  alias OMG.Watcher.Challenger
+  alias OMG.Watcher.Web.View
+
+  import OMG.Watcher.Web.ErrorHandler
 
   @doc """
   Challenges exits
@@ -30,17 +33,16 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
     {txindex, ""} = Integer.parse(txindex)
     {oindex, ""} = Integer.parse(oindex)
 
-    challenge = OMG.Watcher.Challenger.create_challenge(blknum, txindex, oindex)
-
-    respond_single(challenge, conn)
+    Challenger.create_challenge(blknum, txindex, oindex)
+    |> respond(conn)
   end
 
-  defp respond_single(%Challenge{} = challenge, conn), do: json(conn, challenge)
+  defp respond({:ok, challenge}, conn) do
+    render(conn, View.Challenge, :challenge, challenge: challenge)
+  end
 
-  defp respond_single(:exit_valid, conn) do
-    conn
-    |> put_status(400)
-    |> json(%{error: "exit is valid"})
+  defp respond({:error, code}, conn) do
+    handle_error(conn, code)
   end
 
   def swagger_definitions do

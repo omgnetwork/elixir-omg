@@ -12,17 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.JsonFallback do
-  @moduledoc """
-  Handle internal errors from with's used in json-returning endpoints, relying on external factors,
-  e.g. Controller.Status depending on OMG.Eth
-  """
+defmodule OMG.Watcher.Web.StatusViewTest do
+  @moduledoc false
+  use OMG.Watcher.ViewCase
 
-  use Phoenix.Controller
+  alias OMG.Watcher.Web.View
 
-  def call(conn, {:error, reason}) do
-    conn
-    |> put_status(:internal_server_error)
-    |> json(%{:error => inspect(reason)})
+  test "renders status.json with correct response format" do
+    status = %{
+      last_validated_child_block_number: 0,
+      last_mined_child_block_number: 0,
+      last_mined_child_block_timestamp: 0,
+      eth_syncing: true
+    }
+
+    expected = %{
+      result: :success,
+      data: status
+    }
+
+    assert View.Status.render("status.json", %{status: status}) == expected
   end
 end

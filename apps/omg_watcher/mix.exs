@@ -11,7 +11,7 @@ defmodule OMG.Watcher.Mixfile do
       lockfile: "../../mix.lock",
       elixir: "~> 1.4",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:phoenix, :gettext, :phoenix_swagger] ++ Mix.compilers(),
+      compilers: [:phoenix, :phoenix_swagger] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
@@ -42,7 +42,6 @@ defmodule OMG.Watcher.Mixfile do
       {:phoenix_ecto, "~> 3.3"},
       {:phoenix_swagger, "~> 0.8.1"},
       {:postgrex, ">= 0.13.5", only: [:prod, :dev]},
-      {:gettext, "~> 0.15"},
       {:sqlite_ecto2, "~> 2.2", only: [:test]},
       {:cowboy, "~> 1.1"},
       # NOTE: fixed version needed b/c Plug.Conn.WrapperError.reraise/3 is deprecated... 2 occurences in umbrella.

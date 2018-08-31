@@ -87,8 +87,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   test "gets transaction that spends utxo", %{alice: alice, bob: bob} do
     utxo1 = Utxo.position(1, 0, 0)
     utxo2 = Utxo.position(2, 0, 0)
-    :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo1)
-    :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo2)
+    {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(utxo1)
+    {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(utxo2)
 
     alice_spend_recovered = OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [])
 
@@ -101,7 +101,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     assert create_expected_transaction(txid_alice, alice_spend_recovered, 1, 0) ==
              delete_meta(TransactionDB.get_transaction_challenging_utxo(utxo1))
 
-    :utxo_not_spent = TransactionDB.get_transaction_challenging_utxo(utxo2)
+    {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(utxo2)
 
     bob_spend_recovered = OMG.API.TestHelper.create_recovered([{2, 0, 0, bob}], @eth, [])
 
