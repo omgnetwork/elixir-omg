@@ -28,15 +28,15 @@ eth = Crypto.zero_address()
 {:ok, bob_enc} = Eth.DevHelpers.import_unlock_fund(bob)
 
 # sends a deposit transaction _to Ethereum_
-{:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, bob_enc)
-{:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, alice_enc)
+{:ok, deposit_tx_hash} = Eth.RootChain.deposit(10, bob_enc)
+{:ok, deposit_tx_hash} = Eth.RootChain.deposit(10, alice_enc)
 
 # need to wait until it's mined
 {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
 
 # we need to uncover the height at which the deposit went through on the root chain
 # to do this, look in the logs inside the receipt printed just above
-deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
+deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
 
 ### START DEMO HERE
 
@@ -101,7 +101,7 @@ tx2 =
 # FIRST you need to spend in transaction as above, so that the exit then is in fact invalid and challengeable
 
 {:ok, txhash} =
-  Eth.start_exit(
+  Eth.RootChain.start_exit(
     composed_exit["utxo_pos"],
     Base.decode16!(composed_exit["txbytes"]),
     Base.decode16!(composed_exit["proof"]),
@@ -118,7 +118,7 @@ challenge =
   Poison.decode!()
 
 {:ok, txhash} =
-  OMG.Eth.DevHelpers.challenge_exit(
+  OMG.Eth.RootChain.challenge_exit(
     challenge["cutxopos"],
     challenge["eutxoindex"],
     Base.decode16!(challenge["txbytes"]),

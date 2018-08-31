@@ -25,9 +25,9 @@ defmodule OMG.API.Integration.DepositHelper do
   def deposit_to_child_chain(to, value, token \\ @eth)
 
   def deposit_to_child_chain(to, value, @eth) do
-    {:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(value, to)
+    {:ok, deposit_tx_hash} = Eth.RootChain.deposit(value, to)
     {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
-    deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
+    deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
 
     wait_deposit_recognized(deposit_blknum)
 
@@ -35,15 +35,15 @@ defmodule OMG.API.Integration.DepositHelper do
   end
 
   def deposit_to_child_chain(to, value, token) do
-    _ = Eth.DevHelpers.token_mint(to, value, token.address)
+    _ = Eth.Token.mint(to, value, token.address)
 
     contract_addr = Application.fetch_env!(:omg_eth, :contract_addr)
 
-    Eth.DevHelpers.token_approve(to, contract_addr, value, token.address)
+    Eth.Token.approve(to, contract_addr, value, token.address)
 
-    {:ok, receipt} = Eth.DevHelpers.deposit_token(to, token.address, value)
+    {:ok, receipt} = Eth.RootChain.deposit_token(to, token.address, value)
 
-    token_deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
+    token_deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
 
     wait_deposit_recognized(token_deposit_blknum)
 
@@ -56,12 +56,29 @@ defmodule OMG.API.Integration.DepositHelper do
         (Application.get_env(:omg_api, :ethereum_event_block_finality_margin) + 1) *
           Application.get_env(:omg_eth, :child_block_interval)
 
-    {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_deposit_child_block, true, 60_000)
+    {:ok, _} = wait_for_current_child_block(post_deposit_child_block, true, 60_000)
 
     # sleeping some more until when the deposit is spendable
     geth_mining_period_ms = 1000
     Process.sleep(geth_mining_period_ms + Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms) * 3)
 
     :ok
+  end
+
+  def wait_for_current_child_block(blknum, dev \\ false, timeout \\ 10_000, contract \\ nil) do
+    f = fn ->
+      {:ok, next_num} = Eth.RootChain.get_current_child_block(contract)
+
+      case next_num < blknum do
+        true ->
+          _ = OMG.Eth.DevGeth.maybe_mine(dev)
+          :repeat
+
+        false ->
+          {:ok, next_num}
+      end
+    end
+
+    fn -> Eth.WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
   end
 end

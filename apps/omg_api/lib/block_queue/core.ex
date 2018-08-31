@@ -29,6 +29,21 @@ defmodule OMG.API.BlockQueue.Core do
 
   use OMG.API.LoggerExt
 
+  defmodule BlockSubmission do
+    @moduledoc false
+
+    @type hash() :: <<_::256>>
+    @type plasma_block_num() :: non_neg_integer()
+
+    @type t() :: %__MODULE__{
+            num: plasma_block_num(),
+            hash: hash(),
+            nonce: non_neg_integer(),
+            gas_price: pos_integer()
+          }
+    defstruct [:num, :hash, :nonce, :gas_price]
+  end
+
   @zero_bytes32 <<0::size(256)>>
 
   defstruct [

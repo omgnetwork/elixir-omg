@@ -18,6 +18,7 @@ config :omg_watcher, block_getter_height_sync_interval_ms: 100
 config :omg_api,
   ethereum_event_block_finality_margin: 2,
   ethereum_event_check_height_interval_ms: 50,
+  ethereum_event_get_deposits_interval_ms: 50,
   child_block_submit_period: 1,
   rootchain_height_sync_interval_ms: 100
 

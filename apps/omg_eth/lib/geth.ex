@@ -12,17 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.Encoding do
+defmodule OMG.Eth.Geth do
   @moduledoc """
-  Internal encoding helpers to talk to ethereum.
-  To be used in Eth and DevHelper
+
+  Tracking the state of local instance of Geth.
   """
 
-  def encode_eth_rpc_unsigned_int(0) do
-    "0x0"
+  @spec node_ready() :: :ok | {:error, :geth_still_syncing | :geth_not_listening}
+  def node_ready do
+    case Ethereumex.HttpClient.eth_syncing() do
+      {:ok, false} -> :ok
+      {:ok, true} -> {:error, :geth_still_syncing}
+      {:error, :econnrefused} -> {:error, :geth_not_listening}
+    end
   end
 
-  def encode_eth_rpc_unsigned_int(value) do
-    "0x" <> (value |> :binary.encode_unsigned() |> Base.encode16() |> String.trim_leading("0"))
-  end
+  @doc """
+  Check geth syncing status, errors are treated as not synced.
+  Returns:
+  * false - geth is synced
+  * true  - geth is still syncing.
+  """
+  @spec syncing?() :: boolean
+  def syncing?, do: node_ready() != :ok
 end

@@ -85,7 +85,7 @@ defmodule OMG.API.State do
     {:ok, height_query_result} = DB.child_top_block_number()
     {:ok, last_deposit_query_result} = DB.last_deposit_height()
     {:ok, utxos_query_result} = DB.utxos()
-    {:ok, child_block_interval} = Eth.get_child_block_interval()
+    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
     _ =
       Logger.info(fn ->
@@ -186,7 +186,7 @@ defmodule OMG.API.State do
   end
 
   defp do_form_block(state, eth_height \\ nil) do
-    {:ok, child_block_interval} = Eth.get_child_block_interval()
+    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
     {core_form_block_duration, {:ok, {%Block{number: blknum} = block, event_triggers, db_updates}, new_state}} =
       :timer.tc(fn -> Core.form_block(child_block_interval, state) end)

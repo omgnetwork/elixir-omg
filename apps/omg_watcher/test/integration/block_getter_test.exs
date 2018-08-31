@@ -84,7 +84,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
            ] == get_utxo(alice)
 
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
-    {:ok, {block_hash, _}} = Eth.get_child_chain(block_nr)
+    {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(block_nr)
 
     event_eth_height = get_block_submitted_event_height(block_nr)
 
@@ -116,7 +116,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     } = Integration.TestHelper.compose_utxo_exit(block_nr, 0, 0)
 
     {:ok, txhash} =
-      Eth.start_exit(
+      Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
         proof,
@@ -131,7 +131,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
 
-    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice_address, token: @eth}]} == Eth.get_exits(0, height)
+    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, token: @eth}]} ==
+             Eth.RootChain.get_exits(0, height)
 
     # exiting spends UTXO on child chain
     # wait until the exit is recognized and attempt to spend the exited utxo
@@ -142,7 +143,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   defp get_block_submitted_event_height(block_number) do
     {:ok, height} = Eth.get_ethereum_height()
-    {:ok, block_submissions} = Eth.get_block_submitted_events({1, height})
+    {:ok, block_submissions} = Eth.RootChain.get_block_submitted_events({1, height})
     [%{eth_height: eth_height}] = Enum.filter(block_submissions, fn submission -> submission.blknum == block_number end)
     eth_height
   end
@@ -171,7 +172,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     } = Integration.TestHelper.compose_utxo_exit(spend_token_child_block, 0, 0)
 
     {:ok, txhash} =
-      Eth.start_exit(
+      Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
         proof,
@@ -201,13 +202,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     JSONRPC2.Servers.HTTP.http(BadChildChainHash, port: Application.get_env(:omg_jsonrpc, :omg_api_rpc_port))
 
     assert capture_log(fn ->
-             {:ok, _txhash} =
-               Eth.submit_block(%Eth.BlockSubmission{
-                 num: 1000,
-                 hash: BadChildChainHash.different_hash(),
-                 nonce: 1,
-                 gas_price: 20_000_000_000
-               })
+             {:ok, _txhash} = Eth.RootChain.submit_block(BadChildChainHash.different_hash(), 1, 20_000_000_000)
 
              assert_block_getter_down()
            end) =~ inspect(:incorrect_hash)
@@ -255,13 +250,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     %API.Block{hash: hash} = BadChildChainTransaction.block_with_incorrect_transaction()
 
     assert capture_log(fn ->
-             {:ok, _txhash} =
-               Eth.submit_block(%Eth.BlockSubmission{
-                 num: 1_000,
-                 hash: hash,
-                 nonce: 1,
-                 gas_price: 20_000_000_000
-               })
+             {:ok, _txhash} = Eth.RootChain.submit_block(hash, 1, 20_000_000_000)
 
              assert_block_getter_down()
            end) =~ inspect(:tx_execution)

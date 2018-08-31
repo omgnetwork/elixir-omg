@@ -59,7 +59,7 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
     {:ok, txhash} =
-      Eth.start_exit(
+      Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
         proof,
@@ -72,10 +72,10 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
 
     # after a successful invalid exit starting, the Watcher should be able to assist in successful challenging
     challenge = get_exit_challenge(exiting_utxo_block_nr, 0, 0)
-    assert {:ok, {alice.addr, @eth, 10}} == Eth.get_exit(utxo_pos)
+    assert {:ok, {alice.addr, @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
 
     {:ok, txhash} =
-      OMG.Eth.DevHelpers.challenge_exit(
+      OMG.Eth.RootChain.challenge_exit(
         challenge["cutxopos"],
         challenge["eutxoindex"],
         challenge["txbytes"],
@@ -85,7 +85,7 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
       )
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
-    assert {:ok, {@zero_address, @eth, 10}} == Eth.get_exit(utxo_pos)
+    assert {:ok, {@zero_address, @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
   end
 
   defp get_exit_challenge(blknum, txindex, oindex) do

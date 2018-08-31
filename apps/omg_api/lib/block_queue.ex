@@ -28,7 +28,7 @@ defmodule OMG.API.BlockQueue do
   """
 
   alias OMG.API.BlockQueue.Core, as: Core
-  alias OMG.Eth.BlockSubmission
+  alias OMG.API.BlockQueue.Core.BlockSubmission, as: BlockSubmission
 
   @type eth_height() :: non_neg_integer()
   @type hash() :: BlockSubmission.hash()
@@ -59,12 +59,12 @@ defmodule OMG.API.BlockQueue do
     end
 
     def init(:ok) do
-      :ok = Eth.node_ready()
-      :ok = Eth.contract_ready()
+      :ok = Eth.Geth.node_ready()
+      :ok = Eth.RootChain.contract_ready()
       {:ok, parent_height} = Eth.get_ethereum_height()
-      {:ok, mined_num} = Eth.get_mined_child_block()
-      {:ok, parent_start} = Eth.get_root_deployment_height()
-      {:ok, child_block_interval} = Eth.get_child_block_interval()
+      {:ok, mined_num} = Eth.RootChain.get_mined_child_block()
+      {:ok, parent_start} = Eth.RootChain.get_root_deployment_height()
+      {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
       {:ok, stored_child_top_num} = OMG.DB.child_top_block_number()
       {:ok, finality_threshold} = Application.fetch_env(:omg_api, :ethereum_event_block_finality_margin)
 
@@ -79,7 +79,7 @@ defmodule OMG.API.BlockQueue do
         Core.child_block_nums_to_init_with(mined_num, stored_child_top_num, child_block_interval, finality_threshold)
 
       {:ok, known_hashes} = OMG.DB.block_hashes(range)
-      {:ok, {top_mined_hash, _}} = Eth.get_child_chain(mined_num)
+      {:ok, {top_mined_hash, _}} = Eth.RootChain.get_child_chain(mined_num)
       _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{inspect(Base.encode16(top_mined_hash))}" end)
 
       {:ok, state} =
@@ -106,7 +106,7 @@ defmodule OMG.API.BlockQueue do
     """
     def handle_info(:check_ethereum_status, %Core{} = state) do
       {:ok, height} = Eth.get_ethereum_height()
-      {:ok, mined_blknum} = Eth.get_mined_child_block()
+      {:ok, mined_blknum} = Eth.RootChain.get_mined_child_block()
 
       _ = Logger.debug(fn -> "Ethereum at \#'#{inspect(height)}', mined child at \#'#{inspect(mined_blknum)}'" end)
 
@@ -146,7 +146,7 @@ defmodule OMG.API.BlockQueue do
     defp submit(submission) do
       _ = Logger.debug(fn -> "Submitting: #{inspect(submission)}" end)
 
-      case OMG.Eth.submit_block(submission) do
+      case OMG.Eth.RootChain.submit_block(submission.hash, submission.nonce, submission.gas_price) do
         {:ok, txhash} ->
           _ = Logger.info(fn -> "Submitted #{inspect(submission)} at: #{inspect(txhash)}" end)
           :ok

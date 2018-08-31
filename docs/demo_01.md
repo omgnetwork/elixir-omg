@@ -25,14 +25,14 @@ eth = Crypto.zero_address()
 ### START DEMO HERE
 
 # sends a deposit transaction _to Ethereum_
-{:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, alice_enc)
+{:ok, deposit_tx_hash} = Eth.RootChain.deposit(10, alice_enc)
 
 # need to wait until its mined
 {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
 
 # we need to uncover the height at which the deposit went through on the root chain
 # to do this, look in the logs inside the receipt printed just above
-deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
+deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
 
 # create and prepare transaction for signing
 tx =
@@ -54,7 +54,7 @@ curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "js
 ```elixir
 # with that block number, we can ask the root chain to give us the block hash
 child_tx_block_number =
-{:ok, {block_hash, _}} = Eth.get_child_chain(child_tx_block_number)
+{:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(child_tx_block_number)
 Base.encode16(block_hash)
 ```
 
