@@ -126,15 +126,13 @@ defmodule OMG.API.BlockQueue.Core do
     %{state | formed_child_block_num: own_height, blocks: blocks, wait_for_enqueue: false}
   end
 
-  @doc """
-  Set number of plasma block mined on the parent chain.
-
-  Since reorgs are possible, consecutive values of mined_child_block_num don't have to be
-  monotonically increasing. Due to construction of contract we know it does not
-  contain holes so we care only about the highest number.
-  """
+  # Set number of plasma block mined on the parent chain.
+  #
+  # Since reorgs are possible, consecutive values of mined_child_block_num don't have to be
+  # monotonically increasing. Due to construction of contract we know it does not
+  # contain holes so we care only about the highest number.
   @spec set_mined(Core.t(), BlockQueue.plasma_block_num()) :: Core.t()
-  def set_mined(state, mined_child_block_num) do
+  defp set_mined(state, mined_child_block_num) do
     num_threshold = mined_child_block_num - state.child_block_interval * state.finality_threshold
     young? = fn {_, block} -> block.num > num_threshold end
     blocks = state.blocks |> Enum.filter(young?) |> Map.new()
@@ -144,13 +142,15 @@ defmodule OMG.API.BlockQueue.Core do
   end
 
   @doc """
-  Set height of Ethereum chain.
+  Set height of Ethereum chain and the height of the child chain mined on Ethereum.
   """
-  @spec set_ethereum_height(Core.t(), BlockQueue.eth_height()) ::
-          {:do_form_block, Core.t(), pos_integer, pos_integer} | {:dont_form_block, Core.t()}
-  def set_ethereum_height(state, parent_height) do
-    new_state = %{state | parent_height: parent_height}
-    new_state = adjust_gas_price(new_state)
+  @spec set_ethereum_status(Core.t(), BlockQueue.eth_height(), BlockQueue.plasma_block_num()) ::
+          {:do_form_block, Core.t()} | {:dont_form_block, Core.t()}
+  def set_ethereum_status(state, parent_height, mined_child_block_num) do
+    new_state =
+      %{state | parent_height: parent_height}
+      |> set_mined(mined_child_block_num)
+      |> adjust_gas_price()
 
     if should_form_block?(new_state) do
       {:do_form_block, %{new_state | wait_for_enqueue: true}}
@@ -282,15 +282,11 @@ defmodule OMG.API.BlockQueue.Core do
     |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
   end
 
-  # generates an enumberable of block numbers since genesis till a particular block number (inclusive
-  @spec child_block_nums_to_init_with(non_neg_integer) :: list
-  def child_block_nums_to_init_with(until_child_block_num) do
-    # equivalent of range(BlockQueue.child_block_interval(),
-    #                     until_child_block_num + BlockQueue.child_block_interval(),
-    #                     BlockQueue.child_block_interval()
-    #                     )
-    interval = BlockQueue.child_block_interval()
-    make_range(interval, until_child_block_num, interval)
+  # generates an enumberable of block numbers to be starting the BlockQueue with
+  # (inclusive and it takes `finality_threshold` blocks before the youngest mined block)
+  @spec child_block_nums_to_init_with(non_neg_integer, non_neg_integer, pos_integer, non_neg_integer) :: list
+  def child_block_nums_to_init_with(mined_num, until_child_block_num, interval, finality_threshold) do
+    make_range(max(interval, mined_num - finality_threshold * interval), until_child_block_num, interval)
   end
 
   # Check if new child block should be formed basing on blocks formed so far and

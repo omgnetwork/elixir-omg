@@ -121,59 +121,43 @@ defmodule OMG.API.State.TransactionTest do
              Transaction.create_from_utxos(utxos_with_more_currencies, %{address: "Joe", amount: 4})
   end
 
-  @tag fixtures: [:alice, :state_empty, :bob]
-  test "using created transaction in child chain", %{alice: alice, bob: bob, state_empty: state} do
+  @tag fixtures: [:alice, :state_alice_deposit, :bob]
+  test "using created transaction in child chain", %{alice: alice, bob: bob, state_alice_deposit: state} do
     state =
       state
-      |> TestHelper.do_deposit(alice, %{amount: 100, currency: eth(), blknum: 1})
       |> TestHelper.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 2})
 
     utxos = %{
       address: alice.addr,
       utxos: [
-        %{amount: 100, currency: eth(), blknum: 1, oindex: 0, txindex: 0},
+        %{amount: 10, currency: eth(), blknum: 1, oindex: 0, txindex: 0},
         %{amount: 10, currency: eth(), blknum: 2, oindex: 0, txindex: 0}
       ]
     }
 
-    {:ok, raw_transaction} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42})
+    {:ok, raw} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 12})
 
-    {:ok, transaction} =
-      raw_transaction
-      |> Transaction.sign(alice.priv, alice.priv)
-      |> Transaction.Signed.encode()
-      |> API.Core.recover_tx()
-
-    assert {:ok, {_, _, _}, _state} =
-             transaction
-             |> Core.exec(%{eth() => 0}, state)
+    raw |> Transaction.sign(alice.priv, alice.priv) |> assert_tx_usable(state)
   end
 
-  @tag fixtures: [:alice, :state_empty, :bob]
-  test "using created transaction with one input in child chain", %{alice: alice, bob: bob, state_empty: state} do
-    # TODO: dry the tests (this and above)!
-    state =
-      state
-      |> TestHelper.do_deposit(alice, %{amount: 100, currency: eth(), blknum: 1})
-
+  @tag fixtures: [:alice, :state_alice_deposit, :bob]
+  test "using created transaction with one input in child chain", %{alice: alice, bob: bob, state_alice_deposit: state} do
     utxos = %{
       address: alice.addr,
       utxos: [
-        %{amount: 100, currency: eth(), blknum: 1, oindex: 0, txindex: 0}
+        %{amount: 10, currency: eth(), blknum: 1, oindex: 0, txindex: 0}
       ]
     }
 
-    {:ok, raw_transaction} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 42})
+    {:ok, raw} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: 4})
 
-    {:ok, transaction} =
-      raw_transaction
-      |> Transaction.sign(alice.priv, <<>>)
-      |> Transaction.Signed.encode()
-      |> API.Core.recover_tx()
+    raw |> Transaction.sign(alice.priv, <<>>) |> assert_tx_usable(state)
+  end
 
-    assert {:ok, {_, _, _}, _state} =
-             transaction
-             |> Core.exec(%{eth() => 0}, state)
+  defp assert_tx_usable(signed, state_core) do
+    {:ok, transaction} = signed |> Transaction.Signed.encode() |> API.Core.recover_tx()
+
+    assert {:ok, {_, _, _}, _state} = Core.exec(transaction, %{eth() => 0}, state_core)
   end
 
   @tag fixtures: [:alice, :state_empty, :bob]

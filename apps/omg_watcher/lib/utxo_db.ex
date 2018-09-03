@@ -138,7 +138,7 @@ defmodule OMG.Watcher.UtxoDB do
 
   def get_all, do: Repo.all(__MODULE__)
 
-  def get_utxo(address) do
+  def get_utxos(address) do
     utxos = Repo.all(from(tr in __MODULE__, where: tr.address == ^address, select: tr))
     fields_names = List.delete(@field_names, :address)
     Enum.map(utxos, &Map.take(&1, fields_names))

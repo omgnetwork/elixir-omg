@@ -218,7 +218,6 @@ defmodule OMG.Performance do
 
   @spec create_utxos_for_extended_perftest(list(TestHelper.entity()), pos_integer()) :: list()
   defp create_utxos_for_extended_perftest(spenders, ntx_to_send) do
-    #    TODO utxo_pos should be calculated inside make_deposits function.
     OMG.Eth.DevHelpers.make_deposits(10 * ntx_to_send, spenders)
     |> Enum.map(fn {:ok, owner, blknum, amount} ->
       utxo_pos = Utxo.position(blknum, 0, 0) |> Utxo.Position.encode()
