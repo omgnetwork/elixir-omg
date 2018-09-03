@@ -417,12 +417,9 @@ defmodule OMG.API.State.Core do
   @doc """
   Checks if utxo exists
   """
-  @spec utxo_exists(exit_t, t()) :: :utxo_exists | :utxo_does_not_exist
-  def utxo_exists(%{blknum: blknum, txindex: txindex, oindex: oindex}, %Core{utxos: utxos}) do
-    case Map.has_key?(utxos, Utxo.position(blknum, txindex, oindex)) do
-      true -> :utxo_exists
-      false -> :utxo_does_not_exist
-    end
+  @spec utxo_exists?(exit_t, t()) :: boolean()
+  def utxo_exists?(%{blknum: blknum, txindex: txindex, oindex: oindex}, %Core{utxos: utxos}) do
+    Map.has_key?(utxos, Utxo.position(blknum, txindex, oindex))
   end
 
   @doc """

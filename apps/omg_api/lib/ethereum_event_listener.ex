@@ -21,43 +21,45 @@ defmodule OMG.API.EthereumEventListener do
 
   alias OMG.API.EthereumEventListener.Core
   alias OMG.API.RootchainCoordinator
-  alias OMG.Eth
   use OMG.API.LoggerExt
 
   ### Client
 
-  @spec start_link(map(), fun(), fun()) :: GenServer.on_start()
-  def start_link(config, get_events_callback, process_events_callback) do
-    GenServer.start_link(__MODULE__, {config, get_events_callback, process_events_callback})
+  @spec start_link(map()) :: GenServer.on_start()
+  def start_link(config) do
+    GenServer.start_link(__MODULE__, config)
   end
 
   ### Server
 
   use GenServer
 
-  def init(
-        {%{block_finality_margin: finality_margin, service_name: service_name}, get_ethereum_events_callback,
-         process_events_callback}
-      ) do
-    # TODO: initialize state with the last ethereum block we have seen events from
-    {:ok, parent_start_height} = Eth.get_root_deployment_height()
+  def init(%{
+        block_finality_margin: finality_margin,
+        synced_height_update_key: update_key,
+        service_name: service_name,
+        get_events_callback: get_events_callback,
+        process_events_callback: process_events_callback,
+        get_last_synced_height_callback: last_event_block_height_callback
+      }) do
+    {:ok, last_event_block_height} = last_event_block_height_callback.()
+    {:ok, _} = schedule_get_events(Application.get_env(:omg_api, :rootchain_height_sync_interval_ms))
+    :ok = RootchainCoordinator.check_in(last_event_block_height, service_name)
 
-    height_sync_interval = Application.get_env(:omg_api, :rootchain_height_sync_interval_ms)
-    {:ok, _} = schedule_get_events(height_sync_interval)
-
-    _ = Logger.info(fn -> "Starting EthereumEventListener" end)
-
-    :ok = RootchainCoordinator.check_in(parent_start_height, service_name)
+    _ = Logger.info(fn -> "Starting EthereumEventListener for #{service_name}" end)
 
     {:ok,
-     %Core{
-       next_event_height_lower_bound: parent_start_height,
-       synced_height: parent_start_height,
-       service_name: service_name,
-       block_finality_margin: finality_margin,
-       get_ethereum_events_callback: get_ethereum_events_callback,
-       process_events_callback: process_events_callback
-     }}
+     {%Core{
+        synced_height_update_key: update_key,
+        next_event_height_lower_bound: last_event_block_height,
+        synced_height: last_event_block_height,
+        service_name: service_name,
+        block_finality_margin: finality_margin
+      },
+      %{
+        get_ethereum_events_callback: get_events_callback,
+        process_events_callback: process_events_callback
+      }}}
   end
 
   def handle_info(:get_events, state) do
@@ -71,23 +73,24 @@ defmodule OMG.API.EthereumEventListener do
     end
   end
 
-  defp sync_height(state, next_sync_height) do
-    case Core.get_events_height_range_for_next_sync(state, next_sync_height) do
-      {:get_events, {event_height_lower_bound, event_height_upper_bound}, state} ->
-        {:ok, events} = state.get_ethereum_events_callback.(event_height_lower_bound, event_height_upper_bound)
-        :ok = state.process_events_callback.(events)
-        :ok = RootchainCoordinator.check_in(next_sync_height, state.service_name)
+  defp sync_height({core, callbacks}, next_sync_height) do
+    case Core.get_events_height_range_for_next_sync(core, next_sync_height) do
+      {:get_events, {event_height_lower_bound, event_height_upper_bound}, core, db_updates} ->
+        {:ok, events} = callbacks.get_ethereum_events_callback.(event_height_lower_bound, event_height_upper_bound)
+        :ok = callbacks.process_events_callback.(events)
+        :ok = OMG.DB.multi_update(db_updates)
+        :ok = RootchainCoordinator.check_in(next_sync_height, core.service_name)
 
         _ =
           Logger.debug(fn ->
-            "get_events called successfully with '#{inspect(Enum.count(events))}' events processed."
+            "#{inspect(core.service_name)} processed '#{inspect(Enum.count(events))}' events."
           end)
 
-        state
+        {core, callbacks}
 
-      {:dont_get_events, state} ->
+      {:dont_get_events, core} ->
         _ = Logger.debug(fn -> "Not getting events" end)
-        state
+        {core, callbacks}
     end
   end
 

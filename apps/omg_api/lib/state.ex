@@ -64,8 +64,8 @@ defmodule OMG.API.State do
     GenServer.call(__MODULE__, {:exit_not_spent_utxo, utxo})
   end
 
-  @spec utxo_exists(%{blknum: number, txindex: number, oindex: number}) :: :utxo_exists | :utxo_does_not_exist
-  def utxo_exists(utxo) do
+  @spec utxo_exists?(%{blknum: number, txindex: number, oindex: number}) :: boolean()
+  def utxo_exists?(utxo) do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end
 
@@ -138,10 +138,10 @@ defmodule OMG.API.State do
   Exits (spends) utxos on child chain, explicitly signals if utxo has already been spent
   """
   def handle_call({:exit_not_spent_utxo, utxo}, _from, state) do
-    with :utxo_exists <- Core.utxo_exists(utxo, state) do
+    if Core.utxo_exists?(utxo, state) do
       do_exit_utxos([utxo], state)
     else
-      :utxo_does_not_exist -> {:reply, :utxo_does_not_exist, state}
+      {:reply, :utxo_does_not_exist, state}
     end
   end
 
@@ -149,7 +149,7 @@ defmodule OMG.API.State do
   Tells if utxo exists
   """
   def handle_call({:utxo_exists, utxo}, _from, state) do
-    {:reply, Core.utxo_exists(utxo, state), state}
+    {:reply, Core.utxo_exists?(utxo, state), state}
   end
 
   @doc """
