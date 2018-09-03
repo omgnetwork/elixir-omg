@@ -111,7 +111,7 @@ Alternatively, a persistent developer instance that does not lose state can be s
 geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth --datadir ~/.geth
 ```
 
-#### Configure the `omg_eth` app
+#### Prepare and configure the root chain contract
 
 The following step will:
 - create, fund and unlock the authority address
@@ -119,6 +119,8 @@ The following step will:
 - create the config file
 
 Note that `geth` needs to already be running for this step to work!
+
+From the root dir of `elixir-omg`:
 ```
 mix compile
 mix run --no-start -e \
