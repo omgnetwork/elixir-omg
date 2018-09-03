@@ -52,4 +52,17 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
     assert map == Serializer.Response.decode16(map, [])
     assert list == Serializer.Response.decode16(list, [])
   end
+
+
+  test "encode16/decode16 funciton called with field which containts nil value" do
+    map = %{"key_1" => "value_1", "key_2" => nil, "key_3" => "value_3"}
+    list = [map, map]
+
+    assert map == Serializer.Response.encode16(map, ["key_2"])
+    assert list == Serializer.Response.encode16(list, ["key_2"])
+
+    assert map == Serializer.Response.decode16(map, ["key_2"])
+    assert list == Serializer.Response.decode16(list, ["key_2"])
+  end
+
 end
