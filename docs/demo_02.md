@@ -69,8 +69,7 @@ curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "js
 
 # 2/ Using the Watcher
 
-# re-prepare everything for the invalid exit demo until sending of tx1
-
+# grab the first transaction hash as returned by the Child chain server's API (response to `curl`'s request)
 tx1_hash =
 
 "http GET 'localhost:4000/transactions/#{tx1_hash}'" |>
