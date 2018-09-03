@@ -33,8 +33,7 @@ defmodule OMG.Watcher.Application do
       # Start workers
       {OMG.API.State, []},
       {OMG.Watcher.Eventer, []},
-      {OMG.API.RootchainCoordinator,
-       MapSet.new([:depositer, :exiter, :fast_validator, :slow_validator, :block_getter])},
+      {OMG.API.RootchainCoordinator, MapSet.new([:depositer, :fast_validator, :slow_validator, :block_getter])},
       worker(
         OMG.API.EthereumEventListener,
         [
@@ -48,20 +47,6 @@ defmodule OMG.Watcher.Application do
           }
         ],
         id: :depositer
-      ),
-      worker(
-        OMG.API.EthereumEventListener,
-        [
-          %{
-            synced_height_update_key: :last_exiter_block_height,
-            service_name: :exiter,
-            block_finality_margin: block_finality_margin,
-            get_events_callback: &OMG.Eth.get_exits/2,
-            process_events_callback: &OMG.API.State.exit_utxos/1,
-            get_last_synced_height_callback: &OMG.Eth.get_root_deployment_height/0
-          }
-        ],
-        id: :exiter
       ),
       worker(
         OMG.API.EthereumEventListener,
