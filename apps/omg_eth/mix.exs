@@ -51,7 +51,7 @@ defmodule OMG.Eth.MixProject do
   end
 
   defp contracts_compile do
-    mixfile_path = File.cwd!()
+    mixfile_path = __DIR__
     "cd #{mixfile_path}/../../ && py-solc-simple -i deps/plasma_contracts/contracts/ -o contracts/build/"
   end
 end
