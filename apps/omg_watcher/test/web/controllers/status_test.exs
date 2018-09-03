@@ -16,37 +16,39 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  alias OMG.Watcher.TestHelper, as: Test
+  alias OMG.Watcher
 
   @moduletag :integration
 
-  @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]
-  test "status endpoint returns expected response" do
-    assert %{
-             "result" => "success",
-             "data" => %{
-               "last_validated_child_block_number" => last_validated_child_block_number,
-               "last_mined_child_block_number" => last_mined_child_block_number,
-               "last_mined_child_block_timestamp" => last_mined_child_block_timestamp,
-               "eth_syncing" => eth_syncing
-             }
-           } = Test.rest_call(:get, "/status")
+  describe "Controllers.StatusTest" do
+    @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]
+    test "status endpoint returns expected response" do
+      assert %{
+               "result" => "success",
+               "data" => %{
+                 "last_validated_child_block_number" => last_validated_child_block_number,
+                 "last_mined_child_block_number" => last_mined_child_block_number,
+                 "last_mined_child_block_timestamp" => last_mined_child_block_timestamp,
+                 "eth_syncing" => eth_syncing
+               }
+             } = Watcher.TestHelper.rest_call(:get, "/status")
 
-    assert is_integer(last_validated_child_block_number)
-    assert is_integer(last_mined_child_block_number)
-    assert is_integer(last_mined_child_block_timestamp)
-    assert is_atom(eth_syncing)
-  end
+      assert is_integer(last_validated_child_block_number)
+      assert is_integer(last_mined_child_block_number)
+      assert is_integer(last_mined_child_block_timestamp)
+      assert is_atom(eth_syncing)
+    end
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
-  test "status endpoint fails gracefully when ethereum node is missing" do
-    {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "status endpoint fails gracefully when ethereum node is missing" do
+      {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
 
-    assert %{
-             "result" => "error",
-             "data" => %{"code" => "internal_server_error", "description" => "econnrefused"}
-           } = Test.rest_call(:get, "/status")
+      assert %{
+               "result" => "error",
+               "data" => %{"code" => "internal_server_error", "description" => "econnrefused"}
+             } = Watcher.TestHelper.rest_call(:get, "/status")
 
-    started_apps |> Enum.each(fn app -> :ok = Application.stop(app) end)
+      started_apps |> Enum.each(fn app -> :ok = Application.stop(app) end)
+    end
   end
 end

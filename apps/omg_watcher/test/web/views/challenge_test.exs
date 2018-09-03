@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.ChallengeViewTest do
+#FIXME
+defmodule OMG.Watcher.Web.View.ChallengeTest do
   @moduledoc false
 
   use OMG.Watcher.ViewCase

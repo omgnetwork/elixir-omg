@@ -134,33 +134,6 @@
         "operationId": "OMG.Watcher.Web.Controller.Utxo.compose_utxo_exit",
         "description": ""
       }
-    },
-    "/account/utxo": {
-      "get": {
-        "tags": [
-          "Utxo"
-        ],
-        "summary": "Gets all utxos belonging to the given address",
-        "responses": {
-          "200": {
-            "schema": {
-              "$ref": "#/definitions/Utxos"
-            },
-            "description": "OK"
-          }
-        },
-        "parameters": [
-          {
-            "type": "string",
-            "required": true,
-            "name": "address",
-            "in": "query",
-            "description": "Address of utxo owner"
-          }
-        ],
-        "operationId": "OMG.Watcher.Web.Controller.Utxo.available",
-        "description": ""
-      }
     }
   },
   "info": {

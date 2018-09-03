@@ -30,7 +30,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   @eth Crypto.zero_address()
   @eth_hex String.duplicate("00", 20)
 
-  describe "UTXO database." do
+  describe "Controller.UtxoTest" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "No utxo are returned for non-existing addresses.", %{alice: alice} do
       {:ok, alice_address_encode} = Crypto.encode_address(alice.addr)
@@ -189,35 +189,48 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
     end
   end
 
-  @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-  test "compose_utxo_exit should return proper proof format", %{alice: alice} do
-    TransactionDB.update_with(%{
-      transactions: [
-        API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}]),
-        API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 110}]),
-        API.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [])
-      ],
-      number: 1
-    })
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "compose_utxo_exit should return proper proof format", %{alice: alice} do
+      TransactionDB.update_with(%{
+        transactions: [
+          API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}]),
+          API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 110}]),
+          API.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [])
+        ],
+        number: 1
+      })
 
-    {:ok,
-     %{
-       utxo_pos: _utxo_pos,
-       txbytes: _txbytes,
-       proof: proof,
-       sigs: _sigs
-     }} = UtxoDB.compose_utxo_exit(Utxo.position(1, 1, 0))
+      utxo_pos = Utxo.position(1, 1, 0) |> Utxo.Position.encode()
 
-    assert <<_proof::bytes-size(512)>> = proof
-  end
+      %{
+        "data" => %{
+          "utxo_pos" => _utxo_pos,
+          "txbytes" => _txbytes,
+          "proof" => proof,
+          "sigs" => _sigs
+        },
+        "result" => "success"
+      } = TestHelper.rest_call(:get, "/account/utxo/#{utxo_pos}/exit_data")
+
+      assert <<_proof::bytes-size(1024)>> = proof
+    end
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "compose_utxo_exit should return error when there is no txs in specfic block" do
-    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(Utxo.position(1, 1, 0))
+    utxo_pos = Utxo.position(1, 1, 0) |> Utxo.Position.encode()
+
+    assert %{
+             "data" => %{
+               "code" => "internal_server_error",
+               "description" => "no_tx_for_given_blknum"
+             },
+             "result" => "error"
+           } = TestHelper.rest_call(:get, "/account/utxo/#{utxo_pos}/exit_data")
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
   test "compose_utxo_exit should return error when there is no tx in specfic block", %{alice: alice} do
+
     TransactionDB.update_with(%{
       transactions: [
         API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, []),
@@ -227,7 +240,15 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
       number: 1
     })
 
-    {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(Utxo.position(1, 4, 0))
+    utxo_pos = Utxo.position(1, 4, 0) |> Utxo.Position.encode()
+
+    assert %{
+             "data" => %{
+               "code" => "internal_server_error",
+               "description" => "no_tx_for_given_blknum"
+             },
+             "result" => "error"
+           } = TestHelper.rest_call(:get, "/account/utxo/#{utxo_pos}/exit_data")
   end
 
   defp get_utxo(address) do

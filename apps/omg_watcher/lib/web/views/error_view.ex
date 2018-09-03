@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.ErrorView do
+defmodule OMG.Watcher.Web.View.ErrorView do
   use OMG.Watcher.Web, :view
 
   alias OMG.Watcher.Web.Serializer

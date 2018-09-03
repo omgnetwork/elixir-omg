@@ -20,12 +20,16 @@ defmodule OMG.Watcher.Integration.TestHelper do
   alias OMG.API.State
   alias OMG.Eth
   alias OMG.Watcher.Web.Serializer
+  alias OMG.API.Utxo
+  require Utxo
 
   import OMG.Watcher.TestHelper
 
   def compose_utxo_exit(blknum, txindex, oindex) do
+    utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
+
     %{"result" => "success", "data" => decoded_data} =
-      rest_call(:get, "account/utxo/compose_exit?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
+      rest_call(:get, "account/utxo/#{utxo_pos}/exit_data")
 
     Serializer.Response.decode16(decoded_data, ["txbytes", "proof", "sigs"])
   end

@@ -28,7 +28,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   use PhoenixSwagger
   import OMG.Watcher.Web.ErrorHandler
 
-  def available(conn, %{"address" => address}) do
+  def get_account_utxos(conn, %{"address" => address}) do
     {:ok, address_decode} = Crypto.decode_address(address)
 
     available = %{
@@ -39,12 +39,12 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
     render(conn, View.Utxo, :available, available: available)
   end
 
-  def compose_utxo_exit(conn, %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex}) do
-    {blknum, ""} = Integer.parse(blknum)
-    {txindex, ""} = Integer.parse(txindex)
-    {oindex, ""} = Integer.parse(oindex)
+  def compose_utxo_exit(conn, %{"utxo_pos" => utxo_pos}) do
+    {utxo_pos, ""} = Integer.parse(utxo_pos)
 
-    UtxoDB.compose_utxo_exit(Utxo.position(blknum, txindex, oindex))
+    utxo_pos = utxo_pos |> Utxo.Position.decode()
+
+    UtxoDB.compose_utxo_exit(utxo_pos)
     |> respond(conn)
   end
 

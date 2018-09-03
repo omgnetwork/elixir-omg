@@ -12,17 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.ByzantineChannel do
-  @moduledoc """
-  Channel Byzantine is responsible for emitting folllowing events:
-  InvalidBlock, BlockWithholding, InvalidExit
-  """
+defmodule OMG.Watcher.Web.View.StatusTest do
+  @moduledoc false
+  use OMG.Watcher.ViewCase
 
-  use Phoenix.Channel
+  alias OMG.Watcher.Web.View
 
-  def join("byzantine", _params, socket) do
-    {:ok, socket}
+  test "renders status.json with correct response format" do
+    status = %{
+      last_validated_child_block_number: 0,
+      last_mined_child_block_number: 0,
+      last_mined_child_block_timestamp: 0,
+      eth_syncing: true
+    }
+
+    expected = %{
+      result: :success,
+      data: status
+    }
+
+    assert View.Status.render("status.json", %{status: status}) == expected
   end
-
-  def join(_, _, _), do: {:error, :invalid_parameter}
 end

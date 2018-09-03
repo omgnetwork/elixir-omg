@@ -28,8 +28,8 @@ defmodule OMG.Watcher.Web.Router do
 
     get("/transactions/:id", Controller.Transaction, :get_transaction)
 
-    get("/account/utxo", Controller.Utxo, :available)
-    get("/account/utxo/compose_exit", Controller.Utxo, :compose_utxo_exit)
+    get("/account/utxo", Controller.Utxo, :get_account_utxos)
+    get("/account/utxo/:utxo_pos/exit_data", Controller.Utxo, :compose_utxo_exit)
 
     get("/status", Controller.Status, :get_status)
 

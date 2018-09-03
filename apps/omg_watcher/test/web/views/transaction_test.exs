@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.TransactionViewTest do
+defmodule OMG.Watcher.Web.View.TransactionTest do
   @moduledoc false
   use OMG.Watcher.ViewCase
 
