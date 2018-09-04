@@ -22,6 +22,8 @@ defmodule OMG.API.State.PropTest do
   import PropCheck.BasicTypes
   use ExUnit.Case
   alias OMG.API.State.Core
+  require OMG.API.BlackBoxMe
+  OMG.API.BlackBoxMe.create(OMG.API.State.Core, OMG.API.State.CoreGS)
   alias OMG.API.State.CoreGS
   @moduletag capture_log: true
 
@@ -43,7 +45,6 @@ defmodule OMG.API.State.PropTest do
       trap_exit do
         init()
         {history, state, result} = run_commands(__MODULE__, cmds)
-        CoreGS.reset()
 
         success = result == :ok
 
@@ -63,7 +64,7 @@ defmodule OMG.API.State.PropTest do
 
   def init do
     {:ok, state} = Core.extract_initial_state([], 0, 0, 1000)
-    {:ok, :state_managed_by_helper} = CoreGS.init(state)
+    CoreGS.set_state(state)
   end
 
   ##############
