@@ -30,8 +30,9 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   @eth Crypto.zero_address()
   @eth_hex String.duplicate("00", 20)
 
-  describe "Controller.UtxoTest" do
+  @moduletag :integration
 
+  describe "Controller.UtxoTest" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "No utxo are returned for non-existing addresses.", %{alice: alice} do
       {:ok, alice_address_encode} = Crypto.encode_address(alice.addr)
@@ -191,7 +192,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-  test "/account/utxo/:utxo_pos/exit_data endpoint returns proper response format", %{alice: alice} do
+  test "utxo/:utxo_pos/exit_data endpoint returns proper response format", %{alice: alice} do
     TransactionDB.update_with(%{
       transactions: [
         API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}]),
@@ -211,13 +212,13 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
         "sigs" => _sigs
       },
       "result" => "success"
-    } = TestHelper.rest_call(:get, "/account/utxo/#{utxo_pos}/exit_data")
+    } = TestHelper.rest_call(:get, "/utxo/#{utxo_pos}/exit_data")
 
     assert <<_proof::bytes-size(1024)>> = proof
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox]
-  test "/account/utxo/:utxo_pos/exit_data endpoint returns error when there is no txs in specfic block" do
+  test "utxo/:utxo_pos/exit_data endpoint returns error when there is no txs in specfic block" do
     utxo_pos = Utxo.position(1, 1, 0) |> Utxo.Position.encode()
 
     assert %{
@@ -226,11 +227,11 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
                "description" => "no_tx_for_given_blknum"
              },
              "result" => "error"
-           } = TestHelper.rest_call(:get, "/account/utxo/#{utxo_pos}/exit_data")
+           } = TestHelper.rest_call(:get, "/utxo/#{utxo_pos}/exit_data")
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-  test "/account/utxo/:utxo_pos/exit_data endpoint returns error when there is no tx in specfic block", %{alice: alice} do
+  test "utxo/:utxo_pos/exit_data endpoint returns error when there is no tx in specfic block", %{alice: alice} do
     TransactionDB.update_with(%{
       transactions: [
         API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, []),
@@ -248,11 +249,11 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
                "description" => "no_tx_for_given_blknum"
              },
              "result" => "error"
-           } = TestHelper.rest_call(:get, "/account/utxo/#{utxo_pos}/exit_data")
+           } = TestHelper.rest_call(:get, "/utxo/#{utxo_pos}/exit_data")
   end
 
   defp get_utxo(address) do
     {:ok, address_encode} = Crypto.encode_address(address)
-    TestHelper.rest_call(:get, "account/utxo?address=#{address_encode}")
+    TestHelper.rest_call(:get, "/utxos?address=#{address_encode}")
   end
 end

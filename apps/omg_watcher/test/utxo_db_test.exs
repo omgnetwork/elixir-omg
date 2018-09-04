@@ -19,7 +19,6 @@ defmodule OMG.Watcher.Web.UtxoDBTest do
 
   alias OMG.API
   alias OMG.API.Crypto
-  alias OMG.API.TestHelper
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Watcher.TransactionDB

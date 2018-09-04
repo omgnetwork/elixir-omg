@@ -20,6 +20,8 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
+  alias OMG.API.Utxo
+  require Utxo
   alias OMG.Watcher.Challenger
   alias OMG.Watcher.Web.View
 
@@ -28,8 +30,12 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   @doc """
   Challenges exits
   """
-  def challenge(conn, %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex}) do
-    Challenger.create_challenge(blknum, txindex, oindex)
+  def get_utxo_challenge(conn, %{"utxo_pos" => utxo_pos}) do
+    {utxo_pos, ""} = Integer.parse(utxo_pos)
+
+    utxo_pos = utxo_pos |> Utxo.Position.decode()
+
+    Challenger.create_challenge(utxo_pos)
     |> respond(conn)
   end
 
@@ -82,14 +88,12 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
     }
   end
 
-  swagger_path :challenge do
-    get("/challenges")
+  swagger_path :get_challenge_data do
+    get("/utxo/{utxo_pos}/challenge_data")
     summary("Gets challenge for a given exit")
 
     parameters do
-      blknum(:query, :integer, "Block number of exiting utxo", required: true)
-      txindex(:query, :integer, "Transaction index of exiting utxo", required: true)
-      oindex(:query, :integer, "Output index of exiting utxo", required: true)
+      utxo_pos(:path, :integer, "The position of the exiting utxo", required: true)
     end
 
     response(200, "OK", Schema.ref(:Challenge))

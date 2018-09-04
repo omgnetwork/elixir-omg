@@ -16,7 +16,7 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  alias OMG.Watcher
+  alias OMG.Watcher.TestHelper
 
   @moduletag :integration
 
@@ -31,7 +31,7 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
                  "last_mined_child_block_timestamp" => last_mined_child_block_timestamp,
                  "eth_syncing" => eth_syncing
                }
-             } = Watcher.TestHelper.rest_call(:get, "/status")
+             } = TestHelper.rest_call(:get, "/status")
 
       assert is_integer(last_validated_child_block_number)
       assert is_integer(last_mined_child_block_number)
@@ -46,7 +46,7 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
       assert %{
                "result" => "error",
                "data" => %{"code" => "internal_server_error", "description" => "econnrefused"}
-             } = Watcher.TestHelper.rest_call(:get, "/status")
+             } = TestHelper.rest_call(:get, "/status")
 
       started_apps |> Enum.each(fn app -> :ok = Application.stop(app) end)
     end

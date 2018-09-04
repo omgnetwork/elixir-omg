@@ -19,8 +19,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
   alias OMG.API
   alias OMG.API.Crypto
-  alias OMG.Watcher.TransactionDB
   alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.TransactionDB
 
   @moduletag :integration
 
@@ -28,7 +28,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
   describe "Controller.TransactionTest" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-    test "transactions/:id endpoint returns expected transaction format", %{alice: alice} do
+    test "transaction/:id endpoint returns expected transaction format", %{alice: alice} do
       [
         ok: %TransactionDB{
           amount1: amount1,
@@ -87,11 +87,11 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "txindex2" => txindex2
                },
                "result" => "success"
-             } == TestHelper.rest_call(:get, "/transactions/#{txid}")
+             } == TestHelper.rest_call(:get, "/transaction/#{txid}")
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "transactions/:id endpoint returns error for non exsiting transaction" do
+    test "transaction/:id endpoint returns error for non exsiting transaction" do
       txid = "055673FF58D85BFBF6844BAD62361967C7D19B6A4768CE4B54C687B65728D721"
 
       assert %{
@@ -100,7 +100,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "description" => "Transaction doesn't exist for provided search criteria"
                },
                "result" => "error"
-             } == TestHelper.rest_call(:get, "/transactions/#{txid}")
+             } == TestHelper.rest_call(:get, "/transaction/#{txid}")
     end
   end
 end

@@ -97,7 +97,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   end
 
   swagger_path :get_transaction do
-    get("/transactions")
+    get("/transaction")
     summary("Gets a transaction with the given id")
 
     parameters do

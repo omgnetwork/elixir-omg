@@ -112,7 +112,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "sigs" => sigs
-    } = Integration.TestHelper.compose_utxo_exit(block_nr, 0, 0)
+    } = Integration.TestHelper.get_exit_data(block_nr, 0, 0)
 
     {:ok, txhash} =
       Eth.start_exit(
@@ -167,7 +167,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "proof" => proof,
       "sigs" => sigs,
       "utxo_pos" => utxo_pos
-    } = Integration.TestHelper.compose_utxo_exit(spend_token_child_block, 0, 0)
+    } = Integration.TestHelper.get_exit_data(spend_token_child_block, 0, 0)
 
     {:ok, txhash} =
       Eth.start_exit(
@@ -290,7 +290,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
                "address" => ^address_encode,
                "utxos" => utxos
              }
-           } = TestHelper.rest_call(:get, "account/utxo?address=#{address_encode}")
+           } = TestHelper.rest_call(:get, "utxos?address=#{address_encode}")
 
     utxos
   end
