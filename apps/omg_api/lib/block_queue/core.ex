@@ -22,8 +22,7 @@ defmodule OMG.API.BlockQueue.Core do
   (thus, it handles config values as internal variables)
   """
 
-  alias OMG.Eth.BlockSubmission
-  alias OMG.API.BlockQueue, as: BlockQueue
+  alias OMG.API.BlockQueue
   alias OMG.API.BlockQueue.Core
   alias OMG.API.BlockQueue.GasPriceAdjustmentStrategyParams, as: GasPriceParams
 

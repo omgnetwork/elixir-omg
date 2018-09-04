@@ -14,7 +14,6 @@
 
 defmodule OMG.Eth.Geth do
   @moduledoc """
-
   Tracking the state of local instance of Geth.
   """
 
@@ -28,7 +27,7 @@ defmodule OMG.Eth.Geth do
   end
 
   @doc """
-  Check geth syncing status, errors are treated as not synced.
+  Checks geth syncing status, errors are treated as not synced.
   Returns:
   * false - geth is synced
   * true  - geth is still syncing.

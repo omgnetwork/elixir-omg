@@ -235,6 +235,27 @@ defmodule OMG.Eth.RootChain do
     end
   end
 
+  def deposit_blknum_from_receipt(receipt) do
+    [{_, deposit_blknum, _, _}] = filter_receipt_events(receipt["logs"], "Deposit(address,uint256,address,uint256)")
+    deposit_blknum
+  end
+
+  @spec filter_receipt_events([%{topics: [binary], data: binary()}], binary) :: [tuple]
+  def filter_receipt_events(receipt_logs, signature) do
+    topic = signature |> OMG.API.Crypto.hash() |> Base.encode16(case: :lower)
+    topic = "0x" <> topic
+
+    decode = fn %{"data" => "0x" <> data} ->
+      signature
+      |> ABI.decode(Base.decode16!(data, case: :lower))
+      |> List.to_tuple()
+    end
+
+    receipt_logs
+    |> Enum.filter(&(topic in &1["topics"]))
+    |> Enum.map(decode)
+  end
+
   ###########
   # PRIVATE #
   ###########
@@ -276,26 +297,5 @@ defmodule OMG.Eth.RootChain do
 
     Enum.zip(keys, decoded_values)
     |> Map.new()
-  end
-
-  def deposit_blknum_from_receipt(receipt) do
-    [{_, deposit_blknum, _, _}] = filter_receipt_events(receipt["logs"], "Deposit(address,uint256,address,uint256)")
-    deposit_blknum
-  end
-
-  @spec filter_receipt_events([%{topics: [binary], data: binary()}], binary) :: [tuple]
-  def filter_receipt_events(receipt_logs, signature) do
-    topic = signature |> OMG.API.Crypto.hash() |> Base.encode16(case: :lower)
-    topic = "0x" <> topic
-
-    decode = fn %{"data" => "0x" <> data} ->
-      signature
-      |> ABI.decode(Base.decode16!(data, case: :lower))
-      |> List.to_tuple()
-    end
-
-    receipt_logs
-    |> Enum.filter(&(topic in &1["topics"]))
-    |> Enum.map(decode)
   end
 end

@@ -27,8 +27,8 @@ defmodule OMG.API.BlockQueue do
   For changing the gas price it needs external singlas (e.g. from a price oracle)
   """
 
-  alias OMG.API.BlockQueue.Core, as: Core
-  alias OMG.API.BlockQueue.Core.BlockSubmission, as: BlockSubmission
+  alias OMG.API.BlockQueue.Core
+  alias OMG.API.BlockQueue.Core.BlockSubmission
 
   @type eth_height() :: non_neg_integer()
   @type hash() :: BlockSubmission.hash()

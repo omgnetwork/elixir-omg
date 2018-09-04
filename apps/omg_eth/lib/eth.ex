@@ -28,6 +28,8 @@ defmodule OMG.Eth do
   # safe, reasonable amount, equal to the testnet block gas limit
   @lots_of_gas 4_712_388
 
+  @gas_price 20_000_000_000
+
   # TODO: such timeout works only in dev setting; on mainnet one must track its transactions carefully
   @about_4_blocks_time 60_000
 
@@ -126,10 +128,7 @@ defmodule OMG.Eth do
     {:ok, txhash, contract_address}
   end
 
-  defp tx_defaults do
-    [value: 0, gasPrice: 20_000_000_000, gas: @lots_of_gas]
-    |> Map.new()
-  end
+  defp tx_defaults, do: %{value: 0, gasPrice: @gas_price, gas: @lots_of_gas}
 
   defp read_contracts_json!(path_project_root, contract_name) do
     path = "contracts/build/#{contract_name}.json"
