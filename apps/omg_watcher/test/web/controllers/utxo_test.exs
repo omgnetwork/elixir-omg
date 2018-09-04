@@ -189,31 +189,31 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
     end
   end
 
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-    test "compose_utxo_exit should return proper proof format", %{alice: alice} do
-      TransactionDB.update_with(%{
-        transactions: [
-          API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}]),
-          API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 110}]),
-          API.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [])
-        ],
-        number: 1
-      })
+  @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+  test "compose_utxo_exit should return proper proof format", %{alice: alice} do
+    TransactionDB.update_with(%{
+      transactions: [
+        API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}]),
+        API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 110}]),
+        API.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [])
+      ],
+      number: 1
+    })
 
-      utxo_pos = Utxo.position(1, 1, 0) |> Utxo.Position.encode()
+    utxo_pos = Utxo.position(1, 1, 0) |> Utxo.Position.encode()
 
-      %{
-        "data" => %{
-          "utxo_pos" => _utxo_pos,
-          "txbytes" => _txbytes,
-          "proof" => proof,
-          "sigs" => _sigs
-        },
-        "result" => "success"
-      } = TestHelper.rest_call(:get, "/account/utxo/#{utxo_pos}/exit_data")
+    %{
+      "data" => %{
+        "utxo_pos" => _utxo_pos,
+        "txbytes" => _txbytes,
+        "proof" => proof,
+        "sigs" => _sigs
+      },
+      "result" => "success"
+    } = TestHelper.rest_call(:get, "/account/utxo/#{utxo_pos}/exit_data")
 
-      assert <<_proof::bytes-size(1024)>> = proof
-    end
+    assert <<_proof::bytes-size(1024)>> = proof
+  end
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "compose_utxo_exit should return error when there is no txs in specfic block" do
@@ -230,7 +230,6 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
   test "compose_utxo_exit should return error when there is no tx in specfic block", %{alice: alice} do
-
     TransactionDB.update_with(%{
       transactions: [
         API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, []),

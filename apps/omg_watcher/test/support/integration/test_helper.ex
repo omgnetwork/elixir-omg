@@ -28,8 +28,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   def compose_utxo_exit(blknum, txindex, oindex) do
     utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
 
-    %{"result" => "success", "data" => decoded_data} =
-      rest_call(:get, "account/utxo/#{utxo_pos}/exit_data")
+    %{"result" => "success", "data" => decoded_data} = rest_call(:get, "account/utxo/#{utxo_pos}/exit_data")
 
     Serializer.Response.decode16(decoded_data, ["txbytes", "proof", "sigs"])
   end
