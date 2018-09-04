@@ -85,8 +85,10 @@ Poison.decode!()
 
 # 3/ Exiting, challenging invalid exits
 
+exiting_utxopos = OMG.API.Utxo.Position.decode({:utxo_position, exiting_utxo_blknum, 0, 0})
+
 composed_exit =
-  "http GET 'localhost:4000/account/utxo/compose_exit?blknum=#{exiting_utxo_blknum}&txindex=0&oindex=0'" |>
+  "http GET 'localhost:4000/account/utxo/#{exiting_utxopos}/exit'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()

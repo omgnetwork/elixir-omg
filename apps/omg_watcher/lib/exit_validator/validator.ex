@@ -17,9 +17,6 @@ defmodule OMG.Watcher.ExitValidator.Validator do
   Fragment of imperative shell for ExitValidator. Validates exits.
   """
 
-  @block_offset 1_000_000_000
-  @transaction_offset 10_000
-
   @spec challenge_invalid_exits(fun()) :: (fun() -> :ok)
   def challenge_invalid_exits(utxo_exists_callback) do
     fn utxo_exits ->
@@ -36,10 +33,7 @@ defmodule OMG.Watcher.ExitValidator.Validator do
   end
 
   defp exists?(utxo_exit) do
-    utxo_position = utxo_exit.utxo_pos
-    blknum = div(utxo_position, @block_offset)
-    txindex = utxo_position |> rem(@block_offset) |> div(@transaction_offset)
-    oindex = utxo_position - blknum * @block_offset - txindex * @transaction_offset
+    {:utxo_position, blknum, txindex, oindex} = OMG.API.Utxo.Position.decode(utxo_exit.utxo_pos)
     OMG.API.State.utxo_exists?(%{blknum: blknum, txindex: txindex, oindex: oindex})
   end
 end

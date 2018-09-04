@@ -39,12 +39,12 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
     render(conn, View.Utxo, :available, available: available)
   end
 
-  def compose_utxo_exit(conn, %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex}) do
-    {blknum, ""} = Integer.parse(blknum)
-    {txindex, ""} = Integer.parse(txindex)
-    {oindex, ""} = Integer.parse(oindex)
+  def get_utxo_exit(conn, %{"utxopos" => utxopos}) do
+    {utxopos, ""} = Integer.parse(utxopos)
 
-    UtxoDB.compose_utxo_exit(Utxo.position(blknum, txindex, oindex))
+    utxopos
+    |> OMG.API.Utxo.Position.decode()
+    |> UtxoDB.compose_utxo_exit()
     |> respond(conn)
   end
 
@@ -135,14 +135,12 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
     response(200, "OK", Schema.ref(:Utxos))
   end
 
-  swagger_path :compose_utxo_exit do
-    get("/account/utxo/compose_exit")
+  swagger_path :get_utxo_exit do
+    get("/account/utxo/{utxopos}/exit")
     summary("Responds with exit for a given utxo")
 
     parameters do
-      blknum(:query, :integer, "Number of block that the utxo was created in", required: true)
-      txindex(:query, :integer, "Transaction index of the utxo", required: true)
-      oindex(:query, :integer, "Output index of the utxo", required: true)
+      utxopos(:path, :integer, "Position of exiting utxo", required: true)
     end
 
     response(200, "OK", Schema.ref(:UtxoExit))
