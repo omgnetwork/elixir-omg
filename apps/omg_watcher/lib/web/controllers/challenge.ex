@@ -29,10 +29,6 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   Challenges exits
   """
   def challenge(conn, %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex}) do
-    {blknum, ""} = Integer.parse(blknum)
-    {txindex, ""} = Integer.parse(txindex)
-    {oindex, ""} = Integer.parse(oindex)
-
     Challenger.create_challenge(blknum, txindex, oindex)
     |> respond(conn)
   end
