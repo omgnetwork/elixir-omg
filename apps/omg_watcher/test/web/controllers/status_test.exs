@@ -20,9 +20,9 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
 
   @moduletag :integration
 
-  describe "Controllers.StatusTest" do
+  describe "Controller.StatusTest" do
     @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]
-    test "status endpoint returns expected response" do
+    test "status endpoint returns expected response format" do
       assert %{
                "result" => "success",
                "data" => %{
@@ -40,7 +40,7 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "status endpoint fails gracefully when ethereum node is missing" do
+    test "status endpoint returns error when ethereum node is missing" do
       {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
 
       assert %{

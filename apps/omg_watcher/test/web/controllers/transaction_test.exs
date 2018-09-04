@@ -28,7 +28,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
   describe "Controller.TransactionTest" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-    test "transactions/:id endpoint returns expected transaction", %{alice: alice} do
+    test "transactions/:id endpoint returns expected transaction format", %{alice: alice} do
       [
         ok: %TransactionDB{
           amount1: amount1,
