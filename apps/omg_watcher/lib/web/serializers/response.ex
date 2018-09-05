@@ -17,14 +17,17 @@ defmodule OMG.Watcher.Web.Serializer.Response do
   Serializes the response into expected result/data format.
   """
 
+  alias OMG.Watcher.Web.Serializer.DBObject
+
   @type response_result_t :: :success | :error
 
   @spec serialize(map(), response_result_t()) :: %{result: response_result_t(), data: map()}
   def serialize(data, result) do
     %{
       result: result,
-      data: data
+      data: DBObject.clean(data)
     }
+    |> IO.inspect()
   end
 
   @spec encode16(list(map()) | map(), list(String.t() | atom())) :: map()

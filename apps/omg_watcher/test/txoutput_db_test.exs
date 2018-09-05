@@ -12,30 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.UtxoDBTest do
+defmodule OMG.Watcher.Web.TxOutputDBTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
 
   alias OMG.API
+  alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.API.Utxo
-  require Utxo
   alias OMG.Watcher.TransactionDB
-  alias OMG.Watcher.UtxoDB
+  alias OMG.Watcher.TxOutputDB
+
+  require Utxo
 
   @eth Crypto.zero_address()
 
   describe "Utxo database" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "compose_utxo_exit should return proper proof format", %{alice: alice} do
-      TransactionDB.update_with(%{
+      TransactionDB.update_with(%Block{
         transactions: [
-          API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}]),
-          API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 110}]),
-          API.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [])
+          API.TestHelper.create_recovered([], @eth, [{alice, 120}]),
+          API.TestHelper.create_recovered([], @eth, [{alice, 110}]),
+          API.TestHelper.create_recovered([], @eth, [{alice, 100}])
         ],
-        number: 1
+        number: 1000
       })
 
       {:ok,
@@ -44,28 +46,28 @@ defmodule OMG.Watcher.Web.UtxoDBTest do
          txbytes: _txbytes,
          proof: proof,
          sigs: _sigs
-       }} = UtxoDB.compose_utxo_exit(Utxo.position(1, 1, 0))
+       }} = TxOutputDB.compose_utxo_exit(Utxo.position(1000, 1, 0))
 
       assert <<_proof::bytes-size(512)>> = proof
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "compose_utxo_exit should return error when there is no txs in specfic block" do
-      {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(Utxo.position(1, 1, 0))
+      {:error, :no_tx_for_given_blknum} = TxOutputDB.compose_utxo_exit(Utxo.position(1, 1, 0))
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "compose_utxo_exit should return error when there is no tx in specfic block", %{alice: alice} do
-      TransactionDB.update_with(%{
+      TransactionDB.update_with(%Block{
         transactions: [
-          API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, []),
-          API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, []),
-          API.TestHelper.create_recovered([], @eth, [])
+          API.TestHelper.create_recovered([], @eth, [{alice, 120}]),
+          API.TestHelper.create_recovered([], @eth, [{alice, 110}]),
+          API.TestHelper.create_recovered([], @eth, [{alice, 100}])
         ],
-        number: 1
+        number: 1000
       })
 
-      {:error, :no_tx_for_given_blknum} = UtxoDB.compose_utxo_exit(Utxo.position(1, 4, 0))
+      {:error, :no_tx_for_given_blknum} = TxOutputDB.compose_utxo_exit(Utxo.position(1000, 3, 0))
     end
   end
 end

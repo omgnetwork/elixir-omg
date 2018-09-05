@@ -18,6 +18,7 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
   use OMG.API.Fixtures
 
   alias OMG.API
+  alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.API.Utxo
   require Utxo
@@ -29,7 +30,7 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
   describe "Controller.ChallengeTest" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "utxo/:utxo_pos/challenge_data  endpoint returns proper response format", %{alice: alice} do
-      TransactionDB.update_with(%{
+      TransactionDB.update_with(%Block{
         transactions: [
           API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}])
         ],

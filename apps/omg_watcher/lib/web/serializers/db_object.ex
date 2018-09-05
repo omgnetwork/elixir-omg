@@ -1,0 +1,53 @@
+# Copyright 2018 OmiseGO Pte Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+defmodule OMG.Watcher.Web.Serializer.DBObject do
+  @moduledoc """
+
+  """
+
+  @doc """
+
+  """
+  def clean(value) do
+    clean_value(value)
+  end
+
+  defp clean_value(list) when is_list(list) do
+    list |> Enum.map(&clean_value/1)
+  end
+
+  defp clean_value(map_or_struct) when is_map(map_or_struct) do
+    map_or_struct
+    |> to_map()
+    |> clean_map()
+  end
+
+  defp clean_value(value), do: value
+
+  @spec clean_map(map()) :: map()
+  defp clean_map(map) do
+    map
+    |> Enum.filter(fn {k,v} -> Ecto.assoc_loaded?(v) end)
+    |> Enum.map(fn {k, v} -> {k, clean_value(v)} end)
+    |> Map.new()
+  end
+
+  defp to_map(struct) do
+    (if Map.has_key?(struct, :__struct__),
+      do: struct |> Map.from_struct(), else: struct
+    )
+    |> Map.delete(:__meta__)
+  end
+end
