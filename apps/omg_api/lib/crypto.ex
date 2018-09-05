@@ -114,9 +114,21 @@ defmodule OMG.API.Crypto do
   def decode_address(raw) when byte_size(raw) == 20, do: {:ok, raw}
   def decode_address(_), do: {:error, :bad_address_encoding}
 
+  @spec decode_address!(String.t() | binary) :: address_t()
+  def decode_address!(hex) do
+    {:ok, raw} = decode_address(hex)
+    raw
+  end
+
   @spec encode_address(binary) :: {:ok, String.t()} | {:error, :invalid_address}
   def encode_address(address) when byte_size(address) == 20, do: {:ok, "0x" <> Base.encode16(address, case: :lower)}
   def encode_address(_), do: {:error, :invalid_address}
+
+  @spec encode_address!(binary) :: String.t()
+  def encode_address!(raw) do
+    {:ok, encoded} = encode_address(raw)
+    encoded
+  end
 
   # private
 

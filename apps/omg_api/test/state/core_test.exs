@@ -25,7 +25,7 @@ defmodule OMG.API.State.CoreTest do
 
   require Utxo
 
-  @child_block_interval OMG.Eth.get_child_block_interval() |> elem(1)
+  @child_block_interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
   @child_block_2 @child_block_interval * 2
   @child_block_3 @child_block_interval * 3
   @child_block_4 @child_block_interval * 4

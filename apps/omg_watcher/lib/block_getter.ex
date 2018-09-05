@@ -33,7 +33,7 @@ defmodule OMG.Watcher.BlockGetter do
   @spec get_block(pos_integer()) ::
           {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
   def get_block(requested_number) do
-    {:ok, {requested_hash, _time}} = Eth.get_child_chain(requested_number)
+    {:ok, {requested_hash, _time}} = Eth.RootChain.get_child_chain(requested_number)
     rpc_response = OMG.JSONRPC.Client.call(:get_block, %{hash: requested_hash})
     Core.validate_get_block_response(rpc_response, requested_hash, requested_number, :os.system_time(:millisecond))
   end
@@ -54,7 +54,7 @@ defmodule OMG.Watcher.BlockGetter do
       nil = Enum.find(response, &(!match?({:ok, _}, &1)))
       _ = UtxoDB.update_with(block)
       _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end)
-      {:ok, next_child} = Eth.get_current_child_block()
+      {:ok, next_child} = Eth.RootChain.get_current_child_block()
       {state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
       :ok = run_block_get_task(blocks_numbers)
 
@@ -79,7 +79,7 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   def init(_opts) do
-    {:ok, deployment_height} = Eth.get_root_deployment_height()
+    {:ok, deployment_height} = Eth.RootChain.get_root_deployment_height()
     {:ok, last_synced_height} = OMG.DB.last_block_getter_block_height()
     synced_height = max(deployment_height, last_synced_height)
     :ok = RootchainCoordinator.check_in(synced_height, :block_getter)
@@ -114,7 +114,7 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info(msg, state)
 
   def handle_info(:producer, state) do
-    {:ok, next_child} = Eth.get_current_child_block()
+    {:ok, next_child} = Eth.RootChain.get_current_child_block()
 
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
 
@@ -149,7 +149,7 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info(:sync, state) do
     with {:sync, next_synced_height} <- RootchainCoordinator.get_height() do
       {block_range, state} = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
-      {:ok, submissions} = Eth.get_block_submitted_events(block_range)
+      {:ok, submissions} = Eth.RootChain.get_block_submitted_events(block_range)
 
       {blocks_to_consume, synced_height, db_updates, state} =
         Core.get_blocks_to_consume(state, submissions, next_synced_height)

@@ -14,154 +14,24 @@
 
 defmodule OMG.Eth do
   @moduledoc """
-  Adapter/port to ethereum.
+  Adapter/port to contracts deployed on Ethereum.
 
-  All sending of transactions and listening to events goes here
   """
-  # TODO: decide how type and logic aware this should be. Presently it's quite mixed
-  #       UPDATE: up for revamp and reduction in OMG-225
-
-  alias OMG.API.Crypto
   import OMG.Eth.Encoding
+  alias OMG.Eth.WaitFor
 
-  @type contract_t() :: binary | nil
+  @type address :: <<_::160>>
 
-  @spec node_ready() :: :ok | {:error, :geth_still_syncing | :geth_not_listening}
-  def node_ready do
-    case Ethereumex.HttpClient.eth_syncing() do
-      {:ok, false} -> :ok
-      {:ok, true} -> {:error, :geth_still_syncing}
-      {:error, :econnrefused} -> {:error, :geth_not_listening}
-    end
-  end
+  @type tx_option :: {tx_option_key, non_neg_integer}
+  @type tx_option_key :: :nonce | :value | :gasPrice | :gas
 
-  @doc """
-  Check geth syncing status, errors are treated as not synced.
-  Returns:
-   * false - geth is synced
-   * true  - geth is still syncing.
-  """
-  @spec syncing?() :: boolean
-  def syncing?, do: node_ready() != :ok
+  # safe, reasonable amount, equal to the testnet block gas limit
+  @lots_of_gas 4_712_388
 
-  @spec contract_ready(contract_t()) ::
-          :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
-  def contract_ready(contract \\ nil) do
-    contract = contract || Application.get_env(:omg_eth, :contract_addr)
+  @gas_price 20_000_000_000
 
-    try do
-      {:ok, addr} = authority(contract)
-
-      case addr != <<0::256>> do
-        true -> :ok
-        false -> {:error, :root_chain_authority_is_nil}
-      end
-    rescue
-      _ -> {:error, :root_chain_contract_not_available}
-    end
-  end
-
-  @spec get_child_block_interval :: {:ok, pos_integer} | :error
-  def get_child_block_interval, do: Application.fetch_env(:omg_eth, :child_block_interval)
-
-  defmodule BlockSubmission do
-    @moduledoc false
-
-    @type hash() :: <<_::256>>
-    @type plasma_block_num() :: non_neg_integer()
-
-    @type t() :: %__MODULE__{
-            num: plasma_block_num(),
-            hash: hash(),
-            nonce: non_neg_integer(),
-            gas_price: pos_integer()
-          }
-    defstruct [:num, :hash, :nonce, :gas_price]
-  end
-
-  @spec get_root_deployment_height(binary() | nil, contract_t()) :: {:ok, integer()} | Ethereumex.HttpClient.error()
-  def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
-    contract = contract || Application.get_env(:omg_eth, :contract_addr)
-    txhash = txhash || Application.get_env(:omg_eth, :txhash_contract)
-
-    case Ethereumex.HttpClient.eth_get_transaction_receipt(txhash) do
-      {:ok, %{"contractAddress" => ^contract, "blockNumber" => "0x" <> height_hex}} ->
-        {height, ""} = Integer.parse(height_hex, 16)
-        {:ok, height}
-
-      {:ok, _} ->
-        {:error, :wrong_contract_address}
-
-      other ->
-        other
-    end
-  end
-
-  @spec submit_block(BlockSubmission.t(), Crypto.address_t() | nil, contract_t()) ::
-          {:error, binary() | atom() | map()}
-          | {:ok, binary()}
-  def submit_block(
-        %BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price},
-        from \\ nil,
-        contract \\ nil
-      ) do
-    contract = contract || Application.get_env(:omg_eth, :contract_addr)
-    from = from || Application.get_env(:omg_eth, :authority_addr)
-
-    data =
-      "submitBlock(bytes32)"
-      |> ABI.encode([hash])
-      |> Base.encode16()
-
-    gas = 100_000
-
-    Ethereumex.HttpClient.eth_send_transaction(%{
-      from: from,
-      to: contract,
-      gas: encode_eth_rpc_unsigned_int(gas),
-      gasPrice: encode_eth_rpc_unsigned_int(gas_price),
-      data: "0x#{data}",
-      nonce: encode_eth_rpc_unsigned_int(nonce)
-    })
-  end
-
-  def start_deposit_exit(deposit_positon, value, gas_price, from, contract \\ nil) do
-    contract = contract || Application.get_env(:omg_eth, :contract_addr)
-
-    data =
-      "startDepositExit(uint256,uint256)"
-      |> ABI.encode([deposit_positon, value])
-      |> Base.encode16()
-
-    gas = 1_000_000
-
-    Ethereumex.HttpClient.eth_send_transaction(%{
-      from: from,
-      to: contract,
-      data: "0x#{data}",
-      gas: encode_eth_rpc_unsigned_int(gas),
-      gasPrice: encode_eth_rpc_unsigned_int(gas_price)
-    })
-  end
-
-  def start_exit(utxo_position, txbytes, proof, sigs, gas_price, from, contract \\ nil) do
-    contract = contract || Application.get_env(:omg_eth, :contract_addr)
-
-    data =
-      "startExit(uint256,bytes,bytes,bytes)"
-      |> ABI.encode([utxo_position, txbytes, proof, sigs])
-      |> Base.encode16()
-
-    gas = 1_000_000
-
-    Ethereumex.HttpClient.eth_send_transaction(%{
-      from: from,
-      to: contract,
-      data: "0x#{data}",
-      gas: encode_eth_rpc_unsigned_int(gas),
-      gasPrice: encode_eth_rpc_unsigned_int(gas_price)
-    })
-  end
+  # TODO: such timeout works only in dev setting; on mainnet one must track its transactions carefully
+  @about_4_blocks_time 60_000
 
   def get_ethereum_height do
     case Ethereumex.HttpClient.eth_block_number() do
@@ -174,145 +44,7 @@ defmodule OMG.Eth do
     end
   end
 
-  @doc """
-  Returns next blknum that is supposed to be mined by operator
-  """
-  def get_current_child_block(contract \\ nil) do
-    contract = contract || Application.get_env(:omg_eth, :contract_addr)
-    call_contract_value(contract, "currentChildBlock()")
-  end
-
-  @doc """
-  Returns blknum that was already mined by operator (with exception for 0)
-  """
-  def get_mined_child_block(contract \\ nil) do
-    contract = contract || Application.get_env(:omg_eth, :contract_addr)
-
-    with {:ok, next} <- call_contract_value(contract, "currentChildBlock()"), do: {:ok, next - 1000}
-  end
-
-  def authority(contract \\ nil) do
-    contract = contract || Application.get_env(:omg_eth, :contract_addr)
-    {:ok, {operator_address}} = call_contract(contract, "operator()", [], [:address])
-    {:ok, operator_address}
-  end
-
-  @doc """
-  Returns lists of deposits sorted by child chain block number
-  """
-  def get_deposits(block_from, block_to, contract \\ nil) do
-    contract = contract || Application.get_env(:omg_eth, :contract_addr)
-
-    event = encode_event_signature("Deposit(address,uint256,address,uint256)")
-
-    parse_deposit = fn %{"data" => "0x" <> deposit} ->
-      [owner, blknum, token, amount] =
-        deposit
-        |> Base.decode16!(case: :lower)
-        |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, :address, {:uint, 256}])
-
-      {:ok, owner} = Crypto.encode_address(owner)
-      {:ok, token} = Crypto.encode_address(token)
-      %{owner: owner, currency: token, amount: amount, blknum: blknum}
-    end
-
-    with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
-         deposits <- unfiltered_logs |> filter_not_removed |> Enum.map(parse_deposit),
-         do: {:ok, Enum.sort(deposits, &(&1.blknum > &2.blknum))}
-  end
-
-  @doc """
-  Returns lists of block submissions sorted by timestamp
-  """
-  def get_block_submitted_events(block_range, contract \\ nil)
-
-  def get_block_submitted_events({block_from, block_to}, contract) do
-    contract = contract || Application.get_env(:omg_eth, :contract_addr)
-
-    event = encode_event_signature("BlockSubmitted(uint256)")
-
-    parse_block_submissions = fn %{"data" => "0x" <> block_submission, "blockNumber" => "0x" <> hex_block_number} ->
-      {eth_height, ""} = Integer.parse(hex_block_number, 16)
-
-      [blknum] =
-        block_submission
-        |> Base.decode16!(case: :lower)
-        |> ABI.TypeDecoder.decode_raw([{:uint, 256}])
-
-      %{blknum: blknum, eth_height: eth_height}
-    end
-
-    with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
-         block_submissions <- unfiltered_logs |> filter_not_removed |> Enum.map(parse_block_submissions),
-         do: {:ok, Enum.sort(block_submissions, &(&1.blknum > &2.blknum))}
-  end
-
-  def get_block_submitted_events(:empty_range, _contract) do
-    {:ok, []}
-  end
-
-  defp encode_event_signature(signature) do
-    signature |> :keccakf1600.sha3_256() |> Base.encode16(case: :lower)
-  end
-
-  defp int_to_hex(int), do: "0x" <> Integer.to_string(int, 16)
-
-  defp filter_not_removed(logs) do
-    logs |> Enum.filter(&(not Map.get(&1, "removed", true)))
-  end
-
-  defp get_ethereum_logs(block_from, block_to, event, contract) do
-    try do
-      Ethereumex.HttpClient.eth_get_logs(%{
-        fromBlock: int_to_hex(block_from),
-        toBlock: int_to_hex(block_to),
-        address: contract,
-        topics: ["0x#{event}"]
-      })
-    catch
-      _ -> {:error, :failed_to_get_ethereum_events}
-    end
-  end
-
-  @doc """
-  Returns exits from a range of blocks. Collects exits from Ethereum logs.
-  """
-  def get_exits(block_from, block_to, contract \\ nil) do
-    contract = contract || Application.get_env(:omg_eth, :contract_addr)
-    event = encode_event_signature("ExitStarted(address,uint256,address,uint256)")
-
-    parse_exit = fn %{"data" => "0x" <> exits} ->
-      [owner, utxo_pos, token, amount] =
-        exits
-        |> Base.decode16!(case: :lower)
-        |> ABI.TypeDecoder.decode_raw([:address, {:uint, 256}, :address, {:uint, 256}])
-
-      {:ok, owner} = Crypto.encode_address(owner)
-
-      %{owner: owner, utxo_pos: utxo_pos, amount: amount, token: token}
-    end
-
-    with {:ok, unfiltered_logs} <- get_ethereum_logs(block_from, block_to, event, contract),
-         exits <- unfiltered_logs |> filter_not_removed |> Enum.map(parse_exit),
-         do: {:ok, Enum.sort(exits, &(&1.block_height > &2.block_height))}
-  end
-
-  @doc """
-  Returns exit for a specific utxo. Calls contract method.
-  """
-  def get_exit(utxo_pos, contract \\ nil) do
-    contract = contract || Application.get_env(:omg_eth, :contract_addr)
-
-    call_contract(contract, "getExit(uint256)", [utxo_pos], [:address, :address, {:uint, 256}])
-  end
-
-  def get_child_chain(blknum, contract \\ nil) do
-    contract = contract || Application.get_env(:omg_eth, :contract_addr)
-
-    call_contract(contract, "getChildChain(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
-  end
-
-  defp call_contract_value(contract, signature) do
+  def call_contract_value(contract, signature) do
     with {:ok, values} <- call_contract(contract, signature, [], [{:uint, 256}]), {value} = values, do: {:ok, value}
   end
 
@@ -324,7 +56,7 @@ defmodule OMG.Eth do
          do: decode_answer(enc_return, return_types)
   end
 
-  defp decode_answer(enc_return, return_types) do
+  def decode_answer(enc_return, return_types) do
     return =
       enc_return
       |> Base.decode16!(case: :lower)
@@ -332,5 +64,84 @@ defmodule OMG.Eth do
       |> List.to_tuple()
 
     {:ok, return}
+  end
+
+  @spec contract_transact(address, address, binary, [any], [tx_option]) :: {:ok, binary} | {:error, any}
+  def contract_transact(from, to, signature, args, opts \\ []) do
+    opts =
+      tx_defaults()
+      |> Map.merge(Map.new(opts))
+      |> Enum.map(fn {k, v} -> {k, encode_eth_rpc_unsigned_int(v)} end)
+      |> Map.new()
+
+    data = encode_tx_data(signature, args)
+
+    txmap =
+      %{from: from, to: to, data: "0x" <> data}
+      |> Map.merge(opts)
+
+    Ethereumex.HttpClient.eth_send_transaction(txmap)
+  end
+
+  def contract_transact_sync!(from, to, signature, args, opts \\ []) do
+    {:ok, txhash} = contract_transact(from, to, signature, args, opts)
+    {:ok, %{"status" => "0x1"}} = WaitFor.eth_receipt(txhash, @about_4_blocks_time)
+  end
+
+  def get_bytecode!(path_project_root, contract_name) do
+    %{"evm" => %{"bytecode" => %{"object" => bytecode}}} =
+      path_project_root
+      |> read_contracts_json!(contract_name)
+      |> Poison.decode!()
+
+    "0x" <> bytecode
+  end
+
+  defp encode_tx_data(signature, args) do
+    args = args |> Enum.map(&cleanup/1)
+
+    signature
+    |> ABI.encode(args)
+    |> Base.encode16()
+  end
+
+  defp encode_constructor_params(args, types) do
+    args = for arg <- args, do: cleanup(arg)
+
+    args
+    |> ABI.TypeEncoder.encode_raw(types)
+    |> Base.encode16(case: :lower)
+  end
+
+  def cleanup("0x" <> hex), do: hex |> String.upcase() |> Base.decode16!()
+  def cleanup(raw), do: raw
+
+  def deploy_contract(addr, bytecode, types, args, gas) do
+    enc_args = encode_constructor_params(types, args)
+    txmap = %{from: addr, data: bytecode <> enc_args, gas: gas}
+
+    {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+
+    {:ok, %{"contractAddress" => contract_address, "status" => "0x1"}} =
+      WaitFor.eth_receipt(txhash, @about_4_blocks_time)
+
+    {:ok, txhash, contract_address}
+  end
+
+  defp tx_defaults, do: %{value: 0, gasPrice: @gas_price, gas: @lots_of_gas}
+
+  defp read_contracts_json!(path_project_root, contract_name) do
+    path = "contracts/build/#{contract_name}.json"
+
+    case File.read(Path.join(path_project_root, path)) do
+      {:ok, contract_json} ->
+        contract_json
+
+      {:error, reason} ->
+        raise(
+          RuntimeError,
+          "Can't read #{path} because #{inspect(reason)}, try running mix deps.compile plasma_contracts"
+        )
+    end
   end
 end
