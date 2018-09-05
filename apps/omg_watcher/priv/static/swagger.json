@@ -94,7 +94,7 @@
         "description": ""
       }
     },
-    "/account/utxo/compose_exit": {
+    "/account/utxo/{utxopos}/exit": {
       "get": {
         "tags": [
           "Utxo"
@@ -112,26 +112,12 @@
           {
             "type": "integer",
             "required": true,
-            "name": "blknum",
-            "in": "query",
-            "description": "Number of block that the utxo was created in"
-          },
-          {
-            "type": "integer",
-            "required": true,
-            "name": "txindex",
-            "in": "query",
-            "description": "Transaction index of the utxo"
-          },
-          {
-            "type": "integer",
-            "required": true,
-            "name": "oindex",
-            "in": "query",
-            "description": "Output index of the utxo"
+            "name": "utxopos",
+            "in": "path",
+            "description": "Position of exiting utxo"
           }
         ],
-        "operationId": "OMG.Watcher.Web.Controller.Utxo.compose_utxo_exit",
+        "operationId": "OMG.Watcher.Web.Controller.Utxo.get_utxo_exit",
         "description": ""
       }
     },

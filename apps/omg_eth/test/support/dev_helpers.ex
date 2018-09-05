@@ -29,6 +29,12 @@ defmodule OMG.Eth.DevHelpers do
 
   @one_hundred_eth trunc(:math.pow(10, 18) * 100)
 
+  @doc """
+  Prepares the developer's environment with respect to the root chain contract and its configuration within
+  the application.
+
+   - `root_path` should point to `elixir-omg` root or wherever where `./contracts/build` holds the compiled contracts
+  """
   def prepare_env!(root_path \\ "./") do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, authority} = create_and_fund_authority_addr()
