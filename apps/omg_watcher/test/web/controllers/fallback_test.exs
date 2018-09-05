@@ -12,27 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.ChallengeViewTest do
-  @moduledoc false
+defmodule OMG.Watcher.Web.Controller.FallbackTest do
+  use ExUnitFixtures
+  use ExUnit.Case, async: false
 
-  use OMG.Watcher.ViewCase
+  alias OMG.Watcher.TestHelper
 
-  alias OMG.Watcher.Web.View
+  @moduletag :integration
 
-  test "renders challenge.json with correct response format" do
-    challenge = %{
-      cutxopos: 0,
-      eutxoindex: 0,
-      txbytes: "0",
-      proof: "0",
-      sigs: "0"
-    }
-
-    expected = %{
-      result: :success,
-      data: challenge
-    }
-
-    assert View.Challenge.render("challenge.json", %{challenge: challenge}) == expected
+  describe "Controller.FallbackTest" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "fallback returns error for non existing endpoint" do
+      %{
+        "data" => %{
+          "code" => "internal_server_error",
+          "description" => "endpoint_not_found"
+        },
+        "result" => "error"
+      } = TestHelper.rest_call(:get, "/non_exsisting_endpoint")
+    end
   end
 end

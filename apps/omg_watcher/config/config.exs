@@ -18,7 +18,7 @@ config :omg_watcher,
 config :omg_watcher, OMG.Watcher.Web.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "grt5Ef/y/jpx7AfLmrlUS/nfYJUOq+2e+1xmU4nphTm2x8WB7nLFCJ91atbSBrv5",
-  render_errors: [view: OMG.Watcher.Web.ErrorView, accepts: ~w(json)],
+  render_errors: [view: OMG.Watcher.Web.View.ErrorView, accepts: ~w(json)],
   pubsub: [name: OMG.Watcher.PubSub, adapter: Phoenix.PubSub.PG2]
 
 config :omg_watcher, :phoenix_swagger,

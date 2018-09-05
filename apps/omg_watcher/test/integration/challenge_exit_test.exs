@@ -22,6 +22,8 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
 
   alias OMG.API
   alias OMG.API.Crypto
+  alias OMG.API.Utxo
+  require Utxo
   alias OMG.Eth
   alias OMG.JSONRPC.Client
   alias OMG.Watcher.Web.Serializer
@@ -54,7 +56,7 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
       "proof" => proof,
       "sigs" => sigs,
       "utxo_pos" => utxo_pos
-    } = IntegrationTest.compose_utxo_exit(exiting_utxo_block_nr, 0, 0)
+    } = IntegrationTest.get_exit_data(exiting_utxo_block_nr, 0, 0)
 
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
@@ -89,8 +91,9 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
   end
 
   defp get_exit_challenge(blknum, txindex, oindex) do
-    assert %{"result" => "success", "data" => decoded_data} =
-             Test.rest_call(:get, "challenges?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
+    utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
+
+    assert %{"result" => "success", "data" => decoded_data} = Test.rest_call(:get, "utxo/#{utxo_pos}/challenge_data")
 
     Serializer.Response.decode16(decoded_data, ["txbytes", "proof", "sigs"])
   end

@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.TransferChannel do
+defmodule OMG.Watcher.Web.Channel.Byzantine do
   @moduledoc """
-  Channel Transfer
+  Channel Byzantine is responsible for emitting folllowing events:
+  InvalidBlock, BlockWithholding, InvalidExit
   """
 
   use Phoenix.Channel
 
-  def join("transfer:" <> _address, _params, socket) do
+  def join("byzantine", _params, socket) do
     {:ok, socket}
   end
 

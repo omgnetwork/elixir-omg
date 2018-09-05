@@ -30,8 +30,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration
   alias OMG.Watcher.TestHelper
-  alias OMG.Watcher.Web.ByzantineChannel
-  alias OMG.Watcher.Web.TransferChannel
+  alias OMG.Watcher.Web.Channel
 
   import ExUnit.CaptureLog
 
@@ -52,7 +51,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
     {:ok, _, _socket} =
-      subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
+      subscribe_and_join(socket(), Channel.Transfer, TestHelper.create_topic("transfer", alice_address))
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
@@ -113,7 +112,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "sigs" => sigs
-    } = Integration.TestHelper.compose_utxo_exit(block_nr, 0, 0)
+    } = Integration.TestHelper.get_exit_data(block_nr, 0, 0)
 
     {:ok, txhash} =
       Eth.RootChain.start_exit(
@@ -169,7 +168,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "proof" => proof,
       "sigs" => sigs,
       "utxo_pos" => utxo_pos
-    } = Integration.TestHelper.compose_utxo_exit(spend_token_child_block, 0, 0)
+    } = Integration.TestHelper.get_exit_data(spend_token_child_block, 0, 0)
 
     {:ok, txhash} =
       Eth.RootChain.start_exit(
@@ -197,7 +196,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       end
     end
 
-    {:ok, _, _socket} = subscribe_and_join(socket(), ByzantineChannel, "byzantine")
+    {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
     JSONRPC2.Servers.HTTP.http(BadChildChainHash, port: Application.get_env(:omg_jsonrpc, :omg_api_rpc_port))
 
@@ -240,7 +239,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       end
     end
 
-    {:ok, _, _socket} = subscribe_and_join(socket(), ByzantineChannel, "byzantine")
+    {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
     JSONRPC2.Servers.HTTP.http(
       BadChildChainTransaction,
@@ -280,7 +279,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
                "address" => ^address_encode,
                "utxos" => utxos
              }
-           } = TestHelper.rest_call(:get, "account/utxo?address=#{address_encode}")
+           } = TestHelper.rest_call(:get, "utxos?address=#{address_encode}")
 
     utxos
   end

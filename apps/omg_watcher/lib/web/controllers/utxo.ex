@@ -27,7 +27,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   use PhoenixSwagger
   import OMG.Watcher.Web.ErrorHandler
 
-  def available(conn, %{"address" => address}) do
+  def get_utxos(conn, %{"address" => address}) do
     {:ok, address_decode} = Crypto.decode_address(address)
 
     available = %{
@@ -38,10 +38,10 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
     render(conn, View.Utxo, :available, available: available)
   end
 
-  def get_utxo_exit(conn, %{"utxopos" => utxopos}) do
-    {utxopos, ""} = Integer.parse(utxopos)
+  def get_utxo_exit(conn, %{"utxo_pos" => utxo_pos}) do
+    {utxo_pos, ""} = Integer.parse(utxo_pos)
 
-    utxopos
+    utxo_pos
     |> Utxo.Position.decode()
     |> UtxoDB.compose_utxo_exit()
     |> respond(conn)
@@ -123,8 +123,8 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
     }
   end
 
-  swagger_path :available do
-    get("/account/utxo")
+  swagger_path :get_utxos do
+    get("/utxos")
     summary("Gets all utxos belonging to the given address")
 
     parameters do
@@ -134,12 +134,12 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
     response(200, "OK", Schema.ref(:Utxos))
   end
 
-  swagger_path :get_utxo_exit do
-    get("/account/utxo/{utxopos}/exit")
+  swagger_path :get_exit_data do
+    get("/utxo/{utxo_pos}/exit_data")
     summary("Responds with exit for a given utxo")
 
     parameters do
-      utxopos(:path, :integer, "Position of exiting utxo", required: true)
+      utxo_pos(:path, :integer, "Position of the exiting utxo", required: true)
     end
 
     response(200, "OK", Schema.ref(:UtxoExit))

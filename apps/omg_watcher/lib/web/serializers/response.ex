@@ -36,7 +36,13 @@ defmodule OMG.Watcher.Web.Serializer.Response do
     update_values(
       map,
       fields,
-      fn {k, v} -> {k, Base.encode16(v)} end
+      fn
+        {k, v} when v == nil ->
+          {k, v}
+
+        {k, v} ->
+          {k, Base.encode16(v)}
+      end
     )
   end
 
@@ -49,9 +55,13 @@ defmodule OMG.Watcher.Web.Serializer.Response do
     update_values(
       map,
       fields,
-      fn {k, v} ->
-        {:ok, decoded_v} = Base.decode16(v, case: :mixed)
-        {k, decoded_v}
+      fn
+        {k, v} when v == nil ->
+          {k, v}
+
+        {k, v} ->
+          {:ok, decoded_v} = Base.decode16(v, case: :mixed)
+          {k, decoded_v}
       end
     )
   end

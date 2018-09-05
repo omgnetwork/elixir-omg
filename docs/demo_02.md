@@ -73,13 +73,13 @@ curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "js
 # grab the first transaction hash as returned by the Child chain server's API (response to `curl`'s request)
 tx1_hash =
 
-"http GET 'localhost:4000/transactions/#{tx1_hash}'" |>
+"http GET 'localhost:4000/transaction/#{tx1_hash}'" |>
 to_charlist() |>
 :os.cmd() |>
 Poison.decode!()
 
 %{"utxos" => [%{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
-  "http GET 'localhost:4000/account/utxo?address=#{bob_enc}'" |>
+  "http GET 'localhost:4000/utxos?address=#{bob_enc}'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
@@ -89,7 +89,7 @@ Poison.decode!()
 exiting_utxopos = OMG.API.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
 
 composed_exit =
-  "http GET 'localhost:4000/account/utxo/#{exiting_utxopos}/exit'" |>
+  "http GET 'localhost:4000/utxo/#{exiting_utxopos}/exit_data'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
@@ -114,7 +114,7 @@ tx2 =
 Eth.WaitFor.eth_receipt(txhash)
 
 challenge =
-  "http GET 'localhost:4000/challenges?blknum=#{exiting_utxo_blknum}&txindex=0&oindex=0'" |>
+  "http GET 'localhost:4000/utxo/#{exiting_utxo_blknum}/challenge_data'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
@@ -161,7 +161,7 @@ r(OMG.API.State.Core)
 
 # grab a utxo that bob can spend
 %{"utxos" => [%{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]} =
-  "http GET 'localhost:4000/account/utxo?address=#{bob_enc}'" |>
+  "http GET 'localhost:4000/utxos?address=#{bob_enc}'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
