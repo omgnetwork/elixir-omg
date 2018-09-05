@@ -19,8 +19,8 @@ defmodule OMG.Eth.DevHelpers do
   """
 
   alias OMG.API.Crypto
-  alias OMG.Eth.WaitFor, as: WaitFor
   alias OMG.Eth
+  alias OMG.Eth.WaitFor, as: WaitFor
 
   import OMG.Eth.Encoding
 

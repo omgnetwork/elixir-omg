@@ -26,9 +26,9 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
   require Utxo
   alias OMG.Eth
   alias OMG.JSONRPC.Client
-  alias OMG.Watcher.Web.Serializer
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper, as: Test
+  alias OMG.Watcher.Web.Serializer
 
   @moduletag :integration
 

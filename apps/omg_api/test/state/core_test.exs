@@ -20,8 +20,8 @@ defmodule OMG.API.State.CoreTest do
   alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.API.State.Core
-  alias OMG.API.Utxo
   alias OMG.API.TestHelper, as: Test
+  alias OMG.API.Utxo
 
   require Utxo
 

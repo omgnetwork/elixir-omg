@@ -32,7 +32,7 @@ defmodule OMG.Umbrella.MixProject do
   defp deps do
     [
       {:dialyxir, "~> 0.5", only: [:prod], runtime: false},
-      {:credo, "~> 0.9", only: [:dev, :test], runtime: false},
+      {:credo, "~> 0.10.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.8", only: [:test], runtime: false},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
       {
