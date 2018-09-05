@@ -25,7 +25,6 @@ defmodule OMG.API.BlockQueue.Core do
   alias OMG.API.BlockQueue
   alias OMG.API.BlockQueue.Core
   alias OMG.API.BlockQueue.GasPriceAdjustmentStrategyParams, as: GasPriceParams
-  alias OMG.Eth.BlockSubmission
 
   use OMG.API.LoggerExt
 
