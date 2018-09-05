@@ -13,7 +13,7 @@
         #
         # You can give explicit globs or simply directories.
         # In the latter case `**/*.{ex,exs}` will be used.
-      #
+        #
         included: ["lib/", "src/", "web/", "apps/", "config/", "mix.exs"],
         excluded: [~r"/_build/", ~r"/deps/"]
       },
@@ -72,7 +72,9 @@
         #
         # NOTE: setting to 0, this is less stringent than fixmes
         {Credo.Check.Design.TagTODO, exit_status: 0},
+        {Credo.Check.Design.TagFIXME},
 
+	{Credo.Check.Readability.AliasOrder},
         {Credo.Check.Readability.FunctionNames},
         {Credo.Check.Readability.LargeNumbers},
         # NOTE: bump this to a more modern value
@@ -133,10 +135,6 @@
         # Deprecated checks (these will be deleted after a grace period)
         #
         {Credo.Check.Readability.Specs, false},
-        {Credo.Check.Warning.NameRedeclarationByAssignment, false},
-        {Credo.Check.Warning.NameRedeclarationByCase, false},
-        {Credo.Check.Warning.NameRedeclarationByDef, false},
-        {Credo.Check.Warning.NameRedeclarationByFn, false},
 
         # Custom checks can be created using `mix credo.gen.check`.
         #

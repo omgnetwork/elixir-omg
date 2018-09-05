@@ -23,16 +23,17 @@ defmodule OMG.EthTest do
 
   alias OMG.API.Block
   alias OMG.API.Crypto
+  alias OMG.API.State.Transaction
   alias OMG.API.Utxo
-  require Utxo
   alias OMG.Eth, as: Eth
   alias OMG.Eth.WaitFor, as: WaitFor
-  alias OMG.API.State.Transaction
   alias OMG.Watcher.UtxoDB
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
+
+  require Utxo
 
   @timeout 20_000
 
