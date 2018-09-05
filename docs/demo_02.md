@@ -59,6 +59,7 @@ tx =
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 # use the hex-encoded tx bytes and `submit` JSONRPC method described in README.md for child chain server
+# in the following json use `tx` value in "transaction" field
 
 curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "jsonrpc": "2.0","id":0}'
 
@@ -85,7 +86,7 @@ Poison.decode!()
 
 # 3/ Exiting, challenging invalid exits
 
-exiting_utxopos = OMG.API.Utxo.Position.decode({:utxo_position, exiting_utxo_blknum, 0, 0})
+exiting_utxopos = OMG.API.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
 
 composed_exit =
   "http GET 'localhost:4000/account/utxo/#{exiting_utxopos}/exit'" |>

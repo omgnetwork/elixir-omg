@@ -21,7 +21,6 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
   alias OMG.API.Crypto
   alias OMG.API.Utxo
-  require Utxo
   alias OMG.Watcher.UtxoDB
   alias OMG.Watcher.Web.View
 
@@ -43,7 +42,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
     {utxopos, ""} = Integer.parse(utxopos)
 
     utxopos
-    |> OMG.API.Utxo.Position.decode()
+    |> Utxo.Position.decode()
     |> UtxoDB.compose_utxo_exit()
     |> respond(conn)
   end

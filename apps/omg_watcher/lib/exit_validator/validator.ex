@@ -17,6 +17,9 @@ defmodule OMG.Watcher.ExitValidator.Validator do
   Fragment of imperative shell for ExitValidator. Validates exits.
   """
 
+  alias OMG.API.Utxo
+  require Utxo
+
   @spec challenge_invalid_exits(fun()) :: (fun() -> :ok)
   def challenge_invalid_exits(utxo_exists_callback) do
     fn utxo_exits ->
@@ -33,7 +36,7 @@ defmodule OMG.Watcher.ExitValidator.Validator do
   end
 
   defp exists?(utxo_exit) do
-    {:utxo_position, blknum, txindex, oindex} = OMG.API.Utxo.Position.decode(utxo_exit.utxo_pos)
+    Utxo.position(blknum, txindex, oindex) = Utxo.Position.decode(utxo_exit.utxo_pos)
     OMG.API.State.utxo_exists?(%{blknum: blknum, txindex: txindex, oindex: oindex})
   end
 end
