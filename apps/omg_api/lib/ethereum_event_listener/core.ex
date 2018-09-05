@@ -17,29 +17,27 @@ defmodule OMG.API.EthereumEventListener.Core do
   Functional core of event listener
   """
 
-  defstruct next_event_height_lower_bound: nil,
+  defstruct synced_height_update_key: nil,
+            next_event_height_lower_bound: nil,
             synced_height: nil,
             service_name: nil,
-            block_finality_margin: 10,
-            get_ethereum_events_callback: nil,
-            process_events_callback: nil
+            block_finality_margin: 10
 
   @type event :: any
 
   @type t() :: %__MODULE__{
+          synced_height_update_key: atom(),
           next_event_height_lower_bound: non_neg_integer(),
           synced_height: non_neg_integer(),
           service_name: atom(),
-          block_finality_margin: non_neg_integer(),
-          get_ethereum_events_callback: (non_neg_integer(), non_neg_integer() -> {:ok, [event]}),
-          process_events_callback: ([event] -> :ok)
+          block_finality_margin: non_neg_integer()
         }
 
   @doc """
   Returns next Ethereum height to get events from.
   """
   @spec get_events_height_range_for_next_sync(t(), pos_integer) ::
-          {:get_events, {non_neg_integer(), non_neg_integer()}, t()} | {:dont_get_events, t()}
+          {:get_events, {non_neg_integer(), non_neg_integer()}, t(), list()} | {:dont_get_events, t()}
   def get_events_height_range_for_next_sync(state, next_sync_height)
 
   def get_events_height_range_for_next_sync(%__MODULE__{synced_height: synced_height} = state, next_sync_height)
@@ -49,12 +47,13 @@ defmodule OMG.API.EthereumEventListener.Core do
 
   def get_events_height_range_for_next_sync(
         %__MODULE__{
+          synced_height_update_key: update_key,
           next_event_height_lower_bound: next_event_height_lower_bound,
           block_finality_margin: block_finality_margin
         } = state,
         next_sync_height
       ) do
-    next_event_height_upper_bound = next_sync_height - block_finality_margin
+    next_event_height_upper_bound = max(next_sync_height - block_finality_margin, 0)
 
     new_state = %{
       state
@@ -62,6 +61,8 @@ defmodule OMG.API.EthereumEventListener.Core do
         next_event_height_lower_bound: next_event_height_upper_bound + 1
     }
 
-    {:get_events, {next_event_height_lower_bound, next_event_height_upper_bound}, new_state}
+    db_updates = [{:put, update_key, next_event_height_upper_bound}]
+
+    {:get_events, {next_event_height_lower_bound, next_event_height_upper_bound}, new_state, db_updates}
   end
 end

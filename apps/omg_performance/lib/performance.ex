@@ -25,6 +25,15 @@ defmodule OMG.Performance do
   ## start_extended_perftest runs test with 100 transactions for one specified account and default options.
     > mix run --no-start -e 'OMG.Performance.start_extended_perftest(100, [%{ addr: <<192, 206, 18, ...>>, priv: <<246, 22, 164, ...>>}], "0xbc5f ...")'
 
+  # Note:
+
+  `:fprof` will print a warning:
+  ```
+  Warning: {erlang,trace,3} called in "<0.514.0>" - trace may become corrupt!
+  ```
+  It is caused by using `procs: :all` in options. So far we're not using :erlang.trace/3 in our code,
+  so it has been ignored. Otherwise it's easy to reproduce and report if anyone has the nerve
+  (github.com/erlang/otp and the JIRA it points you to).
   """
 
   use OMG.API.LoggerExt

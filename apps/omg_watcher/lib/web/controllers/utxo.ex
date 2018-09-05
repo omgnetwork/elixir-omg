@@ -21,7 +21,6 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
   alias OMG.API.Crypto
   alias OMG.API.Utxo
-  require Utxo
   alias OMG.Watcher.UtxoDB
   alias OMG.Watcher.Web.View
 
@@ -140,7 +139,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
     summary("Responds with exit for a given utxo")
 
     parameters do
-      utxo_pos(:path, :integer, "The position of the exiting utxo", required: true)
+      utxo_pos(:path, :integer, "Position of the exiting utxo", required: true)
     end
 
     response(200, "OK", Schema.ref(:UtxoExit))

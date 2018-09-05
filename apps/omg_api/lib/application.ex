@@ -21,11 +21,9 @@ defmodule OMG.API.Application do
   use Application
   use OMG.API.LoggerExt
   import Supervisor.Spec
-  alias OMG.API.State
 
   def start(_type, _args) do
-    depositor_config = get_event_listener_config(:depositer)
-    exiter_config = get_event_listener_config(:exiter)
+    block_finality_margin = Application.get_env(:omg_api, :ethereum_event_block_finality_margin)
 
     children = [
       {OMG.API.State, []},
@@ -35,12 +33,30 @@ defmodule OMG.API.Application do
       {OMG.API.RootchainCoordinator, MapSet.new([:depositer, :exiter])},
       worker(
         OMG.API.EthereumEventListener,
-        [depositor_config, &OMG.Eth.get_deposits/2, &State.deposit/1],
-        id: :depositor
+        [
+          %{
+            synced_height_update_key: :last_depositer_block_height,
+            service_name: :depositer,
+            block_finality_margin: block_finality_margin,
+            get_events_callback: &OMG.Eth.get_deposits/2,
+            process_events_callback: &OMG.API.State.deposit/1,
+            get_last_synced_height_callback: &OMG.Eth.get_root_deployment_height/0
+          }
+        ],
+        id: :depositer
       ),
       worker(
         OMG.API.EthereumEventListener,
-        [exiter_config, &OMG.Eth.get_exits/2, &State.exit_utxos/1],
+        [
+          %{
+            synced_height_update_key: :last_exiter_block_height,
+            service_name: :exiter,
+            block_finality_margin: block_finality_margin,
+            get_events_callback: &OMG.Eth.get_exits/2,
+            process_events_callback: &OMG.API.State.exit_utxos/1,
+            get_last_synced_height_callback: &OMG.Eth.get_root_deployment_height/0
+          }
+        ],
         id: :exiter
       )
     ]
@@ -48,14 +64,5 @@ defmodule OMG.API.Application do
     _ = Logger.info(fn -> "Started application OMG.API.Application" end)
     opts = [strategy: :one_for_one]
     Supervisor.start_link(children, opts)
-  end
-
-  defp get_event_listener_config(service_name) do
-    %{
-      block_finality_margin: Application.get_env(:omg_api, :ethereum_event_block_finality_margin),
-      max_blocks_in_fetch: Application.get_env(:omg_api, :ethereum_event_max_block_range_in_deposits_query),
-      get_events_interval: Application.get_env(:omg_api, :ethereum_event_get_deposits_interval_ms),
-      service_name: service_name
-    }
   end
 end

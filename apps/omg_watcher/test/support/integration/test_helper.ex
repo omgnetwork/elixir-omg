@@ -26,7 +26,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   import OMG.Watcher.TestHelper
 
   def get_exit_data(blknum, txindex, oindex) do
-    utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
+    utxo_pos = Utxo.Position.encode({:utxo_position, blknum, txindex, oindex})
 
     %{"result" => "success", "data" => decoded_data} = rest_call(:get, "utxo/#{utxo_pos}/exit_data")
 

@@ -21,20 +21,13 @@ defmodule OMG.Watcher.Web.View.Transaction do
 
   alias OMG.Watcher.Web.Serializer
 
+  @keys_to_encode [:txid, :cur12, :newowner1, :newowner2, :sig1, :sig2, :spender1, :spender2]
+
   def render("transaction.json", %{transaction: transaction}) do
     transaction
     |> Map.delete(:__meta__)
     |> Map.from_struct()
-    |> Serializer.Response.encode16([
-      :txid,
-      :cur12,
-      :newowner1,
-      :newowner2,
-      :sig1,
-      :sig2,
-      :spender1,
-      :spender2
-    ])
+    |> Serializer.Response.encode16(@keys_to_encode)
     |> Serializer.Response.serialize(:success)
   end
 end

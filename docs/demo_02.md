@@ -59,6 +59,7 @@ tx =
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 # use the hex-encoded tx bytes and `submit` JSONRPC method described in README.md for child chain server
+# in the following json use `tx` value in "transaction" field
 
 curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "jsonrpc": "2.0","id":0}'
 
@@ -69,25 +70,26 @@ curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "js
 
 # 2/ Using the Watcher
 
-# re-prepare everything for the invalid exit demo until sending of tx1
-
+# grab the first transaction hash as returned by the Child chain server's API (response to `curl`'s request)
 tx1_hash =
 
-"http GET 'localhost:4000/transactions/#{tx1_hash}'" |>
+"http GET 'localhost:4000/transaction/#{tx1_hash}'" |>
 to_charlist() |>
 :os.cmd() |>
 Poison.decode!()
 
 %{"utxos" => [%{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
-  "http GET 'localhost:4000/account/utxo?address=#{bob_enc}'" |>
+  "http GET 'localhost:4000/utxos?address=#{bob_enc}'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
 
 # 3/ Exiting, challenging invalid exits
 
+exiting_utxopos = OMG.API.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
+
 composed_exit =
-  "http GET 'localhost:4000/account/utxo/compose_exit?blknum=#{exiting_utxo_blknum}&txindex=0&oindex=0'" |>
+  "http GET 'localhost:4000/utxo/#{exiting_utxopos}/exit_data'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
@@ -112,7 +114,7 @@ tx2 =
 Eth.WaitFor.eth_receipt(txhash)
 
 challenge =
-  "http GET 'localhost:4000/challenges?blknum=#{exiting_utxo_blknum}&txindex=0&oindex=0'" |>
+  "http GET 'localhost:4000/utxo/#{exiting_utxo_blknum}/challenge_data'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
@@ -159,7 +161,7 @@ r(OMG.API.State.Core)
 
 # grab a utxo that bob can spend
 %{"utxos" => [%{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]} =
-  "http GET 'localhost:4000/account/utxo?address=#{bob_enc}'" |>
+  "http GET 'localhost:4000/utxos?address=#{bob_enc}'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()

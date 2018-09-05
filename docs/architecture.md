@@ -46,6 +46,7 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 
 Actually `OMG.API.EthereumEventListener` setup with `:exiter`.
 
+- used only in child chain
 - pushes exits to `OMG.API.State` on child chain server's side
 - tracks exits via `OMG.API.RootchainCoordinator`
 
@@ -72,13 +73,21 @@ Actually `OMG.API.EthereumEventListener` setup with `:depositor`.
 - pushes statefully valid blocks and transactions (acknowledged by `OMG.API.State` above) to `WatcherDB`
 - emits block, transaction, consensus events to `OMG.Watcher.Eventer`
 
-### `OMG.Watcher.ExitValidator` (fast)
+### :fast_validator
 
-TODO - possible requires sorting out of this vs `:exiter`
+Actually `OMG.API.EthereumEventListener` setup with `:fast_validator`.
 
-### `OMG.Watcher.ExitValidator` (slow)
+- used only in Watcher
+- validates exits
+- challenges invalid exits
 
-TODO
+### :slow_validator
+
+Actually `OMG.API.EthereumEventListener` setup with `:slow_validator`.
+
+- used only in Watcher
+- feeds `OMG.API.State` with valid exits and challenges invalid exits (caused by root chain reorgs)
+- lags :fast_validator for a configured number of root chain blocks
 
 ### `Phoenix app` (not a module - section name TODO)
 
