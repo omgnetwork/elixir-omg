@@ -45,4 +45,4 @@ env/
 .elixir_ls
 
 
-/omg_watcher/priv/static/swagger.json
+apps/omg_watcher/priv/static/swagger.json
