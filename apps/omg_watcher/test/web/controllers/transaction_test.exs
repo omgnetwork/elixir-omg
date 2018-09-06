@@ -100,7 +100,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "description" => "Transaction doesn't exist for provided search criteria"
                },
                "result" => "error"
-             } == TestHelper.rest_call(:get, "/transaction/#{txid}")
+             } == TestHelper.rest_call(:get, "/transaction/#{txid}", nil, 404)
     end
   end
 end

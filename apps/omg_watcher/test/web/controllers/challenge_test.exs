@@ -62,7 +62,7 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
           "description" => "The challenge of particular exit is invalid because provided utxo is not spent"
         },
         "result" => "error"
-      } = TestHelper.rest_call(:get, "utxo/#{utxo_pos}/challenge_data")
+      } = TestHelper.rest_call(:get, "utxo/#{utxo_pos}/challenge_data", nil, 400)
     end
   end
 end

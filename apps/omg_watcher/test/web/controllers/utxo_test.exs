@@ -227,7 +227,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
                "description" => "no_tx_for_given_blknum"
              },
              "result" => "error"
-           } = TestHelper.rest_call(:get, "/utxo/#{utxo_pos}/exit_data")
+           } = TestHelper.rest_call(:get, "/utxo/#{utxo_pos}/exit_data", nil, 500)
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -249,7 +249,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
                "description" => "no_tx_for_given_blknum"
              },
              "result" => "error"
-           } = TestHelper.rest_call(:get, "/utxo/#{utxo_pos}/exit_data")
+           } = TestHelper.rest_call(:get, "/utxo/#{utxo_pos}/exit_data", nil, 500)
   end
 
   defp get_utxo(address) do
