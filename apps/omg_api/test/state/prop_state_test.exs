@@ -40,7 +40,7 @@ defmodule OMG.API.State.PropTest do
   use ExUnit.Case
   use OMG.API.LoggerExt
   # commands import to test
-  use OMG.API.State.PropTest.{FormBlock, Deposits, Transaction, ExitUtxos, EveryoneExit}
+  use OMG.API.State.PropTest.{FormBlock, Deposits, Transaction, ExitUtxos, EveryoneExit, DoubleSpendTransaction}
 
   alias OMG.API.State.Core
   alias OMG.API.State.PropTest.Helper
@@ -61,8 +61,15 @@ defmodule OMG.API.State.PropTest do
   end
 
   def weight(%{model: %{history: history}}) do
+    {unspent, spent} = Helper.get_utxos(history)
+
     utxos_ethereum =
-      Helper.spendable(history)
+      unspent
+      |> Map.to_list()
+      |> Enum.count(&match?({_, %{currency: :ethereum}}, &1))
+
+    spent_utxo_ethereum =
+      spent
       |> Map.to_list()
       |> Enum.count(&match?({_, %{currency: :ethereum}}, &1))
 
@@ -75,6 +82,13 @@ defmodule OMG.API.State.PropTest do
           transaction: min(div(utxos_ethereum, 2), 20) * 10_00 + 1,
           exit_utxos: max(div(utxos_ethereum, 10), 1) * 1_000,
           everyone_exit: max(div(utxos_ethereum, 10), 1) * 1_00
+        ]
+      else
+        []
+      end ++
+      if spent_utxo_ethereum > 4 do
+        [
+          double_spend_transaction: max(div(spent_utxo_ethereum, 10), 1) * 1_00
         ]
       else
         []

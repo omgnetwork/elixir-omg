@@ -17,6 +17,8 @@ defmodule OMG.API.State.PropTest.Helper do
   Helpers for in propCheck test
   """
   alias OMG.API.State.Transaction
+  use OMG.API.LoggerExt
+  alias OMG.API.LoggerExt
 
   def format_transaction(%Transaction.Recovered{
         signed_tx: %Transaction.Signed{
@@ -74,12 +76,12 @@ defmodule OMG.API.State.PropTest.Helper do
 
   def currency, do: %{ethereum: <<0::160>>, other: <<1::160>>}
 
-  def spendable(history) do
+  def get_utxos(history) do
     history = Enum.reverse(history)
-    spendable(history, %{}, {1_000, 0})
+    get_utxos(history, {%{}, %{}}, {1_000, 0})
   end
 
-  defp spendable([{:deposits, deposits} | history], unspent, position) do
+  defp get_utxos([{:deposits, deposits} | history], {unspent, spent}, position) do
     new_unspent =
       deposits
       |> Enum.map(fn {amount, currency, owner, blknum} ->
@@ -88,19 +90,24 @@ defmodule OMG.API.State.PropTest.Helper do
       |> Map.new()
       |> Map.merge(unspent)
 
-    spendable(history, new_unspent, position)
+    get_utxos(history, {new_unspent, spent}, position)
   end
 
-  defp spendable([{:form_block, _} | history], unspent, {blknum, _tx_index}),
-    do: spendable(history, unspent, {blknum + 1_000, 0})
+  defp get_utxos([{:form_block, _} | history], utxos, {blknum, _tx_index}),
+    do: get_utxos(history, utxos, {blknum + 1_000, 0})
 
-  defp spendable([{:exit, utxo} | history], unspent, {blknum, tx_index}),
-    do: spendable(history, Map.drop(unspent, utxo), {blknum, tx_index})
+  defp get_utxos([{:exit, utxo} | history], {unspent, spent}, {blknum, tx_index}),
+    do:
+      get_utxos(
+        history,
+        {Map.drop(unspent, utxo), Enum.reduce(utxo, spent, &Map.put_new(&2, &1, Map.get(unspent, &1)))},
+        {blknum, tx_index}
+      )
 
-  defp spendable([{:everyone_exit, _} | history], _, {blknum, tx_index}),
-    do: spendable(history, %{}, {blknum, tx_index})
+  defp get_utxos([{:everyone_exit, _} | history], {unspent, spent}, {blknum, tx_index}),
+    do: get_utxos(history, {%{}, Map.merge(unspent, spent)}, {blknum, tx_index})
 
-  defp spendable([{:transaction, {inputs, currency, output}} | history], unspent, {blknum, tx_index}) do
+  defp get_utxos([{:transaction, {inputs, currency, output}} | history], {unspent, spent}, {blknum, tx_index}) do
     keys_to_remove = inputs |> Enum.map(&elem(&1, 0))
 
     new_utxo =
@@ -111,13 +118,12 @@ defmodule OMG.API.State.PropTest.Helper do
       end)
       |> Map.new()
 
-    unspent = Map.drop(unspent, keys_to_remove)
-    unspent = Map.merge(unspent, new_utxo)
-
-    spendable(history, unspent, {blknum, tx_index + 1})
+    {spent_in_transaction, unspent} = Map.split(unspent, keys_to_remove)
+    get_utxos(history, {Map.merge(unspent, new_utxo), Map.merge(spent, spent_in_transaction)}, {blknum, tx_index + 1})
   end
 
-  defp spendable([], unspent, {_blknum, _tx_index}) do
-    unspent
-  end
+  defp get_utxos([_ | history], utxos, position), do: get_utxos(history, utxos, position)
+  defp get_utxos([], utxos, {_blknum, _tx_index}), do: utxos
+
+  def spendable(history), do: elem(get_utxos(history), 0)
 end
