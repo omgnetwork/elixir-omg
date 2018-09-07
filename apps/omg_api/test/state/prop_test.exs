@@ -40,13 +40,25 @@ defmodule OMG.API.State.PropTest do
   use ExUnit.Case
   use OMG.API.LoggerExt
   # commands import to test
-  use OMG.API.State.PropTest.{FormBlock, Deposits, Transaction, ExitUtxos, EveryoneExit, DoubleSpendTransaction}
+  # use OMG.API.State.PropTest.Deposits
 
+  use OMG.API.State.PropTest.{
+    Deposits,
+    DifferentSpenderTransaction,
+    DoubleSpendTransaction,
+    EveryoneExit,
+    ExitUtxos,
+    FormBlock,
+    Transaction
+  }
+
+  alias OMG.API.PropTest.Helper
   alias OMG.API.State.Core
-  alias OMG.API.State.PropTest.Helper
 
-  require OMG.API.State.PropTest.Constants
+  require OMG.API.PropTest.Constants
   require OMG.API.BlackBoxMe
+
+  @moduletag :property
 
   OMG.API.BlackBoxMe.create(OMG.API.State.Core, StateCoreGS)
 
@@ -79,23 +91,24 @@ defmodule OMG.API.State.PropTest do
     ] ++
       if utxos_ethereum > 4 do
         [
-          transaction: min(div(utxos_ethereum, 2), 20) * 10_00 + 1,
-          exit_utxos: max(div(utxos_ethereum, 10), 1) * 1_000,
-          everyone_exit: max(div(utxos_ethereum, 10), 1) * 1_00
+          transaction: min(div(utxos_ethereum, 2), 20) * 10_000 + 1,
+          different_spender_transaction: min(div(utxos_ethereum, 2), 20) * 10_000 + 1,
+          exit_utxos: max(div(utxos_ethereum, 10), 1) * 10_000,
+          everyone_exit: max(div(utxos_ethereum, 10), 1) * 1_000
         ]
       else
         []
       end ++
       if spent_utxo_ethereum > 4 do
         [
-          double_spend_transaction: max(div(spent_utxo_ethereum, 10), 1) * 1_00
+          double_spend_transaction: max(div(spent_utxo_ethereum, 10), 1) * 10_00
         ]
       else
         []
       end
   end
 
-  property "OMG.API.State.Core prope check", numtests: 5, max_size: 100, start_size: 10 do
+  property "OMG.API.State.Core prope check", numtests: 5, max_size: 200, start_size: 100 do
     forall cmds <- commands(__MODULE__) do
       trap_exit do
         %{history: history, result: result, state: _state, env: _env} = run_commands(cmds)

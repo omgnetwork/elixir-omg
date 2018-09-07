@@ -16,8 +16,7 @@ defmodule OMG.API.State.PropTest.Transaction do
   @moduledoc """
   Generator for Transaction to State
   """
-  use OMG.API.LoggerExt
-  alias OMG.API.State.PropTest.Helper
+  alias OMG.API.PropTest.Helper
 
   def create({inputs, currency_name, future_owners}) do
     currency_map = Helper.currency()
@@ -57,10 +56,9 @@ defmodule OMG.API.State.PropTest.Transaction do
   defmacro __using__(_opt) do
     quote location: :keep do
       defcommand :transaction do
-        alias OMG.API.LoggerExt
+        alias OMG.API.PropTest.Generators
+        alias OMG.API.PropTest.Helper
         alias OMG.API.State.PropTest
-        alias OMG.API.State.PropTest.Generators
-        alias OMG.API.State.PropTest.Helper
         alias OMG.API.State.Transaction
 
         def impl({inputs, currency_name, future_owners} = tr, fee_map) do

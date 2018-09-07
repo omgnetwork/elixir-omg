@@ -12,20 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.PropTest.Generators do
+defmodule OMG.API.PropTest.Generators do
   @moduledoc """
   generators used in the sense of porpCheck
   """
-  use OMG.API.LoggerExt
-  alias OMG.API.LoggerExt
   import PropCheck.BasicTypes
   require PropCheck
   use PropCheck
-  require OMG.API.State.PropTest.Constants
-  alias OMG.API.State.PropTest.Constants
+  require OMG.API.PropTest.Constants
+  alias OMG.API.PropTest.Constants
 
   def fixed_list(type, [arg | rest]), do: fixed_list([type.(arg) | fixed_list(type, rest)])
-  def fixed_list(type, []), do: []
+  def fixed_list(_type, []), do: []
   def fixed_list(_, 0), do: []
   def fixed_list(type, size), do: fixed_list([type | fixed_list(type, size - 1)])
 

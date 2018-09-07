@@ -19,8 +19,8 @@ defmodule OMG.API.State.PropTest.Deposits do
   defmacro __using__(_opt) do
     quote location: :keep do
       defcommand :deposits do
-        alias OMG.API.State.PropTest.Generators
-        alias OMG.API.State.PropTest.Helper
+        alias OMG.API.PropTest.Generators
+        alias OMG.API.PropTest.Helper
 
         def impl(deposits), do: StateCoreGS.deposit(deposits)
 

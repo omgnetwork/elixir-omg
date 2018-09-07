@@ -20,8 +20,7 @@ defmodule OMG.API.State.PropTest.FormBlock do
     quote location: :keep do
       defcommand :form_block do
         alias OMG.API.Block
-        alias OMG.API.LoggerExt
-        alias OMG.API.State.PropTest.Helper
+        alias OMG.API.PropTest.Helper
         alias OMG.API.State.Transaction
 
         def impl, do: StateCoreGS.form_block(1_000)

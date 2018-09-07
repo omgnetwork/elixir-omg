@@ -19,10 +19,9 @@ defmodule OMG.API.State.PropTest.DoubleSpendTransaction do
   defmacro __using__(_opt) do
     quote location: :keep do
       defcommand :double_spend_transaction do
-        alias OMG.API.LoggerExt
+        alias OMG.API.PropTest.Generators
+        alias OMG.API.PropTest.Helper
         alias OMG.API.State.PropTest
-        alias OMG.API.State.PropTest.Generators
-        alias OMG.API.State.PropTest.Helper
         alias OMG.API.State.Transaction
 
         def impl({inputs, currency_name, ouputs} = tr, fee_map) do

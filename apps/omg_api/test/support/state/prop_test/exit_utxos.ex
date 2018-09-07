@@ -21,9 +21,8 @@ defmodule OMG.API.State.PropTest.ExitUtxos do
   defmacro __using__(_opt) do
     quote do
       defcommand :exit_utxos do
-        alias OMG.API.LoggerExt
-        alias OMG.API.State.PropTest.Generators
-        alias OMG.API.State.PropTest.Helper
+        alias OMG.API.PropTest.Generators
+        alias OMG.API.PropTest.Helper
         alias OMG.API.Utxo
         require Utxo
 

@@ -16,13 +16,12 @@ defmodule OMG.API.State.PropTest.EveryoneExit do
   @moduledoc """
   Generator for Exit utxo to State for everyone
   """
-  require Logger
 
   defmacro __using__(_opt) do
     quote location: :keep do
       defcommand :everyone_exit do
-        alias OMG.API.State.PropTest.Generators
-        alias OMG.API.State.PropTest.Helper
+        alias OMG.API.PropTest.Generators
+        alias OMG.API.PropTest.Helper
         alias OMG.API.State.Transaction
         alias OMG.API.Utxo
         alias OMG.API.Utxo.Position

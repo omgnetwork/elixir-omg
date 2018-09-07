@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.PropTest.Helper do
+defmodule OMG.API.PropTest.Helper do
   @moduledoc """
   Helpers for in propCheck test
   """
   alias OMG.API.State.Transaction
-  use OMG.API.LoggerExt
-  alias OMG.API.LoggerExt
 
   def format_transaction(%Transaction.Recovered{
         signed_tx: %Transaction.Signed{

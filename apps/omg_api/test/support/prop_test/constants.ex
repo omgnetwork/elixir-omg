@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.PropTest.Constants do
+defmodule OMG.API.PropTest.Constants do
   @moduledoc false
   defmacro ethereum, do: <<0::160>>
   defmacro other_currency, do: <<1::160>>

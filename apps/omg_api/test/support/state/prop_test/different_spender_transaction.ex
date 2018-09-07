@@ -12,19 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.PropTest.DifferentSpendTransaction do
+defmodule OMG.API.State.PropTest.DifferentSpenderTransaction do
   @moduledoc """
   generate wrong transaction with wrong input or output
   """
   defmacro __using__(_opt) do
     quote location: :keep do
       defcommand :different_spender_transaction do
-        alias OMG.API.LoggerExt
+        alias OMG.API.PropTest.Generators
+        alias OMG.API.PropTest.Helper
         alias OMG.API.State.PropTest
-        alias OMG.API.State.PropTest.Generators
-        alias OMG.API.State.PropTest.Helper
         alias OMG.API.State.Transaction
-        alias OMG.API.LoggerExt
 
         def impl({inputs, currency_name, ouputs} = tr, fee_map) do
           StateCoreGS.exec(PropTest.Transaction.create(tr), PropTest.Transaction.create_fee_map(fee_map))
