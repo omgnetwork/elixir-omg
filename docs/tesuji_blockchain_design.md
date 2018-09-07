@@ -119,6 +119,11 @@ exitable_at = max(exit_request_block.timestamp + MFP, youngest_input_block.times
 ```
 for in-flight exits, see [MoreVP protocol](morevp.md) for details.
 
+Deposits are protected against malicious operator by elevating their exit priority:
+```
+SFT = max(exit_request_block.timestamp + MFP, utxo_submission_block.timestamp + MFP)
+```
+
 In the above formulae:
 - `exit_request_block` - root chain block, where the exit request is mined
 - `utxo_submission_block` - root chain block, where the exiting UTXO was created in a child chain block
