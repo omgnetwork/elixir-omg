@@ -178,7 +178,7 @@ However, if the order of these transactions gets reversed due to a reorg, the sp
 We'll protect ourselves against reorgs by:
 1. Only allowing deposits to be used on the child chain after N Ethereum Block confirmations (should be configurable).
 This rule will be built into the child chain itself, i.e. the root chain contract won't enforce this in any way.
-2. Submitting blocks to the root chain contract with their number so that they'll fail if a miner submits them in the wrong order.
+2. Submitting blocks to the root chain contract with is protected by account nonce mechanism and attemt of mining them in wrong order by miner would be a consensus mechanism breach.
 3. Differentiating deposits from child chain block root submissions so that both can be exited to Ethereum using the same priority queue exit mechanism.
 
 ## Child chain server
