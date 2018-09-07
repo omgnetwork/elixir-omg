@@ -14,6 +14,6 @@ import_config "../apps/*/config/config.exs"
 config :logger, :console,
   level: :info,
   format: "$date $time [$level] $metadata⋅$message⋅\n",
-  metadata: [:module, :function]
+  metadata: [:module, :function, :request_id]
 
 import_config "#{Mix.env()}.exs"
