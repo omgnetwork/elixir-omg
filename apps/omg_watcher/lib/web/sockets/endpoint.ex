@@ -29,7 +29,8 @@ defmodule OMG.Watcher.Web.Endpoint do
     plug(Phoenix.CodeReloader)
   end
 
-  plug(Plug.Logger)
+  plug(Plug.RequestId)
+  plug(Plug.Logger, log: :debug)
 
   plug(
     Plug.Parsers,

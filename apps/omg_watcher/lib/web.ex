@@ -33,7 +33,7 @@ defmodule OMG.Watcher.Web do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: OMG.Watcher.Web
+      use Phoenix.Controller, namespace: OMG.Watcher.Web, log: :debug
       import Plug.Conn
       import OMG.Watcher.Web.Router.Helpers
     end
