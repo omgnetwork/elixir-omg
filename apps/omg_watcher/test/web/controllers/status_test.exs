@@ -46,7 +46,7 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
       assert %{
                "result" => "error",
                "data" => %{"code" => "internal_server_error", "description" => "econnrefused"}
-             } = TestHelper.rest_call(:get, "/status")
+             } = TestHelper.rest_call(:get, "/status", nil, 500)
 
       started_apps |> Enum.each(fn app -> :ok = Application.stop(app) end)
     end

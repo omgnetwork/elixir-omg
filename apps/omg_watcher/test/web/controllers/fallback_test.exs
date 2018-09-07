@@ -29,7 +29,7 @@ defmodule OMG.Watcher.Web.Controller.FallbackTest do
           "description" => "endpoint_not_found"
         },
         "result" => "error"
-      } = TestHelper.rest_call(:get, "/non_exsisting_endpoint")
+      } = TestHelper.rest_call(:get, "/non_exsisting_endpoint", nil, 500)
     end
   end
 end
