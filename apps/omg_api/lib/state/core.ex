@@ -394,13 +394,13 @@ defmodule OMG.API.State.Core do
         %{exit: %{owner: owner, utxo_pos: Utxo.Position.decode(utxo_pos)}}
       end)
 
-    new_utxos_in_state =
-      exiting_utxos
-      |> Enum.reduce(utxos, fn %{utxo_pos: utxo_pos}, utxos ->
-        Map.delete(utxos, Utxo.Position.decode(utxo_pos))
-      end)
-
-    new_state = %{state | utxos: new_utxos_in_state}
+    new_state = %{
+      state
+      | utxos:
+          Enum.reduce(exiting_utxos, utxos, fn %{utxo_pos: utxo_pos}, utxos ->
+            Map.delete(utxos, Utxo.Position.decode(utxo_pos))
+          end)
+    }
 
     deletes =
       exiting_utxos

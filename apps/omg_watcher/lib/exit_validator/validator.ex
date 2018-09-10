@@ -24,7 +24,7 @@ defmodule OMG.Watcher.ExitValidator.Validator do
   def challenge_invalid_exits(utxo_exists_callback) do
     fn utxo_exits ->
       for utxo_exit <- utxo_exits do
-        if exists?(utxo_exit) do
+        if OMG.API.State.utxo_exists?(utxo_exit) do
           utxo_exists_callback.(utxo_exit)
         else
           :challenged = OMG.Watcher.Challenger.challenge(utxo_exit)
@@ -33,9 +33,5 @@ defmodule OMG.Watcher.ExitValidator.Validator do
 
       :ok
     end
-  end
-
-  defp exists?(utxo_exit) do
-    OMG.API.State.utxo_exists?(utxo_exit)
   end
 end
