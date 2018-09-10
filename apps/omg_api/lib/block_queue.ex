@@ -158,6 +158,13 @@ defmodule OMG.API.BlockQueue do
         {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}} ->
           _ = Logger.debug(fn -> "Submission is known, but with higher price - ignored" end)
           :ok
+
+        {:error, %{"code" => -32000, "message" => "authentication needed: password or unlock"}} ->
+          raise """
+                  Unlock the authority account.
+                  1. geth attach http://127.0.0.1:8545
+                  2. personal.unlockAccount(“<authority_addr from config.exs>”, '', 0)
+          """
       end
     end
   end

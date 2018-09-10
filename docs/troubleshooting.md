@@ -16,28 +16,6 @@
 The child chain might have not been wiped clean when starting a child chain from scratch.
 Answer: follow the setting up of developer environment from the beginning.
 
-## Error starting child chain server
-```
-22:44:32.024 [info] Started BlockQueue
-22:44:32.068 [error] GenServer OMG.API.BlockQueue.Server terminating
-** (CaseClauseError) no case clause matching: {:error, %{"code" => -32000, "message" => "authentication needed: password or unlock"}}
-    (omg_api) lib/block_queue.ex:139: OMG.API.BlockQueue.Server.submit/1
-    (elixir) lib/enum.ex:737: Enum."-each/2-lists^foreach/1-0-"/2
-    (elixir) lib/enum.ex:737: Enum.each/2
-    (omg_api) lib/block_queue.ex:101: OMG.API.BlockQueue.Server.handle_info/2
-    (stdlib) gen_server.erl:616: :gen_server.try_dispatch/4
-    (stdlib) gen_server.erl:686: :gen_server.handle_msg/6
-    (stdlib) proc_lib.erl:247: :proc_lib.init_p_do_apply/3
-Last message: :check_mined_child_head
-```
-Answer:
-Unlock the authority account.
-
-```
-geth attach http://127.0.0.1:8545
-personal.unlockAccount(“<authority_addr from config.exs>”, '', 0)
-```
-
 ## Error compiling contracts
 
 ```
