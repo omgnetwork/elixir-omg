@@ -38,32 +38,6 @@ geth attach http://127.0.0.1:8545
 personal.unlockAccount(“<authority_addr from config.exs>”, '', 0)
 ```
 
-## Error Starting child chain server
-```
-** (Mix) Could not start application omg_db: OMG.DB.Application.start(:normal, []) returned an error: shutdown: failed to start child: OMG.DB.LevelDBServer
-    ** (EXIT) an exception was raised:
-        ** (MatchError) no match of right hand side value: {:error, {:db_open, 'IO error: /home/user/.omg/data/LOCK: No such file or directory'}}
-            (omg_db) lib/leveldb_server.ex:36: OMG.DB.LevelDBServer.init/1
-            (stdlib) gen_server.erl:365: :gen_server.init_it/2
-            (stdlib) gen_server.erl:333: :gen_server.init_it/6
-            (stdlib) proc_lib.erl:247: :proc_lib.init_p_do_apply/3
-```
-
-or
-
-```
-** (Mix) Could not start application omg_api: OMG.API.Application.start(:normal, []) returned an error: shutdown: failed to start child: OMG.API.State
-    ** (EXIT) an exception was raised:
-        ** (FunctionClauseError) no function clause matching in OMG.API.State.Core.extract_initial_state/4
-            (omg_api) lib/state/core.ex:89: OMG.API.State.Core.extract_initial_state([], :not_found, :not_found, 1000)
-            (stdlib) gen_server.erl:365: :gen_server.init_it/2
-            (stdlib) gen_server.erl:333: :gen_server.init_it/6
-            (stdlib) proc_lib.erl:247: :proc_lib.init_p_do_apply/3
-
-```
-Answer:
-Child chain database not initialized yet
-
 ## Error compiling contracts
 
 ```
