@@ -241,21 +241,21 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_deposit(log) do
+    non_indexed_keys = [:currency, :amount]
+    non_indexed_key_types = [:address, {:uint, 256}]
     indexed_keys = [:owner, :blknum]
     indexed_keys_types = [:address, {:uint, 256}]
-    non_indexed_signature = "Deposit(address,uint256)"
-    non_indexed_keys = [:currency, :amount]
 
-    parse_event(log, {non_indexed_signature, non_indexed_keys, {indexed_keys, indexed_keys_types}})
+    parse_events_with_indexed_fields(log, {non_indexed_keys, non_indexed_key_types}, {indexed_keys, indexed_keys_types})
   end
 
   defp decode_exit(log) do
+    non_indexed_keys = [:currency, :amount]
+    non_indexed_key_types = [:address, {:uint, 256}]
     indexed_keys = [:owner, :utxo_pos]
     indexed_keys_types = [:address, {:uint, 256}]
-    non_indexed_signature = "ExitStarted(address,uint256)"
-    non_indexed_keys = [:currency, :amount]
 
-    parse_event(log, {non_indexed_signature, non_indexed_keys, {indexed_keys, indexed_keys_types}})
+    parse_events_with_indexed_fields(log, {non_indexed_keys, non_indexed_key_types}, {indexed_keys, indexed_keys_types})
   end
 
   @spec filter_receipt_events([%{topics: [binary], data: binary()}], binary, (map() -> map())) :: [map()]
@@ -311,14 +311,15 @@ defmodule OMG.Eth.RootChain do
     |> Map.new()
   end
 
-  defp parse_event(
+  defp parse_events_with_indexed_fields(
          %{"data" => "0x" <> data, "topics" => [_event_sig | indexed_data]},
-         {non_indexed_signature, non_indexed_keys, {indexed_keys, indexed_keys_types}}
+         {non_indexed_keys, non_indexed_key_types},
+         {indexed_keys, indexed_keys_types}
        ) do
     decoded_non_indexed_fields =
       data
       |> Base.decode16!(case: :lower)
-      |> ABI.TypeDecoder.decode(ABI.FunctionSelector.decode(non_indexed_signature))
+      |> ABI.TypeDecoder.decode_raw(non_indexed_key_types)
 
     non_indexed_fields =
       Enum.zip(non_indexed_keys, decoded_non_indexed_fields)
