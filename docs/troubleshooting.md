@@ -2,26 +2,6 @@
 
 **TODO** - remove these hints and return meaningful error messages instead, wherever possible
 
-## Configuring the omg_eth app fails with error
-```
-** (MatchError) no match of right hand side value: {:error, :econnrefused}
-    lib/eth/dev_helpers.ex:44: OMG.Eth.DevHelpers.create_and_fund_authority_addr/0
-    lib/eth/dev_helpers.ex:11: OMG.Eth.DevHelpers.prepare_env!/1
-    (stdlib) erl_eval.erl:670: :erl_eval.do_apply/6
-    (stdlib) erl_eval.erl:878: :erl_eval.expr_list/6
-    (stdlib) erl_eval.erl:404: :erl_eval.expr/5
-    (elixir) lib/code.ex:192: Code.eval_string/3
-    (elixir) lib/enum.ex:737: Enum."-each/2-lists^foreach/1-0-"/2
-    (elixir) lib/enum.ex:737: Enum.each/2
-    (mix) lib/mix/tasks/run.ex:132: Mix.Tasks.Run.run/5
-    (mix) lib/mix/tasks/run.ex:76: Mix.Tasks.Run.run/1
-    (mix) lib/mix/task.ex:314: Mix.Task.run_task/3
-    (mix) lib/mix/cli.ex:80: Mix.CLI.run_task/2
-    (elixir) lib/code.ex:677: Code.require_file/2
-```
-
-Answer: Ensure that an Ethereum instance is running: `geth ...``
-
 ## Error starting child chain server
 ```
 ** (Mix) Could not start application omg_api: OMG.API.Application.start(:normal, []) returned an error: shutdown: failed to start child: OMG.API.BlockQueue.Server

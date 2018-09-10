@@ -36,10 +36,13 @@ defmodule OMG.Eth.DevHelpers do
    - `root_path` should point to `elixir-omg` root or wherever where `./contracts/build` holds the compiled contracts
   """
   def prepare_env!(root_path \\ "./") do
-    {:ok, _} = Application.ensure_all_started(:ethereumex)
-    {:ok, authority} = create_and_fund_authority_addr()
-    {:ok, txhash, contract_addr} = Eth.RootChain.create_new(root_path, authority)
-    %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
+    with {:ok, _} <- Application.ensure_all_started(:ethereumex),
+         {:ok, authority} <- create_and_fund_authority_addr(),
+         {:ok, txhash, contract_addr} <- Eth.RootChain.create_new(root_path, authority) do
+      %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
+    else
+      {:error, :econnrefused} -> raise "Ensure that an Ethereum instance is running: `geth ...``"
+    end
   end
 
   def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
@@ -53,10 +56,10 @@ defmodule OMG.Eth.DevHelpers do
   end
 
   def create_and_fund_authority_addr do
-    {:ok, authority} = Ethereumex.HttpClient.personal_new_account("")
-    {:ok, _} = unlock_fund(authority)
-
-    {:ok, authority}
+    with {:ok, authority} <- Ethereumex.HttpClient.personal_new_account(""),
+         {:ok, _} <- unlock_fund(authority) do
+      {:ok, authority}
+    end
   end
 
   @doc """
