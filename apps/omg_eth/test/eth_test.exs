@@ -119,7 +119,13 @@ defmodule OMG.EthTest do
     block = Block.hashed_txs_at([recovered_tx], 1000)
 
     {:ok, txhash} =
-      Eth.RootChain.submit_block(block.hash, 1, 20_000_000_000, contract.authority_addr, contract.contract_addr)
+      Eth.RootChain.submit_block(
+        block.hash,
+        1,
+        20_000_000_000,
+        contract.authority_addr,
+        contract.contract_addr
+      )
 
     {:ok, _} = WaitFor.eth_receipt(txhash, @timeout)
 
@@ -138,7 +144,7 @@ defmodule OMG.EthTest do
 
     utxo_pos = Utxo.position(1000, 0, 0) |> Utxo.Position.encode()
 
-    assert {:ok, [%{amount: 8, owner: bob.addr, utxo_pos: utxo_pos, token: @eth}]} ==
+    assert {:ok, [%{amount: 8, owner: bob.addr, utxo_pos: utxo_pos, currency: @eth}]} ==
              Eth.RootChain.get_exits(1, height, contract.contract_addr)
   end
 
@@ -188,8 +194,15 @@ defmodule OMG.EthTest do
     utxo_pos = Utxo.position(1, 0, 0) |> Utxo.Position.encode()
 
     assert(
-      {:ok, [%{owner: Crypto.decode_address!(contract.authority_addr), utxo_pos: utxo_pos, token: @eth, amount: 1}]} ==
-        Eth.RootChain.get_exits(1, height, contract.contract_addr)
+      {:ok,
+       [
+         %{
+           owner: Crypto.decode_address!(contract.authority_addr),
+           utxo_pos: utxo_pos,
+           currency: @eth,
+           amount: 1
+         }
+       ]} == Eth.RootChain.get_exits(1, height, contract.contract_addr)
     )
   end
 

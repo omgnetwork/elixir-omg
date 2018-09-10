@@ -132,10 +132,9 @@ defmodule OMG.Eth.RootChain do
   def get_deposits(block_from, block_to, contract \\ nil) do
     contract = contract || Application.get_env(:omg_eth, :contract_addr)
     signature = "Deposit(address,uint256,address,uint256)"
-    keys = [:owner, :blknum, :currency, :amount]
 
     with {:ok, logs} <- get_ethereum_events(block_from, block_to, signature, contract),
-         deposits <- logs |> Enum.map(&parse_event(&1, {signature, keys})),
+         deposits <- Enum.map(logs, &decode_deposit/1),
          do: {:ok, Enum.sort(deposits, &(&1.blknum > &2.blknum))}
   end
 
@@ -172,10 +171,9 @@ defmodule OMG.Eth.RootChain do
   def get_exits(block_from, block_to, contract \\ nil) do
     contract = contract || Application.get_env(:omg_eth, :contract_addr)
     signature = "ExitStarted(address,uint256,address,uint256)"
-    keys = [:owner, :utxo_pos, :token, :amount]
 
     with {:ok, logs} <- get_ethereum_events(block_from, block_to, signature, contract),
-         exits <- logs |> Enum.map(&parse_event(&1, {signature, keys})),
+         exits <- Enum.map(logs, &decode_exit/1),
          do: {:ok, Enum.sort(exits, &(&1.block_height > &2.block_height))}
   end
 
@@ -235,25 +233,38 @@ defmodule OMG.Eth.RootChain do
     end
   end
 
-  def deposit_blknum_from_receipt(receipt) do
-    [{_, deposit_blknum, _, _}] = filter_receipt_events(receipt["logs"], "Deposit(address,uint256,address,uint256)")
+  def deposit_blknum_from_receipt(%{"logs" => logs}) do
+    topic =
+      "Deposit(address,uint256,address,uint256)"
+      |> OMG.API.Crypto.hash()
+      |> Base.encode16(case: :lower)
+
+    topic = "0x" <> topic
+
+    [%{blknum: deposit_blknum}] =
+      logs
+      |> Enum.filter(&(topic in &1["topics"]))
+      |> Enum.map(&decode_deposit/1)
+
     deposit_blknum
   end
 
-  @spec filter_receipt_events([%{topics: [binary], data: binary()}], binary) :: [tuple]
-  def filter_receipt_events(receipt_logs, signature) do
-    topic = signature |> OMG.API.Crypto.hash() |> Base.encode16(case: :lower)
-    topic = "0x" <> topic
+  defp decode_deposit(log) do
+    non_indexed_keys = [:currency, :amount]
+    non_indexed_key_types = [:address, {:uint, 256}]
+    indexed_keys = [:owner, :blknum]
+    indexed_keys_types = [:address, {:uint, 256}]
 
-    decode = fn %{"data" => "0x" <> data} ->
-      signature
-      |> ABI.decode(Base.decode16!(data, case: :lower))
-      |> List.to_tuple()
-    end
+    parse_events_with_indexed_fields(log, {non_indexed_keys, non_indexed_key_types}, {indexed_keys, indexed_keys_types})
+  end
 
-    receipt_logs
-    |> Enum.filter(&(topic in &1["topics"]))
-    |> Enum.map(decode)
+  defp decode_exit(log) do
+    non_indexed_keys = [:currency, :amount]
+    non_indexed_key_types = [:address, {:uint, 256}]
+    indexed_keys = [:owner, :utxo_pos]
+    indexed_keys_types = [:address, {:uint, 256}]
+
+    parse_events_with_indexed_fields(log, {non_indexed_keys, non_indexed_key_types}, {indexed_keys, indexed_keys_types})
   end
 
   ###########
@@ -297,5 +308,36 @@ defmodule OMG.Eth.RootChain do
 
     Enum.zip(keys, decoded_values)
     |> Map.new()
+  end
+
+  defp parse_events_with_indexed_fields(
+         %{"data" => "0x" <> data, "topics" => [_event_sig | indexed_data]},
+         {non_indexed_keys, non_indexed_key_types},
+         {indexed_keys, indexed_keys_types}
+       ) do
+    decoded_non_indexed_fields =
+      data
+      |> Base.decode16!(case: :lower)
+      |> ABI.TypeDecoder.decode_raw(non_indexed_key_types)
+
+    non_indexed_fields =
+      Enum.zip(non_indexed_keys, decoded_non_indexed_fields)
+      |> Map.new()
+
+    decoded_indexed_fields =
+      for {"0x" <> encoded, type_sig} <- Enum.zip(indexed_data, indexed_keys_types) do
+        [decoded] =
+          encoded
+          |> Base.decode16!(case: :lower)
+          |> ABI.TypeDecoder.decode_raw([type_sig])
+
+        decoded
+      end
+
+    indexed_fields =
+      Enum.zip(indexed_keys, decoded_indexed_fields)
+      |> Map.new()
+
+    Map.merge(non_indexed_fields, indexed_fields)
   end
 end
