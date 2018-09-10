@@ -397,4 +397,25 @@ defmodule OMG.Watcher.BlockGetter.Core do
   defp zero_fee_for(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}}, fee_map) do
     Map.put(fee_map, cur12, 0)
   end
+
+  @doc """
+  Given a persited `synced_height` and actual child block number State reports to figure out the exact
+  eth height, which we should begin with, based on a list of block submission event logs.
+
+  This is a workaround for the case where a child block is processed and block number advanced, and eth height isn't.
+  This can be the case when the getter crashes after consuming a child block but before it's recognized as synced.
+
+  In case `submissions` doesn't hold the submission of the `child_top_block_number`, it returns the otherwise
+  persisted `synced_height`
+  """
+  @spec figure_out_exact_sync_height([%{blknum: pos_integer, eth_height: pos_integer}], pos_integer, pos_integer) ::
+          pos_integer
+  def figure_out_exact_sync_height(submissions, synced_height, child_top_block_number) do
+    submissions
+    |> Enum.find(fn %{blknum: blknum} -> blknum == child_top_block_number end)
+    |> case do
+      nil -> synced_height
+      %{eth_height: exact_height} -> exact_height
+    end
+  end
 end
