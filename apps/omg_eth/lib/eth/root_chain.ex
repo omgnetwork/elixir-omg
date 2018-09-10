@@ -233,9 +233,18 @@ defmodule OMG.Eth.RootChain do
     end
   end
 
-  def deposit_blknum_from_receipt(receipt) do
+  def deposit_blknum_from_receipt(%{"logs" => logs}) do
+    topic =
+      "Deposit(address,uint256,address,uint256)"
+      |> OMG.API.Crypto.hash()
+      |> Base.encode16(case: :lower)
+
+    topic = "0x" <> topic
+
     [%{blknum: deposit_blknum}] =
-      filter_receipt_events(receipt["logs"], "Deposit(address,uint256,address,uint256)", &decode_deposit/1)
+      logs
+      |> Enum.filter(&(topic in &1["topics"]))
+      |> Enum.map(&decode_deposit/1)
 
     deposit_blknum
   end
@@ -256,16 +265,6 @@ defmodule OMG.Eth.RootChain do
     indexed_keys_types = [:address, {:uint, 256}]
 
     parse_events_with_indexed_fields(log, {non_indexed_keys, non_indexed_key_types}, {indexed_keys, indexed_keys_types})
-  end
-
-  @spec filter_receipt_events([%{topics: [binary], data: binary()}], binary, (map() -> map())) :: [map()]
-  def filter_receipt_events(receipt_logs, signature, decode_log) do
-    topic = signature |> OMG.API.Crypto.hash() |> Base.encode16(case: :lower)
-    topic = "0x" <> topic
-
-    receipt_logs
-    |> Enum.filter(&(topic in &1["topics"]))
-    |> Enum.map(decode_log)
   end
 
   ###########
