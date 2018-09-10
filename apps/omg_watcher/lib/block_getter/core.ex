@@ -141,7 +141,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   def get_blocks_to_consume(%__MODULE__{} = state, [], coordinator_height) do
     next_synced_height = max(state.synced_height, coordinator_height)
     state = %{state | synced_height: next_synced_height}
-    db_updates = [{:put, :last_block_getter_synced_height, next_synced_height}]
+    db_updates = [{:put, :last_block_getter_eth_height, next_synced_height}]
     {[], next_synced_height, db_updates, state}
   end
 
@@ -174,7 +174,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     if blocks_to_process == MapSet.new() do
       next_synced_height = max(state.synced_height, coordinator_height)
       state = %{state | synced_height: next_synced_height, block_consume_batch: {:downloading, []}}
-      db_updates = [{:put, :last_block_getter_synced_height, next_synced_height}]
+      db_updates = [{:put, :last_block_getter_eth_height, next_synced_height}]
       {[], next_synced_height, db_updates, state}
     else
       {[], state.synced_height, [], state}

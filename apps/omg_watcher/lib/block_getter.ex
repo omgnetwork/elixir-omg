@@ -80,7 +80,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   def init(_opts) do
     {:ok, deployment_height} = Eth.RootChain.get_root_deployment_height()
-    {:ok, last_synced_height} = OMG.DB.last_block_getter_block_height()
+    {:ok, last_synced_height} = OMG.DB.last_block_getter_eth_height()
     synced_height = max(deployment_height, last_synced_height)
     :ok = RootchainCoordinator.check_in(synced_height, :block_getter)
 

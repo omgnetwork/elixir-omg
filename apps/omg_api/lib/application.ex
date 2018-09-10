@@ -35,7 +35,7 @@ defmodule OMG.API.Application do
         OMG.API.EthereumEventListener,
         [
           %{
-            synced_height_update_key: :last_depositer_block_height,
+            synced_height_update_key: :last_depositer_eth_height,
             service_name: :depositer,
             block_finality_margin: block_finality_margin,
             get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
@@ -49,7 +49,7 @@ defmodule OMG.API.Application do
         OMG.API.EthereumEventListener,
         [
           %{
-            synced_height_update_key: :last_exiter_block_height,
+            synced_height_update_key: :last_exiter_eth_height,
             service_name: :exiter,
             block_finality_margin: block_finality_margin,
             get_events_callback: &OMG.Eth.RootChain.get_exits/2,
