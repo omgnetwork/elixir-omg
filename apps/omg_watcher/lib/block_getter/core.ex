@@ -399,8 +399,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   @doc """
-  Given a persited `synced_height` and actual child block number State reports to figure out the exact
-  eth height, which we should begin with, based on a list of block submission event logs.
+  Given:
+   - a persisted `synced_height` and
+   - the actual child block number from `OMG.API.State`
+  figures out the exact eth height, which we should begin with. Uses a list of block submission event logs,
+  which should contain the `child_top_block_number`'s respective submission.
 
   This is a workaround for the case where a child block is processed and block number advanced, and eth height isn't.
   This can be the case when the getter crashes after consuming a child block but before it's recognized as synced.
