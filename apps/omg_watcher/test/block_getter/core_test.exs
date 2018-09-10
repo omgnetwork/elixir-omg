@@ -380,4 +380,16 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     assert {_state, [1_000, 2_000]} = Core.get_new_blocks_numbers(state, 20_000)
   end
+
+  test "figures out the proper synced height on init" do
+    assert 0 == Core.figure_out_exact_sync_height([], 0, 0)
+    assert 0 == Core.figure_out_exact_sync_height([], 0, 10)
+    assert 1 == Core.figure_out_exact_sync_height([], 1, 10)
+    assert 1 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}], 1, 10)
+    assert 100 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 10}], 1, 10)
+
+    assert 100 ==
+             [%{eth_height: 100, blknum: 10}, %{eth_height: 101, blknum: 11}, %{eth_height: 90, blknum: 9}]
+             |> Core.figure_out_exact_sync_height(1, 10)
+  end
 end
