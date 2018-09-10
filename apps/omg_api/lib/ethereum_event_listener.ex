@@ -42,7 +42,12 @@ defmodule OMG.API.EthereumEventListener do
         process_events_callback: process_events_callback,
         get_last_synced_height_callback: last_event_block_height_callback
       }) do
+    {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
     {:ok, last_event_block_height} = last_event_block_height_callback.()
+
+    # we don't need to ever look at earlier than contract deployment
+    last_event_block_height = max(last_event_block_height, contract_deployment_height)
+
     {:ok, _} = schedule_get_events(Application.get_env(:omg_api, :rootchain_height_sync_interval_ms))
     :ok = RootchainCoordinator.check_in(last_event_block_height, service_name)
 
