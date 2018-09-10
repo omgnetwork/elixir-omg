@@ -36,7 +36,6 @@ defmodule OMG.Watcher.ExitValidator.Validator do
   end
 
   defp exists?(utxo_exit) do
-    Utxo.position(blknum, txindex, oindex) = Utxo.Position.decode(utxo_exit.utxo_pos)
-    OMG.API.State.utxo_exists?(%{blknum: blknum, txindex: txindex, oindex: oindex})
+    OMG.API.State.utxo_exists?(utxo_exit)
   end
 end

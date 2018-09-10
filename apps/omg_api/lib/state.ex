@@ -64,7 +64,7 @@ defmodule OMG.API.State do
     GenServer.call(__MODULE__, {:exit_not_spent_utxo, utxo})
   end
 
-  @spec utxo_exists?(%{blknum: number, txindex: number, oindex: number}) :: boolean()
+  @spec utxo_exists?(Core.exit_t()) :: boolean()
   def utxo_exists?(utxo) do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end

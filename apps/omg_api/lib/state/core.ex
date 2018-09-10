@@ -50,12 +50,10 @@ defmodule OMG.API.State.Core do
           amount: pos_integer()
         }
   @type exit_t() :: %{
-          blknum: non_neg_integer(),
+          utxo_pos: pos_integer(),
           token: Crypto.address_t(),
           owner: Crypto.address_t(),
-          amount: pos_integer(),
-          txindex: non_neg_integer(),
-          oindex: non_neg_integer()
+          amount: pos_integer()
         }
 
   @type utxos() :: %{Utxo.Position.t() => Utxo.t()}
@@ -388,9 +386,7 @@ defmodule OMG.API.State.Core do
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
     exiting_utxos =
       exiting_utxos
-      |> Enum.filter(fn %{utxo_pos: utxo_pos} ->
-        Map.has_key?(utxos, Utxo.Position.decode(utxo_pos))
-      end)
+      |> Enum.filter(&utxo_exists?(&1, state))
 
     event_triggers =
       exiting_utxos
@@ -398,11 +394,13 @@ defmodule OMG.API.State.Core do
         %{exit: %{owner: owner, utxo_pos: Utxo.Position.decode(utxo_pos)}}
       end)
 
-    state =
+    new_utxos_in_state =
       exiting_utxos
-      |> Enum.reduce(state, fn %{utxo_pos: utxo_pos}, state ->
-        %{state | utxos: Map.delete(state.utxos, Utxo.Position.decode(utxo_pos))}
+      |> Enum.reduce(utxos, fn %{utxo_pos: utxo_pos}, utxos ->
+        Map.delete(utxos, Utxo.Position.decode(utxo_pos))
       end)
+
+    new_state = %{state | utxos: new_utxos_in_state}
 
     deletes =
       exiting_utxos
@@ -411,15 +409,15 @@ defmodule OMG.API.State.Core do
         {:delete, :utxo, {blknum, txindex, oindex}}
       end)
 
-    {:ok, {event_triggers, deletes}, state}
+    {:ok, {event_triggers, deletes}, new_state}
   end
 
   @doc """
   Checks if utxo exists
   """
   @spec utxo_exists?(exit_t, t()) :: boolean()
-  def utxo_exists?(%{blknum: blknum, txindex: txindex, oindex: oindex}, %Core{utxos: utxos}) do
-    Map.has_key?(utxos, Utxo.position(blknum, txindex, oindex))
+  def utxo_exists?(%{utxo_pos: utxo_pos} = _exiting_utxo, %Core{utxos: utxos}) do
+    Map.has_key?(utxos, Utxo.Position.decode(utxo_pos))
   end
 
   @doc """

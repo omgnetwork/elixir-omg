@@ -582,17 +582,17 @@ defmodule OMG.API.State.CoreTest do
 
   @tag fixtures: [:alice, :state_empty]
   test "tells if utxo exists", %{alice: alice, state_empty: state} do
-    assert not Core.utxo_exists?(%{blknum: 1, txindex: 0, oindex: 0}, state)
+    assert not Core.utxo_exists?(%{utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}, state)
 
     state = state |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-    assert Core.utxo_exists?(%{blknum: 1, txindex: 0, oindex: 0}, state)
+    assert Core.utxo_exists?(%{utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}, state)
 
     state =
       state
       |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 10}]), zero_fees_map(), &1)).()
       |> success?
 
-    assert not Core.utxo_exists?(%{blknum: 1, txindex: 0, oindex: 0}, state)
+    assert not Core.utxo_exists?(%{utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}, state)
   end
 
   @tag fixtures: [:state_empty]
