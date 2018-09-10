@@ -78,7 +78,7 @@ to_charlist() |>
 :os.cmd() |>
 Poison.decode!()
 
-%{"utxos" => [%{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
+%{"data" => %{"utxos" => [%{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]}} =
   "http GET 'localhost:4000/utxos?address=#{bob_enc}'" |>
   to_charlist() |>
   :os.cmd() |>
@@ -88,7 +88,7 @@ Poison.decode!()
 
 exiting_utxopos = OMG.API.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
 
-composed_exit =
+%{"data" => composed_exit} =
   "http GET 'localhost:4000/utxo/#{exiting_utxopos}/exit_data'" |>
   to_charlist() |>
   :os.cmd() |>
@@ -113,8 +113,8 @@ tx2 =
   )
 Eth.WaitFor.eth_receipt(txhash)
 
-challenge =
-  "http GET 'localhost:4000/utxo/#{exiting_utxo_blknum}/challenge_data'" |>
+%{"data" => challenge} =
+  "http GET 'localhost:4000/utxo/#{exiting_utxopos}/challenge_data'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
@@ -160,7 +160,7 @@ r(OMG.API.State.Core)
 # let's do a broken spend:
 
 # grab a utxo that bob can spend
-%{"utxos" => [%{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]} =
+%{"data" => %{"utxos" => [%{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]}} =
   "http GET 'localhost:4000/utxos?address=#{bob_enc}'" |>
   to_charlist() |>
   :os.cmd() |>

@@ -131,7 +131,7 @@ defmodule OMG.API.State.CoreTest do
     state_empty: state
   } do
     deposits = [%{owner: alice.addr, currency: eth(), amount: 20, blknum: 2}]
-    assert {:ok, {_, [_, {:put, :last_deposit_block_height, 2}]}, state} = Core.deposit(deposits, state)
+    assert {:ok, {_, [_, {:put, :last_deposit_child_blknum, 2}]}, state} = Core.deposit(deposits, state)
 
     assert {:ok, {[], []}, ^state} = Core.deposit([%{owner: bob.addr, currency: eth(), amount: 20, blknum: 1}], state)
   end
@@ -466,7 +466,7 @@ defmodule OMG.API.State.CoreTest do
              Core.deposit([%{owner: alice.addr, currency: eth(), amount: 10, blknum: 1}], state)
 
     assert utxo_update == {:put, :utxo, {{1, 0, 0}, %{owner: alice.addr, currency: eth(), amount: 10}}}
-    assert height_update == {:put, :last_deposit_block_height, 1}
+    assert height_update == {:put, :last_deposit_child_blknum, 1}
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_interval}]}, _} =
              form_block_check(state, @child_block_interval)
@@ -582,17 +582,17 @@ defmodule OMG.API.State.CoreTest do
 
   @tag fixtures: [:alice, :state_empty]
   test "tells if utxo exists", %{alice: alice, state_empty: state} do
-    assert not Core.utxo_exists?(%{blknum: 1, txindex: 0, oindex: 0}, state)
+    assert not Core.utxo_exists?(%{utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}, state)
 
     state = state |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-    assert Core.utxo_exists?(%{blknum: 1, txindex: 0, oindex: 0}, state)
+    assert Core.utxo_exists?(%{utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}, state)
 
     state =
       state
       |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 10}]), zero_fees_map(), &1)).()
       |> success?
 
-    assert not Core.utxo_exists?(%{blknum: 1, txindex: 0, oindex: 0}, state)
+    assert not Core.utxo_exists?(%{utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}, state)
   end
 
   @tag fixtures: [:state_empty]
