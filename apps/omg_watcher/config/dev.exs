@@ -46,3 +46,12 @@ config :omg_watcher, OMG.Watcher.Repo,
   database: "omisego_dev",
   hostname: "localhost",
   pool_size: 10
+
+# TODO: these two are here to ensure swifter sync in `:dev` env, and are geared towards a 1-sec root chain block
+#       interval. They are taken to be equal to the `:test` env.
+#       Rethink properly the semantics of root chain coordinator
+config :omg_watcher,
+  block_getter_height_sync_interval_ms: 20
+
+config :omg_api,
+  rootchain_height_sync_interval_ms: 20
