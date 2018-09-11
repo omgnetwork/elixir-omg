@@ -30,13 +30,13 @@ podTemplate(
 
         stage('Unit test') {
             withEnv(["MIX_ENV=test"]) {
-                sh("mix coveralls.html --umbrella")
+                sh("mix test")
             }
         }
 
         stage('Integration test') {
            withEnv(["MIX_ENV=test", "SHELL=/bin/bash"]) {
-               sh("mix test --only integration --only wrappers")
+               sh("mix coveralls.html --umbrella --include integration --include wrappers")
            }
         }
 
