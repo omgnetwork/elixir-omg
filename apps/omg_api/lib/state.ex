@@ -102,7 +102,7 @@ defmodule OMG.API.State do
       result
     else
       {:error, :last_deposit_not_found} = error ->
-        Logger.error("Child chain database not initialized yet")
+        _ = Logger.error(fn -> "It seems that Child chain database is not initialized. Check README.md" end)
         error
 
       other ->

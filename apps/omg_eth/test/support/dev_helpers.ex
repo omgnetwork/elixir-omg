@@ -44,7 +44,7 @@ defmodule OMG.Eth.DevHelpers do
       %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
     else
       {:error, :econnrefused} = error ->
-        Logger.error("Ensure that an Ethereum instance is running: `geth ...``")
+        Logger.error(fn -> "It seems that Ethereum instance is not running. Check README.md" end)
         error
 
       other ->

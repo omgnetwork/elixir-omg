@@ -25,6 +25,7 @@ defmodule OMG.DB.LevelDBServer do
   alias OMG.DB.LevelDBCore
 
   require Logger
+
   def start_link(name: name, db_path: db_path) do
     GenServer.start_link(__MODULE__, %{db_path: db_path}, name: name)
   end
@@ -37,7 +38,7 @@ defmodule OMG.DB.LevelDBServer do
       {:ok, %__MODULE__{db_ref: db_ref}}
     else
       error ->
-        Logger.error("Child chain database not initialized yet")
+        _ = Logger.error(fn -> "It seems that Child chain database is not initialized. Check README.md" end)
         error
     end
   end

@@ -97,8 +97,11 @@ defmodule OMG.API.BlockQueue do
           state
         else
           {:error, reason} = error when reason in [:mined_hash_not_found_in_db, :contract_ahead_of_db] ->
-            Logger.error("The child chain might have not been wiped clean when starting a child chain from scratch.\n
-              Follow the setting up of developer environment from the beginning.")
+            _ =
+              Logger.error(fn ->
+                "It seems that the Child chain might have not been wiped clean when starting a child chain from scratch. Check READMME.MD and follow the setting up of developer environment from the beginning."
+              end)
+
             error
 
           other ->
@@ -171,10 +174,8 @@ defmodule OMG.API.BlockQueue do
             _ = Logger.debug(fn -> "Submission is known, but with higher price - ignored" end)
             :ok
 
-          {:error, %{"code" => -32000, "message" => "authentication needed: password or unlock"}} ->
-            Logger.error("Unlock the authority account.\n
-               1. geth attach http://127.0.0.1:8\n
-               2. personal.unlockAccount(“<authority_addr from config.exs>”, '', 0)")
+          {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}} ->
+            Logger.error(fn -> "It seems that authority account is locked. Check README.md" end)
         end
     end
   end
