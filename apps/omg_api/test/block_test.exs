@@ -14,10 +14,9 @@
 
 defmodule OMG.API.BlockTest do
   @moduledoc """
-  Simple unit test of part of `OMG.API.Block` that is untested elsewhere
-
-  NOTE: we might want to drop or move this testing elsewhere
+  Simple unit test of part of `OMG.API.Block`.
   """
+
   use ExUnitFixtures
   use ExUnit.Case, async: true
 

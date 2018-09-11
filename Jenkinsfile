@@ -16,8 +16,9 @@ podTemplate(
     ],
 ) {
     node(label) {
+        def scmVars = null
         stage('Checkout') {
-            checkout scm
+            scmVars = checkout scm
         }
 
         stage('Build') {
@@ -36,7 +37,8 @@ podTemplate(
 
         stage('Integration test') {
            withEnv(["MIX_ENV=test", "SHELL=/bin/bash"]) {
-               sh("mix coveralls.html --umbrella --include integration --include wrappers")
+               commitMessage = sh(returnStdout: true, script: "git log -1 --pretty=%B")
+               sh("mix coveralls.post --token 'eQXGRg1zAt2TJIROLwTt7YwANdREutMKV' --branch '${scmVars.GIT_BRANCH}' --name 'Jenkins'  --sha '${scmVars.GIT_COMMIT}' --message '${commitMessage}'  --umbrella --include integration --include wrappers")
            }
         }
 
