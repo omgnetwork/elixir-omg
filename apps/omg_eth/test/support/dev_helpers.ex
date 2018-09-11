@@ -22,6 +22,8 @@ defmodule OMG.Eth.DevHelpers do
   alias OMG.Eth
   alias OMG.Eth.WaitFor, as: WaitFor
 
+  require Logger
+
   import OMG.Eth.Encoding
 
   # about 4 Ethereum blocks on "realistic" networks, use to timeout synchronous operations in demos on testnets
@@ -41,7 +43,12 @@ defmodule OMG.Eth.DevHelpers do
          {:ok, txhash, contract_addr} <- Eth.RootChain.create_new(root_path, authority) do
       %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
     else
-      {:error, :econnrefused} -> raise "Ensure that an Ethereum instance is running: `geth ...``"
+      {:error, :econnrefused} = error ->
+        Logger.error("Ensure that an Ethereum instance is running: `geth ...``")
+        error
+
+      other ->
+        other
     end
   end
 

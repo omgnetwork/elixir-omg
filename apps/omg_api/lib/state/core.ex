@@ -83,7 +83,7 @@ defmodule OMG.API.State.Core do
           height_query_result :: non_neg_integer,
           last_deposit_child_blknum_query_result :: non_neg_integer | :not_found,
           child_block_interval :: pos_integer
-        ) :: {:ok, t()}
+        ) :: {:ok, t()} | {:error, :last_deposit_not_found}
   def extract_initial_state(
         utxos_query_result,
         height_query_result,
@@ -119,7 +119,7 @@ defmodule OMG.API.State.Core do
         :not_found,
         _child_block_interval
       ) do
-    raise "Child chain database not initialized yet"
+    {:error, :last_deposit_not_found}
   end
 
   @doc """

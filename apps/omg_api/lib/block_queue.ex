@@ -82,17 +82,28 @@ defmodule OMG.API.BlockQueue do
       {:ok, {top_mined_hash, _}} = Eth.RootChain.get_child_chain(mined_num)
       _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{inspect(Base.encode16(top_mined_hash))}" end)
 
-      {:ok, state} =
-        Core.new(
-          mined_child_block_num: mined_num,
-          known_hashes: Enum.zip(range, known_hashes),
-          top_mined_hash: top_mined_hash,
-          parent_height: parent_height,
-          child_block_interval: child_block_interval,
-          chain_start_parent_height: parent_start,
-          submit_period: Application.get_env(:omg_api, :child_block_submit_period),
-          finality_threshold: finality_threshold
-        )
+      state =
+        with {:ok, state} <-
+               Core.new(
+                 mined_child_block_num: mined_num,
+                 known_hashes: Enum.zip(range, known_hashes),
+                 top_mined_hash: top_mined_hash,
+                 parent_height: parent_height,
+                 child_block_interval: child_block_interval,
+                 chain_start_parent_height: parent_start,
+                 submit_period: Application.get_env(:omg_api, :child_block_submit_period),
+                 finality_threshold: finality_threshold
+               ) do
+          state
+        else
+          {:error, reason} = error when reason in [:mined_hash_not_found_in_db, :contract_ahead_of_db] ->
+            Logger.error("The child chain might have not been wiped clean when starting a child chain from scratch.\n
+              Follow the setting up of developer environment from the beginning.")
+            error
+
+          other ->
+            other
+        end
 
       interval = Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms)
       {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
@@ -146,26 +157,25 @@ defmodule OMG.API.BlockQueue do
     defp submit(submission) do
       _ = Logger.debug(fn -> "Submitting: #{inspect(submission)}" end)
 
-      case OMG.Eth.RootChain.submit_block(submission.hash, submission.nonce, submission.gas_price) do
-        {:ok, txhash} ->
-          _ = Logger.info(fn -> "Submitted #{inspect(submission)} at: #{inspect(txhash)}" end)
-          :ok
+      :ok =
+        case OMG.Eth.RootChain.submit_block(submission.hash, submission.nonce, submission.gas_price) do
+          {:ok, txhash} ->
+            _ = Logger.info(fn -> "Submitted #{inspect(submission)} at: #{inspect(txhash)}" end)
+            :ok
 
-        {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} ->
-          _ = Logger.debug(fn -> "Submission is known transaction - ignored" end)
-          :ok
+          {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} ->
+            _ = Logger.debug(fn -> "Submission is known transaction - ignored" end)
+            :ok
 
-        {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}} ->
-          _ = Logger.debug(fn -> "Submission is known, but with higher price - ignored" end)
-          :ok
+          {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}} ->
+            _ = Logger.debug(fn -> "Submission is known, but with higher price - ignored" end)
+            :ok
 
-        {:error, %{"code" => -32000, "message" => "authentication needed: password or unlock"}} ->
-          raise """
-                  Unlock the authority account.
-                  1. geth attach http://127.0.0.1:8545
-                  2. personal.unlockAccount(“<authority_addr from config.exs>”, '', 0)
-          """
-      end
+          {:error, %{"code" => -32000, "message" => "authentication needed: password or unlock"}} ->
+            Logger.error("Unlock the authority account.\n
+               1. geth attach http://127.0.0.1:8\n
+               2. personal.unlockAccount(“<authority_addr from config.exs>”, '', 0)")
+        end
     end
   end
 end

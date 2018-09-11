@@ -87,17 +87,27 @@ defmodule OMG.API.State do
     {:ok, utxos_query_result} = DB.utxos()
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
-    _ =
-      Logger.info(fn ->
-        "Started State, height '#{height_query_result}', deposit height '#{last_deposit_query_result}'"
-      end)
+    with {:ok, data} = result <-
+           Core.extract_initial_state(
+             utxos_query_result,
+             height_query_result,
+             last_deposit_query_result,
+             child_block_interval
+           ) do
+      _ =
+        Logger.info(fn ->
+          "Started State, height '#{height_query_result}', deposit height '#{last_deposit_query_result}'"
+        end)
 
-    Core.extract_initial_state(
-      utxos_query_result,
-      height_query_result,
-      last_deposit_query_result,
-      child_block_interval
-    )
+      result
+    else
+      {:error, :last_deposit_not_found} = error ->
+        Logger.error("Child chain database not initialized yet")
+        error
+
+      other ->
+        other
+    end
   end
 
   @doc """
