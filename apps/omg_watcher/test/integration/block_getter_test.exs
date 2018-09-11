@@ -42,6 +42,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   @endpoint OMG.Watcher.Web.Endpoint
 
+  @tag :ojoj
   @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob, :alice_deposits]
   test "get the blocks from child chain after sending a transaction and start exit", %{
     alice: alice,
@@ -69,7 +70,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
                "txindex" => 0,
                "txbytes" => encode_tx
              }
-           ] == get_utxo(bob)
+           ] == get_utxos(bob)
 
     assert [
              %{
@@ -80,7 +81,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
                "txindex" => 0,
                "txbytes" => encode_tx
              }
-           ] == get_utxo(alice)
+           ] == get_utxos(alice)
 
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
     {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(block_nr)
@@ -136,6 +137,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     # wait until the exit is recognized and attempt to spend the exited utxo
     Process.sleep(4_000)
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
+
     {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
   end
 
@@ -265,7 +267,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     :ok = TestHelper.wait_for_process(Process.whereis(OMG.Watcher.BlockGetter))
   end
 
-  defp get_utxo(%{addr: address}) do
+  defp get_utxos(%{addr: address}) do
     {:ok, address_encode} = Crypto.encode_address(address)
 
     assert %{

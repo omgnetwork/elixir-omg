@@ -27,6 +27,7 @@ defmodule OMG.Watcher.Web.View.Utxo do
   end
 
   def render("available.json", %{available: %{address: address, utxos: utxos}}) do
+    utxos = utxos |> Enum.map(&Map.from_struct/1)
     %{
       address: address,
       utxos: Serializer.Response.encode16(utxos, [:txbytes, :currency])

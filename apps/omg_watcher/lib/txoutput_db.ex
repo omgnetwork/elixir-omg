@@ -106,7 +106,7 @@ defmodule OMG.Watcher.TxOutputDB do
     deposit && deposit.created_utxo
   end
 
-  def get_utxo(owner) do
+  def get_utxos(owner) do
     query =
       from txo in __MODULE__,
       where: txo.owner == ^owner and is_nil(txo.spending_txhash) and is_nil(txo.spending_exit),

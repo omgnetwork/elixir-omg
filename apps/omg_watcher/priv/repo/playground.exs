@@ -117,7 +117,7 @@ defmodule OMG.Watcher.Playground do
     #IO.inspect txs_from_db
 
     # Create next payment to bob using tx utxo
-    [utxo] = TxOutputDB.get_utxo(alice.addr)
+    [utxo] = TxOutputDB.get_utxos(alice.addr)
     utxos = %{
       address: alice.addr,
       utxos: [
