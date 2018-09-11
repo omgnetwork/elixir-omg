@@ -87,7 +87,7 @@ defmodule OMG.API.State do
     {:ok, utxos_query_result} = DB.utxos()
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
-    with {:ok, data} = result <-
+    with {:ok, _data} = result <-
            Core.extract_initial_state(
              utxos_query_result,
              height_query_result,
