@@ -69,4 +69,11 @@ defmodule OMG.Watcher.Eventer.CoreTest do
 
     assert [event] == Eventer.Core.prepare_events([block_withholding_event])
   end
+
+  test "prepare_events function generates one invalid_exit event" do
+    invalid_exit_event = %Event.InvalidExit{amount: 1, currency: <<>>, owner: <<>>, utxo_pos: 1}
+    event = {"byzantine", "invalid_exit", invalid_exit_event}
+
+    assert [event] == Eventer.Core.prepare_events([invalid_exit_event])
+  end
 end
