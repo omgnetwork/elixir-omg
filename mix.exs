@@ -6,7 +6,13 @@ defmodule OMG.Umbrella.MixProject do
       apps_path: "apps",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      preferred_cli_env: [coveralls: :test, "coveralls.html": :test, "coveralls.detail": :test, dialyzer: :prod],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test,
+        dialyzer: :prod
+      ],
       dialyzer: [
         paths: [
           "_build/prod/lib/omg_watcher/ebin",
@@ -24,7 +30,8 @@ defmodule OMG.Umbrella.MixProject do
         test: ["test --no-start"],
         coveralls: ["coveralls --no-start"],
         "coveralls.html": ["coveralls.html --no-start"],
-        "coveralls.detail": ["coveralls.detail --no-start"]
+        "coveralls.detail": ["coveralls.detail --no-start"],
+        "coveralls.post": ["coveralls.post --no-start"]
       ]
     ]
   end

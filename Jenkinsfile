@@ -36,9 +36,14 @@ podTemplate(
         }
 
         stage('Integration test') {
-           withEnv(["MIX_ENV=test", "SHELL=/bin/bash"]) {
-               commitMessage = sh(returnStdout: true, script: "git log -1 --pretty=%B")
-               sh("mix coveralls.post --token 'eQXGRg1zAt2TJIROLwTt7YwANdREutMKV' --branch '${scmVars.GIT_BRANCH}' --name 'Jenkins'  --sha '${scmVars.GIT_COMMIT}' --message '${commitMessage}'  --umbrella --include integration --include wrappers")
+           withCredentials([string(credentialsId: 'elixir-omg_coveralls', variable: 'ELIXIR_OMG_COVERALLS')]){
+                withEnv(["MIX_ENV=test", "SHELL=/bin/bash"]) {
+                    commitMessage = sh(returnStdout: true, script: "git log -1 --pretty=%B")
+                    sh ("""
+                        set +x
+                        mix coveralls.post --umbrella --include integration --include wrappers --token '${ELIXIR_OMG_COVERALLS}' --branch '${scmVars.GIT_BRANCH}' --name 'Jenkins' --sha '${scmVars.GIT_COMMIT}' --message '${commitMessage}'
+                    """)
+                }
            }
         }
 
