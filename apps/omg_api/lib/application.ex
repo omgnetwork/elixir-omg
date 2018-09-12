@@ -30,7 +30,7 @@ defmodule OMG.API.Application do
       {OMG.API.BlockQueue.Server, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeChecker, []},
-      {OMG.API.RootchainCoordinator, MapSet.new([:depositer, :exiter])},
+      {OMG.API.RootChainCoordinator, MapSet.new([:depositer, :exiter])},
       worker(
         OMG.API.EthereumEventListener,
         [

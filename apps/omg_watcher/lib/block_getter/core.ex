@@ -102,19 +102,27 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Marks that childchain block `blknum` was processed
   """
-  @spec consume_block(t(), pos_integer()) :: t()
+  @spec consume_block(t(), pos_integer()) :: {t(), non_neg_integer()}
   def consume_block(%__MODULE__{} = state, blknum) do
     {:processing, blocks} = state.block_consume_batch
     blocks = MapSet.delete(blocks, blknum)
     blocks_to_consume = Map.delete(state.blocks_to_consume, blknum)
     last_consumed_block = max(state.last_consumed_block, blknum)
 
-    %{
-      state
-      | block_consume_batch: {:processing, blocks},
-        blocks_to_consume: blocks_to_consume,
-        last_consumed_block: last_consumed_block
-    }
+    synced_height =
+      if Enum.empty?(blocks) do
+        state.synced_height + 1
+      else
+        state.synced_height
+      end
+
+    {%{
+       state
+       | block_consume_batch: {:processing, blocks},
+         blocks_to_consume: blocks_to_consume,
+         last_consumed_block: last_consumed_block,
+         synced_height: synced_height
+     }, synced_height}
   end
 
   @doc """
@@ -162,13 +170,12 @@ defmodule OMG.Watcher.BlockGetter.Core do
   def get_blocks_to_consume(
         %__MODULE__{block_consume_batch: {:processing, blocks_to_process}} = state,
         _submissions,
-        coordinator_height
+        _coordinator_height
       ) do
     if blocks_to_process == MapSet.new() do
-      next_synced_height = max(state.synced_height, coordinator_height)
-      state = %{state | synced_height: next_synced_height, block_consume_batch: {:downloading, []}}
-      db_updates = [{:put, :last_block_getter_eth_height, next_synced_height}]
-      {[], next_synced_height, db_updates, state}
+      state = %{state | block_consume_batch: {:downloading, []}}
+      db_updates = [{:put, :last_block_getter_eth_height, state.synced_height}]
+      {[], state.synced_height, db_updates, state}
     else
       {[], state.synced_height, [], state}
     end

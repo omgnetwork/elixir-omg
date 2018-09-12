@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.API.RootchainCoordinator.Service do
+defmodule OMG.API.RootChainCoordinator.Service do
   @moduledoc """
-  Represents a service that is coordinated by rootchain coordinator.
-  Such a service is expected to get rootchain height by calling `RootchainCoordinator.get_height()` function
+  Represents a service that is coordinated by root chain coordinator.
+  Such a service is expected to get root chain height by calling `RootChainCoordinator.get_height()` function
   and report processed height by calling `RootChainCoordiantor.check_in(height, service_name)`
   where `service_name` is a unique name of that service.
   """

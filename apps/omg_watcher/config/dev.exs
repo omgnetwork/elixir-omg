@@ -51,7 +51,7 @@ config :omg_watcher, OMG.Watcher.Repo,
 #       interval. They are taken to be equal to the `:test` env.
 #       Rethink properly the semantics of root chain coordinator
 config :omg_watcher,
-  block_getter_height_sync_interval_ms: 20
+  block_getter_height_sync_interval_ms: 1000
 
 config :omg_api,
-  rootchain_height_sync_interval_ms: 20
+  rootchain_height_sync_interval_ms: 1000

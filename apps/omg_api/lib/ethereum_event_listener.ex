@@ -20,7 +20,7 @@ defmodule OMG.API.EthereumEventListener do
   """
 
   alias OMG.API.EthereumEventListener.Core
-  alias OMG.API.RootchainCoordinator
+  alias OMG.API.RootChainCoordinator
   use OMG.API.LoggerExt
 
   ### Client
@@ -49,7 +49,7 @@ defmodule OMG.API.EthereumEventListener do
     last_event_block_height = max(last_event_block_height, contract_deployment_height)
 
     {:ok, _} = schedule_get_events(Application.get_env(:omg_api, :rootchain_height_sync_interval_ms))
-    :ok = RootchainCoordinator.check_in(last_event_block_height, service_name)
+    :ok = RootChainCoordinator.check_in(last_event_block_height, service_name)
 
     _ = Logger.info(fn -> "Starting EthereumEventListener for #{service_name}" end)
 
@@ -67,8 +67,8 @@ defmodule OMG.API.EthereumEventListener do
       }}}
   end
 
-  def handle_info(:get_events, state) do
-    case RootchainCoordinator.get_height() do
+  def handle_info(:sync, state) do
+    case RootChainCoordinator.get_height() do
       :nosync ->
         {:noreply, state}
 
@@ -84,7 +84,7 @@ defmodule OMG.API.EthereumEventListener do
         {:ok, events} = callbacks.get_ethereum_events_callback.(event_height_lower_bound, event_height_upper_bound)
         :ok = callbacks.process_events_callback.(events)
         :ok = OMG.DB.multi_update(db_updates)
-        :ok = RootchainCoordinator.check_in(next_sync_height, core.service_name)
+        :ok = RootChainCoordinator.check_in(next_sync_height, core.service_name)
 
         _ =
           Logger.debug(fn ->
@@ -100,6 +100,6 @@ defmodule OMG.API.EthereumEventListener do
   end
 
   defp schedule_get_events(interval) do
-    :timer.send_interval(interval, self(), :get_events)
+    :timer.send_interval(interval, self(), :sync)
   end
 end

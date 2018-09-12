@@ -11,13 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.API.RootchainCoordinator do
+defmodule OMG.API.RootChainCoordinator do
   @moduledoc """
   Synchronizes services on root chain height.
   """
 
-  alias OMG.API.RootchainCoordinator.Core
+  alias OMG.API.RootChainCoordinator.Core
   alias OMG.Eth
+
+  use OMG.API.LoggerExt
 
   @spec start_link(MapSet.t()) :: GenServer.on_start()
   def start_link(allowed_services) do
@@ -38,7 +40,7 @@ defmodule OMG.API.RootchainCoordinator do
   """
   @spec get_height() :: {:sync, non_neg_integer()} | :nosync
   def get_height do
-    GenServer.call(__MODULE__, :get_rootchain_height)
+    GenServer.call(__MODULE__, :get_synced_height)
   end
 
   use GenServer
@@ -53,17 +55,18 @@ defmodule OMG.API.RootchainCoordinator do
   end
 
   def handle_call({:check_in, synced_height, service_name}, {pid, _}, state) do
-    {:ok, state} = Core.check_in(state, pid, synced_height, service_name)
+    {:ok, state, services_to_sync} = Core.check_in(state, pid, synced_height, service_name)
+    Enum.each(services_to_sync, fn pid -> send(pid, :sync) end)
     {:reply, :ok, state}
   end
 
-  def handle_call(:get_rootchain_height, _from, state) do
-    {:reply, Core.get_rootchain_height(state), state}
+  def handle_call(:get_synced_height, _from, state) do
+    {:reply, Core.get_synced_height(state), state}
   end
 
-  def handle_info(:update_rootchain_height, state) do
-    {:ok, rootchain_height} = Eth.get_ethereum_height()
-    {:ok, state} = Core.update_rootchain_height(state, rootchain_height)
+  def handle_info(:update_root_chain_height, state) do
+    {:ok, root_chain_height} = Eth.get_ethereum_height()
+    {:ok, state} = Core.update_root_chain_height(state, root_chain_height)
     {:noreply, state}
   end
 
@@ -73,6 +76,6 @@ defmodule OMG.API.RootchainCoordinator do
   end
 
   defp schedule_get_ethereum_height(interval) do
-    :timer.send_interval(interval, self(), :update_rootchain_height)
+    :timer.send_interval(interval, self(), :update_root_chain_height)
   end
 end
