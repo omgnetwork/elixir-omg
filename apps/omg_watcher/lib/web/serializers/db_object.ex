@@ -17,6 +17,7 @@ defmodule OMG.Watcher.Web.Serializer.DBObject do
 
   """
 
+  #FIXME: @docs
   @doc """
 
   """
@@ -31,18 +32,13 @@ defmodule OMG.Watcher.Web.Serializer.DBObject do
   defp clean_value(map_or_struct) when is_map(map_or_struct) do
     map_or_struct
     |> to_map()
-    |> clean_map()
-  end
-
-  defp clean_value(value), do: value
-
-  @spec clean_map(map()) :: map()
-  defp clean_map(map) do
-    map
-    |> Enum.filter(fn {k,v} -> Ecto.assoc_loaded?(v) end)
+    |> Enum.filter(fn {_k,v} -> Ecto.assoc_loaded?(v) end)
     |> Enum.map(fn {k, v} -> {k, clean_value(v)} end)
     |> Map.new()
   end
+
+  defp clean_value(bin) when is_binary(bin), do: Base.encode16(bin)
+  defp clean_value(value), do: value
 
   defp to_map(struct) do
     (if Map.has_key?(struct, :__struct__),

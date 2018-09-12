@@ -89,8 +89,12 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
   defp get_exit_challenge(blknum, txindex, oindex) do
     utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
 
-    assert %{"result" => "success", "data" => decoded_data} = Test.rest_call(:get, "utxo/#{utxo_pos}/challenge_data")
+    assert %{"result" => "success", "data" => data} = Test.rest_call(:get, "utxo/#{utxo_pos}/challenge_data")
 
-    Serializer.Response.decode16(decoded_data, ["txbytes", "proof", "sigs"])
+    decoded_values =
+      ["txbytes", "proof", "sigs"]
+      |> Enum.into(%{}, fn key -> {key, Base.decode16!(data[key])} end)
+
+    Map.merge(data, decoded_values)
   end
 end
