@@ -23,6 +23,8 @@ defmodule OMG.Eth.DevGeth do
 
   require Logger
 
+  alias OMG.Eth
+
   def start do
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, _} = Application.ensure_all_started(:erlexec)
@@ -99,6 +101,6 @@ defmodule OMG.Eth.DevGeth do
     txmap = %{from: addr, to: addr, value: "0x1"}
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
     # Dev geth is mining every second, that's why we need to wait longer than 1 s for receipt
-    {:ok, _receipt} = OMG.Eth.WaitFor.eth_receipt(txhash, 2_000)
+    {:ok, _receipt} = OMG.Eth.WaitFor.eth_receipt(Eth.Encoding.from_hex(txhash), 2_000)
   end
 end

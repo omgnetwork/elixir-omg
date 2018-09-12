@@ -14,24 +14,24 @@
 
 defmodule OMG.Eth do
   @moduledoc """
-  Adapter/port to contracts deployed on Ethereum.
+  Library for common code of the adapter/port to contracts deployed on Ethereum.
+  NOTE: The library code is not intended to be used outside of `Eth`: use `Eth.RootChain` and `Eth.Token` as main
+  entrypoints to the contract-interaction functionality.
 
+  NOTE: this `OMG.Eth`/`omg_eth` wrapper is intended to be as thin and stupid as possible, only offering a convenient,
+  consistent API to the Ethereum JSONRPC client and contracts.
+
+  Also other non-contract querries to the Ethereum client.
+
+  Notes on encoding: All APIs of `OMG.Eth` and the submodules with contract APIs always use raw, decoded binaries
+  for binaries - never use hex encoded binaries. Such binaries may be passed as is onto `ABI` related functions,
+  however they must be encoded/decoded when entering/leaving the `Ethereumex` realm
   """
+
   import OMG.Eth.Encoding
   alias OMG.Eth.WaitFor
 
   @type address :: <<_::160>>
-
-  @type tx_option :: {tx_option_key, non_neg_integer}
-  @type tx_option_key :: :nonce | :value | :gasPrice | :gas
-
-  # safe, reasonable amount, equal to the testnet block gas limit
-  @lots_of_gas 4_712_388
-
-  @gas_price 20_000_000_000
-
-  # TODO: such timeout works only in dev setting; on mainnet one must track its transactions carefully
-  @about_4_blocks_time 60_000
 
   def get_ethereum_height do
     case Ethereumex.HttpClient.eth_block_number() do
@@ -44,48 +44,40 @@ defmodule OMG.Eth do
     end
   end
 
-  def call_contract_value(contract, signature) do
-    with {:ok, values} <- call_contract(contract, signature, [], [{:uint, 256}]), {value} = values, do: {:ok, value}
-  end
-
   def call_contract(contract, signature, args, return_types) do
-    data = signature |> ABI.encode(args) |> Base.encode16()
+    data = signature |> ABI.encode(args)
 
-    with {:ok, return} <- Ethereumex.HttpClient.eth_call(%{to: contract, data: "0x#{data}"}),
-         "0x" <> enc_return = return,
-         do: decode_answer(enc_return, return_types)
+    with {:ok, return} <- Ethereumex.HttpClient.eth_call(%{to: to_hex(contract), data: to_hex(data)}),
+         do: decode_answer(return, return_types)
   end
 
-  def decode_answer(enc_return, return_types) do
-    return =
-      enc_return
-      |> Base.decode16!(case: :lower)
-      |> ABI.TypeDecoder.decode_raw(return_types)
-      |> List.to_tuple()
-
-    {:ok, return}
+  defp decode_answer(enc_return, return_types) do
+    enc_return
+    |> from_hex()
+    |> ABI.TypeDecoder.decode_raw(return_types)
+    |> case do
+      [single_return] -> {:ok, single_return}
+      other when is_list(other) -> {:ok, List.to_tuple(other)}
+    end
   end
 
-  @spec contract_transact(address, address, binary, [any], [tx_option]) :: {:ok, binary} | {:error, any}
+  @spec contract_transact(address, address, binary, [any], keyword) :: {:ok, binary} | {:error, any}
   def contract_transact(from, to, signature, args, opts \\ []) do
-    opts =
-      tx_defaults()
-      |> Map.merge(Map.new(opts))
-      |> Enum.map(fn {k, v} -> {k, encode_eth_rpc_unsigned_int(v)} end)
-      |> Map.new()
-
     data = encode_tx_data(signature, args)
 
     txmap =
-      %{from: from, to: to, data: "0x" <> data}
-      |> Map.merge(opts)
+      %{from: to_hex(from), to: to_hex(to), data: data}
+      |> Map.merge(Map.new(opts))
+      |> encode_all_integer_opts()
 
-    Ethereumex.HttpClient.eth_send_transaction(txmap)
+    with {:ok, txhash} <- Ethereumex.HttpClient.eth_send_transaction(txmap),
+         do: {:ok, from_hex(txhash)}
   end
 
-  def contract_transact_sync!(from, to, signature, args, opts \\ []) do
-    {:ok, txhash} = contract_transact(from, to, signature, args, opts)
-    {:ok, %{"status" => "0x1"}} = WaitFor.eth_receipt(txhash, @about_4_blocks_time)
+  defp encode_all_integer_opts(opts) do
+    opts
+    |> Enum.filter(fn {_k, v} -> is_integer(v) end)
+    |> Enum.into(opts, fn {k, v} -> {k, to_hex(v)} end)
   end
 
   def get_bytecode!(path_project_root, contract_name) do
@@ -98,37 +90,32 @@ defmodule OMG.Eth do
   end
 
   defp encode_tx_data(signature, args) do
-    args = args |> Enum.map(&cleanup/1)
-
     signature
     |> ABI.encode(args)
-    |> Base.encode16()
+    |> to_hex()
   end
 
   defp encode_constructor_params(args, types) do
-    args = for arg <- args, do: cleanup(arg)
-
     args
     |> ABI.TypeEncoder.encode_raw(types)
+    # NOTE: we're not using `to_hex` because the `0x` will be appended to the bytecode already
     |> Base.encode16(case: :lower)
   end
 
-  def cleanup("0x" <> hex), do: hex |> String.upcase() |> Base.decode16!()
-  def cleanup(raw), do: raw
-
-  def deploy_contract(addr, bytecode, types, args, gas) do
+  def deploy_contract(addr, bytecode, types, args, opts) do
     enc_args = encode_constructor_params(types, args)
-    txmap = %{from: addr, data: bytecode <> enc_args, gas: gas}
+
+    txmap =
+      %{from: to_hex(addr), data: bytecode <> enc_args}
+      |> Map.merge(Map.new(opts))
+      |> encode_all_integer_opts()
 
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
 
-    {:ok, %{"contractAddress" => contract_address, "status" => "0x1"}} =
-      WaitFor.eth_receipt(txhash, @about_4_blocks_time)
+    {:ok, %{"contractAddress" => contract_address, "status" => "0x1"}} = WaitFor.eth_receipt(from_hex(txhash))
 
-    {:ok, txhash, contract_address}
+    {:ok, from_hex(txhash), from_hex(contract_address)}
   end
-
-  defp tx_defaults, do: %{value: 0, gasPrice: @gas_price, gas: @lots_of_gas}
 
   defp read_contracts_json!(path_project_root, contract_name) do
     path = "contracts/build/#{contract_name}.json"
@@ -143,5 +130,72 @@ defmodule OMG.Eth do
           "Can't read #{path} because #{inspect(reason)}, try running mix deps.compile plasma_contracts"
         )
     end
+  end
+
+  defp event_topic_for_signature(signature) do
+    signature |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec()) |> to_hex()
+  end
+
+  defp filter_not_removed(logs) do
+    logs |> Enum.filter(&(not Map.get(&1, "removed", true)))
+  end
+
+  def get_ethereum_events(block_from, block_to, signature, contract) do
+    topic = event_topic_for_signature(signature)
+
+    try do
+      {:ok, logs} =
+        Ethereumex.HttpClient.eth_get_logs(%{
+          fromBlock: to_hex(block_from),
+          toBlock: to_hex(block_to),
+          address: to_hex(contract),
+          topics: ["#{topic}"]
+        })
+
+      {:ok, filter_not_removed(logs)}
+    catch
+      _ -> {:error, :failed_to_get_ethereum_events}
+    end
+  end
+
+  def parse_event(%{"data" => data}, {signature, keys}) do
+    decoded_values =
+      data
+      |> from_hex()
+      |> ABI.TypeDecoder.decode(ABI.FunctionSelector.decode(signature))
+
+    Enum.zip(keys, decoded_values)
+    |> Map.new()
+  end
+
+  def parse_events_with_indexed_fields(
+        %{"data" => data, "topics" => [_event_sig | indexed_data]},
+        {non_indexed_keys, non_indexed_key_types},
+        {indexed_keys, indexed_keys_types}
+      ) do
+    decoded_non_indexed_fields =
+      data
+      |> from_hex()
+      |> ABI.TypeDecoder.decode_raw(non_indexed_key_types)
+
+    non_indexed_fields =
+      Enum.zip(non_indexed_keys, decoded_non_indexed_fields)
+      |> Map.new()
+
+    decoded_indexed_fields =
+      for {encoded, type_sig} <- Enum.zip(indexed_data, indexed_keys_types) do
+        [decoded] =
+          encoded
+          |> from_hex()
+          |> ABI.TypeDecoder.decode_raw([type_sig])
+
+        decoded
+      end
+
+    indexed_fields =
+      Enum.zip(indexed_keys, decoded_indexed_fields)
+      |> Map.new()
+
+    Map.merge(non_indexed_fields, indexed_fields)
   end
 end

@@ -143,10 +143,10 @@ defmodule OMG.API.BlockQueue do
       |> Enum.each(&submit/1)
     end
 
-    defp submit(submission) do
+    defp submit(%Core.BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price} = submission) do
       _ = Logger.debug(fn -> "Submitting: #{inspect(submission)}" end)
 
-      case OMG.Eth.RootChain.submit_block(submission.hash, submission.nonce, submission.gas_price) do
+      case OMG.Eth.RootChain.submit_block(hash, nonce, gas_price) do
         {:ok, txhash} ->
           _ = Logger.info(fn -> "Submitted #{inspect(submission)} at: #{inspect(txhash)}" end)
           :ok

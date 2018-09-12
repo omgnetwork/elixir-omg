@@ -19,26 +19,29 @@ defmodule OMG.Eth.Token do
 
   alias OMG.Eth
 
+  @tx_defaults Eth.Defaults.tx_defaults()
+
   ##########
   # writes #
   ##########
 
-  def mint(owner, amount, token) do
+  def mint(owner, amount, token, opts \\ @tx_defaults) do
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
-    Eth.contract_transact_sync!(from, token, "mint(address,uint256)", [Eth.cleanup(owner), amount])
+    Eth.contract_transact(Eth.Encoding.from_hex(from), token, "mint(address,uint256)", [owner, amount], opts)
   end
 
-  def transfer(from, owner, amount, token) do
-    Eth.contract_transact_sync!(from, token, "transfer(address,uint256)", [Eth.cleanup(owner), amount])
+  def transfer(from, owner, amount, token, opts \\ @tx_defaults) do
+    Eth.contract_transact(from, token, "transfer(address,uint256)", [owner, amount], opts)
   end
 
-  def approve(from, spender, amount, token) do
-    Eth.contract_transact_sync!(from, token, "approve(address,uint256)", [Eth.cleanup(spender), amount])
+  def approve(from, spender, amount, token, opts \\ @tx_defaults) do
+    Eth.contract_transact(from, token, "approve(address,uint256)", [spender, amount], opts)
   end
 
-  def create_new(path_project_root, addr) do
+  def create_new(path_project_root, addr, opts \\ nil) do
+    opts = opts || Keyword.put_new(@tx_defaults, :gas, 1_590_893)
     bytecode = Eth.get_bytecode!(path_project_root, "MintableToken")
-    Eth.deploy_contract(addr, bytecode, [], [], "0x18466d")
+    Eth.deploy_contract(addr, bytecode, [], [], opts)
   end
 
   #########
@@ -46,7 +49,6 @@ defmodule OMG.Eth.Token do
   #########
 
   def balance_of(owner, token) do
-    {:ok, {balance}} = Eth.call_contract(token, "balanceOf(address)", [Eth.cleanup(owner)], [{:uint, 256}])
-    {:ok, balance}
+    Eth.call_contract(token, "balanceOf(address)", [owner], [{:uint, 256}])
   end
 end
