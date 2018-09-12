@@ -30,8 +30,6 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   @eth Crypto.zero_address()
   @eth_hex String.duplicate("00", 20)
 
-  @moduletag :integration
-
   describe "Controller.UtxoTest" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "No utxo are returned for non-existing addresses.", %{alice: alice} do
