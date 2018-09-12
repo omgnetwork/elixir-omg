@@ -55,7 +55,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
       UtxoDB.update_with(%Block{
         transactions: [
           API.TestHelper.create_recovered([], @eth, [{alice, 1947}]),
-          API.TestHelper.create_recovered([], @eth, [{alice, 1952}])
+          API.TestHelper.create_recovered([], @eth, [{alice, 1952}, {alice, 1900}])
         ],
         number: 2
       })
@@ -64,11 +64,18 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
         "result" => "success",
         "data" => %{
           "address" => ^alice_address_encode,
-          "utxos" => [%{"amount" => amount1, "currency" => @eth_hex}, %{"amount" => amount2}]
+          "utxos" => utxos
         }
       } = get_utxo(alice.addr)
 
-      assert Enum.sort([amount1, amount2]) == [1947, 1952]
+      assert length(utxos) == 3
+
+      # disregard `txbytes` which is going away anyway
+      utxos = Enum.map(utxos, &Map.delete(&1, "txbytes"))
+
+      assert %{"currency" => @eth_hex, "amount" => 1947, "blknum" => 2, "txindex" => 0, "oindex" => 0} in utxos
+      assert %{"currency" => @eth_hex, "amount" => 1952, "blknum" => 2, "txindex" => 1, "oindex" => 0} in utxos
+      assert %{"currency" => @eth_hex, "amount" => 1900, "blknum" => 2, "txindex" => 1, "oindex" => 1} in utxos
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob, :carol]
@@ -79,7 +86,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
       UtxoDB.update_with(%Block{
         transactions: [
           API.TestHelper.create_recovered([], @eth, [{alice, 1843}]),
-          API.TestHelper.create_recovered([], @eth, [{bob, 1871}])
+          API.TestHelper.create_recovered([], @eth, [{bob, 1871}, {bob, 1872}])
         ],
         number: 1
       })
@@ -88,12 +95,12 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
                "result" => "success",
                "data" => %{
                  "address" => ^bob_address_encode,
-                 "utxos" => [%{"amount" => 1871}]
+                 "utxos" => [%{"amount" => 1871}, %{"amount" => 1872}]
                }
              } = get_utxo(bob.addr)
 
       UtxoDB.update_with(%Block{
-        transactions: [API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{carol, 1000}])],
+        transactions: [API.TestHelper.create_recovered([{1, 1, 0, bob}, {1, 1, 1, bob}], @eth, [{carol, 1000}])],
         number: 2
       })
 

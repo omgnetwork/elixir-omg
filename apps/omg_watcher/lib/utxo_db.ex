@@ -47,13 +47,21 @@ defmodule OMG.Watcher.UtxoDB do
          block_number
        ) do
     make_utxo_db = fn transaction, number ->
+      # essentially number - 1 but to be extra safe let's limit the possible inputs according to the
+      # current tx format
+      new_oindex =
+        case number do
+          1 -> 0
+          2 -> 1
+        end
+
       %__MODULE__{
         address: Map.get(transaction, String.to_existing_atom("newowner#{number}")),
         currency: Map.get(transaction, :cur12),
         amount: Map.get(transaction, String.to_existing_atom("amount#{number}")),
         blknum: block_number,
         txindex: txindex,
-        oindex: Map.get(transaction, String.to_existing_atom("oindex#{number}")),
+        oindex: new_oindex,
         txbytes: signed_tx_bytes
       }
     end
