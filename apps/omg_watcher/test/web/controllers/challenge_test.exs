@@ -23,6 +23,7 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.EthEventDB
   alias OMG.Watcher.TransactionDB
 
   @eth Crypto.zero_address()
@@ -30,14 +31,15 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
   describe "Controller.ChallengeTest" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "utxo/:utxo_pos/challenge_data  endpoint returns proper response format", %{alice: alice} do
+      EthEventDB.insert_deposits([%{owner: alice.addr, currency: @eth, amount: 100, blknum: 1, hash: "hash1"}])
       TransactionDB.update_with(%Block{
         transactions: [
-          API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}])
+          API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 100}])
         ],
-        number: 1
+        number: 1000
       })
 
-      utxo_pos = Utxo.position(1, 1, 0) |> Utxo.Position.encode()
+      utxo_pos = Utxo.position(1, 0, 0) |> Utxo.Position.encode()
 
       %{
         "data" => %{

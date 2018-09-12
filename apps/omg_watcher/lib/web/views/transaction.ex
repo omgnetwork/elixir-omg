@@ -25,9 +25,6 @@ defmodule OMG.Watcher.Web.View.Transaction do
 
   def render("transaction.json", %{transaction: transaction}) do
     transaction
-    |> Map.delete(:__meta__)
-    |> Map.from_struct()
-    |> Serializer.Response.encode16(@keys_to_encode)
     |> Serializer.Response.serialize(:success)
   end
 end

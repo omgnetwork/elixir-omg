@@ -76,12 +76,15 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
       assert %{
                "data" => %{
-                 "blknum" => blknum,
-                 "txhash" => txhash,
-                 "txindex" => txindex
+                 "blknum" => ^blknum,
+                 "eth_height" => _eth_height,
+                 "sent_at" => _send_at,
+                 "txbytes" => _txbytes,
+                 "txhash" => ^txhash,
+                 "txindex" => ^txindex
                },
                "result" => "success"
-             } == TestHelper.rest_call(:get, "/transaction/#{txhash}")
+             } = TestHelper.rest_call(:get, "/transaction/#{txhash}")
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]

@@ -28,8 +28,8 @@ defmodule OMG.Watcher.Web.Serializer.DBObjectTest do
   }
 
   test "map of maps" do
-    %{first: @cleaned_tx, second: @cleaned_tx}
-    == DBObject.clean(%{second: %TransactionDB{}, first: %TransactionDB{}, })
+    assert %{first: @cleaned_tx, second: @cleaned_tx} == DBObject.clean(
+      %{second: %TransactionDB{}, first: %TransactionDB{}, })
   end
 
   test "list of maps" do
@@ -37,9 +37,10 @@ defmodule OMG.Watcher.Web.Serializer.DBObjectTest do
   end
 
   test "simple value list" do
-    value = [nil, 1, "adam", :atom, [], %{}]
+    value = [nil, 1, "01234", :atom, [], %{}]
+    expected_value = [nil, 1, "3031323334", :atom, [], %{}]
 
-    assert value == DBObject.clean(value)
+    assert expected_value == DBObject.clean(value)
   end
 
   test "remove nested meta keys" do

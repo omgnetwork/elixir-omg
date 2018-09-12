@@ -22,16 +22,12 @@ defmodule OMG.Watcher.Web.View.Utxo do
   alias OMG.Watcher.Web.Serializer
 
   def render("utxo_exit.json", %{utxo_exit: utxo_exit}) do
-    Serializer.Response.encode16(utxo_exit, [:proof, :sigs, :txbytes])
+    utxo_exit
     |> Serializer.Response.serialize(:success)
   end
 
   def render("available.json", %{available: %{address: address, utxos: utxos}}) do
-    utxos = utxos |> Enum.map(&Map.from_struct/1)
-    %{
-      address: address,
-      utxos: Serializer.Response.encode16(utxos, [:txbytes, :currency])
-    }
+    utxos
     |> Serializer.Response.serialize(:success)
   end
 end

@@ -61,27 +61,35 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     encode_tx = Client.encode(tx)
 
+    expected_bob_address = bob.addr |> TestHelper.to_response_address()
     assert [
-             %{
-               "currency" => @eth_hex,
-               "amount" => 3,
-               "blknum" => block_nr,
-               "oindex" => 1,
-               "txindex" => 0,
-               "txbytes" => encode_tx
-             }
-           ] == get_utxos(bob)
+            %{
+              "amount" => 3,
+              "creating_transaction" => %{
+                "blknum" => ^block_nr,
+                "txbytes" => ^encode_tx,
+                "txindex" => 0
+              },
+              "creating_tx_oindex" => 1,
+              "currency" => @eth_hex,
+              "owner" => ^expected_bob_address,
+            }
+          ] = get_utxos(bob)
 
+    expected_alice_address = alice.addr |> TestHelper.to_response_address()
     assert [
              %{
-               "currency" => @eth_hex,
-               "amount" => 7,
-               "blknum" => block_nr,
-               "oindex" => 0,
-               "txindex" => 0,
-               "txbytes" => encode_tx
-             }
-           ] == get_utxos(alice)
+              "amount" => 7,
+              "creating_transaction" => %{
+                "blknum" => ^block_nr,
+                "txbytes" => ^encode_tx,
+                "txindex" => 0
+              },
+              "creating_tx_oindex" => 0,
+              "currency" => @eth_hex,
+              "owner" => ^expected_alice_address,
+            }
+           ] = get_utxos(alice)
 
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
     {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(block_nr)
@@ -272,10 +280,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     assert %{
              "result" => "success",
-             "data" => %{
-               "address" => ^address_encode,
-               "utxos" => utxos
-             }
+             "data" => utxos
            } = TestHelper.rest_call(:get, "utxos?address=#{address_encode}")
 
     utxos
