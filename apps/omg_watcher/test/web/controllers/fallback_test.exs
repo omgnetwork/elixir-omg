@@ -18,8 +18,6 @@ defmodule OMG.Watcher.Web.Controller.FallbackTest do
 
   alias OMG.Watcher.TestHelper
 
-  @moduletag :integration
-
   describe "Controller.FallbackTest" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "fallback returns error for non existing endpoint" do

@@ -65,7 +65,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
                "currency" => @eth_hex,
                "amount" => 3,
                "blknum" => block_nr,
-               "oindex" => 0,
+               "oindex" => 1,
                "txindex" => 0,
                "txbytes" => encode_tx
              }
