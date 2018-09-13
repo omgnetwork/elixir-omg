@@ -167,10 +167,6 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, parse_block_submissions)}
   end
 
-  def get_block_submitted_events(:empty_range, _contract) do
-    {:ok, []}
-  end
-
   @doc """
   Returns exits from a range of blocks. Collects exits from Ethereum logs.
   """
