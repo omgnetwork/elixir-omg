@@ -135,50 +135,6 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
-  Returns lists of deposits sorted by child chain block number
-  """
-  def get_deposits(block_from, block_to, contract \\ nil) do
-    contract = contract || Eth.Encoding.from_hex(Application.get_env(:omg_eth, :contract_addr))
-    signature = "Deposit(address,uint256,address,uint256)"
-
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
-         do: {:ok, Enum.map(logs, &decode_deposit/1)}
-  end
-
-  @doc """
-  Returns lists of block submissions sorted by timestamp
-  """
-  def get_block_submitted_events(block_range, contract \\ nil)
-
-  def get_block_submitted_events({block_from, block_to}, contract) do
-    contract = contract || Eth.Encoding.from_hex(Application.get_env(:omg_eth, :contract_addr))
-    signature = "BlockSubmitted(uint256)"
-    keys = [:blknum]
-
-    parse_block_submissions = fn %{"blockNumber" => "0x" <> hex_block_number} = log ->
-      {eth_height, ""} = Integer.parse(hex_block_number, 16)
-
-      log
-      |> Eth.parse_event({signature, keys})
-      |> Map.put(:eth_height, eth_height)
-    end
-
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
-         do: {:ok, Enum.map(logs, parse_block_submissions)}
-  end
-
-  @doc """
-  Returns exits from a range of blocks. Collects exits from Ethereum logs.
-  """
-  def get_exits(block_from, block_to, contract \\ nil) do
-    contract = contract || Eth.Encoding.from_hex(Application.get_env(:omg_eth, :contract_addr))
-    signature = "ExitStarted(address,uint256,address,uint256)"
-
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
-         do: {:ok, Enum.map(logs, &decode_exit/1)}
-  end
-
-  @doc """
   Returns exit for a specific utxo. Calls contract method.
   """
   def get_exit(utxo_pos, contract \\ nil) do
@@ -195,6 +151,82 @@ defmodule OMG.Eth.RootChain do
     contract = contract || Eth.Encoding.from_hex(Application.get_env(:omg_eth, :contract_addr))
     Eth.call_contract(contract, "hasToken(address)", [token], [:bool])
   end
+
+  ########################
+  # EVENTS #
+  ########################
+
+  @doc """
+  Returns lists of deposits sorted by child chain block number
+  """
+  def get_deposits(block_from, block_to, contract \\ nil) do
+    contract = contract || Eth.Encoding.from_hex(Application.get_env(:omg_eth, :contract_addr))
+    signature = "Deposit(address,uint256,address,uint256)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, &decode_deposit/1)}
+  end
+
+  @doc """
+  Returns lists of block submissions from Ethereum logs
+  """
+  def get_block_submitted_events({block_from, block_to}, contract \\ nil) do
+    contract = contract || Eth.Encoding.from_hex(Application.get_env(:omg_eth, :contract_addr))
+    signature = "BlockSubmitted(uint256)"
+
+    decode_block_submitted = fn %{"blockNumber" => "0x" <> hex_eth_height} = log ->
+      keys = [:blknum]
+      {eth_height, ""} = Integer.parse(hex_eth_height, 16)
+
+      log
+      |> Eth.parse_event({signature, keys})
+      |> Map.put(:eth_height, eth_height)
+    end
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, decode_block_submitted)}
+  end
+
+  @doc """
+  Returns exits from a range of blocks. Collects exits from Ethereum logs.
+  """
+  def get_exits(block_from, block_to, contract \\ nil) do
+    contract = contract || Eth.Encoding.from_hex(Application.get_env(:omg_eth, :contract_addr))
+    signature = "ExitStarted(address,uint256,address,uint256)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, &decode_exit_started/1)}
+  end
+
+  defp decode_deposit(log) do
+    non_indexed_keys = [:currency, :amount]
+    non_indexed_key_types = [:address, {:uint, 256}]
+    indexed_keys = [:owner, :blknum]
+    indexed_keys_types = [:address, {:uint, 256}]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  defp decode_exit_started(log) do
+    non_indexed_keys = [:currency, :amount]
+    non_indexed_key_types = [:address, {:uint, 256}]
+    indexed_keys = [:owner, :utxo_pos]
+    indexed_keys_types = [:address, {:uint, 256}]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  ########################
+  # MISC #
+  ########################
 
   @spec contract_ready(optional_addr_t()) ::
           :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
@@ -247,31 +279,5 @@ defmodule OMG.Eth.RootChain do
       |> Enum.map(&decode_deposit/1)
 
     deposit_blknum
-  end
-
-  defp decode_deposit(log) do
-    non_indexed_keys = [:currency, :amount]
-    non_indexed_key_types = [:address, {:uint, 256}]
-    indexed_keys = [:owner, :blknum]
-    indexed_keys_types = [:address, {:uint, 256}]
-
-    Eth.parse_events_with_indexed_fields(
-      log,
-      {non_indexed_keys, non_indexed_key_types},
-      {indexed_keys, indexed_keys_types}
-    )
-  end
-
-  defp decode_exit(log) do
-    non_indexed_keys = [:currency, :amount]
-    non_indexed_key_types = [:address, {:uint, 256}]
-    indexed_keys = [:owner, :utxo_pos]
-    indexed_keys_types = [:address, {:uint, 256}]
-
-    Eth.parse_events_with_indexed_fields(
-      log,
-      {non_indexed_keys, non_indexed_key_types},
-      {indexed_keys, indexed_keys_types}
-    )
   end
 end

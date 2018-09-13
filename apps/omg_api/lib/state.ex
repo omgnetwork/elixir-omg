@@ -51,8 +51,7 @@ defmodule OMG.API.State do
   end
 
   @spec deposit(deposits :: [Core.deposit()]) :: :ok
-  def deposit(deposits_enc) do
-    deposits = Enum.map(deposits_enc, &Core.decode_deposit/1)
+  def deposit(deposits) do
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
