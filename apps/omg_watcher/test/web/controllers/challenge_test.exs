@@ -24,8 +24,6 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.TransactionDB
 
-  @moduletag :integration
-
   @eth Crypto.zero_address()
 
   describe "Controller.ChallengeTest" do
