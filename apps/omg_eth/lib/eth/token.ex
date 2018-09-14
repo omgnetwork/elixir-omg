@@ -19,6 +19,8 @@ defmodule OMG.Eth.Token do
 
   alias OMG.Eth
 
+  import Eth.Encoding
+
   @tx_defaults Eth.Defaults.tx_defaults()
 
   ##########
@@ -27,7 +29,7 @@ defmodule OMG.Eth.Token do
 
   def mint(owner, amount, token, opts \\ @tx_defaults) do
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
-    Eth.contract_transact(Eth.Encoding.from_hex(from), token, "mint(address,uint256)", [owner, amount], opts)
+    Eth.contract_transact(from_hex(from), token, "mint(address,uint256)", [owner, amount], opts)
   end
 
   def transfer(from, owner, amount, token, opts \\ @tx_defaults) do

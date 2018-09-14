@@ -105,7 +105,7 @@ defmodule OMG.API.Crypto do
   """
   @spec generate_address(pub_key_t()) :: {:ok, address_t()}
   def generate_address(<<pub::binary-size(64)>>) do
-    <<_::binary-size(12), address::binary-size(20)>> = ExthCrypto.Hash.hash(pub, ExthCrypto.Hash.kec())
+    <<_::binary-size(12), address::binary-size(20)>> = hash(pub)
     {:ok, address}
   end
 

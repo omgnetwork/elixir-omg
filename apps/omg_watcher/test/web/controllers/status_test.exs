@@ -18,8 +18,9 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
 
   alias OMG.Watcher.TestHelper
 
+  @moduletag :integration
+
   describe "Controller.StatusTest" do
-    @tag :integration
     @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]
     test "status endpoint returns expected response format" do
       assert %{

@@ -19,7 +19,9 @@ defmodule OMG.Eth.DevHelpers do
   """
 
   alias OMG.Eth
-  alias OMG.Eth.WaitFor, as: WaitFor
+  alias OMG.Eth.WaitFor
+
+  import Eth.Encoding
 
   @one_hundred_eth trunc(:math.pow(10, 18) * 100)
 
@@ -44,9 +46,9 @@ defmodule OMG.Eth.DevHelpers do
     """
     use Mix.Config
     config :omg_eth,
-      contract_addr: #{inspect(Eth.Encoding.to_hex(contract_addr))},
-      txhash_contract: #{inspect(Eth.Encoding.to_hex(txhash))},
-      authority_addr: #{inspect(Eth.Encoding.to_hex(authority_addr))}
+      contract_addr: #{inspect(to_hex(contract_addr))},
+      txhash_contract: #{inspect(to_hex(txhash))},
+      authority_addr: #{inspect(to_hex(authority_addr))}
     """
   end
 
@@ -54,20 +56,20 @@ defmodule OMG.Eth.DevHelpers do
     {:ok, authority} = Ethereumex.HttpClient.personal_new_account("")
     {:ok, _} = unlock_fund(authority)
 
-    {:ok, Eth.Encoding.from_hex(authority)}
+    {:ok, from_hex(authority)}
   end
 
   @doc """
   Will take a map with eth-account information (from &generate_entity/0) and then
   import priv key->unlock->fund with lots of ether on that account
   """
-  def import_unlock_fund(%{priv: account_priv} = _account) do
+  def import_unlock_fund(%{priv: account_priv}) do
     account_priv_enc = Base.encode16(account_priv)
 
     {:ok, account_enc} = Ethereumex.HttpClient.personal_import_raw_key(account_priv_enc, "")
     {:ok, _} = unlock_fund(account_enc)
 
-    {:ok, Eth.Encoding.from_hex(account_enc)}
+    {:ok, from_hex(account_enc)}
   end
 
   def make_deposits(value, accounts, contract \\ nil) do
@@ -99,8 +101,11 @@ defmodule OMG.Eth.DevHelpers do
     {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(account_enc, "", 0)
 
     {:ok, [eth_source_address | _]} = Ethereumex.HttpClient.eth_accounts()
-    txmap = %{from: eth_source_address, to: account_enc, value: Eth.Encoding.to_hex(@one_hundred_eth)}
-    {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    WaitFor.eth_receipt(Eth.Encoding.from_hex(tx_fund))
+
+    {:ok, tx_fund} =
+      %{from: eth_source_address, to: account_enc, value: to_hex(@one_hundred_eth)}
+      |> Ethereumex.HttpClient.eth_send_transaction()
+
+    tx_fund |> from_hex() |> WaitFor.eth_receipt()
   end
 end

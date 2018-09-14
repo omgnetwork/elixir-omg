@@ -19,6 +19,8 @@ defmodule OMG.Eth.WaitFor do
 
   alias OMG.Eth
 
+  import Eth.Encoding
+
   def eth_rpc do
     f = fn ->
       case Ethereumex.HttpClient.eth_syncing() do
@@ -38,7 +40,10 @@ defmodule OMG.Eth.WaitFor do
   """
   def eth_receipt(txhash, timeout \\ 15_000) do
     f = fn ->
-      case Ethereumex.HttpClient.eth_get_transaction_receipt(Eth.Encoding.to_hex(txhash)) do
+      txhash
+      |> to_hex()
+      |> Ethereumex.HttpClient.eth_get_transaction_receipt()
+      |> case do
         {:ok, receipt} when receipt != nil -> {:ok, receipt}
         _ -> :repeat
       end

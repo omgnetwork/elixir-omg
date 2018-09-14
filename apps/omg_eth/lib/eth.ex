@@ -112,7 +112,10 @@ defmodule OMG.Eth do
 
     {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
 
-    {:ok, %{"contractAddress" => contract_address, "status" => "0x1"}} = WaitFor.eth_receipt(from_hex(txhash))
+    {:ok, %{"contractAddress" => contract_address, "status" => "0x1"}} =
+      txhash
+      |> from_hex()
+      |> WaitFor.eth_receipt()
 
     {:ok, from_hex(txhash), from_hex(contract_address)}
   end
