@@ -102,7 +102,7 @@ defmodule OMG.Watcher.DB.TransactionDB do
       |> Repo.insert()
   end
 
-  @spec get_transaction_challenging_utxo(Utxo.Position.t()) :: {:ok, map()} | :utxo_not_spent
+  @spec get_transaction_challenging_utxo(Utxo.Position.t()) :: {:ok, %__MODULE__{}} | {:error, :utxo_not_spent}
   def get_transaction_challenging_utxo(position) do
     # finding tx's input can be tricky
     input =

@@ -171,11 +171,12 @@ defmodule OMG.Watcher.BlockGetter do
 
   @spec to_block(map(), pos_integer()) :: Block.t()
   defp to_block(block, eth_height) do
-    params =
-      block
-      |> Map.put(:eth_height, eth_height)
-
-    Map.merge(%Block{}, params)
+    %Block{
+      hash: block.hash,
+      transactions: block.transactions,
+      number: block.number,
+      eth_height: eth_height
+    }
   end
 
   defp run_block_get_task(blocks_numbers) do
