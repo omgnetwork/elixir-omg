@@ -21,8 +21,8 @@ defmodule OMG.Watcher.Web.Socket do
   use Phoenix.Socket
 
   ## Channels
-  channel("transfer:*", OMG.Watcher.Web.TransferChannel)
-  channel("byzantine", OMG.Watcher.Web.ByzantineChannel)
+  channel("transfer:*", OMG.Watcher.Web.Channel.Transfer)
+  channel("byzantine", OMG.Watcher.Web.Channel.Byzantine)
 
   ## Transports
   transport(:websocket, Phoenix.Transports.WebSocket)

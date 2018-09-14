@@ -23,7 +23,7 @@ defmodule OMG.API.CryptoTest do
 
   test "sha3 library usage, address generation" do
     # test vectors below were generated using pyethereum's sha3 and privtoaddr
-    priv = :keccakf1600.sha3_256(<<"11">>)
+    priv = Crypto.hash(<<"11">>)
     py_priv = "7880aec93413f117ef14bd4e6d130875ab2c7d7d55a064fac3c2f7bd51516380"
     py_pub = "c4d178249d840f548b09ad8269e8a3165ce2c170"
     assert {:ok, ^priv} = Base.decode16(py_priv, case: :lower)
@@ -33,8 +33,8 @@ defmodule OMG.API.CryptoTest do
   end
 
   test "signature compatibility" do
-    msg = :keccakf1600.sha3_256("1234")
-    priv = :keccakf1600.sha3_256("11")
+    msg = Crypto.hash("1234")
+    priv = Crypto.hash("11")
     {:ok, pub} = Crypto.generate_public_key(priv)
     {:ok, _} = Crypto.generate_address(pub)
     # this test vector was generated using plasma.utils.utils.sign/2 from plasma-mvp

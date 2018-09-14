@@ -97,22 +97,6 @@ defmodule OMG.API.State.CoreTest do
     |> success?
   end
 
-  @tag fixtures: [:alice, :state_empty]
-  test "can decode deposits in Core", %{alice: alice, state_empty: state} do
-    {:ok, alice_enc} = Crypto.encode_address(alice.addr)
-    eth_enc = "0x" <> String.duplicate("00", 20)
-    deposits = [%{owner: alice_enc, currency: eth_enc, amount: 10, blknum: 1}]
-
-    assert {:ok, {_, _}, state} =
-             deposits
-             |> Enum.map(&Core.decode_deposit/1)
-             |> Core.deposit(state)
-
-    state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 10}]), zero_fees_map(), &1)).()
-    |> success?
-  end
-
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend a batch of deposits", %{alice: alice, bob: bob, state_empty: state} do
     state

@@ -82,10 +82,14 @@ defmodule OMG.Watcher.BlockGetter do
     {:ok, deployment_height} = Eth.RootChain.get_root_deployment_height()
     {:ok, last_synced_height} = OMG.DB.last_block_getter_eth_height()
     synced_height = max(deployment_height, last_synced_height)
-    :ok = RootchainCoordinator.check_in(synced_height, :block_getter)
 
-    {:ok, block_number} = OMG.DB.child_top_block_number()
+    {:ok, child_top_block_number} = OMG.DB.child_top_block_number()
     child_block_interval = Application.get_env(:omg_eth, :child_block_interval)
+
+    {:ok, submissions} = Eth.RootChain.get_block_submitted_events({synced_height, synced_height + 1000})
+    exact_synced_height = Core.figure_out_exact_sync_height(submissions, synced_height, child_top_block_number)
+
+    :ok = RootchainCoordinator.check_in(exact_synced_height, :block_getter)
 
     height_sync_interval = Application.get_env(:omg_watcher, :block_getter_height_sync_interval_ms)
     {:ok, _} = schedule_sync_height(height_sync_interval)
@@ -96,9 +100,9 @@ defmodule OMG.Watcher.BlockGetter do
     {
       :ok,
       Core.init(
-        block_number,
+        child_top_block_number,
         child_block_interval,
-        synced_height,
+        exact_synced_height,
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms
       )
     }
@@ -148,7 +152,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   def handle_info(:sync, state) do
     with {:sync, next_synced_height} <- RootchainCoordinator.get_height() do
-      {block_range, state} = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
+      block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
       {:ok, submissions} = Eth.RootChain.get_block_submitted_events(block_range)
 
       {blocks_to_consume, synced_height, db_updates, state} =

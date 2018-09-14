@@ -120,18 +120,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Produces rootchain block height range to search for events of block submission.
   If the range is not empty it spans from current synced rootchain height to `coordinator_height`.
+  Empty range case is solved naturally with {a, b}, a > b
   """
-  @spec get_eth_range_for_block_submitted_events(t(), non_neg_integer()) ::
-          {pos_integer(), pos_integer(), t()} | {:empty_range, t()}
-  def get_eth_range_for_block_submitted_events(state, coordinator_height)
-
-  def get_eth_range_for_block_submitted_events(%__MODULE__{synced_height: synced_height} = state, coordinator_height)
-      when synced_height < coordinator_height do
-    {{state.synced_height + 1, coordinator_height}, state}
-  end
-
-  def get_eth_range_for_block_submitted_events(state, _coordinator_height) do
-    {:empty_range, state}
+  @spec get_eth_range_for_block_submitted_events(t(), non_neg_integer()) :: {pos_integer(), pos_integer()}
+  def get_eth_range_for_block_submitted_events(%__MODULE__{synced_height: synced_height}, coordinator_height) do
+    {synced_height + 1, coordinator_height}
   end
 
   @spec get_blocks_to_consume(t(), list(), non_neg_integer()) ::
@@ -396,5 +389,29 @@ defmodule OMG.Watcher.BlockGetter.Core do
   # adds a new zero fee to a map of zero fee requirements
   defp zero_fee_for(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}}, fee_map) do
     Map.put(fee_map, cur12, 0)
+  end
+
+  @doc """
+  Given:
+   - a persisted `synced_height` and
+   - the actual child block number from `OMG.API.State`
+  figures out the exact eth height, which we should begin with. Uses a list of block submission event logs,
+  which should contain the `child_top_block_number`'s respective submission.
+
+  This is a workaround for the case where a child block is processed and block number advanced, and eth height isn't.
+  This can be the case when the getter crashes after consuming a child block but before it's recognized as synced.
+
+  In case `submissions` doesn't hold the submission of the `child_top_block_number`, it returns the otherwise
+  persisted `synced_height`
+  """
+  @spec figure_out_exact_sync_height([%{blknum: pos_integer, eth_height: pos_integer}], pos_integer, pos_integer) ::
+          pos_integer
+  def figure_out_exact_sync_height(submissions, synced_height, child_top_block_number) do
+    submissions
+    |> Enum.find(fn %{blknum: blknum} -> blknum == child_top_block_number end)
+    |> case do
+      nil -> synced_height
+      %{eth_height: exact_height} -> exact_height
+    end
   end
 end
