@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.ExposeSpec do
+defmodule OMG.JSONRPC.ExposeSpec do
   @moduledoc """
-  `use OMG.API.ExposeSpec` to expose all @spec in the runtime via YourModule.get_specs()
+  `use OMG.JSONRPC.ExposeSpec` to expose all @spec in the runtime via YourModule.get_specs()
 
   NOTE: this is a stripped down version of ExposeSpec. The original one parsed `@spec` annotations automatically
 
@@ -66,11 +66,11 @@ defmodule OMG.API.ExposeSpec do
 
   defmacro __using__(_opts) do
     quote do
-      import OMG.API.ExposeSpec
+      import OMG.JSONRPC.ExposeSpec
 
       Module.register_attribute(__MODULE__, :expose_spec, accumulate: true)
 
-      @before_compile OMG.API.ExposeSpec
+      @before_compile OMG.JSONRPC.ExposeSpec
     end
   end
 
