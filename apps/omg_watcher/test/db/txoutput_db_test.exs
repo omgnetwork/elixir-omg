@@ -20,6 +20,7 @@ defmodule OMG.Watcher.DB.TxOutputDBTest do
   alias OMG.API
   alias OMG.API.Block
   alias OMG.API.Crypto
+  alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.DB.EthEventDB
   alias OMG.Watcher.DB.TransactionDB
@@ -184,6 +185,57 @@ defmodule OMG.Watcher.DB.TxOutputDBTest do
                creating_txhash: ^txhash3,
                creating_tx_oindex: 0
              } = TxOutputDB.get_by_position(Utxo.position(2013, 2, 0))
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "create outputs: creates proper transaction's outputs" do
+      newowner1 = <<1::160>>
+      amount1 = 1
+      newowner2 = <<2::160>>
+      amount2 = 2
+
+      tx = %Transaction{cur12: @eth, newowner1: newowner1, amount1: amount1, newowner2: newowner2, amount2: amount2}
+
+      [utxo1, utxo2] = TxOutputDB.create_outputs(tx)
+
+      assert %TxOutputDB{owner: newowner1, amount: amount1, currency: @eth, creating_tx_oindex: 0} == utxo1
+
+      assert %TxOutputDB{owner: newowner2, amount: amount2, currency: @eth, creating_tx_oindex: 1} == utxo2
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "create outputs: output with zero amount is skipped" do
+      newowner1 = <<1::160>>
+      amount1 = 1
+      newowner2 = <<0::160>>
+      amount2 = 0
+
+      tx = %Transaction{cur12: @eth, newowner1: newowner1, amount1: amount1, newowner2: newowner2, amount2: amount2}
+
+      [utxo1] = TxOutputDB.create_outputs(tx)
+
+      assert %TxOutputDB{owner: newowner1, amount: amount1, currency: @eth, creating_tx_oindex: 0} == utxo1
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "get inputs: prepares existing utxo for spend", %{alice: alice} do
+      [{:ok, _evnt}] =
+        EthEventDB.insert_deposits([%{blknum: 1, owner: alice.addr, currency: @eth, amount: 1, hash: "hash1"}])
+
+      tx = %Transaction{blknum1: 1, txindex1: 0, oindex1: 0, blknum2: 0, txindex2: 0, oindex2: 0}
+      [changeset] = TxOutputDB.get_inputs(tx)
+
+      assert %Ecto.Changeset{
+               data: %TxOutputDB{creating_deposit: "hash1", spending_tx_oindex: nil},
+               changes: %{spending_tx_oindex: 0}
+             } = changeset
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "get inputs: providing non-existing utxo position results in empty list" do
+      tx = %Transaction{blknum1: 111, txindex1: 0, oindex1: 11, blknum2: 0, txindex2: 10, oindex2: 3}
+
+      assert [] == TxOutputDB.get_inputs(tx)
     end
   end
 end

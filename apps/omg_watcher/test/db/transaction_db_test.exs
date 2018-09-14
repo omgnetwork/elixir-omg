@@ -103,7 +103,6 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
              ] == blknum |> TransactionDB.get_by_blknum() |> Enum.map(&delete_meta/1)
     end
 
-    @tag :olol
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
     test "gets transaction that spends utxo", %{alice: alice, bob: bob} do
       alice_deposit_pos = Utxo.position(1, 0, 0)
@@ -158,6 +157,34 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
                },
                delete_meta(TransactionDB.get_transaction_challenging_utxo(bob_deposit_pos))
              )
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
+    test "transaction does not defend against double-spend", %{alice: alice, bob: bob} do
+      txo_pos = Utxo.position(1, 0, 0)
+
+      [{:ok, _evnt}] =
+        OMG.Watcher.DB.EthEventDB.insert_deposits([
+          %{blknum: 1, owner: alice.addr, currency: @eth, amount: 1, hash: "hash1"}
+        ])
+
+      # spending deposited utxo
+      recovered_tx = OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 1}])
+
+      [{:ok, %TransactionDB{txhash: spent_txhash}}] =
+        TransactionDB.update_with(%Block{transactions: [recovered_tx], number: 1000})
+
+      assert %TxOutputDB{creating_deposit: "hash1", spending_tx_oindex: 0, spending_txhash: ^spent_txhash} =
+               TxOutputDB.get_by_position(txo_pos)
+
+      # prepare another tx which spends deposit and just created utxo
+      double_spent_tx = OMG.API.TestHelper.create_recovered([{1000, 0, 0, alice}, {1, 0, 0, alice}], @eth, [{bob, 2}])
+
+      [{:ok, %TransactionDB{txhash: double_spent_txhash}}] =
+        TransactionDB.update_with(%Block{transactions: [double_spent_tx], number: 2000})
+
+      assert %TxOutputDB{creating_deposit: "hash1", spending_tx_oindex: 1, spending_txhash: ^double_spent_txhash} =
+               TxOutputDB.get_by_position(txo_pos)
     end
 
     defp create_expected_transaction(

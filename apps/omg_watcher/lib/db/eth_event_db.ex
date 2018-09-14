@@ -32,6 +32,9 @@ defmodule OMG.Watcher.DB.EthEventDB do
     has_one(:exited_utxo, TxOutputDB, foreign_key: :spending_exit)
   end
 
+  def get(hash), do: Repo.get(__MODULE__, hash)
+  def get_all, do: Repo.all(__MODULE__)
+
   @spec insert_deposits(map()) :: [{:ok, %__MODULE__{}} | {:error, atom()}]
   def insert_deposits(deposits) do
     deposits
