@@ -25,8 +25,6 @@ defmodule OMG.JSONRPC.Exposer do
   of same name but different arity
   """
 
-  use OMG.API.LoggerExt
-
   @spec handle_request_on_api(method :: binary, params :: %{required(binary) => any}, api :: atom) :: any
   def handle_request_on_api(method, params, api) do
     with {:ok, fname, args} <-
