@@ -29,7 +29,7 @@ defmodule OMG.API.Block do
           transactions: list(binary),
           hash: block_hash_t(),
           number: pos_integer(),
-          eth_height: pos_integer(),
+          eth_height: pos_integer()
         }
 
   @doc """

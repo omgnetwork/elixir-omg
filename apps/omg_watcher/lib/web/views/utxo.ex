@@ -26,7 +26,7 @@ defmodule OMG.Watcher.Web.View.Utxo do
     |> Serializer.Response.serialize(:success)
   end
 
-  def render("available.json", %{available: %{address: address, utxos: utxos}}) do
+  def render("available.json", %{available: %{utxos: utxos}}) do
     utxos
     |> Serializer.Response.serialize(:success)
   end

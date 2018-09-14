@@ -21,8 +21,6 @@ defmodule OMG.Watcher.Web.View.Transaction do
 
   alias OMG.Watcher.Web.Serializer
 
-  @keys_to_encode [:txid, :cur12, :newowner1, :newowner2, :sig1, :sig2, :spender1, :spender2]
-
   def render("transaction.json", %{transaction: transaction}) do
     transaction
     |> Serializer.Response.serialize(:success)
