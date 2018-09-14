@@ -7,11 +7,11 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
   server: false
 
 # Configure your database
-config :omg_watcher, OMG.Watcher.Repo,
+config :omg_watcher, OMG.Watcher.DB.Repo,
   adapter: Sqlite.Ecto2,
   database: "/tmp/omisego/ecto_simple_" <> Integer.to_string(:rand.uniform(10_000_000)) <> ".sqlite3"
 
-config :omg_watcher, OMG.Watcher.Repo, pool: Ecto.Adapters.SQL.Sandbox
+config :omg_watcher, OMG.Watcher.DB.Repo, pool: Ecto.Adapters.SQL.Sandbox
 
 config :omg_watcher, block_getter_height_sync_interval_ms: 20
 

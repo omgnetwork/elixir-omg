@@ -25,8 +25,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.API.RootchainCoordinator
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter.Core
-  alias OMG.Watcher.Eventer
-  alias OMG.Watcher.TxOutputDB
+  alias OMG.Watcher.DB.TransactionDB
 
   use GenServer
   use OMG.API.LoggerExt
@@ -51,7 +50,7 @@ defmodule OMG.Watcher.BlockGetter do
     EventerAPI.emit_events(events)
 
     with :ok <- continue do
-      response = OMG.Watcher.TransactionDB.update_with(to_block(block, block_rootchain_height))
+      response = TransactionDB.update_with(to_block(block, block_rootchain_height))
       nil = Enum.find(response, &(!match?({:ok, _}, &1)))
       _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end)
       {:ok, next_child} = Eth.RootChain.get_current_child_block()
@@ -172,8 +171,9 @@ defmodule OMG.Watcher.BlockGetter do
 
   @spec to_block(map(), pos_integer()) :: Block.t()
   defp to_block(block, eth_height) do
-    params = block
-    |> Map.put(:eth_height, eth_height)
+    params =
+      block
+      |> Map.put(:eth_height, eth_height)
 
     Map.merge(%Block{}, params)
   end

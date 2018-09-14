@@ -5,7 +5,7 @@
 # Inside the script, you can read and write to any of your
 # repositories directly:
 #
-#     OMG.Watcher.Repo.insert!(%OMG.Watcher.DB.SomeSchema{})
+#     OMG.Watcher.DB.Repo.insert!(%OMG.Watcher.DB.SomeSchema{})
 #
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
@@ -16,10 +16,10 @@ defmodule OMG.Watcher.Playground do
   alias OMG.API.State.Transaction.{Signed, Recovered}
   alias OMG.API.Crypto
   alias OMG.API.Utxo
-  alias OMG.Watcher.Repo
-  alias OMG.Watcher.TransactionDB
-  alias OMG.Watcher.TxOutputDB
-  alias OMG.Watcher.EthEventDB
+  alias OMG.Watcher.DB.Repo
+  alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.DB.TxOutputDB
+  alias OMG.Watcher.DB.EthEventDB
 
   import Ecto.Query
 
@@ -55,7 +55,7 @@ defmodule OMG.Watcher.Playground do
 
   defp setup(false) do
     apps = ensure_all_started([:postgrex, :ecto, ])
-    child = [Supervisor.Spec.supervisor(OMG.Watcher.Repo, [])]
+    child = [Supervisor.Spec.supervisor(OMG.Watcher.DB.Repo, [])]
     {:ok, tree} = Supervisor.start_link(child, [strategy: :one_for_one])
 
     {tree, apps}

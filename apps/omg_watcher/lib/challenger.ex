@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Challenger do
   require Utxo
   alias OMG.Watcher.Challenger.Challenge
   alias OMG.Watcher.Challenger.Core
-  alias OMG.Watcher.TransactionDB
+  alias OMG.Watcher.DB.TransactionDB
 
   def challenge(_utxo_exit) do
     :challenged

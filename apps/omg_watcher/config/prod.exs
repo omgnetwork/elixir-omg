@@ -18,7 +18,7 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
   url: [host: "example.com", port: 80],
   cache_static_manifest: "priv/static/cache_manifest.json"
 
-config :omg_watcher, OMG.Watcher.Repo,
+config :omg_watcher, OMG.Watcher.DB.Repo,
   load_from_system_env: true,
   adapter: Ecto.Adapters.Postgres
 

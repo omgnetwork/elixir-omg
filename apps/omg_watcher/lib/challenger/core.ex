@@ -23,20 +23,20 @@ defmodule OMG.Watcher.Challenger.Core do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Watcher.Challenger.Challenge
-  alias OMG.Watcher.TransactionDB
+  alias OMG.Watcher.DB.TransactionDB
 
   @spec create_challenge(%TransactionDB{}, list(%TransactionDB{})) :: Challenge.t()
   def create_challenge(challenging_tx, txs) do
-    #See: [contract's challengeExit](https://github.com/omisego/plasma-contracts/blob/22936d561a036d49aa6a215531e70c5779df058f/contracts/RootChain.sol#L244)
+    # See: [contract's challengeExit](https://github.com/omisego/plasma-contracts/blob/22936d561a036d49aa6a215531e70c5779df058f/contracts/RootChain.sol#L244)
     # eUtxoIndex - The output position of the exiting utxo.
     eutxoindex = get_eutxo_index(challenging_tx)
     # cUtxoPos - The position of the challenging utxo.
     cutxopos = challenging_utxo_pos(challenging_tx)
 
     txs_hashes =
-    txs
-    |> Enum.sort_by(& &1.txindex)
-    |> Enum.map(& &1.txhash)
+      txs
+      |> Enum.sort_by(& &1.txindex)
+      |> Enum.map(& &1.txhash)
 
     proof = Block.create_tx_proof(txs_hashes, challenging_tx.txindex)
     {:ok, signed_tx} = Signed.decode(challenging_tx.txbytes)

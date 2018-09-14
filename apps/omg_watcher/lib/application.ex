@@ -29,7 +29,7 @@ defmodule OMG.Watcher.Application do
 
     children = [
       # Start the Ecto repository
-      supervisor(OMG.Watcher.Repo, []),
+      supervisor(OMG.Watcher.DB.Repo, []),
       # Start workers
       {OMG.API.State, []},
       {OMG.Watcher.Eventer, []},

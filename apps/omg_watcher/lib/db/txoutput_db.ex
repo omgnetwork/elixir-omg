@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.TxOutputDB do
+defmodule OMG.Watcher.DB.TxOutputDB do
   @moduledoc """
   Ecto schema for transaction's output (or input)
   """
@@ -22,17 +22,18 @@ defmodule OMG.Watcher.TxOutputDB do
   alias OMG.API.State.Transaction
   alias OMG.API.State.Transaction.Signed
   alias OMG.API.Utxo
+  alias OMG.Watcher.DB.Repo
+  alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.DB.EthEventDB
+
   require Utxo
-  alias OMG.Watcher.Repo
-  alias OMG.Watcher.TransactionDB
-  alias OMG.Watcher.EthEventDB
 
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
   schema "txoutputs" do
     field(:owner, :binary)
-    field(:amount, OMG.Watcher.Types.IntegerType)
+    field(:amount, OMG.Watcher.DB.Types.IntegerType)
     field(:currency, :binary)
     field(:proof, :binary)
     field(:creating_tx_oindex, :integer)
@@ -61,12 +62,13 @@ defmodule OMG.Watcher.TxOutputDB do
     tx = Enum.at(sorted_txs, txindex)
 
     utxo_pos = decoded_utxo_pos |> Utxo.Position.encode()
-    {:ok, %Signed{
-            raw_tx: raw_tx,
-            sig1: sig1,
-            sig2: sig2
-          }
-    } = Signed.decode(tx.txbytes)
+
+    {:ok,
+     %Signed{
+       raw_tx: raw_tx,
+       sig1: sig1,
+       sig2: sig2
+     }} = Signed.decode(tx.txbytes)
 
     %{
       utxo_pos: utxo_pos,
@@ -79,11 +81,9 @@ defmodule OMG.Watcher.TxOutputDB do
   def get_all, do: Repo.all(__MODULE__)
 
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
-  def get_by_position(Utxo.position(blknum, _txindex, _oindex) = position) do
-    # TODO: is this appropriate? DB shouldn't know about plasma block numbers
-    if rem(blknum, 1000) == 0,
-      do: get_from_tx(position),
-      else: get_from_deposit(blknum)
+  def get_by_position(Utxo.position(blknum, _, _) = position) do
+    # first try to find it as tx's output then deposit's output otherwise
+    get_from_tx(position) || get_from_deposit(blknum)
   end
 
   @spec get_from_tx(Utxo.Position.t()) :: map() | nil
@@ -108,9 +108,11 @@ defmodule OMG.Watcher.TxOutputDB do
 
   def get_utxos(owner) do
     query =
-      from txo in __MODULE__,
-      where: txo.owner == ^owner and is_nil(txo.spending_txhash) and is_nil(txo.spending_exit),
-      preload: [:creating_transaction, :deposit]
+      from(
+        txo in __MODULE__,
+        where: txo.owner == ^owner and is_nil(txo.spending_txhash) and is_nil(txo.spending_exit),
+        preload: [:creating_transaction, :deposit]
+      )
 
     Repo.all(query)
   end

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Types.IntegerType do
+defmodule OMG.Watcher.DB.Types.IntegerType do
   @moduledoc """
   Custom Ecto type that converts DB's decimal value into integer.
   Ecto supports `:decimal` type out of the box (via `decimal` package). However,

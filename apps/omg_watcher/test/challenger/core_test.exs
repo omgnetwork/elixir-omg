@@ -21,8 +21,8 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   alias OMG.API.Utxo
   alias OMG.Watcher.Challenger.Challenge
   alias OMG.Watcher.Challenger.Core
-  alias OMG.Watcher.TransactionDB
-  alias OMG.Watcher.TxOutputDB
+  alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.DB.TxOutputDB
 
   require Utxo
 
@@ -48,8 +48,8 @@ defmodule OMG.Watcher.Challenger.CoreTest do
         newowner2: <<1::160>>,
         amount2: amount2
       },
-      sig1: <<0::(65*8)>>,
-      sig2: <<0::(65*8)>>
+      sig1: <<0::65*8>>,
+      sig2: <<0::65*8>>
     }
 
     txhash = Signed.signed_hash(signed)
@@ -59,11 +59,11 @@ defmodule OMG.Watcher.Challenger.CoreTest do
       txindex: txindex,
       txhash: txhash,
       inputs: [
-        %TxOutputDB{creating_tx_oindex: 0, spending_tx_oindex: 0},
+        %TxOutputDB{creating_tx_oindex: 0, spending_tx_oindex: 0}
       ],
       outputs: [
         %TxOutputDB{creating_tx_oindex: 0},
-        %TxOutputDB{creating_tx_oindex: 1},
+        %TxOutputDB{creating_tx_oindex: 1}
       ],
       txbytes: Signed.encode(signed)
     }
@@ -76,10 +76,9 @@ defmodule OMG.Watcher.Challenger.CoreTest do
 
     expected_cutxopos = Utxo.position(2, 1, 0) |> Utxo.Position.encode()
 
-    %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} =
-      Core.create_challenge(challenging_tx, transactions)
+    %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
 
-      #FIXME: do smth w/ test
+    # FIXME: do smth w/ test
     ## Maybe test makes no longer any sense in this shape
     # [_, challenging_tx | _] = transactions
     # IO.inspect challenging_tx

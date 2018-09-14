@@ -12,20 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.TransactionDB do
+defmodule OMG.Watcher.DB.TransactionDB do
   @moduledoc """
   Ecto Schema representing TransactionDB.
   """
   use Ecto.Schema
 
-  import Ecto.Query, only: [from: 2]
-
   alias OMG.API.Block
   alias OMG.API.State.{Transaction, Transaction.Recovered, Transaction.Signed}
   alias OMG.API.Utxo
+  alias OMG.Watcher.DB.Repo
+  alias OMG.Watcher.DB.TxOutputDB
+
   require Utxo
-  alias OMG.Watcher.Repo
-  alias OMG.Watcher.TxOutputDB
+
+  import Ecto.Query, only: [from: 2]
 
   @primary_key {:txhash, :binary, []}
   @derive {Phoenix.Param, key: :txhash}
@@ -104,16 +105,17 @@ defmodule OMG.Watcher.TransactionDB do
   @spec get_transaction_challenging_utxo(Utxo.Position.t()) :: {:ok, map()} | :utxo_not_spent
   def get_transaction_challenging_utxo(position) do
     # finding tx's input can be tricky
-    input = TxOutputDB.get_by_position(position)
-    |> Repo.preload([:spending_transaction])
+    input =
+      TxOutputDB.get_by_position(position)
+      |> Repo.preload([:spending_transaction])
 
     case input && input.spending_transaction do
-      nil -> {:error, :utxo_not_spent}
+      nil ->
+        {:error, :utxo_not_spent}
+
       tx ->
         # transaction which spends output specified by position with outputs it created
-        tx = %__MODULE__{
-          tx |> Repo.preload([:outputs])
-          | inputs: [input]}
+        tx = %__MODULE__{(tx |> Repo.preload([:outputs])) | inputs: [input]}
 
         {:ok, tx}
     end

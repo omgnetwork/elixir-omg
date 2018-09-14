@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.Watcher.TestHelper
-  alias OMG.Watcher.TransactionDB
+  alias OMG.Watcher.DB.TransactionDB
 
   @eth Crypto.zero_address()
 
@@ -61,8 +61,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
         ok: %TransactionDB{
           blknum: blknum,
           txindex: txindex,
-          txhash: txhash,
-
+          txhash: txhash
         }
       ] =
         TransactionDB.update_with(%Block{

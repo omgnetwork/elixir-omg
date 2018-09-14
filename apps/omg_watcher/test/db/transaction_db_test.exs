@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.TransactionDBTest do
+defmodule OMG.Watcher.DB.TransactionDBTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
@@ -22,8 +22,8 @@ defmodule OMG.Watcher.TransactionDBTest do
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction.{Recovered, Signed}
   alias OMG.API.Utxo
-  alias OMG.Watcher.TransactionDB
-  alias OMG.Watcher.TxOutputDB
+  alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.DB.TxOutputDB
 
   require Utxo
 
@@ -34,7 +34,7 @@ defmodule OMG.Watcher.TransactionDBTest do
     test "insert and retrive transaction", %{alice: alice, bob: bob} do
       tester_f = fn {blknum, recovered_txs} ->
         db_results = TransactionDB.update_with(%Block{transactions: recovered_txs, number: blknum})
-        assert db_results |> Enum.all?(& elem(&1, 0) == :ok)
+        assert db_results |> Enum.all?(&(elem(&1, 0) == :ok))
 
         recovered_txs
         |> Enum.with_index()
@@ -46,11 +46,20 @@ defmodule OMG.Watcher.TransactionDBTest do
       end
 
       [
-        {1000, [OMG.API.TestHelper.create_recovered([], @eth, [{alice, 300}]),
-                OMG.API.TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 100}, {bob, 200}])]},
+        {1000,
+         [
+           OMG.API.TestHelper.create_recovered([], @eth, [{alice, 300}]),
+           OMG.API.TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 100}, {bob, 200}])
+         ]},
         {2000, [OMG.API.TestHelper.create_recovered([{1000, 1, 0, alice}], @eth, [{bob, 50}, {alice, 50}])]},
-        {3000, [OMG.API.TestHelper.create_recovered([{2000, 0, 1, alice}, {1000, 1, 1, bob}], @eth, [{alice, 150}, {bob, 100}]),
-                OMG.API.TestHelper.create_recovered([{3000, 0, 1, bob}, {3000, 0, 0, alice}], @eth, [{bob, 250}])]}
+        {3000,
+         [
+           OMG.API.TestHelper.create_recovered([{2000, 0, 1, alice}, {1000, 1, 1, bob}], @eth, [
+             {alice, 150},
+             {bob, 100}
+           ]),
+           OMG.API.TestHelper.create_recovered([{3000, 0, 1, bob}, {3000, 0, 0, alice}], @eth, [{bob, 250}])
+         ]}
       ]
       |> Enum.map(tester_f)
     end
@@ -101,14 +110,17 @@ defmodule OMG.Watcher.TransactionDBTest do
       bob_deposit_pos = Utxo.position(2, 0, 0)
       alice_addr = alice.addr
       bob_addr = bob.addr
-      OMG.Watcher.EthEventDB.insert_deposits([
+
+      OMG.Watcher.DB.EthEventDB.insert_deposits([
         %{owner: alice_addr, currency: @eth, amount: 100, blknum: 1, hash: "hash1"},
-        %{owner: bob_addr, currency: @eth, amount: 100, blknum: 2, hash: "hash2"}])
+        %{owner: bob_addr, currency: @eth, amount: 100, blknum: 2, hash: "hash2"}
+      ])
 
       {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(alice_deposit_pos)
       {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(bob_deposit_pos)
 
       alice_spend_recovered = OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 99}])
+
       [{:ok, %TransactionDB{txhash: txhash_alice}}] =
         TransactionDB.update_with(%Block{
           transactions: [alice_spend_recovered],
@@ -116,16 +128,20 @@ defmodule OMG.Watcher.TransactionDBTest do
         })
 
       assert match?(
-        %TransactionDB{txhash: txhash_alice, blknum: 1000, txindex: 0,
-          inputs: [%TxOutputDB{creating_deposit: "hash1", owner: alice_addr, currency: @eth, amount: 100,}],
-          outputs: [%TxOutputDB{creating_txhash: txhash_alice, owner: bob_addr, currency: @eth, amount: 99,}]
-        },
-         delete_meta(TransactionDB.get_transaction_challenging_utxo(alice_deposit_pos))
-      )
+               %TransactionDB{
+                 txhash: txhash_alice,
+                 blknum: 1000,
+                 txindex: 0,
+                 inputs: [%TxOutputDB{creating_deposit: "hash1", owner: alice_addr, currency: @eth, amount: 100}],
+                 outputs: [%TxOutputDB{creating_txhash: txhash_alice, owner: bob_addr, currency: @eth, amount: 99}]
+               },
+               delete_meta(TransactionDB.get_transaction_challenging_utxo(alice_deposit_pos))
+             )
 
       {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(bob_deposit_pos)
 
       bob_spend_recovered = OMG.API.TestHelper.create_recovered([{2, 0, 0, bob}], @eth, [{alice, 99}])
+
       [{:ok, %TransactionDB{txhash: txhash_bob}}] =
         TransactionDB.update_with(%Block{
           transactions: [bob_spend_recovered],
@@ -133,13 +149,15 @@ defmodule OMG.Watcher.TransactionDBTest do
         })
 
       assert match?(
-        %TransactionDB{
-          txhash: txhash_bob, blknum: 2000, txindex: 0,
-          inputs: [%TxOutputDB{creating_deposit: "hash2", owner: bob_addr, currency: @eth, amount: 100,}],
-          outputs: [%TxOutputDB{creating_txhash: txhash_bob, owner: alice_addr, currency: @eth, amount: 99,}]
-        },
-        delete_meta(TransactionDB.get_transaction_challenging_utxo(bob_deposit_pos))
-      )
+               %TransactionDB{
+                 txhash: txhash_bob,
+                 blknum: 2000,
+                 txindex: 0,
+                 inputs: [%TxOutputDB{creating_deposit: "hash2", owner: bob_addr, currency: @eth, amount: 100}],
+                 outputs: [%TxOutputDB{creating_txhash: txhash_bob, owner: alice_addr, currency: @eth, amount: 99}]
+               },
+               delete_meta(TransactionDB.get_transaction_challenging_utxo(bob_deposit_pos))
+             )
     end
 
     defp create_expected_transaction(

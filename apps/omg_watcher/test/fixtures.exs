@@ -134,8 +134,8 @@ defmodule OMG.Watcher.Fixtures do
 
   deffixture watcher_sandbox(watcher) do
     :ok = watcher
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.Repo, ownership_timeout: 90_000)
-    Ecto.Adapters.SQL.Sandbox.mode(OMG.Watcher.Repo, {:shared, self()})
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.DB.Repo, ownership_timeout: 90_000)
+    Ecto.Adapters.SQL.Sandbox.mode(OMG.Watcher.DB.Repo, {:shared, self()})
   end
 
   @doc "run only database in sandbox and endpoint to make request"
@@ -144,12 +144,12 @@ defmodule OMG.Watcher.Fixtures do
 
     {:ok, pid} =
       Supervisor.start_link(
-        [supervisor(OMG.Watcher.Repo, []), supervisor(OMG.Watcher.Web.Endpoint, [])],
+        [supervisor(OMG.Watcher.DB.Repo, []), supervisor(OMG.Watcher.Web.Endpoint, [])],
         strategy: :one_for_one,
         name: OMG.Watcher.Supervisor
       )
 
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.Repo)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.DB.Repo)
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
       TestHelper.wait_for_process(pid)

@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# FIXME: dir hierarchy: db/ & ns: OMG.Watcher.DB.AtomType
-defmodule OMG.Watcher.Types.AtomType do
+defmodule OMG.Watcher.DB.Types.AtomType do
   @moduledoc """
   Custom Ecto type that converts DB's string value into atom.
   """
