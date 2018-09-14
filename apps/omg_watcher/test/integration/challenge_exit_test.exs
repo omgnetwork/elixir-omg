@@ -21,7 +21,6 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
   use Plug.Test
 
   alias OMG.API
-  alias OMG.API.Crypto
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Eth
@@ -58,16 +57,13 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
       "utxo_pos" => utxo_pos
     } = IntegrationTest.get_exit_data(exiting_utxo_block_nr, 0, 0)
 
-    {:ok, alice_address} = Crypto.encode_address(alice.addr)
-
     {:ok, txhash} =
       Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
         proof,
         sigs,
-        1,
-        alice_address
+        alice.addr
       )
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
@@ -83,7 +79,7 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
         challenge["txbytes"],
         challenge["proof"],
         challenge["sigs"],
-        alice_address
+        alice.addr
       )
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)

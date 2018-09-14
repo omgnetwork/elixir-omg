@@ -17,6 +17,10 @@ defmodule OMG.Eth.WaitFor do
   Generic wait_for_* utils, styled after web3 counterparts
   """
 
+  alias OMG.Eth
+
+  import Eth.Encoding
+
   def eth_rpc do
     f = fn ->
       case Ethereumex.HttpClient.eth_syncing() do
@@ -30,9 +34,16 @@ defmodule OMG.Eth.WaitFor do
     |> Task.await(10_000)
   end
 
+  @doc """
+  NOTE: `eth_receipt` takes txhash as raw decoded binary, like the rest of Eth APIs, but binaries in the receipt
+  returned are in `0xhex-style`
+  """
   def eth_receipt(txhash, timeout \\ 15_000) do
     f = fn ->
-      case Ethereumex.HttpClient.eth_get_transaction_receipt(txhash) do
+      txhash
+      |> to_hex()
+      |> Ethereumex.HttpClient.eth_get_transaction_receipt()
+      |> case do
         {:ok, receipt} when receipt != nil -> {:ok, receipt}
         _ -> :repeat
       end

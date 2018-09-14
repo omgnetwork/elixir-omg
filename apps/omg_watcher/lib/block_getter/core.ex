@@ -120,18 +120,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Produces rootchain block height range to search for events of block submission.
   If the range is not empty it spans from current synced rootchain height to `coordinator_height`.
+  Empty range case is solved naturally with {a, b}, a > b
   """
-  @spec get_eth_range_for_block_submitted_events(t(), non_neg_integer()) ::
-          {pos_integer(), pos_integer(), t()} | {:empty_range, t()}
-  def get_eth_range_for_block_submitted_events(state, coordinator_height)
-
-  def get_eth_range_for_block_submitted_events(%__MODULE__{synced_height: synced_height} = state, coordinator_height)
-      when synced_height < coordinator_height do
-    {{state.synced_height + 1, coordinator_height}, state}
-  end
-
-  def get_eth_range_for_block_submitted_events(state, _coordinator_height) do
-    {:empty_range, state}
+  @spec get_eth_range_for_block_submitted_events(t(), non_neg_integer()) :: {pos_integer(), pos_integer()}
+  def get_eth_range_for_block_submitted_events(%__MODULE__{synced_height: synced_height}, coordinator_height) do
+    {synced_height + 1, coordinator_height}
   end
 
   @spec get_blocks_to_consume(t(), list(), non_neg_integer()) ::

@@ -120,8 +120,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         txbytes,
         proof,
         sigs,
-        1,
-        alice_address
+        alice.addr
       )
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
@@ -153,10 +152,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     alice: alice,
     alice_deposits: {_, token_deposit_blknum}
   } do
-    {:ok, alice_address} = Crypto.encode_address(alice.addr)
-    {:ok, currency} = API.Crypto.decode_address(token.address)
-
-    token_tx = API.TestHelper.create_encoded([{token_deposit_blknum, 0, 0, alice}], currency, [{alice, 10}])
+    token_tx = API.TestHelper.create_encoded([{token_deposit_blknum, 0, 0, alice}], token, [{alice, 10}])
 
     # spend the token deposit
     {:ok, %{blknum: spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
@@ -176,8 +172,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         txbytes,
         proof,
         sigs,
-        1,
-        alice_address
+        alice.addr
       )
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)

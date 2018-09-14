@@ -25,8 +25,7 @@ defmodule OMG.API.Integration.DepositHelper do
   def deposit_to_child_chain(to, value, token \\ @eth)
 
   def deposit_to_child_chain(to, value, @eth) do
-    {:ok, deposit_tx_hash} = Eth.RootChain.deposit(value, to)
-    {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
+    {:ok, receipt} = Eth.RootChain.deposit(value, to) |> Eth.DevHelpers.transact_sync!()
     deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
 
     wait_deposit_recognized(deposit_blknum)
@@ -34,14 +33,12 @@ defmodule OMG.API.Integration.DepositHelper do
     deposit_blknum
   end
 
-  def deposit_to_child_chain(to, value, token) do
-    _ = Eth.Token.mint(to, value, token.address)
+  def deposit_to_child_chain(to, value, token_addr) when is_binary(token_addr) and byte_size(token_addr) == 20 do
+    contract_addr = Eth.Encoding.from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
 
-    contract_addr = Application.fetch_env!(:omg_eth, :contract_addr)
-
-    Eth.Token.approve(to, contract_addr, value, token.address)
-
-    {:ok, receipt} = Eth.RootChain.deposit_token(to, token.address, value)
+    to |> Eth.Token.mint(value, token_addr) |> Eth.DevHelpers.transact_sync!()
+    to |> Eth.Token.approve(contract_addr, value, token_addr) |> Eth.DevHelpers.transact_sync!()
+    {:ok, receipt} = to |> Eth.RootChain.deposit_token(token_addr, value) |> Eth.DevHelpers.transact_sync!()
 
     token_deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
 
