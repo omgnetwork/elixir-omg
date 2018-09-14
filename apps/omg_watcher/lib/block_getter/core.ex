@@ -109,16 +109,16 @@ defmodule OMG.Watcher.BlockGetter.Core do
     blocks_to_consume = Map.delete(state.blocks_to_consume, blknum)
     last_consumed_block = max(state.last_consumed_block, blknum)
 
-    synced_height =
+    {synced_height, step} =
       if Enum.empty?(blocks) do
-        state.synced_height + 1
+        {state.synced_height + 1, :downloading}
       else
-        state.synced_height
+        {state.synced_height, :processing}
       end
 
     {%{
        state
-       | block_consume_batch: {:processing, blocks},
+       | block_consume_batch: {step, blocks},
          blocks_to_consume: blocks_to_consume,
          last_consumed_block: last_consumed_block,
          synced_height: synced_height
