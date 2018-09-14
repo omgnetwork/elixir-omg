@@ -96,12 +96,12 @@ defmodule OMG.API.State do
            ) do
       _ =
         Logger.info(fn ->
-          "Started State, height '#{height_query_result}', deposit height '#{last_deposit_query_result}'"
+          "Started State, height: #{height_query_result}, deposit height: #{last_deposit_query_result}"
         end)
 
       result
     else
-      {:error, :last_deposit_not_found} = error ->
+      {:error, reason} = error when reason in [:top_block_number_not_found, :last_deposit_not_found] ->
         _ = Logger.error(fn -> "It seems that Child chain database is not initialized. Check README.md" end)
         error
 

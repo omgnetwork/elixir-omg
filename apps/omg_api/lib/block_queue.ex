@@ -82,8 +82,8 @@ defmodule OMG.API.BlockQueue do
       {:ok, {top_mined_hash, _}} = Eth.RootChain.get_child_chain(mined_num)
       _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{inspect(Base.encode16(top_mined_hash))}" end)
 
-      state =
-        with {:ok, state} <-
+      {:ok, state} =
+        with {:ok, _state} = result <-
                Core.new(
                  mined_child_block_num: mined_num,
                  known_hashes: Enum.zip(range, known_hashes),
@@ -94,12 +94,12 @@ defmodule OMG.API.BlockQueue do
                  submit_period: Application.get_env(:omg_api, :child_block_submit_period),
                  finality_threshold: finality_threshold
                ) do
-          state
+          result
         else
           {:error, reason} = error when reason in [:mined_hash_not_found_in_db, :contract_ahead_of_db] ->
             _ =
               Logger.error(fn ->
-                "It seems that the Child chain might have not been wiped clean when starting a child chain from scratch. Check READMME.MD and follow the setting up of developer environment from the beginning."
+                "The child chain might have not been wiped clean when starting a child chain from scratch. Check README.MD and follow the setting up child chain."
               end)
 
             error

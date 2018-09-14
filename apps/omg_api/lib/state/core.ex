@@ -80,10 +80,10 @@ defmodule OMG.API.State.Core do
 
   @spec extract_initial_state(
           utxos_query_result :: [utxos],
-          height_query_result :: non_neg_integer,
+          height_query_result :: non_neg_integer | :not_found,
           last_deposit_child_blknum_query_result :: non_neg_integer | :not_found,
           child_block_interval :: pos_integer
-        ) :: {:ok, t()} | {:error, :last_deposit_not_found}
+        ) :: {:ok, t()} | {:error, :last_deposit_not_found | :top_block_number_not_found}
   def extract_initial_state(
         utxos_query_result,
         height_query_result,
@@ -120,6 +120,15 @@ defmodule OMG.API.State.Core do
         _child_block_interval
       ) do
     {:error, :last_deposit_not_found}
+  end
+
+  def extract_initial_state(
+        _utxos_query_result,
+        :not_found,
+        _last_deposit_child_blknum_query_result,
+        _child_block_interval
+      ) do
+    {:error, :top_block_number_not_found}
   end
 
   @doc """
