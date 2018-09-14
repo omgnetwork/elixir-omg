@@ -22,9 +22,9 @@ defmodule OMG.Watcher.DB.TxOutputDB do
   alias OMG.API.State.Transaction
   alias OMG.API.State.Transaction.Signed
   alias OMG.API.Utxo
+  alias OMG.Watcher.DB.EthEventDB
   alias OMG.Watcher.DB.Repo
   alias OMG.Watcher.DB.TransactionDB
-  alias OMG.Watcher.DB.EthEventDB
 
   require Utxo
 

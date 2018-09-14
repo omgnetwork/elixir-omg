@@ -20,8 +20,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   alias OMG.API
   alias OMG.API.Block
   alias OMG.API.Crypto
-  alias OMG.Watcher.TestHelper
   alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.TestHelper
 
   @eth Crypto.zero_address()
 

@@ -59,7 +59,8 @@ defmodule OMG.Watcher.Challenger.Core do
     |> Utxo.Position.encode()
   end
 
-  # here: challenging_tx is prepared to contain just utxo_exit input only, see: TransactionDB.get_transaction_challenging_utxo/1
+  # here: challenging_tx is prepared to contain just utxo_exit input only,
+  # see: TransactionDB.get_transaction_challenging_utxo/1
   defp get_eutxo_index(%TransactionDB{inputs: [input]}),
     do: input.spending_tx_oindex
 end

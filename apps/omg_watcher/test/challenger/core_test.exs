@@ -28,8 +28,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
 
   deffixture transactions do
     [
-      create_transaction(1, 5, 0),
-      create_transaction(2, 0, 4)
+      create_transaction(1, 5, 0)
     ]
   end
 
@@ -48,8 +47,8 @@ defmodule OMG.Watcher.Challenger.CoreTest do
         newowner2: <<1::160>>,
         amount2: amount2
       },
-      sig1: <<0::65*8>>,
-      sig2: <<0::65*8>>
+      sig1: <<0::520>>,
+      sig2: <<0::520>>
     }
 
     txhash = Signed.signed_hash(signed)
@@ -76,21 +75,8 @@ defmodule OMG.Watcher.Challenger.CoreTest do
 
     expected_cutxopos = Utxo.position(2, 1, 0) |> Utxo.Position.encode()
 
-    %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
+    assert %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
 
-    # FIXME: do smth w/ test
-    ## Maybe test makes no longer any sense in this shape
-    # [_, challenging_tx | _] = transactions
-    # IO.inspect challenging_tx
-
-    # expected_cutxopos = Utxo.position(2, 2, 1) |> Utxo.Position.encode()
-
-    # %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} =
-    #   Core.create_challenge(challenging_tx, transactions)
-
-    # utxo_exit = Utxo.position(1, 0, 1)
-
-    # %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 1} =
-    #   Core.create_challenge(challenging_tx, transactions)
+    # TODO: consider what should be tested here
   end
 end

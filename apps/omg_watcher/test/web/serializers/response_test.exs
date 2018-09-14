@@ -15,8 +15,8 @@
 defmodule OMG.Watcher.Web.Serializer.ResponseTest do
   use ExUnit.Case, async: true
 
-  alias OMG.Watcher.Web.Serializer.Response
   alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.Web.Serializer.Response
 
   @cleaned_tx %{
     blknum: nil,

@@ -21,10 +21,11 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
   alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.API.Utxo
-  require Utxo
-  alias OMG.Watcher.TestHelper
   alias OMG.Watcher.DB.EthEventDB
   alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.TestHelper
+
+  require Utxo
 
   @eth Crypto.zero_address()
 

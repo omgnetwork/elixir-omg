@@ -152,7 +152,7 @@ defmodule OMG.Watcher.DB.TxOutputDBTest do
       [{:ok, _tx0}, {:ok, %TransactionDB{txhash: txhash2}}] =
         TransactionDB.update_with(%Block{
           transactions: [
-            API.TestHelper.create_recovered([], @eth, [{alice, 10001}]),
+            API.TestHelper.create_recovered([], @eth, [{alice, 10_001}]),
             API.TestHelper.create_recovered([], @eth, [{alice, 1}, {alice, 2}])
           ],
           number: 1000
@@ -170,8 +170,8 @@ defmodule OMG.Watcher.DB.TxOutputDBTest do
       [{:ok, _tx0}, {:ok, _tx1}, {:ok, %TransactionDB{txhash: txhash3}}] =
         TransactionDB.update_with(%Block{
           transactions: [
-            API.TestHelper.create_recovered([], @eth, [{alice, 20131}]),
-            API.TestHelper.create_recovered([], @eth, [{alice, 20132}]),
+            API.TestHelper.create_recovered([], @eth, [{alice, 20_131}]),
+            API.TestHelper.create_recovered([], @eth, [{alice, 20_132}]),
             API.TestHelper.create_recovered([], @eth, [{alice, 3}, {alice, 4}])
           ],
           number: 2013

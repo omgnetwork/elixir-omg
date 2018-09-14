@@ -1,6 +1,9 @@
 # Script for experimenting with the database. You can run it as:
 #
-#     mix run priv/repo/playground.exs
+# $> cd apps/omg_watcher
+# $> iex -S mix run --no-start
+# iex> c "priv/repo/playground.exs"
+# iex> OMG.Watcher.Playground.go()
 #
 # Inside the script, you can read and write to any of your
 # repositories directly:
@@ -12,14 +15,14 @@
 defmodule OMG.Watcher.Playground do
   @moduledoc false
 
-  alias OMG.API.State.Transaction
-  alias OMG.API.State.Transaction.{Signed, Recovered}
   alias OMG.API.Crypto
+  alias OMG.API.State.Transaction
+  alias OMG.API.State.Transaction.{Recovered, Signed}
   alias OMG.API.Utxo
+  alias OMG.Watcher.DB.EthEventDB
   alias OMG.Watcher.DB.Repo
   alias OMG.Watcher.DB.TransactionDB
   alias OMG.Watcher.DB.TxOutputDB
-  alias OMG.Watcher.DB.EthEventDB
 
   import Ecto.Query
 
@@ -47,16 +50,16 @@ defmodule OMG.Watcher.Playground do
     :ok
   end
 
-  defp setup() do
+  defp setup do
     setup(Enum.any?(Application.started_applications(), &(elem(&1, 0) == :ecto)))
   end
 
   defp setup(true), do: []
 
   defp setup(false) do
-    apps = ensure_all_started([:postgrex, :ecto, ])
+    apps = ensure_all_started([:postgrex, :ecto])
     child = [Supervisor.Spec.supervisor(OMG.Watcher.DB.Repo, [])]
-    {:ok, tree} = Supervisor.start_link(child, [strategy: :one_for_one])
+    {:ok, tree} = Supervisor.start_link(child, strategy: :one_for_one)
 
     {tree, apps}
   end
@@ -79,13 +82,15 @@ defmodule OMG.Watcher.Playground do
     utxo = %Utxo{
       owner: alice.addr,
       currency: @eth,
-      amount: 3618502788666131106986593281521497120414687020801267626233049500247285301247
+      amount: 3_618_502_788_666_131_106_986_593_281_521_497_120_414_687_020_801_267_626_233_049_500_247_285_301_247
     }
 
-    {:ok, _} = EthEventDB.insert_deposit(
-      <<0xde, 0xad, 0xbe, 0xef, 0::224>>,
-      1001,
-      utxo)
+    {:ok, _} =
+      EthEventDB.insert_deposit(
+        <<0xDE, 0xAD, 0xBE, 0xEF, 0::224>>,
+        1001,
+        utxo
+      )
 
     utxos = %{
       address: alice.addr,
@@ -99,25 +104,20 @@ defmodule OMG.Watcher.Playground do
         }
       ]
     }
-    to_spend = 196159429230833773869868419475239575503198607639501078528
+
+    to_spend = 196_159_429_230_833_773_869_868_419_475_239_575_503_198_607_639_501_078_528
 
     {:ok, raw_tx} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: to_spend})
-    #IO.puts(inspect raw_tx, pretty: true)
-
     signed_tx = raw_tx |> Transaction.sign(alice.priv, <<>>)
-    #IO.puts(inspect signed_tx, pretty: true)
-
     {:ok, transaction} = Recovered.recover_from(signed_tx)
-    #IO.puts(inspect transaction, pretty: true)
 
-    result = TransactionDB.insert(transaction, 3000, 101, 20990)
-    #IO.inspect(result)
+    result = TransactionDB.insert(transaction, 3000, 101, 20_990)
 
-    txs_from_db = Repo.all(from t in TransactionDB, preload: [:inputs, :outputs])
-    #IO.inspect txs_from_db
+    txs_from_db = Repo.all(from(t in TransactionDB, preload: [:inputs, :outputs]))
 
     # Create next payment to bob using tx utxo
     [utxo] = TxOutputDB.get_utxos(alice.addr)
+
     utxos = %{
       address: alice.addr,
       utxos: [
@@ -130,21 +130,18 @@ defmodule OMG.Watcher.Playground do
         }
       ]
     }
+
     to_spend = 333
     {:ok, raw_tx} = Transaction.create_from_utxos(utxos, %{address: bob.addr, amount: to_spend})
     signed_tx = raw_tx |> Transaction.sign(alice.priv, <<>>)
     {:ok, transaction} = Recovered.recover_from(signed_tx)
-    result = TransactionDB.insert(transaction, 5000, 7, 21009)
+    result = TransactionDB.insert(transaction, 5000, 7, 21_009)
 
     bob_utxo = TxOutputDB.get_by_position(5000, 7, 0)
-    IO.inspect bob_utxo, pretty: true
-
-
 
     # Clean up
     Logger.warn("Cleaning the playground")
     Process.sleep(500)
     # teardown(all_apps)
   end
-
 end
