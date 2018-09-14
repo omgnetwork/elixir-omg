@@ -29,11 +29,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
 
     %{"result" => "success", "data" => data} = rest_call(:get, "utxo/#{utxo_pos}/exit_data")
 
-    decoded_values =
-      ["txbytes", "proof", "sigs"]
-      |> Enum.into(%{}, fn key -> {key, Base.decode16!(data[key])} end)
-
-    Map.merge(data, decoded_values)
+    OMG.Watcher.Web.Serializer.Response.decode16(data, ["txbytes", "proof", "sigs"])
   end
 
   def wait_until_block_getter_fetches_block(block_nr, timeout) do

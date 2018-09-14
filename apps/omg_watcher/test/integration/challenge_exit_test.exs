@@ -27,7 +27,7 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
   alias OMG.JSONRPC.Client
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper, as: Test
-  alias OMG.Watcher.Web.Serializer
+  alias OMG.Watcher.Web.Serializer.Response
 
   @moduletag :integration
 
@@ -91,10 +91,6 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
 
     assert %{"result" => "success", "data" => data} = Test.rest_call(:get, "utxo/#{utxo_pos}/challenge_data")
 
-    decoded_values =
-      ["txbytes", "proof", "sigs"]
-      |> Enum.into(%{}, fn key -> {key, Base.decode16!(data[key])} end)
-
-    Map.merge(data, decoded_values)
+    Response.decode16(data, ["txbytes", "proof", "sigs"])
   end
 end
