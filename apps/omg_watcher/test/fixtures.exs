@@ -12,21 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# unfortunately something is wrong with the fixtures loading in `test_helper.exs` and the following needs to be done
+Code.require_file("#{__DIR__}/../../omg_api/test/integration/fixtures.exs")
+
 defmodule OMG.Watcher.Fixtures do
   use ExUnitFixtures.FixtureModule
 
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
+  use OMG.API.Integration.Fixtures
   use OMG.API.LoggerExt
   alias OMG.Watcher.TestHelper
 
-  deffixture child_chain(contract, token) do
+  deffixture child_chain(contract, fee_file) do
     config_file_path = Briefly.create!(extname: ".exs")
     db_path = Briefly.create!(directory: true)
-
-    {:ok, eth} = OMG.API.Crypto.encode_address(OMG.API.Crypto.zero_address())
-    fees = %{eth => 0, token.address => 0}
-    {:ok, fees_path} = OMG.API.TestHelper.write_fee_file(fees)
 
     config_file_path
     |> File.open!([:write])
@@ -39,12 +39,9 @@ defmodule OMG.Watcher.Fixtures do
       config :omg_eth,
         child_block_interval: #{Application.get_env(:omg_eth, :child_block_interval)}
       config :omg_api,
-        fee_specs_file_path: "#{fees_path}",
+        fee_specs_file_path: "#{fee_file}",
         rootchain_height_sync_interval_ms: #{Application.get_env(:omg_api, :rootchain_height_sync_interval_ms)},
         ethereum_event_block_finality_margin: #{Application.get_env(:omg_api, :ethereum_event_block_finality_margin)},
-        ethereum_event_get_deposits_interval_ms: #{
-      Application.get_env(:omg_api, :ethereum_event_get_deposits_interval_ms)
-    },
         ethereum_event_check_height_interval_ms: #{
       Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms)
     }

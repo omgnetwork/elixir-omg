@@ -152,7 +152,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   def handle_info(:sync, state) do
     with {:sync, next_synced_height} <- RootchainCoordinator.get_height() do
-      {block_range, state} = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
+      block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
       {:ok, submissions} = Eth.RootChain.get_block_submitted_events(block_range)
 
       {blocks_to_consume, synced_height, db_updates, state} =

@@ -310,12 +310,6 @@ defmodule OMG.API.State.Core do
     {:ok, {block, event_triggers, db_updates}, new_state}
   end
 
-  def decode_deposit(%{owner: owner, currency: currency} = deposit) do
-    {:ok, owner_decode} = Crypto.decode_address(owner)
-    {:ok, currency_decode} = Crypto.decode_address(currency)
-    %{deposit | owner: owner_decode, currency: currency_decode}
-  end
-
   @spec deposit(deposits :: [deposit()], state :: t()) :: {:ok, {[deposit_event], [db_update]}, new_state :: t()}
   def deposit(deposits, %Core{utxos: utxos, last_deposit_child_blknum: last_deposit_child_blknum} = state) do
     deposits = deposits |> Enum.filter(&(&1.blknum > last_deposit_child_blknum))

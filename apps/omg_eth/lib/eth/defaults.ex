@@ -12,17 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.Encoding do
+defmodule OMG.Eth.Defaults do
   @moduledoc """
-  Internal encoding helpers to talk to ethereum.
-  To be used in Eth and DevHelper
+  Internal defaults of non-production critical calls to `Eth.RootChain` and `Eth.Token`.
+
+  Don't ever use this for `Eth.RootChain.submit_block` or any other production related code.
   """
 
-  def encode_eth_rpc_unsigned_int(0) do
-    "0x0"
-  end
+  import OMG.Eth.Encoding
 
-  def encode_eth_rpc_unsigned_int(value) do
-    "0x" <> (value |> :binary.encode_unsigned() |> Base.encode16() |> String.trim_leading("0"))
+  # safe, reasonable amount, equal to the testnet block gas limit
+  @lots_of_gas 4_712_388
+  @gas_price 20_000_000_000
+
+  def tx_defaults do
+    [value: 0, gasPrice: @gas_price, gas: @lots_of_gas]
+    |> Enum.map(fn {k, v} -> {k, to_hex(v)} end)
   end
 end

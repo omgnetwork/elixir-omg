@@ -18,16 +18,16 @@ defmodule OMG.Eth.DevHelpers do
   Run against `geth --dev` and similar.
   """
 
-  alias OMG.API.Crypto
   alias OMG.Eth
-  alias OMG.Eth.WaitFor, as: WaitFor
+  alias OMG.Eth.WaitFor
 
-  import OMG.Eth.Encoding
-
-  # about 4 Ethereum blocks on "realistic" networks, use to timeout synchronous operations in demos on testnets
-  @about_4_blocks_time 60_000
+  import Eth.Encoding
 
   @one_hundred_eth trunc(:math.pow(10, 18) * 100)
+
+  # about 4 Ethereum blocks on "realistic" networks, use to timeout synchronous operations in demos on testnets
+  # NOTE: such timeout works only in dev setting; on mainnet one must track its transactions carefully
+  @about_4_blocks_time 60_000
 
   @doc """
   Prepares the developer's environment with respect to the root chain contract and its configuration within
@@ -46,9 +46,9 @@ defmodule OMG.Eth.DevHelpers do
     """
     use Mix.Config
     config :omg_eth,
-      contract_addr: #{inspect(contract_addr)},
-      txhash_contract: #{inspect(txhash)},
-      authority_addr: #{inspect(authority_addr)}
+      contract_addr: #{inspect(to_hex(contract_addr))},
+      txhash_contract: #{inspect(to_hex(txhash))},
+      authority_addr: #{inspect(to_hex(authority_addr))}
     """
   end
 
@@ -56,29 +56,27 @@ defmodule OMG.Eth.DevHelpers do
     {:ok, authority} = Ethereumex.HttpClient.personal_new_account("")
     {:ok, _} = unlock_fund(authority)
 
-    {:ok, authority}
+    {:ok, from_hex(authority)}
   end
 
   @doc """
   Will take a map with eth-account information (from &generate_entity/0) and then
   import priv key->unlock->fund with lots of ether on that account
   """
-  def import_unlock_fund(%{priv: account_priv, addr: account_addr} = _account) do
+  def import_unlock_fund(%{priv: account_priv}) do
     account_priv_enc = Base.encode16(account_priv)
-    {:ok, account_enc} = Crypto.encode_address(account_addr)
 
-    {:ok, ^account_enc} = Ethereumex.HttpClient.personal_import_raw_key(account_priv_enc, "")
+    {:ok, account_enc} = Ethereumex.HttpClient.personal_import_raw_key(account_priv_enc, "")
     {:ok, _} = unlock_fund(account_enc)
 
-    {:ok, account_enc}
+    {:ok, from_hex(account_enc)}
   end
 
   def make_deposits(value, accounts, contract \\ nil) do
     deposit = fn account ->
-      {:ok, account_enc} = import_unlock_fund(account)
+      {:ok, _} = import_unlock_fund(account)
 
-      {:ok, deposit_tx_hash} = OMG.Eth.RootChain.deposit(value, account_enc, contract)
-      {:ok, receipt} = OMG.Eth.WaitFor.eth_receipt(deposit_tx_hash)
+      {:ok, receipt} = OMG.Eth.RootChain.deposit(value, account.addr, contract) |> transact_sync!()
       deposit_blknum = OMG.Eth.RootChain.deposit_blknum_from_receipt(receipt)
 
       {:ok, account, deposit_blknum, value}
@@ -89,14 +87,25 @@ defmodule OMG.Eth.DevHelpers do
     |> Enum.map(fn task -> Task.await(task, :infinity) end)
   end
 
+  @doc """
+  Use with contract-transacting functions that return {:ok, txhash}, e.g. `Eth.Token.mint`, for synchronous waiting
+  for mining of a successful result
+  """
+  def transact_sync!({:ok, txhash} = _transaction_submission_result) do
+    {:ok, %{"status" => "0x1"}} = WaitFor.eth_receipt(txhash, @about_4_blocks_time)
+  end
+
   # private
 
   defp unlock_fund(account_enc) do
     {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(account_enc, "", 0)
 
     {:ok, [eth_source_address | _]} = Ethereumex.HttpClient.eth_accounts()
-    txmap = %{from: eth_source_address, to: account_enc, value: encode_eth_rpc_unsigned_int(@one_hundred_eth)}
-    {:ok, tx_fund} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    WaitFor.eth_receipt(tx_fund, @about_4_blocks_time)
+
+    {:ok, tx_fund} =
+      %{from: eth_source_address, to: account_enc, value: to_hex(@one_hundred_eth)}
+      |> Ethereumex.HttpClient.eth_send_transaction()
+
+    tx_fund |> from_hex() |> WaitFor.eth_receipt()
   end
 end

@@ -24,12 +24,15 @@ alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
 eth = Crypto.zero_address()
 
-{:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
-{:ok, bob_enc} = Eth.DevHelpers.import_unlock_fund(bob)
+{:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
+{:ok, _} = Eth.DevHelpers.import_unlock_fund(bob)
 
 # sends a deposit transaction _to Ethereum_
-{:ok, deposit_tx_hash} = Eth.RootChain.deposit(10, bob_enc)
-{:ok, deposit_tx_hash} = Eth.RootChain.deposit(10, alice_enc)
+{:ok, deposit_tx_hash} = Eth.RootChain.deposit(10, bob.addr)
+{:ok, deposit_tx_hash} = Eth.RootChain.deposit(10, alice.addr)
+
+{:ok, alice_enc} = Crypto.encode_address(alice.addr)
+{:ok, bob_enc} = Crypto.encode_address(bob.addr)
 
 # need to wait until it's mined
 {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
@@ -108,8 +111,7 @@ tx2 =
     Base.decode16!(composed_exit["txbytes"]),
     Base.decode16!(composed_exit["proof"]),
     Base.decode16!(composed_exit["sigs"]),
-    1,
-    bob_enc
+    bob.addr
   )
 Eth.WaitFor.eth_receipt(txhash)
 
@@ -126,7 +128,7 @@ Eth.WaitFor.eth_receipt(txhash)
     Base.decode16!(challenge["txbytes"]),
     Base.decode16!(challenge["proof"]),
     Base.decode16!(challenge["sigs"]),
-    alice_enc
+    alice.addr
   )
 
 {:ok, _} = Eth.WaitFor.eth_receipt(txhash)
