@@ -65,9 +65,10 @@ defmodule OMG.Watcher.BlockGetter do
 
       :ok = OMG.API.State.close_block(block_rootchain_height)
 
-      {state, synced_height} = Core.consume_block(state, blknum)
-
+      {state, synced_height, db_updates} = Core.consume_block(state, block_rootchain_height)
       :ok = RootChainCoordinator.check_in(synced_height, :block_getter)
+      :ok = OMG.DB.multi_update(db_updates) #FIXME: atomic update in State.close_block
+
       {:noreply, state}
     else
       {:needs_stopping, reason} ->

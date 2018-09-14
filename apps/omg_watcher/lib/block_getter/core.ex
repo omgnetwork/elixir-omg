@@ -48,7 +48,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   @type t() :: %__MODULE__{
           synced_height: pos_integer(),
-          block_consume_batch: {atom(), MapSet.t()},
           last_consumed_block: non_neg_integer,
           started_block_number: non_neg_integer,
           block_interval: pos_integer,
@@ -102,27 +101,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Marks that childchain block `blknum` was processed
   """
-  @spec consume_block(t(), pos_integer()) :: {t(), non_neg_integer()}
-  def consume_block(%__MODULE__{} = state, blknum) do
-    {:processing, blocks} = state.block_consume_batch
-    blocks = MapSet.delete(blocks, blknum)
-    blocks_to_consume = Map.delete(state.blocks_to_consume, blknum)
-    last_consumed_block = max(state.last_consumed_block, blknum)
-
-    {synced_height, step} =
-      if Enum.empty?(blocks) do
-        {state.synced_height + 1, :downloading}
-      else
-        {state.synced_height, :processing}
-      end
-
-    {%{
-       state
-       | block_consume_batch: {step, blocks},
-         blocks_to_consume: blocks_to_consume,
-         last_consumed_block: last_consumed_block,
-         synced_height: synced_height
-     }, synced_height}
+  @spec consume_block(t(), pos_integer()) :: {t(), non_neg_integer(), list()}
+  def consume_block(%__MODULE__{} = state, blk_eth_height) do
+    {%{state | synced_height: blk_eth_height
+     }, blk_eth_height, [{:put, :last_block_getter_eth_height, blk_eth_height}]}
   end
 
   @doc """
@@ -147,7 +129,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   def get_blocks_to_consume(
-        %__MODULE__{block_consume_batch: {:downloading, _}, blocks_to_consume: blocks} = state,
+        %__MODULE__{blocks_to_consume: blocks} = state,
         submissions,
         _coordinator_height
       ) do
@@ -155,27 +137,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
     # consume blocks only if all blocks submitted to rootchain are downloaded
     if length(blocks_to_consume) == length(submissions) do
-      block_consume_batch =
-        submissions
-        |> Enum.map(& &1.blknum)
-        |> MapSet.new()
-
-      state = %{state | block_consume_batch: {:processing, block_consume_batch}}
-      {blocks_to_consume, state.synced_height, [], state}
-    else
-      {[], state.synced_height, [], state}
-    end
-  end
-
-  def get_blocks_to_consume(
-        %__MODULE__{block_consume_batch: {:processing, blocks_to_process}} = state,
-        _submissions,
-        _coordinator_height
-      ) do
-    if blocks_to_process == MapSet.new() do
-      state = %{state | block_consume_batch: {:downloading, []}}
-      db_updates = [{:put, :last_block_getter_eth_height, state.synced_height}]
-      {[], state.synced_height, db_updates, state}
+      submitted_block_numbers =
+        blocks_to_consume
+        |> Enum.map(fn {%{number: blknum}, _} -> blknum end)
+      blocks_to_keep = Map.drop(blocks, submitted_block_numbers)
+      {blocks_to_consume, state.synced_height, [], %{state | blocks_to_consume: blocks_to_keep}}
     else
       {[], state.synced_height, [], state}
     end
