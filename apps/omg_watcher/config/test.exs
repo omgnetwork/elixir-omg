@@ -13,7 +13,9 @@ config :omg_watcher, OMG.Watcher.Repo,
 
 config :omg_watcher, OMG.Watcher.Repo, pool: Ecto.Adapters.SQL.Sandbox
 
-config :omg_watcher, block_getter_height_sync_interval_ms: 20
+config :omg_watcher,
+  block_getter_height_sync_interval_ms: 20,
+  slow_exit_validator_block_margin: 10_000
 
 config :omg_api,
   ethereum_event_block_finality_margin: 2,

@@ -10,7 +10,7 @@ config :omg_watcher,
   child_chain_url: "http://localhost:9656",
   namespace: OMG.Watcher,
   ecto_repos: [OMG.Watcher.Repo],
-  slow_exit_validator_block_margin: 10,
+  slow_exit_validator_block_margin: 10_000,
   maximum_block_withholding_time_ms: 10_000,
   block_getter_height_sync_interval_ms: 2000
 
