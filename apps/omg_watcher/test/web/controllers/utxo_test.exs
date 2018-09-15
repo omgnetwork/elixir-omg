@@ -24,7 +24,6 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   alias OMG.API.Utxo
   alias OMG.Watcher.DB.EthEventDB
   alias OMG.Watcher.DB.TransactionDB
-  alias OMG.Watcher.DB.TxOutputDB
   alias OMG.Watcher.TestHelper
 
   require Utxo

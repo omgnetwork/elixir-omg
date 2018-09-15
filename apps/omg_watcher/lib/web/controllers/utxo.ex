@@ -64,28 +64,21 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
           title("Utxo")
 
           properties do
-            currency(:string, "Currency of the utxo", required: true)
             amount(:integer, "Amount of the currency", required: true)
-
-            blknum(
-              :integer,
-              "Number of childchain block that contains transaction that created the utxo",
-              required: true
-            )
-
-            txindex(:integer, "Number of transaction that created the utxo", required: true)
-            oindex(:integer, "Output index in the transaction", required: true)
-            txbytes(:string, "Signed hash of transaction that created the utxo", required: true)
+            currency(:string, "Currency of the utxo", required: true)
+            creating_tx_oindex(:integer, "Output index in the transaction", required: true)
+            creating_transaction(Schema.ref(:Transaction), "Transaction that created the utxo", required: true)
           end
 
           example(%{
-            currency: "0000000000000000000000000000000000000000",
             amount: 10,
-            blknum: 1000,
-            txindex: 1,
-            oindex: 0,
-            txbytes:
-              "F8CF0101808080809400000000000000000000000000000000000000009459D87A1B128920C828C2648C9211F6626A9C82F28203E894000000000000000000000000000000000000000080B84196BE9F44CE42D5A20DC382AAB8C940BD25E8A9A7E50B9CE976ADEEB7EDE1348B1F7BBA11C5EB235CE732AD960EF7E71330C34C137A5D2C09FA9A2F8F680911CA1CB8410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            currency: "0000000000000000000000000000000000000000",
+            creating_tx_oindex: 1,
+            creating_transaction: %{
+              blknum: 1000,
+              txindex: 25,
+              txhash: "7857F7E734AEE01E452E182E22FC27AA114F8A9467D779315C18585E5F0BBC8E"
+            }
           })
         end,
       Utxos:

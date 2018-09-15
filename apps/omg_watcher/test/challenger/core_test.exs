@@ -70,7 +70,6 @@ defmodule OMG.Watcher.Challenger.CoreTest do
 
   @tag fixtures: [:transactions]
   test "creates a challenge for an exit", %{transactions: transactions} do
-    utxo_exit = Utxo.position(1, 0, 0)
     challenging_tx = hd(transactions)
 
     expected_cutxopos = Utxo.position(2, 1, 0) |> Utxo.Position.encode()

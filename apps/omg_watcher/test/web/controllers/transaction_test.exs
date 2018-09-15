@@ -28,35 +28,6 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   describe "Controller.TransactionTest" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "transaction/:id endpoint returns expected transaction format", %{alice: alice} do
-      # FIXME: fix return struct from this endpoint and swagger doc
-      [
-        ok: %TransactionDB{
-          txhash: txhash,
-          blknum: blknum,
-          txindex: txindex
-        }
-      ] =
-        TransactionDB.update_with(%{
-          transactions: [
-            API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}])
-          ],
-          number: 1
-        })
-
-      txhash = Base.encode16(txhash)
-
-      assert %{
-               "data" => %{
-                 "txhash" =>
-                 "blknum" => blknum,
-                 "txindex" => txindex
-               },
-               "result" => "success"
-             } == TestHelper.rest_call(:get, "/transaction/#{txid}")
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-    test "transaction/:id endpoint returns expected transaction format", %{alice: alice} do
       [
         ok: %TransactionDB{
           blknum: blknum,

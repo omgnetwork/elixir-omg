@@ -128,11 +128,11 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
 
       assert match?(
                %TransactionDB{
-                 txhash: txhash_alice,
+                 txhash: ^txhash_alice,
                  blknum: 1000,
                  txindex: 0,
-                 inputs: [%TxOutputDB{creating_deposit: "hash1", owner: alice_addr, currency: @eth, amount: 100}],
-                 outputs: [%TxOutputDB{creating_txhash: txhash_alice, owner: bob_addr, currency: @eth, amount: 99}]
+                 inputs: [%TxOutputDB{creating_deposit: "hash1", owner: ^alice_addr, currency: @eth, amount: 100}],
+                 outputs: [%TxOutputDB{creating_txhash: ^txhash_alice, owner: ^bob_addr, currency: @eth, amount: 99}]
                },
                delete_meta(TransactionDB.get_transaction_challenging_utxo(alice_deposit_pos))
              )
@@ -149,11 +149,11 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
 
       assert match?(
                %TransactionDB{
-                 txhash: txhash_bob,
+                 txhash: ^txhash_bob,
                  blknum: 2000,
                  txindex: 0,
-                 inputs: [%TxOutputDB{creating_deposit: "hash2", owner: bob_addr, currency: @eth, amount: 100}],
-                 outputs: [%TxOutputDB{creating_txhash: txhash_bob, owner: alice_addr, currency: @eth, amount: 99}]
+                 inputs: [%TxOutputDB{creating_deposit: "hash2", owner: ^bob_addr, currency: @eth, amount: 100}],
+                 outputs: [%TxOutputDB{creating_txhash: ^txhash_bob, owner: ^alice_addr, currency: @eth, amount: 99}]
                },
                delete_meta(TransactionDB.get_transaction_challenging_utxo(bob_deposit_pos))
              )
