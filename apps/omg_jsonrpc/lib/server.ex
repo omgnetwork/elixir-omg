@@ -20,7 +20,8 @@ defmodule OMG.JSONRPC.Server.Handler do
   """
   use JSONRPC2.Server.Handler
 
-  # Running :omg_jsonrpc requires setting this environmental variable
+  # Compile time configuration:
+  # Compiling :omg_jsonrpc as a dependency requires setting this environmental variable
   @api_module Application.fetch_env!(:omg_jsonrpc, :api_module)
 
   def handle_request(method, params) do

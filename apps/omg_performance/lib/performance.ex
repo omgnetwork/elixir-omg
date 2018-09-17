@@ -158,9 +158,6 @@ defmodule OMG.Performance do
 
     Application.put_env(:omg_eth, :contract_addr, contract_addr)
 
-    # FIXME
-    Application.put_env(:omg_eth, :omg_jsonrpc, opts[:child_chain])
-
     {:ok, started_apps}
   end
 

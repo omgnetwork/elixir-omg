@@ -16,6 +16,6 @@ defmodule OMG.JSONRPC do
   @moduledoc """
   A JSONRPC 2.0 gateway to an API - automatically exposed via `ExposeSpec`
   ## Usage
-  Add to your config  a`:omg_jsonrpc, :api_module` setting pointing to a module that uses `OMG.JSONRPC.ExposeSpec` behavior
+  Add to your config an `:omg_jsonrpc, :api_module` setting pointing to a module that uses `OMG.JSONRPC.ExposeSpec` behavior
   """
 end
