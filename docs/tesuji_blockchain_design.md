@@ -181,10 +181,13 @@ Everything is valid, if the submit block root chain transaction gets mined after
 However, if the order of these transactions gets reversed due to a reorg, the spend will appear before the deposit, rendering the child chain invalid.
 
 We'll protect ourselves against reorgs by:
-1. Only allowing deposits to be used on the child chain after N Ethereum Block confirmations (should be configurable). This makes invalidating of the child chain by miners as expensive as we want it to be.
+1. Only allowing deposits to be used on the child chain after N Ethereum Block confirmations (should be configurable).
+This makes invalidating of the child chain by miners as expensive as we want it to be.
 This rule will be built into the child chain itself, i.e. the root chain contract won't enforce this in any way.
-2. Submitting blocks to the root chain contract is protected by account nonce mechanism. Miner attempting to mine them in wrong order would produce incorrect Ethereum block.
-3. Numbering of child chain blocks is independent of numbering of deposit blocks. Disappearing deposit block will not invalidate numbering of child chain blocks.
+2. Submitting blocks to the root chain contract is protected by account nonce mechanism.
+Miner attempting to mine them in wrong order would produce incorrect Ethereum block.
+3. Numbering of child chain blocks is independent of numbering of deposit blocks.
+Disappearing deposit block will not invalidate numbering of child chain blocks.
 
 ## Child chain server
 
