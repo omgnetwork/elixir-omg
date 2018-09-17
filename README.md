@@ -2,6 +2,8 @@
 
 The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma and forms the basis for the OMG Network.
 
+[![Build Status](https://jenkins.omisego.io/buildStatus/icon?job=omisego/elixir-omg/develop)](https://jenkins.omisego.io/blue/organizations/jenkins/omisego%2Felixir-omg/activity?branch=develop) [![Gitter chat](https://badges.gitter.im/omisego/elixir-omg.png)](https://gitter.im/omisego/elixir-omg)
+
 **IMPORTANT NOTICE: Heavily WIP, expect anything**
 
 **Table of Contents**
