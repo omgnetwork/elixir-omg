@@ -19,6 +19,6 @@ config :omg_api,
   ethereum_event_block_finality_margin: 2,
   ethereum_event_check_height_interval_ms: 50,
   child_block_submit_period: 1,
-  rootchain_height_sync_interval_ms: 1000
+  rootchain_height_sync_interval_ms: 1_000
 
 config :omg_eth, child_block_interval: 1_000

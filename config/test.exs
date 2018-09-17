@@ -1,3 +1,3 @@
 use Mix.Config
 
-config :logger, level: :error
+config :logger, level: :warn
