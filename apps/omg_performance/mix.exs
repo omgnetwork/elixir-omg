@@ -26,8 +26,7 @@ defmodule OMG.Performance.MixProject do
       {:jsonrpc2, "~> 1.1"},
       {:briefly, "~> 0.3"},
       {:hackney, "~> 1.7"},
-      {:omg_api, in_umbrella: true, runtime: false},
-      {:omg_jsonrpc, in_umbrella: true, runtime: false}
+      {:omg_api, in_umbrella: true, runtime: false}
     ]
   end
 end

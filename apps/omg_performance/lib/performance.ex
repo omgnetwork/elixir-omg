@@ -126,7 +126,7 @@ defmodule OMG.Performance do
 
     :ok = OMG.DB.init()
 
-    started_apps = ensure_all_started([:omg_db, :jsonrpc2, :cowboy, :hackney])
+    started_apps = ensure_all_started([:omg_db, :cowboy, :hackney])
 
     omg_port = Application.get_env(:omg_jsonrpc, :omg_api_rpc_port)
 
@@ -158,8 +158,6 @@ defmodule OMG.Performance do
 
     {:ok, contract_addr_enc} = Crypto.encode_address(contract_addr)
     Application.put_env(:omg_eth, :contract_addr, contract_addr_enc)
-
-    Application.put_env(:omg_eth, :omg_jsonrpc, opts[:child_chain])
 
     {:ok, started_apps}
   end

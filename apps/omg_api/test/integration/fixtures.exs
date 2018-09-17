@@ -44,10 +44,9 @@ defmodule OMG.API.Integration.Fixtures do
     Application.put_env(:omg_api, :ethereum_event_block_finality_margin, 2, persistent: true)
     # need to overide that to very often, so that many checks fall in between a single child chain block submission
     {:ok, started_apps} = Application.ensure_all_started(:omg_api)
-    {:ok, started_jsonrpc} = Application.ensure_all_started(:omg_jsonrpc)
 
     on_exit(fn ->
-      (started_apps ++ started_jsonrpc)
+      started_apps
       |> Enum.reverse()
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
