@@ -629,6 +629,46 @@ defmodule OMG.API.State.CoreTest do
     end
   end
 
+  @tag fixtures: [:alice, :state_empty]
+  test "Output can have a zero value; can't be used as input though", %{alice: alice, state_empty: state} do
+    fee = %{eth() => 2}
+
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 8}, {alice, 0}]), fee, &1)).()
+    |> success?
+    |> (&Core.exec(
+          Test.create_recovered([{2, 0, 0, alice}, {2, 1, 0, alice}], eth(), [{alice, 5}, {alice, 1}]),
+          fee,
+          &1
+        )).()
+    |> fail?(:utxo_not_found)
+  end
+
+  @tag fixtures: [:alice, :state_empty]
+  test "Output with zero value will not be written to DB", %{alice: alice, state_empty: state} do
+    fee = %{eth() => 2}
+
+    state =
+      state
+      |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 0}]), fee, &1)).()
+      |> success?
+
+    {_, {_, _, db_updates}, _} = Core.form_block(1000, state)
+    assert [] = Enum.filter(db_updates, &match?({:put, :utxo, _}, &1))
+  end
+
+  @tag fixtures: [:alice, :state_empty]
+  test "Transaction can have no outputs", %{alice: alice, state_empty: state} do
+    fee = %{eth() => 2}
+
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), []), fee, &1)).()
+    |> success?
+  end
+
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "Does not allow executing transactions with input utxos from the future", %{
     alice: alice,
