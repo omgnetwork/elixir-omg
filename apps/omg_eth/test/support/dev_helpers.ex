@@ -53,7 +53,7 @@ defmodule OMG.Eth.DevHelpers do
   end
 
   def create_and_fund_authority_addr do
-    {:ok, authority} = Ethereumex.HttpClient.personal_new_account("")
+    {:ok, authority} = Ethereumex.HttpClient.request("personal_newAccount", [""], [])
     {:ok, _} = unlock_fund(authority)
 
     {:ok, from_hex(authority)}
@@ -66,7 +66,7 @@ defmodule OMG.Eth.DevHelpers do
   def import_unlock_fund(%{priv: account_priv}) do
     account_priv_enc = Base.encode16(account_priv)
 
-    {:ok, account_enc} = Ethereumex.HttpClient.personal_import_raw_key(account_priv_enc, "")
+    {:ok, account_enc} = Ethereumex.HttpClient.request("personal_importRawKey", [account_priv_enc, ""], [])
     {:ok, _} = unlock_fund(account_enc)
 
     {:ok, from_hex(account_enc)}
@@ -98,7 +98,7 @@ defmodule OMG.Eth.DevHelpers do
   # private
 
   defp unlock_fund(account_enc) do
-    {:ok, true} = Ethereumex.HttpClient.personal_unlock_account(account_enc, "", 0)
+    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [account_enc, "", 0], [])
 
     {:ok, [eth_source_address | _]} = Ethereumex.HttpClient.eth_accounts()
 

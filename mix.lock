@@ -16,7 +16,7 @@
   "eleveldb": {:hex, :eleveldb, "2.2.20", "1fff63a5055bbf4bf821f797ef76065882b193f5e8095f95fcd9287187773b58", [:rebar3], [], "hexpm"},
   "erlexec": {:hex, :erlexec, "1.9.3", "3d72ac65424ced35b9658a50e5a0c9dbd5f383e28ac9096e557f0d62926dd8e4", [:rebar3], [], "hexpm"},
   "esqlite": {:hex, :esqlite, "0.2.4", "3a8a352c190afe2d6b828b252a6fbff65b5cc1124647f38b15bdab3bf6fd4b3e", [:rebar3], [], "hexpm"},
-  "ethereumex": {:git, "https://github.com/omisego/ethereumex.git", "6b85bd0523b4eb529050d1b283feac119e21ccd9", [branch: "request_timeout"]},
+  "ethereumex": {:git, "https://github.com/omisego/ethereumex.git", "6d62805991cf118ce2d365e58c8ec549a08ce64d", [branch: "request_timeout2"]},
   "evm": {:hex, :evm, "0.1.14", "59a3fd332beb6a529cd7c2571a87a7f63c51200f2de381a412ee9bb02f5cbbcc", [:mix], [{:keccakf1600, "~> 2.0.0", [hex: :keccakf1600_orig, repo: "hexpm", optional: false]}, {:merkle_patricia_tree, "~> 0.2.5", [hex: :merkle_patricia_tree, repo: "hexpm", optional: false]}], "hexpm"},
   "ex_rlp": {:hex, :ex_rlp, "0.2.1", "bd320900d6316cdfe01d365d4bda22eb2f39b359798daeeffd3bd1ca7ba958ec", [:mix], [], "hexpm"},
   "ex_unit_fixtures": {:git, "https://github.com/omisego/ex_unit_fixtures.git", "4a099c621dc70e0d65cb9619b38192e31ec5f504", [branch: "feature/require_files_not_load"]},
