@@ -70,8 +70,11 @@ defmodule OMG.Watcher.DB.TransactionDB do
   @doc """
   Inserts complete and sorted enumberable of transactions for particular block number
   """
-  @spec update_with(%{transactions: [OMG.API.State.Transaction.Recovered.t()], blknum: pos_integer(), eth_height: pos_integer()}) ::
-          [{:ok, __MODULE__}]
+  @spec update_with(%{
+          transactions: [OMG.API.State.Transaction.Recovered.t()],
+          blknum: pos_integer(),
+          eth_height: pos_integer()
+        }) :: [{:ok, __MODULE__}]
   def update_with(%{transactions: transactions, blknum: block_number, eth_height: eth_height}) do
     transactions
     |> Stream.with_index()

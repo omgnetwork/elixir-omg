@@ -42,7 +42,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   @endpoint OMG.Watcher.Web.Endpoint
 
-  @tag :ojoj
   @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob, :alice_deposits]
   test "get the blocks from child chain after sending a transaction and start exit", %{
     alice: alice,

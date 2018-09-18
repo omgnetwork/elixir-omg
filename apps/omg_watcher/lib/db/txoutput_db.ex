@@ -14,7 +14,7 @@
 
 defmodule OMG.Watcher.DB.TxOutputDB do
   @moduledoc """
-  Ecto schema for transaction's output (or input)
+  Ecto schema for transaction's output or input
   """
   use Ecto.Schema
 
