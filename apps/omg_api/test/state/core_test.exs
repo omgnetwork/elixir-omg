@@ -631,17 +631,13 @@ defmodule OMG.API.State.CoreTest do
 
   @tag fixtures: [:alice, :state_empty]
   test "Output can have a zero value; can't be used as input though", %{alice: alice, state_empty: state} do
-    fee = %{eth() => 2}
+    fee = %{eth() => 0}
 
     state
     |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
     |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 8}, {alice, 0}]), fee, &1)).()
     |> success?
-    |> (&Core.exec(
-          Test.create_recovered([{2, 0, 0, alice}, {2, 1, 0, alice}], eth(), [{alice, 5}, {alice, 1}]),
-          fee,
-          &1
-        )).()
+    |> (&Core.exec(Test.create_recovered([{1000, 0, 1, alice}], eth(), [{alice, 0}]), fee, &1)).()
     |> fail?(:utxo_not_found)
   end
 
