@@ -18,7 +18,6 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
   use OMG.API.Fixtures
 
   alias OMG.API
-  alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.API.Utxo
   alias OMG.Watcher.DB.EthEventDB
@@ -34,11 +33,12 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
     test "utxo/:utxo_pos/challenge_data  endpoint returns proper response format", %{alice: alice} do
       EthEventDB.insert_deposits([%{owner: alice.addr, currency: @eth, amount: 100, blknum: 1, hash: "hash1"}])
 
-      TransactionDB.update_with(%Block{
+      TransactionDB.update_with(%{
         transactions: [
           API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 100}])
         ],
-        number: 1000
+        blknum: 1000,
+        eth_height: 1
       })
 
       utxo_pos = Utxo.position(1, 0, 0) |> Utxo.Position.encode()

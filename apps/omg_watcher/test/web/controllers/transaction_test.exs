@@ -18,7 +18,6 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   use OMG.API.Fixtures
 
   alias OMG.API
-  alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.Watcher.DB.TransactionDB
   alias OMG.Watcher.TestHelper
@@ -35,11 +34,12 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
           txhash: txhash
         }
       ] =
-        TransactionDB.update_with(%Block{
+        TransactionDB.update_with(%{
           transactions: [
             API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}])
           ],
-          number: 1
+          blknum: 1,
+          eth_height: 1
         })
 
       txhash = Base.encode16(txhash)

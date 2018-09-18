@@ -18,7 +18,6 @@ defmodule OMG.Watcher.DB.TxOutputDBTest do
   use OMG.API.Fixtures
 
   alias OMG.API
-  alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
@@ -33,13 +32,14 @@ defmodule OMG.Watcher.DB.TxOutputDBTest do
   describe "TxOutput database" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "compose_utxo_exit should return proper proof format", %{alice: alice} do
-      TransactionDB.update_with(%Block{
+      TransactionDB.update_with(%{
         transactions: [
           API.TestHelper.create_recovered([], @eth, [{alice, 120}]),
           API.TestHelper.create_recovered([], @eth, [{alice, 110}]),
           API.TestHelper.create_recovered([], @eth, [{alice, 100}])
         ],
-        number: 1000
+        blknum: 1000,
+        eth_height: 1
       })
 
       {:ok,
@@ -60,13 +60,14 @@ defmodule OMG.Watcher.DB.TxOutputDBTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "compose_utxo_exit should return error when there is no tx in specfic block", %{alice: alice} do
-      TransactionDB.update_with(%Block{
+      TransactionDB.update_with(%{
         transactions: [
           API.TestHelper.create_recovered([], @eth, [{alice, 120}]),
           API.TestHelper.create_recovered([], @eth, [{alice, 110}]),
           API.TestHelper.create_recovered([], @eth, [{alice, 100}])
         ],
-        number: 1000
+        blknum: 1000,
+        eth_height: 1
       })
 
       {:error, :no_tx_for_given_blknum} = TxOutputDB.compose_utxo_exit(Utxo.position(1000, 3, 0))
@@ -80,11 +81,12 @@ defmodule OMG.Watcher.DB.TxOutputDBTest do
       # TODO: sqlite does not support decimals, run tests agains real db, then change the exponent to 260
       big_amount = power_of_2.(50)
 
-      TransactionDB.update_with(%Block{
+      TransactionDB.update_with(%{
         transactions: [
           API.TestHelper.create_recovered([], @eth, [{alice, big_amount}])
         ],
-        number: 1000
+        blknum: 1000,
+        eth_height: 1
       })
 
       utxo = TxOutputDB.get_by_position(Utxo.position(1000, 0, 0))
@@ -135,9 +137,10 @@ defmodule OMG.Watcher.DB.TxOutputDBTest do
       alice_addr = alice.addr
 
       [{:ok, %TransactionDB{txhash: txhash1}}] =
-        TransactionDB.update_with(%Block{
+        TransactionDB.update_with(%{
           transactions: [API.TestHelper.create_recovered([], @eth, [{alice, 1}])],
-          number: 1
+          blknum: 1,
+          eth_height: 1
         })
 
       assert %TxOutputDB{
@@ -150,12 +153,13 @@ defmodule OMG.Watcher.DB.TxOutputDBTest do
              } = TxOutputDB.get_by_position(Utxo.position(1, 0, 0))
 
       [{:ok, _tx0}, {:ok, %TransactionDB{txhash: txhash2}}] =
-        TransactionDB.update_with(%Block{
+        TransactionDB.update_with(%{
           transactions: [
             API.TestHelper.create_recovered([], @eth, [{alice, 10_001}]),
             API.TestHelper.create_recovered([], @eth, [{alice, 1}, {alice, 2}])
           ],
-          number: 1000
+          blknum: 1000,
+          eth_height: 1
         })
 
       assert %TxOutputDB{
@@ -168,13 +172,14 @@ defmodule OMG.Watcher.DB.TxOutputDBTest do
              } = TxOutputDB.get_by_position(Utxo.position(1000, 1, 1))
 
       [{:ok, _tx0}, {:ok, _tx1}, {:ok, %TransactionDB{txhash: txhash3}}] =
-        TransactionDB.update_with(%Block{
+        TransactionDB.update_with(%{
           transactions: [
             API.TestHelper.create_recovered([], @eth, [{alice, 20_131}]),
             API.TestHelper.create_recovered([], @eth, [{alice, 20_132}]),
             API.TestHelper.create_recovered([], @eth, [{alice, 3}, {alice, 4}])
           ],
-          number: 2013
+          blknum: 2013,
+          eth_height: 1
         })
 
       assert %TxOutputDB{

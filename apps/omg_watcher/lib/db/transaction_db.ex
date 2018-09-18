@@ -18,7 +18,6 @@ defmodule OMG.Watcher.DB.TransactionDB do
   """
   use Ecto.Schema
 
-  alias OMG.API.Block
   alias OMG.API.State.{Transaction, Transaction.Recovered, Transaction.Signed}
   alias OMG.API.Utxo
   alias OMG.Watcher.DB.Repo
@@ -71,12 +70,15 @@ defmodule OMG.Watcher.DB.TransactionDB do
   @doc """
   Inserts complete and sorted enumberable of transactions for particular block number
   """
-  def update_with(%Block{transactions: transactions, number: block_number, eth_height: eth_height}) do
+  @spec update_with(%{transactions: [OMG.API.State.Transaction.Recovered.t()], blknum: pos_integer(), eth_height: pos_integer()}) ::
+          [{:ok, __MODULE__}]
+  def update_with(%{transactions: transactions, blknum: block_number, eth_height: eth_height}) do
     transactions
     |> Stream.with_index()
     |> Enum.map(fn {tx, txindex} -> insert(tx, block_number, txindex, eth_height) end)
   end
 
+  @spec insert(Recovered.t(), pos_integer(), integer(), pos_integer()) :: {:ok, __MODULE__}
   def insert(
         %Recovered{
           signed_tx_hash: signed_tx_hash,

@@ -23,13 +23,12 @@ defmodule OMG.API.Block do
   @transaction_merkle_tree_height 16
   @type block_hash_t() :: <<_::256>>
 
-  defstruct [:transactions, :hash, :number, :eth_height]
+  defstruct [:transactions, :hash, :number]
 
   @type t() :: %__MODULE__{
           transactions: list(binary),
           hash: block_hash_t(),
-          number: pos_integer(),
-          eth_height: pos_integer()
+          number: pos_integer()
         }
 
   @doc """

@@ -18,7 +18,6 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
   use OMG.API.Fixtures
   use Plug.Test
 
-  alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction.{Recovered, Signed}
   alias OMG.API.Utxo
@@ -31,9 +30,9 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
 
   describe "Transaction database" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
-    test "insert and retrive transaction", %{alice: alice, bob: bob} do
+    test "insert and retrieve transaction", %{alice: alice, bob: bob} do
       tester_f = fn {blknum, recovered_txs} ->
-        db_results = TransactionDB.update_with(%Block{transactions: recovered_txs, number: blknum})
+        db_results = TransactionDB.update_with(%{transactions: recovered_txs, blknum: blknum, eth_height: 1})
         assert db_results |> Enum.all?(&(elem(&1, 0) == :ok))
 
         recovered_txs
@@ -71,12 +70,13 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
       recovered_tx2 = OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 100}])
 
       [{:ok, %TransactionDB{txhash: txhash_1}}, {:ok, %TransactionDB{txhash: txhash_2}}] =
-        TransactionDB.update_with(%Block{
+        TransactionDB.update_with(%{
           transactions: [
             recovered_tx1,
             recovered_tx2
           ],
-          number: blknum
+          blknum: blknum,
+          eth_height: 1
         })
 
       assert create_expected_transaction(txhash_1, recovered_tx1, blknum, 0) == delete_meta(TransactionDB.get(txhash_1))
@@ -92,9 +92,10 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
       bob_spend_recovered = OMG.API.TestHelper.create_recovered([], @eth, [{bob, 200}])
 
       [{:ok, %TransactionDB{txhash: txhash_alice}}, {:ok, %TransactionDB{txhash: txhash_bob}}] =
-        TransactionDB.update_with(%Block{
+        TransactionDB.update_with(%{
           transactions: [alice_spend_recovered, bob_spend_recovered],
-          number: blknum
+          blknum: blknum,
+          eth_height: 1
         })
 
       assert [
@@ -115,48 +116,44 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
         %{owner: bob_addr, currency: @eth, amount: 100, blknum: 2, hash: "hash2"}
       ])
 
-      {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(alice_deposit_pos)
-      {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(bob_deposit_pos)
+      assert {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(alice_deposit_pos)
+      assert {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(bob_deposit_pos)
 
       alice_spend_recovered = OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 99}])
 
       [{:ok, %TransactionDB{txhash: txhash_alice}}] =
-        TransactionDB.update_with(%Block{
+        TransactionDB.update_with(%{
           transactions: [alice_spend_recovered],
-          number: 1000
+          blknum: 1000,
+          eth_height: 1
         })
 
-      assert match?(
-               %TransactionDB{
-                 txhash: ^txhash_alice,
-                 blknum: 1000,
-                 txindex: 0,
-                 inputs: [%TxOutputDB{creating_deposit: "hash1", owner: ^alice_addr, currency: @eth, amount: 100}],
-                 outputs: [%TxOutputDB{creating_txhash: ^txhash_alice, owner: ^bob_addr, currency: @eth, amount: 99}]
-               },
-               delete_meta(TransactionDB.get_transaction_challenging_utxo(alice_deposit_pos))
-             )
+      assert %TransactionDB{
+               txhash: ^txhash_alice,
+               blknum: 1000,
+               txindex: 0,
+               inputs: [%TxOutputDB{creating_deposit: "hash1", owner: ^alice_addr, currency: @eth, amount: 100}],
+               outputs: [%TxOutputDB{creating_txhash: ^txhash_alice, owner: ^bob_addr, currency: @eth, amount: 99}]
+             } = delete_meta(TransactionDB.get_transaction_challenging_utxo(alice_deposit_pos))
 
-      {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(bob_deposit_pos)
+      assert {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(bob_deposit_pos)
 
       bob_spend_recovered = OMG.API.TestHelper.create_recovered([{2, 0, 0, bob}], @eth, [{alice, 99}])
 
       [{:ok, %TransactionDB{txhash: txhash_bob}}] =
-        TransactionDB.update_with(%Block{
+        TransactionDB.update_with(%{
           transactions: [bob_spend_recovered],
-          number: 2000
+          blknum: 2000,
+          eth_height: 1
         })
 
-      assert match?(
-               %TransactionDB{
-                 txhash: ^txhash_bob,
-                 blknum: 2000,
-                 txindex: 0,
-                 inputs: [%TxOutputDB{creating_deposit: "hash2", owner: ^bob_addr, currency: @eth, amount: 100}],
-                 outputs: [%TxOutputDB{creating_txhash: ^txhash_bob, owner: ^alice_addr, currency: @eth, amount: 99}]
-               },
-               delete_meta(TransactionDB.get_transaction_challenging_utxo(bob_deposit_pos))
-             )
+      assert %TransactionDB{
+               txhash: ^txhash_bob,
+               blknum: 2000,
+               txindex: 0,
+               inputs: [%TxOutputDB{creating_deposit: "hash2", owner: ^bob_addr, currency: @eth, amount: 100}],
+               outputs: [%TxOutputDB{creating_txhash: ^txhash_bob, owner: ^alice_addr, currency: @eth, amount: 99}]
+             } = delete_meta(TransactionDB.get_transaction_challenging_utxo(bob_deposit_pos))
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
@@ -172,7 +169,7 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
       recovered_tx = OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 1}])
 
       [{:ok, %TransactionDB{txhash: spent_txhash}}] =
-        TransactionDB.update_with(%Block{transactions: [recovered_tx], number: 1000})
+        TransactionDB.update_with(%{transactions: [recovered_tx], blknum: 1000, eth_height: 1})
 
       assert %TxOutputDB{creating_deposit: "hash1", spending_tx_oindex: 0, spending_txhash: ^spent_txhash} =
                TxOutputDB.get_by_position(txo_pos)
@@ -181,7 +178,7 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
       double_spent_tx = OMG.API.TestHelper.create_recovered([{1000, 0, 0, alice}, {1, 0, 0, alice}], @eth, [{bob, 2}])
 
       [{:ok, %TransactionDB{txhash: double_spent_txhash}}] =
-        TransactionDB.update_with(%Block{transactions: [double_spent_tx], number: 2000})
+        TransactionDB.update_with(%{transactions: [double_spent_tx], blknum: 2000, eth_height: 1})
 
       assert %TxOutputDB{creating_deposit: "hash1", spending_tx_oindex: 1, spending_txhash: ^double_spent_txhash} =
                TxOutputDB.get_by_position(txo_pos)
@@ -197,7 +194,8 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
         blknum: blknum,
         txindex: txindex,
         txhash: txhash,
-        txbytes: Signed.encode(signed_tx)
+        txbytes: Signed.encode(signed_tx),
+        eth_height: 1
       }
       |> delete_meta()
     end
