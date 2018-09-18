@@ -101,9 +101,9 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Marks that childchain block `blknum` was processed
   """
-  @spec consume_block(t(), pos_integer(), pos_integer()) :: {t(), non_neg_integer(), list()}
-  def consume_block(%__MODULE__{} = state, consumed_block_number, blk_eth_height) do
-    state = %{state | synced_height: blk_eth_height, last_consumed_block: consumed_block_number}
+  @spec consume_block(t(), pos_integer()) :: {t(), non_neg_integer(), list()}
+  def consume_block(%__MODULE__{} = state, blk_eth_height) do
+    state = %{state | synced_height: blk_eth_height}
     {state, blk_eth_height, [{:put, :last_block_getter_eth_height, blk_eth_height}]}
   end
 
@@ -129,29 +129,29 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   def get_blocks_to_consume(
-        %__MODULE__{blocks_to_consume: blocks} = state,
+        %__MODULE__{blocks_to_consume: blocks, block_interval: interval, last_consumed_block: last_consumed_block} =
+          state,
         submissions,
         _coordinator_height
       ) do
-    blocks_to_consume = get_downloaded_blocks(blocks, submissions)
+    submissions = Enum.into(submissions, %{}, fn %{blknum: blknum, eth_height: eth_height} -> {blknum, eth_height} end)
 
-    # consume blocks only if all blocks submitted to root chain are downloaded
-    if length(blocks_to_consume) == length(submissions) do
-      submitted_block_numbers =
-        blocks_to_consume
-        |> Enum.map(fn {%{number: blknum}, _} -> blknum end)
+    first_block_number = last_consumed_block + interval
 
-      blocks_to_keep = Map.drop(blocks, submitted_block_numbers)
-      {blocks_to_consume, state.synced_height, [], %{state | blocks_to_consume: blocks_to_keep}}
-    else
-      {[], state.synced_height, [], state}
-    end
-  end
+    blknums_to_consume =
+      first_block_number
+      |> Stream.iterate(&(&1 + interval))
+      |> Enum.take_while(fn blknum -> Map.has_key?(submissions, blknum) and Map.has_key?(blocks, blknum) end)
 
-  defp get_downloaded_blocks(downloaded_blocks, requested_blocks) do
-    requested_blocks
-    |> Enum.map(fn %{blknum: blknum, eth_height: eth_height} -> {Map.get(downloaded_blocks, blknum), eth_height} end)
-    |> Enum.filter(fn {block, _} -> block != nil end)
+    blocks_to_consume =
+      blknums_to_consume
+      |> Enum.map(fn blknum -> {Map.get(blocks, blknum), Map.get(submissions, blknum)} end)
+
+    blocks_to_keep = Map.drop(blocks, blknums_to_consume)
+    last_consumed_block = List.last([last_consumed_block] ++ blknums_to_consume)
+
+    {blocks_to_consume, state.synced_height, [],
+     %{state | blocks_to_consume: blocks_to_keep, last_consumed_block: last_consumed_block}}
   end
 
   @doc """
