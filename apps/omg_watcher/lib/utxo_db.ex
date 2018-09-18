@@ -47,26 +47,23 @@ defmodule OMG.Watcher.UtxoDB do
          block_number
        ) do
     make_utxo_db = fn transaction, number ->
-      # essentially number - 1 but to be extra safe let's limit the possible inputs according to the
-      # current tx format
-      new_oindex =
-        case number do
-          1 -> 0
-          2 -> 1
-        end
-
       %__MODULE__{
-        address: Map.get(transaction, String.to_existing_atom("newowner#{number}")),
+        address: Map.get(transaction, String.to_existing_atom("newowner#{number + 1}")),
         currency: Map.get(transaction, :cur12),
-        amount: Map.get(transaction, String.to_existing_atom("amount#{number}")),
+        amount: Map.get(transaction, String.to_existing_atom("amount#{number + 1}")),
         blknum: block_number,
         txindex: txindex,
-        oindex: new_oindex,
+        oindex: number,
         txbytes: signed_tx_bytes
       }
     end
 
-    {Repo.insert(make_utxo_db.(transaction, 1)), Repo.insert(make_utxo_db.(transaction, 2))}
+    # <- currently we have at most two outputs
+    0..1
+    |> Enum.map(&make_utxo_db.(transaction, &1))
+    |> Enum.filter(&(&1.amount > 0))
+    |> Enum.map(&Repo.insert(&1))
+    |> List.to_tuple()
   end
 
   defp remove_utxo(%Signed{raw_tx: %Transaction{} = transaction}) do
