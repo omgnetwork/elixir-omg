@@ -21,10 +21,6 @@ defmodule OMG.API.BlockQueue.CoreTest do
 
   @child_block_interval 1000
 
-  def hashes(blocks) do
-    for block <- blocks, do: block.hash
-  end
-
   def empty do
     {:ok, state} =
       new(
@@ -79,21 +75,46 @@ defmodule OMG.API.BlockQueue.CoreTest do
     end
 
     test "Recovers after restart to proper mined height" do
-      assert ["8", "9"] =
+      assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] =
                [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}]
                |> recover(7000)
                |> elem(1)
                |> get_blocks_to_submit()
-               |> hashes()
+    end
+
+    test "Recovers after restart and talking to an un-synced geth" do
+      # imagine restart after geth is nuked and hasn't caught up
+      # testing against a disaster scenario where `BlockQueue` would start pushing old blocks again
+      finality_threshold = 12
+      mined_blknum = 6000
+      range = child_block_nums_to_init_with(mined_blknum, 9000, @child_block_interval, finality_threshold)
+      known_hashes = ~w(1 2 3 4 5 6 7 8 9)
+
+      {:ok, state} =
+        new(
+          mined_child_block_num: mined_blknum,
+          known_hashes: Enum.zip(range, known_hashes),
+          top_mined_hash: "6",
+          parent_height: 6,
+          child_block_interval: @child_block_interval,
+          chain_start_parent_height: 1,
+          submit_period: 1,
+          finality_threshold: finality_threshold
+        )
+
+      assert [%{hash: "7", nonce: 7}, %{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] = state |> get_blocks_to_submit()
+
+      # simulate geth catching up
+      assert {:dont_form_block, new_state} = state |> set_ethereum_status(7, 7000)
+      assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] = new_state |> get_blocks_to_submit()
     end
 
     test "Recovers after restart even when only empty blocks were mined" do
-      assert ["0", "0"] ==
+      assert [%{hash: "0", nonce: 8}, %{hash: "0", nonce: 9}] =
                [{5000, "0"}, {6000, "0"}, {7000, "0"}, {8000, "0"}, {9000, "0"}]
                |> recover(7000, "0")
                |> elem(1)
                |> get_blocks_to_submit()
-               |> hashes()
     end
 
     test "Recovers properly for fresh world state" do
@@ -109,10 +130,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
           finality_threshold: 12
         )
 
-      assert [] ==
-               queue
-               |> get_blocks_to_submit()
-               |> hashes()
+      assert [] == queue |> get_blocks_to_submit()
     end
 
     test "Won't recover if is contract is ahead of db" do
@@ -158,13 +176,12 @@ defmodule OMG.API.BlockQueue.CoreTest do
     end
 
     test "Recovers after restart and is able to process more blocks" do
-      assert ["8", "9", "10"] ==
+      assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}, %{hash: "10", nonce: 10}] =
                [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}]
                |> recover(7000)
                |> elem(1)
                |> enqueue_block("10", 10 * @child_block_interval)
                |> get_blocks_to_submit()
-               |> hashes()
     end
 
     test "Recovery will fail if DB is corrupted" do
@@ -176,13 +193,12 @@ defmodule OMG.API.BlockQueue.CoreTest do
     end
 
     test "A new block is emitted ASAP" do
-      assert ["2"] ==
+      assert [%{hash: "2", nonce: 2}] =
                empty()
                |> set_ethereum_status(0, 1000)
                |> elem(1)
                |> enqueue_block("2", 2 * @child_block_interval)
                |> get_blocks_to_submit()
-               |> hashes()
     end
 
     @tag :basic
@@ -309,10 +325,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
                |> enqueue_block("5", 5 * @child_block_interval)
                |> set_ethereum_status(3, 2000)
 
-      assert ["3", "4", "5"] =
-               queue
-               |> get_blocks_to_submit()
-               |> hashes()
+      assert [%{hash: "3", nonce: 3}, %{hash: "4", nonce: 4}, %{hash: "5", nonce: 5}] = queue |> get_blocks_to_submit()
     end
 
     test "Old blocks are GCd, but only after they're mined" do
