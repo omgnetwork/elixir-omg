@@ -146,19 +146,10 @@ defmodule OMG.API.BlockQueue do
     defp submit(%Core.BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price} = submission) do
       _ = Logger.debug(fn -> "Submitting: #{inspect(submission)}" end)
 
-      case OMG.Eth.RootChain.submit_block(hash, nonce, gas_price) do
-        {:ok, txhash} ->
-          _ = Logger.info(fn -> "Submitted #{inspect(submission)} at: #{inspect(txhash)}" end)
-          :ok
+      submit_result = OMG.Eth.RootChain.submit_block(hash, nonce, gas_price)
+      {:ok, newest_mined_blknum} = Eth.RootChain.get_mined_child_block()
 
-        {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} ->
-          _ = Logger.debug(fn -> "Submission is known transaction - ignored" end)
-          :ok
-
-        {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}} ->
-          _ = Logger.debug(fn -> "Submission is known, but with higher price - ignored" end)
-          :ok
-      end
+      :ok = Core.process_submit_result(submission, submit_result, newest_mined_blknum)
     end
   end
 end

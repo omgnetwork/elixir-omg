@@ -17,9 +17,15 @@ defmodule OMG.API.BlockQueue.CoreTest do
 
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureLog
   import OMG.API.BlockQueue.Core
 
   @child_block_interval 1000
+
+  # responses from geth to simulate what we're getting from geth in `BlockQueue`
+  @known_transaction_response {:error, %{"code" => -32_000, "message" => "known transaction tx"}}
+  @replacement_transaction_response {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}}
+  @nonce_too_low_response {:error, %{"code" => -32_000, "message" => "nonce too low"}}
 
   def hashes(blocks) do
     for block <- blocks, do: block.hash
@@ -155,6 +161,14 @@ defmodule OMG.API.BlockQueue.CoreTest do
                  submit_period: 1,
                  finality_threshold: 12
                )
+    end
+
+    test "Will recover if there are blocks in db but none in root chain" do
+      assert {:ok, state} = recover([{1000, "1"}], 0, <<0::size(256)>>)
+      assert [%{hash: "1", nonce: 1}] = get_blocks_to_submit(state)
+
+      assert [%{hash: "1", nonce: 1}, %{hash: "2", nonce: 2}] =
+               state |> enqueue_block("2", 2 * @child_block_interval) |> get_blocks_to_submit()
     end
 
     test "Recovers after restart and is able to process more blocks" do
@@ -458,6 +472,44 @@ defmodule OMG.API.BlockQueue.CoreTest do
         |> set_ethereum_status(1 + eth_gap, 0)
 
       assert expected_max_price == newstate.gas_price_to_use
+    end
+  end
+
+  describe "Processing submission results from geth" do
+    test "everything might be ok" do
+      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> get_blocks_to_submit()
+      # no change in mined blknum
+      assert :ok = process_submit_result(submission, {:ok, <<0::160>>}, 1000)
+      # arbitrary ignored change in mined blknum
+      assert :ok = process_submit_result(submission, {:ok, <<0::160>>}, 0)
+      assert :ok = process_submit_result(submission, {:ok, <<0::160>>}, 2000)
+    end
+
+    test "benign reports / warnings from geth" do
+      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> get_blocks_to_submit()
+      # no change in mined blknum
+      assert :ok = process_submit_result(submission, @known_transaction_response, 1000)
+
+      assert :ok = process_submit_result(submission, @replacement_transaction_response, 1000)
+    end
+
+    test "benign nonce too low error - related to our tx being mined, since the mined blknum advanced" do
+      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> get_blocks_to_submit()
+      assert :ok = process_submit_result(submission, @nonce_too_low_response, 1000)
+      assert :ok = process_submit_result(submission, @nonce_too_low_response, 2000)
+    end
+
+    test "real nonce too low error" do
+      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> get_blocks_to_submit()
+
+      # the new mined child block number is not the one we submitted, so we expect an error an error log
+      assert capture_log(fn ->
+               assert {:error, :nonce_too_low} = process_submit_result(submission, @nonce_too_low_response, 0)
+             end) =~ "[error]"
+
+      assert capture_log(fn ->
+               assert {:error, :nonce_too_low} = process_submit_result(submission, @nonce_too_low_response, 90)
+             end) =~ "[error]"
     end
   end
 end
