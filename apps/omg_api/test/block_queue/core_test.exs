@@ -87,6 +87,34 @@ defmodule OMG.API.BlockQueue.CoreTest do
                |> hashes()
     end
 
+    test "Recovers after restart and talking to an un-synced geth" do
+      # imagine restart after geth is nuked and hasn't caught up
+      # testing against a disaster scenario where `BlockQueue` would start pushing old blocks again
+      finality_threshold = 12
+      mined_blknum = 6000
+      range = child_block_nums_to_init_with(mined_blknum, 9000, @child_block_interval, finality_threshold)
+      known_hashes = ~w(1 2 3 4 5 6 7 8 9)
+      {:ok, state} =
+        new(
+          mined_child_block_num: mined_blknum,
+          known_hashes: Enum.zip(range, known_hashes),
+          top_mined_hash: "6",
+          parent_height: 6,
+          child_block_interval: @child_block_interval,
+          chain_start_parent_height: 1,
+          submit_period: 1,
+          finality_threshold: finality_threshold
+        )
+
+      assert [%{hash: "7", nonce: 7}, %{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] =
+               state |> get_blocks_to_submit()
+
+      # simulate geth catching up
+      assert {:dont_form_block, new_state} = state |> set_ethereum_status(7, 7000)
+      assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] =
+               new_state |> get_blocks_to_submit()
+    end
+
     test "Recovers after restart even when only empty blocks were mined" do
       assert ["0", "0"] ==
                [{5000, "0"}, {6000, "0"}, {7000, "0"}, {8000, "0"}, {9000, "0"}]
