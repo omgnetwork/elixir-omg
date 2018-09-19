@@ -51,11 +51,12 @@ defmodule OMG.Watcher.Challenger.Core do
   end
 
   defp challenging_utxo_pos(%TransactionDB{
-         outputs: [output | _],
+         outputs: outputs,
          blknum: blknum,
          txindex: txindex
        }) do
-    Utxo.position(blknum, txindex, output.creating_tx_oindex)
+    non_zero_output = outputs |> Enum.find(& &1.amount > 0)
+    Utxo.position(blknum, txindex, non_zero_output.creating_tx_oindex)
     |> Utxo.Position.encode()
   end
 

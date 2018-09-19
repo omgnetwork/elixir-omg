@@ -28,7 +28,9 @@ defmodule OMG.Watcher.Challenger.CoreTest do
 
   deffixture transactions do
     [
-      create_transaction(1, 5, 0)
+      create_transaction(0, 5, 0),
+      create_transaction(1, 0, 2),
+      create_transaction(2, 1, 3),
     ]
   end
 
@@ -42,9 +44,9 @@ defmodule OMG.Watcher.Challenger.CoreTest do
         txindex2: 0,
         oindex2: 1,
         cur12: <<0::160>>,
-        newowner1: <<0::160>>,
+        newowner1: <<1::160>>,
         amount1: amount1,
-        newowner2: <<1::160>>,
+        newowner2: <<0::160>>,
         amount2: amount2
       },
       sig1: <<0::520>>,
@@ -61,21 +63,25 @@ defmodule OMG.Watcher.Challenger.CoreTest do
         %TxOutputDB{creating_tx_oindex: 0, spending_tx_oindex: 0}
       ],
       outputs: [
-        %TxOutputDB{creating_tx_oindex: 0},
-        %TxOutputDB{creating_tx_oindex: 1}
+        %TxOutputDB{creating_tx_oindex: 0, amount: amount1},
+        %TxOutputDB{creating_tx_oindex: 1, amount: amount2}
       ],
       txbytes: Signed.encode(signed)
     }
   end
 
   @tag fixtures: [:transactions]
-  test "creates a challenge for an exit", %{transactions: transactions} do
-    challenging_tx = hd(transactions)
-
-    expected_cutxopos = Utxo.position(2, 1, 0) |> Utxo.Position.encode()
-
+  test "creates a challenge for an exit; provides utxo position of non-zero amount", %{transactions: transactions} do
+    challenging_tx = transactions |> Enum.at(0)
+    expected_cutxopos = Utxo.position(2, 0, 0) |> Utxo.Position.encode()
     assert %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
 
-    # TODO: consider what should be tested here
+    challenging_tx = transactions |> Enum.at(1)
+    expected_cutxopos = Utxo.position(2, 1, 1) |> Utxo.Position.encode()
+    assert %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
+
+    challenging_tx = transactions |> Enum.at(2)
+    expected_cutxopos = Utxo.position(2, 2, 0) |> Utxo.Position.encode()
+    assert %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
   end
 end
