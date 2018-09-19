@@ -23,6 +23,10 @@ defmodule OMG.Watcher.Challenger do
   alias OMG.Watcher.Challenger.Core
   alias OMG.Watcher.DB.TransactionDB
 
+  @doc """
+  Challenges exit.
+  Stub. Does nothing.
+  """
   def challenge(_utxo_exit) do
     :challenged
   end

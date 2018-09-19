@@ -15,8 +15,9 @@
 defmodule OMG.API.FreshBlocks.Core do
   @moduledoc """
   Logic of the service to serve freshest blocks quickly.
-  NOTE: Pending discussion/solution how we're going to really scale this?
   """
+
+  # NOTE: Pending discussion/solution how we're going to really scale this?
 
   alias OMG.API.Block
 

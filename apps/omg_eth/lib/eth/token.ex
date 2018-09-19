@@ -14,7 +14,7 @@
 
 defmodule OMG.Eth.Token do
   @moduledoc """
-  Adapter/port to tokens that implement ERC20 interface.
+  Adapter/port to tokens that implement ERC20 interface
   """
 
   alias OMG.Eth

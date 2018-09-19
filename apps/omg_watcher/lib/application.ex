@@ -13,10 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.Application do
-  @moduledoc """
-  See https://hexdocs.pm/elixir/Application.html
-  for more information on OTP Applications
-  """
+  @moduledoc false
   use Application
   use OMG.API.LoggerExt
 

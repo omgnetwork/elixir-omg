@@ -14,11 +14,9 @@
 
 defmodule OMG.Watcher.BlockGetter do
   @moduledoc """
-  Checking if there are new block from child chain on ethereum.
-  Checking if Block from child chain is valid
-  Download new block from child chain and update State, TransactionDB, TxOutputDB.
-  Manage simultaneous getting and stateless-processing of blocks and manage the results of that
-  Detects byzantine situations like BlockWithholding and InvalidBlock and passes this events to Eventer
+  Downloads blocks from child chain, validates them and updates watcher state.
+  Manages simultaneous getting and stateless-processing of blocks.
+  Detects byzantine behaviors like invalid blocks and block withholding and notifies Eventer.
   """
   alias OMG.API.Block
   alias OMG.API.EventerAPI
@@ -30,6 +28,7 @@ defmodule OMG.Watcher.BlockGetter do
   use GenServer
   use OMG.API.LoggerExt
 
+  @doc false
   @spec get_block(pos_integer()) ::
           {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
   def get_block(requested_number) do

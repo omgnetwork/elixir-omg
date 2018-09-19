@@ -14,7 +14,7 @@
 
 defmodule OMG.DB.LevelDBCore do
   @moduledoc """
-  Responsible for converting type-aware, logic-specific queries (updates) into backend specific queries (updates)
+  Responsible for converting type-aware, logic-specific queries and updates into leveldb specific queries and updates
   """
 
   # adapter - testable, if we really really want to
@@ -53,7 +53,7 @@ defmodule OMG.DB.LevelDBCore do
   end
 
   @doc """
-  Interprets an enumberable of responses from leveldb and decorates the enumerable with a {:ok, _enumberable}
+  Interprets an enumberable of responses from leveldb and decorates the enumerable with a `{:ok, _enumberable}`
   if no errors occurred
   """
   def decode_values(encoded_enumerable, type) do

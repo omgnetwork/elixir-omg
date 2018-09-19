@@ -45,7 +45,7 @@ defmodule OMG.API.BlockQueue.GasPriceAdjustmentStrategyParams do
     }
   end
 
-  def with(state, lastchecked_parent_height, lastchecked_mined_child_block_num) do
-    %{state | last_block_mined: {lastchecked_parent_height, lastchecked_mined_child_block_num}}
+  def with(state, last_checked_parent_height, last_checked_mined_child_block_num) do
+    %{state | last_block_mined: {last_checked_parent_height, last_checked_mined_child_block_num}}
   end
 end

@@ -14,11 +14,11 @@
 
 defmodule OMG.JSONRPC.Exposer do
   @moduledoc """
-  This module contains a helper function to be called within JSONRPC Handlers `handle_request`
+  This module contains a helper function to be called within JSONRPC handlers `handle_request`
 
-  It takes the original data request and channels it to a specific API exposed using OMG.JSONRPC.ExposeSpec
+  It takes the original data request and channels it to a specific API exposed using `OMG.JSONRPC.ExposeSpec`
 
-  Internally uses OMG.JSONRPC.ExposeSpec macro to expose function argument names
+  Internally uses `OMG.JSONRPC.ExposeSpec` macro to expose function argument names
   so that pairing between JSON keys and arg names becomes possible.
 
   Note: it ignores extra args and does not yet handle functions

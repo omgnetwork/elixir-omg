@@ -27,22 +27,32 @@ defmodule OMG.API.BlackBoxMe do
   would create a YourProject.State.CoreGS module, accessible in every MIX_ENV.
 
   Pure library is presumed to have following interface:
-  -spec funX(arg1, ..., argN, state) :: {:ok, side_effects(), state} | {{:error, term}, state}
+  ```
+  spec funX(arg1, ..., argN, state) :: {:ok, side_effects(), state} | {{:error, term}, state}
+  ```
   Wrapper exports the same functions with arity-1 (state is hidden) and returns tuples that are shorted by one item (state is hidden). Example above would have been transformed into:
-  -spec funX(arg1, ..., argN) :: {:ok, side_effects()} | {:error, term}
+  ```
+  spec funX(arg1, ..., argN) :: {:ok, side_effects()} | {:error, term}
+  ```
 
   This allows for black-box testing and more importantly - for interaction with proper_statem and proper_fsm.
 
   Wrapper adds following helper functions:
 
-  # initiate state with call to this:
+  initiate state with call to this:
+  ```
   @spec init(state()) :: {:ok, :state_managed_by_helper}
+  ```
 
-  # cleanup state stored in process dictionary
+  cleanup state stored in process dictionary
+  ```
   @spec reset() :: state() | nil
+  ```
 
-  # get state stored in process dictionary (for possible inspection)
+  get state stored in process dictionary (for possible inspection)
+  ```
   @spec get_state() :: state() | nil
+  ```
 
   """
   defmacro __using__(_opts) do

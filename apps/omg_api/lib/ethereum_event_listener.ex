@@ -15,8 +15,8 @@
 defmodule OMG.API.EthereumEventListener do
   @moduledoc """
   Periodically fetches events made on dynamically changing block range
-  on parent chain and feeds them to state.
-  For code simplicity it listens for events in blocks with a configured finality margin.
+  on parent chain and feeds them to a callback.
+  For code simplicity it listens for events from blocks with a configured finality margin.
   """
 
   alias OMG.API.EthereumEventListener.Core

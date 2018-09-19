@@ -14,8 +14,7 @@
 
 defmodule OMG.JSONRPC.Client do
   @moduledoc """
-  helper to encode and decode elixir values
-  (see also expose_spec)
+  Encoding and decoding elixir values, see also `OMG.JSONRPC.ExposeSpec`
   """
 
   def encode(arg) when is_binary(arg), do: Base.encode16(arg)
