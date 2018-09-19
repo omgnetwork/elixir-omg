@@ -642,6 +642,18 @@ defmodule OMG.API.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :state_empty]
+  test "Output with zero value does not change oindex of other outputs", %{alice: alice, state_empty: state} do
+    fee = %{eth() => 0}
+
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 0}, {alice, 8}]), fee, &1)).()
+    |> success?
+    |> (&Core.exec(Test.create_recovered([{1000, 0, 1, alice}], eth(), [{alice, 1}]), fee, &1)).()
+    |> success?
+  end
+
+  @tag fixtures: [:alice, :state_empty]
   test "Output with zero value will not be written to DB", %{alice: alice, state_empty: state} do
     fee = %{eth() => 2}
 
