@@ -56,30 +56,31 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
         eth_height: 1
       })
 
-      alice_address_encode = alice.addr |> TestHelper.to_response_address()
-
       %{
         "data" => [
           %{
             "amount" => ^amount1,
             "currency" => @eth_hex,
-            "creating_transaction" => %{"blknum" => 2000, "txindex" => 0},
-            "creating_tx_oindex" => 0,
-            "owner" => ^alice_address_encode
+            "blknum" => 2000,
+            "txindex" => 0,
+            "oindex" => 0,
+            "txbytes" => _txbytes1
           },
           %{
             "amount" => ^amount2,
             "currency" => @eth_hex,
-            "creating_transaction" => %{"blknum" => 2000, "txindex" => 1},
-            "creating_tx_oindex" => 0,
-            "owner" => ^alice_address_encode
+            "blknum" => 2000,
+            "txindex" => 1,
+            "oindex" => 0,
+            "txbytes" => _txbytes2
           },
           %{
             "amount" => ^amount3,
             "currency" => @eth_hex,
-            "creating_transaction" => %{"blknum" => 2000, "txindex" => 1},
-            "creating_tx_oindex" => 1,
-            "owner" => ^alice_address_encode
+            "blknum" => 2000,
+            "txindex" => 1,
+            "oindex" => 1,
+            "txbytes" => _txbytes3
           }
         ],
         "result" => "success"
@@ -97,13 +98,11 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
         eth_height: 1
       })
 
-      bob_address_encode = bob.addr |> TestHelper.to_response_address()
-
       assert %{
                "result" => "success",
                "data" => [
-                 %{"amount" => 1871, "owner" => ^bob_address_encode},
-                 %{"amount" => 1872, "owner" => ^bob_address_encode}
+                 %{"amount" => 1871, "oindex" => 0, "txindex" => 1, "blknum" => 1000, "currency" => @eth_hex},
+                 %{"amount" => 1872, "oindex" => 1, "txindex" => 1, "blknum" => 1000, "currency" => @eth_hex}
                ]
              } = get_utxos(bob.addr)
 
@@ -113,11 +112,9 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
         eth_height: 1
       })
 
-      carol_address_encode = carol.addr |> TestHelper.to_response_address()
-
       assert %{
                "result" => "success",
-               "data" => [%{"amount" => 1000, "owner" => ^carol_address_encode}]
+               "data" => [%{"amount" => 1000, "oindex" => 0, "txindex" => 0, "blknum" => 2000, "currency" => @eth_hex}]
              } = get_utxos(carol.addr)
 
       assert %{
@@ -128,8 +125,6 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "Deposits are a part of utxo set.", %{alice: alice} do
-      alice_address_encode = alice.addr |> TestHelper.to_response_address()
-
       assert %{
                "result" => "success",
                "data" => []
@@ -143,9 +138,10 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
                  %{
                    "amount" => 1,
                    "currency" => @eth_hex,
-                   "deposit" => %{"deposit_blknum" => 1, "deposit_txindex" => 0, "event_type" => "deposit"},
-                   "creating_tx_oindex" => 0,
-                   "owner" => ^alice_address_encode
+                   "blknum" => 1,
+                   "txindex" => 0,
+                   "oindex" => 0,
+                   "txbytes" => _txbytes
                  }
                ]
              } = get_utxos(alice.addr)
@@ -153,9 +149,6 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
     test "Deposit utxo are moved to new owner if spent ", %{alice: alice, bob: bob} do
-      alice_address_encode = alice.addr |> TestHelper.to_response_address()
-      bob_address_encode = bob.addr |> TestHelper.to_response_address()
-
       assert %{
                "result" => "success",
                "data" => []
@@ -174,10 +167,10 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
                  %{
                    "amount" => 1,
                    "currency" => @eth_hex,
-                   "creating_transaction" => nil,
-                   "deposit" => %{"deposit_blknum" => 1, "deposit_txindex" => 0, "event_type" => "deposit"},
-                   "creating_tx_oindex" => 0,
-                   "owner" => ^alice_address_encode
+                   "blknum" => 1,
+                   "txindex" => 0,
+                   "oindex" => 0,
+                   "txbytes" => _txbytes1
                  }
                ]
              } = get_utxos(alice.addr)
@@ -199,10 +192,10 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
                  %{
                    "amount" => 1,
                    "currency" => @eth_hex,
-                   "creating_transaction" => %{"blknum" => 1000, "txindex" => 0},
-                   "deposit" => nil,
-                   "creating_tx_oindex" => 0,
-                   "owner" => ^bob_address_encode
+                   "blknum" => 1000,
+                   "txindex" => 0,
+                   "oindex" => 0,
+                   "txbytes" => _txbytes2
                  }
                ]
              } = get_utxos(bob.addr)

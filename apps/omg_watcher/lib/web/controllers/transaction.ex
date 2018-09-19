@@ -50,20 +50,47 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
           title("Transaction")
 
           properties do
-            blknum(
-              :integer,
-              "Number of childchain block that contains transaction that created the utxo",
-              required: true
-            )
-
-            txindex(:integer, "Number of transaction that created the utxo", required: true)
-            txhash(:string, "Signed hash of transaction", required: true)
+            txid(:string, "Transaction id", required: true)
+            blknum1(:integer, "Childchain block number of the first input utxo", required: true)
+            txindex1(:integer, "Transaction index of the first input utxo", required: true)
+            oindex1(:integer, "Output index of the first input utxo", required: true)
+            blknum2(:integer, "Childchain block number of the second input utxo", required: true)
+            txindex2(:integer, "Transaction index of the second input utxo", required: true)
+            oindex2(:integer, "Output index of the second input utxo", required: true)
+            cur12(:string, "Currency of the transaction", required: true)
+            newowner1(:string, "Address of the owner of the first output utxo", required: true)
+            amount1(:integer, "Amount of currency in the first output utxo", required: true)
+            newowner2(:string, "Address of the owner of the second output utxo", required: true)
+            amount2(:integer, "Amount of currency in the second output utxo", required: true)
+            txblknum(:integer, "Number of block that the transaction is included in", required: true)
+            txindex(:integer, "Transaction index", required: true)
+            sig1(:string, "Signature of owner of the first input utxo", required: true)
+            sig2(:string, "Signature of owner of the second input utxo", required: true)
+            spender1(:string, "Address of owner of the first input utxo", required: true)
+            spender2(:string, "Address of owner of the second input utxo", required: true)
           end
 
           example(%{
-            blknum: 1000,
-            txindex: 25,
-            txhash: "7857F7E734AEE01E452E182E22FC27AA114F8A9467D779315C18585E5F0BBC8E"
+            txid: "5DF13A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21",
+            blknum1: 1000,
+            txindex1: 2,
+            oindex1: 0,
+            blknum2: 2000,
+            txindex2: 0,
+            oindex2: 1,
+            cur12: "0000000000000000000000000000000000000000",
+            newowner1: "B3256026863EB6AE5B06FA396AB09069784EA8EA",
+            amount1: 1,
+            newowner2: "0000000000000000000000000000000000000000",
+            amount2: 2,
+            txblknum: 3000,
+            txindex: 1,
+            sig1:
+              "F3050F1CC506480EFFBD78CB2FB21074AD3545564520F1E58F8F7BA1E37EF35450EB406A4173524CA0A6C4DE4D7EF7E814E161795EB8D852033E60F3539E61F71B",
+            sig2:
+              "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            spender1: "92EAD0DB732692FF887268DA965C311AC2C9005B",
+            spender2: "92EAD0DB732692FF887268DA965C311AC2C9005B"
           })
         end
     }

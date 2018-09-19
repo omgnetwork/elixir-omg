@@ -19,6 +19,9 @@ defmodule OMG.Watcher.Web.View.Utxo do
 
   use OMG.Watcher.Web, :view
 
+  alias OMG.Watcher.DB.EthEventDB
+  alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.DB.TxOutputDB
   alias OMG.Watcher.Web.Serializer
 
   def render("utxo_exit.json", %{utxo_exit: utxo_exit}) do
@@ -26,8 +29,44 @@ defmodule OMG.Watcher.Web.View.Utxo do
     |> Serializer.Response.serialize(:success)
   end
 
-  def render("available.json", %{available: %{utxos: utxos}}) do
+  def render("utxos.json", %{utxos: utxos}) do
     utxos
+    |> Enum.map(&to_view/1)
     |> Serializer.Response.serialize(:success)
+  end
+
+  defp get_position(
+         %TransactionDB{blknum: blknum, txindex: txindex},
+         deposit
+       )
+       when is_nil(deposit) do
+    {blknum, txindex}
+  end
+
+  defp get_position(
+         tx,
+         %EthEventDB{deposit_blknum: blknum, deposit_txindex: txindex}
+       )
+       when is_nil(tx) do
+    {blknum, txindex}
+  end
+
+  defp to_view(%TxOutputDB{
+         amount: amount,
+         currency: currency,
+         creating_tx_oindex: oindex,
+         creating_transaction: tx,
+         deposit: deposit
+       }) do
+    {blknum, txindex} = get_position(tx, deposit)
+
+    %{
+      amount: amount,
+      currency: currency,
+      blknum: blknum,
+      txindex: txindex,
+      oindex: oindex,
+      txbytes: tx && tx.txbytes
+    }
   end
 end

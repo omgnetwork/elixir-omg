@@ -19,10 +19,32 @@ defmodule OMG.Watcher.Web.View.Transaction do
 
   use OMG.Watcher.Web, :view
 
+  alias OMG.API.State.Transaction.{Recovered, Signed}
   alias OMG.Watcher.Web.Serializer
 
   def render("transaction.json", %{transaction: transaction}) do
-    transaction
+    {:ok,
+     %Signed{
+       raw_tx: tx,
+       sig1: sig1,
+       sig2: sig2
+     } = signed} = Signed.decode(transaction.txbytes)
+
+    {:ok,
+     %Recovered{
+       spender1: spender1,
+       spender2: spender2
+     }} = Recovered.recover_from(signed)
+
+    tx
+    |> Map.merge(%{
+        txid: transaction.txhash,
+        txblknum: transaction.blknum,
+        txindex: transaction.txindex,
+        sig1: sig1,
+        sig2: sig2,
+        spender1: spender1,
+        spender2: spender2})
     |> Serializer.Response.serialize(:success)
   end
 end

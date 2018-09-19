@@ -60,35 +60,25 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     encode_tx = Client.encode(tx)
 
-    expected_bob_address = bob.addr |> TestHelper.to_response_address()
-
     assert [
              %{
                "amount" => 3,
-               "creating_transaction" => %{
-                 "blknum" => ^block_nr,
-                 "txbytes" => ^encode_tx,
-                 "txindex" => 0
-               },
-               "creating_tx_oindex" => 1,
+               "blknum" => ^block_nr,
+               "txindex" => 0,
+               "oindex" => 1,
                "currency" => @eth_hex,
-               "owner" => ^expected_bob_address
+               "txbytes" => ^encode_tx
              }
            ] = get_utxos(bob)
-
-    expected_alice_address = alice.addr |> TestHelper.to_response_address()
 
     assert [
              %{
                "amount" => 7,
-               "creating_transaction" => %{
-                 "blknum" => ^block_nr,
-                 "txbytes" => ^encode_tx,
-                 "txindex" => 0
-               },
-               "creating_tx_oindex" => 0,
+               "blknum" => ^block_nr,
+               "txindex" => 0,
+               "oindex" => 0,
                "currency" => @eth_hex,
-               "owner" => ^expected_alice_address
+               "txbytes" => ^encode_tx
              }
            ] = get_utxos(alice)
 

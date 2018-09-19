@@ -42,16 +42,31 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
           eth_height: 1
         })
 
+      alice_addr = alice.addr |> TestHelper.to_response_address()
       txhash = Base.encode16(txhash)
+      zero_addr = String.duplicate("0", 2 * 20)
+      zero_sign = String.duplicate("0", 2 * 65)
 
       assert %{
                "data" => %{
-                 "blknum" => ^blknum,
-                 "eth_height" => _eth_height,
-                 "sent_at" => _send_at,
-                 "txbytes" => _txbytes,
-                 "txhash" => ^txhash,
-                 "txindex" => ^txindex
+                 "txid" => ^txhash,
+                 "txblknum" => ^blknum,
+                 "txindex" => ^txindex,
+                 "blknum1" => 1,
+                 "txindex1" => 1,
+                 "oindex1" => 0,
+                 "blknum2" => 0,
+                 "txindex2" => 0,
+                 "oindex2" => 0,
+                 "cur12" => ^zero_addr,
+                 "newowner1" => ^alice_addr,
+                 "amount1" => 120,
+                 "newowner2" => ^zero_addr,
+                 "amount2" => 0,
+                 "sig1" => <<_sig1::binary-size(130)>>,
+                 "sig2" => ^zero_sign,
+                 "spender1" => ^alice_addr,
+                 "spender2" => nil
                },
                "result" => "success"
              } = TestHelper.rest_call(:get, "/transaction/#{txhash}")

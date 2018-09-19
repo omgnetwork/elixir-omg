@@ -22,7 +22,7 @@ defmodule OMG.Watcher.Web.Serializer.Response do
   @doc """
   Append result of operation to the response data forming standard api response structure
   """
-  @spec serialize(map(), response_result_t()) :: %{result: response_result_t(), data: map()}
+  @spec serialize(any(), response_result_t()) :: %{result: response_result_t(), data: map()}
   def serialize(data, result)
   def serialize(data, :success), do: data |> clean_artifacts() |> to_response(:success)
   def serialize(data, :error), do: data |> to_response(:error)
