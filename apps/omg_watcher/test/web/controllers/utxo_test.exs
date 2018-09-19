@@ -76,6 +76,31 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
       assert %{"currency" => @eth_hex, "amount" => 1900, "blknum" => 2, "txindex" => 1, "oindex" => 1} in utxos
     end
 
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "Outputs with value zero are not inserted into DB", %{alice: alice} do
+      {:ok, alice_address_encode} = Crypto.encode_address(alice.addr)
+
+      UtxoDB.update_with(%Block{
+        transactions: [
+          API.TestHelper.create_recovered([], @eth, [{alice, 0}, {alice, 1947}])
+        ],
+        number: 1
+      })
+
+      %{
+        "result" => "success",
+        "data" => %{
+          "address" => ^alice_address_encode,
+          "utxos" => utxos
+        }
+      } = get_utxo(alice.addr)
+
+      utxos = Enum.map(utxos, &Map.delete(&1, "txbytes"))
+
+      assert length(utxos) == 1
+      assert %{"currency" => @eth_hex, "amount" => 1947, "blknum" => 1, "txindex" => 0, "oindex" => 1} in utxos
+    end
+
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob, :carol]
     test "Spent utxos are moved to new owner.", %{alice: alice, bob: bob, carol: carol} do
       {:ok, bob_address_encode} = Crypto.encode_address(bob.addr)
