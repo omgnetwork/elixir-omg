@@ -127,6 +127,14 @@ defmodule OMG.API.State.CoreTest do
     assert {:ok, {[], []}, ^state} = Core.deposit([%{owner: bob.addr, currency: eth(), amount: 20, blknum: 1}], state)
   end
 
+  test "extract_initial_state function returns error when passed last deposit as :not_found" do
+    assert {:error, :last_deposit_not_found} = Core.extract_initial_state([], 0, :not_found, @child_block_interval)
+  end
+
+  test "extract_initial_state function returns error when passed top block number as :not_found" do
+    assert {:error, :top_block_number_not_found} = Core.extract_initial_state([], :not_found, 0, @child_block_interval)
+  end
+
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can't spend nonexistent", %{alice: alice, bob: bob, state_empty: state} do
     state_deposit = state |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})

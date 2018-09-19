@@ -24,7 +24,7 @@ defmodule OMG.DB.LevelDBServer do
 
   alias OMG.DB.LevelDBCore
 
-  alias Exleveldb
+  require Logger
 
   def start_link(name: name, db_path: db_path) do
     GenServer.start_link(__MODULE__, %{db_path: db_path}, name: name)
@@ -33,8 +33,14 @@ defmodule OMG.DB.LevelDBServer do
   def init(%{db_path: db_path}) do
     # needed so that terminate callback is called on normal close
     Process.flag(:trap_exit, true)
-    {:ok, db_ref} = Exleveldb.open(db_path)
-    {:ok, %__MODULE__{db_ref: db_ref}}
+
+    with {:ok, db_ref} <- Exleveldb.open(db_path) do
+      {:ok, %__MODULE__{db_ref: db_ref}}
+    else
+      error ->
+        _ = Logger.error(fn -> "It seems that Child chain database is not initialized. Check README.md" end)
+        error
+    end
   end
 
   def handle_call({:multi_update, db_updates}, _from, %__MODULE__{db_ref: db_ref} = state) do

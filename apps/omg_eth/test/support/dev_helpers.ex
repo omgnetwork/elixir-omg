@@ -23,6 +23,8 @@ defmodule OMG.Eth.DevHelpers do
 
   import Eth.Encoding
 
+  require Logger
+
   @one_hundred_eth trunc(:math.pow(10, 18) * 100)
 
   # about 4 Ethereum blocks on "realistic" networks, use to timeout synchronous operations in demos on testnets
@@ -36,10 +38,18 @@ defmodule OMG.Eth.DevHelpers do
    - `root_path` should point to `elixir-omg` root or wherever where `./contracts/build` holds the compiled contracts
   """
   def prepare_env!(root_path \\ "./") do
-    {:ok, _} = Application.ensure_all_started(:ethereumex)
-    {:ok, authority} = create_and_fund_authority_addr()
-    {:ok, txhash, contract_addr} = Eth.RootChain.create_new(root_path, authority)
-    %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
+    with {:ok, _} <- Application.ensure_all_started(:ethereumex),
+         {:ok, authority} <- create_and_fund_authority_addr(),
+         {:ok, txhash, contract_addr} <- Eth.RootChain.create_new(root_path, authority) do
+      %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
+    else
+      {:error, :econnrefused} = error ->
+        Logger.error(fn -> "It seems that Ethereum instance is not running. Check README.md" end)
+        error
+
+      other ->
+        other
+    end
   end
 
   def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
@@ -53,10 +63,10 @@ defmodule OMG.Eth.DevHelpers do
   end
 
   def create_and_fund_authority_addr do
-    {:ok, authority} = Ethereumex.HttpClient.request("personal_newAccount", [""], [])
-    {:ok, _} = unlock_fund(authority)
-
-    {:ok, from_hex(authority)}
+    with {:ok, authority} <- Ethereumex.HttpClient.request("personal_newAccount", [""], []),
+         {:ok, _} <- unlock_fund(authority) do
+      {:ok, from_hex(authority)}
+    end
   end
 
   @doc """
