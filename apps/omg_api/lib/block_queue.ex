@@ -83,16 +83,30 @@ defmodule OMG.API.BlockQueue do
       _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{inspect(Base.encode16(top_mined_hash))}" end)
 
       {:ok, state} =
-        Core.new(
-          mined_child_block_num: mined_num,
-          known_hashes: Enum.zip(range, known_hashes),
-          top_mined_hash: top_mined_hash,
-          parent_height: parent_height,
-          child_block_interval: child_block_interval,
-          chain_start_parent_height: parent_start,
-          submit_period: Application.get_env(:omg_api, :child_block_submit_period),
-          finality_threshold: finality_threshold
-        )
+        with {:ok, _state} = result <-
+               Core.new(
+                 mined_child_block_num: mined_num,
+                 known_hashes: Enum.zip(range, known_hashes),
+                 top_mined_hash: top_mined_hash,
+                 parent_height: parent_height,
+                 child_block_interval: child_block_interval,
+                 chain_start_parent_height: parent_start,
+                 submit_period: Application.get_env(:omg_api, :child_block_submit_period),
+                 finality_threshold: finality_threshold
+               ) do
+          result
+        else
+          {:error, reason} = error when reason in [:mined_hash_not_found_in_db, :contract_ahead_of_db] ->
+            _ =
+              Logger.error(fn ->
+                "The child chain might have not been wiped clean when starting a child chain from scratch. Check README.MD and follow the setting up child chain."
+              end)
+
+            error
+
+          other ->
+            other
+        end
 
       interval = Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms)
       {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)

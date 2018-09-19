@@ -26,6 +26,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
   @known_transaction_response {:error, %{"code" => -32_000, "message" => "known transaction tx"}}
   @replacement_transaction_response {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}}
   @nonce_too_low_response {:error, %{"code" => -32_000, "message" => "nonce too low"}}
+  @account_locked_response {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}}
 
   def empty do
     {:ok, state} =
@@ -522,6 +523,15 @@ defmodule OMG.API.BlockQueue.CoreTest do
 
       assert capture_log(fn ->
                assert {:error, :nonce_too_low} = process_submit_result(submission, @nonce_too_low_response, 90)
+             end) =~ "[error]"
+    end
+
+    test "other fatal errors" do
+      [submission] = recover([{1000, "1"}], 0, <<0::size(256)>>) |> elem(1) |> get_blocks_to_submit()
+
+      # the new mined child block number is not the one we submitted, so we expect an error an error log
+      assert capture_log(fn ->
+               assert {:error, :account_locked} = process_submit_result(submission, @account_locked_response, 0)
              end) =~ "[error]"
     end
   end

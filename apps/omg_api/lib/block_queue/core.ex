@@ -428,6 +428,10 @@ defmodule OMG.API.BlockQueue.Core do
         _ = Logger.debug(fn -> "Submission #{inspect(submission)} is known, but with higher price - ignored" end)
         :ok
 
+      {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}} ->
+        _ = Logger.error(fn -> "It seems that authority account is locked. Check README.md" end)
+        {:error, :account_locked}
+
       {:error, %{"code" => -32_000, "message" => "nonce too low"}} ->
         process_nonce_too_low(submission, newest_mined_blknum)
     end
