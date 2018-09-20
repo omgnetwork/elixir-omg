@@ -21,7 +21,7 @@ defmodule OMG.Watcher.DB.Types.AtomType do
 
   def cast(value), do: {:ok, value}
 
-  def load(value), do: {:ok, String.to_atom(value)}
+  def load(value), do: {:ok, String.to_existing_atom(value)}
 
   def dump(value) when is_atom(value), do: {:ok, Atom.to_string(value)}
 

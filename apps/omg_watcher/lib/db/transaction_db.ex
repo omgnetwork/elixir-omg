@@ -27,6 +27,12 @@ defmodule OMG.Watcher.DB.TransactionDB do
 
   import Ecto.Query, only: [from: 2]
 
+  @type mined_block() :: %{
+    transactions: [OMG.API.State.Transaction.Recovered.t()],
+    blknum: pos_integer(),
+    eth_height: pos_integer()
+  }
+
   @primary_key {:txhash, :binary, []}
   @derive {Phoenix.Param, key: :txhash}
   @derive {Poison.Encoder, except: [:__meta__]}
@@ -70,11 +76,7 @@ defmodule OMG.Watcher.DB.TransactionDB do
   @doc """
   Inserts complete and sorted enumberable of transactions for particular block number
   """
-  @spec update_with(%{
-          transactions: [OMG.API.State.Transaction.Recovered.t()],
-          blknum: pos_integer(),
-          eth_height: pos_integer()
-        }) :: [{:ok, __MODULE__}]
+  @spec update_with(mined_block()) :: [{:ok, __MODULE__}]
   def update_with(%{transactions: transactions, blknum: block_number, eth_height: eth_height}) do
     transactions
     |> Stream.with_index()

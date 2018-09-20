@@ -170,11 +170,7 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   # The purpose of this function is to ensure contract between shell and db code
-  @spec to_block(map(), pos_integer()) :: %{
-          transactions: [OMG.API.State.Transaction.Recovered.t()],
-          blknum: pos_integer(),
-          eth_height: pos_integer()
-        }
+  @spec to_block(map(), pos_integer()) :: TransactionDB.mined_block()
   defp to_block(block, eth_height) do
     %{
       eth_height: eth_height,
