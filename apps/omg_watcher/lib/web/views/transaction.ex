@@ -38,13 +38,14 @@ defmodule OMG.Watcher.Web.View.Transaction do
 
     tx
     |> Map.merge(%{
-        txid: transaction.txhash,
-        txblknum: transaction.blknum,
-        txindex: transaction.txindex,
-        sig1: sig1,
-        sig2: sig2,
-        spender1: spender1,
-        spender2: spender2})
+      txid: transaction.txhash,
+      txblknum: transaction.blknum,
+      txindex: transaction.txindex,
+      sig1: sig1,
+      sig2: sig2,
+      spender1: spender1,
+      spender2: spender2
+    })
     |> Serializer.Response.serialize(:success)
   end
 end

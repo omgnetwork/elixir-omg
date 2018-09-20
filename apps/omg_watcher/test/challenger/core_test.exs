@@ -30,7 +30,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
     [
       create_transaction(0, 5, 0),
       create_transaction(1, 0, 2),
-      create_transaction(2, 1, 3),
+      create_transaction(2, 1, 3)
     ]
   end
 

@@ -17,31 +17,18 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
 
-  alias OMG.API
-  alias OMG.API.Crypto
-  alias OMG.Watcher.DB.TransactionDB
   alias OMG.Watcher.TestHelper
 
-  @eth Crypto.zero_address()
-
   describe "Controller.TransactionTest" do
-    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-    test "transaction/:id endpoint returns expected transaction format", %{alice: alice} do
-      [
-        ok: %TransactionDB{
-          blknum: blknum,
-          txindex: txindex,
-          txhash: txhash
-        }
-      ] =
-        TransactionDB.update_with(%{
-          transactions: [
-            API.TestHelper.create_recovered([{1, 1, 0, alice}], @eth, [{alice, 120}])
-          ],
-          blknum: 1,
-          eth_height: 1
-        })
+    @tag fixtures: [:initial_blocks, :alice, :bob]
+    test "transaction/:id endpoint returns expected transaction format", %{
+      initial_blocks: initial_blocks,
+      alice: alice,
+      bob: bob
+    } do
+      {blknum, txindex, txhash, _recovered_tx} = initial_blocks |> hd()
 
+      bob_addr = bob.addr |> TestHelper.to_response_address()
       alice_addr = alice.addr |> TestHelper.to_response_address()
       txhash = Base.encode16(txhash)
       zero_addr = String.duplicate("0", 2 * 20)
@@ -53,14 +40,14 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "txblknum" => ^blknum,
                  "txindex" => ^txindex,
                  "blknum1" => 1,
-                 "txindex1" => 1,
+                 "txindex1" => 0,
                  "oindex1" => 0,
                  "blknum2" => 0,
                  "txindex2" => 0,
                  "oindex2" => 0,
                  "cur12" => ^zero_addr,
-                 "newowner1" => ^alice_addr,
-                 "amount1" => 120,
+                 "newowner1" => ^bob_addr,
+                 "amount1" => 300,
                  "newowner2" => ^zero_addr,
                  "amount2" => 0,
                  "sig1" => <<_sig1::binary-size(130)>>,

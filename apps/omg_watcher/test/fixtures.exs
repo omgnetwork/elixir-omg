@@ -156,4 +156,42 @@ defmodule OMG.Watcher.Fixtures do
       :ok
     end)
   end
+
+  deffixture initial_blocks(entities, phoenix_ecto_sandbox) do
+    alias OMG.Watcher.DB.TransactionDB
+    eth = OMG.API.Crypto.zero_address()
+
+    %{alice: alice, bob: bob} = entities
+    :ok = phoenix_ecto_sandbox
+
+    prepare_f = fn {blknum, recovered_txs} ->
+      db_results = TransactionDB.update_with(%{transactions: recovered_txs, blknum: blknum, eth_height: 1})
+      true = db_results |> Enum.all?(&(elem(&1, 0) == :ok))
+
+      recovered_txs
+      |> Enum.with_index()
+      |> Enum.map(fn {recovered_tx, txindex} -> {blknum, txindex, recovered_tx.signed_tx_hash, recovered_tx} end)
+    end
+
+    # Initial data depending tests can reuse
+    OMG.Watcher.DB.EthEventDB.insert_deposits([
+      %{owner: alice.addr, currency: eth, amount: 333, blknum: 1, hash: "deposit:alice"},
+      %{owner: bob.addr, currency: eth, amount: 100, blknum: 2, hash: "deposit:bobby"}
+    ])
+
+    [
+      {1000,
+       [
+         OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], eth, [{bob, 300}]),
+         OMG.API.TestHelper.create_recovered([{1000, 0, 0, bob}], eth, [{alice, 100}, {bob, 200}])
+       ]},
+      {2000, [OMG.API.TestHelper.create_recovered([{1000, 1, 0, alice}], eth, [{bob, 99}, {alice, 1}])]},
+      {3000,
+       [
+         OMG.API.TestHelper.create_recovered([], eth, [{alice, 150}]),
+         OMG.API.TestHelper.create_recovered([{1000, 1, 1, bob}], eth, [{bob, 150}, {alice, 50}])
+       ]}
+    ]
+    |> Enum.flat_map(prepare_f)
+  end
 end
