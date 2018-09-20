@@ -48,7 +48,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   @type t() :: %__MODULE__{
           synced_height: pos_integer(),
-          block_consume_batch: {atom(), MapSet.t()},
           last_consumed_block: non_neg_integer,
           started_block_number: non_neg_integer,
           block_interval: pos_integer,
@@ -72,7 +71,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block,
   using `child_block_interval` when progressing from one child block to another
-  and `synced_height` as the rootchain height up to witch all published blocked were processed
+  and `synced_height` as the root chain height up to witch all published blocked were processed
 
   Opts can be:
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
@@ -102,24 +101,15 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Marks that childchain block `blknum` was processed
   """
-  @spec consume_block(t(), pos_integer()) :: t()
-  def consume_block(%__MODULE__{} = state, blknum) do
-    {:processing, blocks} = state.block_consume_batch
-    blocks = MapSet.delete(blocks, blknum)
-    blocks_to_consume = Map.delete(state.blocks_to_consume, blknum)
-    last_consumed_block = max(state.last_consumed_block, blknum)
-
-    %{
-      state
-      | block_consume_batch: {:processing, blocks},
-        blocks_to_consume: blocks_to_consume,
-        last_consumed_block: last_consumed_block
-    }
+  @spec consume_block(t(), pos_integer(), pos_integer()) :: {t(), non_neg_integer(), list()}
+  def consume_block(%__MODULE__{} = state, consumed_block_number, blk_eth_height) do
+    state = %{state | synced_height: blk_eth_height, last_consumed_block: consumed_block_number}
+    {state, blk_eth_height, [{:put, :last_block_getter_eth_height, blk_eth_height}]}
   end
 
   @doc """
-  Produces rootchain block height range to search for events of block submission.
-  If the range is not empty it spans from current synced rootchain height to `coordinator_height`.
+  Produces root chain block height range to search for events of block submission.
+  If the range is not empty it spans from current synced root chain height to `coordinator_height`.
   Empty range case is solved naturally with {a, b}, a > b
   """
   @spec get_eth_range_for_block_submitted_events(t(), non_neg_integer()) :: {pos_integer(), pos_integer()}
@@ -139,36 +129,20 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   def get_blocks_to_consume(
-        %__MODULE__{block_consume_batch: {:downloading, _}, blocks_to_consume: blocks} = state,
+        %__MODULE__{blocks_to_consume: blocks} = state,
         submissions,
         _coordinator_height
       ) do
     blocks_to_consume = get_downloaded_blocks(blocks, submissions)
 
-    # consume blocks only if all blocks submitted to rootchain are downloaded
+    # consume blocks only if all blocks submitted to root chain are downloaded
     if length(blocks_to_consume) == length(submissions) do
-      block_consume_batch =
-        submissions
-        |> Enum.map(& &1.blknum)
-        |> MapSet.new()
+      submitted_block_numbers =
+        blocks_to_consume
+        |> Enum.map(fn {%{number: blknum}, _} -> blknum end)
 
-      state = %{state | block_consume_batch: {:processing, block_consume_batch}}
-      {blocks_to_consume, state.synced_height, [], state}
-    else
-      {[], state.synced_height, [], state}
-    end
-  end
-
-  def get_blocks_to_consume(
-        %__MODULE__{block_consume_batch: {:processing, blocks_to_process}} = state,
-        _submissions,
-        coordinator_height
-      ) do
-    if blocks_to_process == MapSet.new() do
-      next_synced_height = max(state.synced_height, coordinator_height)
-      state = %{state | synced_height: next_synced_height, block_consume_batch: {:downloading, []}}
-      db_updates = [{:put, :last_block_getter_eth_height, next_synced_height}]
-      {[], next_synced_height, db_updates, state}
+      blocks_to_keep = Map.drop(blocks, submitted_block_numbers)
+      {blocks_to_consume, state.synced_height, [], %{state | blocks_to_consume: blocks_to_keep}}
     else
       {[], state.synced_height, [], state}
     end

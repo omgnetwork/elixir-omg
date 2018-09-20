@@ -22,7 +22,7 @@ defmodule OMG.Watcher.BlockGetter do
   """
   alias OMG.API.Block
   alias OMG.API.EventerAPI
-  alias OMG.API.RootchainCoordinator
+  alias OMG.API.RootChainCoordinator
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.UtxoDB
@@ -65,7 +65,10 @@ defmodule OMG.Watcher.BlockGetter do
 
       :ok = OMG.API.State.close_block(block_rootchain_height)
 
-      state = Core.consume_block(state, blknum)
+      {state, synced_height, db_updates} = Core.consume_block(state, blknum, block_rootchain_height)
+      :ok = RootChainCoordinator.check_in(synced_height, :block_getter)
+      :ok = OMG.DB.multi_update(db_updates)
+
       {:noreply, state}
     else
       {:needs_stopping, reason} ->
@@ -89,7 +92,7 @@ defmodule OMG.Watcher.BlockGetter do
     {:ok, submissions} = Eth.RootChain.get_block_submitted_events({synced_height, synced_height + 1000})
     exact_synced_height = Core.figure_out_exact_sync_height(submissions, synced_height, child_top_block_number)
 
-    :ok = RootchainCoordinator.check_in(exact_synced_height, :block_getter)
+    :ok = RootChainCoordinator.check_in(exact_synced_height, :block_getter)
 
     height_sync_interval = Application.get_env(:omg_watcher, :block_getter_height_sync_interval_ms)
     {:ok, _} = schedule_sync_height(height_sync_interval)
@@ -151,7 +154,7 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
 
   def handle_info(:sync, state) do
-    with {:sync, next_synced_height} <- RootchainCoordinator.get_height() do
+    with {:sync, next_synced_height} <- RootChainCoordinator.get_height() do
       block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
       {:ok, submissions} = Eth.RootChain.get_block_submitted_events(block_range)
 
@@ -163,7 +166,7 @@ defmodule OMG.Watcher.BlockGetter do
       end)
 
       :ok = OMG.DB.multi_update(db_updates)
-      :ok = RootchainCoordinator.check_in(synced_height, :block_getter)
+      :ok = RootChainCoordinator.check_in(synced_height, :block_getter)
       {:noreply, state}
     else
       :nosync -> {:noreply, state}

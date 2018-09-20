@@ -33,7 +33,7 @@ defmodule OMG.Watcher.Application do
       # Start workers
       {OMG.API.State, []},
       {OMG.Watcher.Eventer, []},
-      {OMG.API.RootchainCoordinator, MapSet.new([:depositer, :fast_validator, :slow_validator, :block_getter])},
+      {OMG.API.RootChainCoordinator, MapSet.new([:depositer, :fast_validator, :slow_validator, :block_getter])},
       worker(
         OMG.API.EthereumEventListener,
         [
