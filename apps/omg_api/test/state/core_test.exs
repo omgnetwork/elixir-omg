@@ -127,6 +127,14 @@ defmodule OMG.API.State.CoreTest do
     assert {:ok, {[], []}, ^state} = Core.deposit([%{owner: bob.addr, currency: eth(), amount: 20, blknum: 1}], state)
   end
 
+  test "extract_initial_state function returns error when passed last deposit as :not_found" do
+    assert {:error, :last_deposit_not_found} = Core.extract_initial_state([], 0, :not_found, @child_block_interval)
+  end
+
+  test "extract_initial_state function returns error when passed top block number as :not_found" do
+    assert {:error, :top_block_number_not_found} = Core.extract_initial_state([], :not_found, 0, @child_block_interval)
+  end
+
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can't spend nonexistent", %{alice: alice, bob: bob, state_empty: state} do
     state_deposit = state |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
@@ -627,6 +635,54 @@ defmodule OMG.API.State.CoreTest do
       |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 6}, {alice, 3}]), fee, &1)).()
       |> fail?(:amounts_dont_add_up)
     end
+  end
+
+  @tag fixtures: [:alice, :state_empty]
+  test "Output can have a zero value; can't be used as input though", %{alice: alice, state_empty: state} do
+    fee = %{eth() => 0}
+
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 8}, {alice, 0}]), fee, &1)).()
+    |> success?
+    |> (&Core.exec(Test.create_recovered([{1000, 0, 1, alice}], eth(), [{alice, 0}]), fee, &1)).()
+    |> fail?(:utxo_not_found)
+  end
+
+  @tag fixtures: [:alice, :state_empty]
+  test "Output with zero value does not change oindex of other outputs", %{alice: alice, state_empty: state} do
+    fee = %{eth() => 0}
+
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 0}, {alice, 8}]), fee, &1)).()
+    |> success?
+    |> (&Core.exec(Test.create_recovered([{1000, 0, 1, alice}], eth(), [{alice, 1}]), fee, &1)).()
+    |> success?
+  end
+
+  @tag fixtures: [:alice, :state_empty]
+  test "Output with zero value will not be written to DB", %{alice: alice, state_empty: state} do
+    fee = %{eth() => 2}
+
+    state =
+      state
+      |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 0}]), fee, &1)).()
+      |> success?
+
+    {_, {_, _, db_updates}, _} = Core.form_block(1000, state)
+    assert [] = Enum.filter(db_updates, &match?({:put, :utxo, _}, &1))
+  end
+
+  @tag fixtures: [:alice, :state_empty]
+  test "Transaction can have no outputs", %{alice: alice, state_empty: state} do
+    fee = %{eth() => 2}
+
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), []), fee, &1)).()
+    |> success?
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]

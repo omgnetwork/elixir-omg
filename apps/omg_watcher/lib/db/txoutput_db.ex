@@ -124,10 +124,11 @@ defmodule OMG.Watcher.DB.TxOutputDB do
         newowner2: newowner2,
         amount2: amount2
       }) do
-    create_output(newowner1, cur12, amount1, 0) ++ create_output(newowner2, cur12, amount2, 1)
+    # zero-value outputs are not inserted, but there have to be at least one
+    [_output | _] = create_output(newowner1, cur12, amount1, 0) ++ create_output(newowner2, cur12, amount2, 1)
   end
 
-  defp create_output(_owner, _currency, 0, 1), do: []
+  defp create_output(_owner, _currency, 0, _position), do: []
 
   defp create_output(owner, currency, amount, index) when amount > 0,
     do: [%__MODULE__{owner: owner, amount: amount, currency: currency, creating_tx_oindex: index}]

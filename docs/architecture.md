@@ -100,7 +100,7 @@ Actually `OMG.API.EthereumEventListener` setup with `:slow_validator`.
 
 ### `OMG.JSONRPC`
 
-- exposes `OMG.API` via a `cowboy`-driven JSON-RPC2 interface
+- exposes `OMG.API` (as configured by `:omg_jsonrpc, :api_module` setting) via a `cowboy`-driven JSON-RPC2 interface
 
 ### `OMG.Performance`
 

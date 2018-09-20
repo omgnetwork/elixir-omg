@@ -222,6 +222,42 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
            } = TestHelper.rest_call(:get, "/utxo/#{utxo_pos}/exit_data", nil, 500)
   end
 
+  @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+  test "Outputs with value zero are not inserted into DB, the other has correct oindex", %{alice: alice} do
+    blknum = 11_000
+
+    TransactionDB.update_with(%{
+      transactions: [
+        API.TestHelper.create_recovered([], @eth, [{alice, 0}, {alice, 100}]),
+        API.TestHelper.create_recovered([], @eth, [{alice, 101}, {alice, 0}])
+      ],
+      blknum: blknum,
+      eth_height: 10
+    })
+
+    %{
+      "result" => "success",
+      "data" => [
+        %{
+          "amount" => 100,
+          "currency" => @eth_hex,
+          "blknum" => ^blknum,
+          "txindex" => 0,
+          "oindex" => 1,
+          "txbytes" => _txbytes2
+        },
+        %{
+          "amount" => 101,
+          "currency" => @eth_hex,
+          "blknum" => ^blknum,
+          "txindex" => 1,
+          "oindex" => 0,
+          "txbytes" => _txbytes3
+        }
+      ]
+    } = get_utxos(alice.addr)
+  end
+
   defp get_utxos(address) do
     {:ok, address_encode} = Crypto.encode_address(address)
     TestHelper.rest_call(:get, "/utxos?address=#{address_encode}")

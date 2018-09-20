@@ -2,6 +2,8 @@
 
 The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma and forms the basis for the OMG Network.
 
+[![Build Status](https://jenkins.omisego.io/buildStatus/icon?job=omisego/elixir-omg/develop)](https://jenkins.omisego.io/blue/organizations/jenkins/omisego%2Felixir-omg/activity?branch=develop) [![Gitter chat](https://badges.gitter.im/omisego/elixir-omg.png)](https://gitter.im/omisego/elixir-omg)
+
 **IMPORTANT NOTICE: Heavily WIP, expect anything**
 
 **Table of Contents**
@@ -84,7 +86,7 @@ A high level flow of the setup for both is outlined below.
 The configuration keys can be looked up at [`apps/omg_eth/config/config.exs`](apps/omg_eth/config/config.exs).
 Such configuration must become part of the [Mix configuration](https://hexdocs.pm/mix/Mix.Config.html) for the app you're going to be running.
 1. Initialize the child chain server's `OMG.DB` database.
-1. At this point the child chain server should be properly setup to run by starting the `omg_jsonrpc` Mix app
+1. At this point the child chain server should be properly setup to run by starting the `omg_api` Mix app
 1. (**Watcher only**) Configure PostgreSQL for `WatcherDB` database
 1. (**Watcher only**) Acquire the configuration file with root chain deployment data
 1. (**Watcher only**, optional) If running on the same machine as the child chain server, customize the location of `OMG.DB` database folder
@@ -166,7 +168,7 @@ You need to re-initialize the database, in case you want to start a new child ch
 * Start Up the child chain server:
 
 ```
-cd apps/omg_jsonrpc
+cd apps/omg_api
 iex -S mix run --config ~/config.exs
 ```
 
@@ -250,7 +252,7 @@ See [application architecture](docs/architecture.md) for more details.
 
 ## Child chain server
 
-`:omg_api` is the Elixir app which runs the child chain server, whose API can be exposed by running `:omg_jsonrpc`.
+`:omg_api` is the Elixir app which runs the child chain server, whose API is exposed by `:omg_jsonrpc`.
 
 For the responsibilities and design of the child chain server see [Tesuji Plasma Blockchain Design document](docs/tesuji_blockchain_design.md).
 

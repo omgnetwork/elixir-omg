@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.ExposeSpecTest do
+defmodule OMG.JSONRPC.ExposeSpecTest do
   @moduledoc """
-  No test anymore, as there's nothing to test, see OMG.API.ExposeSpec and git blame
+  No test anymore, as there's nothing to test, see OMG.JSONRPC.ExposeSpec and git blame
   """
   use ExUnit.Case
 end
