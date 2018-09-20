@@ -14,19 +14,27 @@
 
 defmodule OMG.API.PropTest.Generators do
   @moduledoc """
-  generators used in the sense of porpCheck
+  Custom generators
+  For our properties to be even more useful.
+  Module created to contain all kinds of custom generators in the sense of propCheck,
+  that are use in prop_test
   """
-  import PropCheck.BasicTypes
-  require PropCheck
-  use PropCheck
-  require OMG.API.PropTest.Constants
-  alias OMG.API.PropTest.Constants
 
+  alias OMG.API.PropTest.Constants
+  alias PropCheck.BasicTypes
+  use PropCheck
+  import BasicTypes
+  require PropCheck
+  require Constants
+
+  @spec fixed_list((any -> BasicTypes.type()), [any]) :: BasicTypes.type()
   def fixed_list(type, [arg | rest]), do: fixed_list([type.(arg) | fixed_list(type, rest)])
   def fixed_list(_type, []), do: []
+  @spec fixed_list(BasicTypes.type(), non_neg_integer) :: BasicTypes.type()
   def fixed_list(_, 0), do: []
   def fixed_list(type, size), do: fixed_list([type | fixed_list(type, size - 1)])
 
+  @spec input_transaction([any]) :: BasicTypes.type()
   def input_transaction(spendable) do
     frequency([
       {1, fixed_list([oneof(spendable)])},
@@ -34,6 +42,7 @@ defmodule OMG.API.PropTest.Generators do
     ])
   end
 
+  @spec new_owners() :: BasicTypes.type()
   def new_owners do
     users = OMG.API.TestHelper.entities_stable() |> Map.keys()
 
@@ -43,10 +52,12 @@ defmodule OMG.API.PropTest.Generators do
     ])
   end
 
+  @spec get_currency() :: BasicTypes.type()
   def get_currency do
-    frequency([{7, Constants.ethereum()}, {1, Constants.other_currency()}])
+    frequency([{7, Constants.eth()}, {1, Constants.other_currency()}])
   end
 
+  @spec entity() :: BasicTypes.type()
   def entity do
     addresses =
       OMG.API.TestHelper.entities_stable()

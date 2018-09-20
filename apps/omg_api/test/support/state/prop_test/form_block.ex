@@ -11,42 +11,42 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 defmodule OMG.API.State.PropTest.FormBlock do
   @moduledoc """
-  Generator to form new block
+  Generates function needed to produce block in propcheck test
   """
+
+  alias OMG.API.PropTest.Constants
+  alias OMG.API.PropTest.Helper
+  require Constants
+
+  def impl do
+    OMG.API.State.PropTest.StateCoreGS.form_block(Constants.child_block_interval())
+  end
+
+  def post(%{model: %{history: history}}, [], {:ok, {_, transactions, _}}) do
+    expected_transactions =
+      history
+      |> Enum.take_while(&(elem(&1, 0) != :form_block))
+      |> Enum.filter(&(elem(&1, 0) == :transaction))
+      |> Enum.map(&elem(&1, 1))
+      |> Enum.reverse()
+
+    transactions = transactions |> Enum.map(fn %{tx: tx} -> Helper.format_transaction(tx) end)
+    expected_transactions == transactions
+  end
+
+  def next(%{model: %{history: history} = model, eth: %{blknum: number} = eth} = state, [], _) do
+    blknum = div(number, Constants.child_block_interval()) * Constants.child_block_interval()
+
+    %{
+      state
+      | eth: %{eth | blknum: blknum + Constants.child_block_interval()},
+        model: %{model | history: [{:form_block, blknum} | history]}
+    }
+  end
+
   defmacro __using__(_opt) do
-    quote location: :keep do
-      defcommand :form_block do
-        alias OMG.API.Block
-        alias OMG.API.PropTest.Helper
-        alias OMG.API.State.Transaction
-
-        def impl, do: StateCoreGS.form_block(1_000)
-
-        def post(%{model: %{history: history}}, [], {:ok, {_, transactions, _}} = block) do
-          expected_transactions =
-            history
-            |> Enum.take_while(&(elem(&1, 0) != :form_block))
-            |> Enum.filter(&(elem(&1, 0) == :transaction))
-            |> Enum.map(&elem(&1, 1))
-            |> Enum.reverse()
-
-          transactions = transactions |> Enum.map(fn %{tx: tx} -> Helper.format_transaction(tx) end)
-          expected_transactions == transactions
-        end
-
-        def next(%{model: %{history: history} = model, eth: %{blknum: number} = eth} = state, [], ret) do
-          blknum = div(number, 1000) * 1000
-
-          %{
-            state
-            | eth: %{eth | blknum: blknum + 1_000},
-              model: %{model | history: [{:form_block, blknum} | history]}
-          }
-        end
-      end
-    end
+    quote [location: :keep], do: defcommand(:form_block, do: unquote(Helper.create_delegate_to_defcommand(__MODULE__)))
   end
 end

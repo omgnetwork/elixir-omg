@@ -14,26 +14,27 @@
 
 defmodule OMG.API.State.PropTest.Transaction do
   @moduledoc """
-  Generator for Transaction to State
+  Generates function needed to make correct transaction in propcheck test
   """
+  use PropCheck
+  alias OMG.API.PropTest.Constants
+  alias OMG.API.PropTest.Generators
   alias OMG.API.PropTest.Helper
+  require Constants
 
   def create({inputs, currency_name, future_owners}) do
-    currency_map = Helper.currency()
     stable_entities = OMG.API.TestHelper.entities_stable()
 
     OMG.API.TestHelper.create_recovered(
       inputs |> Enum.map(fn {position, owner} -> Tuple.append(position, Map.get(stable_entities, owner)) end),
-      Map.get(currency_map, currency_name),
+      Map.get(Constants.currencies(), currency_name),
       future_owners |> Enum.map(fn {owner, amount} -> {Map.get(stable_entities, owner), amount} end)
     )
   end
 
   def create_fee_map(fee_map) do
-    currency_map = Helper.currency()
-
     fee_map
-    |> Enum.map(fn {currency_atom, cost} -> {Map.get(currency_map, currency_atom), cost} end)
+    |> Enum.map(fn {currency_atom, cost} -> {Map.get(Constants.currencies(), currency_atom), cost} end)
     |> Map.new()
   end
 
@@ -53,58 +54,47 @@ defmodule OMG.API.State.PropTest.Transaction do
     {inputs, currency, new_owners}
   end
 
+  def impl(tr, fee_map),
+    do: OMG.API.State.PropTest.StateCoreGS.exec(create(tr), create_fee_map(fee_map))
+
+  def args(%{model: %{history: history}}) do
+    {unspent, _spent} = Helper.get_utxos(history)
+    available_currencies = Map.values(unspent) |> Enum.map(& &1.currency) |> Enum.uniq()
+
+    let [currency <- oneof(available_currencies)] do
+      unspent = unspent |> Map.to_list() |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
+
+      let [
+        owners <- Generators.new_owners(),
+        inputs <- Generators.input_transaction(unspent)
+      ] do
+        [prepare_args(inputs, owners), %{currency => 0}]
+      end
+    end
+  end
+
+  def pre(%{model: %{history: history}}, [{inputs, currency, output}, fee_map]) do
+    unspent = Helper.spendable(history) |> Map.to_list() |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
+
+    rich_inputs =
+      inputs
+      |> Enum.map(fn {position, _} -> Enum.find(unspent, &match?({^position, %{currency: ^currency}}, &1)) end)
+
+    spent_amount = output |> Enum.reduce(Map.get(fee_map, currency, 0), fn {_, amount}, acc -> acc + amount end)
+
+    Map.has_key?(fee_map, currency) && Enum.all?(rich_inputs) &&
+      Enum.reduce(rich_inputs, 0, fn {_, %{amount: amount}}, acc -> acc + amount end) >= spent_amount
+  end
+
+  def post(_state, _args, {:ok, _}), do: true
+
+  def next(%{model: %{history: history, balance: balance} = model} = state, [transaction | _], _) do
+    %{state | model: %{model | history: [{:transaction, transaction} | history], balance: balance}}
+  end
+
   defmacro __using__(_opt) do
     quote location: :keep do
-      defcommand :transaction do
-        alias OMG.API.PropTest.Generators
-        alias OMG.API.PropTest.Helper
-        alias OMG.API.State.PropTest
-        alias OMG.API.State.Transaction
-
-        def impl({inputs, currency_name, future_owners} = tr, fee_map) do
-          StateCoreGS.exec(PropTest.Transaction.create(tr), PropTest.Transaction.create_fee_map(fee_map))
-        end
-
-        def args(%{model: %{history: history}}) do
-          {unspent, _spent} = Helper.get_utxos(history)
-          available_currencies = Map.values(unspent) |> Enum.map(& &1.currency) |> Enum.uniq()
-
-          let [currency <- oneof(available_currencies)] do
-            unspent = unspent |> Map.to_list() |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
-
-            let [
-              owners <- Generators.new_owners(),
-              inputs <- Generators.input_transaction(unspent)
-            ] do
-              [
-                PropTest.Transaction.prepare_args(inputs, owners),
-                %{currency => 0}
-              ]
-            end
-          end
-        end
-
-        def pre(%{model: %{history: history}}, [{inputs, currency, output}, fee_map]) do
-          unspent =
-            Helper.spendable(history) |> Map.to_list() |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
-
-          rich_inputs =
-            inputs
-            |> Enum.map(fn {position, _} -> Enum.find(unspent, &match?({^position, %{currency: ^currency}}, &1)) end)
-
-          spent_amount = output |> Enum.reduce(Map.get(fee_map, currency, 0), fn {_, amount}, acc -> acc + amount end)
-
-          Map.has_key?(fee_map, currency) && Enum.all?(rich_inputs) &&
-            Enum.reduce(rich_inputs, 0, fn {_, %{amount: amount}}, acc -> acc + amount end) >= spent_amount
-        end
-
-        def post(_state, args, {:ok, _}), do: true
-        def post(_state, _args, _result), do: false
-
-        def next(%{model: %{history: history, balance: balance} = model} = state, [transaction | _], ret) do
-          %{state | model: %{model | history: [{:transaction, transaction} | history], balance: balance}}
-        end
-      end
+      defcommand(:transaction, do: unquote(Helper.create_delegate_to_defcommand(__MODULE__)))
     end
   end
 end

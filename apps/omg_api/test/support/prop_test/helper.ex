@@ -14,9 +14,11 @@
 
 defmodule OMG.API.PropTest.Helper do
   @moduledoc """
-  Helpers for in propCheck test
+  Common helper functions that are useful when propCheck testing
   """
+  alias OMG.API.PropTest.Constants
   alias OMG.API.State.Transaction
+  require Constants
 
   def format_transaction(%Transaction.Recovered{
         signed_tx: %Transaction.Signed{
@@ -69,10 +71,8 @@ defmodule OMG.API.PropTest.Helper do
   end
 
   def currency_to_atom(addr) do
-    currency() |> Enum.find(&match?({_, ^addr}, &1)) |> elem(0)
+    Constants.currencies() |> Enum.find(&match?({_, ^addr}, &1)) |> elem(0)
   end
-
-  def currency, do: %{ethereum: <<0::160>>, other: <<1::160>>}
 
   def get_utxos(history) do
     history = Enum.reverse(history)
@@ -124,4 +124,21 @@ defmodule OMG.API.PropTest.Helper do
   defp get_utxos([], utxos, {_blknum, _tx_index}), do: utxos
 
   def spendable(history), do: elem(get_utxos(history), 0)
+
+  def create_delegate_to_defcommand(module) do
+    module.__info__(:functions)
+    |> Enum.filter(&(&1 in [pre: 2, next: 3, post: 3, args: 1] or match?({:impl, _}, &1)))
+    |> Enum.uniq()
+    |> Enum.map(&create_ast_function(module, &1))
+  end
+
+  defp create_ast_function(module, {name, arity}) do
+    args =
+      Enum.to_list(0..arity)
+      |> tl
+      |> Enum.map(fn number -> {String.to_atom("value_" <> Integer.to_string(number)), [], :"Elixir"} end)
+
+    {:def, [import: Kernel],
+     [{name, [], args}, [do: {{:., [], [{:__aliases__, [alias: false], module}, name]}, [], args}]]}
+  end
 end

@@ -14,50 +14,39 @@
 
 defmodule OMG.API.State.PropTest.EveryoneExit do
   @moduledoc """
-  Generator for Exit utxo to State for everyone
+  Generates function needed to get everyone out of their utxo
   """
+  use PropCheck
+  alias OMG.API.PropTest.Helper
+  alias OMG.API.Utxo
+  require Utxo
+  def impl(exiting_utxos), do: OMG.API.State.PropTest.StateCoreGS.exit_utxos(exiting_utxos)
+
+  def args(%{model: %{history: history}}),
+    do: [
+      Helper.spendable(history)
+      |> Map.to_list()
+      |> Enum.map(fn {{blknum, txindex, oindex}, %{owner: owner}} ->
+        %{utxo_pos: Utxo.Position.encode(Utxo.position(blknum, txindex, oindex)), owner: Helper.get_addr(owner)}
+      end)
+    ]
+
+  def post(_, _, {:ok, _}), do: true
+
+  def next(%{model: %{history: history, balance: balance} = model} = state, [exits], _) do
+    delete_utxo =
+      exits
+      |> Enum.map(fn %{utxo_pos: position} ->
+        {:utxo_position, blknum, txindex, oindex} = Utxo.Position.decode(position)
+        {blknum, txindex, oindex}
+      end)
+
+    %{state | model: %{model | history: [{:everyone_exit, delete_utxo} | history], balance: balance}}
+  end
 
   defmacro __using__(_opt) do
     quote location: :keep do
-      defcommand :everyone_exit do
-        alias OMG.API.PropTest.Generators
-        alias OMG.API.PropTest.Helper
-        alias OMG.API.State.Transaction
-        alias OMG.API.Utxo
-        alias OMG.API.Utxo.Position
-        require Utxo
-
-        def impl(exiting_utxos), do: StateCoreGS.exit_utxos(exiting_utxos)
-
-        def args(%{model: %{history: history}}) do
-          ret = [
-            Helper.spendable(history)
-            |> Map.to_list()
-            |> Enum.map(fn {{blknum, txindex, oindex}, %{owner: owner}} ->
-              %{utxo_pos: Utxo.Position.encode(Utxo.position(blknum, txindex, oindex)), owner: Helper.get_addr(owner)}
-            end)
-          ]
-
-          ret
-        end
-
-        def post(_, _, {:ok, _}), do: true
-
-        def next(
-              %{model: %{history: history, balance: balance} = model, eth: %{blknum: number} = eth} = state,
-              [exits],
-              ret
-            ) do
-          delete_utxo =
-            exits
-            |> Enum.map(fn %{utxo_pos: position} ->
-              {:utxo_position, blknum, txindex, oindex} = Utxo.Position.decode(position)
-              {blknum, txindex, oindex}
-            end)
-
-          %{state | model: %{model | history: [{:everyone_exit, delete_utxo} | history], balance: balance}}
-        end
-      end
+      defcommand(:everyone_exit, do: unquote(Helper.create_delegate_to_defcommand(__MODULE__)))
     end
   end
 end

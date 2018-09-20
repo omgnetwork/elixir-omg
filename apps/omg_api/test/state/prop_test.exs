@@ -31,17 +31,19 @@ defmodule OMG.API.State.PropTest do
 
      then in file where are propcheck test
      use ModuleName
+
    - function weight taking the current model state and returning
      a map of command and frequency pairs to be generated.
+     More information in lib/statem_dsl.ex from propcheck.
+     Function should be defined in module where we define property test.
   """
 
   use PropCheck
   use PropCheck.StateM.DSL
   use ExUnit.Case
   use OMG.API.LoggerExt
-  # commands import to test
-  # use OMG.API.State.PropTest.Deposits
 
+  # commands import to test
   use OMG.API.State.PropTest.{
     Deposits,
     DifferentSpenderTransaction,
@@ -56,15 +58,10 @@ defmodule OMG.API.State.PropTest do
   alias OMG.API.State.Core
 
   require OMG.API.PropTest.Constants
-  require OMG.API.BlackBoxMe
-
-  @moduletag :property
-
-  OMG.API.BlackBoxMe.create(OMG.API.State.Core, StateCoreGS)
 
   def initial_state do
     {:ok, state} = Core.extract_initial_state([], 0, 0, 1000)
-    StateCoreGS.set_state(state)
+    OMG.API.State.PropTest.StateCoreGS.set_state(state)
 
     %{
       model: %{history: [], balance: 0},
@@ -75,44 +72,59 @@ defmodule OMG.API.State.PropTest do
   def weight(%{model: %{history: history}}) do
     {unspent, spent} = Helper.get_utxos(history)
 
-    utxos_ethereum =
+    utxos_eth =
       unspent
       |> Map.to_list()
-      |> Enum.count(&match?({_, %{currency: :ethereum}}, &1))
+      |> Enum.count(&match?({_, %{currency: :eth}}, &1))
 
-    spent_utxo_ethereum =
+    spent_utxo_eth =
       spent
       |> Map.to_list()
-      |> Enum.count(&match?({_, %{currency: :ethereum}}, &1))
+      |> Enum.count(&match?({_, %{currency: :eth}}, &1))
 
     [
       deposits: 10_00,
       form_block: 1_00
     ] ++
-      if utxos_ethereum > 4 do
+      if utxos_eth > 4 do
         [
-          transaction: min(div(utxos_ethereum, 2), 20) * 10_000 + 1,
-          different_spender_transaction: min(div(utxos_ethereum, 2), 20) * 10_000 + 1,
-          exit_utxos: max(div(utxos_ethereum, 10), 1) * 10_000,
-          everyone_exit: max(div(utxos_ethereum, 10), 1) * 1_000
+          transaction: min(div(utxos_eth, 2), 20) * 10_000 + 1,
+          different_spender_transaction: min(div(utxos_eth, 2), 20) * 10_000 + 1,
+          exit_utxos: max(div(utxos_eth, 10), 1) * 10_000,
+          everyone_exit: max(div(utxos_eth, 10), 1) * 1_000
         ]
       else
         []
       end ++
-      if spent_utxo_ethereum > 4 do
+      if spent_utxo_eth > 4 do
         [
-          double_spend_transaction: max(div(spent_utxo_ethereum, 10), 1) * 10_00
+          double_spend_transaction: max(div(spent_utxo_eth, 10), 1) * 10_00
         ]
       else
         []
       end
   end
 
-  property "OMG.API.State.Core prope check", numtests: 5, max_size: 200, start_size: 100 do
+  def state_core_property_test do
     forall cmds <- commands(__MODULE__) do
       trap_exit do
         %{history: history, result: result, state: _state, env: _env} = run_commands(cmds)
         history = List.first(history) |> elem(0) |> (fn value -> value[:model][:history] end).()
+
+        collect_printer = fn samples ->
+          counting = fn el, acc -> Map.put(acc, el, Map.get(acc, el, 0) + 1) end
+
+          samples
+          |> Enum.with_index(1)
+          |> Enum.map(fn {history, index} ->
+            test_information =
+              history
+              |> Enum.map(&elem(&1, 0))
+              |> Enum.reduce(%{}, counting)
+
+            IO.puts("#{index}) #{inspect(test_information)} ")
+          end)
+        end
 
         (result == :ok)
         |> when_fail(
@@ -121,23 +133,18 @@ defmodule OMG.API.State.PropTest do
              Logger.error("Result: #{inspect(result)}")
            end).()
         )
-        |> collect(
-          fn samples ->
-            samples
-            |> Enum.with_index(1)
-            |> Enum.map(fn {history, index} ->
-              test_information =
-                history
-                |> Enum.map(&elem(&1, 0))
-                |> Enum.reduce(%{}, fn el, acc -> Map.put(acc, el, Map.get(acc, el, 0) + 1) end)
-
-              IO.puts("#{index}) #{inspect(test_information)} ")
-            end)
-          end,
-          history
-        )
+        |> collect(collect_printer, history)
         |> aggregate(command_names(cmds))
       end
     end
+  end
+
+  property "quick test of property test", [:quiet, numtests: 3, max_size: 100, start_size: 20] do
+    state_core_property_test()
+  end
+
+  @tag :property
+  property "OMG.API.State.Core prope check", numtests: 10, max_size: 200, start_size: 100 do
+    state_core_property_test()
   end
 end

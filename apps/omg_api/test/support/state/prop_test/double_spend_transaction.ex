@@ -14,52 +14,54 @@
 
 defmodule OMG.API.State.PropTest.DoubleSpendTransaction do
   @moduledoc """
-  Generator for Transaction to State
+  Generates function needed to make transaction making double spend in propcheck test
   """
+  use PropCheck
+  alias OMG.API.PropTest.Generators
+  alias OMG.API.PropTest.Helper
+  alias OMG.API.State.PropTest
+
+  def impl(tr, fee_map),
+    do:
+      OMG.API.State.PropTest.StateCoreGS.exec(
+        PropTest.Transaction.create(tr),
+        PropTest.Transaction.create_fee_map(fee_map)
+      )
+
+  def args(%{model: %{history: history}}) do
+    {unspend, spend} = Helper.get_utxos(history)
+    available_currencies = Map.values(spend) |> Enum.map(& &1.currency) |> Enum.uniq()
+
+    let [currency <- oneof(available_currencies)] do
+      unspend = unspend |> Map.to_list() |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
+      spend = spend |> Map.to_list() |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
+
+      let [
+        owners <- Generators.new_owners(),
+        inputs <- Generators.input_transaction([List.first(spend) | unspend]),
+        inputs_spend <- Generators.input_transaction(spend)
+      ] do
+        [
+          PropTest.Transaction.prepare_args(Enum.take(inputs_spend ++ Enum.drop(inputs, 1), 2), owners),
+          %{currency => 0}
+        ]
+      end
+    end
+  end
+
+  def pre(%{model: %{history: history}}, [{inputs, _, _}, _]) do
+    {_, spend} = Helper.get_utxos(history)
+    inputs |> Enum.any?(fn {position, _} -> Map.has_key?(spend, position) end)
+  end
+
+  def post(_state, _args, {:error, :utxo_not_found}), do: true
+
+  def next(%{model: %{history: history, balance: balance} = model} = state, [transaction | _], _),
+    do: %{state | model: %{model | history: [{:double_spend_transaction, transaction} | history], balance: balance}}
+
   defmacro __using__(_opt) do
     quote location: :keep do
-      defcommand :double_spend_transaction do
-        alias OMG.API.PropTest.Generators
-        alias OMG.API.PropTest.Helper
-        alias OMG.API.State.PropTest
-        alias OMG.API.State.Transaction
-
-        def impl({inputs, currency_name, ouputs} = tr, fee_map) do
-          StateCoreGS.exec(PropTest.Transaction.create(tr), PropTest.Transaction.create_fee_map(fee_map))
-        end
-
-        def args(%{model: %{history: history}}) do
-          {unspend, spend} = Helper.get_utxos(history)
-          available_currencies = Map.values(spend) |> Enum.map(& &1.currency) |> Enum.uniq()
-
-          let [currency <- oneof(available_currencies)] do
-            unspend = unspend |> Map.to_list() |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
-            spend = spend |> Map.to_list() |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
-
-            let [
-              owners <- Generators.new_owners(),
-              inputs <- Generators.input_transaction([List.first(spend) | unspend]),
-              inputs_spend <- Generators.input_transaction(spend)
-            ] do
-              [
-                PropTest.Transaction.prepare_args(Enum.take(inputs_spend ++ Enum.drop(inputs, 1), 2), owners),
-                %{currency => 0}
-              ]
-            end
-          end
-        end
-
-        def pre(%{model: %{history: history}}, [{inputs, currency, output}, fee_map]) do
-          {_, spend} = Helper.get_utxos(history)
-          inputs |> Enum.any?(fn {position, _} -> Map.has_key?(spend, position) end)
-        end
-
-        def post(_state, args, {:error, _}), do: true
-
-        def next(%{model: %{history: history, balance: balance} = model} = state, [transaction | _], ret) do
-          %{state | model: %{model | history: [{:double_spend_transaction, transaction} | history], balance: balance}}
-        end
-      end
+      defcommand(:double_spend_transaction, do: unquote(Helper.create_delegate_to_defcommand(__MODULE__)))
     end
   end
 end
