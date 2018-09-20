@@ -47,7 +47,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
   @doc """
   Updates Ethereum height on which a service is synchronized.
   Returns list of pids of services to synchronize on next Ethereum height.
-  List is not empty only when service that checks in is the last synchronizing on a given hight.
+  List is not empty only when service that checks in is the last one synchronizing on a given height.
   """
   @spec check_in(t(), pid(), pos_integer(), atom()) :: {:ok, t(), list(pid())} | :service_not_allowed
   def check_in(state, pid, service_height, service_name) do
