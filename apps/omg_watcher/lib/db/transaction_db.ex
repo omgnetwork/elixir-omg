@@ -18,7 +18,7 @@ defmodule OMG.Watcher.DB.TransactionDB do
   """
   use Ecto.Schema
 
-  alias OMG.API.State.{Transaction, Transaction.Recovered, Transaction.Signed}
+  alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.DB.Repo
   alias OMG.Watcher.DB.TxOutputDB

@@ -20,7 +20,6 @@ defmodule OMG.Watcher.DB.TxOutputDB do
 
   alias OMG.API.Block
   alias OMG.API.State.Transaction
-  alias OMG.API.State.Transaction.Signed
   alias OMG.API.Utxo
   alias OMG.Watcher.DB.EthEventDB
   alias OMG.Watcher.DB.Repo
@@ -63,11 +62,11 @@ defmodule OMG.Watcher.DB.TxOutputDB do
     utxo_pos = decoded_utxo_pos |> Utxo.Position.encode()
 
     {:ok,
-     %Signed{
+     %Transaction.Signed{
        raw_tx: raw_tx,
        sig1: sig1,
        sig2: sig2
-     }} = Signed.decode(tx.txbytes)
+     }} = Transaction.Signed.decode(tx.txbytes)
 
     %{
       utxo_pos: utxo_pos,

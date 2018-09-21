@@ -17,7 +17,6 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   use ExUnit.Case, async: true
 
   alias OMG.API.State.Transaction
-  alias OMG.API.State.Transaction.Signed
   alias OMG.API.Utxo
   alias OMG.Watcher.Challenger.Challenge
   alias OMG.Watcher.Challenger.Core
@@ -35,7 +34,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   end
 
   defp create_transaction(txindex, amount1, amount2) do
-    signed = %Signed{
+    signed = %Transaction.Signed{
       raw_tx: %Transaction{
         blknum1: 1,
         txindex1: 0,
@@ -53,7 +52,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
       sig2: <<0::520>>
     }
 
-    txhash = Signed.signed_hash(signed)
+    txhash = Transaction.Signed.signed_hash(signed)
 
     %TransactionDB{
       blknum: 2,
@@ -66,7 +65,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
         %TxOutputDB{creating_tx_oindex: 0, amount: amount1},
         %TxOutputDB{creating_tx_oindex: 1, amount: amount2}
       ],
-      txbytes: Signed.encode(signed)
+      txbytes: Transaction.Signed.encode(signed)
     }
   end
 

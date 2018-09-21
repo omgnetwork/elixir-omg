@@ -19,7 +19,6 @@ defmodule OMG.Watcher.Challenger.Core do
 
   alias OMG.API.Block
   alias OMG.API.State.Transaction
-  alias OMG.API.State.Transaction.Signed
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Watcher.Challenger.Challenge
@@ -43,15 +42,21 @@ defmodule OMG.Watcher.Challenger.Core do
       |> Enum.map(& &1.txhash)
 
     proof = Block.create_tx_proof(txs_hashes, challenging_tx.txindex)
-    {:ok, signed_tx} = Signed.decode(challenging_tx.txbytes)
-    raw_txbytes = encode(challenging_tx)
 
-    Challenge.create(cutxopos, eutxoindex, raw_txbytes, proof, signed_tx.sig1 <> signed_tx.sig2)
-  end
+    {:ok,
+     %Transaction.Signed{
+       raw_tx: raw_tx,
+       sig1: sig1,
+       sig2: sig2
+     }} = Transaction.Signed.decode(challenging_tx.txbytes)
 
-  defp encode(%TransactionDB{txbytes: txbytes}) do
-    {:ok, %Signed{raw_tx: raw_tx}} = Signed.decode(txbytes)
-    Transaction.encode(raw_tx)
+    Challenge.create(
+      cutxopos,
+      eutxoindex,
+      Transaction.encode(raw_tx),
+      proof,
+      sig1 <> sig2
+    )
   end
 
   defp challenging_utxo_pos(%TransactionDB{

@@ -19,7 +19,7 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
   use Plug.Test
 
   alias OMG.API.Crypto
-  alias OMG.API.State.Transaction.{Recovered, Signed}
+  alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.DB.TransactionDB
   alias OMG.Watcher.DB.TxOutputDB
@@ -33,7 +33,7 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
     test "verifies all expected transaction were inserted", %{initial_blocks: initial_blocks} do
       initial_blocks
       |> Enum.each(fn {blknum, txindex, txhash, recovered_tx} ->
-        %Recovered{signed_tx: %Signed{signed_tx_bytes: txbytes}} = recovered_tx
+        %Transaction.Recovered{signed_tx: %Transaction.Signed{signed_tx_bytes: txbytes}} = recovered_tx
 
         assert %TransactionDB{
                  txhash: ^txhash,

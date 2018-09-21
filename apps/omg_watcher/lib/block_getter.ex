@@ -50,7 +50,7 @@ defmodule OMG.Watcher.BlockGetter do
     EventerAPI.emit_events(events)
 
     with :ok <- continue do
-      response = TransactionDB.update_with(to_block(block, block_rootchain_height))
+      response = TransactionDB.update_with(to_mined_block(block, block_rootchain_height))
       nil = Enum.find(response, &(!match?({:ok, _}, &1)))
       _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end)
       {:ok, next_child} = Eth.RootChain.get_current_child_block()
@@ -170,8 +170,8 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   # The purpose of this function is to ensure contract between shell and db code
-  @spec to_block(map(), pos_integer()) :: TransactionDB.mined_block()
-  defp to_block(block, eth_height) do
+  @spec to_mined_block(map(), pos_integer()) :: TransactionDB.mined_block()
+  defp to_mined_block(block, eth_height) do
     %{
       eth_height: eth_height,
       blknum: block.number,

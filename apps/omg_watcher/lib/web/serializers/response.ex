@@ -30,17 +30,6 @@ defmodule OMG.Watcher.Web.Serializer.Response do
   defp to_response(data, result), do: %{result: result, data: data}
 
   @doc """
-  Removes or encodes fields in response that cannot be serialized to api response.
-  By default, it:
-   * encodes to hex all binary values
-   * removes unloaded ecto associations values
-   * removes metadata fields
-  """
-  def clean_artifacts(response) do
-    clean_value(response)
-  end
-
-  @doc """
   Decodes specified keys in map from hex to binary
   """
   @spec decode16(map(), list()) :: map()
@@ -61,20 +50,30 @@ defmodule OMG.Watcher.Web.Serializer.Response do
     |> (&Map.merge(data, &1)).()
   end
 
-  defp clean_value(list) when is_list(list) do
-    list |> Enum.map(&clean_value/1)
+  @doc """
+  Removes or encodes fields in response that cannot be serialized to api response.
+  By default, it:
+   * encodes to hex all binary values
+   * removes unloaded ecto associations values
+   * removes metadata fields
+  """
+  @spec clean_artifacts(any()) :: any()
+  def clean_artifacts(response)
+
+  def clean_artifacts(list) when is_list(list) do
+    list |> Enum.map(&clean_artifacts/1)
   end
 
-  defp clean_value(map_or_struct) when is_map(map_or_struct) do
+  def clean_artifacts(map_or_struct) when is_map(map_or_struct) do
     map_or_struct
     |> to_map()
     |> Enum.filter(fn {_k, v} -> Ecto.assoc_loaded?(v) end)
-    |> Enum.map(fn {k, v} -> {k, clean_value(v)} end)
+    |> Enum.map(fn {k, v} -> {k, clean_artifacts(v)} end)
     |> Map.new()
   end
 
-  defp clean_value(bin) when is_binary(bin), do: Base.encode16(bin)
-  defp clean_value(value), do: value
+  def clean_artifacts(bin) when is_binary(bin), do: Base.encode16(bin)
+  def clean_artifacts(value), do: value
 
   defp to_map(struct) do
     if(Map.has_key?(struct, :__struct__), do: struct |> Map.from_struct(), else: struct)
