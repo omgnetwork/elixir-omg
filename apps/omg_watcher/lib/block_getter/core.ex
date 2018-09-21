@@ -336,7 +336,9 @@ defmodule OMG.Watcher.BlockGetter.Core do
   def validate_get_block_response({:error, _} = error, requested_hash, requested_number, time) do
     _ =
       Logger.info(fn ->
-        "Detected potential block withholding  #{inspect(error)}, hash: #{requested_hash}, number: #{requested_number}"
+        "Detected potential block withholding  #{inspect(error)}, hash: #{inspect(requested_hash |> Base.encode16())}, number: #{
+          inspect(requested_number)
+        }"
       end)
 
     {:ok, %PotentialWithholding{blknum: requested_number, time: time}}

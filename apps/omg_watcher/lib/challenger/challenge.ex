@@ -31,9 +31,6 @@ defmodule OMG.Watcher.Challenger.Challenge do
         }
 
   def create(cutxopos, eutxoindex, txbytes, proof, sigs) do
-    txbytes = txbytes |> Base.encode16()
-    proof = proof |> Base.encode16()
-    sigs = sigs |> Base.encode16()
     %__MODULE__{cutxopos: cutxopos, eutxoindex: eutxoindex, txbytes: txbytes, proof: proof, sigs: sigs}
   end
 end

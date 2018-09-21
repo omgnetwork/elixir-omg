@@ -62,25 +62,25 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     assert [
              %{
-               "currency" => @eth_hex,
                "amount" => 3,
-               "blknum" => block_nr,
-               "oindex" => 1,
+               "blknum" => ^block_nr,
                "txindex" => 0,
-               "txbytes" => encode_tx
+               "oindex" => 1,
+               "currency" => @eth_hex,
+               "txbytes" => ^encode_tx
              }
-           ] == get_utxo(bob)
+           ] = get_utxos(bob)
 
     assert [
              %{
-               "currency" => @eth_hex,
                "amount" => 7,
-               "blknum" => block_nr,
-               "oindex" => 0,
+               "blknum" => ^block_nr,
                "txindex" => 0,
-               "txbytes" => encode_tx
+               "oindex" => 0,
+               "currency" => @eth_hex,
+               "txbytes" => ^encode_tx
              }
-           ] == get_utxo(alice)
+           ] = get_utxos(alice)
 
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
     {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(block_nr)
@@ -136,6 +136,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     # wait until the exit is recognized and attempt to spend the exited utxo
     Process.sleep(4_000)
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
+
     {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
   end
 
@@ -265,15 +266,12 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     :ok = TestHelper.wait_for_process(Process.whereis(OMG.Watcher.BlockGetter))
   end
 
-  defp get_utxo(%{addr: address}) do
+  defp get_utxos(%{addr: address}) do
     {:ok, address_encode} = Crypto.encode_address(address)
 
     assert %{
              "result" => "success",
-             "data" => %{
-               "address" => ^address_encode,
-               "utxos" => utxos
-             }
+             "data" => utxos
            } = TestHelper.rest_call(:get, "utxos?address=#{address_encode}")
 
     utxos

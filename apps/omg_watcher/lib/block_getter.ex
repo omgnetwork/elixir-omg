@@ -16,7 +16,7 @@ defmodule OMG.Watcher.BlockGetter do
   @moduledoc """
   Checking if there are new block from child chain on ethereum.
   Checking if Block from child chain is valid
-  Download new block from child chain and update State, TransactionDB, UtxoDB.
+  Download new block from child chain and update State, TransactionDB, TxOutputDB.
   Manage simultaneous getting and stateless-processing of blocks and manage the results of that
   Detects byzantine situations like BlockWithholding and InvalidBlock and passes this events to Eventer
   """
@@ -25,7 +25,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.API.RootChainCoordinator
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter.Core
-  alias OMG.Watcher.UtxoDB
+  alias OMG.Watcher.DB.TransactionDB
 
   use GenServer
   use OMG.API.LoggerExt
@@ -50,9 +50,8 @@ defmodule OMG.Watcher.BlockGetter do
     EventerAPI.emit_events(events)
 
     with :ok <- continue do
-      response = OMG.Watcher.TransactionDB.update_with(block)
+      response = TransactionDB.update_with(to_mined_block(block, block_rootchain_height))
       nil = Enum.find(response, &(!match?({:ok, _}, &1)))
-      _ = UtxoDB.update_with(block)
       _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end)
       {:ok, next_child} = Eth.RootChain.get_current_child_block()
       {state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
@@ -171,6 +170,16 @@ defmodule OMG.Watcher.BlockGetter do
     else
       :nosync -> {:noreply, state}
     end
+  end
+
+  # The purpose of this function is to ensure contract between shell and db code
+  @spec to_mined_block(map(), pos_integer()) :: TransactionDB.mined_block()
+  defp to_mined_block(block, eth_height) do
+    %{
+      eth_height: eth_height,
+      blknum: block.number,
+      transactions: block.transactions
+    }
   end
 
   defp run_block_get_task(blocks_numbers) do

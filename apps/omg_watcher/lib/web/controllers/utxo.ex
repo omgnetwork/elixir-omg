@@ -21,21 +21,19 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
   alias OMG.API.Crypto
   alias OMG.API.Utxo
-  alias OMG.Watcher.UtxoDB
+  alias OMG.Watcher.DB.TxOutputDB
   alias OMG.Watcher.Web.View
+
+  require Utxo
 
   use PhoenixSwagger
   import OMG.Watcher.Web.ErrorHandler
 
   def get_utxos(conn, %{"address" => address}) do
     {:ok, address_decode} = Crypto.decode_address(address)
+    utxos = TxOutputDB.get_utxos(address_decode)
 
-    available = %{
-      address: address,
-      utxos: UtxoDB.get_utxos(address_decode)
-    }
-
-    render(conn, View.Utxo, :available, available: available)
+    render(conn, View.Utxo, :utxos, utxos: utxos)
   end
 
   def get_utxo_exit(conn, %{"utxo_pos" => utxo_pos}) do
@@ -43,7 +41,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
     utxo_pos
     |> Utxo.Position.decode()
-    |> UtxoDB.compose_utxo_exit()
+    |> TxOutputDB.compose_utxo_exit()
     |> respond(conn)
   end
 
@@ -73,7 +71,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
             txindex(:integer, "Number of transaction that created the utxo", required: true)
             oindex(:integer, "Output index in the transaction", required: true)
-            txbytes(:string, "Signed hash of transaction that created the utxo", required: true)
+            txbytes(:string, "RLP encoded signed transaction that created the utxo", required: true)
           end
 
           example(%{

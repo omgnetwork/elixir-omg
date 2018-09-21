@@ -28,7 +28,7 @@ defmodule OMG.API.Block do
   @type t() :: %__MODULE__{
           transactions: list(binary),
           hash: block_hash_t(),
-          number: pos_integer
+          number: pos_integer()
         }
 
   @doc """
