@@ -49,10 +49,9 @@ defmodule OMG.Watcher.DB.TxOutputDB do
   def compose_utxo_exit(Utxo.position(blknum, txindex, _) = decoded_utxo_pos) do
     txs = TransactionDB.get_by_blknum(blknum)
 
-    case Enum.any?(txs, fn tx -> tx.txindex == txindex end) do
-      false -> {:error, :no_tx_for_given_blknum}
-      true -> {:ok, compose_utxo_exit(txs, decoded_utxo_pos)}
-    end
+    if Enum.any?(txs, &match?(%{txindex: ^txindex}, &1)),
+      do: {:ok, compose_utxo_exit(txs, decoded_utxo_pos)},
+      else: {:error, :no_tx_for_given_blknum}
   end
 
   def compose_utxo_exit(txs, Utxo.position(_blknum, txindex, _) = decoded_utxo_pos) do
@@ -125,6 +124,7 @@ defmodule OMG.Watcher.DB.TxOutputDB do
         amount2: amount2
       }) do
     # zero-value outputs are not inserted, but there have to be at least one
+    # TODO: can tx have no outputs?
     [_output | _] = create_output(newowner1, cur12, amount1, 0) ++ create_output(newowner2, cur12, amount2, 1)
   end
 

@@ -36,8 +36,8 @@ defmodule OMG.Watcher.Web.Serializer.Response do
    * removes unloaded ecto associations values
    * removes metadata fields
   """
-  def clean_artifacts(reponse) do
-    clean_value(reponse)
+  def clean_artifacts(response) do
+    clean_value(response)
   end
 
   @doc """

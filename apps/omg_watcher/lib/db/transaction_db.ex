@@ -28,10 +28,10 @@ defmodule OMG.Watcher.DB.TransactionDB do
   import Ecto.Query, only: [from: 2]
 
   @type mined_block() :: %{
-    transactions: [OMG.API.State.Transaction.Recovered.t()],
-    blknum: pos_integer(),
-    eth_height: pos_integer()
-  }
+          transactions: [OMG.API.State.Transaction.Recovered.t()],
+          blknum: pos_integer(),
+          eth_height: pos_integer()
+        }
 
   @primary_key {:txhash, :binary, []}
   @derive {Phoenix.Param, key: :txhash}
@@ -83,14 +83,11 @@ defmodule OMG.Watcher.DB.TransactionDB do
     |> Enum.map(fn {tx, txindex} -> insert(tx, block_number, txindex, eth_height) end)
   end
 
-  @spec insert(Recovered.t(), pos_integer(), integer(), pos_integer()) :: {:ok, __MODULE__}
+  @spec insert(Transaction.Recovered.t(), pos_integer(), integer(), pos_integer()) :: {:ok, __MODULE__}
   def insert(
-        %Recovered{
+        %Transaction.Recovered{
           signed_tx_hash: signed_tx_hash,
-          signed_tx:
-            %Signed{
-              raw_tx: raw_tx = %Transaction{}
-            } = signed_tx
+          signed_tx: %Transaction.Signed{raw_tx: raw_tx = %Transaction{}} = signed_tx
         },
         block_number,
         txindex,
