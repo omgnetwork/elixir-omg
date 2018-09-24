@@ -80,7 +80,7 @@ signedTxBytes = rlpEncode(txArray)
 
 ## 3. Encode the transaction in RLP
 
-Rlp encoding the entire array from previous step 
+Rlp encoding the entire array from previous step
 ```
 tx_for_encode = { blknum1, txindex1, oindex1, blknum2, txindex2, oindex2, cur12, newowner1, amount1, newowner2, amount2, signature1, signature2, signedTxBytes}
 
@@ -90,6 +90,7 @@ rlp_encoded = rlpEncode(tx_for_encode)
 ## 4. Encode the  transaction in Base 16
 
 Encode the RLP encoded input with Base16 into a String
+(Note: ensure that the value to be Base16 encoded is lowercase)
 
 ```
 base16Encoded = base16Encode(rlp_encoded)
