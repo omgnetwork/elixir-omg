@@ -24,22 +24,26 @@ defmodule OMG.Watcher.Web.ErrorHandler do
   @errors %{
     invalid_challenge_of_exit: %{
       code: "challenge:invalid",
-      description: "The challenge of particular exit is invalid because provided utxo is not spent"
+      description: "The challenge of particular exit is invalid because provided utxo is not spent",
+      status_code: 400
     },
     transaction_not_found: %{
       code: "transaction:not_found",
-      description: "Transaction doesn't exist for provided search criteria"
+      description: "Transaction doesn't exist for provided search criteria",
+      status_code: 404
     }
   }
 
   @doc """
-  Handles response with custom error code and description.
+  Handles response with custom error code, description and status_code.
   """
-  @spec handle_error(Plug.Conn.t(), atom(), String.t()) :: Plug.Conn.t()
-  def handle_error(conn, code, description) do
-    code
-    |> build_error(description)
-    |> respond(conn)
+  @spec handle_error(Plug.Conn.t(), atom(), String.t(), pos_integer()) :: Plug.Conn.t()
+  def handle_error(conn, code, description, status_code) do
+    response = build(code, description)
+
+    conn
+    |> Plug.Conn.put_status(status_code)
+    |> respond(response)
   end
 
   @doc """
@@ -47,30 +51,25 @@ defmodule OMG.Watcher.Web.ErrorHandler do
   """
   @spec handle_error(Plug.Conn.t(), atom()) :: Plug.Conn.t()
   def handle_error(conn, code) do
-    code
-    |> build_error()
-    |> respond(conn)
-  end
+    {status_code, response} =
+      case Map.fetch(@errors, code) do
+        {:ok, error} ->
+          {error.status_code, build(error.code, error.description)}
 
-  defp build_error(code) do
-    case Map.fetch(@errors, code) do
-      {:ok, error} ->
-        build(error.code, error.description)
+        _ ->
+          {500, build(:internal_server_error, code)}
+      end
 
-      _ ->
-        build(:internal_server_error, code)
-    end
-  end
-
-  defp build_error(code, description) do
-    build(code, description)
+    conn
+    |> Plug.Conn.put_status(status_code)
+    |> respond(response)
   end
 
   defp build(code, description) do
     Serializer.Error.serialize(code, description)
   end
 
-  defp respond(data, conn) do
+  defp respond(conn, data) do
     data = Serializer.Response.serialize(data, :error)
 
     conn

@@ -48,7 +48,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   @type t() :: %__MODULE__{
           synced_height: pos_integer(),
-          block_consume_batch: {atom(), MapSet.t()},
           last_consumed_block: non_neg_integer,
           started_block_number: non_neg_integer,
           block_interval: pos_integer,
@@ -72,7 +71,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block,
   using `child_block_interval` when progressing from one child block to another
-  and `synced_height` as the rootchain height up to witch all published blocked were processed
+  and `synced_height` as the root chain height up to witch all published blocked were processed
 
   Opts can be:
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
@@ -102,36 +101,20 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Marks that childchain block `blknum` was processed
   """
-  @spec consume_block(t(), pos_integer()) :: t()
-  def consume_block(%__MODULE__{} = state, blknum) do
-    {:processing, blocks} = state.block_consume_batch
-    blocks = MapSet.delete(blocks, blknum)
-    blocks_to_consume = Map.delete(state.blocks_to_consume, blknum)
-    last_consumed_block = max(state.last_consumed_block, blknum)
-
-    %{
-      state
-      | block_consume_batch: {:processing, blocks},
-        blocks_to_consume: blocks_to_consume,
-        last_consumed_block: last_consumed_block
-    }
+  @spec consume_block(t(), pos_integer(), pos_integer()) :: {t(), non_neg_integer(), list()}
+  def consume_block(%__MODULE__{} = state, consumed_block_number, blk_eth_height) do
+    state = %{state | synced_height: blk_eth_height, last_consumed_block: consumed_block_number}
+    {state, blk_eth_height, [{:put, :last_block_getter_eth_height, blk_eth_height}]}
   end
 
   @doc """
-  Produces rootchain block height range to search for events of block submission.
-  If the range is not empty it spans from current synced rootchain height to `coordinator_height`.
+  Produces root chain block height range to search for events of block submission.
+  If the range is not empty it spans from current synced root chain height to `coordinator_height`.
+  Empty range case is solved naturally with {a, b}, a > b
   """
-  @spec get_eth_range_for_block_submitted_events(t(), non_neg_integer()) ::
-          {pos_integer(), pos_integer(), t()} | {:empty_range, t()}
-  def get_eth_range_for_block_submitted_events(state, coordinator_height)
-
-  def get_eth_range_for_block_submitted_events(%__MODULE__{synced_height: synced_height} = state, coordinator_height)
-      when synced_height < coordinator_height do
-    {{state.synced_height + 1, coordinator_height}, state}
-  end
-
-  def get_eth_range_for_block_submitted_events(state, _coordinator_height) do
-    {:empty_range, state}
+  @spec get_eth_range_for_block_submitted_events(t(), non_neg_integer()) :: {pos_integer(), pos_integer()}
+  def get_eth_range_for_block_submitted_events(%__MODULE__{synced_height: synced_height}, coordinator_height) do
+    {synced_height + 1, coordinator_height}
   end
 
   @spec get_blocks_to_consume(t(), list(), non_neg_integer()) ::
@@ -141,41 +124,25 @@ defmodule OMG.Watcher.BlockGetter.Core do
   def get_blocks_to_consume(%__MODULE__{} = state, [], coordinator_height) do
     next_synced_height = max(state.synced_height, coordinator_height)
     state = %{state | synced_height: next_synced_height}
-    db_updates = [{:put, :last_block_getter_synced_height, next_synced_height}]
+    db_updates = [{:put, :last_block_getter_eth_height, next_synced_height}]
     {[], next_synced_height, db_updates, state}
   end
 
   def get_blocks_to_consume(
-        %__MODULE__{block_consume_batch: {:downloading, _}, blocks_to_consume: blocks} = state,
+        %__MODULE__{blocks_to_consume: blocks} = state,
         submissions,
         _coordinator_height
       ) do
     blocks_to_consume = get_downloaded_blocks(blocks, submissions)
 
-    # consume blocks only if all blocks submitted to rootchain are downloaded
+    # consume blocks only if all blocks submitted to root chain are downloaded
     if length(blocks_to_consume) == length(submissions) do
-      block_consume_batch =
-        submissions
-        |> Enum.map(& &1.blknum)
-        |> MapSet.new()
+      submitted_block_numbers =
+        blocks_to_consume
+        |> Enum.map(fn {%{number: blknum}, _} -> blknum end)
 
-      state = %{state | block_consume_batch: {:processing, block_consume_batch}}
-      {blocks_to_consume, state.synced_height, [], state}
-    else
-      {[], state.synced_height, [], state}
-    end
-  end
-
-  def get_blocks_to_consume(
-        %__MODULE__{block_consume_batch: {:processing, blocks_to_process}} = state,
-        _submissions,
-        coordinator_height
-      ) do
-    if blocks_to_process == MapSet.new() do
-      next_synced_height = max(state.synced_height, coordinator_height)
-      state = %{state | synced_height: next_synced_height, block_consume_batch: {:downloading, []}}
-      db_updates = [{:put, :last_block_getter_synced_height, next_synced_height}]
-      {[], next_synced_height, db_updates, state}
+      blocks_to_keep = Map.drop(blocks, submitted_block_numbers)
+      {blocks_to_consume, state.synced_height, [], %{state | blocks_to_consume: blocks_to_keep}}
     else
       {[], state.synced_height, [], state}
     end
@@ -369,7 +336,9 @@ defmodule OMG.Watcher.BlockGetter.Core do
   def validate_get_block_response({:error, _} = error, requested_hash, requested_number, time) do
     _ =
       Logger.info(fn ->
-        "Detected potential block withholding  #{inspect(error)}, hash: #{requested_hash}, number: #{requested_number}"
+        "Detected potential block withholding  #{inspect(error)}, hash: #{inspect(requested_hash |> Base.encode16())}, number: #{
+          inspect(requested_number)
+        }"
       end)
 
     {:ok, %PotentialWithholding{blknum: requested_number, time: time}}
@@ -396,5 +365,29 @@ defmodule OMG.Watcher.BlockGetter.Core do
   # adds a new zero fee to a map of zero fee requirements
   defp zero_fee_for(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}}, fee_map) do
     Map.put(fee_map, cur12, 0)
+  end
+
+  @doc """
+  Given:
+   - a persisted `synced_height` and
+   - the actual child block number from `OMG.API.State`
+  figures out the exact eth height, which we should begin with. Uses a list of block submission event logs,
+  which should contain the `child_top_block_number`'s respective submission.
+
+  This is a workaround for the case where a child block is processed and block number advanced, and eth height isn't.
+  This can be the case when the getter crashes after consuming a child block but before it's recognized as synced.
+
+  In case `submissions` doesn't hold the submission of the `child_top_block_number`, it returns the otherwise
+  persisted `synced_height`
+  """
+  @spec figure_out_exact_sync_height([%{blknum: pos_integer, eth_height: pos_integer}], pos_integer, pos_integer) ::
+          pos_integer
+  def figure_out_exact_sync_height(submissions, synced_height, child_top_block_number) do
+    submissions
+    |> Enum.find(fn %{blknum: blknum} -> blknum == child_top_block_number end)
+    |> case do
+      nil -> synced_height
+      %{eth_height: exact_height} -> exact_height
+    end
   end
 end

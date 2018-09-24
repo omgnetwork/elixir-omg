@@ -12,27 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.ChallengeViewTest do
-  @moduledoc false
+defmodule OMG.Watcher.DB.Types.AtomType do
+  @moduledoc """
+  Custom Ecto type that converts DB's string value into atom.
+  """
+  @behaviour Ecto.Type
+  def type, do: :string
 
-  use OMG.Watcher.ViewCase
+  def cast(value), do: {:ok, value}
 
-  alias OMG.Watcher.Web.View
+  def load(value), do: {:ok, String.to_existing_atom(value)}
 
-  test "renders challenge.json with correct response format" do
-    challenge = %{
-      cutxopos: 0,
-      eutxoindex: 0,
-      txbytes: "0",
-      proof: "0",
-      sigs: "0"
-    }
+  def dump(value) when is_atom(value), do: {:ok, Atom.to_string(value)}
 
-    expected = %{
-      result: :success,
-      data: challenge
-    }
-
-    assert View.Challenge.render("challenge.json", %{challenge: challenge}) == expected
-  end
+  def dump(_), do: :error
 end

@@ -12,13 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.Encoding do
+defmodule OMG.Watcher.Web.Channel.Byzantine do
   @moduledoc """
-  Internal encoding helpers to talk to ethereum.
-  To be used in Eth and DevHelper
+  Channel Byzantine is responsible for emitting folllowing events:
+  InvalidBlock, BlockWithholding, InvalidExit
   """
 
-  def encode_eth_rpc_unsigned_int(value) do
-    "0x" <> (value |> :binary.encode_unsigned() |> Base.encode16() |> String.trim_leading("0"))
+  use Phoenix.Channel
+
+  def join("byzantine", _params, socket) do
+    {:ok, socket}
   end
+
+  def join(_, _, _), do: {:error, :invalid_parameter}
 end

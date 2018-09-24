@@ -16,133 +16,60 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
-  use Plug.Test
 
-  alias OMG.API.Block
-  alias OMG.API.Crypto
-  alias OMG.API.State.Transaction.{Recovered, Signed}
-  alias OMG.API.Utxo
-  require Utxo
-  alias OMG.Watcher.TransactionDB
+  alias OMG.Watcher.TestHelper
 
-  @eth Crypto.zero_address()
+  describe "Controller.TransactionTest" do
+    @tag fixtures: [:initial_blocks, :alice, :bob]
+    test "transaction/:id endpoint returns expected transaction format", %{
+      initial_blocks: initial_blocks,
+      alice: alice,
+      bob: bob
+    } do
+      {blknum, txindex, txhash, _recovered_tx} = initial_blocks |> hd()
 
-  @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
-  test "insert and retrive transaction", %{alice: alice, bob: bob} do
-    tester_f = fn {txblknum, txindex, recovered_tx} ->
-      [{:ok, %TransactionDB{txid: id}}] = TransactionDB.update_with(%{transactions: [recovered_tx], number: txblknum})
-      expected_transaction = create_expected_transaction(id, recovered_tx, txblknum, txindex)
-      assert expected_transaction == delete_meta(TransactionDB.get(id))
+      bob_addr = bob.addr |> TestHelper.to_response_address()
+      alice_addr = alice.addr |> TestHelper.to_response_address()
+      txhash = Base.encode16(txhash)
+      zero_addr = String.duplicate("0", 2 * 20)
+      zero_sign = String.duplicate("0", 2 * 65)
+
+      assert %{
+               "data" => %{
+                 "txid" => ^txhash,
+                 "txblknum" => ^blknum,
+                 "txindex" => ^txindex,
+                 "blknum1" => 1,
+                 "txindex1" => 0,
+                 "oindex1" => 0,
+                 "blknum2" => 0,
+                 "txindex2" => 0,
+                 "oindex2" => 0,
+                 "cur12" => ^zero_addr,
+                 "newowner1" => ^bob_addr,
+                 "amount1" => 300,
+                 "newowner2" => ^zero_addr,
+                 "amount2" => 0,
+                 "sig1" => <<_sig1::binary-size(130)>>,
+                 "sig2" => ^zero_sign,
+                 "spender1" => ^alice_addr,
+                 "spender2" => nil
+               },
+               "result" => "success"
+             } = TestHelper.rest_call(:get, "/transaction/#{txhash}")
     end
 
-    [
-      {0, 0, OMG.API.TestHelper.create_recovered([], @eth, [])},
-      {0, 0, OMG.API.TestHelper.create_recovered([{2, 3, 1, bob}], @eth, [{alice, 200}])},
-      {0, 0, OMG.API.TestHelper.create_recovered([{2, 3, 1, bob}, {2, 3, 1, alice}], @eth, [{alice, 200}])},
-      {0, 0, OMG.API.TestHelper.create_recovered([{2, 3, 1, bob}], @eth, [{alice, 200}, {bob, 200}])},
-      {1000, 0, OMG.API.TestHelper.create_recovered([{2, 3, 2, bob}, {2, 3, 1, alice}], @eth, [{alice, 200}])}
-    ]
-    |> Enum.map(tester_f)
-  end
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "transaction/:id endpoint returns error for non exsiting transaction" do
+      txhash = "055673FF58D85BFBF6844BAD62361967C7D19B6A4768CE4B54C687B65728D721"
 
-  @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
-  test "insert and retrive block of transactions ", %{alice: alice, bob: bob} do
-    txblknum = 0
-    recovered_tx1 = OMG.API.TestHelper.create_recovered([{2, 3, 1, bob}], @eth, [{alice, 200}])
-    recovered_tx2 = OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [])
-
-    [{:ok, %TransactionDB{txid: txid_1}}, {:ok, %TransactionDB{txid: txid_2}}] =
-      TransactionDB.update_with(%Block{
-        transactions: [
-          recovered_tx1,
-          recovered_tx2
-        ],
-        number: txblknum
-      })
-
-    assert create_expected_transaction(txid_1, recovered_tx1, txblknum, 0) == delete_meta(TransactionDB.get(txid_1))
-    assert create_expected_transaction(txid_2, recovered_tx2, txblknum, 1) == delete_meta(TransactionDB.get(txid_2))
-  end
-
-  @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
-  test "gets all transactions from a block", %{alice: alice, bob: bob} do
-    assert [] == TransactionDB.find_by_txblknum(1)
-
-    alice_spend_recovered = OMG.API.TestHelper.create_recovered([], @eth, [{alice, 100}])
-    bob_spend_recovered = OMG.API.TestHelper.create_recovered([], @eth, [{bob, 200}])
-
-    [{:ok, %TransactionDB{txid: txid_alice}}, {:ok, %TransactionDB{txid: txid_bob}}] =
-      TransactionDB.update_with(%Block{
-        transactions: [alice_spend_recovered, bob_spend_recovered],
-        number: 1
-      })
-
-    assert [
-             create_expected_transaction(txid_alice, alice_spend_recovered, 1, 0),
-             create_expected_transaction(txid_bob, bob_spend_recovered, 1, 1)
-           ] == 1 |> TransactionDB.find_by_txblknum() |> Enum.map(&delete_meta/1)
-  end
-
-  @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob]
-  test "gets transaction that spends utxo", %{alice: alice, bob: bob} do
-    utxo1 = Utxo.position(1, 0, 0)
-    utxo2 = Utxo.position(2, 0, 0)
-    {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(utxo1)
-    {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(utxo2)
-
-    alice_spend_recovered = OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [])
-
-    [{:ok, %TransactionDB{txid: txid_alice}}] =
-      TransactionDB.update_with(%Block{
-        transactions: [alice_spend_recovered],
-        number: 1
-      })
-
-    assert create_expected_transaction(txid_alice, alice_spend_recovered, 1, 0) ==
-             delete_meta(TransactionDB.get_transaction_challenging_utxo(utxo1))
-
-    {:error, :utxo_not_spent} = TransactionDB.get_transaction_challenging_utxo(utxo2)
-
-    bob_spend_recovered = OMG.API.TestHelper.create_recovered([{2, 0, 0, bob}], @eth, [])
-
-    [{:ok, %TransactionDB{txid: txid_bob}}] =
-      TransactionDB.update_with(%Block{
-        transactions: [bob_spend_recovered],
-        number: 2
-      })
-
-    assert create_expected_transaction(txid_bob, bob_spend_recovered, 2, 0) ==
-             delete_meta(TransactionDB.get_transaction_challenging_utxo(utxo2))
-  end
-
-  defp create_expected_transaction(
-         txid,
-         %Recovered{
-           signed_tx: %Signed{raw_tx: transaction, sig1: sig1, sig2: sig2},
-           spender1: spender1,
-           spender2: spender2
-         },
-         txblknum,
-         txindex
-       ) do
-    %TransactionDB{
-      txblknum: txblknum,
-      txindex: txindex,
-      txid: txid,
-      sig1: sig1,
-      sig2: sig2,
-      spender1: spender1,
-      spender2: spender2
-    }
-    |> Map.merge(Map.from_struct(transaction))
-    |> delete_meta
-  end
-
-  defp delete_meta({:ok, %TransactionDB{} = transaction}) do
-    Map.delete(transaction, :__meta__)
-  end
-
-  defp delete_meta(%TransactionDB{} = transaction) do
-    Map.delete(transaction, :__meta__)
+      assert %{
+               "data" => %{
+                 "code" => "transaction:not_found",
+                 "description" => "Transaction doesn't exist for provided search criteria"
+               },
+               "result" => "error"
+             } == TestHelper.rest_call(:get, "/transaction/#{txhash}", nil, 404)
+    end
   end
 end

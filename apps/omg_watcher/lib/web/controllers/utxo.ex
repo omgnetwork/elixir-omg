@@ -21,30 +21,27 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
   alias OMG.API.Crypto
   alias OMG.API.Utxo
-  require Utxo
-  alias OMG.Watcher.UtxoDB
+  alias OMG.Watcher.DB.TxOutputDB
   alias OMG.Watcher.Web.View
+
+  require Utxo
 
   use PhoenixSwagger
   import OMG.Watcher.Web.ErrorHandler
 
-  def available(conn, %{"address" => address}) do
+  def get_utxos(conn, %{"address" => address}) do
     {:ok, address_decode} = Crypto.decode_address(address)
+    utxos = TxOutputDB.get_utxos(address_decode)
 
-    available = %{
-      address: address,
-      utxos: UtxoDB.get_utxos(address_decode)
-    }
-
-    render(conn, View.Utxo, :available, available: available)
+    render(conn, View.Utxo, :utxos, utxos: utxos)
   end
 
-  def compose_utxo_exit(conn, %{"blknum" => blknum, "txindex" => txindex, "oindex" => oindex}) do
-    {blknum, ""} = Integer.parse(blknum)
-    {txindex, ""} = Integer.parse(txindex)
-    {oindex, ""} = Integer.parse(oindex)
+  def get_utxo_exit(conn, %{"utxo_pos" => utxo_pos}) do
+    {utxo_pos, ""} = Integer.parse(utxo_pos)
 
-    UtxoDB.compose_utxo_exit(Utxo.position(blknum, txindex, oindex))
+    utxo_pos
+    |> Utxo.Position.decode()
+    |> TxOutputDB.compose_utxo_exit()
     |> respond(conn)
   end
 
@@ -74,7 +71,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
             txindex(:integer, "Number of transaction that created the utxo", required: true)
             oindex(:integer, "Output index in the transaction", required: true)
-            txbytes(:string, "Signed hash of transaction that created the utxo", required: true)
+            txbytes(:string, "RLP encoded signed transaction that created the utxo", required: true)
           end
 
           example(%{
@@ -124,8 +121,8 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
     }
   end
 
-  swagger_path :available do
-    get("/account/utxo")
+  swagger_path :get_utxos do
+    get("/utxos")
     summary("Gets all utxos belonging to the given address")
 
     parameters do
@@ -135,14 +132,12 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
     response(200, "OK", Schema.ref(:Utxos))
   end
 
-  swagger_path :compose_utxo_exit do
-    get("/account/utxo/compose_exit")
+  swagger_path :get_exit_data do
+    get("/utxo/{utxo_pos}/exit_data")
     summary("Responds with exit for a given utxo")
 
     parameters do
-      blknum(:query, :integer, "Number of block that the utxo was created in", required: true)
-      txindex(:query, :integer, "Transaction index of the utxo", required: true)
-      oindex(:query, :integer, "Output index of the utxo", required: true)
+      utxo_pos(:path, :integer, "Position of the exiting utxo", required: true)
     end
 
     response(200, "OK", Schema.ref(:UtxoExit))

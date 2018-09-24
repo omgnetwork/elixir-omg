@@ -39,10 +39,19 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
 config :phoenix, :stacktrace_depth, 20
 
 # Configure your database
-config :omg_watcher, OMG.Watcher.Repo,
+config :omg_watcher, OMG.Watcher.DB.Repo,
   adapter: Ecto.Adapters.Postgres,
   username: "omisego_dev",
   password: "omisego_dev",
   database: "omisego_dev",
   hostname: "localhost",
   pool_size: 10
+
+# TODO: these two are here to ensure swifter sync in `:dev` env, and are geared towards a 1-sec root chain block
+#       interval. They are taken to be equal to the `:test` env.
+#       Rethink properly the semantics of root chain coordinator
+config :omg_watcher,
+  block_getter_height_sync_interval_ms: 1_000
+
+config :omg_api,
+  rootchain_height_sync_interval_ms: 1_000

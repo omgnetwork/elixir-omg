@@ -37,7 +37,7 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 
 - reverts to reading `OMG.DB` for old blocks
 
-### `OMG.API.RootchainCoordinator`
+### `OMG.API.RootChainCoordinator`
 
 - reads Ethereum block height from `OMG.Eth`
 - synchronizes view of Ethereum block height of all enrolled processes (see other processes descriptions)
@@ -48,26 +48,26 @@ Actually `OMG.API.EthereumEventListener` setup with `:exiter`.
 
 - used only in child chain
 - pushes exits to `OMG.API.State` on child chain server's side
-- tracks exits via `OMG.API.RootchainCoordinator`
+- tracks exits via `OMG.API.RootChainCoordinator`
 
 ### `:depositor`
 
 Actually `OMG.API.EthereumEventListener` setup with `:depositor`.
 
 - pushes deposits to `OMG.API.State`
-- tracks deposits via `OMG.API.RootchainCoordinator`
+- tracks deposits via `OMG.API.RootChainCoordinator`
 
 ### `OMG.API.BlockQueue`
 
 - requests `form_block` on `OMG.API.State` and takes block hashes in return
-- tracks Ethereum height and child chain block submission mining via `OMG.Eth` and `OMG.API.RootchainCoordinator`
+- tracks Ethereum height and child chain block submission mining via `OMG.Eth` and `OMG.API.RootChainCoordinator`
 
 ### `OMG.API.FeeChecker`
 - `OMG.API` calls it to get acceptable currencies and actual fee amounts to validate transactions
 
 ### `OMG.Watcher.BlockGetter`
 
-- tracks child chain blocks via `OMG.API.RootchainCoordinator`
+- tracks child chain blocks via `OMG.API.RootChainCoordinator`
 - manages concurrent `Task`'s to pull blocks from child chain server API (JSON-RPC)
 - pushes decoded and statelessly valid blocks to `OMG.API.State`
 - pushes statefully valid blocks and transactions (acknowledged by `OMG.API.State` above) to `WatcherDB`
@@ -100,7 +100,7 @@ Actually `OMG.API.EthereumEventListener` setup with `:slow_validator`.
 
 ### `OMG.JSONRPC`
 
-- exposes `OMG.API` via a `cowboy`-driven JSON-RPC2 interface
+- exposes `OMG.API` (as configured by `:omg_jsonrpc, :api_module` setting) via a `cowboy`-driven JSON-RPC2 interface
 
 ### `OMG.Performance`
 

@@ -20,12 +20,12 @@ defmodule OMG.API.State.CoreTest do
   alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.API.State.Core
-  alias OMG.API.Utxo
   alias OMG.API.TestHelper, as: Test
+  alias OMG.API.Utxo
 
   require Utxo
 
-  @child_block_interval OMG.Eth.get_child_block_interval() |> elem(1)
+  @child_block_interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
   @child_block_2 @child_block_interval * 2
   @child_block_3 @child_block_interval * 3
   @child_block_4 @child_block_interval * 4
@@ -97,22 +97,6 @@ defmodule OMG.API.State.CoreTest do
     |> success?
   end
 
-  @tag fixtures: [:alice, :state_empty]
-  test "can decode deposits in Core", %{alice: alice, state_empty: state} do
-    {:ok, alice_enc} = Crypto.encode_address(alice.addr)
-    eth_enc = "0x" <> String.duplicate("00", 20)
-    deposits = [%{owner: alice_enc, currency: eth_enc, amount: 10, blknum: 1}]
-
-    assert {:ok, {_, _}, state} =
-             deposits
-             |> Enum.map(&Core.decode_deposit/1)
-             |> Core.deposit(state)
-
-    state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 10}]), zero_fees_map(), &1)).()
-    |> success?
-  end
-
   @tag fixtures: [:alice, :bob, :state_empty]
   test "can spend a batch of deposits", %{alice: alice, bob: bob, state_empty: state} do
     state
@@ -131,7 +115,7 @@ defmodule OMG.API.State.CoreTest do
     state_empty: state
   } do
     deposits = [%{owner: alice.addr, currency: eth(), amount: 20, blknum: 2}]
-    assert {:ok, {_, [_, {:put, :last_deposit_block_height, 2}]}, state} = Core.deposit(deposits, state)
+    assert {:ok, {_, [_, {:put, :last_deposit_child_blknum, 2}]}, state} = Core.deposit(deposits, state)
 
     assert {:ok, {[], []}, ^state} = Core.deposit([%{owner: bob.addr, currency: eth(), amount: 20, blknum: 1}], state)
   end
@@ -141,6 +125,14 @@ defmodule OMG.API.State.CoreTest do
     {:ok, state} = Core.extract_initial_state([], 0, 1, @child_block_interval)
 
     assert {:ok, {[], []}, ^state} = Core.deposit([%{owner: bob.addr, currency: eth(), amount: 20, blknum: 1}], state)
+  end
+
+  test "extract_initial_state function returns error when passed last deposit as :not_found" do
+    assert {:error, :last_deposit_not_found} = Core.extract_initial_state([], 0, :not_found, @child_block_interval)
+  end
+
+  test "extract_initial_state function returns error when passed top block number as :not_found" do
+    assert {:error, :top_block_number_not_found} = Core.extract_initial_state([], :not_found, 0, @child_block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
@@ -466,7 +458,7 @@ defmodule OMG.API.State.CoreTest do
              Core.deposit([%{owner: alice.addr, currency: eth(), amount: 10, blknum: 1}], state)
 
     assert utxo_update == {:put, :utxo, {{1, 0, 0}, %{owner: alice.addr, currency: eth(), amount: 10}}}
-    assert height_update == {:put, :last_deposit_block_height, 1}
+    assert height_update == {:put, :last_deposit_child_blknum, 1}
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_interval}]}, _} =
              form_block_check(state, @child_block_interval)
@@ -582,17 +574,17 @@ defmodule OMG.API.State.CoreTest do
 
   @tag fixtures: [:alice, :state_empty]
   test "tells if utxo exists", %{alice: alice, state_empty: state} do
-    assert not Core.utxo_exists?(%{blknum: 1, txindex: 0, oindex: 0}, state)
+    assert not Core.utxo_exists?(%{utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}, state)
 
     state = state |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-    assert Core.utxo_exists?(%{blknum: 1, txindex: 0, oindex: 0}, state)
+    assert Core.utxo_exists?(%{utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}, state)
 
     state =
       state
       |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 10}]), zero_fees_map(), &1)).()
       |> success?
 
-    assert not Core.utxo_exists?(%{blknum: 1, txindex: 0, oindex: 0}, state)
+    assert not Core.utxo_exists?(%{utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}, state)
   end
 
   @tag fixtures: [:state_empty]
@@ -643,6 +635,54 @@ defmodule OMG.API.State.CoreTest do
       |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 6}, {alice, 3}]), fee, &1)).()
       |> fail?(:amounts_dont_add_up)
     end
+  end
+
+  @tag fixtures: [:alice, :state_empty]
+  test "Output can have a zero value; can't be used as input though", %{alice: alice, state_empty: state} do
+    fee = %{eth() => 0}
+
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 8}, {alice, 0}]), fee, &1)).()
+    |> success?
+    |> (&Core.exec(Test.create_recovered([{1000, 0, 1, alice}], eth(), [{alice, 0}]), fee, &1)).()
+    |> fail?(:utxo_not_found)
+  end
+
+  @tag fixtures: [:alice, :state_empty]
+  test "Output with zero value does not change oindex of other outputs", %{alice: alice, state_empty: state} do
+    fee = %{eth() => 0}
+
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 0}, {alice, 8}]), fee, &1)).()
+    |> success?
+    |> (&Core.exec(Test.create_recovered([{1000, 0, 1, alice}], eth(), [{alice, 1}]), fee, &1)).()
+    |> success?
+  end
+
+  @tag fixtures: [:alice, :state_empty]
+  test "Output with zero value will not be written to DB", %{alice: alice, state_empty: state} do
+    fee = %{eth() => 2}
+
+    state =
+      state
+      |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 0}]), fee, &1)).()
+      |> success?
+
+    {_, {_, _, db_updates}, _} = Core.form_block(1000, state)
+    assert [] = Enum.filter(db_updates, &match?({:put, :utxo, _}, &1))
+  end
+
+  @tag fixtures: [:alice, :state_empty]
+  test "Transaction can have no outputs", %{alice: alice, state_empty: state} do
+    fee = %{eth() => 2}
+
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), []), fee, &1)).()
+    |> success?
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]

@@ -29,21 +29,21 @@ defmodule OMG.Watcher.Application do
 
     children = [
       # Start the Ecto repository
-      supervisor(OMG.Watcher.Repo, []),
+      supervisor(OMG.Watcher.DB.Repo, []),
       # Start workers
       {OMG.API.State, []},
       {OMG.Watcher.Eventer, []},
-      {OMG.API.RootchainCoordinator, MapSet.new([:depositer, :fast_validator, :slow_validator, :block_getter])},
+      {OMG.API.RootChainCoordinator, MapSet.new([:depositer, :fast_validator, :slow_validator, :block_getter])},
       worker(
         OMG.API.EthereumEventListener,
         [
           %{
-            synced_height_update_key: :last_depositer_block_height,
+            synced_height_update_key: :last_depositer_eth_height,
             service_name: :depositer,
             block_finality_margin: block_finality_margin,
-            get_events_callback: &OMG.Eth.get_deposits/2,
+            get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
             process_events_callback: &OMG.API.State.deposit/1,
-            get_last_synced_height_callback: &OMG.Eth.get_root_deployment_height/0
+            get_last_synced_height_callback: &OMG.DB.last_depositer_eth_height/0
           }
         ],
         id: :depositer
@@ -53,11 +53,11 @@ defmodule OMG.Watcher.Application do
         [
           %{
             block_finality_margin: 0,
-            synced_height_update_key: :last_fast_exit_block_height,
+            synced_height_update_key: :last_fast_exit_eth_height,
             service_name: :fast_validator,
-            get_events_callback: &OMG.Eth.get_exits/2,
+            get_events_callback: &OMG.Eth.RootChain.get_exits/2,
             process_events_callback: OMG.Watcher.ExitValidator.Validator.challenge_invalid_exits(fn _ -> :ok end),
-            get_last_synced_height_callback: &OMG.DB.last_fast_exit_block_height/0
+            get_last_synced_height_callback: &OMG.DB.last_fast_exit_eth_height/0
           }
         ],
         id: :fast_validator
@@ -67,12 +67,12 @@ defmodule OMG.Watcher.Application do
         [
           %{
             block_finality_margin: slow_exit_validator_block_margin,
-            synced_height_update_key: :last_slow_exit_block_height,
+            synced_height_update_key: :last_slow_exit_eth_height,
             service_name: :slow_validator,
-            get_events_callback: &OMG.Eth.get_exits/2,
+            get_events_callback: &OMG.Eth.RootChain.get_exits/2,
             process_events_callback:
               OMG.Watcher.ExitValidator.Validator.challenge_invalid_exits(&slow_validator_utxo_exists_callback/1),
-            get_last_synced_height_callback: &OMG.DB.last_slow_exit_block_height/0
+            get_last_synced_height_callback: &OMG.DB.last_slow_exit_eth_height/0
           }
         ],
         id: :slow_validator

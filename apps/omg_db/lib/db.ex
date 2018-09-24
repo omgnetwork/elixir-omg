@@ -43,32 +43,32 @@ defmodule OMG.DB do
     GenServer.call(server_name, {:block_hashes, block_numbers_to_fetch})
   end
 
-  def last_deposit_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_deposit_block_height)
+  def last_deposit_child_blknum(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_deposit_child_blknum)
   end
 
   def child_top_block_number(server_name \\ @server_name) do
     GenServer.call(server_name, :child_top_block_number)
   end
 
-  def last_fast_exit_block_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_fast_exit_block_height)
+  def last_fast_exit_eth_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_fast_exit_eth_height)
   end
 
-  def last_slow_exit_block_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_slow_exit_block_height)
+  def last_slow_exit_eth_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_slow_exit_eth_height)
   end
 
-  def last_block_getter_block_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_block_getter_synced_height)
+  def last_block_getter_eth_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_block_getter_eth_height)
   end
 
-  def last_depositer_block_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_depositer_block_height)
+  def last_depositer_eth_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_depositer_eth_height)
   end
 
-  def last_exiter_block_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_exiter_block_height)
+  def last_exiter_eth_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_exiter_eth_height)
   end
 
   def init do
@@ -80,13 +80,13 @@ defmodule OMG.DB do
 
       :ok =
         OMG.DB.multi_update([
-          {:put, :last_deposit_block_height, 0},
-          {:put, :last_fast_exit_block_height, 0},
-          {:put, :last_slow_exit_block_height, 0},
+          {:put, :last_deposit_child_blknum, 0},
+          {:put, :last_fast_exit_eth_height, 0},
+          {:put, :last_slow_exit_eth_height, 0},
           {:put, :child_top_block_number, 0},
-          {:put, :last_block_getter_synced_height, 0},
-          {:put, :last_depositer_block_height, 0},
-          {:put, :last_exiter_block_height, 0}
+          {:put, :last_block_getter_eth_height, 0},
+          {:put, :last_depositer_eth_height, 0},
+          {:put, :last_exiter_eth_height, 0}
         ])
 
       started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)

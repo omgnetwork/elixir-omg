@@ -30,17 +30,17 @@ defmodule OMG.API.Application do
       {OMG.API.BlockQueue.Server, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeChecker, []},
-      {OMG.API.RootchainCoordinator, MapSet.new([:depositer, :exiter])},
+      {OMG.API.RootChainCoordinator, MapSet.new([:depositer, :exiter])},
       worker(
         OMG.API.EthereumEventListener,
         [
           %{
-            synced_height_update_key: :last_depositer_block_height,
+            synced_height_update_key: :last_depositer_eth_height,
             service_name: :depositer,
             block_finality_margin: block_finality_margin,
-            get_events_callback: &OMG.Eth.get_deposits/2,
+            get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
             process_events_callback: &OMG.API.State.deposit/1,
-            get_last_synced_height_callback: &OMG.Eth.get_root_deployment_height/0
+            get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
           }
         ],
         id: :depositer
@@ -49,12 +49,12 @@ defmodule OMG.API.Application do
         OMG.API.EthereumEventListener,
         [
           %{
-            synced_height_update_key: :last_exiter_block_height,
+            synced_height_update_key: :last_exiter_eth_height,
             service_name: :exiter,
             block_finality_margin: block_finality_margin,
-            get_events_callback: &OMG.Eth.get_exits/2,
+            get_events_callback: &OMG.Eth.RootChain.get_exits/2,
             process_events_callback: &OMG.API.State.exit_utxos/1,
-            get_last_synced_height_callback: &OMG.Eth.get_root_deployment_height/0
+            get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
           }
         ],
         id: :exiter

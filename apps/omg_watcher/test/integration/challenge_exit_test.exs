@@ -21,12 +21,13 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
   use Plug.Test
 
   alias OMG.API
-  alias OMG.API.Crypto
+  alias OMG.API.Utxo
+  require Utxo
   alias OMG.Eth
   alias OMG.JSONRPC.Client
-  alias OMG.Watcher.Web.Serializer
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper, as: Test
+  alias OMG.Watcher.Web.Serializer.Response
 
   @moduletag :integration
 
@@ -54,44 +55,42 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
       "proof" => proof,
       "sigs" => sigs,
       "utxo_pos" => utxo_pos
-    } = IntegrationTest.compose_utxo_exit(exiting_utxo_block_nr, 0, 0)
-
-    {:ok, alice_address} = Crypto.encode_address(alice.addr)
+    } = IntegrationTest.get_exit_data(exiting_utxo_block_nr, 0, 0)
 
     {:ok, txhash} =
-      Eth.start_exit(
+      Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
         proof,
         sigs,
-        1,
-        alice_address
+        alice.addr
       )
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
 
     # after a successful invalid exit starting, the Watcher should be able to assist in successful challenging
     challenge = get_exit_challenge(exiting_utxo_block_nr, 0, 0)
-    assert {:ok, {alice.addr, @eth, 10}} == Eth.get_exit(utxo_pos)
+    assert {:ok, {alice.addr, @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
 
     {:ok, txhash} =
-      OMG.Eth.DevHelpers.challenge_exit(
+      OMG.Eth.RootChain.challenge_exit(
         challenge["cutxopos"],
         challenge["eutxoindex"],
         challenge["txbytes"],
         challenge["proof"],
         challenge["sigs"],
-        alice_address
+        alice.addr
       )
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
-    assert {:ok, {@zero_address, @eth, 10}} == Eth.get_exit(utxo_pos)
+    assert {:ok, {@zero_address, @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
   end
 
   defp get_exit_challenge(blknum, txindex, oindex) do
-    assert %{"result" => "success", "data" => decoded_data} =
-             Test.rest_call(:get, "challenges?blknum=#{blknum}&txindex=#{txindex}&oindex=#{oindex}")
+    utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
 
-    Serializer.Response.decode16(decoded_data, ["txbytes", "proof", "sigs"])
+    assert %{"result" => "success", "data" => data} = Test.rest_call(:get, "utxo/#{utxo_pos}/challenge_data")
+
+    Response.decode16(data, ["txbytes", "proof", "sigs"])
   end
 end

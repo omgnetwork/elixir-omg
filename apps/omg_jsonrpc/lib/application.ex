@@ -16,7 +16,6 @@ defmodule OMG.JSONRPC.Application do
   @moduledoc false
 
   use Application
-  use OMG.API.LoggerExt
 
   def start(_type, _args) do
     omg_port = Application.get_env(:omg_jsonrpc, :omg_api_rpc_port)
@@ -25,7 +24,6 @@ defmodule OMG.JSONRPC.Application do
       JSONRPC2.Servers.HTTP.child_spec(:http, OMG.JSONRPC.Server.Handler, port: omg_port)
     ]
 
-    _ = Logger.info(fn -> "Started application OMG.JSONRPC.Application" end)
     opts = [strategy: :one_for_one, name: OMG.JSONRPC.Supervisor]
     Supervisor.start_link(children, opts)
   end

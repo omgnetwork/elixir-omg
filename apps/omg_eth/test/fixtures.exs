@@ -20,6 +20,8 @@ defmodule OMG.Eth.Fixtures do
 
   alias OMG.Eth
 
+  import Eth.Encoding
+
   deffixture geth do
     {:ok, exit_fn} = Eth.DevGeth.start()
     on_exit(exit_fn)
@@ -37,20 +39,20 @@ defmodule OMG.Eth.Fixtures do
 
     root_path = "../../"
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
-    {:ok, _, token_addr} = OMG.Eth.DevHelpers.create_new_token(root_path, addr)
+    {:ok, _, token_addr} = Eth.Token.create_new(root_path, from_hex(addr))
 
     # ensuring that the root chain contract handles token_addr
-    {:ok, false} = Eth.DevHelpers.has_token(token_addr)
-    {:ok, _} = Eth.DevHelpers.add_token(token_addr)
-    {:ok, true} = Eth.DevHelpers.has_token(token_addr)
+    {:ok, false} = Eth.RootChain.has_token(token_addr)
+    {:ok, _} = token_addr |> Eth.RootChain.add_token() |> Eth.DevHelpers.transact_sync!()
+    {:ok, true} = Eth.RootChain.has_token(token_addr)
 
-    %{address: token_addr}
+    token_addr
   end
 
   deffixture root_chain_contract_config(contract) do
-    Application.put_env(:omg_eth, :contract_addr, contract.contract_addr, persistent: true)
-    Application.put_env(:omg_eth, :authority_addr, contract.authority_addr, persistent: true)
-    Application.put_env(:omg_eth, :txhash_contract, contract.txhash_contract, persistent: true)
+    Application.put_env(:omg_eth, :contract_addr, to_hex(contract.contract_addr), persistent: true)
+    Application.put_env(:omg_eth, :authority_addr, to_hex(contract.authority_addr), persistent: true)
+    Application.put_env(:omg_eth, :txhash_contract, to_hex(contract.txhash_contract), persistent: true)
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
 
@@ -62,21 +64,6 @@ defmodule OMG.Eth.Fixtures do
       started_apps
       |> Enum.reverse()
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
-    end)
-
-    :ok
-  end
-
-  deffixture token_contract_config(token) do
-    # ensuring that the child chain handles the token (esp. fee-wise)
-
-    {:ok, enc_eth} = OMG.API.Crypto.encode_address(OMG.API.Crypto.zero_address())
-    {:ok, path} = OMG.API.TestHelper.write_fee_file(%{enc_eth => 0, token.address => 0})
-    default_path = Application.get_env(:omg_api, :fee_specs_file_path)
-    Application.put_env(:omg_api, :fee_specs_file_path, path, persistent: true)
-
-    on_exit(fn ->
-      Application.put_env(:omg_api, :fee_specs_file_path, default_path)
     end)
 
     :ok

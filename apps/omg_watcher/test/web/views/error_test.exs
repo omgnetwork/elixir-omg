@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.ErrorViewTest do
+defmodule OMG.Watcher.Web.View.ErrorTest do
   @moduledoc false
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  alias OMG.Watcher.Web.ErrorView
+  alias OMG.Watcher.Web.View
 
   import Phoenix.View
 
@@ -36,7 +36,7 @@ defmodule OMG.Watcher.Web.ErrorViewTest do
       }
     }
 
-    assert render(ErrorView, "500.json", assigns) == expected
+    assert render(View.ErrorView, "500.json", assigns) == expected
   end
 
   test "renders 400.json with correct structure given a custom description" do
@@ -54,7 +54,7 @@ defmodule OMG.Watcher.Web.ErrorViewTest do
       }
     }
 
-    assert render(ErrorView, "400.json", assigns) == expected
+    assert render(View.ErrorView, "400.json", assigns) == expected
   end
 
   test "renders invalid template as server error" do
@@ -66,6 +66,6 @@ defmodule OMG.Watcher.Web.ErrorViewTest do
       }
     }
 
-    assert render(ErrorView, "invalid_template.json", []) == expected
+    assert render(View.ErrorView, "invalid_template.json", []) == expected
   end
 end

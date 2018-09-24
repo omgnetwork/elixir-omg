@@ -22,12 +22,26 @@ defmodule OMG.API.BlockQueue.Core do
   (thus, it handles config values as internal variables)
   """
 
-  alias OMG.Eth.BlockSubmission
-  alias OMG.API.BlockQueue, as: BlockQueue
+  alias OMG.API.BlockQueue
   alias OMG.API.BlockQueue.Core
   alias OMG.API.BlockQueue.GasPriceAdjustmentStrategyParams, as: GasPriceParams
 
   use OMG.API.LoggerExt
+
+  defmodule BlockSubmission do
+    @moduledoc false
+
+    @type hash() :: <<_::256>>
+    @type plasma_block_num() :: non_neg_integer()
+
+    @type t() :: %__MODULE__{
+            num: plasma_block_num(),
+            hash: hash(),
+            nonce: non_neg_integer(),
+            gas_price: pos_integer()
+          }
+    defstruct [:num, :hash, :nonce, :gas_price]
+  end
 
   @zero_bytes32 <<0::size(256)>>
 
@@ -70,6 +84,8 @@ defmodule OMG.API.BlockQueue.Core do
           # the gas price adjustment strategy parameters
           gas_price_adj_params: GasPriceParams.t()
         }
+
+  @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
 
   def new do
     {:ok, %__MODULE__{blocks: Map.new()}}
@@ -369,12 +385,20 @@ defmodule OMG.API.BlockQueue.Core do
   # splits into ones that are before top_mined_hash and those after
   # mined are zipped with their numbers to submit
   defp split_existing_blocks(%__MODULE__{mined_child_block_num: blknum}, blknums_and_hashes) do
-    index = Enum.find_index(blknums_and_hashes, &(elem(&1, 0) == blknum))
+    {mined, fresh} =
+      Enum.find_index(blknums_and_hashes, &(elem(&1, 0) == blknum))
+      |> case do
+        nil -> {[], blknums_and_hashes}
+        index -> Enum.split(blknums_and_hashes, index + 1)
+      end
 
-    {mined, fresh} = Enum.split(blknums_and_hashes, index + 1)
     fresh_hashes = Enum.map(fresh, &elem(&1, 1))
 
     {mined, fresh_hashes}
+  end
+
+  defp block_number_and_hash_valid?(@zero_bytes32, 0, _) do
+    :ok
   end
 
   defp block_number_and_hash_valid?(expected_hash, blknum, blknums_and_hashes) do
@@ -387,4 +411,39 @@ defmodule OMG.API.BlockQueue.Core do
   defp validate_block_hash(expected, {_blknum, blkhash}) when expected == blkhash, do: :ok
   defp validate_block_hash(_, nil), do: {:error, :mined_blknum_not_found_in_db}
   defp validate_block_hash(_, _), do: {:error, :hashes_dont_match}
+
+  @spec process_submit_result(BlockSubmission.t(), submit_result_t(), BlockSubmission.plasma_block_num()) ::
+          :ok | {:error, atom}
+  def process_submit_result(submission, submit_result, newest_mined_blknum) do
+    case submit_result do
+      {:ok, txhash} ->
+        _ = Logger.info(fn -> "Submitted #{inspect(submission)} at: #{inspect(txhash)}" end)
+        :ok
+
+      {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} ->
+        _ = Logger.debug(fn -> "Submission #{inspect(submission)} is known transaction - ignored" end)
+        :ok
+
+      {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}} ->
+        _ = Logger.debug(fn -> "Submission #{inspect(submission)} is known, but with higher price - ignored" end)
+        :ok
+
+      {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}} ->
+        _ = Logger.error(fn -> "It seems that authority account is locked. Check README.md" end)
+        {:error, :account_locked}
+
+      {:error, %{"code" => -32_000, "message" => "nonce too low"}} ->
+        process_nonce_too_low(submission, newest_mined_blknum)
+    end
+  end
+
+  defp process_nonce_too_low(%BlockSubmission{num: blknum} = submission, newest_mined_blknum) do
+    if blknum <= newest_mined_blknum do
+      # apparently the `nonce too low` error is related to the submission having been mined while it was prepared
+      :ok
+    else
+      _ = Logger.error(fn -> "Submission #{inspect(submission)} unexpectedly failed with nonce too low" end)
+      {:error, :nonce_too_low}
+    end
+  end
 end

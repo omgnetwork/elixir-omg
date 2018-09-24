@@ -12,25 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.StatusViewTest do
-  @moduledoc false
-  use OMG.Watcher.ViewCase
+defmodule OMG.Watcher.Web.Channel.Transfer do
+  @moduledoc """
+  Channel Transfer
+  """
 
-  alias OMG.Watcher.Web.View
+  use Phoenix.Channel
 
-  test "renders status.json with correct response format" do
-    status = %{
-      last_validated_child_block_number: 0,
-      last_mined_child_block_number: 0,
-      last_mined_child_block_timestamp: 0,
-      eth_syncing: true
-    }
-
-    expected = %{
-      result: :success,
-      data: status
-    }
-
-    assert View.Status.render("status.json", %{status: status}) == expected
+  def join("transfer:" <> _address, _params, socket) do
+    {:ok, socket}
   end
+
+  def join(_, _, _), do: {:error, :invalid_parameter}
 end

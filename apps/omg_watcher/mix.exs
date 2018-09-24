@@ -56,7 +56,6 @@ defmodule OMG.Watcher.Mixfile do
       {:briefly, "~> 0.3"},
       #
       {:omg_api, in_umbrella: true, runtime: false},
-      {:omg_jsonrpc, in_umbrella: true, runtime: false},
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true}
     ]

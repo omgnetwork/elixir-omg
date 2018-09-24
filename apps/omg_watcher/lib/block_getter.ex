@@ -16,16 +16,16 @@ defmodule OMG.Watcher.BlockGetter do
   @moduledoc """
   Checking if there are new block from child chain on ethereum.
   Checking if Block from child chain is valid
-  Download new block from child chain and update State, TransactionDB, UtxoDB.
+  Download new block from child chain and update State, TransactionDB, TxOutputDB.
   Manage simultaneous getting and stateless-processing of blocks and manage the results of that
   Detects byzantine situations like BlockWithholding and InvalidBlock and passes this events to Eventer
   """
   alias OMG.API.Block
   alias OMG.API.EventerAPI
-  alias OMG.API.RootchainCoordinator
+  alias OMG.API.RootChainCoordinator
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter.Core
-  alias OMG.Watcher.UtxoDB
+  alias OMG.Watcher.DB.TransactionDB
 
   use GenServer
   use OMG.API.LoggerExt
@@ -33,7 +33,7 @@ defmodule OMG.Watcher.BlockGetter do
   @spec get_block(pos_integer()) ::
           {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
   def get_block(requested_number) do
-    {:ok, {requested_hash, _time}} = Eth.get_child_chain(requested_number)
+    {:ok, {requested_hash, _time}} = Eth.RootChain.get_child_chain(requested_number)
     rpc_response = OMG.JSONRPC.Client.call(:get_block, %{hash: requested_hash})
     Core.validate_get_block_response(rpc_response, requested_hash, requested_number, :os.system_time(:millisecond))
   end
@@ -50,11 +50,10 @@ defmodule OMG.Watcher.BlockGetter do
     EventerAPI.emit_events(events)
 
     with :ok <- continue do
-      response = OMG.Watcher.TransactionDB.update_with(block)
+      response = TransactionDB.update_with(to_mined_block(block, block_rootchain_height))
       nil = Enum.find(response, &(!match?({:ok, _}, &1)))
-      _ = UtxoDB.update_with(block)
       _ = Logger.info(fn -> "Consumed block \##{inspect(blknum)}" end)
-      {:ok, next_child} = Eth.get_current_child_block()
+      {:ok, next_child} = Eth.RootChain.get_current_child_block()
       {state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
       :ok = run_block_get_task(blocks_numbers)
 
@@ -65,7 +64,10 @@ defmodule OMG.Watcher.BlockGetter do
 
       :ok = OMG.API.State.close_block(block_rootchain_height)
 
-      state = Core.consume_block(state, blknum)
+      {state, synced_height, db_updates} = Core.consume_block(state, blknum, block_rootchain_height)
+      :ok = RootChainCoordinator.check_in(synced_height, :block_getter)
+      :ok = OMG.DB.multi_update(db_updates)
+
       {:noreply, state}
     else
       {:needs_stopping, reason} ->
@@ -79,13 +81,17 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   def init(_opts) do
-    {:ok, deployment_height} = Eth.get_root_deployment_height()
-    {:ok, last_synced_height} = OMG.DB.last_block_getter_block_height()
+    {:ok, deployment_height} = Eth.RootChain.get_root_deployment_height()
+    {:ok, last_synced_height} = OMG.DB.last_block_getter_eth_height()
     synced_height = max(deployment_height, last_synced_height)
-    :ok = RootchainCoordinator.check_in(synced_height, :block_getter)
 
-    {:ok, block_number} = OMG.DB.child_top_block_number()
+    {:ok, child_top_block_number} = OMG.DB.child_top_block_number()
     child_block_interval = Application.get_env(:omg_eth, :child_block_interval)
+
+    {:ok, submissions} = Eth.RootChain.get_block_submitted_events({synced_height, synced_height + 1000})
+    exact_synced_height = Core.figure_out_exact_sync_height(submissions, synced_height, child_top_block_number)
+
+    :ok = RootChainCoordinator.check_in(exact_synced_height, :block_getter)
 
     height_sync_interval = Application.get_env(:omg_watcher, :block_getter_height_sync_interval_ms)
     {:ok, _} = schedule_sync_height(height_sync_interval)
@@ -96,9 +102,9 @@ defmodule OMG.Watcher.BlockGetter do
     {
       :ok,
       Core.init(
-        block_number,
+        child_top_block_number,
         child_block_interval,
-        synced_height,
+        exact_synced_height,
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms
       )
     }
@@ -114,7 +120,7 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info(msg, state)
 
   def handle_info(:producer, state) do
-    {:ok, next_child} = Eth.get_current_child_block()
+    {:ok, next_child} = Eth.RootChain.get_current_child_block()
 
     {new_state, blocks_numbers} = Core.get_new_blocks_numbers(state, next_child)
 
@@ -147,9 +153,9 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
 
   def handle_info(:sync, state) do
-    with {:sync, next_synced_height} <- RootchainCoordinator.get_height() do
-      {block_range, state} = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
-      {:ok, submissions} = Eth.get_block_submitted_events(block_range)
+    with {:sync, next_synced_height} <- RootChainCoordinator.get_height() do
+      block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
+      {:ok, submissions} = Eth.RootChain.get_block_submitted_events(block_range)
 
       {blocks_to_consume, synced_height, db_updates, state} =
         Core.get_blocks_to_consume(state, submissions, next_synced_height)
@@ -159,11 +165,21 @@ defmodule OMG.Watcher.BlockGetter do
       end)
 
       :ok = OMG.DB.multi_update(db_updates)
-      :ok = RootchainCoordinator.check_in(synced_height, :block_getter)
+      :ok = RootChainCoordinator.check_in(synced_height, :block_getter)
       {:noreply, state}
     else
       :nosync -> {:noreply, state}
     end
+  end
+
+  # The purpose of this function is to ensure contract between shell and db code
+  @spec to_mined_block(map(), pos_integer()) :: TransactionDB.mined_block()
+  defp to_mined_block(block, eth_height) do
+    %{
+      eth_height: eth_height,
+      blknum: block.number,
+      transactions: block.transactions
+    }
   end
 
   defp run_block_get_task(blocks_numbers) do

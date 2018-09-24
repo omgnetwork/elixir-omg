@@ -12,9 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.ExposeSpecTest do
+defmodule OMG.Eth.Geth do
   @moduledoc """
-  No test anymore, as there's nothing to test, see OMG.API.ExposeSpec and git blame
+  Tracking the state of local instance of Geth.
   """
-  use ExUnit.Case
+
+  @spec node_ready() :: :ok | {:error, :geth_still_syncing | :geth_not_listening}
+  def node_ready do
+    case Ethereumex.HttpClient.eth_syncing() do
+      {:ok, false} -> :ok
+      {:ok, true} -> {:error, :geth_still_syncing}
+      {:error, :econnrefused} -> {:error, :geth_not_listening}
+    end
+  end
+
+  @doc """
+  Checks geth syncing status, errors are treated as not synced.
+  Returns:
+  * false - geth is synced
+  * true  - geth is still syncing.
+  """
+  @spec syncing?() :: boolean
+  def syncing?, do: node_ready() != :ok
 end

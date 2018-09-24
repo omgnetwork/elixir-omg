@@ -31,7 +31,7 @@ defmodule OMG.API.Fixtures do
   deffixture(stable_bob(entities), do: entities.stable_bob)
 
   deffixture state_empty() do
-    {:ok, child_block_interval} = Eth.get_child_block_interval()
+    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
     {:ok, state} = Core.extract_initial_state([], 0, 0, child_block_interval)
     state

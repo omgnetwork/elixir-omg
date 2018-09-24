@@ -23,6 +23,8 @@ defmodule OMG.Eth.DevGeth do
 
   require Logger
 
+  alias OMG.Eth
+
   def start do
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, _} = Application.ensure_all_started(:erlexec)
@@ -30,7 +32,7 @@ defmodule OMG.Eth.DevGeth do
     {:ok, homedir} = Briefly.create(directory: true)
 
     geth_pid = launch("geth --dev --dev.period=1 --rpc --rpcapi=personal,eth,web3 --datadir #{homedir} 2>&1")
-    {:ok, :ready} = OMG.Eth.WaitFor.eth_rpc()
+    {:ok, :ready} = Eth.WaitFor.eth_rpc()
 
     on_exit = fn -> stop(geth_pid) end
 
@@ -89,5 +91,16 @@ defmodule OMG.Eth.DevGeth do
 
   defp wait_for_geth_start(geth_out) do
     wait_for_start(geth_out, "IPC endpoint opened", 15_000)
+  end
+
+  def maybe_mine(false), do: :noop
+  def maybe_mine(true), do: mine_eth_dev_block()
+
+  def mine_eth_dev_block do
+    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
+    txmap = %{from: addr, to: addr, value: "0x1"}
+    {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
+    # Dev geth is mining every second, that's why we need to wait longer than 1 s for receipt
+    {:ok, _receipt} = txhash |> Eth.Encoding.from_hex() |> Eth.WaitFor.eth_receipt(2_000)
   end
 end

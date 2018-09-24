@@ -126,7 +126,7 @@ defmodule OMG.Performance do
 
     :ok = OMG.DB.init()
 
-    started_apps = ensure_all_started([:omg_db, :jsonrpc2, :cowboy, :hackney])
+    started_apps = ensure_all_started([:omg_db, :cowboy, :hackney])
 
     omg_port = Application.get_env(:omg_jsonrpc, :omg_api_rpc_port)
 
@@ -156,9 +156,8 @@ defmodule OMG.Performance do
     Application.put_env(:ethereumex, :http_options, recv_timeout: :infinity)
     Application.put_env(:ethereumex, :url, opts[:geth])
 
-    Application.put_env(:omg_eth, :contract_addr, contract_addr)
-
-    Application.put_env(:omg_eth, :omg_jsonrpc, opts[:child_chain])
+    {:ok, contract_addr_enc} = Crypto.encode_address(contract_addr)
+    Application.put_env(:omg_eth, :contract_addr, contract_addr_enc)
 
     {:ok, started_apps}
   end
@@ -208,8 +207,7 @@ defmodule OMG.Performance do
     spenders
     |> Enum.with_index(1)
     |> Enum.map(fn {spender, index} ->
-      {:ok, spender_enc} = Crypto.encode_address(spender.addr)
-      :ok = OMG.API.State.deposit([%{owner: spender_enc, currency: @eth, amount: ntx_to_send, blknum: index}])
+      :ok = OMG.API.State.deposit([%{owner: spender.addr, currency: @eth, amount: ntx_to_send, blknum: index}])
 
       utxo_pos = Utxo.position(index, 0, 0) |> Utxo.Position.encode()
       %{owner: spender, utxo_pos: utxo_pos, amount: ntx_to_send}

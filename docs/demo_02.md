@@ -24,19 +24,22 @@ alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
 eth = Crypto.zero_address()
 
-{:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
-{:ok, bob_enc} = Eth.DevHelpers.import_unlock_fund(bob)
+{:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
+{:ok, _} = Eth.DevHelpers.import_unlock_fund(bob)
 
 # sends a deposit transaction _to Ethereum_
-{:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, bob_enc)
-{:ok, deposit_tx_hash} = Eth.DevHelpers.deposit(10, alice_enc)
+{:ok, deposit_tx_hash} = Eth.RootChain.deposit(10, bob.addr)
+{:ok, deposit_tx_hash} = Eth.RootChain.deposit(10, alice.addr)
+
+{:ok, alice_enc} = Crypto.encode_address(alice.addr)
+{:ok, bob_enc} = Crypto.encode_address(bob.addr)
 
 # need to wait until it's mined
 {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
 
 # we need to uncover the height at which the deposit went through on the root chain
 # to do this, look in the logs inside the receipt printed just above
-deposit_blknum = Eth.DevHelpers.deposit_blknum_from_receipt(receipt)
+deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
 
 ### START DEMO HERE
 
@@ -59,6 +62,7 @@ tx =
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 # use the hex-encoded tx bytes and `submit` JSONRPC method described in README.md for child chain server
+# in the following json use `tx` value in "transaction" field
 
 curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "jsonrpc": "2.0","id":0}'
 
@@ -72,21 +76,23 @@ curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "js
 # grab the first transaction hash as returned by the Child chain server's API (response to `curl`'s request)
 tx1_hash =
 
-"http GET 'localhost:4000/transactions/#{tx1_hash}'" |>
+"http GET 'localhost:4000/transaction/#{tx1_hash}'" |>
 to_charlist() |>
 :os.cmd() |>
 Poison.decode!()
 
-%{"utxos" => [%{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
-  "http GET 'localhost:4000/account/utxo?address=#{bob_enc}'" |>
+%{"data" => %{"utxos" => [%{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]}} =
+  "http GET 'localhost:4000/utxos?address=#{bob_enc}'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
 
 # 3/ Exiting, challenging invalid exits
 
-composed_exit =
-  "http GET 'localhost:4000/account/utxo/compose_exit?blknum=#{exiting_utxo_blknum}&txindex=0&oindex=0'" |>
+exiting_utxopos = OMG.API.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
+
+%{"data" => composed_exit} =
+  "http GET 'localhost:4000/utxo/#{exiting_utxopos}/exit_data'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
@@ -100,30 +106,29 @@ tx2 =
 # FIRST you need to spend in transaction as above, so that the exit then is in fact invalid and challengeable
 
 {:ok, txhash} =
-  Eth.start_exit(
+  Eth.RootChain.start_exit(
     composed_exit["utxo_pos"],
     Base.decode16!(composed_exit["txbytes"]),
     Base.decode16!(composed_exit["proof"]),
     Base.decode16!(composed_exit["sigs"]),
-    1,
-    bob_enc
+    bob.addr
   )
 Eth.WaitFor.eth_receipt(txhash)
 
-challenge =
-  "http GET 'localhost:4000/challenges?blknum=#{exiting_utxo_blknum}&txindex=0&oindex=0'" |>
+%{"data" => challenge} =
+  "http GET 'localhost:4000/utxo/#{exiting_utxopos}/challenge_data'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
 
 {:ok, txhash} =
-  OMG.Eth.DevHelpers.challenge_exit(
+  OMG.Eth.RootChain.challenge_exit(
     challenge["cutxopos"],
     challenge["eutxoindex"],
     Base.decode16!(challenge["txbytes"]),
     Base.decode16!(challenge["proof"]),
     Base.decode16!(challenge["sigs"]),
-    alice_enc
+    alice.addr
   )
 
 {:ok, _} = Eth.WaitFor.eth_receipt(txhash)
@@ -157,8 +162,8 @@ r(OMG.API.State.Core)
 # let's do a broken spend:
 
 # grab a utxo that bob can spend
-%{"utxos" => [%{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]} =
-  "http GET 'localhost:4000/account/utxo?address=#{bob_enc}'" |>
+%{"data" => %{"utxos" => [%{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]}} =
+  "http GET 'localhost:4000/utxos?address=#{bob_enc}'" |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()

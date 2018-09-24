@@ -12,15 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Repo do
-  use Ecto.Repo, otp_app: :omg_watcher
+defmodule OMG.Eth.Defaults do
+  @moduledoc """
+  Internal defaults of non-production critical calls to `Eth.RootChain` and `Eth.Token`.
 
-  @doc """
-  Dynamically loads the repository url from the
-  DATABASE_URL environment variable.
+  Don't ever use this for `Eth.RootChain.submit_block` or any other production related code.
   """
 
-  def init(_, opts) do
-    {:ok, Keyword.put(opts, :url, System.get_env("DATABASE_URL"))}
+  import OMG.Eth.Encoding
+
+  # safe, reasonable amount, equal to the testnet block gas limit
+  @lots_of_gas 4_712_388
+  @gas_price 20_000_000_000
+
+  def tx_defaults do
+    [value: 0, gasPrice: @gas_price, gas: @lots_of_gas]
+    |> Enum.map(fn {k, v} -> {k, to_hex(v)} end)
   end
 end

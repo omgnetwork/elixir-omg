@@ -27,8 +27,8 @@ defmodule OMG.API.BlockQueue do
   For changing the gas price it needs external singlas (e.g. from a price oracle)
   """
 
-  alias OMG.API.BlockQueue.Core, as: Core
-  alias OMG.Eth.BlockSubmission
+  alias OMG.API.BlockQueue.Core
+  alias OMG.API.BlockQueue.Core.BlockSubmission
 
   @type eth_height() :: non_neg_integer()
   @type hash() :: BlockSubmission.hash()
@@ -59,12 +59,12 @@ defmodule OMG.API.BlockQueue do
     end
 
     def init(:ok) do
-      :ok = Eth.node_ready()
-      :ok = Eth.contract_ready()
+      :ok = Eth.Geth.node_ready()
+      :ok = Eth.RootChain.contract_ready()
       {:ok, parent_height} = Eth.get_ethereum_height()
-      {:ok, mined_num} = Eth.get_mined_child_block()
-      {:ok, parent_start} = Eth.get_root_deployment_height()
-      {:ok, child_block_interval} = Eth.get_child_block_interval()
+      {:ok, mined_num} = Eth.RootChain.get_mined_child_block()
+      {:ok, parent_start} = Eth.RootChain.get_root_deployment_height()
+      {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
       {:ok, stored_child_top_num} = OMG.DB.child_top_block_number()
       {:ok, finality_threshold} = Application.fetch_env(:omg_api, :ethereum_event_block_finality_margin)
 
@@ -79,20 +79,34 @@ defmodule OMG.API.BlockQueue do
         Core.child_block_nums_to_init_with(mined_num, stored_child_top_num, child_block_interval, finality_threshold)
 
       {:ok, known_hashes} = OMG.DB.block_hashes(range)
-      {:ok, {top_mined_hash, _}} = Eth.get_child_chain(mined_num)
+      {:ok, {top_mined_hash, _}} = Eth.RootChain.get_child_chain(mined_num)
       _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{inspect(Base.encode16(top_mined_hash))}" end)
 
       {:ok, state} =
-        Core.new(
-          mined_child_block_num: mined_num,
-          known_hashes: Enum.zip(range, known_hashes),
-          top_mined_hash: top_mined_hash,
-          parent_height: parent_height,
-          child_block_interval: child_block_interval,
-          chain_start_parent_height: parent_start,
-          submit_period: Application.get_env(:omg_api, :child_block_submit_period),
-          finality_threshold: finality_threshold
-        )
+        with {:ok, _state} = result <-
+               Core.new(
+                 mined_child_block_num: mined_num,
+                 known_hashes: Enum.zip(range, known_hashes),
+                 top_mined_hash: top_mined_hash,
+                 parent_height: parent_height,
+                 child_block_interval: child_block_interval,
+                 chain_start_parent_height: parent_start,
+                 submit_period: Application.get_env(:omg_api, :child_block_submit_period),
+                 finality_threshold: finality_threshold
+               ) do
+          result
+        else
+          {:error, reason} = error when reason in [:mined_hash_not_found_in_db, :contract_ahead_of_db] ->
+            _ =
+              Logger.error(fn ->
+                "The child chain might have not been wiped clean when starting a child chain from scratch. Check README.MD and follow the setting up child chain."
+              end)
+
+            error
+
+          other ->
+            other
+        end
 
       interval = Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms)
       {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
@@ -106,7 +120,7 @@ defmodule OMG.API.BlockQueue do
     """
     def handle_info(:check_ethereum_status, %Core{} = state) do
       {:ok, height} = Eth.get_ethereum_height()
-      {:ok, mined_blknum} = Eth.get_mined_child_block()
+      {:ok, mined_blknum} = Eth.RootChain.get_mined_child_block()
 
       _ = Logger.debug(fn -> "Ethereum at \#'#{inspect(height)}', mined child at \#'#{inspect(mined_blknum)}'" end)
 
@@ -143,22 +157,13 @@ defmodule OMG.API.BlockQueue do
       |> Enum.each(&submit/1)
     end
 
-    defp submit(submission) do
+    defp submit(%Core.BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price} = submission) do
       _ = Logger.debug(fn -> "Submitting: #{inspect(submission)}" end)
 
-      case OMG.Eth.submit_block(submission) do
-        {:ok, txhash} ->
-          _ = Logger.info(fn -> "Submitted #{inspect(submission)} at: #{inspect(txhash)}" end)
-          :ok
+      submit_result = OMG.Eth.RootChain.submit_block(hash, nonce, gas_price)
+      {:ok, newest_mined_blknum} = Eth.RootChain.get_mined_child_block()
 
-        {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} ->
-          _ = Logger.debug(fn -> "Submission is known transaction - ignored" end)
-          :ok
-
-        {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}} ->
-          _ = Logger.debug(fn -> "Submission is known, but with higher price - ignored" end)
-          :ok
-      end
+      :ok = Core.process_submit_result(submission, submit_result, newest_mined_blknum)
     end
   end
 end

@@ -380,4 +380,48 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     assert {_state, [1_000, 2_000]} = Core.get_new_blocks_numbers(state, 20_000)
   end
+
+  test "figures out the proper synced height on init" do
+    assert 0 == Core.figure_out_exact_sync_height([], 0, 0)
+    assert 0 == Core.figure_out_exact_sync_height([], 0, 10)
+    assert 1 == Core.figure_out_exact_sync_height([], 1, 10)
+    assert 1 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}], 1, 10)
+    assert 100 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 10}], 1, 10)
+
+    assert 100 ==
+             [%{eth_height: 100, blknum: 10}, %{eth_height: 101, blknum: 11}, %{eth_height: 90, blknum: 9}]
+             |> Core.figure_out_exact_sync_height(1, 10)
+  end
+
+  test "consuming block updates height" do
+    interval = 1_000
+
+    {state, [1_000, 2_000]} =
+      0
+      |> Core.init(interval, 0, maximum_number_of_pending_blocks: 5)
+      |> Core.get_new_blocks_numbers(3_000)
+
+    synced_height = 2
+    next_synced_height = synced_height + 1
+
+    state =
+      state
+      |> handle_got_block(%Block{number: 1_000})
+      |> handle_got_block(%Block{number: 2_000})
+
+    {_, synced_height, _, state} =
+      Core.get_blocks_to_consume(
+        state,
+        [%{blknum: 1_000, eth_height: synced_height}, %{blknum: 2_000, eth_height: next_synced_height}],
+        synced_height
+      )
+
+    {state, ^synced_height, [{:put, :last_block_getter_eth_height, ^synced_height}]} =
+      Core.consume_block(state, 1_000, synced_height)
+
+    {state, ^next_synced_height, [{:put, :last_block_getter_eth_height, ^next_synced_height}]} =
+      Core.consume_block(state, 2_000, next_synced_height)
+
+    {_, ^next_synced_height, _, _} = Core.get_blocks_to_consume(state, [], next_synced_height)
+  end
 end

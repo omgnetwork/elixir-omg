@@ -30,8 +30,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration
   alias OMG.Watcher.TestHelper
-  alias OMG.Watcher.Web.ByzantineChannel
-  alias OMG.Watcher.Web.TransferChannel
+  alias OMG.Watcher.Web.Channel
 
   import ExUnit.CaptureLog
 
@@ -52,7 +51,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
     {:ok, _, _socket} =
-      subscribe_and_join(socket(), TransferChannel, TestHelper.create_topic("transfer", alice_address))
+      subscribe_and_join(socket(), Channel.Transfer, TestHelper.create_topic("transfer", alice_address))
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
@@ -63,28 +62,28 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     assert [
              %{
-               "currency" => @eth_hex,
                "amount" => 3,
-               "blknum" => block_nr,
-               "oindex" => 0,
+               "blknum" => ^block_nr,
                "txindex" => 0,
-               "txbytes" => encode_tx
+               "oindex" => 1,
+               "currency" => @eth_hex,
+               "txbytes" => ^encode_tx
              }
-           ] == get_utxo(bob)
+           ] = get_utxos(bob)
 
     assert [
              %{
-               "currency" => @eth_hex,
                "amount" => 7,
-               "blknum" => block_nr,
-               "oindex" => 0,
+               "blknum" => ^block_nr,
                "txindex" => 0,
-               "txbytes" => encode_tx
+               "oindex" => 0,
+               "currency" => @eth_hex,
+               "txbytes" => ^encode_tx
              }
-           ] == get_utxo(alice)
+           ] = get_utxos(alice)
 
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
-    {:ok, {block_hash, _}} = Eth.get_child_chain(block_nr)
+    {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(block_nr)
 
     event_eth_height = get_block_submitted_event_height(block_nr)
 
@@ -113,16 +112,15 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "sigs" => sigs
-    } = Integration.TestHelper.compose_utxo_exit(block_nr, 0, 0)
+    } = Integration.TestHelper.get_exit_data(block_nr, 0, 0)
 
     {:ok, txhash} =
-      Eth.start_exit(
+      Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
         proof,
         sigs,
-        1,
-        alice_address
+        alice.addr
       )
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
@@ -131,18 +129,20 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
 
-    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice_address, token: @eth}]} == Eth.get_exits(0, height)
+    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth}]} ==
+             Eth.RootChain.get_exits(0, height)
 
     # exiting spends UTXO on child chain
     # wait until the exit is recognized and attempt to spend the exited utxo
     Process.sleep(4_000)
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
+
     {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
   end
 
   defp get_block_submitted_event_height(block_number) do
     {:ok, height} = Eth.get_ethereum_height()
-    {:ok, block_submissions} = Eth.get_block_submitted_events({1, height})
+    {:ok, block_submissions} = Eth.RootChain.get_block_submitted_events({1, height})
     [%{eth_height: eth_height}] = Enum.filter(block_submissions, fn submission -> submission.blknum == block_number end)
     eth_height
   end
@@ -153,10 +153,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     alice: alice,
     alice_deposits: {_, token_deposit_blknum}
   } do
-    {:ok, alice_address} = Crypto.encode_address(alice.addr)
-    {:ok, currency} = API.Crypto.decode_address(token.address)
-
-    token_tx = API.TestHelper.create_encoded([{token_deposit_blknum, 0, 0, alice}], currency, [{alice, 10}])
+    token_tx = API.TestHelper.create_encoded([{token_deposit_blknum, 0, 0, alice}], token, [{alice, 10}])
 
     # spend the token deposit
     {:ok, %{blknum: spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
@@ -168,16 +165,15 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "proof" => proof,
       "sigs" => sigs,
       "utxo_pos" => utxo_pos
-    } = Integration.TestHelper.compose_utxo_exit(spend_token_child_block, 0, 0)
+    } = Integration.TestHelper.get_exit_data(spend_token_child_block, 0, 0)
 
     {:ok, txhash} =
-      Eth.start_exit(
+      Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
         proof,
         sigs,
-        1,
-        alice_address
+        alice.addr
       )
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
@@ -196,18 +192,12 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       end
     end
 
-    {:ok, _, _socket} = subscribe_and_join(socket(), ByzantineChannel, "byzantine")
+    {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
     JSONRPC2.Servers.HTTP.http(BadChildChainHash, port: Application.get_env(:omg_jsonrpc, :omg_api_rpc_port))
 
     assert capture_log(fn ->
-             {:ok, _txhash} =
-               Eth.submit_block(%Eth.BlockSubmission{
-                 num: 1000,
-                 hash: BadChildChainHash.different_hash(),
-                 nonce: 1,
-                 gas_price: 20_000_000_000
-               })
+             {:ok, _txhash} = Eth.RootChain.submit_block(BadChildChainHash.different_hash(), 1, 20_000_000_000)
 
              assert_block_getter_down()
            end) =~ inspect(:incorrect_hash)
@@ -245,7 +235,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       end
     end
 
-    {:ok, _, _socket} = subscribe_and_join(socket(), ByzantineChannel, "byzantine")
+    {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
     JSONRPC2.Servers.HTTP.http(
       BadChildChainTransaction,
@@ -255,13 +245,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     %API.Block{hash: hash} = BadChildChainTransaction.block_with_incorrect_transaction()
 
     assert capture_log(fn ->
-             {:ok, _txhash} =
-               Eth.submit_block(%Eth.BlockSubmission{
-                 num: 1_000,
-                 hash: hash,
-                 nonce: 1,
-                 gas_price: 20_000_000_000
-               })
+             {:ok, _txhash} = Eth.RootChain.submit_block(hash, 1, 20_000_000_000)
 
              assert_block_getter_down()
            end) =~ inspect(:tx_execution)
@@ -282,16 +266,13 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     :ok = TestHelper.wait_for_process(Process.whereis(OMG.Watcher.BlockGetter))
   end
 
-  defp get_utxo(%{addr: address}) do
+  defp get_utxos(%{addr: address}) do
     {:ok, address_encode} = Crypto.encode_address(address)
 
     assert %{
              "result" => "success",
-             "data" => %{
-               "address" => ^address_encode,
-               "utxos" => utxos
-             }
-           } = TestHelper.rest_call(:get, "account/utxo?address=#{address_encode}")
+             "data" => utxos
+           } = TestHelper.rest_call(:get, "utxos?address=#{address_encode}")
 
     utxos
   end

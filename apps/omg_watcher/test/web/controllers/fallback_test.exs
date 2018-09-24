@@ -12,16 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.TransferChannel do
-  @moduledoc """
-  Channel Transfer
-  """
+defmodule OMG.Watcher.Web.Controller.FallbackTest do
+  use ExUnitFixtures
+  use ExUnit.Case, async: false
 
-  use Phoenix.Channel
+  alias OMG.Watcher.TestHelper
 
-  def join("transfer:" <> _address, _params, socket) do
-    {:ok, socket}
+  describe "Controller.FallbackTest" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "fallback returns error for non existing endpoint" do
+      %{
+        "data" => %{
+          "code" => "internal_server_error",
+          "description" => "endpoint_not_found"
+        },
+        "result" => "error"
+      } = TestHelper.rest_call(:get, "/non_exsisting_endpoint", nil, 500)
+    end
   end
-
-  def join(_, _, _), do: {:error, :invalid_parameter}
 end

@@ -21,7 +21,7 @@ defmodule OMG.API.State.Core do
 
   @maximum_block_size 65_536
 
-  defstruct [:height, :last_deposit_height, :utxos, pending_txs: [], tx_index: 0]
+  defstruct [:height, :last_deposit_child_blknum, :utxos, pending_txs: [], tx_index: 0]
 
   alias OMG.API.Block
   alias OMG.API.Crypto
@@ -32,7 +32,7 @@ defmodule OMG.API.State.Core do
 
   @type t() :: %__MODULE__{
           height: non_neg_integer(),
-          last_deposit_height: non_neg_integer(),
+          last_deposit_child_blknum: non_neg_integer(),
           utxos: utxos,
           pending_txs: list(Transaction.Recovered.t()),
           tx_index: non_neg_integer()
@@ -45,12 +45,10 @@ defmodule OMG.API.State.Core do
           amount: pos_integer()
         }
   @type exit_t() :: %{
-          blknum: non_neg_integer(),
+          utxo_pos: pos_integer(),
           token: Crypto.address_t(),
           owner: Crypto.address_t(),
-          amount: pos_integer(),
-          txindex: non_neg_integer(),
-          oindex: non_neg_integer()
+          amount: pos_integer()
         }
 
   @type utxos() :: %{Utxo.Position.t() => Utxo.t()}
@@ -72,23 +70,23 @@ defmodule OMG.API.State.Core do
           {:put, :utxo, {{pos_integer, non_neg_integer, non_neg_integer}, map}}
           | {:delete, :utxo, {pos_integer, non_neg_integer, non_neg_integer}}
           | {:put, :child_top_block_number, pos_integer}
-          | {:put, :last_deposit_block_height, pos_integer}
+          | {:put, :last_deposit_child_blknum, pos_integer}
           | {:put, :block, Block.t()}
 
   @spec extract_initial_state(
           utxos_query_result :: [utxos],
-          height_query_result :: non_neg_integer,
-          last_deposit_height_query_result :: non_neg_integer,
+          height_query_result :: non_neg_integer | :not_found,
+          last_deposit_child_blknum_query_result :: non_neg_integer | :not_found,
           child_block_interval :: pos_integer
-        ) :: {:ok, t()}
+        ) :: {:ok, t()} | {:error, :last_deposit_not_found | :top_block_number_not_found}
   def extract_initial_state(
         utxos_query_result,
         height_query_result,
-        last_deposit_height_query_result,
+        last_deposit_child_blknum_query_result,
         child_block_interval
       )
       when is_list(utxos_query_result) and is_integer(height_query_result) and
-             is_integer(last_deposit_height_query_result) and is_integer(child_block_interval) do
+             is_integer(last_deposit_child_blknum_query_result) and is_integer(child_block_interval) do
     # extract height, last deposit height and utxos from query result
     height = height_query_result + child_block_interval
 
@@ -103,11 +101,29 @@ defmodule OMG.API.State.Core do
 
     state = %__MODULE__{
       height: height,
-      last_deposit_height: last_deposit_height_query_result,
+      last_deposit_child_blknum: last_deposit_child_blknum_query_result,
       utxos: utxos
     }
 
     {:ok, state}
+  end
+
+  def extract_initial_state(
+        _utxos_query_result,
+        _height_query_result,
+        :not_found,
+        _child_block_interval
+      ) do
+    {:error, :last_deposit_not_found}
+  end
+
+  def extract_initial_state(
+        _utxos_query_result,
+        :not_found,
+        _last_deposit_child_blknum_query_result,
+        _child_block_interval
+      ) do
+    {:error, :top_block_number_not_found}
   end
 
   @doc """
@@ -307,15 +323,9 @@ defmodule OMG.API.State.Core do
     {:ok, {block, event_triggers, db_updates}, new_state}
   end
 
-  def decode_deposit(%{owner: owner, currency: currency} = deposit) do
-    {:ok, owner_decode} = Crypto.decode_address(owner)
-    {:ok, currency_decode} = Crypto.decode_address(currency)
-    %{deposit | owner: owner_decode, currency: currency_decode}
-  end
-
   @spec deposit(deposits :: [deposit()], state :: t()) :: {:ok, {[deposit_event], [db_update]}, new_state :: t()}
-  def deposit(deposits, %Core{utxos: utxos, last_deposit_height: last_deposit_height} = state) do
-    deposits = deposits |> Enum.filter(&(&1.blknum > last_deposit_height))
+  def deposit(deposits, %Core{utxos: utxos, last_deposit_child_blknum: last_deposit_child_blknum} = state) do
+    deposits = deposits |> Enum.filter(&(&1.blknum > last_deposit_child_blknum))
 
     new_utxos =
       deposits
@@ -325,20 +335,20 @@ defmodule OMG.API.State.Core do
       deposits
       |> Enum.map(fn %{owner: owner, amount: amount} -> %{deposit: %{amount: amount, owner: owner}} end)
 
-    last_deposit_height = get_last_deposit_height(deposits, last_deposit_height)
+    last_deposit_child_blknum = get_last_deposit_child_blknum(deposits, last_deposit_child_blknum)
 
     db_updates_new_utxos =
       new_utxos
       |> Enum.map(&utxo_to_db_put/1)
 
-    db_updates = db_updates_new_utxos ++ last_deposit_height_db_update(deposits, last_deposit_height)
+    db_updates = db_updates_new_utxos ++ last_deposit_child_blknum_db_update(deposits, last_deposit_child_blknum)
 
     _ = if deposits != [], do: Logger.info(fn -> "Recognized deposits #{inspect(deposits)}" end)
 
     new_state = %Core{
       state
       | utxos: Map.merge(utxos, Map.new(new_utxos)),
-        last_deposit_height: last_deposit_height
+        last_deposit_child_blknum: last_deposit_child_blknum
     }
 
     {:ok, {event_triggers, db_updates}, new_state}
@@ -351,7 +361,7 @@ defmodule OMG.API.State.Core do
     {Utxo.position(blknum, 0, 0), %Utxo{amount: amount, currency: cur, owner: owner}}
   end
 
-  defp get_last_deposit_height(deposits, current_height) do
+  defp get_last_deposit_child_blknum(deposits, current_height) do
     if Enum.empty?(deposits) do
       current_height
     else
@@ -361,11 +371,11 @@ defmodule OMG.API.State.Core do
     end
   end
 
-  defp last_deposit_height_db_update(deposits, last_deposit_height) do
+  defp last_deposit_child_blknum_db_update(deposits, last_deposit_child_blknum) do
     if Enum.empty?(deposits) do
       []
     else
-      [{:put, :last_deposit_block_height, last_deposit_height}]
+      [{:put, :last_deposit_child_blknum, last_deposit_child_blknum}]
     end
   end
 
@@ -383,9 +393,7 @@ defmodule OMG.API.State.Core do
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
     exiting_utxos =
       exiting_utxos
-      |> Enum.filter(fn %{utxo_pos: utxo_pos} ->
-        Map.has_key?(utxos, Utxo.Position.decode(utxo_pos))
-      end)
+      |> Enum.filter(&utxo_exists?(&1, state))
 
     event_triggers =
       exiting_utxos
@@ -393,11 +401,13 @@ defmodule OMG.API.State.Core do
         %{exit: %{owner: owner, utxo_pos: Utxo.Position.decode(utxo_pos)}}
       end)
 
-    state =
-      exiting_utxos
-      |> Enum.reduce(state, fn %{utxo_pos: utxo_pos}, state ->
-        %{state | utxos: Map.delete(state.utxos, Utxo.Position.decode(utxo_pos))}
-      end)
+    new_state = %{
+      state
+      | utxos:
+          Enum.reduce(exiting_utxos, utxos, fn %{utxo_pos: utxo_pos}, utxos ->
+            Map.delete(utxos, Utxo.Position.decode(utxo_pos))
+          end)
+    }
 
     deletes =
       exiting_utxos
@@ -406,15 +416,15 @@ defmodule OMG.API.State.Core do
         {:delete, :utxo, {blknum, txindex, oindex}}
       end)
 
-    {:ok, {event_triggers, deletes}, state}
+    {:ok, {event_triggers, deletes}, new_state}
   end
 
   @doc """
   Checks if utxo exists
   """
   @spec utxo_exists?(exit_t, t()) :: boolean()
-  def utxo_exists?(%{blknum: blknum, txindex: txindex, oindex: oindex}, %Core{utxos: utxos}) do
-    Map.has_key?(utxos, Utxo.position(blknum, txindex, oindex))
+  def utxo_exists?(%{utxo_pos: utxo_pos} = _exiting_utxo, %Core{utxos: utxos}) do
+    Map.has_key?(utxos, Utxo.Position.decode(utxo_pos))
   end
 
   @doc """

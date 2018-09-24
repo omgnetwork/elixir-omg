@@ -12,44 +12,108 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Serializers.ResponseTest do
+defmodule OMG.Watcher.Web.Serializer.ResponseTest do
   use ExUnit.Case, async: true
 
-  alias OMG.Watcher.Web.Serializer
+  alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.Web.Serializer.Response
 
-  test "encode16/decode16 funciton encodes/decodes only specified fields" do
-    decoded_map = %{"key_1" => "value_1", "key_2" => "value_2", "key_3" => "value_3"}
+  @cleaned_tx %{
+    blknum: nil,
+    eth_height: nil,
+    sent_at: nil,
+    txbytes: nil,
+    txhash: nil,
+    txindex: nil
+  }
 
-    encoded_map = Serializer.Response.encode16(decoded_map, ["key_2"])
-
-    assert decoded_map == Serializer.Response.decode16(encoded_map, ["key_2"])
+  test "cleaning response structure: map of maps" do
+    assert %{first: @cleaned_tx, second: @cleaned_tx} ==
+             Response.clean_artifacts(%{second: %TransactionDB{}, first: %TransactionDB{}})
   end
 
-  test "encode16/decode16 funciton encodes/decodes list of maps with only specified fields" do
-    decoded_map = %{"key_1" => "value_1", "key_2" => "value_2", "key_3" => "value_3"}
-    decoded_list = [decoded_map, decoded_map]
-
-    encoded_list = Serializer.Response.encode16(decoded_list, ["key_2"])
-
-    assert decoded_list == Serializer.Response.decode16(encoded_list, ["key_2"])
+  test "cleaning response structure: list of maps" do
+    assert [@cleaned_tx, @cleaned_tx] == Response.clean_artifacts([%TransactionDB{}, %TransactionDB{}])
   end
 
-  test "encode16/decode16 funciton called with empty map/list returns empty map/list" do
-    assert %{} == Serializer.Response.encode16(%{}, ["key_2"])
-    assert [%{}] == Serializer.Response.encode16([%{}], ["key_2"])
+  test "cleaning response: simple value list" do
+    value = [nil, 1, "01234", :atom, [], %{}]
+    expected_value = [nil, 1, "3031323334", :atom, [], %{}]
 
-    assert %{} == Serializer.Response.decode16(%{}, ["key_2"])
-    assert [%{}] == Serializer.Response.decode16([%{}], ["key_2"])
+    assert expected_value == Response.clean_artifacts(value)
   end
 
-  test "encode16/decode16 funciton called with none fields returns same map/list" do
-    map = %{"key_1" => "value_1", "key_2" => "value_2", "key_3" => "value_3"}
-    list = [map, map]
+  test "cleaning response: remove nested meta keys" do
+    data =
+      %{
+        address: "0xd5b6e653beec1f8131d2ea4f574b2fd58770d9e0",
+        utxos: [
+          %{
+            __meta__: %{context: nil, source: {nil, "txoutputs"}, state: :loaded},
+            amount: 1,
+            creating_deposit: "hash1",
+            creating_transaction: nil,
+            currency: "0000000000000000000000000000000000000000",
+            deposit: %{
+              __meta__: %{context: nil, source: {nil, "txoutputs"}, state: :loaded},
+              deposit_blknum: 1,
+              deposit_txindex: 0,
+              event_type: :deposit,
+              hash: "hash1"
+            },
+            id: 1
+          }
+        ]
+      }
+      |> Response.clean_artifacts()
 
-    assert map == Serializer.Response.encode16(map, [])
-    assert list == Serializer.Response.encode16(list, [])
+    assert false ==
+             Enum.any?(
+               hd(data.utxos).deposit,
+               &match?({:__meta__, _}, &1)
+             )
+  end
 
-    assert map == Serializer.Response.decode16(map, [])
-    assert list == Serializer.Response.decode16(list, [])
+  test "decode16: decodes only specified fields" do
+    expected_map = %{"key_1" => "value_1", "key_2" => "value_2", "key_3" => "value_3"}
+
+    encoded_map = expected_map |> Response.clean_artifacts()
+    decoded_map = Response.decode16(encoded_map, ["key_2"])
+
+    assert decoded_map["key_1"] == expected_map["key_1"] |> Base.encode16()
+    assert decoded_map["key_2"] == expected_map["key_2"]
+    assert decoded_map["key_3"] == expected_map["key_3"] |> Base.encode16()
+  end
+
+  test "decode16: called with empty map returns empty map" do
+    assert %{} == Response.decode16(%{}, ["key_2"])
+    assert %{} == Response.decode16(%{}, [])
+  end
+
+  test "decode16: decodes all up/down/mixed case values" do
+    assert %{
+             "key_1" => <<222, 173, 190, 239>>,
+             "key_2" => <<222, 173, 190, 239>>,
+             "key_3" => <<222, 173, 190, 239>>
+           } ==
+             Response.decode16(
+               %{
+                 "key_1" => "deadbeef",
+                 "key_2" => "DEADBEEF",
+                 "key_3" => "DeadBeeF"
+               },
+               ["key_1", "key_2", "key_3"]
+             )
+  end
+
+  test "decode16: is safe and don't process not hex-encoded values" do
+    expected = %{
+      "not_bin1" => 0,
+      "not_bin2" => :atom,
+      "not_hex" => "string",
+      "not_value" => nil
+    }
+
+    assert expected == Response.decode16(expected, ["not_bin1", "not_bin2", "not_hex", "not_value", "not_exists"])
   end
 end

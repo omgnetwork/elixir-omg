@@ -119,6 +119,11 @@ exitable_at = max(exit_request_block.timestamp + MFP, youngest_input_block.times
 ```
 for in-flight exits, see [MoreVP protocol](morevp.md) for details.
 
+Deposits are protected against malicious operator by elevating their exit priority:
+```
+SFT = max(exit_request_block.timestamp + MFP, utxo_submission_block.timestamp + MFP)
+```
+
 In the above formulae:
 - `exit_request_block` - root chain block, where the exit request is mined
 - `utxo_submission_block` - root chain block, where the exiting UTXO was created in a child chain block
@@ -177,9 +182,12 @@ However, if the order of these transactions gets reversed due to a reorg, the sp
 
 We'll protect ourselves against reorgs by:
 1. Only allowing deposits to be used on the child chain after N Ethereum Block confirmations (should be configurable).
+This makes invalidating of the child chain by miners as expensive as we want it to be.
 This rule will be built into the child chain itself, i.e. the root chain contract won't enforce this in any way.
-2. Submitting blocks to the root chain contract with their number so that they'll fail if a miner submits them in the wrong order.
-3. Differentiating deposits from child chain block root submissions so that both can be exited to Ethereum using the same priority queue exit mechanism.
+2. Submitting blocks to the root chain contract is protected by account nonce mechanism.
+Miner attempting to mine them in wrong order would produce incorrect Ethereum block.
+3. Numbering of child chain blocks is independent of numbering of deposit blocks.
+Disappearing deposit block will not invalidate numbering of child chain blocks.
 
 ## Child chain server
 

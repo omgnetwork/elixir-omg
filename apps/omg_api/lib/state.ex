@@ -51,8 +51,7 @@ defmodule OMG.API.State do
   end
 
   @spec deposit(deposits :: [Core.deposit()]) :: :ok
-  def deposit(deposits_enc) do
-    deposits = Enum.map(deposits_enc, &Core.decode_deposit/1)
+  def deposit(deposits) do
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
@@ -64,7 +63,7 @@ defmodule OMG.API.State do
     GenServer.call(__MODULE__, {:exit_not_spent_utxo, utxo})
   end
 
-  @spec utxo_exists?(%{blknum: number, txindex: number, oindex: number}) :: boolean()
+  @spec utxo_exists?(Core.exit_t()) :: boolean()
   def utxo_exists?(utxo) do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end
@@ -83,21 +82,31 @@ defmodule OMG.API.State do
   """
   def init(:ok) do
     {:ok, height_query_result} = DB.child_top_block_number()
-    {:ok, last_deposit_query_result} = DB.last_deposit_height()
+    {:ok, last_deposit_query_result} = DB.last_deposit_child_blknum()
     {:ok, utxos_query_result} = DB.utxos()
-    {:ok, child_block_interval} = Eth.get_child_block_interval()
+    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
-    _ =
-      Logger.info(fn ->
-        "Started State, height '#{height_query_result}', deposit height '#{last_deposit_query_result}'"
-      end)
+    with {:ok, _data} = result <-
+           Core.extract_initial_state(
+             utxos_query_result,
+             height_query_result,
+             last_deposit_query_result,
+             child_block_interval
+           ) do
+      _ =
+        Logger.info(fn ->
+          "Started State, height: #{height_query_result}, deposit height: #{last_deposit_query_result}"
+        end)
 
-    Core.extract_initial_state(
-      utxos_query_result,
-      height_query_result,
-      last_deposit_query_result,
-      child_block_interval
-    )
+      result
+    else
+      {:error, reason} = error when reason in [:top_block_number_not_found, :last_deposit_not_found] ->
+        _ = Logger.error(fn -> "It seems that Child chain database is not initialized. Check README.md" end)
+        error
+
+      other ->
+        other
+    end
   end
 
   @doc """
@@ -186,7 +195,7 @@ defmodule OMG.API.State do
   end
 
   defp do_form_block(state, eth_height \\ nil) do
-    {:ok, child_block_interval} = Eth.get_child_block_interval()
+    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
     {core_form_block_duration, {:ok, {%Block{number: blknum} = block, event_triggers, db_updates}, new_state}} =
       :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
