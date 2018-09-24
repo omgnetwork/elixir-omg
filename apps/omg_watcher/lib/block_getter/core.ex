@@ -34,6 +34,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   defstruct [
+    :synced_height_update_blocks,
     :synced_height,
     :last_consumed_block,
     :started_block_number,
@@ -46,6 +47,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   ]
 
   @type t() :: %__MODULE__{
+          synced_height_update_blocks: MapSet.t(),
           synced_height: pos_integer(),
           last_consumed_block: non_neg_integer,
           started_block_number: non_neg_integer,
@@ -84,6 +86,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         opts \\ []
       ) do
     %__MODULE__{
+      synced_height_update_blocks: MapSet.new(),
       synced_height: synced_height,
       last_consumed_block: block_number,
       started_block_number: block_number,
@@ -97,12 +100,23 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   @doc """
-  Marks that childchain block `blknum` was processed
+  Marks that child chain block published on `blk_eth_height` was processed
   """
-  @spec consume_block(t(), pos_integer()) :: {t(), non_neg_integer(), list()}
-  def consume_block(%__MODULE__{} = state, blk_eth_height) do
-    state = %{state | synced_height: blk_eth_height}
-    {state, blk_eth_height, [{:put, :last_block_getter_eth_height, blk_eth_height}]}
+  @spec consume_block(t(), pos_integer(), non_neg_integer()) :: {t(), non_neg_integer(), list()}
+  def consume_block(%__MODULE__{} = state, consumed_block_number, blk_eth_height) do
+    if MapSet.member?(state.synced_height_update_blocks, consumed_block_number) do
+      synced_height_update_blocks = MapSet.delete(state.synced_height_update_blocks, consumed_block_number)
+
+      state = %{
+        state
+        | synced_height: blk_eth_height,
+          synced_height_update_blocks: synced_height_update_blocks
+      }
+
+      {state, blk_eth_height, [{:put, :last_block_getter_eth_height, blk_eth_height}]}
+    else
+      {state, state.synced_height, []}
+    end
   end
 
   @doc """
@@ -115,6 +129,12 @@ defmodule OMG.Watcher.BlockGetter.Core do
     {synced_height + 1, coordinator_height}
   end
 
+  @doc """
+  Returns blocks that can be pushed to state.
+
+  That is the longest continous range of blocks downloaded from child chain,
+  contained in `block_submitted_events`, published on ethereum height not exceeding `coordinator_height` and not pushed to state before.
+  """
   @spec get_blocks_to_consume(t(), list(), non_neg_integer()) ::
           {list({Block.t(), non_neg_integer()}), non_neg_integer(), list(), t()}
   def get_blocks_to_consume(state, block_submitted_events, coordinator_height)
@@ -127,29 +147,47 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   def get_blocks_to_consume(
-        %__MODULE__{blocks_to_consume: blocks, block_interval: interval, last_consumed_block: last_consumed_block} =
-          state,
+        %__MODULE__{blocks_to_consume: blocks, block_interval: interval} = state,
         submissions,
         _coordinator_height
       ) do
+    synced_height_update_blocks = get_synced_height_update_blknums(submissions, state.synced_height_update_blocks)
+
     submissions = Enum.into(submissions, %{}, fn %{blknum: blknum, eth_height: eth_height} -> {blknum, eth_height} end)
 
-    first_block_number = last_consumed_block + interval
+    first_block_number = state.last_consumed_block + interval
 
     blknums_to_consume =
       first_block_number
       |> Stream.iterate(&(&1 + interval))
       |> Enum.take_while(fn blknum -> Map.has_key?(submissions, blknum) and Map.has_key?(blocks, blknum) end)
 
+    blocks_to_keep = Map.drop(blocks, blknums_to_consume)
+    last_consumed_block = List.last([state.last_consumed_block] ++ blknums_to_consume)
+
     blocks_to_consume =
       blknums_to_consume
       |> Enum.map(fn blknum -> {Map.get(blocks, blknum), Map.get(submissions, blknum)} end)
 
-    blocks_to_keep = Map.drop(blocks, blknums_to_consume)
-    last_consumed_block = List.last([last_consumed_block] ++ blknums_to_consume)
-
     {blocks_to_consume, state.synced_height, [],
-     %{state | blocks_to_consume: blocks_to_keep, last_consumed_block: last_consumed_block}}
+     %{
+       state
+       | blocks_to_consume: blocks_to_keep,
+         synced_height_update_blocks: synced_height_update_blocks,
+         last_consumed_block: last_consumed_block
+     }}
+  end
+
+  defp get_synced_height_update_blknums(submissions, current_synced_height_update_blknums) do
+    submissions
+    |> Enum.group_by(fn %{eth_height: eth_height} -> eth_height end, fn %{blknum: blknum} -> blknum end)
+    |> Map.to_list()
+    |> Enum.map(fn {_, blknums} ->
+      [last_blknum | _] = Enum.sort(blknums, &(&1 >= &2))
+      last_blknum
+    end)
+    |> MapSet.new()
+    |> MapSet.union(current_synced_height_update_blknums)
   end
 
   @doc """
