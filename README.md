@@ -104,13 +104,13 @@ A developer instance of `geth` runs Ethereum locally and prefunds an account.
 However, when `geth` terminates, the state of the Ethereum network is lost.
 
 ```
-geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth
+geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0 
 ```
 
 ##### Persistent developer `geth` instance
 Alternatively, a persistent developer instance that does not lose state can be started with the following command:
 ```
-geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth --datadir ~/.geth
+geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0 --datadir ~/.geth
 ```
 
 #### Prepare and configure the root chain contract

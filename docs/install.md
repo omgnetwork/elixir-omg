@@ -1,5 +1,5 @@
 # 1. Installation via Vagrant
-Refer to https://github.com/omisego/omg-vagrant.
+Refer to https://github.com/omisego/xomg-vagrant.
 
 # 2. Full installation
 
