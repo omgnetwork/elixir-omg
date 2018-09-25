@@ -19,19 +19,18 @@ defmodule OMG.Performance do
   # Examples
 
   ## start_simple_perftest runs test with 5 transactions for each 3 senders and default options.
-    > mix run --no-start -e 'OMG.Performance.start_simple_perftest(5, 3)'
-  }
+    ```> mix run --no-start -e 'OMG.Performance.start_simple_perftest(5, 3)'```
 
   ## start_extended_perftest runs test with 100 transactions for one specified account and default options.
-    > mix run --no-start -e 'OMG.Performance.start_extended_perftest(100, [%{ addr: <<192, 206, 18, ...>>, priv: <<246, 22, 164, ...>>}], "0xbc5f ...")'
+    ```> mix run --no-start -e 'OMG.Performance.start_extended_perftest(100, [%{ addr: <<192, 206, 18, ...>>, priv: <<246, 22, 164, ...>>}], "0xbc5f ...")'```
 
   # Note:
 
   `:fprof` will print a warning:
   ```
-  Warning: {erlang,trace,3} called in "<0.514.0>" - trace may become corrupt!
+  Warning: {erlang, trace, 3} called in "<0.514.0>" - trace may become corrupt!
   ```
-  It is caused by using `procs: :all` in options. So far we're not using :erlang.trace/3 in our code,
+  It is caused by using `procs: :all` in options. So far we're not using `:erlang.trace/3` in our code,
   so it has been ignored. Otherwise it's easy to reproduce and report if anyone has the nerve
   (github.com/erlang/otp and the JIRA it points you to).
   """
@@ -52,11 +51,13 @@ defmodule OMG.Performance do
   start_simple_perf runs test with {ntx_to_send} tx for each {nspenders} senders with given options.
 
   Default options:
+  ```
   %{
     destdir: ".", # directory where the results will be put
     profile: false,
     block_every_ms: 2000 # how often do you want the tester to force a block being formed
   }
+  ```
   """
   @spec start_simple_perftest(pos_integer(), pos_integer(), map()) :: :ok
   def start_simple_perftest(ntx_to_send, nspenders, opts \\ %{}) do
@@ -79,15 +80,17 @@ defmodule OMG.Performance do
   end
 
   @doc """
-  start_extended_perf runs test with {ntx_to_send} tx for each {spenders}.
+  Runs test with {ntx_to_send} transactions for each {spenders}.
   Initial deposits for each account will be made on passed {contract_addr}.
 
   Default options:
+  ```
   %{
     destdir: ".", # directory where the results will be put
     geth: "http://localhost:8545",
     child_chain: "http://localhost:9656"
   }
+  ```
   """
   @spec start_extended_perftest(
           pos_integer(),

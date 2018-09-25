@@ -17,6 +17,10 @@ defmodule OMG.Watcher.ChainExiter do
   Handles child chain exits
   """
 
+  @doc """
+  Exits child chain.
+  Stub. Does nothing.
+  """
   def exit do
     :ok
   end

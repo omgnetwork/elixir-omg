@@ -143,7 +143,7 @@ defmodule OMG.API.BlockQueue.Core do
   end
 
   # Set number of plasma block mined on the parent chain.
-  #
+
   # Since reorgs are possible, consecutive values of mined_child_block_num don't have to be
   # monotonically increasing. Due to construction of contract we know it does not
   # contain holes so we care only about the highest number.
@@ -274,7 +274,7 @@ defmodule OMG.API.BlockQueue.Core do
   @doc """
   Compares the child blocks mined in contract with formed blocks
 
-  Picks for submission the child blocks that haven't yet been seen mined on Ethereum
+  Picks for submission child blocks that haven't yet been seen mined on Ethereum
   """
   @spec get_blocks_to_submit(Core.t()) :: [BlockQueue.encoded_signed_tx()]
   def get_blocks_to_submit(state) do
@@ -298,8 +298,10 @@ defmodule OMG.API.BlockQueue.Core do
     |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
   end
 
-  # generates an enumberable of block numbers to be starting the BlockQueue with
-  # (inclusive and it takes `finality_threshold` blocks before the youngest mined block)
+  @doc """
+  Generates an enumberable of block numbers to be starting the BlockQueue with
+  (inclusive and it takes `finality_threshold` blocks before the youngest mined block)
+  """
   @spec child_block_nums_to_init_with(non_neg_integer, non_neg_integer, pos_integer, non_neg_integer) :: list
   def child_block_nums_to_init_with(mined_num, until_child_block_num, interval, finality_threshold) do
     make_range(max(interval, mined_num - finality_threshold * interval), until_child_block_num, interval)
@@ -311,8 +313,6 @@ defmodule OMG.API.BlockQueue.Core do
   defp should_form_block?(state) do
     due_child_block_num(state) > state.formed_child_block_num && !state.wait_for_enqueue
   end
-
-  # private (core)
 
   defp calc_nonce(height, interval) do
     trunc(height / interval)

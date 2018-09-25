@@ -14,7 +14,7 @@
 
 defmodule OMG.JSONRPC.Server.Handler do
   @moduledoc """
-  Exposes an API via jsonrpc 2.0 over HTTP. It leverages the generic OMG.JSONRPC.Exposer convenience module
+  Exposes an API via jsonrpc 2.0 over HTTP. It leverages the generic `OMG.JSONRPC.Exposer` convenience module
 
   Only handles the integration with the JSONRPC2 package
   """

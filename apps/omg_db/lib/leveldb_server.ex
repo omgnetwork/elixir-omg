@@ -14,9 +14,10 @@
 
 defmodule OMG.DB.LevelDBServer do
   @moduledoc """
-  Server handling a db connection to leveldb.
-  All complex operations on data written/read should go into OMG.DB.LevelDBCore
+  Handles connection to leveldb
   """
+
+  # All complex operations on data written/read should go into OMG.DB.LevelDBCore
 
   defstruct [:db_ref]
 

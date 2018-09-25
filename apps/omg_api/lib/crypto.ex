@@ -22,6 +22,10 @@ defmodule OMG.API.Crypto do
   @type pub_key_t() :: <<_::512>>
   @type priv_key_t() :: <<_::256>> | <<>>
   @type address_t() :: <<_::160>>
+
+  @doc """
+  Returns placeholder for non-existent Ethereum address
+  """
   def zero_address, do: <<0::160>>
   @dialyzer {:nowarn_function, generate_public_key: 1}
 
@@ -31,7 +35,7 @@ defmodule OMG.API.Crypto do
   def hash(message), do: message |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
 
   @doc """
-  Produce a stand-alone, 65 bytes long, signature for message of arbitrary length.
+  Produces a stand-alone, 65 bytes long, signature for message of arbitrary length.
   """
   @spec signature(binary, priv_key_t()) :: sig_t()
   def signature(msg, priv) do
@@ -84,9 +88,9 @@ defmodule OMG.API.Crypto do
     end
   end
 
+  # TODO: Think about moving to something dependent on /dev/urandom instead. Might be less portable.
   @doc """
   Generates private key. Internally uses OpenSSL RAND_bytes. May throw if there is not enough entropy.
-  TODO: Think about moving to something dependent on /dev/urandom instead. Might be less portable.
   """
   @spec generate_private_key() :: {:ok, priv_key_t()}
   def generate_private_key, do: {:ok, :crypto.strong_rand_bytes(32)}
@@ -109,21 +113,33 @@ defmodule OMG.API.Crypto do
     {:ok, address}
   end
 
+  @doc """
+  Turns hex representation of an address to a binary
+  """
   @spec decode_address(String.t() | binary) :: {:ok, address_t} | {:error, :bad_address_encoding}
   def decode_address("0x" <> address) when byte_size(address) == 40, do: Base.decode16(address, case: :lower)
   def decode_address(raw) when byte_size(raw) == 20, do: {:ok, raw}
   def decode_address(_), do: {:error, :bad_address_encoding}
 
+  @doc """
+  Turns hex representation of an address to a binary
+  """
   @spec decode_address!(String.t() | binary) :: address_t()
   def decode_address!(hex) do
     {:ok, raw} = decode_address(hex)
     raw
   end
 
+  @doc """
+  Returns hex representation of binary address
+  """
   @spec encode_address(binary) :: {:ok, String.t()} | {:error, :invalid_address}
   def encode_address(address) when byte_size(address) == 20, do: {:ok, "0x" <> Base.encode16(address, case: :lower)}
   def encode_address(_), do: {:error, :invalid_address}
 
+  @doc """
+  Returns hex representation of binary address
+  """
   @spec encode_address!(binary) :: String.t()
   def encode_address!(raw) do
     {:ok, encoded} = encode_address(raw)

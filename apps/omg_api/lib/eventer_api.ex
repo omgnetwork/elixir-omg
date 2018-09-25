@@ -14,11 +14,11 @@
 
 defmodule OMG.API.EventerAPI do
   @moduledoc """
-  Just the interface to cast event triggers to the Eventer. See OMG.Watcher.Eventer for the underlying system
+  Interface to cast event triggers to the `OMG.Watcher.Eventer`
   """
 
   @doc """
-  Depending on whether Eventer is started or not in the application, it will cast or ignore the triggers
+  Casts (only when `OMG.Watcher.Eventer` is started) or ignores the triggers
   """
   def emit_events(event_triggers) do
     GenServer.cast(OMG.Watcher.Eventer, {:emit_events, event_triggers})

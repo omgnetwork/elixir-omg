@@ -34,7 +34,7 @@ defmodule OMG.Performance.SenderServer do
 
   defmodule LastTx do
     @moduledoc """
-    Submodule defines structure to keep last transaction sent by sender remembered fo the next submission.
+    Keeps last transaction sent by sender, remembered for next submission.
     """
     defstruct [:blknum, :txindex, :oindex, :amount]
     @type t :: %__MODULE__{blknum: integer, txindex: integer, oindex: integer, amount: integer}

@@ -38,9 +38,8 @@ defmodule OMG.JSONRPC.ExposeSpec do
                 }}
   ```
 
-  The reason to strip down was achieving quick compatibility with Elixir 1.7, where Module.get_attribute(module, :spec)
-  doesn't work anymore, see:
-  https://elixirforum.com/t/since-elixir-1-7-module-get-attributes-module-spec-returns-nil/15808
+  The reason to strip down was achieving quick compatibility with Elixir 1.7, where `Module.get_attribute(module, :spec)`
+  [doesn't work anymore](https://elixirforum.com/t/since-elixir-1-7-module-get-attributes-module-spec-returns-nil/15808)
   and git blame for the original version.
   """
 

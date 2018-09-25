@@ -26,7 +26,7 @@ defmodule OMG.API.FeeChecker.Core do
   @type token_fee_t() :: %{Crypto.address_t() => non_neg_integer}
 
   @doc """
-  Calculates fee from tx and checks whether token is allowed and flat fee limits are met
+  Calculates fee from transaction and checks whether token is allowed and flat fee limits are met
   """
   @spec transaction_fees(Recovered.t(), token_fee_t()) :: {:ok, token_fee_t()} | {:error, :token_not_allowed}
   def transaction_fees(
