@@ -42,13 +42,14 @@ defmodule OMG.API.PropTest.Generators do
     ])
   end
 
+  @spec entitie_atom() :: BasicTypes.type()
+  def entitie_atom, do: oneof(OMG.API.TestHelper.entities_stable() |> Map.keys())
+
   @spec new_owners() :: BasicTypes.type()
   def new_owners do
-    users = OMG.API.TestHelper.entities_stable() |> Map.keys()
-
     frequency([
-      {1, fixed_list([{oneof(users), choose(1, 30)}])},
-      {1, fixed_list({oneof(users), choose(1, 30)}, 2)}
+      {1, fixed_list([{entitie_atom(), choose(1, 30)}])},
+      {1, fixed_list({entitie_atom(), choose(1, 30)}, 2)}
     ])
   end
 
@@ -64,5 +65,9 @@ defmodule OMG.API.PropTest.Generators do
       |> Map.values()
 
     oneof(addresses)
+  end
+
+  def add_random(number, {from, to}) do
+    choose(number + from, number + to)
   end
 end

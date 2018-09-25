@@ -21,12 +21,7 @@ defmodule OMG.API.State.PropTest.DoubleSpendTransaction do
   alias OMG.API.PropTest.Helper
   alias OMG.API.State.PropTest
 
-  def impl(tr, fee_map),
-    do:
-      OMG.API.State.PropTest.StateCoreGS.exec(
-        PropTest.Transaction.create(tr),
-        PropTest.Transaction.create_fee_map(fee_map)
-      )
+  defdelegate impl(tx, fee_map), to: PropTest.Transaction
 
   def args(%{model: %{history: history}}) do
     {unspend, spend} = Helper.get_utxos(history)

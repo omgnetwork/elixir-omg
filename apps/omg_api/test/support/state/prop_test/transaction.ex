@@ -22,13 +22,23 @@ defmodule OMG.API.State.PropTest.Transaction do
   alias OMG.API.PropTest.Helper
   require Constants
 
-  def create({inputs, currency_name, future_owners}) do
+  def normalize_variables({inputs, currency_name, future_owners}) do
     stable_entities = OMG.API.TestHelper.entities_stable()
 
-    OMG.API.TestHelper.create_recovered(
+    {
       inputs |> Enum.map(fn {position, owner} -> Tuple.append(position, Map.get(stable_entities, owner)) end),
       Map.get(Constants.currencies(), currency_name),
       future_owners |> Enum.map(fn {owner, amount} -> {Map.get(stable_entities, owner), amount} end)
+    }
+  end
+
+  def create(variable) do
+    {inputs, currency, future_owners} = normalize_variables(variable)
+
+    OMG.API.TestHelper.create_recovered(
+      inputs,
+      currency,
+      future_owners
     )
   end
 
@@ -78,6 +88,7 @@ defmodule OMG.API.State.PropTest.Transaction do
 
     rich_inputs =
       inputs
+      |> Enum.uniq()
       |> Enum.map(fn {position, _} -> Enum.find(unspent, &match?({^position, %{currency: ^currency}}, &1)) end)
 
     spent_amount = output |> Enum.reduce(Map.get(fee_map, currency, 0), fn {_, amount}, acc -> acc + amount end)

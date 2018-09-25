@@ -51,6 +51,7 @@ defmodule OMG.API.State.PropTest do
     EveryoneExit,
     ExitUtxos,
     FormBlock,
+    MutatedTransaction,
     Transaction
   }
 
@@ -90,6 +91,7 @@ defmodule OMG.API.State.PropTest do
         [
           transaction: min(div(utxos_eth, 2), 20) * 10_000 + 1,
           different_spender_transaction: min(div(utxos_eth, 2), 20) * 10_000 + 1,
+          mutated_transaction: min(div(utxos_eth, 2), 20) * 5_000 + 1,
           exit_utxos: max(div(utxos_eth, 10), 1) * 10_000,
           everyone_exit: max(div(utxos_eth, 10), 1) * 1_000
         ]

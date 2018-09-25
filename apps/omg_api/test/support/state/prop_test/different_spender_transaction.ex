@@ -21,34 +21,13 @@ defmodule OMG.API.State.PropTest.DifferentSpenderTransaction do
   alias OMG.API.PropTest.Helper
   alias OMG.API.State.PropTest
 
-  def impl(tr, fee_map),
-    do:
-      OMG.API.State.PropTest.StateCoreGS.exec(
-        PropTest.Transaction.create(tr),
-        PropTest.Transaction.create_fee_map(fee_map)
-      )
+  defdelegate impl(input, fee_map), to: PropTest.Transaction
+  def change_owner({position, _}), do: {position, Generators.entitie_atom()}
 
-  def args(%{model: %{history: history}}) do
-    {unspent, _spent} = Helper.get_utxos(history)
-    available_currencies = Map.values(unspent) |> Enum.map(& &1.currency) |> Enum.uniq()
-
-    let [currency <- oneof(available_currencies)] do
-      unspent = unspent |> Map.to_list() |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
-
-      let [
-        owners <- Generators.new_owners(),
-        inputs <- Generators.input_transaction(unspent),
-        diff_owner <- oneof(OMG.API.TestHelper.entities_stable() |> Map.keys())
-      ] do
-        let [which <- choose(0, length(inputs) - 1)] do
-          {{position, info}, _} = List.pop_at(inputs, which)
-          inputs = List.replace_at(inputs, which, {position, Map.put(info, :owner, diff_owner)})
-
-          [
-            PropTest.Transaction.prepare_args(inputs, owners),
-            %{currency => 0}
-          ]
-        end
+  def args(state) do
+    let [[{inputs, currency, outputs}, fee_map] <- PropTest.Transaction.args(state)] do
+      let [inputs <- Generators.fixed_list(&change_owner/1, inputs)] do
+        [{inputs, currency, outputs}, fee_map]
       end
     end
   end
