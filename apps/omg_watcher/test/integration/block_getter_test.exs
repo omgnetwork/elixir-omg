@@ -28,7 +28,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Eth
   alias OMG.JSONRPC.Client
   alias OMG.Watcher.Eventer.Event
-  alias OMG.Watcher.Integration
+  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Web.Channel
 
@@ -56,7 +56,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
 
-    Integration.TestHelper.wait_until_block_getter_fetches_block(block_nr, @timeout)
+    IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
 
     encode_tx = Client.encode(tx)
 
@@ -69,7 +69,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
                "currency" => @eth_hex,
                "txbytes" => ^encode_tx
              }
-           ] = get_utxos(bob)
+           ] = IntegrationTest.get_utxos(bob)
 
     assert [
              %{
@@ -80,7 +80,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
                "currency" => @eth_hex,
                "txbytes" => ^encode_tx
              }
-           ] = get_utxos(alice)
+           ] = IntegrationTest.get_utxos(alice)
 
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
     {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(block_nr)
@@ -112,7 +112,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "sigs" => sigs
-    } = Integration.TestHelper.get_exit_data(block_nr, 0, 0)
+    } = IntegrationTest.get_exit_data(block_nr, 0, 0)
 
     {:ok, txhash} =
       Eth.RootChain.start_exit(
@@ -158,14 +158,14 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     # spend the token deposit
     {:ok, %{blknum: spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
 
-    Integration.TestHelper.wait_until_block_getter_fetches_block(spend_token_child_block, @timeout)
+    IntegrationTest.wait_until_block_getter_fetches_block(spend_token_child_block, @timeout)
 
     %{
       "txbytes" => txbytes,
       "proof" => proof,
       "sigs" => sigs,
       "utxo_pos" => utxo_pos
-    } = Integration.TestHelper.get_exit_data(spend_token_child_block, 0, 0)
+    } = IntegrationTest.get_exit_data(spend_token_child_block, 0, 0)
 
     {:ok, txhash} =
       Eth.RootChain.start_exit(
@@ -264,16 +264,5 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   defp assert_block_getter_down do
     :ok = TestHelper.wait_for_process(Process.whereis(OMG.Watcher.BlockGetter))
-  end
-
-  defp get_utxos(%{addr: address}) do
-    {:ok, address_encode} = Crypto.encode_address(address)
-
-    assert %{
-             "result" => "success",
-             "data" => utxos
-           } = TestHelper.rest_call(:get, "utxos?address=#{address_encode}")
-
-    utxos
   end
 end
