@@ -89,8 +89,8 @@ rlp_encoded = rlpEncode(tx_for_encode)
 
 ## 4. Encode the  transaction in Base 16
 
-Encode the RLP encoded input with Base16 into a String
-(Note: ensure that the value to be Base16 encoded is lowercase)
+Encode the RLP encoded input with Base16 into a string.
+IMPORTANT: ensure that the value to be Base16 encoded is lowercase, as current  implementation of Tesuji Plasma will reject capital case
 
 ```
 base16Encoded = base16Encode(rlp_encoded)
