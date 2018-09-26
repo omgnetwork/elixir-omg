@@ -396,10 +396,10 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   test "consuming block updates height" do
     interval = 1_000
 
-    {state, [1_000, 2_000]} =
+    {state, [1_000, 2_000, 3_000]} =
       0
       |> Core.init(interval, 0, maximum_number_of_pending_blocks: 5)
-      |> Core.get_new_blocks_numbers(3_000)
+      |> Core.get_new_blocks_numbers(4_000)
 
     synced_height = 2
     next_synced_height = synced_height + 1
@@ -408,19 +408,29 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       state
       |> handle_got_block(%Block{number: 1_000})
       |> handle_got_block(%Block{number: 2_000})
+      |> handle_got_block(%Block{number: 3_000})
 
-    {_, synced_height, _, state} =
+    {[{_, ^synced_height}, {_, ^synced_height}], 0, _, state} =
       Core.get_blocks_to_consume(
         state,
-        [%{blknum: 1_000, eth_height: synced_height}, %{blknum: 2_000, eth_height: next_synced_height}],
+        [%{blknum: 1_000, eth_height: synced_height}, %{blknum: 2_000, eth_height: synced_height}],
         synced_height
       )
 
+    {state, 0, []} = Core.consume_block(state, 1_000, synced_height)
+
     {state, ^synced_height, [{:put, :last_block_getter_eth_height, ^synced_height}]} =
-      Core.consume_block(state, 1_000, synced_height)
+      Core.consume_block(state, 2_000, synced_height)
+
+    {[{_, ^next_synced_height}], ^synced_height, _, state} =
+      Core.get_blocks_to_consume(
+        state,
+        [%{blknum: 3_000, eth_height: next_synced_height}],
+        next_synced_height
+      )
 
     {state, ^next_synced_height, [{:put, :last_block_getter_eth_height, ^next_synced_height}]} =
-      Core.consume_block(state, 2_000, next_synced_height)
+      Core.consume_block(state, 3_000, next_synced_height)
 
     {_, ^next_synced_height, _, _} = Core.get_blocks_to_consume(state, [], next_synced_height)
   end
