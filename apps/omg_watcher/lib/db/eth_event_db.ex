@@ -35,20 +35,17 @@ defmodule OMG.Watcher.DB.EthEventDB do
   def get(hash), do: Repo.get(__MODULE__, hash)
   def get_all, do: Repo.all(__MODULE__)
 
-  @spec insert_deposits([map()]) :: [{:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}]
+  @spec insert_deposits([OMG.API.State.Core.deposit()]) :: [{:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}]
   def insert_deposits(deposits) do
     deposits
-    |> Enum.map(fn %{hash: hash, blknum: blknum, owner: owner, currency: currency, amount: amount} ->
-      insert_deposit(hash, blknum, owner, currency, amount)
-    end)
+    |> Enum.map(&insert_deposit/1)
   end
 
-  @spec insert_deposit(binary(), pos_integer(), binary(), binary(), pos_integer()) ::
-          {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
-  defp insert_deposit(hash, blknum, owner, currency, amount) do
+  @spec insert_deposit(OMG.API.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
+  defp insert_deposit(%{blknum: blknum, owner: owner, currency: currency, amount: amount}) do
     {:ok, _} =
       %__MODULE__{
-        hash: hash,
+        hash: deposit_key(blknum),
         deposit_blknum: blknum,
         deposit_txindex: 0,
         event_type: :deposit,
@@ -60,4 +57,20 @@ defmodule OMG.Watcher.DB.EthEventDB do
       }
       |> Repo.insert()
   end
+
+  alias OMG.API.Crypto
+  alias OMG.API.Utxo
+  require Utxo
+
+  @doc """
+  Good candidate for deposit/exit primary key is a pair (Utxo.position, event_type).
+  Switching to composite key requires carefull consideration of data types and schema change,
+  so for now, we'd go with artificial key
+  """
+  @spec generate_unique_key(Utxo.Position.t(), :deposit | :exit) :: OMG.API.Crypto.hash_t()
+  def generate_unique_key(position, type) do
+    "<#{position |> Utxo.Position.encode()}:#{type}>" |> Crypto.hash()
+  end
+
+  defp deposit_key(blknum), do: generate_unique_key(Utxo.position(blknum, 0, 0), :deposit)
 end

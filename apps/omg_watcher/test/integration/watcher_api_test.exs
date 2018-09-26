@@ -24,11 +24,8 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   alias OMG.API.Crypto
   alias OMG.API.Utxo
   require Utxo
-  alias OMG.Eth
   alias OMG.JSONRPC.Client
-  alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.Watcher.TestHelper
 
   @timeout 40_000
   @eth Crypto.zero_address()
@@ -37,7 +34,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   @moduletag :integration
 
   @tag fixtures: [:watcher_sandbox, :child_chain, :token, :alice, :bob, :alice_deposits]
-  test "get the blocks from child chain after sending a transaction and start exit", %{
+  test "utxos from deposits on child chain are available in WatcherDB", %{
     alice: alice,
     bob: bob,
     token: token,
@@ -46,12 +43,26 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     token_addr = token |> Base.encode16()
 
     # expected utxos
-    eth_deposit = %{"amount" => 10, "blknum" => deposit_blknum, "txindex" => 0, "oindex" => 0, "currency" => @eth_hex, "txbytes" => nil}
-    token_deposit = %{"amount" => 10, "blknum" => token_deposit_blknum, "txindex" => 0, "oindex" => 0, "currency" => token_addr, "txbytes" => nil}
+    eth_deposit = %{
+      "amount" => 10,
+      "blknum" => deposit_blknum,
+      "txindex" => 0,
+      "oindex" => 0,
+      "currency" => @eth_hex,
+      "txbytes" => nil
+    }
+
+    token_deposit = %{
+      "amount" => 10,
+      "blknum" => token_deposit_blknum,
+      "txindex" => 0,
+      "oindex" => 0,
+      "currency" => token_addr,
+      "txbytes" => nil
+    }
 
     # utxo from deposit should be available
-    assert [eth_deposit, token_deposit]
-      == IntegrationTest.get_utxos(alice)
+    assert [eth_deposit, token_deposit] == IntegrationTest.get_utxos(alice)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
@@ -82,50 +93,5 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
                "txbytes" => ^encode_tx
              }
            ] = IntegrationTest.get_utxos(alice)
-
-    %{
-      "utxo_pos" => utxo_pos,
-      "txbytes" => txbytes,
-      "proof" => proof,
-      "sigs" => sigs
-    } = IntegrationTest.get_exit_data(block_nr, 0, 0)
-
-    {:ok, txhash1} =
-      Eth.RootChain.start_exit(
-        utxo_pos,
-        txbytes,
-        proof,
-        sigs,
-        alice.addr
-      )
-
-    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash1, @timeout)
-
-    {:ok, height} = Eth.get_ethereum_height()
-
-    # exiting spends UTXO on child chain
-    # wait until the exit is recognized and attempt to spend the exited utxo
-    Process.sleep(4_000)
-
-    assert [token_deposit] == IntegrationTest.get_utxos(alice)
-
-    # finally alice exits her token deposit
-    deposit_pos = Utxo.position(token_deposit_blknum, 0, 0) |> Utxo.Position.encode()
-
-    {:ok, txhash2} =
-      Eth.RootChain.start_deposit_exit(
-        deposit_pos,
-        token,
-        10,
-        alice.addr
-      )
-
-    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash2, @timeout)
-
-    # exiting spends UTXO on child chain
-    # wait until the exit is recognized and attempt to spend the exited utxo
-    Process.sleep(4_000)
-
-    assert [token_deposit] == IntegrationTest.get_utxos(alice)
   end
 end

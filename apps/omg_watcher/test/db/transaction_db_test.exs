@@ -61,6 +61,7 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
     @tag fixtures: [:initial_blocks, :alice, :bob]
     test "gets transaction that spends utxo", %{alice: alice, bob: bob, initial_blocks: initial_blocks} do
       alice_deposit_pos = Utxo.position(1, 0, 0)
+      alice_deposit_hash = OMG.Watcher.DB.EthEventDB.generate_unique_key(alice_deposit_pos, :deposit)
       bob_deposit_pos = Utxo.position(2, 0, 0)
       alice_addr = alice.addr
       bob_addr = bob.addr
@@ -75,7 +76,7 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
                 blknum: ^blknum,
                 txindex: ^txindex,
                 inputs: [
-                  %TxOutputDB{creating_deposit: "deposit:alice", owner: ^alice_addr, currency: @eth, amount: 333}
+                  %TxOutputDB{creating_deposit: ^alice_deposit_hash, owner: ^alice_addr, currency: @eth, amount: 333}
                 ],
                 outputs: [%TxOutputDB{creating_txhash: ^spending_tx, owner: ^bob_addr, currency: @eth, amount: 300}]
               }} = TransactionDB.get_transaction_challenging_utxo(alice_deposit_pos)

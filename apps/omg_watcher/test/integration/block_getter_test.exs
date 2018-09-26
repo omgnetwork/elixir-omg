@@ -42,13 +42,24 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   @endpoint OMG.Watcher.Web.Endpoint
 
-  @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob, :alice_deposits]
+  @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob, :alice_deposits, :token]
   test "get the blocks from child chain after sending a transaction and start exit", %{
     alice: alice,
     bob: bob,
-    alice_deposits: {deposit_blknum, _}
+    token: token,
+    alice_deposits: {deposit_blknum, token_deposit_blknum}
   } do
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
+
+    token_addr = token |> Base.encode16()
+    token_deposit = %{
+      "amount" => 10,
+      "blknum" => token_deposit_blknum,
+      "txindex" => 0,
+      "oindex" => 0,
+      "currency" => token_addr,
+      "txbytes" => nil
+    }
 
     {:ok, _, _socket} =
       subscribe_and_join(socket(), Channel.Transfer, TestHelper.create_topic("transfer", alice_address))
@@ -72,6 +83,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
            ] = IntegrationTest.get_utxos(bob)
 
     assert [
+             ^token_deposit,
              %{
                "amount" => 7,
                "blknum" => ^block_nr,
