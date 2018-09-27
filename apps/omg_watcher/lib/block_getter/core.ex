@@ -34,8 +34,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   defstruct [
+    :synced_height_update_blocks,
     :synced_height,
-    :block_consume_batch,
     :last_consumed_block,
     :started_block_number,
     :block_interval,
@@ -47,6 +47,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   ]
 
   @type t() :: %__MODULE__{
+          synced_height_update_blocks: MapSet.t(),
           synced_height: pos_integer(),
           last_consumed_block: non_neg_integer,
           started_block_number: non_neg_integer,
@@ -85,7 +86,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         opts \\ []
       ) do
     %__MODULE__{
-      block_consume_batch: {:downloading, []},
+      synced_height_update_blocks: MapSet.new(),
       synced_height: synced_height,
       last_consumed_block: block_number,
       started_block_number: block_number,
@@ -103,8 +104,21 @@ defmodule OMG.Watcher.BlockGetter.Core do
   """
   @spec consume_block(t(), pos_integer(), pos_integer()) :: {t(), non_neg_integer(), list()}
   def consume_block(%__MODULE__{} = state, consumed_block_number, blk_eth_height) do
-    state = %{state | synced_height: blk_eth_height, last_consumed_block: consumed_block_number}
-    {state, blk_eth_height, [{:put, :last_block_getter_eth_height, blk_eth_height}]}
+    if MapSet.member?(state.synced_height_update_blocks, consumed_block_number) do
+      synced_height_update_blocks = MapSet.delete(state.synced_height_update_blocks, consumed_block_number)
+
+      state = %{
+        state
+        | synced_height: blk_eth_height,
+          last_consumed_block: consumed_block_number,
+          synced_height_update_blocks: synced_height_update_blocks
+      }
+
+      {state, blk_eth_height, [{:put, :last_block_getter_eth_height, blk_eth_height}]}
+    else
+      state = %{state | last_consumed_block: consumed_block_number}
+      {state, state.synced_height, []}
+    end
   end
 
   @doc """
@@ -142,7 +156,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
         |> Enum.map(fn {%{number: blknum}, _} -> blknum end)
 
       blocks_to_keep = Map.drop(blocks, submitted_block_numbers)
-      {blocks_to_consume, state.synced_height, [], %{state | blocks_to_consume: blocks_to_keep}}
+      synced_height_update_blocks = get_synced_height_update_blknums(submissions, state.synced_height_update_blocks)
+
+      {blocks_to_consume, state.synced_height, [],
+       %{state | blocks_to_consume: blocks_to_keep, synced_height_update_blocks: synced_height_update_blocks}}
     else
       {[], state.synced_height, [], state}
     end
@@ -152,6 +169,18 @@ defmodule OMG.Watcher.BlockGetter.Core do
     requested_blocks
     |> Enum.map(fn %{blknum: blknum, eth_height: eth_height} -> {Map.get(downloaded_blocks, blknum), eth_height} end)
     |> Enum.filter(fn {block, _} -> block != nil end)
+  end
+
+  defp get_synced_height_update_blknums(submissions, current_synced_height_update_blknums) do
+    submissions
+    |> Enum.group_by(fn %{eth_height: eth_height} -> eth_height end, fn %{blknum: blknum} -> blknum end)
+    |> Map.to_list()
+    |> Enum.map(fn {_, blknums} ->
+      [last_blknum | _] = Enum.sort(blknums, &(&1 >= &2))
+      last_blknum
+    end)
+    |> MapSet.new()
+    |> MapSet.union(current_synced_height_update_blknums)
   end
 
   @doc """
