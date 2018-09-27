@@ -30,31 +30,41 @@ defmodule OMG.Watcher.DB.EthEventDBTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "insert deposits: creates deposit event and utxo" do
       owner = <<1::160>>
-      EthEventDB.insert_deposits([%{blknum: 1, owner: owner, currency: @eth, amount: 1, hash: "hash1"}])
+      expected_hash = EthEventDB.generate_unique_key(Utxo.position(1, 0, 0), :deposit)
+      EthEventDB.insert_deposits([%{blknum: 1, owner: owner, currency: @eth, amount: 1}])
 
       [event] = EthEventDB.get_all()
-      assert %EthEventDB{deposit_blknum: 1, deposit_txindex: 0, event_type: :deposit, hash: "hash1"} = event
+      assert %EthEventDB{deposit_blknum: 1, deposit_txindex: 0, event_type: :deposit, hash: ^expected_hash} = event
 
       [utxo] = TxOutputDB.get_all()
-      assert %TxOutputDB{owner: ^owner, currency: @eth, amount: 1, creating_deposit: "hash1"} = utxo
+      assert %TxOutputDB{owner: ^owner, currency: @eth, amount: 1, creating_deposit: ^expected_hash} = utxo
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "insert deposits: creates deposits and retrieves them by hash", %{alice: alice} do
       [{:ok, _evnt1}, {:ok, _evnt2}, {:ok, _evnt3}] =
         EthEventDB.insert_deposits([
-          %{blknum: 1, owner: alice.addr, currency: @eth, amount: 1, hash: "hash1"},
-          %{blknum: 1000, owner: alice.addr, currency: @eth, amount: 2, hash: "hash2"},
-          %{blknum: 2013, owner: alice.addr, currency: @eth, amount: 3, hash: "hash3"}
+          %{blknum: 1, owner: alice.addr, currency: @eth, amount: 1},
+          %{blknum: 1000, owner: alice.addr, currency: @eth, amount: 2},
+          %{blknum: 2013, owner: alice.addr, currency: @eth, amount: 3}
         ])
 
-      assert %EthEventDB{deposit_blknum: 1, deposit_txindex: 0, event_type: :deposit} = EthEventDB.get("hash1")
+      hash1 = EthEventDB.generate_unique_key(Utxo.position(1, 0, 0), :deposit)
 
-      assert %EthEventDB{deposit_blknum: 1000, deposit_txindex: 0, event_type: :deposit} = EthEventDB.get("hash2")
+      assert %EthEventDB{deposit_blknum: 1, deposit_txindex: 0, event_type: :deposit, hash: ^hash1} =
+               EthEventDB.get(hash1)
 
-      assert %EthEventDB{deposit_blknum: 2013, deposit_txindex: 0, event_type: :deposit} = EthEventDB.get("hash3")
+      hash2 = EthEventDB.generate_unique_key(Utxo.position(1000, 0, 0), :deposit)
 
-      assert ["hash1", "hash2", "hash3"] == TxOutputDB.get_utxos(alice.addr) |> Enum.map(& &1.creating_deposit)
+      assert %EthEventDB{deposit_blknum: 1000, deposit_txindex: 0, event_type: :deposit, hash: ^hash2} =
+               EthEventDB.get(hash2)
+
+      hash3 = EthEventDB.generate_unique_key(Utxo.position(2013, 0, 0), :deposit)
+
+      assert %EthEventDB{deposit_blknum: 2013, deposit_txindex: 0, event_type: :deposit, hash: ^hash3} =
+               EthEventDB.get(hash3)
+
+      assert [hash1, hash2, hash3] == TxOutputDB.get_utxos(alice.addr) |> Enum.map(& &1.creating_deposit)
     end
   end
 end
