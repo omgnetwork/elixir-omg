@@ -38,7 +38,7 @@ defmodule OMG.Watcher.DB.EthEventDB do
   @spec insert_deposits([OMG.API.State.Core.deposit()]) :: [{:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}]
   def insert_deposits(deposits) do
     deposits
-    |> Enum.map(&insert_deposit/1)
+    |> Enum.map(fn deposit -> {:ok, _} = insert_deposit(deposit) end)
   end
 
   @spec insert_deposit(OMG.API.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}

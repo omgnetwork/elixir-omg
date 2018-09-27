@@ -112,7 +112,7 @@ defmodule OMG.Watcher.Application do
 
   defp deposit_events_callback(deposits) do
     :ok = OMG.API.State.deposit(deposits)
-    OMG.Watcher.DB.EthEventDB.insert_deposits(deposits)
+    _ = OMG.Watcher.DB.EthEventDB.insert_deposits(deposits)
     :ok
   end
 end

@@ -80,7 +80,7 @@ defmodule OMG.Watcher.DB.TransactionDB do
   def update_with(%{transactions: transactions, blknum: block_number, eth_height: eth_height}) do
     transactions
     |> Stream.with_index()
-    |> Enum.map(fn {tx, txindex} -> insert(tx, block_number, txindex, eth_height) end)
+    |> Enum.map(fn {tx, txindex} -> {:ok, _} = insert(tx, block_number, txindex, eth_height) end)
   end
 
   @spec insert(Transaction.Recovered.t(), pos_integer(), integer(), pos_integer()) :: {:ok, __MODULE__}

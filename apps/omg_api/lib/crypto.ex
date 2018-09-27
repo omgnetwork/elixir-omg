@@ -22,6 +22,7 @@ defmodule OMG.API.Crypto do
   @type pub_key_t() :: <<_::512>>
   @type priv_key_t() :: <<_::256>> | <<>>
   @type address_t() :: <<_::160>>
+  @type hash_t() :: <<_::256>>
 
   @doc """
   Returns placeholder for non-existent Ethereum address
