@@ -52,6 +52,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
     token_addr = token |> Base.encode16()
+
     token_deposit = %{
       "amount" => 10,
       "blknum" => token_deposit_blknum,

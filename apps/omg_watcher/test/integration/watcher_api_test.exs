@@ -20,23 +20,15 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
   use Plug.Test
 
-  alias OMG.API
-  alias OMG.API.Crypto
-  alias OMG.API.Utxo
-  require Utxo
-  alias OMG.JSONRPC.Client
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
 
-  @timeout 40_000
-  @eth Crypto.zero_address()
   @eth_hex String.duplicate("00", 20)
 
   @moduletag :integration
 
-  @tag fixtures: [:watcher_sandbox, :child_chain, :token, :alice, :bob, :alice_deposits]
+  @tag fixtures: [:watcher_sandbox, :child_chain, :token, :alice, :alice_deposits]
   test "utxos from deposits on child chain are available in WatcherDB", %{
     alice: alice,
-    bob: bob,
     token: token,
     alice_deposits: {deposit_blknum, token_deposit_blknum}
   } do
