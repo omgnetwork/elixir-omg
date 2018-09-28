@@ -20,8 +20,6 @@ defmodule OMG.Watcher.Web.Controller.Account do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
-  alias OMG.API.State
-  alias OMG.Eth
   alias OMG.Watcher.Web.View
 
   import OMG.Watcher.Web.ErrorHandler
@@ -43,15 +41,36 @@ defmodule OMG.Watcher.Web.Controller.Account do
   end
 
   def swagger_definitions do
-    %{ }
+    %{
+      Currency_balance:
+        swagger_schema do
+          title("Balance of the currency")
+
+          properties do
+            currency(:string, "Currency of the funds", required: true)
+            amount(:integer, "Amount of the currency", required: true)
+          end
+
+          example(%{
+            currency: "0000000000000000000000000000000000000000",
+            amount: 10
+          })
+        end,
+      Balance:
+        swagger_schema do
+          title("Array of currency balances")
+          type(:array)
+          items(Schema.ref(:Currency_balance))
+        end
+    }
   end
 
-  swagger_path :get_status do
+  swagger_path :get_balance do
     get("/account/{address}/balance")
     summary("Responds with account balance for given account address")
 
     parameters do
-      utxo_pos(:path, :string, "Address of funds owner", required: true)
+      address(:path, :string, "Address of funds owner", required: true)
     end
 
     response(200, "OK", Schema.ref(:Balance))
