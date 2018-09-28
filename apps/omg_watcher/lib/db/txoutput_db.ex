@@ -125,11 +125,9 @@ defmodule OMG.Watcher.DB.TxOutputDB do
 
     Repo.all(query)
     |> Enum.map(fn {currency, amount} ->
-      %{
-        currency: currency,
-        # TODO: defends against sqlite on test which returns integer here
-        amount: amount |> Decimal.new() |> Decimal.to_integer()
-      }
+      # defends against sqlite that returns integer here
+      amount = amount |> Decimal.new() |> Decimal.to_integer()
+      %{currency: currency, amount: amount}
     end)
   end
 
