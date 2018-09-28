@@ -30,19 +30,19 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
   describe "Controller.AccountTest" do
     @tag fixtures: [:initial_blocks, :alice, :bob]
     test "Account balance groups account tokens and provide sum of available funds",
-    %{
-      alice: alice,
-      bob: bob
-    } do
+         %{
+           alice: alice,
+           bob: bob
+         } do
       assert %{
-        "result" => "success",
-        "data" => [
-          %{
-            "token" => @eth_hex,
-            "amount" => 349
-          }
-        ]
-      } == TestHelper.rest_call(:get, path_for(bob), nil, 200)
+               "result" => "success",
+               "data" => [
+                 %{
+                   "currency" => @eth_hex,
+                   "amount" => 349
+                 }
+               ]
+             } == TestHelper.rest_call(:get, path_for(bob), nil, 200)
 
       # adds other token funds for alice to make more interestning
       TransactionDB.update_with(%{
@@ -54,18 +54,18 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
       })
 
       assert %{
-        "result" => "success",
-        "data" => [
-          %{
-            "token" => @eth_hex,
-            "amount" => 201
-          },
-          %{
-            "token" => @other_token_hex,
-            "amount" => 377
-          }
-        ]
-      } == TestHelper.rest_call(:get, path_for(alice), nil, 200)
+               "result" => "success",
+               "data" => [
+                 %{
+                   "currency" => @eth_hex,
+                   "amount" => 201
+                 },
+                 %{
+                   "currency" => @other_token_hex,
+                   "amount" => 377
+                 }
+               ]
+             } == TestHelper.rest_call(:get, path_for(alice), nil, 200)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -73,9 +73,9 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
       no_account = %{addr: <<0::160>>}
 
       assert %{
-        "result" => "success",
-        "data" => []
-      } == TestHelper.rest_call(:get, path_for(no_account), nil, 200)
+               "result" => "success",
+               "data" => []
+             } == TestHelper.rest_call(:get, path_for(no_account), nil, 200)
     end
   end
 

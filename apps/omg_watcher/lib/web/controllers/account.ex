@@ -20,6 +20,8 @@ defmodule OMG.Watcher.Web.Controller.Account do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
+  alias OMG.API.Crypto
+  alias OMG.Watcher.DB.TxOutputDB
   alias OMG.Watcher.Web.View
 
   import OMG.Watcher.Web.ErrorHandler
@@ -27,9 +29,10 @@ defmodule OMG.Watcher.Web.Controller.Account do
   @doc """
   Gets plasma account balance
   """
-  def get_balance(conn, _params) do
-
-    respond({:ok, []}, conn)
+  def get_balance(conn, %{"address" => address}) do
+    {:ok, address_decode} = Crypto.decode_address(address)
+    balance = TxOutputDB.get_balance(address_decode)
+    respond({:ok, balance}, conn)
   end
 
   defp respond({:ok, balance}, conn) do
