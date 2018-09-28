@@ -24,23 +24,14 @@ defmodule OMG.Watcher.Web.Controller.Account do
   alias OMG.Watcher.DB.TxOutputDB
   alias OMG.Watcher.Web.View
 
-  import OMG.Watcher.Web.ErrorHandler
-
   @doc """
   Gets plasma account balance
   """
   def get_balance(conn, %{"address" => address}) do
+    # TODO: handle input validation (separate task)
     {:ok, address_decode} = Crypto.decode_address(address)
     balance = TxOutputDB.get_balance(address_decode)
-    respond({:ok, balance}, conn)
-  end
-
-  defp respond({:ok, balance}, conn) do
     render(conn, View.Account, :balance, balance: balance)
-  end
-
-  defp respond({:error, code}, conn) do
-    handle_error(conn, code)
   end
 
   def swagger_definitions do
@@ -55,7 +46,7 @@ defmodule OMG.Watcher.Web.Controller.Account do
           end
 
           example(%{
-            currency: "0000000000000000000000000000000000000000",
+            currency: String.duplicate("00", 20),
             amount: 10
           })
         end,

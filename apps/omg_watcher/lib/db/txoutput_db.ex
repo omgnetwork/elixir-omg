@@ -119,19 +119,19 @@ defmodule OMG.Watcher.DB.TxOutputDB do
     query =
       from(t in __MODULE__,
         where: t.owner == ^owner and is_nil(t.spending_txhash) and is_nil(t.spending_exit),
-        group_by: [t.owner, t.currency],
+        group_by: t.currency,
         select: {t.currency, sum(t.amount)}
       )
 
     Repo.all(query)
     |> Enum.map(fn {currency, amount} ->
-      %{currency: currency, amount: to_integer(amount)}
+      %{
+        currency: currency,
+        # TODO: defends against sqlite on test which returns integer here
+        amount: amount |> Decimal.new() |> Decimal.to_integer()
+      }
     end)
   end
-
-  # TODO: iniline this function after switch to real (Postgres) database on tests
-  defp to_integer(%Decimal{} = value), do: Decimal.to_integer(value)
-  defp to_integer(value) when is_integer(value), do: value
 
   def create_outputs(%Transaction{
         cur12: cur12,
