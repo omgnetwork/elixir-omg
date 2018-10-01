@@ -117,7 +117,8 @@ defmodule OMG.Watcher.DB.TxOutputDB do
 
   def get_balance(owner) do
     query =
-      from(t in __MODULE__,
+      from(
+        t in __MODULE__,
         where: t.owner == ^owner and is_nil(t.spending_txhash) and is_nil(t.spending_exit),
         group_by: t.currency,
         select: {t.currency, sum(t.amount)}
