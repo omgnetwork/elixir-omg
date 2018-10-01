@@ -115,6 +115,23 @@ defmodule OMG.Watcher.DB.TxOutputDB do
     Repo.all(query)
   end
 
+  def get_balance(owner) do
+    query =
+      from(
+        t in __MODULE__,
+        where: t.owner == ^owner and is_nil(t.spending_txhash) and is_nil(t.spending_exit),
+        group_by: t.currency,
+        select: {t.currency, sum(t.amount)}
+      )
+
+    Repo.all(query)
+    |> Enum.map(fn {currency, amount} ->
+      # defends against sqlite that returns integer here
+      amount = amount |> Decimal.new() |> Decimal.to_integer()
+      %{currency: currency, amount: amount}
+    end)
+  end
+
   def create_outputs(%Transaction{
         cur12: cur12,
         newowner1: newowner1,

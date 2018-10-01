@@ -31,7 +31,7 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
   describe "Controller.ChallengeTest" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
     test "utxo/:utxo_pos/challenge_data  endpoint returns proper response format", %{alice: alice} do
-      EthEventDB.insert_deposits([%{owner: alice.addr, currency: @eth, amount: 100, blknum: 1, hash: "hash1"}])
+      EthEventDB.insert_deposits([%{owner: alice.addr, currency: @eth, amount: 100, blknum: 1}])
 
       TransactionDB.update_with(%{
         transactions: [
