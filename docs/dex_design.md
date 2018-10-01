@@ -150,7 +150,7 @@ In this section we present our current phasing of development for ODEX to illust
 
 ## Phase 1 - Technology Proof of Concept
 
-![phase 1 diagram](assets/dex_design/02_Phase 1 - Technology Proof of Concept.png)
+![phase 1 diagram](assets/dex_design/02_Phase%201%20-%20Technology%20Proof%20of%20Concept.png)
 
 Phase 1 implements all the technical components and the basic child chain consensus changes that are required to prove out the feasibility of the ODEX.
 
@@ -158,7 +158,7 @@ Orders are matched off-chain and trades are immediately settled on-chain with a 
 
 ## Phase 2 - MVP
 
-![phase 2 diagram](assets/dex_design/03_Phase 2 - MVP.png)
+![phase 2 diagram](assets/dex_design/03_Phase%202%20-%20MVP.png)
 
 Batch settlements are introduced in Phase 2. Batch settlements most importantly will enable implied orders, which are required to fulfill one of the primary OmiseGO use cases (see Appendix).
 
@@ -170,7 +170,7 @@ Caution: Care must be taken to ensure that computation complexity of validating 
 
 ## Phase 3 - Bonded Exchanges
 
-![phase 3 diagram](assets/dex_design/04_Phase 3 - Bonded Exchages.png)
+![phase 3 diagram](assets/dex_design/04_Phase%203%20-%20Bonded%20Exchages.png)
 
 Phase 3 introduces an explicit economic disincentive for a venue to perform bad behavior. Upon proof of bad behaviour, such as an invalid settlement, a venue would lose some or all of their bond.
 
@@ -178,7 +178,7 @@ The size of the bond that needs to be posted is yet to be decided. However, it m
 
 ## Phase 4 - Order Privacy
 
-![phase 4 diagram](assets/dex_design/05_Phase 4 - Order Privacy.png)
+![phase 4 diagram](assets/dex_design/05_Phase%204%20-%20Order%20Privacy.png)
 
 Phase 4 introduces order privacy, most likely utilizing zero knowledge proofs. Note that this phase is a research topic and is subject to change.
 
@@ -188,7 +188,7 @@ Some flexibility may be possible with order privacy, whereby some order details 
 
 ## OMG On-Chain Markets
 
-![on chain venue diagram](assets/dex_design/06_OMG On-chain Venue.png)
+![on chain venue diagram](assets/dex_design/06_OMG%20On-chain%20Venue.png)
 
 In conjunction with off-chain markets, on-chain markets that are maintained by the child chain consensus system is planned. Further research will be performed in this area to identify how on-chain markets fit into the ODEX market model.
 
@@ -304,7 +304,7 @@ It may not be desirable to couple the consensus of the OMG Network into venues b
 
 An alternative final state of the ODEX would then look as follows:
 
-![ODEX Alternative state](assets/dex_design/08_ODEX Alternative State.png)
+![ODEX Alternative state](assets/dex_design/08_ODEX%20Alternative%20State.png)
 
 Whilst this model may relieve validators of computational load, we should take note the following points:
 
