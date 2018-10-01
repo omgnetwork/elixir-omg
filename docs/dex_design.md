@@ -54,13 +54,13 @@ This section will review the key features of ODEX. The following diagram is a hi
 
 ![ODEX Overview](assets/dex_design/01_ODEX%20Features.png)
 
-## Constrained Custody
+## Restricted Custody
 
 OmiseGO proposes a solution whereby user funds are secured by the child chain consensus mechanism. The exchange of value occurs in a secure manner, which vastly reduces the risk exposure for both a venue *and* for the user.
 
 We can provide this custodial safety using a model which utilizes the safety of the child chain consensus mechanism.
 
-Constrained Custody allows custody transfer to an off-chain venue to facilitate matching but only allows the venue to perform the required, fundamental actions, such as partial matching, canceling and initiation of settlement.
+Restricted Custody allows custody transfer to an off-chain venue to facilitate matching but only allows the venue to perform the required, fundamental actions, such as partial matching, canceling and initiation of settlement.
 
 The constraints that are placed upon funds in custody of a venue are:
 * The venue can neither deposit nor exit from the child chain
@@ -70,7 +70,7 @@ In other words, a venue cannot spend or exit user funds.
 
 Therefore, whilst users may transfer custody of their funds to a venue, the users will rely on the safety of the child chain consensus to enforce how a users' funds may be used. Also, importantly, this facilitates, in an efficient and fundamental way, firm orders. Firm orders are an essential component of any fair market.
 
-Note that work on Constrained Custody is continuing and changes can be expected to this design.
+Note that work on Restricted Custody is continuing and changes can be expected to this design.
 
 ## Multiple Venues
 
@@ -192,7 +192,7 @@ Some flexibility may be possible with order privacy, whereby some order details 
 
 In conjunction with off-chain markets, on-chain markets that are maintained by the child chain consensus system is planned. Further research will be performed in this area to identify how on-chain markets fit into the ODEX market model.
 
-The research may occur in parallel to the development of off-chain markets, but development will initially commence with Constrained Custody (phase 1 and 2).
+The research may occur in parallel to the development of off-chain markets, but development will initially commence with Restricted Custody (phase 1 and 2).
 
 As was stated previously it is thought that viable and useful on-chain markets would be:
 
@@ -330,7 +330,7 @@ These value propositions still need to be validated for each of the target users
 
 Existing crypto exchanges can be hacked, leading to loss of user funds, loss of capital and loss of user confidence in the crypto ecosystem. Traditional venues (typically regulated) would like to participate in the crypto markets and offer services to their users but face all the same issues as crypto venues and therefore expose themselves to significant reputational damage and fail to offer a secure enough market to be attractive to their existing members. Both venue types could benefit significantly from:
 
-* Constrained Limited Custody of user funds
+* Restricted Limited Custody of user funds
 
 * Reduced regulatory exposure (such as not taking user deposits)
 
