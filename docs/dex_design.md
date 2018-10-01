@@ -330,7 +330,7 @@ These value propositions still need to be validated for each of the target users
 
 Existing crypto exchanges can be hacked, leading to loss of user funds, loss of capital and loss of user confidence in the crypto ecosystem. Traditional venues (typically regulated) would like to participate in the crypto markets and offer services to their users but face all the same issues as crypto venues and therefore expose themselves to significant reputational damage and fail to offer a secure enough market to be attractive to their existing members. Both venue types could benefit significantly from:
 
-* Restricted Limited Custody of user funds
+* Restricted custody of user funds
 
 * Reduced regulatory exposure (such as not taking user deposits)
 
