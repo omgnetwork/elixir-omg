@@ -52,7 +52,7 @@ In each of the models our primary goal is to solve for security and specifically
 
 This section will review the key features of ODEX. The following diagram is a high level view of what we think the future state of the ODEX may look like. This diagram will be described in detail throughout the remaining sections. A key observation should be that the ODEX is more than just a single market. It is an infrastructure upon which any participant can engage in using, making or delivering a market. This means many market models can be supported, all with the same underlying benefits and guarantees of the ODEX, while simultaneously offering tailored trading experiences as appropriate to the target users. This means that ODEX is more than just a single market, it is a network supporting many markets with both direct users of the ODEX co-existing beside indirect users of the ODEX such as venues themselves.
 
-![ODEX Overview](assets/dex_design/01_ODEX Features.png)
+![ODEX Overview](assets/dex_design/01_ODEX%20Features.png)
 
 ## Constrained Custody
 
