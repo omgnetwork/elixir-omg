@@ -52,15 +52,15 @@ In each of the models our primary goal is to solve for security and specifically
 
 This section will review the key features of ODEX. The following diagram is a high level view of what we think the future state of the ODEX may look like. This diagram will be described in detail throughout the remaining sections. A key observation should be that the ODEX is more than just a single market. It is an infrastructure upon which any participant can engage in using, making or delivering a market. This means many market models can be supported, all with the same underlying benefits and guarantees of the ODEX, while simultaneously offering tailored trading experiences as appropriate to the target users. This means that ODEX is more than just a single market, it is a network supporting many markets with both direct users of the ODEX co-existing beside indirect users of the ODEX such as venues themselves.
 
-![ODEX Overview](assets/dex_design/01_ODEX Features.png)
+![ODEX Overview](assets/dex_design/01_ODEX%20Features.png)
 
-## Constrained Custody
+## Restricted Custody
 
 OmiseGO proposes a solution whereby user funds are secured by the child chain consensus mechanism. The exchange of value occurs in a secure manner, which vastly reduces the risk exposure for both a venue *and* for the user.
 
 We can provide this custodial safety using a model which utilizes the safety of the child chain consensus mechanism.
 
-Constrained Custody allows custody transfer to an off-chain venue to facilitate matching but only allows the venue to perform the required, fundamental actions, such as partial matching, canceling and initiation of settlement.
+Restricted Custody allows custody transfer to an off-chain venue to facilitate matching but only allows the venue to perform the required, fundamental actions, such as partial matching, canceling and initiation of settlement.
 
 The constraints that are placed upon funds in custody of a venue are:
 * The venue can neither deposit nor exit from the child chain
@@ -70,7 +70,7 @@ In other words, a venue cannot spend or exit user funds.
 
 Therefore, whilst users may transfer custody of their funds to a venue, the users will rely on the safety of the child chain consensus to enforce how a users' funds may be used. Also, importantly, this facilitates, in an efficient and fundamental way, firm orders. Firm orders are an essential component of any fair market.
 
-Note that work on Constrained Custody is continuing and changes can be expected to this design.
+Note that work on Restricted Custody is continuing and changes can be expected to this design.
 
 ## Multiple Venues
 
@@ -150,7 +150,7 @@ In this section we present our current phasing of development for ODEX to illust
 
 ## Phase 1 - Technology Proof of Concept
 
-![phase 1 diagram](assets/dex_design/02_Phase 1 - Technology Proof of Concept.png)
+![phase 1 diagram](assets/dex_design/02_Phase%201%20-%20Technology%20Proof%20of%20Concept.png)
 
 Phase 1 implements all the technical components and the basic child chain consensus changes that are required to prove out the feasibility of the ODEX.
 
@@ -158,7 +158,7 @@ Orders are matched off-chain and trades are immediately settled on-chain with a 
 
 ## Phase 2 - MVP
 
-![phase 2 diagram](assets/dex_design/03_Phase 2 - MVP.png)
+![phase 2 diagram](assets/dex_design/03_Phase%202%20-%20MVP.png)
 
 Batch settlements are introduced in Phase 2. Batch settlements most importantly will enable implied orders, which are required to fulfill one of the primary OmiseGO use cases (see Appendix).
 
@@ -170,7 +170,7 @@ Caution: Care must be taken to ensure that computation complexity of validating 
 
 ## Phase 3 - Bonded Exchanges
 
-![phase 3 diagram](assets/dex_design/04_Phase 3 - Bonded Exchages.png)
+![phase 3 diagram](assets/dex_design/04_Phase%203%20-%20Bonded%20Exchages.png)
 
 Phase 3 introduces an explicit economic disincentive for a venue to perform bad behavior. Upon proof of bad behaviour, such as an invalid settlement, a venue would lose some or all of their bond.
 
@@ -178,7 +178,7 @@ The size of the bond that needs to be posted is yet to be decided. However, it m
 
 ## Phase 4 - Order Privacy
 
-![phase 4 diagram](assets/dex_design/05_Phase 4 - Order Privacy.png)
+![phase 4 diagram](assets/dex_design/05_Phase%204%20-%20Order%20Privacy.png)
 
 Phase 4 introduces order privacy, most likely utilizing zero knowledge proofs. Note that this phase is a research topic and is subject to change.
 
@@ -188,11 +188,11 @@ Some flexibility may be possible with order privacy, whereby some order details 
 
 ## OMG On-Chain Markets
 
-![on chain venue diagram](assets/dex_design/06_OMG On-chain Venue.png)
+![on chain venue diagram](assets/dex_design/06_OMG%20On-chain%20Venue.png)
 
 In conjunction with off-chain markets, on-chain markets that are maintained by the child chain consensus system is planned. Further research will be performed in this area to identify how on-chain markets fit into the ODEX market model.
 
-The research may occur in parallel to the development of off-chain markets, but development will initially commence with Constrained Custody (phase 1 and 2).
+The research may occur in parallel to the development of off-chain markets, but development will initially commence with Restricted Custody (phase 1 and 2).
 
 As was stated previously it is thought that viable and useful on-chain markets would be:
 
@@ -304,7 +304,7 @@ It may not be desirable to couple the consensus of the OMG Network into venues b
 
 An alternative final state of the ODEX would then look as follows:
 
-![ODEX Alternative state](assets/dex_design/08_ODEX Alternative State.png)
+![ODEX Alternative state](assets/dex_design/08_ODEX%20Alternative%20State.png)
 
 Whilst this model may relieve validators of computational load, we should take note the following points:
 
@@ -330,7 +330,7 @@ These value propositions still need to be validated for each of the target users
 
 Existing crypto exchanges can be hacked, leading to loss of user funds, loss of capital and loss of user confidence in the crypto ecosystem. Traditional venues (typically regulated) would like to participate in the crypto markets and offer services to their users but face all the same issues as crypto venues and therefore expose themselves to significant reputational damage and fail to offer a secure enough market to be attractive to their existing members. Both venue types could benefit significantly from:
 
-* Constrained Limited Custody of user funds
+* Restricted custody of user funds
 
 * Reduced regulatory exposure (such as not taking user deposits)
 
