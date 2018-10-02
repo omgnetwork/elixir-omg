@@ -1336,6 +1336,7 @@ run(Test, Opts) ->
 
 -spec rerun(test(), boolean(), imm_testcase() | counterexample()) -> run_result().
 rerun(Test, IsImm, ToTry) ->
+    io:fwrite("~nrunning rerun: (~p)", [IsImm]),
     Mode = case IsImm of
 	       true  -> try_shrunk;
 	       false -> try_cexm
@@ -1669,31 +1670,34 @@ shrink(ImmTestCase, Test, Reason,
             Print("~n\033[01;34mShrinking \033[00m", [])
     end,
     try
-	StrTest = skip_to_next(Test),
-	fix_shrink(ImmTestCase, StrTest, Reason, 0, MaxShrinks, Opts)
+        StrTest = skip_to_next(Test),
+        Print("~nStrTest: ~p", [StrTest]),
+        fix_shrink(ImmTestCase, StrTest, Reason, 0, MaxShrinks, Opts)
     of
-	{Shrinks,MinImmTestCase} ->
-	    case rerun(Test, true, MinImmTestCase) of
-		#fail{actions = MinActions} ->
+        {Shrinks,MinImmTestCase} ->
+            RerunResult = rerun(Test, true, MinImmTestCase),
+            Print("~nRerun: ~p", [RerunResult]),
+            case RerunResult of
+                #fail{actions = MinActions} ->
                     report_shrinking(Shrinks, MinImmTestCase, MinActions,
                                      Print, NoColors),
-		    {ok, MinImmTestCase};
-		%% The cases below should never occur for deterministic tests.
-		%% When they do happen, we have no choice but to silently
-		%% skip the fail actions.
-		#pass{} ->
+                    {ok, MinImmTestCase};
+                %% The cases below should never occur for deterministic tests.
+                %% When they do happen, we have no choice but to silently
+                %% skip the fail actions.
+                #pass{} ->
                     report_shrinking(Shrinks, MinImmTestCase, [], Print,
                                      NoColors),
-		    {ok, MinImmTestCase};
-		{error,_Reason} ->
+                    {ok, MinImmTestCase};
+                {error,_Reason} ->
                     report_shrinking(Shrinks, MinImmTestCase, [], Print,
                                      NoColors),
-		    {ok, MinImmTestCase}
-	    end
+                    {ok, MinImmTestCase}
+            end
     catch
-	throw:non_boolean_result ->
-	    Print("~n", []),
-	    {error, non_boolean_result}
+        throw:non_boolean_result ->
+            Print("~n", []),
+            {error, non_boolean_result}
     end;
 shrink(ImmTestCase, _Test, _Reason, _Opts) ->
     {ok, ImmTestCase}.
@@ -1705,11 +1709,11 @@ fix_shrink(ImmTestCase, _StrTest, _Reason, Shrinks, 0, _Opts) ->
     {Shrinks, ImmTestCase};
 fix_shrink(ImmTestCase, StrTest, Reason, Shrinks, ShrinksLeft, Opts) ->
     case shrink([], ImmTestCase, StrTest, Reason, 0, ShrinksLeft, init, Opts) of
-	{0,_MinImmTestCase} ->
-	    {Shrinks, ImmTestCase};
-	{MoreShrinks,MinImmTestCase} ->
-	    fix_shrink(MinImmTestCase, StrTest, Reason, Shrinks + MoreShrinks,
-		       ShrinksLeft - MoreShrinks, Opts)
+        {0,_MinImmTestCase} ->
+            {Shrinks, ImmTestCase};
+        {MoreShrinks,MinImmTestCase} ->
+            fix_shrink(MinImmTestCase, StrTest, Reason, Shrinks + MoreShrinks,
+                       ShrinksLeft - MoreShrinks, Opts)
     end.
 
 -spec shrink(imm_testcase(), imm_testcase(), stripped_test(), fail_reason(),

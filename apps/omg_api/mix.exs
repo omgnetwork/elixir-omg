@@ -38,7 +38,8 @@ defmodule OMG.API.MixProject do
   defp deps do
     [
       {:poison, "~> 3.1"},
-      {:propcheck, "~> 1.1", only: [:dev, :test]},
+      {:propcheck, path: "../../propcheck", override: true, only: [:dev, :test]},
+      {:proper, path: "../../proper", override: true, only: [:dev, :test]},
       {:phoenix_pubsub, "~> 1.0"},
       {:ex_rlp, "~> 0.2.1"},
       {:blockchain, "~> 0.1.6"},

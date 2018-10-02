@@ -328,7 +328,7 @@ defmodule PropCheck.StateM.DSL do
   @spec commands(module) :: BasicTypes.type()
   def commands(mod) do
     cmd_list = command_list(mod, "")
-    # Logger.debug "commands:  cmd_list = #{inspect cmd_list}"
+    IO.puts "commands:  cmd_list = #{inspect cmd_list}"
     gen_commands(mod, cmd_list)
   end
 
@@ -343,9 +343,9 @@ defmodule PropCheck.StateM.DSL do
   @spec is_valid(module, state_t, [BasicTypes.type]) :: boolean
   defp is_valid(_mod, _initial_state, []), do: true
   defp is_valid(mod, initial_state, cmds) do
-    # Logger.debug "is_valid: initial=#{inspect initial_state}"
-    # Logger.debug "is valid: cmds=#{inspect cmds, pretty: true}"
     {first_state, _} = hd(cmds)
+    # IO.puts "is_valid: initial=#{inspect initial_state}"
+    # IO.puts "is valid: cmds=#{inspect cmds, pretty: true}"
     initial_state == mod.initial_state() and
     initial_state == first_state and
     is_valid(mod, initial_state, cmds, %{})
@@ -368,7 +368,7 @@ defmodule PropCheck.StateM.DSL do
   @spec gen_cmd_list(pos_integer, [cmd_t], module, state_t, pos_integer) :: BasicTypes.type
   defp gen_cmd_list(0, _cmd_list, _mod, _state, _step_counter), do: exactly([])
   defp gen_cmd_list(size, cmd_list, mod, state, step_counter) do
-    # Logger.debug "gen_cmd_list: cmd_list = #{inspect cmd_list}"
+    # IO.puts "gen_cmd_list: cmd_list = #{inspect cmd_list}"
     cmds = create_cmds_with_args_in_state(cmd_list, mod, state)
 
     let call <-
@@ -419,14 +419,14 @@ defmodule PropCheck.StateM.DSL do
   """
   @spec run_commands([command]) :: t
   def run_commands(commands) when length(commands) > 0 do
-    # Logger.debug "Run commands: #{inspect commands, pretty: true}"
+    IO.puts "Run commands: #{inspect commands, pretty: true}"
     {initial_state, _cmd} = hd(commands)
     commands
     |> Enum.reduce(new_state(initial_state), fn
 
       # do nothing if a failure occured
       _cmd, acc = %__MODULE__{result: {r, _} } when r != :ok ->
-        # Logger.debug "Failed execution: r = #{inspect r}"
+        IO.puts "Failed execution: r = #{inspect r}"
         acc
 
       # execute the next command
@@ -442,11 +442,11 @@ defmodule PropCheck.StateM.DSL do
 
   @spec execute_cmd(state_call, t) :: history_event
   defp execute_cmd({_, {:set, v = {:var, _}, sym_c = {:call, _m, _f, _args}}}, prop_state) do
-    # Logger.debug "execute_cmd: symb call: #{inspect sym_c}"
+    # IO.puts "execute_cmd: symb call: #{inspect sym_c}"
     state = prop_state.state
-    # Logger.debug "execute_cmd: state = #{inspect state}"
+    # IO.puts "execute_cmd: state = #{inspect state}"
     replaced_call = replace_symb_vars(sym_c, prop_state.env)
-    # Logger.debug "execute_cmd: replaced vars: #{inspect replaced_call}"
+    # IO.puts "execute_cmd: replaced vars: #{inspect replaced_call}"
     result = if check_precondition(state, replaced_call) do
       try do
         {:call, mod, fun, args} = replaced_call
@@ -468,10 +468,10 @@ defmodule PropCheck.StateM.DSL do
     end
     s = case result do
       {:ok, r} ->
-        # Logger.debug "result is ok, calc next state from #{inspect state}"
-        # Logger.debug "replaced call is: #{inspect replaced_call}"
+        IO.puts "result is ok, calc next state from #{inspect state}"
+        IO.puts "replaced call is: #{inspect replaced_call}"
         new_state = call_next_state(state, replaced_call, r)
-        # Logger.debug "new state is: #{inspect new_state}"
+        IO.puts "new state is: #{inspect new_state}"
         new_state
       _ -> state
     end
@@ -515,7 +515,7 @@ defmodule PropCheck.StateM.DSL do
       result: result,
       history: [event | h],
       env: Map.put(env, v, value)}
-    # Logger.debug "Updated history: #{inspect h, pretty: true}"
+    IO.puts "Updated history: #{inspect h, pretty: true}"
     new_h
   end
 
