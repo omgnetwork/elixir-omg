@@ -37,7 +37,7 @@ defmodule OMG.API.State.PropTest.FormBlock do
   end
 
   def next(%{model: %{history: history} = model, eth: %{blknum: number} = eth} = state, [], _) do
-    blknum = div(number, Constants.child_block_interval()) * Constants.child_block_interval()
+    blknum = (div(number, Constants.child_block_interval()) + 1) * Constants.child_block_interval()
 
     %{
       state
