@@ -21,7 +21,7 @@ defmodule OMG.API do
   """
 
   alias OMG.API.{Core, FeeChecker, FreshBlocks, State}
-  use OMG.API.ExposeSpec
+  use OMG.JSONRPC.ExposeSpec
   use OMG.API.LoggerExt
 
   @spec submit(transaction :: bitstring) ::

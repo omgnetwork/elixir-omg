@@ -32,7 +32,9 @@ defmodule OMG.Umbrella.MixProject do
         "coveralls.html": ["coveralls.html --no-start"],
         "coveralls.detail": ["coveralls.detail --no-start"],
         "coveralls.post": ["coveralls.post --no-start"]
-      ]
+      ],
+      # Docs
+      source_url: "https://github.com/omisego/elixir-omg"
     ]
   end
 
@@ -49,7 +51,8 @@ defmodule OMG.Umbrella.MixProject do
       # NOTE: we're overriding for the sake of `omg_api` mix.exs deps. Otherwise the override is ignored
       # TODO: removing the override is advised, but it gives undefined symbol errors, see
       #       https://github.com/exthereum/exth_crypto/issues/8#issuecomment-416227176
-      {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true}
+      {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
+      {:ex_doc, "~> 0.19", only: :dev, runtime: false}
     ]
   end
 end

@@ -14,8 +14,8 @@
 
 defmodule OMG.DB do
   @moduledoc """
-  Our-types-aware port/adapter to the db backend.
-  Call these functions to access the data stored in the database
+  Our-types-aware port/adapter to a database backend.
+  Contains functions to access data stored in the database
   """
 
   ### Client (port)

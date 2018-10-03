@@ -13,10 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.Application do
-  @moduledoc """
-  See https://hexdocs.pm/elixir/Application.html
-  for more information on OTP Applications
-  """
+  @moduledoc false
   use Application
   use OMG.API.LoggerExt
 
@@ -29,11 +26,11 @@ defmodule OMG.Watcher.Application do
 
     children = [
       # Start the Ecto repository
-      supervisor(OMG.Watcher.Repo, []),
+      supervisor(OMG.Watcher.DB.Repo, []),
       # Start workers
       {OMG.API.State, []},
       {OMG.Watcher.Eventer, []},
-      {OMG.API.RootchainCoordinator, MapSet.new([:depositer, :fast_validator, :slow_validator, :block_getter])},
+      {OMG.API.RootChainCoordinator, MapSet.new([:depositer, :fast_validator, :slow_validator, :block_getter])},
       worker(
         OMG.API.EthereumEventListener,
         [
@@ -42,7 +39,7 @@ defmodule OMG.Watcher.Application do
             service_name: :depositer,
             block_finality_margin: block_finality_margin,
             get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
-            process_events_callback: &OMG.API.State.deposit/1,
+            process_events_callback: &deposit_events_callback/1,
             get_last_synced_height_callback: &OMG.DB.last_depositer_eth_height/0
           }
         ],
@@ -111,5 +108,11 @@ defmodule OMG.Watcher.Application do
         :ok = OMG.Watcher.ChainExiter.exit()
         :child_chain_exit
     end
+  end
+
+  defp deposit_events_callback(deposits) do
+    :ok = OMG.API.State.deposit(deposits)
+    _ = OMG.Watcher.DB.EthEventDB.insert_deposits(deposits)
+    :ok
   end
 end

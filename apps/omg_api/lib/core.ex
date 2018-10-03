@@ -14,7 +14,7 @@
 
 defmodule OMG.API.Core do
   @moduledoc """
-  Functional core work-horse for OMG.API.
+  Functional core work-horse for `OMG.API`.
   """
   alias OMG.API.State.Transaction
 
@@ -31,7 +31,7 @@ defmodule OMG.API.Core do
           | :signature_missing_for_input
 
   @doc """
-  Transforms an RLP-encoded child chain transaction (binary) into a:
+  Transforms a RLP-encoded child chain transaction (binary) into a:
     - decoded
     - statelessly valid (mainly inputs logic)
     - recovered (i.e. signatures get recovered into spenders)

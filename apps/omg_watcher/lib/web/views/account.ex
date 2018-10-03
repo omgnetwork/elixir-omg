@@ -12,9 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.ExposeSpecTest do
+defmodule OMG.Watcher.Web.View.Account do
   @moduledoc """
-  No test anymore, as there's nothing to test, see OMG.API.ExposeSpec and git blame
+  The account view for rendering json
   """
-  use ExUnit.Case
+
+  use OMG.Watcher.Web, :view
+
+  alias OMG.Watcher.Web.Serializer
+
+  def render("balance.json", %{balance: balance}) do
+    balance
+    |> Serializer.Response.serialize(:success)
+  end
 end

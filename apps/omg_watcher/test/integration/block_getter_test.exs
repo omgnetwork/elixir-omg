@@ -28,7 +28,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Eth
   alias OMG.JSONRPC.Client
   alias OMG.Watcher.Eventer.Event
-  alias OMG.Watcher.Integration
+  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Web.Channel
 
@@ -42,13 +42,25 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   @endpoint OMG.Watcher.Web.Endpoint
 
-  @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob, :alice_deposits]
+  @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob, :alice_deposits, :token]
   test "get the blocks from child chain after sending a transaction and start exit", %{
     alice: alice,
     bob: bob,
-    alice_deposits: {deposit_blknum, _}
+    token: token,
+    alice_deposits: {deposit_blknum, token_deposit_blknum}
   } do
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
+
+    token_addr = token |> Base.encode16()
+
+    token_deposit = %{
+      "amount" => 10,
+      "blknum" => token_deposit_blknum,
+      "txindex" => 0,
+      "oindex" => 0,
+      "currency" => token_addr,
+      "txbytes" => nil
+    }
 
     {:ok, _, _socket} =
       subscribe_and_join(socket(), Channel.Transfer, TestHelper.create_topic("transfer", alice_address))
@@ -56,31 +68,32 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
 
-    Integration.TestHelper.wait_until_block_getter_fetches_block(block_nr, @timeout)
+    IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
 
     encode_tx = Client.encode(tx)
 
     assert [
              %{
-               "currency" => @eth_hex,
                "amount" => 3,
-               "blknum" => block_nr,
-               "oindex" => 0,
+               "blknum" => ^block_nr,
                "txindex" => 0,
-               "txbytes" => encode_tx
+               "oindex" => 1,
+               "currency" => @eth_hex,
+               "txbytes" => ^encode_tx
              }
-           ] == get_utxo(bob)
+           ] = IntegrationTest.get_utxos(bob)
 
     assert [
+             ^token_deposit,
              %{
-               "currency" => @eth_hex,
                "amount" => 7,
-               "blknum" => block_nr,
-               "oindex" => 0,
+               "blknum" => ^block_nr,
                "txindex" => 0,
-               "txbytes" => encode_tx
+               "oindex" => 0,
+               "currency" => @eth_hex,
+               "txbytes" => ^encode_tx
              }
-           ] == get_utxo(alice)
+           ] = IntegrationTest.get_utxos(alice)
 
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
     {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(block_nr)
@@ -112,7 +125,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "sigs" => sigs
-    } = Integration.TestHelper.get_exit_data(block_nr, 0, 0)
+    } = IntegrationTest.get_exit_data(block_nr, 0, 0)
 
     {:ok, txhash} =
       Eth.RootChain.start_exit(
@@ -120,8 +133,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         txbytes,
         proof,
         sigs,
-        1,
-        alice_address
+        alice.addr
       )
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
@@ -137,6 +149,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     # wait until the exit is recognized and attempt to spend the exited utxo
     Process.sleep(4_000)
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
+
     {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
   end
 
@@ -153,22 +166,19 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     alice: alice,
     alice_deposits: {_, token_deposit_blknum}
   } do
-    {:ok, alice_address} = Crypto.encode_address(alice.addr)
-    {:ok, currency} = API.Crypto.decode_address(token.address)
-
-    token_tx = API.TestHelper.create_encoded([{token_deposit_blknum, 0, 0, alice}], currency, [{alice, 10}])
+    token_tx = API.TestHelper.create_encoded([{token_deposit_blknum, 0, 0, alice}], token, [{alice, 10}])
 
     # spend the token deposit
     {:ok, %{blknum: spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
 
-    Integration.TestHelper.wait_until_block_getter_fetches_block(spend_token_child_block, @timeout)
+    IntegrationTest.wait_until_block_getter_fetches_block(spend_token_child_block, @timeout)
 
     %{
       "txbytes" => txbytes,
       "proof" => proof,
       "sigs" => sigs,
       "utxo_pos" => utxo_pos
-    } = Integration.TestHelper.get_exit_data(spend_token_child_block, 0, 0)
+    } = IntegrationTest.get_exit_data(spend_token_child_block, 0, 0)
 
     {:ok, txhash} =
       Eth.RootChain.start_exit(
@@ -176,8 +186,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         txbytes,
         proof,
         sigs,
-        1,
-        alice_address
+        alice.addr
       )
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
@@ -268,19 +277,5 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   defp assert_block_getter_down do
     :ok = TestHelper.wait_for_process(Process.whereis(OMG.Watcher.BlockGetter))
-  end
-
-  defp get_utxo(%{addr: address}) do
-    {:ok, address_encode} = Crypto.encode_address(address)
-
-    assert %{
-             "result" => "success",
-             "data" => %{
-               "address" => ^address_encode,
-               "utxos" => utxos
-             }
-           } = TestHelper.rest_call(:get, "utxos?address=#{address_encode}")
-
-    utxos
   end
 end

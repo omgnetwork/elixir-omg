@@ -5,7 +5,7 @@
 # Inside the script, you can read and write to any of your
 # repositories directly:
 #
-#     OMG.Watcher.Repo.insert!(%OMG.Watcher.SomeSchema{})
+#     OMG.Watcher.DB.Repo.insert!(%OMG.Watcher.SomeSchema{})
 #
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.

@@ -51,8 +51,7 @@ defmodule OMG.API.State do
   end
 
   @spec deposit(deposits :: [Core.deposit()]) :: :ok
-  def deposit(deposits_enc) do
-    deposits = Enum.map(deposits_enc, &Core.decode_deposit/1)
+  def deposit(deposits) do
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
@@ -87,17 +86,27 @@ defmodule OMG.API.State do
     {:ok, utxos_query_result} = DB.utxos()
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
-    _ =
-      Logger.info(fn ->
-        "Started State, height '#{height_query_result}', deposit height '#{last_deposit_query_result}'"
-      end)
+    with {:ok, _data} = result <-
+           Core.extract_initial_state(
+             utxos_query_result,
+             height_query_result,
+             last_deposit_query_result,
+             child_block_interval
+           ) do
+      _ =
+        Logger.info(fn ->
+          "Started State, height: #{height_query_result}, deposit height: #{last_deposit_query_result}"
+        end)
 
-    Core.extract_initial_state(
-      utxos_query_result,
-      height_query_result,
-      last_deposit_query_result,
-      child_block_interval
-    )
+      result
+    else
+      {:error, reason} = error when reason in [:top_block_number_not_found, :last_deposit_not_found] ->
+        _ = Logger.error(fn -> "It seems that Child chain database is not initialized. Check README.md" end)
+        error
+
+      other ->
+        other
+    end
   end
 
   @doc """

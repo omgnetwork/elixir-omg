@@ -40,10 +40,10 @@ defmodule OMG.Watcher.Web.ChannelCase do
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.Repo)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.DB.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(OMG.Watcher.Repo, {:shared, self()})
+      Ecto.Adapters.SQL.Sandbox.mode(OMG.Watcher.DB.Repo, {:shared, self()})
     end
 
     :ok

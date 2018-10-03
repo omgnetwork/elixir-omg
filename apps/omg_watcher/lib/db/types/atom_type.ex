@@ -12,15 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Repo do
-  use Ecto.Repo, otp_app: :omg_watcher
-
-  @doc """
-  Dynamically loads the repository url from the
-  DATABASE_URL environment variable.
+defmodule OMG.Watcher.DB.Types.AtomType do
+  @moduledoc """
+  Custom Ecto type that converts DB's string value into atom.
   """
+  @behaviour Ecto.Type
+  def type, do: :string
 
-  def init(_, opts) do
-    {:ok, Keyword.put(opts, :url, System.get_env("DATABASE_URL"))}
-  end
+  def cast(value), do: {:ok, value}
+
+  def load(value), do: {:ok, String.to_existing_atom(value)}
+
+  def dump(value) when is_atom(value), do: {:ok, Atom.to_string(value)}
+
+  def dump(_), do: :error
 end

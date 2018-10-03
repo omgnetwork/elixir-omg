@@ -80,10 +80,10 @@ defmodule OMG.API.State.Core do
 
   @spec extract_initial_state(
           utxos_query_result :: [utxos],
-          height_query_result :: non_neg_integer,
-          last_deposit_child_blknum_query_result :: non_neg_integer,
+          height_query_result :: non_neg_integer | :not_found,
+          last_deposit_child_blknum_query_result :: non_neg_integer | :not_found,
           child_block_interval :: pos_integer
-        ) :: {:ok, t()}
+        ) :: {:ok, t()} | {:error, :last_deposit_not_found | :top_block_number_not_found}
   def extract_initial_state(
         utxos_query_result,
         height_query_result,
@@ -111,6 +111,24 @@ defmodule OMG.API.State.Core do
     }
 
     {:ok, state}
+  end
+
+  def extract_initial_state(
+        _utxos_query_result,
+        _height_query_result,
+        :not_found,
+        _child_block_interval
+      ) do
+    {:error, :last_deposit_not_found}
+  end
+
+  def extract_initial_state(
+        _utxos_query_result,
+        :not_found,
+        _last_deposit_child_blknum_query_result,
+        _child_block_interval
+      ) do
+    {:error, :top_block_number_not_found}
   end
 
   @doc """
@@ -308,12 +326,6 @@ defmodule OMG.API.State.Core do
     }
 
     {:ok, {block, event_triggers, db_updates}, new_state}
-  end
-
-  def decode_deposit(%{owner: owner, currency: currency} = deposit) do
-    {:ok, owner_decode} = Crypto.decode_address(owner)
-    {:ok, currency_decode} = Crypto.decode_address(currency)
-    %{deposit | owner: owner_decode, currency: currency_decode}
   end
 
   @spec deposit(deposits :: [deposit()], state :: t()) :: {:ok, {[deposit_event], [db_update]}, new_state :: t()}

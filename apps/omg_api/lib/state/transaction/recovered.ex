@@ -14,8 +14,8 @@
 
 defmodule OMG.API.State.Transaction.Recovered do
   @moduledoc """
-  Representation of a Signed transaction, with addresses recovered from signatures (from Transaction.Signed)
-  Intent is to allow concurent processing of signatures outside of serial processing in state.ex
+  Representation of a Signed transaction, with addresses recovered from signatures (from `OMG.API.State.Transaction.Signed`)
+  Intent is to allow concurent processing of signatures outside of serial processing in `OMG.API.State`
   """
 
   alias OMG.API.Crypto

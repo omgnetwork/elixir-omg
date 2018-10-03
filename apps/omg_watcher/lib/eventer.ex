@@ -18,7 +18,7 @@ defmodule OMG.Watcher.Eventer do
   All handling of event triggers that are processed, transformed into events and pushed to Phoenix Channels
   for their respective topics is intended to be done here.
 
-  See OMG.API.EventerAPI for the API to the GenServer
+  See `OMG.API.EventerAPI` for the API to the GenServer
   """
 
   alias OMG.JSONRPC
@@ -41,7 +41,7 @@ defmodule OMG.Watcher.Eventer do
 
   def handle_cast({:emit_events, event_triggers}, state) do
     event_triggers
-    |> Core.prepare_events()
+    |> Core.pair_events_with_topics()
     |> Enum.each(fn {topic, event_name, event} ->
       :ok = Endpoint.broadcast!(topic, event_name, JSONRPC.Client.encode(event))
     end)

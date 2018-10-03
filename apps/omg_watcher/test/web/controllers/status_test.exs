@@ -41,6 +41,9 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "status endpoint returns error when ethereum node is missing" do
+      # we're not running geth, but need to pretend that the root chain contract is configured somehow though:
+      Application.put_env(:omg_eth, :contract_addr, "0x00", persistent: true)
+
       {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
 
       assert %{

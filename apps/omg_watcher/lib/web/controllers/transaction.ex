@@ -20,7 +20,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
-  alias OMG.Watcher.{TransactionDB}
+  alias OMG.Watcher.DB.TransactionDB
   alias OMG.Watcher.Web.View
 
   import OMG.Watcher.Web.ErrorHandler

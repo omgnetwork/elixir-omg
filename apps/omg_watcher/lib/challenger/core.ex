@@ -22,74 +22,56 @@ defmodule OMG.Watcher.Challenger.Core do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Watcher.Challenger.Challenge
-  alias OMG.Watcher.TransactionDB
+  alias OMG.Watcher.DB.TransactionDB
 
-  @spec create_challenge(%TransactionDB{}, list(%TransactionDB{}), Utxo.Position.t()) :: Challenge.t()
-  def create_challenge(challenging_tx, txs, utxo_exit) do
-    txbytes = encode(challenging_tx)
-    eutxoindex = get_eutxo_index(challenging_tx, utxo_exit)
+  @doc """
+  Creates a challenge for exiting utxo. Data is prepared that transaction contains only one input
+  which is UTXO being challenged.
+  More: [contract's challengeExit](https://github.com/omisego/plasma-contracts/blob/22936d561a036d49aa6a215531e70c5779df058f/contracts/RootChain.sol#L244)
+  """
+  @spec create_challenge(%TransactionDB{}, list(%TransactionDB{})) :: Challenge.t()
+  def create_challenge(challenging_tx, txs) do
+    # eUtxoIndex - The output position of the exiting utxo.
+    eutxoindex = get_eutxo_index(challenging_tx)
+    # cUtxoPos - The position of the challenging utxo.
     cutxopos = challenging_utxo_pos(challenging_tx)
 
-    hashed_txs =
+    txs_hashes =
       txs
       |> Enum.sort_by(& &1.txindex)
-      |> Enum.map(fn tx -> tx.txid end)
+      |> Enum.map(& &1.txhash)
 
-    proof = Block.create_tx_proof(hashed_txs, challenging_tx.txindex)
+    proof = Block.create_tx_proof(txs_hashes, challenging_tx.txindex)
 
-    Challenge.create(cutxopos, eutxoindex, txbytes, proof, challenging_tx.sig1 <> challenging_tx.sig2)
+    {:ok,
+     %Transaction.Signed{
+       raw_tx: raw_tx,
+       sig1: sig1,
+       sig2: sig2
+     }} = Transaction.Signed.decode(challenging_tx.txbytes)
+
+    Challenge.create(
+      cutxopos,
+      eutxoindex,
+      Transaction.encode(raw_tx),
+      proof,
+      sig1 <> sig2
+    )
   end
 
-  defp encode(%TransactionDB{
-         blknum1: blknum1,
-         txindex1: txindex1,
-         oindex1: oindex1,
-         blknum2: blknum2,
-         txindex2: txindex2,
-         oindex2: oindex2,
-         cur12: cur12,
-         newowner1: newowner1,
-         amount1: amount1,
-         newowner2: newowner2,
-         amount2: amount2
+  defp challenging_utxo_pos(%TransactionDB{
+         outputs: outputs,
+         blknum: blknum,
+         txindex: txindex
        }) do
-    tx = %Transaction{
-      blknum1: blknum1,
-      txindex1: txindex1,
-      oindex1: oindex1,
-      blknum2: blknum2,
-      txindex2: txindex2,
-      oindex2: oindex2,
-      cur12: cur12,
-      newowner1: newowner1,
-      amount1: amount1,
-      newowner2: newowner2,
-      amount2: amount2
-    }
+    non_zero_output = outputs |> Enum.find(&(&1.amount > 0))
 
-    Transaction.encode(tx)
-  end
-
-  defp get_eutxo_index(
-         %TransactionDB{blknum1: blknum, txindex1: txindex, oindex1: oindex},
-         Utxo.position(blknum, txindex, oindex)
-       ),
-       do: 0
-
-  defp get_eutxo_index(
-         %TransactionDB{blknum2: blknum, txindex2: txindex, oindex2: oindex},
-         Utxo.position(blknum, txindex, oindex)
-       ),
-       do: 1
-
-  defp challenging_utxo_pos(challenging_tx) do
-    challenging_tx
-    |> get_challenging_utxo()
+    Utxo.position(blknum, txindex, non_zero_output.creating_tx_oindex)
     |> Utxo.Position.encode()
   end
 
-  defp get_challenging_utxo(%TransactionDB{txblknum: blknum, txindex: txindex, amount1: 0}),
-    do: Utxo.position(blknum, txindex, 1)
-
-  defp get_challenging_utxo(%TransactionDB{txblknum: blknum, txindex: txindex}), do: Utxo.position(blknum, txindex, 0)
+  # here: challenging_tx is prepared to contain just utxo_exit input only,
+  # see: TransactionDB.get_transaction_challenging_utxo/1
+  defp get_eutxo_index(%TransactionDB{inputs: [input]}),
+    do: input.spending_tx_oindex
 end

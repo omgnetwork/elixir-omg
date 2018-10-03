@@ -12,17 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Eth.Encoding do
-  @moduledoc """
-  Internal encoding helpers to talk to ethereum.
-  To be used in Eth and DevHelper
-  """
-
-  def encode_eth_rpc_unsigned_int(0) do
-    "0x0"
-  end
-
-  def encode_eth_rpc_unsigned_int(value) do
-    "0x" <> (value |> :binary.encode_unsigned() |> Base.encode16() |> String.trim_leading("0"))
-  end
+defmodule OMG.Watcher.DB.Repo do
+  use Ecto.Repo, otp_app: :omg_watcher
 end
