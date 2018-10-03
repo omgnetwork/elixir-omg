@@ -37,13 +37,15 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   end
 
   @doc """
-  Produces transaction bytes for provided inputs and outputs.
+  Produces hex-encoded transaction bytes for provided inputs and outputs.
 
   This is a convenience endpoint used by wallets. User's utxos and new outputs are provided to the endpoint.
   The endpoint respond with transaction bytes the wallet uses to sign with user's keys. Then signed transaction
   is submitted directly to plasma chain.
   """
   def post_transaction(conn, body) do
+    IO.puts("My body: #{inspect(body)}")
+
     Transaction.new(
       [{0, 1, 3}, {2, 4, 8}],
       <<0::160>>,
@@ -66,7 +68,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     %{
       Transaction:
         swagger_schema do
-          title("Transaction")
+          title("The Transaction")
 
           properties do
             txid(:string, "Transaction id", required: true)
@@ -111,6 +113,35 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
             spender1: "92EAD0DB732692FF887268DA965C311AC2C9005B",
             spender2: "92EAD0DB732692FF887268DA965C311AC2C9005B"
           })
+        end,
+      Output:
+        swagger_schema do
+          title("The Output")
+
+          properties do
+            amount(:integer, "Amount of the currency spent in inputs", required: true)
+            owner(:string, "Address of output's owner", required: true)
+          end
+
+          example(%{
+            "amount" => 97,
+            "owner" => "B3256026863EB6AE5B06FA396AB09069784EA8EA"
+          })
+        end,
+      Outputs:
+        swagger_schema do
+          title("The array of outputs")
+          type(:array)
+          items(Schema.ref(:Output))
+        end,
+      Post_Transaction_Body:
+        swagger_schema do
+          title("The POST method '/transaction' request body schema")
+
+          properties do
+            inputs(Schema.ref(:Utxos), "The array of utxo to spend", required: true)
+            outputs(Schema.ref(:Outputs), "The array of new owners and amounts", required: true)
+          end
         end
     }
   end
@@ -124,5 +155,16 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     end
 
     response(200, "OK", Schema.ref(:Transaction))
+  end
+
+  swagger_path :post_transaction do
+    post("/transaction")
+    summary("Produces hex-encoded transaction bytes for provided inputs and outputs.")
+
+    parameters do
+      body(:body, Schema.ref(:Post_Transaction_Body), "The request body", required: true)
+    end
+
+    response(200, "OK")
   end
 end
