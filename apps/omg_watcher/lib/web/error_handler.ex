@@ -31,6 +31,37 @@ defmodule OMG.Watcher.Web.ErrorHandler do
       code: "transaction:not_found",
       description: "Transaction doesn't exist for provided search criteria",
       status_code: 404
+    },
+    too_many_inputs: %{
+      code: "transaction_encode:too_many_inputs",
+      description: "Too many inputs provided that currently supported by plasma chain transaction.",
+      status_code: 400
+    },
+    at_least_one_input_required: %{
+      code: "transaction_encode:at_least_one_input_required",
+      description: "At least one input has to be provided to create plasma chain transaction.",
+      status_code: 400
+    },
+    too_many_outputs: %{
+      code: "transaction_encode:too_many_outputs",
+      description: "Too many outputs provided that currently supported by plasma chain transaction.",
+      status_code: 400
+    },
+    not_enough_funds_to_cover_spend: %{
+      code: "transaction_encode:not_enough_funds_to_cover_spend",
+      description: "The value of outputs exceeds what is spend in inputs.",
+      status_code: 400
+    },
+    amount_noninteger_or_negative: %{
+      code: "transaction_encode:amount_noninteger_or_negative",
+      description: "The amount in both inputs and outputs has to be positive integer.",
+      status_code: 400
+    },
+    currency_mixing_not_possible: %{
+      code: "transaction_encode:currency_mixing_not_possible",
+      description:
+        "Inputs contain more than one currency. Mixing currencies are not possible in plasma chain transaction.",
+      status_code: 400
     }
   }
 

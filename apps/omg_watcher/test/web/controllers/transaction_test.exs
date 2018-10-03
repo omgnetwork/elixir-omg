@@ -148,6 +148,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox, :inputs, :outputs]
     test "validates number of provided inputs and outputs", %{inputs: inputs, outputs: outputs} do
+      # Too many inputs
       body = %{
         "inputs" => inputs ++ inputs,
         "outputs" => outputs
@@ -157,10 +158,25 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                "result" => "error",
                "data" => %{
                  "description" => "Too many inputs provided that currently supported by plasma chain transaction.",
-                 "code" => "too_many_inputs"
+                 "code" => "transaction_encode:too_many_inputs"
                }
              } == TestHelper.rest_call(:post, "/transaction", body, 400)
 
+      # At least one input required
+      body = %{
+        "inputs" => [],
+        "outputs" => outputs
+      }
+
+      assert %{
+               "result" => "error",
+               "data" => %{
+                 "description" => "At least one input has to be provided to create plasma chain transaction.",
+                 "code" => "transaction_encode:at_least_one_input_required"
+               }
+             } == TestHelper.rest_call(:post, "/transaction", body, 400)
+
+      # Too many outputs
       body = %{
         "inputs" => inputs,
         "outputs" => outputs ++ outputs
@@ -170,7 +186,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                "result" => "error",
                "data" => %{
                  "description" => "Too many outputs provided that currently supported by plasma chain transaction.",
-                 "code" => "too_many_outputs"
+                 "code" => "transaction_encode:too_many_outputs"
                }
              } == TestHelper.rest_call(:post, "/transaction", body, 400)
     end
@@ -186,7 +202,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                "result" => "error",
                "data" => %{
                  "description" => "The value of outputs exceeds what is spend in inputs.",
-                 "code" => "not_enough_funds_to_cover_spend"
+                 "code" => "transaction_encode:not_enough_funds_to_cover_spend"
                }
              } == TestHelper.rest_call(:post, "/transaction", body, 400)
     end
@@ -198,9 +214,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     } do
       expected_error_data = %{
         "description" => "The amount in both inputs and outputs has to be positive integer.",
-        "code" => "amount_noninteger_or_negative"
+        "code" => "transaction_encode:amount_noninteger_or_negative"
       }
 
+      # Negative amount in inputs
       body = %{
         "inputs" => [%{input1 | "amount" => -1}],
         "outputs" => [output1]
@@ -211,6 +228,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                "data" => expected_error_data
              } == TestHelper.rest_call(:post, "/transaction", body, 400)
 
+      # Negative amount in outputs
       body = %{
         "inputs" => [input1],
         "outputs" => [%{output1 | "amount" => -1}]
@@ -221,6 +239,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                "data" => expected_error_data
              } == TestHelper.rest_call(:post, "/transaction", body, 400)
 
+      # Non-integer amount in outputs
       body = %{
         "inputs" => [input1],
         "outputs" => [%{output1 | "amount" => "NaN"}]
@@ -244,7 +263,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                "data" => %{
                  "description" =>
                    "Inputs contain more than one currency. Mixing currencies are not possible in plasma chain transaction.",
-                 "code" => "currency_mixing_not_possible"
+                 "code" => "transaction_encode:currency_mixing_not_possible"
                }
              } == TestHelper.rest_call(:post, "/transaction", body, 400)
     end
