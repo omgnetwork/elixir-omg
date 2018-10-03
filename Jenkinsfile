@@ -41,7 +41,7 @@ podTemplate(
                     commitMessage = sh(returnStdout: true, script: "git log -1 --pretty=%B")
                     sh ("""
                         set +x
-                        mix coveralls.post --umbrella --include integration --include wrappers --token '${ELIXIR_OMG_COVERALLS}' --branch '${scmVars.GIT_BRANCH}' --name 'Jenkins' --sha '${scmVars.GIT_COMMIT}' --message '${commitMessage}'
+                        mix coveralls.post --umbrella --include integration --include wrappers --token '${ELIXIR_OMG_COVERALLS}' --branch '${scmVars.GIT_BRANCH}' --sha '${scmVars.GIT_COMMIT}' --message '${commitMessage}'
                     """)
                 }
            }
