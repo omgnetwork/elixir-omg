@@ -66,14 +66,14 @@ defmodule OMG.API.State.Transaction do
           [
             %{
               blknum: pos_integer(),
-              txindex: pos_integer(),
+              txindex: non_neg_integer(),
               oindex: 0 | 1,
               currency: Crypto.address_t(),
               amount: pos_integer()
             }
           ],
-          [%{owner: Crypto.address_t(), amount: pos_integer()}],
-          pos_integer()
+          [%{owner: Crypto.address_t(), amount: non_neg_integer()}],
+          non_neg_integer()
         ) :: {:ok, t()} | {:error, atom()}
   def create_from_utxos(inputs, outputs, fee)
   def create_from_utxos(inputs, _, _) when not is_list(inputs), do: {:error, :inputs_should_be_list}
