@@ -20,6 +20,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
+  alias OMG.API.State.Transaction
   alias OMG.Watcher.DB.TransactionDB
   alias OMG.Watcher.Web.View
 
@@ -35,13 +36,31 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     |> respond(conn)
   end
 
-  defp respond(%TransactionDB{} = transaction, conn) do
-    render(conn, View.Transaction, :transaction, transaction: transaction)
+  @doc """
+  Produces transaction bytes for provided inputs and outputs.
+
+  This is a convenience endpoint used by wallets. User's utxos and new outputs are provided to the endpoint.
+  The endpoint respond with transaction bytes the wallet uses to sign with user's keys. Then signed transaction
+  is submitted directly to plasma chain.
+  """
+  def post_transaction(conn, body) do
+    Transaction.new(
+      [{0, 1, 3}, {2, 4, 8}],
+      <<0::160>>,
+      [{<<1::160>>, 121}]
+    )
+    |> respond(conn)
   end
 
-  defp respond(nil, conn) do
-    handle_error(conn, :transaction_not_found)
-  end
+  defp respond(%TransactionDB{} = transaction, conn),
+    do: render(conn, View.Transaction, :transaction, transaction: transaction)
+
+  defp respond(nil, conn), do: handle_error(conn, :transaction_not_found)
+
+  defp respond(%Transaction{} = transaction, conn),
+    do: render(conn, View.Transaction, :transaction_encode, transaction: transaction)
+
+  defp respond({:error, code}, conn) when is_atom(code), do: handle_error(conn, code)
 
   def swagger_definitions do
     %{
