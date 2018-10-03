@@ -39,7 +39,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
         "blknum" => 5000,
         "txindex" => 17,
         "oindex" => 1,
-        "txbytes" => String.duplicate("00", 120)
+        "txbytes" => nil
       }
     ]
   end

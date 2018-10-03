@@ -20,7 +20,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
-  alias OMG.API.State.Transaction
+  alias OMG.API.State.Transaction, as: StateTransaction
   alias OMG.Watcher.DB.TransactionDB
   alias OMG.Watcher.Web.View
 
@@ -44,13 +44,12 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   is submitted directly to plasma chain.
   """
   def post_transaction(conn, body) do
-    IO.puts("My body: #{inspect(body)}")
-
-    Transaction.new(
-      [{0, 1, 3}, {2, 4, 8}],
-      <<0::160>>,
-      [{<<1::160>>, 121}]
-    )
+    with {inputs, outputs} <- parse_request_body(body),
+         # fees not supported yet
+         fee <- 0,
+         {:ok, transaction} <- StateTransaction.create_from_utxos(inputs, outputs, fee) do
+      transaction
+    end
     |> respond(conn)
   end
 
@@ -59,10 +58,26 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
 
   defp respond(nil, conn), do: handle_error(conn, :transaction_not_found)
 
-  defp respond(%Transaction{} = transaction, conn),
+  defp respond(%StateTransaction{} = transaction, conn),
     do: render(conn, View.Transaction, :transaction_encode, transaction: transaction)
 
   defp respond({:error, code}, conn) when is_atom(code), do: handle_error(conn, code)
+
+  defp parse_request_body(%{"inputs" => inputs, "outputs" => outputs}) when is_list(inputs) and is_list(outputs) do
+    {
+      inputs
+      |> Enum.map(&Map.delete(&1, "txbytes"))
+      |> Enum.map(fn %{} = input ->
+        input = input |> Enum.into(%{}, fn {k, v} -> {String.to_existing_atom(k), v} end)
+        %{input | currency: Base.decode16!(input.currency, case: :mixed)}
+      end),
+      outputs
+      |> Enum.map(fn %{} = output ->
+        output = output |> Enum.into(%{}, fn {k, v} -> {String.to_existing_atom(k), v} end)
+        %{output | owner: OMG.API.Crypto.decode_address!(output.owner)}
+      end)
+    }
+  end
 
   def swagger_definitions do
     %{
