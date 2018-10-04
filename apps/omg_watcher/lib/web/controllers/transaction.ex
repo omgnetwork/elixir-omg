@@ -40,12 +40,12 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   Produces hex-encoded transaction bytes for provided inputs and outputs.
 
   This is a convenience endpoint used by wallets. User's utxos and new outputs are provided to the endpoint.
-  The endpoint respond with transaction bytes the wallet uses to sign with user's keys. Then signed transaction
+  The endpoint responds with transaction bytes that wallet uses to sign with user's keys. Then signed transaction
   is submitted directly to plasma chain.
   """
-  def post_transaction(conn, body) do
+  def encode_transaction(conn, body) do
     with {inputs, outputs} <- parse_request_body(body),
-         # fees not supported yet
+         # TODO: Transaction's fees are not supported yet
          fee <- 0,
          {:ok, transaction} <- StateTransaction.create_from_utxos(inputs, outputs, fee) do
       transaction
@@ -83,7 +83,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     %{
       Transaction:
         swagger_schema do
-          title("The Transaction")
+          title("Transaction")
 
           properties do
             txid(:string, "Transaction id", required: true)
@@ -131,10 +131,10 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
         end,
       Output:
         swagger_schema do
-          title("The Output")
+          title("Output")
 
           properties do
-            amount(:integer, "Amount of the currency spent in inputs", required: true)
+            amount(:integer, "Amount of the currency. Currency is derived from inputs.", required: true)
             owner(:string, "Address of output's owner", required: true)
           end
 
@@ -145,17 +145,17 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
         end,
       Outputs:
         swagger_schema do
-          title("The array of outputs")
+          title("Array of outputs")
           type(:array)
           items(Schema.ref(:Output))
         end,
       Post_Transaction_Body:
         swagger_schema do
-          title("The POST method '/transaction' request body schema")
+          title("Inputs and outputs to transaction")
 
           properties do
-            inputs(Schema.ref(:Utxos), "The array of utxo to spend", required: true)
-            outputs(Schema.ref(:Outputs), "The array of new owners and amounts", required: true)
+            inputs(Schema.ref(:Utxos), "Array of utxos to spend", required: true)
+            outputs(Schema.ref(:Outputs), "Array of new owners and amounts", required: true)
           end
         end
     }
@@ -172,7 +172,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     response(200, "OK", Schema.ref(:Transaction))
   end
 
-  swagger_path :post_transaction do
+  swagger_path :encode_transaction do
     post("/transaction")
     summary("Produces hex-encoded transaction bytes for provided inputs and outputs.")
 

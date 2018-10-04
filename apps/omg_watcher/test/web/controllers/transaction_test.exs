@@ -157,7 +157,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert %{
                "result" => "error",
                "data" => %{
-                 "description" => "Too many inputs provided than currently supported by plasma chain transaction.",
+                 "description" => "More inputs provided than currently supported by plasma chain transaction.",
                  "code" => "transaction_encode:too_many_inputs"
                }
              } == TestHelper.rest_call(:post, "/transaction", body, 400)
@@ -185,7 +185,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert %{
                "result" => "error",
                "data" => %{
-                 "description" => "Too many outputs provided than currently supported by plasma chain transaction.",
+                 "description" => "More outputs provided than currently supported by plasma chain transaction.",
                  "code" => "transaction_encode:too_many_outputs"
                }
              } == TestHelper.rest_call(:post, "/transaction", body, 400)
@@ -213,7 +213,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       outputs: [output1 | _]
     } do
       expected_error_data = %{
-        "description" => "The amount in both inputs and outputs has to be positive integer.",
+        "description" => "The amount in both inputs and outputs has to be non-negative integer.",
         "code" => "transaction_encode:amount_noninteger_or_negative"
       }
 
@@ -262,7 +262,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                "result" => "error",
                "data" => %{
                  "description" =>
-                   "Inputs contain more than one currency. Mixing currencies are not possible in plasma chain transaction.",
+                   "Inputs contain more than one currency. Mixing currencies is not possible in plasma chain transaction.",
                  "code" => "transaction_encode:currency_mixing_not_possible"
                }
              } == TestHelper.rest_call(:post, "/transaction", body, 400)

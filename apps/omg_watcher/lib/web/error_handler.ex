@@ -34,7 +34,7 @@ defmodule OMG.Watcher.Web.ErrorHandler do
     },
     too_many_inputs: %{
       code: "transaction_encode:too_many_inputs",
-      description: "Too many inputs provided than currently supported by plasma chain transaction.",
+      description: "More inputs provided than currently supported by plasma chain transaction.",
       status_code: 400
     },
     at_least_one_input_required: %{
@@ -44,7 +44,7 @@ defmodule OMG.Watcher.Web.ErrorHandler do
     },
     too_many_outputs: %{
       code: "transaction_encode:too_many_outputs",
-      description: "Too many outputs provided than currently supported by plasma chain transaction.",
+      description: "More outputs provided than currently supported by plasma chain transaction.",
       status_code: 400
     },
     not_enough_funds_to_cover_spend: %{
@@ -54,13 +54,13 @@ defmodule OMG.Watcher.Web.ErrorHandler do
     },
     amount_noninteger_or_negative: %{
       code: "transaction_encode:amount_noninteger_or_negative",
-      description: "The amount in both inputs and outputs has to be positive integer.",
+      description: "The amount in both inputs and outputs has to be non-negative integer.",
       status_code: 400
     },
     currency_mixing_not_possible: %{
       code: "transaction_encode:currency_mixing_not_possible",
       description:
-        "Inputs contain more than one currency. Mixing currencies are not possible in plasma chain transaction.",
+        "Inputs contain more than one currency. Mixing currencies is not possible in plasma chain transaction.",
       status_code: 400
     }
   }

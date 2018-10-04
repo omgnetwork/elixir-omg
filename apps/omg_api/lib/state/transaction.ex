@@ -57,8 +57,8 @@ defmodule OMG.API.State.Transaction do
   Creates transaction from utxo positions and outputs. Provides simple, stateless validation on arguments.
 
   #### Assumptions:
-   * length of inputs between 1 and @max_inputs
-   * length of outputs between 0 and @max_inputs
+   * length of inputs between 1 and `@max_inputs`
+   * length of outputs between 0 and `@max_inputs`
    * the same currency for each output
    * all amounts are non-negative integers
   """
@@ -110,9 +110,10 @@ defmodule OMG.API.State.Transaction do
       else: {:error, :currency_mixing_not_possible}
   end
 
-  defp validate_amount(outputs) do
+  # Validates amount in both inputs and outputs
+  defp validate_amount(items) do
     all_valid? =
-      outputs
+      items
       |> Enum.map(& &1.amount)
       |> Enum.all?(fn amount -> is_integer(amount) and amount >= 0 end)
 
