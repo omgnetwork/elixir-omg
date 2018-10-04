@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   def get_transaction(conn, %{"id" => id}) do
     decode16 = fn id ->
       case Base.decode16(id) do
-        :error -> {:error, :invalid_parameter}
+        :error -> {:error, :invalid_transaction_id}
         decoded -> decoded
       end
     end

@@ -32,6 +32,11 @@ defmodule OMG.Watcher.Web.ErrorHandler do
       description: "Transaction doesn't exist for provided search criteria",
       status_code: 404
     },
+    invalid_transaction_id: %{
+      code: "transaction:invalid_transaction_id",
+      description: "Provided transaction id is invalid.",
+      status_code: 400
+    },
     too_many_inputs: %{
       code: "transaction_encode:too_many_inputs",
       description: "Too many inputs provided than currently supported by plasma chain transaction.",
@@ -61,6 +66,16 @@ defmodule OMG.Watcher.Web.ErrorHandler do
       code: "transaction_encode:currency_mixing_not_possible",
       description:
         "Inputs contain more than one currency. Mixing currencies are not possible in plasma chain transaction.",
+      status_code: 400
+    },
+    bad_address_encoding: %{
+      code: "address:bad_address_encoding",
+      description: "Provided address is invalid.",
+      status_code: 400
+    },
+    invalid_utxo_position: %{
+      code: "utxo:invalid_utxo_position",
+      description: "Provided utxo is invalid.",
       status_code: 400
     }
   }
