@@ -157,7 +157,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert %{
                "result" => "error",
                "data" => %{
-                 "description" => "Too many inputs provided that currently supported by plasma chain transaction.",
+                 "description" => "Too many inputs provided than currently supported by plasma chain transaction.",
                  "code" => "transaction_encode:too_many_inputs"
                }
              } == TestHelper.rest_call(:post, "/transaction", body, 400)
@@ -185,7 +185,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert %{
                "result" => "error",
                "data" => %{
-                 "description" => "Too many outputs provided that currently supported by plasma chain transaction.",
+                 "description" => "Too many outputs provided than currently supported by plasma chain transaction.",
                  "code" => "transaction_encode:too_many_outputs"
                }
              } == TestHelper.rest_call(:post, "/transaction", body, 400)
@@ -201,7 +201,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert %{
                "result" => "error",
                "data" => %{
-                 "description" => "The value of outputs exceeds what is spend in inputs.",
+                 "description" => "The value of outputs exceeds what is spent in inputs.",
                  "code" => "transaction_encode:not_enough_funds_to_cover_spend"
                }
              } == TestHelper.rest_call(:post, "/transaction", body, 400)

@@ -34,7 +34,7 @@ defmodule OMG.Watcher.Web.ErrorHandler do
     },
     too_many_inputs: %{
       code: "transaction_encode:too_many_inputs",
-      description: "Too many inputs provided that currently supported by plasma chain transaction.",
+      description: "Too many inputs provided than currently supported by plasma chain transaction.",
       status_code: 400
     },
     at_least_one_input_required: %{
@@ -44,12 +44,12 @@ defmodule OMG.Watcher.Web.ErrorHandler do
     },
     too_many_outputs: %{
       code: "transaction_encode:too_many_outputs",
-      description: "Too many outputs provided that currently supported by plasma chain transaction.",
+      description: "Too many outputs provided than currently supported by plasma chain transaction.",
       status_code: 400
     },
     not_enough_funds_to_cover_spend: %{
       code: "transaction_encode:not_enough_funds_to_cover_spend",
-      description: "The value of outputs exceeds what is spend in inputs.",
+      description: "The value of outputs exceeds what is spent in inputs.",
       status_code: 400
     },
     amount_noninteger_or_negative: %{
