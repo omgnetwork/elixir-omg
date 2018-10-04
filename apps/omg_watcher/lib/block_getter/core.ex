@@ -37,7 +37,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     :height_sync_blknums,
     :synced_height,
     :last_applied_block,
-    :start_download_blknum,
+    :num_of_heighest_block_being_downloaded,
     :block_interval,
     :number_of_blocks_being_downloaded,
     :maximum_number_of_pending_blocks,
@@ -50,7 +50,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           height_sync_blknums: MapSet.t(),
           synced_height: pos_integer(),
           last_applied_block: non_neg_integer,
-          start_download_blknum: non_neg_integer,
+          num_of_heighest_block_being_downloaded: non_neg_integer,
           block_interval: pos_integer,
           number_of_blocks_being_downloaded: non_neg_integer,
           maximum_number_of_pending_blocks: pos_integer,
@@ -89,7 +89,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
       height_sync_blknums: MapSet.new(),
       synced_height: synced_height,
       last_applied_block: block_number,
-      start_download_blknum: block_number,
+      num_of_heighest_block_being_downloaded: block_number,
       block_interval: child_block_interval,
       number_of_blocks_being_downloaded: 0,
       maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 10),
@@ -198,7 +198,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @spec get_numbers_of_blocks_to_download(%__MODULE__{}, non_neg_integer) :: {%__MODULE__{}, list(non_neg_integer)}
   def get_numbers_of_blocks_to_download(
         %__MODULE__{
-          start_download_blknum: start_download_blknum,
+          num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded,
           block_interval: block_interval,
           number_of_blocks_being_downloaded: number_of_blocks_being_downloaded,
           potential_block_withholdings: potential_block_withholdings,
@@ -206,7 +206,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         } = state,
         next_child
       ) do
-    first_block_number = start_download_blknum + block_interval
+    first_block_number = num_of_heighest_block_being_downloaded + block_interval
 
     number_of_empty_slots = maximum_number_of_pending_blocks - number_of_blocks_being_downloaded
 
@@ -222,13 +222,14 @@ defmodule OMG.Watcher.BlockGetter.Core do
       (potential_block_withholding_numbers ++ potential_next_block_numbers)
       |> Enum.take(number_of_empty_slots)
 
-    [start_download_blknum | _] = ([start_download_blknum] ++ blocks_numbers) |> Enum.sort(&(&1 > &2))
+    [num_of_heighest_block_being_downloaded | _] =
+      ([num_of_heighest_block_being_downloaded] ++ blocks_numbers) |> Enum.sort(&(&1 > &2))
 
     {
       %{
         state
         | number_of_blocks_being_downloaded: length(blocks_numbers) + number_of_blocks_being_downloaded,
-          start_download_blknum: start_download_blknum
+          num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded
       },
       blocks_numbers
     }
@@ -263,14 +264,19 @@ defmodule OMG.Watcher.BlockGetter.Core do
   defp validate_downloaded_block(
          %__MODULE__{
            unapplied_blocks: unapplied_blocks,
-           start_download_blknum: start_download_blknum,
+           num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded,
            last_applied_block: last_applied_block,
            potential_block_withholdings: potential_block_withholdings
          } = state,
          {:ok, %{number: number} = block}
        ) do
     with :ok <- if(Map.has_key?(unapplied_blocks, number), do: :duplicate, else: :ok),
-         :ok <- if(last_applied_block < number and number <= start_download_blknum, do: :ok, else: :unexpected_blok) do
+         :ok <-
+           (if last_applied_block < number and number <= num_of_heighest_block_being_downloaded do
+              :ok
+            else
+              :unexpected_blok
+            end) do
       state = %{
         state
         | unapplied_blocks: Map.put(unapplied_blocks, number, block),
