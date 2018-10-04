@@ -30,10 +30,20 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   Retrieves a specific transaction by id.
   """
   def get_transaction(conn, %{"id" => id}) do
-    id
-    |> Base.decode16!()
-    |> TransactionDB.get()
-    |> respond(conn)
+    decode16 = fn id ->
+      case Base.decode16(id) do
+        :error -> {:error, :invalid_parameter}
+        decoded -> decoded
+      end
+    end
+
+    with {:ok, id_decode} <- decode16.(id) do
+      id_decode
+      |> TransactionDB.get()
+      |> respond(conn)
+    else
+      {:error, code} -> handle_error(conn, code)
+    end
   end
 
   @doc """
@@ -48,20 +58,16 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
          # fees not supported yet
          fee <- 0,
          {:ok, transaction} <- StateTransaction.create_from_utxos(inputs, outputs, fee) do
-      transaction
+      render(conn, View.Transaction, :transaction_encode, transaction: transaction)
+    else
+      {:error, code} -> handle_error(conn, code)
     end
-    |> respond(conn)
   end
 
   defp respond(%TransactionDB{} = transaction, conn),
     do: render(conn, View.Transaction, :transaction, transaction: transaction)
 
   defp respond(nil, conn), do: handle_error(conn, :transaction_not_found)
-
-  defp respond(%StateTransaction{} = transaction, conn),
-    do: render(conn, View.Transaction, :transaction_encode, transaction: transaction)
-
-  defp respond({:error, code}, conn) when is_atom(code), do: handle_error(conn, code)
 
   defp parse_request_body(%{"inputs" => inputs, "outputs" => outputs}) when is_list(inputs) and is_list(outputs) do
     {

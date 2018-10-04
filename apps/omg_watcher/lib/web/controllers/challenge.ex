@@ -26,25 +26,19 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   alias OMG.Watcher.Web.View
 
   import OMG.Watcher.Web.ErrorHandler
+  import OMG.Watcher.Helper
 
   @doc """
   Challenges exits
   """
   def get_utxo_challenge(conn, %{"utxo_pos" => utxo_pos}) do
-    {utxo_pos, ""} = Integer.parse(utxo_pos)
-
-    utxo_pos = utxo_pos |> Utxo.Position.decode()
-
-    Challenger.create_challenge(utxo_pos)
-    |> respond(conn)
-  end
-
-  defp respond({:ok, challenge}, conn) do
-    render(conn, View.Challenge, :challenge, challenge: challenge)
-  end
-
-  defp respond({:error, code}, conn) do
-    handle_error(conn, code)
+    with {:ok, utxo_pos} <- string_to_integer(utxo_pos),
+         {:ok, utxo_pos_decode} <- Utxo.Position.decode(utxo_pos),
+         {:ok, challenge} <- Challenger.create_challenge(utxo_pos_decode) do
+      render(conn, View.Challenge, :challenge, challenge: challenge)
+    else
+      {:error, code} -> handle_error(conn, code)
+    end
   end
 
   def swagger_definitions do

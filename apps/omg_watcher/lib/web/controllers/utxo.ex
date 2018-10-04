@@ -28,29 +28,26 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
   use PhoenixSwagger
   import OMG.Watcher.Web.ErrorHandler
+  import OMG.Watcher.Helper
 
   def get_utxos(conn, %{"address" => address}) do
-    {:ok, address_decode} = Crypto.decode_address(address)
-    utxos = TxOutputDB.get_utxos(address_decode)
+    with {:ok, address_decode} <- Crypto.decode_address(address) do
+      utxos = TxOutputDB.get_utxos(address_decode)
 
-    render(conn, View.Utxo, :utxos, utxos: utxos)
+      render(conn, View.Utxo, :utxos, utxos: utxos)
+    else
+      {:error, code} -> handle_error(conn, code)
+    end
   end
 
   def get_utxo_exit(conn, %{"utxo_pos" => utxo_pos}) do
-    {utxo_pos, ""} = Integer.parse(utxo_pos)
-
-    utxo_pos
-    |> Utxo.Position.decode()
-    |> TxOutputDB.compose_utxo_exit()
-    |> respond(conn)
-  end
-
-  defp respond({:ok, utxo_exit}, conn) do
-    render(conn, View.Utxo, :utxo_exit, utxo_exit: utxo_exit)
-  end
-
-  defp respond({:error, code}, conn) do
-    handle_error(conn, code)
+    with {:ok, utxo_pos} <- string_to_integer(utxo_pos),
+         {:ok, utxo_pos_decode} <- Utxo.Position.decode(utxo_pos),
+         {:ok, utxo_exit} <- TxOutputDB.compose_utxo_exit(utxo_pos_decode) do
+      render(conn, View.Utxo, :utxo_exit, utxo_exit: utxo_exit)
+    else
+      {:error, code} -> handle_error(conn, code)
+    end
   end
 
   def swagger_definitions do

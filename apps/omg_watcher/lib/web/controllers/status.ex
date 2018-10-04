@@ -41,19 +41,10 @@ defmodule OMG.Watcher.Web.Controller.Status do
         eth_syncing: Eth.Geth.syncing?()
       }
 
-      respond({:ok, status}, conn)
+      render(conn, View.Status, :status, status: status)
     else
-      error ->
-        respond(error, conn)
+      {:error, code} -> handle_error(conn, code)
     end
-  end
-
-  defp respond({:ok, status}, conn) do
-    render(conn, View.Status, :status, status: status)
-  end
-
-  defp respond({:error, code}, conn) do
-    handle_error(conn, code)
   end
 
   def swagger_definitions do
