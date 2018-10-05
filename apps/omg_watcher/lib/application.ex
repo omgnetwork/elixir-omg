@@ -99,16 +99,6 @@ defmodule OMG.Watcher.Application do
     :ok
   end
 
-  defp slow_validator_utxo_exists_callback(utxo_exit) do
-    with :ok <- OMG.API.State.exit_if_not_spent(utxo_exit) do
-      :ok
-    else
-      :utxo_does_not_exist ->
-        :ok = OMG.Watcher.ChainExiter.exit()
-        :child_chain_exit
-    end
-  end
-
   defp deposit_events_callback(deposits) do
     :ok = OMG.API.State.deposit(deposits)
     _ = OMG.Watcher.DB.EthEventDB.insert_deposits(deposits)
