@@ -20,6 +20,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
+  alias OMG.API.State.Transaction, as: StateTransaction
   alias OMG.Watcher.DB.TransactionDB
   alias OMG.Watcher.Web.View
 
@@ -35,12 +36,47 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     |> respond(conn)
   end
 
-  defp respond(%TransactionDB{} = transaction, conn) do
-    render(conn, View.Transaction, :transaction, transaction: transaction)
+  @doc """
+  Produces hex-encoded transaction bytes for provided inputs and outputs.
+
+  This is a convenience endpoint used by wallets. User's utxos and new outputs are provided to the endpoint.
+  The endpoint responds with transaction bytes that wallet uses to sign with user's keys. Then signed transaction
+  is submitted directly to plasma chain.
+  """
+  def encode_transaction(conn, body) do
+    with {inputs, outputs} <- parse_request_body(body),
+         # TODO: Transaction's fees are not supported yet
+         fee <- 0,
+         {:ok, transaction} <- StateTransaction.create_from_utxos(inputs, outputs, fee) do
+      transaction
+    end
+    |> respond(conn)
   end
 
-  defp respond(nil, conn) do
-    handle_error(conn, :transaction_not_found)
+  defp respond(%TransactionDB{} = transaction, conn),
+    do: render(conn, View.Transaction, :transaction, transaction: transaction)
+
+  defp respond(nil, conn), do: handle_error(conn, :transaction_not_found)
+
+  defp respond(%StateTransaction{} = transaction, conn),
+    do: render(conn, View.Transaction, :transaction_encode, transaction: transaction)
+
+  defp respond({:error, code}, conn) when is_atom(code), do: handle_error(conn, code)
+
+  defp parse_request_body(%{"inputs" => inputs, "outputs" => outputs}) when is_list(inputs) and is_list(outputs) do
+    {
+      inputs
+      |> Enum.map(&Map.delete(&1, "txbytes"))
+      |> Enum.map(fn %{} = input ->
+        input = input |> Enum.into(%{}, fn {k, v} -> {String.to_existing_atom(k), v} end)
+        %{input | currency: Base.decode16!(input.currency, case: :mixed)}
+      end),
+      outputs
+      |> Enum.map(fn %{} = output ->
+        output = output |> Enum.into(%{}, fn {k, v} -> {String.to_existing_atom(k), v} end)
+        %{output | owner: OMG.API.Crypto.decode_address!(output.owner)}
+      end)
+    }
   end
 
   def swagger_definitions do
@@ -92,6 +128,35 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
             spender1: "92EAD0DB732692FF887268DA965C311AC2C9005B",
             spender2: "92EAD0DB732692FF887268DA965C311AC2C9005B"
           })
+        end,
+      Output:
+        swagger_schema do
+          title("Output")
+
+          properties do
+            amount(:integer, "Amount of the currency. Currency is derived from inputs.", required: true)
+            owner(:string, "Address of output's owner", required: true)
+          end
+
+          example(%{
+            "amount" => 97,
+            "owner" => "B3256026863EB6AE5B06FA396AB09069784EA8EA"
+          })
+        end,
+      Outputs:
+        swagger_schema do
+          title("Array of outputs")
+          type(:array)
+          items(Schema.ref(:Output))
+        end,
+      Post_Transaction_Body:
+        swagger_schema do
+          title("Inputs and outputs to transaction")
+
+          properties do
+            inputs(Schema.ref(:Utxos), "Array of utxos to spend", required: true)
+            outputs(Schema.ref(:Outputs), "Array of new owners and amounts", required: true)
+          end
         end
     }
   end
@@ -105,5 +170,16 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     end
 
     response(200, "OK", Schema.ref(:Transaction))
+  end
+
+  swagger_path :encode_transaction do
+    post("/transaction")
+    summary("Produces hex-encoded transaction bytes for provided inputs and outputs.")
+
+    parameters do
+      body(:body, Schema.ref(:Post_Transaction_Body), "The request body", required: true)
+    end
+
+    response(200, "OK")
   end
 end
