@@ -14,13 +14,17 @@
 
 defmodule OMG.JSONRPC.Server.Handler do
   @moduledoc """
-  Exposes OMG.API via jsonrpc 2.0 over HTTP. It leverages the generic OMG.JSONRPC.Exposer convenience module
+  Exposes an API via jsonrpc 2.0 over HTTP. It leverages the generic `OMG.JSONRPC.Exposer` convenience module
 
   Only handles the integration with the JSONRPC2 package
   """
   use JSONRPC2.Server.Handler
 
+  # Compile time configuration:
+  # Compiling :omg_jsonrpc as a dependency requires setting this environmental variable
+  @api_module Application.fetch_env!(:omg_jsonrpc, :api_module)
+
   def handle_request(method, params) do
-    OMG.JSONRPC.Exposer.handle_request_on_api(method, params, OMG.API)
+    OMG.JSONRPC.Exposer.handle_request_on_api(method, params, @api_module)
   end
 end

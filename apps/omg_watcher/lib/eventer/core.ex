@@ -24,8 +24,8 @@ defmodule OMG.Watcher.Eventer.Core do
   @transfer_topic "transfer"
   @byzantine_topic "byzantine"
 
-  @spec prepare_events(any() | Event.t()) :: list({String.t(), String.t(), Event.t()})
-  def prepare_events(event_triggers) do
+  @spec pair_events_with_topics(any() | Event.t()) :: list({String.t(), String.t(), Event.t()})
+  def pair_events_with_topics(event_triggers) do
     Enum.flat_map(event_triggers, &get_event_with_topic(&1))
   end
 

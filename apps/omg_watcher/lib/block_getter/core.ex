@@ -34,27 +34,27 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   defstruct [
+    :height_sync_blknums,
     :synced_height,
-    :block_consume_batch,
-    :last_consumed_block,
-    :started_block_number,
+    :last_applied_block,
+    :num_of_heighest_block_being_downloaded,
     :block_interval,
-    :waiting_for_blocks,
+    :number_of_blocks_being_downloaded,
     :maximum_number_of_pending_blocks,
-    :blocks_to_consume,
+    :unapplied_blocks,
     :potential_block_withholdings,
     :maximum_block_withholding_time_ms
   ]
 
   @type t() :: %__MODULE__{
+          height_sync_blknums: MapSet.t(),
           synced_height: pos_integer(),
-          block_consume_batch: {atom(), MapSet.t()},
-          last_consumed_block: non_neg_integer,
-          started_block_number: non_neg_integer,
+          last_applied_block: non_neg_integer,
+          num_of_heighest_block_being_downloaded: non_neg_integer,
           block_interval: pos_integer,
-          waiting_for_blocks: non_neg_integer,
+          number_of_blocks_being_downloaded: non_neg_integer,
           maximum_number_of_pending_blocks: pos_integer,
-          blocks_to_consume: %{
+          unapplied_blocks: %{
             non_neg_integer => OMG.API.Block.t()
           },
           potential_block_withholdings: %{
@@ -72,7 +72,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block,
   using `child_block_interval` when progressing from one child block to another
-  and `synced_height` as the rootchain height up to witch all published blocked were processed
+  and `synced_height` as the root chain height up to witch all published blocked were processed
 
   Opts can be:
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
@@ -86,40 +86,42 @@ defmodule OMG.Watcher.BlockGetter.Core do
         opts \\ []
       ) do
     %__MODULE__{
-      block_consume_batch: {:downloading, []},
+      height_sync_blknums: MapSet.new(),
       synced_height: synced_height,
-      last_consumed_block: block_number,
-      started_block_number: block_number,
+      last_applied_block: block_number,
+      num_of_heighest_block_being_downloaded: block_number,
       block_interval: child_block_interval,
-      waiting_for_blocks: 0,
+      number_of_blocks_being_downloaded: 0,
       maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 10),
-      blocks_to_consume: %{},
+      unapplied_blocks: %{},
       potential_block_withholdings: %{},
       maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0)
     }
   end
 
   @doc """
-  Marks that childchain block `blknum` was processed
+  Marks that child chain block published on `blk_eth_height` was processed
   """
-  @spec consume_block(t(), pos_integer()) :: t()
-  def consume_block(%__MODULE__{} = state, blknum) do
-    {:processing, blocks} = state.block_consume_batch
-    blocks = MapSet.delete(blocks, blknum)
-    blocks_to_consume = Map.delete(state.blocks_to_consume, blknum)
-    last_consumed_block = max(state.last_consumed_block, blknum)
+  @spec apply_block(t(), pos_integer(), non_neg_integer()) :: {t(), non_neg_integer(), list()}
+  def apply_block(%__MODULE__{} = state, consumed_block_number, blk_eth_height) do
+    if MapSet.member?(state.height_sync_blknums, consumed_block_number) do
+      height_sync_blknums = MapSet.delete(state.height_sync_blknums, consumed_block_number)
 
-    %{
-      state
-      | block_consume_batch: {:processing, blocks},
-        blocks_to_consume: blocks_to_consume,
-        last_consumed_block: last_consumed_block
-    }
+      state = %{
+        state
+        | synced_height: blk_eth_height,
+          height_sync_blknums: height_sync_blknums
+      }
+
+      {state, blk_eth_height, [{:put, :last_block_getter_eth_height, blk_eth_height}]}
+    else
+      {state, state.synced_height, []}
+    end
   end
 
   @doc """
-  Produces rootchain block height range to search for events of block submission.
-  If the range is not empty it spans from current synced rootchain height to `coordinator_height`.
+  Produces root chain block height range to search for events of block submission.
+  If the range is not empty it spans from current synced root chain height to `coordinator_height`.
   Empty range case is solved naturally with {a, b}, a > b
   """
   @spec get_eth_range_for_block_submitted_events(t(), non_neg_integer()) :: {pos_integer(), pos_integer()}
@@ -127,77 +129,86 @@ defmodule OMG.Watcher.BlockGetter.Core do
     {synced_height + 1, coordinator_height}
   end
 
-  @spec get_blocks_to_consume(t(), list(), non_neg_integer()) ::
-          {list({Block.t(), non_neg_integer()}), non_neg_integer(), list(), t()}
-  def get_blocks_to_consume(state, block_submitted_events, coordinator_height)
+  @doc """
+  Returns blocks that can be pushed to state.
 
-  def get_blocks_to_consume(%__MODULE__{} = state, [], coordinator_height) do
+  That is the longest continous range of blocks downloaded from child chain,
+  contained in `block_submitted_events`, published on ethereum height not exceeding `coordinator_height` and not pushed to state before.
+  """
+  @spec get_blocks_to_apply(t(), list(), non_neg_integer()) ::
+          {list({Block.t(), non_neg_integer()}), non_neg_integer(), list(), t()}
+  def get_blocks_to_apply(state, block_submitted_events, coordinator_height)
+
+  def get_blocks_to_apply(%__MODULE__{} = state, [], coordinator_height) do
     next_synced_height = max(state.synced_height, coordinator_height)
     state = %{state | synced_height: next_synced_height}
     db_updates = [{:put, :last_block_getter_eth_height, next_synced_height}]
     {[], next_synced_height, db_updates, state}
   end
 
-  def get_blocks_to_consume(
-        %__MODULE__{block_consume_batch: {:downloading, _}, blocks_to_consume: blocks} = state,
-        submissions,
+  def get_blocks_to_apply(
+        %__MODULE__{unapplied_blocks: blocks, block_interval: interval} = state,
+        block_submissions,
         _coordinator_height
       ) do
-    blocks_to_consume = get_downloaded_blocks(blocks, submissions)
+    height_sync_blknums = get_height_sync_blknums(block_submissions, state.height_sync_blknums)
 
-    # consume blocks only if all blocks submitted to rootchain are downloaded
-    if length(blocks_to_consume) == length(submissions) do
-      block_consume_batch =
-        submissions
-        |> Enum.map(& &1.blknum)
-        |> MapSet.new()
+    block_submissions =
+      Enum.into(block_submissions, %{}, fn %{blknum: blknum, eth_height: eth_height} -> {blknum, eth_height} end)
 
-      state = %{state | block_consume_batch: {:processing, block_consume_batch}}
-      {blocks_to_consume, state.synced_height, [], state}
-    else
-      {[], state.synced_height, [], state}
-    end
+    first_blknum_to_apply = state.last_applied_block + interval
+
+    blknums_to_apply =
+      first_blknum_to_apply
+      |> Stream.iterate(&(&1 + interval))
+      |> Enum.take_while(fn blknum -> Map.has_key?(block_submissions, blknum) and Map.has_key?(blocks, blknum) end)
+
+    blocks_to_keep = Map.drop(blocks, blknums_to_apply)
+    last_applied_block = List.last([state.last_applied_block] ++ blknums_to_apply)
+
+    blocks_to_apply =
+      blknums_to_apply
+      |> Enum.map(fn blknum -> {Map.get(blocks, blknum), Map.get(block_submissions, blknum)} end)
+
+    {blocks_to_apply, state.synced_height, [],
+     %{
+       state
+       | unapplied_blocks: blocks_to_keep,
+         height_sync_blknums: height_sync_blknums,
+         last_applied_block: last_applied_block
+     }}
   end
 
-  def get_blocks_to_consume(
-        %__MODULE__{block_consume_batch: {:processing, blocks_to_process}} = state,
-        _submissions,
-        coordinator_height
-      ) do
-    if blocks_to_process == MapSet.new() do
-      next_synced_height = max(state.synced_height, coordinator_height)
-      state = %{state | synced_height: next_synced_height, block_consume_batch: {:downloading, []}}
-      db_updates = [{:put, :last_block_getter_eth_height, next_synced_height}]
-      {[], next_synced_height, db_updates, state}
-    else
-      {[], state.synced_height, [], state}
-    end
-  end
-
-  defp get_downloaded_blocks(downloaded_blocks, requested_blocks) do
-    requested_blocks
-    |> Enum.map(fn %{blknum: blknum, eth_height: eth_height} -> {Map.get(downloaded_blocks, blknum), eth_height} end)
-    |> Enum.filter(fn {block, _} -> block != nil end)
+  defp get_height_sync_blknums(submissions, current_height_sync_blknums) do
+    submissions
+    |> Enum.group_by(fn %{eth_height: eth_height} -> eth_height end, fn %{blknum: blknum} -> blknum end)
+    |> Map.to_list()
+    |> Enum.map(fn {_, blknums} ->
+      [last_blknum | _] = Enum.sort(blknums, &(&1 >= &2))
+      last_blknum
+    end)
+    |> MapSet.new()
+    |> MapSet.union(current_height_sync_blknums)
   end
 
   @doc """
    Returns additional blocks number on which the Core will be waiting.
    The number of expected block is limited by maximum_number_of_pending_blocks.
   """
-  @spec get_new_blocks_numbers(%__MODULE__{}, non_neg_integer) :: {%__MODULE__{}, list(non_neg_integer)}
-  def get_new_blocks_numbers(
+  @spec get_numbers_of_blocks_to_download(%__MODULE__{}, non_neg_integer) :: {%__MODULE__{}, list(non_neg_integer)}
+  def get_numbers_of_blocks_to_download(
         %__MODULE__{
-          started_block_number: started_block_number,
+          num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded,
           block_interval: block_interval,
-          waiting_for_blocks: waiting_for_blocks,
+          number_of_blocks_being_downloaded: number_of_blocks_being_downloaded,
           potential_block_withholdings: potential_block_withholdings,
           maximum_number_of_pending_blocks: maximum_number_of_pending_blocks
         } = state,
         next_child
       ) do
-    first_block_number = started_block_number + block_interval
+    first_block_number = num_of_heighest_block_being_downloaded + block_interval
 
-    number_of_empty_slots = maximum_number_of_pending_blocks - waiting_for_blocks
+    number_of_empty_slots = maximum_number_of_pending_blocks - number_of_blocks_being_downloaded
 
     potential_block_withholding_numbers = Map.keys(potential_block_withholdings)
 
@@ -211,13 +222,14 @@ defmodule OMG.Watcher.BlockGetter.Core do
       (potential_block_withholding_numbers ++ potential_next_block_numbers)
       |> Enum.take(number_of_empty_slots)
 
-    [started_block_number | _] = ([started_block_number] ++ blocks_numbers) |> Enum.sort(&(&1 > &2))
+    [num_of_heighest_block_being_downloaded | _] =
+      ([num_of_heighest_block_being_downloaded] ++ blocks_numbers) |> Enum.sort(&(&1 > &2))
 
     {
       %{
         state
-        | waiting_for_blocks: length(blocks_numbers) + waiting_for_blocks,
-          started_block_number: started_block_number
+        | number_of_blocks_being_downloaded: length(blocks_numbers) + number_of_blocks_being_downloaded,
+          num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded
       },
       blocks_numbers
     }
@@ -234,43 +246,50 @@ defmodule OMG.Watcher.BlockGetter.Core do
     In case of potential withholding block detecion
     Returns same state, state with new  potential_block_withholding or BlockWithHolding event
   """
-  @spec handle_got_block(
+  @spec handle_downloaded_block(
           %__MODULE__{},
           {:ok, OMG.API.Block.t() | PotentialWithholding.t()} | {:error, block_error(), binary(), pos_integer()}
         ) ::
           {:ok | {:needs_stopping, block_error()}, %__MODULE__{},
            [] | list(Event.InvalidBlock.t()) | list(Event.BlockWithholding.t())}
           | {:error, :duplicate | :unexpected_blok}
-  def handle_got_block(%__MODULE__{waiting_for_blocks: waiting_for_blocks} = state, response) do
-    state = %{state | waiting_for_blocks: waiting_for_blocks - 1}
-    validate_got_block(state, response)
+  def handle_downloaded_block(
+        %__MODULE__{number_of_blocks_being_downloaded: number_of_blocks_being_downloaded} = state,
+        response
+      ) do
+    state = %{state | number_of_blocks_being_downloaded: number_of_blocks_being_downloaded - 1}
+    validate_downloaded_block(state, response)
   end
 
-  defp validate_got_block(
+  defp validate_downloaded_block(
          %__MODULE__{
-           blocks_to_consume: blocks_to_consume,
-           started_block_number: started_block_number,
-           last_consumed_block: last_consumed_block,
+           unapplied_blocks: unapplied_blocks,
+           num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded,
+           last_applied_block: last_applied_block,
            potential_block_withholdings: potential_block_withholdings
          } = state,
          {:ok, %{number: number} = block}
        ) do
-    with :ok <- if(Map.has_key?(blocks_to_consume, number), do: :duplicate, else: :ok),
-         :ok <- if(last_consumed_block < number and number <= started_block_number, do: :ok, else: :unexpected_blok) do
-      state1 = %{
+    with :ok <- if(Map.has_key?(unapplied_blocks, number), do: :duplicate, else: :ok),
+         :ok <-
+           (if last_applied_block < number and number <= num_of_heighest_block_being_downloaded do
+              :ok
+            else
+              :unexpected_blok
+            end) do
+      state = %{
         state
-        | blocks_to_consume: Map.put(blocks_to_consume, number, block)
+        | unapplied_blocks: Map.put(unapplied_blocks, number, block),
+          potential_block_withholdings: Map.delete(potential_block_withholdings, number)
       }
 
-      state2 = %{state1 | potential_block_withholdings: Map.delete(potential_block_withholdings, number)}
-
-      {:ok, state2, []}
+      {:ok, state, []}
     else
       error -> {:error, error}
     end
   end
 
-  defp validate_got_block(%__MODULE__{} = state, {:error, error_type, hash, number}) do
+  defp validate_downloaded_block(%__MODULE__{} = state, {:error, error_type, hash, number}) do
     {
       {:needs_stopping, error_type},
       state,
@@ -284,7 +303,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     }
   end
 
-  defp validate_got_block(
+  defp validate_downloaded_block(
          %__MODULE__{
            potential_block_withholdings: potential_block_withholdings,
            maximum_block_withholding_time_ms: maximum_block_withholding_time_ms
@@ -317,10 +336,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
   requested_hash is given to compare to always have a consistent data structure coming out
   requested_number is given to _override_ since we're getting by hash, we can have empty blocks with same hashes!
   """
-  @spec validate_get_block_response({:ok, map()} | {:error, block_error()}, binary(), pos_integer(), pos_integer()) ::
+  @spec validate_download_response({:ok, map()} | {:error, block_error()}, binary(), pos_integer(), pos_integer()) ::
           {:ok, map | PotentialWithholding.t()}
           | {:error, block_error(), binary(), pos_integer()}
-  def validate_get_block_response(
+  def validate_download_response(
         {:ok, %{hash: returned_hash, transactions: transactions, number: number}},
         requested_hash,
         requested_number,
@@ -341,7 +360,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
       %Block{hash: calculated_hash} = Block.hashed_txs_at(transactions, number)
 
       # we as the Watcher don't care about the fees, so we fix all currencies to require 0 fee
-      zero_fee_requirements = transactions |> Enum.reduce(%{}, &zero_fee_for/2)
+      zero_fee_requirements = transactions |> Enum.reduce(%{}, &add_zero_fee/2)
 
       if calculated_hash == requested_hash,
         do:
@@ -359,18 +378,20 @@ defmodule OMG.Watcher.BlockGetter.Core do
     end
   end
 
-  def validate_get_block_response({:error, _} = error, requested_hash, requested_number, time) do
+  def validate_download_response({:error, _} = error, requested_hash, requested_number, time) do
     _ =
       Logger.info(fn ->
-        "Detected potential block withholding  #{inspect(error)}, hash: #{requested_hash}, number: #{requested_number}"
+        "Detected potential block withholding  #{inspect(error)}, hash: #{inspect(requested_hash |> Base.encode16())}, number: #{
+          inspect(requested_number)
+        }"
       end)
 
     {:ok, %PotentialWithholding{blknum: requested_number, time: time}}
   end
 
-  @spec check_tx_executions(list({Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}), map) ::
+  @spec validate_tx_executions(list({Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}), map) ::
           {:ok, []} | {{:needs_stopping, :tx_execution}, list(Event.InvalidBlock.t())}
-  def check_tx_executions(executions, %{hash: hash, number: blknum}) do
+  def validate_tx_executions(executions, %{hash: hash, number: blknum}) do
     with nil <- Enum.find(executions, &(!match?({:ok, {_, _, _}}, &1))) do
       {:ok, []}
     else
@@ -386,8 +407,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     end
   end
 
-  # adds a new zero fee to a map of zero fee requirements
-  defp zero_fee_for(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}}, fee_map) do
+  defp add_zero_fee(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}}, fee_map) do
     Map.put(fee_map, cur12, 0)
   end
 

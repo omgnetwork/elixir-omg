@@ -9,10 +9,10 @@ use Mix.Config
 config :omg_watcher,
   child_chain_url: "http://localhost:9656",
   namespace: OMG.Watcher,
-  ecto_repos: [OMG.Watcher.Repo],
+  ecto_repos: [OMG.Watcher.DB.Repo],
   slow_exit_validator_block_margin: 10_000,
   maximum_block_withholding_time_ms: 10_000,
-  block_getter_height_sync_interval_ms: 2000
+  block_getter_height_sync_interval_ms: 2_000
 
 # Configures the endpoint
 config :omg_watcher, OMG.Watcher.Web.Endpoint,

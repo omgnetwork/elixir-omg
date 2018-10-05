@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.ExposeSpec.RPCTranslate do
+defmodule OMG.JSONRPC.ExposeSpec.RPCTranslate do
   @moduledoc """
-  Translate an incoming call to a form that can be executed with :erlang.apply/3
+  Translates an incoming call to a form that can be executed with `:erlang.apply/3`
 
-  The incoming call can originate from the JSONRPC handler or the Websockets handler (or other)
+  The incoming call can originate from the JSONRPC handler or the Websockets handler (or other).
 
   Returns JSONRPC2-like error values if there is a problem.
   """
 
   @type function_name :: binary
   @type arg_name :: binary
-  @type spec :: OMG.API.ExposeSpec.spec()
+  @type spec :: OMG.JSONRPC.ExposeSpec.spec()
   @type json_args :: %{required(arg_name) => any}
   @type rpc_error :: {:method_not_found, map} | {:invalid_params, map}
 

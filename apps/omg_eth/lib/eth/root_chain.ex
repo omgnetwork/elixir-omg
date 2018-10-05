@@ -14,9 +14,9 @@
 
 defmodule OMG.Eth.RootChain do
   @moduledoc """
-  Adapter/port to RootChain.sol
+  Adapter/port to RootChain contract
 
-  All sending of transactions and listening to events goes here
+  Handles sending transactions and fetching events
   """
 
   alias OMG.Eth

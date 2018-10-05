@@ -14,7 +14,7 @@
 
 defmodule OMG.Eth.Geth do
   @moduledoc """
-  Tracking the state of local instance of Geth.
+  Tracks state of local geth
   """
 
   @spec node_ready() :: :ok | {:error, :geth_still_syncing | :geth_not_listening}

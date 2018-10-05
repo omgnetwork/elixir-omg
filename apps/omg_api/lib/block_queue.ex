@@ -14,17 +14,17 @@
 
 defmodule OMG.API.BlockQueue do
   @moduledoc """
-  Responsible for keeping a queue of blocks lined up nicely for submission to Eth.
+  Responsible for keeping a queue of blocks lined up for submission to Ethereum.
   Responsible for determining the cadence of forming/submitting blocks to Ethereum.
   Responsible for determining correct gas price and ensuring submissions get mined eventually.
 
   In particular responsible for picking up, where it's left off (crashed) gracefully.
 
   Relies on RootChain contract having reorg protection ('decimals for deposits' part).
-  Relies on RootChain contract's 'authority' account not being used to send any other tx.
+  Relies on RootChain contract's 'authority' account not being used to send any other transaction.
 
-  It reacts to extarnal requests of changing gas price and resubmits submitBlock txes not being mined
-  For changing the gas price it needs external singlas (e.g. from a price oracle)
+  Reacts to external requests of changing gas price and resubmits block submission transactions not being mined.
+  For changing the gas price it needs external signals (e.g. from a price oracle)
   """
 
   alias OMG.API.BlockQueue.Core
@@ -36,17 +36,19 @@ defmodule OMG.API.BlockQueue do
   # child chain block number, as assigned by plasma contract
   @type encoded_signed_tx() :: binary()
 
-  ### Client
-
+  @doc """
+  Enqueues child chain block to be submitted to Ethereum
+  """
+  @spec enqueue_block(binary(), non_neg_integer()) :: :ok
   def enqueue_block(block_hash, block_number) do
     GenServer.cast(__MODULE__.Server, {:enqueue_block, block_hash, block_number})
   end
 
   defmodule Server do
     @moduledoc """
-    Stores core's state, handles timing of calls to root chain.
-    Is driven by block height and mined tx data delivered by local geth node and new blocks
-    formed by server. It may resubmit tx multiple times, until it is mined.
+    Handles timing of calls to root chain.
+    Driven by block height and mined transaction data delivered by local geth node and new blocks
+    formed by server. Resubmits transaction until it is mined.
     """
 
     use GenServer
@@ -83,16 +85,30 @@ defmodule OMG.API.BlockQueue do
       _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{inspect(Base.encode16(top_mined_hash))}" end)
 
       {:ok, state} =
-        Core.new(
-          mined_child_block_num: mined_num,
-          known_hashes: Enum.zip(range, known_hashes),
-          top_mined_hash: top_mined_hash,
-          parent_height: parent_height,
-          child_block_interval: child_block_interval,
-          chain_start_parent_height: parent_start,
-          submit_period: Application.get_env(:omg_api, :child_block_submit_period),
-          finality_threshold: finality_threshold
-        )
+        with {:ok, _state} = result <-
+               Core.new(
+                 mined_child_block_num: mined_num,
+                 known_hashes: Enum.zip(range, known_hashes),
+                 top_mined_hash: top_mined_hash,
+                 parent_height: parent_height,
+                 child_block_interval: child_block_interval,
+                 chain_start_parent_height: parent_start,
+                 submit_period: Application.get_env(:omg_api, :child_block_submit_period),
+                 finality_threshold: finality_threshold
+               ) do
+          result
+        else
+          {:error, reason} = error when reason in [:mined_hash_not_found_in_db, :contract_ahead_of_db] ->
+            _ =
+              Logger.error(fn ->
+                "The child chain might have not been wiped clean when starting a child chain from scratch. Check README.MD and follow the setting up child chain."
+              end)
+
+            error
+
+          other ->
+            other
+        end
 
       interval = Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms)
       {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
@@ -146,19 +162,10 @@ defmodule OMG.API.BlockQueue do
     defp submit(%Core.BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price} = submission) do
       _ = Logger.debug(fn -> "Submitting: #{inspect(submission)}" end)
 
-      case OMG.Eth.RootChain.submit_block(hash, nonce, gas_price) do
-        {:ok, txhash} ->
-          _ = Logger.info(fn -> "Submitted #{inspect(submission)} at: #{inspect(txhash)}" end)
-          :ok
+      submit_result = OMG.Eth.RootChain.submit_block(hash, nonce, gas_price)
+      {:ok, newest_mined_blknum} = Eth.RootChain.get_mined_child_block()
 
-        {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} ->
-          _ = Logger.debug(fn -> "Submission is known transaction - ignored" end)
-          :ok
-
-        {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}} ->
-          _ = Logger.debug(fn -> "Submission is known, but with higher price - ignored" end)
-          :ok
-      end
+      :ok = Core.process_submit_result(submission, submit_result, newest_mined_blknum)
     end
   end
 end

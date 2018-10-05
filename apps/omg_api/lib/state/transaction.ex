@@ -14,7 +14,7 @@
 
 defmodule OMG.API.State.Transaction do
   @moduledoc """
-  Internal representation of a spend transaction on Plasma chain
+  Internal representation of transaction spent on Plasma chain
   """
 
   alias OMG.API.Crypto
@@ -58,7 +58,7 @@ defmodule OMG.API.State.Transaction do
   and the amount decreased by receiver's amount and the fee.
 
   assumptions:
-   length(utxos) = 1 | 2
+   ```length(utxos) = 1 | 2```
   """
   @spec create_from_utxos(
           %{address: Crypto.address_t(), utxos: map()},
@@ -113,12 +113,14 @@ defmodule OMG.API.State.Transaction do
   defp validate_amount(output_amount) when is_integer(output_amount), do: :ok
 
   @doc """
-   assumptions:
-     length(inputs) <= 2
-     length(outputs) <= 2
-   behavior:
-      Adds empty (zeroes) inputs and/or outputs to reach the expected size
-      of 2 inputs and 2 outputs.
+  Adds empty (zeroes) inputs and/or outputs to reach the expected size
+  of 2 inputs and 2 outputs.
+
+  assumptions:
+  ```
+    length(inputs) <= 2
+    length(outputs) <= 2
+  ```
   """
   @spec new(
           list({pos_integer, pos_integer, 0 | 1}),
@@ -183,8 +185,11 @@ defmodule OMG.API.State.Transaction do
   end
 
   @doc """
-    private keys are in the form: <<54, 43, 207, 67, 140, 160, 190, 135, 18, 162, 70, 120, 36, 245, 106, 165, 5, 101, 183,
-      55, 11, 117, 126, 135, 49, 50, 12, 228, 173, 219, 183, 175>>
+    Signs transaction using private keys
+
+    private keys are in the  binary form, e.g.:
+    ```<<54, 43, 207, 67, 140, 160, 190, 135, 18, 162, 70, 120, 36, 245, 106, 165, 5, 101, 183,
+      55, 11, 117, 126, 135, 49, 50, 12, 228, 173, 219, 183, 175>>```
   """
   @spec sign(t(), Crypto.priv_key_t(), Crypto.priv_key_t()) :: Signed.t()
   def sign(%__MODULE__{} = tx, priv1, priv2) do

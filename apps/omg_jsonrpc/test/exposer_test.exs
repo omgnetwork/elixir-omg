@@ -19,7 +19,7 @@ defmodule OMG.JSONRPC.ExposerTest do
   use ExUnit.Case
 
   defmodule ExampleAPI do
-    use OMG.API.ExposeSpec
+    use OMG.JSONRPC.ExposeSpec
 
     @spec is_even_N(x :: integer) :: {:ok, boolean} | {:error, :badarg}
     @expose_spec {:is_even_N,

@@ -46,7 +46,7 @@ defmodule OMG.Watcher.Eventer.CoreTest do
 
     event_4 = {topic_bob, "address_spent", %Event.AddressSpent{tx: recovered_tx}}
 
-    assert [event_1, event_2, event_3, event_4] == Eventer.Core.prepare_events([%{tx: recovered_tx}])
+    assert [event_1, event_2, event_3, event_4] == Eventer.Core.pair_events_with_topics([%{tx: recovered_tx}])
   end
 
   @tag fixtures: [:alice, :bob]
@@ -60,20 +60,20 @@ defmodule OMG.Watcher.Eventer.CoreTest do
 
     event_2 = {topic, "address_spent", %Event.AddressSpent{tx: recovered_tx}}
 
-    assert [event_1, event_2] == Eventer.Core.prepare_events([%{tx: recovered_tx}])
+    assert [event_1, event_2] == Eventer.Core.pair_events_with_topics([%{tx: recovered_tx}])
   end
 
   test "prepare_events function generates one block_withholdings event" do
     block_withholding_event = %Event.BlockWithholding{blknum: 1}
     event = {"byzantine", "block_withholding", block_withholding_event}
 
-    assert [event] == Eventer.Core.prepare_events([block_withholding_event])
+    assert [event] == Eventer.Core.pair_events_with_topics([block_withholding_event])
   end
 
   test "prepare_events function generates one invalid_exit event" do
     invalid_exit_event = %Event.InvalidExit{amount: 1, currency: <<>>, owner: <<>>, utxo_pos: 1}
     event = {"byzantine", "invalid_exit", invalid_exit_event}
 
-    assert [event] == Eventer.Core.prepare_events([invalid_exit_event])
+    assert [event] == Eventer.Core.pair_events_with_topics([invalid_exit_event])
   end
 end

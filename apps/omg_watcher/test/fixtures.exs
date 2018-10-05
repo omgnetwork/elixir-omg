@@ -69,11 +69,9 @@ defmodule OMG.Watcher.Fixtures do
 
     db_out |> Enum.each(&log_output("db_init", &1))
 
-    # I wish we could ensure_started just one app here, but in test env jsonrpc doesn't depend on api :(
     child_chain_mix_cmd =
       "mix run --no-start --no-halt --config #{config_file_path} -e " <>
-        "'{:ok, _} = Application.ensure_all_started(:omg_api);" <>
-        " {:ok, _} = Application.ensure_all_started(:omg_jsonrpc)' " <> "2>&1"
+        "'{:ok, _} = Application.ensure_all_started(:omg_api)' " <> "2>&1"
 
     Logger.debug(fn -> "Starting child_chain" end)
 
@@ -134,8 +132,8 @@ defmodule OMG.Watcher.Fixtures do
 
   deffixture watcher_sandbox(watcher) do
     :ok = watcher
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.Repo, ownership_timeout: 90_000)
-    Ecto.Adapters.SQL.Sandbox.mode(OMG.Watcher.Repo, {:shared, self()})
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.DB.Repo, ownership_timeout: 90_000)
+    Ecto.Adapters.SQL.Sandbox.mode(OMG.Watcher.DB.Repo, {:shared, self()})
   end
 
   @doc "run only database in sandbox and endpoint to make request"
@@ -144,16 +142,54 @@ defmodule OMG.Watcher.Fixtures do
 
     {:ok, pid} =
       Supervisor.start_link(
-        [supervisor(OMG.Watcher.Repo, []), supervisor(OMG.Watcher.Web.Endpoint, [])],
+        [supervisor(OMG.Watcher.DB.Repo, []), supervisor(OMG.Watcher.Web.Endpoint, [])],
         strategy: :one_for_one,
         name: OMG.Watcher.Supervisor
       )
 
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.Repo)
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.DB.Repo)
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
       TestHelper.wait_for_process(pid)
       :ok
     end)
+  end
+
+  deffixture initial_blocks(entities, phoenix_ecto_sandbox) do
+    alias OMG.Watcher.DB.TransactionDB
+    eth = OMG.API.Crypto.zero_address()
+
+    %{alice: alice, bob: bob} = entities
+    :ok = phoenix_ecto_sandbox
+
+    prepare_f = fn {blknum, recovered_txs} ->
+      db_results = TransactionDB.update_with(%{transactions: recovered_txs, blknum: blknum, eth_height: 1})
+      true = db_results |> Enum.all?(&(elem(&1, 0) == :ok))
+
+      recovered_txs
+      |> Enum.with_index()
+      |> Enum.map(fn {recovered_tx, txindex} -> {blknum, txindex, recovered_tx.signed_tx_hash, recovered_tx} end)
+    end
+
+    # Initial data depending tests can reuse
+    OMG.Watcher.DB.EthEventDB.insert_deposits([
+      %{owner: alice.addr, currency: eth, amount: 333, blknum: 1},
+      %{owner: bob.addr, currency: eth, amount: 100, blknum: 2}
+    ])
+
+    [
+      {1000,
+       [
+         OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], eth, [{bob, 300}]),
+         OMG.API.TestHelper.create_recovered([{1000, 0, 0, bob}], eth, [{alice, 100}, {bob, 200}])
+       ]},
+      {2000, [OMG.API.TestHelper.create_recovered([{1000, 1, 0, alice}], eth, [{bob, 99}, {alice, 1}])]},
+      {3000,
+       [
+         OMG.API.TestHelper.create_recovered([], eth, [{alice, 150}]),
+         OMG.API.TestHelper.create_recovered([{1000, 1, 1, bob}], eth, [{bob, 150}, {alice, 50}])
+       ]}
+    ]
+    |> Enum.flat_map(prepare_f)
   end
 end

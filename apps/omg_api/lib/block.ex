@@ -28,13 +28,14 @@ defmodule OMG.API.Block do
   @type t() :: %__MODULE__{
           transactions: list(binary),
           hash: block_hash_t(),
-          number: pos_integer
+          number: pos_integer()
         }
 
   @doc """
   Returns a Block from enumberable of transactions, at a certain child block number, along with a calculated merkle
   root hash
   """
+  @spec hashed_txs_at(list(Transaction.Recovered.t()), non_neg_integer()) :: t()
   def hashed_txs_at(txs, blknum) do
     {txs_bytes, hashed_txs} =
       txs
@@ -53,6 +54,10 @@ defmodule OMG.API.Block do
     {bytes, hash}
   end
 
+  @doc """
+  Creates a Merkle proof that transaction under a given transaction index is included in block consisting of hashed transactions
+  """
+  @spec create_tx_proof(list(binary()), non_neg_integer()) :: binary()
   def create_tx_proof(hashed_txs, txindex) do
     {:ok, mt} = MerkleTree.new(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height, false)
     proof = MerkleTree.Proof.prove(mt, txindex)

@@ -15,13 +15,13 @@
 defmodule OMG.Eth do
   @moduledoc """
   Library for common code of the adapter/port to contracts deployed on Ethereum.
-  NOTE: The library code is not intended to be used outside of `Eth`: use `Eth.RootChain` and `Eth.Token` as main
+
+  NOTE: The library code is not intended to be used outside of `OMG.Eth`: use `OMG.Eth.RootChain` and `OMG.Eth.Token` as main
   entrypoints to the contract-interaction functionality.
 
-  NOTE: this `OMG.Eth`/`omg_eth` wrapper is intended to be as thin and stupid as possible, only offering a convenient,
-  consistent API to the Ethereum JSONRPC client and contracts.
+  NOTE: This wrapper is intended to be as thin as possible, only offering a consistent API to the Ethereum JSONRPC client and contracts.
 
-  Also other non-contract querries to the Ethereum client.
+  Handles other non-contract queries to the Ethereum client.
 
   Notes on encoding: All APIs of `OMG.Eth` and the submodules with contract APIs always use raw, decoded binaries
   for binaries - never use hex encoded binaries. Such binaries may be passed as is onto `ABI` related functions,

@@ -14,7 +14,7 @@
 
 defmodule OMG.Performance.SenderManager do
   @moduledoc """
-  Registry-kind module to manage sender processes, helps to create and start senders and waits when all are done.
+  Registry-kind module that creates and starts sender processes and waits until all are done
   """
 
   use GenServer
@@ -42,7 +42,7 @@ defmodule OMG.Performance.SenderManager do
   end
 
   @doc """
-  Starts sender processes and reschedule check whether they are done.
+  Starts sender processes
   """
   @spec init({pos_integer(), list(), binary}) :: {:ok, map()}
   def init({ntx_to_send, utxos, destdir}) do
@@ -118,7 +118,7 @@ defmodule OMG.Performance.SenderManager do
   end
 
   @doc """
-  Register block forming time received from the BlockCreator process.
+  Register block forming time received from the `OMG.Performance.BlockCreator` process.
   """
   @spec handle_cast({:blkform, blknum :: integer, total_ms :: pos_integer()}, state :: map()) :: {:noreply, map()}
   def handle_cast({:blkform, blknum, total_ms}, state) do

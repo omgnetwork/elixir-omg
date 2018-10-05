@@ -17,20 +17,28 @@ defmodule OMG.Watcher.Integration.TestHelper do
   Common helper functions that are useful when integration-testing the watcher
   """
 
+  alias OMG.API.Crypto
   alias OMG.API.State
   alias OMG.API.Utxo
-  require Utxo
   alias OMG.Eth
-  alias OMG.Watcher.Web.Serializer
 
+  require Utxo
   import OMG.Watcher.TestHelper
 
   def get_exit_data(blknum, txindex, oindex) do
     utxo_pos = Utxo.Position.encode({:utxo_position, blknum, txindex, oindex})
 
-    %{"result" => "success", "data" => decoded_data} = rest_call(:get, "utxo/#{utxo_pos}/exit_data")
+    %{"result" => "success", "data" => data} = rest_call(:get, "utxo/#{utxo_pos}/exit_data")
 
-    Serializer.Response.decode16(decoded_data, ["txbytes", "proof", "sigs"])
+    OMG.Watcher.Web.Serializer.Response.decode16(data, ["txbytes", "proof", "sigs"])
+  end
+
+  def get_utxos(%{addr: address}) do
+    {:ok, address_encode} = Crypto.encode_address(address)
+
+    %{"result" => "success", "data" => utxos} = rest_call(:get, "utxos?address=#{address_encode}")
+
+    utxos
   end
 
   def wait_until_block_getter_fetches_block(block_nr, timeout) do

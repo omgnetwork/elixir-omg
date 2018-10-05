@@ -17,23 +17,24 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   use ExUnit.Case, async: true
 
   alias OMG.API.State.Transaction
-  alias OMG.API.State.Transaction.Signed
   alias OMG.API.Utxo
   alias OMG.Watcher.Challenger.Challenge
   alias OMG.Watcher.Challenger.Core
-  alias OMG.Watcher.TransactionDB
+  alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.DB.TxOutputDB
 
   require Utxo
 
   deffixture transactions do
     [
-      create_transaction(1, 5, 0),
-      create_transaction(2, 0, 4)
+      create_transaction(0, 5, 0),
+      create_transaction(1, 0, 2),
+      create_transaction(2, 1, 3)
     ]
   end
 
   defp create_transaction(txindex, amount1, amount2) do
-    signed = %Signed{
+    signed = %Transaction.Signed{
       raw_tx: %Transaction{
         blknum1: 1,
         txindex1: 0,
@@ -42,57 +43,44 @@ defmodule OMG.Watcher.Challenger.CoreTest do
         txindex2: 0,
         oindex2: 1,
         cur12: <<0::160>>,
-        newowner1: "alice",
+        newowner1: <<1::160>>,
         amount1: amount1,
-        newowner2: "bob",
+        newowner2: <<0::160>>,
         amount2: amount2
       },
-      sig1: "sig1",
-      sig2: "sig2"
+      sig1: <<0::520>>,
+      sig2: <<0::520>>
     }
 
-    txid = Signed.signed_hash(signed)
+    txhash = Transaction.Signed.signed_hash(signed)
 
     %TransactionDB{
-      blknum1: 1,
-      txindex1: 0,
-      oindex1: 0,
-      blknum2: 1,
-      txindex2: 0,
-      oindex2: 1,
-      cur12: <<0::160>>,
-      newowner1: "",
-      amount1: amount1,
-      newowner2: "",
-      amount2: amount2,
-      txblknum: 2,
+      blknum: 2,
       txindex: txindex,
-      txid: txid,
-      sig1: "sig1",
-      sig2: "sig2"
+      txhash: txhash,
+      inputs: [
+        %TxOutputDB{creating_tx_oindex: 0, spending_tx_oindex: 0}
+      ],
+      outputs: [
+        %TxOutputDB{creating_tx_oindex: 0, amount: amount1},
+        %TxOutputDB{creating_tx_oindex: 1, amount: amount2}
+      ],
+      txbytes: Transaction.Signed.encode(signed)
     }
   end
 
   @tag fixtures: [:transactions]
-  test "creates a challenge for an exit", %{transactions: transactions} do
-    utxo_exit = Utxo.position(1, 0, 0)
-    challenging_tx = hd(transactions)
+  test "creates a challenge for an exit; provides utxo position of non-zero amount", %{transactions: transactions} do
+    challenging_tx = transactions |> Enum.at(0)
+    expected_cutxopos = Utxo.position(2, 0, 0) |> Utxo.Position.encode()
+    assert %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
 
-    expected_cutxopos = Utxo.position(2, 1, 0) |> Utxo.Position.encode()
+    challenging_tx = transactions |> Enum.at(1)
+    expected_cutxopos = Utxo.position(2, 1, 1) |> Utxo.Position.encode()
+    assert %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
 
-    %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} =
-      Core.create_challenge(challenging_tx, transactions, utxo_exit)
-
-    [_, challenging_tx | _] = transactions
-
-    expected_cutxopos = Utxo.position(2, 2, 1) |> Utxo.Position.encode()
-
-    %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} =
-      Core.create_challenge(challenging_tx, transactions, utxo_exit)
-
-    utxo_exit = Utxo.position(1, 0, 1)
-
-    %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 1} =
-      Core.create_challenge(challenging_tx, transactions, utxo_exit)
+    challenging_tx = transactions |> Enum.at(2)
+    expected_cutxopos = Utxo.position(2, 2, 0) |> Utxo.Position.encode()
+    assert %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
   end
 end
