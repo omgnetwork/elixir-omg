@@ -62,6 +62,30 @@ defmodule OMG.Watcher.DB.EthEventDB do
       |> Repo.insert()
   end
 
+  @spec insert_exits([OMG.API.State.Core.exit_t()]) :: [{:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}]
+  def insert_exits(exits) do
+    exits
+    |> Enum.map(fn %{utxo_pos: utxo_pos} ->
+          position = Utxo.Position.decode(utxo_pos)
+          {:ok, _} = insert_exit(position)
+    end)
+  end
+
+  @spec insert_exit(Utxo.Position.t()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
+  defp insert_exit(Utxo.position(blknum, txindex, _oindex) = position) do
+    utxo = TxOutputDB.get_by_position(position)
+
+    {:ok, _} =
+      %__MODULE__{
+        hash: exit_key(position),
+        blknum: blknum,
+        txindex: txindex,
+        event_type: :exit,
+        exited_utxo: utxo
+      }
+      |> Repo.insert()
+  end
+
   @doc """
   Good candidate for deposit/exit primary key is a pair (Utxo.position, event_type).
   Switching to composite key requires carefull consideration of data types and schema change,
