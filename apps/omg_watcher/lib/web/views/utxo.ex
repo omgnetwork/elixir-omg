@@ -19,7 +19,6 @@ defmodule OMG.Watcher.Web.View.Utxo do
 
   use OMG.Watcher.Web, :view
 
-  alias OMG.Watcher.DB.EthEventDB
   alias OMG.Watcher.DB.TransactionDB
   alias OMG.Watcher.DB
   alias OMG.Watcher.Web.Serializer
@@ -45,7 +44,7 @@ defmodule OMG.Watcher.Web.View.Utxo do
 
   defp get_position(
          tx,
-         %EthEventDB{blknum: blknum, txindex: txindex}
+         %DB.EthEvent{blknum: blknum, txindex: txindex}
        )
        when is_nil(tx) do
     {blknum, txindex}

@@ -21,7 +21,7 @@ defmodule OMG.Watcher.DB.TxOutput do
   alias OMG.API.Block
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
-  alias OMG.Watcher.DB.EthEventDB
+  alias OMG.Watcher.DB
   alias OMG.Watcher.DB.Repo
   alias OMG.Watcher.DB.TransactionDB
 
@@ -39,10 +39,10 @@ defmodule OMG.Watcher.DB.TxOutput do
     field(:spending_tx_oindex, :integer)
 
     belongs_to(:creating_transaction, TransactionDB, foreign_key: :creating_txhash, references: :txhash, type: :binary)
-    belongs_to(:deposit, EthEventDB, foreign_key: :creating_deposit, references: :hash, type: :binary)
+    belongs_to(:deposit, DB.EthEvent, foreign_key: :creating_deposit, references: :hash, type: :binary)
 
     belongs_to(:spending_transaction, TransactionDB, foreign_key: :spending_txhash, references: :txhash, type: :binary)
-    belongs_to(:exit, EthEventDB, foreign_key: :spending_exit, references: :hash, type: :binary)
+    belongs_to(:exit, DB.EthEvent, foreign_key: :spending_exit, references: :hash, type: :binary)
   end
 
   def compose_utxo_exit(Utxo.position(blknum, txindex, _) = decoded_utxo_pos) do
@@ -95,7 +95,7 @@ defmodule OMG.Watcher.DB.TxOutput do
   defp get_from_deposit(blknum) do
     query =
       from(
-        evnt in EthEventDB,
+        evnt in DB.EthEvent,
         where: evnt.blknum == ^blknum and evnt.txindex == 0 and evnt.event_type == ^:deposit,
         preload: [:created_utxo]
       )

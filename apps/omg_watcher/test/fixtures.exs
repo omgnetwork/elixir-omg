@@ -172,7 +172,7 @@ defmodule OMG.Watcher.Fixtures do
     end
 
     # Initial data depending tests can reuse
-    OMG.Watcher.DB.EthEventDB.insert_deposits([
+    OMG.Watcher.DB.EthEvent.insert_deposits([
       %{owner: alice.addr, currency: eth, amount: 333, blknum: 1},
       %{owner: bob.addr, currency: eth, amount: 100, blknum: 2}
     ])

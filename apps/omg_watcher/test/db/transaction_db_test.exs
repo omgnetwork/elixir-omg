@@ -61,7 +61,7 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
     @tag fixtures: [:initial_blocks, :alice, :bob]
     test "gets transaction that spends utxo", %{alice: alice, bob: bob, initial_blocks: initial_blocks} do
       alice_deposit_pos = Utxo.position(1, 0, 0)
-      alice_deposit_hash = OMG.Watcher.DB.EthEventDB.generate_unique_key(alice_deposit_pos, :deposit)
+      alice_deposit_hash = OMG.Watcher.DB.EthEvent.generate_unique_key(alice_deposit_pos, :deposit)
       bob_deposit_pos = Utxo.position(2, 0, 0)
       alice_addr = alice.addr
       bob_addr = bob.addr
