@@ -66,8 +66,8 @@ defmodule OMG.Watcher.DB.EthEventDB do
   def insert_exits(exits) do
     exits
     |> Enum.map(fn %{utxo_pos: utxo_pos} ->
-          position = Utxo.Position.decode(utxo_pos)
-          {:ok, _} = insert_exit(position)
+      position = Utxo.Position.decode(utxo_pos)
+      {:ok, _} = insert_exit(position)
     end)
   end
 
