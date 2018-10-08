@@ -15,7 +15,7 @@
 defmodule OMG.Watcher.Web.Serializer.ResponseTest do
   use ExUnit.Case, async: true
 
-  alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.DB
   alias OMG.Watcher.Web.Serializer.Response
 
   @cleaned_tx %{
@@ -29,11 +29,11 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
 
   test "cleaning response structure: map of maps" do
     assert %{first: @cleaned_tx, second: @cleaned_tx} ==
-             Response.clean_artifacts(%{second: %TransactionDB{}, first: %TransactionDB{}})
+             Response.clean_artifacts(%{second: %DB.Transaction{}, first: %DB.Transaction{}})
   end
 
   test "cleaning response structure: list of maps" do
-    assert [@cleaned_tx, @cleaned_tx] == Response.clean_artifacts([%TransactionDB{}, %TransactionDB{}])
+    assert [@cleaned_tx, @cleaned_tx] == Response.clean_artifacts([%DB.Transaction{}, %DB.Transaction{}])
   end
 
   test "cleaning response: simple value list" do

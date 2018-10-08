@@ -156,14 +156,14 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   deffixture initial_blocks(entities, phoenix_ecto_sandbox) do
-    alias OMG.Watcher.DB.TransactionDB
+    alias OMG.Watcher.DB
     eth = OMG.API.Crypto.zero_address()
 
     %{alice: alice, bob: bob} = entities
     :ok = phoenix_ecto_sandbox
 
     prepare_f = fn {blknum, recovered_txs} ->
-      db_results = TransactionDB.update_with(%{transactions: recovered_txs, blknum: blknum, eth_height: 1})
+      db_results = DB.Transaction.update_with(%{transactions: recovered_txs, blknum: blknum, eth_height: 1})
       true = db_results |> Enum.all?(&(elem(&1, 0) == :ok))
 
       recovered_txs

@@ -20,7 +20,6 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   alias OMG.API.Utxo
   alias OMG.Watcher.Challenger.Challenge
   alias OMG.Watcher.Challenger.Core
-  alias OMG.Watcher.DB.TransactionDB
   alias OMG.Watcher.DB
 
   require Utxo
@@ -54,7 +53,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
 
     txhash = Transaction.Signed.signed_hash(signed)
 
-    %TransactionDB{
+    %DB.Transaction{
       blknum: 2,
       txindex: txindex,
       txhash: txhash,

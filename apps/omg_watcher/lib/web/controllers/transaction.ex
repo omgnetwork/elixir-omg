@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use PhoenixSwagger
 
   alias OMG.API.State.Transaction, as: StateTransaction
-  alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.DB.Transaction, as: DBTransaction
   alias OMG.Watcher.Web.View
 
   import OMG.Watcher.Web.ErrorHandler
@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   def get_transaction(conn, %{"id" => id}) do
     id
     |> Base.decode16!()
-    |> TransactionDB.get()
+    |> DBTransaction.get()
     |> respond(conn)
   end
 
@@ -53,7 +53,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     |> respond(conn)
   end
 
-  defp respond(%TransactionDB{} = transaction, conn),
+  defp respond(%DBTransaction{} = transaction, conn),
     do: render(conn, View.Transaction, :transaction, transaction: transaction)
 
   defp respond(nil, conn), do: handle_error(conn, :transaction_not_found)

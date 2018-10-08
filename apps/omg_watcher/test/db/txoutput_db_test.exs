@@ -20,7 +20,6 @@ defmodule OMG.Watcher.DB.TxOutputTest do
   alias OMG.API
   alias OMG.API.Crypto
   alias OMG.API.Utxo
-  alias OMG.Watcher.DB.TransactionDB
   alias OMG.Watcher.DB
 
   require Utxo
@@ -59,7 +58,7 @@ defmodule OMG.Watcher.DB.TxOutputTest do
       # TODO: sqlite does not support decimals, run tests agains real db, then change the exponent to 260
       big_amount = power_of_2.(50)
 
-      TransactionDB.update_with(%{
+      DB.Transaction.update_with(%{
         transactions: [
           API.TestHelper.create_recovered([], @eth, [{alice, big_amount}])
         ],

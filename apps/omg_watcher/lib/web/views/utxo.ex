@@ -19,7 +19,6 @@ defmodule OMG.Watcher.Web.View.Utxo do
 
   use OMG.Watcher.Web, :view
 
-  alias OMG.Watcher.DB.TransactionDB
   alias OMG.Watcher.DB
   alias OMG.Watcher.Web.Serializer
 
@@ -35,7 +34,7 @@ defmodule OMG.Watcher.Web.View.Utxo do
   end
 
   defp get_position(
-         %TransactionDB{blknum: blknum, txindex: txindex},
+         %DB.Transaction{blknum: blknum, txindex: txindex},
          deposit
        )
        when is_nil(deposit) do

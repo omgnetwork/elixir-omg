@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.DB.TransactionDB do
+defmodule OMG.Watcher.DB.Transaction do
   @moduledoc """
-  Ecto Schema representing TransactionDB.
+  Ecto Schema representing DB Transaction.
   """
   use Ecto.Schema
 
