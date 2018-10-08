@@ -34,7 +34,7 @@ defmodule OMG.Watcher.DB.EthEventDBTest do
       EthEventDB.insert_deposits([%{blknum: 1, owner: owner, currency: @eth, amount: 1}])
 
       [event] = EthEventDB.get_all()
-      assert %EthEventDB{deposit_blknum: 1, deposit_txindex: 0, event_type: :deposit, hash: ^expected_hash} = event
+      assert %EthEventDB{blknum: 1, txindex: 0, event_type: :deposit, hash: ^expected_hash} = event
 
       [utxo] = TxOutputDB.get_all()
       assert %TxOutputDB{owner: ^owner, currency: @eth, amount: 1, creating_deposit: ^expected_hash} = utxo
@@ -51,20 +51,42 @@ defmodule OMG.Watcher.DB.EthEventDBTest do
 
       hash1 = EthEventDB.generate_unique_key(Utxo.position(1, 0, 0), :deposit)
 
-      assert %EthEventDB{deposit_blknum: 1, deposit_txindex: 0, event_type: :deposit, hash: ^hash1} =
-               EthEventDB.get(hash1)
+      assert %EthEventDB{blknum: 1, txindex: 0, event_type: :deposit, hash: ^hash1} = EthEventDB.get(hash1)
 
       hash2 = EthEventDB.generate_unique_key(Utxo.position(1000, 0, 0), :deposit)
 
-      assert %EthEventDB{deposit_blknum: 1000, deposit_txindex: 0, event_type: :deposit, hash: ^hash2} =
-               EthEventDB.get(hash2)
+      assert %EthEventDB{blknum: 1000, txindex: 0, event_type: :deposit, hash: ^hash2} = EthEventDB.get(hash2)
 
       hash3 = EthEventDB.generate_unique_key(Utxo.position(2013, 0, 0), :deposit)
 
-      assert %EthEventDB{deposit_blknum: 2013, deposit_txindex: 0, event_type: :deposit, hash: ^hash3} =
-               EthEventDB.get(hash3)
+      assert %EthEventDB{blknum: 2013, txindex: 0, event_type: :deposit, hash: ^hash3} = EthEventDB.get(hash3)
 
       assert [hash1, hash2, hash3] == TxOutputDB.get_utxos(alice.addr) |> Enum.map(& &1.creating_deposit)
     end
+  end
+
+  @tag fixtures: [:initial_blocks, :alice, :bob]
+  test "insert exits: creates exit event and marks utxo as spent", %{alice: alice, bob: bob} do
+    bobs_deposit_pos = Utxo.position(2, 0, 0)
+    bobs_deposit = %{utxo_pos: Utxo.Position.encode(bobs_deposit_pos), token: @eth, owner: bob.addr, amount: 100}
+    bobs_deposit_exit_hash = EthEventDB.generate_unique_key(bobs_deposit_pos, :exit)
+
+    alices_utxo_pos = Utxo.position(3000, 1, 1)
+    alices_utxo = %{utxo_pos: Utxo.Position.encode(alices_utxo_pos), token: @eth, owner: alice.addr, amount: 50}
+    alices_utxo_exit_hash = EthEventDB.generate_unique_key(alices_utxo_pos, :exit)
+
+    [{:ok, _exit1}, {:ok, _exit2}] = EthEventDB.insert_exits([bobs_deposit, alices_utxo])
+
+    assert %EthEventDB{blknum: 2, txindex: 0, event_type: :exit, hash: ^bobs_deposit_exit_hash} =
+             EthEventDB.get(bobs_deposit_exit_hash)
+
+    assert %EthEventDB{blknum: 3000, txindex: 1, event_type: :exit, hash: ^alices_utxo_exit_hash} =
+             EthEventDB.get(alices_utxo_exit_hash)
+
+    assert %TxOutputDB{amount: 100, spending_tx_oindex: nil, spending_exit: ^bobs_deposit_exit_hash} =
+             TxOutputDB.get_by_position(bobs_deposit_pos)
+
+    assert %TxOutputDB{amount: 50, spending_tx_oindex: nil, spending_exit: ^alices_utxo_exit_hash} =
+             TxOutputDB.get_by_position(alices_utxo_pos)
   end
 end
