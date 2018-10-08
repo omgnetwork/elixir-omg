@@ -56,8 +56,8 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
             currency: "0000000000000000000000000000000000000000",
             deposit: %{
               __meta__: %{context: nil, source: {nil, "txoutputs"}, state: :loaded},
-              deposit_blknum: 1,
-              deposit_txindex: 0,
+              blknum: 1,
+              txindex: 0,
               event_type: :deposit,
               hash: "hash1"
             },

@@ -45,7 +45,7 @@ defmodule OMG.Watcher.Web.View.Utxo do
 
   defp get_position(
          tx,
-         %EthEventDB{deposit_blknum: blknum, deposit_txindex: txindex}
+         %EthEventDB{blknum: blknum, txindex: txindex}
        )
        when is_nil(tx) do
     {blknum, txindex}

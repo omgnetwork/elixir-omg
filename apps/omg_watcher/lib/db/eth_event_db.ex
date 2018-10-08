@@ -18,14 +18,18 @@ defmodule OMG.Watcher.DB.EthEventDB do
   """
   use Ecto.Schema
 
+  alias OMG.API.Crypto
+  alias OMG.API.Utxo
   alias OMG.Watcher.DB.Repo
   alias OMG.Watcher.DB.TxOutputDB
+
+  require Utxo
 
   @primary_key {:hash, :binary, []}
   @derive {Phoenix.Param, key: :hash}
   schema "ethevents" do
-    field(:deposit_blknum, :integer)
-    field(:deposit_txindex, :integer)
+    field(:blknum, :integer)
+    field(:txindex, :integer)
     field(:event_type, OMG.Watcher.DB.Types.AtomType)
 
     has_one(:created_utxo, TxOutputDB, foreign_key: :creating_deposit)
@@ -46,8 +50,8 @@ defmodule OMG.Watcher.DB.EthEventDB do
     {:ok, _} =
       %__MODULE__{
         hash: deposit_key(blknum),
-        deposit_blknum: blknum,
-        deposit_txindex: 0,
+        blknum: blknum,
+        txindex: 0,
         event_type: :deposit,
         created_utxo: %TxOutputDB{
           owner: owner,
@@ -57,10 +61,6 @@ defmodule OMG.Watcher.DB.EthEventDB do
       }
       |> Repo.insert()
   end
-
-  alias OMG.API.Crypto
-  alias OMG.API.Utxo
-  require Utxo
 
   @doc """
   Good candidate for deposit/exit primary key is a pair (Utxo.position, event_type).
@@ -73,4 +73,5 @@ defmodule OMG.Watcher.DB.EthEventDB do
   end
 
   defp deposit_key(blknum), do: generate_unique_key(Utxo.position(blknum, 0, 0), :deposit)
+  defp exit_key(position), do: generate_unique_key(position, :exit)
 end
