@@ -53,7 +53,7 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
             amount: 1,
             creating_deposit: "hash1",
             creating_transaction: nil,
-            currency: "0000000000000000000000000000000000000000",
+            currency: String.duplicate("00", 20),
             deposit: %{
               __meta__: %{context: nil, source: {nil, "txoutputs"}, state: :loaded},
               blknum: 1,
