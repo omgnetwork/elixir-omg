@@ -22,7 +22,6 @@ defmodule OMG.Watcher.DB.TxOutput do
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.DB
-  alias OMG.Watcher.DB.Repo
 
   require Utxo
 
@@ -75,7 +74,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     }
   end
 
-  def get_all, do: Repo.all(__MODULE__)
+  def get_all, do: DB.Repo.all(__MODULE__)
 
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
   def get_by_position(Utxo.position(blknum, _, _) = position) do
@@ -99,7 +98,7 @@ defmodule OMG.Watcher.DB.TxOutput do
         preload: [:created_utxo]
       )
 
-    deposit = Repo.one(query)
+    deposit = DB.Repo.one(query)
     deposit && deposit.created_utxo
   end
 
@@ -111,7 +110,7 @@ defmodule OMG.Watcher.DB.TxOutput do
         preload: [:creating_transaction, :deposit]
       )
 
-    Repo.all(query)
+    DB.Repo.all(query)
   end
 
   def get_balance(owner) do
@@ -123,7 +122,7 @@ defmodule OMG.Watcher.DB.TxOutput do
         select: {t.currency, sum(t.amount)}
       )
 
-    Repo.all(query)
+    DB.Repo.all(query)
     |> Enum.map(fn {currency, amount} ->
       # defends against sqlite that returns integer here
       amount = amount |> Decimal.new() |> Decimal.to_integer()
