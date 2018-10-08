@@ -82,7 +82,7 @@ signedTxBytes = rlpEncode(txArray)
 
 Rlp encoding the entire array from previous step
 ```
-tx_for_encode = { blknum1, txindex1, oindex1, blknum2, txindex2, oindex2, cur12, newowner1, amount1, newowner2, amount2, signature1, signature2, signedTxBytes}
+tx_for_encode = { blknum1, txindex1, oindex1, blknum2, txindex2, oindex2, cur12, newowner1, amount1, newowner2, amount2, signature1, signature2 }
 
 rlp_encoded = rlpEncode(tx_for_encode)
 ```
