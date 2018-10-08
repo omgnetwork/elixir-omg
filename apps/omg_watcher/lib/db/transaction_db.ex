@@ -21,7 +21,7 @@ defmodule OMG.Watcher.DB.TransactionDB do
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.DB.Repo
-  alias OMG.Watcher.DB.TxOutputDB
+  alias OMG.Watcher.DB
 
   require Utxo
 
@@ -43,8 +43,8 @@ defmodule OMG.Watcher.DB.TransactionDB do
     field(:sent_at, :utc_datetime)
     field(:eth_height, :integer)
 
-    has_many(:inputs, TxOutputDB, foreign_key: :spending_txhash)
-    has_many(:outputs, TxOutputDB, foreign_key: :creating_txhash)
+    has_many(:inputs, DB.TxOutput, foreign_key: :spending_txhash)
+    has_many(:outputs, DB.TxOutput, foreign_key: :creating_txhash)
   end
 
   def get(hash) do
@@ -100,8 +100,8 @@ defmodule OMG.Watcher.DB.TransactionDB do
         blknum: block_number,
         txindex: txindex,
         eth_height: eth_height,
-        inputs: TxOutputDB.get_inputs(raw_tx),
-        outputs: TxOutputDB.create_outputs(raw_tx)
+        inputs: DB.TxOutput.get_inputs(raw_tx),
+        outputs: DB.TxOutput.create_outputs(raw_tx)
       }
       |> Repo.insert()
   end
@@ -110,7 +110,7 @@ defmodule OMG.Watcher.DB.TransactionDB do
   def get_transaction_challenging_utxo(position) do
     # finding tx's input can be tricky
     input =
-      TxOutputDB.get_by_position(position)
+      DB.TxOutput.get_by_position(position)
       |> Repo.preload([:spending_transaction])
 
     case input && input.spending_transaction do

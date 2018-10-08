@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Web.View.Utxo do
 
   alias OMG.Watcher.DB.EthEventDB
   alias OMG.Watcher.DB.TransactionDB
-  alias OMG.Watcher.DB.TxOutputDB
+  alias OMG.Watcher.DB
   alias OMG.Watcher.Web.Serializer
 
   def render("utxo_exit.json", %{utxo_exit: utxo_exit}) do
@@ -51,7 +51,7 @@ defmodule OMG.Watcher.Web.View.Utxo do
     {blknum, txindex}
   end
 
-  defp to_view(%TxOutputDB{
+  defp to_view(%DB.TxOutput{
          amount: amount,
          currency: currency,
          creating_tx_oindex: oindex,

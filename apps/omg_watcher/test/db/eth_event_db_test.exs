@@ -20,7 +20,7 @@ defmodule OMG.Watcher.DB.EthEventDBTest do
   alias OMG.API.Crypto
   alias OMG.API.Utxo
   alias OMG.Watcher.DB.EthEventDB
-  alias OMG.Watcher.DB.TxOutputDB
+  alias OMG.Watcher.DB
 
   require Utxo
 
@@ -36,8 +36,8 @@ defmodule OMG.Watcher.DB.EthEventDBTest do
       [event] = EthEventDB.get_all()
       assert %EthEventDB{blknum: 1, txindex: 0, event_type: :deposit, hash: ^expected_hash} = event
 
-      [utxo] = TxOutputDB.get_all()
-      assert %TxOutputDB{owner: ^owner, currency: @eth, amount: 1, creating_deposit: ^expected_hash} = utxo
+      [utxo] = DB.TxOutput.get_all()
+      assert %DB.TxOutput{owner: ^owner, currency: @eth, amount: 1, creating_deposit: ^expected_hash} = utxo
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -61,7 +61,7 @@ defmodule OMG.Watcher.DB.EthEventDBTest do
 
       assert %EthEventDB{blknum: 2013, txindex: 0, event_type: :deposit, hash: ^hash3} = EthEventDB.get(hash3)
 
-      assert [hash1, hash2, hash3] == TxOutputDB.get_utxos(alice.addr) |> Enum.map(& &1.creating_deposit)
+      assert [hash1, hash2, hash3] == DB.TxOutput.get_utxos(alice.addr) |> Enum.map(& &1.creating_deposit)
     end
   end
 

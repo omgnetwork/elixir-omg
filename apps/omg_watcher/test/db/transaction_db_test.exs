@@ -22,7 +22,7 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.DB.TransactionDB
-  alias OMG.Watcher.DB.TxOutputDB
+  alias OMG.Watcher.DB
 
   require Utxo
 
@@ -76,9 +76,9 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
                 blknum: ^blknum,
                 txindex: ^txindex,
                 inputs: [
-                  %TxOutputDB{creating_deposit: ^alice_deposit_hash, owner: ^alice_addr, currency: @eth, amount: 333}
+                  %DB.TxOutput{creating_deposit: ^alice_deposit_hash, owner: ^alice_addr, currency: @eth, amount: 333}
                 ],
-                outputs: [%TxOutputDB{creating_txhash: ^spending_tx, owner: ^bob_addr, currency: @eth, amount: 300}]
+                outputs: [%DB.TxOutput{creating_txhash: ^spending_tx, owner: ^bob_addr, currency: @eth, amount: 300}]
               }} = TransactionDB.get_transaction_challenging_utxo(alice_deposit_pos)
 
       alice_spent = Utxo.position(1000, 1, 0)
@@ -90,10 +90,10 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
                 txhash: ^spending_tx,
                 blknum: ^blknum,
                 txindex: ^txindex,
-                inputs: [%TxOutputDB{creating_txhash: ^creating_tx, owner: ^alice_addr, currency: @eth, amount: 100}],
+                inputs: [%DB.TxOutput{creating_txhash: ^creating_tx, owner: ^alice_addr, currency: @eth, amount: 100}],
                 outputs: [
-                  %TxOutputDB{creating_txhash: ^spending_tx, owner: ^bob_addr, currency: @eth, amount: 99},
-                  %TxOutputDB{creating_txhash: ^spending_tx, owner: ^alice_addr, currency: @eth, amount: 1}
+                  %DB.TxOutput{creating_txhash: ^spending_tx, owner: ^bob_addr, currency: @eth, amount: 99},
+                  %DB.TxOutput{creating_txhash: ^spending_tx, owner: ^alice_addr, currency: @eth, amount: 1}
                 ]
               }} = TransactionDB.get_transaction_challenging_utxo(alice_spent)
     end
@@ -104,9 +104,9 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
       spent_txo = Utxo.position(1000, 1, 1)
       {:ok, %TransactionDB{txhash: spent_txhash}} = TransactionDB.get_transaction_challenging_utxo(spent_txo)
 
-      assert %TxOutputDB{
+      assert %DB.TxOutput{
                spending_txhash: ^spent_txhash
-             } = TxOutputDB.get_by_position(spent_txo)
+             } = DB.TxOutput.get_by_position(spent_txo)
 
       [{:ok, %TransactionDB{txhash: double_spent_txhash}}] =
         TransactionDB.update_with(%{
@@ -115,9 +115,9 @@ defmodule OMG.Watcher.DB.TransactionDBTest do
           eth_height: 10
         })
 
-      assert %TxOutputDB{
+      assert %DB.TxOutput{
                spending_txhash: ^double_spent_txhash
-             } = TxOutputDB.get_by_position(spent_txo)
+             } = DB.TxOutput.get_by_position(spent_txo)
     end
   end
 end

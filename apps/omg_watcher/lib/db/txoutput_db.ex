@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.DB.TxOutputDB do
+defmodule OMG.Watcher.DB.TxOutput do
   @moduledoc """
   Ecto schema for transaction's output or input
   """

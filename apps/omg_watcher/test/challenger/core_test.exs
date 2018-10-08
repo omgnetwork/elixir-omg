@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   alias OMG.Watcher.Challenger.Challenge
   alias OMG.Watcher.Challenger.Core
   alias OMG.Watcher.DB.TransactionDB
-  alias OMG.Watcher.DB.TxOutputDB
+  alias OMG.Watcher.DB
 
   require Utxo
 
@@ -59,11 +59,11 @@ defmodule OMG.Watcher.Challenger.CoreTest do
       txindex: txindex,
       txhash: txhash,
       inputs: [
-        %TxOutputDB{creating_tx_oindex: 0, spending_tx_oindex: 0}
+        %DB.TxOutput{creating_tx_oindex: 0, spending_tx_oindex: 0}
       ],
       outputs: [
-        %TxOutputDB{creating_tx_oindex: 0, amount: amount1},
-        %TxOutputDB{creating_tx_oindex: 1, amount: amount2}
+        %DB.TxOutput{creating_tx_oindex: 0, amount: amount1},
+        %DB.TxOutput{creating_tx_oindex: 1, amount: amount2}
       ],
       txbytes: Transaction.Signed.encode(signed)
     }

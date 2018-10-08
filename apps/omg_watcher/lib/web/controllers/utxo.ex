@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
   alias OMG.API.Crypto
   alias OMG.API.Utxo
-  alias OMG.Watcher.DB.TxOutputDB
+  alias OMG.Watcher.DB
   alias OMG.Watcher.Web.View
 
   require Utxo
@@ -31,7 +31,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
   def get_utxos(conn, %{"address" => address}) do
     {:ok, address_decode} = Crypto.decode_address(address)
-    utxos = TxOutputDB.get_utxos(address_decode)
+    utxos = DB.TxOutput.get_utxos(address_decode)
 
     render(conn, View.Utxo, :utxos, utxos: utxos)
   end
@@ -41,7 +41,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
     utxo_pos
     |> Utxo.Position.decode()
-    |> TxOutputDB.compose_utxo_exit()
+    |> DB.TxOutput.compose_utxo_exit()
     |> respond(conn)
   end
 
