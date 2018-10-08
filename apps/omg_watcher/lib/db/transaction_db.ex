@@ -21,6 +21,7 @@ defmodule OMG.Watcher.DB.Transaction do
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.DB
+  alias OMG.Watcher.DB.Repo
 
   require Utxo
 
@@ -48,15 +49,15 @@ defmodule OMG.Watcher.DB.Transaction do
 
   def get(hash) do
     __MODULE__
-    |> DB.Repo.get(hash)
+    |> Repo.get(hash)
   end
 
   def get_by_blknum(blknum) do
-    DB.Repo.all(from(__MODULE__, where: [blknum: ^blknum]))
+    Repo.all(from(__MODULE__, where: [blknum: ^blknum]))
   end
 
   def get_by_position(blknum, txindex) do
-    DB.Repo.one(from(__MODULE__, where: [blknum: ^blknum, txindex: ^txindex]))
+    Repo.one(from(__MODULE__, where: [blknum: ^blknum, txindex: ^txindex]))
   end
 
   @spec get_tx_output(Utxo.Position.t()) :: map() | nil
@@ -69,7 +70,7 @@ defmodule OMG.Watcher.DB.Transaction do
         preload: [outputs: o]
       )
 
-    DB.Repo.one(query)
+    Repo.one(query)
   end
 
   @doc """
@@ -102,7 +103,7 @@ defmodule OMG.Watcher.DB.Transaction do
         inputs: DB.TxOutput.get_inputs(raw_tx),
         outputs: DB.TxOutput.create_outputs(raw_tx)
       }
-      |> DB.Repo.insert()
+      |> Repo.insert()
   end
 
   @spec get_transaction_challenging_utxo(Utxo.Position.t()) :: {:ok, %__MODULE__{}} | {:error, :utxo_not_spent}
@@ -110,7 +111,7 @@ defmodule OMG.Watcher.DB.Transaction do
     # finding tx's input can be tricky
     input =
       DB.TxOutput.get_by_position(position)
-      |> DB.Repo.preload([:spending_transaction])
+      |> Repo.preload([:spending_transaction])
 
     case input && input.spending_transaction do
       nil ->
@@ -118,7 +119,7 @@ defmodule OMG.Watcher.DB.Transaction do
 
       tx ->
         # transaction which spends output specified by position with outputs it created
-        tx = %__MODULE__{(tx |> DB.Repo.preload([:outputs])) | inputs: [input]}
+        tx = %__MODULE__{(tx |> Repo.preload([:outputs])) | inputs: [input]}
 
         {:ok, tx}
     end
