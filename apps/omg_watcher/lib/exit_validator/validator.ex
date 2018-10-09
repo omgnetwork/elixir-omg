@@ -20,7 +20,7 @@ defmodule OMG.Watcher.ExitValidator.Validator do
   alias OMG.API.Utxo
   require Utxo
 
-  @spec challenge_invalid_exits(fun()) :: (fun() -> :ok)
+  @spec challenge_invalid_exits(fun()) :: ([OMG.API.State.Core.exit_t()] -> :ok)
   def challenge_invalid_exits(utxo_exists_callback) do
     fn utxo_exits ->
       for utxo_exit <- utxo_exits do

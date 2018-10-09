@@ -53,7 +53,7 @@ defmodule OMG.Watcher.Application do
             synced_height_update_key: :last_fast_exit_eth_height,
             service_name: :fast_validator,
             get_events_callback: &OMG.Eth.RootChain.get_exits/2,
-            process_events_callback: OMG.Watcher.ExitValidator.Validator.challenge_invalid_exits(fn _ -> :ok end),
+            process_events_callback: &exit_events_callback/1,
             get_last_synced_height_callback: &OMG.DB.last_fast_exit_eth_height/0
           }
         ],
@@ -113,6 +113,12 @@ defmodule OMG.Watcher.Application do
   defp deposit_events_callback(deposits) do
     :ok = OMG.API.State.deposit(deposits)
     _ = OMG.Watcher.DB.EthEventDB.insert_deposits(deposits)
+    :ok
+  end
+
+  defp exit_events_callback(exits) do
+    :ok = OMG.Watcher.ExitValidator.Validator.challenge_invalid_exits(fn _ -> :ok end).(exits)
+    _ = OMG.Watcher.DB.EthEventDB.insert_exits(exits)
     :ok
   end
 end

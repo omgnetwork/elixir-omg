@@ -96,7 +96,7 @@ defmodule OMG.Watcher.DB.TxOutputDB do
     query =
       from(
         evnt in EthEventDB,
-        where: evnt.deposit_blknum == ^blknum and evnt.deposit_txindex == 0 and evnt.event_type == ^:deposit,
+        where: evnt.blknum == ^blknum and evnt.txindex == 0 and evnt.event_type == ^:deposit,
         preload: [:created_utxo]
       )
 
