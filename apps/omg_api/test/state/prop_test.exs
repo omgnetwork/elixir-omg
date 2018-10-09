@@ -14,6 +14,19 @@
 
 defmodule OMG.API.State.PropTest do
   @moduledoc """
+  check if model don't change bilans of tokens (in brackets which commands are needed to detect this)
+
+  * we do not create or destroy money (generate double spend transaction,
+    generate wrong transaction with wrong input or output, generate good transaction with some mutation)
+  * try spend already spent money (generate double spend transaction)
+  * can't spend someone else money (generate transaction witch different spender)
+  * block hash don't contain unwanted transaction (generate double spend transaction,
+    generate transaction witch different spender, generate good transaction with some mutation)
+  * two block don't contain this same transaction, condition after execution form_block detects this.
+  * detect if in State is special output index which gives free money (generate good transaction with some mutation)
+  * detect if in State is special blknum index which gives free money (generate good transaction with some mutation)
+  * check if restart State don't lost data (restart command change State state witch init)
+
   propcheck see: https://github.com/alfert/propcheck
   important:
    - command can be added from diffrent file, by elixir "use" with a little macro magic.
@@ -32,10 +45,7 @@ defmodule OMG.API.State.PropTest do
      then in file where are propcheck test
      use ModuleName
 
-   - function weight taking the current model state and returning
-     a map of command and frequency pairs to be generated.
-     More information in lib/statem_dsl.ex from propcheck.
-     Function should be defined in module where we define property test.
+   - function weight should be defined in module where we define property test.
   """
 
   use PropCheck
@@ -60,6 +70,8 @@ defmodule OMG.API.State.PropTest do
 
   require OMG.API.PropTest.Constants
 
+  @moduletag capture_log: true
+
   def initial_state do
     %{
       model: %{history: [], balance: 0},
@@ -67,17 +79,20 @@ defmodule OMG.API.State.PropTest do
     }
   end
 
+  @doc """
+  Taking the current model state and returning
+  a map of command and frequency pairs to be generated.
+  More information in lib/statem_dsl.ex from propcheck.
+  """
   def weight(%{model: %{history: history}}) do
     {unspent, spent} = Helper.get_utxos(history)
 
     utxos_eth =
       unspent
-      |> Map.to_list()
       |> Enum.count(&match?({_, %{currency: :eth}}, &1))
 
     spent_utxo_eth =
       spent
-      |> Map.to_list()
       |> Enum.count(&match?({_, %{currency: :eth}}, &1))
 
     [
@@ -104,6 +119,21 @@ defmodule OMG.API.State.PropTest do
       end
   end
 
+  defp collect_printer(samples) do
+    counting = fn el, acc -> Map.put(acc, el, Map.get(acc, el, 0) + 1) end
+
+    samples
+    |> Enum.with_index(1)
+    |> Enum.map(fn {history, index} ->
+      test_information =
+        history
+        |> Enum.map(&elem(&1, 0))
+        |> Enum.reduce(%{}, counting)
+
+      Logger.info("#{index}) #{inspect(test_information)} ")
+    end)
+  end
+
   def state_core_property_test do
     forall cmds <- commands(__MODULE__) do
       trap_exit do
@@ -113,21 +143,6 @@ defmodule OMG.API.State.PropTest do
         %{history: history, result: result, state: _state, env: _env} = run_commands(cmds)
         history = List.first(history) |> elem(0) |> (fn value -> value[:model][:history] end).()
 
-        collect_printer = fn samples ->
-          counting = fn el, acc -> Map.put(acc, el, Map.get(acc, el, 0) + 1) end
-
-          samples
-          |> Enum.with_index(1)
-          |> Enum.map(fn {history, index} ->
-            test_information =
-              history
-              |> Enum.map(&elem(&1, 0))
-              |> Enum.reduce(%{}, counting)
-
-            IO.puts("#{index}) #{inspect(test_information)} ")
-          end)
-        end
-
         (result == :ok)
         |> when_fail(
           (fn ->
@@ -135,18 +150,18 @@ defmodule OMG.API.State.PropTest do
              Logger.error("Result: #{inspect(result)}")
            end).()
         )
-        |> collect(collect_printer, history)
+        |> collect(&collect_printer/1, history)
         |> aggregate(command_names(cmds))
       end
     end
   end
 
-  property "quick test of property test", [:quiet, numtests: 3, max_size: 100, start_size: 20] do
+  property "quick test of property test", [:quiet, numtests: 1000] do
     state_core_property_test()
   end
 
   @tag :property
-  property "OMG.API.State.Core prope check", numtests: 10, max_size: 200, start_size: 100 do
+  property "OMG.API.State.Core prope check", numtests: 1000 do
     state_core_property_test()
   end
 end

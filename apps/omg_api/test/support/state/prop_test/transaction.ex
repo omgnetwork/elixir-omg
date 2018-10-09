@@ -72,7 +72,7 @@ defmodule OMG.API.State.PropTest.Transaction do
     available_currencies = Map.values(unspent) |> Enum.map(& &1.currency) |> Enum.uniq()
 
     let [currency <- oneof(available_currencies)] do
-      unspent = unspent |> Map.to_list() |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
+      unspent = unspent |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
 
       let [
         owners <- Generators.new_owners(),
@@ -84,7 +84,7 @@ defmodule OMG.API.State.PropTest.Transaction do
   end
 
   def pre(%{model: %{history: history}}, [{inputs, currency, output}, fee_map]) do
-    unspent = Helper.spendable(history) |> Map.to_list() |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
+    unspent = Helper.spendable(history) |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
 
     rich_inputs =
       inputs

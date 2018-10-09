@@ -25,7 +25,6 @@ defmodule OMG.API.State.PropTest.EveryoneExit do
   def args(%{model: %{history: history}}),
     do: [
       Helper.spendable(history)
-      |> Map.to_list()
       |> Enum.map(fn {{blknum, txindex, oindex}, %{owner: owner}} ->
         %{utxo_pos: Utxo.Position.encode(Utxo.position(blknum, txindex, oindex)), owner: Helper.get_addr(owner)}
       end)

@@ -50,7 +50,9 @@ defmodule OMG.API.State.PropTest.MutatedTransaction do
     end
   end
 
-  def pre(state, args), do: !PropTest.Transaction.pre(state, args)
+  def pre(state, [{inputs, _, _} | _] = args),
+    do: !PropTest.Transaction.pre(state, args) && length(Enum.uniq(inputs)) == length(inputs)
+
   def post(_state, _args, {:error, _}), do: true
 
   def next(%{model: %{history: history, balance: balance} = model} = state, [transaction | _], _ret) do

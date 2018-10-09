@@ -28,8 +28,8 @@ defmodule OMG.API.State.PropTest.DoubleSpendTransaction do
     available_currencies = Map.values(spend) |> Enum.map(& &1.currency) |> Enum.uniq()
 
     let [currency <- oneof(available_currencies)] do
-      unspend = unspend |> Map.to_list() |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
-      spend = spend |> Map.to_list() |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
+      unspend = unspend |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
+      spend = spend |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
 
       let [
         owners <- Generators.new_owners(),
