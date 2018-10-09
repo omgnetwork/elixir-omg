@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   alias OMG.API.Crypto
   alias OMG.API.TestHelper
   alias OMG.API.Utxo
-  alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
 
   require Utxo
@@ -79,7 +79,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
              } = get_utxos(carol.addr)
 
       # bob spends his utxo to carol
-      TransactionDB.update_with(%{
+      DB.Transaction.update_with(%{
         transactions: [API.TestHelper.create_recovered([{2000, 0, 0, bob}], @eth, [{bob, 49}, {carol, 50}])],
         blknum: 11_000,
         eth_height: 10
@@ -149,7 +149,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
                "oindex" => 0
              } = utxos |> Enum.find(&(&1["blknum"] < 1000))
 
-      TransactionDB.update_with(%{
+      DB.Transaction.update_with(%{
         transactions: [API.TestHelper.create_recovered([{blknum, 0, 0, bob}], @eth, [{carol, 100}])],
         blknum: 11_000,
         eth_height: 10
@@ -226,7 +226,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   test "Outputs with value zero are not inserted into DB, the other has correct oindex", %{alice: alice} do
     blknum = 11_000
 
-    TransactionDB.update_with(%{
+    DB.Transaction.update_with(%{
       transactions: [
         API.TestHelper.create_recovered([], @eth, [{alice, 0}, {alice, 100}]),
         API.TestHelper.create_recovered([], @eth, [{alice, 101}, {alice, 0}])

@@ -20,7 +20,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
   alias OMG.API
   alias OMG.API.Crypto
   alias OMG.API.TestHelper
-  alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
 
   @eth_hex String.duplicate("00", 20)
@@ -37,7 +37,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
              } == TestHelper.rest_call(:get, path_for(bob), nil, 200)
 
       # adds other token funds for alice to make more interestning
-      TransactionDB.update_with(%{
+      DB.Transaction.update_with(%{
         transactions: [API.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])],
         blknum: 11_000,
         eth_height: 10

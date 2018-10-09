@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.DB.TxOutputDB do
+defmodule OMG.Watcher.DB.TxOutput do
   @moduledoc """
   Ecto schema for transaction's output or input
   """
@@ -21,9 +21,8 @@ defmodule OMG.Watcher.DB.TxOutputDB do
   alias OMG.API.Block
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
-  alias OMG.Watcher.DB.EthEventDB
+  alias OMG.Watcher.DB
   alias OMG.Watcher.DB.Repo
-  alias OMG.Watcher.DB.TransactionDB
 
   require Utxo
 
@@ -38,15 +37,15 @@ defmodule OMG.Watcher.DB.TxOutputDB do
     field(:creating_tx_oindex, :integer)
     field(:spending_tx_oindex, :integer)
 
-    belongs_to(:creating_transaction, TransactionDB, foreign_key: :creating_txhash, references: :txhash, type: :binary)
-    belongs_to(:deposit, EthEventDB, foreign_key: :creating_deposit, references: :hash, type: :binary)
+    belongs_to(:creating_transaction, DB.Transaction, foreign_key: :creating_txhash, references: :txhash, type: :binary)
+    belongs_to(:deposit, DB.EthEvent, foreign_key: :creating_deposit, references: :hash, type: :binary)
 
-    belongs_to(:spending_transaction, TransactionDB, foreign_key: :spending_txhash, references: :txhash, type: :binary)
-    belongs_to(:exit, EthEventDB, foreign_key: :spending_exit, references: :hash, type: :binary)
+    belongs_to(:spending_transaction, DB.Transaction, foreign_key: :spending_txhash, references: :txhash, type: :binary)
+    belongs_to(:exit, DB.EthEvent, foreign_key: :spending_exit, references: :hash, type: :binary)
   end
 
   def compose_utxo_exit(Utxo.position(blknum, txindex, _) = decoded_utxo_pos) do
-    txs = TransactionDB.get_by_blknum(blknum)
+    txs = DB.Transaction.get_by_blknum(blknum)
 
     if Enum.any?(txs, &match?(%{txindex: ^txindex}, &1)),
       do: {:ok, compose_utxo_exit(txs, decoded_utxo_pos)},
@@ -86,7 +85,7 @@ defmodule OMG.Watcher.DB.TxOutputDB do
 
   @spec get_from_tx(Utxo.Position.t()) :: map() | nil
   defp get_from_tx(position) do
-    tx = TransactionDB.get_tx_output(position)
+    tx = DB.Transaction.get_tx_output(position)
 
     tx && tx.outputs |> hd()
   end
@@ -95,7 +94,7 @@ defmodule OMG.Watcher.DB.TxOutputDB do
   defp get_from_deposit(blknum) do
     query =
       from(
-        evnt in EthEventDB,
+        evnt in DB.EthEvent,
         where: evnt.blknum == ^blknum and evnt.txindex == 0 and evnt.event_type == ^:deposit,
         preload: [:created_utxo]
       )

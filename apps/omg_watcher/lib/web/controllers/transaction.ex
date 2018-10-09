@@ -20,8 +20,8 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
-  alias OMG.API.State.Transaction, as: StateTransaction
-  alias OMG.Watcher.DB.TransactionDB
+  alias OMG.API.State
+  alias OMG.Watcher.DB
   alias OMG.Watcher.Web.View
 
   import OMG.Watcher.Web.ErrorHandler
@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   def get_transaction(conn, %{"id" => id}) do
     id
     |> Base.decode16!()
-    |> TransactionDB.get()
+    |> DB.Transaction.get()
     |> respond(conn)
   end
 
@@ -47,18 +47,18 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     with {inputs, outputs} <- parse_request_body(body),
          # TODO: Transaction's fees are not supported yet
          fee <- 0,
-         {:ok, transaction} <- StateTransaction.create_from_utxos(inputs, outputs, fee) do
+         {:ok, transaction} <- State.Transaction.create_from_utxos(inputs, outputs, fee) do
       transaction
     end
     |> respond(conn)
   end
 
-  defp respond(%TransactionDB{} = transaction, conn),
+  defp respond(%DB.Transaction{} = transaction, conn),
     do: render(conn, View.Transaction, :transaction, transaction: transaction)
 
   defp respond(nil, conn), do: handle_error(conn, :transaction_not_found)
 
-  defp respond(%StateTransaction{} = transaction, conn),
+  defp respond(%State.Transaction{} = transaction, conn),
     do: render(conn, View.Transaction, :transaction_encode, transaction: transaction)
 
   defp respond({:error, code}, conn) when is_atom(code), do: handle_error(conn, code)

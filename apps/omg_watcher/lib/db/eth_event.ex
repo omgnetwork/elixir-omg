@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.DB.EthEventDB do
+defmodule OMG.Watcher.DB.EthEvent do
   @moduledoc """
   Ecto schema for transaction's output (or input)
   """
@@ -20,8 +20,7 @@ defmodule OMG.Watcher.DB.EthEventDB do
 
   alias OMG.API.Crypto
   alias OMG.API.Utxo
-  alias OMG.Watcher.DB.Repo
-  alias OMG.Watcher.DB.TxOutputDB
+  alias OMG.Watcher.DB
 
   require Utxo
 
@@ -32,12 +31,12 @@ defmodule OMG.Watcher.DB.EthEventDB do
     field(:txindex, :integer)
     field(:event_type, OMG.Watcher.DB.Types.AtomType)
 
-    has_one(:created_utxo, TxOutputDB, foreign_key: :creating_deposit)
-    has_one(:exited_utxo, TxOutputDB, foreign_key: :spending_exit)
+    has_one(:created_utxo, DB.TxOutput, foreign_key: :creating_deposit)
+    has_one(:exited_utxo, DB.TxOutput, foreign_key: :spending_exit)
   end
 
-  def get(hash), do: Repo.get(__MODULE__, hash)
-  def get_all, do: Repo.all(__MODULE__)
+  def get(hash), do: DB.Repo.get(__MODULE__, hash)
+  def get_all, do: DB.Repo.all(__MODULE__)
 
   @spec insert_deposits([OMG.API.State.Core.deposit()]) :: [{:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}]
   def insert_deposits(deposits) do
@@ -53,13 +52,13 @@ defmodule OMG.Watcher.DB.EthEventDB do
         blknum: blknum,
         txindex: 0,
         event_type: :deposit,
-        created_utxo: %TxOutputDB{
+        created_utxo: %DB.TxOutput{
           owner: owner,
           currency: currency,
           amount: amount
         }
       }
-      |> Repo.insert()
+      |> DB.Repo.insert()
   end
 
   @spec insert_exits([OMG.API.State.Core.exit_t()]) :: [{:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}]
@@ -73,7 +72,7 @@ defmodule OMG.Watcher.DB.EthEventDB do
 
   @spec insert_exit(Utxo.Position.t()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   defp insert_exit(Utxo.position(blknum, txindex, _oindex) = position) do
-    utxo = TxOutputDB.get_by_position(position)
+    utxo = DB.TxOutput.get_by_position(position)
 
     {:ok, _} =
       %__MODULE__{
@@ -83,7 +82,7 @@ defmodule OMG.Watcher.DB.EthEventDB do
         event_type: :exit,
         exited_utxo: utxo
       }
-      |> Repo.insert()
+      |> DB.Repo.insert()
   end
 
   @doc """

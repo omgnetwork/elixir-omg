@@ -112,13 +112,13 @@ defmodule OMG.Watcher.Application do
 
   defp deposit_events_callback(deposits) do
     :ok = OMG.API.State.deposit(deposits)
-    _ = OMG.Watcher.DB.EthEventDB.insert_deposits(deposits)
+    _ = OMG.Watcher.DB.EthEvent.insert_deposits(deposits)
     :ok
   end
 
   defp exit_events_callback(exits) do
     :ok = OMG.Watcher.ExitValidator.Validator.challenge_invalid_exits(fn _ -> :ok end).(exits)
-    _ = OMG.Watcher.DB.EthEventDB.insert_exits(exits)
+    _ = OMG.Watcher.DB.EthEvent.insert_exits(exits)
     :ok
   end
 end
