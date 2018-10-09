@@ -13,7 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.API.State.Transaction.Signed do
-  @moduledoc false
+  @moduledoc """
+  Representation of a signed transaction
+  """
 
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction

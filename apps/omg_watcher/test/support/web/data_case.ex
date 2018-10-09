@@ -30,7 +30,7 @@ defmodule OMG.Watcher.DataCase do
 
   using do
     quote do
-      alias OMG.Watcher.DB.Repo
+      alias OMG.Watcher.DB
 
       import Ecto
       import Ecto.Changeset

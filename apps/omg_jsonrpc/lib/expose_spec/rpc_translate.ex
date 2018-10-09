@@ -14,9 +14,9 @@
 
 defmodule OMG.JSONRPC.ExposeSpec.RPCTranslate do
   @moduledoc """
-  Translate an incoming call to a form that can be executed with :erlang.apply/3
+  Translates an incoming call to a form that can be executed with `:erlang.apply/3`
 
-  The incoming call can originate from the JSONRPC handler or the Websockets handler (or other)
+  The incoming call can originate from the JSONRPC handler or the Websockets handler (or other).
 
   Returns JSONRPC2-like error values if there is a problem.
   """

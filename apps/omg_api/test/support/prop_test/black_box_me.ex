@@ -21,23 +21,29 @@ defmodule OMG.API.PropTest.BlackBoxMe do
   ```
   OMG.API.PropTest.BlackBoxMe.create(YourProject.State.Core, CoreGS) # generate module name CoreGS
   ```
-  would create a YourProject.State.CoreGS module, accessible in every MIX_ENV.
+  would create a ```YourProject.State.CoreGS``` module, accessible in every ```MIX_ENV```.
 
   Pure library is presumed to have following interface:
-  -spec funX(arg1, ..., argN, state) :: {:ok, side_effects(), state} | {{:error, term}, state}
+  ```
+  @spec funX(arg1, ..., argN, state) :: {:ok, side_effects(), state} | {{:error, term}, state}
+  ```
   Wrapper exports the same functions with arity-1 (state is hidden) and returns tuples that are shorted by one item (state is hidden). Example above would have been transformed into:
-  -spec funX(arg1, ..., argN) :: {:ok, side_effects()} | {:error, term}
+  ```
+  @spec funX(arg1, ..., argN) :: {:ok, side_effects()} | {:error, term}
+  ```
 
   This allows for black-box testing and more importantly - for interaction with proper_statem and proper_fsm.
 
   Wrapper adds following helper functions:
 
-  # set state in process dictionary
+  set state in process dictionary
+  ```elixir
   @spec set_state( state() | nil) :: state() | nil
-
-  # get state stored in process dictionary (for possible inspection)
+  ```
+  get state stored in process dictionary (for possible inspection)
+  ```
   @spec get_state() :: state() | nil
-
+  ```
   """
   defp state_functions(core) do
     quote do
@@ -82,6 +88,12 @@ defmodule OMG.API.PropTest.BlackBoxMe do
     end
   end
 
+  @doc """
+  generate module name CoreGS
+  ```
+  OMG.API.PropTest.BlackBoxMe.create(YourProject.State.Core, CoreGS)
+  ```
+  """
   defmacro create({:__aliases__, _, list_atoms}, {:__aliases__, _, dest}) do
     core = Module.concat(list_atoms)
     module_name = Module.concat(dest)

@@ -156,14 +156,14 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   deffixture initial_blocks(entities, phoenix_ecto_sandbox) do
-    alias OMG.Watcher.DB.TransactionDB
+    alias OMG.Watcher.DB
     eth = OMG.API.Crypto.zero_address()
 
     %{alice: alice, bob: bob} = entities
     :ok = phoenix_ecto_sandbox
 
     prepare_f = fn {blknum, recovered_txs} ->
-      db_results = TransactionDB.update_with(%{transactions: recovered_txs, blknum: blknum, eth_height: 1})
+      db_results = DB.Transaction.update_with(%{transactions: recovered_txs, blknum: blknum, eth_height: 1})
       true = db_results |> Enum.all?(&(elem(&1, 0) == :ok))
 
       recovered_txs
@@ -172,9 +172,9 @@ defmodule OMG.Watcher.Fixtures do
     end
 
     # Initial data depending tests can reuse
-    OMG.Watcher.DB.EthEventDB.insert_deposits([
-      %{owner: alice.addr, currency: eth, amount: 333, blknum: 1, hash: "deposit:alice"},
-      %{owner: bob.addr, currency: eth, amount: 100, blknum: 2, hash: "deposit:bobby"}
+    OMG.Watcher.DB.EthEvent.insert_deposits([
+      %{owner: alice.addr, currency: eth, amount: 333, blknum: 1},
+      %{owner: bob.addr, currency: eth, amount: 100, blknum: 2}
     ])
 
     [

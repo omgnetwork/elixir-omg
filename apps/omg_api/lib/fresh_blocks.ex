@@ -14,7 +14,7 @@
 
 defmodule OMG.API.FreshBlocks do
   @moduledoc """
-  Allows for quick access to a fresh subset of blocks by keeping them in memory, independent of OMG.DB.
+  Allows for quick access to a fresh subset of blocks by keeping them in memory, independent of `OMG.DB`.
   """
 
   use OMG.API.LoggerExt
@@ -33,6 +33,7 @@ defmodule OMG.API.FreshBlocks do
     GenServer.call(__MODULE__, {:get, block_hash})
   end
 
+  @spec push(Block.t()) :: :ok
   def push(block) do
     GenServer.cast(__MODULE__, {:push, block})
   end

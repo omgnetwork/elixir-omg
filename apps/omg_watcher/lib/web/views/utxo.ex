@@ -19,9 +19,7 @@ defmodule OMG.Watcher.Web.View.Utxo do
 
   use OMG.Watcher.Web, :view
 
-  alias OMG.Watcher.DB.EthEventDB
-  alias OMG.Watcher.DB.TransactionDB
-  alias OMG.Watcher.DB.TxOutputDB
+  alias OMG.Watcher.DB
   alias OMG.Watcher.Web.Serializer
 
   def render("utxo_exit.json", %{utxo_exit: utxo_exit}) do
@@ -36,7 +34,7 @@ defmodule OMG.Watcher.Web.View.Utxo do
   end
 
   defp get_position(
-         %TransactionDB{blknum: blknum, txindex: txindex},
+         %DB.Transaction{blknum: blknum, txindex: txindex},
          deposit
        )
        when is_nil(deposit) do
@@ -45,13 +43,13 @@ defmodule OMG.Watcher.Web.View.Utxo do
 
   defp get_position(
          tx,
-         %EthEventDB{deposit_blknum: blknum, deposit_txindex: txindex}
+         %DB.EthEvent{blknum: blknum, txindex: txindex}
        )
        when is_nil(tx) do
     {blknum, txindex}
   end
 
-  defp to_view(%TxOutputDB{
+  defp to_view(%DB.TxOutput{
          amount: amount,
          currency: currency,
          creating_tx_oindex: oindex,

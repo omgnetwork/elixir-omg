@@ -15,7 +15,7 @@
 defmodule OMG.Eth.Encoding do
   @moduledoc """
   Internal encoding helpers to talk to ethereum.
-  To be used in `Eth` and `DevHelper`
+  For use in `OMG.Eth` and `OMG.Eth.DevHelper`
   """
 
   @doc """
@@ -33,7 +33,7 @@ defmodule OMG.Eth.Encoding do
   def to_hex(int) when is_integer(int), do: "0x" <> Integer.to_string(int, 16)
 
   @doc """
-  See `to_hex`, assumes it decodes to a raw binary
+  Decodes to a raw binary, see `to_hex`
   """
   # because https://github.com/rrrene/credo/issues/583, we need to:
   # credo:disable-for-next-line Credo.Check.Consistency.SpaceAroundOperators

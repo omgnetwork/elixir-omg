@@ -26,7 +26,10 @@ defmodule OMG.Watcher.Web.Router do
   scope "/", OMG.Watcher.Web do
     pipe_through([:api])
 
+    get("/account/:address/balance", Controller.Account, :get_balance)
+
     get("/transaction/:id", Controller.Transaction, :get_transaction)
+    post("/transaction", Controller.Transaction, :encode_transaction)
 
     get("/utxos", Controller.Utxo, :get_utxos)
     get("/utxo/:utxo_pos/exit_data", Controller.Utxo, :get_utxo_exit)

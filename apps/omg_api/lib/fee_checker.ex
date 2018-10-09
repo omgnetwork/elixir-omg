@@ -14,7 +14,8 @@
 
 defmodule OMG.API.FeeChecker do
   @moduledoc """
-  Maintains current fee rates and acceptable tokens, updates fees information from external source.
+  Maintains current fee rates and acceptable tokens.
+  Updates fees information from external source.
   Provides function to validate transaction's fee.
   """
 
@@ -41,7 +42,7 @@ defmodule OMG.API.FeeChecker do
   end
 
   @doc """
-  Calculates fee from tx and checks whether token is allowed and flat fee limits are met
+  Calculates fee from transaction and checks whether token is allowed and flat fee limits are met
   """
   @spec transaction_fees(Recovered.t()) :: {:ok, Core.token_fee_t()} | {:error, :token_not_allowed}
   def transaction_fees(recovered_tx) do
@@ -49,7 +50,7 @@ defmodule OMG.API.FeeChecker do
   end
 
   @doc """
-  Parses json encoded fee specifications file content and validates provided information
+  Parses and validates json encoded fee specifications file
   """
   @spec parse_file_content(binary()) :: {:ok, list(Core.fee_spec_t())} | {:error, reason :: atom()}
   def parse_file_content(file_content) do

@@ -13,9 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.API.TestHelper do
-  @moduledoc """
-  Various shared functions used in API tests
-  """
+  @moduledoc false
 
   alias OMG.API.Crypto
   alias OMG.API.State.Core

@@ -14,7 +14,7 @@
 
 defmodule OMG.API.State.Transaction do
   @moduledoc """
-  Internal representation of a spend transaction on Plasma chain
+  Internal representation of transaction spent on Plasma chain
   """
 
   alias OMG.API.Crypto
@@ -54,71 +54,106 @@ defmodule OMG.API.State.Transaction do
   @type currency :: Crypto.address_t()
 
   @doc """
-  Creates transaction from utxos where first output belongs to receiver and second belongs to owner of utxos
-  and the amount decreased by receiver's amount and the fee.
+  Creates transaction from utxo positions and outputs. Provides simple, stateless validation on arguments.
 
-  assumptions:
-   length(utxos) = 1 | 2
+  #### Assumptions:
+   * length of inputs between 1 and `@max_inputs`
+   * length of outputs between 0 and `@max_inputs`
+   * the same currency for each output
+   * all amounts are non-negative integers
   """
   @spec create_from_utxos(
-          %{address: Crypto.address_t(), utxos: map()},
-          %{address: Crypto.address_t(), amount: pos_integer()},
-          fee :: non_neg_integer()
+          [
+            %{
+              blknum: pos_integer(),
+              txindex: non_neg_integer(),
+              oindex: 0 | 1,
+              currency: Crypto.address_t(),
+              amount: pos_integer()
+            }
+          ],
+          [%{owner: Crypto.address_t(), amount: non_neg_integer()}],
+          non_neg_integer()
         ) :: {:ok, t()} | {:error, atom()}
-  def create_from_utxos(sender_utxos, receiver, fee \\ 0)
-  def create_from_utxos(_utxos, _receiver, fee) when fee < 0, do: {:error, :invalid_fee}
-  def create_from_utxos(%{utxos: utxos}, _, _) when length(utxos) > @max_inputs, do: {:error, :too_many_utxo}
+  def create_from_utxos(inputs, outputs, fee)
+  def create_from_utxos(inputs, _, _) when not is_list(inputs), do: {:error, :inputs_should_be_list}
+  def create_from_utxos(_, outputs, _) when not is_list(outputs), do: {:error, :outputs_should_be_list}
+  def create_from_utxos(inputs, _, _) when length(inputs) > @max_inputs, do: {:error, :too_many_inputs}
+  def create_from_utxos([], _, _), do: {:error, :at_least_one_input_required}
+  def create_from_utxos(_, outputs, _) when length(outputs) > @max_inputs, do: {:error, :too_many_outputs}
+  def create_from_utxos(_, _, fee) when fee < 0, do: {:error, :invalid_fee}
 
-  def create_from_utxos(%{utxos: utxos} = inputs, receiver, fee) do
-    with {:ok, currency} <- validate_currency(utxos) do
-      do_create_from_utxos(inputs, currency, receiver, fee)
+  def create_from_utxos(inputs, outputs, fee) do
+    with {:ok, currency} <- validate_currency(inputs),
+         :ok <- validate_amount(inputs),
+         :ok <- validate_amount(outputs),
+         :ok <- amounts_add_up?(inputs, outputs, fee) do
+      {
+        :ok,
+        new(
+          inputs |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
+          currency,
+          outputs |> Enum.map(&{&1.owner, &1.amount})
+        )
+      }
     end
   end
 
-  defp do_create_from_utxos(
-         %{address: sender_address, utxos: utxos},
-         currency,
-         %{address: receiver_address, amount: amount},
-         fee
-       ) do
-    total_amount =
-      utxos
-      |> Enum.map(&Map.fetch!(&1, :amount))
-      |> Enum.sum()
+  defp validate_currency(inputs) do
+    currencies =
+      inputs
+      |> Enum.map(& &1.currency)
+      |> Enum.uniq()
 
-    inputs =
-      utxos
-      |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} ->
-        {blknum, txindex, oindex}
-      end)
-
-    amount2 = total_amount - amount - fee
-
-    outputs = [
-      {receiver_address, amount},
-      {sender_address, amount2}
-    ]
-
-    with :ok <- validate_amount(amount),
-         :ok <- validate_amount(amount2),
-         do: {:ok, new(inputs, currency, outputs)}
+    if match?([_], currencies),
+      do: {:ok, currencies |> hd()},
+      else: {:error, :currency_mixing_not_possible}
   end
 
-  defp validate_currency([%{currency: cur1}, %{currency: cur2}]) when cur1 != cur2,
-    do: {:error, :currency_mixing_not_possible}
+  # Validates amount in both inputs and outputs
+  defp validate_amount(items) do
+    all_valid? =
+      items
+      |> Enum.map(& &1.amount)
+      |> Enum.all?(fn amount -> is_integer(amount) and amount >= 0 end)
 
-  defp validate_currency([%{currency: cur1} | _]), do: {:ok, cur1}
+    if all_valid?,
+      do: :ok,
+      else: {:error, :amount_noninteger_or_negative}
+  end
 
-  defp validate_amount(output_amount) when output_amount < 0, do: {:error, :amount_negative_value}
-  defp validate_amount(output_amount) when is_integer(output_amount), do: :ok
+  defp amounts_add_up?(inputs, outputs, fee) do
+    spent =
+      inputs
+      |> Enum.map(& &1.amount)
+      |> Enum.sum()
+
+    received =
+      outputs
+      |> Enum.map(& &1.amount)
+      |> Enum.sum()
+
+    cond do
+      spent < received ->
+        {:error, :not_enough_funds_to_cover_spend}
+
+      spent < received + fee ->
+        {:error, :not_enough_funds_to_cover_fee}
+
+      true ->
+        :ok
+    end
+  end
 
   @doc """
-   assumptions:
-     length(inputs) <= 2
-     length(outputs) <= 2
-   behavior:
-      Adds empty (zeroes) inputs and/or outputs to reach the expected size
-      of 2 inputs and 2 outputs.
+  Adds empty (zeroes) inputs and/or outputs to reach the expected size
+  of 2 inputs and 2 outputs.
+
+  assumptions:
+  ```
+    length(inputs) <= 2
+    length(outputs) <= 2
+  ```
   """
   @spec new(
           list({pos_integer, pos_integer, 0 | 1}),
@@ -183,8 +218,11 @@ defmodule OMG.API.State.Transaction do
   end
 
   @doc """
-    private keys are in the form: <<54, 43, 207, 67, 140, 160, 190, 135, 18, 162, 70, 120, 36, 245, 106, 165, 5, 101, 183,
-      55, 11, 117, 126, 135, 49, 50, 12, 228, 173, 219, 183, 175>>
+    Signs transaction using private keys
+
+    private keys are in the  binary form, e.g.:
+    ```<<54, 43, 207, 67, 140, 160, 190, 135, 18, 162, 70, 120, 36, 245, 106, 165, 5, 101, 183,
+      55, 11, 117, 126, 135, 49, 50, 12, 228, 173, 219, 183, 175>>```
   """
   @spec sign(t(), Crypto.priv_key_t(), Crypto.priv_key_t()) :: Signed.t()
   def sign(%__MODULE__{} = tx, priv1, priv2) do

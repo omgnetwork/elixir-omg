@@ -4,8 +4,8 @@ defmodule OMG.Watcher.Repo.Migrations.CreateEtheventTable do
   def change do
     create table(:ethevents, primary_key: false) do
       add :hash, :binary, primary_key: true
-      add :deposit_blknum, :bigint
-      add :deposit_txindex, :integer
+      add :blknum, :bigint
+      add :txindex, :integer
       add :event_type, :string, size: 124, null: false
     end
   end

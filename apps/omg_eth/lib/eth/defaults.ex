@@ -14,9 +14,9 @@
 
 defmodule OMG.Eth.Defaults do
   @moduledoc """
-  Internal defaults of non-production critical calls to `Eth.RootChain` and `Eth.Token`.
+  Internal defaults of non-production critical calls to `OMG.Eth.RootChain` and `OMG.Eth.Token`.
 
-  Don't ever use this for `Eth.RootChain.submit_block` or any other production related code.
+  Don't ever use this for `OMG.Eth.RootChain.submit_block/5` or any other production related code.
   """
 
   import OMG.Eth.Encoding
