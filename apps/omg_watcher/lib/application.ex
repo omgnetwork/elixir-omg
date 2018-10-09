@@ -118,7 +118,7 @@ defmodule OMG.Watcher.Application do
 
   defp exit_events_callback(exits) do
     :ok = OMG.Watcher.ExitValidator.Validator.challenge_invalid_exits(fn _ -> :ok end).(exits)
-    _ = OMG.Watcher.DB.EthEventDB.insert_exits(exits)
+    _ = OMG.Watcher.DB.EthEvent.insert_exits(exits)
     :ok
   end
 end
