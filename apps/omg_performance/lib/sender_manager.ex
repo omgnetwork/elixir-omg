@@ -86,7 +86,7 @@ defmodule OMG.Performance.SenderManager do
   Any unexpected child reportind :EXIT should result in a crash
   """
   def handle_info({:EXIT, from_pid, _reason}, %{senders: [{_last_seqnum, from_pid} = last_sender]} = state) do
-    _ = Logger.info(fn -> "[SM]: Senders are all done, last sender: #{inspect(last_sender)}. Stopping manager" end)
+    _ = Logger.info(fn -> "Senders are all done, last sender: #{inspect(last_sender)}. Stopping manager" end)
     write_stats(state)
     {:stop, :normal, state}
   end
@@ -98,14 +98,14 @@ defmodule OMG.Performance.SenderManager do
 
       {_done_seqnum, done_pid} = done_sender ->
         remaining_senders = Enum.filter(senders, fn {_seqnum, pid} -> pid != done_pid end)
-        _ = Logger.info(fn -> "[SM]: Sender #{inspect(done_sender)} done. Manager continues..." end)
+        _ = Logger.info(fn -> "Sender #{inspect(done_sender)} done. Manager continues..." end)
         {:noreply, %{state | senders: remaining_senders}}
     end
   end
 
   def handle_info({:EXIT, _from, reason}, state) do
     write_stats(state)
-    _ = Logger.info(fn -> "[SM] +++ Manager Exiting (reason: #{inspect(reason)})... +++" end)
+    _ = Logger.info(fn -> " +++ Manager Exiting (reason: #{inspect(reason)})... +++" end)
     {:stop, reason, state}
   end
 
