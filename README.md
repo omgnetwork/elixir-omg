@@ -104,7 +104,7 @@ A developer instance of `geth` runs Ethereum locally and prefunds an account.
 However, when `geth` terminates, the state of the Ethereum network is lost.
 
 ```
-geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0 
+geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0
 ```
 
 ##### Persistent developer `geth` instance
@@ -278,6 +278,8 @@ Request:
   "id":0
 }
 ```
+
+See the [step by step transaction generation specs here](docs/tesuji_tx_integration.md).
 
 Response:
 
