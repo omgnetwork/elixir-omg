@@ -44,6 +44,7 @@ defmodule OMG.API.State.PropTest.DoubleSpendTransaction do
     end
   end
 
+  @doc "check if any inputs utxo has been already spended"
   def pre(%{model: %{history: history}}, [{inputs, _, _}, _]) do
     {_, spend} = Helper.get_utxos(history)
     inputs |> Enum.any?(fn {position, _} -> Map.has_key?(spend, position) end)

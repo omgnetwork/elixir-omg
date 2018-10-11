@@ -78,22 +78,22 @@ defmodule OMG.API.State.PropTest.Transaction do
         owners <- Generators.new_owners(),
         inputs <- Generators.input_transaction(unspent)
       ] do
-        [prepare_args(inputs, owners), %{currency => 0}]
+        [prepare_args(Enum.uniq(inputs), owners), %{currency => 0}]
       end
     end
   end
 
+  @doc "check if all inputs exists and are valid, and its enough money for fee and outputs"
   def pre(%{model: %{history: history}}, [{inputs, currency, output}, fee_map]) do
     unspent = Helper.spendable(history) |> Enum.filter(fn {_, %{currency: val}} -> val == currency end)
 
     rich_inputs =
       inputs
-      |> Enum.uniq()
       |> Enum.map(fn {position, _} -> Enum.find(unspent, &match?({^position, %{currency: ^currency}}, &1)) end)
 
     spent_amount = output |> Enum.reduce(Map.get(fee_map, currency, 0), fn {_, amount}, acc -> acc + amount end)
 
-    Map.has_key?(fee_map, currency) && Enum.all?(rich_inputs) &&
+    Map.has_key?(fee_map, currency) && Enum.all?(rich_inputs) && length(inputs) == length(Enum.uniq(inputs)) &&
       Enum.reduce(rich_inputs, 0, fn {_, %{amount: amount}}, acc -> acc + amount end) >= spent_amount
   end
 

@@ -20,6 +20,9 @@ defmodule OMG.API.PropTest.Helper do
   alias OMG.API.State.Transaction
   require Constants
 
+  @doc """
+  Collapse of the recover transaction into a short form use in OMG.API.PropTest
+  """
   def format_transaction(%Transaction.Recovered{
         signed_tx: %Transaction.Signed{
           raw_tx: %Transaction{
@@ -51,6 +54,9 @@ defmodule OMG.API.PropTest.Helper do
     }
   end
 
+  @doc """
+  Collapse deposits list into a short form use in OMG.API.PropTest
+  """
   def format_deposits(deposits) do
     Enum.map(deposits, fn %{amount: amount, blknum: blknum, currency: currency, owner: owner} ->
       {amount, currency_to_atom(currency), addr_to_owner_name(owner), blknum}
@@ -59,6 +65,7 @@ defmodule OMG.API.PropTest.Helper do
 
   def get_addr(owner), do: OMG.API.TestHelper.entities_stable()[owner].addr
 
+  @spec addr_to_owner_name(OMG.API.Crypto.priv_key_t() | OMG.API.Crypto.pub_key_t()) :: atom()
   def addr_to_owner_name(addr) do
     entities = OMG.API.TestHelper.entities_stable()
 
@@ -125,6 +132,9 @@ defmodule OMG.API.PropTest.Helper do
 
   def spendable(history), do: elem(get_utxos(history), 0)
 
+  @doc """
+  create AST delegate function to ```module``` use in [defcommand](https://hexdocs.pm/propcheck/PropCheck.StateM.DSL.html#defcommand/2)
+  """
   def create_delegate_to_defcommand(module) do
     module.__info__(:functions)
     |> Enum.filter(&(&1 in [pre: 2, next: 3, post: 3, args: 1] or match?({:impl, _}, &1)))

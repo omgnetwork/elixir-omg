@@ -25,18 +25,20 @@ defmodule OMG.API.State.PropTest.ExitUtxos do
   def args(%{model: %{history: history}}) do
     spendable = Helper.spendable(history) |> Map.to_list()
 
-    let [utxo <- oneof([nil | spendable])] do
-      case utxo do
-        nil ->
-          [[]]
-
-        {{blknum, txindex, oindex}, %{owner: owner}} ->
-          [[%{utxo_pos: Utxo.Position.encode(Utxo.position(blknum, txindex, oindex)), owner: Helper.get_addr(owner)}]]
-      end
-    end
+    let([{{blknum, txindex, oindex}, %{owner: owner}} <- oneof(spendable)],
+      do: [[%{utxo_pos: Utxo.Position.encode(Utxo.position(blknum, txindex, oindex)), owner: Helper.get_addr(owner)}]]
+    )
   end
 
-  def pre(_, args), do: args != [nil]
+  @doc "check if all exits are from valid utxo-s"
+  def pre(%{model: %{history: history}}, [exits]) do
+    spendable = Helper.spendable(history)
+
+    Enum.all?(exits, fn %{utxo_pos: position, owner: owner} ->
+      {:utxo_position, blknum, txindex, oindex} = Utxo.Position.decode(position)
+      owner == Map.get(spendable, {blknum, txindex, oindex}, nil)
+    end)
+  end
 
   def post(_, _, {:ok, _}), do: true
 

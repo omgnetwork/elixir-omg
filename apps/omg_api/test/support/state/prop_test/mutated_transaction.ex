@@ -50,6 +50,7 @@ defmodule OMG.API.State.PropTest.MutatedTransaction do
     end
   end
 
+  @doc "check if transaction is incorrect and valid"
   def pre(state, [{inputs, _, _} | _] = args),
     do: !PropTest.Transaction.pre(state, args) && length(Enum.uniq(inputs)) == length(inputs)
 

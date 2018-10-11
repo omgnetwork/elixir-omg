@@ -14,7 +14,7 @@
 
 defmodule OMG.API.State.PropTest do
   @moduledoc """
-  check if model don't change bilans of tokens (in brackets which commands are needed to detect this)
+  # check if model don't change bilans of tokens (in brackets which commands are needed to detect this)
 
   * we do not create or destroy money (generate double spend transaction,
     generate wrong transaction with wrong input or output, generate good transaction with some mutation)
@@ -27,27 +27,29 @@ defmodule OMG.API.State.PropTest do
   * detect if in State is special blknum index which gives free money (generate good transaction with some mutation)
   * check if restart State don't lost data (restart command change State state witch init)
 
-  propcheck see: https://github.com/alfert/propcheck
+  propcheck see: [propcheck](https://github.com/alfert/propcheck)
+
   important:
-   - command can be added from diffrent file, by elixir "use" with a little macro magic.
-     example:  new_comand.ex
+   - command can be added from diffrent file, by elixir ```use``` with a little macro magic.
+     example:
+  > new_comand.ex
+       ```
        defmodule ModuleName do
          defmacro __using__(_opt) do
            # leave quote option for better debug information
            quote location: :keep do
-             # more about defcommand is in statem_dsl.ex from propcheck
+             # more about [defcommand](https://hexdocs.pm/propcheck/PropCheck.StateM.DSL.html#defcommand/2)
              defcommand :command_name do
              end
            end
          end
        end
-
+       ```
      then in file where are propcheck test
-     use ModuleName
+     ``` use ModuleName ```
 
    - function weight should be defined in module where we define property test.
   """
-
   use PropCheck
   use PropCheck.StateM.DSL
   use ExUnit.Case
@@ -70,8 +72,6 @@ defmodule OMG.API.State.PropTest do
 
   require OMG.API.PropTest.Constants
 
-  @moduletag capture_log: true
-
   def initial_state do
     %{
       model: %{history: [], balance: 0},
@@ -82,7 +82,7 @@ defmodule OMG.API.State.PropTest do
   @doc """
   Taking the current model state and returning
   a map of command and frequency pairs to be generated.
-  More information in lib/statem_dsl.ex from propcheck.
+  More information in [statem_dsl.ex](https://github.com/alfert/propcheck/blob/master/lib/statem_dsl.ex#L245)
   """
   def weight(%{model: %{history: history}}) do
     {unspent, spent} = Helper.get_utxos(history)
@@ -119,8 +119,8 @@ defmodule OMG.API.State.PropTest do
       end
   end
 
-  defp collect_printer(samples) do
-    counting = fn el, acc -> Map.put(acc, el, Map.get(acc, el, 0) + 1) end
+  defp print_collected_stats(samples) do
+    count_occurrence = fn el, acc -> Map.put(acc, el, Map.get(acc, el, 0) + 1) end
 
     samples
     |> Enum.with_index(1)
@@ -128,7 +128,7 @@ defmodule OMG.API.State.PropTest do
       test_information =
         history
         |> Enum.map(&elem(&1, 0))
-        |> Enum.reduce(%{}, counting)
+        |> Enum.reduce(%{}, count_occurrence)
 
       Logger.info("#{index}) #{inspect(test_information)} ")
     end)
@@ -150,13 +150,14 @@ defmodule OMG.API.State.PropTest do
              Logger.error("Result: #{inspect(result)}")
            end).()
         )
-        |> collect(&collect_printer/1, history)
+        |> collect(&print_collected_stats/1, history)
         |> aggregate(command_names(cmds))
       end
     end
   end
 
-  property "quick test of property test", [:quiet, numtests: 1000] do
+  @tag capture_log: true
+  property "quick test of property test", [:quiet, numtests: 10] do
     state_core_property_test()
   end
 

@@ -39,6 +39,7 @@ defmodule OMG.API.State.PropTest.Deposits do
     end
   end
 
+  @doc "check if expected block has good blknum"
   def pre(%{eth: %{blknum: blknum}}, [deposits]) do
     list_block = deposits |> Enum.map(fn %{blknum: blknum} -> blknum end)
     expected = for i <- (blknum + 1)..(blknum + length(deposits)), do: i

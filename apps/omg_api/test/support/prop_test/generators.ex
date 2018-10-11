@@ -27,9 +27,16 @@ defmodule OMG.API.PropTest.Generators do
   require PropCheck
   require Constants
 
+  @doc """
+  All lists whose i-th element is an instance of the type returned by applying func to i-th arg  
+  """
   @spec fixed_list((any -> BasicTypes.type()), [any]) :: BasicTypes.type()
-  def fixed_list(type, [arg | rest]), do: fixed_list([type.(arg) | fixed_list(type, rest)])
+  def fixed_list(func, [arg | rest]), do: fixed_list([func.(arg) | fixed_list(func, rest)])
   def fixed_list(_type, []), do: []
+
+  @doc """
+  All lists fixed size whose all element is an instance of the type   
+  """
   @spec fixed_list(BasicTypes.type(), non_neg_integer) :: BasicTypes.type()
   def fixed_list(_, 0), do: []
   def fixed_list(type, size), do: fixed_list([type | fixed_list(type, size - 1)])
@@ -67,6 +74,7 @@ defmodule OMG.API.PropTest.Generators do
     oneof(addresses)
   end
 
+  @spec add_random(BasicTypes.ext_int(), {BasicTypes.ext_int(), BasicTypes.ext_int()}) :: BasicTypes.type()
   def add_random(number, {from, to}) do
     choose(number + from, number + to)
   end

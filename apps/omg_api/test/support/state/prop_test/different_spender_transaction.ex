@@ -32,6 +32,7 @@ defmodule OMG.API.State.PropTest.DifferentSpenderTransaction do
     end
   end
 
+  @doc "check if any inputs has wrong spender"
   def pre(%{model: %{history: history}}, [{inputs, _, _}, _]) do
     {unspent, _spend} = Helper.get_utxos(history)
 
