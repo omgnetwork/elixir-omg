@@ -250,6 +250,8 @@ We have two currency fields to allow for atomic swaps to occur between two parti
 
 **NOTE** To create a valid transaction, a user needs to have access to positions of all the UTXOs that they own.
 
+For a hands-on specs of transaction format see [here](docs/tesuji_tx_integration.md).
+
 ### Fees
 
 #### Accepting fees by the child chain server
