@@ -206,7 +206,7 @@ config :omg_db,
 
 ```
 rm -rf ~/.omg/data_watcher
-mix do ecto.drop, ecto.create, ecto.migrate, run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
+mix do ecto.reset, run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
 ```
 
 #### Start the Watcher
