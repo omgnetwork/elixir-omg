@@ -4,6 +4,8 @@ The following demo is a mix of commands executed in IEx (Elixir's) REPL (see REA
 
 Run a developer's Child chain server, Watcher, and start IEx REPL with code and config loaded, as described in README.md instructions.
 
+Run `cd apps/omg_performance && iex -S mix run --config ~/config.exs` and inside REPL do:
+
 ```elixir
 
 ### PREPARATIONS
