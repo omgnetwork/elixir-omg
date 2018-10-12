@@ -22,6 +22,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   use OMG.API.LoggerExt
 
+  @default_applied_block_lag 20 * 1_000
+
   defmodule PotentialWithholding do
     @moduledoc false
 
@@ -43,7 +45,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
     :maximum_number_of_pending_blocks,
     :unapplied_blocks,
     :potential_block_withholdings,
-    :maximum_block_withholding_time_ms
+    :maximum_block_withholding_time_ms,
+    :maximum_last_applied_block_lag
   ]
 
   @type t() :: %__MODULE__{
@@ -60,7 +63,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
           potential_block_withholdings: %{
             non_neg_integer => pos_integer
           },
-          maximum_block_withholding_time_ms: pos_integer
+          maximum_block_withholding_time_ms: pos_integer,
+          maximum_last_applied_block_lag: pos_integer()
         }
 
   @type block_error() ::
@@ -95,7 +99,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
       maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 10),
       unapplied_blocks: %{},
       potential_block_withholdings: %{},
-      maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0)
+      maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0),
+      maximum_last_applied_block_lag: Keyword.get(opts, :maximum_last_applied_block_lag, @default_applied_block_lag)
     }
   end
 
@@ -200,9 +205,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
         %__MODULE__{
           num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded,
           block_interval: block_interval,
+          last_applied_block: last_applied_block,
           number_of_blocks_being_downloaded: number_of_blocks_being_downloaded,
           potential_block_withholdings: potential_block_withholdings,
-          maximum_number_of_pending_blocks: maximum_number_of_pending_blocks
+          maximum_number_of_pending_blocks: maximum_number_of_pending_blocks,
+          maximum_last_applied_block_lag: maximum_last_applied_block_lag
         } = state,
         next_child
       ) do
@@ -215,7 +222,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     potential_next_block_numbers =
       first_block_number
       |> Stream.iterate(&(&1 + block_interval))
-      |> Stream.take_while(&(&1 < next_child))
+      |> Stream.take_while(&(&1 < next_child and &1 <= last_applied_block + maximum_last_applied_block_lag))
       |> Enum.to_list()
 
     blocks_numbers =

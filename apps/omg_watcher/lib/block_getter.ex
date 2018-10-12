@@ -69,6 +69,7 @@ defmodule OMG.Watcher.BlockGetter do
       {state, synced_height, db_updates} = Core.apply_block(state, blknum, block_rootchain_height)
       :ok = RootChainCoordinator.check_in(synced_height, :block_getter)
       :ok = OMG.DB.multi_update(db_updates)
+      :producer = send(self(), :producer)
 
       {:noreply, state}
     else
@@ -100,6 +101,7 @@ defmodule OMG.Watcher.BlockGetter do
     :producer = send(self(), :producer)
 
     maximum_block_withholding_time_ms = Application.get_env(:omg_watcher, :maximum_block_withholding_time_ms)
+    maximum_last_applied_block_lag = Application.get_env(:omg_watcher, :maximum_last_applied_block_lag)
 
     {
       :ok,
@@ -107,7 +109,8 @@ defmodule OMG.Watcher.BlockGetter do
         child_top_block_number,
         child_block_interval,
         exact_synced_height,
-        maximum_block_withholding_time_ms: maximum_block_withholding_time_ms
+        maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
+        maximum_last_applied_block_lag: maximum_last_applied_block_lag
       )
     }
   end
