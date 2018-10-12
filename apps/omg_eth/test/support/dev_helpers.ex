@@ -84,8 +84,6 @@ defmodule OMG.Eth.DevHelpers do
 
   def make_deposits(value, accounts, contract \\ nil) do
     deposit = fn account ->
-      {:ok, _} = import_unlock_fund(account)
-
       {:ok, receipt} = OMG.Eth.RootChain.deposit(value, account.addr, contract) |> transact_sync!()
       deposit_blknum = OMG.Eth.RootChain.deposit_blknum_from_receipt(receipt)
 
