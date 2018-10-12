@@ -6,14 +6,34 @@ ARG USER=plasma
 ARG GROUP=plasma
 ARG UID=1000
 ARG GID=1000
-ARG HOME=/home/jbunce
-RUN groupadd --gid     && useradd --uid 501 --gid  --shell /bin/bash --create-home --home /Users/jbunce jbunce
+ARG HOME=/home/$USER
+
+RUN groupadd --gid "${GID}" "${USER}" && \
+    useradd \
+      --uid ${UID} \
+      --gid ${GID} \
+      --create-home \
+      --shell /bin/bash \
+      ${USER}
 
 ARG BUILD_PACKAGES="build-essential autoconf libtool libgmp3-dev libssl-dev wget gettext"
 
-RUN apt-get update   && apt-get install -y software-properties-common   && add-apt-repository -y ppa:ethereum/ethereum   && apt-get update   && apt-get install -y    sudo   git   python3-pip   python3-dev   solc 
+RUN apt-get update \
+  && apt-get install -y software-properties-common \
+  && add-apt-repository -y ppa:ethereum/ethereum \
+  && apt-get update \
+  && apt-get install -y $BUILD_PACKAGES \
+  sudo \
+  git \
+  python3-pip \
+  python3-dev \
+  solc 
 
-RUN wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb   && dpkg -i erlang-solutions_1.0_all.deb   && apt-get update   && apt-get install -y esl-erlang=1:20.3.8.6   elixir=1.6.6-2
+RUN wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb \
+  && dpkg -i erlang-solutions_1.0_all.deb \
+  && apt-get update \
+  && apt-get install -y esl-erlang=1:20.3.8.6 \
+  elixir=1.6.6-2
 
 RUN rm erlang-solutions_1.0_all.deb
 
@@ -23,7 +43,7 @@ RUN usermod -aG sudo plasma
 
 COPY . /home/plasma/elixir-omg/
 
-RUN chown -R plasma:plasma /home/plasma/
+RUN chown -R plasma:plasma /home/plasma
 
 USER plasma
 
@@ -32,7 +52,9 @@ ENV LANG=C.UTF-8
 
 WORKDIR /home/plasma/elixir-omg/
 
-RUN sudo -H pip3 install --upgrade pip   && sudo -H -n ln -s /usr/bin/python3 python   && sudo -H -n pip3 install -r contracts/requirements.txt
+RUN sudo -H pip3 install --upgrade pip \
+  && sudo -H -n ln -s /usr/bin/python3 python \
+  && sudo -H -n pip3 install -r contracts/requirements.txt
 
 WORKDIR /home/plasma/elixir-omg/
 
