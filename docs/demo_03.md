@@ -12,13 +12,14 @@ Run a developer's Child chain server, Watcher, and start IEx REPL with code and 
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
 alias OMG.{API, Eth}
+alias OMG.API.Crypto
 alias OMG.API.TestHelper
 
 alice = TestHelper.generate_entity()
 
 {:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
 
-contract_addr = Application.get_env(:omg_eth, :contract_addr)
+{:ok, contract_addr} = Application.get_env(:omg_eth, :contract_addr) |> Crypto.decode_address()
 
 ### START DEMO HERE
 
