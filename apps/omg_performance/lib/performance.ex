@@ -42,6 +42,7 @@ defmodule OMG.Performance do
   use OMG.API.LoggerExt
 
   alias OMG.API.Crypto
+  alias OMG.API.Integration.DepositHelper
   alias OMG.API.TestHelper
   alias OMG.API.Utxo
 
@@ -116,8 +117,6 @@ defmodule OMG.Performance do
     {:ok, started_apps} = setup_extended_perftest(opts, contract_addr)
 
     utxos = create_utxos_for_extended_perftest(spenders, ntx_to_send)
-
-    Process.sleep(20_000)
 
     run({ntx_to_send, utxos, opts, false})
 
@@ -223,10 +222,22 @@ defmodule OMG.Performance do
 
   @spec create_utxos_for_extended_perftest(list(TestHelper.entity()), pos_integer()) :: list()
   defp create_utxos_for_extended_perftest(spenders, ntx_to_send) do
-    OMG.Eth.DevHelpers.make_deposits(10 * ntx_to_send, spenders)
+    make_deposits(10 * ntx_to_send, spenders)
     |> Enum.map(fn {:ok, owner, blknum, amount} ->
       utxo_pos = Utxo.position(blknum, 0, 0) |> Utxo.Position.encode()
       %{owner: owner, utxo_pos: utxo_pos, amount: amount}
     end)
+  end
+
+  defp make_deposits(value, accounts) do
+    deposit = fn account ->
+      deposit_blknum = DepositHelper.deposit_to_child_chain(account.addr, value)
+
+      {:ok, account, deposit_blknum, value}
+    end
+
+    accounts
+    |> Enum.map(&Task.async(fn -> deposit.(&1) end))
+    |> Enum.map(fn task -> Task.await(task, :infinity) end)
   end
 end

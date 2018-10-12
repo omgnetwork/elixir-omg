@@ -17,15 +17,19 @@ alias OMG.{API, Eth}
 alias OMG.API.Crypto
 alias OMG.API.TestHelper
 
-alice = TestHelper.generate_entity()
-
-{:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
-
 {:ok, contract_addr} = Application.get_env(:omg_eth, :contract_addr) |> Crypto.decode_address()
 
+generate = fn ->
+  alice = TestHelper.generate_entity()
+
+  {:ok, _alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
+  alice
+end
+
+alices = 1..5 |> Enum.map(fn _ -> Task.async(generate) end) |> Enum.map(& Task.await(&1, :infinity))
 ### START DEMO HERE
 
-OMG.Performance.start_extended_perftest(10_000, [alice], contract_addr)
+OMG.Performance.start_extended_perftest(10_000, alices, contract_addr)
 
 
 :os.cmd('cat #{result_file}') |> Poison.decode!

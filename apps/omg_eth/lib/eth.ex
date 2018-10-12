@@ -115,7 +115,8 @@ defmodule OMG.Eth do
     {:ok, %{"contractAddress" => contract_address, "status" => "0x1"}} =
       txhash
       |> from_hex()
-      |> WaitFor.eth_receipt()
+      # FIXME: can't leave this like this, but the fixed timeout/sync belongs more in the :dev code, so what here?
+      |> WaitFor.eth_receipt(60_000)
 
     {:ok, from_hex(txhash), from_hex(contract_address)}
   end

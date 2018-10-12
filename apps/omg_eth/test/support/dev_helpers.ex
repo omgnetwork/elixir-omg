@@ -82,19 +82,6 @@ defmodule OMG.Eth.DevHelpers do
     {:ok, from_hex(account_enc)}
   end
 
-  def make_deposits(value, accounts, contract \\ nil) do
-    deposit = fn account ->
-      {:ok, receipt} = OMG.Eth.RootChain.deposit(value, account.addr, contract) |> transact_sync!()
-      deposit_blknum = OMG.Eth.RootChain.deposit_blknum_from_receipt(receipt)
-
-      {:ok, account, deposit_blknum, value}
-    end
-
-    accounts
-    |> Enum.map(&Task.async(fn -> deposit.(&1) end))
-    |> Enum.map(fn task -> Task.await(task, :infinity) end)
-  end
-
   @doc """
   Use with contract-transacting functions that return {:ok, txhash}, e.g. `Eth.Token.mint`, for synchronous waiting
   for mining of a successful result
@@ -114,6 +101,6 @@ defmodule OMG.Eth.DevHelpers do
       %{from: eth_source_address, to: account_enc, value: to_hex(@one_hundred_eth)}
       |> Ethereumex.HttpClient.eth_send_transaction()
 
-    tx_fund |> from_hex() |> WaitFor.eth_receipt()
+    tx_fund |> from_hex() |> WaitFor.eth_receipt(@about_4_blocks_time)
   end
 end
