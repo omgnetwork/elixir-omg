@@ -23,7 +23,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.API.RootChainCoordinator
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter.Core
-  alias OMG.Watcher.DB.TransactionDB
+  alias OMG.Watcher.DB
 
   use GenServer
   use OMG.API.LoggerExt
@@ -51,7 +51,7 @@ defmodule OMG.Watcher.BlockGetter do
       response =
         block
         |> to_mined_block(block_rootchain_height)
-        |> TransactionDB.update_with()
+        |> DB.Transaction.update_with()
 
       nil = Enum.find(response, &(!match?({:ok, _}, &1)))
       _ = Logger.info(fn -> "Applied block \##{inspect(blknum)}" end)
@@ -176,7 +176,7 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   # The purpose of this function is to ensure contract between shell and db code
-  @spec to_mined_block(map(), pos_integer()) :: TransactionDB.mined_block()
+  @spec to_mined_block(map(), pos_integer()) :: DB.Transaction.mined_block()
   defp to_mined_block(block, eth_height) do
     %{
       eth_height: eth_height,

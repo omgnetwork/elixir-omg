@@ -2,7 +2,7 @@
 
 The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma and forms the basis for the OMG Network.
 
-[![Build Status](https://jenkins.omisego.io/buildStatus/icon?job=omisego/elixir-omg/develop)](https://jenkins.omisego.io/blue/organizations/jenkins/omisego%2Felixir-omg/activity?branch=develop) [![Coverage Status](https://coveralls.io/repos/github/omisego/elixir-omg/badge.svg?branch=PR-173)](https://coveralls.io/github/omisego/elixir-omg?branch=PR-173) [![Gitter chat](https://badges.gitter.im/omisego/elixir-omg.png)](https://gitter.im/omisego/elixir-omg)
+[![Build Status](https://jenkins.omisego.io/buildStatus/icon?job=omisego/elixir-omg/develop)](https://jenkins.omisego.io/blue/organizations/jenkins/omisego%2Felixir-omg/activity?branch=develop) [![Coverage Status](https://coveralls.io/repos/github/omisego/elixir-omg/badge.svg?branch=develop)](https://coveralls.io/github/omisego/elixir-omg?branch=develop) [![Gitter chat](https://badges.gitter.im/omisego/elixir-omg.png)](https://gitter.im/omisego/elixir-omg)
 
 **IMPORTANT NOTICE: Heavily WIP, expect anything**
 
@@ -104,7 +104,7 @@ A developer instance of `geth` runs Ethereum locally and prefunds an account.
 However, when `geth` terminates, the state of the Ethereum network is lost.
 
 ```
-geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0 
+geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0
 ```
 
 ##### Persistent developer `geth` instance
@@ -206,7 +206,7 @@ config :omg_db,
 
 ```
 rm -rf ~/.omg/data_watcher
-mix do ecto.drop, ecto.create, ecto.migrate, run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
+mix do ecto.reset, run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
 ```
 
 #### Start the Watcher
@@ -278,6 +278,8 @@ Request:
   "id":0
 }
 ```
+
+See the [step by step transaction generation specs here](docs/tesuji_tx_integration.md).
 
 Response:
 

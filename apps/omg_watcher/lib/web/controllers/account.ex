@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Web.Controller.Account do
   use PhoenixSwagger
 
   alias OMG.API.Crypto
-  alias OMG.Watcher.DB.TxOutputDB
+  alias OMG.Watcher.DB
   alias OMG.Watcher.Web.View
 
   @doc """
@@ -30,7 +30,7 @@ defmodule OMG.Watcher.Web.Controller.Account do
   def get_balance(conn, %{"address" => address}) do
     # TODO: handle input validation (separate task)
     {:ok, address_decode} = Crypto.decode_address(address)
-    balance = TxOutputDB.get_balance(address_decode)
+    balance = DB.TxOutput.get_balance(address_decode)
     render(conn, View.Account, :balance, balance: balance)
   end
 
