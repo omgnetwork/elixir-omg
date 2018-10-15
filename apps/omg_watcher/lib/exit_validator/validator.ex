@@ -14,7 +14,16 @@
 
 defmodule OMG.Watcher.ExitValidator.Validator do
   @moduledoc """
-  Fragment of imperative shell for ExitValidator. Validates exits.
+    Contains 'challenge_fastly_invalid_exits' and 'challenge_slowly_invalid_exits' functions
+    resposible for validating exits.
+
+    The exit validators covers following cases:
+      a) (FV) The invalid exit is processed after the tx so it's known to be invalid from the start. Causes `:invalid_exit`
+      b) (SV) The exit is processed before invalid tx, but invalid tx is within `M_SV, so the chain is valid.
+         Causes `:invalid_exit`. Doesn't cause an exit.
+      c) (BG) The exit is processed before invalid tx, but invalid tx is after `M_SV, so the chain is invalid.
+         Causes `:invalid_block`.
+
   """
   use OMG.API.LoggerExt
 
@@ -23,7 +32,10 @@ defmodule OMG.Watcher.ExitValidator.Validator do
   alias OMG.Watcher.Eventer.Event
   require Utxo
 
-  @spec challenge_fastly_invalid_exits() :: (fun() -> :ok)
+  @doc """
+    Validates exits and if exit is invalid then emits `:invalid_exit` event
+  """
+  @spec challenge_fastly_invalid_exits() :: ([OMG.API.State.Core.exit_t()] -> :ok)
   def challenge_fastly_invalid_exits do
     challenge_invalid_exits(fn utxo_exit ->
       if not OMG.API.State.utxo_exists?(utxo_exit) do
@@ -32,6 +44,9 @@ defmodule OMG.Watcher.ExitValidator.Validator do
     end)
   end
 
+  @doc """
+    Validates and spends exits in the "OMG.API.State" and if exit is invalid then emits `:invalid_exit` event
+  """
   @spec challenge_slowly_invalid_exits() :: (fun() -> :ok)
   def challenge_slowly_invalid_exits do
     challenge_invalid_exits(fn utxo_exit ->
