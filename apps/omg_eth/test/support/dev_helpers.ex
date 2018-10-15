@@ -40,7 +40,8 @@ defmodule OMG.Eth.DevHelpers do
   def prepare_env!(root_path \\ "./") do
     with {:ok, _} <- Application.ensure_all_started(:ethereumex),
          {:ok, authority} <- create_and_fund_authority_addr(),
-         {:ok, txhash, contract_addr} <- Eth.RootChain.create_new(root_path, authority) do
+         {:ok, _} = deploy_result <- Eth.RootChain.create_new(root_path, authority),
+         {:ok, txhash, contract_addr} <- Eth.DevHelpers.deploy_sync!(deploy_result) do
       %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
     else
       {:error, :econnrefused} = error ->
@@ -86,8 +87,18 @@ defmodule OMG.Eth.DevHelpers do
   Use with contract-transacting functions that return {:ok, txhash}, e.g. `Eth.Token.mint`, for synchronous waiting
   for mining of a successful result
   """
+  @spec transact_sync!({:ok, Eth.hash()}) :: {:ok, map}
   def transact_sync!({:ok, txhash} = _transaction_submission_result) do
     {:ok, %{"status" => "0x1"}} = WaitFor.eth_receipt(txhash, @about_4_blocks_time)
+  end
+
+  @doc """
+  Uses `transact_sync!` for synchronous deploy-transaction sending and extracts important data from the receipt
+  """
+  @spec deploy_sync!({:ok, Eth.hash()}) :: {:ok, Eth.hash(), Eth.address()}
+  def deploy_sync!({:ok, txhash} = transaction_submission_result) do
+    {:ok, %{"contractAddress" => contract, "status" => "0x1"}} = transact_sync!(transaction_submission_result)
+    {:ok, txhash, from_hex(contract)}
   end
 
   # private

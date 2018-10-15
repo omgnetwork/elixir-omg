@@ -127,10 +127,9 @@ From the root dir of `elixir-omg`:
 mix compile
 mix run --no-start -e \
  '
-   OMG.Eth.DevHelpers.prepare_env!
-   |> OMG.Eth.DevHelpers.create_conf_file
-   |> IO.puts
- ' > ~/config.exs
+   contents = OMG.Eth.DevHelpers.prepare_env!() |> OMG.Eth.DevHelpers.create_conf_file()
+   "~/config.exs" |> Path.expand() |> File.write!(contents)
+ '
 ```
 
 The result should look something like this (use `cat ~/config.exs` to check):
