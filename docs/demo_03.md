@@ -4,6 +4,14 @@ The following demo is a mix of commands executed in IEx (Elixir's) REPL (see REA
 
 Run a developer's Child chain server, Watcher, and start IEx REPL with code and config loaded, as described in README.md instructions.
 
+**NOTE** It's advisable to adjust the processing of deposits like so (in your `~/config.exs`):
+```
+config :omg_api,
+  ethereum_event_block_finality_margin: 1,
+  ethereum_event_check_height_interval_ms: 100
+```
+Otherwise one might experience a long wait before the child chain allows the deposits to be spent (which every invocation of `start_extended_perftest` waits for).
+
 Run `cd apps/omg_performance && iex -S mix run --config ~/config.exs` and inside REPL do:
 
 ```elixir
