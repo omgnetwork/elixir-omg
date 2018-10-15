@@ -114,4 +114,24 @@ defmodule OMG.Eth.DevHelpers do
 
     tx_fund |> from_hex() |> WaitFor.eth_receipt(@about_4_blocks_time)
   end
+
+  def wait_for_root_chain_block(awaited_eth_height, timeout \\ 60_000) do
+    f = fn ->
+      {:ok, eth_height} = Eth.get_ethereum_height()
+
+      if eth_height < awaited_eth_height, do: :repeat, else: {:ok, eth_height}
+    end
+
+    fn -> WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
+  end
+
+  def wait_for_current_child_block(blknum, timeout \\ 10_000, contract \\ nil) do
+    f = fn ->
+      {:ok, next_num} = Eth.RootChain.get_current_child_block(contract)
+
+      if next_num < blknum, do: :repeat, else: {:ok, next_num}
+    end
+
+    fn -> WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
+  end
 end

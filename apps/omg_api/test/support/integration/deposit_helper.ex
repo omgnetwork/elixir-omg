@@ -25,16 +25,9 @@ defmodule OMG.API.Integration.DepositHelper do
   def deposit_to_child_chain(to, value, token \\ @eth)
 
   def deposit_to_child_chain(to, value, @eth) do
-    {:ok, %{"blockNumber" => deposit_eth_height} = receipt} =
-      Eth.RootChain.deposit(value, to) |> Eth.DevHelpers.transact_sync!()
+    {:ok, receipt} = Eth.RootChain.deposit(value, to) |> Eth.DevHelpers.transact_sync!()
 
-    deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
-
-    deposit_eth_height
-    |> decode_eth_height()
-    |> wait_deposit_recognized()
-
-    deposit_blknum
+    process_deposit(receipt)
   end
 
   def deposit_to_child_chain(to, value, token_addr) when is_binary(token_addr) and byte_size(token_addr) == 20 do
@@ -43,16 +36,17 @@ defmodule OMG.API.Integration.DepositHelper do
     to |> Eth.Token.mint(value, token_addr) |> Eth.DevHelpers.transact_sync!()
     to |> Eth.Token.approve(contract_addr, value, token_addr) |> Eth.DevHelpers.transact_sync!()
 
-    {:ok, %{"blockNumber" => deposit_eth_height} = receipt} =
-      to |> Eth.RootChain.deposit_token(token_addr, value) |> Eth.DevHelpers.transact_sync!()
+    {:ok, receipt} = Eth.RootChain.deposit_token(to, token_addr, value) |> Eth.DevHelpers.transact_sync!()
 
-    token_deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
+    process_deposit(receipt)
+  end
 
+  defp process_deposit(%{"blockNumber" => deposit_eth_height} = receipt) do
     deposit_eth_height
     |> decode_eth_height()
     |> wait_deposit_recognized()
 
-    token_deposit_blknum
+    Eth.RootChain.deposit_blknum_from_receipt(receipt)
   end
 
   defp wait_deposit_recognized(deposit_eth_height) do
@@ -73,22 +67,12 @@ defmodule OMG.API.Integration.DepositHelper do
   defp wait_ethereum_event_block_finality_margin(eth_height) do
     post_event_block_finality = eth_height + Application.get_env(:omg_api, :ethereum_event_block_finality_margin)
 
-    {:ok, _} = wait_for_root_chain_block(post_event_block_finality)
+    {:ok, _} = Eth.DevHelpers.wait_for_root_chain_block(post_event_block_finality)
 
     # sleeping until the deposit is spendable
     geth_mining_period_ms = 1000
     Process.sleep(geth_mining_period_ms + Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms) * 3)
 
     :ok
-  end
-
-  defp wait_for_root_chain_block(awaited_eth_height, timeout \\ 60_000) do
-    f = fn ->
-      {:ok, eth_height} = OMG.Eth.get_ethereum_height()
-
-      if eth_height < awaited_eth_height, do: :repeat, else: {:ok, eth_height}
-    end
-
-    fn -> Eth.WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
   end
 end
