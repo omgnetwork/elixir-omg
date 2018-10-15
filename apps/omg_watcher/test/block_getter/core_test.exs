@@ -475,15 +475,19 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       )
   end
 
-  test "do not download blocks when last consumed blocks lags behind" do
+  test "do not download blocks when there are too many downloaded blocks not yet applied" do
     interval = 1_000
 
     {state, [1_000, 2_000, 3_000]} =
       0
-      |> Core.init(interval, 0, maximum_number_of_pending_blocks: 5, maximum_last_applied_block_lag: 3000)
+      |> Core.init(interval, 0, maximum_number_of_pending_blocks: 5, maximum_number_of_unapplied_blocks: 3)
       |> Core.get_numbers_of_blocks_to_download(5_000)
 
+    {state, []} = Core.get_numbers_of_blocks_to_download(state, 5_000)
+
     state = handle_downloaded_block(state, %Block{number: 1_000})
+
+    {state, []} = Core.get_numbers_of_blocks_to_download(state, 5_000)
     synced_height = 1
 
     {_, _, _, state} =
@@ -493,7 +497,6 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
         synced_height
       )
 
-    {state, _, _} = Core.apply_block(state, 1_000, synced_height)
     {_, [4_000]} = Core.get_numbers_of_blocks_to_download(state, 5_000)
   end
 end

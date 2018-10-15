@@ -22,7 +22,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   use OMG.API.LoggerExt
 
-  @default_applied_block_lag 20 * 1_000
+  @default_maximum_number_of_unapplied_blocks 50
 
   defmodule PotentialWithholding do
     @moduledoc false
@@ -35,6 +35,22 @@ defmodule OMG.Watcher.BlockGetter.Core do
           }
   end
 
+  defmodule Config do
+    @moduledoc false
+
+    defstruct [
+      :maximum_number_of_pending_blocks,
+      :maximum_block_withholding_time_ms,
+      :maximum_number_of_unapplied_blocks
+    ]
+
+    @type t :: %__MODULE__{
+            maximum_number_of_pending_blocks: pos_integer,
+            maximum_block_withholding_time_ms: pos_integer,
+            maximum_number_of_unapplied_blocks: pos_integer
+          }
+  end
+
   defstruct [
     :height_sync_blknums,
     :synced_height,
@@ -42,11 +58,9 @@ defmodule OMG.Watcher.BlockGetter.Core do
     :num_of_heighest_block_being_downloaded,
     :block_interval,
     :number_of_blocks_being_downloaded,
-    :maximum_number_of_pending_blocks,
     :unapplied_blocks,
     :potential_block_withholdings,
-    :maximum_block_withholding_time_ms,
-    :maximum_last_applied_block_lag
+    :config
   ]
 
   @type t() :: %__MODULE__{
@@ -56,15 +70,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
           num_of_heighest_block_being_downloaded: non_neg_integer,
           block_interval: pos_integer,
           number_of_blocks_being_downloaded: non_neg_integer,
-          maximum_number_of_pending_blocks: pos_integer,
           unapplied_blocks: %{
             non_neg_integer => OMG.API.Block.t()
           },
           potential_block_withholdings: %{
             non_neg_integer => pos_integer
           },
-          maximum_block_withholding_time_ms: pos_integer,
-          maximum_last_applied_block_lag: pos_integer()
+          config: Config.t()
         }
 
   @type block_error() ::
@@ -89,6 +101,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
         synced_height,
         opts \\ []
       ) do
+    config = %Config{
+      maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 10),
+      maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0),
+      maximum_number_of_unapplied_blocks:
+        Keyword.get(opts, :maximum_number_of_unapplied_blocks, @default_maximum_number_of_unapplied_blocks)
+    }
+
     %__MODULE__{
       height_sync_blknums: MapSet.new(),
       synced_height: synced_height,
@@ -96,11 +115,9 @@ defmodule OMG.Watcher.BlockGetter.Core do
       num_of_heighest_block_being_downloaded: block_number,
       block_interval: child_block_interval,
       number_of_blocks_being_downloaded: 0,
-      maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 10),
       unapplied_blocks: %{},
       potential_block_withholdings: %{},
-      maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0),
-      maximum_last_applied_block_lag: Keyword.get(opts, :maximum_last_applied_block_lag, @default_applied_block_lag)
+      config: config
     }
   end
 
@@ -203,31 +220,39 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @spec get_numbers_of_blocks_to_download(%__MODULE__{}, non_neg_integer) :: {%__MODULE__{}, list(non_neg_integer)}
   def get_numbers_of_blocks_to_download(
         %__MODULE__{
+          unapplied_blocks: unapplied_blocks,
           num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded,
           block_interval: block_interval,
-          last_applied_block: last_applied_block,
           number_of_blocks_being_downloaded: number_of_blocks_being_downloaded,
           potential_block_withholdings: potential_block_withholdings,
-          maximum_number_of_pending_blocks: maximum_number_of_pending_blocks,
-          maximum_last_applied_block_lag: maximum_last_applied_block_lag
+          config: config
         } = state,
         next_child
       ) do
     first_block_number = num_of_heighest_block_being_downloaded + block_interval
 
-    number_of_empty_slots = maximum_number_of_pending_blocks - number_of_blocks_being_downloaded
+    number_of_empty_slots = config.maximum_number_of_pending_blocks - number_of_blocks_being_downloaded
 
     potential_block_withholding_numbers = Map.keys(potential_block_withholdings)
 
     potential_next_block_numbers =
       first_block_number
       |> Stream.iterate(&(&1 + block_interval))
-      |> Stream.take_while(&(&1 < next_child and &1 <= last_applied_block + maximum_last_applied_block_lag))
+      |> Stream.take_while(&(&1 < next_child))
       |> Enum.to_list()
+
+    number_of_blocks_to_download =
+      min(
+        number_of_empty_slots,
+        max(
+          0,
+          config.maximum_number_of_unapplied_blocks - number_of_blocks_being_downloaded - Map.size(unapplied_blocks)
+        )
+      )
 
     blocks_numbers =
       (potential_block_withholding_numbers ++ potential_next_block_numbers)
-      |> Enum.take(number_of_empty_slots)
+      |> Enum.take(number_of_blocks_to_download)
 
     [num_of_heighest_block_being_downloaded | _] =
       ([num_of_heighest_block_being_downloaded] ++ blocks_numbers) |> Enum.sort(&(&1 > &2))
@@ -313,7 +338,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   defp validate_downloaded_block(
          %__MODULE__{
            potential_block_withholdings: potential_block_withholdings,
-           maximum_block_withholding_time_ms: maximum_block_withholding_time_ms
+           config: config
          } = state,
          {:ok, %PotentialWithholding{blknum: blknum, time: time}}
        ) do
@@ -330,7 +355,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
         {:ok, state, []}
 
-      time - blknum_time >= maximum_block_withholding_time_ms ->
+      time - blknum_time >= config.maximum_block_withholding_time_ms ->
         {{:needs_stopping, :withholding}, state, [%Event.BlockWithholding{blknum: blknum}]}
 
       true ->
