@@ -24,10 +24,8 @@ defmodule OMG.Watcher.ExitValidator.Validator do
   require Utxo
 
   @spec challenge_fastly_invalid_exits() :: (fun() -> :ok)
-  def challenge_fastly_invalid_exits() do
+  def challenge_fastly_invalid_exits do
     challenge_invalid_exits(fn utxo_exit ->
-      IO.inspect({:challenge_fastly_invalid_exits, utxo_exit})
-
       if not OMG.API.State.utxo_exists?(utxo_exit) do
         emit_invalid_exit_event(utxo_exit)
       end
@@ -35,10 +33,8 @@ defmodule OMG.Watcher.ExitValidator.Validator do
   end
 
   @spec challenge_slowly_invalid_exits() :: (fun() -> :ok)
-  def challenge_slowly_invalid_exits() do
+  def challenge_slowly_invalid_exits do
     challenge_invalid_exits(fn utxo_exit ->
-      IO.inspect({:challenge_slowly_invalid_exits, utxo_exit})
-
       with :ok <- OMG.API.State.exit_if_not_spent(utxo_exit) do
         _ = Logger.info(fn -> "Spent exit: #{inspect(utxo_exit)}" end)
       else

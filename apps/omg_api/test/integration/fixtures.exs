@@ -54,21 +54,19 @@ defmodule OMG.API.Integration.Fixtures do
     :ok
   end
 
-  #  FIXME CLEAN THIS PAWEL
   deffixture alice_deposits(alice, token) do
+    deposit(alice, token)
+  end
+
+  deffixture stable_alice_deposits(stable_alice, token) do
+    deposit(stable_alice, token)
+  end
+
+  defp deposit(alice, token) do
     {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
 
     deposit_blknum = deposit_to_child_chain(alice.addr, 10)
     token_deposit_blknum = deposit_to_child_chain(alice.addr, 10, token)
-
-    {deposit_blknum, token_deposit_blknum}
-  end
-
-  deffixture stable_alice_deposits(stable_alice, token) do
-    {:ok, _} = Eth.DevHelpers.import_unlock_fund(stable_alice)
-
-    deposit_blknum = deposit_to_child_chain(stable_alice.addr, 10)
-    token_deposit_blknum = deposit_to_child_chain(stable_alice.addr, 10, token)
 
     {deposit_blknum, token_deposit_blknum}
   end

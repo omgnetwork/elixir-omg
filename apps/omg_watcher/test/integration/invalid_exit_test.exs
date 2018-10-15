@@ -20,18 +20,17 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   use Plug.Test
   use Phoenix.ChannelTest
 
-  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.API.Crypto
-  alias OMG.Eth
   alias OMG.API
+  alias OMG.Eth
   alias OMG.JSONRPC.Client
   alias OMG.Watcher.Eventer.Event
+  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.Web.Channel
 
   @moduletag :integration
 
   @timeout 40_000
-  @eth OMG.API.Crypto.zero_address()
+  @eth API.Crypto.zero_address()
 
   @endpoint OMG.Watcher.Web.Endpoint
 
@@ -122,7 +121,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     {:ok, %{blknum: deposit_blknum}} = Client.call(:submit, %{transaction: tx})
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: tx_blknum, tx_hash: tx_hash}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.call(:submit, %{transaction: tx})
 
     IntegrationTest.wait_until_block_getter_fetches_block(tx_blknum, @timeout)
 

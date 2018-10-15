@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.Integration.BadChildChainBLock do
+  @moduledoc false
+
   defmacro __using__(opts) do
     quote do
       use JSONRPC2.Server.Handler
@@ -21,14 +23,15 @@ defmodule OMG.Watcher.Integration.BadChildChainBLock do
       def port, do: 9657
 
       def handle_request(method, params) do
-        if(params["hash"] == Base.encode16(bad_block_hash())) do
-          bad_block() |> OMG.JSONRPC.Client.encode()
+        param_hash = params["hash"]
+
+        if param_hash == Base.encode16(bad_block_hash()) do
+          bad_block() |> Client.encode()
         else
-          {:ok, decoded} = Base.decode16(params["hash"], case: :mixed)
-
-          {:ok, response} = OMG.JSONRPC.Client.call(:get_block, %{hash: decoded}, "http://localhost:9656")
-
-          OMG.JSONRPC.Client.encode(response)
+          with {:ok, decoded} <- Base.decode16(param_hash, case: :mixed),
+               {:ok, response} <- Client.call(:get_block, %{hash: decoded}, "http://localhost:9656") do
+            Client.encode(response)
+          end
         end
       end
 
