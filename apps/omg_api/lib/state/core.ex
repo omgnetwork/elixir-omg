@@ -17,12 +17,7 @@ defmodule OMG.API.State.Core do
   Functional core for State.
   """
 
-  # this `use` generates OMG.API.State.CoreGS module:
-  # TODO: rework macro so it can be called from test code only
-
   require Logger
-
-  use OMG.API.BlackBoxMe
 
   @maximum_block_size 65_536
 
