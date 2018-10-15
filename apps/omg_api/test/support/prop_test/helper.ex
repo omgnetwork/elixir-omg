@@ -18,7 +18,9 @@ defmodule OMG.API.PropTest.Helper do
   """
   alias OMG.API.PropTest.Constants
   alias OMG.API.State.Transaction
+  alias OMG.API.Utxo
   require Constants
+  require Utxo
 
   @doc """
   Collapse of the recover transaction into a short form use in OMG.API.PropTest
@@ -44,8 +46,8 @@ defmodule OMG.API.PropTest.Helper do
       }) do
     {
       [
-        {{blknum1, txindex1, oindex1}, addr_to_owner_name(spender1)},
-        {{blknum2, txindex2, oindex2}, addr_to_owner_name(spender2)}
+        {Utxo.position(blknum1, txindex1, oindex1), addr_to_owner_name(spender1)},
+        {Utxo.position(blknum2, txindex2, oindex2), addr_to_owner_name(spender2)}
       ]
       |> Enum.filter(fn {_, spender} -> spender != nil end),
       currency_to_atom(cur12),
@@ -90,7 +92,7 @@ defmodule OMG.API.PropTest.Helper do
     new_unspent =
       deposits
       |> Enum.map(fn {amount, currency, owner, blknum} ->
-        {{blknum, 0, 0}, %{currency: currency, owner: owner, amount: amount}}
+        {Utxo.position(blknum, 0, 0), %{currency: currency, owner: owner, amount: amount}}
       end)
       |> Map.new()
       |> Map.merge(unspent)
@@ -119,7 +121,7 @@ defmodule OMG.API.PropTest.Helper do
       output
       |> Enum.with_index()
       |> Enum.map(fn {{owner, amount}, oindex} ->
-        {{blknum, tx_index, oindex}, %{amount: amount, currency: currency, owner: owner}}
+        {Utxo.position(blknum, tx_index, oindex), %{amount: amount, currency: currency, owner: owner}}
       end)
       |> Map.new()
 

@@ -20,13 +20,18 @@ defmodule OMG.API.State.PropTest.Transaction do
   alias OMG.API.PropTest.Constants
   alias OMG.API.PropTest.Generators
   alias OMG.API.PropTest.Helper
+  alias OMG.API.Utxo
   require Constants
+  require Utxo
 
   def normalize_variables({inputs, currency_name, future_owners}) do
     stable_entities = OMG.API.TestHelper.entities_stable()
 
     {
-      inputs |> Enum.map(fn {position, owner} -> Tuple.append(position, Map.get(stable_entities, owner)) end),
+      inputs
+      |> Enum.map(fn {Utxo.position(blknum, tx_index, oindex), owner} ->
+        {blknum, tx_index, oindex, Map.get(stable_entities, owner)}
+      end),
       Map.get(Constants.currencies(), currency_name),
       future_owners |> Enum.map(fn {owner, amount} -> {Map.get(stable_entities, owner), amount} end)
     }

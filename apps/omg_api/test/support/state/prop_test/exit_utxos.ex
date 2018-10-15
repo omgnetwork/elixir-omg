@@ -20,13 +20,15 @@ defmodule OMG.API.State.PropTest.ExitUtxos do
   alias OMG.API.PropTest.Helper
   alias OMG.API.Utxo
   require Utxo
+
   def impl(exiting_utxos), do: OMG.API.State.PropTest.StateCoreGS.exit_utxos(exiting_utxos)
 
   def args(%{model: %{history: history}}) do
     spendable = Helper.spendable(history) |> Map.to_list()
 
-    let([{{blknum, txindex, oindex}, %{owner: owner}} <- oneof(spendable)],
-      do: [[%{utxo_pos: Utxo.Position.encode(Utxo.position(blknum, txindex, oindex)), owner: Helper.get_addr(owner)}]]
+    let(
+      [{position, %{owner: owner}} <- oneof(spendable)],
+      do: [[%{utxo_pos: Utxo.Position.encode(position), owner: Helper.get_addr(owner)}]]
     )
   end
 
@@ -35,8 +37,7 @@ defmodule OMG.API.State.PropTest.ExitUtxos do
     spendable = Helper.spendable(history)
 
     Enum.all?(exits, fn %{utxo_pos: position, owner: owner} ->
-      {:utxo_position, blknum, txindex, oindex} = Utxo.Position.decode(position)
-      owner == Map.get(spendable, {blknum, txindex, oindex}, nil)
+      owner == Map.get(spendable, Utxo.Position.decode(position), nil)
     end)
   end
 
@@ -45,10 +46,7 @@ defmodule OMG.API.State.PropTest.ExitUtxos do
   def next(%{model: %{history: history, balance: balance} = model} = state, [exits], _) do
     delete_utxo =
       exits
-      |> Enum.map(fn %{utxo_pos: position} ->
-        {:utxo_position, blknum, txindex, oindex} = Utxo.Position.decode(position)
-        {blknum, txindex, oindex}
-      end)
+      |> Enum.map(fn %{utxo_pos: position} -> Utxo.Position.decode(position) end)
 
     %{state | model: %{model | history: [{:exit, delete_utxo} | history], balance: balance}}
   end

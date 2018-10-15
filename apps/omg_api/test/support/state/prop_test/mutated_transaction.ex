@@ -22,7 +22,9 @@ defmodule OMG.API.State.PropTest.MutatedTransaction do
   alias OMG.API.PropTest.Generators
   alias OMG.API.PropTest.Helper
   alias OMG.API.State.PropTest
+  alias OMG.API.Utxo
   require Constants
+  require Utxo
 
   @proportion 10
   defdelegate impl(inputs, fee_map), to: PropTest.Transaction
@@ -31,11 +33,12 @@ defmodule OMG.API.State.PropTest.MutatedTransaction do
     {owner, frequency([{@proportion, amount}, {1, Generators.add_random(amount, {1, 1000})}])}
   end
 
-  def inputs_mutate({{blknum, txindex, oindex}, owner}) do
-    {{frequency([{@proportion, blknum}, {1, Generators.add_random(blknum, {-blknum, 1_000})}]),
-      frequency([{@proportion, txindex}, {1, choose(0, 65_000)}]),
-      frequency([{@proportion, oindex}, {1, oneof([0, 1])}])},
-     frequency([{@proportion, owner}, {1, oneof(OMG.API.TestHelper.entities_stable() |> Map.keys())}])}
+  def inputs_mutate({Utxo.position(blknum, txindex, oindex), owner}) do
+    {Utxo.position(
+       frequency([{@proportion, blknum}, {1, Generators.add_random(blknum, {-blknum, 1_000})}]),
+       frequency([{@proportion, txindex}, {1, choose(0, 65_000)}]),
+       frequency([{@proportion, oindex}, {1, oneof([0, 1])}])
+     ), frequency([{@proportion, owner}, {1, oneof(OMG.API.TestHelper.entities_stable() |> Map.keys())}])}
   end
 
   def args(state) do
@@ -50,9 +53,18 @@ defmodule OMG.API.State.PropTest.MutatedTransaction do
     end
   end
 
-  @doc "check if transaction is incorrect and valid"
-  def pre(state, [{inputs, _, _} | _] = args),
-    do: !PropTest.Transaction.pre(state, args) && length(Enum.uniq(inputs)) == length(inputs)
+  @doc "check if OMG.API.Core.recover_tx validate transaction and PropTest.Transaction.pre invalidate transaction"
+  def pre(state, [tx | _] = args) do
+    create_signed = &OMG.API.TestHelper.create_signed/3
+
+    {valid, _} =
+      tx
+      |> PropTest.Transaction.normalize_variables()
+      |> (&apply(create_signed, Tuple.to_list(&1))).()
+      |> OMG.API.Core.recover_tx()
+
+    !PropTest.Transaction.pre(state, args) && valid == :ok
+  end
 
   def post(_state, _args, {:error, _}), do: true
 
