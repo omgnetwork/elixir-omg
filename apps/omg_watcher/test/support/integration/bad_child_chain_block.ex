@@ -15,47 +15,31 @@
 defmodule OMG.Watcher.Integration.BadChildChainBLock do
   @moduledoc false
 
-  defmacro __using__(opts) do
-    quote do
-      use JSONRPC2.Server.Handler
-      alias OMG.JSONRPC.Client
+  def create_module(bad_block) do
+    content =
+      quote do
+        use JSONRPC2.Server.Handler
+        alias OMG.JSONRPC.Client
 
-      def port, do: 9657
+        def port, do: 9657
 
-      def handle_request(method, params) do
-        param_hash = params["hash"]
+        def handle_request(method, params) do
+          param_hash = params["hash"]
+          bad_block = get_bad_block()
 
-        if param_hash == Base.encode16(bad_block_hash()) do
-          bad_block() |> Client.encode()
-        else
-          with {:ok, decoded} <- Base.decode16(param_hash, case: :mixed),
-               {:ok, response} <- Client.call(:get_block, %{hash: decoded}, "http://localhost:9656") do
-            Client.encode(response)
+          if param_hash == Base.encode16(bad_block.hash) do
+            Client.encode(bad_block)
+          else
+            with {:ok, decoded} <- Base.decode16(param_hash, case: :mixed),
+                 {:ok, response} <- Client.call(:get_block, %{hash: decoded}, "http://localhost:9656") do
+              Client.encode(response)
+            end
           end
         end
+
+        defp get_bad_block, do: unquote(Macro.escape(bad_block))
       end
 
-      def bad_block do
-        %{
-          hash: bad_block_hash(),
-          number: unquote(opts)[:blknum],
-          transactions: [
-            <<248, 207, 130, 89, 216, 128, 128, 128, 128, 128, 148, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 148, 59, 159, 76, 29, 210, 110, 11, 229, 147, 55, 59, 29, 54, 206, 226, 0, 140, 190, 184, 55, 10,
-              148, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 184, 65, 78, 238, 201, 119, 140,
-              175, 144, 102, 238, 15, 237, 102, 173, 107, 218, 170, 53, 26, 229, 37, 114, 8, 232, 78, 126, 253, 246,
-              194, 246, 163, 1, 61, 107, 180, 151, 3, 169, 206, 155, 191, 18, 63, 131, 254, 92, 228, 74, 136, 154, 240,
-              11, 44, 13, 44, 204, 81, 52, 213, 235, 85, 137, 116, 7, 204, 28, 184, 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
-          ]
-        }
-      end
-
-      defp bad_block_hash do
-        <<246, 35, 54, 64, 210, 93, 125, 143, 215, 90, 74, 44, 247, 117, 121, 168, 159, 1, 108, 10, 14, 6, 231, 126, 50,
-          136, 186, 67, 229, 8, 197, 232>>
-      end
-    end
+    Module.create(BadChildChainBLock, content, Macro.Env.location(__ENV__))
   end
 end
