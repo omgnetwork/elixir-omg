@@ -37,15 +37,20 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
   test "transaction which is using already spent utxo from exit and happened before end of m_sv causes to emit invalid_exit event ",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}} do
-    defmodule BadChildChainBLock do
-      use OMG.Watcher.Integration.BadChildChainBLock, blknum: 27_000
-    end
+    # TODO remove this tx , use directly deposit_blknum to get_exit_data
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    {:ok, %{blknum: deposit_blknum}} = Client.call(:submit, %{transaction: tx})
+
+    bad_tx = API.TestHelper.create_recovered([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+
+    %{hash: bad_block_hash, number: bad_block_number, transactions: _} =
+      bad_block = API.Block.hashed_txs_at([bad_tx], 27_000)
+
+    {:module, BadChildChainBLock, _, _} = OMG.Watcher.Integration.BadChildChainBLock.create_module(bad_block)
 
     JSONRPC2.Servers.HTTP.http(BadChildChainBLock, port: BadChildChainBLock.port())
 
     {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
-
-    %{hash: bad_block_hash, number: bad_block_number, transactions: _} = BadChildChainBLock.bad_block()
 
     {:ok, _} =
       OMG.Eth.RootChain.submit_block(
@@ -53,10 +58,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         27,
         1
       )
-
-    # TODO remove this tx , use directly deposit_blknum to get_exit_data
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: deposit_blknum}} = Client.call(:submit, %{transaction: tx})
 
     IntegrationTest.wait_until_block_getter_fetches_block(deposit_blknum, @timeout)
 
