@@ -55,6 +55,14 @@ defmodule OMG.API.Integration.Fixtures do
   end
 
   deffixture alice_deposits(alice, token) do
+    deposit(alice, token)
+  end
+
+  deffixture stable_alice_deposits(stable_alice, token) do
+    deposit(stable_alice, token)
+  end
+
+  defp deposit(alice, token) do
     {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
 
     deposit_blknum = deposit_to_child_chain(alice.addr, 10)

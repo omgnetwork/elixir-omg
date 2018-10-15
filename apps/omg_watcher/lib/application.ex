@@ -53,7 +53,7 @@ defmodule OMG.Watcher.Application do
             synced_height_update_key: :last_fast_exit_eth_height,
             service_name: :fast_validator,
             get_events_callback: &OMG.Eth.RootChain.get_exits/2,
-            process_events_callback: &exit_events_callback/1,
+            process_events_callback: &challenge_fastly_invalid_exits/1,
             get_last_synced_height_callback: &OMG.DB.last_fast_exit_eth_height/0
           }
         ],
@@ -67,8 +67,7 @@ defmodule OMG.Watcher.Application do
             synced_height_update_key: :last_slow_exit_eth_height,
             service_name: :slow_validator,
             get_events_callback: &OMG.Eth.RootChain.get_exits/2,
-            process_events_callback:
-              OMG.Watcher.ExitValidator.Validator.challenge_invalid_exits(&slow_validator_utxo_exists_callback/1),
+            process_events_callback: OMG.Watcher.ExitValidator.Validator.challenge_slowly_invalid_exits(),
             get_last_synced_height_callback: &OMG.DB.last_slow_exit_eth_height/0
           }
         ],
@@ -100,24 +99,14 @@ defmodule OMG.Watcher.Application do
     :ok
   end
 
-  defp slow_validator_utxo_exists_callback(utxo_exit) do
-    with :ok <- OMG.API.State.exit_if_not_spent(utxo_exit) do
-      :ok
-    else
-      :utxo_does_not_exist ->
-        :ok = OMG.Watcher.ChainExiter.exit()
-        :child_chain_exit
-    end
-  end
-
   defp deposit_events_callback(deposits) do
     :ok = OMG.API.State.deposit(deposits)
     _ = OMG.Watcher.DB.EthEvent.insert_deposits(deposits)
     :ok
   end
 
-  defp exit_events_callback(exits) do
-    :ok = OMG.Watcher.ExitValidator.Validator.challenge_invalid_exits(fn _ -> :ok end).(exits)
+  defp challenge_fastly_invalid_exits(exits) do
+    :ok = OMG.Watcher.ExitValidator.Validator.challenge_fastly_invalid_exits().(exits)
     _ = OMG.Watcher.DB.EthEvent.insert_exits(exits)
     :ok
   end

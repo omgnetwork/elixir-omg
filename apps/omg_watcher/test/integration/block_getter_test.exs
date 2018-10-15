@@ -275,6 +275,83 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainTransaction)
   end
 
+  @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
+  test "transaction which is using already spent utxo from exit and happened after m_sv causes to emit invalid_block event",
+       %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}} do
+    # TODO remove this tx , use directly deposit_blknum to get_exit_data
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    {:ok, %{blknum: deposit_blknum}} = Client.call(:submit, %{transaction: tx})
+
+    bad_tx = API.TestHelper.create_recovered([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+
+    %{hash: bad_block_hash, number: bad_block_number, transactions: _} =
+      bad_block = API.Block.hashed_txs_at([bad_tx], 40_000)
+
+    {:module, BadChildChainBLock, _, _} = OMG.Watcher.Integration.BadChildChainBLock.create_module(bad_block)
+
+    JSONRPC2.Servers.HTTP.http(BadChildChainBLock, port: BadChildChainBLock.port())
+
+    {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
+
+    {:ok, _} =
+      OMG.Eth.RootChain.submit_block(
+        bad_block_hash,
+        40,
+        1
+      )
+
+    IntegrationTest.wait_until_block_getter_fetches_block(deposit_blknum, @timeout)
+
+    %{
+      "txbytes" => txbytes,
+      "proof" => proof,
+      "sigs" => sigs,
+      "utxo_pos" => utxo_pos
+    } = IntegrationTest.get_exit_data(deposit_blknum, 0, 0)
+
+    {:ok, txhash} =
+      Eth.RootChain.start_exit(
+        utxo_pos,
+        txbytes,
+        proof,
+        sigs,
+        alice.addr
+      )
+
+    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+
+    Application.put_env(
+      :omg_jsonrpc,
+      :child_chain_url,
+      "http://localhost:" <> Integer.to_string(BadChildChainBLock.port())
+    )
+
+    slow_exit_validator_block_margin =
+      Application.get_env(:omg_watcher, :slow_exit_validator_block_margin) *
+        Application.get_env(:omg_eth, :child_block_interval)
+
+    {:ok, current_child_block} = Eth.RootChain.get_current_child_block()
+
+    after_m_sv = current_child_block + slow_exit_validator_block_margin
+
+    assert bad_block_number > after_m_sv
+
+    IntegrationTest.wait_until_block_getter_fetches_block(bad_block_number - 1_000, @timeout)
+
+    invalid_block_event =
+      Client.encode(%Event.InvalidBlock{
+        error_type: :tx_execution,
+        hash: bad_block_hash,
+        number: bad_block_number
+      })
+
+    assert_push("invalid_block", ^invalid_block_event)
+
+    JSONRPC2.Servers.HTTP.shutdown(BadChildChainBLock)
+
+    Application.put_env(:omg_jsonrpc, :child_chain_url, "http://localhost:9656")
+  end
+
   defp assert_block_getter_down do
     :ok = TestHelper.wait_for_process(Process.whereis(OMG.Watcher.BlockGetter))
   end
