@@ -31,6 +31,8 @@ defmodule OMG.Eth.DevHelpers do
   # NOTE: such timeout works only in dev setting; on mainnet one must track its transactions carefully
   @about_4_blocks_time 60_000
 
+  @passphrase "ThisIsATestnetPassphrase"
+
   @doc """
   Prepares the developer's environment with respect to the root chain contract and its configuration within
   the application.
@@ -63,7 +65,7 @@ defmodule OMG.Eth.DevHelpers do
   end
 
   def create_and_fund_authority_addr do
-    with {:ok, authority} <- Ethereumex.HttpClient.request("personal_newAccount", [""], []),
+    with {:ok, authority} <- Ethereumex.HttpClient.request("personal_newAccount", [@passphrase], []),
          {:ok, _} <- unlock_fund(authority) do
       {:ok, from_hex(authority)}
     end
@@ -76,7 +78,7 @@ defmodule OMG.Eth.DevHelpers do
   def import_unlock_fund(%{priv: account_priv}) do
     account_priv_enc = Base.encode16(account_priv)
 
-    {:ok, account_enc} = Ethereumex.HttpClient.request("personal_importRawKey", [account_priv_enc, ""], [])
+    {:ok, account_enc} = Ethereumex.HttpClient.request("personal_importRawKey", [account_priv_enc, @passphrase], [])
     {:ok, _} = unlock_fund(account_enc)
 
     {:ok, from_hex(account_enc)}
@@ -106,7 +108,7 @@ defmodule OMG.Eth.DevHelpers do
   # private
 
   defp unlock_fund(account_enc) do
-    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [account_enc, "", 0], [])
+    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [account_enc, @passphrase, 0], [])
 
     {:ok, [eth_source_address | _]} = Ethereumex.HttpClient.eth_accounts()
 
