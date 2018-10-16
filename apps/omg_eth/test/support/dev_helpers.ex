@@ -42,7 +42,8 @@ defmodule OMG.Eth.DevHelpers do
   def prepare_env!(root_path \\ "./") do
     with {:ok, _} <- Application.ensure_all_started(:ethereumex),
          {:ok, authority} <- create_and_fund_authority_addr(),
-         {:ok, txhash, contract_addr} <- Eth.RootChain.create_new(root_path, authority) do
+         {:ok, _} = deploy_result <- Eth.RootChain.create_new(root_path, authority),
+         {:ok, txhash, contract_addr} <- Eth.DevHelpers.deploy_sync!(deploy_result) do
       %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
     else
       {:error, :econnrefused} = error ->
@@ -84,25 +85,22 @@ defmodule OMG.Eth.DevHelpers do
     {:ok, from_hex(account_enc)}
   end
 
-  def make_deposits(value, accounts, contract \\ nil) do
-    deposit = fn account ->
-      {:ok, receipt} = OMG.Eth.RootChain.deposit(value, account.addr, contract) |> transact_sync!()
-      deposit_blknum = OMG.Eth.RootChain.deposit_blknum_from_receipt(receipt)
-
-      {:ok, account, deposit_blknum, value}
-    end
-
-    accounts
-    |> Enum.map(&Task.async(fn -> deposit.(&1) end))
-    |> Enum.map(fn task -> Task.await(task, :infinity) end)
-  end
-
   @doc """
   Use with contract-transacting functions that return {:ok, txhash}, e.g. `Eth.Token.mint`, for synchronous waiting
   for mining of a successful result
   """
+  @spec transact_sync!({:ok, Eth.hash()}) :: {:ok, map}
   def transact_sync!({:ok, txhash} = _transaction_submission_result) do
     {:ok, %{"status" => "0x1"}} = WaitFor.eth_receipt(txhash, @about_4_blocks_time)
+  end
+
+  @doc """
+  Uses `transact_sync!` for synchronous deploy-transaction sending and extracts important data from the receipt
+  """
+  @spec deploy_sync!({:ok, Eth.hash()}) :: {:ok, Eth.hash(), Eth.address()}
+  def deploy_sync!({:ok, txhash} = transaction_submission_result) do
+    {:ok, %{"contractAddress" => contract, "status" => "0x1"}} = transact_sync!(transaction_submission_result)
+    {:ok, txhash, from_hex(contract)}
   end
 
   # private
@@ -116,6 +114,26 @@ defmodule OMG.Eth.DevHelpers do
       %{from: eth_source_address, to: account_enc, value: to_hex(@one_hundred_eth)}
       |> Ethereumex.HttpClient.eth_send_transaction()
 
-    tx_fund |> from_hex() |> WaitFor.eth_receipt()
+    tx_fund |> from_hex() |> WaitFor.eth_receipt(@about_4_blocks_time)
+  end
+
+  def wait_for_root_chain_block(awaited_eth_height, timeout \\ 60_000) do
+    f = fn ->
+      {:ok, eth_height} = Eth.get_ethereum_height()
+
+      if eth_height < awaited_eth_height, do: :repeat, else: {:ok, eth_height}
+    end
+
+    fn -> WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
+  end
+
+  def wait_for_current_child_block(blknum, timeout \\ 10_000, contract \\ nil) do
+    f = fn ->
+      {:ok, next_num} = Eth.RootChain.get_current_child_block(contract)
+
+      if next_num < blknum, do: :repeat, else: {:ok, next_num}
+    end
+
+    fn -> WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
   end
 end
