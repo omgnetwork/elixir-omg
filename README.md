@@ -211,10 +211,9 @@ mix do ecto.reset --no-start, run --no-start -e 'OMG.DB.init()' --config ~/confi
 
 #### Start the Watcher
 
-To start syncing to the Child chain server:
+To start syncing to the Child chain server (continue from the `apps/omg_watcher` directory):
 
 ```
-cd apps/omg_watcher
 iex -S mix run --config ~/config_watcher.exs
 ```
 
