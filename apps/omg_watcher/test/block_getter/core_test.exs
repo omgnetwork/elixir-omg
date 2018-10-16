@@ -347,7 +347,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   test "validate_tx_executions function returns InvalidBlock event" do
     block = %Block{number: 1, hash: <<>>}
 
-    assert {{:needs_stopping, :tx_execution},
+    assert {{:needs_stopping, {:tx_execution, {}}},
             [
               %Event.InvalidBlock{
                 error_type: :tx_execution,

@@ -444,8 +444,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
     with nil <- Enum.find(executions, &(!match?({:ok, {_, _, _}}, &1))) do
       {:ok, []}
     else
-      _ ->
-        {{:needs_stopping, :tx_execution},
+      {:error, reason} ->
+        {{:needs_stopping, {:tx_execution, reason}},
          [
            %Event.InvalidBlock{
              error_type: :tx_execution,
