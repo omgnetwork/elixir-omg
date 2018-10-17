@@ -86,8 +86,7 @@ Actually `OMG.API.EthereumEventListener` setup with `:fast_validator`.
 Actually `OMG.API.EthereumEventListener` setup with `:slow_validator`.
 
 - used only in Watcher
-- feeds `OMG.API.State` with valid exits and challenges invalid exits (caused by root chain reorgs)
-- lags :fast_validator for a configured number of root chain blocks
+- validates exits and spends them to `OMG.API.State`
 - emits byzantine events to `OMG.Watcher.Eventer`
 
 ### `Phoenix app` (not a module - section name TODO)
