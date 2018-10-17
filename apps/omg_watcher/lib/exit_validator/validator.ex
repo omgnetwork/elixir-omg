@@ -15,13 +15,9 @@
 defmodule OMG.Watcher.ExitValidator.Validator do
   @moduledoc """
     Contains 'challenge_fastly_invalid_exits' and 'challenge_slowly_invalid_exits' functions
-    resposible for validating exits.
+    used for current exit validation design which consits of `FastValidator` and `SlowValidator`.
 
-    The exit validators covers following cases:
-      a) (FV) The invalid exit is processed after the tx so it's known to be invalid from the start. Causes `:invalid_exit`
-      b) (SV) The exit is processed before invalid tx, but invalid tx is within `M_SV, so the chain is valid.
-         Causes `:invalid_exit`. Doesn't cause an exit.
-
+    See docs/exit_validation.md for more information.
   """
   use OMG.API.LoggerExt
 
@@ -33,7 +29,7 @@ defmodule OMG.Watcher.ExitValidator.Validator do
   @doc """
     Validates exits and pushes them to `DB.EthEvent`. if exit is invalid then emits `:invalid_exit` event
   """
-  @spec challenge_fastly_invalid_exits() :: ([OMG.API.State.Core.exit_t()] -> :ok)
+  @spec challenge_fastly_invalid_exits :: ([OMG.API.State.Core.exit_t()] -> :ok)
   def challenge_fastly_invalid_exits do
     challenge_invalid_exits(false)
   end
@@ -41,28 +37,29 @@ defmodule OMG.Watcher.ExitValidator.Validator do
   @doc """
     Validates and spends exits in the "OMG.API.State" and if exit is invalid then emits `:invalid_exit` event
   """
-  @spec challenge_slowly_invalid_exits() :: (fun() -> :ok)
+  @spec challenge_slowly_invalid_exits :: (fun() -> :ok)
   def challenge_slowly_invalid_exits do
     challenge_invalid_exits(true)
   end
 
   defp challenge_invalid_exits(is_slow_validator) do
     fn utxo_exits ->
-      for utxo_exit <- utxo_exits do
-        cond do
-          not OMG.API.State.utxo_exists?(utxo_exit) ->
-            EventerAPI.emit_events([struct(Event.InvalidExit, utxo_exit)])
-
-          not is_slow_validator ->
-            _ = OMG.Watcher.DB.EthEvent.insert_exits([utxo_exit])
-
-          is_slow_validator ->
-            :ok = OMG.API.State.exit_utxos([utxo_exit])
-            _ = Logger.info(fn -> "Spent exit: #{inspect(utxo_exit)}" end)
-        end
-      end
-
+      _ = Enum.map(utxo_exits, &challenge_invalid_exit(&1, is_slow_validator))
       :ok
+    end
+  end
+
+  defp challenge_invalid_exit(utxo_exit, is_slow_validator) do
+    cond do
+      not OMG.API.State.utxo_exists?(utxo_exit) ->
+        EventerAPI.emit_events([struct(Event.InvalidExit, utxo_exit)])
+
+      not is_slow_validator ->
+        _ = OMG.Watcher.DB.EthEvent.insert_exits([utxo_exit])
+
+      is_slow_validator ->
+        :ok = OMG.API.State.exit_utxos([utxo_exit])
+        _ = Logger.info(fn -> "Spent exit: #{inspect(utxo_exit)}" end)
     end
   end
 end
