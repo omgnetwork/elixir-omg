@@ -27,3 +27,4 @@ Invalid type specification for function 'Elixir.OMG.API.Crypto':generate_public_
 Function get_block/1 has no local return
 Function get_last_mined_child_block_timestamp/1 has no local return
 Function get/2 has no local return
+Function challenge_fastly_invalid_exits/1 has no local return
