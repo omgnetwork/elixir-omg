@@ -66,7 +66,7 @@ defmodule OMG.Watcher.Challenger.Core do
        }) do
     non_zero_output = outputs |> Enum.find(&(&1.amount > 0))
 
-    Utxo.position(blknum, txindex, non_zero_output.creating_tx_oindex)
+    Utxo.position(blknum, txindex, non_zero_output.oindex)
     |> Utxo.Position.encode()
   end
 
