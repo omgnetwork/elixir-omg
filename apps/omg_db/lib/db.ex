@@ -36,7 +36,11 @@ defmodule OMG.DB do
   end
 
   def utxos(server_name \\ @server_name) do
-    GenServer.call(server_name, {:utxos})
+    # in this time database shout read 3 millions utxos
+    max_time_of_read = 30_000
+    {time, {_, utxos} = result} = :timer.tc(&GenServer.call/3, [server_name, {:utxos}, max_time_of_read])
+    _ = Logger.info("read data time: #{inspect(time / 1_000_000)} size: #{length(utxos)}")
+    result
   end
 
   def block_hashes(block_numbers_to_fetch, server_name \\ @server_name) do
