@@ -26,7 +26,6 @@ defmodule OMG.Watcher.DB.Transaction do
 
   require Utxo
 
-  import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
   @type mined_block() :: %{
@@ -65,50 +64,36 @@ defmodule OMG.Watcher.DB.Transaction do
   @doc """
   Inserts complete and sorted enumberable of transactions for particular block number
   """
-  @spec update_with(mined_block()) :: [{:ok, __MODULE__}]
+  @spec update_with(mined_block()) :: {:ok, __MODULE__}
   def update_with(%{transactions: transactions, blknum: block_number, eth_height: eth_height}) do
-    # FIXME: remove time measurement & logging
-    start = System.monotonic_time()
-
     [db_txs, db_outputs, db_inputs] =
       transactions
       |> Stream.with_index()
       |> Enum.reduce([[], [], []], fn {tx, txindex}, acc -> process(tx, block_number, txindex, eth_height, acc) end)
 
-    prepare_dur = System.monotonic_time() - start
+    {insert_duration, {:ok, _} = result} =
+      :timer.tc(
+        &Repo.transaction/1,
+        [
+          fn ->
+            _ = Repo.insert_all(__MODULE__, db_txs)
+            _ = Repo.insert_all(DB.TxOutput, db_outputs)
 
-    start = System.monotonic_time()
+            # inputs are set as spent after outputs are inserted to support spending utxo from the same block
+            DB.TxOutput.spend_utxos(db_inputs)
+          end
+        ]
+      )
 
-    result =
-      Repo.transaction(fn ->
-        Repo.insert_all(__MODULE__, db_txs)
-        Repo.insert_all(DB.TxOutput, db_outputs)
+    _ =
+      Logger.info(fn ->
+        "Block ##{block_number} persisted in DB done in #{insert_duration / 1000}ms"
       end)
-
-    # inputs are set as spent after outputs are inserted to support spending utxo from the same block
-    db_inputs
-    |> Enum.each(fn {utxo_pos, spending_oindex, spending_txhash} ->
-      if utxo = DB.TxOutput.get_by_position(utxo_pos) do
-        utxo
-        |> change(spending_tx_oindex: spending_oindex, spending_txhash: spending_txhash)
-        |> Repo.update!()
-      end
-    end)
-
-    insert_dur = System.monotonic_time() - start
-
-    Logger.info(fn ->
-      count = Enum.count(transactions)
-      prep = System.convert_time_unit(prepare_dur, :native, :millisecond)
-      ins = System.convert_time_unit(insert_dur, :native, :millisecond)
-
-      "Prepared ##{block_number} with #{count} txs in #{prep}ms\nTransaction send time #{ins}ms"
-    end)
 
     result
   end
 
-  # @spec process(Transaction.Recovered.t(), pos_integer(), integer(), pos_integer())
+  @spec process(Transaction.Recovered.t(), pos_integer(), integer(), pos_integer(), list()) :: [list()]
   defp process(
          %Transaction.Recovered{
            signed_tx_hash: signed_tx_hash,
@@ -126,7 +111,7 @@ defmodule OMG.Watcher.DB.Transaction do
     ]
   end
 
-  @spec create(pos_integer(), integer(), binary(), pos_integer(), binary()) :: __MODULE__
+  @spec create(pos_integer(), integer(), binary(), pos_integer(), binary()) :: map()
   defp create(
          block_number,
          txindex,

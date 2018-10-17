@@ -108,6 +108,7 @@ defmodule OMG.Watcher.DB.TransactionTest do
              } = DB.TxOutput.get_by_position(spent_txo)
 
       recovered_tx = OMG.API.TestHelper.create_recovered([{1000, 1, 1, bob}], @eth, [{bob, 200}])
+
       {:ok, _} =
         DB.Transaction.update_with(%{
           transactions: [recovered_tx],
@@ -116,6 +117,7 @@ defmodule OMG.Watcher.DB.TransactionTest do
         })
 
       double_spent_txhash = recovered_tx.signed_tx_hash
+
       assert %DB.TxOutput{
                spending_txhash: ^double_spent_txhash
              } = DB.TxOutput.get_by_position(spent_txo)

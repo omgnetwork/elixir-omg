@@ -48,7 +48,7 @@ defmodule OMG.Watcher.BlockGetter do
     EventerAPI.emit_events(events)
 
     with :ok <- continue do
-      response =
+      _ =
         block
         |> to_mined_block(block_rootchain_height)
         |> DB.Transaction.update_with()

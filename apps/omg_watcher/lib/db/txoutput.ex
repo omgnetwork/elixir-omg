@@ -26,6 +26,7 @@ defmodule OMG.Watcher.DB.TxOutput do
 
   require Utxo
 
+  import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
   @primary_key false
@@ -112,6 +113,19 @@ defmodule OMG.Watcher.DB.TxOutput do
     end)
   end
 
+  @spec spend_utxos([map()]) :: :ok
+  def spend_utxos(db_inputs) do
+    db_inputs
+    |> Enum.each(fn {utxo_pos, spending_oindex, spending_txhash} ->
+      if utxo = DB.TxOutput.get_by_position(utxo_pos) do
+        utxo
+        |> change(spending_tx_oindex: spending_oindex, spending_txhash: spending_txhash)
+        |> Repo.update!()
+      end
+    end)
+  end
+
+  @spec create_outputs(pos_integer(), integer(), binary(), %Transaction{}) :: [map()]
   def create_outputs(
         blknum,
         txindex,
@@ -144,6 +158,7 @@ defmodule OMG.Watcher.DB.TxOutput do
       }
     ]
 
+  @spec create_inputs(%Transaction{}, binary()) :: [tuple()]
   def create_inputs(
         %Transaction{
           blknum1: blknum1,
