@@ -83,17 +83,16 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
   test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event ",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}} do
-    slow_exit_validator_block_margin =
-      Application.get_env(:omg_watcher, :slow_exit_validator_block_margin) *
-        Application.get_env(:omg_eth, :child_block_interval)
+    margin_slow_validator =
+      Application.get_env(:omg_watcher, :margin_slow_validator) * Application.get_env(:omg_eth, :child_block_interval)
 
     # TODO remove this tx , use directly deposit_blknum to get_exit_data
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: exit_blknum}} = Client.call(:submit, %{transaction: tx})
 
-    # Here we calcualted bad_block_number by adding `exit_blknum` and `slow_exit_validator_block_margin` / 2
+    # Here we calcualted bad_block_number by adding `exit_blknum` and `margin_slow_validator` / 2
     # to have guarantee that bad_block_number will be after margin of slow validator(m_sv)
-    bad_block_number = exit_blknum + div(slow_exit_validator_block_margin, 2)
+    bad_block_number = exit_blknum + div(margin_slow_validator, 2)
     bad_tx = API.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
 
     %{hash: bad_block_hash, number: _, transactions: _} =
@@ -137,9 +136,9 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       "http://localhost:" <> Integer.to_string(BadChildChainBLock.port())
     )
 
-    # Here we waiting for block `bad_block_number + slow_exit_validator_block_margin`
+    # Here we waiting for block `bad_block_number + margin_slow_validator`
     # to give time for watcher to fetch and validate bad_block_number
-    IntegrationTest.wait_until_block_getter_fetches_block(bad_block_number + slow_exit_validator_block_margin, @timeout)
+    IntegrationTest.wait_until_block_getter_fetches_block(bad_block_number + margin_slow_validator, @timeout)
 
     invalid_exit_event =
       Client.encode(%Event.InvalidExit{

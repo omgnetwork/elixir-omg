@@ -278,17 +278,16 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
   test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit invalid_block event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}} do
-    slow_exit_validator_block_margin =
-      Application.get_env(:omg_watcher, :slow_exit_validator_block_margin) *
-        Application.get_env(:omg_eth, :child_block_interval)
+    margin_slow_validator =
+      Application.get_env(:omg_watcher, :margin_slow_validator) * Application.get_env(:omg_eth, :child_block_interval)
 
     # TODO remove this tx , use directly deposit_blknum to get_exit_data
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: exit_blknum}} = Client.call(:submit, %{transaction: tx})
 
-    # Here we calcualted bad_block_number by adding `exit_blknum` and 2 * `slow_exit_validator_block_margin`
+    # Here we calcualted bad_block_number by adding `exit_blknum` and 2 * `margin_slow_validator`
     # to have guarantee that bad_block_number will be after margoin of slow validator(m_sv)
-    bad_block_number = exit_blknum + slow_exit_validator_block_margin * 2
+    bad_block_number = exit_blknum + margin_slow_validator * 2
     bad_tx = API.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
 
     %{hash: bad_block_hash, number: _, transactions: _} =

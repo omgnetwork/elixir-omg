@@ -22,7 +22,7 @@ defmodule OMG.Watcher.Application do
 
     # Define workers and child supervisors to be supervised
     block_finality_margin = Application.get_env(:omg_api, :ethereum_event_block_finality_margin)
-    slow_exit_validator_block_margin = Application.get_env(:omg_watcher, :slow_exit_validator_block_margin)
+    margin_slow_validator = Application.get_env(:omg_watcher, :margin_slow_validator)
 
     children = [
       # Start the Ecto repository
@@ -63,7 +63,7 @@ defmodule OMG.Watcher.Application do
         OMG.API.EthereumEventListener,
         [
           %{
-            block_finality_margin: slow_exit_validator_block_margin,
+            block_finality_margin: margin_slow_validator,
             synced_height_update_key: :last_slow_exit_eth_height,
             service_name: :slow_validator,
             get_events_callback: &OMG.Eth.RootChain.get_exits/2,
