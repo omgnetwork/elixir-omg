@@ -41,13 +41,15 @@ defmodule OMG.Watcher.BlockGetter.Core do
     defstruct [
       :maximum_number_of_pending_blocks,
       :maximum_block_withholding_time_ms,
-      :maximum_number_of_unapplied_blocks
+      :maximum_number_of_unapplied_blocks,
+      :block_interval
     ]
 
     @type t :: %__MODULE__{
             maximum_number_of_pending_blocks: pos_integer,
             maximum_block_withholding_time_ms: pos_integer,
-            maximum_number_of_unapplied_blocks: pos_integer
+            maximum_number_of_unapplied_blocks: pos_integer,
+            block_interval: pos_integer
           }
   end
 
@@ -56,7 +58,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
     :synced_height,
     :last_applied_block,
     :num_of_heighest_block_being_downloaded,
-    :block_interval,
     :number_of_blocks_being_downloaded,
     :unapplied_blocks,
     :potential_block_withholdings,
@@ -68,7 +69,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
           synced_height: pos_integer(),
           last_applied_block: non_neg_integer,
           num_of_heighest_block_being_downloaded: non_neg_integer,
-          block_interval: pos_integer,
           number_of_blocks_being_downloaded: non_neg_integer,
           unapplied_blocks: %{
             non_neg_integer => OMG.API.Block.t()
@@ -105,7 +105,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
       maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 10),
       maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0),
       maximum_number_of_unapplied_blocks:
-        Keyword.get(opts, :maximum_number_of_unapplied_blocks, @default_maximum_number_of_unapplied_blocks)
+        Keyword.get(opts, :maximum_number_of_unapplied_blocks, @default_maximum_number_of_unapplied_blocks),
+      block_interval: child_block_interval
     }
 
     %__MODULE__{
@@ -113,7 +114,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
       synced_height: synced_height,
       last_applied_block: block_number,
       num_of_heighest_block_being_downloaded: block_number,
-      block_interval: child_block_interval,
       number_of_blocks_being_downloaded: 0,
       unapplied_blocks: %{},
       potential_block_withholdings: %{},
@@ -169,7 +169,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   def get_blocks_to_apply(
-        %__MODULE__{unapplied_blocks: blocks, block_interval: interval} = state,
+        %__MODULE__{unapplied_blocks: blocks, config: config} = state,
         block_submissions,
         _coordinator_height
       ) do
@@ -178,11 +178,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
     block_submissions =
       Enum.into(block_submissions, %{}, fn %{blknum: blknum, eth_height: eth_height} -> {blknum, eth_height} end)
 
-    first_blknum_to_apply = state.last_applied_block + interval
+    first_blknum_to_apply = state.last_applied_block + config.block_interval
 
     blknums_to_apply =
       first_blknum_to_apply
-      |> Stream.iterate(&(&1 + interval))
+      |> Stream.iterate(&(&1 + config.block_interval))
       |> Enum.take_while(fn blknum -> Map.has_key?(block_submissions, blknum) and Map.has_key?(blocks, blknum) end)
 
     blocks_to_keep = Map.drop(blocks, blknums_to_apply)
@@ -222,14 +222,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
         %__MODULE__{
           unapplied_blocks: unapplied_blocks,
           num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded,
-          block_interval: block_interval,
           number_of_blocks_being_downloaded: number_of_blocks_being_downloaded,
           potential_block_withholdings: potential_block_withholdings,
           config: config
         } = state,
         next_child
       ) do
-    first_block_number = num_of_heighest_block_being_downloaded + block_interval
+    first_block_number = num_of_heighest_block_being_downloaded + config.block_interval
 
     number_of_empty_slots = config.maximum_number_of_pending_blocks - number_of_blocks_being_downloaded
 
@@ -237,7 +236,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
     potential_next_block_numbers =
       first_block_number
-      |> Stream.iterate(&(&1 + block_interval))
+      |> Stream.iterate(&(&1 + config.block_interval))
       |> Stream.take_while(&(&1 < next_child))
       |> Enum.to_list()
 

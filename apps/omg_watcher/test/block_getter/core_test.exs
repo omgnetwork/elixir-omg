@@ -485,9 +485,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     {state, []} = Core.get_numbers_of_blocks_to_download(state, 5_000)
 
-    state = handle_downloaded_block(state, %Block{number: 1_000})
+    {state, []} =
+      state
+      |> handle_downloaded_block(%Block{number: 1_000})
+      |> Core.get_numbers_of_blocks_to_download(5_000)
 
-    {state, []} = Core.get_numbers_of_blocks_to_download(state, 5_000)
     synced_height = 1
 
     {_, _, _, state} =
