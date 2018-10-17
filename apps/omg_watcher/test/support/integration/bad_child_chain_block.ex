@@ -13,7 +13,10 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.Integration.BadChildChainBLock do
-  @moduledoc false
+  @moduledoc """
+    Module useful for creating integration tests where we want to simulate byzantine child chain server
+    which is returning a bad block for a particular block number.
+  """
 
   def create_module(bad_block) do
     content =
