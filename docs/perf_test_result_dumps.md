@@ -34,10 +34,36 @@ run on
 
 ## `685b5f75b283ab64b56ae5b6ac046b99692d3fbd`, 2018-07-18
 
-Command:
+Command as above + observer:
 
 ```
 mix run --no-start -e ':observer.start(); OMG.Performance.setup_and_run(8_000, 32, %{block_every_ms: 15_000})'
 ```
 
 Observer tells us that peak memory usage (total) is ~600MB, oscillating around ~400MB most of the time.
+
+## `62249098e852d52552616364cb1ca9184be43d02`, 2018-10-16
+
+Command as above:
+
+```
+mix run --no-start -e 'OMG.Performance.setup_and_run(8_000, 32, %{block_every_ms: 15_000})'
+```
+
+```
+[
+   {"blknum":1000, "span_ms":16378, "tps":3937.23, "txs":64484},
+   {"blknum":2000, "span_ms":15115, "tps":4019.91, "txs":60761},
+   {"blknum":3000, "span_ms":14915, "tps":4040.03, "txs":60257},
+   {"blknum":4000, "span_ms":14726, "tps":4110.42, "txs":60530},
+   {"blknum":5000, "span_ms":1865,  "tps":5344.77, "txs":9968}
+]
+```
+
+typical block forming log:
+```
+2018-10-16 17:30:05.815 [info] ... ⋅Calculations for forming block number 2000 done in 1036 ms⋅
+2018-10-16 17:30:06.312 [info] ... ⋅Forming block done in 1533 ms⋅
+```
+
+run on: as above.
