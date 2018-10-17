@@ -6,7 +6,7 @@
 
 The watcher first and foremost plays a critical security role in the system.
 
-#### Design principle
+#### Design principles
 
 - Only include functionality that is critical to the operation of the Plasma security model
 - Strict focus on security role reduces complexity and attack surface area
@@ -48,7 +48,7 @@ The watcher first and foremost plays a critical security role in the system.
 
 Non-critical convenience API proxy and provide data about the chain.
 
-#### Design principle
+#### Design principles
 
 - Provide convenience APIs to proxy to the child chain/root chain/watcher to ease integration and reduce duplicate code in libraries
 - Storage of informational data about the chain
@@ -77,7 +77,7 @@ Non-critical convenience API proxy and provide data about the chain.
 
 Native wrappers to the Watcher and Informational API Service for supported languages and frameworks.
 
-#### Design principle
+#### Design principles
 
 - Adopt all native conventions and standards
 - Encourage open source community development
