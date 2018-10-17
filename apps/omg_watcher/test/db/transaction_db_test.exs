@@ -107,13 +107,15 @@ defmodule OMG.Watcher.DB.TransactionTest do
                spending_txhash: ^spent_txhash
              } = DB.TxOutput.get_by_position(spent_txo)
 
-      [{:ok, %DB.Transaction{txhash: double_spent_txhash}}] =
+      recovered_tx = OMG.API.TestHelper.create_recovered([{1000, 1, 1, bob}], @eth, [{bob, 200}])
+      {:ok, _} =
         DB.Transaction.update_with(%{
-          transactions: [OMG.API.TestHelper.create_recovered([{1000, 1, 1, bob}], @eth, [{bob, 200}])],
+          transactions: [recovered_tx],
           blknum: 11_000,
           eth_height: 10
         })
 
+      double_spent_txhash = recovered_tx.signed_tx_hash
       assert %DB.TxOutput{
                spending_txhash: ^double_spent_txhash
              } = DB.TxOutput.get_by_position(spent_txo)

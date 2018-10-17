@@ -163,8 +163,7 @@ defmodule OMG.Watcher.Fixtures do
     :ok = phoenix_ecto_sandbox
 
     prepare_f = fn {blknum, recovered_txs} ->
-      db_results = DB.Transaction.update_with(%{transactions: recovered_txs, blknum: blknum, eth_height: 1})
-      true = db_results |> Enum.all?(&(elem(&1, 0) == :ok))
+      {:ok, _} = DB.Transaction.update_with(%{transactions: recovered_txs, blknum: blknum, eth_height: 1})
 
       recovered_txs
       |> Enum.with_index()
