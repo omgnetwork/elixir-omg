@@ -100,6 +100,7 @@ defmodule OMG.Watcher.BlockGetter do
     :producer = send(self(), :producer)
 
     maximum_block_withholding_time_ms = Application.get_env(:omg_watcher, :maximum_block_withholding_time_ms)
+    maximum_number_of_unapplied_blocks = Application.get_env(:omg_watcher, :maximum_number_of_unapplied_blocks)
 
     {
       :ok,
@@ -107,7 +108,8 @@ defmodule OMG.Watcher.BlockGetter do
         child_top_block_number,
         child_block_interval,
         exact_synced_height,
-        maximum_block_withholding_time_ms: maximum_block_withholding_time_ms
+        maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
+        maximum_number_of_unapplied_blocks: maximum_number_of_unapplied_blocks
       )
     }
   end
