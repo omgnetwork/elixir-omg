@@ -30,8 +30,12 @@ defmodule OMG.DB do
     result
   end
 
-  @spec blocks(block_to_fetch :: list()) :: {:ok, list()} | {:error, any}
-  def blocks(blocks_to_fetch, server_name \\ @server_name) do
+  @spec blocks(block_to_fetch :: list(), atom) :: {:ok, list()} | {:error, any}
+  def blocks(blocks_to_fetch, server_name \\ @server_name)
+
+  def blocks([], _server_name), do: {:ok, []}
+
+  def blocks(blocks_to_fetch, server_name) do
     GenServer.call(server_name, {:blocks, blocks_to_fetch})
   end
 
