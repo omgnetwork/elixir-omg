@@ -27,21 +27,29 @@ defmodule OMG.Eth.Token do
   # writes #
   ##########
 
-  def mint(owner, amount, token, opts \\ @tx_defaults) do
+  def mint(owner, amount, token, opts \\ []) do
+    opts = @tx_defaults |> Keyword.merge(opts)
+
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
     Eth.contract_transact(from_hex(from), token, "mint(address,uint256)", [owner, amount], opts)
   end
 
-  def transfer(from, owner, amount, token, opts \\ @tx_defaults) do
+  def transfer(from, owner, amount, token, opts \\ []) do
+    opts = @tx_defaults |> Keyword.merge(opts)
+
     Eth.contract_transact(from, token, "transfer(address,uint256)", [owner, amount], opts)
   end
 
-  def approve(from, spender, amount, token, opts \\ @tx_defaults) do
+  def approve(from, spender, amount, token, opts \\ []) do
+    opts = @tx_defaults |> Keyword.merge(opts)
+
     Eth.contract_transact(from, token, "approve(address,uint256)", [spender, amount], opts)
   end
 
-  def create_new(path_project_root, addr, opts \\ nil) do
-    opts = opts || Keyword.put_new(@tx_defaults, :gas, 1_590_893)
+  def create_new(path_project_root, addr, opts \\ []) do
+    defaults = @tx_defaults |> Keyword.put(:gas, 1_590_893)
+    opts = defaults |> Keyword.merge(opts)
+
     bytecode = Eth.get_bytecode!(path_project_root, "MintableToken")
     Eth.deploy_contract(addr, bytecode, [], [], opts)
   end
