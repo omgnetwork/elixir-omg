@@ -85,6 +85,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
           | :withholding
           | API.Core.recover_tx_error()
 
+  @type init_error() :: :not_at_block_beginning
+
   @doc """
   Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block,
   using `child_block_interval` when progressing from one child block to another
@@ -94,13 +96,15 @@ defmodule OMG.Watcher.BlockGetter.Core do
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
     - `:maximum_block_withholding_time_ms` - how much time should we wait after the first failed pull until we call it a block withholding byzantine condition of the child chain (0 ms)
   """
-  @spec init(non_neg_integer, pos_integer, non_neg_integer, Keyword.t()) :: %__MODULE__{}
+  @spec init(non_neg_integer, pos_integer, non_neg_integer, boolean, Keyword.t()) :: {:ok, %__MODULE__{}} | {:error, init_error()}
   def init(
         block_number,
         child_block_interval,
         synced_height,
+        state_at_block_beginning,
         opts \\ []
       ) do
+    if state_at_block_beginning do
     config = %Config{
       maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 3),
       maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0),
@@ -109,7 +113,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
       block_interval: child_block_interval
     }
 
-    %__MODULE__{
+    state = %__MODULE__{
       height_sync_blknums: MapSet.new(),
       synced_height: synced_height,
       last_applied_block: block_number,
@@ -119,6 +123,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
       potential_block_withholdings: %{},
       config: config
     }
+    {:ok, state}
+    else
+      {:error, :not_at_block_beginning}
+    end
   end
 
   @doc """

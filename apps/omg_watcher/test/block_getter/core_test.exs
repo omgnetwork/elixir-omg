@@ -32,10 +32,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "get numbers of blocks to download" do
-    start_block_number = 0
-    interval = 1_000
-    synced_height = 1
-    state = Core.init(start_block_number, interval, synced_height, maximum_number_of_pending_blocks: 4)
+    state = init_state(opts: [maximum_number_of_pending_blocks: 4])
 
     {state_after_chunk, block_numbers} = Core.get_numbers_of_blocks_to_download(state, 20_000)
     assert block_numbers == [1_000, 2_000, 3_000, 4_000]
@@ -49,10 +46,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "first block to download number is not zero" do
-    start_block_number = 7_000
-    interval = 100
-    synced_height = 1
-    state = Core.init(start_block_number, interval, synced_height, maximum_number_of_pending_blocks: 4)
+    state = init_state(start_block_number: 7_000, interval: 100, opts: [maximum_number_of_pending_blocks: 4])
+
     assert {state, [7_100, 7_200, 7_300, 7_400]} = Core.get_numbers_of_blocks_to_download(state, 20_000)
 
     assert {:ok, _, []} =
@@ -62,13 +57,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "does not download same blocks twice and respects increasing next block number" do
-    start_block_number = 0
-    interval = 1_000
-    synced_height = 1
-
     {state, [1_000, 2_000, 3_000]} =
-      start_block_number
-      |> Core.init(interval, synced_height, maximum_number_of_pending_blocks: 5)
+      init_state(opts: [maximum_number_of_pending_blocks: 5])
       |> Core.get_numbers_of_blocks_to_download(4_000)
 
     assert {^state, []} = Core.get_numbers_of_blocks_to_download(state, 2_000)
@@ -76,12 +66,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "downloaded duplicated and unexpected block" do
-    block_height = 0
-    interval = 1_000
-
     {state, [1_000, 2_000]} =
-      block_height
-      |> Core.init(interval, maximum_number_of_pending_blocks: 5)
+      init_state(opts: [maximum_number_of_pending_blocks: 5])
       |> Core.get_numbers_of_blocks_to_download(3_000)
 
     assert {:error, :duplicate} =
@@ -144,11 +130,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   defp process_single_block(%Block{hash: requested_hash} = block) do
     block_height = 25_000
     interval = 1_000
-    synced_height = 1
 
     {state, _} =
-      block_height
-      |> Core.init(interval, synced_height)
+      init_state(start_block_number: block_height, interval: interval)
       |> Core.get_numbers_of_blocks_to_download(block_height + 2 * interval)
 
     assert {:ok, decoded_block} =
@@ -159,12 +143,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
   @tag fixtures: [:alice]
   test "does not validate block with invalid hash", %{alice: alice} do
-    block_height = 0
-    interval = 1_000
-    synced_height = 1
     matching_bad_returned_hash = <<12::256>>
-
-    state = Core.init(block_height, interval, synced_height)
+    state = init_state()
 
     block = %Block{
       Block.hashed_txs_at(
@@ -223,12 +203,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "got_block function called once with PotentialWithholding doesn't return BlockWithholding event" do
-    block_height = 0
-    synced_height = 1
-    interval = 1_000
-
-    {state, [1_000, 2_000]} =
-      block_height |> Core.init(interval, synced_height) |> Core.get_numbers_of_blocks_to_download(3_000)
+    {state, [1_000, 2_000]} = init_state() |> Core.get_numbers_of_blocks_to_download(3_000)
 
     potential_withholding = Core.validate_download_response({:error, :error_reason}, <<>>, 2_000, 0, 0)
 
@@ -236,21 +211,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "handle_downloaded_block function called twice with PotentialWithholding returns BlockWithholding event" do
-    block_height = 0
-    interval = 1_000
-    synced_height = 1
-
     {state, [1_000, 2_000]} =
-      Core.get_numbers_of_blocks_to_download(
-        Core.init(
-          block_height,
-          interval,
-          synced_height,
-          maximum_number_of_pending_blocks: 5,
-          maximum_block_withholding_time_ms: 0
-        ),
-        3_000
-      )
+      init_state(opts: [maximum_number_of_pending_blocks: 5, maximum_block_withholding_time_ms: 0])
+      |> Core.get_numbers_of_blocks_to_download(3_000)
 
     potential_withholding = Core.validate_download_response({:error, :error_reason}, <<>>, 2_000, 0, 0)
     assert {:ok, state, []} = Core.handle_downloaded_block(state, potential_withholding)
@@ -262,21 +225,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "get_numbers_of_blocks_to_download function returns number of potential withholding block which then is canceled" do
-    block_height = 0
-    interval = 1_000
-    synced_height = 1
-
     {state, [1_000, 2_000, 3_000, 4_000]} =
-      Core.get_numbers_of_blocks_to_download(
-        Core.init(
-          block_height,
-          interval,
-          synced_height,
-          maximum_number_of_pending_blocks: 4,
-          maximum_block_withholding_time_ms: 0
-        ),
-        20_000
-      )
+      init_state(opts: [maximum_number_of_pending_blocks: 4, maximum_block_withholding_time_ms: 0])
+      |> Core.get_numbers_of_blocks_to_download(20_000)
 
     state =
       state
@@ -294,15 +245,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "get_numbers_of_blocks_to_download function doesn't return next blocks if state doesn't have empty slots left" do
-    block_height = 0
-    interval = 1_000
-    synced_height = 1
-
     {state, [1_000, 2_000, 3_000]} =
-      Core.get_numbers_of_blocks_to_download(
-        Core.init(block_height, interval, synced_height, maximum_number_of_pending_blocks: 3),
-        20_000
-      )
+      init_state(opts: [maximum_number_of_pending_blocks: 3])
+      |> Core.get_numbers_of_blocks_to_download(20_000)
 
     potential_withholding = Core.validate_download_response({:error, :error_reason}, <<>>, 1_000, 0, 0)
     assert {:ok, state, []} = Core.handle_downloaded_block(state, potential_withholding)
@@ -317,18 +262,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "handle_downloaded_block function after maximum_block_withholding_time_ms returns BlockWithholding event" do
-    block_height = 0
-    interval = 1_000
-    synced_height = 1
-
-    state =
-      Core.init(
-        block_height,
-        interval,
-        synced_height,
-        maximum_number_of_pending_blocks: 4,
-        maximum_block_withholding_time_ms: 1000
-      )
+    state = init_state(opts: [maximum_number_of_pending_blocks: 4, maximum_block_withholding_time_ms: 1000])
 
     potential_withholding = Core.validate_download_response({:error, :error_reason}, <<>>, 3_000, 0, 0)
 
@@ -358,21 +292,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "after detecting twice same maximum possible potential withholdings get_numbers_of_blocks_to_download function still returns those blocks" do
-    block_height = 0
-    interval = 1_000
-    synced_height = 1
-
     {state, [1_000, 2_000]} =
-      Core.get_numbers_of_blocks_to_download(
-        Core.init(
-          block_height,
-          interval,
-          synced_height,
-          maximum_number_of_pending_blocks: 2,
-          maximum_block_withholding_time_ms: 10_000
-        ),
-        20_000
-      )
+      init_state(opts: [maximum_number_of_pending_blocks: 2, maximum_block_withholding_time_ms: 10_000])
+      |> Core.get_numbers_of_blocks_to_download(20_000)
 
     potential_withholding_1_000 = Core.validate_download_response({:error, :error_reson}, <<>>, 1_000, 0, 0)
     potential_withholding_2_000 = Core.validate_download_response({:error, :error_reson}, <<>>, 2_000, 0, 0)
@@ -401,11 +323,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "applying block updates height" do
-    interval = 1_000
-
     {state, [1_000, 2_000, 3_000]} =
-      0
-      |> Core.init(interval, 0, maximum_number_of_pending_blocks: 5)
+      init_state(synced_height: 0, opts: [maximum_number_of_pending_blocks: 5])
       |> Core.get_numbers_of_blocks_to_download(4_000)
 
     synced_height = 2
@@ -443,11 +362,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "gets continous ranges of blocks to apply" do
-    interval = 1_000
 
     {state, [1_000, 2_000, 3_000, 4_000]} =
-      0
-      |> Core.init(interval, 0, maximum_number_of_pending_blocks: 5)
+      init_state(synced_height: 0, opts: [maximum_number_of_pending_blocks: 5])
       |> Core.get_numbers_of_blocks_to_download(5_000)
 
     state =
@@ -500,6 +417,30 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       )
 
     {_, [4_000]} = Core.get_numbers_of_blocks_to_download(state, 5_000)
+  end
+
+  test "when State is not at the beginning should not init state properly" do
+    start_block_number = 0
+    interval = 1_000
+    synced_height = 1
+    state_at_beginning = false
+
+    assert Core.init(start_block_number, interval, synced_height, state_at_beginning) == {:error, :not_at_block_beginning}
+  end
+
+  defp init_state(opts \\ []) do
+    defaults = [start_block_number: 0, interval: 1_000, synced_height: 1, state_at_beginning: true, opts: []]
+
+    %{
+      start_block_number: start_block_number,
+      interval: interval,
+      synced_height: synced_height,
+      state_at_beginning: state_at_beginning,
+      opts: opts
+    } = defaults |> Keyword.merge(opts) |> Map.new()
+
+    {:ok, state} = Core.init(start_block_number, interval, synced_height, state_at_beginning, opts)
+    state
   end
 
   describe "WatcherDB idempotency:" do

@@ -88,8 +88,8 @@ defmodule OMG.Watcher.BlockGetter do
 
   def init(_opts) do
     {:ok, deployment_height} = Eth.RootChain.get_root_deployment_height()
-    {:ok, last_synced_height} = OMG.DB.last_block_getter_eth_height()
-    synced_height = max(deployment_height, last_synced_height)
+    {current_block_height, state_at_block_beginning} = State.get_state()
+    synced_height = max(deployment_height, current_block_height)
 
     {:ok, child_top_block_number} = OMG.DB.child_top_block_number()
     child_block_interval = Application.get_env(:omg_eth, :child_block_interval)
@@ -106,18 +106,19 @@ defmodule OMG.Watcher.BlockGetter do
     maximum_block_withholding_time_ms = Application.get_env(:omg_watcher, :maximum_block_withholding_time_ms)
     maximum_number_of_unapplied_blocks = Application.get_env(:omg_watcher, :maximum_number_of_unapplied_blocks)
 
-    {
-      :ok,
+    {:ok, state} =
       Core.init(
         child_top_block_number,
         child_block_interval,
         exact_synced_height,
+        state_at_block_beginning,
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
         maximum_number_of_unapplied_blocks: maximum_number_of_unapplied_blocks,
         # TODO: not elegant, but this should limit the number of heavy-lifting workers and chance to starve the rest
         maximum_number_of_pending_blocks: System.schedulers() - 1
       )
-    }
+
+    {:ok, state}
   end
 
   @spec handle_info(
