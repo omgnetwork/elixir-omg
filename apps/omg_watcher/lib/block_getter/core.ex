@@ -102,7 +102,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         opts \\ []
       ) do
     config = %Config{
-      maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 10),
+      maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 3),
       maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0),
       maximum_number_of_unapplied_blocks:
         Keyword.get(opts, :maximum_number_of_unapplied_blocks, @default_maximum_number_of_unapplied_blocks),
