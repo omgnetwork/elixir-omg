@@ -36,7 +36,9 @@ defmodule OMG.DB do
   end
 
   def utxos(server_name \\ @server_name) do
-    GenServer.call(server_name, {:utxos})
+    timeout_ms = 600_000
+    _ = Logger.info(fn -> "Reading UTXO set, this might take a while. Allowing #{inspect(timeout_ms)} ms" end)
+    GenServer.call(server_name, {:utxos}, timeout_ms)
   end
 
   def block_hashes(block_numbers_to_fetch, server_name \\ @server_name) do
