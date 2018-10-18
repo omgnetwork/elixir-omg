@@ -111,6 +111,42 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
   end
 
+  describe "Controller.TransactionTest - transactions" do
+    @tag fixtures: [:initial_blocks]
+    test "endpoint returns last 3 transactions", %{
+      initial_blocks: _initial_blocks
+    } do
+      limit = 3
+      %{"data" => txs, "result" => "success"} = TestHelper.rest_call(:get, "/transactions?limit=#{limit}")
+
+      assert [
+               %{"txblknum" => 3000, "txindex" => 1},
+               %{"txblknum" => 3000, "txindex" => 0},
+               %{"txblknum" => 2000, "txindex" => 0}
+             ] == Enum.map(txs, fn tx -> %{"txblknum" => tx["txblknum"], "txindex" => tx["txindex"]} end)
+    end
+
+    @tag fixtures: [:initial_blocks, :alice]
+    test "endpoint returns last 2 transactions filtered by address", %{
+      initial_blocks: _initial_blocks,
+      alice: alice
+    } do
+      limit = 2
+      {:ok, address_encoded} = Crypto.encode_address(alice.addr)
+      address = alice.addr |> TestHelper.to_response_address()
+
+      %{"data" => txs, "result" => "success"} =
+        TestHelper.rest_call(:get, "/transactions?address=#{address_encoded}&limit=#{limit}")
+
+      assert [
+               %{"txblknum" => 3000, "txindex" => 1},
+               %{"txblknum" => 3000, "txindex" => 0}
+             ] == Enum.map(txs, fn tx -> %{"txblknum" => tx["txblknum"], "txindex" => tx["txindex"]} end)
+
+      assert [true, true] == for(tx <- txs, do: tx["newowner1"] == address or tx["newowner2"] == address)
+    end
+  end
+
   describe "Controller.TransactionTest - POST transaction/" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob, :inputs, :outputs]
     test "returns properly formatted transaction bytes", %{alice: alice, bob: bob, inputs: inputs, outputs: outputs} do

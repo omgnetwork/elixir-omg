@@ -28,6 +28,7 @@ defmodule OMG.Watcher.Web.Router do
 
     get("/account/:address/balance", Controller.Account, :get_balance)
 
+    get("/transactions", Controller.Transaction, :get_transactions)
     get("/transaction/:id", Controller.Transaction, :get_transaction)
     post("/transaction", Controller.Transaction, :encode_transaction)
 
