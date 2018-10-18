@@ -48,12 +48,11 @@ defmodule OMG.Watcher.BlockGetter do
     EventerAPI.emit_events(events)
 
     with :ok <- continue do
-      response =
+      _ =
         block
         |> to_mined_block(block_rootchain_height)
         |> DB.Transaction.update_with()
 
-      nil = Enum.find(response, &(!match?({:ok, _}, &1)))
       _ = Logger.info(fn -> "Applied block \##{inspect(blknum)}" end)
       {:ok, next_child} = Eth.RootChain.get_current_child_block()
       {state, blocks_numbers} = Core.get_numbers_of_blocks_to_download(state, next_child)

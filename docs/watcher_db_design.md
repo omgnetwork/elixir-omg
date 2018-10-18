@@ -32,9 +32,11 @@ Stores information about input & outputs to the transactions. The Utxo is an rec
 
 |**Txoutput**|||
 |:-:|:-|:-|
+|blknum|int8||
+|txindex|int4||
+|oindex|int2||
 |creating_txhash|bytea(32)|Fk(Tx, (txhash)), NULL|
 |creating_deposit|bytea(32)|Fk(Eth_event, (hash)), NULL|
-|creating_tx_oindex|int2||
 |spending_txhash|bytea(32)|Fk(Tx, (txhash)), NULL|
 |spending_exit|bytea(32)|Fk(Eth_event, (hash)), NULL|
 |spending_tx_oindex|int2||
@@ -76,9 +78,8 @@ select t.*, i.*, o.*
 
 ### 3. get utxo position by owner address for spend
 ```
-select t.blknum, t.txindex, o.creating_tx_oindex
-  from TxOutput o
-  join Transaction t on o.creating_txhash = t.txhash  
+select o.blknum, o.txindex, o.oindex
+  from TxOutput o 
  where o.owner = @address
 ```
 
@@ -91,9 +92,9 @@ insert hash, deposit_blknum, deposit_txindex, event_type
   into EthEvent
 values (@hash, @blknum, 0, "deposit")
 
-insert creating_deposit, creating_tx_oindex, owner, amount, currency
+insert creating_deposit, blknum, txindex, oindex, owner, amount, currency
   into TxOutput 
-values (@hash, 0, ...)
+values (@hash, @blknum, 0, 0, ...)
 ```
 
 ### 6. spent utxo when exit finalized
@@ -114,7 +115,7 @@ select (t.txhash, t.txbytes)
   into @out
 from Transaction t
   join TxOutput o on o.creating_txhash = t.txhash
- where (t.blknum, t.txindex, o.creating_tx_oindex) = @position
+ where (t.blknum, t.txindex, o.oindex) = @position
  
 select t.txhash
   from Transaction t
@@ -129,7 +130,7 @@ select (t.txhash, t.txbytes, i.spending_tx_oindex)
   from from Transaction t
   join TxOutput i on i.spending_txhash = t.txhash 
   join TxOutput o on o.creating_txhash = t.txhash
- where (t.blknum, t.txindex, o.creating_tx_oindex) = @position
+ where (t.blknum, t.txindex, o.oindex) = @position
 ```
 
 ### 9. add checkpoint

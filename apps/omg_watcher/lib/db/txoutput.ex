@@ -29,12 +29,15 @@ defmodule OMG.Watcher.DB.TxOutput do
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
+  @primary_key false
   schema "txoutputs" do
+    field(:blknum, :integer, primary_key: true)
+    field(:txindex, :integer, primary_key: true)
+    field(:oindex, :integer, primary_key: true)
     field(:owner, :binary)
     field(:amount, OMG.Watcher.DB.Types.IntegerType)
     field(:currency, :binary)
     field(:proof, :binary)
-    field(:creating_tx_oindex, :integer)
     field(:spending_tx_oindex, :integer)
 
     belongs_to(:creating_transaction, DB.Transaction, foreign_key: :creating_txhash, references: :txhash, type: :binary)
@@ -78,29 +81,8 @@ defmodule OMG.Watcher.DB.TxOutput do
   def get_all, do: Repo.all(__MODULE__)
 
   @spec get_by_position(Utxo.Position.t()) :: map() | nil
-  def get_by_position(Utxo.position(blknum, _, _) = position) do
-    # first try to find it as tx's output then deposit's output otherwise
-    get_from_tx(position) || get_from_deposit(blknum)
-  end
-
-  @spec get_from_tx(Utxo.Position.t()) :: map() | nil
-  defp get_from_tx(position) do
-    tx = DB.Transaction.get_tx_output(position)
-
-    tx && tx.outputs |> hd()
-  end
-
-  @spec get_from_deposit(pos_integer()) :: map() | nil
-  defp get_from_deposit(blknum) do
-    query =
-      from(
-        evnt in DB.EthEvent,
-        where: evnt.blknum == ^blknum and evnt.txindex == 0 and evnt.event_type == ^:deposit,
-        preload: [:created_utxo]
-      )
-
-    deposit = Repo.one(query)
-    deposit && deposit.created_utxo
+  def get_by_position(Utxo.position(blknum, txindex, oindex)) do
+    Repo.get_by(__MODULE__, blknum: blknum, txindex: txindex, oindex: oindex)
   end
 
   def get_utxos(owner) do
@@ -131,39 +113,66 @@ defmodule OMG.Watcher.DB.TxOutput do
     end)
   end
 
-  def create_outputs(%Transaction{
-        cur12: cur12,
-        newowner1: newowner1,
-        amount1: amount1,
-        newowner2: newowner2,
-        amount2: amount2
-      }) do
-    # zero-value outputs are not inserted, but there have to be at least one
-    # TODO: can tx have no outputs?
-    [_output | _] = create_output(newowner1, cur12, amount1, 0) ++ create_output(newowner2, cur12, amount2, 1)
+  @spec spend_utxos([map()]) :: :ok
+  def spend_utxos(db_inputs) do
+    db_inputs
+    |> Enum.each(fn {utxo_pos, spending_oindex, spending_txhash} ->
+      if utxo = DB.TxOutput.get_by_position(utxo_pos) do
+        utxo
+        |> change(spending_tx_oindex: spending_oindex, spending_txhash: spending_txhash)
+        |> Repo.update!()
+      end
+    end)
   end
 
-  defp create_output(_owner, _currency, 0, _position), do: []
+  @spec create_outputs(pos_integer(), integer(), binary(), %Transaction{}) :: [map()]
+  def create_outputs(
+        blknum,
+        txindex,
+        txhash,
+        %Transaction{
+          cur12: cur12,
+          newowner1: newowner1,
+          amount1: amount1,
+          newowner2: newowner2,
+          amount2: amount2
+        }
+      ) do
+    # zero-value outputs are not inserted, tx can have no outputs at all
+    create_output(blknum, txindex, 0, txhash, newowner1, cur12, amount1) ++
+      create_output(blknum, txindex, 1, txhash, newowner2, cur12, amount2)
+  end
 
-  defp create_output(owner, currency, amount, index) when amount > 0,
-    do: [%__MODULE__{owner: owner, amount: amount, currency: currency, creating_tx_oindex: index}]
+  defp create_output(_blknum, _txindex, _txhash, _oindex, _owner, _currency, 0), do: []
 
-  def get_inputs(%Transaction{
-        blknum1: blknum1,
-        txindex1: txindex1,
-        oindex1: oindex1,
-        blknum2: blknum2,
-        txindex2: txindex2,
-        oindex2: oindex2
-      }) do
-    [
-      get_by_position(Utxo.position(blknum1, txindex1, oindex1)),
-      get_by_position(Utxo.position(blknum2, txindex2, oindex2))
+  defp create_output(blknum, txindex, oindex, txhash, owner, currency, amount) when amount > 0,
+    do: [
+      %{
+        blknum: blknum,
+        txindex: txindex,
+        oindex: oindex,
+        owner: owner,
+        amount: amount,
+        currency: currency,
+        creating_txhash: txhash
+      }
     ]
-    |> Enum.reject(&is_nil/1)
-    |> Enum.with_index()
-    |> Enum.map(fn {input, index} ->
-      change(input, spending_tx_oindex: index)
-    end)
+
+  @spec create_inputs(%Transaction{}, binary()) :: [tuple()]
+  def create_inputs(
+        %Transaction{
+          blknum1: blknum1,
+          txindex1: txindex1,
+          oindex1: oindex1,
+          blknum2: blknum2,
+          txindex2: txindex2,
+          oindex2: oindex2
+        },
+        spending_txhash
+      ) do
+    [
+      {Utxo.position(blknum1, txindex1, oindex1), 0, spending_txhash},
+      {Utxo.position(blknum2, txindex2, oindex2), 1, spending_txhash}
+    ]
   end
 end
