@@ -58,11 +58,6 @@ defmodule OMG.Watcher.BlockGetter do
       {state, blocks_numbers} = Core.get_numbers_of_blocks_to_download(state, next_child)
       :ok = run_block_download_task(blocks_numbers)
 
-      _ =
-        Logger.info(fn ->
-          "Child chain seen at block \##{inspect(next_child)}. Downloading blocks #{inspect(blocks_numbers)}"
-        end)
-
       :ok = OMG.API.State.close_block(block_rootchain_height)
 
       {state, synced_height, db_updates} = Core.apply_block(state, blknum, block_rootchain_height)
@@ -128,11 +123,6 @@ defmodule OMG.Watcher.BlockGetter do
     {:ok, next_child} = Eth.RootChain.get_current_child_block()
 
     {new_state, blocks_numbers} = Core.get_numbers_of_blocks_to_download(state, next_child)
-
-    _ =
-      Logger.info(fn ->
-        "Child chain seen at block \##{inspect(next_child)}. Downloading blocks #{inspect(blocks_numbers)}"
-      end)
 
     :ok = run_block_download_task(blocks_numbers)
 
