@@ -21,6 +21,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.API.Block
   alias OMG.API.EventerAPI
   alias OMG.API.RootChainCoordinator
+  alias OMG.API.State
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.DB
@@ -88,11 +89,14 @@ defmodule OMG.Watcher.BlockGetter do
 
   def init(_opts) do
     {:ok, deployment_height} = Eth.RootChain.get_root_deployment_height()
-    {current_block_height, state_at_block_beginning} = State.get_state()
-    synced_height = max(deployment_height, current_block_height)
+    {:ok, last_synced_height} = OMG.DB.last_block_getter_eth_height()
+    synced_height = max(deployment_height, last_synced_height)
 
-    {:ok, child_top_block_number} = OMG.DB.child_top_block_number()
-    child_block_interval = Application.get_env(:omg_eth, :child_block_interval)
+    {current_block_height, state_at_block_beginning} = State.get_status()
+    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
+
+    # State treats current as 'next' while top block number is a block that has been formed (they differ by the interval)
+    child_top_block_number = current_block_height - child_block_interval
 
     {:ok, block_submissions} = Eth.RootChain.get_block_submitted_events({synced_height, synced_height + 1000})
     exact_synced_height = Core.figure_out_exact_sync_height(block_submissions, synced_height, child_top_block_number)
