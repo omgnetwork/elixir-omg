@@ -78,7 +78,7 @@ defmodule OMG.Watcher.BlockGetter do
       {:noreply, state}
     else
       {:needs_stopping, reason} ->
-        _ = Logger.error(fn -> "Stopping #{inspect(__MODULE__)} becasue of #{inspect(reason)}" end)
+        _ = Logger.error(fn -> "Stopping #{inspect(__MODULE__)} because of #{inspect(reason)}" end)
         {:stop, :shutdown, state}
     end
   end
@@ -156,7 +156,7 @@ defmodule OMG.Watcher.BlockGetter do
       {:noreply, new_state}
     else
       {:needs_stopping, reason} ->
-        _ = Logger.error(fn -> "Stopping #{inspect(__MODULE__)} becasue of #{inspect(reason)}" end)
+        _ = Logger.error(fn -> "Stopping #{inspect(__MODULE__)} because of #{inspect(reason)}" end)
         {:stop, :shutdown, state}
     end
   end

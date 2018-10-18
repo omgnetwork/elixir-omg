@@ -37,12 +37,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     {state_after_chunk, block_numbers} = Core.get_numbers_of_blocks_to_download(state, 20_000)
     assert block_numbers == [1_000, 2_000, 3_000, 4_000]
 
-    state_after_proces_down =
+    state_after_process_down =
       state_after_chunk
       |> handle_downloaded_block(%Block{number: 4_000})
       |> handle_downloaded_block(%Block{number: 2_000})
 
-    assert {_, [5_000, 6_000]} = Core.get_numbers_of_blocks_to_download(state_after_proces_down, 20_000)
+    assert {_, [5_000, 6_000]} = Core.get_numbers_of_blocks_to_download(state_after_process_down, 20_000)
   end
 
   test "first block to download number is not zero" do
@@ -98,7 +98,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {[{%{transactions: [tx], zero_fee_requirements: fees}, 1}], _, _, _} =
              Core.get_blocks_to_apply(state, [%{blknum: block.number, eth_height: synced_height}], synced_height)
 
-    # check feasability of transactions from block to consume at the API.State
+    # check feasibility of transactions from block to consume at the API.State
     assert {:ok, tx_result, _} = API.State.Core.exec(tx, fees, state_alice_deposit)
 
     assert {:ok, []} = Core.validate_tx_executions([{:ok, tx_result}], block)
@@ -199,7 +199,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   test "the blknum is overriden by the requested one" do
     %Block{hash: hash} = block = Block.hashed_txs_at([], 1)
 
-    assert {:ok, %{number: 2 = _overriden_number}} = Core.validate_download_response({:ok, block}, hash, 2, 0, 0)
+    assert {:ok, %{number: 2 = _overridden_number}} = Core.validate_download_response({:ok, block}, hash, 2, 0, 0)
   end
 
   test "got_block function called once with PotentialWithholding doesn't return BlockWithholding event" do
@@ -361,7 +361,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     {_, ^next_synced_height, _, _} = Core.get_blocks_to_apply(state, [], next_synced_height)
   end
 
-  test "gets continous ranges of blocks to apply" do
+  test "gets continuous ranges of blocks to apply" do
 
     {state, [1_000, 2_000, 3_000, 4_000]} =
       init_state(synced_height: 0, opts: [maximum_number_of_pending_blocks: 5])

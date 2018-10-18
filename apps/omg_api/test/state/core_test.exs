@@ -596,8 +596,8 @@ defmodule OMG.API.State.CoreTest do
 
   @tag fixtures: [:state_empty]
   test "Getting current block height with one formed block", %{state_empty: state} do
-    {:ok, {_, _, _}, newstate} = state |> form_block_check(@child_block_interval)
-    {blknum, true} = Core.get_status(newstate)
+    {:ok, {_, _, _}, new_state} = state |> form_block_check(@child_block_interval)
+    {blknum, true} = Core.get_status(new_state)
 
     assert blknum == @child_block_interval + @child_block_interval
   end
