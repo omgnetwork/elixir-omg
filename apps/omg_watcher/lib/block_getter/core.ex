@@ -384,13 +384,15 @@ defmodule OMG.Watcher.BlockGetter.Core do
         {:ok, %{hash: returned_hash, transactions: transactions, number: number}},
         requested_hash,
         requested_number,
-        _time
+        timestamp
       ) do
     _ =
       Logger.info(fn ->
         short_hash = returned_hash |> Base.encode16() |> Binary.drop(-48)
 
-        "Validating block \##{inspect(requested_number)} #{short_hash}... with #{inspect(length(transactions))} txs"
+        "Validating block \##{inspect(requested_number)} #{short_hash} at #{timestamp}... with #{
+          inspect(length(transactions))
+        } txs"
       end)
 
     with transaction_decode_results <- Enum.map(transactions, &API.Core.recover_tx/1),
@@ -410,6 +412,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
              transactions: transactions,
              number: requested_number,
              hash: returned_hash,
+             timestamp: timestamp,
              zero_fee_requirements: zero_fee_requirements
            }},
         else: {:error, :incorrect_hash, requested_hash, requested_number}
