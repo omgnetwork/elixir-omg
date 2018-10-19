@@ -14,7 +14,7 @@ Trusted chain used by the Plasma construction to secure funds in the child chain
 
 #### Purpose
 
-Blockchain of transactions for our application. Continually submits block hashes to the root chain, as required by the Plasma construction.
+Blockchain of transactions for our application. Continually submits block hashes to the root chain, as required by the Plasma construction. Described in the [Tesuji design docs](tesuji_blockchain_design.md).
 
 ## Client Services
 
