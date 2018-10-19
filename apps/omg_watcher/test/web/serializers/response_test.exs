@@ -20,7 +20,6 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
 
   @cleaned_tx %{
     blknum: nil,
-    eth_height: nil,
     sent_at: nil,
     txbytes: nil,
     txhash: nil,

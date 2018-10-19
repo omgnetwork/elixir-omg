@@ -63,6 +63,8 @@ defmodule OMG.Watcher.DB.TxOutputTest do
           API.TestHelper.create_recovered([], @eth, [{alice, big_amount}])
         ],
         blknum: 11_000,
+        blkhash: <<?#::256>>,
+        timestamp: :os.system_time(:second),
         eth_height: 10
       })
 

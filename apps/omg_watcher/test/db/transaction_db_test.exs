@@ -113,6 +113,8 @@ defmodule OMG.Watcher.DB.TransactionTest do
         DB.Transaction.update_with(%{
           transactions: [recovered_tx],
           blknum: 11_000,
+          blkhash: <<?#::256>>,
+          timestamp: :os.system_time(:second),
           eth_height: 10
         })
 
