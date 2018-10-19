@@ -89,7 +89,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
              |> handle_downloaded_block(%Block{number: 2_000})
              |> Core.handle_downloaded_block({:ok, %Block{number: 2_000}})
 
-    assert {:error, :unexpected_blok} = state |> Core.handle_downloaded_block({:ok, %Block{number: 3_000}})
+    assert {:error, :unexpected_block} = state |> Core.handle_downloaded_block({:ok, %Block{number: 3_000}})
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
