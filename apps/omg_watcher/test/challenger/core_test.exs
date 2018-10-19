@@ -58,11 +58,11 @@ defmodule OMG.Watcher.Challenger.CoreTest do
       txindex: txindex,
       txhash: txhash,
       inputs: [
-        %DB.TxOutput{creating_tx_oindex: 0, spending_tx_oindex: 0}
+        %DB.TxOutput{oindex: 0, spending_tx_oindex: 0}
       ],
       outputs: [
-        %DB.TxOutput{creating_tx_oindex: 0, amount: amount1},
-        %DB.TxOutput{creating_tx_oindex: 1, amount: amount2}
+        %DB.TxOutput{oindex: 0, amount: amount1},
+        %DB.TxOutput{oindex: 1, amount: amount2}
       ],
       txbytes: Transaction.Signed.encode(signed)
     }

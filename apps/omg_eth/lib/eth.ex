@@ -29,9 +29,9 @@ defmodule OMG.Eth do
   """
 
   import OMG.Eth.Encoding
-  alias OMG.Eth.WaitFor
 
   @type address :: <<_::160>>
+  @type hash :: <<_::256>>
 
   def get_ethereum_height do
     case Ethereumex.HttpClient.eth_block_number() do
@@ -110,14 +110,8 @@ defmodule OMG.Eth do
       |> Map.merge(Map.new(opts))
       |> encode_all_integer_opts()
 
-    {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-
-    {:ok, %{"contractAddress" => contract_address, "status" => "0x1"}} =
-      txhash
-      |> from_hex()
-      |> WaitFor.eth_receipt()
-
-    {:ok, from_hex(txhash), from_hex(contract_address)}
+    with {:ok, txhash} <- Ethereumex.HttpClient.eth_send_transaction(txmap),
+         do: {:ok, from_hex(txhash)}
   end
 
   defp read_contracts_json!(path_project_root, contract_name) do

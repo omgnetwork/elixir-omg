@@ -53,6 +53,9 @@ defmodule OMG.Watcher.DB.EthEvent do
         txindex: 0,
         event_type: :deposit,
         created_utxo: %DB.TxOutput{
+          blknum: blknum,
+          txindex: 0,
+          oindex: 0,
           owner: owner,
           currency: currency,
           amount: amount

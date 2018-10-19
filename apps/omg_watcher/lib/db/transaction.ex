@@ -17,6 +17,7 @@ defmodule OMG.Watcher.DB.Transaction do
   Ecto Schema representing DB Transaction.
   """
   use Ecto.Schema
+  use OMG.API.LoggerExt
 
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
@@ -60,50 +61,71 @@ defmodule OMG.Watcher.DB.Transaction do
     Repo.one(from(__MODULE__, where: [blknum: ^blknum, txindex: ^txindex]))
   end
 
-  @spec get_tx_output(Utxo.Position.t()) :: map() | nil
-  def get_tx_output(Utxo.position(blknum, txindex, oindex)) do
-    query =
-      from(
-        t in __MODULE__,
-        join: o in assoc(t, :outputs),
-        where: t.blknum == ^blknum and t.txindex == ^txindex and o.creating_tx_oindex == ^oindex,
-        preload: [outputs: o]
-      )
-
-    Repo.one(query)
-  end
-
   @doc """
   Inserts complete and sorted enumberable of transactions for particular block number
   """
-  @spec update_with(mined_block()) :: [{:ok, __MODULE__}]
+  @spec update_with(mined_block()) :: {:ok, any()}
   def update_with(%{transactions: transactions, blknum: block_number, eth_height: eth_height}) do
-    transactions
-    |> Stream.with_index()
-    |> Enum.map(fn {tx, txindex} -> {:ok, _} = insert(tx, block_number, txindex, eth_height) end)
+    [db_txs, db_outputs, db_inputs] =
+      transactions
+      |> Stream.with_index()
+      |> Enum.reduce([[], [], []], fn {tx, txindex}, acc -> process(tx, block_number, txindex, eth_height, acc) end)
+
+    {insert_duration, {:ok, _} = result} =
+      :timer.tc(
+        &Repo.transaction/1,
+        [
+          fn ->
+            _ = Repo.insert_all_chunked(__MODULE__, db_txs)
+            _ = Repo.insert_all_chunked(DB.TxOutput, db_outputs)
+
+            # inputs are set as spent after outputs are inserted to support spending utxo from the same block
+            DB.TxOutput.spend_utxos(db_inputs)
+          end
+        ]
+      )
+
+    _ =
+      Logger.info(fn ->
+        "Block ##{block_number} persisted in DB done in #{insert_duration / 1000}ms"
+      end)
+
+    result
   end
 
-  @spec insert(Transaction.Recovered.t(), pos_integer(), integer(), pos_integer()) :: {:ok, __MODULE__}
-  def insert(
-        %Transaction.Recovered{
-          signed_tx_hash: signed_tx_hash,
-          signed_tx: %Transaction.Signed{raw_tx: raw_tx = %Transaction{}} = signed_tx
-        },
-        block_number,
-        txindex,
-        eth_height
-      ) do
-    {:ok, _} =
-      %__MODULE__{
-        txhash: signed_tx_hash,
-        txbytes: signed_tx.signed_tx_bytes,
-        blknum: block_number,
-        txindex: txindex,
-        eth_height: eth_height,
-        inputs: DB.TxOutput.get_inputs(raw_tx),
-        outputs: DB.TxOutput.create_outputs(raw_tx)
-      }
-      |> Repo.insert()
+  @spec process(Transaction.Recovered.t(), pos_integer(), integer(), pos_integer(), list()) :: [list()]
+  defp process(
+         %Transaction.Recovered{
+           signed_tx_hash: signed_tx_hash,
+           signed_tx: %Transaction.Signed{signed_tx_bytes: signed_tx_bytes, raw_tx: raw_tx = %Transaction{}}
+         },
+         block_number,
+         txindex,
+         eth_height,
+         [tx_list, output_list, input_list]
+       ) do
+    [
+      [create(block_number, txindex, signed_tx_hash, eth_height, signed_tx_bytes) | tx_list],
+      DB.TxOutput.create_outputs(block_number, txindex, signed_tx_hash, raw_tx) ++ output_list,
+      DB.TxOutput.create_inputs(raw_tx, signed_tx_hash) ++ input_list
+    ]
+  end
+
+  @spec create(pos_integer(), integer(), binary(), pos_integer(), binary()) :: map()
+  defp create(
+         block_number,
+         txindex,
+         txhash,
+         eth_height,
+         txbytes
+       ) do
+    %{
+      txhash: txhash,
+      txbytes: txbytes,
+      blknum: block_number,
+      txindex: txindex,
+      eth_height: eth_height
+    }
   end
 
   @spec get_transaction_challenging_utxo(Utxo.Position.t()) :: {:ok, %__MODULE__{}} | {:error, :utxo_not_spent}
