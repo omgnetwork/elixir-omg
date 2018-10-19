@@ -72,10 +72,10 @@ defmodule OMG.API.RootChainCoordinator.Core do
 
   defp allowed?(allowed_services, service_name), do: MapSet.member?(allowed_services, service_name)
 
-  defp update_service_synced_height(state, pid, service_current_sync_height, service_name) do
-    service = %Service{synced_height: service_current_sync_height, pid: pid}
+  defp update_service_synced_height(state, pid, service_reported_sync_height, service_name) do
+    service = %Service{synced_height: service_reported_sync_height, pid: pid}
 
-    if valid_sync_height_update?(state, service, service_current_sync_height, service_name) do
+    if valid_sync_height_update?(state, service, service_reported_sync_height, service_name) do
       services = Map.put(state.services, service_name, service)
       state = %{state | services: services}
       {:ok, state}
@@ -84,9 +84,9 @@ defmodule OMG.API.RootChainCoordinator.Core do
     end
   end
 
-  defp valid_sync_height_update?(state, synced_service, service_current_sync_height, service_name) do
+  defp valid_sync_height_update?(state, synced_service, service_reported_sync_height, service_name) do
     service = Map.get(state.services, service_name, synced_service)
-    service.synced_height <= service_current_sync_height and state.root_chain_height >= service_current_sync_height
+    service.synced_height <= service_reported_sync_height and state.root_chain_height >= service_reported_sync_height
   end
 
   defp get_services_to_sync(state, previous_synced_height) do
