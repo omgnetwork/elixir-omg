@@ -38,14 +38,13 @@ defmodule OMG.Watcher.DB.Transaction do
   @derive {Phoenix.Param, key: :txhash}
   @derive {Poison.Encoder, except: [:__meta__]}
   schema "transactions" do
-    field(:blknum, :integer)
     field(:txindex, :integer)
     field(:txbytes, :binary)
     field(:sent_at, :utc_datetime)
-    field(:eth_height, :integer)
 
     has_many(:inputs, DB.TxOutput, foreign_key: :spending_txhash)
     has_many(:outputs, DB.TxOutput, foreign_key: :creating_txhash)
+    belongs_to(:block, DB.Block, foreign_key: :blknum, references: :blknum, type: :integer)
   end
 
   def get(hash) do
