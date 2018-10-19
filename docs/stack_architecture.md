@@ -1,4 +1,4 @@
-# OmiseGO Stack Architecture
+# OmiseGO Client Architecture
 
 This describes the client services stack that communicates with the child chain and root chain to secure the entire Plasma construction and ease application development. An application provider will run these client services on their own or use hosted versions.
 
