@@ -1,10 +1,28 @@
-## OmiseGO Application Architecture
+# OmiseGO Stack Architecture
 
-### Watcher Service
+This describes the client services stack that communicates with the child chain and root chain to secure the entire Plasma construction and ease application development. An application provider will run these services on their own or use a hosted version of these services.
+
+## Foundations
+
+### Root chain
 
 #### Purpose
 
-The watcher first and foremost plays a critical security role in the system.
+Trusted chain used by the Plasma construction to secure funds in the child chain. In our case, this is Ethereum.
+
+### Child chain
+
+#### Purpose
+
+Blockchain of transactions for our application. Continually submits block hashes to the root chain, as required by the Plasma construction.
+
+## Client Services
+
+### Watcher
+
+#### Purpose
+
+The watcher first and foremost plays a critical security role in the system. The watcher monitors the child chain and root chain (Ethereum) for faulty activity.
 
 #### Design principles
 
@@ -38,8 +56,8 @@ The watcher first and foremost plays a critical security role in the system.
   - New block
 - API
   - Submit transaction
-  - Start exit
-  - Challenge exit
+  - Get start exit data
+  - Get challenge exit data
   - ...
 
 ### Informational API Service
@@ -59,15 +77,20 @@ Non-critical convenience API proxy and provide data about the chain.
 - Events
   - ...
 - API
-  - Getting all blocks
-  - Getting a block and its transactions
-  - Getting all transactions (paginated, per address, per list of addresses)
-  - Get specific transaction (by id)
-  - Getting UTXOs (paginated, per address, per list of addresses?)
-  - Get balance by address
-  - Build transaction
-  - Submit signed transaction
-  - Get specific transaction (by correlation field)
+  - Informational
+    - Getting all blocks
+    - Getting a block and its transactions
+    - Getting all transactions (paginated, per address, per list of addresses)
+    - Get specific transaction (by id)
+    - Getting UTXOs (paginated, per address, per list of addresses?)
+    - Get balance by address
+    - Get specific transaction (by correlation field)
+  - Child Chain
+    - Build transaction
+    - Submit signed transaction
+  - Root chain
+    - Start exit
+    - Challenge exit
 - UTXO management?
 
 
