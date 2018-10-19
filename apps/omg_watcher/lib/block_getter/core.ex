@@ -22,8 +22,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   use OMG.API.LoggerExt
 
-  @default_maximum_number_of_unapplied_blocks 50
-
   defmodule PotentialWithholding do
     @moduledoc false
 
@@ -39,10 +37,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
     @moduledoc false
 
     defstruct [
-      :maximum_number_of_pending_blocks,
-      :maximum_block_withholding_time_ms,
-      :maximum_number_of_unapplied_blocks,
-      :block_interval
+      :block_interval,
+      maximum_number_of_pending_blocks: 10,
+      maximum_block_withholding_time_ms: 0,
+      maximum_number_of_unapplied_blocks: 50,
     ]
 
     @type t :: %__MODULE__{
@@ -101,14 +99,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
         synced_height,
         opts \\ []
       ) do
-    config = %Config{
-      maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 10),
-      maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0),
-      maximum_number_of_unapplied_blocks:
-        Keyword.get(opts, :maximum_number_of_unapplied_blocks, @default_maximum_number_of_unapplied_blocks),
-      block_interval: child_block_interval
-    }
-
     %__MODULE__{
       height_sync_blknums: MapSet.new(),
       synced_height: synced_height,
@@ -117,7 +107,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
       number_of_blocks_being_downloaded: 0,
       unapplied_blocks: %{},
       potential_block_withholdings: %{},
-      config: config
+      config: struct(Config,Keyword.put(opts, :block_interval, child_block_interval))
     }
   end
 
@@ -285,33 +275,26 @@ defmodule OMG.Watcher.BlockGetter.Core do
            [] | list(Event.InvalidBlock.t()) | list(Event.BlockWithholding.t())}
           | {:error, :duplicate | :unexpected_blok}
   def handle_downloaded_block(
-        %__MODULE__{number_of_blocks_being_downloaded: number_of_blocks_being_downloaded} = state,
-        response
-      ) do
-    state = %{state | number_of_blocks_being_downloaded: number_of_blocks_being_downloaded - 1}
-    validate_downloaded_block(state, response)
-  end
-
-  defp validate_downloaded_block(
          %__MODULE__{
            unapplied_blocks: unapplied_blocks,
            num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded,
            last_applied_block: last_applied_block,
-           potential_block_withholdings: potential_block_withholdings
+           potential_block_withholdings: potential_block_withholdings,
+           number_of_blocks_being_downloaded: number_of_blocks_being_downloaded
          } = state,
          {:ok, %{number: number} = block}
        ) do
     with :ok <- if(Map.has_key?(unapplied_blocks, number), do: :duplicate, else: :ok),
          :ok <-
-           (if last_applied_block < number and number <= num_of_heighest_block_being_downloaded do
-              :ok
-            else
-              :unexpected_blok
-            end) do
+           if(last_applied_block < number and number <= num_of_heighest_block_being_downloaded,
+             do: :ok,
+             else: :unexpected_blok
+           ) do
       state = %{
         state
         | unapplied_blocks: Map.put(unapplied_blocks, number, block),
-          potential_block_withholdings: Map.delete(potential_block_withholdings, number)
+          potential_block_withholdings: Map.delete(potential_block_withholdings, number),
+          number_of_blocks_being_downloaded: number_of_blocks_being_downloaded - 1
       }
 
       {:ok, state, []}
@@ -320,7 +303,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     end
   end
 
-  defp validate_downloaded_block(%__MODULE__{} = state, {:error, error_type, hash, number}) do
+  def handle_downloaded_block(%__MODULE__{} = state, {:error, error_type, hash, number}) do
     {
       {:needs_stopping, error_type},
       state,
@@ -334,7 +317,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     }
   end
 
-  defp validate_downloaded_block(
+  def handle_downloaded_block(
          %__MODULE__{
            potential_block_withholdings: potential_block_withholdings,
            config: config
