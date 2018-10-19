@@ -36,7 +36,7 @@ defmodule OMG.Watcher.Web.Controller.Account do
 
   def swagger_definitions do
     %{
-      Currency_balance:
+      CurrencyBalance:
         swagger_schema do
           title("Balance of the currency")
 
@@ -54,7 +54,7 @@ defmodule OMG.Watcher.Web.Controller.Account do
         swagger_schema do
           title("Array of currency balances")
           type(:array)
-          items(Schema.ref(:Currency_balance))
+          items(Schema.ref(:CurrencyBalance))
         end
     }
   end
