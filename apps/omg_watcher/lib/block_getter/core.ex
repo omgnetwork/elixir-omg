@@ -102,7 +102,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         opts \\ []
       ) do
     config = %Config{
-      maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 10),
+      maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 3),
       maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0),
       maximum_number_of_unapplied_blocks:
         Keyword.get(opts, :maximum_number_of_unapplied_blocks, @default_maximum_number_of_unapplied_blocks),
@@ -256,6 +256,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
     [num_of_heighest_block_being_downloaded | _] =
       ([num_of_heighest_block_being_downloaded] ++ blocks_numbers) |> Enum.sort(&(&1 > &2))
 
+    _ = log_downloading_blocks(next_child, blocks_numbers)
+
     {
       %{
         state
@@ -264,6 +266,14 @@ defmodule OMG.Watcher.BlockGetter.Core do
       },
       blocks_numbers
     }
+  end
+
+  defp log_downloading_blocks(_next_child, []), do: :ok
+
+  defp log_downloading_blocks(next_child, blocks_numbers) do
+    Logger.info(fn ->
+      "Child chain seen at block \##{inspect(next_child)}. Downloading blocks #{inspect(blocks_numbers)}"
+    end)
   end
 
   @doc """
