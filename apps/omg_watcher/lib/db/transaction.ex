@@ -64,7 +64,7 @@ defmodule OMG.Watcher.DB.Transaction do
   @doc """
   Inserts complete and sorted enumberable of transactions for particular block number
   """
-  @spec update_with(mined_block()) :: {:ok, __MODULE__}
+  @spec update_with(mined_block()) :: {:ok, any()}
   def update_with(%{transactions: transactions, blknum: block_number, eth_height: eth_height}) do
     [db_txs, db_outputs, db_inputs] =
       transactions
@@ -76,8 +76,8 @@ defmodule OMG.Watcher.DB.Transaction do
         &Repo.transaction/1,
         [
           fn ->
-            _ = Repo.insert_all(__MODULE__, db_txs)
-            _ = Repo.insert_all(DB.TxOutput, db_outputs)
+            _ = Repo.insert_all_chunked(__MODULE__, db_txs)
+            _ = Repo.insert_all_chunked(DB.TxOutput, db_outputs)
 
             # inputs are set as spent after outputs are inserted to support spending utxo from the same block
             DB.TxOutput.spend_utxos(db_inputs)
