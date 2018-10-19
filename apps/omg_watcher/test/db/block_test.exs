@@ -19,25 +19,23 @@ defmodule OMG.Watcher.DB.BlockTest do
 
   alias OMG.Watcher.DB
 
-  describe "Block table" do
-    @tag fixtures: [:initial_blocks]
-    test "initial data preserve blocks in DB" do
-      assert [
-               %DB.Block{blknum: 1000, eth_height: 1, hash: "#1000", timestamp: _ts},
-               %DB.Block{blknum: 2000, eth_height: 1, hash: "#2000", timestamp: _ts},
-               %DB.Block{blknum: 3000, eth_height: 1, hash: "#3000", timestamp: _ts}
-             ] = DB.Block.get_all()
-    end
+  @tag fixtures: [:initial_blocks]
+  test "initial data preserve blocks in DB" do
+    assert [
+              %DB.Block{blknum: 1000, eth_height: 1, hash: "#1000"},
+              %DB.Block{blknum: 2000, eth_height: 1, hash: "#2000"},
+              %DB.Block{blknum: 3000, eth_height: 1, hash: "#3000"}
+            ] = DB.Block.get_all
+  end
 
-    @tag fixtures: [:initial_blocks]
-    test "transaction belongs to block can retrieve it by association" do
-      assert %DB.Transaction{
-               blknum: 3000,
-               txindex: 1,
-               block: %DB.Block{blknum: 3000}
-             } =
-               DB.Transaction.get_by_position(3000, 1)
-               |> DB.Repo.preload(:block)
-    end
+  @tag fixtures: [:initial_blocks]
+  test "transaction belongs to block can retrieve it by association" do
+    assert %DB.Transaction{
+              blknum: 3000,
+              txindex: 1,
+              block: %DB.Block{blknum: 3000}
+            } =
+              DB.Transaction.get_by_position(3000, 1)
+              |> DB.Repo.preload(:block)
   end
 end
