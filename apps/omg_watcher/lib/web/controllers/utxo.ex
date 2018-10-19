@@ -132,7 +132,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
     response(200, "OK", Schema.ref(:Utxos))
   end
 
-  swagger_path :get_exit_data do
+  swagger_path :get_utxo_exit do
     get("/utxo/{utxo_pos}/exit_data")
     summary("Responds with exit for a given utxo")
 
