@@ -61,7 +61,7 @@ defmodule OMG.API.EthereumEventListener.Core do
         next_event_height_lower_bound: next_event_height_upper_bound + 1
     }
 
-    db_updates = [{:put, update_key, next_event_height_upper_bound}]
+    db_updates = [{:put, update_key, next_sync_height}]
 
     {:get_events, {next_event_height_lower_bound, next_event_height_upper_bound}, new_state, db_updates}
   end
