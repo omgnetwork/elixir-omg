@@ -23,11 +23,21 @@ defmodule OMG.API.EthereumEventListener do
   alias OMG.API.RootChainCoordinator
   use OMG.API.LoggerExt
 
+  @type config() :: %{
+    block_finality_margin: non_neg_integer,
+    synced_height_update_key: atom,
+    service_name: atom,
+    get_events_callback: (non_neg_integer, non_neg_integer -> {:ok, [any]}),
+    process_events_callback: ([any] -> :ok),
+    get_last_synced_height_callback: (-> {:ok, non_neg_integer})
+  }
+
   ### Client
 
-  @spec start_link(map()) :: GenServer.on_start()
+  @spec start_link(config()) :: GenServer.on_start()
   def start_link(config) do
-    GenServer.start_link(__MODULE__, config)
+    %{service_name: name} = config
+    GenServer.start_link(__MODULE__, config, name: name)
   end
 
   ### Server
