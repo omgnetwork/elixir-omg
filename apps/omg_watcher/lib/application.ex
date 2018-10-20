@@ -29,7 +29,8 @@ defmodule OMG.Watcher.Application do
       supervisor(OMG.Watcher.DB.Repo, []),
       # Start workers
       {OMG.Watcher.Eventer, []},
-      {OMG.API.RootChainCoordinator, MapSet.new([:depositer, :fast_validator, :slow_validator, :block_getter])},
+      {OMG.API.RootChainCoordinator,
+       MapSet.new([:depositer, :fast_validator, :slow_validator, OMG.Watcher.BlockGetter])},
       worker(
         OMG.API.EthereumEventListener,
         [

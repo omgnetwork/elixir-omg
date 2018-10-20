@@ -72,7 +72,7 @@ defmodule OMG.Watcher.BlockGetter do
       :ok = OMG.API.State.close_block(block_rootchain_height)
 
       {state, synced_height, db_updates} = Core.apply_block(state, blknum, block_rootchain_height)
-      :ok = RootChainCoordinator.check_in(synced_height, :block_getter)
+      :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
       :ok = OMG.DB.multi_update(db_updates)
 
       {:noreply, state}
@@ -102,7 +102,7 @@ defmodule OMG.Watcher.BlockGetter do
     {:ok, block_submissions} = Eth.RootChain.get_block_submitted_events({synced_height, synced_height + 1000})
     exact_synced_height = Core.figure_out_exact_sync_height(block_submissions, synced_height, child_top_block_number)
 
-    :ok = RootChainCoordinator.check_in(exact_synced_height, :block_getter)
+    :ok = RootChainCoordinator.check_in(exact_synced_height, __MODULE__)
 
     height_sync_interval = Application.get_env(:omg_watcher, :block_getter_height_sync_interval_ms)
     {:ok, _} = schedule_sync_height(height_sync_interval)
@@ -176,7 +176,7 @@ defmodule OMG.Watcher.BlockGetter do
       end)
 
       :ok = OMG.DB.multi_update(db_updates)
-      :ok = RootChainCoordinator.check_in(synced_height, :block_getter)
+      :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
       {:noreply, state}
     else
       :nosync -> {:noreply, state}
