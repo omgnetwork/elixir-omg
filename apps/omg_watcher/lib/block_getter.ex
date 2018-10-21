@@ -95,7 +95,8 @@ defmodule OMG.Watcher.BlockGetter do
     {current_block_height, state_at_block_beginning} = State.get_status()
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
-    # State treats current as 'next' while top block number is a block that has been formed (they differ by the interval)
+    # State treats current as the next block to be executed or a block that is being executed
+    # while top block number is a block that has been formed (they differ by the interval)
     child_top_block_number = current_block_height - child_block_interval
 
     {:ok, block_submissions} = Eth.RootChain.get_block_submitted_events({synced_height, synced_height + 1000})

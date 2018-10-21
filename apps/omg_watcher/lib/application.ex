@@ -18,6 +18,25 @@ defmodule OMG.Watcher.Application do
   use OMG.API.LoggerExt
 
   def start(_type, _args) do
+
+    opts = [strategy: :one_for_one, name: OMG.Watcher.Supervisor]
+    children = [
+      %{
+        id: :omg_watcher_supervisor_unlinked,
+        start: {__MODULE__, :start_unlinked_children, []},
+        type: :supervisor
+      },
+      %{
+        id: :omg_watcher_supervisor_linked,
+        start: {__MODULE__, :start_linked_children, []},
+        type: :supervisor
+      }
+    ]
+
+    Supervisor.start_link(children, opts)
+  end
+
+  def start_unlinked_children do
     import Supervisor.Spec
 
     # Define workers and child supervisors to be supervised
@@ -28,7 +47,6 @@ defmodule OMG.Watcher.Application do
       # Start the Ecto repository
       supervisor(OMG.Watcher.DB.Repo, []),
       # Start workers
-      {OMG.API.State, []},
       {OMG.Watcher.Eventer, []},
       {OMG.API.RootChainCoordinator, MapSet.new([:depositer, :fast_validator, :slow_validator, :block_getter])},
       worker(
@@ -74,13 +92,6 @@ defmodule OMG.Watcher.Application do
         ],
         id: :slow_validator
       ),
-      worker(
-        OMG.Watcher.BlockGetter,
-        [[]],
-        restart: :transient,
-        id: :block_getter
-      ),
-
       # Start the endpoint when the application starts
       supervisor(OMG.Watcher.Web.Endpoint, [])
     ]
@@ -89,8 +100,27 @@ defmodule OMG.Watcher.Application do
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: OMG.Watcher.Supervisor]
+    opts = [strategy: :one_for_one, name: OMG.Watcher.Supervisor.Unlinked]
     Supervisor.start_link(children, opts)
+  end
+
+  def start_linked_children do
+
+    # State and Block Getter are linked, because they must restore their state to the last stored state
+    # If Block Getter fails, it starts from the last checkpoint while State might have had executed some transactions
+    # such a situation will cause error when trying to execute already executed transaction
+    children = [
+      {OMG.API.State, []},
+      %{
+        id: :block_getter,
+        start: {OMG.Watcher.BlockGetter, :start_link, [[]]},
+        restart: :transient,
+      }
+    ]
+
+    opts = [strategy: :one_for_all, name: OMG.Watcher.Supervisor.Linked]
+    Supervisor.start_link(children, opts)
+
   end
 
   # Tell Phoenix to update the endpoint configuration
