@@ -59,6 +59,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     :last_applied_block,
     :num_of_heighest_block_being_downloaded,
     :number_of_blocks_being_downloaded,
+    :last_block_persisted_from_prev_run,
     :unapplied_blocks,
     :potential_block_withholdings,
     :config
@@ -70,6 +71,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           last_applied_block: non_neg_integer,
           num_of_heighest_block_being_downloaded: non_neg_integer,
           number_of_blocks_being_downloaded: non_neg_integer,
+          last_block_persisted_from_prev_run: non_neg_integer,
           unapplied_blocks: %{
             non_neg_integer => OMG.API.Block.t()
           },
@@ -94,11 +96,12 @@ defmodule OMG.Watcher.BlockGetter.Core do
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
     - `:maximum_block_withholding_time_ms` - how much time should we wait after the first failed pull until we call it a block withholding byzantine condition of the child chain (0 ms)
   """
-  @spec init(non_neg_integer, pos_integer, non_neg_integer) :: %__MODULE__{}
+  @spec init(non_neg_integer, pos_integer, non_neg_integer, non_neg_integer) :: %__MODULE__{}
   def init(
         block_number,
         child_block_interval,
         synced_height,
+        last_persisted_block,
         opts \\ []
       ) do
     config = %Config{
@@ -115,6 +118,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
       last_applied_block: block_number,
       num_of_heighest_block_being_downloaded: block_number,
       number_of_blocks_being_downloaded: 0,
+      last_block_persisted_from_prev_run: last_persisted_block,
       unapplied_blocks: %{},
       potential_block_withholdings: %{},
       config: config
@@ -477,5 +481,27 @@ defmodule OMG.Watcher.BlockGetter.Core do
       nil -> synced_height
       %{eth_height: exact_height} -> exact_height
     end
+  end
+
+  @doc """
+  Ensures the same block will not be send into WatcherDB again.
+
+  Statefull validity keeps track of consumed blocks in separate than WatcherDB database. These databases
+  can get out of sync, and then we don't want to send already consumed blocks which could not succeed due
+  key constraints on WatcherDB.
+  """
+  @spec ensure_block_imported_once(map(), pos_integer, non_neg_integer) :: [OMG.Watcher.DB.Transaction.mined_block()]
+  def ensure_block_imported_once(block, eth_height, last_persisted_block), do: []
+
+  # The purpose of this function is to ensure contract between block_getter and db code
+  @spec to_mined_block(map(), pos_integer()) :: OMG.Watcher.DB.Transaction.mined_block()
+  defp to_mined_block(block, eth_height) do
+    %{
+      eth_height: eth_height,
+      blknum: block.number,
+      blkhash: block.hash,
+      timestamp: block.timestamp,
+      transactions: block.transactions
+    }
   end
 end

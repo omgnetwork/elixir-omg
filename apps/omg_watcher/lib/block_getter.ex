@@ -45,13 +45,13 @@ defmodule OMG.Watcher.BlockGetter do
 
     {continue, events} = Core.validate_tx_executions(tx_exec_results, block)
 
+    blocks_to_persist =
+      Core.ensure_block_imported_once(block, block_rootchain_height, state.last_block_persisted_from_prev_run)
+
     EventerAPI.emit_events(events)
 
     with :ok <- continue do
-      _ =
-        block
-        |> to_mined_block(block_rootchain_height)
-        |> DB.Transaction.update_with()
+      _ = Enum.map(blocks_to_persist, &DB.Transaction.update_with/1)
 
       _ = Logger.info(fn -> "Applied block \##{inspect(blknum)}" end)
       {:ok, next_child} = Eth.RootChain.get_current_child_block()
@@ -86,6 +86,7 @@ defmodule OMG.Watcher.BlockGetter do
 
     {:ok, block_submissions} = Eth.RootChain.get_block_submitted_events({synced_height, synced_height + 1000})
     exact_synced_height = Core.figure_out_exact_sync_height(block_submissions, synced_height, child_top_block_number)
+    last_persisted_block = DB.Block.get_max_blknum()
 
     :ok = RootChainCoordinator.check_in(exact_synced_height, :block_getter)
 
@@ -102,6 +103,7 @@ defmodule OMG.Watcher.BlockGetter do
         child_top_block_number,
         child_block_interval,
         exact_synced_height,
+        last_persisted_block,
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
         maximum_number_of_unapplied_blocks: maximum_number_of_unapplied_blocks,
         # TODO: not elegant, but this should limit the number of heavy-lifting workers and chance to starve the rest
@@ -165,18 +167,6 @@ defmodule OMG.Watcher.BlockGetter do
     else
       :nosync -> {:noreply, state}
     end
-  end
-
-  # The purpose of this function is to ensure contract between shell and db code
-  @spec to_mined_block(map(), pos_integer()) :: DB.Transaction.mined_block()
-  defp to_mined_block(block, eth_height) do
-    %{
-      eth_height: eth_height,
-      blknum: block.number,
-      blkhash: block.hash,
-      timestamp: block.timestamp,
-      transactions: block.transactions
-    }
   end
 
   defp run_block_download_task(blocks_numbers) do

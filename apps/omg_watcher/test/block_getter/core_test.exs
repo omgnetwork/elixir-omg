@@ -35,7 +35,10 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     start_block_number = 0
     interval = 1_000
     synced_height = 1
-    state = Core.init(start_block_number, interval, synced_height, maximum_number_of_pending_blocks: 4)
+    last_persisted_block = nil
+
+    state =
+      Core.init(start_block_number, interval, synced_height, last_persisted_block, maximum_number_of_pending_blocks: 4)
 
     {state_after_chunk, block_numbers} = Core.get_numbers_of_blocks_to_download(state, 20_000)
     assert block_numbers == [1_000, 2_000, 3_000, 4_000]
@@ -52,7 +55,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     start_block_number = 7_000
     interval = 100
     synced_height = 1
-    state = Core.init(start_block_number, interval, synced_height, maximum_number_of_pending_blocks: 4)
+    last_persisted_block = nil
+
+    state =
+      Core.init(start_block_number, interval, synced_height, last_persisted_block, maximum_number_of_pending_blocks: 4)
+
     assert {state, [7_100, 7_200, 7_300, 7_400]} = Core.get_numbers_of_blocks_to_download(state, 20_000)
 
     assert {:ok, _, []} =
@@ -65,10 +72,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     start_block_number = 0
     interval = 1_000
     synced_height = 1
+    last_persisted_block = nil
 
     {state, [1_000, 2_000, 3_000]} =
       start_block_number
-      |> Core.init(interval, synced_height, maximum_number_of_pending_blocks: 5)
+      |> Core.init(interval, synced_height, last_persisted_block, maximum_number_of_pending_blocks: 5)
       |> Core.get_numbers_of_blocks_to_download(4_000)
 
     assert {^state, []} = Core.get_numbers_of_blocks_to_download(state, 2_000)
@@ -78,10 +86,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   test "downloaded duplicated and unexpected block" do
     block_height = 0
     interval = 1_000
+    last_persisted_block = nil
 
     {state, [1_000, 2_000]} =
       block_height
-      |> Core.init(interval, maximum_number_of_pending_blocks: 5)
+      |> Core.init(interval, last_persisted_block, maximum_number_of_pending_blocks: 5)
       |> Core.get_numbers_of_blocks_to_download(3_000)
 
     assert {:error, :duplicate} =
@@ -145,10 +154,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     block_height = 25_000
     interval = 1_000
     synced_height = 1
+    last_persisted_block = nil
 
     {state, _} =
       block_height
-      |> Core.init(interval, synced_height)
+      |> Core.init(interval, synced_height, last_persisted_block)
       |> Core.get_numbers_of_blocks_to_download(block_height + 2 * interval)
 
     assert {:ok, decoded_block} =
@@ -162,9 +172,10 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     block_height = 0
     interval = 1_000
     synced_height = 1
+    last_persisted_block = nil
     matching_bad_returned_hash = <<12::256>>
 
-    state = Core.init(block_height, interval, synced_height)
+    state = Core.init(block_height, interval, synced_height, last_persisted_block)
 
     block = %Block{
       Block.hashed_txs_at(
@@ -226,9 +237,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     block_height = 0
     synced_height = 1
     interval = 1_000
+    last_persisted_block = nil
 
     {state, [1_000, 2_000]} =
-      block_height |> Core.init(interval, synced_height) |> Core.get_numbers_of_blocks_to_download(3_000)
+      block_height
+      |> Core.init(interval, synced_height, last_persisted_block)
+      |> Core.get_numbers_of_blocks_to_download(3_000)
 
     potential_withholding = Core.validate_download_response({:error, :error_reason}, <<>>, 2_000, 0)
 
@@ -246,6 +260,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
           block_height,
           interval,
           synced_height,
+          # <- ignore: last persisted block number
+          nil,
           maximum_number_of_pending_blocks: 5,
           maximum_block_withholding_time_ms: 0
         ),
@@ -272,6 +288,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
           block_height,
           interval,
           synced_height,
+          # <- ignore: last persisted block number
+          nil,
           maximum_number_of_pending_blocks: 4,
           maximum_block_withholding_time_ms: 0
         ),
@@ -297,10 +315,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     block_height = 0
     interval = 1_000
     synced_height = 1
+    last_persisted_block = nil
 
     {state, [1_000, 2_000, 3_000]} =
       Core.get_numbers_of_blocks_to_download(
-        Core.init(block_height, interval, synced_height, maximum_number_of_pending_blocks: 3),
+        Core.init(block_height, interval, synced_height, last_persisted_block, maximum_number_of_pending_blocks: 3),
         20_000
       )
 
@@ -326,6 +345,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
         block_height,
         interval,
         synced_height,
+        # <- ignore: last persisted block number
+        nil,
         maximum_number_of_pending_blocks: 4,
         maximum_block_withholding_time_ms: 1000
       )
@@ -368,6 +389,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
           block_height,
           interval,
           synced_height,
+          # <- ignore: last persisted block number
+          nil,
           maximum_number_of_pending_blocks: 2,
           maximum_block_withholding_time_ms: 10_000
         ),
@@ -447,7 +470,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     {state, [1_000, 2_000, 3_000, 4_000]} =
       0
-      |> Core.init(interval, 0, maximum_number_of_pending_blocks: 5)
+      |> Core.init(interval, 0, nil, maximum_number_of_pending_blocks: 5)
       |> Core.get_numbers_of_blocks_to_download(5_000)
 
     state =
@@ -480,7 +503,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     {state, [1_000, 2_000, 3_000]} =
       0
-      |> Core.init(interval, 0, maximum_number_of_pending_blocks: 5, maximum_number_of_unapplied_blocks: 3)
+      |> Core.init(interval, 0, nil, maximum_number_of_pending_blocks: 5, maximum_number_of_unapplied_blocks: 3)
       |> Core.get_numbers_of_blocks_to_download(5_000)
 
     {state, []} = Core.get_numbers_of_blocks_to_download(state, 5_000)
@@ -500,5 +523,50 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       )
 
     {_, [4_000]} = Core.get_numbers_of_blocks_to_download(state, 5_000)
+  end
+
+  describe "WatcherDB idempotency:" do
+    test "prevents older or block with the same blknum as previously consumed" do
+      last_persisted_block = 3000
+
+      assert [] == Core.ensure_block_imported_once(%Block{number: 2000}, 1, last_persisted_block)
+      assert [] == Core.ensure_block_imported_once(%Block{number: last_persisted_block}, 1, last_persisted_block)
+    end
+
+    test "allows newer blocks to get consumed" do
+      last_persisted_block = 3000
+
+      assert [
+               %{
+                 eth_height: 1,
+                 blknum: 4000,
+                 blkhash: <<0::256>>,
+                 timestamp: 0,
+                 transactions: []
+               }
+             ] ==
+               Core.ensure_block_imported_once(
+                 %{number: 4000, transactions: [], hash: <<0::256>>, timestamp: 0},
+                 1,
+                 last_persisted_block
+               )
+    end
+
+    test "do not hold blocks when not properly initialized or DB empty" do
+      assert [
+               %{
+                 eth_height: 1,
+                 blknum: 4000,
+                 blkhash: <<0::256>>,
+                 timestamp: 0,
+                 transactions: []
+               }
+             ] ==
+               Core.ensure_block_imported_once(
+                 %{number: 4000, transactions: [], hash: <<0::256>>, timestamp: 0},
+                 1,
+                 nil
+               )
+    end
   end
 end

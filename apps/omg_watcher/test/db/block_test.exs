@@ -22,20 +22,30 @@ defmodule OMG.Watcher.DB.BlockTest do
   @tag fixtures: [:initial_blocks]
   test "initial data preserve blocks in DB" do
     assert [
-              %DB.Block{blknum: 1000, eth_height: 1, hash: "#1000"},
-              %DB.Block{blknum: 2000, eth_height: 1, hash: "#2000"},
-              %DB.Block{blknum: 3000, eth_height: 1, hash: "#3000"}
-            ] = DB.Block.get_all
+             %DB.Block{blknum: 1000, eth_height: 1, hash: "#1000"},
+             %DB.Block{blknum: 2000, eth_height: 1, hash: "#2000"},
+             %DB.Block{blknum: 3000, eth_height: 1, hash: "#3000"}
+           ] = DB.Block.get_all()
   end
 
   @tag fixtures: [:initial_blocks]
   test "transaction belongs to block can retrieve it by association" do
     assert %DB.Transaction{
-              blknum: 3000,
-              txindex: 1,
-              block: %DB.Block{blknum: 3000}
-            } =
-              DB.Transaction.get_by_position(3000, 1)
-              |> DB.Repo.preload(:block)
+             blknum: 3000,
+             txindex: 1,
+             block: %DB.Block{blknum: 3000}
+           } =
+             DB.Transaction.get_by_position(3000, 1)
+             |> DB.Repo.preload(:block)
+  end
+
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "last consumed block is not set in empty database" do
+    assert nil == DB.Block.get_max_blknum()
+  end
+
+  @tag fixtures: [:initial_blocks]
+  test "last consumed block returns correct block number" do
+    assert 3000 == DB.Block.get_max_blknum()
   end
 end
