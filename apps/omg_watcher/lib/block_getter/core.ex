@@ -105,25 +105,26 @@ defmodule OMG.Watcher.BlockGetter.Core do
         opts \\ []
       ) do
     if state_at_block_beginning do
-    config = %Config{
-      maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 3),
-      maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0),
-      maximum_number_of_unapplied_blocks:
-        Keyword.get(opts, :maximum_number_of_unapplied_blocks, @default_maximum_number_of_unapplied_blocks),
-      block_interval: child_block_interval
-    }
+      config = %Config{
+        maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 3),
+        maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0),
+        maximum_number_of_unapplied_blocks:
+          Keyword.get(opts, :maximum_number_of_unapplied_blocks, @default_maximum_number_of_unapplied_blocks),
+        block_interval: child_block_interval
+      }
 
-    state = %__MODULE__{
-      height_sync_blknums: MapSet.new(),
-      synced_height: synced_height,
-      last_applied_block: block_number,
-      num_of_highest_block_being_downloaded: block_number,
-      number_of_blocks_being_downloaded: 0,
-      unapplied_blocks: %{},
-      potential_block_withholdings: %{},
-      config: config
-    }
-    {:ok, state}
+      state = %__MODULE__{
+        height_sync_blknums: MapSet.new(),
+        synced_height: synced_height,
+        last_applied_block: block_number,
+        num_of_highest_block_being_downloaded: block_number,
+        number_of_blocks_being_downloaded: 0,
+        unapplied_blocks: %{},
+        potential_block_withholdings: %{},
+        config: config
+      }
+
+      {:ok, state}
     else
       {:error, :not_at_block_beginning}
     end

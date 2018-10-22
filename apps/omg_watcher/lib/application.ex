@@ -18,8 +18,8 @@ defmodule OMG.Watcher.Application do
   use OMG.API.LoggerExt
 
   def start(_type, _args) do
-
     opts = [strategy: :one_for_one, name: OMG.Watcher.Supervisor]
+
     children = [
       %{
         id: :omg_watcher_supervisor_unlinked,
@@ -105,7 +105,6 @@ defmodule OMG.Watcher.Application do
   end
 
   def start_linked_children do
-
     # State and Block Getter are linked, because they must restore their state to the last stored state
     # If Block Getter fails, it starts from the last checkpoint while State might have had executed some transactions
     # such a situation will cause error when trying to execute already executed transaction
@@ -114,13 +113,12 @@ defmodule OMG.Watcher.Application do
       %{
         id: :block_getter,
         start: {OMG.Watcher.BlockGetter, :start_link, [[]]},
-        restart: :transient,
+        restart: :transient
       }
     ]
 
     opts = [strategy: :one_for_all, name: OMG.Watcher.Supervisor.Linked]
     Supervisor.start_link(children, opts)
-
   end
 
   # Tell Phoenix to update the endpoint configuration

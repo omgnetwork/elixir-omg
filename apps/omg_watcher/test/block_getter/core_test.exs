@@ -362,7 +362,6 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "gets continuous ranges of blocks to apply" do
-
     {state, [1_000, 2_000, 3_000, 4_000]} =
       init_state(synced_height: 0, opts: [maximum_number_of_pending_blocks: 5])
       |> Core.get_numbers_of_blocks_to_download(5_000)
@@ -425,7 +424,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     synced_height = 1
     state_at_beginning = false
 
-    assert Core.init(start_block_number, interval, synced_height, state_at_beginning) == {:error, :not_at_block_beginning}
+    assert Core.init(start_block_number, interval, synced_height, state_at_beginning) ==
+             {:error, :not_at_block_beginning}
   end
 
   defp init_state(opts \\ []) do
