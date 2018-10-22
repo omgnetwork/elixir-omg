@@ -92,5 +92,4 @@ defmodule OMG.API.RootChainCoordinator do
         msg
     end
   end
-
 end

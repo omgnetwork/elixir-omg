@@ -65,7 +65,7 @@ defmodule OMG.API.EthereumEventListener.Core do
       ) do
     next_event_height_upper_bound = max(next_sync_height - block_finality_margin, 0)
 
-    new_state = %{
+    new_state = %__MODULE__{
       state
       | synced_height: next_sync_height,
         next_event_height_lower_bound: next_event_height_upper_bound + 1

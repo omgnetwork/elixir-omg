@@ -179,7 +179,9 @@ defmodule OMG.Watcher.BlockGetter do
       :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
       {:noreply, state}
     else
-      :nosync -> {:noreply, state}
+      :nosync ->
+        :ok = RootChainCoordinator.check_in(state.synced_height, __MODULE__)
+        {:noreply, state}
     end
   end
 
