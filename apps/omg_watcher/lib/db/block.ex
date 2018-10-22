@@ -32,6 +32,6 @@ defmodule OMG.Watcher.DB.Block do
   def get_all, do: DB.Repo.all(__MODULE__)
 
   def get_max_blknum do
-    0
+    DB.Repo.aggregate(__MODULE__, :max, :blknum)
   end
 end

@@ -491,7 +491,16 @@ defmodule OMG.Watcher.BlockGetter.Core do
   key constraints on WatcherDB.
   """
   @spec ensure_block_imported_once(map(), pos_integer, non_neg_integer) :: [OMG.Watcher.DB.Transaction.mined_block()]
-  def ensure_block_imported_once(block, eth_height, last_persisted_block), do: []
+  def ensure_block_imported_once(block, eth_height, last_persisted_block)
+  def ensure_block_imported_once(block, eth_height, nil), do: ensure_block_imported_once(block, eth_height, 0)
+
+  def ensure_block_imported_once(%{number: number}, _eth_height, last_persisted_block)
+      when number <= last_persisted_block,
+      do: []
+
+  def ensure_block_imported_once(block, eth_height, last_persisted_block) do
+    [block |> to_mined_block(eth_height)]
+  end
 
   # The purpose of this function is to ensure contract between block_getter and db code
   @spec to_mined_block(map(), pos_integer()) :: OMG.Watcher.DB.Transaction.mined_block()
