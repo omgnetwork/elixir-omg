@@ -72,8 +72,7 @@ defmodule OMG.Watcher.DB.Transaction do
         left_join: input in assoc(tx, :inputs),
         where: output.owner == ^address or input.owner == ^address,
         order_by: [desc: tx.blknum, desc: tx.txindex],
-        limit: ^limit,
-        preload: [outputs: output, inputs: input]
+        limit: ^limit
       )
 
     Repo.all(query)
