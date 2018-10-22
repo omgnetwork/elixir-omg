@@ -56,9 +56,11 @@ defmodule OMG.API.RootChainCoordinator do
   end
 
   def handle_call({:check_in, synced_height, service_name}, {pid, _}, state) do
+    _ = Logger.debug(fn -> "#{service_name} checks in on height #{synced_height}" end)
     {:ok, state, services_to_sync} = Core.check_in(state, pid, synced_height, service_name)
+    _ = length(services_to_sync) > 0 and Logger.debug(fn -> "all forward!" end)
     request_sync(services_to_sync)
-    {:reply, :ok, state}
+    {:reply, :ok, state, 60_000}
   end
 
   def handle_call(:get_synced_height, _from, state) do
@@ -74,6 +76,10 @@ defmodule OMG.API.RootChainCoordinator do
   def handle_info({:DOWN, _ref, :process, pid, _}, state) do
     {:ok, state} = Core.check_out(state, pid)
     {:noreply, state}
+  end
+
+  def handle_info(:timeout, state) do
+    Logger.warn(fn -> "No new activity for 60 seconds. Are we dead?" end)
   end
 
   defp schedule_get_ethereum_height(interval) do
