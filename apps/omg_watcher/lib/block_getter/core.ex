@@ -59,7 +59,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
     :last_applied_block,
     :num_of_heighest_block_being_downloaded,
     :number_of_blocks_being_downloaded,
-    :last_block_persisted_from_prev_run,
     :unapplied_blocks,
     :potential_block_withholdings,
     :config
@@ -71,7 +70,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
           last_applied_block: non_neg_integer,
           num_of_heighest_block_being_downloaded: non_neg_integer,
           number_of_blocks_being_downloaded: non_neg_integer,
-          last_block_persisted_from_prev_run: non_neg_integer,
           unapplied_blocks: %{
             non_neg_integer => OMG.API.Block.t()
           },
@@ -96,12 +94,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
     - `:maximum_block_withholding_time_ms` - how much time should we wait after the first failed pull until we call it a block withholding byzantine condition of the child chain (0 ms)
   """
-  @spec init(non_neg_integer, pos_integer, non_neg_integer, non_neg_integer) :: %__MODULE__{}
+  @spec init(non_neg_integer, pos_integer, non_neg_integer, Keyword.t()) :: %__MODULE__{}
   def init(
         block_number,
         child_block_interval,
         synced_height,
-        last_persisted_block,
         opts \\ []
       ) do
     config = %Config{
@@ -118,7 +115,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
       last_applied_block: block_number,
       num_of_heighest_block_being_downloaded: block_number,
       number_of_blocks_being_downloaded: 0,
-      last_block_persisted_from_prev_run: last_persisted_block,
       unapplied_blocks: %{},
       potential_block_withholdings: %{},
       config: config

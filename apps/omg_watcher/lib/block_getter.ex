@@ -45,8 +45,11 @@ defmodule OMG.Watcher.BlockGetter do
 
     {continue, events} = Core.validate_tx_executions(tx_exec_results, block)
 
-    blocks_to_persist =
-      Core.ensure_block_imported_once(block, block_rootchain_height, state.last_block_persisted_from_prev_run)
+    # TODO: Unfortunately due to strange issue with SQLite on tests we cannot fetch this number at init
+    # as it was tried in c972be3831bc2eab7a8816ae408a6195ba2f3ef4,
+    # we should be able to revert when test will be run on Postgres
+    last_persisted_block = DB.Block.get_max_blknum()
+    blocks_to_persist = Core.ensure_block_imported_once(block, block_rootchain_height, last_persisted_block)
 
     EventerAPI.emit_events(events)
 
@@ -86,7 +89,6 @@ defmodule OMG.Watcher.BlockGetter do
 
     {:ok, block_submissions} = Eth.RootChain.get_block_submitted_events({synced_height, synced_height + 1000})
     exact_synced_height = Core.figure_out_exact_sync_height(block_submissions, synced_height, child_top_block_number)
-    last_persisted_block = DB.Block.get_max_blknum()
 
     :ok = RootChainCoordinator.check_in(exact_synced_height, :block_getter)
 
@@ -103,7 +105,6 @@ defmodule OMG.Watcher.BlockGetter do
         child_top_block_number,
         child_block_interval,
         exact_synced_height,
-        last_persisted_block,
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
         maximum_number_of_unapplied_blocks: maximum_number_of_unapplied_blocks,
         # TODO: not elegant, but this should limit the number of heavy-lifting workers and chance to starve the rest
