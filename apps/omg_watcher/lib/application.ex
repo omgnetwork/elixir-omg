@@ -18,9 +18,17 @@ defmodule OMG.Watcher.Application do
   use OMG.API.LoggerExt
 
   defmodule WatcherSupervisor do
+    @moduledoc """
+    This supervisor takes care of starting (and keeping running) all modules of which Watcher consists of
+    """
+
     use Supervisor
 
     defmodule ChainStateSupervisor do
+      @moduledoc """
+      This supervisor takes care of BlockGetter and State processes.
+      In case one process fails, this supervisor's role is to restore consistent state
+      """
       use Supervisor
 
       def start_link do
@@ -29,8 +37,8 @@ defmodule OMG.Watcher.Application do
 
       def init(:ok) do
         # State and Block Getter are linked, because they must restore their state to the last stored state
-        # If Block Getter fails, it starts from the last checkpoint while State might have had executed some transactions
-        # such a situation will cause error when trying to execute already executed transaction
+        # If Block Getter fails, it starts from the last checkpoint while State might have had executed
+        # some transactions. Such a situation will cause error when trying to execute already executed transaction.
         children = [
           {OMG.API.State, []},
           %{
@@ -43,7 +51,6 @@ defmodule OMG.Watcher.Application do
         opts = [strategy: :one_for_all, name: __MODULE__]
         Supervisor.init(children, opts)
       end
-
     end
 
     def start_link do
@@ -120,7 +127,6 @@ defmodule OMG.Watcher.Application do
       Supervisor.init(children, opts)
     end
 
-
     # Tell Phoenix to update the endpoint configuration
     # whenever the application is updated.
     def config_change(changed, _new, removed) do
@@ -149,11 +155,9 @@ defmodule OMG.Watcher.Application do
       _ = OMG.Watcher.DB.EthEvent.insert_exits(exits)
       :ok
     end
-
   end
 
   def start(_type, _args) do
     WatcherSupervisor.start_link()
   end
-
 end
