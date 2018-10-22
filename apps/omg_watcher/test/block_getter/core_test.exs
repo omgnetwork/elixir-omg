@@ -392,11 +392,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "do not download blocks when there are too many downloaded blocks not yet applied" do
-    interval = 1_000
-
     {state, [1_000, 2_000, 3_000]} =
-      0
-      |> Core.init(interval, 0, maximum_number_of_pending_blocks: 5, maximum_number_of_unapplied_blocks: 3)
+      init_state(synced_height: 0, opts: [maximum_number_of_pending_blocks: 5, maximum_number_of_unapplied_blocks: 3])
       |> Core.get_numbers_of_blocks_to_download(5_000)
 
     {state, []} = Core.get_numbers_of_blocks_to_download(state, 5_000)
