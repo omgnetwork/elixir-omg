@@ -29,12 +29,12 @@ defmodule OMG.Watcher.DB.TxOutputTest do
   @tag fixtures: [:initial_blocks]
   test "compose_utxo_exit should return proper proof format" do
     {:ok,
-      %{
-        utxo_pos: _utxo_pos,
-        txbytes: _txbytes,
-        proof: proof,
-        sigs: _sigs
-      }} = DB.TxOutput.compose_utxo_exit(Utxo.position(3000, 0, 1))
+     %{
+       utxo_pos: _utxo_pos,
+       txbytes: _txbytes,
+       proof: proof,
+       sigs: _sigs
+     }} = DB.TxOutput.compose_utxo_exit(Utxo.position(3000, 0, 1))
 
     assert <<_proof::bytes-size(512)>> = proof
   end

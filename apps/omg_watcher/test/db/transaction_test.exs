@@ -34,11 +34,11 @@ defmodule OMG.Watcher.DB.TransactionTest do
       %Transaction.Recovered{signed_tx: %Transaction.Signed{signed_tx_bytes: txbytes}} = recovered_tx
 
       assert %DB.Transaction{
-                txhash: ^txhash,
-                blknum: ^blknum,
-                txindex: ^txindex,
-                txbytes: ^txbytes
-              } = DB.Transaction.get(txhash)
+               txhash: ^txhash,
+               blknum: ^blknum,
+               txindex: ^txindex,
+               txbytes: ^txbytes
+             } = DB.Transaction.get(txhash)
     end)
   end
 
@@ -103,8 +103,8 @@ defmodule OMG.Watcher.DB.TransactionTest do
     {:ok, %DB.Transaction{txhash: spent_txhash}} = DB.Transaction.get_transaction_challenging_utxo(spent_txo)
 
     assert %DB.TxOutput{
-              spending_txhash: ^spent_txhash
-            } = DB.TxOutput.get_by_position(spent_txo)
+             spending_txhash: ^spent_txhash
+           } = DB.TxOutput.get_by_position(spent_txo)
 
     recovered_tx = OMG.API.TestHelper.create_recovered([{1000, 1, 1, bob}], @eth, [{bob, 200}])
 
@@ -120,7 +120,7 @@ defmodule OMG.Watcher.DB.TransactionTest do
     double_spent_txhash = recovered_tx.signed_tx_hash
 
     assert %DB.TxOutput{
-              spending_txhash: ^double_spent_txhash
-            } = DB.TxOutput.get_by_position(spent_txo)
+             spending_txhash: ^double_spent_txhash
+           } = DB.TxOutput.get_by_position(spent_txo)
   end
 end

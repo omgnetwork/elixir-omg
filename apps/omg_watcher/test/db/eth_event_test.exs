@@ -37,14 +37,14 @@ defmodule OMG.Watcher.DB.EthEventTest do
     utxo = DB.TxOutput.get_by_position(Utxo.position(1, 0, 0))
 
     assert %DB.TxOutput{
-              blknum: 1,
-              txindex: 0,
-              oindex: 0,
-              owner: ^owner,
-              currency: @eth,
-              amount: 1,
-              creating_deposit: ^expected_hash
-            } = utxo
+             blknum: 1,
+             txindex: 0,
+             oindex: 0,
+             owner: ^owner,
+             currency: @eth,
+             amount: 1,
+             creating_deposit: ^expected_hash
+           } = utxo
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
@@ -84,15 +84,15 @@ defmodule OMG.Watcher.DB.EthEventTest do
     [{:ok, _exit1}, {:ok, _exit2}] = DB.EthEvent.insert_exits([bobs_deposit, alices_utxo])
 
     assert %DB.EthEvent{blknum: 2, txindex: 0, event_type: :exit, hash: ^bobs_deposit_exit_hash} =
-              DB.EthEvent.get(bobs_deposit_exit_hash)
+             DB.EthEvent.get(bobs_deposit_exit_hash)
 
     assert %DB.EthEvent{blknum: 3000, txindex: 1, event_type: :exit, hash: ^alices_utxo_exit_hash} =
-              DB.EthEvent.get(alices_utxo_exit_hash)
+             DB.EthEvent.get(alices_utxo_exit_hash)
 
     assert %DB.TxOutput{amount: 100, spending_tx_oindex: nil, spending_exit: ^bobs_deposit_exit_hash} =
-              DB.TxOutput.get_by_position(bobs_deposit_pos)
+             DB.TxOutput.get_by_position(bobs_deposit_pos)
 
     assert %DB.TxOutput{amount: 50, spending_tx_oindex: nil, spending_exit: ^alices_utxo_exit_hash} =
-              DB.TxOutput.get_by_position(alices_utxo_pos)
+             DB.TxOutput.get_by_position(alices_utxo_pos)
   end
 end
