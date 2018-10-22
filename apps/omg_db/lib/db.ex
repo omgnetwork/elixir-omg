@@ -36,8 +36,8 @@ defmodule OMG.DB do
   end
 
   def utxos(server_name \\ @server_name) do
-    # in this time database shout read 3 millions utxos
-    max_time_of_read = 30_000
+    # 20min for get all utxo from database
+    max_time_of_read = 1_200_000
     {time, {_, utxos} = result} = :timer.tc(&GenServer.call/3, [server_name, {:utxos}, max_time_of_read])
     _ = Logger.info("read data time: #{inspect(time / 1_000_000)} size: #{length(utxos)}")
     result
