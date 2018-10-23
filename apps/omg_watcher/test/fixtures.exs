@@ -163,7 +163,14 @@ defmodule OMG.Watcher.Fixtures do
     :ok = phoenix_ecto_sandbox
 
     prepare_f = fn {blknum, recovered_txs} ->
-      {:ok, _} = DB.Transaction.update_with(%{transactions: recovered_txs, blknum: blknum, eth_height: 1})
+      {:ok, _} =
+        DB.Transaction.update_with(%{
+          transactions: recovered_txs,
+          blknum: blknum,
+          blkhash: "##{blknum}",
+          timestamp: :os.system_time(:second),
+          eth_height: 1
+        })
 
       recovered_txs
       |> Enum.with_index()

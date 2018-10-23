@@ -37,6 +37,8 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
           API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 100}])
         ],
         blknum: 1000,
+        blkhash: <<?#::256>>,
+        timestamp: :os.system_time(:second),
         eth_height: 1
       })
 

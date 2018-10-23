@@ -82,6 +82,8 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
       DB.Transaction.update_with(%{
         transactions: [API.TestHelper.create_recovered([{2000, 0, 0, bob}], @eth, [{bob, 49}, {carol, 50}])],
         blknum: 11_000,
+        blkhash: <<?#::256>>,
+        timestamp: :os.system_time(:second),
         eth_height: 10
       })
 
@@ -152,6 +154,8 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
       DB.Transaction.update_with(%{
         transactions: [API.TestHelper.create_recovered([{blknum, 0, 0, bob}], @eth, [{carol, 100}])],
         blknum: 11_000,
+        blkhash: <<?#::256>>,
+        timestamp: :os.system_time(:second),
         eth_height: 10
       })
 
@@ -232,6 +236,8 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
         API.TestHelper.create_recovered([], @eth, [{alice, 101}, {alice, 0}])
       ],
       blknum: blknum,
+      blkhash: <<?#::256>>,
+      timestamp: :os.system_time(:second),
       eth_height: 10
     })
 

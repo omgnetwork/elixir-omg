@@ -94,7 +94,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
     - `:maximum_block_withholding_time_ms` - how much time should we wait after the first failed pull until we call it a block withholding byzantine condition of the child chain (0 ms)
   """
-  @spec init(non_neg_integer, pos_integer, non_neg_integer) :: %__MODULE__{}
+  @spec init(non_neg_integer, pos_integer, non_neg_integer, Keyword.t()) :: %__MODULE__{}
   def init(
         block_number,
         child_block_interval,
@@ -377,13 +377,20 @@ defmodule OMG.Watcher.BlockGetter.Core do
   requested_hash is given to compare to always have a consistent data structure coming out
   requested_number is given to _override_ since we're getting by hash, we can have empty blocks with same hashes!
   """
-  @spec validate_download_response({:ok, map()} | {:error, block_error()}, binary(), pos_integer(), pos_integer()) ::
+  @spec validate_download_response(
+          {:ok, map()} | {:error, block_error()},
+          binary(),
+          pos_integer(),
+          pos_integer(),
+          pos_integer()
+        ) ::
           {:ok, map | PotentialWithholding.t()}
           | {:error, block_error(), binary(), pos_integer()}
   def validate_download_response(
         {:ok, %{hash: returned_hash, transactions: transactions, number: number}},
         requested_hash,
         requested_number,
+        block_timestamp,
         _time
       ) do
     _ =
@@ -410,6 +417,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
              transactions: transactions,
              number: requested_number,
              hash: returned_hash,
+             timestamp: block_timestamp,
              zero_fee_requirements: zero_fee_requirements
            }},
         else: {:error, :incorrect_hash, requested_hash, requested_number}
@@ -419,7 +427,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     end
   end
 
-  def validate_download_response({:error, _} = error, requested_hash, requested_number, time) do
+  def validate_download_response({:error, _} = error, requested_hash, requested_number, _block_timestamp, time) do
     _ =
       Logger.info(fn ->
         "Detected potential block withholding  #{inspect(error)}, hash: #{inspect(requested_hash |> Base.encode16())}, number: #{
@@ -474,5 +482,36 @@ defmodule OMG.Watcher.BlockGetter.Core do
       nil -> synced_height
       %{eth_height: exact_height} -> exact_height
     end
+  end
+
+  @doc """
+  Ensures the same block will not be send into WatcherDB again.
+
+  Statefull validity keeps track of consumed blocks in separate than WatcherDB database. These databases
+  can get out of sync, and then we don't want to send already consumed blocks which could not succeed due
+  key constraints on WatcherDB.
+  """
+  @spec ensure_block_imported_once(map(), pos_integer, non_neg_integer) :: [OMG.Watcher.DB.Transaction.mined_block()]
+  def ensure_block_imported_once(block, eth_height, last_persisted_block)
+  def ensure_block_imported_once(block, eth_height, nil), do: ensure_block_imported_once(block, eth_height, 0)
+
+  def ensure_block_imported_once(%{number: number}, _eth_height, last_persisted_block)
+      when number <= last_persisted_block,
+      do: []
+
+  def ensure_block_imported_once(block, eth_height, _last_persisted_block) do
+    [block |> to_mined_block(eth_height)]
+  end
+
+  # The purpose of this function is to ensure contract between block_getter and db code
+  @spec to_mined_block(map(), pos_integer()) :: OMG.Watcher.DB.Transaction.mined_block()
+  defp to_mined_block(block, eth_height) do
+    %{
+      eth_height: eth_height,
+      blknum: block.number,
+      blkhash: block.hash,
+      timestamp: block.timestamp,
+      transactions: block.transactions
+    }
   end
 end

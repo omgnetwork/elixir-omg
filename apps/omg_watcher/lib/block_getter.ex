@@ -31,9 +31,16 @@ defmodule OMG.Watcher.BlockGetter do
   @spec download_block(pos_integer()) ::
           {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
   def download_block(requested_number) do
-    {:ok, {requested_hash, _time}} = Eth.RootChain.get_child_chain(requested_number)
+    {:ok, {requested_hash, block_timestamp}} = Eth.RootChain.get_child_chain(requested_number)
     response = OMG.JSONRPC.Client.call(:get_block, %{hash: requested_hash})
-    Core.validate_download_response(response, requested_hash, requested_number, :os.system_time(:millisecond))
+
+    Core.validate_download_response(
+      response,
+      requested_hash,
+      requested_number,
+      block_timestamp,
+      :os.system_time(:millisecond)
+    )
   end
 
   def handle_cast(
@@ -45,13 +52,16 @@ defmodule OMG.Watcher.BlockGetter do
 
     {continue, events} = Core.validate_tx_executions(tx_exec_results, block)
 
+    # TODO: Unfortunately due to strange issue with SQLite on tests we cannot fetch this number at init
+    # as it was tried in c972be3831bc2eab7a8816ae408a6195ba2f3ef4,
+    # we should be able to revert when test will be run on Postgres
+    last_persisted_block = DB.Block.get_max_blknum()
+    blocks_to_persist = Core.ensure_block_imported_once(block, block_rootchain_height, last_persisted_block)
+
     EventerAPI.emit_events(events)
 
     with :ok <- continue do
-      _ =
-        block
-        |> to_mined_block(block_rootchain_height)
-        |> DB.Transaction.update_with()
+      _ = Enum.map(blocks_to_persist, &DB.Transaction.update_with/1)
 
       _ = Logger.info(fn -> "Applied block \##{inspect(blknum)}" end)
       {:ok, next_child} = Eth.RootChain.get_current_child_block()
@@ -165,16 +175,6 @@ defmodule OMG.Watcher.BlockGetter do
     else
       :nosync -> {:noreply, state}
     end
-  end
-
-  # The purpose of this function is to ensure contract between shell and db code
-  @spec to_mined_block(map(), pos_integer()) :: DB.Transaction.mined_block()
-  defp to_mined_block(block, eth_height) do
-    %{
-      eth_height: eth_height,
-      blknum: block.number,
-      transactions: block.transactions
-    }
   end
 
   defp run_block_download_task(blocks_numbers) do
