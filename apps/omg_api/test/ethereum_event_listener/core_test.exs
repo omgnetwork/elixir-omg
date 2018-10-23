@@ -36,14 +36,14 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
       Core.get_events_height_range_for_next_sync(state, next_sync_height)
 
     assert next_sync_height == upper_bound + state.block_finality_margin
-    assert lower_bound < upper_bound
+    assert lower_bound <= upper_bound
 
     {:dont_get_events, ^state} = Core.get_events_height_range_for_next_sync(state, next_sync_height)
 
     next_sync_height = next_sync_height + 1
     expected_lower_bound = upper_bound + 1
 
-    {
+    assert {
       :get_events,
       {^expected_lower_bound, expected_upper_bound},
       state,
