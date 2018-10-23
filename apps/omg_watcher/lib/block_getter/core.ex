@@ -377,22 +377,27 @@ defmodule OMG.Watcher.BlockGetter.Core do
   requested_hash is given to compare to always have a consistent data structure coming out
   requested_number is given to _override_ since we're getting by hash, we can have empty blocks with same hashes!
   """
-  @spec validate_download_response({:ok, map()} | {:error, block_error()}, binary(), pos_integer(), pos_integer()) ::
+  @spec validate_download_response(
+          {:ok, map()} | {:error, block_error()},
+          binary(),
+          pos_integer(),
+          pos_integer(),
+          pos_integer()
+        ) ::
           {:ok, map | PotentialWithholding.t()}
           | {:error, block_error(), binary(), pos_integer()}
   def validate_download_response(
         {:ok, %{hash: returned_hash, transactions: transactions, number: number}},
         requested_hash,
         requested_number,
-        timestamp
+        block_timestamp,
+        _time
       ) do
     _ =
       Logger.info(fn ->
         short_hash = returned_hash |> Base.encode16() |> Binary.drop(-48)
 
-        "Validating block \##{inspect(requested_number)} #{short_hash} at #{timestamp}... with #{
-          inspect(length(transactions))
-        } txs"
+        "Validating block \##{inspect(requested_number)} #{short_hash}... with #{inspect(length(transactions))} txs"
       end)
 
     with transaction_decode_results <- Enum.map(transactions, &API.Core.recover_tx/1),
@@ -412,7 +417,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
              transactions: transactions,
              number: requested_number,
              hash: returned_hash,
-             timestamp: timestamp,
+             timestamp: block_timestamp,
              zero_fee_requirements: zero_fee_requirements
            }},
         else: {:error, :incorrect_hash, requested_hash, requested_number}
@@ -422,7 +427,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     end
   end
 
-  def validate_download_response({:error, _} = error, requested_hash, requested_number, time) do
+  def validate_download_response({:error, _} = error, requested_hash, requested_number, _block_timestamp, time) do
     _ =
       Logger.info(fn ->
         "Detected potential block withholding  #{inspect(error)}, hash: #{inspect(requested_hash |> Base.encode16())}, number: #{
@@ -494,7 +499,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
       when number <= last_persisted_block,
       do: []
 
-  def ensure_block_imported_once(block, eth_height, last_persisted_block) do
+  def ensure_block_imported_once(block, eth_height, _last_persisted_block) do
     [block |> to_mined_block(eth_height)]
   end
 

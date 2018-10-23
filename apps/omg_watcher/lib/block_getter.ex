@@ -31,9 +31,16 @@ defmodule OMG.Watcher.BlockGetter do
   @spec download_block(pos_integer()) ::
           {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
   def download_block(requested_number) do
-    {:ok, {requested_hash, timestamp}} = Eth.RootChain.get_child_chain(requested_number)
+    {:ok, {requested_hash, block_timestamp}} = Eth.RootChain.get_child_chain(requested_number)
     response = OMG.JSONRPC.Client.call(:get_block, %{hash: requested_hash})
-    Core.validate_download_response(response, requested_hash, requested_number, timestamp)
+
+    Core.validate_download_response(
+      response,
+      requested_hash,
+      requested_number,
+      block_timestamp,
+      :os.system_time(:millisecond)
+    )
   end
 
   def handle_cast(
