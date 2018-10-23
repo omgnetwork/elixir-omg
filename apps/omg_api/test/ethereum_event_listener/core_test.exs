@@ -21,6 +21,7 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
   @finality_margin 10
 
   defp create_state, do: create_state(100)
+
   defp create_state(height) do
     Core.init(:event_listener_height, :event_listener, height, @finality_margin)
   end
@@ -41,11 +42,11 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
     expected_lower_bound = upper_bound + 1
 
     assert {
-      :get_events,
-      {^expected_lower_bound, expected_upper_bound},
-      state,
-      [{:put, :event_listener_height, ^next_sync_height}]
-    } = Core.get_events_height_range_for_next_sync(state, next_sync_height)
+             :get_events,
+             {^expected_lower_bound, expected_upper_bound},
+             state,
+             [{:put, :event_listener_height, ^next_sync_height}]
+           } = Core.get_events_height_range_for_next_sync(state, next_sync_height)
 
     assert next_sync_height == expected_upper_bound + state.block_finality_margin
 
@@ -59,6 +60,7 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
 
     {:get_events, {lower_bound, upper_bound}, _state, [{:put, :event_listener_height, ^next_sync_height}]} =
       Core.get_events_height_range_for_next_sync(state, next_sync_height)
+
     assert lower_bound == 100 - @finality_margin + 1
 
     # simulate restart:
@@ -70,10 +72,10 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
     assert 3 == expected_upper_bound - expected_lower_bound + 1
 
     assert {
-      :get_events,
-      {^expected_lower_bound, ^expected_upper_bound},
-      _,
-      [{:put, :event_listener_height, ^next_sync_height}]
-    } = Core.get_events_height_range_for_next_sync(state, next_sync_height)
+             :get_events,
+             {^expected_lower_bound, ^expected_upper_bound},
+             _,
+             [{:put, :event_listener_height, ^next_sync_height}]
+           } = Core.get_events_height_range_for_next_sync(state, next_sync_height)
   end
 end
