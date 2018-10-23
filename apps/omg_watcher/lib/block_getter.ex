@@ -125,7 +125,7 @@ defmodule OMG.Watcher.BlockGetter do
     EventerAPI.emit_events(events)
 
     with :ok <- continue do
-      Enum.map(events, fn %Event.InvalidBlock{number: number} -> download_block(number) end)
+      _ = Enum.map(events, fn %Event.InvalidBlock{number: number} -> download_block(number) end)
       {:noreply, run_block_download_task(new_state)}
     else
       {:needs_stopping, reason} ->

@@ -45,7 +45,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     start_block_number = 0
 
     start_block_number
-    |> Core.init(interval = 1_000, synced_height = 1, maximum_number_of_pending_blocks: 4)
+    |> Core.init(_interval = 1_000, _synced_height = 1, maximum_number_of_pending_blocks: 4)
     |> Core.get_numbers_of_blocks_to_download(20_000)
     |> assert_check([1_000, 2_000, 3_000, 4_000])
     |> handle_downloaded_block(%Block{number: 4_000})
@@ -58,7 +58,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     start_block_number = 7_000
 
     start_block_number
-    |> Core.init(interval = 100, synced_height = 1, maximum_number_of_pending_blocks: 4)
+    |> Core.init(_interval = 100, _synced_height = 1, maximum_number_of_pending_blocks: 4)
     |> Core.get_numbers_of_blocks_to_download(20_000)
     |> assert_check([7_100, 7_200, 7_300, 7_400])
     |> handle_downloaded_block(%Block{number: 7_200})
@@ -70,7 +70,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     start_block_number = 0
 
     start_block_number
-    |> Core.init(interval = 1_000, synced_height = 1, maximum_number_of_pending_blocks: 5)
+    |> Core.init(_interval = 1_000, _synced_height = 1, maximum_number_of_pending_blocks: 5)
     |> Core.get_numbers_of_blocks_to_download(4_000)
     |> assert_check([1_000, 2_000, 3_000])
     |> Core.get_numbers_of_blocks_to_download(2_000)
@@ -84,7 +84,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     state =
       block_height
-      |> Core.init(interval = 1_000, maximum_number_of_pending_blocks: 5)
+      |> Core.init(_interval = 1_000, maximum_number_of_pending_blocks: 5)
       |> Core.get_numbers_of_blocks_to_download(3_000)
       |> assert_check([1_000, 2_000])
 
@@ -93,7 +93,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
              |> handle_downloaded_block(%Block{number: 2_000})
              |> Core.handle_downloaded_block({:ok, %Block{number: 2_000}})
 
-    assert {:error, :unexpected_blok} = state |> Core.handle_downloaded_block({:ok, %Block{number: 3_000}})
+    assert {:error, :unexpected_block} = state |> Core.handle_downloaded_block({:ok, %Block{number: 3_000}})
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -149,7 +149,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     {state, _} =
       block_height
-      |> Core.init(interval, synced_height = 1)
+      |> Core.init(interval, _synced_height = 1)
       |> Core.get_numbers_of_blocks_to_download(block_height + 2 * interval)
 
     assert {:ok, decoded_block} =
@@ -173,7 +173,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {:error, :incorrect_hash, matching_bad_returned_hash, 0} ==
              Core.validate_download_response({:ok, block}, matching_bad_returned_hash, 0, 0)
 
-    state = Core.init(block_height = 0, interval = 1_000, synced_height = 1)
+    state = Core.init(_block_height = 0, _interval = 1_000, _synced_height = 1)
 
     assert {{:needs_stopping, :incorrect_hash}, _,
             [%Event.InvalidBlock{error_type: :incorrect_hash, hash: ^matching_bad_returned_hash, number: 1}]} =
@@ -222,7 +222,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     block_height = 0
 
     block_height
-    |> Core.init(interval = 1_000, synced_height = 1)
+    |> Core.init(_interval = 1_000, _synced_height = 1)
     |> Core.get_numbers_of_blocks_to_download(3_000)
     |> assert_check([1_000, 2_000])
     |> Core.handle_downloaded_block(Core.validate_download_response({:error, :error_reason}, <<>>, 2_000, 0))
@@ -233,7 +233,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     block_height = 0
 
     block_height
-    |> Core.init(interval = 1_000, synced_height = 1,
+    |> Core.init(
+      _interval = 1_000,
+      _synced_height = 1,
       maximum_number_of_pending_blocks: 5,
       maximum_block_withholding_time_ms: 0
     )
@@ -250,7 +252,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     state =
       block_height
-      |> Core.init(interval = 1_000, synced_height = 1,
+      |> Core.init(
+        _interval = 1_000,
+        _synced_height = 1,
         maximum_number_of_pending_blocks: 4,
         maximum_block_withholding_time_ms: 0
       )
@@ -276,7 +280,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     block_height = 0
 
     block_height
-    |> Core.init(interval = 1_000, synced_height = 1, maximum_number_of_pending_blocks: 3)
+    |> Core.init(_interval = 1_000, _synced_height = 1, maximum_number_of_pending_blocks: 3)
     |> Core.get_numbers_of_blocks_to_download(20_000)
     |> assert_check([1_000, 2_000, 3_000])
     |> Core.handle_downloaded_block(Core.validate_download_response({:error, :error_reason}, <<>>, 1_000, 0))
@@ -291,7 +295,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     block_height = 0
 
     block_height
-    |> Core.init(interval = 1_000, synced_height = 1,
+    |> Core.init(
+      _interval = 1_000,
+      _synced_height = 1,
       maximum_number_of_pending_blocks: 4,
       maximum_block_withholding_time_ms: 1000
     )
@@ -316,7 +322,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     block_height = 0
 
     block_height
-    |> Core.init(interval = 1_000, synced_height = 1,
+    |> Core.init(
+      _interval = 1_000,
+      _synced_height = 1,
       maximum_number_of_pending_blocks: 2,
       maximum_block_withholding_time_ms: 10_000
     )
@@ -353,7 +361,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     state =
       block_height
-      |> Core.init(interval = 1_000, synced_height = 0, maximum_number_of_pending_blocks: 5)
+      |> Core.init(_interval = 1_000, _synced_height = 0, maximum_number_of_pending_blocks: 5)
       |> Core.get_numbers_of_blocks_to_download(4_000)
       |> assert_check([1_000, 2_000, 3_000])
       |> handle_downloaded_block(%Block{number: 1_000})
@@ -393,7 +401,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     state =
       block_height
-      |> Core.init(interval = 1_000, 0, maximum_number_of_pending_blocks: 5)
+      |> Core.init(_interval = 1_000, _synced_height = 0, maximum_number_of_pending_blocks: 5)
       |> Core.get_numbers_of_blocks_to_download(5_000)
       |> assert_check([1_000, 2_000, 3_000, 4_000])
       |> handle_downloaded_block(%Block{number: 1_000})
@@ -424,7 +432,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     state =
       block_height
-      |> Core.init(interval = 1_000, 0, maximum_number_of_pending_blocks: 5, maximum_number_of_unapplied_blocks: 3)
+      |> Core.init(
+        _interval = 1_000,
+        _synced_height = 0,
+        maximum_number_of_pending_blocks: 5,
+        maximum_number_of_unapplied_blocks: 3
+      )
       |> Core.get_numbers_of_blocks_to_download(5_000)
       |> assert_check([1_000, 2_000, 3_000])
       |> Core.get_numbers_of_blocks_to_download(5_000)

@@ -213,7 +213,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
           unapplied_blocks: unapplied_blocks,
           num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded,
           number_of_blocks_being_downloaded: number_of_blocks_being_downloaded,
-          potential_block_withholdings: potential_block_withholdings,
           config: config
         } = state,
         next_child
@@ -271,7 +270,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         ) ::
           {:ok | {:needs_stopping, block_error()}, %__MODULE__{},
            [] | list(Event.InvalidBlock.t()) | list(Event.BlockWithholding.t())}
-          | {:error, :duplicate | :unexpected_blok}
+          | {:error, :duplicate | :unexpected_block}
   def handle_downloaded_block(
         %__MODULE__{
           unapplied_blocks: unapplied_blocks,
@@ -284,9 +283,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
       ) do
     with :ok <- if(Map.has_key?(unapplied_blocks, number), do: :duplicate, else: :ok),
          :ok <-
-           if(last_applied_block < number and number <= num_of_heighest_block_being_downloaded,
+           if(
+             last_applied_block < number and number <= num_of_heighest_block_being_downloaded,
              do: :ok,
-             else: :unexpected_blok
+             else: :unexpected_block
            ) do
       state = %{
         state
