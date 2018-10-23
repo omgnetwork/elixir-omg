@@ -96,7 +96,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
     - `:maximum_block_withholding_time_ms` - how much time should we wait after the first failed pull until we call it a block withholding byzantine condition of the child chain (0 ms)
   """
-  @spec init(non_neg_integer, pos_integer, non_neg_integer, boolean, Keyword.t()) :: {:ok, %__MODULE__{}} | {:error, init_error()}
+  @spec init(non_neg_integer, pos_integer, non_neg_integer, boolean, Keyword.t()) ::
+          {:ok, %__MODULE__{}} | {:error, init_error()}
   def init(
         block_number,
         child_block_interval,
