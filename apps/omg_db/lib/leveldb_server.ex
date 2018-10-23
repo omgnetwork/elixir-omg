@@ -64,12 +64,11 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   def handle_call({:utxos}, _from, %__MODULE__{db_ref: db_ref} = state) do
-    keys_stream = Exleveldb.stream(db_ref, :keys_only)
-
     result =
-      keys_stream
+      db_ref
+      |> Exleveldb.stream()
       |> LevelDBCore.filter_utxos()
-      |> Enum.map(fn key -> get(key, db_ref) end)
+      |> Enum.map(fn {_, value} -> {:ok, value} end)
       |> LevelDBCore.decode_values(:utxo)
 
     {:reply, result, state}
