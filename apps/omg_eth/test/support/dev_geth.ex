@@ -92,15 +92,4 @@ defmodule OMG.Eth.DevGeth do
   defp wait_for_geth_start(geth_out) do
     wait_for_start(geth_out, "IPC endpoint opened", 15_000)
   end
-
-  def maybe_mine(false), do: :noop
-  def maybe_mine(true), do: mine_eth_dev_block()
-
-  def mine_eth_dev_block do
-    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
-    txmap = %{from: addr, to: addr, value: "0x1"}
-    {:ok, txhash} = Ethereumex.HttpClient.eth_send_transaction(txmap)
-    # Dev geth is mining every second, that's why we need to wait longer than 1 s for receipt
-    {:ok, _receipt} = txhash |> Eth.Encoding.from_hex() |> Eth.WaitFor.eth_receipt(2_000)
-  end
 end

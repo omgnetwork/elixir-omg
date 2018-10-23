@@ -14,4 +14,30 @@
 
 defmodule OMG.Watcher.DB.Repo do
   use Ecto.Repo, otp_app: :omg_watcher
+
+  @max_params_count 0xFFFF
+
+  @doc """
+  Inserts all entries to the database in chunks to avoid `too many parameters` error.
+  Accepts the same parameters that `Repo.insert_all/3`.
+  """
+  @spec insert_all_chunked(
+          schema_or_source :: binary() | atom() | Ecto.Schema.t(),
+          entries :: [map() | Keyword.t()],
+          opts :: Keyword.t()
+        ) :: :ok
+  def insert_all_chunked(schema_or_source, entries, opts \\ [])
+
+  def insert_all_chunked(_schema_or_source, [], _opts), do: :ok
+
+  def insert_all_chunked(schema_or_source, entries, opts) do
+    chunk_size = @max_params_count |> div(entries |> hd |> fields_count)
+
+    entries
+    |> Stream.chunk_every(chunk_size)
+    |> Enum.each(&insert_all(schema_or_source, &1, opts))
+  end
+
+  defp fields_count(map) when is_map(map), do: map |> Kernel.map_size()
+  defp fields_count(list) when is_list(list), do: length(list)
 end

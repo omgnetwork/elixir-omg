@@ -127,10 +127,9 @@ From the root dir of `elixir-omg`:
 mix compile
 mix run --no-start -e \
  '
-   OMG.Eth.DevHelpers.prepare_env!
-   |> OMG.Eth.DevHelpers.create_conf_file
-   |> IO.puts
- ' > ~/config.exs
+   contents = OMG.Eth.DevHelpers.prepare_env!() |> OMG.Eth.DevHelpers.create_conf_file()
+   "~/config.exs" |> Path.expand() |> File.write!(contents)
+ '
 ```
 
 The result should look something like this (use `cat ~/config.exs` to check):
@@ -206,15 +205,15 @@ config :omg_db,
 
 ```
 rm -rf ~/.omg/data_watcher
+cd apps/omg_watcher
 mix do ecto.reset --no-start, run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
 ```
 
 #### Start the Watcher
 
-To start syncing to the Child chain server:
+To start syncing to the Child chain server (continue from the `apps/omg_watcher` directory):
 
 ```
-cd apps/omg_watcher
 iex -S mix run --config ~/config_watcher.exs
 ```
 

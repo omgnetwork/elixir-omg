@@ -35,8 +35,17 @@ defmodule OMG.Watcher.DB.EthEventTest do
       [event] = DB.EthEvent.get_all()
       assert %DB.EthEvent{blknum: 1, txindex: 0, event_type: :deposit, hash: ^expected_hash} = event
 
-      [utxo] = DB.TxOutput.get_all()
-      assert %DB.TxOutput{owner: ^owner, currency: @eth, amount: 1, creating_deposit: ^expected_hash} = utxo
+      utxo = DB.TxOutput.get_by_position(Utxo.position(1, 0, 0))
+
+      assert %DB.TxOutput{
+               blknum: 1,
+               txindex: 0,
+               oindex: 0,
+               owner: ^owner,
+               currency: @eth,
+               amount: 1,
+               creating_deposit: ^expected_hash
+             } = utxo
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :alice]

@@ -88,7 +88,7 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
     }
   end
 
-  swagger_path :get_challenge_data do
+  swagger_path :get_utxo_challenge do
     get("/utxo/{utxo_pos}/challenge_data")
     summary("Gets challenge for a given exit")
 

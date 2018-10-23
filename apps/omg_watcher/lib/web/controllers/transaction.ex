@@ -149,7 +149,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
           type(:array)
           items(Schema.ref(:Output))
         end,
-      Post_Transaction_Body:
+      PostTransaction:
         swagger_schema do
           title("Inputs and outputs to transaction")
 
@@ -177,7 +177,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     summary("Produces hex-encoded transaction bytes for provided inputs and outputs.")
 
     parameters do
-      body(:body, Schema.ref(:Post_Transaction_Body), "The request body", required: true)
+      body(:body, Schema.ref(:PostTransaction), "The request body", required: true)
     end
 
     response(200, "OK")

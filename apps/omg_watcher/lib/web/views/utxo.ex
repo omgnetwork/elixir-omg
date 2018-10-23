@@ -33,31 +33,14 @@ defmodule OMG.Watcher.Web.View.Utxo do
     |> Serializer.Response.serialize(:success)
   end
 
-  defp get_position(
-         %DB.Transaction{blknum: blknum, txindex: txindex},
-         deposit
-       )
-       when is_nil(deposit) do
-    {blknum, txindex}
-  end
-
-  defp get_position(
-         tx,
-         %DB.EthEvent{blknum: blknum, txindex: txindex}
-       )
-       when is_nil(tx) do
-    {blknum, txindex}
-  end
-
   defp to_view(%DB.TxOutput{
+         blknum: blknum,
+         txindex: txindex,
+         oindex: oindex,
          amount: amount,
          currency: currency,
-         creating_tx_oindex: oindex,
-         creating_transaction: tx,
-         deposit: deposit
+         creating_transaction: tx
        }) do
-    {blknum, txindex} = get_position(tx, deposit)
-
     %{
       amount: amount,
       currency: currency,

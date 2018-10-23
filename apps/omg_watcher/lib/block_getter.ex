@@ -48,21 +48,15 @@ defmodule OMG.Watcher.BlockGetter do
     EventerAPI.emit_events(events)
 
     with :ok <- continue do
-      response =
+      _ =
         block
         |> to_mined_block(block_rootchain_height)
         |> DB.Transaction.update_with()
 
-      nil = Enum.find(response, &(!match?({:ok, _}, &1)))
       _ = Logger.info(fn -> "Applied block \##{inspect(blknum)}" end)
       {:ok, next_child} = Eth.RootChain.get_current_child_block()
       {state, blocks_numbers} = Core.get_numbers_of_blocks_to_download(state, next_child)
       :ok = run_block_download_task(blocks_numbers)
-
-      _ =
-        Logger.info(fn ->
-          "Child chain seen at block \##{inspect(next_child)}. Downloading blocks #{inspect(blocks_numbers)}"
-        end)
 
       :ok = OMG.API.State.close_block(block_rootchain_height)
 
@@ -100,6 +94,7 @@ defmodule OMG.Watcher.BlockGetter do
     :producer = send(self(), :producer)
 
     maximum_block_withholding_time_ms = Application.get_env(:omg_watcher, :maximum_block_withholding_time_ms)
+    maximum_number_of_unapplied_blocks = Application.get_env(:omg_watcher, :maximum_number_of_unapplied_blocks)
 
     {
       :ok,
@@ -107,7 +102,10 @@ defmodule OMG.Watcher.BlockGetter do
         child_top_block_number,
         child_block_interval,
         exact_synced_height,
-        maximum_block_withholding_time_ms: maximum_block_withholding_time_ms
+        maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
+        maximum_number_of_unapplied_blocks: maximum_number_of_unapplied_blocks,
+        # TODO: not elegant, but this should limit the number of heavy-lifting workers and chance to starve the rest
+        maximum_number_of_pending_blocks: System.schedulers() - 1
       )
     }
   end
@@ -125,11 +123,6 @@ defmodule OMG.Watcher.BlockGetter do
     {:ok, next_child} = Eth.RootChain.get_current_child_block()
 
     {new_state, blocks_numbers} = Core.get_numbers_of_blocks_to_download(state, next_child)
-
-    _ =
-      Logger.info(fn ->
-        "Child chain seen at block \##{inspect(next_child)}. Downloading blocks #{inspect(blocks_numbers)}"
-      end)
 
     :ok = run_block_download_task(blocks_numbers)
 
