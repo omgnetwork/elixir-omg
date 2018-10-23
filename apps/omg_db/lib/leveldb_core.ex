@@ -95,7 +95,7 @@ defmodule OMG.DB.LevelDBCore do
     :last_fast_exit_eth_height,
     :last_slow_exit_eth_height,
     :last_block_getter_eth_height,
-    :last_depositer_eth_height,
+    :last_depositor_eth_height,
     :last_exiter_eth_height
   ]
 

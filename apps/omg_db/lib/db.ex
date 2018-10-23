@@ -69,8 +69,8 @@ defmodule OMG.DB do
     GenServer.call(server_name, :last_block_getter_eth_height)
   end
 
-  def last_depositer_eth_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_depositer_eth_height)
+  def last_depositor_eth_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_depositor_eth_height)
   end
 
   def last_exiter_eth_height(server_name \\ @server_name) do
@@ -91,7 +91,7 @@ defmodule OMG.DB do
           {:put, :last_slow_exit_eth_height, 0},
           {:put, :child_top_block_number, 0},
           {:put, :last_block_getter_eth_height, 0},
-          {:put, :last_depositer_eth_height, 0},
+          {:put, :last_depositor_eth_height, 0},
           {:put, :last_exiter_eth_height, 0}
         ])
 

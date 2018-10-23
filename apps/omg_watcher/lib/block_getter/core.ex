@@ -57,7 +57,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     :height_sync_blknums,
     :synced_height,
     :last_applied_block,
-    :num_of_heighest_block_being_downloaded,
+    :num_of_highest_block_being_downloaded,
     :number_of_blocks_being_downloaded,
     :unapplied_blocks,
     :potential_block_withholdings,
@@ -68,7 +68,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           height_sync_blknums: MapSet.t(),
           synced_height: pos_integer(),
           last_applied_block: non_neg_integer,
-          num_of_heighest_block_being_downloaded: non_neg_integer,
+          num_of_highest_block_being_downloaded: non_neg_integer,
           number_of_blocks_being_downloaded: non_neg_integer,
           unapplied_blocks: %{
             non_neg_integer => OMG.API.Block.t()
@@ -85,6 +85,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
           | :withholding
           | API.Core.recover_tx_error()
 
+  @type init_error() :: :not_at_block_beginning
+
   @doc """
   Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block,
   using `child_block_interval` when progressing from one child block to another
@@ -94,31 +96,39 @@ defmodule OMG.Watcher.BlockGetter.Core do
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
     - `:maximum_block_withholding_time_ms` - how much time should we wait after the first failed pull until we call it a block withholding byzantine condition of the child chain (0 ms)
   """
-  @spec init(non_neg_integer, pos_integer, non_neg_integer, Keyword.t()) :: %__MODULE__{}
+  @spec init(non_neg_integer, pos_integer, non_neg_integer, boolean, Keyword.t()) ::
+          {:ok, %__MODULE__{}} | {:error, init_error()}
   def init(
         block_number,
         child_block_interval,
         synced_height,
+        state_at_block_beginning,
         opts \\ []
       ) do
-    config = %Config{
-      maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 3),
-      maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0),
-      maximum_number_of_unapplied_blocks:
-        Keyword.get(opts, :maximum_number_of_unapplied_blocks, @default_maximum_number_of_unapplied_blocks),
-      block_interval: child_block_interval
-    }
+    if state_at_block_beginning do
+      config = %Config{
+        maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 3),
+        maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0),
+        maximum_number_of_unapplied_blocks:
+          Keyword.get(opts, :maximum_number_of_unapplied_blocks, @default_maximum_number_of_unapplied_blocks),
+        block_interval: child_block_interval
+      }
 
-    %__MODULE__{
-      height_sync_blknums: MapSet.new(),
-      synced_height: synced_height,
-      last_applied_block: block_number,
-      num_of_heighest_block_being_downloaded: block_number,
-      number_of_blocks_being_downloaded: 0,
-      unapplied_blocks: %{},
-      potential_block_withholdings: %{},
-      config: config
-    }
+      state = %__MODULE__{
+        height_sync_blknums: MapSet.new(),
+        synced_height: synced_height,
+        last_applied_block: block_number,
+        num_of_highest_block_being_downloaded: block_number,
+        number_of_blocks_being_downloaded: 0,
+        unapplied_blocks: %{},
+        potential_block_withholdings: %{},
+        config: config
+      }
+
+      {:ok, state}
+    else
+      {:error, :not_at_block_beginning}
+    end
   end
 
   @doc """
@@ -154,7 +164,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Returns blocks that can be pushed to state.
 
-  That is the longest continous range of blocks downloaded from child chain,
+  That is the longest continuous range of blocks downloaded from child chain,
   contained in `block_submitted_events`, published on ethereum height not exceeding `coordinator_height` and not pushed to state before.
   """
   @spec get_blocks_to_apply(t(), list(), non_neg_integer()) ::
@@ -221,14 +231,14 @@ defmodule OMG.Watcher.BlockGetter.Core do
   def get_numbers_of_blocks_to_download(
         %__MODULE__{
           unapplied_blocks: unapplied_blocks,
-          num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded,
+          num_of_highest_block_being_downloaded: num_of_highest_block_being_downloaded,
           number_of_blocks_being_downloaded: number_of_blocks_being_downloaded,
           potential_block_withholdings: potential_block_withholdings,
           config: config
         } = state,
         next_child
       ) do
-    first_block_number = num_of_heighest_block_being_downloaded + config.block_interval
+    first_block_number = num_of_highest_block_being_downloaded + config.block_interval
 
     number_of_empty_slots = config.maximum_number_of_pending_blocks - number_of_blocks_being_downloaded
 
@@ -253,8 +263,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
       (potential_block_withholding_numbers ++ potential_next_block_numbers)
       |> Enum.take(number_of_blocks_to_download)
 
-    [num_of_heighest_block_being_downloaded | _] =
-      ([num_of_heighest_block_being_downloaded] ++ blocks_numbers) |> Enum.sort(&(&1 > &2))
+    [num_of_highest_block_being_downloaded | _] =
+      ([num_of_highest_block_being_downloaded] ++ blocks_numbers) |> Enum.sort(&(&1 > &2))
 
     _ = log_downloading_blocks(next_child, blocks_numbers)
 
@@ -262,7 +272,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
       %{
         state
         | number_of_blocks_being_downloaded: length(blocks_numbers) + number_of_blocks_being_downloaded,
-          num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded
+          num_of_highest_block_being_downloaded: num_of_highest_block_being_downloaded
       },
       blocks_numbers
     }
@@ -281,10 +291,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
     Add block to \"block to consume\" tick off the block from pending blocks.
     Returns the consumable, contiguous list of ordered blocks
   Second scenario:
-    In case of invalid block detecion
+    In case of invalid block detection
     Returns InvalidBlock event.
-  Thrid scenario:
-    In case of potential withholding block detecion
+  Third scenario:
+    In case of potential withholding block detection
     Returns same state, state with new  potential_block_withholding or BlockWithHolding event
   """
   @spec handle_downloaded_block(
@@ -305,7 +315,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   defp validate_downloaded_block(
          %__MODULE__{
            unapplied_blocks: unapplied_blocks,
-           num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded,
+           num_of_highest_block_being_downloaded: num_of_highest_block_being_downloaded,
            last_applied_block: last_applied_block,
            potential_block_withholdings: potential_block_withholdings
          } = state,
@@ -313,7 +323,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
        ) do
     with :ok <- if(Map.has_key?(unapplied_blocks, number), do: :duplicate, else: :ok),
          :ok <-
-           (if last_applied_block < number and number <= num_of_heighest_block_being_downloaded do
+           (if last_applied_block < number and number <= num_of_highest_block_being_downloaded do
               :ok
             else
               :unexpected_blok
@@ -444,8 +454,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
     with nil <- Enum.find(executions, &(!match?({:ok, {_, _, _}}, &1))) do
       {:ok, []}
     else
-      _ ->
-        {{:needs_stopping, :tx_execution},
+      {:error, reason} ->
+        {{:needs_stopping, {:tx_execution, reason}},
          [
            %Event.InvalidBlock{
              error_type: :tx_execution,

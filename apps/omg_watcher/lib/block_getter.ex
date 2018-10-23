@@ -21,6 +21,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.API.Block
   alias OMG.API.EventerAPI
   alias OMG.API.RootChainCoordinator
+  alias OMG.API.State
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.DB
@@ -77,7 +78,7 @@ defmodule OMG.Watcher.BlockGetter do
       {:noreply, state}
     else
       {:needs_stopping, reason} ->
-        _ = Logger.error(fn -> "Stopping #{inspect(__MODULE__)} becasue of #{inspect(reason)}" end)
+        _ = Logger.error(fn -> "Stopping #{inspect(__MODULE__)} because of #{inspect(reason)}" end)
         {:stop, :shutdown, state}
     end
   end
@@ -91,8 +92,12 @@ defmodule OMG.Watcher.BlockGetter do
     {:ok, last_synced_height} = OMG.DB.last_block_getter_eth_height()
     synced_height = max(deployment_height, last_synced_height)
 
-    {:ok, child_top_block_number} = OMG.DB.child_top_block_number()
-    child_block_interval = Application.get_env(:omg_eth, :child_block_interval)
+    {current_block_height, state_at_block_beginning} = State.get_status()
+    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
+
+    # State treats current as the next block to be executed or a block that is being executed
+    # while top block number is a block that has been formed (they differ by the interval)
+    child_top_block_number = current_block_height - child_block_interval
 
     {:ok, block_submissions} = Eth.RootChain.get_block_submitted_events({synced_height, synced_height + 1000})
     exact_synced_height = Core.figure_out_exact_sync_height(block_submissions, synced_height, child_top_block_number)
@@ -106,18 +111,19 @@ defmodule OMG.Watcher.BlockGetter do
     maximum_block_withholding_time_ms = Application.get_env(:omg_watcher, :maximum_block_withholding_time_ms)
     maximum_number_of_unapplied_blocks = Application.get_env(:omg_watcher, :maximum_number_of_unapplied_blocks)
 
-    {
-      :ok,
+    {:ok, state} =
       Core.init(
         child_top_block_number,
         child_block_interval,
         exact_synced_height,
+        state_at_block_beginning,
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
         maximum_number_of_unapplied_blocks: maximum_number_of_unapplied_blocks,
         # TODO: not elegant, but this should limit the number of heavy-lifting workers and chance to starve the rest
         maximum_number_of_pending_blocks: System.schedulers() - 1
       )
-    }
+
+    {:ok, state}
   end
 
   @spec handle_info(
@@ -150,7 +156,7 @@ defmodule OMG.Watcher.BlockGetter do
       {:noreply, new_state}
     else
       {:needs_stopping, reason} ->
-        _ = Logger.error(fn -> "Stopping #{inspect(__MODULE__)} becasue of #{inspect(reason)}" end)
+        _ = Logger.error(fn -> "Stopping #{inspect(__MODULE__)} because of #{inspect(reason)}" end)
         {:stop, :shutdown, state}
     end
   end
