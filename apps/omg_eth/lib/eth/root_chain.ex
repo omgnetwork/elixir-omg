@@ -47,8 +47,9 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  def start_deposit_exit(deposit_positon, token, value, from, contract \\ nil, opts \\ nil) do
-    opts = opts || Keyword.put_new(@tx_defaults, :gas, 1_000_000)
+  def start_deposit_exit(deposit_positon, token, value, from, contract \\ nil, opts \\ []) do
+    defaults = @tx_defaults |> Keyword.put(:gas, 1_000_000)
+    opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
 
@@ -61,8 +62,9 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  def start_exit(utxo_position, txbytes, proof, sigs, from, contract \\ nil, opts \\ nil) do
-    opts = opts || Keyword.put_new(@tx_defaults, :gas, 1_000_000)
+  def start_exit(utxo_position, txbytes, proof, sigs, from, contract \\ nil, opts \\ []) do
+    defaults = @tx_defaults |> Keyword.put(:gas, 1_000_000)
+    opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
 
@@ -75,33 +77,48 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  def deposit(value, from, contract \\ nil, opts \\ @tx_defaults) do
-    opts = Keyword.put(opts, :value, value)
+  def deposit(value, from, contract \\ nil, opts \\ []) do
+    defaults = @tx_defaults |> Keyword.put(:gas, 80_000)
+
+    opts =
+      defaults
+      |> Keyword.merge(opts)
+      |> Keyword.put(:value, value)
+
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     Eth.contract_transact(from, contract, "deposit()", [], opts)
   end
 
-  def deposit_token(from, token, amount, contract \\ nil, opts \\ @tx_defaults) do
+  def deposit_token(from, token, amount, contract \\ nil, opts \\ []) do
+    defaults = @tx_defaults |> Keyword.put(:gas, 150_000)
+    opts = defaults |> Keyword.merge(opts)
+
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    signature = "depositFrom(address,address,uint256)"
-    Eth.contract_transact(from, contract, signature, [from, token, amount], opts)
+    signature = "depositFrom(address,uint256)"
+    Eth.contract_transact(from, contract, signature, [token, amount], opts)
   end
 
-  def add_token(token, contract \\ nil, opts \\ @tx_defaults) do
+  def add_token(token, contract \\ nil, opts \\ []) do
+    opts = @tx_defaults |> Keyword.merge(opts)
+
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
 
     Eth.contract_transact(from_hex(from), contract, "addToken(address)", [token], opts)
   end
 
-  def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, from, contract \\ nil, opts \\ @tx_defaults) do
+  def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, from, contract \\ nil, opts \\ []) do
+    opts = @tx_defaults |> Keyword.merge(opts)
+
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "challengeExit(uint256,uint256,bytes,bytes,bytes)"
     args = [cutxopo, eutxoindex, txbytes, proof, sigs]
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
-  def create_new(path_project_root, addr, opts \\ @tx_defaults) do
+  def create_new(path_project_root, addr, opts \\ []) do
+    opts = @tx_defaults |> Keyword.merge(opts)
+
     bytecode = Eth.get_bytecode!(path_project_root, "RootChain")
     Eth.deploy_contract(addr, bytecode, [], [], opts)
   end

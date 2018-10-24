@@ -35,7 +35,7 @@ defmodule OMG.Watcher.Web.Controller.Status do
          {:ok, {_root, last_mined_child_block_timestamp}} <-
            Eth.RootChain.get_child_chain(last_mined_child_block_number) do
       status = %{
-        last_validated_child_block_number: State.get_current_child_block_height(),
+        last_validated_child_block_number: State.get_status() |> elem(0),
         last_mined_child_block_number: last_mined_child_block_number,
         last_mined_child_block_timestamp: last_mined_child_block_timestamp,
         eth_syncing: Eth.Geth.syncing?()

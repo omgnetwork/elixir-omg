@@ -68,9 +68,9 @@ defmodule OMG.API.State do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end
 
-  @spec get_current_child_block_height :: pos_integer
-  def get_current_child_block_height do
-    GenServer.call(__MODULE__, :get_current_height)
+  @spec get_status :: {non_neg_integer(), boolean()}
+  def get_status do
+    GenServer.call(__MODULE__, :get_status)
   end
 
   ### Server
@@ -162,10 +162,13 @@ defmodule OMG.API.State do
   end
 
   @doc """
-  Gets the current block's height
+      Gets the current block's height and whether at the beginning of a block.
+
+      Beginning of block is true if and only if the last block has been committed
+      and none transaction from the next block has been executed.
   """
-  def handle_call(:get_current_height, _from, state) do
-    {:reply, Core.get_current_child_block_height(state), state}
+  def handle_call(:get_status, _from, state) do
+    {:reply, Core.get_status(state), state}
   end
 
   @doc """

@@ -28,19 +28,18 @@ defmodule OMG.Watcher.Application do
       # Start the Ecto repository
       supervisor(OMG.Watcher.DB.Repo, []),
       # Start workers
-      {OMG.API.State, []},
       {OMG.Watcher.Eventer, []},
       {OMG.API.RootChainCoordinator, MapSet.new([:depositer, :fast_validator, :slow_validator, :block_getter])},
       worker(
         OMG.API.EthereumEventListener,
         [
           %{
-            synced_height_update_key: :last_depositer_eth_height,
+            synced_height_update_key: :last_depositor_eth_height,
             service_name: :depositer,
             block_finality_margin: block_finality_margin,
             get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
             process_events_callback: &deposit_events_callback/1,
-            get_last_synced_height_callback: &OMG.DB.last_depositer_eth_height/0
+            get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0
           }
         ],
         id: :depositer
@@ -74,15 +73,10 @@ defmodule OMG.Watcher.Application do
         ],
         id: :slow_validator
       ),
-      worker(
-        OMG.Watcher.BlockGetter,
-        [[]],
-        restart: :transient,
-        id: :block_getter
-      ),
-
       # Start the endpoint when the application starts
-      supervisor(OMG.Watcher.Web.Endpoint, [])
+      supervisor(OMG.Watcher.Web.Endpoint, []),
+      # Start BlockGetter and State
+      supervisor(OMG.Watcher.BlockGetter.Supervisor, [])
     ]
 
     _ = Logger.info(fn -> "Started application OMG.Watcher.Application" end)

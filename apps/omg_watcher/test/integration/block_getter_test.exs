@@ -193,7 +193,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   end
 
   @tag fixtures: [:watcher_sandbox, :alice]
-  test "diffrent hash send by child chain", %{alice: alice} do
+  test "different hash send by child chain", %{alice: alice} do
     defmodule BadChildChainHash do
       use JSONRPC2.Server.Handler
 

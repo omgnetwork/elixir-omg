@@ -30,13 +30,19 @@ defmodule OMG.DB do
     result
   end
 
-  @spec blocks(block_to_fetch :: list()) :: {:ok, list()} | {:error, any}
-  def blocks(blocks_to_fetch, server_name \\ @server_name) do
+  @spec blocks(block_to_fetch :: list(), atom) :: {:ok, list()} | {:error, any}
+  def blocks(blocks_to_fetch, server_name \\ @server_name)
+
+  def blocks([], _server_name), do: {:ok, []}
+
+  def blocks(blocks_to_fetch, server_name) do
     GenServer.call(server_name, {:blocks, blocks_to_fetch})
   end
 
   def utxos(server_name \\ @server_name) do
-    GenServer.call(server_name, {:utxos})
+    timeout_ms = 600_000
+    _ = Logger.info(fn -> "Reading UTXO set, this might take a while. Allowing #{inspect(timeout_ms)} ms" end)
+    GenServer.call(server_name, {:utxos}, timeout_ms)
   end
 
   def block_hashes(block_numbers_to_fetch, server_name \\ @server_name) do
@@ -63,8 +69,8 @@ defmodule OMG.DB do
     GenServer.call(server_name, :last_block_getter_eth_height)
   end
 
-  def last_depositer_eth_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_depositer_eth_height)
+  def last_depositor_eth_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_depositor_eth_height)
   end
 
   def last_exiter_eth_height(server_name \\ @server_name) do
@@ -85,7 +91,7 @@ defmodule OMG.DB do
           {:put, :last_slow_exit_eth_height, 0},
           {:put, :child_top_block_number, 0},
           {:put, :last_block_getter_eth_height, 0},
-          {:put, :last_depositer_eth_height, 0},
+          {:put, :last_depositor_eth_height, 0},
           {:put, :last_exiter_eth_height, 0}
         ])
 

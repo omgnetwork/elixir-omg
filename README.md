@@ -15,7 +15,7 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
          * [Setting up a child chain server (a developer environment)](#setting-up-a-child-chain-server-a-developer-environment)
             * [Start up developer instance of Ethereum](#start-up-developer-instance-of-ethereum)
                * [Persistent developer geth instance](#persistent-developer-geth-instance)
-            * [Configure the omg_eth app](#configure-the-omg_eth-app)
+            * [Prepare and configure the root chain contract](#prepare-and-configure-the-root-chain-contract)
             * [Initialize the child chain database](#initialize-the-child-chain-database)
             * [Start it up!](#start-it-up)
          * [Setting up a Watcher (a developer environment)](#setting-up-a-watcher-a-developer-environment)
@@ -49,7 +49,7 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
          * [Installing dependencies and compiling contracts](#installing-dependencies-and-compiling-contracts)
    * [Testing &amp; development](#testing--development)
 
-<!-- Added by: user, at: 2018-08-23T17:54+02:00 -->
+<!-- Added by: user, at: 2018-10-22T11:44+02:00 -->
 
 <!--te-->
 
@@ -148,8 +148,10 @@ Note that you'll need to pass the configuration file each time you run `mix` wit
 
 ```
 geth attach http://127.0.0.1:8545
-personal.unlockAccount(“<authority_addr from ~/config.exs>”, '', 0)
+personal.unlockAccount(“<authority_addr from ~/config.exs>”, 'ThisIsATestnetPassphrase', 0)
 ```
+The passphrase mentioned above originates from [`dev_helpers`](apps/omg_eth/test/support/dev_helpers.ex).
+It is what is used when deploying the contract in the `dev` environment using `prepare_env!()` as above.
 
 #### Initialize the child chain database
 Initialize the database with the following command.

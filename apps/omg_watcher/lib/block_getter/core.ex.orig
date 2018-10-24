@@ -103,21 +103,43 @@ defmodule OMG.Watcher.BlockGetter.Core do
         state_at_block_beginning,
         opts \\ []
       ) do
+<<<<<<< HEAD
+    %__MODULE__{
+      height_sync_blknums: MapSet.new(),
+      synced_height: synced_height,
+      last_applied_block: block_number,
+      num_of_heighest_block_being_downloaded: block_number,
+      number_of_blocks_being_downloaded: 0,
+      unapplied_blocks: %{},
+      potential_block_withholdings: %{},
+      config: struct(Config, Keyword.put(opts, :block_interval, child_block_interval))
+    }
+=======
     if state_at_block_beginning do
-      {:ok,
-       %__MODULE__{
-         height_sync_blknums: MapSet.new(),
-         synced_height: synced_height,
-         last_applied_block: block_number,
-         num_of_highest_block_being_downloaded: block_number,
-         number_of_blocks_being_downloaded: 0,
-         unapplied_blocks: %{},
-         potential_block_withholdings: %{},
-         config: struct(Config, Keyword.put(opts, :block_interval, child_block_interval))
-       }}
+      config = %Config{
+        maximum_number_of_pending_blocks: Keyword.get(opts, :maximum_number_of_pending_blocks, 3),
+        maximum_block_withholding_time_ms: Keyword.get(opts, :maximum_block_withholding_time_ms, 0),
+        maximum_number_of_unapplied_blocks:
+          Keyword.get(opts, :maximum_number_of_unapplied_blocks, @default_maximum_number_of_unapplied_blocks),
+        block_interval: child_block_interval
+      }
+
+      state = %__MODULE__{
+        height_sync_blknums: MapSet.new(),
+        synced_height: synced_height,
+        last_applied_block: block_number,
+        num_of_highest_block_being_downloaded: block_number,
+        number_of_blocks_being_downloaded: 0,
+        unapplied_blocks: %{},
+        potential_block_withholdings: %{},
+        config: config
+      }
+
+      {:ok, state}
     else
       {:error, :not_at_block_beginning}
     end
+>>>>>>> release/v0.0.1
   end
 
   @doc """
@@ -289,17 +311,39 @@ defmodule OMG.Watcher.BlockGetter.Core do
         ) ::
           {:ok | {:needs_stopping, block_error()}, %__MODULE__{},
            [] | list(Event.InvalidBlock.t()) | list(Event.BlockWithholding.t())}
-          | {:error, :duplicate | :unexpected_blok}
+          | {:error, :duplicate | :unexpected_block}
   def handle_downloaded_block(
         %__MODULE__{
           unapplied_blocks: unapplied_blocks,
-          num_of_highest_block_being_downloaded: num_of_highest_block_being_downloaded,
+          num_of_heighest_block_being_downloaded: num_of_heighest_block_being_downloaded,
           last_applied_block: last_applied_block,
           potential_block_withholdings: potential_block_withholdings,
           number_of_blocks_being_downloaded: number_of_blocks_being_downloaded
         } = state,
         {:ok, %{number: number} = block}
       ) do
+<<<<<<< HEAD
+    with :ok <- if(Map.has_key?(unapplied_blocks, number), do: :duplicate, else: :ok),
+         :ok <-
+           if(
+             last_applied_block < number and number <= num_of_heighest_block_being_downloaded,
+             do: :ok,
+             else: :unexpected_block
+           ) do
+=======
+    state = %{state | number_of_blocks_being_downloaded: number_of_blocks_being_downloaded - 1}
+    validate_downloaded_block(state, response)
+  end
+
+  defp validate_downloaded_block(
+         %__MODULE__{
+           unapplied_blocks: unapplied_blocks,
+           num_of_highest_block_being_downloaded: num_of_highest_block_being_downloaded,
+           last_applied_block: last_applied_block,
+           potential_block_withholdings: potential_block_withholdings
+         } = state,
+         {:ok, %{number: number} = block}
+       ) do
     with :ok <- if(Map.has_key?(unapplied_blocks, number), do: :duplicate, else: :ok),
          :ok <-
            (if last_applied_block < number and number <= num_of_highest_block_being_downloaded do
@@ -307,6 +351,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
             else
               :unexpected_blok
             end) do
+>>>>>>> release/v0.0.1
       state = %{
         state
         | unapplied_blocks: Map.put(unapplied_blocks, number, block),
