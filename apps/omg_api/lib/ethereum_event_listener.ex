@@ -24,13 +24,13 @@ defmodule OMG.API.EthereumEventListener do
   use OMG.API.LoggerExt
 
   @type config() :: %{
-    block_finality_margin: non_neg_integer,
-    synced_height_update_key: atom,
-    service_name: atom,
-    get_events_callback: (non_neg_integer, non_neg_integer -> {:ok, [any]}),
-    process_events_callback: ([any] -> :ok),
-    get_last_synced_height_callback: (-> {:ok, non_neg_integer})
-  }
+          block_finality_margin: non_neg_integer,
+          synced_height_update_key: atom,
+          service_name: atom,
+          get_events_callback: (non_neg_integer, non_neg_integer -> {:ok, [any]}),
+          process_events_callback: ([any] -> :ok),
+          get_last_synced_height_callback: (() -> {:ok, non_neg_integer})
+        }
 
   ### Client
 
