@@ -57,6 +57,9 @@ defmodule OMG.DB do
     GenServer.call(server_name, :child_top_block_number)
   end
 
+  # Note: *_eth_height values below denote actual Ethereum height service has processed.
+  # It might differ from "latest" Ethereum block.
+
   def last_fast_exit_eth_height(server_name \\ @server_name) do
     GenServer.call(server_name, :last_fast_exit_eth_height)
   end

@@ -54,13 +54,7 @@ defmodule OMG.API.EthereumEventListener do
     _ = Logger.info(fn -> "Starting EthereumEventListener for #{service_name}" end)
 
     {:ok,
-     {%Core{
-        synced_height_update_key: update_key,
-        next_event_height_lower_bound: last_event_block_height,
-        synced_height: last_event_block_height,
-        service_name: service_name,
-        block_finality_margin: finality_margin
-      },
+     {Core.init(update_key, service_name, last_event_block_height, finality_margin),
       %{
         get_ethereum_events_callback: get_events_callback,
         process_events_callback: process_events_callback
