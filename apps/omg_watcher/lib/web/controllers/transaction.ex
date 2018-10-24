@@ -35,7 +35,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   def get_transaction(conn, %{"id" => id}) do
     id
     |> Base.decode16!()
-    |> DB.Transaction.get()
+    |> DB.Transaction.get(true)
     |> respond(conn)
   end
 
@@ -128,6 +128,8 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
             sig2(:string, "Signature of owner of the second input utxo", required: true)
             spender1(:string, "Address of owner of the first input utxo", required: true)
             spender2(:string, "Address of owner of the second input utxo", required: true)
+            timestamp(:integer, "Timestamp of a block which the transaction was included in", required: true)
+            eth_height(:integer, "Eth height where the block was submitted", required: true)
           end
 
           example(%{
@@ -150,7 +152,9 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
             sig2:
               "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
             spender1: "92EAD0DB732692FF887268DA965C311AC2C9005B",
-            spender2: "92EAD0DB732692FF887268DA965C311AC2C9005B"
+            spender2: "92EAD0DB732692FF887268DA965C311AC2C9005B",
+            timestamp: 1_540_365_586,
+            eth_height: 6_573_395
           })
         end,
       Transactions:

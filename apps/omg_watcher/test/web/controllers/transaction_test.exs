@@ -68,6 +68,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     } do
       {blknum, txindex, txhash, _recovered_tx} = initial_blocks |> hd()
 
+      %DB.Block{timestamp: timestamp, eth_height: eth_height} = DB.Block.get(blknum)
       bob_addr = bob.addr |> TestHelper.to_response_address()
       alice_addr = alice.addr |> TestHelper.to_response_address()
       txhash = Base.encode16(txhash)
@@ -93,7 +94,9 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "sig1" => <<_sig1::binary-size(130)>>,
                  "sig2" => ^zero_sign,
                  "spender1" => ^alice_addr,
-                 "spender2" => nil
+                 "spender2" => nil,
+                 "eth_height" => ^eth_height,
+                 "timestamp" => ^timestamp
                },
                "result" => "success"
              } = TestHelper.rest_call(:get, "/transaction/#{txhash}")

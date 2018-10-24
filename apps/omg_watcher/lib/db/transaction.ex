@@ -49,9 +49,16 @@ defmodule OMG.Watcher.DB.Transaction do
     belongs_to(:block, DB.Block, foreign_key: :blknum, references: :blknum, type: :integer)
   end
 
-  def get(hash) do
-    __MODULE__
-    |> Repo.get(hash)
+  def get(hash, preload_block \\ false) do
+    transaction =
+      __MODULE__
+      |> Repo.get(hash)
+
+    if preload_block do
+      transaction |> Repo.preload(:block)
+    else
+      transaction
+    end
   end
 
   def get_last(limit) do
@@ -63,6 +70,7 @@ defmodule OMG.Watcher.DB.Transaction do
       )
 
     Repo.all(query)
+    |> Repo.preload(:block)
   end
 
   def get_by_address(address, limit) do
@@ -78,6 +86,7 @@ defmodule OMG.Watcher.DB.Transaction do
       )
 
     Repo.all(query)
+    |> Repo.preload(:block)
   end
 
   def get_by_blknum(blknum) do
