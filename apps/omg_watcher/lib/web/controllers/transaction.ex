@@ -51,6 +51,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
         DB.Transaction.get_last(limit)
       else
         {:ok, address_decode} = Crypto.decode_address(address)
+        {limit, ""} = Integer.parse(limit)
         DB.Transaction.get_by_address(address_decode, limit)
       end
 

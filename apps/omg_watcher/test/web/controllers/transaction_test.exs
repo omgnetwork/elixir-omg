@@ -122,18 +122,22 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       alice: alice,
       bob: bob
     } do
+      OMG.Watcher.DB.EthEvent.insert_deposits([
+        %{owner: alice.addr, currency: @eth, amount: 1, blknum: 1}
+      ])
+
       txs = [
         OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}]),
         OMG.API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{bob, 300}])
       ]
 
       alice_address = alice.addr |> TestHelper.to_response_address()
-      bob_address = alice.addr |> TestHelper.to_response_address()
+      bob_address = bob.addr |> TestHelper.to_response_address()
 
       expected_result = [
         %{
           "spender1" => alice_address,
-          "spender2" => @zero_address_hex,
+          "spender2" => nil,
           "newowner1" => bob_address,
           "newowner2" => @zero_address_hex
         }
@@ -158,7 +162,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       expected_result = [
         %{
           "spender1" => alice_address,
-          "spender2" => @zero_address_hex,
+          "spender2" => nil,
           "newowner1" => alice_address,
           "newowner2" => @zero_address_hex
         }
@@ -182,8 +186,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
       expected_result = [
         %{
-          "spender1" => @zero_address_hex,
-          "spender2" => @zero_address_hex,
+          "spender1" => nil,
+          "spender2" => nil,
           "newowner1" => alice_address,
           "newowner2" => @zero_address_hex
         }
@@ -194,22 +198,26 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
     @tag :skip
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
-    test "endpoint returns tx without outputs (amount = 0)  and contains requested address as sender", %{
+    test "endpoint returns tx without outputs (amount = 0) and contains requested address as sender", %{
       alice: alice,
       bob: bob
     } do
+      OMG.Watcher.DB.EthEvent.insert_deposits([
+        %{owner: alice.addr, currency: @eth, amount: 1, blknum: 1}
+      ])
+
       txs = [
         OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 0}]),
         OMG.API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{bob, 300}])
       ]
 
       alice_address = alice.addr |> TestHelper.to_response_address()
-      bob_address = alice.addr |> TestHelper.to_response_address()
+      bob_address = bob.addr |> TestHelper.to_response_address()
 
       expected_result = [
         %{
           "spender1" => alice_address,
-          "spender2" => @zero_address_hex,
+          "spender2" => nil,
           "newowner1" => bob_address,
           "newowner2" => @zero_address_hex
         }
@@ -224,31 +232,35 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       alice: alice,
       bob: bob
     } do
+      OMG.Watcher.DB.EthEvent.insert_deposits([
+        %{owner: alice.addr, currency: @eth, amount: 1, blknum: 1}
+      ])
+
       txs = [
-        OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 0}]),
-        OMG.API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{alice, 300}]),
-        OMG.API.TestHelper.create_recovered([{1, 2, 0, bob}], @eth, [{bob, 30}])
+        OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 2}]),
+        OMG.API.TestHelper.create_recovered([{1_000, 0, 0, bob}], @eth, [{alice, 1}]),
+        OMG.API.TestHelper.create_recovered([{1_000, 1, 0, bob}], @eth, [{bob, 1}])
       ]
 
       alice_address = alice.addr |> TestHelper.to_response_address()
-      bob_address = alice.addr |> TestHelper.to_response_address()
+      bob_address = bob.addr |> TestHelper.to_response_address()
 
       expected_result = [
         %{
           "spender1" => bob_address,
-          "spender2" => @zero_address_hex,
+          "spender2" => nil,
           "newowner1" => bob_address,
           "newowner2" => @zero_address_hex
         },
         %{
           "spender1" => bob_address,
-          "spender2" => @zero_address_hex,
+          "spender2" => nil,
           "newowner1" => alice_address,
           "newowner2" => @zero_address_hex
         }
       ]
 
-      assert_transactions_filter_by_address_endpoint(txs, expected_result, alice, 2)
+      assert_transactions_filter_by_address_endpoint(txs, expected_result, bob, 2)
     end
 
     defp assert_transactions_filter_by_address_endpoint(
@@ -257,7 +269,14 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
            entity,
            limit \\ 200
          ) do
-      {:ok, _} = DB.Transaction.update_with(%{transactions: txs, blknum: 1_000, eth_height: 1})
+      {:ok, _} =
+        DB.Transaction.update_with(%{
+          transactions: txs,
+          blknum: 1_000,
+          eth_height: 1,
+          blkhash: <<?#::256>>,
+          timestamp: :os.system_time(:second)
+        })
 
       {:ok, address} = Crypto.encode_address(entity.addr)
 
