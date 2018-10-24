@@ -31,7 +31,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   @spec download_block(pos_integer()) ::
           {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
-  def download_block(requested_number) do
+  defp download_block(requested_number) do
     {:ok, {requested_hash, block_timestamp}} = Eth.RootChain.get_child_chain(requested_number)
     response = OMG.JSONRPC.Client.call(:get_block, %{hash: requested_hash})
 
@@ -50,7 +50,6 @@ defmodule OMG.Watcher.BlockGetter do
         state
       ) do
     tx_exec_results = for tx <- transactions, do: OMG.API.State.exec(tx, fees)
-
     {continue, events} = Core.validate_tx_executions(tx_exec_results, block)
 
     # TODO: Unfortunately due to strange issue with SQLite on tests we cannot fetch this number at init
@@ -63,11 +62,8 @@ defmodule OMG.Watcher.BlockGetter do
 
     with :ok <- continue do
       _ = Enum.map(blocks_to_persist, &DB.Transaction.update_with/1)
-
       _ = Logger.info(fn -> "Applied block \##{inspect(blknum)}" end)
-      {:ok, next_child} = Eth.RootChain.get_current_child_block()
-      {state, blocks_numbers} = Core.get_numbers_of_blocks_to_download(state, next_child)
-      :ok = run_block_download_task(blocks_numbers)
+      state = run_block_download_task(state)
 
       :ok = OMG.API.State.close_block(block_rootchain_height)
 
@@ -136,11 +132,7 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info(msg, state)
 
   def handle_info(:producer, state) do
-    {:ok, next_child} = Eth.RootChain.get_current_child_block()
-
-    {new_state, blocks_numbers} = Core.get_numbers_of_blocks_to_download(state, next_child)
-
-    :ok = run_block_download_task(blocks_numbers)
+    new_state = run_block_download_task(state)
 
     {:ok, _} = :timer.send_after(2_000, self(), :producer)
     {:noreply, new_state}
@@ -183,12 +175,17 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
-  defp run_block_download_task(blocks_numbers) do
+  defp run_block_download_task(state) do
+    {:ok, next_child} = Eth.RootChain.get_current_child_block()
+    {new_state, blocks_numbers} = Core.get_numbers_of_blocks_to_download(state, next_child)
+
     blocks_numbers
     |> Enum.each(
       # captures the result in handle_info/2 with the atom: downloaded_block
       &Task.async(fn -> {:downloaded_block, download_block(&1)} end)
     )
+
+    new_state
   end
 
   defp schedule_sync_height(interval) do

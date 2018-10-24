@@ -42,9 +42,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "get numbers of blocks to download" do
-    state = init_state(opts: [maximum_number_of_pending_blocks: 4])
-
-    state
+    init_state(opts: [maximum_number_of_pending_blocks: 4])
     |> Core.get_numbers_of_blocks_to_download(20_000)
     |> assert_check([1_000, 2_000, 3_000, 4_000])
     |> handle_downloaded_block(%Block{number: 4_000})
@@ -54,9 +52,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "first block to download number is not zero" do
-    state = init_state(start_block_number: 7_000, interval: 100, opts: [maximum_number_of_pending_blocks: 4])
-
-    state
+    init_state(start_block_number: 7_000, interval: 100, opts: [maximum_number_of_pending_blocks: 4])
     |> Core.get_numbers_of_blocks_to_download(20_000)
     |> assert_check([7_100, 7_200, 7_300, 7_400])
     |> handle_downloaded_block(%Block{number: 7_200})
@@ -65,9 +61,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "does not download same blocks twice and respects increasing next block number" do
-    state = init_state(opts: [maximum_number_of_pending_blocks: 5])
-
-    state
+    init_state(opts: [maximum_number_of_pending_blocks: 5])
     |> Core.get_numbers_of_blocks_to_download(4_000)
     |> assert_check([1_000, 2_000, 3_000])
     |> Core.get_numbers_of_blocks_to_download(2_000)
@@ -229,24 +223,33 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "get_numbers_of_blocks_to_download function returns number of potential withholding block which then is canceled" do
-    state =
-      init_state(opts: [maximum_number_of_pending_blocks: 4, maximum_block_withholding_time_ms: 0])
-      |> Core.get_numbers_of_blocks_to_download(20_000)
-      |> assert_check([1_000, 2_000, 3_000, 4_000])
-      |> handle_downloaded_block(%Block{number: 1_000})
-      |> handle_downloaded_block(%Block{number: 2_000})
-      |> Core.handle_downloaded_block(Core.validate_download_response({:error, :error_reason}, <<>>, 3_000, 0, 0))
-      |> assert_check(:ok, [])
-
-    state
+    init_state(opts: [maximum_number_of_pending_blocks: 4, maximum_block_withholding_time_ms: 0])
     |> Core.get_numbers_of_blocks_to_download(20_000)
-    |> assert_check([5_000, 6_000])
-
-    state
-    |> Core.handle_downloaded_block({:ok, %Block{number: 3_000}})
+    |> assert_check([1_000, 2_000, 3_000, 4_000])
+    |> handle_downloaded_block(%Block{number: 1_000})
+    |> handle_downloaded_block(%Block{number: 2_000})
+    |> Core.handle_downloaded_block(Core.validate_download_response({:error, :error_reason}, <<>>, 3_000, 0, 0))
     |> assert_check(:ok, [])
+    |> Core.get_numbers_of_blocks_to_download(5_000)
+    |> assert_check([3_000])
+    |> handle_downloaded_block(%Block{number: 3_000})
     |> Core.get_numbers_of_blocks_to_download(20_000)
     |> assert_check([5_000, 6_000, 7_000])
+  end
+
+  test "get_numbers_of_blocks_to_download don't send block that are download" do
+    init_state(opts: [maximum_number_of_pending_blocks: 4, maximum_block_withholding_time_ms: 0])
+    |> Core.get_numbers_of_blocks_to_download(20_000)
+    |> assert_check([1_000, 2_000, 3_000, 4_000])
+    |> handle_downloaded_block(%Block{number: 1_000})
+    |> handle_downloaded_block(%Block{number: 2_000})
+    |> Core.handle_downloaded_block(Core.validate_download_response({:error, :error_reason}, <<>>, 3_000, 0, 0))
+    |> assert_check(:ok, [])
+    |> Core.get_numbers_of_blocks_to_download(20_000)
+    |> assert_check([3_000, 5_000, 6_000])
+    |> handle_downloaded_block(%Block{number: 5_000})
+    |> Core.get_numbers_of_blocks_to_download(20_000)
+    |> assert_check([7_000])
   end
 
   test "get_numbers_of_blocks_to_download function doesn't return next blocks if state doesn't have empty slots left" do
@@ -260,7 +263,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     |> Core.handle_downloaded_block(Core.validate_download_response({:error, :error_reason}, <<>>, 3_000, 0, 0))
     |> assert_check(:ok, [])
     |> Core.get_numbers_of_blocks_to_download(20_000)
-    |> assert_check([])
+    |> assert_check([1_000, 2_000, 3_000])
   end
 
   test "handle_downloaded_block function after maximum_block_withholding_time_ms returns BlockWithholding event" do
@@ -298,13 +301,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     |> Core.handle_downloaded_block(potential_withholding_2_000)
     |> assert_check(:ok, [])
     |> Core.get_numbers_of_blocks_to_download(20_000)
-    |> assert_check([])
-    |> Core.handle_downloaded_block(potential_withholding_1_000)
-    |> assert_check(:ok, [])
+    |> assert_check([1_000, 2_000])
     |> Core.handle_downloaded_block(potential_withholding_2_000)
     |> assert_check(:ok, [])
     |> Core.get_numbers_of_blocks_to_download(20_000)
-    |> assert_check([])
+    |> assert_check([3_000])
   end
 
   test "figures out the proper synced height on init" do
