@@ -80,6 +80,7 @@ defmodule OMG.API.RootChainCoordinator do
 
   def handle_info(:timeout, state) do
     Logger.warn(fn -> "No new activity for 60 seconds. Are we dead?" end)
+    {:noreply, state}
   end
 
   defp schedule_get_ethereum_height(interval) do
