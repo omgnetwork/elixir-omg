@@ -54,6 +54,32 @@ defmodule OMG.Watcher.DB.Transaction do
     |> Repo.get(hash)
   end
 
+  def get_last(limit) do
+    query =
+      from(
+        __MODULE__,
+        order_by: [desc: :blknum, desc: :txindex],
+        limit: ^limit
+      )
+
+    Repo.all(query)
+  end
+
+  def get_by_address(address, limit) do
+    query =
+      from(
+        tx in __MODULE__,
+        distinct: tx.txhash,
+        left_join: output in assoc(tx, :outputs),
+        left_join: input in assoc(tx, :inputs),
+        where: output.owner == ^address or input.owner == ^address,
+        order_by: [desc: tx.blknum, desc: tx.txindex],
+        limit: ^limit
+      )
+
+    Repo.all(query)
+  end
+
   def get_by_blknum(blknum) do
     Repo.all(from(__MODULE__, where: [blknum: ^blknum]))
   end

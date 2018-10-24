@@ -20,11 +20,14 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
+  alias OMG.API.Crypto
   alias OMG.API.State
   alias OMG.Watcher.DB
   alias OMG.Watcher.Web.View
 
   import OMG.Watcher.Web.ErrorHandler
+
+  @default_transactions_limit 200
 
   @doc """
   Retrieves a specific transaction by id.
@@ -34,6 +37,24 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     |> Base.decode16!()
     |> DB.Transaction.get()
     |> respond(conn)
+  end
+
+  @doc """
+  Retrieves a list of transactions
+  """
+  def get_transactions(conn, params) do
+    address = Map.get(params, "address")
+    limit = Map.get(params, "limit", @default_transactions_limit)
+
+    transactions =
+      if address == nil do
+        DB.Transaction.get_last(limit)
+      else
+        {:ok, address_decode} = Crypto.decode_address(address)
+        DB.Transaction.get_by_address(address_decode, limit)
+      end
+
+    respond_multiple(transactions, conn)
   end
 
   @doc """
@@ -52,6 +73,9 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     end
     |> respond(conn)
   end
+
+  defp respond_multiple(transactions, conn),
+    do: render(conn, View.Transaction, :transactions, transactions: transactions)
 
   defp respond(%DB.Transaction{} = transaction, conn),
     do: render(conn, View.Transaction, :transaction, transaction: transaction)
@@ -129,6 +153,12 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
             spender2: "92EAD0DB732692FF887268DA965C311AC2C9005B"
           })
         end,
+      Transactions:
+        swagger_schema do
+          title("Array of transactions")
+          type(:array)
+          items(Schema.ref(:Transaction))
+        end,
       Output:
         swagger_schema do
           title("Output")
@@ -170,6 +200,18 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     end
 
     response(200, "OK", Schema.ref(:Transaction))
+  end
+
+  swagger_path :get_transactions do
+    get("/transactions")
+    summary("Gets a list of transactions.")
+
+    parameters do
+      address(:query, :string, "Address of the sender or recipient", required: false)
+      limit(:query, :integer, "Limits number of transactions. Default value is 200", required: false)
+    end
+
+    response(200, "OK", Schema.ref(:Transactions))
   end
 
   swagger_path :encode_transaction do
