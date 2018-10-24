@@ -320,13 +320,20 @@ defmodule OMG.Watcher.BlockGetter.Core do
         } = state,
         response
       ) do
+    blknum = get_blknum(response)
+
+    # if there was a potential withholding registered - mark it as non-downloading. Otherwise noop
     potential_block_withholdings =
-      Map.update(
-        potential_block_withholdings,
-        get_blknum(response),
-        %PotentialBlockWithholdings{},
-        fn elem -> Map.put(elem, :download, false) end
-      )
+      case potential_block_withholdings[blknum] do
+        nil ->
+          potential_block_withholdings
+
+        potential_block_withholding ->
+          Map.put(potential_block_withholdings, blknum, %PotentialBlockWithholdings{
+            potential_block_withholding
+            | downloading: false
+          })
+      end
 
     state = %{
       state

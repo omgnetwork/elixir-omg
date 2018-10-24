@@ -305,7 +305,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     |> Core.handle_downloaded_block(potential_withholding_2_000)
     |> assert_check(:ok, [])
     |> Core.get_numbers_of_blocks_to_download(20_000)
-    |> assert_check([3_000])
+    |> assert_check([2_000])
+    |> Core.handle_downloaded_block(potential_withholding_1_000)
+    |> assert_check(:ok, [])
+    |> Core.get_numbers_of_blocks_to_download(20_000)
+    |> assert_check([1_000])
   end
 
   test "figures out the proper synced height on init" do
