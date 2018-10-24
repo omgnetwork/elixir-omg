@@ -68,6 +68,7 @@ defmodule OMG.Watcher.DB.Transaction do
     query =
       from(
         tx in __MODULE__,
+        distinct: tx.txhash,
         left_join: output in assoc(tx, :outputs),
         left_join: input in assoc(tx, :inputs),
         where: output.owner == ^address or input.owner == ^address,

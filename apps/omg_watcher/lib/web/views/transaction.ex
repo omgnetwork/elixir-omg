@@ -24,13 +24,13 @@ defmodule OMG.Watcher.Web.View.Transaction do
 
   def render("transaction.json", %{transaction: transaction}) do
     transaction
-    |> serialize()
+    |> render_transaction()
     |> Serializer.Response.serialize(:success)
   end
 
   def render("transactions.json", %{transactions: transactions}) do
     transactions
-    |> Enum.map(&serialize(&1))
+    |> Enum.map(&render_transaction/1)
     |> Serializer.Response.serialize(:success)
   end
 
@@ -39,7 +39,7 @@ defmodule OMG.Watcher.Web.View.Transaction do
     |> Serializer.Response.serialize(:success)
   end
 
-  defp serialize(transaction) do
+  defp render_transaction(transaction) do
     {:ok,
      %Transaction.Signed{
        raw_tx: tx,

@@ -43,7 +43,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   Retrieves a list of transactions
   """
   def get_transactions(conn, params) do
-    address = Map.get(params, "address", nil)
+    address = Map.get(params, "address")
     limit = Map.get(params, "limit", @default_transactions_limit)
 
     transactions =
