@@ -48,7 +48,7 @@ podTemplate(
                             --token '${ELIXIR_OMG_COVERALLS}' \
                             --branch '${scmVars.GIT_BRANCH}' \
                             --sha '${scmVars.GIT_COMMIT}' \
-                            --message '${commitMessage}' \
+                            --message "${commitMessage}" \
                     """)
                 }
            }
