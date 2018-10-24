@@ -208,7 +208,8 @@ config :omg_db,
 ```
 rm -rf ~/.omg/data_watcher
 cd apps/omg_watcher
-mix do ecto.reset --no-start, run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
+mix ecto.reset --no-start
+mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
 ```
 
 #### Start the Watcher

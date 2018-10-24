@@ -80,29 +80,30 @@ defmodule OMG.DB do
     GenServer.call(server_name, :last_exiter_eth_height)
   end
 
-  def init do
+  def init(server_name \\ @server_name) do
     path = Application.get_env(:omg_db, :leveldb_path)
     :ok = File.mkdir_p(path)
 
-    if Enum.empty?(File.ls!(path)) do
-      {:ok, started_apps} = Application.ensure_all_started(:omg_db)
+    db_initialization_updates = [
+      {:put, :last_deposit_child_blknum, 0},
+      {:put, :last_fast_exit_eth_height, 0},
+      {:put, :last_slow_exit_eth_height, 0},
+      {:put, :child_top_block_number, 0},
+      {:put, :last_block_getter_eth_height, 0},
+      {:put, :last_depositor_eth_height, 0},
+      {:put, :last_exiter_eth_height, 0}
+    ]
 
-      :ok =
-        OMG.DB.multi_update([
-          {:put, :last_deposit_child_blknum, 0},
-          {:put, :last_fast_exit_eth_height, 0},
-          {:put, :last_slow_exit_eth_height, 0},
-          {:put, :child_top_block_number, 0},
-          {:put, :last_block_getter_eth_height, 0},
-          {:put, :last_depositor_eth_height, 0},
-          {:put, :last_exiter_eth_height, 0}
-        ])
-
+    with :ok <- server_name.init_storage(path),
+         {:ok, started_apps} <- Application.ensure_all_started(:omg_db),
+         :ok <- OMG.DB.multi_update(db_initialization_updates) do
       started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
 
       :ok
     else
-      {:error, :folder_not_empty}
+      error ->
+        _ = Logger.error(fn -> "Unable to init: #{inspect(error)}" end)
+        error
     end
   end
 end
