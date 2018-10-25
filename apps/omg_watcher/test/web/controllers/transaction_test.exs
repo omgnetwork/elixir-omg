@@ -59,7 +59,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     ]
   end
 
-  describe "Controller.TransactionTest - transaction/:id" do
+  describe "transaction/:id -" do
     @tag fixtures: [:initial_blocks, :alice, :bob]
     test "endpoint returns expected transaction format", %{
       initial_blocks: initial_blocks,
@@ -118,7 +118,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
   #  TODO Remove below skip tags after `OMG-245 - Run tests on (real) postgres database ` .
   #  There are problems between Ecto and SQlite
-  describe "Controller.TransactionTest - transactions" do
+  describe "transactions?address -" do
     @tag :skip
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
     test "endpoint returns tx that contain requested address as the sender and not recipient", %{
@@ -279,7 +279,41 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
   end
 
-  describe "Controller.TransactionTest - POST transaction/" do
+  describe "transactions?limit -" do
+    @tag fixtures: [:initial_blocks]
+    test "limiting all transactions without address filter" do
+      %{
+        "data" => txs,
+        "result" => "success"
+      } = TestHelper.rest_call(:get, "/transactions?limit=2")
+
+      assert [
+               %{
+                 "txblknum" => 3000,
+                 "txindex" => 1,
+                 "eth_height" => 1,
+                 "timestamp" => 1_540_465_606
+               },
+               %{
+                 "txblknum" => 3000,
+                 "txindex" => 0,
+                 "eth_height" => 1,
+                 "timestamp" => 1_540_465_606
+               }
+             ] ==
+               txs
+               |> Enum.map(fn tx ->
+                 %{
+                   "txblknum" => tx["txblknum"],
+                   "txindex" => tx["txindex"],
+                   "eth_height" => tx["eth_height"],
+                   "timestamp" => tx["timestamp"]
+                 }
+               end)
+    end
+  end
+
+  describe "POST transaction/" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob, :inputs, :outputs]
     test "returns properly formatted transaction bytes", %{alice: alice, bob: bob, inputs: inputs, outputs: outputs} do
       alias OMG.API.State.Transaction

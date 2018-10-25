@@ -168,7 +168,7 @@ defmodule OMG.Watcher.Fixtures do
           transactions: recovered_txs,
           blknum: blknum,
           blkhash: "##{blknum}",
-          timestamp: :os.system_time(:second),
+          timestamp: 1_540_465_606,
           eth_height: 1
         })
 
