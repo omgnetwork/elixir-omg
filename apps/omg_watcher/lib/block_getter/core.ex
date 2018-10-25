@@ -55,9 +55,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   defmodule PotentialWithholding do
     @moduledoc """
-    State information to detect block with holding
+    State information to detect block withholding
     and track if block is downloading.
-    get_numbers_of_blocks_to_download and validate_downloaded_block need this information.
     """
     defstruct time: nil, downloading: false
 
