@@ -113,10 +113,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
   end
 
-  #  TODO Remove below skip tags after `OMG-245 - Run tests on (real) postgres database ` .
-  #  There are problems between Ecto and SQlite
   describe "Controller.TransactionTest - transactions" do
-    @tag :skip
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
     test "endpoint returns tx that contain requested address as the sender and not recipient", %{
       alice: alice,
@@ -146,7 +143,6 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert_transactions_filter_by_address_endpoint(txs, expected_result, alice)
     end
 
-    @tag :skip
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
     test "endpoint returns tx that contains requested address as both sender & recipient is listed once", %{
       alice: alice,
@@ -171,7 +167,6 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert_transactions_filter_by_address_endpoint(txs, expected_result, alice)
     end
 
-    @tag :skip
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
     test "endpoint returns tx without inputs and contains requested address as recipient", %{
       alice: alice,
@@ -196,7 +191,6 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert_transactions_filter_by_address_endpoint(txs, expected_result, alice)
     end
 
-    @tag :skip
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
     test "endpoint returns tx without outputs (amount = 0) and contains requested address as sender", %{
       alice: alice,
@@ -226,7 +220,6 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert_transactions_filter_by_address_endpoint(txs, expected_result, alice)
     end
 
-    @tag :skip
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
     test "endpoint returns 2 last transactions", %{
       alice: alice,

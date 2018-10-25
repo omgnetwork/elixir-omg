@@ -66,18 +66,24 @@ defmodule OMG.Watcher.DB.Transaction do
   end
 
   def get_by_address(address, limit) do
+    # TODO: use DISTINCT, sqlite_ecto does not support DISTINCT on multiple columns
+    # as we do not use DISTINCT and each address can appear in 2 outputs and 2 inputs of a single transaction
+    # we need to quadruple sql query limit
+    results_limit = limit * 4
     query =
       from(
         tx in __MODULE__,
-        distinct: tx.txhash,
         left_join: output in assoc(tx, :outputs),
         left_join: input in assoc(tx, :inputs),
         where: output.owner == ^address or input.owner == ^address,
-        order_by: [desc: tx.txindex],
-        limit: ^limit
+        order_by: [desc: tx.blknum, desc: tx.txindex],
+        limit: ^results_limit
       )
 
-    Repo.all(query)
+    query
+    |> Repo.all()
+    |> Enum.dedup_by(fn %{txhash: txhash} -> txhash end)
+    |> Enum.take(limit)
   end
 
   def get_by_blknum(blknum) do
