@@ -49,16 +49,10 @@ defmodule OMG.Watcher.DB.Transaction do
     belongs_to(:block, DB.Block, foreign_key: :blknum, references: :blknum, type: :integer)
   end
 
-  def get(hash, preload_block \\ false) do
-    transaction =
-      __MODULE__
-      |> Repo.get(hash)
-
-    if preload_block do
-      transaction |> Repo.preload(:block)
-    else
-      transaction
-    end
+  def get(hash) do
+    __MODULE__
+    |> Repo.get(hash)
+    |> Repo.preload(:block)
   end
 
   def get_last(limit) do
@@ -66,11 +60,11 @@ defmodule OMG.Watcher.DB.Transaction do
       from(
         __MODULE__,
         order_by: [desc: :blknum, desc: :txindex],
-        limit: ^limit
+        limit: ^limit,
+        preload: [:block]
       )
 
     Repo.all(query)
-    |> Repo.preload(:block)
   end
 
   def get_by_address(address, limit) do
@@ -82,11 +76,11 @@ defmodule OMG.Watcher.DB.Transaction do
         left_join: input in assoc(tx, :inputs),
         where: output.owner == ^address or input.owner == ^address,
         order_by: [desc: tx.blknum, desc: tx.txindex],
-        limit: ^limit
+        limit: ^limit,
+        preload: [:block]
       )
 
     Repo.all(query)
-    |> Repo.preload(:block)
   end
 
   def get_by_blknum(blknum) do
@@ -98,7 +92,7 @@ defmodule OMG.Watcher.DB.Transaction do
   end
 
   @doc """
-  Inserts complete and sorted enumberable of transactions for particular block number
+  Inserts complete and sorted enumerable of transactions for particular block number
   """
   @spec update_with(mined_block()) :: {:ok, any()}
   def update_with(%{

@@ -35,7 +35,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   def get_transaction(conn, %{"id" => id}) do
     id
     |> Base.decode16!()
-    |> DB.Transaction.get(true)
+    |> DB.Transaction.get()
     |> respond(conn)
   end
 
@@ -200,7 +200,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     summary("Gets a transaction with the given id")
 
     parameters do
-      id(:path, :integer, "Id of the transaction", required: true)
+      id(:path, :string, "Id of the transaction", required: true)
     end
 
     response(200, "OK", Schema.ref(:Transaction))

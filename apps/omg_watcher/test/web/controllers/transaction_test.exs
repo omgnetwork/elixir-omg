@@ -302,14 +302,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                }
              ] ==
                txs
-               |> Enum.map(fn tx ->
-                 %{
-                   "txblknum" => tx["txblknum"],
-                   "txindex" => tx["txindex"],
-                   "eth_height" => tx["eth_height"],
-                   "timestamp" => tx["timestamp"]
-                 }
-               end)
+               |> Enum.map(&Map.take(&1, ["txblknum", "txindex", "eth_height", "timestamp"]))
     end
   end
 
