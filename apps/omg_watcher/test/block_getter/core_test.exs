@@ -204,7 +204,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {:ok, %{number: 2 = _overridden_number}} = Core.validate_download_response({:ok, block}, hash, 2, 0, 0)
   end
 
-  test "got_block function called once with PotentialWithholding doesn't return BlockWithholding event" do
+  test "got_block function called once with PotentialWithholdingReport doesn't return BlockWithholding event" do
     init_state()
     |> Core.get_numbers_of_blocks_to_download(3_000)
     |> assert_check([1_000, 2_000])
@@ -212,7 +212,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     |> assert_check(:ok, [])
   end
 
-  test "handle_downloaded_block function called twice with PotentialWithholding returns BlockWithholding event" do
+  test "handle_downloaded_block function called twice with PotentialWithholdingReport returns BlockWithholding event" do
     init_state(opts: [maximum_number_of_pending_blocks: 5, maximum_block_withholding_time_ms: 0])
     |> Core.get_numbers_of_blocks_to_download(3_000)
     |> assert_check([1_000, 2_000])

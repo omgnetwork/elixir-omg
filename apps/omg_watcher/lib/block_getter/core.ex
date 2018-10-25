@@ -22,8 +22,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   use OMG.API.LoggerExt
 
-  defmodule PotentialWithholding do
-    @moduledoc false
+  defmodule PotentialWithholdingReport do
+    @moduledoc """
+    information send to handle_downloaded_block 
+    when is problem with downloading block
+    """
 
     defstruct [:blknum, :time]
 
@@ -50,8 +53,12 @@ defmodule OMG.Watcher.BlockGetter.Core do
           }
   end
 
-  defmodule PotentialBlockWithholdings do
-    @moduledoc false
+  defmodule PotentialWithholding do
+    @moduledoc """
+    State information to detect block with holding
+    and track if block is downloading.
+    get_numbers_of_blocks_to_download and validate_downloaded_block need this information.
+    """
     defstruct time: nil, downloading: false
 
     @type t :: %__MODULE__{
@@ -81,7 +88,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
             non_neg_integer => OMG.API.Block.t()
           },
           potential_block_withholdings: %{
-            non_neg_integer => PotentialBlockWithholdings.t()
+            non_neg_integer => PotentialWithholding.t()
           },
           config: Config.t()
         }
@@ -243,7 +250,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
     potential_block_withholding_numbers =
       potential_block_withholdings
-      |> Enum.filter(fn {_, %PotentialBlockWithholdings{downloading: downloading}} -> !downloading end)
+      |> Enum.filter(fn {_, %PotentialWithholding{downloading: downloading}} -> !downloading end)
       |> Enum.map(fn {key, __} -> key end)
 
     potential_next_block_numbers =
@@ -308,7 +315,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   """
   @spec handle_downloaded_block(
           %__MODULE__{},
-          {:ok, OMG.API.Block.t() | PotentialWithholding.t()} | {:error, block_error(), binary(), pos_integer()}
+          {:ok, OMG.API.Block.t() | PotentialWithholdingReport.t()} | {:error, block_error(), binary(), pos_integer()}
         ) ::
           {:ok | {:needs_stopping, block_error()}, %__MODULE__{},
            [] | list(Event.InvalidBlock.t()) | list(Event.BlockWithholding.t())}
@@ -329,7 +336,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           potential_block_withholdings
 
         potential_block_withholding ->
-          Map.put(potential_block_withholdings, blknum, %PotentialBlockWithholdings{
+          Map.put(potential_block_withholdings, blknum, %PotentialWithholding{
             potential_block_withholding
             | downloading: false
           })
@@ -345,7 +352,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   defp get_blknum({:ok, %{number: number}}), do: number
-  defp get_blknum({:ok, %PotentialWithholding{blknum: blknum}}), do: blknum
+  defp get_blknum({:ok, %PotentialWithholdingReport{blknum: blknum}}), do: blknum
   defp get_blknum({:error, _error_type, _hash, number}), do: number
 
   defp validate_downloaded_block(
@@ -398,14 +405,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
            potential_block_withholdings: potential_block_withholdings,
            config: config
          } = state,
-         {:ok, %PotentialWithholding{blknum: blknum, time: time}}
+         {:ok, %PotentialWithholdingReport{blknum: blknum, time: time}}
        ) do
-    %{time: blknum_time} = Map.get(potential_block_withholdings, blknum, %PotentialBlockWithholdings{})
+    %{time: blknum_time} = Map.get(potential_block_withholdings, blknum, %PotentialWithholding{})
 
     cond do
       blknum_time == nil ->
-        potential_block_withholdings =
-          Map.put(potential_block_withholdings, blknum, %PotentialBlockWithholdings{time: time})
+        potential_block_withholdings = Map.put(potential_block_withholdings, blknum, %PotentialWithholding{time: time})
 
         state = %{
           state
@@ -434,7 +440,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           pos_integer(),
           pos_integer()
         ) ::
-          {:ok, map | PotentialWithholding.t()}
+          {:ok, map | PotentialWithholdingReport.t()}
           | {:error, block_error(), binary(), pos_integer()}
   def validate_download_response(
         {:ok, %{hash: returned_hash, transactions: transactions, number: number}},
@@ -485,7 +491,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         }"
       end)
 
-    {:ok, %PotentialWithholding{blknum: requested_number, time: time}}
+    {:ok, %PotentialWithholdingReport{blknum: requested_number, time: time}}
   end
 
   @spec validate_tx_executions(list({Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}), map) ::
