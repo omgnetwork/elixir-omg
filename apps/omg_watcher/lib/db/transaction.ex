@@ -70,6 +70,7 @@ defmodule OMG.Watcher.DB.Transaction do
     # as we do not use DISTINCT and each address can appear in 2 outputs and 2 inputs of a single transaction
     # we need to quadruple sql query limit
     results_limit = limit * 4
+
     query =
       from(
         tx in __MODULE__,

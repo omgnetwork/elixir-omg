@@ -27,6 +27,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
 
   import OMG.Watcher.Web.ErrorHandler
 
+  @transactions_limit_cap 300
   @default_transactions_limit 200
 
   @doc """
@@ -52,6 +53,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
       else
         {:ok, address_decode} = Crypto.decode_address(address)
         {limit, ""} = Integer.parse(limit)
+        limit = min(limit, @transactions_limit_cap)
         DB.Transaction.get_by_address(address_decode, limit)
       end
 
