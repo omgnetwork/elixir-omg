@@ -22,7 +22,6 @@ defmodule OMG.Watcher.DB.Transaction do
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.DB
-  alias OMG.Watcher.DB.Repo
 
   require Utxo
 
@@ -49,10 +48,21 @@ defmodule OMG.Watcher.DB.Transaction do
     belongs_to(:block, DB.Block, foreign_key: :blknum, references: :blknum, type: :integer)
   end
 
-  def get(hash) do
-    __MODULE__
-    |> Repo.get(hash)
-    |> Repo.preload(:block)
+  @doc """
+    Gets a transaction specified by a hash.
+    Optionally, fetches block which the transaction was included in.
+  """
+  def get(hash, preload_block \\ false) do
+    query = from(__MODULE__, where: [txhash: ^hash])
+
+    query =
+      if preload_block do
+        from(query, preload: [:block])
+      else
+        query
+      end
+
+    DB.Repo.one(query)
   end
 
   def get_last(limit) do
@@ -64,7 +74,7 @@ defmodule OMG.Watcher.DB.Transaction do
         preload: [:block]
       )
 
-    Repo.all(query)
+    DB.Repo.all(query)
   end
 
   def get_by_address(address, limit) do
@@ -80,15 +90,15 @@ defmodule OMG.Watcher.DB.Transaction do
         preload: [:block]
       )
 
-    Repo.all(query)
+    DB.Repo.all(query)
   end
 
   def get_by_blknum(blknum) do
-    Repo.all(from(__MODULE__, where: [blknum: ^blknum]))
+    DB.Repo.all(from(__MODULE__, where: [blknum: ^blknum]))
   end
 
   def get_by_position(blknum, txindex) do
-    Repo.one(from(__MODULE__, where: [blknum: ^blknum, txindex: ^txindex]))
+    DB.Repo.one(from(__MODULE__, where: [blknum: ^blknum, txindex: ^txindex]))
   end
 
   @doc """
@@ -111,12 +121,12 @@ defmodule OMG.Watcher.DB.Transaction do
 
     {insert_duration, {:ok, _} = result} =
       :timer.tc(
-        &Repo.transaction/1,
+        &DB.Repo.transaction/1,
         [
           fn ->
-            {:ok, _} = Repo.insert(current_block)
-            _ = Repo.insert_all_chunked(__MODULE__, db_txs)
-            _ = Repo.insert_all_chunked(DB.TxOutput, db_outputs)
+            {:ok, _} = DB.Repo.insert(current_block)
+            _ = DB.Repo.insert_all_chunked(__MODULE__, db_txs)
+            _ = DB.Repo.insert_all_chunked(DB.TxOutput, db_outputs)
 
             # inputs are set as spent after outputs are inserted to support spending utxo from the same block
             DB.TxOutput.spend_utxos(db_inputs)
@@ -169,7 +179,7 @@ defmodule OMG.Watcher.DB.Transaction do
     # finding tx's input can be tricky
     input =
       DB.TxOutput.get_by_position(position)
-      |> Repo.preload([:spending_transaction])
+      |> DB.Repo.preload([:spending_transaction])
 
     case input && input.spending_transaction do
       nil ->
@@ -177,7 +187,7 @@ defmodule OMG.Watcher.DB.Transaction do
 
       tx ->
         # transaction which spends output specified by position with outputs it created
-        tx = %__MODULE__{(tx |> Repo.preload([:outputs])) | inputs: [input]}
+        tx = %__MODULE__{(tx |> DB.Repo.preload([:outputs])) | inputs: [input]}
 
         {:ok, tx}
     end

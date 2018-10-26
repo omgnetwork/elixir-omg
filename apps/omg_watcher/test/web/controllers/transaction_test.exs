@@ -268,14 +268,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
         TestHelper.rest_call(:get, "/transactions?address=#{address}&limit=#{limit}")
 
       assert expected_result ==
-               Enum.map(txs, fn tx ->
-                 %{
-                   "spender1" => tx["spender1"],
-                   "spender2" => tx["spender2"],
-                   "newowner1" => tx["newowner1"],
-                   "newowner2" => tx["newowner2"]
-                 }
-               end)
+               txs
+               |> Enum.map(&Map.take(&1, ["spender1", "spender2", "newowner1", "newowner2"]))
     end
   end
 

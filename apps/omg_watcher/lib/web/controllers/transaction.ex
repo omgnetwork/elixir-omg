@@ -35,7 +35,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   def get_transaction(conn, %{"id" => id}) do
     id
     |> Base.decode16!()
-    |> DB.Transaction.get()
+    |> DB.Transaction.get(true)
     |> respond(conn)
   end
 
