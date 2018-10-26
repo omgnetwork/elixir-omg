@@ -62,12 +62,13 @@ defmodule OMG.Watcher.BlockGetter do
 
     with :ok <- continue do
       _ = Enum.map(blocks_to_persist, &DB.Transaction.update_with/1)
-      _ = Logger.info(fn -> "Applied block \##{inspect(blknum)}" end)
       state = run_block_download_task(state)
 
       :ok = OMG.API.State.close_block(block_rootchain_height)
 
       {state, synced_height, db_updates} = Core.apply_block(state, blknum, block_rootchain_height)
+      _ = Logger.debug(fn -> "Synced height update: #{inspect(db_updates)}" end)
+
       :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
       :ok = OMG.DB.multi_update(db_updates)
 
@@ -160,8 +161,12 @@ defmodule OMG.Watcher.BlockGetter do
       block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
       {:ok, submissions} = Eth.RootChain.get_block_submitted_events(block_range)
 
+      _ = Logger.info(fn -> "Submitted #{length(submissions)} plasma blocks on Ethereum block range #{block_range}" end)
+
       {blocks_to_apply, synced_height, db_updates, state} =
         Core.get_blocks_to_apply(state, submissions, next_synced_height)
+
+      _ = Logger.info(fn -> "Synced height is #{synced_height}, got #{length(blocks_to_apply)} blocks to apply" end)
 
       Enum.each(blocks_to_apply, fn {block, eth_height} ->
         GenServer.cast(__MODULE__, {:apply_block, block, eth_height})

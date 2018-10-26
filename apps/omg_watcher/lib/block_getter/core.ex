@@ -24,7 +24,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   defmodule PotentialWithholdingReport do
     @moduledoc """
-    information send to handle_downloaded_block 
+    information send to handle_downloaded_block
     when is problem with downloading block
     """
 
@@ -140,9 +140,14 @@ defmodule OMG.Watcher.BlockGetter.Core do
   Marks that child chain block published on `blk_eth_height` was processed
   """
   @spec apply_block(t(), pos_integer(), non_neg_integer()) :: {t(), non_neg_integer(), list()}
-  def apply_block(%__MODULE__{} = state, consumed_block_number, blk_eth_height) do
-    if MapSet.member?(state.height_sync_blknums, consumed_block_number) do
-      height_sync_blknums = MapSet.delete(state.height_sync_blknums, consumed_block_number)
+  def apply_block(%__MODULE__{} = state, applied_block_number, blk_eth_height) do
+    _ =
+      Logger.info(fn ->
+        "Applied block #{applied_block_number}, syncing not applied blocks: #{inspect(state.height_sync_blknums)}"
+      end)
+
+    if MapSet.member?(state.height_sync_blknums, applied_block_number) do
+      height_sync_blknums = MapSet.delete(state.height_sync_blknums, applied_block_number)
 
       state = %{
         state

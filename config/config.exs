@@ -14,6 +14,7 @@ import_config "../apps/*/config/config.exs"
 config :logger, :console,
   level: :info,
   format: "$date $time [$level] $metadata⋅$message⋅\n",
+  discard_threshold: 2000,
   metadata: [:module, :function, :request_id]
 
 config :ethereumex,
