@@ -18,6 +18,7 @@ defmodule OMG.Watcher.Application do
   use OMG.API.LoggerExt
 
   def start(_type, _args) do
+    DeferredConfig.populate(:omg_watcher)
     start_root_supervisor()
   end
 

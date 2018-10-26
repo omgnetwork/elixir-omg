@@ -41,8 +41,8 @@ defmodule OMG.Watcher.Mixfile do
       {:phoenix, "~> 1.3.2"},
       {:phoenix_ecto, "~> 3.3"},
       {:phoenix_swagger, "~> 0.8.1"},
-      {:postgrex, ">= 0.13.5", only: [:prod, :dev]},
-      {:sqlite_ecto2, "~> 2.2", only: [:test]},
+      {:postgrex, ">= 0.13.5"},
+      {:deferred_config, "~> 0.1.1"},
       {:cowboy, "~> 1.1"},
       # NOTE: fixed version needed b/c Plug.Conn.WrapperError.reraise/3 is deprecated... 2 occurences in umbrella.
       {:plug, "1.5.0", override: true},
