@@ -40,6 +40,8 @@ defmodule OMG.Watcher.Web.View.Transaction do
   end
 
   defp render_transaction(transaction) do
+    block = transaction.block
+
     {:ok,
      %Transaction.Signed{
        raw_tx: tx,
@@ -58,6 +60,8 @@ defmodule OMG.Watcher.Web.View.Transaction do
       txid: transaction.txhash,
       txblknum: transaction.blknum,
       txindex: transaction.txindex,
+      timestamp: block.timestamp,
+      eth_height: block.eth_height,
       sig1: sig1,
       sig2: sig2,
       spender1: spender1,
