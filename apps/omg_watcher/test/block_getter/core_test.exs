@@ -329,6 +329,31 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
              |> Core.figure_out_exact_sync_height(1, 10)
   end
 
+  test "figures out the proper synced height on init, if there's many submissions per eth height" do
+    # the exact sync height is picked only if it's the youngest submission, otherwise backoff
+    assert 1 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}, %{eth_height: 100, blknum: 8}], 1, 10)
+
+    assert 99 ==
+             Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 10}, %{eth_height: 100, blknum: 11}], 1, 10)
+
+    assert 100 ==
+             Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 10}, %{eth_height: 100, blknum: 9}], 1, 10)
+
+    assert 100 ==
+             Core.figure_out_exact_sync_height(
+               [%{eth_height: 100, blknum: 10}, %{eth_height: 101, blknum: 11}, %{eth_height: 100, blknum: 9}],
+               1,
+               10
+             )
+
+    assert 99 ==
+             Core.figure_out_exact_sync_height(
+               [%{eth_height: 100, blknum: 10}, %{eth_height: 101, blknum: 11}, %{eth_height: 100, blknum: 11}],
+               1,
+               10
+             )
+  end
+
   test "applying block updates height" do
     state =
       init_state(synced_height: 0, opts: [maximum_number_of_pending_blocks: 5])
