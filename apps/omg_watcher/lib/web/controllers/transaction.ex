@@ -45,6 +45,10 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   def get_transactions(conn, params) do
     address = Map.get(params, "address")
     limit = Map.get(params, "limit", @default_transactions_limit)
+    {limit, ""} = limit |> Kernel.to_string() |> Integer.parse()
+
+    # TODO: implement pagination. Defend against fetching huge dataset.
+    limit = min(limit, @default_transactions_limit)
 
     transactions =
       if address == nil do
