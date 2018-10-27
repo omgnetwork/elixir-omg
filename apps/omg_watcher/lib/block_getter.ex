@@ -161,12 +161,18 @@ defmodule OMG.Watcher.BlockGetter do
       block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
       {:ok, submissions} = Eth.RootChain.get_block_submitted_events(block_range)
 
-      _ = Logger.info(fn -> "Submitted #{length(submissions)} plasma blocks on Ethereum block range #{block_range}" end)
+      _ =
+        Logger.info(fn ->
+          "Submitted #{length(submissions)} plasma blocks on Ethereum block range #{inspect(block_range)}"
+        end)
 
       {blocks_to_apply, synced_height, db_updates, state} =
         Core.get_blocks_to_apply(state, submissions, next_synced_height)
 
-      _ = Logger.info(fn -> "Synced height is #{synced_height}, got #{length(blocks_to_apply)} blocks to apply" end)
+      _ =
+        Logger.info(fn ->
+          "Synced height is #{inspect(synced_height)}, got #{length(blocks_to_apply)} blocks to apply"
+        end)
 
       Enum.each(blocks_to_apply, fn {block, eth_height} ->
         GenServer.cast(__MODULE__, {:apply_block, block, eth_height})

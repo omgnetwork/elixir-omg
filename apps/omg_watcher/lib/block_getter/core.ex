@@ -143,7 +143,9 @@ defmodule OMG.Watcher.BlockGetter.Core do
   def apply_block(%__MODULE__{} = state, applied_block_number, blk_eth_height) do
     _ =
       Logger.info(fn ->
-        "Applied block #{applied_block_number}, syncing not applied blocks: #{inspect(state.height_sync_blknums)}"
+        "Applied block #{inspect(applied_block_number)}, syncing not applied blocks: #{
+          inspect(state.height_sync_blknums)
+        }"
       end)
 
     if MapSet.member?(state.height_sync_blknums, applied_block_number) do
