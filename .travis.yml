@@ -1,0 +1,14 @@
+language: bash
+
+services:
+  - docker
+  
+branches:
+  only:
+  - release/v0.0.1
+
+before_install:
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+  - docker build -t jakebunce/plasma .
+  - docker tag jakebunce/plasma jakebunce/plasma:$TRAVIS_COMMIT
+  - docker push jakebunce/plasma:$TRAVIS_COMMIT
