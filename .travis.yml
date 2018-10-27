@@ -3,7 +3,7 @@ language: bash
 services:
   - docker
 
-build:
+before_install:
   - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
   - docker build -t jakebunce/plasma .
   - docker tag jakebunce/plasma jakebunce/plasma:$TRAVIS_COMMIT
