@@ -141,12 +141,13 @@ defmodule OMG.Watcher.BlockGetter do
 
   def handle_info({_ref, {:downloaded_block, response}}, state) do
     # 1/ process the block that arrived and consume
-    {continue, new_state, events} = Core.handle_downloaded_block(state, response)
+    {continue, state, events} = Core.handle_downloaded_block(state, response)
+    state = run_block_download_task(state)
 
     EventerAPI.emit_events(events)
 
     with :ok <- continue do
-      {:noreply, new_state}
+      {:noreply, state}
     else
       {:needs_stopping, reason} ->
         _ = Logger.error(fn -> "Stopping #{inspect(__MODULE__)} because of #{inspect(reason)}" end)
