@@ -3,7 +3,7 @@ language: bash
 services:
   - docker
   
- branches:
+branches:
   only:
   - release/v0.0.1
 
