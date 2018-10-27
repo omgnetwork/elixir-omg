@@ -1,4 +1,4 @@
-language: elixir
+language: bash
 
 services:
   - docker
