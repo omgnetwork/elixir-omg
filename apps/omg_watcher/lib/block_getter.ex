@@ -162,7 +162,7 @@ defmodule OMG.Watcher.BlockGetter do
       {:ok, submissions} = Eth.RootChain.get_block_submitted_events(block_range)
 
       _ =
-        Logger.info(fn ->
+        Logger.debug(fn ->
           "Submitted #{length(submissions)} plasma blocks on Ethereum block range #{inspect(block_range)}"
         end)
 
@@ -170,7 +170,7 @@ defmodule OMG.Watcher.BlockGetter do
         Core.get_blocks_to_apply(state, submissions, next_synced_height)
 
       _ =
-        Logger.info(fn ->
+        Logger.debug(fn ->
           "Synced height is #{inspect(synced_height)}, got #{length(blocks_to_apply)} blocks to apply"
         end)
 
