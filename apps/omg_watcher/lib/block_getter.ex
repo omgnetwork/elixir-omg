@@ -85,6 +85,7 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   def init(_opts) do
+    {:ok, current_eth_height} = Eth.get_ethereum_height()
     {:ok, deployment_height} = Eth.RootChain.get_root_deployment_height()
     {:ok, last_synced_height} = OMG.DB.last_block_getter_eth_height()
     synced_height = max(deployment_height, last_synced_height)
@@ -96,7 +97,7 @@ defmodule OMG.Watcher.BlockGetter do
     # while top block number is a block that has been formed (they differ by the interval)
     child_top_block_number = current_block_height - child_block_interval
 
-    {:ok, block_submissions} = Eth.RootChain.get_block_submitted_events({synced_height, synced_height + 1000})
+    {:ok, block_submissions} = Eth.RootChain.get_block_submitted_events({synced_height, current_eth_height})
     exact_synced_height = Core.figure_out_exact_sync_height(block_submissions, synced_height, child_top_block_number)
 
     :ok = RootChainCoordinator.check_in(exact_synced_height, __MODULE__)
