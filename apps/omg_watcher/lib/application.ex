@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Application do
     start_root_supervisor()
   end
 
-  def start_root_supervisor() do
+  def start_root_supervisor do
     # root supervisor must stop whenever any of its children goes down
 
     children = [
@@ -49,7 +49,7 @@ defmodule OMG.Watcher.Application do
     Supervisor.start_link(children, opts)
   end
 
-  def start_watcher_supervisor() do
+  def start_watcher_supervisor do
     import Supervisor.Spec
 
     # Define workers and child supervisors to be supervised
