@@ -111,10 +111,15 @@ defmodule OMG.Performance do
         }."
       end)
 
-    url = OMG.API.Config.get_overloaded_env_var(:omg_performance, :child_chain_url, "CHILD_CHAIN_URL", "http://localhost:9656")
-    defaults = %{destdir: ".",
-                 geth: "http://localhost:8545",
-                 child_chain: url}
+    url =
+      OMG.API.Config.get_overloaded_env_var(
+        :omg_performance,
+        :child_chain_url,
+        "CHILD_CHAIN_URL",
+        "http://localhost:9656"
+      )
+
+    defaults = %{destdir: ".", geth: "http://localhost:8545", child_chain: url}
     opts = Map.merge(defaults, opts)
 
     {:ok, started_apps} = setup_extended_perftest(opts, contract_addr)
