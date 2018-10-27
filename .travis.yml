@@ -1,0 +1,8 @@
+services:
+  - docker
+
+build:
+  - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+  - docker build -t jakebunce/plasma .
+  - docker tag jakebunce/plasma jakebunce/plasma:$TRAVIS_COMMIT
+  - docker push jakebunce/plasma:$TRAVIS_COMMIT
