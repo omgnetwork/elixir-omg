@@ -142,7 +142,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @spec apply_block(t(), pos_integer(), non_neg_integer()) :: {t(), non_neg_integer(), list()}
   def apply_block(%__MODULE__{} = state, applied_block_number, blk_eth_height) do
     _ =
-      Logger.info(fn ->
+      Logger.debug(fn ->
         "Applied block #{inspect(applied_block_number)}, syncing not applied blocks: #{
           inspect(state.height_sync_blknums)
         }"
