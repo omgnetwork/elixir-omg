@@ -36,7 +36,7 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
       }
     ]
 
-    opts = [strategy: :one_for_all, name: __MODULE__]
+    opts = [strategy: :one_for_all, max_restarts: 2, max_seconds: 3 * 60, name: __MODULE__]
     Supervisor.init(children, opts)
   end
 end
