@@ -18,6 +18,38 @@ defmodule OMG.Watcher.Application do
   use OMG.API.LoggerExt
 
   def start(_type, _args) do
+    start_root_supervisor()
+  end
+
+  def start_root_supervisor() do
+    # root supervisor must stop whenever any of its children goes down
+
+    children = [
+      %{
+        id: :watcher_supervisor,
+        start: {__MODULE__, :start_watcher_supervisor, []},
+        restart: :permanent,
+        type: :supervisor
+      },
+      %{
+        id: :block_getter_supervisor,
+        start: {OMG.Watcher.BlockGetter.Supervisor, :start_link, []},
+        restart: :permanent,
+        type: :supervisor
+      }
+    ]
+
+    opts = [
+      strategy: :one_for_one,
+      # whenever any of supervisor's children goes down, so it does
+      max_restarts: 0,
+      name: OMG.Watcher.RootSupervisor
+    ]
+
+    Supervisor.start_link(children, opts)
+  end
+
+  def start_watcher_supervisor() do
     import Supervisor.Spec
 
     # Define workers and child supervisors to be supervised
@@ -75,15 +107,11 @@ defmodule OMG.Watcher.Application do
         id: :slow_validator
       ),
       # Start the endpoint when the application starts
-      supervisor(OMG.Watcher.Web.Endpoint, []),
-      # Start BlockGetter and State
-      supervisor(OMG.Watcher.BlockGetter.Supervisor, [])
+      supervisor(OMG.Watcher.Web.Endpoint, [])
     ]
 
     _ = Logger.info(fn -> "Started application OMG.Watcher.Application" end)
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
     opts = [strategy: :one_for_one, name: OMG.Watcher.Supervisor]
     Supervisor.start_link(children, opts)
   end
