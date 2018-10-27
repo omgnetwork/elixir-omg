@@ -36,6 +36,7 @@ defmodule OMG.Watcher.Web.Controller.Status do
            Eth.RootChain.get_child_chain(last_mined_child_block_number),
          {:ok, child_block_interval} <- Eth.RootChain.get_child_block_interval() do
       {state_current_block, _} = State.get_status()
+
       status = %{
         last_validated_child_block_number: state_current_block - child_block_interval,
         last_mined_child_block_number: last_mined_child_block_number,
@@ -47,6 +48,7 @@ defmodule OMG.Watcher.Web.Controller.Status do
     else
       :error ->
         respond({:error, :unknown}, conn)
+
       error ->
         respond(error, conn)
     end
