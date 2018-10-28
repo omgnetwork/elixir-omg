@@ -183,11 +183,14 @@ defmodule OMG.Watcher.BlockGetter.Core do
           {list({Block.t(), non_neg_integer()}), non_neg_integer(), list(), t()}
   def get_blocks_to_apply(state, block_submitted_events, coordinator_height)
 
+  def get_blocks_to_apply(%__MODULE__{synced_height: synced_height} = state, _block_submitted_events, older_height)
+      when older_height <= synced_height do
+    {[], synced_height, [], state}
+  end
+
   def get_blocks_to_apply(%__MODULE__{} = state, [], coordinator_height) do
-    next_synced_height = max(state.synced_height, coordinator_height)
-    state = %{state | synced_height: next_synced_height}
-    db_updates = [{:put, :last_block_getter_eth_height, next_synced_height}]
-    {[], next_synced_height, db_updates, state}
+    db_updates = [{:put, :last_block_getter_eth_height, coordinator_height}]
+    {[], coordinator_height, db_updates, %{state | synced_height: coordinator_height}}
   end
 
   def get_blocks_to_apply(
