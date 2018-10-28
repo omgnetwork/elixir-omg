@@ -375,10 +375,10 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
                synced_height
              )
 
-    assert {state, 0, []} = Core.apply_block(state, 1_000, synced_height)
+    assert {state, 0, []} = Core.apply_block(state, 1_000)
 
     assert {state, ^synced_height, [{:put, :last_block_getter_eth_height, ^synced_height}]} =
-             Core.apply_block(state, 2_000, synced_height)
+             Core.apply_block(state, 2_000)
 
     assert {[{_, ^next_synced_height}], ^synced_height, [], state} =
              Core.get_blocks_to_apply(
@@ -388,7 +388,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
              )
 
     assert {state, ^next_synced_height, [{:put, :last_block_getter_eth_height, ^next_synced_height}]} =
-             Core.apply_block(state, 3_000, next_synced_height)
+             Core.apply_block(state, 3_000)
 
     # weird case when submissions for next_synced_height are now empty
     assert {[], ^next_synced_height, [], ^state} = Core.get_blocks_to_apply(state, [], next_synced_height)
@@ -445,8 +445,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
                60
              )
 
-    assert {_, 59, [{:put, :last_block_getter_eth_height, 59}]} = Core.apply_block(state_alt, 2_000, 59)
-    assert {_, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state_alt, 3_000, 60)
+    assert {_, 59, [{:put, :last_block_getter_eth_height, 59}]} = Core.apply_block(state_alt, 2_000)
+    assert {_, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state_alt, 3_000)
 
     # coordinator on time
     assert {[{%{number: 2_000}, 59}], 58, [], state} =
@@ -456,7 +456,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
                59
              )
 
-    assert {state, 59, [{:put, :last_block_getter_eth_height, 59}]} = Core.apply_block(state, 2_000, 59)
+    assert {state, 59, [{:put, :last_block_getter_eth_height, 59}]} = Core.apply_block(state, 2_000)
 
     state =
       state
@@ -481,9 +481,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
                61
              )
 
-    assert {state_alt, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state_alt, 3_000, 60)
-    assert {state_alt, 60, []} = Core.apply_block(state_alt, 4_000, 61)
-    assert {_, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state_alt, 5_000, 61)
+    assert {state_alt, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state_alt, 3_000)
+    assert {state_alt, 60, []} = Core.apply_block(state_alt, 4_000)
+    assert {_, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state_alt, 5_000)
 
     # coordinator on time
     assert {[{%{number: 3_000}, 60}], 59, [], state} =
@@ -493,7 +493,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
                60
              )
 
-    assert {state, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state, 3_000, 60)
+    assert {state, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state, 3_000)
 
     # coordinator dwells in the past
     assert {[], 60, [], ^state} =
@@ -511,8 +511,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
                62
              )
 
-    assert {state_alt, 60, []} = Core.apply_block(state_alt, 4_000, 61)
-    assert {_, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state_alt, 5_000, 61)
+    assert {state_alt, 60, []} = Core.apply_block(state_alt, 4_000)
+    assert {_, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state_alt, 5_000)
 
     # coordinator on time
     assert {[{%{number: 4_000}, 61}, {%{number: 5_000}, 61}], 60, [], state} =
@@ -522,8 +522,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
                61
              )
 
-    assert {state, 60, []} = Core.apply_block(state, 4_000, 61)
-    assert {state, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state, 5_000, 61)
+    assert {state, 60, []} = Core.apply_block(state, 4_000)
+    assert {state, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state, 5_000)
 
     # coordinator dwells in the past
     assert {[], 61, [], ^state} =
@@ -541,8 +541,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
                63
              )
 
-    assert {state_alt, 61, []} = Core.apply_block(state_alt, 6_000, 63)
-    assert {_, 63, [{:put, :last_block_getter_eth_height, 63}]} = Core.apply_block(state_alt, 7_000, 63)
+    assert {state_alt, 61, []} = Core.apply_block(state_alt, 6_000)
+    assert {_, 63, [{:put, :last_block_getter_eth_height, 63}]} = Core.apply_block(state_alt, 7_000)
 
     # coordinator on time
     assert {[], 62, [{:put, :last_block_getter_eth_height, 62}], state} =
@@ -568,7 +568,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
                64
              )
 
-    assert {_, 62, []} = Core.apply_block(state_alt, 6_000, 63)
+    assert {_, 62, []} = Core.apply_block(state_alt, 6_000)
 
     # coordinator on time
     assert {[{%{number: 6_000}, 63}], 62, [], state} =
@@ -578,7 +578,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
                63
              )
 
-    assert {_, 62, []} = Core.apply_block(state, 6_000, 63)
+    assert {_, 62, []} = Core.apply_block(state, 6_000)
   end
 
   test "gets continous ranges of blocks to apply" do

@@ -67,7 +67,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   defstruct [
-    :height_sync_blknums,
+    :eth_height_done_by_blknum,
     :synced_height,
     :last_applied_block,
     :num_of_highest_block_being_downloaded,
@@ -78,7 +78,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   ]
 
   @type t() :: %__MODULE__{
-          height_sync_blknums: MapSet.t(),
+          eth_height_done_by_blknum: map(),
           synced_height: pos_integer(),
           last_applied_block: non_neg_integer,
           num_of_highest_block_being_downloaded: non_neg_integer,
@@ -120,7 +120,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
       ) do
     if state_at_block_beginning do
       state = %__MODULE__{
-        height_sync_blknums: MapSet.new(),
+        eth_height_done_by_blknum: %{},
         synced_height: synced_height,
         last_applied_block: block_number,
         num_of_highest_block_being_downloaded: block_number,
@@ -139,27 +139,29 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Marks that child chain block published on `blk_eth_height` was processed
   """
-  @spec apply_block(t(), pos_integer(), non_neg_integer()) :: {t(), non_neg_integer(), list()}
-  def apply_block(%__MODULE__{} = state, applied_block_number, blk_eth_height) do
+  @spec apply_block(t(), pos_integer()) :: {t(), non_neg_integer(), list()}
+  def apply_block(%__MODULE__{eth_height_done_by_blknum: eth_height_done_by_blknum} = state, applied_block_number) do
     _ =
       Logger.debug(fn ->
-        "Applied block #{inspect(applied_block_number)}, syncing not applied blocks: #{
-          inspect(state.height_sync_blknums)
+        "Applied block #{inspect(applied_block_number)}, blknums that finalize eth_heights: #{
+          inspect(state.eth_height_done_by_blknum)
         }"
       end)
 
-    if MapSet.member?(state.height_sync_blknums, applied_block_number) do
-      height_sync_blknums = MapSet.delete(state.height_sync_blknums, applied_block_number)
+    case Map.pop(eth_height_done_by_blknum, applied_block_number) do
+      # not present - this applied child block doesn't wrap up any eth height
+      {nil, _} ->
+        {state, state.synced_height, []}
 
-      state = %{
-        state
-        | synced_height: blk_eth_height,
-          height_sync_blknums: height_sync_blknums
-      }
+      # present - we need to mark this eth height as processe
+      {eth_height_done, updated_map} ->
+        state = %{
+          state
+          | synced_height: eth_height_done,
+            eth_height_done_by_blknum: updated_map
+        }
 
-      {state, blk_eth_height, [{:put, :last_block_getter_eth_height, blk_eth_height}]}
-    else
-      {state, state.synced_height, []}
+        {state, eth_height_done, [{:put, :last_block_getter_eth_height, eth_height_done}]}
     end
   end
 
@@ -198,7 +200,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         block_submissions,
         _coordinator_height
       ) do
-    height_sync_blknums = get_height_sync_blknums(block_submissions, state.height_sync_blknums)
+    eth_height_done_by_blknum = append_final_blknums(block_submissions, state.eth_height_done_by_blknum)
 
     block_submissions =
       Enum.into(block_submissions, %{}, fn %{blknum: blknum, eth_height: eth_height} -> {blknum, eth_height} end)
@@ -221,21 +223,22 @@ defmodule OMG.Watcher.BlockGetter.Core do
      %{
        state
        | unapplied_blocks: blocks_to_keep,
-         height_sync_blknums: height_sync_blknums,
+         eth_height_done_by_blknum: eth_height_done_by_blknum,
          last_applied_block: last_applied_block
      }}
   end
 
-  defp get_height_sync_blknums(submissions, current_height_sync_blknums) do
-    submissions
+  # goes through new submissions and figures out a mapping from blknum to eth_height, where blknum
+  # is the **last** child block number submitted at the root chain height it maps to
+  # this is later used to sign eth heights off as synced (`apply_block`)
+  defp append_final_blknums(new_submissions, current_eth_height_done_by_blknum) do
+    new_submissions
     |> Enum.group_by(fn %{eth_height: eth_height} -> eth_height end, fn %{blknum: blknum} -> blknum end)
-    |> Map.to_list()
-    |> Enum.map(fn {_, blknums} ->
+    |> Enum.into(%{}, fn {eth_height, blknums} ->
       [last_blknum | _] = Enum.sort(blknums, &(&1 >= &2))
-      last_blknum
+      {last_blknum, eth_height}
     end)
-    |> MapSet.new()
-    |> MapSet.union(current_height_sync_blknums)
+    |> Map.merge(current_eth_height_done_by_blknum)
   end
 
   @doc """

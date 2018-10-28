@@ -66,7 +66,7 @@ defmodule OMG.Watcher.BlockGetter do
 
       :ok = OMG.API.State.close_block(block_rootchain_height)
 
-      {state, synced_height, db_updates} = Core.apply_block(state, blknum, block_rootchain_height)
+      {state, synced_height, db_updates} = Core.apply_block(state, blknum)
       _ = Logger.debug(fn -> "Synced height update: #{inspect(db_updates)}" end)
 
       :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
