@@ -537,6 +537,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
   """
   @spec figure_out_exact_sync_height([%{blknum: pos_integer, eth_height: pos_integer}], pos_integer, pos_integer) ::
           pos_integer
+  def figure_out_exact_sync_height(_, synced_height, 0), do: synced_height
+
   def figure_out_exact_sync_height(submissions, synced_height, child_top_block_number) do
     # first get the exact match for the eth_height of top child blknum
     submissions
@@ -558,6 +560,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
         end
 
       nil ->
+        _ =
+          Logger.warn(fn ->
+            "#{inspect(child_top_block_number)} not found in recent submissions #{
+              inspect(submissions, limit: :infinity)
+            }"
+          end)
+
         synced_height
     end
   end
