@@ -59,7 +59,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     ]
   end
 
-  describe "transaction/:id -" do
+  describe "Controller.TransactionTest - transaction/:id" do
     @tag fixtures: [:initial_blocks, :alice, :bob]
     test "endpoint returns expected transaction format", %{
       initial_blocks: initial_blocks,
@@ -68,7 +68,6 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     } do
       {blknum, txindex, txhash, _recovered_tx} = initial_blocks |> hd()
 
-      %DB.Block{timestamp: timestamp, eth_height: eth_height} = DB.Block.get(blknum)
       bob_addr = bob.addr |> TestHelper.to_response_address()
       alice_addr = alice.addr |> TestHelper.to_response_address()
       txhash = Base.encode16(txhash)
@@ -94,9 +93,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "sig1" => <<_sig1::binary-size(130)>>,
                  "sig2" => ^zero_sign,
                  "spender1" => ^alice_addr,
-                 "spender2" => nil,
-                 "eth_height" => ^eth_height,
-                 "timestamp" => ^timestamp
+                 "spender2" => nil
                },
                "result" => "success"
              } = TestHelper.rest_call(:get, "/transaction/#{txhash}")
@@ -116,27 +113,28 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
   end
 
-  #  TODO Remove below skip tags after `OMG-245 - Run tests on (real) postgres database ` .
-  #  There are problems between Ecto and SQlite
-  describe "transactions?address -" do
-    @tag :skip
+  describe "Controller.TransactionTest - transactions" do
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
     test "endpoint returns tx that contain requested address as the sender and not recipient", %{
       alice: alice,
       bob: bob
     } do
+      OMG.Watcher.DB.EthEvent.insert_deposits([
+        %{owner: alice.addr, currency: @eth, amount: 1, blknum: 1}
+      ])
+
       txs = [
         OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}]),
         OMG.API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{bob, 300}])
       ]
 
       alice_address = alice.addr |> TestHelper.to_response_address()
-      bob_address = alice.addr |> TestHelper.to_response_address()
+      bob_address = bob.addr |> TestHelper.to_response_address()
 
       expected_result = [
         %{
           "spender1" => alice_address,
-          "spender2" => @zero_address_hex,
+          "spender2" => nil,
           "newowner1" => bob_address,
           "newowner2" => @zero_address_hex
         }
@@ -145,7 +143,6 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert_transactions_filter_by_address_endpoint(txs, expected_result, alice)
     end
 
-    @tag :skip
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
     test "endpoint returns tx that contains requested address as both sender & recipient is listed once", %{
       alice: alice,
@@ -161,7 +158,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       expected_result = [
         %{
           "spender1" => alice_address,
-          "spender2" => @zero_address_hex,
+          "spender2" => nil,
           "newowner1" => alice_address,
           "newowner2" => @zero_address_hex
         }
@@ -170,7 +167,6 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert_transactions_filter_by_address_endpoint(txs, expected_result, alice)
     end
 
-    @tag :skip
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
     test "endpoint returns tx without inputs and contains requested address as recipient", %{
       alice: alice,
@@ -185,8 +181,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
       expected_result = [
         %{
-          "spender1" => @zero_address_hex,
-          "spender2" => @zero_address_hex,
+          "spender1" => nil,
+          "spender2" => nil,
           "newowner1" => alice_address,
           "newowner2" => @zero_address_hex
         }
@@ -195,24 +191,27 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert_transactions_filter_by_address_endpoint(txs, expected_result, alice)
     end
 
-    @tag :skip
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
-    test "endpoint returns tx without outputs (amount = 0)  and contains requested address as sender", %{
+    test "endpoint returns tx without outputs (amount = 0) and contains requested address as sender", %{
       alice: alice,
       bob: bob
     } do
+      OMG.Watcher.DB.EthEvent.insert_deposits([
+        %{owner: alice.addr, currency: @eth, amount: 1, blknum: 1}
+      ])
+
       txs = [
         OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 0}]),
         OMG.API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{bob, 300}])
       ]
 
       alice_address = alice.addr |> TestHelper.to_response_address()
-      bob_address = alice.addr |> TestHelper.to_response_address()
+      bob_address = bob.addr |> TestHelper.to_response_address()
 
       expected_result = [
         %{
           "spender1" => alice_address,
-          "spender2" => @zero_address_hex,
+          "spender2" => nil,
           "newowner1" => bob_address,
           "newowner2" => @zero_address_hex
         }
@@ -221,37 +220,40 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert_transactions_filter_by_address_endpoint(txs, expected_result, alice)
     end
 
-    @tag :skip
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
     test "endpoint returns 2 last transactions", %{
       alice: alice,
       bob: bob
     } do
+      OMG.Watcher.DB.EthEvent.insert_deposits([
+        %{owner: alice.addr, currency: @eth, amount: 1, blknum: 1}
+      ])
+
       txs = [
-        OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 0}]),
-        OMG.API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{alice, 300}]),
-        OMG.API.TestHelper.create_recovered([{1, 2, 0, bob}], @eth, [{bob, 30}])
+        OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 2}]),
+        OMG.API.TestHelper.create_recovered([{1_000, 0, 0, bob}], @eth, [{alice, 1}]),
+        OMG.API.TestHelper.create_recovered([{1_000, 1, 0, bob}], @eth, [{bob, 1}])
       ]
 
       alice_address = alice.addr |> TestHelper.to_response_address()
-      bob_address = alice.addr |> TestHelper.to_response_address()
+      bob_address = bob.addr |> TestHelper.to_response_address()
 
       expected_result = [
         %{
           "spender1" => bob_address,
-          "spender2" => @zero_address_hex,
+          "spender2" => nil,
           "newowner1" => bob_address,
           "newowner2" => @zero_address_hex
         },
         %{
           "spender1" => bob_address,
-          "spender2" => @zero_address_hex,
+          "spender2" => nil,
           "newowner1" => alice_address,
           "newowner2" => @zero_address_hex
         }
       ]
 
-      assert_transactions_filter_by_address_endpoint(txs, expected_result, alice, 2)
+      assert_transactions_filter_by_address_endpoint(txs, expected_result, bob, 2)
     end
 
     defp assert_transactions_filter_by_address_endpoint(
@@ -260,7 +262,14 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
            entity,
            limit \\ 200
          ) do
-      {:ok, _} = DB.Transaction.update_with(%{transactions: txs, blknum: 1_000, eth_height: 1})
+      {:ok, _} =
+        DB.Transaction.update_with(%{
+          transactions: txs,
+          blknum: 1_000,
+          eth_height: 1,
+          blkhash: <<?#::256>>,
+          timestamp: :os.system_time(:second)
+        })
 
       {:ok, address} = Crypto.encode_address(entity.addr)
 
@@ -268,39 +277,18 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
         TestHelper.rest_call(:get, "/transactions?address=#{address}&limit=#{limit}")
 
       assert expected_result ==
-               txs
-               |> Enum.map(&Map.take(&1, ["spender1", "spender2", "newowner1", "newowner2"]))
+               Enum.map(txs, fn tx ->
+                 %{
+                   "spender1" => tx["spender1"],
+                   "spender2" => tx["spender2"],
+                   "newowner1" => tx["newowner1"],
+                   "newowner2" => tx["newowner2"]
+                 }
+               end)
     end
   end
 
-  describe "transactions?limit -" do
-    @tag fixtures: [:initial_blocks]
-    test "limiting all transactions without address filter" do
-      %{
-        "data" => txs,
-        "result" => "success"
-      } = TestHelper.rest_call(:get, "/transactions?limit=2")
-
-      assert [
-               %{
-                 "txblknum" => 3000,
-                 "txindex" => 1,
-                 "eth_height" => 1,
-                 "timestamp" => 1_540_465_606
-               },
-               %{
-                 "txblknum" => 3000,
-                 "txindex" => 0,
-                 "eth_height" => 1,
-                 "timestamp" => 1_540_465_606
-               }
-             ] ==
-               txs
-               |> Enum.map(&Map.take(&1, ["txblknum", "txindex", "eth_height", "timestamp"]))
-    end
-  end
-
-  describe "POST transaction/" do
+  describe "Controller.TransactionTest - POST transaction/" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob, :inputs, :outputs]
     test "returns properly formatted transaction bytes", %{alice: alice, bob: bob, inputs: inputs, outputs: outputs} do
       alias OMG.API.State.Transaction
