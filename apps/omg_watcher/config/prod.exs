@@ -18,9 +18,11 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
   url: [host: "example.com", port: 80],
   cache_static_manifest: "priv/static/cache_manifest.json"
 
+# Configure your database
 config :omg_watcher, OMG.Watcher.DB.Repo,
-  load_from_system_env: true,
-  adapter: Ecto.Adapters.Postgres
+  adapter: Ecto.Adapters.Postgres,
+  pool: Ecto.Adapters.SQL.Sandbox,
+  url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_prod"}
 
 # ## SSL Support
 #
