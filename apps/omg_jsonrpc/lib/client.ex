@@ -32,7 +32,7 @@ defmodule OMG.JSONRPC.Client do
   def encode(arg), do: arg
 
   def get_url do
-    Application.get_env(:omg_jsonrpc, :child_chain_url)
+    OMG.API.Config.get_overloaded_env_var(:omg_jsonrpc, :child_chain_url, "CHILD_CHAIN_URL")
   end
 
   @spec call(atom, map, binary) :: {:error | :ok, any}

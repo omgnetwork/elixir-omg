@@ -27,6 +27,18 @@ defmodule OMG.DB.LevelDBServer do
 
   require Logger
 
+  @doc """
+  Initializes an empty LevelDB instance explicitly, so we can have control over it.
+  NOTE: `init` here is to init the GenServer and that assumes that `init_storage` has already been called
+  """
+  @spec init_storage(binary) :: :ok | {:error, atom}
+  def init_storage(db_path) do
+    # open and close with the create flag set to true to initialize the LevelDB itself
+    with {:ok, db_ref} <- Exleveldb.open(db_path, create_if_missing: true),
+         true <- Exleveldb.is_empty?(db_ref) || {:error, :leveldb_not_empty},
+         do: Exleveldb.close(db_ref)
+  end
+
   def start_link(name: name, db_path: db_path) do
     GenServer.start_link(__MODULE__, %{db_path: db_path}, name: name)
   end
@@ -35,7 +47,7 @@ defmodule OMG.DB.LevelDBServer do
     # needed so that terminate callback is called on normal close
     Process.flag(:trap_exit, true)
 
-    with {:ok, db_ref} <- Exleveldb.open(db_path) do
+    with {:ok, db_ref} <- Exleveldb.open(db_path, create_if_missing: false) do
       {:ok, %__MODULE__{db_ref: db_ref}}
     else
       error ->
@@ -64,12 +76,11 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   def handle_call({:utxos}, _from, %__MODULE__{db_ref: db_ref} = state) do
-    keys_stream = Exleveldb.stream(db_ref, :keys_only)
-
     result =
-      keys_stream
+      db_ref
+      |> Exleveldb.stream()
       |> LevelDBCore.filter_utxos()
-      |> Enum.map(fn key -> get(key, db_ref) end)
+      |> Enum.map(fn {_, value} -> {:ok, value} end)
       |> LevelDBCore.decode_values(:utxo)
 
     {:reply, result, state}

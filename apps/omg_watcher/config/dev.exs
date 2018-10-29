@@ -45,7 +45,9 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   password: "omisego_dev",
   database: "omisego_dev",
   hostname: "localhost",
-  pool_size: 10
+  pool_size: 10,
+  timeout: 60_000,
+  connect_timeout: 60_000
 
 # TODO: these two are here to ensure swifter sync in `:dev` env, and are geared towards a 1-sec root chain block
 #       interval. They are taken to be equal to the `:test` env.

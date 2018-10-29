@@ -11,7 +11,7 @@ defmodule OMG.API.MixProject do
       lockfile: "../../mix.lock",
       elixir: "~> 1.6",
       elixirc_paths: elixirc_paths(Mix.env()),
-      start_permanent: Mix.env() == :prod,
+      start_permanent: Mix.env() in [:dev, :prod],
       deps: deps(),
       test_coverage: [tool: ExCoveralls]
     ]

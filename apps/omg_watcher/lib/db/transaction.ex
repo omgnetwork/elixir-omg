@@ -22,7 +22,6 @@ defmodule OMG.Watcher.DB.Transaction do
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.DB
-  alias OMG.Watcher.DB.Repo
 
   require Utxo
 
@@ -31,6 +30,8 @@ defmodule OMG.Watcher.DB.Transaction do
   @type mined_block() :: %{
           transactions: [OMG.API.State.Transaction.Recovered.t()],
           blknum: pos_integer(),
+          blkhash: <<_::256>>,
+          timestamp: pos_integer(),
           eth_height: pos_integer()
         }
 
@@ -38,46 +39,94 @@ defmodule OMG.Watcher.DB.Transaction do
   @derive {Phoenix.Param, key: :txhash}
   @derive {Poison.Encoder, except: [:__meta__]}
   schema "transactions" do
-    field(:blknum, :integer)
     field(:txindex, :integer)
     field(:txbytes, :binary)
     field(:sent_at, :utc_datetime)
-    field(:eth_height, :integer)
 
     has_many(:inputs, DB.TxOutput, foreign_key: :spending_txhash)
     has_many(:outputs, DB.TxOutput, foreign_key: :creating_txhash)
-  end
-
-  def get(hash) do
-    __MODULE__
-    |> Repo.get(hash)
-  end
-
-  def get_by_blknum(blknum) do
-    Repo.all(from(__MODULE__, where: [blknum: ^blknum]))
-  end
-
-  def get_by_position(blknum, txindex) do
-    Repo.one(from(__MODULE__, where: [blknum: ^blknum, txindex: ^txindex]))
+    belongs_to(:block, DB.Block, foreign_key: :blknum, references: :blknum, type: :integer)
   end
 
   @doc """
-  Inserts complete and sorted enumberable of transactions for particular block number
+    Gets a transaction specified by a hash.
+    Optionally, fetches block which the transaction was included in.
+  """
+  def get(hash, preload_block \\ false) do
+    query = from(__MODULE__, where: [txhash: ^hash])
+
+    query =
+      if preload_block do
+        from(query, preload: [:block])
+      else
+        query
+      end
+
+    DB.Repo.one(query)
+  end
+
+  def get_last(limit) do
+    query =
+      from(
+        __MODULE__,
+        order_by: [desc: :blknum, desc: :txindex],
+        limit: ^limit,
+        preload: [:block]
+      )
+
+    DB.Repo.all(query)
+  end
+
+  def get_by_address(address, limit) do
+    query =
+      from(
+        tx in __MODULE__,
+        distinct: true,
+        left_join: output in assoc(tx, :outputs),
+        left_join: input in assoc(tx, :inputs),
+        where: output.owner == ^address or input.owner == ^address,
+        order_by: [desc: tx.blknum, desc: tx.txindex],
+        limit: ^limit,
+        preload: [:block]
+      )
+
+    DB.Repo.all(query)
+  end
+
+  def get_by_blknum(blknum) do
+    DB.Repo.all(from(__MODULE__, where: [blknum: ^blknum]))
+  end
+
+  def get_by_position(blknum, txindex) do
+    DB.Repo.one(from(__MODULE__, where: [blknum: ^blknum, txindex: ^txindex]))
+  end
+
+  @doc """
+  Inserts complete and sorted enumerable of transactions for particular block number
   """
   @spec update_with(mined_block()) :: {:ok, any()}
-  def update_with(%{transactions: transactions, blknum: block_number, eth_height: eth_height}) do
+  def update_with(%{
+        transactions: transactions,
+        blknum: block_number,
+        blkhash: blkhash,
+        timestamp: timestamp,
+        eth_height: eth_height
+      }) do
     [db_txs, db_outputs, db_inputs] =
       transactions
       |> Stream.with_index()
-      |> Enum.reduce([[], [], []], fn {tx, txindex}, acc -> process(tx, block_number, txindex, eth_height, acc) end)
+      |> Enum.reduce([[], [], []], fn {tx, txindex}, acc -> process(tx, block_number, txindex, acc) end)
+
+    current_block = %DB.Block{blknum: block_number, hash: blkhash, timestamp: timestamp, eth_height: eth_height}
 
     {insert_duration, {:ok, _} = result} =
       :timer.tc(
-        &Repo.transaction/1,
+        &DB.Repo.transaction/1,
         [
           fn ->
-            _ = Repo.insert_all_chunked(__MODULE__, db_txs)
-            _ = Repo.insert_all_chunked(DB.TxOutput, db_outputs)
+            {:ok, _} = DB.Repo.insert(current_block)
+            _ = DB.Repo.insert_all_chunked(__MODULE__, db_txs)
+            _ = DB.Repo.insert_all_chunked(DB.TxOutput, db_outputs)
 
             # inputs are set as spent after outputs are inserted to support spending utxo from the same block
             DB.TxOutput.spend_utxos(db_inputs)
@@ -93,7 +142,7 @@ defmodule OMG.Watcher.DB.Transaction do
     result
   end
 
-  @spec process(Transaction.Recovered.t(), pos_integer(), integer(), pos_integer(), list()) :: [list()]
+  @spec process(Transaction.Recovered.t(), pos_integer(), integer(), list()) :: [list()]
   defp process(
          %Transaction.Recovered{
            signed_tx_hash: signed_tx_hash,
@@ -101,30 +150,27 @@ defmodule OMG.Watcher.DB.Transaction do
          },
          block_number,
          txindex,
-         eth_height,
          [tx_list, output_list, input_list]
        ) do
     [
-      [create(block_number, txindex, signed_tx_hash, eth_height, signed_tx_bytes) | tx_list],
+      [create(block_number, txindex, signed_tx_hash, signed_tx_bytes) | tx_list],
       DB.TxOutput.create_outputs(block_number, txindex, signed_tx_hash, raw_tx) ++ output_list,
       DB.TxOutput.create_inputs(raw_tx, signed_tx_hash) ++ input_list
     ]
   end
 
-  @spec create(pos_integer(), integer(), binary(), pos_integer(), binary()) :: map()
+  @spec create(pos_integer(), integer(), binary(), binary()) :: map()
   defp create(
          block_number,
          txindex,
          txhash,
-         eth_height,
          txbytes
        ) do
     %{
       txhash: txhash,
       txbytes: txbytes,
       blknum: block_number,
-      txindex: txindex,
-      eth_height: eth_height
+      txindex: txindex
     }
   end
 
@@ -133,7 +179,7 @@ defmodule OMG.Watcher.DB.Transaction do
     # finding tx's input can be tricky
     input =
       DB.TxOutput.get_by_position(position)
-      |> Repo.preload([:spending_transaction])
+      |> DB.Repo.preload([:spending_transaction])
 
     case input && input.spending_transaction do
       nil ->
@@ -141,7 +187,7 @@ defmodule OMG.Watcher.DB.Transaction do
 
       tx ->
         # transaction which spends output specified by position with outputs it created
-        tx = %__MODULE__{(tx |> Repo.preload([:outputs])) | inputs: [input]}
+        tx = %__MODULE__{(tx |> DB.Repo.preload([:outputs])) | inputs: [input]}
 
         {:ok, tx}
     end

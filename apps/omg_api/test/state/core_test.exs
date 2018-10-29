@@ -589,17 +589,39 @@ defmodule OMG.API.State.CoreTest do
 
   @tag fixtures: [:state_empty]
   test "Getting current block height on empty state", %{state_empty: state} do
-    blknum = Core.get_current_child_block_height(state)
+    {blknum, _} = Core.get_status(state)
 
     assert blknum == @child_block_interval
   end
 
   @tag fixtures: [:state_empty]
   test "Getting current block height with one formed block", %{state_empty: state} do
-    {:ok, {_, _, _}, newstate} = state |> form_block_check(@child_block_interval)
-    blknum = Core.get_current_child_block_height(newstate)
+    {:ok, {_, _, _}, new_state} = state |> form_block_check(@child_block_interval)
+    {blknum, true} = Core.get_status(new_state)
 
     assert blknum == @child_block_interval + @child_block_interval
+  end
+
+  @tag fixtures: [:alice, :state_empty]
+  test "is beginning of block changes when transactions executed and block formed",
+       %{alice: alice, state_empty: state} do
+    fee = %{eth() => 0}
+
+    # at empty state it is at the beginning of the next block
+    {_, true} = Core.get_status(state)
+
+    # when we execute a tx it isn't at the beginning
+    {:ok, _, state} =
+      state
+      |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 10}]), fee, &1)).()
+
+    {_, false} = Core.get_status(state)
+
+    # when a block has been newly formed it is at the beginning
+    {:ok, _, state} = state |> form_block_check(@child_block_interval)
+
+    {_, true} = Core.get_status(state)
   end
 
   describe "Transaction with fees" do

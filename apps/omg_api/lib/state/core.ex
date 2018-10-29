@@ -428,8 +428,11 @@ defmodule OMG.API.State.Core do
   end
 
   @doc """
-  Gets the current block's height
+      Gets the current block's height and whether at the beginning of the block
   """
-  @spec get_current_child_block_height(t()) :: non_neg_integer()
-  def get_current_child_block_height(%{height: height}), do: height
+  @spec get_status(t()) :: {current_block_height :: non_neg_integer(), is_block_beginning :: boolean()}
+  def get_status(%__MODULE__{height: height, tx_index: tx_index, pending_txs: pending}) do
+    is_beginning = tx_index == 0 && Enum.empty?(pending)
+    {height, is_beginning}
+  end
 end

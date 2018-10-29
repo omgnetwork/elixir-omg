@@ -61,18 +61,9 @@ defmodule OMG.DB.LevelDBCore do
       encoded_enumerable
       |> Enum.map(fn encoded -> decode_response(type, encoded) end)
 
-    is_error? = fn result ->
-      case result do
-        {:error, _} -> true
-        _ -> false
-      end
-    end
-
-    if Enum.any?(raw_decoded, is_error?) do
-      {:error, raw_decoded}
-    else
-      {:ok, raw_decoded}
-    end
+    if Enum.any?(raw_decoded, &match?({:error, _}, &1)),
+      do: {:error, raw_decoded},
+      else: {:ok, raw_decoded}
   end
 
   defp encode_value(_type, value), do: :erlang.term_to_binary(value)
@@ -80,7 +71,7 @@ defmodule OMG.DB.LevelDBCore do
   def filter_utxos(keys_stream) do
     keys_stream
     |> Stream.filter(fn
-      "u" <> _rest -> true
+      {"u" <> _rest, _} -> true
       _ -> false
     end)
   end
@@ -104,7 +95,7 @@ defmodule OMG.DB.LevelDBCore do
     :last_fast_exit_eth_height,
     :last_slow_exit_eth_height,
     :last_block_getter_eth_height,
-    :last_depositer_eth_height,
+    :last_depositor_eth_height,
     :last_exiter_eth_height
   ]
 

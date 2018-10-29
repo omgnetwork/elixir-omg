@@ -20,11 +20,14 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
+  alias OMG.API.Crypto
   alias OMG.API.State
   alias OMG.Watcher.DB
   alias OMG.Watcher.Web.View
 
   import OMG.Watcher.Web.ErrorHandler
+
+  @default_transactions_limit 200
 
   @doc """
   Retrieves a specific transaction by id.
@@ -32,8 +35,30 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   def get_transaction(conn, %{"id" => id}) do
     id
     |> Base.decode16!()
-    |> DB.Transaction.get()
+    |> DB.Transaction.get(true)
     |> respond(conn)
+  end
+
+  @doc """
+  Retrieves a list of transactions
+  """
+  def get_transactions(conn, params) do
+    address = Map.get(params, "address")
+    limit = Map.get(params, "limit", @default_transactions_limit)
+    {limit, ""} = limit |> Kernel.to_string() |> Integer.parse()
+
+    # TODO: implement pagination. Defend against fetching huge dataset.
+    limit = min(limit, @default_transactions_limit)
+
+    transactions =
+      if address == nil do
+        DB.Transaction.get_last(limit)
+      else
+        {:ok, address_decode} = Crypto.decode_address(address)
+        DB.Transaction.get_by_address(address_decode, limit)
+      end
+
+    respond_multiple(transactions, conn)
   end
 
   @doc """
@@ -52,6 +77,9 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     end
     |> respond(conn)
   end
+
+  defp respond_multiple(transactions, conn),
+    do: render(conn, View.Transaction, :transactions, transactions: transactions)
 
   defp respond(%DB.Transaction{} = transaction, conn),
     do: render(conn, View.Transaction, :transaction, transaction: transaction)
@@ -104,6 +132,8 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
             sig2(:string, "Signature of owner of the second input utxo", required: true)
             spender1(:string, "Address of owner of the first input utxo", required: true)
             spender2(:string, "Address of owner of the second input utxo", required: true)
+            timestamp(:integer, "Timestamp of a block which the transaction was included in", required: true)
+            eth_height(:integer, "Eth height where the block was submitted", required: true)
           end
 
           example(%{
@@ -126,8 +156,16 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
             sig2:
               "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
             spender1: "92EAD0DB732692FF887268DA965C311AC2C9005B",
-            spender2: "92EAD0DB732692FF887268DA965C311AC2C9005B"
+            spender2: "92EAD0DB732692FF887268DA965C311AC2C9005B",
+            timestamp: 1_540_365_586,
+            eth_height: 6_573_395
           })
+        end,
+      Transactions:
+        swagger_schema do
+          title("Array of transactions")
+          type(:array)
+          items(Schema.ref(:Transaction))
         end,
       Output:
         swagger_schema do
@@ -166,10 +204,22 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     summary("Gets a transaction with the given id")
 
     parameters do
-      id(:path, :integer, "Id of the transaction", required: true)
+      id(:path, :string, "Id of the transaction", required: true)
     end
 
     response(200, "OK", Schema.ref(:Transaction))
+  end
+
+  swagger_path :get_transactions do
+    get("/transactions")
+    summary("Gets a list of transactions.")
+
+    parameters do
+      address(:query, :string, "Address of the sender or recipient", required: false)
+      limit(:query, :integer, "Limits number of transactions. Default value is 200", required: false)
+    end
+
+    response(200, "OK", Schema.ref(:Transactions))
   end
 
   swagger_path :encode_transaction do

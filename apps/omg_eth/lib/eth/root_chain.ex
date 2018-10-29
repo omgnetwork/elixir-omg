@@ -94,8 +94,8 @@ defmodule OMG.Eth.RootChain do
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    signature = "depositFrom(address,address,uint256)"
-    Eth.contract_transact(from, contract, signature, [from, token, amount], opts)
+    signature = "depositFrom(address,uint256)"
+    Eth.contract_transact(from, contract, signature, [token, amount], opts)
   end
 
   def add_token(token, contract \\ nil, opts \\ []) do

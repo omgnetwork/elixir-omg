@@ -18,6 +18,38 @@ defmodule OMG.Watcher.Application do
   use OMG.API.LoggerExt
 
   def start(_type, _args) do
+    start_root_supervisor()
+  end
+
+  def start_root_supervisor do
+    # root supervisor must stop whenever any of its children goes down
+
+    children = [
+      %{
+        id: :watcher_supervisor,
+        start: {__MODULE__, :start_watcher_supervisor, []},
+        restart: :permanent,
+        type: :supervisor
+      },
+      %{
+        id: :block_getter_supervisor,
+        start: {OMG.Watcher.BlockGetter.Supervisor, :start_link, []},
+        restart: :permanent,
+        type: :supervisor
+      }
+    ]
+
+    opts = [
+      strategy: :one_for_one,
+      # whenever any of supervisor's children goes down, so it does
+      max_restarts: 0,
+      name: OMG.Watcher.RootSupervisor
+    ]
+
+    Supervisor.start_link(children, opts)
+  end
+
+  def start_watcher_supervisor do
     import Supervisor.Spec
 
     # Define workers and child supervisors to be supervised
@@ -28,19 +60,19 @@ defmodule OMG.Watcher.Application do
       # Start the Ecto repository
       supervisor(OMG.Watcher.DB.Repo, []),
       # Start workers
-      {OMG.API.State, []},
       {OMG.Watcher.Eventer, []},
-      {OMG.API.RootChainCoordinator, MapSet.new([:depositer, :fast_validator, :slow_validator, :block_getter])},
+      {OMG.API.RootChainCoordinator,
+       MapSet.new([:depositer, :fast_validator, :slow_validator, OMG.Watcher.BlockGetter])},
       worker(
         OMG.API.EthereumEventListener,
         [
           %{
-            synced_height_update_key: :last_depositer_eth_height,
+            synced_height_update_key: :last_depositor_eth_height,
             service_name: :depositer,
             block_finality_margin: block_finality_margin,
             get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
             process_events_callback: &deposit_events_callback/1,
-            get_last_synced_height_callback: &OMG.DB.last_depositer_eth_height/0
+            get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0
           }
         ],
         id: :depositer
@@ -73,21 +105,12 @@ defmodule OMG.Watcher.Application do
         ],
         id: :slow_validator
       ),
-      worker(
-        OMG.Watcher.BlockGetter,
-        [[]],
-        restart: :transient,
-        id: :block_getter
-      ),
-
       # Start the endpoint when the application starts
       supervisor(OMG.Watcher.Web.Endpoint, [])
     ]
 
     _ = Logger.info(fn -> "Started application OMG.Watcher.Application" end)
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
     opts = [strategy: :one_for_one, name: OMG.Watcher.Supervisor]
     Supervisor.start_link(children, opts)
   end

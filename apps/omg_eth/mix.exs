@@ -41,7 +41,7 @@ defmodule OMG.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "develop_3.7_py_solc_simple_indexed_events",
+        branch: "release",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,

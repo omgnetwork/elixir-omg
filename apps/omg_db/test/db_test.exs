@@ -35,6 +35,8 @@ defmodule OMG.DBTest do
   setup do
     {:ok, dir} = Briefly.create(directory: true)
 
+    :ok = OMG.DB.LevelDBServer.init_storage(dir)
+
     {:ok, pid} =
       GenServer.start_link(
         OMG.DB.LevelDBServer,

@@ -18,41 +18,64 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
 
   alias OMG.API.EthereumEventListener.Core
 
-  deffixture initial_state() do
-    %Core{
-      block_finality_margin: 10,
-      service_name: :event_listener,
-      synced_height_update_key: :event_listener_height,
-      next_event_height_lower_bound: 80,
-      synced_height: 100
-    }
+  @finality_margin 10
+
+  defp create_state, do: create_state(100)
+
+  defp create_state(height) do
+    Core.init(:event_listener_height, :event_listener, height, @finality_margin)
   end
 
-  @tag fixtures: [:initial_state]
-  test "produces next ethereum height range to get events from", %{initial_state: state} do
+  test "produces next ethereum height range to get events from" do
+    state = create_state()
     next_sync_height = 101
 
-    {:get_events, {lower_bound, upper_bound}, state, [{:put, :event_listener_height, synced_height}]} =
+    {:get_events, {lower_bound, upper_bound}, state, [{:put, :event_listener_height, ^next_sync_height}]} =
       Core.get_events_height_range_for_next_sync(state, next_sync_height)
 
-    assert synced_height == upper_bound
-    assert lower_bound < upper_bound
+    assert next_sync_height == upper_bound + state.block_finality_margin
+    assert lower_bound <= upper_bound
 
     {:dont_get_events, ^state} = Core.get_events_height_range_for_next_sync(state, next_sync_height)
 
     next_sync_height = next_sync_height + 1
     expected_lower_bound = upper_bound + 1
 
-    {
-      :get_events,
-      {^expected_lower_bound, expected_upper_bound},
-      state,
-      [{:put, :event_listener_height, synced_height}]
-    } = Core.get_events_height_range_for_next_sync(state, next_sync_height)
+    assert {
+             :get_events,
+             {^expected_lower_bound, expected_upper_bound},
+             state,
+             [{:put, :event_listener_height, ^next_sync_height}]
+           } = Core.get_events_height_range_for_next_sync(state, next_sync_height)
 
-    assert synced_height == expected_upper_bound
+    assert next_sync_height == expected_upper_bound + state.block_finality_margin
 
     {:dont_get_events, ^state} = Core.get_events_height_range_for_next_sync(state, next_sync_height)
     assert expected_upper_bound < next_sync_height
+  end
+
+  test "restart allows to continue with proper bounds" do
+    state = create_state(100)
+    next_sync_height = 105
+
+    {:get_events, {lower_bound, upper_bound}, _state, [{:put, :event_listener_height, ^next_sync_height}]} =
+      Core.get_events_height_range_for_next_sync(state, next_sync_height)
+
+    assert lower_bound == 100 - @finality_margin + 1
+
+    # simulate restart:
+    state = create_state(next_sync_height)
+
+    next_sync_height = next_sync_height + 3
+    expected_lower_bound = upper_bound + 1
+    expected_upper_bound = next_sync_height - @finality_margin
+    assert 3 == expected_upper_bound - expected_lower_bound + 1
+
+    assert {
+             :get_events,
+             {^expected_lower_bound, ^expected_upper_bound},
+             _,
+             [{:put, :event_listener_height, ^next_sync_height}]
+           } = Core.get_events_height_range_for_next_sync(state, next_sync_height)
   end
 end

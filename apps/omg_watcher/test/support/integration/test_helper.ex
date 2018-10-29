@@ -56,10 +56,9 @@ defmodule OMG.Watcher.Integration.TestHelper do
   defp wait_for_block(block_nr) do
     # TODO query to State used in tests instead of an event system, remove when event system is here
     fn ->
-      case State.get_current_child_block_height() <= block_nr do
-        true -> :repeat
-        false -> {:ok, block_nr}
-      end
+      if State.get_status() |> elem(0) <= block_nr,
+        do: :repeat,
+        else: {:ok, block_nr}
     end
   end
 end

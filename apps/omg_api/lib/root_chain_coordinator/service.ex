@@ -18,7 +18,7 @@ defmodule OMG.API.RootChainCoordinator.Service do
   and report processed height by calling `RootChainCoordiantor.check_in(height, service_name)`
   where `service_name` is a unique name of that service.
   Service is expected to handle `:sync` message that notifies about necessity to check synchronization status by calling
-  `OMG.API.RootChainCoordinator.get_eight/0`.
+  `OMG.API.RootChainCoordinator.get_height/0`.
   """
 
   defstruct synced_height: nil, pid: nil

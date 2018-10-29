@@ -33,6 +33,16 @@ defmodule OMG.API.EthereumEventListener.Core do
           block_finality_margin: non_neg_integer()
         }
 
+  def init(update_key, service_name, last_synced_ethereum_height, block_finality_margin) do
+    %__MODULE__{
+      synced_height_update_key: update_key,
+      next_event_height_lower_bound: max(last_synced_ethereum_height - block_finality_margin + 1, 0),
+      synced_height: last_synced_ethereum_height,
+      service_name: service_name,
+      block_finality_margin: block_finality_margin
+    }
+  end
+
   @doc """
   Returns next Ethereum height to get events from.
   """
@@ -55,13 +65,13 @@ defmodule OMG.API.EthereumEventListener.Core do
       ) do
     next_event_height_upper_bound = max(next_sync_height - block_finality_margin, 0)
 
-    new_state = %{
+    new_state = %__MODULE__{
       state
       | synced_height: next_sync_height,
         next_event_height_lower_bound: next_event_height_upper_bound + 1
     }
 
-    db_updates = [{:put, update_key, next_event_height_upper_bound}]
+    db_updates = [{:put, update_key, next_sync_height}]
 
     {:get_events, {next_event_height_lower_bound, next_event_height_upper_bound}, new_state, db_updates}
   end

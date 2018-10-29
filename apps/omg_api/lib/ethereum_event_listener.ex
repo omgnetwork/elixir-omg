@@ -23,11 +23,21 @@ defmodule OMG.API.EthereumEventListener do
   alias OMG.API.RootChainCoordinator
   use OMG.API.LoggerExt
 
+  @type config() :: %{
+          block_finality_margin: non_neg_integer,
+          synced_height_update_key: atom,
+          service_name: atom,
+          get_events_callback: (non_neg_integer, non_neg_integer -> {:ok, [any]}),
+          process_events_callback: ([any] -> :ok),
+          get_last_synced_height_callback: (() -> {:ok, non_neg_integer})
+        }
+
   ### Client
 
-  @spec start_link(map()) :: GenServer.on_start()
+  @spec start_link(config()) :: GenServer.on_start()
   def start_link(config) do
-    GenServer.start_link(__MODULE__, config)
+    %{service_name: name} = config
+    GenServer.start_link(__MODULE__, config, name: name)
   end
 
   ### Server
@@ -54,22 +64,17 @@ defmodule OMG.API.EthereumEventListener do
     _ = Logger.info(fn -> "Starting EthereumEventListener for #{service_name}" end)
 
     {:ok,
-     {%Core{
-        synced_height_update_key: update_key,
-        next_event_height_lower_bound: last_event_block_height,
-        synced_height: last_event_block_height,
-        service_name: service_name,
-        block_finality_margin: finality_margin
-      },
+     {Core.init(update_key, service_name, last_event_block_height, finality_margin),
       %{
         get_ethereum_events_callback: get_events_callback,
         process_events_callback: process_events_callback
       }}}
   end
 
-  def handle_info(:sync, state) do
+  def handle_info(:sync, {core, _callbacks} = state) do
     case RootChainCoordinator.get_height() do
       :nosync ->
+        :ok = RootChainCoordinator.check_in(core.synced_height, core.service_name)
         {:noreply, state}
 
       {:sync, next_sync_height} ->

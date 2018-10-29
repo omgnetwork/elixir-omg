@@ -51,13 +51,16 @@ defmodule OMG.API.RootChainCoordinator do
     height_sync_interval = Application.get_env(:omg_api, :rootchain_height_sync_interval_ms)
     {:ok, _} = schedule_get_ethereum_height(height_sync_interval)
     state = Core.init(MapSet.new(allowed_services), rootchain_height)
+    request_sync(allowed_services)
     {:ok, state}
   end
 
   def handle_call({:check_in, synced_height, service_name}, {pid, _}, state) do
+    _ = Logger.debug(fn -> "#{inspect(service_name)} checks in on height #{inspect(synced_height)}" end)
     {:ok, state, services_to_sync} = Core.check_in(state, pid, synced_height, service_name)
-    Enum.each(services_to_sync, fn pid -> send(pid, :sync) end)
-    {:reply, :ok, state}
+    _ = length(services_to_sync) > 0 and Logger.debug(fn -> "Services to sync: #{inspect(services_to_sync)}" end)
+    request_sync(services_to_sync)
+    {:reply, :ok, state, 60_000}
   end
 
   def handle_call(:get_synced_height, _from, state) do
@@ -75,7 +78,25 @@ defmodule OMG.API.RootChainCoordinator do
     {:noreply, state}
   end
 
+  def handle_info(:timeout, state) do
+    _ = Logger.warn(fn -> "No new activity for 60 seconds. Are we dead?" end)
+    {:noreply, state}
+  end
+
   defp schedule_get_ethereum_height(interval) do
     :timer.send_interval(interval, self(), :update_root_chain_height)
+  end
+
+  defp request_sync(services) do
+    Enum.each(services, fn service -> safe_send(service, :sync) end)
+  end
+
+  def safe_send(registered_name_or_pid, msg) do
+    try do
+      send(registered_name_or_pid, msg)
+    rescue
+      ArgumentError ->
+        msg
+    end
   end
 end
