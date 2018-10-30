@@ -67,7 +67,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
 
-    Process.sleep(1_000)
+    IntegrationTest.wait_until_block_getter_fetches_block_after_current_child_block(@timeout)
 
     invalid_exit_event =
       Client.encode(%Event.InvalidExit{

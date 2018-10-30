@@ -41,6 +41,14 @@ defmodule OMG.Watcher.Integration.TestHelper do
     utxos
   end
 
+  def wait_until_block_getter_fetches_block_after_current_child_block(timeout) do
+    {:ok, current_child_block} = Eth.RootChain.get_current_child_block()
+
+    one_block = Application.get_env(:omg_eth, :child_block_interval)
+
+    wait_until_block_getter_fetches_block(current_child_block + one_block, timeout)
+  end
+
   def wait_until_block_getter_fetches_block(block_nr, timeout) do
     fn ->
       Eth.WaitFor.repeat_until_ok(wait_for_block(block_nr))

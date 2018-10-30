@@ -145,9 +145,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth}]} ==
              Eth.RootChain.get_exits(0, height)
 
-    # exiting spends UTXO on child chain
-    # wait until the exit is recognized and attempt to spend the exited utxo
-    Process.sleep(4_000)
+    IntegrationTest.wait_until_block_getter_fetches_block_after_current_child_block(@timeout)
+
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
 
     {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})

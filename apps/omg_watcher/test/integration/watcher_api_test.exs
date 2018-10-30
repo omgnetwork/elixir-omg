@@ -113,9 +113,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash1, @timeout)
 
-    # exiting spends UTXO on child chain
-    # wait until the exit is recognized and attempt to spend the exited utxo
-    Process.sleep(4_000)
+    IntegrationTest.wait_until_block_getter_fetches_block_after_current_child_block(@timeout)
 
     assert [token_deposit] == IntegrationTest.get_utxos(alice)
 
@@ -132,9 +130,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash2, @timeout)
 
-    # exiting spends UTXO on child chain
-    # wait until the exit is recognized and attempt to spend the exited utxo
-    Process.sleep(4_000)
+    IntegrationTest.wait_until_block_getter_fetches_block_after_current_child_block(@timeout)
 
     assert [] == IntegrationTest.get_utxos(alice)
   end
