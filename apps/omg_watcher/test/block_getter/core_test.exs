@@ -317,6 +317,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     |> assert_check([1_000])
   end
 
+  @tag :capture_log
   test "figures out the proper synced height on init" do
     assert 0 == Core.figure_out_exact_sync_height([], 0, 0)
     assert 0 == Core.figure_out_exact_sync_height([], 0, 10)
@@ -329,6 +330,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
              |> Core.figure_out_exact_sync_height(1, 10)
   end
 
+  @tag :capture_log
   test "figures out the proper synced height on init, if there's many submissions per eth height" do
     # the exact sync height is picked only if it's the youngest submission, otherwise backoff
     assert 1 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}, %{eth_height: 100, blknum: 8}], 1, 10)
