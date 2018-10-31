@@ -138,11 +138,12 @@ defmodule OMG.Watcher.Fixtures do
 
   @doc "run only database in sandbox and endpoint to make request"
   deffixture phoenix_ecto_sandbox do
-    import Supervisor.Spec
-
     {:ok, pid} =
       Supervisor.start_link(
-        [supervisor(OMG.Watcher.DB.Repo, []), supervisor(OMG.Watcher.Web.Endpoint, [])],
+        [
+          %{id: :watcher_repo, start: {OMG.Watcher.DB.Repo, :start_link, []}, type: :supervisor},
+          %{id: :watcher_endpoint, start: {OMG.Watcher.Web.Endpoint, :start_link, []}, type: :supervisor}
+        ],
         strategy: :one_for_one,
         name: OMG.Watcher.Supervisor
       )

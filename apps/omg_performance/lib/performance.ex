@@ -48,8 +48,6 @@ defmodule OMG.Performance do
 
   require Utxo
 
-  import Supervisor.Spec
-
   @eth Crypto.zero_address()
 
   @doc """
@@ -144,9 +142,13 @@ defmodule OMG.Performance do
 
     omg_port = Application.get_env(:omg_jsonrpc, :omg_api_rpc_port)
 
-    # select just neccessary components to run the tests
+    # select just necessary components to run the tests
     children = [
-      supervisor(Phoenix.PubSub.PG2, [:eventer, []]),
+      %{
+        id: :phoenix_pg2,
+        start: {Phoenix.PubSub.PG2, :start_link, [:eventer, []]},
+        type: :supervisor
+      },
       {OMG.API.State, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeChecker, []},

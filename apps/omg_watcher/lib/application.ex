@@ -50,63 +50,74 @@ defmodule OMG.Watcher.Application do
   end
 
   def start_watcher_supervisor do
-    import Supervisor.Spec
-
     # Define workers and child supervisors to be supervised
     block_finality_margin = Application.get_env(:omg_api, :ethereum_event_block_finality_margin)
     margin_slow_validator = Application.get_env(:omg_watcher, :margin_slow_validator)
 
     children = [
       # Start the Ecto repository
-      supervisor(OMG.Watcher.DB.Repo, []),
+      %{
+        id: :omg_watcher_repo,
+        start: {OMG.Watcher.DB.Repo, :start_link, []},
+        type: :supervisor
+      },
       # Start workers
       {OMG.Watcher.Eventer, []},
-      {OMG.API.RootChainCoordinator,
-       MapSet.new([:depositer, :fast_validator, :slow_validator, OMG.Watcher.BlockGetter])},
-      worker(
-        OMG.API.EthereumEventListener,
-        [
-          %{
-            synced_height_update_key: :last_depositor_eth_height,
-            service_name: :depositer,
-            block_finality_margin: block_finality_margin,
-            get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
-            process_events_callback: &deposit_events_callback/1,
-            get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0
-          }
-        ],
-        id: :depositer
-      ),
-      worker(
-        OMG.API.EthereumEventListener,
-        [
-          %{
-            block_finality_margin: 0,
-            synced_height_update_key: :last_fast_exit_eth_height,
-            service_name: :fast_validator,
-            get_events_callback: &OMG.Eth.RootChain.get_exits/2,
-            process_events_callback: OMG.Watcher.ExitValidator.Validator.challenge_fastly_invalid_exits(),
-            get_last_synced_height_callback: &OMG.DB.last_fast_exit_eth_height/0
-          }
-        ],
-        id: :fast_validator
-      ),
-      worker(
-        OMG.API.EthereumEventListener,
-        [
-          %{
-            block_finality_margin: margin_slow_validator,
-            synced_height_update_key: :last_slow_exit_eth_height,
-            service_name: :slow_validator,
-            get_events_callback: &OMG.Eth.RootChain.get_exits/2,
-            process_events_callback: OMG.Watcher.ExitValidator.Validator.challenge_slowly_invalid_exits(),
-            get_last_synced_height_callback: &OMG.DB.last_slow_exit_eth_height/0
-          }
-        ],
-        id: :slow_validator
-      ),
+      {
+        OMG.API.RootChainCoordinator,
+        MapSet.new([:depositer, :fast_validator, :slow_validator, OMG.Watcher.BlockGetter])
+      },
+      %{
+        id: :depositor,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               synced_height_update_key: :last_depositor_eth_height,
+               service_name: :depositer,
+               block_finality_margin: block_finality_margin,
+               get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
+               process_events_callback: &deposit_events_callback/1,
+               get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0
+             }
+           ]}
+      },
+      %{
+        id: :fast_validator,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               block_finality_margin: 0,
+               synced_height_update_key: :last_fast_exit_eth_height,
+               service_name: :fast_validator,
+               get_events_callback: &OMG.Eth.RootChain.get_exits/2,
+               process_events_callback: OMG.Watcher.ExitValidator.Validator.challenge_fastly_invalid_exits(),
+               get_last_synced_height_callback: &OMG.DB.last_fast_exit_eth_height/0
+             }
+           ]}
+      },
+      %{
+        id: :slow_validator,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               block_finality_margin: margin_slow_validator,
+               synced_height_update_key: :last_slow_exit_eth_height,
+               service_name: :slow_validator,
+               get_events_callback: &OMG.Eth.RootChain.get_exits/2,
+               process_events_callback: OMG.Watcher.ExitValidator.Validator.challenge_slowly_invalid_exits(),
+               get_last_synced_height_callback: &OMG.DB.last_slow_exit_eth_height/0
+             }
+           ]}
+      },
       # Start the endpoint when the application starts
-      supervisor(OMG.Watcher.Web.Endpoint, [])
+      %{
+        id: :watcher_endpoint,
+        start: {OMG.Watcher.Web.Endpoint, :start_link, []},
+        type: :supervisor
+      }
     ]
 
     _ = Logger.info(fn -> "Started application OMG.Watcher.Application" end)
