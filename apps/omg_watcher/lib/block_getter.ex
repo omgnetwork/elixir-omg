@@ -72,6 +72,8 @@ defmodule OMG.Watcher.BlockGetter do
       :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
       :ok = OMG.DB.multi_update(db_updates)
 
+      :ok = OMG.API.ExitProcessor.check_validity()
+
       {:noreply, state}
     else
       {:needs_stopping, reason} ->

@@ -47,6 +47,7 @@ defmodule OMG.API.EthereumEventListener do
   def init(%{
         block_finality_margin: finality_margin,
         synced_height_update_key: update_key,
+        # FIXME: bundle with callbacks into a module for readability and order
         service_name: service_name,
         get_events_callback: get_events_callback,
         process_events_callback: process_events_callback,

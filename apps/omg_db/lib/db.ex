@@ -91,7 +91,8 @@ defmodule OMG.DB do
       {:put, :child_top_block_number, 0},
       {:put, :last_block_getter_eth_height, 0},
       {:put, :last_depositor_eth_height, 0},
-      {:put, :last_exiter_eth_height, 0}
+      {:put, :last_exiter_eth_height, 0},
+      {:put, :last_exit_processor_eth_height, 0}
     ]
 
     with :ok <- server_name.init_storage(path),

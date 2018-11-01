@@ -113,6 +113,21 @@ defmodule OMG.Watcher.Application do
              }
            ]}
       },
+      %{
+        id: :exit_processor,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               block_finality_margin: 0,
+               synced_height_update_key: :last_exit_processor_eth_height,
+               service_name: :exit_processor,
+               get_events_callback: &OMG.Eth.RootChain.get_exits/2,
+               process_events_callback: &OMG.API.ExitProcessor.new_exits/1,
+               get_last_synced_height_callback: fn -> {:ok, 0} end
+             }
+           ]}
+      },
       # Start the endpoint when the application starts
       %{
         id: OMG.Watcher.Web.Endpoint,
