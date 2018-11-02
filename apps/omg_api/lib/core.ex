@@ -36,6 +36,8 @@ defmodule OMG.API.Core do
     - statelessly valid (mainly inputs logic)
     - recovered (i.e. signatures get recovered into spenders)
   transaction
+
+   See docs/transaction_validation.md for more information about stateful and stateless validation.
   """
   @spec recover_tx(binary) ::
           Transaction.Recovered.t()
