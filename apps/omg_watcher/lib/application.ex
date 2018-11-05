@@ -26,13 +26,13 @@ defmodule OMG.Watcher.Application do
 
     children = [
       %{
-        id: :watcher_supervisor,
+        id: OMG.Watcher.Supervisor,
         start: {__MODULE__, :start_watcher_supervisor, []},
         restart: :permanent,
         type: :supervisor
       },
       %{
-        id: :block_getter_supervisor,
+        id: OMG.Watcher.BlockGetter.Supervisor,
         start: {OMG.Watcher.BlockGetter.Supervisor, :start_link, []},
         restart: :permanent,
         type: :supervisor
@@ -65,7 +65,7 @@ defmodule OMG.Watcher.Application do
       {OMG.Watcher.Eventer, []},
       {
         OMG.API.RootChainCoordinator,
-        MapSet.new([:depositer, :fast_validator, :slow_validator, OMG.Watcher.BlockGetter])
+        MapSet.new([:depositor, :fast_validator, :slow_validator, OMG.Watcher.BlockGetter])
       },
       %{
         id: :depositor,
@@ -74,7 +74,7 @@ defmodule OMG.Watcher.Application do
            [
              %{
                synced_height_update_key: :last_depositor_eth_height,
-               service_name: :depositer,
+               service_name: :depositor,
                block_finality_margin: block_finality_margin,
                get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
                process_events_callback: &deposit_events_callback/1,
@@ -114,7 +114,7 @@ defmodule OMG.Watcher.Application do
       },
       # Start the endpoint when the application starts
       %{
-        id: :watcher_endpoint,
+        id: OMG.Watcher.Web.Endpoint,
         start: {OMG.Watcher.Web.Endpoint, :start_link, []},
         type: :supervisor
       }

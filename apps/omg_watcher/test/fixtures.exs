@@ -141,8 +141,8 @@ defmodule OMG.Watcher.Fixtures do
     {:ok, pid} =
       Supervisor.start_link(
         [
-          %{id: :watcher_repo, start: {OMG.Watcher.DB.Repo, :start_link, []}, type: :supervisor},
-          %{id: :watcher_endpoint, start: {OMG.Watcher.Web.Endpoint, :start_link, []}, type: :supervisor}
+          %{id: OMG.Watcher.DB.Repo, start: {OMG.Watcher.DB.Repo, :start_link, []}, type: :supervisor},
+          %{id: OMG.Watcher.Web.Endpoint, start: {OMG.Watcher.Web.Endpoint, :start_link, []}, type: :supervisor}
         ],
         strategy: :one_for_one,
         name: OMG.Watcher.Supervisor
