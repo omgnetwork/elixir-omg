@@ -66,7 +66,7 @@ defmodule OMG.Watcher.BlockGetter do
 
       :ok = OMG.API.State.close_block(block_rootchain_height)
 
-      {state, synced_height, db_updates} = Core.apply_block(state, blknum, block_rootchain_height)
+      {state, synced_height, db_updates} = Core.apply_block(state, blknum)
       _ = Logger.debug(fn -> "Synced height update: #{inspect(db_updates)}" end)
 
       :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
@@ -85,7 +85,6 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   def init(_opts) do
-    {:ok, current_eth_height} = Eth.get_ethereum_height()
     {:ok, deployment_height} = Eth.RootChain.get_root_deployment_height()
     {:ok, last_synced_height} = OMG.DB.last_block_getter_eth_height()
     synced_height = max(deployment_height, last_synced_height)
@@ -97,7 +96,11 @@ defmodule OMG.Watcher.BlockGetter do
     # while top block number is a block that has been formed (they differ by the interval)
     child_top_block_number = current_block_height - child_block_interval
 
-    {:ok, block_submissions} = Eth.RootChain.get_block_submitted_events({synced_height, current_eth_height})
+    # here we look for submissions dating from a reasonably old ethereum block
+    # the subtraction is in the rare event where BlockGetter erroneously checked in to the future height
+    {:ok, block_submissions} =
+      Eth.RootChain.get_block_submitted_events({max(0, synced_height - 1000), synced_height + 1000})
+
     exact_synced_height = Core.figure_out_exact_sync_height(block_submissions, synced_height, child_top_block_number)
 
     :ok = RootChainCoordinator.check_in(exact_synced_height, __MODULE__)

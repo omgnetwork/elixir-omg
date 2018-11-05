@@ -97,9 +97,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       )
 
     assert {:ok, state, []} = process_single_block(block)
-    synced_height = 1
+    synced_height = 2
 
-    assert {[{%{transactions: [tx], zero_fee_requirements: fees}, 1}], _, _, _} =
+    assert {[{%{transactions: [tx], zero_fee_requirements: fees}, 2}], _, _, _} =
              Core.get_blocks_to_apply(state, [%{blknum: block.number, eth_height: synced_height}], synced_height)
 
     # check feasibility of transactions from block to consume at the API.State
@@ -123,9 +123,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     assert {:ok, state, []} = process_single_block(block)
 
-    synced_height = 1
+    synced_height = 2
 
-    assert {[{%{transactions: [_tx1, _tx2], zero_fee_requirements: fees}, 1}], _, _, _} =
+    assert {[{%{transactions: [_tx1, _tx2], zero_fee_requirements: fees}, _}], _, _, _} =
              Core.get_blocks_to_apply(state, [%{blknum: block.number, eth_height: synced_height}], synced_height)
 
     assert fees == %{@eth => 0, other_currency => 0}
@@ -317,6 +317,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     |> assert_check([1_000])
   end
 
+  @tag :capture_log
   test "figures out the proper synced height on init" do
     assert 0 == Core.figure_out_exact_sync_height([], 0, 0)
     assert 0 == Core.figure_out_exact_sync_height([], 0, 10)
@@ -329,6 +330,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
              |> Core.figure_out_exact_sync_height(1, 10)
   end
 
+  @tag :capture_log
   test "figures out the proper synced height on init, if there's many submissions per eth height" do
     # the exact sync height is picked only if it's the youngest submission, otherwise backoff
     assert 1 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}, %{eth_height: 100, blknum: 8}], 1, 10)
@@ -366,29 +368,217 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     synced_height = 2
     next_synced_height = synced_height + 1
 
-    {[{_, ^synced_height}, {_, ^synced_height}], 0, _, state} =
-      Core.get_blocks_to_apply(
-        state,
-        [%{blknum: 1_000, eth_height: synced_height}, %{blknum: 2_000, eth_height: synced_height}],
-        synced_height
-      )
+    assert {[{_, ^synced_height}, {_, ^synced_height}], 0, [], state} =
+             Core.get_blocks_to_apply(
+               state,
+               [%{blknum: 1_000, eth_height: synced_height}, %{blknum: 2_000, eth_height: synced_height}],
+               synced_height
+             )
 
-    {state, 0, []} = Core.apply_block(state, 1_000, synced_height)
+    assert {state, 0, []} = Core.apply_block(state, 1_000)
 
-    {state, ^synced_height, [{:put, :last_block_getter_eth_height, ^synced_height}]} =
-      Core.apply_block(state, 2_000, synced_height)
+    assert {state, ^synced_height, [{:put, :last_block_getter_eth_height, ^synced_height}]} =
+             Core.apply_block(state, 2_000)
 
-    {[{_, ^next_synced_height}], ^synced_height, _, state} =
-      Core.get_blocks_to_apply(
-        state,
-        [%{blknum: 3_000, eth_height: next_synced_height}],
-        next_synced_height
-      )
+    assert {[{_, ^next_synced_height}], ^synced_height, [], state} =
+             Core.get_blocks_to_apply(
+               state,
+               [%{blknum: 3_000, eth_height: next_synced_height}],
+               next_synced_height
+             )
 
-    {state, ^next_synced_height, [{:put, :last_block_getter_eth_height, ^next_synced_height}]} =
-      Core.apply_block(state, 3_000, next_synced_height)
+    assert {state, ^next_synced_height, [{:put, :last_block_getter_eth_height, ^next_synced_height}]} =
+             Core.apply_block(state, 3_000)
 
-    {_, ^next_synced_height, _, _} = Core.get_blocks_to_apply(state, [], next_synced_height)
+    # weird case when submissions for next_synced_height are now empty
+    assert {[], ^next_synced_height, [], ^state} = Core.get_blocks_to_apply(state, [], next_synced_height)
+
+    # moving forward
+    next_synced_height2 = next_synced_height + 1
+
+    assert {[], ^next_synced_height2, [{:put, :last_block_getter_eth_height, ^next_synced_height2}], _} =
+             Core.get_blocks_to_apply(state, [], next_synced_height2)
+  end
+
+  test "long running applying block scenario" do
+    # this test replicates a long running scenario, with various inputs from the root chain coordinator
+    # We're testing if we're applying blocks and height updates correctly
+
+    # child block submissions on the root chain, by eth_height
+    submissions = %{
+      57 => [%{blknum: 0, eth_height: 57}],
+      58 => [%{blknum: 1000, eth_height: 58}],
+      59 => [%{blknum: 2000, eth_height: 59}],
+      60 => [%{blknum: 3000, eth_height: 60}],
+      61 => [%{blknum: 4000, eth_height: 61}, %{blknum: 5000, eth_height: 61}],
+      62 => [],
+      63 => [%{blknum: 6000, eth_height: 63}, %{blknum: 7000, eth_height: 63}],
+      64 => []
+    }
+
+    # take a flattened list of submissions between two heights (inclusive, just like Eth events API works)
+    take_submissions = fn {first, last} ->
+      Map.take(submissions, Range.new(first, last)) |> Enum.flat_map(fn {_k, v} -> v end)
+    end
+
+    state =
+      init_state(synced_height: 58, start_block_number: 1_000, opts: [maximum_number_of_pending_blocks: 3])
+      |> Core.get_numbers_of_blocks_to_download(16_000_000)
+      |> assert_check([2_000, 3_000, 4_000])
+      |> handle_downloaded_block(%Block{number: 2_000})
+      |> handle_downloaded_block(%Block{number: 3_000})
+      |> handle_downloaded_block(%Block{number: 4_000})
+
+    # coordinator dwells in the past
+    assert {[], 58, [], _} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.({58, 58}),
+               58
+             )
+
+    # coordinator allows into the future
+    assert {[{%{number: 2_000}, 59}, {%{number: 3_000}, 60}], 58, [], state_alt} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 60)),
+               60
+             )
+
+    assert {_, 59, [{:put, :last_block_getter_eth_height, 59}]} = Core.apply_block(state_alt, 2_000)
+    assert {_, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state_alt, 3_000)
+
+    # coordinator on time
+    assert {[{%{number: 2_000}, 59}], 58, [], state} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 59)),
+               59
+             )
+
+    assert {state, 59, [{:put, :last_block_getter_eth_height, 59}]} = Core.apply_block(state, 2_000)
+
+    state =
+      state
+      |> Core.get_numbers_of_blocks_to_download(16_000_000)
+      |> assert_check([5_000, 6_000, 7_000])
+      |> handle_downloaded_block(%Block{number: 5_000})
+      |> handle_downloaded_block(%Block{number: 6_000})
+
+    # coordinator dwells in the past
+    assert {[], 59, [], ^state} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.({59, 59}),
+               59
+             )
+
+    # coordinator allows into the future
+    assert {[{%{number: 3_000}, 60}, {%{number: 4_000}, 61}, {%{number: 5_000}, 61}], 59, [], state_alt} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 61)),
+               61
+             )
+
+    assert {state_alt, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state_alt, 3_000)
+    assert {state_alt, 60, []} = Core.apply_block(state_alt, 4_000)
+    assert {_, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state_alt, 5_000)
+
+    # coordinator on time
+    assert {[{%{number: 3_000}, 60}], 59, [], state} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 60)),
+               60
+             )
+
+    assert {state, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state, 3_000)
+
+    # coordinator dwells in the past
+    assert {[], 60, [], ^state} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.({60, 60}),
+               60
+             )
+
+    # coordinator allows into the future
+    assert {[{%{number: 4_000}, 61}, {%{number: 5_000}, 61}], 60, [], state_alt} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 62)),
+               62
+             )
+
+    assert {state_alt, 60, []} = Core.apply_block(state_alt, 4_000)
+    assert {_, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state_alt, 5_000)
+
+    # coordinator on time
+    assert {[{%{number: 4_000}, 61}, {%{number: 5_000}, 61}], 60, [], state} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 61)),
+               61
+             )
+
+    assert {state, 60, []} = Core.apply_block(state, 4_000)
+    assert {state, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state, 5_000)
+
+    # coordinator dwells in the past
+    assert {[], 61, [], ^state} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.({61, 61}),
+               61
+             )
+
+    # coordinator allows into the future
+    assert {[{%{number: 6_000}, 63}], 61, [], state_alt} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 63)),
+               63
+             )
+
+    assert {state_alt, 61, []} = Core.apply_block(state_alt, 6_000)
+    assert {_, 63, [{:put, :last_block_getter_eth_height, 63}]} = Core.apply_block(state_alt, 7_000)
+
+    # coordinator on time
+    assert {[], 62, [{:put, :last_block_getter_eth_height, 62}], state} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 62)),
+               62
+             )
+
+    # coordinator dwells in the past
+    assert {[], 62, [], ^state} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 62)),
+               62
+             )
+
+    # coordinator allows into the future
+    assert {[{%{number: 6_000}, 63}], 62, [], state_alt} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 64)),
+               64
+             )
+
+    assert {_, 62, []} = Core.apply_block(state_alt, 6_000)
+
+    # coordinator on time
+    assert {[{%{number: 6_000}, 63}], 62, [], state} =
+             Core.get_blocks_to_apply(
+               state,
+               take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 63)),
+               63
+             )
+
+    assert {_, 62, []} = Core.apply_block(state, 6_000)
   end
 
   test "gets continous ranges of blocks to apply" do
