@@ -54,8 +54,7 @@ defmodule OMG.Watcher.DB.TxOutputTest do
     power_of_2 = fn n -> :lists.duplicate(n, 2) |> Enum.reduce(&(&1 * &2)) end
     assert 16 == power_of_2.(4)
 
-    # TODO: sqlite does not support decimals, run tests agains real db, then change the exponent to 260
-    big_amount = power_of_2.(50)
+    big_amount = power_of_2.(260)
 
     DB.Transaction.update_with(%{
       transactions: [
