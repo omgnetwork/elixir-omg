@@ -130,6 +130,8 @@ defmodule OMG.API.State.Core do
   Includes the transaction into the state when valid, rejects otherwise.
 
   NOTE that tx is assumed to have distinct inputs, that should be checked in prior state-less validation
+
+  See docs/transaction_validation.md for more information about stateful and stateless validation.
   """
   @spec exec(tx :: Transaction.Recovered.t(), fees :: map(), state :: t()) ::
           {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, t()}
