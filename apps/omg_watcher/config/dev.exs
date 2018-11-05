@@ -41,7 +41,10 @@ config :phoenix, :stacktrace_depth, 20
 # Configure your database
 config :omg_watcher, OMG.Watcher.DB.Repo,
   adapter: Ecto.Adapters.Postgres,
-  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: 10,
+  timeout: 60_000,
+  connect_timeout: 60_000,
+  # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
   url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_dev"}
 
 # TODO: these two are here to ensure swifter sync in `:dev` env, and are geared towards a 1-sec root chain block
