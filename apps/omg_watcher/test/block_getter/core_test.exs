@@ -397,7 +397,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     next_synced_height2 = next_synced_height + 1
 
     assert {[], ^next_synced_height2, [{:put, :last_block_getter_eth_height, ^next_synced_height2}], _} =
-             Core.get_blocks_to_apply(state, [], next_synced_height + 1)
+             Core.get_blocks_to_apply(state, [], next_synced_height2)
   end
 
   test "long running applying block scenario" do
@@ -406,7 +406,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     # child block submissions on the root chain, by eth_height
     submissions = %{
-      57 => [%{blknum: 0000, eth_height: 57}],
+      57 => [%{blknum: 0, eth_height: 57}],
       58 => [%{blknum: 1000, eth_height: 58}],
       59 => [%{blknum: 2000, eth_height: 59}],
       60 => [%{blknum: 3000, eth_height: 60}],

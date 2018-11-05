@@ -153,7 +153,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
       {nil, _} ->
         {state, state.synced_height, []}
 
-      # present - we need to mark this eth height as processe
+      # present - we need to mark this eth height as processed
       {eth_height_done, updated_map} ->
         state = %{
           state
