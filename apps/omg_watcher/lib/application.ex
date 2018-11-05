@@ -57,7 +57,7 @@ defmodule OMG.Watcher.Application do
     children = [
       # Start the Ecto repository
       %{
-        id: :omg_watcher_repo,
+        id: OMG.Watcher.DB.Repo,
         start: {OMG.Watcher.DB.Repo, :start_link, []},
         type: :supervisor
       },
