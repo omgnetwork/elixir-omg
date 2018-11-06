@@ -54,7 +54,7 @@ defmodule OMG.API.Application do
             service_name: :in_flight_exit,
             block_finality_margin: block_finality_margin,
             get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
-            process_events_callback: fn elem -> :ok end,
+            process_events_callback: &OMG.API.State.in_flight_exit/1,
             get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
           }
         ],

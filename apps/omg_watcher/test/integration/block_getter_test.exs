@@ -47,8 +47,77 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     alice: alice,
     bob: bob,
     token: token,
-    alice_deposits: {deposit_blknum, token_deposit_blknum}
+    alice_deposits: alice_deposits
   } do
+    block_nr = set_test(alice, bob, token, alice_deposits)
+
+    %{"utxo_pos" => utxo_pos, "txbytes" => txbytes, "proof" => proof, "sigs" => sigs} =
+      IntegrationTest.get_exit_data(block_nr, 0, 0)
+
+    {:ok, txhash} =
+      Eth.RootChain.start_exit(
+        utxo_pos,
+        txbytes,
+        proof,
+        sigs,
+        alice.addr
+      )
+
+    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+
+    {:ok, height} = Eth.get_ethereum_height()
+
+    utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
+
+    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth}]} ==
+             Eth.RootChain.get_exits(0, height)
+
+    # exiting spends UTXO on child chain
+    # wait until the exit is recognized and attempt to spend the exited utxo
+    Process.sleep(4_000)
+    tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
+
+    {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
+  end
+
+  @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob, :alice_deposits, :token]
+  test "get the blocks from child chain after sending a transaction and start inFlightExit", %{
+    alice: alice,
+    bob: bob,
+    token: token,
+    alice_deposits: alice_deposits
+  } do
+    block_nr = set_test(alice, bob, token, alice_deposits)
+
+    %{"txbytes" => in_flight_tx = input_txs, "proof" => input_txs_inclusion_proofs, "sigs" => in_flight_tx_sigs} =
+      IntegrationTest.get_exit_data(block_nr, 0, 0)
+
+    # TODO set correct data in InFlightExit
+    {:ok, txhash} =
+      Eth.RootChain.start_in_flight_exit(
+        in_flight_tx,
+        input_txs,
+        input_txs_inclusion_proofs,
+        in_flight_tx_sigs,
+        alice.addr
+      )
+
+    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    {:ok, height} = Eth.get_ethereum_height()
+    utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
+
+    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth}]} ==
+             Eth.RootChain.get_in_flight_exit_starts(0, height)
+
+    # exiting spends UTXO on child chain
+    # wait until the exit is recognized and attempt to spend the exited utxo
+    Process.sleep(4_000)
+    tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
+
+    {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
+  end
+
+  defp set_test(alice, bob, token, {deposit_blknum, token_deposit_blknum}) do
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
     token_addr = token |> Base.encode16()
@@ -119,38 +188,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert_push("address_received", ^address_received_event)
 
     assert_push("address_spent", ^address_spent_event)
-
-    %{
-      "utxo_pos" => utxo_pos,
-      "txbytes" => txbytes,
-      "proof" => proof,
-      "sigs" => sigs
-    } = IntegrationTest.get_exit_data(block_nr, 0, 0)
-
-    {:ok, txhash} =
-      Eth.RootChain.start_exit(
-        utxo_pos,
-        txbytes,
-        proof,
-        sigs,
-        alice.addr
-      )
-
-    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
-
-    {:ok, height} = Eth.get_ethereum_height()
-
-    utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
-
-    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth}]} ==
-             Eth.RootChain.get_exits(0, height)
-
-    # exiting spends UTXO on child chain
-    # wait until the exit is recognized and attempt to spend the exited utxo
-    Process.sleep(4_000)
-    tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
-
-    {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
+    block_nr
   end
 
   defp get_block_submitted_event_height(block_number) do

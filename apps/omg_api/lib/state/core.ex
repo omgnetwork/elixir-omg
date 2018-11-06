@@ -44,6 +44,14 @@ defmodule OMG.API.State.Core do
           owner: Crypto.address_t(),
           amount: pos_integer()
         }
+
+  @type in_flight_exit() :: %{
+          blknum: non_neg_integer(),
+          currency: Crypto.address_t(),
+          owner: Crypto.address_t(),
+          amount: pos_integer()
+        }
+
   @type exit_t() :: %{
           utxo_pos: pos_integer(),
           token: Crypto.address_t(),

@@ -55,6 +55,10 @@ defmodule OMG.API.State do
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
+  @spec in_flight_exit(in_flight_exit :: [Core.in_flight_exit()]) :: :ok
+  def in_flight_exit(deposits) do
+    GenServer.call(__MODULE__, {:in_flight_exit, deposits})
+  end
   def exit_utxos(utxos) do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
   end
@@ -134,6 +138,14 @@ defmodule OMG.API.State do
     EventerAPI.emit_events(event_triggers)
 
     {:reply, :ok, new_state}
+  end
+
+  @doc """
+  Exits (spends) utxos on child chain
+  """
+  def handle_call({:in_flight_exit, utxos}, _from, state) do
+    IO.puts(">> #{inspect utxos, pritty: true}")
+    {:reply, :ok, state}
   end
 
   @doc """
