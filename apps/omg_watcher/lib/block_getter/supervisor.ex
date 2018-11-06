@@ -20,7 +20,7 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
   use Supervisor
 
   def start_link do
-    Supervisor.start_link(__MODULE__, :ok)
+    Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
   def init(:ok) do
@@ -30,13 +30,13 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
     children = [
       {OMG.API.State, []},
       %{
-        id: :block_getter,
+        id: OMG.Watcher.BlockGetter,
         start: {OMG.Watcher.BlockGetter, :start_link, [[]]},
         restart: :transient
       }
     ]
 
-    opts = [strategy: :one_for_all, max_restarts: 2, max_seconds: 3 * 60, name: __MODULE__]
+    opts = [strategy: :one_for_all, max_restarts: 2, max_seconds: 3 * 60]
     Supervisor.init(children, opts)
   end
 end
