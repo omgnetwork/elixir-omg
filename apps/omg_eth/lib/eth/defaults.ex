@@ -22,7 +22,7 @@ defmodule OMG.Eth.Defaults do
   import OMG.Eth.Encoding
 
   # safe, reasonable amount, equal to the testnet block gas limit
-  @lots_of_gas 4_712_388
+  @lots_of_gas 5_712_388
   @gas_price 20_000_000_000
 
   def tx_defaults do
