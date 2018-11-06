@@ -62,6 +62,29 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
+  def start_in_flight_exit(
+        in_flight_tx,
+        input_txs,
+        input_txs_inclusion_proofs,
+        in_flight_tx_sigs,
+        from,
+        contract \\ nil,
+        opts \\ []
+      ) do
+    defaults = @tx_defaults |> Keyword.put(:gas, 1_000_000)
+    opts = defaults |> Keyword.merge(opts)
+
+    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
+
+    Eth.contract_transact(
+      from,
+      contract,
+      "startInFlightExit(bytes,bytes,bytes,bytes)",
+      [in_flight_tx, input_txs, input_txs_inclusion_proofs, in_flight_tx_sigs],
+      opts
+    )
+  end
+
   def start_exit(utxo_position, txbytes, proof, sigs, from, contract \\ nil, opts \\ []) do
     defaults = @tx_defaults |> Keyword.put(:gas, 1_000_000)
     opts = defaults |> Keyword.merge(opts)
@@ -213,6 +236,27 @@ defmodule OMG.Eth.RootChain do
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &decode_exit_started/1)}
+  end
+
+  @doc """
+  Returns InFlightExit from a range of blocks.
+  """
+  def get_in_flight_exit_starts(block_from, block_to, contract \\ nil) do
+    IO.puts("aske for get in flight exit starts")
+    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
+    signature = "InFlightExitStarted(address,bytes32)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do:
+           {:ok,
+            logs
+            |> Enum.map(fn log ->
+              Eth.parse_events_with_indexed_fields(
+                log,
+                {[:txHash], [{:bytes, 32}]},
+                {[:initiator], [:address]}
+              )
+            end)}
   end
 
   defp decode_deposit(log) do
