@@ -45,10 +45,10 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   } do
     {:ok, _, event_socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = API.TestHelper.create_encoded([alice], [{deposit_blknum, 0, 0}], [{alice, @eth, 10}])
     {:ok, %{blknum: deposit_blknum}} = Client.call(:submit, %{transaction: tx})
 
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = API.TestHelper.create_encoded([alice], [{deposit_blknum, 0, 0}], [{alice, @eth, 10}])
     {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.call(:submit, %{transaction: tx})
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
@@ -134,13 +134,13 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     margin_slow_validator =
       Application.get_env(:omg_watcher, :margin_slow_validator) * Application.get_env(:omg_eth, :child_block_interval)
 
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = API.TestHelper.create_encoded([alice], [{deposit_blknum, 0, 0}], [{alice, @eth, 10}])
     {:ok, %{blknum: exit_blknum}} = Client.call(:submit, %{transaction: tx})
 
     # Here we calcualted bad_block_number by adding `exit_blknum` and `margin_slow_validator` / 2
     # to have guarantee that bad_block_number will be after margin of slow validator(m_sv)
     bad_block_number = exit_blknum + div(margin_slow_validator, 2)
-    bad_tx = API.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    bad_tx = API.TestHelper.create_recovered([alice], [{exit_blknum, 0, 0}], [{alice, @eth, 10}])
 
     %{hash: bad_block_hash, number: _, transactions: _} =
       bad_block = API.Block.hashed_txs_at([bad_tx], bad_block_number)

@@ -33,23 +33,10 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   end
 
   defp create_transaction(txindex, amount1, amount2) do
-    signed = %Transaction.Signed{
-      raw_tx: %Transaction{
-        blknum1: 1,
-        txindex1: 0,
-        oindex1: 0,
-        blknum2: 1,
-        txindex2: 0,
-        oindex2: 1,
-        cur12: <<0::160>>,
-        newowner1: <<1::160>>,
-        amount1: amount1,
-        newowner2: <<0::160>>,
-        amount2: amount2
-      },
-      sig1: <<0::520>>,
-      sig2: <<0::520>>
-    }
+    raw_tx =
+      Transaction.new([{1, 0, 0}, {1, 0, 1}], [{<<1::160>>, <<0::160>>, amount1}, {<<0::160>>, <<0::160>>, amount1}])
+
+    signed = %Transaction.Signed{raw_tx: raw_tx, sigs: [<<0::520>>, <<0::520>>]}
 
     txhash = Transaction.Signed.signed_hash(signed)
 

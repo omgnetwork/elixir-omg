@@ -23,33 +23,36 @@ defmodule OMG.API.State.Transaction.Signed do
   @signature_length 65
   @type signed_tx_bytes_t() :: bitstring() | nil
 
-  defstruct [:raw_tx, :sig1, :sig2, :signed_tx_bytes]
+  defstruct [:raw_tx, :sigs, :signed_tx_bytes]
 
   @type t() :: %__MODULE__{
           raw_tx: Transaction.t(),
-          sig1: Crypto.sig_t(),
-          sig2: Crypto.sig_t(),
+          sigs: [Crypto.sig_t()],
           signed_tx_bytes: signed_tx_bytes_t()
         }
 
-  def signed_hash(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
-    hash_with_sigs = Transaction.hash(tx) <> sig1 <> sig2
+  def signed_hash(%__MODULE__{raw_tx: tx, sigs: sigs}) do
+    tx_hash = Transaction.hash(tx)
+    hash_with_sigs = Enum.reduce(sigs, tx_hash, fn sig, hash -> hash <> sig end)
     Crypto.hash(hash_with_sigs)
   end
 
-  def encode(%__MODULE__{raw_tx: tx, sig1: sig1, sig2: sig2}) do
+  def encode(%__MODULE__{
+        raw_tx: %Transaction{inputs: [input1, input2], outputs: [output1, output2]},
+        sigs: [sig1, sig2]
+      }) do
     [
-      tx.blknum1,
-      tx.txindex1,
-      tx.oindex1,
-      tx.blknum2,
-      tx.txindex2,
-      tx.oindex2,
-      tx.cur12,
-      tx.newowner1,
-      tx.amount1,
-      tx.newowner2,
-      tx.amount2,
+      input1.blknum,
+      input1.txindex,
+      input1.oindex,
+      input2.blknum,
+      input2.txindex,
+      input2.oindex,
+      output1.currency,
+      output1.owner,
+      output1.amount,
+      output2.owner,
+      output2.amount,
       sig1,
       sig2
     ]
@@ -91,25 +94,22 @@ defmodule OMG.API.State.Transaction.Signed do
          {:ok, parsed_cur12} <- address_parse(cur12),
          {:ok, parsed_newowner1} <- address_parse(newowner1),
          {:ok, parsed_newowner2} <- address_parse(newowner2) do
-      raw_tx = %Transaction{
-        blknum1: int_parse(blknum1),
-        txindex1: int_parse(txindex1),
-        oindex1: int_parse(oindex1),
-        blknum2: int_parse(blknum2),
-        txindex2: int_parse(txindex2),
-        oindex2: int_parse(oindex2),
-        cur12: parsed_cur12,
-        newowner1: parsed_newowner1,
-        amount1: int_parse(amount1),
-        newowner2: parsed_newowner2,
-        amount2: int_parse(amount2)
-      }
+      inputs = [
+        %{blknum: int_parse(blknum1), txindex: int_parse(txindex1), oindex: int_parse(oindex1)},
+        %{blknum: int_parse(blknum2), txindex: int_parse(txindex2), oindex: int_parse(oindex2)}
+      ]
+
+      outputs = [
+        %{owner: parsed_newowner1, amount: int_parse(amount1), currency: parsed_cur12},
+        %{owner: parsed_newowner2, amount: int_parse(amount2), currency: parsed_cur12}
+      ]
+
+      raw_tx = %Transaction{inputs: inputs, outputs: outputs}
 
       {:ok,
        %__MODULE__{
          raw_tx: raw_tx,
-         sig1: sig1,
-         sig2: sig2,
+         sigs: [sig1, sig2],
          signed_tx_bytes: signed_tx_bytes
        }}
     end

@@ -75,12 +75,12 @@ defmodule OMG.API.TestHelper do
   by allowing to provider private keys of utxo owners along with the inputs
   """
   @spec create_recovered(
+          list(Crypto.address_t()),
           list({pos_integer, pos_integer, 0 | 1, map}),
-          Transaction.currency(),
-          list({Crypto.address_t(), pos_integer})
+          list({Crypto.address_t(), Transaction.currency(), pos_integer})
         ) :: Transaction.Recovered.t()
-  def create_recovered(inputs, currency, outputs) do
-    signed_tx = create_signed(inputs, currency, outputs)
+  def create_recovered(input_owners, inputs, outputs) do
+    signed_tx = create_signed(input_owners, inputs, outputs)
     {:ok, recovered} = Transaction.Recovered.recover_from(signed_tx)
     recovered
   end
@@ -89,25 +89,24 @@ defmodule OMG.API.TestHelper do
   convenience function around Transaction.new to create signed transactions (see create_recovered)
   """
   @spec create_signed(
+          list(Crypto.address_t()),
           list({pos_integer, pos_integer, 0 | 1, map}),
-          Transaction.currency(),
-          list({Crypto.address_t(), pos_integer})
+          list({Crypto.address_t(), Transaction.currency(), pos_integer})
         ) :: Transaction.Signed.t()
-  def create_signed(inputs, currency, outputs) do
+  def create_signed(input_owners, inputs, outputs) do
     raw_tx =
       Transaction.new(
-        inputs |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end),
-        currency,
-        outputs |> Enum.map(fn {newowner, amount} -> {newowner.addr, amount} end)
+        inputs |> Enum.map(fn {blknum, txindex, oindex} -> {blknum, txindex, oindex} end),
+        outputs |> Enum.map(fn {owner, currency, amount} -> {owner.addr, currency, amount} end)
       )
 
-    [priv1, priv2 | _] = inputs |> Enum.map(fn {_, _, _, owner} -> owner.priv end) |> Enum.concat([<<>>, <<>>])
+    [priv1, priv2 | _] = input_owners |> Enum.map(fn owner -> owner.priv end) |> Enum.concat([<<>>, <<>>])
 
-    Transaction.sign(raw_tx, priv1, priv2)
+    Transaction.sign(raw_tx, [priv1, priv2])
   end
 
-  def create_encoded(inputs, cur12, outputs) do
-    signed_tx = create_signed(inputs, cur12, outputs)
+  def create_encoded(input_owners, inputs, outputs) do
+    signed_tx = create_signed(input_owners, inputs, outputs)
     Transaction.Signed.encode(signed_tx)
   end
 

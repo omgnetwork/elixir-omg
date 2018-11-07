@@ -27,23 +27,19 @@ defmodule OMG.API.PropTest.Helper do
   """
   def format_transaction(%Transaction.Recovered{
         signed_tx: %Transaction.Signed{
-          raw_tx: %Transaction{
-            amount1: amount1,
-            amount2: amount2,
-            blknum1: blknum1,
-            blknum2: blknum2,
-            cur12: cur12,
-            newowner1: newowner1,
-            newowner2: newowner2,
-            oindex1: oindex1,
-            oindex2: oindex2,
-            txindex1: txindex1,
-            txindex2: txindex2
-          }
+          raw_tx: raw_tx
         },
-        spender1: spender1,
-        spender2: spender2
+        spenders: [spender1, spender2]
       }) do
+    inputs = Transaction.get_inputs(raw_tx)
+    outputs = Transaction.get_outputs(raw_tx)
+
+    [%{blknum: blknum1, txindex: txindex1, oindex: oindex1}, %{blknum: blknum2, txindex: txindex2, oindex: oindex2}] =
+      inputs
+
+    [%{owner: newowner1, currency: cur12, amount: amount1}, %{owner: newowner2, currency: cur12, amount: amount2}] =
+      outputs
+
     {
       [
         {Utxo.position(blknum1, txindex1, oindex1), addr_to_owner_name(spender1)},

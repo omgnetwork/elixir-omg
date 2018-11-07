@@ -69,10 +69,8 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   is submitted directly to plasma chain.
   """
   def encode_transaction(conn, body) do
-    with {inputs, outputs} <- parse_request_body(body),
-         # TODO: Transaction's fees are not supported yet
-         fee <- 0,
-         {:ok, transaction} <- State.Transaction.create_from_utxos(inputs, outputs, fee) do
+    with {:ok, {inputs, outputs}} <- parse_request_body(body),
+         {:ok, transaction} <- State.Transaction.create_from_utxos(inputs, outputs) do
       transaction
     end
     |> respond(conn)
@@ -92,19 +90,47 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   defp respond({:error, code}, conn) when is_atom(code), do: handle_error(conn, code)
 
   defp parse_request_body(%{"inputs" => inputs, "outputs" => outputs}) when is_list(inputs) and is_list(outputs) do
-    {
+    number_of_currencies =
       inputs
-      |> Enum.map(&Map.delete(&1, "txbytes"))
-      |> Enum.map(fn %{} = input ->
-        input = input |> Enum.into(%{}, fn {k, v} -> {String.to_existing_atom(k), v} end)
-        %{input | currency: Base.decode16!(input.currency, case: :mixed)}
-      end),
-      outputs
-      |> Enum.map(fn %{} = output ->
-        output = output |> Enum.into(%{}, fn {k, v} -> {String.to_existing_atom(k), v} end)
-        %{output | owner: OMG.API.Crypto.decode_address!(output.owner)}
-      end)
-    }
+      |> Enum.map(fn %{"currency" => currency} -> currency end)
+      |> Enum.dedup()
+      |> Enum.count()
+
+    cond do
+      Enum.count(inputs) < 1 ->
+        {:error, :at_least_one_input_required}
+
+      number_of_currencies != 1 ->
+        {:error, :currency_mixing_not_possible}
+
+      true ->
+        %{"currency" => currency} = hd(inputs)
+        currency = Base.decode16!(currency, case: :mixed)
+
+        {:ok,
+         {
+           inputs
+           |> Enum.map(&Map.delete(&1, "txbytes"))
+           |> Enum.map(fn %{} = input ->
+             input =
+               input
+               |> Enum.into(
+                 %{},
+                 fn {k, v} ->
+                   {String.to_existing_atom(k), v}
+                 end
+               )
+
+             %{input | currency: currency}
+           end),
+           outputs
+           |> Enum.map(fn %{} = output ->
+             output = output |> Enum.into(%{}, fn {k, v} -> {String.to_existing_atom(k), v} end)
+             output = %{output | owner: OMG.API.Crypto.decode_address!(output.owner)}
+             Map.put(output, :currency, currency)
+           end)
+         }}
+    end
   end
 
   def swagger_definitions do

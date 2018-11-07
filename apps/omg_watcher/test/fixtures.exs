@@ -180,14 +180,14 @@ defmodule OMG.Watcher.Fixtures do
     [
       {1000,
        [
-         OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], eth, [{bob, 300}]),
-         OMG.API.TestHelper.create_recovered([{1000, 0, 0, bob}], eth, [{alice, 100}, {bob, 200}])
+         OMG.API.TestHelper.create_recovered([alice], [{1, 0, 0}], [{bob, eth, 300}]),
+         OMG.API.TestHelper.create_recovered([bob], [{1000, 0, 0}], [{alice, eth, 100}, {bob, eth, 200}])
        ]},
-      {2000, [OMG.API.TestHelper.create_recovered([{1000, 1, 0, alice}], eth, [{bob, 99}, {alice, 1}])]},
+      {2000, [OMG.API.TestHelper.create_recovered([alice], [{1000, 1, 0}], [{bob, eth, 99}, {alice, eth, 1}])]},
       {3000,
        [
-         OMG.API.TestHelper.create_recovered([], eth, [{alice, 150}]),
-         OMG.API.TestHelper.create_recovered([{1000, 1, 1, bob}], eth, [{bob, 150}, {alice, 50}])
+         OMG.API.TestHelper.create_recovered([], [], [{alice, eth, 150}]),
+         OMG.API.TestHelper.create_recovered([bob], [{1000, 1, 1}], [{bob, eth, 150}, {alice, eth, 50}])
        ]}
     ]
     |> Enum.flat_map(prepare_f)

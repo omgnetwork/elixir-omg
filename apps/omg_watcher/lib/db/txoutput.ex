@@ -66,15 +66,16 @@ defmodule OMG.Watcher.DB.TxOutput do
     {:ok,
      %Transaction.Signed{
        raw_tx: raw_tx,
-       sig1: sig1,
-       sig2: sig2
+       sigs: sigs
      }} = Transaction.Signed.decode(tx.txbytes)
+
+    sigs = Enum.join(sigs)
 
     %{
       utxo_pos: utxo_pos,
       txbytes: Transaction.encode(raw_tx),
       proof: proof,
-      sigs: sig1 <> sig2
+      sigs: sigs
     }
   end
 
@@ -131,17 +132,18 @@ defmodule OMG.Watcher.DB.TxOutput do
         blknum,
         txindex,
         txhash,
-        %Transaction{
-          cur12: cur12,
-          newowner1: newowner1,
-          amount1: amount1,
-          newowner2: newowner2,
-          amount2: amount2
-        }
+        tx
       ) do
     # zero-value outputs are not inserted, tx can have no outputs at all
-    create_output(blknum, txindex, 0, txhash, newowner1, cur12, amount1) ++
-      create_output(blknum, txindex, 1, txhash, newowner2, cur12, amount2)
+    outputs =
+      tx
+      |> Transaction.get_outputs()
+      |> Enum.with_index()
+      |> Enum.flat_map(fn {%{currency: currency, owner: owner, amount: amount}, oindex} ->
+        create_output(blknum, txindex, oindex, txhash, owner, currency, amount)
+      end)
+
+    outputs
   end
 
   defp create_output(_blknum, _txindex, _txhash, _oindex, _owner, _currency, 0), do: []
@@ -160,20 +162,11 @@ defmodule OMG.Watcher.DB.TxOutput do
     ]
 
   @spec create_inputs(%Transaction{}, binary()) :: [tuple()]
-  def create_inputs(
-        %Transaction{
-          blknum1: blknum1,
-          txindex1: txindex1,
-          oindex1: oindex1,
-          blknum2: blknum2,
-          txindex2: txindex2,
-          oindex2: oindex2
-        },
-        spending_txhash
-      ) do
-    [
-      {Utxo.position(blknum1, txindex1, oindex1), 0, spending_txhash},
-      {Utxo.position(blknum2, txindex2, oindex2), 1, spending_txhash}
-    ]
+  def create_inputs(%Transaction{inputs: inputs}, spending_txhash) do
+    inputs
+    |> Enum.with_index()
+    |> Enum.map(fn {%{blknum: blknum, txindex: txindex, oindex: oindex}, index} ->
+      {Utxo.position(blknum, txindex, oindex), index, spending_txhash}
+    end)
   end
 end

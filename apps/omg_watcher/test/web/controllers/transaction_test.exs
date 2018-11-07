@@ -127,8 +127,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       ])
 
       txs = [
-        OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}]),
-        OMG.API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{bob, 300}])
+        OMG.API.TestHelper.create_recovered([alice], [{1, 0, 0}], [{bob, @eth, 300}]),
+        OMG.API.TestHelper.create_recovered([bob], [{1, 1, 0}], [{bob, @eth, 300}])
       ]
 
       alice_address = alice.addr |> TestHelper.to_response_address()
@@ -153,8 +153,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       bob: bob
     } do
       txs = [
-        OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 300}]),
-        OMG.API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{bob, 300}])
+        OMG.API.TestHelper.create_recovered([alice], [{1, 0, 0}], [{alice, @eth, 300}]),
+        OMG.API.TestHelper.create_recovered([bob], [{1, 1, 0}], [{bob, @eth, 300}])
       ]
 
       alice_address = alice.addr |> TestHelper.to_response_address()
@@ -178,8 +178,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       bob: bob
     } do
       txs = [
-        OMG.API.TestHelper.create_recovered([], @eth, [{alice, 300}]),
-        OMG.API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{bob, 300}])
+        OMG.API.TestHelper.create_recovered([], [], [{alice, @eth, 300}]),
+        OMG.API.TestHelper.create_recovered([bob], [{1, 1, 0}], [{bob, @eth, 300}])
       ]
 
       alice_address = alice.addr |> TestHelper.to_response_address()
@@ -207,8 +207,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       ])
 
       txs = [
-        OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 0}]),
-        OMG.API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{bob, 300}])
+        OMG.API.TestHelper.create_recovered([alice], [{1, 0, 0}], [{bob, @eth, 0}]),
+        OMG.API.TestHelper.create_recovered([bob], [{1, 1, 0}], [{bob, @eth, 300}])
       ]
 
       alice_address = alice.addr |> TestHelper.to_response_address()
@@ -233,13 +233,13 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       bob: bob
     } do
       OMG.Watcher.DB.EthEvent.insert_deposits([
-        %{owner: alice.addr, currency: @eth, amount: 1, blknum: 1}
+        %{owner: alice.addr, currency: @eth, amount: 3, blknum: 1}
       ])
 
       txs = [
-        OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 2}]),
-        OMG.API.TestHelper.create_recovered([{1_000, 0, 0, bob}], @eth, [{alice, 1}]),
-        OMG.API.TestHelper.create_recovered([{1_000, 1, 0, bob}], @eth, [{bob, 1}])
+        OMG.API.TestHelper.create_recovered([alice], [{1, 0, 0}], [{bob, @eth, 3}]),
+        OMG.API.TestHelper.create_recovered([bob], [{1_000, 0, 0}], [{alice, @eth, 2}]),
+        OMG.API.TestHelper.create_recovered([alice], [{1_000, 1, 0}], [{bob, @eth, 1}])
       ]
 
       alice_address = alice.addr |> TestHelper.to_response_address()
@@ -247,7 +247,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
       expected_result = [
         %{
-          "spender1" => bob_address,
+          "spender1" => alice_address,
           "spender2" => nil,
           "newowner1" => bob_address,
           "newowner2" => @zero_address_hex,
@@ -333,20 +333,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                "data" => txbytes
              } = TestHelper.rest_call(:post, "/transaction", body, 200)
 
+      expected_tx = Transaction.new([{2000, 111, 0}, {5000, 17, 1}], [{alice.addr, @eth, 97}, {bob.addr, @eth, 100}])
+
       expected_txbytes =
-        %Transaction{
-          blknum1: 2000,
-          txindex1: 111,
-          oindex1: 0,
-          blknum2: 5000,
-          txindex2: 17,
-          oindex2: 1,
-          cur12: @eth,
-          newowner1: alice.addr,
-          amount1: 97,
-          newowner2: bob.addr,
-          amount2: 100
-        }
+        expected_tx
         |> Transaction.encode()
         |> Base.encode16()
 

@@ -37,7 +37,7 @@ defmodule OMG.API.FeeChecker.CoreTest do
   describe "Transaction fees:" do
     @tag fixtures: [:alice, :bob]
     test "returns tx currency and flat fee associated with this currency", %{alice: alice, bob: bob} do
-      tx = Test.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 10}])
+      tx = Test.create_recovered([alice], [{1, 0, 0}], [{bob, @eth, 10}])
 
       assert {[], fee_map} = parse_file_content(@fee_config_file)
       assert {:ok, %{@eth => 2}} = transaction_fees(tx, fee_map)
@@ -45,7 +45,7 @@ defmodule OMG.API.FeeChecker.CoreTest do
 
     @tag fixtures: [:alice, :bob]
     test "returns zero fee - when currency is configured with zero fee", %{alice: alice, bob: bob} do
-      tx = Test.create_recovered([{1, 0, 0, alice}], @omg, [{bob, 10}])
+      tx = Test.create_recovered([alice], [{1, 0, 0}], [{bob, @omg, 10}])
 
       assert {[], fee_map} = parse_file_content(@fee_config_file)
       assert {:ok, %{@omg => 0}} = transaction_fees(tx, fee_map)
@@ -54,7 +54,7 @@ defmodule OMG.API.FeeChecker.CoreTest do
     @tag fixtures: [:alice, :bob]
     test "returns :token_not_allowed - when currency is not contained in config file", %{alice: alice, bob: bob} do
       invalid_currency = <<1::size(160)>>
-      tx = Test.create_recovered([{1, 0, 0, alice}], invalid_currency, [{bob, 10}])
+      tx = Test.create_recovered([alice], [{1, 0, 0}], [{bob, invalid_currency, 10}])
 
       assert {[], fee_map} = parse_file_content(@fee_config_file)
       assert {:error, :token_not_allowed} = transaction_fees(tx, fee_map)

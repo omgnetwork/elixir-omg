@@ -524,8 +524,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
     end
   end
 
-  defp add_zero_fee(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}}, fee_map) do
-    Map.put(fee_map, cur12, 0)
+  defp add_zero_fee(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}, fee_map) do
+    raw_tx
+    |> Transaction.get_currencies()
+    |> Enum.into(fee_map, fn currency -> {currency, 0} end)
   end
 
   @doc """

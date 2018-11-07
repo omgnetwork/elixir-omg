@@ -65,7 +65,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     # utxo from deposit should be available
     assert [eth_deposit, token_deposit] == IntegrationTest.get_utxos(alice)
 
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
+    tx = API.TestHelper.create_encoded([alice], [{deposit_blknum, 0, 0}], [{alice, @eth, 7}, {bob, @eth, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
 
     IntegrationTest.wait_for_block_fetch(block_nr, @timeout)

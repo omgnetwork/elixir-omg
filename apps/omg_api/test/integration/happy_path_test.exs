@@ -36,16 +36,16 @@ defmodule OMG.API.Integration.HappyPathTest do
     token: token,
     alice_deposits: {deposit_blknum, token_deposit_blknum}
   } do
-    raw_tx = Transaction.new([{deposit_blknum, 0, 0}], eth(), [{bob.addr, 7}, {alice.addr, 3}])
+    raw_tx = Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, eth(), 7}, {alice.addr, eth(), 3}])
 
-    tx = raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
+    tx = raw_tx |> Transaction.sign([alice.priv, <<>>]) |> Transaction.Signed.encode()
 
     # spend the deposit
     {:ok, %{blknum: spend_child_block}} = Client.call(:submit, %{transaction: tx})
 
-    token_raw_tx = Transaction.new([{token_deposit_blknum, 0, 0}], token, [{bob.addr, 8}, {alice.addr, 2}])
+    token_raw_tx = Transaction.new([{token_deposit_blknum, 0, 0}], [{bob.addr, token, 8}, {alice.addr, token, 2}])
 
-    token_tx = token_raw_tx |> Transaction.sign(alice.priv, <<>>) |> Transaction.Signed.encode()
+    token_tx = token_raw_tx |> Transaction.sign([alice.priv, <<>>]) |> Transaction.Signed.encode()
 
     # spend the token deposit
     {:ok, %{blknum: _spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
@@ -70,8 +70,8 @@ defmodule OMG.API.Integration.HappyPathTest do
 
     # repeat spending to see if all works
 
-    raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], eth(), [{alice.addr, 10}])
-    tx2 = raw_tx2 |> Transaction.sign(bob.priv, alice.priv) |> Transaction.Signed.encode()
+    raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, eth(), 10}])
+    tx2 = raw_tx2 |> Transaction.sign([bob.priv, alice.priv]) |> Transaction.Signed.encode()
 
     # spend the output of the first eth_tx
     {:ok, %{blknum: spend_child_block2}} = Client.call(:submit, %{transaction: tx2})
