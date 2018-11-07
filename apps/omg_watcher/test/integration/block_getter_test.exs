@@ -136,13 +136,15 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         alice.addr
       )
 
-    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    {:ok, %{"status" => "0x1", "blockNumber" => "0x" <> exit_eth_height}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    {exit_eth_height, ""} = Integer.parse(exit_eth_height, 16)
 
     {:ok, height} = Eth.get_ethereum_height()
 
     utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
 
-    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth}]} ==
+    # FIXME: is this assertion really needed, considering we got 0x1 status?
+    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth, eth_height: exit_eth_height}]} ==
              Eth.RootChain.get_exits(0, height)
 
     # exiting spends UTXO on child chain
