@@ -24,6 +24,7 @@ defmodule OMG.API.State do
   alias OMG.API.FreshBlocks
   alias OMG.API.State.Core
   alias OMG.API.State.Transaction
+  alias OMG.API.Utxo
   alias OMG.DB
   alias OMG.Eth
 
@@ -63,7 +64,7 @@ defmodule OMG.API.State do
     GenServer.call(__MODULE__, {:exit_not_spent_utxo, utxo})
   end
 
-  @spec utxo_exists?(Core.exit_t()) :: boolean()
+  @spec utxo_exists?(Utxo.Position.t()) :: boolean()
   def utxo_exists?(utxo) do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end

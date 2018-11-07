@@ -25,19 +25,13 @@ defmodule OMG.API.State.PropTest.EveryoneExit do
   def args(%{model: %{history: history}}),
     do: [
       Helper.spendable(history)
-      |> Enum.map(fn {position, %{owner: owner}} ->
-        %{utxo_pos: Utxo.Position.encode(position), owner: Helper.get_addr(owner)}
-      end)
+      |> Enum.map(fn {position, %{owner: _owner}} -> position end)
     ]
 
   def post(_, _, {:ok, _}), do: true
 
   def next(%{model: %{history: history, balance: balance} = model} = state, [exits], _) do
-    delete_utxo =
-      exits
-      |> Enum.map(fn %{utxo_pos: position} -> Utxo.Position.decode(position) end)
-
-    %{state | model: %{model | history: [{:everyone_exit, delete_utxo} | history], balance: balance}}
+    %{state | model: %{model | history: [{:everyone_exit, exits} | history], balance: balance}}
   end
 
   defmacro __using__(_opt) do

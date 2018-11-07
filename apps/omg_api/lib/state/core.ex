@@ -391,7 +391,8 @@ defmodule OMG.API.State.Core do
   @doc """
   Spends exited utxos
   """
-  @spec exit_utxos(exiting_utxos :: [exit_t], state :: t()) :: {:ok, {[exit_event], [db_update]}, new_state :: t()}
+  @spec exit_utxos(exiting_utxos :: [Utxo.Position.t()], state :: t()) ::
+          {:ok, {[exit_event], [db_update]}, new_state :: t()}
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
     exiting_utxos =
       exiting_utxos
@@ -399,22 +400,20 @@ defmodule OMG.API.State.Core do
 
     event_triggers =
       exiting_utxos
-      |> Enum.map(fn %{owner: owner, utxo_pos: utxo_pos} ->
-        %{exit: %{owner: owner, utxo_pos: Utxo.Position.decode(utxo_pos)}}
-      end)
+      |> Enum.map(fn utxo_pos -> %{exit: %{owner: utxos[utxo_pos].owner, utxo_pos: utxo_pos}} end)
 
     new_state = %{
       state
       | utxos:
-          Enum.reduce(exiting_utxos, utxos, fn %{utxo_pos: utxo_pos}, utxos ->
-            Map.delete(utxos, Utxo.Position.decode(utxo_pos))
+          Enum.reduce(exiting_utxos, utxos, fn utxo_pos, utxos ->
+            Map.delete(utxos, utxo_pos)
           end)
     }
 
     deletes =
       exiting_utxos
-      |> Enum.map(fn %{utxo_pos: utxo_pos} ->
-        {:utxo_position, blknum, txindex, oindex} = Utxo.Position.decode(utxo_pos)
+      |> Enum.map(fn utxo_pos ->
+        {:utxo_position, blknum, txindex, oindex} = utxo_pos
         {:delete, :utxo, {blknum, txindex, oindex}}
       end)
 
@@ -424,9 +423,9 @@ defmodule OMG.API.State.Core do
   @doc """
   Checks if utxo exists
   """
-  @spec utxo_exists?(exit_t, t()) :: boolean()
-  def utxo_exists?(%{utxo_pos: utxo_pos} = _exiting_utxo, %Core{utxos: utxos}) do
-    Map.has_key?(utxos, Utxo.Position.decode(utxo_pos))
+  @spec utxo_exists?(Utxo.Position.t(), t()) :: boolean()
+  def utxo_exists?(Utxo.position(_blknum, _txindex, _oindex) = utxo_pos, %Core{utxos: utxos}) do
+    Map.has_key?(utxos, utxo_pos)
   end
 
   @doc """
