@@ -60,16 +60,24 @@ defmodule OMG.API.ExitProcessor.CoreTest do
   end
 
   @tag fixtures: [:empty_state, :alice, :events, :contract_statuses]
-  test "persist started exits and loads persisted on init", %{empty_state: empty, alice: %{addr: alice}, events: events, contract_statuses: contract_statuses} do
+  test "persist started exits and loads persisted on init", %{
+    empty_state: empty,
+    events: events,
+    contract_statuses: contract_statuses
+  } do
     keys = [@utxo_pos1, @utxo_pos2]
-    values = [{7, @eth, alice, 2, true}, {9, @not_eth, alice, 4, true}]
-    updates = Enum.zip([[:put, :put], keys, values])
+    # FIXME: remove
+    # values = [{7, @eth, alice, 2, true}, {9, @not_eth, alice, 4, true}]
+    values = Enum.map(events, &(Map.put(&1, :is_active, true) |> Map.delete(:utxo_pos)))
+    updates = Enum.zip([[:put, :put], [:exit_info, :exit_info], Enum.zip(keys, values)])
     update1 = Enum.slice(updates, 0, 1)
     update2 = Enum.slice(updates, 1, 1)
 
     assert {state2, ^update1} = Core.new_exits(empty, Enum.slice(events, 0, 1), Enum.slice(contract_statuses, 0, 1))
     assert {final_state, ^updates} = Core.new_exits(empty, events, contract_statuses)
-    assert {^final_state, ^update2} = Core.new_exits(state2, Enum.slice(events, 1, 1), Enum.slice(contract_statuses, 1, 1))
+
+    assert {^final_state, ^update2} =
+             Core.new_exits(state2, Enum.slice(events, 1, 1), Enum.slice(contract_statuses, 1, 1))
 
     {:ok, ^final_state} = Core.init(Enum.zip(keys, values))
   end
@@ -83,10 +91,10 @@ defmodule OMG.API.ExitProcessor.CoreTest do
 
   @tag fixtures: [:filled_state]
   test "forgets finalized exits from persistence and spends in state", %{filled_state: state} do
-    assert {_, [{:delete, @utxo_pos1}], [@utxo_pos1]} =
+    assert {_, [{:delete, :exit_info, @utxo_pos1}], [@utxo_pos1]} =
              Core.finalize_exits(state, [%{utxo_pos: Utxo.Position.encode(@utxo_pos1)}])
 
-    assert {_, [{:delete, @utxo_pos1}, {:delete, @utxo_pos2}], [@utxo_pos1, @utxo_pos2]} =
+    assert {_, [{:delete, :exit_info, @utxo_pos1}, {:delete, :exit_info, @utxo_pos2}], [@utxo_pos1, @utxo_pos2]} =
              Core.finalize_exits(state, [
                %{utxo_pos: Utxo.Position.encode(@utxo_pos1)},
                %{utxo_pos: Utxo.Position.encode(@utxo_pos2)}
@@ -105,20 +113,23 @@ defmodule OMG.API.ExitProcessor.CoreTest do
 
     {processor_state, _} =
       processor_state
-      |> Core.new_exits([
-        %{
-          amount: 10,
-          currency: @eth,
-          owner: alice,
-          utxo_pos: Utxo.Position.encode(exiting_position),
-          eth_height: 2
-        }
-      ], [{alice, @eth, 10}])
+      |> Core.new_exits(
+        [
+          %{
+            amount: 10,
+            currency: @eth,
+            owner: alice,
+            utxo_pos: Utxo.Position.encode(exiting_position),
+            eth_height: 2
+          }
+        ],
+        [{alice, @eth, 10}]
+      )
 
     assert {[], []} =
              processor_state
              |> Core.get_exiting_utxo_positions()
-             |> Enum.map(&State.Core.utxo_exists?(%{utxo_pos: Utxo.Position.encode(&1)}, state))
+             |> Enum.map(&State.Core.utxo_exists?(&1, state))
              |> Core.invalid_exits(processor_state, 5)
 
     # FIXME: we should make exit_utxos return whether the utxo existed or not and assert on that, instead of just `:ok`
@@ -137,21 +148,24 @@ defmodule OMG.API.ExitProcessor.CoreTest do
 
     {processor_state, _} =
       processor_state
-      |> Core.new_exits([
-        %{
-          amount: 10,
-          currency: @eth,
-          owner: alice,
-          utxo_pos: Utxo.Position.encode(exiting_position),
-          eth_height: 2
-        }
-      ], [{alice, @eth, 10}])
+      |> Core.new_exits(
+        [
+          %{
+            amount: 10,
+            currency: @eth,
+            owner: alice,
+            utxo_pos: Utxo.Position.encode(exiting_position),
+            eth_height: 2
+          }
+        ],
+        [{alice, @eth, 10}]
+      )
 
     assert {[{:invalid_exit, ^exiting_position}], [^exiting_position]} =
              processor_state
              |> Core.get_exiting_utxo_positions()
              # FIXME: when ExitProcessor takes over, there shouldn't be that encode
-             |> Enum.map(&State.Core.utxo_exists?(%{utxo_pos: Utxo.Position.encode(&1)}, state))
+             |> Enum.map(&State.Core.utxo_exists?(&1, state))
              |> Core.invalid_exits(processor_state, 5)
   end
 
@@ -165,22 +179,25 @@ defmodule OMG.API.ExitProcessor.CoreTest do
 
     {processor_state, _} =
       processor_state
-      |> Core.new_exits([
-        %{
-          amount: 10,
-          currency: @eth,
-          owner: alice,
-          utxo_pos: Utxo.Position.encode(exiting_position),
-          eth_height: 2
-        }
-      ], [{alice, @eth, 10}])
+      |> Core.new_exits(
+        [
+          %{
+            amount: 10,
+            currency: @eth,
+            owner: alice,
+            utxo_pos: Utxo.Position.encode(exiting_position),
+            eth_height: 2
+          }
+        ],
+        [{alice, @eth, 10}]
+      )
 
     assert {[%Event.InvalidBlock{error_type: :unchallenged_exit}, {:invalid_exit, ^exiting_position}],
             [^exiting_position]} =
              processor_state
              |> Core.get_exiting_utxo_positions()
              # FIXME: when ExitProcessor takes over, there shouldn't be that encode
-             |> Enum.map(&State.Core.utxo_exists?(%{utxo_pos: Utxo.Position.encode(&1)}, state))
+             |> Enum.map(&State.Core.utxo_exists?(&1, state))
              |> Core.invalid_exits(processor_state, 13)
 
     # FIXME: assert Eventer likes these events
@@ -197,21 +214,24 @@ defmodule OMG.API.ExitProcessor.CoreTest do
 
     {processor_state, _} =
       processor_state
-      |> Core.new_exits([
-        %{
-          amount: 10,
-          currency: @eth,
-          owner: alice,
-          utxo_pos: Utxo.Position.encode(exiting_position),
-          eth_height: 2
-        }
-      ], [{Crypto.zero_address(), @eth, 10}])
+      |> Core.new_exits(
+        [
+          %{
+            amount: 10,
+            currency: @eth,
+            owner: alice,
+            utxo_pos: Utxo.Position.encode(exiting_position),
+            eth_height: 2
+          }
+        ],
+        [{Crypto.zero_address(), @eth, 10}]
+      )
 
     assert {[], []} =
              processor_state
              |> Core.get_exiting_utxo_positions()
              # FIXME: when ExitProcessor takes over, there shouldn't be that encode
-             |> Enum.map(&State.Core.utxo_exists?(%{utxo_pos: Utxo.Position.encode(&1)}, state))
+             |> Enum.map(&State.Core.utxo_exists?(&1, state))
              |> Core.invalid_exits(processor_state, 13)
 
     # FIXME: assert Eventer likes these events

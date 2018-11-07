@@ -22,6 +22,7 @@ defmodule OMG.API.ExitProcessor.Core do
 
   alias OMG.API.Crypto
   alias OMG.API.Utxo
+  require Utxo
   alias OMG.Watcher.Eventer.Event
 
   use OMG.API.LoggerExt
@@ -43,8 +44,9 @@ defmodule OMG.API.ExitProcessor.Core do
      %__MODULE__{
        exits:
          db_exits
-         |> Enum.into(%{}, fn {utxo_pos, {amount, currency, owner, eth_height, is_active}} ->
-           {utxo_pos, %{amount: amount, currency: currency, owner: owner, eth_height: eth_height, is_active: is_active}}
+         # FIXME: simplify
+         |> Enum.into(%{}, fn {utxo_pos, exit_info} ->
+           {utxo_pos, exit_info}
          end),
        sla_margin: sla_margin
      }}
@@ -69,9 +71,12 @@ defmodule OMG.API.ExitProcessor.Core do
 
     db_updates =
       new_exits_kv_pairs
-      |> Enum.map(fn {utxo_pos, %{amount: amount, currency: currency, owner: owner, eth_height: eth_height, is_active: is_active}} ->
-        {:put, utxo_pos, {amount, currency, owner, eth_height, is_active}}
-      end)
+      |> Enum.map(fn {utxo_pos, exit_info} -> {:put, :exit_info, {utxo_pos, exit_info}} end)
+
+    # FIXME: remove alt
+    # db_updates =
+    #   new_exits_kv_pairs
+    #   |> Enum.map(fn {Utxo.position(blknum, txindex, oindex), exit_info} -> {:put, :exit_info, {{blknum, txindex, oindex}, exit_info}} end)
 
     new_exits_map = Map.new(new_exits_kv_pairs)
 
@@ -93,12 +98,17 @@ defmodule OMG.API.ExitProcessor.Core do
 
     db_updates =
       finalizing_positions
-      |> Enum.map(fn utxo_pos -> {:delete, utxo_pos} end)
+      |> Enum.map(fn utxo_pos -> {:delete, :exit_info, utxo_pos} end)
+
+    # FIXME: remove alt
+    # db_updates =
+    #   finalizing_positions
+    #   |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :exit_info, {blknum, txindex, oindex}} end)
 
     {state, db_updates, finalizing_positions}
   end
 
-  def challenge_exits() do
+  def challenge_exits(%__MODULE__{} = _state, exits) do
     # NOTE: we don't need to deactivate these exits, as they're forgotten forever here
     # FIXME: implement
   end

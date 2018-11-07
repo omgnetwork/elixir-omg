@@ -53,7 +53,6 @@ defmodule OMG.Watcher.Application do
   def start_watcher_supervisor do
     # Define workers and child supervisors to be supervised
     block_finality_margin = Application.get_env(:omg_api, :ethereum_event_block_finality_margin)
-    margin_slow_validator = Application.get_env(:omg_watcher, :margin_slow_validator)
 
     children = [
       # Start the Ecto repository
@@ -66,7 +65,7 @@ defmodule OMG.Watcher.Application do
       {OMG.Watcher.Eventer, []},
       {
         OMG.API.RootChainCoordinator,
-        MapSet.new([:depositor, :fast_validator, :slow_validator, OMG.Watcher.BlockGetter])
+        MapSet.new([:depositor, :exit_processor, :exit_finalizer, :exit_challenger, OMG.Watcher.BlockGetter])
       },
       %{
         id: :depositor,
@@ -83,36 +82,7 @@ defmodule OMG.Watcher.Application do
              }
            ]}
       },
-      %{
-        id: :fast_validator,
-        start:
-          {OMG.API.EthereumEventListener, :start_link,
-           [
-             %{
-               block_finality_margin: 0,
-               synced_height_update_key: :last_fast_exit_eth_height,
-               service_name: :fast_validator,
-               get_events_callback: &OMG.Eth.RootChain.get_exits/2,
-               process_events_callback: OMG.Watcher.ExitValidator.Validator.challenge_fastly_invalid_exits(),
-               get_last_synced_height_callback: &OMG.DB.last_fast_exit_eth_height/0
-             }
-           ]}
-      },
-      %{
-        id: :slow_validator,
-        start:
-          {OMG.API.EthereumEventListener, :start_link,
-           [
-             %{
-               block_finality_margin: margin_slow_validator,
-               synced_height_update_key: :last_slow_exit_eth_height,
-               service_name: :slow_validator,
-               get_events_callback: &OMG.Eth.RootChain.get_exits/2,
-               process_events_callback: OMG.Watcher.ExitValidator.Validator.challenge_slowly_invalid_exits(),
-               get_last_synced_height_callback: &OMG.DB.last_slow_exit_eth_height/0
-             }
-           ]}
-      },
+      {OMG.API.ExitProcessor, []},
       %{
         id: :exit_processor,
         start:
@@ -124,6 +94,39 @@ defmodule OMG.Watcher.Application do
                service_name: :exit_processor,
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,
                process_events_callback: &OMG.API.ExitProcessor.new_exits/1,
+               # FIXME: read a new entry from db, same below!!
+               get_last_synced_height_callback: fn -> {:ok, 0} end
+             }
+           ]}
+      },
+      # FIXME: wouldn't we prefer to just have one pipe of exit-related events, all streamed to the same entrypoint
+      # in :exit_processor
+      %{
+        id: :exit_finalizer,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               block_finality_margin: 0,
+               synced_height_update_key: :last_exit_finalizer_eth_height,
+               service_name: :exit_finalizer,
+               get_events_callback: &OMG.Eth.RootChain.get_finalizations/2,
+               process_events_callback: &OMG.API.ExitProcessor.finalize_exits/1,
+               get_last_synced_height_callback: fn -> {:ok, 0} end
+             }
+           ]}
+      },
+      %{
+        id: :exit_challenger,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               block_finality_margin: 0,
+               synced_height_update_key: :last_exit_challenger_eth_height,
+               service_name: :exit_challenger,
+               get_events_callback: &OMG.Eth.RootChain.get_challenges/2,
+               process_events_callback: &OMG.API.ExitProcessor.challenge_exits/1,
                get_last_synced_height_callback: fn -> {:ok, 0} end
              }
            ]}

@@ -21,6 +21,8 @@ defmodule OMG.API.Application do
   use Application
   use OMG.API.LoggerExt
 
+  alias OMG.API.Utxo
+
   def start(_type, _args) do
     block_finality_margin = Application.get_env(:omg_api, :ethereum_event_block_finality_margin)
 
@@ -55,7 +57,8 @@ defmodule OMG.API.Application do
                service_name: :exiter,
                block_finality_margin: block_finality_margin,
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,
-               process_events_callback: &OMG.API.State.exit_utxos/1,
+               # FIXME: move elsewhere
+               process_events_callback: fn exits -> OMG.API.State.exit_utxos(Enum.map(exits, fn %{utxo_pos: utxo_pos} -> Utxo.Position.decode(utxo_pos) end)) end,
                get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
              }
            ]}

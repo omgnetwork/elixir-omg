@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.ExitValidator.Validator do
+  # FIXME: dead code, remove
+
   @moduledoc """
     Contains 'challenge_fastly_invalid_exits' and 'challenge_slowly_invalid_exits' functions
     used for current exit validation design which consits of `FastValidator` and `SlowValidator`.

@@ -13,6 +13,18 @@
 # limitations under the License.
 
 defmodule OMG.API.ExitProcessor do
+  # todo:
+  # FIXME: - hit ExitProcessor in BlockGetter on every block
+  # FIXME: - turn off 2 exit validators in Watcher (application.ex), remove dead code, remove db entries
+  # FIXME: update architecture, configs (margin_slow_validator)
+  # FIXME: - handle challenge events
+  # FIXME: - handle finalize events
+  # FIXME: - handle finalization of invalid exits (proper event, stopping of BlockGetter?)
+  # FIXME: - handle exits approaching SLA margin-maturity (proper event)
+  # FIXME: - some integration tests should be "just fine" but maybe some won't
+  # FIXME: - atomicity of `OMG.DB.multi_updates`
+  # FIXME: tidies to commit f3d97d406238f8a208caa1f38a80f16c91cdd771
+
   @moduledoc """
   Encapsulates managing and executing the behaviors related to treating exits by the child chain and watchers
   Keeps a state of exits that are in progress, updates it with news from the root chain, compares to the
@@ -43,6 +55,10 @@ defmodule OMG.API.ExitProcessor do
     GenServer.call(__MODULE__, {:finalize_exits, exits})
   end
 
+  def challenge_exits(exits) do
+    GenServer.call(__MODULE__, {:challenge_exits, exits})
+  end
+
   def get_invalid_exits do
     GenServer.call(__MODULE__, :get_invalid_exits)
   end
@@ -56,6 +72,7 @@ defmodule OMG.API.ExitProcessor do
   use GenServer
 
   def init(:ok) do
+    # FIXME: implement
     # {:ok, db_exits} = DB.exits()
     db_exits = []
     sla_margin = Application.fetch_env!(:omg_watcher, :margin_slow_validator)
@@ -63,10 +80,11 @@ defmodule OMG.API.ExitProcessor do
   end
 
   def handle_call({:new_exits, exits}, _from, state) do
-    exit_contract_statuses = Enum.map(exits, fn %{utxo_pos: utxo_pos} ->
-      {:ok, result} = Eth.RootChain.get_exit(utxo_pos)
-      result
-    end)
+    exit_contract_statuses =
+      Enum.map(exits, fn %{utxo_pos: utxo_pos} ->
+        {:ok, result} = Eth.RootChain.get_exit(utxo_pos)
+        result
+      end)
 
     {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
     :ok = DB.multi_update(db_updates)
@@ -82,6 +100,16 @@ defmodule OMG.API.ExitProcessor do
     # FIXME: to provide atomic updates, this should (perhaps) be returned and written to DB outside of this
     #        the problem right now is that we have `multi_update` in `State`, here, and in the caller `EthEventListener`
     Enum.each(to_spend, &State.exit_utxos/1)
+    :ok = DB.multi_update(db_updates)
+    {:reply, :ok, new_state}
+  end
+
+  def handle_call({:challenge_exits, _exits}, _from, state) do
+    # FIXME: implement
+    # {new_state, db_updates} = Core.challenge_exits(state, exits)
+    {new_state, db_updates} = {state, []}
+    # FIXME: to provide atomic updates, this should (perhaps) be returned and written to DB outside of this
+    #        the problem right now is that we have `multi_update` in `State`, here, and in the caller `EthEventListener`
     :ok = DB.multi_update(db_updates)
     {:reply, :ok, new_state}
   end
