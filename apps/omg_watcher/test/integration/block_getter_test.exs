@@ -68,7 +68,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
 
-    IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
+    IntegrationTest.wait_for_block_fetch(block_nr, @timeout)
 
     encode_tx = Client.encode(tx)
 
@@ -145,7 +145,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth}]} ==
              Eth.RootChain.get_exits(0, height)
 
-    IntegrationTest.wait_until_block_getter_fetches_block_after_current_child_block(@timeout)
+    IntegrationTest.wait_for_current_block_fetch(@timeout)
 
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
 
@@ -170,7 +170,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     # spend the token deposit
     {:ok, %{blknum: spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
 
-    IntegrationTest.wait_until_block_getter_fetches_block(spend_token_child_block, @timeout)
+    IntegrationTest.wait_for_block_fetch(spend_token_child_block, @timeout)
 
     %{
       "txbytes" => txbytes,
@@ -304,7 +304,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
-    IntegrationTest.wait_until_block_getter_fetches_block(exit_blknum, @timeout)
+    IntegrationTest.wait_for_block_fetch(exit_blknum, @timeout)
 
     %{
       "txbytes" => txbytes,

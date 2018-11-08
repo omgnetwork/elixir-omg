@@ -43,12 +43,12 @@ defmodule OMG.Watcher.Integration.ChallengeExitTest do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: exiting_utxo_block_nr}} = Client.call(:submit, %{transaction: tx})
 
-    IntegrationTest.wait_until_block_getter_fetches_block(exiting_utxo_block_nr, @timeout)
+    IntegrationTest.wait_for_block_fetch(exiting_utxo_block_nr, @timeout)
 
     tx2 = API.TestHelper.create_encoded([{exiting_utxo_block_nr, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: double_spend_block_nr}} = Client.call(:submit, %{transaction: tx2})
 
-    IntegrationTest.wait_until_block_getter_fetches_block(double_spend_block_nr, @timeout)
+    IntegrationTest.wait_for_block_fetch(double_spend_block_nr, @timeout)
 
     %{
       "txbytes" => txbytes,
