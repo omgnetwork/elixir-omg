@@ -277,7 +277,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
-  test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit invalid_block event",
+  test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit unchallenged_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}} do
     margin_slow_validator =
       Application.get_env(:omg_watcher, :margin_slow_validator) * Application.get_env(:omg_eth, :child_block_interval)

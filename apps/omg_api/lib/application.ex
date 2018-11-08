@@ -29,7 +29,7 @@ defmodule OMG.API.Application do
       {OMG.API.BlockQueue.Server, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeChecker, []},
-      {OMG.API.RootChainCoordinator, MapSet.new([:depositer, :exiter])},
+      {OMG.API.RootChainCoordinator, MapSet.new([:depositor, :exiter])},
       %{
         id: :depositor,
         start:
@@ -37,7 +37,7 @@ defmodule OMG.API.Application do
            [
              %{
                synced_height_update_key: :last_depositor_eth_height,
-               service_name: :depositer,
+               service_name: :depositor,
                block_finality_margin: block_finality_margin,
                get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
                process_events_callback: &OMG.API.State.deposit/1,

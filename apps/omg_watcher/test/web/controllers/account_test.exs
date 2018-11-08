@@ -36,7 +36,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
                "data" => [%{"currency" => @eth_hex, "amount" => 349}]
              } == TestHelper.rest_call(:get, path_for(bob), nil, 200)
 
-      # adds other token funds for alice to make more interestning
+      # adds other token funds for alice to make more interesting
       DB.Transaction.update_with(%{
         transactions: [API.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])],
         blknum: 11_000,
@@ -45,13 +45,15 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
         eth_height: 10
       })
 
-      assert %{
-               "result" => "success",
-               "data" => [
-                 %{"currency" => @eth_hex, "amount" => 201},
-                 %{"currency" => @other_token_hex, "amount" => 377}
-               ]
-             } == TestHelper.rest_call(:get, path_for(alice), nil, 200)
+      %{
+        "result" => "success",
+        "data" => data
+      } = TestHelper.rest_call(:get, path_for(alice), nil, 200)
+
+      assert [
+               %{"currency" => @eth_hex, "amount" => 201},
+               %{"currency" => @other_token_hex, "amount" => 377}
+             ] == data |> Enum.sort(&(Map.get(&1, "currency") <= Map.get(&2, "currency")))
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
