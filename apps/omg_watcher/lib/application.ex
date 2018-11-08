@@ -95,7 +95,7 @@ defmodule OMG.Watcher.Application do
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,
                process_events_callback: &OMG.API.ExitProcessor.new_exits/1,
                # FIXME: read a new entry from db, same below!!
-               get_last_synced_height_callback: fn -> {:ok, 0} end
+               get_last_synced_height_callback: &OMG.DB.last_exit_processor_eth_height/0
              }
            ]}
       },
@@ -112,7 +112,7 @@ defmodule OMG.Watcher.Application do
                service_name: :exit_finalizer,
                get_events_callback: &OMG.Eth.RootChain.get_finalizations/2,
                process_events_callback: &OMG.API.ExitProcessor.finalize_exits/1,
-               get_last_synced_height_callback: fn -> {:ok, 0} end
+               get_last_synced_height_callback: &OMG.DB.last_exit_finalizer_eth_height/0
              }
            ]}
       },
@@ -127,7 +127,7 @@ defmodule OMG.Watcher.Application do
                service_name: :exit_challenger,
                get_events_callback: &OMG.Eth.RootChain.get_challenges/2,
                process_events_callback: &OMG.API.ExitProcessor.challenge_exits/1,
-               get_last_synced_height_callback: fn -> {:ok, 0} end
+               get_last_synced_height_callback: &OMG.DB.last_exit_challenger_eth_height/0
              }
            ]}
       },

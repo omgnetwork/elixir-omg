@@ -45,6 +45,12 @@ defmodule OMG.DB do
     GenServer.call(server_name, {:utxos}, timeout_ms)
   end
 
+  def exit_infos(server_name \\ @server_name) do
+    timeout_ms = 60_000
+    _ = Logger.info(fn -> "Reading exit infos, this might take a while. Allowing #{inspect(timeout_ms)} ms" end)
+    GenServer.call(server_name, {:exit_infos}, timeout_ms)
+  end
+
   def block_hashes(block_numbers_to_fetch, server_name \\ @server_name) do
     GenServer.call(server_name, {:block_hashes, block_numbers_to_fetch})
   end
@@ -60,14 +66,6 @@ defmodule OMG.DB do
   # Note: *_eth_height values below denote actual Ethereum height service has processed.
   # It might differ from "latest" Ethereum block.
 
-  def last_fast_exit_eth_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_fast_exit_eth_height)
-  end
-
-  def last_slow_exit_eth_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_slow_exit_eth_height)
-  end
-
   def last_block_getter_eth_height(server_name \\ @server_name) do
     GenServer.call(server_name, :last_block_getter_eth_height)
   end
@@ -80,19 +78,31 @@ defmodule OMG.DB do
     GenServer.call(server_name, :last_exiter_eth_height)
   end
 
+  def last_exit_processor_eth_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_exit_processor_eth_height)
+  end
+
+  def last_exit_finalizer_eth_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_exit_finalizer_eth_height)
+  end
+
+  def last_exit_challenger_eth_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_exit_challenger_eth_height)
+  end
+
   def init(server_name \\ @server_name) do
     path = Application.get_env(:omg_db, :leveldb_path)
     :ok = File.mkdir_p(path)
 
     db_initialization_updates = [
       {:put, :last_deposit_child_blknum, 0},
-      {:put, :last_fast_exit_eth_height, 0},
-      {:put, :last_slow_exit_eth_height, 0},
       {:put, :child_top_block_number, 0},
       {:put, :last_block_getter_eth_height, 0},
       {:put, :last_depositor_eth_height, 0},
       {:put, :last_exiter_eth_height, 0},
-      {:put, :last_exit_processor_eth_height, 0}
+      {:put, :last_exit_processor_eth_height, 0},
+      {:put, :last_exit_finalizer_eth_height, 0},
+      {:put, :last_exit_challenger_eth_height, 0}
     ]
 
     with :ok <- server_name.init_storage(path),

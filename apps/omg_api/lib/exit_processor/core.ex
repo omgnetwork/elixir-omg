@@ -38,16 +38,11 @@ defmodule OMG.API.ExitProcessor.Core do
   @doc """
   Reads database-specific list of exits and turns them into current state
   """
-  @spec init(db_exits :: [{Utxo.Position.t(), {non_neg_integer, Crypto.address_t(), Crypto.address_t()}}]) :: {:ok, t()}
+  @spec init(db_exits :: [{Utxo.Position.t(), map}]) :: {:ok, t()}
   def init(db_exits, sla_margin \\ @default_sla_margin) do
     {:ok,
      %__MODULE__{
-       exits:
-         db_exits
-         # FIXME: simplify
-         |> Enum.into(%{}, fn {utxo_pos, exit_info} ->
-           {utxo_pos, exit_info}
-         end),
+       exits: Map.new(db_exits),
        sla_margin: sla_margin
      }}
   end

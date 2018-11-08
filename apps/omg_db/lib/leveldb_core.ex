@@ -76,6 +76,14 @@ defmodule OMG.DB.LevelDBCore do
     end)
   end
 
+  def filter_exit_infos(keys_stream) do
+    keys_stream
+    |> Stream.filter(fn
+      {"e" <> _rest, _} -> true
+      _ -> false
+    end)
+  end
+
   def key(:block, %{hash: hash} = _block), do: key(:block, hash)
   def key(:block, hash), do: "b" <> hash
 
@@ -100,8 +108,6 @@ defmodule OMG.DB.LevelDBCore do
   @single_value_parameter_names [
     :child_top_block_number,
     :last_deposit_child_blknum,
-    :last_fast_exit_eth_height,
-    :last_slow_exit_eth_height,
     :last_block_getter_eth_height,
     :last_depositor_eth_height,
     :last_exiter_eth_height,

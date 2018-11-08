@@ -65,9 +65,7 @@ defmodule OMG.API.ExitProcessor do
   use GenServer
 
   def init(:ok) do
-    # FIXME: implement
-    # {:ok, db_exits} = DB.exits()
-    db_exits = []
+    {:ok, db_exits} = DB.exit_infos()
     sla_margin = Application.fetch_env!(:omg_watcher, :margin_slow_validator)
     Core.init(db_exits, sla_margin)
   end

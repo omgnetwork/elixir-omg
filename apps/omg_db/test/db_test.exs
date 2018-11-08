@@ -133,13 +133,13 @@ defmodule OMG.DBTest do
     :ok =
       DB.multi_update(
         [
-          {:put, :last_fast_exit_eth_height, 12},
-          {:put, :last_slow_exit_eth_height, 10}
+          {:put, :last_exit_finalizer_eth_height, 12},
+          {:put, :last_exit_challenger_eth_height, 10}
         ],
         TestDBServer
       )
 
-    assert {:ok, 12} == DB.last_fast_exit_eth_height(TestDBServer)
-    assert {:ok, 10} == DB.last_slow_exit_eth_height(TestDBServer)
+    assert {:ok, 12} == DB.last_exit_finalizer_eth_height(TestDBServer)
+    assert {:ok, 10} == DB.last_exit_challenger_eth_height(TestDBServer)
   end
 end
