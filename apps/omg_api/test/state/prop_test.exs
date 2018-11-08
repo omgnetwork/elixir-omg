@@ -163,7 +163,7 @@ defmodule OMG.API.State.PropTest do
 
   @tag :property
   @tag timeout: 600_000
-  property "OMG.API.State.Core prope check", numtests: 30000 do
+  property "OMG.API.State.Core prope check", numtests: 30_000 do
     state_core_property_test()
   end
 end

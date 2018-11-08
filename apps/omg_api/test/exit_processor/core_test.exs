@@ -66,8 +66,6 @@ defmodule OMG.API.ExitProcessor.CoreTest do
     contract_statuses: contract_statuses
   } do
     keys = [@utxo_pos1, @utxo_pos2]
-    # FIXME: remove
-    # values = [{7, @eth, alice, 2, true}, {9, @not_eth, alice, 4, true}]
     values = Enum.map(events, &(Map.put(&1, :is_active, true) |> Map.delete(:utxo_pos)))
     updates = Enum.zip([[:put, :put], [:exit_info, :exit_info], Enum.zip(keys, values)])
     update1 = Enum.slice(updates, 0, 1)
@@ -109,7 +107,7 @@ defmodule OMG.API.ExitProcessor.CoreTest do
   } do
     exiting_position = Utxo.position(1, 0, 0)
 
-    # FIXME: (elsewehere) add sanity checks for new_exits w/ tests
+    # TODO: (elsewehere) add sanity checks for new_exits w/ tests
 
     {processor_state, _} =
       processor_state
@@ -132,8 +130,7 @@ defmodule OMG.API.ExitProcessor.CoreTest do
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
              |> Core.invalid_exits(processor_state, 5)
 
-    # FIXME: we should make exit_utxos return whether the utxo existed or not and assert on that, instead of just `:ok`
-    # FIXME: also the utxo position encoding should be fixed and this test unblocked
+    # TODO: we should make exit_utxos return whether the utxo existed or not and assert on that, instead of just `:ok`
     # {_, _, to_finalize} = Core.finalize_exits(processor_state, [%{utxo_pos: Utxo.Position.encode(exiting_position)}])
     # assert :ok = State.Core.exit_utxos(to_finalize, state)
   end
@@ -164,7 +161,6 @@ defmodule OMG.API.ExitProcessor.CoreTest do
     assert {[%Event.InvalidExit{utxo_pos: ^exiting_position}], :chain_ok} =
              processor_state
              |> Core.get_exiting_utxo_positions()
-             # FIXME: when ExitProcessor takes over, there shouldn't be that encode
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
              |> Core.invalid_exits(processor_state, 5)
   end
@@ -196,12 +192,11 @@ defmodule OMG.API.ExitProcessor.CoreTest do
             {:needs_stopping, :unchallenged_exit}} =
              processor_state
              |> Core.get_exiting_utxo_positions()
-             # FIXME: when ExitProcessor takes over, there shouldn't be that encode
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
              |> Core.invalid_exits(processor_state, 13)
 
-    # FIXME: assert Eventer likes these events
-    # FIXME: new test - valid exits are fine even being old
+    # TODO: assert Eventer likes these events
+    # TODO: new test - valid exits are fine even being old
   end
 
   @tag fixtures: [:empty_state, :alice, :state_empty]
@@ -230,11 +225,10 @@ defmodule OMG.API.ExitProcessor.CoreTest do
     assert {[], :chain_ok} =
              processor_state
              |> Core.get_exiting_utxo_positions()
-             # FIXME: when ExitProcessor takes over, there shouldn't be that encode
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
              |> Core.invalid_exits(processor_state, 13)
 
-    # FIXME: assert Eventer likes these events
+    # TODO: assert Eventer likes these events
   end
 
   @tag fixtures: [:empty_state]

@@ -32,7 +32,6 @@ defmodule OMG.API.ExitProcessor.Core do
 
   defstruct [:sla_margin, exits: %{}]
 
-  # FIXME: structify a tracked exit in Exit module
   @type t :: %__MODULE__{exits: map}
 
   @doc """
@@ -54,7 +53,7 @@ defmodule OMG.API.ExitProcessor.Core do
   This is to prevent spurrious invalid exit events being fired during syncing for exits that were challenged/finalized
   Still we do want to track these exits when syncing, to have them spend from `OMG.API.State` on their finalization
   """
-  @spec new_exits(t(), [map()], [tuple()]) :: {t(), list()}
+  @spec new_exits(t(), [map()], list(map)) :: {t(), list()}
   def new_exits(%__MODULE__{exits: exits} = state, new_exits, exit_contract_statuses) do
     new_exits_kv_pairs =
       new_exits
@@ -68,11 +67,6 @@ defmodule OMG.API.ExitProcessor.Core do
       new_exits_kv_pairs
       |> Enum.map(fn {utxo_pos, exit_info} -> {:put, :exit_info, {utxo_pos, exit_info}} end)
 
-    # FIXME: remove alt
-    # db_updates =
-    #   new_exits_kv_pairs
-    #   |> Enum.map(fn {Utxo.position(blknum, txindex, oindex), exit_info} -> {:put, :exit_info, {{blknum, txindex, oindex}, exit_info}} end)
-
     new_exits_map = Map.new(new_exits_kv_pairs)
 
     {%{state | exits: Map.merge(exits, new_exits_map)}, db_updates}
@@ -84,6 +78,7 @@ defmodule OMG.API.ExitProcessor.Core do
   @doc """
   Finalize exits based on Ethereum events, removing from tracked state.
   """
+  @spec finalize_exits(t(), list(map)) :: {t(), list, list}
   def finalize_exits(%__MODULE__{} = state, exits) do
     # NOTE: We don't need to deactivate these exits, as they're forgotten forever here
     #       Also exits marked as `is_active` still finalize just the same
@@ -95,23 +90,20 @@ defmodule OMG.API.ExitProcessor.Core do
       finalizing_positions
       |> Enum.map(fn utxo_pos -> {:delete, :exit_info, utxo_pos} end)
 
-    # FIXME: remove alt
-    # db_updates =
-    #   finalizing_positions
-    #   |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :exit_info, {blknum, txindex, oindex}} end)
-
     {state, db_updates, finalizing_positions}
   end
 
-  def challenge_exits(%__MODULE__{} = _state, _exits) do
+  @spec challenge_exits(t(), list(map)) :: {t(), list}
+  def challenge_exits(%__MODULE__{} = state, _exits) do
     # NOTE: we don't need to deactivate these exits, as they're forgotten forever here
-    # FIXME: implement
+    # TODO: implement
+    {state, []}
   end
 
   @doc """
   All the active exits, in-flight exits, exiting output piggybacks etc., based on the current tracked state
   """
-  @spec get_exiting_utxo_positions(t()) :: list
+  @spec get_exiting_utxo_positions(t()) :: list(Utxo.Position.t())
   def get_exiting_utxo_positions(%__MODULE__{exits: exits} = _state) do
     exits
     |> Enum.filter(fn {_key, %{is_active: is_active}} -> is_active end)
@@ -128,7 +120,8 @@ defmodule OMG.API.ExitProcessor.Core do
   NOTE: If there were any exits unchallenged for some time in chain history, this might detect breach of SLA,
         even if the exits were eventually challenged (e.g. during syncing)
   """
-  @spec invalid_exits(list, t(), pos_integer) :: {list, list}
+  @spec invalid_exits(list(boolean), t(), pos_integer) ::
+          {list(Event.InvalidExit.t() | Event.UnchallengedExit.t()), :chain_ok | {:needs_stopping, :unchallenged_exit}}
   def invalid_exits(utxo_exists_result, %__MODULE__{exits: exits, sla_margin: sla_margin} = state, eth_height_now) do
     exiting_utxo_positions = get_exiting_utxo_positions(state)
 

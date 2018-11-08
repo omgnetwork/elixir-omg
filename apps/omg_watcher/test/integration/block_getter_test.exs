@@ -143,13 +143,12 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
 
-    # FIXME: is this assertion really needed, considering we got 0x1 status?
     assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth, eth_height: exit_eth_height}]} ==
              Eth.RootChain.get_exits(0, height)
 
     # exiting spends UTXO on child chain
     # wait until the exit is recognized and attempt to spend the exited utxo
-    Process.sleep(4_000)
+    Process.sleep(1_000)
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
 
     {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
@@ -324,7 +323,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         alice.addr
       )
 
-    # FIXME: make event payload testing approximate not exact, so that we needn't parse
+    # TODO: make event payload testing approximate not exact, so that we needn't parse
     {:ok, %{"status" => "0x1", "blockNumber" => "0x" <> eth_height}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
     {eth_height, ""} = Integer.parse(eth_height, 16)
 

@@ -403,30 +403,18 @@ defmodule OMG.API.State.Core do
   end
 
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
-    exiting_utxos =
-      exiting_utxos
-      |> Enum.filter(&utxo_exists?(&1, state))
+    exiting_utxos = Enum.filter(exiting_utxos, &utxo_exists?(&1, state))
 
-    event_triggers =
+    {event_triggers, db_updates} =
       exiting_utxos
-      |> Enum.map(fn utxo_pos -> %{exit: %{owner: utxos[utxo_pos].owner, utxo_pos: utxo_pos}} end)
-
-    new_state = %{
-      state
-      | utxos:
-          Enum.reduce(exiting_utxos, utxos, fn utxo_pos, utxos ->
-            Map.delete(utxos, utxo_pos)
-          end)
-    }
-
-    deletes =
-      exiting_utxos
-      |> Enum.map(fn utxo_pos ->
-        {:utxo_position, blknum, txindex, oindex} = utxo_pos
-        {:delete, :utxo, {blknum, txindex, oindex}}
+      |> Enum.map(fn Utxo.position(blknum, txindex, oindex) = utxo_pos ->
+        {%{exit: %{owner: utxos[utxo_pos].owner, utxo_pos: utxo_pos}}, {:delete, :utxo, {blknum, txindex, oindex}}}
       end)
+      |> Enum.unzip()
 
-    {:ok, {event_triggers, deletes}, new_state}
+    new_state = %{state | utxos: Map.drop(utxos, exiting_utxos)}
+
+    {:ok, {event_triggers, db_updates}, new_state}
   end
 
   @doc """

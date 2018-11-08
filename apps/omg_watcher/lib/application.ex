@@ -94,12 +94,11 @@ defmodule OMG.Watcher.Application do
                service_name: :exit_processor,
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,
                process_events_callback: &OMG.API.ExitProcessor.new_exits/1,
-               # FIXME: read a new entry from db, same below!!
                get_last_synced_height_callback: &OMG.DB.last_exit_processor_eth_height/0
              }
            ]}
       },
-      # FIXME: wouldn't we prefer to just have one pipe of exit-related events, all streamed to the same entrypoint
+      # TODO: wouldn't we prefer to just have one pipe of exit-related events, all streamed to the same entrypoint
       # in :exit_processor
       %{
         id: :exit_finalizer,

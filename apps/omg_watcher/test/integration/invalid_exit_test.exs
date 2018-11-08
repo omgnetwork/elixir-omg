@@ -65,12 +65,9 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         alice.addr
       )
 
-    # FIXME: make event payload testing approximate not exact, so that we needn't parse
+    # TODO: make event payload testing approximate not exact, so that we needn't parse
     {:ok, %{"status" => "0x1", "blockNumber" => "0x" <> eth_height}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
     {eth_height, ""} = Integer.parse(eth_height, 16)
-
-    # FIXME wake up (was 1_000) only
-    Process.sleep(5_000)
 
     invalid_exit_event =
       Client.encode(%Event.InvalidExit{
@@ -81,7 +78,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         eth_height: eth_height
       })
 
-    assert_push("invalid_exit", ^invalid_exit_event)
+    assert_push("invalid_exit", ^invalid_exit_event, 5_000)
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
@@ -131,7 +128,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         alice.addr
       )
 
-    # FIXME: make event payload testing approximate not exact, so that we needn't parse
+    # TODO: make event payload testing approximate not exact, so that we needn't parse
     {:ok, %{"status" => "0x1", "blockNumber" => "0x" <> eth_height}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
     {eth_height, ""} = Integer.parse(eth_height, 16)
 

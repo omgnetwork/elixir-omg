@@ -13,14 +13,12 @@
 # limitations under the License.
 
 defmodule OMG.API.ExitProcessor do
-  # todo:
-  # FIXME: - turn off 2 exit validators in Watcher (application.ex), remove dead code, remove db entries
-  # FIXME: update architecture, configs (margin_slow_validator)
-  # FIXME: - handle challenge events
-  # FIXME: - handle finalize events
-  # FIXME: - handle finalization of invalid exits (proper event, stopping of BlockGetter?)
-  # FIXME: - atomicity of `OMG.DB.multi_updates`
-  # FIXME: tidies to commit f3d97d406238f8a208caa1f38a80f16c91cdd771
+  # TODO: - handle challenge events
+  # TODO: - handle finalize events. Check if a block spending finalized exit is byzantine
+  # TODO: - handle finalization of invalid exits (should not remove event, turn to `is_active` and ensure it signals?)
+  # TODO: - atomicity of `OMG.DB.multi_updates` (new/challenge/finalize exits, close_block, EthEventListener in gen.)
+  # TODO: - merge invalid exit (1st case) test with challenge exit test (integration tests)
+  # TODO: structify a tracked exit in Exit module
 
   @moduledoc """
   Encapsulates managing and executing the behaviors related to treating exits by the child chain and watchers
@@ -85,19 +83,15 @@ defmodule OMG.API.ExitProcessor do
 
   def handle_call({:finalize_exits, exits}, _from, state) do
     {new_state, db_updates, to_spend} = Core.finalize_exits(state, exits)
-    # FIXME: to provide atomic updates, this should (perhaps) be returned and written to DB outside of this
-    #        the problem right now is that we have `multi_update` in `State`, here, and in the caller `EthEventListener`
     Enum.each(to_spend, &State.exit_utxos/1)
     :ok = DB.multi_update(db_updates)
     {:reply, :ok, new_state}
   end
 
   def handle_call({:challenge_exits, _exits}, _from, state) do
-    # FIXME: implement
+    # TODO: implement
     # {new_state, db_updates} = Core.challenge_exits(state, exits)
     {new_state, db_updates} = {state, []}
-    # FIXME: to provide atomic updates, this should (perhaps) be returned and written to DB outside of this
-    #        the problem right now is that we have `multi_update` in `State`, here, and in the caller `EthEventListener`
     :ok = DB.multi_update(db_updates)
     {:reply, :ok, new_state}
   end

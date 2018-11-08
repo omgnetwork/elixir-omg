@@ -19,8 +19,8 @@ defmodule OMG.Watcher.BlockGetter do
   Detects byzantine behaviors like invalid blocks and block withholding and notifies Eventer.
   """
   alias OMG.API.Block
-  alias OMG.API.ExitProcessor
   alias OMG.API.EventerAPI
+  alias OMG.API.ExitProcessor
   alias OMG.API.RootChainCoordinator
   alias OMG.API.State
   alias OMG.Eth
