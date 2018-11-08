@@ -14,13 +14,11 @@
 
 defmodule OMG.API.ExitProcessor do
   # todo:
-  # FIXME: - hit ExitProcessor in BlockGetter on every block
   # FIXME: - turn off 2 exit validators in Watcher (application.ex), remove dead code, remove db entries
   # FIXME: update architecture, configs (margin_slow_validator)
   # FIXME: - handle challenge events
   # FIXME: - handle finalize events
   # FIXME: - handle finalization of invalid exits (proper event, stopping of BlockGetter?)
-  # FIXME: - handle exits approaching SLA margin-maturity (proper event)
   # FIXME: - atomicity of `OMG.DB.multi_updates`
   # FIXME: tidies to commit f3d97d406238f8a208caa1f38a80f16c91cdd771
 
@@ -83,10 +81,7 @@ defmodule OMG.API.ExitProcessor do
 
     {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
     :ok = DB.multi_update(db_updates)
-    # FIXME: _ ?
-    # FIXME: inputs
-    # FIXME: where this happens?
-    # _ = OMG.Watcher.DB.EthEvent.insert_exits(exits)
+    _ = OMG.Watcher.DB.EthEvent.insert_exits(exits)
     {:reply, :ok, new_state}
   end
 
