@@ -516,31 +516,39 @@ defmodule OMG.API.State.CoreTest do
 
     utxo_pos_exit_1 = Utxo.position(@child_block_interval, 0, 0)
     utxo_pos_exit_2 = Utxo.position(@child_block_interval, 0, 1)
+    utxo_pos_exits = [utxo_pos_exit_1, utxo_pos_exit_2]
 
-    {:ok,
-     {[
-        %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_1}},
-        %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_2}}
-      ], [{:delete, :utxo, {@child_block_interval, 0, 0}}, {:delete, :utxo, {@child_block_interval, 0, 1}}]},
-     state} =
-      [utxo_pos_exit_1, utxo_pos_exit_2]
-      |> Core.exit_utxos(state)
+    assert {:ok,
+            {[
+               %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_1}},
+               %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_2}}
+             ], [{:delete, :utxo, {@child_block_interval, 0, 0}}, {:delete, :utxo, {@child_block_interval, 0, 1}}]},
+            state_after_exit} =
+             exit_utxos_response =
+             utxo_pos_exits
+             |> Core.exit_utxos(state)
 
-    state
+    # alternative api of exit_utxos gives the same result and new state
+    assert ^exit_utxos_response =
+             utxo_pos_exits
+             |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)})
+             |> Core.exit_utxos(state)
+
+    state_after_exit
     |> (&Core.exec(
           Test.create_recovered([{@child_block_interval, 0, 0, alice}], eth(), [{alice, 7}]),
           zero_fees_map(),
           &1
         )).()
     |> fail?(:utxo_not_found)
-    |> same?(state)
+    |> same?(state_after_exit)
     |> (&Core.exec(
           Test.create_recovered([{@child_block_interval, 0, 1, alice}], eth(), [{alice, 3}]),
           zero_fees_map(),
           &1
         )).()
     |> fail?(:utxo_not_found)
-    |> same?(state)
+    |> same?(state_after_exit)
   end
 
   @tag fixtures: [:alice, :state_alice_deposit]

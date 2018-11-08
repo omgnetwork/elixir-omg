@@ -389,10 +389,19 @@ defmodule OMG.API.State.Core do
   end
 
   @doc """
-  Spends exited utxos
+  Spends exited utxos. Accepts both a list of utxo positions (decoded) or full exit info from an event.
+
+  It is done like this to accommodate different clients of this function as they can either be
+  bare `EthereumEventListener` or `ExitProcessor`
   """
-  @spec exit_utxos(exiting_utxos :: [Utxo.Position.t()], state :: t()) ::
+  @spec exit_utxos(exiting_utxos :: [Utxo.Position.t()] | [exit_t()], state :: t()) ::
           {:ok, {[exit_event], [db_update]}, new_state :: t()}
+  def exit_utxos([%{utxo_pos: _} | _] = exit_infos, %Core{} = state) do
+    exit_infos
+    |> Enum.map(&Utxo.Position.decode(&1.utxo_pos))
+    |> exit_utxos(state)
+  end
+
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
     exiting_utxos =
       exiting_utxos

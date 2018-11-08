@@ -57,8 +57,7 @@ defmodule OMG.API.Application do
                service_name: :exiter,
                block_finality_margin: block_finality_margin,
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,
-               # FIXME: move elsewhere
-               process_events_callback: fn exits -> OMG.API.State.exit_utxos(Enum.map(exits, fn %{utxo_pos: utxo_pos} -> Utxo.Position.decode(utxo_pos) end)) end,
+               process_events_callback: &OMG.API.State.exit_utxos/1,
                get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
              }
            ]}
