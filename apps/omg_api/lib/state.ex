@@ -206,7 +206,7 @@ defmodule OMG.API.State do
 
     ### casts, note these are no-ops if given processes are turned off
     FreshBlocks.push(block)
-    BlockQueue.enqueue_block(blkhash, blknum)
+    BlockQueue.enqueue_block(block)
 
     {:noreply, new_state}
   end

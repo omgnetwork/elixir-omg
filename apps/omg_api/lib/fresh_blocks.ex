@@ -56,9 +56,18 @@ defmodule OMG.API.FreshBlocks do
     {:reply, result, state}
   end
 
-  def handle_cast({:push, block}, state) do
+  def handle_cast({:push, %Block{transactions: [], number: block_number, hash: block_hash}}, state) do
+    _ =
+      Logger.debug(fn ->
+        "No new empty block pushed, blknum '#{inspect(block_number)}', hash '#{inspect(block_hash)}'"
+      end)
+
+    {:noreply, state}
+  end
+
+  def handle_cast({:push, %Block{number: block_number, hash: block_hash} = block}, state) do
     {:ok, new_state} = Core.push(block, state)
-    _ = Logger.debug(fn -> "new block pushed, blknum '#{inspect(block.number)}', hash '#{inspect(block.hash)}'" end)
+    _ = Logger.debug(fn -> "new block pushed, blknum '#{inspect(block_number)}', hash '#{inspect(block_hash)}'" end)
 
     {:noreply, new_state}
   end

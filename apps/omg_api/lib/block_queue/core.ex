@@ -126,6 +126,11 @@ defmodule OMG.API.BlockQueue.Core do
     end
   end
 
+  @spec clean_for_enqueue_empty_block(Core.t(), boolean()) :: Core.t()
+  def clean_for_enqueue_empty_block(state, bool) do
+    %{state | wait_for_enqueue: bool}
+  end
+
   defp validate_block_number(block_number, own_height) when block_number == own_height, do: :ok
   defp validate_block_number(_, _), do: {:error, :unexpected_block_number}
 

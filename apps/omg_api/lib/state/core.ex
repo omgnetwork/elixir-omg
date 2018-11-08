@@ -290,45 +290,49 @@ defmodule OMG.API.State.Core do
 
     block = txs |> Block.hashed_txs_at(height)
 
-    event_triggers =
-      txs
-      |> Enum.with_index()
-      |> Enum.map(fn {tx, index} ->
-        %{tx: tx, child_blknum: block.number, child_txindex: index, child_block_hash: block.hash}
-      end)
+    if Enum.empty?(txs) do
+      {:ok, {block, [], []}, state}
+    else
+      event_triggers =
+        txs
+        |> Enum.with_index()
+        |> Enum.map(fn {tx, index} ->
+          %{tx: tx, child_blknum: block.number, child_txindex: index, child_block_hash: block.hash}
+        end)
 
-    db_updates_new_utxos =
-      txs
-      |> Enum.with_index()
-      |> Enum.flat_map(fn {%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}}, tx_idx} ->
-        non_zero_utxos_from(tx, height, tx_idx)
-      end)
-      |> Enum.map(&utxo_to_db_put/1)
+      db_updates_new_utxos =
+        txs
+        |> Enum.with_index()
+        |> Enum.flat_map(fn {%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}}, tx_idx} ->
+          non_zero_utxos_from(tx, height, tx_idx)
+        end)
+        |> Enum.map(&utxo_to_db_put/1)
 
-    db_updates_spent_utxos =
-      txs
-      |> Enum.flat_map(fn %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}} ->
-        [Utxo.position(tx.blknum1, tx.txindex1, tx.oindex1), Utxo.position(tx.blknum2, tx.txindex2, tx.oindex2)]
-      end)
-      |> Enum.filter(fn position -> position != Utxo.position(0, 0, 0) end)
-      |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :utxo, {blknum, txindex, oindex}} end)
+      db_updates_spent_utxos =
+        txs
+        |> Enum.flat_map(fn %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}} ->
+          [Utxo.position(tx.blknum1, tx.txindex1, tx.oindex1), Utxo.position(tx.blknum2, tx.txindex2, tx.oindex2)]
+        end)
+        |> Enum.filter(fn position -> position != Utxo.position(0, 0, 0) end)
+        |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :utxo, {blknum, txindex, oindex}} end)
 
-    db_updates_block = [{:put, :block, block}]
+      db_updates_block = [{:put, :block, block}]
 
-    db_updates_top_block_number = [{:put, :child_top_block_number, height}]
+      db_updates_top_block_number = [{:put, :child_top_block_number, height}]
 
-    db_updates =
-      [db_updates_new_utxos, db_updates_spent_utxos, db_updates_block, db_updates_top_block_number]
-      |> Enum.concat()
+      db_updates =
+        [db_updates_new_utxos, db_updates_spent_utxos, db_updates_block, db_updates_top_block_number]
+        |> Enum.concat()
 
-    new_state = %Core{
-      state
-      | tx_index: 0,
-        height: height + child_block_interval,
-        pending_txs: []
-    }
+      new_state = %Core{
+        state
+        | tx_index: 0,
+          height: height + child_block_interval,
+          pending_txs: []
+      }
 
-    {:ok, {block, event_triggers, db_updates}, new_state}
+      {:ok, {block, event_triggers, db_updates}, new_state}
+    end
   end
 
   @spec deposit(deposits :: [deposit()], state :: t()) :: {:ok, {[deposit_event], [db_update]}, new_state :: t()}

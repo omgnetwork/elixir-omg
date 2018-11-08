@@ -42,7 +42,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   end
 
   def wait_for_current_block_fetch(timeout) do
-    {:ok, current_child_block} = Eth.RootChain.get_current_child_block()
+    {:ok, current_child_block} = Eth.RootChain.get_mined_child_block()
     wait_for_block_fetch(current_child_block, timeout)
   end
 

@@ -29,6 +29,7 @@ defmodule OMG.API.BlockQueue do
 
   alias OMG.API.BlockQueue.Core
   alias OMG.API.BlockQueue.Core.BlockSubmission
+  alias OMG.API.Block
 
   @type eth_height() :: non_neg_integer()
   @type hash() :: BlockSubmission.hash()
@@ -39,9 +40,9 @@ defmodule OMG.API.BlockQueue do
   @doc """
   Enqueues child chain block to be submitted to Ethereum
   """
-  @spec enqueue_block(binary(), non_neg_integer()) :: :ok
-  def enqueue_block(block_hash, block_number) do
-    GenServer.cast(__MODULE__.Server, {:enqueue_block, block_hash, block_number})
+  @spec enqueue_block(Block.t()) :: :ok
+  def enqueue_block(block) do
+    GenServer.cast(__MODULE__.Server, {:enqueue_block, block})
   end
 
   defmodule Server do
@@ -138,16 +139,27 @@ defmodule OMG.API.BlockQueue do
       {:noreply, state1}
     end
 
-    def handle_cast({:enqueue_block, block_hash, block_number}, %Core{} = state) do
-      state2 = Core.enqueue_block(state, block_hash, block_number)
+    def handle_cast({:enqueue_block, %Block{transactions: [], number: block_number, hash: block_hash}}, %Core{} = state) do
+      state1 = Core.clean_for_enqueue_empty_block(state, false)
 
       _ =
         Logger.info(fn ->
-          "Enqueing block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'"
+          "No enqueuing empty block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'"
         end)
 
-      submit_blocks(state2)
-      {:noreply, state2}
+      {:noreply, state1}
+    end
+
+    def handle_cast({:enqueue_block, %Block{number: block_number, hash: block_hash}}, %Core{} = state) do
+      state1 = Core.enqueue_block(state, block_hash, block_number)
+
+      _ =
+        Logger.info(fn ->
+          "Enqueuing block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'"
+        end)
+
+      submit_blocks(state1)
+      {:noreply, state1}
     end
 
     # private (server)
