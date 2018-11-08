@@ -510,7 +510,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           {:ok, []} | {{:needs_stopping, :tx_execution}, list(Event.InvalidBlock.t())}
   def validate_tx_executions(executions, %{hash: hash, number: blknum}) do
     with nil <- Enum.find(executions, &(!match?({:ok, {_, _, _}}, &1))) do
-      {:ok, []}
+      {:chain_ok, []}
     else
       {:error, reason} ->
         {{:needs_stopping, {:tx_execution, reason}},

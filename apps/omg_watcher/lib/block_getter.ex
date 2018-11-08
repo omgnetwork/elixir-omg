@@ -19,6 +19,7 @@ defmodule OMG.Watcher.BlockGetter do
   Detects byzantine behaviors like invalid blocks and block withholding and notifies Eventer.
   """
   alias OMG.API.Block
+  alias OMG.API.ExitProcessor
   alias OMG.API.EventerAPI
   alias OMG.API.RootChainCoordinator
   alias OMG.API.State
@@ -60,7 +61,8 @@ defmodule OMG.Watcher.BlockGetter do
 
     EventerAPI.emit_events(events)
 
-    with :ok <- continue do
+    with :chain_ok <- continue,
+         :chain_ok <- ExitProcessor.check_validity() do
       _ = Enum.map(blocks_to_persist, &DB.Transaction.update_with/1)
       state = run_block_download_task(state)
 
@@ -71,8 +73,6 @@ defmodule OMG.Watcher.BlockGetter do
 
       :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
       :ok = OMG.DB.multi_update(db_updates)
-
-      :ok = OMG.API.ExitProcessor.check_validity()
 
       {:noreply, state}
     else

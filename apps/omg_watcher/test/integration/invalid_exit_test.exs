@@ -65,16 +65,20 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         alice.addr
       )
 
-    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    # FIXME: make event payload testing approximate not exact, so that we needn't parse
+    {:ok, %{"status" => "0x1", "blockNumber" => "0x" <> eth_height}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    {eth_height, ""} = Integer.parse(eth_height, 16)
 
-    Process.sleep(1_000)
+    # FIXME wake up (was 1_000) only
+    Process.sleep(5_000)
 
     invalid_exit_event =
       Client.encode(%Event.InvalidExit{
         amount: 10,
         currency: @eth,
         owner: alice.addr,
-        utxo_pos: utxo_pos
+        utxo_pos: utxo_pos,
+        eth_height: eth_height
       })
 
     assert_push("invalid_exit", ^invalid_exit_event)
@@ -128,7 +132,9 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         alice.addr
       )
 
-    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    # FIXME: make event payload testing approximate not exact, so that we needn't parse
+    {:ok, %{"status" => "0x1", "blockNumber" => "0x" <> eth_height}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    {eth_height, ""} = Integer.parse(eth_height, 16)
 
     Application.put_env(
       :omg_jsonrpc,
@@ -136,16 +142,18 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       "http://localhost:" <> Integer.to_string(BadChildChainBLock.port())
     )
 
-    # Here we waiting for block `bad_block_number + margin_slow_validator`
+    # Here we waiting for block `bad_block_number + 1`
     # to give time for watcher to fetch and validate bad_block_number
-    IntegrationTest.wait_until_block_getter_fetches_block(bad_block_number + margin_slow_validator, @timeout)
+    # remember not to wait too much, as the `BlockGetter` will stop after exit gets old
+    IntegrationTest.wait_until_block_getter_fetches_block(bad_block_number + 1, @timeout)
 
     invalid_exit_event =
       Client.encode(%Event.InvalidExit{
         amount: 10,
         currency: @eth,
         owner: alice.addr,
-        utxo_pos: utxo_pos
+        utxo_pos: utxo_pos,
+        eth_height: eth_height
       })
 
     assert_push("invalid_exit", ^invalid_exit_event)

@@ -21,7 +21,6 @@ defmodule OMG.API.ExitProcessor do
   # FIXME: - handle finalize events
   # FIXME: - handle finalization of invalid exits (proper event, stopping of BlockGetter?)
   # FIXME: - handle exits approaching SLA margin-maturity (proper event)
-  # FIXME: - some integration tests should be "just fine" but maybe some won't
   # FIXME: - atomicity of `OMG.DB.multi_updates`
   # FIXME: tidies to commit f3d97d406238f8a208caa1f38a80f16c91cdd771
 
@@ -59,12 +58,8 @@ defmodule OMG.API.ExitProcessor do
     GenServer.call(__MODULE__, {:challenge_exits, exits})
   end
 
-  def get_invalid_exits do
-    GenServer.call(__MODULE__, :get_invalid_exits)
-  end
-
   def check_validity do
-    GenServer.cast(__MODULE__, :check_validity)
+    GenServer.call(__MODULE__, :check_validity)
   end
 
   ### Server
@@ -91,7 +86,7 @@ defmodule OMG.API.ExitProcessor do
     # FIXME: _ ?
     # FIXME: inputs
     # FIXME: where this happens?
-    _ = OMG.Watcher.DB.EthEvent.insert_exits([])
+    # _ = OMG.Watcher.DB.EthEvent.insert_exits(exits)
     {:reply, :ok, new_state}
   end
 
@@ -114,18 +109,12 @@ defmodule OMG.API.ExitProcessor do
     {:reply, :ok, new_state}
   end
 
-  def handle_call(:get_invalid_exits, _from, state) do
-    {_, invalid_exits} = determine_invalid_exits(state)
-
-    {:reply, {:ok, invalid_exits}, state}
-  end
-
-  def handle_cast(:check_validity, state) do
-    {event_triggers, _} = determine_invalid_exits(state)
+  def handle_call(:check_validity, _from, state) do
+    {event_triggers, chain_status} = determine_invalid_exits(state)
 
     EventerAPI.emit_events(event_triggers)
 
-    {:noreply, state}
+    {:reply, chain_status, state}
   end
 
   # combine data from `ExitProcessor` and `API.State` to figure out what to do about exits

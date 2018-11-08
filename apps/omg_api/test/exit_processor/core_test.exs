@@ -126,7 +126,7 @@ defmodule OMG.API.ExitProcessor.CoreTest do
         [{alice, @eth, 10}]
       )
 
-    assert {[], []} =
+    assert {[], :chain_ok} =
              processor_state
              |> Core.get_exiting_utxo_positions()
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
@@ -144,7 +144,7 @@ defmodule OMG.API.ExitProcessor.CoreTest do
     alice: %{addr: alice},
     state_empty: state
   } do
-    exiting_position = Utxo.position(1, 0, 0)
+    exiting_position = Utxo.Position.encode(Utxo.position(1, 0, 0))
 
     {processor_state, _} =
       processor_state
@@ -154,14 +154,14 @@ defmodule OMG.API.ExitProcessor.CoreTest do
             amount: 10,
             currency: @eth,
             owner: alice,
-            utxo_pos: Utxo.Position.encode(exiting_position),
+            utxo_pos: exiting_position,
             eth_height: 2
           }
         ],
         [{alice, @eth, 10}]
       )
 
-    assert {[{:invalid_exit, ^exiting_position}], [^exiting_position]} =
+    assert {[%Event.InvalidExit{utxo_pos: ^exiting_position}], :chain_ok} =
              processor_state
              |> Core.get_exiting_utxo_positions()
              # FIXME: when ExitProcessor takes over, there shouldn't be that encode
@@ -175,7 +175,7 @@ defmodule OMG.API.ExitProcessor.CoreTest do
     alice: %{addr: alice},
     state_empty: state
   } do
-    exiting_position = Utxo.position(1, 0, 0)
+    exiting_position = Utxo.Position.encode(Utxo.position(1, 0, 0))
 
     {processor_state, _} =
       processor_state
@@ -185,15 +185,15 @@ defmodule OMG.API.ExitProcessor.CoreTest do
             amount: 10,
             currency: @eth,
             owner: alice,
-            utxo_pos: Utxo.Position.encode(exiting_position),
+            utxo_pos: exiting_position,
             eth_height: 2
           }
         ],
         [{alice, @eth, 10}]
       )
 
-    assert {[%Event.InvalidBlock{error_type: :unchallenged_exit}, {:invalid_exit, ^exiting_position}],
-            [^exiting_position]} =
+    assert {[%Event.UnchallengedExit{utxo_pos: ^exiting_position}, %Event.InvalidExit{utxo_pos: ^exiting_position}],
+            {:needs_stopping, :unchallenged_exit}} =
              processor_state
              |> Core.get_exiting_utxo_positions()
              # FIXME: when ExitProcessor takes over, there shouldn't be that encode
@@ -227,7 +227,7 @@ defmodule OMG.API.ExitProcessor.CoreTest do
         [{Crypto.zero_address(), @eth, 10}]
       )
 
-    assert {[], []} =
+    assert {[], :chain_ok} =
              processor_state
              |> Core.get_exiting_utxo_positions()
              # FIXME: when ExitProcessor takes over, there shouldn't be that encode

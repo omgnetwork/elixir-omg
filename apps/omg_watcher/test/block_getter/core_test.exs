@@ -105,7 +105,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     # check feasibility of transactions from block to consume at the API.State
     assert {:ok, tx_result, _} = API.State.Core.exec(tx, fees, state_alice_deposit)
 
-    assert {:ok, []} = Core.validate_tx_executions([{:ok, tx_result}], block)
+    assert {:chain_ok, []} = Core.validate_tx_executions([{:ok, tx_result}], block)
   end
 
   @tag fixtures: [:alice, :bob]

@@ -108,7 +108,7 @@ defmodule OMG.API.ExitProcessor.Core do
     {state, db_updates, finalizing_positions}
   end
 
-  def challenge_exits(%__MODULE__{} = _state, exits) do
+  def challenge_exits(%__MODULE__{} = _state, _exits) do
     # NOTE: we don't need to deactivate these exits, as they're forgotten forever here
     # FIXME: implement
   end
@@ -144,31 +144,28 @@ defmodule OMG.API.ExitProcessor.Core do
       |> Enum.map(fn {_, position} -> position end)
 
     # get exits which are still invalid and after the SLA margin
-    has_no_late_invalid_exits =
+    late_invalid_exits =
       exits
       |> Map.take(invalid_exit_positions)
-      |> Map.values()
-      |> Enum.map(& &1.eth_height)
-      |> Enum.filter(&(&1 + sla_margin <= eth_height_now))
-      |> Enum.empty?()
+      |> Enum.filter(fn {_, %{eth_height: eth_height}} -> eth_height + sla_margin <= eth_height_now end)
 
-    events =
+    has_no_late_invalid_exits = Enum.empty?(late_invalid_exits)
+
+    non_late_events =
       invalid_exit_positions
-      |> Enum.map(fn position -> {:invalid_exit, position} end)
+      |> Enum.map(fn position -> make_event_data(Event.InvalidExit, position, exits[position]) end)
 
     events =
-      if has_no_late_invalid_exits,
-        do: events,
-        else: [
-          # FIXME: temporary reuse of slightly different event with same effect. New event needs to be defined
-          %Event.InvalidBlock{
-            error_type: :unchallenged_exit,
-            hash: nil,
-            number: nil
-          }
-          | events
-        ]
+      late_invalid_exits
+      |> Enum.map(fn {position, late_exit} -> make_event_data(Event.UnchallengedExit, position, late_exit) end)
+      |> Enum.concat(non_late_events)
 
-    {events, invalid_exit_positions}
+    chain_validity = if has_no_late_invalid_exits, do: :chain_ok, else: {:needs_stopping, :unchallenged_exit}
+
+    {events, chain_validity}
+  end
+
+  defp make_event_data(type, position, exit_info) do
+    struct(type, Map.put(exit_info, :utxo_pos, Utxo.Position.encode(position)))
   end
 end

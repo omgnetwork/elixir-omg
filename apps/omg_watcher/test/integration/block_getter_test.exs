@@ -325,7 +325,9 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         alice.addr
       )
 
-    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    # FIXME: make event payload testing approximate not exact, so that we needn't parse
+    {:ok, %{"status" => "0x1", "blockNumber" => "0x" <> eth_height}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    {eth_height, ""} = Integer.parse(eth_height, 16)
 
     Application.put_env(
       :omg_jsonrpc,
@@ -335,16 +337,18 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     assert capture_log(fn ->
              assert_block_getter_down()
-           end) =~ inspect(:tx_execution)
+           end) =~ inspect(:unchallenged_exit)
 
-    invalid_block_event =
-      Client.encode(%Event.InvalidBlock{
-        error_type: :tx_execution,
-        hash: bad_block_hash,
-        number: bad_block_number
+    unchallenged_exit_event =
+      Client.encode(%Event.UnchallengedExit{
+        amount: 10,
+        currency: @eth,
+        owner: alice.addr,
+        utxo_pos: utxo_pos,
+        eth_height: eth_height
       })
 
-    assert_push("invalid_block", ^invalid_block_event)
+    assert_push("unchallenged_exit", ^unchallenged_exit_event)
 
     JSONRPC2.Servers.HTTP.shutdown(BadChildChainBLock)
 
