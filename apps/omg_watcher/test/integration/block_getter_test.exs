@@ -301,9 +301,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     nonce = div(bad_block_number, child_block_interval)
     {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, nonce, 1)
 
-    {:module, BadChildChainBLock, _, _} = OMG.Watcher.Integration.BadChildChainBLock.create_module(bad_block)
-
-    JSONRPC2.Servers.HTTP.http(BadChildChainBLock, port: BadChildChainBLock.port())
+    # from now on the child chain server is broken until end of test
+    OMG.Watcher.Integration.BadChildChainServer.register_and_start_server(bad_block)
 
     {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
@@ -329,12 +328,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     {:ok, %{"status" => "0x1", "blockNumber" => "0x" <> eth_height}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
     {eth_height, ""} = Integer.parse(eth_height, 16)
 
-    Application.put_env(
-      :omg_jsonrpc,
-      :child_chain_url,
-      "http://localhost:" <> Integer.to_string(BadChildChainBLock.port())
-    )
-
     assert capture_log(fn ->
              assert_block_getter_down()
            end) =~ inspect(:unchallenged_exit)
@@ -349,10 +342,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       })
 
     assert_push("unchallenged_exit", ^unchallenged_exit_event)
-
-    JSONRPC2.Servers.HTTP.shutdown(BadChildChainBLock)
-
-    Application.put_env(:omg_jsonrpc, :child_chain_url, "http://localhost:9656")
   end
 
   defp assert_block_getter_down do

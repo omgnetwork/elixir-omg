@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Integration.BadChildChainBLock do
+defmodule OMG.Watcher.Integration.BadChildChainServer do
   @moduledoc """
     Module useful for creating integration tests where we want to simulate byzantine child chain server
     which is returning a bad block for a particular block number.
   """
 
-  def create_module(bad_block) do
+  import ExUnit.Callbacks
+
+  defp create_module(bad_block) do
     content =
       quote do
         use JSONRPC2.Server.Handler
@@ -43,6 +45,28 @@ defmodule OMG.Watcher.Integration.BadChildChainBLock do
         defp get_bad_block, do: unquote(Macro.escape(bad_block))
       end
 
-    Module.create(BadChildChainBLock, content, Macro.Env.location(__ENV__))
+    # appending PID to the server name to avoid clashes of compiled modules sitting in memory (warnings)
+    Module.create(:"BadChildChainServerInstance-#{inspect(self())}", content, Macro.Env.location(__ENV__))
+  end
+
+  @doc """
+  This injects a bad child chain block serving into the stack, and schedules a cleanup
+  Expected to be called from within test body. Can't be a fixture because of `bad_block` parameter
+  """
+  def register_and_start_server(bad_block) do
+    {:module, module, _, _} = create_module(bad_block)
+    JSONRPC2.Servers.HTTP.http(module, port: module.port())
+
+    Application.put_env(
+      :omg_jsonrpc,
+      :child_chain_url,
+      "http://localhost:" <> Integer.to_string(module.port())
+    )
+
+    on_exit(fn ->
+      JSONRPC2.Servers.HTTP.shutdown(module)
+
+      Application.put_env(:omg_jsonrpc, :child_chain_url, "http://localhost:9656")
+    end)
   end
 end
