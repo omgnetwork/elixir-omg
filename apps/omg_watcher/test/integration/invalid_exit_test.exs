@@ -21,11 +21,15 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   use Phoenix.ChannelTest
 
   alias OMG.API
+  alias OMG.API.Utxo
+  require Utxo
   alias OMG.Eth
   alias OMG.JSONRPC.Client
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.TestHelper, as: Test
   alias OMG.Watcher.Web.Channel
+  alias OMG.Watcher.Web.Serializer.Response
 
   @moduletag :integration
 
@@ -79,6 +83,31 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       })
 
     assert_push("invalid_exit", ^invalid_exit_event, 5_000)
+
+    # after the notification has been received, a challenged is composed and sent
+    challenge = get_exit_challenge(deposit_blknum, 0, 0)
+    assert {:ok, {alice.addr, @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
+
+    {:ok, txhash} =
+      OMG.Eth.RootChain.challenge_exit(
+        challenge["cutxopos"],
+        challenge["eutxoindex"],
+        challenge["txbytes"],
+        challenge["proof"],
+        challenge["sigs"],
+        alice.addr
+      )
+
+    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    assert {:ok, {API.Crypto.zero_address(), @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
+  end
+
+  defp get_exit_challenge(blknum, txindex, oindex) do
+    utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
+
+    assert %{"result" => "success", "data" => data} = Test.rest_call(:get, "utxo/#{utxo_pos}/challenge_data")
+
+    Response.decode16(data, ["txbytes", "proof", "sigs"])
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]

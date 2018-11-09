@@ -17,7 +17,6 @@ defmodule OMG.Watcher.ExitProcessor do
   # TODO: - handle finalize events. Check if a block spending finalized exit is byzantine
   # TODO: - handle finalization of invalid exits (should not remove event, turn to `is_active` and ensure it signals?)
   # TODO: - atomicity of `OMG.DB.multi_updates` (new/challenge/finalize exits, close_block, EthEventListener in gen.)
-  # TODO: - merge invalid exit (1st case) test with challenge exit test (integration tests)
   # TODO: structify a tracked exit in Exit module
 
   @moduledoc """
