@@ -165,6 +165,29 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> Core.invalid_exits(processor_state, 5)
   end
 
+  @tag fixtures: [:empty_state, :events, :contract_statuses]
+  test "can challenge exits, which are then forgotten completely", %{
+    empty_state: processor_state,
+    events: events,
+    contract_statuses: contract_statuses
+  } do
+    {processor_state, _} =
+      processor_state
+      |> Core.new_exits(events, contract_statuses)
+
+    # sanity
+    assert [_, _] = processor_state |> Core.get_exiting_utxo_positions()
+
+    assert {processor_state, [{:delete, :exit_info, @utxo_pos1}, {:delete, :exit_info, @utxo_pos2}]} =
+             processor_state
+             |> Core.challenge_exits([
+               %{utxo_pos: Utxo.Position.encode(@utxo_pos1)},
+               %{utxo_pos: Utxo.Position.encode(@utxo_pos2)}
+             ])
+
+    assert [] = processor_state |> Core.get_exiting_utxo_positions()
+  end
+
   @tag fixtures: [:empty_state, :alice, :state_empty]
   test "can work with State to determine invalid exits entered too late", %{
     empty_state: processor_state,

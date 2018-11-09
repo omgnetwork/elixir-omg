@@ -43,7 +43,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     stable_alice: alice,
     stable_alice_deposits: {deposit_blknum, _}
   } do
-    {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
+    {:ok, _, event_socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: deposit_blknum}} = Client.call(:submit, %{transaction: tx})
@@ -100,6 +100,27 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
     assert {:ok, {API.Crypto.zero_address(), @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
+
+    IntegrationTest.wait_for_current_block_fetch(@timeout)
+
+    # re subscribe fresh, so we don't get old events in the socket
+    Process.unlink(event_socket.channel_pid)
+    :ok = close(event_socket)
+    clear_mailbox()
+
+    {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
+
+    # no more pestering the user, the invalid exit is gone
+    refute_push("invalid_exit", _, 2_000)
+  end
+
+  # clears the mailbox of `self()`. Useful to purge old events that shouldn't be emitted anymore after some action
+  defp clear_mailbox do
+    receive do
+      _ -> clear_mailbox()
+    after
+      0 -> :ok
+    end
   end
 
   defp get_exit_challenge(blknum, txindex, oindex) do

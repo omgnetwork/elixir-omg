@@ -79,25 +79,35 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Finalize exits based on Ethereum events, removing from tracked state.
   """
   @spec finalize_exits(t(), list(map)) :: {t(), list, list}
-  def finalize_exits(%__MODULE__{} = state, exits) do
+  def finalize_exits(%__MODULE__{exits: exits} = state, finalizations) do
     # NOTE: We don't need to deactivate these exits, as they're forgotten forever here
     #       Also exits marked as `is_active` still finalize just the same
-    finalizing_positions =
-      exits
-      |> Enum.map(fn %{utxo_pos: utxo_pos} = _finalization_info -> Utxo.Position.decode(utxo_pos) end)
-
-    db_updates =
-      finalizing_positions
-      |> Enum.map(fn utxo_pos -> {:delete, :exit_info, utxo_pos} end)
+    finalizing_positions = get_positions_from_events(finalizations)
+    state = %{state | exits: Map.drop(exits, finalizing_positions)}
+    db_updates = delete_positions(finalizing_positions)
 
     {state, db_updates, finalizing_positions}
   end
 
   @spec challenge_exits(t(), list(map)) :: {t(), list}
-  def challenge_exits(%__MODULE__{} = state, _exits) do
+  def challenge_exits(%__MODULE__{exits: exits} = state, challenges) do
     # NOTE: we don't need to deactivate these exits, as they're forgotten forever here
-    # TODO: implement
-    {state, []}
+
+    # this is the same as finalize, but not for long! finalize will need to handle invalid finalizations!
+    challenged_positions = get_positions_from_events(challenges)
+    state = %{state | exits: Map.drop(exits, challenged_positions)}
+    db_updates = delete_positions(challenged_positions)
+    {state, db_updates}
+  end
+
+  defp get_positions_from_events(exits) do
+    exits
+    |> Enum.map(fn %{utxo_pos: utxo_pos} = _finalization_info -> Utxo.Position.decode(utxo_pos) end)
+  end
+
+  defp delete_positions(utxo_positions) do
+    utxo_positions
+    |> Enum.map(fn utxo_pos -> {:delete, :exit_info, utxo_pos} end)
   end
 
   @doc """
