@@ -47,7 +47,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.call(:submit, %{transaction: tx})
 
-    IntegrationTest.wait_until_block_getter_fetches_block(tx_blknum, @timeout)
+    IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
     %{
       "txbytes" => txbytes,
@@ -67,7 +67,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
 
-    Process.sleep(1_000)
+    IntegrationTest.wait_for_current_block_fetch(@timeout)
 
     invalid_exit_event =
       Client.encode(%Event.InvalidExit{
@@ -110,7 +110,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
-    IntegrationTest.wait_until_block_getter_fetches_block(exit_blknum, @timeout)
+    IntegrationTest.wait_for_block_fetch(exit_blknum, @timeout)
 
     %{
       "txbytes" => txbytes,
@@ -138,7 +138,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     # Here we waiting for block `bad_block_number + margin_slow_validator`
     # to give time for watcher to fetch and validate bad_block_number
-    IntegrationTest.wait_until_block_getter_fetches_block(bad_block_number + margin_slow_validator, @timeout)
+    IntegrationTest.wait_for_block_fetch(bad_block_number + margin_slow_validator, @timeout)
 
     invalid_exit_event =
       Client.encode(%Event.InvalidExit{
