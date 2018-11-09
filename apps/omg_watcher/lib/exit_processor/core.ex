@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.ExitProcessor.Core do
+defmodule OMG.Watcher.ExitProcessor.Core do
   @moduledoc """
   The functional, zero-side-effect part of the exit processor. Logic should go here:
     - orchestrating the persistence of the state

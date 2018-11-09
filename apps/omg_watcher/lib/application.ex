@@ -52,7 +52,7 @@ defmodule OMG.Watcher.Application do
 
   def start_watcher_supervisor do
     # Define workers and child supervisors to be supervised
-    block_finality_margin = Application.get_env(:omg_api, :ethereum_event_block_finality_margin)
+    block_finality_margin = Application.get_env(:omg_api, :eth_deposit_finality_margin)
 
     children = [
       # Start the Ecto repository
@@ -82,7 +82,7 @@ defmodule OMG.Watcher.Application do
              }
            ]}
       },
-      {OMG.API.ExitProcessor, []},
+      {OMG.Watcher.ExitProcessor, []},
       %{
         id: :exit_processor,
         start:
@@ -93,7 +93,7 @@ defmodule OMG.Watcher.Application do
                synced_height_update_key: :last_exit_processor_eth_height,
                service_name: :exit_processor,
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,
-               process_events_callback: &OMG.API.ExitProcessor.new_exits/1,
+               process_events_callback: &OMG.Watcher.ExitProcessor.new_exits/1,
                get_last_synced_height_callback: &OMG.DB.last_exit_processor_eth_height/0
              }
            ]}
@@ -110,7 +110,7 @@ defmodule OMG.Watcher.Application do
                synced_height_update_key: :last_exit_finalizer_eth_height,
                service_name: :exit_finalizer,
                get_events_callback: &OMG.Eth.RootChain.get_finalizations/2,
-               process_events_callback: &OMG.API.ExitProcessor.finalize_exits/1,
+               process_events_callback: &OMG.Watcher.ExitProcessor.finalize_exits/1,
                get_last_synced_height_callback: &OMG.DB.last_exit_finalizer_eth_height/0
              }
            ]}
@@ -125,7 +125,7 @@ defmodule OMG.Watcher.Application do
                synced_height_update_key: :last_exit_challenger_eth_height,
                service_name: :exit_challenger,
                get_events_callback: &OMG.Eth.RootChain.get_challenges/2,
-               process_events_callback: &OMG.API.ExitProcessor.challenge_exits/1,
+               process_events_callback: &OMG.Watcher.ExitProcessor.challenge_exits/1,
                get_last_synced_height_callback: &OMG.DB.last_exit_challenger_eth_height/0
              }
            ]}

@@ -11,10 +11,10 @@ NOTE:
 
 ### The purpose of having exit validation as a separate service is to:
 1. proactively prevent user from losing money
-2. letting know user about byzantine child chain
-3. preventing of having any type of flags in State's utxos
+    - prohibit user from spending on a dangerous chain
+    - try to preempt underfunded chain situation, which would jeopardize user's funds
+2. letting know user about byzantine child chain as reasonably fast as possible
 4. (optional) protect against loss in case of invalid exit finalization
-5. prohibit user from spending on a dangerous chain
 
 ### Actions that the Watcher should prompt:
 1. If an exit is known to be invalid it should be challenged immediately
@@ -54,6 +54,9 @@ Causes to emit an `:invalid_finalization` event
     * if `false` and there is less than `sla_margin` time till finalization -> `:unchallenged_exit`
 4. Spend utxos in `State` on exit finalization or challenging
 
+### Things considered
+1. We don't want to have any type of exit-related flags in `OMG.API.State`'s utxos
+
 ### Mandatory automatic challenging with a strategy + spend prohibition
 
 The above notifications aren't enough to guarantee soundness of the chain.
@@ -63,6 +66,11 @@ By the power of defaults we should:
   - do the automatic challenging according to some randomized strategy, that will ensure that the challenges won't burn each other
   - prohibit spending if the chain is approaching invalid exit finalization
   - prohibit spending also when there are valid exits, but the `challenger` address is underfunded
+
+The ether for gas for challenges will be provided from that `challenger` account which holds a non-critical amount of eth, just for challenging - hence allowing the Watcher (or other automatic service) to operate with control over `challenger`'s private key.
+
+In terms of "pay", as opposed to "provide ether for gas", the `challenger` is reimbursed from the exit bond being slashed.
+**TODO** how to do this robustly?
 
 To ensure the above works, challenges shouldn't involve a need to place large bonds nor should be required to be done from addresses holding funds.
 

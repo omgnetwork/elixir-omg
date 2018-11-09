@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.ExitProcessor do
+defmodule OMG.Watcher.ExitProcessor do
   # TODO: - handle challenge events
   # TODO: - handle finalize events. Check if a block spending finalized exit is byzantine
   # TODO: - handle finalization of invalid exits (should not remove event, turn to `is_active` and ensure it signals?)
@@ -29,7 +29,7 @@ defmodule OMG.API.ExitProcessor do
   """
 
   alias OMG.API.EventerAPI
-  alias OMG.API.ExitProcessor.Core
+  alias OMG.Watcher.ExitProcessor.Core
   alias OMG.API.State
   alias OMG.DB
   alias OMG.Eth

@@ -50,11 +50,14 @@ defmodule OMG.API.Integration.DepositHelper do
   end
 
   defp wait_deposit_recognized(deposit_eth_height) do
-    wait_ethereum_event_block_finality_margin(deposit_eth_height)
+    wait_eth_deposit_finality_margin(deposit_eth_height)
 
     # sleeping some more, until the deposit is spendable
     geth_mining_period_ms = 1000
-    Process.sleep(geth_mining_period_ms + Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms) * 3)
+
+    Process.sleep(
+      geth_mining_period_ms + Application.fetch_env!(:omg_api, :ethereum_event_check_height_interval_ms) * 3
+    )
 
     :ok
   end
@@ -64,14 +67,17 @@ defmodule OMG.API.Integration.DepositHelper do
     eth_height
   end
 
-  defp wait_ethereum_event_block_finality_margin(eth_height) do
-    post_event_block_finality = eth_height + Application.get_env(:omg_api, :ethereum_event_block_finality_margin)
+  defp wait_eth_deposit_finality_margin(eth_height) do
+    post_event_block_finality = eth_height + Application.fetch_env!(:omg_api, :eth_deposit_finality_margin)
 
     {:ok, _} = Eth.DevHelpers.wait_for_root_chain_block(post_event_block_finality)
 
     # sleeping until the deposit is spendable
     geth_mining_period_ms = 1000
-    Process.sleep(geth_mining_period_ms + Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms) * 3)
+
+    Process.sleep(
+      geth_mining_period_ms + Application.fetch_env!(:omg_api, :ethereum_event_check_height_interval_ms) * 3
+    )
 
     :ok
   end

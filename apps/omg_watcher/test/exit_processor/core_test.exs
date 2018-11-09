@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.ExitProcessor.CoreTest do
+defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @moduledoc """
   Test of the logic of exit processor - not losing exits from persistence, emitting events, talking to API.State.Core
   """
@@ -21,7 +21,7 @@ defmodule OMG.API.ExitProcessor.CoreTest do
   use OMG.API.Fixtures
 
   alias OMG.API.Crypto
-  alias OMG.API.ExitProcessor.Core
+  alias OMG.Watcher.ExitProcessor.Core
   alias OMG.API.State
   alias OMG.API.Utxo
   alias OMG.Watcher.Eventer.Event

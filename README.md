@@ -472,7 +472,7 @@ Event informing about that particular block is invalid
 
 **unchallenged_exit**
 
-Event informing about a particular, active exit having gone too long without being challenged, jeopardizing funds in the child chain.
+Event informing about a particular, invalid, active exit having gone too long without being challenged, jeopardizing funds in the child chain.
 
 **block_withholding**
 

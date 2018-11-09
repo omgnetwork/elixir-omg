@@ -20,7 +20,7 @@ defmodule OMG.Watcher.BlockGetter do
   """
   alias OMG.API.Block
   alias OMG.API.EventerAPI
-  alias OMG.API.ExitProcessor
+  alias OMG.Watcher.ExitProcessor
   alias OMG.API.RootChainCoordinator
   alias OMG.API.State
   alias OMG.Eth

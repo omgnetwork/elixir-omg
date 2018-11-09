@@ -68,7 +68,7 @@ defmodule OMG.API.BlockQueue do
       {:ok, parent_start} = Eth.RootChain.get_root_deployment_height()
       {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
       {:ok, stored_child_top_num} = OMG.DB.child_top_block_number()
-      {:ok, finality_threshold} = Application.fetch_env(:omg_api, :ethereum_event_block_finality_margin)
+      {:ok, finality_threshold} = Application.fetch_env(:omg_api, :eth_submission_finality_margin)
 
       _ =
         Logger.info(fn ->

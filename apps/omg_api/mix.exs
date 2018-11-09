@@ -20,11 +20,11 @@ defmodule OMG.API.MixProject do
   def application do
     [
       env: [
-        ethereum_event_block_finality_margin: 10,
-        ethereum_event_get_deposits_interval_ms: 5_000,
-        ethereum_event_check_height_interval_ms: 5_000,
+        eth_deposit_finality_margin: 10,
+        eth_submission_finality_margin: 20,
+        ethereum_event_check_height_interval_ms: 1_000,
         child_block_submit_period: 1,
-        rootchain_height_sync_interval_ms: 5_000
+        rootchain_height_sync_interval_ms: 1_000
       ],
       extra_applications: [:logger],
       mod: {OMG.API.Application, []}
