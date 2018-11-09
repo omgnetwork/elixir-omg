@@ -137,20 +137,14 @@ defmodule OMG.API.State do
   Exits (spends) utxos on child chain, explicitly signals all utxos that have already been spent
   """
   def handle_call({:exit_utxos, utxos}, _from, state) do
-    {:ok, {_event_triggers, db_updates}, new_state} = Core.exit_utxos(utxos, state)
-
-    _ =
-      Logger.debug(fn ->
-        utxos =
-          db_updates
-          |> Enum.map(fn {:delete, :utxo, utxo} -> "#{inspect(utxo)}" end)
-
-        "UTXOS: " <> Enum.join(utxos, ", ")
-      end)
+    {:ok, {event_triggers, db_updates, validities}, new_state} = Core.exit_utxos(utxos, state)
 
     # GenServer.call
     :ok = DB.multi_update(db_updates)
-    {:reply, :ok, new_state}
+
+    EventerAPI.emit_events(event_triggers)
+
+    {:reply, {:ok, validities}, new_state}
   end
 
   @doc """

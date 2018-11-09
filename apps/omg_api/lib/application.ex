@@ -56,7 +56,10 @@ defmodule OMG.API.Application do
                # 0, because we want the child chain to make UTXOs spent immediately after exit starts
                block_finality_margin: 0,
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,
-               process_events_callback: &OMG.API.State.exit_utxos/1,
+               process_events_callback: fn exits ->
+                 {status, _} = OMG.API.State.exit_utxos(exits)
+                 status
+               end,
                get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
              }
            ]}

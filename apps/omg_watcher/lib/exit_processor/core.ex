@@ -76,24 +76,39 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp parse_contract_status({_contract_owner, _contract_token, _contract_amount}), do: true
 
   @doc """
-  Finalize exits based on Ethereum events, removing from tracked state.
-  """
-  @spec finalize_exits(t(), list(map)) :: {t(), list, list}
-  def finalize_exits(%__MODULE__{exits: exits} = state, finalizations) do
-    # NOTE: We don't need to deactivate these exits, as they're forgotten forever here
-    #       Also exits marked as `is_active` still finalize just the same
-    finalizing_positions = get_positions_from_events(finalizations)
-    state = %{state | exits: Map.drop(exits, finalizing_positions)}
-    db_updates = delete_positions(finalizing_positions)
+  Finalize exits based on Ethereum events, removing from tracked state if valid.
 
-    {state, db_updates, finalizing_positions}
+  Invalid finalizing exits should continue being tracked as `is_active`, to continue emitting events.
+  This includes non-`is_active` exits that finalize invalid, which are turned to be `is_active` now.
+  """
+  @spec finalize_exits(t(), validities :: {list(Utxo.Position.t()), list(Utxo.Position.t())}) :: {t(), list()}
+  def finalize_exits(%__MODULE__{exits: exits} = state, {valid_finalizations, invalid}) do
+    # handling valid finalizations
+    state = %{state | exits: Map.drop(exits, valid_finalizations)}
+    db_updates = delete_positions(valid_finalizations)
+
+    {state, activating_db_updates} = activate_on_invalid_finalization(state, invalid)
+
+    {state, db_updates ++ activating_db_updates}
+  end
+
+  defp activate_on_invalid_finalization(%__MODULE__{exits: exits} = state, invalid_finalizations) do
+    exits_to_activate =
+      exits
+      |> Map.take(invalid_finalizations)
+      |> Enum.map(fn {k, v} -> {k, Map.update!(v, :is_active, fn _ -> true end)} end)
+      |> Map.new()
+
+    activating_db_updates =
+      exits_to_activate
+      |> Enum.map(fn {utxo_pos, exit_info} -> {:put, :exit_info, utxo_pos, exit_info} end)
+
+    state = %{state | exits: Map.merge(exits, exits_to_activate)}
+    {state, activating_db_updates}
   end
 
   @spec challenge_exits(t(), list(map)) :: {t(), list}
   def challenge_exits(%__MODULE__{exits: exits} = state, challenges) do
-    # NOTE: we don't need to deactivate these exits, as they're forgotten forever here
-
-    # this is the same as finalize, but not for long! finalize will need to handle invalid finalizations!
     challenged_positions = get_positions_from_events(challenges)
     state = %{state | exits: Map.drop(exits, challenged_positions)}
     db_updates = delete_positions(challenged_positions)

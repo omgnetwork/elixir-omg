@@ -13,8 +13,6 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.ExitProcessor do
-  # TODO: - handle finalize events. Check if a block spending finalized exit is byzantine
-  # TODO: - handle finalization of invalid exits (should not remove event, turn to `is_active` and ensure it signals?)
   # TODO: - atomicity of `OMG.DB.multi_updates` (new/challenge/finalize exits, close_block, EthEventListener in gen.)
   # TODO: structify a tracked exit in Exit module
 
@@ -92,9 +90,11 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   def handle_call({:finalize_exits, exits}, _from, state) do
-    {new_state, db_updates, to_spend} = Core.finalize_exits(state, exits)
-    Enum.each(to_spend, &State.exit_utxos/1)
+    {:ok, spend_results} = State.exit_utxos(exits)
+
+    {new_state, db_updates} = Core.finalize_exits(state, spend_results)
     :ok = DB.multi_update(db_updates)
+
     {:reply, :ok, new_state}
   end
 
