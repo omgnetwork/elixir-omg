@@ -24,11 +24,11 @@ cowlib 1.0.2            -> ISC
 credo 0.9.3             -> MIT
 db_connection 1.1.3     -> Apache 2.0
 decimal 1.5.0           -> Apache 2.0
+deferred_config 0.1.1   -> MIT
 dialyxir 0.5.1          -> Apache 2.0
 ecto 2.2.10             -> Apache 2.0
 eleveldb 2.2.20         -> Apache 2.0
 erlexec 1.7.5           -> BSD
-esqlite                 -> Apache 2
 ethereumex 0.3.2        -> MIT
 evm 0.1.14              -> MIT
 ex_rlp 0.2.1            -> MIT
@@ -60,7 +60,6 @@ ranch 1.3.2             -> ISC
 poolboy 1.5.1           -> Apache 2.0
 sbroker                 -> Apache 2
 socket 0.3.13           -> WTFPL
-sqlitex                 -> MIT
 ssl_verify_fun 1.1.1    -> MIT
 unicode_util_compat 0.3.1-> Apache 2.0
 ```

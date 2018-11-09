@@ -29,10 +29,10 @@ defmodule OMG.Watcher.ExitProcessor do
   """
 
   alias OMG.API.EventerAPI
-  alias OMG.Watcher.ExitProcessor.Core
   alias OMG.API.State
   alias OMG.DB
   alias OMG.Eth
+  alias OMG.Watcher.ExitProcessor.Core
 
   use OMG.API.LoggerExt
 

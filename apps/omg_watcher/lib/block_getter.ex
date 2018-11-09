@@ -20,12 +20,12 @@ defmodule OMG.Watcher.BlockGetter do
   """
   alias OMG.API.Block
   alias OMG.API.EventerAPI
-  alias OMG.Watcher.ExitProcessor
   alias OMG.API.RootChainCoordinator
   alias OMG.API.State
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.DB
+  alias OMG.Watcher.ExitProcessor
 
   use GenServer
   use OMG.API.LoggerExt
