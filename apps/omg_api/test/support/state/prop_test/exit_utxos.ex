@@ -27,8 +27,8 @@ defmodule OMG.API.State.PropTest.ExitUtxos do
     spendable = Helper.spendable(history) |> Map.to_list()
 
     let(
-      [{position, %{owner: owner}} <- oneof(spendable)],
-      do: [[%{utxo_pos: Utxo.Position.encode(position), owner: Helper.get_addr(owner)}]]
+      [{position, %{owner: _owner}} <- oneof(spendable)],
+      do: [[position]]
     )
   end
 
@@ -36,19 +36,15 @@ defmodule OMG.API.State.PropTest.ExitUtxos do
   def pre(%{model: %{history: history}}, [exits]) do
     spendable = Helper.spendable(history)
 
-    Enum.all?(exits, fn %{utxo_pos: position, owner: owner} ->
-      owner == Map.get(spendable, Utxo.Position.decode(position), nil)
+    Enum.all?(exits, fn position ->
+      nil != Map.get(spendable, position, nil)
     end)
   end
 
   def post(_, _, {:ok, _}), do: true
 
   def next(%{model: %{history: history, balance: balance} = model} = state, [exits], _) do
-    delete_utxo =
-      exits
-      |> Enum.map(fn %{utxo_pos: position} -> Utxo.Position.decode(position) end)
-
-    %{state | model: %{model | history: [{:exit, delete_utxo} | history], balance: balance}}
+    %{state | model: %{model | history: [{:exit, exits} | history], balance: balance}}
   end
 
   defmacro __using__(_opt) do

@@ -25,6 +25,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.DB
+  alias OMG.Watcher.ExitProcessor
 
   use GenServer
   use OMG.API.LoggerExt
@@ -60,7 +61,8 @@ defmodule OMG.Watcher.BlockGetter do
 
     EventerAPI.emit_events(events)
 
-    with :ok <- continue do
+    with :chain_ok <- continue,
+         :chain_ok <- ExitProcessor.check_validity() do
       _ = Enum.map(blocks_to_persist, &DB.Transaction.update_with/1)
       state = run_block_download_task(state)
 

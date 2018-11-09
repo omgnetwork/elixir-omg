@@ -136,13 +136,14 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         alice.addr
       )
 
-    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    {:ok, %{"status" => "0x1", "blockNumber" => "0x" <> exit_eth_height}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    {exit_eth_height, ""} = Integer.parse(exit_eth_height, 16)
 
     {:ok, height} = Eth.get_ethereum_height()
 
     utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
 
-    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth}]} ==
+    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth, eth_height: exit_eth_height}]} ==
              Eth.RootChain.get_exits(0, height)
 
     IntegrationTest.wait_for_current_block_fetch(@timeout)
@@ -275,7 +276,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
-  test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit invalid_block event",
+  test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit unchallenged_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}} do
     margin_slow_validator =
       Application.get_env(:omg_watcher, :margin_slow_validator) * Application.get_env(:omg_eth, :child_block_interval)
@@ -298,9 +299,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     nonce = div(bad_block_number, child_block_interval)
     {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, nonce, 1)
 
-    {:module, BadChildChainBLock, _, _} = OMG.Watcher.Integration.BadChildChainBLock.create_module(bad_block)
-
-    JSONRPC2.Servers.HTTP.http(BadChildChainBLock, port: BadChildChainBLock.port())
+    # from now on the child chain server is broken until end of test
+    OMG.Watcher.Integration.BadChildChainServer.register_and_start_server(bad_block)
 
     {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
@@ -322,30 +322,24 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         alice.addr
       )
 
-    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
-
-    Application.put_env(
-      :omg_jsonrpc,
-      :child_chain_url,
-      "http://localhost:" <> Integer.to_string(BadChildChainBLock.port())
-    )
+    # TODO: make event payload testing approximate not exact, so that we needn't parse
+    {:ok, %{"status" => "0x1", "blockNumber" => "0x" <> eth_height}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+    {eth_height, ""} = Integer.parse(eth_height, 16)
 
     assert capture_log(fn ->
              assert_block_getter_down()
-           end) =~ inspect(:tx_execution)
+           end) =~ inspect(:unchallenged_exit)
 
-    invalid_block_event =
-      Client.encode(%Event.InvalidBlock{
-        error_type: :tx_execution,
-        hash: bad_block_hash,
-        number: bad_block_number
+    unchallenged_exit_event =
+      Client.encode(%Event.UnchallengedExit{
+        amount: 10,
+        currency: @eth,
+        owner: alice.addr,
+        utxo_pos: utxo_pos,
+        eth_height: eth_height
       })
 
-    assert_push("invalid_block", ^invalid_block_event)
-
-    JSONRPC2.Servers.HTTP.shutdown(BadChildChainBLock)
-
-    Application.put_env(:omg_jsonrpc, :child_chain_url, "http://localhost:9656")
+    assert_push("unchallenged_exit", ^unchallenged_exit_event)
   end
 
   defp assert_block_getter_down do

@@ -389,44 +389,40 @@ defmodule OMG.API.State.Core do
   end
 
   @doc """
-  Spends exited utxos
+  Spends exited utxos. Accepts both a list of utxo positions (decoded) or full exit info from an event.
+
+  It is done like this to accommodate different clients of this function as they can either be
+  bare `EthereumEventListener` or `ExitProcessor`
   """
-  @spec exit_utxos(exiting_utxos :: [exit_t], state :: t()) :: {:ok, {[exit_event], [db_update]}, new_state :: t()}
+  @spec exit_utxos(exiting_utxos :: [Utxo.Position.t()] | [exit_t()], state :: t()) ::
+          {:ok, {[exit_event], [db_update]}, new_state :: t()}
+  def exit_utxos([%{utxo_pos: _} | _] = exit_infos, %Core{} = state) do
+    exit_infos
+    |> Enum.map(&Utxo.Position.decode(&1.utxo_pos))
+    |> exit_utxos(state)
+  end
+
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
-    exiting_utxos =
-      exiting_utxos
-      |> Enum.filter(&utxo_exists?(&1, state))
+    exiting_utxos = Enum.filter(exiting_utxos, &utxo_exists?(&1, state))
 
-    event_triggers =
+    {event_triggers, db_updates} =
       exiting_utxos
-      |> Enum.map(fn %{owner: owner, utxo_pos: utxo_pos} ->
-        %{exit: %{owner: owner, utxo_pos: Utxo.Position.decode(utxo_pos)}}
+      |> Enum.map(fn Utxo.position(blknum, txindex, oindex) = utxo_pos ->
+        {%{exit: %{owner: utxos[utxo_pos].owner, utxo_pos: utxo_pos}}, {:delete, :utxo, {blknum, txindex, oindex}}}
       end)
+      |> Enum.unzip()
 
-    new_state = %{
-      state
-      | utxos:
-          Enum.reduce(exiting_utxos, utxos, fn %{utxo_pos: utxo_pos}, utxos ->
-            Map.delete(utxos, Utxo.Position.decode(utxo_pos))
-          end)
-    }
+    new_state = %{state | utxos: Map.drop(utxos, exiting_utxos)}
 
-    deletes =
-      exiting_utxos
-      |> Enum.map(fn %{utxo_pos: utxo_pos} ->
-        {:utxo_position, blknum, txindex, oindex} = Utxo.Position.decode(utxo_pos)
-        {:delete, :utxo, {blknum, txindex, oindex}}
-      end)
-
-    {:ok, {event_triggers, deletes}, new_state}
+    {:ok, {event_triggers, db_updates}, new_state}
   end
 
   @doc """
   Checks if utxo exists
   """
-  @spec utxo_exists?(exit_t, t()) :: boolean()
-  def utxo_exists?(%{utxo_pos: utxo_pos} = _exiting_utxo, %Core{utxos: utxos}) do
-    Map.has_key?(utxos, Utxo.Position.decode(utxo_pos))
+  @spec utxo_exists?(Utxo.Position.t(), t()) :: boolean()
+  def utxo_exists?(Utxo.position(_blknum, _txindex, _oindex) = utxo_pos, %Core{utxos: utxos}) do
+    Map.has_key?(utxos, utxo_pos)
   end
 
   @doc """

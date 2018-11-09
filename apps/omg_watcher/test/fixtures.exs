@@ -36,15 +36,8 @@ defmodule OMG.Watcher.Fixtures do
       config :omg_db,
         leveldb_path: "#{db_path}"
       config :logger, level: :debug
-      config :omg_eth,
-        child_block_interval: #{Application.get_env(:omg_eth, :child_block_interval)}
       config :omg_api,
-        fee_specs_file_path: "#{fee_file}",
-        rootchain_height_sync_interval_ms: #{Application.get_env(:omg_api, :rootchain_height_sync_interval_ms)},
-        ethereum_event_block_finality_margin: #{Application.get_env(:omg_api, :ethereum_event_block_finality_margin)},
-        ethereum_event_check_height_interval_ms: #{
-      Application.get_env(:omg_api, :ethereum_event_check_height_interval_ms)
-    }
+        fee_specs_file_path: "#{fee_file}"
     """)
     |> File.close()
 

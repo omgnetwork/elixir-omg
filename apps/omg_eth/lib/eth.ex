@@ -155,7 +155,7 @@ defmodule OMG.Eth do
     end
   end
 
-  def parse_event(%{"data" => data}, {signature, keys}) do
+  def parse_event(%{"data" => data} = log, {signature, keys}) do
     decoded_values =
       data
       |> from_hex()
@@ -163,10 +163,11 @@ defmodule OMG.Eth do
 
     Enum.zip(keys, decoded_values)
     |> Map.new()
+    |> common_parse_event(log)
   end
 
   def parse_events_with_indexed_fields(
-        %{"data" => data, "topics" => [_event_sig | indexed_data]},
+        %{"data" => data, "topics" => [_event_sig | indexed_data]} = log,
         {non_indexed_keys, non_indexed_key_types},
         {indexed_keys, indexed_keys_types}
       ) do
@@ -194,5 +195,13 @@ defmodule OMG.Eth do
       |> Map.new()
 
     Map.merge(non_indexed_fields, indexed_fields)
+    |> common_parse_event(log)
+  end
+
+  defp common_parse_event(result, %{"blockNumber" => "0x" <> eth_height}) do
+    {eth_height_int, ""} = Integer.parse(eth_height, 16)
+
+    result
+    |> Map.put(:eth_height, eth_height_int)
   end
 end

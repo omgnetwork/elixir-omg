@@ -507,10 +507,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   @spec validate_tx_executions(list({Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}), map) ::
-          {:ok, []} | {{:needs_stopping, :tx_execution}, list(Event.InvalidBlock.t())}
+          {:chain_ok, []} | {{:needs_stopping, :tx_execution}, list(Event.InvalidBlock.t())}
   def validate_tx_executions(executions, %{hash: hash, number: blknum}) do
     with nil <- Enum.find(executions, &(!match?({:ok, {_, _, _}}, &1))) do
-      {:ok, []}
+      {:chain_ok, []}
     else
       {:error, reason} ->
         {{:needs_stopping, {:tx_execution, reason}},
