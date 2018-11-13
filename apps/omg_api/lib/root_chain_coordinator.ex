@@ -50,7 +50,7 @@ defmodule OMG.API.RootChainCoordinator do
 
     height_sync_interval = Application.get_env(:omg_api, :rootchain_height_sync_interval_ms)
     {:ok, _} = schedule_get_ethereum_height(height_sync_interval)
-    state = Core.init(MapSet.new(allowed_services), rootchain_height)
+    state = Core.init(allowed_services, rootchain_height)
     request_sync(allowed_services)
     {:ok, state}
   end

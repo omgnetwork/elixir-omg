@@ -29,7 +29,7 @@ defmodule OMG.API.Application do
       {OMG.API.BlockQueue.Server, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeChecker, []},
-      {OMG.API.RootChainCoordinator, MapSet.new([:depositor, :exiter])},
+      {OMG.API.RootChainCoordinator, [:depositor, :exiter]},
       %{
         id: :depositor,
         start:

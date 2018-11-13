@@ -65,7 +65,7 @@ defmodule OMG.Watcher.Application do
       {OMG.Watcher.Eventer, []},
       {
         OMG.API.RootChainCoordinator,
-        MapSet.new([:depositor, :exit_processor, :exit_finalizer, :exit_challenger, OMG.Watcher.BlockGetter])
+        [:depositor, :exit_processor, :exit_finalizer, :exit_challenger, OMG.Watcher.BlockGetter]
       },
       %{
         id: :depositor,
