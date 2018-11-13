@@ -47,11 +47,8 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
   url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_dev"}
 
-# TODO: these two are here to ensure swifter sync in `:dev` env, and are geared towards a 1-sec root chain block
-#       interval. They are taken to be equal to the `:test` env.
-#       Rethink properly the semantics of root chain coordinator
 config :omg_watcher,
-  block_getter_height_sync_interval_ms: 1_000
+  block_getter_height_sync_interval_ms: 500
 
 config :omg_api,
   rootchain_height_sync_interval_ms: 1_000

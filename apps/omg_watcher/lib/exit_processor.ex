@@ -14,7 +14,6 @@
 
 defmodule OMG.Watcher.ExitProcessor do
   # TODO: - atomicity of `OMG.DB.multi_updates` (new/challenge/finalize exits, close_block, EthEventListener in gen.)
-  # TODO: structify a tracked exit in Exit module
 
   @moduledoc """
   Encapsulates managing and executing the behaviors related to treating exits by the child chain and watchers

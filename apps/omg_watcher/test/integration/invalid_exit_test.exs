@@ -137,7 +137,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     margin_slow_validator =
       Application.get_env(:omg_watcher, :margin_slow_validator) * Application.get_env(:omg_eth, :child_block_interval)
 
-    # TODO remove this tx , use directly deposit_blknum to get_exit_data
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: exit_blknum}} = Client.call(:submit, %{transaction: tx})
 

@@ -98,8 +98,6 @@ defmodule OMG.Watcher.Application do
              }
            ]}
       },
-      # TODO: wouldn't we prefer to just have one pipe of exit-related events, all streamed to the same entrypoint
-      # in :exit_processor
       %{
         id: :exit_finalizer,
         start:
