@@ -60,7 +60,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       "utxo_pos" => utxo_pos
     } = IntegrationTest.get_exit_data(deposit_blknum, 0, 0)
 
-    {:ok, txhash} =
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
@@ -68,10 +68,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         sigs,
         alice.addr
       )
-
-    # TODO: make event payload testing approximate not exact, so that we needn't parse
-    {:ok, %{"status" => "0x1", "blockNumber" => "0x" <> eth_height}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
-    {eth_height, ""} = Integer.parse(eth_height, 16)
+      |> Eth.DevHelpers.transact_sync!()
 
     invalid_exit_event =
       Client.encode(%Event.InvalidExit{
@@ -88,7 +85,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     challenge = get_exit_challenge(deposit_blknum, 0, 0)
     assert {:ok, {alice.addr, @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
 
-    {:ok, txhash} =
+    {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.challenge_exit(
         challenge["cutxopos"],
         challenge["eutxoindex"],
@@ -97,8 +94,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         challenge["sigs"],
         alice.addr
       )
+      |> Eth.DevHelpers.transact_sync!()
 
-    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
     assert {:ok, {API.Crypto.zero_address(), @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
 
     IntegrationTest.wait_for_current_block_fetch(@timeout)
@@ -168,7 +165,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       "utxo_pos" => utxo_pos
     } = IntegrationTest.get_exit_data(exit_blknum, 0, 0)
 
-    {:ok, txhash} =
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
@@ -176,10 +173,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         sigs,
         alice.addr
       )
-
-    # TODO: make event payload testing approximate not exact, so that we needn't parse
-    {:ok, %{"status" => "0x1", "blockNumber" => "0x" <> eth_height}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
-    {eth_height, ""} = Integer.parse(eth_height, 16)
+      |> Eth.DevHelpers.transact_sync!()
 
     # Here we waiting for block `bad_block_number + 1`
     # to give time for watcher to fetch and validate bad_block_number
