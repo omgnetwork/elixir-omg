@@ -73,9 +73,9 @@ defmodule OMG.Watcher.Application do
           {OMG.API.EthereumEventListener, :start_link,
            [
              %{
+               block_finality_margin: block_finality_margin,
                synced_height_update_key: :last_depositor_eth_height,
                service_name: :depositor,
-               block_finality_margin: block_finality_margin,
                get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
                process_events_callback: &deposit_events_callback/1,
                get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0
@@ -150,8 +150,8 @@ defmodule OMG.Watcher.Application do
   end
 
   defp deposit_events_callback(deposits) do
-    :ok = OMG.API.State.deposit(deposits)
+    {:ok, _} = result = OMG.API.State.deposit(deposits)
     _ = OMG.Watcher.DB.EthEvent.insert_deposits(deposits)
-    :ok
+    result
   end
 end

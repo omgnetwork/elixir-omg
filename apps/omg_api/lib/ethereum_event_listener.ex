@@ -87,8 +87,8 @@ defmodule OMG.API.EthereumEventListener do
     case Core.get_events_height_range_for_next_sync(core, next_sync_height) do
       {:get_events, {event_height_lower_bound, event_height_upper_bound}, core, db_updates} ->
         {:ok, events} = callbacks.get_ethereum_events_callback.(event_height_lower_bound, event_height_upper_bound)
-        :ok = callbacks.process_events_callback.(events)
-        :ok = OMG.DB.multi_update(db_updates)
+        {:ok, db_updates_from_callback} = callbacks.process_events_callback.(events)
+        :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
         :ok = RootChainCoordinator.check_in(next_sync_height, core.service_name)
 
         _ =

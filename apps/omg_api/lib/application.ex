@@ -36,9 +36,9 @@ defmodule OMG.API.Application do
           {OMG.API.EthereumEventListener, :start_link,
            [
              %{
+               block_finality_margin: eth_deposit_finality_margin,
                synced_height_update_key: :last_depositor_eth_height,
                service_name: :depositor,
-               block_finality_margin: eth_deposit_finality_margin,
                get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
                process_events_callback: &OMG.API.State.deposit/1,
                get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
@@ -51,14 +51,14 @@ defmodule OMG.API.Application do
           {OMG.API.EthereumEventListener, :start_link,
            [
              %{
-               synced_height_update_key: :last_exiter_eth_height,
-               service_name: :exiter,
                # 0, because we want the child chain to make UTXOs spent immediately after exit starts
                block_finality_margin: 0,
+               synced_height_update_key: :last_exiter_eth_height,
+               service_name: :exiter,
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,
                process_events_callback: fn exits ->
-                 {status, _} = OMG.API.State.exit_utxos(exits)
-                 status
+                 {status, db_updates, _validities} = OMG.API.State.exit_utxos(exits)
+                 {status, db_updates}
                end,
                get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
              }
