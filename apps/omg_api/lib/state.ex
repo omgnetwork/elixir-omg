@@ -24,6 +24,7 @@ defmodule OMG.API.State do
   alias OMG.API.FreshBlocks
   alias OMG.API.State.Core
   alias OMG.API.State.Transaction
+  alias OMG.API.Utxo
   alias OMG.DB
   alias OMG.Eth
 
@@ -63,11 +64,7 @@ defmodule OMG.API.State do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
   end
 
-  def exit_if_not_spent(utxo) do
-    GenServer.call(__MODULE__, {:exit_not_spent_utxo, utxo})
-  end
-
-  @spec utxo_exists?(Core.exit_t()) :: boolean()
+  @spec utxo_exists?(Utxo.Position.t()) :: boolean()
   def utxo_exists?(utxo) do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end
@@ -141,7 +138,7 @@ defmodule OMG.API.State do
   end
 
   @doc """
-  Exits (spends) utxos on child chain
+  Exits (spends) utxos on child chain, explicitly signals all utxos that have already been spent
   """
   def handle_call({:in_flight_exit, utxos}, _from, state) do
     IO.puts(">> #{inspect utxos, pritty: true}")
@@ -152,18 +149,20 @@ defmodule OMG.API.State do
   Exits (spends) utxos on child chain
   """
   def handle_call({:exit_utxos, utxos}, _from, state) do
-    do_exit_utxos(utxos, state)
-  end
+    {:ok, {_event_triggers, db_updates}, new_state} = Core.exit_utxos(utxos, state)
 
-  @doc """
-  Exits (spends) utxos on child chain, explicitly signals if utxo has already been spent
-  """
-  def handle_call({:exit_not_spent_utxo, utxo}, _from, state) do
-    if Core.utxo_exists?(utxo, state) do
-      do_exit_utxos([utxo], state)
-    else
-      {:reply, :utxo_does_not_exist, state}
-    end
+    _ =
+      Logger.debug(fn ->
+        utxos =
+          db_updates
+          |> Enum.map(fn {:delete, :utxo, utxo} -> "#{inspect(utxo)}" end)
+
+        "UTXOS: " <> Enum.join(utxos, ", ")
+      end)
+
+    # GenServer.call
+    :ok = DB.multi_update(db_updates)
+    {:reply, :ok, new_state}
   end
 
   @doc """
@@ -235,22 +234,5 @@ defmodule OMG.API.State do
     ###
 
     {:ok, new_state}
-  end
-
-  defp do_exit_utxos(utxos, state) do
-    {:ok, {_event_triggers, db_updates}, new_state} = Core.exit_utxos(utxos, state)
-
-    _ =
-      Logger.debug(fn ->
-        utxos =
-          db_updates
-          |> Enum.map(fn {:delete, :utxo, utxo} -> "#{inspect(utxo)}" end)
-
-        "UTXOS: " <> Enum.join(utxos, ", ")
-      end)
-
-    # GenServer.call
-    :ok = DB.multi_update(db_updates)
-    {:reply, :ok, new_state}
   end
 end

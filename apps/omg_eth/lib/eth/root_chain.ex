@@ -259,6 +259,28 @@ defmodule OMG.Eth.RootChain do
             end)}
   end
 
+  @doc """
+  Returns finalizations of exits from a range of blocks from Ethereum logs.
+  """
+  def get_finalizations(block_from, block_to, contract \\ nil) do
+    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
+    signature = "ExitFinalized(uint256)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, &decode_exit_finalized/1)}
+  end
+
+  @doc """
+  Returns challenges of exits from a range of blocks from Ethereum logs.
+  """
+  def get_challenges(block_from, block_to, contract \\ nil) do
+    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
+    signature = "ExitChallenged(uint256)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, &decode_exit_challenged/1)}
+  end
+
   defp decode_deposit(log) do
     non_indexed_keys = [:currency, :amount]
     non_indexed_key_types = [:address, {:uint, 256}]
@@ -283,6 +305,24 @@ defmodule OMG.Eth.RootChain do
       {non_indexed_keys, non_indexed_key_types},
       {indexed_keys, indexed_keys_types}
     )
+  end
+
+  defp decode_exit_finalized(log) do
+    non_indexed_keys = []
+    non_indexed_key_types = []
+    indexed_keys = [:utxo_pos]
+    indexed_keys_types = [{:uint, 256}]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  defp decode_exit_challenged(log) do
+    # faux-DRY - just leveraging that these events happen to have exactly the same fields/indexings, in current impl.
+    decode_exit_finalized(log)
   end
 
   ########################

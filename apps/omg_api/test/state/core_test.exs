@@ -516,37 +516,39 @@ defmodule OMG.API.State.CoreTest do
 
     utxo_pos_exit_1 = Utxo.position(@child_block_interval, 0, 0)
     utxo_pos_exit_2 = Utxo.position(@child_block_interval, 0, 1)
+    utxo_pos_exits = [utxo_pos_exit_1, utxo_pos_exit_2]
 
-    utxo_pos_exit_1_encode = utxo_pos_exit_1 |> Utxo.Position.encode()
-    utxo_pos_exit_2_encode = utxo_pos_exit_2 |> Utxo.Position.encode()
+    assert {:ok,
+            {[
+               %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_1}},
+               %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_2}}
+             ], [{:delete, :utxo, {@child_block_interval, 0, 0}}, {:delete, :utxo, {@child_block_interval, 0, 1}}]},
+            state_after_exit} =
+             exit_utxos_response =
+             utxo_pos_exits
+             |> Core.exit_utxos(state)
 
-    {:ok,
-     {[
-        %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_1}},
-        %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_2}}
-      ], [{:delete, :utxo, {@child_block_interval, 0, 0}}, {:delete, :utxo, {@child_block_interval, 0, 1}}]},
-     state} =
-      [
-        %{owner: alice.addr, utxo_pos: utxo_pos_exit_1_encode},
-        %{owner: alice.addr, utxo_pos: utxo_pos_exit_2_encode}
-      ]
-      |> Core.exit_utxos(state)
+    # alternative api of exit_utxos gives the same result and new state
+    assert ^exit_utxos_response =
+             utxo_pos_exits
+             |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)})
+             |> Core.exit_utxos(state)
 
-    state
+    state_after_exit
     |> (&Core.exec(
           Test.create_recovered([{@child_block_interval, 0, 0, alice}], eth(), [{alice, 7}]),
           zero_fees_map(),
           &1
         )).()
     |> fail?(:utxo_not_found)
-    |> same?(state)
+    |> same?(state_after_exit)
     |> (&Core.exec(
           Test.create_recovered([{@child_block_interval, 0, 1, alice}], eth(), [{alice, 3}]),
           zero_fees_map(),
           &1
         )).()
     |> fail?(:utxo_not_found)
-    |> same?(state)
+    |> same?(state_after_exit)
   end
 
   @tag fixtures: [:alice, :state_alice_deposit]
@@ -561,30 +563,30 @@ defmodule OMG.API.State.CoreTest do
       |> success?
 
     {:ok, {[], []}, ^state} =
-      [%{owner: alice.addr, utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}]
+      [Utxo.position(1, 0, 0)]
       |> Core.exit_utxos(state)
   end
 
   @tag fixtures: [:state_empty]
   test "does not change when exiting non-existent utxo", %{state_empty: state} do
     {:ok, {[], []}, ^state} =
-      [%{owner: "owner", utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}]
+      [Utxo.position(1, 0, 0)]
       |> Core.exit_utxos(state)
   end
 
   @tag fixtures: [:alice, :state_empty]
   test "tells if utxo exists", %{alice: alice, state_empty: state} do
-    assert not Core.utxo_exists?(%{utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}, state)
+    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state)
 
     state = state |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-    assert Core.utxo_exists?(%{utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}, state)
+    assert Core.utxo_exists?(Utxo.position(1, 0, 0), state)
 
     state =
       state
       |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 10}]), zero_fees_map(), &1)).()
       |> success?
 
-    assert not Core.utxo_exists?(%{utxo_pos: Utxo.position(1, 0, 0) |> Utxo.Position.encode()}, state)
+    assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state)
   end
 
   @tag fixtures: [:state_empty]

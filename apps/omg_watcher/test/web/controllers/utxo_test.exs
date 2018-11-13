@@ -51,20 +51,20 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
             "txbytes" => _txbytes1
           },
           %{
-            "amount" => 50,
-            "currency" => @eth_hex,
-            "blknum" => 3000,
-            "txindex" => 1,
-            "oindex" => 1,
-            "txbytes" => _txbytes3
-          },
-          %{
             "amount" => 150,
             "currency" => @eth_hex,
             "blknum" => 3000,
             "txindex" => 0,
             "oindex" => 0,
             "txbytes" => _txbytes2
+          },
+          %{
+            "amount" => 50,
+            "currency" => @eth_hex,
+            "blknum" => 3000,
+            "txindex" => 1,
+            "oindex" => 1,
+            "txbytes" => _txbytes3
           }
         ],
         "result" => "success"
@@ -245,20 +245,20 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
       "result" => "success",
       "data" => [
         %{
-          "amount" => 101,
-          "currency" => @eth_hex,
-          "blknum" => ^blknum,
-          "txindex" => 1,
-          "oindex" => 0,
-          "txbytes" => _txbytes3
-        },
-        %{
           "amount" => 100,
           "currency" => @eth_hex,
           "blknum" => ^blknum,
           "txindex" => 0,
           "oindex" => 1,
           "txbytes" => _txbytes2
+        },
+        %{
+          "amount" => 101,
+          "currency" => @eth_hex,
+          "blknum" => ^blknum,
+          "txindex" => 1,
+          "oindex" => 0,
+          "txbytes" => _txbytes3
         }
       ]
     } = get_utxos(alice.addr)

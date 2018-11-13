@@ -18,6 +18,7 @@ defmodule OMG.Watcher.Application do
   use OMG.API.LoggerExt
 
   def start(_type, _args) do
+    DeferredConfig.populate(:omg_watcher)
     start_root_supervisor()
   end
 
@@ -26,13 +27,13 @@ defmodule OMG.Watcher.Application do
 
     children = [
       %{
-        id: :watcher_supervisor,
+        id: OMG.Watcher.Supervisor,
         start: {__MODULE__, :start_watcher_supervisor, []},
         restart: :permanent,
         type: :supervisor
       },
       %{
-        id: :block_getter_supervisor,
+        id: OMG.Watcher.BlockGetter.Supervisor,
         start: {OMG.Watcher.BlockGetter.Supervisor, :start_link, []},
         restart: :permanent,
         type: :supervisor
@@ -50,63 +51,91 @@ defmodule OMG.Watcher.Application do
   end
 
   def start_watcher_supervisor do
-    import Supervisor.Spec
-
     # Define workers and child supervisors to be supervised
-    block_finality_margin = Application.get_env(:omg_api, :ethereum_event_block_finality_margin)
-    margin_slow_validator = Application.get_env(:omg_watcher, :margin_slow_validator)
+    block_finality_margin = Application.get_env(:omg_api, :eth_deposit_finality_margin)
 
     children = [
       # Start the Ecto repository
-      supervisor(OMG.Watcher.DB.Repo, []),
+      %{
+        id: OMG.Watcher.DB.Repo,
+        start: {OMG.Watcher.DB.Repo, :start_link, []},
+        type: :supervisor
+      },
       # Start workers
       {OMG.Watcher.Eventer, []},
-      {OMG.API.RootChainCoordinator,
-       MapSet.new([:depositer, :fast_validator, :slow_validator, OMG.Watcher.BlockGetter])},
-      worker(
-        OMG.API.EthereumEventListener,
-        [
-          %{
-            synced_height_update_key: :last_depositor_eth_height,
-            service_name: :depositer,
-            block_finality_margin: block_finality_margin,
-            get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
-            process_events_callback: &deposit_events_callback/1,
-            get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0
-          }
-        ],
-        id: :depositer
-      ),
-      worker(
-        OMG.API.EthereumEventListener,
-        [
-          %{
-            block_finality_margin: 0,
-            synced_height_update_key: :last_fast_exit_eth_height,
-            service_name: :fast_validator,
-            get_events_callback: &OMG.Eth.RootChain.get_exits/2,
-            process_events_callback: OMG.Watcher.ExitValidator.Validator.challenge_fastly_invalid_exits(),
-            get_last_synced_height_callback: &OMG.DB.last_fast_exit_eth_height/0
-          }
-        ],
-        id: :fast_validator
-      ),
-      worker(
-        OMG.API.EthereumEventListener,
-        [
-          %{
-            block_finality_margin: margin_slow_validator,
-            synced_height_update_key: :last_slow_exit_eth_height,
-            service_name: :slow_validator,
-            get_events_callback: &OMG.Eth.RootChain.get_exits/2,
-            process_events_callback: OMG.Watcher.ExitValidator.Validator.challenge_slowly_invalid_exits(),
-            get_last_synced_height_callback: &OMG.DB.last_slow_exit_eth_height/0
-          }
-        ],
-        id: :slow_validator
-      ),
+      {
+        OMG.API.RootChainCoordinator,
+        MapSet.new([:depositor, :exit_processor, :exit_finalizer, :exit_challenger, OMG.Watcher.BlockGetter])
+      },
+      %{
+        id: :depositor,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               synced_height_update_key: :last_depositor_eth_height,
+               service_name: :depositor,
+               block_finality_margin: block_finality_margin,
+               get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
+               process_events_callback: &deposit_events_callback/1,
+               get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0
+             }
+           ]}
+      },
+      {OMG.Watcher.ExitProcessor, []},
+      %{
+        id: :exit_processor,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               block_finality_margin: 0,
+               synced_height_update_key: :last_exit_processor_eth_height,
+               service_name: :exit_processor,
+               get_events_callback: &OMG.Eth.RootChain.get_exits/2,
+               process_events_callback: &OMG.Watcher.ExitProcessor.new_exits/1,
+               get_last_synced_height_callback: &OMG.DB.last_exit_processor_eth_height/0
+             }
+           ]}
+      },
+      # TODO: wouldn't we prefer to just have one pipe of exit-related events, all streamed to the same entrypoint
+      # in :exit_processor
+      %{
+        id: :exit_finalizer,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               block_finality_margin: 0,
+               synced_height_update_key: :last_exit_finalizer_eth_height,
+               service_name: :exit_finalizer,
+               get_events_callback: &OMG.Eth.RootChain.get_finalizations/2,
+               process_events_callback: &OMG.Watcher.ExitProcessor.finalize_exits/1,
+               get_last_synced_height_callback: &OMG.DB.last_exit_finalizer_eth_height/0
+             }
+           ]}
+      },
+      %{
+        id: :exit_challenger,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               block_finality_margin: 0,
+               synced_height_update_key: :last_exit_challenger_eth_height,
+               service_name: :exit_challenger,
+               get_events_callback: &OMG.Eth.RootChain.get_challenges/2,
+               process_events_callback: &OMG.Watcher.ExitProcessor.challenge_exits/1,
+               get_last_synced_height_callback: &OMG.DB.last_exit_challenger_eth_height/0
+             }
+           ]}
+      },
       # Start the endpoint when the application starts
-      supervisor(OMG.Watcher.Web.Endpoint, [])
+      %{
+        id: OMG.Watcher.Web.Endpoint,
+        start: {OMG.Watcher.Web.Endpoint, :start_link, []},
+        type: :supervisor
+      }
     ]
 
     _ = Logger.info(fn -> "Started application OMG.Watcher.Application" end)

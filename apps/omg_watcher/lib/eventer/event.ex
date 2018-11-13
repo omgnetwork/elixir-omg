@@ -93,13 +93,34 @@ defmodule OMG.Watcher.Eventer.Event do
 
     def name, do: "invalid_exit"
 
-    defstruct [:amount, :currency, :owner, :utxo_pos]
+    defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height]
 
     @type t :: %__MODULE__{
             amount: pos_integer(),
             currency: binary(),
             owner: binary(),
-            utxo_pos: pos_integer()
+            utxo_pos: pos_integer(),
+            eth_height: pos_integer()
+          }
+  end
+
+  defmodule UnchallengedExit do
+    @moduledoc """
+    Notifies about an invalid exit, that is dangerously approaching finalization, without being challneged
+
+    It is a prompt to exit
+    """
+
+    def name, do: "unchallenged_exit"
+
+    defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height]
+
+    @type t :: %__MODULE__{
+            amount: pos_integer(),
+            currency: binary(),
+            owner: binary(),
+            utxo_pos: pos_integer(),
+            eth_height: pos_integer()
           }
   end
 end

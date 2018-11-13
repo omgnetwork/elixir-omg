@@ -90,6 +90,7 @@ defmodule OMG.Watcher.DB.TxOutput do
       from(
         txo in __MODULE__,
         where: txo.owner == ^owner and is_nil(txo.spending_txhash) and is_nil(txo.spending_exit),
+        order_by: [asc: :blknum, asc: :txindex, asc: :oindex],
         preload: [:creating_transaction, :deposit]
       )
 

@@ -86,6 +86,17 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
+  def handle_call({:exit_infos}, _from, %__MODULE__{db_ref: db_ref} = state) do
+    result =
+      db_ref
+      |> Exleveldb.stream()
+      |> LevelDBCore.filter_exit_infos()
+      |> Enum.map(fn {_, value} -> {:ok, value} end)
+      |> LevelDBCore.decode_values(:exit_info)
+
+    {:reply, result, state}
+  end
+
   def handle_call({:block_hashes, block_numbers_to_fetch}, _from, %__MODULE__{db_ref: db_ref} = state) do
     result =
       block_numbers_to_fetch

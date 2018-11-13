@@ -462,11 +462,17 @@ Events:
 
 #### byzantine_bad_chain
 
+These should be treated as a prompt to mass exit immediately.
+
 Events:
 
 **invalid_block**
 
-Event informing about that particular block is invalid.
+Event informing about that particular block is invalid
+
+**unchallenged_exit**
+
+Event informing about a particular, invalid, active exit having gone too long without being challenged, jeopardizing funds in the child chain.
 
 **block_withholding**
 

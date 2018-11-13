@@ -20,60 +20,65 @@ defmodule OMG.API.Application do
 
   use Application
   use OMG.API.LoggerExt
-  import Supervisor.Spec
 
   def start(_type, _args) do
-    block_finality_margin = Application.get_env(:omg_api, :ethereum_event_block_finality_margin)
+    eth_deposit_finality_margin = Application.get_env(:omg_api, :eth_deposit_finality_margin)
 
     children = [
       {OMG.API.State, []},
       {OMG.API.BlockQueue.Server, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeChecker, []},
-      {OMG.API.RootChainCoordinator, MapSet.new([:depositer, :exiter, :in_flight_exit])},
-      worker(
-        OMG.API.EthereumEventListener,
-        [
-          %{
-            synced_height_update_key: :last_depositor_eth_height,
-            service_name: :depositer,
-            block_finality_margin: block_finality_margin,
-            get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
-            process_events_callback: &OMG.API.State.deposit/1,
-            get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
-          }
-        ],
-        id: :depositer
-      ),
-      worker(
-        OMG.API.EthereumEventListener,
-        [
-          %{
-            #TODO check if synced_height_update_key is appropriate
-            synced_height_update_key: :last_exiter_eth_height,
-            service_name: :in_flight_exit,
-            block_finality_margin: block_finality_margin,
-            get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
-            process_events_callback: &OMG.API.State.in_flight_exit/1,
-            get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
-          }
-        ],
-        id: :in_flight_exit
-      ),
-      worker(
-        OMG.API.EthereumEventListener,
-        [
-          %{
-            synced_height_update_key: :last_exiter_eth_height,
-            service_name: :exiter,
-            block_finality_margin: block_finality_margin,
-            get_events_callback: &OMG.Eth.RootChain.get_exits/2,
-            process_events_callback: &OMG.API.State.exit_utxos/1,
-            get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
-          }
-        ],
-        id: :exiter
-      )
+      {OMG.API.RootChainCoordinator, MapSet.new([:depositor, :exiter, :in_flight_exit])},
+      %{
+        id: :depositor,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               synced_height_update_key: :last_depositor_eth_height,
+               service_name: :depositor,
+               block_finality_margin: eth_deposit_finality_margin,
+               get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
+               process_events_callback: &OMG.API.State.deposit/1,
+               get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
+             }
+           ]}
+      },
+      %{
+        id: :in_flight_exit,
+        start: {
+          OMG.API.EthereumEventListener,
+          :start_link,
+          [
+            %{
+              # TODO check if synced_height_update_key is appropriate
+              synced_height_update_key: :last_exiter_eth_height,
+              service_name: :in_flight_exit,
+              block_finality_margin: eth_deposit_finality_margin,
+              get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
+              process_events_callback: &OMG.API.State.in_flight_exit/1,
+              get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
+            }
+          ]
+        }
+      },
+      %{
+        id: :exiter,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               synced_height_update_key: :last_exiter_eth_height,
+               service_name: :exiter,
+               # 0, because we want the child chain to make UTXOs spent immediately after exit starts
+               block_finality_margin: 0,
+               get_events_callback: &OMG.Eth.RootChain.get_exits/2,
+               process_events_callback: &OMG.API.State.exit_utxos/1,
+               get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
+             }
+           ]}
+      }
     ]
 
     _ = Logger.info(fn -> "Started application OMG.API.Application" end)

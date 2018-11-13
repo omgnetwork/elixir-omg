@@ -370,13 +370,7 @@ defmodule OMG.API.BlockQueue.Core do
           blocks: mined_submissions
       }
 
-      _ =
-        Logger.info(fn ->
-          {first, _} = mined_blocks |> hd
-          last = state.mined_child_block_num
-
-          "Block queue loaded with #{first}..#{last} already mined and #{Enum.count(fresh_blocks)} fresh blocks enqueued"
-        end)
+      _ = Logger.info(fn -> "Loaded with #{inspect(mined_blocks)} mined and #{inspect(fresh_blocks)} enqueued" end)
 
       {:ok, Enum.reduce(fresh_blocks, state, fn hash, acc -> enqueue_block(acc, hash) end)}
     end

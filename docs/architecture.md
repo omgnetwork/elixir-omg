@@ -72,22 +72,15 @@ Actually `OMG.API.EthereumEventListener` setup with `:depositor`.
 - pushes decoded and statelessly valid blocks to `OMG.API.State`
 - pushes statefully valid blocks and transactions (acknowledged by `OMG.API.State` above) to `WatcherDB`
 - emits block, transaction, consensus events to `OMG.Watcher.Eventer`
+- talks to `OMG.Watcher.ExitProcessor` to trigger exit validation and see if block getting must stop
 
-### :fast_validator
+### `OMG.Watcher.ExitProcessor`
 
-Actually `OMG.API.EthereumEventListener` setup with `:fast_validator`.
-
+- get various Ethereum events from `OMG.API.EthereumEventListener`
 - used only in Watcher
 - validates exits and pushes them to `WatcherDB`
 - emits byzantine events to `OMG.Watcher.Eventer`
-
-### :slow_validator
-
-Actually `OMG.API.EthereumEventListener` setup with `:slow_validator`.
-
-- used only in Watcher
-- validates exits and spends them to `OMG.API.State`
-- emits byzantine events to `OMG.Watcher.Eventer`
+- spends finalizing exits in `OMG.API.State`
 
 ### `Phoenix app` (not a module - section name TODO)
 

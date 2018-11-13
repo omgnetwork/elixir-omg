@@ -68,7 +68,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
 
-    IntegrationTest.wait_until_block_getter_fetches_block(block_nr, @timeout)
+    IntegrationTest.wait_for_block_fetch(block_nr, @timeout)
 
     encode_tx = Client.encode(tx)
 
@@ -113,9 +113,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash1, @timeout)
 
-    # exiting spends UTXO on child chain
-    # wait until the exit is recognized and attempt to spend the exited utxo
-    Process.sleep(4_000)
+    IntegrationTest.wait_for_current_block_fetch(@timeout)
 
     assert [token_deposit] == IntegrationTest.get_utxos(alice)
 
@@ -132,9 +130,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash2, @timeout)
 
-    # exiting spends UTXO on child chain
-    # wait until the exit is recognized and attempt to spend the exited utxo
-    Process.sleep(4_000)
+    IntegrationTest.wait_for_current_block_fetch(@timeout)
 
     assert [] == IntegrationTest.get_utxos(alice)
   end
