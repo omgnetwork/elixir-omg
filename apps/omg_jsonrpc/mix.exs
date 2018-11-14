@@ -31,7 +31,7 @@ defmodule OMG.JSONRPC.Mixfile do
     [
       {:jsonrpc2, "~> 1.1"},
       {:cowboy, "~> 1.1"},
-      {:plug, "1.5.0", override: true},
+      {:plug, "1.7.0", override: true},
       {:poison, "~> 3.1"}
     ]
   end
