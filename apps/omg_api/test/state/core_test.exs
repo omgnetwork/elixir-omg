@@ -523,7 +523,7 @@ defmodule OMG.API.State.CoreTest do
                %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_1}},
                %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_2}}
              ], [{:delete, :utxo, {@child_block_interval, 0, 0}}, {:delete, :utxo, {@child_block_interval, 0, 1}}],
-             {[_, _], []}},
+             {[^utxo_pos_exit_1, ^utxo_pos_exit_2], []}},
             state_after_exit} =
              exit_utxos_response =
              utxo_pos_exits

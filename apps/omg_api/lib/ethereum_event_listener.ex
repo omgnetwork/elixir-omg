@@ -17,6 +17,8 @@ defmodule OMG.API.EthereumEventListener do
   Periodically fetches events made on dynamically changing block range
   on parent chain and feeds them to a callback.
   For code simplicity it listens for events from blocks with a configured finality margin.
+
+  NOTE: this could and should at some point be implemented as a `@behavior` instead, to avoid using callbacks
   """
 
   alias OMG.API.EthereumEventListener.Core
@@ -27,8 +29,11 @@ defmodule OMG.API.EthereumEventListener do
           block_finality_margin: non_neg_integer,
           synced_height_update_key: atom,
           service_name: atom,
-          get_events_callback: (non_neg_integer, non_neg_integer -> {:ok, [any]}),
-          process_events_callback: ([any] -> :ok),
+          # maps a pair denoting eth height range to a list of ethereum events
+          get_events_callback: (non_neg_integer, non_neg_integer -> {:ok, [map]}),
+          # maps a list of ethereum events to a list of `db_updates` to send to `OMG.DB`
+          process_events_callback: ([any] -> {:ok, [tuple]}),
+          # returns an eth height where ethereum event processing last synced to
           get_last_synced_height_callback: (() -> {:ok, non_neg_integer})
         }
 

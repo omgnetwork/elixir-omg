@@ -171,12 +171,10 @@ defmodule OMG.API.State do
   Returns `db_updates` due and relies on the caller to do persistence
   """
   def handle_call({:close_block, eth_height}, _from, state) do
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
+    {:ok, {_block, event_triggers, db_updates}, new_state} = do_form_block(state)
 
-    {:ok, {_block, event_triggers, db_updates}, new_state} = Core.form_block(child_block_interval, state)
-
-    # enrich the event triggers with the ethereum height supplied
     event_triggers
+    # enrich the event triggers with the ethereum height supplied
     |> Enum.map(&Map.put(&1, :submited_at_ethheight, eth_height))
     |> EventerAPI.emit_events()
 
@@ -192,19 +190,14 @@ defmodule OMG.API.State do
   Does its on persistence!
   """
   def handle_cast(:form_block, state) do
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-
     _ = Logger.debug(fn -> "Forming new block..." end)
 
-    {core_form_block_duration,
-     {:ok, {%Block{number: blknum, hash: blkhash} = block, _event_triggers, db_updates}, new_state}} =
-      :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
+    {duration, {:ok, {%Block{number: blknum, hash: blkhash} = block, _events, db_updates}, new_state}} =
+      :timer.tc(fn -> do_form_block(state) end)
 
     _ =
       Logger.info(fn ->
-        "Calculations for forming block number #{inspect(blknum)} done in #{
-          inspect(round(core_form_block_duration / 1000))
-        } ms"
+        "Calculations for forming block number #{inspect(blknum)} done in #{inspect(round(duration / 1000))} ms"
       end)
 
     # persistence is required to be here, since propagating the block onwards requires restartability including the
@@ -216,5 +209,10 @@ defmodule OMG.API.State do
     BlockQueue.enqueue_block(blkhash, blknum)
 
     {:noreply, new_state}
+  end
+
+  defp do_form_block(state) do
+    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
+    Core.form_block(child_block_interval, state)
   end
 end

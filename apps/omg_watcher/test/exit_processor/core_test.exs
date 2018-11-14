@@ -35,11 +35,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @utxo_pos1 Utxo.position(1, 0, 0)
   @utxo_pos2 Utxo.Position.decode(10_000_000_001)
 
-  deffixture empty_state() do
+  deffixture processor_empty() do
     {:ok, empty} = Core.init([])
     empty
   end
 
+  # events is whatever `OMG.Eth` would feed into the `OMG.Watcher.ExitProcessor`, via `OMG.API.EthereumEventListener`
   deffixture events(alice) do
     %{addr: alice} = alice
 
@@ -49,20 +50,21 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     ]
   end
 
-  # extracts the mocked responses of the Eth.RootChain.get_exit for the exit events - all exits active (owner non-zero)
+  # extracts the mocked responses of the `Eth.RootChain.get_exit` for the exit events
+  # all exits active (owner non-zero). This is the auxiliary, second argument that's fed into `new_exits`
   deffixture contract_statuses(events) do
     events
     |> Enum.map(fn %{amount: amount, currency: currency, owner: owner} -> {owner, currency, amount} end)
   end
 
-  deffixture filled_state(empty_state, events, contract_statuses) do
-    {state, _} = Core.new_exits(empty_state, events, contract_statuses)
+  deffixture processor_filled(processor_empty, events, contract_statuses) do
+    {state, _} = Core.new_exits(processor_empty, events, contract_statuses)
     state
   end
 
-  @tag fixtures: [:empty_state, :alice, :events, :contract_statuses]
+  @tag fixtures: [:processor_empty, :alice, :events, :contract_statuses]
   test "persist started exits and loads persisted on init", %{
-    empty_state: empty,
+    processor_empty: empty,
     events: events,
     contract_statuses: contract_statuses
   } do
@@ -81,33 +83,33 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     {:ok, ^final_state} = Core.init(Enum.zip(keys, values))
   end
 
-  @tag fixtures: [:empty_state, :alice, :events]
-  test "new_exits sanity checks", %{empty_state: processor_state, alice: %{addr: alice}, events: [one_exit | _]} do
+  @tag fixtures: [:processor_empty, :alice, :events]
+  test "new_exits sanity checks", %{processor_empty: processor, alice: %{addr: alice}, events: [one_exit | _]} do
     {:error, :unexpected_events} =
-      processor_state
+      processor
       |> Core.new_exits([one_exit], [])
 
     {:error, :unexpected_events} =
-      processor_state
+      processor
       |> Core.new_exits([], [{alice, @eth, 10}])
   end
 
-  @tag fixtures: [:empty_state, :filled_state]
-  test "can process empty new exits or empty finalizations", %{empty_state: empty, filled_state: filled} do
+  @tag fixtures: [:processor_empty, :processor_filled]
+  test "can process empty new exits or empty finalizations", %{processor_empty: empty, processor_filled: filled} do
     assert {^empty, []} = Core.new_exits(empty, [], [])
     assert {^filled, []} = Core.new_exits(filled, [], [])
     assert {^filled, []} = Core.finalize_exits(filled, {[], []})
   end
 
-  @tag fixtures: [:empty_state, :alice, :state_empty, :events]
+  @tag fixtures: [:processor_empty, :alice, :state_empty, :events]
   test "handles invalid exit finalization - doesn't forget and activates", %{
-    empty_state: processor_state,
+    processor_empty: processor,
     alice: %{addr: alice},
     state_empty: state,
     events: events
   } do
-    {processor_state, _} =
-      processor_state
+    {processor, _} =
+      processor
       |> Core.new_exits(
         events,
         [{alice, @eth, 10}, {Crypto.zero_address(), @not_eth, 9}]
@@ -125,142 +127,142 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     # finalizing here - note that without `finalize_exits`, we would just get a single invalid exit event
     # with - we get 3, because we include the invalidly finalized on which will hurt forever
-    assert {processor_state,
+    assert {processor,
             [
               {:put, :exit_info, {@utxo_pos1, %{is_active: true}}},
               {:put, :exit_info, {@utxo_pos2, %{is_active: true}}}
-            ]} = Core.finalize_exits(processor_state, two_spend)
+            ]} = Core.finalize_exits(processor, two_spend)
 
     assert {[_event1, _event2, _event3] = event_triggers, {:needs_stopping, :unchallenged_exit}} =
-             processor_state
+             processor
              |> Core.get_exiting_utxo_positions()
              |> Enum.map(&State.Core.utxo_exists?(&1, state_after_spend))
-             |> Core.invalid_exits(processor_state, 12)
+             |> Core.invalid_exits(processor, 12)
 
     # assert Eventer likes these triggers
     assert [_, _, _] = Eventer.Core.pair_events_with_topics(event_triggers)
   end
 
-  @tag fixtures: [:empty_state, :state_alice_deposit, :events, :contract_statuses]
+  @tag fixtures: [:processor_empty, :state_alice_deposit, :events, :contract_statuses]
   test "can work with State to determine valid exits and finalize them", %{
-    empty_state: processor_state,
+    processor_empty: processor,
     state_alice_deposit: state,
     events: [one_exit | _],
     contract_statuses: [one_status | _]
   } do
-    {processor_state, _} =
-      processor_state
+    {processor, _} =
+      processor
       |> Core.new_exits([one_exit], [one_status])
 
     assert {[], :chain_ok} =
-             processor_state
+             processor
              |> Core.get_exiting_utxo_positions()
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor_state, 5)
+             |> Core.invalid_exits(processor, 5)
 
     # go into the future - old exits work the same
     assert {[], :chain_ok} =
-             processor_state
+             processor
              |> Core.get_exiting_utxo_positions()
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor_state, 105)
+             |> Core.invalid_exits(processor, 105)
 
     # exit validly finalizes and continues to not emit any events
     {:ok, {_, _, spends}, _} = State.Core.exit_utxos([%{utxo_pos: Utxo.Position.encode(@utxo_pos1)}], state)
-    assert {processor_state, [{:delete, :exit_info, @utxo_pos1}]} = Core.finalize_exits(processor_state, spends)
-    assert [] = Core.get_exiting_utxo_positions(processor_state)
+    assert {processor, [{:delete, :exit_info, @utxo_pos1}]} = Core.finalize_exits(processor, spends)
+    assert [] = Core.get_exiting_utxo_positions(processor)
   end
 
-  @tag fixtures: [:empty_state, :state_empty, :events, :contract_statuses]
+  @tag fixtures: [:processor_empty, :state_empty, :events, :contract_statuses]
   test "can work with State to determine and notify invalid exits", %{
-    empty_state: processor_state,
+    processor_empty: processor,
     state_empty: state,
     events: [one_exit | _],
     contract_statuses: [one_status | _]
   } do
     exiting_position = Utxo.Position.encode(@utxo_pos1)
 
-    {processor_state, _} =
-      processor_state
+    {processor, _} =
+      processor
       |> Core.new_exits([one_exit], [one_status])
 
     assert {[%Event.InvalidExit{utxo_pos: ^exiting_position}] = event_triggers, :chain_ok} =
-             processor_state
+             processor
              |> Core.get_exiting_utxo_positions()
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor_state, 5)
+             |> Core.invalid_exits(processor, 5)
 
     # assert Eventer likes these triggers
     assert [_] = Eventer.Core.pair_events_with_topics(event_triggers)
   end
 
-  @tag fixtures: [:empty_state, :events, :contract_statuses]
+  @tag fixtures: [:processor_empty, :events, :contract_statuses]
   test "can challenge exits, which are then forgotten completely", %{
-    empty_state: processor_state,
+    processor_empty: processor,
     events: events,
     contract_statuses: contract_statuses
   } do
-    {processor_state, _} =
-      processor_state
+    {processor, _} =
+      processor
       |> Core.new_exits(events, contract_statuses)
 
     # sanity
-    assert [_, _] = processor_state |> Core.get_exiting_utxo_positions()
+    assert [_, _] = processor |> Core.get_exiting_utxo_positions()
 
-    assert {processor_state, [{:delete, :exit_info, @utxo_pos1}, {:delete, :exit_info, @utxo_pos2}]} =
-             processor_state
+    assert {processor, [{:delete, :exit_info, @utxo_pos1}, {:delete, :exit_info, @utxo_pos2}]} =
+             processor
              |> Core.challenge_exits([
                %{utxo_pos: Utxo.Position.encode(@utxo_pos1)},
                %{utxo_pos: Utxo.Position.encode(@utxo_pos2)}
              ])
 
-    assert [] = processor_state |> Core.get_exiting_utxo_positions()
+    assert [] = processor |> Core.get_exiting_utxo_positions()
   end
 
-  @tag fixtures: [:empty_state, :state_empty, :events, :contract_statuses]
+  @tag fixtures: [:processor_empty, :state_empty, :events, :contract_statuses]
   test "can work with State to determine invalid exits entered too late", %{
-    empty_state: processor_state,
+    processor_empty: processor,
     state_empty: state,
     events: [one_exit | _],
     contract_statuses: [one_status | _]
   } do
     exiting_position = Utxo.Position.encode(@utxo_pos1)
 
-    {processor_state, _} =
-      processor_state
+    {processor, _} =
+      processor
       |> Core.new_exits([one_exit], [one_status])
 
     assert {[%Event.UnchallengedExit{utxo_pos: ^exiting_position}, %Event.InvalidExit{utxo_pos: ^exiting_position}] =
               event_triggers,
             {:needs_stopping, :unchallenged_exit}} =
-             processor_state
+             processor
              |> Core.get_exiting_utxo_positions()
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor_state, 13)
+             |> Core.invalid_exits(processor, 13)
 
     # assert Eventer likes these triggers
     assert [_, _] = Eventer.Core.pair_events_with_topics(event_triggers)
   end
 
-  @tag fixtures: [:empty_state, :state_empty, :events, :contract_statuses]
+  @tag fixtures: [:processor_empty, :state_empty, :events, :contract_statuses]
   test "invalid exits that have been witnessed already inactive don't excite events", %{
-    empty_state: processor_state,
+    processor_empty: processor,
     state_empty: state,
     events: [one_exit | _]
   } do
-    {processor_state, _} =
-      processor_state
+    {processor, _} =
+      processor
       |> Core.new_exits([one_exit], [{Crypto.zero_address(), @eth, 10}])
 
     assert {[], :chain_ok} =
-             processor_state
+             processor
              |> Core.get_exiting_utxo_positions()
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor_state, 13)
+             |> Core.invalid_exits(processor, 13)
   end
 
-  @tag fixtures: [:empty_state]
-  test "empty processor returns no exiting utxo positions", %{empty_state: empty} do
+  @tag fixtures: [:processor_empty]
+  test "empty processor returns no exiting utxo positions", %{processor_empty: empty} do
     assert [] = Core.get_exiting_utxo_positions(empty)
   end
 end
