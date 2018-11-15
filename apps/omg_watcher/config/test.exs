@@ -13,4 +13,5 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_test"}
 
 config :omg_watcher,
-  block_getter_height_sync_interval_ms: 100
+  block_getter_height_sync_interval_ms: 100,
+  eth_exit_finality_margin: 1

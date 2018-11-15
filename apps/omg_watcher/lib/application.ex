@@ -52,7 +52,8 @@ defmodule OMG.Watcher.Application do
 
   def start_watcher_supervisor do
     # Define workers and child supervisors to be supervised
-    block_finality_margin = Application.get_env(:omg_api, :eth_deposit_finality_margin)
+    deposit_finality_margin = Application.fetch_env!(:omg_api, :eth_deposit_finality_margin)
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :eth_exit_finality_margin)
 
     children = [
       # Start the Ecto repository
@@ -73,7 +74,7 @@ defmodule OMG.Watcher.Application do
           {OMG.API.EthereumEventListener, :start_link,
            [
              %{
-               block_finality_margin: block_finality_margin,
+               block_finality_margin: deposit_finality_margin,
                synced_height_update_key: :last_depositor_eth_height,
                service_name: :depositor,
                get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
@@ -89,7 +90,7 @@ defmodule OMG.Watcher.Application do
           {OMG.API.EthereumEventListener, :start_link,
            [
              %{
-               block_finality_margin: 0,
+               block_finality_margin: exit_finality_margin,
                synced_height_update_key: :last_exit_processor_eth_height,
                service_name: :exit_processor,
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,
@@ -119,7 +120,7 @@ defmodule OMG.Watcher.Application do
           {OMG.API.EthereumEventListener, :start_link,
            [
              %{
-               block_finality_margin: 0,
+               block_finality_margin: exit_finality_margin,
                synced_height_update_key: :last_exit_challenger_eth_height,
                service_name: :exit_challenger,
                get_events_callback: &OMG.Eth.RootChain.get_challenges/2,

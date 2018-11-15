@@ -24,6 +24,9 @@ defmodule OMG.Watcher.Mixfile do
   # Type `mix help compile.app` for more information.
   def application do
     [
+      env: [
+        eth_exit_finality_margin: 12
+      ],
       mod: {OMG.Watcher.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
