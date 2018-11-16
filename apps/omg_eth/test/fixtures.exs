@@ -31,7 +31,7 @@ defmodule OMG.Eth.Fixtures do
   deffixture contract(geth) do
     :ok = geth
 
-    Eth.DevHelpers.prepare_env!("../../")
+    Eth.DevHelpers.prepare_env!(root_path: "../../")
   end
 
   deffixture token(root_chain_contract_config) do
