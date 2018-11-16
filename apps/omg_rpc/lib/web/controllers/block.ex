@@ -18,17 +18,16 @@ defmodule OMG.RPC.Web.Controller.Block do
   use OMG.RPC.Web, :controller
   use PhoenixSwagger
 
+  alias OMG.API
+  alias OMG.RPC.Web.View
+
   action_fallback(OMG.RPC.Web.Controller.Fallback)
 
   def get_block(conn, params) do
-    with {blknum, ""} <- Map.get(params, "blknum") |> Integer.parse() do
-      json(conn, %{
-        version: "1",
-        success: true,
-        data: %{
-          blknum: blknum
-        }
-      })
+    with {:ok, hash_str} <- Map.fetch(params, "hash"),
+         {:ok, hash} <- Base.decode16(hash_str),
+         {:ok, block} <- API.get_block(hash) do
+      render(conn, View.Block, :block, block: block)
     end
   end
 end

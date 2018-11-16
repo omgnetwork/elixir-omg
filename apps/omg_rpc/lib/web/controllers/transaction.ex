@@ -12,30 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.RPC.Web.Router do
-  use OMG.RPC.Web, :router
+defmodule OMG.RPC.Web.Controller.Transaction do
+  # TODO: @moduledoc false
 
-  pipeline :api do
-    plug(:accepts, ["json"])
-  end
+  use OMG.RPC.Web, :controller
+  use PhoenixSwagger
 
-  scope "/api/swagger" do
-    forward("/", PhoenixSwagger.Plug.SwaggerUI, otp_app: :omg_rpc, swagger_file: "swagger.json")
-  end
+  alias OMG.API
+  alias OMG.RPC.Web.View
 
-  scope "/", OMG.RPC.Web do
-    pipe_through(:api)
+  action_fallback(OMG.RPC.Web.Controller.Fallback)
 
-    post("/block.get", Controller.Block, :get_block)
-    post("/transaction.submit", Controller.Transaction, :submit)
-  end
-
-  def swagger_info do
-    %{
-      info: %{
-        version: "1.0",
-        title: "OMG API"
-      }
-    }
+  def submit(conn, params) do
+    with {:ok, bytes_str} <- Map.fetch(params, "transaction"),
+         {:ok, txbytes} <- Base.decode16(bytes_str),
+         {:ok, details} <- API.submit(txbytes) do
+      render(conn, View.Transaction, :submit, result: details)
+    end
   end
 end

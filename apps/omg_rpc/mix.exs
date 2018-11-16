@@ -42,10 +42,9 @@ defmodule OMG.RPC.MixProject do
       {:plug_cowboy, "~> 1.0"},
       {
         :ex_unit_fixtures,
-        git: "https://github.com/omisego/ex_unit_fixtures.git",
-        branch: "feature/require_files_not_load",
-        only: [:test]
-      }
+        git: "https://github.com/omisego/ex_unit_fixtures.git", branch: "feature/require_files_not_load", only: [:test]
+      },
+      {:omg_api, in_umbrella: true}
     ]
   end
 end

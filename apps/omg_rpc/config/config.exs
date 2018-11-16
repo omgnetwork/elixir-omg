@@ -9,7 +9,8 @@ use Mix.Config
 
 # Configures the endpoint
 config :omg_rpc, OMG.RPC.Web.Endpoint,
-  url: [host: "localhost"],
+  http: [port: 9656],
+  url: [host: "localhost", port: 9656],
   secret_key_base: "TKO1TD87rXknWy9NhAGiEdv0cXm6W88/8G1E0uV0LISh998yZYNNPRZ5vfEexceb",
   render_errors: [view: OMG.RPC.Web.ErrorView, accepts: ~w(json)]
 

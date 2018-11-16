@@ -17,7 +17,7 @@ defmodule OMG.RPC.Web.Controller.FallbackTest do
   use OMG.RPC.Web.ConnCase, async: false
 
   test "invalid user input without validation is handled as unknown error" do
-    invalid_input = %{"blknum" => "not a number"}
+    invalid_input = %{"hash" => "0not-hash0"}
 
     assert %{
              "success" => false,

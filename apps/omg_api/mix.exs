@@ -47,8 +47,7 @@ defmodule OMG.API.MixProject do
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
       #
       {:omg_db, in_umbrella: true},
-      {:omg_eth, in_umbrella: true},
-      {:omg_jsonrpc, in_umbrella: true}
+      {:omg_eth, in_umbrella: true}
     ]
   end
 end
