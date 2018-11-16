@@ -94,7 +94,8 @@ defmodule OMG.Eth.DevHelpers do
   """
   @spec transact_sync!({:ok, Eth.hash()}) :: {:ok, map}
   def transact_sync!({:ok, txhash} = _transaction_submission_result) do
-    {:ok, %{"status" => "0x1"}} = WaitFor.eth_receipt(txhash, @about_4_blocks_time)
+    {:ok, %{"status" => "0x1"} = result} = WaitFor.eth_receipt(txhash, @about_4_blocks_time)
+    {:ok, result |> Map.update!("blockNumber", &int_from_hex(&1))}
   end
 
   @doc """

@@ -43,7 +43,6 @@ defmodule OMG.API.Integration.DepositHelper do
 
   defp process_deposit(%{"blockNumber" => deposit_eth_height} = receipt) do
     deposit_eth_height
-    |> decode_eth_height()
     |> wait_deposit_recognized()
 
     Eth.RootChain.deposit_blknum_from_receipt(receipt)
@@ -60,11 +59,6 @@ defmodule OMG.API.Integration.DepositHelper do
     )
 
     :ok
-  end
-
-  defp decode_eth_height("0x" <> eth_height_hex) do
-    {eth_height, ""} = Integer.parse(eth_height_hex, 16)
-    eth_height
   end
 
   defp wait_eth_deposit_finality_margin(eth_height) do

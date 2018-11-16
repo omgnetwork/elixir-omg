@@ -4,10 +4,9 @@ This document describes the exit validation (processing) done by the Watcher in 
 **NOTE** not all of this is implemented yet.
 
 NOTE:
-* `M_FV` margin of fast validator
-* `SLA` service Level Agreement
-* `sla_margin` margin of service lever agreement validation
-* `BG` BlockGetter
+* `eth_exit_finality_margin` margin exit processor (in Ethereum blocks)
+* `SLA` Service Level Agreement
+* `sla_margin` margin of service lever agreement validation (in Ethereum blocks)
 
 ### The purpose of having exit validation as a separate service is to:
 1. proactively prevent user from losing money
@@ -15,9 +14,10 @@ NOTE:
     - try to preempt underfunded chain situation, which would jeopardize user's funds
 2. letting know user about byzantine child chain as reasonably fast as possible
 4. (optional) protect against loss in case of invalid exit finalization
+5. prevent spurious prompts to mass exit, that might result from root chain reorgs, race conditions etc.
 
 ### Actions that the Watcher should prompt:
-1. If an exit is known to be invalid it should be challenged immediately
+1. If an exit is known to be invalid it should be challenged (almost) immediately
 2. If an exit is invalidated with a transaction submitted within an acceptable `sla_margin` period it must be challenged
 3. If an exit is invalidated with a transaction submitted after an acceptable `sla_margin` period it must be challenged **AND** watcher must prompt an exit **AND** watcher must not allow spending and depositing
     - because our child chain implementation will never get close to this happening, so it is a symptom of a (subtle) hack of the child chain server.
@@ -47,15 +47,20 @@ Causes to emit an `:unchallenged_exit` event.
 Causes to emit an `:invalid_finalization` event
 
 ### Solution for above cases:
-2. `ExitProcessor` periodically pulls open exit requests from root chain contract
+2. `ExitProcessor` pulls open exit requests from root chain contract logs, as soon as they're `eth_exit_finality_margin` blocks old (~12 blocks)
 3. For every open exit request run `State.utxo_exists?` method
     * if `true` -> noop,
     * if `false` -> emit `:invalid_exit` event  which leads to challenge
     * if `false` and there is less than `sla_margin` time till finalization -> `:unchallenged_exit`
 4. Spend utxos in `State` on exit finalization or challenging
+5. `ExitProcessor` recognizes exits that are (as seen at the tip of the root chain) already gone, when pulled from old  logs.
+This prevents spurious event raising during syncing.
 
 ### Things considered
 1. We don't want to have any type of exit-related flags in `OMG.API.State`'s utxos
+2. The reason to wait `eth_exit_finality_margin` is to not have a situation, where due to a reorg, an exit is tracked and then vanishes.
+If we didn't handle that it would grow old and at some point could raise prompts to mass exit (`:unchallenged_exit`).
+An alternative is to always check the current status of every exit, before taking action, but that might create excessive load on `geth` and be quite complex nevertheless
 
 ### Mandatory automatic challenging with a strategy + spend prohibition
 

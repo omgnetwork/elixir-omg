@@ -52,7 +52,8 @@ defmodule OMG.Watcher.Application do
 
   def start_watcher_supervisor do
     # Define workers and child supervisors to be supervised
-    block_finality_margin = Application.get_env(:omg_api, :eth_deposit_finality_margin)
+    deposit_finality_margin = Application.fetch_env!(:omg_api, :eth_deposit_finality_margin)
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :eth_exit_finality_margin)
 
     children = [
       # Start the Ecto repository
@@ -65,7 +66,7 @@ defmodule OMG.Watcher.Application do
       {OMG.Watcher.Eventer, []},
       {
         OMG.API.RootChainCoordinator,
-        MapSet.new([:depositor, :exit_processor, :exit_finalizer, :exit_challenger, OMG.Watcher.BlockGetter])
+        [:depositor, :exit_processor, :exit_finalizer, :exit_challenger, OMG.Watcher.BlockGetter]
       },
       %{
         id: :depositor,
@@ -73,9 +74,9 @@ defmodule OMG.Watcher.Application do
           {OMG.API.EthereumEventListener, :start_link,
            [
              %{
+               block_finality_margin: deposit_finality_margin,
                synced_height_update_key: :last_depositor_eth_height,
                service_name: :depositor,
-               block_finality_margin: block_finality_margin,
                get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
                process_events_callback: &deposit_events_callback/1,
                get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0
@@ -89,7 +90,7 @@ defmodule OMG.Watcher.Application do
           {OMG.API.EthereumEventListener, :start_link,
            [
              %{
-               block_finality_margin: 0,
+               block_finality_margin: exit_finality_margin,
                synced_height_update_key: :last_exit_processor_eth_height,
                service_name: :exit_processor,
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,
@@ -98,8 +99,6 @@ defmodule OMG.Watcher.Application do
              }
            ]}
       },
-      # TODO: wouldn't we prefer to just have one pipe of exit-related events, all streamed to the same entrypoint
-      # in :exit_processor
       %{
         id: :exit_finalizer,
         start:
@@ -121,7 +120,7 @@ defmodule OMG.Watcher.Application do
           {OMG.API.EthereumEventListener, :start_link,
            [
              %{
-               block_finality_margin: 0,
+               block_finality_margin: exit_finality_margin,
                synced_height_update_key: :last_exit_challenger_eth_height,
                service_name: :exit_challenger,
                get_events_callback: &OMG.Eth.RootChain.get_challenges/2,
@@ -152,8 +151,8 @@ defmodule OMG.Watcher.Application do
   end
 
   defp deposit_events_callback(deposits) do
-    :ok = OMG.API.State.deposit(deposits)
+    {:ok, _} = result = OMG.API.State.deposit(deposits)
     _ = OMG.Watcher.DB.EthEvent.insert_deposits(deposits)
-    :ok
+    result
   end
 end

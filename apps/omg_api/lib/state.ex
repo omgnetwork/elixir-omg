@@ -47,15 +47,18 @@ defmodule OMG.API.State do
     GenServer.cast(__MODULE__, :form_block)
   end
 
+  @spec close_block(pos_integer) :: {:ok, list(Core.db_update())}
   def close_block(eth_height) do
     GenServer.call(__MODULE__, {:close_block, eth_height})
   end
 
-  @spec deposit(deposits :: [Core.deposit()]) :: :ok
+  @spec deposit(deposits :: [Core.deposit()]) :: {:ok, list(Core.db_update())}
   def deposit(deposits) do
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
+  @spec exit_utxos(utxos :: [Core.exit_t()] | [Utxo.Position.t()]) ::
+          {:ok, list(Core.db_update()), {list(Utxo.Position.t()), list(Utxo.Position.t())}}
   def exit_utxos(utxos) do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
   end
@@ -125,32 +128,20 @@ defmodule OMG.API.State do
   def handle_call({:deposits, deposits}, _from, state) do
     {:ok, {event_triggers, db_updates}, new_state} = Core.deposit(deposits, state)
 
-    # GenServer.call
-    :ok = DB.multi_update(db_updates)
-
     EventerAPI.emit_events(event_triggers)
 
-    {:reply, :ok, new_state}
+    {:reply, {:ok, db_updates}, new_state}
   end
 
   @doc """
   Exits (spends) utxos on child chain, explicitly signals all utxos that have already been spent
   """
   def handle_call({:exit_utxos, utxos}, _from, state) do
-    {:ok, {_event_triggers, db_updates}, new_state} = Core.exit_utxos(utxos, state)
+    {:ok, {event_triggers, db_updates, validities}, new_state} = Core.exit_utxos(utxos, state)
 
-    _ =
-      Logger.debug(fn ->
-        utxos =
-          db_updates
-          |> Enum.map(fn {:delete, :utxo, utxo} -> "#{inspect(utxo)}" end)
+    EventerAPI.emit_events(event_triggers)
 
-        "UTXOS: " <> Enum.join(utxos, ", ")
-      end)
-
-    # GenServer.call
-    :ok = DB.multi_update(db_updates)
-    {:reply, :ok, new_state}
+    {:reply, {:ok, db_updates, validities}, new_state}
   end
 
   @doc """
@@ -176,11 +167,18 @@ defmodule OMG.API.State do
   Also, eth_height given is the Ethereum chain height where the block being closed got submitted, to be used with events.
 
   Someday, one might want to skip some of computations done (like calculating the root hash, which is scrapped)
+
+  Returns `db_updates` due and relies on the caller to do persistence
   """
   def handle_call({:close_block, eth_height}, _from, state) do
-    {duration, {result, new_state}} = :timer.tc(fn -> do_form_block(state, eth_height) end)
-    _ = Logger.debug(fn -> "Closing block done in #{inspect(round(duration / 1000))} ms" end)
-    {:reply, result, new_state}
+    {:ok, {_block, event_triggers, db_updates}, new_state} = do_form_block(state)
+
+    event_triggers
+    # enrich the event triggers with the ethereum height supplied
+    |> Enum.map(&Map.put(&1, :submited_at_ethheight, eth_height))
+    |> EventerAPI.emit_events()
+
+    {:reply, {:ok, db_updates}, new_state}
   end
 
   @doc """
@@ -188,39 +186,33 @@ defmodule OMG.API.State do
    - emits events to Eventer (if it is running, i.e. in Watcher).
    - pushes the new block into the respective service (if it is running, i.e. in Child Chain server)
    - enqueues the new block for submission to BlockQueue (if it is running, i.e. in Child Chain server)
+
+  Does its on persistence!
   """
   def handle_cast(:form_block, state) do
     _ = Logger.debug(fn -> "Forming new block..." end)
-    {duration, {_result, new_state}} = :timer.tc(fn -> do_form_block(state) end)
-    _ = Logger.info(fn -> "Forming block done in #{inspect(round(duration / 1000))} ms" end)
-    {:noreply, new_state}
-  end
 
-  defp do_form_block(state, eth_height \\ nil) do
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-
-    {core_form_block_duration, {:ok, {%Block{number: blknum} = block, event_triggers, db_updates}, new_state}} =
-      :timer.tc(fn -> Core.form_block(child_block_interval, state) end)
+    {duration, {:ok, {%Block{number: blknum, hash: blkhash} = block, _events, db_updates}, new_state}} =
+      :timer.tc(fn -> do_form_block(state) end)
 
     _ =
       Logger.info(fn ->
-        "Calculations for forming block number #{inspect(blknum)} done in #{
-          inspect(round(core_form_block_duration / 1000))
-        } ms"
+        "Calculations for forming block number #{inspect(blknum)} done in #{inspect(round(duration / 1000))} ms"
       end)
 
+    # persistence is required to be here, since propagating the block onwards requires restartability including the
+    # new block
     :ok = DB.multi_update(db_updates)
 
     ### casts, note these are no-ops if given processes are turned off
     FreshBlocks.push(block)
-    BlockQueue.enqueue_block(block.hash, block.number)
-    # enrich the event triggers with the ethereum height supplied
-    event_triggers
-    |> Enum.map(&Map.put(&1, :submited_at_ethheight, eth_height))
-    |> EventerAPI.emit_events()
+    BlockQueue.enqueue_block(blkhash, blknum)
 
-    ###
+    {:noreply, new_state}
+  end
 
-    {:ok, new_state}
+  defp do_form_block(state) do
+    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
+    Core.form_block(child_block_interval, state)
   end
 end

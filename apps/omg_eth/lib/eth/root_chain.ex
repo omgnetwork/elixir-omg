@@ -191,17 +191,8 @@ defmodule OMG.Eth.RootChain do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "BlockSubmitted(uint256)"
 
-    decode_block_submitted = fn %{"blockNumber" => "0x" <> hex_eth_height} = log ->
-      keys = [:blknum]
-      {eth_height, ""} = Integer.parse(hex_eth_height, 16)
-
-      log
-      |> Eth.parse_event({signature, keys})
-      |> Map.put(:eth_height, eth_height)
-    end
-
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
-         do: {:ok, Enum.map(logs, decode_block_submitted)}
+         do: {:ok, Enum.map(logs, &Eth.parse_event(&1, {signature, [:blknum]}))}
   end
 
   @doc """
@@ -312,9 +303,8 @@ defmodule OMG.Eth.RootChain do
     hex_contract = to_hex(contract)
 
     case txhash |> to_hex() |> Ethereumex.HttpClient.eth_get_transaction_receipt() do
-      {:ok, %{"contractAddress" => ^hex_contract, "blockNumber" => "0x" <> height_hex}} ->
-        {height, ""} = Integer.parse(height_hex, 16)
-        {:ok, height}
+      {:ok, %{"contractAddress" => ^hex_contract, "blockNumber" => height}} ->
+        {:ok, int_from_hex(height)}
 
       {:ok, _} ->
         {:error, :wrong_contract_address}

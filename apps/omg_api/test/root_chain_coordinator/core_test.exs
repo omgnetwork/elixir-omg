@@ -18,7 +18,7 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
   alias OMG.API.RootChainCoordinator.Core
 
   deffixture initial_state() do
-    %Core{allowed_services: MapSet.new([:exiter, :depositor]), root_chain_height: 10}
+    Core.init([:exiter, :depositor], 10)
   end
 
   @tag fixtures: [:initial_state]
@@ -63,7 +63,7 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
     exiter_pid = :c.pid(0, 2, 0)
     block_getter_pid = :c.pid(0, 3, 0)
 
-    state = %Core{allowed_services: MapSet.new([:exiter, :depositor, :block_getter]), root_chain_height: 10}
+    state = Core.init([:exiter, :depositor, :block_getter], 10)
 
     {:ok, state, []} = Core.check_in(state, exiter_pid, 1, :exiter)
     {:ok, state, []} = Core.check_in(state, depositor_pid, 1, :depositor)

@@ -66,13 +66,13 @@ defmodule OMG.Watcher.BlockGetter do
       _ = Enum.map(blocks_to_persist, &DB.Transaction.update_with/1)
       state = run_block_download_task(state)
 
-      :ok = OMG.API.State.close_block(block_rootchain_height)
+      {:ok, db_updates_from_state} = OMG.API.State.close_block(block_rootchain_height)
 
       {state, synced_height, db_updates} = Core.apply_block(state, blknum)
       _ = Logger.debug(fn -> "Synced height update: #{inspect(db_updates)}" end)
 
+      :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_state)
       :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
-      :ok = OMG.DB.multi_update(db_updates)
 
       {:noreply, state}
     else

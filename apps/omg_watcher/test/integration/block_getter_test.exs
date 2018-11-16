@@ -127,7 +127,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "sigs" => sigs
     } = IntegrationTest.get_exit_data(block_nr, 0, 0)
 
-    {:ok, txhash} =
+    {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
       Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
@@ -135,16 +135,12 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         sigs,
         alice.addr
       )
-
-    {:ok, %{"status" => "0x1", "blockNumber" => "0x" <> exit_eth_height}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
-    {exit_eth_height, ""} = Integer.parse(exit_eth_height, 16)
-
-    {:ok, height} = Eth.get_ethereum_height()
+      |> Eth.DevHelpers.transact_sync!()
 
     utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
 
     assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth, eth_height: exit_eth_height}]} ==
-             Eth.RootChain.get_exits(0, height)
+             Eth.RootChain.get_exits(0, exit_eth_height)
 
     IntegrationTest.wait_for_current_block_fetch(@timeout)
 
@@ -180,7 +176,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "utxo_pos" => utxo_pos
     } = IntegrationTest.get_exit_data(spend_token_child_block, 0, 0)
 
-    {:ok, txhash} =
+    {:ok, _} =
       Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
@@ -188,8 +184,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         sigs,
         alice.addr
       )
-
-    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
+      |> Eth.DevHelpers.transact_sync!()
   end
 
   @tag fixtures: [:watcher_sandbox, :alice]
@@ -281,7 +276,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     margin_slow_validator =
       Application.get_env(:omg_watcher, :margin_slow_validator) * Application.get_env(:omg_eth, :child_block_interval)
 
-    # TODO remove this tx , use directly deposit_blknum to get_exit_data
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: exit_blknum}} = Client.call(:submit, %{transaction: tx})
 
@@ -313,7 +307,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "utxo_pos" => utxo_pos
     } = IntegrationTest.get_exit_data(exit_blknum, 0, 0)
 
-    {:ok, txhash} =
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
@@ -321,10 +315,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         sigs,
         alice.addr
       )
-
-    # TODO: make event payload testing approximate not exact, so that we needn't parse
-    {:ok, %{"status" => "0x1", "blockNumber" => "0x" <> eth_height}} = Eth.WaitFor.eth_receipt(txhash, @timeout)
-    {eth_height, ""} = Integer.parse(eth_height, 16)
+      |> Eth.DevHelpers.transact_sync!()
 
     assert capture_log(fn ->
              assert_block_getter_down()

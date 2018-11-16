@@ -12,7 +12,8 @@ config :omg_watcher,
   margin_slow_validator: 10,
   maximum_block_withholding_time_ms: 10_000,
   block_getter_height_sync_interval_ms: 2_000,
-  maximum_number_of_unapplied_blocks: 50
+  maximum_number_of_unapplied_blocks: 50,
+  eth_exit_finality_margin: 12
 
 # Configures the endpoint
 config :omg_watcher, OMG.Watcher.Web.Endpoint,
