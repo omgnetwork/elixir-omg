@@ -323,6 +323,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
              assert_block_getter_down()
            end) =~ inspect(:unchallenged_exit)
 
+
     unchallenged_exit_event =
       Client.encode(%Event.UnchallengedExit{
         amount: 10,

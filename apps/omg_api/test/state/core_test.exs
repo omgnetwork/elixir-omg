@@ -28,7 +28,6 @@ defmodule OMG.API.State.CoreTest do
   @child_block_interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
   @child_block_2 @child_block_interval * 2
   @child_block_3 @child_block_interval * 3
-  @child_block_4 @child_block_interval * 4
 
   @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232, 237, 80, 242, 60, 209, 253, 249, 76,
                       145, 84, 237, 58, 118, 9, 162, 241, 255, 152, 31>>

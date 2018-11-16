@@ -25,25 +25,41 @@ defmodule OMG.API.State.PropTest.FormBlock do
   end
 
   def post(%{model: %{history: history}}, [], {:ok, {_, transactions, _}}) do
-    expected_transactions =
-      history
-      |> Enum.take_while(&(elem(&1, 0) != :form_block))
-      |> Enum.filter(&(elem(&1, 0) == :transaction))
-      |> Enum.map(&elem(&1, 1))
-      |> Enum.reverse()
-
+    expected_transactions = get_transactions_after_form_block(history)
     transactions = transactions |> Enum.map(fn %{tx: tx} -> Helper.format_transaction(tx) end)
+
     expected_transactions == transactions
   end
 
   def next(%{model: %{history: history} = model, eth: %{blknum: number} = eth} = state, [], _) do
-    blknum = div(number, Constants.child_block_interval()) * Constants.child_block_interval()
+    is_empty_block =
+      history
+      |> get_transactions_after_form_block()
+      |> Enum.empty?()
 
-    %{
-      state
-      | eth: %{eth | blknum: blknum + Constants.child_block_interval()},
-        model: %{model | history: [{:form_block, blknum} | history]}
-    }
+    if is_empty_block do
+      %{
+        state
+        | eth: %{eth | blknum: number},
+          model: %{model | history: [{:form_empty_block, number} | history]}
+      }
+    else
+      blknum = div(number, Constants.child_block_interval()) * Constants.child_block_interval()
+
+      %{
+        state
+        | eth: %{eth | blknum: blknum + Constants.child_block_interval()},
+          model: %{model | history: [{:form_block, blknum} | history]}
+      }
+    end
+  end
+
+  defp get_transactions_after_form_block(history) do
+    history
+    |> Enum.take_while(&(elem(&1, 0) != :form_block))
+    |> Enum.filter(&(elem(&1, 0) == :transaction))
+    |> Enum.map(&elem(&1, 1))
+    |> Enum.reverse()
   end
 
   defmacro __using__(_opt) do
