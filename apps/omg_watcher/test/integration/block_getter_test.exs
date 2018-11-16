@@ -26,7 +26,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Eth
-  alias OMG.JSONRPC.Client
+  alias OMG.JSONRPC.Client  # FIXME: http-client
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
@@ -193,7 +193,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @tag fixtures: [:watcher_sandbox, :alice]
   test "different hash send by child chain", %{alice: alice} do
     defmodule BadChildChainHash do
-      use JSONRPC2.Server.Handler
+      use JSONRPC2.Server.Handler # FIXME: http-server
 
       def empty_block, do: [] |> API.Block.hashed_txs_at(1000)
       def different_hash, do: <<0::256>>

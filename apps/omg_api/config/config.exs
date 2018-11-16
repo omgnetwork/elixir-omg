@@ -1,7 +1,6 @@
 use Mix.Config
 
 config :omg_eth, child_block_interval: 1000
-config :omg_jsonrpc, api_module: OMG.API
 
 config :omg_api,
   eth_deposit_finality_margin: 10,

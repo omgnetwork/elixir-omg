@@ -23,7 +23,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   alias OMG.API.Crypto
   alias OMG.API.Utxo
   alias OMG.Eth
-  alias OMG.JSONRPC.Client
+  alias OMG.JSONRPC.Client  # FIXME: http-client
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
 
   require Utxo

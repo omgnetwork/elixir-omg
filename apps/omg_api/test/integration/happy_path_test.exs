@@ -23,7 +23,7 @@ defmodule OMG.API.Integration.HappyPathTest do
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.Eth
-  alias OMG.JSONRPC.Client
+  alias OMG.JSONRPC.Client  # FIXME: http-client
 
   @moduletag :integration
 

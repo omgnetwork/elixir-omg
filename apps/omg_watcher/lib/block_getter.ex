@@ -34,7 +34,7 @@ defmodule OMG.Watcher.BlockGetter do
           {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
   defp download_block(requested_number) do
     {:ok, {requested_hash, block_timestamp}} = Eth.RootChain.get_child_chain(requested_number)
-    response = OMG.JSONRPC.Client.call(:get_block, %{hash: requested_hash})
+    response = OMG.JSONRPC.Client.call(:get_block, %{hash: requested_hash}) # FIXME: http-client
 
     Core.validate_download_response(
       response,
