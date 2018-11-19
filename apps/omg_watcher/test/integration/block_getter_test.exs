@@ -104,6 +104,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       Client.encode(%Event.AddressReceived{
         tx: recovered_tx,
         child_blknum: block_nr,
+        child_txindex: 0,
         child_block_hash: block_hash,
         submited_at_ethheight: event_eth_height
       })
@@ -112,6 +113,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       Client.encode(%Event.AddressSpent{
         tx: recovered_tx,
         child_blknum: block_nr,
+        child_txindex: 0,
         child_block_hash: block_hash,
         submited_at_ethheight: event_eth_height
       })

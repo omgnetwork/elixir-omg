@@ -29,11 +29,12 @@ defmodule OMG.Watcher.Eventer.Event do
 
     def name, do: "address_received"
 
-    defstruct [:tx, :child_blknum, :child_block_hash, :submited_at_ethheight]
+    defstruct [:tx, :child_blknum, :child_txindex, :child_block_hash, :submited_at_ethheight]
 
     @type t :: %__MODULE__{
             tx: Transaction.Recovered.t(),
             child_blknum: integer(),
+            child_txindex: integer(),
             child_block_hash: Block.block_hash_t(),
             submited_at_ethheight: integer()
           }
@@ -46,11 +47,12 @@ defmodule OMG.Watcher.Eventer.Event do
 
     def name, do: "address_spent"
 
-    defstruct [:tx, :child_blknum, :child_block_hash, :submited_at_ethheight]
+    defstruct [:tx, :child_blknum, :child_txindex, :child_block_hash, :submited_at_ethheight]
 
     @type t :: %__MODULE__{
             tx: Transaction.Recovered.t(),
             child_blknum: integer(),
+            child_txindex: integer(),
             child_block_hash: Block.block_hash_t(),
             submited_at_ethheight: integer()
           }

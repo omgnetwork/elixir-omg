@@ -415,7 +415,7 @@ Events:
 `address_spent` event informing about that particular address spent funds.
 
 Blocks are validated by the Watcher after a short (not-easily-configurable) finality margin. By consequence, above events will be emitted no earlier than that finality margin.
-In case extra finality is required for high-stakes transactions, the client is free to wait any number of Ethereum blocks (confirmations) on top of submitted_at_ethheight
+In case extra finality is required for high-stakes transactions, the client is free to wait any number of Ethereum blocks (confirmations) on top of `submitted_at_ethheight`.
 
 ```json
 {
@@ -423,6 +423,7 @@ In case extra finality is required for high-stakes transactions, the client is f
   "ref": null,
   "payload": {
     "child_blknum": 10000,
+    "child_txindex": 12,
     "child_block_hash": "DB32876CC6F26E96B9291682F3AF4A04C2AA2269747839F14F1A8C529CF90225",
     "submited_at_ethheight": 14,
     "tx": {

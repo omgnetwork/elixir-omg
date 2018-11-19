@@ -263,15 +263,21 @@ defmodule OMG.API.State.CoreTest do
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "spending emits event trigger", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    recover = Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}])
+    recover1 = Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}])
+    recover2 = Test.create_recovered([{1000, 0, 0, bob}], eth(), [{alice, 3}])
 
-    assert {:ok, {%Block{hash: block_hash, number: block_number}, [trigger], _}, _} =
+    assert {:ok, {%Block{hash: block_hash, number: block_number}, triggers, _}, _} =
              state
-             |> (&Core.exec(recover, zero_fees_map(), &1)).()
+             |> (&Core.exec(recover1, zero_fees_map(), &1)).()
+             |> success?
+             |> (&Core.exec(recover2, zero_fees_map(), &1)).()
              |> success?
              |> form_block_check(@child_block_interval)
 
-    assert trigger == %{tx: recover, child_blknum: block_number, child_block_hash: block_hash}
+    assert triggers == [
+             %{tx: recover1, child_blknum: block_number, child_txindex: 0, child_block_hash: block_hash},
+             %{tx: recover2, child_blknum: block_number, child_txindex: 1, child_block_hash: block_hash}
+           ]
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]

@@ -64,7 +64,12 @@ defmodule OMG.API.State.Core do
   @type exit_event :: %{
           exit: %{owner: Crypto.address_t(), blknum: pos_integer, txindex: non_neg_integer, oindex: non_neg_integer}
         }
-  @type tx_event :: %{tx: Transaction.Recovered.t(), child_blknum: pos_integer, child_block_hash: Block.block_hash_t()}
+  @type tx_event :: %{
+          tx: Transaction.Recovered.t(),
+          child_blknum: pos_integer,
+          child_txindex: pos_integer,
+          child_block_hash: Block.block_hash_t()
+        }
 
   @type db_update ::
           {:put, :utxo, {{pos_integer, non_neg_integer, non_neg_integer}, map}}
@@ -287,8 +292,9 @@ defmodule OMG.API.State.Core do
 
     event_triggers =
       txs
-      |> Enum.map(fn tx ->
-        %{tx: tx, child_blknum: block.number, child_block_hash: block.hash}
+      |> Enum.with_index()
+      |> Enum.map(fn {tx, index} ->
+        %{tx: tx, child_blknum: block.number, child_txindex: index, child_block_hash: block.hash}
       end)
 
     db_updates_new_utxos =
