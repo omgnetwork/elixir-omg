@@ -164,6 +164,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.filter(fn {utxo_exists, _} -> !utxo_exists end)
       |> Enum.map(fn {_, position} -> position end)
 
+
     # get exits which are still invalid and after the SLA margin
     late_invalid_exits =
       exits
