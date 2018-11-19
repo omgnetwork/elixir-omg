@@ -16,7 +16,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
-  use OMG.API.Integration.Fixtures
+  use OMG.RPC.Integration.Fixtures
 
   use Plug.Test
   use Phoenix.ChannelTest

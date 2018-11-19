@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Integration.Fixtures do
+defmodule OMG.RPC.Integration.Fixtures do
   use ExUnitFixtures.FixtureModule
+  use OMG.API.Fixtures
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
 

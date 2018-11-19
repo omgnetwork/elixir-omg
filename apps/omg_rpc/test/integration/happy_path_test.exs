@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Integration.HappyPathTest do
+defmodule OMG.RPC.Integration.HappyPathTest do
   @moduledoc """
   Tests a simple happy path of all the pieces working together
   """
@@ -23,7 +23,6 @@ defmodule OMG.API.Integration.HappyPathTest do
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.Eth
-  alias OMG.JSONRPC.Client  # FIXME: http-client
 
   @moduletag :integration
 
@@ -41,14 +40,14 @@ defmodule OMG.API.Integration.HappyPathTest do
     tx = raw_tx |> Transaction.sign([alice.priv, <<>>]) |> Transaction.Signed.encode()
 
     # spend the deposit
-    {:ok, %{blknum: spend_child_block}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: spend_child_block}} = submit_transaction(tx)
 
     token_raw_tx = Transaction.new([{token_deposit_blknum, 0, 0}], [{bob.addr, token, 8}, {alice.addr, token, 2}])
 
     token_tx = token_raw_tx |> Transaction.sign([alice.priv, <<>>]) |> Transaction.Signed.encode()
 
     # spend the token deposit
-    {:ok, %{blknum: _spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
+    {:ok, %{blknum: _spend_token_child_block}} = submit_transaction(token_tx)
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
     post_spend_child_block = spend_child_block + child_block_interval
@@ -56,7 +55,7 @@ defmodule OMG.API.Integration.HappyPathTest do
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(spend_child_block)
-    {:ok, %{transactions: transactions}} = Client.call(:get_block, %{hash: block_hash})
+    {:ok, %{transactions: transactions}} = get_block(block_hash)
     eth_tx = hd(transactions)
     {:ok, %{raw_tx: raw_tx_decoded}} = Transaction.Signed.decode(eth_tx)
     assert raw_tx_decoded == raw_tx
@@ -74,7 +73,7 @@ defmodule OMG.API.Integration.HappyPathTest do
     tx2 = raw_tx2 |> Transaction.sign([bob.priv, alice.priv]) |> Transaction.Signed.encode()
 
     # spend the output of the first eth_tx
-    {:ok, %{blknum: spend_child_block2}} = Client.call(:submit, %{transaction: tx2})
+    {:ok, %{blknum: spend_child_block2}} = submit_transaction(tx2)
 
     post_spend_child_block2 = spend_child_block2 + child_block_interval
     {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block2)
@@ -82,18 +81,24 @@ defmodule OMG.API.Integration.HappyPathTest do
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash2, _}} = Eth.RootChain.get_child_chain(spend_child_block2)
 
-    {:ok, %{transactions: [transaction2]}} = Client.call(:get_block, %{hash: block_hash2})
+    {:ok, %{transactions: [transaction2]}} = get_block(block_hash2)
     {:ok, %{raw_tx: raw_tx_decoded2}} = Transaction.Signed.decode(transaction2)
     assert raw_tx2 == raw_tx_decoded2
 
     # sanity checks
-    assert {:ok, %{}} = Client.call(:get_block, %{hash: block_hash})
-    assert {:error, {_, "Internal error", "not_found"}} = Client.call(:get_block, %{hash: <<0::size(256)>>})
+    assert {:ok, %{}} = get_block(block_hash)
+    assert {:error, {_, "Internal error", "not_found"}} = get_block(<<0::size(256)>>)
 
-    assert {:error, {_, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx})
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = submit_transaction(tx)
 
-    assert {:error, {_, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = submit_transaction(tx2)
 
-    assert {:error, {_, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: token_tx})
+    assert {:error, {_, "Internal error", "utxo_not_found"}} = submit_transaction(token_tx)
   end
+
+  defp submit_transaction(tx) do
+    HTTPoison.post("", %{transaction: tx})
+  end
+  #do: {:ok, %{blknum: 0}}  #
+  defp get_block(hash), do: {:ok, %{transactions: []}}  # %{hash: block_hash2}
 end

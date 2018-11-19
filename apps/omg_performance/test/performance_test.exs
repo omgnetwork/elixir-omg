@@ -15,7 +15,7 @@
 defmodule OMG.PerformanceTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Integration.Fixtures
+  use OMG.RPC.Integration.Fixtures
 
   import ExUnit.CaptureIO
 
