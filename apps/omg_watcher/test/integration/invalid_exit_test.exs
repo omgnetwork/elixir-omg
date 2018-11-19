@@ -188,6 +188,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         eth_height: eth_height
       })
 
-    assert_push("invalid_exit", ^invalid_exit_event)
+    assert_push("invalid_exit", ^invalid_exit_event, 1500)
   end
 end
