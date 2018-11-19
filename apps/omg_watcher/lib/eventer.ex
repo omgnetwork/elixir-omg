@@ -43,7 +43,6 @@ defmodule OMG.Watcher.Eventer do
     event_triggers
     |> Core.pair_events_with_topics()
     |> Enum.each(fn {topic, event_name, event} ->
-
       :ok = Endpoint.broadcast!(topic, event_name, JSONRPC.Client.encode(event))
     end)
 
