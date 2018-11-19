@@ -42,7 +42,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   end
 
   def wait_for_current_block_fetch(timeout) do
-    {:ok, current_child_block} = Eth.RootChain.get_mined_child_block()
+    {:ok, current_child_block} = Eth.RootChain.get_current_child_block()
     wait_for_block_fetch(current_child_block, timeout)
   end
 
@@ -61,7 +61,6 @@ defmodule OMG.Watcher.Integration.TestHelper do
   defp wait_for_block(block_nr) do
     # TODO query to State used in tests instead of an event system, remove when event system is here
     fn ->
-      IO.inspect {:wait_for_block, block_nr, State.get_status() |> elem(0)}
       if State.get_status() |> elem(0) <= block_nr,
         do: :repeat,
         else: {:ok, block_nr}
