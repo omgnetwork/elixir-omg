@@ -27,9 +27,9 @@ defmodule OMG.API.BlockQueue do
   For changing the gas price it needs external signals (e.g. from a price oracle)
   """
 
+  alias OMG.API.Block
   alias OMG.API.BlockQueue.Core
   alias OMG.API.BlockQueue.Core.BlockSubmission
-  alias OMG.API.Block
 
   @type eth_height() :: non_neg_integer()
   @type hash() :: BlockSubmission.hash()
@@ -140,7 +140,7 @@ defmodule OMG.API.BlockQueue do
     end
 
     def handle_cast({:enqueue_block, %Block{transactions: [], number: block_number, hash: block_hash}}, %Core{} = state) do
-      state1 = Core.clean_for_enqueue_empty_block(state, false)
+      state1 = Core.enqueue_block(state)
 
       _ =
         Logger.info(fn ->

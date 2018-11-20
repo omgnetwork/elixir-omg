@@ -311,7 +311,7 @@ defmodule OMG.API.State.CoreTest do
     |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
     |> same?(state)
 
-    assert {:ok, _, state} = form_block_empty_check(state, @child_block_interval)
+    assert {:ok, _, _} = form_block_empty_check(state, @child_block_interval)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -339,7 +339,7 @@ defmodule OMG.API.State.CoreTest do
 
     assert {:ok, {_, [_trigger], _}, state} = form_block_check(state, @child_block_interval)
 
-    assert {:ok, _, state} = form_block_empty_check(state, @child_block_interval, @child_block_2)
+    assert {:ok, _, _} = form_block_empty_check(state, @child_block_interval, @child_block_2)
   end
 
   @tag fixtures: [:stable_alice, :stable_bob, :state_stable_alice_deposit]
@@ -391,12 +391,12 @@ defmodule OMG.API.State.CoreTest do
 
     {:ok, {_, _, _}, state} = form_block_check(state, @child_block_interval)
 
-    assert {:ok, _, state} = form_block_empty_check(state, @child_block_interval, @child_block_2)
+    assert {:ok, _, _} = form_block_empty_check(state, @child_block_interval, @child_block_2)
   end
 
   @tag fixtures: [:state_empty]
   test "no pending transactions at start (no events, empty block, no db updates)", %{state_empty: state} do
-    assert {:ok, _, state} = form_block_empty_check(state, @child_block_interval)
+    assert {:ok, _, _} = form_block_empty_check(state, @child_block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -447,7 +447,7 @@ defmodule OMG.API.State.CoreTest do
 
     assert new_utxo == {{@child_block_2, 0, 0}, %{owner: bob.addr, currency: eth(), amount: 10}}
 
-    assert {:ok, _, state} = form_block_empty_check(state, @child_block_interval, @child_block_3)
+    assert {:ok, _, _} = form_block_empty_check(state, @child_block_interval, @child_block_3)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -461,7 +461,7 @@ defmodule OMG.API.State.CoreTest do
     assert utxo_update == {:put, :utxo, {{1, 0, 0}, %{owner: alice.addr, currency: eth(), amount: 10}}}
     assert height_update == {:put, :last_deposit_child_blknum, 1}
 
-    assert {:ok, _, state} = form_block_empty_check(state, @child_block_interval)
+    assert {:ok, _, _} = form_block_empty_check(state, @child_block_interval)
   end
 
   @tag fixtures: [:alice]

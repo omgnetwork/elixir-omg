@@ -72,9 +72,10 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def init(:ok) do
     {:ok, db_exits} = DB.exit_infos()
-    sla_margin = Application.fetch_env!(:omg_watcher, :margin_slow_validator)
 
-    interval = Application.get_env(:omg_watcher, :exit_processor_validation_interval_ms)
+    sla_margin = Application.fetch_env!(:omg_watcher, :margin_slow_validator)
+    interval = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
+
     {:ok, _} = :timer.send_interval(interval, self(), :check_validity)
 
     Core.init(db_exits, sla_margin)
@@ -112,7 +113,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   def handle_info(:check_validity, state) do
-     check_validity(state)
+    _ = check_validity(state)
     {:noreply, state}
   end
 

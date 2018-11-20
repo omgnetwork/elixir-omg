@@ -79,7 +79,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         eth_height: eth_height
       })
 
-    assert_push("invalid_exit", ^invalid_exit_event, 5_000)
+    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
+    assert_push("invalid_exit", ^invalid_exit_event, exit_processor_validation)
 
     # after the notification has been received, a challenged is composed and sent
     challenge = get_exit_challenge(deposit_blknum, 0, 0)
@@ -97,8 +98,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       |> Eth.DevHelpers.transact_sync!()
 
     assert {:ok, {API.Crypto.zero_address(), @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
-
-    IntegrationTest.wait_for_current_block_fetch(@timeout)
 
     # re subscribe fresh, so we don't get old events in the socket
     Process.unlink(event_socket.channel_pid)

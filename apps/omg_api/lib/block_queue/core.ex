@@ -116,7 +116,7 @@ defmodule OMG.API.BlockQueue.Core do
     enqueue_existing_blocks(state, top_mined_hash, known_hashes)
   end
 
-  @spec enqueue_block(Core.t(), BlockQueue.hash(), BlockQueue.plasma_block_num()) ::
+  @spec enqueue_block(Core.t(), BlockQueue.hash(), BlockQueue.plasma_block_num() | Core.t()) ::
           Core.t() | {:error, :unexpected_block_number}
   def enqueue_block(state, hash, expected_block_number) do
     own_height = state.formed_child_block_num + state.child_block_interval
@@ -126,9 +126,8 @@ defmodule OMG.API.BlockQueue.Core do
     end
   end
 
-  @spec clean_for_enqueue_empty_block(Core.t(), boolean()) :: Core.t()
-  def clean_for_enqueue_empty_block(state, bool) do
-    %{state | wait_for_enqueue: bool}
+  def enqueue_block(state) do
+    %{state | wait_for_enqueue: false}
   end
 
   defp validate_block_number(block_number, own_height) when block_number == own_height, do: :ok
