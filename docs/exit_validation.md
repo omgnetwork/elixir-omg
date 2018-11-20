@@ -52,7 +52,8 @@ Causes to emit an `:invalid_finalization` event
     * if `true` -> noop,
     * if `false` -> emit `:invalid_exit` event  which leads to challenge
     * if `false` and there is less than `sla_margin` time till finalization -> `:unchallenged_exit`
-4. Spend utxos in `State` on exit finalization or challenging
+4. Spend utxos in `State` on exit finalization or challenging by call of `ExitProcessor.check_validity` method 
+which is call by `BlockGetter` and with  `exit_processor_validation_interval_ms` interval  by `ExitProcessor`
 5. `ExitProcessor` recognizes exits that are (as seen at the tip of the root chain) already gone, when pulled from old  logs.
 This prevents spurious event raising during syncing.
 
