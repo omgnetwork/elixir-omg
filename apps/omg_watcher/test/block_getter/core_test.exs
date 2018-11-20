@@ -636,24 +636,97 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     start_block_number = 0
     interval = 1_000
     synced_height = 1
+    finality_margin = 5
     state_at_beginning = false
 
-    assert Core.init(start_block_number, interval, synced_height, state_at_beginning) ==
+    assert Core.init(start_block_number, interval, synced_height, finality_margin, state_at_beginning) ==
              {:error, :not_at_block_beginning}
   end
 
+  test "BlockGetter omits submissions of already applied blocks" do
+    state =
+      init_state(synced_height: 1, start_block_number: 1000)
+      |> Core.get_numbers_of_blocks_to_download(5_000)
+      |> assert_check([2_000, 3_000, 4_000])
+      |> handle_downloaded_block(%Block{number: 2_000})
+
+    {_, _, _, %Core{eth_height_done_by_blknum: map}} =
+      Core.get_blocks_to_apply(
+        state,
+        [%{blknum: 1_000, eth_height: 1}, %{blknum: 2_000, eth_height: 2}],
+        2
+      )
+
+    assert %{2_000 => 2} == map
+  end
+
+  test "an unapplied block appears in an already synced eth block (due to reorg)" do
+    state =
+      init_state(synced_height: 2, start_block_number: 1000)
+      |> Core.get_numbers_of_blocks_to_download(5_000)
+      |> assert_check([2_000, 3_000, 4_000])
+      |> handle_downloaded_block(%Block{number: 2_000})
+      |> handle_downloaded_block(%Block{number: 3_000})
+
+    {[{%Block{number: 2_000}, 1}, {%Block{number: 3_000}, 3}], 2, _, _} =
+      Core.get_blocks_to_apply(
+        state,
+        [%{blknum: 2_000, eth_height: 1}, %{blknum: 3_000, eth_height: 3}],
+        3
+      )
+  end
+
+  test "BlockGetter updates mappings of eth_height done by blknum" do
+    state =
+      init_state(synced_height: 1, start_block_number: 1000)
+      |> Core.get_numbers_of_blocks_to_download(5_000)
+      |> assert_check([2_000, 3_000, 4_000])
+      |> handle_downloaded_block(%Block{number: 3_000})
+
+    {[], 1, [], %Core{eth_height_done_by_blknum: %{2_000 => 2, 3_000 => 3}} = state} =
+      Core.get_blocks_to_apply(
+        state,
+        [%{blknum: 2_000, eth_height: 2}, %{blknum: 3_000, eth_height: 3}],
+        3
+      )
+
+    # if block moves forward it is completely valid
+    {[], 1, [], %Core{eth_height_done_by_blknum: %{2_000 => 2, 3_000 => 3}} = state} =
+      Core.get_blocks_to_apply(
+        state,
+        [%{blknum: 2_000, eth_height: 3}, %{blknum: 3_000, eth_height: 3}],
+        3
+      )
+
+    # if block moves backward we must update the mapping so we never go backward
+    {[], 1, [], %Core{eth_height_done_by_blknum: %{2_000 => 1, 3_000 => 3}}} =
+      Core.get_blocks_to_apply(
+        state,
+        [%{blknum: 2_000, eth_height: 1}, %{blknum: 3_000, eth_height: 3}],
+        3
+      )
+  end
+
   defp init_state(opts \\ []) do
-    defaults = [start_block_number: 0, interval: 1_000, synced_height: 1, state_at_beginning: true, opts: []]
+    defaults = [
+      start_block_number: 0,
+      interval: 1_000,
+      synced_height: 1,
+      finality_margin: 5,
+      state_at_beginning: true,
+      opts: []
+    ]
 
     %{
       start_block_number: start_block_number,
       interval: interval,
       synced_height: synced_height,
+      finality_margin: finality_margin,
       state_at_beginning: state_at_beginning,
       opts: opts
     } = defaults |> Keyword.merge(opts) |> Map.new()
 
-    {:ok, state} = Core.init(start_block_number, interval, synced_height, state_at_beginning, opts)
+    {:ok, state} = Core.init(start_block_number, interval, synced_height, finality_margin, state_at_beginning, opts)
     state
   end
 
