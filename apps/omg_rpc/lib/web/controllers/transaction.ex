@@ -24,10 +24,12 @@ defmodule OMG.RPC.Web.Controller.Transaction do
   action_fallback(OMG.RPC.Web.Controller.Fallback)
 
   def submit(conn, params) do
-    with {:ok, bytes_str} <- Map.fetch(params, "transaction"),
-         {:ok, txbytes} <- Base.decode16(bytes_str),
+    with {:ok, hex_str} <- Map.fetch(params, "transaction"),
+         {:ok, txbytes} <- Base.decode16(hex_str, case: :mixed),
          {:ok, details} <- API.submit(txbytes) do
       render(conn, View.Transaction, :submit, result: details)
     end
   end
+
+  # FIXME: swagger definitions
 end

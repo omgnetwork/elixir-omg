@@ -12,20 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.RPC.Web.Controller.Fallback do
-  use Phoenix.Controller
+defmodule OMG.RPC.Web.Serializers.Error do
+  @moduledoc """
+  Serializes error's code and description provided in response's data field.
+  """
 
-  alias OMG.RPC.Web.Serializers
-
-  def call(conn, :error), do: call(conn, {:error, :unknown_error})
-
-  def call(conn, {:error, reason}) do
-    data = %{
-      object: :error,
-      code: "#{action_name(conn)}:#{inspect(reason)}",
-      description: nil
+  @spec serialize(atom() | String.t(), String.t()) :: map()
+  def serialize(code, description) do
+    %{
+      code: code,
+      description: description
     }
-
-    json(conn, Serializers.Response.serialize(data, :error))
   end
 end

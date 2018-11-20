@@ -13,11 +13,10 @@
 # limitations under the License.
 
 defmodule OMG.RPC.Web.View.Block do
+  alias OMG.RPC.Web.Serializers
+
   def render("block.json", %{block: block}) do
-    %{
-      version: "1",
-      success: true,
-      data: block
-    }
+    block
+    |> Serializers.Response.serialize(:success)
   end
 end

@@ -24,10 +24,12 @@ defmodule OMG.RPC.Web.Controller.Block do
   action_fallback(OMG.RPC.Web.Controller.Fallback)
 
   def get_block(conn, params) do
-    with {:ok, hash_str} <- Map.fetch(params, "hash"),
-         {:ok, hash} <- Base.decode16(hash_str),
+    with {:ok, hex_str} <- Map.fetch(params, "hash"),
+         {:ok, hash} <- Base.decode16(hex_str, case: :mixed),
          {:ok, block} <- API.get_block(hash) do
       render(conn, View.Block, :block, block: block)
     end
   end
+
+  # FIXME: swagger definitions
 end
