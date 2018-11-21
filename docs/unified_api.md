@@ -84,22 +84,70 @@ RESPONSE 500
   }
 }
 ```
-## OmiseGo Plasma API
-An incomplete list of endpoints to demonstrate the format:
+## OmiseGO Plasma API
+There are three services involved
+
+### 1. ChildChain
+Normally a user wouldn't call the ChildChain API directly, as doing so would lose the security features of the Watcher. However there may be some low-stake accounts that don't care or are fine with some amount of trust in the ChildChain operator. These users can call e.g. `submit` on the ChildChain directly.
+
+#### API endpoints
+```
+/block.get
+/transaction.submit
+```
+
+### 2. Watcher
+The watcher first and foremost plays a critical security role in the system. The watcher monitors the child chain and root chain (Ethereum) for faulty activity.
+
+#### API endpoints
+```
+/transaction.get
+/transaction.submit
+/utxo.get_exit_data
+/utxo.get_challenge_data
+/status
+```
+
+#### Events
+```
+  new_block
+  new_transaction
+  new_deposit
+  exit_started
+  exit_challenged
+  inflight_exit_started
+  inflight_exit_challenged
+  exit_success
+  piggyback
+  invalid_block
+  unchallenged_exit
+  block_withholding
+  invalid_fee_exit
+```
+
+
+### 3. Informational/Convenience API
+This service may end up being included in the Watcher as optional functionality, but conceptually it can be seen as a separate service. It stores informational data about the chain, and provides convenience APIs to proxy to the child chain/root chain/watcher to ease integration and reduce duplicate code in libraries.
+
+#### API endpoints
 ```
 /account.get_balance
 /account.get_utxos
 /account.get_transactions
-/utxo.get_exit_data
-/utxo.get_challenge_data
+/transaction.all
 /transaction.get
 /transaction.create
-/transaction.submit
+/block.all
 /block.get
-/status
+... utxo management apis ...
+```
+
+#### Events
+```
+  transaction_confirmed
+  address_received
+  address_spent
 ```
 
 ## Architecture
-Suggestion from Robin is to have a sort of ReverseProxy app that sits in front of the other services and routes the calls to the appropriate service e.g. `/api/transaction.submit` goes to the ChildChain and `/api/account.get_utxos` goes to the Watcher.
-
-I think this can work with HTTP calls, although I'm not sure about WebSockets...
+To be decided...
