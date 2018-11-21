@@ -1,13 +1,22 @@
 
 # Watcher - Websocket API
 
-## Topic `transfer:ethereum_address`
+## Topic `transfer:{address}`
 
 ### Events `address_received` and `address_spent`
 
-address_received event informing about that particular address received funds.
+The address_received event informing about that particular address received funds.
 
-address_spent event informing about that particular address spent funds.
+The address_spent event informing about that particular address spent funds.
+
+> Both event types have the same structure.
+Key | Value | Description
+--------- | ------- | -----------
+child_blknum | Integer | 
+child_txindex | Integer | 
+child_block_hash | HEX-encoded string |
+submited_at_ethheight | integer |
+tx | object | Structure of signed transaction
 
 Blocks are validated by the Watcher after a short (not-easily-configurable) finality margin. By consequence, above events will be emitted no earlier than that finality margin. In case extra finality is required for high-stakes transactions, the client is free to wait any number of Ethereum blocks (confirmations) on top of submitted_at_ethheight.
 
@@ -51,47 +60,75 @@ Blocks are validated by the Watcher after a short (not-easily-configurable) fina
 }
 ```
 
-## Topic spends:ethereum_address
+## Topic `byzantine`
 
-### Event address_spent
+### Event `block_withholding`
 
-## Topic receives:ethereum_address
+Event informing that child chain is withholding block which hash was published on root chain.
 
-### Event address_received
-### Event byzantine_invalid_exit
+> Event type have following structure.
 
-Events:
+Key | Value | Description
+--------- | ------- | -----------
+blknum | Integer | Number of plasma block
 
-in_flight_exit
 
-piggyback
+### Event `invalid_block`
 
-exit_from_spent
-byzantine_bad_chain
+Event informing that a particular block is invalid.
 
-These should be treated as a prompt to mass exit immediately.
+> Event type have following structure.
 
-Events:
+Key | Value | Description
+--------- | ------- | -----------
+hash | HEX-encoded string | Hash of plasma block
+number | Integer | Number of plasma block
+error_type | String | 
 
-invalid_block
 
-Event informing about that particular block is invalid
+### Event `invalid_exit`
 
-unchallenged_exit
+Event informing that invalid exit has started
 
-Event informing about a particular, invalid, active exit having gone too long without being challenged, jeopardizing funds in the child chain.
+> Event type have following structure.
 
-block_withholding
+Key | Value | Description
+--------- | ------- | -----------
+amount | Integer | 
+currency | HEX-encoded string | 
+owner | HEX-encoded string | 
+utxo_pos | Integer |
+eth_height | Integer |
 
-Event informing about that the child chain is withholding block.
 
-invalid_fee_exit
-TODO block
-TODO deposit_spendable
-TODO fees
+### Event `unchallenged_exit`
 
-Events:
+Notifies about an invalid exit, that is dangerously approaching finalization, without being challneged.
+It is a prompt to exit.
 
-fees_exited
+> Event type have following structure.
+
+Key | Value | Description
+--------- | ------- | -----------
+amount | Integer | 
+currency | HEX-encoded string | 
+owner | HEX-encoded string | 
+utxo_pos | Integer |
+eth_height | Integer |
+
+
+
+## Other planned events
+in no particular order or severity
+To be clarified...
+
+ * in_flight_exit
+ * piggyback_to_input
+ * piggyback_to_output
+ * invalid_fee_exit
+ * fees_exited
+ * fees
+ * deposit_spendable
+ * block
 
 
