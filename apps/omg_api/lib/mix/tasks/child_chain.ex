@@ -5,7 +5,7 @@ defmodule Mix.Tasks.ChildChain do
 
   use Mix.Task
 
-  @shortdoc "Starts the child chain server"
+  @shortdoc "Start the child chain server. See Mix.Tasks.ChildChain"
   def run(_) do
     Mix.shell().cmd("cd apps/omg_api && iex -S mix run")
   end
