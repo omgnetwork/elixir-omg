@@ -1,5 +1,5 @@
 
-# Watcher Websocket spec
+# Watcher - Websocket API
 
 ## Topic `transfer:ethereum_address`
 

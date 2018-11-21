@@ -64,7 +64,7 @@ defmodule OMG.Watcher.Web.Controller.Account do
     summary("Responds with account balance for given account address")
 
     parameters do
-      address(:path, :string, "Address of funds owner", required: true)
+      address(:path, :string, "Address of the funds owner", required: true)
     end
 
     response(200, "OK", Schema.ref(:Balance))

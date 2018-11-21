@@ -126,7 +126,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
     summary("Gets all utxos belonging to the given address")
 
     parameters do
-      address(:query, :string, "Address of utxo owner", required: true)
+      address(:query, :string, "Address of the utxo owner", required: true)
     end
 
     response(200, "OK", Schema.ref(:Utxos))
