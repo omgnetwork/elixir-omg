@@ -19,7 +19,7 @@ The eWallet already has a well defined API, using HTTP-RPC (rather than REST).
  - [eWallet Admin API](https://ewallet.staging.omisego.io/api/admin/docs.ui)
  - [eWallet Client API](https://ewallet.staging.omisego.io/api/client/docs.ui)
 
-We can follow the same model and ensure consistency across all OmiseGo services.
+We can follow the same model and ensure consistency across all OmiseGO services.
 
 #### eWallet API characteristics
 The API is a collection of HTTP-RPC style method calls in the format
