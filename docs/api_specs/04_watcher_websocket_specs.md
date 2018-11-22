@@ -10,7 +10,7 @@ The address_received event informing about that particular address received fund
 The address_spent event informing about that particular address spent funds.
 
 > Both event types have the same structure.
-Key | Value | Description
+Key | Type | Description
 --------- | ------- | -----------
 child_blknum | Integer | 
 child_txindex | Integer | 
@@ -68,7 +68,7 @@ Event informing that child chain is withholding block which hash was published o
 
 > Event type have following structure.
 
-Key | Value | Description
+Key | Type | Description
 --------- | ------- | -----------
 blknum | Integer | Number of plasma block
 
@@ -79,7 +79,7 @@ Event informing that a particular block is invalid.
 
 > Event type have following structure.
 
-Key | Value | Description
+Key | Type | Description
 --------- | ------- | -----------
 hash | HEX-encoded string | Hash of plasma block
 number | Integer | Number of plasma block
@@ -92,7 +92,7 @@ Event informing that invalid exit has started
 
 > Event type have following structure.
 
-Key | Value | Description
+Key | Type | Description
 --------- | ------- | -----------
 amount | Integer | 
 currency | HEX-encoded string | 
@@ -108,7 +108,7 @@ It is a prompt to exit.
 
 > Event type have following structure.
 
-Key | Value | Description
+Key | Type | Description
 --------- | ------- | -----------
 amount | Integer | 
 currency | HEX-encoded string | 
@@ -122,13 +122,18 @@ eth_height | Integer |
 in no particular order or severity
 To be clarified...
 
- * in_flight_exit
+ * inflight_exit_started
+ * inflight_exit_challenged
  * piggyback_to_input
  * piggyback_to_output
  * invalid_fee_exit
  * fees_exited
  * fees
+ * new_block
+ * new_transaction
+ * new_deposit
  * deposit_spendable
- * block
-
+ * exit_started
+ * exit_challenged
+ * exit_success
 
