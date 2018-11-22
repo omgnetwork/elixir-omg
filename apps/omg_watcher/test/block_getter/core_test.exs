@@ -636,24 +636,186 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     start_block_number = 0
     interval = 1_000
     synced_height = 1
+    finality_margin = 5
     state_at_beginning = false
 
-    assert Core.init(start_block_number, interval, synced_height, state_at_beginning) ==
+    assert Core.init(start_block_number, interval, synced_height, finality_margin, state_at_beginning) ==
              {:error, :not_at_block_beginning}
   end
 
+  test "BlockGetter omits submissions of already applied blocks" do
+    state =
+      init_state(synced_height: 1, start_block_number: 1000)
+      |> Core.get_numbers_of_blocks_to_download(5_000)
+      |> assert_check([2_000, 3_000, 4_000])
+      |> handle_downloaded_block(%Block{number: 2_000})
+
+    {[{%Block{number: 2_000}, 2}], 1, _, _} =
+      Core.get_blocks_to_apply(
+        state,
+        [%{blknum: 1_000, eth_height: 1}, %{blknum: 2_000, eth_height: 2}],
+        2
+      )
+  end
+
+  test "an unapplied block appears in an already synced eth block (due to reorg)" do
+    state =
+      init_state(synced_height: 2, start_block_number: 1000)
+      |> Core.get_numbers_of_blocks_to_download(5_000)
+      |> assert_check([2_000, 3_000, 4_000])
+      |> handle_downloaded_block(%Block{number: 2_000})
+      |> handle_downloaded_block(%Block{number: 3_000})
+
+    {[{%Block{number: 2_000}, 1}, {%Block{number: 3_000}, 3}], 2, _, _} =
+      Core.get_blocks_to_apply(
+        state,
+        [%{blknum: 2_000, eth_height: 1}, %{blknum: 3_000, eth_height: 3}],
+        3
+      )
+  end
+
+  test "an already applied child chain block appears in a block above synced_height (due to a reorg)" do
+    state =
+      init_state(start_block_number: 1_000)
+      |> Core.get_numbers_of_blocks_to_download(5_000)
+      |> assert_check([2_000, 3_000, 4_000])
+      |> handle_downloaded_block(%Block{number: 2_000})
+
+    {[{%Block{number: 2_000}, 3}], 1, [], _} =
+      Core.get_blocks_to_apply(
+        state,
+        [%{blknum: 1_000, eth_height: 3}, %{blknum: 2_000, eth_height: 3}],
+        3
+      )
+  end
+
+  test "apply block with eth_height lower than synced_height" do
+    state =
+      init_state(synced_height: 2)
+      |> Core.get_numbers_of_blocks_to_download(2_000)
+      |> assert_check([1_000])
+      |> handle_downloaded_block(%Block{number: 1_000})
+
+    {[{%Block{number: 1_000}, 1}], 2, [], state} =
+      Core.get_blocks_to_apply(
+        state,
+        [%{blknum: 1_000, eth_height: 1}],
+        3
+      )
+
+    {_, 2, _} = Core.apply_block(state, 1_000)
+  end
+
+  test "apply a block that moved forward" do
+    state =
+      init_state(synced_height: 1, start_block_number: 1000)
+      |> Core.get_numbers_of_blocks_to_download(5_000)
+      |> assert_check([2_000, 3_000, 4_000])
+
+    # block 2_000 first appears at height 3
+    {[], 1, [], state} =
+      Core.get_blocks_to_apply(
+        state,
+        [%{blknum: 2_000, eth_height: 3}, %{blknum: 3_000, eth_height: 4}],
+        4
+      )
+
+    # download blocks
+    state =
+      state
+      |> handle_downloaded_block(%Block{number: 2_000})
+      |> handle_downloaded_block(%Block{number: 3_000})
+
+    # block then moves forward
+    {[{%Block{number: 2_000}, 4}, {%Block{number: 3_000}, 4}], 1, [], state} =
+      Core.get_blocks_to_apply(
+        state,
+        [%{blknum: 2_000, eth_height: 4}, %{blknum: 3_000, eth_height: 4}],
+        4
+      )
+
+    # the block is applied at height it was first seen
+    {state, 3, _} = Core.apply_block(state, 2_000)
+    {_, 4, _} = Core.apply_block(state, 3_000)
+  end
+
+  test "apply a block that moved backward" do
+    state =
+      init_state(synced_height: 1, start_block_number: 1000)
+      |> Core.get_numbers_of_blocks_to_download(5_000)
+      |> assert_check([2_000, 3_000, 4_000])
+
+    # block 2_000 first appears at height 3
+    {[], 1, [], state} =
+      Core.get_blocks_to_apply(
+        state,
+        [%{blknum: 2_000, eth_height: 3}, %{blknum: 3_000, eth_height: 4}],
+        4
+      )
+
+    # download blocks
+    state =
+      state
+      |> handle_downloaded_block(%Block{number: 2_000})
+      |> handle_downloaded_block(%Block{number: 3_000})
+
+    # block then moves backward
+    {[{%Block{number: 2_000}, 2}, {%Block{number: 3_000}, 4}], 1, [], state} =
+      Core.get_blocks_to_apply(
+        state,
+        [%{blknum: 2_000, eth_height: 2}, %{blknum: 3_000, eth_height: 4}],
+        4
+      )
+
+    # the block is applied at updated height
+    {state, 2, _} = Core.apply_block(state, 2_000)
+    {_, 4, _} = Core.apply_block(state, 3_000)
+  end
+
+  test "move forward even though an applied block appears in submissions" do
+    state =
+      init_state(start_block_number: 1_000, synced_height: 2)
+      |> Core.get_numbers_of_blocks_to_download(3_000)
+      |> assert_check([2_000])
+
+    {[], 3, [_], _} =
+      Core.get_blocks_to_apply(
+        state,
+        [%{blknum: 1_000, eth_height: 1}],
+        3
+      )
+  end
+
+  test "returns valid eth range" do
+    # properly looks `finality_margin` number of blocks backward
+    state = init_state(synced_height: 100, finality_margin: 10)
+    assert {100 - 10, 101} == Core.get_eth_range_for_block_submitted_events(state, 101)
+
+    # beginning of the range is no less than 0
+    state = init_state(synced_height: 0, finality_margin: 10)
+    assert {0, 101} == Core.get_eth_range_for_block_submitted_events(state, 101)
+  end
+
   defp init_state(opts \\ []) do
-    defaults = [start_block_number: 0, interval: 1_000, synced_height: 1, state_at_beginning: true, opts: []]
+    defaults = [
+      start_block_number: 0,
+      interval: 1_000,
+      synced_height: 1,
+      finality_margin: 5,
+      state_at_beginning: true,
+      opts: []
+    ]
 
     %{
       start_block_number: start_block_number,
       interval: interval,
       synced_height: synced_height,
+      finality_margin: finality_margin,
       state_at_beginning: state_at_beginning,
       opts: opts
     } = defaults |> Keyword.merge(opts) |> Map.new()
 
-    {:ok, state} = Core.init(start_block_number, interval, synced_height, state_at_beginning, opts)
+    {:ok, state} = Core.init(start_block_number, interval, synced_height, finality_margin, state_at_beginning, opts)
     state
   end
 
