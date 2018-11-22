@@ -14,7 +14,7 @@ config :omg_watcher,
   block_getter_height_sync_interval_ms: 2_000,
   maximum_number_of_unapplied_blocks: 50,
   eth_exit_finality_margin: 12,
-  convenient_api_mode: false
+  convenience_api_mode: false
 
 # Configures the endpoint
 config :omg_watcher, OMG.Watcher.Web.Endpoint,
