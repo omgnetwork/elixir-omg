@@ -26,8 +26,7 @@ RUN apt-get update \
   sudo \
   git \
   python3-pip \
-  python3-dev \
-  solc 
+  python3-dev 
 
 RUN wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb \
   && dpkg -i erlang-solutions_1.0_all.deb \
@@ -51,6 +50,11 @@ ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8 
 
 WORKDIR /home/plasma/elixir-omg/
+
+RUN wget https://github.com/ethereum/solidity/releases/download/v0.4.23/solc-static-linux \
+  && chmod +x solc-static-linux \
+  && sudo mv solc-static-linux /bin/solc \
+  && sudo chmod 755 /bin/solc
 
 RUN sudo -H pip3 install --upgrade pip \
   && sudo -H -n ln -s /usr/bin/python3 python \
