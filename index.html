@@ -1,0 +1,939 @@
+
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>OmiseGO Plasma API Reference</title>
+
+    <style>
+      .highlight table td { padding: 5px; }
+.highlight table pre { margin: 0; }
+.highlight .gh {
+  color: #999999;
+}
+.highlight .sr {
+  color: #f6aa11;
+}
+.highlight .go {
+  color: #888888;
+}
+.highlight .gp {
+  color: #555555;
+}
+.highlight .gs {
+}
+.highlight .gu {
+  color: #aaaaaa;
+}
+.highlight .nb {
+  color: #f6aa11;
+}
+.highlight .cm {
+  color: #75715e;
+}
+.highlight .cp {
+  color: #75715e;
+}
+.highlight .c1 {
+  color: #75715e;
+}
+.highlight .cs {
+  color: #75715e;
+}
+.highlight .c, .highlight .cd {
+  color: #75715e;
+}
+.highlight .err {
+  color: #960050;
+}
+.highlight .gr {
+  color: #960050;
+}
+.highlight .gt {
+  color: #960050;
+}
+.highlight .gd {
+  color: #49483e;
+}
+.highlight .gi {
+  color: #49483e;
+}
+.highlight .ge {
+  color: #49483e;
+}
+.highlight .kc {
+  color: #66d9ef;
+}
+.highlight .kd {
+  color: #66d9ef;
+}
+.highlight .kr {
+  color: #66d9ef;
+}
+.highlight .no {
+  color: #66d9ef;
+}
+.highlight .kt {
+  color: #66d9ef;
+}
+.highlight .mf {
+  color: #ae81ff;
+}
+.highlight .mh {
+  color: #ae81ff;
+}
+.highlight .il {
+  color: #ae81ff;
+}
+.highlight .mi {
+  color: #ae81ff;
+}
+.highlight .mo {
+  color: #ae81ff;
+}
+.highlight .m, .highlight .mb, .highlight .mx {
+  color: #ae81ff;
+}
+.highlight .sc {
+  color: #ae81ff;
+}
+.highlight .se {
+  color: #ae81ff;
+}
+.highlight .ss {
+  color: #ae81ff;
+}
+.highlight .sd {
+  color: #e6db74;
+}
+.highlight .s2 {
+  color: #e6db74;
+}
+.highlight .sb {
+  color: #e6db74;
+}
+.highlight .sh {
+  color: #e6db74;
+}
+.highlight .si {
+  color: #e6db74;
+}
+.highlight .sx {
+  color: #e6db74;
+}
+.highlight .s1 {
+  color: #e6db74;
+}
+.highlight .s {
+  color: #e6db74;
+}
+.highlight .na {
+  color: #a6e22e;
+}
+.highlight .nc {
+  color: #a6e22e;
+}
+.highlight .nd {
+  color: #a6e22e;
+}
+.highlight .ne {
+  color: #a6e22e;
+}
+.highlight .nf {
+  color: #a6e22e;
+}
+.highlight .vc {
+  color: #ffffff;
+}
+.highlight .nn {
+  color: #ffffff;
+}
+.highlight .nl {
+  color: #ffffff;
+}
+.highlight .ni {
+  color: #ffffff;
+}
+.highlight .bp {
+  color: #ffffff;
+}
+.highlight .vg {
+  color: #ffffff;
+}
+.highlight .vi {
+  color: #ffffff;
+}
+.highlight .nv {
+  color: #ffffff;
+}
+.highlight .w {
+  color: #ffffff;
+}
+.highlight {
+  color: #ffffff;
+}
+.highlight .n, .highlight .py, .highlight .nx {
+  color: #ffffff;
+}
+.highlight .ow {
+  color: #f92672;
+}
+.highlight .nt {
+  color: #f92672;
+}
+.highlight .k, .highlight .kv {
+  color: #f92672;
+}
+.highlight .kn {
+  color: #f92672;
+}
+.highlight .kp {
+  color: #f92672;
+}
+.highlight .o {
+  color: #f92672;
+}
+    </style>
+    <link href="stylesheets/screen.css" rel="stylesheet" media="screen" />
+    <link href="stylesheets/print.css" rel="stylesheet" media="print" />
+      <script src="javascripts/all.js"></script>
+  </head>
+
+  <body class="index" data-languages="[&quot;shell&quot;,&quot;elixir&quot;,&quot;javascript&quot;]">
+    <a href="#" id="nav-button">
+      <span>
+        NAV
+        <img src="images/navbar.png" alt="Navbar" />
+      </span>
+    </a>
+    <div class="toc-wrapper">
+      <img src="images/logo.png" class="logo" alt="Logo" />
+        <div class="lang-selector">
+              <a href="#" data-language-name="shell">shell</a>
+              <a href="#" data-language-name="elixir">elixir</a>
+              <a href="#" data-language-name="javascript">javascript</a>
+        </div>
+        <div class="search">
+          <input type="text" class="search" id="input-search" placeholder="Search">
+        </div>
+        <ul class="search-results"></ul>
+      <ul id="toc" class="toc-list-h1">
+          <li>
+            <a href="#introduction" class="toc-h1 toc-link" data-title="Introduction">Introduction</a>
+          </li>
+          <li>
+            <a href="#child-chain" class="toc-h1 toc-link" data-title="Child chain">Child chain</a>
+              <ul class="toc-list-h2">
+                  <li>
+                    <a href="#submit-transaction" class="toc-h2 toc-link" data-title="Submit transaction">Submit transaction</a>
+                  </li>
+                  <li>
+                    <a href="#get-block-by-id" class="toc-h2 toc-link" data-title="Get Block by id">Get Block by id</a>
+                  </li>
+              </ul>
+          </li>
+          <li>
+            <a href="#watcher" class="toc-h1 toc-link" data-title="Watcher">Watcher</a>
+              <ul class="toc-list-h2">
+                  <li>
+                    <a href="#utxo-get-challenge-data" class="toc-h2 toc-link" data-title="Utxo - Get Challenge Data">Utxo - Get Challenge Data</a>
+                  </li>
+                  <li>
+                    <a href="#utxo-get-exit-data" class="toc-h2 toc-link" data-title="Utxo - Get Exit Data">Utxo - Get Exit Data</a>
+                  </li>
+                  <li>
+                    <a href="#transaction-submit" class="toc-h2 toc-link" data-title="Transaction - Submit">Transaction - Submit</a>
+                  </li>
+                  <li>
+                    <a href="#status" class="toc-h2 toc-link" data-title="Status">Status</a>
+                  </li>
+              </ul>
+          </li>
+          <li>
+            <a href="#watcher-websocket-api" class="toc-h1 toc-link" data-title="Watcher - Websocket API">Watcher - Websocket API</a>
+              <ul class="toc-list-h2">
+                  <li>
+                    <a href="#topic-transfer-address" class="toc-h2 toc-link" data-title="Topic transfer:{address}">Topic <code>transfer:{address}</code></a>
+                  </li>
+                  <li>
+                    <a href="#topic-byzantine" class="toc-h2 toc-link" data-title="Topic byzantine">Topic <code>byzantine</code></a>
+                  </li>
+                  <li>
+                    <a href="#other-planned-events" class="toc-h2 toc-link" data-title="Other planned events">Other planned events</a>
+                  </li>
+              </ul>
+          </li>
+          <li>
+            <a href="#watcher-informational-api-service" class="toc-h1 toc-link" data-title="Watcher - Informational API Service">Watcher - Informational API Service</a>
+              <ul class="toc-list-h2">
+                  <li>
+                    <a href="#account-get-balance" class="toc-h2 toc-link" data-title="Account - Get Balance">Account - Get Balance</a>
+                  </li>
+                  <li>
+                    <a href="#account-get-utxos" class="toc-h2 toc-link" data-title="Account - Get Utxos">Account - Get Utxos</a>
+                  </li>
+                  <li>
+                    <a href="#account-get-transactions" class="toc-h2 toc-link" data-title="Account - Get Transactions">Account - Get Transactions</a>
+                  </li>
+                  <li>
+                    <a href="#transaction-get" class="toc-h2 toc-link" data-title="Transaction -  Get">Transaction -  Get</a>
+                  </li>
+                  <li>
+                    <a href="#block-get" class="toc-h2 toc-link" data-title="Block - Get">Block - Get</a>
+                  </li>
+              </ul>
+          </li>
+          <li>
+            <a href="#integration-libraries" class="toc-h1 toc-link" data-title="Integration libraries">Integration libraries</a>
+              <ul class="toc-list-h2">
+                  <li>
+                    <a href="#transaction-rlp-encoding" class="toc-h2 toc-link" data-title="Transaction RLP-encoding">Transaction RLP-encoding</a>
+                  </li>
+              </ul>
+          </li>
+      </ul>
+        <ul class="toc-footer">
+            <li><a href='https://github.com/lord/slate'>Documentation Powered by Slate</a></li>
+        </ul>
+    </div>
+    <div class="page-wrapper">
+      <div class="dark-box"></div>
+      <div class="content">
+        <h1 id='introduction'>Introduction</h1>
+<p>Spec out entire API across child chain/watcher/convenience. Let&#39;s use Slate for it :)</p>
+<h1 id='child-chain'>Child chain</h1><h2 id='submit-transaction'>Submit transaction</h2><pre class="highlight shell tab-shell"><code>http POST /transaction.submit <span class="nv">transaction</span><span class="o">=</span>f8d083015ba98080808080940000...
+</code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
+</code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
+</code></pre>
+<blockquote>
+<p>The above command returns JSON document:</p>
+</blockquote>
+<pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+      </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
+      </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+      </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+          </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">123000</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">111</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"txhash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"</span><span class="w">
+      </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre>
+<p>This endpoint submits signed transaction to the child chain</p>
+<h3 id='http-request'>HTTP Request</h3>
+<p><code>POST /transaction.submit</code></p>
+<h3 id='json-body'>JSON Body</h3>
+<table><thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>transaction</td>
+<td>Hex encoded string</td>
+<td>Signed transaction RLP-encoded to bytes and HEX-encoded to string</td>
+</tr>
+</tbody></table>
+<h2 id='get-block-by-id'>Get Block by id</h2><pre class="highlight shell tab-shell"><code>http POST /block.get <span class="nb">hash</span><span class="o">=</span>2733e50f526ec2fa19a22b31e8ed50f23cd1fdf94c9154ed3a7609a2f1ff981f
+</code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
+</code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
+</code></pre>
+<blockquote>
+<p>The above command returns JSON document:</p>
+</blockquote>
+<pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+      </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
+      </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+      </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+          </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">123000</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"hash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2733e50f526ec2fa19a22b31e8ed50f23cd1fdf94c9154ed3a7609a2f1ff981f"</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"transactions"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+              </span><span class="s2">"f8d083015ba98080808080940000..."</span><span class="p">,</span><span class="w">
+          </span><span class="p">]</span><span class="w">
+      </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre>
+<p>This endpoint retrieves a specific block from child chain which hash was published on root chain</p>
+<h3 id='http-request-2'>HTTP Request</h3>
+<p><code>POST /block.get</code></p>
+<h3 id='json-body-2'>JSON Body</h3>
+<table><thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>hash</td>
+<td>Hex encoded string</td>
+<td>HEX-encoded hash of the block</td>
+</tr>
+</tbody></table>
+<h1 id='watcher'>Watcher</h1>
+<p>API specification of the Watcher&#39;s security-critical Service</p>
+<h2 id='utxo-get-challenge-data'>Utxo - Get Challenge Data</h2><pre class="highlight shell tab-shell"><code>http POST /utxo.get_challenge_data <span class="nv">utxo_pos</span><span class="o">=</span>10001001
+</code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
+</code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
+</code></pre>
+<blockquote>
+<p>The above command returns JSON document:</p>
+</blockquote>
+<pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="s2">"txbytes"</span><span class="p">:</span><span class="w"> </span><span class="s2">"F849822AF880808080809400000000000000000000000000000000000000009489F5AD3F771617E853451A93F7A73E48CF5550D104948CE5C73FD5BEFFE0DCBCB6AFE571A2A3E73B043C03"</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"sigs"</span><span class="p">:</span><span class="w"> </span><span class="s2">"6BFB9B2DBE3201BDC48072E69148A0ED9AF3E01D87772C8A77A478F998CEB5236B0AE64FAB3C21C078188B162D86913010A988E4B0CE68EE95D86783008FD9C71B0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"proof"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0000000000000000000000000000000000000000000000000000000000000000AD3228B676F7D3CD4284A5443F17F1962B36E491B30A40B2405849E597BA5FB5B4C11951957C6F8F642C4AF61CD6B24640FEC6DC7FC607EE8206A99E92410D3021DDB9A356815C3FAC1026B6DEC5DF3124AFBADB485C9BA5A3E3398A04B7BA85E58769B32A1BEAF1EA27375A44095A0D1FB664CE2DD358E7FCBFB78C26A193440EB01EBFC9ED27500CD4DFC979272D1F0913CC9F66540D7E8005811109E1CF2D887C22BD8750D34016AC3C66B5FF102DACDD73F6B014E710B51E8022AF9A1968FFD70157E48063FC33C97A050F7F640233BF646CC98D9524C6B92BCF3AB56F839867CC5F7F196B93BAE1E27E6320742445D290F2263827498B54FEC539F756AFCEFAD4E508C098B9A7E1D8FEB19955FB02BA9675585078710969D3440F5054E0F9DC3E7FE016E050EFF260334F18A5D4FE391D82092319F5964F2E2EB7C1C3A5F8B13A49E282F609C317A833FB8D976D11517C571D1221A265D25AF778ECF8923490C6CEEB450AECDC82E28293031D10C7D73BF85E57BF041A97360AA2C5D99CC1DF82D9C4B87413EAE2EF048F94B4D3554CEA73D92B0F7AF96E0271C691E2BB5C67ADD7C6CAF302256ADEDF7AB114DA0ACFE870D449A3A489F781D659E8BECCDA7BCE9F4E8618B6BD2F4132CE798CDC7A60E7E1460A7299E3C6342A579626D2"</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"eutxoindex"</span><span class="p">:</span><span class="w"> </span><span class="s2">"200001001"</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"cutxopos"</span><span class="p">:</span><span class="w"> </span><span class="s2">"100001001"</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre>
+<p>Gets challenge data for a given utxo exit</p>
+<h3 id='http-request-3'>HTTP Request</h3>
+<p><code>POST /utxo.get_challenge_data</code></p>
+<h3 id='json-body-3'>JSON Body</h3>
+<table><thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>utxo_pos</td>
+<td>Integer</td>
+<td>Utxo position (encoded as sigle integer, the way contract represents them)</td>
+</tr>
+</tbody></table>
+<h2 id='utxo-get-exit-data'>Utxo - Get Exit Data</h2><pre class="highlight shell tab-shell"><code>http POST /utxo.get_exit_data <span class="nv">utxo_pos</span><span class="o">=</span>10001001
+</code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
+</code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
+</code></pre>
+<blockquote>
+<p>The above command returns JSON document:</p>
+</blockquote>
+<pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="s2">"utxo_pos"</span><span class="p">:</span><span class="w"> </span><span class="mi">10001001</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"txbytes"</span><span class="p">:</span><span class="w"> </span><span class="s2">"F84701018080808094000000000000000000000000000000000000000094D27EB36B73F275E3F7CD20A510710F763DE3BF366E94000000000000000000000000000000000000000080"</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"sigs"</span><span class="p">:</span><span class="w"> </span><span class="s2">"7C29FB8327F60BBFC6201DF2FBAAA8D22E5C0CA3D1EB5FF0D37ECDAF61E507FE77DED514AA42A622E5682BF692B33E60D292425C531109841C67B5BD86876CDE1C0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"proof"</span><span class="p">:</span><span class="w"> </span><span class="s2">"CEDB8B31D1E4CB72EC267A8B27C42C4D9982C3F3950D88003F44B3A797202D848025356282CA1C28CBD51FBF7D8E9187AA85F628D054B2C2233AA83BCAEF1F0EB4C11951957C6F8F642C4AF61CD6B24640FEC6DC7FC607EE8206A99E92410D3021DDB9A356815C3FAC1026B6DEC5DF3124AFBADB485C9BA5A3E3398A04B7BA85E58769B32A1BEAF1EA27375A44095A0D1FB664CE2DD358E7FCBFB78C26A193440EB01EBFC9ED27500CD4DFC979272D1F0913CC9F66540D7E8005811109E1CF2D887C22BD8750D34016AC3C66B5FF102DACDD73F6B014E710B51E8022AF9A1968FFD70157E48063FC33C97A050F7F640233BF646CC98D9524C6B92BCF3AB56F839867CC5F7F196B93BAE1E27E6320742445D290F2263827498B54FEC539F756AFCEFAD4E508C098B9A7E1D8FEB19955FB02BA9675585078710969D3440F5054E0F9DC3E7FE016E050EFF260334F18A5D4FE391D82092319F5964F2E2EB7C1C3A5F8B13A49E282F609C317A833FB8D976D11517C571D1221A265D25AF778ECF8923490C6CEEB450AECDC82E28293031D10C7D73BF85E57BF041A97360AA2C5D99CC1DF82D9C4B87413EAE2EF048F94B4D3554CEA73D92B0F7AF96E0271C691E2BB5C67ADD7C6CAF302256ADEDF7AB114DA0ACFE870D449A3A489F781D659E8BECCDA7BCE9F4E8618B6BD2F4132CE798CDC7A60E7E1460A7299E3C6342A579626D2"</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre>
+<p>Gets exit data for a given utxo</p>
+<h3 id='http-request-4'>HTTP Request</h3>
+<p><code>POST /utxo.get_exit_data</code></p>
+<h3 id='json-body-4'>JSON Body</h3>
+<table><thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>utxo_pos</td>
+<td>Integer</td>
+<td>Utxo position (encoded as sigle integer, the way contract represents them)</td>
+</tr>
+</tbody></table>
+<h2 id='transaction-submit'>Transaction - Submit</h2><pre class="highlight shell tab-shell"><code>http POST /transaction.submit <span class="nv">transaction</span><span class="o">=</span>f8d083015ba98080808080940000...
+</code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
+</code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
+</code></pre>
+<blockquote>
+<p>The above command returns JSON document:
+<aside class="warning">Is it OK? Following is planned child chain response for corresponding endpoint</aside> </p>
+</blockquote>
+<pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+      </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
+      </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+      </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> 
+          </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">123000</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">111</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"txhash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"</span><span class="w">
+      </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre>
+<p>Watcher passes signed transaction to the child chain only if it&#39;s secure (better explaination needed)</p>
+<h3 id='http-request-5'>HTTP Request</h3>
+<p><code>POST /transaction.submit</code></p>
+<h3 id='json-body-5'>JSON Body</h3>
+<table><thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>transaction</td>
+<td>Hex encoded string</td>
+<td>Signed transaction RLP-encoded to bytes and HEX-encoded to string</td>
+</tr>
+</tbody></table>
+<h2 id='status'>Status</h2><pre class="highlight shell tab-shell"><code>http POST /status
+</code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
+</code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
+</code></pre>
+<blockquote>
+<p>The above command returns JSON document:</p>
+</blockquote>
+<pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="s2">"last_validated_child_block_number"</span><span class="p">:</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"last_mined_child_block_timestamp"</span><span class="p">:</span><span class="w"> </span><span class="mi">1535031020</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"last_mined_child_block_number"</span><span class="p">:</span><span class="w"> </span><span class="mi">11000</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"eth_syncing"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre>
+<p>Gets plasma network and Watcher status</p>
+<h3 id='http-request-6'>HTTP Request</h3>
+<p><code>POST /status</code></p>
+<h3 id='json-body-6'>JSON Body</h3>
+<p>No parameters are required.</p>
+<h1 id='watcher-websocket-api'>Watcher - Websocket API</h1><h2 id='topic-transfer-address'>Topic <code>transfer:{address}</code></h2><h3 id='events-address_received-and-address_spent'>Events <code>address_received</code> and <code>address_spent</code></h3>
+<p>The address_received event informing about that particular address received funds.</p>
+
+<p>The address_spent event informing about that particular address spent funds.</p>
+
+<blockquote>
+<p>Both event types have the same structure.
+Key | Value | Description
+--------- | ------- | -----------
+child_blknum | Integer | 
+child_txindex | Integer | 
+child_block_hash | HEX-encoded string |
+submited_at_ethheight | integer |
+tx | object | Structure of signed transaction</p>
+</blockquote>
+
+<p>Blocks are validated by the Watcher after a short (not-easily-configurable) finality margin. By consequence, above events will be emitted no earlier than that finality margin. In case extra finality is required for high-stakes transactions, the client is free to wait any number of Ethereum blocks (confirmations) on top of submitted_at_ethheight.</p>
+
+<blockquote>
+<p>An example of JSON document of the <code>address_received</code> event:</p>
+</blockquote>
+<pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+  </span><span class="s2">"topic"</span><span class="p">:</span><span class="w"> </span><span class="s2">"transfer:0xfd5374cd3fe7ba8626b173a1ca1db68696ff3692"</span><span class="p">,</span><span class="w">
+  </span><span class="s2">"ref"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w">
+  </span><span class="s2">"payload"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="s2">"child_blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"child_txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"child_block_hash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"DB32876CC6F26E96B9291682F3AF4A04C2AA2269747839F14F1A8C529CF90225"</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"submited_at_ethheight"</span><span class="p">:</span><span class="w"> </span><span class="mi">14</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"tx"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+      </span><span class="s2">"signed_tx"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="s2">"raw_tx"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+          </span><span class="s2">"amount1"</span><span class="p">:</span><span class="w"> </span><span class="mi">7</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"amount2"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"blknum1"</span><span class="p">:</span><span class="w"> </span><span class="mi">2001</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"blknum2"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"cur12"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"newowner1"</span><span class="p">:</span><span class="w"> </span><span class="s2">"051902B7A7D6DCB915CE8FFD3BF46B5E0E16BB9C"</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"newowner2"</span><span class="p">:</span><span class="w"> </span><span class="s2">"E6E3F1307219F68AE4B271CFD493EC8F932C34D9"</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"oindex1"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"oindex2"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"txindex1"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
+          </span><span class="s2">"txindex2"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w">
+        </span><span class="p">},</span><span class="w">
+        </span><span class="s2">"sig1"</span><span class="p">:</span><span class="w"> </span><span class="s2">"7B52AB ..."</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"sig2"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2ABGAT ..."</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"signed_tx_bytes"</span><span class="p">:</span><span class="w"> </span><span class="s2">"F8CF83 ..."</span><span class="w">
+      </span><span class="p">},</span><span class="w">
+      </span><span class="s2">"signed_tx_hash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0768DC526A093C8C058303832FF3AB45893466D731A34BCF1BF2F866586C0FE6"</span><span class="p">,</span><span class="w">
+      </span><span class="s2">"spender1"</span><span class="p">:</span><span class="w"> </span><span class="s2">"6DCB915C051902B7A7DE8FFD3BF46B5E0E16BB9C"</span><span class="p">,</span><span class="w">
+      </span><span class="s2">"spender2"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5E0E16BB9C19F68AE4B271CFD493EC8F932C34D9"</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="s2">"join_ref"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w">
+  </span><span class="s2">"event"</span><span class="p">:</span><span class="w"> </span><span class="s2">"address_received"</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre><h2 id='topic-byzantine'>Topic <code>byzantine</code></h2><h3 id='event-block_withholding'>Event <code>block_withholding</code></h3>
+<p>Event informing that child chain is withholding block which hash was published on root chain.</p>
+
+<blockquote>
+<p>Event type have following structure.</p>
+</blockquote>
+
+<table><thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>blknum</td>
+<td>Integer</td>
+<td>Number of plasma block</td>
+</tr>
+</tbody></table>
+<h3 id='event-invalid_block'>Event <code>invalid_block</code></h3>
+<p>Event informing that a particular block is invalid.</p>
+
+<blockquote>
+<p>Event type have following structure.</p>
+</blockquote>
+
+<table><thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>hash</td>
+<td>HEX-encoded string</td>
+<td>Hash of plasma block</td>
+</tr>
+<tr>
+<td>number</td>
+<td>Integer</td>
+<td>Number of plasma block</td>
+</tr>
+<tr>
+<td>error_type</td>
+<td>String</td>
+<td></td>
+</tr>
+</tbody></table>
+<h3 id='event-invalid_exit'>Event <code>invalid_exit</code></h3>
+<p>Event informing that invalid exit has started</p>
+
+<blockquote>
+<p>Event type have following structure.</p>
+</blockquote>
+
+<table><thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>amount</td>
+<td>Integer</td>
+<td></td>
+</tr>
+<tr>
+<td>currency</td>
+<td>HEX-encoded string</td>
+<td></td>
+</tr>
+<tr>
+<td>owner</td>
+<td>HEX-encoded string</td>
+<td></td>
+</tr>
+<tr>
+<td>utxo_pos</td>
+<td>Integer</td>
+<td></td>
+</tr>
+<tr>
+<td>eth_height</td>
+<td>Integer</td>
+<td></td>
+</tr>
+</tbody></table>
+<h3 id='event-unchallenged_exit'>Event <code>unchallenged_exit</code></h3>
+<p>Notifies about an invalid exit, that is dangerously approaching finalization, without being challneged.
+It is a prompt to exit.</p>
+
+<blockquote>
+<p>Event type have following structure.</p>
+</blockquote>
+
+<table><thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>amount</td>
+<td>Integer</td>
+<td></td>
+</tr>
+<tr>
+<td>currency</td>
+<td>HEX-encoded string</td>
+<td></td>
+</tr>
+<tr>
+<td>owner</td>
+<td>HEX-encoded string</td>
+<td></td>
+</tr>
+<tr>
+<td>utxo_pos</td>
+<td>Integer</td>
+<td></td>
+</tr>
+<tr>
+<td>eth_height</td>
+<td>Integer</td>
+<td></td>
+</tr>
+</tbody></table>
+<h2 id='other-planned-events'>Other planned events</h2>
+<p>in no particular order or severity
+To be clarified...</p>
+
+<ul>
+<li>in_flight_exit</li>
+<li>piggyback_to_input</li>
+<li>piggyback_to_output</li>
+<li>invalid_fee_exit</li>
+<li>fees_exited</li>
+<li>fees</li>
+<li>deposit_spendable</li>
+<li>block</li>
+</ul>
+<h1 id='watcher-informational-api-service'>Watcher - Informational API Service</h1>
+<p>API specification of the Watcher&#39;s Informational Service</p>
+<h2 id='account-get-balance'>Account - Get Balance</h2><pre class="highlight shell tab-shell"><code>http POST /account.get_balance <span class="nv">address</span><span class="o">=</span>b3256026863eb6ae5b06fa396ab09069784ea8ea
+</code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
+</code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
+</code></pre>
+<blockquote>
+<p>The above command returns JSON document:</p>
+</blockquote>
+<pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="s2">"currency"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre>
+<p>Responds with account balance for given account address</p>
+<h3 id='http-request-7'>HTTP Request</h3>
+<p><code>POST /account.get_balance</code></p>
+<h3 id='json-body-7'>JSON Body</h3>
+<table><thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>address</td>
+<td>Hex encoded string</td>
+<td>Address of the funds owner</td>
+</tr>
+</tbody></table>
+<h2 id='account-get-utxos'>Account - Get Utxos</h2><pre class="highlight shell tab-shell"><code>http POST /account.get_utxos <span class="nv">address</span><span class="o">=</span>b3256026863eb6ae5b06fa396ab09069784ea8ea
+</code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
+</code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
+</code></pre>
+<blockquote>
+<p>The above command returns JSON document:</p>
+</blockquote>
+<pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+        </span><span class="p">{</span><span class="w">
+            </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"owner"</span><span class="p">:</span><span class="w"> </span><span class="s2">"B3256026863EB6AE5B06FA396AB09069784EA8EA"</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"oindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"currency"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">]</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre>
+<p>Gets all utxos belonging to the given address</p>
+<h3 id='http-request-8'>HTTP Request</h3>
+<p><code>POST /account.get_utxos</code></p>
+<h3 id='json-body-8'>JSON Body</h3>
+<table><thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>address</td>
+<td>Hex encoded string</td>
+<td>Address of the account</td>
+</tr>
+</tbody></table>
+<h2 id='account-get-transactions'>Account - Get Transactions</h2><pre class="highlight shell tab-shell"><code>http POST /account.get_transactions <span class="nv">address</span><span class="o">=</span>b3256026863eb6ae5b06fa396ab09069784ea8ea
+</code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
+</code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
+</code></pre>
+<blockquote>
+<p>The above command returns JSON document:</p>
+</blockquote>
+<pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+        </span><span class="p">{</span><span class="w">
+            </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">12345</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"txhash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5DF13A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21"</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="mi">1540365586</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"eth_height"</span><span class="p">:</span><span class="w"> </span><span class="mi">97424</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">68290000</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">]</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre>
+<p>Gets a list of transactions.</p>
+<h3 id='http-request-9'>HTTP Request</h3>
+<p><code>POST /account.get_transactions</code></p>
+<h3 id='json-body-9'>JSON Body</h3>
+<table><thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>address</td>
+<td>Hex encoded string</td>
+<td>Address of the account</td>
+</tr>
+</tbody></table>
+<h2 id='transaction-get'>Transaction -  Get</h2><pre class="highlight shell tab-shell"><code>http POST /transaction.get <span class="nv">id</span><span class="o">=</span>bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d
+</code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
+</code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
+</code></pre>
+<blockquote>
+<p>The above command returns JSON document:</p>
+</blockquote>
+<pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"txhash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5DF13A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21"</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"outputs"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+            </span><span class="p">{</span><span class="w">
+            </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"owner"</span><span class="p">:</span><span class="w"> </span><span class="s2">"B3256026863EB6AE5B06FA396AB09069784EA8EA"</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"oindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"currency"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">3000</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="w">
+            </span><span class="p">},</span><span class="w">
+            </span><span class="p">{</span><span class="w">
+            </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"owner"</span><span class="p">:</span><span class="w"> </span><span class="s2">"AE8AE48796090BA693AF60B5EA6BE3686206523B"</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"oindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"currency"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">7</span><span class="w">
+            </span><span class="p">}</span><span class="w">
+        </span><span class="p">],</span><span class="w">
+        </span><span class="s2">"inputs"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+            </span><span class="p">{</span><span class="w">
+            </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"owner"</span><span class="p">:</span><span class="w"> </span><span class="s2">"B3256026863EB6AE5B06FA396AB09069784EA8EA"</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"oindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"currency"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="w">
+            </span><span class="p">}</span><span class="w">
+        </span><span class="p">],</span><span class="w">
+        </span><span class="s2">"block"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+            </span><span class="s2">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="mi">1540365586</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"hash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC"</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"eth_height"</span><span class="p">:</span><span class="w"> </span><span class="mi">97424</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">68290000</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre>
+<p>Gets a transaction with the given id</p>
+<h3 id='http-request-10'>HTTP Request</h3>
+<p><code>POST /transaction.get</code></p>
+<h3 id='json-body-10'>JSON Body</h3>
+<table><thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>id</td>
+<td>Hex encoded string</td>
+<td>Hash of the Plasma transaction</td>
+</tr>
+</tbody></table>
+<h2 id='block-get'>Block - Get</h2><pre class="highlight shell tab-shell"><code>http POST /block.get <span class="nv">id</span><span class="o">=</span>bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d
+</code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
+</code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
+</code></pre>
+<blockquote>
+<p>The above command returns JSON document:</p>
+</blockquote>
+<pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
+    </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+        </span><span class="s2">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="mi">1540365586</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"hash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC"</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"eth_height"</span><span class="p">:</span><span class="w"> </span><span class="mi">97424</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">68290000</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre>
+<p>Gets a block with the given id</p>
+<h3 id='http-request-11'>HTTP Request</h3>
+<p><code>POST /account.get_balance</code></p>
+<h3 id='json-body-11'>JSON Body</h3>
+<table><thead>
+<tr>
+<th>Key</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead><tbody>
+<tr>
+<td>id</td>
+<td>Hex encoded string</td>
+<td>Hash of the Plasma block</td>
+</tr>
+</tbody></table>
+<h1 id='integration-libraries'>Integration libraries</h1><h2 id='transaction-rlp-encoding'>Transaction RLP-encoding</h2>
+<p>Library function which encapsulates transaction&#39;s RLP-serialization to the form understand by the contract&#39;s code.</p>
+<h3 id='input'>Input</h3>
+<p>Standard transaction structure e.g. <code>OMG.API.State.Transaction</code> or JSON structure like current <code>transaction.create</code> convenience endpoint.</p>
+<h3 id='output'>Output</h3>
+<p>RLP-encoded binary representation of the transaction which can be signed and submit via <a href="#">Submit transaction</a></p>
+
+      </div>
+      <div class="dark-box">
+          <div class="lang-selector">
+                <a href="#" data-language-name="shell">shell</a>
+                <a href="#" data-language-name="elixir">elixir</a>
+                <a href="#" data-language-name="javascript">javascript</a>
+          </div>
+      </div>
+    </div>
+  </body>
+</html>
