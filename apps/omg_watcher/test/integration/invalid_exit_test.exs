@@ -34,6 +34,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   @moduletag :integration
 
   @timeout 40_000
+  @assert_push_timeout 5_000
   @eth API.Crypto.zero_address()
 
   @endpoint OMG.Watcher.Web.Endpoint
@@ -79,7 +80,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         eth_height: eth_height
       })
 
-    assert_push("invalid_exit", ^invalid_exit_event, 5_000)
+    assert_push("invalid_exit", ^invalid_exit_event, @assert_push_timeout)
 
     # after the notification has been received, a challenged is composed and sent
     challenge = get_exit_challenge(deposit_blknum, 0, 0)
@@ -137,7 +138,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: exit_blknum}} = Client.call(:submit, %{transaction: tx})
 
-    # Here we calcualted bad_block_number by adding `exit_blknum` and `margin_slow_validator` / 2
+    # Here we calculated bad_block_number by adding `exit_blknum` and `margin_slow_validator` / 2
     # to have guarantee that bad_block_number will be after margin of slow validator(m_sv)
     bad_block_number = exit_blknum + div(margin_slow_validator, 2)
     bad_tx = API.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
@@ -145,7 +146,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     %{hash: bad_block_hash, number: _, transactions: _} =
       bad_block = API.Block.hashed_txs_at([bad_tx], bad_block_number)
 
-    # Here we manually submiting invalid block with big/future nonce to the Rootchain to make
+    # Here we manually submitting invalid block with big/future nonce to the Rootchain to make
     # the Rootchain to mine invalid block instead of block submitted by child chain
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
     nonce = div(bad_block_number, child_block_interval)
@@ -188,6 +189,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         eth_height: eth_height
       })
 
-    assert_push("invalid_exit", ^invalid_exit_event, 1500)
+    assert_push("invalid_exit", ^invalid_exit_event, @assert_push_timeout)
   end
 end
