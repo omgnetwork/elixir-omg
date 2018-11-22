@@ -51,7 +51,7 @@ ENV LANG=C.UTF-8
 
 WORKDIR /home/plasma/elixir-omg/
 
-RUN wget https://github.com/ethereum/solidity/releases/download/v0.4.23/solc-static-linux \
+RUN wget https://github.com/ethereum/solidity/releases/download/v0.4.25/solc-static-linux \
   && chmod +x solc-static-linux \
   && sudo mv solc-static-linux /bin/solc \
   && sudo chmod 755 /bin/solc
