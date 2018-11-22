@@ -116,7 +116,7 @@ defmodule OMG.API.BlockQueue.Core do
     enqueue_existing_blocks(state, top_mined_hash, known_hashes)
   end
 
-  @spec enqueue_block(Core.t(), BlockQueue.hash(), BlockQueue.plasma_block_num() | Core.t()) ::
+  @spec enqueue_block(Core.t(), BlockQueue.hash(), BlockQueue.plasma_block_num()) ::
           Core.t() | {:error, :unexpected_block_number}
   def enqueue_block(state, hash, expected_block_number) do
     own_height = state.formed_child_block_num + state.child_block_interval
@@ -126,6 +126,7 @@ defmodule OMG.API.BlockQueue.Core do
     end
   end
 
+  @spec enqueue_block(Core.t()) :: Core.t()
   def enqueue_block(state) do
     %{state | wait_for_enqueue: false}
   end

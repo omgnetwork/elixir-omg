@@ -192,7 +192,7 @@ defmodule OMG.API.State do
   def handle_cast(:form_block, state) do
     _ = Logger.debug(fn -> "Forming new block..." end)
 
-    {duration, {:ok, {%Block{number: blknum, hash: _blkhash} = block, _events, db_updates}, new_state}} =
+    {duration, {:ok, {%Block{number: blknum} = block, _events, db_updates}, new_state}} =
       :timer.tc(fn -> do_form_block(state) end)
 
     _ =

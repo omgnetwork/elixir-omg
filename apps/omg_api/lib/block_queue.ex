@@ -139,14 +139,8 @@ defmodule OMG.API.BlockQueue do
       {:noreply, state1}
     end
 
-    def handle_cast({:enqueue_block, %Block{transactions: [], number: block_number, hash: block_hash}}, %Core{} = state) do
+    def handle_cast({:enqueue_block, %Block{transactions: []}}, %Core{} = state) do
       state1 = Core.enqueue_block(state)
-
-      _ =
-        Logger.info(fn ->
-          "No enqueuing empty block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'"
-        end)
-
       {:noreply, state1}
     end
 
