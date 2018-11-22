@@ -41,9 +41,9 @@ Gets challenge data for a given utxo exit
 
 ### JSON Body
 
-Key | Value | Description
+Key | Type | Description
 --------- | ------- | -----------
-utxo_pos | Integer | Utxo position (encoded as sigle integer, the way contract represents them)
+utxo_pos | Integer | Utxo position (encoded as single integer, the way contract represents them)
 
 
 
@@ -84,9 +84,9 @@ Gets exit data for a given utxo
 
 ### JSON Body
 
-Key | Value | Description
+Key | Type | Description
 --------- | ------- | -----------
-utxo_pos | Integer | Utxo position (encoded as sigle integer, the way contract represents them)
+utxo_pos | Integer | Utxo position (encoded as single integer, the way contract represents them)
 
 
 
@@ -127,7 +127,7 @@ Watcher passes signed transaction to the child chain only if it's secure (better
 
 ### JSON Body
 
-Key | Value | Description
+Key | Type | Description
 --------- | ------- | -----------
 transaction | Hex encoded string | Signed transaction RLP-encoded to bytes and HEX-encoded to string
 
