@@ -1,5 +1,127 @@
 
-# Watcher - Websocket API
+# Watcher - Events
+The most critical function of the Watcher is to monitor the ChildChain and report any dishonest activity.
+
+<aside class="warning">TODO Explanation of the WebSocket/ Phoenix Channels mechanism used to receive events</aside> 
+
+## Topic `byzantine`
+All of the following events indicate a byzantine chain and that the user should either exit or challenge.
+
+### Event `block_withholding`
+
+Event informing that child chain is withholding block which hash was published on root chain.
+
+> Event type have following structure.
+
+Key | Type | Description
+--------- | ------- | -----------
+blknum | Integer | Number of plasma block
+
+
+### Event `invalid_block`
+
+Event informing that a particular block is invalid.
+
+> Event type have following structure.
+
+Key | Type | Description
+--------- | ------- | -----------
+hash | HEX-encoded string | Hash of plasma block
+number | Integer | Number of plasma block
+error_type | String | 
+
+
+### Event `invalid_exit`
+
+Event informing that invalid exit has started
+
+> Event type have following structure.
+
+Key | Type | Description
+--------- | ------- | -----------
+amount | Integer | 
+currency | HEX-encoded string | 
+owner | HEX-encoded string | 
+utxo_pos | Integer |
+eth_height | Integer |
+
+
+### Event `unchallenged_exit`
+
+Notifies about an invalid exit, that is dangerously approaching finalization, without being challenged.
+It is a prompt to exit.
+
+> Event type have following structure.
+
+Key | Type | Description
+--------- | ------- | -----------
+amount | Integer | 
+currency | HEX-encoded string | 
+owner | HEX-encoded string | 
+utxo_pos | Integer |
+eth_height | Integer |
+
+
+### Event `invalid_in_flight_exit`
+
+Event informing of an invalid in-flight exit, a kmown competitor should be provided.
+
+> Event type have following structure.
+
+Key | Type | Description
+--------- | ------- | -----------
+amount | Integer | 
+currency | HEX-encoded string | 
+owner | HEX-encoded string | 
+utxo_pos | Integer |
+eth_height | Integer |
+
+
+### Event `invalid_in_flight_challenge`
+
+Event informing of an invalid in-flight challenge, proof of canonicity should be provided.
+
+> Event type have following structure.
+
+Key | Type | Description
+--------- | ------- | -----------
+amount | Integer | 
+currency | HEX-encoded string | 
+owner | HEX-encoded string | 
+utxo_pos | Integer |
+eth_height | Integer |
+
+
+### Event `piggyback_required`
+
+Event informing that a piggyback on an in-flight exit is required
+
+> Event type have following structure.
+
+Key | Type | Description
+--------- | ------- | -----------
+amount | Integer | 
+currency | HEX-encoded string | 
+owner | HEX-encoded string | 
+utxo_pos | Integer |
+eth_height | Integer |
+
+
+### Event `invalid_piggyback`
+
+Event informing of an invalid piggyback. It should be challenged.
+
+> Event type have following structure.
+
+Key | Type | Description
+--------- | ------- | -----------
+amount | Integer | 
+currency | HEX-encoded string | 
+owner | HEX-encoded string | 
+utxo_pos | Integer |
+eth_height | Integer |
+
+
 
 ## Topic `transfer:{address}`
 
@@ -60,80 +182,33 @@ Blocks are validated by the Watcher after a short (not-easily-configurable) fina
 }
 ```
 
-## Topic `byzantine`
 
-### Event `block_withholding`
+## Topic `childchain`
 
-Event informing that child chain is withholding block which hash was published on root chain.
+### Events `new_block`
 
-> Event type have following structure.
+Informs that a new block has been added to the chain.
 
+> Both event types have the same structure.
 Key | Type | Description
 --------- | ------- | -----------
-blknum | Integer | Number of plasma block
+blknum | Integer | 
+block_hash | HEX-encoded string |
+ethheight | integer |
+timestamp | integer |
 
 
-### Event `invalid_block`
+# RootChain - Events
+The RootChain contract raises certain events on Ethereum
+<aside class="warning">TODO We may want to forward these events through the watcher</aside> 
+<aside class="warning">TODO Most of these events are not currently implemented in the RootChain contract</aside> 
 
-Event informing that a particular block is invalid.
-
-> Event type have following structure.
-
-Key | Type | Description
---------- | ------- | -----------
-hash | HEX-encoded string | Hash of plasma block
-number | Integer | Number of plasma block
-error_type | String | 
-
-
-### Event `invalid_exit`
-
-Event informing that invalid exit has started
-
-> Event type have following structure.
-
-Key | Type | Description
---------- | ------- | -----------
-amount | Integer | 
-currency | HEX-encoded string | 
-owner | HEX-encoded string | 
-utxo_pos | Integer |
-eth_height | Integer |
-
-
-### Event `unchallenged_exit`
-
-Notifies about an invalid exit, that is dangerously approaching finalization, without being challneged.
-It is a prompt to exit.
-
-> Event type have following structure.
-
-Key | Type | Description
---------- | ------- | -----------
-amount | Integer | 
-currency | HEX-encoded string | 
-owner | HEX-encoded string | 
-utxo_pos | Integer |
-eth_height | Integer |
-
-
-
-## Other planned events
-in no particular order or severity
-To be clarified...
-
+ * new_deposit
+ * exit_started
+ * exit_challenged
+ * exit_finalized
  * inflight_exit_started
  * inflight_exit_challenged
  * piggyback_to_input
  * piggyback_to_output
- * invalid_fee_exit
  * fees_exited
- * fees
- * new_block
- * new_transaction
- * new_deposit
- * deposit_spendable
- * exit_started
- * exit_challenged
- * exit_success
-
