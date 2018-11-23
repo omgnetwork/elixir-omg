@@ -2,6 +2,55 @@
 
 API specification of the Watcher's security-critical Service
 
+## Account - Get Utxos
+
+```shell
+http POST /account.get_utxos address=b3256026863eb6ae5b06fa396ab09069784ea8ea
+```
+
+```elixir
+// TODO
+```
+
+```javascript
+// TODO
+```
+
+> The above command returns JSON document:
+
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": [
+        {
+            "txindex": 1,
+            "owner": "B3256026863EB6AE5B06FA396AB09069784EA8EA",
+            "oindex": 0,
+            "currency": "0000000000000000000000000000000000000000",
+            "blknum": 1000,
+            "amount": 10
+        }
+    ]
+}
+```
+
+Gets all utxos belonging to the given address.
+<aside class="warning"> Note that this is a performance intensive call and should only be used if the chain is byzantine and the user needs to retrieve utxo information to be able to exit. Normally an application should use the Informational API `/account.get_utxos`. This version is provided in case the Informational API is not available.</aside> 
+
+
+### HTTP Request
+
+`POST /account.get_utxos`
+
+### JSON Body
+
+Key | Type | Description
+--------- | ------- | -----------
+address | Hex encoded string | Address of the account
+limit | Integer | Maximum number of utxos to return (optional)
+
+
 
 ## Utxo - Get Challenge Data
 
