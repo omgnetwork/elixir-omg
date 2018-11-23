@@ -32,10 +32,12 @@ defmodule OMG.RPC.Web.TestHelper do
     end
   end
 
-  def rest_call(method, path, params_or_body \\ nil, expected_resp_status \\ 200) do
+  def rpc_call(method, path, params_or_body \\ nil) do
     request = conn(method, path, params_or_body)
-    response = request |> send_request()
-    assert response.status == expected_resp_status
+    response = request |> send_request
+
+    assert response.status == 200
+
     Poison.decode!(response.resp_body)
   end
 

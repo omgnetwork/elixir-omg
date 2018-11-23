@@ -24,6 +24,7 @@ defmodule OMG.RPC.Integration.HappyPathTest do
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.Eth
+  alias OMG.RPC.Web.TestHelper
 
   @moduletag :integration
 
@@ -108,32 +109,19 @@ defmodule OMG.RPC.Integration.HappyPathTest do
   end
 
   defp submit_transaction(tx) do
-    rpc_call(:post, "/transaction.submit", %{transaction: Base.encode16(tx)})
+    TestHelper.rpc_call(:post, "/transaction.submit", %{transaction: Base.encode16(tx)})
+    |> get_body_data()
   end
 
   defp get_block(hash) do
-    rpc_call(:post, "/block.get", %{hash: Base.encode16(hash)})
+    TestHelper.rpc_call(:post, "/block.get", %{hash: Base.encode16(hash)})
+    |> get_body_data()
   end
 
-  # FIXME: stabilize, then replace w/ TestHelpers
-  def rpc_call(method, path, params_or_body \\ nil) do
-    request = conn(method, path, params_or_body)
-    response = request |> send_request
-    body = Poison.decode!(response.resp_body)
-
-    assert response.status == 200
-
-    body |> IO.inspect(pretty: true)
-
+  defp get_body_data(resp_body) do
     {
-      if(body["success"], do: :ok, else: :error),
-      body["data"]
+      if(resp_body["success"], do: :ok, else: :error),
+      resp_body["data"]
     }
-  end
-
-  defp send_request(req) do
-    req
-    |> put_private(:plug_skip_csrf_protection, true)
-    |> OMG.RPC.Web.Endpoint.call([])
   end
 end
