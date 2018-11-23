@@ -21,7 +21,24 @@ defmodule Mix.Tasks.Omg.ChildChain do
 
   @shortdoc "Start the child chain server. See Mix.Tasks.ChildChain"
 
-  def run(_) do
-    Mix.shell().cmd("cd apps/omg_api && iex -S mix run")
+  def run(args) do
+    args = ensure_contains(args, "--no-start")
+    args = ensure_doesnt_contains(args, "--no-halt")
+
+    Mix.Task.run("run", args)
+    Application.ensure_all_started(:omg_api)
   end
+
+  defp ensure_contains(args, arg) do
+    if !Enum.member?(args, arg) do
+      [arg | args]
+    else
+      args
+    end
+  end
+
+  defp ensure_doesnt_contains(args, arg) do
+    List.delete(args, arg)
+  end
+
 end

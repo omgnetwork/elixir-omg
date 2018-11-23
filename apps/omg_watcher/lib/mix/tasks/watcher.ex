@@ -24,16 +24,33 @@ defmodule Mix.Tasks.Omg.Watcher do
 
   @shortdoc "Starts the watcher. See Mix.Tasks.Watcher for possible options"
 
-  def run(["convenience"]) do
+  def run(["convenience" | args]) do
     Application.put_env(:omg_watcher, :convenience_api_mode, true, persistent: true)
-    start_watcher()
+    start_watcher(args)
   end
 
-  def run(_) do
-    start_watcher()
+  def run(args) do
+    start_watcher(args)
   end
 
-  defp start_watcher do
-    Mix.shell().cmd("cd apps/omg_watcher && iex -S mix run")
+  defp start_watcher(args) do
+    args = ensure_contains(args, "--no-start")
+    args = ensure_doesnt_contains(args, "--no-halt")
+
+    Mix.Task.run("run", args)
+    Application.ensure_all_started(:omg_watcher)
   end
+
+  defp ensure_contains(args, arg) do
+    if !Enum.member?(args, arg) do
+      [arg | args]
+    else
+      args
+    end
+  end
+
+  defp ensure_doesnt_contains(args, arg) do
+    List.delete(args, arg)
+  end
+
 end
