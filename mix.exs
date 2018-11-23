@@ -23,6 +23,7 @@ defmodule OMG.Umbrella.MixProject do
         ],
         flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
         plt_add_deps: :transitive,
+        plt_add_apps: [:mix],
         ignore_warnings: "dialyzer.ignore-warnings"
       ],
       test_coverage: [tool: ExCoveralls],
