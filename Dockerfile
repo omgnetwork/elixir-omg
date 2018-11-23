@@ -76,4 +76,4 @@ RUN apt-get purge -y
 
 USER plasma
 
-ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT ["./launcher.py"]

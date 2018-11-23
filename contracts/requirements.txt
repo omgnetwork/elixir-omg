@@ -1,3 +1,5 @@
+gitpython==2.1.11
 py-solc==3.1.0
 py-solc-simple==0.0.10
+requests==2.20.1
 semantic-version==2.6.0
