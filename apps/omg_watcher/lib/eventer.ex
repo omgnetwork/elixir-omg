@@ -21,10 +21,10 @@ defmodule OMG.Watcher.Eventer do
   See `OMG.API.EventerAPI` for the API to the GenServer
   """
 
-  # FIXME: http-client
   alias OMG.JSONRPC
   alias OMG.Watcher.Eventer.Core
   alias OMG.Watcher.Web.Endpoint
+  alias OMG.Watcher.Web.Serializer.Response
 
   ### Client
 
@@ -44,8 +44,11 @@ defmodule OMG.Watcher.Eventer do
     event_triggers
     |> Core.pair_events_with_topics()
     |> Enum.each(fn {topic, event_name, event} ->
-      # FIXME
-      :ok = Endpoint.broadcast!(topic, event_name, JSONRPC.Client.encode(event))
+      :ok = Endpoint.broadcast!(
+        topic,
+        event_name,
+        event |> Response.clean_artifacts()
+      )
     end)
 
     {:noreply, state}

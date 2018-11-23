@@ -20,7 +20,10 @@ config :logger, :console,
   metadata: [:request_id]
 
 # Use Jason for JSON parsing in Phoenix
-config :phoenix, :json_library, Poison
+config :phoenix,
+  json_library: Poison,
+  serve_endpoints: true,
+  persistent: true
 
 config :omg_rpc, :phoenix_swagger,
   swagger_files: %{

@@ -24,6 +24,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.API.State
   alias OMG.Eth
   alias OMG.Watcher.BlockGetter.Core
+  alias OMG.Watcher.ChildChainClient
   alias OMG.Watcher.DB
   alias OMG.Watcher.ExitProcessor
 
@@ -34,8 +35,7 @@ defmodule OMG.Watcher.BlockGetter do
           {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
   defp download_block(requested_number) do
     {:ok, {requested_hash, block_timestamp}} = Eth.RootChain.get_child_chain(requested_number)
-    # FIXME: http-client
-    response = OMG.JSONRPC.Client.call(:get_block, %{hash: requested_hash})
+    response = ChildChainClient.get_block(requested_hash)
 
     Core.validate_download_response(
       response,

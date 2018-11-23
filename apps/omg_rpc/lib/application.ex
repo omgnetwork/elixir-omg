@@ -18,18 +18,15 @@ defmodule OMG.RPC.Application do
   @moduledoc false
 
   use Application
+  use OMG.API.LoggerExt
 
   def start(_type, _args) do
-    # List all child processes to be supervised
     children = [
-      # Start the endpoint when the application starts
       OMG.RPC.Web.Endpoint
-      # Starts a worker by calling: OMG.RPC.Worker.start_link(arg)
-      # {OMG.RPC.Worker, arg},
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
+    _ = Logger.info(fn -> "Started application OMG.RPC.Application" end)
+
     opts = [strategy: :one_for_one, name: OMG.RPC.Supervisor]
     Supervisor.start_link(children, opts)
   end
