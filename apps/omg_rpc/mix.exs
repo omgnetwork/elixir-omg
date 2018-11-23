@@ -45,8 +45,8 @@ defmodule OMG.RPC.MixProject do
         git: "https://github.com/omisego/ex_unit_fixtures.git", branch: "feature/require_files_not_load", only: [:test]
       },
       #
-      {:omg_api, in_umbrella: true},
-      #{:omg_eth, in_umbrella: true, only: [:test]}
+      {:omg_api, in_umbrella: true}
+      # {:omg_eth, in_umbrella: true, only: [:test]}
     ]
   end
 end

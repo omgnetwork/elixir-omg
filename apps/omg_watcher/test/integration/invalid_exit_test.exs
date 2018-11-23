@@ -24,7 +24,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Eth
-  alias OMG.JSONRPC.Client  # FIXME: http-client
+  # FIXME: http-client
+  alias OMG.JSONRPC.Client
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper, as: Test

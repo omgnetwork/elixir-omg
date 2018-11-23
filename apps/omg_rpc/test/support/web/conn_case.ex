@@ -44,3 +44,5 @@ defmodule OMG.RPC.Web.ConnCase do
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end
+
+# FIXME: can be probably safely deleted

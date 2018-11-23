@@ -24,7 +24,8 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
     content =
       quote do
         use JSONRPC2.Server.Handler
-        alias OMG.JSONRPC.Client  # FIXME: http-client
+        # FIXME: http-client
+        alias OMG.JSONRPC.Client
 
         def port, do: 9657
 
@@ -53,7 +54,8 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
   This injects a bad child chain block serving into the stack, and schedules a cleanup
   Expected to be called from within test body. Can't be a fixture because of `bad_block` parameter
   """
-  def register_and_start_server(bad_block) do # FIXME
+  # FIXME
+  def register_and_start_server(bad_block) do
     {:module, module, _, _} = create_module(bad_block)
     JSONRPC2.Servers.HTTP.http(module, port: module.port())
 
