@@ -20,6 +20,8 @@ defmodule OMG.API.BlockQueue.CoreTest do
   import ExUnit.CaptureLog
   import OMG.API.BlockQueue.Core
 
+  alias OMG.API.BlockQueue.Core
+
   @child_block_interval 1000
 
   # responses from geth to simulate what we're getting from geth in `BlockQueue`
@@ -37,8 +39,9 @@ defmodule OMG.API.BlockQueue.CoreTest do
         parent_height: 1,
         child_block_interval: @child_block_interval,
         chain_start_parent_height: 1,
-        submit_period: 1,
-        finality_threshold: 12
+        minimal_enqueue_block_gap: 1,
+        finality_threshold: 12,
+        last_enqueued_block_at_height: 0
       )
 
     state
@@ -58,8 +61,9 @@ defmodule OMG.API.BlockQueue.CoreTest do
       parent_height: 10,
       child_block_interval: 1000,
       chain_start_parent_height: 1,
-      submit_period: 1,
-      finality_threshold: 12
+      minimal_enqueue_block_gap: 1,
+      finality_threshold: 12,
+      last_enqueued_block_at_height: 0
     )
   end
 
@@ -105,14 +109,15 @@ defmodule OMG.API.BlockQueue.CoreTest do
           parent_height: 6,
           child_block_interval: @child_block_interval,
           chain_start_parent_height: 1,
-          submit_period: 1,
-          finality_threshold: finality_threshold
+          minimal_enqueue_block_gap: 1,
+          finality_threshold: finality_threshold,
+          last_enqueued_block_at_height: 0
         )
 
       assert [%{hash: "7", nonce: 7}, %{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] = state |> get_blocks_to_submit()
 
       # simulate geth catching up
-      assert {:dont_form_block, new_state} = state |> set_ethereum_status(7, 7000)
+      assert {:dont_form_block, new_state} = state |> set_ethereum_status(7, 7000, true)
       assert [%{hash: "8", nonce: 8}, %{hash: "9", nonce: 9}] = new_state |> get_blocks_to_submit()
     end
 
@@ -133,8 +138,9 @@ defmodule OMG.API.BlockQueue.CoreTest do
           parent_height: 10,
           child_block_interval: 1000,
           chain_start_parent_height: 1,
-          submit_period: 1,
-          finality_threshold: 12
+          minimal_enqueue_block_gap: 1,
+          finality_threshold: 12,
+          last_enqueued_block_at_height: 0
         )
 
       assert [] == queue |> get_blocks_to_submit()
@@ -149,8 +155,9 @@ defmodule OMG.API.BlockQueue.CoreTest do
                  parent_height: 10,
                  child_block_interval: 1000,
                  chain_start_parent_height: 1,
-                 submit_period: 1,
-                 finality_threshold: 12
+                 minimal_enqueue_block_gap: 1,
+                 finality_threshold: 12,
+                 last_enqueued_block_at_height: 0
                )
     end
 
@@ -163,8 +170,9 @@ defmodule OMG.API.BlockQueue.CoreTest do
                  parent_height: 10,
                  child_block_interval: 1000,
                  chain_start_parent_height: 1,
-                 submit_period: 1,
-                 finality_threshold: 12
+                 minimal_enqueue_block_gap: 1,
+                 finality_threshold: 12,
+                 last_enqueued_block_at_height: 0
                )
     end
 
@@ -177,8 +185,9 @@ defmodule OMG.API.BlockQueue.CoreTest do
                  parent_height: 10,
                  child_block_interval: 1000,
                  chain_start_parent_height: 1,
-                 submit_period: 1,
-                 finality_threshold: 12
+                 minimal_enqueue_block_gap: 1,
+                 finality_threshold: 12,
+                 last_enqueued_block_at_height: 0
                )
     end
 
@@ -187,7 +196,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
       assert [%{hash: "1", nonce: 1}] = get_blocks_to_submit(state)
 
       assert [%{hash: "1", nonce: 1}, %{hash: "2", nonce: 2}] =
-               state |> enqueue_block("2", 2 * @child_block_interval) |> get_blocks_to_submit()
+               state |> enqueue_block("2", 2 * @child_block_interval, 0) |> get_blocks_to_submit()
     end
 
     test "Recovers after restart and is able to process more blocks" do
@@ -195,7 +204,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
                [{5000, "5"}, {6000, "6"}, {7000, "7"}, {8000, "8"}, {9000, "9"}]
                |> recover(7000)
                |> elem(1)
-               |> enqueue_block("10", 10 * @child_block_interval)
+               |> enqueue_block("10", 10 * @child_block_interval, 0)
                |> get_blocks_to_submit()
     end
 
@@ -210,9 +219,9 @@ defmodule OMG.API.BlockQueue.CoreTest do
     test "A new block is emitted ASAP" do
       assert [%{hash: "2", nonce: 2}] =
                empty()
-               |> set_ethereum_status(0, 1000)
+               |> set_ethereum_status(0, 1000, false)
                |> elem(1)
-               |> enqueue_block("2", 2 * @child_block_interval)
+               |> enqueue_block("2", 2 * @child_block_interval, 0)
                |> get_blocks_to_submit()
     end
 
@@ -220,46 +229,46 @@ defmodule OMG.API.BlockQueue.CoreTest do
     test "Produced child block numbers to form are as expected" do
       assert {:dont_form_block, queue} =
                empty()
-               |> set_ethereum_status(1, 0)
+               |> set_ethereum_status(1, 0, false)
 
       assert {:do_form_block, _} =
                queue
-               |> set_ethereum_status(2, 0)
+               |> set_ethereum_status(2, 0, false)
     end
 
     test "Produced child blocks to form aren't repeated, if none are enqueued" do
       assert {:do_form_block, queue} =
                empty()
-               |> set_ethereum_status(2, 0)
+               |> set_ethereum_status(2, 0, false)
 
       assert {:dont_form_block, _} =
                queue
-               |> set_ethereum_status(3, 0)
+               |> set_ethereum_status(3, 0, false)
     end
 
     test "Ethereum updates and enqueues can go interleaved" do
       # no enqueue after set_ethereum_status(1) so don't form block
       assert {:dont_form_block, queue} =
                empty()
-               |> set_ethereum_status(1, 0)
+               |> set_ethereum_status(1, 0, false)
                |> elem(1)
-               |> set_ethereum_status(2, 0)
+               |> set_ethereum_status(2, 0, false)
                |> elem(1)
-               |> set_ethereum_status(3, 0)
+               |> set_ethereum_status(3, 0, false)
 
       assert {:do_form_block, queue} =
                queue
-               |> enqueue_block("1", @child_block_interval)
-               |> set_ethereum_status(4, 0)
+               |> enqueue_block("1", @child_block_interval, 0)
+               |> set_ethereum_status(4, 0, false)
 
       assert {:dont_form_block, queue} =
                queue
-               |> set_ethereum_status(5, 0)
+               |> set_ethereum_status(5, 0, false)
 
       assert {:do_form_block, _queue} =
                queue
-               |> enqueue_block("2", 2 * @child_block_interval)
-               |> set_ethereum_status(6, 0)
+               |> enqueue_block("2", 2 * @child_block_interval, 0)
+               |> set_ethereum_status(6, 0, false)
     end
 
     # NOTE: theoretically the back off is ver hard to get - testing if this rare occasion doesn't make the state weird
@@ -267,78 +276,84 @@ defmodule OMG.API.BlockQueue.CoreTest do
       # no enqueue after set_ethereum_status(2) so don't form block
       assert {:dont_form_block, queue} =
                empty()
-               |> set_ethereum_status(1, 0)
+               |> set_ethereum_status(1, 0, false)
                |> elem(1)
-               |> set_ethereum_status(2, 0)
+               |> set_ethereum_status(2, 0, false)
                |> elem(1)
-               |> set_ethereum_status(1, 0)
+               |> set_ethereum_status(1, 0, false)
 
       assert {:do_form_block, queue} =
                queue
-               |> enqueue_block("1", @child_block_interval)
-               |> set_ethereum_status(3, 0)
+               |> enqueue_block("1", @child_block_interval, 0)
+               |> set_ethereum_status(3, 0, false)
 
       assert {:dont_form_block, queue} =
                queue
-               |> enqueue_block("2", 2 * @child_block_interval)
-               |> set_ethereum_status(2, 0)
+               |> enqueue_block("2", 2 * @child_block_interval, 1)
+               |> set_ethereum_status(2, 0, false)
 
       assert {:do_form_block, _queue} =
                queue
-               |> set_ethereum_status(4, 0)
+               |> set_ethereum_status(4, 0, false)
     end
 
     test "Block is not enqueued when number of enqueued block does not match expected block number" do
       {:error, :unexpected_block_number} =
         empty()
-        |> enqueue_block("1", 2 * @child_block_interval)
+        |> enqueue_block("1", 2 * @child_block_interval, 0)
     end
 
     test "Produced blocks submission requests have nonces in order" do
       assert [_, %{nonce: 2}] =
                empty()
-               |> set_ethereum_status(0, 0)
+               |> set_ethereum_status(0, 0, false)
                |> elem(1)
-               |> enqueue_block("1", @child_block_interval)
-               |> enqueue_block("2", 2 * @child_block_interval)
+               |> enqueue_block("1", @child_block_interval, 0)
+               |> enqueue_block("2", 2 * @child_block_interval, 0)
                |> get_blocks_to_submit()
     end
 
-    test "Block generation is driven by Ethereum height" do
+    test "Block generation is driven by last enqueued block Ethereum height and if block is empty or not" do
+      %Core{minimal_enqueue_block_gap: minimal_enqueue_block_gap, parent_height: parent_height} = empty()
+
+      assert {:dont_form_block, _} =
+               empty()
+               |> set_ethereum_status(parent_height + minimal_enqueue_block_gap, 0, true)
+
+      assert {:do_form_block, _} =
+               empty()
+               |> set_ethereum_status(parent_height + minimal_enqueue_block_gap, 0, false)
+
       assert {:dont_form_block, queue} =
                empty()
-               |> set_ethereum_status(1, 0)
+               |> set_ethereum_status(parent_height, 0, false)
 
       assert {:dont_form_block, queue} =
                queue
-               |> enqueue_block("1", @child_block_interval)
-               |> set_ethereum_status(0, 0)
+               |> enqueue_block("1", @child_block_interval, parent_height)
+               |> set_ethereum_status(parent_height, 0, false)
 
       assert {:dont_form_block, queue} =
                queue
-               |> set_ethereum_status(1, 0)
-
-      assert {:dont_form_block, queue} =
-               queue
-               |> set_ethereum_status(2, 0)
+               |> set_ethereum_status(parent_height + 1, 0, false)
 
       assert {:dont_form_block, _} =
                queue
-               |> enqueue_block("2", 2 * @child_block_interval)
-               |> set_ethereum_status(2, 0)
+               |> enqueue_block("2", 2 * @child_block_interval, parent_height + 2)
+               |> set_ethereum_status(parent_height + 2, 0, false)
     end
 
     test "Smoke test" do
       assert {:dont_form_block, queue} =
                empty()
-               |> set_ethereum_status(0, 0)
+               |> set_ethereum_status(0, 0, false)
                |> elem(1)
-               |> enqueue_block("1", 1 * @child_block_interval)
-               |> enqueue_block("2", 2 * @child_block_interval)
-               |> enqueue_block("3", 3 * @child_block_interval)
-               |> enqueue_block("4", 4 * @child_block_interval)
-               |> enqueue_block("5", 5 * @child_block_interval)
-               |> set_ethereum_status(3, 2000)
+               |> enqueue_block("1", 1 * @child_block_interval, 0)
+               |> enqueue_block("2", 2 * @child_block_interval, 1)
+               |> enqueue_block("3", 3 * @child_block_interval, 2)
+               |> enqueue_block("4", 4 * @child_block_interval, 3)
+               |> enqueue_block("5", 5 * @child_block_interval, 4)
+               |> set_ethereum_status(3, 2000, false)
 
       assert [%{hash: "3", nonce: 3}, %{hash: "4", nonce: 4}, %{hash: "5", nonce: 5}] = queue |> get_blocks_to_submit()
     end
@@ -358,7 +373,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
       # here we suddenly mine the child blocks and the GCing should happen
       long_mined_size =
         long
-        |> set_ethereum_status(long_length, (long_length - short_length) * 1000)
+        |> set_ethereum_status(long_length, (long_length - short_length) * 1000, false)
         |> elem(1)
         |> :erlang.term_to_binary()
         |> byte_size()
@@ -372,10 +387,10 @@ defmodule OMG.API.BlockQueue.CoreTest do
     {:dont_form_block, queue} =
       2..length
       |> Enum.reduce(empty(), fn hash, state ->
-        {:do_form_block, state} = set_ethereum_status(state, hash, 0)
-        enqueue_block(state, hash, (hash - 1) * @child_block_interval)
+        {:do_form_block, state} = set_ethereum_status(state, hash, 0, false)
+        enqueue_block(state, hash, (hash - 1) * @child_block_interval, hash - 1)
       end)
-      |> set_ethereum_status(length, 0)
+      |> set_ethereum_status(length, 0, false)
 
     queue
   end
@@ -385,7 +400,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
 
     {:dont_form_block, state} =
       state
-      |> set_ethereum_status(1, 3)
+      |> set_ethereum_status(1, 3, false)
 
     # assertions - to be explicit how state looks like
     assert {1, 3} = state.gas_price_adj_params.last_block_mined
@@ -397,7 +412,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
     test "Calling with empty state will initailize gas information" do
       {:dont_form_block, state} =
         empty()
-        |> set_ethereum_status(1, 0)
+        |> set_ethereum_status(1, 0, false)
 
       gas_params = state.gas_price_adj_params
       assert gas_params != nil
@@ -413,7 +428,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
 
       {:dont_form_block, newstate} =
         state
-        |> set_ethereum_status(1, 0)
+        |> set_ethereum_status(1, 0, false)
 
       assert current_height == newstate.parent_height
       assert current_price == newstate.gas_price_to_use
@@ -426,7 +441,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
 
       {:do_form_block, newstate} =
         state
-        |> set_ethereum_status(2, 0)
+        |> set_ethereum_status(2, 0, false)
 
       assert current_price > newstate.gas_price_to_use
 
@@ -441,7 +456,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
 
       {:do_form_block, newstate} =
         state
-        |> set_ethereum_status(1 + eth_gap, 0)
+        |> set_ethereum_status(1 + eth_gap, 0, false)
 
       assert current_price < newstate.gas_price_to_use
 
@@ -456,20 +471,20 @@ defmodule OMG.API.BlockQueue.CoreTest do
 
       {:do_form_block, state2} =
         state1
-        |> set_ethereum_status(2, 0)
+        |> set_ethereum_status(2, 0, false)
 
       assert state.gas_price_to_use > state2.gas_price_to_use
 
       {:dont_form_block, state3} =
         state2
-        |> set_ethereum_status(3, 0)
+        |> set_ethereum_status(3, 0, false)
 
       assert state2.gas_price_to_use > state3.gas_price_to_use
 
       # Now the ethereum block gap without child blocks is reached
       {:dont_form_block, state4} =
         state2
-        |> set_ethereum_status(4, 0)
+        |> set_ethereum_status(4, 0, false)
 
       assert state3.gas_price_to_use < state4.gas_price_to_use
     end
@@ -483,7 +498,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
 
       {:do_form_block, newstate} =
         state1
-        |> set_ethereum_status(1 + eth_gap, 0)
+        |> set_ethereum_status(1 + eth_gap, 0, false)
 
       assert expected_max_price == newstate.gas_price_to_use
     end

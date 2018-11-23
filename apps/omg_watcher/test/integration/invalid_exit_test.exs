@@ -102,6 +102,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     assert {:ok, {API.Crypto.zero_address(), @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
 
+    Process.sleep(5_000)
+
     # re subscribe fresh, so we don't get old events in the socket
     Process.unlink(event_socket.channel_pid)
     :ok = close(event_socket)

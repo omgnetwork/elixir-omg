@@ -285,11 +285,6 @@ defmodule OMG.API.State.Core do
    - processes pending txs gathered, updates height etc
   """
   @spec form_block(pos_integer(), state :: t()) :: {:ok, {Block.t(), [tx_event], [db_update]}, new_state :: t()}
-  def form_block(_, %Core{pending_txs: [], height: height} = state) do
-    block = Block.hashed_txs_at([], height)
-    {:ok, {block, [], []}, state}
-  end
-
   def form_block(child_block_interval, %Core{pending_txs: reverse_txs, height: height} = state) do
     txs = Enum.reverse(reverse_txs)
 

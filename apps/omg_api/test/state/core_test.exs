@@ -28,6 +28,7 @@ defmodule OMG.API.State.CoreTest do
   @child_block_interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
   @child_block_2 @child_block_interval * 2
   @child_block_3 @child_block_interval * 3
+  @child_block_4 @child_block_interval * 4
 
   @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232, 237, 80, 242, 60, 209, 253, 249, 76,
                       145, 84, 237, 58, 118, 9, 162, 241, 255, 152, 31>>
@@ -237,15 +238,13 @@ defmodule OMG.API.State.CoreTest do
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can spend after block is formed", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    state =
-      state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
-      |> success?
-
-    assert {:ok, {_, [_trigger], _}, state} = form_block_check(state, @child_block_interval)
+    next_block_height = @child_block_2
+    {:ok, {_, _, _}, state} = form_block_check(state, @child_block_interval)
 
     state
-    |> (&Core.exec(Test.create_recovered([{@child_block_interval, 0, 0, bob}], eth(), [{bob, 7}]), zero_fees_map(), &1)).()
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+    |> success?
+    |> (&Core.exec(Test.create_recovered([{next_block_height, 0, 0, bob}], eth(), [{bob, 7}]), zero_fees_map(), &1)).()
     |> success?
   end
 
@@ -311,7 +310,7 @@ defmodule OMG.API.State.CoreTest do
     |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
     |> same?(state)
 
-    assert {:ok, _, _} = form_block_empty_check(state, @child_block_interval)
+    assert {:ok, {_, [], _}, _} = form_block_check(state, @child_block_interval)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -323,7 +322,7 @@ defmodule OMG.API.State.CoreTest do
              Core.deposit([%{owner: alice, currency: eth(), amount: 4, blknum: @child_block_interval}], state)
 
     assert trigger == %{deposit: %{owner: alice, amount: 4}}
-    assert {:ok, _, _} = form_block_empty_check(state, @child_block_interval)
+    assert {:ok, {_, [], _}, _} = form_block_check(state, @child_block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -339,7 +338,7 @@ defmodule OMG.API.State.CoreTest do
 
     assert {:ok, {_, [_trigger], _}, state} = form_block_check(state, @child_block_interval)
 
-    assert {:ok, _, _} = form_block_empty_check(state, @child_block_interval, @child_block_2)
+    assert {:ok, {_, [], _}, _} = form_block_check(state, @child_block_interval)
   end
 
   @tag fixtures: [:stable_alice, :stable_bob, :state_stable_alice_deposit]
@@ -390,13 +389,17 @@ defmodule OMG.API.State.CoreTest do
       |> success?
 
     {:ok, {_, _, _}, state} = form_block_check(state, @child_block_interval)
+    expected_block = empty_block(@child_block_2)
 
-    assert {:ok, _, _} = form_block_empty_check(state, @child_block_interval, @child_block_2)
+    assert {:ok, {^expected_block, _, _}, _} = form_block_check(state, @child_block_interval)
   end
 
   @tag fixtures: [:state_empty]
   test "no pending transactions at start (no events, empty block, no db updates)", %{state_empty: state} do
-    assert {:ok, _, _} = form_block_empty_check(state, @child_block_interval)
+    expected_block = empty_block()
+
+    assert {:ok, {^expected_block, [], [{:put, :block, _}, {:put, :child_top_block_number, @child_block_interval}]},
+            _state} = form_block_check(state, @child_block_interval)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -422,7 +425,8 @@ defmodule OMG.API.State.CoreTest do
     assert new_utxo1 == {{@child_block_interval, 0, 0}, %{owner: bob.addr, currency: eth(), amount: 7}}
     assert new_utxo2 == {{@child_block_interval, 0, 1}, %{owner: alice.addr, currency: eth(), amount: 3}}
 
-    assert {:ok, _, state} = form_block_empty_check(state, @child_block_interval, @child_block_2)
+    assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_2}]}, state} =
+             form_block_check(state, @child_block_interval)
 
     # check double inputey-spends
     {:ok, {_, _, db_updates2}, state} =
@@ -442,12 +446,13 @@ defmodule OMG.API.State.CoreTest do
              {:delete, :utxo, {@child_block_interval, 0, 0}},
              {:delete, :utxo, {@child_block_interval, 0, 1}},
              {:put, :block, _},
-             {:put, :child_top_block_number, @child_block_2}
+             {:put, :child_top_block_number, @child_block_3}
            ] = db_updates2
 
-    assert new_utxo == {{@child_block_2, 0, 0}, %{owner: bob.addr, currency: eth(), amount: 10}}
+    assert new_utxo == {{@child_block_3, 0, 0}, %{owner: bob.addr, currency: eth(), amount: 10}}
 
-    assert {:ok, _, _} = form_block_empty_check(state, @child_block_interval, @child_block_3)
+    assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_4}]}, _} =
+             form_block_check(state, @child_block_interval)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -461,7 +466,8 @@ defmodule OMG.API.State.CoreTest do
     assert utxo_update == {:put, :utxo, {{1, 0, 0}, %{owner: alice.addr, currency: eth(), amount: 10}}}
     assert height_update == {:put, :last_deposit_child_blknum, 1}
 
-    assert {:ok, _, _} = form_block_empty_check(state, @child_block_interval)
+    assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_interval}]}, _} =
+             form_block_check(state, @child_block_interval)
   end
 
   @tag fixtures: [:alice]
@@ -581,26 +587,12 @@ defmodule OMG.API.State.CoreTest do
     assert blknum == @child_block_interval
   end
 
-  @tag fixtures: [:alice, :bob, :state_alice_deposit]
-  test "Getting current block height with one formed block", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    state =
-      state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
-      |> success?
-
-    assert {:ok, {_, [_trigger], _}, state} = form_block_check(state, @child_block_interval)
-
-    {blknum, true} = Core.get_status(state)
-
-    assert blknum == @child_block_interval + @child_block_interval
-  end
-
   @tag fixtures: [:state_empty]
-  test "Getting current block height after attempt of creating empty block", %{state_empty: state} do
-    {:ok, _, new_state} = state |> form_block_empty_check(@child_block_interval)
+  test "Getting current block height with one formed block", %{state_empty: state} do
+    {:ok, {_, _, _}, new_state} = state |> form_block_check(@child_block_interval)
     {blknum, true} = Core.get_status(new_state)
 
-    assert blknum == @child_block_interval
+    assert blknum == @child_block_interval + @child_block_interval
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -776,12 +768,8 @@ defmodule OMG.API.State.CoreTest do
     state
   end
 
-  defp form_block_empty_check(state, child_block_interval, number \\ @child_block_interval) do
-    empty_block = %Block{transactions: [], hash: @empty_block_hash, number: number}
-
-    assert {_, {^empty_block, [], []}, _} = result = Core.form_block(child_block_interval, state)
-
-    result
+  defp empty_block(number \\ @child_block_interval) do
+    %Block{transactions: [], hash: @empty_block_hash, number: number}
   end
 
   # used to check the invariants in form_block
