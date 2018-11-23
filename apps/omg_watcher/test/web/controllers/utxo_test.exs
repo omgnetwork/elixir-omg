@@ -197,6 +197,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
       "result" => "success"
     } = TestHelper.rest_call(:get, "/utxo/#{utxo_pos}/exit_data")
 
+    # NOTE: this is hex-encoded binary, raw-binary proof is 512 bytes
     assert <<_proof::bytes-size(1024)>> = proof
   end
 
