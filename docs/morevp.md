@@ -436,7 +436,7 @@ $$
 Two transactions are competing if they have at least one input in common.
 
 $$
-competing(t, t’) = I(t) \cap I(t’) \neg \varnothing
+competing(t, t’) = I(t) \cap I(t’) \neq \varnothing
 $$
 
 The set of competitors to a transaction is therefore every other transaction competing with the transaction in question.
