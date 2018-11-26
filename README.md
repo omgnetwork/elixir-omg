@@ -187,8 +187,7 @@ You need to re-initialize the database, in case you want to start a new child ch
 * Start Up the child chain server:
 
 ```bash
-cd apps/omg_api
-iex -S mix run --config ~/config.exs
+iex -S mix omg.child_chain --config ~/config.exs 
 ```
 
 ### Setting up a Watcher (a developer environment)
@@ -225,17 +224,16 @@ config :omg_db,
 
 ```bash
 rm -rf ~/.omg/data_watcher
-cd apps/omg_watcher
 mix ecto.reset --no-start
 mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
 ```
 
 #### Start the Watcher
 
-To start syncing to the Child chain server (continue from the `apps/omg_watcher` directory):
+To start syncing to the Child chain server:
 
 ```bash
-iex -S mix run --config ~/config_watcher.exs
+iex -S mix omg.watcher --config ~/config_watcher.exs 
 ```
 
 ### Follow the demos
