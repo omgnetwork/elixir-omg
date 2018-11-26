@@ -45,8 +45,10 @@ defmodule OMG.Eth.DevHelpers do
 
     with {:ok, _} <- Application.ensure_all_started(:ethereumex),
          {:ok, authority} <- create_and_fund_authority_addr(opts),
-         {:ok, _} = deploy_result <- Eth.RootChain.create_new(root_path, authority),
-         {:ok, txhash, contract_addr} <- Eth.DevHelpers.deploy_sync!(deploy_result) do
+         {:ok, [addr | _]} <- Ethereumex.HttpClient.eth_accounts(),
+         {:ok, _} = deploy_result <- Eth.RootChain.create_new(root_path, from_hex(addr)),
+         {:ok, txhash, contract_addr} <- Eth.DevHelpers.deploy_sync!(deploy_result),
+         {:ok, _} <- Eth.RootChain.init(authority, contract_addr) |> Eth.DevHelpers.transact_sync!() do
       %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
     else
       {:error, :econnrefused} = error ->

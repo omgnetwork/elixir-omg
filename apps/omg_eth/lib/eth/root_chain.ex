@@ -116,11 +116,22 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
-  def create_new(path_project_root, addr, opts \\ []) do
-    opts = @tx_defaults |> Keyword.merge(opts)
+  def create_new(path_project_root, from, opts \\ []) do
+    defaults = @tx_defaults |> Keyword.put(:gas, 6_180_000)
+    opts = defaults |> Keyword.merge(opts)
 
     bytecode = Eth.get_bytecode!(path_project_root, "RootChain")
-    Eth.deploy_contract(addr, bytecode, [], [], opts)
+    Eth.deploy_contract(from, bytecode, [], [], opts)
+  end
+
+  def init(from \\ nil, contract \\ nil, opts \\ []) do
+    defaults = @tx_defaults |> Keyword.put(:gas, 1_000_000)
+    opts = defaults |> Keyword.merge(opts)
+
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
+
+    Eth.contract_transact(from, contract, "init()", [], opts)
   end
 
   ########################
@@ -135,15 +146,16 @@ defmodule OMG.Eth.RootChain do
   """
   def get_current_child_block(contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    Eth.call_contract(contract, "currentChildBlock()", [], [{:uint, 256}])
+    Eth.call_contract(contract, "nextChildBlock()", [], [{:uint, 256}])
   end
 
   @doc """
   Returns blknum that was already mined by operator (with exception for 0)
   """
   def get_mined_child_block(contract \\ nil) do
-    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    with {:ok, next} <- Eth.call_contract(contract, "currentChildBlock()", [], [{:uint, 256}]), do: {:ok, next - 1000}
+    with {:ok, next} <- get_current_child_block(contract),
+         {:ok, interval} <- get_child_block_interval(),
+         do: {:ok, next - interval}
   end
 
   def authority(contract \\ nil) do
@@ -161,7 +173,7 @@ defmodule OMG.Eth.RootChain do
 
   def get_child_chain(blknum, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    Eth.call_contract(contract, "getChildChain(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
+    Eth.call_contract(contract, "blocks(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
   end
 
   def has_token(token, contract \\ nil) do
