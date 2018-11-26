@@ -49,7 +49,9 @@ class ChildchainLauncher:
         ''' Deploy the smart contract and populate the ~/config.exs file
         '''
         result = subprocess.run(
-            ['./deploy_and_populate.sh'], stdout=subprocess.PIPE
+            ['./deploy_and_populate.sh'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
         )
         if result.returncode == 0:
             logging.info(
@@ -68,7 +70,8 @@ class ChildchainLauncher:
         '''
         result = subprocess.run(
             ["mix", "run", "--no-start", "-e", "'OMG.DB.init()'"],
-            stdout=subprocess.PIPE
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
         )
         if result.returncode == 0:
             logging.info('Childchain database initialised')
