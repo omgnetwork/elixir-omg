@@ -238,25 +238,34 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_exit_started/1)}
   end
 
+  defp get_inflight_data(hash) do
+    {:ok, eth_tx} = Ethereumex.HttpClient.eth_get_transaction_by_hash(hash)
+    <<"0x", encode_inflight::binary>> = eth_tx["input"]
+
+    ABI.decode(
+      %ABI.FunctionSelector{
+        function: "startInFlightExit",
+        types: [:bytes, :bytes, :bytes, :bytes],
+        method_id: <<132, 97, 33, 149>>
+      },
+      encode_inflight |> Base.decode16!(case: :lower)
+    )
+  end
+
   @doc """
   Returns InFlightExit from a range of blocks.
   """
   def get_in_flight_exit_starts(block_from, block_to, contract \\ nil) do
-    IO.puts("aske for get in flight exit starts")
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "InFlightExitStarted(address,bytes32)"
 
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
-         do:
-           {:ok,
-            logs
-            |> Enum.map(fn log ->
-              Eth.parse_events_with_indexed_fields(
-                log,
-                {[:txHash], [{:bytes, 32}]},
-                {[:initiator], [:address]}
-              )
-            end)}
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract) do
+      {:ok,
+       logs
+       |> Enum.map(fn log ->
+         get_inflight_data(log["transactionHash"])
+       end)}
+    end
   end
 
   @doc """
