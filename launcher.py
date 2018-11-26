@@ -19,7 +19,7 @@ class ChildchainLauncher:
     def start(self):
         ''' Start the launch process for the Childchain service
         '''
-        logging.info('Service type to launch is Plasma Childchain')
+        logging.info('Service type to launch is Elixir Childchain')
         logging.info(
             'Starting launch process for build {}'.format(self.git_commit_hash)
         )
@@ -28,7 +28,7 @@ class ChildchainLauncher:
         if self.compile_application() is False:
             logging.critical('Could not compile application. Exiting.')
             sys.exit(1)
-        if self.deploy_plasma_contract() is False:
+        if self.deploy_contract() is False:
             logging.critical('Contract not deployed. Exiting.')
             sys.exit(1)
         if self.initialise_childchain_database() is False:
@@ -45,7 +45,7 @@ class ChildchainLauncher:
             return True
         return False
 
-    def deploy_plasma_contract(self) -> bool:
+    def deploy_contract(self) -> bool:
         ''' Deploy the smart contract and populate the ~/config.exs file
         '''
         result = subprocess.run(
@@ -137,7 +137,7 @@ def get_environment_variables() -> dict:
     '''
     repo = git.Repo(search_parent_directories=True)
     return {
-        'plasma_service': os.getenv('PLASMA_SERVICE'),
+        'elixir_service': os.getenv('ELIXIR_SERVICE'),
         'platform': os.getenv('PLATFORM'),
         'git_commit_hash': repo.head.object.hexsha
     }
@@ -158,14 +158,14 @@ def main():
     '''
     logging.info('Starting Launcher')
     environment_variables = get_environment_variables()
-    if environment_variables['plasma_service'] == 'CHILDCHAIN':
+    if environment_variables['elixir_service'] == 'CHILDCHAIN':
         childchain = ChildchainLauncher(
             environment_variables['git_commit_hash'],
             environment_variables['platform']
         )
         childchain.start()
         return
-    logging.error('Plasma service to execute not provided')
+    logging.error('Elixir service to execute not provided')
 
 
 if __name__ == '__main__':
