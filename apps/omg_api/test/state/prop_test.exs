@@ -30,7 +30,7 @@ defmodule OMG.API.State.PropTest do
   propcheck see: [propcheck](https://github.com/alfert/propcheck)
 
   important:
-   - command can be added from diffrent file, by elixir ```use``` with a little macro magic.
+   - command can be added from different file, by elixir ```use``` with a little macro magic.
      example:
   > new_comand.ex
        ```

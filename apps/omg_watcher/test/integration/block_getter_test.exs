@@ -144,7 +144,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth, eth_height: exit_eth_height}]} ==
              Eth.RootChain.get_exits(0, exit_eth_height)
 
-    IntegrationTest.wait_for_current_block_fetch(@timeout)
+    # Here we're waiting for watcher to process the exits
+    Process.sleep(1_00)
 
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
 
@@ -275,25 +276,15 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
   test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit unchallenged_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}} do
-    margin_slow_validator =
-      Application.get_env(:omg_watcher, :margin_slow_validator) * Application.get_env(:omg_eth, :child_block_interval)
-
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: exit_blknum}} = Client.call(:submit, %{transaction: tx})
 
-    # Here we calcualted bad_block_number by adding `exit_blknum` and 2 * `margin_slow_validator`
-    # to have guarantee that bad_block_number will be after margoin of slow validator(m_sv)
-    bad_block_number = exit_blknum + margin_slow_validator * 2
+    # Here we're preparing invalid block
     bad_tx = API.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    bad_block_number = 2_000
 
     %{hash: bad_block_hash, number: _, transactions: _} =
       bad_block = API.Block.hashed_txs_at([bad_tx], bad_block_number)
-
-    # Here we manually submiting invalid block with big/future nonce to the Rootchain to make
-    # the Rootchain to mine invalid block instead of block submitted by child chain
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-    nonce = div(bad_block_number, child_block_interval)
-    {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, nonce, 1)
 
     # from now on the child chain server is broken until end of test
     OMG.Watcher.Integration.BadChildChainServer.register_and_start_server(bad_block)
@@ -318,6 +309,13 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
+
+    # Here we're waiting for passing of margin of slow validator(m_sv)
+    margin_slow_validator = Application.get_env(:omg_watcher, :margin_slow_validator)
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + margin_slow_validator, @timeout)
+
+    # Here we're manually submitting invalid block to the root chain
+    {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
 
     assert capture_log(fn ->
              assert_block_getter_down()
