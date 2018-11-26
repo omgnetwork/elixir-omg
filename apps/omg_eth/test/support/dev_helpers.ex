@@ -39,9 +39,12 @@ defmodule OMG.Eth.DevHelpers do
 
    - `root_path` should point to `elixir-omg` root or wherever where `./contracts/build` holds the compiled contracts
   """
-  def prepare_env!(root_path \\ "./") do
+  def prepare_env!(opts \\ []) do
+    opts = Keyword.merge([root_path: "./"], opts)
+    %{root_path: root_path} = Enum.into(opts, %{})
+
     with {:ok, _} <- Application.ensure_all_started(:ethereumex),
-         {:ok, authority} <- create_and_fund_authority_addr(),
+         {:ok, authority} <- create_and_fund_authority_addr(opts),
          {:ok, _} = deploy_result <- Eth.RootChain.create_new(root_path, authority),
          {:ok, txhash, contract_addr} <- Eth.DevHelpers.deploy_sync!(deploy_result) do
       %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
@@ -65,9 +68,9 @@ defmodule OMG.Eth.DevHelpers do
     """
   end
 
-  def create_and_fund_authority_addr do
+  def create_and_fund_authority_addr(opts \\ []) do
     with {:ok, authority} <- Ethereumex.HttpClient.request("personal_newAccount", [@passphrase], []),
-         {:ok, _} <- unlock_fund(authority) do
+         {:ok, _} <- unlock_fund(authority, opts) do
       {:ok, from_hex(authority)}
     end
   end
@@ -76,11 +79,11 @@ defmodule OMG.Eth.DevHelpers do
   Will take a map with eth-account information (from &generate_entity/0) and then
   import priv key->unlock->fund with lots of ether on that account
   """
-  def import_unlock_fund(%{priv: account_priv}) do
+  def import_unlock_fund(%{priv: account_priv}, opts \\ []) do
     account_priv_enc = Base.encode16(account_priv)
 
     {:ok, account_enc} = Ethereumex.HttpClient.request("personal_importRawKey", [account_priv_enc, @passphrase], [])
-    {:ok, _} = unlock_fund(account_enc)
+    {:ok, _} = unlock_fund(account_enc, opts)
 
     {:ok, from_hex(account_enc)}
   end
@@ -91,7 +94,8 @@ defmodule OMG.Eth.DevHelpers do
   """
   @spec transact_sync!({:ok, Eth.hash()}) :: {:ok, map}
   def transact_sync!({:ok, txhash} = _transaction_submission_result) do
-    {:ok, %{"status" => "0x1"}} = WaitFor.eth_receipt(txhash, @about_4_blocks_time)
+    {:ok, %{"status" => "0x1"} = result} = WaitFor.eth_receipt(txhash, @about_4_blocks_time)
+    {:ok, result |> Map.update!("blockNumber", &int_from_hex(&1))}
   end
 
   @doc """
@@ -105,13 +109,19 @@ defmodule OMG.Eth.DevHelpers do
 
   # private
 
-  defp unlock_fund(account_enc) do
+  defp unlock_fund(account_enc, opts) do
+    {:ok, [default_faucet | _]} = Ethereumex.HttpClient.eth_accounts()
+    defaults = [faucet: default_faucet, initial_funds: @one_hundred_eth]
+
+    %{faucet: faucet, initial_funds: initial_funds} =
+      defaults
+      |> Keyword.merge(opts)
+      |> Enum.into(%{})
+
     {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [account_enc, @passphrase, 0], [])
 
-    {:ok, [eth_source_address | _]} = Ethereumex.HttpClient.eth_accounts()
-
     {:ok, tx_fund} =
-      %{from: eth_source_address, to: account_enc, value: to_hex(@one_hundred_eth)}
+      %{from: faucet, to: account_enc, value: to_hex(initial_funds)}
       |> Ethereumex.HttpClient.eth_send_transaction()
 
     tx_fund |> from_hex() |> WaitFor.eth_receipt(@about_4_blocks_time)

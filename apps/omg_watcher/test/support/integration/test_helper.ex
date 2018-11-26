@@ -43,10 +43,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
 
   def wait_for_current_block_fetch(timeout) do
     {:ok, current_child_block} = Eth.RootChain.get_current_child_block()
-
-    one_block = Application.get_env(:omg_eth, :child_block_interval)
-
-    wait_for_block_fetch(current_child_block + one_block, timeout)
+    wait_for_block_fetch(current_child_block, timeout)
   end
 
   def wait_for_block_fetch(block_nr, timeout) do

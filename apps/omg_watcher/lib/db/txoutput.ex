@@ -55,7 +55,7 @@ defmodule OMG.Watcher.DB.TxOutput do
       else: {:error, :no_tx_for_given_blknum}
   end
 
-  def compose_utxo_exit(txs, Utxo.position(_blknum, txindex, _) = decoded_utxo_pos) do
+  defp compose_utxo_exit(txs, Utxo.position(_blknum, txindex, _) = decoded_utxo_pos) do
     sorted_txs = Enum.sort_by(txs, & &1.txindex)
     txs_hashes = Enum.map(sorted_txs, & &1.txhash)
     proof = Block.create_tx_proof(txs_hashes, txindex)

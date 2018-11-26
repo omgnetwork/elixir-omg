@@ -13,13 +13,6 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.ExitProcessor do
-  # TODO: - handle challenge events
-  # TODO: - handle finalize events. Check if a block spending finalized exit is byzantine
-  # TODO: - handle finalization of invalid exits (should not remove event, turn to `is_active` and ensure it signals?)
-  # TODO: - atomicity of `OMG.DB.multi_updates` (new/challenge/finalize exits, close_block, EthEventListener in gen.)
-  # TODO: - merge invalid exit (1st case) test with challenge exit test (integration tests)
-  # TODO: structify a tracked exit in Exit module
-
   @moduledoc """
   Encapsulates managing and executing the behaviors related to treating exits by the child chain and watchers
   Keeps a state of exits that are in progress, updates it with news from the root chain, compares to the
@@ -42,18 +35,33 @@ defmodule OMG.Watcher.ExitProcessor do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
+  @doc """
+  Accepts events and processes them in the state - new exits are tracked.
+  Returns `db_updates` due and relies on the caller to do persistence
+  """
   def new_exits(exits) do
     GenServer.call(__MODULE__, {:new_exits, exits})
   end
 
+  @doc """
+  Accepts events and processes them in the state - finalized exits are untracked _if valid_ otherwise raises alert
+  Returns `db_updates` due and relies on the caller to do persistence
+  """
   def finalize_exits(exits) do
     GenServer.call(__MODULE__, {:finalize_exits, exits})
   end
 
+  @doc """
+  Accepts events and processes them in the state - challenged exits are untracked
+  Returns `db_updates` due and relies on the caller to do persistence
+  """
   def challenge_exits(exits) do
     GenServer.call(__MODULE__, {:challenge_exits, exits})
   end
 
+  @doc """
+  Checks validity and causes event emission to `OMG.Watcher.Eventer`. Works with `OMG.API.State` to discern validity
+  """
   def check_validity do
     GenServer.call(__MODULE__, :check_validity)
   end
@@ -76,24 +84,21 @@ defmodule OMG.Watcher.ExitProcessor do
       end)
 
     {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
-    :ok = DB.multi_update(db_updates)
     _ = OMG.Watcher.DB.EthEvent.insert_exits(exits)
-    {:reply, :ok, new_state}
+    {:reply, {:ok, db_updates}, new_state}
   end
 
   def handle_call({:finalize_exits, exits}, _from, state) do
-    {new_state, db_updates, to_spend} = Core.finalize_exits(state, exits)
-    Enum.each(to_spend, &State.exit_utxos/1)
-    :ok = DB.multi_update(db_updates)
-    {:reply, :ok, new_state}
+    {:ok, db_updates_from_state, validities} = State.exit_utxos(exits)
+
+    {new_state, db_updates} = Core.finalize_exits(state, validities)
+
+    {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end
 
-  def handle_call({:challenge_exits, _exits}, _from, state) do
-    # TODO: implement
-    # {new_state, db_updates} = Core.challenge_exits(state, exits)
-    {new_state, db_updates} = {state, []}
-    :ok = DB.multi_update(db_updates)
-    {:reply, :ok, new_state}
+  def handle_call({:challenge_exits, exits}, _from, state) do
+    {new_state, db_updates} = Core.challenge_exits(state, exits)
+    {:reply, {:ok, db_updates}, new_state}
   end
 
   def handle_call(:check_validity, _from, state) do

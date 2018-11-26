@@ -35,9 +35,8 @@ defmodule OMG.Eth do
 
   def get_ethereum_height do
     case Ethereumex.HttpClient.eth_block_number() do
-      {:ok, "0x" <> height_hex} ->
-        {height, ""} = Integer.parse(height_hex, 16)
-        {:ok, height}
+      {:ok, height_hex} ->
+        {:ok, int_from_hex(height_hex)}
 
       other ->
         other
@@ -198,10 +197,8 @@ defmodule OMG.Eth do
     |> common_parse_event(log)
   end
 
-  defp common_parse_event(result, %{"blockNumber" => "0x" <> eth_height}) do
-    {eth_height_int, ""} = Integer.parse(eth_height, 16)
-
+  defp common_parse_event(result, %{"blockNumber" => eth_height}) do
     result
-    |> Map.put(:eth_height, eth_height_int)
+    |> Map.put(:eth_height, int_from_hex(eth_height))
   end
 end

@@ -24,6 +24,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   alias OMG.API.Utxo
   alias OMG.Eth
   alias OMG.JSONRPC.Client
+  alias OMG.Watcher
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
 
   require Utxo
@@ -95,6 +96,22 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
              }
            ] = IntegrationTest.get_utxos(alice)
 
+    # alice checks whether she can IFE in case her tx gets lost
+    tx = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
+    # FIXME: do full integration - use the HTTP-RPC endpoint instead of Elixir API
+    assert {:ok, in_flight_exit_info} = Watcher.API.get_in_flight_exit(tx)
+
+    {:ok, %{"status" => "0x1"}} =
+      Eth.RootChain.start_in_flight_exit(
+      in_flight_exit_info[:in_flight_tx],
+      in_flight_exit_info[:input_txs],
+      in_flight_exit_info[:input_txs_inclusion_proofs],
+      in_flight_exit_info[:in_flight_tx_sigs]
+      )
+      |> Eth.DevHelpers.transact_sync!()
+
+    # alice exits her regular utxo
+
     %{
       "utxo_pos" => utxo_pos,
       "txbytes" => txbytes,
@@ -102,7 +119,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       "sigs" => sigs
     } = IntegrationTest.get_exit_data(block_nr, 0, 0)
 
-    {:ok, txhash1} =
+    {:ok, %{"status" => "0x1"}} =
       Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
@@ -110,8 +127,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
         sigs,
         alice.addr
       )
-
-    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash1, @timeout)
+      |> Eth.DevHelpers.transact_sync!()
 
     IntegrationTest.wait_for_current_block_fetch(@timeout)
 
@@ -120,15 +136,14 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     # finally alice exits her token deposit
     deposit_pos = Utxo.position(token_deposit_blknum, 0, 0) |> Utxo.Position.encode()
 
-    {:ok, txhash2} =
+    {:ok, %{"status" => "0x1"}} =
       Eth.RootChain.start_deposit_exit(
         deposit_pos,
         token,
         10,
         alice.addr
       )
-
-    {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash2, @timeout)
+      |> Eth.DevHelpers.transact_sync!()
 
     IntegrationTest.wait_for_current_block_fetch(@timeout)
 

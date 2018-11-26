@@ -223,7 +223,7 @@ defmodule OMG.Performance do
     spenders
     |> Enum.with_index(1)
     |> Enum.map(fn {spender, index} ->
-      :ok = OMG.API.State.deposit([%{owner: spender.addr, currency: @eth, amount: ntx_to_send, blknum: index}])
+      {:ok, _} = OMG.API.State.deposit([%{owner: spender.addr, currency: @eth, amount: ntx_to_send, blknum: index}])
 
       utxo_pos = Utxo.position(index, 0, 0) |> Utxo.Position.encode()
       %{owner: spender, utxo_pos: utxo_pos, amount: ntx_to_send}

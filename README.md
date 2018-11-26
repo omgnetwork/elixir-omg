@@ -103,15 +103,25 @@ If you don't already have access to a developer instance of `geth`, follow the [
 A developer instance of `geth` runs Ethereum locally and prefunds an account.
 However, when `geth` terminates, the state of the Ethereum network is lost.
 
-```
+```bash
 geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0
 ```
 
 ##### Persistent developer `geth` instance
 Alternatively, a persistent developer instance that does not lose state can be started with the following command:
-```
+```bash
 geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0 --datadir ~/.geth
 ```
+
+#### Connecting to a non-dev chain
+
+Another alternative might be running the whole setup on some official testnet, ex. `rinkeby`.
+
+```bash
+geth --rinkeby --rpc --rpcapi personal,web3,eth,net  --rpcaddr 127.0.0.1
+```
+
+**NOTE** Contrary to working with developer instance, operator's account must be manually funded with testnet Ether.
 
 #### Prepare and configure the root chain contract
 
@@ -123,7 +133,7 @@ The following step will:
 Note that `geth` needs to already be running for this step to work!
 
 From the root dir of `elixir-omg`:
-```
+```bash
 mix compile
 mix run --no-start -e \
  '
@@ -133,7 +143,7 @@ mix run --no-start -e \
 ```
 
 The result should look something like this (use `cat ~/config.exs` to check):
-```
+```elixir
 use Mix.Config
 config :omg_eth,
   contract_addr: "0x005f49af1af9eee6da214e768683e1cc8ab222ac",
@@ -146,17 +156,25 @@ Note that you'll need to pass the configuration file each time you run `mix` wit
 
 **NOTE** If you're using persistent `geth` and `geth` is restarted after the above step, the authority account must be unlocked again:
 
-```
+```bash
 geth attach http://127.0.0.1:8545
 personal.unlockAccount(“<authority_addr from ~/config.exs>”, 'ThisIsATestnetPassphrase', 0)
 ```
 The passphrase mentioned above originates from [`dev_helpers`](apps/omg_eth/test/support/dev_helpers.ex).
 It is what is used when deploying the contract in the `dev` environment using `prepare_env!()` as above.
 
+##### Deployment on non-dev chain
+
+The above configuration assumes that the contract is deployed on a dev instance of  `geth` which has unlimited `Eth` supply.
+To deploy `child chain` on in an environment with limited `Eth` provide `:faucet` and `:initial_funds` options to `prepare_env!` function.
+
+**NOTE**: the faucet account must first be unlocked and funded
+**NOTE**: the newly created `authority` address needs refunding from time to time (preferably done by `geth attach`)
+    
 #### Initialize the child chain database
 Initialize the database with the following command.
 **CAUTION** This wipes the old data clean!:
-```
+```bash
 rm -rf ~/.omg/data
 mix run --no-start -e 'OMG.DB.init()'
 ```
@@ -168,7 +186,7 @@ You need to re-initialize the database, in case you want to start a new child ch
 * Start up geth if not already started.
 * Start Up the child chain server:
 
-```
+```bash
 cd apps/omg_api
 iex -S mix run --config ~/config.exs
 ```
@@ -179,7 +197,7 @@ This assumes that you've got a developer environment Child chain server set up a
 
 #### Configure the PostgreSQL server with:
 
-```
+```bash
 sudo -u postgres createuser omisego_dev
 sudo -u postgres psql
 alter user omisego_dev with encrypted password 'omisego_dev';
@@ -190,13 +208,13 @@ ALTER USER omisego_dev CREATEDB;
 
 Copy the configuration file used by the Child chain server to `~/config_watcher.exs`
 
-```
+```bash
 cp ~/config.exs ~/config_watcher.exs
 ```
 
 You need to use a **different** location of the `OMG.DB` for the Watcher, so in `~/config_watcher.exs` append the following:
 
-```
+```elixir
 config :omg_db,
   leveldb_path: Path.join([System.get_env("HOME"), ".omg/data_watcher"])
 ```
@@ -205,7 +223,7 @@ config :omg_db,
 
 **CAUTION** This wipes the old data clean!
 
-```
+```bash
 rm -rf ~/.omg/data_watcher
 cd apps/omg_watcher
 mix ecto.reset --no-start
@@ -216,7 +234,7 @@ mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
 
 To start syncing to the Child chain server (continue from the `apps/omg_watcher` directory):
 
-```
+```bash
 iex -S mix run --config ~/config_watcher.exs
 ```
 
@@ -225,7 +243,7 @@ After starting the child chain server and/or Watcher as above, you may follow th
 Note that some steps should be performed in the Elixir shell (iex) and some in the shell directly.
 
 To start a configured instance of the `iex` REPL, from the `elixir-omg` root directory do:
-```
+```bash
 iex -S mix run --no-start --config ~/config.exs
 ```
 
@@ -397,7 +415,7 @@ Events:
 `address_spent` event informing about that particular address spent funds.
 
 Blocks are validated by the Watcher after a short (not-easily-configurable) finality margin. By consequence, above events will be emitted no earlier than that finality margin.
-In case extra finality is required for high-stakes transactions, the client is free to wait any number of Ethereum blocks (confirmations) on top of submitted_at_ethheight
+In case extra finality is required for high-stakes transactions, the client is free to wait any number of Ethereum blocks (confirmations) on top of `submitted_at_ethheight`.
 
 ```json
 {
@@ -405,6 +423,7 @@ In case extra finality is required for high-stakes transactions, the client is f
   "ref": null,
   "payload": {
     "child_blknum": 10000,
+    "child_txindex": 12,
     "child_block_hash": "DB32876CC6F26E96B9291682F3AF4A04C2AA2269747839F14F1A8C529CF90225",
     "submited_at_ethheight": 14,
     "tx": {
@@ -510,7 +529,7 @@ pip install -r contracts/requirements.txt
 
 Contracts will compile automatically as a regular mix dependency.
 To compile contracts manually:
-```
+```bash
 mix deps.compile plasma_contracts
 ```
 
@@ -525,18 +544,18 @@ see [a better pip workflow^TM here](https://www.kennethreitz.org/essays/a-better
 # Testing & development
 
 Quick test (no integration tests):
-```
+```bash
 mix test
 ```
 
 Longer-running integration tests (requires compiling contracts):
-```
+```bash
 mix test --only integration
 ```
 
 For other kinds of checks, refer to the CI/CD pipeline (`Jenkinsfile`).
 
 To run a development `iex` REPL with all code loaded:
-```
+```bash
 iex -S mix run --no-start
 ```

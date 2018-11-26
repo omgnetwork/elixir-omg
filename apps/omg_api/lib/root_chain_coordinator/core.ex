@@ -36,12 +36,12 @@ defmodule OMG.API.RootChainCoordinator.Core do
 
   @doc """
   Initializes core.
-  `allowed_services` - set of names of services that are being synchronized
+  `allowed_services` - names of services that are being synchronized
   `root_chain_height` - current root chain height
   """
-  @spec init(MapSet.t(), non_neg_integer()) :: t()
+  @spec init(list(atom), non_neg_integer()) :: t()
   def init(allowed_services, root_chain_height) do
-    %__MODULE__{allowed_services: allowed_services, root_chain_height: root_chain_height}
+    %__MODULE__{allowed_services: MapSet.new(allowed_services), root_chain_height: root_chain_height}
   end
 
   @doc """

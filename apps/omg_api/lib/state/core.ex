@@ -72,7 +72,12 @@ defmodule OMG.API.State.Core do
   @type exit_event :: %{
           exit: %{owner: Crypto.address_t(), blknum: pos_integer, txindex: non_neg_integer, oindex: non_neg_integer}
         }
-  @type tx_event :: %{tx: Transaction.Recovered.t(), child_blknum: pos_integer, child_block_hash: Block.block_hash_t()}
+  @type tx_event :: %{
+          tx: Transaction.Recovered.t(),
+          child_blknum: pos_integer,
+          child_txindex: pos_integer,
+          child_block_hash: Block.block_hash_t()
+        }
 
   @type db_update ::
           {:put, :utxo, {{pos_integer, non_neg_integer, non_neg_integer}, map}}
@@ -295,8 +300,9 @@ defmodule OMG.API.State.Core do
 
     event_triggers =
       txs
-      |> Enum.map(fn tx ->
-        %{tx: tx, child_blknum: block.number, child_block_hash: block.hash}
+      |> Enum.with_index()
+      |> Enum.map(fn {tx, index} ->
+        %{tx: tx, child_blknum: block.number, child_txindex: index, child_block_hash: block.hash}
       end)
 
     db_updates_new_utxos =
@@ -403,7 +409,7 @@ defmodule OMG.API.State.Core do
   bare `EthereumEventListener` or `ExitProcessor`
   """
   @spec exit_utxos(exiting_utxos :: [Utxo.Position.t()] | [exit_t()], state :: t()) ::
-          {:ok, {[exit_event], [db_update]}, new_state :: t()}
+          {:ok, {[exit_event], [db_update], {list(Utxo.Position.t()), list(Utxo.Position.t())}}, new_state :: t()}
   def exit_utxos([%{utxo_pos: _} | _] = exit_infos, %Core{} = state) do
     exit_infos
     |> Enum.map(&Utxo.Position.decode(&1.utxo_pos))
@@ -411,18 +417,20 @@ defmodule OMG.API.State.Core do
   end
 
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
-    exiting_utxos = Enum.filter(exiting_utxos, &utxo_exists?(&1, state))
+    _ = if exiting_utxos != [], do: Logger.info(fn -> "Recognized exits #{inspect(exiting_utxos)}" end)
+
+    {valid, _invalid} = validities = Enum.split_with(exiting_utxos, &utxo_exists?(&1, state))
 
     {event_triggers, db_updates} =
-      exiting_utxos
+      valid
       |> Enum.map(fn Utxo.position(blknum, txindex, oindex) = utxo_pos ->
         {%{exit: %{owner: utxos[utxo_pos].owner, utxo_pos: utxo_pos}}, {:delete, :utxo, {blknum, txindex, oindex}}}
       end)
       |> Enum.unzip()
 
-    new_state = %{state | utxos: Map.drop(utxos, exiting_utxos)}
+    new_state = %{state | utxos: Map.drop(utxos, valid)}
 
-    {:ok, {event_triggers, db_updates}, new_state}
+    {:ok, {event_triggers, db_updates, validities}, new_state}
   end
 
   @doc """

@@ -8,7 +8,7 @@ podTemplate(
             image: 'omisegoimages/blockchain-base:1.6-otp20',
             args: '${computer.jnlpmac} ${computer.name}',
             alwaysPullImage: true,
-            resourceRequestCpu: '500m',
+            resourceRequestCpu: '1500m',
             resourceLimitCpu: '2000m',
             resourceRequestMemory: '1024Mi',
             resourceLimitMemory: '2048Mi'
@@ -16,7 +16,7 @@ podTemplate(
         containerTemplate(
             name: 'postgresql',
             image: 'postgres:9.6.9-alpine',
-            resourceRequestCpu: '300m',
+            resourceRequestCpu: '250m',
             resourceLimitCpu: '800m',
             resourceRequestMemory: '512Mi',
             resourceLimitMemory: '1024Mi',
