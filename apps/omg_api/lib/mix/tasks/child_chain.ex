@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Mix.Tasks.Xomg.ChildChain do
+defmodule Mix.Tasks.Xomg.ChildChain.Start do
   @moduledoc """
     Contains mix.task to run the child chain server
   """

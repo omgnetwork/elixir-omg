@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Mix.Tasks.Xomg.Watcher do
+defmodule Mix.Tasks.Xomg.Watcher.Start do
   @moduledoc """
     Contains mix.task to run the watcher in different modes:
-      a) mix xomg.watcher ----> security critical
-      b) mix xomg.watcher convenience ----> security critical + convenience api
+      a) mix xomg.watcher.start ----> security critical
+      b) mix xomg.watcher.start --convenience ----> security critical + convenience api
 
     See the docs/TODO file.
   """
@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Xomg.Watcher do
 
   @shortdoc "Starts the watcher. See Mix.Tasks.Watcher for possible options"
 
-  def run(["convenience" | args]) do
+  def run(["--convenience" | args]) do
     Application.put_env(:omg_watcher, :convenience_api_mode, true, persistent: true)
     start_watcher(args)
   end

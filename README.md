@@ -187,7 +187,7 @@ You need to re-initialize the database, in case you want to start a new child ch
 * Start Up the child chain server:
 
 ```bash
-iex -S mix xomg.child_chain --config ~/config.exs 
+iex -S mix xomg.child_chain.start --config ~/config.exs 
 ```
 
 ### Setting up a Watcher (a developer environment)
@@ -233,11 +233,11 @@ mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
 It is possible to run the watcher in two different modes:
 - The first is `security critical` mode.
 ```bash
-iex -S mix xomg.watcher --config ~/config_watcher.exs 
+iex -S mix xomg.watcher.start --config ~/config_watcher.exs 
 ```
 - The second is `security critical` + `convenience` mode.
 ```bash
-iex -S mix xomg.watcher convenience --config ~/config_watcher.exs 
+iex -S mix xomg.watcher.start --convenience --config ~/config_watcher.exs 
 ```
 
 See docs/TODO for more details about watcher modes.
