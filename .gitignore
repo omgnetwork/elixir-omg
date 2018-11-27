@@ -1,0 +1,49 @@
+# The directory Mix will write compiled artifacts to.
+/_build/
+
+# If you run "mix test --cover", coverage assets end up here.
+/cover/
+
+# app-specific coverage results go to their respective apps
+/apps/*/cover/
+
+# The directory Mix downloads your dependencies sources to.
+/deps/
+
+# Where 3rd-party dependencies like ExDoc output generated docs.
+/doc/
+
+# Ignore .fetch files in case you like to edit your project deps locally.
+/.fetch
+
+# If the VM crashes, it generates a dump, let's ignore it too.
+erl_crash.dump
+
+# Also ignore archive artifacts (built via "mix archive.build").
+*.ez
+
+contracts/build/
+
+# Dev sqllite db
+*ecto_simple.sqlite3*
+
+Makefile
+
+# Developers config file
+your_config_file.exs
+
+# results of perftesting and profiling with default arguments
+fprof.trace
+perf_result_*
+
+*.statistics
+
+# Common virtualenv directory
+env/
+
+# Elixirls data directory
+.elixir_ls
+
+apps/omg_watcher/priv/static/swagger.json
+
+Gemfile.lock
