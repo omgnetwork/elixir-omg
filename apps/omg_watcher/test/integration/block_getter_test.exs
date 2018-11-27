@@ -26,12 +26,12 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Eth
-  # FIXME: http-client
-  alias OMG.JSONRPC.Client
+  alias OMG.Watcher.ChildChainClient
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Web.Channel
+  alias OMG.Watcher.Web.Serializer.Response
 
   import ExUnit.CaptureLog
 
@@ -67,11 +67,11 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       subscribe_and_join(socket(), Channel.Transfer, TestHelper.create_topic("transfer", alice_address))
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
-    {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: block_nr}} = ChildChainClient.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(block_nr, @timeout)
 
-    encode_tx = Client.encode(tx)
+    encode_tx = Base.encode16(tx)
 
     assert [
              %{
@@ -102,22 +102,24 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     event_eth_height = get_block_submitted_event_height(block_nr)
 
     address_received_event =
-      Client.encode(%Event.AddressReceived{
+      %Event.AddressReceived{
         tx: recovered_tx,
         child_blknum: block_nr,
         child_txindex: 0,
         child_block_hash: block_hash,
         submited_at_ethheight: event_eth_height
-      })
+      }
+      |> Response.clean_artifacts()
 
     address_spent_event =
-      Client.encode(%Event.AddressSpent{
+    %Event.AddressSpent{
         tx: recovered_tx,
         child_blknum: block_nr,
         child_txindex: 0,
         child_block_hash: block_hash,
         submited_at_ethheight: event_eth_height
-      })
+      }
+      |> Response.clean_artifacts()
 
     assert_push("address_received", ^address_received_event)
 
@@ -150,7 +152,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
 
-    {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
+    {:error, {:response, %{"code" => "submit::utxo_not_found"}}} = ChildChainClient.submit(tx2)
   end
 
   defp get_block_submitted_event_height(block_number) do
@@ -169,7 +171,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     token_tx = API.TestHelper.create_encoded([{token_deposit_blknum, 0, 0, alice}], token, [{alice, 10}])
 
     # spend the token deposit
-    {:ok, %{blknum: spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
+    {:ok, %{blknum: spend_token_child_block}} = ChildChainClient.submit(token_tx)
 
     IntegrationTest.wait_for_block_fetch(spend_token_child_block, @timeout)
 
@@ -325,13 +327,15 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
            end) =~ inspect(:unchallenged_exit)
 
     unchallenged_exit_event =
-      Client.encode(%Event.UnchallengedExit{
+      %Event.UnchallengedExit{
         amount: 10,
         currency: @eth,
         owner: alice.addr,
         utxo_pos: utxo_pos,
         eth_height: eth_height
-      })
+      }
+      |> Response.clean_artifacts()
+      |> Poison.encode()
 
     assert_push("unchallenged_exit", ^unchallenged_exit_event)
   end
