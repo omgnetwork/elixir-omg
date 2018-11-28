@@ -10,6 +10,11 @@ toc_footers:
   - <a href='https://github.com/lord/slate'>Documentation Powered by Slate</a>
 
 includes:
+  - operator_api_specs
+  - watcher_api_specs
+  - watcher_websocket_specs
+  - informational_api_specs
+  - integration_libraries
 
 search: true
 ---
