@@ -2,8 +2,8 @@ FROM ubuntu:16.04
 
 MAINTAINER Jake Bunce <jake@omise.co>
 
-ARG USER=plasma
-ARG GROUP=plasma
+ARG USER=elixir-user
+ARG GROUP=elixir-user
 ARG UID=1000
 ARG GID=1000
 ARG HOME=/home/$USER
@@ -38,18 +38,19 @@ RUN rm erlang-solutions_1.0_all.deb
 
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-RUN usermod -aG sudo plasma
+RUN usermod -aG sudo elixir-user
 
-COPY . /home/plasma/elixir-omg/
+COPY . /home/elixir-user/elixir-omg/
 
-RUN chown -R plasma:plasma /home/plasma
+RUN chown -R elixir-user:elixir-user /home/elixir-user
 
-USER plasma
+USER elixir-user
 
 ENV LC_ALL=C.UTF-8
-ENV LANG=C.UTF-8 
+ENV LANG=C.UTF-8
+ENV HEX_HTTP_TIMEOUT=240 
 
-WORKDIR /home/plasma/elixir-omg/
+WORKDIR /home/elixir-user/elixir-omg/
 
 RUN wget https://github.com/ethereum/solidity/releases/download/v0.4.25/solc-static-linux \
   && chmod +x solc-static-linux \
@@ -61,7 +62,7 @@ RUN sudo -H pip3 install --upgrade pip \
   && sudo -H -n pip3 install -r contracts/requirements.txt \
   && sudo -H -n pip3 install requests gitpython
 
-WORKDIR /home/plasma/elixir-omg/
+WORKDIR /home/elixir-user/elixir-omg/
 
 RUN mix do local.hex --force, local.rebar --force
 
@@ -71,10 +72,10 @@ RUN mix compile
 
 USER root
 
-RUN deluser plasma sudo
+RUN deluser elixir-user sudo
 
 RUN apt-get purge -y 
 
-USER plasma
+USER elixir-user
 
 ENTRYPOINT ["./launcher.py"]

@@ -39,7 +39,7 @@ class ChildchainLauncher:
     def compile_application(self) -> bool:
         ''' Execute a mix compile
         '''
-        result = subprocess.run(['mix', 'compile'], stdout=subprocess.DEVNULL)
+        result = subprocess.run(['mix', 'compile'])
         if result.returncode == 0:
             logging.info('Elixir mix compile successful')
             return True
@@ -68,10 +68,12 @@ class ChildchainLauncher:
     def initialise_childchain_database(self) -> bool:
         ''' Initialise the childchian database (chain data store)
         '''
+        sys.stdout.flush()
         result = subprocess.run(
-            ["mix", "run", "--no-start", "-e", "'OMG.DB.init()'"],
+            "mix run --no-start -e 'OMG.DB.init()'",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            shell=True
         )
         if result.returncode == 0:
             logging.info('Childchain database initialised')
@@ -88,10 +90,7 @@ class ChildchainLauncher:
         '''
         os.chdir(os.getcwd() + '/apps/omg_api')
         process = subprocess.Popen(
-            [
-                "/usr/local/bin/iex ", "-S ", "mix", "run", "--config",
-                "~/config.exs"
-            ],
+            'mix run --no-halt --config ~/config.exs',
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True
