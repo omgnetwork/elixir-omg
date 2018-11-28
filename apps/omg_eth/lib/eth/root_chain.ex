@@ -73,8 +73,8 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(
       from,
       contract,
-      "startExit(uint256,bytes,bytes,bytes)",
-      [utxo_position, txbytes, proof, sigs],
+      "startStandardExit(uint192,bytes,bytes)",
+      [utxo_position, txbytes, proof],
       opts
     )
   end
