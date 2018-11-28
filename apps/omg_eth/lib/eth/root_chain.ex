@@ -25,6 +25,8 @@ defmodule OMG.Eth.RootChain do
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
+  @deposit_created_signature "DepositCreated(address,uint256,address,uint256)"
+
   @type optional_addr_t() :: <<_::160>> | nil
 
   @spec submit_block(binary, pos_integer, pos_integer, optional_addr_t(), optional_addr_t()) ::
@@ -77,8 +79,8 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  def deposit(value, from, contract \\ nil, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, 80_000)
+  def deposit(tx, value, from, contract \\ nil, opts \\ []) do
+    defaults = @tx_defaults |> Keyword.put(:gas, 180_000)
 
     opts =
       defaults
@@ -86,16 +88,15 @@ defmodule OMG.Eth.RootChain do
       |> Keyword.put(:value, value)
 
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    Eth.contract_transact(from, contract, "deposit()", [], opts)
+    Eth.contract_transact(from, contract, "deposit(bytes)", [tx], opts)
   end
 
-  def deposit_token(from, token, amount, contract \\ nil, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, 150_000)
+  def deposit_from(tx, from, contract \\ nil, opts \\ []) do
+    defaults = @tx_defaults |> Keyword.put(:gas, 250_000)
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    signature = "depositFrom(address,uint256)"
-    Eth.contract_transact(from, contract, signature, [token, amount], opts)
+    Eth.contract_transact(from, contract, "depositFrom(bytes)", [tx], opts)
   end
 
   def add_token(token, contract \\ nil, opts \\ []) do
@@ -190,7 +191,7 @@ defmodule OMG.Eth.RootChain do
   """
   def get_deposits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    signature = "Deposit(address,uint256,address,uint256)"
+    signature = @deposit_created_signature
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &decode_deposit/1)}
@@ -241,10 +242,10 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_deposit(log) do
-    non_indexed_keys = [:currency, :amount]
-    non_indexed_key_types = [:address, {:uint, 256}]
-    indexed_keys = [:owner, :blknum]
-    indexed_keys_types = [:address, {:uint, 256}]
+    non_indexed_keys = [:amount]
+    non_indexed_key_types = [{:uint, 256}]
+    indexed_keys = [:owner, :blknum, :currency]
+    indexed_keys_types = [:address, {:uint, 256}, :address]
 
     Eth.parse_events_with_indexed_fields(
       log,
@@ -328,7 +329,7 @@ defmodule OMG.Eth.RootChain do
 
   def deposit_blknum_from_receipt(%{"logs" => logs}) do
     topic =
-      "Deposit(address,uint256,address,uint256)"
+      @deposit_created_signature
       |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
       |> to_hex()
 
