@@ -15,6 +15,7 @@ includes:
   - watcher_websocket_specs
   - informational_api_specs
   - integration_libraries
+  - errors
 
 search: true
 ---
