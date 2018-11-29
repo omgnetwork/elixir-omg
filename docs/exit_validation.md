@@ -164,7 +164,15 @@ These spends that fail cause a byzantine chain condition (`unchallenged_exit`)
 
 Any IFE started might be one such that the user should piggyback onto.
 
-This happens when an input or an output of the in-flight transaction submitted mentions the user as owner.
+This action should be prompted/enabled if all are satisfied:
+
+ - an input or an output of the in-flight transaction submitted mentions the user as owner
+ - for owned inputs - the in-flight transaction has inputs owned by others (which might have double-spent making the potentially tx non-canonical)
+ - for owned outputs - the in-flight transaction has inputs included in a valid, seen block (otherwise these might be IFE done as part of a DDoS attack by the operator and have no chance in succeeding).
+ Details:
+ > If watcher does not perform such check, operator can use it as a part of his own DoS of Ethereum.
+ By creating IFE with a tx: `{inputs: from_withhold_block, outputs: [A1, A2, A3, A4]}` operator can provoke four Alices to do a piggyback, amplifying it's own gas investment, creating a DDoS out of his own DoS.
+
 
 (**NOTE** this will also occur if it is the very user that has started the IFE, see section [**In-flight transaction tracking**](./exit_validation.md#in-flight-transaction-tracking))
 
