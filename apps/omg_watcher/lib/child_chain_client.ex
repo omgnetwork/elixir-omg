@@ -19,6 +19,8 @@ defmodule OMG.Watcher.ChildChainClient do
 
   alias OMG.API.State.Transaction
 
+  use OMG.API.LoggerExt
+
   @doc """
   Gets Block of given hash
   """
@@ -27,7 +29,7 @@ defmodule OMG.Watcher.ChildChainClient do
     %{hash: Base.encode16(hash)}
     |> rpc_post("block.get")
     |> get_response_body()
-    |> to_response()
+    |> decode_response()
   end
 
   @doc """
@@ -38,49 +40,56 @@ defmodule OMG.Watcher.ChildChainClient do
     %{transaction: Base.encode16(tx)}
     |> rpc_post("transaction.submit")
     |> get_response_body()
-    |> to_response()
+    |> decode_response()
   end
 
-  # Makes HTTP POST request to the API
-  defp rpc_post(body, path) do
-    url = "#{Application.get_env(:omg_watcher, :child_chain_url)}/#{path}"
+  @doc """
+  Makes HTTP POST request to the API
+  """
+  def rpc_post(body, path, url \\ nil) do
+    url = url || Application.get_env(:omg_watcher, :child_chain_url)
+    addr = "#{url}/#{path}"
     headers = [{"content-type", "application/json"}]
 
     with {:ok, body} <- Poison.encode(body),
-         {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(url, body, headers) do
+         {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
+      Logger.info(fn -> "ChildChain rpc post #{inspect(addr)} completed successfully" end)
       response
+    else
+      err ->
+        Logger.error(fn -> "ChildChain rpc post #{inspect(addr)} failed with #{inspect(err)}" end)
+        err
     end
   end
 
   # Translates response's body to known elixir structure, either block or tx submission response or error.
-  defp to_response({:ok, %{transactions: transactions, number: number, hash: hash}}) do
+  defp decode_response({:ok, %{transactions: transactions, number: number, hash: hash}}) do
     {:ok,
-      %{
-        number: number,
-        hash: Base.decode16!(hash),
-        transactions: Enum.map(transactions, &Base.decode16!/1)
-      }
-    }
+     %{
+       number: number,
+       hash: Base.decode16!(hash),
+       transactions: Enum.map(transactions, &Base.decode16!/1)
+     }}
   end
 
-  defp to_response({:ok, %{tx_hash: _hash} = response}) do
-    {:ok,
-      Map.update!(response, :tx_hash, &Base.decode16!/1)
-    }
+  defp decode_response({:ok, %{tx_hash: _hash} = response}) do
+    {:ok, Map.update!(response, :tx_hash, &Base.decode16!/1)}
   end
 
-  defp to_response(error), do: error
+  defp decode_response(error), do: error
 
-  # Retrieves body from response structure. When response is successfull
-  # the structure in body is known, so we can try to deserialize it.
-  defp get_response_body(%HTTPoison.Response{status_code: 200, body: body}) do
+  @doc """
+  Retrieves body from response structure. When response is successfull
+  the structure in body is known, so we can try to deserialize it.
+  """
+  def get_response_body(%HTTPoison.Response{status_code: 200, body: body}) do
     parse_body(body)
   end
 
-  defp get_response_body(%HTTPoison.Response{body: error}),
+  def get_response_body(%HTTPoison.Response{body: error}),
     do: {:error, {:server_error, error}}
 
-  defp get_response_body(error), do: {:error, {:rpc_post, error}}
+  def get_response_body(error), do: {:error, {:rpc_post, error}}
 
   defp parse_body(raw_body) do
     with {:ok, response} <- Poison.decode(raw_body),

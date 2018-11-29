@@ -190,4 +190,26 @@ defmodule OMG.Watcher.Fixtures do
     ]
     |> Enum.flat_map(prepare_f)
   end
+
+  deffixture test_server do
+    alias FakeServer.HTTP.Server
+    alias FakeServer.Agents.EnvAgent
+
+    {:ok, server_id, port} = Server.run()
+    env = FakeServer.Env.new(port)
+
+    EnvAgent.save_env(server_id, env)
+
+    real_address = Application.get_env(:omg_watcher, :child_chain_url)
+    fake_address = "http://#{env.ip}:#{env.port}"
+
+    on_exit(fn ->
+      Application.put_env(:omg_watcher, :child_chain_url, real_address)
+
+      Server.stop(server_id)
+      EnvAgent.delete_env(server_id)
+    end)
+
+    {real_address, fake_address, server_id}
+  end
 end
