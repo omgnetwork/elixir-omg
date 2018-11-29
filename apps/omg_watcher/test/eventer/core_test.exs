@@ -28,7 +28,7 @@ defmodule OMG.Watcher.Eventer.CoreTest do
   @tag fixtures: [:alice, :bob]
   test "notify function generates 2 proper address_received events", %{alice: alice, bob: bob} do
     recovered_tx =
-      API.TestHelper.create_recovered([alice, bob], [{1, 0, 0}, {2, 0, 0}], [
+      API.TestHelper.create_recovered([{1, 0, 0, alice}, {2, 0, 0, bob}], [
         {alice, API.Crypto.zero_address(), 100},
         {bob, API.Crypto.zero_address(), 5}
       ])
@@ -51,7 +51,7 @@ defmodule OMG.Watcher.Eventer.CoreTest do
 
   @tag fixtures: [:alice, :bob]
   test "prepare_events function generates 1 proper address_received events", %{alice: alice} do
-    recovered_tx = API.TestHelper.create_recovered([alice], [{1, 0, 0}], [{alice, API.Crypto.zero_address(), 100}])
+    recovered_tx = API.TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, API.Crypto.zero_address(), 100}])
 
     {:ok, encoded_alice_address} = Crypto.encode_address(alice.addr)
     topic = TestHelper.create_topic("transfer", encoded_alice_address)

@@ -229,7 +229,7 @@ defmodule OMG.API.State.TransactionTest do
   @tag fixtures: [:alice, :bob, :carol]
   test "checks if spenders are authorized", %{alice: alice, bob: bob, carol: carol} do
     authorized_tx =
-      TestHelper.create_recovered([alice, bob], [{1, 1, 0}, {1, 3, 0}], [
+      TestHelper.create_recovered([{1, 1, 0, alice}, {1, 3, 0, bob}], [
         {bob, eth(), 6},
         {alice, eth(), 4}
       ])

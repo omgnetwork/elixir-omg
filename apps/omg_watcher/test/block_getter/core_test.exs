@@ -92,7 +92,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   } do
     block =
       Block.hashed_txs_at(
-        [API.TestHelper.create_recovered([alice], [{1, 0, 0}], [{bob, @eth, 7}, {alice, @eth, 3}])],
+        [API.TestHelper.create_recovered([{1, 0, 0, alice}], [{bob, @eth, 7}, {alice, @eth, 3}])],
         26_000
       )
 
@@ -115,8 +115,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     block =
       Block.hashed_txs_at(
         [
-          API.TestHelper.create_recovered([alice], [{1, 0, 0}], [{bob, other_currency, 7}, {alice, other_currency, 3}]),
-          API.TestHelper.create_recovered([alice], [{2, 0, 0}], [{bob, @eth, 7}, {alice, @eth, 3}])
+          API.TestHelper.create_recovered([{1, 0, 0, alice}], [{bob, other_currency, 7}, {alice, other_currency, 3}]),
+          API.TestHelper.create_recovered([{2, 0, 0, alice}], [{bob, @eth, 7}, {alice, @eth, 3}])
         ],
         26_000
       )
@@ -152,7 +152,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     block = %Block{
       Block.hashed_txs_at(
-        [API.TestHelper.create_recovered([alice], [{1_000, 20, 0}], [{alice, @eth, 100}])],
+        [API.TestHelper.create_recovered([{1_000, 20, 0, alice}], [{alice, @eth, 100}])],
         1
       )
       | hash: matching_bad_returned_hash
@@ -175,8 +175,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       block =
       Block.hashed_txs_at(
         [
-          API.TestHelper.create_recovered([alice], [{1_000, 20, 0}], [{alice, @eth, 100}]),
-          API.TestHelper.create_recovered([], [], [{alice, @eth, 100}])
+          API.TestHelper.create_recovered([{1_000, 20, 0, alice}], [{alice, @eth, 100}]),
+          API.TestHelper.create_recovered([], [{alice, @eth, 100}])
         ],
         1
       )
@@ -193,7 +193,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "check error returned by decode_block, API.Core.recover_tx checks" do
-    %Block{hash: hash} = block = Block.hashed_txs_at([API.TestHelper.create_recovered([], [], [])], 1)
+    %Block{hash: hash} = block = Block.hashed_txs_at([API.TestHelper.create_recovered([], [])], 1)
 
     assert {:error, :no_inputs, hash, 1} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
   end

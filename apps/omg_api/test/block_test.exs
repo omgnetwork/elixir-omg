@@ -35,9 +35,9 @@ defmodule OMG.API.BlockTest do
     # a fixed binary. The motivation for having such test is a quick test of whether the merkle proving didn't change
 
     # odd number of transactions, just in case
-    tx_1 = Test.create_signed([alice], [{1, 0, 0}], [{alice, eth(), 7}])
-    tx_2 = Test.create_signed([alice], [{1, 1, 0}], [{alice, eth(), 2}])
-    tx_3 = Test.create_signed([alice], [{1, 0, 1}], [{alice, eth(), 2}])
+    tx_1 = Test.create_signed([{1, 0, 0, alice}], [{alice, eth(), 7}])
+    tx_2 = Test.create_signed([{1, 1, 0, alice}], [{alice, eth(), 2}])
+    tx_3 = Test.create_signed([{1, 0, 1, alice}], [{alice, eth(), 2}])
 
     assert [tx_1, tx_2, tx_3]
            |> Enum.map(&Transaction.Signed.signed_hash/1)

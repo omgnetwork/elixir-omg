@@ -80,7 +80,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
 
       # bob spends his utxo to carol
       DB.Transaction.update_with(%{
-        transactions: [API.TestHelper.create_recovered([bob], [{2000, 0, 0}], [{bob, @eth, 49}, {carol, @eth, 50}])],
+        transactions: [API.TestHelper.create_recovered([{2000, 0, 0, bob}], [{bob, @eth, 49}, {carol, @eth, 50}])],
         blknum: 11_000,
         blkhash: <<?#::256>>,
         timestamp: :os.system_time(:second),
@@ -152,7 +152,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
              } = utxos |> Enum.find(&(&1["blknum"] < 1000))
 
       DB.Transaction.update_with(%{
-        transactions: [API.TestHelper.create_recovered([bob], [{blknum, 0, 0}], [{carol, @eth, 100}])],
+        transactions: [API.TestHelper.create_recovered([{blknum, 0, 0, bob}], [{carol, @eth, 100}])],
         blknum: 11_000,
         blkhash: <<?#::256>>,
         timestamp: :os.system_time(:second),
@@ -232,8 +232,8 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
 
     DB.Transaction.update_with(%{
       transactions: [
-        API.TestHelper.create_recovered([], [], [{alice, @eth, 0}, {alice, @eth, 100}]),
-        API.TestHelper.create_recovered([], [], [{alice, @eth, 101}, {alice, @eth, 0}])
+        API.TestHelper.create_recovered([], [{alice, @eth, 0}, {alice, @eth, 100}]),
+        API.TestHelper.create_recovered([], [{alice, @eth, 101}, {alice, @eth, 0}])
       ],
       blknum: blknum,
       blkhash: <<?#::256>>,
