@@ -30,7 +30,7 @@ defmodule OMG.RPC.Web.Serializers.Response do
   # Forms unified API response structure
   defp to_response(data, result),
     do: %{
-      version: "1",
+      version: "1.0",
       success: result == :success,
       data: data
     }

@@ -44,11 +44,12 @@ defmodule OMG.Watcher.Eventer do
     event_triggers
     |> Core.pair_events_with_topics()
     |> Enum.each(fn {topic, event_name, event} ->
-      :ok = Endpoint.broadcast!(
-        topic,
-        event_name,
-        event |> Response.clean_artifacts()
-      )
+      :ok =
+        Endpoint.broadcast!(
+          topic,
+          event_name,
+          event |> Response.clean_artifacts()
+        )
     end)
 
     {:noreply, state}
