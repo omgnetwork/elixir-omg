@@ -19,6 +19,9 @@ defmodule OMG.API.State.Transaction do
 
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction.Signed
+  alias OMG.API.Utxo
+
+  require Utxo
 
   @zero_address Crypto.zero_address()
   @max_inputs 2
@@ -220,8 +223,10 @@ defmodule OMG.API.State.Transaction do
   @doc """
   Returns all inputs
   """
-  @spec get_inputs(t()) :: list(input())
-  def get_inputs(%__MODULE__{inputs: inputs}), do: inputs
+  def get_inputs(%__MODULE__{inputs: inputs}) do
+    inputs
+    |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> Utxo.position(blknum, txindex, oindex) end)
+  end
 
   @doc """
   Returns all outputs

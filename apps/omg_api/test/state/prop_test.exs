@@ -146,8 +146,8 @@ defmodule OMG.API.State.PropTest do
         (result == :ok)
         |> when_fail(
           (fn ->
-             Logger.error("History: #{inspect(history, pretty: true)}")
-             Logger.error("Result: #{inspect(result, pretty: true)}")
+             Logger.info("History: #{inspect(history)}")
+             Logger.error("Result: #{inspect(result)}")
            end).()
         )
         |> collect(&print_collected_stats/1, history)
@@ -156,7 +156,7 @@ defmodule OMG.API.State.PropTest do
     end
   end
 
-  # @tag capture_log: true
+  @tag capture_log: true
   property "quick test of property test", [:quiet, numtests: 10] do
     state_core_property_test()
   end

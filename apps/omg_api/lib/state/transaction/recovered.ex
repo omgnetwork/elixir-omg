@@ -36,7 +36,7 @@ defmodule OMG.API.State.Transaction.Recovered do
   def recover_from(%Transaction.Signed{raw_tx: raw_tx, sigs: sigs} = signed_tx) do
     hash_no_spenders = Transaction.hash(raw_tx)
 
-    with {:ok, spenders} <- get_spenders(hash_no_spenders, [], sigs),
+    with {:ok, spenders} <- get_spenders(hash_no_spenders, sigs),
          do:
            {:ok,
             %__MODULE__{
@@ -46,17 +46,19 @@ defmodule OMG.API.State.Transaction.Recovered do
             }}
   end
 
-  defp get_spenders(_hash_no_spenders, acc, []), do: {:ok, Enum.reverse(acc)}
-
-  defp get_spenders(hash_no_spenders, acc, [@empty_signature | sigs]) do
-    get_spenders(hash_no_spenders, acc, sigs)
+  defp get_spenders(hash_no_spenders, sigs) do
+    sigs
+    |> Enum.filter(fn sig -> sig != @empty_signature end)
+    |> Enum.reduce({:ok, []}, fn sig, acc -> get_spender(hash_no_spenders, sig, acc) end)
   end
 
-  defp get_spenders(hash_no_spenders, acc, [sig | sigs]) do
+  defp get_spender(_hash_no_spenders, _sig, {:error, _} = err), do: err
+
+  defp get_spender(hash_no_spenders, sig, {:ok, spenders}) do
     recovered_address = Crypto.recover_address(hash_no_spenders, sig)
 
     case recovered_address do
-      {:ok, spender} -> get_spenders(hash_no_spenders, [spender | acc], sigs)
+      {:ok, spender} -> {:ok, spenders ++ [spender]}
       error -> error
     end
   end
@@ -68,8 +70,7 @@ defmodule OMG.API.State.Transaction.Recovered do
   def all_spenders_authorized?(%__MODULE__{spenders: spenders}, inputs_spenders) do
     spenders = MapSet.new(spenders)
     inputs_spenders = MapSet.new(inputs_spenders)
-    same_spenders = MapSet.subset?(spenders, inputs_spenders) and MapSet.subset?(inputs_spenders, spenders)
 
-    if same_spenders, do: :ok, else: {:error, :unauthorized_spent}
+    if MapSet.subset?(inputs_spenders, spenders), do: :ok, else: {:error, :unauthorized_spent}
   end
 end

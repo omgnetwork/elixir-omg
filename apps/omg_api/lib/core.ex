@@ -18,7 +18,6 @@ defmodule OMG.API.Core do
   """
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
-  alias OMG.API.Utxo.Position
 
   require Utxo
 
@@ -66,9 +65,7 @@ defmodule OMG.API.Core do
   defp inputs_present?(inputs) do
     inputs_present =
       inputs
-      |> Enum.any?(fn %{blknum: blknum, txindex: txindex, oindex: oindex} ->
-        Position.encode(Utxo.position(blknum, txindex, oindex)) != 0
-      end)
+      |> Enum.any?(fn Utxo.position(blknum, _, _) -> blknum != 0 end)
 
     if inputs_present, do: :ok, else: {:error, :no_inputs}
   end
@@ -76,9 +73,7 @@ defmodule OMG.API.Core do
   defp no_duplicate_inputs?(inputs) do
     inputs =
       inputs
-      |> Enum.filter(fn %{blknum: blknum, txindex: txindex, oindex: oindex} ->
-        Position.encode(Utxo.position(blknum, txindex, oindex)) != 0
-      end)
+      |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum != 0 end)
 
     number_of_unique_inputs =
       inputs

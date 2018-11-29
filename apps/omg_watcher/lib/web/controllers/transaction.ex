@@ -90,46 +90,36 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   defp respond({:error, code}, conn) when is_atom(code), do: handle_error(conn, code)
 
   defp parse_request_body(%{"inputs" => inputs, "outputs" => outputs}) when is_list(inputs) and is_list(outputs) do
-    number_of_currencies =
-      inputs
-      |> Enum.map(fn %{"currency" => currency} -> currency end)
-      |> Enum.dedup()
-      |> Enum.count()
+    if Enum.count(inputs) < 1 do
+      {:error, :at_least_one_input_required}
+    else
+      %{"currency" => currency} = hd(inputs)
+      currency = Base.decode16!(currency, case: :mixed)
 
-    cond do
-      Enum.count(inputs) < 1 ->
-        {:error, :at_least_one_input_required}
+      {:ok,
+       {
+         inputs
+         |> Enum.map(&Map.delete(&1, "txbytes"))
+         |> Enum.map(fn %{"currency" => currency} = input ->
+           input =
+             input
+             |> Enum.into(
+               %{},
+               fn {k, v} ->
+                 {String.to_existing_atom(k), v}
+               end
+             )
 
-      number_of_currencies != 1 ->
-        {:error, :currency_mixing_not_possible}
-
-      true ->
-        %{"currency" => currency} = hd(inputs)
-        currency = Base.decode16!(currency, case: :mixed)
-
-        {:ok,
-         {
-           inputs
-           |> Enum.map(&Map.delete(&1, "txbytes"))
-           |> Enum.map(fn %{} = input ->
-             input =
-               input
-               |> Enum.into(
-                 %{},
-                 fn {k, v} ->
-                   {String.to_existing_atom(k), v}
-                 end
-               )
-
-             %{input | currency: currency}
-           end),
-           outputs
-           |> Enum.map(fn %{} = output ->
-             output = output |> Enum.into(%{}, fn {k, v} -> {String.to_existing_atom(k), v} end)
-             output = %{output | owner: OMG.API.Crypto.decode_address!(output.owner)}
-             Map.put(output, :currency, currency)
-           end)
-         }}
+           currency = Base.decode16!(currency, case: :mixed)
+           %{input | currency: currency}
+         end),
+         outputs
+         |> Enum.map(fn %{} = output ->
+           output = output |> Enum.into(%{}, fn {k, v} -> {String.to_existing_atom(k), v} end)
+           output = %{output | owner: OMG.API.Crypto.decode_address!(output.owner)}
+           Map.put(output, :currency, currency)
+         end)
+       }}
     end
   end
 

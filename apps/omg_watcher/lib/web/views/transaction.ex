@@ -20,7 +20,10 @@ defmodule OMG.Watcher.Web.View.Transaction do
   use OMG.Watcher.Web, :view
 
   alias OMG.API.State.Transaction
+  alias OMG.API.Utxo
   alias OMG.Watcher.Web.Serializer
+
+  require Utxo
 
   def render("transaction.json", %{transaction: transaction}) do
     transaction
@@ -74,16 +77,16 @@ defmodule OMG.Watcher.Web.View.Transaction do
     formatted
   end
 
-  defp add_inputs(tx, [input1, input2]) do
+  defp add_inputs(tx, [Utxo.position(blknum1, txindex1, oindex1), Utxo.position(blknum2, txindex2, oindex2)]) do
     Map.merge(
       tx,
       %{
-        blknum1: input1.blknum,
-        txindex1: input1.txindex,
-        oindex1: input1.oindex,
-        blknum2: input2.blknum,
-        txindex2: input2.txindex,
-        oindex2: input2.oindex
+        blknum1: blknum1,
+        txindex1: txindex1,
+        oindex1: oindex1,
+        blknum2: blknum2,
+        txindex2: txindex2,
+        oindex2: oindex2
       }
     )
   end

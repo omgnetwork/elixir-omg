@@ -28,6 +28,7 @@ defmodule OMG.API.State.Core do
   alias OMG.API.State.Core
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
+
   require Utxo
 
   @type t() :: %__MODULE__{
@@ -180,7 +181,7 @@ defmodule OMG.API.State.Core do
   defp inputs_not_from_future_block?(%__MODULE__{height: blknum}, inputs) do
     no_utxo_from_future_block =
       inputs
-      |> Enum.all?(fn %{blknum: input_blknum} -> blknum >= input_blknum end)
+      |> Enum.all?(fn Utxo.position(input_blknum, _, _) -> blknum >= input_blknum end)
 
     if no_utxo_from_future_block, do: :ok, else: {:error, :input_utxo_ahead_of_state}
   end
@@ -193,24 +194,25 @@ defmodule OMG.API.State.Core do
        ) do
     inputs = Transaction.get_inputs(raw_tx)
 
-    with {:ok, input_utxos} <- get_input_utxos(utxos, [], inputs),
+    with {:ok, input_utxos} <- get_input_utxos(utxos, inputs),
          input_utxos_owners <- Enum.map(input_utxos, fn %{owner: owner} -> owner end),
          :ok <- Transaction.Recovered.all_spenders_authorized?(recovered_tx, input_utxos_owners) do
       {:ok, input_utxos}
     end
   end
 
-  defp get_input_utxos(_, acc, []), do: {:ok, acc}
+  defp get_input_utxos(utxos, inputs) do
+    inputs
+    |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum != 0 end)
+    |> Enum.reduce({:ok, []}, fn input, acc -> get_utxos(utxos, input, acc) end)
+  end
 
-  defp get_input_utxos(utxos, acc, [%{blknum: 0, txindex: 0, oindex: 0} | inputs]),
-    do: get_input_utxos(utxos, acc, inputs)
+  defp get_utxos(_, _, {:error, _} = err), do: err
 
-  defp get_input_utxos(utxos, acc, [%{blknum: blknum, txindex: txindex, oindex: oindex} | inputs]) do
-    position = Utxo.position(blknum, txindex, oindex)
-
+  defp get_utxos(utxos, position, {:ok, acc}) do
     case Map.get(utxos, position) do
       nil -> {:error, :utxo_not_found}
-      found -> get_input_utxos(utxos, [found | acc], inputs)
+      found -> {:ok, [found | acc]}
     end
   end
 
@@ -254,18 +256,15 @@ defmodule OMG.API.State.Core do
 
   defp apply_spend(
          %Core{height: height, tx_index: tx_index, utxos: utxos} = state,
-         %Transaction{inputs: inputs} = tx
+         %Transaction{} = tx
        ) do
     new_utxos_map =
       tx
       |> non_zero_utxos_from(height, tx_index)
       |> Map.new()
 
-    utxos =
-      inputs
-      |> Enum.reduce(utxos, fn %{blknum: blknum, txindex: txindex, oindex: oindex}, utxos ->
-        Map.delete(utxos, Utxo.position(blknum, txindex, oindex))
-      end)
+    inputs = Transaction.get_inputs(tx)
+    utxos = Map.drop(utxos, inputs)
 
     %Core{state | utxos: Map.merge(utxos, new_utxos_map)}
   end
@@ -317,9 +316,7 @@ defmodule OMG.API.State.Core do
     db_updates_spent_utxos =
       txs
       |> Enum.flat_map(fn %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}} ->
-        tx
-        |> Transaction.get_inputs()
-        |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> Utxo.position(blknum, txindex, oindex) end)
+        Transaction.get_inputs(tx)
       end)
       |> Enum.filter(fn position -> position != Utxo.position(0, 0, 0) end)
       |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :utxo, {blknum, txindex, oindex}} end)
