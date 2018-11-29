@@ -40,13 +40,8 @@ defmodule OMG.RPC.MixProject do
       {:phoenix_swagger, "~> 0.8.1"},
       {:poison, "~> 3.1"},
       {:plug_cowboy, "~> 1.0"},
-      {
-        :ex_unit_fixtures,
-        git: "https://github.com/omisego/ex_unit_fixtures.git", branch: "feature/require_files_not_load", only: [:test]
-      },
       #
       {:omg_api, in_umbrella: true, runtime: true}
-      # {:omg_eth, in_umbrella: true, only: [:test]}
     ]
   end
 end

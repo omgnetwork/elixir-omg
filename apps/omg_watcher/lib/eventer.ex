@@ -21,7 +21,6 @@ defmodule OMG.Watcher.Eventer do
   See `OMG.API.EventerAPI` for the API to the GenServer
   """
 
-  alias OMG.JSONRPC
   alias OMG.Watcher.Eventer.Core
   alias OMG.Watcher.Web.Endpoint
   alias OMG.Watcher.Web.Serializer.Response

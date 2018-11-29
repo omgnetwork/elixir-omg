@@ -38,6 +38,7 @@ defmodule OMG.Watcher.Fixtures do
       config :logger, level: :debug
       config :omg_api,
         fee_specs_file_path: "#{fee_file}"
+      config :omg_rpc, OMG.RPC.Web.Endpoint, server: true
     """)
     |> File.close()
 

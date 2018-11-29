@@ -14,22 +14,23 @@
 
 defmodule OMG.RPC.Web.Controller.FallbackTest do
   use ExUnitFixtures
-  use OMG.RPC.Web.ConnCase, async: false
+  use ExUnit.Case, async: false
 
+  alias OMG.RPC.Web.TestHelper
+
+  @tag fixtures: [:phoenix_sandbox]
   test "invalid user input without validation is handled as unknown error" do
-    invalid_input = %{"hash" => "0not-hash0"}
+    invalid_input = %{hash: "not-hex-string"}
 
     assert %{
              "success" => false,
-             "version" => "1",
+             "version" => "1.0",
              "data" => %{
                "object" => "error",
                "code" => "get_block::unknown_error",
                "description" => nil
              }
            } ==
-             build_conn()
-             |> post("/block.get", invalid_input)
-             |> json_response(:ok)
+           TestHelper.rpc_call(:post, "/block.get", invalid_input)
   end
 end
