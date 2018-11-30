@@ -35,13 +35,11 @@ defmodule Mix.Tasks.Xomg.Watcher.Start do
 
   defp start_watcher(args) do
     args = ensure_contains(args, "--no-start")
-    no_halt = Enum.member?(args, "--no-halt")
-    args = ensure_doesnt_contains(args, "--no-halt")
+    args = ensure_doesnt_contain(args, "--no-halt")
 
     Mix.Task.run("run", args)
     {:ok, _} = Application.ensure_all_started(:omg_watcher)
-
-    if !no_halt, do: Process.sleep(:infinity)
+    Process.sleep(:infinity)
   end
 
   defp ensure_contains(args, arg) do
@@ -52,7 +50,7 @@ defmodule Mix.Tasks.Xomg.Watcher.Start do
     end
   end
 
-  defp ensure_doesnt_contains(args, arg) do
+  defp ensure_doesnt_contain(args, arg) do
     List.delete(args, arg)
   end
 end
