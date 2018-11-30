@@ -62,9 +62,7 @@ defmodule OMG.Watcher.Fixtures do
 
     db_out |> Enum.each(&log_output("db_init", &1))
 
-    child_chain_mix_cmd =
-      "mix run --no-start --no-halt --config #{config_file_path} -e " <>
-        "'{:ok, _} = Application.ensure_all_started(:omg_api)' " <> "2>&1"
+    child_chain_mix_cmd = " mix xomg.child_chain.start --config #{config_file_path} 2>&1"
 
     Logger.debug(fn -> "Starting child_chain" end)
 
