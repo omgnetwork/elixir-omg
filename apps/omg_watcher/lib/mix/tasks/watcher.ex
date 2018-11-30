@@ -43,10 +43,10 @@ defmodule Mix.Tasks.Xomg.Watcher.Start do
   end
 
   defp ensure_contains(args, arg) do
-    if !Enum.member?(args, arg) do
-      [arg | args]
-    else
+    if Enum.member?(args, arg) do
       args
+    else
+      [arg | args]
     end
   end
 
