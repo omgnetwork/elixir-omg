@@ -26,7 +26,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Eth
-  alias OMG.Watcher.ChildChainClient
+  alias OMG.RPC.Client
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
@@ -68,7 +68,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       subscribe_and_join(socket(), Channel.Transfer, TestHelper.create_topic("transfer", alice_address))
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
-    {:ok, %{blknum: block_nr}} = ChildChainClient.submit(tx)
+    {:ok, %{blknum: block_nr}} = Client.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(block_nr, @timeout)
 
@@ -153,7 +153,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
 
-    {:error, {:response, %{"code" => "submit::utxo_not_found"}}} = ChildChainClient.submit(tx2)
+    {:error, {:response, %{"code" => "submit::utxo_not_found"}}} = Client.submit(tx2)
   end
 
   defp get_block_submitted_event_height(block_number) do
@@ -172,7 +172,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     token_tx = API.TestHelper.create_encoded([{token_deposit_blknum, 0, 0, alice}], token, [{alice, 10}])
 
     # spend the token deposit
-    {:ok, %{blknum: spend_token_child_block}} = ChildChainClient.submit(token_tx)
+    {:ok, %{blknum: spend_token_child_block}} = Client.submit(token_tx)
 
     IntegrationTest.wait_for_block_fetch(spend_token_child_block, @timeout)
 
@@ -269,7 +269,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit unchallenged_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: exit_blknum}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: exit_blknum}} = Client.submit(tx)
 
     # Here we're preparing invalid block
     bad_tx = API.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])

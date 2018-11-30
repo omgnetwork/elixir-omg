@@ -24,7 +24,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Eth
-  alias OMG.Watcher.ChildChainClient
+  alias OMG.RPC.Client
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper, as: Test
@@ -46,10 +46,10 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     {:ok, _, event_socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: deposit_blknum}} = ChildChainClient.submit(tx)
+    {:ok, %{blknum: deposit_blknum}} = Client.submit(tx)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = ChildChainClient.submit(tx)
+    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
@@ -134,7 +134,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event ",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: exit_blknum}} = ChildChainClient.submit(tx)
+    {:ok, %{blknum: exit_blknum}} = Client.submit(tx)
 
     # Here we're preparing invalid block
     bad_block_number = 2_000

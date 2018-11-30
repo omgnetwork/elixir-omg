@@ -23,7 +23,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   alias OMG.API.Crypto
   alias OMG.API.Utxo
   alias OMG.Eth
-  alias OMG.Watcher.ChildChainClient
+  alias OMG.RPC.Client
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
 
   require Utxo
@@ -68,7 +68,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     assert [eth_deposit, token_deposit] == IntegrationTest.get_utxos(alice)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
-    {:ok, %{blknum: block_nr}} = ChildChainClient.submit(tx)
+    {:ok, %{blknum: block_nr}} = Client.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(block_nr, @timeout)
 

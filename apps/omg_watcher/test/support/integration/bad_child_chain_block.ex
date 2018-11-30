@@ -18,7 +18,7 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
     which is returning a bad block for a particular block hash.
   """
 
-  alias OMG.Watcher.ChildChainClient
+  alias OMG.RPC.Client
   alias OMG.Watcher.TestServer
   alias OMG.Watcher.Web.Serializer.Response
 
@@ -43,8 +43,8 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
 
           {:ok, block} =
             %{hash: req_hash}
-            |> ChildChainClient.rpc_post("block.get", real_url)
-            |> ChildChainClient.get_response_body()
+            |> Client.rpc_post("block.get", real_url)
+            |> Client.get_response_body()
 
           TestServer.make_response(block)
         end

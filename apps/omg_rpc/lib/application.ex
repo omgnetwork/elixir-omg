@@ -18,11 +18,14 @@ defmodule OMG.RPC.Application do
   @moduledoc false
 
   use Application
+  require Logger
 
   def start(_type, _args) do
     children = [
       OMG.RPC.Web.Endpoint
     ]
+
+    _ = Logger.info(fn -> "Started application OMG.RPC.Application" end)
 
     opts = [strategy: :one_for_one, name: OMG.RPC.Supervisor]
     Supervisor.start_link(children, opts)

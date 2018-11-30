@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ChildChainClientTest do
+defmodule OMG.Watcher.TestServerTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  alias OMG.Watcher.ChildChainClient
+  alias OMG.RPC.Client
   alias OMG.Watcher.TestServer
 
   @expected_block_hash <<0::256>>
@@ -37,7 +37,7 @@ defmodule OMG.Watcher.ChildChainClientTest do
                 transactions: [],
                 number: 123_000,
                 hash: @expected_block_hash
-              }} == ChildChainClient.get_block(@expected_block_hash)
+              }} == Client.get_block(@expected_block_hash)
     end
   end
 end

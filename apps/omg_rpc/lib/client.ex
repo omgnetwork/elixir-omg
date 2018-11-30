@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ChildChainClient do
+defmodule OMG.RPC.Client do
   @moduledoc """
   Provides functions to communicate with Child Chain API
   """

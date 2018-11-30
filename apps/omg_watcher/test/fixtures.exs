@@ -65,10 +65,17 @@ defmodule OMG.Watcher.Fixtures do
 
     child_chain_mix_cmd = " mix xomg.child_chain.start --config #{config_file_path} 2>&1"
 
-    Logger.debug(fn -> "Starting child_chain" end)
+    Logger.info(fn -> "Starting child_chain" end)
 
     {:ok, child_chain_proc, _ref, [{:stream, child_chain_out, _stream_server}]} =
       Exexec.run_link(child_chain_mix_cmd, exexec_opts_for_mix)
+
+    {:ok, _db_proc, _ref, [{:stream, env_out, _stream_server}]} =
+      Exexec.run_link("echo \"MIX_ENV... $MIX_ENV\"", exexec_opts_for_mix)
+    env_out |> Enum.each(&log_output("environment", &1))
+
+    IO.puts "Env= #{inspect Mix.env()}"
+    #IO.puts "#{inspect :sys.get_state(OMG.RPC.Web.Endpoint), pretty: true}"
 
     fn ->
       child_chain_out |> Enum.each(&log_output("child_chain", &1))
@@ -104,6 +111,7 @@ defmodule OMG.Watcher.Fixtures do
 
   defp log_output(prefix, line) do
     Logger.debug(fn -> "#{prefix}: " <> line end)
+    IO.puts "#{prefix}: " <> line
     line
   end
 
