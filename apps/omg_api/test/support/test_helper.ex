@@ -76,6 +76,17 @@ defmodule OMG.API.TestHelper do
   """
   @spec create_recovered(
           list({pos_integer, pos_integer, 0 | 1, map}),
+          Transaction.currency(),
+          list({Crypto.address_t(), pos_integer})
+        ) :: Transaction.Recovered.t()
+  def create_recovered(inputs, currency, outputs) do
+    signed_tx = create_signed(inputs, currency, outputs)
+    {:ok, recovered} = Transaction.Recovered.recover_from(signed_tx)
+    recovered
+  end
+
+  @spec create_recovered(
+          list({pos_integer, pos_integer, 0 | 1, map}),
           list({Crypto.address_t(), Transaction.currency(), pos_integer})
         ) :: Transaction.Recovered.t()
   def create_recovered(inputs, outputs) do
@@ -87,6 +98,23 @@ defmodule OMG.API.TestHelper do
   @doc """
   convenience function around Transaction.new to create signed transactions (see create_recovered)
   """
+  @spec create_signed(
+          list({pos_integer, pos_integer, 0 | 1, map}),
+          Transaction.currency(),
+          list({Crypto.address_t(), pos_integer})
+        ) :: Transaction.Signed.t()
+  def create_signed(inputs, currency, outputs) do
+    raw_tx =
+      Transaction.new(
+        inputs |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end),
+        outputs |> Enum.map(fn {owner, amount} -> {owner.addr, currency, amount} end)
+      )
+
+    [priv1, priv2 | _] = inputs |> Enum.map(fn {_, _, _, owner} -> owner.priv end) |> Enum.concat([<<>>, <<>>])
+
+    Transaction.sign(raw_tx, [priv1, priv2])
+  end
+
   @spec create_signed(
           list({pos_integer, pos_integer, 0 | 1, map}),
           list({Crypto.address_t(), Transaction.currency(), pos_integer})
@@ -103,8 +131,8 @@ defmodule OMG.API.TestHelper do
     Transaction.sign(raw_tx, [priv1, priv2])
   end
 
-  def create_encoded(inputs, outputs) do
-    signed_tx = create_signed(inputs, outputs)
+  def create_encoded(inputs, currency, outputs) do
+    signed_tx = create_signed(inputs, currency, outputs)
     Transaction.Signed.encode(signed_tx)
   end
 

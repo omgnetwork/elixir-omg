@@ -38,8 +38,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   defp create_transaction(txindex, amount1, amount2) do
     owner = %{addr: <<0::160>>, priv: <<>>}
 
-    signed =
-      TestHelper.create_signed([{1, 0, 0, owner}, {1, 0, 1, owner}], [{owner, @eth, amount1}, {owner, @eth, amount2}])
+    signed = TestHelper.create_signed([{1, 0, 0, owner}, {1, 0, 1, owner}], @eth, [{owner, amount1}, {owner, amount2}])
 
     %DB.Transaction{
       blknum: 2,

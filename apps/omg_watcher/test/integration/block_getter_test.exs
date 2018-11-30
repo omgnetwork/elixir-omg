@@ -65,7 +65,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     {:ok, _, _socket} =
       subscribe_and_join(socket(), Channel.Transfer, TestHelper.create_topic("transfer", alice_address))
 
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], [{alice, @eth, 7}, {bob, @eth, 3}])
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
 
     IntegrationTest.wait_for_block_fetch(block_nr, @timeout)
@@ -146,7 +146,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     IntegrationTest.wait_for_current_block_fetch(@timeout)
 
-    tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], [{alice, @eth, 7}])
+    tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
 
     {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
   end
@@ -236,7 +236,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       def block_with_incorrect_transaction do
         alice = @alice
 
-        recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 10}])
+        recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
 
         API.Block.hashed_txs_at([recovered], 1000)
       end
@@ -279,13 +279,13 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     margin_slow_validator =
       Application.get_env(:omg_watcher, :margin_slow_validator) * Application.get_env(:omg_eth, :child_block_interval)
 
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], [{alice, @eth, 10}])
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: exit_blknum}} = Client.call(:submit, %{transaction: tx})
 
     # Here we calcualted bad_block_number by adding `exit_blknum` and 2 * `margin_slow_validator`
     # to have guarantee that bad_block_number will be after margoin of slow validator(m_sv)
     bad_block_number = exit_blknum + margin_slow_validator * 2
-    bad_tx = API.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], [{alice, @eth, 10}])
+    bad_tx = API.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
 
     %{hash: bad_block_hash, number: _, transactions: _} =
       bad_block = API.Block.hashed_txs_at([bad_tx], bad_block_number)

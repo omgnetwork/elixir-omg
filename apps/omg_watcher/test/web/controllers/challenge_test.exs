@@ -34,7 +34,7 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
 
       DB.Transaction.update_with(%{
         transactions: [
-          API.TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 100}])
+          API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 100}])
         ],
         blknum: 1000,
         blkhash: <<?#::256>>,
