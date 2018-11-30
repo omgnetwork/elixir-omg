@@ -55,33 +55,8 @@ defmodule OMG.API.State.CoreTest do
     |> success?
   end
 
-  @tag fixtures: [:alice, :bob, :state_empty]
-  test "when spending currency must match", %{alice: alice, bob: bob, state_empty: state} do
-    state
-    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-    |> (&Core.exec(
-          Test.create_recovered([{1, 0, 0, alice}], [{bob, not_eth(), 7}, {alice, not_eth(), 3}]),
-          zero_fees_map(),
-          &1
-        )).()
-    |> fail?(:input_and_output_currencies_do_not_match)
-  end
-
-  @tag fixtures: [:alice, :bob, :state_empty]
-  test "input currencies do not match output currencies", %{alice: alice, bob: bob, state_empty: state} do
-    state
-    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-    |> Test.do_deposit(alice, %{amount: 0, currency: not_eth(), blknum: 2})
-    |> (&Core.exec(
-          Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, eth(), 7}, {alice, eth(), 3}]),
-          zero_fees_map(),
-          &1
-        )).()
-    |> fail?(:input_and_output_currencies_do_not_match)
-  end
-
   @tag fixtures: [:alice, :state_empty]
-  test "currency of created utxo matches currency of the input", %{alice: alice, state_empty: state} do
+  test "output currencies must be included in input currencies", %{alice: alice, state_empty: state} do
     state1 =
       state
       |> Test.do_deposit(alice, %{amount: 10, currency: not_eth(), blknum: 1})
@@ -94,7 +69,7 @@ defmodule OMG.API.State.CoreTest do
 
     state1
     |> (&Core.exec(Test.create_recovered([{1000, 0, 0, alice}], [{alice, eth(), 9}]), zero_fees_map(), &1)).()
-    |> fail?(:input_and_output_currencies_do_not_match)
+    |> fail?(:amounts_do_not_add_up)
 
     state1
     |> (&Core.exec(

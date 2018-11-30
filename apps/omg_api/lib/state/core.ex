@@ -225,25 +225,21 @@ defmodule OMG.API.State.Core do
 
   # fee is implicit - it's the difference between funds owned and spend
   defp amounts_add_up?(input_amounts, output_amounts, fees) do
-    with :ok <- same_currencies?(input_amounts, output_amounts) do
-      amounts_add_up =
-        for {input_currency, input_amount} <- Map.to_list(input_amounts) do
-          fee = Map.get(fees, input_currency)
-          output_amount = Map.get(output_amounts, input_currency)
-          input_amount >= fee + output_amount
-        end
-        |> Enum.all?()
+    outputs_covered =
+      for {output_currency, output_amount} <- Map.to_list(output_amounts) do
+        fee = Map.get(fees, output_currency, 0)
+        input_amount = Map.get(input_amounts, output_currency, 0)
+        input_amount >= fee + output_amount
+      end
+      |> Enum.all?()
 
-      if amounts_add_up, do: :ok, else: {:error, :amounts_do_not_add_up}
-    end
-  end
+    fees_covered =
+      for {input_amount, input_currency} <- Map.to_list(input_amounts) do
+        fee = Map.get(fees, input_currency, 0)
+        input_amount >= fee
+      end
 
-  defp same_currencies?(input_amounts, output_amounts) do
-    if Map.keys(input_amounts) == Map.keys(output_amounts) do
-      :ok
-    else
-      {:error, :input_and_output_currencies_do_not_match}
-    end
+    if outputs_covered and fees_covered, do: :ok, else: {:error, :amounts_do_not_add_up}
   end
 
   defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, new_tx) do
