@@ -41,6 +41,8 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     token: token,
     alice_deposits: {deposit_blknum, token_deposit_blknum}
   } do
+    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
+
     token_addr = token |> Base.encode16()
 
     # expected utxos
@@ -112,7 +114,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    IntegrationTest.wait_for_current_block_fetch(@timeout)
+    Process.sleep(exit_processor_validation)
 
     assert [token_deposit] == IntegrationTest.get_utxos(alice)
 
@@ -128,7 +130,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    IntegrationTest.wait_for_current_block_fetch(@timeout)
+    Process.sleep(exit_processor_validation)
 
     assert [] == IntegrationTest.get_utxos(alice)
   end

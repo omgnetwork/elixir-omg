@@ -436,7 +436,7 @@ $$
 Two transactions are competing if they have at least one input in common.
 
 $$
-competing(t, t’) = I(t) \cap I(t’) \neg \varnothing
+competing(t, t’) = I(t) \cap I(t’) \neq \varnothing
 $$
 
 The set of competitors to a transaction is therefore every other transaction competing with the transaction in question.
@@ -518,7 +518,7 @@ The second part ensures that something is spent, then all the resulting outputs 
 The first case is special - if the spend is invalid, then the outputs should not be exitable and the input should still be exitable.
 
 $$
-\forall o \in E(T_{n}), o \in I(t_{n+1}) \implies o \in E(T_{n+1}) \oplus O(t_{m+1}) \subseteq E(T_{n+1})
+\forall o \in E(T_{n}), o \in I(t_{n+1}) \implies o \in E(T_{n+1}) \oplus O(t_{n+1}) \subseteq E(T_{n+1})
 $$
 
 

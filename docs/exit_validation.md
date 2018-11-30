@@ -8,6 +8,24 @@ NOTE:
 * `SLA` Service Level Agreement
 * `sla_margin` margin of service lever agreement validation (in Ethereum blocks)
 
+## Notes on the Child Chain Server
+
+This document focuses on the Watcher.
+
+For completeness we give a quick run-down of the rules followed by the Child Chain Server, in terms of processing exits sent on the root chain contract.
+
+1. Child Chain operator's objective is to pro-actively minimize the risk of chain becoming invalid.
+The risk is that this can happen if any exit gets finalized despite being invalid.
+2. To satisfy this objective:
+    - the child chain server listens to every `ExitStarted` event and immediately "spends" the exited utxo, preventing exit invalidation
+    - the child chain server listens to every `InFlightExitStarted` event and immediately "spends" the exiting tx's **inputs**
+    - the child chain server listens to every `InFlightExitPiggybacked` event (on outputs) and immediately "spends" the piggybacked outputs - as long as the IFEing tx has been included in the chain and the output exists
+
+There are scenarios, when a race condition/reorg on the root chain might make the Child Chain Server block spending of a particular UTXO **too late**, regardless of the immediacy mentioned above.
+This is OK, as long as the delay doesn't exceed a predetermined `sla_margin`.
+
+## Standard Exits
+
 ### The purpose of having exit validation as a separate service is to:
 1. proactively prevent user from losing money
     - prohibit user from spending on a dangerous chain
@@ -55,6 +73,8 @@ Causes to emit an `:invalid_finalization` event
 4. Spend utxos in `State` on exit finalization or challenging
 5. `ExitProcessor` recognizes exits that are (as seen at the tip of the root chain) already gone, when pulled from old  logs.
 This prevents spurious event raising during syncing.
+6. `ExitProcessor` check validation of exits is call periodically by itself with `exit_processor_validation_interval_ms`
+interval and by `BlockGetter` every time when applying new block.
 
 ### Things considered
 1. We don't want to have any type of exit-related flags in `OMG.API.State`'s utxos
@@ -85,3 +105,96 @@ All the general rules will apply in the MoreVP world.
 Invalid attempts to do an exiting action using MoreVP must excite challenges.
 Absence of challenges within some period (like `sla_margin`) must result in client prompting to exit.
 `State` will be modified on finalization, and if the finalization is invalid should `:invalid_finalization` and prompt exit.
+
+## In-flight exits
+
+With MoreVP, we need to handle another type of exit game, which is the in-flight exit game, as specced out [here](docs/morevp.md).
+
+In terms of handling within the Watcher, similar principles will apply:
+  - we gather and keep in `OMG.Watcher.ExitProcessor`'s persistent state the current state of in-flight txs and exits
+  - we periodically check the validity of this state, emitting events and allowing for actions as necessary
+  - we touch `OMG.API.State` only when the in-flight exit finalizes
+  - if some invalid IFE or piggyback runs unchallenged for too long, it should be a prompt to exit (ala `:unchallenged_exit` above)
+
+**[Diagram](https://docs.google.com/drawings/d/1UaAMZTJBbikTM0eFSbNM7ZVgi1HZrLTfwYCUvHGUaW0/edit?usp=sharing)** illustrates the flows described below (with the addition of handling on the Child Chain Server side for comparison).
+
+**NOTES on the diagram**:
+  - `ACTION` means both:
+      - an event delivered to the user
+      - the user should then be able to take some action on the root-chain
+
+There are two rather independent flows in play:
+
+### In-flight transaction tracking
+
+This flow is about the user employing the MoreVP exit game to secure their own broadcast transactions.
+
+This flow begins with transaction being broadcast via the Watcher.
+Every such transaction is remembered and dubbed "in-flight".
+Such in-flight txs, in case of any byzantine behavior by the child chain - one that would prompt an immediate exit, causes a prompt to start an in-flight exit.
+
+**TODO** - in the first implementation, tracking of in-flight transactions isn't done in the Watcher but punted on the user.
+The user should figure out how to exit which of their funds upon receiving a generic `byzantine_chain` event.
+
+### In-flight exit tracking
+
+This flow is about the user piggybacking (or not), challenging IFEs and responding to challenges related to IFEs that are **already started** on the root chain contract.
+
+#### new IFEs, competitors, piggybacks
+
+Any `InFlightExitStarted` should, after `eth_exit_finality_margin` cause the IFE to be tracked and tx added to something called `TxAppendix`.
+
+Any competitor published should `eth_exit_finality_margin`, be tracked and tx added to `TxAppendix`
+
+Any piggyback done should `eth_exit_finality_margin`, be taken into account.
+
+#### finalization
+
+Finalization behaves analogically to standard exits - finalization spends in `OMG.API.State` all utxos that actually exit **and existed in the child chain**.
+These spends that fail cause a byzantine chain condition (`unchallenged_exit`)
+
+#### "wait"
+
+🕐 Periodically (same as with standard exits), `ExitProcessor` should:
+  - find invalid piggybacks and do something
+  - find non-canonical transactions that are seen as canonical in the root chain contract
+  - find canonical transactions that are seen as non-canonical in the root chain contract
+
+#### Checking if I should piggyback
+
+Any IFE started might be one such that the user should piggyback onto.
+
+This action should be prompted/enabled if all are satisfied:
+
+ - an input or an output of the in-flight transaction submitted mentions the user as owner
+ - for owned inputs - the in-flight transaction has inputs owned by others (which might have double-spent making the potentially tx non-canonical)
+ - for owned outputs - the in-flight transaction has inputs included in a valid, seen block (otherwise these might be IFE done as part of a DDoS attack by the operator and have no chance in succeeding).
+ Details:
+ > If watcher does not perform such check, operator can use it as a part of his own DoS of Ethereum.
+ By creating IFE with a tx: `{inputs: from_withhold_block, outputs: [A1, A2, A3, A4]}` operator can provoke four Alices to do a piggyback, amplifying it's own gas investment, creating a DDoS out of his own DoS.
+
+
+(**NOTE** this will also occur if it is the very user that has started the IFE, see section [**In-flight transaction tracking**](./exit_validation.md#in-flight-transaction-tracking))
+
+This happens on every new IFE detected.
+
+#### `TxAppendix`
+
+It is a tracked and persisted store of transactions that augments the transactions held in the child chain blocks.
+The augmentation consist in that these transactions are taken into account, when the periodical processing of `ExitProcessor`.
+
+For example consider this:
+There are two competitor transactions that someone starts an IFE for.
+Neither transaction appeared on chain, so we should store these transactions somewhere, to be able to figure out that we should and then how we should challenge such IFE (both transctions are not canonical).
+
+`TxAppendix` will be a store of such transactions that have been published and are important, but haven't been included in any block, at least not at the time of publishing.
+
+#### Fees
+
+An interesting question is how are the fees implied by an IFEd transaction handled.
+
+It depends on whether that transaction was included in the child chain:
+  - if yes, the fees are eligible to be exited just the same, regardless of the IFE
+  - if no, then the fees **aren't eligible to be exited**, and these funds are effectively burnt.
+  An honest operator won't include these sums in the fees to be exited.
+  Watchers will treat an attempt to include these sums in a fee exit as a byzantine condition.

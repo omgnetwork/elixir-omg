@@ -79,7 +79,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         eth_height: eth_height
       })
 
-    assert_push("invalid_exit", ^invalid_exit_event, 5_000)
+    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
+    assert_push("invalid_exit", ^invalid_exit_event, exit_processor_validation + 1_000)
 
     # after the notification has been received, a challenged is composed and sent
     challenge = get_exit_challenge(deposit_blknum, 0, 0)
@@ -98,7 +99,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     assert {:ok, {API.Crypto.zero_address(), @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
 
-    IntegrationTest.wait_for_current_block_fetch(@timeout)
+    Process.sleep(5_000)
 
     # re subscribe fresh, so we don't get old events in the socket
     Process.unlink(event_socket.channel_pid)
@@ -131,25 +132,15 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
   test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event ",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}} do
-    margin_slow_validator =
-      Application.get_env(:omg_watcher, :margin_slow_validator) * Application.get_env(:omg_eth, :child_block_interval)
-
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: exit_blknum}} = Client.call(:submit, %{transaction: tx})
 
-    # Here we calcualted bad_block_number by adding `exit_blknum` and `margin_slow_validator` / 2
-    # to have guarantee that bad_block_number will be after margin of slow validator(m_sv)
-    bad_block_number = exit_blknum + div(margin_slow_validator, 2)
+    # Here we're preparing invalid block
+    bad_block_number = 2_000
     bad_tx = API.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
 
     %{hash: bad_block_hash, number: _, transactions: _} =
       bad_block = API.Block.hashed_txs_at([bad_tx], bad_block_number)
-
-    # Here we manually submiting invalid block with big/future nonce to the Rootchain to make
-    # the Rootchain to mine invalid block instead of block submitted by child chain
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-    nonce = div(bad_block_number, child_block_interval)
-    {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, nonce, 1)
 
     # from now on the child chain server is broken until end of test
     OMG.Watcher.Integration.BadChildChainServer.register_and_start_server(bad_block)
@@ -175,9 +166,10 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    # Here we waiting for block `bad_block_number + 1`
-    # to give time for watcher to fetch and validate bad_block_number
-    IntegrationTest.wait_for_block_fetch(bad_block_number + 1, @timeout)
+    # Here we're manually submitting invalid block to the root chain
+    {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
+
+    IntegrationTest.wait_for_block_fetch(bad_block_number, @timeout)
 
     invalid_exit_event =
       Client.encode(%Event.InvalidExit{
@@ -188,6 +180,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         eth_height: eth_height
       })
 
-    assert_push("invalid_exit", ^invalid_exit_event, 1500)
+    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
+
+    assert_push("invalid_exit", ^invalid_exit_event, exit_processor_validation)
   end
 end
