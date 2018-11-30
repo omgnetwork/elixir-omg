@@ -7,6 +7,9 @@
 # General application configuration
 use Mix.Config
 
+config :omg_rpc,
+  child_chain_api_module: OMG.API
+
 # Configures the endpoint
 config :omg_rpc, OMG.RPC.Web.Endpoint,
   http: [port: 9656],

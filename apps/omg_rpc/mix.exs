@@ -39,9 +39,8 @@ defmodule OMG.RPC.MixProject do
       {:phoenix, "~> 1.3.2"},
       {:phoenix_swagger, "~> 0.8.1"},
       {:poison, "~> 3.1"},
-      {:plug_cowboy, "~> 1.0"},
+      {:plug_cowboy, "~> 1.0"}
       #
-      {:omg_api, in_umbrella: true, runtime: true}
     ]
   end
 end

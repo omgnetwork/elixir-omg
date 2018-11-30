@@ -18,15 +18,16 @@ defmodule OMG.RPC.Web.Controller.Transaction do
   use OMG.RPC.Web, :controller
   use PhoenixSwagger
 
-  alias OMG.API
   alias OMG.RPC.Web.View
+
+  @api_module Application.fetch_env!(:omg_rpc, :child_chain_api_module)
 
   action_fallback(OMG.RPC.Web.Controller.Fallback)
 
   def submit(conn, params) do
     with {:ok, hex_str} <- Map.fetch(params, "transaction"),
          {:ok, txbytes} <- Base.decode16(hex_str, case: :mixed),
-         {:ok, details} <- API.submit(txbytes) do
+         {:ok, details} <- @api_module.submit(txbytes) do
       render(conn, View.Transaction, :submit, result: details)
     end
   end

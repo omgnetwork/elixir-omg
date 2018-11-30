@@ -30,7 +30,6 @@ defmodule OMG.RPC.Web.Controller.FallbackTest do
                "code" => "get_block::unknown_error",
                "description" => nil
              }
-           } ==
-           TestHelper.rpc_call(:post, "/block.get", invalid_input)
+           } == TestHelper.rpc_call(:post, "/block.get", invalid_input)
   end
 end

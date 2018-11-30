@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.RPC.Integration.Fixtures do
+defmodule OMG.API.Integration.Fixtures do
   use ExUnitFixtures.FixtureModule
   use OMG.API.Fixtures
   use OMG.Eth.Fixtures
@@ -43,7 +43,7 @@ defmodule OMG.RPC.Integration.Fixtures do
     _ = db_initialized
     _ = fee_file
     # need to overide that to very often, so that many checks fall in between a single child chain block submission
-    {:ok, started_apps} = Application.ensure_all_started(:omg_rpc)
+    {:ok, started_apps} = Application.ensure_all_started(:omg_api)
 
     on_exit(fn ->
       started_apps

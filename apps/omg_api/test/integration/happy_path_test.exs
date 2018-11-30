@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.RPC.Integration.HappyPathTest do
+defmodule OMG.API.Integration.HappyPathTest do
   @moduledoc """
   Tests a simple happy path of all the pieces working together
   """

@@ -15,8 +15,8 @@
 defmodule OMG.RPC.Fixtures do
   use ExUnitFixtures.FixtureModule
 
-    @doc "run only endpoint to make request"
-    deffixture phoenix_sandbox do
-      Supervisor.start_link([OMG.RPC.Web.Endpoint], [strategy: :one_for_one, name: OMG.RPC.Supervisor])
-    end
+  @doc "run only endpoint to make request"
+  deffixture phoenix_sandbox do
+    Supervisor.start_link([OMG.RPC.Web.Endpoint], strategy: :one_for_one, name: OMG.RPC.Supervisor)
+  end
 end
