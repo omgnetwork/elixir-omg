@@ -32,7 +32,7 @@ defmodule OMG.Watcher.TestServer do
   Also first use of `with_route` changes configuration variable to child chain api to fake server, so invoke this
   function when fake response is needed.
   """
-  def with_route({_, fake_addr, server_id} = _context, path, response_block) do
+  def with_route(%{fake_addr: fake_addr, server_id: server_id} = _context, path, response_block) do
     Application.put_env(:omg_watcher, :child_chain_url, fake_addr)
     env = EnvAgent.get_env(server_id)
     EnvAgent.save_env(server_id, %FakeServer.Env{env | routes: [path | env.routes]})
@@ -46,7 +46,4 @@ defmodule OMG.Watcher.TestServer do
         success: not Map.has_key?(data, :code),
         data: data
       })
-
-  def real_url({url, _, _} = _context), do: url
-  def fake_url({_, url, _} = _context), do: url
 end

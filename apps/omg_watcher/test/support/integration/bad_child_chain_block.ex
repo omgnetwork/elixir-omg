@@ -43,7 +43,7 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
 
           {:ok, block} =
             %{hash: req_hash}
-            |> Client.rpc_post("block.get", real_url)
+            |> Client.rpc_post("block.get", context.real_addr)
             |> Client.get_response_body()
 
           TestServer.make_response(block)

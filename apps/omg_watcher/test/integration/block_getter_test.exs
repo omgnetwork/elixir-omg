@@ -153,7 +153,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
 
-    {:error, {:response, %{"code" => "submit::utxo_not_found"}}} = Client.submit(tx2)
+    {:error, {:client_error, %{"code" => "submit::utxo_not_found"}}} = Client.submit(tx2)
   end
 
   defp get_block_submitted_event_height(block_number) do
