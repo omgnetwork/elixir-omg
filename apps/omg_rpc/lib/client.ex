@@ -24,7 +24,12 @@ defmodule OMG.RPC.Client do
   @doc """
   Gets Block of given hash
   """
-  @spec get_block(binary()) :: {:ok, map()} | {:error, {atom(), any()}}
+  @spec get_block(binary()) ::
+          {:ok, map()}
+          | {:error,
+             {:malformed_response, any()}
+             | {:client_error, any()}
+             | {:server_error, any()}}
   def get_block(hash) do
     %{hash: Base.encode16(hash)}
     |> rpc_post("block.get")
@@ -35,7 +40,12 @@ defmodule OMG.RPC.Client do
   @doc """
   Submits transaction
   """
-  @spec submit(binary()) :: {:ok, map()} | {:error, {atom(), any()}}
+  @spec submit(binary()) ::
+          {:ok, map()}
+          | {:error,
+             {:malformed_response, any()}
+             | {:client_error, any()}
+             | {:server_error, any()}}
   def submit(tx) do
     %{transaction: Base.encode16(tx)}
     |> rpc_post("transaction.submit")
@@ -53,11 +63,11 @@ defmodule OMG.RPC.Client do
 
     with {:ok, body} <- Poison.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
-      Logger.info(fn -> "ChildChain rpc post #{inspect(addr)} completed successfully" end)
+      _ = Logger.info(fn -> "ChildChain rpc post #{inspect(addr)} completed successfully" end)
       response
     else
       err ->
-        Logger.error(fn -> "ChildChain rpc post #{inspect(addr)} failed with #{inspect(err)}" end)
+        _ = Logger.error(fn -> "ChildChain rpc post #{inspect(addr)} failed with #{inspect(err)}" end)
         err
     end
   end
@@ -89,7 +99,7 @@ defmodule OMG.RPC.Client do
   def get_response_body(%HTTPoison.Response{body: error}),
     do: {:error, {:server_error, error}}
 
-  def get_response_body(error), do: {:error, {:rpc_post, error}}
+  def get_response_body(error), do: {:error, {:client_error, error}}
 
   defp parse_body(raw_body) do
     with {:ok, response} <- Poison.decode(raw_body),
@@ -99,8 +109,7 @@ defmodule OMG.RPC.Client do
         data |> str_to_atom()
       }
     else
-      {:error, poison_err} -> {:error, {:json_parse, poison_err}}
-      %{"success" => false, "data" => data} -> {:error, {:response, data}}
+      %{"success" => false, "data" => data} -> {:error, {:client_error, data}}
       match_err -> {:error, {:malformed_response, match_err}}
     end
   end
