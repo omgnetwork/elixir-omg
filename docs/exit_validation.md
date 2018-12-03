@@ -14,52 +14,52 @@ This document focuses on the Watcher.
 
 For completeness we give a quick run-down of the rules followed by the Child Chain Server, in terms of processing exits sent on the root chain contract.
 
-1. Child Chain operator's objective is to pro-actively minimize the risk of chain becoming invalid.
-The risk is that this can happen if any exit gets finalized despite being invalid.
+1. The Child Chain operator's objective is to pro-actively minimize the risk of chain becoming invalid.
+The Child Chain will become invalid if any invalid exit gets finalized.
 2. To satisfy this objective:
-    - the child chain server listens to every `ExitStarted` event and immediately "spends" the exited utxo, preventing exit invalidation
-    - the child chain server listens to every `InFlightExitStarted` event and immediately "spends" the exiting tx's **inputs**
-    - the child chain server listens to every `InFlightExitPiggybacked` event (on outputs) and immediately "spends" the piggybacked outputs - as long as the IFEing tx has been included in the chain and the output exists
+    - the Child Chain server listens to every `ExitStarted` Root Chain event and immediately "spends" the exited utxo. This blocks the user from spending that utxo, thus preventing exit invalidation.
+    - the Child Chain server listens to every `InFlightExitStarted` Root Chain event and immediately "spends" the exiting tx's **inputs**
+    - the Child Chain server listens to every `InFlightExitPiggybacked` Root Chain event (on outputs) and immediately "spends" the piggybacked outputs - as long as the IFEing tx has been included in the chain and the output exists
 
 There are scenarios, when a race condition/reorg on the root chain might make the Child Chain Server block spending of a particular UTXO **too late**, regardless of the immediacy mentioned above.
-This is OK, as long as the delay doesn't exceed a predetermined `sla_margin`.
+This is acceptable as long as the delay doesn't exceed a predetermined `sla_margin`.
 
 ## Standard Exits
 
 ### The purpose of having exit validation as a separate service is to:
-1. proactively prevent user from losing money
-    - prohibit user from spending on a dangerous chain
-    - try to preempt underfunded chain situation, which would jeopardize user's funds
-2. letting know user about byzantine child chain as reasonably fast as possible
-4. (optional) protect against loss in case of invalid exit finalization
-5. prevent spurious prompts to mass exit, that might result from root chain reorgs, race conditions etc.
+1. proactively prevent the user from losing money by:
+    - prohibiting the user from spending on a dangerous chain
+    - trying to preempt underfunded chain situation, which would jeopardize user's funds
+2. let the user know about byzantine child chain as soon as is reasonably possible
+4. (optional) protect against loss in case of an invalid exit finalization
+5. prevent spurious prompts to mass exit that might result from root chain reorgs, race conditions etc.
 
 ### Actions that the Watcher should prompt:
 1. If an exit is known to be invalid it should be challenged (almost) immediately
 2. If an exit is invalidated with a transaction submitted within an acceptable `sla_margin` period it must be challenged
 3. If an exit is invalidated with a transaction submitted after an acceptable `sla_margin` period it must be challenged **AND** watcher must prompt an exit **AND** watcher must not allow spending and depositing
-    - because our child chain implementation will never get close to this happening, so it is a symptom of a (subtle) hack of the child chain server.
+    - because our child chain implementation will never get close to this happening, so it is a symptom of a (subtle) hack attempt on the child chain server.
     By "subtle" we mean that it is a hack that counts on getting away with exit invalidation being submitted too late, rather than on just dropping a huge invalid UTXO and attempting to exit from that
-3. If an exit is invalid and unchallenged within a short period from it's finalization it must be challenged **AND** watcher must not allow spending and depositing
-    - because otherwise, we are "tightly" following the minimum safety requirements
-    - because otherwise, unchallenged exits may break the chain without honest holders having time to escape.
-    This is the case when an exit, a spend invalidating it and exit of that coincide and are unchallenged.
-4. (optional) If a finalization of an invalid exit occurs, watcher must prompt an exit without guarantees of recovery of funds
+3. If an exit is invalid and remains unchallenged within a short period of time from its finalization, it must be challenged **AND** watcher must not allow spending and depositing, because:
+    a. we are running too close to the minimum safety requirements
+    b. unchallenged exits may break the chain without leaving honest holders with enough time to exit.
+    This can happen when an exit, a spend that invalidates that exit and an exit of that invalidating spend all coincide and are unchallenged.
+4. (optional) If finalization of an invalid exit occurs, the watcher must prompt an exit without guarantees of recovery of funds
 
 Conditions 3 and 4 can be represented jointly, by **continuous** (every child block) validation of the exits.
-If any exit is invalid and its finalization is near, then actions listed under 3 and 4 should take place
+If any exit is invalid and its finalization is near, then actions listed under 3 and 4 should take place.
 
 All that takes as an assumption that:
-  - the user's funds must be safe even if the user syncs and validates the chain periodically (but not less frequently than required)
-  - user needs to have the ability to constantly spend their UTXOs, thereby requiring more stringent validity checking of exits
+  - the user's funds must be safe even if the user only syncs and validates the chain periodically (but not less frequently than required)
+  - the user needs to have the ability to spend their UTXOs at any time, thereby requiring more stringent validity checking of exits
 
 ### Example cases for above actions:
-1. The exit is processed after the tx, so it is known to be invalid from the start. Should emit an `:invalid_exit` event.
-2. The exit is processed before the tx, but the tx is within `sla_margin` period, so the child chain is valid.
+1. The exit is processed *after* the tx that invalidates it, so it is known to be invalid from the start. Should emit an `:invalid_exit` event.
+2. The exit is processed *before* the tx that invalidates it and the tx is within `sla_margin` period, so the child chain is still valid.
 Causes an `:invalid_exit` event.
-3. The exit is processed before the tx, but tx is after `sla_margin` period, so the child chain is byzantine.
+3. The exit is processed *before* the tx that invalidates it, but the tx occurs *after* `sla_margin` period, so the child chain is byzantine.
 Causes to emit an `:unchallenged_exit` event.
-3. An exit is unchallenged within `sla_margin` period, so the child chain is jeopardized.
+3. An invalid exit is still unchallenged after `sla_margin` period, so the child chain is jeopardized.
 Causes to emit an `:unchallenged_exit` event.
 4. (optional) Continuation of cases (1) or (2) where the exit never gets challenged and finalizes.
 Causes to emit an `:invalid_finalization` event
