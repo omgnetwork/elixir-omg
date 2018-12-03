@@ -56,7 +56,6 @@ defmodule OMG.API.State.Core do
 
   @type exec_error ::
           :unauthorized_spent
-          | :input_and_output_currencies_do_not_match
           | :amounts_do_not_add_up
           | :invalid_current_block_number
           | :utxo_not_found
