@@ -30,7 +30,7 @@ defmodule OMG.API.State.PropTest do
   propcheck see: [propcheck](https://github.com/alfert/propcheck)
 
   important:
-   - command can be added from diffrent file, by elixir ```use``` with a little macro magic.
+   - command can be added from different file, by elixir ```use``` with a little macro magic.
      example:
   > new_comand.ex
        ```
@@ -162,8 +162,8 @@ defmodule OMG.API.State.PropTest do
   end
 
   @tag :property
-  @tag timeout: 600_000
-  property "OMG.API.State.Core prope check", numtests: 30_000 do
+  @tag timeout: 1_200_000
+  property "OMG.API.State.Core prope check", numtests: 10_000 do
     state_core_property_test()
   end
 end

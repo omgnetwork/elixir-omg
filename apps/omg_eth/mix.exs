@@ -40,8 +40,8 @@ defmodule OMG.Eth.MixProject do
       {:briefly, "~> 0.3"},
       {
         :plasma_contracts,
-        git: "https://github.com/pdobacz/plasma-contracts",
-        branch: "finalization_challenge_events",
+        git: "https://github.com/omisego/plasma-contracts",
+        branch: "master",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,

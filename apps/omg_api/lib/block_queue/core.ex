@@ -52,10 +52,11 @@ defmodule OMG.API.BlockQueue.Core do
     wait_for_enqueue: false,
     gas_price_to_use: 20_000_000_000,
     mined_child_block_num: 0,
+    last_enqueued_block_at_height: 0,
     # config:
     child_block_interval: nil,
     chain_start_parent_height: nil,
-    submit_period: 1,
+    minimal_enqueue_block_gap: 1,
     finality_threshold: 12,
     gas_price_adj_params: %GasPriceParams{}
   ]
@@ -72,13 +73,14 @@ defmodule OMG.API.BlockQueue.Core do
           wait_for_enqueue: boolean(),
           # gas price to use when (re)submitting transactions
           gas_price_to_use: pos_integer(),
+          last_enqueued_block_at_height: pos_integer(),
           # CONFIG CONSTANTS below
           # spacing of child blocks in RootChain contract, being the amount of deposit decimals per child block
           child_block_interval: pos_integer(),
           # Ethereum height at which first block was mined
           chain_start_parent_height: pos_integer(),
-          # number of Ethereum blocks per child block
-          submit_period: pos_integer(),
+          # minimal gap between child blocks
+          minimal_enqueue_block_gap: pos_integer(),
           # depth of max reorg we take into account
           finality_threshold: pos_integer(),
           # the gas price adjustment strategy parameters
@@ -99,8 +101,9 @@ defmodule OMG.API.BlockQueue.Core do
         parent_height: parent_height,
         child_block_interval: child_block_interval,
         chain_start_parent_height: child_start_parent_height,
-        submit_period: submit_period,
-        finality_threshold: finality_threshold
+        minimal_enqueue_block_gap: minimal_enqueue_block_gap,
+        finality_threshold: finality_threshold,
+        last_enqueued_block_at_height: last_enqueued_block_at_height
       ) do
     state = %__MODULE__{
       blocks: Map.new(),
@@ -108,28 +111,34 @@ defmodule OMG.API.BlockQueue.Core do
       parent_height: parent_height,
       child_block_interval: child_block_interval,
       chain_start_parent_height: child_start_parent_height,
-      submit_period: submit_period,
+      minimal_enqueue_block_gap: minimal_enqueue_block_gap,
       finality_threshold: finality_threshold,
-      gas_price_adj_params: %GasPriceParams{}
+      gas_price_adj_params: %GasPriceParams{},
+      last_enqueued_block_at_height: last_enqueued_block_at_height
     }
 
     enqueue_existing_blocks(state, top_mined_hash, known_hashes)
   end
 
-  @spec enqueue_block(Core.t(), BlockQueue.hash(), BlockQueue.plasma_block_num()) ::
+  @spec enqueue_block(Core.t(), BlockQueue.hash(), BlockQueue.plasma_block_num(), pos_integer()) ::
           Core.t() | {:error, :unexpected_block_number}
-  def enqueue_block(state, hash, expected_block_number) do
+  def enqueue_block(state, hash, expected_block_number, parent_height) do
     own_height = state.formed_child_block_num + state.child_block_interval
 
     with :ok <- validate_block_number(expected_block_number, own_height) do
-      enqueue_block(state, hash)
+      enqueue_block(state, hash, parent_height)
     end
+  end
+
+  @spec enqueue_block(Core.t()) :: Core.t()
+  def enqueue_block(state) do
+    %{state | wait_for_enqueue: false}
   end
 
   defp validate_block_number(block_number, own_height) when block_number == own_height, do: :ok
   defp validate_block_number(_, _), do: {:error, :unexpected_block_number}
 
-  defp enqueue_block(state, hash) do
+  defp enqueue_block(state, hash, parent_height) do
     own_height = state.formed_child_block_num + state.child_block_interval
 
     block = %BlockSubmission{
@@ -139,7 +148,14 @@ defmodule OMG.API.BlockQueue.Core do
     }
 
     blocks = Map.put(state.blocks, own_height, block)
-    %{state | formed_child_block_num: own_height, blocks: blocks, wait_for_enqueue: false}
+
+    %{
+      state
+      | formed_child_block_num: own_height,
+        blocks: blocks,
+        wait_for_enqueue: false,
+        last_enqueued_block_at_height: parent_height
+    }
   end
 
   # Set number of plasma block mined on the parent chain.
@@ -160,15 +176,15 @@ defmodule OMG.API.BlockQueue.Core do
   @doc """
   Set height of Ethereum chain and the height of the child chain mined on Ethereum.
   """
-  @spec set_ethereum_status(Core.t(), BlockQueue.eth_height(), BlockQueue.plasma_block_num()) ::
+  @spec set_ethereum_status(Core.t(), BlockQueue.eth_height(), BlockQueue.plasma_block_num(), boolean()) ::
           {:do_form_block, Core.t()} | {:dont_form_block, Core.t()}
-  def set_ethereum_status(state, parent_height, mined_child_block_num) do
+  def set_ethereum_status(state, parent_height, mined_child_block_num, is_empty_block) do
     new_state =
       %{state | parent_height: parent_height}
       |> set_mined(mined_child_block_num)
       |> adjust_gas_price()
 
-    if should_form_block?(new_state) do
+    if should_form_block?(new_state, is_empty_block) do
       {:do_form_block, %{new_state | wait_for_enqueue: true}}
     else
       {:dont_form_block, new_state}
@@ -307,21 +323,21 @@ defmodule OMG.API.BlockQueue.Core do
     make_range(max(interval, mined_num - finality_threshold * interval), until_child_block_num, interval)
   end
 
-  # Check if new child block should be formed basing on blocks formed so far and
-  # age of RootChain contract in ethereum blocks
-  @spec should_form_block?(Core.t()) :: true | false
-  defp should_form_block?(state) do
-    due_child_block_num(state) > state.formed_child_block_num && !state.wait_for_enqueue
+  @spec should_form_block?(Core.t(), boolean()) :: boolean()
+  defp should_form_block?(
+         %Core{
+           parent_height: parent_height,
+           last_enqueued_block_at_height: last_enqueued_block_at_height,
+           minimal_enqueue_block_gap: minimal_enqueue_block_gap,
+           wait_for_enqueue: wait_for_enqueue
+         },
+         is_empty_block
+       ) do
+    parent_height - last_enqueued_block_at_height > minimal_enqueue_block_gap and !wait_for_enqueue and !is_empty_block
   end
 
   defp calc_nonce(height, interval) do
     trunc(height / interval)
-  end
-
-  defp due_child_block_num(state) do
-    root_chain_age_in_ethereum_blocks = state.parent_height - state.chain_start_parent_height
-    child_chain_blocks_due = trunc(root_chain_age_in_ethereum_blocks / state.submit_period)
-    child_chain_blocks_due * state.child_block_interval
   end
 
   # :lists.seq/3 throws, so wrapper
@@ -372,7 +388,7 @@ defmodule OMG.API.BlockQueue.Core do
 
       _ = Logger.info(fn -> "Loaded with #{inspect(mined_blocks)} mined and #{inspect(fresh_blocks)} enqueued" end)
 
-      {:ok, Enum.reduce(fresh_blocks, state, fn hash, acc -> enqueue_block(acc, hash) end)}
+      {:ok, Enum.reduce(fresh_blocks, state, fn hash, acc -> enqueue_block(acc, hash, state.parent_height) end)}
     end
   end
 

@@ -111,6 +111,9 @@ defmodule OMG.Watcher.BlockGetter do
     {:ok, _} = schedule_sync_height(height_sync_interval)
     :producer = send(self(), :producer)
 
+    # how many eth blocks backward can change during an reorg
+    finality_margin = Application.get_env(:omg_api, :eth_submission_finality_margin)
+
     maximum_block_withholding_time_ms = Application.get_env(:omg_watcher, :maximum_block_withholding_time_ms)
     maximum_number_of_unapplied_blocks = Application.get_env(:omg_watcher, :maximum_number_of_unapplied_blocks)
 
@@ -119,6 +122,7 @@ defmodule OMG.Watcher.BlockGetter do
         child_top_block_number,
         child_block_interval,
         exact_synced_height,
+        finality_margin,
         state_at_block_beginning,
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
         maximum_number_of_unapplied_blocks: maximum_number_of_unapplied_blocks,

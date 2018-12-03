@@ -27,6 +27,7 @@ defmodule OMG.API.BlockQueue do
   For changing the gas price it needs external signals (e.g. from a price oracle)
   """
 
+  alias OMG.API.Block
   alias OMG.API.BlockQueue.Core
   alias OMG.API.BlockQueue.Core.BlockSubmission
 
@@ -39,9 +40,9 @@ defmodule OMG.API.BlockQueue do
   @doc """
   Enqueues child chain block to be submitted to Ethereum
   """
-  @spec enqueue_block(binary(), non_neg_integer()) :: :ok
-  def enqueue_block(block_hash, block_number) do
-    GenServer.cast(__MODULE__.Server, {:enqueue_block, block_hash, block_number})
+  @spec enqueue_block(Block.t()) :: :ok
+  def enqueue_block(block) do
+    GenServer.cast(__MODULE__.Server, {:enqueue_block, block})
   end
 
   defmodule Server do
@@ -93,8 +94,9 @@ defmodule OMG.API.BlockQueue do
                  parent_height: parent_height,
                  child_block_interval: child_block_interval,
                  chain_start_parent_height: parent_start,
-                 submit_period: Application.get_env(:omg_api, :child_block_submit_period),
-                 finality_threshold: finality_threshold
+                 minimal_enqueue_block_gap: Application.get_env(:omg_api, :child_block_minimal_enquque_gap),
+                 finality_threshold: finality_threshold,
+                 last_enqueued_block_at_height: parent_height
                ) do
           result
         else
@@ -118,16 +120,18 @@ defmodule OMG.API.BlockQueue do
     end
 
     @doc """
-    Checks the status of both Ethereum root chain and the top mined child block number to decide what to do
+    Checks the status of the Ethereum root chain, the top mined child block number
+    and status of State to decide what to do
     """
     def handle_info(:check_ethereum_status, %Core{} = state) do
       {:ok, height} = Eth.get_ethereum_height()
       {:ok, mined_blknum} = Eth.RootChain.get_mined_child_block()
+      {_, is_empty_block} = OMG.API.State.get_status()
 
       _ = Logger.debug(fn -> "Ethereum at \#'#{inspect(height)}', mined child at \#'#{inspect(mined_blknum)}'" end)
 
       state1 =
-        with {:do_form_block, state1} <- Core.set_ethereum_status(state, height, mined_blknum) do
+        with {:do_form_block, state1} <- Core.set_ethereum_status(state, height, mined_blknum, is_empty_block) do
           :ok = OMG.API.State.form_block()
           state1
         else
@@ -138,16 +142,18 @@ defmodule OMG.API.BlockQueue do
       {:noreply, state1}
     end
 
-    def handle_cast({:enqueue_block, block_hash, block_number}, %Core{} = state) do
-      state2 = Core.enqueue_block(state, block_hash, block_number)
+    def handle_cast({:enqueue_block, %Block{number: block_number, hash: block_hash}}, %Core{} = state) do
+      {:ok, parent_height} = Eth.get_ethereum_height()
+
+      state1 = Core.enqueue_block(state, block_hash, block_number, parent_height)
 
       _ =
         Logger.info(fn ->
-          "Enqueing block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'"
+          "Enqueuing block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'"
         end)
 
-      submit_blocks(state2)
-      {:noreply, state2}
+      submit_blocks(state1)
+      {:noreply, state1}
     end
 
     # private (server)

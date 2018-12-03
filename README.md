@@ -187,8 +187,7 @@ You need to re-initialize the database, in case you want to start a new child ch
 * Start Up the child chain server:
 
 ```bash
-cd apps/omg_api
-iex -S mix run --config ~/config.exs
+iex -S mix xomg.child_chain.start --config ~/config.exs 
 ```
 
 ### Setting up a Watcher (a developer environment)
@@ -225,19 +224,24 @@ config :omg_db,
 
 ```bash
 rm -rf ~/.omg/data_watcher
-cd apps/omg_watcher
 mix ecto.reset --no-start
 mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
 ```
 
 #### Start the Watcher
 
-To start syncing to the Child chain server (continue from the `apps/omg_watcher` directory):
-
+It is possible to run the watcher in two different modes:
+- The first is `security critical` mode.
 ```bash
-iex -S mix run --config ~/config_watcher.exs
+iex -S mix xomg.watcher.start --config ~/config_watcher.exs 
+```
+- The second is `security critical` + `convenience` mode.
+```bash
+iex -S mix xomg.watcher.start --convenience --config ~/config_watcher.exs 
 ```
 
+See docs/TODO for more details about watcher modes.
+ 
 ### Follow the demos
 After starting the child chain server and/or Watcher as above, you may follow the steps in the demo scripts.
 Note that some steps should be performed in the Elixir shell (iex) and some in the shell directly.
