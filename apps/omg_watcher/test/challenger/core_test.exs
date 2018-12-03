@@ -17,12 +17,15 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   use ExUnit.Case, async: true
 
   alias OMG.API.State.Transaction
+  alias OMG.API.TestHelper
   alias OMG.API.Utxo
   alias OMG.Watcher.Challenger.Challenge
   alias OMG.Watcher.Challenger.Core
   alias OMG.Watcher.DB
 
   require Utxo
+
+  @eth <<1::160>>
 
   deffixture transactions do
     [
@@ -33,30 +36,14 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   end
 
   defp create_transaction(txindex, amount1, amount2) do
-    signed = %Transaction.Signed{
-      raw_tx: %Transaction{
-        blknum1: 1,
-        txindex1: 0,
-        oindex1: 0,
-        blknum2: 1,
-        txindex2: 0,
-        oindex2: 1,
-        cur12: <<0::160>>,
-        newowner1: <<1::160>>,
-        amount1: amount1,
-        newowner2: <<0::160>>,
-        amount2: amount2
-      },
-      sig1: <<0::520>>,
-      sig2: <<0::520>>
-    }
+    owner = %{addr: <<0::160>>, priv: <<>>}
 
-    txhash = Transaction.Signed.signed_hash(signed)
+    signed = TestHelper.create_signed([{1, 0, 0, owner}, {1, 0, 1, owner}], @eth, [{owner, amount1}, {owner, amount2}])
 
     %DB.Transaction{
       blknum: 2,
       txindex: txindex,
-      txhash: txhash,
+      txhash: Transaction.Signed.signed_hash(signed),
       inputs: [
         %DB.TxOutput{oindex: 0, spending_tx_oindex: 0}
       ],

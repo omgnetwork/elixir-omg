@@ -30,28 +30,27 @@ defmodule OMG.API.CoreTest do
     alice: alice,
     bob: bob
   } do
-    parametrized_tester = fn {input1, input2, spender1, spender2} ->
+    parametrized_tester = fn inputs ->
       raw_tx =
-        Transaction.new(
-          [input1, input2] |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end),
-          eth(),
-          [{alice, 7}, {bob, 3}] |> Enum.map(fn {newowner, amount} -> {newowner.addr, amount} end)
-        )
+        inputs
+        |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end)
+        |> Transaction.new([{alice.addr, eth(), 7}, {bob.addr, eth(), 3}])
 
-      encoded_signed_tx = TestHelper.create_encoded([input1, input2], eth(), [{alice, 7}, {bob, 3}])
+      encoded_signed_tx = TestHelper.create_encoded(inputs, eth(), [{alice, 7}, {bob, 3}])
+
+      spenders = Enum.map(inputs, fn {_, _, _, spender} -> spender.addr end)
 
       assert {:ok,
               %Transaction.Recovered{
                 signed_tx: %Transaction.Signed{raw_tx: ^raw_tx},
-                spender1: ^spender1,
-                spender2: ^spender2
+                spenders: ^spenders
               }} = Core.recover_tx(encoded_signed_tx)
     end
 
     [
-      {{1, 2, 3, alice}, {2, 3, 4, bob}, alice.addr, bob.addr},
-      {{1, 2, 3, alice}, {0, 0, 0, %{priv: <<>>}}, alice.addr, nil},
-      {{0, 0, 0, %{priv: <<>>}}, {2, 3, 4, bob}, nil, bob.addr}
+      [{1, 2, 3, alice}, {2, 3, 4, bob}],
+      [{1, 2, 3, alice}, {0, 0, 0, alice}],
+      [{0, 0, 0, bob}, {2, 3, 4, bob}]
     ]
     |> Enum.map(parametrized_tester)
   end
@@ -105,52 +104,23 @@ defmodule OMG.API.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob]
-  test "transaction is not allowed to have input and empty sig", %{alice: alice, bob: bob} do
-    full_signed_tx = TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, bob}], eth(), [{alice, 7}])
-
-    missing1 =
-      %Transaction.Signed{full_signed_tx | sig1: @empty_signature}
-      |> Transaction.Signed.encode()
-
-    missing2 =
-      %Transaction.Signed{full_signed_tx | sig2: @empty_signature}
-      |> Transaction.Signed.encode()
-
-    partial_signed_tx1 = TestHelper.create_signed([{1, 2, 3, alice}], eth(), [{alice, 7}])
-
-    missing3 =
-      %Transaction.Signed{partial_signed_tx1 | sig1: @empty_signature}
-      |> Transaction.Signed.encode()
-
-    partial_signed_tx2 = TestHelper.create_signed([{0, 0, 0, %{priv: <<>>}}, {1, 2, 3, alice}], eth(), [{alice, 7}])
-
-    missing4 =
-      %Transaction.Signed{partial_signed_tx2 | sig2: @empty_signature}
-      |> Transaction.Signed.encode()
-
-    assert {:error, :signature_missing_for_input} == Core.recover_tx(missing1)
-    assert {:error, :signature_missing_for_input} == Core.recover_tx(missing2)
-    assert {:error, :signature_missing_for_input} == Core.recover_tx(missing3)
-    assert {:error, :signature_missing_for_input} == Core.recover_tx(missing4)
+  test "transaction is not allowed to have input and empty sigs", %{alice: alice} do
+    tx = TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, alice}], eth(), [{alice, 7}])
+    tx_no_sigs = %{tx | sigs: [@empty_signature, @empty_signature]}
+    tx_hash = Transaction.Signed.encode(tx_no_sigs)
+    assert {:error, :missing_signature} == Core.recover_tx(tx_hash)
   end
 
   @tag fixtures: [:alice]
   test "transactions with corrupt signatures don't do harm", %{alice: alice} do
     full_signed_tx = TestHelper.create_signed([{1, 2, 3, alice}], eth(), [{alice, 7}])
+    %Transaction.Signed{sigs: [_, sig2]} = full_signed_tx
 
     corrupt =
-      %Transaction.Signed{full_signed_tx | sig1: <<1::size(520)>>}
+      %Transaction.Signed{full_signed_tx | sigs: [<<1::size(520)>>, sig2]}
       |> Transaction.Signed.encode()
 
     assert {:error, :signature_corrupt} == Core.recover_tx(corrupt)
-  end
-
-  @tag fixtures: [:alice, :bob]
-  test "transaction is not allowed to have no input and a sig", %{alice: alice, bob: bob} do
-    no_input_tx1 = TestHelper.create_encoded([{0, 0, 0, alice}, {2, 3, 4, bob}], eth(), [{alice, 7}])
-    no_input_tx2 = TestHelper.create_encoded([{1, 2, 3, alice}, {0, 0, 0, bob}], eth(), [{alice, 7}])
-    assert {:error, :input_missing_for_signature} == Core.recover_tx(no_input_tx1)
-    assert {:error, :input_missing_for_signature} == Core.recover_tx(no_input_tx2)
   end
 
   @tag fixtures: [:alice]
@@ -158,8 +128,11 @@ defmodule OMG.API.CoreTest do
     double_zero_tx1 =
       TestHelper.create_encoded([{0, 0, 0, %{priv: <<>>}}, {0, 0, 0, %{priv: <<>>}}], eth(), [{alice, 7}])
 
-    double_zero_tx2 = TestHelper.create_encoded([{0, 0, 0, alice}, {0, 0, 0, %{priv: <<>>}}], eth(), [{alice, 7}])
-    double_zero_tx3 = TestHelper.create_encoded([{0, 0, 0, %{priv: <<>>}}, {0, 0, 0, alice}], eth(), [{alice, 7}])
+    double_zero_tx2 = TestHelper.create_encoded([{0, 0, 0, alice}, {0, 0, 0, alice}], eth(), [{alice, 7}])
+
+    double_zero_tx3 =
+      TestHelper.create_encoded([{0, 0, 0, %{priv: <<>>}}, {0, 0, 0, %{priv: <<>>}}], eth(), [{alice, 7}])
+
     double_zero_tx4 = TestHelper.create_encoded([{0, 0, 0, alice}, {0, 0, 0, alice}], eth(), [{alice, 7}])
 
     assert {:error, :no_inputs} == Core.recover_tx(double_zero_tx1)

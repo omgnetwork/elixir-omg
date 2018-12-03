@@ -34,7 +34,7 @@ defmodule OMG.API.State.PropTest.DifferentSpenderTransaction do
 
   @doc "check if any inputs has wrong spender"
   def pre(%{model: %{history: history}}, [{inputs, _, _}, _]) do
-    {unspent, _spend} = Helper.get_utxos(history)
+    {unspent, _spent} = Helper.get_utxos(history)
 
     inputs
     |> Enum.any?(fn {position, owner} ->
@@ -42,7 +42,7 @@ defmodule OMG.API.State.PropTest.DifferentSpenderTransaction do
     end)
   end
 
-  def post(_, _, {:error, :incorrect_spender}), do: true
+  def post(_, _, {:error, :unauthorized_spent}), do: true
 
   def next(%{model: %{history: history, balance: balance} = model} = state, [transaction | _], _) do
     %{

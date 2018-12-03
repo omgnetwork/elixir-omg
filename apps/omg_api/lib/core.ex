@@ -17,18 +17,20 @@ defmodule OMG.API.Core do
   Functional core work-horse for `OMG.API`.
   """
   alias OMG.API.State.Transaction
+  alias OMG.API.Utxo
+
+  require Utxo
 
   @empty_signature <<0::size(520)>>
 
   @type recover_tx_error() ::
           :bad_signature_length
           | :duplicate_inputs
-          | :input_missing_for_signature
           | :malformed_transaction
           | :malformed_transaction_rlp
           | :no_inputs
           | :signature_corrupt
-          | :signature_missing_for_input
+          | :missing_signature
 
   @doc """
   Transforms a RLP-encoded child chain transaction (binary) into a:
@@ -49,101 +51,39 @@ defmodule OMG.API.Core do
   end
 
   defp valid?(%Transaction.Signed{
-         raw_tx: %Transaction{
-           blknum1: 0,
-           txindex1: 0,
-           oindex1: 0,
-           blknum2: 0,
-           txindex2: 0,
-           oindex2: 0
-         }
-       }),
-       do: {:error, :no_inputs}
+         raw_tx: raw_tx,
+         sigs: sigs
+       }) do
+    inputs = Transaction.get_inputs(raw_tx)
 
-  defp valid?(%Transaction.Signed{
-         raw_tx: %Transaction{
-           blknum1: blknum,
-           txindex1: txindex,
-           oindex1: oindex,
-           blknum2: blknum,
-           txindex2: txindex,
-           oindex2: oindex
-         }
-       }),
-       do: {:error, :duplicate_inputs}
+    with :ok <- inputs_present?(inputs),
+         :ok <- no_duplicate_inputs?(inputs) do
+      is_signed?(sigs)
+    end
+  end
 
-  defp valid?(%Transaction.Signed{
-         raw_tx: %Transaction{
-           blknum1: 0,
-           txindex1: 0,
-           oindex1: 0
-         },
-         sig1: @empty_signature,
-         sig2: @empty_signature
-       }),
-       do: {:error, :signature_missing_for_input}
+  defp inputs_present?(inputs) do
+    inputs_present =
+      inputs
+      |> Enum.any?(fn Utxo.position(blknum, _, _) -> blknum != 0 end)
 
-  defp valid?(%Transaction.Signed{
-         raw_tx: %Transaction{
-           blknum2: 0,
-           txindex2: 0,
-           oindex2: 0
-         },
-         sig1: @empty_signature,
-         sig2: @empty_signature
-       }),
-       do: {:error, :signature_missing_for_input}
+    if inputs_present, do: :ok, else: {:error, :no_inputs}
+  end
 
-  defp valid?(%Transaction.Signed{
-         raw_tx: %Transaction{
-           blknum1: 0,
-           txindex1: 0,
-           oindex1: 0
-         },
-         sig1: @empty_signature
-       }),
-       do: :ok
+  defp no_duplicate_inputs?(inputs) do
+    inputs =
+      inputs
+      |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum != 0 end)
 
-  defp valid?(%Transaction.Signed{
-         raw_tx: %Transaction{
-           blknum2: 0,
-           txindex2: 0,
-           oindex2: 0
-         },
-         sig2: @empty_signature
-       }),
-       do: :ok
+    number_of_unique_inputs =
+      inputs
+      |> Enum.uniq()
+      |> Enum.count()
 
-  defp valid?(%Transaction.Signed{
-         raw_tx: %Transaction{},
-         sig2: @empty_signature
-       }),
-       do: {:error, :signature_missing_for_input}
+    inputs_length = Enum.count(inputs)
 
-  defp valid?(%Transaction.Signed{
-         raw_tx: %Transaction{},
-         sig1: @empty_signature
-       }),
-       do: {:error, :signature_missing_for_input}
+    if inputs_length == number_of_unique_inputs, do: :ok, else: {:error, :duplicate_inputs}
+  end
 
-  # NOTE input_missing_for_signature clauses are necessary, so that no superflous signature recovery takes place
-  defp valid?(%Transaction.Signed{
-         raw_tx: %Transaction{
-           blknum1: 0,
-           txindex1: 0,
-           oindex1: 0
-         }
-       }),
-       do: {:error, :input_missing_for_signature}
-
-  defp valid?(%Transaction.Signed{
-         raw_tx: %Transaction{
-           blknum2: 0,
-           txindex2: 0,
-           oindex2: 0
-         }
-       }),
-       do: {:error, :input_missing_for_signature}
-
-  defp valid?(%Transaction.Signed{}), do: :ok
+  defp is_signed?(sigs), do: if(Enum.any?(sigs, &(&1 != @empty_signature)), do: :ok, else: {:error, :missing_signature})
 end

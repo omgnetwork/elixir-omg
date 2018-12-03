@@ -165,7 +165,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     alice: alice,
     alice_deposits: {_, token_deposit_blknum}
   } do
-    token_tx = API.TestHelper.create_encoded([{token_deposit_blknum, 0, 0, alice}], token, [{alice, 10}])
+    token_tx = API.TestHelper.create_encoded([{token_deposit_blknum, 0, 0, alice}], [{alice, token, 10}])
 
     # spend the token deposit
     {:ok, %{blknum: spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
@@ -232,11 +232,12 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
       # using module attribute to have a stable alice (we can't use fixtures, because modules don't see the parent
       @alice API.TestHelper.generate_entity()
+      @eth Crypto.zero_address()
 
       def block_with_incorrect_transaction do
         alice = @alice
 
-        recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], Crypto.zero_address(), [{alice, 10}])
+        recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
 
         API.Block.hashed_txs_at([recovered], 1000)
       end
