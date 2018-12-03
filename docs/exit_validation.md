@@ -6,7 +6,7 @@ This document describes the exit validation (processing) done by the Watcher in 
 NOTE:
 * `eth_exit_finality_margin` margin exit processor (in Ethereum blocks)
 * `SLA` Service Level Agreement
-* `sla_margin` margin of service lever agreement validation (in Ethereum blocks)
+* `sla_margin` margin of service level agreement validation (in Ethereum blocks). This is a number of blocks prior to finalization, indicating a period of time that can affect the validity of an exit.
 
 ## Notes on the Child Chain Server
 
@@ -22,7 +22,7 @@ The Child Chain will become invalid if any invalid exit gets finalized.
     - the Child Chain server listens to every `InFlightExitPiggybacked` Root Chain event (on outputs) and immediately "spends" the piggybacked outputs - as long as the IFEing tx has been included in the chain and the output exists
 
 There are scenarios, when a race condition/reorg on the root chain might make the Child Chain Server block spending of a particular UTXO **too late**, regardless of the immediacy mentioned above.
-This is acceptable as long as the delay doesn't exceed a predetermined `sla_margin`.
+This is acceptable as long as the delay doesn't exceed `scheduled finalization time` minus the predetermined `sla_margin`.
 
 ## Standard Exits
 
@@ -36,15 +36,15 @@ This is acceptable as long as the delay doesn't exceed a predetermined `sla_marg
 
 ### Actions that the Watcher should prompt:
 1. If an exit is known to be invalid it should be challenged (almost) immediately
-2. If an exit is invalidated with a transaction submitted within an acceptable `sla_margin` period it must be challenged
-3. If an exit is invalidated with a transaction submitted after an acceptable `sla_margin` period it must be challenged **AND** watcher must prompt an exit **AND** watcher must not allow spending and depositing
+2. If an exit is invalidated with a transaction submitted *before* `finalization - sla_margin`it must be challenged
+3. If an exit is invalidated with a transaction submitted *after* `finalization - sla_margin` it must be challenged **AND** watcher must prompt an exit **AND** watcher must not allow spending and depositing
     - because our child chain implementation will never get close to this happening, so it is a symptom of a (subtle) hack attempt on the child chain server.
     By "subtle" we mean that it is a hack that counts on getting away with exit invalidation being submitted too late, rather than on just dropping a huge invalid UTXO and attempting to exit from that
-3. If an exit is invalid and remains unchallenged within a short period of time from its finalization, it must be challenged **AND** watcher must not allow spending and depositing, because:
+4. If an exit is invalid and remains unchallenged within a short period of time (`sla_margin`) from its finalization, it must be challenged **AND** watcher must not allow spending and depositing, because:
     a. we are running too close to the minimum safety requirements
     b. unchallenged exits may break the chain without leaving honest holders with enough time to exit.
     This can happen when an exit, a spend that invalidates that exit and an exit of that invalidating spend all coincide and are unchallenged.
-4. (optional) If finalization of an invalid exit occurs, the watcher must prompt an exit without guarantees of recovery of funds
+5. (optional) If finalization of an invalid exit occurs, the watcher must prompt an exit without guarantees of recovery of funds
 
 Conditions 3 and 4 can be represented jointly, by **continuous** (every child block) validation of the exits.
 If any exit is invalid and its finalization is near, then actions listed under 3 and 4 should take place.
@@ -54,22 +54,22 @@ All that takes as an assumption that:
   - the user needs to have the ability to spend their UTXOs at any time, thereby requiring more stringent validity checking of exits
 
 ### Example cases for above actions:
-1. The exit is processed *after* the tx that invalidates it, so it is known to be invalid from the start. Should emit an `:invalid_exit` event.
-2. The exit is processed *before* the tx that invalidates it and the tx is within `sla_margin` period, so the child chain is still valid.
+1. The exit is processed *after* the tx that invalidates it, so it is known to be invalid from the start. Causes an `:invalid_exit` event.
+2. The exit is processed *before* the tx that invalidates it and the tx occurs *before* `finalization - sla_margin`, so the child chain is still valid.
 Causes an `:invalid_exit` event.
-3. The exit is processed *before* the tx that invalidates it, but the tx occurs *after* `sla_margin` period, so the child chain is byzantine.
-Causes to emit an `:unchallenged_exit` event.
-3. An invalid exit is still unchallenged after `sla_margin` period, so the child chain is jeopardized.
-Causes to emit an `:unchallenged_exit` event.
-4. (optional) Continuation of cases (1) or (2) where the exit never gets challenged and finalizes.
-Causes to emit an `:invalid_finalization` event
+3. The exit is processed *before* the tx that invalidates it, but the tx occurs *after* `finalization - sla_margin`, so the child chain is byzantine.
+Causes an `:unchallenged_exit` event.
+4. An invalid exit is still unchallenged after `finalization - sla_margin`, so the child chain is jeopardized.
+Causes an `:unchallenged_exit` event.
+5. (optional) Continuation of cases (1) or (2) where the exit never gets challenged and finalizes.
+Causes an `:invalid_finalization` event.
 
 ### Solution for above cases:
 2. `ExitProcessor` pulls open exit requests from root chain contract logs, as soon as they're `eth_exit_finality_margin` blocks old (~12 blocks)
 3. For every open exit request run `State.utxo_exists?` method
     * if `true` -> noop,
     * if `false` -> emit `:invalid_exit` event  which leads to challenge
-    * if `false` and there is less than `sla_margin` time till finalization -> `:unchallenged_exit`
+    * if `false` and there is less than `sla_margin` time until finalization -> `:unchallenged_exit`
 4. Spend utxos in `State` on exit finalization or challenging
 5. `ExitProcessor` recognizes exits that are (as seen at the tip of the root chain) already gone, when pulled from old  logs.
 This prevents spurious event raising during syncing.
