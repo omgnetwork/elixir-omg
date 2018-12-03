@@ -207,7 +207,20 @@ http POST /status
         "last_validated_child_block_number": 10000,
         "last_mined_child_block_timestamp": 1535031020,
         "last_mined_child_block_number": 11000,
-        "eth_syncing": true
+        "eth_syncing": true,
+        "byzantine_events":
+        [
+            {
+                "event": "invalid_exit",
+                "details": {
+                    "eth_height"  : 100,
+                    "utxo_pos"  : 100,
+                    "owner"  : "B3256026863EB6AE5B06FA396AB09069784EA8EA",
+                    "currency"  : "0000000000000000000000000000000000000000",
+                    "amount" : 100
+                }
+            }
+        ]
     }
 }
 ```
@@ -222,4 +235,77 @@ Gets plasma network and Watcher status
 
 No parameters are required.
 
+<aside class="warning">
+The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity. 
+The user must call the `/status` endpoint periodically to check. Any situation that requires the user to either exit or challenge an invalid exit will be included in the `byzantine_events` field.
+</aside>
 
+### Byzantine events
+All of the following events indicate a byzantine chain and that the user should either exit or challenge.
+
+#### `invalid_exit`
+
+Indicates that an invalid exit is occurring. It should be challenged.
+
+> invalid_exit
+```json
+{
+    "event": "invalid_exit",
+    "details": {
+        "eth_height"  : 3521678,
+        "utxo_pos"  : 12,
+        "owner"  : "B3256026863EB6AE5B06FA396AB09069784EA8EA",
+        "currency"  : "0000000000000000000000000000000000000000",
+        "amount" : 100
+    }
+}
+```
+
+
+#### `unchallenged_exit`
+
+Indicates that an invalid exit is dangerously close to finalization and hasn't been challenged. User should exit.
+
+> unchallenged_exit
+```json
+{
+    "event": "invalid_exit",
+    "details": {
+        "eth_height"  : 3521678,
+        "utxo_pos"  : 12,
+        "owner"  : "B3256026863EB6AE5B06FA396AB09069784EA8EA",
+        "currency"  : "0000000000000000000000000000000000000000",
+        "amount" : 100
+    }
+}
+```
+
+#### `invalid_block`
+
+A block containing an invalid tx has been processed [are there other reasons a block can be invalid?]. User should exit.
+
+> invalid_block
+```json
+{
+    "event": "invalid_exit",
+    "details": {
+        "blockhash"  : "DB32876CC6F26E96B9291682F3AF4A04C2AA2269747839F14F1A8C529CF90225",
+        "blocknum"  : 10000,
+    }
+}
+```
+
+#### `block_withholding`
+
+The ChildChain is withholding a block whose hash has been published on the root chain. User should exit.
+
+> block_withholding
+```json
+{
+    "event": "invalid_exit",
+    "details": {
+        "blockhash"  : "DB32876CC6F26E96B9291682F3AF4A04C2AA2269747839F14F1A8C529CF90225",
+        "blocknum"  : 10000,
+    }
+}
+```
