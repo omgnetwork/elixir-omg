@@ -7,22 +7,7 @@
 
 ### Events `address_received` and `address_spent`
 
-The address_received event informing about that particular address received funds.
-
-The address_spent event informing about that particular address spent funds.
-
-> Both event types have the same structure.
-Key | Type | Description
---------- | ------- | -----------
-child_blknum | Integer | 
-child_txindex | Integer | 
-child_block_hash | HEX-encoded string |
-submited_at_ethheight | integer |
-tx | object | Structure of signed transaction
-
-Blocks are validated by the Watcher after a short (not-easily-configurable) finality margin. By consequence, above events will be emitted no earlier than that finality margin. In case extra finality is required for high-stakes transactions, the client is free to wait any number of Ethereum blocks (confirmations) on top of submitted_at_ethheight.
-
-> An example of JSON document of the `address_received` event:
+> An example response of the `address_received` event:
 
 ```json
 {
@@ -62,20 +47,55 @@ Blocks are validated by the Watcher after a short (not-easily-configurable) fina
 }
 ```
 
+The address_received event informing about that particular address received funds.
+
+The address_spent event informing about that particular address spent funds.
+
+Both event types have the same structure.
+
+Key | Type | Description
+--------- | ------- | -----------
+child_blknum | Integer | 
+child_txindex | Integer | 
+child_block_hash | HEX-encoded string |
+submited_at_ethheight | integer |
+tx | object | Structure of signed transaction
+
+Blocks are validated by the Watcher after a short (not-easily-configurable) finality margin. By consequence, above events will be emitted no earlier than that finality margin. In case extra finality is required for high-stakes transactions, the client is free to wait any number of Ethereum blocks (confirmations) on top of submitted_at_ethheight.
+
 
 ## Topic `childchain`
 
 ### Events `new_block`
 
+> An example response of the `new_block` event:
+
+```json
+{
+  "topic": "childchain",
+  "ref": null,
+  "payload": {
+    "blknum": 100,
+    "block_hash": "0768DC526A093C8C058303832FF3AB45893466D731A34BCF1BF2F866586C0FE6",
+    "ethheight": 423456,
+    "timestamp": 1543825669
+  },
+  "join_ref": null,
+  "event": "new_block"
+}
+```
+
 Informs that a new block has been added to the chain.
 
-> Both event types have the same structure.
+Both event types have the same structure.
+
 Key | Type | Description
 --------- | ------- | -----------
 blknum | Integer | 
 block_hash | HEX-encoded string |
 ethheight | integer |
 timestamp | integer |
+
 
 
 # RootChain - Events

@@ -244,10 +244,27 @@ The user must call the `/status` endpoint periodically to check. Any situation t
 All of the following events indicate a byzantine chain and that the user should either exit or challenge.
 
 #### `invalid_exit`
+> An invalid_exit event
+
+```json
+{
+    "event": "invalid_exit",
+    "details": {
+        "eth_height"  : 3521678,
+        "utxo_pos"  : 12,
+        "owner"  : "B3256026863EB6AE5B06FA396AB09069784EA8EA",
+        "currency"  : "0000000000000000000000000000000000000000",
+        "amount" : 100
+    }
+}
+```
 
 Indicates that an invalid exit is occurring. It should be challenged.
 
-> invalid_exit
+
+#### `unchallenged_exit`
+> An unchallenged_exit event
+
 ```json
 {
     "event": "invalid_exit",
@@ -260,31 +277,29 @@ Indicates that an invalid exit is occurring. It should be challenged.
     }
 }
 ```
-
-
-#### `unchallenged_exit`
 
 Indicates that an invalid exit is dangerously close to finalization and hasn't been challenged. User should exit.
 
-> unchallenged_exit
+
+#### `invalid_block`
+> An invalid_block event
+
 ```json
 {
     "event": "invalid_exit",
     "details": {
-        "eth_height"  : 3521678,
-        "utxo_pos"  : 12,
-        "owner"  : "B3256026863EB6AE5B06FA396AB09069784EA8EA",
-        "currency"  : "0000000000000000000000000000000000000000",
-        "amount" : 100
+        "blockhash"  : "DB32876CC6F26E96B9291682F3AF4A04C2AA2269747839F14F1A8C529CF90225",
+        "blocknum"  : 10000,
     }
 }
 ```
-
-#### `invalid_block`
 
 A block containing an invalid tx has been processed [are there other reasons a block can be invalid?]. User should exit.
 
-> invalid_block
+
+#### `block_withholding`
+> A block_withholding event
+
 ```json
 {
     "event": "invalid_exit",
@@ -294,18 +309,6 @@ A block containing an invalid tx has been processed [are there other reasons a b
     }
 }
 ```
-
-#### `block_withholding`
 
 The ChildChain is withholding a block whose hash has been published on the root chain. User should exit.
 
-> block_withholding
-```json
-{
-    "event": "invalid_exit",
-    "details": {
-        "blockhash"  : "DB32876CC6F26E96B9291682F3AF4A04C2AA2269747839F14F1A8C529CF90225",
-        "blocknum"  : 10000,
-    }
-}
-```
