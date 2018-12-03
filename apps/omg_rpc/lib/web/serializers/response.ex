@@ -60,7 +60,6 @@ defmodule OMG.RPC.Web.Serializers.Response do
   Removes or encodes fields in response that cannot be serialized to api response.
   By default, it:
    * encodes to hex all binary values
-   * removes unloaded ecto associations values
    * removes metadata fields
   """
   @spec clean_artifacts(any()) :: any()
@@ -73,7 +72,6 @@ defmodule OMG.RPC.Web.Serializers.Response do
   def clean_artifacts(map_or_struct) when is_map(map_or_struct) do
     map_or_struct
     |> to_map()
-    |> Enum.filter(fn {_k, v} -> Ecto.assoc_loaded?(v) end)
     |> Enum.map(fn {k, v} -> {k, clean_artifacts(v)} end)
     |> Map.new()
   end

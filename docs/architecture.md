@@ -91,13 +91,13 @@ Actually `OMG.API.EthereumEventListener` setup with `:depositor`.
 
 - pushes events to `Phoenix app`
 
-### `OMG.JSONRPC` FIXME
+### `OMG.RPC`
 
-- exposes `OMG.API` (as configured by `:omg_jsonrpc, :api_module` setting) via a `cowboy`-driven JSON-RPC2 interface
+- exposes `OMG.API` (as configured by `:omg_rpc, :child_chain_api_module` setting) via a `phoenix`-driven HTTP-RPC interface
 
 ### `OMG.Performance`
 
-- executes requests to `OMG.JSONRPC` FIXME
+- executes requests to `OMG.RPC`
 - forces block forming by talking directly to `OMG.API.State`
 
 ## Databases
