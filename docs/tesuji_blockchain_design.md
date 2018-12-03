@@ -224,11 +224,10 @@ A child chain transaction will have:
 ```
     [inpPos1, inpPos2, inpPos3, inpPos4,
     sig1, sig2,
-    cur12, cur34,
-    newOwner1, amount1,
-    newOwner2, amount2,
-    newOwner3, amount3,
-    newOwner4, amount4]
+    newOwner1, currency1, amount1,
+    newOwner2, currency2, amount2,
+    newOwner3, currency3, amount3,
+    newOwner4, currency4, amount4]
 ```
 
 - `inpPos` - specify the inputs to the transaction.
@@ -239,14 +238,10 @@ Every such output must be unspent for the transaction to be valid.
 A transaction can have up to two signatures even though it can have up to 4 inputs.
 Any of the two signatures may prove any of the four inputs, all inputs must be proven.
 This forces transactions with over two inputs to have multiple inputs with the same owner.
-The decision to have at most two owners was made to increase simplicity because having more than two owners for  creating transactions is difficult in most real world cases.
+The decision to have at most two owners was made to increase simplicity because having more than two owners for creating transactions is difficult in most real world cases.
 This form of transaction is the minimal that allows for atomic swaps with change, see **Atomic Swaps** section.
 `sig` may be 65 zero bytes if no signature is provided.
-- `cur` denotes a currency being dealt with.
-We have two currency fields to allow for atomic swaps to occur between two parties in a single transaction.
-`cur12` specifies the currency for inputs/outputs 1 & 2, `cur34` - respectively.
-`cur12` can be equal to `cur34` to allow "4-to-1" cheap merges of UTXOs.
-- `newOwner` and `amount` specify a single output with the address of the new owner for a given amount
+- `newOwner`, `currency` and `amount` specify a single output with the address of the new owner for a given amount of currency
 
 **NOTE** To create a valid transaction, a user needs to have access to positions of all the UTXOs that they own.
 
