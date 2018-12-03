@@ -29,6 +29,7 @@ defmodule OMG.API.Fixtures do
 
   deffixture(stable_alice(entities), do: entities.stable_alice)
   deffixture(stable_bob(entities), do: entities.stable_bob)
+  deffixture(stable_mallory(entities), do: entities.stable_mallory)
 
   deffixture state_empty() do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()

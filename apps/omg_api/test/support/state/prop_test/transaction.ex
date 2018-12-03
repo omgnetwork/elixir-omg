@@ -24,26 +24,32 @@ defmodule OMG.API.State.PropTest.Transaction do
   require Constants
   require Utxo
 
-  def normalize_variables({inputs, currency_name, future_owners}) do
+  def normalize_variables({inputs, currency, future_owners}) do
     stable_entities = OMG.API.TestHelper.entities_stable()
+    currency = Map.get(Constants.currencies(), currency)
+
+    owners = Enum.map(inputs, fn {_, owner} -> Map.get(stable_entities, owner) end)
 
     {
+      owners,
       inputs
-      |> Enum.map(fn {Utxo.position(blknum, tx_index, oindex), owner} ->
-        {blknum, tx_index, oindex, Map.get(stable_entities, owner)}
+      |> Enum.map(fn {Utxo.position(blknum, tx_index, oindex), _} ->
+        {blknum, tx_index, oindex}
       end),
-      Map.get(Constants.currencies(), currency_name),
-      future_owners |> Enum.map(fn {owner, amount} -> {Map.get(stable_entities, owner), amount} end)
+      future_owners
+      |> Enum.map(fn {owner, amount} ->
+        {Map.get(stable_entities, owner), currency, amount}
+      end)
     }
   end
 
   def create(variable) do
-    {inputs, currency, future_owners} = normalize_variables(variable)
+    {input_owners, inputs, outputs} = normalize_variables(variable)
 
     OMG.API.TestHelper.create_recovered(
+      input_owners,
       inputs,
-      currency,
-      future_owners
+      outputs
     )
   end
 

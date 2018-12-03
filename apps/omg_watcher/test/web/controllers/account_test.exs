@@ -38,7 +38,9 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
 
       # adds other token funds for alice to make more interesting
       DB.Transaction.update_with(%{
-        transactions: [API.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])],
+        transactions: [
+          API.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])
+        ],
         blknum: 11_000,
         blkhash: <<?#::256>>,
         timestamp: :os.system_time(:second),

@@ -123,8 +123,8 @@ defmodule OMG.Performance.SenderServer do
 
     # create and return signed transaction
     [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
-    |> Transaction.new(@eth, [{spender.addr, newamount}, {recipient.addr, to_spend}])
-    |> Transaction.sign(spender.priv, <<>>)
+    |> Transaction.new([{spender.addr, @eth, newamount}, {recipient.addr, @eth, to_spend}])
+    |> Transaction.sign([spender.priv, <<>>])
   end
 
   # Submits new transaction to the blockchain server.
@@ -161,7 +161,8 @@ defmodule OMG.Performance.SenderServer do
             "[#{inspect(seqnum)}]: Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}"
           end)
 
-        {:ok, blknum, txindex, tx.raw_tx.amount1}
+        [%{amount: amount} | _] = Transaction.get_outputs(tx.raw_tx)
+        {:ok, blknum, txindex, amount}
     end
   end
 

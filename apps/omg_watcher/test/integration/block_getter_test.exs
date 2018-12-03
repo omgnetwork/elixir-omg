@@ -232,11 +232,12 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
       # using module attribute to have a stable alice (we can't use fixtures, because modules don't see the parent
       @alice API.TestHelper.generate_entity()
+      @eth Crypto.zero_address()
 
       def block_with_incorrect_transaction do
         alice = @alice
 
-        recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], Crypto.zero_address(), [{alice, 10}])
+        recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
 
         API.Block.hashed_txs_at([recovered], 1000)
       end
