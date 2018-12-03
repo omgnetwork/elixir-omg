@@ -226,17 +226,18 @@ defmodule OMG.API.State.Core do
   defp amounts_add_up?(input_amounts, output_amounts, fees) do
     outputs_covered =
       for {output_currency, output_amount} <- Map.to_list(output_amounts) do
-        fee = Map.get(fees, output_currency, 0)
         input_amount = Map.get(input_amounts, output_currency, 0)
-        input_amount >= fee + output_amount
+        input_amount >= output_amount
       end
       |> Enum.all?()
 
     fees_covered =
-      for {input_amount, input_currency} <- Map.to_list(input_amounts) do
+      for {input_currency, input_amount} <- Map.to_list(input_amounts) do
+        output_amount = Map.get(output_amounts, input_currency, 0)
         fee = Map.get(fees, input_currency, 0)
-        input_amount >= fee
+        input_amount - output_amount >= fee
       end
+      |> Enum.any?()
 
     if outputs_covered and fees_covered, do: :ok, else: {:error, :amounts_do_not_add_up}
   end
