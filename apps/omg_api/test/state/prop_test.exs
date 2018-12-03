@@ -156,6 +156,7 @@ defmodule OMG.API.State.PropTest do
     end
   end
 
+  @tag skip: true
   @tag capture_log: true
   property "quick test of property test", [:quiet, numtests: 10] do
     state_core_property_test()
