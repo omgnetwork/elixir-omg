@@ -13,7 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.RPC.Web.Controller.Block do
-  # TODO: @moduledoc false
+  @moduledoc """
+  Module provides endpoint action to retrieve block details of published Plasma block.
+  """
 
   use OMG.RPC.Web, :controller
   use PhoenixSwagger

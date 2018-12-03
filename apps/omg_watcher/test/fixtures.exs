@@ -38,7 +38,6 @@ defmodule OMG.Watcher.Fixtures do
       config :logger, level: :debug
       config :omg_api,
         fee_specs_file_path: "#{fee_file}"
-      config :omg_rpc, OMG.RPC.Web.Endpoint, server: true
     """)
     |> File.close()
 
@@ -69,14 +68,6 @@ defmodule OMG.Watcher.Fixtures do
 
     {:ok, child_chain_proc, _ref, [{:stream, child_chain_out, _stream_server}]} =
       Exexec.run_link(child_chain_mix_cmd, exexec_opts_for_mix)
-
-    {:ok, _db_proc, _ref, [{:stream, env_out, _stream_server}]} =
-      Exexec.run_link("echo \"MIX_ENV... $MIX_ENV\"", exexec_opts_for_mix)
-
-    env_out |> Enum.each(&log_output("environment", &1))
-
-    IO.puts("Env= #{inspect(Mix.env())}")
-    # IO.puts "#{inspect :sys.get_state(OMG.RPC.Web.Endpoint), pretty: true}"
 
     fn ->
       child_chain_out |> Enum.each(&log_output("child_chain", &1))
@@ -112,7 +103,6 @@ defmodule OMG.Watcher.Fixtures do
 
   defp log_output(prefix, line) do
     Logger.debug(fn -> "#{prefix}: " <> line end)
-    IO.puts("#{prefix}: " <> line)
     line
   end
 
@@ -202,8 +192,8 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   deffixture test_server do
-    alias FakeServer.HTTP.Server
     alias FakeServer.Agents.EnvAgent
+    alias FakeServer.HTTP.Server
 
     {:ok, server_id, port} = Server.run()
     env = FakeServer.Env.new(port)

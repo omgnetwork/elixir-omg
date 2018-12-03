@@ -13,7 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.RPC.Web.Controller.Transaction do
-  # TODO: @moduledoc false
+  @moduledoc """
+  Module provides endpoint action to submit transaction to the Child Chain.
+  """
 
   use OMG.RPC.Web, :controller
   use PhoenixSwagger

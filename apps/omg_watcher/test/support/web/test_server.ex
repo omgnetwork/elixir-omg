@@ -19,8 +19,8 @@ defmodule OMG.Watcher.TestServer do
   For now it's strictly tied with child chain api and handles env variable changes
   """
 
-  alias FakeServer.HTTP.Server
   alias FakeServer.Agents.EnvAgent
+  alias FakeServer.HTTP.Server
 
   @doc """
   Configures route for fake server to respond for given path with given response

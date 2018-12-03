@@ -13,6 +13,10 @@
 # limitations under the License.
 
 defmodule OMG.RPC.Web.Controller.Fallback do
+  @moduledoc """
+  The fallback handler.
+  """
+
   use Phoenix.Controller
 
   alias OMG.RPC.Web.Serializers

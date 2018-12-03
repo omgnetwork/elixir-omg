@@ -264,7 +264,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert_push("invalid_block", ^invalid_block_event)
   end
 
-
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
   test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit unchallenged_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do

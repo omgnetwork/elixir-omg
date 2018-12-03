@@ -13,6 +13,10 @@
 # limitations under the License.
 
 defmodule OMG.RPC.Web.View.Block do
+  @moduledoc """
+  The Block view for rendering json
+  """
+
   alias OMG.RPC.Web.Serializers
 
   def render("block.json", %{block: block}) do

@@ -13,6 +13,10 @@
 # limitations under the License.
 
 defmodule OMG.RPC.Web.View.Transaction do
+  @moduledoc """
+  The Transaction submission view for rendering json
+  """
+
   alias OMG.RPC.Web.Serializers
 
   def render("submit.json", %{result: result}) do
