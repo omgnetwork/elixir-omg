@@ -19,7 +19,7 @@ defmodule OMG.RPC.Client do
 
   alias OMG.API.State.Transaction
 
-  use OMG.API.LoggerExt
+  require Logger
 
   @doc """
   Gets Block of given hash

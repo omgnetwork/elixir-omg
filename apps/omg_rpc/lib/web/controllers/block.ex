@@ -32,5 +32,45 @@ defmodule OMG.RPC.Web.Controller.Block do
     end
   end
 
-  # FIXME: swagger definitions
+  def swagger_definitions do
+    %{
+      Block:
+        swagger_schema do
+          title("Block")
+          description("Block details with encoded transctions")
+
+          properties do
+            blknum(:integer, "Childchain block number", required: true)
+            hash(:string, "Childchain block hash", required: true)
+            transactions(Schema.ref(:EncodedTransactions), "Transactions included in the block", required: true)
+          end
+
+          example(%{
+            blknum: 123_000,
+            hash: "2733e50f526ec2fa19a22b31e8ed50f23cd1fdf94c9154ed3a7609a2f1ff981f",
+            transactions: [
+              "F849822AF880808080809400000000000000000000000000000000000000009489F5AD3F771617E853451A93F7A73E48CF5550D104948CE5C73FD5BEFFE0DCBCB6AFE571A2A3E73B043C03"
+            ]
+          })
+        end,
+      EncodedTransactions:
+        swagger_schema do
+          title("Encoded Transactions")
+          description("Array of HEX-encoded strings of RLP-encoded transaction bytes")
+          type(:array)
+          items(Schema.ref(:string))
+        end
+    }
+  end
+
+  swagger_path :get_block do
+    get("/block.get")
+    summary("Retrieves a specific block from child chain which hash was published on root chain")
+
+    parameters do
+      hash(:body, :string, "HEX-encoded hash of the block", required: true)
+    end
+
+    response(200, "OK", Schema.ref(:Block))
+  end
 end
