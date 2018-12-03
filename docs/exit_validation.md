@@ -142,11 +142,11 @@ This flow is about the user piggybacking (or not), challenging IFEs and respondi
 
 #### new IFEs, competitors, piggybacks
 
-Any `InFlightExitStarted` should, after `eth_exit_finality_margin` cause the IFE to be tracked and tx added to something called `TxAppendix`.
+Any `InFlightExitStarted` should, after `eth_exit_finality_margin`, cause the IFE to be tracked and tx added to something called `TxAppendix`.
 
-Any competitor published should `eth_exit_finality_margin`, be tracked and tx added to `TxAppendix`
+Any competitor published should, after `eth_exit_finality_margin`, be tracked and tx added to `TxAppendix`
 
-Any piggyback done should `eth_exit_finality_margin`, be taken into account.
+Any piggyback done should, after `eth_exit_finality_margin`, be taken into account.
 
 #### finalization
 
