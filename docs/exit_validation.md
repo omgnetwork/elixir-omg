@@ -108,7 +108,7 @@ Absence of challenges within some period (like `sla_margin`) must result in clie
 
 ## In-flight exits
 
-With MoreVP, we need to handle another type of exit game, which is the in-flight exit game, as specced out [here](docs/morevp.md).
+With MoreVP, we need to handle another type of exit game, which is the in-flight exit game, as specced out [here](morevp.md).
 
 In terms of handling within the Watcher, similar principles will apply:
   - we gather and keep in `OMG.Watcher.ExitProcessor`'s persistent state the current state of in-flight txs and exits
