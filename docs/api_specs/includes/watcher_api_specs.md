@@ -36,7 +36,7 @@ curl http://localhost:4000/account.get_utxos -d '{"address": "b3256026863eb6ae5b
 ```
 
 Gets all utxos belonging to the given address.
-<aside class="warning"> Note that this is a performance intensive call and should only be used if the chain is byzantine and the user needs to retrieve utxo information to be able to exit. Normally an application should use the Informational API `/account.get_utxos`. This version is provided in case the Informational API is not available.</aside> 
+<aside class="notice"> Note that this is a performance intensive call and should only be used if the chain is byzantine and the user needs to retrieve utxo information to be able to exit. Normally an application should use the Informational API's (Account - Get Utxos)[#] This version is provided in case the Informational API is not available.</aside> 
 
 
 ### HTTP Request
@@ -154,7 +154,6 @@ curl http://localhost:4000/transaction.submit -d '{"transaction": "f8d083015ba98
 ```
 
 > The above command returns JSON document:
-<aside class="warning">Is it OK? Following is planned child chain response for corresponding endpoint</aside> 
 
 ```json
 {
@@ -214,7 +213,7 @@ curl -X POST http://localhost:4000/status
                 "event": "invalid_exit",
                 "details": {
                     "eth_height"  : 100,
-                    "utxo_pos"  : 100,
+                    "utxo_pos"  : 10001001,
                     "owner"  : "B3256026863EB6AE5B06FA396AB09069784EA8EA",
                     "currency"  : "0000000000000000000000000000000000000000",
                     "amount" : 100
@@ -241,7 +240,7 @@ The user must call the `/status` endpoint periodically to check. Any situation t
 </aside>
 
 ### Byzantine events
-All of the following events indicate a byzantine chain and that the user should either exit or challenge.
+All of the following events indicate byzantine behaviour and that the user should either exit or challenge.
 
 #### `invalid_exit`
 > An invalid_exit event
@@ -251,7 +250,7 @@ All of the following events indicate a byzantine chain and that the user should 
     "event": "invalid_exit",
     "details": {
         "eth_height"  : 3521678,
-        "utxo_pos"  : 12,
+        "utxo_pos"  : 10001001,
         "owner"  : "B3256026863EB6AE5B06FA396AB09069784EA8EA",
         "currency"  : "0000000000000000000000000000000000000000",
         "amount" : 100
@@ -270,7 +269,7 @@ Indicates that an invalid exit is occurring. It should be challenged.
     "event": "unchallenged_exit",
     "details": {
         "eth_height"  : 3521678,
-        "utxo_pos"  : 12,
+        "utxo_pos"  : 10001001,
         "owner"  : "B3256026863EB6AE5B06FA396AB09069784EA8EA",
         "currency"  : "0000000000000000000000000000000000000000",
         "amount" : 100

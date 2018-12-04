@@ -22,6 +22,7 @@ search: true
 
 # Introduction
 
-Spec out entire API across child chain/watcher/convenience. Let's use Slate for it :)
+This is the HTTP-RPC API for the ChildChain and Watcher.
 
-
+All calls use HTTP POST and pass options in the request body in JSON format.
+Errors will usually return with HTTP response code 200, and the details of the error in the response body. See (Errors)[#].

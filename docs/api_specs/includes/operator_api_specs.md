@@ -40,6 +40,7 @@ Attribute | Type | Description
 --------- | ------- | -----------
 transaction | Hex encoded string | Signed transaction RLP-encoded to bytes and HEX-encoded to string
 
+<aside class="notice">Normally you should call the Watcher's (Transaction - Submit)[#] instead of this. The Watcher's version performs various security and validation checks before submitting the transaction, so is much safer. However, if the Watcher is not available this version exists.</aside> 
 
 
 
@@ -73,7 +74,7 @@ curl http://localhost:4000/block.get -d '{"hash": "2733e50f526ec2fa19a22b31e8ed5
 }
 ```
 
-This endpoint retrieves a specific block from child chain by its hash which was published on root chain
+This endpoint retrieves a specific block from child chain by its hash which was published on root chain.
 
 ### HTTP Request
 
