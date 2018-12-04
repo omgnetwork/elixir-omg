@@ -139,7 +139,7 @@ defmodule OMG.API.State.Core do
   See docs/transaction_validation.md for more information about stateful and stateless validation.
   """
   @spec exec(tx :: Transaction.Recovered.t(), fees :: map(), state :: t()) ::
-          {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}, t()}
+          {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, non_neg_integer}, t()}
           | {{:error, exec_error}, t()}
   def exec(
         %Transaction.Recovered{

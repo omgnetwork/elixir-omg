@@ -27,6 +27,8 @@ defmodule OMG.API.FeeChecker do
 
   @file_changed_check_interval_ms 10_000
 
+  @type error() :: :token_not_allowed
+
   def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
@@ -44,7 +46,7 @@ defmodule OMG.API.FeeChecker do
   @doc """
   Calculates fee from transaction and checks whether token is allowed and flat fee limits are met
   """
-  @spec transaction_fees(Recovered.t()) :: {:ok, Core.token_fee_t()} | {:error, :token_not_allowed}
+  @spec transaction_fees(Recovered.t()) :: {:ok, Core.token_fee_t()} | {:error, error()}
   def transaction_fees(recovered_tx) do
     Core.transaction_fees(recovered_tx, load_fees())
   end
