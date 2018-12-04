@@ -38,9 +38,6 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
           |> Response.clean_artifacts()
           |> TestServer.make_response()
         else
-          # FIXME: change to better
-          real_url = context |> TestServer.real_url()
-
           {:ok, block} =
             %{hash: req_hash}
             |> Client.rpc_post("block.get", context.real_addr)

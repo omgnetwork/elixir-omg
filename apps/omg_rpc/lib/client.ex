@@ -17,8 +17,6 @@ defmodule OMG.RPC.Client do
   Provides functions to communicate with Child Chain API
   """
 
-  alias OMG.API.State.Transaction
-
   require Logger
 
   @doc """
