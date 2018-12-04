@@ -42,7 +42,7 @@ defmodule OMG.Watcher.Mixfile do
       {:deferred_config, "~> 0.1.1"},
       {:cowboy, "~> 1.1"},
       # NOTE: fixed version needed b/c Plug.Conn.WrapperError.reraise/3 is deprecated... 2 occurences in umbrella.
-      {:plug, "1.7.0", override: true},
+      {:plug, "1.5.0", override: true},
       {:socket, "~> 0.3"},
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
       # TODO: we only need in :dev and :test here, but we need in :prod too in performance
