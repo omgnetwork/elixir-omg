@@ -267,7 +267,7 @@ Indicates that an invalid exit is occurring. It should be challenged.
 
 ```json
 {
-    "event": "invalid_exit",
+    "event": "unchallenged_exit",
     "details": {
         "eth_height"  : 3521678,
         "utxo_pos"  : 12,
@@ -286,7 +286,7 @@ Indicates that an invalid exit is dangerously close to finalization and hasn't b
 
 ```json
 {
-    "event": "invalid_exit",
+    "event": "invalid_block",
     "details": {
         "blockhash"  : "DB32876CC6F26E96B9291682F3AF4A04C2AA2269747839F14F1A8C529CF90225",
         "blocknum"  : 10000,
@@ -302,7 +302,7 @@ A block containing an invalid tx has been processed [are there other reasons a b
 
 ```json
 {
-    "event": "invalid_exit",
+    "event": "block_withholding",
     "details": {
         "blockhash"  : "DB32876CC6F26E96B9291682F3AF4A04C2AA2269747839F14F1A8C529CF90225",
         "blocknum"  : 10000,
@@ -312,3 +312,110 @@ A block containing an invalid tx has been processed [are there other reasons a b
 
 The ChildChain is withholding a block whose hash has been published on the root chain. User should exit.
 
+#### `noncanonical_ife`
+> A noncanonical_ife event
+
+```json
+{
+    "event": "noncanonical_ife",
+    "details": {
+        "inflight_blocknum"  : 10000,
+        "inflight_tx_index"  : 12,
+        "inflight_input_index"  : 1,
+        "competing_blocknum"  : 10000,
+        "competing_tx_index"  : 10,
+        "competing_input_index"  : 0,
+    }
+}
+```
+
+An non-canonical in-flight exit has been started. It should be challenged. 
+<aside class="warning"> Not Implemented Yet.</aside> 
+
+Event details:
+Key | Type | Description
+--------- | ------- | -----------
+inflight_blocknum | integer | Block number of the in-flight transaction
+inflight_tx_index | integer | Index of the in-flight transaction
+inflight_input_index | integer | Index of the double-spent input in the in-flight transaction
+competing_blocknum | integer | Block number of the spending transaction
+competing_tx_index | integer | Index of the spending transaction
+competing_input_index | integer | Index of the double-spent input in the competing transaction
+
+#### `invalid_ife_challenge`
+> A invalid_ife_challenge event
+
+```json
+{
+    "event": "invalid_ife_challenge",
+    "details": {
+        "inflight_blocknum"  : 10000,
+        "inflight_tx_index"  : 12,
+    }
+}
+```
+
+A canonical in-flight exit has been challenged. The challenge should be responded to. 
+<aside class="warning"> Not Implemented Yet.</aside> 
+
+Event details:
+Key | Type | Description
+--------- | ------- | -----------
+inflight_blocknum | integer | Block number of the in-flight transaction
+inflight_tx_index | integer | Index of the in-flight transaction
+
+#### `piggyback_available`
+> A piggyback_available event
+
+```json
+{
+    "event": "piggyback_available",
+    "details": {
+        "inflight_blocknum"  : 10000,
+        "inflight_tx_index"  : 12,
+        "inflight_io_index"  : 1
+    }
+}
+```
+
+An in-flight exit has been started and can be piggybacked 
+<aside class="warning"> Not Implemented Yet.</aside> 
+
+Event details:
+Key | Type | Description
+--------- | ------- | -----------
+inflight_blocknum | integer | Block number of the in-flight transaction
+inflight_tx_index | integer | Index of the in-flight transaction
+inflight_io_index | integer | Index of the input or output that can be exitted.
+
+#### `invalid_piggyback`
+> A invalid_piggyback event
+
+```json
+{
+    "event": "invalid_piggyback",
+    "details": {
+        "type": "output",
+        "inflight_blocknum"  : 10000,
+        "inflight_tx_index"  : 12,
+        "inflight_io_index"  : 1,
+        "spending_blocknum"  : 10000,
+        "spending_tx_index"  : 10,
+        "spending_input_index"  : 0,
+    }
+}
+```
+
+An invalid piggyback is in process. Should be challenged.
+<aside class="warning"> Not Implemented Yet.</aside>
+
+Event details:
+Key | Type | Description
+--------- | ------- | -----------
+type | string | Indicates whether the invalid piggyback is on an "input" or "output"
+inflight_blocknum | integer | Block number of the in-flight transaction
+inflight_tx_index | integer | Index of the in-flight transaction
+inflight_io_index | integer | Index of the input or output of the in-flight transaction
+spending_blocknum | integer | Block number of the spending transaction
+spending_tx_index | integer | Index of the spending transaction
+spending_input_index | integer | Index of the spent input iofn the spending transaction
