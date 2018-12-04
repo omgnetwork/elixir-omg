@@ -53,7 +53,7 @@ The address_spent event informing about that particular address spent funds.
 
 Both event types have the same structure.
 
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 child_blknum | Integer | 
 child_txindex | Integer | 
@@ -89,7 +89,7 @@ Informs that a new block has been added to the chain.
 
 Both event types have the same structure.
 
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 blknum | Integer | 
 block_hash | HEX-encoded string |

@@ -5,7 +5,7 @@ API specification of the Watcher's security-critical Service
 ## Account - Get Utxos
 
 ```shell
-http POST /account.get_utxos address=b3256026863eb6ae5b06fa396ab09069784ea8ea
+curl http://localhost:4000/account.get_utxos -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea", "limit": 10}'
 ```
 
 ```elixir
@@ -43,9 +43,9 @@ Gets all utxos belonging to the given address.
 
 `POST /account.get_utxos`
 
-### JSON Body
+### Request Body
 
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 address | Hex encoded string | Address of the account
 limit | Integer | Maximum number of utxos to return (optional)
@@ -55,7 +55,7 @@ limit | Integer | Maximum number of utxos to return (optional)
 ## Utxo - Get Challenge Data
 
 ```shell
-http POST /utxo.get_challenge_data utxo_pos=10001001
+curl http://localhost:4000/utxo.get_challenge_data -d '{"utxo_pos": "10001001"}'
 ```
 
 ```elixir
@@ -88,9 +88,9 @@ Gets challenge data for a given utxo exit
 
 `POST /utxo.get_challenge_data`
 
-### JSON Body
+### Request Body
 
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 utxo_pos | Integer | Utxo position (encoded as single integer, the way contract represents them)
 
@@ -99,7 +99,7 @@ utxo_pos | Integer | Utxo position (encoded as single integer, the way contract 
 ## Utxo - Get Exit Data
 
 ```shell
-http POST /utxo.get_exit_data utxo_pos=10001001
+curl http://localhost:4000/utxo.get_exit_data -d '{"utxo_pos": "10001001"}'
 ```
 
 ```elixir
@@ -131,9 +131,9 @@ Gets exit data for a given utxo
 
 `POST /utxo.get_exit_data`
 
-### JSON Body
+### Request Body
 
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 utxo_pos | Integer | Utxo position (encoded as single integer, the way contract represents them)
 
@@ -142,7 +142,7 @@ utxo_pos | Integer | Utxo position (encoded as single integer, the way contract 
 ## Transaction - Submit
 
 ```shell
-http POST /transaction.submit transaction=f8d083015ba98080808080940000...
+curl http://localhost:4000/transaction.submit -d '{"transaction": "f8d083015ba98080808080940000..."}'
 ```
 
 ```elixir
@@ -174,9 +174,9 @@ Watcher passes signed transaction to the child chain only if it's secure (better
 
 `POST /transaction.submit`
 
-### JSON Body
+### Request Body
 
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 transaction | Hex encoded string | Signed transaction RLP-encoded to bytes and HEX-encoded to string
 
@@ -186,7 +186,7 @@ transaction | Hex encoded string | Signed transaction RLP-encoded to bytes and H
 ## Status
 
 ```shell
-http POST /status
+curl -X POST http://localhost:4000/status
 ```
 
 ```elixir
@@ -231,7 +231,7 @@ Gets plasma network and Watcher status
 
 `POST /status`
 
-### JSON Body
+### Request Body
 
 No parameters are required.
 
@@ -333,7 +333,7 @@ An non-canonical in-flight exit has been started. It should be challenged.
 <aside class="warning"> Not Implemented Yet.</aside> 
 
 Event details:
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 inflight_blocknum | integer | Block number of the in-flight transaction
 inflight_tx_index | integer | Index of the in-flight transaction
@@ -359,7 +359,7 @@ A canonical in-flight exit has been challenged. The challenge should be responde
 <aside class="warning"> Not Implemented Yet.</aside> 
 
 Event details:
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 inflight_blocknum | integer | Block number of the in-flight transaction
 inflight_tx_index | integer | Index of the in-flight transaction
@@ -382,7 +382,7 @@ An in-flight exit has been started and can be piggybacked
 <aside class="warning"> Not Implemented Yet.</aside> 
 
 Event details:
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 inflight_blocknum | integer | Block number of the in-flight transaction
 inflight_tx_index | integer | Index of the in-flight transaction
@@ -410,7 +410,7 @@ An invalid piggyback is in process. Should be challenged.
 <aside class="warning"> Not Implemented Yet.</aside>
 
 Event details:
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 type | string | Indicates whether the invalid piggyback is on an "input" or "output"
 inflight_blocknum | integer | Block number of the in-flight transaction

@@ -3,7 +3,7 @@
 ## Submit transaction
 
 ```shell
-http POST /transaction.submit transaction=f8d083015ba98080808080940000...
+curl http://localhost:4000/transaction.submit -d '{"transaction": "b325602686..."}'
 ```
 
 ```elixir
@@ -28,15 +28,15 @@ http POST /transaction.submit transaction=f8d083015ba98080808080940000...
 }
 ```
 
-This endpoint submits signed transaction to the child chain
+This endpoint submits a signed transaction to the child chain.
 
 ### HTTP Request
 
 `POST /transaction.submit`
 
-### JSON Body
+### Request Body
 
-Key | Value | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 transaction | Hex encoded string | Signed transaction RLP-encoded to bytes and HEX-encoded to string
 
@@ -46,7 +46,7 @@ transaction | Hex encoded string | Signed transaction RLP-encoded to bytes and H
 ## Get Block by id
 
 ```shell
-http POST /block.get hash=2733e50f526ec2fa19a22b31e8ed50f23cd1fdf94c9154ed3a7609a2f1ff981f
+curl http://localhost:4000/block.get -d '{"hash": "2733e50f526ec2fa19a22b31e8ed50f23cd1fdf94c9154ed3a7609a2f1ff981f}'
 ```
 
 ```elixir
@@ -73,14 +73,14 @@ http POST /block.get hash=2733e50f526ec2fa19a22b31e8ed50f23cd1fdf94c9154ed3a7609
 }
 ```
 
-This endpoint retrieves a specific block from child chain which hash was published on root chain
+This endpoint retrieves a specific block from child chain by its hash which was published on root chain
 
 ### HTTP Request
 
 `POST /block.get`
 
-### JSON Body
+### Request Body
 
-Key | Value | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 hash | Hex encoded string | HEX-encoded hash of the block

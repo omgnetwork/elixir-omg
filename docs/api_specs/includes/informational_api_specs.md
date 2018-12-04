@@ -6,7 +6,7 @@ API specification of the Watcher's Informational Service
 ## Account - Get Balance
 
 ```shell
-http POST /account.get_balance address=b3256026863eb6ae5b06fa396ab09069784ea8ea
+curl http://localhost:4000/account.get_balance -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'
 ```
 
 ```elixir
@@ -42,9 +42,9 @@ Returns the balance of each currency for the given account address
 
 `POST /account.get_balance`
 
-### JSON Body
+### Request Body
 
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 address | Hex encoded string | Address of the funds owner
 
@@ -53,7 +53,7 @@ address | Hex encoded string | Address of the funds owner
 ## Account - Get Utxos
 
 ```shell
-http POST /account.get_utxos address=b3256026863eb6ae5b06fa396ab09069784ea8ea
+curl http://localhost:4000/account.get_utxos -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea", "limit": 10}'
 ```
 
 ```elixir
@@ -89,9 +89,9 @@ Gets all utxos belonging to the given address
 
 `POST /account.get_utxos`
 
-### JSON Body
+### Request Body
 
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 address | Hex encoded string | Address of the account
 limit | Integer | Maximum number of utxos to return (optional)
@@ -101,7 +101,7 @@ limit | Integer | Maximum number of utxos to return (optional)
 ## Account - Get Transactions
 
 ```shell
-http POST /account.get_transactions address=b3256026863eb6ae5b06fa396ab09069784ea8ea
+curl http://localhost:4000/account.get_transactions -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'
 ```
 
 ```elixir
@@ -142,9 +142,9 @@ Gets a list of transactions.
 
 `POST /account.get_transactions`
 
-### JSON Body
+### Request Body
 
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 address | Hex encoded string | Address of the account
 limit | Integer | Maximum number of transactions to return (optional)
@@ -154,7 +154,8 @@ limit | Integer | Maximum number of transactions to return (optional)
 ## Transaction -  Get All
 
 ```shell
-http POST /transaction.all block=100```
+curl http://localhost:4000/transaction.all -d '{"block": "100", "limit": 50}'
+```
 
 ```elixir
 // TODO
@@ -207,9 +208,9 @@ Gets a transaction with the given id
 
 `POST /transaction.get`
 
-### JSON Body
+### Request Body
 
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 block | Integer | Block number to filter by (optional)
 address | Hex encoded string | Address to filter by (optional)
@@ -220,7 +221,7 @@ limit | Integer | Maximum number of transactions to return (optional)
 ## Transaction -  Get
 
 ```shell
-http POST /transaction.get id=bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d
+curl http://localhost:4000/transaction.get -d '{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
 ```
 
 ```elixir
@@ -284,9 +285,9 @@ Gets a transaction with the given id
 
 `POST /transaction.get`
 
-### JSON Body
+### Request Body
 
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 id | Hex encoded string | Hash of the Plasma transaction
 
@@ -295,7 +296,7 @@ id | Hex encoded string | Hash of the Plasma transaction
 ## Block - Get all
 
 ```shell
-http POST /block.all limit=100
+curl http://localhost:4000/block.all -d '{"limit": 100}'
 ```
 
 ```elixir
@@ -335,9 +336,9 @@ Gets a block with the given id
 
 `POST /block.all`
 
-### JSON Body
+### Request Body
 
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 limit | Integer | Maximum number of transactions to return (optional)
 
@@ -347,7 +348,7 @@ limit | Integer | Maximum number of transactions to return (optional)
 ## Block - Get
 
 ```shell
-http POST /block.get id=bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d
+curl http://localhost:4000/block.get -d '{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
 ```
 
 ```elixir
@@ -379,9 +380,9 @@ Gets a block with the given id
 
 `POST /block.get`
 
-### JSON Body
+### Request Body
 
-Key | Type | Description
+Attribute | Type | Description
 --------- | ------- | -----------
 id | Hex encoded string | Hash of the Plasma block
 
