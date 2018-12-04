@@ -418,3 +418,274 @@ inflight_io_index | integer | Index of the input or output of the in-flight tran
 spending_blocknum | integer | Block number of the spending transaction
 spending_tx_index | integer | Index of the spending transaction
 spending_input_index | integer | Index of the spent input iofn the spending transaction
+
+
+## Inflight Exit - Get Exit Data
+
+```shell
+curl http://localhost:4000/inflight_exit.get_data -d '{"txhash": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
+```
+
+```elixir
+// TODO
+```
+
+```javascript
+// TODO
+```
+
+> The above command returns JSON document:
+
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": {
+        "txbytes": "F847010180808080940000...",
+        "sigs": "7C29FB8327F60BBFC62...",
+        "input_txs" : [
+            {
+                "txbytes": "F81891018080808...",
+                "proof": "CEDB8B31D1E4C..."
+            },
+            {
+                "txbytes": "2A03418086001...",
+                "proof": "A67131D1E4C..."
+            }
+        ]
+    }
+}
+```
+
+Gets exit data for an in-flight exit
+
+### HTTP Request
+
+`POST /inflight_exit.get_data`
+
+### Request Body
+
+Attribute | Type | Description
+--------- | ------- | -----------
+txhash | Hex encoded string | The hash of the in-flight transaction
+
+
+
+## Inflight Exit - Get Challenge Data
+
+```shell
+curl http://localhost:4000/inflight_exit.get_challenge_data -d '{"txhash": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
+```
+
+```elixir
+// TODO
+```
+
+```javascript
+// TODO
+```
+
+> The above command returns JSON document:
+
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": {
+        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_input_index": 1,
+        "competing_txbytes": "F317010180808080940000...",
+        "competing_input_index": 1,
+        "competing_txid": 2600003920012,
+        "competing_proof": "004C010180808080940000...",
+        "competing_sig": "9A23010180808080940000..."
+    }
+}
+```
+
+Gets challenge data for an in-flight exit
+
+### HTTP Request
+
+`POST /inflight_exit.get_challenge_data`
+
+### Request Body
+
+Attribute | Type | Description
+--------- | ------- | -----------
+txhash | Hex encoded string | The hash of the in-flight transaction
+
+
+
+## Inflight Exit - Get Challenge Response Data
+
+```shell
+curl http://localhost:4000/inflight_exit.get_challenge_response_data -d '{"txhash": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
+```
+
+```elixir
+// TODO
+```
+
+```javascript
+// TODO
+```
+
+> The above command returns JSON document:
+
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": {
+        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_txid": 2600003920012,
+        "inflight_proof": "004C010180808080940000..."
+    }
+}
+```
+
+Gets the data to respond to a challenge to an in-flight exit
+
+### HTTP Request
+
+`POST /inflight_exit.get_challenge_response_data`
+
+### Request Body
+
+Attribute | Type | Description
+--------- | ------- | -----------
+txhash | Hex encoded string | The hash of the in-flight transaction
+
+
+
+## Inflight Exit - Get Piggyback Data
+
+```shell
+curl http://localhost:4000/inflight_exit.get_piggyback_data -d '{"txhash": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
+```
+
+```elixir
+// TODO
+```
+
+```javascript
+// TODO
+```
+
+> The above command returns JSON document:
+
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": {
+        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_io_index": 1
+    }
+}
+```
+
+Gets the piggyback data for an in-flight exit
+
+### HTTP Request
+
+`POST /inflight_exit.get_piggyback_data`
+
+### Request Body
+
+Attribute | Type | Description
+--------- | ------- | -----------
+txhash | Hex encoded string | The hash of the in-flight transaction
+
+
+
+## Inflight Exit - Get Input Challenge Data
+
+```shell
+curl http://localhost:4000/inflight_exit.get_input_challenge_data -d '{"inflight_txhash": "bdf562c24ace..."}, "spending_txhash": "bdf562c24ace..."}'
+```
+
+```elixir
+// TODO
+```
+
+```javascript
+// TODO
+```
+
+> The above command returns JSON document:
+
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": {
+        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_input_index": 1,
+        "spending_txbytes": "F317010180808080940000...",
+        "spending_input_index": 1,
+        "spending_sig": "9A23010180808080940000..."
+    }
+}
+```
+
+Gets the data to challenge an input piggybacked on an in-flight exit
+
+### HTTP Request
+
+`POST /inflight_exit.get_input_challenge_data`
+
+### Request Body
+
+Attribute | Type | Description
+--------- | ------- | -----------
+inflight_txhash | Hex encoded string | The hash of the in-flight transaction
+spending_txhash | Hex encoded string | The hash of the spending transaction
+
+
+
+## Inflight Exit - Get Output Challenge Data
+
+```shell
+curl http://localhost:4000/inflight_exit.get_output_challenge_data -d '{"inflight_txhash": "bdf562c24ace..."}, "spending_txhash": "bdf562c24ace..."}'
+```
+
+```elixir
+// TODO
+```
+
+```javascript
+// TODO
+```
+
+> The above command returns JSON document:
+
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": {
+        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_output_pos": 21000634002,
+        "inflight_proof": "F847010180808080940000...",
+        "spending_txbytes": "F317010180808080940000...",
+        "spending_input_index": 1,
+        "spending_sig": "9A23010180808080940000..."
+    }
+}
+```
+
+Gets the data to challenge an output piggybacked on an in-flight exit
+
+### HTTP Request
+
+`POST /inflight_exit.get_output_challenge_data`
+
+### Request Body
+
+Attribute | Type | Description
+--------- | ------- | -----------
+inflight_txhash | Hex encoded string | The hash of the in-flight transaction
+spending_txhash | Hex encoded string | The hash of the spending transaction
+
