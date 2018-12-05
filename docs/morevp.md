@@ -363,6 +363,20 @@ The following scenario demonstrates this attack:
 Mallory has therefore caused Bob to lose `exit bond`, even though Bob was acting honestly.
 We want to mitigate the impact of this attack as much as possible so that this does not prevent users from receiving funds.
 
+#### Honest transaction retries attack
+
+Retrying a transaction that has failed for a trivial reason is not safe under MoreVP.
+
+Scenario is:
+1. Honest Alice creates/signs/submits a transaction `tx1`
+2. This fails, either tacitly or loudly - `tx1` doesn't get included in a block
+3. Alice is forced to in-flight exit, even if she just made a trivial mistake (e.g. incorrect fee)
+4. If instead Alice retries with amended `tx2`, then she opens an attack on her funds:
+    - if the child chain is nice, `tx2` will get included in a valid, non-withheld block, all is good
+    - if the child chain decides to go rogue, Alice is left defenseless, because she double-spent her input, i.e. she can't in-flight exit neither `tx1` nor `tx2` anymore
+
+See [Timeouts section](docs/morevp.md#Timeouts) for discussion on one possible mitigation.
+However, due to uncertainty of timeouts in MoreVP, other mitigations for the retry problem might be necessary.
 
 ##### Mitigations for Honest Exit Bond Slashing
 
@@ -386,11 +400,14 @@ Our system requires only a single node be properly incentivized to challenge, an
 Modeling the “correct” size of the exit bond is an ongoing area of research.
 
 
-###### Timeouts
+##### Timeouts
 
-We can add timeouts to each transaction (“must be included in the chain by block X”) to reduce number of vulnerable transactions at any point in time.
+We can add timeouts to each transaction (“must be included in the chain by block X”) to
+ - reduce number of transactions vulnerable to [**Honest Exit Bond Slashing**](docs/morevp.md#Honest-Exit-Bond-Slashing) point in time.
+ - alleviate [**Honest transaction retries attack**](docs/morevp.md#Honest-transaction-retries-attack), allowing Alice to just wait the timeout and retry
 This will probably also be necessary from a user experience point of view, as we don’t want users to accidentally sign a double-spend simply because the first transaction hasn’t been processed yet.
 
+**TODO** At this point, it is uncertain how the timeouts scheme would modify MoreVP and whether it's feasible at all.
 
 ## Appendix
 
