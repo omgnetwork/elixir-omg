@@ -26,19 +26,21 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias OMG.Watcher.ExitProcessor.CompetitorInfo
 
   @default_sla_margin 10
   @zero_address Crypto.zero_address()
 
-  @type exit_id() :: binary()
+  @type tx_hash() :: <<_::32>>
   @type output_offset() :: 0..7
 
-  defstruct [:sla_margin, exits: %{}, in_flight_exits: %{}]
+  defstruct [:sla_margin, exits: %{}, in_flight_exits: %{}, competitors: %{}]
 
   @type t :: %__MODULE__{
           sla_margin: non_neg_integer(),
           exits: %{Utxo.Position.t() => ExitInfo.t()},
-          in_flight_exits: %{exit_id() => InFlightExitInfo.t()}
+          in_flight_exits: %{tx_hash() => InFlightExitInfo.t()},
+          competitors: %{tx_hash() => CompetitorInfo.t()}
         }
 
   @doc """
@@ -46,10 +48,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   """
   @spec init(
           db_exits :: [{{pos_integer, non_neg_integer, non_neg_integer}, map}],
-          db_in_flight_exits :: [{exit_id(), InFlightExitInfo.t()}],
+          db_in_flight_exits :: [{tx_hash(), InFlightExitInfo.t()}],
+          db_competitors :: [{tx_hash(), CompetitorInfo.t()}],
           sla_margin :: non_neg_integer
         ) :: {:ok, t()}
-  def init(db_exits, db_in_flight_exits, sla_margin \\ @default_sla_margin) do
+  def init(db_exits, db_in_flight_exits, db_competitors, sla_margin \\ @default_sla_margin) do
     {:ok,
      %__MODULE__{
        exits:
@@ -59,6 +62,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
          end)
          |> Map.new(),
        in_flight_exits: db_in_flight_exits |> Map.new(),
+       competitors: db_competitors |> Map.new(),
        sla_margin: sla_margin
      }}
   end
@@ -99,7 +103,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp parse_contract_exit_status({@zero_address, _contract_token, _contract_amount}), do: false
   defp parse_contract_exit_status({_contract_owner, _contract_token, _contract_amount}), do: true
 
-  # TODO: docs, spec
+  # TODO: syncing problem (look new exits)
   @doc """
    Add new in flight exits from Ethereum events into tracked state.
   """
@@ -133,7 +137,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
     Add piggybacks from Ethereum events into tracked state.
   """
-  @spec new_piggybacks(t(), [{exit_id(), output_offset()}]) :: t()
+  @spec new_piggybacks(t(), [{tx_hash(), output_offset()}]) :: t()
   def new_piggybacks(%__MODULE__{in_flight_exits: ifes} = state, piggybacks) do
     updated_kv_pairs =
       piggybacks
@@ -203,6 +207,30 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp delete_positions(utxo_positions) do
     utxo_positions
     |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :exit_info, {blknum, txindex, oindex}} end)
+  end
+
+  @spec challenge_in_flight_exits(t(), [map()]) :: {t(), list()}
+  def challenge_in_flight_exits(%__MODULE__{in_flight_exits: ifes, competitors: competitors} = state, challenges_events) do
+    kv_challenges =
+      challenges_events
+      |> Enum.map(fn %{
+                       call_data: %{
+                         competing_tx: tx_bytes,
+                         competing_tx_input_index: input_index,
+                         competing_tx_sig: signature
+                       }
+                     } ->
+        CompetitorInfo.build_competitor(tx_bytes, input_index, signature)
+      end)
+
+    new_competitors = kv_challenges |> Map.new()
+
+    updated_ifes = new_competitors
+
+    db_updates = kv_challenges |> Enum.map(&CompetitorInfo.make_db_update/1)
+
+    state = %{state | competitors: Map.merge(competitors, new_competitors)}
+    {state, db_updates}
   end
 
   @doc """

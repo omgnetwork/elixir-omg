@@ -27,6 +27,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+#  alias OMG.Watcher.ExitProcessor.CompetitorInfo
 
   require Utxo
 
@@ -86,7 +87,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   deffixture processor_empty() do
-    {:ok, empty} = Core.init([], [])
+    {:ok, empty} = Core.init([], [], [])
     empty
   end
 
@@ -208,7 +209,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {^final_state, ^update2} =
              Core.new_exits(state2, Enum.slice(events, 1, 1), Enum.slice(contract_statuses, 1, 1))
 
-    {:ok, ^final_state} = Core.init(Enum.zip([@update_key1, @update_key2], values), [])
+    {:ok, ^final_state} = Core.init(Enum.zip([@update_key1, @update_key2], values), [], [])
   end
 
   @tag fixtures: [:processor_empty, :alice, :exit_events]
@@ -448,7 +449,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {^final_state, ^update2} =
              Core.new_in_flight_exits(updated_state, Enum.slice(events, 1, 1), Enum.slice(statuses, 1, 1))
 
-    {:ok, ^final_state} = Core.init([], ifes)
+    {:ok, ^final_state} = Core.init([], ifes, [])
   end
 
   @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]

@@ -61,8 +61,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     end
   end
 
-  def make_db_update({ife_hash, %__MODULE__{} = ife_info}) do
-    {:put, :in_flight_exit_info, {ife_hash, ife_info}}
+  def make_db_update({_ife_hash, %__MODULE__{} = _ife_info} = update) do
+    {:put, :in_flight_exit_info, update}
   end
 
   def piggyback(%__MODULE__{} = ife, index) do
