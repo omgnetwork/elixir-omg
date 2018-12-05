@@ -131,10 +131,10 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
 
           properties do
             txid(:string, "Transaction id", required: true)
-            blknum1(:integer, "Childchain block number of the first input utxo", required: true)
+            blknum1(:integer, "Child chain block number of the first input utxo", required: true)
             txindex1(:integer, "Transaction index of the first input utxo", required: true)
             oindex1(:integer, "Output index of the first input utxo", required: true)
-            blknum2(:integer, "Childchain block number of the second input utxo", required: true)
+            blknum2(:integer, "Child chain block number of the second input utxo", required: true)
             txindex2(:integer, "Transaction index of the second input utxo", required: true)
             oindex2(:integer, "Output index of the second input utxo", required: true)
             cur12(:string, "Currency of the transaction", required: true)

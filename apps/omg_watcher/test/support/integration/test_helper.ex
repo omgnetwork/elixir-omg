@@ -30,7 +30,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
 
     %{"result" => "success", "data" => data} = rest_call(:get, "utxo/#{utxo_pos}/exit_data")
 
-    OMG.Watcher.Web.Serializer.Response.decode16(data, ["txbytes", "proof", "sigs"])
+    decode16(data, ["txbytes", "proof", "sigs"])
   end
 
   def get_utxos(%{addr: address}) do

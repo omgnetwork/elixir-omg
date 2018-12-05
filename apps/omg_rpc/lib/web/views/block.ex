@@ -12,11 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.configure(exclude: [integration: true])
-ExUnitFixtures.start()
-# loading all fixture files from the whole umbrella project
-ExUnitFixtures.load_fixture_files("../**/test/**/fixtures.exs")
-ExUnit.start()
+defmodule OMG.RPC.Web.View.Block do
+  @moduledoc """
+  The Block view for rendering json
+  """
 
-{:ok, _} = Application.ensure_all_started(:httpoison)
-{:ok, _} = Application.ensure_all_started(:fake_server)
+  alias OMG.RPC.Web.Serializers
+
+  def render("block.json", %{block: block}) do
+    block
+    |> Serializers.Response.serialize(:success)
+  end
+end

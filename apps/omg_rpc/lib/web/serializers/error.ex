@@ -12,4 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ExUnit.start()
+defmodule OMG.RPC.Web.Serializers.Error do
+  @moduledoc """
+  Serializes error's code and description provided in response's data field.
+  """
+
+  @spec serialize(atom() | String.t(), String.t()) :: map()
+  def serialize(code, description) do
+    %{
+      code: code,
+      description: description
+    }
+  end
+end

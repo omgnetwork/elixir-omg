@@ -12,19 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.JSONRPC.Application do
-  @moduledoc false
+defmodule OMG.RPC.Web.TestHelper do
+  @moduledoc """
+  Provides common testing functions used by App's tests.
+  """
 
-  use Application
+  import ExUnit.Assertions
+  use Plug.Test
 
-  def start(_type, _args) do
-    omg_port = Application.get_env(:omg_jsonrpc, :omg_api_rpc_port)
+  def rpc_call(method, path, params_or_body \\ nil) do
+    request = conn(method, path, params_or_body)
+    response = request |> send_request
 
-    children = [
-      JSONRPC2.Servers.HTTP.child_spec(:http, OMG.JSONRPC.Server.Handler, port: omg_port)
-    ]
+    assert response.status == 200
 
-    opts = [strategy: :one_for_one, name: OMG.JSONRPC.Supervisor]
-    Supervisor.start_link(children, opts)
+    Poison.decode!(response.resp_body)
+  end
+
+  defp send_request(req) do
+    req
+    |> put_private(:plug_skip_csrf_protection, true)
+    |> OMG.RPC.Web.Endpoint.call([])
   end
 end

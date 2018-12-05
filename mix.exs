@@ -58,7 +58,7 @@ defmodule OMG.Umbrella.MixProject do
     [
       paths: [
         "_build/prod/lib/omg_watcher/ebin",
-        "_build/prod/lib/omg_jsonrpc/ebin",
+        "_build/prod/lib/omg_rpc/ebin",
         "_build/prod/lib/omg_api/ebin",
         "_build/prod/lib/omg_eth/ebin",
         "_build/prod/lib/omg_db/ebin"

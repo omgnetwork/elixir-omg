@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Serializer.Response do
+defmodule OMG.RPC.Web.Serializers.Response do
   @moduledoc """
   Serializes the response into expected result/data format.
   """
@@ -22,18 +22,23 @@ defmodule OMG.Watcher.Web.Serializer.Response do
   @doc """
   Append result of operation to the response data forming standard api response structure
   """
-  @spec serialize(any(), response_result_t()) :: %{result: response_result_t(), data: map()}
+  @spec serialize(any(), response_result_t()) :: %{version: binary(), success: boolean(), data: map()}
   def serialize(data, result)
   def serialize(data, :success), do: data |> clean_artifacts() |> to_response(:success)
   def serialize(data, :error), do: data |> to_response(:error)
 
-  defp to_response(data, result), do: %{result: result, data: data}
+  # Forms unified API response structure
+  defp to_response(data, result),
+    do: %{
+      version: "1.0",
+      success: result == :success,
+      data: data
+    }
 
   @doc """
   Removes or encodes fields in response that cannot be serialized to api response.
   By default, it:
    * encodes to hex all binary values
-   * removes unloaded ecto associations values
    * removes metadata fields
   """
   @spec clean_artifacts(any()) :: any()
@@ -46,7 +51,6 @@ defmodule OMG.Watcher.Web.Serializer.Response do
   def clean_artifacts(map_or_struct) when is_map(map_or_struct) do
     map_or_struct
     |> to_map()
-    |> Enum.filter(fn {_k, v} -> Ecto.assoc_loaded?(v) end)
     |> Enum.map(fn {k, v} -> {k, clean_artifacts(v)} end)
     |> Map.new()
   end

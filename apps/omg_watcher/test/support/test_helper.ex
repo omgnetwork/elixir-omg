@@ -55,4 +55,25 @@ defmodule OMG.Watcher.TestHelper do
 
     encoded
   end
+
+  @doc """
+  Decodes specified keys in map from hex to binary
+  """
+  @spec decode16(map(), list()) :: map()
+  def decode16(data, keys) do
+    keys
+    |> Enum.filter(&Map.has_key?(data, &1))
+    |> Enum.into(
+      %{},
+      fn key ->
+        value = data[key]
+
+        case is_binary(value) && Base.decode16(value, case: :mixed) do
+          {:ok, newvalue} -> {key, newvalue}
+          _ -> {key, value}
+        end
+      end
+    )
+    |> (&Map.merge(data, &1)).()
+  end
 end

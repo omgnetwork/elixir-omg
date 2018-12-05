@@ -24,9 +24,7 @@ defmodule OMG.Performance.MixProject do
 
   defp deps do
     [
-      {:jsonrpc2, "~> 1.1"},
       {:briefly, "~> 0.3"},
-      {:hackney, "~> 1.7"},
       {:omg_api, in_umbrella: true, runtime: false}
     ]
   end

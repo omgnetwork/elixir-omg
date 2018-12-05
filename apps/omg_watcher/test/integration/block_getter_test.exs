@@ -26,11 +26,13 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Eth
-  alias OMG.JSONRPC.Client
+  alias OMG.RPC.Client
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.TestServer
   alias OMG.Watcher.Web.Channel
+  alias OMG.Watcher.Web.Serializer.Response
 
   import ExUnit.CaptureLog
 
@@ -66,11 +68,11 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       subscribe_and_join(socket(), Channel.Transfer, TestHelper.create_topic("transfer", alice_address))
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
-    {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: block_nr}} = Client.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(block_nr, @timeout)
 
-    encode_tx = Client.encode(tx)
+    encode_tx = Base.encode16(tx)
 
     assert [
              %{
@@ -101,22 +103,24 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     event_eth_height = get_block_submitted_event_height(block_nr)
 
     address_received_event =
-      Client.encode(%Event.AddressReceived{
+      %Event.AddressReceived{
         tx: recovered_tx,
         child_blknum: block_nr,
         child_txindex: 0,
         child_block_hash: block_hash,
         submited_at_ethheight: event_eth_height
-      })
+      }
+      |> Response.clean_artifacts()
 
     address_spent_event =
-      Client.encode(%Event.AddressSpent{
+      %Event.AddressSpent{
         tx: recovered_tx,
         child_blknum: block_nr,
         child_txindex: 0,
         child_block_hash: block_hash,
         submited_at_ethheight: event_eth_height
-      })
+      }
+      |> Response.clean_artifacts()
 
     assert_push("address_received", ^address_received_event)
 
@@ -149,7 +153,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
 
-    {:error, {-32_603, "Internal error", "utxo_not_found"}} = Client.call(:submit, %{transaction: tx2})
+    {:error, {:client_error, %{"code" => "submit::utxo_not_found"}}} = Client.submit(tx2)
   end
 
   defp get_block_submitted_event_height(block_number) do
@@ -168,7 +172,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     token_tx = API.TestHelper.create_encoded([{token_deposit_blknum, 0, 0, alice}], token, [{alice, 10}])
 
     # spend the token deposit
-    {:ok, %{blknum: spend_token_child_block}} = Client.call(:submit, %{transaction: token_tx})
+    {:ok, %{blknum: spend_token_child_block}} = Client.submit(token_tx)
 
     IntegrationTest.wait_for_block_fetch(spend_token_child_block, @timeout)
 
@@ -190,95 +194,81 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       |> Eth.DevHelpers.transact_sync!()
   end
 
-  @tag fixtures: [:watcher_sandbox, :alice]
-  test "different hash send by child chain", %{alice: alice} do
-    defmodule BadChildChainHash do
-      use JSONRPC2.Server.Handler
+  @tag fixtures: [:watcher_sandbox, :test_server]
+  test "different hash send by child chain", %{test_server: context} do
+    different_hash = <<0::256>>
 
-      def empty_block, do: [] |> API.Block.hashed_txs_at(1000)
-      def different_hash, do: <<0::256>>
-
-      def handle_request(_, _) do
-        Client.encode(%API.Block{empty_block() | hash: different_hash()})
-      end
-    end
+    TestServer.with_route(
+      context,
+      "/block.get",
+      TestServer.make_response(%{
+        transactions: [],
+        number: 1000,
+        # different hash than expected
+        hash: Base.encode16(different_hash)
+      })
+    )
 
     {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
-    JSONRPC2.Servers.HTTP.http(BadChildChainHash, port: Application.get_env(:omg_jsonrpc, :omg_api_rpc_port))
-
     assert capture_log(fn ->
-             {:ok, _txhash} = Eth.RootChain.submit_block(BadChildChainHash.different_hash(), 1, 20_000_000_000)
+             {:ok, _txhash} = Eth.RootChain.submit_block(different_hash, 1, 20_000_000_000)
 
              assert_block_getter_down()
            end) =~ inspect(:incorrect_hash)
 
     invalid_block_event =
-      Client.encode(%Event.InvalidBlock{
+      %Event.InvalidBlock{
         error_type: :incorrect_hash,
-        hash: BadChildChainHash.different_hash(),
+        hash: different_hash,
         number: 1000
-      })
+      }
+      |> Response.clean_artifacts()
 
     assert_push("invalid_block", ^invalid_block_event)
-
-    JSONRPC2.Servers.HTTP.shutdown(BadChildChainHash)
   end
 
-  @tag fixtures: [:watcher_sandbox]
-  test "bad transaction with not existing utxo, detected by interactions with State" do
-    defmodule BadChildChainTransaction do
-      use JSONRPC2.Server.Handler
+  @tag fixtures: [:watcher_sandbox, :alice, :test_server]
+  test "bad transaction with not existing utxo, detected by interactions with State", %{
+    alice: alice,
+    test_server: context
+  } do
+    # preparing block with invalid transaction
+    recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], Crypto.zero_address(), [{alice, 10}])
+    block_with_incorrect_transaction = API.Block.hashed_txs_at([recovered], 1000)
 
-      # using module attribute to have a stable alice (we can't use fixtures, because modules don't see the parent
-      @alice API.TestHelper.generate_entity()
-      @eth Crypto.zero_address()
+    block_response =
+      block_with_incorrect_transaction
+      |> Response.clean_artifacts()
+      |> TestServer.make_response()
 
-      def block_with_incorrect_transaction do
-        alice = @alice
-
-        recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-
-        API.Block.hashed_txs_at([recovered], 1000)
-      end
-
-      def handle_request(_, _) do
-        Client.encode(block_with_incorrect_transaction())
-      end
-    end
+    TestServer.with_route(context, "/block.get", block_response)
 
     {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
-
-    JSONRPC2.Servers.HTTP.http(
-      BadChildChainTransaction,
-      port: Application.get_env(:omg_jsonrpc, :omg_api_rpc_port)
-    )
-
-    %API.Block{hash: hash} = BadChildChainTransaction.block_with_incorrect_transaction()
+    invalid_block_hash = block_with_incorrect_transaction.hash
 
     assert capture_log(fn ->
-             {:ok, _txhash} = Eth.RootChain.submit_block(hash, 1, 20_000_000_000)
+             {:ok, _txhash} = Eth.RootChain.submit_block(invalid_block_hash, 1, 20_000_000_000)
 
              assert_block_getter_down()
            end) =~ inspect(:tx_execution)
 
     invalid_block_event =
-      Client.encode(%Event.InvalidBlock{
+      %Event.InvalidBlock{
         error_type: :tx_execution,
-        hash: hash,
+        hash: invalid_block_hash,
         number: 1000
-      })
+      }
+      |> Response.clean_artifacts()
 
     assert_push("invalid_block", ^invalid_block_event)
-
-    JSONRPC2.Servers.HTTP.shutdown(BadChildChainTransaction)
   end
 
-  @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
+  @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
   test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit unchallenged_exit event",
-       %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}} do
+       %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: exit_blknum}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: exit_blknum}} = Client.submit(tx)
 
     # Here we're preparing invalid block
     bad_tx = API.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
@@ -288,7 +278,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       bad_block = API.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
-    OMG.Watcher.Integration.BadChildChainServer.register_and_start_server(bad_block)
+    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block, bad_block_hash)
 
     {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
@@ -323,13 +313,14 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
            end) =~ inspect(:unchallenged_exit)
 
     unchallenged_exit_event =
-      Client.encode(%Event.UnchallengedExit{
+      %Event.UnchallengedExit{
         amount: 10,
         currency: @eth,
         owner: alice.addr,
         utxo_pos: utxo_pos,
         eth_height: eth_height
-      })
+      }
+      |> Response.clean_artifacts()
 
     assert_push("unchallenged_exit", ^unchallenged_exit_event)
   end

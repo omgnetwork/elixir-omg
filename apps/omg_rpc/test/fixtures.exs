@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.JSONRPC do
-  @moduledoc """
-  A JSONRPC 2.0 gateway to an API - automatically exposed via `OMG.JSONRPC.ExposeSpec`
+defmodule OMG.RPC.Fixtures do
+  use ExUnitFixtures.FixtureModule
 
-  ## Usage:
-  Add to your config an `:omg_jsonrpc, :api_module` setting pointing to a module that uses `OMG.JSONRPC.ExposeSpec` behavior
-  """
+  @doc "run only endpoint to make request"
+  deffixture phoenix_sandbox do
+    {:ok, _} = Application.ensure_all_started(:cowboy)
+    Supervisor.start_link([OMG.RPC.Web.Endpoint], strategy: :one_for_one, name: OMG.RPC.Supervisor)
+  end
 end

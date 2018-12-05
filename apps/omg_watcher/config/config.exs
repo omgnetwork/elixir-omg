@@ -15,7 +15,8 @@ config :omg_watcher,
   maximum_number_of_unapplied_blocks: 50,
   eth_exit_finality_margin: 12,
   exit_processor_validation_interval_ms: 5_000,
-  convenience_api_mode: false
+  convenience_api_mode: false,
+  child_chain_url: "http://localhost:9656"
 
 # Configures the endpoint
 config :omg_watcher, OMG.Watcher.Web.Endpoint,

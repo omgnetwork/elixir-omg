@@ -65,7 +65,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
             blknum(
               :integer,
-              "Number of childchain block that contains transaction that created the utxo",
+              "Number of child chain block that contains transaction that created the utxo",
               required: true
             )
 
@@ -101,7 +101,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
             proof(
               :string,
-              "Merkle proof that transaction that produced the utxo is contained in a childchain block",
+              "Merkle proof that transaction that produced the utxo is contained in a child chain block",
               required: true
             )
 

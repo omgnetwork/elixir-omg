@@ -48,7 +48,7 @@ defmodule OMG.API.MixProject do
       #
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
-      {:omg_jsonrpc, in_umbrella: true}
+      {:omg_rpc, in_umbrella: true}
     ]
   end
 end

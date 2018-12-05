@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Endpoint do
-  use Phoenix.Endpoint, otp_app: :omg_watcher
-
-  socket("/socket", OMG.Watcher.Web.Socket)
+defmodule OMG.RPC.Web.Endpoint do
+  use Phoenix.Endpoint, otp_app: :omg_rpc
 
   # Serve at "/" the static files from "priv/static" directory.
   #
-  # You should set gzip to true if you are running phoenix.digest
+  # You should set gzip to true if you are running phx.digest
   # when deploying your static files in production.
   plug(Plug.Static, at: "/", from: :omg_watcher, gzip: false, only: ~w(css fonts images js favicon.ico robots.txt))
 
@@ -42,20 +40,5 @@ defmodule OMG.Watcher.Web.Endpoint do
   plug(Plug.MethodOverride)
   plug(Plug.Head)
 
-  plug(OMG.Watcher.Web.Router)
-
-  @doc """
-  Callback invoked for dynamically configuring the endpoint.
-
-  It receives the endpoint configuration and checks if
-  configuration should be loaded from the system environment.
-  """
-  def init(_key, config) do
-    if config[:load_from_system_env] do
-      port = System.get_env("PORT") || raise "expected the PORT environment variable to be set"
-      {:ok, Keyword.put(config, :http, [:inet6, port: port])}
-    else
-      {:ok, config}
-    end
-  end
+  plug(OMG.RPC.Web.Router)
 end

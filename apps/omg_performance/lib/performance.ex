@@ -138,9 +138,8 @@ defmodule OMG.Performance do
 
     :ok = OMG.DB.init()
 
+    # hackney is http-client httpoison's dependency
     started_apps = ensure_all_started([:omg_db, :cowboy, :hackney])
-
-    omg_port = Application.get_env(:omg_jsonrpc, :omg_api_rpc_port)
 
     # select just necessary components to run the tests
     children = [
@@ -152,7 +151,7 @@ defmodule OMG.Performance do
       {OMG.API.State, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeChecker, []},
-      JSONRPC2.Servers.HTTP.child_spec(:http, OMG.JSONRPC.Server.Handler, port: omg_port)
+      {OMG.RPC.Web.Endpoint, []}
     ]
 
     {:ok, api_children_supervisor} = Supervisor.start_link(children, strategy: :one_for_one)
@@ -166,7 +165,8 @@ defmodule OMG.Performance do
   defp setup_extended_perftest(opts, contract_addr) do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
 
-    started_apps = ensure_all_started([:jsonrpc2])
+    # hackney is http-client httpoison's dependency
+    started_apps = ensure_all_started([:hackney])
 
     Application.put_env(:ethereumex, :request_timeout, :infinity)
     Application.put_env(:ethereumex, :http_options, recv_timeout: :infinity)

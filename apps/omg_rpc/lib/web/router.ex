@@ -12,19 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.JSONRPC.Server.Handler do
-  @moduledoc """
-  Exposes an API via jsonrpc 2.0 over HTTP. It leverages the generic `OMG.JSONRPC.Exposer` convenience module
+defmodule OMG.RPC.Web.Router do
+  use OMG.RPC.Web, :router
 
-  Only handles the integration with the JSONRPC2 package
-  """
-  use JSONRPC2.Server.Handler
+  pipeline :api do
+    plug(:accepts, ["json"])
+  end
 
-  # Compile time configuration:
-  # Compiling :omg_jsonrpc as a dependency requires setting this environmental variable
-  @api_module Application.fetch_env!(:omg_jsonrpc, :api_module)
+  scope "/api/swagger" do
+    forward("/", PhoenixSwagger.Plug.SwaggerUI, otp_app: :omg_rpc, swagger_file: "swagger.json")
+  end
 
-  def handle_request(method, params) do
-    OMG.JSONRPC.Exposer.handle_request_on_api(method, params, @api_module)
+  scope "/", OMG.RPC.Web do
+    pipe_through(:api)
+
+    post("/block.get", Controller.Block, :get_block)
+    post("/transaction.submit", Controller.Transaction, :submit)
+  end
+
+  def swagger_info do
+    %{
+      info: %{
+        version: "1.0",
+        title: "OMG API"
+      }
+    }
   end
 end
