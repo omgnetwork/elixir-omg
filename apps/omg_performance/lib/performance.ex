@@ -139,7 +139,7 @@ defmodule OMG.Performance do
     :ok = OMG.DB.init()
 
     # hackney is http-client httpoison's dependency
-    started_apps = ensure_all_started([:omg_db, :plug_cowboy, :hackney])
+    started_apps = ensure_all_started([:omg_db, :cowboy, :hackney])
 
     # select just necessary components to run the tests
     children = [
