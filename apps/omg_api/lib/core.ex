@@ -42,7 +42,7 @@ defmodule OMG.API.Core do
    See docs/transaction_validation.md for more information about stateful and stateless validation.
   """
   @spec recover_tx(binary) ::
-          Transaction.Recovered.t()
+          {:ok, Transaction.Recovered.t()}
           | {:error, recover_tx_error()}
   def recover_tx(encoded_signed_tx) do
     with {:ok, signed_tx} <- Transaction.Signed.decode(encoded_signed_tx),

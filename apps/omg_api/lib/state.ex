@@ -30,6 +30,8 @@ defmodule OMG.API.State do
 
   use OMG.API.LoggerExt
 
+  @type exec_error :: Core.exec_error()
+
   ### Client
 
   def start_link(_args) do
@@ -37,8 +39,8 @@ defmodule OMG.API.State do
   end
 
   @spec exec(tx :: %Transaction.Recovered{}, fees :: map()) ::
-          {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}}
-          | {:error, Core.exec_error()}
+          {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, non_neg_integer}}
+          | {:error, exec_error()}
   def exec(tx, input_fees) do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
