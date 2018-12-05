@@ -6,7 +6,7 @@ defmodule OMG.Eth.MixProject do
   def project do
     [
       app: :omg_eth,
-      version: "0.1.0",
+      version: "0.0.1",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
