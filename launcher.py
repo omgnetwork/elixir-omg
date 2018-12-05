@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
 
@@ -9,13 +10,13 @@ import git
 import requests
 
 
-RINKEBY_CONTRACT = (
+RINKEBY_CONTRACT = [
     'use Mix.Config',
     'config :omg_eth,',
     '  contract_addr: "0x7ce50c54c8c7fd4ac6167f32497ba398aa20835b",',
     '  txhash_contract: "0xe6fde071a083883dc805c359f808d64d5813d553a2cc2cf1b44913d472a1b65b",', # noqa E501
     '  authority_addr: "0xe28e813f54b9a8f22082926c9f0881fc8cba538c"'
-)
+]
 
 
 class ChildchainLauncher:
@@ -51,6 +52,7 @@ class ChildchainLauncher:
         if self.initialise_childchain_database() is False:
             logging.critical('Could not initialise database. Exiting.')
             sys.exit(1)
+
         self.start_childchain_service()
 
     def compile_application(self) -> bool:
@@ -93,17 +95,23 @@ class ChildchainLauncher:
         with open(os.path.expanduser('~') + '/config.exs') as contract:
             contract_list = [x.strip('\n') for x in contract.readlines()]
             for entry in contract_list:
-                if 'Mix.Config' or 'omg_eth' in entry:
+                if ('Mix.Config' in entry or 'omg_eth' in entry):
                     continue
                 if 'contract_addr' in entry:
-                    entry.split(' ')
-                    contract_details['contract_addr'] = entry[3]
+                    line = entry.split(' ')[3]
+                    line = re.sub(r'"', '', line)
+                    line = re.sub(r',', '', line)
+                    contract_details['contract_addr'] = line
                 if 'txhash_contract' in entry:
-                    entry.split(' ')
-                    contract_details['txhash_contract'] = entry[3]
+                    line = entry.split(' ')[3]
+                    line = re.sub(r'"', '', line)
+                    line = re.sub(r',', '', line)
+                    contract_details['txhash_contract'] = line
                 if 'authority_addr' in entry:
-                    entry.split(' ')
-                    contract_details['authority_addr'] = entry[3]
+                    line = entry.split(' ')[3]
+                    line = re.sub(r'"', '', line)
+                    line = re.sub(r',', '', line)
+                    contract_details['authority_addr'] = line
 
         requests.post(
             self.contract_exchanger_url + '/set_contract',
@@ -181,10 +189,10 @@ class WatcherLauncher:
         self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN']
         self.contracts = {}
         self.contracts['RINKEBY'] = RINKEBY_CONTRACT
-        self.watcher_additional_config = (
+        self.watcher_additional_config = [
             'config :omg_db,',
-            '  leveldb_path: Path.join([System.get_env("HOME"), ".omg/data_watcher"]))' # noqa E501
-        )
+            '  leveldb_path: Path.join([System.get_env("HOME"), ".omg/data_watcher"])' # noqa E501
+        ]
         self.contract_exchanger_url = contract_exchanger_url
 
     def start(self):
@@ -202,10 +210,18 @@ class WatcherLauncher:
         if self.deploy_contract() is False:
             logging.critical('Contract not deployed. Exiting.')
             sys.exit(1)
-        if self.initialise_childchain_database() is False:
-            logging.critical('Could not initialise database. Exiting.')
+        if self.initialise_watcher_postgres_database() is False:
+            logging.critical(
+                'Could not connect to the Postgres database Exiting.'
+            )
             sys.exit(1)
-        self.start_childchain_service()
+        if self.initialise_watcher_chain_database() is False:
+            logging.critical(
+                'Could not initialise the chain database. Exiting.'
+            )
+            sys.exit(1)
+
+        self.start_watcher_service()
 
     def compile_application(self) -> bool:
         ''' Execute a mix compile
@@ -238,31 +254,32 @@ class WatcherLauncher:
         ''' Get the contract that has been deployed by a Childchain instance
         '''
         request = requests.get(self.contract_exchanger_url + '/get_contract')
-        if request.status_code != '200':
+        if request.status_code != 200:
             logging.error(
                 'HTTP Status code from the contract exchanger is not 200'
             )
+        logging.info('Response received from the contract exchanger service')
+
         return request.content
 
     def config_writer_dynamic(self) -> bool:
         ''' Write the configuration from data retrieved from the contract
         exchanger
         '''
-        request = self.get_contract_from_exchanger()
-        print(request)
-        contract_data = json.loads(str(request))
+        contract_data = json.loads(
+            self.get_contract_from_exchanger().decode('utf-8')
+        )
         config = [
             'use Mix.Config',
             'config :omg_eth,',
-            '  contract_addr: {},'.format(contract_data['contract_addr']),
-            '  txhash_contract: {},'.format(contract_data['txhash_contract']),
-            '  authority_addr: "{}'.format(contract_data['authority_addr'])
+            '  contract_addr: "{}",'.format(contract_data['contract_addr']),
+            '  txhash_contract: "{}",'.format(contract_data['txhash_contract']),
+            '  authority_addr: "{}"'.format(contract_data['authority_addr'])
         ]
-        logging.info('Writing config_watcher.exs')
         home = os.path.expanduser('~')
-        with open(home + 'config_watcher.exs', 'w+') as mix:
+        with open(home + '/config_watcher.exs', 'w+') as mix:
             for line in config + self.watcher_additional_config:
-                mix.write(config)
+                mix.write(line)
                 mix.write('\n')
         logging.info('Written config_watcher.exs')
         return True
@@ -272,7 +289,7 @@ class WatcherLauncher:
         '''
         logging.info('Writing config_watcher.exs')
         home = os.path.expanduser('~')
-        with open(home + 'config_watcher.exs', 'w+') as mix:
+        with open(home + '/config_watcher.exs', 'w+') as mix:
             for line in self.contracts[self.ethereum_network] + self.watcher_additional_config: # noqa E501
                 mix.write(line)
                 mix.write('\n')
@@ -284,13 +301,13 @@ class WatcherLauncher:
         '''
         os.chdir(os.getcwd() + '/apps/omg_watcher')
         result = subprocess.run(
-            'printf "y\r" | mix ecto.reset --no-start',
+            'printf "y\r" | mix ecto.create --no-start',
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True
         )
         if result.returncode == 0:
-            logging.info('')
+            logging.info('Watcher Postgres instance initialised')
             return True
         logging.critical(
             'Could not initialise the database. Error: {}'.format(
@@ -303,8 +320,7 @@ class WatcherLauncher:
         ''' Initialise the childchian database (chain data store)
         '''
         result = subprocess.run(
-            "mix run --no-start -e 'OMG.DB.init()'",
-            "--config ~/config_watcher.exs",
+            "mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs", # noqa E501
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True
@@ -323,7 +339,7 @@ class WatcherLauncher:
         ''' Start the childchain service
         '''
         process = subprocess.Popen(
-            'mix run --no-halt --config ~/config_watcher.exs',
+            'iex -S mix xomg.watcher.start --config ~/config_watcher.exs',
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True
@@ -339,7 +355,7 @@ class WatcherLauncher:
 def check_ethereum_client(platform: str) -> str:
     ''' Return the Ethereum client that is running
     '''
-    client_location = "http://docker.for.mac.localhost:8545" if platform == 'MAC' else "http://geth-local.default.svc.cluster.local:8545" # noqa E501
+    client_location = "http://docker.for.mac.localhost:8545" if platform == 'MAC' else "http://geth-localchain.default.svc.cluster.local:8545" # noqa E501
     headers = {"Content-Type": "application/json"}
     post_data = {
         "jsonrpc": "2.0", "method": "web3_clientVersion", "params": [],
