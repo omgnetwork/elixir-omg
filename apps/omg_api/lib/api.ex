@@ -24,10 +24,10 @@ defmodule OMG.API do
   use OMG.JSONRPC.ExposeSpec
   use OMG.API.LoggerExt
 
-  @type error() :: Core.recover_tx_error() | FeeChecker.error() | State.exec_error()
+  @type submit_error() :: Core.recover_tx_error() | FeeChecker.error() | State.exec_error()
 
   @spec submit(transaction :: binary) ::
-          {:ok, %{tx_hash: <<_::768>>, blknum: pos_integer, tx_index: non_neg_integer}} | {:error, error()}
+          {:ok, %{tx_hash: <<_::768>>, blknum: pos_integer, tx_index: non_neg_integer}} | {:error, submit_error()}
   @expose_spec {:submit,
                 %{
                   args: [transaction: :bitstring],
