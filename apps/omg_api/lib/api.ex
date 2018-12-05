@@ -23,8 +23,10 @@ defmodule OMG.API do
   alias OMG.API.{Core, FeeChecker, FreshBlocks, State}
   use OMG.API.LoggerExt
 
-  @spec submit(transaction :: bitstring) ::
-          {:ok, %{tx_hash: bitstring, blknum: integer, tx_index: integer}} | {:error, atom}
+  @type submit_error() :: Core.recover_tx_error() | FeeChecker.error() | State.exec_error()
+
+  @spec submit(transaction :: binary) ::
+          {:ok, %{tx_hash: <<_::768>>, blknum: pos_integer, tx_index: non_neg_integer}} | {:error, submit_error()}
   def submit(transaction) do
     result =
       with {:ok, recovered_tx} <- Core.recover_tx(transaction),
