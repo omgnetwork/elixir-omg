@@ -1,6 +1,8 @@
 defmodule OMG.Umbrella.MixProject do
   use Mix.Project
 
+  def umbrella_version, do: "0.1.0"
+
   def project do
     [
       apps_path: "apps",

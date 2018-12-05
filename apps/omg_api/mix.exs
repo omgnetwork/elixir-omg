@@ -4,7 +4,7 @@ defmodule OMG.API.MixProject do
   def project do
     [
       app: :omg_api,
-      version: "0.0.1",
+      version: OMG.Umbrella.MixProject.umbrella_version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
