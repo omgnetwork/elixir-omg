@@ -25,13 +25,18 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   require Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor.ExitInfo
+  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
   @default_sla_margin 10
   @zero_address Crypto.zero_address()
 
   defstruct [:sla_margin, exits: %{}]
 
-  @type t :: %__MODULE__{sla_margin: non_neg_integer(), exits: %{Utxo.Position.t() => ExitInfo.t()}}
+  @type t :: %__MODULE__{
+          sla_margin: non_neg_integer(),
+          exits: %{Utxo.Position.t() => ExitInfo.t()},
+          in_flight_exits: %{binary() => InFlightExitInfo.t()}
+        }
 
   @doc """
   Reads database-specific list of exits and turns them into current state
@@ -46,6 +51,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
            {Utxo.position(blknum, txindex, oindex), struct(ExitInfo, v)}
          end)
          |> Map.new(),
+       in_flight_exits: Map.new(), #TODO: init
        sla_margin: sla_margin
      }}
   end

@@ -25,6 +25,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
   ### Client
 
@@ -38,6 +39,14 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   def new_exits(exits) do
     GenServer.call(__MODULE__, {:new_exits, exits})
+  end
+
+  @doc """
+  Accepts events and processes them in the state - new in flight exits are tracked.
+  Returns `db_updates` due and relies on the caller to do persistence
+  """
+  def new_in_flight_exits(exits) do
+    GenServer.call(__MODULE__, {:new_in_flight_exits, exits})
   end
 
   @doc """
@@ -85,6 +94,22 @@ defmodule OMG.Watcher.ExitProcessor do
 
     {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
     _ = OMG.Watcher.DB.EthEvent.insert_exits(exits)
+    {:reply, {:ok, db_updates}, new_state}
+  end
+
+  def handle_call({:new_in_flight_exits, exits}, _from, state) do
+    in_flight_exits_contract_data =
+      Enum.map(exits, fn %{tx_hash: hash} ->
+        {:ok, ife_contract_data} =
+          hash
+          |> InFlightExitInfo.get_exit_id_from_tx_hash()
+          |> Eth.RootChain.get_in_flight_exit()
+
+        # TODO: read tx_data
+        ife_contract_data
+      end)
+
+    {new_state, db_updates} = Core.new_in_flight_exits(state, exits, in_flight_exits_contract_data)
     {:reply, {:ok, db_updates}, new_state}
   end
 
