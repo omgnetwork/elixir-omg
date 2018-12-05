@@ -182,6 +182,22 @@ defmodule OMG.Eth.RootChain do
     Eth.call_contract(contract, "getStandardExitId(uint256)", [utxo_pos], [{:uint, 256}])
   end
 
+  @doc """
+  Returns in flight exit for a specific id. Calls contract method.
+  """
+  def get_in_flight_exit(in_flight_exit_id, contract \\ nil) do
+    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
+    # TODO: add convenience method
+    Eth.call_contract(contract, "inFlightExits(uint192)", [in_flight_exit_id], [
+      {:uint, 256},
+      {:uint, 256},
+      [:address, :address, {:uint, 256}],
+      [:address, :address, {:uint, 256}],
+      :address,
+      {:uint, 256}
+    ])
+  end
+
   def get_child_chain(blknum, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     Eth.call_contract(contract, "blocks(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
@@ -229,11 +245,11 @@ defmodule OMG.Eth.RootChain do
   end
 
   def get_in_flight_exits(block_from, block_to, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "InFlightExitStarted(address,bytes32)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
-         do: {:ok, Enum.map(logs, &decode_in_flight_exit/1)}
+         do: {:ok, Enum.map(logs, &decode_in_flight_exit_started/1)}
   end
 
   @doc """
@@ -284,15 +300,15 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  defp decode_in_flight_exit(log) do
-    non_indexed_keys = [:txhash]
-    non_indexed_key_types = [{:bytes, 32}]
+  defp decode_in_flight_exit_started(log) do
+    non_indexed_keys = [:tx_hash]
+    non_indexed_keys_types = [{:bytes, 32}]
     indexed_keys = [:initiator]
     indexed_keys_types = [:address]
 
     Eth.parse_events_with_indexed_fields(
       log,
-      {non_indexed_keys, non_indexed_key_types},
+      {non_indexed_keys, non_indexed_keys_types},
       {indexed_keys, indexed_keys_types}
     )
   end
