@@ -40,19 +40,6 @@ defmodule OMG.RPC.Web do
     end
   end
 
-  def view do
-    quote do
-      use Phoenix.View,
-        root: "lib/omg_rpc_web/templates",
-        namespace: OMG.RPC.Web
-
-      # Import convenience functions from controllers
-      import Phoenix.Controller, only: [get_flash: 1, get_flash: 2, view_module: 1]
-
-      alias OMG.RPC.Web.Router.Helpers, as: Routes
-    end
-  end
-
   def router do
     quote do
       use Phoenix.Router

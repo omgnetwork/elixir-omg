@@ -14,7 +14,7 @@
 
 defmodule OMG.RPC.Web.Controller.Block do
   @moduledoc """
-  Module provides endpoint action to retrieve block details of published Plasma block.
+  Provides endpoint action to retrieve block details of published Plasma block.
   """
 
   use OMG.RPC.Web, :controller
@@ -39,11 +39,11 @@ defmodule OMG.RPC.Web.Controller.Block do
       Block:
         swagger_schema do
           title("Block")
-          description("Block details with encoded transctions")
+          description("Block details with encoded transactions")
 
           properties do
-            blknum(:integer, "Childchain block number", required: true)
-            hash(:string, "Childchain block hash", required: true)
+            blknum(:integer, "Child chain block number", required: true)
+            hash(:string, "Child chain block hash", required: true)
             transactions(Schema.ref(:EncodedTransactions), "Transactions included in the block", required: true)
           end
 

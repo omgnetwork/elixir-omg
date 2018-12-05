@@ -61,11 +61,11 @@ defmodule OMG.RPC.Client do
 
     with {:ok, body} <- Poison.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
-      _ = Logger.info(fn -> "ChildChain rpc post #{inspect(addr)} completed successfully" end)
+      _ = Logger.info(fn -> "Child chain rpc post #{inspect(addr)} completed successfully" end)
       response
     else
       err ->
-        _ = Logger.error(fn -> "ChildChain rpc post #{inspect(addr)} failed with #{inspect(err)}" end)
+        _ = Logger.error(fn -> "Child chain rpc post #{inspect(addr)} failed with #{inspect(err)}" end)
         err
     end
   end
@@ -87,24 +87,15 @@ defmodule OMG.RPC.Client do
   defp decode_response(error), do: error
 
   @doc """
-  Retrieves body from response structure. When response is successfull
+  Retrieves body from response structure. When response is successful
   the structure in body is known, so we can try to deserialize it.
   """
   def get_response_body(%HTTPoison.Response{status_code: 200, body: body}) do
-    parse_body(body)
-  end
-
-  def get_response_body(%HTTPoison.Response{body: error}),
-    do: {:error, {:server_error, error}}
-
-  def get_response_body(error), do: {:error, {:client_error, error}}
-
-  defp parse_body(raw_body) do
-    with {:ok, response} <- Poison.decode(raw_body),
+    with {:ok, response} <- Poison.decode(body),
          %{"success" => true, "data" => data} <- response do
       {
         :ok,
-        data |> str_to_atom()
+        data |> convert_keys_to_atoms()
       }
     else
       %{"success" => false, "data" => data} -> {:error, {:client_error, data}}
@@ -112,7 +103,12 @@ defmodule OMG.RPC.Client do
     end
   end
 
-  defp str_to_atom(data) when is_map(data) do
+  def get_response_body(%HTTPoison.Response{body: error}),
+    do: {:error, {:server_error, error}}
+
+  def get_response_body(error), do: {:error, {:client_error, error}}
+
+  defp convert_keys_to_atoms(data) when is_map(data) do
     data
     |> Stream.map(fn {k, v} ->
       {String.to_existing_atom(k), v}

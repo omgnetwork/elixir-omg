@@ -26,7 +26,7 @@ defmodule OMG.API.Integration.Fixtures do
     # ensuring that the child chain handles the token (esp. fee-wise)
 
     enc_eth = Eth.Encoding.to_hex(OMG.API.Crypto.zero_address())
-    {:ok, path} = OMG.RPC.Web.TestHelper.write_fee_file(%{enc_eth => 0, Eth.Encoding.to_hex(token) => 0})
+    {:ok, path} = OMG.API.TestHelper.write_fee_file(%{enc_eth => 0, Eth.Encoding.to_hex(token) => 0})
     default_path = Application.get_env(:omg_api, :fee_specs_file_path)
     Application.put_env(:omg_api, :fee_specs_file_path, path, persistent: true)
 

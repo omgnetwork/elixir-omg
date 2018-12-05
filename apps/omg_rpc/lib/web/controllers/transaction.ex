@@ -14,7 +14,7 @@
 
 defmodule OMG.RPC.Web.Controller.Transaction do
   @moduledoc """
-  Module provides endpoint action to submit transaction to the Child Chain.
+  Provides endpoint action to submit transaction to the Child Chain.
   """
 
   use OMG.RPC.Web, :controller
@@ -42,9 +42,9 @@ defmodule OMG.RPC.Web.Controller.Transaction do
           description("Block details with encoded transctions")
 
           properties do
-            blknum(:integer, "Childchain block number", required: true)
+            blknum(:integer, "Child chain block number", required: true)
             txindex(:integer, "Index of the transaction in the block", required: true)
-            txhash(:string, "Childchain block hash", required: true)
+            txhash(:string, "Child chain block hash", required: true)
           end
 
           example(%{

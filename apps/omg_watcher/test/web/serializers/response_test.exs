@@ -16,6 +16,7 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
   use ExUnit.Case, async: true
 
   alias OMG.Watcher.DB
+  alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Web.Serializer.Response
 
   @cleaned_tx %{
@@ -77,7 +78,7 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
     expected_map = %{"key_1" => "value_1", "key_2" => "value_2", "key_3" => "value_3"}
 
     encoded_map = expected_map |> Response.clean_artifacts()
-    decoded_map = Response.decode16(encoded_map, ["key_2"])
+    decoded_map = TestHelper.decode16(encoded_map, ["key_2"])
 
     assert decoded_map["key_1"] == expected_map["key_1"] |> Base.encode16()
     assert decoded_map["key_2"] == expected_map["key_2"]
@@ -85,8 +86,8 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
   end
 
   test "decode16: called with empty map returns empty map" do
-    assert %{} == Response.decode16(%{}, ["key_2"])
-    assert %{} == Response.decode16(%{}, [])
+    assert %{} == TestHelper.decode16(%{}, ["key_2"])
+    assert %{} == TestHelper.decode16(%{}, [])
   end
 
   test "decode16: decodes all up/down/mixed case values" do
@@ -95,7 +96,7 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
              "key_2" => <<222, 173, 190, 239>>,
              "key_3" => <<222, 173, 190, 239>>
            } ==
-             Response.decode16(
+             TestHelper.decode16(
                %{
                  "key_1" => "deadbeef",
                  "key_2" => "DEADBEEF",
@@ -113,6 +114,6 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
       "not_value" => nil
     }
 
-    assert expected == Response.decode16(expected, ["not_bin1", "not_bin2", "not_hex", "not_value", "not_exists"])
+    assert expected == TestHelper.decode16(expected, ["not_bin1", "not_bin2", "not_hex", "not_value", "not_exists"])
   end
 end

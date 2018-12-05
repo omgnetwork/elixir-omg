@@ -36,27 +36,6 @@ defmodule OMG.RPC.Web.Serializers.Response do
     }
 
   @doc """
-  Decodes specified keys in map from hex to binary
-  """
-  @spec decode16(map(), list()) :: map()
-  def decode16(data, keys) do
-    keys
-    |> Enum.filter(&Map.has_key?(data, &1))
-    |> Enum.into(
-      %{},
-      fn key ->
-        value = data[key]
-
-        case is_binary(value) && Base.decode16(value, case: :mixed) do
-          {:ok, newvalue} -> {key, newvalue}
-          _ -> {key, value}
-        end
-      end
-    )
-    |> (&Map.merge(data, &1)).()
-  end
-
-  @doc """
   Removes or encodes fields in response that cannot be serialized to api response.
   By default, it:
    * encodes to hex all binary values

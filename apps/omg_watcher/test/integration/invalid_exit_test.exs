@@ -127,7 +127,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     assert %{"result" => "success", "data" => data} = Test.rest_call(:get, "utxo/#{utxo_pos}/challenge_data")
 
-    Response.decode16(data, ["txbytes", "proof", "sigs"])
+    Test.decode16(data, ["txbytes", "proof", "sigs"])
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
