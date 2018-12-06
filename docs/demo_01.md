@@ -46,9 +46,9 @@ tx =
 ```bash
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
-# use the hex-encoded tx bytes and `submit` JSONRPC method described in README.md for child chain server
+# use the hex-encoded tx bytes and `transaction.submit` Http-RPC method described in README.md for child chain server
 
-curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "jsonrpc": "2.0","id":0}'
+curl POST "localhost:9656/transaction.submit" -d '{"transaction": ""}'
 ```
 
 ```elixir
@@ -60,7 +60,7 @@ Base.encode16(block_hash)
 
 ```bash
 # with the block hash we can get the whole block
-curl "localhost:9656" -d '{"params":{"hash":""}, "method":"get_block", "jsonrpc":"2.0", "id":0}'
+curl POST "localhost:9656/block.get" -d '{"hash":""}'
 
 # if you were watching, you could have decoded and validated the transaction bytes in the block
 ```

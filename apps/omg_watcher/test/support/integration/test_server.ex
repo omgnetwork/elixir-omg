@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.TestServer do
+defmodule OMG.Watcher.Integration.TestServer do
   @moduledoc """
   Helper functions to provide behavior to FakeServer without using FakeServer defined macros.
   Use with :test_server fixture which provides context variables
