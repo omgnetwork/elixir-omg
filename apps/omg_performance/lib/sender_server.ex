@@ -136,7 +136,7 @@ defmodule OMG.Performance.SenderServer do
     result =
       tx
       |> Transaction.Signed.encode()
-      |> submit_tx_jsonrpc()
+      |> submit_tx_rpc()
 
     case result do
       {:error, {-32_603, "Internal error", "too_many_transactions_in_block"}} ->
@@ -195,9 +195,9 @@ defmodule OMG.Performance.SenderServer do
     end
   end
 
-  # Submits Tx to the child chain server via http (JsonRPC) and translates successful result to atom-keyed map.
-  @spec submit_tx_jsonrpc(binary) :: {:ok, map} | {:error, any}
-  defp submit_tx_jsonrpc(encoded_tx) do
+  # Submits Tx to the child chain server via http (Http-RPC) and translates successful result to atom-keyed map.
+  @spec submit_tx_rpc(binary) :: {:ok, map} | {:error, any}
+  defp submit_tx_rpc(encoded_tx) do
     OMG.RPC.Client.submit(encoded_tx)
   end
 

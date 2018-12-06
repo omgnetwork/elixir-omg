@@ -28,7 +28,7 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
    * [elixir-omg applications](#elixir-omg-applications)
       * [Child chain server](#child-chain-server)
          * [Using the child chain server's API](#using-the-child-chain-servers-api)
-            * [JSONRPC 2.0](#jsonrpc-20)
+            * [Http-RPC](#http-rpc)
                * [submit](#submit)
                * [get_block](#get_block)
          * [Running a child chain in practice](#running-a-child-chain-in-practice)
@@ -90,7 +90,7 @@ Such configuration must become part of the [Mix configuration](https://hexdocs.p
 1. (**Watcher only**) Configure PostgreSQL for `WatcherDB` database
 1. (**Watcher only**) Acquire the configuration file with root chain deployment data
 1. (**Watcher only**, optional) If running on the same machine as the child chain server, customize the location of `OMG.DB` database folder
-1. (**Watcher only**) Configure the child chain url (default is `http://localhost:9656`) by configuring `:omg_jsonrpc` with `child_chain_url: "http://host:port"`
+1. (**Watcher only**) Configure the child chain url (default is `http://localhost:9656`) by configuring `:omg_rpc, OMG.RPC.Web.Endpoint` with `http: [port: 9656]`
 1. (**Watcher only**) Initialize the Watcher's `OMG.DB` database
 1. (**Watcher only**) Create and migrate the PostgreSQL `WatcherDB` database
 1. (**Watcher only**) At this point the Watcher should be properly setup to run by starting the `omg_watcher` Mix app
@@ -268,7 +268,7 @@ The general idea of the apps responsibilities is:
     - see `lib/api/application.ex` for a rundown of children processes involved
   - `omg_db` - wrapper around the child chain server's database to store the UTXO set and blocks necessary for state persistence
   - `omg_eth` - wrapper around the [Ethereum RPC client](https://github.com/exthereum/ethereumex)
-  - `omg_jsonrpc` - a JSONRPC 2.0 server being the gateway to `omg_api`
+  - `omg_rpc` - a Http-RPC server being the gateway to `omg_api`
   - `omg_performance` - performance tester for the child chain server
   - `omg_watcher` - Phoenix app that runs the Watcher
 
@@ -276,30 +276,28 @@ See [application architecture](docs/architecture.md) for more details.
 
 ## Child chain server
 
-`:omg_api` is the Elixir app which runs the child chain server, whose API is exposed by `:omg_jsonrpc`.
+`:omg_api` is the Elixir app which runs the child chain server, whose API is exposed by `:omg_rpc`.
 
 For the responsibilities and design of the child chain server see [Tesuji Plasma Blockchain Design document](docs/tesuji_blockchain_design.md).
 
 ### Using the child chain server's API
 
-#### JSONRPC 2.0
+#### Http-RPC
 
-JSONRPC 2.0 requests are served up on the port specified in `omg_jsonrpc`'s `config` (`9656` by default).
-The available RPC calls are defined by `omg_api` in `api.ex` - the functions are `method` names and their respective arguments must be sent in a `params` dictionary.
-The argument names are indicated by the `@spec` clauses.
+Http-RPC requests are served up on the port specified in `omg_rpc`'s `config` (`9656` by default).
+The available RPC calls are defined by `omg_api` in `api.ex` - paths follow RPC convention e.g. `block.get`, `transaction.submit`. All requests shall be POST with parameters provided in the request 
+body in JSON object. Object's properties names correspond to the names of parameters. Binary values 
+shall be hex-encoded strings.
 
-##### `submit`
+##### `transaction.submit`
 
 Request:
 
+`POST /transaction.submit`
+body:
 ```json
 {
-  "params":{
-    "transaction":"rlp encoded plasma transaction in hex"
-  },
-  "method":"submit",
-  "jsonrpc":"2.0",
-  "id":0
+  "transaction":"rlp encoded plasma transaction in hex"
 }
 ```
 
@@ -309,28 +307,25 @@ Response:
 
 ```json
 {
-    "id": 0,
-    "jsonrpc": "2.0",
-    "result": {
-        "blknum": 995000,
-        "tx_hash": "tx hash in hex",
-        "tx_index": 0
+    "version": "1",
+    "success": true,
+    "data": {
+        "blknum": 123000,
+        "txindex": 111,
+        "txhash": "block hash in hex"
     }
 }
 ```
 
-##### `get_block`
+##### `block.get`
 
 Request:
 
+`POST /block.get`
+body:
 ```json
 {
-  "params":{
-    "hash":"block hash in hex"
-  },
-  "method":"get_block",
-  "jsonrpc":"2.0",
-  "id":0
+  "hash":"block hash in hex"
 }
 ```
 
@@ -338,15 +333,15 @@ Response:
 
 ```json
 {
-    "id": 0,
-    "jsonrpc": "2.0",
-    "result": {
-        "hash": "block hash in hex",
-        "transactions": [
-            "transaction bytes in hex",
-            "..."
-        ]
-    }
+  "version": "1",
+  "success": true,
+  "data": {
+      "blknum": 123000,
+      "hash": "block hash in hex",
+      "transactions": [
+          "rlp encoded plasma transaction in hex",
+      ]
+  }
 }
 ```
 
