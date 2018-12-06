@@ -1,8 +1,8 @@
 use Mix.Config
 
 config :omg_api,
-  eth_deposit_finality_margin: 10,
-  eth_submission_finality_margin: 20,
+  deposit_finality_margin: 10,
+  submission_finality_margin: 20,
   ethereum_status_check_interval_ms: 6_000,
   child_block_minimal_enquque_gap: 1,
   fee_specs_file_path: "./fee_specs.json"

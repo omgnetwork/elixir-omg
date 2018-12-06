@@ -20,8 +20,8 @@ defmodule OMG.API.MixProject do
   def application do
     [
       env: [
-        eth_deposit_finality_margin: 10,
-        eth_submission_finality_margin: 20,
+        deposit_finality_margin: 10,
+        submission_finality_margin: 20,
         ethereum_status_check_interval_ms: 6_000,
         child_block_minimal_enquque_gap: 1
       ],

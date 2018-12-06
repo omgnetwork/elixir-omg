@@ -15,7 +15,7 @@ config :omg_watcher,
   block_getter_height_sync_interval_ms: 2_000,
   maximum_number_of_unapplied_blocks: 50,
   exit_processor_validation_interval_ms: 5_000,
-  eth_exit_finality_margin: 12,
+  exit_finality_margin: 12,
   block_reorg_margin: 20,
   convenience_api_mode: false,
   child_chain_url: "http://localhost:9656"
