@@ -25,6 +25,7 @@ class ChildchainLauncher:
     def __init__(
         self, git_commit_hash: str, platform: str, ethereum_network: str,
             contract_exchanger_url: str):
+        self.chain_data_present = False
         self.git_commit_hash = git_commit_hash
         self.platform = platform
         self.ethereum_network = ethereum_network
@@ -40,8 +41,13 @@ class ChildchainLauncher:
         logging.info(
             'Starting launch process for build {}'.format(self.git_commit_hash)
         )
+        self.check_chain_data_path()
         self.ethereum_client = check_ethereum_client(self.platform)
         logging.info('Ethereum client is {}'.format(self.ethereum_client))
+        if self.chain_data_present is True:
+            self.config_writer_dynamic()
+            logging.info('Launcher process complete')
+            return
         if self.compile_application() is False:
             logging.critical('Could not compile application. Exiting.')
             sys.exit(1)
@@ -49,11 +55,55 @@ class ChildchainLauncher:
             logging.critical('Contract not deployed. Exiting.')
             sys.exit(1)
         self.update_contract_exchanger()
-        if self.initialise_childchain_database() is False:
-            logging.critical('Could not initialise database. Exiting.')
-            sys.exit(1)
+        if self.chain_data_present is False:
+            if self.initialise_childchain_database() is False:
+                logging.critical('Could not initialise database. Exiting.')
+                sys.exit(1)
 
-        self.start_childchain_service()
+        logging.info('Launcher process complete')
+
+    def get_contract_from_exchanger(self) -> dict:
+        ''' Get the contract that has been deployed by a Childchain instance
+        '''
+        request = requests.get(self.contract_exchanger_url + '/get_contract')
+        if request.status_code != 200:
+            logging.error(
+                'HTTP Status code from the contract exchanger is not 200'
+            )
+        logging.info('Response received from the contract exchanger service')
+
+        return request.content
+
+    def config_writer_dynamic(self) -> bool:
+        ''' Write the configuration from data retrieved from the contract
+        exchanger
+        '''
+        contract_data = json.loads(
+            self.get_contract_from_exchanger().decode('utf-8')
+        )
+        config = [
+            'use Mix.Config',
+            'config :omg_eth,',
+            '  contract_addr: "{}",'.format(contract_data['contract_addr']),
+            '  txhash_contract: "{}",'.format(contract_data['txhash_contract']), # noqa E501
+            '  authority_addr: "{}"'.format(contract_data['authority_addr'])
+        ]
+        home = os.path.expanduser('~')
+        with open(home + '/config.exs', 'w+') as mix:
+            for line in config:
+                mix.write(line)
+                mix.write('\n')
+        logging.info('Written config.exs')
+        return True
+
+    def check_chain_data_path(self):
+        ''' Checks if the chain data is already present
+        '''
+        if os.path.exists(os.path.expanduser('~') + '/.omg/data'):
+            self.chain_data_present = True
+            logging.info('Childchain data found')
+        else:
+            logging.info('Chain data not found')
 
     def compile_application(self) -> bool:
         ''' Execute a mix compile
@@ -87,6 +137,13 @@ class ChildchainLauncher:
         )
         return False
 
+    def clean_config_entry(self, line: str) -> str:
+        ''' Clean the line that forms the entry for the config.exs
+        '''
+        line = re.sub(r'"', '', line)
+        line = re.sub(r',', '', line)
+        return line
+
     def update_contract_exchanger(self):
         ''' Update the contract exchanger service with the details of the
         deployed contract
@@ -98,20 +155,14 @@ class ChildchainLauncher:
                 if ('Mix.Config' in entry or 'omg_eth' in entry):
                     continue
                 if 'contract_addr' in entry:
-                    line = entry.split(' ')[3]
-                    line = re.sub(r'"', '', line)
-                    line = re.sub(r',', '', line)
-                    contract_details['contract_addr'] = line
+                    contract_details['contract_addr'] = \
+                        self.clean_config_entry(entry.split(' ')[3])
                 if 'txhash_contract' in entry:
-                    line = entry.split(' ')[3]
-                    line = re.sub(r'"', '', line)
-                    line = re.sub(r',', '', line)
-                    contract_details['txhash_contract'] = line
+                    contract_details['txhash_contract'] = \
+                        self.clean_config_entry(entry.split(' ')[3])
                 if 'authority_addr' in entry:
-                    line = entry.split(' ')[3]
-                    line = re.sub(r'"', '', line)
-                    line = re.sub(r',', '', line)
-                    contract_details['authority_addr'] = line
+                    contract_details['authority_addr'] = \
+                        self.clean_config_entry(entry.split(' ')[3])
 
         requests.post(
             self.contract_exchanger_url + '/set_contract',
@@ -159,23 +210,6 @@ class ChildchainLauncher:
         )
         return False
 
-    def start_childchain_service(self):
-        ''' Start the childchain service
-        '''
-        os.chdir(os.getcwd() + '/apps/omg_api')
-        process = subprocess.Popen(
-            'iex -S mix xomg.child_chain.start --config ~/config.exs',
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            shell=True
-        )
-        while True:
-            output = process.stdout.readline()
-            if output == '' and process.poll() is not None:
-                break
-            if output:
-                print(output.strip())
-
 
 class WatcherLauncher:
     ''' WatcherLauncher: module to launch a Watcher service
@@ -202,6 +236,7 @@ class WatcherLauncher:
         logging.info(
             'Starting launch process for build {}'.format(self.git_commit_hash)
         )
+        self.chain_data_present = False
         self.ethereum_client = check_ethereum_client(self.platform)
         logging.info('Ethereum client is {}'.format(self.ethereum_client))
         if self.compile_application() is False:
@@ -210,18 +245,26 @@ class WatcherLauncher:
         if self.deploy_contract() is False:
             logging.critical('Contract not deployed. Exiting.')
             sys.exit(1)
-        if self.initialise_watcher_postgres_database() is False:
-            logging.critical(
-                'Could not connect to the Postgres database Exiting.'
-            )
-            sys.exit(1)
-        if self.initialise_watcher_chain_database() is False:
-            logging.critical(
-                'Could not initialise the chain database. Exiting.'
-            )
-            sys.exit(1)
+        if self.chain_data_present is False:
+            if self.initialise_watcher_postgres_database() is False:
+                logging.critical(
+                    'Could not connect to the Postgres database Exiting.'
+                )
+                sys.exit(1)
+            if self.initialise_watcher_chain_database() is False:
+                logging.critical(
+                    'Could not initialise the chain database. Exiting.'
+                )
+                sys.exit(1)
 
-        self.start_watcher_service()
+        logging.info('Launcher process complete')
+
+    def check_chain_data_path(self):
+        ''' Checks if the chain data is already present
+        '''
+        if os.path.exists(os.path.expanduser('~') + '/.omg/data_watcher'):
+            self.chain_data_present = True
+            logging.info('Childchain data found')
 
     def compile_application(self) -> bool:
         ''' Execute a mix compile
@@ -326,7 +369,7 @@ class WatcherLauncher:
             shell=True
         )
         if result.returncode == 0:
-            logging.info('')
+            logging.info('Initialised Watcher chain database')
             return True
         logging.critical(
             'Could not initialise the database. Error: {}'.format(
@@ -335,27 +378,11 @@ class WatcherLauncher:
         )
         return False
 
-    def start_watcher_service(self):
-        ''' Start the childchain service
-        '''
-        process = subprocess.Popen(
-            'iex -S mix xomg.watcher.start --config ~/config_watcher.exs',
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            shell=True
-        )
-        while True:
-            output = process.stdout.readline()
-            if output == '' and process.poll() is not None:
-                break
-            if output:
-                print(output.strip())
-
 
 def check_ethereum_client(platform: str) -> str:
     ''' Return the Ethereum client that is running
     '''
-    client_location = "http://docker.for.mac.localhost:8545" if platform == 'MAC' else "http://geth-localchain.default.svc.cluster.local:8545" # noqa E501
+    client_location = "http://docker.for.mac.localhost:8545" if platform == 'MAC' else "http://geth-localchain.default.default.svc.cluster.local:8545" # noqa E501
     headers = {"Content-Type": "application/json"}
     post_data = {
         "jsonrpc": "2.0", "method": "web3_clientVersion", "params": [],
