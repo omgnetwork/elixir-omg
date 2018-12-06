@@ -237,8 +237,13 @@ class WatcherLauncher:
             'Starting launch process for build {}'.format(self.git_commit_hash)
         )
         self.chain_data_present = False
+        self.check_chain_data_path()
         self.ethereum_client = check_ethereum_client(self.platform)
         logging.info('Ethereum client is {}'.format(self.ethereum_client))
+        if self.chain_data_present is True:
+            self.config_writer_dynamic()
+            logging.info('Launcher process complete')
+            return
         if self.compile_application() is False:
             logging.critical('Could not compile application. Exiting.')
             sys.exit(1)
@@ -265,6 +270,8 @@ class WatcherLauncher:
         if os.path.exists(os.path.expanduser('~') + '/.omg/data_watcher'):
             self.chain_data_present = True
             logging.info('Childchain data found')
+        else:
+            logging.info('Childchain data not found')
 
     def compile_application(self) -> bool:
         ''' Execute a mix compile
@@ -382,7 +389,7 @@ class WatcherLauncher:
 def check_ethereum_client(platform: str) -> str:
     ''' Return the Ethereum client that is running
     '''
-    client_location = "http://docker.for.mac.localhost:8545" if platform == 'MAC' else "http://geth-localchain.default.default.svc.cluster.local:8545" # noqa E501
+    client_location = "http://docker.for.mac.localhost:8545" if platform == 'MAC' else "http://geth-localchain.default.svc.cluster.local:8545" # noqa E501
     headers = {"Content-Type": "application/json"}
     post_data = {
         "jsonrpc": "2.0", "method": "web3_clientVersion", "params": [],
