@@ -391,13 +391,17 @@ The following scenario demonstrates this attack:
 2. `TX1` is in-flight.
 3. Operator begins withholding blocks while `TX1` is still in-flight.
 4. Alice starts an exit referencing `TX1` and places `exit bond`.
+4. Alice piggybacks onto the exit and places `piggyback bond`.
 5. Mallory spends `UTXO1m` in `TX2`.
 6. In period 1 of the exit for `TX1`, Mallory challenges the canonicity of `TX1` by revealing `TX2`.
 7. No one is able to respond to the challenge in period 2, so `TX1` is determined to be non-canonical.
-8. After period 2, Mallory receives Alice's `exit bond`, no one exits any UTXOs.
+8. After period 2, Mallory receives Alice's `exit bond`, Alice receives `UTXO1a` and `piggyback bond`.
 
 Mallory has therefore caused Alice to lose `exit bond`, even though Alice was acting honestly.
 We want to mitigate the impact of this attack as much as possible so that this does not prevent users from receiving funds.
+
+**NOTE** in the scenarios where Mallory double-spends her input, she doesn't get to successfully piggyback that, unless the operator includes and makes canonical her double-spending transaction.
+As a result she might lose more than she's getting from stolen `exit bonds`.
 
 #### Honest transaction retries attack
 
@@ -405,7 +409,7 @@ Retrying a transaction that has failed for a trivial reason is not safe under Mo
 
 Scenario is:
 1. Honest Alice creates/signs/submits a transaction `tx1`
-2. This fails, either tacitly or loudly - `tx1` doesn't get included in a block
+2. This fails, either loudly (error response from child chain server) or quietly (no response) - `tx1` doesn't get included in a block
 3. Alice is forced to in-flight exit, even if she just made a trivial mistake (e.g. incorrect fee)
 4. If instead Alice retries with amended `tx2`, then she opens an attack on her funds:
     - if the child chain is nice, `tx2` will get included in a valid, non-withheld block, all is good
