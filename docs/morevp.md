@@ -325,7 +325,6 @@ Bob’s exit will have priority of position of `UTXO2`.
 9. Bob receives the value of `UTXO2` first, Operator receives the value of `UTXO4` second (ideally contract is empty by this point).
 All bonds are refunded.
 
-
 ### Operator tries to steal funds from an in-flight transaction.
 
 1. Alice spends `UTXO1` in `TX1` to Bob, creating `UTXO2`.
@@ -341,6 +340,26 @@ All bonds are refunded.
 Bob’s exit will have priority of position of `UTXO1`.
 11. Bob receives the value of `UTXO2` first, Operator receives the value of `UTXO4` second (ideally contract is empty by this point).
 All bonds are refunded.
+
+### Operator tries to steal funds from a multi-input in-flight transaction.
+
+1. Alice spends `UTXO1a`, Malory spends `UTXO1m` in `TX1` to Bob, creating `UTXO2`.
+2. `TX1` is in-flight.
+3. Operator creates invalid deposit, creating `UTXO3`.
+4. Operator spends `UTXO3` in `TX3`, creating `UTXO4`.
+5. Operator starts an exit referencing `TX3` and places `exit bond`.
+6. Operator piggybacks onto the exit and places `piggyback bond`
+7. Malory starts an exit referencing `TX1` and places `exit bond`.
+8. Bob piggybacks onto the exit and places `piggyback bond`.
+9. Alice piggybacks onto the exit and places `piggyback bond`.
+9. Mallory double-spends `UTXO1m` in `TX2` and broadcasts.
+9. Operator includes `TX2` and submits as a competitor to `TX1` rendering it non-canonical
+10. Operator's exit of `TX3` will have priority of position of `UTXO3`.
+Alice-Mallory exit will have priority of position of `UTXO1`.
+11. Alice receives the value of `UTXO1a` first, Operator receives the value of `UTXO4` second (ideally contract is empty by this point).
+Bob receives nothing.
+Mallory's `exit bond` goes to the Operator.
+Mallory's `TX2` is canonical and owners of outputs can attempt to exit them.
 
 ### Honest receiver should not start in-flight exits
 
