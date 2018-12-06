@@ -200,7 +200,7 @@ defmodule OMG.Watcher.Fixtures do
 
     EnvAgent.save_env(server_id, env)
 
-    real_addr = Application.get_env(:omg_watcher, :child_chain_url)
+    real_addr = Application.fetch_env!(:omg_watcher, :child_chain_url)
     fake_addr = "http://#{env.ip}:#{env.port}"
 
     on_exit(fn ->

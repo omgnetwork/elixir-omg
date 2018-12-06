@@ -302,7 +302,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       |> Eth.DevHelpers.transact_sync!()
 
     # Here we're waiting for passing of margin of slow validator(m_sv)
-    exit_processor_sla_margin = Application.get_env(:omg_watcher, :exit_processor_sla_margin)
+    exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
 
     # Here we're manually submitting invalid block to the root chain

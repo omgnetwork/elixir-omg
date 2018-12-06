@@ -22,7 +22,7 @@ defmodule OMG.API.Application do
   use OMG.API.LoggerExt
 
   def start(_type, _args) do
-    eth_deposit_finality_margin = Application.get_env(:omg_api, :eth_deposit_finality_margin)
+    eth_deposit_finality_margin = Application.fetch_env!(:omg_api, :eth_deposit_finality_margin)
 
     children = [
       {OMG.API.State, []},

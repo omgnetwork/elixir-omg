@@ -76,5 +76,4 @@ defmodule OMG.Watcher.Integration.TestHelper do
     Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + exit_finality, timeout)
     Process.sleep(exit_processor_validation * 2)
   end
-
 end

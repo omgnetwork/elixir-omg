@@ -25,7 +25,7 @@ alias OMG.{API, Eth}
 alias OMG.API.Crypto
 alias OMG.API.TestHelper
 
-{:ok, contract_addr} = Application.get_env(:omg_eth, :contract_addr) |> Crypto.decode_address()
+{:ok, contract_addr} = Application.fetch_env!(:omg_eth, :contract_addr) |> Crypto.decode_address()
 
 generate = fn ->
   alice = TestHelper.generate_entity()
