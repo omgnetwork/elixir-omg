@@ -342,6 +342,23 @@ Bob’s exit will have priority of position of `UTXO1`.
 11. Bob receives the value of `UTXO2` first, Operator receives the value of `UTXO4` second (ideally contract is empty by this point).
 All bonds are refunded.
 
+### Honest receiver should not start in-flight exits
+
+An honest user obtaining knowledge about an in-flight transaction **crediting** them **should not** start an exit, otherwise risks having their exit bond slashed.
+
+The out-of-band process in such event should always put the burden of starting in-flight exits **on the sender**.
+
+The following scenario demonstrates an attack that is **possible if receivers are too eager to start in-flight exits**:
+1. Mallory spends `UTXO1` in `TX1` to Bob, creating `UTXO2`.
+2. `TX1` is in-flight.
+3. Operator begins withholding blocks while `TX1` is still in-flight.
+4. Bob **eaglerly** starts an exit referencing `TX1` and places `exit bond`.
+5. Mallory spends `UTXO1` in `TX2`.
+6. In period 1 of the exit for `TX1`, Mallory challenges the canonicity of `TX1` by revealing `TX2`.
+7. No one is able to respond to the challenge in period 2, so `TX1` is determined to be non-canonical.
+8. After period 2, Mallory receives Bob’s `exit bond`, no one exits any UTXOs.
+
+Mallory has therefore caused Bob to lose `exit bond`, even though Bob was acting honestly.
 
 ### Attack Vectors and Mitigations
 
@@ -351,16 +368,16 @@ It’s possible for an honest user to start an exit and have their exit bond sla
 This can occur if one of the inputs to a transaction is malicious and signs a second transaction spending the same input.
 
 The following scenario demonstrates this attack:
-1. Mallory spends `UTXO1` in `TX1` to Bob, creating `UTXO2`.
+1. Mallory spends `UTXO1m` and Alice spends `UTXO1a` in `TX1` to Bob, creating `UTXO2`.
 2. `TX1` is in-flight.
 3. Operator begins withholding blocks while `TX1` is still in-flight.
-4. Bob starts an exit referencing `TX1` and places `exit bond`.
-5. Mallory spends `UTXO1` in `TX2`.
+4. Alice starts an exit referencing `TX1` and places `exit bond`.
+5. Mallory spends `UTXO1m` in `TX2`.
 6. In period 1 of the exit for `TX1`, Mallory challenges the canonicity of `TX1` by revealing `TX2`.
 7. No one is able to respond to the challenge in period 2, so `TX1` is determined to be non-canonical.
-8. After period 2, Mallory receives Bob’s `exit bond`, no one exits any UTXOs.
+8. After period 2, Mallory receives Alice's `exit bond`, no one exits any UTXOs.
 
-Mallory has therefore caused Bob to lose `exit bond`, even though Bob was acting honestly.
+Mallory has therefore caused Alice to lose `exit bond`, even though Alice was acting honestly.
 We want to mitigate the impact of this attack as much as possible so that this does not prevent users from receiving funds.
 
 #### Honest transaction retries attack
