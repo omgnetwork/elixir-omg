@@ -72,6 +72,15 @@ defmodule OMG.Watcher.ExitProcessor do
     GenServer.call(__MODULE__, :check_validity)
   end
 
+  @doc """
+  Returns a map of requested in flight exits, where keys are IFE hashes and values are IFES
+  If given empty list of hashes, all IFEs are returned.
+  """
+  @spec get_in_flight_exits([binary()]) :: %{binary() => InFlightExitInfo.t()}
+  def get_in_flight_exits(hashes \\ []) do
+    GenServer.call(__MODULE__, {:get_ifes, hashes})
+  end
+
   ### Server
 
   use GenServer
@@ -131,6 +140,12 @@ defmodule OMG.Watcher.ExitProcessor do
 
     {:reply, {chain_status, events}, state}
   end
+
+  def handle_call({:get_ifes, []}, _from, state),
+      do: {:reply, state.in_flight_exits, state}
+
+  def handle_call({:get_ifes, hashes}, _from, state),
+      do: {:reply, Map.take(state.in_flight_exits, hashes), state}
 
   # combine data from `ExitProcessor` and `API.State` to figure out what to do about exits
   defp determine_invalid_exits(state) do
