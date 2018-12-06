@@ -216,31 +216,31 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   end
 
   swagger_path :get_transaction do
-    get("/transaction")
-    summary("Gets a transaction with the given id")
+    post("/transaction.get")
+    summary("Gets a specific transaction")
 
     parameters do
-      id(:path, :string, "Id of the transaction", required: true)
+      id(:body, :string, "Id of the transaction", required: true)
     end
 
     response(200, "OK", Schema.ref(:Transaction))
   end
 
   swagger_path :get_transactions do
-    get("/transactions")
-    summary("Gets a list of transactions.")
+    post("/transaction.all")
+    summary("Gets a list of transactions")
 
     parameters do
-      address(:query, :string, "Address of the sender or recipient", required: false)
-      limit(:query, :integer, "Limits number of transactions. Default value is 200", required: false)
+      address(:body, :string, "Address of the sender or recipient", required: false)
+      limit(:body, :integer, "Limits number of transactions. Default value is 200", required: false)
     end
 
     response(200, "OK", Schema.ref(:Transactions))
   end
 
   swagger_path :encode_transaction do
-    post("/transaction")
-    summary("Produces hex-encoded transaction bytes for provided inputs and outputs.")
+    post("/transaction.encode")
+    summary("Produces hex-encoded transaction bytes for provided inputs and outputs")
 
     parameters do
       body(:body, Schema.ref(:PostTransaction), "The request body", required: true)

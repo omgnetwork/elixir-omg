@@ -30,13 +30,13 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   @doc """
   Challenges exits
   """
-  def get_utxo_challenge(conn, %{"utxo_pos" => utxo_pos}) do
-    {utxo_pos, ""} = Integer.parse(utxo_pos)
+  def get_utxo_challenge(conn, params) do
+    with {:ok, utxo_pos} <- Map.fetch(params, "utxo_pos") do
+      utxo_pos = Utxo.Position.decode(utxo_pos)
 
-    utxo_pos = utxo_pos |> Utxo.Position.decode()
-
-    Challenger.create_challenge(utxo_pos)
-    |> respond(conn)
+      Challenger.create_challenge(utxo_pos)
+      |> respond(conn)
+    end
   end
 
   defp respond({:ok, challenge}, conn) do
@@ -89,11 +89,11 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   end
 
   swagger_path :get_utxo_challenge do
-    get("/utxo/{utxo_pos}/challenge_data")
+    post("/utxo.get_challenge_data")
     summary("Gets challenge for a given exit")
 
     parameters do
-      utxo_pos(:path, :integer, "The position of the exiting utxo", required: true)
+      utxo_pos(:body, :integer, "The position of the exiting utxo", required: true)
     end
 
     response(200, "OK", Schema.ref(:Challenge))

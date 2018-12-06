@@ -27,8 +27,9 @@ defmodule OMG.Watcher.Web.Controller.Account do
   @doc """
   Gets plasma account balance
   """
-  def get_balance(conn, %{"address" => address}) do
+  def get_balance(conn, params) do
     # TODO: handle input validation (separate task)
+    {:ok, address} = Map.fetch(params, "address")
     {:ok, address_decode} = Crypto.decode_address(address)
     balance = DB.TxOutput.get_balance(address_decode)
     render(conn, View.Account, :balance, balance: balance)
@@ -60,7 +61,7 @@ defmodule OMG.Watcher.Web.Controller.Account do
   end
 
   swagger_path :get_balance do
-    get("/account/{address}/balance")
+    post("/account.get_balance")
     summary("Responds with account balance for given account address")
 
     parameters do

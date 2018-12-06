@@ -34,7 +34,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
       assert %{
                "result" => "success",
                "data" => [%{"currency" => @eth_hex, "amount" => 349}]
-             } == TestHelper.rest_call(:get, path_for(bob), nil, 200)
+             } == TestHelper.rest_call(:post, "/account.get_balance", body_for(bob), 200)
 
       # adds other token funds for alice to make more interesting
       DB.Transaction.update_with(%{
@@ -50,7 +50,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
       %{
         "result" => "success",
         "data" => data
-      } = TestHelper.rest_call(:get, path_for(alice), nil, 200)
+      } = TestHelper.rest_call(:post, "/account.get_balance", body_for(alice), 200)
 
       assert [
                %{"currency" => @eth_hex, "amount" => 201},
@@ -62,12 +62,13 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
     test "Account balance for non-existing account responds with empty array" do
       no_account = %{addr: <<0::160>>}
 
-      assert %{"result" => "success", "data" => []} == TestHelper.rest_call(:get, path_for(no_account), nil, 200)
+      assert %{"result" => "success", "data" => []} ==
+               TestHelper.rest_call(:post, "/account.get_balance", body_for(no_account), 200)
     end
   end
 
-  defp path_for(%{addr: address}) do
+  defp body_for(%{addr: address}) do
     {:ok, address_encode} = Crypto.encode_address(address)
-    "account/#{address_encode}/balance"
+    %{"address" => address_encode}
   end
 end

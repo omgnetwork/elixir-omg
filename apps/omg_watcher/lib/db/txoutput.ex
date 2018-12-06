@@ -52,7 +52,7 @@ defmodule OMG.Watcher.DB.TxOutput do
 
     if Enum.any?(txs, &match?(%{txindex: ^txindex}, &1)),
       do: {:ok, compose_utxo_exit(txs, decoded_utxo_pos)},
-      else: {:error, :no_tx_for_given_blknum}
+      else: {:error, :invalid_exit}
   end
 
   def compose_utxo_exit(txs, Utxo.position(_blknum, txindex, _) = decoded_utxo_pos) do

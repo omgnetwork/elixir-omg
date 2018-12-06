@@ -99,7 +99,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "timestamp" => ^timestamp
                },
                "result" => "success"
-             } = TestHelper.rest_call(:get, "/transaction/#{txhash}")
+             } = TestHelper.rest_call(:post, "/transaction.get", %{"id" => txhash})
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -112,11 +112,11 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "description" => "Transaction doesn't exist for provided search criteria"
                },
                "result" => "error"
-             } == TestHelper.rest_call(:get, "/transaction/#{txhash}", nil, 404)
+             } == TestHelper.rest_call(:post, "/transaction.get", %{"id" => txhash}, 200)
     end
   end
 
-  describe "transactions?address" do
+  describe "getting transactions by address" do
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
     test "endpoint returns tx that contain requested address as the sender and not recipient", %{
       alice: alice,
@@ -283,7 +283,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       {:ok, address} = Crypto.encode_address(entity.addr)
 
       %{"data" => txs, "result" => "success"} =
-        TestHelper.rest_call(:get, "/transactions?address=#{address}&limit=#{limit}")
+        TestHelper.rest_call(:post, "/transaction.all", %{"address" => address, "limit" => limit})
 
       assert expected_result ==
                txs
@@ -297,7 +297,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       %{
         "data" => txs,
         "result" => "success"
-      } = TestHelper.rest_call(:get, "/transactions?limit=2")
+      } = TestHelper.rest_call(:post, "/transaction.all", %{"limit" => 2})
 
       assert [
                %{
@@ -331,7 +331,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert %{
                "result" => "success",
                "data" => txbytes
-             } = TestHelper.rest_call(:post, "/transaction", body, 200)
+             } = TestHelper.rest_call(:post, "/transaction.encode", body, 200)
 
       expected_tx = Transaction.new([{2000, 111, 0}, {5000, 17, 1}], [{alice.addr, @eth, 97}, {bob.addr, @eth, 100}])
 
@@ -357,7 +357,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "description" => "More inputs provided than currently supported by plasma chain transaction.",
                  "code" => "transaction_encode:too_many_inputs"
                }
-             } == TestHelper.rest_call(:post, "/transaction", body, 400)
+             } == TestHelper.rest_call(:post, "/transaction.encode", body, 200)
 
       # At least one input required
       body = %{
@@ -371,7 +371,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "description" => "At least one input has to be provided to create plasma chain transaction.",
                  "code" => "transaction_encode:at_least_one_input_required"
                }
-             } == TestHelper.rest_call(:post, "/transaction", body, 400)
+             } == TestHelper.rest_call(:post, "/transaction.encode", body, 200)
 
       # Too many outputs
       body = %{
@@ -385,7 +385,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "description" => "More outputs provided than currently supported by plasma chain transaction.",
                  "code" => "transaction_encode:too_many_outputs"
                }
-             } == TestHelper.rest_call(:post, "/transaction", body, 400)
+             } == TestHelper.rest_call(:post, "/transaction.encode", body, 200)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :inputs, :bob]
@@ -401,7 +401,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "description" => "The value of outputs exceeds what is spent in inputs.",
                  "code" => "transaction_encode:not_enough_funds_to_cover_spend"
                }
-             } == TestHelper.rest_call(:post, "/transaction", body, 400)
+             } == TestHelper.rest_call(:post, "/transaction.encode", body, 200)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :inputs, :outputs]
@@ -423,7 +423,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert %{
                "result" => "error",
                "data" => expected_error_data
-             } == TestHelper.rest_call(:post, "/transaction", body, 400)
+             } == TestHelper.rest_call(:post, "/transaction.encode", body, 200)
 
       # Negative amount in outputs
       body = %{
@@ -434,7 +434,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert %{
                "result" => "error",
                "data" => expected_error_data
-             } == TestHelper.rest_call(:post, "/transaction", body, 400)
+             } == TestHelper.rest_call(:post, "/transaction.encode", body, 200)
 
       # Non-integer amount in outputs
       body = %{
@@ -445,7 +445,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert %{
                "result" => "error",
                "data" => expected_error_data
-             } == TestHelper.rest_call(:post, "/transaction", body, 400)
+             } == TestHelper.rest_call(:post, "/transaction.encode", body, 200)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :inputs, :outputs]
@@ -462,7 +462,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                    "Inputs contain more than one currency. Mixing currencies is not possible in plasma chain transaction.",
                  "code" => "transaction_encode:currency_mixing_not_possible"
                }
-             } == TestHelper.rest_call(:post, "/transaction", body, 400)
+             } == TestHelper.rest_call(:post, "/transaction.encode", body, 200)
     end
   end
 end
