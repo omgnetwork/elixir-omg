@@ -30,7 +30,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @default_sla_margin 10
   @zero_address Crypto.zero_address()
 
-  defstruct [:sla_margin, exits: %{}]
+  defstruct [:sla_margin, exits: %{}, in_flight_exits: %{}]
 
   @type t :: %__MODULE__{
           sla_margin: non_neg_integer(),
@@ -51,7 +51,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
            {Utxo.position(blknum, txindex, oindex), struct(ExitInfo, v)}
          end)
          |> Map.new(),
-       in_flight_exits: Map.new(), #TODO: init
+       # TODO: init
+       in_flight_exits: Map.new(),
        sla_margin: sla_margin
      }}
   end
@@ -63,7 +64,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   This is to prevent spurrious invalid exit events being fired during syncing for exits that were challenged/finalized
   Still we do want to track these exits when syncing, to have them spend from `OMG.API.State` on their finalization
   """
-  @spec new_exits(t(), [map()], list(map)) :: {t(), list()} | {:error, :unexpected_events}
+  @spec new_exits(t(), list(map()), list(map)) :: {t(), list()} | {:error, :unexpected_events}
   def new_exits(state, new_exits, exit_contract_statuses)
 
   def new_exits(_, new_exits, exit_contract_statuses) when length(new_exits) != length(exit_contract_statuses) do
@@ -91,6 +92,20 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp parse_contract_status({@zero_address, _contract_token, _contract_amount}), do: false
   defp parse_contract_status({_contract_owner, _contract_token, _contract_amount}), do: true
+
+  @doc """
+
+  """
+  @spec new_in_flight_exits(t(), [map()], [map()]) :: t() | {:error, :unexpected_events}
+  def new_in_flight_exits(state, exits, in_flight_exits_contract_data)
+
+  def new_in_flight_exits(state, exits, in_flight_exits_contract_data)
+      when length(exits) != length(in_flight_exits_contract_data),
+      do: {:error, :unexpected_events}
+
+  def new_in_flight_exits(state, exits, in_flight_exits_contract_data) do
+    # TODO
+  end
 
   @doc """
   Finalize exits based on Ethereum events, removing from tracked state if valid.
