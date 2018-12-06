@@ -273,7 +273,7 @@ class WatcherLauncher:
             'use Mix.Config',
             'config :omg_eth,',
             '  contract_addr: "{}",'.format(contract_data['contract_addr']),
-            '  txhash_contract: "{}",'.format(contract_data['txhash_contract']),
+            '  txhash_contract: "{}",'.format(contract_data['txhash_contract']), # noqa E501
             '  authority_addr: "{}"'.format(contract_data['authority_addr'])
         ]
         home = os.path.expanduser('~')
