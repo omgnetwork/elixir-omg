@@ -33,11 +33,10 @@ defmodule OMG.Watcher.Fixtures do
     |> IO.binwrite("""
       #{OMG.Eth.DevHelpers.create_conf_file(contract)}
 
-      config :omg_db,
-        leveldb_path: "#{db_path}"
+      config :omg_db, leveldb_path: "#{db_path}"
+      # this causes the inner test child chain server process to log debug. To see these logs adjust test's log level
       config :logger, level: :debug
-      config :omg_api,
-        fee_specs_file_path: "#{fee_file}"
+      config :omg_api, fee_specs_file_path: "#{fee_file}"
     """)
     |> File.close()
 
