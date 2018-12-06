@@ -6,7 +6,7 @@ defmodule OMG.Eth.MixProject do
   def project do
     [
       app: :omg_eth,
-      version: "0.0.1",
+      version: OMG.Umbrella.MixProject.umbrella_version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -41,7 +41,7 @@ defmodule OMG.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "master",
+        branch: "v0.0",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
