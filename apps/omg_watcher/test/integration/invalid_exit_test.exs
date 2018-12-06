@@ -80,8 +80,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       }
       |> Response.clean_artifacts()
 
-    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
-    assert_push("invalid_exit", ^invalid_exit_event, exit_processor_validation + 1_000)
+    IntegrationTest.wait_for_exit_processing(eth_height, @timeout)
+    assert_push("invalid_exit", ^invalid_exit_event)
 
     # after the notification has been received, a challenged is composed and sent
     challenge = get_exit_challenge(deposit_blknum, 0, 0)
@@ -182,8 +182,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       }
       |> Response.clean_artifacts()
 
-    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
-
-    assert_push("invalid_exit", ^invalid_exit_event, exit_processor_validation)
+    IntegrationTest.wait_for_exit_processing(eth_height, @timeout)
+    assert_push("invalid_exit", ^invalid_exit_event)
   end
 end

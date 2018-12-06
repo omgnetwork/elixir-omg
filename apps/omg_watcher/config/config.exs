@@ -9,12 +9,14 @@ use Mix.Config
 config :omg_watcher,
   namespace: OMG.Watcher,
   ecto_repos: [OMG.Watcher.DB.Repo],
-  margin_slow_validator: 10,
-  maximum_block_withholding_time_ms: 10_000,
+  # an hour worth of blocks - this is how long the child chain server has to block spends from exiting utxos
+  exit_processor_sla_margin: 4 * 60,
+  maximum_block_withholding_time_ms: 1_200_000,
   block_getter_height_sync_interval_ms: 2_000,
   maximum_number_of_unapplied_blocks: 50,
-  eth_exit_finality_margin: 12,
   exit_processor_validation_interval_ms: 5_000,
+  eth_exit_finality_margin: 12,
+  block_reorg_margin: 20,
   convenience_api_mode: false,
   child_chain_url: "http://localhost:9656"
 

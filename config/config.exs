@@ -17,7 +17,4 @@ config :logger, :console,
   discard_threshold: 2000,
   metadata: [:module, :function, :request_id]
 
-config :ethereumex,
-  request_timeout: 60_000
-
 import_config "#{Mix.env()}.exs"

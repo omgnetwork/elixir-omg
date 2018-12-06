@@ -54,9 +54,7 @@ defmodule OMG.API.Integration.DepositHelper do
     # sleeping some more, until the deposit is spendable
     geth_mining_period_ms = 1000
 
-    Process.sleep(
-      geth_mining_period_ms + Application.fetch_env!(:omg_api, :ethereum_event_check_height_interval_ms) * 3
-    )
+    Process.sleep(geth_mining_period_ms + Application.fetch_env!(:omg_api, :ethereum_status_check_interval_ms) * 3)
 
     :ok
   end
@@ -69,9 +67,7 @@ defmodule OMG.API.Integration.DepositHelper do
     # sleeping until the deposit is spendable
     geth_mining_period_ms = 1000
 
-    Process.sleep(
-      geth_mining_period_ms + Application.fetch_env!(:omg_api, :ethereum_event_check_height_interval_ms) * 3
-    )
+    Process.sleep(geth_mining_period_ms + Application.fetch_env!(:omg_api, :ethereum_status_check_interval_ms) * 3)
 
     :ok
   end
