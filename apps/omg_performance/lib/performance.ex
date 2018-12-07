@@ -117,7 +117,7 @@ defmodule OMG.Performance do
         "http://localhost:9656"
       )
 
-    defaults = %{destdir: ".", geth: System.get_env("ETHEREUM_RPC_URL"), child_chain: url}
+    defaults = %{destdir: ".", geth: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545", child_chain: url}
     opts = Map.merge(defaults, opts)
 
     {:ok, started_apps} = setup_extended_perftest(opts, contract_addr)
