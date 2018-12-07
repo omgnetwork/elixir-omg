@@ -1,0 +1,409 @@
+# Simple In-flight Exit
+
+Alice sends tokens to Bob in transaction `tx` which has one input and one output. The block is withheld. 
+
+Bob calls `watcher/status` and gets a response:
+
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": {
+        "last_validated_child_block_number": 10000,
+        "last_mined_child_block_timestamp": 1535031020,
+        "last_mined_child_block_number": 11000,
+        "eth_syncing": true,
+        "byzantine_events": [
+            {
+                "event": "block_withholding",
+                "details": {
+                    "blockhash"  : "DB32876CC6F...",
+                    "blocknum"  : 10000,
+                }
+            }
+        ],
+        "inflight_txs": [
+            {
+                "txhash": "230C450180808080...",
+                "txbytes": "F3170101C0940000...",
+                "input_addresses": [
+                    "0x1234..."
+                ],
+                "output_addresses": [
+                    "0x7890..."
+                ],
+            }
+        ]
+    }
+}
+ ```
+He notices that the chain is byzantine and there is an in-flight transaction with his address as an output.
+
+Bob starts an in-flight exit.
+
+#### 1. Get the exit data
+`/inflight_exit.get_data` 
+```json
+ {
+    "txbytes": "F3170101C0940000..."
+ }
+ ```
+
+ response:
+```json
+ {
+    "data": {
+        "txbytes": "F3170101C0940000...",
+        "sigs": "7C29FB8327F60BBFC62...",
+        "input_txs" : [
+            "F81891018080808...",
+            "2A0341808602A01..."
+        ],
+        "input_proofs" : [
+             "CEDB8B31D1E4C...",
+             "A67131D1E904C..."
+        ]
+    }
+ }
+ ```
+
+#### 2. Start the IFE
+```
+RootChain.startInFlightExit(
+    response.data.txbytes, 
+    response.data.input_txs, 
+    response.data.input_proofs, 
+    response.data.sigs, 
+    {"value": inFlightExitBond}
+)
+```
+
+#### 3. Piggyback his output
+The second argument is `4` because he is piggybacking the first output.
+```
+RootChain.piggybackInFlightExit(
+    response.data.txbytes,
+    4, 
+    {"value": piggybackBond}
+)
+```
+
+After finalization, if nobody challenges the exit, Bob will exit his output and get his `inFlightExitBond` and `piggybackBond` back.
+
+# Simple In-flight Exit with 2 outputs
+Alice sends tokens to Bob, but this time she includes a change output to herself, so that the transaction `tx1` has 2 outputs. 
+
+When Alice calls `watcher/status` she gets this response:
+
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": {
+        "last_validated_child_block_number": 10000,
+        "last_mined_child_block_timestamp": 1535031020,
+        "last_mined_child_block_number": 11000,
+        "eth_syncing": true,
+        "byzantine_events": [
+            {
+                "event": "block_withholding",
+                "details": {
+                    "blockhash"  : "DB32876CC6F...",
+                    "blocknum"  : 10000,
+                }
+            },
+            {
+                "event": "piggyback_available",
+                "details": {
+                    "txbytes": "F3170101C0940000...",
+                    "available_outputs" : [1]
+                }
+            },
+        ],
+        "inflight_txs": [
+            {
+                "txhash": "230C450180808080...",
+                "txbytes": "F3170101C0940000...",
+                "input_addresses": [
+                    "0x1234..."
+                ],
+                "output_addresses": [
+                    "0x7890...",
+                    "0x1234..."
+                ],
+            }
+        ],
+        "inflight_exits": [
+            {
+                "txhash": "230C450180808080...",
+                "txbytes": "F3170101C0940000...",
+                "timestamp" : 1544193137,
+                "piggybacked_outputs" : [0]
+            }
+        ]
+    }
+}
+ ```
+
+Because Bob has already started an exit for the transaction - there is a `piggyback_available` event indicating that `output[1]` can be piggybacked. This output is to Alice's address. Note that as Alice is the sole owner of the inputs, she does not need to piggyback any input.
+
+#### 1. Piggyback her output on the IFE
+The second argument is `5` because Alice is piggybacking the second output.
+```
+RootChain.piggybackInFlightExit(
+    inflight_exits[0].txbytes,
+    5, 
+    {"value": piggybackBond}
+)
+```
+
+After finalization (if nobody challenges the exit) Bob will exit his output and get his `inFlightExitBond` and `piggybackBond` back, Alice will exit her change output and get her `piggybackBond` back.
+
+# Challenge an IFE
+To challenge an IFE we must attempt to prove that it is non-canonical by presenting a competing transaction that also spends one its inputs.
+If the competing transaction has already been included in a block, then we must present its inclusion proof.
+Imagine that Alice's transaction `tx1` in the previous example is a double spend - its `input0` was already spent as `input1` of another transaction `tx0`
+
+Request `watcher/status`:
+
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": {
+        "last_validated_child_block_number": 10000,
+        "last_mined_child_block_timestamp": 1535031020,
+        "last_mined_child_block_number": 11000,
+        "eth_syncing": true,
+        "byzantine_events": [
+            {
+                "event": "block_withholding",
+                "details": {
+                    "blockhash"  : "DB32876CC6F...",
+                    "blocknum"  : 10000,
+                }
+            },
+            {
+                "event": "noncanonical_ife",
+                "details": {
+                    "txbytes": "F3170101C0940000..."
+                }
+            },
+        ],
+        "inflight_txs": [
+            {
+                "txhash": "230C450180808080...",
+                "txbytes": "F3170101C0940000...",
+                "input_addresses": [
+                    "0x1234..."
+                ],
+                "output_addresses": [
+                    "0x7890...",
+                    "0x1234..."
+                ],
+            }
+        ],
+        "inflight_exits": [
+            {
+                "txhash": "230C450180808080...",
+                "txbytes": "F3170101C0940000...",
+                "timestamp" : 1544193137,
+                "piggybacked_inputs" : [0],
+                "piggybacked_outputs" : [0, 1],
+            }
+        ]
+    }
+}
+ ```
+
+#### 1. Get the competing transaction and its inclusion proof (if available).
+`/inflight_exit.get_competitor` 
+```json
+{
+    "txbytes": "F3170101C0940000..."
+}
+```
+
+response:
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": {
+        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_input_index": 0,
+        "competing_txbytes": "F317010180808080940000...",
+        "competing_input_index": 1,
+        "competing_sig": "9A23010180808080940000...",
+        "competing_txid": 2600003920012,
+        "competing_proof": "004C010180808080940000..."
+    }
+}
+```
+Note that if the competing transaction has _not_ been included in a block then its inclusion proof and txid will not be available. In this case, you should pass "" and 0 to `RootChain.challengeInFlightExitNotCanonical()`
+
+#### 2. Challenge the IFE with an included competitor
+```
+tx0_data = response.data
+RootChain.challengeInFlightExitNotCanonical(
+    inflight_txbytes, 
+    inflight_input_index, 
+    competing_txbytes, 
+    competing_input_index,
+    competing_txid,
+    competing_proof, 
+    competing_sig
+)
+```
+
+# Respond to an IFE challenge
+To respond to a challenge to an IFE, we need to show that the transaction _is_ included. This situation can arise if the user that started the exit did not see the transaction in a block, but subsequently he or another user _did_ see the transaction being put into a block.
+
+`/watcher/status` response will contain:
+```
+    "byzantine_events": [
+        {
+            "event": "invalid_ife_challenge",
+            "details": {
+                "txbytes": "F3170101C0940000..."
+            }
+        }
+    ]
+```
+
+#### 1. Get the in-flight transaction's inclusion proof.
+
+`/inflight_exit.prove_canonical` 
+```json
+{
+    "txbytes": "F3170101C0940000..."
+}
+```
+
+response:
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": {
+        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_txid": 2600003920012,
+        "inflight_proof": "004C010180808080940000..."
+    }
+}
+```
+
+#### 2. Respond to an IFE challenge
+```
+RootChain.challengeInFlightExitNotCanonical(
+    inflight_txbytes, 
+    inflight_txid,
+    inflight_proof, 
+)
+```
+If this transaction is the oldest competitor then it is canonical and the IFE succeeds - Bob exits his output.
+
+# Challenging a Piggybacked input
+To challenge a piggybacked input we must present a different transaction that spends that input.
+
+`/watcher/status` response will contain:
+```
+    "byzantine_events": [
+        {
+            "event": "invalid_piggyback",
+            "details": {
+                "txbytes": "F3170101C0940000...",
+                "inputs": [1]
+            }
+        }
+    ]
+```
+
+#### 1. Get the transaction that challenges the input
+
+`/inflight_exit.get_input_challenge_data` 
+```json
+{
+    "txbytes": "F3170101C0940000...",
+    "input_index": 1
+}
+```
+
+response:
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": {
+        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_input_index": 1,
+        "spending_txbytes": "F317010180808080940000...",
+        "spending_input_index": 1,
+        "spending_sig": "9A23010180808080940000..."
+    }
+}
+```
+
+#### 2. Challenge the input
+```
+RootChain.challengeInFlightExitInputSpent(
+    inflight_tx.txbytes, 
+    inflight_tx.input_index,
+    spending_tx.txbytes, 
+    spending_tx.input_index,
+    spending_tx.sigs
+)
+```
+
+# Challenging a Piggybacked output
+To challenge a piggybacked output we must present a transaction that spends that output. The inflight transaction must have been put into a block, but the spending transaction does _not_ need to be in a block.
+
+`/watcher/status` response will contain:
+```
+    "byzantine_events": [
+        {
+            "event": "invalid_piggyback",
+            "details": {
+                "txbytes": "F3170101C0940000...",
+                "outputs": [0]
+            }
+        }
+    ]
+```
+
+#### 1. Get the output's proof of inclusion
+`/inflight_exit.get_output_challenge_data` 
+```json
+{
+    "txbytes": "F3170101C0940000...",
+    "output_index": 0
+}
+```
+
+response:
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": {
+        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_output_pos": 21000634002,
+        "inflight_proof": "F847010180808080940000...",
+        "spending_txbytes": "F317010180808080940000...",
+        "spending_input_index": 1,
+        "spending_sig": "9A23010180808080940000..."
+    }
+}
+```
+
+#### 2. Challenge the output
+```
+RootChain.challengeInFlightExitOutputSpent(
+    inflight_tx.txbytes, 
+    inflight_tx.output_pos,
+    inflight_tx.proof,
+    spending_tx.txbytes, 
+    spending_tx.input_index,
+    spending_tx.sigs
+)
+```
