@@ -202,11 +202,11 @@ curl http://localhost:4000/transaction.all -d '{"block": "100", "limit": 50}'
 }
 ```
 
-Gets a transaction with the given id
+Gets all transactions (can be limited with various filters)
 
 ### HTTP Request
 
-`POST /transaction.get`
+`POST /transaction.all`
 
 ### Request Body
 
