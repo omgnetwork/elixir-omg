@@ -63,7 +63,7 @@ tx =
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 # use the hex-encoded tx bytes and `transaction.submit` Http-RPC method described in README.md for child chain server
 
-curl POST "localhost:9656/transaction.submit" -d '{"transaction": ""}'
+curl -X POST -H "Content-Type: application/json" -d '{"transaction": "<rlp encoded plasma transaction in hex>"}' "localhost:9656/transaction.submit"
 
 # see the Watcher getting a 1-txs block
 ```
