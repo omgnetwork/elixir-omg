@@ -10,7 +10,7 @@ config :omg_api,
   child_block_minimal_enquque_gap: 4,
   fee_specs_file_path: "./fee_specs.json"
 
-config :sentry,  
+config :sentry,
   dsn: {:system, "SENTRY_DSN"},
   environment_name: Mix.env(),
   enable_source_code_context: true,
