@@ -33,13 +33,18 @@ defmodule Mix.Tasks.Xomg.Watcher.Start do
     start_watcher(args)
   end
 
+  # TODO: a lot of this code is duplicated in other `Mix.Tasks` modules. How to DRY elegantly?
   defp start_watcher(args) do
     args = ensure_contains(args, "--no-start")
     args = ensure_doesnt_contain(args, "--no-halt")
 
     Mix.Task.run("run", args)
     {:ok, _} = Application.ensure_all_started(:omg_watcher)
-    Process.sleep(:infinity)
+    iex_running?() || Process.sleep(:infinity)
+  end
+
+  defp iex_running? do
+    Code.ensure_loaded?(IEx) and IEx.started?()
   end
 
   defp ensure_contains(args, arg) do
