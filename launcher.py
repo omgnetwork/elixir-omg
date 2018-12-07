@@ -2,7 +2,6 @@
 import json
 import logging
 import os
-import re
 import subprocess
 import sys
 
@@ -140,8 +139,8 @@ class ChildchainLauncher:
     def clean_config_entry(self, line: str) -> str:
         ''' Clean the line that forms the entry for the config.exs
         '''
-        line = re.sub(r'"', '', line)
-        line = re.sub(r',', '', line)
+        line = line.replace('"', '')
+        line = line.replace(',', '')
         return line
 
     def update_contract_exchanger(self):
@@ -285,7 +284,7 @@ class WatcherLauncher:
     def deploy_contract(self) -> bool:
         ''' Deploy the smart contract and populate the ~/config.exs file
         '''
-        if self.ethereum_network == [x for x in self.public_networks]:
+        if self.ethereum_network in self.public_networks:
             return self.use_pre_deployed()
 
         return self.config_writer_dynamic()
