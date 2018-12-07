@@ -26,7 +26,7 @@ defmodule OMG.API.MixProject do
         child_block_submit_period: 1,
         rootchain_height_sync_interval_ms: 1_000
       ],
-      extra_applications: [:logger],
+      extra_applications: [:sentry, :logger],
       mod: {OMG.API.Application, []}
     ]
   end
@@ -48,7 +48,8 @@ defmodule OMG.API.MixProject do
       #
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
-      {:omg_rpc, in_umbrella: true}
+      {:omg_rpc, in_umbrella: true},
+      {:sentry, "~> 6.2.0"}
     ]
   end
 end
