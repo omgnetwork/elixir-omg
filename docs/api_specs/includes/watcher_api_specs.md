@@ -219,6 +219,28 @@ curl -X POST http://localhost:4000/status
                     "amount" : 100
                 }
             }
+        ],
+        "inflight_txs": [
+            {
+                "txhash": "230C450180808080...",
+                "txbytes": "F3170101C0940000...",
+                "input_addresses": [
+                    "0x1234..."
+                ],
+                "ouput_addresses": [
+                    "0x1234...",
+                    "0x7890..."
+                ],
+            }
+        ],
+        "inflight_exits": [
+            {
+                "txhash": "230C450180808080...",
+                "txbytes": "F3170101C0940000...",
+                "timestamp" : 1544193137,
+                "piggybacked_inputs" : [1],
+                "piggybacked_outputs" : [0, 1]
+            }
         ]
     }
 }
@@ -293,7 +315,7 @@ Indicates that an invalid exit is dangerously close to finalization and hasn't b
 }
 ```
 
-A block containing an invalid tx has been processed [are there other reasons a block can be invalid?]. User should exit.
+An invalid block has been added to the chain. User should exit.
 
 
 #### `block_withholding`
@@ -318,28 +340,18 @@ The ChildChain is withholding a block whose hash has been published on the root 
 {
     "event": "noncanonical_ife",
     "details": {
-        "inflight_blocknum"  : 10000,
-        "inflight_tx_index"  : 12,
-        "inflight_input_index"  : 1,
-        "competing_blocknum"  : 10000,
-        "competing_tx_index"  : 10,
-        "competing_input_index"  : 0,
+        "txbytes": "F3170101C0940000..."
     }
 }
 ```
 
-An non-canonical in-flight exit has been started. It should be challenged. 
+An in-flight exit of a non-canonical transaction has been started. It should be challenged. 
 <aside class="warning"> Not Implemented Yet.</aside> 
 
 Event details:
 Attribute | Type | Description
 --------- | ------- | -----------
-inflight_blocknum | integer | Block number of the in-flight transaction
-inflight_tx_index | integer | Index of the in-flight transaction
-inflight_input_index | integer | Index of the double-spent input in the in-flight transaction
-competing_blocknum | integer | Block number of the spending transaction
-competing_tx_index | integer | Index of the spending transaction
-competing_input_index | integer | Index of the double-spent input in the competing transaction
+txbytes | Hex encoded string | The in-flight transaction that the event relates to
 
 #### `invalid_ife_challenge`
 > A invalid_ife_challenge event
@@ -348,8 +360,7 @@ competing_input_index | integer | Index of the double-spent input in the competi
 {
     "event": "invalid_ife_challenge",
     "details": {
-        "inflight_blocknum"  : 10000,
-        "inflight_tx_index"  : 12,
+        "txbytes": "F3170101C0940000..."
     }
 }
 ```
@@ -360,8 +371,7 @@ A canonical in-flight exit has been challenged. The challenge should be responde
 Event details:
 Attribute | Type | Description
 --------- | ------- | -----------
-inflight_blocknum | integer | Block number of the in-flight transaction
-inflight_tx_index | integer | Index of the in-flight transaction
+txbytes | Hex encoded string | The in-flight transaction that the event relates to
 
 #### `piggyback_available`
 > A piggyback_available event
@@ -370,22 +380,22 @@ inflight_tx_index | integer | Index of the in-flight transaction
 {
     "event": "piggyback_available",
     "details": {
-        "inflight_blocknum"  : 10000,
-        "inflight_tx_index"  : 12,
-        "inflight_io_index"  : 1
+        "txbytes": "F3170101C0940000...",
+        "available_outputs" : [0, 1],
+        "available_inputs" : [0, 1]
     }
 }
 ```
 
-An in-flight exit has been started and can be piggybacked 
+An in-flight exit has been started and can be piggybacked. If all inputs are owned by the same address, then `available_inputs` will not be present.
 <aside class="warning"> Not Implemented Yet.</aside> 
 
 Event details:
 Attribute | Type | Description
 --------- | ------- | -----------
-inflight_blocknum | integer | Block number of the in-flight transaction
-inflight_tx_index | integer | Index of the in-flight transaction
-inflight_io_index | integer | Index of the input or output that can be exitted.
+txbytes | Hex encoded string | The in-flight transaction that the event relates to
+available_outputs | Integer array | The outputs available to be piggybacked
+available_inputs | Integer array | The inputs available to be piggybacked
 
 #### `invalid_piggyback`
 > A invalid_piggyback event
@@ -394,13 +404,9 @@ inflight_io_index | integer | Index of the input or output that can be exitted.
 {
     "event": "invalid_piggyback",
     "details": {
-        "type": "output",
-        "inflight_blocknum"  : 10000,
-        "inflight_tx_index"  : 12,
-        "inflight_io_index"  : 1,
-        "spending_blocknum"  : 10000,
-        "spending_tx_index"  : 10,
-        "spending_input_index"  : 0,
+        "txbytes": "F3170101C0940000...",
+        "inputs": [1],
+        "outputs": [0]
     }
 }
 ```
@@ -411,19 +417,16 @@ An invalid piggyback is in process. Should be challenged.
 Event details:
 Attribute | Type | Description
 --------- | ------- | -----------
-type | string | Indicates whether the invalid piggyback is on an "input" or "output"
-inflight_blocknum | integer | Block number of the in-flight transaction
-inflight_tx_index | integer | Index of the in-flight transaction
-inflight_io_index | integer | Index of the input or output of the in-flight transaction
-spending_blocknum | integer | Block number of the spending transaction
-spending_tx_index | integer | Index of the spending transaction
-spending_input_index | integer | Index of the spent input iofn the spending transaction
+txbytes | Hex encoded string | The in-flight transaction that the event relates to
+inputs | Integer array | A list of invalid piggybacked inputs
+outputs | Integer array | A list of invalid piggybacked outputs
+
 
 
 ## Inflight Exit - Get Exit Data
 
 ```shell
-curl http://localhost:4000/inflight_exit.get_data -d '{"txhash": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
+curl http://localhost:4000/inflight_exit.get_data -d '{"txbytes": "F317010180808080940000..."}'
 ```
 
 ```elixir
@@ -443,15 +446,13 @@ curl http://localhost:4000/inflight_exit.get_data -d '{"txhash": "bdf562c24ace03
     "data": {
         "txbytes": "F847010180808080940000...",
         "sigs": "7C29FB8327F60BBFC62...",
-        "input_txs" : [
-            {
-                "txbytes": "F81891018080808...",
-                "proof": "CEDB8B31D1E4C..."
-            },
-            {
-                "txbytes": "2A03418086001...",
-                "proof": "A67131D1E4C..."
-            }
+        "input_txs_bytes" : [
+            "F81891018080808...",
+            "2A0341808602A01..."
+        ],
+        "input_txs_proofs" : [
+             "CEDB8B31D1E4C...",
+             "A67131D1E904C..."
         ]
     }
 }
@@ -467,14 +468,14 @@ Gets exit data for an in-flight exit
 
 Attribute | Type | Description
 --------- | ------- | -----------
-txhash | Hex encoded string | The hash of the in-flight transaction
+txbytes | Hex encoded string | The in-flight transaction
 
 
 
-## Inflight Exit - Get Challenge Data
+## Inflight Exit - Get Competitor
 
 ```shell
-curl http://localhost:4000/inflight_exit.get_challenge_data -d '{"txhash": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
+curl http://localhost:4000/inflight_exit.get_competitor -d '{"txbytes": "F3170101C0940000..."}'
 ```
 
 ```elixir
@@ -496,31 +497,31 @@ curl http://localhost:4000/inflight_exit.get_challenge_data -d '{"txhash": "bdf5
         "inflight_input_index": 1,
         "competing_txbytes": "F317010180808080940000...",
         "competing_input_index": 1,
+        "competing_sig": "9A23010180808080940000...",
         "competing_txid": 2600003920012,
-        "competing_proof": "004C010180808080940000...",
-        "competing_sig": "9A23010180808080940000..."
+        "competing_proof": "004C010180808080940000..."
     }
 }
 ```
 
-Gets challenge data for an in-flight exit
+Returns a competitor to an in-flight exit. Note that if the competing transaction has not been put into a block `competing_txid` and `competing_proof` will not be returned.
 
 ### HTTP Request
 
-`POST /inflight_exit.get_challenge_data`
+`POST /inflight_exit.get_competitor`
 
 ### Request Body
 
 Attribute | Type | Description
 --------- | ------- | -----------
-txhash | Hex encoded string | The hash of the in-flight transaction
+txbytes | Hex encoded string | The in-flight transaction
 
 
 
-## Inflight Exit - Get Challenge Response Data
+## Inflight Exit - Show Canonical
 
 ```shell
-curl http://localhost:4000/inflight_exit.get_challenge_response_data -d '{"txhash": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
+curl http://localhost:4000/inflight_exit.prove_canonical -d '{"txbytes": "F3170101C0940000..."}'
 ```
 
 ```elixir
@@ -545,65 +546,24 @@ curl http://localhost:4000/inflight_exit.get_challenge_response_data -d '{"txhas
 }
 ```
 
-Gets the data to respond to a challenge to an in-flight exit
+To respond to a challenge to an in-flight exit, this proves that the transaction has been put into a block (and therefore is canonical).
 
 ### HTTP Request
 
-`POST /inflight_exit.get_challenge_response_data`
+`POST /inflight_exit.prove_canonical`
 
 ### Request Body
 
 Attribute | Type | Description
 --------- | ------- | -----------
-txhash | Hex encoded string | The hash of the in-flight transaction
-
-
-
-## Inflight Exit - Get Piggyback Data
-
-```shell
-curl http://localhost:4000/inflight_exit.get_piggyback_data -d '{"txhash": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
-```
-
-```elixir
-// TODO
-```
-
-```javascript
-// TODO
-```
-
-> The above command returns JSON document:
-
-```json
-{
-    "version": "1",
-    "success": true,
-    "data": {
-        "inflight_txbytes": "F847010180808080940000...",
-        "inflight_io_index": 1
-    }
-}
-```
-
-Gets the piggyback data for an in-flight exit
-
-### HTTP Request
-
-`POST /inflight_exit.get_piggyback_data`
-
-### Request Body
-
-Attribute | Type | Description
---------- | ------- | -----------
-txhash | Hex encoded string | The hash of the in-flight transaction
+txbytes | Hex encoded string | The in-flight transaction
 
 
 
 ## Inflight Exit - Get Input Challenge Data
 
 ```shell
-curl http://localhost:4000/inflight_exit.get_input_challenge_data -d '{"inflight_txhash": "bdf562c24ace..."}, "spending_txhash": "bdf562c24ace..."}'
+curl http://localhost:4000/inflight_exit.get_input_challenge_data -d '{"txbytes": "F3170101C0940000...", "input_index": 1}'
 ```
 
 ```elixir
@@ -630,7 +590,7 @@ curl http://localhost:4000/inflight_exit.get_input_challenge_data -d '{"inflight
 }
 ```
 
-Gets the data to challenge an input piggybacked on an in-flight exit
+Gets the data to challenge an invalid input piggybacked on an in-flight exit
 
 ### HTTP Request
 
@@ -640,15 +600,15 @@ Gets the data to challenge an input piggybacked on an in-flight exit
 
 Attribute | Type | Description
 --------- | ------- | -----------
-inflight_txhash | Hex encoded string | The hash of the in-flight transaction
-spending_txhash | Hex encoded string | The hash of the spending transaction
+txbytes | Hex encoded string | The in-flight transaction
+input_index | Integer | The index of the invalid input
 
 
 
 ## Inflight Exit - Get Output Challenge Data
 
 ```shell
-curl http://localhost:4000/inflight_exit.get_output_challenge_data -d '{"inflight_txhash": "bdf562c24ace..."}, "spending_txhash": "bdf562c24ace..."}'
+curl http://localhost:4000/inflight_exit.get_output_challenge_data -d '{"txbytes": "F3170101C0940000...", "output_index": 0}'
 ```
 
 ```elixir
@@ -676,7 +636,7 @@ curl http://localhost:4000/inflight_exit.get_output_challenge_data -d '{"infligh
 }
 ```
 
-Gets the data to challenge an output piggybacked on an in-flight exit
+Gets the data to challenge an invalid output piggybacked on an in-flight exit
 
 ### HTTP Request
 
@@ -686,6 +646,5 @@ Gets the data to challenge an output piggybacked on an in-flight exit
 
 Attribute | Type | Description
 --------- | ------- | -----------
-inflight_txhash | Hex encoded string | The hash of the in-flight transaction
-spending_txhash | Hex encoded string | The hash of the spending transaction
-
+txbytes | Hex encoded string | The in-flight transaction
+output_index | Integer | The index of the invalid output
