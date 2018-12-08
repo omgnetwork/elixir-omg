@@ -41,8 +41,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   Reads database-specific list of exits and turns them into current state
   """
-  @spec init(db_exits :: [{{pos_integer, non_neg_integer, non_neg_integer}, map}], non_neg_integer) :: {:ok, t()}
-  def init(db_exits, sla_margin \\ @default_sla_margin) do
+  @spec init(db_exits :: [{{pos_integer, non_neg_integer, non_neg_integer}, map}], [{binary(), map()}], non_neg_integer) :: {:ok, t()}
+  def init(db_exits, db_ifes, sla_margin \\ @default_sla_margin) do
     {:ok,
      %__MODULE__{
        exits:
@@ -51,8 +51,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
            {Utxo.position(blknum, txindex, oindex), struct(ExitInfo, v)}
          end)
          |> Map.new(),
-       # TODO: init
-       in_flight_exits: Map.new(),
+       in_flight_exits: db_ifes |> Map.new(),
        sla_margin: sla_margin
      }}
   end
@@ -93,18 +92,25 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp parse_contract_status({@zero_address, _contract_token, _contract_amount}), do: false
   defp parse_contract_status({_contract_owner, _contract_token, _contract_amount}), do: true
 
+  # TODO: docs, spec
   @doc """
 
   """
-  @spec new_in_flight_exits(t(), [map()], [map()]) :: t() | {:error, :unexpected_events}
-  def new_in_flight_exits(state, exits, in_flight_exits_contract_data)
+  #  @spec new_in_flight_exits(t(), [map()]) :: t() | {:error, :unexpected_events}
+  def new_in_flight_exits(%{in_flight_exits: ifes} = state, new_ifes_events) do
+    new_ifes_kv_pairs =
+      new_ifes_events
+      |> Enum.map(fn %{tx_bytes: tx_bytes, signatures: signatures, timestamp: timestamp} ->
+        InFlightExitInfo.build_in_flight_transaction_info(tx_bytes, signatures, timestamp)
+      end)
 
-  def new_in_flight_exits(state, exits, in_flight_exits_contract_data)
-      when length(exits) != length(in_flight_exits_contract_data),
-      do: {:error, :unexpected_events}
+    db_updates =
+      new_ifes_kv_pairs
+      |> Enum.map(&InFlightExitInfo.make_db_update/1)
 
-  def new_in_flight_exits(state, exits, in_flight_exits_contract_data) do
-    # TODO
+    new_ifes = new_ifes_kv_pairs |> Map.new()
+
+    {%{state | in_flight_exits: Map.merge(ifes, new_ifes)}, db_updates}
   end
 
   @doc """
@@ -215,4 +221,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     {chain_validity, events}
   end
+
+  @doc """
+  Returns a map of requested in flight exits, where keys are IFE hashes and values are IFES
+  If given empty list of hashes, all IFEs are returned.
+  """
+  @spec get_in_flight_exits(__MODULE__.t(), [binary()]) :: %{binary() => InFlightExitInfo.t()}
+  def get_in_flight_exits(%__MODULE__{} = state, hashes \\ []), do: in_flight_exits(state, hashes)
+
+  defp in_flight_exits(%__MODULE__{in_flight_exits: ifes}, []), do: ifes
+
+  defp in_flight_exits(hashes, %__MODULE__{in_flight_exits: ifes}), do: Map.take(ifes, hashes)
 end

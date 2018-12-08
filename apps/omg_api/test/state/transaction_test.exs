@@ -236,6 +236,12 @@ defmodule OMG.API.State.TransactionTest do
       Transaction.Recovered.all_spenders_authorized?(authorized_tx, [alice.addr, carol.addr])
   end
 
+  @tag fixtures: [:transaction]
+  test "Decode transaction", %{transaction: tx} do
+    {:ok, decoded, []} = tx |> Transaction.encode() |> Transaction.decode()
+    assert decoded == tx
+  end
+
   @tag fixtures: [:alice]
   test "decoding signed transaction fails when signatures do not have a proper length", %{alice: alice} do
     tx = Transaction.new([{1000, 0, 0}, {1000, 0, 1}], [{alice.addr, eth(), 10}])

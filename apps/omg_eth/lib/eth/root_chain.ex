@@ -164,22 +164,6 @@ defmodule OMG.Eth.RootChain do
     Eth.call_contract(contract, "getStandardExitId(uint256)", [utxo_pos], [{:uint, 256}])
   end
 
-  @doc """
-  Returns in flight exit for a specific id. Calls contract method.
-  """
-  def get_in_flight_exit(in_flight_exit_id, contract \\ nil) do
-    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    # TODO: add convenience method
-    Eth.call_contract(contract, "inFlightExits(uint192)", [in_flight_exit_id], [
-      {:uint, 256},
-      {:uint, 256},
-      [:address, :address, {:uint, 256}],
-      [:address, :address, {:uint, 256}],
-      :address,
-      {:uint, 256}
-    ])
-  end
-
   def get_child_chain(blknum, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     Eth.call_contract(contract, "blocks(uint256)", [blknum], [{:bytes, 32}, {:uint, 256}])
@@ -226,12 +210,17 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_exit_started/1)}
   end
 
-  def get_in_flight_exits(block_from, block_to, contract \\ nil) do
+  def get_in_flight_exits_started(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "InFlightExitStarted(address,bytes32)"
 
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
-         do: {:ok, Enum.map(logs, &decode_in_flight_exit_started/1)}
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract) do
+      {:ok,
+       logs
+       |> Enum.map(fn log ->
+         get_in_flight_data(log["transactionHash"])
+       end)}
+    end
   end
 
   @doc """
@@ -282,17 +271,24 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  defp decode_in_flight_exit_started(log) do
-    non_indexed_keys = [:tx_hash]
-    non_indexed_keys_types = [{:bytes, 32}]
-    indexed_keys = [:initiator]
-    indexed_keys_types = [:address]
+  defp get_in_flight_data(hash) do
+    {:ok, eth_tx} = Ethereumex.HttpClient.eth_get_transaction_by_hash(hash)
+    {:ok, eth_block} = Ethereumex.HttpClient.eth_get_block_by_number(eth_tx["blockHash"], false)
 
-    Eth.parse_events_with_indexed_fields(
-      log,
-      {non_indexed_keys, non_indexed_keys_types},
-      {indexed_keys, indexed_keys_types}
+    ABI.decode(
+      %ABI.FunctionSelector{
+        function: "startInFlightExit",
+        types: [:bytes, :bytes, :bytes, :bytes],
+        method_id: <<132, 97, 33, 149>>
+      },
+      from_hex(eth_tx["input"])
     )
+#    |> (&Enum.zip([:tx_bytes, :intput_txs, :inputs_inclusion_proofs, :signatures], &1)).()
+#    |> Map.new()
+    Map.new()
+    |> Map.drop([:intput_txs, :inputs_inclusion_proofs])
+    |> Map.put(:timestamp, from_hex(eth_block["timestamp"]))
+
   end
 
   defp decode_exit_finalized(log) do
