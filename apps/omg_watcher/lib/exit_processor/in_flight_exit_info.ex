@@ -38,8 +38,32 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           tx_pos: Utxo.Position.t(),
           timestamp: non_neg_integer(),
           exit_map: %{non_neg_integer() => %{is_piggybacked: boolean(), is_finalized: boolean()}},
+          timestamp: non_neg_integer(),
+          exit_map: binary(),
           oldest_competitor: non_neg_integer(),
           is_canonical: boolean(),
           is_finalized: boolean(),
         }
+
+  def build_in_flight_transaction_info(tx_bytes, tx_signatures, timestamp) do
+    with {:ok, raw_tx, []} <- Transaction.decode(tx_bytes) do
+      signed_tx_map = %{
+        raw_tx: raw_tx,
+        sigs: tx_signatures
+      }
+
+      {
+        Transaction.hash(raw_tx),
+        %__MODULE__{
+          tx: struct(Transaction.Signed, signed_tx_map),
+          timestamp: timestamp
+        }
+      }
+    end
+  end
+
+  def make_db_update({ife_hash, %__MODULE__{} = ife_info}) do
+    {:put, :in_flight_exit_info, {ife_hash, ife_info}}
+  end
+
 end
