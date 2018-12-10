@@ -45,7 +45,12 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   timeout: 60_000,
   connect_timeout: 60_000,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
-  url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_dev"},
+  url: {:system, "DATABASE_URL",
+    "postgres://" <> #System.get_env("WATCHER_DATABASE_USER") <>
+    #System.get_env("WATCHER_DATABASE_PASSWORD") <> "@" <>
+    #System.get_env("WATCHER_DATABASE_IP") <> "/" <>
+    #System.get_env("WATCHER_DATABASE_NAME")
+  }
   exit_processor_validation_interval_ms: 2_000
 
 config :omg_watcher,
