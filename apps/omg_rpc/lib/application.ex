@@ -28,6 +28,7 @@ defmodule OMG.RPC.Application do
     _ = Logger.info(fn -> "Started application OMG.RPC.Application" end)
 
     opts = [strategy: :one_for_one, name: OMG.RPC.Supervisor]
+    :ok = :error_logger.add_report_handler(Sentry.Logger)
     Supervisor.start_link(children, opts)
   end
 
