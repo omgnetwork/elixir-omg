@@ -30,6 +30,19 @@ config :omg_watcher, :phoenix_swagger,
     "priv/static/swagger.json" => [router: OMG.Watcher.Web.Router]
   }
 
+# Sentry configuration for exception handling
+config :sentry,
+  dsn: {:system, "SENTRY_DSN"},
+  environment_name: Mix.env(),
+  enable_source_code_context: true,
+  root_source_code_path: File.cwd!(),
+  tags: %{
+    env: Mix.env(),
+    application: Mix.Project.config()[:app]
+  },
+  server_name: elem(:inet.gethostname(), 1),
+  included_environments: [:prod, :dev]
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"
