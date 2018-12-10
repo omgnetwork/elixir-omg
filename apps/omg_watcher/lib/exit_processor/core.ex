@@ -60,7 +60,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Add new exits from Ethereum events into tracked state.
 
   The list of `exit_contract_statuses` is used to track current (as in wall-clock "now", not syncing "now") status.
-  This is to prevent spurrious invalid exit events being fired during syncing for exits that were challenged/finalized
+  This is to prevent spurious invalid exit events being fired during syncing for exits that were challenged/finalized
   Still we do want to track these exits when syncing, to have them spend from `OMG.API.State` on their finalization
   """
   @spec new_exits(t(), list(map()), list(map)) :: {t(), list()} | {:error, :unexpected_events}
