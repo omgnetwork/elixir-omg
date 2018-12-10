@@ -33,8 +33,6 @@ defmodule OMG.API.State.Transaction.Signed do
 
   def signed_hash(%__MODULE__{raw_tx: tx, sigs: sigs}) do
     tx_hash = Transaction.hash(tx)
-    hash_with_sigs = Enum.reduce(sigs, tx_hash, fn sig, hash -> hash <> sig end)
-    Crypto.hash(hash_with_sigs)
   end
 
   def encode(%__MODULE__{

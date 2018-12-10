@@ -54,21 +54,18 @@ defmodule OMG.API.Block do
     {bytes, hash}
   end
 
+  @default_leaf <<0>> |> List.duplicate(32) |> Enum.join() |> Crypto.hash()
   @doc """
   Creates a Merkle proof that transaction under a given transaction index is included in block consisting of hashed transactions
   """
   @spec create_tx_proof(list(binary()), non_neg_integer()) :: binary()
   def create_tx_proof(hashed_txs, txindex) do
-    {:ok, mt} = MerkleTree.new(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height, false)
-    proof = MerkleTree.Proof.prove(mt, txindex)
-
-    proof.hashes
-    |> Enum.reverse()
-    |> Enum.reduce(fn x, acc -> acc <> x end)
+    merkle_tree =
+      MerkleTree.new(hashed_txs, &Crypto.hash(&1 <> &2), @transaction_merkle_tree_height, @default_leaf)
+      |> MerkleTree.proof(txindex)
+      |> Enum.reduce(fn x, acc -> acc <> x end)
   end
 
-  defp merkle_hash(hashed_txs) do
-    {:ok, root} = MerkleTree.build(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height, false)
-    root.value
-  end
+  defp merkle_hash(hashed_txs),
+    do: MerkleTree.new(hashed_txs, &Crypto.hash(&1 <> &2), @transaction_merkle_tree_height, @default_leaf).root.value
 end

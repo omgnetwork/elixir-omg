@@ -59,14 +59,14 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   test "creates a challenge for an exit; provides utxo position of non-zero amount", %{transactions: transactions} do
     challenging_tx = transactions |> Enum.at(0)
     expected_cutxopos = Utxo.position(2, 0, 0) |> Utxo.Position.encode()
-    assert %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
+    assert %{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
 
     challenging_tx = transactions |> Enum.at(1)
     expected_cutxopos = Utxo.position(2, 1, 1) |> Utxo.Position.encode()
-    assert %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
+    assert %{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
 
     challenging_tx = transactions |> Enum.at(2)
     expected_cutxopos = Utxo.position(2, 2, 0) |> Utxo.Position.encode()
-    assert %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
+    assert %{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
   end
 end

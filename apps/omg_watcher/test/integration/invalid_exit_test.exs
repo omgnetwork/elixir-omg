@@ -57,19 +57,19 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "sigs" => sigs,
-      "utxo_pos" => utxo_pos
+      "utxo_pos" => outputId #TODO change to correct name!!!! outputId
     } = IntegrationTest.get_exit_data(deposit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.start_exit(
-        utxo_pos,
+        outputId,
         txbytes,
         proof,
         sigs,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
-
+    {:ok, utxo_pos} = Eth.RootChain.get_standard_exit_id(outputId)
     invalid_exit_event =
       Client.encode(%Event.InvalidExit{
         amount: 10,
@@ -78,26 +78,27 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         utxo_pos: utxo_pos,
         eth_height: eth_height
       })
-
-    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
-    assert_push("invalid_exit", ^invalid_exit_event, exit_processor_validation + 1_000)
+    IO.inspect(invalid_exit_event, label: "expect")
+    exit_processor_validation = 
+Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
+    assert_push("invalid_exit", ^invalid_exit_event, exit_processor_validation + 5_000)
 
     # after the notification has been received, a challenged is composed and sent
     challenge = get_exit_challenge(deposit_blknum, 0, 0)
     assert {:ok, {alice.addr, @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
-
+    IO.puts("#{inspect outputId} == #{inspect challenge["outputId"]}")
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.challenge_exit(
-        challenge["cutxopos"],
-        challenge["eutxoindex"],
+        challenge["outputId"],
         challenge["txbytes"],
-        challenge["proof"],
-        challenge["sigs"],
+        challenge["inputIndex"],
+        challenge["sig"],
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    assert {:ok, {API.Crypto.zero_address(), @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
+    #TODO komentarz po dobrym dobrym challengu są zwracane same zera!!
+    assert {:ok, {API.Crypto.zero_address(), @eth, 0}} == Eth.RootChain.get_exit(utxo_pos)
 
     Process.sleep(5_000)
 
@@ -123,10 +124,9 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
   defp get_exit_challenge(blknum, txindex, oindex) do
     utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
+assert %{"result" => "success", "data" => data} = Test.rest_call(:get, "utxo/#{utxo_pos}/challenge_data")
 
-    assert %{"result" => "success", "data" => data} = Test.rest_call(:get, "utxo/#{utxo_pos}/challenge_data")
-
-    Response.decode16(data, ["txbytes", "proof", "sigs"])
+    Response.decode16(data, ["txbytes", "sig"])
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]

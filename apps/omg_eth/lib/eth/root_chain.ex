@@ -49,23 +49,8 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  def start_deposit_exit(deposit_positon, token, value, from, contract \\ nil, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, 1_000_000)
-    opts = defaults |> Keyword.merge(opts)
-
-    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-
-    Eth.contract_transact(
-      from,
-      contract,
-      "startDepositExit(uint256,address,uint256)",
-      [deposit_positon, token, value],
-      opts
-    )
-  end
-
-  def start_exit(utxo_position, txbytes, proof, sigs, from, contract \\ nil, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, 1_000_000)
+  def start_exit(outputId, txbytes, proof, from, contract \\ nil, opts \\ []) do
+    defaults = @tx_defaults |> Keyword.put(:gas, 1_000_000) |> Keyword.put(:value, 31_415_926_535)
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
@@ -74,7 +59,7 @@ defmodule OMG.Eth.RootChain do
       from,
       contract,
       "startStandardExit(uint192,bytes,bytes)",
-      [utxo_position, txbytes, proof],
+      [outputId, txbytes, proof],
       opts
     )
   end
@@ -108,12 +93,12 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from_hex(from), contract, "addToken(address)", [token], opts)
   end
 
-  def challenge_exit(cutxopo, eutxoindex, txbytes, proof, sigs, from, contract \\ nil, opts \\ []) do
-    opts = @tx_defaults |> Keyword.merge(opts)
+  def challenge_exit(outputId, challengeTx, inputIndex, challengeTxSig, from, contract \\ nil, opts \\ []) do
+    opts = @tx_defaults |> Keyword.merge(opts) #|> Keyword.put(:value, 31_415_926_535)
 
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    signature = "challengeExit(uint256,uint256,bytes,bytes,bytes)"
-    args = [cutxopo, eutxoindex, txbytes, proof, sigs]
+    signature = "challengeStandardExit(uint192,bytes,uint256,bytes)"
+    args = [outputId, challengeTx, inputIndex, challengeTxSig]
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
@@ -169,7 +154,12 @@ defmodule OMG.Eth.RootChain do
   """
   def get_exit(utxo_pos, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    Eth.call_contract(contract, "getExit(uint256)", [utxo_pos], [:address, :address, {:uint, 256}])
+    Eth.call_contract(contract, "exits(uint192)", [utxo_pos], [:address, :address, {:uint, 256}])
+  end
+
+  def get_standard_exit_id(outputId, contract \\ nil) do
+    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
+    Eth.call_contract(contract, "getStandardExitId(uint256)", [outputId], [{:uint, 256}])
   end
 
   def get_child_chain(blknum, contract \\ nil) do
@@ -213,10 +203,16 @@ defmodule OMG.Eth.RootChain do
   """
   def get_exits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    signature = "ExitStarted(address,uint256,address,uint256)"
-
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
-         do: {:ok, Enum.map(logs, &decode_exit_started/1)}
+    signature = "ExitStarted(address,uint256,uint256,address)"
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract) do
+       exit_started = Enum.map(logs, &decode_exit_started/1)
+       second = Enum.map(exit_started, 
+            fn %{outputId: outputId} = exit -> 
+               {:ok, utxo_pos} = get_standard_exit_id(outputId)
+               exit |> Map.delete(:outputId) |> Map.put(:utxo_pos, outputId)
+            end)
+       {:ok, second} 
+    end 
   end
 
   @doc """
@@ -255,10 +251,10 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_exit_started(log) do
-    non_indexed_keys = [:currency, :amount]
-    non_indexed_key_types = [:address, {:uint, 256}]
-    indexed_keys = [:owner, :utxo_pos]
-    indexed_keys_types = [:address, {:uint, 256}]
+    non_indexed_keys = [:outputId, :amount, :currency]
+    non_indexed_key_types = [{:uint, 256}, {:uint, 256}, :address]
+    indexed_keys = [:owner]
+    indexed_keys_types = [:address]
 
     Eth.parse_events_with_indexed_fields(
       log,

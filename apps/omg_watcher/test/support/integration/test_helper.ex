@@ -28,8 +28,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   def get_exit_data(blknum, txindex, oindex) do
     utxo_pos = Utxo.Position.encode({:utxo_position, blknum, txindex, oindex})
 
-    %{"result" => "success", "data" => data} = rest_call(:get, "utxo/#{utxo_pos}/exit_data")
-
+    %{"result" => "success", "data" => data} = ret = rest_call(:get, "utxo/#{utxo_pos}/exit_data")
     OMG.Watcher.Web.Serializer.Response.decode16(data, ["txbytes", "proof", "sigs"])
   end
 
@@ -60,6 +59,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
 
   defp wait_for_block(block_nr) do
     # TODO query to State used in tests instead of an event system, remove when event system is here
+IO.puts(block_nr)
     fn ->
       if State.get_status() |> elem(0) <= block_nr,
         do: :repeat,

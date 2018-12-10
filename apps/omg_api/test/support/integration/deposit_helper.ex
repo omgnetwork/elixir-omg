@@ -18,6 +18,7 @@ defmodule OMG.API.Integration.DepositHelper do
   """
 
   alias OMG.API.Crypto
+  alias OMG.API.State.Transaction
   alias OMG.Eth
 
   @eth Crypto.zero_address()
@@ -25,7 +26,11 @@ defmodule OMG.API.Integration.DepositHelper do
   def deposit_to_child_chain(to, value, token \\ @eth)
 
   def deposit_to_child_chain(to, value, @eth) do
-    {:ok, receipt} = deposit_tx(to, @eth, value) |> Eth.RootChain.deposit(value, to) |> Eth.DevHelpers.transact_sync!()
+    {:ok, receipt} =
+      Transaction.new([], [{to, @eth, value}])
+      |> Transaction.encode()
+      |> Eth.RootChain.deposit(value, to)
+      |> Eth.DevHelpers.transact_sync!()
 
     process_deposit(receipt)
   end
@@ -37,18 +42,12 @@ defmodule OMG.API.Integration.DepositHelper do
     to |> Eth.Token.approve(contract_addr, value, token_addr) |> Eth.DevHelpers.transact_sync!()
 
     {:ok, receipt} =
-      deposit_tx(to, token_addr, value) |> Eth.RootChain.deposit_from(to) |> Eth.DevHelpers.transact_sync!()
+      Transaction.new([], [{to, token_addr, value}])
+      |> Transaction.encode()
+      |> Eth.RootChain.deposit_from(to)
+      |> Eth.DevHelpers.transact_sync!()
 
     process_deposit(receipt)
-  end
-
-  # TODO: we should use something like `OMG.API.Transaction.new` here, but that's unavailable until 4in/4out are merged
-  defp deposit_tx(to, token, value) do
-    zero_in = [0, 0, 0]
-    zero_out = [<<0::160>>, <<0::160>>, 0]
-
-    [List.duplicate(zero_in, 4), [[to, token, value]] ++ List.duplicate(zero_out, 3)]
-    |> ExRLP.encode()
   end
 
   defp process_deposit(%{"blockNumber" => deposit_eth_height} = receipt) do

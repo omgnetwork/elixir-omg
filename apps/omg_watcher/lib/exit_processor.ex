@@ -82,6 +82,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   def handle_call({:new_exits, exits}, _from, state) do
+    Logger.error(inspect exits)
     exit_contract_statuses =
       Enum.map(exits, fn %{utxo_pos: utxo_pos} ->
         {:ok, result} = Eth.RootChain.get_exit(utxo_pos)
@@ -119,9 +120,9 @@ defmodule OMG.Watcher.ExitProcessor do
 
   defp check_validity(state) do
     {event_triggers, chain_status} = determine_invalid_exits(state)
-
+    IO.inspect(event_triggers, label: "send")
     EventerAPI.emit_events(event_triggers)
-
+    IO.inspect("**************")
     chain_status
   end
 

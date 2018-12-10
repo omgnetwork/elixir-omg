@@ -29,46 +29,23 @@ defmodule OMG.Watcher.Challenger.Core do
   which is UTXO being challenged.
   More: [contract's challengeExit](https://github.com/omisego/plasma-contracts/blob/22936d561a036d49aa6a215531e70c5779df058f/contracts/RootChain.sol#L244)
   """
-  @spec create_challenge(%DB.Transaction{}, list(%DB.Transaction{})) :: Challenge.t()
-  def create_challenge(challenging_tx, txs) do
-    # eUtxoIndex - The output position of the exiting utxo.
-    eutxoindex = get_eutxo_index(challenging_tx)
-    # cUtxoPos - The position of the challenging utxo.
-    cutxopos = challenging_utxo_pos(challenging_tx)
-
-    txs_hashes =
-      txs
-      |> Enum.sort_by(& &1.txindex)
-      |> Enum.map(& &1.txhash)
-
-    proof = Block.create_tx_proof(txs_hashes, challenging_tx.txindex)
-
+  @spec create_challenge(%DB.Transaction{}, Utxo.Position.t()) :: Challenge.t()
+  def create_challenge(challenging_tx, utxo_exit) do
     {:ok,
      %Transaction.Signed{
        raw_tx: raw_tx,
        sigs: sigs
      }} = Transaction.Signed.decode(challenging_tx.txbytes)
 
-    sigs = Enum.join(sigs)
+    [sig, _]  = sigs
 
-    Challenge.create(
-      cutxopos,
-      eutxoindex,
-      Transaction.encode(raw_tx),
-      proof,
-      sigs
-    )
-  end
-
-  defp challenging_utxo_pos(%DB.Transaction{
-         outputs: outputs,
-         blknum: blknum,
-         txindex: txindex
-       }) do
-    non_zero_output = outputs |> Enum.find(&(&1.amount > 0))
-
-    Utxo.position(blknum, txindex, non_zero_output.oindex)
-    |> Utxo.Position.encode()
+    %Challenge{
+      outputId: Utxo.Position.encode(utxo_exit), 
+    # eUtxoIndex - The output position of the exiting utxo.
+      inputIndex: get_eutxo_index(challenging_tx),
+      txbytes: Transaction.encode(raw_tx),
+      sig: sig 
+    }
   end
 
   # here: challenging_tx is prepared to contain just utxo_exit input only,

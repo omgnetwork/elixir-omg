@@ -171,17 +171,18 @@ defmodule OMG.API.State.Transaction do
 
   def encode(%__MODULE__{inputs: [input1, input2], outputs: [output1, output2]}) do
     [
-      input1.blknum,
-      input1.txindex,
-      input1.oindex,
-      input2.blknum,
-      input2.txindex,
-      input2.oindex,
-      output1.currency,
-      output1.owner,
-      output1.amount,
-      output2.owner,
-      output2.amount
+      [
+        [input1.blknum, input1.txindex, input1.oindex],
+        [input2.blknum, input2.txindex, input2.oindex],
+        [0,0,0],
+        [0,0,0]
+      ],
+      [
+        [output1.owner, output1.currency, output1.amount],
+        [output2.owner, output1.currency, output2.amount],
+        [@zero_address,@zero_address,0],
+        [@zero_address,@zero_address,0]
+      ]
     ]
     |> ExRLP.encode()
   end
