@@ -24,14 +24,11 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
     @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]
     test "status endpoint returns expected response format" do
       assert %{
-               "result" => "success",
-               "data" => %{
-                 "last_validated_child_block_number" => last_validated_child_block_number,
-                 "last_mined_child_block_number" => last_mined_child_block_number,
-                 "last_mined_child_block_timestamp" => last_mined_child_block_timestamp,
-                 "eth_syncing" => eth_syncing
-               }
-             } = TestHelper.rest_call(:post, "/status.get")
+               "last_validated_child_block_number" => last_validated_child_block_number,
+               "last_mined_child_block_number" => last_mined_child_block_number,
+               "last_mined_child_block_timestamp" => last_mined_child_block_timestamp,
+               "eth_syncing" => eth_syncing
+             } = TestHelper.success?("/status.get")
 
       assert is_integer(last_validated_child_block_number)
       assert is_integer(last_mined_child_block_number)
@@ -46,10 +43,7 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
 
       {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
 
-      assert %{
-               "result" => "error",
-               "data" => %{"code" => "internal_server_error", "description" => "econnrefused"}
-             } = TestHelper.rest_call(:post, "/status.get", nil, 500)
+      assert %{"code" => "internal_server_error", "description" => "econnrefused"} = TestHelper.error?("/status.get")
 
       started_apps |> Enum.each(fn app -> :ok = Application.stop(app) end)
     end

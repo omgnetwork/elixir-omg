@@ -31,10 +31,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
     @tag fixtures: [:initial_blocks, :alice, :bob]
     test "Account balance groups account tokens and provide sum of available funds",
          %{alice: alice, bob: bob} do
-      assert %{
-               "result" => "success",
-               "data" => [%{"currency" => @eth_hex, "amount" => 349}]
-             } == TestHelper.rest_call(:post, "/account.get_balance", body_for(bob), 200)
+      assert [%{"currency" => @eth_hex, "amount" => 349}] == TestHelper.success?("/account.get_balance", body_for(bob))
 
       # adds other token funds for alice to make more interesting
       DB.Transaction.update_with(%{
@@ -47,10 +44,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
         eth_height: 10
       })
 
-      %{
-        "result" => "success",
-        "data" => data
-      } = TestHelper.rest_call(:post, "/account.get_balance", body_for(alice), 200)
+      data = TestHelper.success?("/account.get_balance", body_for(alice))
 
       assert [
                %{"currency" => @eth_hex, "amount" => 201},
@@ -62,8 +56,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
     test "Account balance for non-existing account responds with empty array" do
       no_account = %{addr: <<0::160>>}
 
-      assert %{"result" => "success", "data" => []} ==
-               TestHelper.rest_call(:post, "/account.get_balance", body_for(no_account), 200)
+      assert [] == TestHelper.success?("/account.get_balance", body_for(no_account))
     end
   end
 

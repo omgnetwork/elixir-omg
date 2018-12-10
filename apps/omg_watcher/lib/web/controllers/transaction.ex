@@ -20,8 +20,8 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
-  alias OMG.API.Crypto
   alias OMG.API.State
+  alias OMG.Watcher.API.Transaction
   alias OMG.Watcher.DB
   alias OMG.Watcher.Web.View
 
@@ -29,14 +29,18 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
 
   @default_transactions_limit 200
 
+  action_fallback(OMG.Watcher.Web.Controller.Fallback)
+
   @doc """
   Retrieves a specific transaction by id.
   """
-  def get_transaction(conn, %{"id" => id}) do
-    id
-    |> Base.decode16!()
-    |> DB.Transaction.get(true)
-    |> respond(conn)
+  def get_transaction(conn, params) do
+    with {:ok, id} <- Map.fetch(params, "id"),
+         id <- Base.decode16!(id) do
+      id
+      |> Transaction.get()
+      |> respond(conn)
+    end
   end
 
   @doc """
@@ -46,17 +50,9 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     address = Map.get(params, "address")
     limit = Map.get(params, "limit", @default_transactions_limit)
     {limit, ""} = limit |> Kernel.to_string() |> Integer.parse()
-
     # TODO: implement pagination. Defend against fetching huge dataset.
     limit = min(limit, @default_transactions_limit)
-
-    transactions =
-      if address == nil do
-        DB.Transaction.get_last(limit)
-      else
-        {:ok, address_decode} = Crypto.decode_address(address)
-        DB.Transaction.get_by_address(address_decode, limit)
-      end
+    transactions = Transaction.get_transactions(address, limit)
 
     respond_multiple(transactions, conn)
   end
@@ -68,9 +64,9 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   The endpoint responds with transaction bytes that wallet uses to sign with user's keys. Then signed transaction
   is submitted directly to plasma chain.
   """
-  def encode_transaction(conn, body) do
-    with {:ok, {inputs, outputs}} <- parse_request_body(body),
-         {:ok, transaction} <- State.Transaction.create_from_utxos(inputs, outputs) do
+  def transaction_encode(conn, params) do
+    with {:ok, {inputs, outputs}} <- parse_params(params),
+         {:ok, transaction} <- Transaction.create_from_utxos(inputs, outputs) do
       transaction
     end
     |> respond(conn)
@@ -89,7 +85,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
 
   defp respond({:error, code}, conn) when is_atom(code), do: handle_error(conn, code)
 
-  defp parse_request_body(%{"inputs" => inputs, "outputs" => outputs}) when is_list(inputs) and is_list(outputs) do
+  defp parse_params(%{"inputs" => inputs, "outputs" => outputs}) when is_list(inputs) and is_list(outputs) do
     if Enum.count(inputs) < 1 do
       {:error, :at_least_one_input_required}
     else

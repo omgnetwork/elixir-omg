@@ -19,26 +19,27 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   """
   use OMG.Watcher.Web, :controller
 
-  alias OMG.API.Crypto
-  alias OMG.API.Utxo
-  alias OMG.Watcher.DB
+  alias OMG.Watcher.API.Utxo
   alias OMG.Watcher.Web.View
 
   use PhoenixSwagger
   import OMG.Watcher.Web.ErrorHandler
 
-  def get_utxos(conn, %{"address" => address}) do
-    {:ok, address_decode} = Crypto.decode_address(address)
-    utxos = DB.TxOutput.get_utxos(address_decode)
+  action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
-    render(conn, View.Utxo, :utxos, utxos: utxos)
+  def get_utxos(conn, params) do
+    with {:ok, address} <- Map.fetch(params, "address") do
+      utxos = Utxo.get_utxos(address)
+
+      render(conn, View.Utxo, :utxos, utxos: utxos)
+    end
   end
 
   def get_utxo_exit(conn, params) do
-    {:ok, utxo_pos} = Map.fetch(params, "utxo_pos")
-    utxo = Utxo.Position.decode(utxo_pos)
-    utxo_exit = DB.TxOutput.compose_utxo_exit(utxo)
-    respond(utxo_exit, conn)
+    with {:ok, utxo_pos} <- Map.fetch(params, "utxo_pos") do
+      utxo_exit = Utxo.compose_utxo_exit(utxo_pos)
+      respond(utxo_exit, conn)
+    end
   end
 
   defp respond({:ok, utxo_exit}, conn) do

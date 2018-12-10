@@ -29,7 +29,7 @@ defmodule OMG.Watcher.Web.Router do
     post("/account.get_balance", Controller.Account, :get_balance)
 
     post("/transaction.all", Controller.Transaction, :get_transactions)
-    post("/transaction.encode", Controller.Transaction, :encode_transaction)
+    post("/transaction.encode", Controller.Transaction, :transaction_encode)
     post("/transaction.get", Controller.Transaction, :get_transaction)
 
     post("/utxo.get", Controller.Utxo, :get_utxos)

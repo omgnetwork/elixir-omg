@@ -32,8 +32,26 @@ defmodule OMG.Watcher.TestHelper do
     end
   end
 
-  def rest_call(method, path, params_or_body \\ nil, expected_resp_status \\ 200) do
-    request = conn(method, path, params_or_body)
+  def success?(path, params_or_body \\ nil) do
+    response_body = rpc_call(path, params_or_body, 200)
+    %{"version" => "1.0", "success" => true, "data" => data} = response_body
+    data
+  end
+
+  def no_success?(path, params_or_body \\ nil) do
+    response_body = rpc_call(path, params_or_body, 200)
+    %{"version" => "1.0", "success" => false, "data" => data} = response_body
+    data
+  end
+
+  def server_error?(path, params_or_body \\ nil) do
+    response_body = rpc_call(path, params_or_body, 500)
+    %{"version" => "1.0", "success" => true, "data" => data} = response_body
+    data
+  end
+
+  def rpc_call(path, params_or_body \\ nil, expected_resp_status \\ 200) do
+    request = conn(:post, path, params_or_body)
     response = request |> send_request
     assert response.status == expected_resp_status
     Poison.decode!(response.resp_body)

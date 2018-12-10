@@ -12,24 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.RPC.Web.Controller.Fallback do
+defmodule OMG.Watcher.API.Utxo do
   @moduledoc """
-  The fallback handler.
+  Module provides operations related to plasma accounts.
   """
 
-  use Phoenix.Controller
+  alias OMG.API.Crypto
+  alias OMG.API.Utxo
+  alias OMG.Watcher.Challenger
+  alias OMG.Watcher.DB
 
-  alias OMG.RPC.Web.Serializers
+  def get_utxos(address) do
+    with {:ok, decoded_address} <- Crypto.decode_address(address) do
+      DB.TxOutput.get_utxos(decoded_address)
+    end
+  end
 
-  def call(conn, :error), do: call(conn, {:error, :unknown_error})
+  def compose_utxo_exit(utxo_pos) do
+    utxo = Utxo.Position.decode(utxo_pos)
+    DB.TxOutput.compose_utxo_exit(utxo)
+  end
 
-  def call(conn, {:error, reason}) do
-    data = %{
-      object: :error,
-      code: "#{action_name(conn)}#{inspect(reason)}",
-      description: nil
-    }
-
-    json(conn, Serializers.Response.serialize(data, :error))
+  def create_challenge(utxo_pos) do
+    utxo_pos = Utxo.Position.decode(utxo_pos)
+    Challenger.create_challenge(utxo_pos)
   end
 end

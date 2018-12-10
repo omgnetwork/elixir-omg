@@ -27,7 +27,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.RPC.Client
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.Watcher.TestHelper, as: Test
   alias OMG.Watcher.Web.Channel
   alias OMG.Watcher.Web.Serializer.Response
 
@@ -84,7 +83,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     assert_push("invalid_exit", ^invalid_exit_event, exit_processor_validation + 1_000)
 
     # after the notification has been received, a challenged is composed and sent
-    challenge = OMG.Watcher.Integration.TestHelper.get_exit_challenge(deposit_blknum, 0, 0)
+    challenge = IntegrationTest.get_exit_challenge(deposit_blknum, 0, 0)
     assert {:ok, {alice.addr, @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
 
     {:ok, %{"status" => "0x1"}} =

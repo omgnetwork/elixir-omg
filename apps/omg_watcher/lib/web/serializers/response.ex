@@ -22,12 +22,17 @@ defmodule OMG.Watcher.Web.Serializer.Response do
   @doc """
   Append result of operation to the response data forming standard api response structure
   """
-  @spec serialize(any(), response_result_t()) :: %{result: response_result_t(), data: map()}
+  @spec serialize(any(), response_result_t()) :: %{version: binary(), success: boolean(), data: map()}
   def serialize(data, result)
   def serialize(data, :success), do: data |> clean_artifacts() |> to_response(:success)
   def serialize(data, :error), do: data |> to_response(:error)
 
-  defp to_response(data, result), do: %{result: result, data: data}
+  defp to_response(data, result),
+    do: %{
+      version: "1.0",
+      success: result == :success,
+      data: data
+    }
 
   @doc """
   Removes or encodes fields in response that cannot be serialized to api response.

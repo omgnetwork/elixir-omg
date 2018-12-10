@@ -12,24 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.RPC.Web.Controller.Fallback do
+defmodule OMG.Watcher.API.Account do
   @moduledoc """
-  The fallback handler.
+  Module provides operations related to plasma accounts.
   """
 
-  use Phoenix.Controller
+  alias OMG.API.Crypto
+  alias OMG.Watcher.DB
 
-  alias OMG.RPC.Web.Serializers
-
-  def call(conn, :error), do: call(conn, {:error, :unknown_error})
-
-  def call(conn, {:error, reason}) do
-    data = %{
-      object: :error,
-      code: "#{action_name(conn)}#{inspect(reason)}",
-      description: nil
-    }
-
-    json(conn, Serializers.Response.serialize(data, :error))
+  @doc """
+  Gets plasma account balance
+  """
+  def get_balance(address) do
+    with {:ok, decoded_address} <- Crypto.decode_address(address) do
+      DB.TxOutput.get_balance(decoded_address)
+    end
   end
 end

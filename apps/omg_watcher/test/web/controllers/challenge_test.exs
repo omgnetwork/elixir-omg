@@ -44,15 +44,12 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
     utxo_pos = Utxo.position(1, 0, 0) |> Utxo.Position.encode()
 
     %{
-      "data" => %{
-        "cutxopos" => _cutxopos,
-        "eutxoindex" => _eutxoindex,
-        "proof" => _proof,
-        "sigs" => _sigs,
-        "txbytes" => _txbytes
-      },
-      "result" => "success"
-    } = TestHelper.rest_call(:post, "utxo.get_challenge_data", %{"utxo_pos" => utxo_pos})
+      "cutxopos" => _cutxopos,
+      "eutxoindex" => _eutxoindex,
+      "proof" => _proof,
+      "sigs" => _sigs,
+      "txbytes" => _txbytes
+    } = TestHelper.success?("utxo.get_challenge_data", %{"utxo_pos" => utxo_pos})
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox]
@@ -60,11 +57,8 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
     utxo_pos = Utxo.position(1, 1, 0) |> Utxo.Position.encode()
 
     %{
-      "data" => %{
-        "code" => "challenge:invalid",
-        "description" => "The challenge of particular exit is invalid because provided utxo is not spent"
-      },
-      "result" => "error"
-    } = TestHelper.rest_call(:post, "utxo.get_challenge_data", %{"utxo_pos" => utxo_pos}, 200)
+      "code" => "challenge:invalid",
+      "description" => "The challenge of particular exit is invalid because provided utxo is not spent"
+    } = TestHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => utxo_pos})
   end
 end
