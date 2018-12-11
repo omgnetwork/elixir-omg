@@ -25,8 +25,6 @@ defmodule OMG.Eth.RootChain do
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
-  @deposit_created_signature "DepositCreated(address,uint256,address,uint256)"
-
   @type optional_addr_t() :: <<_::160>> | nil
 
   @gas_start_exit 1_000_000
@@ -202,7 +200,7 @@ defmodule OMG.Eth.RootChain do
   def get_deposits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
 
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, @deposit_created_signature, contract),
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, "DepositCreated(address,uint256,address,uint256)", contract),
          do: {:ok, Enum.map(logs, &decode_deposit/1)}
   end
 
@@ -228,6 +226,9 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_exit_started/1)}
   end
 
+  @doc """
+  Returns InFlightExit from a range of blocks.
+  """
   def get_in_flight_exits_started(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "InFlightExitStarted(address,bytes32)"
@@ -371,7 +372,7 @@ defmodule OMG.Eth.RootChain do
 
   def deposit_blknum_from_receipt(%{"logs" => logs}) do
     topic =
-      @deposit_created_signature
+      "DepositCreated(address,uint256,address,uint256)"
       |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
       |> to_hex()
 
