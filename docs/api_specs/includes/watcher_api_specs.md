@@ -246,7 +246,17 @@ curl -X POST http://localhost:4000/status
 }
 ```
 
-Gets plasma network and Watcher status
+Returns information about the current state of the child chain and the watcher.
+
+<aside class="warning">
+The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity. 
+The user must call the `/status` endpoint periodically to check. Any situation that requires the user to either exit or challenge an invalid exit will be included in the `byzantine_events` field.
+</aside>
+
+<aside class="notice">
+Note that `inflight_txs` will be implemented in a later version.
+</aside>
+
 
 ### HTTP Request
 
@@ -255,11 +265,6 @@ Gets plasma network and Watcher status
 ### Request Body
 
 No parameters are required.
-
-<aside class="warning">
-The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity. 
-The user must call the `/status` endpoint periodically to check. Any situation that requires the user to either exit or challenge an invalid exit will be included in the `byzantine_events` field.
-</aside>
 
 ### Byzantine events
 All of the following events indicate byzantine behaviour and that the user should either exit or challenge.
@@ -381,8 +386,13 @@ txbytes | Hex encoded string | The in-flight transaction that the event relates 
     "event": "piggyback_available",
     "details": {
         "txbytes": "F3170101C0940000...",
-        "available_outputs" : [0, 1],
-        "available_inputs" : [0, 1]
+        "available_outputs" : [
+            {"index": 0, "address": "0x7890..."},
+            {"index": 1, "address": "0x1234..."},
+        ],
+        "available_inputs" : [
+            {"index": 0, "address": "0x1234..."}
+        ],
     }
 }
 ```
@@ -394,8 +404,8 @@ Event details:
 Attribute | Type | Description
 --------- | ------- | -----------
 txbytes | Hex encoded string | The in-flight transaction that the event relates to
-available_outputs | Integer array | The outputs available to be piggybacked
-available_inputs | Integer array | The inputs available to be piggybacked
+available_outputs | Object array | The outputs (index and address) available to be piggybacked
+available_inputs | Object array | The inputs (index and address) available to be piggybacked
 
 #### `invalid_piggyback`
 > A invalid_piggyback event
