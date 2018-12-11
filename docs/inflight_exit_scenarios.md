@@ -78,7 +78,59 @@ RootChain.startInFlightExit(
 )
 ```
 
-#### 3. Piggyback his output
+#### 3. Check status again 
+```json
+{
+    "version": "1",
+    "success": true,
+    "data": {
+        "last_validated_child_block_number": 10000,
+        "last_mined_child_block_timestamp": 1535031020,
+        "last_mined_child_block_number": 11000,
+        "eth_syncing": true,
+        "byzantine_events": [
+            {
+                "event": "block_withholding",
+                "details": {
+                    "blockhash"  : "DB32876CC6F...",
+                    "blocknum"  : 10000,
+                }
+            },
+            {
+                "event": "piggyback_available",
+                "details": {
+                    "txbytes": "F3170101C0940000...",
+                    "available_outputs" : [0, 1]
+                }
+            },
+        ],
+        "inflight_txs": [
+            {
+                "txhash": "230C450180808080...",
+                "txbytes": "F3170101C0940000...",
+                "input_addresses": [
+                    "0x1234..."
+                ],
+                "output_addresses": [
+                    "0x7890...",
+                    "0x1234..."
+                ],
+            }
+        ],
+        "inflight_exits": [
+            {
+                "txhash": "230C450180808080...",
+                "txbytes": "F3170101C0940000...",
+                "eth_height" : 615441,
+            }
+        ]
+    }
+}
+ ```
+
+ Bob sees that his in-flight exit is in progress and he can now piggyback his ouput.
+
+#### 4. Piggyback his output
 The second argument is `4` because he is piggybacking the first output.
 ```
 RootChain.piggybackInFlightExit(
@@ -137,7 +189,7 @@ When Alice calls `watcher/status` she gets this response:
             {
                 "txhash": "230C450180808080...",
                 "txbytes": "F3170101C0940000...",
-                "timestamp" : 1544193137,
+                "eth_height" : 615441,
                 "piggybacked_outputs" : [0]
             }
         ]
@@ -207,7 +259,7 @@ Request `watcher/status`:
             {
                 "txhash": "230C450180808080...",
                 "txbytes": "F3170101C0940000...",
-                "timestamp" : 1544193137,
+                "eth_height" : 615441,
                 "piggybacked_inputs" : [0],
                 "piggybacked_outputs" : [0, 1],
             }
@@ -335,9 +387,9 @@ response:
     "version": "1",
     "success": true,
     "data": {
-        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_txbytes": "F3170101C0940000...",
         "inflight_input_index": 1,
-        "spending_txbytes": "F317010180808080940000...",
+        "spending_txbytes": "F847010180808080940000...",
         "spending_input_index": 1,
         "spending_sig": "9A23010180808080940000..."
     }
@@ -386,10 +438,10 @@ response:
     "version": "1",
     "success": true,
     "data": {
-        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_txbytes": "F3170101C0940000...",
         "inflight_output_pos": 21000634002,
-        "inflight_proof": "F847010180808080940000...",
-        "spending_txbytes": "F317010180808080940000...",
+        "inflight_proof": "03F451067A805540000...",
+        "spending_txbytes": "F847010180808080940000...",
         "spending_input_index": 1,
         "spending_sig": "9A23010180808080940000..."
     }

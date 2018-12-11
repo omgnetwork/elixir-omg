@@ -212,7 +212,7 @@ curl -X POST http://localhost:4000/status
             {
                 "event": "invalid_exit",
                 "details": {
-                    "eth_height"  : 100,
+                    "eth_height"  : 615440,
                     "utxo_pos"  : 10001001,
                     "owner"  : "B3256026863EB6AE5B06FA396AB09069784EA8EA",
                     "currency"  : "0000000000000000000000000000000000000000",
@@ -237,7 +237,7 @@ curl -X POST http://localhost:4000/status
             {
                 "txhash": "230C450180808080...",
                 "txbytes": "F3170101C0940000...",
-                "timestamp" : 1544193137,
+                "eth_height" : 615441,
                 "piggybacked_inputs" : [1],
                 "piggybacked_outputs" : [0, 1]
             }
@@ -581,9 +581,9 @@ curl http://localhost:4000/inflight_exit.get_input_challenge_data -d '{"txbytes"
     "version": "1",
     "success": true,
     "data": {
-        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_txbytes": "F3170101C0940000...",
         "inflight_input_index": 1,
-        "spending_txbytes": "F317010180808080940000...",
+        "spending_txbytes": "F847010180808080940000...",
         "spending_input_index": 1,
         "spending_sig": "9A23010180808080940000..."
     }
@@ -626,10 +626,10 @@ curl http://localhost:4000/inflight_exit.get_output_challenge_data -d '{"txbytes
     "version": "1",
     "success": true,
     "data": {
-        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_txbytes": "F3170101C0940000...",
         "inflight_output_pos": 21000634002,
-        "inflight_proof": "F847010180808080940000...",
-        "spending_txbytes": "F317010180808080940000...",
+        "inflight_proof": "03F451067A805540000...",
+        "spending_txbytes": "F847010180808080940000...",
         "spending_input_index": 1,
         "spending_sig": "9A23010180808080940000..."
     }
