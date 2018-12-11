@@ -23,8 +23,8 @@ defmodule OMG.Watcher.Web.Controller.FallbackTest do
     test "fallback returns error for non existing endpoint" do
       %{
         "code" => "not_found",
-        "description" => "Method not found"
-      } = TestHelper.server_error?("/non_exsisting_endpoint")
+        "description" => "Action not found"
+      } = TestHelper.no_success?("/non_exsisting_endpoint")
     end
   end
 end

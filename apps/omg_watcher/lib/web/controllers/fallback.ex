@@ -21,6 +21,16 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
 
   alias OMG.RPC.Web.Serializers
 
+  def call(conn, :not_found) do
+    data = %{
+      object: :error,
+      code: "not_found",
+      description: "Action not found"
+    }
+
+    json(conn, Serializers.Response.serialize(data, :error))
+  end
+
   def call(conn, :error), do: call(conn, {:error, :unknown_error})
 
   def call(conn, {:error, reason}) do
