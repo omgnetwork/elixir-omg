@@ -56,6 +56,14 @@ defmodule OMG.Umbrella.MixProject do
     ]
   end
 
+def application do
+  [
+    env: [
+      extra_applications: [:sentry, :logger]
+    ]
+  ]
+end
+
   defp dialyzer do
     [
       paths: [
