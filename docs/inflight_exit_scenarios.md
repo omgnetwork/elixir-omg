@@ -1,8 +1,8 @@
 # Simple In-flight Exit
 
-Alice sends tokens to Bob in transaction `tx` which has one input and one output. The block is withheld. 
+Alice sends tokens to Bob in transaction `tx` which has one input and 2 outputs, one to Bob and one back to herself as change. The block is withheld. 
 
-Bob calls `watcher/status` and gets a response:
+Alice calls `watcher/status` and gets a response:
 
 ```json
 {
@@ -21,25 +21,14 @@ Bob calls `watcher/status` and gets a response:
                     "blocknum"  : 10000,
                 }
             }
-        ],
-        "inflight_txs": [
-            {
-                "txhash": "230C450180808080...",
-                "txbytes": "F3170101C0940000...",
-                "input_addresses": [
-                    "0x1234..."
-                ],
-                "output_addresses": [
-                    "0x7890..."
-                ],
-            }
         ]
     }
 }
  ```
-He notices that the chain is byzantine and there is an in-flight transaction with his address as an output.
+She notices that the chain is byzantine and the transaction she just submitted was not included in a block (therefore it's an in-flight transaction)
+TODO - How does Alice know that her transaction hasn't been included? Does she have to store the details of every transaction she submits until it is put into a block?
 
-Bob starts an in-flight exit.
+Alice starts an in-flight exit.
 
 #### 1. Get the exit data
 `/inflight_exit.get_data` 
@@ -100,22 +89,12 @@ RootChain.startInFlightExit(
                 "event": "piggyback_available",
                 "details": {
                     "txbytes": "F3170101C0940000...",
-                    "available_outputs" : [0, 1]
+                    "available_outputs" : [
+                        {"index": 0, "address": "0x7890..."},
+                        {"index": 1, "address": "0x1234..."},
+                    ]
                 }
             },
-        ],
-        "inflight_txs": [
-            {
-                "txhash": "230C450180808080...",
-                "txbytes": "F3170101C0940000...",
-                "input_addresses": [
-                    "0x1234..."
-                ],
-                "output_addresses": [
-                    "0x7890...",
-                    "0x1234..."
-                ],
-            }
         ],
         "inflight_exits": [
             {
@@ -128,24 +107,22 @@ RootChain.startInFlightExit(
 }
  ```
 
- Bob sees that his in-flight exit is in progress and he can now piggyback his ouput.
+ Alice sees that her in-flight exit is in progress and she can now piggyback her ouput. Note that as Alice is the sole owner of the inputs, she does not need to piggyback any input.
 
-#### 4. Piggyback his output
-The second argument is `4` because he is piggybacking the first output.
+#### 4. Piggyback the output
+The second argument is `5` because she is piggybacking the first output.
 ```
 RootChain.piggybackInFlightExit(
     response.data.txbytes,
-    4, 
+    5, 
     {"value": piggybackBond}
 )
 ```
 
-After finalization, if nobody challenges the exit, Bob will exit his output and get his `inFlightExitBond` and `piggybackBond` back.
+After finalization, if nobody challenges the exit, Alice will exit her output and get her `inFlightExitBond` and `piggybackBond` back.
 
-# Simple In-flight Exit with 2 outputs
-Alice sends tokens to Bob, but this time she includes a change output to herself, so that the transaction `tx1` has 2 outputs. 
-
-When Alice calls `watcher/status` she gets this response:
+#### 5. Bob finds out that he can piggyback his output
+When Bob calls `watcher/status` he gets this response:
 
 ```json
 {
@@ -168,48 +145,38 @@ When Alice calls `watcher/status` she gets this response:
                 "event": "piggyback_available",
                 "details": {
                     "txbytes": "F3170101C0940000...",
-                    "available_outputs" : [1]
+                    "available_outputs" : [
+                        {"index": 0, "address": "0x7890..."},
+                    ]
                 }
             },
-        ],
-        "inflight_txs": [
-            {
-                "txhash": "230C450180808080...",
-                "txbytes": "F3170101C0940000...",
-                "input_addresses": [
-                    "0x1234..."
-                ],
-                "output_addresses": [
-                    "0x7890...",
-                    "0x1234..."
-                ],
-            }
         ],
         "inflight_exits": [
             {
                 "txhash": "230C450180808080...",
                 "txbytes": "F3170101C0940000...",
                 "eth_height" : 615441,
-                "piggybacked_outputs" : [0]
+                "piggybacked_outputs" : [1]
             }
         ]
     }
 }
  ```
 
-Because Bob has already started an exit for the transaction - there is a `piggyback_available` event indicating that `output[1]` can be piggybacked. This output is to Alice's address. Note that as Alice is the sole owner of the inputs, she does not need to piggyback any input.
+Because Alice has already started an exit for the transaction there is a `piggyback_available` event indicating that `output[0]` (Bob's address) can be piggybacked.
 
-#### 1. Piggyback her output on the IFE
-The second argument is `5` because Alice is piggybacking the second output.
+#### 6. Bob Piggybacks his output on the IFE
+The second argument is `4` because Bob is piggybacking the first output.
 ```
 RootChain.piggybackInFlightExit(
     inflight_exits[0].txbytes,
-    5, 
+    4, 
     {"value": piggybackBond}
 )
 ```
 
-After finalization (if nobody challenges the exit) Bob will exit his output and get his `inFlightExitBond` and `piggybackBond` back, Alice will exit her change output and get her `piggybackBond` back.
+After finalization (if nobody challenges the exit) Bob will exit his output and get his `piggybackBond` back.
+
 
 # Challenge an IFE
 To challenge an IFE we must attempt to prove that it is non-canonical by presenting a competing transaction that also spends one its inputs.
@@ -241,19 +208,6 @@ Request `watcher/status`:
                     "txbytes": "F3170101C0940000..."
                 }
             },
-        ],
-        "inflight_txs": [
-            {
-                "txhash": "230C450180808080...",
-                "txbytes": "F3170101C0940000...",
-                "input_addresses": [
-                    "0x1234..."
-                ],
-                "output_addresses": [
-                    "0x7890...",
-                    "0x1234..."
-                ],
-            }
         ],
         "inflight_exits": [
             {
