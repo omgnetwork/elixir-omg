@@ -46,7 +46,7 @@ defmodule OMG.Watcher.TestHelper do
 
   def server_error?(path, params_or_body \\ nil) do
     response_body = rpc_call(path, params_or_body, 500)
-    %{"version" => "1.0", "success" => true, "data" => data} = response_body
+    %{"version" => "1.0", "success" => false, "data" => data} = response_body
     data
   end
 

@@ -43,7 +43,8 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
 
       {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
 
-      assert %{"code" => "internal_server_error", "description" => "econnrefused"} = TestHelper.error?("/status.get")
+      assert %{"code" => "internal_server_error", "description" => "econnrefused"} =
+               TestHelper.server_error?("/status.get")
 
       started_apps |> Enum.each(fn app -> :ok = Application.stop(app) end)
     end
