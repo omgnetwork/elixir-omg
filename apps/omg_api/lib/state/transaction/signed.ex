@@ -31,101 +31,38 @@ defmodule OMG.API.State.Transaction.Signed do
           signed_tx_bytes: signed_tx_bytes_t()
         }
 
-  def signed_hash(%__MODULE__{raw_tx: tx, sigs: sigs}) do
-    tx_hash = Transaction.hash(tx)
-  end
+  def signed_hash(%__MODULE__{raw_tx: tx}), do: Transaction.hash(tx)
 
   def encode(%__MODULE__{
-        raw_tx: %Transaction{inputs: [input1, input2], outputs: [output1, output2]},
-        sigs: [sig1, sig2]
+        raw_tx: raw_tx,
+        sigs: sigs
       }) do
-    [
-      input1.blknum,
-      input1.txindex,
-      input1.oindex,
-      input2.blknum,
-      input2.txindex,
-      input2.oindex,
-      output1.currency,
-      output1.owner,
-      output1.amount,
-      output2.owner,
-      output2.amount,
-      sig1,
-      sig2
-    ]
+    [sigs | Transaction.preper_to_encode(raw_tx)]
     |> ExRLP.encode()
   end
 
   def decode(signed_tx_bytes) do
-    with {:ok, tx} <- rlp_decode(signed_tx_bytes), do: reconstruct_tx(tx, signed_tx_bytes)
-  end
-
-  defp rlp_decode(line) do
     try do
-      {:ok, ExRLP.decode(line)}
+      tx = ExRLP.decode(signed_tx_bytes)
+      reconstruct_tx(tx, signed_tx_bytes)
     rescue
       _ -> {:error, :malformed_transaction_rlp}
     end
   end
 
-  defp reconstruct_tx(
-         [
-           blknum1,
-           txindex1,
-           oindex1,
-           blknum2,
-           txindex2,
-           oindex2,
-           cur12,
-           newowner1,
-           amount1,
-           newowner2,
-           amount2,
-           sig1,
-           sig2
-         ],
-         signed_tx_bytes
-       ) do
-    with :ok <- signature_length?(sig1),
-         :ok <- signature_length?(sig2),
-         {:ok, parsed_cur12} <- address_parse(cur12),
-         {:ok, parsed_newowner1} <- address_parse(newowner1),
-         {:ok, parsed_newowner2} <- address_parse(newowner2) do
-      inputs = [
-        %{blknum: int_parse(blknum1), txindex: int_parse(txindex1), oindex: int_parse(oindex1)},
-        %{blknum: int_parse(blknum2), txindex: int_parse(txindex2), oindex: int_parse(oindex2)}
-      ]
-
-      outputs = [
-        %{owner: parsed_newowner1, amount: int_parse(amount1), currency: parsed_cur12},
-        %{owner: parsed_newowner2, amount: int_parse(amount2), currency: parsed_cur12}
-      ]
-
-      raw_tx = %Transaction{inputs: inputs, outputs: outputs}
-
+  defp reconstruct_tx([sigs | raw_tx_rlp], signed_tx_bytes) do
+    with true <- Enum.all?(sigs, &signature_length?/1),
+         {:ok, raw_tx} <- Transaction.from_rlp(raw_tx_rlp) do
       {:ok,
        %__MODULE__{
          raw_tx: raw_tx,
-         sigs: [sig1, sig2],
+         sigs: sigs,
          signed_tx_bytes: signed_tx_bytes
        }}
     end
   end
 
-  # essentially - wrong number of fields after rlp decoding
-  defp reconstruct_tx(_singed_tx, _signed_tx_bytes) do
-    {:error, :malformed_transaction}
-  end
-
-  defp int_parse(int), do: :binary.decode_unsigned(int, :big)
-
-  # necessary, because RLP handles empty string equally to integer 0
-  @spec address_parse(<<>> | Crypto.address_t()) :: {:ok, Crypto.address_t()} | {:error, :malformed_address}
-  defp address_parse(address)
-  defp address_parse(""), do: {:ok, <<0::160>>}
-  defp address_parse(<<_::160>> = address_bytes), do: {:ok, address_bytes}
-  defp address_parse(_), do: {:error, :malformed_address}
+  defp reconstruct_tx(_, _), do: {:error, :malformed_transaction}
 
   defp signature_length?(sig) when byte_size(sig) == @signature_length, do: :ok
   defp signature_length?(_sig), do: {:error, :bad_signature_length}

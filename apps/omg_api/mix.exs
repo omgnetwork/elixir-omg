@@ -42,8 +42,7 @@ defmodule OMG.API.MixProject do
       {:phoenix_pubsub, "~> 1.0"},
       {:ex_rlp, "~> 0.2.1"},
       {:blockchain, "~> 0.1.6"},
-      {:merkle_tree,
-       git: "https://github.com/omisego/merkle_tree.git", branch: "refactor"},
+      {:merkle_tree, git: "https://github.com/omisego/merkle_tree.git", branch: "refactor"},
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
       #
       {:omg_db, in_umbrella: true},

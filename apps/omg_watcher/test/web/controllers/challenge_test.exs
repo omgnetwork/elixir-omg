@@ -46,10 +46,9 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
 
       %{
         "data" => %{
-          "cutxopos" => _cutxopos,
-          "eutxoindex" => _eutxoindex,
-          "proof" => _proof,
-          "sigs" => _sigs,
+          "inputIndex" => _input_index,
+          "outputId" => _output_id,
+          "sig" => _sig,
           "txbytes" => _txbytes
         },
         "result" => "success"

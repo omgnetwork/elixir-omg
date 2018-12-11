@@ -26,8 +26,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.ExitProcessor.ExitInfo
 
-  use OMG.API.LoggerExt
-
   @default_sla_margin 10
   @zero_address Crypto.zero_address()
 
@@ -62,12 +60,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   def new_exits(%__MODULE__{exits: exits} = state, new_exits, exit_contract_statuses) do
-    Logger.info(inspect(exit_contract_statuses))
     new_exits_kv_pairs =
       new_exits
       |> Enum.zip(exit_contract_statuses)
       |> Enum.map(fn {%{utxo_pos: utxo_pos} = exit_info, contract_status} ->
-        IO.inspect(contract_status, label: "> status kontraktu")
         is_active = parse_contract_status(contract_status)
         map_exit_info = exit_info |> Map.delete(:utxo_pos) |> Map.put(:is_active, is_active)
         {Utxo.Position.decode(utxo_pos), struct(ExitInfo, map_exit_info)}

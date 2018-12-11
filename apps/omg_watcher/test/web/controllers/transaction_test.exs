@@ -347,7 +347,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     test "validates number of provided inputs and outputs", %{inputs: inputs, outputs: outputs} do
       # Too many inputs
       body = %{
-        "inputs" => inputs ++ inputs,
+        "inputs" => inputs ++ inputs ++ inputs,
         "outputs" => outputs
       }
 
@@ -376,7 +376,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       # Too many outputs
       body = %{
         "inputs" => inputs,
-        "outputs" => outputs ++ outputs
+        "outputs" => outputs ++ outputs ++ outputs
       }
 
       assert %{

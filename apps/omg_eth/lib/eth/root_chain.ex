@@ -50,7 +50,12 @@ defmodule OMG.Eth.RootChain do
   end
 
   def start_exit(outputId, txbytes, proof, from, contract \\ nil, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, 1_000_000) |> Keyword.put(:value, 31_415_926_535)
+    defaults =
+      @tx_defaults
+      |> Keyword.put(:gas, 1_000_000)
+      # standardExitBond = 31415926535 wei
+      |> Keyword.put(:value, 31_415_926_535)
+
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
@@ -94,7 +99,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   def challenge_exit(outputId, challengeTx, inputIndex, challengeTxSig, from, contract \\ nil, opts \\ []) do
-    opts = @tx_defaults |> Keyword.merge(opts) #|> Keyword.put(:value, 31_415_926_535)
+    opts = @tx_defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "challengeStandardExit(uint192,bytes,uint256,bytes)"
@@ -152,14 +157,14 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns exit for a specific utxo. Calls contract method.
   """
-  def get_exit(utxo_pos, contract \\ nil) do
+  def get_exit(exit_id, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    Eth.call_contract(contract, "exits(uint192)", [utxo_pos], [:address, :address, {:uint, 256}])
+    Eth.call_contract(contract, "exits(uint192)", [exit_id], [:address, :address, {:uint, 256}])
   end
 
-  def get_standard_exit_id(outputId, contract \\ nil) do
+  def get_standard_exit_id(output_id, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    Eth.call_contract(contract, "getStandardExitId(uint256)", [outputId], [{:uint, 256}])
+    Eth.call_contract(contract, "getStandardExitId(uint256)", [output_id], [{:uint, 256}])
   end
 
   def get_child_chain(blknum, contract \\ nil) do
@@ -181,9 +186,8 @@ defmodule OMG.Eth.RootChain do
   """
   def get_deposits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    signature = @deposit_created_signature
 
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, @deposit_created_signature, contract),
          do: {:ok, Enum.map(logs, &decode_deposit/1)}
   end
 
@@ -204,15 +208,9 @@ defmodule OMG.Eth.RootChain do
   def get_exits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "ExitStarted(address,uint256,uint256,address)"
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract) do
-       exit_started = Enum.map(logs, &decode_exit_started/1)
-       second = Enum.map(exit_started, 
-            fn %{outputId: outputId} = exit -> 
-               {:ok, utxo_pos} = get_standard_exit_id(outputId)
-               exit |> Map.delete(:outputId) |> Map.put(:utxo_pos, outputId)
-            end)
-       {:ok, second} 
-    end 
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, &decode_exit_started/1)}
   end
 
   @doc """
@@ -251,7 +249,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_exit_started(log) do
-    non_indexed_keys = [:outputId, :amount, :currency]
+    non_indexed_keys = [:utxo_pos, :amount, :currency]
     non_indexed_key_types = [{:uint, 256}, {:uint, 256}, :address]
     indexed_keys = [:owner]
     indexed_keys_types = [:address]

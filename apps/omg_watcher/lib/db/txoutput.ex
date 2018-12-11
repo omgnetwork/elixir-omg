@@ -48,25 +48,30 @@ defmodule OMG.Watcher.DB.TxOutput do
   end
 
   def compose_utxo_exit(Utxo.position(blknum, txindex, _) = decoded_utxo_pos) do
-    if Utxo.Position.is_deposit(decoded_utxo_pos),
-      do: compose_deposit_exit(decoded_utxo_pos),
-      else:
-        if((txs = DB.Transaction.get_by_blknum(blknum)) |> Enum.any?(&match?(%{txindex: ^txindex}, &1)),
-          do: {:ok, compose_utxo_exit(txs, decoded_utxo_pos)},
-          else: {:error, :no_tx_for_given_blknum}
-        )
+    if Utxo.Position.is_deposit(decoded_utxo_pos) do
+      compose_deposit_exit(decoded_utxo_pos)
+    else
+      txs = DB.Transaction.get_by_blknum(blknum)
+
+      if txs |> Enum.any?(&match?(%{txindex: ^txindex}, &1)),
+        do: {:ok, compose_utxo_exit(txs, decoded_utxo_pos)},
+        else: {:error, :no_tx_for_given_blknum}
+    end
   end
 
   def compose_deposit_exit(decoded_utxo_pos) do
-    %{amount: amount, currency: currency, owner: owner} = get_by_position(decoded_utxo_pos)
-    tx = Transaction.new([], [{owner, currency, amount}])
+    with %{amount: amount, currency: currency, owner: owner} <- get_by_position(decoded_utxo_pos) do
+      tx = Transaction.new([], [{owner, currency, amount}])
 
-    {:ok,
-     %{
-       utxo_pos: decoded_utxo_pos |> Utxo.Position.encode(),
-       txbytes: tx |> Transaction.encode(),
-       proof: Block.create_tx_proof([Transaction.hash(tx)], 0)
-     }}
+      {:ok,
+       %{
+         utxo_pos: decoded_utxo_pos |> Utxo.Position.encode(),
+         txbytes: tx |> Transaction.encode(),
+         proof: Block.create_tx_proof([Transaction.hash(tx)], 0)
+       }}
+    else
+      _ -> {:error, :no_deposit_for_given_blknum}
+    end
   end
 
   def compose_utxo_exit(txs, Utxo.position(_blknum, txindex, _) = decoded_utxo_pos) do
@@ -131,7 +136,6 @@ defmodule OMG.Watcher.DB.TxOutput do
 
   @spec spend_utxos([map()]) :: :ok
   def spend_utxos(db_inputs) do
-    IO.inspect(db_inputs, label: "spend_utxos")
     db_inputs
     |> Enum.each(fn {utxo_pos, spending_oindex, spending_txhash} ->
       if utxo = DB.TxOutput.get_by_position(utxo_pos) do

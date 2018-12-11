@@ -17,7 +17,7 @@ defmodule OMG.Watcher.Challenger.Core do
   Functional core of challenger
   """
 
-  alias OMG.API.Block
+  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   require Utxo
@@ -37,19 +37,30 @@ defmodule OMG.Watcher.Challenger.Core do
        sigs: sigs
      }} = Transaction.Signed.decode(challenging_tx.txbytes)
 
-    [sig, _]  = sigs
+    owner = get_eutxo_owner(challenging_tx)
 
     %Challenge{
-      outputId: Utxo.Position.encode(utxo_exit), 
-    # eUtxoIndex - The output position of the exiting utxo.
+      outputId: Utxo.Position.encode(utxo_exit),
+      # eUtxoIndex - The output position of the exiting utxo.
       inputIndex: get_eutxo_index(challenging_tx),
       txbytes: Transaction.encode(raw_tx),
-      sig: sig 
+      sig: find_sig(sigs, raw_tx, owner)
     }
+  end
+
+  defp find_sig(sigs, raw_tx, owner) do
+    hash_no_spenders = Transaction.hash(raw_tx)
+
+    Enum.find(sigs, fn sig ->
+      {:ok, owner} == Crypto.recover_address(hash_no_spenders, sig)
+    end)
   end
 
   # here: challenging_tx is prepared to contain just utxo_exit input only,
   # see: DB.Transaction.get_transaction_challenging_utxo/1
   defp get_eutxo_index(%DB.Transaction{inputs: [input]}),
     do: input.spending_tx_oindex
+
+  defp get_eutxo_owner(%DB.Transaction{inputs: [input]}),
+    do: input.owner
 end

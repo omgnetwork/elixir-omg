@@ -41,7 +41,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     token: token,
     alice_deposits: {deposit_blknum, token_deposit_blknum}
   } do
-    exit_processor_validation = 2 * Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
+    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
 
     token_addr = token |> Base.encode16()
 
@@ -99,10 +99,9 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     %{
       "utxo_pos" => utxo_pos,
       "txbytes" => txbytes,
-      "proof" => proof,
-    } = exit_7 = IntegrationTest.get_exit_data(block_nr, 0, 0)
-#OMG.Watcher.Integration.TestHelper
-    IO.inspect(exit_7, label: "exit 7 utxo")
+      "proof" => proof
+    } = IntegrationTest.get_exit_data(block_nr, 0, 0)
+
     {:ok, %{"status" => "0x1"}} =
       Eth.RootChain.start_exit(
         utxo_pos,
@@ -117,13 +116,12 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     assert [token_deposit] == IntegrationTest.get_utxos(alice)
 
     # finally alice exits her token deposit
-    exit_data_deposit = %{
+    %{
       "utxo_pos" => utxo_pos,
       "txbytes" => txbytes,
-      "proof" => proof,
+      "proof" => proof
     } = IntegrationTest.get_exit_data(token_deposit_blknum, 0, 0)
 
-    #IO.inspect(exit_data_deposit, label: "exit_data_deposit")
     {:ok, %{"status" => "0x1"}} =
       Eth.RootChain.start_exit(
         utxo_pos,
