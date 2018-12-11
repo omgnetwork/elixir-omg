@@ -4,7 +4,7 @@ defmodule OMG.Watcher.Mixfile do
   def project do
     [
       app: :omg_watcher,
-      version: "0.0.1",
+      version: OMG.Umbrella.MixProject.umbrella_version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -19,9 +19,6 @@ defmodule OMG.Watcher.Mixfile do
     ]
   end
 
-  # Configuration for the OTP application.
-  #
-  # Type `mix help compile.app` for more information.
   def application do
     [
       env: [
@@ -36,9 +33,6 @@ defmodule OMG.Watcher.Mixfile do
   defp elixirc_paths(:prod), do: ["lib"]
   defp elixirc_paths(_), do: ["lib", "test/support"]
 
-  # Specifies your project dependencies.
-  #
-  # Type `mix help deps` for examples and options.
   defp deps do
     [
       {:phoenix, "~> 1.3.2"},
@@ -51,12 +45,11 @@ defmodule OMG.Watcher.Mixfile do
       {:plug, "1.5.0", override: true},
       {:socket, "~> 0.3"},
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
-      # NOTE: need this explictly, since :omg_jsonrpc won't start jsonrpc2 automatically
-      {:jsonrpc2, "~> 1.1"},
       # TODO: we only need in :dev and :test here, but we need in :prod too in performance
       #       then there's some unexpected behavior of mix that won't allow to mix these, see
       #       [here](https://elixirforum.com/t/mix-dependency-is-not-locked-error-when-building-with-edeliver/7069/3)
       {:briefly, "~> 0.3"},
+      {:fake_server, "~> 1.5", only: [:test, :dev]},
       #
       {:omg_api, in_umbrella: true, runtime: false},
       {:omg_db, in_umbrella: true},
@@ -64,16 +57,8 @@ defmodule OMG.Watcher.Mixfile do
     ]
   end
 
-  # Aliases are shortcuts or tasks specific to the current project.
-  # For example, to create, migrate and run the seeds file at once:
-  #
-  #     $ mix ecto.setup
-  #
-  # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
-      "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate", "test"]
     ]
   end

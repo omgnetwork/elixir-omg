@@ -128,7 +128,7 @@ defmodule OMG.API.State.CoreTest do
 
     state_deposit
     |> (&Core.exec(
-          Test.create_recovered([{1, 1, 0, alice}], eth(), [{bob, 7}, {alice, 3}]),
+          Test.create_recovered([{1, 1, 0, alice}, {1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]),
           zero_fees_map(),
           &1
         )).()
@@ -136,7 +136,7 @@ defmodule OMG.API.State.CoreTest do
     |> same?(state_deposit)
   end
 
-  @tag fixtures: [:alice, :bob, :state_alice_deposit, :state_empty]
+  @tag fixtures: [:alice, :bob, :state_empty]
   test "amounts must add up", %{alice: alice, bob: bob, state_empty: state} do
     state = Test.do_deposit(state, alice, %{amount: 10, currency: eth(), blknum: 1})
 
@@ -800,27 +800,46 @@ defmodule OMG.API.State.CoreTest do
   } do
     fees = %{eth() => 1, not_eth() => 1}
 
+    state =
+      state
+      |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+      |> Test.do_deposit(alice, %{amount: 10, currency: not_eth(), blknum: 2})
+
+    # fee is paid in the same currency as an output
     state
-    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-    |> Test.do_deposit(alice, %{amount: 10, currency: not_eth(), blknum: 2})
     |> (&Core.exec(
           Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, eth(), 10}, {bob, not_eth(), 1}]),
           fees,
           &1
         )).()
-    |> fail?(:amounts_do_not_add_up)
+    |> success?
+
+    # fee is paid in different currency then outputs
+    state
     |> (&Core.exec(
-          Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, eth(), 1}, {bob, not_eth(), 10}]),
-          fees,
-          &1
-        )).()
-    |> fail?(:amounts_do_not_add_up)
-    |> (&Core.exec(
-          Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, eth(), 9}, {bob, not_eth(), 8}]),
+          Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, eth(), 9}, {bob, eth(), 1}]),
           fees,
           &1
         )).()
     |> success?
+
+    # fee is respected but amounts don't add up
+    state
+    |> (&Core.exec(
+          Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, eth(), 10}, {bob, eth(), 1}]),
+          fees,
+          &1
+        )).()
+    |> fail?(:amounts_do_not_add_up)
+
+    # fee is not respected
+    state
+    |> (&Core.exec(
+          Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, eth(), 10}, {bob, not_eth(), 10}]),
+          fees,
+          &1
+        )).()
+    |> fail?(:amounts_do_not_add_up)
   end
 
   defp success?(result) do

@@ -14,6 +14,7 @@
 
 defmodule OMG.API.Integration.Fixtures do
   use ExUnitFixtures.FixtureModule
+  use OMG.API.Fixtures
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
 

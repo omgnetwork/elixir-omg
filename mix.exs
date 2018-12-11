@@ -1,6 +1,8 @@
 defmodule OMG.Umbrella.MixProject do
   use Mix.Project
 
+  def umbrella_version, do: "0.1.0"
+
   def project do
     [
       apps_path: "apps",
@@ -13,26 +15,9 @@ defmodule OMG.Umbrella.MixProject do
         "coveralls.html": :test,
         dialyzer: :prod
       ],
-      dialyzer: [
-        paths: [
-          "_build/prod/lib/omg_watcher/ebin",
-          "_build/prod/lib/omg_jsonrpc/ebin",
-          "_build/prod/lib/omg_api/ebin",
-          "_build/prod/lib/omg_eth/ebin",
-          "_build/prod/lib/omg_db/ebin"
-        ],
-        flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
-        plt_add_deps: :transitive,
-        ignore_warnings: "dialyzer.ignore-warnings"
-      ],
+      dialyzer: dialyzer(),
       test_coverage: [tool: ExCoveralls],
-      aliases: [
-        test: ["test --no-start"],
-        coveralls: ["coveralls --no-start"],
-        "coveralls.html": ["coveralls.html --no-start"],
-        "coveralls.detail": ["coveralls.detail --no-start"],
-        "coveralls.post": ["coveralls.post --no-start"]
-      ],
+      aliases: aliases(),
       # Docs
       source_url: "https://github.com/omisego/elixir-omg"
     ]
@@ -56,6 +41,34 @@ defmodule OMG.Umbrella.MixProject do
       #       https://github.com/exthereum/exth_crypto/issues/8#issuecomment-416227176
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false}
+    ]
+  end
+
+  defp aliases do
+    [
+      test: ["test --no-start"],
+      coveralls: ["coveralls --no-start"],
+      "coveralls.html": ["coveralls.html --no-start"],
+      "coveralls.detail": ["coveralls.detail --no-start"],
+      "coveralls.post": ["coveralls.post --no-start"],
+      "ecto.setup": ["ecto.create", "ecto.migrate", "run apps/omg_watcher/priv/repo/seeds.exs"],
+      "ecto.reset": ["ecto.drop", "ecto.setup"]
+    ]
+  end
+
+  defp dialyzer do
+    [
+      paths: [
+        "_build/prod/lib/omg_watcher/ebin",
+        "_build/prod/lib/omg_rpc/ebin",
+        "_build/prod/lib/omg_api/ebin",
+        "_build/prod/lib/omg_eth/ebin",
+        "_build/prod/lib/omg_db/ebin"
+      ],
+      flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
+      plt_add_deps: :transitive,
+      plt_add_apps: [:mix],
+      ignore_warnings: "dialyzer.ignore-warnings"
     ]
   end
 end

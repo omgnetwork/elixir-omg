@@ -24,7 +24,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Eth
-  alias OMG.JSONRPC.Client
+  alias OMG.RPC.Client
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper, as: Test
@@ -46,10 +46,10 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     {:ok, _, event_socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: deposit_blknum}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: deposit_blknum}} = Client.submit(tx)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
@@ -65,23 +65,22 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         outputId,
         txbytes,
         proof,
-        sigs,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
     {:ok, utxo_pos} = Eth.RootChain.get_standard_exit_id(outputId)
     invalid_exit_event =
-      Client.encode(%Event.InvalidExit{
+      %Event.InvalidExit{
         amount: 10,
         currency: @eth,
         owner: alice.addr,
         utxo_pos: utxo_pos,
         eth_height: eth_height
-      })
-    IO.inspect(invalid_exit_event, label: "expect")
-    exit_processor_validation = 
-Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
-    assert_push("invalid_exit", ^invalid_exit_event, exit_processor_validation + 5_000)
+      }
+      |> Response.clean_artifacts()
+
+    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
+    assert_push("invalid_exit", ^invalid_exit_event, exit_processor_validation + 1_000)
 
     # after the notification has been received, a challenged is composed and sent
     challenge = get_exit_challenge(deposit_blknum, 0, 0)
@@ -124,16 +123,16 @@ Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
 
   defp get_exit_challenge(blknum, txindex, oindex) do
     utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
-assert %{"result" => "success", "data" => data} = Test.rest_call(:get, "utxo/#{utxo_pos}/challenge_data")
+    assert %{"result" => "success", "data" => data} = Test.rest_call(:get, "utxo/#{utxo_pos}/challenge_data")
 
-    Response.decode16(data, ["txbytes", "sig"])
+    Test.decode16(data, ["txbytes", "sig"])
   end
 
-  @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
+  @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
   test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event ",
-       %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}} do
+       %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: exit_blknum}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: exit_blknum}} = Client.submit(tx)
 
     # Here we're preparing invalid block
     bad_block_number = 2_000
@@ -143,7 +142,7 @@ assert %{"result" => "success", "data" => data} = Test.rest_call(:get, "utxo/#{u
       bad_block = API.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
-    OMG.Watcher.Integration.BadChildChainServer.register_and_start_server(bad_block)
+    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block, bad_block_hash)
 
     {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
@@ -161,7 +160,6 @@ assert %{"result" => "success", "data" => data} = Test.rest_call(:get, "utxo/#{u
         utxo_pos,
         txbytes,
         proof,
-        sigs,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
@@ -172,13 +170,14 @@ assert %{"result" => "success", "data" => data} = Test.rest_call(:get, "utxo/#{u
     IntegrationTest.wait_for_block_fetch(bad_block_number, @timeout)
 
     invalid_exit_event =
-      Client.encode(%Event.InvalidExit{
+      %Event.InvalidExit{
         amount: 10,
         currency: @eth,
         owner: alice.addr,
         utxo_pos: utxo_pos,
         eth_height: eth_height
-      })
+      }
+      |> Response.clean_artifacts()
 
     exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
 

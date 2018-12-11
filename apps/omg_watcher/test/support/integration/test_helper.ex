@@ -28,8 +28,9 @@ defmodule OMG.Watcher.Integration.TestHelper do
   def get_exit_data(blknum, txindex, oindex) do
     utxo_pos = Utxo.Position.encode({:utxo_position, blknum, txindex, oindex})
 
-    %{"result" => "success", "data" => data} = ret = rest_call(:get, "utxo/#{utxo_pos}/exit_data")
-    OMG.Watcher.Web.Serializer.Response.decode16(data, ["txbytes", "proof", "sigs"])
+    %{"result" => "success", "data" => data} = rest_call(:get, "utxo/#{utxo_pos}/exit_data")
+
+    decode16(data, ["txbytes", "proof", "sigs"])
   end
 
   def get_utxos(%{addr: address}) do

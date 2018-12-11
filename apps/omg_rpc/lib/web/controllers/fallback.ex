@@ -12,8 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.JSONRPC.ServerTest do
+defmodule OMG.RPC.Web.Controller.Fallback do
   @moduledoc """
-  No test here. This is de facto tested during integration tests. This module serves only as an integration with JSONRPC2 package
+  The fallback handler.
   """
+
+  use Phoenix.Controller
+
+  alias OMG.RPC.Web.Serializers
+
+  def call(conn, :error), do: call(conn, {:error, :unknown_error})
+
+  def call(conn, {:error, reason}) do
+    data = %{
+      object: :error,
+      code: "#{action_name(conn)}:#{inspect(reason)}",
+      description: nil
+    }
+
+    json(conn, Serializers.Response.serialize(data, :error))
+  end
 end

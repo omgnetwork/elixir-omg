@@ -61,10 +61,9 @@ tx =
 ```bash
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
-# use the hex-encoded tx bytes and `submit` JSONRPC method described in README.md for child chain server
-# in the following json use `tx` value in "transaction" field
+# use the hex-encoded tx bytes and `transaction.submit` Http-RPC method described in README.md for child chain server
 
-curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "jsonrpc": "2.0","id":0}'
+curl -X POST -H "Content-Type: application/json" -d '{"transaction": "<rlp encoded plasma transaction in hex>"}' "localhost:9656/transaction.submit"
 
 # see the Watcher getting a 1-txs block
 ```

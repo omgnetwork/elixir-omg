@@ -15,58 +15,37 @@
 defmodule OMG.Watcher.Integration.BadChildChainServer do
   @moduledoc """
     Module useful for creating integration tests where we want to simulate byzantine child chain server
-    which is returning a bad block for a particular block number.
+    which is returning a bad block for a particular block hash.
   """
 
-  import ExUnit.Callbacks
-
-  defp create_module(bad_block) do
-    content =
-      quote do
-        use JSONRPC2.Server.Handler
-        alias OMG.JSONRPC.Client
-
-        def port, do: 9657
-
-        def handle_request(method, params) do
-          param_hash = params["hash"]
-          bad_block = get_bad_block()
-
-          if param_hash == Base.encode16(bad_block.hash) do
-            Client.encode(bad_block)
-          else
-            with {:ok, decoded} <- Base.decode16(param_hash, case: :mixed),
-                 {:ok, response} <- Client.call(:get_block, %{hash: decoded}, "http://localhost:9656") do
-              Client.encode(response)
-            end
-          end
-        end
-
-        defp get_bad_block, do: unquote(Macro.escape(bad_block))
-      end
-
-    # appending PID to the server name to avoid clashes of compiled modules sitting in memory (warnings)
-    Module.create(:"BadChildChainServerInstance-#{inspect(self())}", content, Macro.Env.location(__ENV__))
-  end
+  alias OMG.RPC.Client
+  alias OMG.Watcher.Integration.TestServer
+  alias OMG.Watcher.Web.Serializer.Response
 
   @doc """
-  This injects a bad child chain block serving into the stack, and schedules a cleanup
-  Expected to be called from within test body. Can't be a fixture because of `bad_block` parameter
+  Adds a route to TestServer which responded with prepared bad block when asked for known hash
+  all other requests are redirected to `real` Child Chain API
   """
-  def register_and_start_server(bad_block) do
-    {:module, module, _, _} = create_module(bad_block)
-    JSONRPC2.Servers.HTTP.http(module, port: module.port())
+  def prepare_route_to_inject_bad_block(context, bad_block, bad_block_hash) do
+    TestServer.with_route(
+      context,
+      "/block.get",
+      fn %{body: params} ->
+        {:ok, %{"hash" => req_hash}} = Poison.decode(params)
 
-    Application.put_env(
-      :omg_jsonrpc,
-      :child_chain_url,
-      "http://localhost:" <> Integer.to_string(module.port())
+        if bad_block_hash == Base.decode16!(req_hash) do
+          bad_block
+          |> Response.clean_artifacts()
+          |> TestServer.make_response()
+        else
+          {:ok, block} =
+            %{hash: req_hash}
+            |> Client.rpc_post("block.get", context.real_addr)
+            |> Client.get_response_body()
+
+          TestServer.make_response(block)
+        end
+      end
     )
-
-    on_exit(fn ->
-      JSONRPC2.Servers.HTTP.shutdown(module)
-
-      Application.put_env(:omg_jsonrpc, :child_chain_url, "http://localhost:9656")
-    end)
   end
 end

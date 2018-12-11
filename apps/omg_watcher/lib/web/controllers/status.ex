@@ -70,17 +70,17 @@ defmodule OMG.Watcher.Web.Controller.Status do
           description("Plasma network and Watcher status")
 
           properties do
-            last_validated_child_block_number(:integer, "Number of last validated childchain block", required: true)
+            last_validated_child_block_number(:integer, "Number of last validated child chain block", required: true)
 
             last_mined_child_block_number(
               :string,
-              "Number of last childchain block that was mined on the rootchain",
+              "Number of last child chain block that was mined on the rootchain",
               required: true
             )
 
             last_mined_child_block_timestamp(
               :string,
-              "Timestamp when last childchain block was mined on the rootchain",
+              "Timestamp when last child chain block was mined on the rootchain",
               required: true
             )
 
