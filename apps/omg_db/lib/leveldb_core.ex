@@ -87,14 +87,6 @@ defmodule OMG.DB.LevelDBCore do
   defp do_filter_keys(keys_stream, prefix),
     do: Stream.filter(keys_stream, fn {key, _} -> String.starts_with?(key, prefix) end)
 
-  def filter_in_flight_exits_info(keys_stream) do
-    keys_stream
-    |> Stream.filter(fn
-      {"ife" <> _rest, _} -> true
-      _ -> false
-    end)
-  end
-
   def key(:block, %{hash: hash} = _block), do: key(:block, hash)
   def key(:block, hash), do: @keys_prefixes.block <> hash
   def key(:utxo, {position, _utxo}), do: key(:utxo, position)
