@@ -249,17 +249,16 @@ class WatcherLauncher:
         if self.deploy_contract() is False:
             logging.critical('Contract not deployed. Exiting.')
             sys.exit(1)
-        if self.chain_data_present is False:
-            if self.initialise_watcher_postgres_database() is False:
-                logging.critical(
-                    'Could not connect to the Postgres database Exiting.'
-                )
-                sys.exit(1)
-            if self.initialise_watcher_chain_database() is False:
-                logging.critical(
-                    'Could not initialise the chain database. Exiting.'
-                )
-                sys.exit(1)
+        if self.initialise_watcher_postgres_database() is False:
+            logging.critical(
+                'Could not connect to the Postgres database Exiting.'
+            )
+            sys.exit(1)
+        if self.initialise_watcher_chain_database() is False:
+            logging.critical(
+                'Could not initialise the chain database. Exiting.'
+            )
+            sys.exit(1)
 
         logging.info('Launcher process complete')
 
@@ -348,9 +347,9 @@ class WatcherLauncher:
     def initialise_watcher_postgres_database(self) -> bool:
         ''' Initialise the watcher database (Postgres)
         '''
-        os.chdir(os.getcwd() + '/apps/omg_watcher')
+        os.chdir(os.path.expanduser('~') + '/elixir-omg')
         result = subprocess.run(
-            'printf "y\r" | mix ecto.create --no-start',
+            'mix ecto.create --no-start',
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True
