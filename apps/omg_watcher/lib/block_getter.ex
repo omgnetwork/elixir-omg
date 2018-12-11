@@ -54,11 +54,8 @@ defmodule OMG.Watcher.BlockGetter do
     tx_exec_results = for tx <- transactions, do: OMG.API.State.exec(tx, fees)
     {continue, events} = Core.validate_tx_executions(tx_exec_results, block)
 
-    # TODO: Unfortunately due to strange issue with SQLite on tests we cannot fetch this number at init
-    # as it was tried in c972be3831bc2eab7a8816ae408a6195ba2f3ef4,
-    # we should be able to revert when test will be run on Postgres
-    last_persisted_block = DB.Block.get_max_blknum()
-    blocks_to_persist = Core.ensure_block_imported_once(block, block_rootchain_height, last_persisted_block)
+    blocks_to_persist =
+      Core.ensure_block_imported_once(block, block_rootchain_height, state.last_block_persisted_from_prev_run)
 
     EventerAPI.emit_events(events)
 
@@ -105,6 +102,7 @@ defmodule OMG.Watcher.BlockGetter do
       Eth.RootChain.get_block_submitted_events({max(0, synced_height - 1000), synced_height + 1000})
 
     exact_synced_height = Core.figure_out_exact_sync_height(block_submissions, synced_height, child_top_block_number)
+    last_persisted_block = DB.Block.get_max_blknum()
 
     :ok = RootChainCoordinator.check_in(exact_synced_height, __MODULE__)
 
@@ -124,6 +122,7 @@ defmodule OMG.Watcher.BlockGetter do
         child_block_interval,
         exact_synced_height,
         finality_margin,
+        last_persisted_block,
         state_at_block_beginning,
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
         maximum_number_of_unapplied_blocks: maximum_number_of_unapplied_blocks,
