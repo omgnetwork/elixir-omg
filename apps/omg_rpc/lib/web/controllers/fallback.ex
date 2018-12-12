@@ -19,7 +19,7 @@ defmodule OMG.RPC.Web.Controller.Fallback do
 
   use Phoenix.Controller
 
-  alias OMG.RPC.Web.Serializer
+  alias OMG.RPC.Web.Serializers
 
   def call(conn, :not_found) do
     data = %{
@@ -28,7 +28,7 @@ defmodule OMG.RPC.Web.Controller.Fallback do
       description: "Action not found"
     }
 
-    json(conn, Serializer.Response.serialize(data, :error))
+    json(conn, Serializers.Response.serialize(data, :error))
   end
 
   def call(conn, :error), do: call(conn, {:error, :unknown_error})
@@ -40,6 +40,6 @@ defmodule OMG.RPC.Web.Controller.Fallback do
       description: nil
     }
 
-    json(conn, Serializer.Response.serialize(data, :error))
+    json(conn, Serializers.Response.serialize(data, :error))
   end
 end

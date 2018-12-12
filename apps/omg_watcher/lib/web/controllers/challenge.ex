@@ -20,10 +20,9 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
-  alias OMG.API.Utxo.Position
-  alias OMG.Watcher.API.Utxo
+  alias OMG.API.Utxo
+  alias OMG.Watcher.API
   alias OMG.Watcher.Web.View
-
   import OMG.Watcher.Web.ErrorHandler
 
   action_fallback(OMG.Watcher.Web.Controller.Fallback)
@@ -32,9 +31,9 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   Challenges exits
   """
   def get_utxo_challenge(conn, params) do
-    with {:ok, utxo_pos} <- Map.fetch(params, "utxo_pos") do
-      utxo = Position.decode(utxo_pos)
-      challenge = Utxo.create_challenge(utxo)
+    with {:ok, utxo_pos} <- Map.fetch(params, "utxo_pos"),
+         utxo <- Utxo.Position.decode(utxo_pos) do
+      challenge = API.Utxo.create_challenge(utxo)
       respond(challenge, conn)
     end
   end

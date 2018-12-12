@@ -16,7 +16,7 @@ defmodule OMG.Watcher.Web.ErrorHandler do
   @moduledoc """
   Handles API errors by mapping the error to its response code and description.
   """
-  alias OMG.Watcher.Web.Serializer
+  alias OMG.Watcher.Web.Serializers
 
   import Plug.Conn, only: [halt: 1]
   import Phoenix.Controller, only: [json: 2]
@@ -32,9 +32,9 @@ defmodule OMG.Watcher.Web.ErrorHandler do
       description: "Transaction doesn't exist for provided search criteria",
       status_code: 200
     },
-    invalid_exit: %{
+    utxo_not_found: %{
       code: "exit:invalid",
-      description: "Utxo is spent or does not exist.",
+      description: "Utxo was spent or does not exist.",
       status_code: 200
     }
   }
@@ -71,11 +71,11 @@ defmodule OMG.Watcher.Web.ErrorHandler do
   end
 
   defp build(code, description) do
-    Serializer.Error.serialize(code, description)
+    Serializers.Error.serialize(code, description)
   end
 
   defp respond(conn, data) do
-    data = Serializer.Response.serialize(data, :error)
+    data = Serializers.Response.serialize(data, :error)
 
     conn
     |> json(data)

@@ -28,7 +28,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.Web.Channel
-  alias OMG.Watcher.Web.Serializer.Response
+  alias OMG.Watcher.Web.Serializers.Response
 
   @moduletag :integration
 

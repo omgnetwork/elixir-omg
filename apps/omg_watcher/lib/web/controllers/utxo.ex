@@ -39,8 +39,8 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   end
 
   def get_utxo_exit(conn, params) do
-    with {:ok, utxo_pos} <- Map.fetch(params, "utxo_pos") do
-      utxo = Position.decode(utxo_pos)
+    with {:ok, utxo_pos} <- Map.fetch(params, "utxo_pos"),
+         utxo <- Position.decode(utxo_pos) do
       utxo_exit = Utxo.compose_utxo_exit(utxo)
       respond(utxo_exit, conn)
     end

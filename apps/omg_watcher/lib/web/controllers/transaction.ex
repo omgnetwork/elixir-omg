@@ -21,7 +21,6 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use PhoenixSwagger
 
   alias OMG.API.Crypto
-  alias OMG.API.State
   alias OMG.Watcher.API.Transaction
   alias OMG.Watcher.DB
   alias OMG.Watcher.Web.View
@@ -73,11 +72,6 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     do: render(conn, View.Transaction, :transaction, transaction: transaction)
 
   defp respond(nil, conn), do: handle_error(conn, :transaction_not_found)
-
-  defp respond(%State.Transaction{} = transaction, conn),
-    do: render(conn, View.Transaction, :transaction_encode, transaction: transaction)
-
-  defp respond({:error, code}, conn) when is_atom(code), do: handle_error(conn, code)
 
   def swagger_definitions do
     %{

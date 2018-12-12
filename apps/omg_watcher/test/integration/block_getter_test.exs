@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.TestServer
   alias OMG.Watcher.Web.Channel
-  alias OMG.Watcher.Web.Serializer.Response
+  alias OMG.Watcher.Web.Serializers.Response
 
   import ExUnit.CaptureLog
 

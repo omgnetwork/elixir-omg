@@ -41,12 +41,12 @@ defmodule OMG.Watcher.DB.TxOutputTest do
 
   @tag fixtures: [:initial_blocks]
   test "compose_utxo_exit should return error when there is no txs in specfic block" do
-    {:error, :invalid_exit} = DB.TxOutput.compose_utxo_exit(Utxo.position(1001, 1, 0))
+    {:error, :utxo_not_found} = DB.TxOutput.compose_utxo_exit(Utxo.position(1001, 1, 0))
   end
 
   @tag fixtures: [:initial_blocks]
   test "compose_utxo_exit should return error when there is no tx in specfic block" do
-    {:error, :invalid_exit} = DB.TxOutput.compose_utxo_exit(Utxo.position(2000, 1, 0))
+    {:error, :utxo_not_found} = DB.TxOutput.compose_utxo_exit(Utxo.position(2000, 1, 0))
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]

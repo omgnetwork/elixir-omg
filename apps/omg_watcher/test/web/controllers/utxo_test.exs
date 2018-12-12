@@ -171,7 +171,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
 
     assert %{
              "code" => "exit:invalid",
-             "description" => "Utxo is spent or does not exist."
+             "description" => "Utxo was spent or does not exist."
            } = TestHelper.no_success?("/utxo.get_exit_data", %{"utxo_pos" => utxo_pos})
   end
 

@@ -17,19 +17,23 @@ defmodule OMG.Watcher.API.Transaction do
   Module provides API for transactions
   """
 
-  alias OMG.Watcher.DB.Transaction
+  alias OMG.Watcher.DB
 
   @doc """
   Retrieves a specific transaction by id
   """
+  @spec get(binary()) :: nil | %DB.Transaction{}
   def get(transaction_id) do
-    Transaction.get(transaction_id, true)
+    DB.Transaction.get(transaction_id, true)
   end
 
   @doc """
-  Retrieves a list of transactions
+  Retrieves a list of transactions that a given address is involved as input or output owner.
+  Length of the list is limited by `limit` argument.
+  If `nil` is given as `address` argument then a list of last 'limit' transactions is returned.
   """
-  def get_transactions(nil, limit), do: Transaction.get_last(limit)
+  @spec get_transactions(nil | OMG.API.Crypto.address_t(), pos_integer()) :: list(%DB.Transaction{})
+  def get_transactions(nil, limit), do: DB.Transaction.get_last(limit)
 
-  def get_transactions(address, limit), do: Transaction.get_by_address(address, limit)
+  def get_transactions(address, limit), do: DB.Transaction.get_by_address(address, limit)
 end

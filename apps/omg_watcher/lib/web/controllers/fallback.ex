@@ -19,16 +19,16 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
 
   use Phoenix.Controller
 
-  alias OMG.Watcher.Web.Serializer
+  alias OMG.Watcher.Web.Serializers
 
   def call(conn, :not_found) do
     data = %{
       object: :error,
-      code: "not_found",
-      description: "Action not found"
+      code: :endpoint_not_found,
+      description: "Endpoint not found"
     }
 
-    json(conn, Serializer.Response.serialize(data, :error))
+    json(conn, Serializers.Response.serialize(data, :error))
   end
 
   def call(conn, :error), do: call(conn, {:error, :unknown_error})
@@ -40,6 +40,6 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
       description: nil
     }
 
-    json(conn, Serializer.Response.serialize(data, :error))
+    json(conn, Serializers.Response.serialize(data, :error))
   end
 end

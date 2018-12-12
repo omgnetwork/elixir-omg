@@ -21,20 +21,20 @@ defmodule OMG.Watcher.Web.View.Transaction do
 
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
-  alias OMG.Watcher.Web.Serializer
+  alias OMG.Watcher.Web.Serializers
 
   require Utxo
 
   def render("transaction.json", %{transaction: transaction}) do
     transaction
     |> render_transaction()
-    |> Serializer.Response.serialize(:success)
+    |> Serializers.Response.serialize(:success)
   end
 
   def render("transactions.json", %{transactions: transactions}) do
     transactions
     |> Enum.map(&render_transaction/1)
-    |> Serializer.Response.serialize(:success)
+    |> Serializers.Response.serialize(:success)
   end
 
   defp render_transaction(transaction) do

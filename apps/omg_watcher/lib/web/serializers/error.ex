@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Serializer.Error do
+defmodule OMG.Watcher.Web.Serializers.Error do
   @moduledoc """
   Serializes error's code and description provided in response's data field.
   """
