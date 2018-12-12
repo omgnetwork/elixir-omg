@@ -37,11 +37,6 @@ defmodule OMG.Watcher.Web.View.Transaction do
     |> Serializer.Response.serialize(:success)
   end
 
-  def render("transaction_encode.json", %{transaction: transaction}) do
-    OMG.API.State.Transaction.encode(transaction)
-    |> Serializer.Response.serialize(:success)
-  end
-
   defp render_transaction(transaction) do
     {:ok,
      %Transaction.Signed{

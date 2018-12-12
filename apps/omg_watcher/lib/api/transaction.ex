@@ -17,7 +17,6 @@ defmodule OMG.Watcher.API.Transaction do
   Module provides API for transactions
   """
 
-  alias OMG.API.State
   alias OMG.Watcher.DB.Transaction
 
   @doc """
@@ -33,11 +32,4 @@ defmodule OMG.Watcher.API.Transaction do
   def get_transactions(nil, limit), do: Transaction.get_last(limit)
 
   def get_transactions(address, limit), do: Transaction.get_by_address(address, limit)
-
-  @doc """
-  Produces hex-encoded transaction bytes for provided inputs and outputs.
-  """
-  def create_from_utxos(inputs, outputs) do
-    State.Transaction.create_from_utxos(inputs, outputs)
-  end
 end
