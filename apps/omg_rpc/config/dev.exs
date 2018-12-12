@@ -27,7 +27,7 @@ config :omg_rpc, OMG.RPC.Web.Endpoint,
 # The `http:` config above can be replaced with:
 #
 #     https: [
-#       port: 4001,
+#       port: 9656,
 #       cipher_suite: :strong,
 #       keyfile: "priv/cert/selfsigned_key.pem",
 #       certfile: "priv/cert/selfsigned.pem"

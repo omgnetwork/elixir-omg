@@ -69,12 +69,12 @@ tx =
 # 2/ Using the Watcher
 
 # we grabbed the first transaction hash as returned by the Child chain server's API (response to `curl`'s request)
-~c(http GET localhost:4000/transaction/#{tx1_hash}) |>
+~c(http GET localhost:7434/transaction/#{tx1_hash}) |>
 :os.cmd() |>
 Poison.decode!()
 
 %{"data" => [_bobs_deposit, %{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
-  ~c(http GET localhost:4000/utxos?address=#{bob_enc}) |>
+  ~c(http GET localhost:7434/utxos?address=#{bob_enc}) |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -83,7 +83,7 @@ Poison.decode!()
 exiting_utxopos = OMG.API.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
 
 %{"data" => composed_exit} =
-  ~c(http GET localhost:4000/utxo/#{exiting_utxopos}/exit_data) |>
+  ~c(http GET localhost:7434/utxo/#{exiting_utxopos}/exit_data) |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -109,7 +109,7 @@ Poison.decode!()
 Eth.WaitFor.eth_receipt(txhash)
 
 %{"data" => challenge} =
-  ~c(http GET localhost:4000/utxo/#{exiting_utxopos}/challenge_data) |>
+  ~c(http GET localhost:7434/utxo/#{exiting_utxopos}/challenge_data) |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -155,7 +155,7 @@ r(OMG.API.State.Core)
 
 # grab a utxo that bob can spend
 %{"data" => [_bobs_deposit, %{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]} =
-  ~c(http GET localhost:4000/utxos?address=#{bob_enc}) |>
+  ~c(http GET localhost:7434/utxos?address=#{bob_enc}) |>
   :os.cmd() |>
   Poison.decode!()
 
