@@ -19,6 +19,8 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   """
   use OMG.Watcher.Web, :controller
 
+  alias OMG.API.Crypto
+  alias OMG.API.Utxo.Position
   alias OMG.Watcher.API.Utxo
   alias OMG.Watcher.Web.View
 
@@ -28,8 +30,9 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
   def get_utxos(conn, params) do
-    with {:ok, address} <- Map.fetch(params, "address") do
-      utxos = Utxo.get_utxos(address)
+    with {:ok, address} <- Map.fetch(params, "address"),
+         {:ok, decoded_address} <- Crypto.decode_address(address) do
+      utxos = Utxo.get_utxos(decoded_address)
 
       render(conn, View.Utxo, :utxos, utxos: utxos)
     end
@@ -37,7 +40,8 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
   def get_utxo_exit(conn, params) do
     with {:ok, utxo_pos} <- Map.fetch(params, "utxo_pos") do
-      utxo_exit = Utxo.compose_utxo_exit(utxo_pos)
+      utxo = Position.decode(utxo_pos)
+      utxo_exit = Utxo.compose_utxo_exit(utxo)
       respond(utxo_exit, conn)
     end
   end

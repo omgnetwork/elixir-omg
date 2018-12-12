@@ -20,6 +20,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
+  alias OMG.API.Crypto
   alias OMG.API.State
   alias OMG.Watcher.API.Transaction
   alias OMG.Watcher.DB
@@ -47,14 +48,26 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   Retrieves a list of transactions
   """
   def get_transactions(conn, params) do
-    address = Map.get(params, "address")
+    address = get_address(params)
     limit = Map.get(params, "limit", @default_transactions_limit)
     {limit, ""} = limit |> Kernel.to_string() |> Integer.parse()
     # TODO: implement pagination. Defend against fetching huge dataset.
     limit = min(limit, @default_transactions_limit)
+
     transactions = Transaction.get_transactions(address, limit)
 
     respond_multiple(transactions, conn)
+  end
+
+  defp get_address(params) do
+    address = Map.get(params, "address")
+
+    if address == nil do
+      nil
+    else
+      {:ok, address} = Crypto.decode_address(address)
+      address
+    end
   end
 
   @doc """

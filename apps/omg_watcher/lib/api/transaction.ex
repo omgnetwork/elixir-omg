@@ -17,7 +17,6 @@ defmodule OMG.Watcher.API.Transaction do
   Module provides API for transactions
   """
 
-  alias OMG.API.Crypto
   alias OMG.API.State
   alias OMG.Watcher.DB.Transaction
 
@@ -31,15 +30,9 @@ defmodule OMG.Watcher.API.Transaction do
   @doc """
   Retrieves a list of transactions
   """
-  def get_transactions(address, limit) do
-    if address == nil do
-      Transaction.get_last(limit)
-    else
-      with {:ok, address_decode} <- Crypto.decode_address(address) do
-        Transaction.get_by_address(address_decode, limit)
-      end
-    end
-  end
+  def get_transactions(nil, limit), do: Transaction.get_last(limit)
+
+  def get_transactions(address, limit), do: Transaction.get_by_address(address, limit)
 
   @doc """
   Produces hex-encoded transaction bytes for provided inputs and outputs.

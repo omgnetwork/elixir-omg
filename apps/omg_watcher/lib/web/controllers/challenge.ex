@@ -20,6 +20,7 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
+  alias OMG.API.Utxo.Position
   alias OMG.Watcher.API.Utxo
   alias OMG.Watcher.Web.View
 
@@ -32,7 +33,8 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   """
   def get_utxo_challenge(conn, params) do
     with {:ok, utxo_pos} <- Map.fetch(params, "utxo_pos") do
-      challenge = Utxo.create_challenge(utxo_pos)
+      utxo = Position.decode(utxo_pos)
+      challenge = Utxo.create_challenge(utxo)
       respond(challenge, conn)
     end
   end

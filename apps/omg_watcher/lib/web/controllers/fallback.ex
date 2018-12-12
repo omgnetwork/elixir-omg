@@ -40,6 +40,6 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
       description: nil
     }
 
-    json(conn, Serializers.Response.serialize(data, :error))
+    json(conn, Serializer.Response.serialize(data, :error))
   end
 end

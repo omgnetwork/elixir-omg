@@ -17,15 +17,12 @@ defmodule OMG.Watcher.API.Account do
   Module provides operations related to plasma accounts.
   """
 
-  alias OMG.API.Crypto
   alias OMG.Watcher.DB
 
   @doc """
   Gets plasma account balance
   """
   def get_balance(address) do
-    with {:ok, decoded_address} <- Crypto.decode_address(address) do
-      DB.TxOutput.get_balance(decoded_address)
-    end
+    DB.TxOutput.get_balance(address)
   end
 end

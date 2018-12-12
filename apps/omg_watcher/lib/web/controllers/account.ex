@@ -20,6 +20,7 @@ defmodule OMG.Watcher.Web.Controller.Account do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
+  alias OMG.API.Crypto
   alias OMG.Watcher.API.Account
   alias OMG.Watcher.Web.View
 
@@ -30,8 +31,9 @@ defmodule OMG.Watcher.Web.Controller.Account do
   """
   def get_balance(conn, params) do
     # TODO: handle input validation (separate task)
-    with {:ok, address} <- Map.fetch(params, "address") do
-      balance = Account.get_balance(address)
+    with {:ok, address} <- Map.fetch(params, "address"),
+         {:ok, decoded_address} <- Crypto.decode_address(address) do
+      balance = Account.get_balance(decoded_address)
       render(conn, View.Account, :balance, balance: balance)
     end
   end

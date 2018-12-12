@@ -17,8 +17,6 @@ defmodule OMG.Watcher.API.Utxo do
   Module provides API for utxos
   """
 
-  alias OMG.API.Crypto
-  alias OMG.API.Utxo
   alias OMG.Watcher.Challenger
   alias OMG.Watcher.DB
 
@@ -26,24 +24,20 @@ defmodule OMG.Watcher.API.Utxo do
   Returns all utxos for an address
   """
   def get_utxos(address) do
-    with {:ok, decoded_address} <- Crypto.decode_address(address) do
-      DB.TxOutput.get_utxos(decoded_address)
-    end
+    DB.TxOutput.get_utxos(address)
   end
 
   @doc """
   Returns exit data for an utxo
   """
-  def compose_utxo_exit(utxo_pos) do
-    utxo = Utxo.Position.decode(utxo_pos)
+  def compose_utxo_exit(utxo) do
     DB.TxOutput.compose_utxo_exit(utxo)
   end
 
   @doc """
   Returns challenge for an utxo exit
   """
-  def create_challenge(utxo_pos) do
-    utxo_pos = Utxo.Position.decode(utxo_pos)
-    Challenger.create_challenge(utxo_pos)
+  def create_challenge(utxo) do
+    Challenger.create_challenge(utxo)
   end
 end

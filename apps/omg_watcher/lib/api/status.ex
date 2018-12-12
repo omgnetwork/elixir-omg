@@ -20,12 +20,12 @@ defmodule OMG.Watcher.API.Status do
   alias OMG.API.State
   alias OMG.Eth
 
-  @type t() :: %{
-          last_validated_child_block_number: non_neg_integer(),
-          last_mined_child_block_number: non_neg_integer(),
-          last_mined_child_block_timestamp: non_neg_integer(),
-          eth_syncing: boolean()
-        }
+  @opaque t() :: %{
+            last_validated_child_block_number: non_neg_integer(),
+            last_mined_child_block_number: non_neg_integer(),
+            last_mined_child_block_timestamp: non_neg_integer(),
+            eth_syncing: boolean()
+          }
 
   @spec get_status() :: {:ok, t()} | {:error, atom}
   def get_status do
