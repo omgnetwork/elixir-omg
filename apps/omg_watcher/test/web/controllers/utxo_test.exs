@@ -89,7 +89,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   end
 
   @tag fixtures: [:initial_blocks, :bob]
-  test "Unspent deposits are a part of utxo set", %{bob: bob} do
+  test "unspent deposits are a part of utxo set", %{bob: bob} do
     utxos = get_utxos(bob.addr)
 
     deposited_utxo = utxos |> Enum.find(&(&1["blknum"] < 1000))
@@ -176,7 +176,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
-  test "Outputs with value zero are not inserted into DB, the other has correct oindex", %{alice: alice} do
+  test "outputs with value zero are not inserted into DB, the other has correct oindex", %{alice: alice} do
     blknum = 11_000
 
     DB.Transaction.update_with(%{

@@ -14,7 +14,7 @@
 
 defmodule OMG.Watcher.API.Utxo do
   @moduledoc """
-  Module provides operations related to plasma accounts.
+  Module provides API for utxos
   """
 
   alias OMG.API.Crypto
@@ -22,17 +22,26 @@ defmodule OMG.Watcher.API.Utxo do
   alias OMG.Watcher.Challenger
   alias OMG.Watcher.DB
 
+  @doc """
+  Returns all utxos for an address
+  """
   def get_utxos(address) do
     with {:ok, decoded_address} <- Crypto.decode_address(address) do
       DB.TxOutput.get_utxos(decoded_address)
     end
   end
 
+  @doc """
+  Returns exit data for an utxo
+  """
   def compose_utxo_exit(utxo_pos) do
     utxo = Utxo.Position.decode(utxo_pos)
     DB.TxOutput.compose_utxo_exit(utxo)
   end
 
+  @doc """
+  Returns challenge for an utxo exit
+  """
   def create_challenge(utxo_pos) do
     utxo_pos = Utxo.Position.decode(utxo_pos)
     Challenger.create_challenge(utxo_pos)

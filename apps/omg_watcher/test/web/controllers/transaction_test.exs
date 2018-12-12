@@ -59,9 +59,9 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     ]
   end
 
-  describe "transaction/:id -" do
+  describe "getting transaction by id" do
     @tag fixtures: [:initial_blocks, :alice, :bob]
-    test "endpoint returns expected transaction format", %{
+    test "returns transaction in expected format", %{
       initial_blocks: initial_blocks,
       alice: alice,
       bob: bob
@@ -100,7 +100,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "endpoint returns error for non exsiting transaction" do
+    test "returns error for non exsiting transaction" do
       txhash = "055673FF58D85BFBF6844BAD62361967C7D19B6A4768CE4B54C687B65728D721"
 
       assert %{
@@ -112,7 +112,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
   describe "getting transactions by address" do
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
-    test "endpoint returns tx that contain requested address as the sender and not recipient", %{
+    test "returns tx that contains requested address as the sender and not recipient", %{
       alice: alice,
       bob: bob
     } do
@@ -142,7 +142,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
-    test "endpoint returns tx that contains requested address as both sender & recipient is listed once", %{
+    test "returns tx that contains requested address as both sender & recipient is listed once", %{
       alice: alice,
       bob: bob
     } do
@@ -167,7 +167,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
-    test "endpoint returns tx without inputs and contains requested address as recipient", %{
+    test "returns tx without inputs and contains requested address as recipient", %{
       alice: alice,
       bob: bob
     } do
@@ -192,7 +192,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
-    test "endpoint returns tx without outputs (amount = 0) and contains requested address as sender", %{
+    test "returns tx without outputs (amount = 0) and contains requested address as sender", %{
       alice: alice,
       bob: bob
     } do
@@ -222,7 +222,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
-    test "endpoint returns 2 last transactions", %{
+    test "returns last 2 transactions", %{
       alice: alice,
       bob: bob
     } do
@@ -284,7 +284,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
   end
 
-  describe "transactions?limit" do
+  describe "getting transactions with limit on number of transactions" do
     @tag fixtures: [:initial_blocks]
     test "limiting all transactions without address filter" do
       txs = TestHelper.success?("/transaction.all", %{"limit" => 2})
@@ -308,7 +308,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
   end
 
-  describe "POST transaction/" do
+  describe "encoding transaction" do
     @tag fixtures: [:phoenix_ecto_sandbox, :alice, :bob, :inputs, :outputs]
     test "returns properly formatted transaction bytes", %{alice: alice, bob: bob, inputs: inputs, outputs: outputs} do
       alias OMG.API.State.Transaction

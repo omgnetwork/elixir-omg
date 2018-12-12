@@ -27,37 +27,35 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
   @other_token <<127::160>>
   @other_token_hex @other_token |> Base.encode16()
 
-  describe "Controller.AccountTest" do
-    @tag fixtures: [:initial_blocks, :alice, :bob]
-    test "Account balance groups account tokens and provide sum of available funds",
-         %{alice: alice, bob: bob} do
-      assert [%{"currency" => @eth_hex, "amount" => 349}] == TestHelper.success?("/account.get_balance", body_for(bob))
+  @tag fixtures: [:initial_blocks, :alice, :bob]
+  test "Account balance groups account tokens and provide sum of available funds",
+       %{alice: alice, bob: bob} do
+    assert [%{"currency" => @eth_hex, "amount" => 349}] == TestHelper.success?("/account.get_balance", body_for(bob))
 
-      # adds other token funds for alice to make more interesting
-      DB.Transaction.update_with(%{
-        transactions: [
-          API.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])
-        ],
-        blknum: 11_000,
-        blkhash: <<?#::256>>,
-        timestamp: :os.system_time(:second),
-        eth_height: 10
-      })
+    # adds other token funds for alice to make more interesting
+    DB.Transaction.update_with(%{
+      transactions: [
+        API.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])
+      ],
+      blknum: 11_000,
+      blkhash: <<?#::256>>,
+      timestamp: :os.system_time(:second),
+      eth_height: 10
+    })
 
-      data = TestHelper.success?("/account.get_balance", body_for(alice))
+    data = TestHelper.success?("/account.get_balance", body_for(alice))
 
-      assert [
-               %{"currency" => @eth_hex, "amount" => 201},
-               %{"currency" => @other_token_hex, "amount" => 377}
-             ] == data |> Enum.sort(&(Map.get(&1, "currency") <= Map.get(&2, "currency")))
-    end
+    assert [
+             %{"currency" => @eth_hex, "amount" => 201},
+             %{"currency" => @other_token_hex, "amount" => 377}
+           ] == data |> Enum.sort(&(Map.get(&1, "currency") <= Map.get(&2, "currency")))
+  end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "Account balance for non-existing account responds with empty array" do
-      no_account = %{addr: <<0::160>>}
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "Account balance for non-existing account responds with empty array" do
+    no_account = %{addr: <<0::160>>}
 
-      assert [] == TestHelper.success?("/account.get_balance", body_for(no_account))
-    end
+    assert [] == TestHelper.success?("/account.get_balance", body_for(no_account))
   end
 
   defp body_for(%{addr: address}) do

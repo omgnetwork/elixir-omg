@@ -14,7 +14,7 @@
 
 defmodule OMG.Watcher.API.Transaction do
   @moduledoc """
-  Module provides operations related to plasma accounts.
+  Module provides API for transactions
   """
 
   alias OMG.API.Crypto
@@ -22,7 +22,7 @@ defmodule OMG.Watcher.API.Transaction do
   alias OMG.Watcher.DB.Transaction
 
   @doc """
-  Retrieves a specific transaction by id.
+  Retrieves a specific transaction by id
   """
   def get(transaction_id) do
     Transaction.get(transaction_id, true)

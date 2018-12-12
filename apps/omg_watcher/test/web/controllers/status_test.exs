@@ -20,33 +20,31 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
 
   @moduletag :integration
 
-  describe "Controller.StatusTest" do
-    @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]
-    test "status endpoint returns expected response format" do
-      assert %{
-               "last_validated_child_block_number" => last_validated_child_block_number,
-               "last_mined_child_block_number" => last_mined_child_block_number,
-               "last_mined_child_block_timestamp" => last_mined_child_block_timestamp,
-               "eth_syncing" => eth_syncing
-             } = TestHelper.success?("/status.get")
+  @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]
+  test "status endpoint returns expected response format" do
+    assert %{
+             "last_validated_child_block_number" => last_validated_child_block_number,
+             "last_mined_child_block_number" => last_mined_child_block_number,
+             "last_mined_child_block_timestamp" => last_mined_child_block_timestamp,
+             "eth_syncing" => eth_syncing
+           } = TestHelper.success?("/status.get")
 
-      assert is_integer(last_validated_child_block_number)
-      assert is_integer(last_mined_child_block_number)
-      assert is_integer(last_mined_child_block_timestamp)
-      assert is_atom(eth_syncing)
-    end
+    assert is_integer(last_validated_child_block_number)
+    assert is_integer(last_mined_child_block_number)
+    assert is_integer(last_mined_child_block_timestamp)
+    assert is_atom(eth_syncing)
+  end
 
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "status endpoint returns error when ethereum node is missing" do
-      # we're not running geth, but need to pretend that the root chain contract is configured somehow though:
-      Application.put_env(:omg_eth, :contract_addr, "0x00", persistent: true)
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "status endpoint returns error when ethereum node is missing" do
+    # we're not running geth, but need to pretend that the root chain contract is configured somehow though:
+    Application.put_env(:omg_eth, :contract_addr, "0x00", persistent: true)
 
-      {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
+    {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
 
-      assert %{"code" => "internal_server_error", "description" => "econnrefused"} =
-               TestHelper.server_error?("/status.get")
+    assert %{"code" => "internal_server_error", "description" => "econnrefused"} =
+             TestHelper.server_error?("/status.get")
 
-      started_apps |> Enum.each(fn app -> :ok = Application.stop(app) end)
-    end
+    started_apps |> Enum.each(fn app -> :ok = Application.stop(app) end)
   end
 end
