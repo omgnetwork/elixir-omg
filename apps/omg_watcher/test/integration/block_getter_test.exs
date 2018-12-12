@@ -29,8 +29,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.RPC.Client
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.Integration.TestServer
   alias OMG.Watcher.TestHelper
-  alias OMG.Watcher.TestServer
   alias OMG.Watcher.Web.Channel
   alias OMG.Watcher.Web.Serializers.Response
 

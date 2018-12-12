@@ -5,7 +5,7 @@ services:
   
 branches:
   only:
-  - develop
+  - master
 
 before_install:
   - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD 

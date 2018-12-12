@@ -36,11 +36,11 @@ ex_unit_fixtures        -> MIT
 exexec 0.1.0            -> Apache 2.0
 exleveldb 0.11.1        -> Apache 2.0
 exth_crypto 0.1.4       -> MIT
+fake_server 1.5.0       -> Apache 2.0
 hackney 1.12.1          -> Apache 2
 hex_prefix 0.1.0        -> MIT
 httpoison 1.1.1         -> MIT
 idna 5.1.1              -> BSD
-jsonrpc2 1.0.3          -> Apache 2.0
 keccakf1600 2.0.0       -> MPL 2.0 (ok'd by legal, compliant with our Apache 2.0)
 libsecp256k1 0.1.4      -> MIT
 licensir 0.2.7          -> MIT

@@ -94,5 +94,5 @@ Submitting the Base16 encoded transaction as String to child chain server via JS
 
 Illustrated using curl command:
 ```
-curl “http://localhost:9656” -d ‘{“params”:{“transaction”: <base16Encoded> }, “method”: “submit”, “jsonrpc”: “2.0",“id”:0}’
+curl -X POST -H "Content-Type: application/json" -d ‘{“transaction”: "<rlp encoded plasma transaction in hex>" }’ “http://localhost:9656/transaction.submit”
 ```

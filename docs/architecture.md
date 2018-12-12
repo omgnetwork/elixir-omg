@@ -19,7 +19,7 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 - for `OMG.Eth` look in `apps/omg_eth`
 - for `OMG.DB` look in `apps/omg_db`
 - for `OMG.Performance` look in `apps/omg_performance`
-- for `OMG.JSONRPC` look in `apps/omg_jsonrpc`
+- for `OMG.RPC` look in `apps/omg_rpc`
 
 **NOTE 2** The hexagonal shape hints towards component being a wrapper (port/adapter) to something external, versus rectangular shape being an internal component.
 

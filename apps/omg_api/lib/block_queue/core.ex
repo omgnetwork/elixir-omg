@@ -333,7 +333,24 @@ defmodule OMG.API.BlockQueue.Core do
          },
          is_empty_block
        ) do
-    parent_height - last_enqueued_block_at_height > minimal_enqueue_block_gap and !wait_for_enqueue and !is_empty_block
+    it_is_time = parent_height - last_enqueued_block_at_height > minimal_enqueue_block_gap
+    should_form_block = it_is_time and !wait_for_enqueue and !is_empty_block
+
+    _ =
+      if !should_form_block do
+        log_data = %{
+          parent_height: parent_height,
+          last_enqueued_block_at_height: last_enqueued_block_at_height,
+          minimal_enqueue_block_gap: minimal_enqueue_block_gap,
+          wait_for_enqueue: wait_for_enqueue,
+          it_is_time: it_is_time,
+          is_empty_block: is_empty_block
+        }
+
+        Logger.debug(fn -> "Skipping forming block because: #{inspect(log_data)}" end)
+      end
+
+    should_form_block
   end
 
   defp calc_nonce(height, interval) do

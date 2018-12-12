@@ -19,7 +19,7 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
   """
 
   alias OMG.RPC.Client
-  alias OMG.Watcher.TestServer
+  alias OMG.Watcher.Integration.TestServer
   alias OMG.Watcher.Web.Serializers.Response
 
   @doc """

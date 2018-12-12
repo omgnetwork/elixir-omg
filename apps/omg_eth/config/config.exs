@@ -1,7 +1,7 @@
 use Mix.Config
 
 config :ethereumex,
-  url: "http://localhost:8545",
+  url: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545",
   request_timeout: 5000
 
 config :omg_eth,

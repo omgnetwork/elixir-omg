@@ -325,7 +325,6 @@ Bob’s exit will have priority of position of `UTXO2`.
 9. Bob receives the value of `UTXO2` first, Operator receives the value of `UTXO4` second (ideally contract is empty by this point).
 All bonds are refunded.
 
-
 ### Operator tries to steal funds from an in-flight transaction.
 
 1. Alice spends `UTXO1` in `TX1` to Bob, creating `UTXO2`.
@@ -342,6 +341,43 @@ Bob’s exit will have priority of position of `UTXO1`.
 11. Bob receives the value of `UTXO2` first, Operator receives the value of `UTXO4` second (ideally contract is empty by this point).
 All bonds are refunded.
 
+### Operator tries to steal funds from a multi-input in-flight transaction.
+
+1. Alice spends `UTXO1a`, Malory spends `UTXO1m` in `TX1` to Bob, creating `UTXO2`.
+2. `TX1` is in-flight.
+3. Operator creates invalid deposit, creating `UTXO3`.
+4. Operator spends `UTXO3` in `TX3`, creating `UTXO4`.
+5. Operator starts an exit referencing `TX3` and places `exit bond`.
+6. Operator piggybacks onto the exit and places `piggyback bond`
+7. Malory starts an exit referencing `TX1` and places `exit bond`.
+8. Bob piggybacks onto the exit and places `piggyback bond`.
+9. Alice piggybacks onto the exit and places `piggyback bond`.
+9. Mallory double-spends `UTXO1m` in `TX2` and broadcasts.
+9. Operator includes `TX2` and submits as a competitor to `TX1` rendering it non-canonical
+10. Operator's exit of `TX3` will have priority of position of `UTXO3`.
+Alice-Mallory exit will have priority of position of `UTXO1`.
+11. Alice receives the value of `UTXO1a` first, Operator receives the value of `UTXO4` second (ideally contract is empty by this point).
+Bob receives nothing.
+Mallory's `exit bond` goes to the Operator.
+Mallory's `TX2` is canonical and owners of outputs can attempt to exit them.
+
+### Honest receiver should not start in-flight exits
+
+An honest user obtaining knowledge about an in-flight transaction **crediting** them **should not** start an exit, otherwise risks having their exit bond slashed.
+
+The out-of-band process in such event should always put the burden of starting in-flight exits **on the sender**.
+
+The following scenario demonstrates an attack that is **possible if receivers are too eager to start in-flight exits**:
+1. Mallory spends `UTXO1` in `TX1` to Bob, creating `UTXO2`.
+2. `TX1` is in-flight.
+3. Operator begins withholding blocks while `TX1` is still in-flight.
+4. Bob **eaglerly** starts an exit referencing `TX1` and places `exit bond`.
+5. Mallory spends `UTXO1` in `TX2`.
+6. In period 1 of the exit for `TX1`, Mallory challenges the canonicity of `TX1` by revealing `TX2`.
+7. No one is able to respond to the challenge in period 2, so `TX1` is determined to be non-canonical.
+8. After period 2, Mallory receives Bob’s `exit bond`, no one exits any UTXOs.
+
+Mallory has therefore caused Bob to lose `exit bond`, even though Bob was acting honestly.
 
 ### Attack Vectors and Mitigations
 
@@ -351,18 +387,36 @@ It’s possible for an honest user to start an exit and have their exit bond sla
 This can occur if one of the inputs to a transaction is malicious and signs a second transaction spending the same input.
 
 The following scenario demonstrates this attack:
-1. Mallory spends `UTXO1` in `TX1` to Bob, creating `UTXO2`.
+1. Mallory spends `UTXO1m` and Alice spends `UTXO1a` in `TX1` to Bob, creating `UTXO2`.
 2. `TX1` is in-flight.
 3. Operator begins withholding blocks while `TX1` is still in-flight.
-4. Bob starts an exit referencing `TX1` and places `exit bond`.
-5. Mallory spends `UTXO1` in `TX2`.
+4. Alice starts an exit referencing `TX1` and places `exit bond`.
+4. Alice piggybacks onto the exit and places `piggyback bond`.
+5. Mallory spends `UTXO1m` in `TX2`.
 6. In period 1 of the exit for `TX1`, Mallory challenges the canonicity of `TX1` by revealing `TX2`.
 7. No one is able to respond to the challenge in period 2, so `TX1` is determined to be non-canonical.
-8. After period 2, Mallory receives Bob’s `exit bond`, no one exits any UTXOs.
+8. After period 2, Mallory receives Alice's `exit bond`, Alice receives `UTXO1a` and `piggyback bond`.
 
-Mallory has therefore caused Bob to lose `exit bond`, even though Bob was acting honestly.
+Mallory has therefore caused Alice to lose `exit bond`, even though Alice was acting honestly.
 We want to mitigate the impact of this attack as much as possible so that this does not prevent users from receiving funds.
 
+**NOTE** in the scenarios where Mallory double-spends her input, she doesn't get to successfully piggyback that, unless the operator includes and makes canonical her double-spending transaction.
+As a result she might lose more than she's getting from stolen `exit bonds`.
+
+#### Honest transaction retries attack
+
+Retrying a transaction that has failed for a trivial reason is not safe under MoreVP.
+
+Scenario is:
+1. Honest Alice creates/signs/submits a transaction `tx1`
+2. This fails, either loudly (error response from child chain server) or quietly (no response) - `tx1` doesn't get included in a block
+3. Alice is forced to in-flight exit, even if she just made a trivial mistake (e.g. incorrect fee)
+4. If instead Alice retries with amended `tx2`, then she opens an attack on her funds:
+    - if the child chain is nice, `tx2` will get included in a valid, non-withheld block, all is good
+    - if the child chain decides to go rogue, Alice is left defenseless, because she double-spent her input, i.e. she can't in-flight exit neither `tx1` nor `tx2` anymore
+
+See [Timeouts section](docs/morevp.md#Timeouts) for discussion on one possible mitigation.
+However, due to uncertainty of timeouts in MoreVP, other mitigations for the retry problem might be necessary.
 
 ##### Mitigations for Honest Exit Bond Slashing
 
@@ -386,11 +440,14 @@ Our system requires only a single node be properly incentivized to challenge, an
 Modeling the “correct” size of the exit bond is an ongoing area of research.
 
 
-###### Timeouts
+##### Timeouts
 
-We can add timeouts to each transaction (“must be included in the chain by block X”) to reduce number of vulnerable transactions at any point in time.
+We can add timeouts to each transaction (“must be included in the chain by block X”) to
+ - reduce number of transactions vulnerable to [**Honest Exit Bond Slashing**](docs/morevp.md#Honest-Exit-Bond-Slashing) point in time.
+ - alleviate [**Honest transaction retries attack**](docs/morevp.md#Honest-transaction-retries-attack), allowing Alice to just wait the timeout and retry
 This will probably also be necessary from a user experience point of view, as we don’t want users to accidentally sign a double-spend simply because the first transaction hasn’t been processed yet.
 
+**TODO** At this point, it is uncertain how the timeouts scheme would modify MoreVP and whether it's feasible at all.
 
 ## Appendix
 
