@@ -59,16 +59,12 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     respond_multiple(transactions, conn)
   end
 
-  defp get_address(params) do
-    address = Map.get(params, "address")
-
-    if address == nil do
-      nil
-    else
-      {:ok, address} = Crypto.decode_address(address)
-      address
-    end
+  defp get_address(%{"address" => address}) do
+    {:ok, address} = Crypto.decode_address(address)
+    address
   end
+
+  defp get_address(_), do: nil
 
   defp respond_multiple(transactions, conn),
     do: render(conn, View.Transaction, :transactions, transactions: transactions)
