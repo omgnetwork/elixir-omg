@@ -80,12 +80,7 @@ defmodule OMG.Eth do
   end
 
   def get_bytecode!(path_project_root, contract_name) do
-    %{"evm" => %{"bytecode" => %{"object" => bytecode}}} =
-      path_project_root
-      |> read_contracts_json!(contract_name)
-      |> Poison.decode!()
-
-    "0x" <> bytecode
+    "0x" <> read_contracts_bin!(path_project_root, contract_name)
   end
 
   defp encode_tx_data(signature, args) do
@@ -113,8 +108,8 @@ defmodule OMG.Eth do
          do: {:ok, from_hex(txhash)}
   end
 
-  defp read_contracts_json!(path_project_root, contract_name) do
-    path = "contracts/build/#{contract_name}.json"
+  defp read_contracts_bin!(path_project_root, contract_name) do
+    path = "_build/contracts/#{contract_name}.bin"
 
     case File.read(Path.join(path_project_root, path)) do
       {:ok, contract_json} ->
