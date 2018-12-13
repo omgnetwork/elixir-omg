@@ -22,7 +22,14 @@ defmodule OMG.Watcher.Mixfile do
   def application do
     [
       env: [
-        eth_exit_finality_margin: 12
+        exit_processor_sla_margin: 4 * 60,
+        maximum_block_withholding_time_ms: 1_200_000,
+        block_getter_height_sync_interval_ms: 2_000,
+        maximum_number_of_unapplied_blocks: 50,
+        exit_processor_validation_interval_ms: 5_000,
+        exit_finality_margin: 12,
+        block_reorg_margin: 20,
+        convenience_api_mode: false
       ],
       mod: {OMG.Watcher.Application, []},
       extra_applications: [:logger, :runtime_tools]

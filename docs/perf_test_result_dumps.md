@@ -67,3 +67,30 @@ typical block forming log:
 ```
 
 run on: as above.
+
+## `869c964df00c17a54b399c33c8e917d23ab05dd7`, 2018-12-07
+
+Command as above (new syntax):
+
+```
+mix run --no-start -e 'OMG.Performance.start_simple_perftest(8_000, 32, %{block_every_ms: 15_000})'
+```
+
+```
+[
+   {"blknum":1000, "span_ms":16488, "tps":3157.27, "txs":52057},
+   {"blknum":2000, "span_ms":15219, "tps":2973.52, "txs":45254},
+   {"blknum":3000, "span_ms":14964, "tps":2789.49, "txs":41742},
+   {"blknum":4000, "span_ms":14740, "tps":2847.01, "txs":41965},
+   {"blknum":5000, "span_ms":14889, "tps":3005.04, "txs":44742},
+   {"blknum":6000, "span_ms":7210, "tps":4194.17, "txs":30240}
+]
+```
+
+and
+
+```
+2018-12-07 15:14:44.129 [info] ... ⋅Calculations for forming block number 3000 done in 1391 ms⋅
+```
+
+Some drop in throughput since last dump, but still bottlenecks lie elsewhere.

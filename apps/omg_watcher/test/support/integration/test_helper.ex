@@ -74,4 +74,14 @@ defmodule OMG.Watcher.Integration.TestHelper do
         else: {:ok, block_nr}
     end
   end
+
+  @doc """
+  We need to wait on both a margin of eth blocks and exit processing
+  """
+  def wait_for_exit_processing(exit_eth_height, timeout \\ 5_000) do
+    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
+    exit_finality = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+    Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + exit_finality, timeout)
+    Process.sleep(exit_processor_validation * 2)
+  end
 end

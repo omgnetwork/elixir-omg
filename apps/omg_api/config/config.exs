@@ -1,13 +1,10 @@
 use Mix.Config
 
-config :omg_eth, child_block_interval: 1000
-
 config :omg_api,
-  eth_deposit_finality_margin: 10,
-  eth_submission_finality_margin: 20,
-  ethereum_event_check_height_interval_ms: 1_000,
-  rootchain_height_sync_interval_ms: 1_000,
-  child_block_minimal_enquque_gap: 4,
+  deposit_finality_margin: 10,
+  submission_finality_margin: 20,
+  ethereum_status_check_interval_ms: 6_000,
+  child_block_minimal_enqueue_gap: 1,
   fee_specs_file_path: "./fee_specs.json"
 
 config :sentry,

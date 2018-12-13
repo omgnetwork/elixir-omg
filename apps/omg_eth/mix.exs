@@ -21,6 +21,9 @@ defmodule OMG.Eth.MixProject do
 
   def application do
     [
+      env: [
+        child_block_interval: 1000
+      ],
       extra_applications: [:logger]
     ]
   end

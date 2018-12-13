@@ -66,7 +66,7 @@ defmodule OMG.API.FeeChecker do
   """
   @spec update_fee_spec() :: :ok | :file_unchanged | {:error, atom()}
   def update_fee_spec do
-    path = Application.get_env(:omg_api, :fee_specs_file_path)
+    path = Application.fetch_env!(:omg_api, :fee_specs_file_path)
 
     with {:reload, changed_at} <- should_load_file(path),
          {:ok, content} <- File.read(path),

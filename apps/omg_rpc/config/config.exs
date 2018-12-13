@@ -17,11 +17,6 @@ config :omg_rpc, OMG.RPC.Web.Endpoint,
   secret_key_base: "TKO1TD87rXknWy9NhAGiEdv0cXm6W88/8G1E0uV0LISh998yZYNNPRZ5vfEexceb",
   render_errors: [view: OMG.RPC.Web.ErrorView, accepts: ~w(json)]
 
-# Configures Elixir's Logger
-config :logger, :console,
-  format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
-
 # Use Poison for JSON parsing in Phoenix
 config :phoenix,
   json_library: Poison,

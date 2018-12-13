@@ -51,8 +51,8 @@ deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
 
 # create and prepare transaction for signing
 tx =
-  Transaction.new([{deposit_blknum, 0, 0}], eth, [{bob.addr, 7}, {alice.addr, 3}]) |>
-  Transaction.sign(alice.priv, <<>>) |>
+  Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
+  Transaction.sign([alice.priv, <<>>]) |>
   Transaction.Signed.encode() |>
   Base.encode16()
 
@@ -63,7 +63,7 @@ tx =
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 # use the hex-encoded tx bytes and `transaction.submit` Http-RPC method described in README.md for child chain server
 
-curl -X POST -H "Content-Type: application/json" -d '{"transaction": "<rlp encoded plasma transaction in hex>"}' "localhost:9656/transaction.submit"
+echo '{"transaction": "<rlp encoded plasma transaction in hex>"}' | http POST "localhost:9656/transaction.submit"
 
 # see the Watcher getting a 1-txs block
 ```
@@ -97,8 +97,8 @@ exiting_utxopos = OMG.API.Utxo.Position.encode({:utxo_position, exiting_utxo_blk
   Poison.decode!()
 
 tx2 =
-  Transaction.new([{exiting_utxo_blknum, 0, 0}], eth, [{bob.addr, 7}]) |>
-  Transaction.sign(bob.priv, <<>>) |>
+  Transaction.new([{exiting_utxo_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
+  Transaction.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
   Base.encode16()
 
@@ -168,8 +168,8 @@ r(OMG.API.State.Core)
   Poison.decode!()
 
 tx2 =
-  Transaction.new([{spend_blknum, 0, 0}], eth, [{bob.addr, 7}]) |>
-  Transaction.sign(bob.priv, <<>>) |>
+  Transaction.new([{spend_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
+  Transaction.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
   Base.encode16()
 

@@ -21,13 +21,18 @@ defmodule Mix.Tasks.Xomg.ChildChain.Start do
 
   @shortdoc "Start the child chain server. See Mix.Tasks.ChildChain"
 
+  # TODO: a lot of this code is duplicated in other `Mix.Tasks` modules. How to DRY elegantly?
   def run(args) do
     args = ensure_contains(args, "--no-start")
     args = ensure_doesnt_contain(args, "--no-halt")
 
     Mix.Task.run("run", args)
     {:ok, _} = Application.ensure_all_started(:omg_api)
-    Process.sleep(:infinity)
+    iex_running?() || Process.sleep(:infinity)
+  end
+
+  defp iex_running? do
+    Code.ensure_loaded?(IEx) and IEx.started?()
   end
 
   defp ensure_contains(args, arg) do

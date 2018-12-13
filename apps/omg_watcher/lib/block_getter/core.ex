@@ -40,7 +40,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     @moduledoc false
     defstruct [
       :block_interval,
-      :finality_margin,
+      :block_reorg_margin,
       maximum_number_of_pending_blocks: 10,
       maximum_block_withholding_time_ms: 0,
       maximum_number_of_unapplied_blocks: 50
@@ -107,7 +107,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block,
   using `child_block_interval` when progressing from one child block to another,
   `synced_height` as the root chain height up to witch all published blocked were processed
-  and `finality_margin` as number of root chain blocks that may change during an reorg
+  and `block_reorg_margin` as number of root chain blocks that may change during an reorg
 
   Opts can be:
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
@@ -119,7 +119,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         block_number,
         child_block_interval,
         synced_height,
-        finality_margin,
+        block_reorg_margin,
         last_persisted_block,
         state_at_block_beginning,
         opts \\ []
@@ -135,7 +135,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
         unapplied_blocks: %{},
         potential_block_withholdings: %{},
         config:
-          struct(Config, Keyword.merge(opts, block_interval: child_block_interval, finality_margin: finality_margin))
+          struct(
+            Config,
+            Keyword.merge(opts, block_interval: child_block_interval, block_reorg_margin: block_reorg_margin)
+          )
       }
 
       {:ok, state}
@@ -186,7 +189,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         %__MODULE__{synced_height: synced_height, config: config},
         coordinator_height
       ) do
-    {max(0, synced_height - config.finality_margin), coordinator_height}
+    {max(0, synced_height - config.block_reorg_margin), coordinator_height}
   end
 
   @doc """

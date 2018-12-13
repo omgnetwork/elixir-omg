@@ -296,8 +296,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       |> Eth.DevHelpers.transact_sync!()
 
     # Here we're waiting for passing of margin of slow validator(m_sv)
-    margin_slow_validator = Application.get_env(:omg_watcher, :margin_slow_validator)
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + margin_slow_validator, @timeout)
+    exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
 
     # Here we're manually submitting invalid block to the root chain
     {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
