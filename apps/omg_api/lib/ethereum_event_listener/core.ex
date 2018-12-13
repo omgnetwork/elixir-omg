@@ -21,7 +21,8 @@ defmodule OMG.API.EthereumEventListener.Core do
             next_event_height_lower_bound: nil,
             synced_height: nil,
             service_name: nil,
-            block_finality_margin: 10
+            block_finality_margin: 10,
+            sync_mode: nil
 
   @type event :: any
 
@@ -30,16 +31,18 @@ defmodule OMG.API.EthereumEventListener.Core do
           next_event_height_lower_bound: non_neg_integer(),
           synced_height: non_neg_integer(),
           service_name: atom(),
-          block_finality_margin: non_neg_integer()
+          block_finality_margin: non_neg_integer(),
+          sync_mode: atom()
         }
 
-  def init(update_key, service_name, last_synced_ethereum_height, block_finality_margin) do
+  def init(update_key, service_name, last_synced_ethereum_height, block_finality_margin, sync_mode) do
     %__MODULE__{
       synced_height_update_key: update_key,
       next_event_height_lower_bound: max(last_synced_ethereum_height - block_finality_margin + 1, 0),
       synced_height: last_synced_ethereum_height,
       service_name: service_name,
-      block_finality_margin: block_finality_margin
+      block_finality_margin: block_finality_margin,
+      sync_mode: sync_mode
     }
   end
 

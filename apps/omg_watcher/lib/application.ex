@@ -79,7 +79,8 @@ defmodule OMG.Watcher.Application do
                service_name: :depositor,
                get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
                process_events_callback: &deposit_events_callback/1,
-               get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0
+               get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0,
+               sync_mode: :sync_with_root_chain
              }
            ]}
       },
@@ -95,7 +96,8 @@ defmodule OMG.Watcher.Application do
                service_name: :exit_processor,
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,
                process_events_callback: &OMG.Watcher.ExitProcessor.new_exits/1,
-               get_last_synced_height_callback: &OMG.DB.last_exit_processor_eth_height/0
+               get_last_synced_height_callback: &OMG.DB.last_exit_processor_eth_height/0,
+               sync_mode: :sync_with_coordinator
              }
            ]}
       },
@@ -110,7 +112,8 @@ defmodule OMG.Watcher.Application do
                service_name: :exit_finalizer,
                get_events_callback: &OMG.Eth.RootChain.get_finalizations/2,
                process_events_callback: &OMG.Watcher.ExitProcessor.finalize_exits/1,
-               get_last_synced_height_callback: &OMG.DB.last_exit_finalizer_eth_height/0
+               get_last_synced_height_callback: &OMG.DB.last_exit_finalizer_eth_height/0,
+               sync_mode: :sync_with_coordinator
              }
            ]}
       },
@@ -125,7 +128,8 @@ defmodule OMG.Watcher.Application do
                service_name: :exit_challenger,
                get_events_callback: &OMG.Eth.RootChain.get_challenges/2,
                process_events_callback: &OMG.Watcher.ExitProcessor.challenge_exits/1,
-               get_last_synced_height_callback: &OMG.DB.last_exit_challenger_eth_height/0
+               get_last_synced_height_callback: &OMG.DB.last_exit_challenger_eth_height/0,
+               sync_mode: :sync_with_coordinator
              }
            ]}
       },

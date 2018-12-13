@@ -110,6 +110,14 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     refute_push("invalid_exit", _, 2_000)
   end
 
+#  def "invalid exit is detected after block withholding" do
+#
+#  end
+#
+#  def "invalid exit is detected after invalid block" do
+#
+#  end
+
   # clears the mailbox of `self()`. Useful to purge old events that shouldn't be emitted anymore after some action
   defp clear_mailbox do
     receive do
