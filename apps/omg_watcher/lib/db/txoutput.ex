@@ -26,8 +26,19 @@ defmodule OMG.Watcher.DB.TxOutput do
 
   require Utxo
 
-  import Ecto.Changeset
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query, only: [from: 2, where: 2]
+
+  @type balance() :: %{
+          currency: binary(),
+          amount: non_neg_integer()
+        }
+
+  @type exit_t() :: %{
+          utxo_pos: pos_integer(),
+          txbytes: binary(),
+          proof: binary(),
+          sigs: binary()
+        }
 
   @primary_key false
   schema "txoutputs" do
@@ -47,12 +58,13 @@ defmodule OMG.Watcher.DB.TxOutput do
     belongs_to(:exit, DB.EthEvent, foreign_key: :spending_exit, references: :hash, type: :binary)
   end
 
+  @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
   def compose_utxo_exit(Utxo.position(blknum, txindex, _) = decoded_utxo_pos) do
     txs = DB.Transaction.get_by_blknum(blknum)
 
     if Enum.any?(txs, &match?(%{txindex: ^txindex}, &1)),
       do: {:ok, compose_utxo_exit(txs, decoded_utxo_pos)},
-      else: {:error, :no_tx_for_given_blknum}
+      else: {:error, :utxo_not_found}
   end
 
   def compose_utxo_exit(txs, Utxo.position(_blknum, txindex, _) = decoded_utxo_pos) do
@@ -98,6 +110,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     Repo.all(query)
   end
 
+  @spec get_balance(OMG.API.Crypto.address_t()) :: list(balance())
   def get_balance(owner) do
     query =
       from(
@@ -118,12 +131,11 @@ defmodule OMG.Watcher.DB.TxOutput do
   @spec spend_utxos([map()]) :: :ok
   def spend_utxos(db_inputs) do
     db_inputs
-    |> Enum.each(fn {utxo_pos, spending_oindex, spending_txhash} ->
-      if utxo = DB.TxOutput.get_by_position(utxo_pos) do
-        utxo
-        |> change(spending_tx_oindex: spending_oindex, spending_txhash: spending_txhash)
-        |> Repo.update!()
-      end
+    |> Enum.each(fn {Utxo.position(blknum, txindex, oindex), spending_oindex, spending_txhash} ->
+      _ =
+        DB.TxOutput
+        |> where(blknum: ^blknum, txindex: ^txindex, oindex: ^oindex)
+        |> Repo.update_all(set: [spending_tx_oindex: spending_oindex, spending_txhash: spending_txhash])
     end)
   end
 

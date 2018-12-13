@@ -22,12 +22,9 @@ defmodule OMG.Watcher.Web.Controller.FallbackTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "fallback returns error for non existing endpoint" do
       %{
-        "data" => %{
-          "code" => "internal_server_error",
-          "description" => "endpoint_not_found"
-        },
-        "result" => "error"
-      } = TestHelper.rest_call(:get, "/non_exsisting_endpoint", nil, 500)
+        "code" => "endpoint_not_found",
+        "description" => "Endpoint not found"
+      } = TestHelper.no_success?("/non_exsisting_endpoint")
     end
   end
 end

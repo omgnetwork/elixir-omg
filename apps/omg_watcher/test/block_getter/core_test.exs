@@ -638,9 +638,16 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     synced_height = 1
     block_reorg_margin = 5
     state_at_beginning = false
+    last_persisted_block = nil
 
-    assert Core.init(start_block_number, interval, synced_height, block_reorg_margin, state_at_beginning) ==
-             {:error, :not_at_block_beginning}
+    assert Core.init(
+             start_block_number,
+             interval,
+             synced_height,
+             block_reorg_margin,
+             last_persisted_block,
+             state_at_beginning
+           ) == {:error, :not_at_block_beginning}
   end
 
   test "BlockGetter omits submissions of already applied blocks" do
@@ -815,7 +822,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       opts: opts
     } = defaults |> Keyword.merge(opts) |> Map.new()
 
-    {:ok, state} = Core.init(start_block_number, interval, synced_height, block_reorg_margin, state_at_beginning, opts)
+    {:ok, state} =
+      Core.init(start_block_number, interval, synced_height, block_reorg_margin, nil, state_at_beginning, opts)
+
     state
   end
 
