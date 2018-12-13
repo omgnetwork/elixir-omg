@@ -14,7 +14,7 @@
 
 defmodule OMG.Watcher.DB.EthEvent do
   @moduledoc """
-  Ecto schema for transaction's output (or input)
+  Ecto schema for events logged by Ethereum: deposits and exits
   """
   use Ecto.Schema
 
