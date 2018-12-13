@@ -27,47 +27,65 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
   @other_token <<127::160>>
   @other_token_hex @other_token |> Base.encode16()
 
-  describe "Controller.AccountTest" do
-    @tag fixtures: [:initial_blocks, :alice, :bob]
-    test "Account balance groups account tokens and provide sum of available funds",
-         %{alice: alice, bob: bob} do
-      assert %{
-               "result" => "success",
-               "data" => [%{"currency" => @eth_hex, "amount" => 349}]
-             } == TestHelper.rest_call(:get, path_for(bob), nil, 200)
+  @tag fixtures: [:initial_blocks, :alice, :bob]
+  test "Account balance groups account tokens and provide sum of available funds",
+       %{alice: alice, bob: bob} do
+    assert [%{"currency" => @eth_hex, "amount" => 349}] == TestHelper.success?("/account.get_balance", body_for(bob))
 
-      # adds other token funds for alice to make more interesting
-      DB.Transaction.update_with(%{
-        transactions: [
-          API.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])
-        ],
-        blknum: 11_000,
-        blkhash: <<?#::256>>,
-        timestamp: :os.system_time(:second),
-        eth_height: 10
-      })
+    # adds other token funds for alice to make more interesting
+    DB.Transaction.update_with(%{
+      transactions: [
+        API.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])
+      ],
+      blknum: 11_000,
+      blkhash: <<?#::256>>,
+      timestamp: :os.system_time(:second),
+      eth_height: 10
+    })
 
-      %{
-        "result" => "success",
-        "data" => data
-      } = TestHelper.rest_call(:get, path_for(alice), nil, 200)
+    data = TestHelper.success?("/account.get_balance", body_for(alice))
 
-      assert [
-               %{"currency" => @eth_hex, "amount" => 201},
-               %{"currency" => @other_token_hex, "amount" => 377}
-             ] == data |> Enum.sort(&(Map.get(&1, "currency") <= Map.get(&2, "currency")))
-    end
-
-    @tag fixtures: [:phoenix_ecto_sandbox]
-    test "Account balance for non-existing account responds with empty array" do
-      no_account = %{addr: <<0::160>>}
-
-      assert %{"result" => "success", "data" => []} == TestHelper.rest_call(:get, path_for(no_account), nil, 200)
-    end
+    assert [
+             %{"currency" => @eth_hex, "amount" => 201},
+             %{"currency" => @other_token_hex, "amount" => 377}
+           ] == data |> Enum.sort(&(Map.get(&1, "currency") <= Map.get(&2, "currency")))
   end
 
-  defp path_for(%{addr: address}) do
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "Account balance for non-existing account responds with empty array" do
+    no_account = %{addr: <<0::160>>}
+
+    assert [] == TestHelper.success?("/account.get_balance", body_for(no_account))
+  end
+
+  defp body_for(%{addr: address}) do
     {:ok, address_encode} = Crypto.encode_address(address)
-    "account/#{address_encode}/balance"
+    %{"address" => address_encode}
+  end
+
+  @tag fixtures: [:initial_blocks, :alice, :bob]
+  test "returns last transactions that involve given address", %{
+    alice: alice,
+    bob: bob
+  } do
+    alice_address = alice.addr |> TestHelper.to_response_address()
+    bob_address = bob.addr |> TestHelper.to_response_address()
+
+    expected_result = [
+      %{
+        "spender1" => bob_address,
+        "spender2" => nil,
+        "newowner1" => bob_address,
+        "newowner2" => alice_address,
+        "eth_height" => 1
+      }
+    ]
+
+    {:ok, address} = Crypto.encode_address(alice.addr)
+    txs = TestHelper.success?("/account.get_transactions", %{"address" => address, "limit" => 1})
+
+    assert expected_result ==
+             txs
+             |> Enum.map(&Map.take(&1, ["spender1", "spender2", "newowner1", "newowner2", "eth_height"]))
   end
 end

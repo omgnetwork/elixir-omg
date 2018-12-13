@@ -99,13 +99,13 @@ defmodule OMG.API.Integration.HappyPathTest do
 
     # sanity checks
     assert {:ok, %{}} = get_block(block_hash)
-    assert {:error, %{"code" => "get_block::not_found"}} = get_block(<<0::size(256)>>)
+    assert {:error, %{"code" => "get_block:not_found"}} = get_block(<<0::size(256)>>)
 
-    assert {:error, %{"code" => "submit::utxo_not_found"}} = submit_transaction(tx)
+    assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(tx)
 
-    assert {:error, %{"code" => "submit::utxo_not_found"}} = submit_transaction(tx2)
+    assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(tx2)
 
-    assert {:error, %{"code" => "submit::utxo_not_found"}} = submit_transaction(token_tx)
+    assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(token_tx)
   end
 
   defp submit_transaction(tx) do
