@@ -27,9 +27,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.RPC.Client
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.Watcher.TestHelper, as: Test
   alias OMG.Watcher.Web.Channel
-  alias OMG.Watcher.Web.Serializer.Response
+  alias OMG.Watcher.Web.Serializers.Response
 
   @moduletag :integration
 
@@ -82,7 +81,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     assert_push("invalid_exit", ^invalid_exit_event, exit_processor_validation + 1_000)
 
     # after the notification has been received, a challenged is composed and sent
-    challenge = get_exit_challenge(deposit_blknum, 0, 0)
+    challenge = IntegrationTest.get_exit_challenge(deposit_blknum, 0, 0)
     {:ok, exit_id} = Eth.RootChain.get_standard_exit_id(utxo_pos)
     assert {:ok, {alice.addr, @eth, 10}} == Eth.RootChain.get_exit(exit_id)
 
@@ -118,13 +117,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     after
       0 -> :ok
     end
-  end
-
-  defp get_exit_challenge(blknum, txindex, oindex) do
-    utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
-    assert %{"result" => "success", "data" => data} = Test.rest_call(:get, "utxo/#{utxo_pos}/challenge_data")
-
-    Test.decode16(data, ["txbytes", "sig"])
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]

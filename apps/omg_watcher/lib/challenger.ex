@@ -34,7 +34,7 @@ defmodule OMG.Watcher.Challenger do
   @doc """
   Returns challenge for an exit
   """
-  @spec create_challenge(Utxo.Position.t()) :: Challenge.t() | {:error, :invalid_challenge_of_exit}
+  @spec create_challenge(Utxo.Position.t()) :: {:ok, Challenge.t()} | {:error, :invalid_challenge_of_exit}
   def create_challenge(utxo_exit) do
     with {:ok, challenging_tx} <- DB.Transaction.get_transaction_challenging_utxo(utxo_exit) do
       {:ok, Core.create_challenge(challenging_tx, utxo_exit)}
