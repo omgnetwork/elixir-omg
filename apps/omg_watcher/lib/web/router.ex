@@ -27,6 +27,7 @@ defmodule OMG.Watcher.Web.Router do
     pipe_through([:api])
 
     post("/account.get_balance", Controller.Account, :get_balance)
+    post("/account.get_transactions", Controller.Transaction, :get_transactions)
 
     post("/transaction.all", Controller.Transaction, :get_transactions)
     post("/transaction.get", Controller.Transaction, :get_transaction)

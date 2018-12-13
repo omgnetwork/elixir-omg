@@ -62,4 +62,30 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
     {:ok, address_encode} = Crypto.encode_address(address)
     %{"address" => address_encode}
   end
+
+  @tag fixtures: [:initial_blocks, :alice, :bob]
+  test "returns last transactions that involve given address", %{
+    alice: alice,
+    bob: bob
+  } do
+    alice_address = alice.addr |> TestHelper.to_response_address()
+    bob_address = bob.addr |> TestHelper.to_response_address()
+
+    expected_result = [
+      %{
+        "spender1" => bob_address,
+        "spender2" => nil,
+        "newowner1" => bob_address,
+        "newowner2" => alice_address,
+        "eth_height" => 1
+      }
+    ]
+
+    {:ok, address} = Crypto.encode_address(alice.addr)
+    txs = TestHelper.success?("/account.get_transactions", %{"address" => address, "limit" => 1})
+
+    assert expected_result ==
+             txs
+             |> Enum.map(&Map.take(&1, ["spender1", "spender2", "newowner1", "newowner2", "eth_height"]))
+  end
 end
