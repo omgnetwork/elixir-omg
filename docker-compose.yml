@@ -1,0 +1,47 @@
+version: "3"
+services:
+  elixir-omg:
+    build: .
+    image: elixir-omg:dockercompose
+
+  contractexchanger:
+    image: jakebunce/contractexchanger:v0.0.1
+    ports:
+    - "5000:5000"
+
+  geth:
+    image: ethereum/client-go:v1.8.20
+    entrypoint: ["geth", "--dev", "--dev.period", "1", "--rpc", "--rpcapi", "personal,web3,eth,net", "--rpcaddr", "0.0.0.0", "--rpcvhosts=*", "--rpcport=8545"]
+    ports:
+    - "8545:8545"
+
+  childchain:
+    image: elixir-omg:dockercompose
+    command: ./launcher.py && mix xomg.child_chain.start --config ~/config.exs
+    environment:
+    - ELIXIR_SERVICE=CHILDCHAIN
+    - CONTRACT_EXCHANGER_URL=http://contractexchanger:5000
+    - ETHEREUM_RPC_URL=http://geth:8545
+    - ETHEREUM_NETWORK=LOCALCHAIN
+    ports:
+    - "9656:9656"
+    depends_on:
+    - contractexchanger
+    - geth
+    - elixir-omg
+
+  watcher:
+    image: elixir-omg:dockercompose
+    command: ./launcher.py && mix xomg.watcher.start --convenience --config ~/config_watcher.exs
+    environment:
+    - ELIXIR_SERVICE=WATCHER
+    - CONTRACT_EXCHANGER_URL=http://docker.for.mac.localhost:5000
+    - ETHEREUM_RPC_URL=http://docker.for.mac.localhost:8545
+    - ETHEREUM_NETWORK=LOCALCHAIN
+    ports:
+    - "4000:4000"
+    depends_on:
+    - contractexchanger
+    - geth
+    - elixir-omg
+    - childchain
