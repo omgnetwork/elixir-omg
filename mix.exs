@@ -40,7 +40,8 @@ defmodule OMG.Umbrella.MixProject do
       # TODO: removing the override is advised, but it gives undefined symbol errors, see
       #       https://github.com/exthereum/exth_crypto/issues/8#issuecomment-416227176
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
-      {:ex_doc, "~> 0.19", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
+      {:sentry, "~> 6.2.0}
     ]
   end
 
@@ -55,14 +56,6 @@ defmodule OMG.Umbrella.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"]
     ]
   end
-
-def application do
-  [
-    env: [
-      extra_applications: [:sentry, :logger]
-    ]
-  ]
-end
 
   defp dialyzer do
     [
