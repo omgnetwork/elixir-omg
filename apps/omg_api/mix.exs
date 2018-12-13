@@ -23,7 +23,7 @@ defmodule OMG.API.MixProject do
         deposit_finality_margin: 10,
         submission_finality_margin: 20,
         ethereum_status_check_interval_ms: 6_000,
-        child_block_minimal_enquque_gap: 1
+        child_block_minimal_enqueue_gap: 1
       ],
       extra_applications: [:sentry, :logger],
       mod: {OMG.API.Application, []}

@@ -4,7 +4,7 @@ config :omg_api,
   deposit_finality_margin: 10,
   submission_finality_margin: 20,
   ethereum_status_check_interval_ms: 6_000,
-  child_block_minimal_enquque_gap: 1,
+  child_block_minimal_enqueue_gap: 1,
   fee_specs_file_path: "./fee_specs.json"
 
 config :sentry,
