@@ -13,6 +13,9 @@ Only **Linux** platforms are supported now. These instructions have been tested 
 * **Python** `>=3.5, <4` (check with `python --version`)
 * **solc** `>=0.4.24` (check with `solc --version`)
 
+### Optional prerequisites
+* **`httpie`** - to run HTTP requests from `docs/demoxx.md` demos
+
 ## Install prerequisite packages
 ```
 sudo apt-get update

@@ -26,3 +26,5 @@ Function get_block/1 has no local return
 Function get_last_mined_child_block_timestamp/1 has no local return
 Function get/2 has no local return
 Function challenge_fastly_invalid_exits/1 has no local return
+# IEx related problems - we need IEx loaded for proper Mix.Tasks running - safe?
+:0: Unknown function 'Elixir.IEx':'started?'/0

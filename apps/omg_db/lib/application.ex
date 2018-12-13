@@ -18,9 +18,9 @@ defmodule OMG.DB.Application do
   use Application
 
   def start(_type, _args) do
-    db_path = Application.get_env(:omg_db, :leveldb_path)
-    server_module = Application.get_env(:omg_db, :server_module)
-    server_name = Application.get_env(:omg_db, :server_name)
+    db_path = Application.fetch_env!(:omg_db, :leveldb_path)
+    server_module = Application.fetch_env!(:omg_db, :server_module)
+    server_name = Application.fetch_env!(:omg_db, :server_name)
 
     children = [
       {server_module, name: server_name, db_path: db_path}
