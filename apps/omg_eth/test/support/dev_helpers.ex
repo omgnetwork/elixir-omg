@@ -37,7 +37,7 @@ defmodule OMG.Eth.DevHelpers do
   Prepares the developer's environment with respect to the root chain contract and its configuration within
   the application.
 
-   - `root_path` should point to `elixir-omg` root or wherever where `./contracts/build` holds the compiled contracts
+   - `root_path` should point to `elixir-omg` root or wherever where `./_build/contracts` holds the compiled contracts
   """
   def prepare_env!(opts \\ []) do
     opts = Keyword.merge([root_path: "./"], opts)

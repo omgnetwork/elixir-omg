@@ -170,7 +170,7 @@ To deploy `child chain` on in an environment with limited `Eth` provide `:faucet
 
 **NOTE**: the faucet account must first be unlocked and funded
 **NOTE**: the newly created `authority` address needs refunding from time to time (preferably done by `geth attach`)
-    
+
 #### Initialize the child chain database
 Initialize the database with the following command.
 **CAUTION** This wipes the old data clean!:
@@ -187,7 +187,7 @@ You need to re-initialize the database, in case you want to start a new child ch
 * Start Up the child chain server:
 
 ```bash
-iex -S mix xomg.child_chain.start --config ~/config.exs 
+iex -S mix xomg.child_chain.start --config ~/config.exs
 ```
 
 ### Setting up a Watcher (a developer environment)
@@ -233,15 +233,15 @@ mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
 It is possible to run the watcher in two different modes:
 - The first is `security critical` mode.
 ```bash
-iex -S mix xomg.watcher.start --config ~/config_watcher.exs 
+iex -S mix xomg.watcher.start --config ~/config_watcher.exs
 ```
 - The second is `security critical` + `convenience` mode.
 ```bash
-iex -S mix xomg.watcher.start --convenience --config ~/config_watcher.exs 
+iex -S mix xomg.watcher.start --convenience --config ~/config_watcher.exs
 ```
 
 See docs/TODO for more details about watcher modes.
- 
+
 ### Follow the demos
 After starting the child chain server and/or Watcher as above, you may follow the steps in the demo scripts.
 Note that some steps should be performed in the Elixir shell (iex) and some in the shell directly.
@@ -285,8 +285,8 @@ For the responsibilities and design of the child chain server see [Tesuji Plasma
 #### Http-RPC
 
 Http-RPC requests are served up on the port specified in `omg_rpc`'s `config` (`9656` by default).
-The available RPC calls are defined by `omg_api` in `api.ex` - paths follow RPC convention e.g. `block.get`, `transaction.submit`. All requests shall be POST with parameters provided in the request 
-body in JSON object. Object's properties names correspond to the names of parameters. Binary values 
+The available RPC calls are defined by `omg_api` in `api.ex` - paths follow RPC convention e.g. `block.get`, `transaction.submit`. All requests shall be POST with parameters provided in the request
+body in JSON object. Object's properties names correspond to the names of parameters. Binary values
 shall be hex-encoded strings.
 
 ##### `transaction.submit`
@@ -518,12 +518,9 @@ You can find the downloaded version of that code under `deps/plasma_contracts`.
 
 ### Installing dependencies and compiling contracts
 
-**Python3 is required**, [`virtualenv`](https://virtualenv.pypa.io/en/stable/) is recommended.
-
 To install dependencies:
 ```bash
 sudo apt-get install libssl-dev solc
-pip install -r contracts/requirements.txt
 ```
 
 Contracts will compile automatically as a regular mix dependency.
@@ -531,14 +528,6 @@ To compile contracts manually:
 ```bash
 mix deps.compile plasma_contracts
 ```
-
-**DEV NOTE** `requirements.txt` is the frozen set of versioned dependencies, effect of running
-```bash
-pip install -r requirements-to-freeze.txt && pip freeze | grep -v ^pkg-resources > requirements.txt
-```
-see [a better pip workflow^TM here](https://www.kennethreitz.org/essays/a-better-pip-workflow) for rationale.
-
-**DEV NOTE** removing `pkg-resources` comes from [here](https://stackoverflow.com/a/48365609)
 
 # Testing & development
 

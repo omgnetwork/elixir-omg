@@ -15,20 +15,9 @@
 Answer:
 Ensure `solc` is at at least the required version (see [installation instructions](./install.md)).
 
-## Error compiling contracts
-
-```
-** (Mix) Could not compile dependency :plasma_contracts, "cd elixir-omg/apps/omg_eth/../../ && py-solc-simple -i deps/plasma_con
-tracts/contracts/ -o contracts/build/" command failed. You can recompile this dependency with "mix deps.compile plasma_contracts", update it with "mix deps.up
-date plasma_contracts" or clean it with "mix deps.clean plasma_contracts"
-```
-
-Answer: [install the contract building machinery](./install.md#install-contract-building-machinery)
-
-
 ## To compile or recompile the contracts
 ```
-mix deps.compile plasma_contract
+mix deps.compile plasma_contracts
 ```
 
 ## To re-activate the virtualenv
