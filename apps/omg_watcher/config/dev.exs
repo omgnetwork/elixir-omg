@@ -45,12 +45,11 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   timeout: 60_000,
   connect_timeout: 60_000,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
-  url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_dev"},
-  exit_processor_validation_interval_ms: 2_000
+  url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_dev"}
 
 config :omg_watcher,
+  exit_processor_sla_margin: 10,
+  exit_processor_validation_interval_ms: 500,
+  maximum_block_withholding_time_ms: 10_000,
   block_getter_height_sync_interval_ms: 500,
-  eth_exit_finality_margin: 4
-
-config :omg_api,
-  rootchain_height_sync_interval_ms: 1_000
+  exit_finality_margin: 4

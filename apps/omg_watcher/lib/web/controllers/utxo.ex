@@ -20,29 +20,30 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   use OMG.Watcher.Web, :controller
 
   alias OMG.API.Crypto
-  alias OMG.API.Utxo
-  alias OMG.Watcher.DB
+  alias OMG.API.Utxo.Position
+  alias OMG.Watcher.API.Utxo
   alias OMG.Watcher.Web.View
-
-  require Utxo
 
   use PhoenixSwagger
   import OMG.Watcher.Web.ErrorHandler
 
-  def get_utxos(conn, %{"address" => address}) do
-    {:ok, address_decode} = Crypto.decode_address(address)
-    utxos = DB.TxOutput.get_utxos(address_decode)
+  action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
-    render(conn, View.Utxo, :utxos, utxos: utxos)
+  def get_utxos(conn, params) do
+    with {:ok, address} <- Map.fetch(params, "address"),
+         {:ok, decoded_address} <- Crypto.decode_address(address) do
+      utxos = Utxo.get_utxos(decoded_address)
+
+      render(conn, View.Utxo, :utxos, utxos: utxos)
+    end
   end
 
-  def get_utxo_exit(conn, %{"utxo_pos" => utxo_pos}) do
-    {utxo_pos, ""} = Integer.parse(utxo_pos)
-
-    utxo_pos
-    |> Utxo.Position.decode()
-    |> DB.TxOutput.compose_utxo_exit()
-    |> respond(conn)
+  def get_utxo_exit(conn, params) do
+    with {:ok, utxo_pos} <- Map.fetch(params, "utxo_pos"),
+         utxo <- Position.decode(utxo_pos) do
+      utxo_exit = Utxo.compose_utxo_exit(utxo)
+      respond(utxo_exit, conn)
+    end
   end
 
   defp respond({:ok, utxo_exit}, conn) do
@@ -122,22 +123,22 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   end
 
   swagger_path :get_utxos do
-    get("/utxos")
+    post("/utxo.get")
     summary("Gets all utxos belonging to the given address")
 
     parameters do
-      address(:query, :string, "Address of utxo owner", required: true)
+      address(:body, :string, "Address of utxo owner", required: true)
     end
 
     response(200, "OK", Schema.ref(:Utxos))
   end
 
   swagger_path :get_utxo_exit do
-    get("/utxo/{utxo_pos}/exit_data")
+    post("/utxo.get_exit_data")
     summary("Responds with exit for a given utxo")
 
     parameters do
-      utxo_pos(:path, :integer, "Position of the exiting utxo", required: true)
+      utxo_pos(:body, :integer, "Position of the exiting utxo", required: true)
     end
 
     response(200, "OK", Schema.ref(:UtxoExit))

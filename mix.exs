@@ -27,10 +27,7 @@ defmodule OMG.Umbrella.MixProject do
     [
       {:dialyxir, "~> 0.5", only: [:prod], runtime: false},
       {:credo, "~> 0.10.0", only: [:dev, :test], runtime: false},
-      {
-        :excoveralls,
-        git: "https://github.com/vorce/excoveralls.git", branch: "fix_post_args", only: [:test], runtime: false
-      },
+      {:excoveralls, "~> 0.10.3", only: [:test], runtime: false},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
       {
         :ex_unit_fixtures,

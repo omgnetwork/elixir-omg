@@ -19,10 +19,10 @@ defmodule OMG.Watcher.Web.View.Account do
 
   use OMG.Watcher.Web, :view
 
-  alias OMG.Watcher.Web.Serializer
+  alias OMG.Watcher.Web.Serializers
 
   def render("balance.json", %{balance: balance}) do
     balance
-    |> Serializer.Response.serialize(:success)
+    |> Serializers.Response.serialize(:success)
   end
 end

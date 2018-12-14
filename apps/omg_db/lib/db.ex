@@ -91,7 +91,7 @@ defmodule OMG.DB do
   end
 
   def init(server_name \\ @server_name) do
-    path = Application.get_env(:omg_db, :leveldb_path)
+    path = Application.fetch_env!(:omg_db, :leveldb_path)
     :ok = File.mkdir_p(path)
 
     db_initialization_updates = [

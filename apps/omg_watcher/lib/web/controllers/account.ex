@@ -21,17 +21,21 @@ defmodule OMG.Watcher.Web.Controller.Account do
   use PhoenixSwagger
 
   alias OMG.API.Crypto
-  alias OMG.Watcher.DB
+  alias OMG.Watcher.API.Account
   alias OMG.Watcher.Web.View
+
+  action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
   @doc """
   Gets plasma account balance
   """
-  def get_balance(conn, %{"address" => address}) do
+  def get_balance(conn, params) do
     # TODO: handle input validation (separate task)
-    {:ok, address_decode} = Crypto.decode_address(address)
-    balance = DB.TxOutput.get_balance(address_decode)
-    render(conn, View.Account, :balance, balance: balance)
+    with {:ok, address} <- Map.fetch(params, "address"),
+         {:ok, decoded_address} <- Crypto.decode_address(address) do
+      balance = Account.get_balance(decoded_address)
+      render(conn, View.Account, :balance, balance: balance)
+    end
   end
 
   def swagger_definitions do
@@ -60,7 +64,7 @@ defmodule OMG.Watcher.Web.Controller.Account do
   end
 
   swagger_path :get_balance do
-    get("/account/{address}/balance")
+    post("/account.get_balance")
     summary("Responds with account balance for given account address")
 
     parameters do

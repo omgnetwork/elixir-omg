@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.View.Status do
+defmodule OMG.Watcher.API.Account do
   @moduledoc """
-  The status view for rendering json
+  Module provides operations related to plasma accounts.
   """
 
-  use OMG.Watcher.Web, :view
+  alias OMG.Watcher.DB
 
-  alias OMG.Watcher.Web.Serializers
-
-  def render("status.json", %{status: status}) do
-    status
-    |> Serializers.Response.serialize(:success)
+  @doc """
+  Returns a list of amounts of currencies that a given address owns
+  """
+  @spec get_balance(OMG.API.Crypto.address_t()) :: list(DB.TxOutput.balance())
+  def get_balance(address) do
+    DB.TxOutput.get_balance(address)
   end
 end

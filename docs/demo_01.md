@@ -36,8 +36,8 @@ deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
 
 # create and prepare transaction for signing
 tx =
-  Transaction.new([{deposit_blknum, 0, 0}], eth, [{bob.addr, 7}, {alice.addr, 3}]) |>
-  Transaction.sign(alice.priv, <<>>) |>
+  Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
+  Transaction.sign([alice.priv, <<>>]) |>
   Transaction.Signed.encode() |>
   Base.encode16()
 
@@ -48,7 +48,7 @@ tx =
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 # use the hex-encoded tx bytes and `transaction.submit` Http-RPC method described in README.md for child chain server
 
-curl -X POST -H "Content-Type: application/json" -d '{"transaction": "<rlp encoded plasma transaction in hex>"}' "localhost:9656/transaction.submit"
+echo '{"transaction": "<rlp encoded plasma transaction in hex>"}' | http POST "localhost:9656/transaction.submit"
 ```
 
 ```elixir
@@ -60,7 +60,7 @@ Base.encode16(block_hash)
 
 ```bash
 # with the block hash we can get the whole block
-curl -X POST -H "Content-Type: application/json" -d '{"hash":"<block hash in hex>"}' "localhost:9656/block.get"
+echo '{"hash":"<block hash in hex>"}' | http POST "localhost:9656/block.get"
 
 # if you were watching, you could have decoded and validated the transaction bytes in the block
 ```

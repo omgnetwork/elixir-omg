@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Watcher.Integration.TestServer
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Web.Channel
-  alias OMG.Watcher.Web.Serializer.Response
+  alias OMG.Watcher.Web.Serializers.Response
 
   import ExUnit.CaptureLog
 
@@ -153,7 +153,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
 
-    {:error, {:client_error, %{"code" => "submit::utxo_not_found"}}} = Client.submit(tx2)
+    {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} = Client.submit(tx2)
   end
 
   defp get_block_submitted_event_height(block_number) do
@@ -302,8 +302,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       |> Eth.DevHelpers.transact_sync!()
 
     # Here we're waiting for passing of margin of slow validator(m_sv)
-    margin_slow_validator = Application.get_env(:omg_watcher, :margin_slow_validator)
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + margin_slow_validator, @timeout)
+    exit_processor_sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_processor_sla_margin, @timeout)
 
     # Here we're manually submitting invalid block to the root chain
     {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
