@@ -129,7 +129,7 @@ defmodule OMG.Watcher.Application do
                get_events_callback: &OMG.Eth.RootChain.get_challenges/2,
                process_events_callback: &OMG.Watcher.ExitProcessor.challenge_exits/1,
                get_last_synced_height_callback: &OMG.DB.last_exit_challenger_eth_height/0,
-               sync_mode: :sync_with_coordinator
+               sync_mode: :sync_with_root_chain
              }
            ]}
       },

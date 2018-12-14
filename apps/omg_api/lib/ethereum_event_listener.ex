@@ -20,10 +20,9 @@ defmodule OMG.API.EthereumEventListener do
 
   NOTE: this could and should at some point be implemented as a `@behavior` instead, to avoid using callbacks
   """
-
-  alias OMG.Eth
   alias OMG.API.EthereumEventListener.Core
   alias OMG.API.RootChainCoordinator
+  alias OMG.Eth
   use OMG.API.LoggerExt
 
   @type config() :: %{
@@ -91,7 +90,7 @@ defmodule OMG.API.EthereumEventListener do
     end
   end
 
-  def handle_info(:sync, {%{sync_mode: :sync_with_root_chain} = core, _callbacks} = state) do
+  def handle_info(:sync, {%{sync_mode: :sync_with_root_chain}, _callbacks} = state) do
     {:ok, root_chain_height} = Eth.get_ethereum_height()
     new_state = sync_height(state, root_chain_height)
     {:noreply, new_state}

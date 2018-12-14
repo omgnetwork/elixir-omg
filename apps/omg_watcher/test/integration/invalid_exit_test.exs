@@ -180,7 +180,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     stable_alice: alice,
     stable_alice_deposits: {deposit_blknum, _}
   } do
-    {:ok, _, event_socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
+    {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: deposit_blknum}} = Client.submit(tx)
@@ -190,15 +190,17 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
+    {next_blknum, nonce} = get_next_blknum_nonce(tx_blknum)
+
     assert capture_log(fn ->
-             {:ok, _txhash} = Eth.RootChain.submit_block(<<0::256>>, trunc(tx_blknum / 1000) + 1, 20_000_000_000)
+             {:ok, _txhash} = Eth.RootChain.submit_block(<<0::256>>, nonce, 20_000_000_000)
 
              IntegrationTest.assert_block_getter_down()
            end) =~ inspect(:withholding)
 
     block_withholding_event =
       %Event.BlockWithholding{
-        blknum: tx_blknum + 1000
+        blknum: next_blknum
       }
       |> Response.clean_artifacts()
 
@@ -233,5 +235,10 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
     assert_push("invalid_exit", ^invalid_exit_event, exit_processor_validation + 1_000)
+  end
+
+  defp get_next_blknum_nonce(blknum) do
+    next_blknum = blknum + 1000
+    {next_blknum, trunc(next_blknum / 1000)}
   end
 end

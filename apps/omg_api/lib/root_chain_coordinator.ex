@@ -91,7 +91,7 @@ defmodule OMG.API.RootChainCoordinator do
     Enum.each(services, fn service -> safe_send(service, :sync) end)
   end
 
-  def safe_send(registered_name_or_pid, msg) do
+  defp safe_send(registered_name_or_pid, msg) do
     try do
       send(registered_name_or_pid, msg)
     rescue
