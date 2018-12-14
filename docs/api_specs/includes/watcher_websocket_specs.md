@@ -107,8 +107,4 @@ The RootChain contract raises certain events on Ethereum
  * exit_started
  * exit_challenged
  * exit_finalized
- * inflight_exit_started
- * inflight_exit_challenged
- * piggyback_to_input
- * piggyback_to_output
  * fees_exited

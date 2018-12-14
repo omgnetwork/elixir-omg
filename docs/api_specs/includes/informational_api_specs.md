@@ -296,7 +296,7 @@ id | Hex encoded string | Hash of the Plasma transaction
 ## Block - Get all
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:4000/block.all -d '{"limit": 100}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/block.all -d '{"from_blknum": 68290001, "limit": 2}'
 ```
 
 ```elixir
@@ -330,7 +330,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:4000/block.all
 }
 ```
 
-Gets a block with the given id
+Gets all blocks (with a limit on the number of blocks to return).
 
 ### HTTP Request
 
@@ -340,7 +340,8 @@ Gets a block with the given id
 
 Attribute | Type | Description
 --------- | ------- | -----------
-limit | Integer | Maximum number of transactions to return (default 200)
+limit | Integer | Maximum number of blocks to return (default 200)
+from_blknum | Integer | The block number of the latest block in the list to be returned. Optional - if not specified, latest block will be the current block. **Not Implemented Yet**
 
 
 
