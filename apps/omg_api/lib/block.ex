@@ -61,10 +61,10 @@ defmodule OMG.API.Block do
   @spec create_tx_proof(list(binary()), non_neg_integer()) :: binary()
   def create_tx_proof(hashed_txs, txindex),
     do:
-      MerkleTree.new(hashed_txs, &Crypto.hash(&1 <> &2), @transaction_merkle_tree_height, @default_leaf)
+      MerkleTree.new(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height, @default_leaf)
       |> MerkleTree.proof(txindex)
       |> Enum.reduce(fn x, acc -> acc <> x end)
 
   defp merkle_hash(hashed_txs),
-    do: MerkleTree.new(hashed_txs, &Crypto.hash(&1 <> &2), @transaction_merkle_tree_height, @default_leaf).root.value
+    do: MerkleTree.new(hashed_txs, &Crypto.hash/1, @transaction_merkle_tree_height, @default_leaf).root.value
 end
