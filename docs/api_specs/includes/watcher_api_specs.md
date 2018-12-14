@@ -5,7 +5,7 @@ API specification of the Watcher's security-critical Service
 ## Account - Get Utxos
 
 ```shell
-curl http://localhost:4000/account.get_utxos -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea", "limit": 10}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/account.get_utxos -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea", "limit": 10}'
 ```
 
 ```elixir
@@ -55,7 +55,7 @@ limit | Integer | Maximum number of utxos to return (default 200)
 ## Utxo - Get Challenge Data
 
 ```shell
-curl http://localhost:4000/utxo.get_challenge_data -d '{"utxo_pos": "10001001"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/utxo.get_challenge_data -d '{"utxo_pos": "10001001"}'
 ```
 
 ```elixir
@@ -99,7 +99,7 @@ utxo_pos | Integer | Utxo position (encoded as single integer, the way contract 
 ## Utxo - Get Exit Data
 
 ```shell
-curl http://localhost:4000/utxo.get_exit_data -d '{"utxo_pos": "10001001"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/utxo.get_exit_data -d '{"utxo_pos": "10001001"}'
 ```
 
 ```elixir
@@ -142,7 +142,7 @@ utxo_pos | Integer | Utxo position (encoded as single integer, the way contract 
 ## Transaction - Submit
 
 ```shell
-curl http://localhost:4000/transaction.submit -d '{"transaction": "f8d083015ba98080808080940000..."}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/transaction.submit -d '{"transaction": "f8d083015ba98080808080940000..."}'
 ```
 
 ```elixir
@@ -185,7 +185,7 @@ transaction | Hex encoded string | Signed transaction RLP-encoded to bytes and H
 ## Status
 
 ```shell
-curl -X POST http://localhost:4000/status
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/status
 ```
 
 ```elixir
@@ -436,7 +436,7 @@ outputs | Integer array | A list of invalid piggybacked outputs
 ## Inflight Exit - Get Exit Data
 
 ```shell
-curl http://localhost:4000/inflight_exit.get_data -d '{"txbytes": "F317010180808080940000..."}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/inflight_exit.get_data -d '{"txbytes": "F317010180808080940000..."}'
 ```
 
 ```elixir
@@ -485,7 +485,7 @@ txbytes | Hex encoded string | The in-flight transaction
 ## Inflight Exit - Get Competitor
 
 ```shell
-curl http://localhost:4000/inflight_exit.get_competitor -d '{"txbytes": "F3170101C0940000..."}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/inflight_exit.get_competitor -d '{"txbytes": "F3170101C0940000..."}'
 ```
 
 ```elixir
@@ -531,7 +531,7 @@ txbytes | Hex encoded string | The in-flight transaction
 ## Inflight Exit - Show Canonical
 
 ```shell
-curl http://localhost:4000/inflight_exit.prove_canonical -d '{"txbytes": "F3170101C0940000..."}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/inflight_exit.prove_canonical -d '{"txbytes": "F3170101C0940000..."}'
 ```
 
 ```elixir
@@ -573,7 +573,7 @@ txbytes | Hex encoded string | The in-flight transaction
 ## Inflight Exit - Get Input Challenge Data
 
 ```shell
-curl http://localhost:4000/inflight_exit.get_input_challenge_data -d '{"txbytes": "F3170101C0940000...", "input_index": 1}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/inflight_exit.get_input_challenge_data -d '{"txbytes": "F3170101C0940000...", "input_index": 1}'
 ```
 
 ```elixir
@@ -618,7 +618,7 @@ input_index | Integer | The index of the invalid input
 ## Inflight Exit - Get Output Challenge Data
 
 ```shell
-curl http://localhost:4000/inflight_exit.get_output_challenge_data -d '{"txbytes": "F3170101C0940000...", "output_index": 0}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/inflight_exit.get_output_challenge_data -d '{"txbytes": "F3170101C0940000...", "output_index": 0}'
 ```
 
 ```elixir

@@ -47,7 +47,7 @@ transaction | Hex encoded string | Signed transaction RLP-encoded to bytes and H
 ## Get Block by id
 
 ```shell
-curl http://localhost:4000/block.get -d '{"hash": "2733e50f526ec2fa19a22b31e8ed50f23cd1fdf94c9154ed3a7609a2f1ff981f}'
+curl -X POST -H "Content-Type: application/json" http://localhost:9656/block.get -d '{"hash": "2733e50f526ec2fa19a22b31e8ed50f23cd1fdf94c9154ed3a7609a2f1ff981f}'
 ```
 
 ```elixir

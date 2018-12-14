@@ -6,7 +6,7 @@ API specification of the Watcher's Informational Service
 ## Account - Get Balance
 
 ```shell
-curl http://localhost:4000/account.get_balance -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/account.get_balance -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'
 ```
 
 ```elixir
@@ -53,7 +53,7 @@ address | Hex encoded string | Address of the funds owner
 ## Account - Get Utxos
 
 ```shell
-curl http://localhost:4000/account.get_utxos -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea", "limit": 10}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/account.get_utxos -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea", "limit": 10}'
 ```
 
 ```elixir
@@ -101,7 +101,7 @@ limit | Integer | Maximum number of utxos to return (default 200)
 ## Account - Get Transactions
 
 ```shell
-curl http://localhost:4000/account.get_transactions -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/account.get_transactions -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'
 ```
 
 ```elixir
@@ -154,7 +154,7 @@ limit | Integer | Maximum number of transactions to return (default 200)
 ## Transaction -  Get All
 
 ```shell
-curl http://localhost:4000/transaction.all -d '{"block": "100", "limit": 50}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/transaction.all -d '{"block": "100", "limit": 50}'
 ```
 
 ```elixir
@@ -221,7 +221,7 @@ limit | Integer | Maximum number of transactions to return (default 200)
 ## Transaction -  Get
 
 ```shell
-curl http://localhost:4000/transaction.get -d '{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/transaction.get -d '{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
 ```
 
 ```elixir
@@ -296,7 +296,7 @@ id | Hex encoded string | Hash of the Plasma transaction
 ## Block - Get all
 
 ```shell
-curl http://localhost:4000/block.all -d '{"limit": 100}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/block.all -d '{"limit": 100}'
 ```
 
 ```elixir
@@ -348,7 +348,7 @@ limit | Integer | Maximum number of transactions to return (default 200)
 ## Block - Get
 
 ```shell
-curl http://localhost:4000/block.get -d '{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:4000/block.get -d '{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
 ```
 
 ```elixir
