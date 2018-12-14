@@ -64,4 +64,61 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def make_db_update({ife_hash, %__MODULE__{} = ife_info}) do
     {:put, :in_flight_exit_info, {ife_hash, ife_info}}
   end
+
+  def piggyback(%__MODULE__{} = ife, index) do
+    with {:ok, exit} <- Map.fetch(ife.exit_map, index),
+         true <- can_be_piggybacked?(exit) do
+      updated_ife =
+        exit
+        |> Map.put(:is_piggybacked, true)
+        |> (&Map.put(ife.exit_map, index, &1)).()
+        |> (&Map.put(ife, :exit_map, &1)).()
+
+      {:ok, updated_ife}
+    else
+      :error -> {:error, :non_existent_exit}
+      false -> {:error, :cannot_piggyback}
+    end
+  end
+
+  defp can_be_piggybacked?(%{is_piggybacked: false, is_finalized: false}), do: true
+  defp can_be_piggybacked?(_exit), do: false
+
+  def get_exiting_utxo_positions(%__MODULE__{is_canonical: false} = ife) do
+    ife.inputs
+    |> Enum.with_index()
+    |> Enum.filter(&is_active?(ife, :input, elem(&1, 1)))
+    |> Enum.map(&(&1 |> elem(0) |> elem(0)))
+  end
+
+  def get_exiting_utxo_positions(ife = %__MODULE__{is_canonical: true, tx_pos: tx_pos}) when tx_pos != nil do
+    active_outputs_offsets =
+      ife.outputs
+      |> Enum.with_index()
+      |> Enum.filter(&is_active?(ife, :input, elem(&1, 1)))
+      |> Enum.map(&(&1 |> elem(1)))
+
+    {:utxo_position, blknum, txindex, _} = tx_pos
+    for pos <- active_outputs_offsets, do: {:utxo_position, blknum, txindex, pos}
+  end
+
+  def get_exiting_utxo_positions(_) do
+    []
+  end
+
+  def is_piggybacked?(%__MODULE__{exit_map: _map}, _type, _index) do
+    true
+  end
+
+  def is_finalized?(%__MODULE__{exit_map: _map}, _type, _index) do
+    #    read_bit(bitmap, 8 + index + offset(type)) == 1
+    true
+  end
+
+  def is_active?(ife, type, index) do
+    is_piggybacked?(ife, type, index) and not is_finalized?(ife, type, index)
+  end
+
+  #  defp offset(:input), do: 0
+  #  defp offset(:output), do: 4
 end

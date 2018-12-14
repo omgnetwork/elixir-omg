@@ -58,6 +58,14 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   @doc """
+  Accepts events and processes them in the state - new piggybacks are tracked, if invalid raises an alert
+  Returns `db_updates` due and relies on the caller to do persistence
+  """
+  def piggyback_exits(exits) do
+    GenServer.call(__MODULE__, {:piggyback_exits, exits})
+  end
+
+  @doc """
   Accepts events and processes them in the state - challenged exits are untracked
   Returns `db_updates` due and relies on the caller to do persistence
   """
@@ -124,6 +132,11 @@ defmodule OMG.Watcher.ExitProcessor do
     {new_state, db_updates} = Core.finalize_exits(state, validities)
 
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
+  end
+
+  def handle_call({:piggyback_exits, exits}, _from, state) do
+    {new_state, db_updates} = Core.new_piggybacks(state, exits)
+    {:reply, {:ok, db_updates}, new_state}
   end
 
   def handle_call({:challenge_exits, exits}, _from, state) do
