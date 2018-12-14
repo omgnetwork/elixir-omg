@@ -41,26 +41,22 @@ tx =
   Transaction.Signed.encode() |>
   Base.encode16()
 
-```
-
-```bash
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 # use the hex-encoded tx bytes and `transaction.submit` Http-RPC method described in README.md for child chain server
+%{"data" => %{"blknum" => child_tx_block_number}} =
+  ~c(echo '{"transaction": "#{tx}"}' | http POST localhost:9656/transaction.submit) |>
+  :os.cmd() |>
+  Poison.decode!()
 
-echo '{"transaction": "<rlp encoded plasma transaction in hex>"}' | http POST "localhost:9656/transaction.submit"
-```
-
-```elixir
 # with that block number, we can ask the root chain to give us the block hash
-child_tx_block_number =
 {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(child_tx_block_number)
-Base.encode16(block_hash)
-```
+block_hash_enc = Base.encode16(block_hash)
 
-```bash
 # with the block hash we can get the whole block
-echo '{"hash":"<block hash in hex>"}' | http POST "localhost:9656/block.get"
+~c(echo '{"hash":"#{block_hash_enc}"}' | http POST localhost:9656/block.get) |>
+:os.cmd() |>
+Poison.decode!()
 
 # if you were watching, you could have decoded and validated the transaction bytes in the block
 ```

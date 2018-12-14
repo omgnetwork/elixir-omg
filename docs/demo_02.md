@@ -56,33 +56,25 @@ tx =
   Transaction.Signed.encode() |>
   Base.encode16()
 
-```
-
-```bash
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 # use the hex-encoded tx bytes and `transaction.submit` Http-RPC method described in README.md for child chain server
-
-echo '{"transaction": "<rlp encoded plasma transaction in hex>"}' | http POST "localhost:9656/transaction.submit"
+%{"data" => %{"tx_hash" => tx1_hash}} =
+  ~c(echo '{"transaction": "#{tx}"}' | http POST localhost:9656/transaction.submit) |>
+  :os.cmd() |>
+  Poison.decode!()
 
 # see the Watcher getting a 1-txs block
-```
-
-```elixir
 
 # 2/ Using the Watcher
 
-# grab the first transaction hash as returned by the Child chain server's API (response to `curl`'s request)
-tx1_hash =
-
-"http GET 'localhost:4000/transaction/#{tx1_hash}'" |>
-to_charlist() |>
+# we grabbed the first transaction hash as returned by the Child chain server's API (response to `curl`'s request)
+~c(http GET localhost:7434/transaction/#{tx1_hash}) |>
 :os.cmd() |>
 Poison.decode!()
 
-%{"data" => %{"utxos" => [%{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]}} =
-  "http GET 'localhost:4000/utxos?address=#{bob_enc}'" |>
-  to_charlist() |>
+%{"data" => [_bobs_deposit, %{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
+  ~c(http GET localhost:7434/utxos?address=#{bob_enc}) |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -91,8 +83,7 @@ Poison.decode!()
 exiting_utxopos = OMG.API.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
 
 %{"data" => composed_exit} =
-  "http GET 'localhost:4000/utxo/#{exiting_utxopos}/exit_data'" |>
-  to_charlist() |>
+  ~c(http GET localhost:7434/utxo/#{exiting_utxopos}/exit_data) |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -103,6 +94,9 @@ tx2 =
   Base.encode16()
 
 # FIRST you need to spend in transaction as above, so that the exit then is in fact invalid and challengeable
+~c(echo '{"transaction": "#{tx2}"}' | http POST localhost:9656/transaction.submit) |>
+:os.cmd() |>
+Poison.decode!()
 
 {:ok, txhash} =
   Eth.RootChain.start_exit(
@@ -115,8 +109,7 @@ tx2 =
 Eth.WaitFor.eth_receipt(txhash)
 
 %{"data" => challenge} =
-  "http GET 'localhost:4000/utxo/#{exiting_utxopos}/challenge_data'" |>
-  to_charlist() |>
+  ~c(http GET localhost:7434/utxo/#{exiting_utxopos}/challenge_data) |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -161,18 +154,21 @@ r(OMG.API.State.Core)
 # let's do a broken spend:
 
 # grab a utxo that bob can spend
-%{"data" => %{"utxos" => [%{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]}} =
-  "http GET 'localhost:4000/utxos?address=#{bob_enc}'" |>
-  to_charlist() |>
+%{"data" => [_bobs_deposit, %{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]} =
+  ~c(http GET localhost:7434/utxos?address=#{bob_enc}) |>
   :os.cmd() |>
   Poison.decode!()
 
-tx2 =
+tx3 =
   Transaction.new([{spend_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
   Transaction.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
   Base.encode16()
 
-# and send using curl as above. See the Watcher stop on an error
+# and send using curl as above.
+~c(echo '{"transaction": "#{tx3}"}' | http POST localhost:9656/transaction.submit) |>
+:os.cmd() |>
+Poison.decode!()
 
+# See the Watcher stop on an error
 ```
