@@ -214,7 +214,7 @@ Attribute | Type | Description
 --------- | ------- | -----------
 block | Integer | Block number to filter by (optional)
 address | Hex encoded string | Address to filter by (optional)
-limit | Integer | Maximum number of transactions to return (optional)
+limit | Integer | Maximum number of transactions to return (default 200)
 
 
 
