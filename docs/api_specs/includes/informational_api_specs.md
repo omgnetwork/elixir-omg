@@ -147,7 +147,7 @@ Gets a list of transactions.
 Attribute | Type | Description
 --------- | ------- | -----------
 address | Hex encoded string | Address of the account
-limit | Integer | Maximum number of transactions to return (optional)
+limit | Integer | Maximum number of transactions to return (default 200)
 
 
 
