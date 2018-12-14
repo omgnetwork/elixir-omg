@@ -41,7 +41,7 @@ defmodule OMG.API.Application do
                service_name: :depositor,
                get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
                process_events_callback: &OMG.API.State.deposit/1,
-               get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0
+               get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0,
                sync_mode: :sync_with_coordinator
              }
            ]}
@@ -61,7 +61,7 @@ defmodule OMG.API.Application do
                  {status, db_updates, _validities} = OMG.API.State.exit_utxos(exits)
                  {status, db_updates}
                end,
-               get_last_synced_height_callback: &OMG.DB.last_exiter_eth_height/0
+               get_last_synced_height_callback: &OMG.DB.last_exiter_eth_height/0,
                sync_mode: :sync_with_coordinator
              }
            ]}

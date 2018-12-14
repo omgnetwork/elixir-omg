@@ -57,7 +57,12 @@ defmodule OMG.API.RootChainCoordinator do
 
   def handle_call({:check_in, synced_height, service_name}, {pid, _}, state) do
     _ = Logger.debug(fn -> "#{inspect(service_name)} checks in on height #{inspect(synced_height)}" end)
-    {:ok, state, services_to_sync} = Core.check_in(state, pid, synced_height, service_name)
+
+    {:ok, state, services_to_sync} =
+      state
+      |> update_root_chain_height()
+      |> Core.check_in(pid, synced_height, service_name)
+
     _ = length(services_to_sync) > 0 and Logger.debug(fn -> "Services to sync: #{inspect(services_to_sync)}" end)
     request_sync(services_to_sync)
     {:reply, :ok, state, 60_000}
@@ -68,8 +73,7 @@ defmodule OMG.API.RootChainCoordinator do
   end
 
   def handle_info(:update_root_chain_height, state) do
-    {:ok, root_chain_height} = Eth.get_ethereum_height()
-    {:ok, state} = Core.update_root_chain_height(state, root_chain_height)
+    state = update_root_chain_height(state)
     {:noreply, state}
   end
 
@@ -98,5 +102,11 @@ defmodule OMG.API.RootChainCoordinator do
       ArgumentError ->
         msg
     end
+  end
+
+  defp update_root_chain_height(state) do
+    {:ok, root_chain_height} = Eth.get_ethereum_height()
+    {:ok, state} = Core.update_root_chain_height(state, root_chain_height)
+    state
   end
 end
