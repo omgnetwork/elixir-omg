@@ -48,7 +48,7 @@ Gets all utxos belonging to the given address.
 Attribute | Type | Description
 --------- | ------- | -----------
 address | Hex encoded string | Address of the account
-limit | Integer | Maximum number of utxos to return (optional)
+limit | Integer | Maximum number of utxos to return (default 200)
 
 
 
