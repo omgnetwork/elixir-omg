@@ -22,6 +22,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   alias OMG.API.Crypto
   alias OMG.API.Utxo
 
+  require Utxo
+
   defstruct [:amount, :currency, :owner, :is_active, :eth_height]
 
   @type t :: %__MODULE__{
@@ -38,6 +40,7 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   end
 
   def make_db_update({position, %__MODULE__{} = exit_info}) do
-    {:put, :exit_info, {position, exit_info |> Map.from_struct()}}
+    Utxo.position(blknum, txindex, oindex) = position
+    {:put, :exit_info, {{blknum, txindex, oindex}, exit_info |> Map.from_struct()}}
   end
 end
