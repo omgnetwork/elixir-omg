@@ -340,7 +340,7 @@ Gets a block with the given id
 
 Attribute | Type | Description
 --------- | ------- | -----------
-limit | Integer | Maximum number of transactions to return (optional)
+limit | Integer | Maximum number of transactions to return (default 200)
 
 
 
