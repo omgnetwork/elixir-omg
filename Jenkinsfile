@@ -50,16 +50,17 @@ podTemplate(
         }
 
         stage('Integration test') {
-           withCredentials([string(credentialsId: 'elixir-omg_coveralls', variable: 'ELIXIR_OMG_COVERALLS')]){
+           withCredentials([string(credentialsId: 'elixir-omg_coveralls', variable: 'COVERALLS_REPO_TOKEN')]){
                 withEnv(["MIX_ENV=test", "SHELL=/bin/bash", "DATABASE_URL=${DATABASE_URL}"]) {
                     sh ("""
-                        set +x
+                        BRANCH=`git describe --contains --exact-match --all HEAD | sed -r 's/^remotes\\/origin\\///'`
                         mix coveralls.post \
                             --umbrella \
                             --include integration \
                             --include wrappers \
-                            --token '${ELIXIR_OMG_COVERALLS}' \
                             --sha '${scmVars.GIT_COMMIT}' \
+                            --branch \$BRANCH \
+                            --message "`git log -1 --pretty=%B | head -n 1`" \
                     """)
                 }
            }

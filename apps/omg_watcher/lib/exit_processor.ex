@@ -72,7 +72,12 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def init(:ok) do
     {:ok, db_exits} = DB.exit_infos()
-    sla_margin = Application.fetch_env!(:omg_watcher, :margin_slow_validator)
+
+    sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
+    interval = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
+
+    {:ok, _} = :timer.send_interval(interval, self(), :check_validity)
+
     Core.init(db_exits, sla_margin)
   end
 
@@ -102,11 +107,22 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   def handle_call(:check_validity, _from, state) do
+    chain_status = check_validity(state)
+
+    {:reply, chain_status, state}
+  end
+
+  def handle_info(:check_validity, state) do
+    _ = check_validity(state)
+    {:noreply, state}
+  end
+
+  defp check_validity(state) do
     {event_triggers, chain_status} = determine_invalid_exits(state)
 
     EventerAPI.emit_events(event_triggers)
 
-    {:reply, chain_status, state}
+    chain_status
   end
 
   # combine data from `ExitProcessor` and `API.State` to figure out what to do about exits

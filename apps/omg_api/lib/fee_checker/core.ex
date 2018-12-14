@@ -30,10 +30,10 @@ defmodule OMG.API.FeeChecker.Core do
   """
   @spec transaction_fees(Recovered.t(), token_fee_t()) :: {:ok, token_fee_t()} | {:error, :token_not_allowed}
   def transaction_fees(
-        %Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}},
+        %Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}},
         token_fees
       ) do
-    currencies = [cur12]
+    currencies = Transaction.get_currencies(tx)
     tx_fees = Map.take(token_fees, currencies)
 
     if Enum.all?(currencies, &Map.has_key?(tx_fees, &1)),

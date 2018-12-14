@@ -23,6 +23,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.API.RootChainCoordinator
   alias OMG.API.State
   alias OMG.Eth
+  alias OMG.RPC.Client
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.DB
   alias OMG.Watcher.ExitProcessor
@@ -34,7 +35,7 @@ defmodule OMG.Watcher.BlockGetter do
           {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
   defp download_block(requested_number) do
     {:ok, {requested_hash, block_timestamp}} = Eth.RootChain.get_child_chain(requested_number)
-    response = OMG.JSONRPC.Client.call(:get_block, %{hash: requested_hash})
+    response = Client.get_block(requested_hash)
 
     Core.validate_download_response(
       response,
@@ -53,11 +54,8 @@ defmodule OMG.Watcher.BlockGetter do
     tx_exec_results = for tx <- transactions, do: OMG.API.State.exec(tx, fees)
     {continue, events} = Core.validate_tx_executions(tx_exec_results, block)
 
-    # TODO: Unfortunately due to strange issue with SQLite on tests we cannot fetch this number at init
-    # as it was tried in c972be3831bc2eab7a8816ae408a6195ba2f3ef4,
-    # we should be able to revert when test will be run on Postgres
-    last_persisted_block = DB.Block.get_max_blknum()
-    blocks_to_persist = Core.ensure_block_imported_once(block, block_rootchain_height, last_persisted_block)
+    blocks_to_persist =
+      Core.ensure_block_imported_once(block, block_rootchain_height, state.last_block_persisted_from_prev_run)
 
     EventerAPI.emit_events(events)
 
@@ -104,21 +102,27 @@ defmodule OMG.Watcher.BlockGetter do
       Eth.RootChain.get_block_submitted_events({max(0, synced_height - 1000), synced_height + 1000})
 
     exact_synced_height = Core.figure_out_exact_sync_height(block_submissions, synced_height, child_top_block_number)
+    last_persisted_block = DB.Block.get_max_blknum()
 
     :ok = RootChainCoordinator.check_in(exact_synced_height, __MODULE__)
 
-    height_sync_interval = Application.get_env(:omg_watcher, :block_getter_height_sync_interval_ms)
+    height_sync_interval = Application.fetch_env!(:omg_watcher, :block_getter_height_sync_interval_ms)
     {:ok, _} = schedule_sync_height(height_sync_interval)
     :producer = send(self(), :producer)
 
-    maximum_block_withholding_time_ms = Application.get_env(:omg_watcher, :maximum_block_withholding_time_ms)
-    maximum_number_of_unapplied_blocks = Application.get_env(:omg_watcher, :maximum_number_of_unapplied_blocks)
+    # how many eth blocks backward can change during an reorg
+    block_reorg_margin = Application.fetch_env!(:omg_watcher, :block_reorg_margin)
+
+    maximum_block_withholding_time_ms = Application.fetch_env!(:omg_watcher, :maximum_block_withholding_time_ms)
+    maximum_number_of_unapplied_blocks = Application.fetch_env!(:omg_watcher, :maximum_number_of_unapplied_blocks)
 
     {:ok, state} =
       Core.init(
         child_top_block_number,
         child_block_interval,
         exact_synced_height,
+        block_reorg_margin,
+        last_persisted_block,
         state_at_block_beginning,
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
         maximum_number_of_unapplied_blocks: maximum_number_of_unapplied_blocks,

@@ -40,6 +40,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     @moduledoc false
     defstruct [
       :block_interval,
+      :block_reorg_margin,
       maximum_number_of_pending_blocks: 10,
       maximum_block_withholding_time_ms: 0,
       maximum_number_of_unapplied_blocks: 50
@@ -72,6 +73,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     :last_applied_block,
     :num_of_highest_block_being_downloaded,
     :number_of_blocks_being_downloaded,
+    :last_block_persisted_from_prev_run,
     :unapplied_blocks,
     :potential_block_withholdings,
     :config
@@ -83,6 +85,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           last_applied_block: non_neg_integer,
           num_of_highest_block_being_downloaded: non_neg_integer,
           number_of_blocks_being_downloaded: non_neg_integer,
+          last_block_persisted_from_prev_run: non_neg_integer,
           unapplied_blocks: %{
             non_neg_integer => OMG.API.Block.t()
           },
@@ -102,19 +105,22 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   @doc """
   Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block,
-  using `child_block_interval` when progressing from one child block to another
-  and `synced_height` as the root chain height up to witch all published blocked were processed
+  using `child_block_interval` when progressing from one child block to another,
+  `synced_height` as the root chain height up to witch all published blocked were processed
+  and `block_reorg_margin` as number of root chain blocks that may change during an reorg
 
   Opts can be:
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
     - `:maximum_block_withholding_time_ms` - how much time should we wait after the first failed pull until we call it a block withholding byzantine condition of the child chain (0 ms)
   """
-  @spec init(non_neg_integer, pos_integer, non_neg_integer, boolean, Keyword.t()) ::
+  @spec init(non_neg_integer, pos_integer, non_neg_integer, non_neg_integer, non_neg_integer, boolean, Keyword.t()) ::
           {:ok, %__MODULE__{}} | {:error, init_error()}
   def init(
         block_number,
         child_block_interval,
         synced_height,
+        block_reorg_margin,
+        last_persisted_block,
         state_at_block_beginning,
         opts \\ []
       ) do
@@ -125,9 +131,14 @@ defmodule OMG.Watcher.BlockGetter.Core do
         last_applied_block: block_number,
         num_of_highest_block_being_downloaded: block_number,
         number_of_blocks_being_downloaded: 0,
+        last_block_persisted_from_prev_run: last_persisted_block,
         unapplied_blocks: %{},
         potential_block_withholdings: %{},
-        config: struct(Config, Keyword.put(opts, :block_interval, child_block_interval))
+        config:
+          struct(
+            Config,
+            Keyword.merge(opts, block_interval: child_block_interval, block_reorg_margin: block_reorg_margin)
+          )
       }
 
       {:ok, state}
@@ -155,13 +166,16 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
       # present - we need to mark this eth height as processed
       {eth_height_done, updated_map} ->
+        # in case of a reorg we do not want to check in with a lower height
+        max_synced_height = max(eth_height_done, state.synced_height)
+
         state = %{
           state
-          | synced_height: eth_height_done,
+          | synced_height: max_synced_height,
             eth_height_done_by_blknum: updated_map
         }
 
-        {state, eth_height_done, [{:put, :last_block_getter_eth_height, eth_height_done}]}
+        {state, max_synced_height, [{:put, :last_block_getter_eth_height, max_synced_height}]}
     end
   end
 
@@ -171,35 +185,45 @@ defmodule OMG.Watcher.BlockGetter.Core do
   Empty range case is solved naturally with {a, b}, a > b
   """
   @spec get_eth_range_for_block_submitted_events(t(), non_neg_integer()) :: {pos_integer(), pos_integer()}
-  def get_eth_range_for_block_submitted_events(%__MODULE__{synced_height: synced_height}, coordinator_height) do
-    {synced_height + 1, coordinator_height}
+  def get_eth_range_for_block_submitted_events(
+        %__MODULE__{synced_height: synced_height, config: config},
+        coordinator_height
+      ) do
+    {max(0, synced_height - config.block_reorg_margin), coordinator_height}
   end
 
   @doc """
-  Returns blocks that can be pushed to state.
+  Returns blocks that can be pushed to state or updates the `synced_height` if no new blocks` submissions are found in a range.
 
   That is the longest continuous range of blocks downloaded from child chain,
   contained in `block_submitted_events`, published on ethereum height not exceeding `coordinator_height` and not pushed to state before.
   """
   @spec get_blocks_to_apply(t(), list(), non_neg_integer()) ::
           {list({Block.t(), non_neg_integer()}), non_neg_integer(), list(), t()}
-  def get_blocks_to_apply(state, block_submitted_events, coordinator_height)
+  def get_blocks_to_apply(
+        %__MODULE__{last_applied_block: last_applied} = state,
+        block_submitted_events,
+        coordinator_height
+      ) do
+    filtered_submissions = block_submitted_events |> Enum.filter(fn %{blknum: blknum} -> blknum > last_applied end)
+    do_get_blocks_to_apply(state, filtered_submissions, coordinator_height)
+  end
 
-  def get_blocks_to_apply(%__MODULE__{synced_height: synced_height} = state, _block_submitted_events, older_height)
-      when older_height <= synced_height do
+  defp do_get_blocks_to_apply(%__MODULE__{synced_height: synced_height} = state, _block_submitted_events, older_height)
+       when older_height <= synced_height do
     {[], synced_height, [], state}
   end
 
-  def get_blocks_to_apply(%__MODULE__{} = state, [], coordinator_height) do
+  defp do_get_blocks_to_apply(%__MODULE__{} = state, [], coordinator_height) do
     db_updates = [{:put, :last_block_getter_eth_height, coordinator_height}]
     {[], coordinator_height, db_updates, %{state | synced_height: coordinator_height}}
   end
 
-  def get_blocks_to_apply(
-        %__MODULE__{unapplied_blocks: blocks, config: config} = state,
-        block_submissions,
-        _coordinator_height
-      ) do
+  defp do_get_blocks_to_apply(
+         %__MODULE__{unapplied_blocks: blocks, config: config} = state,
+         block_submissions,
+         _coordinator_height
+       ) do
     eth_height_done_by_blknum = append_final_blknums(block_submissions, state.eth_height_done_by_blknum)
 
     block_submissions =
@@ -238,7 +262,9 @@ defmodule OMG.Watcher.BlockGetter.Core do
       [last_blknum | _] = Enum.sort(blknums, &(&1 >= &2))
       {last_blknum, eth_height}
     end)
-    |> Map.merge(current_eth_height_done_by_blknum)
+    # merging in this order means that in the case of a reorg the old values are overwritten by the changes
+    # which makes the last_synced_height more accurate
+    |> (&Map.merge(current_eth_height_done_by_blknum, &1)).()
   end
 
   @doc """
@@ -524,8 +550,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
     end
   end
 
-  defp add_zero_fee(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}}, fee_map) do
-    Map.put(fee_map, cur12, 0)
+  defp add_zero_fee(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}, fee_map) do
+    raw_tx
+    |> Transaction.get_currencies()
+    |> Enum.into(fee_map, fn currency -> {currency, 0} end)
   end
 
   @doc """

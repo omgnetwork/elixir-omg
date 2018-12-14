@@ -41,7 +41,11 @@ defmodule OMG.API.State.CoreTest do
   test "can spend deposits", %{alice: alice, bob: bob, state_empty: state} do
     state
     |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+    |> (&Core.exec(
+          Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]),
+          zero_fees_map(),
+          &1
+        )).()
     |> success?
     |> (&Core.exec(
           Test.create_recovered([{@child_block_interval, 0, 1, alice}], eth(), [{bob, 3}]),
@@ -51,33 +55,8 @@ defmodule OMG.API.State.CoreTest do
     |> success?
   end
 
-  @tag fixtures: [:alice, :bob, :state_empty]
-  test "when spending currency must match", %{alice: alice, bob: bob, state_empty: state} do
-    state
-    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-    |> (&Core.exec(
-          Test.create_recovered([{1, 0, 0, alice}], not_eth(), [{bob, 7}, {alice, 3}]),
-          zero_fees_map(),
-          &1
-        )).()
-    |> fail?(:incorrect_currency)
-  end
-
-  @tag fixtures: [:alice, :bob, :state_empty]
-  test "when spending inputs must have the same currency", %{alice: alice, bob: bob, state_empty: state} do
-    state
-    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
-    |> Test.do_deposit(alice, %{amount: 0, currency: not_eth(), blknum: 2})
-    |> (&Core.exec(
-          Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]),
-          zero_fees_map(),
-          &1
-        )).()
-    |> fail?(:incorrect_currency)
-  end
-
   @tag fixtures: [:alice, :state_empty]
-  test "currency of created utxo matches currency of the input", %{alice: alice, state_empty: state} do
+  test "output currencies must be included in input currencies", %{alice: alice, state_empty: state} do
     state1 =
       state
       |> Test.do_deposit(alice, %{amount: 10, currency: not_eth(), blknum: 1})
@@ -90,10 +69,18 @@ defmodule OMG.API.State.CoreTest do
 
     state1
     |> (&Core.exec(Test.create_recovered([{1000, 0, 0, alice}], eth(), [{alice, 9}]), zero_fees_map(), &1)).()
-    |> fail?(:incorrect_currency)
+    |> fail?(:amounts_do_not_add_up)
 
     state1
-    |> (&Core.exec(Test.create_recovered([{1000, 0, 0, alice}], not_eth(), [{alice, 3}]), zero_fees_map(), &1)).()
+    |> (&Core.exec(
+          Test.create_recovered(
+            [{1000, 0, 0, alice}, {0, 0, 0, alice}],
+            not_eth(),
+            [{alice, 3}, {alice, 0}]
+          ),
+          zero_fees_map(),
+          &1
+        )).()
     |> success?
   end
 
@@ -140,12 +127,16 @@ defmodule OMG.API.State.CoreTest do
     state_deposit = state |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
 
     state_deposit
-    |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+    |> (&Core.exec(
+          Test.create_recovered([{1, 1, 0, alice}, {1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]),
+          zero_fees_map(),
+          &1
+        )).()
     |> fail?(:utxo_not_found)
     |> same?(state_deposit)
   end
 
-  @tag fixtures: [:alice, :bob, :state_alice_deposit, :state_empty]
+  @tag fixtures: [:alice, :bob, :state_empty]
   test "amounts must add up", %{alice: alice, bob: bob, state_empty: state} do
     state = Test.do_deposit(state, alice, %{amount: 10, currency: eth(), blknum: 1})
 
@@ -157,14 +148,18 @@ defmodule OMG.API.State.CoreTest do
             %{eth() => 0},
             &1
           )).()
-      |> fail?(:amounts_dont_add_up)
+      |> fail?(:amounts_do_not_add_up)
       |> same?(state)
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 2}, {alice, 8}]), zero_fees_map(), &1)).()
+      |> (&Core.exec(
+            Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 2}, {alice, 8}]),
+            zero_fees_map(),
+            &1
+          )).()
       |> success?
 
     state
     |> (&Core.exec(
-          Test.create_recovered([{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}], eth(), [
+          Test.create_recovered([{@child_block_interval, 0, 0, alice}, {@child_block_interval, 0, 1, bob}], eth(), [
             {alice, 7},
             {bob, 2}
           ]),
@@ -172,7 +167,7 @@ defmodule OMG.API.State.CoreTest do
           %{eth() => 2},
           &1
         )).()
-    |> fail?(:amounts_dont_add_up)
+    |> fail?(:amounts_do_not_add_up)
     |> same?(state)
   end
 
@@ -180,10 +175,10 @@ defmodule OMG.API.State.CoreTest do
   test "can't spend other people's funds", %{alice: alice, bob: bob, state_alice_deposit: state} do
     state
     |> (&Core.exec(Test.create_recovered([{1, 0, 0, bob}], eth(), [{bob, 8}, {alice, 3}]), zero_fees_map(), &1)).()
-    |> fail?(:incorrect_spender)
+    |> fail?(:unauthorized_spent)
     |> same?(state)
     |> (&Core.exec(Test.create_recovered([{1, 0, 0, bob}], eth(), [{alice, 10}]), zero_fees_map(), &1)).()
-    |> fail?(:incorrect_spender)
+    |> fail?(:unauthorized_spent)
     |> same?(state)
   end
 
@@ -212,7 +207,11 @@ defmodule OMG.API.State.CoreTest do
     state_alice_deposit: state
   } do
     state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+    |> (&Core.exec(
+          Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]),
+          zero_fees_map(),
+          &1
+        )).()
     |> success?
     |> (&Core.exec(
           Test.create_recovered([{@child_block_interval, 0, 0, bob}], eth(), [{carol, 7}]),
@@ -242,7 +241,11 @@ defmodule OMG.API.State.CoreTest do
     {:ok, {_, _, _}, state} = form_block_check(state, @child_block_interval)
 
     state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+    |> (&Core.exec(
+          Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]),
+          zero_fees_map(),
+          &1
+        )).()
     |> success?
     |> (&Core.exec(Test.create_recovered([{next_block_height, 0, 0, bob}], eth(), [{bob, 7}]), zero_fees_map(), &1)).()
     |> success?
@@ -288,7 +291,11 @@ defmodule OMG.API.State.CoreTest do
   } do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+      |> (&Core.exec(
+            Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]),
+            zero_fees_map(),
+            &1
+          )).()
       |> success?
       |> (&Core.exec(
             Test.create_recovered([{@child_block_interval, 0, 0, bob}], eth(), [{alice, 7}]),
@@ -307,7 +314,11 @@ defmodule OMG.API.State.CoreTest do
     state_alice_deposit: state
   } do
     state
-    |> (&Core.exec(Test.create_recovered([{1, 1, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+    |> (&Core.exec(
+          Test.create_recovered([{1, 1, 0, alice}], eth(), [{bob, 7}, {alice, 3}]),
+          zero_fees_map(),
+          &1
+        )).()
     |> same?(state)
 
     assert {:ok, {_, [], _}, _} = form_block_check(state, @child_block_interval)
@@ -333,7 +344,11 @@ defmodule OMG.API.State.CoreTest do
   } do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+      |> (&Core.exec(
+            Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]),
+            zero_fees_map(),
+            &1
+          )).()
       |> success?
 
     assert {:ok, {_, [_trigger], _}, state} = form_block_check(state, @child_block_interval)
@@ -350,6 +365,7 @@ defmodule OMG.API.State.CoreTest do
     # odd number of transactions, just in case
     recovered_tx_1 = Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}])
     recovered_tx_2 = Test.create_recovered([{@child_block_interval, 0, 0, bob}], eth(), [{alice, 2}, {bob, 5}])
+
     recovered_tx_3 = Test.create_recovered([{@child_block_interval, 0, 1, alice}], eth(), [{alice, 2}, {bob, 1}])
 
     state =
@@ -385,7 +401,11 @@ defmodule OMG.API.State.CoreTest do
   } do
     state =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+      |> (&Core.exec(
+            Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]),
+            zero_fees_map(),
+            &1
+          )).()
       |> success?
 
     {:ok, {_, _, _}, state} = form_block_check(state, @child_block_interval)
@@ -410,7 +430,11 @@ defmodule OMG.API.State.CoreTest do
   } do
     {:ok, {_, _, db_updates}, state} =
       state
-      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+      |> (&Core.exec(
+            Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 7}, {alice, 3}]),
+            zero_fees_map(),
+            &1
+          )).()
       |> success?
       |> form_block_check(@child_block_interval)
 
@@ -481,7 +505,11 @@ defmodule OMG.API.State.CoreTest do
       )
 
     state
-    |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+    |> (&Core.exec(
+          Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]),
+          zero_fees_map(),
+          &1
+        )).()
     |> success?
   end
 
@@ -555,7 +583,6 @@ defmodule OMG.API.State.CoreTest do
           &1
         )).()
     |> fail?(:utxo_not_found)
-    |> same?(state_after_exit)
   end
 
   @tag fixtures: [:state_empty]
@@ -648,7 +675,7 @@ defmodule OMG.API.State.CoreTest do
       state
       |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
       |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{bob, 6}, {alice, 3}]), fee, &1)).()
-      |> fail?(:amounts_dont_add_up)
+      |> fail?(:amounts_do_not_add_up)
     end
   end
 
@@ -746,6 +773,73 @@ defmodule OMG.API.State.CoreTest do
           &1
         )).()
     |> fail?(:utxo_not_found)
+  end
+
+  @tag fixtures: [:alice, :bob, :state_empty]
+  test "can spend utxos with mixed currencies", %{
+    alice: alice,
+    bob: bob,
+    state_empty: state
+  } do
+    state
+    |> Test.do_deposit(alice, %{amount: 1, currency: eth(), blknum: 1})
+    |> Test.do_deposit(alice, %{amount: 2, currency: not_eth(), blknum: 2})
+    |> (&Core.exec(
+          Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, eth(), 1}, {bob, not_eth(), 2}]),
+          zero_fees_map(),
+          &1
+        )).()
+    |> success?
+  end
+
+  @tag fixtures: [:alice, :bob, :state_empty]
+  test "respects fees for transactions with mixed currencies", %{
+    alice: alice,
+    bob: bob,
+    state_empty: state
+  } do
+    fees = %{eth() => 1, not_eth() => 1}
+
+    state =
+      state
+      |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+      |> Test.do_deposit(alice, %{amount: 10, currency: not_eth(), blknum: 2})
+
+    # fee is paid in the same currency as an output
+    state
+    |> (&Core.exec(
+          Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, eth(), 10}, {bob, not_eth(), 1}]),
+          fees,
+          &1
+        )).()
+    |> success?
+
+    # fee is paid in different currency then outputs
+    state
+    |> (&Core.exec(
+          Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, eth(), 9}, {bob, eth(), 1}]),
+          fees,
+          &1
+        )).()
+    |> success?
+
+    # fee is respected but amounts don't add up
+    state
+    |> (&Core.exec(
+          Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, eth(), 10}, {bob, eth(), 1}]),
+          fees,
+          &1
+        )).()
+    |> fail?(:amounts_do_not_add_up)
+
+    # fee is not respected
+    state
+    |> (&Core.exec(
+          Test.create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, eth(), 10}, {bob, not_eth(), 10}]),
+          fees,
+          &1
+        )).()
+    |> fail?(:amounts_do_not_add_up)
   end
 
   defp success?(result) do

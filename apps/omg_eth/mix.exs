@@ -6,7 +6,7 @@ defmodule OMG.Eth.MixProject do
   def project do
     [
       app: :omg_eth,
-      version: "0.1.0",
+      version: OMG.Umbrella.MixProject.umbrella_version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -21,6 +21,9 @@ defmodule OMG.Eth.MixProject do
 
   def application do
     [
+      env: [
+        child_block_interval: 1000
+      ],
       extra_applications: [:logger]
     ]
   end
@@ -40,8 +43,8 @@ defmodule OMG.Eth.MixProject do
       {:briefly, "~> 0.3"},
       {
         :plasma_contracts,
-        git: "https://github.com/pdobacz/plasma-contracts",
-        branch: "finalization_challenge_events",
+        git: "https://github.com/omisego/plasma-contracts",
+        branch: "v0.0",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,

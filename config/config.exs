@@ -11,13 +11,11 @@ import_config "../apps/*/config/config.exs"
 
 # Sample configuration (overrides the imported configuration above):
 
+config :logger, level: :info
+
 config :logger, :console,
-  level: :info,
   format: "$date $time [$level] $metadata⋅$message⋅\n",
   discard_threshold: 2000,
   metadata: [:module, :function, :request_id]
-
-config :ethereumex,
-  request_timeout: 60_000
 
 import_config "#{Mix.env()}.exs"

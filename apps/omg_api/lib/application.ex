@@ -22,7 +22,7 @@ defmodule OMG.API.Application do
   use OMG.API.LoggerExt
 
   def start(_type, _args) do
-    eth_deposit_finality_margin = Application.get_env(:omg_api, :eth_deposit_finality_margin)
+    deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
 
     children = [
       {OMG.API.State, []},
@@ -36,12 +36,12 @@ defmodule OMG.API.Application do
           {OMG.API.EthereumEventListener, :start_link,
            [
              %{
-               block_finality_margin: eth_deposit_finality_margin,
+               block_finality_margin: deposit_finality_margin,
                synced_height_update_key: :last_depositor_eth_height,
                service_name: :depositor,
                get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
                process_events_callback: &OMG.API.State.deposit/1,
-               get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
+               get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0
              }
            ]}
       },
@@ -60,7 +60,7 @@ defmodule OMG.API.Application do
                  {status, db_updates, _validities} = OMG.API.State.exit_utxos(exits)
                  {status, db_updates}
                end,
-               get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
+               get_last_synced_height_callback: &OMG.DB.last_exiter_eth_height/0
              }
            ]}
       }
@@ -68,6 +68,7 @@ defmodule OMG.API.Application do
 
     _ = Logger.info(fn -> "Started application OMG.API.Application" end)
     opts = [strategy: :one_for_one]
+    :ok = :error_logger.add_report_handler(Sentry.Logger)
     Supervisor.start_link(children, opts)
   end
 end

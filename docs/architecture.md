@@ -19,7 +19,7 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 - for `OMG.Eth` look in `apps/omg_eth`
 - for `OMG.DB` look in `apps/omg_db`
 - for `OMG.Performance` look in `apps/omg_performance`
-- for `OMG.JSONRPC` look in `apps/omg_jsonrpc`
+- for `OMG.RPC` look in `apps/omg_rpc`
 
 **NOTE 2** The hexagonal shape hints towards component being a wrapper (port/adapter) to something external, versus rectangular shape being an internal component.
 
@@ -91,13 +91,13 @@ Actually `OMG.API.EthereumEventListener` setup with `:depositor`.
 
 - pushes events to `Phoenix app`
 
-### `OMG.JSONRPC`
+### `OMG.RPC`
 
-- exposes `OMG.API` (as configured by `:omg_jsonrpc, :api_module` setting) via a `cowboy`-driven JSON-RPC2 interface
+- exposes `OMG.API` (as configured by `:omg_rpc, :child_chain_api_module` setting) via a `phoenix`-driven HTTP-RPC interface
 
 ### `OMG.Performance`
 
-- executes requests to `OMG.JSONRPC`
+- executes requests to `OMG.RPC`
 - forces block forming by talking directly to `OMG.API.State`
 
 ## Databases

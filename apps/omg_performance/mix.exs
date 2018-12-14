@@ -4,7 +4,7 @@ defmodule OMG.Performance.MixProject do
   def project do
     [
       app: :omg_performance,
-      version: "0.1.0",
+      version: OMG.Umbrella.MixProject.umbrella_version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -24,9 +24,7 @@ defmodule OMG.Performance.MixProject do
 
   defp deps do
     [
-      {:jsonrpc2, "~> 1.1"},
       {:briefly, "~> 0.3"},
-      {:hackney, "~> 1.7"},
       {:omg_api, in_umbrella: true, runtime: false}
     ]
   end

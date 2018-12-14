@@ -24,12 +24,11 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Eth
-  alias OMG.JSONRPC.Client
+  alias OMG.RPC.Client
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.Watcher.TestHelper, as: Test
   alias OMG.Watcher.Web.Channel
-  alias OMG.Watcher.Web.Serializer.Response
+  alias OMG.Watcher.Web.Serializers.Response
 
   @moduletag :integration
 
@@ -46,10 +45,10 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     {:ok, _, event_socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: deposit_blknum}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: deposit_blknum}} = Client.submit(tx)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
@@ -71,18 +70,20 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       |> Eth.DevHelpers.transact_sync!()
 
     invalid_exit_event =
-      Client.encode(%Event.InvalidExit{
+      %Event.InvalidExit{
         amount: 10,
         currency: @eth,
         owner: alice.addr,
         utxo_pos: utxo_pos,
         eth_height: eth_height
-      })
+      }
+      |> Response.clean_artifacts()
 
-    assert_push("invalid_exit", ^invalid_exit_event, 5_000)
+    IntegrationTest.wait_for_exit_processing(eth_height, @timeout)
+    assert_push("invalid_exit", ^invalid_exit_event)
 
     # after the notification has been received, a challenged is composed and sent
-    challenge = get_exit_challenge(deposit_blknum, 0, 0)
+    challenge = IntegrationTest.get_exit_challenge(deposit_blknum, 0, 0)
     assert {:ok, {alice.addr, @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
 
     {:ok, %{"status" => "0x1"}} =
@@ -98,7 +99,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     assert {:ok, {API.Crypto.zero_address(), @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
 
-    IntegrationTest.wait_for_current_block_fetch(@timeout)
+    Process.sleep(5_000)
 
     # re subscribe fresh, so we don't get old events in the socket
     Process.unlink(event_socket.channel_pid)
@@ -120,39 +121,21 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     end
   end
 
-  defp get_exit_challenge(blknum, txindex, oindex) do
-    utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
-
-    assert %{"result" => "success", "data" => data} = Test.rest_call(:get, "utxo/#{utxo_pos}/challenge_data")
-
-    Response.decode16(data, ["txbytes", "proof", "sigs"])
-  end
-
-  @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
+  @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
   test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event ",
-       %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}} do
-    margin_slow_validator =
-      Application.get_env(:omg_watcher, :margin_slow_validator) * Application.get_env(:omg_eth, :child_block_interval)
-
+       %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: exit_blknum}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: exit_blknum}} = Client.submit(tx)
 
-    # Here we calcualted bad_block_number by adding `exit_blknum` and `margin_slow_validator` / 2
-    # to have guarantee that bad_block_number will be after margin of slow validator(m_sv)
-    bad_block_number = exit_blknum + div(margin_slow_validator, 2)
+    # Here we're preparing invalid block
+    bad_block_number = 2_000
     bad_tx = API.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
 
     %{hash: bad_block_hash, number: _, transactions: _} =
       bad_block = API.Block.hashed_txs_at([bad_tx], bad_block_number)
 
-    # Here we manually submiting invalid block with big/future nonce to the Rootchain to make
-    # the Rootchain to mine invalid block instead of block submitted by child chain
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-    nonce = div(bad_block_number, child_block_interval)
-    {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, nonce, 1)
-
     # from now on the child chain server is broken until end of test
-    OMG.Watcher.Integration.BadChildChainServer.register_and_start_server(bad_block)
+    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block, bad_block_hash)
 
     {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
@@ -175,19 +158,22 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    # Here we waiting for block `bad_block_number + 1`
-    # to give time for watcher to fetch and validate bad_block_number
-    IntegrationTest.wait_for_block_fetch(bad_block_number + 1, @timeout)
+    # Here we're manually submitting invalid block to the root chain
+    {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
+
+    IntegrationTest.wait_for_block_fetch(bad_block_number, @timeout)
 
     invalid_exit_event =
-      Client.encode(%Event.InvalidExit{
+      %Event.InvalidExit{
         amount: 10,
         currency: @eth,
         owner: alice.addr,
         utxo_pos: utxo_pos,
         eth_height: eth_height
-      })
+      }
+      |> Response.clean_artifacts()
 
-    assert_push("invalid_exit", ^invalid_exit_event, 1500)
+    IntegrationTest.wait_for_exit_processing(eth_height, @timeout)
+    assert_push("invalid_exit", ^invalid_exit_event)
   end
 end

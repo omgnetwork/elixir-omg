@@ -23,7 +23,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   alias OMG.API.Crypto
   alias OMG.API.Utxo
   alias OMG.Eth
-  alias OMG.JSONRPC.Client
+  alias OMG.RPC.Client
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
 
   require Utxo
@@ -66,11 +66,11 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     assert [eth_deposit, token_deposit] == IntegrationTest.get_utxos(alice)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
-    {:ok, %{blknum: block_nr}} = Client.call(:submit, %{transaction: tx})
+    {:ok, %{blknum: block_nr}} = Client.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(block_nr, @timeout)
 
-    encode_tx = Client.encode(tx)
+    encode_tx = Base.encode16(tx)
 
     assert [
              %{
@@ -102,7 +102,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       "sigs" => sigs
     } = IntegrationTest.get_exit_data(block_nr, 0, 0)
 
-    {:ok, %{"status" => "0x1"}} =
+    {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
       Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
@@ -112,14 +112,14 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    IntegrationTest.wait_for_current_block_fetch(@timeout)
+    IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
 
     assert [token_deposit] == IntegrationTest.get_utxos(alice)
 
     # finally alice exits her token deposit
     deposit_pos = Utxo.position(token_deposit_blknum, 0, 0) |> Utxo.Position.encode()
 
-    {:ok, %{"status" => "0x1"}} =
+    {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
       Eth.RootChain.start_deposit_exit(
         deposit_pos,
         token,
@@ -128,7 +128,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    IntegrationTest.wait_for_current_block_fetch(@timeout)
+    IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
 
     assert [] == IntegrationTest.get_utxos(alice)
   end
