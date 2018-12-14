@@ -3,7 +3,7 @@
 ## Submit transaction
 
 ```shell
-curl http://localhost:4000/transaction.submit -d '{"transaction": "b325602686..."}'
+curl -X POST -H "Content-Type: application/json" http://localhost:9656/transaction.submit -d '{"transaction": "b325602686..."}'
 ```
 
 ```elixir
