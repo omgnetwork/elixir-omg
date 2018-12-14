@@ -61,8 +61,6 @@ child_block_hash | HEX-encoded string |
 submited_at_ethheight | integer |
 tx | object | Structure of signed transaction
 
-Blocks are validated by the Watcher after a short (not-easily-configurable) finality margin. By consequence, above events will be emitted no earlier than that finality margin. In case extra finality is required for high-stakes transactions, the client is free to wait any number of Ethereum blocks (confirmations) on top of submitted_at_ethheight.
-
 
 ## Topic `childchain`
 

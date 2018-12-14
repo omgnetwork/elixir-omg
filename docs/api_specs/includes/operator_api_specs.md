@@ -40,7 +40,7 @@ Attribute | Type | Description
 --------- | ------- | -----------
 transaction | Hex encoded string | Signed transaction RLP-encoded to bytes and HEX-encoded to string
 
-<aside class="notice">Normally you should call the Watcher's (Transaction - Submit)[#] instead of this. The Watcher's version performs various security and validation checks before submitting the transaction, so is much safer. However, if the Watcher is not available this version exists.</aside> 
+<aside class="notice">Normally you should call the Watcher's <a href="#transaction-submit">Transaction - Submit</a> instead of this. The Watcher's version performs various security and validation checks before submitting the transaction, so is much safer. However, if the Watcher is not available this version exists.</aside> 
 
 
 

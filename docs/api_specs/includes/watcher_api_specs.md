@@ -36,7 +36,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:4000/account.g
 ```
 
 Gets all utxos belonging to the given address.
-<aside class="notice"> Note that this is a performance intensive call and should only be used if the chain is byzantine and the user needs to retrieve utxo information to be able to exit. Normally an application should use the Informational API's (Account - Get Utxos)[#] This version is provided in case the Informational API is not available.</aside> 
+<aside class="notice"> Note that this is a performance intensive call and should only be used if the chain is byzantine and the user needs to retrieve utxo information to be able to exit. Normally an application should use the Informational API's  <a href="#cccount-get-utxos">Account - Get Utxos</a> instead. This version is provided in case the Informational API is not available.</aside> 
 
 
 ### HTTP Request
@@ -354,6 +354,7 @@ An in-flight exit of a non-canonical transaction has been started. It should be 
 <aside class="warning"> Not Implemented Yet.</aside> 
 
 Event details:
+
 Attribute | Type | Description
 --------- | ------- | -----------
 txbytes | Hex encoded string | The in-flight transaction that the event relates to
@@ -374,6 +375,7 @@ A canonical in-flight exit has been challenged. The challenge should be responde
 <aside class="warning"> Not Implemented Yet.</aside> 
 
 Event details:
+
 Attribute | Type | Description
 --------- | ------- | -----------
 txbytes | Hex encoded string | The in-flight transaction that the event relates to
@@ -401,6 +403,7 @@ An in-flight exit has been started and can be piggybacked. If all inputs are own
 <aside class="warning"> Not Implemented Yet.</aside> 
 
 Event details:
+
 Attribute | Type | Description
 --------- | ------- | -----------
 txbytes | Hex encoded string | The in-flight transaction that the event relates to
@@ -425,6 +428,7 @@ An invalid piggyback is in process. Should be challenged.
 <aside class="warning"> Not Implemented Yet.</aside>
 
 Event details:
+
 Attribute | Type | Description
 --------- | ------- | -----------
 txbytes | Hex encoded string | The in-flight transaction that the event relates to
