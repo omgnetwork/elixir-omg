@@ -30,6 +30,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.Watcher.Web.Channel
   alias OMG.Watcher.Web.Serializers.Response
 
+  import ExUnit.CaptureLog
+
   @moduletag :integration
 
   @timeout 40_000
@@ -110,14 +112,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     refute_push("invalid_exit", _, 2_000)
   end
 
-#  def "invalid exit is detected after block withholding" do
-#
-#  end
-#
-#  def "invalid exit is detected after invalid block" do
-#
-#  end
-
   # clears the mailbox of `self()`. Useful to purge old events that shouldn't be emitted anymore after some action
   defp clear_mailbox do
     receive do
@@ -179,5 +173,65 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     IntegrationTest.wait_for_exit_processing(eth_height, @timeout)
     assert_push("invalid_exit", ^invalid_exit_event)
+  end
+
+  @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
+  test "invalid exit is detected after block withholding", %{
+    stable_alice: alice,
+    stable_alice_deposits: {deposit_blknum, _}
+  } do
+    {:ok, _, event_socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
+
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    {:ok, %{blknum: deposit_blknum}} = Client.submit(tx)
+
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.submit(tx)
+
+    IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
+
+    assert capture_log(fn ->
+             {:ok, _txhash} = Eth.RootChain.submit_block(<<0::256>>, trunc(tx_blknum / 1000) + 1, 20_000_000_000)
+
+             IntegrationTest.assert_block_getter_down()
+           end) =~ inspect(:withholding)
+
+    block_withholding_event =
+      %Event.BlockWithholding{
+        blknum: tx_blknum + 1000
+      }
+      |> Response.clean_artifacts()
+
+    assert_push("block_withholding", ^block_withholding_event)
+
+    %{
+      "txbytes" => txbytes,
+      "proof" => proof,
+      "sigs" => sigs,
+      "utxo_pos" => utxo_pos
+    } = IntegrationTest.get_exit_data(deposit_blknum, 0, 0)
+
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+      Eth.RootChain.start_exit(
+        utxo_pos,
+        txbytes,
+        proof,
+        sigs,
+        alice.addr
+      )
+      |> Eth.DevHelpers.transact_sync!()
+
+    invalid_exit_event =
+      %Event.InvalidExit{
+        amount: 10,
+        currency: @eth,
+        owner: alice.addr,
+        utxo_pos: utxo_pos,
+        eth_height: eth_height
+      }
+      |> Response.clean_artifacts()
+
+    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
+    assert_push("invalid_exit", ^invalid_exit_event, exit_processor_validation + 1_000)
   end
 end

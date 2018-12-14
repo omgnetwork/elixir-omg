@@ -21,6 +21,7 @@ defmodule OMG.API.EthereumEventListener do
   NOTE: this could and should at some point be implemented as a `@behavior` instead, to avoid using callbacks
   """
 
+  alias OMG.Eth
   alias OMG.API.EthereumEventListener.Core
   alias OMG.API.RootChainCoordinator
   use OMG.API.LoggerExt
@@ -74,7 +75,7 @@ defmodule OMG.API.EthereumEventListener do
      {Core.init(update_key, service_name, last_event_block_height, finality_margin, sync_mode),
       %{
         get_ethereum_events_callback: get_events_callback,
-        process_events_callback: process_events_callback,
+        process_events_callback: process_events_callback
       }}}
   end
 
