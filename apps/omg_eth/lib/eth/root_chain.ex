@@ -266,6 +266,17 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
+  Returns piggybacks on in flight exits from a range of blocks.
+  """
+  def get_piggybacks(block_from, block_to, contract \\ nil) do
+    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
+    signature = "InFlightExitPiggybacked(address,bytes32,uint256)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, logs |> Enum.map(&decode_in_flight_exit_piggybacked/1)}
+  end
+
+  @doc """
   Returns finalizations of exits from a range of blocks from Ethereum logs.
   """
   def get_finalizations(block_from, block_to, contract \\ nil) do
@@ -325,6 +336,19 @@ defmodule OMG.Eth.RootChain do
     non_indexed_key_types = []
     indexed_keys = [:utxo_pos]
     indexed_keys_types = [{:uint, 256}]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  defp decode_in_flight_exit_piggybacked(log) do
+    non_indexed_keys = [:owner, :tx_hash, :output_index]
+    non_indexed_key_types = [:address, {:byte, 32}, {:uint, 256}]
+    indexed_keys = []
+    indexed_keys_types = []
 
     Eth.parse_events_with_indexed_fields(
       log,

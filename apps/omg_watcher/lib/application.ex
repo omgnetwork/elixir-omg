@@ -120,6 +120,21 @@ defmodule OMG.Watcher.Application do
       #             }
       #           ]}
       #      },
+      #      %{
+      #        id: :piggyback_processor,
+      #        start:
+      #          {OMG.API.EthereumEventListener, :start_link,
+      #           [
+      #             %{
+      #               block_finality_margin: exit_finality_margin,
+      #               synced_height_update_key: :last_exit_processor_eth_height,
+      #               service_name: :piggyback_processor,
+      #               get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
+      #               process_events_callback: &OMG.Watcher.ExitProcessor.new_piggybacks/1,
+      #               get_last_synced_height_callback: &OMG.DB.last_exit_processor_eth_height/0
+      #             }
+      #           ]}
+      #      },
       %{
         id: :exit_finalizer,
         start:
