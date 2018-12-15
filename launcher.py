@@ -45,9 +45,9 @@ class ChildchainLauncher:
         self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
         logging.info('Ethereum client is {}'.format(self.ethereum_client))
         if self.chain_data_present is True:
-            self.config_writer_dynamic()
-            logging.info('Launcher process complete')
-            return
+            if self.config_writer_dynamic() is True:
+                logging.info('Launcher process complete')
+                return
         if self.compile_application() is False:
             logging.critical('Could not compile application. Exiting.')
             sys.exit(1)
@@ -78,9 +78,17 @@ class ChildchainLauncher:
         ''' Write the configuration from data retrieved from the contract
         exchanger
         '''
-        contract_data = json.loads(
-            self.get_contract_from_exchanger().decode('utf-8')
-        )
+        contract_data = None
+        try:
+            contract_data = json.loads(
+                self.get_contract_from_exchanger().decode('utf-8')
+            )
+        except json.decoder.JSONDecodeError:
+            logging.warning(
+                'Empty response from the contract exchanger.'
+                'Assuming this is a first deploy.'
+            )
+            return False
         config = [
             'use Mix.Config',
             'config :omg_eth,',

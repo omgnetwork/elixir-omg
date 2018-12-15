@@ -59,8 +59,7 @@ RUN wget https://github.com/ethereum/solidity/releases/download/v0.4.25/solc-sta
 
 RUN sudo -H pip3 install --upgrade pip \
   && sudo -H -n ln -s /usr/bin/python3 python \
-  && sudo -H -n pip3 install -r contracts/requirements.txt \
-  && sudo -H -n pip3 install requests gitpython retry
+  && sudo -H -n pip3 install requests gitpython
 
 WORKDIR /home/elixir-user/elixir-omg/
 

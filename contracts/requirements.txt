@@ -1,3 +1,0 @@
-py-solc==3.1.0
-py-solc-simple==0.0.10
-semantic-version==2.6.0
