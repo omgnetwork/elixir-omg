@@ -38,7 +38,7 @@ defmodule OMG.Umbrella.MixProject do
       #       https://github.com/exthereum/exth_crypto/issues/8#issuecomment-416227176
       {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
-      {:sentry, "~> 6.2.0}
+      {:sentry, "~> 6.2.0"}
     ]
   end
 
