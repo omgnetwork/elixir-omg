@@ -21,12 +21,22 @@ defmodule OMG.RPC.Web.Controller.Fallback do
 
   alias OMG.RPC.Web.Serializers
 
+  def call(conn, :not_found) do
+    data = %{
+      object: :error,
+      code: :endpoint_not_found,
+      description: "Endpoint not found"
+    }
+
+    json(conn, Serializers.Response.serialize(data, :error))
+  end
+
   def call(conn, :error), do: call(conn, {:error, :unknown_error})
 
   def call(conn, {:error, reason}) do
     data = %{
       object: :error,
-      code: "#{action_name(conn)}:#{inspect(reason)}",
+      code: "#{action_name(conn)}#{inspect(reason)}",
       description: nil
     }
 

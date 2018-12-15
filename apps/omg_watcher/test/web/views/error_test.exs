@@ -29,7 +29,8 @@ defmodule OMG.Watcher.Web.View.ErrorTest do
     }
 
     expected = %{
-      result: :error,
+      success: false,
+      version: "1.0",
       data: %{
         code: "server:internal_server_error",
         description: "Custom assigned error description"
@@ -47,7 +48,8 @@ defmodule OMG.Watcher.Web.View.ErrorTest do
     }
 
     expected = %{
-      result: :error,
+      success: false,
+      version: "1.0",
       data: %{
         code: "client:invalid_parameter",
         description: "Custom assigned error description"
@@ -59,7 +61,8 @@ defmodule OMG.Watcher.Web.View.ErrorTest do
 
   test "renders invalid template as server error" do
     expected = %{
-      result: :error,
+      success: false,
+      version: "1.0",
       data: %{
         code: "server:internal_server_error",
         description: "Something went wrong on the server or template cannot be found."

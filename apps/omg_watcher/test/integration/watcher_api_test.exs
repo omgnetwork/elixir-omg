@@ -41,8 +41,6 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     token: token,
     alice_deposits: {deposit_blknum, token_deposit_blknum}
   } do
-    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
-
     token_addr = token |> Base.encode16()
 
     # expected utxos
@@ -104,7 +102,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       "sigs" => sigs
     } = IntegrationTest.get_exit_data(block_nr, 0, 0)
 
-    {:ok, %{"status" => "0x1"}} =
+    {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
       Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
@@ -114,14 +112,14 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    Process.sleep(exit_processor_validation)
+    IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
 
     assert [token_deposit] == IntegrationTest.get_utxos(alice)
 
     # finally alice exits her token deposit
     deposit_pos = Utxo.position(token_deposit_blknum, 0, 0) |> Utxo.Position.encode()
 
-    {:ok, %{"status" => "0x1"}} =
+    {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
       Eth.RootChain.start_deposit_exit(
         deposit_pos,
         token,
@@ -130,7 +128,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    Process.sleep(exit_processor_validation)
+    IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
 
     assert [] == IntegrationTest.get_utxos(alice)
   end

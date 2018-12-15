@@ -52,8 +52,8 @@ defmodule OMG.Watcher.Application do
 
   def start_watcher_supervisor do
     # Define workers and child supervisors to be supervised
-    deposit_finality_margin = Application.fetch_env!(:omg_api, :eth_deposit_finality_margin)
-    exit_finality_margin = Application.fetch_env!(:omg_watcher, :eth_exit_finality_margin)
+    deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
 
     children = [
       # Start the Ecto repository

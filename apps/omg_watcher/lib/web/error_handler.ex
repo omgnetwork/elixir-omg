@@ -16,7 +16,7 @@ defmodule OMG.Watcher.Web.ErrorHandler do
   @moduledoc """
   Handles API errors by mapping the error to its response code and description.
   """
-  alias OMG.Watcher.Web.Serializer
+  alias OMG.Watcher.Web.Serializers
 
   import Plug.Conn, only: [halt: 1]
   import Phoenix.Controller, only: [json: 2]
@@ -25,43 +25,17 @@ defmodule OMG.Watcher.Web.ErrorHandler do
     invalid_challenge_of_exit: %{
       code: "challenge:invalid",
       description: "The challenge of particular exit is invalid because provided utxo is not spent",
-      status_code: 400
+      status_code: 200
     },
     transaction_not_found: %{
       code: "transaction:not_found",
       description: "Transaction doesn't exist for provided search criteria",
-      status_code: 404
+      status_code: 200
     },
-    too_many_inputs: %{
-      code: "transaction_encode:too_many_inputs",
-      description: "More inputs provided than currently supported by plasma chain transaction.",
-      status_code: 400
-    },
-    at_least_one_input_required: %{
-      code: "transaction_encode:at_least_one_input_required",
-      description: "At least one input has to be provided to create plasma chain transaction.",
-      status_code: 400
-    },
-    too_many_outputs: %{
-      code: "transaction_encode:too_many_outputs",
-      description: "More outputs provided than currently supported by plasma chain transaction.",
-      status_code: 400
-    },
-    not_enough_funds_to_cover_spend: %{
-      code: "transaction_encode:not_enough_funds_to_cover_spend",
-      description: "The value of outputs exceeds what is spent in inputs.",
-      status_code: 400
-    },
-    amount_noninteger_or_negative: %{
-      code: "transaction_encode:amount_noninteger_or_negative",
-      description: "The amount in both inputs and outputs has to be non-negative integer.",
-      status_code: 400
-    },
-    currency_mixing_not_possible: %{
-      code: "transaction_encode:currency_mixing_not_possible",
-      description:
-        "Inputs contain more than one currency. Mixing currencies is not possible in plasma chain transaction.",
-      status_code: 400
+    utxo_not_found: %{
+      code: "exit:invalid",
+      description: "Utxo was spent or does not exist.",
+      status_code: 200
     }
   }
 
@@ -97,11 +71,11 @@ defmodule OMG.Watcher.Web.ErrorHandler do
   end
 
   defp build(code, description) do
-    Serializer.Error.serialize(code, description)
+    Serializers.Error.serialize(code, description)
   end
 
   defp respond(conn, data) do
-    data = Serializer.Response.serialize(data, :error)
+    data = Serializers.Response.serialize(data, :error)
 
     conn
     |> json(data)

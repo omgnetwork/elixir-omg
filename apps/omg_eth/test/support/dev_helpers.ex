@@ -127,7 +127,7 @@ defmodule OMG.Eth.DevHelpers do
     tx_fund |> from_hex() |> WaitFor.eth_receipt(@about_4_blocks_time)
   end
 
-  def wait_for_root_chain_block(awaited_eth_height, timeout \\ 60_000) do
+  def wait_for_root_chain_block(awaited_eth_height, timeout \\ 600_000) do
     f = fn ->
       {:ok, eth_height} = Eth.get_ethereum_height()
 

@@ -22,16 +22,16 @@ class ChildchainLauncher:
     ''' ChildchainLauncher: A module to launch a Childchain service
     '''
     def __init__(
-        self, git_commit_hash: str, platform: str, ethereum_network: str,
-            contract_exchanger_url: str):
+        self, git_commit_hash: str, ethereum_network: str,
+            contract_exchanger_url: str, ethereum_rpc_url: str):
         self.chain_data_present = False
         self.git_commit_hash = git_commit_hash
-        self.platform = platform
         self.ethereum_network = ethereum_network
         self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN']
         self.contracts = {}
         self.contracts['RINKEBY'] = RINKEBY_CONTRACT
         self.contract_exchanger_url = contract_exchanger_url
+        self.ethereum_rpc_url = ethereum_rpc_url
 
     def start(self):
         ''' Start the launch process for the Childchain service
@@ -41,7 +41,7 @@ class ChildchainLauncher:
             'Starting launch process for build {}'.format(self.git_commit_hash)
         )
         self.check_chain_data_path()
-        self.ethereum_client = check_ethereum_client(self.platform)
+        self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
         logging.info('Ethereum client is {}'.format(self.ethereum_client))
         if self.chain_data_present is True:
             self.config_writer_dynamic()
@@ -214,10 +214,9 @@ class WatcherLauncher:
     ''' WatcherLauncher: module to launch a Watcher service
     '''
     def __init__(
-            self, git_commit_hash: str, platform: str, ethereum_network: str,
-            contract_exchanger_url: str):
+            self, git_commit_hash: str, ethereum_network: str,
+            contract_exchanger_url: str, ethereum_rpc_url: str):
         self.git_commit_hash = git_commit_hash
-        self.platform = platform
         self.ethereum_network = ethereum_network
         self.public_networks = ['RINKEBY', 'KOVAN', 'ROPSTEN']
         self.contracts = {}
@@ -227,6 +226,7 @@ class WatcherLauncher:
             '  leveldb_path: Path.join([System.get_env("HOME"), ".omg/data_watcher"])' # noqa E501
         ]
         self.contract_exchanger_url = contract_exchanger_url
+        self.ethereum_rpc_url = ethereum_rpc_url
 
     def start(self):
         ''' Start the launch process for the Childchain service
@@ -237,7 +237,7 @@ class WatcherLauncher:
         )
         self.chain_data_present = False
         self.check_chain_data_path()
-        self.ethereum_client = check_ethereum_client(self.platform)
+        self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
         logging.info('Ethereum client is {}'.format(self.ethereum_client))
         if self.chain_data_present is True:
             self.config_writer_dynamic()
@@ -249,17 +249,16 @@ class WatcherLauncher:
         if self.deploy_contract() is False:
             logging.critical('Contract not deployed. Exiting.')
             sys.exit(1)
-        if self.chain_data_present is False:
-            if self.initialise_watcher_postgres_database() is False:
-                logging.critical(
-                    'Could not connect to the Postgres database Exiting.'
-                )
-                sys.exit(1)
-            if self.initialise_watcher_chain_database() is False:
-                logging.critical(
-                    'Could not initialise the chain database. Exiting.'
-                )
-                sys.exit(1)
+        if self.initialise_watcher_postgres_database() is False:
+            logging.critical(
+                'Could not connect to the Postgres database Exiting.'
+            )
+            sys.exit(1)
+        if self.initialise_watcher_chain_database() is False:
+            logging.critical(
+                'Could not initialise the chain database. Exiting.'
+            )
+            sys.exit(1)
 
         logging.info('Launcher process complete')
 
@@ -348,9 +347,9 @@ class WatcherLauncher:
     def initialise_watcher_postgres_database(self) -> bool:
         ''' Initialise the watcher database (Postgres)
         '''
-        os.chdir(os.getcwd() + '/apps/omg_watcher')
+        os.chdir(os.path.expanduser('~') + '/elixir-omg')
         result = subprocess.run(
-            'printf "y\r" | mix ecto.create --no-start',
+            'mix ecto.create --no-start',
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True
@@ -385,10 +384,9 @@ class WatcherLauncher:
         return False
 
 
-def check_ethereum_client(platform: str) -> str:
+def check_ethereum_client(ethereum_rpc_url: str) -> str:
     ''' Return the Ethereum client that is running
     '''
-    client_location = "http://docker.for.mac.localhost:8545" if platform == 'MAC' else "http://geth-localchain.default.svc.cluster.local:8545" # noqa E501
     headers = {"Content-Type": "application/json"}
     post_data = {
         "jsonrpc": "2.0", "method": "web3_clientVersion", "params": [],
@@ -396,7 +394,7 @@ def check_ethereum_client(platform: str) -> str:
     }
     try:
         ethereum_client_version = requests.post(
-            client_location, data=json.dumps(post_data), headers=headers
+            ethereum_rpc_url, data=json.dumps(post_data), headers=headers
         )
     except requests.exceptions.ConnectionError:
         logging.critical('Could not connect to the Ethereum client. Exiting')
@@ -412,10 +410,10 @@ def get_environment_variables() -> dict:
     repo = git.Repo(search_parent_directories=True)
     return {
         'elixir_service': os.getenv('ELIXIR_SERVICE'),
-        'platform': os.getenv('PLATFORM'),
         'ethereum_network': os.getenv('ETHEREUM_NETWORK'),
         'git_commit_hash': repo.head.object.hexsha,
-        'contract_exchanger_url': os.getenv('CONTRACT_EXCHANGER_URL')
+        'contract_exchanger_url': os.getenv('CONTRACT_EXCHANGER_URL'),
+        'ethereum_rpc_url': os.getenv('ETHEREUM_RPC_URL')
     }
 
 
@@ -437,18 +435,18 @@ def main():
     if environment_variables['elixir_service'] == 'CHILDCHAIN':
         childchain = ChildchainLauncher(
             environment_variables['git_commit_hash'],
-            environment_variables['platform'],
             environment_variables['ethereum_network'],
-            environment_variables['contract_exchanger_url']
+            environment_variables['contract_exchanger_url'],
+            environment_variables['ethereum_rpc_url']
         )
         childchain.start()
         return
     if environment_variables['elixir_service'] == 'WATCHER':
         watcher = WatcherLauncher(
             environment_variables['git_commit_hash'],
-            environment_variables['platform'],
             environment_variables['ethereum_network'],
-            environment_variables['contract_exchanger_url']
+            environment_variables['contract_exchanger_url'],
+            environment_variables['ethereum_rpc_url']
         )
         watcher.start()
         return

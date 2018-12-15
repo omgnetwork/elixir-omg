@@ -55,17 +55,17 @@ defmodule OMG.RPC.Client do
   Makes HTTP POST request to the API
   """
   def rpc_post(body, path, url \\ nil) do
-    url = url || Application.get_env(:omg_watcher, :child_chain_url)
+    url = url || Application.fetch_env!(:omg_watcher, :child_chain_url)
     addr = "#{url}/#{path}"
     headers = [{"content-type", "application/json"}]
 
     with {:ok, body} <- Poison.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
-      _ = Logger.info(fn -> "Child chain rpc post #{inspect(addr)} completed successfully" end)
+      _ = Logger.debug(fn -> "Child chain rpc post #{inspect(addr)} completed successfully" end)
       response
     else
       err ->
-        _ = Logger.error(fn -> "Child chain rpc post #{inspect(addr)} failed with #{inspect(err)}" end)
+        _ = Logger.warn(fn -> "Child chain rpc post #{inspect(addr)} failed with #{inspect(err)}" end)
         err
     end
   end

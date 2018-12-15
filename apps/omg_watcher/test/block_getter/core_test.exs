@@ -636,11 +636,18 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     start_block_number = 0
     interval = 1_000
     synced_height = 1
-    finality_margin = 5
+    block_reorg_margin = 5
     state_at_beginning = false
+    last_persisted_block = nil
 
-    assert Core.init(start_block_number, interval, synced_height, finality_margin, state_at_beginning) ==
-             {:error, :not_at_block_beginning}
+    assert Core.init(
+             start_block_number,
+             interval,
+             synced_height,
+             block_reorg_margin,
+             last_persisted_block,
+             state_at_beginning
+           ) == {:error, :not_at_block_beginning}
   end
 
   test "BlockGetter omits submissions of already applied blocks" do
@@ -787,12 +794,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "returns valid eth range" do
-    # properly looks `finality_margin` number of blocks backward
-    state = init_state(synced_height: 100, finality_margin: 10)
+    # properly looks `block_reorg_margin` number of blocks backward
+    state = init_state(synced_height: 100, block_reorg_margin: 10)
     assert {100 - 10, 101} == Core.get_eth_range_for_block_submitted_events(state, 101)
 
     # beginning of the range is no less than 0
-    state = init_state(synced_height: 0, finality_margin: 10)
+    state = init_state(synced_height: 0, block_reorg_margin: 10)
     assert {0, 101} == Core.get_eth_range_for_block_submitted_events(state, 101)
   end
 
@@ -801,7 +808,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       start_block_number: 0,
       interval: 1_000,
       synced_height: 1,
-      finality_margin: 5,
+      block_reorg_margin: 5,
       state_at_beginning: true,
       opts: []
     ]
@@ -810,12 +817,14 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       start_block_number: start_block_number,
       interval: interval,
       synced_height: synced_height,
-      finality_margin: finality_margin,
+      block_reorg_margin: block_reorg_margin,
       state_at_beginning: state_at_beginning,
       opts: opts
     } = defaults |> Keyword.merge(opts) |> Map.new()
 
-    {:ok, state} = Core.init(start_block_number, interval, synced_height, finality_margin, state_at_beginning, opts)
+    {:ok, state} =
+      Core.init(start_block_number, interval, synced_height, block_reorg_margin, nil, state_at_beginning, opts)
+
     state
   end
 
