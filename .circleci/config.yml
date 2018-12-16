@@ -9,13 +9,13 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
-          name: Get dependencies
-          command: |
-            mix do deps.get, deps.compile, compile
-      - run:
           name: Build application
           command: |
             mix do local.hex --force, local.rebar --force
+      - run:
+          name: Get dependencies
+          command: |
+            mix do deps.get, deps.compile, compile
       - run:
           name: Dialyze
           command: |
