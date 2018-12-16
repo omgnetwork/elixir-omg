@@ -66,7 +66,13 @@ defmodule OMG.Watcher.Application do
       {OMG.Watcher.Eventer, []},
       {
         OMG.API.RootChainCoordinator,
-        [:depositor, :exit_processor, :exit_finalizer, :exit_challenger, OMG.Watcher.BlockGetter]
+        %{
+          :depositor => %{sync_mode: :sync_with_coordinator},
+          :exit_processor => %{sync_mode: :sync_with_root_chain},
+          :exit_finalizer => %{sync_mode: :sync_with_coordinator},
+          :exit_challenger => %{sync_mode: :sync_with_root_chain},
+          OMG.Watcher.BlockGetter => %{sync_mode: :sync_with_coordinator}
+        }
       },
       %{
         id: :depositor,
@@ -79,8 +85,7 @@ defmodule OMG.Watcher.Application do
                service_name: :depositor,
                get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
                process_events_callback: &deposit_events_callback/1,
-               get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0,
-               sync_mode: :sync_with_coordinator
+               get_last_synced_height_callback: &OMG.DB.last_depositor_eth_height/0
              }
            ]}
       },
@@ -96,8 +101,7 @@ defmodule OMG.Watcher.Application do
                service_name: :exit_processor,
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,
                process_events_callback: &OMG.Watcher.ExitProcessor.new_exits/1,
-               get_last_synced_height_callback: &OMG.DB.last_exit_processor_eth_height/0,
-               sync_mode: :sync_with_root_chain
+               get_last_synced_height_callback: &OMG.DB.last_exit_processor_eth_height/0
              }
            ]}
       },
@@ -112,8 +116,7 @@ defmodule OMG.Watcher.Application do
                service_name: :exit_finalizer,
                get_events_callback: &OMG.Eth.RootChain.get_finalizations/2,
                process_events_callback: &OMG.Watcher.ExitProcessor.finalize_exits/1,
-               get_last_synced_height_callback: &OMG.DB.last_exit_finalizer_eth_height/0,
-               sync_mode: :sync_with_coordinator
+               get_last_synced_height_callback: &OMG.DB.last_exit_finalizer_eth_height/0
              }
            ]}
       },
@@ -128,8 +131,7 @@ defmodule OMG.Watcher.Application do
                service_name: :exit_challenger,
                get_events_callback: &OMG.Eth.RootChain.get_challenges/2,
                process_events_callback: &OMG.Watcher.ExitProcessor.challenge_exits/1,
-               get_last_synced_height_callback: &OMG.DB.last_exit_challenger_eth_height/0,
-               sync_mode: :sync_with_root_chain
+               get_last_synced_height_callback: &OMG.DB.last_exit_challenger_eth_height/0
              }
            ]}
       },

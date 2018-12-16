@@ -23,7 +23,7 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
   defp create_state, do: create_state(100)
 
   defp create_state(height) do
-    Core.init(:event_listener_height, :event_listener, height, @finality_margin, :sync_with_coordinator)
+    Core.init(:event_listener_height, :event_listener, height, @finality_margin)
   end
 
   test "produces next ethereum height range to get events from" do

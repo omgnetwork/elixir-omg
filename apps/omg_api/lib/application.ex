@@ -29,7 +29,13 @@ defmodule OMG.API.Application do
       {OMG.API.BlockQueue.Server, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeChecker, []},
-      {OMG.API.RootChainCoordinator, [:depositor, :exiter]},
+      {
+        OMG.API.RootChainCoordinator,
+        %{
+          :depositor => %{sync_mode: :sync_with_coordinator},
+          :exiter => %{sync_mode: :sync_with_coordinator}
+        }
+      },
       %{
         id: :depositor,
         start:

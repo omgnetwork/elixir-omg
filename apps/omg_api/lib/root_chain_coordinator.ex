@@ -21,9 +21,9 @@ defmodule OMG.API.RootChainCoordinator do
 
   use OMG.API.LoggerExt
 
-  @spec start_link(MapSet.t()) :: GenServer.on_start()
-  def start_link(allowed_services) do
-    GenServer.start_link(__MODULE__, allowed_services, name: __MODULE__)
+  @spec start_link(map()) :: GenServer.on_start()
+  def start_link(configs_services) do
+    GenServer.start_link(__MODULE__, configs_services, name: __MODULE__)
   end
 
   @doc """
@@ -45,35 +45,35 @@ defmodule OMG.API.RootChainCoordinator do
 
   use GenServer
 
-  def init(allowed_services) do
+  def init(configs_services) do
     {:ok, rootchain_height} = Eth.get_ethereum_height()
 
     height_sync_interval = Application.fetch_env!(:omg_api, :ethereum_status_check_interval_ms)
     {:ok, _} = schedule_get_ethereum_height(height_sync_interval)
-    state = Core.init(allowed_services, rootchain_height)
-    request_sync(allowed_services)
+    state = Core.init(configs_services, rootchain_height)
+
+    configs_services
+    |> Map.keys()
+    |> request_sync()
+
     {:ok, state}
   end
 
   def handle_call({:check_in, synced_height, service_name}, {pid, _}, state) do
     _ = Logger.debug(fn -> "#{inspect(service_name)} checks in on height #{inspect(synced_height)}" end)
-
-    {:ok, state, services_to_sync} =
-      state
-      |> update_root_chain_height()
-      |> Core.check_in(pid, synced_height, service_name)
-
+    {:ok, state, services_to_sync} = Core.check_in(state, pid, synced_height, service_name)
     _ = length(services_to_sync) > 0 and Logger.debug(fn -> "Services to sync: #{inspect(services_to_sync)}" end)
     request_sync(services_to_sync)
     {:reply, :ok, state, 60_000}
   end
 
-  def handle_call(:get_synced_height, _from, state) do
-    {:reply, Core.get_synced_height(state), state}
+  def handle_call(:get_synced_height, {pid, _}, state) do
+    {:reply, Core.get_synced_height(state, pid), state}
   end
 
   def handle_info(:update_root_chain_height, state) do
-    state = update_root_chain_height(state)
+    {:ok, root_chain_height} = Eth.get_ethereum_height()
+    {:ok, state} = Core.update_root_chain_height(state, root_chain_height)
     {:noreply, state}
   end
 
@@ -102,11 +102,5 @@ defmodule OMG.API.RootChainCoordinator do
       ArgumentError ->
         msg
     end
-  end
-
-  defp update_root_chain_height(state) do
-    {:ok, root_chain_height} = Eth.get_ethereum_height()
-    {:ok, state} = Core.update_root_chain_height(state, root_chain_height)
-    state
   end
 end

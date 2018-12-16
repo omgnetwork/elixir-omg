@@ -24,12 +24,10 @@ defmodule OMG.API.RootChainCoordinator.Core do
 
   alias OMG.API.RootChainCoordinator.Service
 
-  @empty MapSet.new()
-
-  defstruct allowed_services: @empty, root_chain_height: 0, services: %{}
+  defstruct configs_services: %{}, root_chain_height: 0, services: %{}
 
   @type t() :: %__MODULE__{
-          allowed_services: MapSet.t(),
+          configs_services: map(),
           root_chain_height: non_neg_integer(),
           services: map()
         }
@@ -40,8 +38,8 @@ defmodule OMG.API.RootChainCoordinator.Core do
   `root_chain_height` - current root chain height
   """
   @spec init(list(atom), non_neg_integer()) :: t()
-  def init(allowed_services, root_chain_height) do
-    %__MODULE__{allowed_services: MapSet.new(allowed_services), root_chain_height: root_chain_height}
+  def init(configs_services, root_chain_height) do
+    %__MODULE__{configs_services: configs_services, root_chain_height: root_chain_height}
   end
 
   @doc """
@@ -51,9 +49,9 @@ defmodule OMG.API.RootChainCoordinator.Core do
   """
   @spec check_in(t(), pid(), pos_integer(), atom()) :: {:ok, t(), list(pid())} | :service_not_allowed
   def check_in(state, pid, service_height, service_name) do
-    if allowed?(state.allowed_services, service_name) do
+    if allowed?(state.configs_services, service_name) do
       previous_synced_height =
-        case get_synced_height(state) do
+        case get_synced_height(state, service_name) do
           :nosync ->
             0
 
@@ -62,7 +60,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
         end
 
       {:ok, state} = update_service_synced_height(state, pid, service_height, service_name)
-      services_to_sync = get_services_to_sync(state, previous_synced_height)
+      services_to_sync = get_services_to_sync(state, service_name, previous_synced_height)
 
       {:ok, state, services_to_sync}
     else
@@ -70,7 +68,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
     end
   end
 
-  defp allowed?(allowed_services, service_name), do: MapSet.member?(allowed_services, service_name)
+  defp allowed?(configs_services, service_name), do: Map.has_key?(configs_services, service_name)
 
   defp update_service_synced_height(state, pid, service_reported_sync_height, service_name) do
     service = %Service{synced_height: service_reported_sync_height, pid: pid}
@@ -89,8 +87,8 @@ defmodule OMG.API.RootChainCoordinator.Core do
     service.synced_height <= service_reported_sync_height and state.root_chain_height >= service_reported_sync_height
   end
 
-  defp get_services_to_sync(state, previous_synced_height) do
-    case get_synced_height(state) do
+  defp get_services_to_sync(state, service_name, previous_synced_height) do
+    case get_synced_height(state, service_name) do
       :nosync ->
         []
 
@@ -108,8 +106,26 @@ defmodule OMG.API.RootChainCoordinator.Core do
   @doc """
   Gets synchronized height
   """
-  @spec get_synced_height(t()) :: {:sync, non_neg_integer()} | :nosync
-  def get_synced_height(state) do
+  @spec get_synced_height(t(), atom() | pid()) :: {:sync, non_neg_integer()} | :nosync
+  def get_synced_height(state, pid) when is_pid(pid) do
+    service_exsits = Enum.find(state.services, fn service -> match?({_, %Service{pid: ^pid}}, service) end)
+
+    case service_exsits do
+      {service_name, _} -> get_synced_height(state, service_name)
+      nil -> :nosync
+    end
+  end
+
+  def get_synced_height(state, service_name) when is_atom(service_name) do
+    sync_mode =
+      state.configs_services
+      |> Map.get(service_name)
+      |> Map.get(:sync_mode, :sync_with_coordinator)
+
+    get_synced_height_by_mode(state, sync_mode)
+  end
+
+  defp get_synced_height_by_mode(state, :sync_with_coordinator) do
     if all_services_checked_in?(state) do
       # do not allow syncing to Ethereum blocks higher than block last seen by synchronizer
       next_sync_height = min(sync_height(state.services) + 1, state.root_chain_height)
@@ -119,13 +135,12 @@ defmodule OMG.API.RootChainCoordinator.Core do
     end
   end
 
-  defp all_services_checked_in?(state) do
-    registered =
-      state.services
-      |> Map.keys()
-      |> MapSet.new()
+  defp get_synced_height_by_mode(state, :sync_with_root_chain) do
+    {:sync, state.root_chain_height}
+  end
 
-    state.allowed_services == registered
+  defp all_services_checked_in?(state) do
+    state.configs_services |> Map.keys() == state.services |> Map.keys()
   end
 
   defp sync_height(services) do

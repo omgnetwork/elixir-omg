@@ -22,7 +22,7 @@ defmodule OMG.API.EthereumEventListener do
   """
   alias OMG.API.EthereumEventListener.Core
   alias OMG.API.RootChainCoordinator
-  alias OMG.Eth
+
   use OMG.API.LoggerExt
 
   @type config() :: %{
@@ -34,8 +34,7 @@ defmodule OMG.API.EthereumEventListener do
           # maps a list of ethereum events to a list of `db_updates` to send to `OMG.DB`
           process_events_callback: ([any] -> {:ok, [tuple]}),
           # returns an eth height where ethereum event processing last synced to
-          get_last_synced_height_callback: (() -> {:ok, non_neg_integer}),
-          sync_mode: :sync_with_coordinator | :sync_with_root_chain
+          get_last_synced_height_callback: (() -> {:ok, non_neg_integer})
         }
 
   ### Client
@@ -56,8 +55,7 @@ defmodule OMG.API.EthereumEventListener do
         service_name: service_name,
         get_events_callback: get_events_callback,
         process_events_callback: process_events_callback,
-        get_last_synced_height_callback: last_event_block_height_callback,
-        sync_mode: sync_mode
+        get_last_synced_height_callback: last_event_block_height_callback
       }) do
     {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
     {:ok, last_event_block_height} = last_event_block_height_callback.()
@@ -68,17 +66,17 @@ defmodule OMG.API.EthereumEventListener do
     {:ok, _} = schedule_get_events(Application.fetch_env!(:omg_api, :ethereum_status_check_interval_ms))
     :ok = RootChainCoordinator.check_in(last_event_block_height, service_name)
 
-    _ = Logger.info(fn -> "Starting EthereumEventListener for #{service_name} with sync_mode #{sync_mode}" end)
+    _ = Logger.info(fn -> "Starting EthereumEventListener for #{service_name}" end)
 
     {:ok,
-     {Core.init(update_key, service_name, last_event_block_height, finality_margin, sync_mode),
+     {Core.init(update_key, service_name, last_event_block_height, finality_margin),
       %{
         get_ethereum_events_callback: get_events_callback,
         process_events_callback: process_events_callback
       }}}
   end
 
-  def handle_info(:sync, {%Core{sync_mode: :sync_with_coordinator} = core, _callbacks} = state) do
+  def handle_info(:sync, {core, _callbacks} = state) do
     case RootChainCoordinator.get_height() do
       :nosync ->
         :ok = RootChainCoordinator.check_in(core.synced_height, core.service_name)
@@ -90,11 +88,11 @@ defmodule OMG.API.EthereumEventListener do
     end
   end
 
-  def handle_info(:sync, {%{sync_mode: :sync_with_root_chain}, _callbacks} = state) do
-    {:ok, root_chain_height} = Eth.get_ethereum_height()
-    new_state = sync_height(state, root_chain_height)
-    {:noreply, new_state}
-  end
+  #  def handle_info(:sync, {%{sync_mode: :sync_with_root_chain}, _callbacks} = state) do
+  #    {:ok, root_chain_height} = Eth.get_ethereum_height()
+  #    new_state = sync_height(state, root_chain_height)
+  #    {:noreply, new_state}
+  #  end
 
   defp sync_height({core, callbacks}, next_sync_height) do
     case Core.get_events_height_range_for_next_sync(core, next_sync_height) do
