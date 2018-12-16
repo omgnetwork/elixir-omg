@@ -63,7 +63,7 @@ jobs:
           name: Update Childchain
           command: |
             echo "Updating Childchain with build ${DOCKER_IMAGE}"
-            kubectl set image statefulset/childchain childchain=${DOCKER_IMAGE}
+            kubectl set image statefulset/childchain childchain=$DOCKER_IMAGE
 workflows:
   version: 2
   build-deploy:
