@@ -2,7 +2,7 @@ version: "2"
 services:
   geth:
     image: ethereum/client-go:v1.8.20
-    entrypoint: ["geth", "--dev", "--dev.period", "1", "--rpc", "--rpcapi", "personal,web3,eth,net", "--rpcaddr", "0.0.0.0", "--rpcvhosts=*", "--rpcport=8545"]
+    entrypoint: /bin/sh -c "geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545"
     ports:
      - "8545:8545"
 
@@ -14,7 +14,7 @@ services:
       POSTGRES_PASSWORD: omisego_dev
       POSTGRES_DB: omisego_dev
     ports:
-      - 5432:5432
+      - "5432:5432"
 
   elixir-omg:
     build: .
