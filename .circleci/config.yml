@@ -34,7 +34,8 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apt-get update && apt-get install -y docker lsb-release curl
+            apt-get update && apt-get install -y lsb-release curl
+            curl -sSL https://get.docker.com/ > docker.sh && chmod +x docker.sh && ./docker.sh
       - run:
           name: Build and push Docker image
           command: |
@@ -63,12 +64,6 @@ jobs:
           command: |
             echo "Updating Childchain with build ${DOCKER_IMAGE}"
             kubectl set image statefulset/childchain childchain=${DOCKER_IMAGE}
-      - run:
-          name: Update Watcher
-          command: |
-            echo "Updating Watcher with build ${DOCKER_IMAGE}"
-            kubectl set image statefulset/watcher watcher=${DOCKER_IMAGE}
-
 workflows:
   version: 2
   build-deploy:
