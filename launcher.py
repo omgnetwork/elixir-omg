@@ -35,6 +35,8 @@ class ChildchainLauncher:
 
     def start(self):
         ''' Start the launch process for the Childchain service
+
+        TODO(jbunce): This needs tidying for clarity (issue #12)
         '''
         logging.info('Service type to launch is Elixir Childchain')
         logging.info(
@@ -44,9 +46,10 @@ class ChildchainLauncher:
         self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
         logging.info('Ethereum client is {}'.format(self.ethereum_client))
         if self.chain_data_present is True:
-            if self.config_writer_dynamic() is True:
-                logging.info('Launcher process complete')
-                return
+            if self.ethereum_network not in self.public_networks:
+                if self.config_writer_dynamic() is True:
+                    logging.info('Launcher process complete')
+                    return
         if self.compile_application() is False:
             logging.critical('Could not compile application. Exiting.')
             sys.exit(1)
@@ -55,6 +58,7 @@ class ChildchainLauncher:
             logging.critical('Contract not deployed. Exiting.')
             sys.exit(1)
         elif deployment_result = 'PREDEPLOYED':
+            self.initialise_childchain_database()
             logging.info('Launcher process complete')
             return
         self.update_contract_exchanger()
