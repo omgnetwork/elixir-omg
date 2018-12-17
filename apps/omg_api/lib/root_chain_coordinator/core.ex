@@ -26,18 +26,20 @@ defmodule OMG.API.RootChainCoordinator.Core do
 
   defstruct configs_services: %{}, root_chain_height: 0, services: %{}
 
+  @type configs_services :: %{required(atom()) => %{sync_mode: :sync_with_root_chain | :sync_with_coordinator}}
+
   @type t() :: %__MODULE__{
-          configs_services: map(),
+          configs_services: configs_services,
           root_chain_height: non_neg_integer(),
           services: map()
         }
 
   @doc """
   Initializes core.
-  `allowed_services` - names of services that are being synchronized
+  `configs_services` - configs of services that are being synchronized
   `root_chain_height` - current root chain height
   """
-  @spec init(list(atom), non_neg_integer()) :: t()
+  @spec init(map(), non_neg_integer()) :: t()
   def init(configs_services, root_chain_height) do
     %__MODULE__{configs_services: configs_services, root_chain_height: root_chain_height}
   end
@@ -108,9 +110,9 @@ defmodule OMG.API.RootChainCoordinator.Core do
   """
   @spec get_synced_height(t(), atom() | pid()) :: {:sync, non_neg_integer()} | :nosync
   def get_synced_height(state, pid) when is_pid(pid) do
-    service_exsits = Enum.find(state.services, fn service -> match?({_, %Service{pid: ^pid}}, service) end)
+    service = Enum.find(state.services, fn service -> match?({_, %Service{pid: ^pid}}, service) end)
 
-    case service_exsits do
+    case service do
       {service_name, _} -> get_synced_height(state, service_name)
       nil -> :nosync
     end

@@ -88,12 +88,6 @@ defmodule OMG.API.EthereumEventListener do
     end
   end
 
-  #  def handle_info(:sync, {%{sync_mode: :sync_with_root_chain}, _callbacks} = state) do
-  #    {:ok, root_chain_height} = Eth.get_ethereum_height()
-  #    new_state = sync_height(state, root_chain_height)
-  #    {:noreply, new_state}
-  #  end
-
   defp sync_height({core, callbacks}, next_sync_height) do
     case Core.get_events_height_range_for_next_sync(core, next_sync_height) do
       {:get_events, {event_height_lower_bound, event_height_upper_bound}, core, db_updates} ->

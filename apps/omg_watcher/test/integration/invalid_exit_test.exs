@@ -233,8 +233,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       }
       |> Response.clean_artifacts()
 
-    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
-    assert_push("invalid_exit", ^invalid_exit_event, exit_processor_validation + 10_000)
+    IntegrationTest.wait_for_exit_processing(eth_height, @timeout)
+    assert_push("invalid_exit", ^invalid_exit_event)
   end
 
   defp get_next_blknum_nonce(blknum) do

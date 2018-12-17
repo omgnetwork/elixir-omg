@@ -21,7 +21,7 @@ defmodule OMG.API.RootChainCoordinator do
 
   use OMG.API.LoggerExt
 
-  @spec start_link(map()) :: GenServer.on_start()
+  @spec start_link(Core.configs_services()) :: GenServer.on_start()
   def start_link(configs_services) do
     GenServer.start_link(__MODULE__, configs_services, name: __MODULE__)
   end
