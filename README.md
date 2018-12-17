@@ -547,3 +547,9 @@ To run a development `iex` REPL with all code loaded:
 ```bash
 iex -S mix run --no-start
 ```
+
+# Working with API Spec's
+
+This repo contains `gh-pages` branch intended to host [Slate-based](https://omisego.github.io/elixir-omg) API specification. Branch `gh-pages` is totally diseparated from other development branches and contains just Slate generated page's files.
+
+See [gh-pages README](https://github.com/omisego/elixir-omg/blob/gh-pages/docs/api_specs/README.md) for more details.
