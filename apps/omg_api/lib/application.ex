@@ -68,6 +68,7 @@ defmodule OMG.API.Application do
 
     _ = Logger.info(fn -> "Started application OMG.API.Application" end)
     opts = [strategy: :one_for_one]
+    :error_logger.start() # TODO(jbunce): remove when we move to 1.7
     :ok = :error_logger.add_report_handler(Sentry.Logger)
     Supervisor.start_link(children, opts)
   end
