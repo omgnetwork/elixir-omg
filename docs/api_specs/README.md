@@ -12,9 +12,9 @@ Checkout the gh-pages branch
 git checkout gh-pages
 ```
 
-Get the latest documentation files from `develop`
+Get the latest documentation files from `master`
 ```
-git checkout develop docs/api_specs
+git checkout master docs/api_specs
 ```
 
 N.B You must have **Ruby, version 2.3.1 or newer** and **Bundler** (`gem install bundler`).
@@ -26,7 +26,7 @@ bundle install
 bundle exec middleman build --clean --source=.
 ```
 
-You can review the generated documentation locally by running `bundle exec middleman server` and opening `http://localhost:4567/`
+You can review the generated documentation locally by running `bundle exec middleman server --source=.` and opening `http://localhost:4567/`
 
 ## Publish the new API documentation
 
