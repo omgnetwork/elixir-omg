@@ -35,6 +35,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @utxo_pos1 Utxo.position(1, 0, 0)
   @utxo_pos2 Utxo.Position.decode(10_000_000_001)
 
+  @update_key1 {1, 0, 0}
+  @update_key2 {10, 0, 1}
+
   deffixture processor_empty() do
     {:ok, empty} = Core.init([])
     empty
@@ -68,9 +71,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     events: events,
     contract_statuses: contract_statuses
   } do
-    keys = [@utxo_pos1, @utxo_pos2]
     values = Enum.map(events, &(Map.put(&1, :is_active, true) |> Map.delete(:utxo_pos)))
-    updates = Enum.zip([[:put, :put], [:exit_info, :exit_info], Enum.zip(keys, values)])
+    updates = Enum.zip([[:put, :put], [:exit_info, :exit_info], Enum.zip([@update_key1, @update_key2], values)])
     update1 = Enum.slice(updates, 0, 1)
     update2 = Enum.slice(updates, 1, 1)
 
@@ -80,7 +82,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {^final_state, ^update2} =
              Core.new_exits(state2, Enum.slice(events, 1, 1), Enum.slice(contract_statuses, 1, 1))
 
-    {:ok, ^final_state} = Core.init(Enum.zip(keys, values))
+    {:ok, ^final_state} = Core.init(Enum.zip([@update_key1, @update_key2], values))
   end
 
   @tag fixtures: [:processor_empty, :alice, :events]
@@ -129,8 +131,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     # with - we get 3, because we include the invalidly finalized on which will hurt forever
     assert {processor,
             [
-              {:put, :exit_info, {@utxo_pos1, %{is_active: true}}},
-              {:put, :exit_info, {@utxo_pos2, %{is_active: true}}}
+              {:put, :exit_info, {@update_key1, %{is_active: true}}},
+              {:put, :exit_info, {@update_key2, %{is_active: true}}}
             ]} = Core.finalize_exits(processor, two_spend)
 
     assert {[_event1, _event2, _event3] = event_triggers, {:needs_stopping, :unchallenged_exit}} =
@@ -169,7 +171,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     # exit validly finalizes and continues to not emit any events
     {:ok, {_, _, spends}, _} = State.Core.exit_utxos([%{utxo_pos: Utxo.Position.encode(@utxo_pos1)}], state)
-    assert {processor, [{:delete, :exit_info, @utxo_pos1}]} = Core.finalize_exits(processor, spends)
+    assert {processor, [{:delete, :exit_info, @update_key1}]} = Core.finalize_exits(processor, spends)
     assert [] = Core.get_exiting_utxo_positions(processor)
   end
 
@@ -209,7 +211,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     # sanity
     assert [_, _] = processor |> Core.get_exiting_utxo_positions()
 
-    assert {processor, [{:delete, :exit_info, @utxo_pos1}, {:delete, :exit_info, @utxo_pos2}]} =
+    assert {processor, [{:delete, :exit_info, @update_key1}, {:delete, :exit_info, @update_key2}]} =
              processor
              |> Core.challenge_exits([
                %{utxo_pos: Utxo.Position.encode(@utxo_pos1)},
