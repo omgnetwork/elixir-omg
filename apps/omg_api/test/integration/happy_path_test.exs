@@ -49,23 +49,22 @@ defmodule OMG.API.Integration.HappyPathTest do
     token_tx = token_raw_tx |> Transaction.sign([alice.priv, <<>>]) |> Transaction.Signed.encode()
 
     # spend the token deposit
-    {:ok, %{"blknum" => _spend_token_child_block}} = submit_transaction(token_tx)
+    assert {:ok, %{"blknum" => spend_token_child_block}} = submit_transaction(token_tx)
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
-    post_spend_child_block = spend_child_block + child_block_interval
+    post_spend_child_block = spend_token_child_block + child_block_interval
     {:ok, _} = Eth.DevHelpers.wait_for_next_child_block(post_spend_child_block)
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(spend_child_block)
-    {:ok, %{"transactions" => transactions}} = get_block(block_hash)
+    assert {:ok, %{"transactions" => transactions}} = get_block(block_hash)
 
-    {:ok, %{raw_tx: raw_tx_decoded}} =
-      transactions
-      |> hd()
-      |> Base.decode16!()
-      |> Transaction.Signed.decode()
-
-    assert raw_tx_decoded == raw_tx
+    assert {:ok, %{raw_tx: ^raw_tx}} =
+             transactions
+             # NOTE: we are checking only the `hd` because token_tx might possibly be in the next block
+             |> hd()
+             |> Base.decode16!()
+             |> Transaction.Signed.decode()
 
     # Restart everything to check persistance and revival
     [:omg_api, :omg_eth, :omg_db] |> Enum.each(&Application.stop/1)
@@ -80,7 +79,7 @@ defmodule OMG.API.Integration.HappyPathTest do
     tx2 = raw_tx2 |> Transaction.sign([bob.priv, alice.priv]) |> Transaction.Signed.encode()
 
     # spend the output of the first tx
-    {:ok, %{"blknum" => spend_child_block2}} = submit_transaction(tx2)
+    assert {:ok, %{"blknum" => spend_child_block2}} = submit_transaction(tx2)
 
     post_spend_child_block2 = spend_child_block2 + child_block_interval
     {:ok, _} = Eth.DevHelpers.wait_for_next_child_block(post_spend_child_block2)
@@ -88,16 +87,14 @@ defmodule OMG.API.Integration.HappyPathTest do
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash2, _}} = Eth.RootChain.get_child_chain(spend_child_block2)
 
-    {:ok, %{"transactions" => [transaction2]}} = get_block(block_hash2)
+    assert {:ok, %{"transactions" => [transaction2]}} = get_block(block_hash2)
 
-    {:ok, %{raw_tx: raw_tx_decoded2}} =
-      transaction2
-      |> Base.decode16!()
-      |> Transaction.Signed.decode()
+    assert {:ok, %{raw_tx: ^raw_tx2}} =
+             transaction2
+             |> Base.decode16!()
+             |> Transaction.Signed.decode()
 
-    assert raw_tx2 == raw_tx_decoded2
-
-    # sanity checks
+    # sanity checks, mainly persistence & failure responses
     assert {:ok, %{}} = get_block(block_hash)
     assert {:error, %{"code" => "get_block:not_found"}} = get_block(<<0::size(256)>>)
 

@@ -12,7 +12,7 @@ defmodule OMG.Watcher.Mixfile do
       elixir: "~> 1.4",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :phoenix_swagger] ++ Mix.compilers(),
-      start_permanent: Mix.env() in [:dev, :prod],
+      start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
       test_coverage: [tool: ExCoveralls]
