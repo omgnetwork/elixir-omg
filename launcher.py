@@ -124,7 +124,7 @@ class ChildchainLauncher:
     def deploy_contract(self) -> bool:
         ''' Deploy the smart contract and populate the ~/config.exs file
         '''
-        if self.ethereum_network == [x for x in self.public_networks]:
+        if self.ethereum_network in self.public_networks:
             return self.use_pre_deployed()
 
         result = subprocess.run(
