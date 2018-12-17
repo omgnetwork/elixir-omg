@@ -60,14 +60,33 @@ defmodule OMG.Watcher.DB.TxOutput do
 
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
   def compose_utxo_exit(Utxo.position(blknum, txindex, _) = decoded_utxo_pos) do
-    txs = DB.Transaction.get_by_blknum(blknum)
+    if Utxo.Position.is_deposit(decoded_utxo_pos) do
+      compose_deposit_exit(decoded_utxo_pos)
+    else
+      txs = DB.Transaction.get_by_blknum(blknum)
 
-    if Enum.any?(txs, &match?(%{txindex: ^txindex}, &1)),
-      do: {:ok, compose_utxo_exit(txs, decoded_utxo_pos)},
-      else: {:error, :utxo_not_found}
+      if txs |> Enum.any?(&match?(%{txindex: ^txindex}, &1)),
+        do: {:ok, compose_output_exit(txs, decoded_utxo_pos)},
+        else: {:error, :utxo_not_found}
+    end
   end
 
-  def compose_utxo_exit(txs, Utxo.position(_blknum, txindex, _) = decoded_utxo_pos) do
+  defp compose_deposit_exit(decoded_utxo_pos) do
+    with %{amount: amount, currency: currency, owner: owner} <- get_by_position(decoded_utxo_pos) do
+      tx = Transaction.new([], [{owner, currency, amount}])
+
+      {:ok,
+       %{
+         utxo_pos: decoded_utxo_pos |> Utxo.Position.encode(),
+         txbytes: tx |> Transaction.encode(),
+         proof: Block.create_tx_proof([Transaction.hash(tx)], 0)
+       }}
+    else
+      _ -> {:error, :no_deposit_for_given_blknum}
+    end
+  end
+
+  defp compose_output_exit(txs, Utxo.position(_blknum, txindex, _) = decoded_utxo_pos) do
     sorted_txs = Enum.sort_by(txs, & &1.txindex)
     txs_hashes = Enum.map(sorted_txs, & &1.txhash)
     proof = Block.create_tx_proof(txs_hashes, txindex)

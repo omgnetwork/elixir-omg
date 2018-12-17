@@ -129,8 +129,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     %{
       "utxo_pos" => utxo_pos,
       "txbytes" => txbytes,
-      "proof" => proof,
-      "sigs" => sigs
+      "proof" => proof
     } = IntegrationTest.get_exit_data(block_nr, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
@@ -138,7 +137,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         utxo_pos,
         txbytes,
         proof,
-        sigs,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
@@ -179,7 +177,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     %{
       "txbytes" => txbytes,
       "proof" => proof,
-      "sigs" => sigs,
       "utxo_pos" => utxo_pos
     } = IntegrationTest.get_exit_data(spend_token_child_block, 0, 0)
 
@@ -188,7 +185,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         utxo_pos,
         txbytes,
         proof,
-        sigs,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
@@ -287,7 +283,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     %{
       "txbytes" => txbytes,
       "proof" => proof,
-      "sigs" => sigs,
       "utxo_pos" => utxo_pos
     } = IntegrationTest.get_exit_data(exit_blknum, 0, 0)
 
@@ -296,7 +291,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         utxo_pos,
         txbytes,
         proof,
-        sigs,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()

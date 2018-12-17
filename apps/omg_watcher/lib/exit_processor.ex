@@ -27,8 +27,6 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Eth
   alias OMG.Watcher.ExitProcessor.Core
 
-  use OMG.API.LoggerExt
-
   ### Client
 
   def start_link(_args) do
@@ -84,7 +82,8 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:new_exits, exits}, _from, state) do
     exit_contract_statuses =
       Enum.map(exits, fn %{utxo_pos: utxo_pos} ->
-        {:ok, result} = Eth.RootChain.get_exit(utxo_pos)
+        {:ok, exit_id} = Eth.RootChain.get_standard_exit_id(utxo_pos)
+        {:ok, result} = Eth.RootChain.get_exit(exit_id)
         result
       end)
 
@@ -119,9 +118,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   defp check_validity(state) do
     {event_triggers, chain_status} = determine_invalid_exits(state)
-
     EventerAPI.emit_events(event_triggers)
-
     chain_status
   end
 

@@ -26,8 +26,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.ExitProcessor.ExitInfo
 
-  use OMG.API.LoggerExt
-
   @default_sla_margin 10
   @zero_address Crypto.zero_address()
 

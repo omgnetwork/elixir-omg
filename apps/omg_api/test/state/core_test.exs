@@ -30,8 +30,8 @@ defmodule OMG.API.State.CoreTest do
   @child_block_3 @child_block_interval * 3
   @child_block_4 @child_block_interval * 4
 
-  @empty_block_hash <<39, 51, 229, 15, 82, 110, 194, 250, 25, 162, 43, 49, 232, 237, 80, 242, 60, 209, 253, 249, 76,
-                      145, 84, 237, 58, 118, 9, 162, 241, 255, 152, 31>>
+  @empty_block_hash <<119, 106, 49, 219, 52, 161, 160, 167, 202, 175, 134, 44, 255, 223, 255, 23, 137, 41, 127, 250,
+                      220, 56, 11, 211, 211, 146, 129, 211, 64, 171, 211, 173>>
 
   defp eth, do: Crypto.zero_address()
   defp not_eth, do: <<1::size(160)>>
@@ -386,7 +386,7 @@ defmodule OMG.API.State.CoreTest do
 
     # precomputed fixed hash to check compliance with hashing algo
     assert block_hash |> Base.encode16(case: :lower) ==
-             "d3e45b686ecb5d7c4580192861088c0add6246a0f4dc8f6eebd2ae8783945eaa"
+             "ee44e104950e8784c17495e423493c54026fa554180bbbca057c1176bc4e1ded"
 
     # Check that contents of the block can be recovered again to original txs
     assert {:ok, ^recovered_tx_1} = API.Core.recover_tx(block_tx1)

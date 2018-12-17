@@ -46,4 +46,10 @@ defmodule OMG.API.Utxo.Position do
 
     Utxo.position(blknum, txindex, oindex)
   end
+
+  @spec is_deposit(t()) :: boolean()
+  def is_deposit(Utxo.position(blknum, _, _)) do
+    {:ok, interval} = OMG.Eth.RootChain.get_child_block_interval()
+    rem(blknum, interval) != 0
+  end
 end

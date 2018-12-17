@@ -24,8 +24,8 @@ defmodule OMG.API.State.Transaction do
   require Utxo
 
   @zero_address Crypto.zero_address()
-  @max_inputs 2
-  @max_outputs 2
+  @max_inputs 4
+  @max_outputs 4
 
   defstruct [:inputs, :outputs]
 
@@ -169,22 +169,50 @@ defmodule OMG.API.State.Transaction do
   def account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
   def account_address?(_), do: false
 
-  def encode(%__MODULE__{inputs: [input1, input2], outputs: [output1, output2]}) do
-    [
-      input1.blknum,
-      input1.txindex,
-      input1.oindex,
-      input2.blknum,
-      input2.txindex,
-      input2.oindex,
-      output1.currency,
-      output1.owner,
-      output1.amount,
-      output2.owner,
-      output2.amount
-    ]
+  def from_rlp([inputs_rlp, outputs_rlp]) do
+    inputs =
+      Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
+        %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
+      end)
+
+    outputs =
+      Enum.map(outputs_rlp, fn [owner, currency, amount] ->
+        with {:ok, cur12} <- parse_address(currency),
+             {:ok, owner} <- parse_address(owner) do
+          %{owner: owner, currency: cur12, amount: parse_int(amount)}
+        end
+      end)
+
+    if error = Enum.find(outputs, &match?({:error, _}, &1)),
+      do: error,
+      else: {:ok, %__MODULE__{inputs: inputs, outputs: outputs}}
+  end
+
+  def from_rlp(_), do: {:error, :malformed_transaction}
+
+  defp parse_int(binary), do: :binary.decode_unsigned(binary, :big)
+
+  # necessary, because RLP handles empty string equally to integer 0
+  @spec parse_address(<<>> | Crypto.address_t()) :: {:ok, Crypto.address_t()} | {:error, :malformed_address}
+  defp parse_address(binary)
+  defp parse_address(""), do: {:ok, <<0::160>>}
+  defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
+  defp parse_address(_), do: {:error, :malformed_address}
+
+  def encode(transaction) do
+    preper_to_exrlp(transaction)
     |> ExRLP.encode()
   end
+
+  def preper_to_exrlp(%__MODULE__{inputs: inputs, outputs: outputs}),
+    do: [
+      # contract has fix size 4 inputs
+      Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
+        List.duplicate([0, 0, 0], 4 - length(inputs)),
+      # contract has fix size 4 outputs
+      Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
+        List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs))
+    ]
 
   def hash(%__MODULE__{} = tx) do
     tx
