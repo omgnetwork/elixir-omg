@@ -66,12 +66,12 @@ defmodule OMG.Watcher.DB.TxOutput do
       txs = DB.Transaction.get_by_blknum(blknum)
 
       if txs |> Enum.any?(&match?(%{txindex: ^txindex}, &1)),
-        do: {:ok, compose_utxo_exit(txs, decoded_utxo_pos)},
+        do: {:ok, compose_output_exit(txs, decoded_utxo_pos)},
         else: {:error, :utxo_not_found}
     end
   end
 
-  def compose_deposit_exit(decoded_utxo_pos) do
+  defp compose_deposit_exit(decoded_utxo_pos) do
     with %{amount: amount, currency: currency, owner: owner} <- get_by_position(decoded_utxo_pos) do
       tx = Transaction.new([], [{owner, currency, amount}])
 
@@ -86,7 +86,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     end
   end
 
-  def compose_utxo_exit(txs, Utxo.position(_blknum, txindex, _) = decoded_utxo_pos) do
+  defp compose_output_exit(txs, Utxo.position(_blknum, txindex, _) = decoded_utxo_pos) do
     sorted_txs = Enum.sort_by(txs, & &1.txindex)
     txs_hashes = Enum.map(sorted_txs, & &1.txhash)
     proof = Block.create_tx_proof(txs_hashes, txindex)

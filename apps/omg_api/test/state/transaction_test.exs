@@ -21,8 +21,6 @@ defmodule OMG.API.State.TransactionTest do
   alias OMG.API.State.{Core, Transaction}
   alias OMG.API.TestHelper
 
-  @signature <<1>> |> List.duplicate(65) |> :binary.list_to_bin()
-
   deffixture transaction do
     %Transaction{
       inputs: [%{blknum: 1, txindex: 1, oindex: 0}, %{blknum: 1, txindex: 2, oindex: 1}],
@@ -60,14 +58,6 @@ defmodule OMG.API.State.TransactionTest do
   test "transaction hash is correct", %{transaction: transaction} do
     {:ok, hash_value} = Base.decode16("e0e6fbd41f4909b4e621565fcdf6a0b54921711ff15a23d6cb07f1f87e345a33", case: :lower)
     assert Transaction.hash(transaction) == hash_value
-  end
-
-  @tag fixtures: [:transaction]
-  test "signed transaction hash is correct", %{transaction: transaction} do
-    signed = %Transaction.Signed{raw_tx: transaction, sigs: [@signature, @signature]}
-    {:ok, expected} = Base.decode16("e0e6fbd41f4909b4e621565fcdf6a0b54921711ff15a23d6cb07f1f87e345a33", case: :lower)
-    actual = Transaction.Signed.signed_hash(signed)
-    assert actual == expected
   end
 
   @tag fixtures: [:utxos]

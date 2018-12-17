@@ -172,14 +172,14 @@ defmodule OMG.API.State.Transaction do
   def from_rlp([inputs_rlp, outputs_rlp]) do
     inputs =
       Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
-        %{blknum: int_parse(blknum), txindex: int_parse(txindex), oindex: int_parse(oindex)}
+        %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
       end)
 
     outputs =
       Enum.map(outputs_rlp, fn [owner, currency, amount] ->
-        with {:ok, cur12} <- address_parse(currency),
-             {:ok, owner} <- address_parse(owner) do
-          %{owner: owner, currency: cur12, amount: int_parse(amount)}
+        with {:ok, cur12} <- parse_address(currency),
+             {:ok, owner} <- parse_address(owner) do
+          %{owner: owner, currency: cur12, amount: parse_int(amount)}
         end
       end)
 
@@ -190,21 +190,21 @@ defmodule OMG.API.State.Transaction do
 
   def from_rlp(_), do: {:error, :malformed_transaction}
 
-  defp int_parse(int), do: :binary.decode_unsigned(int, :big)
+  defp parse_int(binary), do: :binary.decode_unsigned(binary, :big)
 
   # necessary, because RLP handles empty string equally to integer 0
-  @spec address_parse(<<>> | Crypto.address_t()) :: {:ok, Crypto.address_t()} | {:error, :malformed_address}
-  defp address_parse(address)
-  defp address_parse(""), do: {:ok, <<0::160>>}
-  defp address_parse(<<_::160>> = address_bytes), do: {:ok, address_bytes}
-  defp address_parse(_), do: {:error, :malformed_address}
+  @spec parse_address(<<>> | Crypto.address_t()) :: {:ok, Crypto.address_t()} | {:error, :malformed_address}
+  defp parse_address(binary)
+  defp parse_address(""), do: {:ok, <<0::160>>}
+  defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
+  defp parse_address(_), do: {:error, :malformed_address}
 
   def encode(transaction) do
-    preper_to_encode(transaction)
+    preper_to_exrlp(transaction)
     |> ExRLP.encode()
   end
 
-  def preper_to_encode(%__MODULE__{inputs: inputs, outputs: outputs}),
+  def preper_to_exrlp(%__MODULE__{inputs: inputs, outputs: outputs}),
     do: [
       # contract has fix size 4 inputs
       Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++

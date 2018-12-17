@@ -42,7 +42,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
     %DB.Transaction{
       blknum: 2,
       txindex: txindex,
-      txhash: Transaction.Signed.signed_hash(signed),
+      txhash: Transaction.hash(signed.raw_tx),
       inputs: [
         %DB.TxOutput{oindex: 0, spending_tx_oindex: 0}
       ],

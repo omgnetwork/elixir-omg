@@ -41,7 +41,6 @@ defmodule OMG.Watcher.Challenger.Core do
 
     %Challenge{
       outputId: Utxo.Position.encode(utxo_exit),
-      # eUtxoIndex - The output position of the exiting utxo.
       inputIndex: get_eutxo_index(challenging_tx),
       txbytes: Transaction.encode(raw_tx),
       sig: find_sig(sigs, raw_tx, owner)
@@ -49,10 +48,10 @@ defmodule OMG.Watcher.Challenger.Core do
   end
 
   defp find_sig(sigs, raw_tx, owner) do
-    hash_no_spenders = Transaction.hash(raw_tx)
+    tx_hash = Transaction.hash(raw_tx)
 
     Enum.find(sigs, fn sig ->
-      {:ok, owner} == Crypto.recover_address(hash_no_spenders, sig)
+      {:ok, owner} == Crypto.recover_address(tx_hash, sig)
     end)
   end
 

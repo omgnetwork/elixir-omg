@@ -29,6 +29,13 @@ defmodule OMG.Eth.RootChain do
 
   @type optional_addr_t() :: <<_::160>> | nil
 
+  @gas_start_exit 1_000_000
+  @gas_deposit 180_000
+  @gas_deposit_from 250_000
+  @gas_contract 6_180_000
+  @gas_init 1_000_000
+  @standard_exit_bond 31_415_926_535
+
   @spec submit_block(binary, pos_integer, pos_integer, optional_addr_t(), optional_addr_t()) ::
           {:error, binary() | atom() | map()}
           | {:ok, binary()}
@@ -52,9 +59,8 @@ defmodule OMG.Eth.RootChain do
   def start_exit(outputId, txbytes, proof, from, contract \\ nil, opts \\ []) do
     defaults =
       @tx_defaults
-      |> Keyword.put(:gas, 1_000_000)
-      # standardExitBond = 31415926535 wei
-      |> Keyword.put(:value, 31_415_926_535)
+      |> Keyword.put(:gas, @gas_start_exit)
+      |> Keyword.put(:value, @standard_exit_bond)
 
     opts = defaults |> Keyword.merge(opts)
 
@@ -69,8 +75,8 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  def deposit(tx, value, from, contract \\ nil, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, 180_000)
+  def deposit(tx_bytes, value, from, contract \\ nil, opts \\ []) do
+    defaults = @tx_defaults |> Keyword.put(:gas, @gas_deposit)
 
     opts =
       defaults
@@ -78,11 +84,11 @@ defmodule OMG.Eth.RootChain do
       |> Keyword.put(:value, value)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    Eth.contract_transact(from, contract, "deposit(bytes)", [tx], opts)
+    Eth.contract_transact(from, contract, "deposit(bytes)", [tx_bytes], opts)
   end
 
   def deposit_from(tx, from, contract \\ nil, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, 250_000)
+    defaults = @tx_defaults |> Keyword.put(:gas, @gas_deposit_from)
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
@@ -108,7 +114,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   def create_new(path_project_root, from, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, 6_180_000)
+    defaults = @tx_defaults |> Keyword.put(:gas, @gas_contract)
     opts = defaults |> Keyword.merge(opts)
 
     bytecode = Eth.get_bytecode!(path_project_root, "RootChain")
@@ -116,7 +122,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   def init(from \\ nil, contract \\ nil, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, 1_000_000)
+    defaults = @tx_defaults |> Keyword.put(:gas, @gas_init)
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
@@ -162,9 +168,9 @@ defmodule OMG.Eth.RootChain do
     Eth.call_contract(contract, "exits(uint192)", [exit_id], [:address, :address, {:uint, 256}])
   end
 
-  def get_standard_exit_id(output_id, contract \\ nil) do
+  def get_standard_exit_id(utxo_pos, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    Eth.call_contract(contract, "getStandardExitId(uint256)", [output_id], [{:uint, 256}])
+    Eth.call_contract(contract, "getStandardExitId(uint256)", [utxo_pos], [{:uint, 256}])
   end
 
   def get_child_chain(blknum, contract \\ nil) do

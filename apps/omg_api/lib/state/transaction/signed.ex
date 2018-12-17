@@ -31,13 +31,11 @@ defmodule OMG.API.State.Transaction.Signed do
           signed_tx_bytes: signed_tx_bytes_t()
         }
 
-  def signed_hash(%__MODULE__{raw_tx: tx}), do: Transaction.hash(tx)
-
   def encode(%__MODULE__{
         raw_tx: raw_tx,
         sigs: sigs
       }) do
-    [sigs | Transaction.preper_to_encode(raw_tx)]
+    [sigs | Transaction.preper_to_exrlp(raw_tx)]
     |> ExRLP.encode()
   end
 
