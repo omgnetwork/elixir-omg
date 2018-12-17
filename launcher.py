@@ -50,9 +50,13 @@ class ChildchainLauncher:
         if self.compile_application() is False:
             logging.critical('Could not compile application. Exiting.')
             sys.exit(1)
-        if self.deploy_contract() is False:
+        deployment_result = self.deploy_contract()
+        if deployment_result is False:
             logging.critical('Contract not deployed. Exiting.')
             sys.exit(1)
+        elif deployment_result = 'PREDEPLOYED':
+            logging.info('Launcher process complete')
+            return
         self.update_contract_exchanger()
         if self.chain_data_present is False:
             if self.initialise_childchain_database() is False:
@@ -187,7 +191,7 @@ class ChildchainLauncher:
         )
         return self.config_writer_predeployed()
 
-    def config_writer_predeployed(self) -> bool:
+    def config_writer_predeployed(self) -> str:
         ''' Write a config.exs to the homedir
         '''
         logging.info('Writing config.exs')
@@ -196,7 +200,7 @@ class ChildchainLauncher:
             for line in self.contracts[self.ethereum_network]:
                 mix.write(line)
                 mix.write('\n')
-        return True
+        return 'PREDEPLOYED'
 
     def initialise_childchain_database(self) -> bool:
         ''' Initialise the childchian database (chain data store)
