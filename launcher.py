@@ -54,7 +54,7 @@ class ChildchainLauncher:
         if deployment_result is False:
             logging.critical('Contract not deployed. Exiting.')
             sys.exit(1)
-        elif deployment_result = 'PREDEPLOYED':
+        elif deployment_result == 'PREDEPLOYED':
             logging.info('Launcher process complete')
             return
         self.update_contract_exchanger()
