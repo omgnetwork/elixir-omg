@@ -200,7 +200,7 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   defp run_block_download_task(state) do
-    {:ok, next_child} = Eth.RootChain.get_current_child_block()
+    {:ok, next_child} = Eth.RootChain.get_next_child_block()
     {new_state, blocks_numbers} = Core.get_numbers_of_blocks_to_download(state, next_child)
 
     blocks_numbers

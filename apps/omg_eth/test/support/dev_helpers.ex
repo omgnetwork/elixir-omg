@@ -139,9 +139,9 @@ defmodule OMG.Eth.DevHelpers do
     fn -> WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
   end
 
-  def wait_for_current_child_block(blknum, timeout \\ 10_000, contract \\ nil) do
+  def wait_for_next_child_block(blknum, timeout \\ 10_000, contract \\ nil) do
     f = fn ->
-      {:ok, next_num} = Eth.RootChain.get_current_child_block(contract)
+      {:ok, next_num} = Eth.RootChain.get_next_child_block(contract)
 
       if next_num < blknum, do: :repeat, else: {:ok, next_num}
     end

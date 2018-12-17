@@ -45,7 +45,7 @@ defmodule OMG.EthTest do
 
   @tag fixtures: [:contract]
   test "no argument call returning single integer", %{contract: contract} do
-    assert {:ok, 1000} = Eth.RootChain.get_current_child_block(contract.contract_addr)
+    assert {:ok, 1000} = Eth.RootChain.get_next_child_block(contract.contract_addr)
   end
 
   @tag fixtures: [:contract]

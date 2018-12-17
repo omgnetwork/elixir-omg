@@ -53,7 +53,7 @@ defmodule OMG.API.Integration.HappyPathTest do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
     post_spend_child_block = spend_child_block + child_block_interval
-    {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block)
+    {:ok, _} = Eth.DevHelpers.wait_for_next_child_block(post_spend_child_block)
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(spend_child_block)
@@ -83,7 +83,7 @@ defmodule OMG.API.Integration.HappyPathTest do
     {:ok, %{"blknum" => spend_child_block2}} = submit_transaction(tx2)
 
     post_spend_child_block2 = spend_child_block2 + child_block_interval
-    {:ok, _} = Eth.DevHelpers.wait_for_current_child_block(post_spend_child_block2)
+    {:ok, _} = Eth.DevHelpers.wait_for_next_child_block(post_spend_child_block2)
 
     # check if operator is propagating block with hash submitted to RootChain
     {:ok, {block_hash2, _}} = Eth.RootChain.get_child_chain(spend_child_block2)

@@ -141,7 +141,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns next blknum that is supposed to be mined by operator
   """
-  def get_current_child_block(contract \\ nil) do
+  def get_next_child_block(contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     Eth.call_contract(contract, "nextChildBlock()", [], [{:uint, 256}])
   end
@@ -150,7 +150,7 @@ defmodule OMG.Eth.RootChain do
   Returns blknum that was already mined by operator (with exception for 0)
   """
   def get_mined_child_block(contract \\ nil) do
-    with {:ok, next} <- get_current_child_block(contract),
+    with {:ok, next} <- get_next_child_block(contract),
          {:ok, interval} <- get_child_block_interval(),
          do: {:ok, next - interval}
   end
