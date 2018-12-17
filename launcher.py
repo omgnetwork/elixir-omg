@@ -192,7 +192,7 @@ class ChildchainLauncher:
         '''
         logging.info('Writing config.exs')
         home = os.path.expanduser('~')
-        with open(home + 'config.exs', 'w+') as mix:
+        with open(home + '/config.exs', 'w+') as mix:
             for line in self.contracts[self.ethereum_network]:
                 mix.write(line)
                 mix.write('\n')
@@ -357,7 +357,7 @@ class WatcherLauncher:
         '''
         os.chdir(os.path.expanduser('~') + '/elixir-omg')
         result = subprocess.run(
-            'mix ecto.create --no-start',
+            'mix ecto.reset --no-start',
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True
