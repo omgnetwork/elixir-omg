@@ -12,8 +12,6 @@ config :omg_rpc,
 
 # Configures the endpoint
 config :omg_rpc, OMG.RPC.Web.Endpoint,
-  http: [port: 9656],
-  url: [host: "localhost", port: 9656],
   secret_key_base: "TKO1TD87rXknWy9NhAGiEdv0cXm6W88/8G1E0uV0LISh998yZYNNPRZ5vfEexceb",
   render_errors: [view: OMG.RPC.Web.ErrorView, accepts: ~w(json)]
 

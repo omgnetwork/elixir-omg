@@ -35,6 +35,8 @@ class ChildchainLauncher:
 
     def start(self):
         ''' Start the launch process for the Childchain service
+
+        TODO(jbunce): This needs tidying for clarity (issue #12)
         '''
         logging.info('Service type to launch is Elixir Childchain')
         logging.info(
@@ -44,15 +46,21 @@ class ChildchainLauncher:
         self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
         logging.info('Ethereum client is {}'.format(self.ethereum_client))
         if self.chain_data_present is True:
-            self.config_writer_dynamic()
-            logging.info('Launcher process complete')
-            return
+            if self.ethereum_network not in self.public_networks:
+                if self.config_writer_dynamic() is True:
+                    logging.info('Launcher process complete')
+                    return
         if self.compile_application() is False:
             logging.critical('Could not compile application. Exiting.')
             sys.exit(1)
-        if self.deploy_contract() is False:
+        deployment_result = self.deploy_contract()
+        if deployment_result is False:
             logging.critical('Contract not deployed. Exiting.')
             sys.exit(1)
+        elif deployment_result == 'PREDEPLOYED':
+            self.initialise_childchain_database()
+            logging.info('Launcher process complete')
+            return
         self.update_contract_exchanger()
         if self.chain_data_present is False:
             if self.initialise_childchain_database() is False:
@@ -77,9 +85,17 @@ class ChildchainLauncher:
         ''' Write the configuration from data retrieved from the contract
         exchanger
         '''
-        contract_data = json.loads(
-            self.get_contract_from_exchanger().decode('utf-8')
-        )
+        contract_data = None
+        try:
+            contract_data = json.loads(
+                self.get_contract_from_exchanger().decode('utf-8')
+            )
+        except json.decoder.JSONDecodeError:
+            logging.warning(
+                'Empty response from the contract exchanger.'
+                'Assuming this is a first deploy.'
+            )
+            return False
         config = [
             'use Mix.Config',
             'config :omg_eth,',
@@ -116,7 +132,7 @@ class ChildchainLauncher:
     def deploy_contract(self) -> bool:
         ''' Deploy the smart contract and populate the ~/config.exs file
         '''
-        if self.ethereum_network == [x for x in self.public_networks]:
+        if self.ethereum_network in self.public_networks:
             return self.use_pre_deployed()
 
         result = subprocess.run(
@@ -179,16 +195,16 @@ class ChildchainLauncher:
         )
         return self.config_writer_predeployed()
 
-    def config_writer_predeployed(self) -> bool:
+    def config_writer_predeployed(self) -> str:
         ''' Write a config.exs to the homedir
         '''
         logging.info('Writing config.exs')
         home = os.path.expanduser('~')
-        with open(home + 'config.exs', 'w+') as mix:
+        with open(home + '/config.exs', 'w+') as mix:
             for line in self.contracts[self.ethereum_network]:
                 mix.write(line)
                 mix.write('\n')
-        return True
+        return 'PREDEPLOYED'
 
     def initialise_childchain_database(self) -> bool:
         ''' Initialise the childchian database (chain data store)
@@ -349,7 +365,7 @@ class WatcherLauncher:
         '''
         os.chdir(os.path.expanduser('~') + '/elixir-omg')
         result = subprocess.run(
-            'mix ecto.create --no-start',
+            'mix ecto.reset --no-start',
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True

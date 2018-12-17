@@ -55,6 +55,14 @@ defmodule OMG.Eth.MixProject do
 
   defp contracts_compile do
     mixfile_path = __DIR__
-    "cd #{mixfile_path}/../../ && py-solc-simple -i deps/plasma_contracts/contracts/ -o contracts/build/"
+    contracts_dir = Path.join(mixfile_path, "../../deps/plasma_contracts/contracts")
+
+    contract_paths =
+      ["RootChain.sol", "MintableToken.sol"]
+      |> Enum.map(&Path.join(contracts_dir, &1))
+      |> Enum.join(" ")
+
+    output_path = Path.join(mixfile_path, "../../_build/contracts")
+    "solc #{contract_paths} --overwrite --abi --bin --optimize --optimize-runs 1 -o #{output_path}"
   end
 end

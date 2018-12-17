@@ -7,8 +7,8 @@ Run a developer's Child chain server, Watcher, and start IEx REPL with code and 
 **NOTE** It's advisable to adjust the processing of deposits like so (in your `~/config.exs`):
 ```
 config :omg_api,
-  eth_deposit_finality_margin: 1,
-  ethereum_event_check_height_interval_ms: 100
+  deposit_finality_margin: 1,
+  ethereum_status_check_interval_ms: 100
 ```
 Otherwise one might experience a long wait before the child chain allows the deposits to be spent (which every invocation of `start_extended_perftest` waits for).
 

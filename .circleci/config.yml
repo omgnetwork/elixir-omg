@@ -1,0 +1,77 @@
+version: 2
+jobs:
+  test:
+    docker:
+      - image: omisegoimages/blockchain-base:1.6-otp20
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Build application
+          command: |
+            mix do local.hex --force, local.rebar --force
+      - run:
+          name: Get dependencies
+          command: |
+            mix do deps.get, deps.compile, compile
+      - run:
+          name: Dialyze
+          command: |
+            mix dialyzer --halt-exit-status
+      - run:
+          name: Lint
+          command: |
+            mix do credo, format --check-formatted --dry-run
+  build_and_deploy:
+    docker:
+      - image: ubuntu:16.04
+    working_directory: ~/repo
+    steps:
+      - setup_remote_docker
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update && apt-get install -y lsb-release curl
+            curl -sSL https://get.docker.com/ > docker.sh && chmod +x docker.sh && ./docker.sh
+      - run:
+          name: Build and push Docker image
+          command: |
+            docker build -t elixir-omg .
+            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
+            export DOCKER_IMAGE=jakebunce/elixir-omg:$CIRCLE_SHA1
+            docker tag elixir-omg $DOCKER_IMAGE
+            docker push jakebunce/elixir-omg:$CIRCLE_SHA1
+      - run:
+          name: Install gcloud SDK
+          command: |
+            export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
+            echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+            curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+            apt-get update -y && apt-get install -y google-cloud-sdk kubectl
+      - run:
+          name: Initialise & authenticate gcloud SDK
+          command: |
+            echo "${GCP_KEY_FILE}" | base64 --decode >> /tmp/gcp_key.json
+            gcloud auth activate-service-account --key-file /tmp/gcp_key.json
+            gcloud config set project ${GCP_ACCOUNT_ID}
+            gcloud config set compute/zone ${GCP_ZONE}
+            gcloud container clusters get-credentials ${GCP_CLUSTER_ID}
+      - run:
+          name: Update Childchain
+          command: |
+            kubectl patch statefulset childchain --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value":"$DOCKER_IMAGE"}]'
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - test
+      - build_and_deploy:
+          requires:
+            - test
+          filters:
+            branches:
+              only: 
+                - master
