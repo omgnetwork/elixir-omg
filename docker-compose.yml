@@ -6,7 +6,7 @@ services:
     ports:
      - "8545:8545"
 
-  db:
+  childchain_db:
     image: postgres
     restart: always
     environment:
@@ -15,6 +15,16 @@ services:
       POSTGRES_DB: omisego_dev
     ports:
       - "5432:5432"
+
+  watcher_db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: omisego_dev
+      POSTGRES_PASSWORD: omisego_dev
+      POSTGRES_DB: omisego_dev
+    ports:
+      - "5433:5432"
 
   elixir-omg:
     build: .
@@ -59,3 +69,14 @@ services:
     depends_on:
       - "childchain"
 
+  ewallet:
+    image: omisego/ewallet:latest
+    entrypoint: /bin/bash -c "mix local.hex --force && mix local.rebar --force && mix do ecto.create, ecto.migrate && /init"
+    environment:
+      - DATABASE_URL=postgres://omisego_dev:omisego_dev@docker.for.mac.localhost:5433/omisego_dev 
+      - LOCAL_LEDGER_DATABASE_URL=postgres://omisego_dev:omisego_dev@docker.for.mac.localhost:5432/omisego_dev
+    restart: always
+    ports: 
+      - "4001:4000"
+    depends_on:
+      - "watcher_db"
