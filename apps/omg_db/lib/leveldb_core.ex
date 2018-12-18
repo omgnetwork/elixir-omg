@@ -78,6 +78,7 @@ defmodule OMG.DB.LevelDBCore do
       else: {:ok, raw_decoded}
   end
 
+  defp encode_value(:spend, {_position, blknum}), do: :erlang.term_to_binary(blknum)
   defp encode_value(_type, value), do: :erlang.term_to_binary(value)
 
   def filter_keys(key_stream, type) when type in @key_types,
