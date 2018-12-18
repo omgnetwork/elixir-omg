@@ -14,7 +14,7 @@
 
 defmodule OMG.Watcher.DB.Transaction do
   @moduledoc """
-  Ecto Schema representing DB Transaction.
+  Ecto Schema representing a transaction
   """
   use Ecto.Schema
   use OMG.API.LoggerExt
