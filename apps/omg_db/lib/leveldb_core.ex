@@ -25,7 +25,8 @@ defmodule OMG.DB.LevelDBCore do
     utxo: "u",
     exit_info: "e",
     in_flight_exit_info: "ife",
-    competitor_info: "ci"
+    competitor_info: "ci",
+    spend: "s"
   }
 
   @key_types Map.keys(@keys_prefixes)
@@ -88,6 +89,7 @@ defmodule OMG.DB.LevelDBCore do
   def key(:block, %{hash: hash} = _block), do: key(:block, hash)
   def key(:block, hash), do: @keys_prefixes.block <> hash
   def key(:utxo, {position, _utxo}), do: key(:utxo, position)
+  def key(:spend, {position, _blknum}), do: key(:spend, position)
   def key(:exit_info, {position, _exit_info}), do: key(:utxo, position)
 
   def key(type, item) when type in @key_types,

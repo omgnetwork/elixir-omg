@@ -315,7 +315,9 @@ defmodule OMG.API.State.Core do
         Transaction.get_inputs(tx)
       end)
       |> Enum.filter(fn position -> position != Utxo.position(0, 0, 0) end)
-      |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :utxo, {blknum, txindex, oindex}} end)
+      |> Enum.flat_map(fn Utxo.position(blknum, txindex, oindex) ->
+        [{:delete, :utxo, {blknum, txindex, oindex}}, {:put, :spend, {{blknum, txindex, oindex}, height}}]
+      end)
 
     db_updates_block = [{:put, :block, block}]
 
