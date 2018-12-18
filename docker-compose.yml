@@ -54,7 +54,8 @@ services:
       - DATABASE_URL=postgres://omisego_dev:omisego_dev@docker.for.mac.localhost:5432/omisego_dev
     restart: always
     ports:
-     - "4000:4000"
+      - "7434:7434"
+      - "4000:4000"
     depends_on:
       - "childchain"
 
