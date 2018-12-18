@@ -73,7 +73,7 @@ services:
     image: omisego/ewallet:latest
     entrypoint: /bin/bash -c "mix local.hex --force && mix local.rebar --force && mix do ecto.create, ecto.migrate && /init"
     environment:
-      - DATABASE_URL=postgres://omisego_dev:omisego_dev@docker.for.mac.localhost:5433/omisego_dev 
+      - DATABASE_URL=postgres://localhost:5433/omisego_dev 
       - LOCAL_LEDGER_DATABASE_URL=postgres://localhost:5432/omisego_dev
     restart: always
     ports: 
