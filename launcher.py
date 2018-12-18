@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 import git
+from retry import retry
 import requests
 
 
@@ -400,6 +401,7 @@ class WatcherLauncher:
         return False
 
 
+@retry(tries=3, delay=2)
 def check_ethereum_client(ethereum_rpc_url: str) -> str:
     ''' Return the Ethereum client that is running
     '''
