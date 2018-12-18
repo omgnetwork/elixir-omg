@@ -72,7 +72,7 @@ defmodule OMG.Watcher.Web.View.Transaction do
     formatted
   end
 
-  defp add_inputs(tx, [Utxo.position(blknum1, txindex1, oindex1), Utxo.position(blknum2, txindex2, oindex2)]) do
+  defp add_inputs(tx, [Utxo.position(blknum1, txindex1, oindex1), Utxo.position(blknum2, txindex2, oindex2) | _]) do
     Map.merge(
       tx,
       %{
@@ -86,7 +86,7 @@ defmodule OMG.Watcher.Web.View.Transaction do
     )
   end
 
-  defp add_outputs(tx, [output1, output2]) do
+  defp add_outputs(tx, [output1, output2 | _]) do
     Map.merge(
       tx,
       %{

@@ -40,7 +40,7 @@ defmodule OMG.API.State.Transaction.Recovered do
          do:
            {:ok,
             %__MODULE__{
-              signed_tx_hash: Transaction.Signed.signed_hash(signed_tx),
+              signed_tx_hash: Transaction.hash(raw_tx),
               spenders: spenders,
               signed_tx: signed_tx
             }}

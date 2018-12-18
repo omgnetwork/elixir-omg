@@ -19,7 +19,6 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   alias OMG.API.State.Transaction
   alias OMG.API.TestHelper
   alias OMG.API.Utxo
-  alias OMG.Watcher.Challenger.Challenge
   alias OMG.Watcher.Challenger.Core
   alias OMG.Watcher.DB
 
@@ -43,7 +42,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
     %DB.Transaction{
       blknum: 2,
       txindex: txindex,
-      txhash: Transaction.Signed.signed_hash(signed),
+      txhash: Transaction.hash(signed.raw_tx),
       inputs: [
         %DB.TxOutput{oindex: 0, spending_tx_oindex: 0}
       ],
@@ -59,14 +58,20 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   test "creates a challenge for an exit; provides utxo position of non-zero amount", %{transactions: transactions} do
     challenging_tx = transactions |> Enum.at(0)
     expected_cutxopos = Utxo.position(2, 0, 0) |> Utxo.Position.encode()
-    assert %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
+
+    assert %{outputId: ^expected_cutxopos, inputIndex: 0} =
+             Core.create_challenge(challenging_tx, Utxo.position(2, 0, 0))
 
     challenging_tx = transactions |> Enum.at(1)
     expected_cutxopos = Utxo.position(2, 1, 1) |> Utxo.Position.encode()
-    assert %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
+
+    assert %{outputId: ^expected_cutxopos, inputIndex: 0} =
+             Core.create_challenge(challenging_tx, Utxo.position(2, 1, 1))
 
     challenging_tx = transactions |> Enum.at(2)
     expected_cutxopos = Utxo.position(2, 2, 0) |> Utxo.Position.encode()
-    assert %Challenge{cutxopos: ^expected_cutxopos, eutxoindex: 0} = Core.create_challenge(challenging_tx, transactions)
+
+    assert %{outputId: ^expected_cutxopos, inputIndex: 0} =
+             Core.create_challenge(challenging_tx, Utxo.position(2, 2, 0))
   end
 end

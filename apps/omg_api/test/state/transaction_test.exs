@@ -21,8 +21,6 @@ defmodule OMG.API.State.TransactionTest do
   alias OMG.API.State.{Core, Transaction}
   alias OMG.API.TestHelper
 
-  @signature <<1>> |> List.duplicate(65) |> :binary.list_to_bin()
-
   deffixture transaction do
     %Transaction{
       inputs: [%{blknum: 1, txindex: 1, oindex: 0}, %{blknum: 1, txindex: 2, oindex: 1}],
@@ -58,29 +56,21 @@ defmodule OMG.API.State.TransactionTest do
 
   @tag fixtures: [:transaction]
   test "transaction hash is correct", %{transaction: transaction} do
-    {:ok, hash_value} = Base.decode16("f09d08d506a269f4237f712a7cdc8259489f0435b0775b4e08050523788268a8", case: :lower)
+    {:ok, hash_value} = Base.decode16("e0e6fbd41f4909b4e621565fcdf6a0b54921711ff15a23d6cb07f1f87e345a33", case: :lower)
     assert Transaction.hash(transaction) == hash_value
-  end
-
-  @tag fixtures: [:transaction]
-  test "signed transaction hash is correct", %{transaction: transaction} do
-    signed = %Transaction.Signed{raw_tx: transaction, sigs: [@signature, @signature]}
-    {:ok, expected} = Base.decode16("61c4551565f6beefd2e9129f3dc104e6d53e9862c2775de41cd20029a6037181", case: :lower)
-    actual = Transaction.Signed.signed_hash(signed)
-    assert actual == expected
   end
 
   @tag fixtures: [:utxos]
   test "create transaction with different number inputs and oputputs", %{utxos: utxos} do
     # 1 - input, 1 - output
     {:ok, transaction} =
-      Transaction.create_from_utxos([utxos |> hd()], [%{owner: "Joe Black", currency: eth(), amount: 99}])
+      Transaction.create_from_utxos([hd(utxos)], [%{owner: "Joe Black", currency: eth(), amount: 99}])
 
     assert transaction == %Transaction{
-             inputs: [%{blknum: 20, txindex: 42, oindex: 1}, %{blknum: 0, txindex: 0, oindex: 0}],
+             inputs: [%{blknum: 20, txindex: 42, oindex: 1} | List.duplicate(%{blknum: 0, oindex: 0, txindex: 0}, 3)],
              outputs: [
-               %{owner: "Joe Black", currency: eth(), amount: 99},
-               %{owner: Crypto.zero_address(), currency: eth(), amount: 0}
+               %{owner: "Joe Black", currency: eth(), amount: 99}
+               | List.duplicate(%{owner: Crypto.zero_address(), currency: eth(), amount: 0}, 3)
              ]
            }
 
@@ -92,10 +82,11 @@ defmodule OMG.API.State.TransactionTest do
       )
 
     assert transaction == %Transaction{
-             inputs: [%{blknum: 2, txindex: 21, oindex: 0}, %{blknum: 0, txindex: 0, oindex: 0}],
+             inputs: [%{blknum: 2, txindex: 21, oindex: 0} | List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 3)],
              outputs: [
                %{owner: "Joe Black", currency: eth(), amount: 22},
                %{owner: "McDuck", currency: eth(), amount: 21}
+               | List.duplicate(%{owner: Crypto.zero_address(), currency: eth(), amount: 0}, 2)
              ]
            }
 
@@ -107,10 +98,14 @@ defmodule OMG.API.State.TransactionTest do
       )
 
     assert transaction == %Transaction{
-             inputs: [%{blknum: 20, txindex: 42, oindex: 1}, %{blknum: 2, txindex: 21, oindex: 0}],
+             inputs: [
+               %{blknum: 20, txindex: 42, oindex: 1},
+               %{blknum: 2, txindex: 21, oindex: 0} | List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 2)
+             ],
              outputs: [
                %{owner: "Joe Black", currency: eth(), amount: 53},
                %{owner: "McDuck", currency: eth(), amount: 90}
+               | List.duplicate(%{owner: Crypto.zero_address(), currency: eth(), amount: 0}, 2)
              ]
            }
 
@@ -118,11 +113,11 @@ defmodule OMG.API.State.TransactionTest do
     {:ok, transaction} = Transaction.create_from_utxos(utxos, [])
 
     assert transaction == %Transaction{
-             inputs: [%{blknum: 20, txindex: 42, oindex: 1}, %{blknum: 2, txindex: 21, oindex: 0}],
-             outputs: [
-               %{owner: Crypto.zero_address(), currency: eth(), amount: 0},
-               %{owner: Crypto.zero_address(), currency: eth(), amount: 0}
-             ]
+             inputs: [
+               %{blknum: 20, txindex: 42, oindex: 1},
+               %{blknum: 2, txindex: 21, oindex: 0} | List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 2)
+             ],
+             outputs: List.duplicate(%{owner: Crypto.zero_address(), currency: eth(), amount: 0}, 4)
            }
   end
 
@@ -134,9 +129,9 @@ defmodule OMG.API.State.TransactionTest do
 
     assert {:error, :at_least_one_input_required} == Transaction.create_from_utxos([], [])
 
-    assert {:error, :too_many_inputs} == Transaction.create_from_utxos(utxos ++ utxos, [])
+    assert {:error, :too_many_inputs} == Transaction.create_from_utxos(utxos ++ utxos ++ utxos, [])
 
-    assert {:error, :too_many_outputs} == Transaction.create_from_utxos(utxos, [%{}, %{}, %{}])
+    assert {:error, :too_many_outputs} == Transaction.create_from_utxos(utxos, [%{}, %{}, %{}, %{}, %{}])
 
     assert {:error, :amount_noninteger_or_negative} ==
              Transaction.create_from_utxos(utxos, [%{owner: "Joe", currency: eth(), amount: -4}])

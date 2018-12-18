@@ -12,9 +12,9 @@ import requests
 RINKEBY_CONTRACT = [
     'use Mix.Config',
     'config :omg_eth,',
-    '  contract_addr: "0x7ce50c54c8c7fd4ac6167f32497ba398aa20835b",',
-    '  txhash_contract: "0xe6fde071a083883dc805c359f808d64d5813d553a2cc2cf1b44913d472a1b65b",', # noqa E501
-    '  authority_addr: "0xe28e813f54b9a8f22082926c9f0881fc8cba538c"'
+    '  contract_addr: "0xda43a477ed2defe17acd9dec3990016ed5ff727a",',
+    '  txhash_contract: "0xbd30b46d97e5a0ada161bef7a184e11fdd2649f6d5dbc7306ec5ff3ab2683984",', # noqa E501
+    '  authority_addr: "0xc7bacd2713cc6fe4e0e7b033986db739c3bbed68"'
 ]
 
 
@@ -35,6 +35,8 @@ class ChildchainLauncher:
 
     def start(self):
         ''' Start the launch process for the Childchain service
+
+        TODO(jbunce): This needs tidying for clarity (issue #12)
         '''
         logging.info('Service type to launch is Elixir Childchain')
         logging.info(
@@ -44,15 +46,21 @@ class ChildchainLauncher:
         self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
         logging.info('Ethereum client is {}'.format(self.ethereum_client))
         if self.chain_data_present is True:
-            if self.config_writer_dynamic() is True:
-                logging.info('Launcher process complete')
-                return
+            if self.ethereum_network not in self.public_networks:
+                if self.config_writer_dynamic() is True:
+                    logging.info('Launcher process complete')
+                    return
         if self.compile_application() is False:
             logging.critical('Could not compile application. Exiting.')
             sys.exit(1)
-        if self.deploy_contract() is False:
+        deployment_result = self.deploy_contract()
+        if deployment_result is False:
             logging.critical('Contract not deployed. Exiting.')
             sys.exit(1)
+        elif deployment_result == 'PREDEPLOYED':
+            self.initialise_childchain_database()
+            logging.info('Launcher process complete')
+            return
         self.update_contract_exchanger()
         if self.chain_data_present is False:
             if self.initialise_childchain_database() is False:
@@ -124,7 +132,7 @@ class ChildchainLauncher:
     def deploy_contract(self) -> bool:
         ''' Deploy the smart contract and populate the ~/config.exs file
         '''
-        if self.ethereum_network == [x for x in self.public_networks]:
+        if self.ethereum_network in self.public_networks:
             return self.use_pre_deployed()
 
         result = subprocess.run(
@@ -187,16 +195,16 @@ class ChildchainLauncher:
         )
         return self.config_writer_predeployed()
 
-    def config_writer_predeployed(self) -> bool:
+    def config_writer_predeployed(self) -> str:
         ''' Write a config.exs to the homedir
         '''
         logging.info('Writing config.exs')
         home = os.path.expanduser('~')
-        with open(home + 'config.exs', 'w+') as mix:
+        with open(home + '/config.exs', 'w+') as mix:
             for line in self.contracts[self.ethereum_network]:
                 mix.write(line)
                 mix.write('\n')
-        return True
+        return 'PREDEPLOYED'
 
     def initialise_childchain_database(self) -> bool:
         ''' Initialise the childchian database (chain data store)
@@ -357,7 +365,7 @@ class WatcherLauncher:
         '''
         os.chdir(os.path.expanduser('~') + '/elixir-omg')
         result = subprocess.run(
-            'mix ecto.create --no-start',
+            'mix ecto.reset --no-start',
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True

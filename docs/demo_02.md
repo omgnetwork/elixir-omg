@@ -28,18 +28,20 @@ eth = Crypto.zero_address()
 {:ok, _} = Eth.DevHelpers.import_unlock_fund(bob)
 
 # sends a deposit transaction _to Ethereum_
-{:ok, deposit_tx_hash} = Eth.RootChain.deposit(10, bob.addr)
-{:ok, deposit_tx_hash} = Eth.RootChain.deposit(10, alice.addr)
+{:ok, bob_deposit_tx_hash} = Eth.RootChain.deposit(10, bob.addr)
+{:ok, alice_deposit_tx_hash} = Eth.RootChain.deposit(10, alice.addr)
 
 {:ok, alice_enc} = Crypto.encode_address(alice.addr)
 {:ok, bob_enc} = Crypto.encode_address(bob.addr)
 
 # need to wait until it's mined
-{:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
+{:ok, bob_deposit_receipt} = Eth.WaitFor.eth_receipt(bob_deposit_tx_hash)
+{:ok, alice_deposit_receipt} = Eth.WaitFor.eth_receipt(alice_deposit_tx_hash)
 
 # we need to uncover the height at which the deposit went through on the root chain
 # to do this, look in the logs inside the receipt printed just above
-deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
+bob_deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(bob_deposit_receipt)
+alice_deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(alice_deposit_receipt)
 
 ### START DEMO HERE
 
@@ -51,7 +53,7 @@ deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
 
 # create and prepare transaction for signing
 tx =
-  Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
+  Transaction.new([{alice_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
   Transaction.sign([alice.priv, <<>>]) |>
   Transaction.Signed.encode() |>
   Base.encode16()
@@ -68,13 +70,16 @@ tx =
 
 # 2/ Using the Watcher
 
-# we grabbed the first transaction hash as returned by the Child chain server's API (response to `curl`'s request)
-~c(http GET localhost:7434/transaction/#{tx1_hash}) |>
+# we grabbed the first transaction hash as returned by the Child chain server's API (response to `http`'s request)
+
+~c(echo '{"id": "#{tx1_hash}"}' | http POST localhost:7434/transaction.get) |>
+to_charlist() |>
 :os.cmd() |>
 Poison.decode!()
 
 %{"data" => [_bobs_deposit, %{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
-  ~c(http GET localhost:7434/utxos?address=#{bob_enc}) |>
+  ~c(echo '{"address": "#{bob_enc}"}' | http POST localhost:7434/utxo.get) |>
+  to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -83,7 +88,8 @@ Poison.decode!()
 exiting_utxopos = OMG.API.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
 
 %{"data" => composed_exit} =
-  ~c(http GET localhost:7434/utxo/#{exiting_utxopos}/exit_data) |>
+  ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST localhost:7434/utxo.get_exit_data) |>
+  to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -109,7 +115,8 @@ Poison.decode!()
 Eth.WaitFor.eth_receipt(txhash)
 
 %{"data" => challenge} =
-  ~c(http GET localhost:7434/utxo/#{exiting_utxopos}/challenge_data) |>
+  ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST localhost:7434/utxo.get_challenge_data) |>
+  to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -130,11 +137,23 @@ Eth.WaitFor.eth_receipt(txhash)
 # If we introduce a 5 second sleep, the Watcher will have a hard time getting a block (requests time out in 5 seconds).
 # Some attempts will pass, some will fail and with the withholding threshold set to 10 seconds, we'll have block withholding stop the Watcher and print out an error (and fire events for machines)
 
-# put `Process.sleep 5_000` in API module, around line 69
+# put `Process.sleep 5_000` in API module, around line 48
 
 # now, with the code "broken" go to the `iex` REPL of the child chain and recompile the module
 
 r(OMG.API)
+
+# submit a transaction that will get mined in a new block
+tx3 =
+  Transaction.new([{bob_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
+  Transaction.sign([bob.priv, <<>>]) |>
+  Transaction.Signed.encode() |>
+  Base.encode16()
+
+%{"success" => true} =
+  ~c(echo '{"transaction": "#{tx3}"}' | http POST localhost:9656/transaction.submit) |>
+  :os.cmd() |>
+  Poison.decode!()
 
 # see Watcher's console logs to see the struggle and final give-in. You can restart the Watcher many times
 
@@ -153,20 +172,21 @@ r(OMG.API.State.Core)
 
 # let's do a broken spend:
 
-# grab a utxo that bob can spend
+# grab an utxo that bob can spend
 %{"data" => [_bobs_deposit, %{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]} =
-  ~c(http GET localhost:7434/utxos?address=#{bob_enc}) |>
+  ~c(echo '{"address": "#{bob_enc}"}' | http POST localhost:7434/utxo.get) |>
+  to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
 
-tx3 =
+tx4 =
   Transaction.new([{spend_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
   Transaction.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
   Base.encode16()
 
-# and send using curl as above.
-~c(echo '{"transaction": "#{tx3}"}' | http POST localhost:9656/transaction.submit) |>
+# and send using httpie
+~c(echo '{"transaction": "#{tx4}"}' | http POST localhost:9656/transaction.submit) |>
 :os.cmd() |>
 Poison.decode!()
 

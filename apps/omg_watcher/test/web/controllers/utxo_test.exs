@@ -167,7 +167,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
 
   @tag fixtures: [:initial_blocks]
   test "getting exit data returns error when there is no txs in specfic block" do
-    utxo_pos = Utxo.position(1001, 1, 0) |> Utxo.Position.encode()
+    utxo_pos = Utxo.position(7000, 1, 0) |> Utxo.Position.encode()
 
     assert %{
              "code" => "exit:invalid",

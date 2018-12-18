@@ -55,7 +55,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     %{
       "txbytes" => txbytes,
       "proof" => proof,
-      "sigs" => sigs,
       "utxo_pos" => utxo_pos
     } = IntegrationTest.get_exit_data(deposit_blknum, 0, 0)
 
@@ -64,7 +63,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         utxo_pos,
         txbytes,
         proof,
-        sigs,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
@@ -84,20 +82,20 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     # after the notification has been received, a challenged is composed and sent
     challenge = IntegrationTest.get_exit_challenge(deposit_blknum, 0, 0)
-    assert {:ok, {alice.addr, @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
+    {:ok, exit_id} = Eth.RootChain.get_standard_exit_id(utxo_pos)
+    assert {:ok, {alice.addr, @eth, 10}} == Eth.RootChain.get_exit(exit_id)
 
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.challenge_exit(
-        challenge["cutxopos"],
-        challenge["eutxoindex"],
+        challenge["outputId"],
         challenge["txbytes"],
-        challenge["proof"],
-        challenge["sigs"],
+        challenge["inputIndex"],
+        challenge["sig"],
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    assert {:ok, {API.Crypto.zero_address(), @eth, 10}} == Eth.RootChain.get_exit(utxo_pos)
+    assert {:ok, {API.Crypto.zero_address(), @eth, 0}} == Eth.RootChain.get_exit(utxo_pos)
 
     Process.sleep(5_000)
 
@@ -144,7 +142,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     %{
       "txbytes" => txbytes,
       "proof" => proof,
-      "sigs" => sigs,
       "utxo_pos" => utxo_pos
     } = IntegrationTest.get_exit_data(exit_blknum, 0, 0)
 
@@ -153,7 +150,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         utxo_pos,
         txbytes,
         proof,
-        sigs,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()

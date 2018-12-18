@@ -26,8 +26,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.ExitProcessor.ExitInfo
 
-  use OMG.API.LoggerExt
-
   @default_sla_margin 10
   @zero_address Crypto.zero_address()
 
@@ -38,11 +36,16 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   Reads database-specific list of exits and turns them into current state
   """
-  @spec init(db_exits :: [{Utxo.Position.t(), map}], non_neg_integer) :: {:ok, t()}
+  @spec init(db_exits :: [{{pos_integer, non_neg_integer, non_neg_integer}, map}], non_neg_integer) :: {:ok, t()}
   def init(db_exits, sla_margin \\ @default_sla_margin) do
     {:ok,
      %__MODULE__{
-       exits: db_exits |> Enum.map(fn {k, v} -> {k, struct(ExitInfo, v)} end) |> Map.new(),
+       exits:
+         db_exits
+         |> Enum.map(fn {{blknum, txindex, oindex}, v} ->
+           {Utxo.position(blknum, txindex, oindex), struct(ExitInfo, v)}
+         end)
+         |> Map.new(),
        sla_margin: sla_margin
      }}
   end
@@ -130,7 +133,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp delete_positions(utxo_positions) do
     utxo_positions
-    |> Enum.map(fn utxo_pos -> {:delete, :exit_info, utxo_pos} end)
+    |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :exit_info, {blknum, txindex, oindex}} end)
   end
 
   @doc """

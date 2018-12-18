@@ -64,7 +64,6 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     # utxo from deposit should be available
     assert [eth_deposit, token_deposit] == IntegrationTest.get_utxos(alice)
-
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.submit(tx)
 
@@ -98,8 +97,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     %{
       "utxo_pos" => utxo_pos,
       "txbytes" => txbytes,
-      "proof" => proof,
-      "sigs" => sigs
+      "proof" => proof
     } = IntegrationTest.get_exit_data(block_nr, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
@@ -107,7 +105,6 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
         utxo_pos,
         txbytes,
         proof,
-        sigs,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
@@ -115,15 +112,18 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
 
     assert [token_deposit] == IntegrationTest.get_utxos(alice)
-
     # finally alice exits her token deposit
-    deposit_pos = Utxo.position(token_deposit_blknum, 0, 0) |> Utxo.Position.encode()
+    %{
+      "utxo_pos" => utxo_pos,
+      "txbytes" => txbytes,
+      "proof" => proof
+    } = IntegrationTest.get_exit_data(token_deposit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
-      Eth.RootChain.start_deposit_exit(
-        deposit_pos,
-        token,
-        10,
+      Eth.RootChain.start_exit(
+        utxo_pos,
+        txbytes,
+        proof,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
