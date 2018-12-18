@@ -62,7 +62,7 @@ jobs:
       - run:
           name: Update Childchain
           command: |
-            #kubectl patch statefulset childchain --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value":"$DOCKER_IMAGE"}]'
+            kubectl patch statefulset childchain --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value": "$DOCKER_IMAGE"}]'
 workflows:
   version: 2
   build-deploy:
