@@ -23,19 +23,19 @@ Stores information about transactions.
 |**transactions**|||
 |:-:|:-|:-|
 |txhash|bytea|Pk|
-|blknum|integer|Fk(blocks, blknum)|
+|blknum|integer|Fk(blocks, blknum), UI(blknum, txindex)|
 |txindex|integer|UI^|
 |txbytes|bytea||
-|sent_at|timestamp|w/o TZ in UTC|
+|sent_at|timestamp|UTC (w/o TZ)|
 
-## The transaction input and outputs table
+## The transaction inputs and outputs table
 Stores inputs and outputs of transactions. Utxo is a record in `txoutputs` table where `spending_txhash` is `NULL`. `proof` field is needed for exiting an utxo. We compute a proof from all the transactions contained in the same block as the transaction that created the utxo.
 
 |**txoutputs**|||
 |:-:|:-|:-|
-|blknum|integer||
-|txindex|integer||
-|oindex|integer||
+|blknum|integer|Pk(blknum, txindex, oindex)|
+|txindex|integer|Pk^|
+|oindex|integer|Pk^|
 |creating_txhash|bytea)|Fk(transactions, (txhash)), NULL|
 |creating_deposit|bytea)|Fk(eth_events, (hash)), NULL|
 |spending_txhash|bytea|Fk(transactions, (txhash)), NULL|
