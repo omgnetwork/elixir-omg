@@ -28,8 +28,8 @@ eth = Crypto.zero_address()
 {:ok, _} = Eth.DevHelpers.import_unlock_fund(bob)
 
 # sends a deposit transaction _to Ethereum_
-{:ok, bob_deposit_tx_hash} = Eth.RootChain.deposit(10, bob.addr)
-{:ok, alice_deposit_tx_hash} = Eth.RootChain.deposit(10, alice.addr)
+{:ok, bob_deposit_tx_hash} = Transaction.new([],[{bob.addr,eth,10}]) |> Transaction.encode() |> Eth.RootChain.deposit(10, bob.addr)
+{:ok, alice_deposit_tx_hash} = Transaction.new([],[{alice.addr,eth,10}]) |> Transaction.encode() |> Eth.RootChain.deposit(10, alice.addr)
 
 {:ok, alice_enc} = Crypto.encode_address(alice.addr)
 {:ok, bob_enc} = Crypto.encode_address(bob.addr)
