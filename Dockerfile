@@ -65,6 +65,7 @@ WORKDIR /home/elixir-user/elixir-omg/
 
 RUN mix do local.hex --force, local.rebar --force
 
+RUN mix deps.clean --all
 RUN mix deps.get 
 
 RUN mix compile
