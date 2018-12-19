@@ -37,10 +37,6 @@ jobs:
             apt-get update && apt-get install -y lsb-release curl
             curl -sSL https://get.docker.com/ > docker.sh && chmod +x docker.sh && ./docker.sh
       - run:
-          name: Build and push Docker image
-          command: |
-
-      - run:
           name: Install gcloud SDK
           command: |
             export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
