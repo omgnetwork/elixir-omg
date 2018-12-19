@@ -38,7 +38,7 @@ jobs:
           name: Unit Test
           command: |
             export MIX_ENV=test
-            export DATABASE_URL=postgres://omisego_dev:omisego_dev@localhost/omisego_dev
+            export DATABASE_URL=postgres://omisego_dev:omisego_dev@localhost:5432/omisego_dev
             mix test
       - run:
          name: Dialyze
