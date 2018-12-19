@@ -271,11 +271,6 @@ class WatcherLauncher:
                 'Could not connect to the Postgres database Exiting.'
             )
             sys.exit(1)
-        if self.initialise_watcher_chain_database() is False:
-            logging.critical(
-                'Could not initialise the chain database. Exiting.'
-            )
-            sys.exit(1)
 
         logging.info('Launcher process complete')
 
