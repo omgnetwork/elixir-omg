@@ -35,7 +35,7 @@ defmodule OMG.API.State.Transaction.Signed do
         raw_tx: raw_tx,
         sigs: sigs
       }) do
-    [sigs | Transaction.preper_to_exrlp(raw_tx)]
+    [sigs | Transaction.get_filled_inputs_and_outputs(raw_tx)]
     |> ExRLP.encode()
   end
 
