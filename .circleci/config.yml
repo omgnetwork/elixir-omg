@@ -62,11 +62,11 @@ jobs:
       - run:
           name: Deploy Childchain
           command: |
-            kubectl set image statefulset childchain childchain=jakebunce/elixir-omg:$CIRCLE_CI
-      - run:
-          name: Deploy Watcher
-          command: |
-            kubectl set image statefulset watcher childchain=jakebunce/elixir-omg:$CIRCLE_CI
+            kubectl set image statefulset childchain childchain=jakebunce/elixir-omg:${CIRCLE_CI}
+      #- run:
+          #name: Deploy Watcher
+          #command: |
+            #kubectl set image statefulset watcher childchain=jakebunce/elixir-omg:${CIRCLE_CI}
 workflows:
   version: 2
   build-deploy:
