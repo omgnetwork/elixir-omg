@@ -36,6 +36,11 @@ defmodule OMG.Watcher.Web.ErrorHandler do
       code: "exit:invalid",
       description: "Utxo was spent or does not exist.",
       status_code: 200
+    },
+    tx_for_input_not_found: %{
+      code: "in_flight_exit:tx_for_input_not_found",
+      description: "No transaction that created input.",
+      status_code: 200
     }
   }
 

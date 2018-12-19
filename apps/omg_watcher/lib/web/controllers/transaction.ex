@@ -65,11 +65,30 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
 
   defp get_address(_), do: nil
 
+  @doc """
+  Retrieves a list of transactions
+  """
+  def get_in_flight_exit(conn, params) do
+    with {:ok, tx} <- Map.fetch(params, "transaction"),
+         {:ok, tx} <- OMG.API.State.Transaction.Signed.decode(tx) do
+      in_flight_exit = Transaction.get_in_flight_exit(tx)
+      respond(in_flight_exit, conn)
+    end
+  end
+
   defp respond_multiple(transactions, conn),
     do: render(conn, View.Transaction, :transactions, transactions: transactions)
 
   defp respond(%DB.Transaction{} = transaction, conn),
     do: render(conn, View.Transaction, :transaction, transaction: transaction)
+
+  defp respond({:ok, in_flight_exit}, conn) do
+    render(conn, View.Transaction, :in_flight_exit, in_flight_exit: in_flight_exit)
+  end
+
+  defp respond({:error, code}, conn) do
+    handle_error(conn, code)
+  end
 
   defp respond(nil, conn), do: handle_error(conn, :transaction_not_found)
 
