@@ -20,20 +20,20 @@ jobs:
           name: Get dependencies
           command: |
             mix do deps.get, deps.compile, compile
-       - run:
-         name: Lint
+      - run:
+        name: Lint
+        command: |
+          mix do credo, format --check-formatted --dry-run
+      - run:
+        name: Unit Test
+        command: |
+          export MIX_ENV=test
+          export DATABASE_URL=postgres://omisego_dev:omisego_dev@localhost/omisego_dev
+          mix test
+      - run:
+         name: Dialyze
          command: |
-           mix do credo, format --check-formatted --dry-run
-       - run:
-         name: Unit Test
-         command: |
-           export MIX_ENV=test
-           export DATABASE_URL=postgres://omisego_dev:omisego_dev@localhost/omisego_dev
-           mix test
-       - run:
-          name: Dialyze
-          command: |
-            mix dialyzer --halt-exit-status
+           mix dialyzer --halt-exit-status
 
   build_and_deploy:
     docker:
