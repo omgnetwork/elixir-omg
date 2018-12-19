@@ -17,6 +17,7 @@ defmodule OMG.Watcher.Challenger do
   Manages challenges of exits
   """
 
+  alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Watcher.Challenger.Challenge
@@ -35,9 +36,11 @@ defmodule OMG.Watcher.Challenger do
   Returns challenge for an exit
   """
   @spec create_challenge(Utxo.Position.t()) :: {:ok, Challenge.t()} | {:error, :invalid_challenge_of_exit}
-  def create_challenge(utxo_exit) do
-    with {:ok, challenging_tx} <- DB.Transaction.get_transaction_challenging_utxo(utxo_exit) do
-      {:ok, Core.create_challenge(challenging_tx, utxo_exit)}
+  def create_challenge(Utxo.position(blknum, txindex, oindex) = utxo_exit) do
+    with {:ok, spending_blknum} <- OMG.DB.spent_blknum({blknum, txindex, oindex}),
+         {:ok, hashes} <- OMG.DB.block_hashes([blknum, spending_blknum]),
+         {:ok, [creating_block, spending_block]} <- OMG.DB.blocks(hashes) do
+      {:ok, Core.create_challenge(creating_block, spending_block, utxo_exit)}
     else
       {:error, :utxo_not_spent} -> {:error, :invalid_challenge_of_exit}
     end

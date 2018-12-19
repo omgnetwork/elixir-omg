@@ -116,6 +116,16 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
+  def handle_call({:spent_blknum, utxo_pos}, _from, %__MODULE__{db_ref: db_ref} = state) do
+    result =
+      :spend
+      |> LevelDBCore.key(utxo_pos)
+      |> get(db_ref)
+      |> LevelDBCore.decode_value(:spend)
+
+    {:reply, result, state}
+  end
+
   # WARNING, terminate below will be called only if :trap_exit is set to true
   def terminate(_reason, %__MODULE__{db_ref: db_ref}) do
     :ok = Exleveldb.close(db_ref)

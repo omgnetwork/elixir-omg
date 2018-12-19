@@ -17,6 +17,7 @@ defmodule OMG.Watcher.Challenger.Core do
   Functional core of challenger
   """
 
+  alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
@@ -29,21 +30,23 @@ defmodule OMG.Watcher.Challenger.Core do
   which is UTXO being challenged.
   More: [contract's challengeExit](https://github.com/omisego/plasma-contracts/blob/22936d561a036d49aa6a215531e70c5779df058f/contracts/RootChain.sol#L244)
   """
-  @spec create_challenge(%DB.Transaction{}, Utxo.Position.t()) :: Challenge.t()
-  def create_challenge(challenging_tx, utxo_exit) do
-    {:ok,
-     %Transaction.Signed{
-       raw_tx: raw_tx,
-       sigs: sigs
-     }} = Transaction.Signed.decode(challenging_tx.txbytes)
+  @spec create_challenge(Block.t(), Block.t(), Utxo.Position.t()) :: Challenge.t()
+  def create_challenge(creating_block, spending_block, utxo_exit) do
+    # FIXME: refactor to: get_creating_transaction, get_owner, get_spending_transaction, get_input_index
+    {owner, tx} = get_creating_transaction(creating_block, utxo_exit)
 
-    owner = get_eutxo_owner(challenging_tx)
+    {input_index,
+     %Transaction.Signed{
+       raw_tx: challenging_tx,
+       sigs: sigs,
+       signed_tx_bytes: challenging_tx_bytes
+     }} = get_spending_transaction(spending_block, utxo_exit)
 
     %Challenge{
       outputId: Utxo.Position.encode(utxo_exit),
-      inputIndex: get_eutxo_index(challenging_tx),
-      txbytes: Transaction.encode(raw_tx),
-      sig: find_sig(sigs, raw_tx, owner)
+      inputIndex: input_index,
+      txbytes: challenging_tx_bytes,
+      sig: find_sig(sigs, challenging_tx, owner)
     }
   end
 
@@ -55,11 +58,36 @@ defmodule OMG.Watcher.Challenger.Core do
     end)
   end
 
-  # here: challenging_tx is prepared to contain just utxo_exit input only,
-  # see: DB.Transaction.get_transaction_challenging_utxo/1
-  defp get_eutxo_index(%DB.Transaction{inputs: [input]}),
-    do: input.spending_tx_oindex
+  @spec get_spending_transaction(Block.t(), Utxo.Position.t()) :: {non_neg_integer, Transaction.Signed.t()} | false
+  defp get_spending_transaction(%Block{transactions: txsbytes}, utxo_pos) do
+    txsbytes
+    |> Enum.map(&Transaction.Signed.decode/1)
+    |> Enum.with_index()
+    |> Enum.find_value(fn {{:ok, %Transaction.Signed{raw_tx: tx} = tx_signed}, txindex} ->
+      inputs = Transaction.get_inputs(tx)
 
-  defp get_eutxo_owner(%DB.Transaction{inputs: [input]}),
-    do: input.owner
+      if input_index = Enum.find_index(inputs, &(&1 == utxo_pos)) do
+        {input_index, tx_signed}
+      else
+        false
+      end
+    end)
+  end
+
+  @spec get_creating_transaction(Block.t(), Utxo.Position.t()) ::
+          {Crypto.address_t(), Transaction.t()} | :error | {:error, :malformed_transaction_rlp}
+  defp get_creating_transaction(
+         %Block{
+           transactions: txsbytes,
+           number: blknum
+         },
+         Utxo.position(blknum, txindex, oindex)
+       ) do
+    with {:ok, txbytes} <- Enum.fetch(txsbytes, txindex),
+         {:ok, %Transaction.Signed{raw_tx: tx}} = Transaction.Signed.decode(txbytes),
+         outputs <- Transaction.get_outputs(tx),
+         {:ok, %{owner: owner}} <- Enum.fetch(outputs, oindex) do
+      {owner, tx}
+    end
+  end
 end
