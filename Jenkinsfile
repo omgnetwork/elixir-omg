@@ -33,7 +33,6 @@ podTemplate(
 
         stage('Build') {
             sh("mix do local.hex --force, local.rebar --force")
-            sh("pip install -r contracts/requirements.txt")
             withEnv(["PATH+FIXPIPPATH=/home/jenkins/.local/bin/","MIX_ENV=test"]) {
                 sh("mix do deps.get, deps.compile, compile")
             }
@@ -50,16 +49,17 @@ podTemplate(
         }
 
         stage('Integration test') {
-           withCredentials([string(credentialsId: 'elixir-omg_coveralls', variable: 'ELIXIR_OMG_COVERALLS')]){
+           withCredentials([string(credentialsId: 'elixir-omg_coveralls', variable: 'COVERALLS_REPO_TOKEN')]){
                 withEnv(["MIX_ENV=test", "SHELL=/bin/bash", "DATABASE_URL=${DATABASE_URL}"]) {
                     sh ("""
-                        set +x
+                        BRANCH=`git describe --contains --exact-match --all HEAD | sed -r 's/^remotes\\/origin\\///' | sed -r 's/~[0-9]+//'`
                         mix coveralls.post \
                             --umbrella \
                             --include integration \
                             --include wrappers \
-                            --token '${ELIXIR_OMG_COVERALLS}' \
                             --sha '${scmVars.GIT_COMMIT}' \
+                            --branch \$BRANCH \
+                            --message "`git log -1 --pretty=%B | head -n 1`" \
                     """)
                 }
            }

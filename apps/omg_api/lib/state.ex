@@ -30,6 +30,8 @@ defmodule OMG.API.State do
 
   use OMG.API.LoggerExt
 
+  @type exec_error :: Core.exec_error()
+
   ### Client
 
   def start_link(_args) do
@@ -37,8 +39,8 @@ defmodule OMG.API.State do
   end
 
   @spec exec(tx :: %Transaction.Recovered{}, fees :: map()) ::
-          {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}}
-          | {:error, Core.exec_error()}
+          {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, non_neg_integer}}
+          | {:error, exec_error()}
   def exec(tx, input_fees) do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
@@ -205,7 +207,7 @@ defmodule OMG.API.State do
   def handle_cast(:form_block, state) do
     _ = Logger.debug(fn -> "Forming new block..." end)
 
-    {duration, {:ok, {%Block{number: blknum, hash: blkhash} = block, _events, db_updates}, new_state}} =
+    {duration, {:ok, {%Block{number: blknum} = block, _events, db_updates}, new_state}} =
       :timer.tc(fn -> do_form_block(state) end)
 
     _ =
@@ -219,7 +221,7 @@ defmodule OMG.API.State do
 
     ### casts, note these are no-ops if given processes are turned off
     FreshBlocks.push(block)
-    BlockQueue.enqueue_block(blkhash, blknum)
+    BlockQueue.enqueue_block(block)
 
     {:noreply, new_state}
   end

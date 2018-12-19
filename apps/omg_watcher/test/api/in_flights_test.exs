@@ -35,7 +35,7 @@ defmodule OMG.Watcher.API.InFlightsTest do
             %{
               # checking just lengths in majority as we prepare verify correctness in the contract in integration tests
               # the byte size is hard-coded - how much does it bother us?
-              in_flight_tx: <<_bytes::bytes-size(76)>>,
+              in_flight_tx: <<_bytes::bytes-size(200)>>,
               input_txs: ^compare_in_tx1,
               # a non-encoded proof, 512 bytes each
               input_txs_inclusion_proofs: <<_proof::bytes-size(512)>>,
@@ -57,7 +57,7 @@ defmodule OMG.Watcher.API.InFlightsTest do
     assert {:ok,
             %{
               # see 1 input case for comments
-              in_flight_tx: <<_bytes::bytes-size(78)>>,
+              in_flight_tx: <<_bytes::bytes-size(202)>>,
               input_txs: ^compare_in_txs_bytes,
               input_txs_inclusion_proofs: <<_proof::bytes-size(1024)>>,
               in_flight_tx_sigs: <<_sigs::bytes-size(130)>>

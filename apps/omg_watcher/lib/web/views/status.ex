@@ -19,10 +19,10 @@ defmodule OMG.Watcher.Web.View.Status do
 
   use OMG.Watcher.Web, :view
 
-  alias OMG.Watcher.Web.Serializer
+  alias OMG.Watcher.Web.Serializers
 
   def render("status.json", %{status: status}) do
     status
-    |> Serializer.Response.serialize(:success)
+    |> Serializers.Response.serialize(:success)
   end
 end

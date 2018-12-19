@@ -6,7 +6,7 @@ defmodule OMG.Eth.MixProject do
   def project do
     [
       app: :omg_eth,
-      version: "0.1.0",
+      version: OMG.Umbrella.MixProject.umbrella_version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -21,6 +21,9 @@ defmodule OMG.Eth.MixProject do
 
   def application do
     [
+      env: [
+        child_block_interval: 1000
+      ],
       extra_applications: [:logger]
     ]
   end
@@ -31,7 +34,7 @@ defmodule OMG.Eth.MixProject do
 
   defp deps do
     [
-      {:abi, git: "https://github.com/omisego/abi.git", branch: "encode_dynamic_types"},
+      {:ex_abi, git: "https://github.com/pthomalla/ex_abi", branch: "fix_decode"},
       {:ethereumex, git: "https://github.com/omisego/ethereumex.git", branch: "request_timeout2", override: true},
       {:exexec, git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", runtime: true},
       # TODO: we only need in :dev and :test here, but we need in :prod too in performance
@@ -41,7 +44,7 @@ defmodule OMG.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "rebased-dev-morevp",
+        branch: "elixir_omg_morevp_compat",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
@@ -52,6 +55,14 @@ defmodule OMG.Eth.MixProject do
 
   defp contracts_compile do
     mixfile_path = __DIR__
-    "cd #{mixfile_path}/../../ && py-solc-simple -i deps/plasma_contracts/contracts/ -o contracts/build/"
+    contracts_dir = Path.join(mixfile_path, "../../deps/plasma_contracts/contracts")
+
+    contract_paths =
+      ["RootChain.sol", "MintableToken.sol"]
+      |> Enum.map(&Path.join(contracts_dir, &1))
+      |> Enum.join(" ")
+
+    output_path = Path.join(mixfile_path, "../../_build/contracts")
+    "solc #{contract_paths} --overwrite --abi --bin --optimize --optimize-runs 1 -o #{output_path}"
   end
 end

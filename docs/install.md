@@ -10,8 +10,10 @@ Only **Linux** platforms are supported now. These instructions have been tested 
 ## Prerequisites
 * **Erlang OTP** `>=20` (check with `elixir --version`)
 * **Elixir** `>=1.6` (check with `elixir --version`)
-* **Python** `>=3.5, <4` (check with `python --version`)
 * **solc** `>=0.4.24` (check with `solc --version`)
+
+### Optional prerequisites
+* **`httpie`** - to run HTTP requests from `docs/demoxx.md` demos
 
 ## Install prerequisite packages
 ```
@@ -43,19 +45,6 @@ sudo apt-get update
 sudo apt-get -y install geth
 ```
 
-## Install pip3
-```
-sudo apt-get -y install python3-pip
-```
-
-## (optional) Install virtualenv
-This step is optional but recommended to isolate the python environment. [Ref](https://gist.github.com/IamAdiSri/a379c36b70044725a85a1216e7ee9a46)
-```
-sudo pip3 install virtualenv
-virtualenv DEV
-source DEV/bin/activate
-```
-
 ## Install solc
 ```
 sudo apt-get install libssl-dev solc
@@ -69,15 +58,6 @@ mix do local.hex --force, local.rebar --force
 ## Clone repo
 ```
 git clone https://github.com/omisego/elixir-omg
-```
-
-## Install contract building machinery
-[Ref](../README.md#contracts)
-```
-# contract building requires character encoding to be set
-export LC_ALL=C.UTF-8
-export LANG=C.UTF-8
-pip3 install -r contracts/requirements.txt
 ```
 
 ## Build

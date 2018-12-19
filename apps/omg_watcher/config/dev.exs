@@ -7,7 +7,8 @@ use Mix.Config
 # watchers to your application. For example, we use it
 # with brunch.io to recompile .js and .css sources.
 config :omg_watcher, OMG.Watcher.Web.Endpoint,
-  http: [port: 4000],
+  http: [port: 7434],
+  url: [host: "localhost", port: 7434],
   debug_errors: true,
   code_reloader: true,
   check_origin: false,
@@ -26,7 +27,7 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
 #
 # The `http:` config above can be replaced with:
 #
-#     https: [port: 4000, keyfile: "priv/server.key", certfile: "priv/server.pem"],
+#     https: [port: 7434, keyfile: "priv/server.key", certfile: "priv/server.pem"],
 #
 # If desired, both `http:` and `https:` keys can be
 # configured to run both http and https servers on
@@ -48,8 +49,8 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_dev"}
 
 config :omg_watcher,
+  exit_processor_sla_margin: 10,
+  exit_processor_validation_interval_ms: 500,
+  maximum_block_withholding_time_ms: 10_000,
   block_getter_height_sync_interval_ms: 500,
-  eth_exit_finality_margin: 4
-
-config :omg_api,
-  rootchain_height_sync_interval_ms: 1_000
+  exit_finality_margin: 4

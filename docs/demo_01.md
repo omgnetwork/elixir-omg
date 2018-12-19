@@ -25,7 +25,7 @@ eth = Crypto.zero_address()
 ### START DEMO HERE
 
 # sends a deposit transaction _to Ethereum_
-{:ok, deposit_tx_hash} = Eth.RootChain.deposit(10, alice_enc)
+{:ok, deposit_tx_hash} = Transaction.new([],[{alice_enc,eth,10}]) |> Transaction.encode() |> Eth.RootChain.deposit(10, alice_enc)
 
 # need to wait until its mined
 {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
@@ -36,31 +36,27 @@ deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
 
 # create and prepare transaction for signing
 tx =
-  Transaction.new([{deposit_blknum, 0, 0}], eth, [{bob.addr, 7}, {alice.addr, 3}]) |>
-  Transaction.sign(alice.priv, <<>>) |>
+  Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
+  Transaction.sign([alice.priv, <<>>]) |>
   Transaction.Signed.encode() |>
   Base.encode16()
 
-```
-
-```bash
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
-# use the hex-encoded tx bytes and `submit` JSONRPC method described in README.md for child chain server
+# use the hex-encoded tx bytes and `transaction.submit` Http-RPC method described in README.md for child chain server
+%{"data" => %{"blknum" => child_tx_block_number}} =
+  ~c(echo '{"transaction": "#{tx}"}' | http POST localhost:9656/transaction.submit) |>
+  :os.cmd() |>
+  Poison.decode!()
 
-curl "localhost:9656" -d '{"params":{"transaction": ""}, "method": "submit", "jsonrpc": "2.0","id":0}'
-```
-
-```elixir
 # with that block number, we can ask the root chain to give us the block hash
-child_tx_block_number =
 {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(child_tx_block_number)
-Base.encode16(block_hash)
-```
+block_hash_enc = Base.encode16(block_hash)
 
-```bash
 # with the block hash we can get the whole block
-curl "localhost:9656" -d '{"params":{"hash":""}, "method":"get_block", "jsonrpc":"2.0", "id":0}'
+~c(echo '{"hash":"#{block_hash_enc}"}' | http POST localhost:9656/block.get) |>
+:os.cmd() |>
+Poison.decode!()
 
 # if you were watching, you could have decoded and validated the transaction bytes in the block
 ```

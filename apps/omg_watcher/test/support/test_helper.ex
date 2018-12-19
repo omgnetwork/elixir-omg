@@ -32,8 +32,26 @@ defmodule OMG.Watcher.TestHelper do
     end
   end
 
-  def rest_call(method, path, params_or_body \\ nil, expected_resp_status \\ 200) do
-    request = conn(method, path, params_or_body)
+  def success?(path, body \\ nil) do
+    response_body = rpc_call(path, body, 200)
+    %{"version" => "1.0", "success" => true, "data" => data} = response_body
+    data
+  end
+
+  def no_success?(path, body \\ nil) do
+    response_body = rpc_call(path, body, 200)
+    %{"version" => "1.0", "success" => false, "data" => data} = response_body
+    data
+  end
+
+  def server_error?(path, body \\ nil) do
+    response_body = rpc_call(path, body, 500)
+    %{"version" => "1.0", "success" => false, "data" => data} = response_body
+    data
+  end
+
+  def rpc_call(path, body \\ nil, expected_resp_status \\ 200) do
+    request = conn(:post, path, body)
     response = request |> send_request
     assert response.status == expected_resp_status
     Poison.decode!(response.resp_body)
@@ -54,5 +72,26 @@ defmodule OMG.Watcher.TestHelper do
       |> String.upcase()
 
     encoded
+  end
+
+  @doc """
+  Decodes specified keys in map from hex to binary
+  """
+  @spec decode16(map(), list()) :: map()
+  def decode16(data, keys) do
+    keys
+    |> Enum.filter(&Map.has_key?(data, &1))
+    |> Enum.into(
+      %{},
+      fn key ->
+        value = data[key]
+
+        case is_binary(value) && Base.decode16(value, case: :mixed) do
+          {:ok, newvalue} -> {key, newvalue}
+          _ -> {key, value}
+        end
+      end
+    )
+    |> (&Map.merge(data, &1)).()
   end
 end

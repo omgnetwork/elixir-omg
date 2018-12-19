@@ -15,7 +15,7 @@
 defmodule OMG.Watcher.Web.View.ErrorView do
   use OMG.Watcher.Web, :view
 
-  alias OMG.Watcher.Web.Serializer
+  alias OMG.Watcher.Web.Serializers
 
   @doc """
   Supports internal server error thrown by Phoenix.
@@ -43,7 +43,7 @@ defmodule OMG.Watcher.Web.View.ErrorView do
 
   defp render_error(code, message) do
     code
-    |> Serializer.Error.serialize(message)
-    |> Serializer.Response.serialize(:error)
+    |> Serializers.Error.serialize(message)
+    |> Serializers.Response.serialize(:error)
   end
 end

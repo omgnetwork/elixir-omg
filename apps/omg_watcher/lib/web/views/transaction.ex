@@ -20,52 +20,89 @@ defmodule OMG.Watcher.Web.View.Transaction do
   use OMG.Watcher.Web, :view
 
   alias OMG.API.State.Transaction
-  alias OMG.Watcher.Web.Serializer
+  alias OMG.API.Utxo
+  alias OMG.Watcher.Web.Serializers
+
+  require Utxo
 
   def render("transaction.json", %{transaction: transaction}) do
     transaction
     |> render_transaction()
-    |> Serializer.Response.serialize(:success)
+    |> Serializers.Response.serialize(:success)
   end
 
   def render("transactions.json", %{transactions: transactions}) do
     transactions
     |> Enum.map(&render_transaction/1)
-    |> Serializer.Response.serialize(:success)
-  end
-
-  def render("transaction_encode.json", %{transaction: transaction}) do
-    OMG.API.State.Transaction.encode(transaction)
-    |> Serializer.Response.serialize(:success)
+    |> Serializers.Response.serialize(:success)
   end
 
   defp render_transaction(transaction) do
-    block = transaction.block
-
     {:ok,
      %Transaction.Signed{
        raw_tx: tx,
-       sig1: sig1,
-       sig2: sig2
+       sigs: sigs
      } = signed} = Transaction.Signed.decode(transaction.txbytes)
 
     {:ok,
      %Transaction.Recovered{
-       spender1: spender1,
-       spender2: spender2
+       spenders: spenders
      }} = Transaction.Recovered.recover_from(signed)
 
-    tx
-    |> Map.merge(%{
+    block = transaction.block
+
+    tx_base = %{
       txid: transaction.txhash,
       txblknum: transaction.blknum,
       txindex: transaction.txindex,
       timestamp: block.timestamp,
-      eth_height: block.eth_height,
-      sig1: sig1,
-      sig2: sig2,
-      spender1: spender1,
-      spender2: spender2
-    })
+      eth_height: block.eth_height
+    }
+
+    inputs = Transaction.get_inputs(tx)
+    outputs = Transaction.get_outputs(tx)
+
+    formatted =
+      tx_base
+      |> add_inputs(inputs)
+      |> add_outputs(outputs)
+      |> add_sigs(sigs)
+      |> add_spenders(spenders)
+
+    formatted
   end
+
+  defp add_inputs(tx, [Utxo.position(blknum1, txindex1, oindex1), Utxo.position(blknum2, txindex2, oindex2) | _]) do
+    Map.merge(
+      tx,
+      %{
+        blknum1: blknum1,
+        txindex1: txindex1,
+        oindex1: oindex1,
+        blknum2: blknum2,
+        txindex2: txindex2,
+        oindex2: oindex2
+      }
+    )
+  end
+
+  defp add_outputs(tx, [output1, output2 | _]) do
+    Map.merge(
+      tx,
+      %{
+        cur12: output1.currency,
+        newowner1: output1.owner,
+        amount1: output1.amount,
+        newowner2: output2.owner,
+        amount2: output2.amount
+      }
+    )
+  end
+
+  defp add_sigs(tx, [sig]), do: Map.merge(tx, %{sig1: sig, sig2: <<>>})
+  defp add_sigs(tx, [sig1, sig2]), do: Map.merge(tx, %{sig1: sig1, sig2: sig2})
+
+  defp add_spenders(tx, []), do: Map.merge(tx, %{spender1: nil, spender2: nil})
+  defp add_spenders(tx, [spender]), do: Map.merge(tx, %{spender1: spender, spender2: nil})
+  defp add_spenders(tx, [spender1, spender2]), do: Map.merge(tx, %{spender1: spender1, spender2: spender2})
 end

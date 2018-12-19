@@ -3,7 +3,7 @@ use Mix.Config
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :omg_watcher, OMG.Watcher.Web.Endpoint,
-  http: [port: 4001],
+  http: [port: 7435],
   server: false
 
 config :omg_watcher, OMG.Watcher.DB.Repo,
@@ -13,5 +13,8 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_test"}
 
 config :omg_watcher,
-  block_getter_height_sync_interval_ms: 100,
-  eth_exit_finality_margin: 1
+  exit_processor_sla_margin: 3,
+  exit_processor_validation_interval_ms: 50,
+  maximum_block_withholding_time_ms: 6_000,
+  block_getter_height_sync_interval_ms: 50,
+  exit_finality_margin: 1

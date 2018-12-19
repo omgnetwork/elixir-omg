@@ -21,22 +21,21 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   use PhoenixSwagger
 
   alias OMG.API.Utxo
-  require Utxo
-  alias OMG.Watcher.Challenger
+  alias OMG.Watcher.API
   alias OMG.Watcher.Web.View
-
   import OMG.Watcher.Web.ErrorHandler
+
+  action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
   @doc """
   Challenges exits
   """
-  def get_utxo_challenge(conn, %{"utxo_pos" => utxo_pos}) do
-    {utxo_pos, ""} = Integer.parse(utxo_pos)
-
-    utxo_pos = utxo_pos |> Utxo.Position.decode()
-
-    Challenger.create_challenge(utxo_pos)
-    |> respond(conn)
+  def get_utxo_challenge(conn, params) do
+    with {:ok, utxo_pos} <- Map.fetch(params, "utxo_pos"),
+         utxo <- Utxo.Position.decode(utxo_pos) do
+      challenge = API.Utxo.create_challenge(utxo)
+      respond(challenge, conn)
+    end
   end
 
   defp respond({:ok, challenge}, conn) do
@@ -89,11 +88,11 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   end
 
   swagger_path :get_utxo_challenge do
-    get("/utxo/{utxo_pos}/challenge_data")
+    post("/utxo.get_challenge_data")
     summary("Gets challenge for a given exit")
 
     parameters do
-      utxo_pos(:path, :integer, "The position of the exiting utxo", required: true)
+      utxo_pos(:body, :integer, "The position of the exiting utxo", required: true)
     end
 
     response(200, "OK", Schema.ref(:Challenge))

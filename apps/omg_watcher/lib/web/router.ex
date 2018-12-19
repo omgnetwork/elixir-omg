@@ -26,17 +26,17 @@ defmodule OMG.Watcher.Web.Router do
   scope "/", OMG.Watcher.Web do
     pipe_through([:api])
 
-    get("/account/:address/balance", Controller.Account, :get_balance)
+    post("/account.get_balance", Controller.Account, :get_balance)
+    post("/account.get_transactions", Controller.Transaction, :get_transactions)
 
-    get("/transactions", Controller.Transaction, :get_transactions)
-    get("/transaction/:id", Controller.Transaction, :get_transaction)
-    post("/transaction", Controller.Transaction, :encode_transaction)
+    post("/transaction.all", Controller.Transaction, :get_transactions)
+    post("/transaction.get", Controller.Transaction, :get_transaction)
 
-    get("/utxos", Controller.Utxo, :get_utxos)
-    get("/utxo/:utxo_pos/exit_data", Controller.Utxo, :get_utxo_exit)
-    get("/utxo/:utxo_pos/challenge_data", Controller.Challenge, :get_utxo_challenge)
+    post("/utxo.get", Controller.Utxo, :get_utxos)
+    post("/utxo.get_exit_data", Controller.Utxo, :get_utxo_exit)
+    post("/utxo.get_challenge_data", Controller.Challenge, :get_utxo_challenge)
 
-    get("/status", Controller.Status, :get_status)
+    post("/status.get", Controller.Status, :get_status)
 
     match(:*, "/*path", Controller.Fallback, :not_found)
   end

@@ -37,7 +37,7 @@ defmodule OMG.Eth.DevHelpers do
   Prepares the developer's environment with respect to the root chain contract and its configuration within
   the application.
 
-   - `root_path` should point to `elixir-omg` root or wherever where `./contracts/build` holds the compiled contracts
+   - `root_path` should point to `elixir-omg` root or wherever where `./_build/contracts` holds the compiled contracts
   """
   def prepare_env!(opts \\ []) do
     opts = Keyword.merge([root_path: "./"], opts)
@@ -45,8 +45,10 @@ defmodule OMG.Eth.DevHelpers do
 
     with {:ok, _} <- Application.ensure_all_started(:ethereumex),
          {:ok, authority} <- create_and_fund_authority_addr(opts),
-         {:ok, _} = deploy_result <- Eth.RootChain.create_new(root_path, authority),
-         {:ok, txhash, contract_addr} <- Eth.DevHelpers.deploy_sync!(deploy_result) do
+         {:ok, [addr | _]} <- Ethereumex.HttpClient.eth_accounts(),
+         {:ok, _} = deploy_result <- Eth.RootChain.create_new(root_path, from_hex(addr)),
+         {:ok, txhash, contract_addr} <- Eth.DevHelpers.deploy_sync!(deploy_result),
+         {:ok, _} <- Eth.RootChain.init(authority, contract_addr) |> Eth.DevHelpers.transact_sync!() do
       %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
     else
       {:error, :econnrefused} = error ->
@@ -127,7 +129,7 @@ defmodule OMG.Eth.DevHelpers do
     tx_fund |> from_hex() |> WaitFor.eth_receipt(@about_4_blocks_time)
   end
 
-  def wait_for_root_chain_block(awaited_eth_height, timeout \\ 60_000) do
+  def wait_for_root_chain_block(awaited_eth_height, timeout \\ 600_000) do
     f = fn ->
       {:ok, eth_height} = Eth.get_ethereum_height()
 
@@ -137,9 +139,9 @@ defmodule OMG.Eth.DevHelpers do
     fn -> WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
   end
 
-  def wait_for_current_child_block(blknum, timeout \\ 10_000, contract \\ nil) do
+  def wait_for_next_child_block(blknum, timeout \\ 10_000, contract \\ nil) do
     f = fn ->
-      {:ok, next_num} = Eth.RootChain.get_current_child_block(contract)
+      {:ok, next_num} = Eth.RootChain.get_next_child_block(contract)
 
       if next_num < blknum, do: :repeat, else: {:ok, next_num}
     end

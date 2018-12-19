@@ -123,8 +123,8 @@ defmodule OMG.Performance.SenderServer do
 
     # create and return signed transaction
     [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
-    |> Transaction.new(@eth, [{spender.addr, newamount}, {recipient.addr, to_spend}])
-    |> Transaction.sign(spender.priv, <<>>)
+    |> Transaction.new([{spender.addr, @eth, newamount}, {recipient.addr, @eth, to_spend}])
+    |> Transaction.sign([spender.priv, <<>>])
   end
 
   # Submits new transaction to the blockchain server.
@@ -136,7 +136,7 @@ defmodule OMG.Performance.SenderServer do
     result =
       tx
       |> Transaction.Signed.encode()
-      |> submit_tx_jsonrpc()
+      |> submit_tx_rpc()
 
     case result do
       {:error, {-32_603, "Internal error", "too_many_transactions_in_block"}} ->
@@ -161,7 +161,8 @@ defmodule OMG.Performance.SenderServer do
             "[#{inspect(seqnum)}]: Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}"
           end)
 
-        {:ok, blknum, txindex, tx.raw_tx.amount1}
+        [%{amount: amount} | _] = Transaction.get_outputs(tx.raw_tx)
+        {:ok, blknum, txindex, amount}
     end
   end
 
@@ -194,10 +195,10 @@ defmodule OMG.Performance.SenderServer do
     end
   end
 
-  # Submits Tx to the child chain server via http (JsonRPC) and translates successful result to atom-keyed map.
-  @spec submit_tx_jsonrpc(binary) :: {:ok, map} | {:error, any}
-  defp submit_tx_jsonrpc(encoded_tx) do
-    OMG.JSONRPC.Client.call(:submit, %{transaction: encoded_tx})
+  # Submits Tx to the child chain server via http (Http-RPC) and translates successful result to atom-keyed map.
+  @spec submit_tx_rpc(binary) :: {:ok, map} | {:error, any}
+  defp submit_tx_rpc(encoded_tx) do
+    OMG.RPC.Client.submit(encoded_tx)
   end
 
   #   Generates module's initial state

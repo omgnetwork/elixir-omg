@@ -26,8 +26,19 @@ defmodule OMG.Watcher.DB.TxOutput do
 
   require Utxo
 
-  import Ecto.Changeset
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query, only: [from: 2, where: 2]
+
+  @type balance() :: %{
+          currency: binary(),
+          amount: non_neg_integer()
+        }
+
+  @type exit_t() :: %{
+          utxo_pos: pos_integer(),
+          txbytes: binary(),
+          proof: binary(),
+          sigs: binary()
+        }
 
   @primary_key false
   schema "txoutputs" do
@@ -47,15 +58,35 @@ defmodule OMG.Watcher.DB.TxOutput do
     belongs_to(:exit, DB.EthEvent, foreign_key: :spending_exit, references: :hash, type: :binary)
   end
 
+  @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
   def compose_utxo_exit(Utxo.position(blknum, txindex, _) = decoded_utxo_pos) do
-    txs = DB.Transaction.get_by_blknum(blknum)
+    if Utxo.Position.is_deposit(decoded_utxo_pos) do
+      compose_deposit_exit(decoded_utxo_pos)
+    else
+      txs = DB.Transaction.get_by_blknum(blknum)
 
-    if Enum.any?(txs, &match?(%{txindex: ^txindex}, &1)),
-      do: {:ok, compose_utxo_exit(txs, decoded_utxo_pos)},
-      else: {:error, :no_tx_for_given_blknum}
+      if txs |> Enum.any?(&match?(%{txindex: ^txindex}, &1)),
+        do: {:ok, compose_output_exit(txs, decoded_utxo_pos)},
+        else: {:error, :utxo_not_found}
+    end
   end
 
-  defp compose_utxo_exit(txs, Utxo.position(_blknum, txindex, _) = decoded_utxo_pos) do
+  defp compose_deposit_exit(decoded_utxo_pos) do
+    with %{amount: amount, currency: currency, owner: owner} <- get_by_position(decoded_utxo_pos) do
+      tx = Transaction.new([], [{owner, currency, amount}])
+
+      {:ok,
+       %{
+         utxo_pos: decoded_utxo_pos |> Utxo.Position.encode(),
+         txbytes: tx |> Transaction.encode(),
+         proof: Block.create_tx_proof([Transaction.hash(tx)], 0)
+       }}
+    else
+      _ -> {:error, :no_deposit_for_given_blknum}
+    end
+  end
+
+  defp compose_output_exit(txs, Utxo.position(_blknum, txindex, _) = decoded_utxo_pos) do
     sorted_txs = Enum.sort_by(txs, & &1.txindex)
     txs_hashes = Enum.map(sorted_txs, & &1.txhash)
     proof = Block.create_tx_proof(txs_hashes, txindex)
@@ -66,15 +97,16 @@ defmodule OMG.Watcher.DB.TxOutput do
     {:ok,
      %Transaction.Signed{
        raw_tx: raw_tx,
-       sig1: sig1,
-       sig2: sig2
+       sigs: sigs
      }} = Transaction.Signed.decode(tx.txbytes)
+
+    sigs = Enum.join(sigs)
 
     %{
       utxo_pos: utxo_pos,
       txbytes: Transaction.encode(raw_tx),
       proof: proof,
-      sigs: sig1 <> sig2
+      sigs: sigs
     }
   end
 
@@ -97,6 +129,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     Repo.all(query)
   end
 
+  @spec get_balance(OMG.API.Crypto.address_t()) :: list(balance())
   def get_balance(owner) do
     query =
       from(
@@ -117,12 +150,11 @@ defmodule OMG.Watcher.DB.TxOutput do
   @spec spend_utxos([map()]) :: :ok
   def spend_utxos(db_inputs) do
     db_inputs
-    |> Enum.each(fn {utxo_pos, spending_oindex, spending_txhash} ->
-      if utxo = DB.TxOutput.get_by_position(utxo_pos) do
-        utxo
-        |> change(spending_tx_oindex: spending_oindex, spending_txhash: spending_txhash)
-        |> Repo.update!()
-      end
+    |> Enum.each(fn {Utxo.position(blknum, txindex, oindex), spending_oindex, spending_txhash} ->
+      _ =
+        DB.TxOutput
+        |> where(blknum: ^blknum, txindex: ^txindex, oindex: ^oindex)
+        |> Repo.update_all(set: [spending_tx_oindex: spending_oindex, spending_txhash: spending_txhash])
     end)
   end
 
@@ -131,17 +163,18 @@ defmodule OMG.Watcher.DB.TxOutput do
         blknum,
         txindex,
         txhash,
-        %Transaction{
-          cur12: cur12,
-          newowner1: newowner1,
-          amount1: amount1,
-          newowner2: newowner2,
-          amount2: amount2
-        }
+        tx
       ) do
     # zero-value outputs are not inserted, tx can have no outputs at all
-    create_output(blknum, txindex, 0, txhash, newowner1, cur12, amount1) ++
-      create_output(blknum, txindex, 1, txhash, newowner2, cur12, amount2)
+    outputs =
+      tx
+      |> Transaction.get_outputs()
+      |> Enum.with_index()
+      |> Enum.flat_map(fn {%{currency: currency, owner: owner, amount: amount}, oindex} ->
+        create_output(blknum, txindex, oindex, txhash, owner, currency, amount)
+      end)
+
+    outputs
   end
 
   defp create_output(_blknum, _txindex, _txhash, _oindex, _owner, _currency, 0), do: []
@@ -160,20 +193,11 @@ defmodule OMG.Watcher.DB.TxOutput do
     ]
 
   @spec create_inputs(%Transaction{}, binary()) :: [tuple()]
-  def create_inputs(
-        %Transaction{
-          blknum1: blknum1,
-          txindex1: txindex1,
-          oindex1: oindex1,
-          blknum2: blknum2,
-          txindex2: txindex2,
-          oindex2: oindex2
-        },
-        spending_txhash
-      ) do
-    [
-      {Utxo.position(blknum1, txindex1, oindex1), 0, spending_txhash},
-      {Utxo.position(blknum2, txindex2, oindex2), 1, spending_txhash}
-    ]
+  def create_inputs(%Transaction{inputs: inputs}, spending_txhash) do
+    inputs
+    |> Enum.with_index()
+    |> Enum.map(fn {%{blknum: blknum, txindex: txindex, oindex: oindex}, index} ->
+      {Utxo.position(blknum, txindex, oindex), index, spending_txhash}
+    end)
   end
 end

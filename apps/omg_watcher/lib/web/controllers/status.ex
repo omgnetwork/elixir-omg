@@ -21,37 +21,19 @@ defmodule OMG.Watcher.Web.Controller.Status do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
-  alias OMG.API.State
-  alias OMG.Eth
+  alias OMG.Watcher.API.Status
   alias OMG.Watcher.Web.View
 
   import OMG.Watcher.Web.ErrorHandler
+
+  action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
   @doc """
   Gets plasma network and Watcher status
   """
   def get_status(conn, _params) do
-    with {:ok, last_mined_child_block_number} <- Eth.RootChain.get_mined_child_block(),
-         {:ok, {_root, last_mined_child_block_timestamp}} <-
-           Eth.RootChain.get_child_chain(last_mined_child_block_number),
-         {:ok, child_block_interval} <- Eth.RootChain.get_child_block_interval() do
-      {state_current_block, _} = State.get_status()
-
-      status = %{
-        last_validated_child_block_number: state_current_block - child_block_interval,
-        last_mined_child_block_number: last_mined_child_block_number,
-        last_mined_child_block_timestamp: last_mined_child_block_timestamp,
-        eth_syncing: Eth.Geth.syncing?()
-      }
-
-      respond({:ok, status}, conn)
-    else
-      :error ->
-        respond({:error, :unknown}, conn)
-
-      error ->
-        respond(error, conn)
-    end
+    status = Status.get_status()
+    respond(status, conn)
   end
 
   defp respond({:ok, status}, conn) do
@@ -70,17 +52,17 @@ defmodule OMG.Watcher.Web.Controller.Status do
           description("Plasma network and Watcher status")
 
           properties do
-            last_validated_child_block_number(:integer, "Number of last validated childchain block", required: true)
+            last_validated_child_block_number(:integer, "Number of last validated child chain block", required: true)
 
             last_mined_child_block_number(
               :string,
-              "Number of last childchain block that was mined on the rootchain",
+              "Number of last child chain block that was mined on the rootchain",
               required: true
             )
 
             last_mined_child_block_timestamp(
               :string,
-              "Timestamp when last childchain block was mined on the rootchain",
+              "Timestamp when last child chain block was mined on the rootchain",
               required: true
             )
 
@@ -98,7 +80,7 @@ defmodule OMG.Watcher.Web.Controller.Status do
   end
 
   swagger_path :get_status do
-    get("/status")
+    post("/status")
     summary("Gets plasma network and Watcher status")
 
     response(200, "OK", Schema.ref(:Status))

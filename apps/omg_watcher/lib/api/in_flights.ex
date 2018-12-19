@@ -30,7 +30,7 @@ defmodule OMG.Watcher.API.InFlights do
   def get_in_flight_exit(tx) do
     with {:ok, recovered_tx} <- OMG.API.Core.recover_tx(tx),
          {:ok, {proofs, input_txs}} <- find_input_data(recovered_tx) do
-      %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2}} = recovered_tx
+      %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx, sigs: sigs}} = recovered_tx
       raw_tx_bytes = Transaction.encode(raw_tx)
 
       {:ok,
@@ -38,7 +38,7 @@ defmodule OMG.Watcher.API.InFlights do
          in_flight_tx: raw_tx_bytes,
          input_txs: Enum.join(input_txs),
          input_txs_inclusion_proofs: Enum.join(proofs),
-         in_flight_tx_sigs: sig1 <> sig2
+         in_flight_tx_sigs: Enum.join(sigs)
        }}
     end
   end
@@ -54,7 +54,7 @@ defmodule OMG.Watcher.API.InFlights do
       end)
 
     result
-    |> Enum.any?(&match?({:error, :no_tx_for_given_blknum}, &1))
+    |> Enum.any?(&match?({:error, :utxo_not_found}, &1))
     |> case do
       true -> {:error, :tx_for_input_not_found}
       false -> {:ok, Enum.unzip(result)}
@@ -63,11 +63,11 @@ defmodule OMG.Watcher.API.InFlights do
 
   defp get_inputs(%Transaction.Recovered{
          signed_tx: %Transaction.Signed{
-           raw_tx: %Transaction{blknum1: blknum1, txindex1: txindex1, blknum2: blknum2, txindex2: txindex2}
+           raw_tx: %Transaction{inputs: inputs}
          }
        }) do
-    # FIXME: use Transaction public api instead, when it lands
-    [{blknum1, txindex1}, {blknum2, txindex2}]
+    inputs
+    |> Enum.map(fn %{blknum: blknum, txindex: txindex} -> {blknum, txindex} end)
     |> Enum.filter(&match?({blknum, _} when blknum != 0, &1))
   end
 end

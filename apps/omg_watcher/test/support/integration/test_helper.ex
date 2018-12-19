@@ -28,22 +28,25 @@ defmodule OMG.Watcher.Integration.TestHelper do
   def get_exit_data(blknum, txindex, oindex) do
     utxo_pos = Utxo.Position.encode({:utxo_position, blknum, txindex, oindex})
 
-    %{"result" => "success", "data" => data} = rest_call(:get, "utxo/#{utxo_pos}/exit_data")
+    data = success?("utxo.get_exit_data", %{utxo_pos: utxo_pos})
 
-    OMG.Watcher.Web.Serializer.Response.decode16(data, ["txbytes", "proof", "sigs"])
+    decode16(data, ["txbytes", "proof", "sigs"])
   end
 
   def get_utxos(%{addr: address}) do
     {:ok, address_encode} = Crypto.encode_address(address)
 
-    %{"result" => "success", "data" => utxos} = rest_call(:get, "utxos?address=#{address_encode}")
+    utxos = success?("utxo.get", %{address: address_encode})
 
     utxos
   end
 
-  def wait_for_current_block_fetch(timeout) do
-    {:ok, current_child_block} = Eth.RootChain.get_current_child_block()
-    wait_for_block_fetch(current_child_block, timeout)
+  def get_exit_challenge(blknum, txindex, oindex) do
+    utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
+
+    data = success?("utxo.get_challenge_data", %{utxo_pos: utxo_pos})
+
+    decode16(data, ["txbytes", "sig"])
   end
 
   def wait_for_block_fetch(block_nr, timeout) do
@@ -65,5 +68,15 @@ defmodule OMG.Watcher.Integration.TestHelper do
         do: :repeat,
         else: {:ok, block_nr}
     end
+  end
+
+  @doc """
+  We need to wait on both a margin of eth blocks and exit processing
+  """
+  def wait_for_exit_processing(exit_eth_height, timeout \\ 5_000) do
+    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
+    exit_finality = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+    Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + exit_finality, timeout)
+    Process.sleep(exit_processor_validation * 2)
   end
 end

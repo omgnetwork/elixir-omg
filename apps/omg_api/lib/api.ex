@@ -21,23 +21,12 @@ defmodule OMG.API do
   """
 
   alias OMG.API.{Core, FeeChecker, FreshBlocks, State}
-  use OMG.JSONRPC.ExposeSpec
   use OMG.API.LoggerExt
 
-  @spec submit(transaction :: bitstring) ::
-          {:ok, %{tx_hash: bitstring, blknum: integer, tx_index: integer}} | {:error, atom}
-  @expose_spec {:submit,
-                %{
-                  args: [transaction: :bitstring],
-                  arity: 1,
-                  name: :submit,
-                  returns:
-                    {:alternative,
-                     [
-                       ok: {:map, [tx_hash: :bitstring, blknum: :integer, tx_index: :integer]},
-                       error: :atom
-                     ]}
-                }}
+  @type submit_error() :: Core.recover_tx_error() | FeeChecker.error() | State.exec_error()
+
+  @spec submit(transaction :: binary) ::
+          {:ok, %{tx_hash: <<_::768>>, blknum: pos_integer, tx_index: non_neg_integer}} | {:error, submit_error()}
   def submit(transaction) do
     result =
       with {:ok, recovered_tx} <- Core.recover_tx(transaction),
@@ -53,18 +42,6 @@ defmodule OMG.API do
 
   @spec get_block(hash :: bitstring) ::
           {:ok, %{hash: bitstring, transactions: list, number: integer}} | {:error, :not_found | :internal_error}
-  @expose_spec {:get_block,
-                %{
-                  args: [hash: :bitstring],
-                  arity: 1,
-                  name: :get_block,
-                  returns:
-                    {:alternative,
-                     [
-                       ok: {:map, [hash: :bitstring, transactions: :list, number: :integer]},
-                       error: {:alternative, [:not_found, :internal_error]}
-                     ]}
-                }}
   def get_block(hash) do
     with {:ok, struct_block} <- FreshBlocks.get(hash) do
       _ = Logger.debug(fn -> " resulted successfully, hash '#{inspect(hash)}'" end)

@@ -40,7 +40,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     @moduledoc false
     defstruct [
       :block_interval,
-      :finality_margin,
+      :block_reorg_margin,
       maximum_number_of_pending_blocks: 10,
       maximum_block_withholding_time_ms: 0,
       maximum_number_of_unapplied_blocks: 50
@@ -73,6 +73,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     :last_applied_block,
     :num_of_highest_block_being_downloaded,
     :number_of_blocks_being_downloaded,
+    :last_block_persisted_from_prev_run,
     :unapplied_blocks,
     :potential_block_withholdings,
     :config
@@ -84,6 +85,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           last_applied_block: non_neg_integer,
           num_of_highest_block_being_downloaded: non_neg_integer,
           number_of_blocks_being_downloaded: non_neg_integer,
+          last_block_persisted_from_prev_run: non_neg_integer,
           unapplied_blocks: %{
             non_neg_integer => OMG.API.Block.t()
           },
@@ -105,19 +107,20 @@ defmodule OMG.Watcher.BlockGetter.Core do
   Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block,
   using `child_block_interval` when progressing from one child block to another,
   `synced_height` as the root chain height up to witch all published blocked were processed
-  and `finality_margin` as number of root chain blocks that may change during an reorg
+  and `block_reorg_margin` as number of root chain blocks that may change during an reorg
 
   Opts can be:
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
     - `:maximum_block_withholding_time_ms` - how much time should we wait after the first failed pull until we call it a block withholding byzantine condition of the child chain (0 ms)
   """
-  @spec init(non_neg_integer, pos_integer, non_neg_integer, non_neg_integer, boolean, Keyword.t()) ::
+  @spec init(non_neg_integer, pos_integer, non_neg_integer, non_neg_integer, non_neg_integer, boolean, Keyword.t()) ::
           {:ok, %__MODULE__{}} | {:error, init_error()}
   def init(
         block_number,
         child_block_interval,
         synced_height,
-        finality_margin,
+        block_reorg_margin,
+        last_persisted_block,
         state_at_block_beginning,
         opts \\ []
       ) do
@@ -128,10 +131,14 @@ defmodule OMG.Watcher.BlockGetter.Core do
         last_applied_block: block_number,
         num_of_highest_block_being_downloaded: block_number,
         number_of_blocks_being_downloaded: 0,
+        last_block_persisted_from_prev_run: last_persisted_block,
         unapplied_blocks: %{},
         potential_block_withholdings: %{},
         config:
-          struct(Config, Keyword.merge(opts, block_interval: child_block_interval, finality_margin: finality_margin))
+          struct(
+            Config,
+            Keyword.merge(opts, block_interval: child_block_interval, block_reorg_margin: block_reorg_margin)
+          )
       }
 
       {:ok, state}
@@ -182,7 +189,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         %__MODULE__{synced_height: synced_height, config: config},
         coordinator_height
       ) do
-    {max(0, synced_height - config.finality_margin), coordinator_height}
+    {max(0, synced_height - config.block_reorg_margin), coordinator_height}
   end
 
   @doc """
@@ -543,8 +550,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
     end
   end
 
-  defp add_zero_fee(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{cur12: cur12}}}, fee_map) do
-    Map.put(fee_map, cur12, 0)
+  defp add_zero_fee(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}, fee_map) do
+    raw_tx
+    |> Transaction.get_currencies()
+    |> Enum.into(fee_map, fn currency -> {currency, 0} end)
   end
 
   @doc """

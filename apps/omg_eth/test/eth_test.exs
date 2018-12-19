@@ -45,7 +45,7 @@ defmodule OMG.EthTest do
 
   @tag fixtures: [:contract]
   test "no argument call returning single integer", %{contract: contract} do
-    assert {:ok, 1000} = Eth.RootChain.get_current_child_block(contract.contract_addr)
+    assert {:ok, 1000} = Eth.RootChain.get_next_child_block(contract.contract_addr)
   end
 
   @tag fixtures: [:contract]
@@ -74,8 +74,16 @@ defmodule OMG.EthTest do
 
   @tag fixtures: [:contract]
   test "gets events with various fields and topics", %{contract: contract} do
+    # not using OMG.API.Transaction to not depend on that in omg_eth tests
+    zero_in = [0, 0, 0]
+    zero_out = [<<0::160>>, <<0::160>>, 0]
+
+    tx =
+      [List.duplicate(zero_in, 4), [[contract.authority_addr, @eth, 1]] ++ List.duplicate(zero_out, 3)]
+      |> ExRLP.encode()
+
     {:ok, _} =
-      Eth.RootChain.deposit(1, contract.authority_addr, contract.contract_addr)
+      Eth.RootChain.deposit(tx, 1, contract.authority_addr, contract.contract_addr)
       |> Eth.DevHelpers.transact_sync!()
 
     {:ok, height} = Eth.get_ethereum_height()

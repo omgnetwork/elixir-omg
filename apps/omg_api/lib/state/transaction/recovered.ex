@@ -24,31 +24,53 @@ defmodule OMG.API.State.Transaction.Recovered do
   @empty_signature <<0::size(520)>>
   @type signed_tx_hash_t() :: <<_::768>>
 
-  defstruct [:signed_tx, :signed_tx_hash, spender1: nil, spender2: nil]
+  defstruct [:signed_tx, :signed_tx_hash, spenders: nil]
 
   @type t() :: %__MODULE__{
           signed_tx_hash: signed_tx_hash_t(),
-          spender1: Crypto.address_t() | nil,
-          spender2: Crypto.address_t() | nil,
+          spenders: [Crypto.address_t()],
           signed_tx: Transaction.Signed.t()
         }
 
   @spec recover_from(Transaction.Signed.t()) :: {:ok, t()} | any
-  def recover_from(%Transaction.Signed{raw_tx: raw_tx, sig1: sig1, sig2: sig2} = signed_tx) do
+  def recover_from(%Transaction.Signed{raw_tx: raw_tx, sigs: sigs} = signed_tx) do
     hash_no_spenders = Transaction.hash(raw_tx)
 
-    with {:ok, spender1} <- get_spender(hash_no_spenders, sig1),
-         {:ok, spender2} <- get_spender(hash_no_spenders, sig2),
+    with {:ok, spenders} <- get_spenders(hash_no_spenders, sigs),
          do:
            {:ok,
             %__MODULE__{
-              signed_tx_hash: Transaction.Signed.signed_hash(signed_tx),
-              spender1: spender1,
-              spender2: spender2,
+              signed_tx_hash: Transaction.hash(raw_tx),
+              spenders: spenders,
               signed_tx: signed_tx
             }}
   end
 
-  defp get_spender(_hash_no_spenders, @empty_signature), do: {:ok, nil}
-  defp get_spender(hash_no_spenders, sig), do: Crypto.recover_address(hash_no_spenders, sig)
+  defp get_spenders(hash_no_spenders, sigs) do
+    sigs
+    |> Enum.filter(fn sig -> sig != @empty_signature end)
+    |> Enum.reduce({:ok, []}, fn sig, acc -> get_spender(hash_no_spenders, sig, acc) end)
+  end
+
+  defp get_spender(_hash_no_spenders, _sig, {:error, _} = err), do: err
+
+  defp get_spender(hash_no_spenders, sig, {:ok, spenders}) do
+    recovered_address = Crypto.recover_address(hash_no_spenders, sig)
+
+    case recovered_address do
+      {:ok, spender} -> {:ok, spenders ++ [spender]}
+      error -> error
+    end
+  end
+
+  @doc """
+  Checks if everyone of the given spenders signed the transaction
+  """
+  @spec all_spenders_authorized?(t(), list()) :: :ok
+  def all_spenders_authorized?(%__MODULE__{spenders: spenders}, inputs_spenders) do
+    spenders = MapSet.new(spenders)
+    inputs_spenders = MapSet.new(inputs_spenders)
+
+    if MapSet.subset?(inputs_spenders, spenders), do: :ok, else: {:error, :unauthorized_spent}
+  end
 end

@@ -33,11 +33,10 @@ defmodule OMG.Watcher.Fixtures do
     |> IO.binwrite("""
       #{OMG.Eth.DevHelpers.create_conf_file(contract)}
 
-      config :omg_db,
-        leveldb_path: "#{db_path}"
+      config :omg_db, leveldb_path: "#{db_path}"
+      # this causes the inner test child chain server process to log debug. To see these logs adjust test's log level
       config :logger, level: :debug
-      config :omg_api,
-        fee_specs_file_path: "#{fee_file}"
+      config :omg_api, fee_specs_file_path: "#{fee_file}"
     """)
     |> File.close()
 
@@ -62,11 +61,9 @@ defmodule OMG.Watcher.Fixtures do
 
     db_out |> Enum.each(&log_output("db_init", &1))
 
-    child_chain_mix_cmd =
-      "mix run --no-start --no-halt --config #{config_file_path} -e " <>
-        "'{:ok, _} = Application.ensure_all_started(:omg_api)' " <> "2>&1"
+    child_chain_mix_cmd = " mix xomg.child_chain.start --config #{config_file_path} 2>&1"
 
-    Logger.debug(fn -> "Starting child_chain" end)
+    Logger.info(fn -> "Starting child_chain" end)
 
     {:ok, child_chain_proc, _ref, [{:stream, child_chain_out, _stream_server}]} =
       Exexec.run_link(child_chain_mix_cmd, exexec_opts_for_mix)
@@ -191,5 +188,31 @@ defmodule OMG.Watcher.Fixtures do
        ]}
     ]
     |> Enum.flat_map(prepare_f)
+  end
+
+  deffixture test_server do
+    alias FakeServer.Agents.EnvAgent
+    alias FakeServer.HTTP.Server
+
+    {:ok, server_id, port} = Server.run()
+    env = FakeServer.Env.new(port)
+
+    EnvAgent.save_env(server_id, env)
+
+    real_addr = Application.fetch_env!(:omg_watcher, :child_chain_url)
+    fake_addr = "http://#{env.ip}:#{env.port}"
+
+    on_exit(fn ->
+      Application.put_env(:omg_watcher, :child_chain_url, real_addr)
+
+      Server.stop(server_id)
+      EnvAgent.delete_env(server_id)
+    end)
+
+    %{
+      real_addr: real_addr,
+      fake_addr: fake_addr,
+      server_id: server_id
+    }
   end
 end
