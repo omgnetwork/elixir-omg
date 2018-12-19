@@ -41,7 +41,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   Reads database-specific list of exits and turns them into current state
   """
-  @spec init(db_exits :: [{{pos_integer, non_neg_integer, non_neg_integer}, map}], [{binary(), map()}], non_neg_integer) :: {:ok, t()}
+  @spec init(
+          db_exits :: [{{pos_integer, non_neg_integer, non_neg_integer}, map}],
+          db_ifes :: [{binary(), map()}],
+          non_neg_integer
+        ) :: {:ok, t()}
   def init(db_exits, db_ifes, sla_margin \\ @default_sla_margin) do
     {:ok,
      %__MODULE__{

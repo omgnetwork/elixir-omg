@@ -42,7 +42,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           exit_map: binary(),
           oldest_competitor: non_neg_integer(),
           is_canonical: boolean(),
-          is_finalized: boolean(),
+          is_finalized: boolean()
         }
 
   def build_in_flight_transaction_info(tx_bytes, tx_signatures, timestamp) do
@@ -65,5 +65,4 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def make_db_update({ife_hash, %__MODULE__{} = ife_info}) do
     {:put, :in_flight_exit_info, {ife_hash, ife_info}}
   end
-
 end
