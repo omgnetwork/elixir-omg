@@ -13,9 +13,9 @@ import requests
 RINKEBY_CONTRACT = [
     'use Mix.Config',
     'config :omg_eth,',
-    '  contract_addr: "0xda43a477ed2defe17acd9dec3990016ed5ff727a",',
-    '  txhash_contract: "0xbd30b46d97e5a0ada161bef7a184e11fdd2649f6d5dbc7306ec5ff3ab2683984",', # noqa E501
-    '  authority_addr: "0xc7bacd2713cc6fe4e0e7b033986db739c3bbed68"'
+    '  contract_addr: "0x98abd7229afac999fc7965bea7d94a3b5e7e0218",',
+    '  txhash_contract: "0x84a86f06b97e4c2d694ba507e7fcd8cf78adc4fbd596b1d3626ec7ba8242450d",', # noqa E501
+    '  authority_addr: "0xe5153ad259be60003909492b154bf4b7f1787f70"'
 ]
 
 
