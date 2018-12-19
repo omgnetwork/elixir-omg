@@ -222,7 +222,8 @@ defmodule OMG.Eth.RootChain do
   def get_deposits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
 
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, "DepositCreated(address,uint256,address,uint256)", contract),
+    with {:ok, logs} <-
+           Eth.get_ethereum_events(block_from, block_to, "DepositCreated(address,uint256,address,uint256)", contract),
          do: {:ok, Enum.map(logs, &decode_deposit/1)}
   end
 

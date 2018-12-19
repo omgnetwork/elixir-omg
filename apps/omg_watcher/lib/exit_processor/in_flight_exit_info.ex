@@ -46,7 +46,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
         }
 
   def build_in_flight_transaction_info(tx_bytes, tx_signatures, timestamp) do
-    with {:ok, raw_tx, []} <- Transaction.decode(tx_bytes) do
+    with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
       signed_tx_map = %{
         raw_tx: raw_tx,
         sigs: tx_signatures
