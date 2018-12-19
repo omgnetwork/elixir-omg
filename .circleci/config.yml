@@ -39,11 +39,7 @@ jobs:
       - run:
           name: Build and push Docker image
           command: |
-            docker build -t elixir-omg .
-            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
-            export DOCKER_IMAGE=jakebunce/elixir-omg:$CIRCLE_SHA1
-            docker tag elixir-omg $DOCKER_IMAGE
-            docker push jakebunce/elixir-omg:$CIRCLE_SHA1
+
       - run:
           name: Install gcloud SDK
           command: |
@@ -60,13 +56,14 @@ jobs:
             gcloud config set compute/zone ${GCP_ZONE}
             gcloud container clusters get-credentials ${GCP_CLUSTER_ID}
       - run:
-          name: Deploy Childchain
+          name: Build & Deploy Childchain
           command: |
-            kubectl set image statefulset childchain childchain=jakebunce/elixir-omg:${CIRCLE_CI}
-      #- run:
-          #name: Deploy Watcher
-          #command: |
-            #kubectl set image statefulset watcher childchain=jakebunce/elixir-omg:${CIRCLE_CI}
+            docker build -t elixir-omg .
+            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
+            export DOCKER_IMAGE=jakebunce/elixir-omg:$CIRCLE_SHA1
+            docker tag elixir-omg $DOCKER_IMAGE
+            docker push jakebunce/elixir-omg:$CIRCLE_SHA1
+            kubectl set image statefulset childchain childchain=$DOCKER_IMAGE
 workflows:
   version: 2
   build-deploy:
