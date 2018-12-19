@@ -192,6 +192,11 @@ defmodule OMG.Eth do
     |> common_parse_event(log)
   end
 
+  def get_call_data(tx_hash, function_signature) do
+    {:ok, eth_tx} = Ethereumex.HttpClient.eth_get_transaction_by_hash(tx_hash)
+    ABI.decode(function_signature, from_hex(eth_tx["input"]))
+  end
+
   defp common_parse_event(result, %{"blockNumber" => eth_height}) do
     result
     |> Map.put(:eth_height, int_from_hex(eth_height))
