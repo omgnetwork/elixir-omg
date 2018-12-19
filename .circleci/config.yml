@@ -3,11 +3,15 @@ jobs:
   test:
     docker:
       - image: omisegoimages/blockchain-base:1.6-otp20
+      - image: circleci/postgres:9.6.2-alpine
+        environment:
+          POSTGRES_USER: omsiego_dev
+          POSTGRES_PASSWORD: omisego_dev
+          POSTGRES_DB: omisego_dev
     working_directory: ~/repo
     steps:
       - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - setup_remote_docker
       - run:
           name: Build application
           command: |
@@ -16,14 +20,21 @@ jobs:
           name: Get dependencies
           command: |
             mix do deps.get, deps.compile, compile
-      - run:
+       - run:
+         name: Lint
+         command: |
+           mix do credo, format --check-formatted --dry-run
+       - run:
+         name: Unit Test
+         command: |
+           export MIX_ENV=test
+           export DATABASE_URL=postgres://omisego_dev:omisego_dev@localhost/omisego_dev
+           mix test
+       - run:
           name: Dialyze
           command: |
             mix dialyzer --halt-exit-status
-      - run:
-          name: Lint
-          command: |
-            mix do credo, format --check-formatted --dry-run
+
   build_and_deploy:
     docker:
       - image: ubuntu:16.04
