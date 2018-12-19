@@ -27,7 +27,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
-  alias OMG.Watcher.ExitProcessor.CompetitorInfo
 
   require Utxo
 
@@ -87,7 +86,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   deffixture processor_empty() do
-    {:ok, empty} = Core.init([], [], [])
+    {:ok, empty} = Core.init([], [])
     empty
   end
 
@@ -171,15 +170,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     {Transaction.hash(raw_tx), %InFlightExitInfo{tx: signed_tx, timestamp: timestamp}}
   end
 
-  defp build_competitor(%{
-         call_data: %{
-           competing_tx: tx_bytes,
-           competing_tx_input_index: input_index,
-           competing_tx_sig: signature
-         }
-       }) do
-    CompetitorInfo.build_competitor(tx_bytes, input_index, signature)
-  end
+#  defp build_competitor(%{
+#         call_data: %{
+#           competing_tx: tx_bytes,
+#           competing_tx_input_index: input_index,
+#           competing_tx_sig: signature
+#         }
+#       }) do
+#    CompetitorInfo.build_competitor(tx_bytes, input_index, signature)
+#  end
 
   @tag fixtures: [:processor_empty, :exit_events, :contract_statuses]
   test "persist started exits and loads persisted on init", %{
@@ -198,7 +197,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {^final_state, ^update2} =
              Core.new_exits(state2, Enum.slice(events, 1, 1), Enum.slice(contract_statuses, 1, 1))
 
-    {:ok, ^final_state} = Core.init(Enum.zip([@update_key1, @update_key2], values), [], [])
+    {:ok, ^final_state} = Core.init(Enum.zip([@update_key1, @update_key2], values), [])
   end
 
   @tag fixtures: [:processor_empty, :alice, :exit_events]
@@ -434,7 +433,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     assert {^final_state, ^update2} = Core.new_in_flight_exits(updated_state, Enum.slice(events, 1, 1))
 
-    {:ok, ^final_state} = Core.init([], ifes, [])
+    {:ok, ^final_state} = Core.init([], ifes)
   end
 
   #  #TODO
@@ -446,69 +445,69 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   #    Core.new_in_flight_exits(empty, [timestamp: 1001], ife_events)
   #  end
 
-  @tag fixtures: [:processor_filled, :in_flight_exits]
-  test "persists new piggybacks", %{processor_filled: state, in_flight_exits: ifes} do
-    events = Enum.map(ifes, fn {id, _} -> {id, 0} end)
-
-    updates =
-      ifes
-      |> Enum.map(fn {id, ife} -> {id, InFlightExitInfo.piggyback(ife, 0)} end)
-      |> Enum.map(fn {id, {:ok, ife}} -> {id, ife} end)
-      |> Enum.map(&InFlightExitInfo.make_db_update/1)
-
-    update1 = Enum.slice(updates, 0, 1)
-    update2 = Enum.slice(updates, 1, 1)
-
-    assert {updated_state, ^update1} = Core.new_piggybacks(state, Enum.slice(events, 0, 1))
-
-    assert {final_state, ^updates} = Core.new_piggybacks(state, events)
-
-    assert {^final_state, ^update2} = Core.new_piggybacks(updated_state, Enum.slice(events, 1, 1))
-  end
-
-  @tag fixtures: [:processor_filled, :in_flight_exits]
-  test "piggybacking sanity checks", %{processor_filled: state, in_flight_exits: [{ife_id, _} | _]} do
-    {^state, []} = Core.new_piggybacks(state, [])
-    {^state, []} = Core.new_piggybacks(state, [{0, 0}])
-    {^state, []} = Core.new_piggybacks(state, [{ife_id, 8}])
-
-    # cannot piggyback twice the same output
-    {updated_state, [_]} = Core.new_piggybacks(state, [{ife_id, 0}])
-    {^updated_state, []} = Core.new_piggybacks(updated_state, [{ife_id, 0}])
-  end
-
-  @tag fixtures: [:processor_filled, :in_flight_exits_challenges_events]
-  test "persists new competitors and loads persisted on init", %{
-    processor_filled: state,
-    in_flight_exits_challenges_events: challenges_events
-  } do
-    competitors = challenges_events |> Enum.map(&build_competitor/1)
-    updates = Enum.map(competitors, &CompetitorInfo.make_db_update/1)
-
-    {updated_state, db_updates} = Core.challenge_in_flight_exits(state, Enum.slice(challenges_events, 0, 1))
-
-    assert Enum.member?(db_updates, Enum.at(updates, 0))
-
-    {final_state, db_updates} = Core.challenge_in_flight_exits(state, challenges_events)
-
-    assert Enum.reduce(updates, true, fn
-             update, true -> Enum.member?(db_updates, update)
-             _, false -> false
-           end)
-
-    assert {^final_state, db_updates} =
-             Core.challenge_in_flight_exits(updated_state, Enum.slice(challenges_events, 1, 2))
-
-    assert Enum.reduce(Enum.slice(updates, 1, 2), true, fn
-             update, true -> Enum.member?(db_updates, update)
-             _, false -> false
-           end)
-
-#    {:ok, ^final_state} = Core.init([], [], [])
-  end
-
-  test "new competitors sanity checks" do
-  end
+  #  @tag fixtures: [:processor_filled, :in_flight_exits]
+  #  test "persists new piggybacks", %{processor_filled: state, in_flight_exits: ifes} do
+  #    events = Enum.map(ifes, fn {id, _} -> {id, 0} end)
+  #
+  #    updates =
+  #      ifes
+  #      |> Enum.map(fn {id, ife} -> {id, InFlightExitInfo.piggyback(ife, 0)} end)
+  #      |> Enum.map(fn {id, {:ok, ife}} -> {id, ife} end)
+  #      |> Enum.map(&InFlightExitInfo.make_db_update/1)
+  #
+  #    update1 = Enum.slice(updates, 0, 1)
+  #    update2 = Enum.slice(updates, 1, 1)
+  #
+  #    assert {updated_state, ^update1} = Core.new_piggybacks(state, Enum.slice(events, 0, 1))
+  #
+  #    assert {final_state, ^updates} = Core.new_piggybacks(state, events)
+  #
+  #    assert {^final_state, ^update2} = Core.new_piggybacks(updated_state, Enum.slice(events, 1, 1))
+  #  end
+  #
+  #  @tag fixtures: [:processor_filled, :in_flight_exits]
+  #  test "piggybacking sanity checks", %{processor_filled: state, in_flight_exits: [{ife_id, _} | _]} do
+  #    {^state, []} = Core.new_piggybacks(state, [])
+  #    {^state, []} = Core.new_piggybacks(state, [{0, 0}])
+  #    {^state, []} = Core.new_piggybacks(state, [{ife_id, 8}])
+  #
+  #    # cannot piggyback twice the same output
+  #    {updated_state, [_]} = Core.new_piggybacks(state, [{ife_id, 0}])
+  #    {^updated_state, []} = Core.new_piggybacks(updated_state, [{ife_id, 0}])
+  #  end
+  #
+  #  @tag fixtures: [:processor_filled, :in_flight_exits_challenges_events]
+  #  test "persists new competitors and loads persisted on init", %{
+  #    processor_filled: state,
+  #    in_flight_exits_challenges_events: challenges_events
+  #  } do
+  #    competitors = challenges_events |> Enum.map(&build_competitor/1)
+  #    updates = Enum.map(competitors, &CompetitorInfo.make_db_update/1)
+  #
+  #    {updated_state, db_updates} = Core.challenge_in_flight_exits(state, Enum.slice(challenges_events, 0, 1))
+  #
+  #    assert Enum.member?(db_updates, Enum.at(updates, 0))
+  #
+  #    {final_state, db_updates} = Core.challenge_in_flight_exits(state, challenges_events)
+  #
+  #    assert Enum.reduce(updates, true, fn
+  #             update, true -> Enum.member?(db_updates, update)
+  #             _, false -> false
+  #           end)
+  #
+  #    assert {^final_state, db_updates} =
+  #             Core.challenge_in_flight_exits(updated_state, Enum.slice(challenges_events, 1, 2))
+  #
+  #    assert Enum.reduce(Enum.slice(updates, 1, 2), true, fn
+  #             update, true -> Enum.member?(db_updates, update)
+  #             _, false -> false
+  #           end)
+  #
+  ##    {:ok, ^final_state} = Core.init([], [], [])
+  #  end
+  #
+  #  test "new competitors sanity checks" do
+  #  end
 
   #  @tag fixtures: [:processor_empty, :in_flight_exits, :in_flight_exits_challenges_events]
   #  test "can challenge an in flight exit", %{
