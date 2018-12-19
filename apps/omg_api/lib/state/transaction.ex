@@ -132,12 +132,7 @@ defmodule OMG.API.State.Transaction do
   @doc """
   Creates a new transaction from a list of inputs and a list of outputs.
   Adds empty (zeroes) inputs and/or outputs to reach the expected size
-  of 2 inputs and 2 outputs.
-
-  assumptions:
-  ```
-    length(inputs) <= 2
-    length(outputs) <= 2
+  of 4 inputs and 4 outputs.
   ```
   """
   @spec new(
@@ -213,6 +208,14 @@ defmodule OMG.API.State.Transaction do
       Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
         List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs))
     ]
+
+  def decode(tx_bytes) do
+    try do
+      ExRLP.decode(tx_bytes) |> from_rlp()
+    rescue
+      _ -> {:error, :malformed_transaction_rlp}
+    end
+  end
 
   def hash(%__MODULE__{} = tx) do
     tx
