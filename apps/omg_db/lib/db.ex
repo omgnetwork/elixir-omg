@@ -25,7 +25,7 @@ defmodule OMG.DB do
   @server_name OMG.DB.LevelDBServer
 
   @one_minute 60_000
-  @ten_minutes 600_000
+  @ten_minutes 10 * @one_minute
 
   def multi_update(db_updates, server_name \\ @server_name) do
     {duration, result} = :timer.tc(fn -> GenServer.call(server_name, {:multi_update, db_updates}) end)
@@ -44,13 +44,30 @@ defmodule OMG.DB do
 
   def utxos(server_name \\ @server_name) do
     _ = Logger.info(fn -> "Reading UTXO set, this might take a while. Allowing #{inspect(@ten_minutes)} ms" end)
-    GenServer.call(server_name, {:utxos}, @ten_minutes)
+    GenServer.call(server_name, :utxos, @ten_minutes)
   end
 
   def exit_infos(server_name \\ @server_name) do
-    timeout_ms = 60_000
-    _ = Logger.info(fn -> "Reading exit infos, this might take a while. Allowing #{inspect(timeout_ms)} ms" end)
-    GenServer.call(server_name, {:exit_infos}, timeout_ms)
+    _ = Logger.info(fn -> "Reading exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms" end)
+    GenServer.call(server_name, :exit_infos, @one_minute)
+  end
+
+  def in_flight_exits_info(server_name \\ @server_name) do
+    _ =
+      Logger.info(fn ->
+        "Reading in flight exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms"
+      end)
+
+    GenServer.call(server_name, :in_flight_exits_info, @one_minute)
+  end
+
+  def competitors_info(server_name \\ @server_name) do
+    _ =
+      Logger.info(fn ->
+        "Reading competitors' info, this might take a while. Allowing #{inspect(@one_minute)} ms"
+      end)
+
+    GenServer.call(server_name, :competitors_info, @one_minute)
   end
 
   def block_hashes(block_numbers_to_fetch, server_name \\ @server_name) do

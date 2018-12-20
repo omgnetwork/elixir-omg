@@ -75,12 +75,12 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call({:utxos}, _from, %__MODULE__{db_ref: db_ref} = state) do
+  def handle_call(:utxos, _from, %__MODULE__{db_ref: db_ref} = state) do
     result = get_by_type(:utxo, db_ref)
     {:reply, result, state}
   end
 
-  def handle_call({:exit_infos}, _from, %__MODULE__{db_ref: db_ref} = state) do
+  def handle_call(:exit_infos, _from, %__MODULE__{db_ref: db_ref} = state) do
     result = get_by_type(:exit_info, db_ref)
     {:reply, result, state}
   end
@@ -95,12 +95,22 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call(parameter, _from, %__MODULE__{db_ref: db_ref} = state)
+  def handle_call(:in_flight_exits_info, _from, %__MODULE__{db_ref: db_ref} = state) do
+    result = get_by_type(:in_flight_exit_info, db_ref)
+    {:reply, result, state}
+  end
+
+  def handle_call(:competitors_info, _from, %__MODULE__{db_ref: db_ref} = state) do
+    result = get_by_type(:competitor_info, db_ref)
+    {:reply, result, state}
+  end
+
+  def handle_call(parameter, _from, state)
       when is_atom(parameter) do
     result =
       parameter
       |> LevelDBCore.key(nil)
-      |> get(db_ref)
+      |> get(state.db_ref)
       |> LevelDBCore.decode_value(parameter)
 
     {:reply, result, state}
