@@ -46,14 +46,6 @@ defmodule OMG.Eth.Token do
     Eth.contract_transact(from, token, "approve(address,uint256)", [spender, amount], opts)
   end
 
-  def create_new(path_project_root, addr, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, 1_590_893)
-    opts = defaults |> Keyword.merge(opts)
-
-    bytecode = Eth.get_bytecode!(path_project_root, "MintableToken")
-    Eth.deploy_contract(addr, bytecode, [], [], opts)
-  end
-
   #########
   # reads #
   #########
