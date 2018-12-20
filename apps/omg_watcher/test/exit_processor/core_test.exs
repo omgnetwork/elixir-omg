@@ -451,6 +451,45 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     {:ok, ^final_state} = Core.init([], ifes)
   end
 
+  @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
+  test "in flight exits sanity checks", %{
+    processor_empty: state,
+    in_flight_exit_events: events,
+    contract_ife_statuses: statuses
+  } do
+    assert {state, []} == Core.new_in_flight_exits(state, [], [])
+    assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, Enum.slice(events, 0, 1), [])
+    assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, [], Enum.slice(statuses, 0, 1))
+  end
+
+  @tag fixtures: [:processor_filled, :in_flight_exits]
+  test "persists new piggybacks", %{processor_filled: state, in_flight_exits: ifes} do
+    events = Enum.map(ifes, fn {id, _} -> {id, 0} end)
+
+    piggybacked =
+      Enum.map(ifes, fn {id, ife} ->
+        {:ok, piggybacked} = InFlightExitInfo.piggyback(ife, 0)
+        {id, piggybacked}
+      end)
+
+    db_updates = Enum.map(piggybacked, &InFlightExitInfo.make_db_update/1)
+
+    assert {state, ^db_updates} = Core.new_piggybacks(state, events)
+
+    assert Map.new(piggybacked) == Core.get_in_flight_exits(state)
+  end
+
+  @tag fixtures: [:processor_filled, :in_flight_exits]
+  test "piggybacking sanity checks", %{processor_filled: state, in_flight_exits: [{ife_id, _} | _]} do
+    {^state, []} = Core.new_piggybacks(state, [])
+    {^state, []} = Core.new_piggybacks(state, [{0, 0}])
+    {^state, []} = Core.new_piggybacks(state, [{ife_id, 8}])
+
+    # cannot piggyback twice the same output
+    {updated_state, [_]} = Core.new_piggybacks(state, [{ife_id, 0}])
+    assert {updated_state, []} == Core.new_piggybacks(updated_state, [{ife_id, 0}])
+  end
+
   #  #TODO
   #  @tag fixtures: [:processor_empty, :alice, :in_flight_exit_events]
   #  test "active piggybacks from inputs are monitored", %{
@@ -460,37 +499,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   #    Core.new_in_flight_exits(empty, [timestamp: 1001], ife_events)
   #  end
 
-  #  @tag fixtures: [:processor_filled, :in_flight_exits]
-  #  test "persists new piggybacks", %{processor_filled: state, in_flight_exits: ifes} do
-  #    events = Enum.map(ifes, fn {id, _} -> {id, 0} end)
-  #
-  #    updates =
-  #      ifes
-  #      |> Enum.map(fn {id, ife} -> {id, InFlightExitInfo.piggyback(ife, 0)} end)
-  #      |> Enum.map(fn {id, {:ok, ife}} -> {id, ife} end)
-  #      |> Enum.map(&InFlightExitInfo.make_db_update/1)
-  #
-  #    update1 = Enum.slice(updates, 0, 1)
-  #    update2 = Enum.slice(updates, 1, 1)
-  #
-  #    assert {updated_state, ^update1} = Core.new_piggybacks(state, Enum.slice(events, 0, 1))
-  #
-  #    assert {final_state, ^updates} = Core.new_piggybacks(state, events)
-  #
-  #    assert {^final_state, ^update2} = Core.new_piggybacks(updated_state, Enum.slice(events, 1, 1))
-  #  end
-  #
-  #  @tag fixtures: [:processor_filled, :in_flight_exits]
-  #  test "piggybacking sanity checks", %{processor_filled: state, in_flight_exits: [{ife_id, _} | _]} do
-  #    {^state, []} = Core.new_piggybacks(state, [])
-  #    {^state, []} = Core.new_piggybacks(state, [{0, 0}])
-  #    {^state, []} = Core.new_piggybacks(state, [{ife_id, 8}])
-  #
-  #    # cannot piggyback twice the same output
-  #    {updated_state, [_]} = Core.new_piggybacks(state, [{ife_id, 0}])
-  #    {^updated_state, []} = Core.new_piggybacks(updated_state, [{ife_id, 0}])
-  #  end
-  #
   #  @tag fixtures: [:processor_filled, :in_flight_exits_challenges_events]
   #  test "persists new competitors and loads persisted on init", %{
   #    processor_filled: state,
