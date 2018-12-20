@@ -111,20 +111,25 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Enum.map(& &1.sigs)
 
     [
-      %{tx_bytes: tx1_bytes, signatures: tx1_signs, timestamp: 10},
-      %{tx_bytes: tx2_bytes, signatures: tx2_sings, timestamp: 10}
+      %{tx_bytes: tx1_bytes, signatures: tx1_signs},
+      %{tx_bytes: tx2_bytes, signatures: tx2_sings}
     ]
   end
 
   # extracts the mocked responses of the `Eth.RootChain.get_exit` for the exit events
   # all exits active (owner non-zero). This is the auxiliary, second argument that's fed into `new_exits`
-  deffixture contract_statuses(exit_events) do
+  deffixture contract_exit_statuses(exit_events) do
     exit_events
     |> Enum.map(fn %{amount: amount, currency: currency, owner: owner} -> {owner, currency, amount} end)
   end
 
-  deffixture in_flight_exits(in_flight_exit_events) do
-    Enum.map(in_flight_exit_events, &build_in_flight_exit/1)
+  deffixture contract_ife_statuses(in_flight_exit_events) do
+    List.duplicate({1, 0, Crypto.zero_address(), 0}, length(in_flight_exit_events))
+  end
+
+  deffixture in_flight_exits(in_flight_exit_events, contract_ife_statuses) do
+    Enum.zip(in_flight_exit_events, contract_ife_statuses)
+    |> Enum.map(fn {event, status} -> build_in_flight_exit(event, status) end)
   end
 
   deffixture in_flight_exits_challenges_events(in_flight_exits, competing_transactions) do
@@ -153,13 +158,19 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     ]
   end
 
-  deffixture processor_filled(processor_empty, exit_events, contract_statuses, in_flight_exit_events) do
-    {state, _} = Core.new_exits(processor_empty, exit_events, contract_statuses)
-    {state, _} = Core.new_in_flight_exits(state, in_flight_exit_events)
+  deffixture processor_filled(
+               processor_empty,
+               exit_events,
+               contract_exit_statuses,
+               in_flight_exit_events,
+               contract_ife_statuses
+             ) do
+    {state, _} = Core.new_exits(processor_empty, exit_events, contract_exit_statuses)
+    {state, _} = Core.new_in_flight_exits(state, in_flight_exit_events, contract_ife_statuses)
     state
   end
 
-  defp build_in_flight_exit(%{tx_bytes: bytes, signatures: signs, timestamp: timestamp}) do
+  defp build_in_flight_exit(%{tx_bytes: bytes, signatures: signs}, {timestamp, _, _, _}) do
     {:ok, raw_tx} = Transaction.decode(bytes)
 
     signed_tx = %Transaction.Signed{
@@ -170,21 +181,21 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     {Transaction.hash(raw_tx), %InFlightExitInfo{tx: signed_tx, timestamp: timestamp}}
   end
 
-#  defp build_competitor(%{
-#         call_data: %{
-#           competing_tx: tx_bytes,
-#           competing_tx_input_index: input_index,
-#           competing_tx_sig: signature
-#         }
-#       }) do
-#    CompetitorInfo.build_competitor(tx_bytes, input_index, signature)
-#  end
+  #  defp build_competitor(%{
+  #         call_data: %{
+  #           competing_tx: tx_bytes,
+  #           competing_tx_input_index: input_index,
+  #           competing_tx_sig: signature
+  #         }
+  #       }) do
+  #    CompetitorInfo.build_competitor(tx_bytes, input_index, signature)
+  #  end
 
-  @tag fixtures: [:processor_empty, :exit_events, :contract_statuses]
+  @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
   test "persist started exits and loads persisted on init", %{
     processor_empty: empty,
     exit_events: events,
-    contract_statuses: contract_statuses
+    contract_exit_statuses: contract_statuses
   } do
     values = Enum.map(events, &(Map.put(&1, :is_active, true) |> Map.delete(:utxo_pos)))
     updates = Enum.zip([[:put, :put], [:exit_info, :exit_info], Enum.zip([@update_key1, @update_key2], values)])
@@ -221,9 +232,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     processor_filled: filled
   } do
     assert {^empty, []} = Core.new_exits(empty, [], [])
-    assert {^empty, []} = Core.new_in_flight_exits(empty, [])
+    assert {^empty, []} = Core.new_in_flight_exits(empty, [], [])
     assert {^filled, []} = Core.new_exits(filled, [], [])
-    assert {^filled, []} = Core.new_in_flight_exits(filled, [])
+    assert {^filled, []} = Core.new_in_flight_exits(filled, [], [])
 
     assert {^filled, []} = Core.finalize_exits(filled, {[], []})
   end
@@ -267,12 +278,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> Core.invalid_exits(processor, 12, @late_blknum)
   end
 
-  @tag fixtures: [:processor_empty, :state_alice_deposit, :exit_events, :contract_statuses]
+  @tag fixtures: [:processor_empty, :state_alice_deposit, :exit_events, :contract_exit_statuses]
   test "can work with State to determine valid exits and finalize them", %{
     processor_empty: processor,
     state_alice_deposit: state,
     exit_events: [one_exit | _],
-    contract_statuses: [one_status | _]
+    contract_exit_statuses: [one_status | _]
   } do
     {processor, _} =
       processor
@@ -297,12 +308,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert [] = Core.get_exiting_utxo_positions(processor)
   end
 
-  @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_statuses]
+  @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
   test "can work with State to determine and notify invalid exits", %{
     processor_empty: processor,
     state_empty: state,
     exit_events: [one_exit | _],
-    contract_statuses: [one_status | _]
+    contract_exit_statuses: [one_status | _]
   } do
     exiting_position = Utxo.Position.encode(@utxo_pos1)
 
@@ -317,11 +328,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> Core.invalid_exits(processor, 5, @late_blknum)
   end
 
-  @tag fixtures: [:processor_empty, :exit_events, :contract_statuses]
+  @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
   test "can challenge exits, which are then forgotten completely", %{
     processor_empty: processor,
     exit_events: events,
-    contract_statuses: contract_statuses
+    contract_exit_statuses: contract_statuses
   } do
     {processor, _} =
       processor
@@ -340,12 +351,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert [] = processor |> Core.get_exiting_utxo_positions()
   end
 
-  @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_statuses]
+  @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
   test "can work with State to determine invalid exits entered too late", %{
     processor_empty: processor,
     state_empty: state,
     exit_events: [one_exit | _],
-    contract_statuses: [one_status | _]
+    contract_exit_statuses: [one_status | _]
   } do
     exiting_position = Utxo.Position.encode(@utxo_pos1)
 
@@ -406,32 +417,36 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert %{} == Core.get_in_flight_exits(empty)
   end
 
-  @tag fixtures: [:processor_empty, :in_flight_exit_events, :in_flight_exits]
+  @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses, :in_flight_exits]
   test "properly processes new in flight exits", %{
     processor_empty: empty,
     in_flight_exit_events: events,
+    contract_ife_statuses: statuses,
     in_flight_exits: ifes
   } do
-    {updated_state, _} = Core.new_in_flight_exits(empty, events)
+    {updated_state, _} = Core.new_in_flight_exits(empty, events, statuses)
 
     assert ifes |> Map.new() == Core.get_in_flight_exits(updated_state)
   end
 
-  @tag fixtures: [:processor_empty, :in_flight_exit_events, :in_flight_exits]
+  @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses, :in_flight_exits]
   test "persists in flight exits and loads persisted on init", %{
     processor_empty: empty,
     in_flight_exit_events: events,
+    contract_ife_statuses: statuses,
     in_flight_exits: ifes
   } do
     updates = Enum.map(ifes, &InFlightExitInfo.make_db_update/1)
     update1 = Enum.slice(updates, 0, 1)
     update2 = Enum.slice(updates, 1, 1)
 
-    assert {updated_state, ^update1} = Core.new_in_flight_exits(empty, Enum.slice(events, 0, 1))
+    assert {updated_state, ^update1} =
+             Core.new_in_flight_exits(empty, Enum.slice(events, 0, 1), Enum.slice(statuses, 0, 1))
 
-    assert {final_state, ^updates} = Core.new_in_flight_exits(empty, events)
+    assert {final_state, ^updates} = Core.new_in_flight_exits(empty, events, statuses)
 
-    assert {^final_state, ^update2} = Core.new_in_flight_exits(updated_state, Enum.slice(events, 1, 1))
+    assert {^final_state, ^update2} =
+             Core.new_in_flight_exits(updated_state, Enum.slice(events, 1, 1), Enum.slice(statuses, 1, 1))
 
     {:ok, ^final_state} = Core.init([], ifes)
   end

@@ -314,13 +314,10 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp get_in_flight_data(hash) do
-    {:ok, eth_tx} = Ethereumex.HttpClient.eth_get_transaction_by_hash(hash)
-    {:ok, eth_block} = Ethereumex.HttpClient.eth_get_block_by_number(eth_tx["blockHash"], false)
-
     [bytes, _input_txs, _inputs_inclusion_proofs, signatures] =
       Eth.get_call_data(hash, "startInFlightExit(bytes,bytes,bytes,bytes)")
 
-    %{tx_bytes: bytes, signatures: signatures, timestamp: from_hex(eth_block["timestamp"])}
+    %{tx_bytes: bytes, signatures: signatures}
   end
 
   defp decode_exit_finalized(log) do
@@ -341,36 +338,36 @@ defmodule OMG.Eth.RootChain do
     decode_exit_finalized(log)
   end
 
-#  defp decode_in_flight_exit_challenged(log) do
-#    non_indexed_keys = [:tx_hash, :competitor_position]
-#    non_indexed_key_types = [{:byte, 32}, {:uint, 256}]
-#    indexed_keys = [:challenger]
-#    indexed_keys_types = [:address]
-#
-#    Eth.parse_events_with_indexed_fields(
-#      log,
-#      {non_indexed_keys, non_indexed_key_types},
-#      {indexed_keys, indexed_keys_types}
-#    )
-#  end
-#
-#  defp get_in_flight_exit_challenged_data(hash) do
-#    [
-#      _in_flight_tx,
-#      _in_flight_input_index,
-#      competing_tx,
-#      competing_tx_input_index,
-#      _competing_tx_id,
-#      _competing_tx_inclusion_proof,
-#      competing_tx_sig
-#    ] = Eth.get_call_data(hash, "challengeInFlightExitNotCanonical(bytes,uint8,bytes,uint8,uint256,bytes,bytes)")
-#
-#    %{
-#      competing_tx: competing_tx,
-#      competing_tx_input_index: competing_tx_input_index,
-#      competing_tx_sig: competing_tx_sig
-#    }
-#  end
+  #  defp decode_in_flight_exit_challenged(log) do
+  #    non_indexed_keys = [:tx_hash, :competitor_position]
+  #    non_indexed_key_types = [{:byte, 32}, {:uint, 256}]
+  #    indexed_keys = [:challenger]
+  #    indexed_keys_types = [:address]
+  #
+  #    Eth.parse_events_with_indexed_fields(
+  #      log,
+  #      {non_indexed_keys, non_indexed_key_types},
+  #      {indexed_keys, indexed_keys_types}
+  #    )
+  #  end
+  #
+  #  defp get_in_flight_exit_challenged_data(hash) do
+  #    [
+  #      _in_flight_tx,
+  #      _in_flight_input_index,
+  #      competing_tx,
+  #      competing_tx_input_index,
+  #      _competing_tx_id,
+  #      _competing_tx_inclusion_proof,
+  #      competing_tx_sig
+  #    ] = Eth.get_call_data(hash, "challengeInFlightExitNotCanonical(bytes,uint8,bytes,uint8,uint256,bytes,bytes)")
+  #
+  #    %{
+  #      competing_tx: competing_tx,
+  #      competing_tx_input_index: competing_tx_input_index,
+  #      competing_tx_sig: competing_tx_sig
+  #    }
+  #  end
 
   ########################
   # MISC #
