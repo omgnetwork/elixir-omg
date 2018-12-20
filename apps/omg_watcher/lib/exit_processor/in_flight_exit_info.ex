@@ -30,7 +30,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     exit_map: 0..7 |> Enum.map(&{&1, %{is_piggybacked: false, is_finalized: false}}) |> Map.new(),
     oldest_competitor: 0,
     is_canonical: true,
-    is_finalized: false
+    is_active: true
   ]
 
   @type t :: %__MODULE__{
@@ -38,14 +38,12 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           tx_pos: Utxo.Position.t(),
           timestamp: non_neg_integer(),
           exit_map: %{non_neg_integer() => %{is_piggybacked: boolean(), is_finalized: boolean()}},
-          timestamp: non_neg_integer(),
-          exit_map: binary(),
           oldest_competitor: non_neg_integer(),
           is_canonical: boolean(),
-          is_finalized: boolean()
+          is_active: boolean()
         }
 
-  def build_in_flight_transaction_info(tx_bytes, tx_signatures, timestamp) do
+  def build_in_flight_transaction_info(tx_bytes, tx_signatures, timestamp, is_active) do
     with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
       signed_tx_map = %{
         raw_tx: raw_tx,
@@ -56,7 +54,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
         Transaction.hash(raw_tx),
         %__MODULE__{
           tx: struct(Transaction.Signed, signed_tx_map),
-          timestamp: timestamp
+          timestamp: timestamp,
+          is_active: is_active
         }
       }
     end

@@ -79,7 +79,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       new_exits
       |> Enum.zip(exit_contract_statuses)
       |> Enum.map(fn {%{utxo_pos: utxo_pos} = exit_info, contract_status} ->
-        is_active = parse_contract_status(contract_status)
+        is_active = parse_contract_exit_status(contract_status)
         map_exit_info = exit_info |> Map.delete(:utxo_pos) |> Map.put(:is_active, is_active)
         {Utxo.Position.decode(utxo_pos), struct(ExitInfo, map_exit_info)}
       end)
@@ -93,19 +93,27 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {%{state | exits: Map.merge(exits, new_exits_map)}, db_updates}
   end
 
-  defp parse_contract_status({@zero_address, _contract_token, _contract_amount}), do: false
-  defp parse_contract_status({_contract_owner, _contract_token, _contract_amount}), do: true
+  defp parse_contract_exit_status({@zero_address, _contract_token, _contract_amount}), do: false
+  defp parse_contract_exit_status({_contract_owner, _contract_token, _contract_amount}), do: true
 
   # TODO: docs, spec
   @doc """
 
   """
-  #  @spec new_in_flight_exits(t(), [map()]) :: t() | {:error, :unexpected_events}
-  def new_in_flight_exits(%{in_flight_exits: ifes} = state, new_ifes_events) do
+  @spec new_in_flight_exits(t(), list(map()), list(map())) :: t() | {:error, :unexpected_events}
+  def new_in_flight_exits(state, new_ifes_events, contract_statuses)
+
+  def new_in_flight_exits(_state, new_ifes_events, contract_statuses)
+      when length(new_ifes_events) != length(contract_statuses),
+      do: {:error, :unexpected_events}
+
+  def new_in_flight_exits(%__MODULE__{in_flight_exits: ifes} = state, new_ifes_events, contract_statuses) do
     new_ifes_kv_pairs =
       new_ifes_events
-      |> Enum.map(fn %{tx_bytes: tx_bytes, signatures: signatures, timestamp: timestamp} ->
-        InFlightExitInfo.build_in_flight_transaction_info(tx_bytes, signatures, timestamp)
+      |> Enum.zip(contract_statuses)
+      |> Enum.map(fn {%{tx_bytes: tx_bytes, signatures: signatures}, {timestamp, _, _, _} = contract_status} ->
+        is_active = parse_contract_in_flight_exit_status(contract_status)
+        InFlightExitInfo.build_in_flight_transaction_info(tx_bytes, signatures, timestamp, is_active)
       end)
 
     db_updates =
@@ -116,6 +124,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     {%{state | in_flight_exits: Map.merge(ifes, new_ifes)}, db_updates}
   end
+
+  defp parse_contract_in_flight_exit_status({timestamp, _exit_map, _bond_owner, _oldest_competitor}), do: timestamp != 0
 
   @doc """
   Finalize exits based on Ethereum events, removing from tracked state if valid.
