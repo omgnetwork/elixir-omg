@@ -229,7 +229,11 @@ defmodule OMG.API.State.TransactionTest do
         {alice, 4}
       ])
 
-    :ok = Transaction.Recovered.all_spenders_authorized?(authorized_tx, [bob.addr, alice.addr])
+    :ok = Transaction.Recovered.all_spenders_authorized?(authorized_tx, [alice.addr, bob.addr])
+
+    {:error, :unauthorized_spent} =
+      Transaction.Recovered.all_spenders_authorized?(authorized_tx, [bob.addr, alice.addr])
+
     {:error, :unauthorized_spent} = Transaction.Recovered.all_spenders_authorized?(authorized_tx, [carol.addr])
 
     {:error, :unauthorized_spent} =

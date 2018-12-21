@@ -38,7 +38,10 @@ defmodule OMG.API.CoreTest do
 
       encoded_signed_tx = TestHelper.create_encoded(inputs, eth(), [{alice, 7}, {bob, 3}])
 
-      spenders = Enum.map(inputs, fn {_, _, _, spender} -> spender.addr end)
+      spenders =
+        inputs
+        |> Enum.filter(fn {_, _, _, %{addr: addr}} -> addr != nil end)
+        |> Enum.map(fn {_, _, _, spender} -> spender.addr end)
 
       assert {:ok,
               %Transaction.Recovered{
@@ -49,8 +52,8 @@ defmodule OMG.API.CoreTest do
 
     [
       [{1, 2, 3, alice}, {2, 3, 4, bob}],
-      [{1, 2, 3, alice}, {0, 0, 0, alice}],
-      [{0, 0, 0, bob}, {2, 3, 4, bob}]
+      [{1, 2, 3, alice}, {0, 0, 0, %{priv: <<>>, addr: nil}}],
+      [{0, 0, 0, %{priv: <<>>, addr: nil}}, {2, 3, 4, bob}]
     ]
     |> Enum.map(parametrized_tester)
   end
