@@ -29,7 +29,7 @@ defmodule OMG.RPC.Web.Controller.Block do
   def get_block(conn, params) do
     with {:ok, hex_str} <- Map.fetch(params, "hash"),
          {:ok, hash} <- Base.decode16(hex_str, case: :mixed),
-         {:ok, block} <- @api_module.get_block(hash) do
+         {:ok, block} <- apply(@api_module, :get_block, [hash]) do
       render(conn, View.Block, :block, block: block)
     end
   end
