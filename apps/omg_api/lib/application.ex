@@ -32,8 +32,8 @@ defmodule OMG.API.Application do
       {
         OMG.API.RootChainCoordinator,
         %{
-          :depositor => %{sync_mode: :sync_with_coordinator},
-          :exiter => %{sync_mode: :sync_with_coordinator}
+          depositor: %{sync_mode: :sync_with_coordinator},
+          exiter: %{sync_mode: :sync_with_coordinator}
         }
       },
       %{

@@ -49,7 +49,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
     decode16(data, ["txbytes", "sig"])
   end
 
-  def assert_block_getter_down do
+  def wait_for_block_getter_down do
     :ok = wait_for_process(Process.whereis(OMG.Watcher.BlockGetter))
   end
 

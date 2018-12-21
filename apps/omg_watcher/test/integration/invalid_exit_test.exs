@@ -195,7 +195,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     assert capture_log(fn ->
              {:ok, _txhash} = Eth.RootChain.submit_block(<<0::256>>, nonce, 20_000_000_000)
 
-             IntegrationTest.assert_block_getter_down()
+             IntegrationTest.wait_for_block_getter_down()
            end) =~ inspect(:withholding)
 
     block_withholding_event =
@@ -209,7 +209,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     %{
       "txbytes" => txbytes,
       "proof" => proof,
-      "sigs" => sigs,
       "utxo_pos" => utxo_pos
     } = IntegrationTest.get_exit_data(deposit_blknum, 0, 0)
 
@@ -218,7 +217,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
         utxo_pos,
         txbytes,
         proof,
-        sigs,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
@@ -238,7 +236,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   end
 
   defp get_next_blknum_nonce(blknum) do
-    next_blknum = blknum + 1000
-    {next_blknum, trunc(next_blknum / 1000)}
+    child_block_interval = Application.fetch_env!(:omg_eth, :child_block_interval)
+    next_blknum = blknum + child_block_interval
+    {next_blknum, trunc(next_blknum / child_block_interval)}
   end
 end

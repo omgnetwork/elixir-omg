@@ -67,11 +67,11 @@ defmodule OMG.Watcher.Application do
       {
         OMG.API.RootChainCoordinator,
         %{
-          :depositor => %{sync_mode: :sync_with_coordinator},
-          :exit_processor => %{sync_mode: :sync_with_root_chain},
-          :exit_finalizer => %{sync_mode: :sync_with_coordinator},
-          :exit_challenger => %{sync_mode: :sync_with_root_chain},
-          OMG.Watcher.BlockGetter => %{sync_mode: :sync_with_coordinator}
+          OMG.Watcher.BlockGetter => %{sync_mode: :sync_with_coordinator},
+          depositor: %{sync_mode: :sync_with_coordinator},
+          exit_processor: %{sync_mode: :sync_with_root_chain},
+          exit_finalizer: %{sync_mode: :sync_with_coordinator},
+          exit_challenger: %{sync_mode: :sync_with_root_chain}
         }
       },
       %{

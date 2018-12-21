@@ -141,9 +141,9 @@ defmodule OMG.API.RootChainCoordinator.Core do
     {:sync, state.root_chain_height}
   end
 
-  defp all_services_checked_in?(state) do
+  defp all_services_checked_in?(%__MODULE__{configs_services: configs_services, services: services}) do
     sort = fn map -> map |> Map.keys() |> Enum.sort() end
-    sort.(configs_services_keys) == sort.(services_keys)
+    sort.(configs_services) == sort.(services)
   end
 
   defp sync_height(services) do

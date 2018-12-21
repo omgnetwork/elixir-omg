@@ -210,7 +210,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert capture_log(fn ->
              {:ok, _txhash} = Eth.RootChain.submit_block(different_hash, 1, 20_000_000_000)
 
-             IntegrationTest.assert_block_getter_down()
+             IntegrationTest.wait_for_block_getter_down()
            end) =~ inspect(:incorrect_hash)
 
     invalid_block_event =
@@ -246,7 +246,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert capture_log(fn ->
              {:ok, _txhash} = Eth.RootChain.submit_block(invalid_block_hash, 1, 20_000_000_000)
 
-             IntegrationTest.assert_block_getter_down()
+             IntegrationTest.wait_for_block_getter_down()
            end) =~ inspect(:tx_execution)
 
     invalid_block_event =
@@ -303,7 +303,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
 
     assert capture_log(fn ->
-             IntegrationTest.assert_block_getter_down()
+             IntegrationTest.wait_for_block_getter_down()
            end) =~ inspect(:unchallenged_exit)
 
     unchallenged_exit_event =
