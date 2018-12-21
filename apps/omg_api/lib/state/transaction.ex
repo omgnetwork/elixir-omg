@@ -206,10 +206,9 @@ defmodule OMG.API.State.Transaction do
 
   def get_filled_inputs_and_outputs(%__MODULE__{inputs: inputs, outputs: outputs}),
     do: [
-      # contract expects 4 inputs
+      # contract expects 4 inputs and outputs
       Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
         List.duplicate([0, 0, 0], 4 - length(inputs)),
-      # fcontract expects 4 outputs
       Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
         List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs))
     ]

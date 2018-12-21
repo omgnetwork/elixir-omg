@@ -174,6 +174,23 @@ defmodule OMG.Eth.RootChain do
     Eth.call_contract(contract, "hasToken(address)", [token], [:bool])
   end
 
+  def in_flight_exit(
+        in_flight_tx,
+        input_txs,
+        input_txs_inclusion_proofs,
+        in_flight_tx_sigs,
+        from,
+        bond,
+        contract \\ nil
+      ) do
+    opts = @tx_defaults |> Keyword.merge(value: bond)
+
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "startInFlightExit(bytes,bytes,bytes,bytes)"
+    args = [in_flight_tx, input_txs, input_txs_inclusion_proofs, in_flight_tx_sigs]
+    Eth.contract_transact(from, contract, signature, args, opts)
+  end
+
   ########################
   # EVENTS #
   ########################
@@ -208,6 +225,14 @@ defmodule OMG.Eth.RootChain do
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &decode_exit_started/1)}
+  end
+
+  def get_in_flight_exits(block_from, block_to, contract \\ nil) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "InFlightExitStarted(address,bytes32)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, &decode_in_flight_exit/1)}
   end
 
   @doc """
@@ -249,6 +274,19 @@ defmodule OMG.Eth.RootChain do
     non_indexed_keys = [:utxo_pos, :amount, :currency]
     non_indexed_key_types = [{:uint, 256}, {:uint, 256}, :address]
     indexed_keys = [:owner]
+    indexed_keys_types = [:address]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  defp decode_in_flight_exit(log) do
+    non_indexed_keys = [:txhash]
+    non_indexed_key_types = [{:bytes, 32}]
+    indexed_keys = [:initiator]
     indexed_keys_types = [:address]
 
     Eth.parse_events_with_indexed_fields(

@@ -49,6 +49,12 @@ defmodule OMG.Watcher.Integration.TestHelper do
     decode16(data, ["txbytes", "sig"])
   end
 
+  def get_in_flight_exit(transaction) do
+    exit_data = success?("transaction.get_in_flight_exit_data", %{transaction: transaction})
+
+    decode16(exit_data, ["in_flight_tx", "in_flight_tx_sigs", "input_txs", "input_txs_inclusion_proofs"])
+  end
+
   def wait_for_block_getter_down do
     :ok = wait_for_process(Process.whereis(OMG.Watcher.BlockGetter))
   end

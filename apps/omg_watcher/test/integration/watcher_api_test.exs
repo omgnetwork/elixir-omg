@@ -21,6 +21,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
   alias OMG.API
   alias OMG.API.Crypto
+  alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Eth
   alias OMG.RPC.Client
@@ -28,9 +29,12 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
   require Utxo
 
+  import Eth.Encoding
+
   @timeout 40_000
   @eth Crypto.zero_address()
   @eth_hex String.duplicate("00", 20)
+  @in_flight_exit_bond 31_415_926_535
 
   @moduletag :integration
 
@@ -131,5 +135,44 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
 
     assert [] == IntegrationTest.get_utxos(alice)
+  end
+
+  @tag fixtures: [:watcher_sandbox, :alice, :child_chain, :token, :alice_deposits]
+  test "in-flight exit data retruned by watcher http API produces a valid in-flight exit",
+       %{alice: alice, alice_deposits: {deposit_blknum, _}} do
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
+    {:ok, %{blknum: blknum, tx_index: txindex}} = Client.submit(tx)
+
+    IntegrationTest.wait_for_block_fetch(blknum, @timeout)
+
+    %Transaction.Signed{raw_tx: raw_in_flight_tx} =
+      in_flight_tx =
+      API.TestHelper.create_signed([{blknum, txindex, 0, alice}, {blknum, txindex, 1, alice}], @eth, [{alice, 10}])
+
+    encoded_in_flight_tx = Transaction.Signed.encode(in_flight_tx)
+
+    %{
+      "in_flight_tx" => in_flight_tx,
+      "in_flight_tx_sigs" => in_flight_tx_sigs,
+      "input_txs" => input_txs,
+      "input_txs_inclusion_proofs" => input_txs_inclusion_proofs
+    } = IntegrationTest.get_in_flight_exit(encoded_in_flight_tx)
+
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+      OMG.Eth.RootChain.in_flight_exit(
+        in_flight_tx,
+        input_txs,
+        input_txs_inclusion_proofs,
+        in_flight_tx_sigs,
+        alice.addr,
+        @in_flight_exit_bond
+      )
+      |> Eth.DevHelpers.transact_sync!()
+
+    in_flight_tx_hash = Transaction.hash(raw_in_flight_tx)
+    alice_address = alice.addr
+
+    assert {:ok, [%{initiator: ^alice_address, txhash: ^in_flight_tx_hash}]} =
+             OMG.Eth.RootChain.get_in_flight_exits(0, eth_height)
   end
 end
