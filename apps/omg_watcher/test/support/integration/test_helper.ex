@@ -49,6 +49,10 @@ defmodule OMG.Watcher.Integration.TestHelper do
     decode16(data, ["txbytes", "sig"])
   end
 
+  def wait_for_block_getter_down do
+    :ok = wait_for_process(Process.whereis(OMG.Watcher.BlockGetter))
+  end
+
   def wait_for_block_fetch(block_nr, timeout) do
     fn ->
       Eth.WaitFor.repeat_until_ok(wait_for_block(block_nr))

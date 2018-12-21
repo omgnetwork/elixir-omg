@@ -20,9 +20,9 @@ defmodule OMG.API.EthereumEventListener do
 
   NOTE: this could and should at some point be implemented as a `@behavior` instead, to avoid using callbacks
   """
-
   alias OMG.API.EthereumEventListener.Core
   alias OMG.API.RootChainCoordinator
+
   use OMG.API.LoggerExt
 
   @type config() :: %{
