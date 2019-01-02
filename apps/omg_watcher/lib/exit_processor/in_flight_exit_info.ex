@@ -81,6 +81,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     end
   end
 
+  def challenge(%__MODULE__{} = ife, competitor_position) do
+    %{ife | is_canonical: false, oldest_competitor: competitor_position}
+  end
+
   defp can_be_piggybacked?(%{is_piggybacked: false, is_finalized: false}), do: true
   defp can_be_piggybacked?(_exit), do: false
 
@@ -114,6 +118,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     #    read_bit(bitmap, 8 + index + offset(type)) == 1
     true
   end
+
+  def is_canonical?(%__MODULE__{is_canonical: value}), do: value
 
   def is_active?(ife, type, index) do
     is_piggybacked?(ife, type, index) and not is_finalized?(ife, type, index)

@@ -24,9 +24,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Watcher.Event
+  alias OMG.Watcher.ExitProcessor.CompetitorInfo
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
-  alias OMG.Watcher.ExitProcessor.CompetitorInfo
 
   @default_sla_margin 10
   @zero_address Crypto.zero_address()
@@ -211,26 +211,37 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @spec challenge_in_flight_exits(t(), [map()]) :: {t(), list()}
   def challenge_in_flight_exits(%__MODULE__{in_flight_exits: ifes, competitors: competitors} = state, challenges_events) do
-    kv_challenges =
+    challenges =
       challenges_events
       |> Enum.map(fn %{
                        call_data: %{
-                         competing_tx: tx_bytes,
-                         competing_tx_input_index: input_index,
+                         competing_tx: competing_tx_bytes,
+                         competing_tx_input_index: competing_input_index,
                          competing_tx_sig: signature
                        }
                      } ->
-        CompetitorInfo.build_competitor(tx_bytes, input_index, signature)
+        CompetitorInfo.build_competitor(competing_tx_bytes, competing_input_index, signature)
       end)
 
-    new_competitors = kv_challenges |> Map.new()
+    new_competitors = challenges |> Map.new()
+    competitors_db_updates = challenges |> Enum.map(&CompetitorInfo.make_db_update/1)
 
-    updated_ifes = new_competitors
+    updated_ifes =
+      challenges_events
+      |> Enum.map(fn %{tx_hash: tx_hash, competitor_position: position} ->
+        updated_ife = ifes |> Map.fetch!(tx_hash) |> InFlightExitInfo.challenge(position)
+        {tx_hash, updated_ife}
+      end)
 
-    db_updates = kv_challenges |> Enum.map(&CompetitorInfo.make_db_update/1)
+    ife_db_updates = updated_ifes |> Enum.map(&InFlightExitInfo.make_db_update/1)
 
-    state = %{state | competitors: Map.merge(competitors, new_competitors)}
-    {state, db_updates}
+    state = %{
+      state
+      | competitors: Map.merge(competitors, new_competitors),
+        in_flight_exits: Map.merge(ifes, Map.new(updated_ifes))
+    }
+
+    {state, competitors_db_updates ++ ife_db_updates}
   end
 
   @doc """
@@ -308,5 +319,5 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp in_flight_exits(%__MODULE__{in_flight_exits: ifes}, []), do: ifes
 
-  defp in_flight_exits(hashes, %__MODULE__{in_flight_exits: ifes}), do: Map.take(ifes, hashes)
+  defp in_flight_exits(%__MODULE__{in_flight_exits: ifes}, hashes), do: Map.take(ifes, hashes)
 end
