@@ -615,4 +615,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   test "forgets challenged piggybacks" do
   end
+
+  test "can challenge two piggybacks at one call" do
+  end
 end
