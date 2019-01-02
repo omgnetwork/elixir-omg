@@ -24,7 +24,7 @@ defmodule OMG.Watcher.API.Transaction do
   """
   @spec get(binary()) :: nil | %DB.Transaction{}
   def get(transaction_id) do
-    DB.Transaction.get(transaction_id, true)
+    DB.Transaction.get(transaction_id)
   end
 
   @doc """

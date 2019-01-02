@@ -25,43 +25,59 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   @zero_address_hex String.duplicate("00", 20)
 
   describe "getting transaction by id" do
-    @tag fixtures: [:initial_blocks, :alice, :bob]
+    @tag fixtures: [:blocks_inserter, :alice, :bob]
     test "returns transaction in expected format", %{
-      initial_blocks: initial_blocks,
+      blocks_inserter: blocks_inserter,
       alice: alice,
       bob: bob
     } do
-      {blknum, txindex, txhash, _recovered_tx} = initial_blocks |> hd()
+      [{blknum, txindex, txhash, _recovered_tx}] =
+        blocks_inserter.([
+          {1000,
+           [
+             OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+           ]}
+        ])
 
-      %DB.Block{timestamp: timestamp, eth_height: eth_height} = DB.Block.get(blknum)
+      %DB.Block{timestamp: timestamp, eth_height: eth_height, hash: block_hash} = DB.Block.get(blknum)
       bob_addr = bob.addr |> TestHelper.to_response_address()
       alice_addr = alice.addr |> TestHelper.to_response_address()
       txhash = Base.encode16(txhash)
-      zero_addr = String.duplicate("0", 2 * 20)
-      zero_sign = String.duplicate("0", 2 * 65)
+      block_hash = Base.encode16(block_hash)
 
       assert %{
-               "txid" => ^txhash,
-               "txblknum" => ^blknum,
-               "txindex" => ^txindex,
-               "blknum1" => 1,
-               "txindex1" => 0,
-               "oindex1" => 0,
-               "blknum2" => 0,
-               "txindex2" => 0,
-               "oindex2" => 0,
-               "cur12" => ^zero_addr,
-               "newowner1" => ^bob_addr,
-               "amount1" => 300,
-               "newowner2" => ^zero_addr,
-               "amount2" => 0,
-               "sig1" => <<_sig1::binary-size(130)>>,
-               "sig2" => ^zero_sign,
-               "spender1" => ^alice_addr,
-               "spender2" => nil,
-               "eth_height" => ^eth_height,
-               "timestamp" => ^timestamp
+               "block" => %{
+                 "blknum" => ^blknum,
+                 "eth_height" => ^eth_height,
+                 "hash" => ^block_hash,
+                 "timestamp" => ^timestamp
+               },
+               "inputs" => [
+                 %{
+                   "amount" => 333,
+                   "blknum" => 1,
+                   "currency" => @zero_address_hex,
+                   "oindex" => 0,
+                   "owner" => ^alice_addr,
+                   "txindex" => 0
+                 }
+               ],
+               "outputs" => [
+                 %{
+                   "amount" => 300,
+                   "blknum" => 1000,
+                   "currency" => @zero_address_hex,
+                   "oindex" => 0,
+                   "owner" => ^bob_addr,
+                   "txindex" => 0
+                 }
+               ],
+               "txhash" => ^txhash,
+               "txbytes" => txbytes,
+               "txindex" => ^txindex
              } = TestHelper.success?("/transaction.get", %{"id" => txhash})
+
+      assert {:ok, _} = Base.decode16(txbytes, case: :mixed)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -75,201 +91,227 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
   end
 
-  describe "getting transactions by address" do
-    @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
+  describe "getting multiple transactions" do
+    @tag fixtures: [:initial_blocks]
+    test "returns multiple transactions in expected format", %{initial_blocks: initial_blocks} do
+      {blknum, txindex, txhash, _recovered_tx} = initial_blocks |> Enum.reverse() |> hd()
+
+      %DB.Block{timestamp: timestamp, eth_height: eth_height, hash: block_hash} = DB.Block.get(blknum)
+      txhash = Base.encode16(txhash)
+      block_hash = Base.encode16(block_hash)
+
+      assert [
+               %{
+                 "block" => %{
+                   "blknum" => ^blknum,
+                   "eth_height" => ^eth_height,
+                   "hash" => ^block_hash,
+                   "timestamp" => ^timestamp
+                 },
+                 "results" => [
+                   %{
+                     "currency" => @zero_address_hex,
+                     "value" => value
+                   }
+                 ],
+                 "txhash" => ^txhash,
+                 "txindex" => ^txindex
+               }
+               | _
+             ] = TestHelper.success?("/transaction.all")
+
+      assert is_integer(value)
+    end
+
+    @tag fixtures: [:blocks_inserter, :alice, :bob]
     test "returns tx that contains requested address as the sender and not recipient", %{
+      blocks_inserter: blocks_inserter,
       alice: alice,
       bob: bob
     } do
-      OMG.Watcher.DB.EthEvent.insert_deposits([
-        %{owner: alice.addr, currency: @eth, amount: 1, blknum: 1}
+      blocks_inserter.([
+        {1000,
+         [
+           OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+         ]}
       ])
 
-      txs = [
-        OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}]),
-        OMG.API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{bob, 300}])
-      ]
+      {:ok, address} = Crypto.encode_address(alice.addr)
 
-      alice_address = alice.addr |> TestHelper.to_response_address()
-      bob_address = bob.addr |> TestHelper.to_response_address()
-
-      expected_result = [
-        %{
-          "spender1" => alice_address,
-          "spender2" => nil,
-          "newowner1" => bob_address,
-          "newowner2" => @zero_address_hex,
-          "eth_height" => 1
-        }
-      ]
-
-      assert_transactions_filter_by_address_endpoint(txs, expected_result, alice)
+      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
+               TestHelper.success?("/transaction.all", %{"address" => address})
     end
 
-    @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
+    @tag fixtures: [:blocks_inserter, :alice, :bob, :carol]
+    test "returns only and all txs that match the address filtered", %{
+      blocks_inserter: blocks_inserter,
+      alice: alice,
+      bob: bob,
+      carol: carol
+    } do
+      blocks_inserter.([
+        {1000,
+         [
+           OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}]),
+           OMG.API.TestHelper.create_recovered([{2, 0, 0, bob}], @eth, [{bob, 300}]),
+           OMG.API.TestHelper.create_recovered([{1000, 1, 0, bob}], @eth, [{alice, 300}])
+         ]}
+      ])
+
+      {:ok, alice_addr} = Crypto.encode_address(alice.addr)
+      {:ok, carol_addr} = Crypto.encode_address(carol.addr)
+
+      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 2}, %{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
+               TestHelper.success?("/transaction.all", %{"address" => alice_addr})
+
+      assert [] = TestHelper.success?("/transaction.all", %{"address" => carol_addr})
+    end
+
+    @tag fixtures: [:blocks_inserter, :alice, :bob]
+    test "returns tx that contains requested address as the recipient and not sender", %{
+      blocks_inserter: blocks_inserter,
+      alice: alice,
+      bob: bob
+    } do
+      blocks_inserter.([
+        {1000,
+         [
+           OMG.API.TestHelper.create_recovered([{2, 0, 0, bob}], @eth, [{alice, 100}])
+         ]}
+      ])
+
+      {:ok, address} = Crypto.encode_address(alice.addr)
+
+      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
+               TestHelper.success?("/transaction.all", %{"address" => address})
+    end
+
+    @tag fixtures: [:blocks_inserter, :alice]
     test "returns tx that contains requested address as both sender & recipient is listed once", %{
-      alice: alice,
-      bob: bob
+      blocks_inserter: blocks_inserter,
+      alice: alice
     } do
-      txs = [
-        OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 300}]),
-        OMG.API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{bob, 300}])
-      ]
+      blocks_inserter.([
+        {1000,
+         [
+           OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 100}])
+         ]}
+      ])
 
-      alice_address = alice.addr |> TestHelper.to_response_address()
+      {:ok, address} = Crypto.encode_address(alice.addr)
 
-      expected_result = [
-        %{
-          "spender1" => alice_address,
-          "spender2" => nil,
-          "newowner1" => alice_address,
-          "newowner2" => @zero_address_hex,
-          "eth_height" => 1
-        }
-      ]
-
-      assert_transactions_filter_by_address_endpoint(txs, expected_result, alice)
+      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
+               TestHelper.success?("/transaction.all", %{"address" => address})
     end
 
-    @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
+    @tag fixtures: [:blocks_inserter, :alice]
     test "returns tx without inputs and contains requested address as recipient", %{
-      alice: alice,
-      bob: bob
+      blocks_inserter: blocks_inserter,
+      alice: alice
     } do
-      txs = [
-        OMG.API.TestHelper.create_recovered([], @eth, [{alice, 300}]),
-        OMG.API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{bob, 300}])
-      ]
+      blocks_inserter.([
+        {1000,
+         [
+           OMG.API.TestHelper.create_recovered([], @eth, [{alice, 10}])
+         ]}
+      ])
 
-      alice_address = alice.addr |> TestHelper.to_response_address()
+      {:ok, address} = Crypto.encode_address(alice.addr)
 
-      expected_result = [
-        %{
-          "spender1" => nil,
-          "spender2" => nil,
-          "newowner1" => alice_address,
-          "newowner2" => @zero_address_hex,
-          "eth_height" => 1
-        }
-      ]
-
-      assert_transactions_filter_by_address_endpoint(txs, expected_result, alice)
+      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
+               TestHelper.success?("/transaction.all", %{"address" => address})
     end
 
-    @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
+    @tag fixtures: [:blocks_inserter, :alice, :bob]
     test "returns tx without outputs (amount = 0) and contains requested address as sender", %{
+      blocks_inserter: blocks_inserter,
       alice: alice,
       bob: bob
     } do
-      OMG.Watcher.DB.EthEvent.insert_deposits([
-        %{owner: alice.addr, currency: @eth, amount: 1, blknum: 1}
+      blocks_inserter.([
+        {1000,
+         [
+           OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 0}])
+         ]}
       ])
 
-      txs = [
-        OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 0}]),
-        OMG.API.TestHelper.create_recovered([{1, 1, 0, bob}], @eth, [{bob, 300}])
-      ]
+      {:ok, address} = Crypto.encode_address(alice.addr)
 
-      alice_address = alice.addr |> TestHelper.to_response_address()
-      bob_address = bob.addr |> TestHelper.to_response_address()
-
-      expected_result = [
-        %{
-          "spender1" => alice_address,
-          "spender2" => nil,
-          "newowner1" => bob_address,
-          "newowner2" => @zero_address_hex,
-          "eth_height" => 1
-        }
-      ]
-
-      assert_transactions_filter_by_address_endpoint(txs, expected_result, alice)
+      assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
+               TestHelper.success?("/transaction.all", %{"address" => address})
     end
 
-    @tag fixtures: [:alice, :bob, :phoenix_ecto_sandbox]
-    test "returns last 2 transactions", %{
-      alice: alice,
-      bob: bob
+    @tag fixtures: [:alice, :blocks_inserter]
+    test "digests transactions correctly", %{
+      blocks_inserter: blocks_inserter,
+      alice: alice
     } do
-      OMG.Watcher.DB.EthEvent.insert_deposits([
-        %{owner: alice.addr, currency: @eth, amount: 3, blknum: 1}
+      not_eth = <<1::160>>
+      # after we serve addresses in consistent "0x...." format, this can be undone
+      "0x" <> not_eth_enc = Crypto.encode_address!(not_eth)
+
+      blocks_inserter.([
+        {1000, [OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 3}, {alice, not_eth, 4}])]}
       ])
 
-      txs = [
-        OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 3}]),
-        OMG.API.TestHelper.create_recovered([{1_000, 0, 0, bob}], @eth, [{alice, 2}]),
-        OMG.API.TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{bob, 1}])
-      ]
-
-      alice_address = alice.addr |> TestHelper.to_response_address()
-      bob_address = bob.addr |> TestHelper.to_response_address()
-
-      expected_result = [
-        %{
-          "spender1" => alice_address,
-          "spender2" => nil,
-          "newowner1" => bob_address,
-          "newowner2" => @zero_address_hex,
-          "eth_height" => 1
-        },
-        %{
-          "spender1" => bob_address,
-          "spender2" => nil,
-          "newowner1" => alice_address,
-          "newowner2" => @zero_address_hex,
-          "eth_height" => 1
-        }
-      ]
-
-      assert_transactions_filter_by_address_endpoint(txs, expected_result, bob, 2)
-    end
-
-    defp assert_transactions_filter_by_address_endpoint(
-           txs,
-           expected_result,
-           entity,
-           limit \\ 200
-         ) do
-      {:ok, _} =
-        DB.Transaction.update_with(%{
-          transactions: txs,
-          blknum: 1_000,
-          eth_height: 1,
-          blkhash: <<?#::256>>,
-          timestamp: :os.system_time(:second)
-        })
-
-      {:ok, address} = Crypto.encode_address(entity.addr)
-
-      txs = TestHelper.success?("/transaction.all", %{"address" => address, "limit" => limit})
-
-      assert expected_result ==
-               txs
-               |> Enum.map(&Map.take(&1, ["spender1", "spender2", "newowner1", "newowner2", "eth_height"]))
+      assert [
+               %{
+                 "results" => [
+                   %{"currency" => @zero_address_hex, "value" => 3},
+                   %{"currency" => ^not_eth_enc, "value" => 4}
+                 ]
+               }
+             ] = TestHelper.success?("/transaction.all", %{})
     end
   end
 
   describe "getting transactions with limit on number of transactions" do
-    @tag fixtures: [:initial_blocks]
-    test "limiting all transactions without address filter" do
-      txs = TestHelper.success?("/transaction.all", %{"limit" => 2})
+    @tag fixtures: [:alice, :bob, :blocks_inserter]
+    test "returns only limited list of transactions", %{
+      blocks_inserter: blocks_inserter,
+      alice: alice,
+      bob: bob
+    } do
+      blocks_inserter.([
+        {1000,
+         [
+           OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 3}]),
+           OMG.API.TestHelper.create_recovered([{1_000, 0, 0, bob}], @eth, [{bob, 2}])
+         ]},
+        {2000,
+         [
+           OMG.API.TestHelper.create_recovered([{1_000, 1, 0, bob}], @eth, [{alice, 1}])
+         ]}
+      ])
 
-      assert [
-               %{
-                 "txblknum" => 3000,
-                 "txindex" => 1,
-                 "eth_height" => 1,
-                 "timestamp" => 1_540_465_606
-               },
-               %{
-                 "txblknum" => 3000,
-                 "txindex" => 0,
-                 "eth_height" => 1,
-                 "timestamp" => 1_540_465_606
-               }
-             ] ==
-               txs
-               |> Enum.map(&Map.take(&1, ["txblknum", "txindex", "eth_height", "timestamp"]))
+      {:ok, address} = Crypto.encode_address(alice.addr)
+
+      assert [%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 1}] =
+               TestHelper.success?("/transaction.all", %{limit: 2})
+
+      assert [%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
+               TestHelper.success?("/transaction.all", %{address: address, limit: 2})
+    end
+
+    @tag fixtures: [:alice, :bob, :blocks_inserter]
+    test "limiting all transactions without address filter", %{
+      blocks_inserter: blocks_inserter,
+      alice: alice,
+      bob: bob
+    } do
+      blocks_inserter.([
+        {1000,
+         [
+           OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 3}]),
+           OMG.API.TestHelper.create_recovered([{1_000, 0, 0, bob}], @eth, [{alice, 2}])
+         ]},
+        {2000,
+         [
+           OMG.API.TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{bob, 1}])
+         ]}
+      ])
+
+      assert [_, _, _] = TestHelper.success?("/transaction.all", %{})
     end
   end
 end

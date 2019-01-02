@@ -52,45 +52,35 @@ defmodule OMG.Watcher.DB.Transaction do
     Gets a transaction specified by a hash.
     Optionally, fetches block which the transaction was included in.
   """
-  def get(hash, preload_block \\ false) do
-    query = from(__MODULE__, where: [txhash: ^hash])
-
-    query =
-      if preload_block do
-        from(query, preload: [:block])
-      else
-        query
-      end
+  def get(hash) do
+    query = from(__MODULE__, where: [txhash: ^hash], preload: [:block, :inputs, :outputs])
 
     DB.Repo.one(query)
   end
 
   def get_last(limit) do
-    query =
-      from(
-        __MODULE__,
-        order_by: [desc: :blknum, desc: :txindex],
-        limit: ^limit,
-        preload: [:block]
-      )
-
-    DB.Repo.all(query)
+    base_query_get_last(limit)
+    |> DB.Repo.all()
   end
 
   def get_by_address(address, limit) do
-    query =
-      from(
-        tx in __MODULE__,
-        distinct: true,
-        left_join: output in assoc(tx, :outputs),
-        left_join: input in assoc(tx, :inputs),
-        where: output.owner == ^address or input.owner == ^address,
-        order_by: [desc: tx.blknum, desc: tx.txindex],
-        limit: ^limit,
-        preload: [:block]
-      )
+    from(
+      tx in base_query_get_last(limit),
+      distinct: true,
+      left_join: output in assoc(tx, :outputs),
+      left_join: input in assoc(tx, :inputs),
+      where: output.owner == ^address or input.owner == ^address
+    )
+    |> DB.Repo.all()
+  end
 
-    DB.Repo.all(query)
+  defp base_query_get_last(limit) do
+    from(
+      __MODULE__,
+      order_by: [desc: :blknum, desc: :txindex],
+      limit: ^limit,
+      preload: [:block, :outputs]
+    )
   end
 
   def get_by_blknum(blknum) do

@@ -6,7 +6,7 @@ API specification of the Watcher's Informational Service
 ## Account - Get Balance
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:4000/account.get_balance -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.get_balance -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'
 ```
 
 ```elixir
@@ -53,7 +53,7 @@ address | Hex encoded string | Address of the funds owner
 ## Account - Get Utxos
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:4000/account.get_utxos -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea", "limit": 10}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.get_utxos -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea", "limit": 10}'
 ```
 
 ```elixir
@@ -101,7 +101,7 @@ limit | Integer | Maximum number of utxos to return (default 200)
 ## Account - Get Transactions
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:4000/account.get_transactions -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.get_transactions -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'
 ```
 
 ```elixir
@@ -120,15 +120,18 @@ curl -X POST -H "Content-Type: application/json" http://localhost:4000/account.g
     "success": true,
     "data": [
         {
-            "txindex": 12345,
+            "block": {
+                "timestamp": 1540365586,
+                "hash": "0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC",
+                "eth_height": 97424,
+                "blknum": 68290000
+            },
+            "txindex": 0,
             "txhash": "5DF13A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21",
-            "timestamp": 1540365586,
-            "eth_height": 97424,
-            "blknum": 68290000,
             "results": [
                 {
                     "currency": "0000000000000000000000000000000000000000",
-                    "value": -10000
+                    "value": 20000000
                 }
             ]
         }
@@ -154,7 +157,7 @@ limit | Integer | Maximum number of transactions to return (default 200)
 ## Transaction -  Get All
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:4000/transaction.all -d '{"block": "100", "limit": 50}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/transaction.all -d '{"block": "100", "limit": 50}'
 ```
 
 ```elixir
@@ -173,11 +176,14 @@ curl -X POST -H "Content-Type: application/json" http://localhost:4000/transacti
     "success": true,
     "data": [
         {
-            "txindex": 1,
+            "block": {
+                "timestamp": 1540365586,
+                "hash": "0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC",
+                "eth_height": 97424,
+                "blknum": 68290000
+            },
+            "txindex": 0,
             "txhash": "5DF13A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21",
-            "timestamp": 1540365586,
-            "eth_height": 97424,
-            "blknum": 68290000,
             "results": [
                 {
                     "currency": "0000000000000000000000000000000000000000",
@@ -186,11 +192,14 @@ curl -X POST -H "Content-Type: application/json" http://localhost:4000/transacti
             ]
         },
         {
+            "block": {
+                "timestamp": 1540365586,
+                "hash": "0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC",
+                "eth_height": 97424,
+                "blknum": 68290000
+            },
             "txindex": 1,
-            "txhash": "5DF13A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21",
-            "timestamp": 1540365586,
-            "eth_height": 97424,
-            "blknum": 68290000,
+            "txhash": "ACBD3A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21",
             "results": [
                 {
                     "currency": "12345...",
@@ -202,7 +211,11 @@ curl -X POST -H "Content-Type: application/json" http://localhost:4000/transacti
 }
 ```
 
-Gets all transactions (can be limited with various filters)
+Gets all transactions (can be limited with various filters).
+
+Digests the details of the transaction, by listing the value of outputs, aggregated by currency.
+Intended to be used when presenting the little details about multiple transactions.
+For all details queries to `/transaction.get` should be made using the transaction's hash provided.
 
 ### HTTP Request
 
@@ -221,7 +234,7 @@ limit | Integer | Maximum number of transactions to return (default 200)
 ## Transaction -  Get
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:4000/transaction.get -d '{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/transaction.get -d '{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
 ```
 
 ```elixir
@@ -247,7 +260,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:4000/transacti
                 "owner": "B3256026863EB6AE5B06FA396AB09069784EA8EA",
                 "oindex": 0,
                 "currency": "0000000000000000000000000000000000000000",
-                "blknum": 3000,
+                "blknum": 68290000,
                 "amount": 2
             },
             {
@@ -255,7 +268,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:4000/transacti
                 "owner": "AE8AE48796090BA693AF60B5EA6BE3686206523B",
                 "oindex": 1,
                 "currency": "0000000000000000000000000000000000000000",
-                "blknum": 1000,
+                "blknum": 68290000,
                 "amount": 7
             }
         ],
@@ -269,6 +282,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:4000/transacti
                 "amount": 10
             }
         ],
+        "txbytes": "B5C5BAC57BCA...",
         "block": {
             "timestamp": 1540365586,
             "hash": "0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC",
@@ -296,7 +310,7 @@ id | Hex encoded string | Hash of the Plasma transaction
 ## Block - Get all
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:4000/block.all -d '{"from_blknum": 68290001, "limit": 2}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/block.all -d '{"from_blknum": 68290001, "limit": 2}'
 ```
 
 ```elixir
@@ -349,7 +363,7 @@ from_blknum | Integer | The block number of the latest block in the list to be r
 ## Block - Get
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:4000/block.get -d '{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/block.get -d '{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
 ```
 
 ```elixir
@@ -386,5 +400,3 @@ Gets a block with the given id
 Attribute | Type | Description
 --------- | ------- | -----------
 id | Hex encoded string | Hash of the Plasma block
-
-
