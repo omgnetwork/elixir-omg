@@ -22,12 +22,17 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
 
+  @exit_range 0..7
+
   defstruct [
     :tx,
     :tx_pos,
     :timestamp,
     # piggybacking
-    exit_map: 0..7 |> Enum.map(&{&1, %{is_piggybacked: false, is_finalized: false}}) |> Map.new(),
+    exit_map:
+      @exit_range
+      |> Enum.map(&{&1, %{is_piggybacked: false, is_finalized: false}})
+      |> Map.new(),
     oldest_competitor: 0,
     is_canonical: true,
     is_active: true
@@ -37,7 +42,12 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           tx: Transaction.Signed.t(),
           tx_pos: Utxo.Position.t(),
           timestamp: non_neg_integer(),
-          exit_map: %{non_neg_integer() => %{is_piggybacked: boolean(), is_finalized: boolean()}},
+          exit_map: %{
+            non_neg_integer() => %{
+              is_piggybacked: boolean(),
+              is_finalized: boolean()
+            }
+          },
           oldest_competitor: non_neg_integer(),
           is_canonical: boolean(),
           is_active: boolean()
@@ -65,34 +75,54 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     {:put, :in_flight_exit_info, update}
   end
 
-  def piggyback(%__MODULE__{} = ife, index) do
-    with {:ok, exit} <- Map.fetch(ife.exit_map, index),
-         true <- can_be_piggybacked?(exit) do
-      updated_ife =
-        exit
-        |> Map.put(:is_piggybacked, true)
-        |> (&Map.put(ife.exit_map, index, &1)).()
-        |> (&Map.put(ife, :exit_map, &1)).()
+  @spec piggyback(t(), non_neg_integer()) :: {:ok, t()} | {:error, :non_existent_exit | :cannot_piggyback}
+  def piggyback(ife, index)
 
-      {:ok, updated_ife}
-    else
-      :error -> {:error, :non_existent_exit}
-      false -> {:error, :cannot_piggyback}
+  def piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when index in @exit_range do
+    with exit <- Map.get(exit_map, index),
+         {:ok, updated_exit} <- piggyback_exit(exit) do
+      {:ok, %{ife | exit_map: Map.merge(exit_map, %{index => updated_exit})}}
     end
   end
 
-  def challenge(%__MODULE__{} = ife, competitor_position) do
-    %{ife | is_canonical: false, oldest_competitor: competitor_position}
+  def piggyback(%__MODULE__{}, _), do: {:error, :non_existent_exit}
+
+  defp piggyback_exit(%{is_piggybacked: false, is_finalized: false}),
+    do: {:ok, %{is_piggybacked: true, is_finalized: false}}
+
+  defp piggyback_exit(_), do: {:error, :cannot_piggyback}
+
+  @spec challenge(t(), non_neg_integer()) :: {:ok, t()} | {:error, :cannot_challenge}
+  def challenge(ife, competitor_position)
+
+  def challenge(%__MODULE__{oldest_competitor: current_oldest} = ife, competitor_position)
+      when current_oldest > competitor_position or current_oldest == 0,
+      do: %{ife | is_canonical: false, oldest_competitor: competitor_position}
+
+  def challenge(%__MODULE__{}, _), do: {:error, :cannot_challenge}
+
+  @spec challenge_piggyback(t(), integer()) :: {:ok, t()} | {:error, :non_existent_exit | :cannot_challenge}
+  def challenge_piggyback(ife, index)
+
+  def challenge_piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when index in @exit_range do
+    with %{is_piggybacked: true, is_finalized: false} <- Map.get(exit_map, index) do
+      {:ok, %{ife | exit_map: Map.merge(exit_map, %{index => %{is_piggybacked: false, is_finalized: false}})}}
+    else
+      _ -> {:error, :cannot_challenge}
+    end
   end
 
-  defp can_be_piggybacked?(%{is_piggybacked: false, is_finalized: false}), do: true
-  defp can_be_piggybacked?(_exit), do: false
+  def challenge_piggyback(%__MODULE__{}, _), do: {:error, :non_existent_exit}
 
   def get_exiting_utxo_positions(%__MODULE__{is_canonical: false} = ife) do
     ife.inputs
     |> Enum.with_index()
     |> Enum.filter(&is_active?(ife, :input, elem(&1, 1)))
-    |> Enum.map(&(&1 |> elem(0) |> elem(0)))
+    |> Enum.map(
+      &(&1
+        |> elem(0)
+        |> elem(0))
+    )
   end
 
   def get_exiting_utxo_positions(ife = %__MODULE__{is_canonical: true, tx_pos: tx_pos}) when tx_pos != nil do
@@ -100,7 +130,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       ife.outputs
       |> Enum.with_index()
       |> Enum.filter(&is_active?(ife, :input, elem(&1, 1)))
-      |> Enum.map(&(&1 |> elem(1)))
+      |> Enum.map(
+        &(&1
+          |> elem(1))
+      )
 
     {:utxo_position, blknum, txindex, _} = tx_pos
     for pos <- active_outputs_offsets, do: {:utxo_position, blknum, txindex, pos}
@@ -110,8 +143,12 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     []
   end
 
-  def is_piggybacked?(%__MODULE__{exit_map: _map}, _type, _index) do
-    true
+  def is_piggybacked?(%__MODULE__{exit_map: map}, index) do
+    with {:ok, exit} <- Map.fetch(map, index) do
+      Map.get(exit, :is_piggybacked)
+    else
+      :error -> false
+    end
   end
 
   def is_finalized?(%__MODULE__{exit_map: _map}, _type, _index) do
@@ -121,10 +158,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def is_canonical?(%__MODULE__{is_canonical: value}), do: value
 
-  def is_active?(ife, type, index) do
-    is_piggybacked?(ife, type, index) and not is_finalized?(ife, type, index)
+  def is_active?(_ife, _type, _index) do
+    true
+    #    is_piggybacked?(ife, type, index) and not is_finalized?(ife, type, index)
   end
-
-  #  defp offset(:input), do: 0
-  #  defp offset(:output), do: 4
 end

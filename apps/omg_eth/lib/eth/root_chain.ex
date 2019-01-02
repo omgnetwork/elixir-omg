@@ -296,6 +296,17 @@ defmodule OMG.Eth.RootChain do
             end)}
   end
 
+  @doc """
+    Returns challenges of piggybacks from a range of block from Ethereum logs.
+  """
+  def get_piggybacks_challenges(block_from, block_to, contract \\ nil) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "InFlightExitOutputBlocked(address,bytes32,uint256)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, &decode_piggyback_challenged/1)}
+  end
+
   defp decode_deposit(log) do
     non_indexed_keys = [:amount]
     non_indexed_key_types = [{:uint, 256}]
@@ -362,6 +373,19 @@ defmodule OMG.Eth.RootChain do
 
   defp decode_in_flight_exit_challenged(log) do
     non_indexed_keys = [:tx_hash, :competitor_position]
+    non_indexed_key_types = [{:byte, 32}, {:uint, 256}]
+    indexed_keys = [:challenger]
+    indexed_keys_types = [:address]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  defp decode_piggyback_challenged(log) do
+    non_indexed_keys = [:tx_hash, :output_id]
     non_indexed_key_types = [{:byte, 32}, {:uint, 256}]
     indexed_keys = [:challenger]
     indexed_keys_types = [:address]

@@ -74,7 +74,8 @@ defmodule OMG.Watcher.Application do
           exit_challenger: %{sync_mode: :sync_with_root_chain},
           in_flight_exit_processor: %{sync_mode: :sync_with_root_chain},
           piggyback_processor: %{sync_mode: :sync_with_root_chain},
-          competitor_processor: %{sync_mode: :sync_with_root_chain}
+          competitor_processor: %{sync_mode: :sync_with_root_chain},
+          piggyback_challenges_processor: %{sync_mode: :sync_with_root_chain}
         }
       },
       %{
@@ -149,6 +150,21 @@ defmodule OMG.Watcher.Application do
                service_name: :competitor_processor,
                get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_challenges/2,
                process_events_callback: &OMG.Watcher.ExitProcessor.challenge_in_flight_exits/1,
+               get_last_synced_height_callback: &OMG.DB.last_exit_processor_eth_height/0
+             }
+           ]}
+      },
+      %{
+        id: :piggyback_challenges_processor,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               block_finality_margin: exit_finality_margin,
+               synced_height_update_key: :last_exit_processor_eth_height,
+               service_name: :piggyback_challenges_processor,
+               get_events_callback: &OMG.Eth.RootChain.get_piggybacks_challenges/2,
+               process_events_callback: &OMG.Watcher.ExitProcessor.challenge_piggybacks/1,
                get_last_synced_height_callback: &OMG.DB.last_exit_processor_eth_height/0
              }
            ]}

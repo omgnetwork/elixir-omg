@@ -107,7 +107,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
    Add new in flight exits from Ethereum events into tracked state.
   """
-  @spec new_in_flight_exits(t(), list(map()), list(map())) :: t() | {:error, :unexpected_events}
+  @spec new_in_flight_exits(t(), list(map()), list(map())) :: {t(), list()} | {:error, :unexpected_events}
   def new_in_flight_exits(state, new_ifes_events, contract_statuses)
 
   def new_in_flight_exits(_state, new_ifes_events, contract_statuses)
@@ -137,7 +137,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
     Add piggybacks from Ethereum events into tracked state.
   """
-  @spec new_piggybacks(t(), [{tx_hash(), output_offset()}]) :: t()
+  @spec new_piggybacks(t(), [{tx_hash(), output_offset()}]) :: {t(), list()}
   def new_piggybacks(%__MODULE__{in_flight_exits: ifes} = state, piggybacks) do
     updated_kv_pairs =
       piggybacks
@@ -242,6 +242,27 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     }
 
     {state, competitors_db_updates ++ ife_db_updates}
+  end
+
+  @spec challenge_piggybacks(t(), [map()]) :: {t(), list()}
+  def challenge_piggybacks(%__MODULE__{in_flight_exits: ifes} = state, challenges) do
+    ifes_to_update = challenges |> Enum.map(fn %{tx_hash: tx_hash} -> tx_hash end) |> (&Map.take(ifes, &1)).()
+
+    updated_ifes =
+      challenges
+      |> Enum.reduce(ifes_to_update, fn %{tx_hash: tx_hash, output_id: output_id}, acc ->
+        ife = Map.fetch!(acc, tx_hash)
+
+        with {:ok, updated_ife} <- InFlightExitInfo.challenge_piggyback(ife, output_id) do
+          %{acc | tx_hash => updated_ife}
+        else
+          _ -> acc
+        end
+      end)
+
+    db_updates = updated_ifes |> Map.to_list() |> Enum.map(&InFlightExitInfo.make_db_update/1)
+
+    {%{state | in_flight_exits: Map.merge(ifes, updated_ifes)}, db_updates}
   end
 
   @doc """

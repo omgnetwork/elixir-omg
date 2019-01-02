@@ -83,6 +83,15 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   @doc """
+  Accepts events and processes them in state.
+  Challenged piggybacks are forgotten.
+  Returns `db_updates` and relies on the caller to do persistence
+  """
+  def challenge_piggybacks(challenges) do
+    GenServer.call(__MODULE__, {:challenge_piggybacks, challenges})
+  end
+
+  @doc """
   Checks validity and causes event emission to `OMG.Watcher.Eventer`. Works with `OMG.API.State` to discern validity
   """
   def check_validity do
@@ -157,6 +166,11 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:challenge_in_flight_exits, challenges}, _from, state) do
     {new_state, db_updates} = Core.challenge_in_flight_exits(state, challenges)
+    {:reply, {:ok, db_updates}, new_state}
+  end
+
+  def handle_call({:challenge_piggybacks, challenges}, _from, state) do
+    {new_state, db_updates} = Core.challenge_piggybacks(state, challenges)
     {:reply, {:ok, db_updates}, new_state}
   end
 
