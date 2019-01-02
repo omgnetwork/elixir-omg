@@ -44,7 +44,7 @@ defmodule OMG.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "priority-queue-as-library",
+        branch: "master",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
