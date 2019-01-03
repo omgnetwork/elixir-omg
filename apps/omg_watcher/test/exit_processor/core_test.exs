@@ -518,33 +518,68 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   @tag fixtures: [:processor_filled, :in_flight_exits]
   test "persists new piggybacks", %{processor_filled: state, in_flight_exits: ifes} do
-    events = Enum.map(ifes, fn {id, _} -> {id, 0} end)
-
-    piggybacked =
-      Enum.map(
-        ifes,
-        fn {id, ife} ->
-          {:ok, piggybacked} = InFlightExitInfo.piggyback(ife, 0)
-          {id, piggybacked}
+    {piggybacked, events} =
+      ifes
+      |> Enum.reduce(
+        {[], []},
+        fn {id, ife}, {piggybacked, events} ->
+          {:ok, updated_ife} = InFlightExitInfo.piggyback(ife, 0)
+          {[{id, updated_ife} | piggybacked], [%{tx_hash: id, output_index: 0} | events]}
         end
       )
 
-    db_updates = Enum.map(piggybacked, &InFlightExitInfo.make_db_update/1)
+    expected_db_updates = Enum.map(piggybacked, &InFlightExitInfo.make_db_update/1)
+    {state, db_updates} = Core.new_piggybacks(state, events)
 
-    assert {state, ^db_updates} = Core.new_piggybacks(state, events)
+    # updates does not necessarily come in the same order as events
+    assert length(expected_db_updates) == length(db_updates)
+    assert db_updates -- expected_db_updates == []
 
     assert Map.new(piggybacked) == Core.get_in_flight_exits(state)
   end
 
   @tag fixtures: [:processor_filled, :in_flight_exits]
-  test "piggybacking sanity checks", %{processor_filled: state, in_flight_exits: [{ife_id, _} | _]} do
+  test "piggybacking sanity checks", %{processor_filled: state, in_flight_exits: [{ife_id, ife} | _]} do
     {^state, []} = Core.new_piggybacks(state, [])
-    {^state, []} = Core.new_piggybacks(state, [{0, 0}])
-    {^state, []} = Core.new_piggybacks(state, [{ife_id, 8}])
+    {^state, []} = Core.new_piggybacks(state, [%{tx_hash: 0, output_index: 0}])
+    {^state, []} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 8}])
 
     # cannot piggyback twice the same output
-    {updated_state, [_]} = Core.new_piggybacks(state, [{ife_id, 0}])
-    assert {updated_state, []} == Core.new_piggybacks(updated_state, [{ife_id, 0}])
+    {updated_state, [_]} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
+    assert {updated_state, []} == Core.new_piggybacks(updated_state, [%{tx_hash: ife_id, output_index: 0}])
+
+    # piggybacked outputs are considered as piggybacked
+    {:ok, piggybacked_ife} = InFlightExitInfo.piggyback(ife, 0)
+    assert InFlightExitInfo.is_piggybacked?(piggybacked_ife, 0)
+
+    # other outputs are considered as not piggybacked
+    assert 1..7
+           |> Enum.reduce(true, fn
+             index, true -> !InFlightExitInfo.is_piggybacked?(piggybacked_ife, index)
+             _, false -> false
+           end)
+  end
+
+  @tag fixtures: [:processor_filled, :in_flight_exits]
+  test "can piggyback two outputs at one call", %{processor_filled: state, in_flight_exits: ifes} do
+    events =
+      ifes
+      |> Enum.reduce([], fn {tx_hash, _}, acc ->
+        [%{tx_hash: tx_hash, output_index: 0}, %{tx_hash: tx_hash, output_index: 1} | acc]
+      end)
+
+    piggybacked =
+      ifes
+      |> Enum.map(fn {tx_hash, ife} ->
+        {:ok, tmp} = InFlightExitInfo.piggyback(ife, 0)
+        {:ok, updated} = InFlightExitInfo.piggyback(tmp, 1)
+        {tx_hash, updated}
+      end)
+
+    {state, db_updates} = Core.new_piggybacks(state, events)
+
+    assert Map.new(piggybacked) == Core.get_in_flight_exits(state)
+    assert length(db_updates) == length(piggybacked)
   end
 
   #  @tag fixtures: [:processor_empty, :alice, :in_flight_exit_events]
@@ -563,7 +598,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     {:ok, state} = Core.init([], ifes, [])
 
-    competitors = challenges_events |> Enum.map(&build_competitor/1)
+    competitors =
+      challenges_events
+      |> Enum.map(&build_competitor/1)
+
     updates = Enum.map(competitors, &CompetitorInfo.make_db_update/1)
 
     {updated_state, db_updates} = Core.challenge_in_flight_exits(state, Enum.slice(challenges_events, 0, 1))
@@ -572,18 +610,27 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     {final_state, db_updates} = Core.challenge_in_flight_exits(state, challenges_events)
 
-    assert Enum.reduce(updates, true, fn
-             update, true -> Enum.member?(db_updates, update)
-             _, false -> false
-           end)
+    # updates consists of competitors updates as well as ifes updates
+    assert Enum.reduce(
+             updates,
+             true,
+             fn
+               update, true -> Enum.member?(db_updates, update)
+               _, false -> false
+             end
+           )
 
     assert {^final_state, db_updates} =
              Core.challenge_in_flight_exits(updated_state, Enum.slice(challenges_events, 1, 2))
 
-    assert Enum.reduce(Enum.slice(updates, 1, 2), true, fn
-             update, true -> Enum.member?(db_updates, update)
-             _, false -> false
-           end)
+    assert Enum.reduce(
+             Enum.slice(updates, 1, 2),
+             true,
+             fn
+               update, true -> Enum.member?(db_updates, update)
+               _, false -> false
+             end
+           )
 
     {:ok, ^final_state} = Core.init([], challenged_ifes, competitors)
   end
@@ -597,10 +644,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     {state, updates} = Core.challenge_in_flight_exits(state, [challenge])
 
-    assert Enum.any?(updates, fn
-             {:put, :in_flight_exit_info, {^tx_hash, ife}} -> !InFlightExitInfo.is_canonical?(ife)
-             _ -> false
-           end)
+    assert Enum.any?(
+             updates,
+             fn
+               {:put, :in_flight_exit_info, {^tx_hash, ife}} -> !InFlightExitInfo.is_canonical?(ife)
+               _ -> false
+             end
+           )
 
     assert Core.get_in_flight_exits(state, [tx_hash])
            |> Map.get(tx_hash)
@@ -613,9 +663,69 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   test "competitors are found by competitor finder" do
   end
 
-  test "forgets challenged piggybacks" do
+  @tag fixtures: [:processor_filled, :in_flight_exits]
+  test "forgets challenged piggybacks", %{processor_filled: state, in_flight_exits: ifes} do
+    events =
+      ifes
+      |> Enum.map(fn {tx_hash, _} -> %{tx_hash: tx_hash, output_index: 0} end)
+
+    piggyback_events = challenge_events = events
+
+    {state_with_piggybacks, _} = Core.new_piggybacks(state, piggyback_events)
+    piggybacked_ifes = Core.get_in_flight_exits(state_with_piggybacks)
+
+    challenged_ifes =
+      piggybacked_ifes
+      |> Enum.map(fn {tx_hash, ife} ->
+        {:ok, challenged} = InFlightExitInfo.challenge_piggyback(ife, 0)
+        {tx_hash, challenged}
+      end)
+
+    expected_db_updates = challenged_ifes |> Enum.map(&InFlightExitInfo.make_db_update/1)
+
+    {final_state, db_updates} = Core.challenge_piggybacks(state_with_piggybacks, challenge_events)
+    assert Core.get_in_flight_exits(final_state) == Map.new(ifes)
+
+    # order of updates is not deterministic
+    assert length(db_updates) == length(expected_db_updates)
+    assert db_updates -- expected_db_updates == []
   end
 
-  test "can challenge two piggybacks at one call" do
+  @tag fixtures: [:in_flight_exits]
+  test "can challenge two piggybacks at one call", %{in_flight_exits: [ife | _]} do
+    {tx_hash, tmp} = ife
+    {:ok, tmp} = InFlightExitInfo.piggyback(tmp, 0)
+    {:ok, piggybacked_ife} = InFlightExitInfo.piggyback(tmp, 1)
+
+    {:ok, state} = Core.init([], [{tx_hash, piggybacked_ife}], [])
+
+    events = [%{tx_hash: tx_hash, output_index: 0}, %{tx_hash: tx_hash, output_index: 1}]
+
+    expected_db_updates = InFlightExitInfo.make_db_update(ife)
+
+    assert {final_state, [^expected_db_updates]} = Core.challenge_piggybacks(state, events)
+    assert Core.get_in_flight_exits(final_state) == Map.new([ife])
+  end
+
+  @tag fixtures: [:processor_filled, :in_flight_exits]
+  test "challenge piggybacks sanity checks", %{processor_filled: state, in_flight_exits: [{tx_hash, ife}, _]} do
+    # cannot challenge piggyback of unknown ife
+    assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: 0, output_index: 0}])
+
+    # cannot challenge not piggybacked output
+    assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: tx_hash, output_index: 0}])
+
+    # other sanity checks
+    assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: tx_hash, output_index: 8}])
+
+    # challenged piggyback is considered as not piggybacked
+    {:ok, piggybacked_ife} = InFlightExitInfo.piggyback(ife, 0)
+    {:ok, challenged} = InFlightExitInfo.challenge_piggyback(piggybacked_ife, 0)
+
+    assert 0..7
+           |> Enum.reduce(true, fn
+             index, true -> !InFlightExitInfo.is_piggybacked?(challenged, index)
+             _, false -> false
+           end)
   end
 end

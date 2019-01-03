@@ -403,7 +403,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_piggyback_challenged(log) do
-    non_indexed_keys = [:tx_hash, :output_id]
+    non_indexed_keys = [:tx_hash, :output_index]
     non_indexed_key_types = [{:byte, 32}, {:uint, 256}]
     indexed_keys = [:challenger]
     indexed_keys_types = [:address]

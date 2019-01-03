@@ -139,24 +139,35 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   """
   @spec new_piggybacks(t(), [{tx_hash(), output_offset()}]) :: {t(), list()}
   def new_piggybacks(%__MODULE__{in_flight_exits: ifes} = state, piggybacks) do
-    updated_kv_pairs =
+    ifes_to_update =
       piggybacks
-      |> Enum.filter(fn {id, _} -> Map.has_key?(ifes, id) end)
-      |> Enum.map(fn {ife_id, output} -> {ife_id, Map.get(ifes, ife_id), output} end)
-      |> Enum.map(fn {ife_id, ife, output} -> {ife_id, InFlightExitInfo.piggyback(ife, output)} end)
-      |> Enum.filter(fn
-        {_, {:ok, _updated_ife}} -> true
-        _ -> false
+      |> Enum.map(fn %{tx_hash: tx_hash} -> tx_hash end)
+      |> (&Map.take(ifes, &1)).()
+      # initialises all ifes as not updated
+      |> Enum.map(fn {key, value} -> {key, {value, false}} end)
+      |> Map.new()
+
+    updated_ifes =
+      piggybacks
+      |> Enum.reduce(ifes_to_update, fn %{tx_hash: tx_hash, output_index: index}, acc ->
+        with {:ok, {ife, _}} <- Map.fetch(acc, tx_hash),
+             {:ok, updated} <- InFlightExitInfo.piggyback(ife, index) do
+          # sets updated ife and flags it as changed
+          %{acc | tx_hash => {updated, true}}
+        else
+          # if impossible to piggyback - do nothing
+          _ -> acc
+        end
       end)
-      |> Enum.map(fn {ife_id, {:ok, updated_ife}} -> {ife_id, updated_ife} end)
+      |> Enum.reduce([], fn
+        {tx_hash, {ife, true}}, acc -> [{tx_hash, ife} | acc]
+        {_, {_, false}}, acc -> acc
+      end)
+      |> Map.new()
 
-    db_updates =
-      updated_kv_pairs
-      |> Enum.map(&InFlightExitInfo.make_db_update/1)
+    db_updates = Enum.map(updated_ifes, &InFlightExitInfo.make_db_update/1)
 
-    updated_ifes_map = Map.new(updated_kv_pairs)
-
-    {%{state | in_flight_exits: Map.merge(state.in_flight_exits, updated_ifes_map)}, db_updates}
+    {%{state | in_flight_exits: Map.merge(state.in_flight_exits, updated_ifes)}, db_updates}
   end
 
   @doc """
@@ -246,21 +257,32 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @spec challenge_piggybacks(t(), [map()]) :: {t(), list()}
   def challenge_piggybacks(%__MODULE__{in_flight_exits: ifes} = state, challenges) do
-    ifes_to_update = challenges |> Enum.map(fn %{tx_hash: tx_hash} -> tx_hash end) |> (&Map.take(ifes, &1)).()
+    ifes_to_update =
+      challenges
+      |> Enum.map(fn %{tx_hash: tx_hash} -> tx_hash end)
+      |> (&Map.take(ifes, &1)).()
+      # initialises all ifes as not updated
+      |> Enum.map(fn {key, value} -> {key, {value, false}} end)
+      |> Map.new()
 
     updated_ifes =
       challenges
-      |> Enum.reduce(ifes_to_update, fn %{tx_hash: tx_hash, output_id: output_id}, acc ->
-        ife = Map.fetch!(acc, tx_hash)
-
-        with {:ok, updated_ife} <- InFlightExitInfo.challenge_piggyback(ife, output_id) do
-          %{acc | tx_hash => updated_ife}
+      |> Enum.reduce(ifes_to_update, fn %{tx_hash: tx_hash, output_index: output_id}, acc ->
+        with {:ok, {ife, _}} <- Map.fetch(acc, tx_hash),
+             {:ok, updated_ife} <- InFlightExitInfo.challenge_piggyback(ife, output_id) do
+          # mark as updated
+          %{acc | tx_hash => {updated_ife, true}}
         else
           _ -> acc
         end
       end)
+      |> Enum.reduce([], fn
+        {tx_hash, {ife, true}}, acc -> [{tx_hash, ife} | acc]
+        _, acc -> acc
+      end)
+      |> Map.new()
 
-    db_updates = updated_ifes |> Map.to_list() |> Enum.map(&InFlightExitInfo.make_db_update/1)
+    db_updates = updated_ifes |> Enum.map(&InFlightExitInfo.make_db_update/1)
 
     {%{state | in_flight_exits: Map.merge(ifes, updated_ifes)}, db_updates}
   end
