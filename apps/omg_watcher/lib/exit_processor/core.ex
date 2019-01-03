@@ -156,7 +156,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           %{acc | tx_hash => {updated, true}}
         else
           # if impossible to piggyback - do nothing
-          _ -> acc
+          _ ->
+            acc
         end
       end)
       |> Enum.reduce([], fn

@@ -43,7 +43,8 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
   def build_competitor(tx_bytes, competing_input_index, competing_input_signature) do
     with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
       {Transaction.hash(raw_tx),
-       struct(__MODULE__,
+       struct(
+         __MODULE__,
          tx: raw_tx,
          competing_input_index: competing_input_index,
          competing_input_signature: competing_input_signature
