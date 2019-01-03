@@ -63,7 +63,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
 
     # Assert 1st spend challenge
     expected_output_id = Utxo.position(1000, 0, 0) |> Utxo.Position.encode()
-    expected_txbytes = tx_spending_1st_utxo.signed_tx_bytes
+    expected_txbytes = tx_spending_1st_utxo.raw_tx |> Transaction.encode()
 
     assert %{
              outputId: ^expected_output_id,
@@ -76,7 +76,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
 
     # Assert 2nd spend challenge
     expected_output_id = Utxo.position(1000, 0, 1) |> Utxo.Position.encode()
-    expected_txbytes = tx_spending_2nd_utxo.signed_tx_bytes
+    expected_txbytes = tx_spending_2nd_utxo.raw_tx |> Transaction.encode()
 
     assert %{
              outputId: ^expected_output_id,
