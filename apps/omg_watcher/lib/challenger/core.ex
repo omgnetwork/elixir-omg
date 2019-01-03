@@ -23,7 +23,6 @@ defmodule OMG.Watcher.Challenger.Core do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Watcher.Challenger.Challenge
-  alias OMG.Watcher.DB
 
   @doc """
   Creates a challenge for exiting utxo. Data is prepared that transaction contains only one input
@@ -59,11 +58,10 @@ defmodule OMG.Watcher.Challenger.Core do
   end
 
   @spec get_spending_transaction(Block.t(), Utxo.Position.t()) :: {non_neg_integer, Transaction.Signed.t()} | false
-  defp get_spending_transaction(%Block{transactions: txsbytes}, utxo_pos) do
-    txsbytes
+  defp get_spending_transaction(%Block{transactions: txs}, utxo_pos) do
+    txs
     |> Enum.map(&Transaction.Signed.decode/1)
-    |> Enum.with_index()
-    |> Enum.find_value(fn {{:ok, %Transaction.Signed{raw_tx: tx} = tx_signed}, txindex} ->
+    |> Enum.find_value(fn {:ok, %Transaction.Signed{raw_tx: tx} = tx_signed} ->
       inputs = Transaction.get_inputs(tx)
 
       if input_index = Enum.find_index(inputs, &(&1 == utxo_pos)) do
@@ -78,12 +76,12 @@ defmodule OMG.Watcher.Challenger.Core do
           {Crypto.address_t(), Transaction.t()} | :error | {:error, :malformed_transaction_rlp}
   defp get_creating_transaction(
          %Block{
-           transactions: txsbytes,
+           transactions: txs,
            number: blknum
          },
          Utxo.position(blknum, txindex, oindex)
        ) do
-    with {:ok, txbytes} <- Enum.fetch(txsbytes, txindex),
+    with {:ok, txbytes} <- Enum.fetch(txs, txindex),
          {:ok, %Transaction.Signed{raw_tx: tx}} = Transaction.Signed.decode(txbytes),
          outputs <- Transaction.get_outputs(tx),
          {:ok, %{owner: owner}} <- Enum.fetch(outputs, oindex) do

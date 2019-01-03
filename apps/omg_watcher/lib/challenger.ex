@@ -17,12 +17,10 @@ defmodule OMG.Watcher.Challenger do
   Manages challenges of exits
   """
 
-  alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Watcher.Challenger.Challenge
   alias OMG.Watcher.Challenger.Core
-  alias OMG.Watcher.DB
 
   @doc """
   Challenges exit.
