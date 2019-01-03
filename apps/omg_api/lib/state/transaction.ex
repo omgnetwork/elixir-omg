@@ -195,11 +195,11 @@ defmodule OMG.API.State.Transaction do
   defp parse_address(_), do: {:error, :malformed_address}
 
   def encode(transaction) do
-    preper_to_exrlp(transaction)
+    prepare_to_exrlp(transaction)
     |> ExRLP.encode()
   end
 
-  def preper_to_exrlp(%__MODULE__{inputs: inputs, outputs: outputs}),
+  def prepare_to_exrlp(%__MODULE__{inputs: inputs, outputs: outputs}),
     do: [
       # contract has fix size 4 inputs
       Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
