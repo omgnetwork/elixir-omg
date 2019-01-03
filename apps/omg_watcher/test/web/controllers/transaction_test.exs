@@ -123,6 +123,47 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert is_integer(value)
     end
 
+    @tag fixtures: [:blocks_inserter, :alice]
+    test "returns tx from a particular block", %{
+      blocks_inserter: blocks_inserter,
+      alice: alice
+    } do
+      blocks_inserter.([
+        {1000, [OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 300}])]},
+        {2000,
+         [
+           OMG.API.TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 300}]),
+           OMG.API.TestHelper.create_recovered([{2000, 1, 0, alice}], @eth, [{alice, 300}])
+         ]}
+      ])
+
+      assert [%{"block" => %{"blknum" => 2000}, "txindex" => 1}, %{"block" => %{"blknum" => 2000}, "txindex" => 0}] =
+               TestHelper.success?("/transaction.all", %{"block" => 2000})
+
+      assert [] = TestHelper.success?("/transaction.all", %{"block" => 3000})
+    end
+
+    @tag fixtures: [:blocks_inserter, :alice, :bob]
+    test "returns tx from a particular block that contains requested address as the sender", %{
+      blocks_inserter: blocks_inserter,
+      alice: alice,
+      bob: bob
+    } do
+      blocks_inserter.([
+        {1000, [OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 300}])]},
+        {2000,
+         [
+           OMG.API.TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 300}]),
+           OMG.API.TestHelper.create_recovered([{2, 0, 0, bob}], @eth, [{bob, 300}])
+         ]}
+      ])
+
+      {:ok, address} = Crypto.encode_address(bob.addr)
+
+      assert [%{"block" => %{"blknum" => 2000}, "txindex" => 1}] =
+               TestHelper.success?("/transaction.all", %{"address" => address, "block" => 2000})
+    end
+
     @tag fixtures: [:blocks_inserter, :alice, :bob]
     test "returns tx that contains requested address as the sender and not recipient", %{
       blocks_inserter: blocks_inserter,

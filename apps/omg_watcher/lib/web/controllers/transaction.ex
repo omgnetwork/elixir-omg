@@ -27,8 +27,6 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
 
   import OMG.Watcher.Web.ErrorHandler
 
-  @default_transactions_limit 200
-
   action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
   @doc """
@@ -48,12 +46,10 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   """
   def get_transactions(conn, params) do
     address = get_address(params)
-    limit = Map.get(params, "limit", @default_transactions_limit)
-    {limit, ""} = limit |> Kernel.to_string() |> Integer.parse()
-    # TODO: implement pagination. Defend against fetching huge dataset.
-    limit = min(limit, @default_transactions_limit)
+    limit = get_optional_int("limit", params)
+    blknum = get_optional_int("block", params)
 
-    transactions = Transaction.get_transactions(address, limit)
+    transactions = Transaction.get_transactions(address, blknum, limit)
 
     respond_multiple(transactions, conn)
   end
@@ -63,7 +59,18 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     address
   end
 
-  defp get_address(_), do: nil
+  defp get_address(%{}), do: nil
+
+  defp get_optional_int(key, %{} = params) do
+    case Map.get(params, key) do
+      nil ->
+        nil
+
+      value ->
+        {value, ""} = value |> Kernel.to_string() |> Integer.parse()
+        value
+    end
+  end
 
   defp respond_multiple(transactions, conn),
     do: render(conn, View.Transaction, :transactions, transactions: transactions)
