@@ -344,6 +344,8 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/block.all
 }
 ```
 
+**`/block.xxx` endpoints not implemented yet and might undergo design changes**:
+
 Gets all blocks (with a limit on the number of blocks to return).
 
 ### HTTP Request
@@ -388,6 +390,8 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/block.get
     }
 }
 ```
+
+**`/block.xxx` endpoints not implemented yet and might undergo design changes**:
 
 Gets a block with the given id
 
