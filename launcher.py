@@ -10,13 +10,10 @@ from retry import retry
 import requests
 
 
-RINKEBY_CONTRACT = [
-    'use Mix.Config',
-    'config :omg_eth,',
-    '  contract_addr: "0x98abd7229afac999fc7965bea7d94a3b5e7e0218",',
-    '  txhash_contract: "0x84a86f06b97e4c2d694ba507e7fcd8cf78adc4fbd596b1d3626ec7ba8242450d",', # noqa E501
-    '  authority_addr: "0xe5153ad259be60003909492b154bf4b7f1787f70"'
-]
+RINKEBY_CONTRACT = {}
+RINKEBY_CONTRACT['contract_addr'] = "0x98abd7229afac999fc7965bea7d94a3b5e7e0218" # noqa E501
+RINKEBY_CONTRACT['txhash_contract'] = "0x84a86f06b97e4c2d694ba507e7fcd8cf78adc4fbd596b1d3626ec7ba8242450d" # noqa E501
+RINKEBY_CONTRACT['authority_addr'] = "0xe5153ad259be60003909492b154bf4b7f1787f70" # noqa E501
 
 
 class ChildchainLauncher:
@@ -326,15 +323,21 @@ class WatcherLauncher:
         ''' Write the configuration from data retrieved from the contract
         exchanger
         '''
-        contract_data = json.loads(
-            self.get_contract_from_exchanger().decode('utf-8')
-        )
+        if self.ethereum_network in self.public_networks:
+            contract_data = self.contracts['RINKEBY']
+        else:
+            contract_data = json.loads(
+                self.get_contract_from_exchanger().decode('utf-8')
+            )
         config = [
             'use Mix.Config',
             'config :omg_eth,',
-            '  contract_addr: "{}",'.format(contract_data['contract_addr']),
-            '  txhash_contract: "{}",'.format(contract_data['txhash_contract']), # noqa E501
-            '  authority_addr: "{}"'.format(contract_data['authority_addr'])
+            '  contract_addr: "{}",'.format(
+                contract_data['contract_addr']),
+            '  txhash_contract: "{}",'.format(
+                contract_data['txhash_contract']),
+            '  authority_addr: "{}"'.format(
+                contract_data['authority_addr'])
         ]
         home = os.path.expanduser('~')
         with open(home + '/config_watcher.exs', 'w+') as mix:
@@ -348,12 +351,22 @@ class WatcherLauncher:
         ''' Write a config.exs to the homedir
         '''
         logging.info('Writing config_watcher.exs')
+        config = [
+            'use Mix.Config',
+            'config :omg_eth,',
+            '  contract_addr: "{}",'.format(
+                self.contracts[self.ethereum_network]['contract_addr']), # noqa E501
+            '  txhash_contract: "{}",'.format(
+                self.contracts[self.ethereum_network]['txhash_contract']), # noqa E501
+            '  authority_addr: "{}"'.format(
+                self.contracts[self.ethereum_network]['authority_addr']) # noqa E501
+        ]
         home = os.path.expanduser('~')
         with open(home + '/config_watcher.exs', 'w+') as mix:
-            for line in self.contracts[self.ethereum_network] + self.watcher_additional_config: # noqa E501
+            for line in config + self.watcher_additional_config: # noqa E501
                 mix.write(line)
                 mix.write('\n')
-        logging.info('Written config_watcher.exs')
+
         return True
 
     def initialise_watcher_postgres_database(self) -> bool:
