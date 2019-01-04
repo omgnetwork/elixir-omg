@@ -249,19 +249,16 @@ class WatcherLauncher:
         logging.info(
             'Starting launch process for build {}'.format(self.git_commit_hash)
         )
-        self.chain_data_present = False
-        self.check_chain_data_path()
         self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
         logging.info('Ethereum client is {}'.format(self.ethereum_client))
-        if self.chain_data_present is True:
-            self.config_writer_dynamic()
-            logging.info('Launcher process complete')
-            return
         if self.compile_application() is False:
             logging.critical('Could not compile application. Exiting.')
             sys.exit(1)
         if self.deploy_contract() is False:
             logging.critical('Contract not deployed. Exiting.')
+            sys.exit(1)
+        if self.initialise_watcher_chain_database() is False:
+            logging.critical('Could not initialise Watcher LevelDB instance')
             sys.exit(1)
         if self.initialise_watcher_postgres_database() is False:
             logging.critical(
@@ -270,15 +267,6 @@ class WatcherLauncher:
             sys.exit(1)
 
         logging.info('Launcher process complete')
-
-    def check_chain_data_path(self):
-        ''' Checks if the chain data is already present
-        '''
-        if os.path.exists(os.path.expanduser('~') + '/.omg/data_watcher'):
-            self.chain_data_present = True
-            logging.info('Childchain data found')
-        else:
-            logging.info('Childchain data not found')
 
     def compile_application(self) -> bool:
         ''' Execute a mix compile
@@ -392,6 +380,21 @@ class WatcherLauncher:
     def initialise_watcher_chain_database(self) -> bool:
         ''' Initialise the childchian database (chain data store)
         '''
+        remove_stale_data = subprocess.run(
+            "rm -Rf ~/.omg/data_watcher",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            shell=True
+        )
+        if not remove_stale_data.returncode == 0:
+            logging.warning(
+                'Could not delete Watcher LevelDB data! Error: {}'.format(
+                    remove_stale_data.stdout
+                )
+            )
+        else:
+            logging.info('Deleted Watcher LevelDB data')
+
         result = subprocess.run(
             "mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs", # noqa E501
             stdout=subprocess.PIPE,
