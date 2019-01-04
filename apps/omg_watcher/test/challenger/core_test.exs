@@ -87,4 +87,10 @@ defmodule OMG.Watcher.Challenger.CoreTest do
 
     assert_sig_belongs_to(bob_signature, tx_spending_2nd_utxo, bob)
   end
+
+  test "not spent or not existed utxo should be not challengeable" do
+    assert {:ok, 1000} == Core.ensure_challengeable?({:ok, 1000})
+    assert {:error, :utxo_not_spent} == Core.ensure_challengeable?({:ok, :not_found})
+    assert {:error, :db_other_error} == Core.ensure_challengeable?({:error, :db_other_error})
+  end
 end

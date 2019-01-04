@@ -48,6 +48,15 @@ defmodule OMG.Watcher.Challenger.Core do
     }
   end
 
+  @doc """
+  Checks whether database response is a block number which can be used to retrieve needed information to challenge.
+  """
+  @spec ensure_challengeable?(tuple()) :: {:ok, pos_integer()} | {:error, atom()}
+  def ensure_challengeable?(spending_blknum_response)
+  def ensure_challengeable?({:ok, :not_found}), do: {:error, :utxo_not_spent}
+  def ensure_challengeable?({:ok, blknum}) when is_integer(blknum), do: {:ok, blknum}
+  def ensure_challengeable?(error), do: error
+
   @spec get_creating_transaction(Block.t(), Utxo.Position.t()) :: Transaction.Signed.t()
   defp get_creating_transaction(
          %Block{
@@ -79,6 +88,7 @@ defmodule OMG.Watcher.Challenger.Core do
     txs
     |> Enum.map(&Transaction.Signed.decode/1)
     |> Enum.find_value(fn {:ok, %Transaction.Signed{raw_tx: tx} = tx_signed} ->
+      # `Enum.find_value/2` allows to find tx that spends `utxo_pos` and return it along with input index in one run
       inputs = Transaction.get_inputs(tx)
 
       if input_index = Enum.find_index(inputs, &(&1 == utxo_pos)) do

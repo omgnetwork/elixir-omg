@@ -35,7 +35,8 @@ defmodule OMG.Watcher.Challenger do
   """
   @spec create_challenge(Utxo.Position.t()) :: {:ok, Challenge.t()} | {:error, :invalid_challenge_of_exit}
   def create_challenge(Utxo.position(blknum, txindex, oindex) = utxo_exit) do
-    with {:ok, spending_blknum} <- OMG.DB.spent_blknum({blknum, txindex, oindex}),
+    with spending_blknum_response = OMG.DB.spent_blknum({blknum, txindex, oindex}),
+         {:ok, spending_blknum} <- Core.ensure_challengeable?(spending_blknum_response),
          {:ok, hashes} <- OMG.DB.block_hashes([blknum, spending_blknum]),
          {:ok, [creating_block, spending_block]} <- OMG.DB.blocks(hashes) do
       {:ok, Core.create_challenge(creating_block, spending_block, utxo_exit)}
