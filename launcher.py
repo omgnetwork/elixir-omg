@@ -198,8 +198,18 @@ class ChildchainLauncher:
         '''
         logging.info('Writing config.exs')
         home = os.path.expanduser('~')
+        config = [
+            'use Mix.Config',
+            'config :omg_eth,',
+            '  contract_addr: "{}",'.format(
+                self.contracts[self.ethereum_network]['contract_addr']), # noqa E501
+            '  txhash_contract: "{}",'.format(
+                self.contracts[self.ethereum_network]['txhash_contract']), # noqa E501
+            '  authority_addr: "{}"'.format(
+                self.contracts[self.ethereum_network]['authority_addr']) # noqa E501
+        ]
         with open(home + '/config.exs', 'w+') as mix:
-            for line in self.contracts[self.ethereum_network]:
+            for line in config:
                 mix.write(line)
                 mix.write('\n')
         return 'PREDEPLOYED'
