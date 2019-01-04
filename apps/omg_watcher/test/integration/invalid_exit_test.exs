@@ -27,6 +27,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.RPC.Client
   alias OMG.Watcher.Eventer.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Web.Channel
   alias OMG.Watcher.Web.Serializers.Response
 
@@ -58,7 +59,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "utxo_pos" => utxo_pos
-    } = IntegrationTest.get_exit_data(deposit_blknum, 0, 0)
+    } = TestHelper.get_exit_data(deposit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.start_exit(
@@ -83,7 +84,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     assert_push("invalid_exit", ^invalid_exit_event)
 
     # after the notification has been received, a challenged is composed and sent
-    challenge = IntegrationTest.get_exit_challenge(deposit_blknum, 0, 0)
+    challenge = TestHelper.get_exit_challenge(deposit_blknum, 0, 0)
     {:ok, exit_id} = Eth.RootChain.get_standard_exit_id(utxo_pos)
     assert {:ok, {alice.addr, @eth, 10}} == Eth.RootChain.get_exit(exit_id)
 
@@ -145,7 +146,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "utxo_pos" => utxo_pos
-    } = IntegrationTest.get_exit_data(exit_blknum, 0, 0)
+    } = TestHelper.get_exit_data(exit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.start_exit(
@@ -210,7 +211,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "utxo_pos" => utxo_pos
-    } = IntegrationTest.get_exit_data(deposit_blknum, 0, 0)
+    } = TestHelper.get_exit_data(deposit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.start_exit(

@@ -140,6 +140,8 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
     # bob has spent his deposit
     assert [] == utxos |> Enum.filter(&(&1["blknum"] < 1000))
 
+    carol_enc = Base.encode16(carol.addr)
+
     # carol has new utxo from above tx
     assert [
              %{
@@ -147,23 +149,22 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
                "currency" => @eth_hex,
                "blknum" => 11_000,
                "txindex" => 0,
-               "oindex" => 0
+               "oindex" => 0,
+               "owner" => ^carol_enc
              }
            ] = TestHelper.get_utxos(carol.addr)
   end
 
   @tag fixtures: [:initial_blocks]
   test "getting exit data returns properly formatted response" do
-    utxo_pos = Utxo.position(1000, 1, 0) |> Utxo.Position.encode()
-
     %{
       "utxo_pos" => _utxo_pos,
       "txbytes" => _txbytes,
       "proof" => proof,
       "sigs" => _sigs
-    } = TestHelper.success?("/utxo.get_exit_data", %{"utxo_pos" => utxo_pos})
+    } = TestHelper.get_exit_data(1000, 1, 0)
 
-    assert <<_proof::bytes-size(1024)>> = proof
+    assert <<_proof::bytes-size(512)>> = proof
   end
 
   @tag fixtures: [:initial_blocks]

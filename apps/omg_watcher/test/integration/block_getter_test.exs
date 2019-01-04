@@ -13,6 +13,12 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.Integration.BlockGetterTest do
+  @moduledoc """
+  This test is intended to be the major smoke/integration test of the Watcher
+
+  It tests whether valid/invalid blocks, deposits and exits are tracked correctly within the Watcher
+  """
+
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
@@ -39,7 +45,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   @timeout 40_000
   @eth Crypto.zero_address()
-  @eth_hex String.duplicate("00", 20)
 
   @endpoint OMG.Watcher.Web.Endpoint
 
@@ -54,15 +59,11 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     token_addr = token |> Base.encode16()
 
-    token_deposit = %{
-      "amount" => 10,
-      "blknum" => token_deposit_blknum,
-      "txindex" => 0,
-      "oindex" => 0,
-      "currency" => token_addr,
-      "txbytes" => nil
-    }
+    # utxo from deposit should be available
+    assert [%{"blknum" => ^deposit_blknum}, %{"blknum" => ^token_deposit_blknum, "currency" => ^token_addr}] =
+             TestHelper.get_utxos(alice.addr)
 
+    # start spending and exiting to see if watcher integrates all the pieces
     {:ok, _, _socket} =
       subscribe_and_join(socket(), Channel.Transfer, TestHelper.create_topic("transfer", alice_address))
 
@@ -71,30 +72,12 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     IntegrationTest.wait_for_block_fetch(block_nr, @timeout)
 
-    encode_tx = Base.encode16(tx)
+    assert [%{"blknum" => ^block_nr}] = TestHelper.get_utxos(bob.addr)
 
     assert [
-             %{
-               "amount" => 3,
-               "blknum" => ^block_nr,
-               "txindex" => 0,
-               "oindex" => 1,
-               "currency" => @eth_hex,
-               "txbytes" => ^encode_tx
-             }
-           ] = IntegrationTest.get_utxos(bob)
-
-    assert [
-             ^token_deposit,
-             %{
-               "amount" => 7,
-               "blknum" => ^block_nr,
-               "txindex" => 0,
-               "oindex" => 0,
-               "currency" => @eth_hex,
-               "txbytes" => ^encode_tx
-             }
-           ] = IntegrationTest.get_utxos(alice)
+             %{"blknum" => ^token_deposit_blknum},
+             %{"blknum" => ^block_nr}
+           ] = TestHelper.get_utxos(alice.addr)
 
     {:ok, recovered_tx} = API.Core.recover_tx(tx)
     {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(block_nr)
@@ -129,7 +112,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "utxo_pos" => utxo_pos,
       "txbytes" => txbytes,
       "proof" => proof
-    } = IntegrationTest.get_exit_data(block_nr, 0, 0)
+    } = TestHelper.get_exit_data(block_nr, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
       Eth.RootChain.start_exit(
@@ -145,42 +128,23 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth, eth_height: exit_eth_height}]} ==
              Eth.RootChain.get_exits(0, exit_eth_height)
 
-    # Here we're waiting for watcher to process the exits
+    # Here we're waiting for childchain and watcher to process the exits
     deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
     Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + deposit_finality_margin + 1 + 1)
 
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
 
     {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} = Client.submit(tx2)
-  end
 
-  defp get_block_submitted_event_height(block_number) do
-    {:ok, height} = Eth.get_ethereum_height()
-    {:ok, block_submissions} = Eth.RootChain.get_block_submitted_events({1, height})
-    [%{eth_height: eth_height}] = Enum.filter(block_submissions, fn submission -> submission.blknum == block_number end)
-    eth_height
-  end
-
-  @tag fixtures: [:watcher_sandbox, :token, :child_chain, :alice, :alice_deposits]
-  test "exit erc20, without challenging an invalid exit", %{
-    token: token,
-    alice: alice,
-    alice_deposits: {_, token_deposit_blknum}
-  } do
-    token_tx = API.TestHelper.create_encoded([{token_deposit_blknum, 0, 0, alice}], token, [{alice, 10}])
-
-    # spend the token deposit
-    {:ok, %{blknum: spend_token_child_block}} = Client.submit(token_tx)
-
-    IntegrationTest.wait_for_block_fetch(spend_token_child_block, @timeout)
-
+    assert [%{"blknum" => ^token_deposit_blknum}] = TestHelper.get_utxos(alice.addr)
+    # finally alice exits her token deposit
     %{
+      "utxo_pos" => utxo_pos,
       "txbytes" => txbytes,
-      "proof" => proof,
-      "utxo_pos" => utxo_pos
-    } = IntegrationTest.get_exit_data(spend_token_child_block, 0, 0)
+      "proof" => proof
+    } = TestHelper.get_exit_data(token_deposit_blknum, 0, 0)
 
-    {:ok, _} =
+    {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
       Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
@@ -188,6 +152,17 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
+
+    IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
+
+    assert [] == TestHelper.get_utxos(alice.addr)
+  end
+
+  defp get_block_submitted_event_height(block_number) do
+    {:ok, height} = Eth.get_ethereum_height()
+    {:ok, block_submissions} = Eth.RootChain.get_block_submitted_events({1, height})
+    [%{eth_height: eth_height}] = Enum.filter(block_submissions, fn submission -> submission.blknum == block_number end)
+    eth_height
   end
 
   @tag fixtures: [:watcher_sandbox, :test_server]
@@ -284,7 +259,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       "txbytes" => txbytes,
       "proof" => proof,
       "utxo_pos" => utxo_pos
-    } = IntegrationTest.get_exit_data(exit_blknum, 0, 0)
+    } = TestHelper.get_exit_data(exit_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.start_exit(
