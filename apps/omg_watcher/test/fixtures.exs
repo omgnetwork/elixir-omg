@@ -148,7 +148,9 @@ defmodule OMG.Watcher.Fixtures do
     end)
   end
 
-  deffixture initial_blocks(alice, bob, blocks_inserter) do
+  deffixture initial_blocks(alice, bob, blocks_inserter, initial_deposits) do
+    :ok = initial_deposits
+
     [
       {1000,
        [
@@ -168,7 +170,7 @@ defmodule OMG.Watcher.Fixtures do
     |> blocks_inserter.()
   end
 
-  deffixture blocks_inserter(alice, bob, phoenix_ecto_sandbox) do
+  deffixture initial_deposits(alice, bob, phoenix_ecto_sandbox) do
     :ok = phoenix_ecto_sandbox
 
     # Initial data depending tests can reuse
@@ -176,6 +178,12 @@ defmodule OMG.Watcher.Fixtures do
       %{owner: alice.addr, currency: @eth, amount: 333, blknum: 1},
       %{owner: bob.addr, currency: @eth, amount: 100, blknum: 2}
     ])
+
+    :ok
+  end
+
+  deffixture blocks_inserter(phoenix_ecto_sandbox) do
+    :ok = phoenix_ecto_sandbox
 
     fn blocks -> blocks |> Enum.flat_map(&prepare_one_block/1) end
   end

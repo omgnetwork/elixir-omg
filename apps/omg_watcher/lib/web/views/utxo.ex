@@ -33,21 +33,8 @@ defmodule OMG.Watcher.Web.View.Utxo do
     |> Serializers.Response.serialize(:success)
   end
 
-  defp to_view(%DB.TxOutput{
-         blknum: blknum,
-         txindex: txindex,
-         oindex: oindex,
-         amount: amount,
-         currency: currency,
-         creating_transaction: tx
-       }) do
-    %{
-      amount: amount,
-      currency: currency,
-      blknum: blknum,
-      txindex: txindex,
-      oindex: oindex,
-      txbytes: tx && tx.txbytes
-    }
+  defp to_view(%DB.TxOutput{} = db_entry) do
+    db_entry
+    |> Map.take([:amount, :currency, :blknum, :txindex, :oindex, :owner])
   end
 end

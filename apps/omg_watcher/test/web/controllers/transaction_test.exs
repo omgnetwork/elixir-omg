@@ -25,7 +25,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   @zero_address_hex String.duplicate("00", 20)
 
   describe "getting transaction by id" do
-    @tag fixtures: [:blocks_inserter, :alice, :bob]
+    @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
     test "returns transaction in expected format", %{
       blocks_inserter: blocks_inserter,
       alice: alice,
@@ -164,7 +164,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                TestHelper.success?("/transaction.all", %{"address" => address, "block" => 2000})
     end
 
-    @tag fixtures: [:blocks_inserter, :alice, :bob]
+    @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
     test "returns tx that contains requested address as the sender and not recipient", %{
       blocks_inserter: blocks_inserter,
       alice: alice,
@@ -183,7 +183,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                TestHelper.success?("/transaction.all", %{"address" => address})
     end
 
-    @tag fixtures: [:blocks_inserter, :alice, :bob, :carol]
+    @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob, :carol]
     test "returns only and all txs that match the address filtered", %{
       blocks_inserter: blocks_inserter,
       alice: alice,
@@ -263,7 +263,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                TestHelper.success?("/transaction.all", %{"address" => address})
     end
 
-    @tag fixtures: [:blocks_inserter, :alice, :bob]
+    @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
     test "returns tx without outputs (amount = 0) and contains requested address as sender", %{
       blocks_inserter: blocks_inserter,
       alice: alice,
@@ -307,7 +307,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   end
 
   describe "getting transactions with limit on number of transactions" do
-    @tag fixtures: [:alice, :bob, :blocks_inserter]
+    @tag fixtures: [:alice, :bob, :initial_deposits, :blocks_inserter]
     test "returns only limited list of transactions", %{
       blocks_inserter: blocks_inserter,
       alice: alice,

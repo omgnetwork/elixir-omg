@@ -26,4 +26,12 @@ defmodule OMG.Watcher.API.Account do
   def get_balance(address) do
     DB.TxOutput.get_balance(address)
   end
+
+  @doc """
+  Returns all utxos owner by `address`
+  """
+  @spec get_utxos(OMG.API.Crypto.address_t()) :: list(%DB.TxOutput{})
+  def get_utxos(address) do
+    DB.TxOutput.get_utxos(address)
+  end
 end
