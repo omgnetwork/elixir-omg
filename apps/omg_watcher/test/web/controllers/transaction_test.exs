@@ -80,6 +80,38 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert {:ok, _} = Base.decode16(txbytes, case: :mixed)
     end
 
+    @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
+    test "returns up to 4 inputs / 4 outputs", %{
+      blocks_inserter: blocks_inserter,
+      alice: alice
+    } do
+      [_, {_, _, txhash, _recovered_tx}] =
+        blocks_inserter.([
+          {1000,
+           [
+             OMG.API.TestHelper.create_recovered(
+               [{1, 0, 0, alice}],
+               @eth,
+               [{alice, 10}, {alice, 20}, {alice, 30}, {alice, 40}]
+             ),
+             OMG.API.TestHelper.create_recovered(
+               [{1000, 0, 0, alice}, {1000, 0, 1, alice}, {1000, 0, 2, alice}, {1000, 0, 3, alice}],
+               @eth,
+               [{alice, 1}, {alice, 2}, {alice, 3}, {alice, 4}]
+             )
+           ]}
+        ])
+
+      txhash = Base.encode16(txhash)
+
+      assert %{
+               "inputs" => [%{"amount" => 10}, %{"amount" => 20}, %{"amount" => 30}, %{"amount" => 40}],
+               "outputs" => [%{"amount" => 1}, %{"amount" => 2}, %{"amount" => 3}, %{"amount" => 4}],
+               "txhash" => ^txhash,
+               "txindex" => 1
+             } = TestHelper.success?("/transaction.get", %{"id" => txhash})
+    end
+
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns error for non exsiting transaction" do
       txhash = "055673FF58D85BFBF6844BAD62361967C7D19B6A4768CE4B54C687B65728D721"
@@ -292,14 +324,21 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       "0x" <> not_eth_enc = Crypto.encode_address!(not_eth)
 
       blocks_inserter.([
-        {1000, [OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], [{alice, @eth, 3}, {alice, not_eth, 4}])]}
+        {1000,
+         [
+           OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], [
+             {alice, @eth, 3},
+             {alice, not_eth, 4},
+             {alice, not_eth, 5}
+           ])
+         ]}
       ])
 
       assert [
                %{
                  "results" => [
                    %{"currency" => @zero_address_hex, "value" => 3},
-                   %{"currency" => ^not_eth_enc, "value" => 4}
+                   %{"currency" => ^not_eth_enc, "value" => 9}
                  ]
                }
              ] = TestHelper.success?("/transaction.all", %{})
