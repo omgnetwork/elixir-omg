@@ -80,7 +80,7 @@ jobs:
             gcloud config set compute/zone ${GCP_ZONE}
             gcloud container clusters get-credentials ${GCP_CLUSTER_ID}
       - run:
-          name: Build & Deploy Childchain
+          name: Build & Deploy Services
           command: |
             docker build -t elixir-omg .
             echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
@@ -88,6 +88,7 @@ jobs:
             docker tag elixir-omg $DOCKER_IMAGE
             docker push jakebunce/elixir-omg:$CIRCLE_SHA1
             kubectl set image statefulset childchain childchain=$DOCKER_IMAGE
+            kubectl set image statefulset watcher watcher=$DOCKER_IMAGE
 
 workflows:
   version: 2
