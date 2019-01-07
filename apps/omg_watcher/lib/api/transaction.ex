@@ -65,15 +65,7 @@ defmodule OMG.Watcher.API.Transaction do
       %Transaction.Signed{raw_tx: raw_tx, sigs: sigs} = tx
 
       raw_tx_bytes = Transaction.encode(raw_tx)
-
-      input_txs =
-        input_txs
-        |> Enum.map(&ExRLP.decode/1)
-        |> Enum.map(fn
-          nil -> ""
-          input_tx -> input_tx
-        end)
-
+      input_txs = get_input_txs_for_rlp_encoding(input_txs)
       sigs = Enum.reduce(sigs, fn sig, acc -> acc <> sig end)
       proofs = Enum.reduce(proofs, fn proof, acc -> acc <> proof end)
 
@@ -108,5 +100,14 @@ defmodule OMG.Watcher.API.Transaction do
       true -> {:error, :tx_for_input_not_found}
       false -> {:ok, Enum.unzip(result)}
     end
-  end  
+  end
+
+  defp get_input_txs_for_rlp_encoding(input_txs) do
+    input_txs
+    |> Enum.map(&ExRLP.decode/1)
+    |> Enum.map(fn
+      nil -> ""
+      input_tx -> input_tx
+    end)
+  end
 end
