@@ -276,55 +276,54 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   end
 
   describe "getting in-flight exits" do
-    @tag fixtures: [:initial_blocks, :bob]
-    test "prepares the IFE info - 1 input", %{initial_blocks: initial_blocks, bob: bob} do
-      encoded_inputs = get_compare_in_txs(initial_blocks, [{3000, 1}])
+    @tag fixtures: [:initial_blocks, :bob, :alice]
+    test "returns properly formatted in-flight exit data", %{initial_blocks: initial_blocks, bob: bob, alice: alice} do
+      expected_input_txs = get_input_txs(initial_blocks, [{3000, 1}, {2000, 0}])
 
       # see initial_blocks, we're combining two outputs from those transactions
-      tx = API.TestHelper.create_encoded([{3000, 1, 0, bob}], @eth, [{bob, 150}])
+      tx = API.TestHelper.create_encoded([{3000, 1, 0, bob}, {2000, 0, 1, alice}], @eth, [{bob, 150}])
+      IO.inspect(tx, limit: :infinity, pretty: true)
+      number_of_inputs = 4
+      proofs_size = 512 * number_of_inputs
+      sigs_size = 65 * number_of_inputs
 
-      assert %{
-               # checking just lengths in majority as we prepare verify correctness in the contract in integration tests
-               # the byte size is hard-coded - how much does it bother us?
-               "in_flight_tx" => _,
-               "input_txs" => ^encoded_inputs,
-               # a non-encoded proof, 512 bytes each
-               "input_txs_inclusion_proofs" => _,
-               # two non-encoded signatures, 65 bytes each, second one is zero-bytes, that's ok with contract
-               "in_flight_tx_sigs" => _
-             } = TestHelper.success?("/transaction.get_in_flight_exit_data", %{"transaction" => tx})
-    end
+      %{
+        # checking just lengths in majority as we prepare verify correctness in the contract in integration tests
+        # the byte size is hard-coded - how much does it bother us?
+        # "in_flight_tx" => <<_bytes::bytes-size(76)>>,
+        "input_txs" => input_txs,
+        # a non-encoded proof, 512 bytes each
+        "input_txs_inclusion_proofs" => <<_proof::bytes-size(proofs_size)>>,
+        # two non-encoded signatures, 65 bytes each, second one is zero-bytes, that's ok with contract
+        "in_flight_tx_sigs" => <<_bytes::bytes-size(sigs_size)>>
+      } = TestHelper.success?("/transaction.get_in_flight_exit_data", %{"transaction" => tx})
 
-    @tag fixtures: [:initial_blocks, :alice, :bob]
-    test "prepares the IFE info - 2 inputs", %{initial_blocks: initial_blocks, alice: alice, bob: bob} do
-      encoded_inputs = get_compare_in_txs(initial_blocks, [{3000, 1}, {2000, 0}])
+      input_txs =
+        input_txs
+        |> Base.decode16!(case: :upper)
+        |> ExRLP.decode()
+        |> Enum.map(fn
+          "" ->
+            nil
 
-      # see initial_blocks, we're combining two outputs from those transactions
-      tx = API.TestHelper.create_encoded([{3000, 1, 0, bob}, {2000, 0, 1, alice}], @eth, [{bob, 151}])
+          rlp_encoded ->
+            {:ok, tx} = Transaction.from_rlp(rlp_encoded)
+            tx
+        end)
 
-      assert %{
-               # see 1 input case for comments
-               "in_flight_tx" => _,
-               "input_txs" => ^encoded_inputs,
-               "input_txs_inclusion_proofs" => _,
-               "in_flight_tx_sigs" => _
-             } = TestHelper.success?("/transaction.get_in_flight_exit_data", %{"transaction" => tx})
+      assert input_txs == expected_input_txs
     end
 
     # gets the input transactions, as expected from the endpoint - based on the position and initial_blocks fixture
-    defp get_compare_in_txs(initial_blocks, positions) do
-      filler = List.duplicate(<<>>, 4 - length(positions))
+    defp get_input_txs(initial_blocks, positions) do
+      filler = List.duplicate(nil, 4 - length(positions))
 
       initial_blocks
       |> Enum.filter(fn {blknum, txindex, _, _} -> {blknum, txindex} in positions end)
       # reversing, because the inputs are reversed in the IFtx below, and we need that order, not by position!
       |> Enum.reverse()
-      |> Enum.map(fn {_, _, _, %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}} ->
-        Transaction.encode(raw_tx)
-      end)
+      |> Enum.map(fn {_, _, _, %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}} -> raw_tx end)
       |> Enum.concat(filler)
-      |> ExRLP.encode()
-      |> Base.encode16(case: :upper)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :bob]
