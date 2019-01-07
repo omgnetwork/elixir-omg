@@ -66,8 +66,10 @@ defmodule OMG.Watcher.Application do
       {OMG.Watcher.Eventer, []},
       {
         OMG.API.RootChainCoordinator,
-        [:depositor, :exit_processor, :exit_finalizer, :exit_challenger, OMG.Watcher.BlockGetter]
+        [:in_flight_exit, :piggyback, :depositor, :exit_processor, :exit_finalizer, :exit_challenger, OMG.Watcher.BlockGetter]
       },
+      OMG.API.Application.in_flight_exit_child(deposit_finality_margin),
+      OMG.API.Application.piggyback_in_flight_child(deposit_finality_margin),
       %{
         id: :depositor,
         start:

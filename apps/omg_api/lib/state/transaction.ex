@@ -199,6 +199,15 @@ defmodule OMG.API.State.Transaction do
   defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
   defp parse_address(_), do: {:error, :malformed_address}
 
+  def decode(signed_tx_bytes) do
+    try do
+      tx = ExRLP.decode(signed_tx_bytes)
+      from_rlp(tx)
+    rescue
+      _ -> {:error, :malformed_transaction_rlp}
+    end
+  end
+
   def encode(transaction) do
     preper_to_exrlp(transaction)
     |> ExRLP.encode()

@@ -84,7 +84,9 @@ defmodule OMG.Eth.RootChain do
         contract \\ nil,
         opts \\ []
       ) do
-    defaults = @tx_defaults |> Keyword.put(:gas, 1_000_000)
+        defaults = @tx_defaults 
+                   |> Keyword.put(:gas, 1_000_000) 
+                   |> Keyword.put(:value, @standard_exit_bond)
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
@@ -97,6 +99,15 @@ defmodule OMG.Eth.RootChain do
       opts
     )
   end
+
+  def piggyback_in_flight_exit(in_flightTx, outputIndex, from, contract \\ nil, opts \\ []) do
+    defaults = @tx_defaults |> Keyword.put(:gas, 1_000_000)
+    opts = defaults |> Keyword.merge(opts)
+    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
+    Eth.contract_transact(
+      from, contract, "piggybackInFlightExit(bytes, uint8)",[in_flightTx,outputIndex], opts)
+  end
+
 
 
   def deposit(tx_bytes, value, from, contract \\ nil, opts \\ []) do
@@ -221,6 +232,15 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_deposit/1)}
   end
 
+  def get_piggybacks(block_from, block_to, contract \\ nil) do
+    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
+    signature = "InFlightExitPiggybacked(address,bytes32,uint256)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, &decode_piggybacked/1)}
+  end
+
+
   @doc """
   Returns lists of block submissions from Ethereum logs
   """
@@ -265,9 +285,7 @@ defmodule OMG.Eth.RootChain do
     signature = "InFlightExitStarted(address,bytes32)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract) do
-      {:ok,
-       logs
-       |> Enum.map(fn log ->
+      {:ok, Enum.map(logs, fn log ->
          get_inflight_data(log["transactionHash"])
        end)}
     end
@@ -300,6 +318,19 @@ defmodule OMG.Eth.RootChain do
     non_indexed_key_types = [{:uint, 256}]
     indexed_keys = [:owner, :blknum, :currency]
     indexed_keys_types = [:address, {:uint, 256}, :address]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  defp decode_piggybacked(log) do
+    non_indexed_keys = [:txHash, :outputIndex]
+    non_indexed_key_types = [{:bytes, 32}, {:uint, 256}]
+    indexed_keys = [:owner]
+    indexed_keys_types = [:address]
 
     Eth.parse_events_with_indexed_fields(
       log,

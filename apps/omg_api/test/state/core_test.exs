@@ -25,6 +25,7 @@ defmodule OMG.API.State.CoreTest do
 
   require Utxo
 
+  @eth Crypto.zero_address()
   @child_block_interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
   @child_block_2 @child_block_interval * 2
   @child_block_3 @child_block_interval * 3
@@ -424,8 +425,8 @@ defmodule OMG.API.State.CoreTest do
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "spending produces db updates, that don't leak to next block", %{
-    alice: alice,
-    bob: bob,
+    alice: %{addr: alice_addr} = alice,
+    bob: %{addr: bob_addr} = bob,
     state_alice_deposit: state
   } do
     {:ok, {_, _, db_updates}, state} =
@@ -446,8 +447,8 @@ defmodule OMG.API.State.CoreTest do
              {:put, :child_top_block_number, @child_block_interval}
            ] = db_updates
 
-    assert new_utxo1 == {{@child_block_interval, 0, 0}, %{owner: bob.addr, currency: eth(), amount: 7}}
-    assert new_utxo2 == {{@child_block_interval, 0, 1}, %{owner: alice.addr, currency: eth(), amount: 3}}
+    assert {{@child_block_interval, 0, 0}, %{owner: ^bob_addr, currency: @eth, amount: 7}}   = new_utxo1
+    assert {{@child_block_interval, 0, 1}, %{owner: ^alice_addr, currency: @eth, amount: 3}} = new_utxo2
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_2}]}, state} =
              form_block_check(state, @child_block_interval)
@@ -473,7 +474,7 @@ defmodule OMG.API.State.CoreTest do
              {:put, :child_top_block_number, @child_block_3}
            ] = db_updates2
 
-    assert new_utxo == {{@child_block_3, 0, 0}, %{owner: bob.addr, currency: eth(), amount: 10}}
+    assert {{@child_block_3, 0, 0}, %{owner: bob_addr, currency: @eth, amount: 10}} = new_utxo
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_4}]}, _} =
              form_block_check(state, @child_block_interval)
@@ -481,14 +482,14 @@ defmodule OMG.API.State.CoreTest do
 
   @tag fixtures: [:alice, :state_empty]
   test "depositing produces db updates, that don't leak to next block", %{
-    alice: alice,
+    alice: %{addr: aplice_addr} = alice,
     state_empty: state
   } do
     assert {:ok, {_, [utxo_update, height_update]}, state} =
              Core.deposit([%{owner: alice.addr, currency: eth(), amount: 10, blknum: 1}], state)
 
-    assert utxo_update == {:put, :utxo, {{1, 0, 0}, %{owner: alice.addr, currency: eth(), amount: 10}}}
-    assert height_update == {:put, :last_deposit_child_blknum, 1}
+    assert {:put, :utxo, {{1, 0, 0}, %{owner: ^aplice_addr, currency: @eth, amount: 10}}} = utxo_update   
+    assert {:put, :last_deposit_child_blknum, 1}                                         = height_update 
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_interval}]}, _} =
              form_block_check(state, @child_block_interval)

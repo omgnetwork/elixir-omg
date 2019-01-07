@@ -93,6 +93,10 @@ defmodule OMG.Watcher.DB.Transaction do
     DB.Repo.all(query)
   end
 
+  def get_all() do
+    DB.Repo.all(from(__MODULE__, where: []))
+  end
+
   def get_by_blknum(blknum) do
     DB.Repo.all(from(__MODULE__, where: [blknum: ^blknum], order_by: [asc: :txindex]))
   end

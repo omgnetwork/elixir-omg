@@ -59,9 +59,13 @@ defmodule OMG.API.State do
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
-  @spec in_flight_exit(in_flight_exit :: [Core.in_flight_exit()]) :: :ok
-  def in_flight_exit(deposits) do
-    GenServer.call(__MODULE__, {:in_flight_exit, deposits})
+  @spec in_flight_exit(in_flight_exit :: Transaction.Recovered.t()) :: :ok
+  def in_flight_exits(in_flight_exits) do
+    GenServer.call(__MODULE__, {:in_flight_exits, in_flight_exits})
+  end
+
+  def piggyback(piggybacks) do
+    GenServer.call(__MODULE__, {:piggyback, piggybacks})
   end
 
   @spec exit_utxos(utxos :: [Core.exit_t()] | [Utxo.Position.t()]) ::
@@ -140,12 +144,28 @@ defmodule OMG.API.State do
     {:reply, {:ok, db_updates}, new_state}
   end
 
+  defp sigs_chope(<<>>), do: []
+  defp sigs_chope( <<sig::bytes-size(65), rest::binary>>), do: [sig | sigs_chope(rest)] 
   @doc """
   Exits (spends) utxos on child chain, explicitly signals all utxos that have already been spent
   """
-  def handle_call({:in_flight_exit, utxos}, _from, state) do
-    IO.puts(">> #{inspect utxos, pritty: true}")
-    {:reply, :ok, state}
+  def handle_call({:in_flight_exit,in_flight_txs}, _from, state) do
+    {db_updates, state} =
+                in_flight_txs
+                |> Enum.map_reduce(state, fn [tx_bytes, _, _, sigs] ->
+                  {:ok, tx} = Transaction.decode(tx_bytes)
+                  {:ok, tx_recover} = Transaction.Recovered.recover_from(%Transaction.Signed{raw_tx: tx, sigs: sigs_chope(sigs)}) 
+                  {:ok, {event_triggers, db_updates}, new_state} = Core.in_flight_exit(tx_recover)
+                  EventerAPI.emit_events(event_triggers)
+                  {db_updates, new_state}
+                end)
+    {:reply, {:ok, db_updates |> List.flatten() }, new_state}
+  end
+
+  def handle_call({:piggyback, piggybacks}, _from, state) do
+    {:ok, {event_triggers, db_updates}, new_state} = Core.piggyback(piggybacks, state)
+    EventerAPI.emit_events(event_triggers)
+    {:reply, {:ok, db_updates}, new_state}
   end
 
   @doc """

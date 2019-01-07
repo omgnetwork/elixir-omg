@@ -21,6 +21,46 @@ defmodule OMG.API.Application do
   use Application
   use OMG.API.LoggerExt
 
+  def in_flight_exit_child(eth_deposit_finality_margin),
+    do: %{
+      id: :in_flight_exit,
+      start: {
+        OMG.API.EthereumEventListener,
+        :start_link,
+        [
+          %{
+            # TODO check if synced_height_update_key is appropriate
+            synced_height_update_key: :last_exiter_eth_height,
+            service_name: :in_flight_exit,
+            block_finality_margin: eth_deposit_finality_margin,
+            get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
+            process_events_callback: OMG.API.State.in_flight_exit/1
+            get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
+          }
+        ]
+      }
+    }
+
+  def piggyback_in_flight_child(eth_deposit_finality_margin),
+    do: %{
+      id: :piggyback,
+      start: {
+        OMG.API.EthereumEventListener,
+        :start_link,
+        [
+          %{
+            # TODO check if synced_height_update_key is appropriate
+            synced_height_update_key: :last_exiter_eth_height,
+            service_name: :piggyback,
+            block_finality_margin: eth_deposit_finality_margin,
+            get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
+            process_events_callback: &OMG.API.State.piggyback/1, 
+            get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
+          }
+        ]
+      }
+    }
+
   def start(_type, _args) do
     deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
 
@@ -29,7 +69,7 @@ defmodule OMG.API.Application do
       {OMG.API.BlockQueue.Server, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeChecker, []},
-      {OMG.API.RootChainCoordinator, [:depositor, :exiter, :in_flight_exit]},
+      {OMG.API.RootChainCoordinator, [:depositor, :exiter, :in_flight_exit, :piggyback]},
       %{
         id: :depositor,
         start:
@@ -45,24 +85,8 @@ defmodule OMG.API.Application do
              }
            ]}
       },
-      %{
-        id: :in_flight_exit,
-        start: {
-          OMG.API.EthereumEventListener,
-          :start_link,
-          [
-            %{
-              # TODO check if synced_height_update_key is appropriate
-              synced_height_update_key: :last_exiter_eth_height,
-              service_name: :in_flight_exit,
-              block_finality_margin: deposit_finality_margin,
-              get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
-              process_events_callback: &OMG.API.State.in_flight_exit/1,
-              get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
-            }
-          ]
-        }
-      },
+      in_flight_exit_child(deposit_finality_margin),
+      piggyback_in_flight_child(deposit_finality_margin),
       %{
         id: :exiter,
         start:

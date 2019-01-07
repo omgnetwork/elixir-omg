@@ -17,8 +17,6 @@ defmodule OMG.API.State.Core do
   Functional core for State.
   """
 
-  require Logger
-
   @maximum_block_size 65_536
 
   defstruct [:height, :last_deposit_child_blknum, :utxos, pending_txs: [], tx_index: 0]
@@ -28,7 +26,7 @@ defmodule OMG.API.State.Core do
   alias OMG.API.State.Core
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
-
+  use OMG.API.LoggerExt
   require Utxo
 
   @type t() :: %__MODULE__{
@@ -164,7 +162,7 @@ defmodule OMG.API.State.Core do
          :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency, fees) do
       {:ok, {recovered_tx.signed_tx_hash, state.height, state.tx_index},
        state
-       |> apply_spend(raw_tx)
+       |> apply_spend(recovered_tx)
        |> add_pending_tx(recovered_tx)}
     else
       {:error, _reason} = error -> {error, state}
@@ -260,26 +258,32 @@ defmodule OMG.API.State.Core do
 
   defp apply_spend(
          %Core{height: height, tx_index: tx_index, utxos: utxos} = state,
-         %Transaction{} = tx
+         %Transaction.Recovered{} = tx
        ) do
     new_utxos_map =
       tx
       |> non_zero_utxos_from(height, tx_index)
       |> Map.new()
 
-    inputs = Transaction.get_inputs(tx)
+    inputs = Transaction.get_inputs(tx.signed_tx.raw_tx)
     utxos = Map.drop(utxos, inputs)
-
     %Core{state | utxos: Map.merge(utxos, new_utxos_map)}
   end
 
-  defp non_zero_utxos_from(%Transaction{} = tx, height, tx_index) do
+  defp non_zero_utxos_from(%Transaction.Recovered{} = tx, height, tx_index) do
     tx
     |> utxos_from(height, tx_index)
     |> Enum.filter(fn {_key, value} -> is_non_zero_amount?(value) end)
   end
 
-  defp utxos_from(%Transaction{} = tx, height, tx_index) do
+  defp utxos_from(
+         %Transaction.Recovered{
+           signed_tx_hash: signed_tx_hash,
+           signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = tx}
+         },
+         height,
+         tx_index
+       ) do
     outputs = Transaction.get_outputs(tx)
 
     for {%{owner: owner, currency: currency, amount: amount}, oindex} <- Enum.with_index(outputs) do
@@ -312,7 +316,7 @@ defmodule OMG.API.State.Core do
     db_updates_new_utxos =
       txs
       |> Enum.with_index()
-      |> Enum.flat_map(fn {%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}}, tx_idx} ->
+      |> Enum.flat_map(fn {tx, tx_idx} ->
         non_zero_utxos_from(tx, height, tx_idx)
       end)
       |> Enum.map(&utxo_to_db_put/1)
@@ -435,6 +439,50 @@ defmodule OMG.API.State.Core do
     new_state = %{state | utxos: Map.drop(utxos, valid)}
 
     {:ok, {event_triggers, db_updates, validities}, new_state}
+  end
+
+  def in_flight_exit(%Transaction.Recovered{} = recovered_tx, %Core{utxos: utxos} = state) do
+    inputs = Transaction.get_inputs(recovered_tx.signed_tx.raw_tx)
+    {inputs, invalid} = Enum.split_with(inputs, &utxo_exists?(&1, state))
+
+    {event_triggers, db_updates} =
+      inputs
+      |> Enum.map(fn Utxo.position(blknum, txindex, oindex) = utxo_pos ->
+        {%{exit: %{owner: utxos[utxo_pos].owner, utxo_pos: utxo_pos}}, {:delete, :utxo, {blknum, txindex, oindex}}}
+      end)
+      |> Enum.unzip()
+
+    new_state = %{state | utxos: Map.drop(utxos, inputs)}
+
+    {:ok, {[], db_updates}, new_state}
+  end
+
+  def piggyback(piggybacks, %Core{utxos: utxos} = state) do
+    inputs = piggybacks
+    |> Enum.map(fn %{txHash: tx_hash, outputIndex: oindex} ->
+      # oindex in contract is 0-7 where 4-7 are outputs 
+      oindex = oindex - 4
+
+      utxos
+      |> Map.to_list()
+      |> Enum.find(&match?({Utxo.position(_, _, oindex), %Utxo{signed_tx_hash: tx_hash}}, &1))
+    end)
+    |> Enum.filter(&(&1 != nil))
+    |> Enum.map(fn {position, _} -> position end)
+
+    {event_triggers, db_updates} =
+      inputs
+      |> Enum.map(fn Utxo.position(blknum, txindex, oindex) = utxo_pos ->
+        {%{exit: %{owner: utxos[utxo_pos].owner, utxo_pos: utxo_pos}}, {:delete, :utxo, {blknum, txindex, oindex}}}
+      end)
+      |> Enum.unzip()
+
+    new_state = %{state | utxos: Map.drop(utxos, inputs)}
+    {:ok, {[], db_updates}, new_state}
+  end
+
+  def piggyback(tx_hash, oindex, state) do
+    {:ok, [], state}
   end
 
   @doc """
