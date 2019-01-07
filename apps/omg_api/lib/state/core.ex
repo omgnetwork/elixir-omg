@@ -316,6 +316,7 @@ defmodule OMG.API.State.Core do
       end)
       |> Enum.filter(fn position -> position != Utxo.position(0, 0, 0) end)
       |> Enum.flat_map(fn Utxo.position(blknum, txindex, oindex) ->
+        # TODO: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes.
         [{:delete, :utxo, {blknum, txindex, oindex}}, {:put, :spend, {{blknum, txindex, oindex}, height}}]
       end)
 
