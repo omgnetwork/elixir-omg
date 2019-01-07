@@ -30,6 +30,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     :tx,
     :tx_pos,
     :timestamp,
+    :contract_id,
     :oldest_competitor,
     # piggybacking
     exit_map:
@@ -41,11 +42,13 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   ]
 
   @type tx_position() :: {pos_integer(), non_neg_integer()}
+  @type ife_contract_id() :: <<_::192>>
 
   @type t :: %__MODULE__{
           tx: Transaction.Signed.t(),
           tx_pos: tx_position(),
           timestamp: non_neg_integer(),
+          contract_id: ife_contract_id(),
           oldest_competitor: {non_neg_integer(), non_neg_integer()},
           exit_map: %{
             non_neg_integer() => %{
@@ -57,7 +60,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           is_active: boolean()
         }
 
-  def build_in_flight_transaction_info(tx_bytes, tx_signatures, timestamp, is_active) do
+  def build_in_flight_transaction_info(tx_bytes, tx_signatures, contract_id, timestamp, is_active) do
     with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
       signed_tx_map = %{
         raw_tx: raw_tx,
@@ -69,6 +72,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
         %__MODULE__{
           tx: struct(Transaction.Signed, signed_tx_map),
           timestamp: timestamp,
+          contract_id: contract_id,
           is_active: is_active
         }
       }
@@ -122,7 +126,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     end
   end
 
-  def challenge_piggyback(%__MODULE__{}, _), do: {:error, :non_existent_exit}
+  def challenge_piggyback(%__MODULE__{}, _), do: {:error, :nxon_existent_exit}
 
   @spec respond_to_challenge(t(), pos_integer()) :: {:ok, t()} | :error
   def respond_to_challenge(ife, tx_position)
@@ -143,6 +147,11 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   end
 
   def respond_to_challenge(%__MODULE__{}, _), do: :error
+
+  def finalize(%__MODULE__{} = ife, _output_id) do
+    # TODO: check whether can be finalized and then mark it as finalized
+    {:ok, ife}
+  end
 
   @spec get_exiting_utxo_positions(t()) :: list({:utxo_position, non_neg_integer(), non_neg_integer(), non_neg_integer})
   def get_exiting_utxo_positions(ife)
@@ -174,6 +183,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def get_exiting_utxo_positions(_ife) do
     []
+    # TODO: implement (it is probably another but I cannot find which one)
   end
 
   def is_piggybacked?(%__MODULE__{exit_map: map}, index) do

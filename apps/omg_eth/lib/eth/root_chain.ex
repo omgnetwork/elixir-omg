@@ -250,7 +250,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
-  Returns InFlightExit from a range of blocks.
+  Returns in flight exits from a range of blocks.
   """
   def get_in_flight_exits_started(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
@@ -315,6 +315,17 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
+    Returns responds to challenges of in flight exits from a range of blocks from Ethereum logs.
+  """
+  def get_responds_to_in_flight_exit_challenges(block_from, block_to, contract \\ nil) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "InFlightExitChallengeResponded(address,bytes32,uint256)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, &decode_in_flight_exit_challenge_responded/1)}
+  end
+
+  @doc """
     Returns challenges of piggybacks from a range of block from Ethereum logs.
   """
   def get_piggybacks_challenges(block_from, block_to, contract \\ nil) do
@@ -323,6 +334,17 @@ defmodule OMG.Eth.RootChain do
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &decode_piggyback_challenged/1)}
+  end
+
+  @doc """
+    Returns finalizations of in flight exits from a range of blocks from Ethereum logs.
+  """
+  def get_in_flight_exit_finalizations(block_from, block_to, contract \\ nil) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "InFlightExitFinalized(uint192,uint256)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, &decode_in_flight_exit_output_finalized/1)}
   end
 
   defp decode_deposit(log) do
@@ -371,6 +393,18 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
+  def decode_in_flight_exit_output_finalized(log) do
+    non_indexed_keys = [:in_flight_exit_id, :output_id]
+    non_indexed_key_types = [{:uint, 192}, {:uint, 256}]
+    indexed_keys = indexed_keys_types = []
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
   defp decode_in_flight_exit_piggybacked(log) do
     non_indexed_keys = [:owner, :tx_hash, :output_index]
     non_indexed_key_types = [:address, {:byte, 32}, {:uint, 256}]
@@ -394,6 +428,18 @@ defmodule OMG.Eth.RootChain do
     non_indexed_key_types = [{:byte, 32}, {:uint, 256}]
     indexed_keys = [:challenger]
     indexed_keys_types = [:address]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  def decode_in_flight_exit_challenge_responded(log) do
+    non_indexed_keys = [:challenger, :tx_hash, :challenge_position]
+    non_indexed_key_types = [:address, {:byte, 32}, {:uint, 256}]
+    indexed_keys = indexed_keys_types = []
 
     Eth.parse_events_with_indexed_fields(
       log,
