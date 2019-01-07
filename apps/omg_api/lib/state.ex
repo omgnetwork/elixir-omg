@@ -83,8 +83,8 @@ defmodule OMG.API.State do
   Start processing state using the database entries
   """
   def init(:ok) do
-    {:ok, height_query_result} = DB.child_top_block_number()
-    {:ok, last_deposit_query_result} = DB.last_deposit_child_blknum()
+    {:ok, height_query_result} = DB.get_single_value(:child_top_block_number)
+    {:ok, last_deposit_query_result} = DB.get_single_value(:last_deposit_child_blknum)
     {:ok, utxos_query_result} = DB.utxos()
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
 
