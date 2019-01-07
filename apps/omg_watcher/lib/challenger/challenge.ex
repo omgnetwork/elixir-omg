@@ -20,12 +20,12 @@ defmodule OMG.Watcher.Challenger.Challenge do
   # NOTE: eutxoindex and cutxopos names were chosen for consistency with Solidity contract source code
   # eutoxoindex is index of exiting utxo in challenging transaction
   # cutxopos is position of challenging utxo
-  defstruct [:outputId, :txbytes, :inputIndex, :sig]
+  defstruct [:output_id, :txbytes, :input_index, :sig]
 
   @type t() :: %__MODULE__{
-          outputId: non_neg_integer(),
+          output_id: non_neg_integer(),
           txbytes: String.t(),
-          inputIndex: non_neg_integer(),
+          input_index: non_neg_integer(),
           sig: String.t()
         }
 end

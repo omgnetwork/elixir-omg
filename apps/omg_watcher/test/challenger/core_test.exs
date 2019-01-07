@@ -66,8 +66,8 @@ defmodule OMG.Watcher.Challenger.CoreTest do
     expected_txbytes = tx_spending_1st_utxo.raw_tx |> Transaction.encode()
 
     assert %{
-             outputId: ^expected_output_id,
-             inputIndex: 1,
+             output_id: ^expected_output_id,
+             input_index: 1,
              txbytes: ^expected_txbytes,
              sig: alice_signature
            } = Core.create_challenge(initial_block, spending_block, Utxo.position(1000, 0, 0))
@@ -79,8 +79,8 @@ defmodule OMG.Watcher.Challenger.CoreTest do
     expected_txbytes = tx_spending_2nd_utxo.raw_tx |> Transaction.encode()
 
     assert %{
-             outputId: ^expected_output_id,
-             inputIndex: 0,
+             output_id: ^expected_output_id,
+             input_index: 0,
              txbytes: ^expected_txbytes,
              sig: bob_signature
            } = Core.create_challenge(initial_block, spending_block, Utxo.position(1000, 0, 1))

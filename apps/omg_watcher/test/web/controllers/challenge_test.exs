@@ -45,8 +45,8 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
     utxo_pos = Utxo.position(1, 0, 0) |> Utxo.Position.encode()
 
     %{
-      "inputIndex" => _input_index,
-      "outputId" => _output_id,
+      "input_index" => _input_index,
+      "output_id" => _output_id,
       "sig" => _sig,
       "txbytes" => _txbytes
     } = TestHelper.success?("utxo.get_challenge_data", %{"utxo_pos" => utxo_pos})

@@ -70,9 +70,9 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.challenge_exit(
-        challenge["outputId"],
+        challenge["output_id"],
         challenge["txbytes"],
-        challenge["inputIndex"],
+        challenge["input_index"],
         challenge["sig"],
         alice.addr
       )

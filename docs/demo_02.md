@@ -114,11 +114,10 @@ Eth.WaitFor.eth_receipt(txhash)
 
 {:ok, txhash} =
   OMG.Eth.RootChain.challenge_exit(
-    challenge["cutxopos"],
-    challenge["eutxoindex"],
-    Base.decode16!(challenge["txbytes"]),
-    Base.decode16!(challenge["proof"]),
-    Base.decode16!(challenge["sigs"]),
+    challenge["output_id"],
+    challenge["txbytes"],
+    challenge["input_index"],
+    challenge["sig"],
     alice.addr
   )
 {:ok, _} = Eth.WaitFor.eth_receipt(txhash)
@@ -155,7 +154,7 @@ tx3 =
 # let's break the Child chain now and say that duplicates every transaction submitted!
 
 # in order to do that, you need to duplicate the `|> add_pending_tx(recovered_tx)` in API.State.Core module,
-# around line 123
+# around line 160
 
 # now, with the code "broken" go to the `iex` REPL of the child chain and recompile the module
 

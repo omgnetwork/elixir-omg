@@ -41,8 +41,8 @@ defmodule OMG.Watcher.Challenger.Core do
      }, input_index} = get_spending_transaction_with_index(spending_block, utxo_exit)
 
     %Challenge{
-      outputId: Utxo.Position.encode(utxo_exit),
-      inputIndex: input_index,
+      output_id: Utxo.Position.encode(utxo_exit),
+      input_index: input_index,
       txbytes: challenging_tx |> Transaction.encode(),
       sig: find_sig(sigs, challenging_tx, owner)
     }
