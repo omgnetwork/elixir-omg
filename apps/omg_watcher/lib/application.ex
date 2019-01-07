@@ -72,6 +72,7 @@ defmodule OMG.Watcher.Application do
           exit_processor: %{sync_mode: :sync_with_root_chain},
           exit_finalizer: %{sync_mode: :sync_with_coordinator},
           exit_challenger: %{sync_mode: :sync_with_root_chain},
+          ife_exit_finalizer: %{sync_mode: :sync_with_coordinator},
           in_flight_exit_processor: %{sync_mode: :sync_with_root_chain},
           piggyback_processor: %{sync_mode: :sync_with_root_chain},
           competitor_processor: %{sync_mode: :sync_with_root_chain},
@@ -155,6 +156,21 @@ defmodule OMG.Watcher.Application do
            ]}
       },
       %{
+        id: :challenges_responds_processor,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               block_finality_margin: exit_finality_margin,
+               synced_height_update_key: :last_exit_processor_eth_height,
+               service_name: :challenges_responds_processor,
+               get_events_callback: &OMG.Eth.RootChain.get_responds_to_in_flight_exit_challenges/2,
+               process_events_callback: &OMG.Watcher.ExitProcessor.respond_to_in_flight_exits_challenges/1,
+               get_last_synced_height_callback: &OMG.DB.last_exit_processor_eth_height/0
+             }
+           ]}
+      },
+      %{
         id: :piggyback_challenges_processor,
         start:
           {OMG.API.EthereumEventListener, :start_link,
@@ -180,6 +196,21 @@ defmodule OMG.Watcher.Application do
                service_name: :exit_finalizer,
                get_events_callback: &OMG.Eth.RootChain.get_finalizations/2,
                process_events_callback: &OMG.Watcher.ExitProcessor.finalize_exits/1,
+               get_last_synced_height_callback: &OMG.DB.last_exit_finalizer_eth_height/0
+             }
+           ]}
+      },
+      %{
+        id: :ife_exit_finalizer,
+        start:
+          {OMG.API.EthereumEventListener, :start_link,
+           [
+             %{
+               block_finality_margin: 0,
+               synced_height_update_key: :last_exit_finalizer_eth_height,
+               service_name: :ife_exit_finalizer,
+               get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_finalizations/2,
+               process_events_callback: &OMG.Watcher.ExitProcessor.finalize_in_flight_exits/1,
                get_last_synced_height_callback: &OMG.DB.last_exit_finalizer_eth_height/0
              }
            ]}

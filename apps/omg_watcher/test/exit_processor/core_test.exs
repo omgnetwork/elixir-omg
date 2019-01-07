@@ -137,7 +137,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   deffixture contract_ife_statuses(in_flight_exit_events) do
-    List.duplicate({1, 0, Crypto.zero_address(), 0}, length(in_flight_exit_events))
+    List.duplicate({1, <<1::192>>}, length(in_flight_exit_events))
   end
 
   deffixture in_flight_exits(in_flight_exit_events, contract_ife_statuses) do
@@ -207,7 +207,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     state
   end
 
-  defp build_in_flight_exit(%{tx_bytes: bytes, signatures: signs}, {timestamp, _, _, _}) do
+  defp build_in_flight_exit(%{tx_bytes: bytes, signatures: signs}, {timestamp, contract_ife_id}) do
     {:ok, raw_tx} = Transaction.decode(bytes)
 
     signed_tx = %Transaction.Signed{
@@ -215,7 +215,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       sigs: signs
     }
 
-    {Transaction.hash(raw_tx), %InFlightExitInfo{tx: signed_tx, timestamp: timestamp}}
+    {Transaction.hash(raw_tx), %InFlightExitInfo{tx: signed_tx, timestamp: timestamp, contract_id: contract_ife_id}}
   end
 
   defp build_competitor(%{

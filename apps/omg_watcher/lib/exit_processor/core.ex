@@ -118,9 +118,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     new_ifes_kv_pairs =
       new_ifes_events
       |> Enum.zip(contract_statuses)
-      |> Enum.map(fn {%{tx_bytes: tx_bytes, signatures: signatures}, {timestamp, _, _, _} = contract_status} ->
+      |> Enum.map(fn {%{tx_bytes: tx_bytes, signatures: signatures}, {timestamp, contract_ife_id} = contract_status} ->
         is_active = parse_contract_in_flight_exit_status(contract_status)
-        InFlightExitInfo.build_in_flight_transaction_info(tx_bytes, signatures, timestamp, is_active)
+        InFlightExitInfo.build_in_flight_transaction_info(tx_bytes, signatures, contract_ife_id, timestamp, is_active)
       end)
 
     db_updates =
@@ -132,7 +132,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {%{state | in_flight_exits: Map.merge(ifes, new_ifes)}, db_updates}
   end
 
-  defp parse_contract_in_flight_exit_status({timestamp, _exit_map, _bond_owner, _oldest_competitor}), do: timestamp != 0
+  defp parse_contract_in_flight_exit_status({timestamp, _contract_id}), do: timestamp != 0
 
   @doc """
     Add piggybacks from Ethereum events into tracked state.
@@ -256,6 +256,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {state, competitors_db_updates ++ ife_db_updates}
   end
 
+  @spec respond_to_in_flight_exits_challenges(t(), [map()]) :: {t(), list()}
+  def respond_to_in_flight_exits_challenges(%__MODULE__{in_flight_exits: _ifes} = state, _responds_events) do
+    # TODO: implement and test (in InFlightExitInfo callback is already written)
+    {state, []}
+  end
+
   @spec challenge_piggybacks(t(), [map()]) :: {t(), list()}
   def challenge_piggybacks(%__MODULE__{in_flight_exits: ifes} = state, challenges) do
     ifes_to_update =
@@ -279,6 +285,45 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       end)
       |> Enum.reduce([], fn
         {tx_hash, {ife, true}}, acc -> [{tx_hash, ife} | acc]
+        _, acc -> acc
+      end)
+      |> Map.new()
+
+    db_updates = updated_ifes |> Enum.map(&InFlightExitInfo.make_db_update/1)
+
+    {%{state | in_flight_exits: Map.merge(ifes, updated_ifes)}, db_updates}
+  end
+
+  # TODO: write tests
+  @spec finalize_in_flight_exits(t(), [map()]) :: {t(), list()}
+  def finalize_in_flight_exits(%__MODULE__{in_flight_exits: ifes} = state, finalizations) do
+    ifes_to_update =
+      finalizations
+      |> Enum.reduce(%{}, fn %{in_flight_exit_id: id}, acc ->
+        with :not_found <-
+               Enum.find(ifes, :not_found, fn {_tx_hash, %InFlightExitInfo{contract_id: contract_id}} ->
+                 id == contract_id
+               end) do
+          acc
+        else
+          # map by id from contract and mark as not updated
+          {tx_hash, ife} -> %{acc | id => {tx_hash, ife, false}}
+        end
+      end)
+
+    updated_ifes =
+      finalizations
+      |> Enum.reduce(ifes_to_update, fn %{in_flight_exit_id: id, output_id: output}, acc ->
+        with {:ok, {tx_hash, ife, _}} <- Enum.fetch(acc, id),
+             {:ok, updated_ife} <- InFlightExitInfo.finalize(ife, output) do
+          # update value and flag as updated
+          %{acc | id => {tx_hash, updated_ife, true}}
+        else
+          _ -> acc
+        end
+      end)
+      |> Enum.reduce([], fn
+        {_, {tx_hash, ife, true}}, acc -> [{tx_hash, ife} | acc]
         _, acc -> acc
       end)
       |> Map.new()

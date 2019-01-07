@@ -53,24 +53,24 @@ defmodule OMG.Watcher.ExitProcessor do
   Accepts events and processes them in the state - finalized exits are untracked _if valid_ otherwise raises alert
   Returns `db_updates` due and relies on the caller to do persistence
   """
-  def finalize_exits(exits) do
-    GenServer.call(__MODULE__, {:finalize_exits, exits})
+  def finalize_exits(finalizations) do
+    GenServer.call(__MODULE__, {:finalize_exits, finalizations})
   end
 
   @doc """
   Accepts events and processes them in the state - new piggybacks are tracked, if invalid raises an alert
   Returns `db_updates` due and relies on the caller to do persistence
   """
-  def piggyback_exits(exits) do
-    GenServer.call(__MODULE__, {:piggyback_exits, exits})
+  def piggyback_exits(piggybacks) do
+    GenServer.call(__MODULE__, {:piggyback_exits, piggybacks})
   end
 
   @doc """
   Accepts events and processes them in the state - challenged exits are untracked
   Returns `db_updates` due and relies on the caller to do persistence
   """
-  def challenge_exits(exits) do
-    GenServer.call(__MODULE__, {:challenge_exits, exits})
+  def challenge_exits(challenges) do
+    GenServer.call(__MODULE__, {:challenge_exits, challenges})
   end
 
   @doc """
@@ -84,11 +84,27 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @doc """
   Accepts events and processes them in state.
+  Returns `db_updates` and relies on the caller to do persistence
+  """
+  def respond_to_in_flight_exits_challenges(responds) do
+    GenServer.call(__MODULE__, {:respond_to_in_flight_exits_challenges, responds})
+  end
+
+  @doc """
+  Accepts events and processes them in state.
   Challenged piggybacks are forgotten.
   Returns `db_updates` and relies on the caller to do persistence
   """
   def challenge_piggybacks(challenges) do
     GenServer.call(__MODULE__, {:challenge_piggybacks, challenges})
+  end
+
+  @doc """
+    Accepts events and processes them in state - finalized outputs are applied to the state.
+    Returns `db_updates` and relies on the caller to do persistence
+  """
+  def finalize_in_flight_exits(finalizations) do
+    GenServer.call(__MODULE__, {:finalize_in_flight_exits, finalizations})
   end
 
   @doc """
@@ -123,11 +139,14 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:new_exits, exits}, _from, state) do
     exit_contract_statuses =
-      Enum.map(exits, fn %{utxo_pos: utxo_pos} ->
-        {:ok, exit_id} = Eth.RootChain.get_standard_exit_id(utxo_pos)
-        {:ok, result} = Eth.RootChain.get_exit(exit_id)
-        result
-      end)
+      Enum.map(
+        exits,
+        fn %{utxo_pos: utxo_pos} ->
+          {:ok, exit_id} = Eth.RootChain.get_standard_exit_id(utxo_pos)
+          {:ok, result} = Eth.RootChain.get_exit(exit_id)
+          result
+        end
+      )
 
     {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
     _ = OMG.Watcher.DB.EthEvent.insert_exits(exits)
@@ -136,11 +155,14 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:new_in_flight_exits, events}, _from, state) do
     ife_contract_statuses =
-      Enum.map(events, fn %{tx_bytes: bytes} ->
-        {:ok, ife_id} = Eth.RootChain.get_in_flight_exit_id(bytes)
-        {:ok, result} = Eth.RootChain.get_in_flight_exit(ife_id)
-        result
-      end)
+      Enum.map(
+        events,
+        fn %{tx_bytes: bytes} ->
+          {:ok, contract_ife_id} = Eth.RootChain.get_in_flight_exit_id(bytes)
+          {:ok, {timestamp, _, _, _}} = Eth.RootChain.get_in_flight_exit(contract_ife_id)
+          {timestamp, contract_ife_id}
+        end
+      )
 
     {new_state, db_updates} = Core.new_in_flight_exits(state, events, ife_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
@@ -171,6 +193,16 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:challenge_piggybacks, challenges}, _from, state) do
     {new_state, db_updates} = Core.challenge_piggybacks(state, challenges)
+    {:reply, {:ok, db_updates}, new_state}
+  end
+
+  def handle_call({:respond_to_in_flight_exit_challenge, responds}, _from, state) do
+    {new_state, db_updates} = Core.respond_to_in_flight_exits_challenges(state, responds)
+    {:reply, {:ok, db_updates}, new_state}
+  end
+
+  def handle_call({:finalize_in_flight_exits, finalizations}, _from, state) do
+    {new_state, db_updates} = Core.finalize_in_flight_exits(state, finalizations)
     {:reply, {:ok, db_updates}, new_state}
   end
 
