@@ -45,7 +45,7 @@ jobs:
           command: |
             export GIT_COMMIT_DESCRIPTION=$(git log --format=%B -n 1 $CIRCLE_SHA1)
             export SHELL=/bin/bash
-            mix coveralls.post --umbrella \
+            mix coveralls.circle --umbrella \
             --include integration \
             --include wrappers \
             --sha $CIRCLE_SHA \
