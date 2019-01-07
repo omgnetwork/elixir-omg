@@ -25,7 +25,7 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
   # mapped by tx_hash
   defstruct [
     :tx,
-    # TODO: what if someone does challenges once more but with another input?
+    # FIXME: what if someone does challenges once more but with another input?
     :competing_input_index,
     :competing_input_signature
   ]
@@ -40,7 +40,7 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
     {:put, :competitor_info, update}
   end
 
-  def build_competitor(tx_bytes, competing_input_index, competing_input_signature) do
+  def new(tx_bytes, competing_input_index, competing_input_signature) do
     with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
       {Transaction.hash(raw_tx),
        struct(

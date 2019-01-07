@@ -196,7 +196,7 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {:ok, db_updates}, new_state}
   end
 
-  def handle_call({:respond_to_in_flight_exit_challenge, responds}, _from, state) do
+  def handle_call({:respond_to_in_flight_exits_challenges, responds}, _from, state) do
     {new_state, db_updates} = Core.respond_to_in_flight_exits_challenges(state, responds)
     {:reply, {:ok, db_updates}, new_state}
   end

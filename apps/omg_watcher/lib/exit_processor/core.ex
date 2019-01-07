@@ -120,7 +120,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.zip(contract_statuses)
       |> Enum.map(fn {%{tx_bytes: tx_bytes, signatures: signatures}, {timestamp, contract_ife_id} = contract_status} ->
         is_active = parse_contract_in_flight_exit_status(contract_status)
-        InFlightExitInfo.build_in_flight_transaction_info(tx_bytes, signatures, contract_ife_id, timestamp, is_active)
+        InFlightExitInfo.new(tx_bytes, signatures, contract_ife_id, timestamp, is_active)
       end)
 
     db_updates =
@@ -232,7 +232,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
                          competing_tx_sig: signature
                        }
                      } ->
-        CompetitorInfo.build_competitor(competing_tx_bytes, competing_input_index, signature)
+        CompetitorInfo.new(competing_tx_bytes, competing_input_index, signature)
       end)
 
     new_competitors = challenges |> Map.new()

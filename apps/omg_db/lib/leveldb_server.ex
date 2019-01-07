@@ -76,12 +76,12 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   def handle_call(:utxos, _from, %__MODULE__{db_ref: db_ref} = state) do
-    result = get_by_type(:utxo, db_ref)
+    result = get_all_by_type(:utxo, db_ref)
     {:reply, result, state}
   end
 
   def handle_call(:exit_infos, _from, %__MODULE__{db_ref: db_ref} = state) do
-    result = get_by_type(:exit_info, db_ref)
+    result = get_all_by_type(:exit_info, db_ref)
     {:reply, result, state}
   end
 
@@ -96,16 +96,16 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   def handle_call(:in_flight_exits_info, _from, %__MODULE__{db_ref: db_ref} = state) do
-    result = get_by_type(:in_flight_exit_info, db_ref)
+    result = get_all_by_type(:in_flight_exit_info, db_ref)
     {:reply, result, state}
   end
 
   def handle_call(:competitors_info, _from, %__MODULE__{db_ref: db_ref} = state) do
-    result = get_by_type(:competitor_info, db_ref)
+    result = get_all_by_type(:competitor_info, db_ref)
     {:reply, result, state}
   end
 
-  def handle_call(parameter, _from, state)
+  def handle_call({:get_single_value, parameter}, _from, state)
       when is_atom(parameter) do
     result =
       parameter
@@ -141,7 +141,7 @@ defmodule OMG.DB.LevelDBServer do
     Exleveldb.get(db_ref, key)
   end
 
-  defp get_by_type(type, db_ref) do
+  defp get_all_by_type(type, db_ref) do
     db_ref
     |> Exleveldb.stream()
     |> LevelDBCore.filter_keys(type)

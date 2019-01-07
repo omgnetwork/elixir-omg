@@ -225,7 +225,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            competing_tx_sig: signature
          }
        }) do
-    CompetitorInfo.build_competitor(tx_bytes, input_index, signature)
+    CompetitorInfo.new(tx_bytes, input_index, signature)
   end
 
   @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
@@ -442,12 +442,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> Core.invalid_exits(processor, 13, @late_blknum)
   end
 
-  @tag fixtures: [:processor_empty, :state_empty, :events, :contract_statuses]
+  @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
   test "exits of utxos that couldn't have been seen created yet never excite events", %{
     processor_empty: processor,
     state_empty: state,
-    events: [_, late_exit | _],
-    contract_statuses: [_, active_status | _]
+    exit_events: [_, late_exit | _],
+    contract_exit_statuses: [_, active_status | _]
   } do
     {processor, _} =
       processor
