@@ -57,7 +57,7 @@ defmodule OMG.Watcher.API.Transaction do
   end
 
   @doc """
-  Returns arguments for function that starts in-flight exit on a root chain.
+  Returns arguments for plasma contract function that starts in-flight exit for a given transaction.
   """
   @spec get_in_flight_exit(%Transaction.Signed{}) :: {:ok, in_flight_exit()} | {:error, atom}
   def get_in_flight_exit(tx) do

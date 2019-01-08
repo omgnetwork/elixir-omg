@@ -13,7 +13,7 @@ Currently the Childchain API and Watcher API behave differently e.g.
 Also on the roadmap is the **Informational API Service** that will provide non-critical convenience APIs.
 
 All three APIs should behave consistently.
-  
+
 ## Proposal
 The eWallet already has a well defined API, using HTTP-RPC (rather than REST).
  - [eWallet Admin API](https://ewallet.staging.omisego.io/api/admin/docs.ui)
@@ -102,6 +102,7 @@ The watcher first and foremost plays a critical security role in the system. The
 #### API endpoints
 ```
 /transaction.get
+/transaction.get_in_flight_exit
 /transaction.submit
 /utxo.get_exit_data
 /utxo.get_challenge_data
@@ -135,8 +136,9 @@ This service may end up being included in the Watcher as optional functionality,
 /account.get_utxos
 /account.get_transactions
 /transaction.all
-/transaction.get
 /transaction.create
+/transaction.get
+/transaction.get_in_flight_exit
 /block.all
 /block.get
 ... utxo management apis ...
