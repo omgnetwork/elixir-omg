@@ -25,7 +25,7 @@ defmodule OMG.API.MixProject do
         ethereum_status_check_interval_ms: 6_000,
         child_block_minimal_enqueue_gap: 1
       ],
-      extra_applications: [:sentry, :logger],
+      extra_applications: [:sentry, :logger, :appsignal],
       mod: {OMG.API.Application, []}
     ]
   end
@@ -47,7 +47,8 @@ defmodule OMG.API.MixProject do
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
       {:omg_rpc, in_umbrella: true},
-      {:sentry, "~> 6.2.0"}
+      {:sentry, "~> 6.2.0"},
+      {:appsignal, "~> 1.0"}
     ]
   end
 end

@@ -24,7 +24,8 @@ config :omg_watcher,
 config :omg_watcher, OMG.Watcher.Web.Endpoint,
   secret_key_base: "grt5Ef/y/jpx7AfLmrlUS/nfYJUOq+2e+1xmU4nphTm2x8WB7nLFCJ91atbSBrv5",
   render_errors: [view: OMG.Watcher.Web.View.ErrorView, accepts: ~w(json)],
-  pubsub: [name: OMG.Watcher.PubSub, adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: OMG.Watcher.PubSub, adapter: Phoenix.PubSub.PG2],
+  instrumenters: [Appsignal.Phoenix.Instrumenter]
 
 config :omg_watcher, :phoenix_swagger,
   swagger_files: %{

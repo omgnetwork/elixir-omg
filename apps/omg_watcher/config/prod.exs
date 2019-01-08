@@ -16,7 +16,8 @@ use Mix.Config
 config :omg_watcher, OMG.Watcher.Web.Endpoint,
   http: [:inet6, port: System.get_env("PORT") || 7434],
   # TODO: adjust this when `:prod` environment starts being used
-  url: [host: "example.com", port: 80]
+  url: [host: "example.com", port: 80],
+  loggers: [Appsignal.Ecto, Ecto.LogEntry]
 
 # NOTE: no `cache_static_manifest` here
 
@@ -28,7 +29,8 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   timeout: 60_000,
   connect_timeout: 60_000,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
-  url: {:system, "DATABASE_URL"}
+  url: {:system, "DATABASE_URL"},
+  loggers: [Appsignal.Ecto, Ecto.LogEntry]
 
 # ## SSL Support
 #

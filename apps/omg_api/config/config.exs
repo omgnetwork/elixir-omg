@@ -5,7 +5,8 @@ config :omg_api,
   submission_finality_margin: 20,
   ethereum_status_check_interval_ms: 6_000,
   child_block_minimal_enqueue_gap: 1,
-  fee_specs_file_path: "./fee_specs.json"
+  fee_specs_file_path: "./fee_specs.json",
+  instrumenters: [Appsignal.Phoenix.Instrumenter]
 
 config :sentry,
   dsn: {:system, "SENTRY_DSN"},

@@ -8,6 +8,7 @@ config :omg_eth,
   authority_addr: nil,
   txhash_contract: nil,
   geth_logging_in_debug: true,
-  child_block_interval: 1000
+  child_block_interval: 1000,
+  instrumenters: [Appsignal.Phoenix.Instrumenter]
 
 import_config "#{Mix.env()}.exs"
