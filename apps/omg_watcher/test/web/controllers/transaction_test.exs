@@ -285,22 +285,20 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
         expected_input_txs = get_input_txs(initial_blocks, positions)
 
-        # see initial_blocks, we're combining two outputs from those transactions
         tx = API.TestHelper.create_encoded(inputs, @eth, [{bob, 100}])
 
         proofs_size = 1024 * length(inputs)
-        sigs_size = 65 * 4
+        sigs_size = 130 * length(inputs)
 
         %{
           # checking just lengths in majority as we prepare verify correctness in the contract in integration tests
-          # the byte size is hard-coded - how much does it bother us?
           "in_flight_tx" => _in_flight_tx,
           "input_txs" => input_txs,
-          # a non-encoded proof, 512 bytes each
+          # encoded proofs, 1024 bytes each
           "input_txs_inclusion_proofs" => <<_proof::bytes-size(proofs_size)>>,
-          # two non-encoded signatures, 65 bytes each, second one is zero-bytes, that's ok with contract
+          # encoded signatures, 130 bytes each
           "in_flight_tx_sigs" => <<_bytes::bytes-size(sigs_size)>>
-        } = TestHelper.success?("/transaction.get_in_flight_exit_data", %{"transaction" => tx})
+        } = TestHelper.success?("/inflight_exit.get_data", %{"txbytes" => tx})
 
         input_txs =
           input_txs
@@ -341,7 +339,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert %{
                "code" => "in_flight_exit:tx_for_input_not_found",
                "description" => "No transaction that created input."
-             } = TestHelper.no_success?("/transaction.get_in_flight_exit_data", %{"transaction" => tx})
+             } = TestHelper.no_success?("/inflight_exit.get_data", %{"txbytes" => tx})
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -349,7 +347,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert %{
                "code" => "get_in_flight_exit:malformed_transaction_rlp",
                "description" => nil
-             } = TestHelper.no_success?("/transaction.get_in_flight_exit_data", %{"transaction" => "tx"})
+             } = TestHelper.no_success?("/inflight_exit.get_data", %{"txbytes" => "tx"})
     end
   end
 end

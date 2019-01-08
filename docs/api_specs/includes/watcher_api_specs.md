@@ -36,7 +36,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:4000/account.g
 ```
 
 Gets all utxos belonging to the given address.
-<aside class="notice"> Note that this is a performance intensive call and should only be used if the chain is byzantine and the user needs to retrieve utxo information to be able to exit. Normally an application should use the Informational API's  <a href="#cccount-get-utxos">Account - Get Utxos</a> instead. This version is provided in case the Informational API is not available.</aside> 
+<aside class="notice"> Note that this is a performance intensive call and should only be used if the chain is byzantine and the user needs to retrieve utxo information to be able to exit. Normally an application should use the Informational API's  <a href="#cccount-get-utxos">Account - Get Utxos</a> instead. This version is provided in case the Informational API is not available.</aside>
 
 
 ### HTTP Request
@@ -159,7 +159,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:4000/transacti
 {
       "version": "1",
       "success": true,
-      "data": { 
+      "data": {
           "blknum": 123000,
           "txindex": 111,
           "txhash": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"
@@ -249,7 +249,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:4000/status
 Returns information about the current state of the child chain and the watcher.
 
 <aside class="warning">
-The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity. 
+The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity.
 The user must call the `/status` endpoint periodically to check. Any situation that requires the user to either exit or challenge an invalid exit will be included in the `byzantine_events` field.
 </aside>
 
@@ -350,8 +350,8 @@ The ChildChain is withholding a block whose hash has been published on the root 
 }
 ```
 
-An in-flight exit of a non-canonical transaction has been started. It should be challenged. 
-<aside class="warning"> Not Implemented Yet.</aside> 
+An in-flight exit of a non-canonical transaction has been started. It should be challenged.
+<aside class="warning"> Not Implemented Yet.</aside>
 
 Event details:
 
@@ -371,8 +371,8 @@ txbytes | Hex encoded string | The in-flight transaction that the event relates 
 }
 ```
 
-A canonical in-flight exit has been challenged. The challenge should be responded to. 
-<aside class="warning"> Not Implemented Yet.</aside> 
+A canonical in-flight exit has been challenged. The challenge should be responded to.
+<aside class="warning"> Not Implemented Yet.</aside>
 
 Event details:
 
@@ -400,7 +400,7 @@ txbytes | Hex encoded string | The in-flight transaction that the event relates 
 ```
 
 An in-flight exit has been started and can be piggybacked. If all inputs are owned by the same address, then `available_inputs` will not be present.
-<aside class="warning"> Not Implemented Yet.</aside> 
+<aside class="warning"> Not Implemented Yet.</aside>
 
 Event details:
 
@@ -458,21 +458,15 @@ curl -X POST -H "Content-Type: application/json" http://localhost:4000/inflight_
     "version": "1",
     "success": true,
     "data": {
-        "txbytes": "F847010180808080940000...",
-        "sigs": "7C29FB8327F60BBFC62...",
-        "input_txs_bytes" : [
-            "F81891018080808...",
-            "2A0341808602A01..."
-        ],
-        "input_txs_proofs" : [
-             "CEDB8B31D1E4C...",
-             "A67131D1E904C..."
-        ]
+        "in_flight_tx": "F847010180808080940000...",
+        "input_txs": "7C29FB8327F60BBFC62...",
+        "input_txs_inclusion_proofs" : "F81891018080808...",
+        "in_flight_tx_sigs" : "CEDB8B31D1E4C...",
     }
 }
 ```
 
-Gets exit data for an in-flight exit
+Gets exit data for an in-flight exit. Exit data are arguments to `startInFlightExit` root chain contract function.
 
 ### HTTP Request
 

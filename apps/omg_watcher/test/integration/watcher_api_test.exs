@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   @timeout 40_000
   @eth Crypto.zero_address()
   @eth_hex String.duplicate("00", 20)
-  @in_flight_exit_bond 31_415_926_535
+  @in_flight_exit_bond 31_415_926_535 # as in plasma contract
 
   @moduletag :integration
 
