@@ -27,6 +27,7 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
 
   @eth Crypto.zero_address()
 
+  @tag skip: true
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
   test "challenge data is properly formatted", %{alice: alice} do
     DB.EthEvent.insert_deposits([%{owner: alice.addr, currency: @eth, amount: 100, blknum: 1}])
@@ -51,6 +52,7 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
     } = TestHelper.success?("utxo.get_challenge_data", %{"utxo_pos" => utxo_pos})
   end
 
+  @tag skip: true
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "challenging non-existent utxo returns error" do
     utxo_pos = Utxo.position(1, 1, 0) |> Utxo.Position.encode()
