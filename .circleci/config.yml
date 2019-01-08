@@ -51,7 +51,7 @@ jobs:
               --include wrappers \
               --sha $CIRCLE_SHA \
               --branch $CIRCLE_BRANCH \
-              --message "$GIT_COMMIT_DESCRIPTION"
+              --message $GIT_COMMIT_DESCRIPTION
 
   build_and_deploy:
     docker:
