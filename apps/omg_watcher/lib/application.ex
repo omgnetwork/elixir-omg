@@ -146,6 +146,7 @@ defmodule OMG.Watcher.Application do
     _ = Logger.info(fn -> "Started application OMG.Watcher.Application" end)
 
     opts = [strategy: :one_for_one, name: OMG.Watcher.Supervisor]
+    :ok = :error_logger.add_report_handler(Sentry.Logger)
     Supervisor.start_link(children, opts)
   end
 
