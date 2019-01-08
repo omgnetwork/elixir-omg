@@ -21,7 +21,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.g
 
 ```json
 {
-    "version": "1",
+    "version": "1.0",
     "success": true,
     "data": [
         {
@@ -68,7 +68,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.g
 
 ```json
 {
-    "version": "1",
+    "version": "1.0",
     "success": true,
     "data": [
         {
@@ -116,7 +116,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.g
 
 ```json
 {
-    "version": "1",
+    "version": "1.0",
     "success": true,
     "data": [
         {
@@ -172,7 +172,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/transacti
 
 ```json
 {
-    "version": "1",
+    "version": "1.0",
     "success": true,
     "data": [
         {
@@ -249,7 +249,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/transacti
 
 ```json
 {
-    "version": "1",
+    "version": "1.0",
     "success": true,
     "data": {
         "txindex": 1,
@@ -325,7 +325,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/block.all
 
 ```json
 {
-    "version": "1",
+    "version": "1.0",
     "success": true,
     "data": [
         {
@@ -380,7 +380,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/block.get
 
 ```json
 {
-    "version": "1",
+    "version": "1.0",
     "success": true,
     "data": {
         "timestamp": 1540365586,
