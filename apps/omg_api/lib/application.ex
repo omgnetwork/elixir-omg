@@ -34,7 +34,7 @@ defmodule OMG.API.Application do
             service_name: :in_flight_exit,
             block_finality_margin: eth_deposit_finality_margin,
             get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
-            process_events_callback: OMG.API.State.in_flight_exit/1
+            process_events_callback: OMG.API.State.in_flight_exit/1,
             get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
           }
         ]
@@ -54,7 +54,7 @@ defmodule OMG.API.Application do
             service_name: :piggyback,
             block_finality_margin: eth_deposit_finality_margin,
             get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
-            process_events_callback: &OMG.API.State.piggyback/1, 
+            process_events_callback: &OMG.API.State.piggyback/1,
             get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
           }
         ]
@@ -69,7 +69,15 @@ defmodule OMG.API.Application do
       {OMG.API.BlockQueue.Server, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeChecker, []},
-      {OMG.API.RootChainCoordinator, [:depositor, :exiter, :in_flight_exit, :piggyback]},
+      {
+        OMG.API.RootChainCoordinator,
+        %{
+          depositor: %{sync_mode: :sync_with_coordinator},
+          exiter: %{sync_mode: :sync_with_coordinator},
+          in_flight_exit: %{sync_mode: :sync_with_coordinator},
+          piggyback: %{sync_mode: :sync_with_coordinator}
+        }
+      },
       %{
         id: :depositor,
         start:
@@ -93,8 +101,8 @@ defmodule OMG.API.Application do
           {OMG.API.EthereumEventListener, :start_link,
            [
              %{
-               # 0, because we want the child chain to make UTXOs spent immediately after exit starts
-               block_finality_margin: 0,
+               # we need to be just one block after deposits to never miss exits from deposits
+               block_finality_margin: deposit_finality_margin + 1,
                synced_height_update_key: :last_exiter_eth_height,
                service_name: :exiter,
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,

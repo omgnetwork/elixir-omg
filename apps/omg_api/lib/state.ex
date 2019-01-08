@@ -59,7 +59,7 @@ defmodule OMG.API.State do
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
-  @spec in_flight_exit(in_flight_exit :: Transaction.Recovered.t()) :: :ok
+  @spec in_flight_exits(in_flight_exit :: Transaction.Recovered.t()) :: :ok
   def in_flight_exits(in_flight_exits) do
     GenServer.call(__MODULE__, {:in_flight_exits, in_flight_exits})
   end
@@ -150,7 +150,7 @@ defmodule OMG.API.State do
   Exits (spends) utxos on child chain, explicitly signals all utxos that have already been spent
   """
   def handle_call({:in_flight_exit,in_flight_txs}, _from, state) do
-    {db_updates, state} =
+    {db_updates, new_state} =
                 in_flight_txs
                 |> Enum.map_reduce(state, fn [tx_bytes, _, _, sigs] ->
                   {:ok, tx} = Transaction.decode(tx_bytes)

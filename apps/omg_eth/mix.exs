@@ -44,7 +44,7 @@ defmodule OMG.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "elixir_omg_morevp_compat",
+        branch: "master",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
@@ -54,15 +54,25 @@ defmodule OMG.Eth.MixProject do
   end
 
   defp contracts_compile do
+    current_path = System.cwd!()
     mixfile_path = __DIR__
-    contracts_dir = Path.join(mixfile_path, "../../deps/plasma_contracts/contracts")
+    contracts_dir = "deps/plasma_contracts/contracts"
+
+    # NOTE: `solc` needs the relative paths to contracts (`contract_paths`) to be short, hence we need to `cd`
+    #       deeply into where the sources are (`compilation_path`)
+    compilation_path = Path.join([mixfile_path, "../..", contracts_dir])
 
     contract_paths =
       ["RootChain.sol", "MintableToken.sol"]
-      |> Enum.map(&Path.join(contracts_dir, &1))
       |> Enum.join(" ")
 
-    output_path = Path.join(mixfile_path, "../../_build/contracts")
-    "solc #{contract_paths} --overwrite --abi --bin --optimize --optimize-runs 1 -o #{output_path}"
+    output_path = Path.join([mixfile_path, "../..", "_build/contracts"])
+
+    [
+      "cd #{compilation_path}",
+      "solc #{contract_paths} --overwrite --abi --bin --optimize --optimize-runs 1 -o #{output_path}",
+      "cd #{current_path}"
+    ]
+    |> Enum.join(" && ")
   end
 end

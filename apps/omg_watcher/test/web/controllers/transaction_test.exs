@@ -17,7 +17,9 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
 
+  alias OMG.API
   alias OMG.API.Crypto
+  alias OMG.API.State.Transaction
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
 
@@ -270,6 +272,76 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
              ] ==
                txs
                |> Enum.map(&Map.take(&1, ["txblknum", "txindex", "eth_height", "timestamp"]))
+    end
+  end
+
+  describe "getting in-flight exits" do
+    @tag fixtures: [:initial_blocks, :bob, :alice]
+    test "returns properly formatted in-flight exit data", %{initial_blocks: initial_blocks, bob: bob, alice: alice} do
+      expected_input_txs = get_input_txs(initial_blocks, [{3000, 1}, {2000, 0}])
+
+      # see initial_blocks, we're combining two outputs from those transactions
+      tx = API.TestHelper.create_encoded([{3000, 1, 0, bob}, {2000, 0, 1, alice}], @eth, [{bob, 150}])
+      IO.inspect(tx, limit: :infinity, pretty: true)
+      number_of_inputs = 4
+      proofs_size = 512 * number_of_inputs
+      sigs_size = 65 * number_of_inputs
+
+      %{
+        # checking just lengths in majority as we prepare verify correctness in the contract in integration tests
+        # the byte size is hard-coded - how much does it bother us?
+        # "in_flight_tx" => <<_bytes::bytes-size(76)>>,
+        "input_txs" => input_txs,
+        # a non-encoded proof, 512 bytes each
+        "input_txs_inclusion_proofs" => <<_proof::bytes-size(proofs_size)>>,
+        # two non-encoded signatures, 65 bytes each, second one is zero-bytes, that's ok with contract
+        "in_flight_tx_sigs" => <<_bytes::bytes-size(sigs_size)>>
+      } = TestHelper.success?("/transaction.get_in_flight_exit_data", %{"transaction" => tx})
+
+      input_txs =
+        input_txs
+        |> Base.decode16!(case: :upper)
+        |> ExRLP.decode()
+        |> Enum.map(fn
+          "" ->
+            nil
+
+          rlp_encoded ->
+            {:ok, tx} = Transaction.from_rlp(rlp_encoded)
+            tx
+        end)
+
+      assert input_txs == expected_input_txs
+    end
+
+    # gets the input transactions, as expected from the endpoint - based on the position and initial_blocks fixture
+    defp get_input_txs(initial_blocks, positions) do
+      filler = List.duplicate(nil, 4 - length(positions))
+
+      initial_blocks
+      |> Enum.filter(fn {blknum, txindex, _, _} -> {blknum, txindex} in positions end)
+      # reversing, because the inputs are reversed in the IFtx below, and we need that order, not by position!
+      |> Enum.reverse()
+      |> Enum.map(fn {_, _, _, %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}} -> raw_tx end)
+      |> Enum.concat(filler)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :bob]
+    test "behaves well if inputs not found", %{bob: bob} do
+      tx = API.TestHelper.create_encoded([{3000, 1, 0, bob}], @eth, [{bob, 150}])
+
+      assert %{
+               "code" => "in_flight_exit:tx_for_input_not_found",
+               "description" => "No transaction that created input."
+             } = TestHelper.no_success?("/transaction.get_in_flight_exit_data", %{"transaction" => tx})
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "behaves well if IFtx malformed; behavior from OMG.API.Core.recover_tx/1" do
+      assert %{
+               "code" => "get_in_flight_exit:malformed_transaction_rlp",
+               "description" => nil
+             } = TestHelper.no_success?("/transaction.get_in_flight_exit_data", %{"transaction" => "tx"})
     end
   end
 end

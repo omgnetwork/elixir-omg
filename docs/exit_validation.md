@@ -17,7 +17,10 @@ For completeness we give a quick run-down of the rules followed by the Child Cha
 1. The Child Chain operator's objective is to pro-actively minimize the risk of chain becoming invalid.
 The Child Chain will become invalid if any invalid exit gets finalized.
 2. To satisfy this objective:
-    - the Child Chain server listens to every `ExitStarted` Root Chain event and immediately "spends" the exited utxo. This blocks the user from spending that utxo, thus preventing exit invalidation.
+    - the Child Chain server listens to every `ExitStarted` Root Chain event and immediately "spends" the exited utxo.
+    This blocks the user from spending that utxo, thus preventing exit invalidation.
+    This immediacy is however limited; the server must wait the same Ethereum blocks' margin as it waits with deposits.
+    Otherwise, an exit from a fresh deposit might be processed before that deposit (and it _must_ wait for deposit's finality).
     - the Child Chain server listens to every `InFlightExitStarted` Root Chain event and immediately "spends" the exiting tx's **inputs**
     - the Child Chain server listens to every `InFlightExitPiggybacked` Root Chain event (on outputs) and immediately "spends" the piggybacked outputs - as long as the IFEing tx has been included in the chain and the output exists
 

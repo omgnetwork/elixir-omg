@@ -32,7 +32,6 @@ defmodule OMG.Eth.RootChain do
   @gas_start_exit 1_000_000
   @gas_deposit 180_000
   @gas_deposit_from 250_000
-  @gas_contract 6_180_000
   @gas_init 1_000_000
   @standard_exit_bond 31_415_926_535
 
@@ -148,14 +147,6 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
-  def create_new(path_project_root, from, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_contract)
-    opts = defaults |> Keyword.merge(opts)
-
-    bytecode = Eth.get_bytecode!(path_project_root, "RootChain")
-    Eth.deploy_contract(from, bytecode, [], [], opts)
-  end
-
   def init(from \\ nil, contract \\ nil, opts \\ []) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_init)
     opts = defaults |> Keyword.merge(opts)
@@ -216,6 +207,23 @@ defmodule OMG.Eth.RootChain do
   def has_token(token, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     Eth.call_contract(contract, "hasToken(address)", [token], [:bool])
+  end
+
+  def in_flight_exit(
+        in_flight_tx,
+        input_txs,
+        input_txs_inclusion_proofs,
+        in_flight_tx_sigs,
+        from,
+        bond,
+        contract \\ nil
+      ) do
+    opts = @tx_defaults |> Keyword.merge(value: bond)
+
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "startInFlightExit(bytes,bytes,bytes,bytes)"
+    args = [in_flight_tx, input_txs, input_txs_inclusion_proofs, in_flight_tx_sigs]
+    Eth.contract_transact(from, contract, signature, args, opts)
   end
 
   ########################
@@ -291,6 +299,14 @@ defmodule OMG.Eth.RootChain do
     end
   end
 
+  def get_in_flight_exits(block_from, block_to, contract \\ nil) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "InFlightExitStarted(address,bytes32)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, &decode_in_flight_exit/1)}
+  end
+
   @doc """
   Returns finalizations of exits from a range of blocks from Ethereum logs.
   """
@@ -343,6 +359,19 @@ defmodule OMG.Eth.RootChain do
     non_indexed_keys = [:utxo_pos, :amount, :currency]
     non_indexed_key_types = [{:uint, 256}, {:uint, 256}, :address]
     indexed_keys = [:owner]
+    indexed_keys_types = [:address]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  defp decode_in_flight_exit(log) do
+    non_indexed_keys = [:txhash]
+    non_indexed_key_types = [{:bytes, 32}]
+    indexed_keys = [:initiator]
     indexed_keys_types = [:address]
 
     Eth.parse_events_with_indexed_fields(

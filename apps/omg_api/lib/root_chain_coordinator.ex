@@ -21,9 +21,9 @@ defmodule OMG.API.RootChainCoordinator do
 
   use OMG.API.LoggerExt
 
-  @spec start_link(MapSet.t()) :: GenServer.on_start()
-  def start_link(allowed_services) do
-    GenServer.start_link(__MODULE__, allowed_services, name: __MODULE__)
+  @spec start_link(Core.configs_services()) :: GenServer.on_start()
+  def start_link(configs_services) do
+    GenServer.start_link(__MODULE__, configs_services, name: __MODULE__)
   end
 
   @doc """
@@ -45,13 +45,17 @@ defmodule OMG.API.RootChainCoordinator do
 
   use GenServer
 
-  def init(allowed_services) do
+  def init(configs_services) do
     {:ok, rootchain_height} = Eth.get_ethereum_height()
 
     height_sync_interval = Application.fetch_env!(:omg_api, :ethereum_status_check_interval_ms)
     {:ok, _} = schedule_get_ethereum_height(height_sync_interval)
-    state = Core.init(allowed_services, rootchain_height)
-    request_sync(allowed_services)
+    state = Core.init(configs_services, rootchain_height)
+
+    configs_services
+    |> Map.keys()
+    |> request_sync()
+
     {:ok, state}
   end
 
@@ -63,8 +67,8 @@ defmodule OMG.API.RootChainCoordinator do
     {:reply, :ok, state, 60_000}
   end
 
-  def handle_call(:get_synced_height, _from, state) do
-    {:reply, Core.get_synced_height(state), state}
+  def handle_call(:get_synced_height, {pid, _}, state) do
+    {:reply, Core.get_synced_height(state, pid), state}
   end
 
   def handle_info(:update_root_chain_height, state) do
@@ -91,7 +95,7 @@ defmodule OMG.API.RootChainCoordinator do
     Enum.each(services, fn service -> safe_send(service, :sync) end)
   end
 
-  def safe_send(registered_name_or_pid, msg) do
+  defp safe_send(registered_name_or_pid, msg) do
     try do
       send(registered_name_or_pid, msg)
     rescue

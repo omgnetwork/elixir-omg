@@ -17,7 +17,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
   use OMG.API.Integration.Fixtures
-
   use Plug.Test
   use Phoenix.ChannelTest
 
@@ -147,7 +146,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
              Eth.RootChain.get_exits(0, exit_eth_height)
 
     # Here we're waiting for watcher to process the exits
-    Process.sleep(1_00)
+    deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
+    Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + deposit_finality_margin + 1 + 1)
 
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
 
@@ -210,7 +210,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert capture_log(fn ->
              {:ok, _txhash} = Eth.RootChain.submit_block(different_hash, 1, 20_000_000_000)
 
-             assert_block_getter_down()
+             IntegrationTest.wait_for_block_getter_down()
            end) =~ inspect(:incorrect_hash)
 
     invalid_block_event =
@@ -246,7 +246,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert capture_log(fn ->
              {:ok, _txhash} = Eth.RootChain.submit_block(invalid_block_hash, 1, 20_000_000_000)
 
-             assert_block_getter_down()
+             IntegrationTest.wait_for_block_getter_down()
            end) =~ inspect(:tx_execution)
 
     invalid_block_event =
@@ -303,7 +303,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
 
     assert capture_log(fn ->
-             assert_block_getter_down()
+             IntegrationTest.wait_for_block_getter_down()
            end) =~ inspect(:unchallenged_exit)
 
     unchallenged_exit_event =
@@ -317,9 +317,5 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       |> Response.clean_artifacts()
 
     assert_push("unchallenged_exit", ^unchallenged_exit_event)
-  end
-
-  defp assert_block_getter_down do
-    :ok = TestHelper.wait_for_process(Process.whereis(OMG.Watcher.BlockGetter))
   end
 end
