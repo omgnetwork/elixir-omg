@@ -62,18 +62,4 @@ defmodule OMG.Watcher.Eventer.CoreTest do
 
     assert [event_1, event_2] == Eventer.Core.pair_events_with_topics([%{tx: recovered_tx}])
   end
-
-  test "prepare_events function generates one block_withholdings event" do
-    block_withholding_event = %Event.BlockWithholding{blknum: 1}
-    event = {"byzantine", "block_withholding", block_withholding_event}
-
-    assert [event] == Eventer.Core.pair_events_with_topics([block_withholding_event])
-  end
-
-  test "prepare_events function generates one invalid_exit event" do
-    invalid_exit_event = %Event.InvalidExit{amount: 1, currency: <<>>, owner: <<>>, utxo_pos: 1}
-    event = {"byzantine", "invalid_exit", invalid_exit_event}
-
-    assert [event] == Eventer.Core.pair_events_with_topics([invalid_exit_event])
-  end
 end

@@ -19,6 +19,18 @@ defmodule OMG.DB.LevelDBCore do
 
   # adapter - testable, if we really really want to
 
+  @keys_prefixes %{
+    block: "b",
+    block_hash: "bn",
+    utxo: "u",
+    exit_info: "e",
+    in_flight_exit_info: "ife",
+    competitor_info: "ci",
+    spend: "s"
+  }
+
+  @key_types Map.keys(@keys_prefixes)
+
   def parse_multi_updates(db_updates) do
     db_updates
     |> Enum.flat_map(&parse_multi_update/1)
@@ -43,7 +55,7 @@ defmodule OMG.DB.LevelDBCore do
   end
 
   @doc """
-  Interprepts the response from leveldb and returns a success-decorated result
+  Interprets the response from leveldb and returns a success-decorated result
   """
   def decode_value(db_response, type) do
     case decode_response(type, db_response) do
@@ -53,7 +65,7 @@ defmodule OMG.DB.LevelDBCore do
   end
 
   @doc """
-  Interprets an enumberable of responses from leveldb and decorates the enumerable with a `{:ok, _enumberable}`
+  Interprets an enumerable of responses from leveldb and decorates the enumerable with a `{:ok, _enumerable}`
   if no errors occurred
   """
   def decode_values(encoded_enumerable, type) do
@@ -66,44 +78,23 @@ defmodule OMG.DB.LevelDBCore do
       else: {:ok, raw_decoded}
   end
 
+  defp encode_value(:spend, {_position, blknum}), do: :erlang.term_to_binary(blknum)
   defp encode_value(_type, value), do: :erlang.term_to_binary(value)
 
-  def filter_utxos(keys_stream) do
-    keys_stream
-    |> Stream.filter(fn
-      {"u" <> _rest, _} -> true
-      _ -> false
-    end)
-  end
+  def filter_keys(key_stream, type) when type in @key_types,
+    do: do_filter_keys(key_stream, Map.get(@keys_prefixes, type))
 
-  def filter_exit_infos(keys_stream) do
-    keys_stream
-    |> Stream.filter(fn
-      {"e" <> _rest, _} -> true
-      _ -> false
-    end)
-  end
+  defp do_filter_keys(keys_stream, prefix),
+    do: Stream.filter(keys_stream, fn {key, _} -> String.starts_with?(key, prefix) end)
 
   def key(:block, %{hash: hash} = _block), do: key(:block, hash)
-  def key(:block, hash), do: "b" <> hash
+  def key(:block, hash), do: @keys_prefixes.block <> hash
+  def key(:utxo, {position, _utxo}), do: key(:utxo, position)
+  def key(:spend, {position, _blknum}), do: key(:spend, position)
+  def key(:exit_info, {position, _exit_info}), do: key(:utxo, position)
 
-  def key(:block_hash, number), do: "bn" <> :erlang.term_to_binary(number)
-
-  def key(:utxo, {position, _utxo}) do
-    key(:utxo, position)
-  end
-
-  def key(:utxo, position) do
-    "u" <> :erlang.term_to_binary(position)
-  end
-
-  def key(:exit_info, {position, _exit_info}) do
-    key(:utxo, position)
-  end
-
-  def key(:exit_info, position) do
-    "e" <> :erlang.term_to_binary(position)
-  end
+  def key(type, item) when type in @key_types,
+    do: Map.get(@keys_prefixes, type) <> :erlang.term_to_binary(item)
 
   @single_value_parameter_names [
     :child_top_block_number,

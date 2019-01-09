@@ -29,7 +29,13 @@ defmodule OMG.API.Application do
       {OMG.API.BlockQueue.Server, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeChecker, []},
-      {OMG.API.RootChainCoordinator, [:depositor, :exiter]},
+      {
+        OMG.API.RootChainCoordinator,
+        %{
+          depositor: %{sync_mode: :sync_with_coordinator},
+          exiter: %{sync_mode: :sync_with_coordinator}
+        }
+      },
       %{
         id: :depositor,
         start:
@@ -51,8 +57,8 @@ defmodule OMG.API.Application do
           {OMG.API.EthereumEventListener, :start_link,
            [
              %{
-               # 0, because we want the child chain to make UTXOs spent immediately after exit starts
-               block_finality_margin: 0,
+               # we need to be just one block after deposits to never miss exits from deposits
+               block_finality_margin: deposit_finality_margin + 1,
                synced_height_update_key: :last_exiter_eth_height,
                service_name: :exiter,
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,

@@ -75,25 +75,13 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call({:utxos}, _from, %__MODULE__{db_ref: db_ref} = state) do
-    result =
-      db_ref
-      |> Exleveldb.stream()
-      |> LevelDBCore.filter_utxos()
-      |> Enum.map(fn {_, value} -> {:ok, value} end)
-      |> LevelDBCore.decode_values(:utxo)
-
+  def handle_call(:utxos, _from, %__MODULE__{db_ref: db_ref} = state) do
+    result = get_by_type(:utxo, db_ref)
     {:reply, result, state}
   end
 
-  def handle_call({:exit_infos}, _from, %__MODULE__{db_ref: db_ref} = state) do
-    result =
-      db_ref
-      |> Exleveldb.stream()
-      |> LevelDBCore.filter_exit_infos()
-      |> Enum.map(fn {_, value} -> {:ok, value} end)
-      |> LevelDBCore.decode_values(:exit_info)
-
+  def handle_call(:exit_infos, _from, %__MODULE__{db_ref: db_ref} = state) do
+    result = get_by_type(:exit_info, db_ref)
     {:reply, result, state}
   end
 
@@ -107,13 +95,33 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call(parameter, _from, %__MODULE__{db_ref: db_ref} = state)
+  def handle_call(:in_flight_exits_info, _from, %__MODULE__{db_ref: db_ref} = state) do
+    result = get_by_type(:in_flight_exit_info, db_ref)
+    {:reply, result, state}
+  end
+
+  def handle_call(:competitors_info, _from, %__MODULE__{db_ref: db_ref} = state) do
+    result = get_by_type(:competitor_info, db_ref)
+    {:reply, result, state}
+  end
+
+  def handle_call(parameter, _from, state)
       when is_atom(parameter) do
     result =
       parameter
       |> LevelDBCore.key(nil)
-      |> get(db_ref)
+      |> get(state.db_ref)
       |> LevelDBCore.decode_value(parameter)
+
+    {:reply, result, state}
+  end
+
+  def handle_call({:spent_blknum, utxo_pos}, _from, %__MODULE__{db_ref: db_ref} = state) do
+    result =
+      :spend
+      |> LevelDBCore.key(utxo_pos)
+      |> get(db_ref)
+      |> LevelDBCore.decode_value(:spend)
 
     {:reply, result, state}
   end
@@ -131,5 +139,13 @@ defmodule OMG.DB.LevelDBServer do
 
   defp get(key, db_ref) do
     Exleveldb.get(db_ref, key)
+  end
+
+  defp get_by_type(type, db_ref) do
+    db_ref
+    |> Exleveldb.stream()
+    |> LevelDBCore.filter_keys(type)
+    |> Enum.map(fn {_, value} -> {:ok, value} end)
+    |> LevelDBCore.decode_values(type)
   end
 end

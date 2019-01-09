@@ -17,7 +17,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
   use OMG.API.Integration.Fixtures
-
   use Plug.Test
   use Phoenix.ChannelTest
 
@@ -33,8 +32,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Web.Channel
   alias OMG.Watcher.Web.Serializers.Response
-
-  import ExUnit.CaptureLog
 
   @moduletag :integration
 
@@ -147,7 +144,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
              Eth.RootChain.get_exits(0, exit_eth_height)
 
     # Here we're waiting for watcher to process the exits
-    Process.sleep(1_00)
+    deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
+    Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + deposit_finality_margin + 1 + 1)
 
     tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
 
@@ -193,6 +191,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @tag fixtures: [:watcher_sandbox, :test_server]
   test "different hash send by child chain", %{test_server: context} do
     different_hash = <<0::256>>
+    different_hash_encoded = Base.encode16(different_hash)
 
     TestServer.with_route(
       context,
@@ -201,27 +200,15 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         transactions: [],
         number: 1000,
         # different hash than expected
-        hash: Base.encode16(different_hash)
+        hash: different_hash_encoded
       })
     )
 
-    {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
+    {:ok, _txhash} = Eth.RootChain.submit_block(different_hash, 1, 20_000_000_000)
 
-    assert capture_log(fn ->
-             {:ok, _txhash} = Eth.RootChain.submit_block(different_hash, 1, 20_000_000_000)
+    invalid_block_event = %{"error_type" => "incorrect_hash", "hash" => different_hash_encoded, "number" => 1000}
 
-             assert_block_getter_down()
-           end) =~ inspect(:incorrect_hash)
-
-    invalid_block_event =
-      %Event.InvalidBlock{
-        error_type: :incorrect_hash,
-        hash: different_hash,
-        number: 1000
-      }
-      |> Response.clean_artifacts()
-
-    assert_push("invalid_block", ^invalid_block_event)
+    IntegrationTest.wait_for_byzantine_events([invalid_block_event], @timeout)
   end
 
   @tag fixtures: [:watcher_sandbox, :alice, :test_server]
@@ -240,24 +227,13 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     TestServer.with_route(context, "/block.get", block_response)
 
-    {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
     invalid_block_hash = block_with_incorrect_transaction.hash
 
-    assert capture_log(fn ->
-             {:ok, _txhash} = Eth.RootChain.submit_block(invalid_block_hash, 1, 20_000_000_000)
+    {:ok, _txhash} = Eth.RootChain.submit_block(invalid_block_hash, 1, 20_000_000_000)
 
-             assert_block_getter_down()
-           end) =~ inspect(:tx_execution)
+    invalid_block_event = %{"error_type" => "tx_execution", "hash" => invalid_block_hash, "number" => 1000}
 
-    invalid_block_event =
-      %Event.InvalidBlock{
-        error_type: :tx_execution,
-        hash: invalid_block_hash,
-        number: 1000
-      }
-      |> Response.clean_artifacts()
-
-    assert_push("invalid_block", ^invalid_block_event)
+    IntegrationTest.wait_for_byzantine_events([invalid_block_event], @timeout)
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
@@ -275,8 +251,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     # from now on the child chain server is broken until end of test
     OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block, bad_block_hash)
-
-    {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
     IntegrationTest.wait_for_block_fetch(exit_blknum, @timeout)
 
@@ -302,24 +276,14 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     # Here we're manually submitting invalid block to the root chain
     {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
 
-    assert capture_log(fn ->
-             assert_block_getter_down()
-           end) =~ inspect(:unchallenged_exit)
+    unchallenged_exit_event = %{
+      "amount" => 10,
+      "currency" => @eth,
+      "owner" => alice.addr,
+      "utxo_pos" => utxo_pos,
+      "eth_height" => eth_height
+    }
 
-    unchallenged_exit_event =
-      %Event.UnchallengedExit{
-        amount: 10,
-        currency: @eth,
-        owner: alice.addr,
-        utxo_pos: utxo_pos,
-        eth_height: eth_height
-      }
-      |> Response.clean_artifacts()
-
-    assert_push("unchallenged_exit", ^unchallenged_exit_event)
-  end
-
-  defp assert_block_getter_down do
-    :ok = TestHelper.wait_for_process(Process.whereis(OMG.Watcher.BlockGetter))
+    IntegrationTest.wait_for_byzantine_events([unchallenged_exit_event], @timeout)
   end
 end
