@@ -21,6 +21,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   """
 
   alias OMG.API.Crypto
+  alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Watcher.Event
@@ -221,6 +222,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :exit_info, {blknum, txindex, oindex}} end)
   end
 
+  # FIXME: better name? `new_ife_challenges`? this is just registering an event on eth, so "challenge" verb misleads
+  #        would probably require changing a few of these names to the `new_something` convention
   @spec challenge_in_flight_exits(t(), [map()]) :: {t(), list()}
   def challenge_in_flight_exits(%__MODULE__{in_flight_exits: ifes, competitors: competitors} = state, challenges_events) do
     challenges =
@@ -409,4 +412,44 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp in_flight_exits(%__MODULE__{in_flight_exits: ifes}, []), do: ifes
 
   defp in_flight_exits(%__MODULE__{in_flight_exits: ifes}, hashes), do: Map.take(ifes, hashes)
+
+  @doc """
+  Gets the list of open IFEs that have the competitors _somewhere_
+  """
+  def get_ifes_with_competitors(state) do
+    competitors_from_tx_appendix(state) ++ []
+  end
+
+  defp competitors_from_tx_appendix(%__MODULE__{in_flight_exits: ifes} = state) do
+    known_txs = get_known_txs(state)
+
+    ifes
+    # FIXME: streamify? (multiple occurrences)
+    |> Map.values()
+    |> Enum.filter(&InFlightExitInfo.is_canonical?/1)
+    |> Enum.map(fn %InFlightExitInfo{tx: %{raw_tx: tx}} ->
+      # FIXME: the non-zero input filtering should go to Transaction, but then search for all occurences `get_inputs` and remove
+      {tx, Transaction.get_inputs(tx) |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum != 0 end)}
+    end)
+    # FIXME: expensive!
+    |> Enum.filter(fn {tx, inputs} ->
+      known_txs
+      |> Enum.map(fn %Transaction.Signed{raw_tx: tx} -> {tx, Transaction.get_inputs(tx)} end)
+      |> Enum.any?(fn {known_tx, known_spent_inputs} ->
+        Transaction.hash(known_tx)
+
+        with true <- inputs |> Enum.any?(&Enum.member?(known_spent_inputs, &1)),
+             do: Transaction.hash(known_tx) != Transaction.hash(tx)
+      end)
+    end)
+    |> Enum.map(fn {tx, _} -> Transaction.encode(tx) end)
+  end
+
+  # FIXME: separate out or document as the TxAppendix?
+  defp get_known_txs(%__MODULE__{in_flight_exits: ifes, competitors: competitors}) do
+    ifes
+    |> Map.values()
+    |> Enum.concat(Map.values(competitors))
+    |> Enum.map(&Map.get(&1, :tx))
+  end
 end
