@@ -67,7 +67,7 @@ podTemplate(
 
         stage('Cleanbuild') {
             withEnv(["MIX_ENV=test", "DATABASE_URL=${DATABASE_URL}"]) {
-                sh("mix do compile --warnings-as-errors --force, test --exclude test")
+                sh("mix do clean, compile --warnings-as-errors --force, test --exclude test")
             }
         }
 

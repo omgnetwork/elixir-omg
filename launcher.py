@@ -10,13 +10,10 @@ from retry import retry
 import requests
 
 
-RINKEBY_CONTRACT = [
-    'use Mix.Config',
-    'config :omg_eth,',
-    '  contract_addr: "0x98abd7229afac999fc7965bea7d94a3b5e7e0218",',
-    '  txhash_contract: "0x84a86f06b97e4c2d694ba507e7fcd8cf78adc4fbd596b1d3626ec7ba8242450d",', # noqa E501
-    '  authority_addr: "0xe5153ad259be60003909492b154bf4b7f1787f70"'
-]
+RINKEBY_CONTRACT = {}
+RINKEBY_CONTRACT['contract_addr'] = "0x98abd7229afac999fc7965bea7d94a3b5e7e0218" # noqa E501
+RINKEBY_CONTRACT['txhash_contract'] = "0x84a86f06b97e4c2d694ba507e7fcd8cf78adc4fbd596b1d3626ec7ba8242450d" # noqa E501
+RINKEBY_CONTRACT['authority_addr'] = "0xe5153ad259be60003909492b154bf4b7f1787f70" # noqa E501
 
 
 class ChildchainLauncher:
@@ -201,8 +198,18 @@ class ChildchainLauncher:
         '''
         logging.info('Writing config.exs')
         home = os.path.expanduser('~')
+        config = [
+            'use Mix.Config',
+            'config :omg_eth,',
+            '  contract_addr: "{}",'.format(
+                self.contracts[self.ethereum_network]['contract_addr']), # noqa E501
+            '  txhash_contract: "{}",'.format(
+                self.contracts[self.ethereum_network]['txhash_contract']), # noqa E501
+            '  authority_addr: "{}"'.format(
+                self.contracts[self.ethereum_network]['authority_addr']) # noqa E501
+        ]
         with open(home + '/config.exs', 'w+') as mix:
-            for line in self.contracts[self.ethereum_network]:
+            for line in config:
                 mix.write(line)
                 mix.write('\n')
         return 'PREDEPLOYED'
@@ -252,19 +259,16 @@ class WatcherLauncher:
         logging.info(
             'Starting launch process for build {}'.format(self.git_commit_hash)
         )
-        self.chain_data_present = False
-        self.check_chain_data_path()
         self.ethereum_client = check_ethereum_client(self.ethereum_rpc_url)
         logging.info('Ethereum client is {}'.format(self.ethereum_client))
-        if self.chain_data_present is True:
-            self.config_writer_dynamic()
-            logging.info('Launcher process complete')
-            return
         if self.compile_application() is False:
             logging.critical('Could not compile application. Exiting.')
             sys.exit(1)
         if self.deploy_contract() is False:
             logging.critical('Contract not deployed. Exiting.')
+            sys.exit(1)
+        if self.initialise_watcher_chain_database() is False:
+            logging.critical('Could not initialise Watcher LevelDB instance')
             sys.exit(1)
         if self.initialise_watcher_postgres_database() is False:
             logging.critical(
@@ -273,15 +277,6 @@ class WatcherLauncher:
             sys.exit(1)
 
         logging.info('Launcher process complete')
-
-    def check_chain_data_path(self):
-        ''' Checks if the chain data is already present
-        '''
-        if os.path.exists(os.path.expanduser('~') + '/.omg/data_watcher'):
-            self.chain_data_present = True
-            logging.info('Childchain data found')
-        else:
-            logging.info('Childchain data not found')
 
     def compile_application(self) -> bool:
         ''' Execute a mix compile
@@ -326,15 +321,21 @@ class WatcherLauncher:
         ''' Write the configuration from data retrieved from the contract
         exchanger
         '''
-        contract_data = json.loads(
-            self.get_contract_from_exchanger().decode('utf-8')
-        )
+        if self.ethereum_network in self.public_networks:
+            contract_data = self.contracts['RINKEBY']
+        else:
+            contract_data = json.loads(
+                self.get_contract_from_exchanger().decode('utf-8')
+            )
         config = [
             'use Mix.Config',
             'config :omg_eth,',
-            '  contract_addr: "{}",'.format(contract_data['contract_addr']),
-            '  txhash_contract: "{}",'.format(contract_data['txhash_contract']), # noqa E501
-            '  authority_addr: "{}"'.format(contract_data['authority_addr'])
+            '  contract_addr: "{}",'.format(
+                contract_data['contract_addr']),
+            '  txhash_contract: "{}",'.format(
+                contract_data['txhash_contract']),
+            '  authority_addr: "{}"'.format(
+                contract_data['authority_addr'])
         ]
         home = os.path.expanduser('~')
         with open(home + '/config_watcher.exs', 'w+') as mix:
@@ -348,12 +349,22 @@ class WatcherLauncher:
         ''' Write a config.exs to the homedir
         '''
         logging.info('Writing config_watcher.exs')
+        config = [
+            'use Mix.Config',
+            'config :omg_eth,',
+            '  contract_addr: "{}",'.format(
+                self.contracts[self.ethereum_network]['contract_addr']), # noqa E501
+            '  txhash_contract: "{}",'.format(
+                self.contracts[self.ethereum_network]['txhash_contract']), # noqa E501
+            '  authority_addr: "{}"'.format(
+                self.contracts[self.ethereum_network]['authority_addr']) # noqa E501
+        ]
         home = os.path.expanduser('~')
         with open(home + '/config_watcher.exs', 'w+') as mix:
-            for line in self.contracts[self.ethereum_network] + self.watcher_additional_config: # noqa E501
+            for line in config + self.watcher_additional_config: # noqa E501
                 mix.write(line)
                 mix.write('\n')
-        logging.info('Written config_watcher.exs')
+
         return True
 
     def initialise_watcher_postgres_database(self) -> bool:
@@ -379,6 +390,21 @@ class WatcherLauncher:
     def initialise_watcher_chain_database(self) -> bool:
         ''' Initialise the childchian database (chain data store)
         '''
+        remove_stale_data = subprocess.run(
+            "rm -Rf ~/.omg/data_watcher",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            shell=True
+        )
+        if not remove_stale_data.returncode == 0:
+            logging.warning(
+                'Could not delete Watcher LevelDB data! Error: {}'.format(
+                    remove_stale_data.stdout
+                )
+            )
+        else:
+            logging.info('Deleted Watcher LevelDB data')
+
         result = subprocess.run(
             "mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs", # noqa E501
             stdout=subprocess.PIPE,
