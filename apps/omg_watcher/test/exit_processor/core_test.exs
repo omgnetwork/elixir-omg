@@ -728,4 +728,46 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              _, false -> false
            end)
   end
+
+  describe "finds competitors" do
+    @tag fixtures: [:processor_filled, :in_flight_exits]
+    test "none if input never spent elsewhere",
+         %{processor_filled: processor} do
+      assert [] = Core.get_ifes_with_competitors(processor)
+    end
+
+    test "none if different input spent in some tx from appendix",
+         %{} do
+    end
+
+    test "none if input spent in block in same tx",
+         %{} do
+    end
+
+    test "none if input spent in tx appendix in same tx",
+         %{} do
+    end
+
+    @tag fixtures: [:processor_filled, :transactions, :competing_transactions]
+    test "all if input spent in various places",
+         %{processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp1 | _]} do
+      txbytes = Transaction.encode(tx1)
+      other_txbytes = comp1 |> Transaction.encode()
+
+      other_ife_event = %{tx_bytes: other_txbytes, signatures: []}
+      other_ife_status = {1, <<1::192>>}
+
+      {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
+
+      assert [^other_txbytes, ^txbytes] = Core.get_ifes_with_competitors(processor)
+    end
+
+    test "works with State to find competitors",
+         %{} do
+    end
+
+    test "none if input not yet created during sync",
+         %{} do
+    end
+  end
 end
