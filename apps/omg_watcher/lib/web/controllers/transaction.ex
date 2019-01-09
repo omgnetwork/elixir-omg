@@ -66,10 +66,11 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   defp get_address(_), do: nil
 
   @doc """
-  Retrieves a list of transactions
+  For a given transaction provided in params,
+  responds with arguments for plasma contract function that starts in-flight exit.
   """
   def get_in_flight_exit(conn, params) do
-    with {:ok, tx} <- Map.fetch(params, "transaction"),
+    with {:ok, tx} <- Map.fetch(params, "txbytes"),
          {:ok, tx} <- OMG.API.State.Transaction.Signed.decode(tx) do
       in_flight_exit = Transaction.get_in_flight_exit(tx)
       respond(in_flight_exit, conn)

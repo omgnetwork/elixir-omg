@@ -29,9 +29,10 @@ defmodule OMG.Watcher.Web.Router do
     post("/account.get_balance", Controller.Account, :get_balance)
     post("/account.get_transactions", Controller.Transaction, :get_transactions)
 
+    post("/inflight_exit.get_data", Controller.Transaction, :get_in_flight_exit)
+
     post("/transaction.all", Controller.Transaction, :get_transactions)
     post("/transaction.get", Controller.Transaction, :get_transaction)
-    post("/transaction.get_in_flight_exit_data", Controller.Transaction, :get_in_flight_exit)
 
     post("/utxo.get", Controller.Utxo, :get_utxos)
     post("/utxo.get_exit_data", Controller.Utxo, :get_utxo_exit)
