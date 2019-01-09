@@ -136,4 +136,58 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     IntegrationTest.wait_for_byzantine_events([invalid_exit_event], @timeout)
   end
 
+  @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
+  test "invalid exit is detected after block withholding", %{
+    stable_alice: alice,
+    stable_alice_deposits: {deposit_blknum, _}
+  } do
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    {:ok, %{blknum: deposit_blknum}} = Client.submit(tx)
+
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.submit(tx)
+
+    IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
+
+    {next_blknum, nonce} = get_next_blknum_nonce(tx_blknum)
+
+    {:ok, _txhash} = Eth.RootChain.submit_block(<<0::256>>, nonce, 20_000_000_000)
+
+    block_withholding_event = %{
+      "blknum" => next_blknum
+    }
+
+    IntegrationTest.wait_for_byzantine_events([block_withholding_event], @timeout)
+
+    %{
+      "txbytes" => txbytes,
+      "proof" => proof,
+      "utxo_pos" => utxo_pos
+    } = IntegrationTest.get_exit_data(deposit_blknum, 0, 0)
+
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+      Eth.RootChain.start_exit(
+        utxo_pos,
+        txbytes,
+        proof,
+        alice.addr
+      )
+      |> Eth.DevHelpers.transact_sync!()
+
+    invalid_exit_event = %{
+      "amount" => 10,
+      "currency" => @eth,
+      "owner" => alice.addr,
+      "utxo_pos" => utxo_pos,
+      "eth_height" => eth_height
+    }
+
+    IntegrationTest.wait_for_byzantine_events([invalid_exit_event], @timeout)
+  end
+
+  defp get_next_blknum_nonce(blknum) do
+    child_block_interval = Application.fetch_env!(:omg_eth, :child_block_interval)
+    next_blknum = blknum + child_block_interval
+    {next_blknum, trunc(next_blknum / child_block_interval)}
+  end
 end

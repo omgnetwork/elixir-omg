@@ -76,8 +76,8 @@ Causes an `:invalid_finalization` event.
 4. Spend utxos in `State` on exit finalization or challenging
 5. `ExitProcessor` recognizes exits that are (as seen at the tip of the root chain) already gone, when pulled from old  logs.
 This prevents spurious event raising during syncing.
-6. `ExitProcessor` check validation of exits is call periodically by itself with `exit_processor_validation_interval_ms`
-interval and by `BlockGetter` every time when applying new block.
+6. `ExitProcessor` check validation of exits is call by hitting `/status.get` endpoint and 
+by `BlockGetter` every time when applying new block.
 
 ### Things considered
 1. We don't want to have any type of exit-related flags in `OMG.API.State`'s utxos
