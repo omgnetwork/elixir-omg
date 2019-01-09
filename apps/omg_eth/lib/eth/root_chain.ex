@@ -180,10 +180,11 @@ defmodule OMG.Eth.RootChain do
         input_txs_inclusion_proofs,
         in_flight_tx_sigs,
         from,
-        bond,
         contract \\ nil
       ) do
-    opts = @tx_defaults |> Keyword.merge(value: bond)
+    opts =
+      @tx_defaults
+      |> Keyword.put(:value, @standard_exit_bond)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "startInFlightExit(bytes,bytes,bytes,bytes)"

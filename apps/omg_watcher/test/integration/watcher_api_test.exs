@@ -32,7 +32,6 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   @timeout 40_000
   @eth Crypto.zero_address()
   @eth_hex String.duplicate("00", 20)
-  @in_flight_exit_bond 31_415_926_535 # as in plasma contract
 
   @moduletag :integration
 
@@ -147,14 +146,17 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       in_flight_tx =
       API.TestHelper.create_signed([{blknum, txindex, 0, alice}, {blknum, txindex, 1, alice}], @eth, [{alice, 10}])
 
-    encoded_in_flight_tx = Transaction.Signed.encode(in_flight_tx)
+    in_flight_tx_bytes =
+      in_flight_tx
+      |> Transaction.Signed.encode()
+      |> Base.encode16(case: :upper)
 
     %{
       "in_flight_tx" => in_flight_tx,
       "in_flight_tx_sigs" => in_flight_tx_sigs,
       "input_txs" => input_txs,
       "input_txs_inclusion_proofs" => input_txs_inclusion_proofs
-    } = IntegrationTest.get_in_flight_exit(encoded_in_flight_tx)
+    } = IntegrationTest.get_in_flight_exit(in_flight_tx_bytes)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       OMG.Eth.RootChain.in_flight_exit(
@@ -162,8 +164,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
         input_txs,
         input_txs_inclusion_proofs,
         in_flight_tx_sigs,
-        alice.addr,
-        @in_flight_exit_bond
+        alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
 
