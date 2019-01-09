@@ -157,6 +157,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       |> Eth.DevHelpers.transact_sync!()
 
     # Here we're manually submitting invalid block to the root chain
+    # NOTE: this **must** come after `start_exit` is mined (see just above) but still not later than
+    #       `sla_margin` after exit start, hence the `config/test.exs` entry for the margin is rather high
     {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
 
     IntegrationTest.wait_for_block_fetch(bad_block_number, @timeout)
