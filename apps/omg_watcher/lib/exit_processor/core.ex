@@ -157,7 +157,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         even if the exits were eventually challenged (e.g. during syncing)
   """
   @spec invalid_exits(list(boolean), t(), pos_integer) ::
-          {list(Event.InvalidExit.t() | Event.UnchallengedExit.t()), :chain_ok | {:needs_stopping, :unchallenged_exit}}
+          {:ok | {:error, :unchallenged_exit}, list(Event.InvalidExit.t() | Event.UnchallengedExit.t())}
   def invalid_exits(utxo_exists_result, %__MODULE__{exits: exits, sla_margin: sla_margin} = state, eth_height_now) do
     exiting_utxo_positions = get_exiting_utxo_positions(state)
 
@@ -184,8 +184,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
       |> Enum.concat(non_late_events)
 
-    chain_validity = if has_no_late_invalid_exits, do: :chain_ok, else: {:needs_stopping, :unchallenged_exit}
+    chain_validity = if has_no_late_invalid_exits, do: :ok, else: {:error, :unchallenged_exit}
 
-    {events, chain_validity}
+    {chain_validity, events}
   end
 end

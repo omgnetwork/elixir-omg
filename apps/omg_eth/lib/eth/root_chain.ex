@@ -32,7 +32,6 @@ defmodule OMG.Eth.RootChain do
   @gas_start_exit 1_000_000
   @gas_deposit 180_000
   @gas_deposit_from 250_000
-  @gas_contract 6_180_000
   @gas_init 1_000_000
   @standard_exit_bond 31_415_926_535
 
@@ -111,14 +110,6 @@ defmodule OMG.Eth.RootChain do
     signature = "challengeStandardExit(uint192,bytes,uint256,bytes)"
     args = [outputId, challengeTx, inputIndex, challengeTxSig]
     Eth.contract_transact(from, contract, signature, args, opts)
-  end
-
-  def create_new(path_project_root, from, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, @gas_contract)
-    opts = defaults |> Keyword.merge(opts)
-
-    bytecode = Eth.get_bytecode!(path_project_root, "RootChain")
-    Eth.deploy_contract(from, bytecode, [], [], opts)
   end
 
   def init(from \\ nil, contract \\ nil, opts \\ []) do

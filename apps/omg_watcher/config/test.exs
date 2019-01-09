@@ -14,7 +14,6 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
 
 config :omg_watcher,
   exit_processor_sla_margin: 3,
-  exit_processor_validation_interval_ms: 50,
   maximum_block_withholding_time_ms: 6_000,
   block_getter_height_sync_interval_ms: 50,
   exit_finality_margin: 1

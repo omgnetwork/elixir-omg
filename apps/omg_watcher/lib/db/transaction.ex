@@ -173,23 +173,4 @@ defmodule OMG.Watcher.DB.Transaction do
       txindex: txindex
     }
   end
-
-  @spec get_transaction_challenging_utxo(Utxo.Position.t()) :: {:ok, %__MODULE__{}} | {:error, :utxo_not_spent}
-  def get_transaction_challenging_utxo(position) do
-    # finding tx's input can be tricky
-    input =
-      DB.TxOutput.get_by_position(position)
-      |> DB.Repo.preload([:spending_transaction])
-
-    case input && input.spending_transaction do
-      nil ->
-        {:error, :utxo_not_spent}
-
-      tx ->
-        # transaction which spends output specified by position with outputs it created
-        tx = %__MODULE__{(tx |> DB.Repo.preload([:outputs])) | inputs: [input]}
-
-        {:ok, tx}
-    end
-  end
 end

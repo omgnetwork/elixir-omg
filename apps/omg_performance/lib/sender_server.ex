@@ -139,7 +139,7 @@ defmodule OMG.Performance.SenderServer do
       |> submit_tx_rpc()
 
     case result do
-      {:error, {-32_603, "Internal error", "too_many_transactions_in_block"}} ->
+      {:error, {:client_error, %{"code" => "submit:too_many_transactions_in_block"}}} ->
         _ =
           Logger.info(fn ->
             "[#{inspect(seqnum)}]: Transaction submission will be retried, block is full."

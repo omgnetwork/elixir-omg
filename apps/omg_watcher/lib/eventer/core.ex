@@ -22,27 +22,10 @@ defmodule OMG.Watcher.Eventer.Core do
   alias OMG.Watcher.Eventer.Event
 
   @transfer_topic "transfer"
-  @byzantine_topic "byzantine"
 
   @spec pair_events_with_topics(any() | Event.t()) :: list({String.t(), String.t(), Event.t()})
   def pair_events_with_topics(event_triggers) do
     Enum.flat_map(event_triggers, &get_event_with_topic(&1))
-  end
-
-  defp get_event_with_topic(%Event.InvalidBlock{} = event) do
-    [{@byzantine_topic, Event.InvalidBlock.name(), event}]
-  end
-
-  defp get_event_with_topic(%Event.BlockWithholding{} = event) do
-    [{@byzantine_topic, Event.BlockWithholding.name(), event}]
-  end
-
-  defp get_event_with_topic(%Event.InvalidExit{} = event) do
-    [{@byzantine_topic, Event.InvalidExit.name(), event}]
-  end
-
-  defp get_event_with_topic(%Event.UnchallengedExit{} = event) do
-    [{@byzantine_topic, Event.UnchallengedExit.name(), event}]
   end
 
   # NOTE: the deposit events are silenced because of the desired behavior not being defined yet, pending OMG-177

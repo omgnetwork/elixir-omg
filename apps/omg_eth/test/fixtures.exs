@@ -39,7 +39,8 @@ defmodule OMG.Eth.Fixtures do
 
     root_path = "../../"
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
-    {:ok, _, token_addr} = Eth.Token.create_new(root_path, from_hex(addr)) |> Eth.DevHelpers.deploy_sync!()
+
+    {:ok, _, token_addr} = Eth.Deployer.create_new(OMG.Eth.Token, root_path, from_hex(addr))
 
     # ensuring that the root chain contract handles token_addr
     {:ok, false} = Eth.RootChain.has_token(token_addr)

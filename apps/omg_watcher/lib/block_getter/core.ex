@@ -76,7 +76,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
     :last_block_persisted_from_prev_run,
     :unapplied_blocks,
     :potential_block_withholdings,
-    :config
+    :config,
+    :events
   ]
 
   @type t() :: %__MODULE__{
@@ -92,7 +93,9 @@ defmodule OMG.Watcher.BlockGetter.Core do
           potential_block_withholdings: %{
             non_neg_integer => PotentialWithholding.t()
           },
-          config: Config.t()
+          config: Config.t(),
+          # FIXME
+          events: list(any())
         }
 
   @type block_error() ::
@@ -138,7 +141,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
           struct(
             Config,
             Keyword.merge(opts, block_interval: child_block_interval, block_reorg_margin: block_reorg_margin)
-          )
+          ),
+        events: []
       }
 
       {:ok, state}
@@ -146,6 +150,12 @@ defmodule OMG.Watcher.BlockGetter.Core do
       {:error, :not_at_block_beginning}
     end
   end
+
+  @doc """
+  FIXME
+  """
+  def chain_ok?(%__MODULE__{events: []}), do: :ok
+  def chain_ok?(%__MODULE__{events: events} = state), do: {{:error, events}, state}
 
   @doc """
   Marks that child chain block published on `blk_eth_height` was processed
@@ -278,7 +288,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
           num_of_highest_block_being_downloaded: num_of_highest_block_being_downloaded,
           number_of_blocks_being_downloaded: number_of_blocks_being_downloaded,
           potential_block_withholdings: potential_block_withholdings,
-          config: config
+          config: config,
+          events: []
         } = state,
         next_child
       ) do
@@ -321,15 +332,16 @@ defmodule OMG.Watcher.BlockGetter.Core do
       |> Enum.map(fn {key, value} -> {key, Map.put(value, :downloading, true)} end)
       |> Map.new()
 
-    {
-      %{
-        state
-        | number_of_blocks_being_downloaded: length(blocks_numbers) + number_of_blocks_being_downloaded,
-          num_of_highest_block_being_downloaded: num_of_highest_block_being_downloaded,
-          potential_block_withholdings: Map.merge(potential_block_withholdings, update_for_witholding)
-      },
-      blocks_numbers
-    }
+    {%{
+       state
+       | number_of_blocks_being_downloaded: length(blocks_numbers) + number_of_blocks_being_downloaded,
+         num_of_highest_block_being_downloaded: num_of_highest_block_being_downloaded,
+         potential_block_withholdings: Map.merge(potential_block_withholdings, update_for_witholding)
+     }, blocks_numbers}
+  end
+
+  def get_numbers_of_blocks_to_download(state, _next_child) do
+    {state, []}
   end
 
   defp log_downloading_blocks(_next_child, []), do: :ok
@@ -355,9 +367,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
           %__MODULE__{},
           {:ok, OMG.API.Block.t() | PotentialWithholdingReport.t()} | {:error, block_error(), binary(), pos_integer()}
         ) ::
-          {:ok | {:needs_stopping, block_error()}, %__MODULE__{},
-           [] | list(Event.InvalidBlock.t()) | list(Event.BlockWithholding.t())}
-          | {:error, :duplicate | :unexpected_blok}
+          {:ok | {:error, block_error()}, %__MODULE__{}}
+          | {:error, :duplicate | :unexpected_block}
   def handle_downloaded_block(
         %__MODULE__{
           number_of_blocks_being_downloaded: number_of_blocks_being_downloaded,
@@ -407,7 +418,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
            (if last_applied_block < number and number <= num_of_highest_block_being_downloaded do
               :ok
             else
-              :unexpected_blok
+              :unexpected_block
             end) do
       state = %{
         state
@@ -415,9 +426,9 @@ defmodule OMG.Watcher.BlockGetter.Core do
           potential_block_withholdings: Map.delete(potential_block_withholdings, number)
       }
 
-      {:ok, state, []}
+      {:ok, state}
     else
-      error -> {:error, error}
+      error -> {{:error, error}, state}
     end
   end
 
@@ -425,17 +436,15 @@ defmodule OMG.Watcher.BlockGetter.Core do
          %__MODULE__{} = state,
          {:error, error_type, hash, number}
        ) do
-    {
-      {:needs_stopping, error_type},
-      state,
-      [
-        %Event.InvalidBlock{
-          error_type: error_type,
-          hash: hash,
-          number: number
-        }
-      ]
+    event = %Event.InvalidBlock{
+      error_type: error_type,
+      hash: hash,
+      number: number
     }
+
+    state = add_non_existing_event(event, state)
+
+    {{:error, error_type}, state}
   end
 
   defp validate_downloaded_block(
@@ -456,13 +465,16 @@ defmodule OMG.Watcher.BlockGetter.Core do
           | potential_block_withholdings: potential_block_withholdings
         }
 
-        {:ok, state, []}
+        {:ok, state}
 
       time - blknum_time >= config.maximum_block_withholding_time_ms ->
-        {{:needs_stopping, :withholding}, state, [%Event.BlockWithholding{blknum: blknum}]}
+        event = %Event.BlockWithholding{blknum: blknum}
+        state = add_non_existing_event(event, state)
+
+        {{:error, :withholding}, state}
 
       true ->
-        {:ok, state, []}
+        {:ok, state}
     end
   end
 
@@ -532,21 +544,33 @@ defmodule OMG.Watcher.BlockGetter.Core do
     {:ok, %PotentialWithholdingReport{blknum: requested_number, time: time}}
   end
 
-  @spec validate_tx_executions(list({Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}), map) ::
-          {:chain_ok, []} | {{:needs_stopping, :tx_execution}, list(Event.InvalidBlock.t())}
-  def validate_tx_executions(executions, %{hash: hash, number: blknum}) do
-    with nil <- Enum.find(executions, &(!match?({:ok, {_, _, _}}, &1))) do
-      {:chain_ok, []}
+  @spec validate_executions(
+          list({Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}),
+          {:ok | tuple(), list()},
+          map,
+          %__MODULE__{}
+        ) :: {:ok, %__MODULE__{}} | {{:error, :tx_execution, any()}, %__MODULE__{}}
+  def validate_executions(tx_execution_results, exit_processor_results, %{hash: hash, number: blknum}, state) do
+    with nil <- Enum.find(tx_execution_results, &(!match?({:ok, {_, _, _}}, &1))),
+         {:ok, _} <- exit_processor_results do
+      {:ok, state}
     else
       {:error, reason} ->
-        {{:needs_stopping, {:tx_execution, reason}},
-         [
-           %Event.InvalidBlock{
-             error_type: :tx_execution,
-             hash: hash,
-             number: blknum
-           }
-         ]}
+        event = %Event.InvalidBlock{
+          error_type: :tx_execution,
+          hash: hash,
+          number: blknum
+        }
+
+        state = %{
+          state
+          | events: [event | state.events]
+        }
+
+        {{:error, :tx_execution, reason}, state}
+
+      {reason, _} ->
+        {reason, state}
     end
   end
 
@@ -634,5 +658,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
       timestamp: block.timestamp,
       transactions: block.transactions
     }
+  end
+
+  defp add_non_existing_event(event, %__MODULE__{events: events} = state) do
+    if Enum.member?(events, event),
+      do: state,
+      else: %{state | events: [event | state.events]}
   end
 end

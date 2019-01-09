@@ -14,11 +14,10 @@ config :omg_watcher,
   maximum_block_withholding_time_ms: 1_200_000,
   block_getter_height_sync_interval_ms: 2_000,
   maximum_number_of_unapplied_blocks: 50,
-  exit_processor_validation_interval_ms: 5_000,
   exit_finality_margin: 12,
   block_reorg_margin: 20,
   convenience_api_mode: false,
-  child_chain_url: "http://localhost:9656"
+  child_chain_url: System.get_env("CHILDCHAIN_URL") || "http://localhost:9656"
 
 # Configures the endpoint
 config :omg_watcher, OMG.Watcher.Web.Endpoint,
