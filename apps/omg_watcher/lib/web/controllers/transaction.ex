@@ -78,6 +78,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   """
   def get_in_flight_exit(conn, params) do
     with {:ok, tx} <- Map.fetch(params, "txbytes"),
+         {:ok, tx} <- Base.decode16(tx, case: :mixed),
          {:ok, tx} <- OMG.API.State.Transaction.Signed.decode(tx) do
       in_flight_exit = Transaction.get_in_flight_exit(tx)
       respond(in_flight_exit, conn)

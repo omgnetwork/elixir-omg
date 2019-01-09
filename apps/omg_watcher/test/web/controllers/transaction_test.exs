@@ -407,7 +407,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
         expected_input_txs = get_input_txs(initial_blocks, positions)
 
-        tx = API.TestHelper.create_encoded(inputs, @eth, [{bob, 100}])
+        inflight_txbytes =
+          inputs
+          |> API.TestHelper.create_encoded(@eth, [{bob, 100}])
+          |> Base.encode16(case: :upper)
 
         proofs_size = 1024 * length(inputs)
         sigs_size = 130 * length(inputs)
@@ -420,7 +423,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
           "input_txs_inclusion_proofs" => <<_proof::bytes-size(proofs_size)>>,
           # encoded signatures, 130 bytes each
           "in_flight_tx_sigs" => <<_bytes::bytes-size(sigs_size)>>
-        } = TestHelper.success?("/inflight_exit.get_data", %{"txbytes" => tx})
+        } = TestHelper.success?("/inflight_exit.get_data", %{"txbytes" => inflight_txbytes})
 
         input_txs =
           input_txs
@@ -455,19 +458,22 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :bob]
-    test "behaves well if inputs not found", %{bob: bob} do
-      tx = API.TestHelper.create_encoded([{3000, 1, 0, bob}], @eth, [{bob, 150}])
+    test "behaves well if input is not found", %{bob: bob} do
+      inflight_txbytes =
+        [{3000, 1, 0, bob}]
+        |> API.TestHelper.create_encoded(@eth, [{bob, 150}])
+        |> Base.encode16(case: :upper)
 
       assert %{
                "code" => "in_flight_exit:tx_for_input_not_found",
                "description" => "No transaction that created input."
-             } = TestHelper.no_success?("/inflight_exit.get_data", %{"txbytes" => tx})
+             } = TestHelper.no_success?("/inflight_exit.get_data", %{"txbytes" => inflight_txbytes})
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
-    test "behaves well if IFtx malformed; behavior from OMG.API.Core.recover_tx/1" do
+    test "responds with error for malformed in-flight transaction bytes" do
       assert %{
-               "code" => "get_in_flight_exit:malformed_transaction_rlp",
+               "code" => "get_in_flight_exit:unknown_error",
                "description" => nil
              } = TestHelper.no_success?("/inflight_exit.get_data", %{"txbytes" => "tx"})
     end
