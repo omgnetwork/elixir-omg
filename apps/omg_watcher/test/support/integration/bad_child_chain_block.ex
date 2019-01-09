@@ -48,4 +48,11 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
       end
     )
   end
+
+  @doc """
+  Version of `prepare_route_to_inject_bad_block/3` when we want to serve the block under it's real hash
+  """
+  def prepare_route_to_inject_bad_block(context, %{hash: bad_block_hash} = bad_block) do
+    prepare_route_to_inject_bad_block(context, bad_block, bad_block_hash)
+  end
 end
