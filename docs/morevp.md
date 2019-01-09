@@ -204,7 +204,7 @@ Note that this challenge means it’s possible for an honest user to lose `exit 
 We address this attack vector and several mitigations in detail later.
 
 It might also be the case that MoreVP exit is opened where some of the inputs where referenced in MVP exit and those MVP exits were finalized.
-In such case MoreVP exit is flagged as non-canonical and can't take part in further canonicity game.
+In such case MoreVP exit is flagged as non-canonical and further canonicity game can't change it.
 
 <!-- TODO: Include image of canonicity "state machine" -->
 
@@ -240,7 +240,7 @@ Any inputs or outputs paid out should be saved in the contract so that any futur
 The MoreVP protocol can be combined with the Plasma MVP protocol in a way that simultaneously preserves the integrity of exits and minimizes gas cost.
 Although the two protocols use different determinations for exit priority, total ordering on exits is still needed.
 Therefore, every exit, no matter the protocol used, must be included in the same priority queue for processing.
-Honest user which enjoys data availability should be able to ignore MoreVP exits initiated by other parties.
+Honest user which enjoys data availability should be able to ignore MoreVP exits that involve their outputs.
 Owners of outputs on the Plasma chain should be able to start an exit via either mechanism, but not both.
 To guarantee that money can't be double-spend via those two mechanisms, two approaches are possible.
 
