@@ -497,8 +497,8 @@ defmodule OMG.API.State.CoreTest do
     assert {:ok, {_, [utxo_update, height_update]}, state} =
              Core.deposit([%{owner: alice.addr, currency: eth(), amount: 10, blknum: 1}], state)
 
-    assert {:put, :utxo, {{1, 0, 0}, %{owner: ^aplice_addr, currency: @eth, amount: 10}}} = utxo_update   
-    assert {:put, :last_deposit_child_blknum, 1}                                         = height_update 
+    assert {:put, :utxo, {{1, 0, 0}, %{owner: ^aplice_addr, currency: @eth, amount: 10}}} = utxo_update
+    assert {:put, :last_deposit_child_blknum, 1} = height_update
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_interval}]}, _} =
              form_block_check(state, @child_block_interval)

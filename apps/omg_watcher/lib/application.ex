@@ -16,6 +16,8 @@ defmodule OMG.Watcher.Application do
   @moduledoc false
   use Application
   use OMG.API.LoggerExt
+  alias OMG.API.Utxo
+  require Utxo
 
   def start(_type, _args) do
     DeferredConfig.populate(:omg_watcher)
@@ -76,8 +78,66 @@ defmodule OMG.Watcher.Application do
           piggyback: %{sync_mode: :sync_with_coordinator}
         }
       },
-      OMG.API.Application.in_flight_exit_child(deposit_finality_margin),
-      OMG.API.Application.piggyback_in_flight_child(deposit_finality_margin),
+      %{
+        id: :in_flight_exit,
+        start: {
+          OMG.API.EthereumEventListener,
+          :start_link,
+          [
+            %{
+              # TODO check if synced_height_update_key is appropriate
+              synced_height_update_key: :last_exiter_eth_height,
+              service_name: :in_flight_exit,
+              block_finality_margin: deposit_finality_margin,
+              get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
+              process_events_callback: fn in_flight_exits ->
+                {:ok, db_updates} = OMG.API.State.in_flight_exits(in_flight_exits)
+
+                OMG.Watcher.DB.EthEvent.insert_exits(
+                  db_updates
+                  |> Enum.filter(&match?({:delete, :utxo, _}, &1))
+                  |> Enum.map(fn {:delete, :utxo, {blknum, ix_index, oindex}} ->
+                    %{utxo_pos: Utxo.Position.encode(Utxo.position(blknum, ix_index, oindex))}
+                  end)
+                )
+
+                {:ok, db_updates}
+              end,
+              get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
+            }
+          ]
+        }
+      },
+      %{
+        id: :piggyback,
+        start: {
+          OMG.API.EthereumEventListener,
+          :start_link,
+          [
+            %{
+              # TODO check if synced_height_update_key is appropriate
+              synced_height_update_key: :last_exiter_eth_height,
+              service_name: :piggyback,
+              block_finality_margin: deposit_finality_margin,
+              get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
+              process_events_callback: fn piggybacks ->
+                {:ok, db_updates} = OMG.API.State.piggybacks(piggybacks)
+
+                OMG.Watcher.DB.EthEvent.insert_exits(
+                  db_updates
+                  |> Enum.filter(&match?({:delete, :utxo, _}, &1))
+                  |> Enum.map(fn {:delete, :utxo, {blknum, ix_index, oindex}} ->
+                    %{utxo_pos: Utxo.Position.encode(Utxo.position(blknum, ix_index, oindex))}
+                  end)
+                )
+
+                {:ok, db_updates}
+              end,
+              get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
+            }
+          ]
+        }
+      },
       %{
         id: :depositor,
         start:

@@ -93,7 +93,7 @@ defmodule OMG.Watcher.DB.Transaction do
     DB.Repo.all(query)
   end
 
-  def get_all() do
+  def get_all do
     DB.Repo.all(from(__MODULE__, where: []))
   end
 

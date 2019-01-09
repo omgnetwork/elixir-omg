@@ -38,7 +38,7 @@ defmodule OMG.Watcher.API.InFlights do
          in_flight_tx: raw_tx_bytes,
          input_txs: Enum.join(input_txs),
          input_txs_inclusion_proofs: Enum.join(proofs),
-         in_flight_tx_sigs: Enum.join(sigs) 
+         in_flight_tx_sigs: Enum.join(sigs)
        }}
     end
   end

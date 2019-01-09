@@ -34,6 +34,7 @@ defmodule OMG.Eth.RootChain do
   @gas_deposit_from 250_000
   @gas_init 1_000_000
   @standard_exit_bond 31_415_926_535
+  @piggyback_bond 31_415_926_535
 
   @spec submit_block(binary, pos_integer, pos_integer, optional_addr_t(), optional_addr_t()) ::
           {:error, binary() | atom() | map()}
@@ -83,9 +84,11 @@ defmodule OMG.Eth.RootChain do
         contract \\ nil,
         opts \\ []
       ) do
-        defaults = @tx_defaults 
-                   |> Keyword.put(:gas, 1_000_000) 
-                   |> Keyword.put(:value, @standard_exit_bond)
+    defaults =
+      @tx_defaults
+      |> Keyword.put(:gas, 1_000_000)
+      |> Keyword.put(:value, @standard_exit_bond)
+
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
@@ -100,14 +103,15 @@ defmodule OMG.Eth.RootChain do
   end
 
   def piggyback_in_flight_exit(in_flightTx, outputIndex, from, contract \\ nil, opts \\ []) do
-    defaults = @tx_defaults |> Keyword.put(:gas, 1_000_000)
+    defaults =
+      @tx_defaults
+      |> Keyword.put(:gas, 1_000_000)
+      |> Keyword.put(:value, @piggyback_bond)
+
     opts = defaults |> Keyword.merge(opts)
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    Eth.contract_transact(
-      from, contract, "piggybackInFlightExit(bytes, uint8)",[in_flightTx,outputIndex], opts)
+    Eth.contract_transact(from, contract, "piggybackInFlightExit(bytes, uint8)", [in_flightTx, outputIndex], opts)
   end
-
-
 
   def deposit(tx_bytes, value, from, contract \\ nil, opts \\ []) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_deposit)
@@ -249,7 +253,6 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_piggybacked/1)}
   end
 
-
   @doc """
   Returns lists of block submissions from Ethereum logs
   """
@@ -294,7 +297,8 @@ defmodule OMG.Eth.RootChain do
     signature = "InFlightExitStarted(address,bytes32)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract) do
-      {:ok, Enum.map(logs, fn log ->
+      {:ok,
+       Enum.map(logs, fn log ->
          get_inflight_data(log["transactionHash"])
        end)}
     end

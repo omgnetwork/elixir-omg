@@ -441,48 +441,57 @@ defmodule OMG.API.State.Core do
     {:ok, {event_triggers, db_updates, validities}, new_state}
   end
 
-  def in_flight_exit(%Transaction.Recovered{} = recovered_tx, %Core{utxos: utxos} = state) do
-    inputs = Transaction.get_inputs(recovered_tx.signed_tx.raw_tx)
-    {inputs, invalid} = Enum.split_with(inputs, &utxo_exists?(&1, state))
+  defp sigs_chope(<<>>), do: []
+  defp sigs_chope(<<sig::bytes-size(65), rest::binary>>), do: [sig | sigs_chope(rest)]
+
+  def in_flight_exits(in_flight_txs, %Core{utxos: utxos} = state) do
+    {db_updates_list_and_events, new_state} =
+      in_flight_txs
+      |> Enum.map_reduce(state, fn [tx_bytes, _, _, sigs], state ->
+        {:ok, tx} = Transaction.decode(tx_bytes)
+        {:ok, tx_recover} = Transaction.Recovered.recover_from(%Transaction.Signed{raw_tx: tx, sigs: sigs_chope(sigs)})
+
+        {inputs, _invalid} =
+          tx_recover.signed_tx.raw_tx |> Transaction.get_inputs() |> Enum.split_with(&utxo_exists?(&1, state))
+
+        db_updates =
+          inputs
+          |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :utxo, {blknum, txindex, oindex}} end)
+
+        new_state = %{state | utxos: Map.drop(utxos, inputs)}
+        event_trigger = %{in_flight_exits: %{utxo_pos: inputs}}
+        {{db_updates, event_trigger}, new_state}
+      end)
 
     {event_triggers, db_updates} =
-      inputs
-      |> Enum.map(fn Utxo.position(blknum, txindex, oindex) = utxo_pos ->
-        {%{exit: %{owner: utxos[utxo_pos].owner, utxo_pos: utxo_pos}}, {:delete, :utxo, {blknum, txindex, oindex}}}
-      end)
+      db_updates_list_and_events
       |> Enum.unzip()
+      |> (fn {db_updates_list, event_triggers} -> {db_updates_list |> List.flatten(), event_triggers} end).()
 
-    new_state = %{state | utxos: Map.drop(utxos, inputs)}
-
-    {:ok, {[], db_updates}, new_state}
+    {:ok, {event_triggers, db_updates}, new_state}
   end
 
-  def piggyback(piggybacks, %Core{utxos: utxos} = state) do
-    inputs = piggybacks
-    |> Enum.map(fn %{txHash: tx_hash, outputIndex: oindex} ->
-      # oindex in contract is 0-7 where 4-7 are outputs 
-      oindex = oindex - 4
+  def piggybacks(piggybacks, %Core{utxos: utxos} = state) do
+    inputs =
+      piggybacks
+      |> Enum.map(fn %{txHash: tx_hash, outputIndex: oindex} ->
+        # oindex in contract is 0-7 where 4-7 are outputs
+        oindex = oindex - 4
 
-      utxos
-      |> Map.to_list()
-      |> Enum.find(&match?({Utxo.position(_, _, oindex), %Utxo{signed_tx_hash: tx_hash}}, &1))
-    end)
-    |> Enum.filter(&(&1 != nil))
-    |> Enum.map(fn {position, _} -> position end)
-
-    {event_triggers, db_updates} =
-      inputs
-      |> Enum.map(fn Utxo.position(blknum, txindex, oindex) = utxo_pos ->
-        {%{exit: %{owner: utxos[utxo_pos].owner, utxo_pos: utxo_pos}}, {:delete, :utxo, {blknum, txindex, oindex}}}
+        utxos
+        |> Map.to_list()
+        |> Enum.find(&match?({Utxo.position(_, _, oindex), %Utxo{signed_tx_hash: tx_hash}}, &1))
       end)
-      |> Enum.unzip()
+      |> Enum.filter(&(&1 != nil))
+      |> Enum.map(fn {position, _} -> position end)
+
+    db_updates =
+      inputs |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :utxo, {blknum, txindex, oindex}} end)
+
+    event_triggers = piggybacks |> Enum.map(fn piggyback -> %{piggyback: piggyback} end)
 
     new_state = %{state | utxos: Map.drop(utxos, inputs)}
-    {:ok, {[], db_updates}, new_state}
-  end
-
-  def piggyback(tx_hash, oindex, state) do
-    {:ok, [], state}
+    {:ok, {event_triggers, db_updates}, new_state}
   end
 
   @doc """
