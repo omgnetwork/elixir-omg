@@ -125,10 +125,11 @@ defmodule OMG.Watcher.ExitProcessor do
   # combine data from `ExitProcessor` and `API.State` to figure out what to do about exits
   defp determine_invalid_exits(state) do
     {:ok, eth_height_now} = Eth.get_ethereum_height()
+    {blknum_now, _} = State.get_status()
 
     state
     |> Core.get_exiting_utxo_positions()
     |> Enum.map(&State.utxo_exists?/1)
-    |> Core.invalid_exits(state, eth_height_now)
+    |> Core.invalid_exits(state, eth_height_now, blknum_now)
   end
 end
