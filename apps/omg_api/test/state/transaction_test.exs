@@ -192,7 +192,7 @@ defmodule OMG.API.State.TransactionTest do
   end
 
   @tag fixtures: [:alice, :state_empty, :bob]
-  test "Transactions created by :new and :create_from_utxos should be equal", %{alice: alice, bob: bob} do
+  test "transactions created by :new and :create_from_utxos should be equal", %{alice: alice, bob: bob} do
     utxos = [
       %{amount: 10, currency: eth(), blknum: 1, oindex: 0, txindex: 0},
       %{amount: 11, currency: eth(), blknum: 2, oindex: 0, txindex: 0}
@@ -234,5 +234,19 @@ defmodule OMG.API.State.TransactionTest do
 
     {:error, :unauthorized_spent} =
       Transaction.Recovered.all_spenders_authorized?(authorized_tx, [alice.addr, carol.addr])
+  end
+
+  @tag fixtures: [:alice]
+  test "decoding signed transaction fails when signatures do not have a proper length", %{alice: alice} do
+    tx = Transaction.new([{1000, 0, 0}, {1000, 0, 1}], [{alice.addr, eth(), 10}])
+
+    [inputs, outputs] =
+      tx
+      |> Transaction.encode()
+      |> ExRLP.decode()
+
+    encoded_with_sigs = ExRLP.encode([[<<1>>, <<1>>], inputs, outputs])
+
+    assert {:error, :bad_signature_length} == Transaction.Signed.decode(encoded_with_sigs)
   end
 end
