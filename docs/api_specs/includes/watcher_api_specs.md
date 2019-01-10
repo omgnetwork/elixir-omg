@@ -492,7 +492,7 @@ txbytes | Hex encoded string | The in-flight transaction
 ## Inflight Exit - Get Competitor
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_exit.get_competitor -d '{"txbytes": "F3170101C0940000..."}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_exit.get_competitor -d '{"txbytes": "F847010180808080940000..."}'
 ```
 
 ```elixir
@@ -556,7 +556,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_
     "version": "1",
     "success": true,
     "data": {
-        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_txbytes": "F3170101C0940000...",
         "inflight_txid": 2600003920012,
         "inflight_proof": "004C010180808080940000..."
     }
