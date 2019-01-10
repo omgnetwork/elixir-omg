@@ -116,4 +116,44 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     tx = API.TestHelper.create_encoded([{tx_blknum, 0, 1, alice}], @eth, [{alice, 3}])
     assert {:ok, _} = Client.submit(tx)
   end
+
+  @tag fixtures: [:watcher_sandbox, :alice, :bob, :child_chain, :token, :alice_deposits]
+  test "in-flight exit competitor is detected by watcher",
+       %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
+    {:ok, %{blknum: blknum, tx_index: txindex}} = Client.submit(tx)
+
+    IntegrationTest.wait_for_block_fetch(blknum, @timeout)
+
+    %Transaction.Signed{raw_tx: raw_in_flight_tx} =
+      in_flight_tx = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 10}])
+
+    in_flight_tx_bytes =
+      in_flight_tx
+      |> Transaction.Signed.encode()
+      |> Base.encode16(case: :upper)
+
+    %{
+      "in_flight_tx" => in_flight_tx,
+      "in_flight_tx_sigs" => in_flight_tx_sigs,
+      "input_txs" => input_txs,
+      "input_txs_inclusion_proofs" => input_txs_inclusion_proofs
+    } = IntegrationTest.get_in_flight_exit(in_flight_tx_bytes)
+
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+      OMG.Eth.RootChain.in_flight_exit(
+        in_flight_tx,
+        input_txs,
+        input_txs_inclusion_proofs,
+        in_flight_tx_sigs,
+        alice.addr
+      )
+      |> Eth.DevHelpers.transact_sync!()
+
+    # check if there is a competitor for particular in-flight exit
+
+    expected_competitor = Base.encode16(tx, case: :upper)
+    %{"competing_txbytes" => ^expected_competitor, "inflight_txbytes" => ^in_flight_tx_bytes} =
+      IntegrationTest.get_in_flight_exit_competitors(in_flight_tx_bytes)
+  end
 end

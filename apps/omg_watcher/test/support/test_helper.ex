@@ -130,4 +130,18 @@ defmodule OMG.Watcher.TestHelper do
 
     decode16(exit_data, ["in_flight_tx", "input_txs", "input_txs_inclusion_proofs", "in_flight_tx_sigs"])
   end
+
+  def get_in_flight_exit_competitors(transaction) do
+    competitor_data = success?("inflight_exit.get_competitor", %{txbytes: transaction})
+
+    decode16(competitor_data, [
+      "inflight_txbytes",
+      "inflight_input_index",
+      "competing_txbytes",
+      "competing_input_index",
+      "competing_sig",
+      "competing_txid",
+      "competing_proof"
+    ])
+  end
 end
