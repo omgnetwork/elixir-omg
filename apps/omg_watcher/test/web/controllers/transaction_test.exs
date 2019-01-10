@@ -413,7 +413,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
           |> Base.encode16(case: :upper)
 
         proofs_size = 1024 * length(inputs)
-        sigs_size = 130 * length(inputs)
+        sigs_size = 130 * 4
 
         %{
           # checking just lengths in majority as we prepare verify correctness in the contract in integration tests

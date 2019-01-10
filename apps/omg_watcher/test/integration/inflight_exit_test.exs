@@ -20,19 +20,15 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   use Plug.Test
 
   alias OMG.API
+  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.Eth
   alias OMG.RPC.Client
-  alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-
-  require Utxo
-
-  import Eth.Encoding
+  alias OMG.Watcher.TestHelper
 
   @timeout 40_000
   @eth Crypto.zero_address()
-  @eth_hex String.duplicate("00", 20)
 
   @moduletag :integration
 
@@ -58,7 +54,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       "in_flight_tx_sigs" => in_flight_tx_sigs,
       "input_txs" => input_txs,
       "input_txs_inclusion_proofs" => input_txs_inclusion_proofs
-    } = IntegrationTest.get_in_flight_exit(in_flight_tx_bytes)
+    } = TestHelper.get_in_flight_exit(in_flight_tx_bytes)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       OMG.Eth.RootChain.in_flight_exit(

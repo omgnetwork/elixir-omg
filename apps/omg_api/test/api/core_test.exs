@@ -117,7 +117,7 @@ defmodule OMG.API.CoreTest do
   @tag fixtures: [:alice]
   test "transactions with corrupt signatures don't do harm", %{alice: alice} do
     full_signed_tx = TestHelper.create_signed([{1, 2, 3, alice}], eth(), [{alice, 7}])
-    %Transaction.Signed{sigs: [sig1, _]} = full_signed_tx
+    %Transaction.Signed{sigs: [sig1 | _]} = full_signed_tx
 
     corrupt =
       %Transaction.Signed{full_signed_tx | sigs: [<<1::size(520)>>, sig1]}
