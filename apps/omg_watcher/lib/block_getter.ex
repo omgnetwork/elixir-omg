@@ -18,8 +18,8 @@ defmodule OMG.Watcher.BlockGetter do
   Manages simultaneous getting and stateless-processing of blocks.
   Detects byzantine behaviors like invalid blocks and block withholding and notifies Eventer.
   """
+
   alias OMG.API.Block
-  alias OMG.API.EventerAPI
   alias OMG.API.RootChainCoordinator
   alias OMG.API.State
   alias OMG.Eth
@@ -30,6 +30,13 @@ defmodule OMG.Watcher.BlockGetter do
 
   use GenServer
   use OMG.API.LoggerExt
+
+  @doc """
+  Returns events
+  """
+  def get_events do
+    GenServer.call(__MODULE__, :get_events)
+  end
 
   @spec download_block(pos_integer()) ::
           {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
@@ -46,22 +53,24 @@ defmodule OMG.Watcher.BlockGetter do
     )
   end
 
+  def handle_call(:get_events, _from, %Core{events: events} = state) do
+    {:reply, events, state}
+  end
+
   def handle_cast(
         {:apply_block, %{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block,
          block_rootchain_height},
         state
       ) do
-    tx_exec_results = for tx <- transactions, do: OMG.API.State.exec(tx, fees)
-    {continue, events} = Core.validate_tx_executions(tx_exec_results, block)
+    with :ok <- Core.chain_ok(state),
+         tx_exec_results <- for(tx <- transactions, do: OMG.API.State.exec(tx, fees)),
+         exit_processor_results <- ExitProcessor.check_validity(),
+         {:ok, state} <- Core.validate_executions(tx_exec_results, exit_processor_results, block, state) do
+      _ =
+        block
+        |> Core.ensure_block_imported_once(block_rootchain_height, state.last_block_persisted_from_prev_run)
+        |> Enum.each(&DB.Transaction.update_with/1)
 
-    blocks_to_persist =
-      Core.ensure_block_imported_once(block, block_rootchain_height, state.last_block_persisted_from_prev_run)
-
-    EventerAPI.emit_events(events)
-
-    with :chain_ok <- continue,
-         :chain_ok <- ExitProcessor.check_validity() do
-      _ = Enum.map(blocks_to_persist, &DB.Transaction.update_with/1)
       state = run_block_download_task(state)
 
       {:ok, db_updates_from_state} = OMG.API.State.close_block(block_rootchain_height)
@@ -74,9 +83,9 @@ defmodule OMG.Watcher.BlockGetter do
 
       {:noreply, state}
     else
-      {:needs_stopping, reason} ->
-        _ = Logger.error(fn -> "Stopping #{inspect(__MODULE__)} because of #{inspect(reason)}" end)
-        {:stop, :shutdown, state}
+      {error, state} ->
+        _ = Logger.error(fn -> "Error while applying block because of #{inspect(error)}" end)
+        {:noreply, state}
     end
   end
 
@@ -143,25 +152,28 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info(msg, state)
 
   def handle_info(:producer, state) do
-    new_state = run_block_download_task(state)
-
-    {:ok, _} = :timer.send_after(2_000, self(), :producer)
-    {:noreply, new_state}
+    with :ok <- Core.chain_ok(state) do
+      new_state = run_block_download_task(state)
+      {:ok, _} = :timer.send_after(2_000, self(), :producer)
+      {:noreply, new_state}
+    else
+      {error, state} ->
+        _ = Logger.error(fn -> "Error while running next block_download_task because of #{inspect(error)}" end)
+        {:noreply, state}
+    end
   end
 
   def handle_info({_ref, {:downloaded_block, response}}, state) do
     # 1/ process the block that arrived and consume
-    {continue, state, events} = Core.handle_downloaded_block(state, response)
-    state = run_block_download_task(state)
 
-    EventerAPI.emit_events(events)
-
-    with :ok <- continue do
+    with {:ok, state} <- Core.handle_downloaded_block(state, response) do
+      state = run_block_download_task(state)
       {:noreply, state}
     else
-      {:needs_stopping, reason} ->
-        _ = Logger.error(fn -> "Stopping #{inspect(__MODULE__)} because of #{inspect(reason)}" end)
-        {:stop, :shutdown, state}
+      {error, state} ->
+        _ = Logger.error(fn -> "Error while handling downloaded block because of #{inspect(error)}" end)
+
+        {:noreply, state}
     end
   end
 

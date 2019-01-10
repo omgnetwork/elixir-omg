@@ -26,13 +26,15 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
              "last_validated_child_block_number" => last_validated_child_block_number,
              "last_mined_child_block_number" => last_mined_child_block_number,
              "last_mined_child_block_timestamp" => last_mined_child_block_timestamp,
-             "eth_syncing" => eth_syncing
+             "eth_syncing" => eth_syncing,
+             "byzantine_events" => byzantine_events
            } = TestHelper.success?("/status.get")
 
     assert is_integer(last_validated_child_block_number)
     assert is_integer(last_mined_child_block_number)
     assert is_integer(last_mined_child_block_timestamp)
     assert is_atom(eth_syncing)
+    assert is_list(byzantine_events)
   end
 
   @tag fixtures: [:phoenix_ecto_sandbox]

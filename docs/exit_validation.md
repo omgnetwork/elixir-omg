@@ -45,7 +45,7 @@ This is acceptable as long as the delay doesn't exceed `scheduled finalization t
     By "subtle" we mean that it is a hack that counts on getting away with exit invalidation being submitted too late, rather than on just dropping a huge invalid UTXO and attempting to exit from that
 4. If an exit is invalid and remains unchallenged within a short period of time (`sla_margin`) from its finalization, it must be challenged **AND** watcher must not allow spending and depositing, because:
     a. we are running too close to the minimum safety requirements
-    b. unchallenged exits may break the chain without leaving honest holders with enough time to exit.
+    b. Unchallenged exit creates a partial reserve situation and causes funds loss for some of users. There will be a loss of funds and it is not related to time.
     This can happen when an exit, a spend that invalidates that exit and an exit of that invalidating spend all coincide and are unchallenged.
 5. (optional) If finalization of an invalid exit occurs, the watcher must prompt an exit without guarantees of recovery of funds
 
@@ -76,8 +76,8 @@ Causes an `:invalid_finalization` event.
 4. Spend utxos in `State` on exit finalization or challenging
 5. `ExitProcessor` recognizes exits that are (as seen at the tip of the root chain) already gone, when pulled from old  logs.
 This prevents spurious event raising during syncing.
-6. `ExitProcessor` check validation of exits is call periodically by itself with `exit_processor_validation_interval_ms`
-interval and by `BlockGetter` every time when applying new block.
+6. Checking the validation of exits is user responsibility by calling `/status.get` endpoint. 
+
 
 ### Things considered
 1. We don't want to have any type of exit-related flags in `OMG.API.State`'s utxos
