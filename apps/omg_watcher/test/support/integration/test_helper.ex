@@ -49,13 +49,14 @@ defmodule OMG.Watcher.Integration.TestHelper do
     decode16(data, ["txbytes", "sig"])
   end
 
-  def wait_for_byzantine_events(events, timeout) do
+  def wait_for_byzantine_events(event_names, timeout) do
     fn ->
       %{"byzantine_events" => emitted_events} = success?("/status.get")
+      emitted_event_names = Enum.map(emitted_events, & &1["event_name"])
 
-      if events == emitted_events,
+      if event_names == emitted_event_names,
         do: :repeat,
-        else: {:ok, emitted_events}
+        else: {:ok, emitted_event_names}
     end
     |> wait_for(timeout)
   end

@@ -22,7 +22,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.Watcher.BlockGetter.Core
-  alias OMG.Watcher.Eventer.Event
+  alias OMG.Watcher.Event
 
   @eth Crypto.zero_address()
 

@@ -23,7 +23,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   alias OMG.API.Crypto
   alias OMG.API.State
   alias OMG.API.Utxo
-  alias OMG.Watcher.Eventer.Event
+  alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor.Core
 
   require Utxo

@@ -23,6 +23,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Eth
+  alias OMG.Watcher.Event
   alias OMG.RPC.Client
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
 
@@ -50,7 +51,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       "utxo_pos" => utxo_pos
     } = IntegrationTest.get_exit_data(deposit_blknum, 0, 0)
 
-    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+    {:ok, %{"status" => "0x1", "blockNumber" => _eth_height}} =
       Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
@@ -59,15 +60,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    invalid_exit_event = %{
-      "amount" => 10,
-      "currency" => @eth,
-      "owner" => alice.addr,
-      "utxo_pos" => utxo_pos,
-      "eth_height" => eth_height
-    }
-
-    IntegrationTest.wait_for_byzantine_events([invalid_exit_event], @timeout)
+    IntegrationTest.wait_for_byzantine_events([Event.InvalidExit.name()], @timeout)
 
     # after the notification has been received, a challenged is composed and sent
     challenge = IntegrationTest.get_exit_challenge(deposit_blknum, 0, 0)
@@ -113,7 +106,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       "utxo_pos" => utxo_pos
     } = IntegrationTest.get_exit_data(exit_blknum, 0, 0)
 
-    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+    {:ok, %{"status" => "0x1", "blockNumber" => _eth_height}} =
       Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
@@ -125,15 +118,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     # Here we're manually submitting invalid block to the root chain
     {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
 
-    invalid_exit_event = %{
-      "amount" => 10,
-      "currency" => @eth,
-      "owner" => alice.addr,
-      "utxo_pos" => utxo_pos,
-      "eth_height" => eth_height
-    }
-
-    IntegrationTest.wait_for_byzantine_events([invalid_exit_event], @timeout)
+    IntegrationTest.wait_for_byzantine_events([Event.InvalidExit.name()], @timeout)
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
@@ -149,15 +134,11 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
-    {next_blknum, nonce} = get_next_blknum_nonce(tx_blknum)
+    {_, nonce} = get_next_blknum_nonce(tx_blknum)
 
     {:ok, _txhash} = Eth.RootChain.submit_block(<<0::256>>, nonce, 20_000_000_000)
 
-    block_withholding_event = %{
-      "blknum" => next_blknum
-    }
-
-    IntegrationTest.wait_for_byzantine_events([block_withholding_event], @timeout)
+    IntegrationTest.wait_for_byzantine_events([Event.BlockWithholding.name()], @timeout)
 
     %{
       "txbytes" => txbytes,
@@ -165,7 +146,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       "utxo_pos" => utxo_pos
     } = IntegrationTest.get_exit_data(deposit_blknum, 0, 0)
 
-    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+    {:ok, %{"status" => "0x1", "blockNumber" => _eth_height}} =
       Eth.RootChain.start_exit(
         utxo_pos,
         txbytes,
@@ -174,15 +155,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    invalid_exit_event = %{
-      "amount" => 10,
-      "currency" => @eth,
-      "owner" => alice.addr,
-      "utxo_pos" => utxo_pos,
-      "eth_height" => eth_height
-    }
-
-    IntegrationTest.wait_for_byzantine_events([invalid_exit_event], @timeout)
+    IntegrationTest.wait_for_byzantine_events([Event.InvalidBlock.name()], @timeout)
   end
 
   defp get_next_blknum_nonce(blknum) do
