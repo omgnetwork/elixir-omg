@@ -53,7 +53,7 @@ address | Hex encoded string | Address of the funds owner
 ## Account - Get Utxos
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.get_utxos -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea", "limit": 10}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.get_utxos -d '{"address": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"}'
 ```
 
 ```elixir
@@ -77,7 +77,8 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.g
             "oindex": 0,
             "currency": "0000000000000000000000000000000000000000",
             "blknum": 1000,
-            "amount": 10
+            "amount": 10,
+            "utxo_pos": 10000000010000000
         }
     ]
 }
@@ -94,7 +95,6 @@ Gets all utxos belonging to the given address
 Attribute | Type | Description
 --------- | ------- | -----------
 address | Hex encoded string | Address of the account
-limit | Integer | Maximum number of utxos to return (default 200)
 
 
 

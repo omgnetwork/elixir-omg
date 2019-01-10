@@ -66,6 +66,14 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
            ] = TestHelper.get_utxos(alice.addr)
   end
 
+  @tag fixtures: [:initial_blocks, :alice]
+  test "encoded utxo positions are delivered", %{alice: alice} do
+    [%{"utxo_pos" => utxo_pos, "blknum" => blknum, "txindex" => txindex, "oindex" => oindex} | _] =
+      TestHelper.get_utxos(alice.addr)
+
+    assert Utxo.position(^blknum, ^txindex, ^oindex) = utxo_pos |> Utxo.Position.decode()
+  end
+
   @tag fixtures: [:initial_blocks, :bob, :carol]
   test "spent utxos are moved to new owner", %{bob: bob, carol: carol} do
     [] = TestHelper.get_utxos(carol.addr)

@@ -5,7 +5,7 @@ API specification of the Watcher's security-critical Service
 ## Account - Get Utxos
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.get_utxos -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.get_utxos -d '{"address": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"}'
 ```
 
 ```elixir
@@ -29,7 +29,8 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.g
             "oindex": 0,
             "currency": "0000000000000000000000000000000000000000",
             "blknum": 1000,
-            "amount": 10
+            "amount": 10,
+            "utxo_pos": 10000000010000000
         }
     ]
 }
@@ -57,7 +58,7 @@ address | Hex encoded string | Address of the account
 ## Utxo - Get Challenge Data
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/utxo.get_challenge_data -d '{"utxo_pos": "10001001"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/utxo.get_challenge_data -d '{"utxo_pos": 10001001}'
 ```
 
 ```elixir
@@ -101,7 +102,7 @@ utxo_pos | Integer | Utxo position (encoded as single integer, the way contract 
 ## Utxo - Get Exit Data
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/utxo.get_exit_data -d '{"utxo_pos": "10001001"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/utxo.get_exit_data -d '{"utxo_pos": 10001001}'
 ```
 
 ```elixir
