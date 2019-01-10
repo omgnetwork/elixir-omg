@@ -19,12 +19,16 @@ defmodule OMG.Watcher.API.Status do
 
   alias OMG.API.State
   alias OMG.Eth
+  alias OMG.Watcher.BlockGetter
+  alias OMG.Watcher.Event
+  alias OMG.Watcher.ExitProcessor
 
   @opaque t() :: %{
             last_validated_child_block_number: non_neg_integer(),
             last_mined_child_block_number: non_neg_integer(),
             last_mined_child_block_timestamp: non_neg_integer(),
-            eth_syncing: boolean()
+            eth_syncing: boolean(),
+            byzantine_events: list()
           }
 
   @doc """
@@ -39,11 +43,15 @@ defmodule OMG.Watcher.API.Status do
          {:ok, child_block_interval} <- Eth.RootChain.get_child_block_interval() do
       {state_current_block, _} = State.get_status()
 
+      {_, events_processor} = ExitProcessor.check_validity()
+      events_blockgetter = BlockGetter.get_events()
+
       status = %{
         last_validated_child_block_number: state_current_block - child_block_interval,
         last_mined_child_block_number: last_mined_child_block_number,
         last_mined_child_block_timestamp: last_mined_child_block_timestamp,
-        eth_syncing: Eth.Geth.syncing?()
+        eth_syncing: Eth.Geth.syncing?(),
+        byzantine_events: prepare_events(events_processor ++ events_blockgetter)
       }
 
       {:ok, status}
@@ -51,5 +59,10 @@ defmodule OMG.Watcher.API.Status do
       :error -> {:error, :unknown}
       {:error, _} = error -> error
     end
+  end
+
+  @spec prepare_events(list(Event.t())) :: list(map())
+  defp prepare_events(events) do
+    Enum.map(events, &Event.add_event_name_field/1)
   end
 end
