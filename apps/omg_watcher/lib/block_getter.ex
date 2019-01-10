@@ -62,7 +62,7 @@ defmodule OMG.Watcher.BlockGetter do
          block_rootchain_height},
         state
       ) do
-    with :ok <- Core.chain_ok?(state),
+    with :ok <- Core.chain_ok(state),
          tx_exec_results <- for(tx <- transactions, do: OMG.API.State.exec(tx, fees)),
          exit_processor_results <- ExitProcessor.check_validity(),
          {:ok, state} <- Core.validate_executions(tx_exec_results, exit_processor_results, block, state) do
@@ -152,7 +152,7 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info(msg, state)
 
   def handle_info(:producer, state) do
-    with :ok <- Core.chain_ok?(state) do
+    with :ok <- Core.chain_ok(state) do
       new_state = run_block_download_task(state)
       {:ok, _} = :timer.send_after(2_000, self(), :producer)
       {:noreply, new_state}

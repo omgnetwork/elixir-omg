@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Eventer.Event do
+defmodule OMG.Watcher.Event do
   alias OMG.API.Block
   alias OMG.API.State.Transaction
 
   @type t ::
-          OMG.Watcher.Eventer.Event.AddressReceived.t()
-          | OMG.Watcher.Eventer.Event.InvalidBlock.t()
-          | OMG.Watcher.Eventer.Event.BlockWithholding.t()
-          | OMG.Watcher.Eventer.Event.InvalidExit.t()
+          AddressReceived.t()
+          | InvalidBlock.t()
+          | BlockWithholding.t()
+          | InvalidExit.t()
 
   defmodule AddressReceived do
     @moduledoc """
@@ -124,5 +124,28 @@ defmodule OMG.Watcher.Eventer.Event do
             utxo_pos: pos_integer(),
             eth_height: pos_integer()
           }
+  end
+
+  @spec add_event_name_field(Event.t()) :: map()
+  def add_event_name_field(%InvalidBlock{} = event) do
+    put_event_name_value(event, InvalidBlock.name())
+  end
+
+  def add_event_name_field(%BlockWithholding{} = event) do
+    put_event_name_value(event, BlockWithholding.name())
+  end
+
+  def add_event_name_field(%InvalidExit{} = event) do
+    put_event_name_value(event, InvalidExit.name())
+  end
+
+  def add_event_name_field(%UnchallengedExit{} = event) do
+    put_event_name_value(event, UnchallengedExit.name())
+  end
+
+  defp put_event_name_value(event, value) do
+    event
+    |> Map.from_struct()
+    |> Map.put(:event_name, value)
   end
 end

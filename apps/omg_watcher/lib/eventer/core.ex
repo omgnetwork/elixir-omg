@@ -19,7 +19,7 @@ defmodule OMG.Watcher.Eventer.Core do
 
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction
-  alias OMG.Watcher.Eventer.Event
+  alias OMG.Watcher.Event
 
   @transfer_topic "transfer"
 

@@ -18,7 +18,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   alias OMG.API
   alias OMG.API.Block
   alias OMG.API.State.Transaction
-  alias OMG.Watcher.Eventer.Event
+  alias OMG.Watcher.Event
 
   use OMG.API.LoggerExt
 
@@ -154,8 +154,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   FIXME
   """
-  def chain_ok?(%__MODULE__{events: []}), do: :ok
-  def chain_ok?(%__MODULE__{events: events} = state), do: {{:error, events}, state}
+  def chain_ok(%__MODULE__{events: []}), do: :ok
+  def chain_ok(%__MODULE__{events: events} = state), do: {{:error, events}, state}
 
   @doc """
   Marks that child chain block published on `blk_eth_height` was processed

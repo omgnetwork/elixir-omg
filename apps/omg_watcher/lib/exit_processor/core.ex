@@ -23,7 +23,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.API.Crypto
   alias OMG.API.Utxo
   require Utxo
-  alias OMG.Watcher.Eventer.Event
+  alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor.ExitInfo
 
   @default_sla_margin 10
