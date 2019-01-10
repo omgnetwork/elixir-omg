@@ -71,7 +71,7 @@ defmodule OMG.RPC.Client do
   end
 
   # Translates response's body to known elixir structure, either block or tx submission response or error.
-  defp decode_response({:ok, %{transactions: transactions, number: number, hash: hash}}) do
+  defp decode_response({:ok, %{transactions: transactions, blknum: number, hash: hash}}) do
     {:ok,
      %{
        number: number,

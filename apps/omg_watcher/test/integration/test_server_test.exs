@@ -22,8 +22,8 @@ defmodule OMG.Watcher.Integration.TestServerTest do
   @expected_block_hash <<0::256>>
 
   describe "/block.get -" do
-    @response TestServer.make_response(%OMG.API.Block{
-                number: 123_000,
+    @response TestServer.make_response(%{
+                blknum: 123_000,
                 hash: Base.encode16(@expected_block_hash),
                 transactions: []
               })
