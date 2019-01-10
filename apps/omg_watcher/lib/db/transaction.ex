@@ -53,7 +53,16 @@ defmodule OMG.Watcher.DB.Transaction do
     Optionally, fetches block which the transaction was included in.
   """
   def get(hash) do
-    query = from(__MODULE__, where: [txhash: ^hash], preload: [:block, :inputs, :outputs])
+    query =
+      from(
+        __MODULE__,
+        where: [txhash: ^hash],
+        preload: [
+          :block,
+          inputs: ^from(txo in DB.TxOutput, order_by: :spending_tx_oindex),
+          outputs: ^from(txo in DB.TxOutput, order_by: :oindex)
+        ]
+      )
 
     DB.Repo.one(query)
   end
