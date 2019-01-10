@@ -101,7 +101,7 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   defp log_output(prefix, line) do
-    #  IO.puts("#{prefix}: " <> line)
+    Logger.debug(fn -> "#{prefix}: " <> line end)
     line
   end
 

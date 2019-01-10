@@ -44,12 +44,8 @@ defmodule OMG.API.State.Core do
           amount: pos_integer()
         }
 
-  @type in_flight_exit() :: %{
-          blknum: non_neg_integer(),
-          currency: Crypto.address_t(),
-          owner: Crypto.address_t(),
-          amount: pos_integer()
-        }
+  @type in_flight_exit() :: list() #[bitstring(), any(), any(), bitstring()]
+  @type piggyback() :: %{txHash: Transaction.signed_tx_hash_t(), outputIndex: non_neg_integer}
 
   @type exit_t() :: %{
           utxo_pos: pos_integer(),
@@ -444,6 +440,8 @@ defmodule OMG.API.State.Core do
   defp sigs_chope(<<>>), do: []
   defp sigs_chope(<<sig::bytes-size(65), rest::binary>>), do: [sig | sigs_chope(rest)]
 
+  @spec in_flight_exits(in_flight_txs :: [in_flight_exit()], state :: t()) ::
+          {:ok, {[exit_event], [db_update]}, new_state :: t()}
   def in_flight_exits(in_flight_txs, %Core{utxos: utxos} = state) do
     {db_updates_list_and_events, new_state} =
       in_flight_txs
@@ -471,6 +469,7 @@ defmodule OMG.API.State.Core do
     {:ok, {event_triggers, db_updates}, new_state}
   end
 
+  @spec piggybacks(piggybacks :: [piggyback()], state :: t()) :: {:ok, {[exit_event], [db_update]}, new_state :: t()}
   def piggybacks(piggybacks, %Core{utxos: utxos} = state) do
     inputs =
       piggybacks
