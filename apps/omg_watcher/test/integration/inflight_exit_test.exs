@@ -150,8 +150,12 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    # check if there is a competitor for particular in-flight exit
+    # Check if IFE is recognized as IFE by watcher.
+    assert %{
+      "inflight_exits" => [%{"txbytes" => ^in_flight_tx_bytes}]
+    } = TestHelper.success?("/status.get")
 
+    # check if there is a competitor for particular in-flight exit
     expected_competitor = Base.encode16(tx, case: :upper)
     %{"competing_txbytes" => ^expected_competitor, "inflight_txbytes" => ^in_flight_tx_bytes} =
       IntegrationTest.get_in_flight_exit_competitors(in_flight_tx_bytes)
