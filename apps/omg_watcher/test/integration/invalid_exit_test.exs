@@ -136,7 +136,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       bad_block = API.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
-    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block, bad_block_hash)
+    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
 
     {:ok, _, _socket} = subscribe_and_join(socket(), Channel.Byzantine, "byzantine")
 
@@ -158,6 +158,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       |> Eth.DevHelpers.transact_sync!()
 
     # Here we're manually submitting invalid block to the root chain
+    # NOTE: this **must** come after `start_exit` is mined (see just above) but still not later than
+    #       `sla_margin` after exit start, hence the `config/test.exs` entry for the margin is rather high
     {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
 
     IntegrationTest.wait_for_block_fetch(bad_block_number, @timeout)

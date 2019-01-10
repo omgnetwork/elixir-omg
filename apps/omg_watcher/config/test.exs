@@ -13,7 +13,8 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_test"}
 
 config :omg_watcher,
-  exit_processor_sla_margin: 3,
+  # NOTE: can't be made shorter. At 3 it sometimes causes :unchallenged_exit because `geth --dev` is too fast
+  exit_processor_sla_margin: 5,
   exit_processor_validation_interval_ms: 50,
   maximum_block_withholding_time_ms: 6_000,
   block_getter_height_sync_interval_ms: 50,
