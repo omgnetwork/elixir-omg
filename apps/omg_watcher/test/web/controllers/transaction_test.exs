@@ -170,9 +170,9 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       ])
 
       assert [%{"block" => %{"blknum" => 2000}, "txindex" => 1}, %{"block" => %{"blknum" => 2000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"block" => 2000})
+               TestHelper.success?("/transaction.all", %{"blknum" => 2000})
 
-      assert [] = TestHelper.success?("/transaction.all", %{"block" => 3000})
+      assert [] = TestHelper.success?("/transaction.all", %{"blknum" => 3000})
     end
 
     @tag fixtures: [:blocks_inserter, :alice, :bob]
@@ -193,7 +193,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       {:ok, address} = Crypto.encode_address(bob.addr)
 
       assert [%{"block" => %{"blknum" => 2000}, "txindex" => 1}] =
-               TestHelper.success?("/transaction.all", %{"address" => address, "block" => 2000})
+               TestHelper.success?("/transaction.all", %{"address" => address, "blknum" => 2000})
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]

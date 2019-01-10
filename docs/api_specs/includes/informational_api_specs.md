@@ -157,7 +157,7 @@ limit | Integer | Maximum number of transactions to return (default 200)
 ## Transaction -  Get All
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/transaction.all -d '{"block": "100", "limit": 50}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/transaction.all -d '{"blknum": "100", "limit": 50}'
 ```
 
 ```elixir
@@ -225,7 +225,7 @@ For all details queries to `/transaction.get` should be made using the transacti
 
 Attribute | Type | Description
 --------- | ------- | -----------
-block | Integer | Block number to filter by (optional)
+blknum | Integer | Block number to filter by (optional)
 address | Hex encoded string | Address to filter by (optional)
 limit | Integer | Maximum number of transactions to return (default 200)
 

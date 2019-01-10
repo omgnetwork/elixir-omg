@@ -47,7 +47,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   def get_transactions(conn, params) do
     address = get_address(params)
     limit = get_optional_int("limit", params)
-    blknum = get_optional_int("block", params)
+    blknum = get_optional_int("blknum", params)
 
     transactions = API.Transaction.get_transactions(address, blknum, limit)
 
