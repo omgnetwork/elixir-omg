@@ -15,24 +15,19 @@ alias OMG.{API, Eth}
 alias OMG.API.Crypto
 alias OMG.API.State.Transaction
 alias OMG.API.TestHelper
+alias OMG.API.Integration.DepositHelper
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
 eth = Crypto.zero_address()
 
-{:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
+{:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
 
 ### START DEMO HERE
 
 # sends a deposit transaction _to Ethereum_
-{:ok, deposit_tx_hash} = Transaction.new([],[{alice_enc,eth,10}]) |> Transaction.encode() |> Eth.RootChain.deposit(10, alice_enc)
-
-# need to wait until its mined
-{:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
-
 # we need to uncover the height at which the deposit went through on the root chain
-# to do this, look in the logs inside the receipt printed just above
-deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
+deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, 10)
 
 # create and prepare transaction for signing
 tx =

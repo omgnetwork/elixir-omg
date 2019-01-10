@@ -52,49 +52,57 @@ defmodule OMG.Watcher.DB.Transaction do
     Gets a transaction specified by a hash.
     Optionally, fetches block which the transaction was included in.
   """
-  def get(hash, preload_block \\ false) do
-    query = from(__MODULE__, where: [txhash: ^hash])
-
+  def get(hash) do
     query =
-      if preload_block do
-        from(query, preload: [:block])
-      else
-        query
-      end
+      from(
+        __MODULE__,
+        where: [txhash: ^hash],
+        preload: [
+          :block,
+          inputs: ^from(txo in DB.TxOutput, order_by: :spending_tx_oindex),
+          outputs: ^from(txo in DB.TxOutput, order_by: :oindex)
+        ]
+      )
 
     DB.Repo.one(query)
   end
 
-  def get_last(limit) do
-    query =
-      from(
-        __MODULE__,
-        order_by: [desc: :blknum, desc: :txindex],
-        limit: ^limit,
-        preload: [:block]
-      )
-
-    DB.Repo.all(query)
+  def get_by_filters(address, blknum, limit) do
+    query_get_last(limit)
+    |> query_get_by_address(address)
+    |> query_get_by_blknum(blknum)
+    |> DB.Repo.all()
   end
 
-  def get_by_address(address, limit) do
-    query =
-      from(
-        tx in __MODULE__,
-        distinct: true,
-        left_join: output in assoc(tx, :outputs),
-        left_join: input in assoc(tx, :inputs),
-        where: output.owner == ^address or input.owner == ^address,
-        order_by: [desc: tx.blknum, desc: tx.txindex],
-        limit: ^limit,
-        preload: [:block]
-      )
-
-    DB.Repo.all(query)
+  defp query_get_last(limit) do
+    from(
+      __MODULE__,
+      order_by: [desc: :blknum, desc: :txindex],
+      limit: ^limit,
+      preload: [:block, :outputs]
+    )
   end
+
+  defp query_get_by_address(base, nil), do: base
+
+  defp query_get_by_address(base, address) do
+    from(
+      tx in base,
+      distinct: true,
+      left_join: output in assoc(tx, :outputs),
+      left_join: input in assoc(tx, :inputs),
+      where: output.owner == ^address or input.owner == ^address
+    )
+  end
+
+  defp query_get_by_blknum(base, nil), do: base
+  defp query_get_by_blknum(base, blknum), do: base |> from(where: [blknum: ^blknum])
 
   def get_by_blknum(blknum) do
-    DB.Repo.all(from(__MODULE__, where: [blknum: ^blknum], order_by: [asc: :txindex]))
+    __MODULE__
+    |> query_get_by_blknum(blknum)
+    |> from(order_by: [asc: :txindex])
+    |> DB.Repo.all()
   end
 
   def get_by_position(blknum, txindex) do

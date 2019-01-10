@@ -17,37 +17,12 @@ defmodule OMG.Watcher.Integration.TestHelper do
   Common helper functions that are useful when integration-testing the watcher
   """
 
-  alias OMG.API.Crypto
   alias OMG.API.State
   alias OMG.API.Utxo
   alias OMG.Eth
 
   require Utxo
   import OMG.Watcher.TestHelper
-
-  def get_exit_data(blknum, txindex, oindex) do
-    utxo_pos = Utxo.Position.encode({:utxo_position, blknum, txindex, oindex})
-
-    data = success?("utxo.get_exit_data", %{utxo_pos: utxo_pos})
-
-    decode16(data, ["txbytes", "proof", "sigs"])
-  end
-
-  def get_utxos(%{addr: address}) do
-    {:ok, address_encode} = Crypto.encode_address(address)
-
-    utxos = success?("utxo.get", %{address: address_encode})
-
-    utxos
-  end
-
-  def get_exit_challenge(blknum, txindex, oindex) do
-    utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
-
-    data = success?("utxo.get_challenge_data", %{utxo_pos: utxo_pos})
-
-    decode16(data, ["txbytes", "sig"])
-  end
 
   def wait_for_byzantine_events(event_names, timeout) do
     fn ->

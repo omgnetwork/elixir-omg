@@ -21,13 +21,11 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use PhoenixSwagger
 
   alias OMG.API.Crypto
-  alias OMG.Watcher.API.Transaction
+  alias OMG.Watcher.API
   alias OMG.Watcher.DB
   alias OMG.Watcher.Web.View
 
   import OMG.Watcher.Web.ErrorHandler
-
-  @default_transactions_limit 200
 
   action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
@@ -38,7 +36,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     with {:ok, id} <- Map.fetch(params, "id"),
          id <- Base.decode16!(id) do
       id
-      |> Transaction.get()
+      |> API.Transaction.get()
       |> respond(conn)
     end
   end
@@ -48,12 +46,10 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   """
   def get_transactions(conn, params) do
     address = get_address(params)
-    limit = Map.get(params, "limit", @default_transactions_limit)
-    {limit, ""} = limit |> Kernel.to_string() |> Integer.parse()
-    # TODO: implement pagination. Defend against fetching huge dataset.
-    limit = min(limit, @default_transactions_limit)
+    limit = get_optional_int("limit", params)
+    blknum = get_optional_int("blknum", params)
 
-    transactions = Transaction.get_transactions(address, limit)
+    transactions = API.Transaction.get_transactions(address, blknum, limit)
 
     respond_multiple(transactions, conn)
   end
@@ -63,7 +59,18 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     address
   end
 
-  defp get_address(_), do: nil
+  defp get_address(%{}), do: nil
+
+  defp get_optional_int(key, %{} = params) do
+    case Map.get(params, key) do
+      nil ->
+        nil
+
+      value ->
+        {value, ""} = value |> Kernel.to_string() |> Integer.parse()
+        value
+    end
+  end
 
   defp respond_multiple(transactions, conn),
     do: render(conn, View.Transaction, :transactions, transactions: transactions)

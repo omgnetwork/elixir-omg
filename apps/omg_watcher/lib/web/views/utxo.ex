@@ -19,8 +19,11 @@ defmodule OMG.Watcher.Web.View.Utxo do
 
   use OMG.Watcher.Web, :view
 
+  alias OMG.API.Utxo
   alias OMG.Watcher.DB
   alias OMG.Watcher.Web.Serializers
+
+  require Utxo
 
   def render("utxo_exit.json", %{utxo_exit: utxo_exit}) do
     utxo_exit
@@ -33,21 +36,12 @@ defmodule OMG.Watcher.Web.View.Utxo do
     |> Serializers.Response.serialize(:success)
   end
 
-  defp to_view(%DB.TxOutput{
-         blknum: blknum,
-         txindex: txindex,
-         oindex: oindex,
-         amount: amount,
-         currency: currency,
-         creating_transaction: tx
-       }) do
-    %{
-      amount: amount,
-      currency: currency,
-      blknum: blknum,
-      txindex: txindex,
-      oindex: oindex,
-      txbytes: tx && tx.txbytes
-    }
+  defp to_view(%DB.TxOutput{} = db_entry) do
+    view =
+      db_entry
+      |> Map.take([:amount, :currency, :blknum, :txindex, :oindex, :owner])
+
+    view
+    |> Map.put(:utxo_pos, Utxo.position(view.blknum, view.txindex, view.oindex) |> Utxo.Position.encode())
   end
 end

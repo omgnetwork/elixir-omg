@@ -20,28 +20,27 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
   alias OMG.API
   alias OMG.API.Crypto
   alias OMG.API.TestHelper
-  alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
 
   @eth_hex String.duplicate("00", 20)
   @other_token <<127::160>>
   @other_token_hex @other_token |> Base.encode16()
 
-  @tag fixtures: [:initial_blocks, :alice, :bob]
-  test "Account balance groups account tokens and provide sum of available funds",
-       %{alice: alice, bob: bob} do
+  @tag fixtures: [:alice, :bob, :blocks_inserter, :initial_blocks]
+  test "Account balance groups account tokens and provide sum of available funds", %{
+    blocks_inserter: blocks_inserter,
+    alice: alice,
+    bob: bob
+  } do
     assert [%{"currency" => @eth_hex, "amount" => 349}] == TestHelper.success?("/account.get_balance", body_for(bob))
 
     # adds other token funds for alice to make more interesting
-    DB.Transaction.update_with(%{
-      transactions: [
-        API.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])
-      ],
-      blknum: 11_000,
-      blkhash: <<?#::256>>,
-      timestamp: :os.system_time(:second),
-      eth_height: 10
-    })
+    blocks_inserter.([
+      {11_000,
+       [
+         API.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])
+       ]}
+    ])
 
     data = TestHelper.success?("/account.get_balance", body_for(alice))
 
@@ -63,29 +62,13 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
     %{"address" => address_encode}
   end
 
-  @tag fixtures: [:initial_blocks, :alice, :bob]
+  @tag fixtures: [:initial_blocks, :alice]
   test "returns last transactions that involve given address", %{
-    alice: alice,
-    bob: bob
+    alice: alice
   } do
-    alice_address = alice.addr |> TestHelper.to_response_address()
-    bob_address = bob.addr |> TestHelper.to_response_address()
-
-    expected_result = [
-      %{
-        "spender1" => bob_address,
-        "spender2" => nil,
-        "newowner1" => bob_address,
-        "newowner2" => alice_address,
-        "eth_height" => 1
-      }
-    ]
-
+    # refer to `/transaction.all` tests for more thorough cases, this is the same
     {:ok, address} = Crypto.encode_address(alice.addr)
-    txs = TestHelper.success?("/account.get_transactions", %{"address" => address, "limit" => 1})
 
-    assert expected_result ==
-             txs
-             |> Enum.map(&Map.take(&1, ["spender1", "spender2", "newowner1", "newowner2", "eth_height"]))
+    assert [_] = TestHelper.success?("/account.get_transactions", %{"address" => address, "limit" => 1})
   end
 end

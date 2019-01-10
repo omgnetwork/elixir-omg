@@ -18,6 +18,7 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
     which is returning a bad block for a particular block hash.
   """
 
+  alias OMG.API.Block
   alias OMG.RPC.Client
   alias OMG.Watcher.Integration.TestServer
   alias OMG.Watcher.Web.Serializers.Response
@@ -35,6 +36,7 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
 
         if bad_block_hash == Base.decode16!(req_hash) do
           bad_block
+          |> Block.to_api_format()
           |> Response.clean_artifacts()
           |> TestServer.make_response()
         else
