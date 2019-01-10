@@ -22,6 +22,9 @@ defmodule OMG.Watcher.Event do
           | OMG.Watcher.Event.BlockWithholding.t()
           | OMG.Watcher.Event.InvalidExit.t()
 
+  #  TODO The reason why events have name as String and byzantine events as atom is that
+  #  Phoniex websockets requires topics as strings + currently we treat Strings and binaries in
+  #  the same way in `OMG.Watcher.Web.Serializers.Response`
   defmodule AddressReceived do
     @moduledoc """
     Notifies about received funds by particular address
@@ -63,7 +66,7 @@ defmodule OMG.Watcher.Event do
     Notifies about invalid block
     """
 
-    def name, do: "invalid_block"
+    def name, do: :invalid_block
 
     defstruct [:hash, :number, :error_type]
 
@@ -79,7 +82,7 @@ defmodule OMG.Watcher.Event do
     Notifies about block-withholding
     """
 
-    def name, do: "block_withholding"
+    def name, do: :block_withholding
 
     defstruct [:blknum]
 
@@ -93,7 +96,7 @@ defmodule OMG.Watcher.Event do
     Notifies about invalid exit
     """
 
-    def name, do: "invalid_exit"
+    def name, do: :invalid_exit
 
     defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height]
 
@@ -113,7 +116,7 @@ defmodule OMG.Watcher.Event do
     It is a prompt to exit
     """
 
-    def name, do: "unchallenged_exit"
+    def name, do: :unchallenged_exit
 
     defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height]
 

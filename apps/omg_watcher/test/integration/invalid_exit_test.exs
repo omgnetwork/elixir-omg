@@ -157,7 +157,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    IntegrationTest.wait_for_byzantine_events([Event.InvalidBlock.name()], @timeout)
+    IntegrationTest.wait_for_byzantine_events([Event.InvalidExit.name()], @timeout)
   end
 
   defp get_next_blknum_nonce(blknum) do
