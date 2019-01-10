@@ -75,33 +75,6 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  def start_in_flight_exit(
-        in_flight_tx,
-        input_txs,
-        input_txs_inclusion_proofs,
-        in_flight_tx_sigs,
-        from,
-        contract \\ nil,
-        opts \\ []
-      ) do
-    defaults =
-      @tx_defaults
-      |> Keyword.put(:gas, 1_000_000)
-      |> Keyword.put(:value, @standard_exit_bond)
-
-    opts = defaults |> Keyword.merge(opts)
-
-    contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-
-    Eth.contract_transact(
-      from,
-      contract,
-      "startInFlightExit(bytes,bytes,bytes,bytes)",
-      [in_flight_tx, input_txs, input_txs_inclusion_proofs, in_flight_tx_sigs],
-      opts
-    )
-  end
-
   def piggyback_in_flight_exit(in_flightTx, outputIndex, from, contract \\ nil, opts \\ []) do
     defaults =
       @tx_defaults

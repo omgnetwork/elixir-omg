@@ -52,8 +52,8 @@ defmodule OMG.Watcher.Integration.InFlightTest do
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + 10)
 
-    assert [] == IntegrationTest.get_utxos(alice)
-    assert [] == IntegrationTest.get_utxos(bob)
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
+    assert {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} = Client.submit(tx)
   end
 
   @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob]
@@ -62,7 +62,7 @@ defmodule OMG.Watcher.Integration.InFlightTest do
     deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, 10)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
-    Client.submit(tx)
+    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.submit(tx)
 
     # alice checks whether she can IFE in case her tx gets lost
     in_flight_exit_info =
@@ -82,15 +82,19 @@ defmodule OMG.Watcher.Integration.InFlightTest do
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + 10)
 
-    assert [%{"amount" => 7}] = IntegrationTest.get_utxos(alice)
-
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.piggyback_in_flight_exit(in_flight_exit_info["in_flight_tx"], 4, alice.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + 10)
 
-    assert [] == IntegrationTest.get_utxos(alice)
-    assert [%{"amount" => 3}] = IntegrationTest.get_utxos(bob)
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
+    assert {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} = Client.submit(tx)
+
+    tx = API.TestHelper.create_encoded([{tx_blknum, 0, 0, alice}], @eth, [{alice, 7}])
+    assert {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} = Client.submit(tx)
+
+    tx = API.TestHelper.create_encoded([{tx_blknum, 0, 1, bob}], @eth, [{bob, 3}])
+    assert {:ok, _} = Client.submit(tx)
   end
 end

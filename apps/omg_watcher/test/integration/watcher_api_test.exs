@@ -21,7 +21,6 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
   alias OMG.API
   alias OMG.API.Crypto
-  alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Eth
   alias OMG.RPC.Client
@@ -95,23 +94,6 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
              }
            ] = IntegrationTest.get_utxos(alice)
 
-    # alice checks whether she can IFE in case her tx gets lost
-    tx = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
-    # FIXME: do full integration - use the HTTP-RPC endpoint instead of Elixir API
-    assert {:ok, in_flight_exit_info} = OMG.Watcher.API.get_in_flight_exit(tx)
-
-    {:ok, %{"status" => "0x1"}} =
-      Eth.RootChain.start_in_flight_exit(
-      in_flight_exit_info[:in_flight_tx],
-      in_flight_exit_info[:input_txs],
-      in_flight_exit_info[:input_txs_inclusion_proofs],
-      in_flight_exit_info[:in_flight_tx_sigs],
-      alice.addr
-      )
-      |> Eth.DevHelpers.transact_sync!()
-
-    # alice exits her regular utxo
-
     %{
       "utxo_pos" => utxo_pos,
       "txbytes" => txbytes,
@@ -149,46 +131,5 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
 
     assert [] == IntegrationTest.get_utxos(alice)
-  end
-
-  @tag fixtures: [:watcher_sandbox, :alice, :child_chain, :token, :alice_deposits]
-  test "in-flight exit data retruned by watcher http API produces a valid in-flight exit",
-       %{alice: alice, alice_deposits: {deposit_blknum, _}} do
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
-    {:ok, %{blknum: blknum, tx_index: txindex}} = Client.submit(tx)
-
-    IntegrationTest.wait_for_block_fetch(blknum, @timeout)
-
-    %Transaction.Signed{raw_tx: raw_in_flight_tx} =
-      in_flight_tx =
-      API.TestHelper.create_signed([{blknum, txindex, 0, alice}, {blknum, txindex, 1, alice}], @eth, [{alice, 10}])
-
-    in_flight_tx_bytes =
-      in_flight_tx
-      |> Transaction.Signed.encode()
-      |> Base.encode16(case: :upper)
-
-    %{
-      "in_flight_tx" => in_flight_tx,
-      "in_flight_tx_sigs" => in_flight_tx_sigs,
-      "input_txs" => input_txs,
-      "input_txs_inclusion_proofs" => input_txs_inclusion_proofs
-    } = IntegrationTest.get_in_flight_exit(in_flight_tx_bytes)
-
-    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      OMG.Eth.RootChain.in_flight_exit(
-        in_flight_tx,
-        input_txs,
-        input_txs_inclusion_proofs,
-        in_flight_tx_sigs,
-        alice.addr
-      )
-      |> Eth.DevHelpers.transact_sync!()
-
-    in_flight_tx_hash = Transaction.hash(raw_in_flight_tx)
-    alice_address = alice.addr
-
-    assert {:ok, [%{initiator: ^alice_address, txhash: ^in_flight_tx_hash}]} =
-             OMG.Eth.RootChain.get_in_flight_exits(0, eth_height)
   end
 end
