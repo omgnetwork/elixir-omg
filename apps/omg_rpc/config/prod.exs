@@ -6,8 +6,7 @@ use Mix.Config
 config :omg_rpc, OMG.RPC.Web.Endpoint,
   http: [:inet6, port: System.get_env("PORT") || 9656],
   # TODO: adjust this when `:prod` environment starts being used
-  url: [host: "example.com", port: 80],
-  loggers: [Appsignal.Ecto, Ecto.LogEntry]
+  url: [host: "example.com", port: 80]
 
 # NOTE: no `cache_static_manifest` here
 

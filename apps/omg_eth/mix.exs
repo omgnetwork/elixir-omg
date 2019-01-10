@@ -24,7 +24,7 @@ defmodule OMG.Eth.MixProject do
       env: [
         child_block_interval: 1000
       ],
-      extra_applications: [:logger, :appsignal]
+      extra_applications: [:logger]
     ]
   end
 
@@ -49,8 +49,7 @@ defmodule OMG.Eth.MixProject do
         compile: contracts_compile(),
         app: false,
         only: [:dev, :test]
-      },
-      {:appsignal, "~> 1.0"},
+      }
     ]
   end
 

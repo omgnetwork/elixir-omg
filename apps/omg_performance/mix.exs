@@ -18,15 +18,14 @@ defmodule OMG.Performance.MixProject do
 
   def application do
     [
-      extra_applications: [:logger, :tools, :appsignal]
+      extra_applications: [:logger, :tools]
     ]
   end
 
   defp deps do
     [
       {:briefly, "~> 0.3"},
-      {:omg_api, in_umbrella: true, runtime: false},
-      {:appsignal, "~> 1.0"}
+      {:omg_api, in_umbrella: true, runtime: false}
     ]
   end
 end

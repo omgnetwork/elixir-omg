@@ -23,7 +23,7 @@ defmodule OMG.DB.MixProject do
         server_module: OMG.DB.LevelDBServer,
         server_name: OMG.DB.LevelDBServer
       ],
-      extra_applications: [:logger, :appsignal],
+      extra_applications: [:logger],
       mod: {OMG.DB.Application, []}
     ]
   end
@@ -35,8 +35,7 @@ defmodule OMG.DB.MixProject do
       # TODO: we only need in :dev and :test here, but we need in :prod too in performance
       #       then there's some unexpected behavior of mix that won't allow to mix these, see
       #       [here](https://elixirforum.com/t/mix-dependency-is-not-locked-error-when-building-with-edeliver/7069/3)
-      {:briefly, "~> 0.3"},
-      {:appsignal, "~> 1.0"}
+      {:briefly, "~> 0.3"}
     ]
   end
 end

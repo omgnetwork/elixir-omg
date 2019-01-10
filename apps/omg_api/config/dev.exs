@@ -2,5 +2,4 @@
 use Mix.Config
 
 config :omg_api,
-  ethereum_status_check_interval_ms: 500,
-  loggers: [Appsignal.Ecto, Ecto.LogEntry]
+  ethereum_status_check_interval_ms: 500

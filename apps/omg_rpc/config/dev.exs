@@ -11,8 +11,7 @@ config :omg_rpc, OMG.RPC.Web.Endpoint,
   url: [host: "localhost", port: 9656],
   debug_errors: true,
   check_origin: false,
-  watchers: [],
-  loggers: [Appsignal.Ecto, Ecto.LogEntry]
+  watchers: []
 
 # ## SSL Support
 #

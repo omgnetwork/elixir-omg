@@ -13,8 +13,7 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
   code_reloader: true,
   check_origin: false,
   watchers: [],
-  server: true,
-  loggers: [Appsignal.Ecto, Ecto.LogEntry]
+  server: true
 
 # ## SSL Support
 #
@@ -47,8 +46,7 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   timeout: 60_000,
   connect_timeout: 60_000,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
-  url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_dev"},
-  loggers: [Appsignal.Ecto, Ecto.LogEntry]
+  url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_dev"}
 
 config :omg_watcher,
   exit_processor_sla_margin: 10,
