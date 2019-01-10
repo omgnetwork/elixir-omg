@@ -28,7 +28,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.RPC.Client
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.Watcher.Integration.TestServer
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Web.Channel
   alias OMG.Watcher.Web.Serializers.Response
@@ -191,16 +190,13 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @tag fixtures: [:watcher_sandbox, :test_server]
   test "hash of returned block does not match hash submitted to the root chain", %{test_server: context} do
     different_hash = <<0::256>>
+    block_with_incorrect_hash = %{API.Block.hashed_txs_at([], 1000) | hash: different_hash}
 
-    TestServer.with_route(
+    # from now on the child chain server is broken until end of test
+    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(
       context,
-      "/block.get",
-      TestServer.make_response(%{
-        transactions: [],
-        number: 1000,
-        # different hash than expected
-        hash: Base.encode16(different_hash)
-      })
+      block_with_incorrect_hash,
+      different_hash
     )
 
     {:ok, _txhash} = Eth.RootChain.submit_block(different_hash, 1, 20_000_000_000)
@@ -217,12 +213,11 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], Crypto.zero_address(), [{alice, 10}])
     block_with_incorrect_transaction = API.Block.hashed_txs_at([recovered], 1000)
 
-    block_response =
+    # from now on the child chain server is broken until end of test
+    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(
+      context,
       block_with_incorrect_transaction
-      |> Response.clean_artifacts()
-      |> TestServer.make_response()
-
-    TestServer.with_route(context, "/block.get", block_response)
+    )
 
     invalid_block_hash = block_with_incorrect_transaction.hash
 
@@ -245,7 +240,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       bad_block = API.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
-    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block, bad_block_hash)
+    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
 
     IntegrationTest.wait_for_block_fetch(exit_blknum, @timeout)
 

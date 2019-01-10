@@ -19,8 +19,8 @@ defmodule OMG.Watcher.API.Status do
 
   alias OMG.API.State
   alias OMG.Eth
-  alias OMG.Watcher.Event
   alias OMG.Watcher.BlockGetter
+  alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
 
   @opaque t() :: %{

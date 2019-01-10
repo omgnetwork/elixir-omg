@@ -17,10 +17,10 @@ defmodule OMG.Watcher.Event do
   alias OMG.API.State.Transaction
 
   @type t ::
-          AddressReceived.t()
-          | InvalidBlock.t()
-          | BlockWithholding.t()
-          | InvalidExit.t()
+          OMG.Watcher.Event.AddressReceived.t()
+          | OMG.Watcher.Event.InvalidBlock.t()
+          | OMG.Watcher.Event.BlockWithholding.t()
+          | OMG.Watcher.Event.InvalidExit.t()
 
   defmodule AddressReceived do
     @moduledoc """
@@ -126,7 +126,6 @@ defmodule OMG.Watcher.Event do
           }
   end
 
-  @spec add_event_name_field(Event.t()) :: map()
   def add_event_name_field(%InvalidBlock{} = event) do
     put_event_name_value(event, InvalidBlock.name())
   end

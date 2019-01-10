@@ -21,8 +21,8 @@ defmodule OMG.Watcher.Eventer.CoreTest do
 
   alias OMG.API
   alias OMG.API.Crypto
-  alias OMG.Watcher.Eventer
   alias OMG.Watcher.Event
+  alias OMG.Watcher.Eventer
   alias OMG.Watcher.TestHelper
 
   @tag fixtures: [:alice, :bob]
