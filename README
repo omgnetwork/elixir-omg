@@ -22,7 +22,7 @@ bundle install
 bundle exec middleman build --clean --source=.
 </code></p>
 
-<p>You can review the generated documentation locally by running <code>bundle exec middleman server</code> and opening <code>http://localhost:4567/</code></p>
+<p>You can review the generated documentation locally by running <code>bundle exec middleman server --source=.</code> and opening <code>http://localhost:4567/</code></p>
 <h2 id='publish-the-new-api-documentation'>Publish the new API documentation</h2>
 <p>If everything worked, push the new changes
 <code>

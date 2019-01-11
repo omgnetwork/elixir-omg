@@ -407,7 +407,7 @@ Errors will usually return with HTTP response code 200, and the details of the e
 </tbody></table>
 <h1 id='watcher'>Watcher</h1>
 <p>API specification of the Watcher&#39;s security-critical Service</p>
-<h2 id='account-get-utxos'>Account - Get Utxos</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/account.get_utxos -d <span class="s1">'{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea", "limit": 10}'</span>
+<h2 id='account-get-utxos'>Account - Get Utxos</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/account.get_utxos -d <span class="s1">'{"address": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -424,13 +424,18 @@ Errors will usually return with HTTP response code 200, and the details of the e
             </span><span class="s2">"oindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
             </span><span class="s2">"currency"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
             </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w">
-            </span><span class="s2">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="w">
+            </span><span class="s2">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"utxo_pos"</span><span class="p">:</span><span class="w"> </span><span class="mi">10000000010000000</span><span class="w">
         </span><span class="p">}</span><span class="w">
     </span><span class="p">]</span><span class="w">
 </span><span class="p">}</span><span class="w">
 </span></code></pre>
 <p>Gets all utxos belonging to the given address.
-<aside class="notice"> Note that this is a performance intensive call and should only be used if the chain is byzantine and the user needs to retrieve utxo information to be able to exit. Normally an application should use the Informational API&#39;s  <a href="#cccount-get-utxos">Account - Get Utxos</a> instead. This version is provided in case the Informational API is not available.</aside> </p>
+<aside class="notice">
+Note that this is a performance intensive call and should only be used if the chain is byzantine and the user needs to retrieve utxo information to be able to exit.
+Normally an application should use the Informational API&#39;s <a href="#account-get-utxos">Account - Get Utxos</a> instead.
+This version is provided in case the Informational API is not available.
+</aside></p>
 <h3 id='http-request'>HTTP Request</h3>
 <p><code>POST /account.get_utxos</code></p>
 <h3 id='request-body'>Request Body</h3>
@@ -446,13 +451,8 @@ Errors will usually return with HTTP response code 200, and the details of the e
 <td>Hex encoded string</td>
 <td>Address of the account</td>
 </tr>
-<tr>
-<td>limit</td>
-<td>Integer</td>
-<td>Maximum number of utxos to return (default 200)</td>
-</tr>
 </tbody></table>
-<h2 id='utxo-get-challenge-data'>Utxo - Get Challenge Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/utxo.get_challenge_data -d <span class="s1">'{"utxo_pos": "10001001"}'</span>
+<h2 id='utxo-get-challenge-data'>Utxo - Get Challenge Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/utxo.get_challenge_data -d <span class="s1">'{"utxo_pos": 10001001}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -488,7 +488,7 @@ Errors will usually return with HTTP response code 200, and the details of the e
 <td>Utxo position (encoded as single integer, the way contract represents them)</td>
 </tr>
 </tbody></table>
-<h2 id='utxo-get-exit-data'>Utxo - Get Exit Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/utxo.get_exit_data -d <span class="s1">'{"utxo_pos": "10001001"}'</span>
+<h2 id='utxo-get-exit-data'>Utxo - Get Exit Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/utxo.get_exit_data -d <span class="s1">'{"utxo_pos": 10001001}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -523,7 +523,7 @@ Errors will usually return with HTTP response code 200, and the details of the e
 <td>Utxo position (encoded as single integer, the way contract represents them)</td>
 </tr>
 </tbody></table>
-<h2 id='transaction-submit'>Transaction - Submit</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/transaction.submit -d <span class="s1">'{"transaction": "f8d083015ba98080808080940000..."}'</span>
+<h2 id='transaction-submit'>Transaction - Submit</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/transaction.submit -d <span class="s1">'{"transaction": "f8d083015ba98080808080940000..."}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -533,7 +533,7 @@ Errors will usually return with HTTP response code 200, and the details of the e
 <pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
       </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
       </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
-      </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> 
+      </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
           </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">123000</span><span class="p">,</span><span class="w">
           </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">111</span><span class="p">,</span><span class="w">
           </span><span class="s2">"txhash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"</span><span class="w">
@@ -557,7 +557,7 @@ Errors will usually return with HTTP response code 200, and the details of the e
 <td>Signed transaction RLP-encoded to bytes and HEX-encoded to string</td>
 </tr>
 </tbody></table>
-<h2 id='status'>Status</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/status
+<h2 id='status'>Status</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/status
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -613,7 +613,7 @@ Errors will usually return with HTTP response code 200, and the details of the e
 <p>Returns information about the current state of the child chain and the watcher.</p>
 
 <aside class="warning">
-The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity. 
+The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity.
 The user must call the `/status` endpoint periodically to check. Any situation that requires the user to either exit or challenge an invalid exit will be included in the `byzantine_events` field.
 </aside>
 
@@ -695,8 +695,8 @@ Note that `inflight_txs` will be implemented in a later version.
     </span><span class="p">}</span><span class="w">
 </span><span class="p">}</span><span class="w">
 </span></code></pre>
-<p>An in-flight exit of a non-canonical transaction has been started. It should be challenged. 
-<aside class="warning"> Not Implemented Yet.</aside> </p>
+<p>An in-flight exit of a non-canonical transaction has been started. It should be challenged.
+<aside class="warning"> Not Implemented Yet.</aside></p>
 
 <p>Event details:</p>
 
@@ -724,8 +724,8 @@ Note that `inflight_txs` will be implemented in a later version.
     </span><span class="p">}</span><span class="w">
 </span><span class="p">}</span><span class="w">
 </span></code></pre>
-<p>A canonical in-flight exit has been challenged. The challenge should be responded to. 
-<aside class="warning"> Not Implemented Yet.</aside> </p>
+<p>A canonical in-flight exit has been challenged. The challenge should be responded to.
+<aside class="warning"> Not Implemented Yet.</aside></p>
 
 <p>Event details:</p>
 
@@ -761,7 +761,7 @@ Note that `inflight_txs` will be implemented in a later version.
 </span><span class="p">}</span><span class="w">
 </span></code></pre>
 <p>An in-flight exit has been started and can be piggybacked. If all inputs are owned by the same address, then <code>available_inputs</code> will not be present.
-<aside class="warning"> Not Implemented Yet.</aside> </p>
+<aside class="warning"> Not Implemented Yet.</aside></p>
 
 <p>Event details:</p>
 
@@ -829,7 +829,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>A list of invalid piggybacked outputs</td>
 </tr>
 </tbody></table>
-<h2 id='inflight-exit-get-exit-data'>Inflight Exit - Get Exit Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/inflight_exit.get_data -d <span class="s1">'{"txbytes": "F317010180808080940000..."}'</span>
+<h2 id='inflight-exit-get-exit-data'>Inflight Exit - Get Exit Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/inflight_exit.get_data -d <span class="s1">'{"txbytes": "F317010180808080940000..."}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -870,7 +870,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>The in-flight transaction</td>
 </tr>
 </tbody></table>
-<h2 id='inflight-exit-get-competitor'>Inflight Exit - Get Competitor</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/inflight_exit.get_competitor -d <span class="s1">'{"txbytes": "F3170101C0940000..."}'</span>
+<h2 id='inflight-exit-get-competitor'>Inflight Exit - Get Competitor</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/inflight_exit.get_competitor -d <span class="s1">'{"txbytes": "F847010180808080940000..."}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -908,7 +908,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>The in-flight transaction</td>
 </tr>
 </tbody></table>
-<h2 id='inflight-exit-show-canonical'>Inflight Exit - Show Canonical</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/inflight_exit.prove_canonical -d <span class="s1">'{"txbytes": "F3170101C0940000..."}'</span>
+<h2 id='inflight-exit-show-canonical'>Inflight Exit - Show Canonical</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/inflight_exit.prove_canonical -d <span class="s1">'{"txbytes": "F3170101C0940000..."}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -919,7 +919,7 @@ Note that `inflight_txs` will be implemented in a later version.
     </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
     </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
     </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
-        </span><span class="s2">"inflight_txbytes"</span><span class="p">:</span><span class="w"> </span><span class="s2">"F847010180808080940000..."</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"inflight_txbytes"</span><span class="p">:</span><span class="w"> </span><span class="s2">"F3170101C0940000..."</span><span class="p">,</span><span class="w">
         </span><span class="s2">"inflight_txid"</span><span class="p">:</span><span class="w"> </span><span class="mi">2600003920012</span><span class="p">,</span><span class="w">
         </span><span class="s2">"inflight_proof"</span><span class="p">:</span><span class="w"> </span><span class="s2">"004C010180808080940000..."</span><span class="w">
     </span><span class="p">}</span><span class="w">
@@ -942,7 +942,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>The in-flight transaction</td>
 </tr>
 </tbody></table>
-<h2 id='inflight-exit-get-input-challenge-data'>Inflight Exit - Get Input Challenge Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/inflight_exit.get_input_challenge_data -d <span class="s1">'{"txbytes": "F3170101C0940000...", "input_index": 1}'</span>
+<h2 id='inflight-exit-get-input-challenge-data'>Inflight Exit - Get Input Challenge Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/inflight_exit.get_input_challenge_data -d <span class="s1">'{"txbytes": "F3170101C0940000...", "input_index": 1}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -983,7 +983,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>The index of the invalid input</td>
 </tr>
 </tbody></table>
-<h2 id='inflight-exit-get-output-challenge-data'>Inflight Exit - Get Output Challenge Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/inflight_exit.get_output_challenge_data -d <span class="s1">'{"txbytes": "F3170101C0940000...", "output_index": 0}'</span>
+<h2 id='inflight-exit-get-output-challenge-data'>Inflight Exit - Get Output Challenge Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/inflight_exit.get_output_challenge_data -d <span class="s1">'{"txbytes": "F3170101C0940000...", "output_index": 0}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -1169,7 +1169,7 @@ Note that `inflight_txs` will be implemented in a later version.
 </ul>
 <h1 id='watcher-informational-api-service'>Watcher - Informational API Service</h1>
 <p>API specification of the Watcher&#39;s Informational Service</p>
-<h2 id='account-get-balance'>Account - Get Balance</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/account.get_balance -d <span class="s1">'{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'</span>
+<h2 id='account-get-balance'>Account - Get Balance</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/account.get_balance -d <span class="s1">'{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -1208,7 +1208,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>Address of the funds owner</td>
 </tr>
 </tbody></table>
-<h2 id='account-get-utxos'>Account - Get Utxos</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/account.get_utxos -d <span class="s1">'{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea", "limit": 10}'</span>
+<h2 id='account-get-utxos'>Account - Get Utxos</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/account.get_utxos -d <span class="s1">'{"address": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -1225,7 +1225,8 @@ Note that `inflight_txs` will be implemented in a later version.
             </span><span class="s2">"oindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
             </span><span class="s2">"currency"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
             </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w">
-            </span><span class="s2">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="w">
+            </span><span class="s2">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"utxo_pos"</span><span class="p">:</span><span class="w"> </span><span class="mi">10000000010000000</span><span class="w">
         </span><span class="p">}</span><span class="w">
     </span><span class="p">]</span><span class="w">
 </span><span class="p">}</span><span class="w">
@@ -1246,13 +1247,8 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>Hex encoded string</td>
 <td>Address of the account</td>
 </tr>
-<tr>
-<td>limit</td>
-<td>Integer</td>
-<td>Maximum number of utxos to return (default 200)</td>
-</tr>
 </tbody></table>
-<h2 id='account-get-transactions'>Account - Get Transactions</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/account.get_transactions -d <span class="s1">'{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'</span>
+<h2 id='account-get-transactions'>Account - Get Transactions</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/account.get_transactions -d <span class="s1">'{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -1264,15 +1260,18 @@ Note that `inflight_txs` will be implemented in a later version.
     </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
     </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
         </span><span class="p">{</span><span class="w">
-            </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">12345</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"block"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+                </span><span class="s2">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="mi">1540365586</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"hash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC"</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"eth_height"</span><span class="p">:</span><span class="w"> </span><span class="mi">97424</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">68290000</span><span class="w">
+            </span><span class="p">},</span><span class="w">
+            </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
             </span><span class="s2">"txhash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5DF13A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21"</span><span class="p">,</span><span class="w">
-            </span><span class="s2">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="mi">1540365586</span><span class="p">,</span><span class="w">
-            </span><span class="s2">"eth_height"</span><span class="p">:</span><span class="w"> </span><span class="mi">97424</span><span class="p">,</span><span class="w">
-            </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">68290000</span><span class="p">,</span><span class="w">
             </span><span class="s2">"results"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
                 </span><span class="p">{</span><span class="w">
                     </span><span class="s2">"currency"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
-                    </span><span class="s2">"value"</span><span class="p">:</span><span class="w"> </span><span class="mi">-10000</span><span class="w">
+                    </span><span class="s2">"value"</span><span class="p">:</span><span class="w"> </span><span class="mi">20000000</span><span class="w">
                 </span><span class="p">}</span><span class="w">
             </span><span class="p">]</span><span class="w">
         </span><span class="p">}</span><span class="w">
@@ -1301,7 +1300,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>Maximum number of transactions to return (default 200)</td>
 </tr>
 </tbody></table>
-<h2 id='transaction-get-all'>Transaction -  Get All</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/transaction.all -d <span class="s1">'{"block": "100", "limit": 50}'</span>
+<h2 id='transaction-get-all'>Transaction -  Get All</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/transaction.all -d <span class="s1">'{"blknum": "100", "limit": 50}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -1313,11 +1312,14 @@ Note that `inflight_txs` will be implemented in a later version.
     </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
     </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
         </span><span class="p">{</span><span class="w">
-            </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"block"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+                </span><span class="s2">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="mi">1540365586</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"hash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC"</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"eth_height"</span><span class="p">:</span><span class="w"> </span><span class="mi">97424</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">68290000</span><span class="w">
+            </span><span class="p">},</span><span class="w">
+            </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
             </span><span class="s2">"txhash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5DF13A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21"</span><span class="p">,</span><span class="w">
-            </span><span class="s2">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="mi">1540365586</span><span class="p">,</span><span class="w">
-            </span><span class="s2">"eth_height"</span><span class="p">:</span><span class="w"> </span><span class="mi">97424</span><span class="p">,</span><span class="w">
-            </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">68290000</span><span class="p">,</span><span class="w">
             </span><span class="s2">"results"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
                 </span><span class="p">{</span><span class="w">
                     </span><span class="s2">"currency"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
@@ -1326,11 +1328,14 @@ Note that `inflight_txs` will be implemented in a later version.
             </span><span class="p">]</span><span class="w">
         </span><span class="p">},</span><span class="w">
         </span><span class="p">{</span><span class="w">
+            </span><span class="s2">"block"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+                </span><span class="s2">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="mi">1540365586</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"hash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC"</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"eth_height"</span><span class="p">:</span><span class="w"> </span><span class="mi">97424</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">68290000</span><span class="w">
+            </span><span class="p">},</span><span class="w">
             </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
-            </span><span class="s2">"txhash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5DF13A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21"</span><span class="p">,</span><span class="w">
-            </span><span class="s2">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="mi">1540365586</span><span class="p">,</span><span class="w">
-            </span><span class="s2">"eth_height"</span><span class="p">:</span><span class="w"> </span><span class="mi">97424</span><span class="p">,</span><span class="w">
-            </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">68290000</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"txhash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ACBD3A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21"</span><span class="p">,</span><span class="w">
             </span><span class="s2">"results"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
                 </span><span class="p">{</span><span class="w">
                     </span><span class="s2">"currency"</span><span class="p">:</span><span class="w"> </span><span class="s2">"12345..."</span><span class="p">,</span><span class="w">
@@ -1341,7 +1346,11 @@ Note that `inflight_txs` will be implemented in a later version.
     </span><span class="p">]</span><span class="w">
 </span><span class="p">}</span><span class="w">
 </span></code></pre>
-<p>Gets all transactions (can be limited with various filters)</p>
+<p>Gets all transactions (can be limited with various filters).</p>
+
+<p>Digests the details of the transaction, by listing the value of outputs, aggregated by currency.
+Intended to be used when presenting the little details about multiple transactions.
+For all details queries to <code>/transaction.get</code> should be made using the transaction&#39;s hash provided.</p>
 <h3 id='http-request-4'>HTTP Request</h3>
 <p><code>POST /transaction.all</code></p>
 <h3 id='request-body-4'>Request Body</h3>
@@ -1353,7 +1362,7 @@ Note that `inflight_txs` will be implemented in a later version.
 </tr>
 </thead><tbody>
 <tr>
-<td>block</td>
+<td>blknum</td>
 <td>Integer</td>
 <td>Block number to filter by (optional)</td>
 </tr>
@@ -1368,7 +1377,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>Maximum number of transactions to return (default 200)</td>
 </tr>
 </tbody></table>
-<h2 id='transaction-get'>Transaction -  Get</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/transaction.get -d <span class="s1">'{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'</span>
+<h2 id='transaction-get'>Transaction -  Get</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/transaction.get -d <span class="s1">'{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -1387,7 +1396,7 @@ Note that `inflight_txs` will be implemented in a later version.
                 </span><span class="s2">"owner"</span><span class="p">:</span><span class="w"> </span><span class="s2">"B3256026863EB6AE5B06FA396AB09069784EA8EA"</span><span class="p">,</span><span class="w">
                 </span><span class="s2">"oindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
                 </span><span class="s2">"currency"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
-                </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">3000</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">68290000</span><span class="p">,</span><span class="w">
                 </span><span class="s2">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="w">
             </span><span class="p">},</span><span class="w">
             </span><span class="p">{</span><span class="w">
@@ -1395,7 +1404,7 @@ Note that `inflight_txs` will be implemented in a later version.
                 </span><span class="s2">"owner"</span><span class="p">:</span><span class="w"> </span><span class="s2">"AE8AE48796090BA693AF60B5EA6BE3686206523B"</span><span class="p">,</span><span class="w">
                 </span><span class="s2">"oindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
                 </span><span class="s2">"currency"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
-                </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w">
+                </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">68290000</span><span class="p">,</span><span class="w">
                 </span><span class="s2">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">7</span><span class="w">
             </span><span class="p">}</span><span class="w">
         </span><span class="p">],</span><span class="w">
@@ -1409,6 +1418,7 @@ Note that `inflight_txs` will be implemented in a later version.
                 </span><span class="s2">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="w">
             </span><span class="p">}</span><span class="w">
         </span><span class="p">],</span><span class="w">
+        </span><span class="s2">"txbytes"</span><span class="p">:</span><span class="w"> </span><span class="s2">"B5C5BAC57BCA..."</span><span class="p">,</span><span class="w">
         </span><span class="s2">"block"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
             </span><span class="s2">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="mi">1540365586</span><span class="p">,</span><span class="w">
             </span><span class="s2">"hash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC"</span><span class="p">,</span><span class="w">
@@ -1435,7 +1445,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>Hash of the Plasma transaction</td>
 </tr>
 </tbody></table>
-<h2 id='block-get-all'>Block - Get all</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/block.all -d <span class="s1">'{"from_blknum": 68290001, "limit": 2}'</span>
+<h2 id='block-get-all'>Block - Get all</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/block.all -d <span class="s1">'{"from_blknum": 68290001, "limit": 2}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -1461,6 +1471,8 @@ Note that `inflight_txs` will be implemented in a later version.
     </span><span class="p">]</span><span class="w">
 </span><span class="p">}</span><span class="w">
 </span></code></pre>
+<p><strong><code>/block.xxx</code> endpoints not implemented yet and might undergo design changes</strong>:</p>
+
 <p>Gets all blocks (with a limit on the number of blocks to return).</p>
 <h3 id='http-request-6'>HTTP Request</h3>
 <p><code>POST /block.all</code></p>
@@ -1483,7 +1495,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>The block number of the latest block in the list to be returned. Optional - if not specified, latest block will be the current block. <strong>Not Implemented Yet</strong></td>
 </tr>
 </tbody></table>
-<h2 id='block-get'>Block - Get</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/block.get -d <span class="s1">'{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'</span>
+<h2 id='block-get'>Block - Get</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/block.get -d <span class="s1">'{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -1501,6 +1513,8 @@ Note that `inflight_txs` will be implemented in a later version.
     </span><span class="p">}</span><span class="w">
 </span><span class="p">}</span><span class="w">
 </span></code></pre>
+<p><strong><code>/block.xxx</code> endpoints not implemented yet and might undergo design changes</strong>:</p>
+
 <p>Gets a block with the given id</p>
 <h3 id='http-request-7'>HTTP Request</h3>
 <p><code>POST /block.get</code></p>

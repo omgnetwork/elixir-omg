@@ -1,6 +1,6 @@
 <h1 id='watcher'>Watcher</h1>
 <p>API specification of the Watcher&#39;s security-critical Service</p>
-<h2 id='account-get-utxos'>Account - Get Utxos</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/account.get_utxos -d <span class="s1">'{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea", "limit": 10}'</span>
+<h2 id='account-get-utxos'>Account - Get Utxos</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/account.get_utxos -d <span class="s1">'{"address": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -17,13 +17,18 @@
             </span><span class="s2">"oindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">
             </span><span class="s2">"currency"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0000000000000000000000000000000000000000"</span><span class="p">,</span><span class="w">
             </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w">
-            </span><span class="s2">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="w">
+            </span><span class="s2">"amount"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w">
+            </span><span class="s2">"utxo_pos"</span><span class="p">:</span><span class="w"> </span><span class="mi">10000000010000000</span><span class="w">
         </span><span class="p">}</span><span class="w">
     </span><span class="p">]</span><span class="w">
 </span><span class="p">}</span><span class="w">
 </span></code></pre>
 <p>Gets all utxos belonging to the given address.
-<aside class="notice"> Note that this is a performance intensive call and should only be used if the chain is byzantine and the user needs to retrieve utxo information to be able to exit. Normally an application should use the Informational API&#39;s  <a href="#cccount-get-utxos">Account - Get Utxos</a> instead. This version is provided in case the Informational API is not available.</aside> </p>
+<aside class="notice">
+Note that this is a performance intensive call and should only be used if the chain is byzantine and the user needs to retrieve utxo information to be able to exit.
+Normally an application should use the Informational API&#39;s <a href="#account-get-utxos">Account - Get Utxos</a> instead.
+This version is provided in case the Informational API is not available.
+</aside></p>
 <h3 id='http-request'>HTTP Request</h3>
 <p><code>POST /account.get_utxos</code></p>
 <h3 id='request-body'>Request Body</h3>
@@ -39,13 +44,8 @@
 <td>Hex encoded string</td>
 <td>Address of the account</td>
 </tr>
-<tr>
-<td>limit</td>
-<td>Integer</td>
-<td>Maximum number of utxos to return (default 200)</td>
-</tr>
 </tbody></table>
-<h2 id='utxo-get-challenge-data'>Utxo - Get Challenge Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/utxo.get_challenge_data -d <span class="s1">'{"utxo_pos": "10001001"}'</span>
+<h2 id='utxo-get-challenge-data'>Utxo - Get Challenge Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/utxo.get_challenge_data -d <span class="s1">'{"utxo_pos": 10001001}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -81,7 +81,7 @@
 <td>Utxo position (encoded as single integer, the way contract represents them)</td>
 </tr>
 </tbody></table>
-<h2 id='utxo-get-exit-data'>Utxo - Get Exit Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/utxo.get_exit_data -d <span class="s1">'{"utxo_pos": "10001001"}'</span>
+<h2 id='utxo-get-exit-data'>Utxo - Get Exit Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/utxo.get_exit_data -d <span class="s1">'{"utxo_pos": 10001001}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -116,7 +116,7 @@
 <td>Utxo position (encoded as single integer, the way contract represents them)</td>
 </tr>
 </tbody></table>
-<h2 id='transaction-submit'>Transaction - Submit</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/transaction.submit -d <span class="s1">'{"transaction": "f8d083015ba98080808080940000..."}'</span>
+<h2 id='transaction-submit'>Transaction - Submit</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/transaction.submit -d <span class="s1">'{"transaction": "f8d083015ba98080808080940000..."}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -126,7 +126,7 @@
 <pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
       </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
       </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
-      </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> 
+      </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
           </span><span class="s2">"blknum"</span><span class="p">:</span><span class="w"> </span><span class="mi">123000</span><span class="p">,</span><span class="w">
           </span><span class="s2">"txindex"</span><span class="p">:</span><span class="w"> </span><span class="mi">111</span><span class="p">,</span><span class="w">
           </span><span class="s2">"txhash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"</span><span class="w">
@@ -150,7 +150,7 @@
 <td>Signed transaction RLP-encoded to bytes and HEX-encoded to string</td>
 </tr>
 </tbody></table>
-<h2 id='status'>Status</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/status
+<h2 id='status'>Status</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/status
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -206,7 +206,7 @@
 <p>Returns information about the current state of the child chain and the watcher.</p>
 
 <aside class="warning">
-The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity. 
+The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity.
 The user must call the `/status` endpoint periodically to check. Any situation that requires the user to either exit or challenge an invalid exit will be included in the `byzantine_events` field.
 </aside>
 
@@ -288,8 +288,8 @@ Note that `inflight_txs` will be implemented in a later version.
     </span><span class="p">}</span><span class="w">
 </span><span class="p">}</span><span class="w">
 </span></code></pre>
-<p>An in-flight exit of a non-canonical transaction has been started. It should be challenged. 
-<aside class="warning"> Not Implemented Yet.</aside> </p>
+<p>An in-flight exit of a non-canonical transaction has been started. It should be challenged.
+<aside class="warning"> Not Implemented Yet.</aside></p>
 
 <p>Event details:</p>
 
@@ -317,8 +317,8 @@ Note that `inflight_txs` will be implemented in a later version.
     </span><span class="p">}</span><span class="w">
 </span><span class="p">}</span><span class="w">
 </span></code></pre>
-<p>A canonical in-flight exit has been challenged. The challenge should be responded to. 
-<aside class="warning"> Not Implemented Yet.</aside> </p>
+<p>A canonical in-flight exit has been challenged. The challenge should be responded to.
+<aside class="warning"> Not Implemented Yet.</aside></p>
 
 <p>Event details:</p>
 
@@ -354,7 +354,7 @@ Note that `inflight_txs` will be implemented in a later version.
 </span><span class="p">}</span><span class="w">
 </span></code></pre>
 <p>An in-flight exit has been started and can be piggybacked. If all inputs are owned by the same address, then <code>available_inputs</code> will not be present.
-<aside class="warning"> Not Implemented Yet.</aside> </p>
+<aside class="warning"> Not Implemented Yet.</aside></p>
 
 <p>Event details:</p>
 
@@ -422,7 +422,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>A list of invalid piggybacked outputs</td>
 </tr>
 </tbody></table>
-<h2 id='inflight-exit-get-exit-data'>Inflight Exit - Get Exit Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/inflight_exit.get_data -d <span class="s1">'{"txbytes": "F317010180808080940000..."}'</span>
+<h2 id='inflight-exit-get-exit-data'>Inflight Exit - Get Exit Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/inflight_exit.get_data -d <span class="s1">'{"txbytes": "F317010180808080940000..."}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -463,7 +463,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>The in-flight transaction</td>
 </tr>
 </tbody></table>
-<h2 id='inflight-exit-get-competitor'>Inflight Exit - Get Competitor</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/inflight_exit.get_competitor -d <span class="s1">'{"txbytes": "F3170101C0940000..."}'</span>
+<h2 id='inflight-exit-get-competitor'>Inflight Exit - Get Competitor</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/inflight_exit.get_competitor -d <span class="s1">'{"txbytes": "F847010180808080940000..."}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -501,7 +501,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>The in-flight transaction</td>
 </tr>
 </tbody></table>
-<h2 id='inflight-exit-show-canonical'>Inflight Exit - Show Canonical</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/inflight_exit.prove_canonical -d <span class="s1">'{"txbytes": "F3170101C0940000..."}'</span>
+<h2 id='inflight-exit-show-canonical'>Inflight Exit - Show Canonical</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/inflight_exit.prove_canonical -d <span class="s1">'{"txbytes": "F3170101C0940000..."}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -512,7 +512,7 @@ Note that `inflight_txs` will be implemented in a later version.
     </span><span class="s2">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
     </span><span class="s2">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w">
     </span><span class="s2">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
-        </span><span class="s2">"inflight_txbytes"</span><span class="p">:</span><span class="w"> </span><span class="s2">"F847010180808080940000..."</span><span class="p">,</span><span class="w">
+        </span><span class="s2">"inflight_txbytes"</span><span class="p">:</span><span class="w"> </span><span class="s2">"F3170101C0940000..."</span><span class="p">,</span><span class="w">
         </span><span class="s2">"inflight_txid"</span><span class="p">:</span><span class="w"> </span><span class="mi">2600003920012</span><span class="p">,</span><span class="w">
         </span><span class="s2">"inflight_proof"</span><span class="p">:</span><span class="w"> </span><span class="s2">"004C010180808080940000..."</span><span class="w">
     </span><span class="p">}</span><span class="w">
@@ -535,7 +535,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>The in-flight transaction</td>
 </tr>
 </tbody></table>
-<h2 id='inflight-exit-get-input-challenge-data'>Inflight Exit - Get Input Challenge Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/inflight_exit.get_input_challenge_data -d <span class="s1">'{"txbytes": "F3170101C0940000...", "input_index": 1}'</span>
+<h2 id='inflight-exit-get-input-challenge-data'>Inflight Exit - Get Input Challenge Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/inflight_exit.get_input_challenge_data -d <span class="s1">'{"txbytes": "F3170101C0940000...", "input_index": 1}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
@@ -576,7 +576,7 @@ Note that `inflight_txs` will be implemented in a later version.
 <td>The index of the invalid input</td>
 </tr>
 </tbody></table>
-<h2 id='inflight-exit-get-output-challenge-data'>Inflight Exit - Get Output Challenge Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:4000/inflight_exit.get_output_challenge_data -d <span class="s1">'{"txbytes": "F3170101C0940000...", "output_index": 0}'</span>
+<h2 id='inflight-exit-get-output-challenge-data'>Inflight Exit - Get Output Challenge Data</h2><pre class="highlight shell tab-shell"><code>curl -X POST -H <span class="s2">"Content-Type: application/json"</span> http://localhost:7434/inflight_exit.get_output_challenge_data -d <span class="s1">'{"txbytes": "F3170101C0940000...", "output_index": 0}'</span>
 </code></pre><pre class="highlight elixir tab-elixir"><code><span class="o">//</span> <span class="no">TODO</span>
 </code></pre><pre class="highlight javascript tab-javascript"><code><span class="c1">// TODO</span>
 </code></pre>
