@@ -168,10 +168,11 @@ defmodule OMG.API.State.CoreTest do
 
     state
     |> (&Core.exec(
-          Test.create_recovered([{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}], eth(), [
-            {alice, 7},
-            {bob, 2}
-          ]),
+          Test.create_recovered(
+            [{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}],
+            eth(),
+            [{alice, 7}, {bob, 2}]
+          ),
           # outputs exceed inputs, no fee
           %{eth() => 2},
           &1

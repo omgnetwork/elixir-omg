@@ -83,15 +83,13 @@ defmodule OMG.Watcher.API.Transaction do
     result =
       raw_tx
       |> Transaction.get_inputs()
-      |> Enum.map(fn utxo_pos ->
-        case utxo_pos do
-          Utxo.position(0, 0, 0) ->
-            {<<>>, <<>>}
+      |> Enum.map(fn
+        Utxo.position(0, 0, 0) ->
+          {<<>>, <<>>}
 
-          _ ->
-            with {:ok, %{proof: proof, txbytes: txbytes}} <- DB.TxOutput.compose_utxo_exit(utxo_pos),
-                 do: {proof, txbytes}
-        end
+        utxo_pos ->
+          with {:ok, %{proof: proof, txbytes: txbytes}} <- DB.TxOutput.compose_utxo_exit(utxo_pos),
+               do: {proof, txbytes}
       end)
 
     result

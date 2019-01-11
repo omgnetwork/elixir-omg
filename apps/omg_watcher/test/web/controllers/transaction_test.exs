@@ -401,9 +401,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     @tag fixtures: [:initial_blocks, :bob, :alice]
     test "returns properly formatted in-flight exit data", %{initial_blocks: initial_blocks, bob: bob, alice: alice} do
       test_in_flight_exit_data = fn inputs ->
-        positions =
-          inputs
-          |> Enum.map(fn {blknum, txindex, _, _} -> {blknum, txindex} end)
+        positions = Enum.map(inputs, fn {blknum, txindex, _, _} -> {blknum, txindex} end)
 
         expected_input_txs = get_input_txs(initial_blocks, positions)
 

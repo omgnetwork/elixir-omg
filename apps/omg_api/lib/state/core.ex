@@ -195,7 +195,7 @@ defmodule OMG.API.State.Core do
 
     with {:ok, input_utxos} <- get_input_utxos(utxos, inputs),
          input_utxos_owners <- Enum.map(input_utxos, fn %{owner: owner} -> owner end),
-         :ok <- Transaction.Recovered.all_spenders_authorized?(recovered_tx, input_utxos_owners) do
+         :ok <- Transaction.Recovered.all_spenders_authorized(recovered_tx, input_utxos_owners) do
       {:ok, input_utxos}
     end
   end
@@ -203,16 +203,12 @@ defmodule OMG.API.State.Core do
   defp get_input_utxos(utxos, inputs) do
     inputs
     |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum != 0 end)
-    |> Enum.reduce({:ok, []}, fn input, acc -> get_utxos(utxos, input, acc) end)
-  end
-
-  defp get_utxos(_, _, {:error, _} = err), do: err
-
-  defp get_utxos(utxos, position, {:ok, acc}) do
-    case Map.get(utxos, position) do
-      nil -> {:error, :utxo_not_found}
-      found -> {:ok, acc ++ [found]}
-    end
+    |> Enum.reduce_while({:ok, []}, fn position, {:ok, acc} ->
+      case Map.get(utxos, position) do
+        nil -> {:halt, {:error, :utxo_not_found}}
+        found -> {:cont, {:ok, acc ++ [found]}}
+      end
+    end)
   end
 
   defp get_amounts_by_currency(utxos) do

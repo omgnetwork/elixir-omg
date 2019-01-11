@@ -122,6 +122,24 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, "init()", [], opts)
   end
 
+  def in_flight_exit(
+        in_flight_tx,
+        input_txs,
+        input_txs_inclusion_proofs,
+        in_flight_tx_sigs,
+        from,
+        contract \\ nil
+      ) do
+    opts =
+      @tx_defaults
+      |> Keyword.put(:value, @standard_exit_bond)
+
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "startInFlightExit(bytes,bytes,bytes,bytes)"
+    args = [in_flight_tx, input_txs, input_txs_inclusion_proofs, in_flight_tx_sigs]
+    Eth.contract_transact(from, contract, signature, args, opts)
+  end
+
   ########################
   # READING THE CONTRACT #
   ########################
@@ -172,24 +190,6 @@ defmodule OMG.Eth.RootChain do
   def has_token(token, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     Eth.call_contract(contract, "hasToken(address)", [token], [:bool])
-  end
-
-  def in_flight_exit(
-        in_flight_tx,
-        input_txs,
-        input_txs_inclusion_proofs,
-        in_flight_tx_sigs,
-        from,
-        contract \\ nil
-      ) do
-    opts =
-      @tx_defaults
-      |> Keyword.put(:value, @standard_exit_bond)
-
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "startInFlightExit(bytes,bytes,bytes,bytes)"
-    args = [in_flight_tx, input_txs, input_txs_inclusion_proofs, in_flight_tx_sigs]
-    Eth.contract_transact(from, contract, signature, args, opts)
   end
 
   ########################

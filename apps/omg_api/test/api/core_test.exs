@@ -31,12 +31,9 @@ defmodule OMG.API.CoreTest do
     bob: bob
   } do
     parametrized_tester = fn inputs ->
-      raw_tx =
-        inputs
-        |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end)
-        |> Transaction.new([{alice.addr, eth(), 7}, {bob.addr, eth(), 3}])
+      tx = TestHelper.create_signed(inputs, [{alice, eth(), 7}, {bob, eth(), 3}])
 
-      encoded_signed_tx = TestHelper.create_encoded(inputs, eth(), [{alice, 7}, {bob, 3}])
+      encoded_signed_tx = Transaction.Signed.encode(tx)
 
       spenders =
         inputs
@@ -45,15 +42,17 @@ defmodule OMG.API.CoreTest do
 
       assert {:ok,
               %Transaction.Recovered{
-                signed_tx: %Transaction.Signed{raw_tx: ^raw_tx},
+                signed_tx: ^tx,
                 spenders: ^spenders
               }} = Core.recover_tx(encoded_signed_tx)
     end
 
+    no_owner = %{priv: <<>>, addr: nil}
+
     [
       [{1, 2, 3, alice}, {2, 3, 4, bob}],
-      [{1, 2, 3, alice}, {0, 0, 0, %{priv: <<>>, addr: nil}}],
-      [{0, 0, 0, %{priv: <<>>, addr: nil}}, {2, 3, 4, bob}]
+      [{1, 2, 3, alice}, {0, 0, 0, no_owner}],
+      [{0, 0, 0, no_owner}, {2, 3, 4, bob}]
     ]
     |> Enum.map(parametrized_tester)
   end

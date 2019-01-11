@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
   @moduletag :integration
 
-  @tag fixtures: [:watcher_sandbox, :alice, :child_chain, :token, :alice_deposits]
+  @tag fixtures: [:watcher_sandbox, :alice, :child_chain, :alice_deposits]
   test "in-flight exit data retruned by watcher http API produces a valid in-flight exit",
        %{alice: alice, alice_deposits: {deposit_blknum, _}} do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
