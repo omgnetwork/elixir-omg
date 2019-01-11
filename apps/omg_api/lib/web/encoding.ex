@@ -12,25 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.RPC.Web.TestHelper do
+defmodule OMG.API.Web.Encoding do
   @moduledoc """
-  Provides common testing functions used by App's tests.
+  Provides binary to HEX and reverse encodings.
+  NOTE: Intentionally wraps see: `OMG.Eth.Encoding` to keep flexibility for change.
   """
 
-  import ExUnit.Assertions
-  use Plug.Test
+  @doc """
+  Encodes raw binary to '0x'-preceded, lowercase HEX string
+  """
+  @spec to_hex(binary) :: binary
+  def to_hex(non_hex), do: OMG.Eth.Encoding.to_hex(non_hex)
 
-  def rpc_call(method, path, params_or_body \\ nil) do
-    request = conn(method, path, params_or_body)
-    response = request |> send_request
-
-    assert response.status == 200
-
-    Poison.decode!(response.resp_body)
-  end
-
-  defp send_request(req) do
-    req
-    |> OMG.RPC.Web.Endpoint.call([])
-  end
+  @doc """
+  Decodes '0x'-preceded, lowercase HEX string to raw binary, see `to_hex`
+  """
+  @spec from_hex(binary) :: binary
+  def from_hex(encoded), do: OMG.Eth.Encoding.from_hex(encoded)
 end

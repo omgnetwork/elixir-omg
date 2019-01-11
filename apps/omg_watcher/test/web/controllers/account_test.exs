@@ -22,9 +22,9 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
   alias OMG.API.TestHelper
   alias OMG.Watcher.TestHelper
 
-  @eth_hex String.duplicate("00", 20)
+  @eth_hex <<0::160>> |> OMG.API.Web.Encoding.to_hex()
   @other_token <<127::160>>
-  @other_token_hex @other_token |> Base.encode16()
+  @other_token_hex @other_token |> OMG.API.Web.Encoding.to_hex()
 
   @tag fixtures: [:alice, :bob, :blocks_inserter, :initial_blocks]
   test "Account balance groups account tokens and provide sum of available funds", %{

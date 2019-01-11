@@ -64,7 +64,6 @@ defmodule OMG.Watcher.TestHelper do
 
   defp send_request(req) do
     req
-    |> put_private(:plug_skip_csrf_protection, true)
     |> OMG.Watcher.Web.Endpoint.call([])
   end
 
