@@ -47,46 +47,6 @@ defmodule OMG.API.State.Transaction do
           amount: non_neg_integer()
         }
 
-  defp validate_currency(input_utxos, outputs) do
-    currencies =
-      (input_utxos ++ outputs)
-      |> Enum.map(& &1.currency)
-      |> Enum.dedup()
-
-    # NOTE we support one currency
-    case currencies do
-      [_] -> {:ok, currencies |> hd()}
-      [] -> {:ok, @zero_address}
-      _ -> {:error, :currency_mixing_not_possible}
-    end
-  end
-
-  # Validates amount in both inputs and outputs
-  defp validate_amount(amounts) do
-    all_valid? =
-      amounts
-      |> Enum.map(& &1.amount)
-      |> Enum.all?(fn amount -> is_integer(amount) and amount >= 0 end)
-
-    if all_valid?,
-      do: :ok,
-      else: {:error, :amount_noninteger_or_negative}
-  end
-
-  defp amounts_add_up?(inputs, outputs) do
-    spent =
-      inputs
-      |> Enum.map(& &1.amount)
-      |> Enum.sum()
-
-    received =
-      outputs
-      |> Enum.map(& &1.amount)
-      |> Enum.sum()
-
-    if received > spent, do: {:error, :not_enough_funds_to_cover_spend}, else: :ok
-  end
-
   @doc """
   Creates a new transaction from a list of inputs and a list of outputs.
   Adds empty (zeroes) inputs and/or outputs to reach the expected size
