@@ -73,7 +73,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   deffixture competing_transactions() do
     [
       %Transaction{
-        inputs: [%{blknum: 1, txindex: 1, oindex: 0}, %{blknum: 10, txindex: 2, oindex: 1}],
+        inputs: [%{blknum: 10, txindex: 2, oindex: 1}, %{blknum: 1, txindex: 1, oindex: 0}],
         outputs: [
           %{owner: "malorymalorymaloryma", currency: @eth, amount: 2},
           %{owner: "carolcarolcarolcarol", currency: @eth, amount: 1}
@@ -729,7 +729,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            end)
   end
 
-  describe "finds competitors" do
+  describe "finds competitors and allows challenges" do
     @tag fixtures: [:processor_filled, :in_flight_exits]
     test "none if input never spent elsewhere",
          %{processor_filled: processor} do
@@ -740,26 +740,55 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{} do
     end
 
-    test "none if input spent in block in same tx",
+    test "none if different input spent in some tx from block",
          %{} do
     end
 
-    test "none if input spent in tx appendix in same tx",
+    test "none if input spent in _same_ tx in block",
          %{} do
     end
 
-    @tag fixtures: [:processor_filled, :transactions, :competing_transactions]
-    test "all if input spent in various places",
-         %{processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp1 | _]} do
+    test "none if input spent in _same_ tx in tx appendix",
+         %{} do
+    end
+
+    @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
+    test "each other, if input spent in different ife",
+         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp1 | _]} do
       txbytes = Transaction.encode(tx1)
-      other_txbytes = comp1 |> Transaction.encode()
 
-      other_ife_event = %{tx_bytes: other_txbytes, signatures: []}
+      other_txbytes = comp1 |> Transaction.encode()
+      %{sigs: [other_signature, _]} = Transaction.sign(comp1, [alice.priv, <<>>])
+
+      other_ife_event = %{tx_bytes: other_txbytes, signatures: [other_signature]}
       other_ife_status = {1, <<1::192>>}
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
       assert [^other_txbytes, ^txbytes] = Core.get_ifes_with_competitors(processor)
+
+      # TODO: we return a competitor probably we prefer the best competitor here
+      assert %{
+               inflight_txbytes: ^txbytes,
+               inflight_input_index: 0,
+               competing_txbytes: ^other_txbytes,
+               competing_input_index: 1,
+               competing_sig: ^other_signature,
+               competing_txid: nil,
+               competing_proof: nil
+             } = Core.get_competitor_for_ife(processor, [alice.addr], txbytes)
+    end
+
+    test "a competitor that's submitted as challenged to other IFE",
+         %{} do
+    end
+
+    test "a single competitor included in a block, with proof",
+         %{} do
+    end
+
+    test "a best competitor, included earliest in a block",
+         %{} do
     end
 
     test "works with State to find competitors",
