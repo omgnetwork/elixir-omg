@@ -25,7 +25,7 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
   # mapped by tx_hash
   defstruct [
     :tx,
-    # FIXME: what if someone does challenges once more but with another input?
+    # TODO: what if someone does challenges once more but with another input?
     :competing_input_index,
     :competing_input_signature
   ]

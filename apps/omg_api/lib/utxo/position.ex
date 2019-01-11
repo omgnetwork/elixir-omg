@@ -52,4 +52,8 @@ defmodule OMG.API.Utxo.Position do
     {:ok, interval} = OMG.Eth.RootChain.get_child_block_interval()
     rem(blknum, interval) != 0
   end
+
+  @spec non_zero?(t()) :: boolean()
+  def non_zero?(Utxo.position(0, 0, 0)), do: false
+  def non_zero?(Utxo.position(_, _, _)), do: true
 end

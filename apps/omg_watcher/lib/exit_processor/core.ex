@@ -24,10 +24,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   require Utxo
+  alias OMG.Watcher.Challenger.Tools
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor.CompetitorInfo
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias OMG.Watcher.ExitProcessor.TxAppendix
 
   @default_sla_margin 10
   @zero_address Crypto.zero_address()
@@ -42,6 +44,16 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           exits: %{Utxo.Position.t() => ExitInfo.t()},
           in_flight_exits: %{tx_hash() => InFlightExitInfo.t()},
           competitors: %{tx_hash() => CompetitorInfo.t()}
+        }
+
+  @type competitor_data_t :: %{
+          inflight_txbytes: binary(),
+          inflight_input_index: non_neg_integer(),
+          competing_txbytes: binary(),
+          competing_input_index: non_neg_integer(),
+          competing_sig: binary(),
+          competing_txid: nil,
+          competing_proof: nil
         }
 
   @doc """
@@ -222,8 +234,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :exit_info, {blknum, txindex, oindex}} end)
   end
 
-  # FIXME: better name? `new_ife_challenges`? this is just registering an event on eth, so "challenge" verb misleads
-  #        would probably require changing a few of these names to the `new_something` convention
+  # TODO: better name? `new_ife_challenges`? this is just registering an event on eth, so "challenge" verb misleads
+  #       would probably require changing a few of these names to the `new_something` convention
   @spec challenge_in_flight_exits(t(), [map()]) :: {t(), list()}
   def challenge_in_flight_exits(%__MODULE__{in_flight_exits: ifes, competitors: competitors} = state, challenges_events) do
     challenges =
@@ -310,7 +322,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           acc
         else
           # map by id from contract and mark as not updated
-          {tx_hash, ife} -> %{acc | id => {tx_hash, ife, false}}
+          {tx_hash, ife} ->
+            %{acc | id => {tx_hash, ife, false}}
         end
       end)
 
@@ -416,40 +429,75 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   Gets the list of open IFEs that have the competitors _somewhere_
   """
+  @spec get_ifes_with_competitors(__MODULE__.t()) :: list(binary())
   def get_ifes_with_competitors(state) do
-    competitors_from_tx_appendix(state) ++ []
+    # TODO: non-canonical ifes from multiple sources will concatenate here
+    Stream.concat([with_competitors_from_tx_appendix(state)])
+    |> Enum.uniq()
   end
 
-  defp competitors_from_tx_appendix(%__MODULE__{in_flight_exits: ifes} = state) do
+  @doc """
+  Gets the root chain conract-required set of data to challenge a non-canonical ife
+  """
+  @spec get_competitor_for_ife(__MODULE__.t(), list(Crypto.address_t()), binary()) :: competitor_data_t()
+  def get_competitor_for_ife(%__MODULE__{in_flight_exits: ifes} = state, input_owners, ife_txbytes) do
+    known_txs = get_known_txs(state)
+
+    # get info about the IFE transaction
+    {:ok, raw_ife_tx} = Transaction.decode(ife_txbytes)
+    %InFlightExitInfo{tx: %Transaction.Signed{} = signed_ife_tx} = ifes[raw_ife_tx |> Transaction.hash()]
+    ife_inputs = Transaction.get_inputs(raw_ife_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
+
+    # find its competitor and get info about that transaction
+    # TODO: will not work if there's no competitor here
+    known_signed_tx = known_txs |> Enum.find(fn known -> competitor_for(signed_ife_tx, known) end)
+    %Transaction.Signed{raw_tx: raw_known_tx} = known_signed_tx
+    known_spent_inputs = Transaction.get_inputs(raw_known_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
+
+    # get info about the double spent input and it's respective indices in transactions
+    spent_input = competitor_for(signed_ife_tx, known_signed_tx)
+    inflight_input_index = Enum.find_index(ife_inputs, &(&1 == spent_input))
+    competing_input_index = Enum.find_index(known_spent_inputs, &(&1 == spent_input))
+
+    owner = Enum.at(input_owners, inflight_input_index)
+    {:ok, competing_sig} = Tools.find_sig(known_signed_tx, owner)
+
+    %{
+      inflight_txbytes: raw_ife_tx |> Transaction.encode(),
+      inflight_input_index: inflight_input_index,
+      competing_txbytes: raw_known_tx |> Transaction.encode(),
+      competing_input_index: competing_input_index,
+      competing_sig: competing_sig,
+      competing_txid: nil,
+      competing_proof: nil
+    }
+  end
+
+  defp with_competitors_from_tx_appendix(%__MODULE__{in_flight_exits: ifes} = state) do
     known_txs = get_known_txs(state)
 
     ifes
-    # FIXME: streamify? (multiple occurrences)
     |> Map.values()
-    |> Enum.filter(&InFlightExitInfo.is_canonical?/1)
-    |> Enum.map(fn %InFlightExitInfo{tx: %{raw_tx: tx}} ->
-      # FIXME: the non-zero input filtering should go to Transaction, but then search for all occurences `get_inputs` and remove
-      {tx, Transaction.get_inputs(tx) |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum != 0 end)}
-    end)
-    # FIXME: expensive!
-    |> Enum.filter(fn {tx, inputs} ->
-      known_txs
-      |> Enum.map(fn %Transaction.Signed{raw_tx: tx} -> {tx, Transaction.get_inputs(tx)} end)
-      |> Enum.any?(fn {known_tx, known_spent_inputs} ->
-        Transaction.hash(known_tx)
-
-        with true <- inputs |> Enum.any?(&Enum.member?(known_spent_inputs, &1)),
-             do: Transaction.hash(known_tx) != Transaction.hash(tx)
-      end)
-    end)
-    |> Enum.map(fn {tx, _} -> Transaction.encode(tx) end)
+    # TODO: not enough - must take oldest competitor into account (?)
+    |> Stream.filter(&InFlightExitInfo.is_canonical?/1)
+    |> Stream.map(fn %InFlightExitInfo{tx: tx} -> tx end)
+    # TODO: expensive!
+    |> Stream.filter(fn tx -> known_txs |> Enum.find(&competitor_for(tx, &1)) end)
+    |> Stream.map(fn %{raw_tx: raw_tx} -> Transaction.encode(raw_tx) end)
   end
 
-  # FIXME: separate out or document as the TxAppendix?
-  defp get_known_txs(%__MODULE__{in_flight_exits: ifes, competitors: competitors}) do
-    ifes
-    |> Map.values()
-    |> Enum.concat(Map.values(competitors))
-    |> Enum.map(&Map.get(&1, :tx))
+  # tells whether a signle transaction is a competitor for another single transactions, by returning nil or the
+  # UTXO position of the input double spent
+  defp competitor_for(%Transaction.Signed{raw_tx: raw_tx}, %Transaction.Signed{raw_tx: known_raw_tx}) do
+    inputs = Transaction.get_inputs(raw_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
+    known_spent_inputs = Transaction.get_inputs(known_raw_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
+
+    with true <- Transaction.hash(known_raw_tx) != Transaction.hash(raw_tx),
+         Utxo.position(_, _, _) = double_spent_input <- inputs |> Enum.find(&Enum.member?(known_spent_inputs, &1)),
+         do: double_spent_input
+  end
+
+  defp get_known_txs(%__MODULE__{} = state) do
+    TxAppendix.get_all(state)
   end
 end
