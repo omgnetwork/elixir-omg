@@ -90,7 +90,12 @@ defmodule OMG.API.State.Transaction do
   @doc """
   Creates a new transaction from a list of inputs and a list of outputs.
   Adds empty (zeroes) inputs and/or outputs to reach the expected size
-  of 4 inputs and 4 outputs.
+  of `@max_inputs` inputs and `@max_outputs` outputs.
+
+  assumptions:
+  ```
+    length(inputs) <= @max_inputs
+    length(outputs) <= @max_outputs
   ```
   """
   @spec new(
