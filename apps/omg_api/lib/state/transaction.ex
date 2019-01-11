@@ -47,47 +47,6 @@ defmodule OMG.API.State.Transaction do
           amount: non_neg_integer()
         }
 
-  @doc """
-  Creates transaction from utxo positions and outputs. Provides simple, stateless validation on arguments.
-
-  #### Assumptions:
-   * length of inputs between 1 and `@max_inputs`
-   * length of outputs between 0 and `@max_inputs`
-   * the same currency for each output
-   * all amounts are non-negative integers
-  """
-  @spec create_from_utxos(
-          [
-            %{
-              blknum: pos_integer(),
-              txindex: non_neg_integer(),
-              oindex: non_neg_integer(),
-              currency: Crypto.address_t(),
-              amount: pos_integer()
-            }
-          ],
-          [%{owner: Crypto.address_t(), amount: non_neg_integer()}]
-        ) :: {:ok, t()} | {:error, atom()}
-  def create_from_utxos(inputs, outputs)
-  def create_from_utxos(inputs, _) when not is_list(inputs), do: {:error, :inputs_should_be_list}
-  def create_from_utxos(_, outputs) when not is_list(outputs), do: {:error, :outputs_should_be_list}
-  def create_from_utxos(inputs, _) when length(inputs) > @max_inputs, do: {:error, :too_many_inputs}
-  def create_from_utxos([], _), do: {:error, :at_least_one_input_required}
-  def create_from_utxos(_, outputs) when length(outputs) > @max_outputs, do: {:error, :too_many_outputs}
-
-  def create_from_utxos(input_utxos, outputs) do
-    with {:ok, currency} <- validate_currency(input_utxos, outputs),
-         :ok <- validate_amount(input_utxos),
-         :ok <- validate_amount(outputs),
-         :ok <- amounts_add_up?(input_utxos, outputs) do
-      {:ok,
-       new(
-         input_utxos |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
-         outputs |> Enum.map(&{&1.owner, currency, &1.amount})
-       )}
-    end
-  end
-
   defp validate_currency(input_utxos, outputs) do
     currencies =
       (input_utxos ++ outputs)
