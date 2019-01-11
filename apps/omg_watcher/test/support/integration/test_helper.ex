@@ -27,7 +27,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   def wait_for_byzantine_events(event_names, timeout) do
     fn ->
       %{"byzantine_events" => emitted_events} = success?("/status.get")
-      emitted_event_names = Enum.map(emitted_events, &String.to_atom(&1["event_name"]))
+      emitted_event_names = Enum.map(emitted_events, &String.to_atom(&1["event"]))
 
       all_events =
         Enum.all?(event_names, fn x ->
