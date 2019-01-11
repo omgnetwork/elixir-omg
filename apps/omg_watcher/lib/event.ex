@@ -111,7 +111,7 @@ defmodule OMG.Watcher.Event do
 
   defmodule UnchallengedExit do
     @moduledoc """
-    Notifies about an invalid exit, that is dangerously approaching finalization, without being challneged
+    Notifies about an invalid exit, that is dangerously approaching finalization, without being challenged
 
     It is a prompt to exit
     """
