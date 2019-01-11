@@ -115,9 +115,9 @@ Eth.WaitFor.eth_receipt(txhash)
 {:ok, txhash} =
   OMG.Eth.RootChain.challenge_exit(
     challenge["output_id"],
-    challenge["txbytes"],
+    Base.decode16!(challenge["txbytes"]),
     challenge["input_index"],
-    challenge["sig"],
+    Base.decode16!(challenge["sig"]),
     alice.addr
   )
 {:ok, _} = Eth.WaitFor.eth_receipt(txhash)
