@@ -44,7 +44,7 @@ defmodule OMG.Watcher.API.Status do
       {state_current_block, _} = State.get_status()
 
       {_, events_processor} = ExitProcessor.check_validity()
-      events_blockgetter = BlockGetter.get_events()
+      {_, events_blockgetter} = BlockGetter.get_events()
 
       status = %{
         last_validated_child_block_number: state_current_block - child_block_interval,

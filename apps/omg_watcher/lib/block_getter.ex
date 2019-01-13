@@ -31,9 +31,6 @@ defmodule OMG.Watcher.BlockGetter do
   use GenServer
   use OMG.API.LoggerExt
 
-  @doc """
-  Returns events
-  """
   def get_events do
     GenServer.call(__MODULE__, :get_events)
   end
@@ -53,8 +50,8 @@ defmodule OMG.Watcher.BlockGetter do
     )
   end
 
-  def handle_call(:get_events, _from, %Core{events: events} = state) do
-    {:reply, events, state}
+  def handle_call(:get_events, _from, state) do
+    {:reply, Core.chain_ok(state), state}
   end
 
   def handle_cast(
@@ -62,7 +59,7 @@ defmodule OMG.Watcher.BlockGetter do
          block_rootchain_height},
         state
       ) do
-    with :ok <- Core.chain_ok(state),
+    with {:ok, _} <- Core.chain_ok(state),
          tx_exec_results <- for(tx <- transactions, do: OMG.API.State.exec(tx, fees)),
          exit_processor_results <- ExitProcessor.check_validity(),
          {:ok, state} <- Core.validate_executions(tx_exec_results, exit_processor_results, block, state) do
@@ -83,6 +80,10 @@ defmodule OMG.Watcher.BlockGetter do
 
       {:noreply, state}
     else
+      {:error, events} ->
+        _ = Logger.error(fn -> "Error while applying block because of #{inspect(events)}" end)
+        {:noreply, state}
+
       {error, state} ->
         _ = Logger.error(fn -> "Error while applying block because of #{inspect(error)}" end)
         {:noreply, state}
@@ -152,11 +153,15 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info(msg, state)
 
   def handle_info(:producer, state) do
-    with :ok <- Core.chain_ok(state) do
+    with {:ok, _} <- Core.chain_ok(state) do
       new_state = run_block_download_task(state)
       {:ok, _} = :timer.send_after(2_000, self(), :producer)
       {:noreply, new_state}
     else
+      {:error, events} ->
+        _ = Logger.error(fn -> "Error while applying block because of #{inspect(events)}" end)
+        {:noreply, state}
+
       {error, state} ->
         _ = Logger.error(fn -> "Error while running next block_download_task because of #{inspect(error)}" end)
         {:noreply, state}

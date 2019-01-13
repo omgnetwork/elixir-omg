@@ -116,8 +116,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     assert {:ok, ^state} = Core.validate_executions([{:ok, tx_result}], {:ok, []}, block, state)
 
-    assert {{:error, :unchallenged_exit}, ^state} =
+    assert {:ok, []} = Core.chain_ok(state)
+
+    assert {{:error, :unchallenged_exit, []}, state} =
              Core.validate_executions([{:ok, tx_result}], {{:error, :unchallenged_exit}, []}, block, state)
+
+    assert {:error, []} = Core.chain_ok(state)
   end
 
   @tag fixtures: [:alice, :bob]
@@ -291,18 +295,25 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     )
   end
 
-  test "validate_executions function with invalid block" do
+  test "validate_executions function prevent getter from progressing when unchallenged_exit is detected" do
     state = init_state()
 
     block = %Block{number: 1, hash: <<>>}
 
-    expected_state = %{state | events: [%Event.InvalidBlock{error_type: :tx_execution, hash: "", number: 1}]}
+    assert {{:error, :unchallenged_exit, []}, state} =
+             Core.validate_executions([], {{:error, :unchallenged_exit}, []}, block, state)
 
-    assert {{:error, :tx_execution, {}}, ^expected_state} =
-             Core.validate_executions([{:error, {}}], {:chain_ok, []}, block, state)
+    assert {:error, []} = Core.chain_ok(state)
+  end
 
-    assert {{:error, :tx_execution, {}}, ^expected_state} =
-             Core.validate_executions([{:error, {}}], {:unchallenged_exit, []}, block, state)
+  test "validate_executions function prevent getter from progressing when invalid block is detected" do
+    state = init_state()
+
+    block = %Block{number: 1, hash: <<>>}
+
+    assert {{:error, :tx_execution, {}}, state} = Core.validate_executions([{:error, {}}], {:ok, []}, block, state)
+
+    assert {:error, [%Event.InvalidBlock{error_type: :tx_execution, hash: "", number: 1}]} = Core.chain_ok(state)
   end
 
   test "after detecting twice same maximum possible potential withholdings get_numbers_of_blocks_to_download don't return this block" do

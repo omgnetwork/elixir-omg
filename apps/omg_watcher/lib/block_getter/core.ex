@@ -77,7 +77,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
     :unapplied_blocks,
     :potential_block_withholdings,
     :config,
-    :events
+    :events,
+    :chain_status
   ]
 
   @type t() :: %__MODULE__{
@@ -95,7 +96,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
           },
           config: Config.t(),
           # FIXME
-          events: list(any())
+          events: list(any()),
+          chain_status: :ok | :error
         }
 
   @type block_error() ::
@@ -142,7 +144,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
             Config,
             Keyword.merge(opts, block_interval: child_block_interval, block_reorg_margin: block_reorg_margin)
           ),
-        events: []
+        events: [],
+        chain_status: :ok
       }
 
       {:ok, state}
@@ -152,10 +155,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   @doc """
-  FIXME
+    Returns:
+      1. `chain_status` which is based on BlockGetter events and ExitProcessor events
+      2. BlockGetter events
   """
-  def chain_ok(%__MODULE__{events: []}), do: :ok
-  def chain_ok(%__MODULE__{events: events} = state), do: {{:error, events}, state}
+  def chain_ok(%__MODULE__{chain_status: chain_status, events: events}), do: {chain_status, events}
 
   @doc """
   Marks that child chain block published on `blk_eth_height` was processed
@@ -289,7 +293,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           number_of_blocks_being_downloaded: number_of_blocks_being_downloaded,
           potential_block_withholdings: potential_block_withholdings,
           config: config,
-          events: []
+          chain_status: :ok
         } = state,
         next_child
       ) do
@@ -442,7 +446,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
       number: number
     }
 
-    state = add_non_existing_event(event, state)
+    state =
+      state
+      |> set_chain_status(:error)
+      |> add_non_existing_event(event)
 
     {{:error, error_type}, state}
   end
@@ -469,7 +476,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
       time - blknum_time >= config.maximum_block_withholding_time_ms ->
         event = %Event.BlockWithholding{blknum: blknum}
-        state = add_non_existing_event(event, state)
+
+        state =
+          state
+          |> set_chain_status(:error)
+          |> add_non_existing_event(event)
 
         {{:error, :withholding}, state}
 
@@ -567,7 +578,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
           | events: [event | state.events]
         }
 
+        state = set_chain_status(state, :error)
+
         {{:error, :tx_execution, reason}, state}
+
+      {{:error, :unchallenged_exit}, events} ->
+        state = set_chain_status(state, :error)
+        {{:error, :unchallenged_exit, events}, state}
 
       {reason, _} ->
         {reason, state}
@@ -660,9 +677,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
     }
   end
 
-  defp add_non_existing_event(event, %__MODULE__{events: events} = state) do
+  defp add_non_existing_event(%__MODULE__{events: events} = state, event) do
     if Enum.member?(events, event),
       do: state,
       else: %{state | events: [event | state.events]}
   end
+
+  defp set_chain_status(state, status), do: %{state | chain_status: status}
 end
