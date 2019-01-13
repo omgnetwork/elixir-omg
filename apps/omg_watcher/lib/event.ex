@@ -111,7 +111,7 @@ defmodule OMG.Watcher.Event do
 
   defmodule UnchallengedExit do
     @moduledoc """
-    Notifies about an invalid exit, that is dangerously approaching finalization, without being challneged
+    Notifies about an invalid exit, that is dangerously approaching finalization, without being challenged
 
     It is a prompt to exit
     """
@@ -129,25 +129,8 @@ defmodule OMG.Watcher.Event do
           }
   end
 
-  def add_event_name_field(%InvalidBlock{} = event) do
-    put_event_name_value(event, InvalidBlock.name())
-  end
-
-  def add_event_name_field(%BlockWithholding{} = event) do
-    put_event_name_value(event, BlockWithholding.name())
-  end
-
-  def add_event_name_field(%InvalidExit{} = event) do
-    put_event_name_value(event, InvalidExit.name())
-  end
-
-  def add_event_name_field(%UnchallengedExit{} = event) do
-    put_event_name_value(event, UnchallengedExit.name())
-  end
-
-  defp put_event_name_value(event, value) do
-    event
-    |> Map.from_struct()
-    |> Map.put(:event_name, value)
-  end
+  def get_event_name(%InvalidBlock{}), do: InvalidBlock.name()
+  def get_event_name(%BlockWithholding{}), do: BlockWithholding.name()
+  def get_event_name(%InvalidExit{}), do: InvalidExit.name()
+  def get_event_name(%UnchallengedExit{}), do: UnchallengedExit.name()
 end

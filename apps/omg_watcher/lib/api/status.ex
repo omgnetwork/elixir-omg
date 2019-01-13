@@ -28,7 +28,7 @@ defmodule OMG.Watcher.API.Status do
             last_mined_child_block_number: non_neg_integer(),
             last_mined_child_block_timestamp: non_neg_integer(),
             eth_syncing: boolean(),
-            byzantine_events: list()
+            byzantine_events: list(Event.t())
           }
 
   @doc """
@@ -44,14 +44,14 @@ defmodule OMG.Watcher.API.Status do
       {state_current_block, _} = State.get_status()
 
       {_, events_processor} = ExitProcessor.check_validity()
-      {_, events_blockgetter} = BlockGetter.get_events()
+      {_, events_block_getter} = BlockGetter.get_events()
 
       status = %{
         last_validated_child_block_number: state_current_block - child_block_interval,
         last_mined_child_block_number: last_mined_child_block_number,
         last_mined_child_block_timestamp: last_mined_child_block_timestamp,
         eth_syncing: Eth.Geth.syncing?(),
-        byzantine_events: prepare_events(events_processor ++ events_blockgetter)
+        byzantine_events: events_processor ++ events_block_getter
       }
 
       {:ok, status}
@@ -59,10 +59,5 @@ defmodule OMG.Watcher.API.Status do
       :error -> {:error, :unknown}
       {:error, _} = error -> error
     end
-  end
-
-  @spec prepare_events(list(Event.t())) :: list(map())
-  defp prepare_events(events) do
-    Enum.map(events, &Event.add_event_name_field/1)
   end
 end
