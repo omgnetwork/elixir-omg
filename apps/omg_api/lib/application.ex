@@ -22,6 +22,7 @@ defmodule OMG.API.Application do
   use OMG.API.LoggerExt
 
   def start(_type, _args) do
+    DeferredConfig.populate(:omg_api)
     deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
     exiters_finality_margin = Application.fetch_env!(:omg_api, :exiters_finality_margin)
 

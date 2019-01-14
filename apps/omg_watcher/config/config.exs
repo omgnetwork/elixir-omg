@@ -17,7 +17,7 @@ config :omg_watcher,
   exit_finality_margin: 12,
   block_reorg_margin: 20,
   convenience_api_mode: false,
-  child_chain_url: System.get_env("CHILDCHAIN_URL") || "http://localhost:9656",
+  child_chain_url: {:system, "CHILD_CHAIN_URL", "http://localhost:9656"},
   enable_cors: true
 
 # Configures the endpoint

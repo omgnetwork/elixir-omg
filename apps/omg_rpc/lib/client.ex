@@ -56,7 +56,7 @@ defmodule OMG.RPC.Client do
   Makes HTTP POST request to the API
   """
   def rpc_post(body, path, url \\ nil) do
-    url = url || Application.fetch_env!(:omg_watcher, :child_chain_url)
+    url = url || Application.fetch_env!(:omg_rpc, :client) |> Map.get(:child_chain_url)
     addr = "#{url}/#{path}"
     headers = [{"content-type", "application/json"}]
 

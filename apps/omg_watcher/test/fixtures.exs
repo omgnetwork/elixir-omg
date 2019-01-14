@@ -192,16 +192,18 @@ defmodule OMG.Watcher.Fixtures do
     alias FakeServer.Agents.EnvAgent
     alias FakeServer.HTTP.Server
 
+    DeferredConfig.populate(:omg_rpc)
+
     {:ok, server_id, port} = Server.run()
     env = FakeServer.Env.new(port)
 
     EnvAgent.save_env(server_id, env)
 
-    real_addr = Application.fetch_env!(:omg_watcher, :child_chain_url)
+    real_addr = Application.fetch_env!(:omg_rpc, :client) |> Map.get(:child_chain_url)
     fake_addr = "http://#{env.ip}:#{env.port}"
 
     on_exit(fn ->
-      Application.put_env(:omg_watcher, :child_chain_url, real_addr)
+      Application.put_env(:omg_rpc, :client, %{child_chain_url: real_addr})
 
       Server.stop(server_id)
       EnvAgent.delete_env(server_id)
