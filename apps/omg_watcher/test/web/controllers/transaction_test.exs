@@ -75,7 +75,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  }
                ],
                "txhash" => ^txhash,
-               "txbytes" => txbytes,
+               "txbytes" => "0x" <> txbytes,
                "txindex" => ^txindex
              } = TestHelper.success?("/transaction.get", %{"id" => txhash})
 
@@ -211,7 +211,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
          ]}
       ])
 
-      address = alice.addr > OMG.API.Web.Encoding.to_hex()
+      address = alice.addr |> OMG.API.Web.Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
                TestHelper.success?("/transaction.all", %{"address" => address})

@@ -90,8 +90,11 @@ defmodule OMG.Watcher.TestHelper do
       fn key ->
         value = data[key]
 
-        case is_binary(value) && Base.decode16(value, case: :mixed) do
-          {:ok, newvalue} -> {key, newvalue}
+        with true <- is_binary(value),
+             "0x" <> hex <- value,
+             {:ok, new_value} <- Base.decode16(hex, case: :mixed) do
+          {key, new_value}
+        else
           _ -> {key, value}
         end
       end
