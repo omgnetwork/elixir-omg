@@ -19,10 +19,10 @@ defmodule OMG.Watcher.Web.View.Challenge do
 
   use OMG.Watcher.Web, :view
 
-  alias OMG.Watcher.Web.Serializers
+  alias OMG.Watcher.Web.Serializer
 
   def render("challenge.json", %{challenge: challenge}) do
     challenge
-    |> Serializers.Response.serialize(:success)
+    |> Serializer.Response.serialize(:success)
   end
 end

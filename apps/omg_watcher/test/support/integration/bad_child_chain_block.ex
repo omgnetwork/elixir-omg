@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
   alias OMG.API.Block
   alias OMG.RPC.Client
   alias OMG.Watcher.Integration.TestServer
-  alias OMG.Watcher.Web.Serializers.Response
+  alias OMG.Watcher.Web.Serializer.Response
 
   @doc """
   Adds a route to TestServer which responded with prepared bad block when asked for known hash

@@ -17,10 +17,10 @@ defmodule OMG.RPC.Web.View.Transaction do
   The Transaction submission view for rendering json
   """
 
-  alias OMG.RPC.Web.Serializers
+  alias OMG.RPC.Web.Serializer
 
   def render("submit.json", %{result: result}) do
     result
-    |> Serializers.Response.serialize(:success)
+    |> Serializer.Response.serialize(:success)
   end
 end

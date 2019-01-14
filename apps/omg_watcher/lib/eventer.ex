@@ -23,7 +23,7 @@ defmodule OMG.Watcher.Eventer do
 
   alias OMG.Watcher.Eventer.Core
   alias OMG.Watcher.Web.Endpoint
-  alias OMG.Watcher.Web.Serializers.Response
+  alias OMG.Watcher.Web.Serializer.Response
 
   ### Client
 

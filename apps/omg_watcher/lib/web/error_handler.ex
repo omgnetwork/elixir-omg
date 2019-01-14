@@ -16,7 +16,7 @@ defmodule OMG.Watcher.Web.ErrorHandler do
   @moduledoc """
   Handles API errors by mapping the error to its response code and description.
   """
-  alias OMG.Watcher.Web.Serializers
+  alias OMG.Watcher.Web.Serializer
 
   import Plug.Conn, only: [halt: 1]
   import Phoenix.Controller, only: [json: 2]
@@ -81,11 +81,11 @@ defmodule OMG.Watcher.Web.ErrorHandler do
   end
 
   defp build(code, description) do
-    Serializers.Error.serialize(code, description)
+    Serializer.Error.serialize(code, description)
   end
 
   defp respond(conn, data) do
-    data = Serializers.Response.serialize(data, :error)
+    data = Serializer.Response.serialize(data, :error)
 
     conn
     |> json(data)

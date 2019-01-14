@@ -21,19 +21,19 @@ defmodule OMG.Watcher.Web.View.Utxo do
 
   alias OMG.API.Utxo
   alias OMG.Watcher.DB
-  alias OMG.Watcher.Web.Serializers
+  alias OMG.Watcher.Web.Serializer
 
   require Utxo
 
   def render("utxo_exit.json", %{utxo_exit: utxo_exit}) do
     utxo_exit
-    |> Serializers.Response.serialize(:success)
+    |> Serializer.Response.serialize(:success)
   end
 
   def render("utxos.json", %{utxos: utxos}) do
     utxos
     |> Enum.map(&to_view/1)
-    |> Serializers.Response.serialize(:success)
+    |> Serializer.Response.serialize(:success)
   end
 
   defp to_view(%DB.TxOutput{} = db_entry) do

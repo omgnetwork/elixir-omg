@@ -23,8 +23,8 @@ defmodule OMG.Watcher.Event do
           | OMG.Watcher.Event.InvalidExit.t()
 
   #  TODO The reason why events have name as String and byzantine events as atom is that
-  #  Phoniex websockets requires topics as strings + currently we treat Strings and binaries in
-  #  the same way in `OMG.Watcher.Web.Serializers.Response`
+  #  Phoenix websockets requires topics as strings + currently we treat Strings and binaries in
+  #  the same way in `OMG.Watcher.Web.Serializer.Response`
   defmodule AddressReceived do
     @moduledoc """
     Notifies about received funds by particular address

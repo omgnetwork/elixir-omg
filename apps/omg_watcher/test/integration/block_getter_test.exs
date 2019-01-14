@@ -36,7 +36,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Web.Channel
-  alias OMG.Watcher.Web.Serializers.Response
+  alias OMG.Watcher.Web.Serializer.Response
 
   @moduletag :integration
 

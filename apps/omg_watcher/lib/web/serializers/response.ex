@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Serializers.Response do
+defmodule OMG.Watcher.Web.Serializer.Response do
   @moduledoc """
   Serializes the response into expected result/data format.
   """
