@@ -74,7 +74,7 @@ defmodule OMG.API.State.CoreTest do
     state1
     |> (&Core.exec(
           Test.create_recovered(
-            [{1000, 0, 0, alice}, {0, 0, 0, alice}],
+            [{1000, 0, 0, alice}],
             not_eth(),
             [{alice, 3}, {alice, 0}]
           ),
@@ -93,6 +93,15 @@ defmodule OMG.API.State.CoreTest do
     |> success?
     |> (&Core.exec(Test.create_recovered([{2, 0, 0, bob}], eth(), [{alice, 20}]), zero_fees_map(), &1)).()
     |> success?
+  end
+
+  @tag fixtures: [:alice, :bob, :state_empty]
+  test "can't spend when signature order does not match input order", %{alice: alice, bob: bob, state_empty: state} do
+    state
+    |> Test.do_deposit(alice, %{amount: 10, currency: eth(), blknum: 1})
+    |> Test.do_deposit(bob, %{amount: 20, currency: eth(), blknum: 2})
+    |> (&Core.exec(Test.create_recovered([{1, 0, 0, bob}, {2, 0, 0, alice}], eth(), [{bob, 10}]), zero_fees_map(), &1)).()
+    |> fail?(:unauthorized_spent)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
@@ -159,10 +168,11 @@ defmodule OMG.API.State.CoreTest do
 
     state
     |> (&Core.exec(
-          Test.create_recovered([{@child_block_interval, 0, 0, alice}, {@child_block_interval, 0, 1, bob}], eth(), [
-            {alice, 7},
-            {bob, 2}
-          ]),
+          Test.create_recovered(
+            [{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}],
+            eth(),
+            [{alice, 7}, {bob, 2}]
+          ),
           # outputs exceed inputs, no fee
           %{eth() => 2},
           &1

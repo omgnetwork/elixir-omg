@@ -17,7 +17,9 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
 
+  alias OMG.API
   alias OMG.API.Crypto
+  alias OMG.API.State.Transaction
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
 
@@ -392,6 +394,86 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       ])
 
       assert [_, _, _] = TestHelper.success?("/transaction.all", %{})
+    end
+  end
+
+  describe "getting in-flight exits" do
+    @tag fixtures: [:initial_blocks, :bob, :alice]
+    test "returns properly formatted in-flight exit data", %{initial_blocks: initial_blocks, bob: bob, alice: alice} do
+      test_in_flight_exit_data = fn inputs ->
+        positions = Enum.map(inputs, fn {blknum, txindex, _, _} -> {blknum, txindex} end)
+
+        expected_input_txs = get_input_txs(initial_blocks, positions)
+
+        inflight_txbytes =
+          inputs
+          |> API.TestHelper.create_encoded(@eth, [{bob, 100}])
+          |> Base.encode16(case: :upper)
+
+        proofs_size = 1024 * length(inputs)
+        sigs_size = 130 * 4
+
+        %{
+          # checking just lengths in majority as we prepare verify correctness in the contract in integration tests
+          "in_flight_tx" => _in_flight_tx,
+          "input_txs" => input_txs,
+          # encoded proofs, 1024 bytes each
+          "input_txs_inclusion_proofs" => <<_proof::bytes-size(proofs_size)>>,
+          # encoded signatures, 130 bytes each
+          "in_flight_tx_sigs" => <<_bytes::bytes-size(sigs_size)>>
+        } = TestHelper.success?("/inflight_exit.get_data", %{"txbytes" => inflight_txbytes})
+
+        input_txs =
+          input_txs
+          |> Base.decode16!(case: :upper)
+          |> ExRLP.decode()
+          |> Enum.map(fn
+            "" ->
+              nil
+
+            rlp_encoded ->
+              {:ok, tx} = Transaction.from_rlp(rlp_encoded)
+              tx
+          end)
+
+        assert input_txs == expected_input_txs
+      end
+
+      test_in_flight_exit_data.([{3000, 1, 0, alice}])
+      test_in_flight_exit_data.([{3000, 1, 0, alice}, {2000, 0, 1, alice}])
+    end
+
+    # gets the input transactions, as expected from the endpoint - based on the position and initial_blocks fixture
+    defp get_input_txs(initial_blocks, positions) do
+      filler = List.duplicate(nil, 4 - length(positions))
+
+      initial_blocks
+      |> Enum.filter(fn {blknum, txindex, _, _} -> {blknum, txindex} in positions end)
+      # reversing, because the inputs are reversed in the IFtx below, and we need that order, not by position!
+      |> Enum.reverse()
+      |> Enum.map(fn {_, _, _, %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}} -> raw_tx end)
+      |> Enum.concat(filler)
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :bob]
+    test "behaves well if input is not found", %{bob: bob} do
+      inflight_txbytes =
+        [{3000, 1, 0, bob}]
+        |> API.TestHelper.create_encoded(@eth, [{bob, 150}])
+        |> Base.encode16(case: :upper)
+
+      assert %{
+               "code" => "in_flight_exit:tx_for_input_not_found",
+               "description" => "No transaction that created input."
+             } = TestHelper.no_success?("/inflight_exit.get_data", %{"txbytes" => inflight_txbytes})
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "responds with error for malformed in-flight transaction bytes" do
+      assert %{
+               "code" => "get_in_flight_exit:unknown_error",
+               "description" => nil
+             } = TestHelper.no_success?("/inflight_exit.get_data", %{"txbytes" => "tx"})
     end
   end
 end

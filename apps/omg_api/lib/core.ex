@@ -58,7 +58,7 @@ defmodule OMG.API.Core do
 
     with :ok <- inputs_present?(inputs),
          :ok <- no_duplicate_inputs?(inputs) do
-      is_signed?(sigs)
+      all_inputs_signed?(inputs, sigs)
     end
   end
 
@@ -85,5 +85,14 @@ defmodule OMG.API.Core do
     if inputs_length == number_of_unique_inputs, do: :ok, else: {:error, :duplicate_inputs}
   end
 
-  defp is_signed?(sigs), do: if(Enum.any?(sigs, &(&1 != @empty_signature)), do: :ok, else: {:error, :missing_signature})
+  defp all_inputs_signed?(inputs, sigs) do
+    Enum.zip(inputs, sigs)
+    |> Enum.map(&input_signature_valid/1)
+    |> Enum.find(:ok, &(&1 != :ok))
+  end
+
+  defp input_signature_valid({Utxo.position(0, _, _), @empty_signature}), do: :ok
+  defp input_signature_valid({Utxo.position(0, _, _), _}), do: {:error, :signature_corrupt}
+  defp input_signature_valid({_, @empty_signature}), do: {:error, :missing_signature}
+  defp input_signature_valid({_, _}), do: :ok
 end

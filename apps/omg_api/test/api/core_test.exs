@@ -31,26 +31,28 @@ defmodule OMG.API.CoreTest do
     bob: bob
   } do
     parametrized_tester = fn inputs ->
-      raw_tx =
+      tx = TestHelper.create_signed(inputs, [{alice, eth(), 7}, {bob, eth(), 3}])
+
+      encoded_signed_tx = Transaction.Signed.encode(tx)
+
+      spenders =
         inputs
-        |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end)
-        |> Transaction.new([{alice.addr, eth(), 7}, {bob.addr, eth(), 3}])
-
-      encoded_signed_tx = TestHelper.create_encoded(inputs, eth(), [{alice, 7}, {bob, 3}])
-
-      spenders = Enum.map(inputs, fn {_, _, _, spender} -> spender.addr end)
+        |> Enum.filter(fn {_, _, _, %{addr: addr}} -> addr != nil end)
+        |> Enum.map(fn {_, _, _, spender} -> spender.addr end)
 
       assert {:ok,
               %Transaction.Recovered{
-                signed_tx: %Transaction.Signed{raw_tx: ^raw_tx},
+                signed_tx: ^tx,
                 spenders: ^spenders
               }} = Core.recover_tx(encoded_signed_tx)
     end
 
+    no_owner = %{priv: <<>>, addr: nil}
+
     [
       [{1, 2, 3, alice}, {2, 3, 4, bob}],
-      [{1, 2, 3, alice}, {0, 0, 0, alice}],
-      [{0, 0, 0, bob}, {2, 3, 4, bob}]
+      [{1, 2, 3, alice}, {0, 0, 0, no_owner}],
+      [{0, 0, 0, no_owner}, {2, 3, 4, bob}]
     ]
     |> Enum.map(parametrized_tester)
   end
@@ -114,7 +116,7 @@ defmodule OMG.API.CoreTest do
   @tag fixtures: [:alice]
   test "transactions with corrupt signatures don't do harm", %{alice: alice} do
     full_signed_tx = TestHelper.create_signed([{1, 2, 3, alice}], eth(), [{alice, 7}])
-    %Transaction.Signed{sigs: [sig1, _]} = full_signed_tx
+    %Transaction.Signed{sigs: [sig1 | _]} = full_signed_tx
 
     corrupt =
       %Transaction.Signed{full_signed_tx | sigs: [<<1::size(520)>>, sig1]}

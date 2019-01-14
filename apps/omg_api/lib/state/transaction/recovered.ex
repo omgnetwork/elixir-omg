@@ -64,13 +64,10 @@ defmodule OMG.API.State.Transaction.Recovered do
   end
 
   @doc """
-  Checks if everyone of the given spenders signed the transaction
+  Checks if input spenders and recovered transaction's spenders are the same and have the same order
   """
-  @spec all_spenders_authorized?(t(), list()) :: :ok
-  def all_spenders_authorized?(%__MODULE__{spenders: spenders}, inputs_spenders) do
-    spenders = MapSet.new(spenders)
-    inputs_spenders = MapSet.new(inputs_spenders)
-
-    if MapSet.subset?(inputs_spenders, spenders), do: :ok, else: {:error, :unauthorized_spent}
+  @spec all_spenders_authorized(t(), list()) :: :ok
+  def all_spenders_authorized(%__MODULE__{spenders: spenders}, inputs_spenders) do
+    if spenders == inputs_spenders, do: :ok, else: {:error, :unauthorized_spent}
   end
 end

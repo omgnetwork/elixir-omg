@@ -24,6 +24,11 @@ defmodule OMG.Watcher.Web.View.Transaction do
 
   require Utxo
 
+  def render("in_flight_exit.json", %{in_flight_exit: in_flight_exit}) do
+    in_flight_exit
+    |> Serializers.Response.serialize(:success)
+  end
+
   def render("transaction.json", %{transaction: transaction}) do
     transaction
     |> render_transaction()

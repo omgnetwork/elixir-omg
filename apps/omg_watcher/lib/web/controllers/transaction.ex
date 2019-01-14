@@ -72,11 +72,32 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     end
   end
 
+  @doc """
+  For a given transaction provided in params,
+  responds with arguments for plasma contract function that starts in-flight exit.
+  """
+  def get_in_flight_exit(conn, params) do
+    with {:ok, tx} <- Map.fetch(params, "txbytes"),
+         {:ok, tx} <- Base.decode16(tx, case: :mixed),
+         {:ok, tx} <- OMG.API.State.Transaction.Signed.decode(tx) do
+      in_flight_exit = API.Transaction.get_in_flight_exit(tx)
+      respond(in_flight_exit, conn)
+    end
+  end
+
   defp respond_multiple(transactions, conn),
     do: render(conn, View.Transaction, :transactions, transactions: transactions)
 
   defp respond(%DB.Transaction{} = transaction, conn),
     do: render(conn, View.Transaction, :transaction, transaction: transaction)
+
+  defp respond({:ok, in_flight_exit}, conn) do
+    render(conn, View.Transaction, :in_flight_exit, in_flight_exit: in_flight_exit)
+  end
+
+  defp respond({:error, code}, conn) do
+    handle_error(conn, code)
+  end
 
   defp respond(nil, conn), do: handle_error(conn, :transaction_not_found)
 

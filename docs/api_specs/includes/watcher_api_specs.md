@@ -461,21 +461,15 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_
     "version": "1",
     "success": true,
     "data": {
-        "txbytes": "F847010180808080940000...",
-        "sigs": "7C29FB8327F60BBFC62...",
-        "input_txs_bytes" : [
-            "F81891018080808...",
-            "2A0341808602A01..."
-        ],
-        "input_txs_proofs" : [
-             "CEDB8B31D1E4C...",
-             "A67131D1E904C..."
-        ]
+        "in_flight_tx": "F847010180808080940000...",
+        "input_txs": "7C29FB8327F60BBFC62...",
+        "input_txs_inclusion_proofs" : "F81891018080808...",
+        "in_flight_tx_sigs" : "CEDB8B31D1E4C...",
     }
 }
 ```
 
-Gets exit data for an in-flight exit
+Gets exit data for an in-flight exit. Exit data are arguments to `startInFlightExit` root chain contract function.
 
 ### HTTP Request
 
