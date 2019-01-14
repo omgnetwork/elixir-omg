@@ -49,17 +49,17 @@ defmodule OMG.Watcher.Challenger.Core do
    - a block number which can be used to retrieve needed information to challenge.
    - the relevant exit information
   """
-  @spec ensure_challengeable?(tuple(), tuple()) :: {:ok, pos_integer(), ExitInfo.t()} | {:error, atom()}
-  def ensure_challengeable?(spending_blknum_response, exit_response)
+  @spec ensure_challengeable(tuple(), tuple()) :: {:ok, pos_integer(), ExitInfo.t()} | {:error, atom()}
+  def ensure_challengeable(spending_blknum_response, exit_response)
 
-  def ensure_challengeable?({:ok, :not_found}, _), do: {:error, :utxo_not_spent}
-  def ensure_challengeable?(_, {:ok, :not_found}), do: {:error, :unknown_exit}
+  def ensure_challengeable({:ok, :not_found}, _), do: {:error, :utxo_not_spent}
+  def ensure_challengeable(_, {:ok, :not_found}), do: {:error, :exit_not_found}
 
-  def ensure_challengeable?({:ok, blknum}, {:ok, {_, exit_info}}) when is_integer(blknum),
+  def ensure_challengeable({:ok, blknum}, {:ok, {_, exit_info}}) when is_integer(blknum),
     do: {:ok, blknum, exit_info}
 
-  def ensure_challengeable?({:error, error}, _), do: {:error, error}
-  def ensure_challengeable?(_, {:error, error}), do: {:error, error}
+  def ensure_challengeable({:error, error}, _), do: {:error, error}
+  def ensure_challengeable(_, {:error, error}), do: {:error, error}
 
   # finds transaction in given block and input index spending given utxo
   @spec get_spending_transaction_with_index(Block.t(), Utxo.Position.t()) ::

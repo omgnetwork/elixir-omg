@@ -85,12 +85,12 @@ defmodule OMG.Watcher.Challenger.CoreTest do
 
   test "not spent or not existed utxo should be not challengeable" do
     exit_info = %ExitInfo{owner: "alice"}
-    assert {:ok, 1000, ^exit_info} = Core.ensure_challengeable?({:ok, 1000}, {:ok, {{}, exit_info}})
+    assert {:ok, 1000, ^exit_info} = Core.ensure_challengeable({:ok, 1000}, {:ok, {{}, exit_info}})
 
-    assert {:error, :utxo_not_spent} = Core.ensure_challengeable?({:ok, :not_found}, {:ok, {{}, exit_info}})
-    assert {:error, :unknown_exit} = Core.ensure_challengeable?({:ok, 1000}, {:ok, :not_found})
+    assert {:error, :utxo_not_spent} = Core.ensure_challengeable({:ok, :not_found}, {:ok, {{}, exit_info}})
+    assert {:error, :exit_not_found} = Core.ensure_challengeable({:ok, 1000}, {:ok, :not_found})
 
-    assert {:error, :db_other_error1} = Core.ensure_challengeable?({:error, :db_other_error1}, {:ok, {{}, exit_info}})
-    assert {:error, :db_other_error2} = Core.ensure_challengeable?({:ok, 1000}, {:error, :db_other_error2})
+    assert {:error, :db_other_error1} = Core.ensure_challengeable({:error, :db_other_error1}, {:ok, {{}, exit_info}})
+    assert {:error, :db_other_error2} = Core.ensure_challengeable({:ok, 1000}, {:error, :db_other_error2})
   end
 end

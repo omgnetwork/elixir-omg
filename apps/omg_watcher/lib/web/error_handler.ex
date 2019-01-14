@@ -22,9 +22,14 @@ defmodule OMG.Watcher.Web.ErrorHandler do
   import Phoenix.Controller, only: [json: 2]
 
   @errors %{
-    invalid_challenge_of_exit: %{
-      code: "challenge:invalid",
-      description: "The challenge of particular exit is invalid because provided utxo is not spent",
+    exit_not_found: %{
+      code: "challenge:exit_not_found",
+      description: "The challenge of particular exit is impossible because exit is inactive or missing",
+      status_code: 200
+    },
+    utxo_not_spent: %{
+      code: "challenge:utxo_not_spent",
+      description: "The challenge of particular exit is impossible because provided utxo is not spent",
       status_code: 200
     },
     transaction_not_found: %{
