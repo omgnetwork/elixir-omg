@@ -438,18 +438,28 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   Gets the root chain contract-required set of data to challenge a non-canonical ife
   """
-  @spec get_competitor_for_ife(__MODULE__.t(), list(Crypto.address_t()), binary()) :: competitor_data_t()
+  @spec get_competitor_for_ife(__MODULE__.t(), list(Crypto.address_t()), binary()) ::
+          {:ok, competitor_data_t()} | {:error, :competitor_not_found}
   def get_competitor_for_ife(%__MODULE__{in_flight_exits: ifes} = state, input_owners, ife_txbytes) do
     known_txs = get_known_txs(state)
 
     # get info about the IFE transaction
     {:ok, raw_ife_tx} = Transaction.decode(ife_txbytes)
     %InFlightExitInfo{tx: %Transaction.Signed{} = signed_ife_tx} = ifes[raw_ife_tx |> Transaction.hash()]
+
+    # find its competitor and use it to prepare the requested data
+    with {:ok, known_signed_tx} <- maybe_find_competitor(known_txs, signed_ife_tx),
+         do: {:ok, prepare_competitor_response(known_signed_tx, signed_ife_tx, input_owners, raw_ife_tx)}
+  end
+
+  defp prepare_competitor_response(
+         known_signed_tx,
+         %Transaction.Signed{raw_tx: raw_ife_tx} = signed_ife_tx,
+         input_owners,
+         raw_ife_tx
+       ) do
     ife_inputs = Transaction.get_inputs(raw_ife_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
 
-    # find its competitor and get info about that transaction
-    # TODO: will not work if there's no competitor here
-    known_signed_tx = known_txs |> Enum.find(fn known -> competitor_for(signed_ife_tx, known) end)
     %Transaction.Signed{raw_tx: raw_known_tx} = known_signed_tx
     known_spent_inputs = Transaction.get_inputs(raw_known_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
 
@@ -470,6 +480,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       competing_txid: nil,
       competing_proof: nil
     }
+  end
+
+  defp maybe_find_competitor(known_txs, signed_ife_tx) do
+    known_txs
+    |> Enum.find(fn known -> competitor_for(signed_ife_tx, known) end)
+    |> case do
+      nil -> {:error, :competitor_not_found}
+      got_it! -> {:ok, got_it!}
+    end
   end
 
   defp with_competitors_from_tx_appendix(%__MODULE__{in_flight_exits: ifes} = state) do
