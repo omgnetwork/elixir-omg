@@ -116,6 +116,16 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
+  def handle_call({:exit_info, utxo_pos}, _from, %__MODULE__{db_ref: db_ref} = state) do
+    result =
+      :exit_info
+      |> LevelDBCore.key(utxo_pos)
+      |> get(db_ref)
+      |> LevelDBCore.decode_value(:exit_info)
+
+    {:reply, result, state}
+  end
+
   def handle_call({:spent_blknum, utxo_pos}, _from, %__MODULE__{db_ref: db_ref} = state) do
     result =
       :spend

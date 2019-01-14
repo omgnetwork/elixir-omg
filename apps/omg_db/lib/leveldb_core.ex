@@ -91,7 +91,7 @@ defmodule OMG.DB.LevelDBCore do
   def key(:block, hash), do: @keys_prefixes.block <> hash
   def key(:utxo, {position, _utxo}), do: key(:utxo, position)
   def key(:spend, {position, _blknum}), do: key(:spend, position)
-  def key(:exit_info, {position, _exit_info}), do: key(:utxo, position)
+  def key(:exit_info, {position, _exit_info}), do: key(:exit_info, position)
 
   def key(type, item) when type in @key_types,
     do: Map.get(@keys_prefixes, type) <> :erlang.term_to_binary(item)

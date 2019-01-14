@@ -22,19 +22,15 @@ defmodule OMG.Watcher.Challenger.Core do
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.Challenger.Challenge
+  alias OMG.Watcher.ExitProcessor.ExitInfo
 
   require Utxo
 
   @doc """
   Creates a challenge for exiting utxo.
   """
-  @spec create_challenge(Block.t(), Block.t(), Utxo.Position.t()) :: Challenge.t()
-  def create_challenge(creating_block, spending_block, Utxo.position(_, _, oindex) = utxo_exit) do
-    owner =
-      creating_block
-      |> get_creating_transaction(utxo_exit)
-      |> get_output_owner(oindex)
-
+  @spec create_challenge(map, Block.t(), Utxo.Position.t()) :: Challenge.t()
+  def create_challenge(%{owner: owner}, spending_block, Utxo.position(_, _, _) = utxo_exit) do
     {%Transaction.Signed{
        raw_tx: challenging_tx,
        sigs: sigs
@@ -49,37 +45,21 @@ defmodule OMG.Watcher.Challenger.Core do
   end
 
   @doc """
-  Checks whether database response is a block number which can be used to retrieve needed information to challenge.
+  Checks whether database responses hold all the relevant data succesfully fetched:
+   - a block number which can be used to retrieve needed information to challenge.
+   - the relevant exit information
   """
-  @spec ensure_challengeable?(tuple()) :: {:ok, pos_integer()} | {:error, atom()}
-  def ensure_challengeable?(spending_blknum_response)
-  def ensure_challengeable?({:ok, :not_found}), do: {:error, :utxo_not_spent}
-  def ensure_challengeable?({:ok, blknum}) when is_integer(blknum), do: {:ok, blknum}
-  def ensure_challengeable?(error), do: error
+  @spec ensure_challengeable(tuple(), tuple()) :: {:ok, pos_integer(), ExitInfo.t()} | {:error, atom()}
+  def ensure_challengeable(spending_blknum_response, exit_response)
 
-  @spec get_creating_transaction(Block.t(), Utxo.Position.t()) :: Transaction.Signed.t()
-  defp get_creating_transaction(
-         %Block{
-           transactions: txs,
-           number: blknum
-         },
-         Utxo.position(blknum, txindex, _oindex)
-       ) do
-    {:ok, signed_tx} =
-      txs
-      |> Enum.fetch!(txindex)
-      |> Transaction.Signed.decode()
+  def ensure_challengeable({:ok, :not_found}, _), do: {:error, :utxo_not_spent}
+  def ensure_challengeable(_, {:ok, :not_found}), do: {:error, :exit_not_found}
 
-    signed_tx
-  end
+  def ensure_challengeable({:ok, blknum}, {:ok, {_, exit_info}}) when is_integer(blknum),
+    do: {:ok, blknum, exit_info}
 
-  @spec get_output_owner(Transaction.Signed.t(), non_neg_integer()) :: Crypto.address_t()
-  defp get_output_owner(%Transaction.Signed{raw_tx: raw_tx}, oindex) do
-    raw_tx
-    |> Transaction.get_outputs()
-    |> Enum.fetch!(oindex)
-    |> Map.fetch!(:owner)
-  end
+  def ensure_challengeable({:error, error}, _), do: {:error, error}
+  def ensure_challengeable(_, {:error, error}), do: {:error, error}
 
   # finds transaction in given block and input index spending given utxo
   @spec get_spending_transaction_with_index(Block.t(), Utxo.Position.t()) ::
