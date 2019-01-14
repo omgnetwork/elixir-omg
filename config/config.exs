@@ -18,4 +18,10 @@ config :logger, :console,
   discard_threshold: 2000,
   metadata: [:module, :function, :request_id]
 
+# Configs for AppSignal application monitoring
+config :appsignal, :config,
+  name: "OmiseGO Plasma MoreVP Implementation",
+  env: Mix.env(),
+  instrumenters: [Appsignal.Phoenix.Instrumenter]
+
 import_config "#{Mix.env()}.exs"

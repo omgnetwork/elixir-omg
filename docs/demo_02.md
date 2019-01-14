@@ -19,29 +19,22 @@ alias OMG.{API, Eth}
 alias OMG.API.Crypto
 alias OMG.API.State.Transaction
 alias OMG.API.TestHelper
+alias OMG.API.Integration.DepositHelper
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
 eth = Crypto.zero_address()
 
+alice_enc = Crypto.encode_address!(alice.addr)
+bob_enc = Crypto.encode_address!(bob.addr)
+
 {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
 {:ok, _} = Eth.DevHelpers.import_unlock_fund(bob)
 
-# sends a deposit transaction _to Ethereum_
-{:ok, bob_deposit_tx_hash} = Transaction.new([],[{bob.addr,eth,10}]) |> Transaction.encode() |> Eth.RootChain.deposit(10, bob.addr)
-{:ok, alice_deposit_tx_hash} = Transaction.new([],[{alice.addr,eth,10}]) |> Transaction.encode() |> Eth.RootChain.deposit(10, alice.addr)
-
-{:ok, alice_enc} = Crypto.encode_address(alice.addr)
-{:ok, bob_enc} = Crypto.encode_address(bob.addr)
-
-# need to wait until it's mined
-{:ok, bob_deposit_receipt} = Eth.WaitFor.eth_receipt(bob_deposit_tx_hash)
-{:ok, alice_deposit_receipt} = Eth.WaitFor.eth_receipt(alice_deposit_tx_hash)
-
+# sends deposit transactions _to Ethereum_
 # we need to uncover the height at which the deposit went through on the root chain
-# to do this, look in the logs inside the receipt printed just above
-bob_deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(bob_deposit_receipt)
-alice_deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(alice_deposit_receipt)
+bob_deposit_blknum = DepositHelper.deposit_to_child_chain(bob.addr, 10)
+alice_deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, 10)
 
 ### START DEMO HERE
 
@@ -78,7 +71,7 @@ to_charlist() |>
 Poison.decode!()
 
 %{"data" => [_bobs_deposit, %{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
-  ~c(echo '{"address": "#{bob_enc}"}' | http POST localhost:7434/utxo.get) |>
+  ~c(echo '{"address": "#{bob_enc}"}' | http POST localhost:7434/account.get_utxos) |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
@@ -109,7 +102,6 @@ Poison.decode!()
     composed_exit["utxo_pos"],
     Base.decode16!(composed_exit["txbytes"]),
     Base.decode16!(composed_exit["proof"]),
-    Base.decode16!(composed_exit["sigs"]),
     bob.addr
   )
 Eth.WaitFor.eth_receipt(txhash)
@@ -129,7 +121,6 @@ Eth.WaitFor.eth_receipt(txhash)
     Base.decode16!(challenge["sigs"]),
     alice.addr
   )
-
 {:ok, _} = Eth.WaitFor.eth_receipt(txhash)
 
 # 4/ let's introduce a delay into the process of getting child block contents from the child chain server

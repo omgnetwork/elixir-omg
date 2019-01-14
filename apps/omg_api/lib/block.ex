@@ -45,6 +45,16 @@ defmodule OMG.API.Block do
     %__MODULE__{hash: merkle_hash(hashed_txs), transactions: txs_bytes, number: blknum}
   end
 
+  @doc """
+  Coerces the block struct to a format more in-line with the external API format
+  """
+  def to_api_format(%__MODULE__{number: blknum} = struct_block) do
+    struct_block
+    |> Map.from_struct()
+    |> Map.delete(:number)
+    |> Map.put(:blknum, blknum)
+  end
+
   # extracts the necessary data from a single transaction to include in a block and merkle hash
   # add more clauses to form blocks from other forms of transactions
   defp get_data_per_tx(%Transaction.Recovered{

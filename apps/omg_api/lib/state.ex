@@ -59,11 +59,12 @@ defmodule OMG.API.State do
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
-  @spec in_flight_exits(in_flight_exits :: Transaction.Recovered.t()) :: :ok
+  @spec in_flight_exits(in_flight_exits :: Transaction.Recovered.t()) :: {:ok, list(Core.db_update())}
   def in_flight_exits(in_flight_exits) do
     GenServer.call(__MODULE__, {:in_flight_exits, in_flight_exits})
   end
 
+  @spec piggybacks(piggybacks :: [Core.piggyback()]) :: {:ok, list(Core.db_update())}
   def piggybacks(piggybacks) do
     GenServer.call(__MODULE__, {:piggybacks, piggybacks})
   end

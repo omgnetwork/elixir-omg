@@ -12,16 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Eventer.Event do
+defmodule OMG.Watcher.Event do
   alias OMG.API.Block
   alias OMG.API.State.Transaction
 
   @type t ::
-          OMG.Watcher.Eventer.Event.AddressReceived.t()
-          | OMG.Watcher.Eventer.Event.InvalidBlock.t()
-          | OMG.Watcher.Eventer.Event.BlockWithholding.t()
-          | OMG.Watcher.Eventer.Event.InvalidExit.t()
+          OMG.Watcher.Event.AddressReceived.t()
+          | OMG.Watcher.Event.InvalidBlock.t()
+          | OMG.Watcher.Event.BlockWithholding.t()
+          | OMG.Watcher.Event.InvalidExit.t()
 
+  #  TODO The reason why events have name as String and byzantine events as atom is that
+  #  Phoniex websockets requires topics as strings + currently we treat Strings and binaries in
+  #  the same way in `OMG.Watcher.Web.Serializers.Response`
   defmodule AddressReceived do
     @moduledoc """
     Notifies about received funds by particular address
@@ -63,7 +66,7 @@ defmodule OMG.Watcher.Eventer.Event do
     Notifies about invalid block
     """
 
-    def name, do: "invalid_block"
+    def name, do: :invalid_block
 
     defstruct [:hash, :number, :error_type]
 
@@ -79,7 +82,7 @@ defmodule OMG.Watcher.Eventer.Event do
     Notifies about block-withholding
     """
 
-    def name, do: "block_withholding"
+    def name, do: :block_withholding
 
     defstruct [:blknum]
 
@@ -93,7 +96,7 @@ defmodule OMG.Watcher.Eventer.Event do
     Notifies about invalid exit
     """
 
-    def name, do: "invalid_exit"
+    def name, do: :invalid_exit
 
     defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height]
 
@@ -108,12 +111,12 @@ defmodule OMG.Watcher.Eventer.Event do
 
   defmodule UnchallengedExit do
     @moduledoc """
-    Notifies about an invalid exit, that is dangerously approaching finalization, without being challneged
+    Notifies about an invalid exit, that is dangerously approaching finalization, without being challenged
 
     It is a prompt to exit
     """
 
-    def name, do: "unchallenged_exit"
+    def name, do: :unchallenged_exit
 
     defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height]
 
@@ -125,4 +128,9 @@ defmodule OMG.Watcher.Eventer.Event do
             eth_height: pos_integer()
           }
   end
+
+  def get_event_name(%InvalidBlock{}), do: InvalidBlock.name()
+  def get_event_name(%BlockWithholding{}), do: BlockWithholding.name()
+  def get_event_name(%InvalidExit{}), do: InvalidExit.name()
+  def get_event_name(%UnchallengedExit{}), do: UnchallengedExit.name()
 end

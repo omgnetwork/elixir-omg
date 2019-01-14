@@ -21,7 +21,6 @@ defmodule OMG.Watcher.ExitProcessor do
   Should manage all kinds of exits allowed in the protocol and handle the interactions between them.
   """
 
-  alias OMG.API.EventerAPI
   alias OMG.API.State
   alias OMG.DB
   alias OMG.Eth
@@ -72,9 +71,6 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, db_exits} = DB.exit_infos()
 
     sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
-    interval = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
-
-    {:ok, _} = :timer.send_interval(interval, self(), :check_validity)
 
     Core.init(db_exits, sla_margin)
   end
@@ -106,29 +102,19 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   def handle_call(:check_validity, _from, state) do
-    chain_status = check_validity(state)
+    {chain_status, events} = determine_invalid_exits(state)
 
-    {:reply, chain_status, state}
-  end
-
-  def handle_info(:check_validity, state) do
-    _ = check_validity(state)
-    {:noreply, state}
-  end
-
-  defp check_validity(state) do
-    {event_triggers, chain_status} = determine_invalid_exits(state)
-    EventerAPI.emit_events(event_triggers)
-    chain_status
+    {:reply, {chain_status, events}, state}
   end
 
   # combine data from `ExitProcessor` and `API.State` to figure out what to do about exits
   defp determine_invalid_exits(state) do
     {:ok, eth_height_now} = Eth.get_ethereum_height()
+    {blknum_now, _} = State.get_status()
 
     state
     |> Core.get_exiting_utxo_positions()
     |> Enum.map(&State.utxo_exists?/1)
-    |> Core.invalid_exits(state, eth_height_now)
+    |> Core.invalid_exits(state, eth_height_now, blknum_now)
   end
 end

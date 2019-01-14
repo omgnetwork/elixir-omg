@@ -17,7 +17,6 @@ defmodule OMG.Watcher.Integration.TestHelper do
   Common helper functions that are useful when integration-testing the watcher
   """
 
-  alias OMG.API.Crypto
   alias OMG.API.State
   alias OMG.API.Utxo
   alias OMG.Eth
@@ -25,68 +24,52 @@ defmodule OMG.Watcher.Integration.TestHelper do
   require Utxo
   import OMG.Watcher.TestHelper
 
-  def get_exit_data(blknum, txindex, oindex) do
-    utxo_pos = Utxo.Position.encode({:utxo_position, blknum, txindex, oindex})
+  def wait_for_byzantine_events(event_names, timeout) do
+    fn ->
+      %{"byzantine_events" => emitted_events} = success?("/status.get")
+      emitted_event_names = Enum.map(emitted_events, &String.to_atom(&1["event"]))
 
-    data = success?("utxo.get_exit_data", %{utxo_pos: utxo_pos})
+      all_events =
+        Enum.all?(event_names, fn x ->
+          x in emitted_event_names
+        end)
 
-    decode16(data, ["txbytes", "proof", "sigs"])
-  end
-
-  def get_utxos(%{addr: address}) do
-    {:ok, address_encode} = Crypto.encode_address(address)
-
-    utxos = success?("utxo.get", %{address: address_encode})
-
-    utxos
-  end
-
-  def get_exit_challenge(blknum, txindex, oindex) do
-    utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
-
-    data = success?("utxo.get_challenge_data", %{utxo_pos: utxo_pos})
-
-    decode16(data, ["txbytes", "sig"])
-  end
-
-  def get_in_flight_exit(transaction) do
-    exit_data = success?("inflight_exit.get_data", %{txbytes: transaction})
-
-    decode16(exit_data, ["in_flight_tx", "input_txs", "input_txs_inclusion_proofs", "in_flight_tx_sigs"])
-  end
-
-  def wait_for_block_getter_down do
-    :ok = wait_for_process(Process.whereis(OMG.Watcher.BlockGetter))
+      if all_events,
+        do: {:ok, emitted_event_names},
+        else: :repeat
+    end
+    |> wait_for(timeout)
   end
 
   def wait_for_block_fetch(block_nr, timeout) do
-    fn ->
-      Eth.WaitFor.repeat_until_ok(wait_for_block(block_nr))
-    end
-    |> Task.async()
-    |> Task.await(timeout)
-
-    # write to db seems to be async and wait_for_block_fetch would return too early, so sleep
-    # leverage `block` events if they get implemented
-    Process.sleep(100)
-  end
-
-  defp wait_for_block(block_nr) do
     # TODO query to State used in tests instead of an event system, remove when event system is here
     fn ->
       if State.get_status() |> elem(0) <= block_nr,
         do: :repeat,
         else: {:ok, block_nr}
     end
+    |> wait_for(timeout)
+
+    # write to db seems to be async and wait_for_block_fetch would return too early, so sleep
+    # leverage `block` events if they get implemented
+    Process.sleep(100)
+  end
+
+  defp wait_for(func, timeout) do
+    fn ->
+      Eth.WaitFor.repeat_until_ok(func)
+    end
+    |> Task.async()
+    |> Task.await(timeout)
   end
 
   @doc """
   We need to wait on both a margin of eth blocks and exit processing
   """
   def wait_for_exit_processing(exit_eth_height, timeout \\ 5_000) do
-    exit_processor_validation = Application.fetch_env!(:omg_watcher, :exit_processor_validation_interval_ms)
     exit_finality = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + exit_finality, timeout)
-    Process.sleep(exit_processor_validation * 2)
+
+    Process.sleep(100)
   end
 end

@@ -19,12 +19,16 @@ defmodule OMG.Watcher.API.Status do
 
   alias OMG.API.State
   alias OMG.Eth
+  alias OMG.Watcher.BlockGetter
+  alias OMG.Watcher.Event
+  alias OMG.Watcher.ExitProcessor
 
   @opaque t() :: %{
             last_validated_child_block_number: non_neg_integer(),
             last_mined_child_block_number: non_neg_integer(),
             last_mined_child_block_timestamp: non_neg_integer(),
-            eth_syncing: boolean()
+            eth_syncing: boolean(),
+            byzantine_events: list(Event.t())
           }
 
   @doc """
@@ -39,11 +43,15 @@ defmodule OMG.Watcher.API.Status do
          {:ok, child_block_interval} <- Eth.RootChain.get_child_block_interval() do
       {state_current_block, _} = State.get_status()
 
+      {_, events_processor} = ExitProcessor.check_validity()
+      events_block_getter = BlockGetter.get_events()
+
       status = %{
         last_validated_child_block_number: state_current_block - child_block_interval,
         last_mined_child_block_number: last_mined_child_block_number,
         last_mined_child_block_timestamp: last_mined_child_block_timestamp,
-        eth_syncing: Eth.Geth.syncing?()
+        eth_syncing: Eth.Geth.syncing?(),
+        byzantine_events: events_processor ++ events_block_getter
       }
 
       {:ok, status}

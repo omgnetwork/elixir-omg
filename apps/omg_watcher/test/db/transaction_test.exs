@@ -18,14 +18,11 @@ defmodule OMG.Watcher.DB.TransactionTest do
   use OMG.API.Fixtures
   use Plug.Test
 
-  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.DB
 
   require Utxo
-
-  @eth Crypto.zero_address()
 
   @tag fixtures: [:initial_blocks]
   test "verifies all expected transaction were inserted", %{initial_blocks: initial_blocks} do
@@ -54,73 +51,5 @@ defmodule OMG.Watcher.DB.TransactionTest do
     assert tx_hashes == [tx0, tx1] |> Enum.map(& &1.txhash)
 
     assert [] == DB.Transaction.get_by_blknum(5000)
-  end
-
-  @tag fixtures: [:initial_blocks, :alice, :bob]
-  test "gets transaction that spends utxo", %{alice: alice, bob: bob, initial_blocks: initial_blocks} do
-    alice_deposit_pos = Utxo.position(1, 0, 0)
-    alice_deposit_hash = OMG.Watcher.DB.EthEvent.generate_unique_key(alice_deposit_pos, :deposit)
-    bob_deposit_pos = Utxo.position(2, 0, 0)
-    alice_addr = alice.addr
-    bob_addr = bob.addr
-
-    assert {:error, :utxo_not_spent} = DB.Transaction.get_transaction_challenging_utxo(bob_deposit_pos)
-
-    {blknum, txindex, spending_tx, _tx} = initial_blocks |> Enum.at(0)
-
-    assert {:ok,
-            %DB.Transaction{
-              txhash: ^spending_tx,
-              blknum: ^blknum,
-              txindex: ^txindex,
-              inputs: [
-                %DB.TxOutput{creating_deposit: ^alice_deposit_hash, owner: ^alice_addr, currency: @eth, amount: 333}
-              ],
-              outputs: [%DB.TxOutput{creating_txhash: ^spending_tx, owner: ^bob_addr, currency: @eth, amount: 300}]
-            }} = DB.Transaction.get_transaction_challenging_utxo(alice_deposit_pos)
-
-    alice_spent = Utxo.position(1000, 1, 0)
-    {_blknum, _txindex, creating_tx, _tx} = initial_blocks |> Enum.find(&(elem(&1, 1) == 1))
-    {blknum, txindex, spending_tx, _tx} = initial_blocks |> Enum.find(&(elem(&1, 0) == 2000))
-
-    assert {:ok,
-            %DB.Transaction{
-              txhash: ^spending_tx,
-              blknum: ^blknum,
-              txindex: ^txindex,
-              inputs: [%DB.TxOutput{creating_txhash: ^creating_tx, owner: ^alice_addr, currency: @eth, amount: 100}],
-              outputs: [
-                %DB.TxOutput{creating_txhash: ^spending_tx, owner: ^bob_addr, currency: @eth, amount: 99},
-                %DB.TxOutput{creating_txhash: ^spending_tx, owner: ^alice_addr, currency: @eth, amount: 1}
-              ]
-            }} = DB.Transaction.get_transaction_challenging_utxo(alice_spent)
-  end
-
-  @tag fixtures: [:initial_blocks, :bob]
-  test "transaction does not defend against double-spend", %{bob: bob} do
-    # This intends to make you aware that DB-layer does not protect against double spending
-    spent_txo = Utxo.position(1000, 1, 1)
-    {:ok, %DB.Transaction{txhash: spent_txhash}} = DB.Transaction.get_transaction_challenging_utxo(spent_txo)
-
-    assert %DB.TxOutput{
-             spending_txhash: ^spent_txhash
-           } = DB.TxOutput.get_by_position(spent_txo)
-
-    recovered_tx = OMG.API.TestHelper.create_recovered([{1000, 1, 1, bob}], @eth, [{bob, 200}])
-
-    {:ok, _} =
-      DB.Transaction.update_with(%{
-        transactions: [recovered_tx],
-        blknum: 11_000,
-        blkhash: <<?#::256>>,
-        timestamp: :os.system_time(:second),
-        eth_height: 10
-      })
-
-    double_spent_txhash = recovered_tx.signed_tx_hash
-
-    assert %DB.TxOutput{
-             spending_txhash: ^double_spent_txhash
-           } = DB.TxOutput.get_by_position(spent_txo)
   end
 end

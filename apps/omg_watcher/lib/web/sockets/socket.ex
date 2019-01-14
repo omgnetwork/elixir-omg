@@ -22,7 +22,6 @@ defmodule OMG.Watcher.Web.Socket do
 
   ## Channels
   channel("transfer:*", OMG.Watcher.Web.Channel.Transfer)
-  channel("byzantine", OMG.Watcher.Web.Channel.Byzantine)
 
   ## Transports
   transport(:websocket, Phoenix.Transports.WebSocket)

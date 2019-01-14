@@ -93,13 +93,14 @@ defmodule OMG.Watcher.Application do
               process_events_callback: fn in_flight_exits ->
                 {:ok, db_updates} = OMG.API.State.in_flight_exits(in_flight_exits)
 
-                OMG.Watcher.DB.EthEvent.insert_exits(
-                  db_updates
-                  |> Enum.filter(&match?({:delete, :utxo, _}, &1))
-                  |> Enum.map(fn {:delete, :utxo, {blknum, ix_index, oindex}} ->
-                    %{utxo_pos: Utxo.Position.encode(Utxo.position(blknum, ix_index, oindex))}
-                  end)
-                )
+                _ =
+                  OMG.Watcher.DB.EthEvent.insert_exits(
+                    db_updates
+                    |> Enum.filter(&match?({:delete, :utxo, _}, &1))
+                    |> Enum.map(fn {:delete, :utxo, {blknum, ix_index, oindex}} ->
+                      %{utxo_pos: Utxo.Position.encode(Utxo.position(blknum, ix_index, oindex))}
+                    end)
+                  )
 
                 {:ok, db_updates}
               end,
@@ -123,13 +124,14 @@ defmodule OMG.Watcher.Application do
               process_events_callback: fn piggybacks ->
                 {:ok, db_updates} = OMG.API.State.piggybacks(piggybacks)
 
-                OMG.Watcher.DB.EthEvent.insert_exits(
-                  db_updates
-                  |> Enum.filter(&match?({:delete, :utxo, _}, &1))
-                  |> Enum.map(fn {:delete, :utxo, {blknum, ix_index, oindex}} ->
-                    %{utxo_pos: Utxo.Position.encode(Utxo.position(blknum, ix_index, oindex))}
-                  end)
-                )
+                _ =
+                  OMG.Watcher.DB.EthEvent.insert_exits(
+                    db_updates
+                    |> Enum.filter(&match?({:delete, :utxo, _}, &1))
+                    |> Enum.map(fn {:delete, :utxo, {blknum, ix_index, oindex}} ->
+                      %{utxo_pos: Utxo.Position.encode(Utxo.position(blknum, ix_index, oindex))}
+                    end)
+                  )
 
                 {:ok, db_updates}
               end,
@@ -210,6 +212,7 @@ defmodule OMG.Watcher.Application do
     _ = Logger.info(fn -> "Started application OMG.Watcher.Application" end)
 
     opts = [strategy: :one_for_one, name: OMG.Watcher.Supervisor]
+    :ok = :error_logger.add_report_handler(Sentry.Logger)
     Supervisor.start_link(children, opts)
   end
 

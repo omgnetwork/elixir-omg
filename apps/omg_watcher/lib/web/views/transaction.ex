@@ -19,7 +19,6 @@ defmodule OMG.Watcher.Web.View.Transaction do
 
   use OMG.Watcher.Web, :view
 
-  alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.Web.Serializers
 
@@ -38,76 +37,39 @@ defmodule OMG.Watcher.Web.View.Transaction do
 
   def render("transactions.json", %{transactions: transactions}) do
     transactions
-    |> Enum.map(&render_transaction/1)
+    |> Enum.map(&render_tx_digest/1)
     |> Serializers.Response.serialize(:success)
   end
 
   defp render_transaction(transaction) do
-    {:ok,
-     %Transaction.Signed{
-       raw_tx: tx,
-       sigs: sigs
-     } = signed} = Transaction.Signed.decode(transaction.txbytes)
-
-    {:ok,
-     %Transaction.Recovered{
-       spenders: spenders
-     }} = Transaction.Recovered.recover_from(signed)
-
-    block = transaction.block
-
-    tx_base = %{
-      txid: transaction.txhash,
-      txblknum: transaction.blknum,
-      txindex: transaction.txindex,
-      timestamp: block.timestamp,
-      eth_height: block.eth_height
-    }
-
-    inputs = Transaction.get_inputs(tx)
-    outputs = Transaction.get_outputs(tx)
-
-    formatted =
-      tx_base
-      |> add_inputs(inputs)
-      |> add_outputs(outputs)
-      |> add_sigs(sigs)
-      |> add_spenders(spenders)
-
-    formatted
+    transaction
+    |> Map.take([:txindex, :txhash, :block, :inputs, :outputs, :txbytes])
+    |> Map.update!(:inputs, &render_txoutputs/1)
+    |> Map.update!(:outputs, &render_txoutputs/1)
   end
 
-  defp add_inputs(tx, [Utxo.position(blknum1, txindex1, oindex1), Utxo.position(blknum2, txindex2, oindex2) | _]) do
-    Map.merge(
-      tx,
-      %{
-        blknum1: blknum1,
-        txindex1: txindex1,
-        oindex1: oindex1,
-        blknum2: blknum2,
-        txindex2: txindex2,
-        oindex2: oindex2
-      }
-    )
+  defp render_tx_digest(transaction) do
+    outputs = Map.fetch!(transaction, :outputs)
+
+    transaction
+    |> Map.take([:txindex, :block, :txhash])
+    |> Map.put(:results, digest_outputs(outputs))
   end
 
-  defp add_outputs(tx, [output1, output2 | _]) do
-    Map.merge(
-      tx,
-      %{
-        cur12: output1.currency,
-        newowner1: output1.owner,
-        amount1: output1.amount,
-        newowner2: output2.owner,
-        amount2: output2.amount
-      }
-    )
+  # calculates results being sums of outputs grouped by currency
+  # NOTE: this could be potentially digested by the SQL engine, but choosing here for readability
+  defp digest_outputs(outputs) do
+    outputs
+    |> Enum.group_by(&Map.get(&1, :currency))
+    |> Enum.map(&digest_for_currency/1)
   end
 
-  defp add_sigs(tx, [sig]), do: Map.merge(tx, %{sig1: sig, sig2: <<>>})
-  defp add_sigs(tx, [sig1, sig2]), do: Map.merge(tx, %{sig1: sig1, sig2: sig2})
+  defp digest_for_currency({currency, outputs}) do
+    %{currency: currency, value: outputs |> Enum.map(&Map.get(&1, :amount)) |> Enum.sum()}
+  end
 
-  defp add_spenders(tx, []), do: Map.merge(tx, %{spender1: nil, spender2: nil})
-  defp add_spenders(tx, [spender]), do: Map.merge(tx, %{spender1: spender, spender2: nil})
-  defp add_spenders(tx, [spender1, spender2]), do: Map.merge(tx, %{spender1: spender1, spender2: spender2})
+  defp render_txoutputs(inputs) do
+    inputs
+    |> Enum.map(&Map.take(&1, [:amount, :blknum, :txindex, :oindex, :currency, :owner]))
+  end
 end

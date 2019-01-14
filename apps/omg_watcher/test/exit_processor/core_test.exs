@@ -23,8 +23,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   alias OMG.API.Crypto
   alias OMG.API.State
   alias OMG.API.Utxo
-  alias OMG.Watcher.Eventer
-  alias OMG.Watcher.Eventer.Event
+  alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor.Core
 
   require Utxo
@@ -32,11 +31,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @eth Crypto.zero_address()
   @not_eth <<1::size(160)>>
 
+  @early_blknum 1_000
+  @late_blknum 10_000
+
   @utxo_pos1 Utxo.position(1, 0, 0)
-  @utxo_pos2 Utxo.Position.decode(10_000_000_001)
+  @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
 
   @update_key1 {1, 0, 0}
-  @update_key2 {10, 0, 1}
+  @update_key2 {@late_blknum - 1_000, 0, 1}
 
   deffixture processor_empty() do
     {:ok, empty} = Core.init([])
@@ -135,14 +137,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
               {:put, :exit_info, {@update_key2, %{is_active: true}}}
             ]} = Core.finalize_exits(processor, two_spend)
 
-    assert {[_event1, _event2, _event3] = event_triggers, {:needs_stopping, :unchallenged_exit}} =
+    assert {{:error, :unchallenged_exit}, [_event1, _event2, _event3]} =
              processor
              |> Core.get_exiting_utxo_positions()
              |> Enum.map(&State.Core.utxo_exists?(&1, state_after_spend))
-             |> Core.invalid_exits(processor, 12)
-
-    # assert Eventer likes these triggers
-    assert [_, _, _] = Eventer.Core.pair_events_with_topics(event_triggers)
+             |> Core.invalid_exits(processor, 12, @late_blknum)
   end
 
   @tag fixtures: [:processor_empty, :state_alice_deposit, :events, :contract_statuses]
@@ -156,18 +155,18 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       processor
       |> Core.new_exits([one_exit], [one_status])
 
-    assert {[], :chain_ok} =
+    assert {:ok, []} =
              processor
              |> Core.get_exiting_utxo_positions()
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor, 5)
+             |> Core.invalid_exits(processor, 5, @late_blknum)
 
     # go into the future - old exits work the same
-    assert {[], :chain_ok} =
+    assert {:ok, []} =
              processor
              |> Core.get_exiting_utxo_positions()
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor, 105)
+             |> Core.invalid_exits(processor, 105, @late_blknum)
 
     # exit validly finalizes and continues to not emit any events
     {:ok, {_, _, spends}, _} = State.Core.exit_utxos([%{utxo_pos: Utxo.Position.encode(@utxo_pos1)}], state)
@@ -188,14 +187,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       processor
       |> Core.new_exits([one_exit], [one_status])
 
-    assert {[%Event.InvalidExit{utxo_pos: ^exiting_position}] = event_triggers, :chain_ok} =
+    assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_position}]} =
              processor
              |> Core.get_exiting_utxo_positions()
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor, 5)
-
-    # assert Eventer likes these triggers
-    assert [_] = Eventer.Core.pair_events_with_topics(event_triggers)
+             |> Core.invalid_exits(processor, 5, @late_blknum)
   end
 
   @tag fixtures: [:processor_empty, :events, :contract_statuses]
@@ -234,16 +230,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       processor
       |> Core.new_exits([one_exit], [one_status])
 
-    assert {[%Event.UnchallengedExit{utxo_pos: ^exiting_position}, %Event.InvalidExit{utxo_pos: ^exiting_position}] =
-              event_triggers,
-            {:needs_stopping, :unchallenged_exit}} =
+    assert {{:error, :unchallenged_exit},
+            [%Event.UnchallengedExit{utxo_pos: ^exiting_position}, %Event.InvalidExit{utxo_pos: ^exiting_position}]} =
              processor
              |> Core.get_exiting_utxo_positions()
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor, 13)
-
-    # assert Eventer likes these triggers
-    assert [_, _] = Eventer.Core.pair_events_with_topics(event_triggers)
+             |> Core.invalid_exits(processor, 13, @late_blknum)
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :events, :contract_statuses]
@@ -256,11 +248,29 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       processor
       |> Core.new_exits([one_exit], [{Crypto.zero_address(), @eth, 10}])
 
-    assert {[], :chain_ok} =
+    assert {:ok, []} =
              processor
              |> Core.get_exiting_utxo_positions()
              |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor, 13)
+             |> Core.invalid_exits(processor, 13, @late_blknum)
+  end
+
+  @tag fixtures: [:processor_empty, :state_empty, :events, :contract_statuses]
+  test "exits of utxos that couldn't have been seen created yet never excite events", %{
+    processor_empty: processor,
+    state_empty: state,
+    events: [_, late_exit | _],
+    contract_statuses: [_, active_status | _]
+  } do
+    {processor, _} =
+      processor
+      |> Core.new_exits([late_exit], [active_status])
+
+    assert {:ok, []} =
+             processor
+             |> Core.get_exiting_utxo_positions()
+             |> Enum.map(&State.Core.utxo_exists?(&1, state))
+             |> Core.invalid_exits(processor, 13, @early_blknum)
   end
 
   @tag fixtures: [:processor_empty]

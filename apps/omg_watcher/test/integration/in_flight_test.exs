@@ -22,7 +22,7 @@ defmodule OMG.Watcher.Integration.InFlightTest do
   alias OMG.API.Integration.DepositHelper
   alias OMG.Eth
   alias OMG.RPC.Client
-  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.TestHelper
 
   @moduletag :integration
 
@@ -38,7 +38,7 @@ defmodule OMG.Watcher.Integration.InFlightTest do
       [{deposit_blknum, 0, 0, alice}]
       |> API.TestHelper.create_encoded(@eth, [{alice, 7}, {bob, 3}])
       |> Base.encode16(case: :upper)
-      |> IntegrationTest.get_in_flight_exit()
+      |> TestHelper.get_in_flight_exit()
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.in_flight_exit(
@@ -68,7 +68,7 @@ defmodule OMG.Watcher.Integration.InFlightTest do
     in_flight_exit_info =
       tx
       |> Base.encode16(case: :upper)
-      |> IntegrationTest.get_in_flight_exit()
+      |> TestHelper.get_in_flight_exit()
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.in_flight_exit(

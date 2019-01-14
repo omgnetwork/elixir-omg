@@ -190,7 +190,7 @@ defmodule OMG.API.State.TransactionTest do
   end
 
   @tag fixtures: [:alice, :state_empty, :bob]
-  test "Transactions created by :new and :create_from_utxos should be equal", %{alice: alice, bob: bob} do
+  test "transactions created by :new and :create_from_utxos should be equal", %{alice: alice, bob: bob} do
     utxos = [
       %{amount: 10, currency: eth(), blknum: 1, oindex: 0, txindex: 0},
       %{amount: 11, currency: eth(), blknum: 2, oindex: 0, txindex: 0}
@@ -221,20 +221,29 @@ defmodule OMG.API.State.TransactionTest do
 
   @tag fixtures: [:alice, :bob, :carol]
   test "checks if spenders are authorized", %{alice: alice, bob: bob, carol: carol} do
-    authorized_tx =
-      TestHelper.create_recovered([{1, 1, 0, alice}, {1, 3, 0, bob}], eth(), [
-        {bob, 6},
-        {alice, 4}
-      ])
+    authorized_tx = TestHelper.create_recovered([{1, 1, 0, alice}, {1, 3, 0, bob}], eth(), [{bob, 6}, {alice, 4}])
 
-    :ok = Transaction.Recovered.all_spenders_authorized?(authorized_tx, [alice.addr, bob.addr])
+    :ok = Transaction.Recovered.all_spenders_authorized(authorized_tx, [alice.addr, bob.addr])
 
-    {:error, :unauthorized_spent} =
-      Transaction.Recovered.all_spenders_authorized?(authorized_tx, [bob.addr, alice.addr])
+    {:error, :unauthorized_spent} = Transaction.Recovered.all_spenders_authorized(authorized_tx, [bob.addr, alice.addr])
 
-    {:error, :unauthorized_spent} = Transaction.Recovered.all_spenders_authorized?(authorized_tx, [carol.addr])
+    {:error, :unauthorized_spent} = Transaction.Recovered.all_spenders_authorized(authorized_tx, [carol.addr])
 
     {:error, :unauthorized_spent} =
-      Transaction.Recovered.all_spenders_authorized?(authorized_tx, [alice.addr, carol.addr])
+      Transaction.Recovered.all_spenders_authorized(authorized_tx, [alice.addr, carol.addr])
+  end
+
+  @tag fixtures: [:alice]
+  test "decoding signed transaction fails when signatures do not have a proper length", %{alice: alice} do
+    tx = Transaction.new([{1000, 0, 0}, {1000, 0, 1}], [{alice.addr, eth(), 10}])
+
+    [inputs, outputs] =
+      tx
+      |> Transaction.encode()
+      |> ExRLP.decode()
+
+    encoded_with_sigs = ExRLP.encode([[<<1>>, <<1>>], inputs, outputs])
+
+    assert {:error, :bad_signature_length} == Transaction.Signed.decode(encoded_with_sigs)
   end
 end

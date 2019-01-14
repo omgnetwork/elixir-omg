@@ -23,7 +23,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.API.Crypto
   alias OMG.API.Utxo
   require Utxo
-  alias OMG.Watcher.Eventer.Event
+  alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor.ExitInfo
 
   @default_sla_margin 10
@@ -156,16 +156,22 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   NOTE: If there were any exits unchallenged for some time in chain history, this might detect breach of SLA,
         even if the exits were eventually challenged (e.g. during syncing)
   """
-  @spec invalid_exits(list(boolean), t(), pos_integer) ::
-          {list(Event.InvalidExit.t() | Event.UnchallengedExit.t()), :chain_ok | {:needs_stopping, :unchallenged_exit}}
-  def invalid_exits(utxo_exists_result, %__MODULE__{exits: exits, sla_margin: sla_margin} = state, eth_height_now) do
+  @spec invalid_exits(list(boolean), t(), pos_integer, non_neg_integer) ::
+          {:ok | {:error, :unchallenged_exit}, list(Event.InvalidExit.t() | Event.UnchallengedExit.t())}
+  def invalid_exits(
+        utxo_exists_result,
+        %__MODULE__{exits: exits, sla_margin: sla_margin} = state,
+        eth_height_now,
+        blknum_now
+      ) do
     exiting_utxo_positions = get_exiting_utxo_positions(state)
 
     invalid_exit_positions =
       utxo_exists_result
-      |> Enum.zip(exiting_utxo_positions)
-      |> Enum.filter(fn {utxo_exists, _} -> !utxo_exists end)
-      |> Enum.map(fn {_, position} -> position end)
+      |> Stream.zip(exiting_utxo_positions)
+      |> Stream.filter(fn {utxo_exists, _} -> !utxo_exists end)
+      |> Stream.filter(fn {_, Utxo.position(blknum, _, _)} -> blknum < blknum_now end)
+      |> Stream.map(fn {_, position} -> position end)
 
     # get exits which are still invalid and after the SLA margin
     late_invalid_exits =
@@ -184,8 +190,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
       |> Enum.concat(non_late_events)
 
-    chain_validity = if has_no_late_invalid_exits, do: :chain_ok, else: {:needs_stopping, :unchallenged_exit}
+    chain_validity = if has_no_late_invalid_exits, do: :ok, else: {:error, :unchallenged_exit}
 
-    {events, chain_validity}
+    {chain_validity, events}
   end
 end

@@ -44,8 +44,9 @@ defmodule OMG.API.State.Core do
           amount: pos_integer()
         }
 
-  @type in_flight_exit() :: list() #[bitstring(), any(), any(), bitstring()]
-  @type piggyback() :: %{txHash: Transaction.signed_tx_hash_t(), outputIndex: non_neg_integer}
+  # [bitstring(), any(), any(), bitstring()]
+  @type in_flight_exit() :: list()
+  @type piggyback() :: %{txHash: Transaction.Recovered.signed_tx_hash_t(), outputIndex: non_neg_integer}
 
   @type exit_t() :: %{
           utxo_pos: pos_integer(),
@@ -197,7 +198,7 @@ defmodule OMG.API.State.Core do
 
     with {:ok, input_utxos} <- get_input_utxos(utxos, inputs),
          input_utxos_owners <- Enum.map(input_utxos, fn %{owner: owner} -> owner end),
-         :ok <- Transaction.Recovered.all_spenders_authorized?(recovered_tx, input_utxos_owners) do
+         :ok <- Transaction.Recovered.all_spenders_authorized(recovered_tx, input_utxos_owners) do
       {:ok, input_utxos}
     end
   end
@@ -205,16 +206,12 @@ defmodule OMG.API.State.Core do
   defp get_input_utxos(utxos, inputs) do
     inputs
     |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum != 0 end)
-    |> Enum.reduce({:ok, []}, fn input, acc -> get_utxos(utxos, input, acc) end)
-  end
-
-  defp get_utxos(_, _, {:error, _} = err), do: err
-
-  defp get_utxos(utxos, position, {:ok, acc}) do
-    case Map.get(utxos, position) do
-      nil -> {:error, :utxo_not_found}
-      found -> {:ok, acc ++ [found]}
-    end
+    |> Enum.reduce_while({:ok, []}, fn position, {:ok, acc} ->
+      case Map.get(utxos, position) do
+        nil -> {:halt, {:error, :utxo_not_found}}
+        found -> {:cont, {:ok, acc ++ [found]}}
+      end
+    end)
   end
 
   defp get_amounts_by_currency(utxos) do
@@ -273,17 +270,15 @@ defmodule OMG.API.State.Core do
   end
 
   defp utxos_from(
-         %Transaction.Recovered{
-           signed_tx_hash: signed_tx_hash,
-           signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = tx}
-         },
+         %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = tx}, signed_tx_hash: hash},
          height,
          tx_index
        ) do
     outputs = Transaction.get_outputs(tx)
 
     for {%{owner: owner, currency: currency, amount: amount}, oindex} <- Enum.with_index(outputs) do
-      {Utxo.position(height, tx_index, oindex), %Utxo{owner: owner, currency: currency, amount: amount}}
+      {Utxo.position(height, tx_index, oindex),
+       %Utxo{owner: owner, currency: currency, amount: amount, signed_tx_hash: hash}}
     end
   end
 
@@ -323,7 +318,10 @@ defmodule OMG.API.State.Core do
         Transaction.get_inputs(tx)
       end)
       |> Enum.filter(fn position -> position != Utxo.position(0, 0, 0) end)
-      |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :utxo, {blknum, txindex, oindex}} end)
+      |> Enum.flat_map(fn Utxo.position(blknum, txindex, oindex) ->
+        # TODO: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes.
+        [{:delete, :utxo, {blknum, txindex, oindex}}, {:put, :spend, {{blknum, txindex, oindex}, height}}]
+      end)
 
     db_updates_block = [{:put, :block, block}]
 
@@ -442,24 +440,10 @@ defmodule OMG.API.State.Core do
 
   @spec in_flight_exits(in_flight_txs :: [in_flight_exit()], state :: t()) ::
           {:ok, {[exit_event], [db_update]}, new_state :: t()}
-  def in_flight_exits(in_flight_txs, %Core{utxos: utxos} = state) do
+  def in_flight_exits(in_flight_txs, state) do
     {db_updates_list_and_events, new_state} =
       in_flight_txs
-      |> Enum.map_reduce(state, fn [tx_bytes, _, _, sigs], state ->
-        {:ok, tx} = Transaction.decode(tx_bytes)
-        {:ok, tx_recover} = Transaction.Recovered.recover_from(%Transaction.Signed{raw_tx: tx, sigs: sigs_chope(sigs)})
-
-        {inputs, _invalid} =
-          tx_recover.signed_tx.raw_tx |> Transaction.get_inputs() |> Enum.split_with(&utxo_exists?(&1, state))
-
-        db_updates =
-          inputs
-          |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :utxo, {blknum, txindex, oindex}} end)
-
-        new_state = %{state | utxos: Map.drop(utxos, inputs)}
-        event_trigger = %{in_flight_exits: %{utxo_pos: inputs}}
-        {{db_updates, event_trigger}, new_state}
-      end)
+      |> Enum.map_reduce(state, &in_flight_exit/2)
 
     {event_triggers, db_updates} =
       db_updates_list_and_events
@@ -469,9 +453,30 @@ defmodule OMG.API.State.Core do
     {:ok, {event_triggers, db_updates}, new_state}
   end
 
+  defp to_delete_db_update(utxos) do
+    utxos
+    |> Enum.map(fn Utxo.position(blknum, txindex, oindex) ->
+      {:delete, :utxo, {blknum, txindex, oindex}}
+    end)
+  end
+
+  defp in_flight_exit([tx_bytes, _, _, sigs], %Core{utxos: utxos} = state) do
+    {:ok, tx} = Transaction.decode(tx_bytes)
+    {:ok, tx_recover} = Transaction.Recovered.recover_from(%Transaction.Signed{raw_tx: tx, sigs: sigs_chope(sigs)})
+
+    {inputs, _invalid} =
+      tx_recover.signed_tx.raw_tx |> Transaction.get_inputs() |> Enum.split_with(&utxo_exists?(&1, state))
+
+    db_updates = to_delete_db_update(inputs)
+    new_state = %{state | utxos: Map.drop(utxos, inputs)}
+    event_trigger = %{in_flight_exits: %{utxo_pos: inputs}}
+
+    {{db_updates, event_trigger}, new_state}
+  end
+
   @spec piggybacks(piggybacks :: [piggyback()], state :: t()) :: {:ok, {[exit_event], [db_update]}, new_state :: t()}
   def piggybacks(piggybacks, %Core{utxos: utxos} = state) do
-    inputs =
+    outputs =
       piggybacks
       |> Enum.map(fn %{txHash: tx_hash, outputIndex: oindex} ->
         # oindex in contract is 0-7 where 4-7 are outputs
@@ -479,17 +484,15 @@ defmodule OMG.API.State.Core do
 
         utxos
         |> Map.to_list()
-        |> Enum.find(&match?({Utxo.position(_, _, oindex), %Utxo{signed_tx_hash: tx_hash}}, &1))
+        |> Enum.find(&match?({Utxo.position(_, _, ^oindex), %Utxo{signed_tx_hash: ^tx_hash}}, &1))
       end)
       |> Enum.filter(&(&1 != nil))
       |> Enum.map(fn {position, _} -> position end)
 
-    db_updates =
-      inputs |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :utxo, {blknum, txindex, oindex}} end)
-
+    db_updates = to_delete_db_update(outputs)
     event_triggers = piggybacks |> Enum.map(fn piggyback -> %{piggyback: piggyback} end)
+    new_state = %{state | utxos: Map.drop(utxos, outputs)}
 
-    new_state = %{state | utxos: Map.drop(utxos, inputs)}
     {:ok, {event_triggers, db_updates}, new_state}
   end
 

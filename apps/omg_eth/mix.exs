@@ -49,7 +49,8 @@ defmodule OMG.Eth.MixProject do
         compile: contracts_compile(),
         app: false,
         only: [:dev, :test]
-      }
+      },
+      {:appsignal, "~> 1.0"}
     ]
   end
 

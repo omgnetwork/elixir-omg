@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Web.Controller.Account do
   use PhoenixSwagger
 
   alias OMG.API.Crypto
-  alias OMG.Watcher.API.Account
+  alias OMG.Watcher.API
   alias OMG.Watcher.Web.View
 
   action_fallback(OMG.Watcher.Web.Controller.Fallback)
@@ -30,11 +30,19 @@ defmodule OMG.Watcher.Web.Controller.Account do
   Gets plasma account balance
   """
   def get_balance(conn, params) do
-    # TODO: handle input validation (separate task)
     with {:ok, address} <- Map.fetch(params, "address"),
          {:ok, decoded_address} <- Crypto.decode_address(address) do
-      balance = Account.get_balance(decoded_address)
+      balance = API.Account.get_balance(decoded_address)
       render(conn, View.Account, :balance, balance: balance)
+    end
+  end
+
+  def get_utxos(conn, params) do
+    with {:ok, address} <- Map.fetch(params, "address"),
+         {:ok, decoded_address} <- Crypto.decode_address(address) do
+      utxos = API.Account.get_utxos(decoded_address)
+
+      render(conn, View.Utxo, :utxos, utxos: utxos)
     end
   end
 
@@ -59,6 +67,41 @@ defmodule OMG.Watcher.Web.Controller.Account do
           title("Array of currency balances")
           type(:array)
           items(Schema.ref(:CurrencyBalance))
+        end,
+      Utxo:
+        swagger_schema do
+          title("Utxo")
+
+          properties do
+            currency(:string, "Currency of the utxo", required: true)
+            amount(:integer, "Amount of the currency", required: true)
+
+            blknum(
+              :integer,
+              "Number of child chain block that contains transaction that created the utxo",
+              required: true
+            )
+
+            txindex(:integer, "Number of transaction that created the utxo", required: true)
+            oindex(:integer, "Output index in the transaction", required: true)
+            txbytes(:string, "RLP encoded signed transaction that created the utxo", required: true)
+          end
+
+          example(%{
+            currency: "0000000000000000000000000000000000000000",
+            amount: 10,
+            blknum: 1000,
+            txindex: 1,
+            oindex: 0,
+            txbytes:
+              "F8CF0101808080809400000000000000000000000000000000000000009459D87A1B128920C828C2648C9211F6626A9C82F28203E894000000000000000000000000000000000000000080B84196BE9F44CE42D5A20DC382AAB8C940BD25E8A9A7E50B9CE976ADEEB7EDE1348B1F7BBA11C5EB235CE732AD960EF7E71330C34C137A5D2C09FA9A2F8F680911CA1CB8410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+          })
+        end,
+      Utxos:
+        swagger_schema do
+          title("Array of utxos")
+          type(:array)
+          items(Schema.ref(:Utxo))
         end
     }
   end
@@ -72,5 +115,16 @@ defmodule OMG.Watcher.Web.Controller.Account do
     end
 
     response(200, "OK", Schema.ref(:Balance))
+  end
+
+  swagger_path :get_utxos do
+    post("/account.get_utxos")
+    summary("Gets all utxos belonging to the given address")
+
+    parameters do
+      address(:body, :string, "Address of utxo owner", required: true)
+    end
+
+    response(200, "OK", Schema.ref(:Utxos))
   end
 end

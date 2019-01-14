@@ -17,6 +17,11 @@ defmodule OMG.Watcher.TestHelper do
   Module provides common testing functions used by App's tests.
   """
 
+  alias OMG.API.Crypto
+  alias OMG.API.Utxo
+
+  require Utxo
+
   import ExUnit.Assertions
   use Plug.Test
 
@@ -93,5 +98,32 @@ defmodule OMG.Watcher.TestHelper do
       end
     )
     |> (&Map.merge(data, &1)).()
+  end
+
+  def get_utxos(address) do
+    {:ok, address_encode} = Crypto.encode_address(address)
+    success?("/account.get_utxos", %{"address" => address_encode})
+  end
+
+  def get_exit_data(blknum, txindex, oindex) do
+    utxo_pos = Utxo.Position.encode({:utxo_position, blknum, txindex, oindex})
+
+    data = success?("utxo.get_exit_data", %{utxo_pos: utxo_pos})
+
+    decode16(data, ["txbytes", "proof", "sigs"])
+  end
+
+  def get_exit_challenge(blknum, txindex, oindex) do
+    utxo_pos = Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode()
+
+    data = success?("utxo.get_challenge_data", %{utxo_pos: utxo_pos})
+
+    decode16(data, ["txbytes", "sig"])
+  end
+
+  def get_in_flight_exit(transaction) do
+    exit_data = success?("inflight_exit.get_data", %{txbytes: transaction})
+
+    decode16(exit_data, ["in_flight_tx", "input_txs", "input_txs_inclusion_proofs", "in_flight_tx_sigs"])
   end
 end

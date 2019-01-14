@@ -86,13 +86,13 @@ defmodule OMG.API.Core do
   end
 
   defp all_inputs_signed?(inputs, sigs) do
-    inputs
-    |> Enum.zip(sigs)
-    |> Enum.reduce(:ok, &input_signature_valid?/2)
+    Enum.zip(inputs, sigs)
+    |> Enum.map(&input_signature_valid/1)
+    |> Enum.find(:ok, &(&1 != :ok))
   end
 
-  defp input_signature_valid?({Utxo.position(0, _, _), @empty_signature}, acc), do: acc
-  defp input_signature_valid?({Utxo.position(0, _, _), _}, _), do: {:error, :signature_corrupt}
-  defp input_signature_valid?({_, @empty_signature}, _), do: {:error, :missing_signature}
-  defp input_signature_valid?({_, _}, acc), do: acc
+  defp input_signature_valid({Utxo.position(0, _, _), @empty_signature}), do: :ok
+  defp input_signature_valid({Utxo.position(0, _, _), _}), do: {:error, :signature_corrupt}
+  defp input_signature_valid({_, @empty_signature}), do: {:error, :missing_signature}
+  defp input_signature_valid({_, _}), do: :ok
 end

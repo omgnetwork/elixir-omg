@@ -23,7 +23,7 @@ defmodule OMG.API.Utxo do
   defstruct [:owner, :currency, :amount, :signed_tx_hash]
 
   @type t() :: %__MODULE__{
-          signed_tx_hash: Transaction.signed_tx_hash_t(),
+          signed_tx_hash: Transaction.Recovered.signed_tx_hash_t(),
           owner: Crypto.address_t(),
           currency: Crypto.address_t(),
           amount: non_neg_integer

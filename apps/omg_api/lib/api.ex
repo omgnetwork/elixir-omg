@@ -20,7 +20,7 @@ defmodule OMG.API do
   (but not transport-specific encoding like hex).
   """
 
-  alias OMG.API.{Core, FeeChecker, FreshBlocks, State}
+  alias OMG.API.{Block, Core, FeeChecker, FreshBlocks, State}
   use OMG.API.LoggerExt
 
   @type submit_error() :: Core.recover_tx_error() | FeeChecker.error() | State.exec_error()
@@ -28,28 +28,25 @@ defmodule OMG.API do
   @spec submit(transaction :: binary) ::
           {:ok, %{tx_hash: <<_::768>>, blknum: pos_integer, tx_index: non_neg_integer}} | {:error, submit_error()}
   def submit(transaction) do
-    result =
-      with {:ok, recovered_tx} <- Core.recover_tx(transaction),
-           {:ok, fees} <- FeeChecker.transaction_fees(recovered_tx),
-           {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
-        {:ok, %{tx_hash: tx_hash, blknum: blknum, tx_index: tx_index}}
-      end
-
-    _ = Logger.debug(fn -> " resulted with #{inspect(result)}" end)
-
-    result
+    with {:ok, recovered_tx} <- Core.recover_tx(transaction),
+         {:ok, fees} <- FeeChecker.transaction_fees(recovered_tx),
+         {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
+      {:ok, %{tx_hash: tx_hash, blknum: blknum, tx_index: tx_index}}
+    end
+    |> result_with_logging()
   end
 
   @spec get_block(hash :: bitstring) ::
-          {:ok, %{hash: bitstring, transactions: list, number: integer}} | {:error, :not_found | :internal_error}
+          {:ok, %{hash: bitstring, transactions: list, blknum: integer}} | {:error, :not_found | :internal_error}
   def get_block(hash) do
     with {:ok, struct_block} <- FreshBlocks.get(hash) do
-      _ = Logger.debug(fn -> " resulted successfully, hash '#{inspect(hash)}'" end)
-      {:ok, Map.from_struct(struct_block)}
-    else
-      error ->
-        _ = Logger.debug(fn -> " resulted with error #{inspect(error)}, hash '#{inspect(hash)}'" end)
-        error
+      {:ok, Block.to_api_format(struct_block)}
     end
+    |> result_with_logging()
+  end
+
+  defp result_with_logging(result) do
+    _ = Logger.debug(fn -> " resulted with #{inspect(result)}" end)
+    result
   end
 end

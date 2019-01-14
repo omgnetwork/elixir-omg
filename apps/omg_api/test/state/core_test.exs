@@ -169,10 +169,11 @@ defmodule OMG.API.State.CoreTest do
 
     state
     |> (&Core.exec(
-          Test.create_recovered([{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}], eth(), [
-            {alice, 7},
-            {bob, 2}
-          ]),
+          Test.create_recovered(
+            [{@child_block_interval, 0, 0, bob}, {@child_block_interval, 0, 1, alice}],
+            eth(),
+            [{alice, 7}, {bob, 2}]
+          ),
           # outputs exceed inputs, no fee
           %{eth() => 2},
           &1
@@ -452,11 +453,12 @@ defmodule OMG.API.State.CoreTest do
              {:put, :utxo, new_utxo1},
              {:put, :utxo, new_utxo2},
              {:delete, :utxo, {1, 0, 0}},
+             {:put, :spend, {{1, 0, 0}, 1000}},
              {:put, :block, _},
              {:put, :child_top_block_number, @child_block_interval}
            ] = db_updates
 
-    assert {{@child_block_interval, 0, 0}, %{owner: ^bob_addr, currency: @eth, amount: 7}}   = new_utxo1
+    assert {{@child_block_interval, 0, 0}, %{owner: ^bob_addr, currency: @eth, amount: 7}} = new_utxo1
     assert {{@child_block_interval, 0, 1}, %{owner: ^alice_addr, currency: @eth, amount: 3}} = new_utxo2
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_2}]}, state} =
@@ -478,7 +480,9 @@ defmodule OMG.API.State.CoreTest do
     assert [
              {:put, :utxo, new_utxo},
              {:delete, :utxo, {@child_block_interval, 0, 0}},
+             {:put, :spend, {{1000, 0, 0}, 3000}},
              {:delete, :utxo, {@child_block_interval, 0, 1}},
+             {:put, :spend, {{1000, 0, 1}, 3000}},
              {:put, :block, _},
              {:put, :child_top_block_number, @child_block_3}
            ] = db_updates2

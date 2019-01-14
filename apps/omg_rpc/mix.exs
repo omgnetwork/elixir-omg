@@ -42,7 +42,8 @@ defmodule OMG.RPC.MixProject do
       {:cowboy, "~> 1.1"},
       # NOTE: fixed version needed b/c Plug.Conn.WrapperError.reraise/3 is deprecated... 2 occurences in umbrella.
       {:plug, "1.5.0", override: true},
-      {:httpoison, "~> 1.1.0"}
+      {:httpoison, "~> 1.1.0"},
+      {:appsignal, "~> 1.0"}
       #
     ]
   end

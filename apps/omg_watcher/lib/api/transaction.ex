@@ -30,23 +30,31 @@ defmodule OMG.Watcher.API.Transaction do
           in_flight_tx_sigs: binary()
         }
 
+  @default_transactions_limit 200
+
   @doc """
   Retrieves a specific transaction by id
   """
   @spec get(binary()) :: nil | %DB.Transaction{}
   def get(transaction_id) do
-    DB.Transaction.get(transaction_id, true)
+    DB.Transaction.get(transaction_id)
   end
 
   @doc """
-  Retrieves a list of transactions that a given address is involved as input or output owner.
-  Length of the list is limited by `limit` argument.
-  If `nil` is given as `address` argument then a list of last 'limit' transactions is returned.
-  """
-  @spec get_transactions(nil | OMG.API.Crypto.address_t(), pos_integer()) :: list(%DB.Transaction{})
-  def get_transactions(nil, limit), do: DB.Transaction.get_last(limit)
+  Retrieves a list of transactions that:
+   - (optionally) a given address is involved as input or output owner.
+   - (optionally) belong to a given child block number
 
-  def get_transactions(address, limit), do: DB.Transaction.get_by_address(address, limit)
+  Length of the list is limited by `limit` argument
+  """
+  @spec get_transactions(nil | OMG.API.Crypto.address_t(), nil | pos_integer(), pos_integer()) ::
+          list(%DB.Transaction{})
+  def get_transactions(address, blknum, limit) do
+    limit = limit || @default_transactions_limit
+    # TODO: implement pagination. Defend against fetching huge dataset.
+    limit = min(limit, @default_transactions_limit)
+    DB.Transaction.get_by_filters(address, blknum, limit)
+  end
 
   @doc """
   Returns arguments for plasma contract function that starts in-flight exit for a given transaction.
@@ -75,15 +83,13 @@ defmodule OMG.Watcher.API.Transaction do
     result =
       raw_tx
       |> Transaction.get_inputs()
-      |> Enum.map(fn utxo_pos ->
-        case utxo_pos do
-          Utxo.position(0, 0, 0) ->
-            {<<>>, <<>>}
+      |> Enum.map(fn
+        Utxo.position(0, 0, 0) ->
+          {<<>>, <<>>}
 
-          _ ->
-            with {:ok, %{proof: proof, txbytes: txbytes}} <- DB.TxOutput.compose_utxo_exit(utxo_pos),
-                 do: {proof, txbytes}
-        end
+        utxo_pos ->
+          with {:ok, %{proof: proof, txbytes: txbytes}} <- DB.TxOutput.compose_utxo_exit(utxo_pos),
+               do: {proof, txbytes}
       end)
 
     result

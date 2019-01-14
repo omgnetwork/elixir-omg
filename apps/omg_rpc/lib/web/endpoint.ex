@@ -14,6 +14,7 @@
 
 defmodule OMG.RPC.Web.Endpoint do
   use Phoenix.Endpoint, otp_app: :omg_rpc
+  use Appsignal.Phoenix
 
   # Serve at "/" the static files from "priv/static" directory.
   #

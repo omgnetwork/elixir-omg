@@ -110,9 +110,16 @@ defmodule OMG.API.TestHelper do
         outputs |> Enum.map(fn {owner, amount} -> {owner.addr, currency, amount} end)
       )
 
-    [priv1, priv2 | _] = inputs |> Enum.map(fn {_, _, _, owner} -> owner.priv end) |> Enum.concat([<<>>, <<>>])
+    privs = get_private_keys(inputs)
+    Transaction.sign(raw_tx, privs)
+  end
 
-    Transaction.sign(raw_tx, [priv1, priv2])
+  defp get_private_keys(inputs) do
+    filler = List.duplicate(<<>>, 4 - length(inputs))
+
+    inputs
+    |> Enum.map(fn {_, _, _, owner} -> owner.priv end)
+    |> Enum.concat(filler)
   end
 
   @spec create_signed(
@@ -126,9 +133,8 @@ defmodule OMG.API.TestHelper do
         outputs |> Enum.map(fn {owner, currency, amount} -> {owner.addr, currency, amount} end)
       )
 
-    [priv1, priv2 | _] = inputs |> Enum.map(fn {_, _, _, owner} -> owner.priv end) |> Enum.concat([<<>>, <<>>])
-
-    Transaction.sign(raw_tx, [priv1, priv2])
+    privs = get_private_keys(inputs)
+    Transaction.sign(raw_tx, privs)
   end
 
   def create_encoded(inputs, currency, outputs) do

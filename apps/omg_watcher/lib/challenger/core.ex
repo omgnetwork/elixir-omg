@@ -17,34 +17,86 @@ defmodule OMG.Watcher.Challenger.Core do
   Functional core of challenger
   """
 
+  alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
-  require Utxo
   alias OMG.Watcher.Challenger.Challenge
-  alias OMG.Watcher.DB
+
+  require Utxo
 
   @doc """
-  Creates a challenge for exiting utxo. Data is prepared that transaction contains only one input
-  which is UTXO being challenged.
-  More: [contract's challengeExit](https://github.com/omisego/plasma-contracts/blob/22936d561a036d49aa6a215531e70c5779df058f/contracts/RootChain.sol#L244)
+  Creates a challenge for exiting utxo.
   """
-  @spec create_challenge(%DB.Transaction{}, Utxo.Position.t()) :: Challenge.t()
-  def create_challenge(challenging_tx, utxo_exit) do
-    {:ok,
-     %Transaction.Signed{
-       raw_tx: raw_tx,
-       sigs: sigs
-     }} = Transaction.Signed.decode(challenging_tx.txbytes)
+  @spec create_challenge(Block.t(), Block.t(), Utxo.Position.t()) :: Challenge.t()
+  def create_challenge(creating_block, spending_block, Utxo.position(_, _, oindex) = utxo_exit) do
+    owner =
+      creating_block
+      |> get_creating_transaction(utxo_exit)
+      |> get_output_owner(oindex)
 
-    owner = get_eutxo_owner(challenging_tx)
+    {%Transaction.Signed{
+       raw_tx: challenging_tx,
+       sigs: sigs
+     }, input_index} = get_spending_transaction_with_index(spending_block, utxo_exit)
 
     %Challenge{
       outputId: Utxo.Position.encode(utxo_exit),
-      inputIndex: get_eutxo_index(challenging_tx),
-      txbytes: Transaction.encode(raw_tx),
-      sig: find_sig(sigs, raw_tx, owner)
+      inputIndex: input_index,
+      txbytes: challenging_tx |> Transaction.encode(),
+      sig: find_sig(sigs, challenging_tx, owner)
     }
+  end
+
+  @doc """
+  Checks whether database response is a block number which can be used to retrieve needed information to challenge.
+  """
+  @spec ensure_challengeable?(tuple()) :: {:ok, pos_integer()} | {:error, atom()}
+  def ensure_challengeable?(spending_blknum_response)
+  def ensure_challengeable?({:ok, :not_found}), do: {:error, :utxo_not_spent}
+  def ensure_challengeable?({:ok, blknum}) when is_integer(blknum), do: {:ok, blknum}
+  def ensure_challengeable?(error), do: error
+
+  @spec get_creating_transaction(Block.t(), Utxo.Position.t()) :: Transaction.Signed.t()
+  defp get_creating_transaction(
+         %Block{
+           transactions: txs,
+           number: blknum
+         },
+         Utxo.position(blknum, txindex, _oindex)
+       ) do
+    {:ok, signed_tx} =
+      txs
+      |> Enum.fetch!(txindex)
+      |> Transaction.Signed.decode()
+
+    signed_tx
+  end
+
+  @spec get_output_owner(Transaction.Signed.t(), non_neg_integer()) :: Crypto.address_t()
+  defp get_output_owner(%Transaction.Signed{raw_tx: raw_tx}, oindex) do
+    raw_tx
+    |> Transaction.get_outputs()
+    |> Enum.fetch!(oindex)
+    |> Map.fetch!(:owner)
+  end
+
+  # finds transaction in given block and input index spending given utxo
+  @spec get_spending_transaction_with_index(Block.t(), Utxo.Position.t()) ::
+          {Transaction.Signed.t(), non_neg_integer()} | false
+  defp get_spending_transaction_with_index(%Block{transactions: txs}, utxo_pos) do
+    txs
+    |> Enum.map(&Transaction.Signed.decode/1)
+    |> Enum.find_value(fn {:ok, %Transaction.Signed{raw_tx: tx} = tx_signed} ->
+      # `Enum.find_value/2` allows to find tx that spends `utxo_pos` and return it along with input index in one run
+      inputs = Transaction.get_inputs(tx)
+
+      if input_index = Enum.find_index(inputs, &(&1 == utxo_pos)) do
+        {tx_signed, input_index}
+      else
+        false
+      end
+    end)
   end
 
   defp find_sig(sigs, raw_tx, owner) do
@@ -54,12 +106,4 @@ defmodule OMG.Watcher.Challenger.Core do
       {:ok, owner} == Crypto.recover_address(tx_hash, sig)
     end)
   end
-
-  # here: challenging_tx is prepared to contain just utxo_exit input only,
-  # see: DB.Transaction.get_transaction_challenging_utxo/1
-  defp get_eutxo_index(%DB.Transaction{inputs: [input]}),
-    do: input.spending_tx_oindex
-
-  defp get_eutxo_owner(%DB.Transaction{inputs: [input]}),
-    do: input.owner
 end

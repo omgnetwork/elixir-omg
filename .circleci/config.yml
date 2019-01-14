@@ -23,34 +23,35 @@ jobs:
           command: |
             mix do deps.get, deps.compile, compile
       - run:
-          name: Clean Build
-          command: |
-            export MIX_ENV=test
-            mix do compile --warnings-as-errors --force, test --exclude test
-      - run:
           name: Unit Test
           command: |
             export MIX_ENV=test
             mix test
       - run:
-          name: Lint
+          name: Integration Tests & Coveralls
           command: |
-            mix do credo, format --check-formatted --dry-run
+            export GIT_COMMIT_DESCRIPTION=$(git log --format=%B -n 1 $CIRCLE_SHA1)
+            export SHELL=/bin/bash
+            mix coveralls.post \
+              --umbrella \
+              --include integration \
+              --include wrappers \
+              --sha $CIRCLE_SHA \
+              --branch $CIRCLE_BRANCH \
+              --message "$GIT_COMMIT_DESCRIPTION"
+      - run:
+          name: Clean Build
+          command: |
+            export MIX_ENV=test
+            mix do compile --warnings-as-errors --force, test --exclude test
       - run:
           name: Dialyze
           command: |
             mix dialyzer --halt-exit-status
       - run:
-          name: Integration Tests & Coveralls
+          name: Lint
           command: |
-            export GIT_COMMIT_DESCRIPTION=$(git log --format=%B -n 1 $CIRCLE_SHA1)
-            export SHELL=/bin/bash
-            mix coveralls.post --umbrella \
-            --include integration \
-            --include wrappers \
-            --sha $CIRCLE_SHA \
-            --branch $CIRCLE_BRANCH \
-            --message $GIT_COMMIT_DESCRIPTION
+            mix do credo, format --check-formatted --dry-run
 
   build_and_deploy:
     docker:

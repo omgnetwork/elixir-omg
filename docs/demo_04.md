@@ -25,7 +25,10 @@ eth = Crypto.zero_address()
 ### START DEMO HERE
 
 # sends a deposit transaction _to Ethereum_
-{:ok, deposit_tx_hash} = Transaction.new([], [{alice_enc, eth, 10}]) |> Transaction.encode() |> Eth.RootChain.deposit(10, alice_enc)
+{:ok, deposit_tx_hash} =
+  Transaction.new([], [{alice_enc, eth, 10}]) |>
+  Transaction.encode() |>
+  Eth.RootChain.deposit(10, alice_enc)
 
 # need to wait until its mined
 {:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
@@ -58,8 +61,13 @@ in_flight_tx_bytes =
 
 # get in-flight exit data for tx
 
-%{"data" => %{"in_flight_tx" => in_flight_tx, "in_flight_tx_sigs" => in_flight_tx_sigs, "input_txs" => input_txs, "input_txs_inclusion_proofs" => input_txs_inclusion_proofs}} =
-  ~c(echo '{"txbytes": "#{in_flight_tx_bytes}"}' | http POST localhost:7434/inflight_exit.get_data) |>
+%{"data" => %{
+    "in_flight_tx" => in_flight_tx,
+    "in_flight_tx_sigs" => in_flight_tx_sigs,
+    "input_txs" => input_txs,
+    "input_txs_inclusion_proofs" => input_txs_inclusion_proofs
+  }
+} = ~c(echo '{"txbytes": "#{in_flight_tx_bytes}"}' | http POST localhost:7434/inflight_exit.get_data) |>
   :os.cmd() |>
   Poison.decode!()
 

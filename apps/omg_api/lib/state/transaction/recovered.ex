@@ -66,8 +66,8 @@ defmodule OMG.API.State.Transaction.Recovered do
   @doc """
   Checks if input spenders and recovered transaction's spenders are the same and have the same order
   """
-  @spec all_spenders_authorized?(t(), list()) :: :ok
-  def all_spenders_authorized?(%__MODULE__{spenders: spenders}, inputs_spenders) do
+  @spec all_spenders_authorized(t(), list()) :: :ok
+  def all_spenders_authorized(%__MODULE__{spenders: spenders}, inputs_spenders) do
     if spenders == inputs_spenders, do: :ok, else: {:error, :unauthorized_spent}
   end
 end

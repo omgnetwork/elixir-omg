@@ -36,7 +36,8 @@ defmodule OMG.Umbrella.MixProject do
       # NOTE: we're overriding for the sake of `omg_api` mix.exs deps. Otherwise the override is ignored
       # TODO: removing the override is advised, but it gives undefined symbol errors, see
       #       https://github.com/exthereum/exth_crypto/issues/8#issuecomment-416227176
-      {:ex_doc, "~> 0.19", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
+      {:appsignal, "~> 1.0"}
     ]
   end
 
