@@ -89,6 +89,7 @@ jobs:
             docker tag elixir-omg $DOCKER_IMAGE
             docker push jakebunce/elixir-omg:$CIRCLE_SHA1
             kubectl set image statefulset childchain childchain=$DOCKER_IMAGE
+            sleep 120
             kubectl set image statefulset watcher watcher=$DOCKER_IMAGE
 
 workflows:
