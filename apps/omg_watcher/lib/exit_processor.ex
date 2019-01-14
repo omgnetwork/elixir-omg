@@ -26,6 +26,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.API.State
   alias OMG.DB
   alias OMG.Eth
+  alias OMG.Watcher.ExitProcessor.CheckValidityRequest
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
@@ -208,8 +209,21 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {:ok, db_updates}, new_state}
   end
 
+  @doc """
+  Combine data from `ExitProcessor` and `API.State` to figure out what to do about exits
+  """
   def handle_call(:check_validity, _from, state) do
-    {chain_status, events} = determine_invalid_exits(state)
+    {chain_status, events} =
+      %CheckValidityRequest{}
+      |> run_status_gets()
+      |> Core.get_exiting_utxo_positions(state)
+      |> run_utxo_exists()
+      # NOTE: some commented code that will be uncommented - to illustrate the idea
+      # |> Core.determine_spends_to_get(state)
+      # |> run_spend_getting()
+      # |> Core.determine_blocks_to_get(state, blknum_now)
+      # |> run_block_getting()
+      |> Core.invalid_exits(state)
 
     {:reply, {chain_status, events}, state}
   end
@@ -217,14 +231,23 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:get_ifes, hashes}, _from, state),
     do: {:reply, Core.get_in_flight_exits(hashes), state}
 
-  # combine data from `ExitProcessor` and `API.State` to figure out what to do about exits
-  defp determine_invalid_exits(state) do
+  defp run_status_gets(%CheckValidityRequest{eth_height_now: nil, blknum_now: nil} = request) do
     {:ok, eth_height_now} = Eth.get_ethereum_height()
     {blknum_now, _} = State.get_status()
 
-    state
-    |> Core.get_exiting_utxo_positions()
-    |> Enum.map(&State.utxo_exists?/1)
-    |> Core.invalid_exits(state, eth_height_now, blknum_now)
+    %{request | eth_height_now: eth_height_now, blknum_now: blknum_now}
   end
+
+  defp run_utxo_exists(%CheckValidityRequest{utxos_to_check: positions, utxo_exists_result: nil} = request) do
+    %{request | utxo_exists_result: positions |> Enum.map(&State.utxo_exists?/1)}
+  end
+
+  # defp run_spend_getting(%CheckValidityRequest{spends_to_get: positions} = request) do
+  #   %{request | spent_blknum_result: positions |> Enum.map(&OMG.DB.spent_blknum(Utxo.Position.to_db_key(&1)))}
+  # end
+  #
+  # defp run_block_getting(%CheckValidityRequest{blknums_to_get: blknums} = request) do
+  #   {:ok, hashes} = OMG.DB.block_hashes(blknums)
+  #   %{request | blocks_result: hashes |> OMG.DB.blocks()}
+  # end
 end

@@ -26,6 +26,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   require Utxo
   alias OMG.Watcher.Challenger.Tools
   alias OMG.Watcher.Event
+  alias OMG.Watcher.ExitProcessor.CheckValidityRequest
   alias OMG.Watcher.ExitProcessor.CompetitorInfo
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
@@ -340,8 +341,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   All the active exits, in-flight exits, exiting output piggybacks etc., based on the current tracked state
   """
-  @spec get_exiting_utxo_positions(t()) :: list(Utxo.Position.t())
-  def get_exiting_utxo_positions(%__MODULE__{exits: exits, in_flight_exits: ifes} = _state) do
+  @spec get_exiting_utxo_positions(CheckValidityRequest.t(), t()) :: CheckValidityRequest.t()
+  def get_exiting_utxo_positions(
+        %CheckValidityRequest{utxos_to_check: nil} = request,
+        %__MODULE__{} = state
+      ) do
+    %{request | utxos_to_check: do_get_exiting_utxo_positions(state)}
+  end
+
+  defp do_get_exiting_utxo_positions(%__MODULE__{exits: exits, in_flight_exits: ifes}) do
     standard_exits_pos =
       exits
       |> Enum.filter(fn {_key, %ExitInfo{is_active: is_active}} -> is_active end)
@@ -364,15 +372,18 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   NOTE: If there were any exits unchallenged for some time in chain history, this might detect breach of SLA,
         even if the exits were eventually challenged (e.g. during syncing)
   """
-  @spec invalid_exits(list(boolean), t(), pos_integer, non_neg_integer) ::
+  @spec invalid_exits(CheckValidityRequest.t(), t()) ::
           {:ok | {:error, :unchallenged_exit}, list(Event.InvalidExit.t() | Event.UnchallengedExit.t())}
   def invalid_exits(
-        utxo_exists_result,
-        %__MODULE__{exits: exits, sla_margin: sla_margin} = state,
-        eth_height_now,
-        blknum_now
-      ) do
-    exiting_utxo_positions = get_exiting_utxo_positions(state)
+        %CheckValidityRequest{
+          eth_height_now: eth_height_now,
+          blknum_now: blknum_now,
+          utxo_exists_result: utxo_exists_result
+        },
+        %__MODULE__{exits: exits, sla_margin: sla_margin} = state
+      )
+      when is_integer(eth_height_now) and is_integer(blknum_now) do
+    exiting_utxo_positions = do_get_exiting_utxo_positions(state)
 
     invalid_exit_positions =
       utxo_exists_result

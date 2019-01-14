@@ -25,6 +25,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.Event
+  alias OMG.Watcher.ExitProcessor.CheckValidityRequest
   alias OMG.Watcher.ExitProcessor.CompetitorInfo
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
@@ -324,10 +325,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            } = Core.finalize_exits(processor, two_spend)
 
     assert {{:error, :unchallenged_exit}, [_event1, _event2, _event3]} =
-             processor
-             |> Core.get_exiting_utxo_positions()
-             |> Enum.map(&State.Core.utxo_exists?(&1, state_after_spend))
-             |> Core.invalid_exits(processor, 12, @late_blknum)
+             %CheckValidityRequest{eth_height_now: 12, blknum_now: @late_blknum}
+             |> Core.get_exiting_utxo_positions(processor)
+             |> mock_utxo_exists(state_after_spend)
+             |> Core.invalid_exits(processor)
   end
 
   @tag fixtures: [:processor_empty, :state_alice_deposit, :exit_events, :contract_exit_statuses]
@@ -342,22 +343,24 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Core.new_exits([one_exit], [one_status])
 
     assert {:ok, []} =
-             processor
-             |> Core.get_exiting_utxo_positions()
-             |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor, 5, @late_blknum)
+             %CheckValidityRequest{eth_height_now: 5, blknum_now: @late_blknum}
+             |> Core.get_exiting_utxo_positions(processor)
+             |> mock_utxo_exists(state)
+             |> Core.invalid_exits(processor)
 
     # go into the future - old exits work the same
     assert {:ok, []} =
-             processor
-             |> Core.get_exiting_utxo_positions()
-             |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor, 105, @late_blknum)
+             %CheckValidityRequest{eth_height_now: 105, blknum_now: @late_blknum}
+             |> Core.get_exiting_utxo_positions(processor)
+             |> mock_utxo_exists(state)
+             |> Core.invalid_exits(processor)
 
     # exit validly finalizes and continues to not emit any events
     {:ok, {_, _, spends}, _} = State.Core.exit_utxos([%{utxo_pos: Utxo.Position.encode(@utxo_pos1)}], state)
     assert {processor, [{:delete, :exit_info, @update_key1}]} = Core.finalize_exits(processor, spends)
-    assert [] = Core.get_exiting_utxo_positions(processor)
+
+    assert %CheckValidityRequest{utxos_to_check: []} =
+             Core.get_exiting_utxo_positions(%CheckValidityRequest{}, processor)
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
@@ -374,10 +377,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Core.new_exits([one_exit], [one_status])
 
     assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_position}]} =
-             processor
-             |> Core.get_exiting_utxo_positions()
-             |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor, 5, @late_blknum)
+             %CheckValidityRequest{eth_height_now: 5, blknum_now: @late_blknum}
+             |> Core.get_exiting_utxo_positions(processor)
+             |> mock_utxo_exists(state)
+             |> Core.invalid_exits(processor)
   end
 
   @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
@@ -391,7 +394,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Core.new_exits(events, contract_statuses)
 
     # sanity
-    assert [_, _] = Core.get_exiting_utxo_positions(processor)
+    assert %CheckValidityRequest{utxos_to_check: [_, _]} =
+             Core.get_exiting_utxo_positions(%CheckValidityRequest{}, processor)
 
     assert {processor, [{:delete, :exit_info, @update_key1}, {:delete, :exit_info, @update_key2}]} =
              processor
@@ -400,7 +404,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                %{utxo_pos: Utxo.Position.encode(@utxo_pos2)}
              ])
 
-    assert [] = Core.get_exiting_utxo_positions(processor)
+    assert %CheckValidityRequest{utxos_to_check: []} =
+             Core.get_exiting_utxo_positions(%CheckValidityRequest{}, processor)
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
@@ -418,10 +423,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     assert {{:error, :unchallenged_exit},
             [%Event.UnchallengedExit{utxo_pos: ^exiting_position}, %Event.InvalidExit{utxo_pos: ^exiting_position}]} =
-             processor
-             |> Core.get_exiting_utxo_positions()
-             |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor, 13, @late_blknum)
+             %CheckValidityRequest{eth_height_now: 13, blknum_now: @late_blknum}
+             |> Core.get_exiting_utxo_positions(processor)
+             |> mock_utxo_exists(state)
+             |> Core.invalid_exits(processor)
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :exit_events]
@@ -435,10 +440,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Core.new_exits([one_exit], [{Crypto.zero_address(), @eth, 10}])
 
     assert {:ok, []} =
-             processor
-             |> Core.get_exiting_utxo_positions()
-             |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor, 13, @late_blknum)
+             %CheckValidityRequest{eth_height_now: 13, blknum_now: @late_blknum}
+             |> Core.get_exiting_utxo_positions(processor)
+             |> mock_utxo_exists(state)
+             |> Core.invalid_exits(processor)
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
@@ -453,15 +458,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Core.new_exits([late_exit], [active_status])
 
     assert {:ok, []} =
-             processor
-             |> Core.get_exiting_utxo_positions()
-             |> Enum.map(&State.Core.utxo_exists?(&1, state))
-             |> Core.invalid_exits(processor, 13, @early_blknum)
+             %CheckValidityRequest{eth_height_now: 13, blknum_now: @early_blknum}
+             |> Core.get_exiting_utxo_positions(processor)
+             |> mock_utxo_exists(state)
+             |> Core.invalid_exits(processor)
   end
 
   @tag fixtures: [:processor_empty]
   test "empty processor returns no exiting utxo positions", %{processor_empty: empty} do
-    assert [] = Core.get_exiting_utxo_positions(empty)
+    assert %CheckValidityRequest{utxos_to_check: []} = Core.get_exiting_utxo_positions(%CheckValidityRequest{}, empty)
   end
 
   @tag fixtures: [:processor_empty]
@@ -795,5 +800,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "none if input not yet created during sync",
          %{} do
     end
+  end
+
+  defp mock_utxo_exists(%CheckValidityRequest{utxos_to_check: positions} = request, state) do
+    %{request | utxo_exists_result: positions |> Enum.map(&State.Core.utxo_exists?(&1, state))}
   end
 end
