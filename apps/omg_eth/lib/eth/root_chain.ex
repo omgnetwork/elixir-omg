@@ -55,7 +55,7 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  def start_exit(outputId, txbytes, proof, from, contract \\ nil, opts \\ []) do
+  def start_exit(output_id, txbytes, proof, from, contract \\ nil, opts \\ []) do
     defaults =
       @tx_defaults
       |> Keyword.put(:gas, @gas_start_exit)
@@ -69,7 +69,7 @@ defmodule OMG.Eth.RootChain do
       from,
       contract,
       "startStandardExit(uint192,bytes,bytes)",
-      [outputId, txbytes, proof],
+      [output_id, txbytes, proof],
       opts
     )
   end
@@ -103,12 +103,12 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from_hex(from), contract, "addToken(address)", [token], opts)
   end
 
-  def challenge_exit(outputId, challengeTx, inputIndex, challengeTxSig, from, contract \\ nil, opts \\ []) do
+  def challenge_exit(output_id, challenge_tx, input_index, challenge_tx_sig, from, contract \\ nil, opts \\ []) do
     opts = @tx_defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "challengeStandardExit(uint192,bytes,uint256,bytes)"
-    args = [outputId, challengeTx, inputIndex, challengeTxSig]
+    args = [output_id, challenge_tx, input_index, challenge_tx_sig]
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 

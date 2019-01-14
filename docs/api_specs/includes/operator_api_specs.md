@@ -18,12 +18,12 @@ curl -X POST -H "Content-Type: application/json" http://localhost:9656/transacti
 
 ```json
 {
-      "version": "1",
+      "version": "1.0",
       "success": true,
       "data": {
           "blknum": 123000,
-          "txindex": 111,
-          "txhash": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"
+          "tx_index": 111,
+          "tx_hash": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"
       }
 }
 ```
@@ -62,7 +62,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:9656/block.get
 
 ```json
 {
-      "version": "1",
+      "version": "1.0",
       "success": true,
       "data": {
           "blknum": 123000,
