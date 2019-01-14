@@ -23,6 +23,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   alias OMG.API.TestHelper
   alias OMG.API.Utxo
   alias OMG.Watcher.Challenger.Core
+  alias OMG.Watcher.ExitProcessor.ExitInfo
 
   require Utxo
 
@@ -46,12 +47,6 @@ defmodule OMG.Watcher.Challenger.CoreTest do
 
   @tag fixtures: [:alice, :bob]
   test "creates a challenge for an exit; provides utxo position of non-zero amount", %{alice: alice, bob: bob} do
-    initial_block =
-      create_block_with(
-        1000,
-        [TestHelper.create_signed([{1, 0, 0, alice}, {1, 1, 0, alice}], @eth, [{alice, 100}, {bob, 100}])]
-      )
-
     # transactions spending one of utxos from above transaction
     tx_spending_1st_utxo =
       TestHelper.create_signed([{0, 0, 0, alice}, {1000, 0, 0, alice}], @eth, [{bob, 50}, {alice, 50}])
@@ -70,7 +65,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
              input_index: 1,
              txbytes: ^expected_txbytes,
              sig: alice_signature
-           } = Core.create_challenge(initial_block, spending_block, Utxo.position(1000, 0, 0))
+           } = Core.create_challenge(%ExitInfo{owner: alice.addr}, spending_block, Utxo.position(1000, 0, 0))
 
     assert_sig_belongs_to(alice_signature, tx_spending_1st_utxo, alice)
 
@@ -83,14 +78,19 @@ defmodule OMG.Watcher.Challenger.CoreTest do
              input_index: 0,
              txbytes: ^expected_txbytes,
              sig: bob_signature
-           } = Core.create_challenge(initial_block, spending_block, Utxo.position(1000, 0, 1))
+           } = Core.create_challenge(%ExitInfo{owner: bob.addr}, spending_block, Utxo.position(1000, 0, 1))
 
     assert_sig_belongs_to(bob_signature, tx_spending_2nd_utxo, bob)
   end
 
   test "not spent or not existed utxo should be not challengeable" do
-    assert {:ok, 1000} == Core.ensure_challengeable?({:ok, 1000})
-    assert {:error, :utxo_not_spent} == Core.ensure_challengeable?({:ok, :not_found})
-    assert {:error, :db_other_error} == Core.ensure_challengeable?({:error, :db_other_error})
+    exit_info = %ExitInfo{owner: "alice"}
+    assert {:ok, 1000, ^exit_info} = Core.ensure_challengeable?({:ok, 1000}, {:ok, {{}, exit_info}})
+
+    assert {:error, :utxo_not_spent} = Core.ensure_challengeable?({:ok, :not_found}, {:ok, {{}, exit_info}})
+    assert {:error, :unknown_exit} = Core.ensure_challengeable?({:ok, 1000}, {:ok, :not_found})
+
+    assert {:error, :db_other_error1} = Core.ensure_challengeable?({:error, :db_other_error1}, {:ok, {{}, exit_info}})
+    assert {:error, :db_other_error2} = Core.ensure_challengeable?({:ok, 1000}, {:error, :db_other_error2})
   end
 end

@@ -42,7 +42,8 @@ defmodule OMG.Watcher.API.Utxo do
   @doc """
   Returns a proof that utxo was spent
   """
-  @spec create_challenge(Utxo.Position.t()) :: {:ok, Challenger.Challenge.t()} | {:error, :invalid_challenge_of_exit}
+  @spec create_challenge(Utxo.Position.t()) ::
+          {:ok, Challenger.Challenge.t()} | {:error, :utxo_not_spent} | {:error, :unknown_exit}
   def create_challenge(utxo) do
     Challenger.create_challenge(utxo)
   end
