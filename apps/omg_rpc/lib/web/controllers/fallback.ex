@@ -31,8 +31,6 @@ defmodule OMG.RPC.Web.Controller.Fallback do
     json(conn, Serializers.Response.serialize(data, :error))
   end
 
-  def call(conn, :error), do: call(conn, {:error, :unknown_error})
-
   def call(conn, {:error, reason}) do
     data = %{
       object: :error,
@@ -42,4 +40,9 @@ defmodule OMG.RPC.Web.Controller.Fallback do
 
     json(conn, Serializers.Response.serialize(data, :error))
   end
+
+  def call(conn, :error), do: call(conn, {:error, :unknown_error})
+
+  # Controller's action with expression has no match, e.g. on guard
+  def call(conn, _), do: call(conn, {:error, :unknown_error})
 end

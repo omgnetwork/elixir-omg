@@ -24,10 +24,6 @@ defmodule OMG.Watcher.Web.Controller.Status do
   alias OMG.Watcher.API.Status
   alias OMG.Watcher.Web.View
 
-  import OMG.Watcher.Web.ErrorHandler
-
-  action_fallback(OMG.Watcher.Web.Controller.Fallback)
-
   @doc """
   Gets plasma network and Watcher status
   """

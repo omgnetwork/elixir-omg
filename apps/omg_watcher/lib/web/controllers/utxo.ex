@@ -24,12 +24,9 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   alias OMG.Watcher.Web.View
 
   use PhoenixSwagger
-  import OMG.Watcher.Web.ErrorHandler
-
-  action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
   def get_utxo_exit(conn, params) do
-    with {:ok, utxo_pos} <- Map.fetch(params, "utxo_pos"),
+    with {:ok, utxo_pos} when is_number(utxo_pos) <- Map.fetch(params, "utxo_pos"),
          utxo <- Position.decode(utxo_pos) do
       utxo_exit = API.Utxo.compose_utxo_exit(utxo)
       respond(utxo_exit, conn)

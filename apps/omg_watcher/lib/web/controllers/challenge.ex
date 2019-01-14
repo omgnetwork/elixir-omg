@@ -23,9 +23,6 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   alias OMG.API.Utxo
   alias OMG.Watcher.API
   alias OMG.Watcher.Web.View
-  import OMG.Watcher.Web.ErrorHandler
-
-  action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
   @doc """
   Challenges exits

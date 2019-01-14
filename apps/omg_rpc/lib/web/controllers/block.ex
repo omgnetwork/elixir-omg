@@ -24,8 +24,6 @@ defmodule OMG.RPC.Web.Controller.Block do
 
   @api_module Application.fetch_env!(:omg_rpc, :child_chain_api_module)
 
-  action_fallback(OMG.RPC.Web.Controller.Fallback)
-
   def get_block(conn, params) do
     with {:ok, hex_str} <- Map.fetch(params, "hash"),
          {:ok, hash} <- Base.decode16(hex_str, case: :mixed),

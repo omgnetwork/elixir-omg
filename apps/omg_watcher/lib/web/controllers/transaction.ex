@@ -25,10 +25,6 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   alias OMG.Watcher.DB
   alias OMG.Watcher.Web.View
 
-  import OMG.Watcher.Web.ErrorHandler
-
-  action_fallback(OMG.Watcher.Web.Controller.Fallback)
-
   @doc """
   Retrieves a specific transaction by id.
   """

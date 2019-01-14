@@ -24,8 +24,6 @@ defmodule OMG.Watcher.Web.Controller.Account do
   alias OMG.Watcher.API
   alias OMG.Watcher.Web.View
 
-  action_fallback(OMG.Watcher.Web.Controller.Fallback)
-
   @doc """
   Gets plasma account balance
   """

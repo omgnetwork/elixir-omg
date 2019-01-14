@@ -37,6 +37,8 @@ defmodule OMG.RPC.Web do
 
       import Plug.Conn
       alias OMG.RPC.Web.Router.Helpers, as: Routes
+
+      action_fallback(OMG.RPC.Web.Controller.Fallback)
     end
   end
 
