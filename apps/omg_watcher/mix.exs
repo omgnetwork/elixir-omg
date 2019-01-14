@@ -59,7 +59,8 @@ defmodule OMG.Watcher.Mixfile do
       #
       {:omg_api, in_umbrella: true, runtime: false},
       {:omg_db, in_umbrella: true},
-      {:omg_eth, in_umbrella: true}
+      {:omg_eth, in_umbrella: true},
+      {:appsignal, "~> 1.0"}
     ]
   end
 

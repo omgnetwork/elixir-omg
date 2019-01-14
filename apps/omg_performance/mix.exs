@@ -25,7 +25,8 @@ defmodule OMG.Performance.MixProject do
   defp deps do
     [
       {:briefly, "~> 0.3"},
-      {:omg_api, in_umbrella: true, runtime: false}
+      {:omg_api, in_umbrella: true, runtime: false},
+      {:appsignal, "~> 1.0"}
     ]
   end
 end

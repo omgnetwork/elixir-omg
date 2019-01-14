@@ -14,6 +14,7 @@
 
 defmodule OMG.Watcher.Web.Endpoint do
   use Phoenix.Endpoint, otp_app: :omg_watcher
+  use Appsignal.Phoenix
 
   socket("/socket", OMG.Watcher.Web.Socket)
 
