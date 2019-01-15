@@ -69,4 +69,10 @@ defmodule OMG.Umbrella.MixProject do
       ignore_warnings: "dialyzer.ignore-warnings"
     ]
   end
+
+  def application do
+    [
+      extra_applications: [:logger, :appsignal]
+    ]
+  end
 end
