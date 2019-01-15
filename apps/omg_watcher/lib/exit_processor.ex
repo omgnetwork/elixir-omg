@@ -19,6 +19,8 @@ defmodule OMG.Watcher.ExitProcessor do
   state of the ledger (`OMG.API.State`), issues notifications as it finds suitable.
 
   Should manage all kinds of exits allowed in the protocol and handle the interactions between them.
+
+  NOTE: Note that all calls return `db_updates` and relay on the caller to do persistence.
   """
 
   alias OMG.API.State
@@ -35,7 +37,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @doc """
   Accepts events and processes them in the state - new exits are tracked.
-  Returns `db_updates` due and relies on the caller to do persistence
+  Returns `db_updates`
   """
   def new_exits(exits) do
     GenServer.call(__MODULE__, {:new_exits, exits})
@@ -43,7 +45,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @doc """
   Accepts events and processes them in the state - new in flight exits are tracked.
-  Returns `db_updates` due and relies on the caller to do persistence
+  Returns `db_updates`
   """
   def new_in_flight_exits(in_flight_exit_started_events) do
     GenServer.call(__MODULE__, {:new_in_flight_exits, in_flight_exit_started_events})
@@ -51,7 +53,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @doc """
   Accepts events and processes them in the state - finalized exits are untracked _if valid_ otherwise raises alert
-  Returns `db_updates` due and relies on the caller to do persistence
+  Returns `db_updates`
   """
   def finalize_exits(finalizations) do
     GenServer.call(__MODULE__, {:finalize_exits, finalizations})
@@ -59,7 +61,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @doc """
   Accepts events and processes them in the state - new piggybacks are tracked, if invalid raises an alert
-  Returns `db_updates` due and relies on the caller to do persistence
+  Returns `db_updates`
   """
   def piggyback_exits(piggybacks) do
     GenServer.call(__MODULE__, {:piggyback_exits, piggybacks})
@@ -67,7 +69,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @doc """
   Accepts events and processes them in the state - challenged exits are untracked
-  Returns `db_updates` due and relies on the caller to do persistence
+  Returns `db_updates`
   """
   def challenge_exits(challenges) do
     GenServer.call(__MODULE__, {:challenge_exits, challenges})
@@ -76,7 +78,7 @@ defmodule OMG.Watcher.ExitProcessor do
   @doc """
   Accepts events and processes them in the state.
   Competitors are stored for future use(i.e. to challenge an in flight exit).
-  Returns `db_updates` due and relies on the caller to do persistence
+  Returns `db_updates`
   """
   def challenge_in_flight_exits(challenges) do
     GenServer.call(__MODULE__, {:challenge_in_flight_exits, challenges})
@@ -84,7 +86,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @doc """
   Accepts events and processes them in state.
-  Returns `db_updates` and relies on the caller to do persistence
+  Returns `db_updates`
   """
   def respond_to_in_flight_exits_challenges(responds) do
     GenServer.call(__MODULE__, {:respond_to_in_flight_exits_challenges, responds})
@@ -93,7 +95,7 @@ defmodule OMG.Watcher.ExitProcessor do
   @doc """
   Accepts events and processes them in state.
   Challenged piggybacks are forgotten.
-  Returns `db_updates` and relies on the caller to do persistence
+  Returns `db_updates`
   """
   def challenge_piggybacks(challenges) do
     GenServer.call(__MODULE__, {:challenge_piggybacks, challenges})
@@ -101,7 +103,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   @doc """
     Accepts events and processes them in state - finalized outputs are applied to the state.
-    Returns `db_updates` and relies on the caller to do persistence
+    Returns `db_updates`
   """
   def finalize_in_flight_exits(finalizations) do
     GenServer.call(__MODULE__, {:finalize_in_flight_exits, finalizations})
