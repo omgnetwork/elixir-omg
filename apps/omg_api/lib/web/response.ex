@@ -11,17 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+defmodule OMG.API.Web.Response do
+  @type response_t :: %{version: binary(), success: boolean(), data: map()}
 
-defmodule OMG.Watcher.Web.Serializer.Error do
-  @moduledoc """
-  Serializes error's code and description provided in response's data field.
+  @doc """
+  Append result of operation to the response data forming standard api response structure
   """
+  @spec serialize(any()) :: response_t()
+  def serialize(%{object: :error} = error), do: error |> to_response(:error)
+  def serialize(data), do: data |> to_response(:success)
 
-  @spec serialize(atom() | String.t(), String.t()) :: map()
-  def serialize(code, description) do
-    %{
-      code: code,
-      description: description
+  defp to_response(data, result),
+    do: %{
+      version: "1.0",
+      success: result == :success,
+      data: data
     }
-  end
+
 end

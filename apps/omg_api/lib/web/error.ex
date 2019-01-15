@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.View.Account do
+defmodule OMG.API.Web.Error do
   @moduledoc """
-  The account view for rendering json
+  Serializes error's code and description provided in response's data field.
   """
 
-  use OMG.Watcher.Web, :view
-
-  def render("balance.json", %{response: balance}) do
-    balance
-    |> OMG.API.Web.Response.serialize()
+  @spec serialize(atom() | String.t(), String.t()) :: map()
+  def serialize(code, description) do
+    %{
+      object: :error,
+      code: code,
+      description: description
+    }
   end
 end

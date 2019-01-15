@@ -29,18 +29,18 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
 
   test "cleaning response structure: map of maps" do
     assert %{first: @cleaned_tx, second: @cleaned_tx} ==
-             Response.clean_artifacts(%{second: %DB.Transaction{}, first: %DB.Transaction{}})
+             Response.sanitize(%{second: %DB.Transaction{}, first: %DB.Transaction{}})
   end
 
   test "cleaning response structure: list of maps" do
-    assert [@cleaned_tx, @cleaned_tx] == Response.clean_artifacts([%DB.Transaction{}, %DB.Transaction{}])
+    assert [@cleaned_tx, @cleaned_tx] == Response.sanitize([%DB.Transaction{}, %DB.Transaction{}])
   end
 
   test "cleaning response: simple value list" do
     value = [nil, 1, "01234", :atom, [], %{}, {:skip_hex_encode, "an arbitrary string"}]
     expected_value = [nil, 1, "0x3031323334", :atom, [], %{}, "an arbitrary string"]
 
-    assert expected_value == Response.clean_artifacts(value)
+    assert expected_value == Response.sanitize(value)
   end
 
   test "cleaning response: remove nested meta keys" do
@@ -65,7 +65,7 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
           }
         ]
       }
-      |> Response.clean_artifacts()
+      |> Response.sanitize()
 
     assert false ==
              Enum.any?(
@@ -77,7 +77,7 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
   test "decode16: decodes only specified fields" do
     expected_map = %{"key_1" => "value_1", "key_2" => "value_2", "key_3" => "value_3"}
 
-    encoded_map = expected_map |> Response.clean_artifacts()
+    encoded_map = expected_map |> Response.sanitize()
     decoded_map = TestHelper.decode16(encoded_map, ["key_2"])
 
     assert decoded_map["key_1"] == expected_map["key_1"] |> OMG.API.Web.Encoding.to_hex()

@@ -14,25 +14,8 @@
 
 defmodule OMG.Watcher.Web.Serializer.Response do
   @moduledoc """
-  Serializes the response into expected result/data format.
+  Provides functionality to process response to serializable form.
   """
-
-  @type response_result_t :: :success | :error
-
-  @doc """
-  Append result of operation to the response data forming standard api response structure
-  """
-  @spec serialize(any(), response_result_t()) :: %{version: binary(), success: boolean(), data: map()}
-  def serialize(data, result)
-  def serialize(data, :success), do: data |> clean_artifacts() |> to_response(:success)
-  def serialize(data, :error), do: data |> to_response(:error)
-
-  defp to_response(data, result),
-    do: %{
-      version: "1.0",
-      success: result == :success,
-      data: data
-    }
 
   @doc """
   Removes or encodes fields in response that cannot be serialized to api response.
@@ -40,25 +23,26 @@ defmodule OMG.Watcher.Web.Serializer.Response do
    * encodes to hex all binary values
    * removes unloaded ecto associations values
    * removes metadata fields
+   * passes binary data unchanged when wrapped with tuple `{:skip_hex_encode, data}`
   """
-  @spec clean_artifacts(any()) :: any()
-  def clean_artifacts(response)
+  @spec sanitize(any()) :: any()
+  def sanitize(response)
 
-  def clean_artifacts(list) when is_list(list) do
-    list |> Enum.map(&clean_artifacts/1)
+  def sanitize(list) when is_list(list) do
+    list |> Enum.map(&sanitize/1)
   end
 
-  def clean_artifacts(map_or_struct) when is_map(map_or_struct) do
+  def sanitize(map_or_struct) when is_map(map_or_struct) do
     map_or_struct
     |> to_map()
     |> Enum.filter(fn {_k, v} -> Ecto.assoc_loaded?(v) end)
-    |> Enum.map(fn {k, v} -> {k, clean_artifacts(v)} end)
+    |> Enum.map(fn {k, v} -> {k, sanitize(v)} end)
     |> Map.new()
   end
 
-  def clean_artifacts(bin) when is_binary(bin), do: OMG.API.Web.Encoding.to_hex(bin)
-  def clean_artifacts({:skip_hex_encode, bin}), do: bin
-  def clean_artifacts(value), do: value
+  def sanitize(bin) when is_binary(bin), do: OMG.API.Web.Encoding.to_hex(bin)
+  def sanitize({:skip_hex_encode, bin}), do: bin
+  def sanitize(value), do: value
 
   defp to_map(struct) do
     if(Map.has_key?(struct, :__struct__), do: struct |> Map.from_struct(), else: struct)

@@ -30,8 +30,9 @@ defmodule OMG.Watcher.Web.Controller.Account do
   def get_balance(conn, params) do
     with {:ok, address} <- Map.fetch(params, "address"),
          {:ok, decoded_address} <- Crypto.decode_address(address) do
-      balance = API.Account.get_balance(decoded_address)
-      render(conn, View.Account, :balance, balance: balance)
+      decoded_address
+      |> API.Account.get_balance()
+      |> api_response(conn, :balance)
     end
   end
 
