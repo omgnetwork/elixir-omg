@@ -41,6 +41,6 @@ defmodule OMG.Watcher.ExitProcessor.CheckValidityRequest do
           spends_to_get: nil | list(Utxo.Position.t()),
           spent_blknum_result: nil | list(pos_integer),
           blknums_to_get: nil | list(pos_integer),
-          blocks_result: nil | list(Block.t())
+          blocks_result: nil | {:ok, list(Block.t())}
         }
 end

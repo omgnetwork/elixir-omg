@@ -20,6 +20,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     - MoreVP protocol managing should go here
   """
 
+  alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
@@ -56,6 +57,22 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           competing_txid: nil,
           competing_proof: nil
         }
+
+  defmodule KnownTx do
+    @moduledoc """
+    Wrapps information about a particular signed transaction known from somewhere, optionally with its UTXO position
+
+    Private
+    """
+    defstruct [:signed_tx, :utxo_pos]
+
+    @type t() :: %__MODULE__{
+            signed_tx: Transaction.Signed.t(),
+            utxo_pos: Utxo.Position.t()
+          }
+  end
+
+  alias __MODULE__.KnownTx
 
   @doc """
   Reads database-specific list of exits and turns them into current state
@@ -341,15 +358,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   All the active exits, in-flight exits, exiting output piggybacks etc., based on the current tracked state
   """
-  @spec get_exiting_utxo_positions(CheckValidityRequest.t(), t()) :: CheckValidityRequest.t()
-  def get_exiting_utxo_positions(
+  @spec determine_utxo_existence_to_get(CheckValidityRequest.t(), t()) :: CheckValidityRequest.t()
+  def determine_utxo_existence_to_get(
         %CheckValidityRequest{utxos_to_check: nil} = request,
         %__MODULE__{} = state
       ) do
-    %{request | utxos_to_check: do_get_exiting_utxo_positions(state)}
+    %{request | utxos_to_check: do_determine_utxo_existence_to_get(state)}
   end
 
-  defp do_get_exiting_utxo_positions(%__MODULE__{exits: exits, in_flight_exits: ifes}) do
+  defp do_determine_utxo_existence_to_get(%__MODULE__{exits: exits, in_flight_exits: ifes}) do
     standard_exits_pos =
       exits
       |> Enum.filter(fn {_key, %ExitInfo{is_active: is_active}} -> is_active end)
@@ -383,7 +400,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         %__MODULE__{exits: exits, sla_margin: sla_margin} = state
       )
       when is_integer(eth_height_now) and is_integer(blknum_now) do
-    exiting_utxo_positions = do_get_exiting_utxo_positions(state)
+    exiting_utxo_positions = do_determine_utxo_existence_to_get(state)
 
     invalid_exit_positions =
       utxo_exists_result
@@ -428,20 +445,37 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   Gets the list of open IFEs that have the competitors _somewhere_
   """
-  @spec get_ifes_with_competitors(__MODULE__.t()) :: list(binary())
-  def get_ifes_with_competitors(state) do
-    # TODO: non-canonical ifes from multiple sources will concatenate here
-    Stream.concat([with_competitors_from_tx_appendix(state)])
+  # TODO: this is public, but should probably be called from `invalid_exits` and made private
+  @spec get_ifes_with_competitors(CheckValidityRequest.t(), __MODULE__.t()) :: list(binary())
+  def get_ifes_with_competitors(
+        %CheckValidityRequest{blocks_result: {:ok, blocks}},
+        %__MODULE__{in_flight_exits: ifes} = state
+      ) do
+    known_txs = get_known_txs(blocks) ++ get_known_txs(state)
+
+    ifes
+    |> Map.values()
+    # TODO: not enough - must take oldest competitor into account (?)
+    |> Stream.filter(&InFlightExitInfo.is_canonical?/1)
+    |> Stream.map(fn %InFlightExitInfo{tx: tx} -> tx end)
+    # TODO: expensive!
+    |> Stream.filter(fn tx -> known_txs |> Enum.find(&competitor_for(tx, &1)) end)
+    |> Stream.map(fn %{raw_tx: raw_tx} -> Transaction.encode(raw_tx) end)
     |> Enum.uniq()
   end
 
   @doc """
   Gets the root chain contract-required set of data to challenge a non-canonical ife
   """
-  @spec get_competitor_for_ife(__MODULE__.t(), list(Crypto.address_t()), binary()) ::
+  @spec get_competitor_for_ife(CheckValidityRequest.t(), __MODULE__.t(), list(Crypto.address_t()), binary()) ::
           {:ok, competitor_data_t()} | {:error, :competitor_not_found}
-  def get_competitor_for_ife(%__MODULE__{in_flight_exits: ifes} = state, input_owners, ife_txbytes) do
-    known_txs = get_known_txs(state)
+  def get_competitor_for_ife(
+        %CheckValidityRequest{blocks_result: {:ok, blocks}},
+        %__MODULE__{in_flight_exits: ifes} = state,
+        input_owners,
+        ife_txbytes
+      ) do
+    known_txs = get_known_txs(blocks) ++ get_known_txs(state)
 
     # get info about the IFE transaction
     {:ok, raw_ife_tx} = Transaction.decode(ife_txbytes)
@@ -449,14 +483,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     # find its competitor and use it to prepare the requested data
     with {:ok, known_signed_tx} <- maybe_find_competitor(known_txs, signed_ife_tx),
-         do: {:ok, prepare_competitor_response(known_signed_tx, signed_ife_tx, input_owners, raw_ife_tx)}
+         do: {:ok, prepare_competitor_response(known_signed_tx, signed_ife_tx, input_owners, raw_ife_tx, blocks)}
   end
 
   defp prepare_competitor_response(
-         known_signed_tx,
+         %KnownTx{signed_tx: known_signed_tx, utxo_pos: known_tx_utxo_pos},
          %Transaction.Signed{raw_tx: raw_ife_tx} = signed_ife_tx,
          input_owners,
-         raw_ife_tx
+         raw_ife_tx,
+         blocks
        ) do
     ife_inputs = Transaction.get_inputs(raw_ife_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
 
@@ -468,7 +503,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     in_flight_input_index = Enum.find_index(ife_inputs, &(&1 == spent_input))
     competing_input_index = Enum.find_index(known_spent_inputs, &(&1 == spent_input))
 
-    owner = Enum.at(input_owners, in_flight_input_index)
+    owner = Enum.at(input_owners, inflight_input_index)
+
+    # if this returns nil it means somethings very wrong - the owner taken (effectively) from the contract
+    # doesn't appear to have signed the potential competitor, which means that some prior signature checking was skipped
     {:ok, competing_sig} = Tools.find_sig(known_signed_tx, owner)
 
     %{
@@ -477,9 +515,16 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       competing_txbytes: raw_known_tx |> Transaction.encode(),
       competing_input_index: competing_input_index,
       competing_sig: competing_sig,
-      competing_txid: nil,
-      competing_proof: nil
+      competing_txid: known_tx_utxo_pos,
+      competing_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
     }
+  end
+
+  defp maybe_calculate_proof(nil, _), do: nil
+
+  defp maybe_calculate_proof(Utxo.position(blknum, txindex, _), blocks) do
+    %{transactions: txs} = blocks |> Enum.find(fn %Block{number: number} -> blknum == number end)
+    Block.create_tx_proof(txs, txindex)
   end
 
   defp maybe_find_competitor(known_txs, signed_ife_tx) do
@@ -491,20 +536,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  defp with_competitors_from_tx_appendix(%__MODULE__{in_flight_exits: ifes} = state) do
-    known_txs = get_known_txs(state)
-
-    ifes
-    |> Map.values()
-    # TODO: not enough - must take oldest competitor into account (?)
-    |> Stream.filter(&InFlightExitInfo.is_canonical?/1)
-    |> Stream.map(fn %InFlightExitInfo{tx: tx} -> tx end)
-    # TODO: expensive!
-    |> Stream.filter(fn tx -> known_txs |> Enum.find(&competitor_for(tx, &1)) end)
-    |> Stream.map(fn %{raw_tx: raw_tx} -> Transaction.encode(raw_tx) end)
-  end
-
-  # tells whether a single transaction is a competitor for another single transactions, by returning nil or the
+  # tells whether a signle transaction is a competitor for another single transactions, by returning nil or the
   # UTXO position of the input double spent
   defp competitor_for(%Transaction.Signed{raw_tx: raw_tx}, %Transaction.Signed{raw_tx: known_raw_tx}) do
     inputs = Transaction.get_inputs(raw_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
@@ -515,7 +547,22 @@ defmodule OMG.Watcher.ExitProcessor.Core do
          do: double_spent_input
   end
 
+  # this function doesn't care, if the second argument holds additional information about the utxo position
+  defp competitor_for(signed1, %KnownTx{signed_tx: signed2}), do: competitor_for(signed1, signed2)
+
   defp get_known_txs(%__MODULE__{} = state) do
     TxAppendix.get_all(state)
+    |> Enum.map(fn signed -> %KnownTx{signed_tx: signed} end)
   end
+
+  defp get_known_txs(%Block{transactions: txs, number: blknum}) do
+    txs
+    |> Enum.map(&OMG.API.Core.recover_tx/1)
+    |> Enum.map(fn {:ok, %Transaction.Recovered{signed_tx: signed}} -> signed end)
+    |> Enum.with_index()
+    |> Enum.map(fn {signed, txindex} -> %KnownTx{signed_tx: signed, utxo_pos: Utxo.position(blknum, txindex, 0)} end)
+  end
+
+  defp get_known_txs([]), do: []
+  defp get_known_txs([%Block{} | _] = blocks), do: blocks |> Enum.flat_map(&get_known_txs/1)
 end

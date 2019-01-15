@@ -27,6 +27,8 @@ defmodule OMG.DB do
   @one_minute 60_000
   @ten_minutes 10 * @one_minute
 
+  @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
+
   def multi_update(db_updates, server_name \\ @server_name) do
     {duration, result} = :timer.tc(fn -> GenServer.call(server_name, {:multi_update, db_updates}) end)
     _ = Logger.debug(fn -> "DB.multi_update done in #{inspect(round(duration / 1000))} ms" end)
@@ -75,7 +77,7 @@ defmodule OMG.DB do
     GenServer.call(server_name, {:exit_info, utxo_pos})
   end
 
-  @spec spent_blknum({pos_integer, non_neg_integer, non_neg_integer}, atom) :: {:ok, pos_integer} | {:error, atom}
+  @spec spent_blknum(utxo_pos_db_t(), atom) :: {:ok, pos_integer} | {:error, atom}
   def spent_blknum(utxo_pos, server_name \\ @server_name) do
     GenServer.call(server_name, {:spent_blknum, utxo_pos})
   end
