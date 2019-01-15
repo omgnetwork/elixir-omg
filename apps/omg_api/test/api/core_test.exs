@@ -126,12 +126,45 @@ defmodule OMG.API.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob]
-  test "transaction with 4in and 4out is valid", %{alice: alice, bob: bob} do
+  test "transaction with 4in/4out is valid", %{alice: alice, bob: bob} do
     [
       {[{1, 2, 3, alice}, {2, 3, 1, alice}, {2, 3, 2, bob}, {3, 3, 4, bob}],
        [{alice, eth(), 7}, {alice, eth(), 3}, {bob, eth(), 7}, {bob, eth(), 3}]}
     ]
     |> Enum.map(&parametrized_tester/1)
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "transaction without exactly 4 inputs or exactly 4 outputs returns malformed_transaction", %{alice: alice, bob: bob} do
+
+    inputs =   [{1, 2, 3, alice}, {2, 3, 1, alice}]
+
+    tx_inputs =
+      inputs
+      |> Enum.map(fn {blknum, txindex, oindex, _} -> %{blknum: blknum, txindex: txindex, oindex: oindex} end)
+
+    tx_outputs =
+      [{alice, eth(), 7}, {alice, eth(), 3}]
+      |> Enum.map(fn {owner, currency, amount} -> %{owner: owner.addr, currency: currency, amount: amount} end)
+
+    raw_tx = %Transaction{inputs: tx_inputs, outputs: tx_outputs}
+
+
+    priv_keys =  inputs |> Enum.map(fn {_, _, _, owner} -> owner.priv end)
+    tx = Transaction.sign(raw_tx, priv_keys)
+    encoded_signed_tx = Transaction.Signed.encode(tx)
+
+    IO.inspect Core.recover_tx(encoded_signed_tx)
+    spenders =
+      inputs
+      |> Enum.map(fn {_, _, _, spender} -> spender.addr end)
+
+    assert {:ok,
+             %Transaction.Recovered{
+               signed_tx: ^tx,
+               spenders: ^spenders
+             }} = Core.recover_tx(encoded_signed_tx)
+
   end
 
   defp parametrized_tester({inputs, outputs}) do
