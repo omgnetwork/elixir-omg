@@ -38,7 +38,7 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
     }
   }
 
-  def call(conn, :not_found), do: json(conn, OMG.API.Web.Error.serialize(:endpoint_not_found, "Endpoint not found"))
+  def call(conn, Route.NotFound), do: json(conn, OMG.API.Web.Error.serialize(:endpoint_not_found, "Endpoint not found"))
 
   def call(conn, {:error, reason}) do
     err_info =

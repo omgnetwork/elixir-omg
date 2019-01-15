@@ -14,9 +14,12 @@
 
 defmodule OMG.API.Web.Error do
   @moduledoc """
-  Serializes error's code and description provided in response's data field.
+  Provides standard data structure for API Error response
   """
 
+  @doc """
+  Serializes error's code and description provided in response's data field.
+  """
   @spec serialize(atom() | String.t(), String.t() | nil) :: map()
   def serialize(code, description) do
     %{

@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 defmodule OMG.API.Web.Response do
+  @moduledoc """
+  Provides standard data structure for API response
+  """
+
   @type response_t :: %{version: binary(), success: boolean(), data: map()}
 
   @doc """

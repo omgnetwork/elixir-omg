@@ -40,7 +40,8 @@ defmodule OMG.Watcher.Web.Router do
 
     post("/status.get", Controller.Status, :get_status)
 
-    match(:*, "/*path", Controller.Fallback, :not_found)
+    # NOTE: This *has to* be the last route, catching all unhandled paths
+    match(:*, "/*path", Controller.Fallback, Route.NotFound)
   end
 
   def swagger_info do
