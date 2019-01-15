@@ -25,7 +25,7 @@ defmodule OMG.API.MixProject do
         ethereum_status_check_interval_ms: 6_000,
         child_block_minimal_enqueue_gap: 1
       ],
-      extra_applications: [:sentry, :logger],
+      extra_applications: [:sentry, :logger, :appsignal],
       mod: {OMG.API.Application, []}
     ]
   end
