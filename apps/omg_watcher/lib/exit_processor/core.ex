@@ -88,8 +88,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
      %__MODULE__{
        exits:
          db_exits
-         |> Enum.map(fn {{blknum, txindex, oindex}, v} ->
-           {Utxo.position(blknum, txindex, oindex), struct(ExitInfo, v)}
+         |> Enum.map(fn {db_utxo_pos, v} ->
+           {Utxo.Position.from_db_key(db_utxo_pos), struct!(ExitInfo, v)}
          end)
          |> Map.new(),
        in_flight_exits: db_in_flight_exits |> Map.new(),
@@ -119,7 +119,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.map(fn {%{utxo_pos: utxo_pos} = exit_info, contract_status} ->
         is_active = parse_contract_exit_status(contract_status)
         map_exit_info = exit_info |> Map.delete(:utxo_pos) |> Map.put(:is_active, is_active)
-        {Utxo.Position.decode(utxo_pos), struct(ExitInfo, map_exit_info)}
+        {Utxo.Position.decode(utxo_pos), struct!(ExitInfo, map_exit_info)}
       end)
 
     db_updates =

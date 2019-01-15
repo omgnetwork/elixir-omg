@@ -58,10 +58,8 @@ defmodule OMG.API.Utxo.Position do
   def non_zero?(Utxo.position(_, _, _)), do: true
 
   @spec to_db_key(t()) :: {pos_integer, non_neg_integer, non_neg_integer}
-  # FIXME: use throughout code?
   def to_db_key(Utxo.position(blknum, txindex, oindex)), do: {blknum, txindex, oindex}
 
   @spec from_db_key({pos_integer, non_neg_integer, non_neg_integer}) :: t()
-  # FIXME: use throughout code?
   def from_db_key({blknum, txindex, oindex}), do: Utxo.position(blknum, txindex, oindex)
 end
