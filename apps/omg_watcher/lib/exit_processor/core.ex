@@ -150,38 +150,23 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
     Add piggybacks from Ethereum events into tracked state.
   """
-  @spec new_piggybacks(t(), [{tx_hash(), output_offset()}]) :: {t(), list()}
-  def new_piggybacks(%__MODULE__{in_flight_exits: ifes} = state, piggybacks) do
-    ifes_to_update =
-      piggybacks
-      |> Enum.map(fn %{tx_hash: tx_hash} -> tx_hash end)
-      |> (&Map.take(ifes, &1)).()
-      # initialises all ifes as not updated
-      |> Enum.map(fn {key, value} -> {key, {value, false}} end)
-      |> Map.new()
+  @spec new_piggybacks(t(), [%{tx_hash: tx_hash(), output_index: output_offset()}]) :: {t(), list()}
+  def new_piggybacks(%__MODULE__{} = state, piggybacks) do
+    {updated_state, updated_pairs} = piggybacks |> Enum.reduce({state, %{}}, &process_piggyback/2)
 
-    updated_ifes =
-      piggybacks
-      |> Enum.reduce(ifes_to_update, fn %{tx_hash: tx_hash, output_index: index}, acc ->
-        with {:ok, {ife, _}} <- Map.fetch(acc, tx_hash),
-             {:ok, updated} <- InFlightExitInfo.piggyback(ife, index) do
-          # sets updated ife and flags it as changed
-          %{acc | tx_hash => {updated, true}}
-        else
-          # if impossible to piggyback - do nothing
-          _ ->
-            acc
-        end
-      end)
-      |> Enum.reduce([], fn
-        {tx_hash, {ife, true}}, acc -> [{tx_hash, ife} | acc]
-        {_, {_, false}}, acc -> acc
-      end)
-      |> Map.new()
+    {updated_state, Enum.map(updated_pairs, &InFlightExitInfo.make_db_update/1)}
+  end
 
-    db_updates = Enum.map(updated_ifes, &InFlightExitInfo.make_db_update/1)
-
-    {%{state | in_flight_exits: Map.merge(state.in_flight_exits, updated_ifes)}, db_updates}
+  defp process_piggyback(%{tx_hash: tx_hash, output_index: output_index}, {%__MODULE__{in_flight_exits: ifes} = state, db_updates}) do
+    with {:ok, ife} <- Map.fetch(ifes, tx_hash),
+         {:ok, updated_ife} <- InFlightExitInfo.piggyback(ife, output_index) do
+      updated_state = %{state | in_flight_exits: Map.put(ifes, tx_hash, updated_ife)}
+      {updated_state, Map.put(db_updates, tx_hash, updated_ife)}
+    else
+      # if impossible to piggyback - do nothing
+      _ ->
+        {state, db_updates}
+    end
   end
 
   @doc """
