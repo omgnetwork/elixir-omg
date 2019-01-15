@@ -21,6 +21,6 @@ defmodule OMG.RPC.Web.View.Transaction do
 
   def render("submit.json", %{result: result}) do
     result
-    |> Serializer.Response.serialize(:success)
+    |> OMG.API.Web.Response.serialize()
   end
 end

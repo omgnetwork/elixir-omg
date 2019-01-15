@@ -22,8 +22,6 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
 
   alias OMG.API.Crypto
   alias OMG.Watcher.API
-  alias OMG.Watcher.DB
-  alias OMG.Watcher.Web.View
 
   @doc """
   Retrieves a specific transaction by id.
@@ -33,7 +31,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
          id <- Base.decode16!(id, case: :lower) do
       id
       |> API.Transaction.get()
-      |> respond(conn)
+      |> api_response(conn, :transaction)
     end
   end
 
@@ -45,9 +43,8 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     limit = get_optional_int("limit", params)
     blknum = get_optional_int("blknum", params)
 
-    transactions = API.Transaction.get_transactions(address, blknum, limit)
-
-    respond_multiple(transactions, conn)
+    API.Transaction.get_transactions(address, blknum, limit)
+    |> api_response(conn, :transactions)
   end
 
   defp get_address(%{"address" => address}) do
@@ -80,22 +77,6 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
       respond(in_flight_exit, conn)
     end
   end
-
-  defp respond_multiple(transactions, conn),
-    do: render(conn, View.Transaction, :transactions, transactions: transactions)
-
-  defp respond(%DB.Transaction{} = transaction, conn),
-    do: render(conn, View.Transaction, :transaction, transaction: transaction)
-
-  defp respond({:ok, in_flight_exit}, conn) do
-    render(conn, View.Transaction, :in_flight_exit, in_flight_exit: in_flight_exit)
-  end
-
-  defp respond({:error, code}, conn) do
-    handle_error(conn, code)
-  end
-
-  defp respond(nil, conn), do: handle_error(conn, :transaction_not_found)
 
   def swagger_definitions do
     %{

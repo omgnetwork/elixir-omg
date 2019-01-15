@@ -47,7 +47,7 @@ defmodule OMG.Watcher.Eventer do
         Endpoint.broadcast!(
           topic,
           event_name,
-          event |> Response.clean_artifacts()
+          event |> Response.sanitize()
         )
     end)
 

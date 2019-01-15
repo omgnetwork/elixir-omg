@@ -36,7 +36,6 @@ defmodule OMG.Watcher.Web do
       use Phoenix.Controller, namespace: OMG.Watcher.Web, log: :debug
       import Plug.Conn
       import OMG.Watcher.Web.Router.Helpers
-      import OMG.Watcher.Web.ErrorHandler
 
       action_fallback(OMG.Watcher.Web.Controller.Fallback)
 

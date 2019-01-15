@@ -180,6 +180,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
     utxo_pos = Utxo.position(7000, 1, 0) |> Utxo.Position.encode()
 
     assert %{
+             "object" => "error",
              "code" => "exit:invalid",
              "description" => "Utxo was spent or does not exist."
            } = TestHelper.no_success?("/utxo.get_exit_data", %{"utxo_pos" => utxo_pos})

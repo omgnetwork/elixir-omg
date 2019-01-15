@@ -17,12 +17,13 @@ defmodule OMG.API.Web.Error do
   Serializes error's code and description provided in response's data field.
   """
 
-  @spec serialize(atom() | String.t(), String.t()) :: map()
+  @spec serialize(atom() | String.t(), String.t() | nil) :: map()
   def serialize(code, description) do
     %{
       object: :error,
       code: code,
       description: description
     }
+    |> OMG.API.Web.Response.serialize()
   end
 end

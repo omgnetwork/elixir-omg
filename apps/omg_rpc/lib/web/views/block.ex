@@ -21,6 +21,6 @@ defmodule OMG.RPC.Web.View.Block do
 
   def render("block.json", %{block: block}) do
     block
-    |> Serializer.Response.serialize(:success)
+    |> OMG.API.Web.Response.serialize()
   end
 end

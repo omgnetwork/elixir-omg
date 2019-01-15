@@ -22,7 +22,6 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
 
   alias OMG.API.Utxo
   alias OMG.Watcher.API
-  alias OMG.Watcher.Web.View
 
   @doc """
   Challenges exits
@@ -30,17 +29,10 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   def get_utxo_challenge(conn, params) do
     with {:ok, utxo_pos} <- Map.fetch(params, "utxo_pos"),
          utxo <- Utxo.Position.decode(utxo_pos) do
-      challenge = API.Utxo.create_challenge(utxo)
-      respond(challenge, conn)
+      utxo
+      |> API.Utxo.create_challenge()
+      |> api_response(conn, :challenge)
     end
-  end
-
-  defp respond({:ok, challenge}, conn) do
-    render(conn, View.Challenge, :challenge, challenge: challenge)
-  end
-
-  defp respond({:error, code}, conn) do
-    handle_error(conn, code)
   end
 
   def swagger_definitions do

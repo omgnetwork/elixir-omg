@@ -21,17 +21,20 @@ defmodule OMG.Watcher.Web.Controller.FallbackTest do
   describe "Controller.FallbackTest" do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "fallback returns error for non existing endpoint" do
-      %{
-        "code" => "endpoint_not_found",
-        "description" => "Endpoint not found"
-      } = TestHelper.no_success?("/non_exsisting_endpoint")
+      assert %{
+               "object" => "error",
+               "code" => "endpoint_not_found",
+               "description" => "Endpoint not found"
+             } == TestHelper.no_success?("/non_exsisting_endpoint")
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "fallback controller better handles with expression mismatches" do
-      %{
-        "code" => "get_utxo_exit:unknown_error"
-      } = TestHelper.no_success?("/utxo.get_exit_data", %{"utxo_pos" => "1200000120000"})
+      assert %{
+               "object" => "error",
+               "code" => "get_utxo_exit:unknown_error",
+               "description" => nil
+             } == TestHelper.no_success?("/utxo.get_exit_data", %{"utxo_pos" => "1200000120000"})
     end
   end
 end

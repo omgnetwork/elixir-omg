@@ -22,7 +22,6 @@ defmodule OMG.Watcher.Web.Controller.Account do
 
   alias OMG.API.Crypto
   alias OMG.Watcher.API
-  alias OMG.Watcher.Web.View
 
   @doc """
   Gets plasma account balance
@@ -39,9 +38,9 @@ defmodule OMG.Watcher.Web.Controller.Account do
   def get_utxos(conn, params) do
     with {:ok, address} <- Map.fetch(params, "address"),
          {:ok, decoded_address} <- Crypto.decode_address(address) do
-      utxos = API.Account.get_utxos(decoded_address)
-
-      render(conn, View.Utxo, :utxos, utxos: utxos)
+      decoded_address
+      |> API.Account.get_utxos()
+      |> api_response(conn, :utxos)
     end
   end
 

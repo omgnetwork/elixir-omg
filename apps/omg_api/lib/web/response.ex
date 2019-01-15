@@ -27,5 +27,4 @@ defmodule OMG.API.Web.Response do
       success: result == :success,
       data: data
     }
-
 end

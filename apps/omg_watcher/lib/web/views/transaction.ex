@@ -24,21 +24,21 @@ defmodule OMG.Watcher.Web.View.Transaction do
 
   require Utxo
 
-  def render("in_flight_exit.json", %{in_flight_exit: in_flight_exit}) do
+  def render("in_flight_exit.json", %{response: in_flight_exit}) do
     in_flight_exit
-    |> Serializers.Response.serialize(:success)
+    |> OMG.API.Web.Response.serialize()
   end
 
   def render("transaction.json", %{transaction: transaction}) do
     transaction
     |> render_transaction()
-    |> Serializer.Response.serialize(:success)
+    |> OMG.API.Web.Response.serialize()
   end
 
-  def render("transactions.json", %{transactions: transactions}) do
+  def render("transactions.json", %{response: transactions}) do
     transactions
     |> Enum.map(&render_tx_digest/1)
-    |> Serializer.Response.serialize(:success)
+    |> OMG.API.Web.Response.serialize()
   end
 
   defp render_transaction(transaction) do

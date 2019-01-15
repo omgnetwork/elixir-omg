@@ -19,30 +19,44 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
 
   use Phoenix.Controller
 
-  alias OMG.Watcher.Web.Serializer
-
-  def call(conn, :not_found) do
-    data = %{
-      object: :error,
-      code: :endpoint_not_found,
-      description: "Endpoint not found"
+  @errors %{
+    exit_not_found: %{
+      code: "challenge:exit_not_found",
+      description: "The challenge of particular exit is impossible because exit is inactive or missing"
+    },
+    utxo_not_spent: %{
+      code: "challenge:utxo_not_spent",
+      description: "The challenge of particular exit is impossible because provided utxo is not spent"
+    },
+    transaction_not_found: %{
+      code: "transaction:not_found",
+      description: "Transaction doesn't exist for provided search criteria"
+    },
+    utxo_not_found: %{
+      code: "exit:invalid",
+      description: "Utxo was spent or does not exist."
     }
+  }
 
-    json(conn, Serializer.Response.serialize(data, :error))
-  end
+  def call(conn, :not_found), do: json(conn, OMG.API.Web.Error.serialize(:endpoint_not_found, "Endpoint not found"))
 
   def call(conn, {:error, reason}) do
-    data = %{
-      object: :error,
-      code: "#{action_name(conn)}#{inspect(reason)}",
-      description: nil
-    }
+    err_info =
+      @errors
+      |> Map.get(
+        reason,
+        %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil}
+      )
 
-    json(conn, Serializer.Response.serialize(data, :error))
+    respond(conn, err_info)
   end
 
   def call(conn, :error), do: call(conn, {:error, :unknown_error})
 
   # Controller's action with expression has no match, e.g. on guard
   def call(conn, _), do: call(conn, {:error, :unknown_error})
+
+  defp respond(conn, %{code: code, description: description}) do
+    json(conn, OMG.API.Web.Error.serialize(code, description))
+  end
 end

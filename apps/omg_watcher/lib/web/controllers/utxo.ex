@@ -17,28 +17,20 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   Operations related to utxo.
   Modify the state in the database.
   """
+
   use OMG.Watcher.Web, :controller
+  use PhoenixSwagger
 
   alias OMG.API.Utxo.Position
   alias OMG.Watcher.API
-  alias OMG.Watcher.Web.View
-
-  use PhoenixSwagger
 
   def get_utxo_exit(conn, params) do
     with {:ok, utxo_pos} when is_number(utxo_pos) <- Map.fetch(params, "utxo_pos"),
          utxo <- Position.decode(utxo_pos) do
-      utxo_exit = API.Utxo.compose_utxo_exit(utxo)
-      respond(utxo_exit, conn)
+      utxo
+      |> API.Utxo.compose_utxo_exit()
+      |> api_response(conn, :utxo_exit)
     end
-  end
-
-  defp respond({:ok, utxo_exit}, conn) do
-    render(conn, View.Utxo, :utxo_exit, utxo_exit: utxo_exit)
-  end
-
-  defp respond({:error, code}, conn) do
-    handle_error(conn, code)
   end
 
   def swagger_definitions do

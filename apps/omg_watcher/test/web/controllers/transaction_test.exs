@@ -119,6 +119,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       txhash = <<0::256>> |> OMG.API.Web.Encoding.to_hex()
 
       assert %{
+               "object" => "error",
                "code" => "transaction:not_found",
                "description" => "Transaction doesn't exist for provided search criteria"
              } == TestHelper.no_success?("/transaction.get", %{"id" => txhash})

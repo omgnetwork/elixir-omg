@@ -37,7 +37,7 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
         if bad_block_hash == Base.decode16!(req_hash) do
           bad_block
           |> Block.to_api_format()
-          |> Response.clean_artifacts()
+          |> Response.sanitize()
           |> TestServer.make_response()
         else
           {:ok, block} =
