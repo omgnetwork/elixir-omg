@@ -24,6 +24,7 @@ defmodule OMG.Watcher.ExitProcessor.Request do
   """
 
   alias OMG.API.Block
+  alias OMG.API.Crypto
   alias OMG.API.Utxo
 
   defstruct [
@@ -35,18 +36,18 @@ defmodule OMG.Watcher.ExitProcessor.Request do
     utxo_exists_result: [],
     spent_blknum_result: [],
     blocks_result: [],
-    input_owners_result: nil
+    input_owners_result: []
   ]
 
   @type t :: %__MODULE__{
           eth_height_now: nil | pos_integer,
           blknum_now: nil | pos_integer,
-          utxo_exists_result: nil | list(boolean),
           spends_to_get: nil | list(Utxo.Position.t()),
           blknums_to_get: nil | list(pos_integer),
-          utxos_to_check: list(Utxo.Position.t()),
+          utxos_to_check: nil | list(Utxo.Position.t()),
+          utxo_exists_result: list(boolean),
           spent_blknum_result: list(pos_integer),
           blocks_result: list(Block.t()),
-          input_owners_result: nil
+          input_owners_result: list(Crypto.address_t())
         }
 end

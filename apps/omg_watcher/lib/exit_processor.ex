@@ -256,25 +256,25 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, competitor, state}
   end
 
-  defp run_status_gets(%ExitProcessor.Request{eth_height_now: nil, blknum_now: nil} = request) do
+  defp run_status_gets(%ExitProcessor.Request{} = request) do
     {:ok, eth_height_now} = Eth.get_ethereum_height()
     {blknum_now, _} = State.get_status()
 
     %{request | eth_height_now: eth_height_now, blknum_now: blknum_now}
   end
 
-  defp run_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions, utxo_exists_result: nil} = request) do
+  defp run_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions} = request) do
     %{request | utxo_exists_result: positions |> Enum.map(&State.utxo_exists?/1)}
   end
 
-  defp run_spend_getting(%ExitProcessor.Request{spends_to_get: positions, spent_blknum_result: nil} = request) do
+  defp run_spend_getting(%ExitProcessor.Request{spends_to_get: positions} = request) do
     %{
       request
       | spent_blknum_result: positions |> Enum.map(&Utxo.Position.to_db_key/1) |> Enum.map(&OMG.DB.spent_blknum/1)
     }
   end
 
-  defp run_block_getting(%ExitProcessor.Request{blknums_to_get: blknums, blocks_result: nil} = request) do
+  defp run_block_getting(%ExitProcessor.Request{blknums_to_get: blknums} = request) do
     {:ok, hashes} = OMG.DB.block_hashes(blknums)
     {:ok, blocks} = OMG.DB.blocks(hashes)
     %{request | blocks_result: blocks}

@@ -360,7 +360,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   """
   @spec determine_utxo_existence_to_get(ExitProcessor.Request.t(), t()) :: ExitProcessor.Request.t()
   def determine_utxo_existence_to_get(
-        %ExitProcessor.Request{utxos_to_check: nil} = request,
+        %ExitProcessor.Request{} = request,
         %__MODULE__{} = state
       ) do
     %{request | utxos_to_check: do_determine_utxo_existence_to_get(state)}
@@ -387,10 +387,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   Assmues that UTXOs that haven't been checked at all **exist**
   """
-  @spec determine_spends_to_get(__MODULE__.t(), CheckValidtyRequest.t()) :: CheckValidtyRequest.t()
+  @spec determine_spends_to_get(ExitProcessor.Request.t(), __MODULE__.t()) :: ExitProcessor.Request.t()
   def determine_spends_to_get(
         %ExitProcessor.Request{
-          spends_to_get: nil,
           utxos_to_check: utxos_to_check,
           utxo_exists_result: utxo_exists_result
         } = request,
@@ -418,10 +417,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   NOTE: for now this is pretty trivial - we just get all of the blknums, where some ife input was spent
         (see other Core functions). There are more optimal and smart way to do this
   """
-  @spec determine_blocks_to_get(__MODULE__.t()) :: CheckValidtyRequest.t()
+  @spec determine_blocks_to_get(ExitProcessor.Request.t()) :: ExitProcessor.Request.t()
   def determine_blocks_to_get(
         %ExitProcessor.Request{
-          blknums_to_get: nil,
           spent_blknum_result: spent_blknum_result
         } = request
       ) do
