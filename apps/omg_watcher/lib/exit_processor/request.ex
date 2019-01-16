@@ -12,11 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.CheckValidityRequest do
+defmodule OMG.Watcher.ExitProcessor.Request do
   @moduledoc """
-  Encapsulates the state of processing of `OMG.Watcher.ExitProcessor.check_validity/0` pipeline
+  Encapsulates the state of processing of `OMG.Watcher.ExitProcessor` pipelines
 
   Holds all the necessary query date and the respective response
+
+  NOTE: this is highly experimental, to test out new patterns to follow when doing the Functional Core vs Imperative
+        Shell separation. **Do not yet** follow outside of here. I'm not sure whether such struct offers much and it
+        has its problems.
   """
 
   alias OMG.API.Block

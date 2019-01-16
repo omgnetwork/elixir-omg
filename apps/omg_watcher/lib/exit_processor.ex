@@ -27,7 +27,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.API.Utxo
   alias OMG.DB
   alias OMG.Eth
-  alias OMG.Watcher.ExitProcessor.CheckValidityRequest
+  alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
@@ -223,15 +223,16 @@ defmodule OMG.Watcher.ExitProcessor do
   Combine data from `ExitProcessor` and `API.State` to figure out what to do about exits
   """
   def handle_call(:check_validity, _from, state) do
+    # TODO: future of using this struct not certain, see that module for details
     {chain_status, events} =
-      %CheckValidityRequest{}
+      %ExitProcessor.Request{}
       |> run_status_gets()
       |> Core.determine_utxo_existence_to_get(state)
       |> run_utxo_exists()
-      # |> Core.determine_spends_to_get(state)
-      # |> run_spend_getting()
-      # |> Core.determine_blocks_to_get(state)
-      # |> run_block_getting()
+      |> Core.determine_spends_to_get(state)
+      |> run_spend_getting()
+      |> Core.determine_blocks_to_get()
+      |> run_block_getting()
       |> Core.invalid_exits(state)
 
     {:reply, {chain_status, events}, state}
@@ -241,14 +242,13 @@ defmodule OMG.Watcher.ExitProcessor do
     do: {:reply, Core.get_in_flight_exits(hashes), state}
 
   def handle_call({:get_competitor_for_ife, txbytes}, _from, state) do
-    # TODO: since CheckValidityRequest isn't restricted to the function as the name would imply, rename it someday
-    #       or possibly introduce another pipeline handling struct
+    # TODO: future of using this struct not certain, see that module for details
     competitor =
-      %CheckValidityRequest{}
-      # |> Core.determine_spends_to_get(state)
-      # |> run_spend_getting()
-      # |> Core.determine_blocks_to_get(state)
-      # |> run_block_getting()
+      %ExitProcessor.Request{}
+      |> Core.determine_spends_to_get(state)
+      |> run_spend_getting()
+      |> Core.determine_blocks_to_get()
+      |> run_block_getting()
       # |> Core.determine_ife_owners()
       # |> run_owner_getting()
       |> Core.get_competitor_for_ife(state)
@@ -256,25 +256,25 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, competitor, state}
   end
 
-  defp run_status_gets(%CheckValidityRequest{eth_height_now: nil, blknum_now: nil} = request) do
+  defp run_status_gets(%ExitProcessor.Request{eth_height_now: nil, blknum_now: nil} = request) do
     {:ok, eth_height_now} = Eth.get_ethereum_height()
     {blknum_now, _} = State.get_status()
 
     %{request | eth_height_now: eth_height_now, blknum_now: blknum_now}
   end
 
-  defp run_utxo_exists(%CheckValidityRequest{utxos_to_check: positions, utxo_exists_result: nil} = request) do
+  defp run_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions, utxo_exists_result: nil} = request) do
     %{request | utxo_exists_result: positions |> Enum.map(&State.utxo_exists?/1)}
   end
 
-  defp run_spend_getting(%CheckValidityRequest{spends_to_get: positions, spent_blknum_result: nil} = request) do
+  defp run_spend_getting(%ExitProcessor.Request{spends_to_get: positions, spent_blknum_result: nil} = request) do
     %{
       request
       | spent_blknum_result: positions |> Enum.map(&Utxo.Position.to_db_key/1) |> Enum.map(&OMG.DB.spent_blknum/1)
     }
   end
 
-  defp run_block_getting(%CheckValidityRequest{blknums_to_get: blknums, blocks_result: nil} = request) do
+  defp run_block_getting(%ExitProcessor.Request{blknums_to_get: blknums, blocks_result: nil} = request) do
     {:ok, hashes} = OMG.DB.block_hashes(blknums)
     %{request | blocks_result: hashes |> OMG.DB.blocks()}
   end

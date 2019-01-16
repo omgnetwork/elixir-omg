@@ -27,7 +27,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   require Utxo
   alias OMG.Watcher.Challenger.Tools
   alias OMG.Watcher.Event
-  alias OMG.Watcher.ExitProcessor.CheckValidityRequest
+  alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.CompetitorInfo
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
@@ -358,9 +358,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   All the active exits, in-flight exits, exiting output piggybacks etc., based on the current tracked state
   """
-  @spec determine_utxo_existence_to_get(CheckValidityRequest.t(), t()) :: CheckValidityRequest.t()
+  @spec determine_utxo_existence_to_get(ExitProcessor.Request.t(), t()) :: ExitProcessor.Request.t()
   def determine_utxo_existence_to_get(
-        %CheckValidityRequest{utxos_to_check: nil} = request,
+        %ExitProcessor.Request{utxos_to_check: nil} = request,
         %__MODULE__{} = state
       ) do
     %{request | utxos_to_check: do_determine_utxo_existence_to_get(state)}
@@ -376,7 +376,56 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       ifes
       |> Enum.flat_map(fn {_, ife} -> InFlightExitInfo.get_exiting_utxo_positions(ife) end)
 
-    ife_pos ++ standard_exits_pos
+    (ife_pos ++ standard_exits_pos)
+    |> Enum.uniq()
+  end
+
+  @doc """
+  Figures out which numbers of "spending transaction blocks" to get for the utxos, based on the existence reported by
+  `OMG.API.State` and possibly other factors, eg. only take the non-existent UTXOs spends (naturally) and ones that
+  pertain to IFE transaction inputs.
+
+  Assmues that UTXOs that haven't been checked at all **exist**
+  """
+  @spec determine_spends_to_get(__MODULE__.t(), CheckValidtyRequest.t()) :: CheckValidtyRequest.t()
+  def determine_spends_to_get(
+        %ExitProcessor.Request{
+          spends_to_get: nil,
+          utxos_to_check: utxos_to_check,
+          utxo_exists_result: utxo_exists_result
+        } = request,
+        %__MODULE__{in_flight_exits: ifes}
+      ) do
+    utxo_exists? = Enum.zip(utxos_to_check, utxo_exists_result) |> Map.new()
+
+    spends_to_get =
+      ifes
+      |> Map.values()
+      |> Enum.filter(& &1.is_active)
+      |> Enum.flat_map(fn %{tx: %Transaction.Signed{raw_tx: tx}} -> Transaction.get_inputs(tx) end)
+      # the default value below is true, so that the assumption is that utxo not checked is **present**
+      # (i.e. we haven't checked because we know it's there for some good reason)
+      |> Enum.filter(fn input -> !Map.get(utxo_exists?, input, true) end)
+      |> Enum.uniq()
+
+    %{request | spends_to_get: spends_to_get}
+  end
+
+  @doc """
+  Figures out which block numbers to ask from the database, based on the blknums where relevant UTXOs were spent and
+  (in the future) some additional insights from the state of ExitProcessor (eg. only get the oldest block per ife)
+
+  NOTE: for now this is pretty trivial - we just get all of the blknums, where some ife input was spent
+        (see other Core functions). There are more optimal and smart way to do this
+  """
+  @spec determine_blocks_to_get(__MODULE__.t()) :: CheckValidtyRequest.t()
+  def determine_blocks_to_get(
+        %ExitProcessor.Request{
+          blknums_to_get: nil,
+          spent_blknum_result: spent_blknum_result
+        } = request
+      ) do
+    %{request | blknums_to_get: spent_blknum_result}
   end
 
   @doc """
@@ -389,10 +438,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   NOTE: If there were any exits unchallenged for some time in chain history, this might detect breach of SLA,
         even if the exits were eventually challenged (e.g. during syncing)
   """
-  @spec invalid_exits(CheckValidityRequest.t(), t()) ::
+  @spec invalid_exits(ExitProcessor.Request.t(), t()) ::
           {:ok | {:error, :unchallenged_exit}, list(Event.InvalidExit.t() | Event.UnchallengedExit.t())}
   def invalid_exits(
-        %CheckValidityRequest{
+        %ExitProcessor.Request{
           eth_height_now: eth_height_now,
           blknum_now: blknum_now,
           utxo_exists_result: utxo_exists_result
@@ -446,9 +495,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Gets the list of open IFEs that have the competitors _somewhere_
   """
   # TODO: this is public, but should probably be called from `invalid_exits` and made private
-  @spec get_ifes_with_competitors(CheckValidityRequest.t(), __MODULE__.t()) :: list(binary())
+  @spec get_ifes_with_competitors(ExitProcessor.Request.t(), __MODULE__.t()) :: list(binary())
   def get_ifes_with_competitors(
-        %CheckValidityRequest{blocks_result: {:ok, blocks}},
+        %ExitProcessor.Request{blocks_result: {:ok, blocks}},
         %__MODULE__{in_flight_exits: ifes} = state
       ) do
     known_txs = get_known_txs(blocks) ++ get_known_txs(state)
@@ -467,10 +516,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   Gets the root chain contract-required set of data to challenge a non-canonical ife
   """
-  @spec get_competitor_for_ife(CheckValidityRequest.t(), __MODULE__.t(), list(Crypto.address_t()), binary()) ::
+  @spec get_competitor_for_ife(ExitProcessor.Request.t(), __MODULE__.t(), list(Crypto.address_t()), binary()) ::
           {:ok, competitor_data_t()} | {:error, :competitor_not_found}
   def get_competitor_for_ife(
-        %CheckValidityRequest{blocks_result: {:ok, blocks}},
+        %ExitProcessor.Request{blocks_result: {:ok, blocks}},
         %__MODULE__{in_flight_exits: ifes} = state,
         input_owners,
         ife_txbytes
