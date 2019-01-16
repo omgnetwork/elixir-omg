@@ -60,12 +60,11 @@ defmodule OMG.API.Application do
           :start_link,
           [
             %{
-              # TODO check if synced_height_update_key is appropriate
-              synced_height_update_key: :last_exiter_eth_height,
+              synced_height_update_key: :last_in_flight_exit_eth_height,
               service_name: :in_flight_exit,
               block_finality_margin: deposit_finality_margin,
               get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
-              process_events_callback: &OMG.API.State.in_flight_exits/1,
+              process_events_callback: &OMG.API.State.exit_utxos(&1) |> Tuple.delete_at(2),
               get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
             }
           ]
@@ -78,12 +77,11 @@ defmodule OMG.API.Application do
           :start_link,
           [
             %{
-              # TODO check if synced_height_update_key is appropriate
-              synced_height_update_key: :last_exiter_eth_height,
+              synced_height_update_key: :last_piggyback_exit_eth_height,
               service_name: :piggyback,
               block_finality_margin: deposit_finality_margin,
               get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
-              process_events_callback: &OMG.API.State.piggybacks/1,
+              process_events_callback: &OMG.API.State.exit_utxos(&1) |> Tuple.delete_at(2),
               get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
             }
           ]

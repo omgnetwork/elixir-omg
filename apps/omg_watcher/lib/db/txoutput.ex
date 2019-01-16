@@ -25,6 +25,7 @@ defmodule OMG.Watcher.DB.TxOutput do
   alias OMG.Watcher.DB.Repo
 
   require Utxo
+
   import Ecto.Query, only: [from: 2, where: 2]
 
   @type balance() :: %{

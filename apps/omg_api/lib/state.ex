@@ -39,7 +39,7 @@ defmodule OMG.API.State do
   end
 
   @spec exec(tx :: %Transaction.Recovered{}, fees :: map()) ::
-          {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, non_neg_integer}}
+          {:ok, {Transaction.Recovered.tx_hash_t(), pos_integer, non_neg_integer}}
           | {:error, exec_error()}
   def exec(tx, input_fees) do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})
@@ -57,16 +57,6 @@ defmodule OMG.API.State do
   @spec deposit(deposits :: [Core.deposit()]) :: {:ok, list(Core.db_update())}
   def deposit(deposits) do
     GenServer.call(__MODULE__, {:deposits, deposits})
-  end
-
-  @spec in_flight_exits(in_flight_exits :: Transaction.Recovered.t()) :: {:ok, list(Core.db_update())}
-  def in_flight_exits(in_flight_exits) do
-    GenServer.call(__MODULE__, {:in_flight_exits, in_flight_exits})
-  end
-
-  @spec piggybacks(piggybacks :: [Core.piggyback()]) :: {:ok, list(Core.db_update())}
-  def piggybacks(piggybacks) do
-    GenServer.call(__MODULE__, {:piggybacks, piggybacks})
   end
 
   @spec exit_utxos(utxos :: [Core.exit_t()] | [Utxo.Position.t()]) ::
@@ -142,21 +132,6 @@ defmodule OMG.API.State do
 
     EventerAPI.emit_events(event_triggers)
 
-    {:reply, {:ok, db_updates}, new_state}
-  end
-
-  @doc """
-  Exits (spends) utxos on child chain, explicitly signals all utxos that have already been spent
-  """
-  def handle_call({:in_flight_exits, in_flight_txs}, _from, state) do
-    {:ok, {db_updates, event_triggers}, new_state} = Core.in_flight_exits(in_flight_txs, state)
-    EventerAPI.emit_events(event_triggers)
-    {:reply, {:ok, db_updates}, new_state}
-  end
-
-  def handle_call({:piggybacks, piggybacks}, _from, state) do
-    {:ok, {event_triggers, db_updates}, new_state} = Core.piggybacks(piggybacks, state)
-    EventerAPI.emit_events(event_triggers)
     {:reply, {:ok, db_updates}, new_state}
   end
 

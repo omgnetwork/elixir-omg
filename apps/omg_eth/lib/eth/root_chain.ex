@@ -83,7 +83,7 @@ defmodule OMG.Eth.RootChain do
 
     opts = defaults |> Keyword.merge(opts)
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    Eth.contract_transact(from, contract, "piggybackInFlightExit(bytes, uint8)", [in_flightTx, outputIndex], opts)
+    Eth.contract_transact(from, contract, "piggybackInFlightExit(bytes,uint8)", [in_flightTx, outputIndex], opts)
   end
 
   def deposit(tx_bytes, value, from, contract \\ nil, opts \\ []) do
@@ -250,15 +250,16 @@ defmodule OMG.Eth.RootChain do
 
   defp get_inflight_data(hash) do
     {:ok, eth_tx} = Ethereumex.HttpClient.eth_get_transaction_by_hash(hash)
-    <<"0x", encode_inflight::binary>> = eth_tx["input"]
+    encode_inflight = Eth.Encoding.from_hex(eth_tx["input"])
 
     ABI.decode(
-      %ABI.FunctionSelector{
-        function: "startInFlightExit",
-        types: [:bytes, :bytes, :bytes, :bytes],
-        method_id: <<132, 97, 33, 149>>
-      },
-      encode_inflight |> Base.decode16!(case: :lower)
+      ABI.FunctionSelector.parse_specification_item(%{
+        "type" => "function",
+        "name" => "startInFlightExit",
+        "inputs" => List.duplicate(%{"type" => "bytes"}, 4),
+        "outputs" => []
+      }),
+      encode_inflight
     )
   end
 
@@ -321,7 +322,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_piggybacked(log) do
-    non_indexed_keys = [:txHash, :outputIndex]
+    non_indexed_keys = [:txhash, :output_index]
     non_indexed_key_types = [{:bytes, 32}, {:uint, 256}]
     indexed_keys = [:owner]
     indexed_keys_types = [:address]

@@ -98,10 +98,6 @@ defmodule OMG.Watcher.DB.Transaction do
   defp query_get_by_blknum(base, nil), do: base
   defp query_get_by_blknum(base, blknum), do: base |> from(where: [blknum: ^blknum])
 
-  def get_all do
-    DB.Repo.all(from(__MODULE__, where: []))
-  end
-
   def get_by_blknum(blknum) do
     __MODULE__
     |> query_get_by_blknum(blknum)
@@ -157,7 +153,7 @@ defmodule OMG.Watcher.DB.Transaction do
   @spec process(Transaction.Recovered.t(), pos_integer(), integer(), list()) :: [list()]
   defp process(
          %Transaction.Recovered{
-           signed_tx_hash: signed_tx_hash,
+           tx_hash: tx_hash,
            signed_tx: %Transaction.Signed{signed_tx_bytes: signed_tx_bytes, raw_tx: raw_tx = %Transaction{}}
          },
          block_number,
@@ -165,9 +161,9 @@ defmodule OMG.Watcher.DB.Transaction do
          [tx_list, output_list, input_list]
        ) do
     [
-      [create(block_number, txindex, signed_tx_hash, signed_tx_bytes) | tx_list],
-      DB.TxOutput.create_outputs(block_number, txindex, signed_tx_hash, raw_tx) ++ output_list,
-      DB.TxOutput.create_inputs(raw_tx, signed_tx_hash) ++ input_list
+      [create(block_number, txindex, tx_hash, signed_tx_bytes) | tx_list],
+      DB.TxOutput.create_outputs(block_number, txindex, tx_hash, raw_tx) ++ output_list,
+      DB.TxOutput.create_inputs(raw_tx, tx_hash) ++ input_list
     ]
   end
 

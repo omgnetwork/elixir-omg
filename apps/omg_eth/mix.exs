@@ -34,7 +34,7 @@ defmodule OMG.Eth.MixProject do
 
   defp deps do
     [
-      {:ex_abi, git: "https://github.com/pthomalla/ex_abi", branch: "fix_decode"},
+      {:ex_abi, "~> 0.2.0"},
       {:ethereumex, git: "https://github.com/omisego/ethereumex.git", branch: "request_timeout2", override: true},
       {:exexec, git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", runtime: true},
       # TODO: we only need in :dev and :test here, but we need in :prod too in performance
