@@ -222,6 +222,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :exit_info, {blknum, txindex, oindex}} end)
   end
 
+  # TODO: simplify flow
+  # https://github.com/omisego/elixir-omg/pull/361#discussion_r247481397
   @spec new_ife_challenges(t(), [map()]) :: {t(), list()}
   def new_ife_challenges(%__MODULE__{in_flight_exits: ifes, competitors: competitors} = state, challenges_events) do
     challenges =
@@ -263,6 +265,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {state, []}
   end
 
+  # TODO: simplify flow
+  # https://github.com/omisego/elixir-omg/pull/361#discussion_r247483185
   @spec challenge_piggybacks(t(), [map()]) :: {t(), list()}
   def challenge_piggybacks(%__MODULE__{in_flight_exits: ifes} = state, challenges) do
     ifes_to_update =
@@ -296,6 +300,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   # TODO: write tests
+  # TODO: simplify flow
+  # https://github.com/omisego/elixir-omg/pull/361#discussion_r247485778
   @spec finalize_in_flight_exits(t(), [map()]) :: {t(), list()}
   def finalize_in_flight_exits(%__MODULE__{in_flight_exits: ifes} = state, finalizations) do
     ifes_to_update =
