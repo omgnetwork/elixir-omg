@@ -47,7 +47,6 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @type tx_index() :: non_neg_integer()
   @type tx_position() :: {blknum(), tx_index()}
 
-
   @type ife_contract_id() :: <<_::192>>
 
   @type t :: %__MODULE__{
@@ -134,7 +133,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def challenge_piggyback(%__MODULE__{}, _), do: {:error, :non_existent_exit}
 
-  @spec respond_to_challenge(t(), pos_integer()) :: {:ok, t()} | {:error, :responded_with_too_young_tx | :cannot_respond}
+  @spec respond_to_challenge(t(), pos_integer()) ::
+          {:ok, t()} | {:error, :responded_with_too_young_tx | :cannot_respond}
   def respond_to_challenge(ife, tx_position)
 
   def respond_to_challenge(%__MODULE__{oldest_competitor: nil, tx_pos: nil} = ife, tx_position) do

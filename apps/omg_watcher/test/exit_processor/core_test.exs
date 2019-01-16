@@ -599,11 +599,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     updates = Enum.map(competitors, &CompetitorInfo.make_db_update/1)
 
-    {updated_state, db_updates} = Core.challenge_in_flight_exits(state, Enum.slice(challenges_events, 0, 1))
+    {updated_state, db_updates} = Core.new_ife_challenges(state, Enum.slice(challenges_events, 0, 1))
 
     assert Enum.member?(db_updates, Enum.at(updates, 0))
 
-    {final_state, db_updates} = Core.challenge_in_flight_exits(state, challenges_events)
+    {final_state, db_updates} = Core.new_ife_challenges(state, challenges_events)
 
     # updates consists of competitors updates as well as ifes updates
     assert Enum.reduce(
@@ -615,8 +615,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              end
            )
 
-    assert {^final_state, db_updates} =
-             Core.challenge_in_flight_exits(updated_state, Enum.slice(challenges_events, 1, 2))
+    assert {^final_state, db_updates} = Core.new_ife_challenges(updated_state, Enum.slice(challenges_events, 1, 2))
 
     assert Enum.reduce(
              Enum.slice(updates, 1, 2),
@@ -637,7 +636,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     {:ok, state} = Core.init([], [ife], [])
 
-    {state, updates} = Core.challenge_in_flight_exits(state, [challenge])
+    {state, updates} = Core.new_ife_challenges(state, [challenge])
 
     assert Enum.any?(
              updates,

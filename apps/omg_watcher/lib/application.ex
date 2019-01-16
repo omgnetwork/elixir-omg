@@ -175,7 +175,7 @@ defmodule OMG.Watcher.Application do
                synced_height_update_key: :last_competitor_processor_eth_height,
                service_name: :competitor_processor,
                get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_challenges/2,
-               process_events_callback: &OMG.Watcher.ExitProcessor.challenge_in_flight_exits/1
+               process_events_callback: &OMG.Watcher.ExitProcessor.new_ife_challenges/1
              }
            ]}
       },

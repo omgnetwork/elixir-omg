@@ -157,7 +157,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {updated_state, Enum.map(updated_pairs, &InFlightExitInfo.make_db_update/1)}
   end
 
-  defp process_piggyback(%{tx_hash: tx_hash, output_index: output_index}, {%__MODULE__{in_flight_exits: ifes} = state, db_updates}) do
+  defp process_piggyback(
+         %{tx_hash: tx_hash, output_index: output_index},
+         {%__MODULE__{in_flight_exits: ifes} = state, db_updates}
+       ) do
     with {:ok, ife} <- Map.fetch(ifes, tx_hash),
          {:ok, updated_ife} <- InFlightExitInfo.piggyback(ife, output_index) do
       updated_state = %{state | in_flight_exits: Map.put(ifes, tx_hash, updated_ife)}
@@ -219,10 +222,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :exit_info, {blknum, txindex, oindex}} end)
   end
 
-  # TODO: better name? `new_ife_challenges`? this is just registering an event on eth, so "challenge" verb misleads
-  #       would probably require changing a few of these names to the `new_something` convention
-  @spec challenge_in_flight_exits(t(), [map()]) :: {t(), list()}
-  def challenge_in_flight_exits(%__MODULE__{in_flight_exits: ifes, competitors: competitors} = state, challenges_events) do
+  @spec new_ife_challenges(t(), [map()]) :: {t(), list()}
+  def new_ife_challenges(%__MODULE__{in_flight_exits: ifes, competitors: competitors} = state, challenges_events) do
     challenges =
       challenges_events
       |> Enum.map(fn %{
@@ -422,7 +423,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @doc """
-  Gets the root chain conract-required set of data to challenge a non-canonical ife
+  Gets the root chain contract-required set of data to challenge a non-canonical ife
   """
   @spec get_competitor_for_ife(__MODULE__.t(), list(Crypto.address_t()), binary()) :: competitor_data_t()
   def get_competitor_for_ife(%__MODULE__{in_flight_exits: ifes} = state, input_owners, ife_txbytes) do
@@ -441,15 +442,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     # get info about the double spent input and it's respective indices in transactions
     spent_input = competitor_for(signed_ife_tx, known_signed_tx)
-    inflight_input_index = Enum.find_index(ife_inputs, &(&1 == spent_input))
+    in_flight_input_index = Enum.find_index(ife_inputs, &(&1 == spent_input))
     competing_input_index = Enum.find_index(known_spent_inputs, &(&1 == spent_input))
 
-    owner = Enum.at(input_owners, inflight_input_index)
+    owner = Enum.at(input_owners, in_flight_input_index)
     {:ok, competing_sig} = Tools.find_sig(known_signed_tx, owner)
 
     %{
       inflight_txbytes: raw_ife_tx |> Transaction.encode(),
-      inflight_input_index: inflight_input_index,
+      inflight_input_index: in_flight_input_index,
       competing_txbytes: raw_known_tx |> Transaction.encode(),
       competing_input_index: competing_input_index,
       competing_sig: competing_sig,
@@ -471,7 +472,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Stream.map(fn %{raw_tx: raw_tx} -> Transaction.encode(raw_tx) end)
   end
 
-  # tells whether a signle transaction is a competitor for another single transactions, by returning nil or the
+  # tells whether a single transaction is a competitor for another single transactions, by returning nil or the
   # UTXO position of the input double spent
   defp competitor_for(%Transaction.Signed{raw_tx: raw_tx}, %Transaction.Signed{raw_tx: known_raw_tx}) do
     inputs = Transaction.get_inputs(raw_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)

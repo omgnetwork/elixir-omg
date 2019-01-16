@@ -80,8 +80,8 @@ defmodule OMG.Watcher.ExitProcessor do
   Competitors are stored for future use(i.e. to challenge an in flight exit).
   Returns `db_updates`
   """
-  def challenge_in_flight_exits(challenges) do
-    GenServer.call(__MODULE__, {:challenge_in_flight_exits, challenges})
+  def new_ife_challenges(challenges) do
+    GenServer.call(__MODULE__, {:new_ife_challenges, challenges})
   end
 
   @doc """
@@ -188,8 +188,8 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {:ok, db_updates}, new_state}
   end
 
-  def handle_call({:challenge_in_flight_exits, challenges}, _from, state) do
-    {new_state, db_updates} = Core.challenge_in_flight_exits(state, challenges)
+  def handle_call({:new_ife_challenges, challenges}, _from, state) do
+    {new_state, db_updates} = Core.new_ife_challenges(state, challenges)
     {:reply, {:ok, db_updates}, new_state}
   end
 
