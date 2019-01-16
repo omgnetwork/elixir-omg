@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Web.Encoding do
+defmodule OMG.RPC.Web.Encoding do
   @moduledoc """
   Provides binary to HEX and reverse encodings.
   NOTE: Intentionally wraps see: `OMG.Eth.Encoding` to keep flexibility for change.
@@ -21,12 +21,23 @@ defmodule OMG.API.Web.Encoding do
   @doc """
   Encodes raw binary to '0x'-preceded, lowercase HEX string
   """
-  @spec to_hex(binary) :: binary
-  def to_hex(non_hex), do: OMG.Eth.Encoding.to_hex(non_hex)
+  # because https://github.com/rrrene/credo/issues/583, we need to:
+  # credo:disable-for-next-line Credo.Check.Consistency.SpaceAroundOperators
+  @spec to_hex(binary()) :: <<_::16, _::_*8>>
+  def to_hex(binary), do: "0x" <> Base.encode16(binary, case: :lower)
 
   @doc """
   Decodes '0x'-preceded, lowercase HEX string to raw binary, see `to_hex`
   """
-  @spec from_hex(binary) :: binary
-  def from_hex(encoded), do: OMG.Eth.Encoding.from_hex(encoded)
+  # because https://github.com/rrrene/credo/issues/583, we need to:
+  # credo:disable-for-next-line Credo.Check.Consistency.SpaceAroundOperators
+  @spec from_hex(<<_::16, _::_*8>>) :: {:ok, binary()} | {:error, :invalid_hex}
+  def from_hex(encoded) do
+    with "0x" <> hexstr <- encoded,
+         {:ok, binary} <- Base.decode16(hexstr, case: :mixed) do
+      {:ok, binary}
+    else
+      _otherwise -> {:error, :invalid_hex}
+    end
+  end
 end

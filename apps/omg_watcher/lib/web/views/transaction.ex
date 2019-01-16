@@ -20,25 +20,23 @@ defmodule OMG.Watcher.Web.View.Transaction do
   use OMG.Watcher.Web, :view
 
   alias OMG.API.Utxo
-  alias OMG.Watcher.Web.Serializer
-
   require Utxo
 
   def render("in_flight_exit.json", %{response: in_flight_exit}) do
     in_flight_exit
-    |> OMG.API.Web.Response.serialize()
+    |> OMG.RPC.Web.Response.serialize()
   end
 
   def render("transaction.json", %{transaction: transaction}) do
     transaction
     |> render_transaction()
-    |> OMG.API.Web.Response.serialize()
+    |> OMG.RPC.Web.Response.serialize()
   end
 
   def render("transactions.json", %{response: transactions}) do
     transactions
     |> Enum.map(&render_tx_digest/1)
-    |> OMG.API.Web.Response.serialize()
+    |> OMG.RPC.Web.Response.serialize()
   end
 
   defp render_transaction(transaction) do

@@ -18,6 +18,7 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
   """
 
   use Phoenix.Controller
+  alias OMG.RPC.Web.Error
 
   @errors %{
     exit_not_found: %{
@@ -38,7 +39,7 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
     }
   }
 
-  def call(conn, Route.NotFound), do: json(conn, OMG.API.Web.Error.serialize(:endpoint_not_found, "Endpoint not found"))
+  def call(conn, Route.NotFound), do: json(conn, Error.serialize(:endpoint_not_found, "Endpoint not found"))
 
   def call(conn, {:error, reason}) do
     err_info =
@@ -57,6 +58,6 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
   def call(conn, _), do: call(conn, {:error, :unknown_error})
 
   defp respond(conn, %{code: code, description: description}) do
-    json(conn, OMG.API.Web.Error.serialize(code, description))
+    json(conn, Error.serialize(code, description))
   end
 end

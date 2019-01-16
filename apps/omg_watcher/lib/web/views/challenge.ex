@@ -21,6 +21,6 @@ defmodule OMG.Watcher.Web.View.Challenge do
 
   def render("challenge.json", %{response: challenge}) do
     challenge
-    |> OMG.API.Web.Response.serialize()
+    |> OMG.RPC.Web.Response.serialize()
   end
 end

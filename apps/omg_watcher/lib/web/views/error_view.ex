@@ -19,7 +19,7 @@ defmodule OMG.Watcher.Web.View.ErrorView do
   Supports internal server error thrown by Phoenix.
   """
   def render("500.json", %{reason: %{message: message}} = conn) do
-    OMG.API.Web.Error.serialize("server:internal_server_error", message)
+    OMG.RPC.Web.Error.serialize("server:internal_server_error", message)
     |> add_stack_trace(conn)
   end
 

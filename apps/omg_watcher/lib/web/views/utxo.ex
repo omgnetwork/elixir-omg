@@ -21,6 +21,6 @@ defmodule OMG.Watcher.Web.View.Utxo do
 
   def render("utxo_exit.json", %{response: utxo_exit}) do
     utxo_exit
-    |> OMG.API.Web.Response.serialize()
+    |> OMG.RPC.Web.Response.serialize()
   end
 end

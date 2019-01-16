@@ -55,7 +55,7 @@ defmodule OMG.RPC.Web.Serializer.Response do
     |> Map.new()
   end
 
-  def clean_artifacts(bin) when is_binary(bin), do: Base.encode16(bin)
+  def clean_artifacts(bin) when is_binary(bin), do: OMG.RPC.Web.Encoding.to_hex(bin)
   def clean_artifacts(value), do: value
 
   defp to_map(struct) do

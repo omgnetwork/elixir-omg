@@ -40,7 +40,7 @@ defmodule OMG.Watcher.Web.Serializer.Response do
     |> Map.new()
   end
 
-  def sanitize(bin) when is_binary(bin), do: OMG.API.Web.Encoding.to_hex(bin)
+  def sanitize(bin) when is_binary(bin), do: OMG.RPC.Web.Encoding.to_hex(bin)
   def sanitize({:skip_hex_encode, bin}), do: bin
   def sanitize(value), do: value
 

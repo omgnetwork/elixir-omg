@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Web.Error do
+defmodule OMG.RPC.Web.Error do
   @moduledoc """
   Provides standard data structure for API Error response
   """
@@ -27,6 +27,6 @@ defmodule OMG.API.Web.Error do
       code: code,
       description: description
     }
-    |> OMG.API.Web.Response.serialize()
+    |> OMG.RPC.Web.Response.serialize()
   end
 end
