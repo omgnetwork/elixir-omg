@@ -285,7 +285,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   @tag fixtures: [:processor_empty, :alice, :state_empty, :exit_events]
-  test "handles invalid exit finalization - doesn't forget and activates", %{
+  test "handles invalid exit finalization - doesn't forget and causes a byzantine chain report", %{
     processor_empty: processor,
     alice: %{
       addr: alice
@@ -388,9 +388,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Core.new_exits(events, contract_statuses)
 
     # sanity
-    assert [_, _] =
-             processor
-             |> Core.get_exiting_utxo_positions()
+    assert [_, _] = Core.get_exiting_utxo_positions(processor)
 
     assert {processor, [{:delete, :exit_info, @update_key1}, {:delete, :exit_info, @update_key2}]} =
              processor
@@ -399,9 +397,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                %{utxo_pos: Utxo.Position.encode(@utxo_pos2)}
              ])
 
-    assert [] =
-             processor
-             |> Core.get_exiting_utxo_positions()
+    assert [] = Core.get_exiting_utxo_positions(processor)
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
@@ -479,8 +475,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     {updated_state, _} = Core.new_in_flight_exits(empty, events, statuses)
 
-    assert ifes
-           |> Map.new() == Core.get_in_flight_exits(updated_state)
+    assert Map.new(ifes) == Core.get_in_flight_exits(updated_state)
   end
 
   @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses, :in_flight_exits]
