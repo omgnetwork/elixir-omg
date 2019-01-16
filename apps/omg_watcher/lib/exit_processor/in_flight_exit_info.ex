@@ -21,6 +21,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   alias OMG.API.State.Transaction
 
+  # TODO: divide into inputs and outputs: prevent contract's implementation from leaking into watcher
+  # https://github.com/omisego/elixir-omg/pull/361#discussion_r247926222
   @output_index_range 0..7
 
   @block_offset 1_000_000_000
@@ -41,15 +43,19 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     is_active: true
   ]
 
-  @type tx_position() :: {pos_integer(), non_neg_integer()}
+  @type blknum() :: pos_integer()
+  @type tx_index() :: non_neg_integer()
+  @type tx_position() :: {blknum(), tx_index()}
+
+
   @type ife_contract_id() :: <<_::192>>
 
   @type t :: %__MODULE__{
           tx: Transaction.Signed.t(),
-          tx_pos: tx_position(),
+          tx_pos: tx_position() | nil,
           timestamp: non_neg_integer(),
           contract_id: ife_contract_id(),
-          oldest_competitor: {non_neg_integer(), non_neg_integer()},
+          oldest_competitor: tx_position() | nil,
           exit_map: %{
             non_neg_integer() => %{
               is_piggybacked: boolean(),
@@ -100,7 +106,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   defp piggyback_exit(_), do: {:error, :cannot_piggyback}
 
-  @spec challenge(t(), non_neg_integer()) :: {:ok, t()} | {:error, :cannot_challenge}
+  @spec challenge(t(), non_neg_integer()) :: {:ok, t()} | {:error, :competitor_too_young}
   def challenge(ife, competitor_position)
 
   def challenge(%__MODULE__{oldest_competitor: nil} = ife, competitor_position),
@@ -111,7 +117,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
          true <- is_older?(decoded_competitor_pos, current_oldest) do
       %{ife | is_canonical: false, oldest_competitor: decoded_competitor_pos}
     else
-      _ -> {:error, :cannot_challenge}
+      _ -> {:error, :competitor_too_young}
     end
   end
 
@@ -126,9 +132,9 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     end
   end
 
-  def challenge_piggyback(%__MODULE__{}, _), do: {:error, :nxon_existent_exit}
+  def challenge_piggyback(%__MODULE__{}, _), do: {:error, :non_existent_exit}
 
-  @spec respond_to_challenge(t(), pos_integer()) :: {:ok, t()} | :error
+  @spec respond_to_challenge(t(), pos_integer()) :: {:ok, t()} | {:error, :responded_with_too_young_tx | :cannot_respond}
   def respond_to_challenge(ife, tx_position)
 
   def respond_to_challenge(%__MODULE__{oldest_competitor: nil, tx_pos: nil} = ife, tx_position) do
@@ -142,11 +148,11 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     if is_older?(decoded, current_oldest) do
       {:ok, %{ife | oldest_competitor: decoded, is_canonical: true, tx_pos: decoded}}
     else
-      :error
+      {:error, :responded_with_too_young_tx}
     end
   end
 
-  def respond_to_challenge(%__MODULE__{}, _), do: :error
+  def respond_to_challenge(%__MODULE__{}, _), do: {:error, :cannot_respond}
 
   def finalize(%__MODULE__{} = ife, _output_id) do
     # TODO: check whether can be finalized and then mark it as finalized
