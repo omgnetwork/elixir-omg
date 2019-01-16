@@ -731,7 +731,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     @tag fixtures: [:processor_filled, :in_flight_exits]
     test "none if input never spent elsewhere",
          %{processor_filled: processor} do
-      assert [] = %ExitProcessor.Request{blocks_result: {:ok, []}} |> Core.get_ifes_with_competitors(processor)
+      assert {:ok, []} =
+               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+               |> Core.invalid_exits(processor)
     end
 
     @tag fixtures: [:processor_filled, :transactions, :competing_transactions]
@@ -747,11 +749,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
-      assert [] = %ExitProcessor.Request{blocks_result: {:ok, []}} |> Core.get_ifes_with_competitors(processor)
+      assert {:ok, []} =
+               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+               |> Core.invalid_exits(processor)
 
       assert {:error, :competitor_not_found} =
-               %ExitProcessor.Request{blocks_result: {:ok, []}}
-               |> Core.get_competitor_for_ife(processor, [Crypto.zero_address()], txbytes)
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, input_owners_result: [Crypto.zero_address()]}
+               |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
@@ -762,14 +766,17 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {:ok, other_recovered} = Transaction.sign(comp3, [alice.priv, <<>>]) |> Transaction.Recovered.recover_from()
 
       exit_processor_request = %ExitProcessor.Request{
-        blocks_result: {:ok, [Block.hashed_txs_at([other_recovered], 3000)]}
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([other_recovered], 3000)],
+        input_owners_result: [alice.addr]
       }
 
-      assert [] = exit_processor_request |> Core.get_ifes_with_competitors(processor)
+      assert {:ok, []} = exit_processor_request |> Core.invalid_exits(processor)
 
       assert {:error, :competitor_not_found} =
                exit_processor_request
-               |> Core.get_competitor_for_ife(processor, [alice.addr], txbytes)
+               |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions]
@@ -780,14 +787,17 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {:ok, other_recovered} = Transaction.sign(tx1, [alice.priv, <<>>]) |> Transaction.Recovered.recover_from()
 
       exit_processor_request = %ExitProcessor.Request{
-        blocks_result: {:ok, [Block.hashed_txs_at([other_recovered], 3000)]}
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([other_recovered], 3000)],
+        input_owners_result: [alice.addr]
       }
 
-      assert [] = exit_processor_request |> Core.get_ifes_with_competitors(processor)
+      assert {:ok, []} = exit_processor_request |> Core.invalid_exits(processor)
 
       assert {:error, :competitor_not_found} =
                exit_processor_request
-               |> Core.get_competitor_for_ife(processor, [alice.addr], txbytes)
+               |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions]
@@ -803,11 +813,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
-      assert [] = %ExitProcessor.Request{blocks_result: {:ok, []}} |> Core.get_ifes_with_competitors(processor)
+      assert {:ok, []} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> Core.invalid_exits(processor)
 
       assert {:error, :competitor_not_found} =
-               %ExitProcessor.Request{blocks_result: {:ok, []}}
-               |> Core.get_competitor_for_ife(processor, [alice.addr], txbytes)
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, input_owners_result: [alice.addr]}
+               |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
@@ -823,8 +835,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
-      assert [^txbytes, ^other_txbytes] =
-               %ExitProcessor.Request{blocks_result: {:ok, []}} |> Core.get_ifes_with_competitors(processor)
+      assert {:ok, [^txbytes, ^other_txbytes]} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> Core.invalid_exits(processor)
 
       assert {:ok,
               %{
@@ -836,8 +849,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                 competing_txid: nil,
                 competing_proof: nil
               }} =
-               %ExitProcessor.Request{blocks_result: {:ok, []}}
-               |> Core.get_competitor_for_ife(processor, [alice.addr], txbytes)
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, input_owners_result: [alice.addr]}
+               |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
     # TODO: do this test, similar to the "competitor in IFE" case, just with lesser assertions, to not repeat ourselves.
@@ -859,12 +872,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       other_blknum = 3000
 
       exit_processor_request = %ExitProcessor.Request{
-        blocks_result: {:ok, [Block.hashed_txs_at([other_recovered], other_blknum)]}
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([other_recovered], other_blknum)],
+        input_owners_result: [alice.addr]
       }
 
-      assert [^txbytes] =
+      assert {:ok, [^txbytes]} =
                exit_processor_request
-               |> Core.get_ifes_with_competitors(processor)
+               |> Core.invalid_exits(processor)
 
       assert {:ok,
               %{
@@ -877,7 +893,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                 competing_proof: proof_bytes
               }} =
                exit_processor_request
-               |> Core.get_competitor_for_ife(processor, [alice.addr], txbytes)
+               |> Core.get_competitor_for_ife(processor, txbytes)
 
       # NOTE: checking of actual proof working up to the contract integration test
       assert is_binary(proof_bytes)
@@ -914,10 +930,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
           comp |> Transaction.sign([alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
         exit_processor_request = %ExitProcessor.Request{
-          blocks_result: {:ok, [Block.hashed_txs_at([other_recovered], 3000)]}
+          blknum_now: 5000,
+          eth_height_now: 5,
+          blocks_result: [Block.hashed_txs_at([other_recovered], 3000)],
+          input_owners_result: [alice.addr, alice.addr]
         }
 
-        assert [^txbytes] = exit_processor_request |> Core.get_ifes_with_competitors(processor)
+        assert {:ok, [^txbytes]} = exit_processor_request |> Core.invalid_exits(processor)
 
         assert {:ok,
                 %{
@@ -925,7 +944,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                   competing_input_index: ^competing_input_index
                 }} =
                  exit_processor_request
-                 |> Core.get_competitor_for_ife(processor, [alice.addr, alice.addr], txbytes)
+                 |> Core.get_competitor_for_ife(processor, txbytes)
       end
 
       comps
@@ -948,12 +967,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         Transaction.sign(comp1, [bob.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
       exit_processor_request = %ExitProcessor.Request{
-        blocks_result: {:ok, [Block.hashed_txs_at([other_recovered], 3000)]}
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([other_recovered], 3000)],
+        input_owners_result: [alice.addr]
       }
 
       assert {:ok, %{competing_sig: ^other_signature}} =
                exit_processor_request
-               |> Core.get_competitor_for_ife(processor, [alice.addr], txbytes)
+               |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
     test "a best competitor, included earliest in a block",
@@ -1030,7 +1052,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       # first sanity-check as if the utxo was not spent yet
       assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
-               %ExitProcessor.Request{blocks_result: {:ok, []}}
+               %ExitProcessor.Request{}
                |> Core.determine_utxo_existence_to_get(processor)
                |> mock_utxo_exists(state)
                |> Core.determine_spends_to_get(processor)
@@ -1043,7 +1065,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {:ok, {block, _, _}, state} = State.Core.form_block(1000, state)
 
       assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
-               %ExitProcessor.Request{blocks_result: {:ok, [block]}}
+               %ExitProcessor.Request{blocks_result: [block]}
                |> Core.determine_utxo_existence_to_get(processor)
                |> mock_utxo_exists(state)
                |> Core.determine_spends_to_get(processor)

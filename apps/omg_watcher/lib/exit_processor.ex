@@ -251,7 +251,7 @@ defmodule OMG.Watcher.ExitProcessor do
       |> run_block_getting()
       # |> Core.determine_ife_owners()
       # |> run_owner_getting()
-      |> Core.get_competitor_for_ife(state)
+      |> Core.get_competitor_for_ife(state, txbytes)
 
     {:reply, competitor, state}
   end
@@ -276,6 +276,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   defp run_block_getting(%ExitProcessor.Request{blknums_to_get: blknums, blocks_result: nil} = request) do
     {:ok, hashes} = OMG.DB.block_hashes(blknums)
-    %{request | blocks_result: hashes |> OMG.DB.blocks()}
+    {:ok, blocks} = OMG.DB.blocks(hashes)
+    %{request | blocks_result: blocks}
   end
 end

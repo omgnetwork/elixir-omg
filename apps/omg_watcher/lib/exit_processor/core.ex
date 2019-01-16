@@ -445,7 +445,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           eth_height_now: eth_height_now,
           blknum_now: blknum_now,
           utxo_exists_result: utxo_exists_result
-        },
+        } = request,
         %__MODULE__{exits: exits, sla_margin: sla_margin} = state
       )
       when is_integer(eth_height_now) and is_integer(blknum_now) do
@@ -470,36 +470,25 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       invalid_exit_positions
       |> Enum.map(fn position -> ExitInfo.make_event_data(Event.InvalidExit, position, exits[position]) end)
 
+    ifes_with_competitors = get_ifes_with_competitors(request, state)
+
     events =
       late_invalid_exits
       |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
       |> Enum.concat(non_late_events)
+      |> Enum.concat(ifes_with_competitors)
 
     chain_validity = if has_no_late_invalid_exits, do: :ok, else: {:error, :unchallenged_exit}
 
     {chain_validity, events}
   end
 
-  @doc """
-  Returns a map of requested in flight exits, where keys are IFE hashes and values are IFES
-  If given empty list of hashes, all IFEs are returned.
-  """
-  @spec get_in_flight_exits(__MODULE__.t(), [binary()]) :: %{binary() => InFlightExitInfo.t()}
-  def get_in_flight_exits(%__MODULE__{} = state, hashes \\ []), do: in_flight_exits(state, hashes)
-
-  defp in_flight_exits(%__MODULE__{in_flight_exits: ifes}, []), do: ifes
-
-  defp in_flight_exits(%__MODULE__{in_flight_exits: ifes}, hashes), do: Map.take(ifes, hashes)
-
-  @doc """
-  Gets the list of open IFEs that have the competitors _somewhere_
-  """
-  # TODO: this is public, but should probably be called from `invalid_exits` and made private
+  # Gets the list of open IFEs that have the competitors _somewhere_
   @spec get_ifes_with_competitors(ExitProcessor.Request.t(), __MODULE__.t()) :: list(binary())
-  def get_ifes_with_competitors(
-        %ExitProcessor.Request{blocks_result: {:ok, blocks}},
-        %__MODULE__{in_flight_exits: ifes} = state
-      ) do
+  defp get_ifes_with_competitors(
+         %ExitProcessor.Request{blocks_result: blocks},
+         %__MODULE__{in_flight_exits: ifes} = state
+       ) do
     known_txs = get_known_txs(blocks) ++ get_known_txs(state)
 
     ifes
@@ -514,14 +503,24 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @doc """
+  Returns a map of requested in flight exits, where keys are IFE hashes and values are IFES
+  If given empty list of hashes, all IFEs are returned.
+  """
+  @spec get_in_flight_exits(__MODULE__.t(), [binary()]) :: %{binary() => InFlightExitInfo.t()}
+  def get_in_flight_exits(%__MODULE__{} = state, hashes \\ []), do: in_flight_exits(state, hashes)
+
+  defp in_flight_exits(%__MODULE__{in_flight_exits: ifes}, []), do: ifes
+
+  defp in_flight_exits(%__MODULE__{in_flight_exits: ifes}, hashes), do: Map.take(ifes, hashes)
+
+  @doc """
   Gets the root chain contract-required set of data to challenge a non-canonical ife
   """
-  @spec get_competitor_for_ife(ExitProcessor.Request.t(), __MODULE__.t(), list(Crypto.address_t()), binary()) ::
+  @spec get_competitor_for_ife(ExitProcessor.Request.t(), __MODULE__.t(), binary()) ::
           {:ok, competitor_data_t()} | {:error, :competitor_not_found}
   def get_competitor_for_ife(
-        %ExitProcessor.Request{blocks_result: {:ok, blocks}},
+        %ExitProcessor.Request{blocks_result: blocks, input_owners_result: input_owners},
         %__MODULE__{in_flight_exits: ifes} = state,
-        input_owners,
         ife_txbytes
       ) do
     known_txs = get_known_txs(blocks) ++ get_known_txs(state)

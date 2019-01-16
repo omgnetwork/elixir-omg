@@ -30,21 +30,23 @@ defmodule OMG.Watcher.ExitProcessor.Request do
     :eth_height_now,
     :blknum_now,
     :utxos_to_check,
-    :utxo_exists_result,
     :spends_to_get,
-    :spent_blknum_result,
     :blknums_to_get,
-    :blocks_result
+    utxo_exists_result: [],
+    spent_blknum_result: [],
+    blocks_result: [],
+    input_owners_result: nil
   ]
 
   @type t :: %__MODULE__{
           eth_height_now: nil | pos_integer,
           blknum_now: nil | pos_integer,
-          utxos_to_check: nil | list(Utxo.Position.t()),
           utxo_exists_result: nil | list(boolean),
           spends_to_get: nil | list(Utxo.Position.t()),
-          spent_blknum_result: nil | list(pos_integer),
           blknums_to_get: nil | list(pos_integer),
-          blocks_result: nil | {:ok, list(Block.t())}
+          utxos_to_check: list(Utxo.Position.t()),
+          spent_blknum_result: list(pos_integer),
+          blocks_result: list(Block.t()),
+          input_owners_result: nil
         }
 end
