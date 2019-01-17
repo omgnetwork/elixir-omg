@@ -27,8 +27,11 @@ defmodule OMG.RPC.Web.Controller.FallbackTest do
              "version" => "1.0",
              "data" => %{
                "object" => "error",
-               "code" => "get_block:unknown_error",
-               "description" => nil
+               "code" => "get_block:bad_request",
+               "description" => "Parameters required by this action are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => "[param: \"hash\", validator: :hex]"
+               }
              }
            } == TestHelper.rpc_call(:post, "/block.get", invalid_input)
   end

@@ -24,6 +24,7 @@ defmodule OMG.RPC.Web.Validator.Base do
   # IMPORTANT: Alias can use already defined validators, not other aliases (no backtracking)
   @aliases %{
     address: [:hex, length: 20],
+    hash: [:hex, length: 32],
     pos_integer: [:integer, greater: 0],
     non_neg_integer: [:integer, greater: -1]
   }
@@ -68,7 +69,6 @@ defmodule OMG.RPC.Web.Validator.Base do
         {:error, {:validation_error, key, err}}
     end
   end
-
 
   @spec integer({any(), list()}) :: {any(), list()}
   def integer({_, [_ | _]} = err), do: err

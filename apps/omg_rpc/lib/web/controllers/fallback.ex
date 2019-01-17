@@ -19,30 +19,45 @@ defmodule OMG.RPC.Web.Controller.Fallback do
 
   use Phoenix.Controller
 
-  alias OMG.RPC.Web.Serializer
+  alias OMG.RPC.Web.Error
 
-  def call(conn, :not_found) do
-    data = %{
-      object: :error,
-      code: :endpoint_not_found,
-      description: "Endpoint not found"
-    }
+  @errors %{}
 
-    json(conn, Serializer.Response.serialize(data, :error))
+  def call(conn, :not_found), do: json(conn, Error.serialize(:endpoint_not_found, "Endpoint not found"))
+
+  def call(conn, {:error, {:validation_error, param_name, validator}}) do
+    response =
+      Error.serialize(
+        "#{action_name(conn)}:bad_request",
+        "Parameters required by this action are missing or incorrect."
+      )
+
+    response =
+      Kernel.put_in(
+        response[:data][:messages],
+        %{validation_error: "#{inspect(param: param_name, validator: validator)}"}
+      )
+
+    json(conn, response)
   end
 
   def call(conn, {:error, reason}) do
-    data = %{
-      object: :error,
-      code: "#{action_name(conn)}#{inspect(reason)}",
-      description: nil
-    }
+    err_info =
+      @errors
+      |> Map.get(
+        reason,
+        %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil}
+      )
 
-    json(conn, Serializer.Response.serialize(data, :error))
+    respond(conn, err_info)
   end
 
   def call(conn, :error), do: call(conn, {:error, :unknown_error})
 
   # Controller's action with expression has no match, e.g. on guard
   def call(conn, _), do: call(conn, {:error, :unknown_error})
+
+  defp respond(conn, %{code: code, description: description}) do
+    json(conn, Error.serialize(code, description))
+  end
 end

@@ -25,8 +25,7 @@ defmodule OMG.RPC.Web.Controller.Transaction do
   @api_module Application.fetch_env!(:omg_rpc, :child_chain_api_module)
 
   def submit(conn, params) do
-    with {:ok, hex_str} <- Map.fetch(params, "transaction"),
-         {:ok, txbytes} <- Base.decode16(hex_str, case: :mixed),
+    with {:ok, txbytes} <- param(params, "transaction", :hex),
          {:ok, details} <- apply(@api_module, :submit, [txbytes]) do
       render(conn, View.Transaction, :submit, result: details)
     end
