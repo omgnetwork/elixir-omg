@@ -22,10 +22,10 @@ Since both MVP exit (aka standard exit aka SE) and MoreVP exit (aka in-flight ex
     => (IMPLEMENTED) contract: introduce `standardExitId(hash(tx), oindex)`, check if SE exists, if so treat IFE is "as if non-canonical" and can't be canonized; input is marked as finalized with regard to piggybacking. Add additional flag to IFE which will prevent it from taking part in canonicity game.
 
 3. Mallory submits IFE -> Mallory does SE on input  
-    => (IMPLEMENTED) Alice: performs standard SE challenge using IFE tx as spend
+    => Alice: performs standard SE challenge using IFE tx as spend
 
 4. Mallory does IFE, piggybacks input, waits for finalization -> Mallory submits SE on input  
-    => (IMPLEMENTED) same as (3.)
+    => same as (3.)
 
 5. Mallory does SE on output -> Mallory submits IFE -> Mallory piggybacks output  
     => (IMPLEMENTED) contract: `standardExitId(hash(tx), oindex)`. This allows to find SE when PB is performed. Need to store utxo_pos in Exit struct during `startStandardExit`, though.  
