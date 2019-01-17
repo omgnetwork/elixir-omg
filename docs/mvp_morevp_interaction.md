@@ -32,8 +32,8 @@ In each we explain possible ways of preventing the double spend.
     => same as (3.)
 
 5. Mallory does SE on output -> Mallory submits IFE -> Mallory piggybacks output  
-    => (IMPLEMENTED) contract: `standardExitId(hash(tx), oindex)`. This allows to find SE when PB is performed. Need to store utxo_pos in Exit struct during `startStandardExit`, though.  
-    NOTE: costs: +20k on `startStandardExit`; low cost on PB check  
+    => (IMPLEMENTED) contract: `standardExitId(hash(tx), oindex)`. This allows to find SE when piggyback is performed. Need to store utxo_pos in Exit struct during `startStandardExit`, though.  
+    NOTE: costs: +20k on `startStandardExit`; low cost on piggyback check  
     NOTE: make revertable, so we can implement alt game solution later  
     => (alt) (if data availability) Alice: challenges piggyback with new challenge type  
     => (alt) (if no data avail) do nothing: IFE output exits, SE exits after all mass exits  
@@ -42,7 +42,7 @@ In each we explain possible ways of preventing the double spend.
     NOTE: as rule, we always block whatever is started later (piggyback here, SE in 8./9.)
 
 6. Mallory does SE on output, waits for finalization -> Mallory submits IFE -> Mallory piggybacks output  
-    => (IMPLEMENTED) contract: introduce `standardExitId(hash(tx), oindex)`; on PB compute SE id, check if it exists  
+    => (IMPLEMENTED) contract: introduce `standardExitId(hash(tx), oindex)`; on piggyback compute SE id, check if it exists  
     => (alternative) exit game as in 5. Piggyback is challenged (take bond)
 
 7. Mallory submits IFE -> Mallory does SE on output  
@@ -83,5 +83,5 @@ Q: Can operator exploit his ability to include tx multiple times combined with t
 A: I don't see a way to do it yet.  
 
 Q: When IFE/piggyback on output is added, what is the cost of checking if standard exits were performed from output(s)?  
-A: Number of outputs is known on both IFE and PB; single SLOAD per output?  
+A: Number of outputs is known on both IFE and piggyback; single SLOAD per output?  
 
