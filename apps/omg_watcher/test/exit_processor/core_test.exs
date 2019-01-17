@@ -835,7 +835,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
-      assert {:ok, [^txbytes, ^other_txbytes]} =
+      assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}, %Event.NonCanonicalIFE{txbytes: ^other_txbytes}]} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> Core.invalid_exits(processor)
 
@@ -878,7 +878,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         input_owners_result: [alice.addr]
       }
 
-      assert {:ok, [^txbytes]} =
+      assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
                exit_processor_request
                |> Core.invalid_exits(processor)
 
@@ -944,7 +944,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
           input_owners_result: [alice.addr, alice.addr]
         }
 
-        assert {:ok, [^txbytes]} = exit_processor_request |> Core.invalid_exits(processor)
+        assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
+                 exit_processor_request |> Core.invalid_exits(processor)
 
         assert {:ok,
                 %{
@@ -1097,6 +1098,50 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     # TODO: this is probably just a matter of modifying the `utxos_to_check` list accordingly
     test "none if input not yet created during sync",
          %{} do
+    end
+  end
+
+  describe "detects the need and allows to respond to canonicity challenges" do
+    @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
+    test "against a competitor",
+         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp1 | _]} do
+      txbytes = Transaction.encode(tx1)
+
+      other_txbytes = comp1 |> Transaction.encode()
+
+      {:ok, %{signed_tx: %{sigs: [other_signature, _]}} = other_recovered} =
+        Transaction.sign(comp1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+
+      other_blknum = 3000
+
+      exit_processor_request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([other_recovered], other_blknum)],
+        input_owners_result: [alice.addr]
+      }
+
+      assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
+               exit_processor_request
+               |> Core.invalid_exits(processor)
+
+      assert {:ok,
+              %{
+                inflight_txbytes: ^txbytes,
+                inflight_input_index: 0,
+                competing_txbytes: ^other_txbytes,
+                competing_input_index: 1,
+                competing_sig: ^other_signature,
+                competing_txid: Utxo.position(^other_blknum, 0, 0),
+                competing_proof: proof_bytes
+              }} =
+               exit_processor_request
+               |> Core.get_competitor_for_ife(processor, txbytes)
+
+      # NOTE: checking of actual proof working up to the contract integration test
+      assert is_binary(proof_bytes)
+      # hash size * merkle tree depth
+      assert byte_size(proof_bytes) == 32 * 16
     end
   end
 

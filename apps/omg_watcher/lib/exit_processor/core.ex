@@ -468,13 +468,17 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       invalid_exit_positions
       |> Enum.map(fn position -> ExitInfo.make_event_data(Event.InvalidExit, position, exits[position]) end)
 
-    ifes_with_competitors = get_ifes_with_competitors(request, state)
+    ifes_with_competitors_events =
+      get_ifes_with_competitors(request, state)
+      |> Enum.map(fn txbytes -> %Event.NonCanonicalIFE{txbytes: txbytes} end)
 
-    events =
+    late_invalid_exits_events =
       late_invalid_exits
       |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
-      |> Enum.concat(non_late_events)
-      |> Enum.concat(ifes_with_competitors)
+
+    events =
+      [late_invalid_exits_events, non_late_events, ifes_with_competitors_events]
+      |> Enum.concat()
 
     chain_validity = if has_no_late_invalid_exits, do: :ok, else: {:error, :unchallenged_exit}
 
