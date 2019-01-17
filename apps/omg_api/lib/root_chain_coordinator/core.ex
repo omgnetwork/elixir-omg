@@ -23,6 +23,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
   """
 
   alias OMG.API.RootChainCoordinator.Service
+  alias OMG.API.RootChainCoordinator.SyncData
 
   defstruct configs_services: %{}, root_chain_height: 0, services: %{}
 
@@ -57,7 +58,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
           :nosync ->
             0
 
-          {:sync, synced_height} ->
+          %{sync_height: synced_height} ->
             synced_height
         end
 
@@ -94,13 +95,13 @@ defmodule OMG.API.RootChainCoordinator.Core do
       :nosync ->
         []
 
-      {:sync, synced_height} when synced_height > previous_synced_height ->
+      %{sync_height: synced_height} when synced_height > previous_synced_height ->
         state.services
         |> Map.values()
         |> Enum.filter(fn service -> service.synced_height <= synced_height end)
         |> Enum.map(& &1.pid)
 
-      {:sync, _} ->
+      _ ->
         []
     end
   end
@@ -127,18 +128,21 @@ defmodule OMG.API.RootChainCoordinator.Core do
     get_synced_height_by_mode(state, sync_mode)
   end
 
-  defp get_synced_height_by_mode(state, :sync_with_coordinator) do
+  defp get_synced_height_by_mode(
+         %__MODULE__{services: services, root_chain_height: root_chain_height} = state,
+         :sync_with_coordinator
+       ) do
     if all_services_checked_in?(state) do
       # do not allow syncing to Ethereum blocks higher than block last seen by synchronizer
-      next_sync_height = min(sync_height(state.services) + 1, state.root_chain_height)
-      {:sync, next_sync_height}
+      next_sync_height = min(sync_height(services) + 1, root_chain_height)
+      %SyncData{sync_height: next_sync_height, root_chain: root_chain_height}
     else
       :nosync
     end
   end
 
-  defp get_synced_height_by_mode(state, :sync_with_root_chain) do
-    {:sync, state.root_chain_height}
+  defp get_synced_height_by_mode(%__MODULE__{root_chain_height: root_chain_height}, :sync_with_root_chain) do
+    %SyncData{sync_height: root_chain_height, root_chain: root_chain_height}
   end
 
   defp all_services_checked_in?(%__MODULE__{configs_services: configs_services, services: services}) do

@@ -21,6 +21,14 @@ defmodule OMG.API.RootChainCoordinator do
 
   use OMG.API.LoggerExt
 
+  defmodule SyncData do
+    defstruct [:root_chain, :sync_height]
+    @type t() :: %__MODULE__{
+          root_chain: non_neg_integer(),
+          sync_height: non_neg_integer(),
+        }
+  end 
+
   @spec start_link(Core.configs_services()) :: GenServer.on_start()
   def start_link(configs_services) do
     GenServer.start_link(__MODULE__, configs_services, name: __MODULE__)
@@ -38,9 +46,9 @@ defmodule OMG.API.RootChainCoordinator do
   @doc """
   Gets Ethereum height that services can synchronize up to.
   """
-  @spec get_height() :: {:sync, non_neg_integer()} | :nosync
-  def get_height do
-    GenServer.call(__MODULE__, :get_synced_height)
+  @spec get_sync_info() :: SyncData.t() | :nosync
+  def get_sync_info do
+    GenServer.call(__MODULE__, :get_sync_info)
   end
 
   use GenServer
@@ -67,8 +75,8 @@ defmodule OMG.API.RootChainCoordinator do
     {:reply, :ok, state, 60_000}
   end
 
-  def handle_call(:get_synced_height, {pid, _}, state) do
-    {:reply, Core.get_synced_height(state, pid), state}
+  def handle_call(:get_sync_info, {pid, _}, state) do
+    {:reply, Core.get_sync_data(state, pid), state}
   end
 
   def handle_info(:update_root_chain_height, state) do

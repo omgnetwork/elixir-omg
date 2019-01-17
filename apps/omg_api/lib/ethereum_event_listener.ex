@@ -74,12 +74,12 @@ defmodule OMG.API.EthereumEventListener do
   end
 
   def handle_info(:sync, {core, _callbacks} = state) do
-    case RootChainCoordinator.get_height() do
+    case RootChainCoordinator.get_sync_info() do
       :nosync ->
         :ok = RootChainCoordinator.check_in(core.synced_height, core.service_name)
         {:noreply, state}
 
-      {:sync, next_sync_height} ->
+      %{sync_height: next_sync_height} ->
         new_state = sync_height(state, next_sync_height)
         {:noreply, new_state}
     end
@@ -93,10 +93,7 @@ defmodule OMG.API.EthereumEventListener do
         :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
         :ok = RootChainCoordinator.check_in(next_sync_height, core.service_name)
 
-        _ =
-          Logger.debug(fn ->
-            "#{inspect(core.service_name)} processed '#{inspect(Enum.count(events))}' events."
-          end)
+        _ = Logger.debug(fn -> "#{inspect(core.service_name)} processed '#{inspect(Enum.count(events))}' events." end)
 
         {core, callbacks}
 
