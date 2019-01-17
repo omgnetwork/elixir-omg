@@ -536,12 +536,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @tag fixtures: [:processor_filled, :in_flight_exits]
   test "piggybacking sanity checks", %{processor_filled: state, in_flight_exits: [{ife_id, ife} | _]} do
     {^state, []} = Core.new_piggybacks(state, [])
-    {^state, []} = Core.new_piggybacks(state, [%{tx_hash: 0, output_index: 0}])
-    {^state, []} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 8}])
+    catch_error(Core.new_piggybacks(state, [%{tx_hash: 0, output_index: 0}]))
+    catch_error(Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 8}]))
 
     # cannot piggyback twice the same output
     {updated_state, [_]} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
-    assert {updated_state, []} == Core.new_piggybacks(updated_state, [%{tx_hash: ife_id, output_index: 0}])
+    catch_error(Core.new_piggybacks(updated_state, [%{tx_hash: ife_id, output_index: 0}]))
 
     # piggybacked outputs are considered as piggybacked
     {:ok, piggybacked_ife} = InFlightExitInfo.piggyback(ife, 0)

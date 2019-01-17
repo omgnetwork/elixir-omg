@@ -152,8 +152,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   """
   @spec new_piggybacks(t(), [%{tx_hash: tx_hash(), output_index: output_offset()}]) :: {t(), list()}
   def new_piggybacks(%__MODULE__{} = state, piggybacks) do
-    {updated_state, updated_pairs} = piggybacks |> Enum.reduce({state, %{}}, &process_piggyback/2)
-
+    {updated_state, updated_pairs} = Enum.reduce(piggybacks, {state, %{}}, &process_piggyback/2)
     {updated_state, Enum.map(updated_pairs, &InFlightExitInfo.make_db_update/1)}
   end
 
@@ -161,15 +160,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
          %{tx_hash: tx_hash, output_index: output_index},
          {%__MODULE__{in_flight_exits: ifes} = state, db_updates}
        ) do
-    with {:ok, ife} <- Map.fetch(ifes, tx_hash),
-         {:ok, updated_ife} <- InFlightExitInfo.piggyback(ife, output_index) do
-      updated_state = %{state | in_flight_exits: Map.put(ifes, tx_hash, updated_ife)}
-      {updated_state, Map.put(db_updates, tx_hash, updated_ife)}
-    else
-      # if impossible to piggyback - do nothing
-      _ ->
-        {state, db_updates}
-    end
+    {:ok, ife} = Map.fetch(ifes, tx_hash)
+    {:ok, updated_ife} = InFlightExitInfo.piggyback(ife, output_index)
+
+    updated_state = %{state | in_flight_exits: Map.put(ifes, tx_hash, updated_ife)}
+    {updated_state, Map.put(db_updates, tx_hash, updated_ife)}
   end
 
   @doc """
