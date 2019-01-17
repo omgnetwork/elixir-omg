@@ -493,6 +493,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {chain_validity, events}
   end
 
+  @doc """
+    Based on tracked in flight exits returns available piggybacks
+  """
+  @spec get_available_piggybacks(t()) :: list(Event.PiggybackAvailable.t())
+  def get_available_piggybacks(%__MODULE__{in_flight_exits: in_flight_exits} = state) do
+    in_flight_exits
+    |> Enum.map(&InFlightExitInfo.get_available_piggyback/1)
+  end
+
   # Gets the list of open IFEs that have the competitors _somewhere_
   @spec get_ifes_with_competitors(ExitProcessor.Request.t(), __MODULE__.t()) :: list(binary())
   defp get_ifes_with_competitors(
