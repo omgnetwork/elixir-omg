@@ -1,7 +1,8 @@
-MVP vs MoreVP
+Standard vs In-flight Exits
 ==
 
-Since both MVP exit (aka standard exit aka SE) and MoreVP exit (aka in-flight exit aka IFE) provide an exit opportunity, it is possible to effectively double-spending. To prevent such possiblity, and to preserve the rule that honest owner can ignore IFE provided that he enjoys data availability, following scenarios are evaluated.
+Since both Standard exit (aka SE) and In-flight exit (aka IFE) provide an exit opportunity, it is possible to effectively double-spending.
+To prevent such possibility, and to preserve the rule that honest owner can ignore IFE provided that he enjoys data availability, following scenarios are evaluated.
 
 #### Glossary
 
