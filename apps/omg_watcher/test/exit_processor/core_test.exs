@@ -763,7 +763,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [_, _, comp3]} do
       txbytes = Transaction.encode(tx1)
 
-      {:ok, other_recovered} = Transaction.sign(comp3, [alice.priv, <<>>]) |> Transaction.Recovered.recover_from()
+      {:ok, other_recovered} = Transaction.sign(comp3, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -784,7 +784,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _]} do
       txbytes = Transaction.encode(tx1)
 
-      {:ok, other_recovered} = Transaction.sign(tx1, [alice.priv, <<>>]) |> Transaction.Recovered.recover_from()
+      {:ok, other_recovered} = Transaction.sign(tx1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -806,7 +806,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       txbytes = Transaction.encode(tx1)
 
       other_txbytes = tx1 |> Transaction.encode()
-      %{sigs: [other_signature, _]} = Transaction.sign(tx1, [alice.priv, <<>>])
+      %{sigs: [other_signature, _]} = Transaction.sign(tx1, [alice.priv, alice.priv])
 
       other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: [other_signature]}}
       other_ife_status = {1, <<1::192>>}
@@ -867,7 +867,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       other_txbytes = comp1 |> Transaction.encode()
 
       {:ok, %{signed_tx: %{sigs: [other_signature, _]}} = other_recovered} =
-        Transaction.sign(comp1, [alice.priv, <<>>]) |> Transaction.Recovered.recover_from()
+        Transaction.sign(comp1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
       other_blknum = 3000
 
@@ -926,8 +926,16 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       txbytes = Transaction.encode(tx1)
 
       check = fn {comp, {competing_input_index, inflight_input_index}} ->
+        # unfortunately, transaction validity requires us to duplicate a signature for every non-zero input
+        required_priv_key_list =
+          comp
+          |> Transaction.get_inputs()
+          |> Enum.filter(&Utxo.Position.non_zero?/1)
+          |> Enum.count()
+          |> (&List.duplicate(alice.priv, &1)).()
+
         {:ok, other_recovered} =
-          comp |> Transaction.sign([alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+          comp |> Transaction.sign(required_priv_key_list) |> Transaction.Recovered.recover_from()
 
         exit_processor_request = %ExitProcessor.Request{
           blknum_now: 5000,

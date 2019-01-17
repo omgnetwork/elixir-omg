@@ -549,7 +549,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     in_flight_input_index = Enum.find_index(ife_inputs, &(&1 == spent_input))
     competing_input_index = Enum.find_index(known_spent_inputs, &(&1 == spent_input))
 
-    owner = Enum.at(input_owners, inflight_input_index)
+    owner = Enum.at(input_owners, in_flight_input_index)
 
     # if this returns nil it means somethings very wrong - the owner taken (effectively) from the contract
     # doesn't appear to have signed the potential competitor, which means that some prior signature checking was skipped
@@ -603,8 +603,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp get_known_txs(%Block{transactions: txs, number: blknum}) do
     txs
-    |> Enum.map(&OMG.API.Core.recover_tx/1)
-    |> Enum.map(fn {:ok, %Transaction.Recovered{signed_tx: signed}} -> signed end)
+    |> Enum.map(fn tx_bytes ->
+      {:ok, %Transaction.Recovered{signed_tx: signed}} = OMG.API.Core.recover_tx(tx_bytes)
+      signed
+    end)
     |> Enum.with_index()
     |> Enum.map(fn {signed, txindex} -> %KnownTx{signed_tx: signed, utxo_pos: Utxo.position(blknum, txindex, 0)} end)
   end
