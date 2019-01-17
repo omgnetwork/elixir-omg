@@ -60,8 +60,8 @@ In each we explain possible ways of preventing the double spend.
     ! same as (8.)
 
 ### Exploring `standardExitId(hash(tx), oindex)`
-Q: What is that?  
-A: Change the way `inFlightExitId` and `standardExitId` are computed, so both are a function of hash(tx).
+Many of solutions described above are possible only if there is a way to have one-to-one mapping between in-flight exits and standard exits.
+To achieve that, we change the way `inFlightExitId` and `standardExitId` are computed, so both are a function of hash(tx).
 This way whenever one type of exit comes in we can check if other type of exit was performed.
 
 Q: Does this affect standard exit and standard challenge?  
