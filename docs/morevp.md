@@ -258,6 +258,7 @@ Piggybacks on outputs should be challenged by standard exits and vice-versa.
 Standard exits on UTXO seen as the input of a in-flight tx exit can be challenged using tx body.
 Canonicity of in-flight exit can be removed by pointing contract to finalized standard exit from in-flight exit inputs, marking particular input as spent.
 
+For details, [see here](mvp_morevp_interaction.md).
 
 
 
