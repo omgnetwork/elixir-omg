@@ -249,18 +249,25 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp get_inflight_data(hash) do
-    {:ok, eth_tx} = Ethereumex.HttpClient.eth_get_transaction_by_hash(hash)
-    encode_inflight = Eth.Encoding.from_hex(eth_tx["input"])
+    {:ok, %{"input" => eth_tx_input, "blockNumber" => eth_height}} =
+      Ethereumex.HttpClient.eth_get_transaction_by_hash(hash)
 
-    ABI.decode(
-      ABI.FunctionSelector.parse_specification_item(%{
-        "type" => "function",
-        "name" => "startInFlightExit",
-        "inputs" => List.duplicate(%{"type" => "bytes"}, 4),
-        "outputs" => []
-      }),
-      encode_inflight
-    )
+    encode_inflight = Eth.Encoding.from_hex(eth_tx_input)
+
+    function_inputs =
+      ABI.decode(
+        ABI.FunctionSelector.parse_specification_item(%{
+          "type" => "function",
+          "name" => "startInFlightExit",
+          "inputs" => List.duplicate(%{"type" => "bytes"}, 4),
+          "outputs" => []
+        }),
+        encode_inflight
+      )
+
+    Enum.zip([:in_flight_tx, :inputs_txs, :input_includion_proofs, :in_flight_tx_sigs], function_inputs)
+    |> Map.new()
+    |> Map.put(:eth_height, int_from_hex(eth_height))
   end
 
   @doc """

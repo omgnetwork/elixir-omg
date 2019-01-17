@@ -74,7 +74,8 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     assert {:ok, [%{initiator: ^alice_address, txhash: ^in_flight_tx_hash}]} =
              OMG.Eth.RootChain.get_in_flight_exits(0, eth_height)
 
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + 10)
+    exiters_finality_margin = Application.fetch_env!(:omg_api, :exiters_finality_margin) + 1
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
 
     tx_double_spend = API.TestHelper.create_encoded([{blknum, txindex, 0, alice}], @eth, [{alice, 2}, {alice, 3}])
     assert {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} = Client.submit(tx_double_spend)
@@ -98,13 +99,13 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + 10)
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.piggyback_in_flight_exit(in_flight_exit_info["in_flight_tx"], 4, alice.addr)
       |> Eth.DevHelpers.transact_sync!()
 
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + 10)
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
     assert {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} = Client.submit(tx)

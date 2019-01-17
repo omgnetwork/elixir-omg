@@ -611,9 +611,9 @@ defmodule OMG.API.State.CoreTest do
       |> success?
 
     expected_owner = alice.addr
-    utxo_pos_exits_in_flight = [[Transaction.encode(raw_tx), [], [], []]]
+    utxo_pos_exits_in_flight = [%{in_flight_tx: Transaction.encode(raw_tx)}]
     utxo_pos_exits_piggyback = [%{txhash: tx_hash, output_index: 4}]
-    expected_position = {:utxo_position, @child_block_interval, 0, 0}
+    expected_position = Utxo.position(@child_block_interval, 0, 0)
 
     assert {:ok, {[], [], {[], _}}, ^state} = Core.exit_utxos(utxo_pos_exits_in_flight, state)
 
@@ -649,8 +649,8 @@ defmodule OMG.API.State.CoreTest do
       Test.create_recovered([{@child_block_interval, 0, 0, alice}], eth(), [{alice, 3}, {alice, 3}])
 
     expected_owner = alice.addr
-    utxo_pos_exits_in_flight = [[Transaction.encode(raw_tx), [], [], []]]
-    expected_position = {:utxo_position, @child_block_interval, 0, 0}
+    utxo_pos_exits_in_flight = [%{in_flight_tx: Transaction.encode(raw_tx)}]
+    expected_position = Utxo.position(@child_block_interval, 0, 0)
 
     assert {:ok,
             {[%{exit: %{owner: ^expected_owner, utxo_pos: ^expected_position}}],

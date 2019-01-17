@@ -44,7 +44,7 @@ defmodule OMG.API.State.Core do
           amount: pos_integer()
         }
 
-  @type in_flight_exit() :: list()
+  @type in_flight_exit() :: %{in_flight_tx: bitstring()}
   @type piggyback() :: %{txhash: Transaction.Recovered.tx_hash_t(), output_index: non_neg_integer}
 
   @type exit_t() :: %{
@@ -422,9 +422,9 @@ defmodule OMG.API.State.Core do
     |> exit_utxos(state)
   end
 
-  def exit_utxos([[tx_bytes, _, _, _] | _] = in_flight_txs, %Core{} = state) when is_bitstring(tx_bytes) do
+  def exit_utxos([%{in_flight_tx: _} | _] = in_flight_txs, %Core{} = state) do
     in_flight_txs
-    |> Enum.map(fn [tx_bytes, _, _, _] ->
+    |> Enum.map(fn %{in_flight_tx: tx_bytes} ->
       {:ok, tx} = Transaction.decode(tx_bytes)
       Transaction.get_inputs(tx)
     end)
