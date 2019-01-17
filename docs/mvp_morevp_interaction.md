@@ -50,7 +50,7 @@ In each we explain possible ways of preventing the double spend.
     NOTE: +5k gas (after constantinople)
 
 8. Mallory submits IFE -> Mallory does SE on output -> Mallory waits for SE finalization -> Mallory piggybacks  
-   ! not possible
+   ! not possible, because IFE will finalize first because of use of "youngest input priority"
 
 9. Mallory submits IFE -> Mallory piggybacks output -> Mallory does SE on output  
     => (IMPLEMENTED) contract: when SE happens, check for IFE & piggyback existence  
