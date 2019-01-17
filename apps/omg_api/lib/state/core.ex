@@ -253,10 +253,10 @@ defmodule OMG.API.State.Core do
          %Core{height: height, tx_index: tx_index, utxos: utxos} = state,
          %Transaction.Recovered{
            signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = raw_tx}
-         } = tx
+         } = recovered_tx
        ) do
     new_utxos_map =
-      tx
+      recovered_tx
       |> non_zero_utxos_from(height, tx_index)
       |> Map.new()
 
@@ -265,8 +265,8 @@ defmodule OMG.API.State.Core do
     %Core{state | utxos: Map.merge(utxos, new_utxos_map)}
   end
 
-  defp non_zero_utxos_from(%Transaction.Recovered{} = tx, height, tx_index) do
-    tx
+  defp non_zero_utxos_from(%Transaction.Recovered{} = recovered_tx, height, tx_index) do
+    recovered_tx
     |> utxos_from(height, tx_index)
     |> Enum.filter(fn {_key, value} -> is_non_zero_amount?(value) end)
   end
