@@ -53,7 +53,7 @@ In each we explain possible ways of preventing the double spend.
    ! not possible, because IFE will finalize first because of use of "youngest input priority"
 
 9. Mallory submits IFE -> Mallory piggybacks output -> Mallory does SE on output  
-    => (IMPLEMENTED) contract: when SE happens, check for IFE & piggyback existence  
+    => (IMPLEMENTED) contract: when SE happens, use tx body to compute in-flight exit id and check for IFE & piggyback existence  
     NOTE: +18k gas on startSE
 
 10. Mallory submits IFE -> Mallory piggybacks output -> Mallory waits for finalization -> Mallory does SE on output  
