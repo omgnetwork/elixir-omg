@@ -114,6 +114,5 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     tx = API.TestHelper.create_encoded([{tx_blknum, 0, 1, alice}], @eth, [{alice, 3}])
     assert {:ok, _} = Client.submit(tx)
- 
   end
 end

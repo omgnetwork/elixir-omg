@@ -31,12 +31,6 @@ defmodule OMG.Watcher.Eventer.Core do
   # NOTE: the deposit events are silenced because of the desired behavior not being defined yet, pending OMG-177
   defp get_event_with_topic(%{deposit: _deposit}), do: []
 
-  # NOTE: the in_flight_exits events are silenced because of the desired behavior not being defined yet
-  defp get_event_with_topic(%{in_flight_exits: _deposit}), do: []
-
-  # NOTE: the in_flight_exits events are silenced because of the desired behavior not being defined yet
-  defp get_event_with_topic(%{piggyback: _deposit}), do: []
-
   defp get_event_with_topic(%{tx: _tx} = event_trigger) do
     get_address_received_events(event_trigger) ++ get_address_spent_events(event_trigger)
   end
