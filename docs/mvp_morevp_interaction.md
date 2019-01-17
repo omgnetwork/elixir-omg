@@ -11,49 +11,48 @@ Since both MVP exit (aka standard exit aka SE) and MoreVP exit (aka in-flight ex
 * `->` denotes order of events;
 * `=>` denotes proposed solution / action;
 * `contract:` solution is contained to change in the contract;
-* `game:` solution is an interactive game, possibly with new functions exposed by the contract.
 
 ### Possible scenarios
 
-1. SE on input -> IFE  
+1. Mallory does SE on input -> Mallory submits IFE  
     => (IMPLEMENTED) contract: IFE challenges SE (~ +30k gas)  
     NOTE: can do that even if I remembered `standardExitId(hash(tx), oindex)` on SE, because I am getting the input txs all over again in IFE
 
-2. SE on input, finalized -> IFE  
+2. Mallory does SE on input, finalized -> Mallory submits IFE  
     => (IMPLEMENTED) contract: introduce `standardExitId(hash(tx), oindex)`, check if SE exists, if so treat IFE is "as if non-canonical" and can't be canonized; input is marked as finalized with regard to piggybacking. Add additional flag to IFE which will prevent it from taking part in canonicity game.
 
-3. IFE -> SE on input  
-    => (IMPLEMENTED) game: standard SE challenge using IFE tx as spend
+3. Mallory submits IFE -> Mallory does SE on input  
+    => (IMPLEMENTED) Alice: performs standard SE challenge using IFE tx as spend
 
-4. IFE, finalized input -> SE on input  
+4. Mallory does IFE, piggybacks input, waits for finalization -> Mallory submits SE on input  
     => (IMPLEMENTED) same as (3.)
 
-5. SE on output -> IFE -> piggyback output  
+5. Mallory does SE on output -> Mallory submits IFE -> Mallory piggybacks output  
     => (IMPLEMENTED) contract: `standardExitId(hash(tx), oindex)`. This allows to find SE when PB is performed. Need to store utxo_pos in Exit struct during `startStandardExit`, though.  
     NOTE: costs: +20k on `startStandardExit`; low cost on PB check  
     NOTE: make revertable, so we can implement alt game solution later  
-    => (alt) (if data availability) game: piggyback is challenged with new challenge type  
+    => (alt) (if data availability) Alice: challenges piggyback with new challenge type  
     => (alt) (if no data avail) do nothing: IFE output exits, SE exits after all mass exits  
     NOTE: why can't we purely in contract (as in 7.) here? B/c "important" info (tx hash) is delivered too early and forgotten.  
     But if we do standardExitId(...) then ok  
     NOTE: as rule, we always block whatever is started later (piggyback here, SE in 8./9.)
 
-6. SE on output, finalized -> IFE -> piggyback output  
+6. Mallory does SE on output, waits for finalization -> Mallory submits IFE -> Mallory piggybacks output  
     => (IMPLEMENTED) contract: introduce `standardExitId(hash(tx), oindex)`; on PB compute SE id, check if it exists  
     => (alternative) exit game as in 5. Piggyback is challenged (take bond)
 
-7. IFE -> SE on output  
+7. Mallory submits IFE -> Mallory does SE on output  
     => (IMPLEMENTED) contract: take tx from SE, find tx in IFEs, block future piggybacks on output  
     NOTE: +5k gas (after constantinople)
 
-8. IFE -> SE on output -> SE finalized -> piggyback  
+8. Mallory submits IFE -> Mallory does SE on output -> Mallory waits for SE finalization -> Mallory piggybacks  
    ! not possible
 
-9. IFE -> piggyback output -> SE on output  
+9. Mallory submits IFE -> Mallory piggybacks output -> Mallory does SE on output  
     => (IMPLEMENTED) contract: when SE happens, check for IFE & piggyback existence  
     NOTE: +18k gas on startSE
 
-10. IFE -> piggyback output -> finalized -> SE on output  
+10. Mallory submits IFE -> Mallory piggybacks output -> Mallory waits for finalization -> Mallory does SE on output  
     ! same as (8.)
 
 ### Exploring `standardExitId(hash(tx), oindex)`
