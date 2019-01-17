@@ -211,7 +211,7 @@ defmodule OMG.API.State.Core do
   defp get_utxos(utxos, position, {:ok, acc}) do
     case Map.get(utxos, position) do
       nil -> {:error, :utxo_not_found}
-      found -> {:ok, [found | acc]}
+      found -> {:ok, acc ++ [found]}
     end
   end
 
