@@ -23,6 +23,8 @@ defmodule OMG.API.Application do
 
   def start(_type, _args) do
     deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
+    # we need to be just one block after deposits to never miss exits from deposits
+    exiters_finality_margin = deposit_finality_margin + 1
 
     children = [
       {OMG.API.State, []},
@@ -62,7 +64,7 @@ defmodule OMG.API.Application do
             %{
               synced_height_update_key: :last_in_flight_exit_eth_height,
               service_name: :in_flight_exit,
-              block_finality_margin: deposit_finality_margin,
+              block_finality_margin: exiters_finality_margin,
               get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
               process_events_callback: &OMG.API.State.exit_utxos(&1) |> Tuple.delete_at(2),
               get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
@@ -79,7 +81,7 @@ defmodule OMG.API.Application do
             %{
               synced_height_update_key: :last_piggyback_exit_eth_height,
               service_name: :piggyback,
-              block_finality_margin: deposit_finality_margin,
+              block_finality_margin: exiters_finality_margin,
               get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
               process_events_callback: &OMG.API.State.exit_utxos(&1) |> Tuple.delete_at(2),
               get_last_synced_height_callback: &OMG.Eth.RootChain.get_root_deployment_height/0
@@ -93,8 +95,7 @@ defmodule OMG.API.Application do
           {OMG.API.EthereumEventListener, :start_link,
            [
              %{
-               # we need to be just one block after deposits to never miss exits from deposits
-               block_finality_margin: deposit_finality_margin + 1,
+               block_finality_margin: exiters_finality_margin,
                synced_height_update_key: :last_exiter_eth_height,
                service_name: :exiter,
                get_events_callback: &OMG.Eth.RootChain.get_exits/2,

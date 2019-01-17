@@ -16,8 +16,6 @@ defmodule OMG.Watcher.Application do
   @moduledoc false
   use Application
   use OMG.API.LoggerExt
-  alias OMG.API.Utxo
-  require Utxo
 
   def start(_type, _args) do
     DeferredConfig.populate(:omg_watcher)
@@ -73,7 +71,7 @@ defmodule OMG.Watcher.Application do
           depositor: %{sync_mode: :sync_with_coordinator},
           exit_processor: %{sync_mode: :sync_with_root_chain},
           exit_finalizer: %{sync_mode: :sync_with_coordinator},
-          exit_challenger: %{sync_mode: :sync_with_root_chain},
+          exit_challenger: %{sync_mode: :sync_with_root_chain}
         }
       },
       %{
