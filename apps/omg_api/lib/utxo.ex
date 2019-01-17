@@ -18,10 +18,12 @@ defmodule OMG.API.Utxo do
   """
 
   alias OMG.API.Crypto
+  alias OMG.API.State.Transaction
 
-  defstruct [:owner, :currency, :amount]
+  defstruct [:owner, :currency, :amount, :creating_txhash]
 
   @type t() :: %__MODULE__{
+          creating_txhash: Transaction.Recovered.tx_hash_t(),
           owner: Crypto.address_t(),
           currency: Crypto.address_t(),
           amount: non_neg_integer

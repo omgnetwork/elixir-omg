@@ -103,6 +103,14 @@ defmodule OMG.DB do
     GenServer.call(server_name, :last_depositor_eth_height)
   end
 
+  def last_in_flight_exit_eth_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_in_flight_exit_eth_height)
+  end
+
+  def last_piggyback_exit_eth_height(server_name \\ @server_name) do
+    GenServer.call(server_name, :last_piggyback_exit_eth_height)
+  end
+
   def last_exiter_eth_height(server_name \\ @server_name) do
     GenServer.call(server_name, :last_exiter_eth_height)
   end
@@ -131,7 +139,9 @@ defmodule OMG.DB do
       {:put, :last_exiter_eth_height, 0},
       {:put, :last_exit_processor_eth_height, 0},
       {:put, :last_exit_finalizer_eth_height, 0},
-      {:put, :last_exit_challenger_eth_height, 0}
+      {:put, :last_exit_challenger_eth_height, 0},
+      {:put, :last_piggyback_exit_eth_height, 0},
+      {:put, :last_in_flight_exit_eth_height, 0}
     ]
 
     with :ok <- server_name.init_storage(path),

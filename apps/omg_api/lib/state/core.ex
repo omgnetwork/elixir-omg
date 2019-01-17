@@ -17,8 +17,6 @@ defmodule OMG.API.State.Core do
   Functional core for State.
   """
 
-  require Logger
-
   @maximum_block_size 65_536
 
   defstruct [:height, :last_deposit_child_blknum, :utxos, pending_txs: [], tx_index: 0]
@@ -28,7 +26,7 @@ defmodule OMG.API.State.Core do
   alias OMG.API.State.Core
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
-
+  use OMG.API.LoggerExt
   require Utxo
 
   @type t() :: %__MODULE__{
@@ -45,6 +43,10 @@ defmodule OMG.API.State.Core do
           owner: Crypto.address_t(),
           amount: pos_integer()
         }
+
+  @type in_flight_exit() :: %{in_flight_tx: bitstring()}
+  @type piggyback() :: %{txhash: Transaction.Recovered.tx_hash_t(), output_index: non_neg_integer}
+
   @type exit_t() :: %{
           utxo_pos: pos_integer(),
           token: Crypto.address_t(),
@@ -139,14 +141,15 @@ defmodule OMG.API.State.Core do
   See docs/transaction_validation.md for more information about stateful and stateless validation.
   """
   @spec exec(tx :: Transaction.Recovered.t(), fees :: map(), state :: t()) ::
-          {:ok, {Transaction.Recovered.signed_tx_hash_t(), pos_integer, non_neg_integer}, t()}
+          {:ok, {Transaction.Recovered.tx_hash_t(), pos_integer, non_neg_integer}, t()}
           | {{:error, exec_error}, t()}
   def exec(
         %Transaction.Recovered{
-          signed_tx: %Transaction.Signed{raw_tx: raw_tx}
+          signed_tx: %Transaction.Signed{raw_tx: raw_tx},
+          tx_hash: tx_hash
         } = recovered_tx,
         fees,
-        state
+        %Core{height: height, tx_index: tx_index} = state
       ) do
     outputs = Transaction.get_outputs(raw_tx)
 
@@ -154,9 +157,9 @@ defmodule OMG.API.State.Core do
          {:ok, input_amounts_by_currency} <- correct_inputs?(state, recovered_tx),
          output_amounts_by_currency <- get_amounts_by_currency(outputs),
          :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency, fees) do
-      {:ok, {recovered_tx.signed_tx_hash, state.height, state.tx_index},
+      {:ok, {tx_hash, height, tx_index},
        state
-       |> apply_spend(raw_tx)
+       |> apply_spend(recovered_tx)
        |> add_pending_tx(recovered_tx)}
     else
       {:error, _reason} = error -> {error, state}
@@ -248,30 +251,36 @@ defmodule OMG.API.State.Core do
 
   defp apply_spend(
          %Core{height: height, tx_index: tx_index, utxos: utxos} = state,
-         %Transaction{} = tx
+         %Transaction.Recovered{
+           signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = raw_tx}
+         } = recovered_tx
        ) do
     new_utxos_map =
-      tx
+      recovered_tx
       |> non_zero_utxos_from(height, tx_index)
       |> Map.new()
 
-    inputs = Transaction.get_inputs(tx)
+    inputs = Transaction.get_inputs(raw_tx)
     utxos = Map.drop(utxos, inputs)
-
     %Core{state | utxos: Map.merge(utxos, new_utxos_map)}
   end
 
-  defp non_zero_utxos_from(%Transaction{} = tx, height, tx_index) do
-    tx
+  defp non_zero_utxos_from(%Transaction.Recovered{} = recovered_tx, height, tx_index) do
+    recovered_tx
     |> utxos_from(height, tx_index)
     |> Enum.filter(fn {_key, value} -> is_non_zero_amount?(value) end)
   end
 
-  defp utxos_from(%Transaction{} = tx, height, tx_index) do
+  defp utxos_from(
+         %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = tx}, tx_hash: hash},
+         height,
+         tx_index
+       ) do
     outputs = Transaction.get_outputs(tx)
 
     for {%{owner: owner, currency: currency, amount: amount}, oindex} <- Enum.with_index(outputs) do
-      {Utxo.position(height, tx_index, oindex), %Utxo{owner: owner, currency: currency, amount: amount}}
+      {Utxo.position(height, tx_index, oindex),
+       %Utxo{owner: owner, currency: currency, amount: amount, creating_txhash: hash}}
     end
   end
 
@@ -300,7 +309,7 @@ defmodule OMG.API.State.Core do
     db_updates_new_utxos =
       txs
       |> Enum.with_index()
-      |> Enum.flat_map(fn {%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}}, tx_idx} ->
+      |> Enum.flat_map(fn {tx, tx_idx} ->
         non_zero_utxos_from(tx, height, tx_idx)
       end)
       |> Enum.map(&utxo_to_db_put/1)
@@ -403,11 +412,38 @@ defmodule OMG.API.State.Core do
   It is done like this to accommodate different clients of this function as they can either be
   bare `EthereumEventListener` or `ExitProcessor`
   """
-  @spec exit_utxos(exiting_utxos :: [Utxo.Position.t()] | [exit_t()], state :: t()) ::
-          {:ok, {[exit_event], [db_update], {list(Utxo.Position.t()), list(Utxo.Position.t())}}, new_state :: t()}
+  @spec exit_utxos(
+          exiting_utxos :: [Utxo.Position.t()] | [exit_t()] | [piggyback()] | [in_flight_exit()],
+          state :: t()
+        ) :: {:ok, {[exit_event], [db_update], {list(Utxo.Position.t()), list(Utxo.Position.t())}}, new_state :: t()}
   def exit_utxos([%{utxo_pos: _} | _] = exit_infos, %Core{} = state) do
     exit_infos
     |> Enum.map(&Utxo.Position.decode(&1.utxo_pos))
+    |> exit_utxos(state)
+  end
+
+  def exit_utxos([%{in_flight_tx: _} | _] = in_flight_txs, %Core{} = state) do
+    in_flight_txs
+    |> Enum.map(fn %{in_flight_tx: tx_bytes} ->
+      {:ok, tx} = Transaction.decode(tx_bytes)
+      Transaction.get_inputs(tx)
+    end)
+    |> List.flatten()
+    |> exit_utxos(state)
+  end
+
+  def exit_utxos([%{txhash: _} | _] = piggybacks, %Core{utxos: utxos} = state) do
+    piggybacks
+    |> Enum.map(fn %{txhash: tx_hash, output_index: oindex} ->
+      # oindex in contract is 0-7 where 4-7 are outputs
+      oindex = oindex - 4
+
+      utxos
+      |> Map.to_list()
+      |> Enum.find(&match?({Utxo.position(_, _, ^oindex), %Utxo{creating_txhash: ^tx_hash}}, &1))
+    end)
+    |> Enum.filter(&(&1 != nil))
+    |> Enum.map(fn {position, _} -> position end)
     |> exit_utxos(state)
   end
 

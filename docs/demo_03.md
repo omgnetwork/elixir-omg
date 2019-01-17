@@ -8,6 +8,7 @@ Run a developer's Child chain server, Watcher, and start IEx REPL with code and 
 ```
 config :omg_api,
   deposit_finality_margin: 1,
+  exiters_finality_margin: 2,
   ethereum_status_check_interval_ms: 100
 ```
 Otherwise one might experience a long wait before the child chain allows the deposits to be spent (which every invocation of `start_extended_perftest` waits for).

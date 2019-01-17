@@ -556,7 +556,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   @spec validate_executions(
-          list({Transaction.Recovered.signed_tx_hash_t(), pos_integer, pos_integer}),
+          list({Transaction.Recovered.tx_hash_t(), pos_integer, pos_integer}),
           {:ok | tuple(), list()},
           map,
           %__MODULE__{}

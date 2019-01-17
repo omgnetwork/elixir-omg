@@ -104,7 +104,9 @@ defmodule OMG.DB.LevelDBCore do
     :last_exiter_eth_height,
     :last_exit_processor_eth_height,
     :last_exit_finalizer_eth_height,
-    :last_exit_challenger_eth_height
+    :last_exit_challenger_eth_height,
+    :last_piggyback_exit_eth_height,
+    :last_in_flight_exit_eth_height
   ]
 
   def key(parameter, _) when parameter in @single_value_parameter_names, do: Atom.to_string(parameter)

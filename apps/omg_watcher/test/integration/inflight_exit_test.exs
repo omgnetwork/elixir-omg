@@ -21,6 +21,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
   alias OMG.API
   alias OMG.API.Crypto
+  alias OMG.API.Integration.DepositHelper
   alias OMG.API.State.Transaction
   alias OMG.Eth
   alias OMG.RPC.Client
@@ -33,6 +34,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   @moduletag :integration
 
   @tag fixtures: [:watcher_sandbox, :alice, :child_chain, :alice_deposits]
+  @tag timeout: 120_000
   test "in-flight exit data retruned by watcher http API produces a valid in-flight exit",
        %{alice: alice, alice_deposits: {deposit_blknum, _}} do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
@@ -71,5 +73,47 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     assert {:ok, [%{initiator: ^alice_address, txhash: ^in_flight_tx_hash}]} =
              OMG.Eth.RootChain.get_in_flight_exits(0, eth_height)
+
+    exiters_finality_margin = Application.fetch_env!(:omg_api, :exiters_finality_margin) + 1
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
+
+    tx_double_spend = API.TestHelper.create_encoded([{blknum, txindex, 0, alice}], @eth, [{alice, 2}, {alice, 3}])
+    assert {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} = Client.submit(tx_double_spend)
+
+    deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, 10)
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
+    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.submit(tx)
+
+    in_flight_exit_info =
+      tx
+      |> Base.encode16(case: :upper)
+      |> TestHelper.get_in_flight_exit()
+
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+      Eth.RootChain.in_flight_exit(
+        in_flight_exit_info["in_flight_tx"],
+        in_flight_exit_info["input_txs"],
+        in_flight_exit_info["input_txs_inclusion_proofs"],
+        in_flight_exit_info["in_flight_tx_sigs"],
+        alice.addr
+      )
+      |> Eth.DevHelpers.transact_sync!()
+
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
+
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+      Eth.RootChain.piggyback_in_flight_exit(in_flight_exit_info["in_flight_tx"], 4, alice.addr)
+      |> Eth.DevHelpers.transact_sync!()
+
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
+
+    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
+    assert {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} = Client.submit(tx)
+
+    tx = API.TestHelper.create_encoded([{tx_blknum, 0, 0, alice}], @eth, [{alice, 7}])
+    assert {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} = Client.submit(tx)
+
+    tx = API.TestHelper.create_encoded([{tx_blknum, 0, 1, alice}], @eth, [{alice, 3}])
+    assert {:ok, _} = Client.submit(tx)
   end
 end
