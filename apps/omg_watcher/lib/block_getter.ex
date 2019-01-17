@@ -21,6 +21,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   alias OMG.API.Block
   alias OMG.API.RootChainCoordinator
+  alias OMG.API.RootChainCoordinator.SyncData
   alias OMG.API.State
   alias OMG.Eth
   alias OMG.RPC.Client
@@ -185,7 +186,7 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
 
   def handle_info(:sync, state) do
-    with {:sync, next_synced_height} <- RootChainCoordinator.get_height() do
+    with %SyncData{sync_height: next_synced_height} <- RootChainCoordinator.get_sync_info() do
       block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
       {:ok, submissions} = Eth.RootChain.get_block_submitted_events(block_range)
 

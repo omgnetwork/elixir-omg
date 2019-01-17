@@ -54,7 +54,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
   def check_in(state, pid, service_height, service_name) do
     if allowed?(state.configs_services, service_name) do
       previous_synced_height =
-        case get_synced_height(state, service_name) do
+        case get_synced_info(state, service_name) do
           :nosync ->
             0
 
@@ -91,7 +91,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
   end
 
   defp get_services_to_sync(state, service_name, previous_synced_height) do
-    case get_synced_height(state, service_name) do
+    case get_synced_info(state, service_name) do
       :nosync ->
         []
 
@@ -107,28 +107,28 @@ defmodule OMG.API.RootChainCoordinator.Core do
   end
 
   @doc """
-  Gets synchronized height
+  Gets synchronized info
   """
-  @spec get_synced_height(t(), atom() | pid()) :: {:sync, non_neg_integer()} | :nosync
-  def get_synced_height(state, pid) when is_pid(pid) do
+  @spec get_synced_info(t(), atom() | pid()) :: {:sync, non_neg_integer()} | :nosync
+  def get_synced_info(state, pid) when is_pid(pid) do
     service = Enum.find(state.services, fn service -> match?({_, %Service{pid: ^pid}}, service) end)
 
     case service do
-      {service_name, _} -> get_synced_height(state, service_name)
+      {service_name, _} -> get_synced_info(state, service_name)
       nil -> :nosync
     end
   end
 
-  def get_synced_height(state, service_name) when is_atom(service_name) do
+  def get_synced_info(state, service_name) when is_atom(service_name) do
     sync_mode =
       state.configs_services
       |> Map.get(service_name)
       |> Map.get(:sync_mode, :sync_with_coordinator)
 
-    get_synced_height_by_mode(state, sync_mode)
+    get_synced_info_by_mode(state, sync_mode)
   end
 
-  defp get_synced_height_by_mode(
+  defp get_synced_info_by_mode(
          %__MODULE__{services: services, root_chain_height: root_chain_height} = state,
          :sync_with_coordinator
        ) do
@@ -141,7 +141,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
     end
   end
 
-  defp get_synced_height_by_mode(%__MODULE__{root_chain_height: root_chain_height}, :sync_with_root_chain) do
+  defp get_synced_info_by_mode(%__MODULE__{root_chain_height: root_chain_height}, :sync_with_root_chain) do
     %SyncData{sync_height: root_chain_height, root_chain: root_chain_height}
   end
 
