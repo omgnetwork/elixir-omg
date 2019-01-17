@@ -244,7 +244,7 @@ Honest user which enjoys data availability should be able to ignore in-flight ex
 Owners of outputs on the Plasma chain should be able to start an exit via either mechanism, but not both.
 To guarantee that money can't be double-spend via those two mechanisms, two approaches are possible.
 
-Option (1).
+##### Chosen solution
 This approach minimizes complexity of interactive games while negatively affecting gas cost of a happy path.
 Contract needs to check if other type of exit exists for particular output when standard exit is being submitted and it checks if standard exit is in progress / was finalized when in-flight exit is being added.
 In first case new exit is blocked.
@@ -252,7 +252,7 @@ In second case - in-flight exit is marked as one which can be exited only from i
 To make such checks possible, both types of exits need to use transaction hash as an exit id.
 No additional interactive games arise from the fact of coexistence of MVP and MoreVP protocols.
 
-Option (2).
+##### Alternative solution, to be implemented later
 To reduce gas costs for honest participants, new types of challenges needs to be introduced.
 Piggybacks on outputs should be challenged by standard exits and vice-versa.
 Standard exits on UTXO seen as the input of a in-flight tx exit can be challenged using tx body.
