@@ -85,18 +85,3 @@ A: I don't see a way to do it yet.
 Q: When IFE/piggyback on output is added, what is the cost of checking if standard exits were performed from output(s)?  
 A: Number of outputs is known on both IFE and PB; single SLOAD per output?  
 
-### Anatomy of exit id and priority value
-
-Most significant bits first, priority value.
-
-42 bits - timestamp (exitable_at); unix timestamp fits into 32 bits  
-54 bits - blknum * 10^9 + txindex; to represent all utxo for 10 years we need only 54 bits  
-8 bits - oindex; set to zero for in-flight tx  
-1 bit - in-flight flag  
-151 bit - tx hash
-
-Anatomy of exit id (both in-flight and standard), most significant bits first:
-
-8 bits - oindex; set to zero for in-flight tx  
-1 bit - in-flight flag  
-151 bit - tx hash
