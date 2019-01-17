@@ -1,8 +1,11 @@
 Standard vs In-flight Exits
 ==
 
-Since both Standard exit (aka SE) and In-flight exit (aka IFE) provide an exit opportunity, it is possible to effectively double-spending.
-To prevent such possibility, and to preserve the rule that honest owner can ignore IFE provided that he enjoys data availability, following scenarios are evaluated.
+Since both Standard exit (aka SE) and In-flight exit (aka IFE) provide an exit opportunity, it is possible to effectively double-spend.
+To prevent such possibility, and to preserve the rule that honest owner can ignore IFE provided that he enjoys data availability, we need a set of rules.
+We derive this set of rules by analyzing different scenarios, depending on order of actions taken by calling the MoreVP root chain contract.
+Every scenario revolves around a conflict of exit actions (a double-spend attempt).
+In each we explain possible ways of preventing the double spend.
 
 #### Glossary
 
