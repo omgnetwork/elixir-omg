@@ -63,9 +63,7 @@ defmodule OMG.API.Core do
   end
 
   defp inputs_present?(inputs) do
-    inputs_present =
-      inputs
-      |> Enum.any?(fn Utxo.position(blknum, _, _) -> blknum != 0 end)
+    inputs_present = inputs |> Enum.any?(&Utxo.Position.non_zero?/1)
 
     if inputs_present, do: :ok, else: {:error, :no_inputs}
   end

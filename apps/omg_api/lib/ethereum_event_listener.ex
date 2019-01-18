@@ -32,9 +32,7 @@ defmodule OMG.API.EthereumEventListener do
           # maps a pair denoting eth height range to a list of ethereum events
           get_events_callback: (non_neg_integer, non_neg_integer -> {:ok, [map]}),
           # maps a list of ethereum events to a list of `db_updates` to send to `OMG.DB`
-          process_events_callback: ([any] -> {:ok, [tuple]}),
-          # returns an eth height where ethereum event processing last synced to
-          get_last_synced_height_callback: (() -> {:ok, non_neg_integer})
+          process_events_callback: ([any] -> {:ok, [tuple]})
         }
 
   ### Client
@@ -54,11 +52,10 @@ defmodule OMG.API.EthereumEventListener do
         synced_height_update_key: update_key,
         service_name: service_name,
         get_events_callback: get_events_callback,
-        process_events_callback: process_events_callback,
-        get_last_synced_height_callback: last_event_block_height_callback
+        process_events_callback: process_events_callback
       }) do
     {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
-    {:ok, last_event_block_height} = last_event_block_height_callback.()
+    {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
 
     # we don't need to ever look at earlier than contract deployment
     last_event_block_height = max(last_event_block_height, contract_deployment_height)

@@ -205,13 +205,17 @@ defmodule OMG.API.State.Core do
 
   defp get_input_utxos(utxos, inputs) do
     inputs
-    |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum != 0 end)
-    |> Enum.reduce_while({:ok, []}, fn position, {:ok, acc} ->
-      case Map.get(utxos, position) do
-        nil -> {:halt, {:error, :utxo_not_found}}
-        found -> {:cont, {:ok, acc ++ [found]}}
-      end
-    end)
+    |> Enum.filter(&Utxo.Position.non_zero?/1)
+    |> Enum.reduce({:ok, []}, fn input, acc -> get_utxos(utxos, input, acc) end)
+  end
+
+  defp get_utxos(_, _, {:error, _} = err), do: err
+
+  defp get_utxos(utxos, position, {:ok, acc}) do
+    case Map.get(utxos, position) do
+      nil -> {:error, :utxo_not_found}
+      found -> {:ok, acc ++ [found]}
+    end
   end
 
   defp get_amounts_by_currency(utxos) do
@@ -319,7 +323,7 @@ defmodule OMG.API.State.Core do
       |> Enum.flat_map(fn %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}} ->
         Transaction.get_inputs(tx)
       end)
-      |> Enum.filter(fn position -> position != Utxo.position(0, 0, 0) end)
+      |> Enum.filter(&Utxo.Position.non_zero?/1)
       |> Enum.flat_map(fn Utxo.position(blknum, txindex, oindex) ->
         # TODO: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes.
         [{:delete, :utxo, {blknum, txindex, oindex}}, {:put, :spend, {{blknum, txindex, oindex}, height}}]
@@ -422,9 +426,9 @@ defmodule OMG.API.State.Core do
     |> exit_utxos(state)
   end
 
-  def exit_utxos([%{in_flight_tx: _} | _] = in_flight_txs, %Core{} = state) do
+  def exit_utxos([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{} = state) do
     in_flight_txs
-    |> Enum.map(fn %{in_flight_tx: tx_bytes} ->
+    |> Enum.map(fn %{call_data: %{in_flight_tx: tx_bytes}} ->
       {:ok, tx} = Transaction.decode(tx_bytes)
       Transaction.get_inputs(tx)
     end)
@@ -432,9 +436,9 @@ defmodule OMG.API.State.Core do
     |> exit_utxos(state)
   end
 
-  def exit_utxos([%{txhash: _} | _] = piggybacks, %Core{utxos: utxos} = state) do
+  def exit_utxos([%{tx_hash: _} | _] = piggybacks, %Core{utxos: utxos} = state) do
     piggybacks
-    |> Enum.map(fn %{txhash: tx_hash, output_index: oindex} ->
+    |> Enum.map(fn %{tx_hash: tx_hash, output_index: oindex} ->
       # oindex in contract is 0-7 where 4-7 are outputs
       oindex = oindex - 4
 

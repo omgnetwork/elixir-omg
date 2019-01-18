@@ -18,10 +18,10 @@ defmodule OMG.Watcher.Challenger.Core do
   """
 
   alias OMG.API.Block
-  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.Challenger.Challenge
+  alias OMG.Watcher.Challenger.Tools
   alias OMG.Watcher.ExitProcessor.ExitInfo
 
   require Utxo
@@ -29,18 +29,16 @@ defmodule OMG.Watcher.Challenger.Core do
   @doc """
   Creates a challenge for exiting utxo.
   """
-  @spec create_challenge(map, Block.t(), Utxo.Position.t()) :: Challenge.t()
-  def create_challenge(%{owner: owner}, spending_block, Utxo.position(_, _, _) = utxo_exit) do
-    {%Transaction.Signed{
-       raw_tx: challenging_tx,
-       sigs: sigs
-     }, input_index} = get_spending_transaction_with_index(spending_block, utxo_exit)
+  @spec create_challenge(ExitInfo.t(), Block.t(), Utxo.Position.t()) :: Challenge.t()
+  def create_challenge(%ExitInfo{owner: owner}, spending_block, Utxo.position(_, _, _) = utxo_exit) do
+    {%Transaction.Signed{raw_tx: challenging_tx} = challenging_signed, input_index} =
+      get_spending_transaction_with_index(spending_block, utxo_exit)
 
     %Challenge{
       output_id: Utxo.Position.encode(utxo_exit),
       input_index: input_index,
       txbytes: challenging_tx |> Transaction.encode(),
-      sig: find_sig(sigs, challenging_tx, owner)
+      sig: find_sig(challenging_signed, owner)
     }
   end
 
@@ -56,7 +54,7 @@ defmodule OMG.Watcher.Challenger.Core do
   def ensure_challengeable(_, {:ok, :not_found}), do: {:error, :exit_not_found}
 
   def ensure_challengeable({:ok, blknum}, {:ok, {_, exit_info}}) when is_integer(blknum),
-    do: {:ok, blknum, exit_info}
+    do: {:ok, blknum, ExitInfo.from_db_value(exit_info)}
 
   def ensure_challengeable({:error, error}, _), do: {:error, error}
   def ensure_challengeable(_, {:error, error}), do: {:error, error}
@@ -79,11 +77,9 @@ defmodule OMG.Watcher.Challenger.Core do
     end)
   end
 
-  defp find_sig(sigs, raw_tx, owner) do
-    tx_hash = Transaction.hash(raw_tx)
-
-    Enum.find(sigs, fn sig ->
-      {:ok, owner} == Crypto.recover_address(tx_hash, sig)
-    end)
+  defp find_sig(tx, owner) do
+    # at this point having a tx that wasn't actually signed is an error, hence pattern match
+    {:ok, sig} = Tools.find_sig(tx, owner)
+    sig
   end
 end

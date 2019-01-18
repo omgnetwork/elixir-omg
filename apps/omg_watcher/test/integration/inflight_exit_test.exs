@@ -71,8 +71,8 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     in_flight_tx_hash = Transaction.hash(raw_in_flight_tx)
     alice_address = alice.addr
 
-    assert {:ok, [%{initiator: ^alice_address, txhash: ^in_flight_tx_hash}]} =
-             OMG.Eth.RootChain.get_in_flight_exits(0, eth_height)
+    assert {:ok, [%{initiator: ^alice_address, tx_hash: ^in_flight_tx_hash}]} =
+             OMG.Eth.RootChain.get_in_flight_exit_starts(0, eth_height)
 
     exiters_finality_margin = Application.fetch_env!(:omg_api, :exiters_finality_margin) + 1
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)

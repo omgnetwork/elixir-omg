@@ -84,8 +84,8 @@ defmodule OMG.Watcher.Challenger.CoreTest do
   end
 
   test "not spent or not existed utxo should be not challengeable" do
-    exit_info = %ExitInfo{owner: "alice"}
-    assert {:ok, 1000, ^exit_info} = Core.ensure_challengeable({:ok, 1000}, {:ok, {{}, exit_info}})
+    exit_info = %{owner: "alice"}
+    assert {:ok, 1000, %ExitInfo{owner: "alice"}} = Core.ensure_challengeable({:ok, 1000}, {:ok, {{}, exit_info}})
 
     assert {:error, :utxo_not_spent} = Core.ensure_challengeable({:ok, :not_found}, {:ok, {{}, exit_info}})
     assert {:error, :exit_not_found} = Core.ensure_challengeable({:ok, 1000}, {:ok, :not_found})
