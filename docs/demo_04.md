@@ -15,6 +15,7 @@ alias OMG.{API, Eth}
 alias OMG.API.Crypto
 alias OMG.API.State.Transaction
 alias OMG.API.TestHelper
+alias OMG.RPC.Web.Encoding
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
@@ -42,7 +43,7 @@ tx =
   Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
   Transaction.sign([alice.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  Base.encode16()
+  Encoding.to_hex()
 
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
@@ -57,7 +58,7 @@ in_flight_tx_bytes =
   Transaction.new([{child_tx_block_number, tx_index, 0}], [{alice.addr, eth, 7}]) |>
   Transaction.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  Base.encode16()
+  Encoding.to_hex()
 
 # get in-flight exit data for tx
 
@@ -71,10 +72,10 @@ in_flight_tx_bytes =
   :os.cmd() |>
   Poison.decode!()
 
-{:ok, in_flight_tx} = Base.decode16(in_flight_tx, case: :mixed)
-{:ok, in_flight_tx_sigs} = Base.decode16(in_flight_tx_sigs, case: :mixed)
-{:ok, input_txs} = Base.decode16(input_txs, case: :mixed)
-{:ok, input_txs_inclusion_proofs} = Base.decode16(input_txs_inclusion_proofs, case: :mixed)
+{:ok, in_flight_tx} = Encoding.from_hex(in_flight_tx)
+{:ok, in_flight_tx_sigs} = Encoding.from_hex(in_flight_tx_sigs)
+{:ok, input_txs} = Encoding.from_hex(input_txs)
+{:ok, input_txs_inclusion_proofs} = Encoding.from_hex(input_txs_inclusion_proofs)
 
 # call root chain function that initiates in-flight exit
 {:ok, txhash} =

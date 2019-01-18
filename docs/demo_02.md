@@ -49,7 +49,7 @@ tx =
   Transaction.new([{alice_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
   Transaction.sign([alice.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  Base.encode16()
+  OMG.RPC.Web.Encoding.to_hex()
 
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
@@ -90,18 +90,20 @@ tx2 =
   Transaction.new([{exiting_utxo_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
   Transaction.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  Base.encode16()
+  OMG.RPC.Web.Encoding.to_hex()
 
 # FIRST you need to spend in transaction as above, so that the exit then is in fact invalid and challengeable
 ~c(echo '{"transaction": "#{tx2}"}' | http POST localhost:9656/transaction.submit) |>
 :os.cmd() |>
 Poison.decode!()
 
+{:ok, txbytes} = OMG.RPC.Web.Encoding.from_hex(composed_exit["txbytes"])
+{:ok, proof} = OMG.RPC.Web.Encoding.from_hex(composed_exit["proof"])
 {:ok, txhash} =
   Eth.RootChain.start_exit(
     composed_exit["utxo_pos"],
-    Base.decode16!(composed_exit["txbytes"]),
-    Base.decode16!(composed_exit["proof"]),
+    txbytes,
+    proof,
     bob.addr
   )
 Eth.WaitFor.eth_receipt(txhash)
@@ -112,12 +114,14 @@ Eth.WaitFor.eth_receipt(txhash)
   :os.cmd() |>
   Poison.decode!()
 
+{:ok, txbytes} = OMG.RPC.Web.Encoding.from_hex(challenge["txbytes"])
+{:ok, sig} = OMG.RPC.Web.Encoding.from_hex(challenge["sig"])
 {:ok, txhash} =
   OMG.Eth.RootChain.challenge_exit(
     challenge["output_id"],
-    Base.decode16!(challenge["txbytes"]),
+    txbytes,
     challenge["input_index"],
-    Base.decode16!(challenge["sig"]),
+    sig,
     alice.addr
   )
 {:ok, _} = Eth.WaitFor.eth_receipt(txhash)
@@ -138,7 +142,7 @@ tx3 =
   Transaction.new([{bob_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
   Transaction.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  Base.encode16()
+  Base.OMG.RPC.Web.Encoding.to_hex()
 
 %{"success" => true} =
   ~c(echo '{"transaction": "#{tx3}"}' | http POST localhost:9656/transaction.submit) |>
@@ -173,7 +177,7 @@ tx4 =
   Transaction.new([{spend_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
   Transaction.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  Base.encode16()
+  Base.OMG.RPC.Web.Encoding.to_hex()
 
 # and send using httpie
 ~c(echo '{"transaction": "#{tx4}"}' | http POST localhost:9656/transaction.submit) |>

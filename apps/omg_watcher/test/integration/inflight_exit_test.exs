@@ -49,7 +49,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     in_flight_tx_bytes =
       in_flight_tx
       |> Transaction.Signed.encode()
-      |> Base.encode16(case: :upper)
+      |> OMG.RPC.Web.Encoding.to_hex()
 
     %{
       "in_flight_tx" => in_flight_tx,
@@ -86,7 +86,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     in_flight_exit_info =
       tx
-      |> Base.encode16(case: :upper)
+      |> OMG.RPC.Web.Encoding.to_hex()
       |> TestHelper.get_in_flight_exit()
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =

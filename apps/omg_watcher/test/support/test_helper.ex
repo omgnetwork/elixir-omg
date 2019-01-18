@@ -91,9 +91,8 @@ defmodule OMG.Watcher.TestHelper do
         value = data[key]
 
         with true <- is_binary(value),
-             "0x" <> hex <- value,
-             {:ok, new_value} <- Base.decode16(hex, case: :mixed) do
-          {key, new_value}
+             {:ok, bin} <- OMG.RPC.Web.Encoding.from_hex(value) do
+          {key, bin}
         else
           _ -> {key, value}
         end
