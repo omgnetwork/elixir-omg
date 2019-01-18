@@ -58,7 +58,7 @@ In each we explain possible ways of preventing the double spend.
     NOTE: +18k gas on startSE
 
 10. Mallory submits IFE -> Mallory piggybacks output -> Mallory waits for finalization -> Mallory does SE on output  
-    ! same as (8.)
+    ! same as (9.)
 
 ### Exploring `standardExitId(hash(tx), oindex)`
 Many of solutions described above are possible only if there is a way to have one-to-one mapping between in-flight exits and standard exits.
