@@ -78,7 +78,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                "txhash" => ^txhash,
                "txbytes" => "0x" <> txbytes,
                "txindex" => ^txindex
-             } = TestHelper.success?("/transaction.get", %{"id" => txhash})
+             } = TestHelper.success?("transaction.get", %{"id" => txhash})
 
       assert {:ok, _} = Base.decode16(txbytes, case: :lower)
     end
@@ -112,7 +112,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                "outputs" => [%{"amount" => 1}, %{"amount" => 2}, %{"amount" => 3}, %{"amount" => 4}],
                "txhash" => ^txhash,
                "txindex" => 1
-             } = TestHelper.success?("/transaction.get", %{"id" => txhash})
+             } = TestHelper.success?("transaction.get", %{"id" => txhash})
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -123,7 +123,17 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                "object" => "error",
                "code" => "transaction:not_found",
                "description" => "Transaction doesn't exist for provided search criteria"
-             } == TestHelper.no_success?("/transaction.get", %{"id" => txhash})
+             } == TestHelper.no_success?("transaction.get", %{"id" => txhash})
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "handles improper length of id parameter" do
+      assert %{
+                "object" => "error",
+                "code" => "get_transaction:bad_request",
+                "description" => "Parameters required by this action are missing or incorrect.",
+                "messages" => %{"validation_error" => "[param: \"id\", validator: {:length, 32}]"}
+              } == TestHelper.no_success?("transaction.get", %{"id" => "0x50e901b98fe3389e32d56166a13a88208b03ea75"})
     end
   end
 
@@ -154,7 +164,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "txindex" => ^txindex
                }
                | _
-             ] = TestHelper.success?("/transaction.all")
+             ] = TestHelper.success?("transaction.all")
 
       assert is_integer(value)
     end
@@ -174,9 +184,9 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       ])
 
       assert [%{"block" => %{"blknum" => 2000}, "txindex" => 1}, %{"block" => %{"blknum" => 2000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"blknum" => 2000})
+               TestHelper.success?("transaction.all", %{"blknum" => 2000})
 
-      assert [] = TestHelper.success?("/transaction.all", %{"blknum" => 3000})
+      assert [] = TestHelper.success?("transaction.all", %{"blknum" => 3000})
     end
 
     @tag fixtures: [:blocks_inserter, :alice, :bob]
@@ -197,7 +207,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       address = bob.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 2000}, "txindex" => 1}] =
-               TestHelper.success?("/transaction.all", %{"address" => address, "blknum" => 2000})
+               TestHelper.success?("transaction.all", %{"address" => address, "blknum" => 2000})
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
@@ -216,7 +226,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       address = alice.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"address" => address})
+               TestHelper.success?("transaction.all", %{"address" => address})
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob, :carol]
@@ -239,9 +249,9 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       carol_addr = carol.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 2}, %{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"address" => alice_addr})
+               TestHelper.success?("transaction.all", %{"address" => alice_addr})
 
-      assert [] = TestHelper.success?("/transaction.all", %{"address" => carol_addr})
+      assert [] = TestHelper.success?("transaction.all", %{"address" => carol_addr})
     end
 
     @tag fixtures: [:blocks_inserter, :alice, :bob]
@@ -260,7 +270,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       address = alice.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"address" => address})
+               TestHelper.success?("transaction.all", %{"address" => address})
     end
 
     @tag fixtures: [:blocks_inserter, :alice]
@@ -278,7 +288,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       address = alice.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"address" => address})
+               TestHelper.success?("transaction.all", %{"address" => address})
     end
 
     @tag fixtures: [:blocks_inserter, :alice]
@@ -296,7 +306,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       address = alice.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"address" => address})
+               TestHelper.success?("transaction.all", %{"address" => address})
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
@@ -315,7 +325,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       address = alice.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"address" => address})
+               TestHelper.success?("transaction.all", %{"address" => address})
     end
 
     @tag fixtures: [:alice, :blocks_inserter]
@@ -344,7 +354,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                    %{"currency" => ^not_eth_enc, "value" => 9}
                  ]
                }
-             ] = TestHelper.success?("/transaction.all")
+             ] = TestHelper.success?("transaction.all")
     end
   end
 
@@ -370,10 +380,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       address = alice.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 1}] =
-               TestHelper.success?("/transaction.all", %{limit: 2})
+               TestHelper.success?("transaction.all", %{limit: 2})
 
       assert [%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{address: address, limit: 2})
+               TestHelper.success?("transaction.all", %{address: address, limit: 2})
     end
 
     @tag fixtures: [:alice, :bob, :blocks_inserter]
@@ -394,7 +404,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
          ]}
       ])
 
-      assert [_, _, _] = TestHelper.success?("/transaction.all")
+      assert [_, _, _] = TestHelper.success?("transaction.all")
     end
   end
 

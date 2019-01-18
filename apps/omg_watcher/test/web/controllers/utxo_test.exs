@@ -163,6 +163,16 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
            ] = TestHelper.get_utxos(carol.addr)
   end
 
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "get.utxos handles improper type of parameter" do
+    assert %{
+              "object" => "error",
+              "code" => "get_utxos:bad_request",
+              "description" => "Parameters required by this action are missing or incorrect.",
+              "messages" => %{"validation_error" => "[param: \"address\", validator: :hex]"}
+            } == TestHelper.no_success?("account.get_utxos", %{"address" => 1234567890})
+  end
+
   @tag fixtures: [:initial_blocks]
   test "getting exit data returns properly formatted response" do
     %{
@@ -183,7 +193,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
              "object" => "error",
              "code" => "exit:invalid",
              "description" => "Utxo was spent or does not exist."
-           } = TestHelper.no_success?("/utxo.get_exit_data", %{"utxo_pos" => utxo_pos})
+           } = TestHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => utxo_pos})
   end
 
   @tag fixtures: [:blocks_inserter, :alice]
@@ -215,5 +225,15 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
         "oindex" => 0
       }
     ] = TestHelper.get_utxos(alice.addr) |> Enum.filter(&match?(%{"blknum" => ^blknum}, &1))
+  end
+
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "utxo.get_exit_data handles improper type of parameter" do
+    assert %{
+              "object" => "error",
+              "code" => "get_utxo_exit:bad_request",
+              "description" => "Parameters required by this action are missing or incorrect.",
+              "messages" => %{"validation_error" => "[param: \"utxo_pos\", validator: :integer]"}
+            } == TestHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => "1200000120000"})
   end
 end
