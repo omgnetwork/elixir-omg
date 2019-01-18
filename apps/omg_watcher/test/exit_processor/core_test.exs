@@ -124,8 +124,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Enum.map(& &1.sigs)
 
     [
-      %{tx_bytes: tx1_bytes, signatures: tx1_signs},
-      %{tx_bytes: tx2_bytes, signatures: tx2_sings}
+      %{call_data: %{in_flight_tx: tx1_bytes, in_flight_tx_sigs: tx1_signs}},
+      %{call_data: %{in_flight_tx: tx2_bytes, in_flight_tx_sigs: tx2_sings}}
     ]
   end
 
@@ -207,7 +207,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     state
   end
 
-  defp build_in_flight_exit(%{tx_bytes: bytes, signatures: signs}, {timestamp, contract_ife_id}) do
+  defp build_in_flight_exit(
+         %{call_data: %{in_flight_tx: bytes, in_flight_tx_sigs: signs}},
+         {timestamp, contract_ife_id}
+       ) do
     {:ok, raw_tx} = Transaction.decode(bytes)
 
     signed_tx = %Transaction.Signed{
@@ -754,7 +757,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       other_txbytes = comp1 |> Transaction.encode()
       %{sigs: [other_signature, _]} = Transaction.sign(comp1, [alice.priv, <<>>])
 
-      other_ife_event = %{tx_bytes: other_txbytes, signatures: [other_signature]}
+      other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: [other_signature]}}
       other_ife_status = {1, <<1::192>>}
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])

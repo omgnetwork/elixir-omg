@@ -226,6 +226,6 @@ defmodule OMG.Watcher.Fixtures do
 
     recovered_txs
     |> Enum.with_index()
-    |> Enum.map(fn {recovered_tx, txindex} -> {blknum, txindex, recovered_tx.signed_tx_hash, recovered_tx} end)
+    |> Enum.map(fn {recovered_tx, txindex} -> {blknum, txindex, recovered_tx.tx_hash, recovered_tx} end)
   end
 end

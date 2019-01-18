@@ -20,11 +20,13 @@ defmodule OMG.API.State.CoreTest do
   alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.API.State.Core
+  alias OMG.API.State.Transaction
   alias OMG.API.TestHelper, as: Test
   alias OMG.API.Utxo
 
   require Utxo
 
+  @eth Crypto.zero_address()
   @child_block_interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
   @child_block_2 @child_block_interval * 2
   @child_block_3 @child_block_interval * 3
@@ -434,8 +436,8 @@ defmodule OMG.API.State.CoreTest do
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "spending produces db updates, that don't leak to next block", %{
-    alice: alice,
-    bob: bob,
+    alice: %{addr: alice_addr} = alice,
+    bob: %{addr: bob_addr} = bob,
     state_alice_deposit: state
   } do
     {:ok, {_, _, db_updates}, state} =
@@ -457,8 +459,8 @@ defmodule OMG.API.State.CoreTest do
              {:put, :child_top_block_number, @child_block_interval}
            ] = db_updates
 
-    assert new_utxo1 == {{@child_block_interval, 0, 0}, %{owner: bob.addr, currency: eth(), amount: 7}}
-    assert new_utxo2 == {{@child_block_interval, 0, 1}, %{owner: alice.addr, currency: eth(), amount: 3}}
+    assert {{@child_block_interval, 0, 0}, %{owner: ^bob_addr, currency: @eth, amount: 7}} = new_utxo1
+    assert {{@child_block_interval, 0, 1}, %{owner: ^alice_addr, currency: @eth, amount: 3}} = new_utxo2
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_2}]}, state} =
              form_block_check(state, @child_block_interval)
@@ -486,7 +488,7 @@ defmodule OMG.API.State.CoreTest do
              {:put, :child_top_block_number, @child_block_3}
            ] = db_updates2
 
-    assert new_utxo == {{@child_block_3, 0, 0}, %{owner: bob.addr, currency: eth(), amount: 10}}
+    assert {{@child_block_3, 0, 0}, %{owner: ^bob_addr, currency: @eth, amount: 10}} = new_utxo
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_4}]}, _} =
              form_block_check(state, @child_block_interval)
@@ -494,13 +496,13 @@ defmodule OMG.API.State.CoreTest do
 
   @tag fixtures: [:alice, :state_empty]
   test "depositing produces db updates, that don't leak to next block", %{
-    alice: alice,
+    alice: %{addr: alice_addr} = alice,
     state_empty: state
   } do
     assert {:ok, {_, [utxo_update, height_update]}, state} =
              Core.deposit([%{owner: alice.addr, currency: eth(), amount: 10, blknum: 1}], state)
 
-    assert utxo_update == {:put, :utxo, {{1, 0, 0}, %{owner: alice.addr, currency: eth(), amount: 10}}}
+    assert {:put, :utxo, {{1, 0, 0}, %{owner: ^alice_addr, currency: @eth, amount: 10}}} = utxo_update
     assert height_update == {:put, :last_deposit_child_blknum, 1}
 
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @child_block_interval}]}, _} =
@@ -596,6 +598,79 @@ defmodule OMG.API.State.CoreTest do
           &1
         )).()
     |> fail?(:utxo_not_found)
+  end
+
+  @tag fixtures: [:alice, :state_alice_deposit]
+  test "removed utxo after piggyback from available utxo", %{alice: alice, state_alice_deposit: state} do
+    %Transaction.Recovered{tx_hash: tx_hash, signed_tx: %Transaction.Signed{raw_tx: raw_tx}} =
+      tx = Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}])
+
+    state =
+      state
+      |> (&Core.exec(tx, zero_fees_map(), &1)).()
+      |> success?
+
+    expected_owner = alice.addr
+    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.encode(raw_tx)}}]
+    utxo_pos_exits_piggyback = [%{tx_hash: tx_hash, output_index: 4}]
+    expected_position = Utxo.position(@child_block_interval, 0, 0)
+
+    assert {:ok, {[], [], {[], _}}, ^state} = Core.exit_utxos(utxo_pos_exits_in_flight, state)
+
+    assert {:ok,
+            {[%{exit: %{owner: ^expected_owner, utxo_pos: ^expected_position}}],
+             [{:delete, :utxo, {@child_block_interval, 0, 0}}], {[^expected_position], []}},
+            state_after_exit} = Core.exit_utxos(utxo_pos_exits_piggyback, state)
+
+    state_after_exit
+    |> (&Core.exec(
+          Test.create_recovered([{@child_block_interval, 0, 0, alice}], eth(), [{alice, 7}]),
+          zero_fees_map(),
+          &1
+        )).()
+    |> fail?(:utxo_not_found)
+    |> same?(state_after_exit)
+    |> (&Core.exec(
+          Test.create_recovered([{@child_block_interval, 0, 1, alice}], eth(), [{alice, 3}]),
+          zero_fees_map(),
+          &1
+        )).()
+    |> success?
+  end
+
+  @tag fixtures: [:alice, :state_alice_deposit]
+  test "removed inflight intputs from available utxo", %{alice: alice, state_alice_deposit: state} do
+    state =
+      state
+      |> (&Core.exec(Test.create_recovered([{1, 0, 0, alice}], eth(), [{alice, 7}, {alice, 3}]), zero_fees_map(), &1)).()
+      |> success?
+
+    %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}} =
+      Test.create_recovered([{@child_block_interval, 0, 0, alice}], eth(), [{alice, 3}, {alice, 3}])
+
+    expected_owner = alice.addr
+    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.encode(raw_tx)}}]
+    expected_position = Utxo.position(@child_block_interval, 0, 0)
+
+    assert {:ok,
+            {[%{exit: %{owner: ^expected_owner, utxo_pos: ^expected_position}}],
+             [{:delete, :utxo, {@child_block_interval, 0, 0}}], {[^expected_position], _}},
+            state_after_exit} = Core.exit_utxos(utxo_pos_exits_in_flight, state)
+
+    state_after_exit
+    |> (&Core.exec(
+          Test.create_recovered([{@child_block_interval, 0, 0, alice}], eth(), [{alice, 7}]),
+          zero_fees_map(),
+          &1
+        )).()
+    |> fail?(:utxo_not_found)
+    |> same?(state_after_exit)
+    |> (&Core.exec(
+          Test.create_recovered([{@child_block_interval, 0, 1, alice}], eth(), [{alice, 3}]),
+          zero_fees_map(),
+          &1
+        )).()
+    |> success?
   end
 
   @tag fixtures: [:state_empty]

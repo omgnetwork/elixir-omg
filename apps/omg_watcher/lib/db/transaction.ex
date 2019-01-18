@@ -153,7 +153,7 @@ defmodule OMG.Watcher.DB.Transaction do
   @spec process(Transaction.Recovered.t(), pos_integer(), integer(), list()) :: [list()]
   defp process(
          %Transaction.Recovered{
-           signed_tx_hash: signed_tx_hash,
+           tx_hash: tx_hash,
            signed_tx: %Transaction.Signed{signed_tx_bytes: signed_tx_bytes, raw_tx: raw_tx = %Transaction{}}
          },
          block_number,
@@ -161,9 +161,9 @@ defmodule OMG.Watcher.DB.Transaction do
          [tx_list, output_list, input_list]
        ) do
     [
-      [create(block_number, txindex, signed_tx_hash, signed_tx_bytes) | tx_list],
-      DB.TxOutput.create_outputs(block_number, txindex, signed_tx_hash, raw_tx) ++ output_list,
-      DB.TxOutput.create_inputs(raw_tx, signed_tx_hash) ++ input_list
+      [create(block_number, txindex, tx_hash, signed_tx_bytes) | tx_list],
+      DB.TxOutput.create_outputs(block_number, txindex, tx_hash, raw_tx) ++ output_list,
+      DB.TxOutput.create_inputs(raw_tx, tx_hash) ++ input_list
     ]
   end
 

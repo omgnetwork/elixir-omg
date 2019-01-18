@@ -42,7 +42,7 @@ defmodule OMG.API.Integration.Fixtures do
     _ = root_chain_contract_config
     _ = db_initialized
     _ = fee_file
-    # need to overide that to very often, so that many checks fall in between a single child chain block submission
+    # need to override that to very often, so that many checks fall in between a single child chain block submission
     {:ok, started_apps} = Application.ensure_all_started(:omg_api)
 
     on_exit(fn ->

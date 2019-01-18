@@ -194,6 +194,17 @@ defmodule OMG.API.State.Transaction do
   defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
   defp parse_address(_), do: {:error, :malformed_address}
 
+  def decode(tx_bytes) do
+    with {:ok, tx} <- try_exrlp_decode(tx_bytes),
+         do: from_rlp(tx)
+  end
+
+  defp try_exrlp_decode(tx_bytes) do
+    {:ok, ExRLP.decode(tx_bytes)}
+  rescue
+    _ -> {:error, :malformed_transaction_rlp}
+  end
+
   def encode(transaction) do
     get_filled_inputs_and_outputs(transaction)
     |> ExRLP.encode()
@@ -207,14 +218,6 @@ defmodule OMG.API.State.Transaction do
       Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
         List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs))
     ]
-
-  def decode(tx_bytes) do
-    try do
-      ExRLP.decode(tx_bytes) |> from_rlp()
-    rescue
-      _ -> {:error, :malformed_transaction_rlp}
-    end
-  end
 
   def hash(%__MODULE__{} = tx) do
     tx

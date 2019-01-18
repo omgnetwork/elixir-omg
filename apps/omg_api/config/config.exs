@@ -2,6 +2,7 @@ use Mix.Config
 
 config :omg_api,
   deposit_finality_margin: 10,
+  exiters_finality_margin: 11,
   submission_finality_margin: 20,
   ethereum_status_check_interval_ms: 6_000,
   child_block_minimal_enqueue_gap: 1,

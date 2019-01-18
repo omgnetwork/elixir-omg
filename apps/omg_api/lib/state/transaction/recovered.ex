@@ -22,12 +22,12 @@ defmodule OMG.API.State.Transaction.Recovered do
   alias OMG.API.State.Transaction
 
   @empty_signature <<0::size(520)>>
-  @type signed_tx_hash_t() :: <<_::768>>
+  @type tx_hash_t() :: <<_::768>>
 
-  defstruct [:signed_tx, :signed_tx_hash, spenders: nil]
+  defstruct [:signed_tx, :tx_hash, spenders: nil]
 
   @type t() :: %__MODULE__{
-          signed_tx_hash: signed_tx_hash_t(),
+          tx_hash: tx_hash_t(),
           spenders: [Crypto.address_t()],
           signed_tx: Transaction.Signed.t()
         }
@@ -40,7 +40,7 @@ defmodule OMG.API.State.Transaction.Recovered do
          do:
            {:ok,
             %__MODULE__{
-              signed_tx_hash: Transaction.hash(raw_tx),
+              tx_hash: Transaction.hash(raw_tx),
               spenders: spenders,
               signed_tx: signed_tx
             }}

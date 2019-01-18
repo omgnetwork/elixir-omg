@@ -21,6 +21,8 @@ defmodule OMG.API.MixProject do
     [
       env: [
         deposit_finality_margin: 10,
+        # we need to be just one block after deposits to never miss exits from deposits
+        exiters_finality_margin: 11,
         submission_finality_margin: 20,
         ethereum_status_check_interval_ms: 6_000,
         child_block_minimal_enqueue_gap: 1
@@ -43,7 +45,6 @@ defmodule OMG.API.MixProject do
       {:ex_rlp, "~> 0.2.1"},
       {:blockchain, "~> 0.1.6"},
       {:merkle_tree, git: "https://github.com/omisego/merkle_tree.git", branch: "refactor"},
-      {:libsecp256k1, "~> 0.1.4", compile: "${HOME}/.mix/rebar compile", override: true},
       #
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},

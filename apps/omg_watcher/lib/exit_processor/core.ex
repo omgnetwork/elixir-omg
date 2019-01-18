@@ -131,7 +131,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     new_ifes_kv_pairs =
       new_ifes_events
       |> Enum.zip(contract_statuses)
-      |> Enum.map(fn {%{tx_bytes: tx_bytes, signatures: signatures}, {timestamp, contract_ife_id} = contract_status} ->
+      |> Enum.map(fn {%{call_data: %{in_flight_tx: tx_bytes, in_flight_tx_sigs: signatures}},
+                      {timestamp, contract_ife_id} = contract_status} ->
         is_active = parse_contract_in_flight_exit_status(contract_status)
         InFlightExitInfo.new(tx_bytes, signatures, contract_ife_id, timestamp, is_active)
       end)

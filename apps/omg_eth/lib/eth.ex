@@ -53,7 +53,7 @@ defmodule OMG.Eth do
   defp decode_answer(enc_return, return_types) do
     enc_return
     |> from_hex()
-    |> ABI.TypeDecoder.decode_raw(return_types)
+    |> ABI.TypeDecoder.decode(return_types)
     |> case do
       [single_return] -> {:ok, single_return}
       other when is_list(other) -> {:ok, List.to_tuple(other)}
@@ -168,7 +168,7 @@ defmodule OMG.Eth do
     decoded_non_indexed_fields =
       data
       |> from_hex()
-      |> ABI.TypeDecoder.decode_raw(non_indexed_key_types)
+      |> ABI.TypeDecoder.decode(non_indexed_key_types)
 
     non_indexed_fields =
       Enum.zip(non_indexed_keys, decoded_non_indexed_fields)
@@ -179,7 +179,7 @@ defmodule OMG.Eth do
         [decoded] =
           encoded
           |> from_hex()
-          |> ABI.TypeDecoder.decode_raw([type_sig])
+          |> ABI.TypeDecoder.decode([type_sig])
 
         decoded
       end

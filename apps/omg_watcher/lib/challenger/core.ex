@@ -18,7 +18,6 @@ defmodule OMG.Watcher.Challenger.Core do
   """
 
   alias OMG.API.Block
-  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.Challenger.Challenge
