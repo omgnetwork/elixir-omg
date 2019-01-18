@@ -20,7 +20,6 @@ defmodule OMG.Watcher.Web.Controller.Account do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
-  alias OMG.API.Crypto
   alias OMG.Watcher.API
 
   @doc """

@@ -28,7 +28,7 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
              "last_mined_child_block_timestamp" => last_mined_child_block_timestamp,
              "eth_syncing" => eth_syncing,
              "byzantine_events" => byzantine_events
-           } = TestHelper.success?("/status.get")
+           } = TestHelper.success?("status.get")
 
     assert is_integer(last_validated_child_block_number)
     assert is_integer(last_mined_child_block_number)
@@ -45,7 +45,7 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
     {:ok, started_apps} = Application.ensure_all_started(:omg_eth)
 
     assert %{"code" => "internal_server_error", "description" => "econnrefused"} =
-             TestHelper.server_error?("/status.get")
+             TestHelper.server_error?("status.get")
 
     started_apps |> Enum.each(fn app -> :ok = Application.stop(app) end)
   end

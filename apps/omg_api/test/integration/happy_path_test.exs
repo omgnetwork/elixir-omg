@@ -59,11 +59,11 @@ defmodule OMG.API.Integration.HappyPathTest do
     {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(spend_child_block)
     assert {:ok, %{"transactions" => transactions}} = get_block(block_hash)
 
+    # NOTE: we are checking only the `hd` because token_tx might possibly be in the next block
+    {:ok, decoded_tx_bytes} = transactions |> hd() |> OMG.RPC.Web.Encoding.from_hex()
+
     assert {:ok, %{raw_tx: ^raw_tx}} =
-             transactions
-             # NOTE: we are checking only the `hd` because token_tx might possibly be in the next block
-             |> hd()
-             |> Base.decode16!()
+             decoded_tx_bytes
              |> Transaction.Signed.decode()
 
     # Restart everything to check persistance and revival
@@ -89,9 +89,10 @@ defmodule OMG.API.Integration.HappyPathTest do
 
     assert {:ok, %{"transactions" => [transaction2]}} = get_block(block_hash2)
 
+    {:ok, decoded_tx2_bytes} = transaction2 |> OMG.RPC.Web.Encoding.from_hex()
+
     assert {:ok, %{raw_tx: ^raw_tx2}} =
-             transaction2
-             |> Base.decode16!()
+             decoded_tx2_bytes
              |> Transaction.Signed.decode()
 
     # sanity checks, mainly persistence & failure responses
@@ -106,12 +107,12 @@ defmodule OMG.API.Integration.HappyPathTest do
   end
 
   defp submit_transaction(tx) do
-    TestHelper.rpc_call(:post, "/transaction.submit", %{transaction: Base.encode16(tx)})
+    TestHelper.rpc_call(:post, "/transaction.submit", %{transaction: OMG.RPC.Web.Encoding.to_hex(tx)})
     |> get_body_data()
   end
 
   defp get_block(hash) do
-    TestHelper.rpc_call(:post, "/block.get", %{hash: Base.encode16(hash)})
+    TestHelper.rpc_call(:post, "/block.get", %{hash: OMG.RPC.Web.Encoding.to_hex(hash)})
     |> get_body_data()
   end
 

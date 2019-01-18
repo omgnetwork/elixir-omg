@@ -54,7 +54,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   } do
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
-    token_addr = token |> Base.encode16()
+    token_addr = token |> OMG.RPC.Web.Encoding.to_hex()
 
     # utxo from deposit should be available
     assert [%{"blknum" => ^deposit_blknum}, %{"blknum" => ^token_deposit_blknum, "currency" => ^token_addr}] =
@@ -89,7 +89,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         child_block_hash: block_hash,
         submited_at_ethheight: event_eth_height
       }
-      |> Response.clean_artifacts()
+      |> Response.sanitize()
 
     address_spent_event =
       %Event.AddressSpent{
@@ -99,7 +99,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         child_block_hash: block_hash,
         submited_at_ethheight: event_eth_height
       }
-      |> Response.clean_artifacts()
+      |> Response.sanitize()
 
     assert_push("address_received", ^address_received_event)
 
