@@ -421,20 +421,22 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
           |> API.TestHelper.create_encoded(@eth, [{bob, 100}])
           |> Encoding.to_hex()
 
-        proofs_size = 1024 * length(inputs)
-        sigs_size = 130 * 4
+        # `2 + ` for prepending `0x` in HEX encoded binaries
+        proofs_size = 2 + 1024 * length(inputs)
+        sigs_size = 2 + 130 * 4
 
-        %{
-          # checking just lengths in majority as we prepare verify correctness in the contract in integration tests
-          "in_flight_tx" => _in_flight_tx,
-          "input_txs" => input_txs,
-          # encoded proofs, 1024 bytes each
-          "input_txs_inclusion_proofs" => <<_proof::bytes-size(proofs_size)>>,
-          # encoded signatures, 130 bytes each
-          "in_flight_tx_sigs" => <<_bytes::bytes-size(sigs_size)>>
-        } = TestHelper.success?("/inflight_exit.get_data", %{"txbytes" => inflight_txbytes})
+        # checking just lengths in majority as we prepare verify correctness in the contract in integration tests
+        assert %{
+                 "in_flight_tx" => _in_flight_tx,
+                 "input_txs" => input_txs,
+                 # encoded proofs, 1024 bytes each
+                 "input_txs_inclusion_proofs" => <<_proof::bytes-size(proofs_size)>>,
+                 # encoded signatures, 130 bytes each
+                 "in_flight_tx_sigs" => <<_bytes::bytes-size(sigs_size)>>
+               } = TestHelper.success?("/inflight_exit.get_data", %{"txbytes" => inflight_txbytes})
 
         {:ok, input_txs} = Encoding.from_hex(input_txs)
+
         input_txs =
           input_txs
           |> ExRLP.decode()
@@ -483,7 +485,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     test "responds with error for malformed in-flight transaction bytes" do
       assert %{
                "code" => "get_in_flight_exit:bad_request",
-               "description" => nil
+               "description" => "Parameters required by this action are missing or incorrect.",
+               "messages" => %{"validation_error" => "[param: \"txbytes\", validator: :hex]"}
              } = TestHelper.no_success?("/inflight_exit.get_data", %{"txbytes" => "tx"})
     end
   end

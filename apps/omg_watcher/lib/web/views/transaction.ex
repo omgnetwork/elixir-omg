@@ -27,7 +27,7 @@ defmodule OMG.Watcher.Web.View.Transaction do
     |> OMG.RPC.Web.Response.serialize()
   end
 
-  def render("transaction.json", %{transaction: transaction}) do
+  def render("transaction.json", %{response: transaction}) do
     transaction
     |> render_transaction()
     |> OMG.RPC.Web.Response.serialize()

@@ -36,6 +36,10 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
     utxo_not_found: %{
       code: "exit:invalid",
       description: "Utxo was spent or does not exist."
+    },
+    tx_for_input_not_found: %{
+      code: "in_flight_exit:tx_for_input_not_found",
+      description: "No transaction that created input."
     }
   }
 
