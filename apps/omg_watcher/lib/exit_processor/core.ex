@@ -408,9 +408,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Map.values()
       |> Enum.filter(& &1.is_active)
       |> Enum.flat_map(fn %{tx: %Transaction.Signed{raw_tx: tx}} -> Transaction.get_inputs(tx) end)
-      # the default value below is true, so that the assumption is that utxo not checked is **present**
-      # (i.e. we haven't checked because we know it's there for some good reason)
-      |> Enum.filter(fn input -> !Map.get(utxo_exists?, input, true) end)
+      |> only_utxos_checked_and_missing(utxo_exists?)
       |> Enum.uniq()
 
     %{request | spends_to_get: spends_to_get}
@@ -448,19 +446,20 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         %ExitProcessor.Request{
           eth_height_now: eth_height_now,
           blknum_now: blknum_now,
+          utxos_to_check: utxos_to_check,
           utxo_exists_result: utxo_exists_result
         } = request,
         %__MODULE__{exits: exits, sla_margin: sla_margin} = state
       )
       when is_integer(eth_height_now) and is_integer(blknum_now) do
-    exiting_utxo_positions = do_determine_utxo_existence_to_get(state)
+    utxo_exists? = Enum.zip(utxos_to_check, utxo_exists_result) |> Map.new()
 
     invalid_exit_positions =
-      utxo_exists_result
-      |> Stream.zip(exiting_utxo_positions)
-      |> Stream.filter(fn {utxo_exists, _} -> !utxo_exists end)
-      |> Stream.filter(fn {_, Utxo.position(blknum, _, _)} -> blknum < blknum_now end)
-      |> Stream.map(fn {_, position} -> position end)
+      exits
+      |> Enum.filter(fn {_key, %ExitInfo{is_active: is_active}} -> is_active end)
+      |> Enum.map(fn {utxo_pos, _value} -> utxo_pos end)
+      |> Stream.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
+      |> only_utxos_checked_and_missing(utxo_exists?)
 
     # get exits which are still invalid and after the SLA margin
     late_invalid_exits =
@@ -698,5 +697,14 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp recover_correct_tx_from_block(tx_bytes) do
     {:ok, recovered} = OMG.API.Core.recover_tx(tx_bytes)
     recovered
+  end
+
+  # based on an enumberable of `Utxo.Position` and a mapping that tells whether one exists it will pick
+  # only those that **were checked** and were missing
+  # (i.e. those not checked are assumed to be present)
+  defp only_utxos_checked_and_missing(utxo_positions, utxo_exists?) do
+    # the default value below is true, so that the assumption is that utxo not checked is **present**
+    utxo_positions
+    |> Enum.filter(fn pos -> !Map.get(utxo_exists?, pos, true) end)
   end
 end

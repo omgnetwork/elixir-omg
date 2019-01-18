@@ -471,6 +471,36 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{}, empty)
   end
 
+  @tag fixtures: [
+         :processor_empty,
+         :exit_events,
+         :contract_exit_statuses,
+         :in_flight_exit_events,
+         :contract_ife_statuses
+       ]
+  test "ifes and standard exits don't interfere", %{
+    processor_empty: processor,
+    exit_events: [one_exit | _],
+    contract_exit_statuses: [one_status | _],
+    in_flight_exit_events: [one_ife | _],
+    contract_ife_statuses: [one_ife_status | _]
+  } do
+    {processor, _} = processor |> Core.new_exits([one_exit], [one_status])
+    {processor, _} = processor |> Core.new_in_flight_exits([one_ife], [one_ife_status])
+
+    assert %{utxos_to_check: [@utxo_pos1, Utxo.position(1, 2, 1) | _]} =
+             exit_processor_request =
+             %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
+             |> Core.determine_utxo_existence_to_get(processor)
+
+    # here it's crucial that the missing utxo related to the ife isn't interpeted as a standard invalid exit
+    # that missing utxo isn't enough for any IFE-related event too
+    assert {:ok, [%Event.InvalidExit{}]} =
+             exit_processor_request
+             |> struct!(utxo_exists_result: [false, false, false])
+             |> Core.invalid_exits(processor)
+  end
+
   @tag fixtures: [:processor_empty]
   test "empty processor returns no in flight exits", %{processor_empty: empty} do
     assert %{} == Core.get_in_flight_exits(empty)
