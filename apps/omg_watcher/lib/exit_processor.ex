@@ -244,9 +244,7 @@ defmodule OMG.Watcher.ExitProcessor do
       |> run_block_getting()
       |> Core.invalid_exits(state)
 
-    available_piggybacks_events = Core.get_available_piggybacks()
-
-    {:reply, {chain_status, events ++ available_piggybacks_events}, state}
+    {:reply, {chain_status, events}, state}
   end
 
   def handle_call(:get_in_flight_exits, _from, state),

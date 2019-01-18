@@ -216,33 +216,6 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def is_canonical?(%__MODULE__{is_canonical: value}), do: value
 
-  def get_available_piggyback(
-         {ife_hash,
-           %__MODULE__{
-             tx: %Transaction.Signed{
-               signed_tx_bytes: signed_tx_bytes,
-               raw_tx: %Transaction{inputs: inputs, outputs: outputs}
-             }
-           }}
-       ) do
-
-#    FIXME
-    #    available_inputs =
-    #      inputs
-    #      |> Enum.map(fn %{oindex: oindex} -> %{index: oindex, address: } end)
-
-    available_outputs =
-      outputs
-      |> Enum.with_index()
-      |> Enum.map(fn {%{owner: owner}, index} -> %{index: index, address: owner} end)
-
-    %Event.PiggybackAvailable{
-      txbytes: ife_hash,
-      available_outputs: available_outputs,
-      available_inputs: []
-    }
-  end
-
   #  defp offset(:input), do: 0
   #  defp offset(:output), do: 4
 

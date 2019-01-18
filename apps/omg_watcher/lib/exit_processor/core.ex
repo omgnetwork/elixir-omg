@@ -480,26 +480,27 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       get_invalid_ife_challenges(request, state)
       |> Enum.map(fn txbytes -> %Event.InvalidIFEChallenge{txbytes: txbytes} end)
 
+    available_piggybacks_events =
+      get_ifes_to_piggyback(request, state)
+      |> Enum.map(&prepare_available_piggyback/1)
+
     late_invalid_exits_events =
       late_invalid_exits
       |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
 
     events =
-      [late_invalid_exits_events, non_late_events, ifes_with_competitors_events, invalid_ife_challenges_events]
+      [
+        late_invalid_exits_events,
+        non_late_events,
+        ifes_with_competitors_events,
+        invalid_ife_challenges_events,
+        available_piggybacks_events
+      ]
       |> Enum.concat()
 
     chain_validity = if has_no_late_invalid_exits, do: :ok, else: {:error, :unchallenged_exit}
 
     {chain_validity, events}
-  end
-
-  @doc """
-    Based on tracked in flight exits returns available piggybacks
-  """
-  @spec get_available_piggybacks(t()) :: list(Event.PiggybackAvailable.t())
-  def get_available_piggybacks(%__MODULE__{in_flight_exits: in_flight_exits} = state) do
-    in_flight_exits
-    |> Enum.map(&InFlightExitInfo.get_available_piggyback/1)
   end
 
   # Gets the list of open IFEs that have the competitors _somewhere_
@@ -541,6 +542,43 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end)
     |> Stream.map(&Transaction.encode/1)
     |> Enum.uniq()
+  end
+
+  @spec get_ifes_to_piggyback(ExitProcessor.Request.t(), __MODULE__.t()) :: list(Transaction.t())
+  defp get_ifes_to_piggyback(
+         %ExitProcessor.Request{blocks_result: blocks},
+         %__MODULE__{in_flight_exits: ifes}
+       ) do
+    known_txs = get_known_txs(blocks)
+
+    ifes
+    |> Map.values()
+    |> Stream.map(fn %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: raw_tx}} -> raw_tx end)
+    |> Stream.filter(fn raw_tx ->
+      Enum.any?(known_txs, fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} ->
+        raw_tx == block_raw_tx
+      end)
+    end)
+    |> Enum.uniq()
+  end
+
+  @spec prepare_available_piggyback(Transaction.t()) :: Event.PiggybackAvailable.t()
+  defp prepare_available_piggyback(%Transaction{inputs: inputs, outputs: outputs} = tx) do
+    #    FIXME
+    #    available_inputs =
+    #      inputs
+    #      |> Enum.map(fn %{oindex: oindex} -> %{index: oindex, address: } end)
+
+    available_outputs =
+      outputs
+      |> Enum.with_index()
+      |> Enum.map(fn {%{owner: owner}, index} -> %{index: index, address: owner} end)
+
+    %Event.PiggybackAvailable{
+      txbytes: Transaction.encode(tx),
+      available_outputs: available_outputs,
+      available_inputs: []
+    }
   end
 
   @doc """
