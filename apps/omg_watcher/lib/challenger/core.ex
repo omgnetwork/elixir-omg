@@ -29,8 +29,8 @@ defmodule OMG.Watcher.Challenger.Core do
   @doc """
   Creates a challenge for exiting utxo.
   """
-  @spec create_challenge(map, Block.t(), Utxo.Position.t()) :: Challenge.t()
-  def create_challenge(%{owner: owner}, spending_block, Utxo.position(_, _, _) = utxo_exit) do
+  @spec create_challenge(ExitInfo.t(), Block.t(), Utxo.Position.t()) :: Challenge.t()
+  def create_challenge(%ExitInfo{owner: owner}, spending_block, Utxo.position(_, _, _) = utxo_exit) do
     {%Transaction.Signed{raw_tx: challenging_tx} = challenging_signed, input_index} =
       get_spending_transaction_with_index(spending_block, utxo_exit)
 
@@ -54,7 +54,7 @@ defmodule OMG.Watcher.Challenger.Core do
   def ensure_challengeable(_, {:ok, :not_found}), do: {:error, :exit_not_found}
 
   def ensure_challengeable({:ok, blknum}, {:ok, {_, exit_info}}) when is_integer(blknum),
-    do: {:ok, blknum, exit_info}
+    do: {:ok, blknum, ExitInfo.from_db_value(exit_info)}
 
   def ensure_challengeable({:error, error}, _), do: {:error, error}
   def ensure_challengeable(_, {:error, error}), do: {:error, error}

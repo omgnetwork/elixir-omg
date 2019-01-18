@@ -43,4 +43,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
     Utxo.position(blknum, txindex, oindex) = position
     {:put, :exit_info, {{blknum, txindex, oindex}, exit_info |> Map.from_struct()}}
   end
+
+  def from_db_value(exit_info_map) do
+    struct!(__MODULE__, exit_info_map)
+  end
 end
