@@ -20,13 +20,17 @@ defmodule OMG.RPC.Web.Error do
   @doc """
   Serializes error's code and description provided in response's data field.
   """
-  @spec serialize(atom() | String.t(), String.t() | nil) :: map()
-  def serialize(code, description) do
+  @spec serialize(atom() | String.t(), String.t() | nil, map() | nil) :: map()
+  def serialize(code, description, messages \\ nil) do
     %{
       object: :error,
       code: code,
       description: description
     }
+    |> add_messages(messages)
     |> OMG.RPC.Web.Response.serialize()
   end
+
+  defp add_messages(data, nil), do: data
+  defp add_messages(data, messages), do: Map.put_new(data, :messages, messages)
 end

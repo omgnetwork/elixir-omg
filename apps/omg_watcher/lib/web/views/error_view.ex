@@ -19,8 +19,12 @@ defmodule OMG.Watcher.Web.View.ErrorView do
   Supports internal server error thrown by Phoenix.
   """
   def render("500.json", %{reason: %{message: message}} = conn) do
-    OMG.RPC.Web.Error.serialize("server:internal_server_error", message)
-    |> add_stack_trace(conn)
+    OMG.RPC.Web.Error.serialize(
+      "server:internal_server_error",
+      message,
+      # add stack trace unless running on production env
+      if(Mix.env() in [:dev, :test], do: "#{inspect(Map.get(conn, :stack))}")
+    )
   end
 
   @doc """
@@ -32,16 +36,5 @@ defmodule OMG.Watcher.Web.View.ErrorView do
         inspect(Map.get(reason, :module, "<unable to find>"))
       }"
     )
-  end
-
-  defp add_stack_trace(response, conn) do
-    case Mix.env() do
-      env when env in [:dev, :test] ->
-        stack = "#{inspect(Map.get(conn, :stack))}"
-        Kernel.put_in(response[:data][:messages], %{stacktrace: stack})
-
-      _otherwise ->
-        response
-    end
   end
 end
