@@ -32,8 +32,9 @@ defmodule OMG.Watcher.Web.Controller.FallbackTest do
     test "fallback controller better handles with expression mismatches" do
       assert %{
                "object" => "error",
-               "code" => "get_utxo_exit:unknown_error",
-               "description" => nil
+               "code" => "get_utxo_exit:bad_request",
+               "description" => "Parameters required by this action are missing or incorrect.",
+               "messages" => %{"validation_error" => "[param: \"utxo_pos\", validator: :integer]"}
              } == TestHelper.no_success?("/utxo.get_exit_data", %{"utxo_pos" => "1200000120000"})
     end
   end

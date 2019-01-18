@@ -27,8 +27,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   Retrieves a specific transaction by id.
   """
   def get_transaction(conn, params) do
-    with {:ok, "0x" <> id} <- Map.fetch(params, "id"),
-         id <- Base.decode16!(id, case: :lower) do
+    with {:ok, id} = param(params, "id", :hash) do
       id
       |> API.Transaction.get()
       |> api_response(conn, :transaction)

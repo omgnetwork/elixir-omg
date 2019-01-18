@@ -27,18 +27,16 @@ defmodule OMG.Watcher.Web.Controller.Account do
   Gets plasma account balance
   """
   def get_balance(conn, params) do
-    with {:ok, address} <- Map.fetch(params, "address"),
-         {:ok, decoded_address} <- Crypto.decode_address(address) do
-      decoded_address
+    with {:ok, address} <- param(params, "address", :address) do
+      address
       |> API.Account.get_balance()
       |> api_response(conn, :balance)
     end
   end
 
   def get_utxos(conn, params) do
-    with {:ok, address} <- Map.fetch(params, "address"),
-         {:ok, decoded_address} <- Crypto.decode_address(address) do
-      decoded_address
+    with {:ok, address} <- param(params, "address", :address) do
+      address
       |> API.Account.get_utxos()
       |> api_response(conn, :utxos)
     end

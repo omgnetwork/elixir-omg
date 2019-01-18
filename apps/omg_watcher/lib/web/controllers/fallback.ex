@@ -41,6 +41,22 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
 
   def call(conn, Route.NotFound), do: json(conn, Error.serialize(:endpoint_not_found, "Endpoint not found"))
 
+  def call(conn, {:error, {:validation_error, param_name, validator}}) do
+    response =
+      Error.serialize(
+        "#{action_name(conn)}:bad_request",
+        "Parameters required by this action are missing or incorrect."
+      )
+
+    response =
+      Kernel.put_in(
+        response[:data][:messages],
+        %{validation_error: "#{inspect(param: param_name, validator: validator)}"}
+      )
+
+    json(conn, response)
+  end
+
   def call(conn, {:error, reason}) do
     err_info =
       @errors
