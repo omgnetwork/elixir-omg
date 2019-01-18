@@ -66,10 +66,10 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "utxo.get_exit_data handles improper type of parameter" do
     assert %{
-              "object" => "error",
-              "code" => "get_utxo_challenge:bad_request",
-              "description" => "Parameters required by this action are missing or incorrect.",
-              "messages" => %{"validation_error" => "[param: \"utxo_pos\", validator: :integer]"}
-            } == TestHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => "1200000120000"})
+             "object" => "error",
+             "code" => "get_utxo_challenge:bad_request",
+             "description" => "Parameters required by this action are missing or incorrect.",
+             "messages" => %{"validation_error" => "[param: \"utxo_pos\", validator: :integer]"}
+           } == TestHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => "1200000120000"})
   end
 end

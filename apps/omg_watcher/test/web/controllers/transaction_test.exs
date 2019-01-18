@@ -129,11 +129,11 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "handles improper length of id parameter" do
       assert %{
-                "object" => "error",
-                "code" => "get_transaction:bad_request",
-                "description" => "Parameters required by this action are missing or incorrect.",
-                "messages" => %{"validation_error" => "[param: \"id\", validator: {:length, 32}]"}
-              } == TestHelper.no_success?("transaction.get", %{"id" => "0x50e901b98fe3389e32d56166a13a88208b03ea75"})
+               "object" => "error",
+               "code" => "get_transaction:bad_request",
+               "description" => "Parameters required by this action are missing or incorrect.",
+               "messages" => %{"validation_error" => "[param: \"id\", validator: {:length, 32}]"}
+             } == TestHelper.no_success?("transaction.get", %{"id" => "0x50e901b98fe3389e32d56166a13a88208b03ea75"})
     end
   end
 

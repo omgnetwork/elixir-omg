@@ -75,10 +75,10 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "account.get_balance handles improper type of parameter" do
     assert %{
-              "object" => "error",
-              "code" => "get_balance:bad_request",
-              "description" => "Parameters required by this action are missing or incorrect.",
-              "messages" => %{"validation_error" => "[param: \"address\", validator: :hex]"}
-            } == TestHelper.no_success?("account.get_balance", %{"address" => 1234567890})
+             "object" => "error",
+             "code" => "get_balance:bad_request",
+             "description" => "Parameters required by this action are missing or incorrect.",
+             "messages" => %{"validation_error" => "[param: \"address\", validator: :hex]"}
+           } == TestHelper.no_success?("account.get_balance", %{"address" => 1_234_567_890})
   end
 end

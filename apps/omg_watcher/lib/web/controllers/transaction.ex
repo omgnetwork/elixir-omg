@@ -20,7 +20,6 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
-  alias OMG.API.Crypto
   alias OMG.Watcher.API
 
   @doc """
@@ -38,29 +37,11 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   Retrieves a list of transactions
   """
   def get_transactions(conn, params) do
-    address = get_address(params)
-    limit = get_optional_int("limit", params)
-    blknum = get_optional_int("blknum", params)
-
-    API.Transaction.get_transactions(address, blknum, limit)
-    |> api_response(conn, :transactions)
-  end
-
-  defp get_address(%{"address" => address}) do
-    {:ok, address} = Crypto.decode_address(address)
-    address
-  end
-
-  defp get_address(%{}), do: nil
-
-  defp get_optional_int(key, %{} = params) do
-    case Map.get(params, key) do
-      nil ->
-        nil
-
-      value ->
-        {value, ""} = value |> Kernel.to_string() |> Integer.parse()
-        value
+    with {:ok, address} <- param(params, "address", [:address, :optional]),
+         {:ok, limit} <- param(params, "limit", [:pos_integer, :optional]),
+         {:ok, blknum} <- param(params, "blknum", [:pos_integer, :optional]) do
+      API.Transaction.get_transactions(address, blknum, limit)
+      |> api_response(conn, :transactions)
     end
   end
 
