@@ -136,6 +136,15 @@ defmodule OMG.Watcher.ExitProcessor do
     GenServer.call(__MODULE__, {:get_competitor_for_ife, txbytes})
   end
 
+  @doc """
+  Returns all information required to produce a transaction to the root chain contract to present a proof of canonicity
+  for a challenged in-flight exit
+  """
+  @spec prove_canonical_for_ife(binary()) :: map
+  def prove_canonical_for_ife(txbytes) do
+    GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
+  end
+
   ### Server
 
   use GenServer
@@ -254,6 +263,19 @@ defmodule OMG.Watcher.ExitProcessor do
       |> Core.get_competitor_for_ife(state, txbytes)
 
     {:reply, competitor, state}
+  end
+
+  def handle_call({:prove_canonical_for_ife, txbytes}, _from, state) do
+    # TODO: future of using this struct not certain, see that module for details
+    canonicity =
+      %ExitProcessor.Request{}
+      |> Core.determine_spends_to_get(state)
+      |> run_spend_getting()
+      |> Core.determine_blocks_to_get()
+      |> run_block_getting()
+      |> Core.prove_canonical_for_ife(txbytes)
+
+    {:reply, canonicity, state}
   end
 
   defp run_status_gets(%ExitProcessor.Request{} = request) do

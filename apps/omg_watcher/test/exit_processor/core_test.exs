@@ -895,10 +895,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                exit_processor_request
                |> Core.get_competitor_for_ife(processor, txbytes)
 
-      # NOTE: checking of actual proof working up to the contract integration test
-      assert is_binary(proof_bytes)
-      # hash size * merkle tree depth
-      assert byte_size(proof_bytes) == 32 * 16
+      assert_proof_sound(proof_bytes)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions]
@@ -1102,50 +1099,72 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   describe "detects the need and allows to respond to canonicity challenges" do
-    @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
+    @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits_challenges_events]
     test "against a competitor",
-         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp1 | _]} do
+         %{
+           alice: alice,
+           processor_filled: processor,
+           transactions: [tx1 | _] = txs,
+           in_flight_exits_challenges_events: [challenge_event | _]
+         } do
+      {challenged_processor, _} = Core.new_ife_challenges(processor, [challenge_event])
       txbytes = Transaction.encode(tx1)
 
-      other_txbytes = comp1 |> Transaction.encode()
+      other_blknum = 3000
 
-      {:ok, %{signed_tx: %{sigs: [other_signature, _]}} = other_recovered} =
-        Transaction.sign(comp1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+      block =
+        txs
+        |> Enum.map(fn tx1 ->
+          {:ok, tx1_recovered} = Transaction.sign(tx1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+          tx1_recovered
+        end)
+        |> Block.hashed_txs_at(other_blknum)
 
       other_blknum = 3000
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5,
-        blocks_result: [Block.hashed_txs_at([other_recovered], other_blknum)],
-        input_owners_result: [alice.addr]
+        blocks_result: [block]
       }
 
-      assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
-               exit_processor_request
-               |> Core.invalid_exits(processor)
+      assert {:ok, [%Event.InvalidIFEChallenge{txbytes: ^txbytes}]} =
+               exit_processor_request |> Core.invalid_exits(challenged_processor)
 
       assert {:ok,
               %{
                 inflight_txbytes: ^txbytes,
-                inflight_input_index: 0,
-                competing_txbytes: ^other_txbytes,
-                competing_input_index: 1,
-                competing_sig: ^other_signature,
-                competing_txid: Utxo.position(^other_blknum, 0, 0),
-                competing_proof: proof_bytes
+                inflight_txid: Utxo.position(^other_blknum, 0, 0),
+                inflight_proof: proof_bytes
               }} =
                exit_processor_request
-               |> Core.get_competitor_for_ife(processor, txbytes)
+               |> Core.prove_canonical_for_ife(txbytes)
 
-      # NOTE: checking of actual proof working up to the contract integration test
-      assert is_binary(proof_bytes)
-      # hash size * merkle tree depth
-      assert byte_size(proof_bytes) == 32 * 16
+      assert_proof_sound(proof_bytes)
+    end
+
+    @tag fixtures: [:processor_filled]
+    test "none if ifes are canonical",
+         %{processor_filled: processor} do
+      assert {:ok, []} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> Core.invalid_exits(processor)
+    end
+
+    # TODO: implement more behavior tests
+    test "none if challenge gets responded and ife canonical",
+         %{} do
     end
   end
 
   defp mock_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions} = request, state) do
     %{request | utxo_exists_result: positions |> Enum.map(&State.Core.utxo_exists?(&1, state))}
+  end
+
+  defp assert_proof_sound(proof_bytes) do
+    # NOTE: checking of actual proof working up to the contract integration test
+    assert is_binary(proof_bytes)
+    # hash size * merkle tree depth
+    assert byte_size(proof_bytes) == 32 * 16
   end
 end

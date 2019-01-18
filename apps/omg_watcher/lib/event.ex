@@ -143,10 +143,25 @@ defmodule OMG.Watcher.Event do
           }
   end
 
+  defmodule InvalidIFEChallenge do
+    @moduledoc """
+    Notifies about an in-flight exit which has a competitor
+    """
+
+    def name, do: :invalid_ife_challenge
+
+    defstruct [:txbytes]
+
+    @type t :: %__MODULE__{
+            txbytes: binary()
+          }
+  end
+
   # TODO: refactor and DRY this, it looks as if it could just be a field of the struct to pattern match out of a map
   def get_event_name(%InvalidBlock{}), do: InvalidBlock.name()
   def get_event_name(%BlockWithholding{}), do: BlockWithholding.name()
   def get_event_name(%InvalidExit{}), do: InvalidExit.name()
   def get_event_name(%UnchallengedExit{}), do: UnchallengedExit.name()
   def get_event_name(%NonCanonicalIFE{}), do: NonCanonicalIFE.name()
+  def get_event_name(%InvalidIFEChallenge{}), do: InvalidIFEChallenge.name()
 end
