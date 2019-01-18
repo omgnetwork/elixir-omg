@@ -32,7 +32,8 @@ In each we explain possible ways of preventing the double spend.
     => same as (3.)
 
 5. Mallory does SE on output -> Mallory submits IFE -> Mallory piggybacks output  
-    => (IMPLEMENTED) contract: `standardExitId(hash(tx), oindex)`. This allows to find SE when piggyback is performed. Need to store utxo_pos in Exit struct during `startStandardExit`, though.  
+    => (IMPLEMENTED) contract: introduce `standardExitId(hash(tx), oindex)`; on piggyback, compute SE id, if SE exits, block piggyback
+    NOTE: `standardExitId(hash(tx), oindex)` allows to find SE when piggyback is performed. Need to store utxo_pos in Exit struct during `startStandardExit`, though.  
     NOTE: costs: +20k on `startStandardExit`; low cost on piggyback check  
     NOTE: make revertable, so we can implement alt game solution later  
     => (alt) (if data availability) Alice: challenges piggyback with new challenge type  
@@ -42,8 +43,7 @@ In each we explain possible ways of preventing the double spend.
     NOTE: as rule, we always block whatever is started later (piggyback here, SE in 8./9.)
 
 6. Mallory does SE on output, waits for finalization -> Mallory submits IFE -> Mallory piggybacks output  
-    => (IMPLEMENTED) contract: introduce `standardExitId(hash(tx), oindex)`; on piggyback compute SE id, check if it exists  
-    => (alternative) exit game as in 5. Piggyback is challenged (take bond)
+   ! same as 5; finalized SE leaves a trace
 
 7. Mallory submits IFE -> Mallory does SE on output  
     => (IMPLEMENTED) contract: take tx from SE, find tx in IFEs, block future piggybacks on output  
