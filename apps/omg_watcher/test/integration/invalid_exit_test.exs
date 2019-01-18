@@ -28,6 +28,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
 
+  import ExUnit.CaptureLog
+
   @moduletag :integration
 
   @timeout 40_000
@@ -141,7 +143,10 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     {:ok, _txhash} = Eth.RootChain.submit_block(<<0::256>>, nonce, 20_000_000_000)
 
-    IntegrationTest.wait_for_byzantine_events([%Event.BlockWithholding{}.name], @timeout)
+    # checking if both machines and humans learn about the byzantine condition
+    assert capture_log(fn ->
+             IntegrationTest.wait_for_byzantine_events([%Event.BlockWithholding{}.name], @timeout)
+           end) =~ inspect(:withholding)
 
     %{
       "txbytes" => txbytes,
