@@ -17,7 +17,15 @@ defmodule OMG.RPC.Fixtures do
 
   @doc "run only endpoint to make request"
   deffixture phoenix_sandbox do
-    {:ok, _} = Application.ensure_all_started(:cowboy)
-    Supervisor.start_link([OMG.RPC.Web.Endpoint], strategy: :one_for_one, name: OMG.RPC.Supervisor)
+    {:ok, pid} = Supervisor.start_link([OMG.RPC.Web.Endpoint], strategy: :one_for_one, name: OMG.RPC.Supervisor)
+
+    on_exit(fn ->
+      ref = Process.monitor(pid)
+
+      receive do
+        {:DOWN, ^ref, :process, _, _} ->
+          :ok
+      end
+    end)
   end
 end
