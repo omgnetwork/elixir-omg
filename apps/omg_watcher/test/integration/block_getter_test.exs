@@ -176,7 +176,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     {:ok, _txhash} = Eth.RootChain.submit_block(different_hash, 1, 20_000_000_000)
 
-    IntegrationTest.wait_for_byzantine_events([Event.InvalidBlock.name()], @timeout)
+    IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
   end
 
   @tag fixtures: [:watcher_sandbox, :alice, :test_server]
@@ -198,7 +198,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     {:ok, _txhash} = Eth.RootChain.submit_block(invalid_block_hash, 1, 20_000_000_000)
 
-    IntegrationTest.wait_for_byzantine_events([Event.InvalidBlock.name()], @timeout)
+    IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
@@ -241,6 +241,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     # Here we're manually submitting invalid block to the root chain
     {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
 
-    IntegrationTest.wait_for_byzantine_events([Event.UnchallengedExit.name()], @timeout)
+    IntegrationTest.wait_for_byzantine_events([%Event.UnchallengedExit{}.name], @timeout)
   end
 end

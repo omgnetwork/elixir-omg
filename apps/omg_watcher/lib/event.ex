@@ -23,14 +23,12 @@ defmodule OMG.Watcher.Event do
           | OMG.Watcher.Event.InvalidExit.t()
 
   #  TODO The reason why events have name as String and byzantine events as atom is that
-  #  Phoenix websockets requires topics as strings + currently we treat Strings and binaries in
-  #  the same way in `OMG.Watcher.Web.Serializer.Response`
+  #  Phoniex websockets requires topics as strings + currently we treat Strings and binaries in
+  #  the same way in `OMG.Watcher.Web.Serializers.Response`
   defmodule AddressReceived do
     @moduledoc """
     Notifies about received funds by particular address
     """
-
-    def name, do: "address_received"
 
     defstruct [:tx, :child_blknum, :child_txindex, :child_block_hash, :submited_at_ethheight]
 
@@ -48,8 +46,6 @@ defmodule OMG.Watcher.Event do
     Notifies about spent funds by particular address
     """
 
-    def name, do: "address_spent"
-
     defstruct [:tx, :child_blknum, :child_txindex, :child_block_hash, :submited_at_ethheight]
 
     @type t :: %__MODULE__{
@@ -66,14 +62,13 @@ defmodule OMG.Watcher.Event do
     Notifies about invalid block
     """
 
-    def name, do: :invalid_block
-
-    defstruct [:hash, :number, :error_type]
+    defstruct [:hash, :number, :error_type, name: :invalid_block]
 
     @type t :: %__MODULE__{
             hash: Block.block_hash_t(),
             number: integer(),
-            error_type: atom()
+            error_type: atom(),
+            name: atom()
           }
   end
 
@@ -82,12 +77,11 @@ defmodule OMG.Watcher.Event do
     Notifies about block-withholding
     """
 
-    def name, do: :block_withholding
-
-    defstruct [:blknum]
+    defstruct [:blknum, name: :block_withholding]
 
     @type t :: %__MODULE__{
-            blknum: pos_integer()
+            blknum: pos_integer(),
+            name: atom()
           }
   end
 
@@ -96,16 +90,15 @@ defmodule OMG.Watcher.Event do
     Notifies about invalid exit
     """
 
-    def name, do: :invalid_exit
-
-    defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height]
+    defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height, name: :invalid_exit]
 
     @type t :: %__MODULE__{
             amount: pos_integer(),
             currency: binary(),
             owner: binary(),
             utxo_pos: pos_integer(),
-            eth_height: pos_integer()
+            eth_height: pos_integer(),
+            name: atom()
           }
   end
 
@@ -116,21 +109,15 @@ defmodule OMG.Watcher.Event do
     It is a prompt to exit
     """
 
-    def name, do: :unchallenged_exit
-
-    defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height]
+    defstruct [:amount, :currency, :owner, :utxo_pos, :eth_height, name: :unchallenged_exit]
 
     @type t :: %__MODULE__{
             amount: pos_integer(),
             currency: binary(),
             owner: binary(),
             utxo_pos: pos_integer(),
-            eth_height: pos_integer()
+            eth_height: pos_integer(),
+            name: atom()
           }
   end
-
-  def get_event_name(%InvalidBlock{}), do: InvalidBlock.name()
-  def get_event_name(%BlockWithholding{}), do: BlockWithholding.name()
-  def get_event_name(%InvalidExit{}), do: InvalidExit.name()
-  def get_event_name(%UnchallengedExit{}), do: UnchallengedExit.name()
 end
