@@ -40,6 +40,10 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
     tx_for_input_not_found: %{
       code: "in_flight_exit:tx_for_input_not_found",
       description: "No transaction that created input."
+    },
+    econnrefused: %{
+      code: "get_status:econnrefused",
+      description: "Cannot connect to the Ethereum node."
     }
   }
 
@@ -50,7 +54,7 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
       Error.serialize(
         "#{action_name(conn)}:bad_request",
         "Parameters required by this action are missing or incorrect.",
-        %{validation_error: "#{inspect(param: param_name, validator: validator)}"}
+        %{validation_error: %{parameter: param_name, validator: inspect(validator)}}
       )
 
     json(conn, response)

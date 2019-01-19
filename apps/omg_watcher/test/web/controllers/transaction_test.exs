@@ -132,7 +132,12 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                "object" => "error",
                "code" => "get_transaction:bad_request",
                "description" => "Parameters required by this action are missing or incorrect.",
-               "messages" => %{"validation_error" => "[param: \"id\", validator: {:length, 32}]"}
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "id",
+                   "validator" => "{:length, 32}"
+                 }
+               }
              } == TestHelper.no_success?("transaction.get", %{"id" => "0x50e901b98fe3389e32d56166a13a88208b03ea75"})
     end
   end
@@ -486,7 +491,12 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert %{
                "code" => "get_in_flight_exit:bad_request",
                "description" => "Parameters required by this action are missing or incorrect.",
-               "messages" => %{"validation_error" => "[param: \"txbytes\", validator: :hex]"}
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "txbytes",
+                   "validator" => ":hex"
+                 }
+               }
              } = TestHelper.no_success?("/inflight_exit.get_data", %{"txbytes" => "tx"})
     end
   end

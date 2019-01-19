@@ -30,7 +30,7 @@ defmodule OMG.RPC.Web.Controller.Fallback do
       Error.serialize(
         "#{action_name(conn)}:bad_request",
         "Parameters required by this action are missing or incorrect.",
-        %{validation_error: "#{inspect(param: param_name, validator: validator)}"}
+        %{validation_error: %{parameter: param_name, validator: inspect(validator)}}
       )
 
     json(conn, response)

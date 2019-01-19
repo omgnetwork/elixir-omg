@@ -29,7 +29,10 @@ defmodule OMG.RPC.Web.Controller.BlockTest do
                "object" => "error",
                "code" => "get_block:bad_request",
                "messages" => %{
-                 "validation_error" => "[param: \"hash\", validator: :hex]"
+                 "validation_error" => %{
+                   "parameter" => "hash",
+                   "validator" => ":hex"
+                 }
                }
              }
            } = TestHelper.rpc_call(:post, "/block.get", invalid_hex)
@@ -45,7 +48,10 @@ defmodule OMG.RPC.Web.Controller.BlockTest do
                "object" => "error",
                "code" => "get_block:bad_request",
                "messages" => %{
-                 "validation_error" => "[param: \"hash\", validator: {:length, 32}]"
+                 "validation_error" => %{
+                   "parameter" => "hash",
+                   "validator" => "{:length, 32}"
+                 }
                }
              }
            } = TestHelper.rpc_call(:post, "/block.get", too_short_addr)
@@ -61,7 +67,10 @@ defmodule OMG.RPC.Web.Controller.BlockTest do
                "object" => "error",
                "code" => "get_block:bad_request",
                "messages" => %{
-                 "validation_error" => "[param: \"hash\", validator: :hex]"
+                 "validation_error" => %{
+                   "parameter" => "hash",
+                   "validator" => ":hex"
+                 }
                }
              }
            } = TestHelper.rpc_call(:post, "/block.get", missing_param)

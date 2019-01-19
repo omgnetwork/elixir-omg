@@ -169,7 +169,12 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
              "object" => "error",
              "code" => "get_utxos:bad_request",
              "description" => "Parameters required by this action are missing or incorrect.",
-             "messages" => %{"validation_error" => "[param: \"address\", validator: :hex]"}
+             "messages" => %{
+               "validation_error" => %{
+                 "parameter" => "address",
+                 "validator" => ":hex"
+               }
+             }
            } == TestHelper.no_success?("account.get_utxos", %{"address" => 1_234_567_890})
   end
 
@@ -233,7 +238,12 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
              "object" => "error",
              "code" => "get_utxo_exit:bad_request",
              "description" => "Parameters required by this action are missing or incorrect.",
-             "messages" => %{"validation_error" => "[param: \"utxo_pos\", validator: :integer]"}
+             "messages" => %{
+               "validation_error" => %{
+                 "parameter" => "utxo_pos",
+                 "validator" => ":integer"
+               }
+             }
            } == TestHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => "1200000120000"})
   end
 end
