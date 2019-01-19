@@ -56,7 +56,10 @@ defmodule OMG.Watcher.TestHelper do
   end
 
   def rpc_call(path, body \\ nil, expected_resp_status \\ 200) do
-    request = conn(:post, path, body)
+    request =
+      conn(:post, path, body)
+      |> put_req_header("content-type", "application/json")
+
     response = request |> send_request
     assert response.status == expected_resp_status
     Poison.decode!(response.resp_body)
