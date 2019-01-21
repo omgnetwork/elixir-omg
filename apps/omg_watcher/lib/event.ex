@@ -38,10 +38,10 @@ defmodule OMG.Watcher.Event do
 
     @type t :: %__MODULE__{
             tx: Transaction.Recovered.t(),
-            child_blknum: integer(),
-            child_txindex: integer(),
+            child_blknum: pos_integer(),
+            child_txindex: non_neg_integer(),
             child_block_hash: Block.block_hash_t(),
-            submited_at_ethheight: integer()
+            submited_at_ethheight: pos_integer()
           }
   end
 
@@ -54,10 +54,10 @@ defmodule OMG.Watcher.Event do
 
     @type t :: %__MODULE__{
             tx: Transaction.Recovered.t(),
-            child_blknum: integer(),
-            child_txindex: integer(),
+            child_blknum: pos_integer(),
+            child_txindex: non_neg_integer(),
             child_block_hash: Block.block_hash_t(),
-            submited_at_ethheight: integer()
+            submited_at_ethheight: pos_integer()
           }
   end
 
