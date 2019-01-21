@@ -49,21 +49,119 @@ defmodule OMG.API.State.CoreTest do
     |> success?
   end
 
-  @tag fixtures: [:alice, :state_empty]
-  test "output currencies must be included in input currencies", %{alice: alice, state_empty: state} do
-    state1 =
+  describe "Transaction amounts and fees" do
+    @tag fixtures: [:alice, :state_empty]
+    test "output currencies must be included in input currencies", %{alice: alice, state_empty: state} do
+      state1 =
+        state
+        |> do_deposit(alice, %{amount: 10, currency: @not_eth, blknum: 1})
+        |> Core.exec(create_recovered([{1, 0, 0, alice}], @not_eth, [{alice, 7}, {alice, 3}]), @zero_fees)
+        |> success?
+
+      state1
+      |> Core.exec(create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 9}]), @zero_fees)
+      |> fail?(:amounts_do_not_add_up)
+
+      state1
+      |> Core.exec(create_recovered([{1000, 0, 0, alice}], [{alice, @eth, 9}, {alice, @not_eth, 3}]), @zero_fees)
+      |> fail?(:amounts_do_not_add_up)
+
+      state1
+      |> Core.exec(create_recovered([{1000, 0, 0, alice}], [{alice, @not_eth, 3}]), @zero_fees)
+      |> success?
+    end
+
+    @tag fixtures: [:alice, :bob, :state_empty]
+    test "amounts from multiple inputs must add up", %{alice: alice, bob: bob, state_empty: state} do
+      state = do_deposit(state, alice, %{amount: 10, currency: @eth, blknum: 1})
+
+      # outputs exceed inputs, no fee
+      state =
+        state
+        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}, {bob, 3}]), @zero_fees)
+        |> fail?(:amounts_do_not_add_up)
+        |> same?(state)
+        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 2}, {alice, 8}]), @zero_fees)
+        |> success?
+
+      # outputs exceed inputs, with fee
       state
-      |> do_deposit(alice, %{amount: 10, currency: @not_eth, blknum: 1})
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @not_eth, [{alice, 7}, {alice, 3}]), @zero_fees)
+      |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{alice, 7}, {bob, 2}]), %{
+        @eth => 2
+      })
+      |> fail?(:amounts_do_not_add_up)
+      |> same?(state)
+      |> Core.exec(
+        create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{alice, 9}, {bob, 2}]),
+        @zero_fees
+      )
+      |> fail?(:amounts_do_not_add_up)
+      |> same?(state)
+      |> Core.exec(
+        create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{alice, 7}, {bob, 2}]),
+        @zero_fees
+      )
+      |> success?()
+    end
+
+    @tag fixtures: [:alice, :bob, :state_empty]
+    test "Inputs are not sufficient for outputs plus fee", %{alice: alice, bob: bob, state_empty: state} do
+      # outputs: 6 + 3 + 2 > 10 <- inputs
+      fee = %{@eth => 2}
+
+      state
+      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 3}]), fee)
+      |> fail?(:amounts_do_not_add_up)
+    end
+
+    @tag fixtures: [:alice, :bob, :state_empty]
+    test "respects fees for transactions with mixed currencies", %{
+      alice: alice,
+      bob: bob,
+      state_empty: state
+    } do
+      fees = %{@eth => 1, @not_eth => 1}
+
+      state =
+        state
+        |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
+        |> do_deposit(alice, %{amount: 10, currency: @not_eth, blknum: 2})
+
+      # fee is paid in the same currency as an output
+      state
+      |> Core.exec(create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 10}, {bob, @not_eth, 1}]), fees)
       |> success?
 
-    state1
-    |> Core.exec(create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 9}]), @zero_fees)
-    |> fail?(:amounts_do_not_add_up)
+      # fee is paid in different currency then outputs
+      state
+      |> Core.exec(create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 9}, {bob, @eth, 1}]), fees)
+      |> success?
 
-    state1
-    |> Core.exec(create_recovered([{1000, 0, 0, alice}], @not_eth, [{alice, 3}, {alice, 0}]), @zero_fees)
-    |> success?
+      # fee is respected but amounts don't add up
+      state
+      |> Core.exec(create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 10}, {bob, @eth, 1}]), fees)
+      |> fail?(:amounts_do_not_add_up)
+      # fee is not respected
+      |> Core.exec(create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 10}, {bob, @not_eth, 10}]), fees)
+      |> fail?(:amounts_do_not_add_up)
+    end
+
+    @tag fixtures: [:alice, :bob, :state_empty]
+    test "can spend deposits with mixed currencies", %{
+      alice: alice,
+      bob: bob,
+      state_empty: state
+    } do
+      state
+      |> do_deposit(alice, %{amount: 1, currency: @eth, blknum: 1})
+      |> do_deposit(alice, %{amount: 2, currency: @not_eth, blknum: 2})
+      |> Core.exec(
+        create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 1}, {bob, @not_eth, 2}]),
+        @zero_fees
+      )
+      |> success?
+    end
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
@@ -121,28 +219,6 @@ defmodule OMG.API.State.CoreTest do
     |> Core.exec(create_recovered([{1, 1, 0, alice}, {1, 0, 0, alice}], @eth, [{bob, 7}]), @zero_fees)
     |> fail?(:utxo_not_found)
     |> same?(state_deposit)
-  end
-
-  @tag fixtures: [:alice, :bob, :state_empty]
-  test "amounts must add up", %{alice: alice, bob: bob, state_empty: state} do
-    state = do_deposit(state, alice, %{amount: 10, currency: @eth, blknum: 1})
-
-    # outputs exceed inputs, no fee
-    state =
-      state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}, {bob, 3}]), %{@eth => 0})
-      |> fail?(:amounts_do_not_add_up)
-      |> same?(state)
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 2}, {alice, 8}]), @zero_fees)
-      |> success?
-
-    # outputs exceed inputs, no fee
-    state
-    |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{alice, 7}, {bob, 2}]), %{
-      @eth => 2
-    })
-    |> fail?(:amounts_do_not_add_up)
-    |> same?(state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -407,16 +483,6 @@ defmodule OMG.API.State.CoreTest do
     assert {:ok, {_, _, [{:put, :block, _}, {:put, :child_top_block_number, @blknum1}]}, _} = form_block_check(state)
   end
 
-  @tag fixtures: [:alice]
-  test "utxos get initialized by query result from db and are spendable", %{alice: alice} do
-    {:ok, state} =
-      Core.extract_initial_state([{{1, 0, 0}, %{amount: 10, currency: @eth, owner: alice.addr}}], 0, 1, @interval)
-
-    state
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}]), @zero_fees)
-    |> success?
-  end
-
   @tag fixtures: [:alice, :bob]
   test "all utxos get initialized by query result from db and are spendable", %{alice: alice, bob: bob} do
     {:ok, state} =
@@ -567,7 +633,7 @@ defmodule OMG.API.State.CoreTest do
     fee = %{@eth => 0}
 
     # at empty state it is at the beginning of the next block
-    {_, true} = Core.get_status(state)
+    assert {@blknum1, true} = Core.get_status(state)
 
     # when we execute a tx it isn't at the beginning
     {:ok, _, state} =
@@ -575,47 +641,34 @@ defmodule OMG.API.State.CoreTest do
       |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}]), fee)
 
-    {_, false} = Core.get_status(state)
+    assert {@blknum1, false} = Core.get_status(state)
 
     # when a block has been newly formed it is at the beginning
     {:ok, _, state} = state |> form_block_check()
 
-    {_, true} = Core.get_status(state)
+    assert {@blknum2, true} = Core.get_status(state)
   end
 
-  describe "Transaction with fees" do
-    @tag fixtures: [:alice, :bob, :state_empty]
-    test "Inputs sums up exactly to outputs plus fee", %{alice: alice, bob: bob, state_empty: state} do
-      # outputs: 5 + 3 + 2 == 10 <- inputs
-      fee = %{@eth => 2}
+  @tag fixtures: [:alice, :bob, :state_empty]
+  test "Inputs sums up exactly to outputs plus fee", %{alice: alice, bob: bob, state_empty: state} do
+    # outputs: 5 + 3 + 2 == 10 <- inputs
+    fee = %{@eth => 2}
 
-      state
-      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 5}, {alice, 3}]), fee)
-      |> success?
-    end
+    state
+    |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
+    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 5}, {alice, 3}]), fee)
+    |> success?
+  end
 
-    @tag fixtures: [:alice, :bob, :state_empty]
-    test "Inputs exceeds outputs plus fee", %{alice: alice, bob: bob, state_empty: state} do
-      # outputs: 4 + 3 + 2 < 10 <- inputs
-      fee = %{@eth => 2}
+  @tag fixtures: [:alice, :bob, :state_empty]
+  test "Inputs exceeds outputs plus fee", %{alice: alice, bob: bob, state_empty: state} do
+    # outputs: 4 + 3 + 2 < 10 <- inputs
+    fee = %{@eth => 2}
 
-      state
-      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 4}, {alice, 3}]), fee)
-      |> success?
-    end
-
-    @tag fixtures: [:alice, :bob, :state_empty]
-    test "Inputs are not sufficient for outputs plus fee", %{alice: alice, bob: bob, state_empty: state} do
-      # outputs: 6 + 3 + 2 > 10 <- inputs
-      fee = %{@eth => 2}
-
-      state
-      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 3}]), fee)
-      |> fail?(:amounts_do_not_add_up)
-    end
+    state
+    |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
+    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 4}, {alice, 3}]), fee)
+    |> success?
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -691,59 +744,6 @@ defmodule OMG.API.State.CoreTest do
     state
     |> Core.exec(create_recovered([{@blknum1, 1, 0, alice}], @eth, [{bob, 6}, {alice, 4}]), @zero_fees)
     |> fail?(:utxo_not_found)
-  end
-
-  @tag fixtures: [:alice, :bob, :state_empty]
-  test "can spend utxos with mixed currencies", %{
-    alice: alice,
-    bob: bob,
-    state_empty: state
-  } do
-    state
-    |> do_deposit(alice, %{amount: 1, currency: @eth, blknum: 1})
-    |> do_deposit(alice, %{amount: 2, currency: @not_eth, blknum: 2})
-    |> Core.exec(
-      create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 1}, {bob, @not_eth, 2}]),
-      @zero_fees
-    )
-    |> success?
-  end
-
-  @tag fixtures: [:alice, :bob, :state_empty]
-  test "respects fees for transactions with mixed currencies", %{
-    alice: alice,
-    bob: bob,
-    state_empty: state
-  } do
-    fees = %{@eth => 1, @not_eth => 1}
-
-    state =
-      state
-      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-      |> do_deposit(alice, %{amount: 10, currency: @not_eth, blknum: 2})
-
-    # fee is paid in the same currency as an output
-    state
-    |> Core.exec(create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 10}, {bob, @not_eth, 1}]), fees)
-    |> success?
-
-    # fee is paid in different currency then outputs
-    state
-    |> Core.exec(create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 9}, {bob, @eth, 1}]), fees)
-    |> success?
-
-    # fee is respected but amounts don't add up
-    state
-    |> Core.exec(create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 10}, {bob, @eth, 1}]), fees)
-    |> fail?(:amounts_do_not_add_up)
-
-    # fee is not respected
-    state
-    |> Core.exec(
-      create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 10}, {bob, @not_eth, 10}]),
-      fees
-    )
-    |> fail?(:amounts_do_not_add_up)
   end
 
   defp success?(result) do
