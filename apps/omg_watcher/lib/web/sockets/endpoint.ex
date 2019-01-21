@@ -44,5 +44,8 @@ defmodule OMG.Watcher.Web.Endpoint do
   plug(Plug.MethodOverride)
   plug(Plug.Head)
 
+  if Application.get_env(:omg_watcher, :enable_cors),
+    do: plug(CORSPlug)
+
   plug(OMG.Watcher.Web.Router)
 end
