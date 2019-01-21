@@ -22,6 +22,7 @@ defmodule OMG.Watcher.Web.View.Transaction do
   alias OMG.API.Utxo
   require Utxo
 
+    # FIXME: move
   def render("in_flight_exit.json", %{response: in_flight_exit}) do
     in_flight_exit
     |> OMG.RPC.Web.Response.serialize()
