@@ -1097,7 +1097,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert Utxo.position(1, 0, 0) not in spends_to_get
 
       # spend and see that Core now requests the relevant utxo checks and spends to get
-      {:ok, _, state} = State.Core.exec(other_recovered, %{@eth => 0}, state)
+      {:ok, _, state} = State.Core.exec(state, other_recovered, %{@eth => 0})
       {:ok, {block, _, _}, state} = State.Core.form_block(1000, state)
 
       assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
