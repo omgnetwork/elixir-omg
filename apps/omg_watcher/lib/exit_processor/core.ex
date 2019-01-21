@@ -78,8 +78,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           }
   end
 
-  alias __MODULE__.KnownTx
-
   @doc """
   Reads database-specific list of exits and turns them into current state
   """
@@ -560,7 +558,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     # get info about the IFE transaction
     {:ok, raw_ife_tx} = Transaction.decode(ife_txbytes)
-    %InFlightExitInfo{tx: %Transaction.Signed{} = signed_ife_tx} = ifes[raw_ife_tx |> Transaction.hash()]
+    %InFlightExitInfo{tx: %Transaction.Signed{} = signed_ife_tx} = ifes[Transaction.hash(raw_ife_tx)]
 
     # find its competitor and use it to prepare the requested data
     with {:ok, known_signed_tx} <- find_competitor(known_txs, signed_ife_tx),
@@ -644,7 +642,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.find(fn known -> competitor_for(signed_ife_tx, known) end)
     |> case do
       nil -> {:error, :competitor_not_found}
-      got_it! -> {:ok, got_it!}
+      value -> {:ok, value}
     end
   end
 
@@ -653,7 +651,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.find(fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} -> block_raw_tx == raw_ife_tx end)
     |> case do
       nil -> {:error, :canonical_not_found}
-      got_it! -> {:ok, got_it!}
+      value -> {:ok, value}
     end
   end
 
@@ -704,6 +702,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   # (i.e. those not checked are assumed to be present)
   defp only_utxos_checked_and_missing(utxo_positions, utxo_exists?) do
     # the default value below is true, so that the assumption is that utxo not checked is **present**
+    # TODO: rather inefficient, but no as inefficient as the nested `filter` calls in searching for competitors
+    #       consider optimizing using `MapSet`
     utxo_positions
     |> Enum.filter(fn pos -> !Map.get(utxo_exists?, pos, true) end)
   end

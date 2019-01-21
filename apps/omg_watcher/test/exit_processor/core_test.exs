@@ -771,7 +771,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{processor_filled: processor, transactions: [tx1 | _], competing_transactions: [_, _, comp3]} do
       txbytes = Transaction.encode(tx1)
 
-      other_txbytes = comp3 |> Transaction.encode()
+      other_txbytes = Transaction.encode(comp3)
       other_signature = <<1::520>>
 
       other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: [other_signature]}}
@@ -835,7 +835,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _]} do
       txbytes = Transaction.encode(tx1)
 
-      other_txbytes = tx1 |> Transaction.encode()
+      other_txbytes = Transaction.encode(tx1)
       %{sigs: [other_signature, _]} = Transaction.sign(tx1, [alice.priv, alice.priv])
 
       other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: [other_signature]}}
@@ -857,7 +857,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp1 | _]} do
       txbytes = Transaction.encode(tx1)
 
-      other_txbytes = comp1 |> Transaction.encode()
+      other_txbytes = Transaction.encode(comp1)
       %{sigs: [other_signature, _]} = Transaction.sign(comp1, [alice.priv, <<>>])
 
       other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: [other_signature]}}
@@ -894,7 +894,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp1 | _]} do
       txbytes = Transaction.encode(tx1)
 
-      other_txbytes = comp1 |> Transaction.encode()
+      other_txbytes = Transaction.encode(comp1)
 
       {:ok, %{signed_tx: %{sigs: [other_signature, _]}} = other_recovered} =
         Transaction.sign(comp1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
@@ -1052,7 +1052,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     @tag fixtures: [:alice, :processor_empty, :transactions]
     test "by not asking for utxo spends concerning non-active ifes",
          %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
-      txbytes = tx |> Transaction.encode()
+      txbytes = Transaction.encode(tx)
       %{sigs: [signature, _]} = Transaction.sign(tx, [alice.priv, <<>>])
 
       ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: [signature]}}

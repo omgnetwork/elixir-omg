@@ -290,10 +290,16 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   defp run_spend_getting(%ExitProcessor.Request{spends_to_get: positions} = request) do
-    %{
-      request
-      | spent_blknum_result: positions |> Enum.map(&Utxo.Position.to_db_key/1) |> Enum.map(&OMG.DB.spent_blknum/1)
-    }
+    %{request | spent_blknum_result: positions |> Enum.map(&single_spend_getting/1)}
+  end
+
+  defp single_spend_getting(position) do
+    {:ok, spend_blknum} =
+      position
+      |> Utxo.Position.to_db_key()
+      |> OMG.DB.spent_blknum()
+
+    spend_blknum
   end
 
   defp run_block_getting(%ExitProcessor.Request{blknums_to_get: blknums} = request) do
