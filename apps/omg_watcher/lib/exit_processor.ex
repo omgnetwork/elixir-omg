@@ -24,8 +24,10 @@ defmodule OMG.Watcher.ExitProcessor do
   """
 
   alias OMG.API.State
+  alias OMG.API.Utxo
   alias OMG.DB
   alias OMG.Eth
+  alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
@@ -122,7 +124,25 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   @spec get_in_flight_exits([binary()]) :: %{binary() => InFlightExitInfo.t()}
   def get_in_flight_exits(hashes \\ []) do
-    GenServer.call(__MODULE__, {:get_ifes, hashes})
+    GenServer.call(__MODULE__, {:get_in_flight_exits, hashes})
+  end
+
+  @doc """
+  Returns all information required to produce a transaction to the root chain contract to present a competitor for
+  a non-canonical in-flight exit
+  """
+  @spec get_competitor_for_ife(binary()) :: map
+  def get_competitor_for_ife(txbytes) do
+    GenServer.call(__MODULE__, {:get_competitor_for_ife, txbytes})
+  end
+
+  @doc """
+  Returns all information required to produce a transaction to the root chain contract to present a proof of canonicity
+  for a challenged in-flight exit
+  """
+  @spec prove_canonical_for_ife(binary()) :: map
+  def prove_canonical_for_ife(txbytes) do
+    GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
   end
 
   ### Server
@@ -208,23 +228,83 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {:ok, db_updates}, new_state}
   end
 
+  @doc """
+  Combine data from `ExitProcessor` and `API.State` to figure out what to do about exits
+  """
   def handle_call(:check_validity, _from, state) do
-    {chain_status, events} = determine_invalid_exits(state)
+    # TODO: future of using this struct not certain, see that module for details
+    {chain_status, events} =
+      %ExitProcessor.Request{}
+      |> run_status_gets()
+      |> Core.determine_utxo_existence_to_get(state)
+      |> run_utxo_exists()
+      |> Core.determine_spends_to_get(state)
+      |> run_spend_getting()
+      |> Core.determine_blocks_to_get()
+      |> run_block_getting()
+      |> Core.invalid_exits(state)
 
     {:reply, {chain_status, events}, state}
   end
 
-  def handle_call({:get_ifes, hashes}, _from, state),
+  def handle_call({:get_in_flight_exits, hashes}, _from, state),
     do: {:reply, Core.get_in_flight_exits(hashes), state}
 
-  # combine data from `ExitProcessor` and `API.State` to figure out what to do about exits
-  defp determine_invalid_exits(state) do
+  def handle_call({:get_competitor_for_ife, txbytes}, _from, state) do
+    # TODO: future of using this struct not certain, see that module for details
+    competitor =
+      %ExitProcessor.Request{}
+      |> Core.determine_spends_to_get(state)
+      |> run_spend_getting()
+      |> Core.determine_blocks_to_get()
+      |> run_block_getting()
+      # |> Core.determine_ife_owners()
+      # |> run_owner_getting()
+      |> Core.get_competitor_for_ife(state, txbytes)
+
+    {:reply, competitor, state}
+  end
+
+  def handle_call({:prove_canonical_for_ife, txbytes}, _from, state) do
+    # TODO: future of using this struct not certain, see that module for details
+    canonicity =
+      %ExitProcessor.Request{}
+      |> Core.determine_spends_to_get(state)
+      |> run_spend_getting()
+      |> Core.determine_blocks_to_get()
+      |> run_block_getting()
+      |> Core.prove_canonical_for_ife(txbytes)
+
+    {:reply, canonicity, state}
+  end
+
+  defp run_status_gets(%ExitProcessor.Request{} = request) do
     {:ok, eth_height_now} = Eth.get_ethereum_height()
     {blknum_now, _} = State.get_status()
 
-    state
-    |> Core.get_exiting_utxo_positions()
-    |> Enum.map(&State.utxo_exists?/1)
-    |> Core.invalid_exits(state, eth_height_now, blknum_now)
+    %{request | eth_height_now: eth_height_now, blknum_now: blknum_now}
+  end
+
+  defp run_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions} = request) do
+    %{request | utxo_exists_result: positions |> Enum.map(&State.utxo_exists?/1)}
+  end
+
+  defp run_spend_getting(%ExitProcessor.Request{spends_to_get: positions} = request) do
+    %{request | spent_blknum_result: positions |> Enum.map(&single_spend_getting/1)}
+  end
+
+  defp single_spend_getting(position) do
+    {:ok, spend_blknum} =
+      position
+      |> Utxo.Position.to_db_key()
+      |> OMG.DB.spent_blknum()
+
+    spend_blknum
+  end
+
+  defp run_block_getting(%ExitProcessor.Request{blknums_to_get: blknums} = request) do
+    {:ok, hashes} = OMG.DB.block_hashes(blknums)
+    {:ok, blocks} = OMG.DB.blocks(hashes)
+    %{request | blocks_result: blocks}
   end
 end

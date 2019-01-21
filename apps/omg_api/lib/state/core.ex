@@ -98,12 +98,8 @@ defmodule OMG.API.State.Core do
     height = height_query_result + child_block_interval
 
     utxos =
-      Enum.reduce(utxos_query_result, %{}, fn {raw_position, raw_utxo}, acc_map ->
-        {blknum, txindex, oindex} = raw_position
-        %{owner: owner, currency: currency, amount: amount} = raw_utxo
-        new_position = Utxo.position(blknum, txindex, oindex)
-        new_utxo = %Utxo{owner: owner, currency: currency, amount: amount}
-        Map.put(acc_map, new_position, new_utxo)
+      Enum.reduce(utxos_query_result, %{}, fn {db_position, db_utxo}, acc_map ->
+        Map.put(acc_map, Utxo.Position.from_db_key(db_position), struct!(Utxo, db_utxo))
       end)
 
     state = %__MODULE__{
@@ -378,8 +374,8 @@ defmodule OMG.API.State.Core do
     {:ok, {event_triggers, db_updates}, new_state}
   end
 
-  defp utxo_to_db_put({Utxo.position(blknum, txindex, oindex), %Utxo{} = utxo}),
-    do: {:put, :utxo, {{blknum, txindex, oindex}, Map.from_struct(utxo)}}
+  defp utxo_to_db_put({utxo_pos, %Utxo{} = utxo}),
+    do: {:put, :utxo, {Utxo.Position.to_db_key(utxo_pos), Map.from_struct(utxo)}}
 
   defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount}) do
     {Utxo.position(blknum, 0, 0), %Utxo{amount: amount, currency: cur, owner: owner}}

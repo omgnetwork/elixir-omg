@@ -187,9 +187,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   #    for pos <- active_outputs_offsets, do: {:utxo_position, blknum, tx_index, pos}
   #  end
 
-  def get_exiting_utxo_positions(_ife) do
-    []
-    # TODO: implement (it is probably another but I cannot find which one)
+  def get_exiting_utxo_positions(%__MODULE__{tx: %Transaction.Signed{raw_tx: tx}}) do
+    Transaction.get_inputs(tx)
   end
 
   def is_piggybacked?(%__MODULE__{exit_map: map}, index) do
