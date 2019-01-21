@@ -686,7 +686,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              end
            )
 
-    assert Core.get_in_flight_exits(state, [tx_hash])
+    assert Core.get_in_flight_exits(state)
            |> Map.get(tx_hash)
            |> (&(!InFlightExitInfo.is_canonical?(&1))).()
   end
@@ -1028,7 +1028,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                  # refer to stuff added by `deffixture processor_filled` for this - both ifes and standard exits here
                  Utxo.position(1, 0, 0),
                  Utxo.position(1, 2, 1),
-                 Utxo.position(0, 0, 0),
                  Utxo.position(2, 1, 0),
                  Utxo.position(2, 2, 1),
                  Utxo.position(9000, 0, 1)

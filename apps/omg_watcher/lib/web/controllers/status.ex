@@ -21,13 +21,14 @@ defmodule OMG.Watcher.Web.Controller.Status do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
-  alias OMG.Watcher.API.Status
+  alias OMG.Watcher.API
+  alias OMG.Watcher.Web.View
 
   @doc """
   Gets plasma network and Watcher status
   """
   def get_status(conn, _params) do
-    Status.get_status()
+    API.Status.get_status()
     |> api_response(conn, :status)
   end
 

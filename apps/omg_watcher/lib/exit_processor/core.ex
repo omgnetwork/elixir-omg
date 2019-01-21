@@ -382,6 +382,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     (ife_pos ++ standard_exits_pos)
     |> Enum.uniq()
+    |> Enum.filter(&Utxo.Position.non_zero?/1)
   end
 
   @doc """
@@ -537,12 +538,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Returns a map of requested in flight exits, where keys are IFE hashes and values are IFES
   If given empty list of hashes, all IFEs are returned.
   """
-  @spec get_in_flight_exits(__MODULE__.t(), [binary()]) :: %{binary() => InFlightExitInfo.t()}
-  def get_in_flight_exits(%__MODULE__{} = state, hashes \\ []), do: in_flight_exits(state, hashes)
+  @spec get_in_flight_exits(__MODULE__.t()) :: %{binary() => InFlightExitInfo.t()}
+  def get_in_flight_exits(%__MODULE__{} = state), do: in_flight_exits(state)
 
-  defp in_flight_exits(%__MODULE__{in_flight_exits: ifes}, []), do: ifes
-
-  defp in_flight_exits(%__MODULE__{in_flight_exits: ifes}, hashes), do: Map.take(ifes, hashes)
+  defp in_flight_exits(%__MODULE__{in_flight_exits: ifes}), do: ifes
 
   @doc """
   Gets the root chain contract-required set of data to challenge a non-canonical ife

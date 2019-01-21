@@ -128,17 +128,16 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     %Transaction.Signed{raw_tx: raw_in_flight_tx} =
       in_flight_tx = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 10}])
 
-    in_flight_tx_bytes =
-      in_flight_tx
-      |> Transaction.Signed.encode()
-      |> Base.encode16(case: :upper)
+    in_flight_tx_bytes = in_flight_tx |> Transaction.Signed.encode() |> Base.encode16(case: :upper)
+
+    in_flight_raw_tx_bytes = raw_in_flight_tx |> Transaction.encode() |> Base.encode16(case: :upper)
 
     %{
       "in_flight_tx" => in_flight_tx,
       "in_flight_tx_sigs" => in_flight_tx_sigs,
       "input_txs" => input_txs,
       "input_txs_inclusion_proofs" => input_txs_inclusion_proofs
-    } = IntegrationTest.get_in_flight_exit(in_flight_tx_bytes)
+    } = TestHelper.get_in_flight_exit(in_flight_tx_bytes)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       OMG.Eth.RootChain.in_flight_exit(
@@ -150,71 +149,65 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    # Check if IFE is recognized as IFE by watcher.
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
+
+    # is existence of a competitor detected
     assert %{
-             "inflight_exits" => [%{"txbytes" => ^in_flight_tx_bytes}]
+             "byzantine_events" => [
+               %{"details" => %{"txbytes" => ^in_flight_raw_tx_bytes}, "event" => "non_canonical_ife"}
+             ]
            } = TestHelper.success?("/status.get")
+
+    # Check if IFE is recognized as IFE by watcher.
+    # TODO: uncomment test after `"inflight_exits"` field is delivered
+    # assert %{
+    #          "inflight_exits" => [%{"txbytes" => ^in_flight_raw_tx_bytes}]
+    #        } = TestHelper.success?("/status.get")
 
     # TODO: Check if watcher proposes piggyback based only on state of the contract
     #       or on state of contract and local store
 
-    # There should be piggyback on output available.
-    assert %{
-             "byzantine_events" => events
-           } = TestHelper.success?("/status.get")
-
-    assert [%{"details" => %{"available_outputs" => outputs_list}}] =
-             Enum.filter(events, fn %{"event" => "piggyback_available"} -> true end)
-
-    bob_hex = "0x" <> Base.encode(bob, case: :upper)
-    assert [%{"index" => 0, address: ^bob_hex} | _] = outputs_list
+    # There should be piggybacks on input/output available
+    # NOTE: (we disregard canonicity for now)
+    # TODO: uncomment assertions when OMG-310/OMG-311 are done
+    # assert %{
+    #          "byzantine_events" => events
+    #        } = TestHelper.success?("/status.get")
+    #
+    # assert [%{"details" => %{"available_outputs" => outputs_list}}] =
+    #          Enum.filter(events, fn %{"event" => "piggyback_available"} -> true end)
+    #
+    # bob_hex = "0x" <> Base.encode(bob, case: :upper)
+    # assert [%{"index" => 0, address: ^bob_hex} | _] = outputs_list
 
     # Do the piggyback on the output.
-    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      OMG.Eth.RootChain.piggyback_in_flight_exit(in_flight_tx_bytes, 4 + 0, bob)
+    # {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+    #   OMG.Eth.RootChain.piggyback_in_flight_exit(in_flight_raw_tx_bytes, 4 + 0, bob)
 
-    # Check if there is a competitor for particular in-flight exit.
-    expected_competitor = Base.encode16(tx, case: :upper)
-
-    %{"competing_txbytes" => ^expected_competitor, "inflight_txbytes" => ^in_flight_tx_bytes} =
-      IntegrationTest.get_in_flight_exit_competitors(in_flight_tx_bytes)
-
-    # Since IFE is not canonical now, there should be piggyback on input available.
-    assert %{
-             "byzantine_events" => events
-           } = TestHelper.success?("/status.get")
-
-    assert [%{"details" => %{"available_inputs" => inputs_list}}] =
-             Enum.filter(events, fn %{"event" => "piggyback_available"} -> true end)
-
-    alice_hex = "0x" <> Base.encode(alice, case: :upper)
-    assert [%{"index" => 0, address: ^alice_hex} | _] = outputs_list
+    # TODO: OMG-311
+    # alice_hex = "0x" <> Base.encode(alice, case: :upper)
+    # assert [%{"index" => 0, address: ^alice_hex} | _] = outputs_list
 
     # Do the piggyback on the input.
-    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      OMG.Eth.RootChain.piggyback_in_flight_exit(in_flight_tx_bytes, 0, alice)
+    # {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+    #   OMG.Eth.RootChain.piggyback_in_flight_exit(in_flight_tx_bytes, 0, alice)
 
-    challenge_pos = OMG.API.Utxo.Position.encode({:utxo_position, blknum, txindex, 0})
     # to challenge canonicity, get chain inclusion proof
-    assert %{
-             "proof" => challenge_proof,
-             "txbytes" => ^tx
-           } = TestHelper.success?("/utxo.get_exit_data", %{"utxo_pos" => challenge_pos})
+    assert get_competitor_response = TestHelper.get_in_flight_exit_competitors(in_flight_raw_tx_bytes)
 
     # note: part below works only with merged https://github.com/omisego/plasma-contracts/pull/54
-
-    # challenge canonicity
-    {:ok, %Transaction.Signed{sigs: [sig]}} = Transaction.Signed.decode(tx)
-
-    OMG.Eth.RootChain.challenge_in_flight_exit_not_canonical(
-      in_flight_tx_bytes,
-      0,
-      tx,
-      0,
-      challenge_pos,
-      challenge_proof,
-      sig
-    )
+    {:ok, %{"status" => "0x1"}} =
+      OMG.Eth.RootChain.challenge_in_flight_exit_not_canonical(
+        get_competitor_response["inflight_txbytes"],
+        get_competitor_response["inflight_input_index"],
+        get_competitor_response["competing_txbytes"],
+        get_competitor_response["competing_input_index"],
+        get_competitor_response["competing_sig"],
+        get_competitor_response["competing_txid"],
+        get_competitor_response["competing_proof"]
+      )
+      |> Eth.DevHelpers.transact_sync!()
 
     # TODO force chch to accept doublespend so we can do respond to challenge
   end
