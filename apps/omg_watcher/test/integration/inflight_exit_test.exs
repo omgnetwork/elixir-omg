@@ -209,30 +209,32 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     #   OMG.Eth.RootChain.piggyback_in_flight_exit(tx2_bytes, 0, alice)
 
     # to challenge canonicity, get chain inclusion proof
-    assert get_competitor_response = TestHelper.get_in_flight_exit_competitors(raw_tx1_bytes)
-
     # note: part below works only with merged https://github.com/omisego/plasma-contracts/pull/54
-    {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChain.challenge_in_flight_exit_not_canonical(
-        get_competitor_response["inflight_txbytes"],
-        get_competitor_response["inflight_input_index"],
-        get_competitor_response["competing_txbytes"],
-        get_competitor_response["competing_input_index"],
-        get_competitor_response["competing_sig"],
-        get_competitor_response["competing_txid"],
-        get_competitor_response["competing_proof"]
-      )
-      |> Eth.DevHelpers.transact_sync!()
+
+    # TODO: requires IFE-owner getting from the contract, delivered in OMG-311
+    # assert get_competitor_response = TestHelper.get_in_flight_exit_competitors(raw_tx1_bytes)
+    #
+    # {:ok, %{"status" => "0x1"}} =
+    #   OMG.Eth.RootChain.challenge_in_flight_exit_not_canonical(
+    #     get_competitor_response["inflight_txbytes"],
+    #     get_competitor_response["inflight_input_index"],
+    #     get_competitor_response["competing_txbytes"],
+    #     get_competitor_response["competing_input_index"],
+    #     get_competitor_response["competing_sig"],
+    #     get_competitor_response["competing_txid"],
+    #     get_competitor_response["competing_proof"]
+    #   )
+    #   |> Eth.DevHelpers.transact_sync!()
 
     # now included IFE transaction tx1 is challenged and non-canonical, let's respond
-    assert get_prove_canonical_response = TestHelper.get_prove_canonical(raw_tx1_bytes)
-
-    {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChain.respondToNonCanonicalChallenge(
-        get_prove_canonical_response["in_flight_tx"],
-        get_prove_canonical_response["in_flight_tx_id"],
-        get_prove_canonical_response["in_flight_tx_inclusion_proof"]
-      )
-      |> Eth.DevHelpers.transact_sync!()
+    # assert get_prove_canonical_response = TestHelper.get_prove_canonical(raw_tx1_bytes)
+    #
+    # {:ok, %{"status" => "0x1"}} =
+    #   OMG.Eth.RootChain.respondToNonCanonicalChallenge(
+    #     get_prove_canonical_response["in_flight_tx"],
+    #     get_prove_canonical_response["in_flight_tx_id"],
+    #     get_prove_canonical_response["in_flight_tx_inclusion_proof"]
+    #   )
+    #   |> Eth.DevHelpers.transact_sync!()
   end
 end

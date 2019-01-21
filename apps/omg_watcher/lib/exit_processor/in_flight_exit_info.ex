@@ -67,9 +67,11 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def new(tx_bytes, tx_signatures, contract_id, timestamp, is_active) do
     with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
+      chopped_sigs = for <<chunk::size(65)-unit(8) <- tx_signatures>>, do: <<chunk::size(65)-unit(8)>>
+
       signed_tx_map = %{
         raw_tx: raw_tx,
-        sigs: tx_signatures
+        sigs: chopped_sigs
       }
 
       {
