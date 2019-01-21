@@ -115,7 +115,7 @@ defmodule OMG.API.State do
   Checks (stateful validity) and executes a spend transaction. Assuming stateless validity!
   """
   def handle_call({:exec, tx, fees}, _from, state) do
-    case Core.exec(tx, fees, state) do
+    case Core.exec(state, tx, fees) do
       {:ok, tx_result, new_state} ->
         {:reply, {:ok, tx_result}, new_state}
 

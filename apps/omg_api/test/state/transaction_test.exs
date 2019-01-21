@@ -183,7 +183,7 @@ defmodule OMG.API.State.TransactionTest do
   defp assert_tx_usable(signed, state_core) do
     {:ok, transaction} = signed |> Transaction.Signed.encode() |> API.Core.recover_tx()
 
-    assert {:ok, {_, _, _}, _state} = Core.exec(transaction, %{eth() => 0}, state_core)
+    assert {:ok, {_, _, _}, _state} = Core.exec(state_core, transaction, %{eth() => 0})
   end
 
   @tag fixtures: [:alice, :state_empty, :bob]
