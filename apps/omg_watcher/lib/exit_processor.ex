@@ -264,8 +264,6 @@ defmodule OMG.Watcher.ExitProcessor do
       |> run_spend_getting()
       |> Core.determine_blocks_to_get()
       |> run_block_getting()
-      # |> Core.determine_ife_owners()
-      # |> run_owner_getting()
       |> Core.get_competitor_for_ife(state, txbytes)
 
     {:reply, competitor_result, state}

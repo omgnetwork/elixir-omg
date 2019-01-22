@@ -549,7 +549,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec get_competitor_for_ife(ExitProcessor.Request.t(), __MODULE__.t(), binary()) ::
           {:ok, competitor_data_t()} | {:error, :competitor_not_found}
   def get_competitor_for_ife(
-        %ExitProcessor.Request{blocks_result: blocks, input_owners_result: input_owners},
+        %ExitProcessor.Request{blocks_result: blocks},
         %__MODULE__{in_flight_exits: ifes} = state,
         ife_txbytes
       ) do
@@ -561,7 +561,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     # find its competitor and use it to prepare the requested data
     with {:ok, known_signed_tx} <- find_competitor(known_txs, signed_ife_tx),
-         do: {:ok, prepare_competitor_response(known_signed_tx, signed_ife_tx, input_owners, raw_ife_tx, blocks)}
+         do: {:ok, prepare_competitor_response(known_signed_tx, signed_ife_tx, blocks)}
   end
 
   @doc """
@@ -584,14 +584,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp prepare_competitor_response(
          %KnownTx{signed_tx: known_signed_tx, utxo_pos: known_tx_utxo_pos},
          %Transaction.Signed{raw_tx: raw_ife_tx} = signed_ife_tx,
-         input_owners,
-         raw_ife_tx,
          blocks
        ) do
     ife_inputs = Transaction.get_inputs(raw_ife_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
 
     %Transaction.Signed{raw_tx: raw_known_tx} = known_signed_tx
     known_spent_inputs = Transaction.get_inputs(raw_known_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
+    {:ok, %Transaction.Recovered{spenders: input_owners}} = Transaction.Recovered.recover_from(signed_ife_tx)
 
     # get info about the double spent input and it's respective indices in transactions
     spent_input = competitor_for(signed_ife_tx, known_signed_tx)

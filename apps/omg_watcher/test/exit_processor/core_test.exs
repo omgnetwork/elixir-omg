@@ -795,7 +795,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.invalid_exits(processor)
 
       assert {:error, :competitor_not_found} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, input_owners_result: [Crypto.zero_address()]}
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
@@ -809,8 +809,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5,
-        blocks_result: [Block.hashed_txs_at([other_recovered], 3000)],
-        input_owners_result: [alice.addr]
+        blocks_result: [Block.hashed_txs_at([other_recovered], 3000)]
       }
 
       assert {:ok, []} = exit_processor_request |> Core.invalid_exits(processor)
@@ -830,8 +829,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5,
-        blocks_result: [Block.hashed_txs_at([other_recovered], 3000)],
-        input_owners_result: [alice.addr]
+        blocks_result: [Block.hashed_txs_at([other_recovered], 3000)]
       }
 
       assert {:ok, []} = exit_processor_request |> Core.invalid_exits(processor)
@@ -859,7 +857,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.invalid_exits(processor)
 
       assert {:error, :competitor_not_found} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, input_owners_result: [alice.addr]}
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
@@ -890,7 +888,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                 competing_txid: nil,
                 competing_proof: nil
               }} =
-               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5, input_owners_result: [alice.addr]}
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
@@ -915,8 +913,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5,
-        blocks_result: [Block.hashed_txs_at([other_recovered], other_blknum)],
-        input_owners_result: [alice.addr]
+        blocks_result: [Block.hashed_txs_at([other_recovered], other_blknum)]
       }
 
       assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
@@ -978,8 +975,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         exit_processor_request = %ExitProcessor.Request{
           blknum_now: 5000,
           eth_height_now: 5,
-          blocks_result: [Block.hashed_txs_at([other_recovered], 3000)],
-          input_owners_result: [alice.addr, alice.addr]
+          blocks_result: [Block.hashed_txs_at([other_recovered], 3000)]
         }
 
         assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
@@ -1016,8 +1012,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5,
-        blocks_result: [Block.hashed_txs_at([other_recovered], 3000)],
-        input_owners_result: [alice.addr]
+        blocks_result: [Block.hashed_txs_at([other_recovered], 3000)]
       }
 
       assert {:ok, %{competing_sig: ^other_signature}} =
