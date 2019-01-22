@@ -21,11 +21,9 @@ defmodule OMG.API.EthereumEventListener.Core do
             service_name: nil,
             block_finality_margin: 10,
             synced_height: 0,
-            cached_size: 1000,
-            # FIXME move const variable to config?
-            # variable that are modify
-            cached_data: %{
+            cached: %{
               data: [],
+              request_max_size: 1000,
               events_uper_bound: 0
             }
 
@@ -35,79 +33,79 @@ defmodule OMG.API.EthereumEventListener.Core do
           synced_height_update_key: atom(),
           service_name: atom(),
           block_finality_margin: non_neg_integer(),
-          cached_size: pos_integer(),
-          cached_data: %{
+          cached: %{
             data: list(event),
+            request_max_size: pos_integer(),
             events_uper_bound: non_neg_integer()
           }
         }
 
   @spec init(atom(), atom(), non_neg_integer(), non_neg_integer()) :: t()
-  def init(update_key, service_name, last_synced_ethereum_height, block_finality_margin) do
+  def init(update_key, service_name, last_synced_ethereum_height, block_finality_margin, request_max_size \\ 1000) do
     %__MODULE__{
       synced_height_update_key: update_key,
       synced_height: last_synced_ethereum_height + block_finality_margin,
       service_name: service_name,
       block_finality_margin: block_finality_margin,
-      cached_data: %{data: [], events_uper_bound: last_synced_ethereum_height}
+      cached: %{
+        request_max_size: request_max_size,
+        data: [],
+        events_uper_bound: last_synced_ethereum_height + 1
+      }
     }
   end
 
   @doc """
   Returns range Ethereum height to download
   """
-  @spec get_events_height_range(t(), SyncData.t()) ::
+  @spec get_events_range_for_download(t(), SyncData.t()) ::
           {:dont_get_events, t()} | {:get_events, {non_neg_integer, non_neg_integer}, t()}
-  def get_events_height_range(
-        state = %__MODULE__{cached_data: %{events_uper_bound: uper}},
-        %SyncData{sync_height: sync_height}
-      )
-      when sync_height < uper do
-    {:dont_get_events, state}
-  end
+  def get_events_range_for_download(state = %__MODULE__{cached: %{events_uper_bound: uper}}, %SyncData{
+        sync_height: sync_height
+      })
+      when sync_height < uper,
+      do: {:dont_get_events, state}
 
-  def get_events_height_range(
+  def get_events_range_for_download(
         %__MODULE__{
-          cached_size: cached_size,
-          cached_data: %{data: data, events_uper_bound: uper_bound} = cached_data
+          cached: %{data: data, request_max_size: request_max_size, events_uper_bound: old_uper_bound} = cached_data
         } = state,
         %SyncData{sync_height: sync_height, root_chain: root_chain_height}
       ) do
-    next_upper_bound = min(root_chain_height, uper_bound + cached_size)
+    upper_bound = max(sync_height, min(root_chain_height, old_uper_bound + request_max_size))
 
     new_state = %__MODULE__{
       state
-      | cached_data: %{cached_data | events_uper_bound: next_upper_bound + 1}
+      | cached: %{cached_data | events_uper_bound: upper_bound + 1}
     }
 
-    {:get_events, {uper_bound, next_upper_bound}, new_state}
+    {:get_events, {old_uper_bound, upper_bound}, new_state}
   end
 
-  @spec add_new_events(list(event), t()) :: t()
+  @spec add_new_events(t(), list(event)) :: t()
   def add_new_events(
-        new_events,
         %__MODULE__{
-          cached_size: cached_size,
-          cached_data: %{data: data} = cached_data
-        } = state
+          cached: %{data: data, request_max_size: request_max_size} = cached_data
+        } = state,
+        new_events
       ) do
-    %__MODULE__{state | cached_data: %{cached_data | data: data ++ new_events}}
+    %__MODULE__{state | cached: %{cached_data | data: data ++ new_events}}
   end
 
-  @spec get_events(non_neg_integer, t()) :: {:ok, list(event), list(), t()}
+  @spec get_events(t(), non_neg_integer) :: {:ok, list(event), list(), t()}
   def get_events(
-        sync_height,
         %__MODULE__{
           synced_height_update_key: update_key,
           block_finality_margin: block_finality_margin,
-          cached_data: %{data: data} = cached_data
-        } = state
+          cached: %{data: data} = cached_data
+        } = state,
+        sync_height
       ) do
     sync = sync_height - block_finality_margin
     {events, new_data} = Enum.split_while(data, fn %{eth_height: height} -> height <= sync end)
 
     db_update = [{:put, update_key, sync}]
-    new_state = %__MODULE__{state | synced_height: sync_height , cached_data: %{cached_data | data: new_data}}
+    new_state = %__MODULE__{state | synced_height: sync_height, cached: %{cached_data | data: new_data}}
 
     {:ok, events, db_update, new_state}
   end

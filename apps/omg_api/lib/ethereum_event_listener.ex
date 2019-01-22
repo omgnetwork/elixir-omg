@@ -87,11 +87,9 @@ defmodule OMG.API.EthereumEventListener do
 
   defp sync_height({state, callbacks}, sync_info = %{sync_height: sync_height, root_chain: root_chain_height}) do
     state =
-      case Core.get_events_height_range(state, sync_info) do
-        {:get_events, {event_height_lower_bound, event_height_upper_bound}, state} ->
-          {:ok, new_events} =
-            callbacks.get_ethereum_events_callback.(event_height_lower_bound, event_height_upper_bound)
-
+      case Core.get_events_range_for_download(state, sync_info) do
+        {:get_events, {from, to}, state} ->
+          {:ok, new_events} = callbacks.get_ethereum_events_callback.(from, to)
           Core.add_new_events(new_events, state)
 
         {:dont_get_events, state} ->
