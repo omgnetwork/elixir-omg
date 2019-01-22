@@ -56,7 +56,7 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  def start_exit(output_id, txbytes, proof, from, contract \\ nil, opts \\ []) do
+  def start_exit(output_id, tx_bytes, proof, from, contract \\ nil, opts \\ []) do
     defaults =
       @tx_defaults
       |> Keyword.put(:gas, @gas_start_exit)
@@ -70,12 +70,12 @@ defmodule OMG.Eth.RootChain do
       from,
       contract,
       "startStandardExit(uint192,bytes,bytes)",
-      [output_id, txbytes, proof],
+      [output_id, tx_bytes, proof],
       opts
     )
   end
 
-  def piggyback_in_flight_exit(in_flightTx, outputIndex, from, contract \\ nil, opts \\ []) do
+  def piggyback_in_flight_exit(in_flight_tx, output_index, from, contract \\ nil, opts \\ []) do
     defaults =
       @tx_defaults
       |> Keyword.put(:gas, 1_000_000)
@@ -83,7 +83,7 @@ defmodule OMG.Eth.RootChain do
 
     opts = defaults |> Keyword.merge(opts)
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    Eth.contract_transact(from, contract, "piggybackInFlightExit(bytes,uint8)", [in_flightTx, outputIndex], opts)
+    Eth.contract_transact(from, contract, "piggybackInFlightExit(bytes,uint8)", [in_flight_tx, output_index], opts)
   end
 
   def deposit(tx_bytes, value, from, contract \\ nil, opts \\ []) do
@@ -191,7 +191,29 @@ defmodule OMG.Eth.RootChain do
 
   def get_standard_exit_id(utxo_pos, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    Eth.call_contract(contract, "getStandardExitId(uint256)", [utxo_pos], [{:uint, 256}])
+    Eth.call_contract(contract, "getStandardExitId(uint256)", [utxo_pos], [{:uint, 192}])
+  end
+
+  @doc """
+  Returns in flight exit for a specific id. Calls contract method.
+  """
+  def get_in_flight_exit(in_flight_exit_id, contract \\ nil) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+
+    # solidity does not return arrays of structs
+    return_struct = [
+      {:uint, 256},
+      {:uint, 256},
+      :address,
+      {:uint, 256}
+    ]
+
+    Eth.call_contract(contract, "inFlightExits(uint192)", [in_flight_exit_id], return_struct)
+  end
+
+  def get_in_flight_exit_id(tx_bytes, contract \\ nil) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    Eth.call_contract(contract, "getInFlightExitId(bytes)", [tx_bytes], [{:uint, 192}])
   end
 
   def get_child_chain(blknum, contract \\ nil) do
@@ -248,11 +270,11 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_exit_started/1)}
   end
 
-  defp get_inflight_data(hash) do
+  defp get_in_flight_data(hash) do
     {:ok, %{"input" => eth_tx_input, "blockNumber" => eth_height}} =
       Ethereumex.HttpClient.eth_get_transaction_by_hash(hash)
 
-    encode_inflight = Eth.Encoding.from_hex(eth_tx_input)
+    encode_in_flight = Eth.Encoding.from_hex(eth_tx_input)
 
     function_inputs =
       ABI.decode(
@@ -262,7 +284,7 @@ defmodule OMG.Eth.RootChain do
           "inputs" => List.duplicate(%{"type" => "bytes"}, 4),
           "outputs" => []
         }),
-        encode_inflight
+        encode_in_flight
       )
 
     Enum.zip([:in_flight_tx, :inputs_txs, :input_includion_proofs, :in_flight_tx_sigs], function_inputs)
@@ -280,17 +302,13 @@ defmodule OMG.Eth.RootChain do
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract) do
       {:ok,
        Enum.map(logs, fn log ->
-         get_inflight_data(log["transactionHash"])
+         Map.put(
+           decode_in_flight_exit(log),
+           :call_data,
+           get_in_flight_data(log["transactionHash"])
+         )
        end)}
     end
-  end
-
-  def get_in_flight_exits(block_from, block_to, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "InFlightExitStarted(address,bytes32)"
-
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
-         do: {:ok, Enum.map(logs, &decode_in_flight_exit/1)}
   end
 
   @doc """
@@ -315,6 +333,55 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_exit_challenged/1)}
   end
 
+  @doc """
+    Returns challenges of in flight exits from a range of blocks from Ethereum logs.
+  """
+  def get_in_flight_exit_challenges(block_from, block_to, contract \\ nil) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "InFlightExitChallenged(address,bytes32,uint256)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do:
+           {:ok,
+            Enum.map(logs, fn log ->
+              decode_in_flight_exit_challenged(log)
+              |> Map.put(:call_data, get_in_flight_exit_challenged_data(log["transactionHash"]))
+            end)}
+  end
+
+  @doc """
+    Returns responds to challenges of in flight exits from a range of blocks from Ethereum logs.
+  """
+  def get_responds_to_in_flight_exit_challenges(block_from, block_to, contract \\ nil) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "InFlightExitChallengeResponded(address,bytes32,uint256)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, &decode_in_flight_exit_challenge_responded/1)}
+  end
+
+  @doc """
+    Returns challenges of piggybacks from a range of block from Ethereum logs.
+  """
+  def get_piggybacks_challenges(block_from, block_to, contract \\ nil) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "InFlightExitOutputBlocked(address,bytes32,uint256)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, &decode_piggyback_challenged/1)}
+  end
+
+  @doc """
+    Returns finalizations of in flight exits from a range of blocks from Ethereum logs.
+  """
+  def get_in_flight_exit_finalizations(block_from, block_to, contract \\ nil) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "InFlightExitFinalized(uint192,uint256)"
+
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
+         do: {:ok, Enum.map(logs, &decode_in_flight_exit_output_finalized/1)}
+  end
+
   defp decode_deposit(log) do
     non_indexed_keys = [:amount]
     non_indexed_key_types = [{:uint, 256}]
@@ -329,7 +396,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_piggybacked(log) do
-    non_indexed_keys = [:txhash, :output_index]
+    non_indexed_keys = [:tx_hash, :output_index]
     non_indexed_key_types = [{:bytes, 32}, {:uint, 256}]
     indexed_keys = [:owner]
     indexed_keys_types = [:address]
@@ -355,7 +422,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_in_flight_exit(log) do
-    non_indexed_keys = [:txhash]
+    non_indexed_keys = [:tx_hash]
     non_indexed_key_types = [{:bytes, 32}]
     indexed_keys = [:initiator]
     indexed_keys_types = [:address]
@@ -380,9 +447,77 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
+  def decode_in_flight_exit_output_finalized(log) do
+    non_indexed_keys = [:in_flight_exit_id, :output_id]
+    non_indexed_key_types = [{:uint, 192}, {:uint, 256}]
+    indexed_keys = indexed_keys_types = []
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
   defp decode_exit_challenged(log) do
     # faux-DRY - just leveraging that these events happen to have exactly the same fields/indexings, in current impl.
     decode_exit_finalized(log)
+  end
+
+  defp decode_in_flight_exit_challenged(log) do
+    non_indexed_keys = [:tx_hash, :competitor_position]
+    non_indexed_key_types = [{:byte, 32}, {:uint, 256}]
+    indexed_keys = [:challenger]
+    indexed_keys_types = [:address]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  def decode_in_flight_exit_challenge_responded(log) do
+    non_indexed_keys = [:challenger, :tx_hash, :challenge_position]
+    non_indexed_key_types = [:address, {:byte, 32}, {:uint, 256}]
+    indexed_keys = indexed_keys_types = []
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  defp decode_piggyback_challenged(log) do
+    non_indexed_keys = [:tx_hash, :output_index]
+    non_indexed_key_types = [{:byte, 32}, {:uint, 256}]
+    indexed_keys = [:challenger]
+    indexed_keys_types = [:address]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {non_indexed_keys, non_indexed_key_types},
+      {indexed_keys, indexed_keys_types}
+    )
+  end
+
+  defp get_in_flight_exit_challenged_data(hash) do
+    [
+      _in_flight_tx,
+      _in_flight_input_index,
+      competing_tx,
+      competing_tx_input_index,
+      _competing_tx_id,
+      _competing_tx_inclusion_proof,
+      competing_tx_sig
+    ] = Eth.get_call_data(hash, "challengeInFlightExitNotCanonical(bytes,uint8,bytes,uint8,uint256,bytes,bytes)")
+
+    %{
+      competing_tx: competing_tx,
+      competing_tx_input_index: competing_tx_input_index,
+      competing_tx_sig: competing_tx_sig
+    }
   end
 
   ########################

@@ -139,7 +139,7 @@ defmodule OMG.DBTest do
         TestDBServer
       )
 
-    assert {:ok, 12} == DB.last_exit_finalizer_eth_height(TestDBServer)
-    assert {:ok, 10} == DB.last_exit_challenger_eth_height(TestDBServer)
+    assert {:ok, 12} == DB.get_single_value(TestDBServer, :last_exit_finalizer_eth_height)
+    assert {:ok, 10} == DB.get_single_value(TestDBServer, :last_exit_challenger_eth_height)
   end
 end

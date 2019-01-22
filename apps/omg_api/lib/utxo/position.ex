@@ -52,4 +52,14 @@ defmodule OMG.API.Utxo.Position do
     {:ok, interval} = OMG.Eth.RootChain.get_child_block_interval()
     rem(blknum, interval) != 0
   end
+
+  @spec non_zero?(t()) :: boolean()
+  def non_zero?(Utxo.position(0, 0, 0)), do: false
+  def non_zero?(Utxo.position(_, _, _)), do: true
+
+  @spec to_db_key(t()) :: {pos_integer, non_neg_integer, non_neg_integer}
+  def to_db_key(Utxo.position(blknum, txindex, oindex)), do: {blknum, txindex, oindex}
+
+  @spec from_db_key({pos_integer, non_neg_integer, non_neg_integer}) :: t()
+  def from_db_key({blknum, txindex, oindex}), do: Utxo.position(blknum, txindex, oindex)
 end

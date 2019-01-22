@@ -22,13 +22,10 @@ defmodule OMG.API.State.TransactionTest do
   alias OMG.API.TestHelper
 
   deffixture transaction do
-    %Transaction{
-      inputs: [%{blknum: 1, txindex: 1, oindex: 0}, %{blknum: 1, txindex: 2, oindex: 1}],
-      outputs: [
-        %{owner: "alicealicealicealice", currency: eth(), amount: 1},
-        %{owner: "carolcarolcarolcarol", currency: eth(), amount: 2}
-      ]
-    }
+    Transaction.new(
+      [{1, 1, 0}, {1, 2, 1}],
+      [{"alicealicealicealice", eth(), 1}, {"carolcarolcarolcarol", eth(), 2}]
+    )
   end
 
   deffixture utxos do
@@ -186,7 +183,7 @@ defmodule OMG.API.State.TransactionTest do
   defp assert_tx_usable(signed, state_core) do
     {:ok, transaction} = signed |> Transaction.Signed.encode() |> API.Core.recover_tx()
 
-    assert {:ok, {_, _, _}, _state} = Core.exec(transaction, %{eth() => 0}, state_core)
+    assert {:ok, {_, _, _}, _state} = Core.exec(state_core, transaction, %{eth() => 0})
   end
 
   @tag fixtures: [:alice, :state_empty, :bob]
@@ -231,6 +228,12 @@ defmodule OMG.API.State.TransactionTest do
 
     {:error, :unauthorized_spent} =
       Transaction.Recovered.all_spenders_authorized(authorized_tx, [alice.addr, carol.addr])
+  end
+
+  @tag fixtures: [:transaction]
+  test "Decode transaction", %{transaction: tx} do
+    {:ok, decoded} = tx |> Transaction.encode() |> Transaction.decode()
+    assert decoded == tx
   end
 
   @tag fixtures: [:alice]

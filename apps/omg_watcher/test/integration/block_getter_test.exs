@@ -195,7 +195,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     )
 
     invalid_block_hash = block_with_incorrect_transaction.hash
-
     {:ok, _txhash} = Eth.RootChain.submit_block(invalid_block_hash, 1, 20_000_000_000)
 
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)

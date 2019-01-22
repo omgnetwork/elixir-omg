@@ -19,12 +19,12 @@ defmodule OMG.Eth.Encoding do
   """
 
   @doc """
-  Ethereum JSONRPC and Ethereumex' specifix encoding and decoding of binaries and ints
+  Ethereum JSONRPC and Ethereumex' specific encoding and decoding of binaries and ints
 
   We are enforcing the users of Eth and Eth.<Contract> APIs to always use integers and raw decoded binaries,
   when interacting.
 
-  Configuration entiries are expected to be written in "0xhex-style"
+  Configuration entries are expected to be written in "0xhex-style"
   """
   @spec to_hex(binary | non_neg_integer) :: binary
   def to_hex(non_hex)

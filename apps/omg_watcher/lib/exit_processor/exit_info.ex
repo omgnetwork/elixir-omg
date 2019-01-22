@@ -40,7 +40,10 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   end
 
   def make_db_update({position, %__MODULE__{} = exit_info}) do
-    Utxo.position(blknum, txindex, oindex) = position
-    {:put, :exit_info, {{blknum, txindex, oindex}, exit_info |> Map.from_struct()}}
+    {:put, :exit_info, {Utxo.Position.to_db_key(position), exit_info |> Map.from_struct()}}
+  end
+
+  def from_db_value(exit_info_map) do
+    struct!(__MODULE__, exit_info_map)
   end
 end

@@ -120,4 +120,30 @@ defmodule OMG.Watcher.Event do
             name: atom()
           }
   end
+
+  defmodule NonCanonicalIFE do
+    @moduledoc """
+    Notifies about an in-flight exit which has a competitor
+    """
+
+    defstruct [:txbytes, name: :non_canonical_ife]
+
+    @type t :: %__MODULE__{
+            txbytes: binary(),
+            name: atom()
+          }
+  end
+
+  defmodule InvalidIFEChallenge do
+    @moduledoc """
+    Notifies about an in-flight exit which has a competitor
+    """
+
+    defstruct [:txbytes, name: :invalid_ife_challenge]
+
+    @type t :: %__MODULE__{
+            txbytes: binary(),
+            name: atom()
+          }
+  end
 end

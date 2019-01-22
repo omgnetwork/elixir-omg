@@ -27,6 +27,8 @@ defmodule OMG.DB do
   @one_minute 60_000
   @ten_minutes 10 * @one_minute
 
+  @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
+
   def multi_update(db_updates, server_name \\ @server_name) do
     {duration, result} = :timer.tc(fn -> GenServer.call(server_name, {:multi_update, db_updates}) end)
     _ = Logger.debug(fn -> "DB.multi_update done in #{inspect(round(duration / 1000))} ms" end)
@@ -75,7 +77,7 @@ defmodule OMG.DB do
     GenServer.call(server_name, {:exit_info, utxo_pos})
   end
 
-  @spec spent_blknum({pos_integer, non_neg_integer, non_neg_integer}, atom) :: {:ok, pos_integer} | {:error, atom}
+  @spec spent_blknum(utxo_pos_db_t(), atom) :: {:ok, pos_integer} | {:error, atom}
   def spent_blknum(utxo_pos, server_name \\ @server_name) do
     GenServer.call(server_name, {:spent_blknum, utxo_pos})
   end
@@ -95,54 +97,35 @@ defmodule OMG.DB do
   # Note: *_eth_height values below denote actual Ethereum height service has processed.
   # It might differ from "latest" Ethereum block.
 
-  def last_block_getter_eth_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_block_getter_eth_height)
-  end
-
-  def last_depositor_eth_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_depositor_eth_height)
-  end
-
-  def last_in_flight_exit_eth_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_in_flight_exit_eth_height)
-  end
-
-  def last_piggyback_exit_eth_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_piggyback_exit_eth_height)
-  end
-
-  def last_exiter_eth_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_exiter_eth_height)
-  end
-
-  def last_exit_processor_eth_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_exit_processor_eth_height)
-  end
-
-  def last_exit_finalizer_eth_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_exit_finalizer_eth_height)
-  end
-
-  def last_exit_challenger_eth_height(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_exit_challenger_eth_height)
+  def get_single_value(server_name \\ @server_name, parameter_name) do
+    GenServer.call(server_name, {:get_single_value, parameter_name})
   end
 
   def init(server_name \\ @server_name) do
     path = Application.fetch_env!(:omg_db, :leveldb_path)
     :ok = File.mkdir_p(path)
 
-    db_initialization_updates = [
-      {:put, :last_deposit_child_blknum, 0},
-      {:put, :child_top_block_number, 0},
-      {:put, :last_block_getter_eth_height, 0},
-      {:put, :last_depositor_eth_height, 0},
-      {:put, :last_exiter_eth_height, 0},
-      {:put, :last_exit_processor_eth_height, 0},
-      {:put, :last_exit_finalizer_eth_height, 0},
-      {:put, :last_exit_challenger_eth_height, 0},
-      {:put, :last_piggyback_exit_eth_height, 0},
-      {:put, :last_in_flight_exit_eth_height, 0}
-    ]
+    # setting a number of markers to zeroes (possibly DRY it out somehow wrt. `@single_value_parameter_names`?)
+    db_initialization_updates =
+      [
+        :last_deposit_child_blknum,
+        :child_top_block_number,
+        :last_block_getter_eth_height,
+        :last_depositor_eth_height,
+        :last_exiter_eth_height,
+        :last_piggyback_exit_eth_height,
+        :last_in_flight_exit_eth_height,
+        :last_exit_processor_eth_height,
+        :last_exit_finalizer_eth_height,
+        :last_exit_challenger_eth_height,
+        :last_in_flight_exit_processor_eth_height,
+        :last_piggyback_processor_eth_height,
+        :last_competitor_processor_eth_height,
+        :last_challenges_responds_processor_eth_height,
+        :last_piggyback_challenges_processor_eth_height,
+        :last_ife_exit_finalizer_eth_height
+      ]
+      |> Enum.map(&{:put, &1, 0})
 
     with :ok <- server_name.init_storage(path),
          {:ok, started_apps} <- Application.ensure_all_started(:omg_db),

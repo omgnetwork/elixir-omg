@@ -90,7 +90,7 @@ defmodule OMG.Watcher.DB.EthEvent do
 
   @doc """
   Good candidate for deposit/exit primary key is a pair (Utxo.position, event_type).
-  Switching to composite key requires carefull consideration of data types and schema change,
+  Switching to composite key requires careful consideration of data types and schema change,
   so for now, we'd go with artificial key
   """
   @spec generate_unique_key(Utxo.Position.t(), :deposit | :exit) :: OMG.API.Crypto.hash_t()
