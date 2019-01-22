@@ -41,6 +41,7 @@ defmodule OMG.Eth.MixProject do
       #       then there's some unexpected behavior of mix that won't allow to mix these, see
       #       [here](https://elixirforum.com/t/mix-dependency-is-not-locked-error-when-building-with-edeliver/7069/3)
       {:briefly, "~> 0.3"},
+      {:deferred_config, "~> 0.1.1"},
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",

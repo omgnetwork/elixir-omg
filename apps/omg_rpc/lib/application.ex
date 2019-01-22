@@ -21,6 +21,8 @@ defmodule OMG.RPC.Application do
   require Logger
 
   def start(_type, _args) do
+    DeferredConfig.populate(:omg_rpc)
+
     children = [
       OMG.RPC.Web.Endpoint
     ]

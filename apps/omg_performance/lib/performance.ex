@@ -109,13 +109,8 @@ defmodule OMG.Performance do
         }."
       end)
 
-    url =
-      OMG.API.Config.get_overloaded_env_var(
-        :omg_performance,
-        :child_chain_url,
-        "CHILD_CHAIN_URL",
-        "http://localhost:9656"
-      )
+    DeferredConfig.populate(:omg_performance)
+    url = Application.get_env(:omg_performance, :child_chain_url, "http://localhost:9656")
 
     defaults = %{destdir: ".", geth: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545", child_chain: url}
     opts = Map.merge(defaults, opts)

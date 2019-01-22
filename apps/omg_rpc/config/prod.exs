@@ -4,7 +4,7 @@ use Mix.Config
 # to something meaningful, Phoenix uses this information
 # when generating URLs.
 config :omg_rpc, OMG.RPC.Web.Endpoint,
-  http: [:inet6, port: System.get_env("PORT") || 9656],
+  http: [:inet6, port: {:system, "PORT", 9656, {String, :to_integer}}],
   # TODO: adjust this when `:prod` environment starts being used
   url: [host: "example.com", port: 80]
 
