@@ -48,16 +48,13 @@ defmodule OMG.Watcher.Web.Router do
   def enforce_json_content(conn, _opts) do
     headers = conn |> get_req_header("content-type")
 
-    conn =
-      if "application/json" in headers do
-        conn
-      else
-        conn
-        |> json(OMG.RPC.Web.Error.serialize("bad_request:missing_json_content_type_header", nil))
-        |> halt()
-      end
-
-    conn
+    if "application/json" in headers do
+      conn
+    else
+      conn
+      |> json(OMG.RPC.Web.Error.serialize("bad_request:missing_json_content_type_header", nil))
+      |> halt()
+    end
   end
 
   def swagger_info do

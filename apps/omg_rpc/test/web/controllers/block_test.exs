@@ -40,7 +40,7 @@ defmodule OMG.RPC.Web.Controller.BlockTest do
 
   @tag fixtures: [:phoenix_sandbox]
   test "block.get endpoint rejects improper length parameter" do
-    too_short_addr = %{hash: "0xfa396ab09069784ea8ea"}
+    too_short_addr = %{hash: "0x" <> String.duplicate("00", 20)}
 
     assert %{
              "success" => false,

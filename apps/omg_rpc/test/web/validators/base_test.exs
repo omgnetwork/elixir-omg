@@ -36,73 +36,73 @@ defmodule OMG.RPC.Web.Validator.BaseTest do
 
   describe "Basic validation:" do
     test "integer, positive" do
-      assert {:ok, -1_234_567_890} == param(@params, "int_1", :integer)
+      assert {:ok, -1_234_567_890} == expect(@params, "int_1", :integer)
 
-      assert {:ok, 0} == param(@params, "int_2", :integer)
+      assert {:ok, 0} == expect(@params, "int_2", :integer)
 
-      assert {:ok, 1_234_567_890} == param(@params, "int_3", [:integer])
+      assert {:ok, 1_234_567_890} == expect(@params, "int_3", [:integer])
     end
 
     test "integer, negative" do
-      assert {:error, {:validation_error, "nint_1", :integer}} == param(@params, "nint_1", :integer)
+      assert {:error, {:validation_error, "nint_1", :integer}} == expect(@params, "nint_1", :integer)
 
-      assert {:error, {:validation_error, "nil", :integer}} == param(@params, "nil", :integer)
+      assert {:error, {:validation_error, "nil", :integer}} == expect(@params, "nil", :integer)
     end
 
     test "optional, positive" do
-      assert {:ok, 0} == param(@params, "int_2", :optional)
-      assert {:ok, true} == param(@params, "opt_1", :optional)
-      assert {:ok, nil} == param(@params, "no_such_key", [:optional])
+      assert {:ok, 0} == expect(@params, "int_2", :optional)
+      assert {:ok, true} == expect(@params, "opt_1", :optional)
+      assert {:ok, nil} == expect(@params, "no_such_key", [:optional])
 
-      assert {:ok, nil} == param(@params, "nil", [:integer, :optional])
-      assert {:ok, 1_234_567_890} == param(@params, "int_3", [:integer, :optional])
+      assert {:ok, nil} == expect(@params, "nil", [:integer, :optional])
+      assert {:ok, 1_234_567_890} == expect(@params, "int_3", [:integer, :optional])
     end
 
     test "optional, negative" do
-      assert {:error, {:validation_error, "nil", :integer}} == param(@params, "nil", [:optional, :integer])
+      assert {:error, {:validation_error, "nil", :integer}} == expect(@params, "nil", [:optional, :integer])
     end
 
     test "hex, positive" do
-      assert {:ok, @bin_value} == param(@params, "hex_1", :hex)
-      assert {:ok, @bin_value} == param(@params, "hex_2", :hex)
-      assert {:ok, @bin_value} == param(@params, "hex_3", :hex)
+      assert {:ok, @bin_value} == expect(@params, "hex_1", :hex)
+      assert {:ok, @bin_value} == expect(@params, "hex_2", :hex)
+      assert {:ok, @bin_value} == expect(@params, "hex_3", :hex)
     end
 
     test "hex, negative" do
-      assert {:error, {:validation_error, "nhex_1", :hex}} == param(@params, "nhex_1", :hex)
+      assert {:error, {:validation_error, "nhex_1", :hex}} == expect(@params, "nhex_1", :hex)
     end
 
     test "length, positive" do
-      assert {:ok, "1"} == param(@params, "len_1", length: 1)
-      assert {:ok, <<1, 2, 3, 4, 5>>} == param(@params, "len_2", length: 5)
+      assert {:ok, "1"} == expect(@params, "len_1", length: 1)
+      assert {:ok, <<1, 2, 3, 4, 5>>} == expect(@params, "len_2", length: 5)
     end
 
     test "length, negative" do
-      assert {:error, {:validation_error, "len_1", {:length, 5}}} == param(@params, "len_1", length: 5)
-      assert {:error, {:validation_error, "len_2", {:length, 1}}} == param(@params, "len_2", length: 1)
+      assert {:error, {:validation_error, "len_1", {:length, 5}}} == expect(@params, "len_1", length: 5)
+      assert {:error, {:validation_error, "len_2", {:length, 1}}} == expect(@params, "len_2", length: 1)
     end
   end
 
   describe "Preprocessors:" do
     test "greater, positive" do
-      assert {:ok, 0} == param(@params, "int_2", greater: -1)
+      assert {:ok, 0} == expect(@params, "int_2", greater: -1)
 
-      assert {:ok, 1_234_567_890} == param(@params, "int_3", greater: 1_000_000_000)
+      assert {:ok, 1_234_567_890} == expect(@params, "int_3", greater: 1_000_000_000)
     end
 
     test "greater, negative" do
-      assert {:error, {:validation_error, "int_2", {:greater, 0}}} == param(@params, "int_2", greater: 0)
+      assert {:error, {:validation_error, "int_2", {:greater, 0}}} == expect(@params, "int_2", greater: 0)
 
-      assert {:error, {:validation_error, "nint_1", :integer}} == param(@params, "nint_1", greater: 0)
+      assert {:error, {:validation_error, "nint_1", :integer}} == expect(@params, "nint_1", greater: 0)
     end
 
     test "address should validate both hex value and its length" do
-      assert {:ok, @bin_value} == param(@params, "hex_1", :address)
+      assert {:ok, @bin_value} == expect(@params, "hex_1", :address)
 
-      assert {:error, {:validation_error, "nhex_1", :hex}} == param(@params, "nhex_1", :address)
+      assert {:error, {:validation_error, "nhex_1", :hex}} == expect(@params, "nhex_1", :address)
 
       assert {:error, {:validation_error, "short", {:length, 20}}} ==
-               param(%{"short" => "0xdeadbeef"}, "short", :address)
+               expect(%{"short" => "0xdeadbeef"}, "short", :address)
     end
   end
 
@@ -114,13 +114,13 @@ defmodule OMG.RPC.Web.Validator.BaseTest do
       "NaN" => true
     }
 
-    assert {:ok, 0} == param(args, "zero", :non_neg_integer)
-    assert {:error, {:validation_error, "neg", {:greater, -1}}} == param(args, "neg", :non_neg_integer)
+    assert {:ok, 0} == expect(args, "zero", :non_neg_integer)
+    assert {:error, {:validation_error, "neg", {:greater, -1}}} == expect(args, "neg", :non_neg_integer)
 
-    assert {:ok, 1} == param(args, "pos", :pos_integer)
+    assert {:ok, 1} == expect(args, "pos", :pos_integer)
 
-    assert {:error, {:validation_error, "zero", {:greater, 0}}} == param(args, "zero", :pos_integer)
+    assert {:error, {:validation_error, "zero", {:greater, 0}}} == expect(args, "zero", :pos_integer)
 
-    assert {:error, {:validation_error, "NaN", :integer}} == param(args, "NaN", :pos_integer)
+    assert {:error, {:validation_error, "NaN", :integer}} == expect(args, "NaN", :pos_integer)
   end
 end

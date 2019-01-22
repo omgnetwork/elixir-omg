@@ -25,7 +25,7 @@ defmodule OMG.RPC.Web.Controller.Block do
   @api_module Application.fetch_env!(:omg_rpc, :child_chain_api_module)
 
   def get_block(conn, params) do
-    with {:ok, hash} <- param(params, "hash", :hash),
+    with {:ok, hash} <- expect(params, "hash", :hash),
          {:ok, block} <- apply(@api_module, :get_block, [hash]) do
       render(conn, View.Block, :block, block: block)
     end

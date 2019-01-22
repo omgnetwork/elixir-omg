@@ -44,8 +44,5 @@ defmodule OMG.Watcher.Web.Serializer.Response do
   def sanitize({:skip_hex_encode, bin}), do: bin
   def sanitize(value), do: value
 
-  defp to_map(struct) do
-    if(Map.has_key?(struct, :__struct__), do: struct |> Map.from_struct(), else: struct)
-    |> Map.delete(:__meta__)
-  end
+  defp to_map(struct), do: Map.drop(struct, [:__struct__, :__meta__])
 end

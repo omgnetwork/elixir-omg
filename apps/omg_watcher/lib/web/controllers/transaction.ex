@@ -26,7 +26,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   Retrieves a specific transaction by id.
   """
   def get_transaction(conn, params) do
-    with {:ok, id} <- param(params, "id", :hash) do
+    with {:ok, id} <- expect(params, "id", :hash) do
       id
       |> API.Transaction.get()
       |> api_response(conn, :transaction)
@@ -37,9 +37,9 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   Retrieves a list of transactions
   """
   def get_transactions(conn, params) do
-    with {:ok, address} <- param(params, "address", [:address, :optional]),
-         {:ok, limit} <- param(params, "limit", [:pos_integer, :optional]),
-         {:ok, blknum} <- param(params, "blknum", [:pos_integer, :optional]) do
+    with {:ok, address} <- expect(params, "address", [:address, :optional]),
+         {:ok, limit} <- expect(params, "limit", [:pos_integer, :optional]),
+         {:ok, blknum} <- expect(params, "blknum", [:pos_integer, :optional]) do
       API.Transaction.get_transactions(address, blknum, limit)
       |> api_response(conn, :transactions)
     end
@@ -50,7 +50,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   responds with arguments for plasma contract function that starts in-flight exit.
   """
   def get_in_flight_exit(conn, params) do
-    with {:ok, tx} <- param(params, "txbytes", :hex),
+    with {:ok, tx} <- expect(params, "txbytes", :hex),
          {:ok, tx} <- OMG.API.State.Transaction.Signed.decode(tx) do
       API.Transaction.get_in_flight_exit(tx)
       |> api_response(conn, :in_flight_exit)

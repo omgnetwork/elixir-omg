@@ -15,6 +15,9 @@
 defmodule OMG.RPC.Web.Serializer.Response do
   @moduledoc """
   Serializes the response into expected result/data format.
+
+  TODO: Intentionally we want to have single Phx app exposing both APIs, until then please keep this file similar
+  to the corresponding Watcher's one to make merge simpler.
   """
 
   @doc """
@@ -40,8 +43,5 @@ defmodule OMG.RPC.Web.Serializer.Response do
   def sanitize(bin) when is_binary(bin), do: OMG.RPC.Web.Encoding.to_hex(bin)
   def sanitize(value), do: value
 
-  defp to_map(struct) do
-    if(Map.has_key?(struct, :__struct__), do: struct |> Map.from_struct(), else: struct)
-    |> Map.delete(:__meta__)
-  end
+  defp to_map(struct), do: Map.drop(struct, [:__struct__, :__meta__])
 end

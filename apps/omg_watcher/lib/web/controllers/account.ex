@@ -26,7 +26,7 @@ defmodule OMG.Watcher.Web.Controller.Account do
   Gets plasma account balance
   """
   def get_balance(conn, params) do
-    with {:ok, address} <- param(params, "address", :address) do
+    with {:ok, address} <- expect(params, "address", :address) do
       address
       |> API.Account.get_balance()
       |> api_response(conn, :balance)
@@ -34,7 +34,7 @@ defmodule OMG.Watcher.Web.Controller.Account do
   end
 
   def get_utxos(conn, params) do
-    with {:ok, address} <- param(params, "address", :address) do
+    with {:ok, address} <- expect(params, "address", :address) do
       address
       |> API.Account.get_utxos()
       |> api_response(conn, :utxos)

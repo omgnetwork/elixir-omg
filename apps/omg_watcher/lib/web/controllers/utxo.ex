@@ -25,7 +25,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
   alias OMG.Watcher.API
 
   def get_utxo_exit(conn, params) do
-    with {:ok, utxo_pos} <- param(params, "utxo_pos", :pos_integer),
+    with {:ok, utxo_pos} <- expect(params, "utxo_pos", :pos_integer),
          utxo <- Position.decode(utxo_pos) do
       utxo
       |> API.Utxo.compose_utxo_exit()

@@ -93,7 +93,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
                "blknum" => 11_000,
                "txindex" => 0,
                "oindex" => 1,
-               "currency" => "0x0000000000000000000000000000000000000000"
+               "currency" => @eth_hex
              }
            ] = TestHelper.get_utxos(carol.addr)
   end

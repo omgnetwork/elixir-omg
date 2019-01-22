@@ -38,30 +38,28 @@ defmodule OMG.RPC.Web.Validator.Base do
   Last result of the validation is translated to {:ok, value} or error.
 
   ## Examples
-  * `param(args, "arg_name", :integer, greater: 1000)`
+  * `expect(args, "arg_name", [:integer, greater: 1000])`
     Validate and positive integer greater than 1000
 
-  * `param(args, "arg_name", :integer, :optional)`
+  * `expect(args, "arg_name", [:integer, :optional])`
   Validate integer value or when `arg_name` key is missing {:ok, `nil`} is returned
 
-  * `param(args, "arg_name", :optional, :integer)`
+  * `expect(args, "arg_name", [:optional, :integer])`
     NOTE: **invalid order** it's the same as just `:integer`
     To validate optional integer values it should be `:integer, :optional`
   """
-  @spec param(map(), atom() | binary(), atom() | list()) ::
+  @spec expect(map(), atom() | binary(), atom() | list()) ::
           {:ok, any()} | {:error, {:validation_error, atom() | binary(), atom() | list()}}
-  def param(map, key, atom) when is_atom(atom), do: param(map, key, [atom])
+  def expect(map, key, atom) when is_atom(atom), do: expect(map, key, [atom])
 
-  def param(map, key, opts) do
-    res =
-      opts
-      |> replace_aliases()
-      |> Enum.reduce(
-        {get(map, key), []},
-        &validate/2
-      )
-
-    case res do
+  def expect(map, key, opts) do
+    opts
+    |> replace_aliases()
+    |> Enum.reduce(
+      map |> get(key),
+      &validate/2
+    )
+    |> case do
       {val, []} ->
         {:ok, val}
 
@@ -70,6 +68,15 @@ defmodule OMG.RPC.Web.Validator.Base do
     end
   end
 
+  @doc """
+  `integer` function is an example of basic validator used by the engine.
+  Validators are passed to the `expect` function in `opts` parameter as a keyword list.
+  Each validator expects a tuple, where first element is value of specified `key` in `map`
+  possibly processed by previous validators in `opts` list. Second element is a validator list
+  which fails on the value.
+  It depends on validator but usually if some previous validator returns error on value, others
+  just pass the error through and do not add themselves to the list.
+  """
   @spec integer({any(), list()}) :: {any(), list()}
   def integer({_, [_ | _]} = err), do: err
   def integer({val, []} = acc) when is_integer(val), do: acc
@@ -107,7 +114,8 @@ defmodule OMG.RPC.Web.Validator.Base do
   def greater({val, []}, _b) when not is_integer(val), do: {val, [:integer]}
   def greater({val, []}, bound), do: {val, greater: bound}
 
-  defp get(map, key), do: Map.get(map, key, :missing)
+  # provides initial value to the validators reducer, see: `expect`
+  defp get(map, key), do: {Map.get(map, key, :missing), []}
 
   defp validate(validator, acc) when is_atom(validator), do: Kernel.apply(__MODULE__, validator, [acc])
   defp validate({validator, arg}, acc), do: Kernel.apply(__MODULE__, validator, [acc, arg])

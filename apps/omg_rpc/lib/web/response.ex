@@ -22,8 +22,8 @@ defmodule OMG.RPC.Web.Response do
   Append result of operation to the response data forming standard api response structure
   """
   @spec serialize(any()) :: response_t()
-  def serialize(%{object: :error} = error), do: error |> to_response(:error)
-  def serialize(data), do: data |> to_response(:success)
+  def serialize(%{object: :error} = error), do: to_response(error, :error)
+  def serialize(data), do: to_response(data, :success)
 
   defp to_response(data, result),
     do: %{
