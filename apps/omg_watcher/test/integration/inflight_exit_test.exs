@@ -136,9 +136,8 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     %Transaction.Signed{raw_tx: raw_tx1} = tx1
     %Transaction.Signed{raw_tx: raw_tx2} = tx2
-    # TODO: unused for now, so silencing the warning
-    _raw_tx1_bytes = raw_tx1 |> Transaction.encode() |> Base.encode16(case: :upper)
-    _raw_tx2_bytes = raw_tx2 |> Transaction.encode() |> Base.encode16(case: :upper)
+    raw_tx1_bytes = raw_tx1 |> Transaction.encode() |> Base.encode16(case: :upper)
+    raw_tx2_bytes = raw_tx2 |> Transaction.encode() |> Base.encode16(case: :upper)
 
     get_in_flight_exit_response1 =
       tx1 |> Transaction.Signed.encode() |> Base.encode16(case: :upper) |> TestHelper.get_in_flight_exit()
@@ -212,29 +211,42 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     # note: part below works only with merged https://github.com/omisego/plasma-contracts/pull/54
 
     # TODO: requires IFE-owner getting from the contract, delivered in OMG-311
-    # assert get_competitor_response = TestHelper.get_in_flight_exit_competitors(raw_tx1_bytes)
-    #
-    # {:ok, %{"status" => "0x1"}} =
-    #   OMG.Eth.RootChain.challenge_in_flight_exit_not_canonical(
-    #     get_competitor_response["inflight_txbytes"],
-    #     get_competitor_response["inflight_input_index"],
-    #     get_competitor_response["competing_txbytes"],
-    #     get_competitor_response["competing_input_index"],
-    #     get_competitor_response["competing_sig"],
-    #     get_competitor_response["competing_txid"],
-    #     get_competitor_response["competing_proof"]
-    #   )
-    #   |> Eth.DevHelpers.transact_sync!()
+    assert %{"competing_txid" => 0, "competing_proof" => ""} =
+             get_competitor_response = TestHelper.get_in_flight_exit_competitors(raw_tx1_bytes)
+
+    # we'll be using the above response to integrate, but we need to test whether the included tx2, if used to challenge
+    # would give us the opportunity to get the inclusion info (since `get_competitor_response` doesn't include that)
+    assert %{"competing_txid" => id, "competing_proof" => proof} =
+             TestHelper.get_in_flight_exit_competitors(raw_tx2_bytes)
+
+    assert id > 0
+    assert proof != ""
+
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+      OMG.Eth.RootChain.challenge_in_flight_exit_not_canonical(
+        get_competitor_response["inflight_txbytes"],
+        get_competitor_response["inflight_input_index"],
+        get_competitor_response["competing_txbytes"],
+        get_competitor_response["competing_input_index"],
+        get_competitor_response["competing_txid"],
+        get_competitor_response["competing_proof"],
+        get_competitor_response["competing_sig"],
+        alice.addr
+      )
+      |> Eth.DevHelpers.transact_sync!()
+
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
 
     # now included IFE transaction tx1 is challenged and non-canonical, let's respond
-    # assert get_prove_canonical_response = TestHelper.get_prove_canonical(raw_tx1_bytes)
-    #
-    # {:ok, %{"status" => "0x1"}} =
-    #   OMG.Eth.RootChain.respondToNonCanonicalChallenge(
-    #     get_prove_canonical_response["in_flight_tx"],
-    #     get_prove_canonical_response["in_flight_tx_id"],
-    #     get_prove_canonical_response["in_flight_tx_inclusion_proof"]
-    #   )
-    #   |> Eth.DevHelpers.transact_sync!()
+    get_prove_canonical_response = TestHelper.get_prove_canonical(raw_tx1_bytes)
+
+    {:ok, %{"status" => "0x1"}} =
+      OMG.Eth.RootChain.respond_to_non_canonical_challenge(
+        get_prove_canonical_response["inflight_txbytes"],
+        get_prove_canonical_response["inflight_txid"],
+        get_prove_canonical_response["inflight_proof"],
+        alice.addr
+      )
+      |> Eth.DevHelpers.transact_sync!()
   end
 end

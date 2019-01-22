@@ -26,6 +26,7 @@ defmodule OMG.Eth.RootChain do
   @tx_defaults Eth.Defaults.tx_defaults()
 
   @deposit_created_signature "DepositCreated(address,uint256,address,uint256)"
+  @challenge_in_flight_exit_signature "challengeInFlightExitNotCanonical(bytes,uint8,bytes,uint8,uint256,bytes,bytes)"
 
   @type optional_addr_t() :: <<_::160>> | nil
 
@@ -140,15 +141,66 @@ defmodule OMG.Eth.RootChain do
         input_txs_inclusion_proofs,
         in_flight_tx_sigs,
         from,
-        contract \\ nil
+        contract \\ nil,
+        opts \\ []
       ) do
-    opts =
-      @tx_defaults
-      |> Keyword.put(:value, @standard_exit_bond)
+    defaults = @tx_defaults |> Keyword.put(:value, @standard_exit_bond)
+    opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "startInFlightExit(bytes,bytes,bytes,bytes)"
     args = [in_flight_tx, input_txs, input_txs_inclusion_proofs, in_flight_tx_sigs]
+    Eth.contract_transact(from, contract, signature, args, opts)
+  end
+
+  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
+  def challenge_in_flight_exit_not_canonical(
+        inflight_txbytes,
+        inflight_input_index,
+        competing_txbytes,
+        competing_input_index,
+        competing_txid,
+        competing_proof,
+        competing_sig,
+        from,
+        contract \\ nil,
+        opts \\ []
+      ) do
+    defaults = @tx_defaults
+    opts = defaults |> Keyword.merge(opts)
+
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = @challenge_in_flight_exit_signature
+
+    args = [
+      inflight_txbytes,
+      inflight_input_index,
+      competing_txbytes,
+      competing_input_index,
+      competing_txid,
+      competing_proof,
+      competing_sig
+    ]
+
+    Eth.contract_transact(from, contract, signature, args, opts)
+  end
+
+  def respond_to_non_canonical_challenge(
+        in_flight_tx,
+        in_flight_tx_id,
+        in_flight_tx_inclusion_proof,
+        from,
+        contract \\ nil,
+        opts \\ []
+      ) do
+    defaults = @tx_defaults
+    opts = defaults |> Keyword.merge(opts)
+
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "respondToNonCanonicalChallenge(bytes,uint256,bytes)"
+
+    args = [in_flight_tx, in_flight_tx_id, in_flight_tx_inclusion_proof]
+
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
@@ -270,26 +322,23 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_exit_started/1)}
   end
 
-  defp get_in_flight_data(hash) do
-    {:ok, %{"input" => eth_tx_input, "blockNumber" => eth_height}} =
-      Ethereumex.HttpClient.eth_get_transaction_by_hash(hash)
-
-    encode_in_flight = Eth.Encoding.from_hex(eth_tx_input)
+  defp get_call_data(eth_tx_hash, name, arg_names, arg_types) do
+    {:ok, %{"input" => eth_tx_input}} = Ethereumex.HttpClient.eth_get_transaction_by_hash(eth_tx_hash)
+    encoded_input = Eth.Encoding.from_hex(eth_tx_input)
 
     function_inputs =
       ABI.decode(
         ABI.FunctionSelector.parse_specification_item(%{
           "type" => "function",
-          "name" => "startInFlightExit",
-          "inputs" => List.duplicate(%{"type" => "bytes"}, 4),
+          "name" => name,
+          "inputs" => Enum.map(arg_types, &%{"type" => to_string(&1)}),
           "outputs" => []
         }),
-        encode_in_flight
+        encoded_input
       )
 
-    Enum.zip([:in_flight_tx, :inputs_txs, :input_includion_proofs, :in_flight_tx_sigs], function_inputs)
+    Enum.zip(arg_names, function_inputs)
     |> Map.new()
-    |> Map.put(:eth_height, int_from_hex(eth_height))
   end
 
   @doc """
@@ -305,7 +354,12 @@ defmodule OMG.Eth.RootChain do
          Map.put(
            decode_in_flight_exit(log),
            :call_data,
-           get_in_flight_data(log["transactionHash"])
+           get_call_data(
+             log["transactionHash"],
+             "startInFlightExit",
+             [:in_flight_tx, :inputs_txs, :input_includion_proofs, :in_flight_tx_sigs],
+             [:bytes, :bytes, :bytes, :bytes]
+           )
          )
        end)}
     end
@@ -345,7 +399,23 @@ defmodule OMG.Eth.RootChain do
            {:ok,
             Enum.map(logs, fn log ->
               decode_in_flight_exit_challenged(log)
-              |> Map.put(:call_data, get_in_flight_exit_challenged_data(log["transactionHash"]))
+              |> Map.put(
+                :call_data,
+                get_call_data(
+                  log["transactionHash"],
+                  "challengeInFlightExitNotCanonical",
+                  [
+                    :in_flight_tx,
+                    :in_flight_input_index,
+                    :competing_tx,
+                    :competing_tx_input_index,
+                    :competing_tx_id,
+                    :competing_tx_inclusion_proof,
+                    :competing_tx_sig
+                  ],
+                  [:bytes, :uint8, :bytes, :uint8, :uint256, :bytes, :bytes]
+                )
+              )
             end)}
   end
 
@@ -466,7 +536,7 @@ defmodule OMG.Eth.RootChain do
 
   defp decode_in_flight_exit_challenged(log) do
     non_indexed_keys = [:tx_hash, :competitor_position]
-    non_indexed_key_types = [{:byte, 32}, {:uint, 256}]
+    non_indexed_key_types = [{:bytes, 32}, {:uint, 256}]
     indexed_keys = [:challenger]
     indexed_keys_types = [:address]
 
@@ -479,7 +549,7 @@ defmodule OMG.Eth.RootChain do
 
   def decode_in_flight_exit_challenge_responded(log) do
     non_indexed_keys = [:challenger, :tx_hash, :challenge_position]
-    non_indexed_key_types = [:address, {:byte, 32}, {:uint, 256}]
+    non_indexed_key_types = [:address, {:bytes, 32}, {:uint, 256}]
     indexed_keys = indexed_keys_types = []
 
     Eth.parse_events_with_indexed_fields(
@@ -491,7 +561,7 @@ defmodule OMG.Eth.RootChain do
 
   defp decode_piggyback_challenged(log) do
     non_indexed_keys = [:tx_hash, :output_index]
-    non_indexed_key_types = [{:byte, 32}, {:uint, 256}]
+    non_indexed_key_types = [{:bytes, 32}, {:uint, 256}]
     indexed_keys = [:challenger]
     indexed_keys_types = [:address]
 
@@ -500,24 +570,6 @@ defmodule OMG.Eth.RootChain do
       {non_indexed_keys, non_indexed_key_types},
       {indexed_keys, indexed_keys_types}
     )
-  end
-
-  defp get_in_flight_exit_challenged_data(hash) do
-    [
-      _in_flight_tx,
-      _in_flight_input_index,
-      competing_tx,
-      competing_tx_input_index,
-      _competing_tx_id,
-      _competing_tx_inclusion_proof,
-      competing_tx_sig
-    ] = Eth.get_call_data(hash, "challengeInFlightExitNotCanonical(bytes,uint8,bytes,uint8,uint256,bytes,bytes)")
-
-    %{
-      competing_tx: competing_tx,
-      competing_tx_input_index: competing_tx_input_index,
-      competing_tx_sig: competing_tx_sig
-    }
   end
 
   ########################

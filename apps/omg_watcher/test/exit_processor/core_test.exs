@@ -885,8 +885,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                 competing_txbytes: ^other_txbytes,
                 competing_input_index: 1,
                 competing_sig: ^other_signature,
-                competing_txid: nil,
-                competing_proof: nil
+                competing_txid: Utxo.position(0, 0, 0),
+                competing_proof: ""
               }} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> Core.get_competitor_for_ife(processor, txbytes)

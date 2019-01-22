@@ -54,8 +54,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           competing_txbytes: binary(),
           competing_input_index: non_neg_integer(),
           competing_sig: binary(),
-          competing_txid: nil | Utxo.Position.t(),
-          competing_proof: nil | binary()
+          competing_txid: Utxo.Position.t(),
+          competing_proof: binary()
         }
 
   @type prove_canonical_data_t :: %{
@@ -609,7 +609,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       competing_txbytes: raw_known_tx |> Transaction.encode(),
       competing_input_index: competing_input_index,
       competing_sig: competing_sig,
-      competing_txid: known_tx_utxo_pos,
+      competing_txid: known_tx_utxo_pos || Utxo.position(0, 0, 0),
       competing_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
     }
   end
@@ -622,7 +622,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     }
   end
 
-  defp maybe_calculate_proof(nil, _), do: nil
+  defp maybe_calculate_proof(nil, _), do: ""
 
   defp maybe_calculate_proof(Utxo.position(blknum, txindex, _), blocks) do
     blocks
