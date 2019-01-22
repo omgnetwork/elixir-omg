@@ -60,6 +60,7 @@ services:
       - ELIXIR_SERVICE=WATCHER
       - CONTRACT_EXCHANGER_URL=http://localhost:5000
       - ETHEREUM_RPC_URL=http://localhost:8545
+      - CHILDCHAIN_URL=http://localhost:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
       - DATABASE_URL=postgres://omisego_dev:omisego_dev@localhost:5432/omisego_dev
     restart: always
