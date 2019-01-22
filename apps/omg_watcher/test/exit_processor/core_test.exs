@@ -812,7 +812,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         blocks_result: [Block.hashed_txs_at([other_recovered], 3000)]
       }
 
-      assert {:ok, []} = exit_processor_request |> Core.invalid_exits(processor)
+      # Ignoring one Event.PiggybackAvailable
+      assert {:ok, [%Event.PiggybackAvailable{}]} = exit_processor_request |> Core.invalid_exits(processor)
 
       assert {:error, :competitor_not_found} =
                exit_processor_request
@@ -1163,7 +1164,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         blocks_result: [block]
       }
 
-      assert {:ok, [%Event.InvalidIFEChallenge{txbytes: ^txbytes}]} =
+      # Ignoring two Event.PiggybackAvailable
+      assert {:ok,
+              [%Event.InvalidIFEChallenge{txbytes: ^txbytes}, %Event.PiggybackAvailable{}, %Event.PiggybackAvailable{}]} =
                exit_processor_request |> Core.invalid_exits(challenged_processor)
 
       assert {:ok,
@@ -1202,4 +1205,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     # hash size * merkle tree depth
     assert byte_size(proof_bytes) == 32 * 16
   end
+
+  def assert_events(expected_events, events, filtered_event) do
+    assert expected_events == events |> Enum.filter(fn event -> %filtered_event{} = event end)
+  end
+
 end

@@ -544,7 +544,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.uniq()
   end
 
-  @spec get_ifes_to_piggyback(ExitProcessor.Request.t(), __MODULE__.t()) :: list(Transaction.t())
+  @spec get_ifes_to_piggyback(ExitProcessor.Request.t(), __MODULE__.t()) :: list(Transaction.Signed.t())
   defp get_ifes_to_piggyback(
          %ExitProcessor.Request{blocks_result: blocks},
          %__MODULE__{in_flight_exits: ifes}
@@ -553,8 +553,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     ifes
     |> Map.values()
-    |> Stream.map(fn %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: raw_tx}} -> raw_tx end)
-    |> Stream.filter(fn raw_tx ->
+    |> Stream.map(fn %InFlightExitInfo{tx: signed_tx} -> signed_tx end)
+    # TODO: expensive!
+    |> Stream.filter(fn %Transaction.Signed{raw_tx: raw_tx} ->
       Enum.any?(known_txs, fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} ->
         raw_tx == block_raw_tx
       end)
@@ -562,12 +563,16 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.uniq()
   end
 
-  @spec prepare_available_piggyback(Transaction.t()) :: Event.PiggybackAvailable.t()
-  defp prepare_available_piggyback(%Transaction{inputs: inputs, outputs: outputs} = tx) do
-    #    FIXME
-    #    available_inputs =
-    #      inputs
-    #      |> Enum.map(fn %{oindex: oindex} -> %{index: oindex, address: } end)
+  @spec prepare_available_piggyback(Transaction.Signed.t()) :: Event.PiggybackAvailable.t()
+  defp prepare_available_piggyback(
+         %Transaction.Signed{raw_tx: %Transaction{inputs: inputs, outputs: outputs} = tx} = signed_tx
+       ) do
+    {:ok, %Transaction.Recovered{spenders: input_owners}} = Transaction.Recovered.recover_from(signed_tx)
+
+    available_inputs =
+      input_owners
+      |> Enum.with_index()
+      |> Enum.map(fn {owner, index} -> %{index: index, address: owner} end)
 
     available_outputs =
       outputs
@@ -577,7 +582,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     %Event.PiggybackAvailable{
       txbytes: Transaction.encode(tx),
       available_outputs: available_outputs,
-      available_inputs: []
+      available_inputs: available_inputs
     }
   end
 
