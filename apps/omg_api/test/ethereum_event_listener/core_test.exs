@@ -29,11 +29,14 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
   end
 
   defp event(height), do: %{eth_height: height}
+
   defp assert_range({:get_events, range, state}, range2) do
     assert range == range2
     state
   end
+
   defp assert_range({:dont_get_events, state}, :dont_get_events), do: state
+
   defp assert_events({:ok, events, db_update, new_state}, events2, db_update2) do
     assert {events, db_update} == {events2, db_update2}
     new_state
@@ -51,19 +54,19 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
 
   test "restart allows to continue with proper bounds" do
     create_state(1)
-     |> Core.get_events_range_for_download(%SyncData{sync_height: 3, root_chain: 10}) 
-     |> assert_range({2, 7})
-     |> Core.add_new_events([event(2),event(3),event(4),event(5),event(7)])
-     |> Core.get_events_range_for_download(%SyncData{sync_height: 5, root_chain: 10})
-     |> assert_range(:dont_get_events) 
-     |> Core.get_events(5)
-     |> assert_events( [event(2),event(3)], [{:put,@db_key,3}])
+    |> Core.get_events_range_for_download(%SyncData{sync_height: 3, root_chain: 10})
+    |> assert_range({2, 7})
+    |> Core.add_new_events([event(2), event(3), event(4), event(5), event(7)])
+    |> Core.get_events_range_for_download(%SyncData{sync_height: 5, root_chain: 10})
+    |> assert_range(:dont_get_events)
+    |> Core.get_events(5)
+    |> assert_events([event(2), event(3)], [{:put, @db_key, 3}])
 
     create_state(3)
-     |> Core.get_events_range_for_download(%SyncData{sync_height: 7, root_chain: 10}
-     |> assert_range({4,9})
-     |> Core.add_new_events([event(4),event(5),event(7),event(9)])
-     |> Core.get_events(7)
-     |> assert_events([event(4),event(5)], [{:put,@db_key,5}])
+    |> Core.get_events_range_for_download(%SyncData{sync_height: 7, root_chain: 10})
+    |> assert_range({4, 9})
+    |> Core.add_new_events([event(4), event(5), event(7), event(9)])
+    |> Core.get_events(7)
+    |> assert_events([event(4), event(5)], [{:put, @db_key, 5}])
   end
 end

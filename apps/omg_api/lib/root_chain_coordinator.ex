@@ -22,12 +22,17 @@ defmodule OMG.API.RootChainCoordinator do
   use OMG.API.LoggerExt
 
   defmodule SyncData do
+    @moduledoc """
+     info needed to synchronize 
+    """
+
     defstruct [:root_chain, :sync_height]
+
     @type t() :: %__MODULE__{
-          root_chain: non_neg_integer(),
-          sync_height: non_neg_integer(),
-        }
-  end 
+            root_chain: non_neg_integer(),
+            sync_height: non_neg_integer()
+          }
+  end
 
   @spec start_link(Core.configs_services()) :: GenServer.on_start()
   def start_link(configs_services) do
