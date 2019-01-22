@@ -17,6 +17,7 @@ defmodule OMG.RPC.Client do
   Provides functions to communicate with Child Chain API
   """
 
+  alias OMG.RPC.Web.Encoding
   require Logger
 
   @doc """
@@ -29,7 +30,7 @@ defmodule OMG.RPC.Client do
              | {:client_error, any()}
              | {:server_error, any()}}
   def get_block(hash) do
-    %{hash: Base.encode16(hash)}
+    %{hash: Encoding.to_hex(hash)}
     |> rpc_post("block.get")
     |> get_response_body()
     |> decode_response()
@@ -45,7 +46,7 @@ defmodule OMG.RPC.Client do
              | {:client_error, any()}
              | {:server_error, any()}}
   def submit(tx) do
-    %{transaction: Base.encode16(tx)}
+    %{transaction: Encoding.to_hex(tx)}
     |> rpc_post("transaction.submit")
     |> get_response_body()
     |> decode_response()
@@ -75,16 +76,21 @@ defmodule OMG.RPC.Client do
     {:ok,
      %{
        number: number,
-       hash: Base.decode16!(hash),
-       transactions: Enum.map(transactions, &Base.decode16!/1)
+       hash: decode16!(hash),
+       transactions: Enum.map(transactions, &decode16!/1)
      }}
   end
 
   defp decode_response({:ok, %{tx_hash: _hash} = response}) do
-    {:ok, Map.update!(response, :tx_hash, &Base.decode16!/1)}
+    {:ok, Map.update!(response, :tx_hash, &decode16!/1)}
   end
 
   defp decode_response(error), do: error
+
+  defp decode16!(hexstr) do
+    {:ok, bin} = Encoding.from_hex(hexstr)
+    bin
+  end
 
   @doc """
   Retrieves body from response structure. When response is successful

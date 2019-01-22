@@ -56,7 +56,10 @@ defmodule OMG.Watcher.TestHelper do
   end
 
   def rpc_call(path, body \\ nil, expected_resp_status \\ 200) do
-    request = conn(:post, path, body)
+    request =
+      conn(:post, path, body)
+      |> put_req_header("content-type", "application/json")
+
     response = request |> send_request
     assert response.status == expected_resp_status
     Poison.decode!(response.resp_body)
@@ -64,7 +67,6 @@ defmodule OMG.Watcher.TestHelper do
 
   defp send_request(req) do
     req
-    |> put_private(:plug_skip_csrf_protection, true)
     |> OMG.Watcher.Web.Endpoint.call([])
   end
 
@@ -91,8 +93,10 @@ defmodule OMG.Watcher.TestHelper do
       fn key ->
         value = data[key]
 
-        case is_binary(value) && Base.decode16(value, case: :mixed) do
-          {:ok, newvalue} -> {key, newvalue}
+        with true <- is_binary(value),
+             {:ok, bin} <- OMG.RPC.Web.Encoding.from_hex(value) do
+          {key, bin}
+        else
           _ -> {key, value}
         end
       end

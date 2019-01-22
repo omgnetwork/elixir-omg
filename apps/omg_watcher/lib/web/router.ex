@@ -17,6 +17,7 @@ defmodule OMG.Watcher.Web.Router do
 
   pipeline :api do
     plug(:accepts, ["json"])
+    plug(:enforce_json_content)
   end
 
   scope "/api/swagger" do
@@ -40,7 +41,20 @@ defmodule OMG.Watcher.Web.Router do
 
     post("/status.get", Controller.Status, :get_status)
 
-    match(:*, "/*path", Controller.Fallback, :not_found)
+    # NOTE: This *has to* be the last route, catching all unhandled paths
+    match(:*, "/*path", Controller.Fallback, Route.NotFound)
+  end
+
+  def enforce_json_content(conn, _opts) do
+    headers = conn |> get_req_header("content-type")
+
+    if "application/json" in headers do
+      conn
+    else
+      conn
+      |> json(OMG.RPC.Web.Error.serialize("bad_request:missing_json_content_type_header", nil))
+      |> halt()
+    end
   end
 
   def swagger_info do

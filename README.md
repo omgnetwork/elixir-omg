@@ -312,7 +312,7 @@ Response:
     "data": {
         "blknum": 123000,
         "txindex": 111,
-        "txhash": "block hash in hex"
+        "txhash": "transaction hash in hex"
     }
 }
 ```
@@ -423,7 +423,7 @@ In case extra finality is required for high-stakes transactions, the client is f
   "payload": {
     "child_blknum": 10000,
     "child_txindex": 12,
-    "child_block_hash": "DB32876CC6F26E96B9291682F3AF4A04C2AA2269747839F14F1A8C529CF90225",
+    "child_block_hash": "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec",
     "submited_at_ethheight": 14,
     "tx": {
       "signed_tx": {
@@ -432,21 +432,21 @@ In case extra finality is required for high-stakes transactions, the client is f
           "amount2": 3,
           "blknum1": 2001,
           "blknum2": 0,
-          "cur12": "0000000000000000000000000000000000000000",
-          "newowner1": "051902B7A7D6DCB915CE8FFD3BF46B5E0E16BB9C",
-          "newowner2": "E6E3F1307219F68AE4B271CFD493EC8F932C34D9",
+          "cur12": "0x0000000000000000000000000000000000000000",
+          "newowner1": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
+          "newowner2": "0xae8ae48796090ba693af60b5ea6be3686206523b",
           "oindex1": 0,
           "oindex2": 0,
           "txindex1": 0,
           "txindex2": 0
         },
-        "sig1": "7B52AB ...",
-        "sig2": "2ABGAT ...",
-        "signed_tx_bytes": "F8CF83 ..."
+        "sig1": "0x6bfb9b2dbe32 ...",
+        "sig2": "0xcedb8b31d1e4 ...",
+        "signed_tx_bytes": "0xf3170101c0940000..."
       },
-      "tx_hash": "0768DC526A093C8C058303832FF3AB45893466D731A34BCF1BF2F866586C0FE6",
-      "spender1": "6DCB915C051902B7A7DE8FFD3BF46B5E0E16BB9C",
-      "spender2": "5E0E16BB9C19F68AE4B271CFD493EC8F932C34D9"
+      "tx_hash": "0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d",
+      "spender1": "0xbfdf85743ef16cfb1f8d4dd1dfc74c51dc496434",
+      "spender2": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"
     }
   },
   "join_ref": null,

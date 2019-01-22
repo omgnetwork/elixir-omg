@@ -36,6 +36,35 @@ defmodule OMG.Watcher.Web do
       use Phoenix.Controller, namespace: OMG.Watcher.Web, log: :debug
       import Plug.Conn
       import OMG.Watcher.Web.Router.Helpers
+      import OMG.RPC.Web.Validator.Base
+
+      action_fallback(OMG.Watcher.Web.Controller.Fallback)
+
+      @doc """
+      Passes result to the render process when successful or returns error result unchanged.
+      Error tuple will be passed to the see: `OMG.Watcher.Web.Controller.Fallback`
+      """
+      def api_response(api_result, conn, template) when is_tuple(api_result),
+        do: with({:ok, data} <- api_result, do: api_response(data, conn, template))
+
+      @doc """
+      Takes advantage of preset api response structure and module names conventions to discover parameters
+      to Phoenix Controller's [render/3](https://hexdocs.pm/phoenix/Phoenix.Controller.html#render/3)
+      """
+      def api_response(data, conn, template) do
+        view_module =
+          conn
+          |> controller_module()
+          |> Atom.to_string()
+          |> String.replace("Controller", "View")
+          |> String.to_existing_atom()
+
+        serialized = OMG.Watcher.Web.Serializer.Response.sanitize(data)
+
+        conn
+        |> put_view(view_module)
+        |> render(template, response: serialized)
+      end
     end
   end
 

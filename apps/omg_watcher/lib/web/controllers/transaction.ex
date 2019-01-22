@@ -20,24 +20,16 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
-  alias OMG.API.Crypto
   alias OMG.Watcher.API
-  alias OMG.Watcher.DB
-  alias OMG.Watcher.Web.View
-
-  import OMG.Watcher.Web.ErrorHandler
-
-  action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
   @doc """
   Retrieves a specific transaction by id.
   """
   def get_transaction(conn, params) do
-    with {:ok, id} <- Map.fetch(params, "id"),
-         id <- Base.decode16!(id) do
+    with {:ok, id} <- expect(params, "id", :hash) do
       id
       |> API.Transaction.get()
-      |> respond(conn)
+      |> api_response(conn, :transaction)
     end
   end
 
@@ -45,30 +37,11 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   Retrieves a list of transactions
   """
   def get_transactions(conn, params) do
-    address = get_address(params)
-    limit = get_optional_int("limit", params)
-    blknum = get_optional_int("blknum", params)
-
-    transactions = API.Transaction.get_transactions(address, blknum, limit)
-
-    respond_multiple(transactions, conn)
-  end
-
-  defp get_address(%{"address" => address}) do
-    {:ok, address} = Crypto.decode_address(address)
-    address
-  end
-
-  defp get_address(%{}), do: nil
-
-  defp get_optional_int(key, %{} = params) do
-    case Map.get(params, key) do
-      nil ->
-        nil
-
-      value ->
-        {value, ""} = value |> Kernel.to_string() |> Integer.parse()
-        value
+    with {:ok, address} <- expect(params, "address", [:address, :optional]),
+         {:ok, limit} <- expect(params, "limit", [:pos_integer, :optional]),
+         {:ok, blknum} <- expect(params, "blknum", [:pos_integer, :optional]) do
+      API.Transaction.get_transactions(address, blknum, limit)
+      |> api_response(conn, :transactions)
     end
   end
 
@@ -77,29 +50,12 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   responds with arguments for plasma contract function that starts in-flight exit.
   """
   def get_in_flight_exit(conn, params) do
-    with {:ok, tx} <- Map.fetch(params, "txbytes"),
-         {:ok, tx} <- Base.decode16(tx, case: :mixed),
+    with {:ok, tx} <- expect(params, "txbytes", :hex),
          {:ok, tx} <- OMG.API.State.Transaction.Signed.decode(tx) do
-      in_flight_exit = API.Transaction.get_in_flight_exit(tx)
-      respond(in_flight_exit, conn)
+      API.Transaction.get_in_flight_exit(tx)
+      |> api_response(conn, :in_flight_exit)
     end
   end
-
-  defp respond_multiple(transactions, conn),
-    do: render(conn, View.Transaction, :transactions, transactions: transactions)
-
-  defp respond(%DB.Transaction{} = transaction, conn),
-    do: render(conn, View.Transaction, :transaction, transaction: transaction)
-
-  defp respond({:ok, in_flight_exit}, conn) do
-    render(conn, View.Transaction, :in_flight_exit, in_flight_exit: in_flight_exit)
-  end
-
-  defp respond({:error, code}, conn) do
-    handle_error(conn, code)
-  end
-
-  defp respond(nil, conn), do: handle_error(conn, :transaction_not_found)
 
   def swagger_definitions do
     %{

@@ -61,7 +61,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    IntegrationTest.wait_for_byzantine_events([Event.InvalidExit.name()], @timeout)
+    IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
 
     # after the notification has been received, a challenged is composed and sent
     challenge = TestHelper.get_exit_challenge(deposit_blknum, 0, 0)
@@ -121,7 +121,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     #       `sla_margin` after exit start, hence the `config/test.exs` entry for the margin is rather high
     {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
 
-    IntegrationTest.wait_for_byzantine_events([Event.InvalidExit.name()], @timeout)
+    IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
@@ -141,7 +141,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     {:ok, _txhash} = Eth.RootChain.submit_block(<<0::256>>, nonce, 20_000_000_000)
 
-    IntegrationTest.wait_for_byzantine_events([Event.BlockWithholding.name()], @timeout)
+    IntegrationTest.wait_for_byzantine_events([%Event.BlockWithholding{}.name], @timeout)
 
     %{
       "txbytes" => txbytes,
@@ -158,7 +158,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    IntegrationTest.wait_for_byzantine_events([Event.InvalidExit.name()], @timeout)
+    IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
   end
 
   defp get_next_blknum_nonce(blknum) do

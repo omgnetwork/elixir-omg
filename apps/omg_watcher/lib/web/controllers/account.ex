@@ -20,29 +20,24 @@ defmodule OMG.Watcher.Web.Controller.Account do
   use OMG.Watcher.Web, :controller
   use PhoenixSwagger
 
-  alias OMG.API.Crypto
   alias OMG.Watcher.API
-  alias OMG.Watcher.Web.View
-
-  action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
   @doc """
   Gets plasma account balance
   """
   def get_balance(conn, params) do
-    with {:ok, address} <- Map.fetch(params, "address"),
-         {:ok, decoded_address} <- Crypto.decode_address(address) do
-      balance = API.Account.get_balance(decoded_address)
-      render(conn, View.Account, :balance, balance: balance)
+    with {:ok, address} <- expect(params, "address", :address) do
+      address
+      |> API.Account.get_balance()
+      |> api_response(conn, :balance)
     end
   end
 
   def get_utxos(conn, params) do
-    with {:ok, address} <- Map.fetch(params, "address"),
-         {:ok, decoded_address} <- Crypto.decode_address(address) do
-      utxos = API.Account.get_utxos(decoded_address)
-
-      render(conn, View.Utxo, :utxos, utxos: utxos)
+    with {:ok, address} <- expect(params, "address", :address) do
+      address
+      |> API.Account.get_utxos()
+      |> api_response(conn, :utxos)
     end
   end
 

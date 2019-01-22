@@ -19,13 +19,10 @@ defmodule OMG.Watcher.Web.View.Status do
 
   use OMG.Watcher.Web, :view
 
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.Web.Serializers
-
-  def render("status.json", %{status: status}) do
+  def render("status.json", %{response: status}) do
     status
     |> format_byzantine_events()
-    |> Serializers.Response.serialize(:success)
+    |> OMG.RPC.Web.Response.serialize()
   end
 
   defp format_byzantine_events(%{byzantine_events: byzantine_events} = status) do
@@ -34,9 +31,9 @@ defmodule OMG.Watcher.Web.View.Status do
     %{status | byzantine_events: prepared_events}
   end
 
-  defp format_byzantine_event(event) do
+  defp format_byzantine_event(%{name: name} = event) do
     %{
-      event: Event.get_event_name(event),
+      event: name,
       details: event
     }
   end

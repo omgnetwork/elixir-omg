@@ -22,9 +22,9 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
   alias OMG.API.TestHelper
   alias OMG.Watcher.TestHelper
 
-  @eth_hex String.duplicate("00", 20)
+  @eth_hex <<0::160>> |> OMG.RPC.Web.Encoding.to_hex()
   @other_token <<127::160>>
-  @other_token_hex @other_token |> Base.encode16()
+  @other_token_hex @other_token |> OMG.RPC.Web.Encoding.to_hex()
 
   @tag fixtures: [:alice, :bob, :blocks_inserter, :initial_blocks]
   test "Account balance groups account tokens and provide sum of available funds", %{
@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
     alice: alice,
     bob: bob
   } do
-    assert [%{"currency" => @eth_hex, "amount" => 349}] == TestHelper.success?("/account.get_balance", body_for(bob))
+    assert [%{"currency" => @eth_hex, "amount" => 349}] == TestHelper.success?("account.get_balance", body_for(bob))
 
     # adds other token funds for alice to make more interesting
     blocks_inserter.([
@@ -42,7 +42,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
        ]}
     ])
 
-    data = TestHelper.success?("/account.get_balance", body_for(alice))
+    data = TestHelper.success?("account.get_balance", body_for(alice))
 
     assert [
              %{"currency" => @eth_hex, "amount" => 201},
@@ -54,7 +54,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
   test "Account balance for non-existing account responds with empty array" do
     no_account = %{addr: <<0::160>>}
 
-    assert [] == TestHelper.success?("/account.get_balance", body_for(no_account))
+    assert [] == TestHelper.success?("account.get_balance", body_for(no_account))
   end
 
   defp body_for(%{addr: address}) do
@@ -69,6 +69,21 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
     # refer to `/transaction.all` tests for more thorough cases, this is the same
     {:ok, address} = Crypto.encode_address(alice.addr)
 
-    assert [_] = TestHelper.success?("/account.get_transactions", %{"address" => address, "limit" => 1})
+    assert [_] = TestHelper.success?("account.get_transactions", %{"address" => address, "limit" => 1})
+  end
+
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "account.get_balance handles improper type of parameter" do
+    assert %{
+             "object" => "error",
+             "code" => "get_balance:bad_request",
+             "description" => "Parameters required by this action are missing or incorrect.",
+             "messages" => %{
+               "validation_error" => %{
+                 "parameter" => "address",
+                 "validator" => ":hex"
+               }
+             }
+           } == TestHelper.no_success?("account.get_balance", %{"address" => 1_234_567_890})
   end
 end

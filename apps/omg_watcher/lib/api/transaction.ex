@@ -35,9 +35,11 @@ defmodule OMG.Watcher.API.Transaction do
   @doc """
   Retrieves a specific transaction by id
   """
-  @spec get(binary()) :: nil | %DB.Transaction{}
+  @spec get(binary()) :: {:ok, %DB.Transaction{}} | {:error, :transaction_not_found}
   def get(transaction_id) do
-    DB.Transaction.get(transaction_id)
+    if transaction = DB.Transaction.get(transaction_id),
+      do: {:ok, transaction},
+      else: {:error, :transaction_not_found}
   end
 
   @doc """

@@ -18,28 +18,65 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
   """
 
   use Phoenix.Controller
+  alias OMG.RPC.Web.Error
 
-  alias OMG.Watcher.Web.Serializers
-
-  def call(conn, :not_found) do
-    data = %{
-      object: :error,
-      code: :endpoint_not_found,
-      description: "Endpoint not found"
+  @errors %{
+    exit_not_found: %{
+      code: "challenge:exit_not_found",
+      description: "The challenge of particular exit is impossible because exit is inactive or missing"
+    },
+    utxo_not_spent: %{
+      code: "challenge:utxo_not_spent",
+      description: "The challenge of particular exit is impossible because provided utxo is not spent"
+    },
+    transaction_not_found: %{
+      code: "transaction:not_found",
+      description: "Transaction doesn't exist for provided search criteria"
+    },
+    utxo_not_found: %{
+      code: "exit:invalid",
+      description: "Utxo was spent or does not exist."
+    },
+    tx_for_input_not_found: %{
+      code: "in_flight_exit:tx_for_input_not_found",
+      description: "No transaction that created input."
+    },
+    econnrefused: %{
+      code: "get_status:econnrefused",
+      description: "Cannot connect to the Ethereum node."
     }
+  }
 
-    json(conn, Serializers.Response.serialize(data, :error))
+  def call(conn, Route.NotFound), do: json(conn, Error.serialize(:endpoint_not_found, "Endpoint not found"))
+
+  def call(conn, {:error, {:validation_error, param_name, validator}}) do
+    response =
+      Error.serialize(
+        "#{action_name(conn)}:bad_request",
+        "Parameters required by this action are missing or incorrect.",
+        %{validation_error: %{parameter: param_name, validator: inspect(validator)}}
+      )
+
+    json(conn, response)
+  end
+
+  def call(conn, {:error, reason}) do
+    err_info =
+      @errors
+      |> Map.get(
+        reason,
+        %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil}
+      )
+
+    respond(conn, err_info)
   end
 
   def call(conn, :error), do: call(conn, {:error, :unknown_error})
 
-  def call(conn, {:error, reason}) do
-    data = %{
-      object: :error,
-      code: "#{action_name(conn)}#{inspect(reason)}",
-      description: nil
-    }
+  # Controller's action with expression has no match, e.g. on guard
+  def call(conn, _), do: call(conn, {:error, :unknown_error})
 
-    json(conn, Serializers.Response.serialize(data, :error))
+  defp respond(conn, %{code: code, description: description}) do
+    json(conn, Error.serialize(code, description))
   end
 end

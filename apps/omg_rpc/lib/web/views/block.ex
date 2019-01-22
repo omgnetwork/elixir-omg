@@ -17,10 +17,12 @@ defmodule OMG.RPC.Web.View.Block do
   The Block view for rendering json
   """
 
-  alias OMG.RPC.Web.Serializers
+  alias OMG.RPC.Web
+  alias OMG.RPC.Web.Serializer
 
   def render("block.json", %{block: block}) do
     block
-    |> Serializers.Response.serialize(:success)
+    |> Serializer.Response.sanitize()
+    |> Web.Response.serialize()
   end
 end

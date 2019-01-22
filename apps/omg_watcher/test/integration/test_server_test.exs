@@ -17,6 +17,7 @@ defmodule OMG.Watcher.Integration.TestServerTest do
   use ExUnit.Case, async: false
 
   alias OMG.RPC.Client
+  alias OMG.RPC.Web.Encoding
   alias OMG.Watcher.Integration.TestServer
 
   @expected_block_hash <<0::256>>
@@ -24,7 +25,7 @@ defmodule OMG.Watcher.Integration.TestServerTest do
   describe "/block.get -" do
     @response TestServer.make_response(%{
                 blknum: 123_000,
-                hash: Base.encode16(@expected_block_hash),
+                hash: Encoding.to_hex(@expected_block_hash),
                 transactions: []
               })
 

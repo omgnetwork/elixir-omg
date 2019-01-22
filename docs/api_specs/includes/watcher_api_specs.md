@@ -25,9 +25,9 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.g
     "data": [
         {
             "txindex": 1,
-            "owner": "B3256026863EB6AE5B06FA396AB09069784EA8EA",
+            "owner": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
             "oindex": 0,
-            "currency": "0000000000000000000000000000000000000000",
+            "currency": "0x0000000000000000000000000000000000000000",
             "blknum": 1000,
             "amount": 10,
             "utxo_pos": 10000000010000000
@@ -58,7 +58,7 @@ address | Hex encoded string | Address of the account
 ## Utxo - Get Challenge Data
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/utxo.get_challenge_data -d '{"utxo_pos": 10001001}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/utxo.get_challenge_data -d '{"utxo_pos": 10000000010000000}'
 ```
 
 ```elixir
@@ -78,8 +78,8 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/utxo.get_
     "data": {
         "input_index": 0,
         "output_id": 3000000000000,
-        "sig": "C82F21E5E3DB57EB9433DCD7E8F53A8044B641FE018A87FDC45E7A88019D163F3C1109A47B135ED38539A47BC25D13F3470BC59923D4E36C9F6DE6ED318E63341B",
-        "txbytes": "F8C5D2C5820BB88080C3808080C3808080C3808080F8B0EB94C02C7B841CE6098AA03BE35409C980F560487F6694000000000000000000000000000000000000000007EB94000000000000000000000000000000000000000094000000000000000000000000000000000000000080EB94000000000000000000000000000000000000000094000000000000000000000000000000000000000080EB94000000000000000000000000000000000000000094000000000000000000000000000000000000000080"
+        "sig": "0x6bfb9b2dbe32...",
+        "txbytes": "0x3eb6ae5b06f3..."
     }
 }
 ```
@@ -101,7 +101,7 @@ utxo_pos | Integer | Utxo position (encoded as single integer, the way contract 
 ## Utxo - Get Exit Data
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/utxo.get_exit_data -d '{"utxo_pos": 10001001}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/utxo.get_exit_data -d '{"utxo_pos": 10000000010000000}'
 ```
 
 ```elixir
@@ -119,9 +119,9 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/utxo.get_
     "version": "1.0",
     "success": true,
     "data": {
-        "utxo_pos": 10001001,
-        "txbytes": "F84701018080808094000000000000000000000000000000000000000094D27EB36B73F275E3F7CD20A510710F763DE3BF366E94000000000000000000000000000000000000000080",
-        "proof": "CEDB8B31D1E4CB72EC267A8B27C42C4D9982C3F3950D88003F44B3A797202D848025356282CA1C28CBD51FBF7D8E9187AA85F628D054B2C2233AA83BCAEF1F0EB4C11951957C6F8F642C4AF61CD6B24640FEC6DC7FC607EE8206A99E92410D3021DDB9A356815C3FAC1026B6DEC5DF3124AFBADB485C9BA5A3E3398A04B7BA85E58769B32A1BEAF1EA27375A44095A0D1FB664CE2DD358E7FCBFB78C26A193440EB01EBFC9ED27500CD4DFC979272D1F0913CC9F66540D7E8005811109E1CF2D887C22BD8750D34016AC3C66B5FF102DACDD73F6B014E710B51E8022AF9A1968FFD70157E48063FC33C97A050F7F640233BF646CC98D9524C6B92BCF3AB56F839867CC5F7F196B93BAE1E27E6320742445D290F2263827498B54FEC539F756AFCEFAD4E508C098B9A7E1D8FEB19955FB02BA9675585078710969D3440F5054E0F9DC3E7FE016E050EFF260334F18A5D4FE391D82092319F5964F2E2EB7C1C3A5F8B13A49E282F609C317A833FB8D976D11517C571D1221A265D25AF778ECF8923490C6CEEB450AECDC82E28293031D10C7D73BF85E57BF041A97360AA2C5D99CC1DF82D9C4B87413EAE2EF048F94B4D3554CEA73D92B0F7AF96E0271C691E2BB5C67ADD7C6CAF302256ADEDF7AB114DA0ACFE870D449A3A489F781D659E8BECCDA7BCE9F4E8618B6BD2F4132CE798CDC7A60E7E1460A7299E3C6342A579626D2"
+        "utxo_pos": 10000000010000000,
+        "txbytes": "0x3eb6ae5b06f3...",
+        "proof": "0xcedb8b31d1e4..."
     }
 }
 ```
@@ -143,7 +143,7 @@ utxo_pos | Integer | Utxo position (encoded as single integer, the way contract 
 ## Transaction - Submit
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/transaction.submit -d '{"transaction": "f8d083015ba98080808080940000..."}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/transaction.submit -d '{"transaction": "0xf8d083015ba98080808080940000..."}'
 ```
 
 ```elixir
@@ -163,7 +163,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/transacti
       "data": {
           "blknum": 123000,
           "txindex": 111,
-          "txhash": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"
+          "txhash": "0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"
       }
 }
 ```
@@ -214,17 +214,17 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/status
                 "event": "invalid_exit",
                 "details": {
                     "eth_height"  : 615440,
-                    "utxo_pos"  : 10001001,
-                    "owner"  : "B3256026863EB6AE5B06FA396AB09069784EA8EA",
-                    "currency"  : "0000000000000000000000000000000000000000",
+                    "utxo_pos"  : 10000000010000000,
+                    "owner"  : "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
+                    "currency"  : "0x0000000000000000000000000000000000000000",
                     "amount" : 100
                 }
             }
         ],
         "inflight_txs": [
             {
-                "txhash": "230C450180808080...",
-                "txbytes": "F3170101C0940000...",
+                "txhash": "0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d",
+                "txbytes": "0x3eb6ae5b06f3...",
                 "input_addresses": [
                     "0x1234..."
                 ],
@@ -236,8 +236,8 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/status
         ],
         "inflight_exits": [
             {
-                "txhash": "230C450180808080...",
-                "txbytes": "F3170101C0940000...",
+                "txhash": "0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21",
+                "txbytes": "0xf3170101c0940000...",
                 "eth_height" : 615441,
                 "piggybacked_inputs" : [1],
                 "piggybacked_outputs" : [0, 1]
@@ -278,9 +278,9 @@ All of the following events indicate byzantine behaviour and that the user shoul
     "event": "invalid_exit",
     "details": {
         "eth_height"  : 3521678,
-        "utxo_pos"  : 10001001,
-        "owner"  : "B3256026863EB6AE5B06FA396AB09069784EA8EA",
-        "currency"  : "0000000000000000000000000000000000000000",
+        "utxo_pos"  : 10000000010000000,
+        "owner"  : "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
+        "currency"  : "0x0000000000000000000000000000000000000000",
         "amount" : 100
     }
 }
@@ -297,9 +297,9 @@ Indicates that an invalid exit is occurring. It should be challenged.
     "event": "unchallenged_exit",
     "details": {
         "eth_height"  : 3521678,
-        "utxo_pos"  : 10001001,
-        "owner"  : "B3256026863EB6AE5B06FA396AB09069784EA8EA",
-        "currency"  : "0000000000000000000000000000000000000000",
+        "utxo_pos"  : 10000000010000000,
+        "owner"  : "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
+        "currency"  : "0x0000000000000000000000000000000000000000",
         "amount" : 100
     }
 }
@@ -315,7 +315,7 @@ Indicates that an invalid exit is dangerously close to finalization and hasn't b
 {
     "event": "invalid_block",
     "details": {
-        "blockhash"  : "DB32876CC6F26E96B9291682F3AF4A04C2AA2269747839F14F1A8C529CF90225",
+        "blockhash"  : "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec",
         "blocknum"  : 10000,
     }
 }
@@ -331,7 +331,7 @@ An invalid block has been added to the chain. User should exit.
 {
     "event": "block_withholding",
     "details": {
-        "blockhash"  : "DB32876CC6F26E96B9291682F3AF4A04C2AA2269747839F14F1A8C529CF90225",
+        "blockhash"  : "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec",
         "blocknum"  : 10000,
     }
 }
@@ -346,7 +346,7 @@ The ChildChain is withholding a block whose hash has been published on the root 
 {
     "event": "noncanonical_ife",
     "details": {
-        "txbytes": "F3170101C0940000..."
+        "txbytes": "0xf3170101c0940000..."
     }
 }
 ```
@@ -367,7 +367,7 @@ txbytes | Hex encoded string | The in-flight transaction that the event relates 
 {
     "event": "invalid_ife_challenge",
     "details": {
-        "txbytes": "F3170101C0940000..."
+        "txbytes": "0xf3170101c0940000..."
     }
 }
 ```
@@ -388,13 +388,13 @@ txbytes | Hex encoded string | The in-flight transaction that the event relates 
 {
     "event": "piggyback_available",
     "details": {
-        "txbytes": "F3170101C0940000...",
+        "txbytes": "0xf3170101c0940000...",
         "available_outputs" : [
-            {"index": 0, "address": "0x7890..."},
-            {"index": 1, "address": "0x1234..."},
+            {"index": 0, "address": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"},
+            {"index": 1, "address": "0x488f85743ef16cfb1f8d4dd1dfc74c51dc496434"},
         ],
         "available_inputs" : [
-            {"index": 0, "address": "0x1234..."}
+            {"index": 0, "address": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"}
         ],
     }
 }
@@ -418,7 +418,7 @@ available_inputs | Object array | The inputs (index and address) available to be
 {
     "event": "invalid_piggyback",
     "details": {
-        "txbytes": "F3170101C0940000...",
+        "txbytes": "0xf3170101c0940000...",
         "inputs": [1],
         "outputs": [0]
     }
@@ -441,7 +441,7 @@ outputs | Integer array | A list of invalid piggybacked outputs
 ## Inflight Exit - Get Exit Data
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_exit.get_data -d '{"txbytes": "F317010180808080940000..."}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_exit.get_data -d '{"txbytes": "0xf3170101c0940000..."}'
 ```
 
 ```elixir
@@ -459,10 +459,10 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_
     "version": "1.0",
     "success": true,
     "data": {
-        "in_flight_tx": "F847010180808080940000...",
-        "input_txs": "7C29FB8327F60BBFC62...",
-        "input_txs_inclusion_proofs" : "F81891018080808...",
-        "in_flight_tx_sigs" : "CEDB8B31D1E4C...",
+        "in_flight_tx": "0xf3170101c0940000...",
+        "input_txs": "0xa3470101c0940000...",
+        "input_txs_inclusion_proofs" : "0xcedb8b31d1e4...",
+        "in_flight_tx_sigs" : "0x6bfb9b2dbe32...",
     }
 }
 ```
@@ -484,7 +484,7 @@ txbytes | Hex encoded string | The in-flight transaction
 ## Inflight Exit - Get Competitor
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_exit.get_competitor -d '{"txbytes": "F847010180808080940000..."}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_exit.get_competitor -d '{"txbytes": "0xf3170101c0940000..."}'
 ```
 
 ```elixir
@@ -502,13 +502,13 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_
     "version": "1.0",
     "success": true,
     "data": {
-        "inflight_txbytes": "F847010180808080940000...",
+        "inflight_txbytes": "0xf3170101c0940000...",
         "inflight_input_index": 1,
-        "competing_txbytes": "F317010180808080940000...",
+        "competing_txbytes": "0x5df13a6bee20000...",
         "competing_input_index": 1,
-        "competing_sig": "9A23010180808080940000...",
+        "competing_sig": "0xa3470101c0940000...",
         "competing_txid": 2600003920012,
-        "competing_proof": "004C010180808080940000..."
+        "competing_proof": "0xcedb8b31d1e4..."
     }
 }
 ```
@@ -530,7 +530,7 @@ txbytes | Hex encoded string | The in-flight transaction
 ## Inflight Exit - Show Canonical
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_exit.prove_canonical -d '{"txbytes": "F3170101C0940000..."}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_exit.prove_canonical -d '{"txbytes": "0xf3170101c0940000..."}'
 ```
 
 ```elixir
@@ -548,9 +548,9 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_
     "version": "1.0",
     "success": true,
     "data": {
-        "inflight_txbytes": "F3170101C0940000...",
+        "inflight_txbytes": "0xf3170101c0940000...",
         "inflight_txid": 2600003920012,
-        "inflight_proof": "004C010180808080940000..."
+        "inflight_proof": "0xcedb8b31d1e4..."
     }
 }
 ```
@@ -572,7 +572,7 @@ txbytes | Hex encoded string | The in-flight transaction
 ## Inflight Exit - Get Input Challenge Data
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_exit.get_input_challenge_data -d '{"txbytes": "F3170101C0940000...", "input_index": 1}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_exit.get_input_challenge_data -d '{"txbytes": "0xf3170101c0940000...", "input_index": 1}'
 ```
 
 ```elixir
@@ -590,11 +590,11 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_
     "version": "1.0",
     "success": true,
     "data": {
-        "inflight_txbytes": "F3170101C0940000...",
+        "inflight_txbytes": "0xf3170101c0940000...",
         "inflight_input_index": 1,
-        "spending_txbytes": "F847010180808080940000...",
+        "spending_txbytes": "0x5df13a6bee20000...",
         "spending_input_index": 1,
-        "spending_sig": "9A23010180808080940000..."
+        "spending_sig": "0xa3470101c0940000..."
     }
 }
 ```
@@ -617,7 +617,7 @@ input_index | Integer | The index of the invalid input
 ## Inflight Exit - Get Output Challenge Data
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_exit.get_output_challenge_data -d '{"txbytes": "F3170101C0940000...", "output_index": 0}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_exit.get_output_challenge_data -d '{"txbytes": "0xf3170101c0940000...", "output_index": 0}'
 ```
 
 ```elixir
@@ -635,12 +635,12 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/inflight_
     "version": "1.0",
     "success": true,
     "data": {
-        "inflight_txbytes": "F3170101C0940000...",
+        "inflight_txbytes": "0xf3170101c0940000...",
         "inflight_output_pos": 21000634002,
-        "inflight_proof": "03F451067A805540000...",
-        "spending_txbytes": "F847010180808080940000...",
+        "inflight_proof": "0xcedb8b31d1e4...",
+        "spending_txbytes": "0x5df13a6bee20000...",
         "spending_input_index": 1,
-        "spending_sig": "9A23010180808080940000..."
+        "spending_sig": "0xa3470101c0940000..."
     }
 }
 ```

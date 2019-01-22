@@ -20,11 +20,12 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   alias OMG.API
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction
+  alias OMG.RPC.Web.Encoding
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
 
   @eth Crypto.zero_address()
-  @zero_address_hex String.duplicate("00", 20)
+  @zero_address_hex Crypto.zero_address() |> Encoding.to_hex()
 
   describe "getting transaction by id" do
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
@@ -42,10 +43,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
         ])
 
       %DB.Block{timestamp: timestamp, eth_height: eth_height, hash: block_hash} = DB.Block.get(blknum)
-      bob_addr = bob.addr |> TestHelper.to_response_address()
-      alice_addr = alice.addr |> TestHelper.to_response_address()
-      txhash = Base.encode16(txhash)
-      block_hash = Base.encode16(block_hash)
+      bob_addr = bob.addr |> Encoding.to_hex()
+      alice_addr = alice.addr |> Encoding.to_hex()
+      txhash = txhash |> Encoding.to_hex()
+      block_hash = block_hash |> Encoding.to_hex()
 
       assert %{
                "block" => %{
@@ -75,11 +76,11 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  }
                ],
                "txhash" => ^txhash,
-               "txbytes" => txbytes,
+               "txbytes" => "0x" <> txbytes,
                "txindex" => ^txindex
-             } = TestHelper.success?("/transaction.get", %{"id" => txhash})
+             } = TestHelper.success?("transaction.get", %{"id" => txhash})
 
-      assert {:ok, _} = Base.decode16(txbytes, case: :mixed)
+      assert {:ok, _} = Base.decode16(txbytes, case: :lower)
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
@@ -104,24 +105,40 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
            ]}
         ])
 
-      txhash = Base.encode16(txhash)
+      txhash = txhash |> Encoding.to_hex()
 
       assert %{
                "inputs" => [%{"amount" => 10}, %{"amount" => 20}, %{"amount" => 30}, %{"amount" => 40}],
                "outputs" => [%{"amount" => 1}, %{"amount" => 2}, %{"amount" => 3}, %{"amount" => 4}],
                "txhash" => ^txhash,
                "txindex" => 1
-             } = TestHelper.success?("/transaction.get", %{"id" => txhash})
+             } = TestHelper.success?("transaction.get", %{"id" => txhash})
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "returns error for non exsiting transaction" do
-      txhash = "055673FF58D85BFBF6844BAD62361967C7D19B6A4768CE4B54C687B65728D721"
+      txhash = <<0::256>> |> Encoding.to_hex()
 
       assert %{
+               "object" => "error",
                "code" => "transaction:not_found",
                "description" => "Transaction doesn't exist for provided search criteria"
-             } == TestHelper.no_success?("/transaction.get", %{"id" => txhash})
+             } == TestHelper.no_success?("transaction.get", %{"id" => txhash})
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "handles improper length of id parameter" do
+      assert %{
+               "object" => "error",
+               "code" => "get_transaction:bad_request",
+               "description" => "Parameters required by this action are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "id",
+                   "validator" => "{:length, 32}"
+                 }
+               }
+             } == TestHelper.no_success?("transaction.get", %{"id" => "0x50e901b98fe3389e32d56166a13a88208b03ea75"})
     end
   end
 
@@ -131,8 +148,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       {blknum, txindex, txhash, _recovered_tx} = initial_blocks |> Enum.reverse() |> hd()
 
       %DB.Block{timestamp: timestamp, eth_height: eth_height, hash: block_hash} = DB.Block.get(blknum)
-      txhash = Base.encode16(txhash)
-      block_hash = Base.encode16(block_hash)
+      txhash = txhash |> Encoding.to_hex()
+      block_hash = block_hash |> Encoding.to_hex()
 
       assert [
                %{
@@ -152,7 +169,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "txindex" => ^txindex
                }
                | _
-             ] = TestHelper.success?("/transaction.all")
+             ] = TestHelper.success?("transaction.all")
 
       assert is_integer(value)
     end
@@ -172,9 +189,9 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       ])
 
       assert [%{"block" => %{"blknum" => 2000}, "txindex" => 1}, %{"block" => %{"blknum" => 2000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"blknum" => 2000})
+               TestHelper.success?("transaction.all", %{"blknum" => 2000})
 
-      assert [] = TestHelper.success?("/transaction.all", %{"blknum" => 3000})
+      assert [] = TestHelper.success?("transaction.all", %{"blknum" => 3000})
     end
 
     @tag fixtures: [:blocks_inserter, :alice, :bob]
@@ -192,10 +209,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
          ]}
       ])
 
-      {:ok, address} = Crypto.encode_address(bob.addr)
+      address = bob.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 2000}, "txindex" => 1}] =
-               TestHelper.success?("/transaction.all", %{"address" => address, "blknum" => 2000})
+               TestHelper.success?("transaction.all", %{"address" => address, "blknum" => 2000})
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
@@ -211,10 +228,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
          ]}
       ])
 
-      {:ok, address} = Crypto.encode_address(alice.addr)
+      address = alice.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"address" => address})
+               TestHelper.success?("transaction.all", %{"address" => address})
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob, :carol]
@@ -233,13 +250,13 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
          ]}
       ])
 
-      {:ok, alice_addr} = Crypto.encode_address(alice.addr)
-      {:ok, carol_addr} = Crypto.encode_address(carol.addr)
+      alice_addr = alice.addr |> Encoding.to_hex()
+      carol_addr = carol.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 2}, %{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"address" => alice_addr})
+               TestHelper.success?("transaction.all", %{"address" => alice_addr})
 
-      assert [] = TestHelper.success?("/transaction.all", %{"address" => carol_addr})
+      assert [] = TestHelper.success?("transaction.all", %{"address" => carol_addr})
     end
 
     @tag fixtures: [:blocks_inserter, :alice, :bob]
@@ -255,10 +272,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
          ]}
       ])
 
-      {:ok, address} = Crypto.encode_address(alice.addr)
+      address = alice.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"address" => address})
+               TestHelper.success?("transaction.all", %{"address" => address})
     end
 
     @tag fixtures: [:blocks_inserter, :alice]
@@ -273,10 +290,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
          ]}
       ])
 
-      {:ok, address} = Crypto.encode_address(alice.addr)
+      address = alice.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"address" => address})
+               TestHelper.success?("transaction.all", %{"address" => address})
     end
 
     @tag fixtures: [:blocks_inserter, :alice]
@@ -291,10 +308,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
          ]}
       ])
 
-      {:ok, address} = Crypto.encode_address(alice.addr)
+      address = alice.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"address" => address})
+               TestHelper.success?("transaction.all", %{"address" => address})
     end
 
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
@@ -310,10 +327,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
          ]}
       ])
 
-      {:ok, address} = Crypto.encode_address(alice.addr)
+      address = alice.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{"address" => address})
+               TestHelper.success?("transaction.all", %{"address" => address})
     end
 
     @tag fixtures: [:alice, :blocks_inserter]
@@ -322,8 +339,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       alice: alice
     } do
       not_eth = <<1::160>>
-      # after we serve addresses in consistent "0x...." format, this can be undone
-      "0x" <> not_eth_enc = Crypto.encode_address!(not_eth)
+      not_eth_enc = not_eth |> Encoding.to_hex()
 
       blocks_inserter.([
         {1000,
@@ -343,7 +359,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                    %{"currency" => ^not_eth_enc, "value" => 9}
                  ]
                }
-             ] = TestHelper.success?("/transaction.all", %{})
+             ] = TestHelper.success?("transaction.all")
     end
   end
 
@@ -366,13 +382,13 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
          ]}
       ])
 
-      {:ok, address} = Crypto.encode_address(alice.addr)
+      address = alice.addr |> Encoding.to_hex()
 
       assert [%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 1}] =
-               TestHelper.success?("/transaction.all", %{limit: 2})
+               TestHelper.success?("transaction.all", %{limit: 2})
 
       assert [%{"block" => %{"blknum" => 2000}, "txindex" => 0}, %{"block" => %{"blknum" => 1000}, "txindex" => 0}] =
-               TestHelper.success?("/transaction.all", %{address: address, limit: 2})
+               TestHelper.success?("transaction.all", %{address: address, limit: 2})
     end
 
     @tag fixtures: [:alice, :bob, :blocks_inserter]
@@ -393,7 +409,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
          ]}
       ])
 
-      assert [_, _, _] = TestHelper.success?("/transaction.all", %{})
+      assert [_, _, _] = TestHelper.success?("transaction.all")
     end
   end
 
@@ -408,24 +424,26 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
         inflight_txbytes =
           inputs
           |> API.TestHelper.create_encoded(@eth, [{bob, 100}])
-          |> Base.encode16(case: :upper)
+          |> Encoding.to_hex()
 
-        proofs_size = 1024 * length(inputs)
-        sigs_size = 130 * 4
+        # `2 + ` for prepending `0x` in HEX encoded binaries
+        proofs_size = 2 + 1024 * length(inputs)
+        sigs_size = 2 + 130 * 4
 
-        %{
-          # checking just lengths in majority as we prepare verify correctness in the contract in integration tests
-          "in_flight_tx" => _in_flight_tx,
-          "input_txs" => input_txs,
-          # encoded proofs, 1024 bytes each
-          "input_txs_inclusion_proofs" => <<_proof::bytes-size(proofs_size)>>,
-          # encoded signatures, 130 bytes each
-          "in_flight_tx_sigs" => <<_bytes::bytes-size(sigs_size)>>
-        } = TestHelper.success?("/inflight_exit.get_data", %{"txbytes" => inflight_txbytes})
+        # checking just lengths in majority as we prepare verify correctness in the contract in integration tests
+        assert %{
+                 "in_flight_tx" => _in_flight_tx,
+                 "input_txs" => input_txs,
+                 # encoded proofs, 1024 bytes each
+                 "input_txs_inclusion_proofs" => <<_proof::bytes-size(proofs_size)>>,
+                 # encoded signatures, 130 bytes each
+                 "in_flight_tx_sigs" => <<_bytes::bytes-size(sigs_size)>>
+               } = TestHelper.success?("/inflight_exit.get_data", %{"txbytes" => inflight_txbytes})
+
+        {:ok, input_txs} = Encoding.from_hex(input_txs)
 
         input_txs =
           input_txs
-          |> Base.decode16!(case: :upper)
           |> ExRLP.decode()
           |> Enum.map(fn
             "" ->
@@ -460,7 +478,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       inflight_txbytes =
         [{3000, 1, 0, bob}]
         |> API.TestHelper.create_encoded(@eth, [{bob, 150}])
-        |> Base.encode16(case: :upper)
+        |> Encoding.to_hex()
 
       assert %{
                "code" => "in_flight_exit:tx_for_input_not_found",
@@ -471,8 +489,14 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "responds with error for malformed in-flight transaction bytes" do
       assert %{
-               "code" => "get_in_flight_exit:unknown_error",
-               "description" => nil
+               "code" => "get_in_flight_exit:bad_request",
+               "description" => "Parameters required by this action are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "txbytes",
+                   "validator" => ":hex"
+                 }
+               }
              } = TestHelper.no_success?("/inflight_exit.get_data", %{"txbytes" => "tx"})
     end
   end

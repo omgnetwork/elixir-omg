@@ -22,26 +22,13 @@ defmodule OMG.Watcher.Web.Controller.Status do
   use PhoenixSwagger
 
   alias OMG.Watcher.API.Status
-  alias OMG.Watcher.Web.View
-
-  import OMG.Watcher.Web.ErrorHandler
-
-  action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
   @doc """
   Gets plasma network and Watcher status
   """
   def get_status(conn, _params) do
-    status = Status.get_status()
-    respond(status, conn)
-  end
-
-  defp respond({:ok, status}, conn) do
-    render(conn, View.Status, :status, status: status)
-  end
-
-  defp respond({:error, code}, conn) do
-    handle_error(conn, code)
+    Status.get_status()
+    |> api_response(conn, :status)
   end
 
   def swagger_definitions do

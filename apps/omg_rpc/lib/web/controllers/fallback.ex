@@ -15,31 +15,47 @@
 defmodule OMG.RPC.Web.Controller.Fallback do
   @moduledoc """
   The fallback handler.
+
+  TODO: Intentionally we want to have single Phx app exposing both APIs, until then please keep this file similar
+  to the corresponding Watcher's one to make merge simpler.
   """
 
   use Phoenix.Controller
 
-  alias OMG.RPC.Web.Serializers
+  alias OMG.RPC.Web.Error
 
-  def call(conn, :not_found) do
-    data = %{
-      object: :error,
-      code: :endpoint_not_found,
-      description: "Endpoint not found"
-    }
+  @errors %{}
 
-    json(conn, Serializers.Response.serialize(data, :error))
+  def call(conn, :not_found), do: json(conn, Error.serialize(:endpoint_not_found, "Endpoint not found"))
+
+  def call(conn, {:error, {:validation_error, param_name, validator}}) do
+    response =
+      Error.serialize(
+        "#{action_name(conn)}:bad_request",
+        "Parameters required by this action are missing or incorrect.",
+        %{validation_error: %{parameter: param_name, validator: inspect(validator)}}
+      )
+
+    json(conn, response)
+  end
+
+  def call(conn, {:error, reason}) do
+    err_info =
+      @errors
+      |> Map.get(
+        reason,
+        %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil}
+      )
+
+    respond(conn, err_info)
   end
 
   def call(conn, :error), do: call(conn, {:error, :unknown_error})
 
-  def call(conn, {:error, reason}) do
-    data = %{
-      object: :error,
-      code: "#{action_name(conn)}#{inspect(reason)}",
-      description: nil
-    }
+  # Controller's action with expression has no match, e.g. on guard
+  def call(conn, _), do: call(conn, {:error, :unknown_error})
 
-    json(conn, Serializers.Response.serialize(data, :error))
+  defp respond(conn, %{code: code, description: description}) do
+    json(conn, Error.serialize(code, description))
   end
 end

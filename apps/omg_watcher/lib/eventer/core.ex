@@ -50,7 +50,7 @@ defmodule OMG.Watcher.Eventer.Core do
 
   defp create_address_spent_event(event_trigger, address) do
     subtopic = create_transfer_subtopic(address)
-    {subtopic, Event.AddressSpent.name(), struct(Event.AddressSpent, event_trigger)}
+    {subtopic, "address_spent", struct(Event.AddressSpent, event_trigger)}
   end
 
   defp get_address_received_events(
@@ -71,7 +71,7 @@ defmodule OMG.Watcher.Eventer.Core do
   defp create_address_received_event(event_trigger, address) do
     subtopic = create_transfer_subtopic(address)
 
-    {subtopic, Event.AddressReceived.name(), struct(Event.AddressReceived, event_trigger)}
+    {subtopic, "address_received", struct(Event.AddressReceived, event_trigger)}
   end
 
   defp create_transfer_subtopic(address) do

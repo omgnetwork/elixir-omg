@@ -21,7 +21,10 @@ defmodule OMG.RPC.Web.TestHelper do
   use Plug.Test
 
   def rpc_call(method, path, params_or_body \\ nil) do
-    request = conn(method, path, params_or_body)
+    request =
+      conn(method, path, params_or_body)
+      |> put_req_header("content-type", "application/json")
+
     response = request |> send_request
 
     assert response.status == 200
@@ -31,7 +34,6 @@ defmodule OMG.RPC.Web.TestHelper do
 
   defp send_request(req) do
     req
-    |> put_private(:plug_skip_csrf_protection, true)
     |> OMG.RPC.Web.Endpoint.call([])
   end
 end

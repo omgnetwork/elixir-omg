@@ -15,35 +15,26 @@
 defmodule OMG.Watcher.Web.View.ErrorView do
   use OMG.Watcher.Web, :view
 
-  alias OMG.Watcher.Web.Serializers
-
   @doc """
   Supports internal server error thrown by Phoenix.
   """
-  def render("500.json", %{reason: %{message: message}}) do
-    render_error("server:internal_server_error", message)
-  end
-
-  @doc """
-  Supports bad request error thrown by Phoenix.
-  """
-  def render("400.json", %{reason: %{message: message}}) do
-    render_error("client:invalid_parameter", message)
+  def render("500.json", %{reason: %{message: message}} = conn) do
+    OMG.RPC.Web.Error.serialize(
+      "server:internal_server_error",
+      message,
+      # add stack trace unless running on production env
+      if(Mix.env() in [:dev, :test], do: "#{inspect(Map.get(conn, :stack))}")
+    )
   end
 
   @doc """
   Renders error when no render clause matches or no template is found.
   """
-  def template_not_found(_template, _assigns) do
-    render_error(
-      "server:internal_server_error",
-      "Something went wrong on the server or template cannot be found."
+  def template_not_found(_template, %{reason: reason}) do
+    throw(
+      "Unmatched render clause for template #{inspect(Map.get(reason, :template, "<unable to find>"))} in #{
+        inspect(Map.get(reason, :module, "<unable to find>"))
+      }"
     )
-  end
-
-  defp render_error(code, message) do
-    code
-    |> Serializers.Error.serialize(message)
-    |> Serializers.Response.serialize(:error)
   end
 end

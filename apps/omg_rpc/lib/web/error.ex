@@ -12,16 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.RPC.Web.Serializers.Error do
+defmodule OMG.RPC.Web.Error do
   @moduledoc """
-  Serializes error's code and description provided in response's data field.
+  Provides standard data structure for API Error response
   """
 
-  @spec serialize(atom() | String.t(), String.t()) :: map()
-  def serialize(code, description) do
+  @doc """
+  Serializes error's code and description provided in response's data field.
+  """
+  @spec serialize(atom() | String.t(), String.t() | nil, map() | nil) :: map()
+  def serialize(code, description, messages \\ nil) do
     %{
+      object: :error,
       code: code,
       description: description
     }
+    |> add_messages(messages)
+    |> OMG.RPC.Web.Response.serialize()
   end
+
+  defp add_messages(data, nil), do: data
+  defp add_messages(data, messages), do: Map.put_new(data, :messages, messages)
 end

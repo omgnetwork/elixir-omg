@@ -6,7 +6,7 @@ API specification of the Watcher's Informational Service
 ## Account - Get Balance
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.get_balance -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.get_balance -d '{"address": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"}'
 ```
 
 ```elixir
@@ -25,11 +25,11 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.g
     "success": true,
     "data": [
         {
-            "currency": "BFDF85743EF16CFB1F8D4DD1DFC74C51DC496434",
+            "currency": "0xbfdf85743ef16cfb1f8d4dd1dfc74c51dc496434",
             "amount": 20
         },
         {
-            "currency": "0000000000000000000000000000000000000000",
+            "currency": "0x0000000000000000000000000000000000000000",
             "amount": 1000000000
         }
     ]
@@ -73,9 +73,9 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.g
     "data": [
         {
             "txindex": 1,
-            "owner": "B3256026863EB6AE5B06FA396AB09069784EA8EA",
+            "owner": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
             "oindex": 0,
-            "currency": "0000000000000000000000000000000000000000",
+            "currency": "0x0000000000000000000000000000000000000000",
             "blknum": 1000,
             "amount": 10,
             "utxo_pos": 10000000010000000
@@ -101,7 +101,7 @@ address | Hex encoded string | Address of the account
 ## Account - Get Transactions
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.get_transactions -d '{"address": "b3256026863eb6ae5b06fa396ab09069784ea8ea"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.get_transactions -d '{"address": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"}'
 ```
 
 ```elixir
@@ -122,15 +122,15 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/account.g
         {
             "block": {
                 "timestamp": 1540365586,
-                "hash": "0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC",
+                "hash": "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec",
                 "eth_height": 97424,
                 "blknum": 68290000
             },
             "txindex": 0,
-            "txhash": "5DF13A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21",
+            "txhash": "0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21",
             "results": [
                 {
-                    "currency": "0000000000000000000000000000000000000000",
+                    "currency": "0x0000000000000000000000000000000000000000",
                     "value": 20000000
                 }
             ]
@@ -178,15 +178,15 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/transacti
         {
             "block": {
                 "timestamp": 1540365586,
-                "hash": "0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC",
+                "hash": "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec",
                 "eth_height": 97424,
                 "blknum": 68290000
             },
             "txindex": 0,
-            "txhash": "5DF13A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21",
+            "txhash": "0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21",
             "results": [
                 {
-                    "currency": "0000000000000000000000000000000000000000",
+                    "currency": "0x0000000000000000000000000000000000000000",
                     "value": 20000000
                 }
             ]
@@ -194,15 +194,15 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/transacti
         {
             "block": {
                 "timestamp": 1540365586,
-                "hash": "0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC",
+                "hash": "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec",
                 "eth_height": 97424,
                 "blknum": 68290000
             },
             "txindex": 1,
-            "txhash": "ACBD3A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21",
+            "txhash": "0xabcd3a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21",
             "results": [
                 {
-                    "currency": "12345...",
+                    "currency": "0xbfdf85743ef16cfb1f8d4dd1dfc74c51dc496434",
                     "value": 32
                 }
             ]
@@ -234,7 +234,7 @@ limit | Integer | Maximum number of transactions to return (default 200)
 ## Transaction -  Get
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/transaction.get -d '{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/transaction.get -d '{"id": "0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
 ```
 
 ```elixir
@@ -253,21 +253,21 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/transacti
     "success": true,
     "data": {
         "txindex": 1,
-        "txhash": "5DF13A6BF96DBCF6E66D8BABD6B55BD40D64D4320C3B115364C6588FC18C2A21",
+        "txhash": "0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21",
         "outputs": [
             {
                 "txindex": 1,
-                "owner": "B3256026863EB6AE5B06FA396AB09069784EA8EA",
+                "owner": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
                 "oindex": 0,
-                "currency": "0000000000000000000000000000000000000000",
+                "currency": "0x0000000000000000000000000000000000000000",
                 "blknum": 68290000,
                 "amount": 2
             },
             {
                 "txindex": 1,
-                "owner": "AE8AE48796090BA693AF60B5EA6BE3686206523B",
+                "owner": "0xae8ae48796090ba693af60b5ea6be3686206523b",
                 "oindex": 1,
-                "currency": "0000000000000000000000000000000000000000",
+                "currency": "0x0000000000000000000000000000000000000000",
                 "blknum": 68290000,
                 "amount": 7
             }
@@ -275,17 +275,17 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/transacti
         "inputs": [
             {
                 "txindex": 1,
-                "owner": "B3256026863EB6AE5B06FA396AB09069784EA8EA",
+                "owner": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
                 "oindex": 0,
-                "currency": "0000000000000000000000000000000000000000",
+                "currency": "0x0000000000000000000000000000000000000000",
                 "blknum": 1000,
                 "amount": 10
             }
         ],
-        "txbytes": "B5C5BAC57BCA...",
+        "txbytes": "0x3eb6ae5b06f3...",
         "block": {
             "timestamp": 1540365586,
-            "hash": "0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC",
+            "hash": "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec",
             "eth_height": 97424,
             "blknum": 68290000
         }
@@ -330,13 +330,13 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/block.all
     "data": [
         {
             "timestamp": 1540365586,
-            "hash": "0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC",
+            "hash": "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec",
             "eth_height": 97424,
             "blknum": 68290000
         },
         {
             "timestamp": 1540455586,
-            "hash": "0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC",
+            "hash": "0x0057d0f13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c",
             "eth_height": 97425,
             "blknum": 68290001
         }
@@ -365,7 +365,7 @@ from_blknum | Integer | The block number of the latest block in the list to be r
 ## Block - Get
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:7434/block.get -d '{"id": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/block.get -d '{"id": "0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"}'
 ```
 
 ```elixir
@@ -384,7 +384,7 @@ curl -X POST -H "Content-Type: application/json" http://localhost:7434/block.get
     "success": true,
     "data": {
         "timestamp": 1540365586,
-        "hash": "0017372421F9A92BEDB7163310918E623557AB5310BEFC14E67212B660C33BEC",
+        "hash": "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec",
         "eth_height": 97424,
         "blknum": 68290000
     }

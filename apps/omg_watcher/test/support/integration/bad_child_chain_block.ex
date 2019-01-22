@@ -20,8 +20,9 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
 
   alias OMG.API.Block
   alias OMG.RPC.Client
+  alias OMG.RPC.Web.Encoding
   alias OMG.Watcher.Integration.TestServer
-  alias OMG.Watcher.Web.Serializers.Response
+  alias OMG.Watcher.Web.Serializer.Response
 
   @doc """
   Adds a route to TestServer which responded with prepared bad block when asked for known hash
@@ -34,10 +35,10 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
       fn %{body: params} ->
         {:ok, %{"hash" => req_hash}} = Poison.decode(params)
 
-        if bad_block_hash == Base.decode16!(req_hash) do
+        if {:ok, bad_block_hash} == Encoding.from_hex(req_hash) do
           bad_block
           |> Block.to_api_format()
-          |> Response.clean_artifacts()
+          |> Response.sanitize()
           |> TestServer.make_response()
         else
           {:ok, block} =

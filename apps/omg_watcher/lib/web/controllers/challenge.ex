@@ -22,28 +22,17 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
 
   alias OMG.API.Utxo
   alias OMG.Watcher.API
-  alias OMG.Watcher.Web.View
-  import OMG.Watcher.Web.ErrorHandler
-
-  action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
   @doc """
   Challenges exits
   """
   def get_utxo_challenge(conn, params) do
-    with {:ok, utxo_pos} <- Map.fetch(params, "utxo_pos"),
+    with {:ok, utxo_pos} <- expect(params, "utxo_pos", :pos_integer),
          utxo <- Utxo.Position.decode(utxo_pos) do
-      challenge = API.Utxo.create_challenge(utxo)
-      respond(challenge, conn)
+      utxo
+      |> API.Utxo.create_challenge()
+      |> api_response(conn, :challenge)
     end
-  end
-
-  defp respond({:ok, challenge}, conn) do
-    render(conn, View.Challenge, :challenge, challenge: challenge)
-  end
-
-  defp respond({:error, code}, conn) do
-    handle_error(conn, code)
   end
 
   def swagger_definitions do

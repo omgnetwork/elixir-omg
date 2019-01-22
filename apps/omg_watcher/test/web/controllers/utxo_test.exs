@@ -27,7 +27,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   require Utxo
 
   @eth Crypto.zero_address()
-  @eth_hex String.duplicate("00", 20)
+  @eth_hex Crypto.zero_address() |> OMG.RPC.Web.Encoding.to_hex()
 
   @tag fixtures: [:initial_blocks, :carol]
   test "no utxos are returned for non-existing addresses", %{carol: carol} do
@@ -36,7 +36,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
 
   @tag fixtures: [:initial_blocks, :alice]
   test "utxo from initial blocks are available", %{alice: alice} do
-    alice_enc = Base.encode16(alice.addr)
+    alice_enc = alice.addr |> OMG.RPC.Web.Encoding.to_hex()
 
     assert [
              %{
@@ -93,14 +93,14 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
                "blknum" => 11_000,
                "txindex" => 0,
                "oindex" => 1,
-               "currency" => "0000000000000000000000000000000000000000"
+               "currency" => @eth_hex
              }
            ] = TestHelper.get_utxos(carol.addr)
   end
 
   @tag fixtures: [:initial_blocks, :bob]
   test "unspent deposits are a part of utxo set", %{bob: bob} do
-    bob_enc = Base.encode16(bob.addr)
+    bob_enc = bob.addr |> OMG.RPC.Web.Encoding.to_hex()
     deposited_utxo = bob.addr |> TestHelper.get_utxos() |> Enum.find(&(&1["blknum"] < 1000))
 
     assert %{
@@ -148,7 +148,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
     # bob has spent his deposit
     assert [] == utxos |> Enum.filter(&(&1["blknum"] < 1000))
 
-    carol_enc = Base.encode16(carol.addr)
+    carol_enc = carol.addr |> OMG.RPC.Web.Encoding.to_hex()
 
     # carol has new utxo from above tx
     assert [
@@ -161,6 +161,21 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
                "owner" => ^carol_enc
              }
            ] = TestHelper.get_utxos(carol.addr)
+  end
+
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "get.utxos handles improper type of parameter" do
+    assert %{
+             "object" => "error",
+             "code" => "get_utxos:bad_request",
+             "description" => "Parameters required by this action are missing or incorrect.",
+             "messages" => %{
+               "validation_error" => %{
+                 "parameter" => "address",
+                 "validator" => ":hex"
+               }
+             }
+           } == TestHelper.no_success?("account.get_utxos", %{"address" => 1_234_567_890})
   end
 
   @tag fixtures: [:initial_blocks]
@@ -180,9 +195,10 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
     utxo_pos = Utxo.position(7000, 1, 0) |> Utxo.Position.encode()
 
     assert %{
+             "object" => "error",
              "code" => "exit:invalid",
              "description" => "Utxo was spent or does not exist."
-           } = TestHelper.no_success?("/utxo.get_exit_data", %{"utxo_pos" => utxo_pos})
+           } = TestHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => utxo_pos})
   end
 
   @tag fixtures: [:blocks_inserter, :alice]
@@ -214,5 +230,20 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
         "oindex" => 0
       }
     ] = TestHelper.get_utxos(alice.addr) |> Enum.filter(&match?(%{"blknum" => ^blknum}, &1))
+  end
+
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "utxo.get_exit_data handles improper type of parameter" do
+    assert %{
+             "object" => "error",
+             "code" => "get_utxo_exit:bad_request",
+             "description" => "Parameters required by this action are missing or incorrect.",
+             "messages" => %{
+               "validation_error" => %{
+                 "parameter" => "utxo_pos",
+                 "validator" => ":integer"
+               }
+             }
+           } == TestHelper.no_success?("utxo.get_exit_data", %{"utxo_pos" => "1200000120000"})
   end
 end

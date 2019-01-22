@@ -19,10 +19,26 @@ defmodule OMG.Watcher.Web.View.Account do
 
   use OMG.Watcher.Web, :view
 
-  alias OMG.Watcher.Web.Serializers
+  alias OMG.API.Utxo
+  require Utxo
 
-  def render("balance.json", %{balance: balance}) do
+  def render("balance.json", %{response: balance}) do
     balance
-    |> Serializers.Response.serialize(:success)
+    |> OMG.RPC.Web.Response.serialize()
+  end
+
+  def render("utxos.json", %{response: utxos}) do
+    utxos
+    |> Enum.map(&to_view/1)
+    |> OMG.RPC.Web.Response.serialize()
+  end
+
+  defp to_view(db_entry) do
+    view =
+      db_entry
+      |> Map.take([:amount, :currency, :blknum, :txindex, :oindex, :owner])
+
+    view
+    |> Map.put(:utxo_pos, Utxo.position(view.blknum, view.txindex, view.oindex) |> Utxo.Position.encode())
   end
 end
