@@ -22,7 +22,6 @@ defmodule OMG.Watcher.Web.Controller.Status do
   use PhoenixSwagger
 
   alias OMG.Watcher.API
-  alias OMG.Watcher.Web.View
 
   @doc """
   Gets plasma network and Watcher status

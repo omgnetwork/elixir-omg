@@ -21,53 +21,32 @@ defmodule OMG.Watcher.Web.Controller.InflightExit do
   use PhoenixSwagger
 
   alias OMG.Watcher.API
-  alias OMG.Watcher.Web.View
-
-  import OMG.Watcher.Web.ErrorHandler
-
-  action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
   @doc """
   For a given transaction provided in params,
   responds with arguments for plasma contract function that starts in-flight exit.
   """
   def get_in_flight_exit(conn, params) do
-    with {:ok, txbytes_enc} <- Map.fetch(params, "txbytes"),
+    with {:ok, txbytes_enc} <- expect(params, "txbytes", :hex),
          {:ok, txbytes} <- Base.decode16(txbytes_enc, case: :mixed) do
-      in_flight_exit = API.InflightExit.get_in_flight_exit(txbytes)
-      respond(in_flight_exit, :in_flight_exit, conn)
+      API.InflightExit.get_in_flight_exit(txbytes)
+      |> api_response(conn, :in_flight_exit)
     end
   end
 
   def get_competitor(conn, params) do
-    with {:ok, txbytes_enc} <- Map.fetch(params, "txbytes"),
+    with {:ok, txbytes_enc} <- expect(params, "txbytes", :hex),
          {:ok, txbytes} <- Base.decode16(txbytes_enc, case: :mixed) do
-      competitor = API.InflightExit.get_competitor(txbytes)
-      respond(competitor, :competitor, conn)
+      API.InflightExit.get_competitor(txbytes)
+      |> api_response(conn, :competitor)
     end
   end
 
   def prove_canonical(conn, params) do
-    with {:ok, txbytes_enc} <- Map.fetch(params, "txbytes"),
+    with {:ok, txbytes_enc} <- expect(params, "txbytes", :hex),
          {:ok, txbytes} <- Base.decode16(txbytes_enc, case: :mixed) do
-      competitor = API.InflightExit.prove_canonical(txbytes)
-      respond(competitor, :prove_canonical, conn)
+      API.InflightExit.prove_canonical(txbytes)
+      |> api_response(conn, :prove_canonical)
     end
-  end
-
-  defp respond({:ok, in_flight_exit}, :in_flight_exit, conn) do
-    render(conn, View.InflightExit, :in_flight_exit, in_flight_exit: in_flight_exit)
-  end
-
-  defp respond({:ok, competitor}, :competitor, conn) do
-    render(conn, View.InflightExit, :competitor, competitor: competitor)
-  end
-
-  defp respond({:ok, prove_canonical}, :prove_canonical, conn) do
-    render(conn, View.InflightExit, :prove_canonical, prove_canonical: prove_canonical)
-  end
-
-  defp respond({:error, code}, _, conn) do
-    handle_error(conn, code)
   end
 end

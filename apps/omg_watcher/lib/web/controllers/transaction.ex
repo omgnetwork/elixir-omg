@@ -45,19 +45,6 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
     end
   end
 
-  @doc """
-  For a given transaction provided in params,
-  responds with arguments for plasma contract function that starts in-flight exit.
-  """
-  # FIXME: move to the right place
-  def get_in_flight_exit(conn, params) do
-    with {:ok, tx} <- expect(params, "txbytes", :hex),
-         {:ok, tx} <- OMG.API.State.Transaction.Signed.decode(tx) do
-      API.Transaction.get_in_flight_exit(tx)
-      |> api_response(conn, :in_flight_exit)
-    end
-  end
-
   def swagger_definitions do
     %{
       Transaction:
