@@ -95,7 +95,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
       :nosync ->
         []
 
-      %{sync_height: synced_height} when synced_height > previous_synced_height ->
+      %SyncData{sync_height: synced_height} when synced_height > previous_synced_height ->
         state.services
         |> Map.values()
         |> Enum.filter(fn service -> service.synced_height <= synced_height end)
@@ -109,7 +109,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
   @doc """
   Gets synchronized info
   """
-  @spec get_synced_info(t(), atom() | pid()) :: {:sync, non_neg_integer()} | :nosync
+  @spec get_synced_info(t(), atom() | pid()) :: SyncData.t() | :nosync
   def get_synced_info(state, pid) when is_pid(pid) do
     service = Enum.find(state.services, fn service -> match?({_, %Service{pid: ^pid}}, service) end)
 

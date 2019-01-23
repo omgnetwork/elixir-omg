@@ -69,7 +69,7 @@ defmodule OMG.API.EthereumEventListener.Core do
 
   def get_events_range_for_download(
         %__MODULE__{
-          cached: %{data: data, request_max_size: request_max_size, events_uper_bound: old_uper_bound} = cached_data
+          cached: %{request_max_size: request_max_size, events_uper_bound: old_uper_bound} = cached_data
         } = state,
         %SyncData{sync_height: sync_height, root_chain: root_chain_height}
       ) do
@@ -85,9 +85,7 @@ defmodule OMG.API.EthereumEventListener.Core do
 
   @spec add_new_events(t(), list(event)) :: t()
   def add_new_events(
-        %__MODULE__{
-          cached: %{data: data, request_max_size: request_max_size} = cached_data
-        } = state,
+        %__MODULE__{cached: %{data: data} = cached_data} = state,
         new_events
       ) do
     %__MODULE__{state | cached: %{cached_data | data: data ++ new_events}}
