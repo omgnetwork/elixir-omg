@@ -18,7 +18,6 @@ defmodule OMG.API.State.Transaction do
   """
 
   alias OMG.API.Crypto
-  alias OMG.API.State.Transaction.Signed
   alias OMG.API.Utxo
 
   require Utxo
@@ -224,25 +223,6 @@ defmodule OMG.API.State.Transaction do
     |> encode
     |> Crypto.hash()
   end
-
-  @doc """
-    Signs transaction using private keys
-
-    private keys are in the  binary form, e.g.:
-    ```<<54, 43, 207, 67, 140, 160, 190, 135, 18, 162, 70, 120, 36, 245, 106, 165, 5, 101, 183,
-      55, 11, 117, 126, 135, 49, 50, 12, 228, 173, 219, 183, 175>>```
-  """
-  @spec sign(t(), list(Crypto.priv_key_t())) :: Signed.t()
-  def sign(%__MODULE__{} = tx, private_keys) do
-    encoded_tx = encode(tx)
-    sigs = Enum.map(private_keys, fn pk -> signature(encoded_tx, pk) end)
-
-    transaction = %Signed{raw_tx: tx, sigs: sigs}
-    %{transaction | signed_tx_bytes: Signed.encode(transaction)}
-  end
-
-  defp signature(_encoded_tx, <<>>), do: <<0::size(520)>>
-  defp signature(encoded_tx, priv), do: Crypto.signature(encoded_tx, priv)
 
   @doc """
   Returns all input currencies

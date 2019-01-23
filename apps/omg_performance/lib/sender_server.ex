@@ -24,6 +24,7 @@ defmodule OMG.Performance.SenderServer do
   use OMG.API.LoggerExt
 
   alias OMG.API.Crypto
+  alias OMG.API.DevCrypto
   alias OMG.API.State.Transaction
   alias OMG.API.TestHelper
   alias OMG.API.Utxo
@@ -124,7 +125,7 @@ defmodule OMG.Performance.SenderServer do
     # create and return signed transaction
     [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
     |> Transaction.new([{spender.addr, @eth, newamount}, {recipient.addr, @eth, to_spend}])
-    |> Transaction.sign([spender.priv, <<>>])
+    |> DevCrypto.sign([spender.priv, <<>>])
   end
 
   # Submits new transaction to the blockchain server.

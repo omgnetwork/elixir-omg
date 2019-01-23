@@ -13,6 +13,7 @@ Run a developer's Child chain server and start IEx REPL with code and config loa
 
 alias OMG.{API, Eth}
 alias OMG.API.Crypto
+alias OMG.API.DevCrypto
 alias OMG.API.State.Transaction
 alias OMG.API.TestHelper
 alias OMG.API.Integration.DepositHelper
@@ -32,7 +33,7 @@ deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, 10)
 # create and prepare transaction for signing
 tx =
   Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
-  Transaction.sign([alice.priv, <<>>]) |>
+  DevCrypto.sign([alice.priv, <<>>]) |>
   Transaction.Signed.encode() |>
   OMG.RPC.Web.Encoding.to_hex()
 
