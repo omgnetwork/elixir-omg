@@ -25,6 +25,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   alias OMG.API.State.Transaction
   alias OMG.Eth
   alias OMG.RPC.Client
+  alias OMG.RPC.Web.Encoding
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
 
@@ -136,14 +137,14 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     %Transaction.Signed{raw_tx: raw_tx1} = tx1
     %Transaction.Signed{raw_tx: raw_tx2} = tx2
-    raw_tx1_bytes = raw_tx1 |> Transaction.encode() |> Base.encode16(case: :upper)
-    raw_tx2_bytes = raw_tx2 |> Transaction.encode() |> Base.encode16(case: :upper)
+    raw_tx1_bytes = raw_tx1 |> Transaction.encode() |> Encoding.to_hex()
+    raw_tx2_bytes = raw_tx2 |> Transaction.encode() |> Encoding.to_hex()
 
     get_in_flight_exit_response1 =
-      tx1 |> Transaction.Signed.encode() |> Base.encode16(case: :upper) |> TestHelper.get_in_flight_exit()
+      tx1 |> Transaction.Signed.encode() |> Encoding.to_hex() |> TestHelper.get_in_flight_exit()
 
     get_in_flight_exit_response2 =
-      tx2 |> Transaction.Signed.encode() |> Base.encode16(case: :upper) |> TestHelper.get_in_flight_exit()
+      tx2 |> Transaction.Signed.encode() |> Encoding.to_hex() |> TestHelper.get_in_flight_exit()
 
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.in_flight_exit(
@@ -192,7 +193,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     # assert [%{"details" => %{"available_outputs" => outputs_list}}] =
     #          Enum.filter(events, fn %{"event" => "piggyback_available"} -> true end)
     #
-    # bob_hex = "0x" <> Base.encode(bob, case: :upper)
+    # bob_hex =  Encoding.to_hex(bob.addr)
     # assert [%{"index" => 0, address: ^bob_hex} | _] = outputs_list
 
     # Do the piggyback on the output.
@@ -200,7 +201,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     #   OMG.Eth.RootChain.piggyback_in_flight_exit(raw_tx2_bytes, 4 + 0, bob)
 
     # TODO: OMG-311
-    # alice_hex = "0x" <> Base.encode(alice, case: :upper)
+    # alice_hex =  Encoding.to_hex(alice.addr)
     # assert [%{"index" => 0, address: ^alice_hex} | _] = outputs_list
 
     # Do the piggyback on the input.

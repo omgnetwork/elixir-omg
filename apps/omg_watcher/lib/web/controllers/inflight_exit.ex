@@ -27,24 +27,21 @@ defmodule OMG.Watcher.Web.Controller.InflightExit do
   responds with arguments for plasma contract function that starts in-flight exit.
   """
   def get_in_flight_exit(conn, params) do
-    with {:ok, txbytes_enc} <- expect(params, "txbytes", :hex),
-         {:ok, txbytes} <- Base.decode16(txbytes_enc, case: :mixed) do
+    with {:ok, txbytes} <- expect(params, "txbytes", :hex) do
       API.InflightExit.get_in_flight_exit(txbytes)
       |> api_response(conn, :in_flight_exit)
     end
   end
 
   def get_competitor(conn, params) do
-    with {:ok, txbytes_enc} <- expect(params, "txbytes", :hex),
-         {:ok, txbytes} <- Base.decode16(txbytes_enc, case: :mixed) do
+    with {:ok, txbytes} <- expect(params, "txbytes", :hex) do
       API.InflightExit.get_competitor(txbytes)
       |> api_response(conn, :competitor)
     end
   end
 
   def prove_canonical(conn, params) do
-    with {:ok, txbytes_enc} <- expect(params, "txbytes", :hex),
-         {:ok, txbytes} <- Base.decode16(txbytes_enc, case: :mixed) do
+    with {:ok, txbytes} <- expect(params, "txbytes", :hex) do
       API.InflightExit.prove_canonical(txbytes)
       |> api_response(conn, :prove_canonical)
     end
