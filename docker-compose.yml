@@ -45,6 +45,7 @@ services:
       - ELIXIR_SERVICE=CHILDCHAIN
       - CONTRACT_EXCHANGER_URL=http://docker.for.mac.localhost:5000
       - ETHEREUM_RPC_URL=http://docker.for.mac.localhost:8545
+      - CHILDCHAIN_URL=http://docker.for.mac.localhost:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
     restart: always
     ports:
