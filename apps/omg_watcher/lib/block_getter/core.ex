@@ -28,10 +28,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
     when is problem with downloading block
     """
 
-    defstruct [:blknum, :time]
+    defstruct [:blknum, :hash, :time]
 
     @type t :: %__MODULE__{
             blknum: pos_integer,
+            hash: binary,
             time: pos_integer
           }
   end
@@ -459,7 +460,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
            potential_block_withholdings: potential_block_withholdings,
            config: config
          } = state,
-         {:ok, %PotentialWithholdingReport{blknum: blknum, time: time}}
+         {:ok, %PotentialWithholdingReport{blknum: blknum, hash: hash, time: time}}
        ) do
     %{time: blknum_time} = Map.get(potential_block_withholdings, blknum, %PotentialWithholding{})
 
@@ -475,7 +476,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         {:ok, state}
 
       time - blknum_time >= config.maximum_block_withholding_time_ms ->
-        event = %Event.BlockWithholding{blknum: blknum}
+        event = %Event.BlockWithholding{blknum: blknum, hash: hash}
 
         state =
           state
@@ -552,7 +553,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         }"
       end)
 
-    {:ok, %PotentialWithholdingReport{blknum: requested_number, time: time}}
+    {:ok, %PotentialWithholdingReport{blknum: requested_number, hash: requested_hash, time: time}}
   end
 
   @spec validate_executions(

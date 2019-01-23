@@ -234,14 +234,16 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "handle_downloaded_block function called twice with PotentialWithholdingReport returns BlockWithholding event" do
+    requested_hash = <<1>>
+
     init_state(opts: [maximum_number_of_pending_blocks: 5, maximum_block_withholding_time_ms: 0])
     |> Core.get_numbers_of_blocks_to_download(3_000)
     |> assert_check([1_000, 2_000])
-    |> handle_downloaded_block(Core.validate_download_response({:error, :error_reason}, <<>>, 2_000, 0, 0))
+    |> handle_downloaded_block(Core.validate_download_response({:error, :error_reason}, requested_hash, 2_000, 0, 0))
     |> handle_downloaded_block(
-      Core.validate_download_response({:error, :error_reason}, <<>>, 2_000, 0, 1),
+      Core.validate_download_response({:error, :error_reason}, requested_hash, 2_000, 0, 1),
       {:error, :withholding},
-      [%Event.BlockWithholding{blknum: 2000}]
+      [%Event.BlockWithholding{blknum: 2000, hash: requested_hash}]
     )
   end
 
@@ -285,13 +287,15 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "handle_downloaded_block function after maximum_block_withholding_time_ms returns BlockWithholding event" do
+    requested_hash = <<1>>
+
     init_state(opts: [maximum_number_of_pending_blocks: 4, maximum_block_withholding_time_ms: 1000])
-    |> handle_downloaded_block(Core.validate_download_response({:error, :error_reason}, <<>>, 3_000, 0, 0))
-    |> handle_downloaded_block(Core.validate_download_response({:error, :error_reason}, <<>>, 3_000, 0, 500))
+    |> handle_downloaded_block(Core.validate_download_response({:error, :error_reason}, requested_hash, 3_000, 0, 0))
+    |> handle_downloaded_block(Core.validate_download_response({:error, :error_reason}, requested_hash, 3_000, 0, 500))
     |> handle_downloaded_block(
-      Core.validate_download_response({:error, :error_reason}, <<>>, 3_000, 0, 1000),
+      Core.validate_download_response({:error, :error_reason}, requested_hash, 3_000, 0, 1000),
       {:error, :withholding},
-      [%Event.BlockWithholding{blknum: 3_000}]
+      [%Event.BlockWithholding{blknum: 3_000, hash: requested_hash}]
     )
   end
 
