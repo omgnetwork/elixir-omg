@@ -38,6 +38,8 @@ defmodule OMG.Eth.RootChain do
   @standard_exit_bond 31_415_926_535
   @piggyback_bond 31_415_926_535
 
+  @type in_flight_exit_piggybacked_event() :: %{owner: <<_::160>>, tx_hash: <<_::256>>, output_index: non_neg_integer}
+
   @spec submit_block(binary, pos_integer, pos_integer, optional_addr_t(), optional_addr_t()) ::
           {:error, binary() | atom() | map()}
           | {:ok, binary()}
@@ -304,6 +306,7 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_deposit/1)}
   end
 
+  @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_addr_t) :: {:ok, [in_flight_exit_piggybacked_event]}
   def get_piggybacks(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "InFlightExitPiggybacked(address,bytes32,uint256)"

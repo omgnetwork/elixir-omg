@@ -35,7 +35,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @default_sla_margin 10
   @zero_address OMG.Eth.zero_address()
 
-  @type tx_hash() :: <<_::32>>
+  @type tx_hash() :: <<_::256>>
   @type output_offset() :: 0..7
 
   defstruct [:sla_margin, exits: %{}, in_flight_exits: %{}, competitors: %{}]
@@ -175,7 +175,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     Add piggybacks from Ethereum events into tracked state.
   """
   @spec new_piggybacks(t(), [%{tx_hash: tx_hash(), output_index: output_offset()}]) :: {t(), list()}
-  def new_piggybacks(%__MODULE__{} = state, piggybacks) do
+  def new_piggybacks(%__MODULE__{} = state, piggybacks) when is_list(piggybacks) do
     {updated_state, updated_pairs} = Enum.reduce(piggybacks, {state, %{}}, &process_piggyback/2)
     {updated_state, Enum.map(updated_pairs, &InFlightExitInfo.make_db_update/1)}
   end
