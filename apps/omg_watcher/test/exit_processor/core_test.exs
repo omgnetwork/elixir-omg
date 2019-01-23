@@ -651,6 +651,53 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     end
   end
 
+  describe "evaluates new piggybacks" do
+    @tag fixtures: [:processor_filled, :in_flight_exits]
+    test "detects none if there is no piggybacks", %{processor_filled: processor} do
+      assert {:ok, []} =
+               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+               |> Core.invalid_exits(processor)
+    end
+
+    @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
+    test "finds conflict if input is double-spend in inputs of two IFEs",
+         %{
+           alice: alice,
+           processor_filled: state,
+           transactions: [tx | _],
+           competing_transactions: [comp | _],
+           in_flight_exits: [{ife_id, _} | _]
+         } do
+      txbytes = Transaction.encode(tx)
+      comp_txbytes = Transaction.encode(comp)
+
+      %{sigs: [_, other_signature]} = DevCrypto.sign(comp, [<<>>, alice.priv])
+
+      other_ife_event = %{call_data: %{in_flight_tx: comp_txbytes, in_flight_tx_sigs: other_signature}, eth_height: 3}
+      other_ife_status = {1, <<1::192>>}
+
+      {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
+
+      {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 1}])
+
+      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+      {:ok, alerts} = Core.invalid_exits(request, state)
+      assert %Event.NonCanonicalIFE{txbytes: txbytes} in alerts
+      assert %Event.InvalidPiggyback{txbytes: txbytes, inputs: [1], outputs: []} in alerts
+      assert %Event.NonCanonicalIFE{txbytes: comp_txbytes} in alerts
+      # TODO: niekanoniczne IFE tez generują niepoprawne PB na inputach!!!
+    end
+
+    test "detects double-spend of an input" do
+    end
+
+    test "detects double-spend of an output" do
+    end
+
+    test "detects multiple double-spends in single IFE" do
+    end
+  end
+
   describe "finds competitors and allows canonicity challenges" do
     @tag fixtures: [:processor_filled]
     test "none if input never spent elsewhere",

@@ -169,4 +169,18 @@ defmodule OMG.Watcher.Event do
             name: atom()
           }
   end
+
+  defmodule InvalidPiggyback do
+    @moduledoc """
+    Notifies about invalid piggyback.
+    """
+
+    defstruct [:txbytes, :inputs, :outputs]
+
+    @type t :: %__MODULE__{
+            txbytes: binary(),
+            inputs: [non_neg_integer()],
+            outputs: [non_neg_integer()]
+          }
+  end
 end
