@@ -65,11 +65,11 @@ defmodule OMG.Watcher.Event do
     Notifies about invalid block
     """
 
-    defstruct [:hash, :number, :error_type, name: :invalid_block]
+    defstruct [:hash, :blknum, :error_type, name: :invalid_block]
 
     @type t :: %__MODULE__{
             hash: Block.block_hash_t(),
-            number: integer(),
+            blknum: integer(),
             error_type: atom(),
             name: atom()
           }

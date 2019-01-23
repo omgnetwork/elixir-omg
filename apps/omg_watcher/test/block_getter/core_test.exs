@@ -177,7 +177,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {:error, :incorrect_hash, matching_bad_returned_hash, 0} ==
              Core.validate_download_response({:ok, block}, matching_bad_returned_hash, 0, 0, 0)
 
-    events = [%Event.InvalidBlock{error_type: :incorrect_hash, hash: matching_bad_returned_hash, number: 1}]
+    events = [%Event.InvalidBlock{error_type: :incorrect_hash, hash: matching_bad_returned_hash, blknum: 1}]
 
     assert {{:error, :incorrect_hash}, %{events: ^events}} =
              Core.handle_downloaded_block(state, {:error, :incorrect_hash, matching_bad_returned_hash, 1})
@@ -317,7 +317,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     assert {{:error, :tx_execution, {}}, state} = Core.validate_executions([{:error, {}}], {:ok, []}, block, state)
 
-    assert {:error, [%Event.InvalidBlock{error_type: :tx_execution, hash: "", number: 1}]} = Core.chain_ok(state)
+    assert {:error, [%Event.InvalidBlock{error_type: :tx_execution, hash: "", blknum: 1}]} = Core.chain_ok(state)
   end
 
   test "after detecting twice same maximum possible potential withholdings get_numbers_of_blocks_to_download don't return this block" do

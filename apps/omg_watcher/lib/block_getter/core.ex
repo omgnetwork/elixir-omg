@@ -439,12 +439,12 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   defp validate_downloaded_block(
          %__MODULE__{} = state,
-         {:error, error_type, hash, number}
+         {:error, error_type, hash, blknum}
        ) do
     event = %Event.InvalidBlock{
       error_type: error_type,
       hash: hash,
-      number: number
+      blknum: blknum
     }
 
     state =
@@ -571,7 +571,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         event = %Event.InvalidBlock{
           error_type: :tx_execution,
           hash: hash,
-          number: blknum
+          blknum: blknum
         }
 
         state = %{

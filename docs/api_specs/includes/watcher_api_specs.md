@@ -316,7 +316,8 @@ Indicates that an invalid exit is dangerously close to finalization and hasn't b
     "event": "invalid_block",
     "details": {
         "blockhash"  : "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec",
-        "blocknum"  : 10000,
+        "blknum"  : 10000,
+        "error_type": "tx_execution"
     }
 }
 ```
