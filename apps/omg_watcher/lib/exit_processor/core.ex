@@ -556,7 +556,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Stream.map(fn %InFlightExitInfo{tx: signed_tx} -> signed_tx end)
     # TODO: expensive!
     |> Stream.filter(fn %Transaction.Signed{raw_tx: raw_tx} ->
-      Enum.any?(known_txs, fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} ->
+      !Enum.find(known_txs, fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} ->
         raw_tx == block_raw_tx
       end)
     end)
@@ -567,6 +567,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp prepare_available_piggyback(
          %Transaction.Signed{raw_tx: %Transaction{inputs: inputs, outputs: outputs} = tx} = signed_tx
        ) do
+    IO.inspect(signed_tx)
     {:ok, %Transaction.Recovered{spenders: input_owners}} = Transaction.Recovered.recover_from(signed_tx)
 
     available_inputs =
