@@ -32,9 +32,10 @@ defmodule OMG.DB.MixProject do
     [
       # version caused by dependency in merkle_patricia_tree from blockchain
       {:exleveldb, "~> 0.11"},
-      # TODO: we only need in :dev and :test here, but we need in :prod too in performance
+      # NOTE: we only need in :dev and :test here, but we need in :prod too in performance
       #       then there's some unexpected behavior of mix that won't allow to mix these, see
       #       [here](https://elixirforum.com/t/mix-dependency-is-not-locked-error-when-building-with-edeliver/7069/3)
+      #       OMG-373 (Elixir 1.8) should fix this
       {:briefly, "~> 0.3"},
       {:appsignal, "~> 1.0"}
     ]
