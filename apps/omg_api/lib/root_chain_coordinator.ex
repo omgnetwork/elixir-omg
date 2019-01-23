@@ -25,7 +25,6 @@ defmodule OMG.API.RootChainCoordinator do
     @moduledoc """
      info needed to synchronize 
     """
-
     defstruct [:root_chain, :sync_height]
 
     @type t() :: %__MODULE__{
