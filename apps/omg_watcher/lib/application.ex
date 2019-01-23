@@ -19,6 +19,8 @@ defmodule OMG.Watcher.Application do
 
   def start(_type, _args) do
     DeferredConfig.populate(:omg_watcher)
+    DeferredConfig.populate(:omg_rpc)
+
     start_root_supervisor()
   end
 
