@@ -69,11 +69,16 @@ defmodule OMG.API.EthereumEventListener.Core do
 
   def get_events_range_for_download(
         %__MODULE__{
+          block_finality_margin: block_finality_margin,
           cached: %{request_max_size: request_max_size, events_uper_bound: old_uper_bound} = cached_data
         } = state,
         %SyncData{sync_height: sync_height, root_chain: root_chain_height}
       ) do
-    upper_bound = max(sync_height, min(root_chain_height, old_uper_bound + request_max_size))
+    upper_bound =
+      max(
+        sync_height - block_finality_margin,
+        min(root_chain_height - block_finality_margin, old_uper_bound + request_max_size)
+      )
 
     new_state = %__MODULE__{
       state

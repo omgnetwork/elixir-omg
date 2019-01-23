@@ -30,16 +30,25 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
 
   defp event(height), do: %{eth_height: height}
 
-  defp assert_range({:get_events, range, state}, range2) do
-    assert range == range2
+  defp assert_range({:get_events, range, state}, expect) do
+    assert range == expect
     state
   end
 
-  defp assert_range({:dont_get_events, state}, :dont_get_events), do: state
+  defp assert_range({:dont_get_events, state}, expect) do
+    assert :dont_get_events == expect
+    state
+  end
 
   defp assert_events({:ok, events, db_update, new_state}, events2, db_update2) do
     assert {events, db_update} == {events2, db_update2}
     new_state
+  end
+
+  test "range moved by finality_margin" do
+    Core.init(@db_key, @service_name, _height = 0, _finality_margin = 5, _request_max_size = 100)
+    |> Core.get_events_range_for_download(%SyncData{sync_height: 1, root_chain: 10})
+    |> assert_range({1, 5})
   end
 
   test "produces next ethereum height range to get events from" do
@@ -47,7 +56,7 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
     |> Core.get_events_range_for_download(%SyncData{sync_height: 5, root_chain: 10})
     |> assert_range({1, 6})
     |> Core.get_events_range_for_download(%SyncData{sync_height: 7, root_chain: 10})
-    |> assert_range({7, 10})
+    |> assert_range({7, 8})
     |> Core.get_events_range_for_download(%SyncData{sync_height: 7, root_chain: 10})
     |> assert_range(:dont_get_events)
   end
@@ -64,8 +73,8 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
 
     create_state(3)
     |> Core.get_events_range_for_download(%SyncData{sync_height: 7, root_chain: 10})
-    |> assert_range({4, 9})
-    |> Core.add_new_events([event(4), event(5), event(7), event(9)])
+    |> assert_range({4, 8})
+    |> Core.add_new_events([event(4), event(5), event(7)])
     |> Core.get_events(7)
     |> assert_events([event(4), event(5)], [{:put, @db_key, 5}])
   end
