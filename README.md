@@ -2,7 +2,7 @@
 
 The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma and forms the basis for the OMG Network.
 
-[![Build Status](https://jenkins.omisego.io/buildStatus/icon?job=omisego/elixir-omg/master)](https://jenkins.omisego.io/blue/organizations/jenkins/omisego%2Felixir-omg/activity?branch=master) [![Coverage Status](https://coveralls.io/repos/github/omisego/elixir-omg/badge.svg?branch=master)](https://coveralls.io/github/omisego/elixir-omg?branch=master) [![Gitter chat](https://badges.gitter.im/omisego/elixir-omg.png)](https://gitter.im/omisego/elixir-omg)
+[![Build Status](https://circleci.com/gh/omisego/elixir-omg.svg?style=svg)](https://circleci.com/gh/omisego/elixir-omg) [![Coverage Status](https://coveralls.io/repos/github/omisego/elixir-omg/badge.svg?branch=master)](https://coveralls.io/github/omisego/elixir-omg?branch=master) [![Gitter chat](https://badges.gitter.im/omisego/elixir-omg.png)](https://gitter.im/omisego/elixir-omg)
 
 **IMPORTANT NOTICE: Heavily WIP, expect anything**
 
@@ -541,7 +541,7 @@ Longer-running integration tests (requires compiling contracts):
 mix test --only integration
 ```
 
-For other kinds of checks, refer to the CI/CD pipeline (`Jenkinsfile`).
+For other kinds of checks, refer to the CI/CD pipeline (https://circleci.com/gh/omisego/workflows/elixir-omg).
 
 To run a development `iex` REPL with all code loaded:
 ```bash
