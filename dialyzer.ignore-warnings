@@ -29,4 +29,4 @@ Function challenge_fastly_invalid_exits/1 has no local return
 # IEx related problems - we need IEx loaded for proper Mix.Tasks running - safe?
 :0: Unknown function 'Elixir.IEx':'started?'/0
 # Sentry problems
-Expression produces a value of type 'error' | 'excluded' | 'ignored' | 'unsampled' | {'ok',binary() | pid() | #{'__struct__':='Elixir.Task', 'owner':=_, 'pid':=_, 'ref':=_}}, but this value is unmatched
+Expression produces a value of type 'error' | 'excluded' | 'ignored' | 'unsampled' | {'ok',binary() | pid() | #{'__struct__':='Elixir.Task', 'owner':='nil' | pid(), 'pid':='nil' | pid(), 'ref':='nil' | reference()}}, but this value is unmatched

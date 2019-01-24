@@ -24,11 +24,11 @@ defmodule OMG.RPC.Client do
   Gets Block of given hash
   """
   @spec get_block(binary()) ::
-          {:ok, map()}
-          | {:error,
-             {:malformed_response, any()}
-             | {:client_error, any()}
-             | {:server_error, any()}}
+          {:error,
+           {:client_error, any()}
+           | {:malformed_response, false | nil | true | binary() | [any()] | number() | map()}
+           | {:server_error, any()}}
+          | {:ok, map()}
   def get_block(hash) do
     %{hash: Encoding.to_hex(hash)}
     |> rpc_post("block.get")
@@ -40,11 +40,11 @@ defmodule OMG.RPC.Client do
   Submits transaction
   """
   @spec submit(binary()) ::
-          {:ok, map()}
-          | {:error,
-             {:malformed_response, any()}
-             | {:client_error, any()}
-             | {:server_error, any()}}
+          {:error,
+           {:client_error, any()}
+           | {:malformed_response, false | nil | true | binary() | [any()] | number() | map()}
+           | {:server_error, any()}}
+          | {:ok, map()}
   def submit(tx) do
     %{transaction: Encoding.to_hex(tx)}
     |> rpc_post("transaction.submit")
