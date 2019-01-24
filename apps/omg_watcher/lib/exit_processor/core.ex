@@ -54,8 +54,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           competing_txbytes: binary(),
           competing_input_index: non_neg_integer(),
           competing_sig: binary(),
-          competing_txid: nil | Utxo.Position.t(),
-          competing_proof: nil | binary()
+          competing_txid: Utxo.Position.t(),
+          competing_proof: binary()
         }
 
   @type prove_canonical_data_t :: %{
@@ -382,6 +382,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     (ife_pos ++ standard_exits_pos)
     |> Enum.uniq()
+    |> Enum.filter(&Utxo.Position.non_zero?/1)
   end
 
   @doc """
@@ -534,15 +535,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @doc """
-  Returns a map of requested in flight exits, where keys are IFE hashes and values are IFES
-  If given empty list of hashes, all IFEs are returned.
+  Returns a map of all in flight exits, where keys are IFE hashes and values are IFES
   """
-  @spec get_in_flight_exits(__MODULE__.t(), [binary()]) :: %{binary() => InFlightExitInfo.t()}
-  def get_in_flight_exits(%__MODULE__{} = state, hashes \\ []), do: in_flight_exits(state, hashes)
-
-  defp in_flight_exits(%__MODULE__{in_flight_exits: ifes}, []), do: ifes
-
-  defp in_flight_exits(%__MODULE__{in_flight_exits: ifes}, hashes), do: Map.take(ifes, hashes)
+  @spec get_in_flight_exits(__MODULE__.t()) :: %{binary() => InFlightExitInfo.t()}
+  def get_in_flight_exits(%__MODULE__{in_flight_exits: ifes}), do: ifes
 
   @doc """
   Gets the root chain contract-required set of data to challenge a non-canonical ife
@@ -550,7 +546,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec get_competitor_for_ife(ExitProcessor.Request.t(), __MODULE__.t(), binary()) ::
           {:ok, competitor_data_t()} | {:error, :competitor_not_found}
   def get_competitor_for_ife(
-        %ExitProcessor.Request{blocks_result: blocks, input_owners_result: input_owners},
+        %ExitProcessor.Request{blocks_result: blocks},
         %__MODULE__{in_flight_exits: ifes} = state,
         ife_txbytes
       ) do
@@ -562,7 +558,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     # find its competitor and use it to prepare the requested data
     with {:ok, known_signed_tx} <- find_competitor(known_txs, signed_ife_tx),
-         do: {:ok, prepare_competitor_response(known_signed_tx, signed_ife_tx, input_owners, raw_ife_tx, blocks)}
+         do: {:ok, prepare_competitor_response(known_signed_tx, signed_ife_tx, blocks)}
   end
 
   @doc """
@@ -585,14 +581,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp prepare_competitor_response(
          %KnownTx{signed_tx: known_signed_tx, utxo_pos: known_tx_utxo_pos},
          %Transaction.Signed{raw_tx: raw_ife_tx} = signed_ife_tx,
-         input_owners,
-         raw_ife_tx,
          blocks
        ) do
     ife_inputs = Transaction.get_inputs(raw_ife_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
 
     %Transaction.Signed{raw_tx: raw_known_tx} = known_signed_tx
     known_spent_inputs = Transaction.get_inputs(raw_known_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
+    {:ok, %Transaction.Recovered{spenders: input_owners}} = Transaction.Recovered.recover_from(signed_ife_tx)
 
     # get info about the double spent input and it's respective indices in transactions
     spent_input = competitor_for(signed_ife_tx, known_signed_tx)
@@ -611,7 +606,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       competing_txbytes: raw_known_tx |> Transaction.encode(),
       competing_input_index: competing_input_index,
       competing_sig: competing_sig,
-      competing_txid: known_tx_utxo_pos,
+      competing_txid: known_tx_utxo_pos || Utxo.position(0, 0, 0),
       competing_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
     }
   end
@@ -624,7 +619,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     }
   end
 
-  defp maybe_calculate_proof(nil, _), do: nil
+  defp maybe_calculate_proof(nil, _), do: <<>>
 
   defp maybe_calculate_proof(Utxo.position(blknum, txindex, _), blocks) do
     blocks
