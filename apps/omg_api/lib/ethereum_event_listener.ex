@@ -22,6 +22,7 @@ defmodule OMG.API.EthereumEventListener do
   """
   alias OMG.API.EthereumEventListener.Core
   alias OMG.API.RootChainCoordinator
+  alias OMG.API.RootChainCoordinator.SyncData
 
   use OMG.API.LoggerExt
 
@@ -74,36 +75,34 @@ defmodule OMG.API.EthereumEventListener do
   end
 
   def handle_info(:sync, {core, _callbacks} = state) do
-    case RootChainCoordinator.get_height() do
+    case RootChainCoordinator.get_sync_info() do
       :nosync ->
         :ok = RootChainCoordinator.check_in(core.synced_height, core.service_name)
         {:noreply, state}
 
-      {:sync, next_sync_height} ->
-        new_state = sync_height(state, next_sync_height)
+      sync_info ->
+        new_state = sync_height(state, sync_info)
         {:noreply, new_state}
     end
   end
 
-  defp sync_height({core, callbacks}, next_sync_height) do
-    case Core.get_events_height_range_for_next_sync(core, next_sync_height) do
-      {:get_events, {event_height_lower_bound, event_height_upper_bound}, core, db_updates} ->
-        {:ok, events} = callbacks.get_ethereum_events_callback.(event_height_lower_bound, event_height_upper_bound)
-        {:ok, db_updates_from_callback} = callbacks.process_events_callback.(events)
-        :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
-        :ok = RootChainCoordinator.check_in(next_sync_height, core.service_name)
+  defp sync_height({state, callbacks}, %SyncData{sync_height: sync_height} = sync_info) do
+    state =
+      case Core.get_events_range_for_download(state, sync_info) do
+        {:get_events, {from, to}, state} ->
+          {:ok, new_events} = callbacks.get_ethereum_events_callback.(from, to)
+          Core.add_new_events(state, new_events)
 
-        _ =
-          Logger.debug(fn ->
-            "#{inspect(core.service_name)} processed '#{inspect(Enum.count(events))}' events."
-          end)
+        {:dont_fetch_events, state} ->
+          state
+      end
 
-        {core, callbacks}
+    {:ok, events, db_updates, state} = Core.get_events(state, sync_height)
+    {:ok, db_updates_from_callback} = callbacks.process_events_callback.(events)
+    :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
+    :ok = RootChainCoordinator.check_in(sync_height, state.service_name)
 
-      {:dont_get_events, core} ->
-        _ = Logger.debug(fn -> "Not getting events" end)
-        {core, callbacks}
-    end
+    {state, callbacks}
   end
 
   defp schedule_get_events(interval) do
