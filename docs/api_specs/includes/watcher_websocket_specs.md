@@ -1,7 +1,7 @@
 
 # Watcher - Events
 
-<aside class="warning">TODO Explanation of the WebSocket/ Phoenix Channels mechanism used to receive events</aside> 
+<aside class="warning">TODO Explanation of the WebSocket/ Phoenix Channels mechanism used to receive events</aside>
 
 ## Topic `transfer:{address}`
 
@@ -35,9 +35,9 @@
         },
         "sig1": "0x6bfb9b2dbe32 ...",
         "sig2": "0xcedb8b31d1e4 ...",
-        "signed_tx_bytes": "0xf3170101c0940000..."
+        "signed_txbytes": "0xf3170101c0940000..."
       },
-      "tx_hash": "0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d",
+      "txhash": "0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d",
       "spender1": "0xbfdf85743ef16cfb1f8d4dd1dfc74c51dc496434",
       "spender2": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"
     }
@@ -55,8 +55,8 @@ Both event types have the same structure.
 
 Attribute | Type | Description
 --------- | ------- | -----------
-child_blknum | Integer | 
-child_txindex | Integer | 
+child_blknum | Integer |
+child_txindex | Integer |
 child_block_hash | HEX-encoded string |
 submited_at_ethheight | integer |
 tx | object | Structure of signed transaction
@@ -89,7 +89,7 @@ Both event types have the same structure.
 
 Attribute | Type | Description
 --------- | ------- | -----------
-blknum | Integer | 
+blknum | Integer |
 block_hash | HEX-encoded string |
 ethheight | integer |
 timestamp | integer |
@@ -98,8 +98,8 @@ timestamp | integer |
 
 # RootChain - Events
 The RootChain contract raises certain events on Ethereum
-<aside class="warning">TODO We may want to forward these events through the watcher</aside> 
-<aside class="warning">TODO Most of these events are not currently implemented in the RootChain contract</aside> 
+<aside class="warning">TODO We may want to forward these events through the watcher</aside>
+<aside class="warning">TODO Most of these events are not currently implemented in the RootChain contract</aside>
 
  * new_deposit
  * exit_started
