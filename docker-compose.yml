@@ -2,11 +2,11 @@ version: "2.1"
 services:
   geth:
     image: ethereum/client-go:v1.8.21
-    entrypoint: /bin/sh -c "geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545"
+    entrypoint: /bin/sh -c "apk add curl && geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545"
     ports:
      - "8545:8545"
     healthcheck:
-      test: wget docker.for.mac.localhost:8545
+      test: curl docker.for.mac.localhost:8545
       interval: 5s
       timeout: 3s
       retries: 5
@@ -73,9 +73,9 @@ services:
       - "9656:9656"
     healthcheck:
       test: curl docker.for.mac.localhost:9656
-      interval: 5s
+      interval: 7s
       timeout: 3s
-      retries: 5
+      retries: 7
     depends_on:
       geth:
         condition: service_healthy
