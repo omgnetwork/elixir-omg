@@ -161,11 +161,10 @@ defmodule OMG.Watcher.Event do
     @type available_output :: %{index: pos_integer(), address: binary()}
 
     @type t :: %__MODULE__{
-                 txbytes: binary(),
-                 available_outputs: list(available_output()),
-                 available_inputs: list(available_output()),
-                 name: atom()
-               }
+            txbytes: binary(),
+            available_outputs: list(available_output()),
+            available_inputs: list(available_output()),
+            name: atom()
+          }
   end
-
 end

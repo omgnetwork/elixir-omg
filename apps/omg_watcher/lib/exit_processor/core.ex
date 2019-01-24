@@ -567,7 +567,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp prepare_available_piggyback(
          %Transaction.Signed{raw_tx: %Transaction{inputs: inputs, outputs: outputs} = tx} = signed_tx
        ) do
-    IO.inspect(signed_tx)
     {:ok, %Transaction.Recovered{spenders: input_owners}} = Transaction.Recovered.recover_from(signed_tx)
 
     available_inputs =

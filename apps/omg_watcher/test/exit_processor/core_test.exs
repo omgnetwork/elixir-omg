@@ -879,7 +879,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         blocks_result: [Block.hashed_txs_at([other_recovered], 3000)]
       }
 
-      assert {:ok, [%Event.PiggybackAvailable{}, %Event.PiggybackAvailable{}]} = exit_processor_request |> Core.invalid_exits(processor)
+      assert {:ok, [%Event.PiggybackAvailable{}, %Event.PiggybackAvailable{}]} =
+               exit_processor_request |> Core.invalid_exits(processor)
 
       assert {:error, :competitor_not_found} =
                exit_processor_request

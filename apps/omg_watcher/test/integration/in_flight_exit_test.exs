@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Integration.WatcherApiTest do
+defmodule OMG.Watcher.Integration.InFlightExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
@@ -107,8 +107,18 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
 
+    assert %{
+      "byzantine_events" => [%{
+        "details" => %{
+          "available_outputs" => [%{"address" => address, "index" => index}, _, _, _]
+        },
+        "event" => "piggyback_available"
+      }]
+    } = TestHelper.success?("/status.get")
+
+
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChain.piggyback_in_flight_exit(in_flight_exit_info["in_flight_tx"], 4, alice.addr)
+      Eth.RootChain.piggyback_in_flight_exit(in_flight_exit_info["in_flight_tx"], index + 4, address)
       |> Eth.DevHelpers.transact_sync!()
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
@@ -171,7 +181,11 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     # is existence of competitors detected?
     assert %{
-             "byzantine_events" => [%{"event" => "non_canonical_ife"}, %{"event" => "non_canonical_ife"}]
+             "byzantine_events" => [
+               %{"event" => "non_canonical_ife"},
+               %{"event" => "non_canonical_ife"},
+               %{"event" => "piggyback_available"}
+             ]
            } = TestHelper.success?("/status.get")
 
     # Check if IFE is recognized as IFE by watcher.
