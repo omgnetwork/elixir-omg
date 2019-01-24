@@ -21,6 +21,9 @@ defmodule OMG.Watcher.Event do
           | OMG.Watcher.Event.InvalidBlock.t()
           | OMG.Watcher.Event.BlockWithholding.t()
           | OMG.Watcher.Event.InvalidExit.t()
+          | OMG.Watcher.Event.UnchallengedExit.t()
+          | OMG.Watcher.Event.NonCanonicalIFE.t()
+          | OMG.Watcher.Event.InvalidIFEChallenge.t()
 
   #  TODO The reason why events have name as String and byzantine events as atom is that
   #  Phoniex websockets requires topics as strings + currently we treat Strings and binaries in
@@ -62,11 +65,11 @@ defmodule OMG.Watcher.Event do
     Notifies about invalid block
     """
 
-    defstruct [:hash, :number, :error_type, name: :invalid_block]
+    defstruct [:hash, :blknum, :error_type, name: :invalid_block]
 
     @type t :: %__MODULE__{
             hash: Block.block_hash_t(),
-            number: integer(),
+            blknum: integer(),
             error_type: atom(),
             name: atom()
           }
@@ -77,10 +80,11 @@ defmodule OMG.Watcher.Event do
     Notifies about block-withholding
     """
 
-    defstruct [:blknum, name: :block_withholding]
+    defstruct [:blknum, :hash, name: :block_withholding]
 
     @type t :: %__MODULE__{
             blknum: pos_integer(),
+            hash: Block.block_hash_t(),
             name: atom()
           }
   end

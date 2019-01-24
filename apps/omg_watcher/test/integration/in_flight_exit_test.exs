@@ -44,7 +44,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     #       integration test. (resp task OMG-379)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
-    {:ok, %{blknum: blknum, tx_index: txindex}} = Client.submit(tx)
+    {:ok, %{blknum: blknum, txindex: txindex}} = Client.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(blknum, @timeout)
 
@@ -88,7 +88,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, 10)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
-    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.submit(tx)
+    {:ok, %{blknum: tx_blknum, txhash: _tx_hash}} = Client.submit(tx)
 
     in_flight_exit_info =
       tx

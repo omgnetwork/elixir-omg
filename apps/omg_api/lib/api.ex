@@ -26,12 +26,12 @@ defmodule OMG.API do
   @type submit_error() :: Core.recover_tx_error() | FeeChecker.error() | State.exec_error()
 
   @spec submit(transaction :: binary) ::
-          {:ok, %{tx_hash: <<_::768>>, blknum: pos_integer, tx_index: non_neg_integer}} | {:error, submit_error()}
+          {:ok, %{txhash: <<_::768>>, blknum: pos_integer, txindex: non_neg_integer}} | {:error, submit_error()}
   def submit(transaction) do
     with {:ok, recovered_tx} <- Core.recover_tx(transaction),
          {:ok, fees} <- FeeChecker.transaction_fees(recovered_tx),
          {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
-      {:ok, %{tx_hash: tx_hash, blknum: blknum, tx_index: tx_index}}
+      {:ok, %{txhash: tx_hash, blknum: blknum, txindex: tx_index}}
     end
     |> result_with_logging()
   end

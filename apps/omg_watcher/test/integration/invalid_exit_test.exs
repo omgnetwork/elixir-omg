@@ -44,7 +44,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     {:ok, %{blknum: deposit_blknum}} = Client.submit(tx)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.submit(tx)
+    {:ok, %{blknum: tx_blknum, txhash: _tx_hash}} = Client.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
@@ -135,7 +135,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     {:ok, %{blknum: deposit_blknum}} = Client.submit(tx)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.submit(tx)
+    {:ok, %{blknum: tx_blknum, txhash: _tx_hash}} = Client.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
