@@ -31,8 +31,8 @@ RUN apt-get update \
 RUN wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb \
   && dpkg -i erlang-solutions_1.0_all.deb \
   && apt-get update \
-  && apt-get install -y esl-erlang=1:20.3.8.6 \
-  elixir=1.6.6-2
+  && apt-get install -y esl-erlang=1:21.2.3-1 \
+  elixir=1.8.0-1
 
 RUN rm erlang-solutions_1.0_all.deb
 
