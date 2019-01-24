@@ -35,8 +35,8 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
     state
   end
 
-  defp assert_range({:dont_get_events, state}, expect) do
-    assert :dont_get_events == expect
+  defp assert_range({:dont_fetch_events, state}, expect) do
+    assert :dont_fetch_events == expect
     state
   end
 
@@ -47,32 +47,32 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
 
   test "range moved by finality_margin" do
     Core.init(@db_key, @service_name, _height = 0, _finality_margin = 5, _request_max_size = 100)
-    |> Core.get_events_range_for_download(%SyncData{sync_height: 1, root_chain: 10})
+    |> Core.get_events_range_for_download(%SyncData{sync_height: 1, root_chain_height: 10})
     |> assert_range({1, 5})
   end
 
   test "produces next ethereum height range to get events from" do
     create_state(0)
-    |> Core.get_events_range_for_download(%SyncData{sync_height: 5, root_chain: 10})
+    |> Core.get_events_range_for_download(%SyncData{sync_height: 5, root_chain_height: 10})
     |> assert_range({1, 6})
-    |> Core.get_events_range_for_download(%SyncData{sync_height: 7, root_chain: 10})
+    |> Core.get_events_range_for_download(%SyncData{sync_height: 7, root_chain_height: 10})
     |> assert_range({7, 8})
-    |> Core.get_events_range_for_download(%SyncData{sync_height: 7, root_chain: 10})
-    |> assert_range(:dont_get_events)
+    |> Core.get_events_range_for_download(%SyncData{sync_height: 7, root_chain_height: 10})
+    |> assert_range(:dont_fetch_events)
   end
 
   test "restart allows to continue with proper bounds" do
     create_state(1)
-    |> Core.get_events_range_for_download(%SyncData{sync_height: 3, root_chain: 10})
+    |> Core.get_events_range_for_download(%SyncData{sync_height: 3, root_chain_height: 10})
     |> assert_range({2, 7})
     |> Core.add_new_events([event(2), event(3), event(4), event(5), event(7)])
-    |> Core.get_events_range_for_download(%SyncData{sync_height: 5, root_chain: 10})
-    |> assert_range(:dont_get_events)
+    |> Core.get_events_range_for_download(%SyncData{sync_height: 5, root_chain_height: 10})
+    |> assert_range(:dont_fetch_events)
     |> Core.get_events(5)
     |> assert_events([event(2), event(3)], [{:put, @db_key, 3}])
 
     create_state(3)
-    |> Core.get_events_range_for_download(%SyncData{sync_height: 7, root_chain: 10})
+    |> Core.get_events_range_for_download(%SyncData{sync_height: 7, root_chain_height: 10})
     |> assert_range({4, 8})
     |> Core.add_new_events([event(4), event(5), event(7)])
     |> Core.get_events(7)

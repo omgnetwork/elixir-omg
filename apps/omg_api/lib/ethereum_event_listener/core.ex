@@ -60,25 +60,27 @@ defmodule OMG.API.EthereumEventListener.Core do
   Returns range Ethereum height to download
   """
   @spec get_events_range_for_download(t(), SyncData.t()) ::
-          {:dont_get_events, t()} | {:get_events, {non_neg_integer, non_neg_integer}, t()}
-  def get_events_range_for_download(state = %__MODULE__{cached: %{events_uper_bound: uper}}, %SyncData{
-        sync_height: sync_height
-      })
+          {:dont_fetch_events, t()} | {:get_events, {non_neg_integer, non_neg_integer}, t()}
+  def get_events_range_for_download(
+        %__MODULE__{cached: %{events_uper_bound: uper}} = state,
+        %SyncData{sync_height: sync_height}
+      )
       when sync_height < uper,
-      do: {:dont_get_events, state}
+      do: {:dont_fetch_events, state}
 
   def get_events_range_for_download(
         %__MODULE__{
           block_finality_margin: block_finality_margin,
           cached: %{request_max_size: request_max_size, events_uper_bound: old_uper_bound} = cached_data
         } = state,
-        %SyncData{sync_height: sync_height, root_chain: root_chain_height}
+        %SyncData{sync_height: sync_height, root_chain_height: root_chain_height}
       ) do
-    upper_bound =
-      max(
-        sync_height - block_finality_margin,
-        min(root_chain_height - block_finality_margin, old_uper_bound + request_max_size)
-      )
+    height_need_to_be_download = sync_height - block_finality_margin
+
+    height_limited_by_margin_and_request_size =
+      min(root_chain_height - block_finality_margin, old_uper_bound + request_max_size)
+
+    upper_bound = max(height_need_to_be_download, height_limited_by_margin_and_request_size)
 
     new_state = %__MODULE__{
       state

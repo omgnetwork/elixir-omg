@@ -93,7 +93,7 @@ defmodule OMG.API.EthereumEventListener do
           {:ok, new_events} = callbacks.get_ethereum_events_callback.(from, to)
           Core.add_new_events(state, new_events)
 
-        {:dont_get_events, state} ->
+        {:dont_fetch_events, state} ->
           state
       end
 

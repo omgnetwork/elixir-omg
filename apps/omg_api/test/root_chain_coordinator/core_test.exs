@@ -37,17 +37,17 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
     depositor_pid = :c.pid(0, 1, 0)
     exiter_pid = :c.pid(0, 2, 0)
 
-    {:ok, state, []} = Core.check_in(state, exiter_pid, 1, :exiter)
-    :nosync = Core.get_synced_info(state, depositor_pid)
-    %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
+    assert {:ok, state, []} = Core.check_in(state, exiter_pid, 1, :exiter)
+    assert :nosync = Core.get_synced_info(state, depositor_pid)
+    assert %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
 
-    {:ok, state, [^depositor_pid, ^exiter_pid]} = Core.check_in(state, depositor_pid, 2, :depositor)
-    %{sync_height: 2} = Core.get_synced_info(state, depositor_pid)
-    %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
+    assert {:ok, state, [^depositor_pid, ^exiter_pid]} = Core.check_in(state, depositor_pid, 2, :depositor)
+    assert %{sync_height: 2} = Core.get_synced_info(state, depositor_pid)
+    assert %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
 
-    {:ok, state, []} = Core.check_in(state, exiter_pid, 10, :exiter)
-    %{sync_height: 3} = Core.get_synced_info(state, depositor_pid)
-    %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
+    assert {:ok, state, []} = Core.check_in(state, exiter_pid, 10, :exiter)
+    assert %{sync_height: 3} = Core.get_synced_info(state, depositor_pid)
+    assert %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
   end
 
   @tag fixtures: [:initial_state]
@@ -55,17 +55,17 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
     depositor_pid = :c.pid(0, 1, 0)
     exiter_pid = :c.pid(0, 2, 0)
 
-    {:ok, state, []} = Core.check_in(state, exiter_pid, 1, :exiter)
-    {:ok, state, [^depositor_pid, ^exiter_pid]} = Core.check_in(state, depositor_pid, 1, :depositor)
-    %{sync_height: 2} = Core.get_synced_info(state, depositor_pid)
-    %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
+    assert {:ok, state, []} = Core.check_in(state, exiter_pid, 1, :exiter)
+    assert {:ok, state, [^depositor_pid, ^exiter_pid]} = Core.check_in(state, depositor_pid, 1, :depositor)
+    assert %{sync_height: 2} = Core.get_synced_info(state, depositor_pid)
+    assert %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
 
-    {:ok, state} = Core.check_out(state, depositor_pid)
-    :nosync = Core.get_synced_info(state, depositor_pid)
+    assert {:ok, state} = Core.check_out(state, depositor_pid)
+    assert :nosync = Core.get_synced_info(state, depositor_pid)
 
-    {:ok, state, [^depositor_pid, ^exiter_pid]} = Core.check_in(state, depositor_pid, 1, :depositor)
-    %{sync_height: 2} = Core.get_synced_info(state, depositor_pid)
-    %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
+    assert {:ok, state, [^depositor_pid, ^exiter_pid]} = Core.check_in(state, depositor_pid, 1, :depositor)
+    assert %{sync_height: 2} = Core.get_synced_info(state, depositor_pid)
+    assert %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
   end
 
   test "returns services to sync up only for the last service checking in at a given height" do
@@ -83,11 +83,11 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
         10
       )
 
-    {:ok, state, []} = Core.check_in(state, exiter_pid, 1, :exiter)
-    {:ok, state, []} = Core.check_in(state, depositor_pid, 1, :depositor)
+    assert {:ok, state, []} = Core.check_in(state, exiter_pid, 1, :exiter)
+    assert {:ok, state, []} = Core.check_in(state, depositor_pid, 1, :depositor)
 
-    {:ok, _state, [^block_getter_pid, ^depositor_pid, ^exiter_pid]} =
-      Core.check_in(state, block_getter_pid, 1, :block_getter)
+    assert {:ok, _state, [^block_getter_pid, ^depositor_pid, ^exiter_pid]} =
+             Core.check_in(state, block_getter_pid, 1, :block_getter)
   end
 
   @tag fixtures: [:initial_state]
@@ -95,17 +95,17 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
     depositor_pid = :c.pid(0, 1, 0)
     exiter_pid = :c.pid(0, 2, 0)
 
-    {:ok, state, []} = Core.check_in(state, exiter_pid, 10, :exiter)
-    {:ok, state, [^depositor_pid, ^exiter_pid]} = Core.check_in(state, depositor_pid, 10, :depositor)
-    %{sync_height: 10} = Core.get_synced_info(state, depositor_pid)
-    %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
+    assert {:ok, state, []} = Core.check_in(state, exiter_pid, 10, :exiter)
+    assert {:ok, state, [^depositor_pid, ^exiter_pid]} = Core.check_in(state, depositor_pid, 10, :depositor)
+    assert %{sync_height: 10} = Core.get_synced_info(state, depositor_pid)
+    assert %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
 
-    {:ok, state} = Core.update_root_chain_height(state, 11)
-    %{sync_height: 11} = Core.get_synced_info(state, depositor_pid)
-    %{sync_height: 11} = Core.get_synced_info(state, exiter_pid)
+    assert {:ok, state} = Core.update_root_chain_height(state, 11)
+    assert %{sync_height: 11} = Core.get_synced_info(state, depositor_pid)
+    assert %{sync_height: 11} = Core.get_synced_info(state, exiter_pid)
 
-    {:ok, state} = Core.update_root_chain_height(state, 14)
-    %{sync_height: 11} = Core.get_synced_info(state, depositor_pid)
-    %{sync_height: 14} = Core.get_synced_info(state, exiter_pid)
+    assert {:ok, state} = Core.update_root_chain_height(state, 14)
+    assert %{sync_height: 11} = Core.get_synced_info(state, depositor_pid)
+    assert %{sync_height: 14} = Core.get_synced_info(state, exiter_pid)
   end
 end

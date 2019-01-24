@@ -58,7 +58,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
           :nosync ->
             0
 
-          %{sync_height: synced_height} ->
+          %SyncData{sync_height: synced_height} ->
             synced_height
         end
 
@@ -135,14 +135,14 @@ defmodule OMG.API.RootChainCoordinator.Core do
     if all_services_checked_in?(state) do
       # do not allow syncing to Ethereum blocks higher than block last seen by synchronizer
       next_sync_height = min(sync_height(services) + 1, root_chain_height)
-      %SyncData{sync_height: next_sync_height, root_chain: root_chain_height}
+      %SyncData{sync_height: next_sync_height, root_chain_height: root_chain_height}
     else
       :nosync
     end
   end
 
   defp get_synced_info_by_mode(%__MODULE__{root_chain_height: root_chain_height}, :sync_with_root_chain) do
-    %SyncData{sync_height: root_chain_height, root_chain: root_chain_height}
+    %SyncData{sync_height: root_chain_height, root_chain_height: root_chain_height}
   end
 
   defp all_services_checked_in?(%__MODULE__{configs_services: configs_services, services: services}) do
