@@ -130,7 +130,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
         state_at_block_beginning,
         opts \\ []
       ) do
-    if state_at_block_beginning do
+    with true <- state_at_block_beginning || {:error, :not_at_block_beginning},
+         true <- opts_valid?(opts) do
       state = %__MODULE__{
         eth_height_done_by_blknum: %{},
         synced_height: synced_height,
@@ -150,9 +151,14 @@ defmodule OMG.Watcher.BlockGetter.Core do
       }
 
       {:ok, state}
-    else
-      {:error, :not_at_block_beginning}
     end
+  end
+
+  defp opts_valid?(opts) do
+    maximum_number_of_pending_blocks = Keyword.get(opts, :maximum_number_of_pending_blocks, 1)
+
+    with true <- maximum_number_of_pending_blocks >= 1 || {:error, :maximum_number_of_pending_blocks_too_low},
+         do: true
   end
 
   @doc """

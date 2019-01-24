@@ -51,9 +51,10 @@ defmodule OMG.Watcher.Mixfile do
       {:plug, "1.5.0", override: true},
       {:cors_plug, "~> 2.0"},
       {:socket, "~> 0.3"},
-      # TODO: we only need in :dev and :test here, but we need in :prod too in performance
+      # NOTE: we only need in :dev and :test here, but we need in :prod too in performance
       #       then there's some unexpected behavior of mix that won't allow to mix these, see
       #       [here](https://elixirforum.com/t/mix-dependency-is-not-locked-error-when-building-with-edeliver/7069/3)
+      #       OMG-373 (Elixir 1.8) should fix this
       {:briefly, "~> 0.3"},
       {:fake_server, "~> 1.5", only: [:test, :dev]},
       #

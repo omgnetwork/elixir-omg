@@ -672,6 +672,25 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
            ) == {:error, :not_at_block_beginning}
   end
 
+  test "maximum_number_of_pending_blocks can't be too low" do
+    start_block_number = 0
+    interval = 1_000
+    synced_height = 1
+    block_reorg_margin = 5
+    state_at_beginning = true
+    last_persisted_block = nil
+
+    assert Core.init(
+             start_block_number,
+             interval,
+             synced_height,
+             block_reorg_margin,
+             last_persisted_block,
+             state_at_beginning,
+             maximum_number_of_pending_blocks: 0
+           ) == {:error, :maximum_number_of_pending_blocks_too_low}
+  end
+
   test "BlockGetter omits submissions of already applied blocks" do
     state =
       init_state(synced_height: 1, start_block_number: 1000)

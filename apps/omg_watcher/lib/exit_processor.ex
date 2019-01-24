@@ -122,16 +122,16 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns a map of requested in flight exits, where keys are IFE hashes and values are IFES
   If given empty list of hashes, all IFEs are returned.
   """
-  @spec get_in_flight_exits([binary()]) :: %{binary() => InFlightExitInfo.t()}
-  def get_in_flight_exits(hashes \\ []) do
-    GenServer.call(__MODULE__, {:get_in_flight_exits, hashes})
+  @spec get_in_flight_exits() :: {:ok, %{binary() => InFlightExitInfo.t()}}
+  def get_in_flight_exits do
+    GenServer.call(__MODULE__, :get_in_flight_exits)
   end
 
   @doc """
   Returns all information required to produce a transaction to the root chain contract to present a competitor for
   a non-canonical in-flight exit
   """
-  @spec get_competitor_for_ife(binary()) :: map
+  @spec get_competitor_for_ife(binary()) :: {:ok, Core.competitor_data_t()} | {:error, :competitor_not_found}
   def get_competitor_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:get_competitor_for_ife, txbytes})
   end
@@ -140,7 +140,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns all information required to produce a transaction to the root chain contract to present a proof of canonicity
   for a challenged in-flight exit
   """
-  @spec prove_canonical_for_ife(binary()) :: map
+  @spec prove_canonical_for_ife(binary()) :: {:ok, Core.prove_canonical_data_t()} | {:error, :canonical_not_found}
   def prove_canonical_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
   end
@@ -247,35 +247,43 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {chain_status, events}, state}
   end
 
-  def handle_call({:get_in_flight_exits, hashes}, _from, state),
-    do: {:reply, Core.get_in_flight_exits(hashes), state}
+  def handle_call(:get_in_flight_exits, _from, state),
+    do: {:reply, {:ok, Core.get_in_flight_exits(state)}, state}
 
   def handle_call({:get_competitor_for_ife, txbytes}, _from, state) do
     # TODO: future of using this struct not certain, see that module for details
-    competitor =
+    competitor_result =
       %ExitProcessor.Request{}
+      # TODO: run_status_gets and getting all non-existent UTXO positions imaginable can be optimized out heavily
+      #       only the UTXO positions being inputs to `txbytes` must be looked at, but it becomes problematic as
+      #       txbytes can be invalid so we'd need a with here...
+      |> run_status_gets()
+      |> Core.determine_utxo_existence_to_get(state)
+      |> run_utxo_exists()
       |> Core.determine_spends_to_get(state)
       |> run_spend_getting()
       |> Core.determine_blocks_to_get()
       |> run_block_getting()
-      # |> Core.determine_ife_owners()
-      # |> run_owner_getting()
       |> Core.get_competitor_for_ife(state, txbytes)
 
-    {:reply, competitor, state}
+    {:reply, competitor_result, state}
   end
 
   def handle_call({:prove_canonical_for_ife, txbytes}, _from, state) do
     # TODO: future of using this struct not certain, see that module for details
-    canonicity =
+    canonicity_result =
       %ExitProcessor.Request{}
+      # TODO: same comment as above in get_competitor_for_ife
+      |> run_status_gets()
+      |> Core.determine_utxo_existence_to_get(state)
+      |> run_utxo_exists()
       |> Core.determine_spends_to_get(state)
       |> run_spend_getting()
       |> Core.determine_blocks_to_get()
       |> run_block_getting()
       |> Core.prove_canonical_for_ife(txbytes)
 
-    {:reply, canonicity, state}
+    {:reply, canonicity_result, state}
   end
 
   defp run_status_gets(%ExitProcessor.Request{} = request) do

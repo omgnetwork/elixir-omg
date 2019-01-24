@@ -1,10 +1,15 @@
-version: "2"
+version: "2.1"
 services:
   geth:
-    image: ethereum/client-go:v1.8.20
-    entrypoint: /bin/sh -c "geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545"
+    image: ethereum/client-go:v1.8.21
+    entrypoint: /bin/sh -c "apk add curl && geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545"
     ports:
      - "8545:8545"
+    healthcheck:
+      test: curl docker.for.mac.localhost:8545
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   childchain_db:
     image: postgres
@@ -15,6 +20,11 @@ services:
       POSTGRES_DB: omisego_dev
     ports:
       - "5432:5432"
+    healthcheck:
+      test: pg_isready -U omisego_dev
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   watcher_db:
     image: postgres
@@ -25,17 +35,28 @@ services:
       POSTGRES_DB: omisego_dev
     ports:
       - "5433:5432"
+    healthcheck:
+      test: pg_isready -U omisego_dev
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   elixir-omg:
     build: .
     image: elixir-omg:dockercompose
 
   contractexchanger:
-    image: jakebunce/contractexchanger:v0.0.1
+    image: jakebunce/contractexchanger:v0.0.2
     ports:
       - "5000:5000"
+    healthcheck:
+      test: curl docker.for.mac.localhost:5000
+      interval: 5s
+      timeout: 3s
+      retries: 5
     depends_on:
-      - "geth"
+      geth:
+        condition: service_healthy
 
   childchain:
     image: elixir-omg:dockercompose
@@ -45,12 +66,21 @@ services:
       - ELIXIR_SERVICE=CHILDCHAIN
       - CONTRACT_EXCHANGER_URL=http://docker.for.mac.localhost:5000
       - ETHEREUM_RPC_URL=http://docker.for.mac.localhost:8545
+      - CHILDCHAIN_URL=http://docker.for.mac.localhost:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
     restart: always
     ports:
       - "9656:9656"
+    healthcheck:
+      test: curl docker.for.mac.localhost:9656
+      interval: 10s
+      timeout: 3s
+      retries: 7
     depends_on:
-      - "contractexchanger"
+      geth:
+        condition: service_healthy
+      contractexchanger:
+        condition: service_healthy
 
   watcher:
     image: elixir-omg:dockercompose
@@ -65,18 +95,11 @@ services:
     restart: always
     ports:
       - "7434:7434"
-      - "4000:4000"
+    healthcheck:
+      test: curl docker.for.mac.localhost:7434
+      interval: 5s
+      timeout: 3s
+      retries: 5
     depends_on:
-      - "childchain"
-
-  ewallet:
-    image: omisego/ewallet:latest
-    entrypoint: /bin/bash -c "mix local.hex --force && mix local.rebar --force && mix do ecto.create, ecto.migrate && /init"
-    environment:
-      - DATABASE_URL=postgres://omisego_dev:omisego_dev@docker.for.mac.localhost:5433/omisego_dev 
-      - LOCAL_LEDGER_DATABASE_URL=postgres://omisego_dev:omisego_dev@docker.for.mac.localhost:5432/omisego_dev
-    restart: always
-    ports: 
-      - "4001:4000"
-    depends_on:
-      - "watcher_db"
+      childchain:
+        condition: service_healthy

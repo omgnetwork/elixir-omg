@@ -67,9 +67,11 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def new(tx_bytes, tx_signatures, contract_id, timestamp, is_active) do
     with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
+      chopped_sigs = for <<chunk::size(65)-unit(8) <- tx_signatures>>, do: <<chunk::size(65)-unit(8)>>
+
       signed_tx_map = %{
         raw_tx: raw_tx,
-        sigs: tx_signatures
+        sigs: chopped_sigs
       }
 
       {
@@ -155,13 +157,14 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def respond_to_challenge(%__MODULE__{}, _), do: {:error, :cannot_respond}
 
   def finalize(%__MODULE__{} = ife, _output_id) do
-    # TODO: check whether can be finalized and then mark it as finalized
+    # here, we'll check whether can be finalized and then mark it as finalized, OMG-381
     {:ok, ife}
   end
 
   @spec get_exiting_utxo_positions(t()) :: list({:utxo_position, non_neg_integer(), non_neg_integer(), non_neg_integer})
   def get_exiting_utxo_positions(ife)
 
+  # TODO: do we need this commented batch of code? will we be determining these utxo positions like this? discuss
   #  def get_exiting_utxo_positions(%__MODULE__{is_canonical: false} = ife) do
   #    ife.inputs
   #    |> Enum.with_index()

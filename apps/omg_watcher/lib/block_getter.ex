@@ -136,8 +136,8 @@ defmodule OMG.Watcher.BlockGetter do
         state_at_block_beginning,
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
         maximum_number_of_unapplied_blocks: maximum_number_of_unapplied_blocks,
-        # TODO: not elegant, but this should limit the number of heavy-lifting workers and chance to starve the rest
-        maximum_number_of_pending_blocks: System.schedulers() - 1
+        # NOTE: not elegant, but this should limit the number of heavy-lifting workers and chance to starve the rest
+        maximum_number_of_pending_blocks: System.schedulers()
       )
 
     {:ok, state}
