@@ -73,7 +73,7 @@ services:
       - "9656:9656"
     healthcheck:
       test: curl docker.for.mac.localhost:9656
-      interval: 7s
+      interval: 10s
       timeout: 3s
       retries: 7
     depends_on:
