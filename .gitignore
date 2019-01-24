@@ -46,3 +46,5 @@ env/
 apps/omg_watcher/priv/static/swagger.json
 apps/omg_rpc/priv/static/swagger.json
 
+#FIXME: temporary ignore generated specs
+apps/**/priv/specs.*

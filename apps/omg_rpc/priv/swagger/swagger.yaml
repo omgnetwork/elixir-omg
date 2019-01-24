@@ -39,7 +39,7 @@ paths:
         200:
           $ref: '#/definitions/responses/SubmitOpId'
         500:
-          $ref: '#/definitions/InternalServerError'
+          $ref: 'shared.yaml#/InternalServerError'
 
   /block.get:
     post:
@@ -58,7 +58,7 @@ paths:
         200:
           $ref: '#/definitions/responses/GetBlockOpId'
         500:
-          $ref: '#/definitions/InternalServerError'
+          $ref: 'shared.yaml#/InternalServerError'
       
 definitions:
   requests:
@@ -101,7 +101,7 @@ definitions:
         application/json:
           schema:
             allOf:
-            - $ref: '#/definitions/BaseResponseSchema'
+            - $ref: 'shared.yaml#/BaseResponseSchema'
             - type: object
               properties:
                 blknum:
@@ -125,7 +125,7 @@ definitions:
         application/json:
           schema:
             allOf:
-            - $ref: '#/definitions/BaseResponseSchema'
+            - $ref: 'shared.yaml#/BaseResponseSchema'
             - type: object
               properties:
                 blknum:
@@ -142,62 +142,3 @@ definitions:
                   hash: '0x2733e50f526ec2fa19a22b31e8ed50f23cd1fdf94c9154ed3a7609a2f1ff981f'
                   transactions:
                   - '0xf8d083015ba98080808080940000...'
-
-  BaseResponseSchema:
-    description: The response schema for a successful operation
-    type: object
-    properties:
-      version:
-        type: string
-      success:
-        type: boolean
-      data:
-        type: object
-    required:
-      - version
-      - success
-      - data
-    example:
-      version: '1.0'
-      success: true
-      data: {}
-
-  InternalServerError:
-    description: Returns an internal server error
-    content:
-      application/json:
-        schema:
-          description: The response schema for an error
-          allOf:
-            - $ref: '#/definitions/BaseResponseSchema'
-            - type: object
-              properties:
-                data:
-                  $ref: '#/definitions/ErrorSchema'
-              required:
-                - data
-              example:
-                success: false
-                data:
-                  object: error
-                  code: server:internal_server_error
-                  description: Something went wrong on the server
-                  messages: {error_key: error_reason}
-
-  ErrorSchema:
-    description: The object schema for an error
-    type: object
-    properties:
-      object:
-        type: string
-      code:
-        type: string
-      description:
-        type: string
-      messages:
-        type: object
-    required:
-      - object
-      - code
-      - description
-      - messages
