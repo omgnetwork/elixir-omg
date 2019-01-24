@@ -452,7 +452,7 @@ def get_environment_variables() -> dict:
         'RINKEBY_TXHASH_CONTRACT',
         '0x84a86f06b97e4c2d694ba507e7fcd8cf78adc4fbd596b1d3626ec7ba8242450d'
     )
-    RINKEBY_CONTRACT['txhash_contract'] = os.environ.get(
+    RINKEBY_CONTRACT['authority_addr'] = os.environ.get(
         'RINKEBY_AUTHORITY_ADDRESS',
         '0xe5153ad259be60003909492b154bf4b7f1787f70'
     )
