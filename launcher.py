@@ -11,9 +11,6 @@ import requests
 
 
 RINKEBY_CONTRACT = {}
-RINKEBY_CONTRACT['contract_addr'] = "0x98abd7229afac999fc7965bea7d94a3b5e7e0218" # noqa E501
-RINKEBY_CONTRACT['txhash_contract'] = "0x84a86f06b97e4c2d694ba507e7fcd8cf78adc4fbd596b1d3626ec7ba8242450d" # noqa E501
-RINKEBY_CONTRACT['authority_addr'] = "0xe5153ad259be60003909492b154bf4b7f1787f70" # noqa E501
 
 
 class ChildchainLauncher:
@@ -447,6 +444,18 @@ def get_environment_variables() -> dict:
     ''' Get the environment variables required to start service
     '''
     repo = git.Repo(search_parent_directories=True)
+    RINKEBY_CONTRACT['contract_addr'] = os.environ.get(
+        'RINKEBY_CONTRACT_ADDRESS',
+        '0x98abd7229afac999fc7965bea7d94a3b5e7e0218'
+    )
+    RINKEBY_CONTRACT['txhash_contract'] = os.environ.get(
+        'RINKEBY_TXHASH_CONTRACT',
+        '0x84a86f06b97e4c2d694ba507e7fcd8cf78adc4fbd596b1d3626ec7ba8242450d'
+    )
+    RINKEBY_CONTRACT['txhash_contract'] = os.environ.get(
+        'RINKEBY_AUTHORITY_ADDRESS',
+        '0xe5153ad259be60003909492b154bf4b7f1787f70'
+    )
     return {
         'elixir_service': os.getenv('ELIXIR_SERVICE'),
         'ethereum_network': os.getenv('ETHEREUM_NETWORK'),
