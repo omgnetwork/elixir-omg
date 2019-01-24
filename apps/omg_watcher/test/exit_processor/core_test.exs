@@ -53,48 +53,18 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     long
   end
 
-  deffixture transactions() do
+  deffixture transactions(alice, carol) do
     [
-      %Transaction{
-        inputs: [%{blknum: 1, txindex: 0, oindex: 0}, %{blknum: 1, txindex: 2, oindex: 1}],
-        outputs: [
-          %{owner: "alicealicealicealice", currency: @eth, amount: 1},
-          %{owner: "carolcarolcarolcarol", currency: @eth, amount: 2}
-        ]
-      },
-      %Transaction{
-        inputs: [%{blknum: 2, txindex: 1, oindex: 0}, %{blknum: 2, txindex: 2, oindex: 1}],
-        outputs: [
-          %{owner: "alicealicealicealice", currency: @eth, amount: 1},
-          %{owner: "carolcarolcarolcarol", currency: @eth, amount: 2}
-        ]
-      }
+      Transaction.new([{1, 0, 0}, {1, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}]),
+      Transaction.new([{2, 1, 0}, {2, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}])
     ]
   end
 
-  deffixture competing_transactions() do
+  deffixture competing_transactions(alice, bob, carol) do
     [
-      %Transaction{
-        inputs: [%{blknum: 10, txindex: 2, oindex: 1}, %{blknum: 1, txindex: 0, oindex: 0}],
-        outputs: [
-          %{owner: "malorymalorymaloryma", currency: @eth, amount: 2},
-          %{owner: "carolcarolcarolcarol", currency: @eth, amount: 1}
-        ]
-      },
-      %Transaction{
-        inputs: [%{blknum: 1, txindex: 0, oindex: 0}, %{blknum: 10, txindex: 2, oindex: 1}],
-        outputs: [
-          %{owner: "alicealicealicealice", currency: @eth, amount: 2},
-          %{owner: "malorymalorymaloryma", currency: @eth, amount: 1}
-        ]
-      },
-      %Transaction{
-        inputs: [%{blknum: 20, txindex: 1, oindex: 0}, %{blknum: 20, txindex: 20, oindex: 1}],
-        outputs: [
-          %{owner: "malorymalorymaloryma", currency: @eth, amount: 2},
-          %{owner: "carolcarolcarolcarol", currency: @eth, amount: 1}
-        ]
-      }
+      Transaction.new([{10, 2, 1}, {1, 0, 0}], [{bob.addr, @eth, 2}, {carol.addr, @eth, 1}]),
+      Transaction.new([{1, 0, 0}, {10, 2, 1}], [{alice.addr, @eth, 2}, {bob.addr, @eth, 1}]),
+      Transaction.new([{20, 1, 0}, {20, 20, 1}], [{bob.addr, @eth, 2}, {carol.addr, @eth, 1}])
     ]
   end
 
@@ -900,7 +870,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{alice: alice, processor_filled: processor, transactions: [tx1, tx2 | _]} do
       # ifes in processor here aren't competitors to each other, but the challenge filed for tx2 is a competitor
       # for tx1, which is what we want to detect:
-      competing_tx = %Transaction{inputs: [%{blknum: 1, txindex: 0, oindex: 0}], outputs: []}
+      competing_tx = Transaction.new([{1, 0, 0}], [])
       %{sigs: [other_signature, _]} = Transaction.sign(competing_tx, [alice.priv, <<>>])
 
       txbytes = Transaction.encode(tx1)
@@ -969,21 +939,21 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     @tag fixtures: [:alice, :processor_filled, :transactions]
     test "a competitor having the double-spend on various input indices",
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _]} do
-      input_spent_in_idx0 = %{blknum: 1, txindex: 0, oindex: 0}
-      input_spent_in_idx1 = %{blknum: 1, txindex: 2, oindex: 1}
-      other_input1 = %{blknum: 10, txindex: 2, oindex: 1}
-      other_input2 = %{blknum: 11, txindex: 2, oindex: 1}
-      other_input3 = %{blknum: 12, txindex: 2, oindex: 1}
+      input_spent_in_idx0 = {1, 0, 0}
+      input_spent_in_idx1 = {1, 2, 1}
+      other_input1 = {10, 2, 1}
+      other_input2 = {11, 2, 1}
+      other_input3 = {12, 2, 1}
 
       comps = [
-        %Transaction{inputs: [input_spent_in_idx0], outputs: []},
-        %Transaction{inputs: [other_input1, input_spent_in_idx0], outputs: []},
-        %Transaction{inputs: [other_input1, other_input2, input_spent_in_idx0], outputs: []},
-        %Transaction{inputs: [other_input1, other_input2, other_input3, input_spent_in_idx0], outputs: []},
-        %Transaction{inputs: [input_spent_in_idx1], outputs: []},
-        %Transaction{inputs: [other_input1, input_spent_in_idx1], outputs: []},
-        %Transaction{inputs: [other_input1, other_input2, input_spent_in_idx1], outputs: []},
-        %Transaction{inputs: [other_input1, other_input2, other_input3, input_spent_in_idx1], outputs: []}
+        Transaction.new([input_spent_in_idx0], []),
+        Transaction.new([other_input1, input_spent_in_idx0], []),
+        Transaction.new([other_input1, other_input2, input_spent_in_idx0], []),
+        Transaction.new([other_input1, other_input2, other_input3, input_spent_in_idx0], []),
+        Transaction.new([input_spent_in_idx1], []),
+        Transaction.new([other_input1, input_spent_in_idx1], []),
+        Transaction.new([other_input1, other_input2, input_spent_in_idx1], []),
+        Transaction.new([other_input1, other_input2, other_input3, input_spent_in_idx1], [])
       ]
 
       expected_input_ids = [{0, 0}, {1, 0}, {2, 0}, {3, 0}, {0, 1}, {1, 1}, {2, 1}, {3, 1}]

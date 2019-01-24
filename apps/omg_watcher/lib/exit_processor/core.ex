@@ -381,8 +381,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.flat_map(fn {_, ife} -> InFlightExitInfo.get_exiting_utxo_positions(ife) end)
 
     (ife_pos ++ standard_exits_pos)
-    |> Enum.uniq()
     |> Enum.filter(&Utxo.Position.non_zero?/1)
+    |> Enum.uniq()
+    |> Enum.sort()
   end
 
   @doc """
