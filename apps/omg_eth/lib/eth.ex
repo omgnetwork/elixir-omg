@@ -192,6 +192,35 @@ defmodule OMG.Eth do
     |> common_parse_event(log)
   end
 
+  @doc """
+  Gets the decoded call data of a contract call, based on a particular Ethereum-tx hash and some info on the contract
+  function.
+
+  `eth_tx_hash` is expected encoded in raw binary format, as usual
+
+  NOTE: function name and rich information about argument names and types is used, rather than its compact signature
+  (like elsewhere) because `ABI.decode` has some issues with parsing signatures in this context.
+  """
+  @spec get_call_data(binary(), binary(), list(atom), list(atom)) :: map
+  def get_call_data(eth_tx_hash, name, arg_names, arg_types) do
+    {:ok, %{"input" => eth_tx_input}} = Ethereumex.HttpClient.eth_get_transaction_by_hash(to_hex(eth_tx_hash))
+    encoded_input = from_hex(eth_tx_input)
+
+    function_inputs =
+      ABI.decode(
+        ABI.FunctionSelector.parse_specification_item(%{
+          "type" => "function",
+          "name" => name,
+          "inputs" => Enum.map(arg_types, &%{"type" => to_string(&1)}),
+          "outputs" => []
+        }),
+        encoded_input
+      )
+
+    Enum.zip(arg_names, function_inputs)
+    |> Map.new()
+  end
+
   defp common_parse_event(result, %{"blockNumber" => eth_height}) do
     result
     |> Map.put(:eth_height, int_from_hex(eth_height))

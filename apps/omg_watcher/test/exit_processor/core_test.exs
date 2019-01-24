@@ -225,12 +225,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   defp build_competitor(%{
          call_data: %{
-           competing_tx: tx_bytes,
+           competing_tx: txbytes,
            competing_tx_input_index: input_index,
            competing_tx_sig: signature
          }
        }) do
-    CompetitorInfo.new(tx_bytes, input_index, signature)
+    CompetitorInfo.new(txbytes, input_index, signature)
   end
 
   @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]

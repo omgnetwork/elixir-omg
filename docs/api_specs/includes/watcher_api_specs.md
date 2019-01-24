@@ -186,7 +186,7 @@ transaction | Hex encoded string | Signed transaction RLP-encoded to bytes and H
 ## Status
 
 ```shell
-curl -X POST -H "Content-Type: application/json" http://localhost:4000/status.get
+curl -X POST -H "Content-Type: application/json" http://localhost:7434/status.get
 ```
 
 ```elixir

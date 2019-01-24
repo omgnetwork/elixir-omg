@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.InflightExit do
+defmodule OMG.Watcher.Web.Controller.InFlightExit do
   @moduledoc """
   Operations related to in flight exits starting and handling.
   """
@@ -27,23 +27,24 @@ defmodule OMG.Watcher.Web.Controller.InflightExit do
   responds with arguments for plasma contract function that starts in-flight exit.
   """
   def get_in_flight_exit(conn, params) do
-    with {:ok, txbytes} <- expect(params, "txbytes", :hex) do
-      API.InflightExit.get_in_flight_exit(txbytes)
-      |> api_response(conn, :in_flight_exit)
-    end
+    handle_txbytes_based_request(conn, params, &API.InFlightExit.get_in_flight_exit/1, :in_flight_exit)
   end
 
   def get_competitor(conn, params) do
-    with {:ok, txbytes} <- expect(params, "txbytes", :hex) do
-      API.InflightExit.get_competitor(txbytes)
-      |> api_response(conn, :competitor)
-    end
+    handle_txbytes_based_request(conn, params, &API.InFlightExit.get_competitor/1, :competitor)
   end
 
   def prove_canonical(conn, params) do
+    handle_txbytes_based_request(conn, params, &API.InFlightExit.prove_canonical/1, :prove_canonical)
+  end
+
+  # NOTE: don't overdo this DRYing here - if the above controller functions evolve and diverge, it might be better to
+  #       un-DRY
+  defp handle_txbytes_based_request(conn, params, api_function, template) do
     with {:ok, txbytes} <- expect(params, "txbytes", :hex) do
-      API.InflightExit.prove_canonical(txbytes)
-      |> api_response(conn, :prove_canonical)
+      txbytes
+      |> api_function.()
+      |> api_response(conn, template)
     end
   end
 end

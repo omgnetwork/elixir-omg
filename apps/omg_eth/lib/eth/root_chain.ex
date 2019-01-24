@@ -25,8 +25,8 @@ defmodule OMG.Eth.RootChain do
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
-  @deposit_created_signature "DepositCreated(address,uint256,address,uint256)"
-  @challenge_in_flight_exit_signature "challengeInFlightExitNotCanonical(bytes,uint8,bytes,uint8,uint256,bytes,bytes)"
+  @deposit_created_event_signature "DepositCreated(address,uint256,address,uint256)"
+  @challenge_ife_func_signature "challengeInFlightExitNotCanonical(bytes,uint8,bytes,uint8,uint256,bytes,bytes)"
 
   @type optional_addr_t() :: <<_::160>> | nil
 
@@ -170,7 +170,7 @@ defmodule OMG.Eth.RootChain do
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = @challenge_in_flight_exit_signature
+    signature = @challenge_ife_func_signature
 
     args = [
       inflight_txbytes,
@@ -288,7 +288,7 @@ defmodule OMG.Eth.RootChain do
   def get_deposits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
 
-    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, @deposit_created_signature, contract),
+    with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, @deposit_created_event_signature, contract),
          do: {:ok, Enum.map(logs, &decode_deposit/1)}
   end
 
@@ -322,25 +322,6 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_exit_started/1)}
   end
 
-  defp get_call_data(eth_tx_hash, name, arg_names, arg_types) do
-    {:ok, %{"input" => eth_tx_input}} = Ethereumex.HttpClient.eth_get_transaction_by_hash(eth_tx_hash)
-    encoded_input = Eth.Encoding.from_hex(eth_tx_input)
-
-    function_inputs =
-      ABI.decode(
-        ABI.FunctionSelector.parse_specification_item(%{
-          "type" => "function",
-          "name" => name,
-          "inputs" => Enum.map(arg_types, &%{"type" => to_string(&1)}),
-          "outputs" => []
-        }),
-        encoded_input
-      )
-
-    Enum.zip(arg_names, function_inputs)
-    |> Map.new()
-  end
-
   @doc """
   Returns InFlightExit from a range of blocks.
   """
@@ -354,8 +335,8 @@ defmodule OMG.Eth.RootChain do
          Map.put(
            decode_in_flight_exit(log),
            :call_data,
-           get_call_data(
-             log["transactionHash"],
+           Eth.get_call_data(
+             from_hex(log["transactionHash"]),
              "startInFlightExit",
              [:in_flight_tx, :inputs_txs, :input_includion_proofs, :in_flight_tx_sigs],
              [:bytes, :bytes, :bytes, :bytes]
@@ -401,8 +382,8 @@ defmodule OMG.Eth.RootChain do
               decode_in_flight_exit_challenged(log)
               |> Map.put(
                 :call_data,
-                get_call_data(
-                  log["transactionHash"],
+                Eth.get_call_data(
+                  from_hex(log["transactionHash"]),
                   "challengeInFlightExitNotCanonical",
                   [
                     :in_flight_tx,
@@ -616,7 +597,7 @@ defmodule OMG.Eth.RootChain do
 
   def deposit_blknum_from_receipt(%{"logs" => logs}) do
     topic =
-      @deposit_created_signature
+      @deposit_created_event_signature
       |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
       |> to_hex()
 

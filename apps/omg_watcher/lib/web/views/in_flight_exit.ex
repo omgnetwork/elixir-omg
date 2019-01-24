@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.View.InflightExit do
+defmodule OMG.Watcher.Web.View.InFlightExit do
   @moduledoc """
   The transaction view for rendering json
   """

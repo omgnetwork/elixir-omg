@@ -122,7 +122,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns a map of requested in flight exits, where keys are IFE hashes and values are IFES
   If given empty list of hashes, all IFEs are returned.
   """
-  @spec get_in_flight_exits() :: %{binary() => InFlightExitInfo.t()}
+  @spec get_in_flight_exits() :: {:ok, %{binary() => InFlightExitInfo.t()}}
   def get_in_flight_exits do
     GenServer.call(__MODULE__, :get_in_flight_exits)
   end

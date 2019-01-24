@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.API.InflightExit do
+defmodule OMG.Watcher.API.InFlightExit do
   @moduledoc """
   Module provides API for transactions
   """
@@ -40,14 +40,14 @@ defmodule OMG.Watcher.API.InflightExit do
          {:ok, {proofs, input_txs}} <- find_input_data(tx) do
       %Transaction.Signed{raw_tx: raw_tx, sigs: sigs} = tx
 
-      raw_tx_bytes = Transaction.encode(raw_tx)
+      raw_txbytes = Transaction.encode(raw_tx)
       input_txs = get_input_txs_for_rlp_encoding(input_txs)
       sigs = Enum.reduce(sigs, fn sig, acc -> acc <> sig end)
       proofs = Enum.reduce(proofs, fn proof, acc -> acc <> proof end)
 
       {:ok,
        %{
-         in_flight_tx: raw_tx_bytes,
+         in_flight_tx: raw_txbytes,
          input_txs: ExRLP.encode(input_txs),
          input_txs_inclusion_proofs: proofs,
          in_flight_tx_sigs: sigs
