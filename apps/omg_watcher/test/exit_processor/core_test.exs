@@ -331,7 +331,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {processor, [{:delete, :exit_info, @update_key1}]} = Core.finalize_exits(processor, spends)
 
     assert %ExitProcessor.Request{utxos_to_check: []} =
-             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{}, processor)
+             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
@@ -366,7 +366,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     # sanity
     assert %ExitProcessor.Request{utxos_to_check: [_, _]} =
-             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{}, processor)
+             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
 
     assert {processor, [{:delete, :exit_info, @update_key1}, {:delete, :exit_info, @update_key2}]} =
              processor
@@ -376,7 +376,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              ])
 
     assert %ExitProcessor.Request{utxos_to_check: []} =
-             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{}, processor)
+             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
@@ -438,7 +438,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @tag fixtures: [:processor_empty]
   test "empty processor returns no exiting utxo positions", %{processor_empty: empty} do
     assert %ExitProcessor.Request{utxos_to_check: []} =
-             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{}, empty)
+             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, empty)
   end
 
   @tag fixtures: [
@@ -1078,7 +1078,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                  Utxo.position(9000, 0, 1)
                ]
              } =
-               %ExitProcessor.Request{}
+               %ExitProcessor.Request{blknum_now: @late_blknum}
                |> Core.determine_utxo_existence_to_get(processor)
     end
 
@@ -1132,7 +1132,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       # first sanity-check as if the utxo was not spent yet
       assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
-               %ExitProcessor.Request{}
+               %ExitProcessor.Request{blknum_now: @late_blknum}
                |> Core.determine_utxo_existence_to_get(processor)
                |> mock_utxo_exists(state)
                |> Core.determine_spends_to_get(processor)
@@ -1145,7 +1145,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {:ok, {block, _, _}, state} = State.Core.form_block(1000, state)
 
       assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
-               %ExitProcessor.Request{blocks_result: [block]}
+               %ExitProcessor.Request{blknum_now: @late_blknum, blocks_result: [block]}
                |> Core.determine_utxo_existence_to_get(processor)
                |> mock_utxo_exists(state)
                |> Core.determine_spends_to_get(processor)
@@ -1166,9 +1166,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                %ExitProcessor.Request{spent_blknum_result: [2000, 1000]} |> Core.determine_blocks_to_get()
     end
 
-    # TODO: this is probably just a matter of modifying the `utxos_to_check` list accordingly
+    @tag fixtures: [:processor_filled]
     test "none if input not yet created during sync",
-         %{} do
+         %{processor_filled: processor} do
+      assert %{utxos_to_check: to_check} =
+               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 13}
+               |> Core.determine_utxo_existence_to_get(processor)
+
+      assert Utxo.position(9000, 0, 1) not in to_check
     end
   end
 
