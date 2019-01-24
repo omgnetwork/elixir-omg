@@ -30,9 +30,12 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
     :competing_input_signature
   ]
 
+  # NOTE: Although `Transaction.Signed` is used here, not all inputs will have signatures in this construct
+  #       Still, we do use it, because it is formally correct - it is just not a valid transaction from the POV of
+  #       the ledger
   @type t :: %__MODULE__{
-          tx: Transaction.t(),
-          competing_input_index: 1..4,
+          tx: Transaction.Signed.t(),
+          competing_input_index: 0..3,
           competing_input_signature: Crypto.sig_t()
         }
 
@@ -42,10 +45,15 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
 
   def new(tx_bytes, competing_input_index, competing_input_signature) do
     with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
+      signed_tx_map = %{
+        raw_tx: raw_tx,
+        sigs: [competing_input_signature]
+      }
+
       {Transaction.hash(raw_tx),
        struct(
          __MODULE__,
-         tx: raw_tx,
+         tx: struct(Transaction.Signed, signed_tx_map),
          competing_input_index: competing_input_index,
          competing_input_signature: competing_input_signature
        )}

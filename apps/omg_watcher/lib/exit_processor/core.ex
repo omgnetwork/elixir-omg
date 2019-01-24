@@ -317,7 +317,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {%{state | in_flight_exits: Map.merge(ifes, updated_ifes)}, db_updates}
   end
 
-  # TODO: write tests
+  # NOTE: write tests - OMG-381
   # TODO: simplify flow
   # https://github.com/omisego/elixir-omg/pull/361#discussion_r247485778
   @spec finalize_in_flight_exits(t(), [map()]) :: {t(), list()}
@@ -503,7 +503,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     ifes
     |> Map.values()
-    # TODO: not enough - must take oldest competitor into account (?)
     |> Stream.filter(&InFlightExitInfo.is_canonical?/1)
     |> Stream.map(fn %InFlightExitInfo{tx: tx} -> tx end)
     # TODO: expensive!
@@ -685,7 +684,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   defp get_known_txs([]), do: []
-  defp get_known_txs([%Block{} | _] = blocks), do: blocks |> Enum.flat_map(&get_known_txs/1)
+
+  # we're sorting the blocks by their blknum here, because we wan't oldest (best) competitors first always
+  defp get_known_txs([%Block{} | _] = blocks),
+    do: blocks |> Enum.sort_by(fn block -> block.number end) |> Enum.flat_map(&get_known_txs/1)
 
   defp recover_correct_tx_from_block(tx_bytes) do
     {:ok, recovered} = OMG.API.Core.recover_tx(tx_bytes)

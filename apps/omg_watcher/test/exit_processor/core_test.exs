@@ -874,9 +874,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
-      assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}, %Event.NonCanonicalIFE{txbytes: ^other_txbytes}]} =
+      assert {:ok, events} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> Core.invalid_exits(processor)
+
+      assert MapSet.new([%Event.NonCanonicalIFE{txbytes: txbytes}, %Event.NonCanonicalIFE{txbytes: other_txbytes}]) ==
+               MapSet.new(events)
 
       assert {:ok,
               %{
@@ -892,10 +895,37 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    # TODO: do this test, similar to the "competitor in IFE" case, just with lesser assertions, to not repeat ourselves.
-    #       I think it will "just pass" already
-    test "a competitor that's submitted as challenged to other IFE",
-         %{} do
+    @tag fixtures: [:alice, :processor_filled, :transactions]
+    test "a competitor that's submitted as challenge to other IFE",
+         %{alice: alice, processor_filled: processor, transactions: [tx1, tx2 | _]} do
+      # ifes in processor here aren't competitors to each other, but the challenge filed for tx2 is a competitor
+      # for tx1, which is what we want to detect:
+      competing_tx = %Transaction{inputs: [%{blknum: 1, txindex: 0, oindex: 0}], outputs: []}
+      %{sigs: [other_signature, _]} = Transaction.sign(competing_tx, [alice.priv, <<>>])
+
+      txbytes = Transaction.encode(tx1)
+      other_txbytes = Transaction.encode(competing_tx)
+
+      challenge_event = %{
+        tx_hash: Transaction.hash(tx2),
+        competitor_position: not_included_competitor_pos(),
+        call_data: %{competing_tx: other_txbytes, competing_tx_input_index: 0, competing_tx_sig: other_signature}
+      }
+
+      {processor, _} = Core.new_ife_challenges(processor, [challenge_event])
+
+      exit_processor_request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+
+      assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
+               exit_processor_request |> Core.invalid_exits(processor)
+
+      assert {:ok,
+              %{
+                inflight_txbytes: ^txbytes,
+                competing_txbytes: ^other_txbytes,
+                competing_input_index: 0,
+                competing_sig: ^other_signature
+              }} = exit_processor_request |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
@@ -1020,10 +1050,49 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    test "a best competitor, included earliest in a block",
-         %{} do
-      # TODO: we tested that we return "a competitor" in other tests, here we prefer the best competitor here,
-      #       in case when there are many present
+    @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
+    test "a best competitor, included earliest in a block, regardless of conflicting utxo position",
+         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp1 | _]} do
+      # NOTE that the recent competitor spends an __older__ input. Also note the reversing of block results done below
+      #      Regardless of these, the best competitor (from blknum 2000) must always be returned
+      # NOTE also that non-included competitors always are considered last, and hence worst and never are returned
+
+      # first the included competitors
+      comp_recent = Transaction.new([{1, 0, 0}], [])
+      comp_oldest = Transaction.new([{1, 2, 1}], [])
+
+      {:ok, recovered_recent} = Transaction.sign(comp_recent, [alice.priv]) |> Transaction.Recovered.recover_from()
+      {:ok, recovered_oldest} = Transaction.sign(comp_oldest, [alice.priv]) |> Transaction.Recovered.recover_from()
+
+      # ife-related competitor
+      other_ife_event = %{call_data: %{in_flight_tx: Transaction.encode(comp1), in_flight_tx_sigs: <<4::520>>}}
+      other_ife_status = {1, <<1::192>>}
+      {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
+
+      txbytes = Transaction.encode(tx1)
+
+      exit_processor_request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([recovered_oldest], 2000), Block.hashed_txs_at([recovered_recent], 3000)]
+      }
+
+      assert {:ok, %{competing_txid: Utxo.position(2000, 0, 0)}} =
+               exit_processor_request
+               |> Core.get_competitor_for_ife(processor, txbytes)
+
+      assert {:ok, %{competing_txid: Utxo.position(2000, 0, 0)}} =
+               exit_processor_request
+               |> Map.update!(:blocks_result, &Enum.reverse/1)
+               |> struct!()
+               |> Core.get_competitor_for_ife(processor, txbytes)
+
+      # check also that the rule applies to order of txs within a block
+      assert {:ok, %{competing_txid: Utxo.position(2000, 0, 0)}} =
+               exit_processor_request
+               |> Map.put(:blocks_result, [Block.hashed_txs_at([recovered_oldest, recovered_recent], 2000)])
+               |> struct!()
+               |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
     @tag fixtures: [:processor_filled]
