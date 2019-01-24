@@ -135,7 +135,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       %{
         tx_hash: tx1_hash,
         # canonical transaction
-        competitor_position: 100,
+        competitor_position: Utxo.position(1000, 0, 0) |> Utxo.Position.encode(),
         call_data: %{
           competing_tx: Transaction.encode(competing_tx2),
           competing_tx_input_index: 1,
