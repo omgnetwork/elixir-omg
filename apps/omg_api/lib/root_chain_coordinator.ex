@@ -25,7 +25,7 @@ defmodule OMG.API.RootChainCoordinator do
     @moduledoc """
      info needed to synchronize 
     """
-    defstruct [:root_chain, :sync_height]
+    defstruct [:root_chain_height, :sync_height]
 
     @type t() :: %__MODULE__{
             root_chain_height: non_neg_integer(),

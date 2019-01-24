@@ -80,7 +80,7 @@ defmodule OMG.API.EthereumEventListener.Core do
     height_limited_by_reorg_prevention_margin_and_request_size =
       min(root_chain_height - block_finality_margin, old_uper_bound + request_max_size)
 
-    upper_bound = max(height_need_to_be_download, height_limited_by_margin_and_request_size)
+    upper_bound = max(height_need_to_be_download, height_limited_by_reorg_prevention_margin_and_request_size)
 
     new_state = %__MODULE__{
       state
