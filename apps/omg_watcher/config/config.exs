@@ -25,11 +25,6 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
   render_errors: [view: OMG.Watcher.Web.View.ErrorView, accepts: ~w(json)],
   pubsub: [name: OMG.Watcher.PubSub, adapter: Phoenix.PubSub.PG2]
 
-config :omg_watcher, :phoenix_swagger,
-  swagger_files: %{
-    "priv/static/swagger.json" => [router: OMG.Watcher.Web.Router]
-  }
-
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

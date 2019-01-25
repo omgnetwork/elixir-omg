@@ -11,7 +11,7 @@ defmodule OMG.RPC.MixProject do
       lockfile: "../../mix.lock",
       elixir: "~> 1.6",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:phoenix, :phoenix_swagger] ++ Mix.compilers(),
+      compilers: [:phoenix] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       test_coverage: [tool: ExCoveralls]
@@ -38,7 +38,6 @@ defmodule OMG.RPC.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.3.2"},
-      {:phoenix_swagger, "~> 0.8.1"},
       {:cowboy, "~> 1.1"},
       {:deferred_config, "~> 0.1.1"},
       # NOTE: fixed version needed b/c Plug.Conn.WrapperError.reraise/3 is deprecated... 2 occurences in umbrella.

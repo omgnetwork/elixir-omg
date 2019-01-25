@@ -18,7 +18,6 @@ defmodule OMG.Watcher.Web.Controller.InFlightExit do
   """
 
   use OMG.Watcher.Web, :controller
-  use PhoenixSwagger
 
   alias OMG.Watcher.API
 

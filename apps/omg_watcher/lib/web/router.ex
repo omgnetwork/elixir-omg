@@ -20,10 +20,6 @@ defmodule OMG.Watcher.Web.Router do
     plug(:enforce_json_content)
   end
 
-  scope "/api/swagger" do
-    forward("/", PhoenixSwagger.Plug.SwaggerUI, otp_app: :omg_watcher, swagger_file: "swagger.json")
-  end
-
   scope "/", OMG.Watcher.Web do
     pipe_through([:api])
 
@@ -57,14 +53,5 @@ defmodule OMG.Watcher.Web.Router do
       |> json(OMG.RPC.Web.Error.serialize("bad_request:missing_json_content_type_header", nil))
       |> halt()
     end
-  end
-
-  def swagger_info do
-    %{
-      info: %{
-        version: "1.0",
-        title: "OMG Watcher"
-      }
-    }
   end
 end
