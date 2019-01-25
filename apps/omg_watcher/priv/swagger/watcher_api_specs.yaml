@@ -23,7 +23,7 @@ tags:
     description: InflightExit related API.    
 
 paths:
-  /account.get_utxos:
+  /utxo.get_utxos:
     post:
       tags:
         - UTXO
@@ -38,7 +38,7 @@ paths:
       produces:
       - application/json
       requestBody:
-        $ref: '#/requests/GetUtxosOpId'
+        $ref: 'requests.yaml#/AddressBodySchema'
       responses:
         200:
           $ref: '#/responses/GetUtxosOpId'
@@ -56,7 +56,7 @@ paths:
       produces:
       - application/json
       requestBody:
-        $ref: '#/definitions/UtxoPosBodySchema'
+        $ref: 'requests.yaml#/UtxoPosBodySchema'
       responses:
         200:
           $ref: '#/responses/GetUtxoChallengeOpId'
@@ -74,7 +74,7 @@ paths:
       produces:
       - application/json
       requestBody:
-        $ref: '#/definitions/UtxoPosBodySchema'
+        $ref: 'requests.yaml#/UtxoPosBodySchema'
       responses:
         200:
           $ref: '#/responses/GetUtxoExitOpId'
@@ -92,7 +92,7 @@ paths:
       produces:
       - application/json
       requestBody:
-        $ref: '#/definitions/TransactionBodySchema'
+        $ref: 'requests.yaml#/TransactionBodySchema'
       responses:
         200:
           $ref: '#/responses/SubmitOpId'
@@ -129,7 +129,7 @@ paths:
       produces:
       - application/json
       requestBody:
-        $ref: '#/definitions/TransactionBodySchema'
+        $ref: 'requests.yaml#/TransactionBodySchema'
       responses:
         200:
           $ref: '#/responses/GetInFlightExitOpId'
@@ -147,7 +147,7 @@ paths:
       produces:
       - application/json
       requestBody:
-        $ref: '#/definitions/TransactionBodySchema'
+        $ref: 'requests.yaml#/TransactionBodySchema'
       responses:
         200:
           $ref: '#/responses/GetCompetitorOpId'
@@ -165,7 +165,7 @@ paths:
       produces:
       - application/json
       requestBody:
-        $ref: '#/definitions/TransactionBodySchema'
+        $ref: 'requests.yaml#/TransactionBodySchema'
       responses:
         200:
           $ref: '#/responses/ProveCanonicalOpId'
@@ -173,21 +173,6 @@ paths:
           $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
 
 requests:
-  GetUtxosOpId:
-    description: HEX-encoded address of the account
-    required: true
-    content:
-      application/json:
-        schema:
-          type: object
-          properties:
-            address:
-              type: string
-              format: binary
-            required:
-              - address
-          example:
-            address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
 
 responses:
   GetUtxosOpId: 
@@ -202,7 +187,7 @@ responses:
               data:
                 type: array
                 items:
-                - $ref: '#/definitions/UtxoSchema'
+                - $ref: 'schemata.yaml#/TransactionOutputSchema'
             example:
               data:
               - 
@@ -458,56 +443,3 @@ responses:
                 inflight_proof: '0xcedb8b31d1e4...'
 
 definitions:
-  UtxoSchema:
-    schema:
-      type: object
-      properties:
-        blknum:
-          type: integer
-          format: int64
-        txindex:
-          type: integer
-          format: int16
-        oindex:
-          type: integer
-          format: int8
-        utxo_pos:
-          type: integer
-          format: int256
-        owner:
-          type: string
-          format: binary
-        currency:
-          type: string
-          format: binary                
-        amount:
-          type: integer
-          format: int256
-  
-  UtxoPosBodySchema:
-    description: Utxo position (encoded as single integer, the way contract represents them)
-    required: true
-    content:
-      application/json:
-        schema:
-          type: object
-          properties:
-            utxo_pos:
-              type: integer
-              format: int256
-          example:
-            utxo_pos: 10000000010000000
-  
-  TransactionBodySchema:
-    description: Signed transaction RLP-encoded to bytes and HEX-encoded to string
-    required: true
-    content:
-      application/json:
-        schema:
-          type: object
-          properties:
-            transaction:
-              type: string
-              format: binary  
-          example:
-            transaction: '0xf8d083015ba98080808080940000...'       
