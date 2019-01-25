@@ -41,7 +41,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     # NOTE: this test is here to assert valid behavior of the child chain when exits are filed in the root chain
     #       contract. See `integration/block_getter_test.exs` for another example of this
     # TODO: After this is moved to child-chain specific tests, this test can be removed as duplicate with the other
-    #       integration test. (resp task OMG-379) **MAKE SURE IT DOESN'T TEST ANYTHING THE NEXT SCENARIO DOESN'T**
+    #       integration test, but **ONLY IF IT DOESN'T TEST ANYTHING ELSE**. (resp task OMG-379)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
     {:ok, %{blknum: blknum, txindex: txindex}} = Client.submit(tx)

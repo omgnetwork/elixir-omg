@@ -1039,13 +1039,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       other_ife_status = {1, <<1::192>>}
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
-      txbytes = Transaction.encode(tx1)
-
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5,
         blocks_result: [Block.hashed_txs_at([recovered_oldest], 2000), Block.hashed_txs_at([recovered_recent], 3000)]
       }
+
+      txbytes = Transaction.encode(tx1)
 
       assert {:ok, %{competing_txid: Utxo.position(2000, 0, 0)}} =
                exit_processor_request

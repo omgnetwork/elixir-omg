@@ -45,18 +45,15 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
 
   def new(tx_bytes, competing_input_index, competing_input_signature) do
     with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
-      signed_tx_map = %{
-        raw_tx: raw_tx,
-        sigs: [competing_input_signature]
-      }
-
       {Transaction.hash(raw_tx),
-       struct(
-         __MODULE__,
-         tx: struct(Transaction.Signed, signed_tx_map),
+       %__MODULE__{
+         tx: %Transaction.Signed{
+           raw_tx: raw_tx,
+           sigs: [competing_input_signature]
+         },
          competing_input_index: competing_input_index,
          competing_input_signature: competing_input_signature
-       )}
+       }}
     end
   end
 end
