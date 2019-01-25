@@ -564,9 +564,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @spec prepare_available_piggyback(Transaction.Signed.t()) :: Event.PiggybackAvailable.t()
-  defp prepare_available_piggyback(
-         %Transaction.Signed{raw_tx: %Transaction{inputs: inputs, outputs: outputs} = tx} = signed_tx
-       ) do
+  defp prepare_available_piggyback(%Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx} = signed_tx) do
     {:ok, %Transaction.Recovered{spenders: input_owners}} = Transaction.Recovered.recover_from(signed_tx)
 
     available_inputs =

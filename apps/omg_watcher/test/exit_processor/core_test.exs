@@ -844,20 +844,20 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.invalid_exits(processor)
     end
 
-    @tag fixtures: [:processor_filled, :transactions, :competing_transactions]
+    @tag fixtures: [:processor_filled, :transactions, :competing_transactions, :alice]
     test "none if different input spent in some tx from appendix",
-         %{processor_filled: processor, transactions: [tx1 | _], competing_transactions: [_, _, comp3]} do
+         %{processor_filled: processor, transactions: [tx1 | _], competing_transactions: [_, _, comp3], alice: alice} do
       txbytes = Transaction.encode(tx1)
 
       other_txbytes = Transaction.encode(comp3)
-      other_signature = <<1::520>>
+      other_signature = Transaction.sign(comp3, [alice.priv, alice.priv]) |> Map.get(:sigs) |> Enum.join()
 
       other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}}
       other_ife_status = {1, <<1::192>>}
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
-      assert {:ok, []} =
+      assert {:ok, [%Event.PiggybackAvailable{}, %Event.PiggybackAvailable{}, %Event.PiggybackAvailable{}]} =
                %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
                |> Core.invalid_exits(processor)
 
@@ -1240,7 +1240,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         blocks_result: [block]
       }
 
-      # Ignoring two Event.PiggybackAvailable
       assert {:ok, [%Event.InvalidIFEChallenge{txbytes: ^txbytes}]} =
                exit_processor_request |> Core.invalid_exits(challenged_processor)
 
@@ -1279,9 +1278,5 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert is_binary(proof_bytes)
     # hash size * merkle tree depth
     assert byte_size(proof_bytes) == 32 * 16
-  end
-
-  def assert_events(expected_events, events, filtered_event) do
-    assert expected_events == events |> Enum.filter(fn event -> %filtered_event{} = event end)
   end
 end
