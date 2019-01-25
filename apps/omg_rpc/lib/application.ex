@@ -23,14 +23,13 @@ defmodule OMG.RPC.Application do
   def start(_type, _args) do
     DeferredConfig.populate(:omg_rpc)
 
-    children = [
-      OMG.RPC.Web.Endpoint
-    ]
-
     _ = Logger.info(fn -> "Started application OMG.RPC.Application" end)
 
     opts = [strategy: :one_for_one, name: OMG.RPC.Supervisor]
-    Supervisor.start_link(children, opts)
+
+    # children processes list is empty because it is up to the client to start Phoenix endpoints
+    # example in `OMG.API.Application`
+    Supervisor.start_link([], opts)
   end
 
   # Tell Phoenix to update the endpoint configuration

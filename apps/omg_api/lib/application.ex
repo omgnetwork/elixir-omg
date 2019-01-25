@@ -102,7 +102,8 @@ defmodule OMG.API.Application do
                process_events_callback: &ignore_validities/1
              }
            ]}
-      }
+      },
+      {OMG.RPC.Web.Endpoint, []}
     ]
 
     _ = Logger.info(fn -> "Started application OMG.API.Application" end)

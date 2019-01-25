@@ -142,7 +142,7 @@ tx3 =
   Transaction.new([{bob_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
   Transaction.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  Base.OMG.RPC.Web.Encoding.to_hex()
+  OMG.RPC.Web.Encoding.to_hex()
 
 %{"success" => true} =
   ~c(echo '{"transaction": "#{tx3}"}' | http POST localhost:9656/transaction.submit) |>
@@ -177,7 +177,7 @@ tx4 =
   Transaction.new([{spend_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
   Transaction.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  Base.OMG.RPC.Web.Encoding.to_hex()
+  OMG.RPC.Web.Encoding.to_hex()
 
 # and send using httpie
 ~c(echo '{"transaction": "#{tx4}"}' | http POST localhost:9656/transaction.submit) |>
