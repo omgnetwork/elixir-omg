@@ -53,48 +53,18 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     long
   end
 
-  deffixture transactions() do
+  deffixture transactions(alice, carol) do
     [
-      %Transaction{
-        inputs: [%{blknum: 1, txindex: 0, oindex: 0}, %{blknum: 1, txindex: 2, oindex: 1}],
-        outputs: [
-          %{owner: "alicealicealicealice", currency: @eth, amount: 1},
-          %{owner: "carolcarolcarolcarol", currency: @eth, amount: 2}
-        ]
-      },
-      %Transaction{
-        inputs: [%{blknum: 2, txindex: 1, oindex: 0}, %{blknum: 2, txindex: 2, oindex: 1}],
-        outputs: [
-          %{owner: "alicealicealicealice", currency: @eth, amount: 1},
-          %{owner: "carolcarolcarolcarol", currency: @eth, amount: 2}
-        ]
-      }
+      Transaction.new([{1, 0, 0}, {1, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}]),
+      Transaction.new([{2, 1, 0}, {2, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}])
     ]
   end
 
-  deffixture competing_transactions() do
+  deffixture competing_transactions(alice, bob, carol) do
     [
-      %Transaction{
-        inputs: [%{blknum: 10, txindex: 2, oindex: 1}, %{blknum: 1, txindex: 0, oindex: 0}],
-        outputs: [
-          %{owner: "malorymalorymaloryma", currency: @eth, amount: 2},
-          %{owner: "carolcarolcarolcarol", currency: @eth, amount: 1}
-        ]
-      },
-      %Transaction{
-        inputs: [%{blknum: 1, txindex: 0, oindex: 0}, %{blknum: 10, txindex: 2, oindex: 1}],
-        outputs: [
-          %{owner: "alicealicealicealice", currency: @eth, amount: 2},
-          %{owner: "malorymalorymaloryma", currency: @eth, amount: 1}
-        ]
-      },
-      %Transaction{
-        inputs: [%{blknum: 20, txindex: 1, oindex: 0}, %{blknum: 20, txindex: 20, oindex: 1}],
-        outputs: [
-          %{owner: "malorymalorymaloryma", currency: @eth, amount: 2},
-          %{owner: "carolcarolcarolcarol", currency: @eth, amount: 1}
-        ]
-      }
+      Transaction.new([{10, 2, 1}, {1, 0, 0}], [{bob.addr, @eth, 2}, {carol.addr, @eth, 1}]),
+      Transaction.new([{1, 0, 0}, {10, 2, 1}], [{alice.addr, @eth, 2}, {bob.addr, @eth, 1}]),
+      Transaction.new([{20, 1, 0}, {20, 20, 1}], [{bob.addr, @eth, 2}, {carol.addr, @eth, 1}])
     ]
   end
 
@@ -165,7 +135,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       %{
         tx_hash: tx1_hash,
         # canonical transaction
-        competitor_position: 100,
+        competitor_position: Utxo.position(1000, 0, 0) |> Utxo.Position.encode(),
         call_data: %{
           competing_tx: Transaction.encode(competing_tx2),
           competing_tx_input_index: 1,
@@ -361,7 +331,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {processor, [{:delete, :exit_info, @update_key1}]} = Core.finalize_exits(processor, spends)
 
     assert %ExitProcessor.Request{utxos_to_check: []} =
-             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{}, processor)
+             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
@@ -396,7 +366,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     # sanity
     assert %ExitProcessor.Request{utxos_to_check: [_, _]} =
-             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{}, processor)
+             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
 
     assert {processor, [{:delete, :exit_info, @update_key1}, {:delete, :exit_info, @update_key2}]} =
              processor
@@ -406,7 +376,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              ])
 
     assert %ExitProcessor.Request{utxos_to_check: []} =
-             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{}, processor)
+             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
@@ -468,7 +438,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @tag fixtures: [:processor_empty]
   test "empty processor returns no exiting utxo positions", %{processor_empty: empty} do
     assert %ExitProcessor.Request{utxos_to_check: []} =
-             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{}, empty)
+             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, empty)
   end
 
   @tag fixtures: [
@@ -874,9 +844,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
-      assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}, %Event.NonCanonicalIFE{txbytes: ^other_txbytes}]} =
+      assert {:ok, events} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> Core.invalid_exits(processor)
+
+      assert MapSet.new([%Event.NonCanonicalIFE{txbytes: txbytes}, %Event.NonCanonicalIFE{txbytes: other_txbytes}]) ==
+               MapSet.new(events)
 
       assert {:ok,
               %{
@@ -892,10 +865,37 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    # TODO: do this test, similar to the "competitor in IFE" case, just with lesser assertions, to not repeat ourselves.
-    #       I think it will "just pass" already
-    test "a competitor that's submitted as challenged to other IFE",
-         %{} do
+    @tag fixtures: [:alice, :processor_filled, :transactions]
+    test "a competitor that's submitted as challenge to other IFE",
+         %{alice: alice, processor_filled: processor, transactions: [tx1, tx2 | _]} do
+      # ifes in processor here aren't competitors to each other, but the challenge filed for tx2 is a competitor
+      # for tx1, which is what we want to detect:
+      competing_tx = Transaction.new([{1, 0, 0}], [])
+      %{sigs: [other_signature, _]} = Transaction.sign(competing_tx, [alice.priv, <<>>])
+
+      txbytes = Transaction.encode(tx1)
+      other_txbytes = Transaction.encode(competing_tx)
+
+      challenge_event = %{
+        tx_hash: Transaction.hash(tx2),
+        competitor_position: not_included_competitor_pos(),
+        call_data: %{competing_tx: other_txbytes, competing_tx_input_index: 0, competing_tx_sig: other_signature}
+      }
+
+      {processor, _} = Core.new_ife_challenges(processor, [challenge_event])
+
+      exit_processor_request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+
+      assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
+               exit_processor_request |> Core.invalid_exits(processor)
+
+      assert {:ok,
+              %{
+                inflight_txbytes: ^txbytes,
+                competing_txbytes: ^other_txbytes,
+                competing_input_index: 0,
+                competing_sig: ^other_signature
+              }} = exit_processor_request |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
@@ -939,21 +939,21 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     @tag fixtures: [:alice, :processor_filled, :transactions]
     test "a competitor having the double-spend on various input indices",
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _]} do
-      input_spent_in_idx0 = %{blknum: 1, txindex: 0, oindex: 0}
-      input_spent_in_idx1 = %{blknum: 1, txindex: 2, oindex: 1}
-      other_input1 = %{blknum: 10, txindex: 2, oindex: 1}
-      other_input2 = %{blknum: 11, txindex: 2, oindex: 1}
-      other_input3 = %{blknum: 12, txindex: 2, oindex: 1}
+      input_spent_in_idx0 = {1, 0, 0}
+      input_spent_in_idx1 = {1, 2, 1}
+      other_input1 = {10, 2, 1}
+      other_input2 = {11, 2, 1}
+      other_input3 = {12, 2, 1}
 
       comps = [
-        %Transaction{inputs: [input_spent_in_idx0], outputs: []},
-        %Transaction{inputs: [other_input1, input_spent_in_idx0], outputs: []},
-        %Transaction{inputs: [other_input1, other_input2, input_spent_in_idx0], outputs: []},
-        %Transaction{inputs: [other_input1, other_input2, other_input3, input_spent_in_idx0], outputs: []},
-        %Transaction{inputs: [input_spent_in_idx1], outputs: []},
-        %Transaction{inputs: [other_input1, input_spent_in_idx1], outputs: []},
-        %Transaction{inputs: [other_input1, other_input2, input_spent_in_idx1], outputs: []},
-        %Transaction{inputs: [other_input1, other_input2, other_input3, input_spent_in_idx1], outputs: []}
+        Transaction.new([input_spent_in_idx0], []),
+        Transaction.new([other_input1, input_spent_in_idx0], []),
+        Transaction.new([other_input1, other_input2, input_spent_in_idx0], []),
+        Transaction.new([other_input1, other_input2, other_input3, input_spent_in_idx0], []),
+        Transaction.new([input_spent_in_idx1], []),
+        Transaction.new([other_input1, input_spent_in_idx1], []),
+        Transaction.new([other_input1, other_input2, input_spent_in_idx1], []),
+        Transaction.new([other_input1, other_input2, other_input3, input_spent_in_idx1], [])
       ]
 
       expected_input_ids = [{0, 0}, {1, 0}, {2, 0}, {3, 0}, {0, 1}, {1, 1}, {2, 1}, {3, 1}]
@@ -1020,10 +1020,49 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    test "a best competitor, included earliest in a block",
-         %{} do
-      # TODO: we tested that we return "a competitor" in other tests, here we prefer the best competitor here,
-      #       in case when there are many present
+    @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
+    test "a best competitor, included earliest in a block, regardless of conflicting utxo position",
+         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp1 | _]} do
+      # NOTE that the recent competitor spends an __older__ input. Also note the reversing of block results done below
+      #      Regardless of these, the best competitor (from blknum 2000) must always be returned
+      # NOTE also that non-included competitors always are considered last, and hence worst and never are returned
+
+      # first the included competitors
+      comp_recent = Transaction.new([{1, 0, 0}], [])
+      comp_oldest = Transaction.new([{1, 2, 1}], [])
+
+      {:ok, recovered_recent} = Transaction.sign(comp_recent, [alice.priv]) |> Transaction.Recovered.recover_from()
+      {:ok, recovered_oldest} = Transaction.sign(comp_oldest, [alice.priv]) |> Transaction.Recovered.recover_from()
+
+      # ife-related competitor
+      other_ife_event = %{call_data: %{in_flight_tx: Transaction.encode(comp1), in_flight_tx_sigs: <<4::520>>}}
+      other_ife_status = {1, <<1::192>>}
+      {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
+
+      exit_processor_request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([recovered_oldest], 2000), Block.hashed_txs_at([recovered_recent], 3000)]
+      }
+
+      txbytes = Transaction.encode(tx1)
+
+      assert {:ok, %{competing_txid: Utxo.position(2000, 0, 0)}} =
+               exit_processor_request
+               |> Core.get_competitor_for_ife(processor, txbytes)
+
+      assert {:ok, %{competing_txid: Utxo.position(2000, 0, 0)}} =
+               exit_processor_request
+               |> Map.update!(:blocks_result, &Enum.reverse/1)
+               |> struct!()
+               |> Core.get_competitor_for_ife(processor, txbytes)
+
+      # check also that the rule applies to order of txs within a block
+      assert {:ok, %{competing_txid: Utxo.position(2000, 0, 0)}} =
+               exit_processor_request
+               |> Map.put(:blocks_result, [Block.hashed_txs_at([recovered_oldest, recovered_recent], 2000)])
+               |> struct!()
+               |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
     @tag fixtures: [:processor_filled]
@@ -1039,7 +1078,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                  Utxo.position(9000, 0, 1)
                ]
              } =
-               %ExitProcessor.Request{}
+               %ExitProcessor.Request{blknum_now: @late_blknum}
                |> Core.determine_utxo_existence_to_get(processor)
     end
 
@@ -1093,7 +1132,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       # first sanity-check as if the utxo was not spent yet
       assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
-               %ExitProcessor.Request{}
+               %ExitProcessor.Request{blknum_now: @late_blknum}
                |> Core.determine_utxo_existence_to_get(processor)
                |> mock_utxo_exists(state)
                |> Core.determine_spends_to_get(processor)
@@ -1106,7 +1145,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {:ok, {block, _, _}, state} = State.Core.form_block(1000, state)
 
       assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
-               %ExitProcessor.Request{blocks_result: [block]}
+               %ExitProcessor.Request{blknum_now: @late_blknum, blocks_result: [block]}
                |> Core.determine_utxo_existence_to_get(processor)
                |> mock_utxo_exists(state)
                |> Core.determine_spends_to_get(processor)
@@ -1127,9 +1166,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                %ExitProcessor.Request{spent_blknum_result: [2000, 1000]} |> Core.determine_blocks_to_get()
     end
 
-    # TODO: this is probably just a matter of modifying the `utxos_to_check` list accordingly
+    @tag fixtures: [:processor_filled]
     test "none if input not yet created during sync",
-         %{} do
+         %{processor_filled: processor} do
+      assert %{utxos_to_check: to_check} =
+               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 13}
+               |> Core.determine_utxo_existence_to_get(processor)
+
+      assert Utxo.position(9000, 0, 1) not in to_check
     end
   end
 
