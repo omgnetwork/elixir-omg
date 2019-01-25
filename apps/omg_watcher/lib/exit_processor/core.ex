@@ -480,6 +480,17 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       get_ifes_with_competitors(request, state)
       |> Enum.map(fn txbytes -> %Event.NonCanonicalIFE{txbytes: txbytes} end)
 
+    invalid_piggybacks =
+      get_invalid_piggybacks(request, state)
+      |> Enum.map(fn {txbytes, inputs, outputs} ->
+        %Event.InvalidPiggyback{txbytes: txbytes, inputs: inputs, outputs: outputs}
+      end)
+
+    # FIXME: late piggybacks are critical
+    late_invalid_piggybacks = []
+
+    has_no_late_invalid_exits = has_no_late_invalid_exits && Enum.empty?(late_invalid_piggybacks)
+
     invalid_ife_challenges_events =
       get_invalid_ife_challenges(request, state)
       |> Enum.map(fn txbytes -> %Event.InvalidIFEChallenge{txbytes: txbytes} end)
@@ -496,6 +507,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       [
         late_invalid_exits_events,
         non_late_events,
+        invalid_piggybacks,
+        late_invalid_piggybacks,
         ifes_with_competitors_events,
         invalid_ife_challenges_events,
         available_piggybacks_events
@@ -505,6 +518,33 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     chain_validity = if has_no_late_invalid_exits, do: :ok, else: {:error, :unchallenged_exit}
 
     {chain_validity, events}
+  end
+
+  @spec get_invalid_piggybacks(ExitProcessor.Request.t(), __MODULE__.t()) :: [{binary, [0..3], [0..3]}]
+  def get_invalid_piggybacks(
+        %ExitProcessor.Request{blocks_result: blocks} = rq,
+        %__MODULE__{in_flight_exits: ifes} = state
+      ) do
+    known_txs = get_known_txs(blocks) ++ get_known_txs(state)
+
+    # getting invalid piggybacks on inputs
+    bad_piggybacks_on_inputs =
+      ifes
+      |> Map.values()
+      |> Enum.map(fn %InFlightExitInfo{tx: tx} = ife ->
+        bad_piggybacks_indexes =
+          known_txs
+          |> Enum.filter(&competitor_for(tx, &1))
+          |> Enum.map(&competitor_for(tx, &1))
+          |> Enum.map(&InFlightExitInfo.get_input_index(ife, &1))
+
+        {Transaction.encode(ife.tx.raw_tx), bad_piggybacks_indexes, []}
+      end)
+      |> Enum.filter(fn {_, on_inputs, on_outputs} -> on_inputs ++ on_outputs != [] end)
+
+    bad_piggybacks_on_outputs = []
+
+    bad_piggybacks_on_inputs ++ bad_piggybacks_on_outputs
   end
 
   # Gets the list of open IFEs that have the competitors _somewhere_
@@ -710,6 +750,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   # tells whether a signle transaction is a competitor for another single transactions, by returning nil or the
   # UTXO position of the input double spent
+  @spec competitor_for(Transaction.Signed.t(), Transaction.Signed.t() | KnownTx.t() | Transaction.t()) ::
+          Utxo.Position.t() | false
   defp competitor_for(%Transaction.Signed{raw_tx: raw_tx}, %Transaction{} = known_raw_tx) do
     inputs = Transaction.get_inputs(raw_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
     known_spent_inputs = Transaction.get_inputs(known_raw_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
