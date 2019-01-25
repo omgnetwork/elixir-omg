@@ -685,13 +685,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
 
-      {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 1}])
+      {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
 
       request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
       {:ok, alerts} = Core.invalid_exits(request, state)
-      assert %Event.NonCanonicalIFE{txbytes: txbytes} in alerts
-      assert %Event.InvalidPiggyback{txbytes: txbytes, inputs: [1], outputs: []} in alerts
-      assert %Event.NonCanonicalIFE{txbytes: comp_txbytes} in alerts
+      event = %Event.InvalidPiggyback{txbytes: txbytes, inputs: [0], outputs: []}
+      assert event in alerts
       # TODO: niekanoniczne IFE tez generują niepoprawne PB na inputach!!!
     end
 
