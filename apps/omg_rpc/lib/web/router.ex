@@ -24,5 +24,8 @@ defmodule OMG.RPC.Web.Router do
 
     post("/block.get", Controller.Block, :get_block)
     post("/transaction.submit", Controller.Transaction, :submit)
+
+    # NOTE: This *has to* be the last route, catching all unhandled paths
+    match(:*, "/*path", Controller.Fallback, Route.NotFound)
   end
 end
