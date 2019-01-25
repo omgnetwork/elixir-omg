@@ -689,19 +689,30 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
       {:ok, alerts} = Core.invalid_exits(request, state)
-      event = %Event.InvalidPiggyback{txbytes: txbytes, inputs: [0], outputs: []}
-      assert event in alerts
-      # TODO: niekanoniczne IFE tez generują niepoprawne PB na inputach!!!
+      # FIXME: note to delete:
+      # this was too loose in my opinion - what if you got spurrious invalid piggyback events here?
+      assert [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}] =
+        alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
     end
 
-    test "detects double-spend of an input" do
-    end
+    test "detects double-spend of an input",
+     %{} do
+       # this looks like already covered above, no?
+     end
 
-    test "detects double-spend of an output" do
-    end
+    test "detects double-spend of an output",
+     %{} do
+     end
 
-    test "detects multiple double-spends in single IFE" do
-    end
+    test "detects multiple double-spends in single IFE",
+     %{} do
+     end
+
+    test "detects invalid piggybacks (in/outputs) regardless of canonicity",
+     %{} do
+     # TODO: kanoniczne IFE tez generują niepoprawne PB na inputach!!!
+     # TODO: niekanoniczne IFE tez generuja niepoprawne PB na outputach!!!
+     end
   end
 
   describe "finds competitors and allows canonicity challenges" do
