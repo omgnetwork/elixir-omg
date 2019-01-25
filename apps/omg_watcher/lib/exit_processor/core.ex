@@ -153,10 +153,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     new_ifes_kv_pairs =
       new_ifes_events
       |> Enum.zip(contract_statuses)
-      |> Enum.map(fn {%{call_data: %{in_flight_tx: tx_bytes, in_flight_tx_sigs: signatures}},
+      |> Enum.map(fn {%{eth_height: eth_height, call_data: %{in_flight_tx: tx_bytes, in_flight_tx_sigs: signatures}},
                       {timestamp, contract_ife_id} = contract_status} ->
         is_active = parse_contract_in_flight_exit_status(contract_status)
-        InFlightExitInfo.new(tx_bytes, signatures, contract_ife_id, timestamp, is_active)
+        InFlightExitInfo.new(tx_bytes, signatures, contract_ife_id, timestamp, is_active, eth_height)
       end)
 
     db_updates =
@@ -587,8 +587,23 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   Returns a map of all in flight exits, where keys are IFE hashes and values are IFES
   """
-  @spec get_in_flight_exits(__MODULE__.t()) :: %{binary() => InFlightExitInfo.t()}
-  def get_in_flight_exits(%__MODULE__{in_flight_exits: ifes}), do: ifes
+  @spec get_in_flight_exits(__MODULE__.t()) :: list(map)
+  def get_in_flight_exits(%__MODULE__{in_flight_exits: ifes}) do
+    ifes
+    |> Enum.map(&get_in_flight_exit/1)
+  end
+
+  defp get_in_flight_exit({txhash, ife_info}) do
+    %{tx: %Transaction.Signed{raw_tx: raw_tx}, eth_height: eth_height} = ife_info
+
+    %{
+      txhash: txhash,
+      txbytes: Transaction.encode(raw_tx),
+      eth_height: eth_height,
+      piggybacked_inputs: InFlightExitInfo.piggybacked_inputs(ife_info),
+      piggybacked_outputs: InFlightExitInfo.piggybacked_outputs(ife_info)
+    }
+  end
 
   @doc """
   Gets the root chain contract-required set of data to challenge a non-canonical ife

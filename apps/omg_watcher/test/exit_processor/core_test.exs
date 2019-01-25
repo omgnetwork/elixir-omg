@@ -28,7 +28,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   alias OMG.API.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.ExitProcessor.CompetitorInfo
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
@@ -97,8 +96,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Enum.map(&Enum.join(&1.sigs))
 
     [
-      %{call_data: %{in_flight_tx: tx1_bytes, in_flight_tx_sigs: tx1_sigs}},
-      %{call_data: %{in_flight_tx: tx2_bytes, in_flight_tx_sigs: tx2_sigs}}
+      %{call_data: %{in_flight_tx: tx1_bytes, in_flight_tx_sigs: tx1_sigs}, eth_height: 2},
+      %{call_data: %{in_flight_tx: tx2_bytes, in_flight_tx_sigs: tx2_sigs}, eth_height: 4}
     ]
   end
 
@@ -180,6 +179,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     state
   end
 
+  # TODO: will be removed, when persistence and behaviors are tested more thoroughly, without reaching into the guts
   defp build_in_flight_exit(
          %{call_data: %{in_flight_tx: bytes, in_flight_tx_sigs: sigs}},
          {timestamp, contract_ife_id}
@@ -197,16 +197,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     signed_tx = %{signed_tx | signed_tx_bytes: Transaction.Signed.encode(signed_tx)}
 
     {Transaction.hash(raw_tx), %InFlightExitInfo{tx: signed_tx, timestamp: timestamp, contract_id: contract_ife_id}}
-  end
-
-  defp build_competitor(%{
-         call_data: %{
-           competing_tx: txbytes,
-           competing_tx_input_index: input_index,
-           competing_tx_sig: signature
-         }
-       }) do
-    CompetitorInfo.new(txbytes, input_index, signature)
   end
 
   @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
@@ -477,48 +467,71 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> invalid_exits_filtered(processor, only: [Event.InvalidExit])
   end
 
-  @tag fixtures: [:processor_empty]
-  test "empty processor returns no in flight exits", %{processor_empty: empty} do
-    assert %{} == Core.get_in_flight_exits(empty)
+  @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses, :transactions]
+  test "properly processes new in flight exits, returns all of them on request", %{
+    processor_empty: processor,
+    in_flight_exit_events: events,
+    contract_ife_statuses: statuses
+  } do
+    assert [] == Core.get_in_flight_exits(processor)
+
+    {processor, _} = Core.new_in_flight_exits(processor, events, statuses)
+    ifes_response = Core.get_in_flight_exits(processor)
+
+    assert ifes_response |> Enum.count() == 2
   end
 
-  @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses, :in_flight_exits]
-  test "properly processes new in flight exits", %{
-    processor_empty: empty,
+  @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses, :transactions]
+  test "correct format of getting all ifes", %{
+    processor_empty: processor,
     in_flight_exit_events: events,
     contract_ife_statuses: statuses,
-    in_flight_exits: _ifes
+    transactions: [tx1, tx2 | _]
   } do
-    {updated_state, _} = Core.new_in_flight_exits(empty, events, statuses)
+    {processor, _} = Core.new_in_flight_exits(processor, events, statuses)
 
-    # TODO this tests too internally and is brittle. Change to test behaviors
-    # assert Map.new(ifes) == Core.get_in_flight_exits(updated_state)
-
-    assert Core.get_in_flight_exits(updated_state) |> Map.keys() |> Enum.count() == 2
+    assert [
+             %{
+               txbytes: Transaction.encode(tx1),
+               txhash: Transaction.hash(tx1),
+               eth_height: 2,
+               piggybacked_inputs: [],
+               piggybacked_outputs: []
+             },
+             %{
+               txbytes: Transaction.encode(tx2),
+               txhash: Transaction.hash(tx2),
+               eth_height: 4,
+               piggybacked_inputs: [],
+               piggybacked_outputs: []
+             }
+           ] == Core.get_in_flight_exits(processor) |> Enum.sort_by(& &1.eth_height)
   end
 
-  @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses, :in_flight_exits]
-  test "persists in flight exits and loads persisted on init", %{
-    processor_empty: _empty,
-    in_flight_exit_events: _events,
-    contract_ife_statuses: _statuses,
-    in_flight_exits: _ifes
+  @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses, :transactions]
+  test "reports piggybacked inputs/outputs when getting ifes", %{
+    processor_empty: processor,
+    in_flight_exit_events: [event | _],
+    contract_ife_statuses: [status | _],
+    transactions: [tx | _]
   } do
-    # TODO such end-to-end persistence tests are too brittle now, must do OMG-329
+    txhash = Transaction.hash(tx)
+    {processor, _} = Core.new_in_flight_exits(processor, [event], [status])
+    assert [%{piggybacked_inputs: [], piggybacked_outputs: []}] = Core.get_in_flight_exits(processor)
 
-    # updates = Enum.map(ifes, &InFlightExitInfo.make_db_update/1)
-    # update1 = Enum.slice(updates, 0, 1)
-    # update2 = Enum.slice(updates, 1, 1)
-    #
-    # assert {updated_state, ^update1} =
-    #          Core.new_in_flight_exits(empty, Enum.slice(events, 0, 1), Enum.slice(statuses, 0, 1))
-    #
-    # assert {final_state, ^updates} = Core.new_in_flight_exits(empty, events, statuses)
-    #
-    # assert {^final_state, ^update2} =
-    #          Core.new_in_flight_exits(updated_state, Enum.slice(events, 1, 1), Enum.slice(statuses, 1, 1))
-    #
-    # {:ok, ^final_state} = Core.init([], ifes, [])
+    {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: txhash, output_index: 0}])
+
+    assert [%{piggybacked_inputs: [0], piggybacked_outputs: []}] = Core.get_in_flight_exits(processor)
+
+    {processor, _} =
+      Core.new_piggybacks(processor, [%{tx_hash: txhash, output_index: 4}, %{tx_hash: txhash, output_index: 5}])
+
+    assert [%{piggybacked_inputs: [0], piggybacked_outputs: [0, 1]}] = Core.get_in_flight_exits(processor)
+  end
+
+  test "persists in flight exits and loads persisted on init",
+       %{} do
+    # TODO such end-to-end persistence tests are too brittle now, must do OMG-329
   end
 
   @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
@@ -532,27 +545,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, [], Enum.slice(statuses, 0, 1))
   end
 
-  @tag fixtures: [:processor_filled, :in_flight_exits]
-  test "persists new piggybacks", %{processor_filled: state, in_flight_exits: ifes} do
-    {piggybacked, events} =
-      ifes
-      |> Enum.reduce(
-        {[], []},
-        fn {id, ife}, {piggybacked, events} ->
-          {:ok, updated_ife} = InFlightExitInfo.piggyback(ife, 0)
-          {[{id, updated_ife} | piggybacked], [%{tx_hash: id, output_index: 0} | events]}
-        end
-      )
-
-    {_state, db_updates} = Core.new_piggybacks(state, events)
-
-    # updates does not necessarily come in the same order as events
-    assert length(piggybacked) == length(db_updates)
-
-    # TODO this tests too internally and is brittle. Change to test behaviors
-    # expected_db_updates = Enum.map(piggybacked, &InFlightExitInfo.make_db_update/1)
-    # assert db_updates -- expected_db_updates == []
-    # assert Map.new(piggybacked) == Core.get_in_flight_exits(state)
+  test "persists new piggybacks",
+       %{} do
+    # TODO such end-to-end persistence tests are too brittle now, must do OMG-329
   end
 
   @tag fixtures: [:processor_filled, :in_flight_exits]
@@ -577,149 +572,52 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            end)
   end
 
-  @tag fixtures: [:processor_filled, :in_flight_exits]
-  test "can piggyback two outputs at one call", %{processor_filled: state, in_flight_exits: ifes} do
-    events =
-      ifes
-      |> Enum.reduce([], fn {tx_hash, _}, acc ->
-        [%{tx_hash: tx_hash, output_index: 0}, %{tx_hash: tx_hash, output_index: 1} | acc]
-      end)
-
-    piggybacked =
-      ifes
-      |> Enum.map(fn {tx_hash, ife} ->
-        {:ok, tmp} = InFlightExitInfo.piggyback(ife, 0)
-        {:ok, updated} = InFlightExitInfo.piggyback(tmp, 1)
-        {tx_hash, updated}
-      end)
-
-    {_state, db_updates} = Core.new_piggybacks(state, events)
-
-    # TODO this tests too internally and is brittle. Change to test behaviors
-    # assert Map.new(piggybacked) == Core.get_in_flight_exits(state)
-
-    assert length(db_updates) == length(piggybacked)
+  test "persists new competitors and loads persisted on init", %{} do
+    # TODO such end-to-end persistence tests are too brittle now, must do OMG-329
   end
 
-  #  @tag fixtures: [:processor_empty, :alice, :in_flight_exit_events]
-  #  test "active piggybacks from inputs are monitored", %{
-  #    processor_empty: empty,
-  #    in_flight_exit_events: ife_events
-  #  } do
-  #    Core.new_in_flight_exits(empty, [timestamp: 1001], ife_events)
-  #  end
-
-  @tag fixtures: [:in_flight_exits, :in_flight_exits_challenges_events, :challenged_in_flight_exits]
-  test "persists new competitors and loads persisted on init", %{
-    in_flight_exits: ifes,
-    challenged_in_flight_exits: challenged_ifes,
-    in_flight_exits_challenges_events: challenges_events
-  } do
-    {:ok, state} = Core.init([], ifes, [])
-
-    competitors =
-      challenges_events
-      |> Enum.map(&build_competitor/1)
-
-    updates = Enum.map(competitors, &CompetitorInfo.make_db_update/1)
-
-    {updated_state, db_updates} = Core.new_ife_challenges(state, Enum.slice(challenges_events, 0, 1))
-
-    assert Enum.member?(db_updates, Enum.at(updates, 0))
-
-    {final_state, db_updates} = Core.new_ife_challenges(state, challenges_events)
-
-    # updates consists of competitors updates as well as ifes updates
-    assert Enum.reduce(
-             updates,
-             true,
-             fn
-               update, true -> Enum.member?(db_updates, update)
-               _, false -> false
-             end
-           )
-
-    assert {^final_state, db_updates} = Core.new_ife_challenges(updated_state, Enum.slice(challenges_events, 1, 2))
-
-    assert Enum.reduce(
-             Enum.slice(updates, 1, 2),
-             true,
-             fn
-               update, true -> Enum.member?(db_updates, update)
-               _, false -> false
-             end
-           )
-
-    {:ok, ^final_state} = Core.init([], challenged_ifes, competitors)
-  end
-
-  @tag fixtures: [:processor_empty, :in_flight_exits, :in_flight_exits_challenges_events]
+  @tag fixtures: [:processor_filled, :in_flight_exits_challenges_events]
   test "can challenge an in flight exit and challenged ife is not forgotten", %{
-    in_flight_exits: [{tx_hash, _} = ife | _],
+    processor_filled: processor,
     in_flight_exits_challenges_events: [challenge | _]
   } do
-    {:ok, state} = Core.init([], [ife], [])
-
-    {state, updates} = Core.new_ife_challenges(state, [challenge])
-
-    assert Enum.any?(
-             updates,
-             fn
-               {:put, :in_flight_exit_info, {^tx_hash, ife}} -> !InFlightExitInfo.is_canonical?(ife)
-               _ -> false
-             end
-           )
-
-    assert Core.get_in_flight_exits(state)
-           |> Map.get(tx_hash)
-           |> (&(!InFlightExitInfo.is_canonical?(&1))).()
+    assert Core.get_in_flight_exits(processor) |> Enum.count() == 2
+    {processor2, _} = Core.new_ife_challenges(processor, [challenge])
+    # TODO: test persistence separately
+    assert Core.get_in_flight_exits(processor2) |> Enum.count() == 2
+    # sanity
+    assert processor2 != processor
   end
 
   @tag fixtures: [:processor_filled, :in_flight_exits]
-  test "forgets challenged piggybacks", %{processor_filled: state, in_flight_exits: ifes} do
-    events =
-      ifes
-      |> Enum.map(fn {tx_hash, _} -> %{tx_hash: tx_hash, output_index: 0} end)
+  test "forgets challenged piggybacks",
+       %{processor_filled: processor, in_flight_exits: ifes} do
+    events = ifes |> Enum.map(fn {tx_hash, _} -> %{tx_hash: tx_hash, output_index: 0} end)
 
-    piggyback_events = challenge_events = events
+    {processor, _} = Core.new_piggybacks(processor, events)
+    # sanity: there are some piggybacks after piggybacking, to be removed later
+    assert [%{piggybacked_inputs: [_]}, %{piggybacked_inputs: [_]}] = Core.get_in_flight_exits(processor)
+    %{tx_hash: challenged_tx_hash} = to_challenge = hd(events)
+    {processor, _} = Core.challenge_piggybacks(processor, [to_challenge])
 
-    {state_with_piggybacks, _} = Core.new_piggybacks(state, piggyback_events)
-    piggybacked_ifes = Core.get_in_flight_exits(state_with_piggybacks)
-
-    challenged_ifes =
-      piggybacked_ifes
-      |> Enum.map(fn {tx_hash, ife} ->
-        {:ok, challenged} = InFlightExitInfo.challenge_piggyback(ife, 0)
-        {tx_hash, challenged}
-      end)
-
-    expected_db_updates = challenged_ifes |> Enum.map(&InFlightExitInfo.make_db_update/1)
-
-    {final_state, db_updates} = Core.challenge_piggybacks(state_with_piggybacks, challenge_events)
-
-    # TODO this tests too internally and is brittle. Change to test behaviors
-    # assert Core.get_in_flight_exits(final_state) == Map.new(ifes)
-
-    # order of updates is not deterministic
-    assert length(db_updates) == length(expected_db_updates)
-    assert db_updates -- expected_db_updates == []
-    assert Core.get_in_flight_exits(final_state) |> Map.keys() |> Enum.count() == 2
+    # TODO test persistence separately
+    assert [%{txhash: ^challenged_tx_hash, piggybacked_inputs: []}, %{piggybacked_inputs: [0]}] =
+             Core.get_in_flight_exits(processor)
+             |> Enum.sort_by(&length(&1.piggybacked_inputs))
   end
 
-  @tag fixtures: [:in_flight_exits]
-  test "can challenge two piggybacks at one call", %{in_flight_exits: [ife | _]} do
-    {tx_hash, tmp} = ife
-    {:ok, tmp} = InFlightExitInfo.piggyback(tmp, 0)
-    {:ok, piggybacked_ife} = InFlightExitInfo.piggyback(tmp, 1)
+  @tag fixtures: [:processor_filled, :in_flight_exits]
+  test "can open and challenge two piggybacks at one call",
+       %{processor_filled: processor, in_flight_exits: ifes} do
+    events = ifes |> Enum.map(fn {tx_hash, _} -> %{tx_hash: tx_hash, output_index: 0} end)
 
-    {:ok, state} = Core.init([], [{tx_hash, piggybacked_ife}], [])
+    {processor, _} = Core.new_piggybacks(processor, events)
+    # sanity: there are some piggybacks after piggybacking, to be removed later
+    assert [%{piggybacked_inputs: [_]}, %{piggybacked_inputs: [_]}] = Core.get_in_flight_exits(processor)
+    {processor, _} = Core.challenge_piggybacks(processor, events)
 
-    events = [%{tx_hash: tx_hash, output_index: 0}, %{tx_hash: tx_hash, output_index: 1}]
-
-    expected_db_updates = InFlightExitInfo.make_db_update(ife)
-
-    assert {final_state, [^expected_db_updates]} = Core.challenge_piggybacks(state, events)
-    assert Core.get_in_flight_exits(final_state) == Map.new([ife])
+    # TODO test persistence ersistence separately
+    assert [%{piggybacked_inputs: []}, %{piggybacked_inputs: []}] = Core.get_in_flight_exits(processor)
   end
 
   @tag fixtures: [:processor_filled, :in_flight_exits]
@@ -824,7 +722,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       txbytes = Transaction.encode(tx)
       signature = DevCrypto.sign(tx, [alice.priv, bob.priv]) |> Map.get(:sigs) |> Enum.join()
 
-      ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}}
+      ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
       ife_status = {1, <<1::192>>}
 
       {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
@@ -877,7 +775,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       other_txbytes = Transaction.encode(comp3)
       other_signature = DevCrypto.sign(comp3, [alice.priv, alice.priv]) |> Map.get(:sigs) |> Enum.join()
 
-      other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}}
+      other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}, eth_height: 2}
       other_ife_status = {1, <<1::192>>}
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
@@ -941,7 +839,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       other_txbytes = Transaction.encode(tx1)
       %{sigs: [other_signature, _]} = DevCrypto.sign(tx1, [alice.priv, alice.priv])
 
-      other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}}
+      other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}, eth_height: 2}
       other_ife_status = {1, <<1::192>>}
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
@@ -963,7 +861,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       other_txbytes = Transaction.encode(comp1)
       %{sigs: [other_signature, _]} = DevCrypto.sign(comp1, [alice.priv, <<>>])
 
-      other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}}
+      other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}, eth_height: 2}
       other_ife_status = {1, <<1::192>>}
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
@@ -1157,7 +1055,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {:ok, recovered_oldest} = DevCrypto.sign(comp_oldest, [alice.priv]) |> Transaction.Recovered.recover_from()
 
       # ife-related competitor
-      other_ife_event = %{call_data: %{in_flight_tx: Transaction.encode(comp1), in_flight_tx_sigs: <<4::520>>}}
+      other_ife_event = %{
+        call_data: %{in_flight_tx: Transaction.encode(comp1), in_flight_tx_sigs: <<4::520>>},
+        eth_height: 2
+      }
+
       other_ife_status = {1, <<1::192>>}
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
@@ -1221,7 +1123,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       txbytes = Transaction.encode(tx)
       %{sigs: [signature, _]} = DevCrypto.sign(tx, [alice.priv, <<>>])
 
-      ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}}
+      ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
       # inactive
       ife_status = {0, <<1::192>>}
 

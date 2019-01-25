@@ -60,7 +60,7 @@ defmodule OMG.Eth.MixProject do
   end
 
   defp contracts_compile do
-    current_path = System.cwd!()
+    current_path = File.cwd!()
     mixfile_path = __DIR__
     contracts_dir = "deps/plasma_contracts/contracts"
 

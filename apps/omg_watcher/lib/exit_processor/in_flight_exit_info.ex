@@ -26,7 +26,12 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   # TODO: divide into inputs and outputs: prevent contract's implementation from leaking into watcher
   # https://github.com/omisego/elixir-omg/pull/361#discussion_r247926222
-  @output_index_range 0..7
+  @exit_map_index_range 0..7
+
+  @inputs_index_range 0..3
+  @outputs_index_range 4..7
+
+  @output_offset 4
 
   defstruct [
     :tx,
@@ -34,9 +39,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     :timestamp,
     :contract_id,
     :oldest_competitor,
+    :eth_height,
     # piggybacking
     exit_map:
-      @output_index_range
+      @exit_map_index_range
       |> Enum.map(&{&1, %{is_piggybacked: false, is_finalized: false}})
       |> Map.new(),
     is_canonical: true,
@@ -55,6 +61,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           timestamp: non_neg_integer(),
           contract_id: ife_contract_id(),
           oldest_competitor: Utxo.Position.t() | nil,
+          eth_height: pos_integer(),
           exit_map: %{
             non_neg_integer() => %{
               is_piggybacked: boolean(),
@@ -65,7 +72,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           is_active: boolean()
         }
 
-  def new(tx_bytes, tx_signatures, contract_id, timestamp, is_active) do
+  def new(tx_bytes, tx_signatures, contract_id, timestamp, is_active, eth_height) do
     with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
       chopped_sigs = for <<chunk::size(65)-unit(8) <- tx_signatures>>, do: <<chunk::size(65)-unit(8)>>
 
@@ -78,7 +85,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           },
           timestamp: timestamp,
           contract_id: contract_id,
-          is_active: is_active
+          is_active: is_active,
+          eth_height: eth_height
         }
       }
     end
@@ -91,7 +99,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @spec piggyback(t(), non_neg_integer()) :: {:ok, t()} | {:error, :non_existent_exit | :cannot_piggyback}
   def piggyback(ife, index)
 
-  def piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when index in @output_index_range do
+  def piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when index in @exit_map_index_range do
     with exit <- Map.get(exit_map, index),
          {:ok, updated_exit} <- piggyback_exit(exit) do
       {:ok, %{ife | exit_map: Map.merge(exit_map, %{index => updated_exit})}}
@@ -123,7 +131,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @spec challenge_piggyback(t(), integer()) :: {:ok, t()} | {:error, :non_existent_exit | :cannot_challenge}
   def challenge_piggyback(ife, index)
 
-  def challenge_piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when index in @output_index_range do
+  def challenge_piggyback(%__MODULE__{exit_map: exit_map} = ife, index) when index in @exit_map_index_range do
     with %{is_piggybacked: true, is_finalized: false} <- Map.get(exit_map, index) do
       {:ok, %{ife | exit_map: Map.merge(exit_map, %{index => %{is_piggybacked: false, is_finalized: false}})}}
     else
@@ -198,6 +206,17 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     else
       :error -> false
     end
+  end
+
+  def piggybacked_inputs(ife) do
+    @inputs_index_range
+    |> Enum.filter(&is_piggybacked?(ife, &1))
+  end
+
+  def piggybacked_outputs(ife) do
+    @outputs_index_range
+    |> Enum.filter(&is_piggybacked?(ife, &1))
+    |> Enum.map(&(&1 - @output_offset))
   end
 
   def is_finalized?(%__MODULE__{exit_map: map}, index) do
