@@ -209,8 +209,6 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     #   OMG.Eth.RootChain.piggyback_in_flight_exit(tx2_bytes, 0, alice)
 
     # to challenge canonicity, get chain inclusion proof
-    # note: part below works only with merged https://github.com/omisego/plasma-contracts/pull/54
-
     # TODO: requires IFE-owner getting from the contract, delivered in OMG-311
     assert %{"competing_txid" => 0, "competing_proof" => ""} =
              get_competitor_response = TestHelper.get_in_flight_exit_competitors(raw_tx1_bytes)

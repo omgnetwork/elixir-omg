@@ -46,7 +46,7 @@ defmodule OMG.Eth.MixProject do
       {
         :plasma_contracts,
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "allow-challenges-in-first-period",
+        branch: "master",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
