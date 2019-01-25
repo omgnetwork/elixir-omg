@@ -67,8 +67,8 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
   test "utxo.get_exit_data handles improper type of parameter" do
     assert %{
              "object" => "error",
-             "code" => "get_utxo_challenge:bad_request",
-             "description" => "Parameters required by this action are missing or incorrect.",
+             "code" => "operation:bad_request",
+             "description" => "Parameters required by this operation are missing or incorrect.",
              "messages" => %{
                "validation_error" => %{
                  "parameter" => "utxo_pos",

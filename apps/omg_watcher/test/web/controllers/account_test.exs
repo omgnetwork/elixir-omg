@@ -76,8 +76,8 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
   test "account.get_balance handles improper type of parameter" do
     assert %{
              "object" => "error",
-             "code" => "get_balance:bad_request",
-             "description" => "Parameters required by this action are missing or incorrect.",
+             "code" => "operation:bad_request",
+             "description" => "Parameters required by this operation are missing or incorrect.",
              "messages" => %{
                "validation_error" => %{
                  "parameter" => "address",

@@ -20,8 +20,9 @@ When an error occurs, `success` will be set to `false` and `data` will contain m
 Code | Description 
 ---- | -----------  
 server:internal_server_error | Something went wrong on the server. Try again soon. 
-operation:not_found | Operation cannot be found. Check request URL.
 operation:bad_request | Parameters required by this operation are missing or incorrect. More information about error in response object `data/messages` property.
+operation:not_found | Operation cannot be found. Check request URL.
+operation:invalid_content | Content type of application/json header is required for all requests.
 challenge:exit_not_found | The challenge of particular exit is impossible because exit is inactive or missing
 challenge:utxo_not_spent | The challenge of particular exit is impossible because provided utxo is not spent
 exit:invalid | Utxo was spent or does not exist.

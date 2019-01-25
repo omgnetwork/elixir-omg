@@ -5,8 +5,7 @@ info:
   description: >
     This is the documentation for child chain API.
     
-    Error codes are available in **FIXME** [html](./errors), [json](./errors.json)
-    and [yaml](./errors.yaml) formats.
+    Error codes are available in [html](https://github.com/omisego/elixir-omg/docs/api_specs/includes/errors.md#error-codes-description) format.
   contact:
     name: OmiseGO
     email: omisego@omisego.co

@@ -167,8 +167,8 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   test "get.utxos handles improper type of parameter" do
     assert %{
              "object" => "error",
-             "code" => "get_utxos:bad_request",
-             "description" => "Parameters required by this action are missing or incorrect.",
+             "code" => "operation:bad_request",
+             "description" => "Parameters required by this operation are missing or incorrect.",
              "messages" => %{
                "validation_error" => %{
                  "parameter" => "address",
@@ -236,8 +236,8 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   test "utxo.get_exit_data handles improper type of parameter" do
     assert %{
              "object" => "error",
-             "code" => "get_utxo_exit:bad_request",
-             "description" => "Parameters required by this action are missing or incorrect.",
+             "code" => "operation:bad_request",
+             "description" => "Parameters required by this operation are missing or incorrect.",
              "messages" => %{
                "validation_error" => %{
                  "parameter" => "utxo_pos",

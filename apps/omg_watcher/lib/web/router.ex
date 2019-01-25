@@ -50,7 +50,12 @@ defmodule OMG.Watcher.Web.Router do
       conn
     else
       conn
-      |> json(OMG.RPC.Web.Error.serialize("bad_request:missing_json_content_type_header", nil))
+      |> json(
+        OMG.RPC.Web.Error.serialize(
+          "operation:invalid_content",
+          "Content type of application/json header is required for all requests."
+        )
+      )
       |> halt()
     end
   end
