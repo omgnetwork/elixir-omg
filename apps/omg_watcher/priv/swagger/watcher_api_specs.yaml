@@ -171,8 +171,78 @@ paths:
           $ref: '#/responses/ProveCanonicalOpId'
         500:
           $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
+  /inflight_exit.get_input_challenge_data:
+    post:
+      tags:
+        - InflightExit
+      summary: Gets the data to challenge an invalid input piggybacked on an in-flight exit. 
+      description: 
+      operationId: getInputChallengeData
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      requestBody:
+        $ref: '#/requests/GetInputChallengeDataOpId'
+      responses:
+        200:
+          $ref: '#/responses/GetInputChallengeDataOpId'
+        500:
+          $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'    
+  /inflight_exit.get_output_challenge_data:
+    post:
+      tags:
+        - InflightExit
+      summary: Gets the data to challenge an invalid output piggybacked on an in-flight exit. 
+      description: 
+      operationId: getOutputChallengeData
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      requestBody:
+        $ref: '#/requests/GetOutputChallengeDataOpId'
+      responses:
+        200:
+          $ref: '#/responses/GetOutputChallengeDataOpId'
+        500:
+          $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
 
 requests:
+  GetInputChallengeDataOpId:
+    description: In-flight transaction bytes and invalid input index
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            txbytes:
+              type: string
+              format: binary
+            input_index:
+              type: integer
+              format: int8
+          example:
+            txbytes: '0xf3170101c0940000...'
+            input_index: 1
+  GetOutputChallengeDataOpId:
+    description: In-flight transaction bytes and invalid output index
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            txbytes:
+              type: string
+              format: binary
+            output_index:
+              type: integer
+              format: int8
+          example:
+            txbytes: '0xf3170101c0940000...'
+            output_index: 0
 
 responses:
   GetUtxosOpId: 
@@ -441,5 +511,77 @@ responses:
                 inflight_txbytes: '0xf3170101c0940000...'
                 inflight_txid: 2600003920012
                 inflight_proof: '0xcedb8b31d1e4...'
+  GetInputChallengeDataOpId:
+    description: Get input challenge successful response
+    content:
+      application/json:
+        schema:
+          allOf:
+          - $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+          - type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  inflight_txbytes:
+                    type: string
+                    format: binary
+                  inflight_input_index:
+                    type: integer
+                    format: int8
+                  spending_txbytes:
+                    type: string
+                    format: binary
+                  spending_input_index:
+                    type: integer
+                    format: int8
+                  spending_sig:
+                    type: string
+                    format: binary
+            example:
+              data:
+                inflight_txbytes: '0xf3170101c0940000...'
+                inflight_input_index: 1
+                spending_txbytes: '0x5df13a6bee20000...'
+                spending_input_index: 1
+                spending_sig: '0xa3470101c0940000...'
+  GetOutputChallengeDataOpId:
+    description: Get output challenge successful response
+    content:
+      application/json:
+        schema:
+          allOf:
+          - $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+          - type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  inflight_txbytes:
+                    type: string
+                    format: binary
+                  inflight_output_pos:
+                    type: integer
+                    format: int256
+                  inflight_proof:
+                    type: string
+                    format: binary
+                  spending_txbytes:
+                    type: string
+                    format: binary
+                  spending_input_index:
+                    type: integer
+                    format: int8
+                  spending_sig:
+                    type: string
+                    format: binary
+            example:
+              data:
+                inflight_txbytes: '0xf3170101c0940000...'
+                inflight_output_pos: 21000634002
+                inflight_proof: '0xcedb8b31d1e4...'
+                spending_txbytes: '0x5df13a6bee20000...'
+                spending_input_index: 1
+                spending_sig: '0xa3470101c0940000...'
 
 definitions:
