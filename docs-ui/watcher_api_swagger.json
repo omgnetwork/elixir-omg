@@ -15,12 +15,16 @@
   },
   "tags": [
     {
-      "name": "Security",
-      "description": "Security related API."
+      "name": "Status",
+      "description": "Status of the child chain."
     },
     {
       "name": "UTXO",
       "description": "UTXO related API."
+    },
+    {
+      "name": "Transaction",
+      "description": "Transaction related API."
     },
     {
       "name": "InflightExit",
@@ -28,6 +32,221 @@
     }
   ],
   "paths": {
+    "/status": {
+      "post": {
+        "tags": [
+          "Status"
+        ],
+        "summary": "Returns information about the current state of the child chain and the watcher.",
+        "description": "The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity. The user must call the `/status` endpoint periodically to check. Any situation that requires the user  to either exit or challenge an invalid exit will be included in the `byzantine_events` field.\n",
+        "operationId": "status",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Status successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "description": "The response schema for a successful operation",
+                      "type": "object",
+                      "properties": {
+                        "version": {
+                          "type": "string"
+                        },
+                        "success": {
+                          "type": "boolean"
+                        },
+                        "data": {
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "version",
+                        "success",
+                        "data"
+                      ],
+                      "example": {
+                        "version": "1.0",
+                        "success": true,
+                        "data": {}
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "last_validated_child_block_number": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "last_mined_child_block_timestamp": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "last_mined_child_block_number": {
+                              "type": "integer",
+                              "format": "int64"
+                            },
+                            "eth_syncing": {
+                              "type": "boolean"
+                            },
+                            "byzantine_events": {
+                              "type": "array"
+                            },
+                            "inflight_txs": {
+                              "type": "array"
+                            },
+                            "inflight_exits": {
+                              "type": "array"
+                            }
+                          }
+                        }
+                      },
+                      "example": {
+                        "data": {
+                          "last_validated_child_block_number": 10000,
+                          "last_mined_child_block_timestamp": 1535031020,
+                          "last_mined_child_block_number": 11000,
+                          "eth_syncing": true,
+                          "byzantine_events": [
+                            {
+                              "event": "invalid_exit",
+                              "details": {
+                                "eth_height": 615440,
+                                "utxo_pos": 10000000010000000,
+                                "owner": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
+                                "currency": "0x0000000000000000000000000000000000000000",
+                                "amount": 100
+                              }
+                            }
+                          ],
+                          "inflight_txs": [
+                            {
+                              "txhash": "0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d",
+                              "txbytes": "0x3eb6ae5b06f3...",
+                              "input_addresses": [
+                                "0x1234..."
+                              ],
+                              "ouput_addresses": [
+                                "0x1234...",
+                                "0x7890..."
+                              ]
+                            }
+                          ],
+                          "inflight_exits": [
+                            {
+                              "txhash": "0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21",
+                              "txbytes": "0xf3170101c094...",
+                              "eth_height": 615441,
+                              "piggybacked_inputs": [
+                                1
+                              ],
+                              "piggybacked_outputs": [
+                                0,
+                                1
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Returns an internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "The response schema for an error",
+                  "allOf": [
+                    {
+                      "description": "The response schema for a successful operation",
+                      "type": "object",
+                      "properties": {
+                        "version": {
+                          "type": "string"
+                        },
+                        "success": {
+                          "type": "boolean"
+                        },
+                        "data": {
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "version",
+                        "success",
+                        "data"
+                      ],
+                      "example": {
+                        "version": "1.0",
+                        "success": true,
+                        "data": {}
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "description": "The object schema for an error",
+                          "type": "object",
+                          "properties": {
+                            "object": {
+                              "type": "string"
+                            },
+                            "code": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "messages": {
+                              "type": "object"
+                            }
+                          },
+                          "required": [
+                            "object",
+                            "code",
+                            "description",
+                            "messages"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ],
+                      "example": {
+                        "success": false,
+                        "data": {
+                          "object": "error",
+                          "code": "server:internal_server_error",
+                          "description": "Something went wrong on the server",
+                          "messages": {
+                            "error_key": "error_reason"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/utxo.get_utxos": {
       "post": {
         "tags": [
@@ -617,7 +836,7 @@
     "/transaction.submit": {
       "post": {
         "tags": [
-          "Security"
+          "Transaction"
         ],
         "summary": "Sends transaction to Child chain.",
         "description": "Watcher passes signed transaction to the child chain only if it's secure (better explaination needed)",
@@ -706,221 +925,6 @@
                           "blknum": 123000,
                           "txindex": 111,
                           "txhash": "0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Returns an internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "The response schema for an error",
-                  "allOf": [
-                    {
-                      "description": "The response schema for a successful operation",
-                      "type": "object",
-                      "properties": {
-                        "version": {
-                          "type": "string"
-                        },
-                        "success": {
-                          "type": "boolean"
-                        },
-                        "data": {
-                          "type": "object"
-                        }
-                      },
-                      "required": [
-                        "version",
-                        "success",
-                        "data"
-                      ],
-                      "example": {
-                        "version": "1.0",
-                        "success": true,
-                        "data": {}
-                      }
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "description": "The object schema for an error",
-                          "type": "object",
-                          "properties": {
-                            "object": {
-                              "type": "string"
-                            },
-                            "code": {
-                              "type": "string"
-                            },
-                            "description": {
-                              "type": "string"
-                            },
-                            "messages": {
-                              "type": "object"
-                            }
-                          },
-                          "required": [
-                            "object",
-                            "code",
-                            "description",
-                            "messages"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "data"
-                      ],
-                      "example": {
-                        "success": false,
-                        "data": {
-                          "object": "error",
-                          "code": "server:internal_server_error",
-                          "description": "Something went wrong on the server",
-                          "messages": {
-                            "error_key": "error_reason"
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/status": {
-      "post": {
-        "tags": [
-          "Security"
-        ],
-        "summary": "Returns information about the current state of the child chain and the watcher.",
-        "description": "The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity. The user must call the `/status` endpoint periodically to check. Any situation that requires the user  to either exit or challenge an invalid exit will be included in the `byzantine_events` field.\n",
-        "operationId": "status",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "responses": {
-          "200": {
-            "description": "Status successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "description": "The response schema for a successful operation",
-                      "type": "object",
-                      "properties": {
-                        "version": {
-                          "type": "string"
-                        },
-                        "success": {
-                          "type": "boolean"
-                        },
-                        "data": {
-                          "type": "object"
-                        }
-                      },
-                      "required": [
-                        "version",
-                        "success",
-                        "data"
-                      ],
-                      "example": {
-                        "version": "1.0",
-                        "success": true,
-                        "data": {}
-                      }
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "object",
-                          "properties": {
-                            "last_validated_child_block_number": {
-                              "type": "integer",
-                              "format": "int64"
-                            },
-                            "last_mined_child_block_timestamp": {
-                              "type": "integer",
-                              "format": "int64"
-                            },
-                            "last_mined_child_block_number": {
-                              "type": "integer",
-                              "format": "int64"
-                            },
-                            "eth_syncing": {
-                              "type": "boolean"
-                            },
-                            "byzantine_events": {
-                              "type": "array"
-                            },
-                            "inflight_txs": {
-                              "type": "array"
-                            },
-                            "inflight_exits": {
-                              "type": "array"
-                            }
-                          }
-                        }
-                      },
-                      "example": {
-                        "data": {
-                          "last_validated_child_block_number": 10000,
-                          "last_mined_child_block_timestamp": 1535031020,
-                          "last_mined_child_block_number": 11000,
-                          "eth_syncing": true,
-                          "byzantine_events": [
-                            {
-                              "event": "invalid_exit",
-                              "details": {
-                                "eth_height": 615440,
-                                "utxo_pos": 10000000010000000,
-                                "owner": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
-                                "currency": "0x0000000000000000000000000000000000000000",
-                                "amount": 100
-                              }
-                            }
-                          ],
-                          "inflight_txs": [
-                            {
-                              "txhash": "0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d",
-                              "txbytes": "0x3eb6ae5b06f3...",
-                              "input_addresses": [
-                                "0x1234..."
-                              ],
-                              "ouput_addresses": [
-                                "0x1234...",
-                                "0x7890..."
-                              ]
-                            }
-                          ],
-                          "inflight_exits": [
-                            {
-                              "txhash": "0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21",
-                              "txbytes": "0xf3170101c094...",
-                              "eth_height": 615441,
-                              "piggybacked_inputs": [
-                                1
-                              ],
-                              "piggybacked_outputs": [
-                                0,
-                                1
-                              ]
-                            }
-                          ]
                         }
                       }
                     }
