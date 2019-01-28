@@ -34,7 +34,7 @@ tx =
   Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
   Transaction.sign([alice.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  Base.OMG.RPC.Web.Encoding.to_hex()
+  OMG.RPC.Web.Encoding.to_hex()
 
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
@@ -46,7 +46,7 @@ tx =
 
 # with that block number, we can ask the root chain to give us the block hash
 {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(child_tx_block_number)
-block_hash_enc = Base.OMG.RPC.Web.Encoding.to_hex(block_hash)
+block_hash_enc = OMG.RPC.Web.Encoding.to_hex(block_hash)
 
 # with the block hash we can get the whole block
 ~c(echo '{"hash":"#{block_hash_enc}"}' | http POST localhost:9656/block.get) |>
