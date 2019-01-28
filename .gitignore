@@ -41,6 +41,3 @@ env/
 
 # Elixirls data directory
 .elixir_ls
-
-#FIXME: temporary ignore generated specs
-apps/**/priv/specs.*
