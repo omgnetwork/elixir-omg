@@ -14,14 +14,35 @@ info:
     url: 'https://omisego.network/'
 
 tags:
-  - name: Security
-    description: Security related API.
+  - name: Status
+    description: Status of the child chain.
   - name: UTXO
     description: UTXO related API.
+  - name: Transaction
+    description: Transaction related API.
   - name: InflightExit
     description: InflightExit related API.    
 
 paths:
+  /status:
+    post:
+      tags:
+        - Status
+      summary: Returns information about the current state of the child chain and the watcher.
+      description: >
+        The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity.
+        The user must call the `/status` endpoint periodically to check. Any situation that requires the user 
+        to either exit or challenge an invalid exit will be included in the `byzantine_events` field.
+      operationId: status
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        200:
+          $ref: '#/responses/StatusOpId'
+        500:
+          $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
   /utxo.get_utxos:
     post:
       tags:
@@ -82,7 +103,7 @@ paths:
   /transaction.submit:
     post:
       tags:
-        - Security
+        - Transaction
       summary: Sends transaction to Child chain.
       description: Watcher passes signed transaction to the child chain only if it's secure (better explaination needed)
       operationId: submit
@@ -95,25 +116,6 @@ paths:
       responses:
         200:
           $ref: '#/responses/SubmitOpId'
-        500:
-          $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
-  /status:
-    post:
-      tags:
-        - Security
-      summary: Returns information about the current state of the child chain and the watcher.
-      description: >
-        The most critical function of the Watcher is to monitor the ChildChain and report dishonest activity.
-        The user must call the `/status` endpoint periodically to check. Any situation that requires the user 
-        to either exit or challenge an invalid exit will be included in the `byzantine_events` field.
-      operationId: status
-      consumes:
-      - application/json
-      produces:
-      - application/json
-      responses:
-        200:
-          $ref: '#/responses/StatusOpId'
         500:
           $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
   /inflight_exit.get_data:
