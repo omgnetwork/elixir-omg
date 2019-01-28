@@ -2,7 +2,7 @@ version: 2
 jobs:
   test:
     docker:
-      - image: omisegoimages/elixir-omg-circleci:v20190128
+      - image: omisegoimages/elixir-omg-circleci:v20190128-01
         environment:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       - image: circleci/postgres:9.6-alpine
