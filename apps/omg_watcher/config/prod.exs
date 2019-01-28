@@ -28,7 +28,7 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   timeout: 60_000,
   connect_timeout: 60_000,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
-  url: {:system, "DATABASE_URL"}
+  url: {:system, "DATABASE_URL"},
   loggers: [Appsignal.Ecto, Ecto.LogEntry]
 
 # ## SSL Support
