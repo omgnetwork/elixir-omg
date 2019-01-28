@@ -153,7 +153,8 @@ defmodule OMG.Watcher.Event do
 
   defmodule PiggybackAvailable do
     @moduledoc """
-    Notifies about an available piggyback
+    Notifies about an available piggyback.
+    It is only fired, when the transaction hasn't been seen included.
     """
 
     defstruct [:txbytes, :available_outputs, :available_inputs, name: :piggyback_available]

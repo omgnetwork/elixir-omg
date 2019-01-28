@@ -536,9 +536,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Stream.map(fn %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: raw_tx}} -> raw_tx end)
     # TODO: expensive!
     |> Stream.filter(fn raw_tx ->
-      Enum.find(known_txs, fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} ->
-        raw_tx == block_raw_tx
-      end)
+      find_known_tx(known_txs, raw_tx)
     end)
     |> Stream.map(&Transaction.encode/1)
     |> Enum.uniq()
@@ -556,9 +554,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Stream.map(fn %InFlightExitInfo{tx: signed_tx} -> signed_tx end)
     # TODO: expensive!
     |> Stream.filter(fn %Transaction.Signed{raw_tx: raw_tx} ->
-      !Enum.find(known_txs, fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} ->
-        raw_tx == block_raw_tx
-      end)
+      !find_known_tx(known_txs, raw_tx)
     end)
     |> Enum.uniq()
   end
@@ -569,11 +565,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     available_inputs =
       input_owners
+      |> Enum.filter(&zero_address?/1)
       |> Enum.with_index()
       |> Enum.map(fn {owner, index} -> %{index: index, address: owner} end)
 
     available_outputs =
       outputs
+      |> Enum.filter(fn %{owner: owner} -> zero_address?(owner) end)
       |> Enum.with_index()
       |> Enum.map(fn {%{owner: owner}, index} -> %{index: index, address: owner} end)
 
@@ -751,5 +749,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     #       consider optimizing using `MapSet`
     utxo_positions
     |> Enum.filter(fn pos -> !Map.get(utxo_exists?, pos, true) end)
+  end
+
+  defp find_known_tx(known_txs, raw_tx) do
+    Enum.find(known_txs, fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} ->
+      raw_tx == block_raw_tx
+    end)
+  end
+
+  defp zero_address?(address) do
+    address != Crypto.zero_address()
   end
 end
