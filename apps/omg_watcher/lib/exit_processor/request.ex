@@ -21,6 +21,8 @@ defmodule OMG.Watcher.ExitProcessor.Request do
   NOTE: this is highly experimental, to test out new patterns to follow when doing the Functional Core vs Imperative
         Shell separation. **Do not yet** follow outside of here. I'm not sure whether such struct offers much and it
         has its problems. Decide and update this note after OMG-384 or OMG-383
+
+        EDIT: the multitude and duplication of the fields here is a clear sign that this design loses.
   """
 
   alias OMG.API.Block
@@ -33,21 +35,31 @@ defmodule OMG.Watcher.ExitProcessor.Request do
     utxos_to_check: [],
     spends_to_get: [],
     blknums_to_get: [],
+    piggybacked_utxos_to_check: [],
+    piggybacked_spends_to_get: [],
+    piggybacked_blknums_to_get: [],
     utxo_exists_result: [],
     spent_blknum_result: [],
     blocks_result: [],
-    input_owners_result: []
+    piggybacked_utxo_exists_result: [],
+    piggybacked_spent_blknum_result: [],
+    piggybacked_blocks_result: []
   ]
 
   @type t :: %__MODULE__{
           eth_height_now: nil | pos_integer,
           blknum_now: nil | pos_integer,
+          utxos_to_check: list(Utxo.Position.t()),
           spends_to_get: list(Utxo.Position.t()),
           blknums_to_get: list(pos_integer),
-          utxos_to_check: list(Utxo.Position.t()),
+          piggybacked_utxos_to_check: list(Utxo.Position.t()),
+          piggybacked_spends_to_get: list(Utxo.Position.t()),
+          piggybacked_blknums_to_get: list(pos_integer),
           utxo_exists_result: list(boolean),
           spent_blknum_result: list(pos_integer),
           blocks_result: list(Block.t()),
-          input_owners_result: list(Crypto.address_t())
+          piggybacked_utxo_exists_result: list(boolean),
+          piggybacked_spent_blknum_result: list(pos_integer),
+          piggybacked_blocks_result: list(Block.t())
         }
 end

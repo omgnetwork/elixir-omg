@@ -532,7 +532,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       ifes
       |> Map.values()
       |> Enum.map(fn %InFlightExitInfo{tx: tx, exit_map: exit_map} = ife ->
-
         # To find the bad input piggyback indexes, we first find a competitor (any input is double spent)
         # Next, we get the index, at which this double-spent UTXO position is on, within the IFE tx
         # Last, we check whether this IFE tx's input is actually piggybacked

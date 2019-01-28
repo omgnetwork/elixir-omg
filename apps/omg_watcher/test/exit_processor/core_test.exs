@@ -685,27 +685,187 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       # FIXME: note to delete:
       # this was too loose in my opinion - what if you got spurrious invalid piggyback events here?
       assert [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}] =
-        alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
+               alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
+
+      # FIXME: test and implement that we can `inflight_exit.get_input_challenge_data` similar to competitor getting
     end
 
     test "detects double-spend of an input",
-     %{} do
-       # this looks like already covered above, no?
-     end
+         %{} do
+      # this looks like already covered above, no?
+    end
 
-    test "detects double-spend of an output",
-     %{} do
-     end
+    @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
+    test "detects double-spend of an output, found in a IFE",
+         %{
+           alice: alice,
+           processor_filled: state,
+           transactions: [tx | _],
+           in_flight_exits: [{ife_id, _} | _]
+         } do
+      # 1. transaction which is, ife'd, output piggybacked, and included in a block
+      txbytes = Transaction.encode(tx)
+      {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
+      # 2. transaction which spends that piggybacked output
+      comp = Transaction.new([{3000, 0, 0}], [])
+      comp_txbytes = Transaction.encode(comp)
+      %{sigs: [comp_signature]} = DevCrypto.sign(comp, [alice.priv])
+
+      other_ife_event = %{
+        call_data: %{in_flight_tx: comp_txbytes, in_flight_tx_sigs: comp_signature},
+        eth_height: 4
+      }
+
+      other_ife_status = {1, <<1::192>>}
+
+      # 3. stuff happens in the contract
+      {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
+      {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
+
+      tx_blknum = 3000
+
+      {exit_processor_request, state} =
+        %ExitProcessor.Request{
+          blknum_now: 5000,
+          eth_height_now: 5,
+          piggybacked_blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)]
+        }
+        |> Core.find_ifes_in_blocks(state)
+
+      {:ok, alerts} = Core.invalid_exits(exit_processor_request, state)
+
+      assert [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}] =
+               alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
+
+      # FIXME: test and implement that we can `inflight_exit.get_output_challenge_data` similar to competitor getting
+    end
+
+    @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
+    test "detects double-spend of an output, found in a block",
+         %{
+           alice: alice,
+           processor_filled: state,
+           transactions: [tx | _],
+           in_flight_exits: [{ife_id, _} | _]
+         } do
+      # this time, the piggybacked-output-spending tx is going to be included in a block, which requires more back&forth
+      # 1. transaction which is, ife'd, output piggybacked, and included in a block
+      txbytes = Transaction.encode(tx)
+      {:ok, recovered} = DevCrypto.sign(tx, [alice.priv]) |> Transaction.Recovered.recover_from()
+
+      # 2. transaction which spends that piggybacked output
+      comp = Transaction.new([{3000, 0, 0}], [])
+      {:ok, comp_recovered} = DevCrypto.sign(comp, [alice.priv]) |> Transaction.Recovered.recover_from()
+
+      # 3. stuff happens in the contract
+      {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
+
+      tx_blknum = 3000
+      comp_blknum = 4000
+
+      exit_processor_request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)],
+        piggybacked_blocks_result: [Block.hashed_txs_at([comp_recovered], comp_blknum)]
+      }
+
+      {:ok, alerts} = Core.invalid_exits(exit_processor_request, state)
+
+      assert [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}] =
+               alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
+    end
+
+    @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
+    test "seeks piggybacked-output-spending txs in blocks",
+         %{
+           alice: alice,
+           processor_filled: processor,
+           transactions: [tx, tx2 | _],
+           in_flight_exits: [{ife_id, _} | _]
+         } do
+      # if an output-piggybacking transaction is included in some block, we need to seek blocks that could be spending
+      {:ok, recovered} = DevCrypto.sign(tx, [alice.priv]) |> Transaction.Recovered.recover_from()
+      {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: ife_id, output_index: 4}])
+
+      tx_blknum = 3000
+
+      exit_processor_request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)]
+      }
+
+      # for one piggybacked output, we're asking for it's position to check utxo existence
+      assert %ExitProcessor.Request{piggybacked_utxos_to_check: [{^tx_blknum, 0, 0}]} =
+               Core.determine_piggybacked_utxo_existence_to_get(exit_processor_request, processor)
+
+      # variant: here we check that moving tx to a different index works - here it is at txindex 1!
+      {:ok, recovered2} = DevCrypto.sign(tx2, [alice.priv]) |> Transaction.Recovered.recover_from()
+
+      assert %ExitProcessor.Request{piggybacked_utxos_to_check: [{^tx_blknum, 1, 0}]} =
+               exit_processor_request
+               |> Map.put(:blocks_result, [Block.hashed_txs_at([recovered2, recovered], tx_blknum)])
+               |> struct!()
+               |> Core.determine_piggybacked_utxo_existence_to_get(processor)
+
+      # if it turns out to not exists, we're fetching the spending block
+      assert %ExitProcessor.Request{piggybacked_spends_to_get: [{^tx_blknum, 0, 0}]} =
+               exit_processor_request
+               |> struct!(%{piggybacked_utxos_to_check: [{tx_blknum, 0, 0}], piggybacked_utxo_exists_result: [false]})
+               |> Core.determine_piggybacked_spends_to_get(processor)
+
+      assert %ExitProcessor.Request{piggybacked_blknums_to_get: [4000]} =
+               exit_processor_request
+               |> struct!(%{piggybacked_spends_to_get: [{tx_blknum, 0, 0}], piggybacked_spent_blknum_result: [4000]})
+               |> Core.determine_piggybacked_blknums_to_get(processor)
+
+      # more piggybacks => more stuff to get
+      {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: ife_id, output_index: 5}])
+
+      assert %ExitProcessor.Request{piggybacked_utxos_to_check: [{^tx_blknum, 0, 0}, {^tx_blknum, 0, 1}]} =
+               Core.determine_piggybacked_utxo_existence_to_get(exit_processor_request, processor)
+    end
+
+    @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
     test "detects multiple double-spends in single IFE",
-     %{} do
-     end
+         %{
+           alice: alice,
+           processor_filled: state,
+           transactions: [tx | _],
+           competing_transactions: [comp | _],
+           in_flight_exits: [{ife_id, _} | _]
+         } do
+      txbytes = Transaction.encode(tx)
+      comp_txbytes = Transaction.encode(comp)
+
+      %{sigs: [_, other_signature]} = DevCrypto.sign(comp, [<<>>, alice.priv])
+
+      other_ife_event = %{call_data: %{in_flight_tx: comp_txbytes, in_flight_tx_sigs: other_signature}, eth_height: 2}
+      other_ife_status = {1, <<1::192>>}
+
+      {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
+
+      {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
+      {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 1}])
+      {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
+      {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 5}])
+
+      # FIXME: here in the request we should also provide a block with `tx` and a block that spends the piggybacked out
+      # puts
+      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+      {:ok, alerts} = Core.invalid_exits(request, state)
+
+      assert [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0, 1], outputs: [0, 1]}] =
+               alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
+    end
 
     test "detects invalid piggybacks (in/outputs) regardless of canonicity",
-     %{} do
-     # TODO: kanoniczne IFE tez generują niepoprawne PB na inputach!!!
-     # TODO: niekanoniczne IFE tez generuja niepoprawne PB na outputach!!!
-     end
+         %{} do
+      # TODO: kanoniczne IFE tez generują niepoprawne PB na inputach!!!
+      # TODO: niekanoniczne IFE tez generuja niepoprawne PB na outputach!!!
+    end
   end
 
   describe "finds competitors and allows canonicity challenges" do
