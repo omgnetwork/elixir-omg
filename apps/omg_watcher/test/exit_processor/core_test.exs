@@ -14,7 +14,7 @@
 
 defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @moduledoc """
-  Test of the logic of exit processor - not losing exits from persistence, emitting events, talking to API.State.Core
+  Test of the logic of exit processor - detecting byzantine conditions, emitting events, talking to API.State.Core
   """
   use ExUnitFixtures
   use ExUnit.Case, async: true
@@ -200,46 +200,21 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
-  test "persist started exits and loads persisted on init", %{
+  test "can start new standard exits one by one or batched", %{
     processor_empty: empty,
     exit_events: events,
     contract_exit_statuses: contract_statuses
   } do
-    values =
-      Enum.map(
-        events,
-        &(Map.put(&1, :is_active, true)
-          |> Map.delete(:utxo_pos))
-      )
-
-    updates = Enum.zip([[:put, :put], [:exit_info, :exit_info], Enum.zip([@update_key1, @update_key2], values)])
-    update1 = Enum.slice(updates, 0, 1)
-    update2 = Enum.slice(updates, 1, 1)
-
-    assert {state2, ^update1} = Core.new_exits(empty, Enum.slice(events, 0, 1), Enum.slice(contract_statuses, 0, 1))
-    assert {final_state, ^updates} = Core.new_exits(empty, events, contract_statuses)
-
-    assert {^final_state, ^update2} =
-             Core.new_exits(state2, Enum.slice(events, 1, 1), Enum.slice(contract_statuses, 1, 1))
-
-    {:ok, ^final_state} = Core.init(Enum.zip([@update_key1, @update_key2], values), [], [])
+    {state2, _} = Core.new_exits(empty, Enum.slice(events, 0, 1), Enum.slice(contract_statuses, 0, 1))
+    {final_state, _} = Core.new_exits(empty, events, contract_statuses)
+    assert {^final_state, _} = Core.new_exits(state2, Enum.slice(events, 1, 1), Enum.slice(contract_statuses, 1, 1))
   end
 
   @tag fixtures: [:processor_empty, :alice, :exit_events]
-  test "new_exits sanity checks", %{
-    processor_empty: processor,
-    alice: %{
-      addr: alice
-    },
-    exit_events: [one_exit | _]
-  } do
-    {:error, :unexpected_events} =
-      processor
-      |> Core.new_exits([one_exit], [])
-
-    {:error, :unexpected_events} =
-      processor
-      |> Core.new_exits([], [{alice, @eth, 10}])
+  test "new_exits sanity checks",
+       %{processor_empty: processor, alice: %{addr: alice}, exit_events: [one_exit | _]} do
+    {:error, :unexpected_events} = processor |> Core.new_exits([one_exit], [])
+    {:error, :unexpected_events} = processor |> Core.new_exits([], [{alice, @eth, 10}])
   end
 
   @tag fixtures: [:processor_empty, :processor_filled]
@@ -266,10 +241,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     {processor, _} =
       processor
-      |> Core.new_exits(
-        events,
-        [{alice, @eth, 10}, {Crypto.zero_address(), @not_eth, 9}]
-      )
+      |> Core.new_exits(events, [{alice, @eth, 10}, {Crypto.zero_address(), @not_eth, 9}])
 
     # exits invalidly finalize and continue/start emitting events and complain
     {:ok, {_, _, two_spend}, state_after_spend} =
@@ -283,13 +255,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     # finalizing here - note that without `finalize_exits`, we would just get a single invalid exit event
     # with - we get 3, because we include the invalidly finalized on which will hurt forever
-    assert {
-             processor,
-             [
-               {:put, :exit_info, {@update_key1, %{is_active: true}}},
-               {:put, :exit_info, {@update_key2, %{is_active: true}}}
-             ]
-           } = Core.finalize_exits(processor, two_spend)
+    # (see persistence tests for the "forever" part)
+    assert {processor, _} = Core.finalize_exits(processor, two_spend)
 
     assert {{:error, :unchallenged_exit}, [_event1, _event2, _event3]} =
              %ExitProcessor.Request{eth_height_now: 12, blknum_now: @late_blknum}
@@ -324,7 +291,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     # exit validly finalizes and continues to not emit any events
     {:ok, {_, _, spends}, _} = State.Core.exit_utxos([%{utxo_pos: Utxo.Position.encode(@utxo_pos1)}], state)
-    assert {processor, [{:delete, :exit_info, @update_key1}]} = Core.finalize_exits(processor, spends)
+    assert {processor, _} = Core.finalize_exits(processor, spends)
 
     assert %ExitProcessor.Request{utxos_to_check: []} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
@@ -364,7 +331,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert %ExitProcessor.Request{utxos_to_check: [_, _]} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
 
-    assert {processor, [{:delete, :exit_info, @update_key1}, {:delete, :exit_info, @update_key2}]} =
+    assert {processor, _} =
              processor
              |> Core.challenge_exits([
                %{utxo_pos: Utxo.Position.encode(@utxo_pos1)},
@@ -529,11 +496,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert [%{piggybacked_inputs: [0], piggybacked_outputs: [0, 1]}] = Core.get_in_flight_exits(processor)
   end
 
-  test "persists in flight exits and loads persisted on init",
-       %{} do
-    # TODO such end-to-end persistence tests are too brittle now, must do OMG-329
-  end
-
   @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
   test "in flight exits sanity checks", %{
     processor_empty: state,
@@ -543,11 +505,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {state, []} == Core.new_in_flight_exits(state, [], [])
     assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, Enum.slice(events, 0, 1), [])
     assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, [], Enum.slice(statuses, 0, 1))
-  end
-
-  test "persists new piggybacks",
-       %{} do
-    # TODO such end-to-end persistence tests are too brittle now, must do OMG-329
   end
 
   @tag fixtures: [:processor_filled, :in_flight_exits]
@@ -572,18 +529,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            end)
   end
 
-  test "persists new competitors and loads persisted on init", %{} do
-    # TODO such end-to-end persistence tests are too brittle now, must do OMG-329
-  end
-
   @tag fixtures: [:processor_filled, :in_flight_exits_challenges_events]
-  test "can challenge an in flight exit and challenged ife is not forgotten", %{
+  test "challenges don't affect the list of IFEs returned", %{
     processor_filled: processor,
     in_flight_exits_challenges_events: [challenge | _]
   } do
     assert Core.get_in_flight_exits(processor) |> Enum.count() == 2
     {processor2, _} = Core.new_ife_challenges(processor, [challenge])
-    # TODO: test persistence separately
     assert Core.get_in_flight_exits(processor2) |> Enum.count() == 2
     # sanity
     assert processor2 != processor
@@ -600,7 +552,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     %{tx_hash: challenged_tx_hash} = to_challenge = hd(events)
     {processor, _} = Core.challenge_piggybacks(processor, [to_challenge])
 
-    # TODO test persistence separately
     assert [%{txhash: ^challenged_tx_hash, piggybacked_inputs: []}, %{piggybacked_inputs: [0]}] =
              Core.get_in_flight_exits(processor)
              |> Enum.sort_by(&length(&1.piggybacked_inputs))
@@ -616,7 +567,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert [%{piggybacked_inputs: [_]}, %{piggybacked_inputs: [_]}] = Core.get_in_flight_exits(processor)
     {processor, _} = Core.challenge_piggybacks(processor, events)
 
-    # TODO test persistence ersistence separately
     assert [%{piggybacked_inputs: []}, %{piggybacked_inputs: []}] = Core.get_in_flight_exits(processor)
   end
 

@@ -325,15 +325,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     ifes_to_update =
       finalizations
       |> Enum.reduce(%{}, fn %{in_flight_exit_id: id}, acc ->
-        with :not_found <-
-               Enum.find(ifes, :not_found, fn {_tx_hash, %InFlightExitInfo{contract_id: contract_id}} ->
-                 id == contract_id
-               end) do
-          acc
-        else
+        Enum.find(ifes, fn {_tx_hash, %InFlightExitInfo{contract_id: contract_id}} -> id == contract_id end)
+        |> case do
+          nil -> acc
           # map by id from contract and mark as not updated
-          {tx_hash, ife} ->
-            %{acc | id => {tx_hash, ife, false}}
+          {tx_hash, ife} -> Map.put(acc, id, {tx_hash, ife, false})
         end
       end)
 
