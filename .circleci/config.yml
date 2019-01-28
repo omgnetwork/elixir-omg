@@ -2,7 +2,7 @@ version: 2
 jobs:
   test:
     docker:
-      - image: omisegoimages/blockchain-base:1.6-otp20
+      - image: omisegoimages/elixir-omg-circleci:v20190128-06
         environment:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       - image: circleci/postgres:9.6-alpine
@@ -18,6 +18,10 @@ jobs:
           name: Install Hex
           command: |
             mix do local.hex --force, local.rebar --force
+      - run:
+          name: Clean Dependencies
+          command: |
+            mix deps.clean --all
       - run:
           name: Get Dependencies
           command: |
