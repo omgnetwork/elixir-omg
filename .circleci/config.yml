@@ -19,6 +19,10 @@ jobs:
           command: |
             mix do local.hex --force, local.rebar --force
       - run:
+          name: Clean Dependencies
+          command: |
+            mix deps.clean --all
+      - run:
           name: Get Dependencies
           command: |
             mix do deps.get, deps.compile, compile
