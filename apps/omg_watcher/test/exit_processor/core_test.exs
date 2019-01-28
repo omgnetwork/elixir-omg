@@ -769,7 +769,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   describe "available piggybacks" do
-    @tag fixtures: [:alice, :processor_filled, :transactions]
+    @tag fixtures: [:alice, :bob, :processor_filled, :transactions]
     test "detects available piggybacks because txs not seen in valid block",
          %{alice: alice, processor_filled: processor, transactions: [tx1, tx2]} do
       exit_processor_request = %ExitProcessor.Request{
@@ -822,6 +822,41 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                 }
               ]} = exit_processor_request |> Core.invalid_exits(processor)
     end
+
+    @tag fixtures: [:alice, :bob, :processor_empty]
+    test "transaction without outputs and different input owners", %{
+      alice: alice,
+      bob: bob,
+      processor_empty: processor
+    } do
+      tx = %Transaction{
+        inputs: [%{blknum: 1, txindex: 0, oindex: 0}, %{blknum: 1, txindex: 2, oindex: 1}],
+        outputs: []
+      }
+
+      alice_addr = alice.addr
+      bob_addr = bob.addr
+
+      txbytes = Transaction.encode(tx)
+      signature = Transaction.sign(tx, [alice.priv, bob.priv]) |> Map.get(:sigs) |> Enum.join()
+
+      ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}}
+      ife_status = {1, <<1::192>>}
+
+      {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
+
+      assert {:ok,
+              [
+                %Event.PiggybackAvailable{
+                  available_inputs: [%{address: ^alice_addr, index: 0}, %{address: ^bob_addr, index: 1}],
+                  available_outputs: [],
+                  txbytes: txbytes
+                }
+              ]} =
+               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+               |> invalid_exits_filtered(processor, Event.PiggybackAvailable)
+    end
+
   end
 
   describe "finds competitors and allows canonicity challenges" do
