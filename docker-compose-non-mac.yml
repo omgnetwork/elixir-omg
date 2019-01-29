@@ -5,6 +5,7 @@ services:
     entrypoint: /bin/sh -c "apk add curl && geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net --rpcaddr 0.0.0.0 --rpcvhosts=* --rpcport=8545"
     ports:
      - "8545:8545"
+    network_mode: "host"
     healthcheck:
       test: curl localhost:8545
       interval: 5s
@@ -15,6 +16,7 @@ services:
     image: jakebunce/contractexchanger:v0.0.2
     ports:
       - "5000:5000"
+    network_mode: "host"
     healthcheck:
       test: curl localhost:5000
       interval: 5s
@@ -37,6 +39,7 @@ services:
     restart: always
     ports:
       - "9656:9656"
+    network_mode: "host"
     healthcheck:
       test: curl localhost:9656
       interval: 7s
@@ -62,6 +65,7 @@ services:
     restart: always
     ports:
       - "7434:7434"
+    network_mode: "host"
     healthcheck:
       test: curl localhost:7434
       interval: 5s
