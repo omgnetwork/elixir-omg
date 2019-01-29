@@ -20,13 +20,13 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   """
 
   alias OMG.API.State.Transaction
+  alias OMG.API.Utxo
+
+  require Utxo
 
   # TODO: divide into inputs and outputs: prevent contract's implementation from leaking into watcher
   # https://github.com/omisego/elixir-omg/pull/361#discussion_r247926222
   @output_index_range 0..7
-
-  @block_offset 1_000_000_000
-  @tx_offset 10_000
 
   defstruct [
     :tx,
@@ -45,16 +45,16 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   @type blknum() :: pos_integer()
   @type tx_index() :: non_neg_integer()
-  @type tx_position() :: {blknum(), tx_index()}
 
   @type ife_contract_id() :: <<_::192>>
 
   @type t :: %__MODULE__{
           tx: Transaction.Signed.t(),
-          tx_pos: tx_position() | nil,
+          # use utxo_position really, for convenience and tooling, even if oindex is always zero here
+          tx_pos: Utxo.Position.t() | nil,
           timestamp: non_neg_integer(),
           contract_id: ife_contract_id(),
-          oldest_competitor: tx_position() | nil,
+          oldest_competitor: Utxo.Position.t() | nil,
           exit_map: %{
             non_neg_integer() => %{
               is_piggybacked: boolean(),
@@ -69,15 +69,13 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
       chopped_sigs = for <<chunk::size(65)-unit(8) <- tx_signatures>>, do: <<chunk::size(65)-unit(8)>>
 
-      signed_tx_map = %{
-        raw_tx: raw_tx,
-        sigs: chopped_sigs
-      }
-
       {
         Transaction.hash(raw_tx),
         %__MODULE__{
-          tx: struct(Transaction.Signed, signed_tx_map),
+          tx: %Transaction.Signed{
+            raw_tx: raw_tx,
+            sigs: chopped_sigs
+          },
           timestamp: timestamp,
           contract_id: contract_id,
           is_active: is_active
@@ -111,10 +109,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def challenge(ife, competitor_position)
 
   def challenge(%__MODULE__{oldest_competitor: nil} = ife, competitor_position),
-    do: %{ife | is_canonical: false, oldest_competitor: decode_tx_position(competitor_position)}
+    do: %{ife | is_canonical: false, oldest_competitor: Utxo.Position.decode(competitor_position)}
 
   def challenge(%__MODULE__{oldest_competitor: current_oldest} = ife, competitor_position) do
-    with decoded_competitor_pos <- decode_tx_position(competitor_position),
+    with decoded_competitor_pos <- Utxo.Position.decode(competitor_position),
          true <- is_older?(decoded_competitor_pos, current_oldest) do
       %{ife | is_canonical: false, oldest_competitor: decoded_competitor_pos}
     else
@@ -135,17 +133,17 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def challenge_piggyback(%__MODULE__{}, _), do: {:error, :non_existent_exit}
 
-  @spec respond_to_challenge(t(), pos_integer()) ::
+  @spec respond_to_challenge(t(), Utxo.Position.t()) ::
           {:ok, t()} | {:error, :responded_with_too_young_tx | :cannot_respond}
   def respond_to_challenge(ife, tx_position)
 
   def respond_to_challenge(%__MODULE__{oldest_competitor: nil, tx_pos: nil} = ife, tx_position) do
-    decoded = decode_tx_position(tx_position)
+    decoded = Utxo.Position.decode(tx_position)
     {:ok, %{ife | oldest_competitor: decoded, is_canonical: true, tx_pos: decoded}}
   end
 
   def respond_to_challenge(%__MODULE__{oldest_competitor: current_oldest, tx_pos: nil} = ife, tx_position) do
-    decoded = decode_tx_position(tx_position)
+    decoded = Utxo.Position.decode(tx_position)
 
     if is_older?(decoded, current_oldest) do
       {:ok, %{ife | oldest_competitor: decoded, is_canonical: true, tx_pos: decoded}}
@@ -186,8 +184,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   #          |> elem(1))
   #      )
   #
-  #    {:utxo_position, blknum, tx_index, _} = tx_pos
-  #    for pos <- active_outputs_offsets, do: {:utxo_position, blknum, tx_index, pos}
+  #    Utxo.position(blknum, tx_index, _) = tx_pos
+  #    for pos <- active_outputs_offsets, do: Utxo.position(blknum, tx_index, pos)
   #  end
 
   def get_exiting_utxo_positions(%__MODULE__{tx: %Transaction.Signed{raw_tx: tx}}) do
@@ -219,12 +217,6 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   #  defp offset(:input), do: 0
   #  defp offset(:output), do: 4
 
-  defp is_older?({tx1_blknum, tx1_index}, {tx2_blknum, tx2_index}),
+  defp is_older?(Utxo.position(tx1_blknum, tx1_index, _), Utxo.position(tx2_blknum, tx2_index, _)),
     do: tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)
-
-  defp decode_tx_position(tx_position) do
-    tx_index = rem(tx_position, @block_offset) |> div(@tx_offset)
-    blknum = div(tx_position, @block_offset)
-    {blknum, tx_index}
-  end
 end

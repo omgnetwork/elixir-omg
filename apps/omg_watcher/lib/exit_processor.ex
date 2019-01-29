@@ -232,7 +232,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Combine data from `ExitProcessor` and `API.State` to figure out what to do about exits
   """
   def handle_call(:check_validity, _from, state) do
-    # TODO: future of using this struct not certain, see that module for details
+    # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
     {chain_status, events} =
       %ExitProcessor.Request{}
       |> run_status_gets()
@@ -251,7 +251,7 @@ defmodule OMG.Watcher.ExitProcessor do
     do: {:reply, {:ok, Core.get_in_flight_exits(state)}, state}
 
   def handle_call({:get_competitor_for_ife, txbytes}, _from, state) do
-    # TODO: future of using this struct not certain, see that module for details
+    # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
     competitor_result =
       %ExitProcessor.Request{}
       # TODO: run_status_gets and getting all non-existent UTXO positions imaginable can be optimized out heavily
@@ -270,7 +270,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   def handle_call({:prove_canonical_for_ife, txbytes}, _from, state) do
-    # TODO: future of using this struct not certain, see that module for details
+    # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
     canonicity_result =
       %ExitProcessor.Request{}
       # TODO: same comment as above in get_competitor_for_ife

@@ -235,10 +235,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.map(fn %{utxo_pos: utxo_pos} = _finalization_info -> Utxo.Position.decode(utxo_pos) end)
   end
 
-  defp delete_positions(utxo_positions) do
-    utxo_positions
-    |> Enum.map(fn Utxo.position(blknum, txindex, oindex) -> {:delete, :exit_info, {blknum, txindex, oindex}} end)
-  end
+  defp delete_positions(utxo_positions),
+    do: utxo_positions |> Enum.map(&{:delete, :exit_info, Utxo.Position.to_db_key(&1)})
 
   # TODO: simplify flow
   # https://github.com/omisego/elixir-omg/pull/361#discussion_r247481397
@@ -317,7 +315,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {%{state | in_flight_exits: Map.merge(ifes, updated_ifes)}, db_updates}
   end
 
-  # TODO: write tests
+  # NOTE: write tests - OMG-381
   # TODO: simplify flow
   # https://github.com/omisego/elixir-omg/pull/361#discussion_r247485778
   @spec finalize_in_flight_exits(t(), [map()]) :: {t(), list()}
@@ -364,13 +362,14 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   """
   @spec determine_utxo_existence_to_get(ExitProcessor.Request.t(), t()) :: ExitProcessor.Request.t()
   def determine_utxo_existence_to_get(
-        %ExitProcessor.Request{} = request,
+        %ExitProcessor.Request{blknum_now: blknum_now} = request,
         %__MODULE__{} = state
-      ) do
-    %{request | utxos_to_check: do_determine_utxo_existence_to_get(state)}
+      )
+      when is_integer(blknum_now) do
+    %{request | utxos_to_check: do_determine_utxo_existence_to_get(state, blknum_now)}
   end
 
-  defp do_determine_utxo_existence_to_get(%__MODULE__{exits: exits, in_flight_exits: ifes}) do
+  defp do_determine_utxo_existence_to_get(%__MODULE__{exits: exits, in_flight_exits: ifes}, blknum_now) do
     standard_exits_pos =
       exits
       |> Enum.filter(fn {_key, %ExitInfo{is_active: is_active}} -> is_active end)
@@ -381,8 +380,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.flat_map(fn {_, ife} -> InFlightExitInfo.get_exiting_utxo_positions(ife) end)
 
     (ife_pos ++ standard_exits_pos)
-    |> Enum.uniq()
     |> Enum.filter(&Utxo.Position.non_zero?/1)
+    |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
+    |> Enum.uniq()
+    |> Enum.sort()
   end
 
   @doc """
@@ -447,20 +448,18 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   def invalid_exits(
         %ExitProcessor.Request{
           eth_height_now: eth_height_now,
-          blknum_now: blknum_now,
           utxos_to_check: utxos_to_check,
           utxo_exists_result: utxo_exists_result
         } = request,
         %__MODULE__{exits: exits, sla_margin: sla_margin} = state
       )
-      when is_integer(eth_height_now) and is_integer(blknum_now) do
+      when is_integer(eth_height_now) do
     utxo_exists? = Enum.zip(utxos_to_check, utxo_exists_result) |> Map.new()
 
     invalid_exit_positions =
       exits
       |> Enum.filter(fn {_key, %ExitInfo{is_active: is_active}} -> is_active end)
       |> Enum.map(fn {utxo_pos, _value} -> utxo_pos end)
-      |> Stream.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
       |> only_utxos_checked_and_missing(utxo_exists?)
 
     # get exits which are still invalid and after the SLA margin
@@ -516,7 +515,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     ifes
     |> Map.values()
-    # TODO: not enough - must take oldest competitor into account (?)
     |> Stream.filter(&InFlightExitInfo.is_canonical?/1)
     |> Stream.map(fn %InFlightExitInfo{tx: tx} -> tx end)
     # TODO: expensive!
@@ -539,7 +537,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Stream.map(fn %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: raw_tx}} -> raw_tx end)
     # TODO: expensive!
     |> Stream.filter(fn raw_tx ->
-      find_known_tx(known_txs, raw_tx)
+      is_among_known_txs?(raw_tx, known_txs)
     end)
     |> Stream.map(&Transaction.encode/1)
     |> Enum.uniq()
@@ -557,7 +555,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Stream.map(fn %InFlightExitInfo{tx: signed_tx} -> signed_tx end)
     # TODO: expensive!
     |> Stream.filter(fn %Transaction.Signed{raw_tx: raw_tx} ->
-      !find_known_tx(known_txs, raw_tx)
+      !is_among_known_txs?(raw_tx, known_txs)
     end)
     |> Enum.uniq()
   end
@@ -736,7 +734,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   defp get_known_txs([]), do: []
-  defp get_known_txs([%Block{} | _] = blocks), do: blocks |> Enum.flat_map(&get_known_txs/1)
+
+  # we're sorting the blocks by their blknum here, because we wan't oldest (best) competitors first always
+  defp get_known_txs([%Block{} | _] = blocks),
+    do: blocks |> Enum.sort_by(fn block -> block.number end) |> Enum.flat_map(&get_known_txs/1)
 
   defp recover_correct_tx_from_block(tx_bytes) do
     {:ok, recovered} = OMG.API.Core.recover_tx(tx_bytes)
@@ -754,7 +755,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.filter(fn pos -> !Map.get(utxo_exists?, pos, true) end)
   end
 
-  defp find_known_tx(known_txs, raw_tx) do
+  defp is_among_known_txs?(raw_tx, known_txs) do
     Enum.find(known_txs, fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} ->
       raw_tx == block_raw_tx
     end)

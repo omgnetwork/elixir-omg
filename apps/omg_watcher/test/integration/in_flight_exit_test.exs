@@ -41,7 +41,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     # NOTE: this test is here to assert valid behavior of the child chain when exits are filed in the root chain
     #       contract. See `integration/block_getter_test.exs` for another example of this
     # TODO: After this is moved to child-chain specific tests, this test can be removed as duplicate with the other
-    #       integration test. (resp task OMG-379)
+    #       integration test, but **ONLY IF IT DOESN'T TEST ANYTHING ELSE**. (resp task OMG-379)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
     {:ok, %{blknum: blknum, txindex: txindex}} = Client.submit(tx)
@@ -221,9 +221,6 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     #   OMG.Eth.RootChain.piggyback_in_flight_exit(tx2_bytes, 0, alice)
 
     # to challenge canonicity, get chain inclusion proof
-    # note: part below works only with merged https://github.com/omisego/plasma-contracts/pull/54
-
-    # TODO: requires IFE-owner getting from the contract, delivered in OMG-311
     assert %{"competing_txid" => 0, "competing_proof" => ""} =
              get_competitor_response = TestHelper.get_in_flight_exit_competitors(raw_tx1_bytes)
 
@@ -249,6 +246,15 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       |> Eth.DevHelpers.transact_sync!()
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
+
+    # existence of `non_canonical_ife` and `invalid_ife_challenge` events
+    assert %{
+             "byzantine_events" => [
+               %{"event" => "non_canonical_ife"},
+               %{"event" => "invalid_ife_challenge"},
+               %{"event" => "piggyback_available"}
+             ]
+           } = TestHelper.success?("/status.get")
 
     # now included IFE transaction tx1 is challenged and non-canonical, let's respond
     get_prove_canonical_response = TestHelper.get_prove_canonical(raw_tx1_bytes)
