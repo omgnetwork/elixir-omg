@@ -26,7 +26,7 @@ defmodule OMG.RPC.Client do
   @spec get_block(binary()) ::
           {:error,
            {:client_error, any()}
-           | {:malformed_response, false | nil | true | binary() | [any()] | number() | map()}
+           | {:malformed_response, Poison.Parser.t() | {:error, :invalid}}
            | {:server_error, any()}}
           | {:ok, map()}
   def get_block(hash) do
@@ -42,7 +42,7 @@ defmodule OMG.RPC.Client do
   @spec submit(binary()) ::
           {:error,
            {:client_error, any()}
-           | {:malformed_response, false | nil | true | binary() | [any()] | number() | map()}
+           | {:malformed_response, Poison.Parser.t() | {:error, :invalid}}
            | {:server_error, any()}}
           | {:ok, map()}
   def submit(tx) do
