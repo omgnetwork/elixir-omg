@@ -67,7 +67,6 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: omisego_dev
-          PGPORT: 5433
 
   build_and_deploy:
     docker:
