@@ -61,12 +61,13 @@ jobs:
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
         environment:
-        DATABASE_URL: postgres://postgres:postgres@localhost:5433/omisego_dev
+          DATABASE_URL: postgres://postgres:postgres@localhost:5433/omisego_dev
       - image: circleci/postgres:9.6-alpine
         environment:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: omisego_dev
+          PGPORT: 5433
 
   build_and_deploy:
     docker:
