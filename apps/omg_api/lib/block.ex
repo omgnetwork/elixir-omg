@@ -55,6 +55,20 @@ defmodule OMG.API.Block do
     |> Map.put(:blknum, blknum)
   end
 
+  @doc """
+  Calculates inclusion proof for the transaction in the block
+  """
+  @spec inclusion_proof(%__MODULE__{}, non_neg_integer()) :: binary()
+  def inclusion_proof(%__MODULE__{transactions: transactions}, txindex) do
+    {_, hashed_txs} =
+      transactions
+      |> Enum.map(&to_recovered_tx/1)
+      |> Enum.map(&get_data_per_tx/1)
+      |> Enum.unzip()
+
+    create_tx_proof(hashed_txs, txindex)
+  end
+
   # extracts the necessary data from a single transaction to include in a block and merkle hash
   # add more clauses to form blocks from other forms of transactions
   defp get_data_per_tx(%Transaction.Recovered{
@@ -62,6 +76,12 @@ defmodule OMG.API.Block do
          signed_tx: %Transaction.Signed{signed_tx_bytes: bytes}
        }) do
     {bytes, hash}
+  end
+
+  defp to_recovered_tx(txbytes) do
+    {:ok, signed_tx} = Transaction.Signed.decode(txbytes)
+    {:ok, recovered_tx} = Transaction.Recovered.recover_from(signed_tx)
+    recovered_tx
   end
 
   @default_leaf <<0>> |> List.duplicate(32) |> Enum.join() |> Crypto.hash()

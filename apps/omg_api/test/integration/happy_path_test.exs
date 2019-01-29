@@ -21,12 +21,15 @@ defmodule OMG.API.Integration.HappyPathTest do
   use ExUnit.Case, async: false
   use Plug.Test
 
+  alias OMG.API.Block
   alias OMG.API.Crypto
   alias OMG.API.DevCrypto
-  alias OMG.API.Integration.ExitHelper
   alias OMG.API.State.Transaction
+  alias OMG.API.Utxo
   alias OMG.Eth
   alias OMG.RPC.Web.TestHelper
+
+  require OMG.API.Utxo
 
   @moduletag :integration
 
@@ -108,11 +111,9 @@ defmodule OMG.API.Integration.HappyPathTest do
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(token_tx)
 
     # try to exit from transaction2's output
-    %{
-      utxo_pos: encoded_utxo_pos,
-      txbytes: raw_txbytes,
-      proof: proof
-    } = ExitHelper.compose_utxo_exit([transaction2], {spend_child_block2, 0, 0})
+    proof = Block.inclusion_proof(%Block{transactions: [tx2]}, 0)
+    encoded_utxo_pos = Utxo.position(spend_child_block2, 0, 0) |> Utxo.Position.encode()
+    raw_txbytes = raw_tx2 |> Transaction.encode()
 
     assert {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
              Eth.RootChain.start_exit(
@@ -124,8 +125,8 @@ defmodule OMG.API.Integration.HappyPathTest do
              |> Eth.DevHelpers.transact_sync!()
 
     # check if the utxo is no longer available
-    exit_finality_margin = 15
-    {:ok, _} = Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + exit_finality_margin)
+    exiters_finality_margin = Application.fetch_env!(:omg_api, :exiters_finality_margin) + 1
+    {:ok, _} = Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + exiters_finality_margin)
 
     invalid_raw_tx = Transaction.new([{spend_child_block2, 0, 0}], [{alice.addr, eth(), 10}])
     invalid_tx = invalid_raw_tx |> Transaction.sign([alice.priv]) |> Transaction.Signed.encode()
