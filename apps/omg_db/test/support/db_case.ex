@@ -22,11 +22,6 @@ defmodule OMG.DB.Case do
 
   use ExUnit.CaseTemplate
 
-  using do
-    quote do
-    end
-  end
-
   setup_all do
     {:ok, _} = Application.ensure_all_started(:briefly)
     :ok
