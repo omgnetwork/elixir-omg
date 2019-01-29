@@ -81,7 +81,12 @@ defmodule OMG.API.RootChainCoordinator.Core do
       state = %{state | services: services}
       {:ok, state}
     else
-      :invalid_synced_height_update
+      {:invalid_synced_height_update,
+       %{
+         service_name: service_name,
+         rootchain_height: state.root_chain_height,
+         service_reported_sync_height: service_reported_sync_height
+       }}
     end
   end
 
