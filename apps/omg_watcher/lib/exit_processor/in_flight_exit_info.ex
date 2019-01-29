@@ -162,7 +162,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def respond_to_challenge(%__MODULE__{}, _), do: {:error, :cannot_respond}
 
-  def finalize(%__MODULE__{} = ife, _output_id) do
+  def finalize(%__MODULE__{} = ife, _output_index) do
     # here, we'll check whether can be finalized and then mark it as finalized, OMG-381
     {:ok, ife}
   end

@@ -68,11 +68,13 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     # after the notification has been received, a challenged is composed and sent
     challenge = TestHelper.get_exit_challenge(deposit_blknum, 0, 0)
     {:ok, exit_id} = Eth.RootChain.get_standard_exit_id(utxo_pos)
-    assert {:ok, {alice.addr, @eth, 10}} == Eth.RootChain.get_exit(exit_id)
+    assert {:ok, {alice.addr, @eth, 10}} == Eth.RootChain.get_standard_exit(exit_id)
 
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.challenge_exit(
-        challenge["output_id"],
+        challenge["utxo_pos"],
+        # exit_id,  # TODO: the line above must be changed into this one
+        # as soon as we will use plasma-contract with changes from commit 4d336183f3fd80605ac760e847138e0a02e63a5d
         challenge["txbytes"],
         challenge["input_index"],
         challenge["sig"],
@@ -80,7 +82,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    assert {:ok, {API.Crypto.zero_address(), @eth, 0}} == Eth.RootChain.get_exit(utxo_pos)
+    assert {:ok, {API.Crypto.zero_address(), @eth, 0}} == Eth.RootChain.get_standard_exit(exit_id)
 
     IntegrationTest.wait_for_byzantine_events([], @timeout)
   end

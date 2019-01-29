@@ -29,13 +29,13 @@ defmodule OMG.Watcher.Web.View.InFlightExit do
 
   def render("competitor.json", %{response: competitor}) do
     competitor
-    |> Map.update!(:competing_txid, &Utxo.Position.encode/1)
+    |> Map.update!(:competing_tx_pos, &Utxo.Position.encode/1)
     |> Response.serialize()
   end
 
   def render("prove_canonical.json", %{response: prove_canonical}) do
     prove_canonical
-    |> Map.update!(:inflight_txid, &Utxo.Position.encode/1)
+    |> Map.update!(:inflight_tx_pos, &Utxo.Position.encode/1)
     |> Response.serialize()
   end
 end

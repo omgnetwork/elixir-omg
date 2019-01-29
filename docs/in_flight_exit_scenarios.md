@@ -241,7 +241,7 @@ response:
         "competing_txbytes": "F317010180808080940000...",
         "competing_input_index": 1,
         "competing_sig": "9A23010180808080940000...",
-        "competing_txid": 2600003920012,
+        "competing_tx_pos": 2600003920012,
         "competing_proof": "004C010180808080940000..."
     }
 }
@@ -256,7 +256,7 @@ RootChain.challengeInFlightExitNotCanonical(
     inflight_input_index, 
     competing_txbytes, 
     competing_input_index,
-    competing_txid,
+    competing_tx_pos,
     competing_proof, 
     competing_sig
 )

@@ -57,11 +57,11 @@ defmodule OMG.Watcher.Challenger.CoreTest do
     spending_block = create_block_with(2000, [tx_spending_1st_utxo, tx_spending_2nd_utxo])
 
     # Assert 1st spend challenge
-    expected_output_id = Utxo.position(1000, 0, 0) |> Utxo.Position.encode()
+    expected_utxo_pos = Utxo.position(1000, 0, 0) |> Utxo.Position.encode()
     expected_txbytes = tx_spending_1st_utxo.raw_tx |> Transaction.encode()
 
     assert %{
-             output_id: ^expected_output_id,
+             utxo_pos: ^expected_utxo_pos,
              input_index: 1,
              txbytes: ^expected_txbytes,
              sig: alice_signature
@@ -70,11 +70,11 @@ defmodule OMG.Watcher.Challenger.CoreTest do
     assert_sig_belongs_to(alice_signature, tx_spending_1st_utxo, alice)
 
     # Assert 2nd spend challenge
-    expected_output_id = Utxo.position(1000, 0, 1) |> Utxo.Position.encode()
+    expected_utxo_pos = Utxo.position(1000, 0, 1) |> Utxo.Position.encode()
     expected_txbytes = tx_spending_2nd_utxo.raw_tx |> Transaction.encode()
 
     assert %{
-             output_id: ^expected_output_id,
+             utxo_pos: ^expected_utxo_pos,
              input_index: 0,
              txbytes: ^expected_txbytes,
              sig: bob_signature

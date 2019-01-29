@@ -57,7 +57,7 @@ defmodule OMG.Eth.RootChain do
     )
   end
 
-  def start_exit(output_id, tx_bytes, proof, from, contract \\ nil, opts \\ []) do
+  def start_exit(utxo_pos, tx_bytes, proof, from, contract \\ nil, opts \\ []) do
     defaults =
       @tx_defaults
       |> Keyword.put(:gas, @gas_start_exit)
@@ -71,7 +71,7 @@ defmodule OMG.Eth.RootChain do
       from,
       contract,
       "startStandardExit(uint192,bytes,bytes)",
-      [output_id, tx_bytes, proof],
+      [utxo_pos, tx_bytes, proof],
       opts
     )
   end
@@ -116,12 +116,12 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from_hex(from), contract, "addToken(address)", [token], opts)
   end
 
-  def challenge_exit(output_id, challenge_tx, input_index, challenge_tx_sig, from, contract \\ nil, opts \\ []) do
+  def challenge_exit(exit_id, challenge_tx, input_index, challenge_tx_sig, from, contract \\ nil, opts \\ []) do
     opts = @tx_defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "challengeStandardExit(uint192,bytes,uint256,bytes)"
-    args = [output_id, challenge_tx, input_index, challenge_tx_sig]
+    args = [exit_id, challenge_tx, input_index, challenge_tx_sig]
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
@@ -155,11 +155,11 @@ defmodule OMG.Eth.RootChain do
 
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
   def challenge_in_flight_exit_not_canonical(
-        inflight_txbytes,
-        inflight_input_index,
+        in_flight_txbytes,
+        in_flight_input_index,
         competing_txbytes,
         competing_input_index,
-        competing_txid,
+        competing_tx_pos,
         competing_proof,
         competing_sig,
         from,
@@ -173,11 +173,11 @@ defmodule OMG.Eth.RootChain do
     signature = @challenge_ife_func_signature
 
     args = [
-      inflight_txbytes,
-      inflight_input_index,
+      in_flight_txbytes,
+      in_flight_input_index,
       competing_txbytes,
       competing_input_index,
-      competing_txid,
+      competing_tx_pos,
       competing_proof,
       competing_sig
     ]
@@ -187,7 +187,7 @@ defmodule OMG.Eth.RootChain do
 
   def respond_to_non_canonical_challenge(
         in_flight_tx,
-        in_flight_tx_id,
+        in_flight_tx_pos,
         in_flight_tx_inclusion_proof,
         from,
         contract \\ nil,
@@ -199,7 +199,7 @@ defmodule OMG.Eth.RootChain do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "respondToNonCanonicalChallenge(bytes,uint256,bytes)"
 
-    args = [in_flight_tx, in_flight_tx_id, in_flight_tx_inclusion_proof]
+    args = [in_flight_tx, in_flight_tx_pos, in_flight_tx_inclusion_proof]
 
     Eth.contract_transact(from, contract, signature, args, opts)
   end
@@ -236,7 +236,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns exit for a specific utxo. Calls contract method.
   """
-  def get_exit(exit_id, contract \\ nil) do
+  def get_standard_exit(exit_id, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     Eth.call_contract(contract, "exits(uint192)", [exit_id], [:address, :address, {:uint, 256}])
   end
@@ -390,7 +390,7 @@ defmodule OMG.Eth.RootChain do
                     :in_flight_input_index,
                     :competing_tx,
                     :competing_tx_input_index,
-                    :competing_tx_id,
+                    :competing_tx_pos,
                     :competing_tx_inclusion_proof,
                     :competing_tx_sig
                   ],
@@ -499,7 +499,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   def decode_in_flight_exit_output_finalized(log) do
-    non_indexed_keys = [:in_flight_exit_id, :output_id]
+    non_indexed_keys = [:in_flight_exit_id, :output_index]
     non_indexed_key_types = [{:uint, 192}, {:uint, 256}]
     indexed_keys = indexed_keys_types = []
 

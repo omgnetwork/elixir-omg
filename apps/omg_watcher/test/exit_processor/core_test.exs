@@ -879,7 +879,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                 competing_txbytes: ^other_txbytes,
                 competing_input_index: 1,
                 competing_sig: ^other_signature,
-                competing_txid: Utxo.position(0, 0, 0),
+                competing_tx_pos: Utxo.position(0, 0, 0),
                 competing_proof: ""
               }} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
@@ -948,7 +948,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                 competing_txbytes: ^other_txbytes,
                 competing_input_index: 1,
                 competing_sig: ^other_signature,
-                competing_txid: Utxo.position(^other_blknum, 0, 0),
+                competing_tx_pos: Utxo.position(^other_blknum, 0, 0),
                 competing_proof: proof_bytes
               }} =
                exit_processor_request
@@ -1071,18 +1071,18 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       txbytes = Transaction.encode(tx1)
 
-      assert {:ok, %{competing_txid: Utxo.position(2000, 0, 0)}} =
+      assert {:ok, %{competing_tx_pos: Utxo.position(2000, 0, 0)}} =
                exit_processor_request
                |> Core.get_competitor_for_ife(processor, txbytes)
 
-      assert {:ok, %{competing_txid: Utxo.position(2000, 0, 0)}} =
+      assert {:ok, %{competing_tx_pos: Utxo.position(2000, 0, 0)}} =
                exit_processor_request
                |> Map.update!(:blocks_result, &Enum.reverse/1)
                |> struct!()
                |> Core.get_competitor_for_ife(processor, txbytes)
 
       # check also that the rule applies to order of txs within a block
-      assert {:ok, %{competing_txid: Utxo.position(2000, 0, 0)}} =
+      assert {:ok, %{competing_tx_pos: Utxo.position(2000, 0, 0)}} =
                exit_processor_request
                |> Map.put(:blocks_result, [Block.hashed_txs_at([recovered_oldest, recovered_recent], 2000)])
                |> struct!()
@@ -1237,7 +1237,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:ok,
               %{
                 inflight_txbytes: ^txbytes,
-                inflight_txid: Utxo.position(^other_blknum, 0, 0),
+                inflight_tx_pos: Utxo.position(^other_blknum, 0, 0),
                 inflight_proof: proof_bytes
               }} =
                exit_processor_request
