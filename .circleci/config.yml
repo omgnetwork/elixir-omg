@@ -108,7 +108,7 @@ workflows:
       - test-1.8
       - build_and_deploy:
           requires:
-            - test
+            - test-1.6
           filters:
             branches:
               only: 
