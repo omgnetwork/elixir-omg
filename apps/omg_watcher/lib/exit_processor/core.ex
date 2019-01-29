@@ -417,8 +417,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Figures out which block numbers to ask from the database, based on the blknums where relevant UTXOs were spent and
   (in the future) some additional insights from the state of ExitProcessor (eg. only get the oldest block per ife)
 
-  NOTE: for now this is pretty trivial - we just get all of the blknums, where some ife input was spent
-        (see other Core functions). There are more optimal and smart way to do this
+  This function must return blocks that satisfy following criteria:
+    1/ blocks where any input to any IFE was spent
+    2/ blocks where any output to any IFE was spent
+    3/ blocks where the whole IFE transaction **might've** been included, to get piggyback availability and to get InvalidIFEChallenge's
+
   """
   @spec determine_blocks_to_get(ExitProcessor.Request.t()) :: ExitProcessor.Request.t()
   def determine_blocks_to_get(

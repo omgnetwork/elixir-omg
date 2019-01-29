@@ -215,10 +215,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
        ) do
     {:ok, raw_tx} = Transaction.decode(bytes)
 
+    # TODO clean this
+    chopped_sigs = for <<chunk::size(65)-unit(8) <- sigs>>, do: <<chunk::size(65)-unit(8)>>
+
     signed_tx = %Transaction.Signed{
       raw_tx: raw_tx,
-      sigs: sigs
+      sigs: chopped_sigs
     }
+
+    signed_tx = %{signed_tx | signed_tx_bytes: Transaction.Signed.encode(signed_tx)}
 
     {Transaction.hash(raw_tx), %InFlightExitInfo{tx: signed_tx, timestamp: timestamp, contract_id: contract_ife_id}}
   end
@@ -857,6 +862,25 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> invalid_exits_filtered(processor, Event.PiggybackAvailable)
     end
 
+    @tag fixtures: [:processor_filled, :transactions, :in_flight_exits_challenges_events]
+    test "challenged IFEs emit the same piggybacks as canonical ones", %{
+      processor_filled: processor,
+      transactions: [tx1, tx2],
+      in_flight_exits_challenges_events: [challenge_event | _]
+    } do
+      txbytes_1 = Transaction.encode(tx1)
+      txbytes_2 = Transaction.encode(tx2)
+
+      assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes_1}, %Event.PiggybackAvailable{txbytes: ^txbytes_2}]} =
+               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+               |> Core.invalid_exits(processor)
+
+      {challenged_processor, _} = Core.new_ife_challenges(processor, [challenge_event])
+
+      assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes_1}, %Event.PiggybackAvailable{txbytes: ^txbytes_2}]} =
+               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+               |> Core.invalid_exits(challenged_processor)
+    end
   end
 
   describe "finds competitors and allows canonicity challenges" do

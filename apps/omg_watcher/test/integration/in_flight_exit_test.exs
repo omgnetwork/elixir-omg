@@ -177,7 +177,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
 
-    # is existence of competitors detected?
+    # existence of competitors detected by checking if `non_canonical_ife` events exists
     assert %{
              "byzantine_events" => [
                %{"event" => "non_canonical_ife"},
