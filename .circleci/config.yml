@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  test:
+  test-1.6: &test-steps
     docker:
       - image: omisegoimages/elixir-omg-circleci:v20190129-03
         environment:
@@ -56,6 +56,10 @@ jobs:
           name: Lint
           command: |
             mix do credo, format --check-formatted --dry-run
+  test-1.8:
+    <<: *test-steps
+    docker:
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-01
 
   build_and_deploy:
     docker:
