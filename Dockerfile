@@ -26,7 +26,8 @@ RUN apt-get update \
   sudo \
   git \
   python3-pip \
-  python3-dev 
+  python3-dev \
+  curl
 
 RUN wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb \
   && dpkg -i erlang-solutions_1.0_all.deb \

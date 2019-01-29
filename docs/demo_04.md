@@ -26,17 +26,9 @@ eth = Crypto.zero_address()
 ### START DEMO HERE
 
 # sends a deposit transaction _to Ethereum_
-{:ok, deposit_tx_hash} =
-  Transaction.new([], [{alice_enc, eth, 10}]) |>
-  Transaction.encode() |>
-  Eth.RootChain.deposit(10, alice_enc)
-
-# need to wait until its mined
-{:ok, receipt} = Eth.WaitFor.eth_receipt(deposit_tx_hash)
-
 # we need to uncover the height at which the deposit went through on the root chain
 # to do this, look in the logs inside the receipt printed just above
-deposit_blknum = Eth.RootChain.deposit_blknum_from_receipt(receipt)
+deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, 10)
 
 # create and prepare transaction for signing
 tx =
@@ -62,33 +54,23 @@ in_flight_tx_bytes =
 
 # get in-flight exit data for tx
 
-%{"data" => %{
-    "in_flight_tx" => in_flight_tx,
-    "in_flight_tx_sigs" => in_flight_tx_sigs,
-    "input_txs" => input_txs,
-    "input_txs_inclusion_proofs" => input_txs_inclusion_proofs
-  }
-} = ~c(echo '{"txbytes": "#{in_flight_tx_bytes}"}' | http POST localhost:7434/inflight_exit.get_data) |>
+%{"data" => get_in_flight_exit_response} =
+  ~c(echo '{"txbytes": "#{in_flight_tx_bytes}"}' | http POST localhost:7434/inflight_exit.get_data) |>
   :os.cmd() |>
   Poison.decode!()
-
-{:ok, in_flight_tx} = Encoding.from_hex(in_flight_tx)
-{:ok, in_flight_tx_sigs} = Encoding.from_hex(in_flight_tx_sigs)
-{:ok, input_txs} = Encoding.from_hex(input_txs)
-{:ok, input_txs_inclusion_proofs} = Encoding.from_hex(input_txs_inclusion_proofs)
 
 # call root chain function that initiates in-flight exit
 {:ok, txhash} =
   OMG.Eth.RootChain.in_flight_exit(
-    in_flight_tx,
-    input_txs,
-    input_txs_inclusion_proofs,
-    in_flight_tx_sigs,
+    get_in_flight_exit_response["in_flight_tx"] |> Encoding.from_hex(),
+    get_in_flight_exit_response["input_txs"] |> Encoding.from_hex(),
+    get_in_flight_exit_response["input_txs_inclusion_proofs"] |> Encoding.from_hex(),
+    get_in_flight_exit_response["in_flight_tx_sigs"] |> Encoding.from_hex(),
     alice.addr
   )
 {:ok, _} = Eth.WaitFor.eth_receipt(txhash)
 
 # querying Ethereum for in-flight exits should return the initiated in-flight exit
 {:ok, eth_height} = OMG.Eth.get_ethereum_height()
-{:ok, [in_flight_exit]} = OMG.Eth.RootChain.get_in_flight_exits(0, eth_height)
+{:ok, [in_flight_exit]} = OMG.Eth.RootChain.get_in_flight_exit_starts(0, eth_height)
 ```

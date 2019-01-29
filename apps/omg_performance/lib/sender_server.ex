@@ -155,7 +155,7 @@ defmodule OMG.Performance.SenderServer do
 
         {:error, reason}
 
-      {:ok, %{blknum: blknum, tx_index: txindex}} ->
+      {:ok, %{blknum: blknum, txindex: txindex}} ->
         _ =
           Logger.debug(fn ->
             "[#{inspect(seqnum)}]: Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}"

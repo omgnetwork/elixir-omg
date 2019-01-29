@@ -22,8 +22,8 @@ curl -X POST -H "Content-Type: application/json" http://localhost:9656/transacti
       "success": true,
       "data": {
           "blknum": 123000,
-          "tx_index": 111,
-          "tx_hash": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"
+          "txindex": 111,
+          "txhash": "bdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d"
       }
 }
 ```
@@ -40,7 +40,7 @@ Attribute | Type | Description
 --------- | ------- | -----------
 transaction | Hex encoded string | Signed transaction RLP-encoded to bytes and HEX-encoded to string
 
-<aside class="notice">Normally you should call the Watcher's <a href="#transaction-submit">Transaction - Submit</a> instead of this. The Watcher's version performs various security and validation checks before submitting the transaction, so is much safer. However, if the Watcher is not available this version exists.</aside> 
+<aside class="notice">Normally you should call the Watcher's <a href="#transaction-submit">Transaction - Submit</a> instead of this. The Watcher's version performs various security and validation checks before submitting the transaction, so is much safer. However, if the Watcher is not available this version exists.</aside>
 
 
 

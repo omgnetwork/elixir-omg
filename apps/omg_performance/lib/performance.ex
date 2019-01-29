@@ -109,8 +109,14 @@ defmodule OMG.Performance do
         }."
       end)
 
-    DeferredConfig.populate(:omg_performance)
-    url = Application.get_env(:omg_performance, :child_chain_url, "http://localhost:9656")
+    DeferredConfig.populate(:omg_rpc)
+
+    url =
+      Application.get_env(:omg_rpc, OMG.RPC.Client, "http://localhost:9656")
+      |> case do
+        nil -> nil
+        opts -> Keyword.get(opts, :child_chain_url)
+      end
 
     defaults = %{destdir: ".", geth: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545", child_chain: url}
     opts = Map.merge(defaults, opts)

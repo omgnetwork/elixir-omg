@@ -20,7 +20,7 @@ defmodule OMG.Watcher.ExitProcessor.Request do
 
   NOTE: this is highly experimental, to test out new patterns to follow when doing the Functional Core vs Imperative
         Shell separation. **Do not yet** follow outside of here. I'm not sure whether such struct offers much and it
-        has its problems.
+        has its problems. Decide and update this note after OMG-384 or OMG-383
   """
 
   alias OMG.API.Block

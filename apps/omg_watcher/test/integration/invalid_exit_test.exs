@@ -28,6 +28,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
 
+  import ExUnit.CaptureLog
+
   @moduletag :integration
 
   @timeout 40_000
@@ -42,7 +44,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     {:ok, %{blknum: deposit_blknum}} = Client.submit(tx)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.submit(tx)
+    {:ok, %{blknum: tx_blknum, txhash: _tx_hash}} = Client.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
@@ -133,7 +135,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     {:ok, %{blknum: deposit_blknum}} = Client.submit(tx)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: tx_blknum, tx_hash: _tx_hash}} = Client.submit(tx)
+    {:ok, %{blknum: tx_blknum, txhash: _tx_hash}} = Client.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
@@ -141,7 +143,10 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     {:ok, _txhash} = Eth.RootChain.submit_block(<<0::256>>, nonce, 20_000_000_000)
 
-    IntegrationTest.wait_for_byzantine_events([%Event.BlockWithholding{}.name], @timeout)
+    # checking if both machines and humans learn about the byzantine condition
+    assert capture_log(fn ->
+             IntegrationTest.wait_for_byzantine_events([%Event.BlockWithholding{}.name], @timeout)
+           end) =~ inspect(:withholding)
 
     %{
       "txbytes" => txbytes,

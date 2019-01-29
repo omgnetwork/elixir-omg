@@ -38,6 +38,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   alias OMG.Watcher.Web.Channel
   alias OMG.Watcher.Web.Serializer.Response
 
+  import ExUnit.CaptureLog
+
   @moduletag :integration
 
   @timeout 40_000
@@ -176,7 +178,10 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     {:ok, _txhash} = Eth.RootChain.submit_block(different_hash, 1, 20_000_000_000)
 
-    IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
+    # checking if both machines and humans learn about the byzantine condition
+    assert capture_log(fn ->
+             IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
+           end) =~ inspect({:error, :incorrect_hash})
   end
 
   @tag fixtures: [:watcher_sandbox, :alice, :test_server]
@@ -197,7 +202,10 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     invalid_block_hash = block_with_incorrect_transaction.hash
     {:ok, _txhash} = Eth.RootChain.submit_block(invalid_block_hash, 1, 20_000_000_000)
 
-    IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
+    # checking if both machines and humans learn about the byzantine condition
+    assert capture_log(fn ->
+             IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
+           end) =~ inspect({:error, :tx_execution, :utxo_not_found})
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
@@ -240,6 +248,9 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     # Here we're manually submitting invalid block to the root chain
     {:ok, _} = OMG.Eth.RootChain.submit_block(bad_block_hash, 2, 1)
 
-    IntegrationTest.wait_for_byzantine_events([%Event.UnchallengedExit{}.name], @timeout)
+    # checking if both machines and humans learn about the byzantine condition
+    assert capture_log(fn ->
+             IntegrationTest.wait_for_byzantine_events([%Event.UnchallengedExit{}.name], @timeout)
+           end) =~ inspect(:unchallenged_exit)
   end
 end
