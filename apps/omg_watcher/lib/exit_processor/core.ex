@@ -689,12 +689,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp maybe_calculate_proof(Utxo.position(blknum, txindex, _), blocks) do
     blocks
     |> Enum.find(fn %Block{number: number} -> blknum == number end)
-    |> Map.fetch!(:transactions)
-    |> Enum.map(fn encoded_signed_tx ->
-      %Transaction.Recovered{tx_hash: hash} = recover_correct_tx_from_block(encoded_signed_tx)
-      hash
-    end)
-    |> Block.create_tx_proof(txindex)
+    |> Block.inclusion_proof(txindex)
   end
 
   defp find_competitor(known_txs, signed_ife_tx) do

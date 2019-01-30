@@ -14,6 +14,7 @@
 
 defmodule OMG.Watcher.Web.View.ErrorView do
   use OMG.Watcher.Web, :view
+  use OMG.API.LoggerExt
 
   @doc """
   Supports internal server error thrown by Phoenix.
@@ -31,6 +32,8 @@ defmodule OMG.Watcher.Web.View.ErrorView do
   Renders error when no render clause matches or no template is found.
   """
   def template_not_found(_template, %{reason: reason}) do
+    _ = Logger.error("#{inspect(reason)}")
+
     throw(
       "Unmatched render clause for template #{inspect(Map.get(reason, :template, "<unable to find>"))} in #{
         inspect(Map.get(reason, :module, "<unable to find>"))
