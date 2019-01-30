@@ -473,7 +473,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {:ok, [%Event.InvalidExit{}]} =
              exit_processor_request
              |> struct!(utxo_exists_result: [false, false, false])
-             |> invalid_exits_filtered(processor, Event.InvalidExit)
+             |> invalid_exits_filtered(processor, only: [Event.InvalidExit])
   end
 
   @tag fixtures: [:processor_empty]
@@ -756,8 +756,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         eth_height_now: 5
       }
 
-      %Transaction{outputs: [%{owner: tx1_owner1}, %{owner: tx1_owner2}, _, _]} = tx2
-      %Transaction{outputs: [%{owner: tx2_owner1}, %{owner: tx2_owner2}, _, _]} = tx2
+      [%{owner: tx1_owner1}, %{owner: tx1_owner2}, _, _] = Transaction.get_outputs(tx1)
+      [%{owner: tx2_owner1}, %{owner: tx2_owner2}, _, _] = Transaction.get_outputs(tx2)
 
       txbytes_1 = Transaction.encode(tx1)
       txbytes_2 = Transaction.encode(tx2)
@@ -837,7 +837,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                 }
               ]} =
                %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor, Event.PiggybackAvailable)
+               |> invalid_exits_filtered(processor, only: [Event.PiggybackAvailable])
     end
 
     @tag fixtures: [:processor_filled, :transactions, :in_flight_exits_challenges_events]
@@ -865,7 +865,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{processor_filled: processor} do
       assert {:ok, []} =
                %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor)
+               |> invalid_exits_filtered(processor, exclude: [Event.PiggybackAvailable])
     end
 
     @tag fixtures: [:processor_filled, :transactions, :competing_transactions, :alice]
@@ -883,7 +883,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok, []} =
                %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor)
+               |> invalid_exits_filtered(processor, exclude: [Event.PiggybackAvailable])
 
       assert {:error, :competitor_not_found} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
@@ -903,7 +903,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         blocks_result: [Block.hashed_txs_at([other_recovered], 3000)]
       }
 
-      assert {:ok, []} = exit_processor_request |> invalid_exits_filtered(processor)
+      assert {:ok, []} =
+               exit_processor_request |> invalid_exits_filtered(processor, exclude: [Event.PiggybackAvailable])
 
       assert {:error, :competitor_not_found} =
                exit_processor_request
@@ -923,7 +924,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         blocks_result: [Block.hashed_txs_at([other_recovered], 3000)]
       }
 
-      assert {:ok, []} = exit_processor_request |> invalid_exits_filtered(processor)
+      assert {:ok, []} =
+               exit_processor_request |> invalid_exits_filtered(processor, exclude: [Event.PiggybackAvailable])
 
       assert {:error, :competitor_not_found} =
                exit_processor_request
@@ -945,7 +947,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok, []} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor)
+               |> invalid_exits_filtered(processor, exclude: [Event.PiggybackAvailable])
 
       assert {:error, :competitor_not_found} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
@@ -967,7 +969,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok, events} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor, Event.NonCanonicalIFE)
+               |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
 
       assert_events(events, [%Event.NonCanonicalIFE{txbytes: txbytes}, %Event.NonCanonicalIFE{txbytes: other_txbytes}])
 
@@ -1007,7 +1009,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       exit_processor_request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
 
       assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
-               exit_processor_request |> invalid_exits_filtered(processor, Event.NonCanonicalIFE)
+               exit_processor_request |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
 
       assert {:ok,
               %{
@@ -1038,7 +1040,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
                exit_processor_request
-               |> invalid_exits_filtered(processor, Event.NonCanonicalIFE)
+               |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
 
       assert {:ok,
               %{
@@ -1099,7 +1101,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         }
 
         assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
-                 exit_processor_request |> invalid_exits_filtered(processor, Event.NonCanonicalIFE)
+                 exit_processor_request |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
 
         assert {:ok,
                 %{
@@ -1347,7 +1349,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{processor_filled: processor} do
       assert {:ok, []} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor)
+               |> invalid_exits_filtered(processor, exclude: [Event.PiggybackAvailable])
     end
 
     # TODO: implement more behavior tests
@@ -1371,8 +1373,25 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert MapSet.new(events) == MapSet.new(expected_events)
   end
 
-  defp invalid_exits_filtered(exit_processor_request, processor, filtered_event \\ nil) do
-    {result, events} = Core.invalid_exits(exit_processor_request, processor)
-    {result, Enum.filter(events, fn event -> filtered_event == event.__struct__ end)}
+  defp invalid_exits_filtered(request, processor, opts) do
+    exclude_events = Keyword.get(opts, :exclude, [])
+    only_events = Keyword.get(opts, :only, [])
+
+    {result, events} = Core.invalid_exits(request, processor)
+
+    any? = fn filtering_events, event ->
+      Enum.any?(filtering_events, fn filtering_event -> event.__struct__ == filtering_event end)
+    end
+
+    filtered_events =
+      events
+      |> Enum.filter(fn event ->
+        Enum.empty?(exclude_events) or not any?.(exclude_events, event)
+      end)
+      |> Enum.filter(fn event ->
+        Enum.empty?(only_events) or any?.(only_events, event)
+      end)
+
+    {result, filtered_events}
   end
 end
