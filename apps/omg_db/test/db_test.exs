@@ -14,132 +14,57 @@
 
 defmodule OMG.DBTest do
   @moduledoc """
-  A smoke test of the LevelDB support (temporary, remove if it breaks too often)
+  A smoke test of the LevelDB support. The intention here is to **only** test minimally, that the pipes work.
 
-  Note the excluded moduletag, this test requires an explicit `--include`
+  For more detailed persistence test look for `...PersistenceTest` tests throughout the apps.
 
-  NOTE: it broke, but fixed easily, still useful, since integration test is thin still
+  Note the excluded moduletag, this test requires an explicit `--include wrappers`
   """
   use ExUnitFixtures
-  use ExUnit.Case, async: false
+  use OMG.DB.Case, async: true
 
   alias OMG.DB
 
   @moduletag :wrappers
 
-  setup_all do
-    {:ok, _} = Application.ensure_all_started(:briefly)
-    :ok
-  end
-
-  setup do
-    {:ok, dir} = Briefly.create(directory: true)
-
-    :ok = OMG.DB.LevelDBServer.init_storage(dir)
-
-    {:ok, pid} =
-      GenServer.start_link(
-        OMG.DB.LevelDBServer,
-        %{db_path: dir},
-        name: TestDBServer
-      )
-
-    on_exit(fn ->
-      try do
-        GenServer.stop(pid)
-      catch
-        :exit, _ -> :yeah_it_has_already_stopped
-      end
-    end)
-
-    {:ok, %{dir: dir}}
-  end
-
-  test "handles block storage", %{dir: dir} do
+  test "handles object storage", %{db_dir: dir, db_pid: pid} do
     :ok =
       DB.multi_update(
-        [
-          {:put, :block, %{hash: "xyz"}},
-          {:put, :block, %{hash: "vxyz"}},
-          {:put, :block, %{hash: "wvxyz"}}
-        ],
-        TestDBServer
+        [{:put, :block, %{hash: "xyz"}}, {:put, :block, %{hash: "vxyz"}}, {:put, :block, %{hash: "wvxyz"}}],
+        pid
       )
 
-    assert {:ok, [%{hash: "wvxyz"}, %{hash: "xyz"}]} == DB.blocks(["wvxyz", "xyz"], TestDBServer)
+    assert {:ok, [%{hash: "wvxyz"}, %{hash: "xyz"}]} == DB.blocks(["wvxyz", "xyz"], pid)
 
-    :ok =
-      DB.multi_update(
-        [
-          {:delete, :block, %{hash: "xyz"}}
-        ],
-        TestDBServer
-      )
+    :ok = DB.multi_update([{:delete, :block, %{hash: "xyz"}}], pid)
 
-    checks = fn ->
-      assert {:ok, [%{hash: "wvxyz"}, :not_found, %{hash: "vxyz"}]} == DB.blocks(["wvxyz", "xyz", "vxyz"], TestDBServer)
+    checks = fn pid ->
+      assert {:ok, [%{hash: "wvxyz"}, :not_found, %{hash: "vxyz"}]} == DB.blocks(["wvxyz", "xyz", "vxyz"], pid)
     end
 
-    checks.()
+    checks.(pid)
 
     # check actual persistence
-    restart(dir)
-    checks.()
+    pid = restart(dir, pid)
+    checks.(pid)
   end
 
-  test "handles utxo storage and that it actually persists", %{dir: dir} do
-    :ok =
-      DB.multi_update(
-        [
-          {:put, :utxo, {{10, 30, 0}, %{amount: 10, owner: "alice1"}}},
-          {:put, :utxo, {{11, 30, 0}, %{amount: 10, owner: "alice2"}}},
-          {:put, :utxo, {{11, 31, 0}, %{amount: 10, owner: "alice3"}}},
-          {:put, :utxo, {{11, 31, 1}, %{amount: 10, owner: "alice4"}}},
-          {:put, :utxo, {{50, 30, 0}, %{amount: 10, owner: "alice5"}}},
-          {:delete, :utxo, {50, 30, 0}}
-        ],
-        TestDBServer
-      )
+  test "handles single value storage", %{db_dir: dir, db_pid: pid} do
+    :ok = DB.multi_update([{:put, :last_exit_finalizer_eth_height, 12}], pid)
 
-    checks = fn ->
-      assert {:ok,
-              [
-                {{10, 30, 0}, %{amount: 10, owner: "alice1"}},
-                {{11, 30, 0}, %{amount: 10, owner: "alice2"}},
-                {{11, 31, 0}, %{amount: 10, owner: "alice3"}},
-                {{11, 31, 1}, %{amount: 10, owner: "alice4"}}
-              ]} == DB.utxos(TestDBServer)
+    checks = fn pid ->
+      assert {:ok, 12} == DB.get_single_value(pid, :last_exit_finalizer_eth_height)
     end
 
-    checks.()
-
+    checks.(pid)
     # check actual persistence
-    restart(dir)
-    checks.()
+    pid = restart(dir, pid)
+    checks.(pid)
   end
 
-  defp restart(dir) do
-    :ok = GenServer.stop(TestDBServer)
-
-    {:ok, _pid} =
-      GenServer.start_link(
-        OMG.DB.LevelDBServer,
-        %{db_path: dir},
-        name: TestDBServer
-      )
-  end
-
-  test "handles last exit height storage" do
-    :ok =
-      DB.multi_update(
-        [
-          {:put, :last_exit_finalizer_eth_height, 12},
-          {:put, :last_exit_challenger_eth_height, 10}
-        ],
-        TestDBServer
-      )
-
-    assert {:ok, 12} == DB.get_single_value(TestDBServer, :last_exit_finalizer_eth_height)
-    assert {:ok, 10} == DB.get_single_value(TestDBServer, :last_exit_challenger_eth_height)
+  defp restart(dir, pid) do
+    :ok = GenServer.stop(pid)
+    {:ok, pid} = GenServer.start_link(OMG.DB.LevelDBServer, %{db_path: dir}, name: :"TestDB_#{make_ref() |> inspect()}")
+    pid
   end
 end

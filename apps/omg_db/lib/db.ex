@@ -101,35 +101,16 @@ defmodule OMG.DB do
     GenServer.call(server_name, {:get_single_value, parameter_name})
   end
 
+  @doc """
+  Does all of the initialization of `OMG.DB` based on the configured path
+  """
   def init(server_name \\ @server_name) do
     path = Application.fetch_env!(:omg_db, :leveldb_path)
     :ok = File.mkdir_p(path)
 
-    # setting a number of markers to zeroes (possibly DRY it out somehow wrt. `@single_value_parameter_names`?)
-    db_initialization_updates =
-      [
-        :last_deposit_child_blknum,
-        :child_top_block_number,
-        :last_block_getter_eth_height,
-        :last_depositor_eth_height,
-        :last_exiter_eth_height,
-        :last_piggyback_exit_eth_height,
-        :last_in_flight_exit_eth_height,
-        :last_exit_processor_eth_height,
-        :last_exit_finalizer_eth_height,
-        :last_exit_challenger_eth_height,
-        :last_in_flight_exit_processor_eth_height,
-        :last_piggyback_processor_eth_height,
-        :last_competitor_processor_eth_height,
-        :last_challenges_responds_processor_eth_height,
-        :last_piggyback_challenges_processor_eth_height,
-        :last_ife_exit_finalizer_eth_height
-      ]
-      |> Enum.map(&{:put, &1, 0})
-
     with :ok <- server_name.init_storage(path),
          {:ok, started_apps} <- Application.ensure_all_started(:omg_db),
-         :ok <- OMG.DB.multi_update(db_initialization_updates) do
+         :ok <- initiation_multiupdate(server_name) do
       started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
 
       :ok
@@ -138,5 +119,32 @@ defmodule OMG.DB do
         _ = Logger.error(fn -> "Unable to init: #{inspect(error)}" end)
         error
     end
+  end
+
+  @doc """
+  Puts all zeroes and other init values to a generically initialized `OMG-DB`
+  """
+  def initiation_multiupdate(server_name \\ @server_name) do
+    # setting a number of markers to zeroes (possibly DRY it out somehow wrt. `@single_value_parameter_names`?)
+    [
+      :last_deposit_child_blknum,
+      :child_top_block_number,
+      :last_block_getter_eth_height,
+      :last_depositor_eth_height,
+      :last_exiter_eth_height,
+      :last_piggyback_exit_eth_height,
+      :last_in_flight_exit_eth_height,
+      :last_exit_processor_eth_height,
+      :last_exit_finalizer_eth_height,
+      :last_exit_challenger_eth_height,
+      :last_in_flight_exit_processor_eth_height,
+      :last_piggyback_processor_eth_height,
+      :last_competitor_processor_eth_height,
+      :last_challenges_responds_processor_eth_height,
+      :last_piggyback_challenges_processor_eth_height,
+      :last_ife_exit_finalizer_eth_height
+    ]
+    |> Enum.map(&{:put, &1, 0})
+    |> OMG.DB.multi_update(server_name)
   end
 end
