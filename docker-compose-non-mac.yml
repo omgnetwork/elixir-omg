@@ -44,7 +44,7 @@ services:
       test: curl localhost:9656
       interval: 7s
       timeout: 3s
-      retries: 7
+      retries: 15
     depends_on:
       geth:
         condition: service_healthy
