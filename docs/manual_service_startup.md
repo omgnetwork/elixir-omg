@@ -1,4 +1,4 @@
-# Manual steps to start the services (deprecated)
+# Manual steps to start the services
 
 ## Setup
 The setup process for the Child chain server and for the Watcher is similar.

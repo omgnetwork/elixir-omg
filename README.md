@@ -67,13 +67,22 @@ See the [Tesuji Plasma design document](docs/tesuji_blockchain_design.md) for a 
 
 A public testnet for the OMG Network is coming soon. However, if you are brave and want to test being a Tesuji Plasma chain operator, read on!
 
-## Service start up using Docker
-This is the recommended method of starting the blockchain services, with the auxiliary services automatically provisioned through Docker. Before attemtping the start up ensure that you are not running any services that are listing on the following TCP ports: 9656, 7434, 5000, 8545, 5432, 5433.
+## Service start up using Docker Compose
+This is the recommended method of starting the blockchain services, with the auxiliary services automatically provisioned through Docker. Before attempting the start up please ensure that you are not running any services that are listing on the following TCP ports: 9656, 7434, 5000, 8545, 5432, 5433. All commands should be run from the root of the repo.
 
 ### Mac
+`docker-compose up`
+
+### Linux
+`docker-compose -f docker-compose.yml -f docker-compose-non-mac.yml up`
+
+### Troubleshooting
+If service start up is unsuccessful, containers can be left hanging which impacts the start of services on the future attempts of `docker-compose up`. You can stop all running containers via `docker kill $(docker ps -q)`.
+
+If the blockchain services are not already present on the host, docker-compose will attempt to build the image with the tag `elixir-omg:dockercompose` and continue to use that. If you want Docker to use the latest commit from `elixir-omg` you can trigger a fresh build by passing the `--build` flag to `docker-compose up --build`.
 
 ## Install on a Linux host & manual start up
-Follow the guide to **[install](docs/install.md)** the child chain server and watcher. Then use the guide in **[manual service startup](docs/manual_service_startup.md)** to get going
+Follow the guide to **[install](docs/install.md)** the child chain server and watcher. Then use the guide in **[manual service startup](docs/manual_service_startup.md)** to manually start.
 
 ### Follow the demos
 After starting the child chain server and/or Watcher as above, you may follow the steps in the demo scripts.
