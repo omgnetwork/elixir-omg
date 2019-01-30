@@ -77,6 +77,8 @@ This is the recommended method of starting the blockchain services, with the aux
 `docker-compose -f docker-compose.yml -f docker-compose-non-mac.yml up`
 
 ### Troubleshooting
+You can view the running containers via `docker ps`
+
 If service start up is unsuccessful, containers can be left hanging which impacts the start of services on the future attempts of `docker-compose up`. You can stop all running containers via `docker kill $(docker ps -q)`.
 
 If the blockchain services are not already present on the host, docker-compose will attempt to build the image with the tag `elixir-omg:dockercompose` and continue to use that. If you want Docker to use the latest commit from `elixir-omg` you can trigger a fresh build by passing the `--build` flag to `docker-compose up --build`.
