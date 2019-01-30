@@ -68,7 +68,7 @@ See the [Tesuji Plasma design document](docs/tesuji_blockchain_design.md) for a 
 A public testnet for the OMG Network is coming soon. However, if you are brave and want to test being a Tesuji Plasma chain operator, read on!
 
 ## Service start up using Docker Compose
-This is the recommended method of starting the blockchain services, with the auxiliary services automatically provisioned through Docker. Before attempting the start up please ensure that you are not running any services that are listing on the following TCP ports: 9656, 7434, 5000, 8545, 5432, 5433. All commands should be run from the root of the repo.
+This is the recommended method of starting the blockchain services, with the auxiliary services automatically provisioned through Docker. Before attempting the start up please ensure that you are not running any services that are listening on the following TCP ports: 9656, 7434, 5000, 8545, 5432, 5433. All commands should be run from the root of the repo.
 
 ### Mac
 `docker-compose up`
