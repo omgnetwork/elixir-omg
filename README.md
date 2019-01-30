@@ -76,7 +76,7 @@ This is the recommended method of starting the blockchain services, with the aux
 ### Linux
 `docker-compose -f docker-compose.yml -f docker-compose-non-mac.yml up`
 
-### Troubleshooting
+### Troubleshooting Docker
 You can view the running containers via `docker ps`
 
 If service start up is unsuccessful, containers can be left hanging which impacts the start of services on the future attempts of `docker-compose up`. You can stop all running containers via `docker kill $(docker ps -q)`.
@@ -90,7 +90,7 @@ Follow the guide to **[install](docs/install.md)** the child chain server and wa
 After starting the child chain server and/or Watcher as above, you may follow the steps in the demo scripts.
 Note that some steps should be performed in the Elixir shell (iex) and some in the shell directly.
 
-To start a configured instance of the `iex` REPL, from the `elixir-omg` root directory do:
+To start a configured instance of the `iex` REPL, from the `elixir-omg` root directory inside the container do:
 ```bash
 iex -S mix run --no-start --config ~/config.exs
 ```
