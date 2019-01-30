@@ -22,6 +22,7 @@ defmodule OMG.API.Integration.HappyPathTest do
   use Plug.Test
 
   alias OMG.API.Crypto
+  alias OMG.API.DevCrypto
   alias OMG.API.State.Transaction
   alias OMG.Eth
   alias OMG.RPC.Web.TestHelper
@@ -39,14 +40,14 @@ defmodule OMG.API.Integration.HappyPathTest do
   } do
     raw_tx = Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, eth(), 7}, {alice.addr, eth(), 3}])
 
-    tx = raw_tx |> Transaction.sign([alice.priv, <<>>]) |> Transaction.Signed.encode()
+    tx = raw_tx |> DevCrypto.sign([alice.priv, <<>>]) |> Transaction.Signed.encode()
 
     # spend the deposit
     {:ok, %{"blknum" => spend_child_block}} = submit_transaction(tx)
 
     token_raw_tx = Transaction.new([{token_deposit_blknum, 0, 0}], [{bob.addr, token, 8}, {alice.addr, token, 2}])
 
-    token_tx = token_raw_tx |> Transaction.sign([alice.priv, <<>>]) |> Transaction.Signed.encode()
+    token_tx = token_raw_tx |> DevCrypto.sign([alice.priv, <<>>]) |> Transaction.Signed.encode()
 
     # spend the token deposit
     assert {:ok, %{"blknum" => spend_token_child_block}} = submit_transaction(token_tx)
@@ -76,7 +77,7 @@ defmodule OMG.API.Integration.HappyPathTest do
     # repeat spending to see if all works
 
     raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, eth(), 10}])
-    tx2 = raw_tx2 |> Transaction.sign([bob.priv, alice.priv]) |> Transaction.Signed.encode()
+    tx2 = raw_tx2 |> DevCrypto.sign([bob.priv, alice.priv]) |> Transaction.Signed.encode()
 
     # spend the output of the first tx
     assert {:ok, %{"blknum" => spend_child_block2}} = submit_transaction(tx2)

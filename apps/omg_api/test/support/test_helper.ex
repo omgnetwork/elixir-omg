@@ -16,6 +16,7 @@ defmodule OMG.API.TestHelper do
   @moduledoc false
 
   alias OMG.API.Crypto
+  alias OMG.API.DevCrypto
   alias OMG.API.State.Core
   alias OMG.API.State.Transaction
 
@@ -57,8 +58,8 @@ defmodule OMG.API.TestHelper do
 
   @spec generate_entity :: entity()
   def generate_entity do
-    {:ok, priv} = Crypto.generate_private_key()
-    {:ok, pub} = Crypto.generate_public_key(priv)
+    {:ok, priv} = DevCrypto.generate_private_key()
+    {:ok, pub} = DevCrypto.generate_public_key(priv)
     {:ok, addr} = Crypto.generate_address(pub)
     %{priv: priv, addr: addr}
   end
@@ -111,7 +112,7 @@ defmodule OMG.API.TestHelper do
       )
 
     privs = get_private_keys(inputs)
-    Transaction.sign(raw_tx, privs)
+    DevCrypto.sign(raw_tx, privs)
   end
 
   defp get_private_keys(inputs) do
@@ -134,7 +135,7 @@ defmodule OMG.API.TestHelper do
       )
 
     privs = get_private_keys(inputs)
-    Transaction.sign(raw_tx, privs)
+    DevCrypto.sign(raw_tx, privs)
   end
 
   def create_encoded(inputs, currency, outputs) do

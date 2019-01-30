@@ -24,6 +24,7 @@ Run `iex -S mix run --no-start --config ~/config.exs` and inside REPL do:
 
 alias OMG.{API, Eth}
 alias OMG.API.Crypto
+alias OMG.API.DevCrypto
 alias OMG.API.TestHelper
 
 {:ok, contract_addr} = Application.fetch_env!(:omg_eth, :contract_addr) |> Crypto.decode_address()

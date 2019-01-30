@@ -18,6 +18,7 @@ defmodule OMG.API.State.TransactionTest do
 
   alias OMG.API
   alias OMG.API.Crypto
+  alias OMG.API.DevCrypto
   alias OMG.API.State.{Core, Transaction}
   alias OMG.API.TestHelper
 
@@ -168,7 +169,7 @@ defmodule OMG.API.State.TransactionTest do
 
     {:ok, raw} = Transaction.create_from_utxos(utxos, [%{owner: bob.addr, currency: eth(), amount: 12}])
 
-    raw |> Transaction.sign([alice.priv, alice.priv]) |> assert_tx_usable(state)
+    raw |> DevCrypto.sign([alice.priv, alice.priv]) |> assert_tx_usable(state)
   end
 
   @tag fixtures: [:alice, :state_alice_deposit, :bob]
@@ -177,7 +178,7 @@ defmodule OMG.API.State.TransactionTest do
 
     {:ok, raw} = Transaction.create_from_utxos(utxos, [%{owner: bob.addr, currency: eth(), amount: 4}])
 
-    raw |> Transaction.sign([alice.priv, <<>>]) |> assert_tx_usable(state)
+    raw |> DevCrypto.sign([alice.priv, <<>>]) |> assert_tx_usable(state)
   end
 
   defp assert_tx_usable(signed, state_core) do
@@ -209,7 +210,7 @@ defmodule OMG.API.State.TransactionTest do
     tx =
       [{3000, 0, 0}, {3000, 0, 1}]
       |> Transaction.new([{alice.addr, eth(), 10}])
-      |> Transaction.sign([bob.priv, alice.priv])
+      |> DevCrypto.sign([bob.priv, alice.priv])
       |> Transaction.Signed.encode()
 
     {:ok, recovered} = tx |> OMG.API.Core.recover_tx()

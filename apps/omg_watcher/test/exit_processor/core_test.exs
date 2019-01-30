@@ -22,6 +22,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   alias OMG.API.Block
   alias OMG.API.Crypto
+  alias OMG.API.DevCrypto
   alias OMG.API.State
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
@@ -92,7 +93,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     [tx1_sigs, tx2_sigs] =
       transactions
-      |> Enum.map(&Transaction.sign(&1, [alice_priv, alice_priv]))
+      |> Enum.map(&DevCrypto.sign(&1, [alice_priv, alice_priv]))
       |> Enum.map(&Enum.join(&1.sigs))
 
     [
@@ -774,7 +775,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [_, _, comp3]} do
       txbytes = Transaction.encode(tx1)
 
-      {:ok, other_recovered} = Transaction.sign(comp3, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+      {:ok, other_recovered} = DevCrypto.sign(comp3, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -794,7 +795,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _]} do
       txbytes = Transaction.encode(tx1)
 
-      {:ok, other_recovered} = Transaction.sign(tx1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+      {:ok, other_recovered} = DevCrypto.sign(tx1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -815,7 +816,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       txbytes = Transaction.encode(tx1)
 
       other_txbytes = Transaction.encode(tx1)
-      %{sigs: [other_signature, _]} = Transaction.sign(tx1, [alice.priv, alice.priv])
+      %{sigs: [other_signature, _]} = DevCrypto.sign(tx1, [alice.priv, alice.priv])
 
       other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}}
       other_ife_status = {1, <<1::192>>}
@@ -837,7 +838,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       txbytes = Transaction.encode(tx1)
 
       other_txbytes = Transaction.encode(comp1)
-      %{sigs: [other_signature, _]} = Transaction.sign(comp1, [alice.priv, <<>>])
+      %{sigs: [other_signature, _]} = DevCrypto.sign(comp1, [alice.priv, <<>>])
 
       other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}}
       other_ife_status = {1, <<1::192>>}
@@ -871,7 +872,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       # ifes in processor here aren't competitors to each other, but the challenge filed for tx2 is a competitor
       # for tx1, which is what we want to detect:
       competing_tx = Transaction.new([{1, 0, 0}], [])
-      %{sigs: [other_signature, _]} = Transaction.sign(competing_tx, [alice.priv, <<>>])
+      %{sigs: [other_signature, _]} = DevCrypto.sign(competing_tx, [alice.priv, <<>>])
 
       txbytes = Transaction.encode(tx1)
       other_txbytes = Transaction.encode(competing_tx)
@@ -906,7 +907,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       other_txbytes = Transaction.encode(comp1)
 
       {:ok, %{signed_tx: %{sigs: [other_signature, _]}} = other_recovered} =
-        Transaction.sign(comp1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+        DevCrypto.sign(comp1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
       other_blknum = 3000
 
@@ -969,8 +970,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
           |> Enum.count()
           |> (&List.duplicate(alice.priv, &1)).()
 
-        {:ok, other_recovered} =
-          comp |> Transaction.sign(required_priv_key_list) |> Transaction.Recovered.recover_from()
+        {:ok, other_recovered} = comp |> DevCrypto.sign(required_priv_key_list) |> Transaction.Recovered.recover_from()
 
         exit_processor_request = %ExitProcessor.Request{
           blknum_now: 5000,
@@ -1007,7 +1007,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       txbytes = Transaction.encode(tx1)
 
       {:ok, %{signed_tx: %{sigs: [_, other_signature]}} = other_recovered} =
-        Transaction.sign(comp1, [bob.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+        DevCrypto.sign(comp1, [bob.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -1031,8 +1031,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       comp_recent = Transaction.new([{1, 0, 0}], [])
       comp_oldest = Transaction.new([{1, 2, 1}], [])
 
-      {:ok, recovered_recent} = Transaction.sign(comp_recent, [alice.priv]) |> Transaction.Recovered.recover_from()
-      {:ok, recovered_oldest} = Transaction.sign(comp_oldest, [alice.priv]) |> Transaction.Recovered.recover_from()
+      {:ok, recovered_recent} = DevCrypto.sign(comp_recent, [alice.priv]) |> Transaction.Recovered.recover_from()
+      {:ok, recovered_oldest} = DevCrypto.sign(comp_oldest, [alice.priv]) |> Transaction.Recovered.recover_from()
 
       # ife-related competitor
       other_ife_event = %{call_data: %{in_flight_tx: Transaction.encode(comp1), in_flight_tx_sigs: <<4::520>>}}
@@ -1097,7 +1097,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "by not asking for utxo spends concerning non-active ifes",
          %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
       txbytes = Transaction.encode(tx)
-      %{sigs: [signature, _]} = Transaction.sign(tx, [alice.priv, <<>>])
+      %{sigs: [signature, _]} = DevCrypto.sign(tx, [alice.priv, <<>>])
 
       ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}}
       # inactive
@@ -1194,7 +1194,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       block =
         txs
         |> Enum.map(fn tx1 ->
-          {:ok, tx1_recovered} = Transaction.sign(tx1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+          {:ok, tx1_recovered} = DevCrypto.sign(tx1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
           tx1_recovered
         end)
         |> Block.hashed_txs_at(other_blknum)
