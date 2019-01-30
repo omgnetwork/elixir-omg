@@ -76,6 +76,10 @@ This is the recommended method of starting the blockchain services, with the aux
 ### Linux
 `docker-compose -f docker-compose.yml -f docker-compose-non-mac.yml up`
 
+### Get the deployed contract details
+
+`curl localhost:5000/get_contract`
+
 ### Troubleshooting Docker
 You can view the running containers via `docker ps`
 
