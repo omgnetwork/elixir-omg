@@ -82,7 +82,7 @@ If service start up is unsuccessful, containers can be left hanging which impact
 If the blockchain services are not already present on the host, docker-compose will attempt to build the image with the tag `elixir-omg:dockercompose` and continue to use that. If you want Docker to use the latest commit from `elixir-omg` you can trigger a fresh build by passing the `--build` flag to `docker-compose up --build`.
 
 ## Install on a Linux host & manual start up
-Follow the guide to **[install](docs/install.md)** the child chain server and watcher. Then use the guide in **[manual service startup](docs/manual_service_startup.md)** to manually start.
+Follow the guide to **[install](docs/install.md)** the child chain server and watcher. Then use the guide in **[manual service startup](docs/manual_service_startup.md)** to stand up.
 
 ### Follow the demos
 After starting the child chain server and/or Watcher as above, you may follow the steps in the demo scripts.
