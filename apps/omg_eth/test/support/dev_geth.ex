@@ -21,7 +21,7 @@ defmodule OMG.Eth.DevGeth do
   Run geth in temp dir, kill it with SIGKILL when done.
   """
 
-  use OMG.API.LoggerExt
+  require Logger
 
   alias OMG.Eth
 
