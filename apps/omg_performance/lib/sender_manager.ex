@@ -47,9 +47,7 @@ defmodule OMG.Performance.SenderManager do
   @spec init({pos_integer(), list(), binary}) :: {:ok, map()}
   def init({ntx_to_send, utxos, destdir}) do
     Process.flag(:trap_exit, true)
-
-    _ =
-      Logger.debug(fn -> "init called with utxos: #{inspect(length(utxos))}, ntx_to_send: #{inspect(ntx_to_send)}" end)
+    _ = Logger.debug("init called with utxos: #{inspect(length(utxos))}, ntx_to_send: #{inspect(ntx_to_send)}")
 
     senders =
       utxos
@@ -86,7 +84,7 @@ defmodule OMG.Performance.SenderManager do
   Any unexpected child reportind :EXIT should result in a crash
   """
   def handle_info({:EXIT, from_pid, _reason}, %{senders: [{_last_seqnum, from_pid} = last_sender]} = state) do
-    _ = Logger.info(fn -> "Senders are all done, last sender: #{inspect(last_sender)}. Stopping manager" end)
+    _ = Logger.info("Senders are all done, last sender: #{inspect(last_sender)}. Stopping manager")
     write_stats(state)
     {:stop, :normal, state}
   end
@@ -98,14 +96,14 @@ defmodule OMG.Performance.SenderManager do
 
       {_done_seqnum, done_pid} = done_sender ->
         remaining_senders = Enum.filter(senders, fn {_seqnum, pid} -> pid != done_pid end)
-        _ = Logger.info(fn -> "Sender #{inspect(done_sender)} done. Manager continues..." end)
+        _ = Logger.info("Sender #{inspect(done_sender)} done. Manager continues...")
         {:noreply, %{state | senders: remaining_senders}}
     end
   end
 
   def handle_info({:EXIT, _from, reason}, state) do
     write_stats(state)
-    _ = Logger.info(fn -> " +++ Manager Exiting (reason: #{inspect(reason)})... +++" end)
+    _ = Logger.info(" +++ Manager Exiting (reason: #{inspect(reason)})... +++")
     {:stop, reason, state}
   end
 
@@ -180,7 +178,7 @@ defmodule OMG.Performance.SenderManager do
 
     stats = analyze(state)
     :ok = File.write(destfile, Poison.encode!(stats))
-    _ = Logger.info(fn -> "Performance statistics written to file: #{inspect(destfile)}" end)
+    _ = Logger.info("Performance statistics written to file: #{inspect(destfile)}")
     :ok
   end
 end

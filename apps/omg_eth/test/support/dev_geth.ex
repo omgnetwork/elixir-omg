@@ -21,7 +21,7 @@ defmodule OMG.Eth.DevGeth do
   Run geth in temp dir, kill it with SIGKILL when done.
   """
 
-  require Logger
+  use OMG.API.LoggerExt
 
   alias OMG.Eth
 
@@ -49,12 +49,12 @@ defmodule OMG.Eth.DevGeth do
   # PRIVATE
 
   defp log_geth_output(line) do
-    _ = Logger.debug(fn -> "geth: " <> line end)
+    _ = Logger.debug("geth: " <> line)
     line
   end
 
   defp launch(cmd) do
-    _ = Logger.debug(fn -> "Starting geth" end)
+    _ = Logger.debug("Starting geth")
 
     {:ok, geth_proc, _ref, [{:stream, geth_out, _stream_server}]} =
       Exexec.run(cmd, stdout: :stream, kill_command: "pkill -9 geth")

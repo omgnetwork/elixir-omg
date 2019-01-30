@@ -31,7 +31,7 @@ defmodule OMG.DB do
 
   def multi_update(db_updates, server_name \\ @server_name) do
     {duration, result} = :timer.tc(fn -> GenServer.call(server_name, {:multi_update, db_updates}) end)
-    _ = Logger.debug(fn -> "DB.multi_update done in #{inspect(round(duration / 1000))} ms" end)
+    _ = Logger.debug("DB.multi_update done in #{inspect(round(duration / 1000))} ms")
     result
   end
 
@@ -45,30 +45,22 @@ defmodule OMG.DB do
   end
 
   def utxos(server_name \\ @server_name) do
-    _ = Logger.info(fn -> "Reading UTXO set, this might take a while. Allowing #{inspect(@ten_minutes)} ms" end)
+    _ = Logger.info("Reading UTXO set, this might take a while. Allowing #{inspect(@ten_minutes)} ms")
     GenServer.call(server_name, :utxos, @ten_minutes)
   end
 
   def exit_infos(server_name \\ @server_name) do
-    _ = Logger.info(fn -> "Reading exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms" end)
+    _ = Logger.info("Reading exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
     GenServer.call(server_name, :exit_infos, @one_minute)
   end
 
   def in_flight_exits_info(server_name \\ @server_name) do
-    _ =
-      Logger.info(fn ->
-        "Reading in flight exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms"
-      end)
-
+    _ = Logger.info("Reading in flight exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
     GenServer.call(server_name, :in_flight_exits_info, @one_minute)
   end
 
   def competitors_info(server_name \\ @server_name) do
-    _ =
-      Logger.info(fn ->
-        "Reading competitors' info, this might take a while. Allowing #{inspect(@one_minute)} ms"
-      end)
-
+    _ = Logger.info("Reading competitors' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
     GenServer.call(server_name, :competitors_info, @one_minute)
   end
 
@@ -116,7 +108,7 @@ defmodule OMG.DB do
       :ok
     else
       error ->
-        _ = Logger.error(fn -> "Unable to init: #{inspect(error)}" end)
+        _ = Logger.error("Unable to init: #{inspect(error)}")
         error
     end
   end

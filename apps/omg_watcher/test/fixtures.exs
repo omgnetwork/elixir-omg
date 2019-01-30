@@ -43,8 +43,8 @@ defmodule OMG.Watcher.Fixtures do
     |> File.close()
 
     {:ok, config} = File.read(config_file_path)
-    Logger.debug(fn -> IO.ANSI.format([:blue, :bright, config], true) end)
-    Logger.debug(fn -> "Starting db_init" end)
+    Logger.debug(IO.ANSI.format([:blue, :bright, config], true))
+    Logger.debug("Starting db_init")
 
     exexec_opts_for_mix = [
       stdout: :stream,
@@ -65,7 +65,7 @@ defmodule OMG.Watcher.Fixtures do
 
     child_chain_mix_cmd = " mix xomg.child_chain.start --config #{config_file_path} 2>&1"
 
-    Logger.info(fn -> "Starting child_chain" end)
+    Logger.info("Starting child_chain")
 
     {:ok, child_chain_proc, _ref, [{:stream, child_chain_out, _stream_server}]} =
       Exexec.run_link(child_chain_mix_cmd, exexec_opts_for_mix)
@@ -91,7 +91,7 @@ defmodule OMG.Watcher.Fixtures do
             :ok
 
           other ->
-            _ = Logger.warn(fn -> "Child chain stopped with an unexpected reason" end)
+            _ = Logger.warn("Child chain stopped with an unexpected reason")
             other
         end
 
@@ -103,7 +103,7 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   defp log_output(prefix, line) do
-    Logger.debug(fn -> "#{prefix}: " <> line end)
+    Logger.debug("#{prefix}: " <> line)
     line
   end
 

@@ -74,7 +74,7 @@ defmodule OMG.Watcher.BlockGetter do
       {:ok, db_updates_from_state} = OMG.API.State.close_block(block_rootchain_height)
 
       {state, synced_height, db_updates} = Core.apply_block(state, blknum)
-      _ = Logger.debug(fn -> "Synced height update: #{inspect(db_updates)}" end)
+      _ = Logger.debug("Synced height update: #{inspect(db_updates)}")
 
       :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_state)
       :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
@@ -82,11 +82,11 @@ defmodule OMG.Watcher.BlockGetter do
       {:noreply, state}
     else
       {:error, events} ->
-        _ = Logger.error(fn -> "Error while applying block because of #{inspect(events)}" end)
+        _ = Logger.error("Error while applying block because of #{inspect(events)}")
         {:noreply, state}
 
       {error, state} ->
-        _ = Logger.error(fn -> "Error while applying block because of #{inspect(error)}" end)
+        _ = Logger.error("Error while applying block because of #{inspect(error)}")
         {:noreply, state}
     end
   end
@@ -160,11 +160,11 @@ defmodule OMG.Watcher.BlockGetter do
       {:noreply, new_state}
     else
       {:error, events} ->
-        _ = Logger.error(fn -> "Error while applying block because of #{inspect(events)}" end)
+        _ = Logger.error("Error while applying block because of #{inspect(events)}")
         {:noreply, state}
 
       {error, state} ->
-        _ = Logger.error(fn -> "Error while running next block_download_task because of #{inspect(error)}" end)
+        _ = Logger.error("Error while running next block_download_task because of #{inspect(error)}")
         {:noreply, state}
     end
   end
@@ -177,7 +177,7 @@ defmodule OMG.Watcher.BlockGetter do
       {:noreply, state}
     else
       {error, state} ->
-        _ = Logger.error(fn -> "Error while handling downloaded block because of #{inspect(error)}" end)
+        _ = Logger.error("Error while handling downloaded block because of #{inspect(error)}")
 
         {:noreply, state}
     end
@@ -190,18 +190,12 @@ defmodule OMG.Watcher.BlockGetter do
       block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
       {:ok, submissions} = Eth.RootChain.get_block_submitted_events(block_range)
 
-      _ =
-        Logger.debug(fn ->
-          "Submitted #{length(submissions)} plasma blocks on Ethereum block range #{inspect(block_range)}"
-        end)
+      _ = Logger.debug("Submitted #{length(submissions)} plasma blocks on Ethereum block range #{inspect(block_range)}")
 
       {blocks_to_apply, synced_height, db_updates, state} =
         Core.get_blocks_to_apply(state, submissions, next_synced_height)
 
-      _ =
-        Logger.debug(fn ->
-          "Synced height is #{inspect(synced_height)}, got #{length(blocks_to_apply)} blocks to apply"
-        end)
+      _ = Logger.debug("Synced height is #{inspect(synced_height)}, got #{length(blocks_to_apply)} blocks to apply")
 
       Enum.each(blocks_to_apply, fn {block, eth_height} ->
         GenServer.cast(__MODULE__, {:apply_block, block, eth_height})

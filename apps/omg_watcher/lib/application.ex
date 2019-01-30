@@ -231,7 +231,7 @@ defmodule OMG.Watcher.Application do
       }
     ]
 
-    _ = Logger.info(fn -> "Started application OMG.Watcher.Application" end)
+    _ = Logger.info("Started application OMG.Watcher.Application")
 
     opts = [strategy: :one_for_one, name: OMG.Watcher.Supervisor]
     :ok = :error_logger.add_report_handler(Sentry.Logger)

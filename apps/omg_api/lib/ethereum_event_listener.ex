@@ -64,7 +64,7 @@ defmodule OMG.API.EthereumEventListener do
     {:ok, _} = schedule_get_events(Application.fetch_env!(:omg_api, :ethereum_status_check_interval_ms))
     :ok = RootChainCoordinator.check_in(last_event_block_height, service_name)
 
-    _ = Logger.info(fn -> "Starting EthereumEventListener for #{service_name}" end)
+    _ = Logger.info("Starting EthereumEventListener for #{service_name}")
 
     {:ok,
      {Core.init(update_key, service_name, last_event_block_height, finality_margin),

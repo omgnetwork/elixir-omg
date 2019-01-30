@@ -51,7 +51,7 @@ defmodule OMG.DB.LevelDBServer do
       {:ok, %__MODULE__{db_ref: db_ref}}
     else
       error ->
-        _ = Logger.error(fn -> "It seems that Child chain database is not initialized. Check README.md" end)
+        _ = Logger.error("It seems that Child chain database is not initialized. Check README.md")
         error
     end
   end

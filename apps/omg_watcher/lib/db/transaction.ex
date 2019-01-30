@@ -142,10 +142,7 @@ defmodule OMG.Watcher.DB.Transaction do
         ]
       )
 
-    _ =
-      Logger.info(fn ->
-        "Block ##{block_number} persisted in DB done in #{insert_duration / 1000}ms"
-      end)
+    _ = Logger.info("Block ##{block_number} persisted in DB done in #{insert_duration / 1000}ms")
 
     result
   end

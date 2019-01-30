@@ -71,9 +71,9 @@ defmodule OMG.API.RootChainCoordinator do
   end
 
   def handle_call({:check_in, synced_height, service_name}, {pid, _}, state) do
-    _ = Logger.debug(fn -> "#{inspect(service_name)} checks in on height #{inspect(synced_height)}" end)
+    _ = Logger.debug("#{inspect(service_name)} checks in on height #{inspect(synced_height)}")
     {:ok, state, services_to_sync} = Core.check_in(state, pid, synced_height, service_name)
-    _ = length(services_to_sync) > 0 and Logger.debug(fn -> "Services to sync: #{inspect(services_to_sync)}" end)
+    _ = length(services_to_sync) > 0 and Logger.debug("Services to sync: #{inspect(services_to_sync)}")
     request_sync(services_to_sync)
     {:reply, :ok, state, 60_000}
   end
@@ -94,7 +94,7 @@ defmodule OMG.API.RootChainCoordinator do
   end
 
   def handle_info(:timeout, state) do
-    _ = Logger.warn(fn -> "No new activity for 60 seconds. Are we dead?" end)
+    _ = Logger.warn("No new activity for 60 seconds. Are we dead?")
     {:noreply, state}
   end
 

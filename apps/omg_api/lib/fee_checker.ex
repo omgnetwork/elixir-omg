@@ -39,7 +39,7 @@ defmodule OMG.API.FeeChecker do
 
     {:ok, _} = :timer.apply_interval(@file_changed_check_interval_ms, __MODULE__, :update_fee_spec, [])
 
-    _ = Logger.info(fn -> "Started FeeChecker" end)
+    _ = Logger.info("Started FeeChecker")
     {:ok, args}
   end
 
@@ -72,28 +72,21 @@ defmodule OMG.API.FeeChecker do
          {:ok, content} <- File.read(path),
          {:ok, specs} <- parse_file_content(content) do
       :ok = save_fees(specs, changed_at)
-
-      _ =
-        Logger.info(fn ->
-          "Reloaded #{inspect(Enum.count(specs))} fee specs from file, changed at #{inspect(changed_at)}"
-        end)
+      _ = Logger.info("Reloaded #{inspect(Enum.count(specs))} fee specs from file, changed at #{inspect(changed_at)}")
 
       :ok
     else
       {:file_unchanged, last_change_at} ->
-        _ = Logger.debug(fn -> "File unchanged, last modified at #{inspect(last_change_at)}" end)
+        _ = Logger.debug("File unchanged, last modified at #{inspect(last_change_at)}")
         :file_unchanged
 
       {:error, :enoent} ->
-        _ =
-          Logger.error(fn ->
-            "The fee specification file #{inspect(path)} not found in #{System.get_env("PWD")}"
-          end)
+        _ = Logger.error("The fee specification file #{inspect(path)} not found in #{System.get_env("PWD")}")
 
         {:error, :fee_spec_not_found}
 
       error ->
-        _ = Logger.warn(fn -> "Unable to update fees from file. Reason: #{inspect(error)}" end)
+        _ = Logger.warn("Unable to update fees from file. Reason: #{inspect(error)}")
         error
     end
   end
@@ -143,15 +136,15 @@ defmodule OMG.API.FeeChecker do
   end
 
   defp handle_parser_output({[], fee_specs}) do
-    _ = Logger.debug(fn -> "Parsing fee specification file completes successfully." end)
+    _ = Logger.debug("Parsing fee specification file completes successfully.")
     {:ok, fee_specs}
   end
 
   defp handle_parser_output({[{error, _index} | _] = errors, _fee_specs}) do
-    _ = Logger.warn(fn -> "Parsing fee specification file fails with errors:" end)
+    _ = Logger.warn("Parsing fee specification file fails with errors:")
 
     Enum.each(errors, fn {{:error, reason}, index} ->
-      _ = Logger.warn(fn -> " * ##{inspect(index)} fee spec parser failed with error: #{inspect(reason)}" end)
+      _ = Logger.warn(" * ##{inspect(index)} fee spec parser failed with error: #{inspect(reason)}")
     end)
 
     # return first error

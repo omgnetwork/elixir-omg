@@ -65,9 +65,9 @@ defmodule OMG.Performance do
   @spec start_simple_perftest(pos_integer(), pos_integer(), map()) :: :ok
   def start_simple_perftest(ntx_to_send, nspenders, opts \\ %{}) do
     _ =
-      Logger.info(fn ->
+      Logger.info(
         "PerfTest number of spenders: #{inspect(nspenders)}, number of tx to send per spender: #{inspect(ntx_to_send)}."
-      end)
+      )
 
     defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
     opts = Map.merge(defaults, opts)
@@ -103,11 +103,11 @@ defmodule OMG.Performance do
         ) :: :ok
   def start_extended_perftest(ntx_to_send, spenders, contract_addr, opts \\ %{}) do
     _ =
-      Logger.info(fn ->
+      Logger.info(
         "PerfTest number of spenders: #{inspect(length(spenders))}, number of tx to send per spender: #{
           inspect(ntx_to_send)
         }."
-      end)
+      )
 
     DeferredConfig.populate(:omg_rpc)
 
@@ -135,7 +135,7 @@ defmodule OMG.Performance do
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
     Application.put_env(:omg_db, :leveldb_path, dbdir, persistent: true)
-    _ = Logger.info(fn -> "Perftest leveldb path: #{inspect(dbdir)}" end)
+    _ = Logger.info("Perftest leveldb path: #{inspect(dbdir)}")
 
     :ok = OMG.DB.init()
 
@@ -200,7 +200,7 @@ defmodule OMG.Performance do
   @spec run({pos_integer(), list(), %{atom => any()}, boolean()}) :: :ok
   defp run(args) do
     {:ok, data} = OMG.Performance.Runner.run(args)
-    _ = Logger.info(fn -> "#{inspect(data)}" end)
+    _ = Logger.info("#{inspect(data)}")
     :ok
   end
 

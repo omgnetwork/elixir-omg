@@ -95,15 +95,12 @@ defmodule OMG.API.State do
              last_deposit_query_result,
              child_block_interval
            ) do
-      _ =
-        Logger.info(fn ->
-          "Started State, height: #{height_query_result}, deposit height: #{last_deposit_query_result}"
-        end)
+      _ = Logger.info("Started State, height: #{height_query_result}, deposit height: #{last_deposit_query_result}")
 
       result
     else
       {:error, reason} = error when reason in [:top_block_number_not_found, :last_deposit_not_found] ->
-        _ = Logger.error(fn -> "It seems that Child chain database is not initialized. Check README.md" end)
+        _ = Logger.error("It seems that Child chain database is not initialized. Check README.md")
         error
 
       other ->
@@ -192,15 +189,15 @@ defmodule OMG.API.State do
   Does its on persistence!
   """
   def handle_cast(:form_block, state) do
-    _ = Logger.debug(fn -> "Forming new block..." end)
+    _ = Logger.debug("Forming new block...")
 
     {duration, {:ok, {%Block{number: blknum} = block, _events, db_updates}, new_state}} =
       :timer.tc(fn -> do_form_block(state) end)
 
     _ =
-      Logger.info(fn ->
+      Logger.info(
         "Calculations for forming block number #{inspect(blknum)} done in #{inspect(round(duration / 1000))} ms"
-      end)
+      )
 
     # persistence is required to be here, since propagating the block onwards requires restartability including the
     # new block
