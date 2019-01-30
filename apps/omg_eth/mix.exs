@@ -35,7 +35,7 @@ defmodule OMG.Eth.MixProject do
   defp deps do
     [
       {:ex_abi, "~> 0.2.0"},
-      {:ethereumex, git: "https://github.com/omisego/ethereumex.git", branch: "request_timeout2", override: true},
+      {:ethereumex, "~> 0.5.2"},
       {:exexec, git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", runtime: true},
       # NOTE: we only need in :dev and :test here, but we need in :prod too in performance
       #       then there's some unexpected behavior of mix that won't allow to mix these, see
