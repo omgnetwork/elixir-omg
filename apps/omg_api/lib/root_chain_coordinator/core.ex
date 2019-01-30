@@ -83,7 +83,6 @@ defmodule OMG.API.RootChainCoordinator.Core do
     else
       {:invalid_synced_height_update,
        %{
-         service_name: service_name,
          rootchain_height: state.root_chain_height,
          service_reported_sync_height: service_reported_sync_height
        }}
@@ -92,7 +91,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
 
   defp valid_sync_height_update?(state, synced_service, service_reported_sync_height, service_name) do
     service = Map.get(state.services, service_name, synced_service)
-    service.synced_height <= service_reported_sync_height and state.root_chain_height >= service_reported_sync_height
+    service.synced_height <= service_reported_sync_height and service_reported_sync_height <= state.root_chain_height
   end
 
   defp get_services_to_sync(state, service_name, previous_synced_height) do

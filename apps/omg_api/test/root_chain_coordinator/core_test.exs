@@ -108,4 +108,11 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
     assert %{sync_height: 11} = Core.get_synced_info(state, depositor_pid)
     assert %{sync_height: 14} = Core.get_synced_info(state, exiter_pid)
   end
+
+  test "invalid synced height update, gives richer error information" do
+    state = Core.init(%{:service => %{sync_mode: :sync_with_coordinator}}, 0)
+    service_pid = :c.pid(0, 1, 0)
+    expected = inspect({:invalid_synced_height_update, %{rootchain_height: 0, service_reported_sync_height: 10}})
+    assert_raise MatchError, ~r/#{expected}/, fn -> Core.check_in(state, service_pid, 10, :service) end
+  end
 end
