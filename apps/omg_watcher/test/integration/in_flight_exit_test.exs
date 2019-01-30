@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Integration.WatcherApiTest do
+defmodule OMG.Watcher.Integration.InFlightExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
@@ -25,7 +25,6 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   alias OMG.API.State.Transaction
   alias OMG.Eth
   alias OMG.RPC.Client
-  alias OMG.RPC.Web.Encoding
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
 
@@ -52,10 +51,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       in_flight_tx =
       API.TestHelper.create_signed([{blknum, txindex, 0, alice}, {blknum, txindex, 1, alice}], @eth, [{alice, 10}])
 
-    in_flight_txbytes =
-      in_flight_tx
-      |> Transaction.Signed.encode()
-      |> OMG.RPC.Web.Encoding.to_hex()
+    in_flight_txbytes = Transaction.Signed.encode(in_flight_tx)
 
     %{
       "in_flight_tx" => in_flight_tx,
@@ -90,10 +86,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
     {:ok, %{blknum: tx_blknum, txhash: _tx_hash}} = Client.submit(tx)
 
-    in_flight_exit_info =
-      tx
-      |> OMG.RPC.Web.Encoding.to_hex()
-      |> TestHelper.get_in_flight_exit()
+    in_flight_exit_info = TestHelper.get_in_flight_exit(tx)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.in_flight_exit(
@@ -106,6 +99,8 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
       |> Eth.DevHelpers.transact_sync!()
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
+
+    assert %{"byzantine_events" => [%{"event" => "piggyback_available"}]} = TestHelper.success?("/status.get")
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.piggyback_in_flight_exit(in_flight_exit_info["in_flight_tx"], 4, alice.addr)
@@ -126,6 +121,9 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   @tag fixtures: [:watcher_sandbox, :alice, :bob, :child_chain, :token, :alice_deposits]
   test "in-flight exit competitor is detected by watcher",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
+    # Bob, we need you (Bob's going to send some Ethereum transactions)
+    Eth.DevHelpers.import_unlock_fund(bob)
+
     # tx1 is submitted then in-flight-exited
     # tx2 is in-flight-exited
     tx1 = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
@@ -137,14 +135,12 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     %Transaction.Signed{raw_tx: raw_tx1} = tx1
     %Transaction.Signed{raw_tx: raw_tx2} = tx2
-    raw_tx1_bytes = raw_tx1 |> Transaction.encode() |> Encoding.to_hex()
-    raw_tx2_bytes = raw_tx2 |> Transaction.encode() |> Encoding.to_hex()
+    raw_tx1_bytes = raw_tx1 |> Transaction.encode()
+    raw_tx2_bytes = raw_tx2 |> Transaction.encode()
 
-    get_in_flight_exit_response1 =
-      tx1 |> Transaction.Signed.encode() |> Encoding.to_hex() |> TestHelper.get_in_flight_exit()
+    get_in_flight_exit_response1 = tx1 |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
 
-    get_in_flight_exit_response2 =
-      tx2 |> Transaction.Signed.encode() |> Encoding.to_hex() |> TestHelper.get_in_flight_exit()
+    get_in_flight_exit_response2 = tx2 |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
 
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.in_flight_exit(
@@ -169,9 +165,21 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
 
-    # is existence of competitors detected?
+    ###
+    # EVENTS DETECTION
+    ###
+
+    # existence of competitors detected by checking if `non_canonical_ife` events exists
+    # Also, there should be piggybacks on input/output available
     assert %{
-             "byzantine_events" => [%{"event" => "non_canonical_ife"}, %{"event" => "non_canonical_ife"}]
+             "byzantine_events" => [
+               %{"event" => "non_canonical_ife"},
+               %{"event" => "non_canonical_ife"},
+               %{
+                 "event" => "piggyback_available",
+                 "details" => %{"available_inputs" => inputs_list, "available_outputs" => outputs_list}
+               }
+             ]
            } = TestHelper.success?("/status.get")
 
     # Check if IFE is recognized as IFE by watcher.
@@ -180,33 +188,24 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
     #          "inflight_exits" => [%{"txbytes" => ^raw_tx2_bytes}]
     #        } = TestHelper.success?("/status.get")
 
-    # TODO: Check if watcher proposes piggyback based only on state of the contract
-    #       or on state of contract and local store
+    ###
+    # PIGGYBACK GAME
+    ###
 
-    # There should be piggybacks on input/output available
-    # NOTE: (we disregard canonicity for now)
-    # TODO: uncomment assertions when OMG-310/OMG-311 are done
-    # assert %{
-    #          "byzantine_events" => events
-    #        } = TestHelper.success?("/status.get")
-    #
-    # assert [%{"details" => %{"available_outputs" => outputs_list}}] =
-    #          Enum.filter(events, fn %{"event" => "piggyback_available"} -> true end)
-    #
-    # bob_hex =  Encoding.to_hex(bob.addr)
-    # assert [%{"index" => 0, address: ^bob_hex} | _] = outputs_list
+    # Do the piggybacks
+    {:ok, %{"status" => "0x1"}} =
+      OMG.Eth.RootChain.piggyback_in_flight_exit(raw_tx2_bytes, 0, alice.addr)
+      |> Eth.DevHelpers.transact_sync!()
 
-    # Do the piggyback on the output.
-    # {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-    #   OMG.Eth.RootChain.piggyback_in_flight_exit(raw_tx2_bytes, 4 + 0, bob)
+    {:ok, %{"status" => "0x1"}} =
+      OMG.Eth.RootChain.piggyback_in_flight_exit(raw_tx2_bytes, 4 + 0, bob.addr)
+      |> Eth.DevHelpers.transact_sync!()
 
-    # TODO: OMG-311
-    # alice_hex =  Encoding.to_hex(alice.addr)
-    # assert [%{"index" => 0, address: ^alice_hex} | _] = outputs_list
+    # TODO: rest of piggyback game goes here PROBABLY (OMG-313)
 
-    # Do the piggyback on the input.
-    # {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-    #   OMG.Eth.RootChain.piggyback_in_flight_exit(tx2_bytes, 0, alice)
+    ###
+    # CANONICITY GAME
+    ###
 
     # to challenge canonicity, get chain inclusion proof
     assert %{"competing_txid" => 0, "competing_proof" => ""} =
@@ -235,8 +234,13 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
 
+    # existence of `non_canonical_ife` and `invalid_ife_challenge` events
     assert %{
-             "byzantine_events" => [%{"event" => "non_canonical_ife"}, %{"event" => "invalid_ife_challenge"}]
+             "byzantine_events" => [
+               %{"event" => "non_canonical_ife"},
+               %{"event" => "invalid_ife_challenge"},
+               %{"event" => "piggyback_available"}
+             ]
            } = TestHelper.success?("/status.get")
 
     # now included IFE transaction tx1 is challenged and non-canonical, let's respond

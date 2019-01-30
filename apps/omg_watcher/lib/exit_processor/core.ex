@@ -418,8 +418,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Figures out which block numbers to ask from the database, based on the blknums where relevant UTXOs were spent and
   (in the future) some additional insights from the state of ExitProcessor (eg. only get the oldest block per ife)
 
-  NOTE: for now this is pretty trivial - we just get all of the blknums, where some ife input was spent
-        (see other Core functions). There are more optimal and smart way to do this
+  This function must return blocks that satisfy following criteria:
+    1/ blocks where any input to any IFE was spent
+    2/ blocks where any output to any IFE was spent
+    3/ blocks where the whole IFE transaction **might've** been included, to get piggyback availability and to get InvalidIFEChallenge's
+
   """
   @spec determine_blocks_to_get(ExitProcessor.Request.t()) :: ExitProcessor.Request.t()
   def determine_blocks_to_get(
@@ -479,12 +482,22 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       get_invalid_ife_challenges(request, state)
       |> Enum.map(fn txbytes -> %Event.InvalidIFEChallenge{txbytes: txbytes} end)
 
+    available_piggybacks_events =
+      get_ifes_to_piggyback(request, state)
+      |> Enum.map(&prepare_available_piggyback/1)
+
     late_invalid_exits_events =
       late_invalid_exits
       |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
 
     events =
-      [late_invalid_exits_events, non_late_events, ifes_with_competitors_events, invalid_ife_challenges_events]
+      [
+        late_invalid_exits_events,
+        non_late_events,
+        ifes_with_competitors_events,
+        invalid_ife_challenges_events,
+        available_piggybacks_events
+      ]
       |> Enum.concat()
 
     chain_validity = if has_no_late_invalid_exits, do: :ok, else: {:error, :unchallenged_exit}
@@ -524,12 +537,50 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Stream.map(fn %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: raw_tx}} -> raw_tx end)
     # TODO: expensive!
     |> Stream.filter(fn raw_tx ->
-      Enum.find(known_txs, fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} ->
-        raw_tx == block_raw_tx
-      end)
+      is_among_known_txs?(raw_tx, known_txs)
     end)
     |> Stream.map(&Transaction.encode/1)
     |> Enum.uniq()
+  end
+
+  @spec get_ifes_to_piggyback(ExitProcessor.Request.t(), __MODULE__.t()) :: list(Transaction.Signed.t())
+  defp get_ifes_to_piggyback(
+         %ExitProcessor.Request{blocks_result: blocks},
+         %__MODULE__{in_flight_exits: ifes}
+       ) do
+    known_txs = get_known_txs(blocks)
+
+    ifes
+    |> Map.values()
+    |> Stream.map(fn %InFlightExitInfo{tx: signed_tx} -> signed_tx end)
+    # TODO: expensive!
+    |> Stream.filter(fn %Transaction.Signed{raw_tx: raw_tx} ->
+      !is_among_known_txs?(raw_tx, known_txs)
+    end)
+    |> Enum.uniq()
+  end
+
+  @spec prepare_available_piggyback(Transaction.Signed.t()) :: Event.PiggybackAvailable.t()
+  defp prepare_available_piggyback(%Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx} = signed_tx) do
+    {:ok, %Transaction.Recovered{spenders: input_owners}} = Transaction.Recovered.recover_from(signed_tx)
+
+    available_inputs =
+      input_owners
+      |> Enum.filter(&zero_address?/1)
+      |> Enum.with_index()
+      |> Enum.map(fn {owner, index} -> %{index: index, address: owner} end)
+
+    available_outputs =
+      outputs
+      |> Enum.filter(fn %{owner: owner} -> zero_address?(owner) end)
+      |> Enum.with_index()
+      |> Enum.map(fn {%{owner: owner}, index} -> %{index: index, address: owner} end)
+
+    %Event.PiggybackAvailable{
+      txbytes: Transaction.encode(tx),
+      available_outputs: available_outputs,
+      available_inputs: available_inputs
+    }
   end
 
   @doc """
@@ -702,5 +753,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     #       consider optimizing using `MapSet`
     utxo_positions
     |> Enum.filter(fn pos -> !Map.get(utxo_exists?, pos, true) end)
+  end
+
+  defp is_among_known_txs?(raw_tx, known_txs) do
+    Enum.find(known_txs, fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: block_raw_tx}} ->
+      raw_tx == block_raw_tx
+    end)
+  end
+
+  defp zero_address?(address) do
+    address != Crypto.zero_address()
   end
 end

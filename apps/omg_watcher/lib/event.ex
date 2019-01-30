@@ -150,4 +150,22 @@ defmodule OMG.Watcher.Event do
             name: atom()
           }
   end
+
+  defmodule PiggybackAvailable do
+    @moduledoc """
+    Notifies about an available piggyback.
+    It is only fired, when the transaction hasn't been seen included.
+    """
+
+    defstruct [:txbytes, :available_outputs, :available_inputs, name: :piggyback_available]
+
+    @type available_output :: %{index: pos_integer(), address: binary()}
+
+    @type t :: %__MODULE__{
+            txbytes: binary(),
+            available_outputs: list(available_output()),
+            available_inputs: list(available_output()),
+            name: atom()
+          }
+  end
 end

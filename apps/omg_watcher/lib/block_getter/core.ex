@@ -96,7 +96,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
             non_neg_integer => PotentialWithholding.t()
           },
           config: Config.t(),
-          # FIXME
           events: list(any()),
           chain_status: :ok | :error
         }
