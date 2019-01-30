@@ -19,6 +19,7 @@ defmodule OMG.Watcher.TestHelper do
 
   alias OMG.API.Crypto
   alias OMG.API.Utxo
+  alias OMG.RPC.Web.Encoding
 
   require Utxo
 
@@ -126,19 +127,19 @@ defmodule OMG.Watcher.TestHelper do
   end
 
   def get_in_flight_exit(transaction) do
-    exit_data = success?("inflight_exit.get_data", %{txbytes: transaction})
+    exit_data = success?("inflight_exit.get_data", %{txbytes: Encoding.to_hex(transaction)})
 
     decode16(exit_data, ["in_flight_tx", "input_txs", "input_txs_inclusion_proofs", "in_flight_tx_sigs"])
   end
 
   def get_in_flight_exit_competitors(transaction) do
-    competitor_data = success?("inflight_exit.get_competitor", %{txbytes: transaction})
+    competitor_data = success?("inflight_exit.get_competitor", %{txbytes: Encoding.to_hex(transaction)})
 
     decode16(competitor_data, ["inflight_txbytes", "competing_txbytes", "competing_sig", "competing_proof"])
   end
 
   def get_prove_canonical(transaction) do
-    competitor_data = success?("inflight_exit.prove_canonical", %{txbytes: transaction})
+    competitor_data = success?("inflight_exit.prove_canonical", %{txbytes: Encoding.to_hex(transaction)})
 
     decode16(competitor_data, ["inflight_txbytes", "inflight_proof"])
   end
