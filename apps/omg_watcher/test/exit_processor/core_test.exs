@@ -644,44 +644,52 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   describe "available piggybacks" do
     @tag fixtures: [:processor_filled, :transactions, :alice]
-    test "detects available piggybacks because txs not seen in valid block",
+    test "detects multiple available piggybacks, with all the fields",
          %{
            processor_filled: processor,
            transactions: [tx1, tx2],
            alice: alice
          } do
-      exit_processor_request = %ExitProcessor.Request{
-        blknum_now: 5000,
-        eth_height_now: 5
-      }
-
       [%{owner: tx1_owner1}, %{owner: tx1_owner2}, _, _] = Transaction.get_outputs(tx1)
       [%{owner: tx2_owner1}, %{owner: tx2_owner2}, _, _] = Transaction.get_outputs(tx2)
 
       txbytes_1 = Transaction.encode(tx1)
       txbytes_2 = Transaction.encode(tx2)
-      alice_addr = alice.addr
 
-      assert {:ok, events} = exit_processor_request |> Core.invalid_exits(processor)
+      assert {:ok, events} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> Core.invalid_exits(processor)
 
       assert_events(events, [
         %Event.PiggybackAvailable{
-          available_inputs: [%{address: alice_addr, index: 0}, %{address: alice_addr, index: 1}],
-          available_outputs: [
-            %{address: tx1_owner1, index: 0},
-            %{address: tx1_owner2, index: 1}
-          ],
+          available_inputs: [%{address: alice.addr, index: 0}, %{address: alice.addr, index: 1}],
+          available_outputs: [%{address: tx1_owner1, index: 0}, %{address: tx1_owner2, index: 1}],
           txbytes: txbytes_1
         },
         %Event.PiggybackAvailable{
-          available_inputs: [%{address: alice_addr, index: 0}, %{address: alice_addr, index: 1}],
-          available_outputs: [
-            %{address: tx2_owner1, index: 0},
-            %{address: tx2_owner2, index: 1}
-          ],
+          available_inputs: [%{address: alice.addr, index: 0}, %{address: alice.addr, index: 1}],
+          available_outputs: [%{address: tx2_owner1, index: 0}, %{address: tx2_owner2, index: 1}],
           txbytes: txbytes_2
         }
       ])
+    end
+
+    @tag fixtures: [:processor_empty, :alice]
+    test "detects available piggyback because tx not seen in valid block, regardless of competitors",
+         %{processor_empty: processor, alice: alice} do
+      # testing this because everywhere else, the test fixtures always imply competitors
+      tx = Transaction.new([{1, 0, 0}], [])
+      txbytes = Transaction.encode(tx)
+      signature = DevCrypto.sign(tx, [alice.priv]) |> Map.get(:sigs) |> Enum.join()
+
+      ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
+      ife_status = {1, <<1::192>>}
+
+      {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
+
+      assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes}]} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> Core.invalid_exits(processor)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions]
@@ -1199,6 +1207,16 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert Utxo.position(9000, 0, 1) not in to_check
     end
+
+    @tag fixtures: [:transactions, :processor_empty]
+    test "for nonexistent tx doesn't crash",
+         %{transactions: [tx | _], processor_empty: processor} do
+      txbytes = Transaction.encode(tx)
+
+      assert {:error, :ife_not_known_for_tx} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> Core.get_competitor_for_ife(processor, txbytes)
+    end
   end
 
   describe "detects the need and allows to respond to canonicity challenges" do
@@ -1244,6 +1262,16 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.prove_canonical_for_ife(txbytes)
 
       assert_proof_sound(proof_bytes)
+    end
+
+    @tag fixtures: [:transactions]
+    test "proving canonical for nonexistent tx doesn't crash",
+         %{transactions: [tx | _]} do
+      txbytes = Transaction.encode(tx)
+
+      assert {:error, :canonical_not_found} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> Core.prove_canonical_for_ife(txbytes)
     end
 
     @tag fixtures: [:processor_filled]

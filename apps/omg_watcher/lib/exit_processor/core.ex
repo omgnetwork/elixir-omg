@@ -613,17 +613,14 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           {:ok, competitor_data_t()} | {:error, :competitor_not_found}
   def get_competitor_for_ife(
         %ExitProcessor.Request{blocks_result: blocks},
-        %__MODULE__{in_flight_exits: ifes} = state,
+        %__MODULE__{} = state,
         ife_txbytes
       ) do
     known_txs = get_known_txs(blocks) ++ get_known_txs(state)
 
-    # get info about the IFE transaction
-    {:ok, raw_ife_tx} = Transaction.decode(ife_txbytes)
-    %InFlightExitInfo{tx: %Transaction.Signed{} = signed_ife_tx} = ifes[Transaction.hash(raw_ife_tx)]
-
     # find its competitor and use it to prepare the requested data
-    with {:ok, known_signed_tx} <- find_competitor(known_txs, signed_ife_tx),
+    with {:ok, %InFlightExitInfo{tx: %Transaction.Signed{} = signed_ife_tx}} <- get_ife(ife_txbytes, state),
+         {:ok, known_signed_tx} <- find_competitor(known_txs, signed_ife_tx),
          do: {:ok, prepare_competitor_response(known_signed_tx, signed_ife_tx, blocks)}
   end
 
@@ -775,5 +772,14 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp zero_address?(address) do
     address != Crypto.zero_address()
+  end
+
+  defp get_ife(txbytes, %__MODULE__{in_flight_exits: ifes}) do
+    {:ok, raw_ife_tx} = Transaction.decode(txbytes)
+
+    case ifes[Transaction.hash(raw_ife_tx)] do
+      nil -> {:error, :ife_not_known_for_tx}
+      value -> {:ok, value}
+    end
   end
 end
