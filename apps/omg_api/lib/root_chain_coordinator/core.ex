@@ -85,12 +85,15 @@ defmodule OMG.API.RootChainCoordinator.Core do
     else
       _ =
         Logger.error(fn ->
-          "Error while update service synced height #{
-            inspect(%{
-              cause: :invalid_synced_height_update,
-              root_chain_height: state.root_chain_height,
-              service_reported_sync_height: service_reported_sync_height
-            }, pretty: true)
+          "Invalid synced height update #{
+            inspect(
+              %{
+                service_name: service_name,
+                root_chain_height: state.root_chain_height,
+                service_reported_sync_height: service_reported_sync_height
+              },
+              pretty: true
+            )
           }"
         end)
 
