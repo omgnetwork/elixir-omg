@@ -792,7 +792,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       processor_filled: processor,
       transactions: [tx1, tx2]
     } do
-      {:ok, recovered_tx1} = Transaction.sign(tx1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+      {:ok, recovered_tx1} = DevCrypto.sign(tx1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -822,7 +822,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       bob_addr = bob.addr
 
       txbytes = Transaction.encode(tx)
-      signature = Transaction.sign(tx, [alice.priv, bob.priv]) |> Map.get(:sigs) |> Enum.join()
+      signature = DevCrypto.sign(tx, [alice.priv, bob.priv]) |> Map.get(:sigs) |> Enum.join()
 
       ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}}
       ife_status = {1, <<1::192>>}
@@ -875,7 +875,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       txbytes = Transaction.encode(tx1)
 
       other_txbytes = Transaction.encode(comp3)
-      other_signature = Transaction.sign(comp3, [alice.priv, alice.priv]) |> Map.get(:sigs) |> Enum.join()
+      other_signature = DevCrypto.sign(comp3, [alice.priv, alice.priv]) |> Map.get(:sigs) |> Enum.join()
 
       other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}}
       other_ife_status = {1, <<1::192>>}
