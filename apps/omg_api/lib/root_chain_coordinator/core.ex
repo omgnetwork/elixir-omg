@@ -25,6 +25,8 @@ defmodule OMG.API.RootChainCoordinator.Core do
   alias OMG.API.RootChainCoordinator.Service
   alias OMG.API.RootChainCoordinator.SyncData
 
+  use OMG.API.LoggerExt
+
   defstruct configs_services: %{}, root_chain_height: 0, services: %{}
 
   @type configs_services :: %{required(atom()) => %{sync_mode: :sync_with_root_chain | :sync_with_coordinator}}
@@ -81,13 +83,27 @@ defmodule OMG.API.RootChainCoordinator.Core do
       state = %{state | services: services}
       {:ok, state}
     else
+      _ =
+        Logger.error(fn ->
+          "Invalid synced height update #{
+            inspect(
+              %{
+                service_name: service_name,
+                root_chain_height: state.root_chain_height,
+                service_reported_sync_height: service_reported_sync_height
+              },
+              pretty: true
+            )
+          }"
+        end)
+
       :invalid_synced_height_update
     end
   end
 
   defp valid_sync_height_update?(state, synced_service, service_reported_sync_height, service_name) do
     service = Map.get(state.services, service_name, synced_service)
-    service.synced_height <= service_reported_sync_height and state.root_chain_height >= service_reported_sync_height
+    service.synced_height <= service_reported_sync_height and service_reported_sync_height <= state.root_chain_height
   end
 
   defp get_services_to_sync(state, service_name, previous_synced_height) do
