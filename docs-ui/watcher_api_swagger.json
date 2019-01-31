@@ -3,7 +3,7 @@
   "info": {
     "version": "1.0.0",
     "title": "Watcher security-critical API",
-    "description": "API specification of the Watcher's security-critical Service\nError codes are available in [html](https://github.com/omisego/elixir-omg/docs/api_specs/errors.md#error-codes-description) format.\n",
+    "description": "API specification of the Watcher's security-critical Service\nError codes are available in [html](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.\n",
     "contact": {
       "name": "OmiseGO",
       "email": "omisego@omisego.co"
@@ -18,8 +18,8 @@
       "name": "Status",
       "description": "Status of the child chain.",
       "externalDocs": {
-        "description": "Byzantine events description can be found",
-        "url": "https://github.com/omisego/elixir-omg/docs/api_specs/status_events_specs.md"
+        "description": "Byzantine events description",
+        "url": "https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/status_events_specs.md#byzantine-events"
       }
     },
     {

@@ -3,7 +3,7 @@
   "info": {
     "version": "1.0.0",
     "title": "Watcher's Informational API",
-    "description": "API specification of the Watcher's Informational Service\nError codes are available in [html](https://github.com/omisego/elixir-omg/docs/api_specs/errors.md#error-codes-description) format.\n",
+    "description": "API specification of the Watcher's Informational Service\nError codes are available in [html](https://github.com/omisego/elixir-omg/blob/master/docs/api_specs/errors.md#error-codes-description) format.\n",
     "contact": {
       "name": "OmiseGO",
       "email": "omisego@omisego.co"
