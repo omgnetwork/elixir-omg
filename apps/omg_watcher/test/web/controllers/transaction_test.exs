@@ -130,8 +130,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     test "handles improper length of id parameter" do
       assert %{
                "object" => "error",
-               "code" => "get_transaction:bad_request",
-               "description" => "Parameters required by this action are missing or incorrect.",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
                "messages" => %{
                  "validation_error" => %{
                    "parameter" => "id",
@@ -489,8 +489,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "responds with error for malformed in-flight transaction bytes" do
       assert %{
-               "code" => "get_in_flight_exit:bad_request",
-               "description" => "Parameters required by this action are missing or incorrect.",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
                "messages" => %{
                  "validation_error" => %{
                    "parameter" => "txbytes",

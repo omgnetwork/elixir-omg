@@ -27,7 +27,7 @@ defmodule OMG.RPC.Web.Controller.BlockTest do
              "success" => false,
              "data" => %{
                "object" => "error",
-               "code" => "get_block:bad_request",
+               "code" => "operation:bad_request",
                "messages" => %{
                  "validation_error" => %{
                    "parameter" => "hash",
@@ -46,7 +46,7 @@ defmodule OMG.RPC.Web.Controller.BlockTest do
              "success" => false,
              "data" => %{
                "object" => "error",
-               "code" => "get_block:bad_request",
+               "code" => "operation:bad_request",
                "messages" => %{
                  "validation_error" => %{
                    "parameter" => "hash",
@@ -65,7 +65,7 @@ defmodule OMG.RPC.Web.Controller.BlockTest do
              "success" => false,
              "data" => %{
                "object" => "error",
-               "code" => "get_block:bad_request",
+               "code" => "operation:bad_request",
                "messages" => %{
                  "validation_error" => %{
                    "parameter" => "hash",

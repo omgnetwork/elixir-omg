@@ -1,9 +1,5 @@
 {
   "skip_files": [
     "test/support"
-  ],
-  "custom_stop_words": [
-    "swagger_schema",
-    "swagger_path"
   ]
 }

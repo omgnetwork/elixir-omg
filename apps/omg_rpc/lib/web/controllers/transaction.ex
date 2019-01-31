@@ -18,7 +18,6 @@ defmodule OMG.RPC.Web.Controller.Transaction do
   """
 
   use OMG.RPC.Web, :controller
-  use PhoenixSwagger
 
   alias OMG.RPC.Web.View
 
@@ -29,38 +28,5 @@ defmodule OMG.RPC.Web.Controller.Transaction do
          {:ok, details} <- apply(@api_module, :submit, [txbytes]) do
       render(conn, View.Transaction, :submit, result: details)
     end
-  end
-
-  def swagger_definitions do
-    %{
-      TransactionSubmission:
-        swagger_schema do
-          title("Block")
-          description("Block details with encoded transctions")
-
-          properties do
-            blknum(:integer, "Child chain block number", required: true)
-            txindex(:integer, "Index of the transaction in the block", required: true)
-            txhash(:string, "Child chain block hash", required: true)
-          end
-
-          example(%{
-            blknum: 123_000,
-            txindex: 111,
-            txhash: "2733e50f526ec2fa19a22b31e8ed50f23cd1fdf94c9154ed3a7609a2f1ff981f"
-          })
-        end
-    }
-  end
-
-  swagger_path :get_block do
-    get("/transaction.submit")
-    summary("Submits signed transaction to the child chain")
-
-    parameters do
-      transaction(:body, :string, "Signed transaction RLP-encoded to bytes and HEX-encoded to string", required: true)
-    end
-
-    response(200, "OK", Schema.ref(:TransactionSubmission))
   end
 end

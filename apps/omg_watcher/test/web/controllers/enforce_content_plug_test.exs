@@ -30,8 +30,8 @@ defmodule OMG.Watcher.Web.Controller.EnforceContentPlugTest do
 
     assert %{
              "data" => %{
-               "code" => "bad_request:missing_json_content_type_header",
-               "description" => nil,
+               "code" => "operation:invalid_content",
+               "description" => "Content type of application/json header is required for all requests.",
                "object" => "error"
              },
              "success" => false,

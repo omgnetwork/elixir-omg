@@ -1,0 +1,58 @@
+BaseResponseSchema:
+  description: The response schema for a successful operation
+  type: object
+  properties:
+    version:
+      type: string
+    success:
+      type: boolean
+    data:
+      type: object
+  required:
+    - version
+    - success
+    - data
+  example:
+    version: '1.0'
+    success: true
+    data: {}
+
+ErrorSchema:
+  description: The object schema for an error
+  type: object
+  properties:
+    object:
+      type: string
+    code:
+      type: string
+    description:
+      type: string
+    messages:
+      type: object
+  required:
+    - object
+    - code
+    - description
+    - messages
+
+InternalServerError:
+  description: Returns an internal server error
+  content:
+    application/json:
+      schema:
+        description: The response schema for an error
+        allOf:
+          - $ref: '#/BaseResponseSchema'
+          - type: object
+            properties:
+              data:
+                $ref: '#/ErrorSchema'
+            required:
+              - data
+            example:
+              success: false
+              data:
+                object: error
+                code: server:internal_server_error
+                description: Something went wrong on the server
+                messages: {error_key: error_reason}

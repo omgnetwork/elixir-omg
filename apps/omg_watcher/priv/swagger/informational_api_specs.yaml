@@ -1,0 +1,454 @@
+openapi: 3.0.0
+info:
+  version: '1.0.0'
+  title: Watcher's Informational API
+  description: >
+    API specification of the Watcher's Informational Service
+    
+    Error codes are available in [html](https://github.com/omisego/elixir-omg/docs/api_specs/errors.md#error-codes-description) format.
+  contact:
+    name: OmiseGO
+    email: omisego@omisego.co
+  license:
+    name: 'Apache 2.0: https://www.apache.org/licenses/LICENSE-2.0'
+    url: 'https://omisego.network/'
+
+tags:
+  - name: Account
+    description: Account related API.
+  - name: Transaction
+    description: Transaction related API.
+  - name: Block
+    description: Block related API.
+
+paths:
+  /account.get_balance:
+    post:
+      tags:
+        - Account
+      summary: Returns the balance of each currency for the given account address. 
+      description: 
+      operationId: getBalance
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      requestBody:
+        $ref: 'requests.yaml#/AddressBodySchema'
+      responses:
+        200:
+          $ref: '#/responses/GetBalanceOpId'
+        500:
+          $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
+  /account.get_utxos:
+    post:
+      tags:
+        - Account
+      summary: Gets all utxos belonging to the given address.
+      description: 
+      operationId: getUtxos
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      requestBody:
+        $ref: 'requests.yaml#/AddressBodySchema'
+      responses:
+        200:
+          $ref: '#/responses/GetUtxosOpId'
+        500:
+          $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
+  /account.get_transactions:
+    post:
+      tags:
+        - Account
+      summary: Gets a list of transactions for given account address.
+      description: 
+      operationId: getTransactions
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      requestBody:
+        $ref: '#/requests/GetTransactionsOpId'
+      responses:
+        200:
+          $ref: '#/responses/GetTransactionsOpId'
+        500:
+          $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
+  /transaction.all:
+    post:
+      tags:
+        - Transaction
+      summary: Gets all transactions (can be limited with various filters).
+      description: >
+        Digests the details of the transaction, by listing the value of outputs, aggregated by currency.
+        Intended to be used when presenting the little details about multiple transactions.
+        For all details queries to `/transaction.get` should be made using the transaction's hash provided.
+      operationId: getTransactionsAll
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      requestBody:
+        $ref: '#/requests/GetTransactionsAllOpId'
+      responses:
+        200:
+          $ref: '#/responses/GetTransactionsOpId'
+        500:
+          $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
+  /transaction.get:
+    post:
+      tags:
+        - Transaction
+      summary: Gets a transaction with the given id.
+      description: 
+      operationId: getTransaction
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      requestBody:
+        $ref: '#/requests/GetTransactionOpId'
+      responses:
+        200:
+          $ref: '#/responses/GetTransactionOpId'
+        500:
+          $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
+  /transaction.get_by_position:
+    post:
+      tags:
+        - Transaction
+      summary: Gets a transaction with the given position (block number, transaction index).
+      description: __Not implemented yet, proposed in OMG-364__
+      operationId: getTransactionByPos
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      requestBody:
+        $ref: '#/requests/GetTransactionByPosOpId'
+      responses:
+        200:
+          $ref: '#/responses/GetTransactionOpId'
+        500:
+          $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'  
+  /block.all:
+    post:
+      tags:
+        - Block
+      summary: Gets all blocks (with a limit on the number of blocks to return).
+      description: __/block.xxx endpoints not implemented yet and might undergo design changes__
+      operationId: getBlocksAll
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      requestBody:
+        $ref: '#/requests/GetBlocksAllOpId'
+      responses:
+        200:
+          $ref: '#/responses/GetBlocksAllOpId'
+        500:
+          $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
+  /block.get:
+    post:
+      tags:
+        - Block
+      summary: Gets a block with the given id.
+      description: __/block.xxx endpoints not implemented yet and might undergo design changes__
+      operationId: getBlock
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      requestBody:
+        $ref: '#/requests/GetBlockOpId'
+      responses:
+        200:
+          $ref: '#/responses/GetBlockOpId'
+        500:
+          $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
+
+requests:
+  GetTransactionsOpId:
+    description: Account address and optional limit
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            address:
+              type: string
+              format: binary
+            limit:
+              type: integer
+              format: int32
+              default: 200              
+          required:
+            - address
+          example:
+            address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+            limit: 100 
+  GetTransactionsAllOpId:
+    description: Account address, block number or limit
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            address:
+              type: string
+              format: binary
+            blknum:
+              type: integer
+              format: int64              
+            limit:
+              type: integer
+              format: int32
+              default: 200              
+          required:
+          example:
+            address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+            blknum: 68290000
+            limit: 100             
+  GetTransactionOpId:
+    description: Id (hash) of the transaction
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            id:
+              type: string
+              format: binary             
+          required:
+            - id
+          example:
+            id: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+  GetTransactionByPosOpId:
+    description: Position of the transaction  
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            blknum:
+              type: string
+              format: binary
+            txindex:
+              type: integer
+              format: int16
+          required:
+            - blknum
+            - txindex
+          example:
+            blknum: 68290000
+            txindex: 100
+  GetBlocksAllOpId:
+    description: The block number of the latest block in the list to be returned. Optional - if not specified, latest block will be the current
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            from_blknum:
+              type: integer
+              format: int64
+            limit:
+              type: integer
+              format: int32
+              default: 200    
+          required:
+          example:
+            from_blknum: 68290000
+            limit: 100
+  GetBlockOpId:
+    description: Hash of the Plasma block
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            id:
+              type: string
+              format: binary    
+          required:
+          example:
+            id: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+
+responses:
+  GetBalanceOpId:
+    description: Account balance successful response
+    content:
+      application/json:
+        schema:
+          allOf:
+          - $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+          - type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    currency:
+                      type: string
+                      format: binary
+                    amount:
+                      type: integer
+                      format: int256                      
+            example:
+              data:
+                -
+                  currency: '0xbfdf85743ef16cfb1f8d4dd1dfc74c51dc496434'
+                  amount: 20
+                -
+                  currency: '0x0000000000000000000000000000000000000000'
+                  amount: 1000000000                  
+  GetUtxosOpId:
+    description: Account utxos succcessful response
+    content:
+      application/json:
+        schema:
+          allOf:
+          - $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+          - type: object
+            properties:
+              data:
+                type: array
+                items:
+                - $ref: 'schemata.yaml#/TransactionOutputSchema'
+            example:
+              data:
+              - 
+                blknum: 123000
+                txindex: 111
+                oindex: 0
+                utxo_pos: 123000001110000
+                owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                currency: '0x0000000000000000000000000000000000000000'
+                amount: 10
+  GetTransactionsOpId:
+    description: Transactions succcessful response
+    content:
+      application/json:
+        schema:
+          allOf:
+          - $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+          - type: object
+            properties:
+              data:
+                type: array
+                items:
+                - $ref: 'schemata.yaml#/TransactionItemSchema'
+            example:
+              data:
+              -
+                block:
+                  timestamp: 1540365586
+                  hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                  eth_height: 97424
+                  blknum: 68290000
+                txindex: 0
+                txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+                results:
+                -
+                  currency: '0x0000000000000000000000000000000000000000'
+                  value: 20000000
+  GetTransactionOpId:
+    description: Transaction details succcessful response
+    content:
+      application/json:
+        schema:
+          allOf:
+          - $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+          - type: object
+            properties:
+              data:
+                type: array
+                items:
+                - $ref: 'schemata.yaml#/TransactionSchema'
+            example:
+              data:
+                txindex: 5113
+                txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+                txbytes: '0x5df13a6bee20000...'
+                block:
+                  timestamp: 1540365586
+                  hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                  eth_height: 97424
+                  blknum: 68290000
+                inputs:
+                -
+                  blknum: 1000
+                  txindex: 111
+                  oindex: 0
+                  utxo_pos: 1000001110000                  
+                  owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                  currency: '0x0000000000000000000000000000000000000000'
+                  amount: 10
+                outputs:
+                -
+                  blknum: 68290000
+                  txindex: 5113
+                  oindex: 0
+                  utxo_pos: 68290000051130000
+                  owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
+                  currency: '0x0000000000000000000000000000000000000000'
+                  amount: 2
+                -
+                  blknum: 68290000
+                  txindex: 5113
+                  oindex: 1
+                  utxo_pos: 68290000051130001                  
+                  owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                  currency: '0x0000000000000000000000000000000000000000'
+                  amount: 7                  
+  GetBlocksAllOpId:
+    description: Blocks succcessful response
+    content:
+      application/json:
+        schema:
+          allOf:
+          - $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+          - type: object
+            properties:
+              data:
+                type: array
+                items:
+                - $ref: 'schemata.yaml#/BlockSchema'
+            example:
+              data:
+              - 
+                timestamp: 1540365586
+                hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                eth_height: 97424
+                blknum: 68290000
+  GetBlockOpId:
+    description: Block succcessful response
+    content:
+      application/json:
+        schema:
+          allOf:
+          - $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+          - type: object
+            properties:
+              data:
+                type: array
+                items:
+                - $ref: 'schemata.yaml#/BlockSchema'
+            example:
+              data:
+                timestamp: 1540365586
+                hash: '0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec'
+                eth_height: 97424
+                blknum: 68290000                
+
+definitions:

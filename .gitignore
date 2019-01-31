@@ -41,8 +41,3 @@ env/
 
 # Elixirls data directory
 .elixir_ls
-
-
-apps/omg_watcher/priv/static/swagger.json
-apps/omg_rpc/priv/static/swagger.json
-

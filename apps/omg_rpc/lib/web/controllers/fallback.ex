@@ -26,13 +26,14 @@ defmodule OMG.RPC.Web.Controller.Fallback do
 
   @errors %{}
 
-  def call(conn, :not_found), do: json(conn, Error.serialize(:endpoint_not_found, "Endpoint not found"))
+  def call(conn, Route.NotFound),
+    do: json(conn, Error.serialize("operation:not_found", "Operation cannot be found. Check request URL."))
 
   def call(conn, {:error, {:validation_error, param_name, validator}}) do
     response =
       Error.serialize(
-        "#{action_name(conn)}:bad_request",
-        "Parameters required by this action are missing or incorrect.",
+        "operation:bad_request",
+        "Parameters required by this operation are missing or incorrect.",
         %{validation_error: %{parameter: param_name, validator: inspect(validator)}}
       )
 
