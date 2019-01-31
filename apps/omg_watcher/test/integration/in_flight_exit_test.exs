@@ -33,6 +33,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   @eth Crypto.zero_address()
 
   @moduletag :integration
+  # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
+  @moduletag timeout: 120_000
 
   @tag fixtures: [:watcher_sandbox, :alice, :child_chain, :alice_deposits]
   test "in-flight exit data returned by watcher http API produces a valid in-flight exit",

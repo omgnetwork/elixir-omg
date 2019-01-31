@@ -430,6 +430,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           spent_blknum_result: spent_blknum_result
         } = request
       ) do
+    # TODO: consider Enum.uniq here
     %{request | blknums_to_get: spent_blknum_result}
   end
 
