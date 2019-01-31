@@ -1,4 +1,5 @@
 # Manual steps to start the services
+This process is intended for users who wish to start services manually, perhaps as part of a non-Docker deployment on a Linux host.
 
 ## Setup
 The setup process for the Child chain server and for the Watcher is similar.
