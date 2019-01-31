@@ -107,11 +107,9 @@ defmodule OMG.API.RootChainCoordinator do
   end
 
   defp safe_send(registered_name_or_pid, msg) do
-    try do
-      send(registered_name_or_pid, msg)
-    rescue
-      ArgumentError ->
-        msg
-    end
+    send(registered_name_or_pid, msg)
+  rescue
+    ArgumentError ->
+      msg
   end
 end
