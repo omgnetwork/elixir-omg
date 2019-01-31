@@ -3,7 +3,7 @@
   "info": {
     "version": "1.0.0",
     "title": "Child chain API",
-    "description": "This is the documentation for child chain API.\nError codes are available in [html](https://github.com/omisego/elixir-omg/docs/api_specs/includes/errors.md#error-codes-description) format.\n",
+    "description": "This is the documentation for child chain API.\nError codes are available in [html](https://github.com/omisego/elixir-omg/docs/api_specs/errors.md#error-codes-description) format.\n",
     "contact": {
       "name": "OmiseGO",
       "email": "omisego@omisego.co"

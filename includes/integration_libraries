@@ -1,6 +1,0 @@
-<h1 id='integration-libraries'>Integration libraries</h1><h2 id='transaction-rlp-encoding'>Transaction RLP-encoding</h2>
-<p>Library function which encapsulates transaction&#39;s RLP-serialization to the form understand by the contract&#39;s code.</p>
-<h3 id='input'>Input</h3>
-<p>Standard transaction structure e.g. <code>OMG.API.State.Transaction</code> or JSON structure like current <code>transaction.create</code> convenience endpoint.</p>
-<h3 id='output'>Output</h3>
-<p>RLP-encoded binary representation of the transaction which can be signed and submit via <a href="#">Submit transaction</a></p>
