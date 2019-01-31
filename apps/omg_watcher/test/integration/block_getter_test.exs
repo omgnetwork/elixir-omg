@@ -26,18 +26,13 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use Plug.Test
   use Phoenix.ChannelTest
 
-  alias OMG.API
-  alias OMG.API.Crypto
-  alias OMG.API.Utxo
-  require Utxo
-  alias OMG.Eth
-  alias OMG.RPC.Client
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.Watcher.TestHelper
-  alias OMG.Watcher.Web.Channel
-  alias OMG.Watcher.Web.Serializer.Response
+  alias OMG.{API, Eth, RPC, Watcher}
+  alias API.{Crypto, Utxo}
+  alias RPC.Client
+  alias Watcher.Integration.TestHelper, as: IntegrationTest
+  alias Watcher.{Event, TestHelper, Web.Channel, Web.Serializer.Response}
 
+  require Utxo
   import ExUnit.CaptureLog
 
   @moduletag :integration
@@ -56,7 +51,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   } do
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
-    token_addr = token |> OMG.RPC.Web.Encoding.to_hex()
+    token_addr = token |> RPC.Web.Encoding.to_hex()
 
     # utxo from deposit should be available
     assert [%{"blknum" => ^deposit_blknum}, %{"blknum" => ^token_deposit_blknum, "currency" => ^token_addr}] =
@@ -170,7 +165,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     block_with_incorrect_hash = %{API.Block.hashed_txs_at([], 1000) | hash: different_hash}
 
     # from now on the child chain server is broken until end of test
-    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(
+    Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(
       context,
       block_with_incorrect_hash,
       different_hash

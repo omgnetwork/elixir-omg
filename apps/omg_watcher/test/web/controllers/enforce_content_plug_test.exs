@@ -17,10 +17,11 @@ defmodule OMG.Watcher.Web.Controller.EnforceContentPlugTest do
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
   use Plug.Test
+  alias OMG.RPC.Web
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "Request missing expected content type header is rejected" do
-    no_account = OMG.RPC.Web.Encoding.to_hex(<<0::160>>)
+    no_account = Web.Encoding.to_hex(<<0::160>>)
 
     response =
       conn(:post, "account.get_balance", %{"address" => no_account})

@@ -20,17 +20,18 @@ defmodule OMG.Watcher.Web.View.Account do
   use OMG.Watcher.Web, :view
 
   alias OMG.API.Utxo
+  alias OMG.RPC.Web
   require Utxo
 
   def render("balance.json", %{response: balance}) do
     balance
-    |> OMG.RPC.Web.Response.serialize()
+    |> Web.Response.serialize()
   end
 
   def render("utxos.json", %{response: utxos}) do
     utxos
     |> Enum.map(&to_view/1)
-    |> OMG.RPC.Web.Response.serialize()
+    |> Web.Response.serialize()
   end
 
   defp to_view(db_entry) do

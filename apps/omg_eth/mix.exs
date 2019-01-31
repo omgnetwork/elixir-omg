@@ -37,7 +37,7 @@ defmodule OMG.Eth.MixProject do
       {:ex_abi, "~> 0.2.0"},
       {:ethereumex, "~> 0.5.2"},
       {:exexec, git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", runtime: true},
-      {:briefly, "~> 0.3",  only: [:dev, :test]},
+      {:briefly, "~> 0.3", only: [:dev, :test]},
       {:deferred_config, "~> 0.1.1"},
       {
         :plasma_contracts,

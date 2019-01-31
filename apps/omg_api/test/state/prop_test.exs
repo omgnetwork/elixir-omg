@@ -69,7 +69,7 @@ defmodule OMG.API.State.PropTest do
 
   alias OMG.API.PropTest.Helper
   alias OMG.API.State.Core
-
+  alias OMG.API.State.PropTest
   require OMG.API.PropTest.Constants
 
   def initial_state do
@@ -138,7 +138,7 @@ defmodule OMG.API.State.PropTest do
     forall cmds <- commands(__MODULE__) do
       trap_exit do
         {:ok, state} = Core.extract_initial_state([], 0, 0, 1000)
-        OMG.API.State.PropTest.StateCoreGS.set_state(state)
+        PropTest.StateCoreGS.set_state(state)
 
         %{history: history, result: result, state: _state, env: _env} = run_commands(cmds)
         history = List.first(history) |> elem(0) |> (fn value -> value[:model][:history] end).()
