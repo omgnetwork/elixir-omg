@@ -449,8 +449,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
             "" ->
               nil
 
-            rlp_encoded ->
-              {:ok, tx} = Transaction.from_rlp(rlp_encoded)
+            rlp_decoded ->
+              {:ok, tx} = Transaction.reconstruct(rlp_decoded)
               tx
           end)
 

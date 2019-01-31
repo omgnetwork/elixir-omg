@@ -163,7 +163,7 @@ defmodule OMG.API.State.Transaction do
   def account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
   def account_address?(_), do: false
 
-  def from_rlp([inputs_rlp, outputs_rlp]) do
+  def reconstruct([inputs_rlp, outputs_rlp]) do
     inputs =
       Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
         %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
@@ -182,7 +182,7 @@ defmodule OMG.API.State.Transaction do
       else: {:ok, %__MODULE__{inputs: inputs, outputs: outputs}}
   end
 
-  def from_rlp(_), do: {:error, :malformed_transaction}
+  def reconstruct(_), do: {:error, :malformed_transaction}
 
   defp parse_int(binary), do: :binary.decode_unsigned(binary, :big)
 
@@ -194,8 +194,8 @@ defmodule OMG.API.State.Transaction do
   defp parse_address(_), do: {:error, :malformed_address}
 
   def decode(tx_bytes) do
-    with {:ok, tx} <- try_exrlp_decode(tx_bytes),
-         do: from_rlp(tx)
+    with {:ok, raw_tx_rlp_decoded_chunks} <- try_exrlp_decode(tx_bytes),
+         do: reconstruct(raw_tx_rlp_decoded_chunks)
   end
 
   defp try_exrlp_decode(tx_bytes) do
