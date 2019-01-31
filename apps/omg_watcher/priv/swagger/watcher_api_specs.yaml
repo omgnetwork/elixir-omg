@@ -5,7 +5,7 @@ info:
   description: >
     API specification of the Watcher's security-critical Service
     
-    Error codes are available in [html](https://github.com/omisego/elixir-omg/docs/api_specs/includes/errors.md#error-codes-description) format.
+    Error codes are available in [html](https://github.com/omisego/elixir-omg/docs/api_specs/errors.md#error-codes-description) format.
   contact:
     name: OmiseGO
     email: omisego@omisego.co
@@ -16,6 +16,9 @@ info:
 tags:
   - name: Status
     description: Status of the child chain.
+    externalDocs:
+      description: "Byzantine events description can be found"
+      url: "https://github.com/omisego/elixir-omg/docs/api_specs/status_events_specs.md"
   - name: UTXO
     description: UTXO related API.
   - name: Transaction
@@ -105,7 +108,7 @@ paths:
       tags:
         - Transaction
       summary: Sends transaction to Child chain.
-      description: Watcher passes signed transaction to the child chain only if it's secure (better explaination needed)
+      description: Watcher passes signed transaction to the child chain only if it's secure, e.g. Watcher is fully synced, all operator blocks have been verified, transaction doesn't spend funds not yet mined...
       operationId: submit
       consumes:
       - application/json
