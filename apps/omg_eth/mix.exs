@@ -41,8 +41,11 @@ defmodule OMG.Eth.MixProject do
       {:deferred_config, "~> 0.1.1"},
       {
         :plasma_contracts,
+        # NOTE: this is a long-running patch-branch applied to `master` which hard-codes shorter exit periods.
+        #       Rebase on `master`, if new changes are pushed there.
+        #       Switch back to `master`, after the exit periods are properly parametrized on deployment
         git: "https://github.com/omisego/plasma-contracts",
-        branch: "master",
+        branch: "master_short_exit_period",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
