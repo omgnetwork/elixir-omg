@@ -31,6 +31,8 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
+  use OMG.API.LoggerExt
+
   ### Client
 
   def start_link(_args) do
@@ -156,10 +158,14 @@ defmodule OMG.Watcher.ExitProcessor do
 
     sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
 
-    Core.init(db_exits, db_ifes, db_competitors, sla_margin)
+    processor = Core.init(db_exits, db_ifes, db_competitors, sla_margin)
+    _ = Logger.info("Initializing with: #{inspect(processor)}")
+    processor
   end
 
   def handle_call({:new_exits, exits}, _from, state) do
+    _ = if not Enum.empty?(exits), do: Logger.info("Recognized exits: #{inspect(exits)}")
+
     exit_contract_statuses =
       Enum.map(
         exits,
@@ -176,6 +182,8 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   def handle_call({:new_in_flight_exits, events}, _from, state) do
+    _ = if not Enum.empty?(events), do: Logger.info("Recognized in-flight exits: #{inspect(events)}")
+
     ife_contract_statuses =
       Enum.map(
         events,
@@ -191,39 +199,44 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   def handle_call({:finalize_exits, exits}, _from, state) do
+    _ = if not Enum.empty?(exits), do: Logger.info("Recognized finalizations: #{inspect(exits)}")
     {:ok, db_updates_from_state, validities} = State.exit_utxos(exits)
-
     {new_state, db_updates} = Core.finalize_exits(state, validities)
-
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end
 
   def handle_call({:piggyback_exits, exits}, _from, state) do
+    _ = if not Enum.empty?(exits), do: Logger.info("Recognized piggybacks: #{inspect(exits)}")
     {new_state, db_updates} = Core.new_piggybacks(state, exits)
     {:reply, {:ok, db_updates}, new_state}
   end
 
   def handle_call({:challenge_exits, exits}, _from, state) do
+    _ = if not Enum.empty?(exits), do: Logger.info("Recognized challenges: #{inspect(exits)}")
     {new_state, db_updates} = Core.challenge_exits(state, exits)
     {:reply, {:ok, db_updates}, new_state}
   end
 
   def handle_call({:new_ife_challenges, challenges}, _from, state) do
+    _ = if not Enum.empty?(challenges), do: Logger.info("Recognized ife challenges: #{inspect(challenges)}")
     {new_state, db_updates} = Core.new_ife_challenges(state, challenges)
     {:reply, {:ok, db_updates}, new_state}
   end
 
   def handle_call({:challenge_piggybacks, challenges}, _from, state) do
+    _ = if not Enum.empty?(challenges), do: Logger.info("Recognized piggyback challenges: #{inspect(challenges)}")
     {new_state, db_updates} = Core.challenge_piggybacks(state, challenges)
     {:reply, {:ok, db_updates}, new_state}
   end
 
   def handle_call({:respond_to_in_flight_exits_challenges, responds}, _from, state) do
+    _ = if not Enum.empty?(responds), do: Logger.info("Recognized response to IFE challenge: #{inspect(responds)}")
     {new_state, db_updates} = Core.respond_to_in_flight_exits_challenges(state, responds)
     {:reply, {:ok, db_updates}, new_state}
   end
 
   def handle_call({:finalize_in_flight_exits, finalizations}, _from, state) do
+    _ = if not Enum.empty?(finalizations), do: Logger.info("Recognized ife finalizations: #{inspect(finalizations)}")
     {new_state, db_updates} = Core.finalize_in_flight_exits(state, finalizations)
     {:reply, {:ok, db_updates}, new_state}
   end
@@ -290,15 +303,20 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, eth_height_now} = Eth.get_ethereum_height()
     {blknum_now, _} = State.get_status()
 
+    _ = Logger.debug("eth_height_now: #{inspect(eth_height_now)}, blknum_now: #{inspect(blknum_now)}")
     %{request | eth_height_now: eth_height_now, blknum_now: blknum_now}
   end
 
   defp run_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions} = request) do
-    %{request | utxo_exists_result: positions |> Enum.map(&State.utxo_exists?/1)}
+    result = positions |> Enum.map(&State.utxo_exists?/1)
+    _ = Logger.debug("utxos_to_check: #{inspect(positions)}, utxo_exists_result: #{inspect(result)}")
+    %{request | utxo_exists_result: result}
   end
 
   defp run_spend_getting(%ExitProcessor.Request{spends_to_get: positions} = request) do
-    %{request | spent_blknum_result: positions |> Enum.map(&single_spend_getting/1)}
+    result = positions |> Enum.map(&single_spend_getting/1)
+    _ = Logger.debug("spends_to_get: #{inspect(positions)}, spent_blknum_result: #{inspect(result)}")
+    %{request | spent_blknum_result: result}
   end
 
   defp single_spend_getting(position) do
@@ -311,8 +329,11 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   defp run_block_getting(%ExitProcessor.Request{blknums_to_get: blknums} = request) do
+    _ = Logger.debug("blknums_to_get: #{inspect(blknums)}")
     {:ok, hashes} = OMG.DB.block_hashes(blknums)
+    _ = Logger.debug("hashes: #{inspect(hashes)}")
     {:ok, blocks} = OMG.DB.blocks(hashes)
+    _ = Logger.debug("blocks_result: #{inspect(blocks)}")
     %{request | blocks_result: blocks}
   end
 end
