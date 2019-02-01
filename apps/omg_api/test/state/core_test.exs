@@ -515,7 +515,7 @@ defmodule OMG.API.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :state_alice_deposit]
-  test "removed inflight intputs from available utxo", %{alice: alice, state_alice_deposit: state} do
+  test "removed in-flight inputs from available utxo", %{alice: alice, state_alice_deposit: state} do
     # persistence tested in-depth elsewhere
     state =
       state

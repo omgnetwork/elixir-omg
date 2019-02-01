@@ -421,7 +421,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
         expected_input_txs = get_input_txs(initial_blocks, positions)
 
-        inflight_txbytes =
+        in_flight_txbytes =
           inputs
           |> API.TestHelper.create_encoded(@eth, [{bob, 100}])
           |> Encoding.to_hex()
@@ -438,7 +438,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  "input_txs_inclusion_proofs" => <<_proof::bytes-size(proofs_size)>>,
                  # encoded signatures, 130 bytes each
                  "in_flight_tx_sigs" => <<_bytes::bytes-size(sigs_size)>>
-               } = TestHelper.success?("/inflight_exit.get_data", %{"txbytes" => inflight_txbytes})
+               } = TestHelper.success?("/in_flight_exit.get_data", %{"txbytes" => in_flight_txbytes})
 
         {:ok, input_txs} = Encoding.from_hex(input_txs)
 
@@ -475,7 +475,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
     @tag fixtures: [:phoenix_ecto_sandbox, :bob]
     test "behaves well if input is not found", %{bob: bob} do
-      inflight_txbytes =
+      in_flight_txbytes =
         [{3000, 1, 0, bob}]
         |> API.TestHelper.create_encoded(@eth, [{bob, 150}])
         |> Encoding.to_hex()
@@ -483,7 +483,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert %{
                "code" => "in_flight_exit:tx_for_input_not_found",
                "description" => "No transaction that created input."
-             } = TestHelper.no_success?("/inflight_exit.get_data", %{"txbytes" => inflight_txbytes})
+             } = TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => in_flight_txbytes})
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
@@ -497,7 +497,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                    "validator" => ":hex"
                  }
                }
-             } = TestHelper.no_success?("/inflight_exit.get_data", %{"txbytes" => "tx"})
+             } = TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "tx"})
     end
   end
 end

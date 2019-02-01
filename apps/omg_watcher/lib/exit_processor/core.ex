@@ -49,19 +49,19 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         }
 
   @type competitor_data_t :: %{
-          inflight_txbytes: binary(),
-          inflight_input_index: non_neg_integer(),
+          in_flight_txbytes: binary(),
+          in_flight_input_index: non_neg_integer(),
           competing_txbytes: binary(),
           competing_input_index: non_neg_integer(),
           competing_sig: binary(),
-          competing_txid: Utxo.Position.t(),
+          competing_tx_pos: Utxo.Position.t(),
           competing_proof: binary()
         }
 
   @type prove_canonical_data_t :: %{
-          inflight_txbytes: binary(),
-          inflight_txid: Utxo.Position.t(),
-          inflight_proof: binary()
+          in_flight_txbytes: binary(),
+          in_flight_tx_pos: Utxo.Position.t(),
+          in_flight_proof: binary()
         }
 
   defmodule KnownTx do
@@ -295,9 +295,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     updated_ifes =
       challenges
-      |> Enum.reduce(ifes_to_update, fn %{tx_hash: tx_hash, output_index: output_id}, acc ->
+      |> Enum.reduce(ifes_to_update, fn %{tx_hash: tx_hash, output_index: output_index}, acc ->
         with {:ok, {ife, _}} <- Map.fetch(acc, tx_hash),
-             {:ok, updated_ife} <- InFlightExitInfo.challenge_piggyback(ife, output_id) do
+             {:ok, updated_ife} <- InFlightExitInfo.challenge_piggyback(ife, output_index) do
           # mark as updated
           %{acc | tx_hash => {updated_ife, true}}
         else
@@ -337,7 +337,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     updated_ifes =
       finalizations
-      |> Enum.reduce(ifes_to_update, fn %{in_flight_exit_id: id, output_id: output}, acc ->
+      |> Enum.reduce(ifes_to_update, fn %{in_flight_exit_id: id, output_index: output}, acc ->
         with {:ok, {tx_hash, ife, _}} <- Enum.fetch(acc, id),
              {:ok, updated_ife} <- InFlightExitInfo.finalize(ife, output) do
           # update value and flag as updated
@@ -666,21 +666,21 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {:ok, competing_sig} = Tools.find_sig(known_signed_tx, owner)
 
     %{
-      inflight_txbytes: raw_ife_tx |> Transaction.encode(),
-      inflight_input_index: in_flight_input_index,
+      in_flight_txbytes: raw_ife_tx |> Transaction.encode(),
+      in_flight_input_index: in_flight_input_index,
       competing_txbytes: raw_known_tx |> Transaction.encode(),
       competing_input_index: competing_input_index,
       competing_sig: competing_sig,
-      competing_txid: known_tx_utxo_pos || Utxo.position(0, 0, 0),
+      competing_tx_pos: known_tx_utxo_pos || Utxo.position(0, 0, 0),
       competing_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
     }
   end
 
   defp prepare_canonical_response(ife_txbytes, known_tx_utxo_pos, blocks) do
     %{
-      inflight_txbytes: ife_txbytes,
-      inflight_txid: known_tx_utxo_pos,
-      inflight_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
+      in_flight_txbytes: ife_txbytes,
+      in_flight_tx_pos: known_tx_utxo_pos,
+      in_flight_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
     }
   end
 

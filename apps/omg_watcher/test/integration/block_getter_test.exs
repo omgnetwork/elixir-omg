@@ -119,9 +119,9 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
 
     assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth, eth_height: exit_eth_height}]} ==
-             Eth.RootChain.get_exits(0, exit_eth_height)
+             Eth.RootChain.get_standard_exits(0, exit_eth_height)
 
-    # Here we're waiting for childchain and watcher to process the exits
+    # Here we're waiting for child chain and watcher to process the exits
     deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
     Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + deposit_finality_margin + 1 + 1)
 

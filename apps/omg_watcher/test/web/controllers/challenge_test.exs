@@ -46,7 +46,7 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
 
     %{
       "input_index" => _input_index,
-      "output_id" => _output_id,
+      "utxo_pos" => _utxo_pos,
       "sig" => _sig,
       "txbytes" => _txbytes
     } = TestHelper.success?("utxo.get_challenge_data", %{"utxo_pos" => utxo_pos})

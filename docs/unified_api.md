@@ -116,8 +116,8 @@ The watcher first and foremost plays a critical security role in the system. The
   new_deposit
   exit_started
   exit_challenged
-  inflight_exit_started
-  inflight_exit_challenged
+  in_flight_exit_started
+  in_flight_exit_challenged
   exit_success
   piggyback
   invalid_block

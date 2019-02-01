@@ -98,7 +98,7 @@ defmodule OMG.API.Application do
                block_finality_margin: exiters_finality_margin,
                synced_height_update_key: :last_exiter_eth_height,
                service_name: :exiter,
-               get_events_callback: &OMG.Eth.RootChain.get_exits/2,
+               get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
                process_events_callback: &ignore_validities/1
              }
            ]}

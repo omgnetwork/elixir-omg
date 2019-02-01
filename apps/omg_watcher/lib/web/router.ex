@@ -27,9 +27,9 @@ defmodule OMG.Watcher.Web.Router do
     post("/account.get_transactions", Controller.Transaction, :get_transactions)
     post("/account.get_utxos", Controller.Account, :get_utxos)
 
-    post("/inflight_exit.get_data", Controller.InFlightExit, :get_in_flight_exit)
-    post("/inflight_exit.get_competitor", Controller.InFlightExit, :get_competitor)
-    post("/inflight_exit.prove_canonical", Controller.InFlightExit, :prove_canonical)
+    post("/in_flight_exit.get_data", Controller.InFlightExit, :get_in_flight_exit)
+    post("/in_flight_exit.get_competitor", Controller.InFlightExit, :get_competitor)
+    post("/in_flight_exit.prove_canonical", Controller.InFlightExit, :prove_canonical)
 
     post("/transaction.all", Controller.Transaction, :get_transactions)
     post("/transaction.get", Controller.Transaction, :get_transaction)

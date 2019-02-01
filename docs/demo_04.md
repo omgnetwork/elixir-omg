@@ -56,7 +56,7 @@ in_flight_tx_bytes =
 # get in-flight exit data for tx
 
 %{"data" => get_in_flight_exit_response} =
-  ~c(echo '{"txbytes": "#{in_flight_tx_bytes}"}' | http POST localhost:7434/inflight_exit.get_data) |>
+  ~c(echo '{"txbytes": "#{in_flight_tx_bytes}"}' | http POST localhost:7434/in_flight_exit.get_data) |>
   :os.cmd() |>
   Poison.decode!()
 

@@ -119,7 +119,7 @@ Eth.WaitFor.eth_receipt(txhash)
 {:ok, sig} = OMG.RPC.Web.Encoding.from_hex(challenge["sig"])
 {:ok, txhash} =
   OMG.Eth.RootChain.challenge_exit(
-    challenge["output_id"],
+    challenge["utxo_pos"],
     txbytes,
     challenge["input_index"],
     sig,

@@ -101,7 +101,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     ]
   end
 
-  # extracts the mocked responses of the `Eth.RootChain.get_exit` for the exit events
+  # extracts the mocked responses of the `Eth.RootChain.get_standard_exit` for the exit events
   # all exits active (owner non-zero). This is the auxiliary, second argument that's fed into `new_exits`
   deffixture contract_exit_statuses(exit_events) do
     exit_events
@@ -874,12 +874,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok,
               %{
-                inflight_txbytes: ^txbytes,
-                inflight_input_index: 0,
+                in_flight_txbytes: ^txbytes,
+                in_flight_input_index: 0,
                 competing_txbytes: ^other_txbytes,
                 competing_input_index: 1,
                 competing_sig: ^other_signature,
-                competing_txid: Utxo.position(0, 0, 0),
+                competing_tx_pos: Utxo.position(0, 0, 0),
                 competing_proof: ""
               }} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
@@ -912,7 +912,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok,
               %{
-                inflight_txbytes: ^txbytes,
+                in_flight_txbytes: ^txbytes,
                 competing_txbytes: ^other_txbytes,
                 competing_input_index: 0,
                 competing_sig: ^other_signature
@@ -943,12 +943,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok,
               %{
-                inflight_txbytes: ^txbytes,
-                inflight_input_index: 0,
+                in_flight_txbytes: ^txbytes,
+                in_flight_input_index: 0,
                 competing_txbytes: ^other_txbytes,
                 competing_input_index: 1,
                 competing_sig: ^other_signature,
-                competing_txid: Utxo.position(^other_blknum, 0, 0),
+                competing_tx_pos: Utxo.position(^other_blknum, 0, 0),
                 competing_proof: proof_bytes
               }} =
                exit_processor_request
@@ -981,7 +981,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       txbytes = Transaction.encode(tx1)
 
-      check = fn {comp, {competing_input_index, inflight_input_index}} ->
+      check = fn {comp, {competing_input_index, in_flight_input_index}} ->
         # unfortunately, transaction validity requires us to duplicate a signature for every non-zero input
         required_priv_key_list =
           comp
@@ -1003,7 +1003,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
         assert {:ok,
                 %{
-                  inflight_input_index: ^inflight_input_index,
+                  in_flight_input_index: ^in_flight_input_index,
                   competing_input_index: ^competing_input_index
                 }} =
                  exit_processor_request
@@ -1071,18 +1071,18 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       txbytes = Transaction.encode(tx1)
 
-      assert {:ok, %{competing_txid: Utxo.position(2000, 0, 0)}} =
+      assert {:ok, %{competing_tx_pos: Utxo.position(2000, 0, 0)}} =
                exit_processor_request
                |> Core.get_competitor_for_ife(processor, txbytes)
 
-      assert {:ok, %{competing_txid: Utxo.position(2000, 0, 0)}} =
+      assert {:ok, %{competing_tx_pos: Utxo.position(2000, 0, 0)}} =
                exit_processor_request
                |> Map.update!(:blocks_result, &Enum.reverse/1)
                |> struct!()
                |> Core.get_competitor_for_ife(processor, txbytes)
 
       # check also that the rule applies to order of txs within a block
-      assert {:ok, %{competing_txid: Utxo.position(2000, 0, 0)}} =
+      assert {:ok, %{competing_tx_pos: Utxo.position(2000, 0, 0)}} =
                exit_processor_request
                |> Map.put(:blocks_result, [Block.hashed_txs_at([recovered_oldest, recovered_recent], 2000)])
                |> struct!()
@@ -1236,9 +1236,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok,
               %{
-                inflight_txbytes: ^txbytes,
-                inflight_txid: Utxo.position(^other_blknum, 0, 0),
-                inflight_proof: proof_bytes
+                in_flight_txbytes: ^txbytes,
+                in_flight_tx_pos: Utxo.position(^other_blknum, 0, 0),
+                in_flight_proof: proof_bytes
               }} =
                exit_processor_request
                |> Core.prove_canonical_for_ife(txbytes)
