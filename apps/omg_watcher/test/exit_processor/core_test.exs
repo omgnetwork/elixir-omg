@@ -660,7 +660,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
-    test "finds conflict if input is double-spend in inputs of two IFEs",
+    test "detects double-spend of an input",
          %{
            alice: alice,
            processor_filled: state,
@@ -688,11 +688,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
 
       # FIXME: test and implement that we can `inflight_exit.get_input_challenge_data` similar to competitor getting
-    end
-
-    test "detects double-spend of an input",
-         %{} do
-      # this looks like already covered above, no?
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
@@ -738,7 +733,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}] =
                alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
 
-      # FIXME: test and implement that we can `inflight_exit.get_output_challenge_data` similar to competitor getting
+      # test and implement that we can `inflight_exit.get_output_challenge_data` similar to competitor getting
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
@@ -752,7 +747,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       # this time, the piggybacked-output-spending tx is going to be included in a block, which requires more back&forth
       # 1. transaction which is, ife'd, output piggybacked, and included in a block
       txbytes = Transaction.encode(tx)
-      {:ok, recovered} = DevCrypto.sign(tx, [alice.priv]) |> Transaction.Recovered.recover_from()
+      {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
       # 2. transaction which spends that piggybacked output
       comp = Transaction.new([{3000, 0, 0}], [])
@@ -764,12 +759,17 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       tx_blknum = 3000
       comp_blknum = 4000
 
-      exit_processor_request = %ExitProcessor.Request{
-        blknum_now: 5000,
-        eth_height_now: 5,
-        blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)],
-        piggybacked_blocks_result: [Block.hashed_txs_at([comp_recovered], comp_blknum)]
-      }
+      {exit_processor_request, state} =
+        %ExitProcessor.Request{
+          blknum_now: 5000,
+          eth_height_now: 5,
+          blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)],
+          piggybacked_blocks_result: [
+            Block.hashed_txs_at([recovered], tx_blknum),
+            Block.hashed_txs_at([comp_recovered], comp_blknum)
+          ]
+        }
+        |> Core.find_ifes_in_blocks(state)
 
       {:ok, alerts} = Core.invalid_exits(exit_processor_request, state)
 
@@ -782,11 +782,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{
            alice: alice,
            processor_filled: processor,
-           transactions: [tx, tx2 | _],
+           transactions: [tx | _],
            in_flight_exits: [{ife_id, _} | _]
          } do
       # if an output-piggybacking transaction is included in some block, we need to seek blocks that could be spending
-      {:ok, recovered} = DevCrypto.sign(tx, [alice.priv]) |> Transaction.Recovered.recover_from()
+      {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
       {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: ife_id, output_index: 4}])
 
       tx_blknum = 3000
@@ -799,7 +799,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       # for one piggybacked output, we're asking for it's position to check utxo existence
       assert %ExitProcessor.Request{piggybacked_utxos_to_check: [{^tx_blknum, 0, 0}]} =
-               Core.determine_piggybacked_utxo_existence_to_get(exit_processor_request, processor)
+               Core.determine_ife_input_utxos_existence_to_get(exit_processor_request, processor)
 
       # variant: here we check that moving tx to a different index works - here it is at txindex 1!
       {:ok, recovered2} = DevCrypto.sign(tx2, [alice.priv]) |> Transaction.Recovered.recover_from()
@@ -808,24 +808,24 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                exit_processor_request
                |> Map.put(:blocks_result, [Block.hashed_txs_at([recovered2, recovered], tx_blknum)])
                |> struct!()
-               |> Core.determine_piggybacked_utxo_existence_to_get(processor)
+               |> Core.determine_ife_input_utxos_existence_to_get(processor)
 
       # if it turns out to not exists, we're fetching the spending block
       assert %ExitProcessor.Request{piggybacked_spends_to_get: [{^tx_blknum, 0, 0}]} =
                exit_processor_request
                |> struct!(%{piggybacked_utxos_to_check: [{tx_blknum, 0, 0}], piggybacked_utxo_exists_result: [false]})
-               |> Core.determine_piggybacked_spends_to_get(processor)
+               |> Core.determine_ife_spends_to_get(processor)
 
       assert %ExitProcessor.Request{piggybacked_blknums_to_get: [4000]} =
                exit_processor_request
                |> struct!(%{piggybacked_spends_to_get: [{tx_blknum, 0, 0}], piggybacked_spent_blknum_result: [4000]})
-               |> Core.determine_piggybacked_blknums_to_get(processor)
+               |> Core.determine_ife_blocks_to_get(processor)
 
       # more piggybacks => more stuff to get
       {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: ife_id, output_index: 5}])
 
       assert %ExitProcessor.Request{piggybacked_utxos_to_check: [{^tx_blknum, 0, 0}, {^tx_blknum, 0, 1}]} =
-               Core.determine_piggybacked_utxo_existence_to_get(exit_processor_request, processor)
+               Core.determine_ife_input_utxos_existence_to_get(exit_processor_request, processor)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]

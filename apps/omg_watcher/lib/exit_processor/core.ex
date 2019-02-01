@@ -359,6 +359,22 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {%{state | in_flight_exits: Map.merge(ifes, updated_ifes)}, db_updates}
   end
 
+  @spec determine_ife_input_utxos_existence_to_get(ExitProcessor.Request.t(), t()) :: ExitProcessor.Request.t()
+  def determine_ife_input_utxos_existence_to_get(
+        %ExitProcessor.Request{blknum_now: blknum_now} = request,
+        %__MODULE__{in_flight_exits: ifes}
+      )
+      when is_integer(blknum_now) do
+    pbs =
+      ifes
+      |> Map.values()
+      |> Enum.filter(&(InFlightExitInfo.piggybacked_outputs(&1) != []))
+      |> Enum.map(&Transaction.get_inputs(&1.tx.raw_tx))
+      |> List.flatten()
+
+    %{request | piggybacked_utxos_to_check: pbs}
+  end
+
   @doc """
   All the active exits, in-flight exits, exiting output piggybacks etc., based on the current tracked state
   """
@@ -377,11 +393,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.filter(fn {_key, %ExitInfo{is_active: is_active}} -> is_active end)
       |> Enum.map(fn {utxo_pos, _value} -> utxo_pos end)
 
-    ife_pos =
+    ife_inputs_pos =
       ifes
       |> Enum.flat_map(fn {_, ife} -> InFlightExitInfo.get_exiting_utxo_positions(ife) end)
 
-    (ife_pos ++ standard_exits_pos)
+    ife_outputs_pos =
+      ifes
+      |> Enum.flat_map(fn {_, ife} -> InFlightExitInfo.get_piggybacked_outputs_positions(ife) end)
+
+    (ife_outputs_pos ++ ife_inputs_pos ++ standard_exits_pos)
     |> Enum.filter(&Utxo.Position.non_zero?/1)
     |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
     |> Enum.uniq()
@@ -416,6 +436,27 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     %{request | spends_to_get: spends_to_get}
   end
 
+  @spec determine_ife_spends_to_get(ExitProcessor.Request.t(), __MODULE__.t()) :: ExitProcessor.Request.t()
+  def determine_ife_spends_to_get(
+        %ExitProcessor.Request{
+          piggybacked_utxos_to_check: utxos_to_check,
+          piggybacked_utxo_exists_result: utxo_exists_result
+        } = request,
+        %__MODULE__{in_flight_exits: ifes}
+      ) do
+    utxo_exists? = Enum.zip(utxos_to_check, utxo_exists_result) |> Map.new()
+
+    spends_to_get =
+      ifes
+      |> Map.values()
+      |> Enum.filter(& &1.is_active)
+      |> Enum.flat_map(fn %{tx: %Transaction.Signed{raw_tx: tx}} -> Transaction.get_inputs(tx) end)
+      |> only_utxos_checked_and_missing(utxo_exists?)
+      |> Enum.uniq()
+
+    %{request | piggybacked_spends_to_get: spends_to_get}
+  end
+
   @doc """
   Figures out which block numbers to ask from the database, based on the blknums where relevant UTXOs were spent and
   (in the future) some additional insights from the state of ExitProcessor (eg. only get the oldest block per ife)
@@ -432,8 +473,16 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           spent_blknum_result: spent_blknum_result
         } = request
       ) do
-    # TODO: consider Enum.uniq here
-    %{request | blknums_to_get: spent_blknum_result}
+    %{request | blknums_to_get: :lists.usort(spent_blknum_result)}
+  end
+
+  @spec determine_ife_blocks_to_get(ExitProcessor.Request.t()) :: ExitProcessor.Request.t()
+  def determine_ife_blocks_to_get(
+        %ExitProcessor.Request{
+          piggybacked_spent_blknum_result: spent_blknum_result
+        } = request
+      ) do
+    %{request | piggybacked_blknums_to_get: :lists.usort(spent_blknum_result)}
   end
 
   @doc """
@@ -522,10 +571,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @spec get_invalid_piggybacks(ExitProcessor.Request.t(), __MODULE__.t()) :: [{binary, [0..3], [0..3]}]
   def get_invalid_piggybacks(
-        %ExitProcessor.Request{blocks_result: blocks} = rq,
+        %ExitProcessor.Request{blocks_result: blocks, piggybacked_blocks_result: piggybacked_blocks},
         %__MODULE__{in_flight_exits: ifes} = state
       ) do
-    known_txs = get_known_txs(blocks) ++ get_known_txs(state)
+    known_txs = get_known_txs(Enum.uniq(piggybacked_blocks ++ blocks)) ++ get_known_txs(state)
 
     # getting invalid piggybacks on inputs
     bad_piggybacks_on_inputs =
@@ -546,7 +595,43 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       end)
       |> Enum.filter(fn {_, on_inputs, on_outputs} -> on_inputs ++ on_outputs != [] end)
 
-    bad_piggybacks_on_outputs = []
+    # To find bad piggybacks on outputs of IFE, we need to find spends on those outputs.
+    # To do that, we first need to find IFE inclusion position.
+    # If IFE was included, the value of :tx_included_at
+    # Next, check its spends, which are already included into request.block_results
+    piggybacked_utxo_pos_list =
+      ifes
+      |> Map.values()
+      |> Enum.map(fn ife ->
+        pbs =
+          ife
+          |> InFlightExitInfo.get_piggybacked_outputs_positions()
+          |> Enum.map(&Utxo.Position.to_input/1)
+
+        {ife, pbs}
+      end)
+
+    intersect_with_inputs = fn {_ife, piggybacks} ->
+      piggybacks
+      |> Enum.map(fn pb ->
+        txs = Enum.filter(known_txs, &(pb in &1.signed_tx.raw_tx.inputs))
+        {pb, txs}
+      end)
+    end
+
+    bad_piggybacks_on_outputs =
+      piggybacked_utxo_pos_list
+      |> Enum.map(fn {ife, _} = ifep ->
+        bad_pbs_with_spenders =
+          ifep
+          |> intersect_with_inputs.()
+          |> Enum.filter(fn {_, spenders} -> spenders != [] end)
+
+        {outputs, _} = Enum.unzip(bad_pbs_with_spenders)
+        {Transaction.encode(ife.tx.raw_tx), [], Enum.map(outputs, & &1.oindex)}
+      end)
+      |> List.flatten()
+      |> Enum.filter(fn {_, _, outputs} -> outputs != [] end)
 
     bad_piggybacks_on_inputs ++ bad_piggybacks_on_outputs
   end
@@ -648,6 +733,45 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       piggybacked_inputs: InFlightExitInfo.piggybacked_inputs(ife_info),
       piggybacked_outputs: InFlightExitInfo.piggybacked_outputs(ife_info)
     }
+  end
+
+  @doc """
+  If IFE's spend is in blocks, find its txpos and update the IFE.
+  """
+  def find_ifes_in_blocks(
+        %ExitProcessor.Request{piggybacked_blocks_result: blocks} = request,
+        %__MODULE__{in_flight_exits: ifes} = state
+      ) do
+    updated_ifes =
+      ifes
+      |> Enum.filter(fn {_, ife} -> ife.tx_included_at == nil end)
+      |> Enum.map(fn {hash, ife} -> {hash, ife, find_ife_in_blocks(ife, blocks)} end)
+      |> Enum.map(fn {hash, ife, position} -> {hash, %InFlightExitInfo{ife | tx_included_at: position}} end)
+      |> Map.new()
+
+    state = %{state | in_flight_exits: Map.merge(ifes, updated_ifes)}
+    {request, state}
+  end
+
+  defp find_ife_in_blocks(ife, blocks) do
+    txbody = Transaction.Signed.encode(ife.tx)
+
+    search_in_block = fn block, _ ->
+      case find_tx_in_block(txbody, block) do
+        nil ->
+          {:cont, nil}
+
+        txindex ->
+          {:halt, Utxo.position(block.number, txindex, 0)}
+      end
+    end
+
+    Enum.reduce_while(blocks, nil, search_in_block)
+  end
+
+  defp find_tx_in_block(txbody, block) do
+    block.transactions
+    |> Enum.find_index(fn tx -> txbody == tx end)
   end
 
   @doc """
@@ -806,8 +930,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     # the default value below is true, so that the assumption is that utxo not checked is **present**
     # TODO: rather inefficient, but no as inefficient as the nested `filter` calls in searching for competitors
     #       consider optimizing using `MapSet`
+
     utxo_positions
-    |> Enum.filter(fn pos -> !Map.get(utxo_exists?, pos, true) end)
+    |> Enum.filter(fn utxo_pos ->
+      !Map.get(utxo_exists?, utxo_pos, true)
+    end)
   end
 
   defp is_among_known_txs?(raw_tx, known_txs) do
