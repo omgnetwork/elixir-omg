@@ -241,12 +241,12 @@ response:
         "competing_txbytes": "F317010180808080940000...",
         "competing_input_index": 1,
         "competing_sig": "9A23010180808080940000...",
-        "competing_tx_pos": 2600003920012,
+        "competing_tx_pos": 26000003920000,
         "competing_proof": "004C010180808080940000..."
     }
 }
 ```
-Note that if the competing transaction has _not_ been included in a block then its inclusion proof and txid will not be available. In this case, you should pass "" and 0 to `RootChain.challengeInFlightExitNotCanonical()`
+Note that if the competing transaction has _not_ been included in a block then its inclusion proof and tx position will not be available. In this case, you should pass "" and 0 to `RootChain.challengeInFlightExitNotCanonical()`
 
 #### 2. Challenge the IFE with an included competitor
 ```
@@ -293,7 +293,7 @@ response:
     "success": true,
     "data": {
         "in_flight_txbytes": "F847010180808080940000...",
-        "in_flight_txid": 2600003920012,
+        "in_flight_tx_pos": 26000003920000,
         "in_flight_proof": "004C010180808080940000..."
     }
 }
@@ -303,7 +303,7 @@ response:
 ```
 RootChain.challengeInFlightExitNotCanonical(
     in_flight_txbytes, 
-    in_flight_txid,
+    in_flight_tx_pos,
     in_flight_proof, 
 )
 ```
