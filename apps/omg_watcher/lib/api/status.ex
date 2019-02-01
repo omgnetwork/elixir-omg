@@ -45,16 +45,15 @@ defmodule OMG.Watcher.API.Status do
 
       {_, events_processor} = ExitProcessor.check_validity()
       {_, events_block_getter} = BlockGetter.get_events()
-      # TODO: craft the proper response of this in `ExitProcessor`(or adjust here) to work
-      # {:ok, ifes} = ExitProcessor.get_in_flight_exits()
+      {:ok, inflight_exits} = ExitProcessor.get_in_flight_exits()
 
       status = %{
         last_validated_child_block_number: state_current_block - child_block_interval,
         last_mined_child_block_number: last_mined_child_block_number,
         last_mined_child_block_timestamp: last_mined_child_block_timestamp,
         eth_syncing: Eth.Geth.syncing?(),
-        byzantine_events: events_processor ++ events_block_getter
-        # inflight_exits: ifes
+        byzantine_events: events_processor ++ events_block_getter,
+        inflight_exits: inflight_exits
       }
 
       {:ok, status}

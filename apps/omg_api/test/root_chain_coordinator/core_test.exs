@@ -17,6 +17,8 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
 
   alias OMG.API.RootChainCoordinator.Core
 
+  import ExUnit.CaptureLog
+
   deffixture initial_state() do
     Core.init(
       %{
@@ -107,5 +109,17 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
     assert {:ok, state} = Core.update_root_chain_height(state, 14)
     assert %{sync_height: 11} = Core.get_synced_info(state, depositor_pid)
     assert %{sync_height: 14} = Core.get_synced_info(state, exiter_pid)
+  end
+
+  test "invalid synced height update, gives richer error information" do
+    state = Core.init(%{:service => %{sync_mode: :sync_with_coordinator}}, 0)
+    service_pid = :c.pid(0, 1, 0)
+
+    logs =
+      capture_log(fn ->
+        assert_raise MatchError, fn -> Core.check_in(state, service_pid, 10, :service) end
+      end)
+
+    assert logs =~ "root_chain_height: 0" and logs =~ "service_reported_sync_height: 10" and logs =~ "service"
   end
 end

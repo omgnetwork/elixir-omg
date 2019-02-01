@@ -88,7 +88,7 @@ defmodule OMG.DB.LevelDBCore do
     do: Stream.filter(keys_stream, fn {key, _} -> String.starts_with?(key, prefix) end)
 
   def key(:block, %{hash: hash} = _block), do: key(:block, hash)
-  def key(:block, hash), do: @keys_prefixes.block <> hash
+  def key(:block, hash) when is_binary(hash), do: @keys_prefixes.block <> hash
   def key(:utxo, {position, _utxo}), do: key(:utxo, position)
   def key(:spend, {position, _blknum}), do: key(:spend, position)
   def key(:exit_info, {position, _exit_info}), do: key(:exit_info, position)

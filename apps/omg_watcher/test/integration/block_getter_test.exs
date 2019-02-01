@@ -26,9 +26,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use Plug.Test
   use Phoenix.ChannelTest
 
-  alias OMG.{API, Eth, RPC.Web.Encoding, Watcher}
+  alias OMG.{API, Eth, RPC.Client, RPC.Web.Encoding, Watcher}
   alias API.{Crypto, Utxo}
-  alias RPC.Client
   alias Watcher.Integration.TestHelper, as: IntegrationTest
   alias Watcher.{Event, TestHelper, Web.Channel, Web.Serializer.Response}
 

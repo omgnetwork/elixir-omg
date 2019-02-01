@@ -40,8 +40,8 @@ defmodule OMG.API.State.Transaction.Signed do
   end
 
   def decode(signed_tx_bytes) do
-    with {:ok, tx} <- try_exrlp_decode(signed_tx_bytes),
-         do: reconstruct_tx(tx, signed_tx_bytes)
+    with {:ok, raw_tx_rlp_decoded_chunks} <- try_exrlp_decode(signed_tx_bytes),
+         do: reconstruct(raw_tx_rlp_decoded_chunks, signed_tx_bytes)
   end
 
   defp try_exrlp_decode(signed_tx_bytes) do
@@ -50,9 +50,9 @@ defmodule OMG.API.State.Transaction.Signed do
     _ -> {:error, :malformed_transaction_rlp}
   end
 
-  defp reconstruct_tx([sigs | raw_tx_rlp], signed_tx_bytes) do
+  defp reconstruct([sigs | raw_tx_rlp_decoded_chunks], signed_tx_bytes) do
     with true <- Enum.all?(sigs, &signature_length?/1),
-         {:ok, raw_tx} <- Transaction.from_rlp(raw_tx_rlp) do
+         {:ok, raw_tx} <- Transaction.reconstruct(raw_tx_rlp_decoded_chunks) do
       {:ok,
        %__MODULE__{
          raw_tx: raw_tx,
@@ -65,7 +65,7 @@ defmodule OMG.API.State.Transaction.Signed do
     end
   end
 
-  defp reconstruct_tx(_, _), do: {:error, :malformed_transaction}
+  defp reconstruct(_, _), do: {:error, :malformed_transaction}
 
   defp signature_length?(sig) when byte_size(sig) == @signature_length, do: true
   defp signature_length?(_sig), do: false

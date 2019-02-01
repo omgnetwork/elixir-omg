@@ -33,6 +33,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   @eth Crypto.zero_address()
 
   @moduletag :integration
+  # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
+  @moduletag timeout: 120_000
 
   @tag fixtures: [:watcher_sandbox, :alice, :child_chain, :alice_deposits]
   test "in-flight exit data returned by watcher http API produces a valid in-flight exit",
@@ -175,18 +177,12 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
              "byzantine_events" => [
                %{"event" => "non_canonical_ife"},
                %{"event" => "non_canonical_ife"},
-               %{
-                 "event" => "piggyback_available",
-                 "details" => %{"available_inputs" => inputs_list, "available_outputs" => outputs_list}
-               }
+               %{"event" => "piggyback_available"}
              ]
            } = TestHelper.success?("/status.get")
 
-    # Check if IFE is recognized as IFE by watcher.
-    # TODO: uncomment test after `"inflight_exits"` field is delivered
-    # assert %{
-    #          "inflight_exits" => [%{"txbytes" => ^raw_tx2_bytes}]
-    #        } = TestHelper.success?("/status.get")
+    # Check if IFE is recognized as IFE by watcher (kept separate from the above for readability)
+    assert %{"inflight_exits" => [%{}, %{}]} = TestHelper.success?("/status.get")
 
     ###
     # PIGGYBACK GAME
