@@ -15,10 +15,8 @@
 defmodule OMG.Watcher.Web.Serializer.ResponseTest do
   use ExUnit.Case, async: true
 
-  alias OMG.RPC.Web
-  alias OMG.Watcher.DB
-  alias OMG.Watcher.TestHelper
-  alias OMG.Watcher.Web.Serializer.Response
+  alias OMG.RPC.Web.Encoding
+  alias OMG.Watcher.{DB, TestHelper, Web.Serializer.Response}
 
   @cleaned_tx %{
     blknum: nil,
@@ -81,9 +79,9 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
     encoded_map = expected_map |> Response.sanitize()
     decoded_map = TestHelper.decode16(encoded_map, ["key_2"])
 
-    assert decoded_map["key_1"] == expected_map["key_1"] |> Web.Encoding.to_hex()
+    assert decoded_map["key_1"] == expected_map["key_1"] |> Encoding.to_hex()
     assert decoded_map["key_2"] == expected_map["key_2"]
-    assert decoded_map["key_3"] == expected_map["key_3"] |> Web.Encoding.to_hex()
+    assert decoded_map["key_3"] == expected_map["key_3"] |> Encoding.to_hex()
   end
 
   test "decode16: called with empty map returns empty map" do

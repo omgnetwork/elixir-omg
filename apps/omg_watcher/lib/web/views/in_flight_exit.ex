@@ -20,22 +20,22 @@ defmodule OMG.Watcher.Web.View.InFlightExit do
   use OMG.Watcher.Web, :view
 
   alias OMG.API.Utxo
-  alias OMG.RPC
+  alias OMG.RPC.Web.Response
 
   def render("in_flight_exit.json", %{response: in_flight_exit}) do
     in_flight_exit
-    |> RPC.Web.Response.serialize()
+    |> Response.serialize()
   end
 
   def render("competitor.json", %{response: competitor}) do
     competitor
     |> Map.update!(:competing_txid, &Utxo.Position.encode/1)
-    |> RPC.Web.Response.serialize()
+    |> Response.serialize()
   end
 
   def render("prove_canonical.json", %{response: prove_canonical}) do
     prove_canonical
     |> Map.update!(:inflight_txid, &Utxo.Position.encode/1)
-    |> RPC.Web.Response.serialize()
+    |> Response.serialize()
   end
 end

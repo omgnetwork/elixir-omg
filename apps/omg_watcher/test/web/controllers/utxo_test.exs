@@ -21,14 +21,14 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   alias OMG.API.Crypto
   alias OMG.API.TestHelper
   alias OMG.API.Utxo
-  alias OMG.RPC.Web
+  alias OMG.RPC.Web.Encoding
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
 
   require Utxo
 
   @eth Crypto.zero_address()
-  @eth_hex Crypto.zero_address() |> Web.Encoding.to_hex()
+  @eth_hex Crypto.zero_address() |> Encoding.to_hex()
 
   @tag fixtures: [:initial_blocks, :carol]
   test "no utxos are returned for non-existing addresses", %{carol: carol} do
@@ -37,7 +37,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
 
   @tag fixtures: [:initial_blocks, :alice]
   test "utxo from initial blocks are available", %{alice: alice} do
-    alice_enc = alice.addr |> Web.Encoding.to_hex()
+    alice_enc = alice.addr |> Encoding.to_hex()
 
     assert [
              %{
@@ -101,7 +101,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
 
   @tag fixtures: [:initial_blocks, :bob]
   test "unspent deposits are a part of utxo set", %{bob: bob} do
-    bob_enc = bob.addr |> Web.Encoding.to_hex()
+    bob_enc = bob.addr |> Encoding.to_hex()
     deposited_utxo = bob.addr |> TestHelper.get_utxos() |> Enum.find(&(&1["blknum"] < 1000))
 
     assert %{
@@ -149,7 +149,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
     # bob has spent his deposit
     assert [] == utxos |> Enum.filter(&(&1["blknum"] < 1000))
 
-    carol_enc = carol.addr |> Web.Encoding.to_hex()
+    carol_enc = carol.addr |> Encoding.to_hex()
 
     # carol has new utxo from above tx
     assert [

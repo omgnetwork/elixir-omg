@@ -26,7 +26,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use Plug.Test
   use Phoenix.ChannelTest
 
-  alias OMG.{API, Eth, RPC, Watcher}
+  alias OMG.{API, Eth, RPC.Web.Encoding, Watcher}
   alias API.{Crypto, Utxo}
   alias RPC.Client
   alias Watcher.Integration.TestHelper, as: IntegrationTest
@@ -51,7 +51,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   } do
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
-    token_addr = token |> RPC.Web.Encoding.to_hex()
+    token_addr = token |> Encoding.to_hex()
 
     # utxo from deposit should be available
     assert [%{"blknum" => ^deposit_blknum}, %{"blknum" => ^token_deposit_blknum, "currency" => ^token_addr}] =

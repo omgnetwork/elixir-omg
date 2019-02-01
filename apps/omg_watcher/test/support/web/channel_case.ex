@@ -37,7 +37,7 @@ defmodule OMG.Watcher.Web.ChannelCase do
       use Phoenix.ChannelTest
 
       # The default endpoint for testing
-      @endpoint Watcher.Web.Endpoint
+      @endpoint OMG.Watcher.Web.Endpoint
     end
   end
 

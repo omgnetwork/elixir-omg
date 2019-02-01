@@ -25,6 +25,7 @@ defmodule OMG.Watcher.Fixtures do
 
   alias Ecto.Adapters.SQL
   alias OMG.Watcher
+  alias OMG.Watcher.DB
   alias Watcher.TestHelper
 
   @eth OMG.API.Crypto.zero_address()
@@ -127,8 +128,8 @@ defmodule OMG.Watcher.Fixtures do
 
   deffixture watcher_sandbox(watcher) do
     :ok = watcher
-    :ok = SQL.Sandbox.checkout(Watcher.DB.Repo, ownership_timeout: 90_000)
-    SQL.Sandbox.mode(Watcher.DB.Repo, {:shared, self()})
+    :ok = SQL.Sandbox.checkout(DB.Repo, ownership_timeout: 90_000)
+    SQL.Sandbox.mode(DB.Repo, {:shared, self()})
   end
 
   @doc "run only database in sandbox and endpoint to make request"
@@ -136,14 +137,14 @@ defmodule OMG.Watcher.Fixtures do
     {:ok, pid} =
       Supervisor.start_link(
         [
-          %{id: Watcher.DB.Repo, start: {Watcher.DB.Repo, :start_link, []}, type: :supervisor},
+          %{id: DB.Repo, start: {DB.Repo, :start_link, []}, type: :supervisor},
           %{id: Watcher.Web.Endpoint, start: {Watcher.Web.Endpoint, :start_link, []}, type: :supervisor}
         ],
         strategy: :one_for_one,
         name: Watcher.Supervisor
       )
 
-    :ok = SQL.Sandbox.checkout(Watcher.DB.Repo)
+    :ok = SQL.Sandbox.checkout(DB.Repo)
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
       TestHelper.wait_for_process(pid)
@@ -177,7 +178,7 @@ defmodule OMG.Watcher.Fixtures do
     :ok = phoenix_ecto_sandbox
 
     # Initial data depending tests can reuse
-    Watcher.DB.EthEvent.insert_deposits([
+    DB.EthEvent.insert_deposits([
       %{owner: alice.addr, currency: @eth, amount: 333, blknum: 1},
       %{owner: bob.addr, currency: @eth, amount: 100, blknum: 2}
     ])
@@ -222,7 +223,7 @@ defmodule OMG.Watcher.Fixtures do
 
   defp prepare_one_block({blknum, recovered_txs}) do
     {:ok, _} =
-      Watcher.DB.Transaction.update_with(%{
+      DB.Transaction.update_with(%{
         transactions: recovered_txs,
         blknum: blknum,
         blkhash: "##{blknum}",
