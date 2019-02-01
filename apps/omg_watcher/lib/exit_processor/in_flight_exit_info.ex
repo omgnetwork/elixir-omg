@@ -33,9 +33,12 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   @output_offset 4
 
+  @max_number_of_inputs Enum.count(@inputs_index_range)
+
   defstruct [
     :tx,
     :tx_pos,
+    :tx_included_at,
     :timestamp,
     :contract_id,
     :oldest_competitor,
@@ -57,7 +60,10 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @type t :: %__MODULE__{
           tx: Transaction.Signed.t(),
           # use utxo_position really, for convenience and tooling, even if oindex is always zero here
+          # this piece of data reflects the state of the contract
           tx_pos: Utxo.Position.t() | nil,
+          # this piece of data is a result of call to database
+          tx_included_at: Utxo.Position.t() | nil,
           timestamp: non_neg_integer(),
           contract_id: ife_contract_id(),
           oldest_competitor: Utxo.Position.t() | nil,
@@ -200,7 +206,18 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     Transaction.get_inputs(tx)
   end
 
-  def is_piggybacked?(%__MODULE__{exit_map: map}, index) do
+  @spec get_piggybacked_outputs_positions(t()) :: [Utxo.Position.t()]
+  def get_piggybacked_outputs_positions(%__MODULE__{tx_included_at: nil}), do: []
+
+  def get_piggybacked_outputs_positions(%__MODULE__{tx_included_at: txpos, exit_map: exit_map}) do
+    {_, blknum, txindex, _} = txpos
+
+    @outputs_index_range
+    |> Enum.filter(&exit_map[&1].is_piggybacked)
+    |> Enum.map(&Utxo.position(blknum, txindex, &1 - @max_number_of_inputs))
+  end
+
+  def is_piggybacked?(%__MODULE__{exit_map: map}, index) when is_integer(index) do
     with {:ok, exit} <- Map.fetch(map, index) do
       Map.get(exit, :is_piggybacked)
     else
@@ -233,13 +250,15 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def is_canonical?(%__MODULE__{is_canonical: value}), do: value
 
+  def input_to_output_piggyback_index(%{oindex: oindex}), do: oindex + @max_number_of_inputs
+
   @spec get_input_index(__MODULE__.t(), Utxo.Position.t()) :: non_neg_integer() | nil
   def get_input_index(%__MODULE__{tx: %Transaction.Signed{raw_tx: tx}}, utxopos) do
     {_, input_index} =
       tx
       |> Transaction.get_inputs()
       |> Enum.with_index()
-      |> Enum.find(fn {pos, index} -> pos == utxopos end)
+      |> Enum.find(fn {pos, _index} -> pos == utxopos end)
 
     input_index
   end

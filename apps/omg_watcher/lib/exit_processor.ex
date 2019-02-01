@@ -245,9 +245,25 @@ defmodule OMG.Watcher.ExitProcessor do
   """
   def handle_call(:check_validity, _from, state) do
     # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
-    {chain_status, events} =
+    {request, state} =
       %ExitProcessor.Request{}
       |> run_status_gets()
+      # To find if IFE was included, see first if its inputs were spent.
+      |> Core.determine_ife_input_utxos_existence_to_get(state)
+      |> run_ife_input_utxo_existance()
+      # Next, check by what transactions they were spent.
+      |> Core.determine_ife_spends_to_get(state)
+      |> run_ife_spend_getting()
+      # Find tx bodies.
+      |> Core.determine_ife_blocks_to_get()
+      |> run_ife_block_getting()
+      # Compare found txes with ife.tx.
+      # If equal, persist information about position.
+      |> Core.find_ifes_in_blocks(state)
+
+    {chain_status, events} =
+      request
+      # main loop
       |> Core.determine_utxo_existence_to_get(state)
       |> run_utxo_exists()
       |> Core.determine_spends_to_get(state)
@@ -312,10 +328,18 @@ defmodule OMG.Watcher.ExitProcessor do
     %{request | utxo_exists_result: result}
   end
 
+  defp run_ife_input_utxo_existance(%ExitProcessor.Request{piggybacked_utxos_to_check: positions} = request) do
+    %{request | piggybacked_utxo_exists_result: positions |> Enum.map(&State.utxo_exists?/1)}
+  end
+
   defp run_spend_getting(%ExitProcessor.Request{spends_to_get: positions} = request) do
     result = positions |> Enum.map(&single_spend_getting/1)
     _ = Logger.debug("spends_to_get: #{inspect(positions)}, spent_blknum_result: #{inspect(result)}")
     %{request | spent_blknum_result: result}
+  end
+
+  defp run_ife_spend_getting(%ExitProcessor.Request{piggybacked_spends_to_get: positions} = request) do
+    %{request | piggybacked_spent_blknum_result: positions |> Enum.map(&single_spend_getting/1)}
   end
 
   defp single_spend_getting(position) do
@@ -334,5 +358,11 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, blocks} = OMG.DB.blocks(hashes)
     _ = Logger.debug("blocks_result: #{inspect(blocks)}")
     %{request | blocks_result: blocks}
+  end
+
+  defp run_ife_block_getting(%ExitProcessor.Request{piggybacked_blknums_to_get: blknums} = request) do
+    {:ok, hashes} = OMG.DB.block_hashes(blknums)
+    {:ok, blocks} = OMG.DB.blocks(hashes)
+    %{request | piggybacked_blocks_result: blocks}
   end
 end

@@ -26,7 +26,6 @@ defmodule OMG.Watcher.ExitProcessor.Request do
   """
 
   alias OMG.API.Block
-  alias OMG.API.Crypto
   alias OMG.API.Utxo
 
   defstruct [
