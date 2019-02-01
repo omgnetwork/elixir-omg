@@ -312,9 +312,9 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
-  Returns exits from a range of blocks. Collects exits from Ethereum logs.
+  Returns standard exits from a range of blocks. Collects exits from Ethereum logs.
   """
-  def get_exits(block_from, block_to, contract \\ nil) do
+  def get_standard_exits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "ExitStarted(address,uint256,uint256,address)"
 

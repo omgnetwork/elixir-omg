@@ -106,7 +106,7 @@ defmodule OMG.Watcher.Application do
                block_finality_margin: exit_finality_margin,
                synced_height_update_key: :last_exit_processor_eth_height,
                service_name: :exit_processor,
-               get_events_callback: &OMG.Eth.RootChain.get_exits/2,
+               get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
                process_events_callback: &OMG.Watcher.ExitProcessor.new_exits/1
              }
            ]}
