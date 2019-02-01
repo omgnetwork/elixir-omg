@@ -25,8 +25,8 @@ defmodule OMG.Umbrella.MixProject do
 
   defp deps do
     [
-      {:dialyxir, "~> 0.5", only: [:prod], runtime: false},
-      {:credo, "~> 0.10.0", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0.0-rc.4", only: [:prod], runtime: false},
+      {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.10.3", only: [:test], runtime: false},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
       {

@@ -173,11 +173,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @spec apply_block(t(), pos_integer()) :: {t(), non_neg_integer(), list()}
   def apply_block(%__MODULE__{eth_height_done_by_blknum: eth_height_done_by_blknum} = state, applied_block_number) do
     _ =
-      Logger.debug(fn ->
+      Logger.debug(
         "Applied block #{inspect(applied_block_number)}, blknums that finalize eth_heights: #{
           inspect(state.eth_height_done_by_blknum)
         }"
-      end)
+      )
 
     case Map.pop(eth_height_done_by_blknum, applied_block_number) do
       # not present - this applied child block doesn't wrap up any eth height
@@ -357,9 +357,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   defp log_downloading_blocks(_next_child, []), do: :ok
 
   defp log_downloading_blocks(next_child, blocks_numbers) do
-    Logger.info(fn ->
-      "Child chain seen at block \##{inspect(next_child)}. Downloading blocks #{inspect(blocks_numbers)}"
-    end)
+    Logger.info("Child chain seen at block \##{inspect(next_child)}. Downloading blocks #{inspect(blocks_numbers)}")
   end
 
   @doc """
@@ -519,7 +517,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
     _ =
       Logger.info(fn ->
         short_hash = returned_hash |> Base.encode16() |> Binary.drop(-48)
-
         "Validating block \##{inspect(requested_number)} #{short_hash}... with #{inspect(length(transactions))} txs"
       end)
 
@@ -552,11 +549,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   def validate_download_response({:error, _} = error, requested_hash, requested_number, _block_timestamp, time) do
     _ =
-      Logger.info(fn ->
+      Logger.info(
         "Detected potential block withholding  #{inspect(error)}, hash: #{inspect(requested_hash |> Base.encode16())}, number: #{
           inspect(requested_number)
         }"
-      end)
+      )
 
     {:ok, %PotentialWithholdingReport{blknum: requested_number, hash: requested_hash, time: time}}
   end
@@ -642,11 +639,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
       nil ->
         _ =
-          Logger.warn(fn ->
+          Logger.warn(
             "#{inspect(child_top_block_number)} not found in recent submissions #{
               inspect(submissions, limit: :infinity)
             }"
-          end)
+          )
 
         synced_height
     end

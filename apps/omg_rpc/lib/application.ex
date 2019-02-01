@@ -23,7 +23,7 @@ defmodule OMG.RPC.Application do
   def start(_type, _args) do
     DeferredConfig.populate(:omg_rpc)
 
-    _ = Logger.info(fn -> "Started application OMG.RPC.Application" end)
+    _ = Logger.info("Started application OMG.RPC.Application")
 
     opts = [strategy: :one_for_one, name: OMG.RPC.Supervisor]
 

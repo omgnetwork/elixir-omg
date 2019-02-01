@@ -1,5 +1,12 @@
-# This file contains the configuration for Credo
+# This file contains the configuration for Credo and you are probably reading
+# this after creating it with `mix credo.gen.config`.
+#
+# If you find anything wrong or unclear in this file, please report an
+# issue on GitHub: https://github.com/rrrene/credo/issues
+#
 %{
+  #
+  # You can have as many configs as you like in the `configs:` field.
   configs: [
     %{
       #
@@ -14,8 +21,8 @@
         # You can give explicit globs or simply directories.
         # In the latter case `**/*.{ex,exs}` will be used.
         #
-        included: ["lib/", "src/", "web/", "apps/", "config/", "mix.exs"],
-        excluded: [~r"/_build/", ~r"/deps/"]
+        included: ["lib/", "src/", "test/", "web/", "apps/", "config/", "mix.exs"],
+        excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/"]
       },
       #
       # If you create your own checks, you must specify the source files for
@@ -43,99 +50,101 @@
       checks: [
         # custom checks
         {Credo.Check.Custom.LicenseHeader},
+        #
+        ## Consistency Checks
+        #
+        {Credo.Check.Consistency.ExceptionNames, []},
+        {Credo.Check.Consistency.LineEndings, []},
+        {Credo.Check.Consistency.ParameterPatternMatching, []},
+        {Credo.Check.Consistency.SpaceAroundOperators, []},
+        {Credo.Check.Consistency.SpaceInParentheses, []},
+        {Credo.Check.Consistency.TabsOrSpaces, []},
 
-        # credo checks
-        {Credo.Check.Consistency.ExceptionNames},
-        {Credo.Check.Consistency.LineEndings},
-        {Credo.Check.Consistency.ParameterPatternMatching},
-        {Credo.Check.Consistency.SpaceAroundOperators},
-        {Credo.Check.Consistency.SpaceInParentheses},
-        {Credo.Check.Consistency.TabsOrSpaces},
-
+        #
+        ## Design Checks
+        #
         # You can customize the priority of any check
         # Priority values are: `low, normal, high, higher`
         #
-        # NOTE: PD: turning off, use aliases only when necessary
-        {Credo.Check.Design.AliasUsage, false},
-
-        # For some checks, you can also set other parameters
-        #
-        # If you don't want the `setup` and `test` macro calls in ExUnit tests
-        # or the `schema` macro in Ecto schemas to trigger DuplicatedCode, just
-        # set the `excluded_macros` parameter to `[:schema, :setup, :test]`.
-        #
-        {Credo.Check.Design.DuplicatedCode, excluded_macros: []},
-
+        {Credo.Check.Design.AliasUsage, [priority: :low, if_nested_deeper_than: 3, if_called_more_often_than: 1]},
         # You can also customize the exit_status of each check.
         # If you don't want TODO comments to cause `mix credo` to fail, just
         # set this value to 0 (zero).
         #
-        # NOTE: setting to 0, this is less stringent than fixmes
-        {Credo.Check.Design.TagTODO, exit_status: 0},
-        {Credo.Check.Design.TagFIXME},
+        {Credo.Check.Design.TagTODO, [exit_status: 0]},
+        {Credo.Check.Design.TagFIXME, []},
 
-	{Credo.Check.Readability.AliasOrder},
-        {Credo.Check.Readability.FunctionNames},
-        {Credo.Check.Readability.LargeNumbers},
-        # NOTE: bump this to a more modern value
-        {Credo.Check.Readability.MaxLineLength, priority: :low, max_length: 120},
-        {Credo.Check.Readability.ModuleAttributeNames},
-        {Credo.Check.Readability.ModuleDoc},
-        {Credo.Check.Readability.ModuleNames},
-        {Credo.Check.Readability.ParenthesesOnZeroArityDefs},
-        {Credo.Check.Readability.ParenthesesInCondition},
-        {Credo.Check.Readability.PredicateFunctionNames},
-        # NOTE: PP: implicit try is a bad feature of the language, IMHO
-        {Credo.Check.Readability.PreferImplicitTry, false},
-        {Credo.Check.Readability.RedundantBlankLines},
-        {Credo.Check.Readability.StringSigils},
-        {Credo.Check.Readability.TrailingBlankLine},
-        {Credo.Check.Readability.TrailingWhiteSpace},
-        {Credo.Check.Readability.VariableNames},
-        {Credo.Check.Readability.Semicolons},
-        {Credo.Check.Readability.SpaceAfterCommas},
+        #
+        ## Readability Checks
+        #
+        {Credo.Check.Readability.AliasOrder, []},
+        {Credo.Check.Readability.FunctionNames, []},
+        {Credo.Check.Readability.LargeNumbers, []},
+        {Credo.Check.Readability.MaxLineLength, [priority: :low, max_length: 120]},
+        {Credo.Check.Readability.ModuleAttributeNames, []},
+        {Credo.Check.Readability.ModuleDoc, []},
+        {Credo.Check.Readability.ModuleNames, []},
+        {Credo.Check.Readability.ParenthesesInCondition, []},
+        {Credo.Check.Readability.ParenthesesOnZeroArityDefs, []},
+        {Credo.Check.Readability.PredicateFunctionNames, []},
+        {Credo.Check.Readability.PreferImplicitTry, []},
+        {Credo.Check.Readability.RedundantBlankLines, []},
+        {Credo.Check.Readability.Semicolons, []},
+        {Credo.Check.Readability.SpaceAfterCommas, []},
+        {Credo.Check.Readability.StringSigils, []},
+        {Credo.Check.Readability.TrailingBlankLine, []},
+        {Credo.Check.Readability.TrailingWhiteSpace, []},
+        {Credo.Check.Readability.VariableNames, []},
 
-        {Credo.Check.Refactor.DoubleBooleanNegation},
-        {Credo.Check.Refactor.CondStatements},
-        {Credo.Check.Refactor.CyclomaticComplexity},
-        {Credo.Check.Refactor.FunctionArity},
-        {Credo.Check.Refactor.LongQuoteBlocks},
-        {Credo.Check.Refactor.MatchInCondition},
-        {Credo.Check.Refactor.NegatedConditionsInUnless},
-        {Credo.Check.Refactor.NegatedConditionsWithElse},
-        {Credo.Check.Refactor.Nesting},
+        #
+        ## Refactoring Opportunities
+        #
+        {Credo.Check.Refactor.CondStatements, []},
+        {Credo.Check.Refactor.CyclomaticComplexity, []},
+        {Credo.Check.Refactor.FunctionArity, []},
+        {Credo.Check.Refactor.LongQuoteBlocks, []},
+        {Credo.Check.Refactor.MapInto, []},
+        {Credo.Check.Refactor.MatchInCondition, []},
+        {Credo.Check.Refactor.NegatedConditionsInUnless, []},
+        {Credo.Check.Refactor.NegatedConditionsWithElse, []},
+        {Credo.Check.Refactor.Nesting, []},
         {Credo.Check.Refactor.PipeChainStart, false},
-        {Credo.Check.Refactor.UnlessWithElse},
+        {Credo.Check.Refactor.UnlessWithElse, []},
 
-        {Credo.Check.Warning.BoolOperationOnSameValues},
-        {Credo.Check.Warning.ExpensiveEmptyEnumCheck},
-        {Credo.Check.Warning.IExPry},
-        {Credo.Check.Warning.IoInspect},
+        #
+        ## Warnings
+        #
+        {Credo.Check.Warning.BoolOperationOnSameValues, []},
+        {Credo.Check.Warning.ExpensiveEmptyEnumCheck, []},
+        {Credo.Check.Warning.IExPry, []},
+        {Credo.Check.Warning.IoInspect, []},
         {Credo.Check.Warning.LazyLogging, false},
-        {Credo.Check.Warning.OperationOnSameValues},
-        {Credo.Check.Warning.OperationWithConstantResult},
-        {Credo.Check.Warning.UnusedEnumOperation},
-        {Credo.Check.Warning.UnusedFileOperation},
-        {Credo.Check.Warning.UnusedKeywordOperation},
-        {Credo.Check.Warning.UnusedListOperation},
-        {Credo.Check.Warning.UnusedPathOperation},
-        {Credo.Check.Warning.UnusedRegexOperation},
-        {Credo.Check.Warning.UnusedStringOperation},
-        {Credo.Check.Warning.UnusedTupleOperation},
-        {Credo.Check.Warning.RaiseInsideRescue},
+        {Credo.Check.Warning.OperationOnSameValues, []},
+        {Credo.Check.Warning.OperationWithConstantResult, []},
+        {Credo.Check.Warning.RaiseInsideRescue, []},
+        {Credo.Check.Warning.UnusedEnumOperation, []},
+        {Credo.Check.Warning.UnusedFileOperation, []},
+        {Credo.Check.Warning.UnusedKeywordOperation, []},
+        {Credo.Check.Warning.UnusedListOperation, []},
+        {Credo.Check.Warning.UnusedPathOperation, []},
+        {Credo.Check.Warning.UnusedRegexOperation, []},
+        {Credo.Check.Warning.UnusedStringOperation, []},
+        {Credo.Check.Warning.UnusedTupleOperation, []},
 
+        #
         # Controversial and experimental checks (opt-in, just remove `, false`)
         #
+        {Credo.Check.Consistency.MultiAliasImportRequireUse, false},
+        {Credo.Check.Design.DuplicatedCode, false},
+        {Credo.Check.Readability.Specs, false},
         {Credo.Check.Refactor.ABCSize, false},
         {Credo.Check.Refactor.AppendSingleItem, false},
+        {Credo.Check.Refactor.DoubleBooleanNegation, false},
         {Credo.Check.Refactor.VariableRebinding, false},
         {Credo.Check.Warning.MapGetUnsafePass, false},
-        {Credo.Check.Consistency.MultiAliasImportRequireUse, false},
+        {Credo.Check.Warning.UnsafeToAtom, false}
 
-        # Deprecated checks (these will be deleted after a grace period)
         #
-        {Credo.Check.Readability.Specs, false},
-
         # Custom checks can be created using `mix credo.gen.check`.
         #
       ]

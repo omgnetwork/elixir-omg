@@ -35,7 +35,7 @@ defmodule OMG.Performance.BlockCreator do
   """
   @spec init({integer, integer}) :: {:ok, {integer, integer}}
   def init({blknum, block_every_ms}) do
-    _ = Logger.debug(fn -> "init called with args: '#{inspect(blknum)}'" end)
+    _ = Logger.debug("init called with args: '#{inspect(blknum)}'")
     reschedule_task(block_every_ms)
     {:ok, {blknum, block_every_ms}}
   end

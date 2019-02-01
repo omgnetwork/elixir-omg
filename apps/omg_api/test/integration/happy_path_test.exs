@@ -28,6 +28,7 @@ defmodule OMG.API.Integration.HappyPathTest do
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Eth
+  alias OMG.RPC.Web.Encoding
   alias OMG.RPC.Web.TestHelper
 
   require OMG.API.Utxo
@@ -68,7 +69,7 @@ defmodule OMG.API.Integration.HappyPathTest do
     assert {:ok, %{"transactions" => transactions}} = get_block(block_hash)
 
     # NOTE: we are checking only the `hd` because token_tx might possibly be in the next block
-    {:ok, decoded_tx_bytes} = transactions |> hd() |> OMG.RPC.Web.Encoding.from_hex()
+    {:ok, decoded_tx_bytes} = transactions |> hd() |> Encoding.from_hex()
 
     assert {:ok, %{raw_tx: ^raw_tx}} =
              decoded_tx_bytes
@@ -97,7 +98,7 @@ defmodule OMG.API.Integration.HappyPathTest do
 
     assert {:ok, %{"transactions" => [transaction2]}} = get_block(block_hash2)
 
-    {:ok, decoded_tx2_bytes} = transaction2 |> OMG.RPC.Web.Encoding.from_hex()
+    {:ok, decoded_tx2_bytes} = transaction2 |> Encoding.from_hex()
 
     assert {:ok, %{raw_tx: ^raw_tx2}} =
              decoded_tx2_bytes
@@ -222,12 +223,12 @@ defmodule OMG.API.Integration.HappyPathTest do
   end
 
   defp submit_transaction(tx) do
-    TestHelper.rpc_call(:post, "/transaction.submit", %{transaction: OMG.RPC.Web.Encoding.to_hex(tx)})
+    TestHelper.rpc_call(:post, "/transaction.submit", %{transaction: Encoding.to_hex(tx)})
     |> get_body_data()
   end
 
   defp get_block(hash) do
-    TestHelper.rpc_call(:post, "/block.get", %{hash: OMG.RPC.Web.Encoding.to_hex(hash)})
+    TestHelper.rpc_call(:post, "/block.get", %{hash: Encoding.to_hex(hash)})
     |> get_body_data()
   end
 

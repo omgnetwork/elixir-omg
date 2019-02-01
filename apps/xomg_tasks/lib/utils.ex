@@ -12,35 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Mix.Tasks.Xomg.Watcher.Start do
+defmodule XomgTasks.Utils do
   @moduledoc """
-    Contains mix.task to run the watcher in different modes:
-      a) mix xomg.watcher.start ----> security critical
-      b) mix xomg.watcher.start --convenience ----> security critical + convenience api
-
-    See the docs/TODO file.
+  Common convenience code used to run Mix.Tasks goes here
   """
-  use Mix.Task
 
-  @shortdoc "Starts the watcher. See Mix.Tasks.Watcher for possible options"
-
-  def run(["--convenience" | args]) do
-    Application.put_env(:omg_watcher, :convenience_api_mode, true, persistent: true)
-    start_watcher(args)
-  end
-
-  def run(args) do
-    start_watcher(args)
-  end
-
-  # TODO: a lot of this code is duplicated in other `Mix.Tasks` modules. How to DRY elegantly?
-  defp start_watcher(args) do
-    args = ensure_contains(args, "--no-start")
-    args = ensure_doesnt_contain(args, "--no-halt")
-
+  @doc """
+  Runs a specific app for some arguments. Will handle IEx, if one's running
+  """
+  def generic_run(args, app) do
     Mix.Task.run("run", args)
-    {:ok, _} = Application.ensure_all_started(:omg_watcher)
+    {:ok, _} = Application.ensure_all_started(app)
     iex_running?() || Process.sleep(:infinity)
+  end
+
+  @doc """
+  Will do all the generic preparations on the arguments required
+  """
+  def generic_prepare_args(args) do
+    args
+    |> ensure_contains("--no-start")
+    |> ensure_doesnt_contain("--no-halt")
   end
 
   defp iex_running? do

@@ -62,11 +62,11 @@ defmodule OMG.RPC.Client do
 
     with {:ok, body} <- Poison.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
-      _ = Logger.debug(fn -> "Child chain rpc post #{inspect(addr)} completed successfully" end)
+      _ = Logger.debug("Child chain rpc post #{inspect(addr)} completed successfully")
       response
     else
       err ->
-        _ = Logger.warn(fn -> "Child chain rpc post #{inspect(addr)} failed with #{inspect(err)}" end)
+        _ = Logger.warn("Child chain rpc post #{inspect(addr)} failed with #{inspect(err)}")
         err
     end
   end

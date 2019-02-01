@@ -72,18 +72,18 @@ defmodule OMG.API.BlockQueue do
       {:ok, finality_threshold} = Application.fetch_env(:omg_api, :submission_finality_margin)
 
       _ =
-        Logger.info(fn ->
+        Logger.info(
           "Starting BlockQueue at " <>
             "parent_height: #{inspect(parent_height)}, parent_start: #{inspect(parent_start)}, " <>
             "mined_child_block: #{inspect(mined_num)}, stored_child_top_block: #{inspect(stored_child_top_num)}"
-        end)
+        )
 
       range =
         Core.child_block_nums_to_init_with(mined_num, stored_child_top_num, child_block_interval, finality_threshold)
 
       {:ok, known_hashes} = OMG.DB.block_hashes(range)
       {:ok, {top_mined_hash, _}} = Eth.RootChain.get_child_chain(mined_num)
-      _ = Logger.info(fn -> "Starting BlockQueue, top_mined_hash: #{inspect(Base.encode16(top_mined_hash))}" end)
+      _ = Logger.info("Starting BlockQueue, top_mined_hash: #{inspect(Base.encode16(top_mined_hash))}")
 
       {:ok, state} =
         with {:ok, _state} = result <-
@@ -102,9 +102,9 @@ defmodule OMG.API.BlockQueue do
         else
           {:error, reason} = error when reason in [:mined_hash_not_found_in_db, :contract_ahead_of_db] ->
             _ =
-              Logger.error(fn ->
+              Logger.error(
                 "The child chain might have not been wiped clean when starting a child chain from scratch. Check README.MD and follow the setting up child chain."
-              end)
+              )
 
             error
 
@@ -115,7 +115,7 @@ defmodule OMG.API.BlockQueue do
       interval = Application.fetch_env!(:omg_api, :ethereum_status_check_interval_ms)
       {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
-      _ = Logger.info(fn -> "Started BlockQueue" end)
+      _ = Logger.info("Started BlockQueue")
       {:ok, state}
     end
 
@@ -128,7 +128,7 @@ defmodule OMG.API.BlockQueue do
       {:ok, mined_blknum} = Eth.RootChain.get_mined_child_block()
       {_, is_empty_block} = OMG.API.State.get_status()
 
-      _ = Logger.debug(fn -> "Ethereum at \#'#{inspect(height)}', mined child at \#'#{inspect(mined_blknum)}'" end)
+      _ = Logger.debug("Ethereum at \#'#{inspect(height)}', mined child at \#'#{inspect(mined_blknum)}'")
 
       state1 =
         with {:do_form_block, state1} <- Core.set_ethereum_status(state, height, mined_blknum, is_empty_block) do
@@ -144,13 +144,8 @@ defmodule OMG.API.BlockQueue do
 
     def handle_cast({:enqueue_block, %Block{number: block_number, hash: block_hash}}, %Core{} = state) do
       {:ok, parent_height} = Eth.get_ethereum_height()
-
       state1 = Core.enqueue_block(state, block_hash, block_number, parent_height)
-
-      _ =
-        Logger.info(fn ->
-          "Enqueuing block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'"
-        end)
+      _ = Logger.info("Enqueuing block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'")
 
       submit_blocks(state1)
       {:noreply, state1}
@@ -166,7 +161,7 @@ defmodule OMG.API.BlockQueue do
     end
 
     defp submit(%Core.BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price} = submission) do
-      _ = Logger.debug(fn -> "Submitting: #{inspect(submission)}" end)
+      _ = Logger.debug("Submitting: #{inspect(submission)}")
 
       submit_result = OMG.Eth.RootChain.submit_block(hash, nonce, gas_price)
       {:ok, newest_mined_blknum} = Eth.RootChain.get_mined_child_block()

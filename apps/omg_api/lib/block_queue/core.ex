@@ -212,7 +212,7 @@ defmodule OMG.API.BlockQueue.Core do
 
   defp adjust_gas_price(%Core{} = state) do
     new_gas_price = calculate_gas_price(state)
-    _ = Logger.debug(fn -> "using new gas price '#{inspect(new_gas_price)}'" end)
+    _ = Logger.debug("using new gas price '#{inspect(new_gas_price)}'")
 
     state
     |> set_gas_price(new_gas_price)
@@ -304,7 +304,7 @@ defmodule OMG.API.BlockQueue.Core do
     first_blknum = mined_child_block_num + block_interval
     block_nums = make_range(first_blknum, formed, block_interval)
 
-    _ = Logger.debug(fn -> "preparing blocks #{inspect(first_blknum)}..#{inspect(formed)} for submission" end)
+    _ = Logger.debug("preparing blocks #{inspect(first_blknum)}..#{inspect(formed)} for submission")
 
     blocks
     |> Map.split(block_nums)
@@ -347,7 +347,7 @@ defmodule OMG.API.BlockQueue.Core do
           is_empty_block: is_empty_block
         }
 
-        Logger.debug(fn -> "Skipping forming block because: #{inspect(log_data)}" end)
+        Logger.debug("Skipping forming block because: #{inspect(log_data)}")
       end
 
     should_form_block
@@ -403,7 +403,7 @@ defmodule OMG.API.BlockQueue.Core do
           blocks: mined_submissions
       }
 
-      _ = Logger.info(fn -> "Loaded with #{inspect(mined_blocks)} mined and #{inspect(fresh_blocks)} enqueued" end)
+      _ = Logger.info("Loaded with #{inspect(mined_blocks)} mined and #{inspect(fresh_blocks)} enqueued")
 
       {:ok, Enum.reduce(fresh_blocks, state, fn hash, acc -> enqueue_block(acc, hash, state.parent_height) end)}
     end
@@ -444,19 +444,19 @@ defmodule OMG.API.BlockQueue.Core do
   def process_submit_result(submission, submit_result, newest_mined_blknum) do
     case submit_result do
       {:ok, txhash} ->
-        _ = Logger.info(fn -> "Submitted #{inspect(submission)} at: #{inspect(txhash)}" end)
+        _ = Logger.info("Submitted #{inspect(submission)} at: #{inspect(txhash)}")
         :ok
 
       {:error, %{"code" => -32_000, "message" => "known transaction" <> _}} ->
-        _ = Logger.debug(fn -> "Submission #{inspect(submission)} is known transaction - ignored" end)
+        _ = Logger.debug("Submission #{inspect(submission)} is known transaction - ignored")
         :ok
 
       {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}} ->
-        _ = Logger.debug(fn -> "Submission #{inspect(submission)} is known, but with higher price - ignored" end)
+        _ = Logger.debug("Submission #{inspect(submission)} is known, but with higher price - ignored")
         :ok
 
       {:error, %{"code" => -32_000, "message" => "authentication needed: password or unlock"}} ->
-        _ = Logger.error(fn -> "It seems that authority account is locked. Check README.md" end)
+        _ = Logger.error("It seems that authority account is locked. Check README.md")
         {:error, :account_locked}
 
       {:error, %{"code" => -32_000, "message" => "nonce too low"}} ->
@@ -469,7 +469,7 @@ defmodule OMG.API.BlockQueue.Core do
       # apparently the `nonce too low` error is related to the submission having been mined while it was prepared
       :ok
     else
-      _ = Logger.error(fn -> "Submission #{inspect(submission)} unexpectedly failed with nonce too low" end)
+      _ = Logger.error("Submission #{inspect(submission)} unexpectedly failed with nonce too low")
       {:error, :nonce_too_low}
     end
   end

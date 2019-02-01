@@ -46,7 +46,7 @@ defmodule OMG.API do
   end
 
   defp result_with_logging(result) do
-    _ = Logger.debug(fn -> " resulted with #{inspect(result)}" end)
+    _ = Logger.debug(" resulted with #{inspect(result)}")
     result
   end
 end

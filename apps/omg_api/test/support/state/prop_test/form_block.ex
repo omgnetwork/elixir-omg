@@ -18,10 +18,11 @@ defmodule OMG.API.State.PropTest.FormBlock do
 
   alias OMG.API.PropTest.Constants
   alias OMG.API.PropTest.Helper
+  alias OMG.API.State
   require Constants
 
   def impl do
-    OMG.API.State.PropTest.StateCoreGS.form_block(Constants.child_block_interval())
+    State.PropTest.StateCoreGS.form_block(Constants.child_block_interval())
   end
 
   def post(%{model: %{history: history}}, [], {:ok, {_, transactions, _}}) do
