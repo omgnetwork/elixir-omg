@@ -114,14 +114,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     # check feasibility of transactions from block to consume at the API.State
     assert {:ok, tx_result, _} = API.State.Core.exec(state_alice_deposit, tx, fees)
 
-    assert {:ok, ^state} = Core.validate_executions([{:ok, tx_result}], {:ok, []}, block, state)
+    assert {:ok, ^state} = Core.validate_executions([{:ok, tx_result}], block, state)
 
     assert {:ok, []} = Core.chain_ok(state)
-
-    assert {{:error, :unchallenged_exit, []}, state} =
-             Core.validate_executions([{:ok, tx_result}], {{:error, :unchallenged_exit}, []}, block, state)
-
-    assert {:error, []} = Core.chain_ok(state)
   end
 
   @tag fixtures: [:alice, :bob]
@@ -299,24 +294,24 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     )
   end
 
-  test "validate_executions function prevent getter from progressing when unchallenged_exit is detected" do
-    state = init_state()
+  test "allows progressing when no unchallenged exits are detected" do
+    assert {:ok, []} = init_state() |> Core.consider_exits({:ok, []}) |> Core.chain_ok()
+    assert {:ok, []} = init_state() |> Core.consider_exits({:ok, [%Event.InvalidExit{}]}) |> Core.chain_ok()
+  end
 
-    block = %Block{number: 1, hash: <<>>}
+  test "prevents progressing when unchallenged_exit is detected" do
+    assert {:error, []} = init_state() |> Core.consider_exits({{:error, :unchallenged_exit}, []}) |> Core.chain_ok()
+  end
 
-    assert {{:error, :unchallenged_exit, []}, state} =
-             Core.validate_executions([], {{:error, :unchallenged_exit}, []}, block, state)
-
+  test "prevents applying when started with an unchallenged_exit" do
+    state = init_state(exit_processor_results: {{:error, :unchallenged_exit}, []})
     assert {:error, []} = Core.chain_ok(state)
   end
 
   test "validate_executions function prevent getter from progressing when invalid block is detected" do
     state = init_state()
-
     block = %Block{number: 1, hash: <<>>}
-
-    assert {{:error, :tx_execution, {}}, state} = Core.validate_executions([{:error, {}}], {:ok, []}, block, state)
-
+    assert {{:error, :tx_execution, {}}, state} = Core.validate_executions([{:error, {}}], block, state)
     assert {:error, [%Event.InvalidBlock{error_type: :tx_execution, hash: "", blknum: 1}]} = Core.chain_ok(state)
   end
 
@@ -655,40 +650,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "when State is not at the beginning should not init state properly" do
-    start_block_number = 0
-    interval = 1_000
-    synced_height = 1
-    block_reorg_margin = 5
-    state_at_beginning = false
-    last_persisted_block = nil
-
-    assert Core.init(
-             start_block_number,
-             interval,
-             synced_height,
-             block_reorg_margin,
-             last_persisted_block,
-             state_at_beginning
-           ) == {:error, :not_at_block_beginning}
+    assert init_state(state_at_beginning: false) == {:error, :not_at_block_beginning}
   end
 
   test "maximum_number_of_pending_blocks can't be too low" do
-    start_block_number = 0
-    interval = 1_000
-    synced_height = 1
-    block_reorg_margin = 5
-    state_at_beginning = true
-    last_persisted_block = nil
-
-    assert Core.init(
-             start_block_number,
-             interval,
-             synced_height,
-             block_reorg_margin,
-             last_persisted_block,
-             state_at_beginning,
-             maximum_number_of_pending_blocks: 0
-           ) == {:error, :maximum_number_of_pending_blocks_too_low}
+    assert init_state(opts: [maximum_number_of_pending_blocks: 0]) ==
+             {:error, :maximum_number_of_pending_blocks_too_low}
   end
 
   test "BlockGetter omits submissions of already applied blocks" do
@@ -851,6 +818,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       synced_height: 1,
       block_reorg_margin: 5,
       state_at_beginning: true,
+      exit_processor_results: {:ok, []},
       opts: []
     ]
 
@@ -860,13 +828,23 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       synced_height: synced_height,
       block_reorg_margin: block_reorg_margin,
       state_at_beginning: state_at_beginning,
+      exit_processor_results: exit_processor_results,
       opts: opts
     } = defaults |> Keyword.merge(opts) |> Map.new()
 
-    {:ok, state} =
-      Core.init(start_block_number, interval, synced_height, block_reorg_margin, nil, state_at_beginning, opts)
-
-    state
+    # FIXME: tidy and shorten
+    with {:ok, state} <-
+           Core.init(
+             start_block_number,
+             interval,
+             synced_height,
+             block_reorg_margin,
+             nil,
+             state_at_beginning,
+             exit_processor_results,
+             opts
+           ),
+         do: state
   end
 
   describe "WatcherDB idempotency:" do

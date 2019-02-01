@@ -48,6 +48,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
           competitors: %{tx_hash() => CompetitorInfo.t()}
         }
 
+  @type check_validity_result_t :: {:ok | {:error, :unchallenged_exit}, list(Event.byzantine_t())}
+
   @type competitor_data_t :: %{
           in_flight_txbytes: binary(),
           in_flight_input_index: non_neg_integer(),
@@ -444,8 +446,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   NOTE: If there were any exits unchallenged for some time in chain history, this might detect breach of SLA,
         even if the exits were eventually challenged (e.g. during syncing)
   """
-  @spec invalid_exits(ExitProcessor.Request.t(), t()) ::
-          {:ok | {:error, :unchallenged_exit}, list(Event.InvalidExit.t() | Event.UnchallengedExit.t())}
+  @spec invalid_exits(ExitProcessor.Request.t(), t()) :: check_validity_result_t()
   def invalid_exits(
         %ExitProcessor.Request{
           eth_height_now: eth_height_now,
