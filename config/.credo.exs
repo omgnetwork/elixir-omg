@@ -21,19 +21,19 @@
         # You can give explicit globs or simply directories.
         # In the latter case `**/*.{ex,exs}` will be used.
         #
-        included: ["lib/", "src/", "test/", "web/", "apps/"],
+        included: ["lib/", "src/", "test/", "web/", "apps/", "config/", "mix.exs"],
         excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/"]
       },
       #
       # If you create your own checks, you must specify the source files for
       # them here, so they can be loaded by Credo before running the analysis.
       #
-      requires: [],
+      requires: ["config/credo/license_header.ex"],
       #
       # If you want to enforce a style guide and need a more traditional linting
       # experience, you can change `strict` to `true` below:
       #
-      strict: false,
+      strict: true,
       #
       # If you want to use uncolored output by default, you can change `color`
       # to `false` below:
@@ -48,6 +48,8 @@
       #     {Credo.Check.Design.DuplicatedCode, false}
       #
       checks: [
+        # custom checks
+        {Credo.Check.Custom.LicenseHeader},
         #
         ## Consistency Checks
         #
