@@ -17,18 +17,20 @@ defmodule OMG.Watcher.Web.View.Transaction do
   The transaction view for rendering json
   """
 
+  alias OMG.RPC.Web.Response
+
   use OMG.Watcher.Web, :view
 
   def render("transaction.json", %{response: transaction}) do
     transaction
     |> render_transaction()
-    |> OMG.RPC.Web.Response.serialize()
+    |> Response.serialize()
   end
 
   def render("transactions.json", %{response: transactions}) do
     transactions
     |> Enum.map(&render_tx_digest/1)
-    |> OMG.RPC.Web.Response.serialize()
+    |> Response.serialize()
   end
 
   defp render_transaction(transaction) do

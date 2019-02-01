@@ -363,7 +363,7 @@ defmodule OMG.API.State.Core do
 
     db_updates = db_updates_new_utxos ++ last_deposit_child_blknum_db_update(deposits, last_deposit_child_blknum)
 
-    _ = if deposits != [], do: Logger.info(fn -> "Recognized deposits #{inspect(deposits)}" end)
+    _ = if deposits != [], do: Logger.info("Recognized deposits #{inspect(deposits)}")
 
     new_state = %Core{
       state
@@ -448,7 +448,7 @@ defmodule OMG.API.State.Core do
   end
 
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
-    _ = if exiting_utxos != [], do: Logger.info(fn -> "Recognized exits #{inspect(exiting_utxos)}" end)
+    _ = if exiting_utxos != [], do: Logger.info("Recognized exits #{inspect(exiting_utxos)}")
 
     {valid, _invalid} = validities = Enum.split_with(exiting_utxos, &utxo_exists?(&1, state))
 

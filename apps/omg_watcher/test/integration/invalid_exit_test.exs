@@ -24,9 +24,9 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   require Utxo
   alias OMG.Eth
   alias OMG.RPC.Client
-  alias OMG.Watcher.Event
+  alias OMG.Watcher
+  alias OMG.Watcher.{Event, TestHelper}
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.Watcher.TestHelper
 
   import ExUnit.CaptureLog
 
@@ -99,7 +99,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       bad_block = API.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
-    OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
+    Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
 
     IntegrationTest.wait_for_block_fetch(exit_blknum, @timeout)
 

@@ -22,7 +22,11 @@ defmodule OMG.Watcher.Fixtures do
   use OMG.DB.Fixtures
   use OMG.API.Integration.Fixtures
   use OMG.API.LoggerExt
-  alias OMG.Watcher.TestHelper
+
+  alias Ecto.Adapters.SQL
+  alias OMG.Watcher
+  alias OMG.Watcher.DB
+  alias Watcher.TestHelper
 
   @eth OMG.API.Crypto.zero_address()
 
@@ -43,8 +47,8 @@ defmodule OMG.Watcher.Fixtures do
     |> File.close()
 
     {:ok, config} = File.read(config_file_path)
-    Logger.debug(fn -> IO.ANSI.format([:blue, :bright, config], true) end)
-    Logger.debug(fn -> "Starting db_init" end)
+    Logger.debug(IO.ANSI.format([:blue, :bright, config], true))
+    Logger.debug("Starting db_init")
 
     exexec_opts_for_mix = [
       stdout: :stream,
@@ -65,7 +69,7 @@ defmodule OMG.Watcher.Fixtures do
 
     child_chain_mix_cmd = " mix xomg.child_chain.start --config #{config_file_path} 2>&1"
 
-    Logger.info(fn -> "Starting child_chain" end)
+    Logger.info("Starting child_chain")
 
     {:ok, child_chain_proc, _ref, [{:stream, child_chain_out, _stream_server}]} =
       Exexec.run_link(child_chain_mix_cmd, exexec_opts_for_mix)
@@ -91,7 +95,7 @@ defmodule OMG.Watcher.Fixtures do
             :ok
 
           other ->
-            _ = Logger.warn(fn -> "Child chain stopped with an unexpected reason" end)
+            _ = Logger.warn("Child chain stopped with an unexpected reason")
             other
         end
 
@@ -103,7 +107,7 @@ defmodule OMG.Watcher.Fixtures do
   end
 
   defp log_output(prefix, line) do
-    Logger.debug(fn -> "#{prefix}: " <> line end)
+    Logger.debug("#{prefix}: " <> line)
     line
   end
 
@@ -124,8 +128,8 @@ defmodule OMG.Watcher.Fixtures do
 
   deffixture watcher_sandbox(watcher) do
     :ok = watcher
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.DB.Repo, ownership_timeout: 90_000)
-    Ecto.Adapters.SQL.Sandbox.mode(OMG.Watcher.DB.Repo, {:shared, self()})
+    :ok = SQL.Sandbox.checkout(DB.Repo, ownership_timeout: 90_000)
+    SQL.Sandbox.mode(DB.Repo, {:shared, self()})
   end
 
   @doc "run only database in sandbox and endpoint to make request"
@@ -133,14 +137,14 @@ defmodule OMG.Watcher.Fixtures do
     {:ok, pid} =
       Supervisor.start_link(
         [
-          %{id: OMG.Watcher.DB.Repo, start: {OMG.Watcher.DB.Repo, :start_link, []}, type: :supervisor},
-          %{id: OMG.Watcher.Web.Endpoint, start: {OMG.Watcher.Web.Endpoint, :start_link, []}, type: :supervisor}
+          %{id: DB.Repo, start: {DB.Repo, :start_link, []}, type: :supervisor},
+          %{id: Watcher.Web.Endpoint, start: {Watcher.Web.Endpoint, :start_link, []}, type: :supervisor}
         ],
         strategy: :one_for_one,
-        name: OMG.Watcher.Supervisor
+        name: Watcher.Supervisor
       )
 
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.DB.Repo)
+    :ok = SQL.Sandbox.checkout(DB.Repo)
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
       TestHelper.wait_for_process(pid)
@@ -174,7 +178,7 @@ defmodule OMG.Watcher.Fixtures do
     :ok = phoenix_ecto_sandbox
 
     # Initial data depending tests can reuse
-    OMG.Watcher.DB.EthEvent.insert_deposits([
+    DB.EthEvent.insert_deposits([
       %{owner: alice.addr, currency: @eth, amount: 333, blknum: 1},
       %{owner: bob.addr, currency: @eth, amount: 100, blknum: 2}
     ])
@@ -219,7 +223,7 @@ defmodule OMG.Watcher.Fixtures do
 
   defp prepare_one_block({blknum, recovered_txs}) do
     {:ok, _} =
-      OMG.Watcher.DB.Transaction.update_with(%{
+      DB.Transaction.update_with(%{
         transactions: recovered_txs,
         blknum: blknum,
         blkhash: "##{blknum}",

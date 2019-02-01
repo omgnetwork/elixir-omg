@@ -51,14 +51,14 @@ defmodule OMG.API.FreshBlocks do
            {:ok, _} = db_result <- DB.blocks(block_hashes_to_fetch),
            do: Core.combine_getting_results(fresh_block, db_result)
 
-    _ = Logger.debug(fn -> "get block resulted with '#{inspect(result)}', block_hash '#{inspect(block_hash)}'" end)
+    _ = Logger.debug("get block resulted with '#{inspect(result)}', block_hash '#{inspect(block_hash)}'")
 
     {:reply, result, state}
   end
 
   def handle_cast({:push, %Block{number: block_number, hash: block_hash} = block}, state) do
     {:ok, new_state} = Core.push(block, state)
-    _ = Logger.debug(fn -> "new block pushed, blknum '#{inspect(block_number)}', hash '#{inspect(block_hash)}'" end)
+    _ = Logger.debug("new block pushed, blknum '#{inspect(block_number)}', hash '#{inspect(block_hash)}'")
 
     {:noreply, new_state}
   end

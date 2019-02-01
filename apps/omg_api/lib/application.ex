@@ -106,7 +106,7 @@ defmodule OMG.API.Application do
       {OMG.RPC.Web.Endpoint, []}
     ]
 
-    _ = Logger.info(fn -> "Started application OMG.API.Application" end)
+    _ = Logger.info("Started application OMG.API.Application")
     opts = [strategy: :one_for_one]
     :ok = :error_logger.add_report_handler(Sentry.Logger)
     Supervisor.start_link(children, opts)

@@ -27,6 +27,8 @@ defmodule OMG.Watcher.Web.ChannelCase do
   of the test unless the test case is marked as async.
   """
 
+  alias Ecto.Adapters.SQL
+  alias OMG.Watcher
   use ExUnit.CaseTemplate
 
   using do
@@ -40,10 +42,10 @@ defmodule OMG.Watcher.Web.ChannelCase do
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(OMG.Watcher.DB.Repo)
+    :ok = SQL.Sandbox.checkout(Watcher.DB.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(OMG.Watcher.DB.Repo, {:shared, self()})
+      SQL.Sandbox.mode(Watcher.DB.Repo, {:shared, self()})
     end
 
     :ok

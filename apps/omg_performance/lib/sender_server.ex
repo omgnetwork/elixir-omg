@@ -77,12 +77,11 @@ defmodule OMG.Performance.SenderServer do
   @spec init({pos_integer(), map(), pos_integer()}) :: {:ok, state()}
   def init({seqnum, utxo, ntx_to_send}) do
     _ =
-      Logger.debug(fn ->
+      Logger.debug(
         "[#{inspect(seqnum)}] init called with utxo: #{inspect(utxo)} and requests: '#{inspect(ntx_to_send)}'"
-      end)
+      )
 
     send(self(), :do)
-
     {:ok, init_state(seqnum, utxo, ntx_to_send)}
   end
 
@@ -96,7 +95,7 @@ defmodule OMG.Performance.SenderServer do
         :do,
         %__MODULE__{ntx_to_send: 0, seqnum: seqnum, last_tx: %LastTx{blknum: blknum, txindex: txindex}} = state
       ) do
-    _ = Logger.info(fn -> "[#{inspect(seqnum)}] Stoping..." end)
+    _ = Logger.info("[#{inspect(seqnum)}] Stoping...")
 
     OMG.Performance.SenderManager.sender_stats(%{seqnum: seqnum, blknum: blknum, txindex: txindex})
     {:stop, :normal, state}
@@ -118,9 +117,9 @@ defmodule OMG.Performance.SenderServer do
     recipient = TestHelper.generate_entity()
 
     _ =
-      Logger.debug(fn ->
+      Logger.debug(
         "[#{inspect(seqnum)}]: Sending Tx to new owner #{Base.encode64(recipient.addr)}, left: #{inspect(newamount)}"
-      end)
+      )
 
     # create and return signed transaction
     [{last_tx.blknum, last_tx.txindex, last_tx.oindex}]
@@ -141,26 +140,18 @@ defmodule OMG.Performance.SenderServer do
 
     case result do
       {:error, {:client_error, %{"code" => "submit:too_many_transactions_in_block"}}} ->
-        _ =
-          Logger.info(fn ->
-            "[#{inspect(seqnum)}]: Transaction submission will be retried, block is full."
-          end)
-
+        _ = Logger.info("[#{inspect(seqnum)}]: Transaction submission will be retried, block is full.")
         :retry
 
       {:error, reason} ->
-        _ =
-          Logger.info(fn ->
-            "[#{inspect(seqnum)}]: Transaction submission has failed, reason: #{inspect(reason)}"
-          end)
-
+        _ = Logger.info("[#{inspect(seqnum)}]: Transaction submission has failed, reason: #{inspect(reason)}")
         {:error, reason}
 
       {:ok, %{blknum: blknum, txindex: txindex}} ->
         _ =
-          Logger.debug(fn ->
+          Logger.debug(
             "[#{inspect(seqnum)}]: Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}"
-          end)
+          )
 
         [%{amount: amount} | _] = Transaction.get_outputs(tx.raw_tx)
         {:ok, blknum, txindex, amount}
@@ -243,7 +234,7 @@ defmodule OMG.Performance.SenderServer do
   """
   @spec random_sleep(integer) :: :ok
   def random_sleep(seqnum) do
-    _ = Logger.debug(fn -> "[#{inspect(seqnum)}]: Need some sleep" end)
+    _ = Logger.debug("[#{inspect(seqnum)}]: Need some sleep")
     [500, 800, 1000, 1300] |> Enum.random() |> Process.sleep()
   end
 end

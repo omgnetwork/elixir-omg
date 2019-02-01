@@ -45,11 +45,9 @@ defmodule OMG.API.State.Transaction.Signed do
   end
 
   defp try_exrlp_decode(signed_tx_bytes) do
-    try do
-      {:ok, ExRLP.decode(signed_tx_bytes)}
-    rescue
-      _ -> {:error, :malformed_transaction_rlp}
-    end
+    {:ok, ExRLP.decode(signed_tx_bytes)}
+  rescue
+    _ -> {:error, :malformed_transaction_rlp}
   end
 
   defp reconstruct([sigs | raw_tx_rlp_decoded_chunks], signed_tx_bytes) do
