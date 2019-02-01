@@ -28,7 +28,6 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   alias OMG.Watcher.TestHelper
 
   @timeout 40_000
-  @moduletag timeout: 120_000
   @eth Crypto.zero_address()
 
   @moduletag :integration
@@ -78,6 +77,17 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
+
+    # check in-flight exit has started on root chain, wait for finalization
+    raw_tx1_hash = Transaction.hash(raw_tx1)
+    raw_tx2_hash = Transaction.hash(raw_tx2)
+    alice_address = alice.addr
+
+    assert {:ok,
+            [
+              %{initiator: ^alice_address, tx_hash: ^raw_tx1_hash},
+              %{initiator: ^alice_address, tx_hash: ^raw_tx2_hash}
+            ]} = OMG.Eth.RootChain.get_in_flight_exit_starts(0, eth_height)
 
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)

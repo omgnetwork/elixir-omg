@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Web.View.ErrorView do
   Renders error when no render clause matches or no template is found.
   """
   def template_not_found(_template, %{reason: reason} = conn) do
-    _ = Logger.error("#{inspect(conn)}")
+    _ = Logger.error("Unhandled error occurred most likely in controller / API layer: #{inspect(conn)}")
 
     throw(
       "Unmatched render clause for template #{inspect(Map.get(reason, :template, "<unable to find>"))} in #{

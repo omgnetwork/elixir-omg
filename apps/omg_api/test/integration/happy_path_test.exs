@@ -33,11 +33,13 @@ defmodule OMG.API.Integration.HappyPathTest do
   require OMG.API.Utxo
 
   @moduletag :integration
+  # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
+  @moduletag timeout: 120_000
 
   @eth Crypto.zero_address()
 
   @tag fixtures: [:alice, :bob, :omg_child_chain, :token, :alice_deposits]
-  test "deposit, spend, restart etc works fine", %{
+  test "deposit, spend, restart, exit etc works fine", %{
     alice: alice,
     bob: bob,
     token: token,
@@ -136,7 +138,7 @@ defmodule OMG.API.Integration.HappyPathTest do
   end
 
   @tag fixtures: [:alice, :omg_child_chain, :alice_deposits]
-  test "produces a valid in-flight exit and check funds exited",
+  test "check that unspent funds can be exited exited with in-flight exits",
        %{alice: alice, alice_deposits: {deposit_blknum, _}} do
     alias OMG.API
 
@@ -159,21 +161,14 @@ defmodule OMG.API.Integration.HappyPathTest do
     proof = Block.inclusion_proof(%Block{transactions: [Transaction.Signed.encode(tx)]}, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      OMG.Eth.RootChain.in_flight_exit(
+      Eth.RootChain.in_flight_exit(
         raw_in_flight_tx |> Transaction.encode(),
         get_input_txs([tx, tx]),
         proof <> proof,
-        in_flight_tx_sigs |> Enum.reduce(fn sig, acc -> acc <> sig end),
+        Enum.join(in_flight_tx_sigs),
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
-
-    # check in-flight exit has started on root chain, wait for finalization
-    in_flight_tx_hash = Transaction.hash(raw_in_flight_tx)
-    alice_address = alice.addr
-
-    assert {:ok, [%{initiator: ^alice_address, tx_hash: ^in_flight_tx_hash}]} =
-             OMG.Eth.RootChain.get_in_flight_exit_starts(0, eth_height)
 
     exiters_finality_margin = Application.fetch_env!(:omg_api, :exiters_finality_margin) + 1
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
@@ -199,7 +194,7 @@ defmodule OMG.API.Integration.HappyPathTest do
         in_flight_tx,
         get_input_txs([deposit_tx]),
         Block.inclusion_proof(%Block{transactions: [Transaction.Signed.encode(deposit_tx)]}, 0),
-        sigs |> Enum.reduce(fn sig, acc -> acc <> sig end),
+        Enum.join(sigs),
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()

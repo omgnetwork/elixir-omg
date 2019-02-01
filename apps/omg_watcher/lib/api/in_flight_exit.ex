@@ -42,8 +42,8 @@ defmodule OMG.Watcher.API.InFlightExit do
 
       raw_txbytes = Transaction.encode(raw_tx)
       input_txs = get_input_txs_for_rlp_encoding(input_txs)
-      sigs = Enum.reduce(sigs, fn sig, acc -> acc <> sig end)
-      proofs = Enum.reduce(proofs, fn proof, acc -> acc <> proof end)
+      sigs = Enum.join(sigs)
+      proofs = Enum.join(proofs)
 
       {:ok,
        %{
