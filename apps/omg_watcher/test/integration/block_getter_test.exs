@@ -125,10 +125,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
     Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + deposit_finality_margin + 1 + 1)
 
-    tx2 = API.TestHelper.create_encoded([{block_nr, 0, 0, alice}], @eth, [{alice, 7}])
-
-    {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} = Client.submit(tx2)
-
     assert [%{"blknum" => ^token_deposit_blknum}] = TestHelper.get_utxos(alice.addr)
     # finally alice exits her token deposit
     %{

@@ -27,7 +27,7 @@ defmodule OMG.API.Application do
     exiters_finality_margin = Application.fetch_env!(:omg_api, :exiters_finality_margin)
 
     if deposit_finality_margin >= exiters_finality_margin,
-      do: raise(ArgumentError, message: "exit_finality_margin must be larger than deposit_finality_margin")
+      do: raise(ArgumentError, message: "exiters_finality_margin must be larger than deposit_finality_margin")
 
     children = [
       {OMG.API.State, []},
