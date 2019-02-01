@@ -35,7 +35,7 @@ defmodule OMG.Watcher.Web.View.InFlightExit do
 
   def render("prove_canonical.json", %{response: prove_canonical}) do
     prove_canonical
-    |> Map.update!(:inflight_tx_pos, &Utxo.Position.encode/1)
+    |> Map.update!(:in_flight_tx_pos, &Utxo.Position.encode/1)
     |> Response.serialize()
   end
 end

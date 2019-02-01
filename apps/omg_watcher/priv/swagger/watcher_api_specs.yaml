@@ -23,8 +23,8 @@ tags:
     description: UTXO related API.
   - name: Transaction
     description: Transaction related API.
-  - name: InflightExit
-    description: InflightExit related API.    
+  - name: InFlightExit
+    description: InFlightExit related API.    
 
 paths:
   /status:
@@ -121,10 +121,10 @@ paths:
           $ref: '#/responses/SubmitOpId'
         500:
           $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
-  /inflight_exit.get_data:
+  /in_flight_exit.get_data:
     post:
       tags:
-        - InflightExit
+        - InFlightExit
       summary: Gets exit data for an in-flight exit. 
       description: Exit data are arguments to `startInFlightExit` root chain contract function.
       operationId: getInFlightExit
@@ -139,12 +139,12 @@ paths:
           $ref: '#/responses/GetInFlightExitOpId'
         500:
           $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'          
-  /inflight_exit.get_competitor:
+  /in_flight_exit.get_competitor:
     post:
       tags:
-        - InflightExit
+        - InFlightExit
       summary: Returns a competitor to an in-flight exit.
-      description: Note that if the competing transaction has not been put into a block `competing_txid` and `competing_proof` will not be returned.
+      description: Note that if the competing transaction has not been put into a block `competing_tx_pos` and `competing_proof` will not be returned.
       operationId: getCompetitor
       consumes:
       - application/json
@@ -157,10 +157,10 @@ paths:
           $ref: '#/responses/GetCompetitorOpId'
         500:
           $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
-  /inflight_exit.prove_canonical:
+  /in_flight_exit.prove_canonical:
     post:
       tags:
-        - InflightExit
+        - InFlightExit
       summary: Proves transaction is canonical. 
       description: To respond to a challenge to an in-flight exit, this proves that the transaction has been put into a block (and therefore is canonical).
       operationId: proveCanonical
@@ -175,10 +175,10 @@ paths:
           $ref: '#/responses/ProveCanonicalOpId'
         500:
           $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
-  /inflight_exit.get_input_challenge_data:
+  /in_flight_exit.get_input_challenge_data:
     post:
       tags:
-        - InflightExit
+        - InFlightExit
       summary: Gets the data to challenge an invalid input piggybacked on an in-flight exit. 
       description: 
       operationId: getInputChallengeData
@@ -193,10 +193,10 @@ paths:
           $ref: '#/responses/GetInputChallengeDataOpId'
         500:
           $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'    
-  /inflight_exit.get_output_challenge_data:
+  /in_flight_exit.get_output_challenge_data:
     post:
       tags:
-        - InflightExit
+        - InFlightExit
       summary: Gets the data to challenge an invalid output piggybacked on an in-flight exit. 
       description: 
       operationId: getOutputChallengeData
@@ -250,7 +250,7 @@ requests:
 
 responses:
   GetUtxosOpId: 
-    description: Account utxos succcessful response
+    description: Account utxos successful response
     content:
       application/json:
         schema:
@@ -287,7 +287,7 @@ responses:
                   input_index:
                     type: integer
                     format: int8
-                  output_id:
+                  utxo_pos:
                     type: integer
                     format: int256                
                   sig:
@@ -299,7 +299,7 @@ responses:
             example:
               data:
                 input_index: 0
-                output_id: 3000000000000
+                utxo_pos: 3000000000000
                 sig: '0x6bfb9b2dbe32...'
                 txbytes: '0x3eb6ae5b06f3...'
   GetUtxoExitOpId:
@@ -379,9 +379,9 @@ responses:
                     type: boolean
                   byzantine_events:
                     type: array                  
-                  inflight_txs:
+                  in_flight_txs:
                     type: array                  
-                  inflight_exits:
+                  in_flight_exits:
                     type: array                  
             example:
               data:
@@ -398,7 +398,7 @@ responses:
                     owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
                     currency: '0x0000000000000000000000000000000000000000'
                     amount: 100
-                inflight_txs:
+                in_flight_txs:
                 -
                   txhash: '0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d'
                   txbytes: '0x3eb6ae5b06f3...'
@@ -407,7 +407,7 @@ responses:
                   ouput_addresses:
                   - '0x1234...'
                   - '0x7890...'
-                inflight_exits:
+                in_flight_exits:
                 -
                   txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
                   txbytes: '0xf3170101c094...'
@@ -459,10 +459,10 @@ responses:
               data:
                 type: object
                 properties:
-                  inflight_txbytes:
+                  in_flight_txbytes:
                     type: string
                     format: binary
-                  inflight_input_index:
+                  in_flight_input_index:
                     type: integer
                     format: int8
                   competing_txbytes:
@@ -474,7 +474,7 @@ responses:
                   competing_sig:
                     type: string
                     format: binary
-                  competing_txid:
+                  competing_tx_pos:
                     type: integer
                     format: int256
                   competing_proof:
@@ -482,12 +482,12 @@ responses:
                     format: binary
             example:
               data:
-                inflight_txbytes: '0xf3170101c0940000...'
-                inflight_input_index: 1
+                in_flight_txbytes: '0xf3170101c0940000...'
+                in_flight_input_index: 1
                 competing_txbytes: '0x5df13a6bee20000...'
                 competing_input_index: 1
                 competing_sig: '0xa3470101c0940000...'
-                competing_txid: 2600003920012
+                competing_tx_pos: 2600003920012
                 competing_proof: '0xcedb8b31d1e4...'
   ProveCanonicalOpId:
     description: Prove canonical successful response
@@ -501,20 +501,20 @@ responses:
               data:
                 type: object
                 properties:
-                  inflight_txbytes:
+                  in_flight_txbytes:
                     type: string
                     format: binary
-                  inflight_txid:
+                  in_flight_tx_pos:
                     type: integer
                     format: int256
-                  inflight_proof:
+                  in_flight_proof:
                     type: string
                     format: binary
             example:
               data:
-                inflight_txbytes: '0xf3170101c0940000...'
-                inflight_txid: 2600003920012
-                inflight_proof: '0xcedb8b31d1e4...'
+                in_flight_txbytes: '0xf3170101c0940000...'
+                in_flight_tx_pos: 2600003920012
+                in_flight_proof: '0xcedb8b31d1e4...'
   GetInputChallengeDataOpId:
     description: Get input challenge successful response
     content:
@@ -527,10 +527,10 @@ responses:
               data:
                 type: object
                 properties:
-                  inflight_txbytes:
+                  in_flight_txbytes:
                     type: string
                     format: binary
-                  inflight_input_index:
+                  in_flight_input_index:
                     type: integer
                     format: int8
                   spending_txbytes:
@@ -544,8 +544,8 @@ responses:
                     format: binary
             example:
               data:
-                inflight_txbytes: '0xf3170101c0940000...'
-                inflight_input_index: 1
+                in_flight_txbytes: '0xf3170101c0940000...'
+                in_flight_input_index: 1
                 spending_txbytes: '0x5df13a6bee20000...'
                 spending_input_index: 1
                 spending_sig: '0xa3470101c0940000...'
@@ -561,13 +561,13 @@ responses:
               data:
                 type: object
                 properties:
-                  inflight_txbytes:
+                  in_flight_txbytes:
                     type: string
                     format: binary
-                  inflight_output_pos:
+                  in_flight_output_pos:
                     type: integer
                     format: int256
-                  inflight_proof:
+                  in_flight_proof:
                     type: string
                     format: binary
                   spending_txbytes:
@@ -581,9 +581,9 @@ responses:
                     format: binary
             example:
               data:
-                inflight_txbytes: '0xf3170101c0940000...'
-                inflight_output_pos: 21000634002
-                inflight_proof: '0xcedb8b31d1e4...'
+                in_flight_txbytes: '0xf3170101c0940000...'
+                in_flight_output_pos: 21000634002
+                in_flight_proof: '0xcedb8b31d1e4...'
                 spending_txbytes: '0x5df13a6bee20000...'
                 spending_input_index: 1
                 spending_sig: '0xa3470101c0940000...'

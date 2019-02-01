@@ -31,7 +31,7 @@ TODO - How does Alice know that her transaction hasn't been included? Does she h
 Alice starts an in-flight exit.
 
 #### 1. Get the exit data
-`/inflight_exit.get_data` 
+`/in_flight_exit.get_data` 
 ```json
  {
     "txbytes": "F3170101C0940000..."
@@ -96,7 +96,7 @@ RootChain.startInFlightExit(
                 }
             },
         ],
-        "inflight_exits": [
+        "in_flight_exits": [
             {
                 "txhash": "230C450180808080...",
                 "txbytes": "F3170101C0940000...",
@@ -151,7 +151,7 @@ When Bob calls `watcher/status` he gets this response:
                 }
             },
         ],
-        "inflight_exits": [
+        "in_flight_exits": [
             {
                 "txhash": "230C450180808080...",
                 "txbytes": "F3170101C0940000...",
@@ -169,7 +169,7 @@ Because Alice has already started an exit for the transaction there is a `piggyb
 The second argument is `4` because Bob is piggybacking the first output.
 ```
 RootChain.piggybackInFlightExit(
-    inflight_exits[0].txbytes,
+    in_flight_exits[0].txbytes,
     4, 
     {"value": piggybackBond}
 )
@@ -209,7 +209,7 @@ Request `watcher/status`:
                 }
             },
         ],
-        "inflight_exits": [
+        "in_flight_exits": [
             {
                 "txhash": "230C450180808080...",
                 "txbytes": "F3170101C0940000...",
@@ -223,7 +223,7 @@ Request `watcher/status`:
  ```
 
 #### 1. Get the competing transaction and its inclusion proof (if available).
-`/inflight_exit.get_competitor` 
+`/in_flight_exit.get_competitor` 
 ```json
 {
     "txbytes": "F3170101C0940000..."
@@ -236,8 +236,8 @@ response:
     "version": "1",
     "success": true,
     "data": {
-        "inflight_txbytes": "F847010180808080940000...",
-        "inflight_input_index": 0,
+        "in_flight_txbytes": "F847010180808080940000...",
+        "in_flight_input_index": 0,
         "competing_txbytes": "F317010180808080940000...",
         "competing_input_index": 1,
         "competing_sig": "9A23010180808080940000...",
@@ -252,8 +252,8 @@ Note that if the competing transaction has _not_ been included in a block then i
 ```
 tx0_data = response.data
 RootChain.challengeInFlightExitNotCanonical(
-    inflight_txbytes, 
-    inflight_input_index, 
+    in_flight_txbytes, 
+    in_flight_input_index, 
     competing_txbytes, 
     competing_input_index,
     competing_tx_pos,
@@ -279,7 +279,7 @@ To respond to a challenge to an IFE, we need to show that the transaction _is_ i
 
 #### 1. Get the in-flight transaction's inclusion proof.
 
-`/inflight_exit.prove_canonical` 
+`/in_flight_exit.prove_canonical` 
 ```json
 {
     "txbytes": "F3170101C0940000..."
@@ -292,9 +292,9 @@ response:
     "version": "1",
     "success": true,
     "data": {
-        "inflight_txbytes": "F847010180808080940000...",
-        "inflight_txid": 2600003920012,
-        "inflight_proof": "004C010180808080940000..."
+        "in_flight_txbytes": "F847010180808080940000...",
+        "in_flight_txid": 2600003920012,
+        "in_flight_proof": "004C010180808080940000..."
     }
 }
 ```
@@ -302,9 +302,9 @@ response:
 #### 2. Respond to an IFE challenge
 ```
 RootChain.challengeInFlightExitNotCanonical(
-    inflight_txbytes, 
-    inflight_txid,
-    inflight_proof, 
+    in_flight_txbytes, 
+    in_flight_txid,
+    in_flight_proof, 
 )
 ```
 If this transaction is the oldest competitor then it is canonical and the IFE succeeds - Bob exits his output.
@@ -327,7 +327,7 @@ To challenge a piggybacked input we must present a different transaction that sp
 
 #### 1. Get the transaction that challenges the input
 
-`/inflight_exit.get_input_challenge_data` 
+`/in_flight_exit.get_input_challenge_data` 
 ```json
 {
     "txbytes": "F3170101C0940000...",
@@ -341,8 +341,8 @@ response:
     "version": "1",
     "success": true,
     "data": {
-        "inflight_txbytes": "F3170101C0940000...",
-        "inflight_input_index": 1,
+        "in_flight_txbytes": "F3170101C0940000...",
+        "in_flight_input_index": 1,
         "spending_txbytes": "F847010180808080940000...",
         "spending_input_index": 1,
         "spending_sig": "9A23010180808080940000..."
@@ -353,8 +353,8 @@ response:
 #### 2. Challenge the input
 ```
 RootChain.challengeInFlightExitInputSpent(
-    inflight_tx.txbytes, 
-    inflight_tx.input_index,
+    in_flight_tx.txbytes, 
+    in_flight_tx.input_index,
     spending_tx.txbytes, 
     spending_tx.input_index,
     spending_tx.sigs
@@ -362,7 +362,7 @@ RootChain.challengeInFlightExitInputSpent(
 ```
 
 # Challenging a Piggybacked output
-To challenge a piggybacked output we must present a transaction that spends that output. The inflight transaction must have been put into a block, but the spending transaction does _not_ need to be in a block.
+To challenge a piggybacked output we must present a transaction that spends that output. The in-flight transaction must have been put into a block, but the spending transaction does _not_ need to be in a block.
 
 `/watcher/status` response will contain:
 ```
@@ -378,7 +378,7 @@ To challenge a piggybacked output we must present a transaction that spends that
 ```
 
 #### 1. Get the output's proof of inclusion
-`/inflight_exit.get_output_challenge_data` 
+`/in_flight_exit.get_output_challenge_data` 
 ```json
 {
     "txbytes": "F3170101C0940000...",
@@ -392,9 +392,9 @@ response:
     "version": "1",
     "success": true,
     "data": {
-        "inflight_txbytes": "F3170101C0940000...",
-        "inflight_output_pos": 21000634002,
-        "inflight_proof": "03F451067A805540000...",
+        "in_flight_txbytes": "F3170101C0940000...",
+        "in_flight_output_pos": 21000634002,
+        "in_flight_proof": "03F451067A805540000...",
         "spending_txbytes": "F847010180808080940000...",
         "spending_input_index": 1,
         "spending_sig": "9A23010180808080940000..."
@@ -405,9 +405,9 @@ response:
 #### 2. Challenge the output
 ```
 RootChain.challengeInFlightExitOutputSpent(
-    inflight_tx.txbytes, 
-    inflight_tx.output_pos,
-    inflight_tx.proof,
+    in_flight_tx.txbytes, 
+    in_flight_tx.output_pos,
+    in_flight_tx.proof,
     spending_tx.txbytes, 
     spending_tx.input_index,
     spending_tx.sigs

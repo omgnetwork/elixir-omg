@@ -49,8 +49,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         }
 
   @type competitor_data_t :: %{
-          inflight_txbytes: binary(),
-          inflight_input_index: non_neg_integer(),
+          in_flight_txbytes: binary(),
+          in_flight_input_index: non_neg_integer(),
           competing_txbytes: binary(),
           competing_input_index: non_neg_integer(),
           competing_sig: binary(),
@@ -59,9 +59,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         }
 
   @type prove_canonical_data_t :: %{
-          inflight_txbytes: binary(),
-          inflight_tx_pos: Utxo.Position.t(),
-          inflight_proof: binary()
+          in_flight_txbytes: binary(),
+          in_flight_tx_pos: Utxo.Position.t(),
+          in_flight_proof: binary()
         }
 
   defmodule KnownTx do
@@ -666,8 +666,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {:ok, competing_sig} = Tools.find_sig(known_signed_tx, owner)
 
     %{
-      inflight_txbytes: raw_ife_tx |> Transaction.encode(),
-      inflight_input_index: in_flight_input_index,
+      in_flight_txbytes: raw_ife_tx |> Transaction.encode(),
+      in_flight_input_index: in_flight_input_index,
       competing_txbytes: raw_known_tx |> Transaction.encode(),
       competing_input_index: competing_input_index,
       competing_sig: competing_sig,
@@ -678,9 +678,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp prepare_canonical_response(ife_txbytes, known_tx_utxo_pos, blocks) do
     %{
-      inflight_txbytes: ife_txbytes,
-      inflight_tx_pos: known_tx_utxo_pos,
-      inflight_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
+      in_flight_txbytes: ife_txbytes,
+      in_flight_tx_pos: known_tx_utxo_pos,
+      in_flight_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
     }
   end
 

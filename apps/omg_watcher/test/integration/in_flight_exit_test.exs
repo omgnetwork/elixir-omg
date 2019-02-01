@@ -182,7 +182,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
            } = TestHelper.success?("/status.get")
 
     # Check if IFE is recognized as IFE by watcher (kept separate from the above for readability)
-    assert %{"inflight_exits" => [%{}, %{}]} = TestHelper.success?("/status.get")
+    assert %{"in_flight_exits" => [%{}, %{}]} = TestHelper.success?("/status.get")
 
     ###
     # PIGGYBACK GAME
@@ -217,8 +217,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       OMG.Eth.RootChain.challenge_in_flight_exit_not_canonical(
-        get_competitor_response["inflight_txbytes"],
-        get_competitor_response["inflight_input_index"],
+        get_competitor_response["in_flight_txbytes"],
+        get_competitor_response["in_flight_input_index"],
         get_competitor_response["competing_txbytes"],
         get_competitor_response["competing_input_index"],
         get_competitor_response["competing_tx_pos"],
@@ -244,9 +244,9 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.respond_to_non_canonical_challenge(
-        get_prove_canonical_response["inflight_txbytes"],
-        get_prove_canonical_response["inflight_tx_pos"],
-        get_prove_canonical_response["inflight_proof"],
+        get_prove_canonical_response["in_flight_txbytes"],
+        get_prove_canonical_response["in_flight_tx_pos"],
+        get_prove_canonical_response["in_flight_proof"],
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
