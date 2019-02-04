@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  test-1.8:
+  test-1.8: &test-ci
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
         environment:
@@ -14,6 +14,57 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
+      - run:
+          name: Install Hex
+          command: |
+            mix do local.hex --force, local.rebar --force
+      - run:
+          name: Clean Dependencies
+          command: |
+            mix deps.clean --all
+      - run:
+          name: Get Dependencies
+          command: |
+            mix do deps.get, deps.compile, compile
+      - run:
+          name: Unit Test
+          command: |
+            export MIX_ENV=test
+            mix test
+      - run:
+          name: Integration Tests & Coveralls
+          command: |
+            export GIT_COMMIT_DESCRIPTION=$(git log --format=%B -n 1 $CIRCLE_SHA1)
+            export SHELL=/bin/bash
+            mix coveralls.post \
+              --umbrella \
+              --include integration \
+              --include wrappers \
+              --sha $CIRCLE_SHA \
+              --branch $CIRCLE_BRANCH \
+              --message "$GIT_COMMIT_DESCRIPTION"
+      - run:
+          name: Clean Build
+          command: |
+            export MIX_ENV=test
+            mix do compile --warnings-as-errors --force, test --exclude test
+      - run:
+          name: Dialyze
+          command: |
+            mix dialyzer --halt-exit-status
+      - run:
+          name: Lint
+          command: |
+            mix do credo, format --check-formatted --dry-run
+  
+  test-master-merge:
+    <<: *test-ci
+    steps:
+      - checkout
+      - run: 
+          name: Master Fast Forward
+          command: |
+            git pull --ff-only origin "refs/pull/${CI_PULL_REQUEST//*pull\//}/merge"
       - run:
           name: Install Hex
           command: |
@@ -101,6 +152,7 @@ workflows:
   build-deploy:
     jobs:
       - test-1.8
+      - test-master-merge
       - build_and_deploy:
           requires:
             - test-1.8
