@@ -155,8 +155,7 @@ workflows:
       - test-master-merge
         filters:
           branches:
-            ignore:
-              - master
+            ignore: master
       - build_and_deploy:
           requires:
             - test-1.8
