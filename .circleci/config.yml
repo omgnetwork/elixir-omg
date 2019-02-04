@@ -59,7 +59,6 @@ jobs:
   
   test-master-merge:
     <<: *test-ci
-    steps:
     checkout:
       post:
         git pull --ff-only origin "refs/pull/${CI_PULL_REQUEST//*pull\//}/merge"
