@@ -59,11 +59,12 @@ jobs:
   
   test-master-merge:
     <<: *test-ci
-    - checkout
-    - run: 
-        name: Master Fast Forward
-        command: |
-          git pull --ff-only origin "refs/pull/${CI_PULL_REQUEST//*pull\//}/merge"
+    - steps:
+      - checkout
+      - run: 
+          name: Master Fast Forward
+          command: |
+            git pull --ff-only origin "refs/pull/${CI_PULL_REQUEST//*pull\//}/merge"
 
   build_and_deploy:
     docker:
