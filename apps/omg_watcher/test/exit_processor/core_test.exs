@@ -806,35 +806,23 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)]
       }
 
-      # for one piggybacked output, we're asking for it's position to check utxo existence
-      assert %ExitProcessor.Request{piggybacked_utxos_to_check: [{^tx_blknum, 0, 0}]} =
-               Core.determine_ife_input_utxos_existence_to_get(exit_processor_request, processor)
-
-      # variant: here we check that moving tx to a different index works - here it is at txindex 1!
-      {:ok, recovered2} = DevCrypto.sign(tx2, [alice.priv]) |> Transaction.Recovered.recover_from()
-
-      assert %ExitProcessor.Request{piggybacked_utxos_to_check: [{^tx_blknum, 1, 0}]} =
-               exit_processor_request
-               |> Map.put(:blocks_result, [Block.hashed_txs_at([recovered2, recovered], tx_blknum)])
-               |> struct!()
-               |> Core.determine_ife_input_utxos_existence_to_get(processor)
+      # for one piggybacked output, we're asking for its inputs positions to check utxo existence
+      request = Core.determine_ife_input_utxos_existence_to_get(exit_processor_request, processor)
+      assert Utxo.position(1, 0, 0) in request.piggybacked_utxos_to_check
+      assert Utxo.position(1, 2, 1) in request.piggybacked_utxos_to_check
 
       # if it turns out to not exists, we're fetching the spending block
-      assert %ExitProcessor.Request{piggybacked_spends_to_get: [{^tx_blknum, 0, 0}]} =
+      request =
+        exit_processor_request
+        |> struct!(%{piggybacked_utxos_to_check: [Utxo.position(1, 0, 0)], piggybacked_utxo_exists_result: [false]})
+        |> Core.determine_ife_spends_to_get(processor)
+
+      assert Utxo.position(1, 0, 0) in request.piggybacked_spends_to_get
+
+      assert %ExitProcessor.Request{piggybacked_blknums_to_get: [1]} =
                exit_processor_request
-               |> struct!(%{piggybacked_utxos_to_check: [{tx_blknum, 0, 0}], piggybacked_utxo_exists_result: [false]})
-               |> Core.determine_ife_spends_to_get(processor)
-
-      assert %ExitProcessor.Request{piggybacked_blknums_to_get: [4000]} =
-               exit_processor_request
-               |> struct!(%{piggybacked_spends_to_get: [{tx_blknum, 0, 0}], piggybacked_spent_blknum_result: [4000]})
-               |> Core.determine_ife_blocks_to_get(processor)
-
-      # more piggybacks => more stuff to get
-      {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: ife_id, output_index: 5}])
-
-      assert %ExitProcessor.Request{piggybacked_utxos_to_check: [{^tx_blknum, 0, 0}, {^tx_blknum, 0, 1}]} =
-               Core.determine_ife_input_utxos_existence_to_get(exit_processor_request, processor)
+               |> struct!(%{piggybacked_spends_to_get: [Utxo.position(1, 0, 0)], piggybacked_spent_blknum_result: [1]})
+               |> Core.determine_ife_blocks_to_get()
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
