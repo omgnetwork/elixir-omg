@@ -169,13 +169,13 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       | hash: matching_bad_returned_hash
     }
 
-    assert {:error, :incorrect_hash, matching_bad_returned_hash, 0} ==
+    assert {:error, {:incorrect_hash, matching_bad_returned_hash, 0}} ==
              Core.validate_download_response({:ok, block}, matching_bad_returned_hash, 0, 0, 0)
 
     events = [%Event.InvalidBlock{error_type: :incorrect_hash, hash: matching_bad_returned_hash, blknum: 1}]
 
     assert {{:error, :incorrect_hash}, %{events: ^events}} =
-             Core.handle_downloaded_block(state, {:error, :incorrect_hash, matching_bad_returned_hash, 1})
+             Core.handle_downloaded_block(state, {:error, {:incorrect_hash, matching_bad_returned_hash, 1}})
   end
 
   @tag fixtures: [:alice]
@@ -194,20 +194,20 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       )
 
     # a particular API.Core.recover_tx_error instance
-    assert {:error, :no_inputs, hash, 1} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
+    assert {:error, {:no_inputs, hash, 1}} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
   end
 
   test "check error returned by decode_block, hash mismatch checks" do
     hash = <<12::256>>
     block = Block.hashed_txs_at([], 1)
 
-    assert {:error, :bad_returned_hash, hash, 1} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
+    assert {:error, {:bad_returned_hash, hash, 1}} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
   end
 
   test "check error returned by decode_block, API.Core.recover_tx checks" do
     %Block{hash: hash} = block = Block.hashed_txs_at([API.TestHelper.create_recovered([], @eth, [])], 1)
 
-    assert {:error, :no_inputs, hash, 1} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
+    assert {:error, {:no_inputs, hash, 1}} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
   end
 
   test "the blknum is overriden by the requested one" do
@@ -299,10 +299,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {:ok, []} = init_state() |> Core.consider_exits({:ok, [%Event.InvalidExit{}]}) |> Core.chain_ok()
   end
 
+  @tag :capture_log
   test "prevents progressing when unchallenged_exit is detected" do
     assert {:error, []} = init_state() |> Core.consider_exits({{:error, :unchallenged_exit}, []}) |> Core.chain_ok()
   end
 
+  @tag :capture_log
   test "prevents applying when started with an unchallenged_exit" do
     state = init_state(exit_processor_results: {{:error, :unchallenged_exit}, []})
     assert {:error, []} = Core.chain_ok(state)
@@ -311,7 +313,10 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   test "validate_executions function prevent getter from progressing when invalid block is detected" do
     state = init_state()
     block = %Block{number: 1, hash: <<>>}
-    assert {{:error, :tx_execution, {}}, state} = Core.validate_executions([{:error, {}}], block, state)
+
+    assert {{:error, {:tx_execution, :some_exec_error_reason}}, state} =
+             Core.validate_executions([{:error, :some_exec_error_reason}], block, state)
+
     assert {:error, [%Event.InvalidBlock{error_type: :tx_execution, hash: "", blknum: 1}]} = Core.chain_ok(state)
   end
 

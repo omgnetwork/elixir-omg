@@ -199,7 +199,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     # checking if both machines and humans learn about the byzantine condition
     assert capture_log(fn ->
              IntegrationTest.wait_for_byzantine_events([%Event.InvalidBlock{}.name], @timeout)
-           end) =~ inspect({:error, :tx_execution, :utxo_not_found})
+           end) =~ inspect(:tx_execution)
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
@@ -246,5 +246,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert capture_log(fn ->
              IntegrationTest.wait_for_byzantine_events([%Event.UnchallengedExit{}.name], @timeout)
            end) =~ inspect(:unchallenged_exit)
+
+    # we should still be able to challenge this "unchallenged exit" - just smoke testing the endpoint, details elsewhere
+    TestHelper.get_exit_challenge(exit_blknum, 0, 0)
   end
 end
