@@ -24,6 +24,9 @@ defmodule OMG.RPC.Fixtures do
 
       receive do
         {:DOWN, ^ref, :process, _, _} ->
+          # a tiny wait to allow the endpoint to be brought down for good, not sure how to get rid of the sleep
+          # without it one might get `eaddrinuse`
+          Process.sleep(10)
           :ok
       end
     end)
