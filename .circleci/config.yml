@@ -153,10 +153,10 @@ workflows:
     jobs:
       - test-1.8
       - test-master-merge
-          filters:
-            branches:
-              ignore:
-                - master
+        filters:
+          branches:
+            ignore:
+              - master
       - build_and_deploy:
           requires:
             - test-1.8
