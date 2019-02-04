@@ -661,9 +661,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   describe "evaluates new piggybacks" do
     @tag fixtures: [:processor_filled, :in_flight_exits]
     test "detects none if there is no piggybacks", %{processor_filled: processor} do
-      assert {:ok, []} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> Core.invalid_exits(processor)
+      {:ok, alerts} =
+        %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+        |> Core.invalid_exits(processor)
+
+      assert [] = alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
