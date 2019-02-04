@@ -59,7 +59,7 @@ jobs:
   
   test-master-merge:
     <<: *test-ci
-    - steps:
+    steps:
       - checkout
       - run: 
           name: Master Fast Forward
