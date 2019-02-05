@@ -837,6 +837,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       txbytes = Transaction.encode(tx)
       comp_txbytes = Transaction.encode(comp)
 
+      {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
       %{sigs: [_, other_signature]} = DevCrypto.sign(comp, [<<>>, alice.priv])
 
       other_ife_event = %{call_data: %{in_flight_tx: comp_txbytes, in_flight_tx_sigs: other_signature}, eth_height: 2}
@@ -849,13 +850,20 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 5}])
 
-      # FIXME: here in the request we should also provide a block with `tx` and a block that spends the piggybacked out
-      # puts
-      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-      {:ok, alerts} = Core.invalid_exits(request, state)
+      tx_blknum = 3000
 
-      assert [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0, 1], outputs: [0, 1]}] =
-               alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
+      {request, state} =
+        %ExitProcessor.Request{
+          blknum_now: 4000,
+          eth_height_now: 5,
+          piggybacked_blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)]
+        }
+        |> Core.find_ifes_in_blocks(state)
+
+      # note that outputs are not double-spent and can't be challenged; they can't exit since
+      # IFE is not canonical
+      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
+               invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
     end
 
     test "detects invalid piggybacks (in/outputs) regardless of canonicity",
