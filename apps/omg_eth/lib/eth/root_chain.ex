@@ -125,14 +125,14 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
-  def init(from \\ nil, contract \\ nil, opts \\ []) do
+  def init(exit_period, from \\ nil, contract \\ nil, opts \\ []) do
     defaults = @tx_defaults |> Keyword.put(:gas, @gas_init)
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     from = from || from_hex(Application.fetch_env!(:omg_eth, :authority_addr))
 
-    Eth.contract_transact(from, contract, "init()", [], opts)
+    Eth.contract_transact(from, contract, "init(uint256)", [exit_period], opts)
   end
 
   def in_flight_exit(
