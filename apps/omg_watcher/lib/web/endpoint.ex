@@ -17,7 +17,7 @@ defmodule OMG.Watcher.Web.Endpoint do
   use Appsignal.Phoenix
   use Sentry.Phoenix.Endpoint
 
-  socket("/socket", OMG.Watcher.Web.Socket)
+  socket("/socket", OMG.Watcher.Web.Socket, websocket: [])
 
   # Serve at "/" the static files from "priv/static" directory.
   #

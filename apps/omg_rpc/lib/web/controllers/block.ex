@@ -26,7 +26,9 @@ defmodule OMG.RPC.Web.Controller.Block do
   def get_block(conn, params) do
     with {:ok, hash} <- expect(params, "hash", :hash),
          {:ok, block} <- apply(@api_module, :get_block, [hash]) do
-      render(conn, View.Block, :block, block: block)
+      conn
+      |> put_view(View.Block)
+      |> render(:block, block: block)
     end
   end
 end
