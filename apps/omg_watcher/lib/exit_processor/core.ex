@@ -633,7 +633,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> List.flatten()
       |> Enum.filter(fn {_, _, outputs} -> outputs != [] end)
 
-    bad_piggybacks_on_inputs ++ bad_piggybacks_on_outputs
+    # produce only one event per IFE, with both pbs on inputs and outputs
+    (bad_piggybacks_on_inputs ++ bad_piggybacks_on_outputs)
+    |> Enum.group_by(&elem(&1, 0), fn {_, ins, outs} ->
+      {ins, outs}
+    end)
+    |> Enum.map(fn {txhash, zipped_pbs} ->
+      {all_ins, all_outs} = Enum.unzip(zipped_pbs)
+      {txhash, List.flatten(all_ins), List.flatten(all_outs)}
+    end)
   end
 
   # Gets the list of open IFEs that have the competitors _somewhere_
