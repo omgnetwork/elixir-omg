@@ -92,13 +92,11 @@ defmodule OMG.DB.LevelDBCore do
   def key(:utxo, {position, _utxo}), do: key(:utxo, position)
   def key(:spend, {position, _blknum}), do: key(:spend, position)
   def key(:exit_info, {position, _exit_info}), do: key(:exit_info, position)
+  def key(:in_flight_exit_info, {position, _info}), do: key(:in_flight_exit_info, position)
+  def key(:competitor_info, {position, _info}), do: key(:competitor_info, position)
 
   def key(type, item) when type in @key_types,
     do: Map.get(@keys_prefixes, type) <> :erlang.term_to_binary(item)
-
-  def key(:in_flight_exit_info, position) do
-    "ife" <> :erlang.term_to_binary(position)
-  end
 
   @single_value_parameter_names [
     :child_top_block_number,
