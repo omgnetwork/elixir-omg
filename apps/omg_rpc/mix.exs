@@ -37,11 +37,9 @@ defmodule OMG.RPC.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.3.2"},
-      {:cowboy, "~> 1.1"},
+      {:phoenix, "~> 1.3"},
+      {:plug_cowboy, "~> 1.0"},
       {:deferred_config, "~> 0.1.1"},
-      # NOTE: fixed version needed b/c Plug.Conn.WrapperError.reraise/3 is deprecated... 2 occurences in umbrella.
-      {:plug, "1.5.0", override: true},
       {:httpoison, "~> 1.4.0"},
       {:appsignal, "~> 1.0"}
       #

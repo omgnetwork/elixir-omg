@@ -58,7 +58,11 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     # start spending and exiting to see if watcher integrates all the pieces
     {:ok, _, _socket} =
-      subscribe_and_join(socket(), Channel.Transfer, TestHelper.create_topic("transfer", alice_address))
+      subscribe_and_join(
+        socket(OMG.Watcher.Web.Socket),
+        Channel.Transfer,
+        TestHelper.create_topic("transfer", alice_address)
+      )
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     {:ok, %{blknum: block_nr}} = Client.submit(tx)

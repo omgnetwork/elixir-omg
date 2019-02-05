@@ -26,7 +26,9 @@ defmodule OMG.RPC.Web.Controller.Transaction do
   def submit(conn, params) do
     with {:ok, txbytes} <- expect(params, "transaction", :hex),
          {:ok, details} <- apply(@api_module, :submit, [txbytes]) do
-      render(conn, View.Transaction, :submit, result: details)
+      conn
+      |> put_view(View.Transaction)
+      |> render(:submit, result: details)
     end
   end
 end
