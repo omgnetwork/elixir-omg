@@ -858,12 +858,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
                invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
     end
-
-    test "detects invalid piggybacks (in/outputs) regardless of canonicity",
-         %{} do
-      # TODO: kanoniczne IFE tez generują niepoprawne PB na inputach!!!
-      # TODO: niekanoniczne IFE tez generuja niepoprawne PB na outputach!!!
-    end
   end
 
   describe "finds competitors and allows canonicity challenges" do
