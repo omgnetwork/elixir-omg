@@ -429,19 +429,12 @@ defmodule OMG.Watcher.BlockGetter.Core do
   defp validate_downloaded_block(
          %__MODULE__{
            unapplied_blocks: unapplied_blocks,
-           num_of_highest_block_being_downloaded: num_of_highest_block_being_downloaded,
-           last_applied_block: last_applied_block,
            potential_block_withholdings: potential_block_withholdings
          } = state,
          {:ok, %{number: number} = block}
        ) do
-    with :ok <- if(Map.has_key?(unapplied_blocks, number), do: {{:error, :duplicate}, state}, else: :ok),
-         :ok <-
-           (if last_applied_block < number and number <= num_of_highest_block_being_downloaded do
-              :ok
-            else
-              {{:error, :unexpected_block}, state}
-            end) do
+    with true <- not_queued_up_yet?(number, unapplied_blocks) || {{:error, :duplicate}, state},
+         true <- expected_to_queue_up?(number, state) || {{:error, :unexpected_block}, state} do
       state = %{
         state
         | unapplied_blocks: Map.put(unapplied_blocks, number, block),
@@ -485,6 +478,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
         {:ok, state}
     end
   end
+
+  defp not_queued_up_yet?(number, unapplied_blocks), do: not Map.has_key?(unapplied_blocks, number)
+
+  defp expected_to_queue_up?(number, %{num_of_highest_block_being_downloaded: highest, last_applied_block: last}),
+    do: last < number and number <= highest
 
   @doc """
   Statelessly decodes and validates a downloaded block, does all the checks before handing off to State.exec-checking
