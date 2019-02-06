@@ -16,14 +16,15 @@ defmodule OMG.Watcher.Event do
   alias OMG.API.Block
   alias OMG.API.State.Transaction
 
-  @type t ::
-          OMG.Watcher.Event.AddressReceived.t()
-          | OMG.Watcher.Event.InvalidBlock.t()
+  @type byzantine_t ::
+          OMG.Watcher.Event.InvalidBlock.t()
           | OMG.Watcher.Event.BlockWithholding.t()
           | OMG.Watcher.Event.InvalidExit.t()
           | OMG.Watcher.Event.UnchallengedExit.t()
           | OMG.Watcher.Event.NonCanonicalIFE.t()
           | OMG.Watcher.Event.InvalidIFEChallenge.t()
+
+  @type t :: OMG.Watcher.Event.AddressReceived.t() | byzantine_t()
 
   #  TODO The reason why events have name as String and byzantine events as atom is that
   #  Phoniex websockets requires topics as strings + currently we treat Strings and binaries in

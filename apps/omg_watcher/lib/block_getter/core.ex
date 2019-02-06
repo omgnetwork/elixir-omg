@@ -19,6 +19,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   alias OMG.API.Block
   alias OMG.API.State.Transaction
   alias OMG.Watcher.Event
+  alias OMG.Watcher.ExitProcessor
 
   use OMG.API.LoggerExt
 
@@ -89,9 +90,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           num_of_highest_block_being_downloaded: non_neg_integer,
           number_of_blocks_being_downloaded: non_neg_integer,
           last_block_persisted_from_prev_run: non_neg_integer,
-          unapplied_blocks: %{
-            non_neg_integer => OMG.API.Block.t()
-          },
+          unapplied_blocks: %{non_neg_integer => Block.t()},
           potential_block_withholdings: %{
             non_neg_integer => PotentialWithholding.t()
           },
@@ -108,6 +107,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   @type init_error() :: :not_at_block_beginning
 
+  @type validate_download_response_result_t() ::
+          {:ok, Block.t() | PotentialWithholdingReport.t()}
+          | {:error, {block_error(), binary(), pos_integer()}}
+
   @doc """
   Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block,
   using `child_block_interval` when progressing from one child block to another,
@@ -118,8 +121,16 @@ defmodule OMG.Watcher.BlockGetter.Core do
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
     - `:maximum_block_withholding_time_ms` - how much time should we wait after the first failed pull until we call it a block withholding byzantine condition of the child chain (0 ms)
   """
-  @spec init(non_neg_integer, pos_integer, non_neg_integer, non_neg_integer, non_neg_integer, boolean, Keyword.t()) ::
-          {:ok, %__MODULE__{}} | {:error, init_error()}
+  @spec init(
+          non_neg_integer,
+          pos_integer,
+          non_neg_integer,
+          non_neg_integer,
+          non_neg_integer,
+          boolean,
+          ExitProcessor.Core.check_validity_result_t(),
+          Keyword.t()
+        ) :: {:ok, %__MODULE__{}} | {:error, init_error()}
   def init(
         block_number,
         child_block_interval,
@@ -127,27 +138,30 @@ defmodule OMG.Watcher.BlockGetter.Core do
         block_reorg_margin,
         last_persisted_block,
         state_at_block_beginning,
+        exit_processor_results,
         opts \\ []
       ) do
     with true <- state_at_block_beginning || {:error, :not_at_block_beginning},
          true <- opts_valid?(opts) do
-      state = %__MODULE__{
-        eth_height_done_by_blknum: %{},
-        synced_height: synced_height,
-        last_applied_block: block_number,
-        num_of_highest_block_being_downloaded: block_number,
-        number_of_blocks_being_downloaded: 0,
-        last_block_persisted_from_prev_run: last_persisted_block,
-        unapplied_blocks: %{},
-        potential_block_withholdings: %{},
-        config:
-          struct(
-            Config,
-            Keyword.merge(opts, block_interval: child_block_interval, block_reorg_margin: block_reorg_margin)
-          ),
-        events: [],
-        chain_status: :ok
-      }
+      state =
+        %__MODULE__{
+          eth_height_done_by_blknum: %{},
+          synced_height: synced_height,
+          last_applied_block: block_number,
+          num_of_highest_block_being_downloaded: block_number,
+          number_of_blocks_being_downloaded: 0,
+          last_block_persisted_from_prev_run: last_persisted_block,
+          unapplied_blocks: %{},
+          potential_block_withholdings: %{},
+          config:
+            struct(
+              Config,
+              Keyword.merge(opts, block_interval: child_block_interval, block_reorg_margin: block_reorg_margin)
+            ),
+          events: [],
+          chain_status: :ok
+        }
+        |> consider_exits(exit_processor_results)
 
       {:ok, state}
     end
@@ -373,7 +387,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   """
   @spec handle_downloaded_block(
           %__MODULE__{},
-          {:ok, OMG.API.Block.t() | PotentialWithholdingReport.t()} | {:error, block_error(), binary(), pos_integer()}
+          {:ok, OMG.API.Block.t() | PotentialWithholdingReport.t()} | {:error, {block_error(), binary(), pos_integer()}}
         ) ::
           {:ok | {:error, block_error()}, %__MODULE__{}}
           | {:error, :duplicate | :unexpected_block}
@@ -410,24 +424,17 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   defp get_blknum({:ok, %{number: number}}), do: number
   defp get_blknum({:ok, %PotentialWithholdingReport{blknum: blknum}}), do: blknum
-  defp get_blknum({:error, _error_type, _hash, number}), do: number
+  defp get_blknum({:error, {_error_type, _hash, number}}), do: number
 
   defp validate_downloaded_block(
          %__MODULE__{
            unapplied_blocks: unapplied_blocks,
-           num_of_highest_block_being_downloaded: num_of_highest_block_being_downloaded,
-           last_applied_block: last_applied_block,
            potential_block_withholdings: potential_block_withholdings
          } = state,
          {:ok, %{number: number} = block}
        ) do
-    with :ok <- if(Map.has_key?(unapplied_blocks, number), do: :duplicate, else: :ok),
-         :ok <-
-           (if last_applied_block < number and number <= num_of_highest_block_being_downloaded do
-              :ok
-            else
-              :unexpected_block
-            end) do
+    with true <- not_queued_up_yet?(number, unapplied_blocks) || {{:error, :duplicate}, state},
+         true <- expected_to_queue_up?(number, state) || {{:error, :unexpected_block}, state} do
       state = %{
         state
         | unapplied_blocks: Map.put(unapplied_blocks, number, block),
@@ -435,26 +442,15 @@ defmodule OMG.Watcher.BlockGetter.Core do
       }
 
       {:ok, state}
-    else
-      error -> {{:error, error}, state}
     end
   end
 
   defp validate_downloaded_block(
          %__MODULE__{} = state,
-         {:error, error_type, hash, blknum}
+         {:error, {error_type, hash, blknum}}
        ) do
-    event = %Event.InvalidBlock{
-      error_type: error_type,
-      hash: hash,
-      blknum: blknum
-    }
-
-    state =
-      state
-      |> set_chain_status(:error)
-      |> add_non_existing_event(event)
-
+    event = %Event.InvalidBlock{error_type: error_type, hash: hash, blknum: blknum}
+    state = state |> set_chain_status(:error) |> add_distinct_event(event)
     {{:error, error_type}, state}
   end
 
@@ -470,28 +466,23 @@ defmodule OMG.Watcher.BlockGetter.Core do
     cond do
       blknum_time == nil ->
         potential_block_withholdings = Map.put(potential_block_withholdings, blknum, %PotentialWithholding{time: time})
-
-        state = %{
-          state
-          | potential_block_withholdings: potential_block_withholdings
-        }
-
+        state = %{state | potential_block_withholdings: potential_block_withholdings}
         {:ok, state}
 
       time - blknum_time >= config.maximum_block_withholding_time_ms ->
         event = %Event.BlockWithholding{blknum: blknum, hash: hash}
-
-        state =
-          state
-          |> set_chain_status(:error)
-          |> add_non_existing_event(event)
-
+        state = state |> set_chain_status(:error) |> add_distinct_event(event)
         {{:error, :withholding}, state}
 
       true ->
         {:ok, state}
     end
   end
+
+  defp not_queued_up_yet?(number, unapplied_blocks), do: not Map.has_key?(unapplied_blocks, number)
+
+  defp expected_to_queue_up?(number, %{num_of_highest_block_being_downloaded: highest, last_applied_block: last}),
+    do: last < number and number <= highest
 
   @doc """
   Statelessly decodes and validates a downloaded block, does all the checks before handing off to State.exec-checking
@@ -504,9 +495,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           pos_integer(),
           pos_integer(),
           pos_integer()
-        ) ::
-          {:ok, map | PotentialWithholdingReport.t()}
-          | {:error, block_error(), binary(), pos_integer()}
+        ) :: validate_download_response_result_t()
   def validate_download_response(
         {:ok, %{hash: returned_hash, transactions: transactions, number: number}},
         requested_hash,
@@ -540,10 +529,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
              timestamp: block_timestamp,
              zero_fee_requirements: zero_fee_requirements
            }},
-        else: {:error, :incorrect_hash, requested_hash, requested_number}
+        else: {:error, {:incorrect_hash, requested_hash, requested_number}}
     else
       {:error, error_type} ->
-        {:error, error_type, requested_hash, requested_number}
+        {:error, {error_type, requested_hash, requested_number}}
     end
   end
 
@@ -560,38 +549,37 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
   @spec validate_executions(
           list({Transaction.Recovered.tx_hash_t(), pos_integer, pos_integer}),
-          {:ok | tuple(), list()},
           map,
-          %__MODULE__{}
-        ) :: {:ok, %__MODULE__{}} | {{:error, :tx_execution, any()}, %__MODULE__{}}
-  def validate_executions(tx_execution_results, exit_processor_results, %{hash: hash, number: blknum}, state) do
-    with nil <- Enum.find(tx_execution_results, &(!match?({:ok, {_, _, _}}, &1))),
-         {:ok, _} <- exit_processor_results do
+          t()
+        ) :: {:ok, t()} | {{:error, {:tx_execution, any()}}, t()}
+  def validate_executions(tx_execution_results, %{hash: hash, number: blknum}, state) do
+    with true <- all_tx_executions_ok?(tx_execution_results) do
       {:ok, state}
     else
       {:error, reason} ->
-        event = %Event.InvalidBlock{
-          error_type: :tx_execution,
-          hash: hash,
-          blknum: blknum
-        }
-
-        state = %{
-          state
-          | events: [event | state.events]
-        }
-
-        state = set_chain_status(state, :error)
-
-        {{:error, :tx_execution, reason}, state}
-
-      {{:error, :unchallenged_exit}, events} ->
-        state = set_chain_status(state, :error)
-        {{:error, :unchallenged_exit, events}, state}
-
-      {reason, _} ->
-        {reason, state}
+        event = %Event.InvalidBlock{error_type: :tx_execution, hash: hash, blknum: blknum}
+        state = state |> set_chain_status(:error) |> add_distinct_event(event)
+        {{:error, {:tx_execution, reason}}, state}
     end
+  end
+
+  defp all_tx_executions_ok?(tx_execution_results) do
+    Enum.find(tx_execution_results, &(!match?({:ok, {_, _, _}}, &1)))
+    |> case do
+      nil -> true
+      other -> other
+    end
+  end
+
+  @doc """
+  Takes results from `ExitProcessor.check_validity` into account, to potentially stop getting blocks
+  """
+  @spec consider_exits(t(), ExitProcessor.Core.check_validity_result_t()) :: t()
+  def consider_exits(%__MODULE__{} = state, {:ok, _}), do: state
+
+  def consider_exits(%__MODULE__{} = state, {{:error, :unchallenged_exit} = error, _}) do
+    _ = Logger.warn("Chain invalid when taking exits into account, because of #{inspect(error)}")
+    set_chain_status(state, :error)
   end
 
   defp add_zero_fee(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}, fee_map) do
@@ -680,10 +668,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
     }
   end
 
-  defp add_non_existing_event(%__MODULE__{events: events} = state, event) do
+  defp add_distinct_event(%__MODULE__{events: events} = state, event) do
     if Enum.member?(events, event),
       do: state,
-      else: %{state | events: [event | state.events]}
+      else: %{state | events: [event | events]}
   end
 
   defp set_chain_status(state, status), do: %{state | chain_status: status}

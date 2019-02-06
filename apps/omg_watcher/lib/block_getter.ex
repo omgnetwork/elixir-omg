@@ -19,7 +19,6 @@ defmodule OMG.Watcher.BlockGetter do
   Detects byzantine behaviors like invalid blocks and block withholding and notifies Eventer.
   """
 
-  alias OMG.API.Block
   alias OMG.API.RootChainCoordinator
   alias OMG.API.RootChainCoordinator.SyncData
   alias OMG.API.State
@@ -36,8 +35,7 @@ defmodule OMG.Watcher.BlockGetter do
     GenServer.call(__MODULE__, :get_events)
   end
 
-  @spec download_block(pos_integer()) ::
-          {:ok, Block.t() | Core.PotentialWithholding.t()} | {:error, Core.block_error(), binary(), pos_integer()}
+  @spec download_block(pos_integer()) :: Core.validate_download_response_result_t()
   defp download_block(requested_number) do
     {:ok, {requested_hash, block_timestamp}} = Eth.RootChain.get_child_chain(requested_number)
     response = Client.get_block(requested_hash)
@@ -61,9 +59,8 @@ defmodule OMG.Watcher.BlockGetter do
         state
       ) do
     with {:ok, _} <- Core.chain_ok(state),
-         tx_exec_results <- for(tx <- transactions, do: OMG.API.State.exec(tx, fees)),
-         exit_processor_results <- ExitProcessor.check_validity(),
-         {:ok, state} <- Core.validate_executions(tx_exec_results, exit_processor_results, block, state) do
+         tx_exec_results = for(tx <- transactions, do: OMG.API.State.exec(tx, fees)),
+         {:ok, state} <- Core.validate_executions(tx_exec_results, block, state) do
       _ =
         block
         |> Core.ensure_block_imported_once(block_rootchain_height, state.last_block_persisted_from_prev_run)
@@ -79,14 +76,17 @@ defmodule OMG.Watcher.BlockGetter do
       :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_state)
       :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
 
+      exit_processor_results = ExitProcessor.check_validity()
+      state = Core.consider_exits(state, exit_processor_results)
+
       {:noreply, state}
     else
-      {:error, events} ->
-        _ = Logger.error("Error while applying block because of #{inspect(events)}")
-        {:noreply, state}
+      {{:error, _} = error, new_state} ->
+        _ = Logger.error("Invalid block #{inspect(blknum)}, because of #{inspect(error)}")
+        {:noreply, new_state}
 
-      {error, state} ->
-        _ = Logger.error("Error while applying block because of #{inspect(error)}")
+      {:error, _} = error ->
+        _ = Logger.warn("Chain already invalid before applying block #{inspect(blknum)} because of #{inspect(error)}")
         {:noreply, state}
     end
   end
@@ -127,6 +127,8 @@ defmodule OMG.Watcher.BlockGetter do
     maximum_block_withholding_time_ms = Application.fetch_env!(:omg_watcher, :maximum_block_withholding_time_ms)
     maximum_number_of_unapplied_blocks = Application.fetch_env!(:omg_watcher, :maximum_number_of_unapplied_blocks)
 
+    exit_processor_initial_results = ExitProcessor.check_validity()
+
     {:ok, state} =
       Core.init(
         child_top_block_number,
@@ -135,6 +137,7 @@ defmodule OMG.Watcher.BlockGetter do
         block_reorg_margin,
         last_persisted_block,
         state_at_block_beginning,
+        exit_processor_initial_results,
         maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
         maximum_number_of_unapplied_blocks: maximum_number_of_unapplied_blocks,
         # NOTE: not elegant, but this should limit the number of heavy-lifting workers and chance to starve the rest
@@ -159,12 +162,8 @@ defmodule OMG.Watcher.BlockGetter do
       {:ok, _} = :timer.send_after(2_000, self(), :producer)
       {:noreply, new_state}
     else
-      {:error, events} ->
-        _ = Logger.error("Error while applying block because of #{inspect(events)}")
-        {:noreply, state}
-
-      {error, state} ->
-        _ = Logger.error("Error while running next block_download_task because of #{inspect(error)}")
+      {:error, _} = error ->
+        _ = Logger.warn("Chain invalid when trying to download blocks, because of #{inspect(error)}, won't try again")
         {:noreply, state}
     end
   end
@@ -176,7 +175,7 @@ defmodule OMG.Watcher.BlockGetter do
       state = run_block_download_task(state)
       {:noreply, state}
     else
-      {error, state} ->
+      {{:error, _} = error, state} ->
         _ = Logger.error("Error while handling downloaded block because of #{inspect(error)}")
 
         {:noreply, state}
