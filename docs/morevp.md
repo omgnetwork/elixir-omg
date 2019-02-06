@@ -203,6 +203,9 @@ Otherwise, the exiting transaction is determined to be non-canonical and the cha
 Note that this challenge means it’s possible for an honest user to lose `exit bond` as they might not be aware their transaction is non-canonical.
 We address this attack vector and several mitigations in detail later.
 
+It might also be the case that in-flight exit is opened where some of the inputs where referenced in standard exit and those standard exits were finalized.
+In such case in-flight exit is flagged as non-canonical and further canonicity game can't change its status.
+
 <!-- TODO: Include image of canonicity "state machine" -->
 
 
@@ -235,10 +238,28 @@ Any inputs or outputs paid out should be saved in the contract so that any futur
 #### Combining with Plasma MVP Exit Protocol
 
 The MoreVP protocol can be combined with the Plasma MVP protocol in a way that simultaneously preserves the integrity of exits and minimizes gas cost.
-Owners of outputs on the Plasma chain should be able to start an exit via either mechanism, but not both.
-Implementers can check this whenever an MVP exit is being submitted or whenever a MoreVP exit is being piggybacked.
-Although the two protocols use different determinations for exit priority, we still need a total ordering on exits.
+Although the two protocols use different determinations for exit priority, total ordering on exits is still needed.
 Therefore, every exit, no matter the protocol used, must be included in the same priority queue for processing.
+Honest user which enjoys data availability should be able to ignore in-flight exits that involve their outputs.
+Owners of outputs on the Plasma chain should be able to start an exit via either mechanism, but not both.
+To guarantee that money can't be double-spend via those two mechanisms, two approaches are possible.
+
+##### Chosen solution
+This approach minimizes complexity of interactive games while negatively affecting gas cost of a happy path.
+Contract needs to check if other type of exit exists for particular output when standard exit is being submitted and it checks if standard exit is in progress / was finalized when in-flight exit is being added.
+In first case new exit is blocked.
+In second case - in-flight exit is marked as one which can be exited only from inputs, and problematic inputs are marked as spent for piggybacking purposes.
+To make such checks possible, both types of exits need to use transaction hash as an exit id.
+No additional interactive games arise from the fact of coexistence of MVP and MoreVP protocols.
+
+##### Alternative solution, to be implemented later
+To reduce gas costs for honest participants, new types of challenges needs to be introduced.
+Piggybacks on outputs should be challenged by standard exits and vice-versa.
+Standard exits on UTXO seen as the input of a in-flight tx exit can be challenged using tx body.
+Canonicity of in-flight exit can be removed by pointing contract to finalized standard exit from in-flight exit inputs, marking particular input as spent.
+
+For details, [see here](mvp_morevp_interaction.md).
+
 
 
 ## Alice-Bob Scenarios
