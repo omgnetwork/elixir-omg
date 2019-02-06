@@ -18,20 +18,17 @@ defmodule OMG.API.State.Transaction.Fee do
   """
 
   alias OMG.API.Crypto
-  alias OMG.API.FeeChecker
   alias OMG.API.State.Transaction
 
   @doc """
-
+  Processes fees for transaction, returns new fees that transaction is validated against.
+  Note: When transaction has no inputs in fee accepted currency, empty map is returned and transaction
+  will be rejected in `State.Core.exec`.
+  To make transaction fee free, zero-fee for transaction's currency needs to be explicitly returned.
   """
-  @spec apply(Transaction.Recovered.t(), [Crypto.address_t()], FeeChecker.Core.token_fee_t()) ::
+  @spec apply(Transaction.Recovered.t(), [Crypto.address_t()], OMG.API.FeeChecker.Core.token_fee_t()) ::
           FeeChecker.Core.token_fee_t()
   def apply(_recovered_tx, input_currencies, fees) do
-    tx_fees = Map.take(fees, input_currencies)
-
-    if %{} == tx_fees,
-      # transaction doesn't transfer any fee currency funds but still is obliged to pay a fee
-      do: fees,
-      else: tx_fees
+    Map.take(fees, input_currencies)
   end
 end
