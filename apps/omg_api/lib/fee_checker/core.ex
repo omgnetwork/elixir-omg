@@ -18,28 +18,10 @@ defmodule OMG.API.FeeChecker.Core do
   """
 
   alias OMG.API.Crypto
-  alias OMG.API.State.Transaction
-  alias OMG.API.State.Transaction.Recovered
   alias Poison
 
   @type fee_spec_t() :: %{token: Crypto.address_t(), flat_fee: non_neg_integer}
   @type token_fee_t() :: %{Crypto.address_t() => non_neg_integer}
-
-  @doc """
-  Calculates fee from transaction and checks whether token is allowed and flat fee limits are met
-  """
-  @spec transaction_fees(Recovered.t(), token_fee_t()) :: {:ok, token_fee_t()} | {:error, :token_not_allowed}
-  def transaction_fees(
-        %Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}},
-        token_fees
-      ) do
-    currencies = Transaction.get_currencies(tx)
-    tx_fees = Map.take(token_fees, currencies)
-
-    if Enum.all?(currencies, &Map.has_key?(tx_fees, &1)),
-      do: {:ok, tx_fees},
-      else: {:error, :token_not_allowed}
-  end
 
   @doc """
   Parses provided json string to token-fee map and returns the map together with possible parsing errors

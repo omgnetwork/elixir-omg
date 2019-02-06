@@ -151,8 +151,9 @@ defmodule OMG.API.State.Core do
 
     with :ok <- validate_block_size(state),
          {:ok, input_amounts_by_currency} <- correct_inputs?(state, recovered_tx),
-         output_amounts_by_currency <- get_amounts_by_currency(outputs),
-         :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency, fees) do
+         output_amounts_by_currency = get_amounts_by_currency(outputs),
+         transaction_fees = Transaction.Fee.apply(recovered_tx, Map.keys(input_amounts_by_currency), fees),
+         :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency, transaction_fees) do
       {:ok, {tx_hash, height, tx_index},
        state
        |> apply_spend(recovered_tx)
@@ -233,7 +234,7 @@ defmodule OMG.API.State.Core do
     fees_covered =
       for {input_currency, input_amount} <- Map.to_list(input_amounts) do
         output_amount = Map.get(output_amounts, input_currency, 0)
-        fee = Map.get(fees, input_currency, 0)
+        fee = Map.get(fees, input_currency, :infinity)
         input_amount - output_amount >= fee
       end
       |> Enum.any?()

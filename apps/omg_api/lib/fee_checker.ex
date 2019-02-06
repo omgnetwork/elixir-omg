@@ -20,14 +20,11 @@ defmodule OMG.API.FeeChecker do
   """
 
   alias OMG.API.FeeChecker.Core
-  alias OMG.API.State.Transaction.Recovered
 
   use GenServer
   use OMG.API.LoggerExt
 
   @file_changed_check_interval_ms 10_000
-
-  @type error() :: :token_not_allowed
 
   def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -44,11 +41,11 @@ defmodule OMG.API.FeeChecker do
   end
 
   @doc """
-  Calculates fee from transaction and checks whether token is allowed and flat fee limits are met
+  Returns accepted tokens and amounts in which transaction fees are collected
   """
-  @spec transaction_fees(Recovered.t()) :: {:ok, Core.token_fee_t()} | {:error, error()}
-  def transaction_fees(recovered_tx) do
-    Core.transaction_fees(recovered_tx, load_fees())
+  @spec transaction_fees() :: {:ok, Core.token_fee_t()}
+  def transaction_fees do
+    {:ok, load_fees()}
   end
 
   @doc """
