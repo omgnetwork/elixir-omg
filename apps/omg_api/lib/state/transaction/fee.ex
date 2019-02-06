@@ -18,17 +18,31 @@ defmodule OMG.API.State.Transaction.Fee do
   """
 
   alias OMG.API.Crypto
+  alias OMG.API.FeeChecker.Core
   alias OMG.API.State.Transaction
 
   @doc """
-  Processes fees for transaction, returns new fees that transaction is validated against.
-  Note: When transaction has no inputs in fee accepted currency, empty map is returned and transaction
-  will be rejected in `State.Core.exec`.
-  To make transaction fee free, zero-fee for transaction's currency needs to be explicitly returned.
+  Checks whether transaction's funds cover the fee
   """
-  @spec apply(Transaction.Recovered.t(), [Crypto.address_t()], OMG.API.FeeChecker.Core.token_fee_t()) ::
-          FeeChecker.Core.token_fee_t()
-  def apply(_recovered_tx, input_currencies, fees) do
+  @spec covered?(Transaction.Recovered.t(), map(), map(), Core.token_fee_t()) :: boolean()
+  def covered?(recovered_tx, input_amounts, output_amounts, fees) do
+    fees = apply_fees(recovered_tx, Map.keys(input_amounts), fees)
+
+    for {input_currency, input_amount} <- Map.to_list(input_amounts) do
+      output_amount = Map.get(output_amounts, input_currency, 0)
+      fee = Map.get(fees, input_currency, :infinity)
+      input_amount - output_amount >= fee
+    end
+    |> Enum.any?()
+  end
+
+  # Processes fees for transaction, returns new fees that transaction is validated against.
+  # Note: When transaction has no inputs in fee accepted currency, empty map is returned and transaction
+  # will be rejected in `State.Core.exec`.
+  # To make transaction fee free, zero-fee for transaction's currency needs to be explicitly returned.
+  @spec apply_fees(Transaction.Recovered.t(), [Crypto.address_t()], Core.token_fee_t()) ::
+          Core.token_fee_t()
+  defp apply_fees(_recovered_tx, input_currencies, fees) do
     Map.take(fees, input_currencies)
   end
 end

@@ -37,11 +37,16 @@ defmodule OMG.API.State.FeeTest do
   test "Fee map is reduced to the currencies spend by transaction", %{alice: alice, bob: bob} do
     tx = create_recovered([{1, 0, 0, alice}], @eth, [{bob, 5}, {alice, 3}])
 
-    assert %{@eth => 1} == Fee.apply(tx, [@eth], @fees)
+    assert Fee.covered?(tx, %{@eth => 10}, %{@eth => 9}, @fees)
 
-    assert %{@not_eth => 3} == Fee.apply(tx, [@not_eth], @fees)
+    assert Fee.covered?(tx, %{@not_eth => 10}, %{@not_eth => 7}, @fees)
 
-    assert @fees == Fee.apply(tx, [@not_eth, @eth], @fees)
+    assert Fee.covered?(
+             tx,
+             %{@eth => 5, @not_eth => 13},
+             %{@eth => 5, @not_eth => 10},
+             @fees
+           )
   end
 
   @tag fixtures: [:alice, :bob]
@@ -49,6 +54,6 @@ defmodule OMG.API.State.FeeTest do
     other_token = <<2::160>>
     tx = create_recovered([{1, 0, 0, alice}], other_token, [{bob, 5}, {alice, 3}])
 
-    assert %{} == Fee.apply(tx, [other_token], @fees)
+    assert false == Fee.covered?(tx, %{other_token => 10}, %{other_token => 7}, @fees)
   end
 end
