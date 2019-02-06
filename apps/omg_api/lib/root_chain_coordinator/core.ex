@@ -53,7 +53,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
   List is not empty only when service that checks in is the last one synchronizing on a given height.
   """
   @spec check_in(t(), pid(), pos_integer(), atom()) :: {:ok, t(), list(pid())} | :service_not_allowed
-  def check_in(state, pid, service_height, service_name) do
+  def check_in(state, pid, service_height, service_name) when is_integer(service_height) do
     if allowed?(state.configs_services, service_name) do
       previous_synced_height =
         case get_synced_info(state, service_name) do
@@ -75,35 +75,37 @@ defmodule OMG.API.RootChainCoordinator.Core do
 
   defp allowed?(configs_services, service_name), do: Map.has_key?(configs_services, service_name)
 
-  defp update_service_synced_height(state, pid, service_reported_sync_height, service_name) do
-    service = %Service{synced_height: service_reported_sync_height, pid: pid}
+  defp update_service_synced_height(
+         %__MODULE__{services: services, root_chain_height: root_chain_height} = state,
+         pid,
+         new_reported_sync_height,
+         service_name
+       ) do
+    new_service_state = %Service{synced_height: new_reported_sync_height, pid: pid}
+    current_service_state = Map.get(services, service_name, new_service_state)
 
-    if valid_sync_height_update?(state, service, service_reported_sync_height, service_name) do
-      services = Map.put(state.services, service_name, service)
-      state = %{state | services: services}
-      {:ok, state}
+    if valid_sync_height_update?(current_service_state, root_chain_height, new_reported_sync_height) do
+      {:ok, %{state | services: Map.put(services, service_name, new_service_state)}}
     else
-      _ =
-        Logger.error(fn ->
-          "Invalid synced height update #{
-            inspect(
-              %{
-                service_name: service_name,
-                root_chain_height: state.root_chain_height,
-                service_reported_sync_height: service_reported_sync_height
-              },
-              pretty: true
-            )
-          }"
-        end)
+      report_data = %{
+        current: current_service_state,
+        service_name: service_name,
+        root_chain_height: root_chain_height,
+        new_reported_sync_height: new_reported_sync_height
+      }
+
+      _ = Logger.error("Invalid synced height update #{inspect(report_data, pretty: true)}")
 
       :invalid_synced_height_update
     end
   end
 
-  defp valid_sync_height_update?(state, synced_service, service_reported_sync_height, service_name) do
-    service = Map.get(state.services, service_name, synced_service)
-    service.synced_height <= service_reported_sync_height and service_reported_sync_height <= state.root_chain_height
+  defp valid_sync_height_update?(
+         %Service{synced_height: current_synced_height},
+         root_chain_height,
+         new_reported_sync_height
+       ) do
+    current_synced_height <= new_reported_sync_height and new_reported_sync_height <= root_chain_height
   end
 
   defp get_services_to_sync(state, service_name, previous_synced_height) do
@@ -177,7 +179,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
   Removes service from services being synchronized
   """
   @spec check_out(t(), pid()) :: {:ok, t()}
-  def check_out(state, pid) do
+  def check_out(%__MODULE__{} = state, pid) do
     {service_name, _} =
       state.services
       |> Enum.find(fn {_, service} -> service.pid == pid end)
@@ -191,7 +193,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
   Sets root chain height
   """
   @spec update_root_chain_height(t(), pos_integer()) :: {:ok, t()}
-  def update_root_chain_height(state, root_chain_height) do
+  def update_root_chain_height(%__MODULE__{} = state, root_chain_height) when is_integer(root_chain_height) do
     {:ok, %{state | root_chain_height: root_chain_height}}
   end
 end
