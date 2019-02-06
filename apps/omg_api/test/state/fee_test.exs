@@ -49,6 +49,6 @@ defmodule OMG.API.State.FeeTest do
     other_token = <<2::160>>
     tx = create_recovered([{1, 0, 0, alice}], other_token, [{bob, 5}, {alice, 3}])
 
-    assert @fees == Fee.apply(tx, [other_token], @fees)
+    assert %{} == Fee.apply(tx, [other_token], @fees)
   end
 end
