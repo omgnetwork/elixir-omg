@@ -153,7 +153,7 @@ defmodule OMG.API.State.Core do
          {:ok, input_amounts_by_currency} <- correct_inputs?(state, recovered_tx),
          output_amounts_by_currency = get_amounts_by_currency(outputs),
          :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
-         :ok <- transaction_covers_fee?(recovered_tx, input_amounts_by_currency, output_amounts_by_currency, fees) do
+         :ok <- transaction_covers_fee?(input_amounts_by_currency, output_amounts_by_currency, fees) do
       {:ok, {tx_hash, height, tx_index},
        state
        |> apply_spend(recovered_tx)
@@ -231,9 +231,8 @@ defmodule OMG.API.State.Core do
     |> if(do: :ok, else: {:error, :amounts_do_not_add_up})
   end
 
-  # fee is implicit - it's the difference between funds owned and spend
-  def transaction_covers_fee?(recovered_tx, input_amounts, output_amounts, fees) do
-    Transaction.Fee.covered?(recovered_tx, input_amounts, output_amounts, fees)
+  def transaction_covers_fee?(input_amounts, output_amounts, fees) do
+    Transaction.Fee.covered?(input_amounts, output_amounts, fees)
     |> if(do: :ok, else: {:error, :amounts_do_not_add_up})
   end
 

@@ -17,32 +17,39 @@ defmodule OMG.API.State.Transaction.Fee do
   Provides Transaction's calculation
   """
 
-  alias OMG.API.Crypto
   alias OMG.API.Fees
   alias OMG.API.State.Transaction
 
   @doc """
   Checks whether transaction's funds cover the fee
   """
-  @spec covered?(Transaction.Recovered.t(), map(), map(), Fees.token_fee_t()) :: boolean()
-  def covered?(recovered_tx, input_amounts, output_amounts, fees) do
-    fees = apply_fees(recovered_tx, Map.keys(input_amounts), fees)
-
+  @spec covered?(map(), map(), Fees.token_fee_t()) :: boolean()
+  def covered?(input_amounts, output_amounts, fees) do
     for {input_currency, input_amount} <- Map.to_list(input_amounts) do
-      output_amount = Map.get(output_amounts, input_currency, 0)
-      fee = Map.get(fees, input_currency, :infinity)
-      input_amount - output_amount >= fee
+      # fee is implicit - it's the difference between funds owned and spend
+      implicit_paid_fee = input_amount - Map.get(output_amounts, input_currency, 0)
+
+      case Map.get(fees, input_currency) do
+        nil -> false
+        fee -> fee <= implicit_paid_fee
+      end
     end
     |> Enum.any?()
   end
 
-  # Processes fees for transaction, returns new fees that transaction is validated against.
-  # Note: When transaction has no inputs in fee accepted currency, empty map is returned and transaction
-  # will be rejected in `State.Core.exec`.
-  # To make transaction fee free, zero-fee for transaction's currency needs to be explicitly returned.
-  @spec apply_fees(Transaction.Recovered.t(), [Crypto.address_t()], Fees.token_fee_t()) ::
-          Fees.token_fee_t()
-  defp apply_fees(_recovered_tx, input_currencies, fees) do
-    Map.take(fees, input_currencies)
+  @doc """
+  Processes fees for transaction, returns new fees that transaction is validated against.
+  Note: When transaction has no inputs in fee accepted currency, empty map is returned and transaction
+  will be rejected in `State.Core.exec`.
+  To make transaction fee free, zero-fee for transaction's currency needs to be explicitly returned.
+  """
+  @spec apply_fees(Transaction.Recovered.t(), Fees.token_fee_t()) :: Fees.token_fee_t()
+  def apply_fees(
+        %Transaction.Recovered{
+          signed_tx: %Transaction.Signed{raw_tx: raw_tx}
+        },
+        fees
+      ) do
+    Map.take(fees, Transaction.get_currencies(raw_tx))
   end
 end
