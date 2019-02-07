@@ -39,15 +39,18 @@ defmodule OMG.Eth.DevHelpers do
 
    - `root_path` should point to `elixir-omg` root or wherever where `./_build/contracts` holds the compiled contracts
   """
-  def prepare_env!(opts \\ []) do
+  def prepare_env!(opts \\ [], exit_period_seconds \\ nil) do
     opts = Keyword.merge([root_path: "./"], opts)
     %{root_path: root_path} = Enum.into(opts, %{})
+
+    exit_period_seconds = get_exit_period(exit_period_seconds)
 
     with {:ok, _} <- Application.ensure_all_started(:ethereumex),
          {:ok, authority} <- create_and_fund_authority_addr(opts),
          {:ok, [addr | _]} <- Ethereumex.HttpClient.eth_accounts(),
          {:ok, txhash, contract_addr} <- Eth.Deployer.create_new(OMG.Eth.RootChain, root_path, from_hex(addr)),
-         {:ok, _} <- Eth.RootChain.init(authority, contract_addr) |> Eth.DevHelpers.transact_sync!() do
+         {:ok, _} <-
+           Eth.RootChain.init(exit_period_seconds, authority, contract_addr) |> Eth.DevHelpers.transact_sync!() do
       %{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority}
     else
       {:error, :econnrefused} = error ->
@@ -58,6 +61,13 @@ defmodule OMG.Eth.DevHelpers do
         other
     end
   end
+
+  defp get_exit_period(nil) do
+    DeferredConfig.populate(:omg_eth)
+    Application.fetch_env!(:omg_eth, :exit_period_seconds)
+  end
+
+  defp get_exit_period(exit_period), do: exit_period
 
   def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
     """
