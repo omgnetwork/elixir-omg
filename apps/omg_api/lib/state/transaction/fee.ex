@@ -18,13 +18,13 @@ defmodule OMG.API.State.Transaction.Fee do
   """
 
   alias OMG.API.Crypto
-  alias OMG.API.FeeChecker.Core
+  alias OMG.API.Fees
   alias OMG.API.State.Transaction
 
   @doc """
   Checks whether transaction's funds cover the fee
   """
-  @spec covered?(Transaction.Recovered.t(), map(), map(), Core.token_fee_t()) :: boolean()
+  @spec covered?(Transaction.Recovered.t(), map(), map(), Fees.token_fee_t()) :: boolean()
   def covered?(recovered_tx, input_amounts, output_amounts, fees) do
     fees = apply_fees(recovered_tx, Map.keys(input_amounts), fees)
 
@@ -40,8 +40,8 @@ defmodule OMG.API.State.Transaction.Fee do
   # Note: When transaction has no inputs in fee accepted currency, empty map is returned and transaction
   # will be rejected in `State.Core.exec`.
   # To make transaction fee free, zero-fee for transaction's currency needs to be explicitly returned.
-  @spec apply_fees(Transaction.Recovered.t(), [Crypto.address_t()], Core.token_fee_t()) ::
-          Core.token_fee_t()
+  @spec apply_fees(Transaction.Recovered.t(), [Crypto.address_t()], Fees.token_fee_t()) ::
+          Fees.token_fee_t()
   defp apply_fees(_recovered_tx, input_currencies, fees) do
     Map.take(fees, input_currencies)
   end
