@@ -95,7 +95,6 @@ defmodule OMG.API.RootChainCoordinator.Core do
       }
 
       _ = Logger.error("Invalid synced height update #{inspect(report_data, pretty: true)}")
-
       :invalid_synced_height_update
     end
   end
@@ -105,7 +104,11 @@ defmodule OMG.API.RootChainCoordinator.Core do
          root_chain_height,
          new_reported_sync_height
        ) do
-    current_synced_height <= new_reported_sync_height and new_reported_sync_height <= root_chain_height
+    _ =
+      if new_reported_sync_height > root_chain_height,
+        do: Logger.warn("Eth height back to #{inspect(root_chain_height)}, had #{inspect(new_reported_sync_height)}")
+
+    current_synced_height <= new_reported_sync_height
   end
 
   defp get_services_to_sync(state, service_name, previous_synced_height) do
