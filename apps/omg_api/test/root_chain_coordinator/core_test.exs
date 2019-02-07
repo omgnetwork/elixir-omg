@@ -117,7 +117,7 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
 
     logs =
       capture_log(fn ->
-        assert_raise MatchError, fn -> Core.check_in(state, service_pid, 10, :some_service) end
+        Core.check_in(state, service_pid, 10, :some_service)
       end)
 
     assert logs =~ "root_chain_height: 0" and logs =~ "new_reported_sync_height: 10" and logs =~ "some_service"

@@ -95,8 +95,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
       }
 
       _ = Logger.error("Invalid synced height update #{inspect(report_data, pretty: true)}")
-
-      :invalid_synced_height_update
+      {:ok, state}
     end
   end
 
