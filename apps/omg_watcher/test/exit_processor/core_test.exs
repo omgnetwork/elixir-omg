@@ -167,6 +167,64 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     state
   end
 
+  deffixture invalid_piggyback_on_input(
+               alice,
+               processor_filled,
+               transactions,
+               in_flight_exits,
+               competing_transactions
+             ) do
+    tx = hd(transactions)
+    comp1 = hd(competing_transactions)
+    state = processor_filled
+    {ife_id, _} = hd(in_flight_exits)
+    txbytes = Transaction.encode(tx)
+    comp1_txbytes = Transaction.encode(comp1)
+
+    {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+    %{sigs: comp1_signatures} = DevCrypto.sign(comp1, [alice.priv, alice.priv])
+
+    comp1_ife_event = %{
+      call_data: %{in_flight_tx: comp1_txbytes, in_flight_tx_sigs: Enum.join(comp1_signatures)},
+      eth_height: 2
+    }
+
+    comp1_ife_status = {1, <<1::192>>}
+
+    {state, _} = Core.new_in_flight_exits(state, [comp1_ife_event], [comp1_ife_status])
+    {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
+
+    {request, state} =
+      %ExitProcessor.Request{
+        blknum_now: 4000,
+        eth_height_now: 5,
+        piggybacked_blocks_result: [Block.hashed_txs_at([recovered], 3000)]
+      }
+      |> Core.find_ifes_in_blocks(state)
+
+    %{state: state, request: request, bad_pb_output: 0, ife_txbytes: txbytes}
+  end
+
+  # TODO: will be removed, when persistence and behaviors are tested more thoroughly, without reaching into the guts
+  defp build_in_flight_exit(
+         %{call_data: %{in_flight_tx: bytes, in_flight_tx_sigs: sigs}},
+         {timestamp, contract_ife_id}
+       ) do
+    {:ok, raw_tx} = Transaction.decode(bytes)
+
+    # TODO rethink fixtures to avoid doing this
+    chopped_sigs = for <<chunk::size(65)-unit(8) <- sigs>>, do: <<chunk::size(65)-unit(8)>>
+
+    signed_tx = %Transaction.Signed{
+      raw_tx: raw_tx,
+      sigs: chopped_sigs
+    }
+
+    signed_tx = %{signed_tx | signed_tx_bytes: Transaction.Signed.encode(signed_tx)}
+
+    {Transaction.hash(raw_tx), %InFlightExitInfo{tx: signed_tx, timestamp: timestamp, contract_id: contract_ife_id}}
+  end
+
   @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
   test "can start new standard exits one by one or batched", %{
     processor_empty: empty,
@@ -854,8 +912,124 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       # IFE is not canonical
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
                invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
+    end
 
-      # FIXME: test and implement that we can `inflight_exit.get_input_challenge_data` similar to competitor getting
+    @tag fixtures: [:invalid_piggyback_on_input, :in_flight_exits, :competing_transactions]
+    test "produces single challenge proof on double-spent piggyback input",
+         %{
+           invalid_piggyback_on_input: %{
+             state: state,
+             request: request,
+             bad_pb_output: bad_pb_output,
+             ife_txbytes: txbytes
+           }
+         } do
+      assert {:ok, [%{in_flight_input_index: ^bad_pb_output}]} =
+               Core.get_input_challenge_data(request, state, txbytes, bad_pb_output)
+    end
+
+    @tag fixtures: [:invalid_piggyback_on_input, :in_flight_exits, :competing_transactions]
+    test "fail when asked to produce proof for wrong oindex",
+         %{
+           invalid_piggyback_on_input: %{
+             state: state,
+             request: request,
+             bad_pb_output: bad_pb_output,
+             ife_txbytes: txbytes
+           }
+         } do
+      assert bad_pb_output != 1
+      assert {:error, :no_double_spent_on_particular_input} = Core.get_input_challenge_data(request, state, txbytes, 1)
+    end
+
+    @tag fixtures: [:invalid_piggyback_on_input, :in_flight_exits, :competing_transactions]
+    test "fail when asked to produce proof for wrong txhash",
+         %{invalid_piggyback_on_input: %{state: state, request: request}, competing_transactions: [_, _, comp3 | _]} do
+      comp3_txbytes = Transaction.encode(comp3)
+      assert {:error, :unknown_ife} = Core.get_input_challenge_data(request, state, comp3_txbytes, 0)
+    end
+
+    @tag fixtures: [:invalid_piggyback_on_input, :in_flight_exits, :competing_transactions]
+    test "fail when asked to produce proof for wrong badly encoded tx",
+         %{invalid_piggyback_on_input: %{state: state, request: request}, competing_transactions: [_, _, comp3 | _]} do
+      corrupted_txbytes = "corruption" <> Transaction.encode(comp3)
+      assert {:error, :malformed_transaction_rlp} = Core.get_input_challenge_data(request, state, corrupted_txbytes, 0)
+    end
+
+    @tag fixtures: [:invalid_piggyback_on_input, :in_flight_exits, :competing_transactions]
+    test "fail when asked to produce proof for illegal oindex",
+         %{invalid_piggyback_on_input: %{state: state, request: request, ife_txbytes: txbytes}} do
+      assert {:error, :no_double_spent_on_particular_input} = Core.get_input_challenge_data(request, state, txbytes, -1)
+    end
+
+    @tag fixtures: [:alice, :bob, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
+    test "can produce the multiple challenge proofs for a input piggyback",
+         %{
+           alice: alice,
+           bob: bob,
+           processor_filled: state,
+           transactions: [tx | _],
+           competing_transactions: [comp1, comp2 | _],
+           in_flight_exits: [{ife_id, _} | _]
+         } do
+      txbytes = Transaction.encode(tx)
+      comp1_txbytes = Transaction.encode(comp1)
+      comp2_txbytes = Transaction.encode(comp2)
+
+      {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+      %{sigs: comp1_signatures} = DevCrypto.sign(comp1, [bob.priv, alice.priv])
+      %{sigs: comp2_signatures} = DevCrypto.sign(comp2, [alice.priv, bob.priv])
+
+      comp1_ife_event = %{
+        call_data: %{in_flight_tx: comp1_txbytes, in_flight_tx_sigs: Enum.join(comp1_signatures)},
+        eth_height: 2
+      }
+
+      comp2_ife_event = %{
+        call_data: %{in_flight_tx: comp2_txbytes, in_flight_tx_sigs: Enum.join(comp2_signatures)},
+        eth_height: 2
+      }
+
+      comp1_ife_status = {1, <<1::192>>}
+      comp2_ife_status = {2, <<1::192>>}
+
+      {state, _} = Core.new_in_flight_exits(state, [comp1_ife_event], [comp1_ife_status])
+      {state, _} = Core.new_in_flight_exits(state, [comp2_ife_event], [comp2_ife_status])
+
+      {state, _} =
+        Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}, %{tx_hash: ife_id, output_index: 1}])
+
+      tx_blknum = 3000
+
+      {request, state} =
+        %ExitProcessor.Request{
+          blknum_now: 4000,
+          eth_height_now: 5,
+          piggybacked_blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)]
+        }
+        |> Core.find_ifes_in_blocks(state)
+
+      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
+               invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
+
+      proofs =
+        Core.get_input_challenge_data(request, state, txbytes, 0)
+        |> elem(1)
+        |> Enum.map(&%{&1 | in_flight_txbytes: Transaction.decode!(&1.in_flight_txbytes)})
+        |> Enum.map(&%{&1 | spending_tx_bytes: Transaction.decode!(&1.spending_tx_bytes)})
+
+      assert [%{in_flight_input_index: 0}, %{in_flight_input_index: 0}] = proofs
+    end
+
+    @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
+    test "can produce the challenge proofs for a output piggyback",
+         %{
+           alice: _alice,
+           processor_filled: _state,
+           transactions: [_tx | _],
+           competing_transactions: [_comp | _],
+           in_flight_exits: [{_ife_id, _} | _]
+         } do
     end
   end
 

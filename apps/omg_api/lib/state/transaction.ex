@@ -37,6 +37,8 @@ defmodule OMG.API.State.Transaction do
         }
 
   @type currency() :: Crypto.address_t()
+  @type tx_bytes() :: binary()
+  @type tx_hash() :: Crypto.hash_t()
 
   @type input() :: %{
           blknum: non_neg_integer(),
@@ -145,9 +147,15 @@ defmodule OMG.API.State.Transaction do
   defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
   defp parse_address(_), do: {:error, :malformed_address}
 
+  @spec decode(tx_bytes()) :: {:ok, t()} | {:error, atom()}
   def decode(tx_bytes) do
     with {:ok, raw_tx_rlp_decoded_chunks} <- try_exrlp_decode(tx_bytes),
          do: reconstruct(raw_tx_rlp_decoded_chunks)
+  end
+
+  def decode!(tx_bytes) do
+    {:ok, tx} = decode(tx_bytes)
+    tx
   end
 
   defp try_exrlp_decode(tx_bytes) do
@@ -156,6 +164,7 @@ defmodule OMG.API.State.Transaction do
     _ -> {:error, :malformed_transaction_rlp}
   end
 
+  @spec encode(t()) :: tx_bytes()
   def encode(transaction) do
     get_data_for_rlp(transaction)
     |> ExRLP.encode()
@@ -171,7 +180,7 @@ defmodule OMG.API.State.Transaction do
           List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs))
       ] ++ if(metadata, do: [metadata], else: [])
 
-  @spec hash(t()) :: Crypto.hash_t()
+  @spec hash(t()) :: tx_hash()
   def hash(%__MODULE__{} = tx) do
     tx
     |> encode

@@ -37,6 +37,19 @@ defmodule OMG.Watcher.Web.Controller.InFlightExit do
     handle_txbytes_based_request(conn, params, &API.InFlightExit.prove_canonical/1, :prove_canonical)
   end
 
+  def get_input_challenge_data(conn, params) do
+    handle_txbytes_based_request(conn, params, &API.InFlightExit.get_input_challenge_data/2, :get_input_challenge_data)
+  end
+
+  def get_output_challenge_data(conn, params) do
+    handle_txbytes_based_request(
+      conn,
+      params,
+      &API.InFlightExit.get_output_challenge_data/2,
+      :get_output_challenge_data
+    )
+  end
+
   # NOTE: don't overdo this DRYing here - if the above controller functions evolve and diverge, it might be better to
   #       un-DRY
   defp handle_txbytes_based_request(conn, params, api_function, template) do
