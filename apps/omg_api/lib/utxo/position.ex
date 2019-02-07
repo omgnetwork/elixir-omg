@@ -70,4 +70,8 @@ defmodule OMG.API.Utxo.Position do
   def to_tuple(Utxo.position(blknum, txindex, oindex)) do
     {blknum, txindex, oindex}
   end
+
+  def blknum(Utxo.position(blknum, _, _)), do: blknum
+  def txindex(Utxo.position(_, txindex, _)), do: txindex
+  def oindex(Utxo.position(_, _, oindex)), do: oindex
 end

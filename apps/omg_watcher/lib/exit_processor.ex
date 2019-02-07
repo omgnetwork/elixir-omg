@@ -147,6 +147,14 @@ defmodule OMG.Watcher.ExitProcessor do
     GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
   end
 
+  def get_input_challenge_data(txbytes, input_index) do
+    GenServer.call(__MODULE__, {:get_input_challenge_data, txbytes, input_index})
+  end
+
+  def get_output_challenge_data(txbytes, output_index) do
+    GenServer.call(__MODULE__, {:get_output_challenge_data, txbytes, output_index})
+  end
+
   ### Server
 
   use GenServer
@@ -312,6 +320,53 @@ defmodule OMG.Watcher.ExitProcessor do
       |> Core.prove_canonical_for_ife(txbytes)
 
     {:reply, canonicity_result, state}
+  end
+
+  def handle_call({:get_input_challenge_data, txbytes, input_index}, _from, state) do
+    response =
+      %ExitProcessor.Request{}
+      |> run_status_gets()
+      |> Core.determine_utxo_existence_to_get(state)
+      |> run_utxo_exists()
+      |> Core.determine_spends_to_get(state)
+      |> run_spend_getting()
+      |> Core.determine_blocks_to_get()
+      |> run_block_getting()
+      |> Core.get_input_challenge_data(state, txbytes, input_index)
+
+    {:reply, response, state}
+  end
+
+  def handle_call({:get_output_challenge_data, txbytes, output_index}, _from, state) do
+    # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
+    {request, state} =
+      %ExitProcessor.Request{}
+      |> run_status_gets()
+      # To find if IFE was included, see first if its inputs were spent.
+      |> Core.determine_ife_input_utxos_existence_to_get(state)
+      |> run_ife_input_utxo_existance()
+      # Next, check by what transactions they were spent.
+      |> Core.determine_ife_spends_to_get(state)
+      |> run_ife_spend_getting()
+      # Find tx bodies.
+      |> Core.determine_ife_blocks_to_get()
+      |> run_ife_block_getting()
+      # Compare found txes with ife.tx.
+      # If equal, persist information about position.
+      |> Core.find_ifes_in_blocks(state)
+
+    response =
+      request
+      # main loop
+      |> Core.determine_utxo_existence_to_get(state)
+      |> run_utxo_exists()
+      |> Core.determine_spends_to_get(state)
+      |> run_spend_getting()
+      |> Core.determine_blocks_to_get()
+      |> run_block_getting()
+      |> Core.get_output_challenge_data(state, txbytes, output_index)
+
+    {:reply, response, state}
   end
 
   defp run_status_gets(%ExitProcessor.Request{} = request) do
