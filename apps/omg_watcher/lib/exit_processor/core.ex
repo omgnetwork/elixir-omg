@@ -535,7 +535,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         %Event.InvalidPiggyback{txbytes: txbytes, inputs: inputs, outputs: outputs}
       end)
 
-    # FIXME: late piggybacks are critical
+    # TODO: late piggybacks are critical
     late_invalid_piggybacks = []
 
     has_no_late_invalid_exits = has_no_late_invalid_exits && Enum.empty?(late_invalid_piggybacks)
@@ -572,29 +572,51 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec get_invalid_piggybacks(ExitProcessor.Request.t(), __MODULE__.t()) :: [{binary, [0..3], [0..3]}]
   def get_invalid_piggybacks(
         %ExitProcessor.Request{blocks_result: blocks, piggybacked_blocks_result: piggybacked_blocks},
-        %__MODULE__{in_flight_exits: ifes} = state
+        state
       ) do
     known_txs = get_known_txs(Enum.uniq(piggybacked_blocks ++ blocks)) ++ get_known_txs(state)
+    bad_piggybacks_on_inputs = get_invalid_piggybacks_on_inputs(known_txs, state)
+    bad_piggybacks_on_outputs = get_invalid_piggybacks_on_outputs(known_txs, state)
+    # produce only one event per IFE, with both pbs on inputs and outputs
+    (bad_piggybacks_on_inputs ++ bad_piggybacks_on_outputs)
+    |> Enum.group_by(&elem(&1, 0), fn {_, ins, outs, _} ->
+      {ins, outs}
+    end)
+    |> Enum.map(fn {txhash, zipped_pbs} ->
+      {all_ins, all_outs} = Enum.unzip(zipped_pbs)
+      {txhash, List.flatten(all_ins), List.flatten(all_outs)}
+    end)
+  end
 
+  @spec get_invalid_piggybacks_on_inputs([KnownTx.t()], t()) :: [
+          {tx_hash(), [non_neg_integer()], [non_neg_integer()], [{double_spending_tx :: KnownTx.t(), 0..3}]}
+        ]
+  defp get_invalid_piggybacks_on_inputs(known_txs, %__MODULE__{in_flight_exits: ifes}) do
     # getting invalid piggybacks on inputs
-    bad_piggybacks_on_inputs =
-      ifes
-      |> Map.values()
-      |> Enum.map(fn %InFlightExitInfo{tx: tx, exit_map: exit_map} = ife ->
-        # To find the bad input piggyback indexes, we first find a competitor (any input is double spent)
-        # Next, we get the index, at which this double-spent UTXO position is on, within the IFE tx
-        # Last, we check whether this IFE tx's input is actually piggybacked
-        bad_piggybacks_indexes =
-          known_txs
-          |> Enum.filter(&competitor_for(tx, &1))
-          |> Enum.map(&competitor_for(tx, &1))
-          |> Enum.map(&InFlightExitInfo.get_input_index(ife, &1))
-          |> Enum.filter(&exit_map[&1].is_piggybacked)
+    ifes
+    |> Map.values()
+    |> Enum.map(fn %InFlightExitInfo{tx: tx, exit_map: exit_map} = ife ->
+      # To find the bad input piggyback indexes, we first find a competitor (any input is double spent)
+      # Next, we get the index, at which this double-spent UTXO position is on, within the IFE tx
+      # Last, we check whether this IFE tx's input is actually piggybacked
+      proof_material =
+        known_txs
+        |> Enum.filter(&competitor_for(tx, &1))
+        |> Enum.map(&{&1, competitor_for(tx, &1)})
+        |> Enum.map(fn {tx, pos} -> {tx, pos, InFlightExitInfo.get_input_index(ife, pos)} end)
+        |> Enum.filter(fn {tx, pos, offset} -> exit_map[offset].is_piggybacked end)
 
-        {Transaction.encode(ife.tx.raw_tx), bad_piggybacks_indexes, []}
-      end)
-      |> Enum.filter(fn {_, on_inputs, on_outputs} -> on_inputs ++ on_outputs != [] end)
+      {_, _, bad_piggybacks_indexes} = :lists.unzip3(proof_material)
 
+      {Transaction.encode(ife.tx.raw_tx), bad_piggybacks_indexes, [], proof_material}
+    end)
+    |> Enum.filter(fn {_, on_inputs, _, _} -> on_inputs != [] end)
+  end
+
+  @spec get_invalid_piggybacks_on_outputs([KnownTx.t()], t()) :: [
+          {tx_hash(), [non_neg_integer()], [non_neg_integer()], [any]}
+        ]
+  defp get_invalid_piggybacks_on_outputs(known_txs, %__MODULE__{in_flight_exits: ifes}) do
     # To find bad piggybacks on outputs of IFE, we need to find spends on those outputs.
     # To do that, we first need to find IFE inclusion position.
     # If IFE was included, the value of :tx_included_at
@@ -619,29 +641,18 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       end)
     end
 
-    bad_piggybacks_on_outputs =
-      piggybacked_utxo_pos_list
-      |> Enum.map(fn {ife, _} = ifep ->
-        bad_pbs_with_spenders =
-          ifep
-          |> intersect_with_inputs.()
-          |> Enum.filter(fn {_, spenders} -> spenders != [] end)
+    piggybacked_utxo_pos_list
+    |> Enum.map(fn {ife, _} = ifep ->
+      bad_pbs_with_spenders =
+        ifep
+        |> intersect_with_inputs.()
+        |> Enum.filter(fn {_, spenders} -> spenders != [] end)
 
-        {outputs, _} = Enum.unzip(bad_pbs_with_spenders)
-        {Transaction.encode(ife.tx.raw_tx), [], Enum.map(outputs, & &1.oindex)}
-      end)
-      |> List.flatten()
-      |> Enum.filter(fn {_, _, outputs} -> outputs != [] end)
-
-    # produce only one event per IFE, with both pbs on inputs and outputs
-    (bad_piggybacks_on_inputs ++ bad_piggybacks_on_outputs)
-    |> Enum.group_by(&elem(&1, 0), fn {_, ins, outs} ->
-      {ins, outs}
+      {outputs, _} = Enum.unzip(bad_pbs_with_spenders)
+      {Transaction.encode(ife.tx.raw_tx), [], Enum.map(outputs, & &1.oindex), bad_pbs_with_spenders}
     end)
-    |> Enum.map(fn {txhash, zipped_pbs} ->
-      {all_ins, all_outs} = Enum.unzip(zipped_pbs)
-      {txhash, List.flatten(all_ins), List.flatten(all_outs)}
-    end)
+    |> List.flatten()
+    |> Enum.filter(fn {_, _, outputs, _} -> outputs != [] end)
   end
 
   # Gets the list of open IFEs that have the competitors _somewhere_
