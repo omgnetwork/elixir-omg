@@ -151,7 +151,7 @@ defmodule OMG.Performance do
       },
       {OMG.API.State, []},
       {OMG.API.FreshBlocks, []},
-      {OMG.API.FeeChecker, []},
+      {OMG.API.FeeServer, []},
       {OMG.RPC.Web.Endpoint, []}
     ]
 

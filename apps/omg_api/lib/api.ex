@@ -20,7 +20,7 @@ defmodule OMG.API do
   (but not transport-specific encoding like hex).
   """
 
-  alias OMG.API.{Block, Core, FeeChecker, FreshBlocks, State}
+  alias OMG.API.{Block, Core, FeeServer, FreshBlocks, State}
   use OMG.API.LoggerExt
 
   @type submit_error() :: Core.recover_tx_error() | State.exec_error()
@@ -29,7 +29,7 @@ defmodule OMG.API do
           {:ok, %{txhash: <<_::768>>, blknum: pos_integer, txindex: non_neg_integer}} | {:error, submit_error()}
   def submit(transaction) do
     with {:ok, recovered_tx} <- Core.recover_tx(transaction),
-         {:ok, fees} <- FeeChecker.transaction_fees(),
+         {:ok, fees} <- FeeServer.transaction_fees(),
          {:ok, {tx_hash, blknum, tx_index}} <- State.exec(recovered_tx, fees) do
       {:ok, %{txhash: tx_hash, blknum: blknum, txindex: tx_index}}
     end

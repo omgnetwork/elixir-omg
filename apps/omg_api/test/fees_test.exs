@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.FeeChecker.CoreTest do
+defmodule OMG.API.FeesTest do
   @moduledoc false
 
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  import OMG.API.FeeChecker.Core
+  import OMG.API.Fees
 
   @eth <<0::160>>
   @fee_config_file ~s(

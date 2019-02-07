@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.FeeChecker do
+defmodule OMG.API.FeeServer do
   @moduledoc """
   Maintains current fee rates and acceptable tokens.
   Updates fees information from external source.
   Provides function to validate transaction's fee.
   """
 
-  alias OMG.API.FeeChecker.Core
+  alias OMG.API.Fees
 
   use GenServer
   use OMG.API.LoggerExt
@@ -36,14 +36,14 @@ defmodule OMG.API.FeeChecker do
 
     {:ok, _} = :timer.apply_interval(@file_changed_check_interval_ms, __MODULE__, :update_fee_spec, [])
 
-    _ = Logger.info("Started FeeChecker")
+    _ = Logger.info("Started FeeServer")
     {:ok, args}
   end
 
   @doc """
   Returns accepted tokens and amounts in which transaction fees are collected
   """
-  @spec transaction_fees() :: {:ok, Core.token_fee_t()}
+  @spec transaction_fees() :: {:ok, Fees.token_fee_t()}
   def transaction_fees do
     {:ok, load_fees()}
   end
@@ -51,10 +51,10 @@ defmodule OMG.API.FeeChecker do
   @doc """
   Parses and validates json encoded fee specifications file
   """
-  @spec parse_file_content(binary()) :: {:ok, list(Core.fee_spec_t())} | {:error, reason :: atom()}
+  @spec parse_file_content(binary()) :: {:ok, list(Fees.fee_spec_t())} | {:error, reason :: atom()}
   def parse_file_content(file_content) do
     file_content
-    |> Core.parse_file_content()
+    |> Fees.parse_file_content()
     |> handle_parser_output()
   end
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.FeeChecker.Core do
+defmodule OMG.API.Fees do
   @moduledoc """
   Transaction's fee validation functions
   """
