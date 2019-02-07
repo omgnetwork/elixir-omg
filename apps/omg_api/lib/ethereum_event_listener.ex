@@ -97,10 +97,10 @@ defmodule OMG.API.EthereumEventListener do
           state
       end
 
-    {:ok, events, db_updates, state} = Core.get_events(state, sync_height)
+    {:ok, events, db_updates, height_to_check_in, state} = Core.get_events(state, sync_height)
     {:ok, db_updates_from_callback} = callbacks.process_events_callback.(events)
     :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_callback)
-    :ok = RootChainCoordinator.check_in(sync_height, state.service_name)
+    :ok = RootChainCoordinator.check_in(height_to_check_in, state.service_name)
 
     {state, callbacks}
   end
