@@ -691,12 +691,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
       {:ok, alerts} = Core.invalid_exits(request, state)
-      # FIXME: note to delete:
-      # this was too loose in my opinion - what if you got spurrious invalid piggyback events here?
+
       assert [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}] =
                alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
-
-      # FIXME: test and implement that we can `inflight_exit.get_input_challenge_data` similar to competitor getting
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
@@ -864,6 +861,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       # IFE is not canonical
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
                invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
+
+      # FIXME: test and implement that we can `inflight_exit.get_input_challenge_data` similar to competitor getting
     end
   end
 
