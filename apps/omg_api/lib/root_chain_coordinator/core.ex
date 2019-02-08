@@ -76,7 +76,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
   defp allowed?(configs_services, service_name), do: Map.has_key?(configs_services, service_name)
 
   defp update_service_synced_height(
-         %__MODULE__{services: services, root_chain_height: root_chain_height} = state,
+         %__MODULE__{services: services} = state,
          pid,
          new_reported_sync_height,
          service_name
@@ -84,13 +84,12 @@ defmodule OMG.API.RootChainCoordinator.Core do
     new_service_state = %Service{synced_height: new_reported_sync_height, pid: pid}
     current_service_state = Map.get(services, service_name, new_service_state)
 
-    if valid_sync_height_update?(current_service_state, root_chain_height, new_reported_sync_height) do
+    if valid_sync_height_update?(current_service_state, new_reported_sync_height) do
       {:ok, %{state | services: Map.put(services, service_name, new_service_state)}}
     else
       report_data = %{
         current: current_service_state,
         service_name: service_name,
-        root_chain_height: root_chain_height,
         new_reported_sync_height: new_reported_sync_height
       }
 
@@ -99,15 +98,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
     end
   end
 
-  defp valid_sync_height_update?(
-         %Service{synced_height: current_synced_height},
-         root_chain_height,
-         new_reported_sync_height
-       ) do
-    _ =
-      if new_reported_sync_height > root_chain_height,
-        do: Logger.warn("Eth height back to #{inspect(root_chain_height)}, had #{inspect(new_reported_sync_height)}")
-
+  defp valid_sync_height_update?(%Service{synced_height: current_synced_height}, new_reported_sync_height) do
     current_synced_height <= new_reported_sync_height
   end
 
@@ -193,10 +184,11 @@ defmodule OMG.API.RootChainCoordinator.Core do
   end
 
   @doc """
-  Sets root chain height
+  Sets root chain height, only allowing to progress, in case Ethereum RPC reports an earlier height
   """
   @spec update_root_chain_height(t(), pos_integer()) :: {:ok, t()}
-  def update_root_chain_height(%__MODULE__{} = state, root_chain_height) when is_integer(root_chain_height) do
-    {:ok, %{state | root_chain_height: root_chain_height}}
+  def update_root_chain_height(%__MODULE__{root_chain_height: old_height} = state, new_height)
+      when is_integer(new_height) do
+    {:ok, %{state | root_chain_height: max(old_height, new_height)}}
   end
 end

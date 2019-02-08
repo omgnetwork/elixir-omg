@@ -111,12 +111,23 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
     assert %{sync_height: 14} = Core.get_synced_info(state, exiter_pid)
   end
 
-  test "root chain back off non fatal, just warning" do
-    service_pid = :c.pid(0, 1, 0)
+  @tag fixtures: [:initial_state]
+  test "root chain back off is ignored", %{initial_state: state} do
+    depositor_pid = :c.pid(0, 1, 0)
+    exiter_pid = :c.pid(0, 2, 0)
 
-    state = Core.init(%{:some_service => %{sync_mode: :sync_with_coordinator}}, 9)
-    logs_warn = capture_log(fn -> Core.check_in(state, service_pid, 10, :some_service) end)
-    assert logs_warn =~ "to 9, had 10"
+    assert {:ok, state, _} = Core.check_in(state, exiter_pid, 10, :exiter)
+    assert {:ok, state, _} = Core.check_in(state, depositor_pid, 10, :depositor)
+    assert %{sync_height: 10} = Core.get_synced_info(state, depositor_pid)
+    assert %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
+
+    assert {:ok, state} = Core.update_root_chain_height(state, 9)
+    assert %{sync_height: 10} = Core.get_synced_info(state, depositor_pid)
+    assert %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
+
+    assert {:ok, state} = Core.update_root_chain_height(state, 11)
+    assert %{sync_height: 11} = Core.get_synced_info(state, depositor_pid)
+    assert %{sync_height: 11} = Core.get_synced_info(state, exiter_pid)
   end
 
   # TODO: testing via assert_raise is not elegant in our setup, rethink
@@ -132,7 +143,7 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
         assert_raise MatchError, fn -> Core.check_in(state, service_pid, 10, :some_service) end
       end)
 
-    assert logs_error =~ "root_chain_height: 11"
+    assert logs_error =~ "synced_height: 11"
     assert logs_error =~ "new_reported_sync_height: 10"
     assert logs_error =~ "some_service"
   end
