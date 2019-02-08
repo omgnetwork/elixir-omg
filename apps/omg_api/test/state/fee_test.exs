@@ -34,7 +34,7 @@ defmodule OMG.API.State.FeeTest do
   }
 
   @tag fixtures: [:alice, :bob]
-  test "Fee map is reduced to the currencies spend by transaction", %{alice: alice, bob: bob} do
+  test "Transactions covers the fee only in one currency accepted by the operator", %{alice: alice, bob: bob} do
     fees =
       create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 3}])
       |> Fee.apply_fees(@fees)
@@ -70,5 +70,17 @@ defmodule OMG.API.State.FeeTest do
       |> Fee.apply_fees(@fees)
 
     assert false == Fee.covered?(%{other_token => 10}, %{other_token => 7}, fees)
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "Transaction can dedicate one input for a fee entirely, reducing to tx's outputs currencies is incorrect",
+       %{alice: alice, bob: bob} do
+    other_token = <<2::160>>
+
+    fees =
+      create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, other_token, 5}, {alice, other_token, 5}])
+      |> Fee.apply_fees(@fees)
+
+    assert Fee.covered?(%{@not_eth => 5, other_token => 10}, %{other_token => 10}, fees)
   end
 end
