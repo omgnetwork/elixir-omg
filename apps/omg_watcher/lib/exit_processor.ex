@@ -28,8 +28,11 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.ExitProcessor.Challenge
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+
+  require Utxo
 
   use OMG.API.LoggerExt
 
@@ -297,6 +300,21 @@ defmodule OMG.Watcher.ExitProcessor do
       |> Core.prove_canonical_for_ife(txbytes)
 
     {:reply, canonicity_result, state}
+  end
+
+  @doc """
+  Returns challenge for an exit
+  """
+  @spec create_challenge(Utxo.Position.t()) ::
+          {:ok, Challenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
+  def create_challenge(Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos) do
+    with spending_blknum_response = OMG.DB.spent_blknum({blknum, txindex, oindex}),
+#         exit_response = OMG.DB.exit_info({blknum, txindex, oindex}),
+         {:ok, spending_blknum, exit_info} <- Core.ensure_challengeable(spending_blknum_response) do
+      {:ok, hashes} = OMG.DB.block_hashes([spending_blknum])
+      {:ok, [spending_block]} = OMG.DB.blocks(hashes)
+      {:ok, Core.create_challenge(exit_info, spending_block, exiting_utxo_pos)}
+    end
   end
 
   defp run_status_gets(%ExitProcessor.Request{} = request) do

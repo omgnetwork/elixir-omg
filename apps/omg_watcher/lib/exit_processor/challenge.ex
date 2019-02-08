@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Challenger.Challenge do
+defmodule OMG.Watcher.ExitProcessor.Challenge do
   @moduledoc """
   Represents a challenge
   """

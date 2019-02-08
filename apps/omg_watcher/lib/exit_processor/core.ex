@@ -25,12 +25,14 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   require Utxo
-  alias OMG.Watcher.Challenger.Tools
+  alias OMG.Watcher.ExitProcessor.Tools
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.CompetitorInfo
+  alias OMG.Watcher.ExitProcessor.Challenge
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias OMG.Watcher.ExitProcessor.Tools
   alias OMG.Watcher.ExitProcessor.TxAppendix
 
   @default_sla_margin 10
@@ -476,6 +478,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       invalid_exit_positions
       |> Enum.map(fn position -> ExitInfo.make_event_data(Event.InvalidExit, position, exits[position]) end)
 
+    # get exits which are invalid because of being spent in IFEs
+    invalid_exits_based_on_ifes_events =
+      get_invalid_exits_based_on_ifes(state)
+      |> Enum.map(fn {position, exit_info} -> ExitInfo.make_event_data(Event.InvalidExit, position, exit_info) end)
+
     ifes_with_competitors_events =
       get_ifes_with_competitors(request, state)
       |> Enum.map(fn txbytes -> %Event.NonCanonicalIFE{txbytes: txbytes} end)
@@ -492,10 +499,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       late_invalid_exits
       |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
 
+    invalid_exit_events =
+      invalid_exits_based_on_ifes_events
+      |> Enum.concat(non_late_events)
+      |> Enum.uniq_by(fn %Event.InvalidExit{utxo_pos: utxo_pos} -> utxo_pos end)
+
     events =
       [
+        invalid_exit_events,
         late_invalid_exits_events,
-        non_late_events,
         ifes_with_competitors_events,
         invalid_ife_challenges_events,
         available_piggybacks_events
@@ -505,6 +517,19 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     chain_validity = if has_no_late_invalid_exits, do: :ok, else: {:error, :unchallenged_exit}
 
     {chain_validity, events}
+  end
+
+  defp get_invalid_exits_based_on_ifes(%__MODULE__{exits: exits} = state) do
+    exiting_utxo_positions =
+      get_known_txs(state)
+      |> Enum.flat_map(fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = tx}} ->
+        Transaction.get_inputs(tx)
+      end)
+
+    exits
+    |> Enum.filter(fn {utxo_pos, _exit_info} ->
+      Enum.find(exiting_utxo_positions, fn exiting_utxo_pos -> utxo_pos == exiting_utxo_pos end)
+    end)
   end
 
   # Gets the list of open IFEs that have the competitors _somewhere_
@@ -781,5 +806,64 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       nil -> {:error, :ife_not_known_for_tx}
       value -> {:ok, value}
     end
+  end
+
+  # Challenger part
+
+  @doc """
+  Creates a challenge for exiting utxo.
+  """
+  @spec create_challenge(ExitInfo.t(), Block.t(), Utxo.Position.t()) :: Challenge.t()
+  def create_challenge(%ExitInfo{owner: owner}, spending_block, Utxo.position(_, _, _) = utxo_exit) do
+    {%Transaction.Signed{raw_tx: challenging_tx} = challenging_signed, input_index} =
+      get_spending_transaction_with_index(spending_block, utxo_exit)
+
+    %Challenge{
+      utxo_pos: Utxo.Position.encode(utxo_exit),
+      input_index: input_index,
+      txbytes: challenging_tx |> Transaction.encode(),
+      sig: find_sig(challenging_signed, owner)
+    }
+  end
+
+  @doc """
+  Checks whether database responses hold all the relevant data succesfully fetched:
+   - a block number which can be used to retrieve needed information to challenge.
+   - the relevant exit information
+  """
+  @spec ensure_challengeable(tuple(), tuple()) :: {:ok, pos_integer(), ExitInfo.t()} | {:error, atom()}
+  def ensure_challengeable(spending_blknum_response, exit_response)
+
+  def ensure_challengeable({:ok, :not_found}, _), do: {:error, :utxo_not_spent}
+  def ensure_challengeable(_, {:ok, :not_found}), do: {:error, :exit_not_found}
+
+  def ensure_challengeable({:ok, blknum}, {:ok, {_, exit_info}}) when is_integer(blknum),
+    do: {:ok, blknum, ExitInfo.from_db_value(exit_info)}
+
+  def ensure_challengeable({:error, error}, _), do: {:error, error}
+  def ensure_challengeable(_, {:error, error}), do: {:error, error}
+
+  # finds transaction in given block and input index spending given utxo
+  @spec get_spending_transaction_with_index(Block.t(), Utxo.Position.t()) ::
+          {Transaction.Signed.t(), non_neg_integer()} | false
+  defp get_spending_transaction_with_index(%Block{transactions: txs}, utxo_pos) do
+    txs
+    |> Enum.map(&Transaction.Signed.decode/1)
+    |> Enum.find_value(fn {:ok, %Transaction.Signed{raw_tx: tx} = tx_signed} ->
+      # `Enum.find_value/2` allows to find tx that spends `utxo_pos` and return it along with input index in one run
+      inputs = Transaction.get_inputs(tx)
+
+      if input_index = Enum.find_index(inputs, &(&1 == utxo_pos)) do
+        {tx_signed, input_index}
+      else
+        false
+      end
+    end)
+  end
+
+  defp find_sig(tx, owner) do
+    # at this point having a tx that wasn't actually signed is an error, hence pattern match
+    {:ok, sig} = Tools.find_sig(tx, owner)
+    sig
   end
 end

@@ -18,7 +18,7 @@ defmodule OMG.Watcher.API.Utxo do
   """
 
   alias OMG.API.Utxo
-  alias OMG.Watcher.Challenger
+  alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.DB
 
   @doc """
@@ -43,8 +43,8 @@ defmodule OMG.Watcher.API.Utxo do
   Returns a proof that utxo was spent
   """
   @spec create_challenge(Utxo.Position.t()) ::
-          {:ok, Challenger.Challenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
+          {:ok, ExitProcessor.Challenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
   def create_challenge(utxo) do
-    Challenger.create_challenge(utxo)
+    ExitProcessor.create_challenge(utxo)
   end
 end

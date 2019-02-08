@@ -27,9 +27,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   alias OMG.Watcher.Event
+  alias OMG.API.TestHelper
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias OMG.Watcher.ExitProcessor.ExitInfo
 
   require Utxo
 
@@ -44,6 +46,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   @update_key1 {1, 0, 0}
   @update_key2 {@late_blknum - 1_000, 0, 1}
+
+  @eth <<1::160>>
 
   defp not_included_competitor_pos do
     <<long::256>> =
@@ -640,6 +644,16 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              index, true -> !InFlightExitInfo.is_piggybacked?(challenged, index)
              _, false -> false
            end)
+  end
+
+  @tag fixtures: [:processor_filled, :in_flight_exits]
+  test "start standard exit challenge using ife tx as spend", %{
+    processor_filled: state,
+    in_flight_exits: [{tx_hash, ife}, _]
+  } do
+  end
+
+  test "start standard exit challenge using ife tx as spend which was piggybacked and finalized" do
   end
 
   describe "available piggybacks" do
@@ -1323,5 +1337,72 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       end)
 
     {result, filtered_events}
+  end
+
+  #  Challenger
+
+  defp create_block_with(blknum, txs) do
+    %Block{
+      number: blknum,
+      transactions: Enum.map(txs, & &1.signed_tx_bytes)
+    }
+  end
+
+  defp assert_sig_belongs_to(sig, %Transaction.Signed{raw_tx: raw_tx}, expected_owner) do
+    {:ok, signer_addr} =
+      raw_tx
+      |> Transaction.hash()
+      |> Crypto.recover_address(sig)
+
+    assert expected_owner.addr == signer_addr
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "creates a challenge for an exit; provides utxo position of non-zero amount", %{alice: alice, bob: bob} do
+    # transactions spending one of utxos from above transaction
+    tx_spending_1st_utxo =
+      TestHelper.create_signed([{0, 0, 0, alice}, {1000, 0, 0, alice}], @eth, [{bob, 50}, {alice, 50}])
+
+    tx_spending_2nd_utxo =
+      TestHelper.create_signed([{1000, 0, 1, bob}, {0, 0, 0, alice}], @eth, [{alice, 50}, {bob, 50}])
+
+    spending_block = create_block_with(2000, [tx_spending_1st_utxo, tx_spending_2nd_utxo])
+
+    # Assert 1st spend challenge
+    expected_utxo_pos = Utxo.position(1000, 0, 0) |> Utxo.Position.encode()
+    expected_txbytes = tx_spending_1st_utxo.raw_tx |> Transaction.encode()
+
+    assert %{
+             utxo_pos: ^expected_utxo_pos,
+             input_index: 1,
+             txbytes: ^expected_txbytes,
+             sig: alice_signature
+           } = Core.create_challenge(%ExitInfo{owner: alice.addr}, spending_block, Utxo.position(1000, 0, 0))
+
+    assert_sig_belongs_to(alice_signature, tx_spending_1st_utxo, alice)
+
+    # Assert 2nd spend challenge
+    expected_utxo_pos = Utxo.position(1000, 0, 1) |> Utxo.Position.encode()
+    expected_txbytes = tx_spending_2nd_utxo.raw_tx |> Transaction.encode()
+
+    assert %{
+             utxo_pos: ^expected_utxo_pos,
+             input_index: 0,
+             txbytes: ^expected_txbytes,
+             sig: bob_signature
+           } = Core.create_challenge(%ExitInfo{owner: bob.addr}, spending_block, Utxo.position(1000, 0, 1))
+
+    assert_sig_belongs_to(bob_signature, tx_spending_2nd_utxo, bob)
+  end
+
+  test "not spent or not existed utxo should be not challengeable" do
+    exit_info = %{owner: "alice"}
+    assert {:ok, 1000, %ExitInfo{owner: "alice"}} = Core.ensure_challengeable({:ok, 1000}, {:ok, {{}, exit_info}})
+
+    assert {:error, :utxo_not_spent} = Core.ensure_challengeable({:ok, :not_found}, {:ok, {{}, exit_info}})
+    assert {:error, :exit_not_found} = Core.ensure_challengeable({:ok, 1000}, {:ok, :not_found})
+
+    assert {:error, :db_other_error1} = Core.ensure_challengeable({:error, :db_other_error1}, {:ok, {{}, exit_info}})
+    assert {:error, :db_other_error2} = Core.ensure_challengeable({:ok, 1000}, {:error, :db_other_error2})
   end
 end
