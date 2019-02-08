@@ -140,6 +140,29 @@ defmodule OMG.API.State.CoreTest do
     end
 
     @tag fixtures: [:alice, :bob, :state_empty]
+    test "Zero fee is allowed, transaction is processed without cost", %{alice: alice, bob: bob, state_empty: state} do
+      fee = %{@eth => 0}
+
+      state
+      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 3}, {alice, 7}]), fee)
+      |> success?
+    end
+
+    @tag fixtures: [:alice, :state_empty]
+    test "Merge transaction is fee free", %{alice: alice, state_empty: state} do
+      fees = %{@eth => 2}
+      tx = create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @eth, [{alice, 15}])
+      fee = Transaction.Fee.apply_fees(tx, fees)
+
+      state
+      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
+      |> do_deposit(alice, %{amount: 5, currency: @eth, blknum: 2})
+      |> Core.exec(tx, fee)
+      |> success?
+    end
+
+    @tag fixtures: [:alice, :bob, :state_empty]
     test "respects fees for transactions with mixed currencies", %{
       alice: alice,
       bob: bob,
@@ -148,7 +171,7 @@ defmodule OMG.API.State.CoreTest do
       fees = %{@eth => 1, @not_eth => 1}
       not_fee_token = <<2::160>>
 
-      assert not_fee_token not in [@eth, @not_eth]
+      assert not_fee_token not in Map.keys(fees)
 
       state =
         state

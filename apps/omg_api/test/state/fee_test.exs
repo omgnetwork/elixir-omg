@@ -83,4 +83,44 @@ defmodule OMG.API.State.FeeTest do
 
     assert Fee.covered?(%{@not_eth => 5, other_token => 10}, %{other_token => 10}, fees)
   end
+
+  describe "Merge transactions are free of cost" do
+    @tag fixtures: [:alice]
+    test "merging utxo erases the fee", %{alice: alice} do
+      fees =
+        create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], @not_eth, [{alice, 10}])
+        |> Fee.apply_fees(@fees)
+
+      assert Fee.covered?(%{@not_eth => 10}, %{@not_eth => 10}, fees)
+    end
+
+    @tag fixtures: [:alice]
+    test "merge is single currency transaction", %{alice: alice} do
+      fees =
+        create_recovered(
+          [{1, 0, 0, alice}, {1, 0, 1, alice}, {2, 0, 0, alice}, {2, 1, 0, alice}],
+          [{alice, @eth, 10}, {alice, @not_eth, 10}]
+        )
+        |> Fee.apply_fees(@fees)
+
+      assert not Fee.covered?(
+               %{@eth => 10, @not_eth => 10},
+               %{@eth => 10, @not_eth => 10},
+               fees
+             )
+    end
+
+    @tag fixtures: [:alice, :bob]
+    test "merge is single same address transaction", %{alice: alice, bob: bob} do
+      fees =
+        create_recovered(
+          [{1, 0, 0, alice}, {1, 0, 1, alice}, {2, 0, 0, alice}],
+          @eth,
+          [{alice, 5}, {bob, 5}]
+        )
+        |> Fee.apply_fees(@fees)
+
+      assert not Fee.covered?(%{@eth => 10}, %{@eth => 10}, fees)
+    end
+  end
 end

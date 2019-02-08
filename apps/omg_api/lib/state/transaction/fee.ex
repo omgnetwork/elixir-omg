@@ -19,6 +19,9 @@ defmodule OMG.API.State.Transaction.Fee do
 
   alias OMG.API.Fees
   alias OMG.API.State.Transaction
+  alias OMG.API.Utxo
+
+  require Utxo
 
   @doc """
   Checks whether transaction's funds cover the fee
@@ -44,8 +47,83 @@ defmodule OMG.API.State.Transaction.Fee do
   To make transaction fee free, zero-fee for transaction's currency needs to be explicitly returned.
   """
   @spec apply_fees(Transaction.Recovered.t(), Fees.token_fee_t()) :: Fees.token_fee_t()
-  def apply_fees(_recovered_tx, fees) do
-    # TODO: reducing fees to output currencies only is incorrect, let's deffer until fees get large
-    fees
+  def apply_fees(
+        %Transaction.Recovered{
+          signed_tx: %Transaction.Signed{raw_tx: raw_tx}
+        } = recovered_tx,
+        fees
+      ) do
+    output_currencies = Transaction.get_currencies(raw_tx)
+
+    if is_merge_transaction?(recovered_tx) do
+      %{hd(output_currencies) => 0}
+    else
+      # TODO: reducing fees to output currencies only is incorrect, let's deffer until fees get large
+      fees
+    end
+  end
+
+  defp is_merge_transaction?(recovered_tx) do
+    [
+      &has_less_outputs_than_inputs?/1,
+      &has_single_currency?/1,
+      &has_same_account?/1
+    ]
+    |> juxt(recovered_tx)
+    |> Enum.all?()
+  end
+
+  defp has_same_account?(%Transaction.Recovered{
+         signed_tx: %Transaction.Signed{raw_tx: raw_tx},
+         spenders: spenders
+       }) do
+    raw_tx
+    |> Transaction.get_outputs()
+    |> Enum.reject(&(&1.amount == 0))
+    |> Enum.map(& &1.owner)
+    |> Enum.concat(spenders)
+    |> single?()
+  end
+
+  defp has_single_currency?(%Transaction.Recovered{
+         signed_tx: %Transaction.Signed{raw_tx: raw_tx}
+       }) do
+    raw_tx
+    |> Transaction.get_outputs()
+    |> Enum.reject(&(&1.amount == 0))
+    |> Enum.map(& &1.currency)
+    |> single?()
+  end
+
+  defp has_less_outputs_than_inputs?(%Transaction.Recovered{
+         signed_tx: %Transaction.Signed{raw_tx: raw_tx}
+       }) do
+    # we need to filter out placeholders
+    inputs =
+      Transaction.get_inputs(raw_tx)
+      |> Enum.reject(&(&1 == Utxo.position(0, 0, 0)))
+
+    outputs =
+      Transaction.get_outputs(raw_tx)
+      |> Enum.reject(&(&1.amount == 0))
+
+    has_less_outputs_than_inputs?(inputs, outputs)
+  end
+
+  defp has_less_outputs_than_inputs?(inputs, outputs)
+       when length(inputs) >= 1 and length(inputs) > length(outputs),
+       do: true
+
+  defp has_less_outputs_than_inputs?(_inputs, _outputs), do: false
+
+  defp juxt(fs, arg), do: Enum.map(fs, fn f -> f.(arg) end)
+
+  defp single?(list) do
+    list
+    |> Enum.dedup()
+    |> (fn
+          [_one] -> true
+          _ -> false
+        end).()
   end
 end
