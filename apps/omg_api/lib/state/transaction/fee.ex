@@ -44,12 +44,8 @@ defmodule OMG.API.State.Transaction.Fee do
   To make transaction fee free, zero-fee for transaction's currency needs to be explicitly returned.
   """
   @spec apply_fees(Transaction.Recovered.t(), Fees.token_fee_t()) :: Fees.token_fee_t()
-  def apply_fees(
-        %Transaction.Recovered{
-          signed_tx: %Transaction.Signed{raw_tx: raw_tx}
-        },
-        fees
-      ) do
-    Map.take(fees, Transaction.get_currencies(raw_tx))
+  def apply_fees(_recovered_tx, fees) do
+    # TODO: reducing fees to output currencies only is incorrect, let's deffer until fees get large
+    fees
   end
 end
