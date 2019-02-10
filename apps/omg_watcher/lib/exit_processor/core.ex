@@ -813,8 +813,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   Creates a challenge for exiting utxo.
   """
+#  TODO reimplement create_challenge
   @spec create_challenge(ExitInfo.t(), Block.t(), Utxo.Position.t()) :: Challenge.t()
-  def create_challenge(%ExitInfo{owner: owner}, spending_block, Utxo.position(_, _, _) = utxo_exit) do
+  def create_challenge(%ExitInfo{owner: owner}, %Block{} = spending_block, Utxo.position(_, _, _) = utxo_exit) do
     {%Transaction.Signed{raw_tx: challenging_tx} = challenging_signed, input_index} =
       get_spending_transaction_with_index(spending_block, utxo_exit)
 
@@ -825,6 +826,20 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       sig: find_sig(challenging_signed, owner)
     }
   end
+
+  def create_challenge(%ExitInfo{owner: owner}, %KnownTx{} = known_tx, Utxo.position(_, _, _) = utxo_exit) do
+
+  end
+
+#  TODO reimplement ensure_challengeable
+#  def ensure_challengeable({:ok, blknum}, utxo_exit_position, %__MODULE__{exits: exits}) when is_integer(blknum) do
+#    case Map.get(utxo_exit_position) do
+#      nil ->
+#        {:error, :exit_not_found}
+#      exit ->
+#        {:ok, blknum, exit}
+#    end
+#  end
 
   @doc """
   Checks whether database responses hold all the relevant data succesfully fetched:
@@ -838,7 +853,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   def ensure_challengeable(_, {:ok, :not_found}), do: {:error, :exit_not_found}
 
   def ensure_challengeable({:ok, blknum}, {:ok, {_, exit_info}}) when is_integer(blknum),
-    do: {:ok, blknum, ExitInfo.from_db_value(exit_info)}
+      do: {:ok, blknum, ExitInfo.from_db_value(exit_info)}
 
   def ensure_challengeable({:error, error}, _), do: {:error, error}
   def ensure_challengeable(_, {:error, error}), do: {:error, error}

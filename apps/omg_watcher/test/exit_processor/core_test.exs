@@ -651,9 +651,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     processor_filled: state,
     in_flight_exits: [{tx_hash, ife}, _]
   } do
+#    TODO
   end
 
   test "start standard exit challenge using ife tx as spend which was piggybacked and finalized" do
+    #    TODO
   end
 
   describe "available piggybacks" do

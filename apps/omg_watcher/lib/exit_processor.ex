@@ -32,8 +32,6 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
-  require Utxo
-
   use OMG.API.LoggerExt
 
   ### Client
@@ -148,6 +146,15 @@ defmodule OMG.Watcher.ExitProcessor do
   @spec prove_canonical_for_ife(binary()) :: {:ok, Core.prove_canonical_data_t()} | {:error, :canonical_not_found}
   def prove_canonical_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
+  end
+
+  @doc """
+  Returns challenge for an exit
+  """
+  @spec create_challenge(Utxo.Position.t()) ::
+          {:ok, Challenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
+  def create_challenge(exiting_utxo_pos) do
+    GenServer.call(__MODULE__, {:create_challenge, exiting_utxo_pos})
   end
 
   ### Server
@@ -302,18 +309,21 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, canonicity_result, state}
   end
 
-  @doc """
-  Returns challenge for an exit
-  """
-  @spec create_challenge(Utxo.Position.t()) ::
-          {:ok, Challenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
-  def create_challenge(Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos) do
+  def handle_call({:create_challenge, Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos}, _from, state) do
     with spending_blknum_response = OMG.DB.spent_blknum({blknum, txindex, oindex}),
-#         exit_response = OMG.DB.exit_info({blknum, txindex, oindex}),
-         {:ok, spending_blknum, exit_info} <- Core.ensure_challengeable(spending_blknum_response) do
-      {:ok, hashes} = OMG.DB.block_hashes([spending_blknum])
-      {:ok, [spending_block]} = OMG.DB.blocks(hashes)
-      {:ok, Core.create_challenge(exit_info, spending_block, exiting_utxo_pos)}
+         {:ok, raw_spending_proof, exit_info} <- Core.ensure_challengeable(spending_blknum_response, exiting_utxo_pos, state) do
+      spending_proof =
+        case raw_spending_proof do
+          blknum when is_number(blknum) ->
+            {:ok, hashes} = OMG.DB.block_hashes([blknum])
+            {:ok, [spending_block]} = OMG.DB.blocks(hashes)
+            spending_block
+
+#          TODO add %knownTx case
+
+        end
+
+      {:ok, Core.create_challenge(exit_info, spending_proof, exiting_utxo_pos)}
     end
   end
 
