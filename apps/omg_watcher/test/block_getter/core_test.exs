@@ -298,25 +298,15 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {:ok, []} = init_state() |> Core.consider_exits({:ok, [%Event.InvalidExit{}]}) |> Core.chain_ok()
   end
 
-  # temporarily skipped, see comment in Core.consider_exits
-  @tag :skip
   @tag :capture_log
   test "prevents progressing when unchallenged_exit is detected" do
     assert {:error, []} = init_state() |> Core.consider_exits({{:error, :unchallenged_exit}, []}) |> Core.chain_ok()
   end
 
-  # temporarily skipped, see comment in Core.consider_exits
-  @tag :skip
   @tag :capture_log
   test "prevents applying when started with an unchallenged_exit" do
-    assert {:error, []} = init_state(exit_processor_results: {{:error, :unchallenged_exit}, []}) |> Core.chain_ok()
-  end
-
-  # temporarily _added_ see above
-  @tag :capture_log
-  test "temporarily allows an unchallenged_exit" do
-    assert {:ok, []} = init_state(exit_processor_results: {{:error, :unchallenged_exit}, []}) |> Core.chain_ok()
-    assert {:ok, []} = init_state() |> Core.consider_exits({{:error, :unchallenged_exit}, []}) |> Core.chain_ok()
+    state = init_state(exit_processor_results: {{:error, :unchallenged_exit}, []})
+    assert {:error, []} = Core.chain_ok(state)
   end
 
   test "validate_executions function prevent getter from progressing when invalid block is detected" do

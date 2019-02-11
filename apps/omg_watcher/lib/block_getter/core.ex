@@ -578,16 +578,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
   def consider_exits(%__MODULE__{} = state, {:ok, _}), do: state
 
   def consider_exits(%__MODULE__{} = state, {{:error, :unchallenged_exit} = error, _}) do
-    # NOTE: this is the correct implementation of this function `:unchallenged_exit` should set chain to invalid
-    # _ = Logger.warn("Chain invalid when taking exits into account, because of #{inspect(error)}")
-    # set_chain_status(state, :error)
-    #
-    # this is a temporary implementation, which turns this check off, but still prints a more explanatory warning
-    # revert after OMG-405 is properly fixed. Also:
-    #   - revert (2) test skips to bring back testing that this check is functional
-    #   - remove 1 sanity check that checks that this workaround is applied
-    _ = Logger.warn("#{inspect(error)} spotted, but if syncing, it's probably OK. Check status.get after synced")
-    state
+    _ = Logger.warn("Chain invalid when taking exits into account, because of #{inspect(error)}")
+    set_chain_status(state, :error)
   end
 
   defp add_zero_fee(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}, fee_map) do
