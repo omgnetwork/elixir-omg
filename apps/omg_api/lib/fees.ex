@@ -18,6 +18,7 @@ defmodule OMG.API.Fees do
   """
 
   alias OMG.API.Crypto
+  alias OMG.API.State.Transaction
   alias Poison
 
   @type fee_spec_t() :: %{token: Crypto.address_t(), flat_fee: non_neg_integer}
@@ -36,6 +37,32 @@ defmodule OMG.API.Fees do
       |> Enum.reduce({[], %{}, 1}, &spec_reducer/2)
 
     {Enum.reverse(errors), token_fee_map}
+  end
+
+  @doc """
+  Checks whether transaction's funds cover the fee
+  """
+  @spec covered?(map(), map(), token_fee_t()) :: boolean()
+  def covered?(input_amounts, output_amounts, fees) do
+    for {input_currency, input_amount} <- Map.to_list(input_amounts) do
+      # fee is implicit - it's the difference between funds owned and spend
+      implicit_paid_fee = input_amount - Map.get(output_amounts, input_currency, 0)
+
+      case Map.get(fees, input_currency) do
+        nil -> false
+        fee -> fee <= implicit_paid_fee
+      end
+    end
+    |> Enum.any?()
+  end
+
+  @doc """
+  Returns fees for particular transaction
+  """
+  @spec for_tx(Transaction.Recovered.t(), token_fee_t()) :: token_fee_t()
+  def for_tx(_tx, fee_map) do
+    # TODO: reducing fees to output currencies only is incorrect, let's deffer until fees get large
+    fee_map
   end
 
   defp parse_fee_spec(%{"flat_fee" => fee, "token" => token}) do

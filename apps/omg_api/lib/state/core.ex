@@ -21,11 +21,9 @@ defmodule OMG.API.State.Core do
 
   defstruct [:height, :last_deposit_child_blknum, :utxos, pending_txs: [], tx_index: 0]
 
-  alias OMG.API.Block
-  alias OMG.API.Crypto
-  alias OMG.API.State.Core
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.API.{Block, Crypto, Fees, Utxo}
+  alias OMG.API.State.{Core, Transaction}
+
   use OMG.API.LoggerExt
   require Utxo
 
@@ -232,8 +230,8 @@ defmodule OMG.API.State.Core do
   end
 
   def transaction_covers_fee?(input_amounts, output_amounts, fees) do
-    Transaction.Fee.covered?(input_amounts, output_amounts, fees)
-    |> if(do: :ok, else: {:error, :amounts_do_not_add_up})
+    Fees.covered?(input_amounts, output_amounts, fees)
+    |> if(do: :ok, else: {:error, :fees_not_covered})
   end
 
   defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, new_tx) do

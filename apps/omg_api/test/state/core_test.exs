@@ -91,7 +91,7 @@ defmodule OMG.API.State.CoreTest do
       |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{alice, 7}, {bob, 2}]), %{
         @eth => 2
       })
-      |> fail?(:amounts_do_not_add_up)
+      |> fail?(:fees_not_covered)
       |> same?(state)
       |> Core.exec(
         create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{alice, 9}, {bob, 2}]),
@@ -136,7 +136,7 @@ defmodule OMG.API.State.CoreTest do
       state
       |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 3}]), fee)
-      |> fail?(:amounts_do_not_add_up)
+      |> fail?(:fees_not_covered)
     end
 
     @tag fixtures: [:alice, :bob, :state_empty]
@@ -180,10 +180,10 @@ defmodule OMG.API.State.CoreTest do
       |> fail?(:amounts_do_not_add_up)
       # fee is not respected
       |> Core.exec(create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 10}, {bob, @not_eth, 10}]), fees)
-      |> fail?(:amounts_do_not_add_up)
+      |> fail?(:fees_not_covered)
       # transaction transferring only not fee currency still is obliged to fee
       |> Core.exec(create_recovered([{3, 0, 0, alice}], not_fee_token, [{bob, 3}, {alice, 7}]), fees)
-      |> fail?(:amounts_do_not_add_up)
+      |> fail?(:fees_not_covered)
     end
 
     @tag fixtures: [:alice, :bob, :state_empty]
