@@ -18,6 +18,7 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
    In case one process fails, this supervisor's role is to restore consistent state
   """
   use Supervisor
+  use OMG.API.LoggerExt
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -37,6 +38,8 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
     ]
 
     opts = [strategy: :one_for_all, max_restarts: 2, max_seconds: 3 * 60]
+
+    _ = Logger.info("Starting #{inspect(__MODULE__)}")
     Supervisor.init(children, opts)
   end
 end
