@@ -26,7 +26,7 @@ defmodule OMG.API.State.TransactionTest do
     Transaction.new(
       [{1, 1, 0}, {1, 2, 1}],
       [{"alicealicealicealice", eth(), 1}, {"carolcarolcarolcarol", eth(), 2}],
-      "ble ble ble"
+      "description"
     )
   end
 
@@ -55,7 +55,7 @@ defmodule OMG.API.State.TransactionTest do
 
   @tag fixtures: [:transaction]
   test "transaction hash is correct", %{transaction: transaction} do
-    {:ok, hash_value} = Base.decode16("9828102ed327a3208b5f6c0f931d273a7b4e247d8fe415a50d5c43113329ed59", case: :lower)
+    {:ok, hash_value} = Base.decode16("7a9e25eae593b75d23417331724b7dd487cae9995c99c7388bfdb4a1d4e417ee", case: :lower)
     assert Transaction.hash(transaction) == hash_value
   end
 

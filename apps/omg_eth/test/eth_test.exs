@@ -79,7 +79,7 @@ defmodule OMG.EthTest do
     zero_out = [<<0::160>>, <<0::160>>, 0]
 
     tx =
-      [List.duplicate(zero_in, 4), [[contract.authority_addr, @eth, 1]] ++ List.duplicate(zero_out, 3)]
+      [List.duplicate(zero_in, 4), [[contract.authority_addr, @eth, 1]] ++ List.duplicate(zero_out, 3), ""]
       |> ExRLP.encode()
 
     {:ok, _} =

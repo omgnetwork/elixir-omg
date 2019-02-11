@@ -50,7 +50,7 @@ defmodule OMG.API.State.Transaction do
 
   defmacro is_metadata(metadata) do
     quote do
-      unquote(metadata) == nil or (is_bitstring(unquote(metadata)) and byte_size(unquote(metadata)) <= 80)
+      is_bitstring(unquote(metadata)) and byte_size(unquote(metadata)) <= 80
     end
   end
 
@@ -174,7 +174,7 @@ defmodule OMG.API.State.Transaction do
   def account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
   def account_address?(_), do: false
 
-  def reconstruct([inputs_rlp, outputs_rlp | opt_metadata_rlp]) do
+  def reconstruct([inputs_rlp, outputs_rlp | metadata_rlp]) do
     inputs =
       Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
         %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
@@ -188,9 +188,9 @@ defmodule OMG.API.State.Transaction do
         end
       end)
 
-    metadata = reconstruct_metadata(opt_metadata_rlp)
+    metadata = reconstruct_metadata(metadata_rlp)
 
-    if error = Enum.find(outputs ++ [metadata], &match?({:error, _}, &1)),
+    if error = Enum.find([metadata | outputs], &match?({:error, _}, &1)),
       do: error,
       else: {:ok, %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}}
   end
@@ -225,15 +225,14 @@ defmodule OMG.API.State.Transaction do
   end
 
   def get_data_for_rlp(%__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}),
-    do:
-      [
-        # contract expects 4 inputs and outputs
-        Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
-          List.duplicate([0, 0, 0], 4 - length(inputs)),
-        Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
-          List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs)),
-        metadata
-      ]
+    do: [
+      # contract expects 4 inputs and outputs
+      Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
+        List.duplicate([0, 0, 0], 4 - length(inputs)),
+      Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
+        List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs)),
+      metadata
+    ]
 
   def hash(%__MODULE__{} = tx) do
     tx
