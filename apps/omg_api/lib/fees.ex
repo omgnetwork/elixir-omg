@@ -111,9 +111,11 @@ defmodule OMG.API.Fees do
       &has_single_currency?/1,
       &has_same_account?/1
     ]
-    |> juxt(recovered_tx)
-    |> Enum.all?()
+    |> Enum.all?(fn predicate -> predicate.(recovered_tx) end)
   end
+
+  @empty_input Utxo.position(0, 0, 0)
+  @empty_output %{owner: Crypto.zero_address(), currency: Crypto.zero_address(), amount: 0}
 
   defp has_same_account?(%Transaction.Recovered{
          signed_tx: %Transaction.Signed{raw_tx: raw_tx},
@@ -121,7 +123,7 @@ defmodule OMG.API.Fees do
        }) do
     raw_tx
     |> Transaction.get_outputs()
-    |> Enum.reject(&(&1.amount == 0))
+    |> Enum.reject(&(@empty_output == &1))
     |> Enum.map(& &1.owner)
     |> Enum.concat(spenders)
     |> single?()
@@ -132,7 +134,7 @@ defmodule OMG.API.Fees do
        }) do
     raw_tx
     |> Transaction.get_outputs()
-    |> Enum.reject(&(&1.amount == 0))
+    |> Enum.reject(&(@empty_output == &1))
     |> Enum.map(& &1.currency)
     |> single?()
   end
@@ -143,29 +145,16 @@ defmodule OMG.API.Fees do
     # we need to filter out placeholders
     inputs =
       Transaction.get_inputs(raw_tx)
-      |> Enum.reject(&(&1 == Utxo.position(0, 0, 0)))
+      |> Enum.reject(&(@empty_input == &1))
 
     outputs =
       Transaction.get_outputs(raw_tx)
-      |> Enum.reject(&(&1.amount == 0))
+      |> Enum.reject(&(@empty_output == &1))
 
     has_less_outputs_than_inputs?(inputs, outputs)
   end
 
-  defp has_less_outputs_than_inputs?(inputs, outputs)
-       when length(inputs) >= 1 and length(inputs) > length(outputs),
-       do: true
+  defp has_less_outputs_than_inputs?(inputs, outputs), do: length(inputs) >= 1 and length(inputs) > length(outputs)
 
-  defp has_less_outputs_than_inputs?(_inputs, _outputs), do: false
-
-  defp juxt(fs, arg), do: Enum.map(fs, fn f -> f.(arg) end)
-
-  defp single?(list) do
-    list
-    |> Enum.dedup()
-    |> (fn
-          [_one] -> true
-          _ -> false
-        end).()
-  end
+  defp single?(list), do: 1 == list |> Enum.dedup() |> length()
 end
