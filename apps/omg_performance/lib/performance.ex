@@ -69,6 +69,8 @@ defmodule OMG.Performance do
         "PerfTest number of spenders: #{inspect(nspenders)}, number of tx to send per spender: #{inspect(ntx_to_send)}."
       )
 
+    DeferredConfig.populate(:omg_rpc)
+
     defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
     opts = Map.merge(defaults, opts)
 
