@@ -18,6 +18,7 @@ defmodule OMG.API.CoreTest do
 
   alias OMG.API.Core
   alias OMG.API.Crypto
+  alias OMG.API.DevCrypto
   alias OMG.API.State.Transaction
   alias OMG.API.TestHelper
 
@@ -96,6 +97,20 @@ defmodule OMG.API.CoreTest do
     assert {:error, :malformed_address} = Core.recover_tx(malformed1)
     assert {:error, :malformed_address} = Core.recover_tx(malformed2)
     assert {:error, :malformed_address} = Core.recover_tx(malformed3)
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "to long metadata malformed", %{alice: alice, bob: bob} do
+    malformed_metadata =
+      Transaction.new(
+        [{1, 1, 0}, {1, 2, 1}],
+        [{"alicealicealicealice", eth(), 1}, {"carolcarolcarolcarol", eth(), 2}],
+        String.duplicate("0", 90)
+      )
+      |> DevCrypto.sign([alice.priv, bob.priv])
+      |> Transaction.Signed.encode()
+
+    assert {:error, :malformed_transaction} = Core.recover_tx(malformed_metadata)
   end
 
   @tag fixtures: [:alice]

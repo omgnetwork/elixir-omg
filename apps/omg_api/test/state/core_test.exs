@@ -443,7 +443,7 @@ defmodule OMG.API.State.CoreTest do
 
     # precomputed fixed hash to check compliance with hashing algo
     assert block_hash |> Base.encode16(case: :lower) ==
-             "ee44e104950e8784c17495e423493c54026fa554180bbbca057c1176bc4e1ded"
+             "0674a697af39aaefe052d35f70a580e4eccd9eeab7bb38559528c9b9b0565779"
 
     # Check that contents of the block can be recovered again to original txs
     assert {:ok, ^recovered_tx_1} = API.Core.recover_tx(block_tx1)
