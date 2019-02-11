@@ -24,49 +24,40 @@ defmodule OMG.API.Application do
   def start(_type, _args) do
     DeferredConfig.populate(:omg_api)
     deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
-    exiters_finality_margin = Application.fetch_env!(:omg_api, :exiters_finality_margin)
 
-    if deposit_finality_margin >= exiters_finality_margin,
-      do: raise(ArgumentError, message: "exiters_finality_margin must be larger than deposit_finality_margin")
+    coordinator_setup = %{
+      depositor: [finality_margin: deposit_finality_margin],
+      exiter: [waits_for: :depositor, finality_margin: 0],
+      in_flight_exit: [finality_margin: 0],
+      piggyback: [waits_for: :in_flight_exit, finality_margin: 0]
+    }
 
     children = [
       {OMG.API.State, []},
       {OMG.API.BlockQueue.Server, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeServer, []},
-      {
-        OMG.API.RootChainCoordinator,
-        %{
-          depositor: %{sync_mode: :sync_with_coordinator},
-          exiter: %{sync_mode: :sync_with_coordinator},
-          in_flight_exit: %{sync_mode: :sync_with_coordinator},
-          piggyback: %{sync_mode: :sync_with_coordinator}
-        }
-      },
+      {OMG.API.RootChainCoordinator, coordinator_setup},
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :depositor,
-        block_finality_margin: deposit_finality_margin,
         synced_height_update_key: :last_depositor_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
         process_events_callback: &OMG.API.State.deposit/1
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :in_flight_exit,
-        block_finality_margin: exiters_finality_margin,
         synced_height_update_key: :last_in_flight_exit_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
         process_events_callback: &ignore_validities/1
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :piggyback,
-        block_finality_margin: exiters_finality_margin,
         synced_height_update_key: :last_piggyback_exit_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
         process_events_callback: &ignore_validities/1
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :exiter,
-        block_finality_margin: exiters_finality_margin,
         synced_height_update_key: :last_exiter_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
         process_events_callback: &ignore_validities/1

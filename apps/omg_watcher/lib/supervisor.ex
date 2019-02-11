@@ -27,7 +27,28 @@ defmodule OMG.Watcher.Supervisor do
   def init(:ok) do
     # Define workers and child supervisors to be supervised
     deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
-    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+    finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+
+    # FIXME: this could be split out and tested against RootChainCoordinator?
+    coordinator_setup = %{
+      depositor: [finality_margin: deposit_finality_margin],
+      "Elixir.OMG.Watcher.BlockGetter": [waits_for: [depositor: :no_margin], finality_margin: 0],
+      exit_processor: [waits_for: :depositor, finality_margin: finality_margin],
+      exit_finalizer: [
+        waits_for: [:depositor, :"Elixir.OMG.Watcher.BlockGetter", :exit_processor],
+        finality_margin: finality_margin
+      ],
+      exit_challenger: [waits_for: :exit_processor, finality_margin: finality_margin],
+      in_flight_exit_processor: [waits_for: :depositor, finality_margin: finality_margin],
+      piggyback_processor: [waits_for: :in_flight_exit_processor, finality_margin: finality_margin],
+      competitor_processor: [waits_for: :in_flight_exit_processor, finality_margin: finality_margin],
+      challenges_responds_processor: [waits_for: :competitor_processor, finality_margin: finality_margin],
+      piggyback_challenges_processor: [waits_for: :piggyback_processor, finality_margin: finality_margin],
+      ife_exit_finalizer: [
+        waits_for: [:depositor, :"Elixir.OMG.Watcher.BlockGetter", :in_flight_exit_processor, :piggyback_processor],
+        finality_margin: finality_margin
+      ]
+    }
 
     children = [
       # Start the Ecto repository
@@ -38,25 +59,9 @@ defmodule OMG.Watcher.Supervisor do
       },
       # Start workers
       {OMG.Watcher.Eventer, []},
-      {
-        OMG.API.RootChainCoordinator,
-        %{
-          OMG.Watcher.BlockGetter => %{sync_mode: :sync_with_coordinator},
-          depositor: %{sync_mode: :sync_with_coordinator},
-          exit_processor: %{sync_mode: :sync_with_root_chain},
-          exit_finalizer: %{sync_mode: :sync_with_coordinator},
-          exit_challenger: %{sync_mode: :sync_with_root_chain},
-          in_flight_exit_processor: %{sync_mode: :sync_with_root_chain},
-          piggyback_processor: %{sync_mode: :sync_with_root_chain},
-          competitor_processor: %{sync_mode: :sync_with_root_chain},
-          challenges_responds_processor: %{sync_mode: :sync_with_root_chain},
-          piggyback_challenges_processor: %{sync_mode: :sync_with_root_chain},
-          ife_exit_finalizer: %{sync_mode: :sync_with_coordinator}
-        }
-      },
+      {OMG.API.RootChainCoordinator, coordinator_setup},
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :depositor,
-        block_finality_margin: deposit_finality_margin,
         synced_height_update_key: :last_depositor_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
         process_events_callback: &deposit_events_callback/1
@@ -64,63 +69,54 @@ defmodule OMG.Watcher.Supervisor do
       {OMG.Watcher.ExitProcessor, []},
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :exit_processor,
-        block_finality_margin: exit_finality_margin,
         synced_height_update_key: :last_exit_processor_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
         process_events_callback: &OMG.Watcher.ExitProcessor.new_exits/1
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :exit_finalizer,
-        block_finality_margin: 0,
         synced_height_update_key: :last_exit_finalizer_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_finalizations/2,
         process_events_callback: &OMG.Watcher.ExitProcessor.finalize_exits/1
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :exit_challenger,
-        block_finality_margin: exit_finality_margin,
         synced_height_update_key: :last_exit_challenger_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_challenges/2,
         process_events_callback: &OMG.Watcher.ExitProcessor.challenge_exits/1
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :in_flight_exit_processor,
-        block_finality_margin: exit_finality_margin,
         synced_height_update_key: :last_in_flight_exit_processor_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
         process_events_callback: &OMG.Watcher.ExitProcessor.new_in_flight_exits/1
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :piggyback_processor,
-        block_finality_margin: exit_finality_margin,
         synced_height_update_key: :last_piggyback_processor_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
         process_events_callback: &OMG.Watcher.ExitProcessor.piggyback_exits/1
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :competitor_processor,
-        block_finality_margin: exit_finality_margin,
         synced_height_update_key: :last_competitor_processor_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_challenges/2,
         process_events_callback: &OMG.Watcher.ExitProcessor.new_ife_challenges/1
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :challenges_responds_processor,
-        block_finality_margin: exit_finality_margin,
         synced_height_update_key: :last_challenges_responds_processor_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_responds_to_in_flight_exit_challenges/2,
         process_events_callback: &OMG.Watcher.ExitProcessor.respond_to_in_flight_exits_challenges/1
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :piggyback_challenges_processor,
-        block_finality_margin: exit_finality_margin,
         synced_height_update_key: :last_piggyback_challenges_processor_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_piggybacks_challenges/2,
         process_events_callback: &OMG.Watcher.ExitProcessor.challenge_piggybacks/1
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :ife_exit_finalizer,
-        block_finality_margin: 0,
         synced_height_update_key: :last_ife_exit_finalizer_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_finalizations/2,
         process_events_callback: &OMG.Watcher.ExitProcessor.finalize_in_flight_exits/1

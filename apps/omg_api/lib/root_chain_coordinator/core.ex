@@ -29,7 +29,8 @@ defmodule OMG.API.RootChainCoordinator.Core do
 
   defstruct configs_services: %{}, root_chain_height: 0, services: %{}
 
-  @type configs_services :: %{required(atom()) => %{sync_mode: :sync_with_root_chain | :sync_with_coordinator}}
+  @type config_t :: keyword()
+  @type configs_services :: %{required(atom()) => config_t()}
 
   @type t() :: %__MODULE__{
           configs_services: configs_services,
@@ -131,42 +132,57 @@ defmodule OMG.API.RootChainCoordinator.Core do
     end
   end
 
-  def get_synced_info(state, service_name) when is_atom(service_name) do
-    sync_mode =
-      state.configs_services
-      |> Map.get(service_name)
-      |> Map.get(:sync_mode, :sync_with_coordinator)
-
-    get_synced_info_by_mode(state, sync_mode)
-  end
-
-  defp get_synced_info_by_mode(
-         %__MODULE__{services: services, root_chain_height: root_chain_height} = state,
-         :sync_with_coordinator
-       ) do
+  def get_synced_info(
+        %__MODULE__{root_chain_height: root_chain_height, configs_services: configs} = state,
+        service_name
+      )
+      when is_atom(service_name) do
     if all_services_checked_in?(state) do
-      # do not allow syncing to Ethereum blocks higher than block last seen by synchronizer
-      next_sync_height = min(sync_height(services) + 1, root_chain_height)
-      %SyncData{sync_height: next_sync_height, root_chain_height: root_chain_height}
+      config = configs[service_name]
+
+      next_sync_height =
+        config
+        |> Keyword.get(:waits_for, [])
+        |> get_height_of_awaited(state)
+        |> consider_finality(configs[service_name], root_chain_height)
+        |> min(root_chain_height)
+        |> max(0)
+
+      finality_bearing_root = max(0, root_chain_height - finality_margin_for(config))
+
+      %SyncData{sync_height: next_sync_height, root_chain_height: finality_bearing_root}
     else
       :nosync
     end
   end
 
-  defp get_synced_info_by_mode(%__MODULE__{root_chain_height: root_chain_height}, :sync_with_root_chain) do
-    %SyncData{sync_height: root_chain_height, root_chain_height: root_chain_height}
-  end
+  defp finality_margin_for(config), do: Keyword.get(config, :finality_margin, 0)
+  defp finality_margin_for!(config), do: Keyword.fetch!(config, :finality_margin)
+
+  # ensures we don't exceed the allowed finality margin applied to the root_chain_height
+  defp consider_finality(sync_height, config, root_chain_height),
+    do: min(sync_height, root_chain_height - finality_margin_for(config))
+
+  # get the earliest-synced of all of the services we're waiting for, if any, if none then root chain height
+  defp get_height_of_awaited([], %__MODULE__{root_chain_height: root_chain_height}),
+    # wait for nothing so root chain is the limit
+    do: root_chain_height
+
+  defp get_height_of_awaited(single_awaited, %__MODULE__{services: services}) when is_atom(single_awaited),
+    # we wait for a single service so get that
+    do: services[single_awaited].synced_height
+
+  defp get_height_of_awaited({single_awaited, :no_margin}, %__MODULE__{configs_services: configs} = state),
+    # in this clause we're waiting on a service, but skipping ahead its particular finality margin
+    do: get_height_of_awaited(single_awaited, state) + finality_margin_for!(configs[single_awaited])
+
+  defp get_height_of_awaited(awaited, state),
+    # we're waiting for multiple services, so iterate the list and get the least synced height
+    do: Enum.map(awaited, &get_height_of_awaited(&1, state)) |> Enum.min()
 
   defp all_services_checked_in?(%__MODULE__{configs_services: configs_services, services: services}) do
     sort = fn map -> map |> Map.keys() |> Enum.sort() end
     sort.(configs_services) == sort.(services)
-  end
-
-  defp sync_height(services) do
-    services
-    |> Map.values()
-    |> Enum.map(& &1.synced_height)
-    |> Enum.min()
   end
 
   @doc """

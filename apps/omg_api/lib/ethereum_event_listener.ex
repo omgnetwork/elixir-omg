@@ -59,7 +59,6 @@ defmodule OMG.API.EthereumEventListener do
   use GenServer
 
   def init(%{
-        block_finality_margin: finality_margin,
         synced_height_update_key: update_key,
         service_name: service_name,
         get_events_callback: get_events_callback,
@@ -77,7 +76,7 @@ defmodule OMG.API.EthereumEventListener do
     _ = Logger.info("Starting EthereumEventListener for #{service_name}")
 
     {:ok,
-     {Core.init(update_key, service_name, last_event_block_height, finality_margin),
+     {Core.init(update_key, service_name, last_event_block_height),
       %{
         get_ethereum_events_callback: get_events_callback,
         process_events_callback: process_events_callback
