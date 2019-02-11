@@ -62,7 +62,7 @@ Actually `OMG.API.EthereumEventListener` setup with `:depositor`.
 - requests `form_block` on `OMG.API.State` and takes block hashes in return
 - tracks Ethereum height and child chain block submission mining via `OMG.Eth` and `OMG.API.RootChainCoordinator`
 
-### `OMG.API.FeeChecker`
+### `OMG.API.FeeServer`
 - `OMG.API` calls it to get acceptable currencies and actual fee amounts to validate transactions
 
 ### `OMG.Watcher.BlockGetter`

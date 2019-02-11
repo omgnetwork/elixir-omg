@@ -21,11 +21,9 @@ defmodule OMG.API.State.Core do
 
   defstruct [:height, :last_deposit_child_blknum, :utxos, pending_txs: [], tx_index: 0]
 
-  alias OMG.API.Block
-  alias OMG.API.Crypto
-  alias OMG.API.State.Core
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.API.{Block, Crypto, Fees, Utxo}
+  alias OMG.API.State.{Core, Transaction}
+
   use OMG.API.LoggerExt
   require Utxo
 
@@ -151,8 +149,9 @@ defmodule OMG.API.State.Core do
 
     with :ok <- validate_block_size(state),
          {:ok, input_amounts_by_currency} <- correct_inputs?(state, recovered_tx),
-         output_amounts_by_currency <- get_amounts_by_currency(outputs),
-         :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency, fees) do
+         output_amounts_by_currency = get_amounts_by_currency(outputs),
+         :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
+         :ok <- transaction_covers_fee?(input_amounts_by_currency, output_amounts_by_currency, fees) do
       {:ok, {tx_hash, height, tx_index},
        state
        |> apply_spend(recovered_tx)
@@ -221,24 +220,18 @@ defmodule OMG.API.State.Core do
     |> Map.new()
   end
 
-  # fee is implicit - it's the difference between funds owned and spend
-  defp amounts_add_up?(input_amounts, output_amounts, fees) do
-    outputs_covered =
-      for {output_currency, output_amount} <- Map.to_list(output_amounts) do
-        input_amount = Map.get(input_amounts, output_currency, 0)
-        input_amount >= output_amount
-      end
-      |> Enum.all?()
+  defp amounts_add_up?(input_amounts, output_amounts) do
+    for {output_currency, output_amount} <- Map.to_list(output_amounts) do
+      input_amount = Map.get(input_amounts, output_currency, 0)
+      input_amount >= output_amount
+    end
+    |> Enum.all?()
+    |> if(do: :ok, else: {:error, :amounts_do_not_add_up})
+  end
 
-    fees_covered =
-      for {input_currency, input_amount} <- Map.to_list(input_amounts) do
-        output_amount = Map.get(output_amounts, input_currency, 0)
-        fee = Map.get(fees, input_currency, 0)
-        input_amount - output_amount >= fee
-      end
-      |> Enum.any?()
-
-    if outputs_covered and fees_covered, do: :ok, else: {:error, :amounts_do_not_add_up}
+  def transaction_covers_fee?(input_amounts, output_amounts, fees) do
+    Fees.covered?(input_amounts, output_amounts, fees)
+    |> if(do: :ok, else: {:error, :fees_not_covered})
   end
 
   defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, new_tx) do

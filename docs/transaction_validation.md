@@ -20,8 +20,6 @@ This document presents current way of stateless and stateful validation of
     * if transaction have no input and empty sig then `:ok`
 3. Recovering of singed transaction using `OMG.API.State.Transaction.Recovered.recover_from`
     * Recovering address of spenders from signatures and if fail then `{:error, :signature_corrupt}`
-4. Checking transaction fees using `OMG.API.FeeChecker.transaction_fees`
-    * if the provided token is not allowed then `{:error, :token_not_allowed}`
 
 #### Stateful validation
 

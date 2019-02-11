@@ -12,34 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.FeeChecker.Core do
+defmodule OMG.API.Fees do
   @moduledoc """
   Transaction's fee validation functions
   """
 
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction
-  alias OMG.API.State.Transaction.Recovered
   alias Poison
 
   @type fee_spec_t() :: %{token: Crypto.address_t(), flat_fee: non_neg_integer}
   @type token_fee_t() :: %{Crypto.address_t() => non_neg_integer}
-
-  @doc """
-  Calculates fee from transaction and checks whether token is allowed and flat fee limits are met
-  """
-  @spec transaction_fees(Recovered.t(), token_fee_t()) :: {:ok, token_fee_t()} | {:error, :token_not_allowed}
-  def transaction_fees(
-        %Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}},
-        token_fees
-      ) do
-    currencies = Transaction.get_currencies(tx)
-    tx_fees = Map.take(token_fees, currencies)
-
-    if Enum.all?(currencies, &Map.has_key?(tx_fees, &1)),
-      do: {:ok, tx_fees},
-      else: {:error, :token_not_allowed}
-  end
 
   @doc """
   Parses provided json string to token-fee map and returns the map together with possible parsing errors
@@ -54,6 +37,32 @@ defmodule OMG.API.FeeChecker.Core do
       |> Enum.reduce({[], %{}, 1}, &spec_reducer/2)
 
     {Enum.reverse(errors), token_fee_map}
+  end
+
+  @doc """
+  Checks whether transaction's funds cover the fee
+  """
+  @spec covered?(map(), map(), token_fee_t()) :: boolean()
+  def covered?(input_amounts, output_amounts, fees) do
+    for {input_currency, input_amount} <- Map.to_list(input_amounts) do
+      # fee is implicit - it's the difference between funds owned and spend
+      implicit_paid_fee = input_amount - Map.get(output_amounts, input_currency, 0)
+
+      case Map.get(fees, input_currency) do
+        nil -> false
+        fee -> fee <= implicit_paid_fee
+      end
+    end
+    |> Enum.any?()
+  end
+
+  @doc """
+  Returns fees for particular transaction
+  """
+  @spec for_tx(Transaction.Recovered.t(), token_fee_t()) :: token_fee_t()
+  def for_tx(_tx, fee_map) do
+    # TODO: reducing fees to output currencies only is incorrect, let's deffer until fees get large
+    fee_map
   end
 
   defp parse_fee_spec(%{"flat_fee" => fee, "token" => token}) do

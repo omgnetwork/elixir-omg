@@ -12,60 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.FeeChecker.CoreTest do
+defmodule OMG.API.FeesTest do
   @moduledoc false
 
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OMG.API.TestHelper, as: Test
+  import OMG.API.Fees
+  import OMG.API.TestHelper
 
-  import OMG.API.FeeChecker.Core
+  @eth OMG.API.Crypto.zero_address()
+  @not_eth <<1::size(160)>>
 
-  @eth <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
-  @omg <<210, 97, 20, 205, 110, 226, 137, 172, 207, 130, 53, 12, 141, 132, 135, 254, 219, 138, 12, 7>>
+  @fees %{
+    @eth => 1,
+    @not_eth => 3
+  }
+
   @fee_config_file ~s(
     [
       { "token": "0x0000000000000000000000000000000000000000", "flat_fee": 2 },
       { "token": "0xd26114cd6ee289accf82350c8d8487fedb8a0c07", "flat_fee": 0 },
-      { "token": "0xa74476443119a942de498590fe1f2454d7d4ac0d", "flat_fee": 4 },
-      { "token": "0x4156d3342d5c385a87d264f90653733592000581", "flat_fee": 3 },
-      { "token": "0x81c9151de0c8bafcd325a57e3db5a5df1cebf79c", "flat_fee": 5 }
+      { "token": "0xa74476443119a942de498590fe1f2454d7d4ac0d", "flat_fee": 4 }
     ]
   )
-
-  describe "Transaction fees:" do
-    @tag fixtures: [:alice, :bob]
-    test "returns tx currency and flat fee associated with this currency", %{alice: alice, bob: bob} do
-      tx = Test.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 10}])
-
-      assert {[], fee_map} = parse_file_content(@fee_config_file)
-      assert {:ok, %{@eth => 2}} = transaction_fees(tx, fee_map)
-    end
-
-    @tag fixtures: [:alice, :bob]
-    test "returns zero fee - when currency is configured with zero fee", %{alice: alice, bob: bob} do
-      tx = Test.create_recovered([{1, 0, 0, alice}], @omg, [{bob, 10}])
-
-      assert {[], fee_map} = parse_file_content(@fee_config_file)
-      assert {:ok, %{@omg => 0}} = transaction_fees(tx, fee_map)
-    end
-
-    @tag fixtures: [:alice, :bob]
-    test "returns :token_not_allowed - when currency is not contained in config file", %{alice: alice, bob: bob} do
-      invalid_currency = <<1::size(160)>>
-      tx = Test.create_recovered([{1, 0, 0, alice}], invalid_currency, [{bob, 10}])
-
-      assert {[], fee_map} = parse_file_content(@fee_config_file)
-      assert {:error, :token_not_allowed} = transaction_fees(tx, fee_map)
-    end
-  end
 
   describe "Parser output:" do
     test "parse valid data is successful" do
       assert {[], fee_map} = parse_file_content(@fee_config_file)
 
-      assert Enum.count(fee_map) == 5
+      assert Enum.count(fee_map) == 3
       assert fee_map[@eth] == 2
     end
 
@@ -116,5 +92,56 @@ defmodule OMG.API.FeeChecker.CoreTest do
 
       assert {^expected_errors, _} = parse_file_content(json)
     end
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "Transactions covers the fee only in one currency accepted by the operator", %{alice: alice, bob: bob} do
+    fees =
+      create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 3}])
+      |> for_tx(@fees)
+
+    assert covered?(%{@eth => 10}, %{@eth => 9}, fees)
+
+    fees =
+      create_recovered([{1, 0, 0, alice}], @not_eth, [{bob, 4}, {alice, 3}])
+      |> for_tx(@fees)
+
+    assert covered?(%{@not_eth => 10}, %{@not_eth => 7}, fees)
+
+    fees =
+      create_recovered(
+        [{1, 0, 0, alice}, {2, 0, 0, alice}],
+        [{bob, @eth, 4}, {alice, @eth, 1}, {bob, @not_eth, 5}, {alice, @not_eth, 5}]
+      )
+      |> for_tx(@fees)
+
+    assert covered?(
+             %{@eth => 5, @not_eth => 13},
+             %{@eth => 5, @not_eth => 10},
+             fees
+           )
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "Transaction which does not transfer any fee currency is object to fees", %{alice: alice, bob: bob} do
+    other_token = <<2::160>>
+
+    fees =
+      create_recovered([{1, 0, 0, alice}], other_token, [{bob, 5}, {alice, 3}])
+      |> for_tx(@fees)
+
+    assert false == covered?(%{other_token => 10}, %{other_token => 7}, fees)
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "Transaction can dedicate one input for a fee entirely, reducing to tx's outputs currencies is incorrect",
+       %{alice: alice, bob: bob} do
+    other_token = <<2::160>>
+
+    fees =
+      create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, other_token, 5}, {alice, other_token, 5}])
+      |> for_tx(@fees)
+
+    assert covered?(%{@not_eth => 5, other_token => 10}, %{other_token => 10}, fees)
   end
 end

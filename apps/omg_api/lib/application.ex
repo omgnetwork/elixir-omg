@@ -33,7 +33,7 @@ defmodule OMG.API.Application do
       {OMG.API.State, []},
       {OMG.API.BlockQueue.Server, []},
       {OMG.API.FreshBlocks, []},
-      {OMG.API.FeeChecker, []},
+      {OMG.API.FeeServer, []},
       {
         OMG.API.RootChainCoordinator,
         %{
