@@ -43,66 +43,34 @@ defmodule OMG.API.Application do
           piggyback: %{sync_mode: :sync_with_coordinator}
         }
       },
-      %{
-        id: :depositor,
-        start:
-          {OMG.API.EthereumEventListener, :start_link,
-           [
-             %{
-               block_finality_margin: deposit_finality_margin,
-               synced_height_update_key: :last_depositor_eth_height,
-               service_name: :depositor,
-               get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
-               process_events_callback: &OMG.API.State.deposit/1
-             }
-           ]}
-      },
-      %{
-        id: :in_flight_exit,
-        start: {
-          OMG.API.EthereumEventListener,
-          :start_link,
-          [
-            %{
-              synced_height_update_key: :last_in_flight_exit_eth_height,
-              service_name: :in_flight_exit,
-              block_finality_margin: exiters_finality_margin,
-              get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
-              process_events_callback: &ignore_validities/1
-            }
-          ]
-        }
-      },
-      %{
-        id: :piggyback,
-        start: {
-          OMG.API.EthereumEventListener,
-          :start_link,
-          [
-            %{
-              synced_height_update_key: :last_piggyback_exit_eth_height,
-              service_name: :piggyback,
-              block_finality_margin: exiters_finality_margin,
-              get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
-              process_events_callback: &ignore_validities/1
-            }
-          ]
-        }
-      },
-      %{
-        id: :exiter,
-        start:
-          {OMG.API.EthereumEventListener, :start_link,
-           [
-             %{
-               block_finality_margin: exiters_finality_margin,
-               synced_height_update_key: :last_exiter_eth_height,
-               service_name: :exiter,
-               get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
-               process_events_callback: &ignore_validities/1
-             }
-           ]}
-      },
+      OMG.API.EthereumEventListener.prepare_child(
+        service_name: :depositor,
+        block_finality_margin: deposit_finality_margin,
+        synced_height_update_key: :last_depositor_eth_height,
+        get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
+        process_events_callback: &OMG.API.State.deposit/1
+      ),
+      OMG.API.EthereumEventListener.prepare_child(
+        service_name: :in_flight_exit,
+        block_finality_margin: exiters_finality_margin,
+        synced_height_update_key: :last_in_flight_exit_eth_height,
+        get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
+        process_events_callback: &ignore_validities/1
+      ),
+      OMG.API.EthereumEventListener.prepare_child(
+        service_name: :piggyback,
+        block_finality_margin: exiters_finality_margin,
+        synced_height_update_key: :last_piggyback_exit_eth_height,
+        get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
+        process_events_callback: &ignore_validities/1
+      ),
+      OMG.API.EthereumEventListener.prepare_child(
+        service_name: :exiter,
+        block_finality_margin: exiters_finality_margin,
+        synced_height_update_key: :last_exiter_eth_height,
+        get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
+        process_events_callback: &ignore_validities/1
+      ),
       {OMG.RPC.Web.Endpoint, []}
     ]
 

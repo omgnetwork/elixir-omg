@@ -44,6 +44,16 @@ defmodule OMG.API.EthereumEventListener do
     GenServer.start_link(__MODULE__, config, name: name)
   end
 
+  @doc """
+  Returns child_specs for the given `EthereumEventListener` setup, to be included e.g. in Supervisor's children
+  See `init/1` for the required keyword arguments
+  """
+  @spec prepare_child(keyword()) :: %{id: atom(), start: tuple()}
+  def prepare_child(opts \\ []) do
+    name = Keyword.fetch!(opts, :service_name)
+    %{id: name, start: {OMG.API.EthereumEventListener, :start_link, [Map.new(opts)]}}
+  end
+
   ### Server
 
   use GenServer
