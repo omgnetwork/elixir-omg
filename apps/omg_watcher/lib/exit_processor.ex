@@ -248,32 +248,9 @@ defmodule OMG.Watcher.ExitProcessor do
   Combine data from `ExitProcessor` and `API.State` to figure out what to do about exits
   """
   def handle_call(:check_validity, _from, state) do
-    # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
-    {request, state} =
-      %ExitProcessor.Request{}
-      |> run_status_gets()
-      # To find if IFE was included, see first if its inputs were spent.
-      |> Core.determine_ife_input_utxos_existence_to_get(state)
-      |> run_ife_input_utxo_existance()
-      # Next, check by what transactions they were spent.
-      |> Core.determine_ife_spends_to_get(state)
-      |> run_ife_spend_getting()
-      # Find tx bodies.
-      |> Core.determine_ife_blocks_to_get()
-      |> run_ife_block_getting()
-      # Compare found txes with ife.tx.
-      # If equal, persist information about position.
-      |> Core.find_ifes_in_blocks(state)
-
     {chain_status, events} =
-      request
-      # main loop
-      |> Core.determine_utxo_existence_to_get(state)
-      |> run_utxo_exists()
-      |> Core.determine_spends_to_get(state)
-      |> run_spend_getting()
-      |> Core.determine_blocks_to_get()
-      |> run_block_getting()
+      state
+      |> do_validity_check()
       |> Core.invalid_exits(state)
 
     {:reply, {chain_status, events}, state}
@@ -334,6 +311,15 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   def handle_call({:get_output_challenge_data, txbytes, output_index}, _from, state) do
+    response =
+      state
+      |> do_validity_check()
+      |> Core.get_output_challenge_data(state, txbytes, output_index)
+
+    {:reply, response, state}
+  end
+
+  defp do_validity_check(state) do
     # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
     {request, state} =
       %ExitProcessor.Request{}
@@ -351,18 +337,13 @@ defmodule OMG.Watcher.ExitProcessor do
       # If equal, persist information about position.
       |> Core.find_ifes_in_blocks(state)
 
-    response =
-      request
-      # main loop
-      |> Core.determine_utxo_existence_to_get(state)
-      |> run_utxo_exists()
-      |> Core.determine_spends_to_get(state)
-      |> run_spend_getting()
-      |> Core.determine_blocks_to_get()
-      |> run_block_getting()
-      |> Core.get_output_challenge_data(state, txbytes, output_index)
-
-    {:reply, response, state}
+    request
+    |> Core.determine_utxo_existence_to_get(state)
+    |> run_utxo_exists()
+    |> Core.determine_spends_to_get(state)
+    |> run_spend_getting()
+    |> Core.determine_blocks_to_get()
+    |> run_block_getting()
   end
 
   defp run_status_gets(%ExitProcessor.Request{} = request) do
