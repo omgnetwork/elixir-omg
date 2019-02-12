@@ -76,7 +76,7 @@ defmodule OMG.API.State.Transaction do
           [%{owner: Crypto.address_t(), amount: non_neg_integer()}],
           bitstring()
         ) :: {:ok, t()} | {:error, atom()}
-  def create_from_utxos(inputs, outputs, metadata \\ "")
+  def create_from_utxos(inputs, outputs, metadata \\ <<>>)
   def create_from_utxos(inputs, _, _) when not is_list(inputs), do: {:error, :inputs_should_be_list}
   def create_from_utxos(_, outputs, _) when not is_list(outputs), do: {:error, :outputs_should_be_list}
   def create_from_utxos(inputs, _, _) when length(inputs) > @max_inputs, do: {:error, :too_many_inputs}
@@ -149,7 +149,7 @@ defmodule OMG.API.State.Transaction do
           list({Crypto.address_t(), currency(), pos_integer}),
           bitstring()
         ) :: t()
-  def new(inputs, outputs, metadata \\ "") do
+  def new(inputs, outputs, metadata \\ <<>>) do
     inputs =
       inputs
       |> Enum.map(fn {blknum, txindex, oindex} -> %{blknum: blknum, txindex: txindex, oindex: oindex} end)
@@ -174,7 +174,7 @@ defmodule OMG.API.State.Transaction do
   def account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
   def account_address?(_), do: false
 
-  def reconstruct([inputs_rlp, outputs_rlp | metadata_rlp]) do
+  def reconstruct([inputs_rlp, outputs_rlp, metadata_rlp]) when is_metadata(metadata_rlp) do
     inputs =
       Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
         %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
@@ -188,17 +188,12 @@ defmodule OMG.API.State.Transaction do
         end
       end)
 
-    metadata = reconstruct_metadata(metadata_rlp)
-
-    if error = Enum.find([metadata | outputs], &match?({:error, _}, &1)),
+    if error = Enum.find(outputs, &match?({:error, _}, &1)),
       do: error,
-      else: {:ok, %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}}
+      else: {:ok, %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata_rlp}}
   end
 
   def reconstruct(_), do: {:error, :malformed_transaction}
-
-  defp reconstruct_metadata([metadata]) when is_metadata(metadata), do: metadata
-  defp reconstruct_metadata(_), do: {:error, :malformed_transaction}
 
   defp parse_int(binary), do: :binary.decode_unsigned(binary, :big)
 
