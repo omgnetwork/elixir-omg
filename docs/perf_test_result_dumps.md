@@ -94,3 +94,25 @@ and
 ```
 
 Some drop in throughput since last dump, but still bottlenecks lie elsewhere.
+
+## `17f73a0f90e0cec35d684da0104b97234425f787`, 2019-02-11
+
+Command as above
+
+```
+mix run --no-start -e 'OMG.Performance.start_simple_perftest(8_000, 32, %{block_every_ms: 15_000})'
+```
+
+```
+[
+ {"txs": 65536, "tps": 3976.22, "span_ms": 16482, "blknum": 1000}, 
+ { "txs": 65536, "tps": 4397.21, "span_ms": 14904, "blknum": 2000}, 
+ { "txs": 65536, "tps": 4263.89, "span_ms": 15370, "blknum": 3000}, 
+ { "txs": 59392, "tps": 5942.17, "span_ms": 9995, "blknum": 4000}
+]
+```
+
+and
+```
+2019-02-11 17:16:23.392 [info] ... ⋅Calculations for forming block number 2000 done in 832 ms⋅
+```
