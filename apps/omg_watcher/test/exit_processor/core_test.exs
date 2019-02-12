@@ -959,7 +959,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     @tag fixtures: [:invalid_piggyback_on_input, :in_flight_exits, :competing_transactions]
     test "fail when asked to produce proof for illegal oindex",
          %{invalid_piggyback_on_input: %{state: state, request: request, ife_txbytes: txbytes}} do
-      assert {:error, :no_double_spent_on_particular_input} = Core.get_input_challenge_data(request, state, txbytes, -1)
+      assert {:error, :piggybacked_index_out_of_range} = Core.get_input_challenge_data(request, state, txbytes, -1)
     end
 
     @tag fixtures: [:alice, :bob, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
