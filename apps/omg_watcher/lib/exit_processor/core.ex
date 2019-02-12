@@ -626,18 +626,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
        ) do
     known_txs = get_known_txs(Enum.uniq(piggybacked_blocks ++ blocks)) ++ get_known_txs(state)
 
-    with {:found_conflicts, [{ife, _encoded_tx, bad_inputs, bad_outputs, proofs}]} <-
-           {:found_conflicts, get_proofs_for_particular_piggyback(tx, pb_index, known_txs, state)},
-         {:found_pb, true} <- {:found_pb, pb_index in bad_inputs or (pb_index - 4) in bad_outputs} do
+    with {:ok, {ife, _encoded_tx, bad_inputs, bad_outputs, proofs}} <-
+           get_proof_for_particular_piggyback(tx, pb_index, known_txs, state),
+         :ok <- is_piggyback_in_the_list_of_proofs(pb_index, bad_inputs, bad_outputs) do
       challenge_data = encode_piggyback_challenge_proofs(ife, tx, pb_index, proofs)
       {:ok, hd(challenge_data)}
-    else
-      {:found_conflicts, []} -> {:error, :no_double_spent_inputs_in_requested_ife}
-      {:found_pb, false} -> {:error, :no_double_spent_on_particular_input}
     end
   end
 
-  defp get_proofs_for_particular_piggyback(tx, pb_index, known_txs, state) do
+  defp get_proof_for_particular_piggyback(tx, pb_index, known_txs, state) do
     encoded_tx = Transaction.encode(tx)
 
     case {pb_index in 0..3, pb_index in 4..7} do
@@ -647,6 +644,17 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.filter(fn {_, ife_tx, _, _, _} ->
       encoded_tx == ife_tx
     end)
+    |> case do
+      [] -> {:error, :no_double_spend_on_particular_piggyback}
+      [proof] -> {:ok, proof}
+    end
+  end
+
+  defp is_piggyback_in_the_list_of_proofs(pb_index, bad_inputs, bad_outputs) do
+    case pb_index in bad_inputs or (pb_index - 4) in bad_outputs do
+      true -> :ok
+      false -> {:error, :no_double_spend_on_particular_piggyback}
+    end
   end
 
   defp encode_piggyback_challenge_proofs(_ife, tx, input_index, proofs) when input_index in 0..3 do
