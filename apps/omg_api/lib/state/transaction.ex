@@ -26,12 +26,12 @@ defmodule OMG.API.State.Transaction do
   @max_inputs 4
   @max_outputs 4
 
-  defstruct [:inputs, :outputs, metadata: ""]
+  defstruct [:inputs, :outputs, metadata: <<>>]
 
   @type t() :: %__MODULE__{
           inputs: list(input()),
           outputs: list(output()),
-          metadata: bitstring()
+          metadata: binary()
         }
 
   @type currency() :: Crypto.address_t()
@@ -50,7 +50,7 @@ defmodule OMG.API.State.Transaction do
 
   defmacro is_metadata(metadata) do
     quote do
-      is_bitstring(unquote(metadata)) and byte_size(unquote(metadata)) <= 80
+      is_binary(unquote(metadata)) and byte_size(unquote(metadata)) <= 32
     end
   end
 
