@@ -752,14 +752,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     end
   end
 
-  describe "evaluates new piggybacks" do
+  describe "evaluates correctness of new piggybacks" do
     @tag fixtures: [:processor_filled, :in_flight_exits]
     test "detects none if there is no piggybacks", %{processor_filled: processor} do
-      {:ok, alerts} =
-        %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-        |> Core.invalid_exits(processor)
-
-      assert [] = alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
+      assert {:ok, []} =
+               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+               |> invalid_exits_filtered(processor, only: [Event.InvalidPiggyback])
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
@@ -783,11 +781,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
 
-      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-      {:ok, alerts} = Core.invalid_exits(request, state)
-
-      assert [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}] =
-               alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
+      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
+               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+               |> invalid_exits_filtered(state, only: [Event.InvalidPiggyback])
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
@@ -828,12 +824,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         }
         |> Core.find_ifes_in_blocks(state)
 
-      {:ok, alerts} = Core.invalid_exits(exit_processor_request, state)
-
-      assert [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}] =
-               alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
-
-      # test and implement that we can `inflight_exit.get_output_challenge_data` similar to competitor getting
+      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}]} =
+               invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
@@ -871,10 +863,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         }
         |> Core.find_ifes_in_blocks(state)
 
-      {:ok, alerts} = Core.invalid_exits(exit_processor_request, state)
-
-      assert [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}] =
-               alerts |> Enum.filter(&match?(%Event.InvalidPiggyback{}, &1))
+      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}]} =
+               invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
@@ -956,7 +946,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
                invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
     end
+  end
 
+  describe "produces challenges for bad piggybacks" do
     @tag fixtures: [:invalid_piggyback_on_input, :in_flight_exits, :competing_transactions]
     test "produces single challenge proof on double-spent piggyback input",
          %{
