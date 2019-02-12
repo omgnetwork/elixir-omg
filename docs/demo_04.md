@@ -14,9 +14,10 @@ Run a developer's Child chain server, Watcher, and start IEx REPL with code and 
 alias OMG.{API, Eth}
 alias OMG.API.Crypto
 alias OMG.API.DevCrypto
+alias OMG.API.Integration.DepositHelper
 alias OMG.API.State.Transaction
 alias OMG.API.TestHelper
-alias OMG.RPC.Web.Encoding
+alias OMG.Eth.Encoding
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
@@ -41,7 +42,7 @@ tx =
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 # use the hex-encoded tx bytes and `transaction.submit` Http-RPC method described in README.md for child chain server
-%{"data" => %{"blknum" => child_tx_block_number, "tx_index" => tx_index}} =
+%{"data" => %{"blknum" => child_tx_block_number, "txindex" => tx_index}} =
   ~c(echo '{"transaction": "#{tx}"}' | http POST localhost:9656/transaction.submit) |>
   :os.cmd() |>
   Poison.decode!()
