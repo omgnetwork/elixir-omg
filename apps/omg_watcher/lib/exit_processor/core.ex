@@ -623,9 +623,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     with {:found_conflicts, [{ife, _encoded_tx, bad_inputs, bad_outputs, proofs}]} <-
            {:found_conflicts, get_proofs_for_particular_piggyback(tx, pb_index, known_txs, state)},
-         {:found_pb, true} <- {:found_pb, pb_index in (bad_inputs ++ bad_outputs)} do
-      challenge_data = encode_proofs(ife, tx, pb_index, proofs)
-      {:ok, challenge_data}
+         {:found_pb, true} <- {:found_pb, pb_index in bad_inputs or (pb_index - 4) in bad_outputs} do
+      challenge_data = encode_piggyback_challenge_proofs(ife, tx, pb_index, proofs)
+      {:ok, hd(challenge_data)}
     else
       {:found_conflicts, []} -> {:error, :no_double_spent_inputs_in_requested_ife}
       {:found_pb, false} -> {:error, :no_double_spent_on_particular_input}
@@ -644,7 +644,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end)
   end
 
-  defp encode_proofs(_ife, tx, input_index, proofs) when input_index in 0..3 do
+  defp encode_piggyback_challenge_proofs(_ife, tx, input_index, proofs) when input_index in 0..3 do
     for {competing_ktx, _utxo_of_doublespend, his_doublespend_input_index} <- Map.get(proofs, input_index),
         do: %{
           in_flight_txbytes: Transaction.encode(tx),
@@ -655,8 +655,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         }
   end
 
-  defp encode_proofs(ife, tx, output_index, proofs) when output_index in 4..7 do
-    for {competing_ktx, _utxo_of_doublespend, his_doublespend_input_index} <- Map.get(proofs, output_index),
+  defp encode_piggyback_challenge_proofs(ife, tx, output_index, proofs) when output_index in 4..7 do
+    for {competing_ktx, _utxo_of_doublespend, his_doublespend_input_index} <- Map.get(proofs, output_index - 4),
         do: %{
           in_flight_txbytes: Transaction.encode(tx),
           in_flight_output_pos: Utxo.Position.encode(ife.tx_included_at),

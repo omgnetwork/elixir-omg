@@ -203,6 +203,49 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     %{state: state, request: request, bad_pb_output: 0, ife_txbytes: txbytes}
   end
 
+  deffixture invalid_piggyback_on_output(
+               alice,
+               processor_filled,
+               transactions,
+               in_flight_exits
+             ) do
+    tx = hd(transactions)
+    state = processor_filled
+    {ife_id, _} = hd(in_flight_exits)
+    # the piggybacked-output-spending tx is going to be included in a block, which requires more back&forth
+    # 1. transaction which is, ife'd, output piggybacked, and included in a block
+    txbytes = Transaction.encode(tx)
+    {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+
+    # 2. transaction which spends that piggybacked output
+    comp = Transaction.new([{3000, 0, 0}], [])
+    {:ok, comp_recovered} = DevCrypto.sign(comp, [alice.priv]) |> Transaction.Recovered.recover_from()
+
+    # 3. stuff happens in the contract; output #4 is a double-spend; #5 is OK
+    {state, _} =
+      Core.new_piggybacks(state, [
+        %{tx_hash: ife_id, output_index: 4},
+        %{tx_hash: ife_id, output_index: 5}
+      ])
+
+    tx_blknum = 3000
+    comp_blknum = 4000
+
+    {exit_processor_request, state} =
+      %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)],
+        piggybacked_blocks_result: [
+          Block.hashed_txs_at([recovered], tx_blknum),
+          Block.hashed_txs_at([comp_recovered], comp_blknum)
+        ]
+      }
+      |> Core.find_ifes_in_blocks(state)
+
+    %{state: state, request: exit_processor_request, bad_pb_output: 4, good_pb_output: 5, ife_txbytes: txbytes}
+  end
+
   # TODO: will be removed, when persistence and behaviors are tested more thoroughly, without reaching into the guts
   defp build_in_flight_exit(
          %{call_data: %{in_flight_tx: bytes, in_flight_tx_sigs: sigs}},
@@ -931,7 +974,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              ife_txbytes: txbytes
            }
          } do
-      assert {:ok, [%{in_flight_input_index: ^bad_pb_output}]} =
+      assert {:ok, %{in_flight_input_index: ^bad_pb_output}} =
                Core.get_input_challenge_data(request, state, txbytes, bad_pb_output)
     end
 
@@ -969,74 +1012,46 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:error, :piggybacked_index_out_of_range} = Core.get_input_challenge_data(request, state, txbytes, -1)
     end
 
-    @tag fixtures: [:alice, :bob, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
-    test "can produce the multiple challenge proofs for a input piggyback",
+    @tag fixtures: [:invalid_piggyback_on_output, :in_flight_exits, :competing_transactions]
+    test "will produce the challenge proofs for a invalid piggyback on a output",
          %{
-           alice: alice,
-           bob: bob,
-           processor_filled: state,
-           transactions: [tx | _],
-           competing_transactions: [comp1, comp2 | _],
-           in_flight_exits: [{ife_id, _} | _]
+           invalid_piggyback_on_output: %{
+             state: state,
+             request: request,
+             bad_pb_output: bad_pb_output,
+             ife_txbytes: txbytes
+           }
          } do
-      txbytes = Transaction.encode(tx)
-      comp1_txbytes = Transaction.encode(comp1)
-      comp2_txbytes = Transaction.encode(comp2)
-
-      {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
-      %{sigs: comp1_signatures} = DevCrypto.sign(comp1, [bob.priv, alice.priv])
-      %{sigs: comp2_signatures} = DevCrypto.sign(comp2, [alice.priv, bob.priv])
-
-      comp1_ife_event = %{
-        call_data: %{in_flight_tx: comp1_txbytes, in_flight_tx_sigs: Enum.join(comp1_signatures)},
-        eth_height: 2
-      }
-
-      comp2_ife_event = %{
-        call_data: %{in_flight_tx: comp2_txbytes, in_flight_tx_sigs: Enum.join(comp2_signatures)},
-        eth_height: 2
-      }
-
-      comp1_ife_status = {1, <<1::192>>}
-      comp2_ife_status = {2, <<1::192>>}
-
-      {state, _} = Core.new_in_flight_exits(state, [comp1_ife_event], [comp1_ife_status])
-      {state, _} = Core.new_in_flight_exits(state, [comp2_ife_event], [comp2_ife_status])
-
-      {state, _} =
-        Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}, %{tx_hash: ife_id, output_index: 1}])
-
-      tx_blknum = 3000
-
-      {request, state} =
-        %ExitProcessor.Request{
-          blknum_now: 4000,
-          eth_height_now: 5,
-          piggybacked_blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)]
-        }
-        |> Core.find_ifes_in_blocks(state)
-
-      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
-               invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
-
-      proofs =
-        Core.get_input_challenge_data(request, state, txbytes, 0)
-        |> elem(1)
-        |> Enum.map(&%{&1 | in_flight_txbytes: Transaction.decode!(&1.in_flight_txbytes)})
-        |> Enum.map(&%{&1 | spending_tx_bytes: Transaction.decode!(&1.spending_tx_bytes)})
-
-      assert [%{in_flight_input_index: 0}, %{in_flight_input_index: 0}] = proofs
+      assert {:ok, %{in_flight_input_index: ^bad_pb_output}} =
+               Core.get_output_challenge_data(request, state, txbytes, bad_pb_output - 4)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
-    test "can produce the challenge proofs for a output piggyback",
+    @tag fixtures: [:invalid_piggyback_on_output, :in_flight_exits, :competing_transactions]
+    test "will fail if asked to produce proof for wrong output",
          %{
-           alice: _alice,
-           processor_filled: _state,
-           transactions: [_tx | _],
-           competing_transactions: [_comp | _],
-           in_flight_exits: [{_ife_id, _} | _]
+           invalid_piggyback_on_output: %{
+             state: state,
+             request: request,
+             bad_pb_output: bad_pb_output,
+             ife_txbytes: txbytes
+           }
          } do
+      assert 2 != bad_pb_output - 4
+      assert {:error, :no_double_spent_on_particular_input} = Core.get_output_challenge_data(request, state, txbytes, 2)
+    end
+
+    @tag fixtures: [:invalid_piggyback_on_output, :in_flight_exits, :competing_transactions]
+    test "will fail if asked to produce proof for correct piggyback on output",
+         %{
+           invalid_piggyback_on_output: %{
+             state: state,
+             request: request,
+             good_pb_output: good_pb_output,
+             ife_txbytes: txbytes
+           }
+         } do
+      assert {:error, :no_double_spent_on_particular_input} =
+               Core.get_output_challenge_data(request, state, txbytes, good_pb_output - 4)
     end
   end
 
