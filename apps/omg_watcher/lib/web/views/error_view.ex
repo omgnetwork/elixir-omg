@@ -16,11 +16,30 @@ defmodule OMG.Watcher.Web.View.ErrorView do
   use OMG.Watcher.Web, :view
   use OMG.API.LoggerExt
 
+  alias OMG.RPC.Web.Error
+
+  @doc """
+  Handles client errors, e.g. malformed json in request body
+  """
+  def render("400.json", %{reason: reason, conn: conn}) do
+    _ =
+      Logger.warn(
+        "Malformed request. #{inspect(Map.get(conn, :request_path, "<undefined path>"))}\nReason: #{inspect(reason)}"
+      )
+
+    Error.serialize(
+      "operation:bad_request",
+      "Server has failed to parse the request.",
+      # add stack trace unless running on production env
+      if(Mix.env() in [:dev, :test], do: "#{inspect(reason)}")
+    )
+  end
+
   @doc """
   Supports internal server error thrown by Phoenix.
   """
   def render("500.json", %{reason: %{message: message}} = conn) do
-    OMG.RPC.Web.Error.serialize(
+    Error.serialize(
       "server:internal_server_error",
       message,
       # add stack trace unless running on production env
