@@ -989,7 +989,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            }
          } do
       assert bad_pb_output != 1
-      assert {:error, :no_double_spent_on_particular_input} = Core.get_input_challenge_data(request, state, txbytes, 1)
+
+      assert {:error, :no_double_spend_on_particular_piggyback} =
+               Core.get_input_challenge_data(request, state, txbytes, 1)
     end
 
     @tag fixtures: [:invalid_piggyback_on_input, :in_flight_exits, :competing_transactions]
@@ -1037,7 +1039,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            }
          } do
       assert 2 != bad_pb_output - 4
-      assert {:error, :no_double_spent_on_particular_input} = Core.get_output_challenge_data(request, state, txbytes, 2)
+
+      assert {:error, :no_double_spend_on_particular_piggyback} =
+               Core.get_output_challenge_data(request, state, txbytes, 2)
     end
 
     @tag fixtures: [:invalid_piggyback_on_output, :in_flight_exits, :competing_transactions]
@@ -1050,7 +1054,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              ife_txbytes: txbytes
            }
          } do
-      assert {:error, :no_double_spent_on_particular_input} =
+      assert {:error, :no_double_spend_on_particular_piggyback} =
                Core.get_output_challenge_data(request, state, txbytes, good_pb_output - 4)
     end
   end
