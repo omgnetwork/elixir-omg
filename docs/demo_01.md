@@ -24,6 +24,8 @@ eth = Crypto.zero_address()
 
 {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
 
+child_chain_url = "localhost:9656"
+
 ### START DEMO HERE
 
 # sends a deposit transaction _to Ethereum_
@@ -41,7 +43,7 @@ tx =
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 # use the hex-encoded tx bytes and `transaction.submit` Http-RPC method described in README.md for child chain server
 %{"data" => %{"blknum" => child_tx_block_number}} =
-  ~c(echo '{"transaction": "#{tx}"}' | http POST localhost:9656/transaction.submit) |>
+  ~c(echo '{"transaction": "#{tx}"}' | http POST #{child_chain_url}/transaction.submit) |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -50,7 +52,7 @@ tx =
 block_hash_enc = OMG.RPC.Web.Encoding.to_hex(block_hash)
 
 # with the block hash we can get the whole block
-~c(echo '{"hash":"#{block_hash_enc}"}' | http POST localhost:9656/block.get) |>
+~c(echo '{"hash":"#{block_hash_enc}"}' | http POST #{child_chain_url}/block.get) |>
 :os.cmd() |>
 Poison.decode!()
 
