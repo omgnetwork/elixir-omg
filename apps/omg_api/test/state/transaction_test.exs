@@ -25,7 +25,8 @@ defmodule OMG.API.State.TransactionTest do
   deffixture transaction do
     Transaction.new(
       [{1, 1, 0}, {1, 2, 1}],
-      [{"alicealicealicealice", eth(), 1}, {"carolcarolcarolcarol", eth(), 2}]
+      [{"alicealicealicealice", eth(), 1}, {"carolcarolcarolcarol", eth(), 2}],
+      "description"
     )
   end
 
@@ -54,7 +55,7 @@ defmodule OMG.API.State.TransactionTest do
 
   @tag fixtures: [:transaction]
   test "transaction hash is correct", %{transaction: transaction} do
-    {:ok, hash_value} = Base.decode16("e0e6fbd41f4909b4e621565fcdf6a0b54921711ff15a23d6cb07f1f87e345a33", case: :lower)
+    {:ok, hash_value} = Base.decode16("7a9e25eae593b75d23417331724b7dd487cae9995c99c7388bfdb4a1d4e417ee", case: :lower)
     assert Transaction.hash(transaction) == hash_value
   end
 
@@ -117,6 +118,47 @@ defmodule OMG.API.State.TransactionTest do
              ],
              outputs: List.duplicate(%{owner: Crypto.zero_address(), currency: eth(), amount: 0}, 4)
            }
+  end
+
+  @tag fixtures: [:utxos]
+  test "create transaction with metadata", %{utxos: utxos} do
+    {:ok, transaction} =
+      Transaction.create_from_utxos(
+        utxos,
+        [%{owner: "Joe Black", currency: eth(), amount: 53}],
+        "money for vacation"
+      )
+
+    assert transaction == %Transaction{
+             inputs: [
+               %{blknum: 20, txindex: 42, oindex: 1},
+               %{blknum: 2, txindex: 21, oindex: 0} | List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 2)
+             ],
+             outputs: [
+               %{owner: "Joe Black", currency: eth(), amount: 53}
+               | List.duplicate(%{owner: Crypto.zero_address(), currency: eth(), amount: 0}, 3)
+             ],
+             metadata: "money for vacation"
+           }
+  end
+
+  @tag fixtures: [:utxos]
+  test "incorrect metadata", %{utxos: utxos} do
+    # too long metadata
+    assert {:error, :incorrect_metadata} ==
+             Transaction.create_from_utxos(
+               utxos,
+               [%{owner: "Joe Black", currency: eth(), amount: 53}],
+               String.duplicate("0", 90)
+             )
+
+    # incorrect type
+    assert {:error, :incorrect_metadata} ==
+             Transaction.create_from_utxos(
+               utxos,
+               [%{owner: "Joe Black", currency: eth(), amount: 53}],
+               42
+             )
   end
 
   @tag fixtures: [:utxos]
@@ -197,10 +239,11 @@ defmodule OMG.API.State.TransactionTest do
     {:ok, tx1} =
       Transaction.create_from_utxos(
         utxos,
-        [%{owner: bob.addr, currency: eth(), amount: 16}, %{owner: alice.addr, currency: eth(), amount: 5}]
+        [%{owner: bob.addr, currency: eth(), amount: 16}, %{owner: alice.addr, currency: eth(), amount: 5}],
+        "some metadata"
       )
 
-    tx2 = Transaction.new([{1, 0, 0}, {2, 0, 0}], [{bob.addr, eth(), 16}, {alice.addr, eth(), 5}])
+    tx2 = Transaction.new([{1, 0, 0}, {2, 0, 0}], [{bob.addr, eth(), 16}, {alice.addr, eth(), 5}], "some metadata")
 
     assert tx1 == tx2
   end
@@ -241,7 +284,7 @@ defmodule OMG.API.State.TransactionTest do
   test "decoding signed transaction fails when signatures do not have a proper length", %{alice: alice} do
     tx = Transaction.new([{1000, 0, 0}, {1000, 0, 1}], [{alice.addr, eth(), 10}])
 
-    [inputs, outputs] =
+    [inputs, outputs, _metadata] =
       tx
       |> Transaction.encode()
       |> ExRLP.decode()
