@@ -43,4 +43,11 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
       |> api_response(conn, :transactions)
     end
   end
+
+  def submit(conn, params) do
+    with {:ok, tx} <- expect(params, "transaction", :hex) do
+      API.Transaction.submit(tx)
+      |> api_response(conn, :submission)
+    end
+  end
 end

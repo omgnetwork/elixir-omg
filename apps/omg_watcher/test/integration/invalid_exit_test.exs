@@ -23,7 +23,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Eth
-  alias OMG.RPC.Client
   alias OMG.Watcher
   alias OMG.Watcher.{Event, TestHelper}
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
@@ -41,10 +40,10 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     stable_alice_deposits: {deposit_blknum, _}
   } do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: deposit_blknum}} = Client.submit(tx)
+    %{"blknum" => deposit_blknum} = TestHelper.submit(tx)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: tx_blknum, txhash: _tx_hash}} = Client.submit(tx)
+    %{"blknum" => tx_blknum, "txhash" => _tx_hash} = TestHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 
@@ -91,7 +90,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event ",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: exit_blknum}} = Client.submit(tx)
+    %{"blknum" => exit_blknum} = TestHelper.submit(tx)
 
     # Here we're preparing invalid block
     bad_block_number = 2_000
@@ -134,10 +133,10 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     stable_alice_deposits: {deposit_blknum, _}
   } do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: deposit_blknum}} = Client.submit(tx)
+    %{"blknum" => deposit_blknum} = TestHelper.submit(tx)
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: tx_blknum, txhash: _tx_hash}} = Client.submit(tx)
+    %{"blknum" => tx_blknum, "txhash" => _tx_hash} = TestHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
 

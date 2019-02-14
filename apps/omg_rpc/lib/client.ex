@@ -20,15 +20,16 @@ defmodule OMG.RPC.Client do
   alias OMG.RPC.Web.Encoding
   require Logger
 
+  @type response_t() ::
+          {:ok, %{required(atom()) => Poison.Parser.t()}}
+          | {:error,
+             {:client_error | :server_error, any()}
+             | {:malformed_response, Poison.Parser.t() | {:error, :invalid}}}
+
   @doc """
   Gets Block of given hash
   """
-  @spec get_block(binary()) ::
-          {:error,
-           {:client_error, any()}
-           | {:malformed_response, Poison.Parser.t() | {:error, :invalid}}
-           | {:server_error, any()}}
-          | {:ok, map()}
+  @spec get_block(binary()) :: response_t()
   def get_block(hash) do
     %{hash: Encoding.to_hex(hash)}
     |> rpc_post("block.get")
@@ -39,12 +40,7 @@ defmodule OMG.RPC.Client do
   @doc """
   Submits transaction
   """
-  @spec submit(binary()) ::
-          {:error,
-           {:client_error, any()}
-           | {:malformed_response, Poison.Parser.t() | {:error, :invalid}}
-           | {:server_error, any()}}
-          | {:ok, map()}
+  @spec submit(binary()) :: response_t()
   def submit(tx) do
     %{transaction: Encoding.to_hex(tx)}
     |> rpc_post("transaction.submit")
@@ -81,8 +77,8 @@ defmodule OMG.RPC.Client do
      }}
   end
 
-  defp decode_response({:ok, %{tx_hash: _hash} = response}) do
-    {:ok, Map.update!(response, :tx_hash, &decode16!/1)}
+  defp decode_response({:ok, %{txhash: _hash} = response}) do
+    {:ok, Map.update!(response, :txhash, &decode16!/1)}
   end
 
   defp decode_response(error), do: error

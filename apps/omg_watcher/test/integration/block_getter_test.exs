@@ -26,7 +26,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use Plug.Test
   use Phoenix.ChannelTest
 
-  alias OMG.{API, Eth, RPC.Client, RPC.Web.Encoding, Watcher}
+  alias OMG.{API, Eth, RPC.Web.Encoding, Watcher}
   alias API.{Crypto, Utxo}
   alias Watcher.Integration.TestHelper, as: IntegrationTest
   alias Watcher.{Event, TestHelper, Web.Channel, Web.Serializer.Response}
@@ -65,7 +65,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
       )
 
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
-    {:ok, %{blknum: block_nr}} = Client.submit(tx)
+    %{"blknum" => block_nr} = TestHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(block_nr, @timeout)
 
@@ -206,7 +206,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit unchallenged_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    {:ok, %{blknum: exit_blknum}} = Client.submit(tx)
+    %{"blknum" => exit_blknum} = TestHelper.submit(tx)
 
     # Here we're preparing invalid block
     bad_tx = API.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
