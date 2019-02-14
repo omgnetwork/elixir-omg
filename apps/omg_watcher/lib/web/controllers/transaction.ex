@@ -45,10 +45,9 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   end
 
   def submit(conn, params) do
-    with {:ok, tx} <- expect(params, "transaction", :hex),
-         # :: {:ok, result from omg_rpc/client}
-         do:
-           API.Transaction.submit(tx)
-           |> api_response(conn, :submission)
+    with {:ok, tx} <- expect(params, "transaction", :hex) do
+      API.Transaction.submit(tx)
+      |> api_response(conn, :submission)
+    end
   end
 end

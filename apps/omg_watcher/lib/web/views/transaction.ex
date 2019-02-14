@@ -33,8 +33,10 @@ defmodule OMG.Watcher.Web.View.Transaction do
     |> Response.serialize()
   end
 
-  # TODO :)
-  def render("submission.json", %{response: transaction}), do: true
+  def render("submission.json", %{response: transaction}) do
+    transaction
+    |> Response.serialize()
+  end
 
   defp render_transaction(transaction) do
     transaction
