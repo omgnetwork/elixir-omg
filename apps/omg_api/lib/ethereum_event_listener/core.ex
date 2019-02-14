@@ -14,7 +14,13 @@
 
 defmodule OMG.API.EthereumEventListener.Core do
   @moduledoc """
-  Functional core of event listener
+  Periodically fetches events made on dynamically changing block range
+  on parent chain and feeds them to a callback.
+
+  It is **not** responsible for figuring out which ranges of eth-blocks to scan and when, see
+  `OMG.API.RootChainCoordinator.Core` for that
+
+  NOTE: this could and should at some point be implemented as a `@behavior` instead, to avoid using callbacks
   """
   alias OMG.API.RootChainCoordinator.SyncData
 

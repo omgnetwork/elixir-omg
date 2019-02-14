@@ -13,7 +13,7 @@
 # limitations under the License.
 defmodule OMG.API.RootChainCoordinator do
   @moduledoc """
-  Synchronizes services on root chain height.
+  Synchronizes services on root chain height, see `OMG.API.RootChainCoordinator.Core`
   """
 
   alias OMG.API.RootChainCoordinator.Core
@@ -23,7 +23,7 @@ defmodule OMG.API.RootChainCoordinator do
 
   defmodule SyncData do
     @moduledoc """
-     info needed to synchronize 
+     info needed to synchronize
     """
     defstruct [:root_chain_height, :sync_height]
 

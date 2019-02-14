@@ -13,13 +13,13 @@
 # limitations under the License.
 defmodule OMG.API.RootChainCoordinator.Core do
   @moduledoc """
-  Synchronizes services on root chain height.
+  Synchronizes multiple log-reading services on root chain height.
   Each synchronized service must have a unique name.
   Service reports its height by calling 'check_in'.
-  After all the services are checked in, coordinator returns currently synchronized height.
+  After all the services are checked in, coordinator returns currently synchronized height, for every service which asks
   In case a service fails, it is checked out and coordinator does not resume until the missing service checks_in again.
   After all the services checked in with the same height, coordinator returns the next root chain height when calling `check_in`.
-  Coordinator periodically updates root chain height.
+  Coordinator periodically updates root chain height, looks after finality margins and ensures geth-queries aren't huge
   """
 
   alias OMG.API.RootChainCoordinator.Service
