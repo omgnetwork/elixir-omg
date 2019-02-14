@@ -38,6 +38,9 @@ defmodule OMG.API.RootChainCoordinator.Core do
           services: map()
         }
 
+  # RootChainCoordinator is also checking if queries to Ethereum client don't get huge
+  @maximum_leap_forward 10_000
+
   @doc """
   Initializes core.
   `configs_services` - configs of services that are being synchronized
@@ -133,18 +136,20 @@ defmodule OMG.API.RootChainCoordinator.Core do
   end
 
   def get_synced_info(
-        %__MODULE__{root_chain_height: root_chain_height, configs_services: configs} = state,
+        %__MODULE__{root_chain_height: root_chain_height, configs_services: configs, services: services} = state,
         service_name
       )
       when is_atom(service_name) do
     if all_services_checked_in?(state) do
       config = configs[service_name]
+      current_sync_height = services[service_name].synced_height
 
       next_sync_height =
         config
         |> Keyword.get(:waits_for, [])
         |> get_height_of_awaited(state)
         |> consider_finality(configs[service_name], root_chain_height)
+        |> min(current_sync_height + @maximum_leap_forward)
         |> min(root_chain_height)
         |> max(0)
 

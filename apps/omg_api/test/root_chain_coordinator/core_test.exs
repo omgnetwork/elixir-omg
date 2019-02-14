@@ -125,6 +125,18 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
   end
 
   @tag fixtures: [:initial_state]
+  test "prevents huge queries to Ethereum client", %{initial_state: state} do
+    depositor_pid = :c.pid(0, 1, 0)
+    exiter_pid = :c.pid(0, 2, 0)
+
+    assert {:ok, state, []} = Core.check_in(state, exiter_pid, 10, :exiter)
+    assert {:ok, state, [^depositor_pid, ^exiter_pid]} = Core.check_in(state, depositor_pid, 10, :depositor)
+    assert {:ok, state} = Core.update_root_chain_height(state, 11_000_000)
+    assert %{sync_height: new_sync_height} = Core.get_synced_info(state, depositor_pid)
+    assert new_sync_height < 100_000
+  end
+
+  @tag fixtures: [:initial_state]
   test "root chain back off is ignored", %{initial_state: state} do
     depositor_pid = :c.pid(0, 1, 0)
     exiter_pid = :c.pid(0, 2, 0)
