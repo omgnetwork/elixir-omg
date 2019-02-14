@@ -38,6 +38,8 @@ defmodule OMG.API.RootChainCoordinator.Core do
           services: map()
         }
 
+  @type check_in_error_t :: {:error, :service_not_allowed | :invalid_synced_height_update}
+
   # RootChainCoordinator is also checking if queries to Ethereum client don't get huge
   @maximum_leap_forward 10_000
 
@@ -53,27 +55,13 @@ defmodule OMG.API.RootChainCoordinator.Core do
 
   @doc """
   Updates Ethereum height on which a service is synchronized.
-  Returns list of pids of services to synchronize on next Ethereum height.
-  List is not empty only when service that checks in is the last one synchronizing on a given height.
   """
-  @spec check_in(t(), pid(), pos_integer(), atom()) :: {:ok, t(), list(pid())} | :service_not_allowed
+  @spec check_in(t(), pid(), pos_integer(), atom()) :: {:ok, t()} | check_in_error_t()
   def check_in(state, pid, service_height, service_name) when is_integer(service_height) do
     if allowed?(state.configs_services, service_name) do
-      previous_synced_height =
-        case get_synced_info(state, service_name) do
-          :nosync ->
-            0
-
-          %SyncData{sync_height: synced_height} ->
-            synced_height
-        end
-
-      {:ok, state} = update_service_synced_height(state, pid, service_height, service_name)
-      services_to_sync = get_services_to_sync(state, service_name, previous_synced_height)
-
-      {:ok, state, services_to_sync}
+      update_service_synced_height(state, pid, service_height, service_name)
     else
-      :service_not_allowed
+      {:error, :service_not_allowed}
     end
   end
 
@@ -98,28 +86,12 @@ defmodule OMG.API.RootChainCoordinator.Core do
       }
 
       _ = Logger.error("Invalid synced height update #{inspect(report_data, pretty: true)}")
-      :invalid_synced_height_update
+      {:error, :invalid_synced_height_update}
     end
   end
 
   defp valid_sync_height_update?(%Service{synced_height: current_synced_height}, new_reported_sync_height) do
     current_synced_height <= new_reported_sync_height
-  end
-
-  defp get_services_to_sync(state, service_name, previous_synced_height) do
-    case get_synced_info(state, service_name) do
-      :nosync ->
-        []
-
-      %SyncData{sync_height: synced_height} when synced_height > previous_synced_height ->
-        state.services
-        |> Map.values()
-        |> Enum.filter(fn service -> service.synced_height <= synced_height end)
-        |> Enum.map(& &1.pid)
-
-      _ ->
-        []
-    end
   end
 
   @doc """
