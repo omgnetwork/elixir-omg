@@ -40,49 +40,37 @@ defmodule OMG.API.State.PersistenceTest do
   @tag fixtures: [:state_empty, :alice]
   test "persists_deposits",
        %{alice: alice, db_pid: db_pid, state_empty: state} do
-    state =
-      state
-      |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 2}], db_pid)
-
-    assert state == state_from(db_pid)
+    state
+    |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 2}], db_pid)
   end
 
   @tag fixtures: [:alice, :state_empty]
   test "spending produces db updates, that will make the state persist",
        %{alice: alice, db_pid: db_pid, state_empty: state} do
-    state =
-      state
-      |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
-      |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]))
-      |> persist_form(db_pid)
-
-    assert state == state_from(db_pid)
+    state
+    |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
+    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]))
+    |> persist_form(db_pid)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "spending produces db updates, that will make the state persist, for all inputs",
        %{alice: alice, db_pid: db_pid, bob: bob, state_empty: state} do
-    state =
-      state
-      |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
-      |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]))
-      |> exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{bob, 10}]))
-      |> persist_form(db_pid)
-
-    assert state == state_from(db_pid)
+    state
+    |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
+    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]))
+    |> exec(create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{bob, 10}]))
+    |> persist_form(db_pid)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "all utxos get initialized by query result from db",
        %{alice: alice, db_pid: db_pid, bob: bob, state_empty: state} do
-    state =
-      state
-      |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
-      |> persist_deposit([%{owner: bob.addr, currency: @eth, amount: 20, blknum: 2}], db_pid)
-      |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]))
-      |> persist_form(db_pid)
-
-    assert state == state_from(db_pid)
+    state
+    |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
+    |> persist_deposit([%{owner: bob.addr, currency: @eth, amount: 20, blknum: 2}], db_pid)
+    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]))
+    |> persist_form(db_pid)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -92,14 +80,11 @@ defmodule OMG.API.State.PersistenceTest do
     utxo_pos_exit_2 = Utxo.position(@blknum1, 0, 1)
     utxo_positions = [utxo_pos_exit_1, utxo_pos_exit_2]
 
-    state =
-      state
-      |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
-      |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]))
-      |> persist_form(db_pid)
-      |> persist_exit_utxos(utxo_positions, db_pid)
-
-    assert state == state_from(db_pid)
+    state
+    |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
+    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}]))
+    |> persist_form(db_pid)
+    |> persist_exit_utxos(utxo_positions, db_pid)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -111,15 +96,12 @@ defmodule OMG.API.State.PersistenceTest do
     utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.encode(raw_tx)}}]
     utxo_pos_exits_piggyback = [%{tx_hash: tx_hash, output_index: 4}]
 
-    state =
-      state
-      |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
-      |> exec(tx)
-      |> persist_form(db_pid)
-      |> persist_exit_utxos(utxo_pos_exits_in_flight, db_pid)
-      |> persist_exit_utxos(utxo_pos_exits_piggyback, db_pid)
-
-    assert state == state_from(db_pid)
+    state
+    |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
+    |> exec(tx)
+    |> persist_form(db_pid)
+    |> persist_exit_utxos(utxo_pos_exits_in_flight, db_pid)
+    |> persist_exit_utxos(utxo_pos_exits_piggyback, db_pid)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -129,24 +111,18 @@ defmodule OMG.API.State.PersistenceTest do
 
     utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.encode(raw_tx)}}]
 
-    state =
-      state
-      |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
-      |> persist_exit_utxos(utxo_pos_exits_in_flight, db_pid)
-
-    assert state == state_from(db_pid)
+    state
+    |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
+    |> persist_exit_utxos(utxo_pos_exits_in_flight, db_pid)
   end
 
   @tag fixtures: [:alice, :state_empty]
   test "tx with zero outputs will not be written to DB, but other stuff will!",
        %{alice: alice, db_pid: db_pid, state_empty: state} do
-    state =
-      state
-      |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
-      |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}]))
-      |> persist_form(db_pid)
-
-    assert state == state_from(db_pid)
+    state
+    |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
+    |> exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}]))
+    |> persist_form(db_pid)
   end
 
   @tag fixtures: [:alice, :state_empty]
@@ -177,37 +153,25 @@ defmodule OMG.API.State.PersistenceTest do
     state
   end
 
-  defp deposit(state, deposits) do
-    {:ok, {_, db_updates}, state} = Core.deposit(deposits, state)
-    {state, db_updates}
+  defp persist_common(state, db_updates, db_pid) do
+    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
+    assert state == state_from(db_pid)
+    state
   end
 
   defp persist_deposit(state, deposits, db_pid) do
-    {state, db_updates} = deposit(state, deposits)
-    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
-    state
-  end
-
-  defp form(state) do
-    {:ok, {_, _, db_updates}, state} = Core.form_block(@interval, state)
-    {state, db_updates}
+    {:ok, {_, db_updates}, state} = Core.deposit(deposits, state)
+    persist_common(state, db_updates, db_pid)
   end
 
   defp persist_form(state, db_pid) do
-    {state, db_updates} = form(state)
-    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
-    state
-  end
-
-  defp exit_utxos(state, utxo_positions) do
-    assert {:ok, {_, db_updates, _}, state} = utxo_positions |> Core.exit_utxos(state)
-    {state, db_updates}
+    {:ok, {_, _, db_updates}, state} = Core.form_block(@interval, state)
+    persist_common(state, db_updates, db_pid)
   end
 
   defp persist_exit_utxos(state, utxo_positions, db_pid) do
-    {state, db_updates} = exit_utxos(state, utxo_positions)
-    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
-    state
+    assert {:ok, {_, db_updates, _}, state} = utxo_positions |> Core.exit_utxos(state)
+    persist_common(state, db_updates, db_pid)
   end
 
   defp exec(state, tx) do

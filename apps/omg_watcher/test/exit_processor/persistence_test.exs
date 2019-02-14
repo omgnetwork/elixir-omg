@@ -62,11 +62,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
     contract_statuses = [{alice.addr, @eth, 10}, {@zero_address, @eth, 10}, {alice.addr, @not_eth, 9}]
 
-    processor =
-      processor
-      |> persist_new_exits(exit_events, contract_statuses, db_pid)
-
-    assert processor == state_from(db_pid)
+    processor
+    |> persist_new_exits(exit_events, contract_statuses, db_pid)
   end
 
   @tag fixtures: [:processor_empty, :alice]
@@ -80,12 +77,9 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
     contract_statuses = [{alice.addr, @eth, 10}, {@zero_address, @eth, 10}]
 
-    processor =
-      processor
-      |> persist_new_exits(exit_events, contract_statuses, db_pid)
-      |> persist_finalize_exits({[@utxo_pos1], [@utxo_pos2]}, db_pid)
-
-    assert processor == state_from(db_pid)
+    processor
+    |> persist_new_exits(exit_events, contract_statuses, db_pid)
+    |> persist_finalize_exits({[@utxo_pos1], [@utxo_pos2]}, db_pid)
   end
 
   @tag fixtures: [:processor_empty, :alice]
@@ -113,7 +107,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   end
 
   @tag fixtures: [:processor_empty, :alice, :carol]
-  test "persist started ifes and loads persisted on init",
+  test "persist multiple started ifes and loads persisted on init",
        %{processor_empty: processor, alice: alice, carol: carol, db_pid: db_pid} do
     # FIXME: dry against ExitProcessor.CoreTest? but I don't want to use fixtures here :(...
     txs = [
@@ -121,11 +115,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
       Transaction.new([{2, 1, 0}, {2, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}])
     ]
 
-    processor =
-      processor
-      |> persist_new_ifes(txs, [[alice.priv], [alice.priv, carol.priv]], db_pid)
-
-    assert processor == state_from(db_pid)
+    processor
+    |> persist_new_ifes(txs, [[alice.priv], [alice.priv, carol.priv]], db_pid)
   end
 
   @tag fixtures: [:processor_empty, :alice, :carol]
@@ -139,11 +130,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
     contract_statuses = [{1, <<1::192>>}, {0, <<0::192>>}]
 
-    processor =
-      processor
-      |> persist_new_ifes(txs, [[alice.priv], [alice.priv, carol.priv]], contract_statuses, db_pid)
-
-    assert processor == state_from(db_pid)
+    processor
+    |> persist_new_ifes(txs, [[alice.priv], [alice.priv, carol.priv]], contract_statuses, db_pid)
   end
 
   @tag fixtures: [:processor_empty, :alice]
@@ -156,7 +144,6 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
     challenge = %{
       tx_hash: hash,
-      # in-flight transaction
       competitor_position: Utxo.Position.encode(@utxo_pos2),
       call_data: %{
         competing_tx: Transaction.encode(competing_tx),
@@ -168,16 +155,13 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     piggybacks1 = [%{tx_hash: hash, output_index: 0}, %{tx_hash: hash, output_index: 4}]
     piggybacks2 = [%{tx_hash: hash, output_index: 5}]
 
-    processor =
-      processor
-      |> persist_new_ifes([tx], [[alice.priv]], db_pid)
-      |> persist_new_piggybacks(piggybacks1, db_pid)
-      |> persist_new_piggybacks(piggybacks2, db_pid)
-      |> persist_new_ife_challenges([challenge], db_pid)
-      |> persist_challenge_piggybacks(piggybacks2, db_pid)
-      |> persist_challenge_piggybacks(piggybacks1, db_pid)
-
-    assert processor == state_from(db_pid)
+    processor
+    |> persist_new_ifes([tx], [[alice.priv]], db_pid)
+    |> persist_new_piggybacks(piggybacks1, db_pid)
+    |> persist_new_piggybacks(piggybacks2, db_pid)
+    |> persist_new_ife_challenges([challenge], db_pid)
+    |> persist_challenge_piggybacks(piggybacks2, db_pid)
+    |> persist_challenge_piggybacks(piggybacks1, db_pid)
   end
 
   @tag fixtures: [:processor_empty, :alice]
@@ -211,24 +195,27 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     state
   end
 
+  defp persist_common(processor, db_updates, db_pid) do
+    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
+    assert processor == state_from(db_pid)
+    processor
+  end
+
   defp persist_new_exits(processor, exit_events, contract_statuses, db_pid) do
     {processor, db_updates} = Core.new_exits(processor, exit_events, contract_statuses)
-    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
-    processor
+    persist_common(processor, db_updates, db_pid)
   end
 
   defp persist_finalize_exits(processor, validities, db_pid) do
     {processor, db_updates} = Core.finalize_exits(processor, validities)
-    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
-    processor
+    persist_common(processor, db_updates, db_pid)
   end
 
   defp persist_challenge_exits(processor, utxo_positions, db_pid) do
     {processor, db_updates} =
       Core.challenge_exits(processor, utxo_positions |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)}))
 
-    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
-    processor
+    persist_common(processor, db_updates, db_pid)
   end
 
   defp persist_new_ifes(processor, txs, priv_keys, statuses \\ nil, db_pid) do
@@ -251,23 +238,17 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
     statuses = statuses || List.duplicate({1, <<1::192>>}, length(in_flight_exit_events))
     {processor, db_updates} = Core.new_in_flight_exits(processor, in_flight_exit_events, statuses)
-
-    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
-    processor
+    persist_common(processor, db_updates, db_pid)
   end
 
   defp persist_new_piggybacks(processor, piggybacks, db_pid) do
     {processor, db_updates} = Core.new_piggybacks(processor, piggybacks)
-
-    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
-    processor
+    persist_common(processor, db_updates, db_pid)
   end
 
   defp persist_new_ife_challenges(processor, challenges, db_pid) do
     {processor, db_updates} = Core.new_ife_challenges(processor, challenges)
-
-    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
-    processor
+    persist_common(processor, db_updates, db_pid)
   end
 
   defp persist_respond_to_in_flight_exits_challenges(processor, challenges, db_pid) do
@@ -277,9 +258,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   defp persist_challenge_piggybacks(processor, piggybacks, db_pid) do
     {processor, db_updates} = Core.challenge_piggybacks(processor, piggybacks)
-
-    assert :ok = OMG.DB.multi_update(db_updates, db_pid)
-    processor
+    persist_common(processor, db_updates, db_pid)
   end
 
   defp persist_finalize_ifes(processor, finalizations, db_pid) do
