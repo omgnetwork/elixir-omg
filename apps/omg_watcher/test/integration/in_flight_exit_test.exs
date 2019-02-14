@@ -44,7 +44,11 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     tx1 = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
     tx2 = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 10}])
 
-    %{"blknum" => blknum} = TestHelper.submit(tx1 |> Transaction.Signed.encode())
+    assert %{
+             "blknum" => blknum,
+             "txindex" => 0,
+             "txhash" => <<_::32*8>>
+           } = TestHelper.submit(tx1 |> Transaction.Signed.encode())
 
     IntegrationTest.wait_for_block_fetch(blknum, @timeout)
 

@@ -78,8 +78,8 @@ defmodule OMG.RPC.Client do
      }}
   end
 
-  defp decode_response({:ok, %{tx_hash: _hash} = response}) do
-    {:ok, Map.update!(response, :tx_hash, &decode16!/1)}
+  defp decode_response({:ok, %{txhash: _hash} = response}) do
+    {:ok, Map.update!(response, :txhash, &decode16!/1)}
   end
 
   defp decode_response(error), do: error
