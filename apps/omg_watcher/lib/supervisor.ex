@@ -32,8 +32,13 @@ defmodule OMG.Watcher.Supervisor do
     # FIXME: this could be split out and tested against RootChainCoordinator?
     coordinator_setup = %{
       depositor: [finality_margin: deposit_finality_margin],
+      convenience_deposit_processor: [waits_for: [:depositor], finality_margin: finality_margin],
       "Elixir.OMG.Watcher.BlockGetter": [waits_for: [depositor: :no_margin], finality_margin: 0],
       exit_processor: [waits_for: :depositor, finality_margin: finality_margin],
+      convenience_exit_processor: [
+        waits_for: [:depositor, :"Elixir.OMG.Watcher.BlockGetter"],
+        finality_margin: finality_margin
+      ],
       exit_finalizer: [
         waits_for: [:depositor, :"Elixir.OMG.Watcher.BlockGetter", :exit_processor],
         finality_margin: finality_margin
@@ -64,7 +69,17 @@ defmodule OMG.Watcher.Supervisor do
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
-        process_events_callback: &deposit_events_callback/1
+        process_events_callback: &OMG.API.State.deposit/1
+      ),
+      # this instance of the listener sends deposits to be consumed by the convenience API
+      OMG.API.EthereumEventListener.prepare_child(
+        service_name: :convenience_deposit_processor,
+        synced_height_update_key: :last_convenience_deposit_processor_eth_height,
+        get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
+        process_events_callback: fn deposits ->
+          _ = OMG.Watcher.DB.EthEvent.insert_deposits(deposits)
+          {:ok, []}
+        end
       ),
       {OMG.Watcher.ExitProcessor, []},
       OMG.API.EthereumEventListener.prepare_child(
@@ -72,6 +87,17 @@ defmodule OMG.Watcher.Supervisor do
         synced_height_update_key: :last_exit_processor_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
         process_events_callback: &OMG.Watcher.ExitProcessor.new_exits/1
+      ),
+      # this instance of the listener sends exits to be consumed by the convenience API
+      # we shouldn't use :exit_processor for this, as it has different waiting semantics (waits more)
+      OMG.API.EthereumEventListener.prepare_child(
+        service_name: :convenience_exit_processor,
+        synced_height_update_key: :last_convenience_exit_processor_eth_height,
+        get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
+        process_events_callback: fn exits ->
+          _ = OMG.Watcher.DB.EthEvent.insert_exits(exits)
+          {:ok, []}
+        end
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :exit_finalizer,
@@ -133,11 +159,5 @@ defmodule OMG.Watcher.Supervisor do
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     Supervisor.init(children, opts)
-  end
-
-  defp deposit_events_callback(deposits) do
-    {:ok, _} = result = OMG.API.State.deposit(deposits)
-    _ = OMG.Watcher.DB.EthEvent.insert_deposits(deposits)
-    result
   end
 end

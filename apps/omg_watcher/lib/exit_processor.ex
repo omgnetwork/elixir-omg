@@ -177,7 +177,6 @@ defmodule OMG.Watcher.ExitProcessor do
       )
 
     {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
-    _ = OMG.Watcher.DB.EthEvent.insert_exits(exits)
     {:reply, {:ok, db_updates}, new_state}
   end
 
