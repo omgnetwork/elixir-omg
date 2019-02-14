@@ -14,23 +14,26 @@
 
 defmodule OMG.Watcher.Supervisor do
   @moduledoc """
-  Supervises the remainder (i.e. all except the `OMG.Watcher.BlockGetter` + `OMG.API.State` pair, supervised elsewhere)
+  Supervises the remainder (i.e. all except the `Watcher.BlockGetter` + `OMG.API.State` pair, supervised elsewhere)
   of the Watcher app
   """
   use Supervisor
   use OMG.API.LoggerExt
 
+  alias OMG.API.EthereumEventListener
+  alias OMG.Eth
+  alias OMG.Watcher
+
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def init(:ok) do
+  def coordinator_setup do
     # Define workers and child supervisors to be supervised
     deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
     finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
 
-    # FIXME: this could be split out and tested against RootChainCoordinator?
-    coordinator_setup = %{
+    %{
       depositor: [finality_margin: deposit_finality_margin],
       convenience_deposit_processor: [waits_for: [:depositor], finality_margin: finality_margin],
       "Elixir.OMG.Watcher.BlockGetter": [waits_for: [depositor: :no_margin], finality_margin: 0],
@@ -54,103 +57,105 @@ defmodule OMG.Watcher.Supervisor do
         finality_margin: finality_margin
       ]
     }
+  end
 
+  def init(:ok) do
     children = [
       # Start the Ecto repository
       %{
-        id: OMG.Watcher.DB.Repo,
-        start: {OMG.Watcher.DB.Repo, :start_link, []},
+        id: Watcher.DB.Repo,
+        start: {Watcher.DB.Repo, :start_link, []},
         type: :supervisor
       },
       # Start workers
-      {OMG.Watcher.Eventer, []},
-      {OMG.API.RootChainCoordinator, coordinator_setup},
-      OMG.API.EthereumEventListener.prepare_child(
+      {Watcher.Eventer, []},
+      {OMG.API.RootChainCoordinator, coordinator_setup()},
+      EthereumEventListener.prepare_child(
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
+        get_events_callback: &Eth.RootChain.get_deposits/2,
         process_events_callback: &OMG.API.State.deposit/1
       ),
       # this instance of the listener sends deposits to be consumed by the convenience API
-      OMG.API.EthereumEventListener.prepare_child(
+      EthereumEventListener.prepare_child(
         service_name: :convenience_deposit_processor,
         synced_height_update_key: :last_convenience_deposit_processor_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
+        get_events_callback: &Eth.RootChain.get_deposits/2,
         process_events_callback: fn deposits ->
-          _ = OMG.Watcher.DB.EthEvent.insert_deposits(deposits)
+          _ = Watcher.DB.EthEvent.insert_deposits(deposits)
           {:ok, []}
         end
       ),
-      {OMG.Watcher.ExitProcessor, []},
-      OMG.API.EthereumEventListener.prepare_child(
+      {Watcher.ExitProcessor, []},
+      EthereumEventListener.prepare_child(
         service_name: :exit_processor,
         synced_height_update_key: :last_exit_processor_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
-        process_events_callback: &OMG.Watcher.ExitProcessor.new_exits/1
+        get_events_callback: &Eth.RootChain.get_standard_exits/2,
+        process_events_callback: &Watcher.ExitProcessor.new_exits/1
       ),
       # this instance of the listener sends exits to be consumed by the convenience API
       # we shouldn't use :exit_processor for this, as it has different waiting semantics (waits more)
-      OMG.API.EthereumEventListener.prepare_child(
+      EthereumEventListener.prepare_child(
         service_name: :convenience_exit_processor,
         synced_height_update_key: :last_convenience_exit_processor_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
+        get_events_callback: &Eth.RootChain.get_standard_exits/2,
         process_events_callback: fn exits ->
-          _ = OMG.Watcher.DB.EthEvent.insert_exits(exits)
+          _ = Watcher.DB.EthEvent.insert_exits(exits)
           {:ok, []}
         end
       ),
-      OMG.API.EthereumEventListener.prepare_child(
+      EthereumEventListener.prepare_child(
         service_name: :exit_finalizer,
         synced_height_update_key: :last_exit_finalizer_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_finalizations/2,
-        process_events_callback: &OMG.Watcher.ExitProcessor.finalize_exits/1
+        get_events_callback: &Eth.RootChain.get_finalizations/2,
+        process_events_callback: &Watcher.ExitProcessor.finalize_exits/1
       ),
-      OMG.API.EthereumEventListener.prepare_child(
+      EthereumEventListener.prepare_child(
         service_name: :exit_challenger,
         synced_height_update_key: :last_exit_challenger_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_challenges/2,
-        process_events_callback: &OMG.Watcher.ExitProcessor.challenge_exits/1
+        get_events_callback: &Eth.RootChain.get_challenges/2,
+        process_events_callback: &Watcher.ExitProcessor.challenge_exits/1
       ),
-      OMG.API.EthereumEventListener.prepare_child(
+      EthereumEventListener.prepare_child(
         service_name: :in_flight_exit_processor,
         synced_height_update_key: :last_in_flight_exit_processor_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
-        process_events_callback: &OMG.Watcher.ExitProcessor.new_in_flight_exits/1
+        get_events_callback: &Eth.RootChain.get_in_flight_exit_starts/2,
+        process_events_callback: &Watcher.ExitProcessor.new_in_flight_exits/1
       ),
-      OMG.API.EthereumEventListener.prepare_child(
+      EthereumEventListener.prepare_child(
         service_name: :piggyback_processor,
         synced_height_update_key: :last_piggyback_processor_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
-        process_events_callback: &OMG.Watcher.ExitProcessor.piggyback_exits/1
+        get_events_callback: &Eth.RootChain.get_piggybacks/2,
+        process_events_callback: &Watcher.ExitProcessor.piggyback_exits/1
       ),
-      OMG.API.EthereumEventListener.prepare_child(
+      EthereumEventListener.prepare_child(
         service_name: :competitor_processor,
         synced_height_update_key: :last_competitor_processor_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_challenges/2,
-        process_events_callback: &OMG.Watcher.ExitProcessor.new_ife_challenges/1
+        get_events_callback: &Eth.RootChain.get_in_flight_exit_challenges/2,
+        process_events_callback: &Watcher.ExitProcessor.new_ife_challenges/1
       ),
-      OMG.API.EthereumEventListener.prepare_child(
+      EthereumEventListener.prepare_child(
         service_name: :challenges_responds_processor,
         synced_height_update_key: :last_challenges_responds_processor_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_responds_to_in_flight_exit_challenges/2,
-        process_events_callback: &OMG.Watcher.ExitProcessor.respond_to_in_flight_exits_challenges/1
+        get_events_callback: &Eth.RootChain.get_responds_to_in_flight_exit_challenges/2,
+        process_events_callback: &Watcher.ExitProcessor.respond_to_in_flight_exits_challenges/1
       ),
-      OMG.API.EthereumEventListener.prepare_child(
+      EthereumEventListener.prepare_child(
         service_name: :piggyback_challenges_processor,
         synced_height_update_key: :last_piggyback_challenges_processor_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_piggybacks_challenges/2,
-        process_events_callback: &OMG.Watcher.ExitProcessor.challenge_piggybacks/1
+        get_events_callback: &Eth.RootChain.get_piggybacks_challenges/2,
+        process_events_callback: &Watcher.ExitProcessor.challenge_piggybacks/1
       ),
-      OMG.API.EthereumEventListener.prepare_child(
+      EthereumEventListener.prepare_child(
         service_name: :ife_exit_finalizer,
         synced_height_update_key: :last_ife_exit_finalizer_eth_height,
-        get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_finalizations/2,
-        process_events_callback: &OMG.Watcher.ExitProcessor.finalize_in_flight_exits/1
+        get_events_callback: &Eth.RootChain.get_in_flight_exit_finalizations/2,
+        process_events_callback: &Watcher.ExitProcessor.finalize_in_flight_exits/1
       ),
       # Start the endpoint when the application starts
       %{
-        id: OMG.Watcher.Web.Endpoint,
-        start: {OMG.Watcher.Web.Endpoint, :start_link, []},
+        id: Watcher.Web.Endpoint,
+        start: {Watcher.Web.Endpoint, :start_link, []},
         type: :supervisor
       }
     ]

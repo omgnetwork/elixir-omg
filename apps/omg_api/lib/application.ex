@@ -21,23 +21,26 @@ defmodule OMG.API.Application do
   use Application
   use OMG.API.LoggerExt
 
-  def start(_type, _args) do
-    DeferredConfig.populate(:omg_api)
+  def coordinator_setup do
     deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
 
-    coordinator_setup = %{
+    %{
       depositor: [finality_margin: deposit_finality_margin],
       exiter: [waits_for: :depositor, finality_margin: 0],
-      in_flight_exit: [finality_margin: 0],
+      in_flight_exit: [waits_for: :depositor, finality_margin: 0],
       piggyback: [waits_for: :in_flight_exit, finality_margin: 0]
     }
+  end
+
+  def start(_type, _args) do
+    DeferredConfig.populate(:omg_api)
 
     children = [
       {OMG.API.State, []},
       {OMG.API.BlockQueue.Server, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeServer, []},
-      {OMG.API.RootChainCoordinator, coordinator_setup},
+      {OMG.API.RootChainCoordinator, coordinator_setup()},
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
