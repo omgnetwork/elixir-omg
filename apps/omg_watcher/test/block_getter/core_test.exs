@@ -387,6 +387,18 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
              )
   end
 
+  @tag :capture_log
+  test "never figures out it is synced earlier than it was" do
+    assert 1000 == Core.figure_out_exact_sync_height([], 1000, 0)
+    assert 1000 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}], 1000, 9)
+
+    assert 1000 ==
+             Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}, %{eth_height: 100, blknum: 8}], 1000, 8)
+
+    assert 1000 ==
+             Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}, %{eth_height: 100, blknum: 8}], 1000, 9)
+  end
+
   test "applying block updates height" do
     state =
       init_state(synced_height: 0, init_opts: [maximum_number_of_pending_blocks: 5])

@@ -47,23 +47,28 @@ defmodule OMG.API.EthereumEventListener.Core do
           }
         }
 
-  @spec init(atom(), atom(), non_neg_integer(), non_neg_integer()) :: t() | {:error, :invalid_init}
+  @spec init(atom(), atom(), non_neg_integer(), non_neg_integer()) :: {t(), non_neg_integer()} | {:error, :invalid_init}
   def init(update_key, service_name, last_synced_ethereum_height, request_max_size \\ 1000)
 
   def init(_, _, _, 0), do: {:error, :invalid_init}
 
   def init(update_key, service_name, last_synced_ethereum_height, request_max_size) do
-    {%__MODULE__{
-       synced_height_update_key: update_key,
-       synced_height: last_synced_ethereum_height,
-       service_name: service_name,
-       cached: %{
-         request_max_size: request_max_size,
-         data: [],
-         events_upper_bound: last_synced_ethereum_height
-       }
-     }, last_synced_ethereum_height}
+    initial_state = %__MODULE__{
+      synced_height_update_key: update_key,
+      synced_height: last_synced_ethereum_height,
+      service_name: service_name,
+      cached: %{
+        request_max_size: request_max_size,
+        data: [],
+        events_upper_bound: last_synced_ethereum_height
+      }
+    }
+
+    {initial_state, get_height_to_check_in(initial_state)}
   end
+
+  @spec get_height_to_check_in(t()) :: non_neg_integer()
+  def get_height_to_check_in(%__MODULE__{synced_height: synced_height}), do: synced_height
 
   @doc """
   Returns range Ethereum height to download
@@ -106,18 +111,19 @@ defmodule OMG.API.EthereumEventListener.Core do
 
   @spec get_events(t(), non_neg_integer) :: {:ok, list(event), list(), non_neg_integer, t()}
   def get_events(
-        %__MODULE__{
-          synced_height_update_key: update_key,
-          cached: %{data: data} = cached_data,
-          synced_height: old_synced_height
-        } = state,
-        sync_height
+        %__MODULE__{synced_height_update_key: update_key, cached: %{data: data}} = state,
+        new_sync_height
       ) do
-    {events, new_data} = Enum.split_while(data, fn %{eth_height: height} -> height <= sync_height end)
+    {events, new_data} = Enum.split_while(data, fn %{eth_height: height} -> height <= new_sync_height end)
 
-    db_update = [{:put, update_key, new_synced_height}]
-    new_state = %__MODULE__{state | synced_height: new_synced_height, cached: %{cached_data | data: new_data}}
+    new_state =
+      state
+      |> Map.update!(:synced_height, &max(&1, new_sync_height))
+      |> Map.update!(:cached, &%{&1 | data: new_data})
+      |> struct!()
 
-    {:ok, events, db_update, new_synced_height, new_state}
+    height_to_check_in = get_height_to_check_in(new_state)
+    db_update = [{:put, update_key, height_to_check_in}]
+    {:ok, events, db_update, height_to_check_in, new_state}
   end
 end

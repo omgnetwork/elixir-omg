@@ -89,6 +89,24 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
     |> assert_events(events: [event(3)], check_in_and_db: 3)
   end
 
+  test "always returns correct height to check in" do
+    state =
+      create_state(0)
+      |> Core.get_events_range_for_download(%SyncData{sync_height: 1, root_chain_height: 10})
+      |> assert_range({1, 5})
+      |> Core.get_events(0)
+      |> assert_events(events: [], check_in_and_db: 0)
+
+    assert 0 == Core.get_height_to_check_in(state)
+
+    state =
+      state
+      |> Core.get_events(1)
+      |> assert_events(events: [], check_in_and_db: 1)
+
+    assert 1 == Core.get_height_to_check_in(state)
+  end
+
   test "produces next ethereum height range to get events from" do
     create_state(0)
     |> Core.get_events_range_for_download(%SyncData{sync_height: 5, root_chain_height: 10})
@@ -165,9 +183,9 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
   end
 
   test "can get an empty events list when events too fresh" do
-    create_state(5)
+    create_state(4)
     |> Core.get_events_range_for_download(%SyncData{sync_height: 6, root_chain_height: 10})
-    |> assert_range({6, 10})
+    |> assert_range({5, 9})
     |> Core.add_new_events([event(5), event(5), event(6)])
     |> Core.get_events(4)
     |> assert_events(events: [], check_in_and_db: 4)
@@ -181,11 +199,20 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
 
   test "persists/checks in eth_height without margins substracted, and never goes negative" do
     state =
-      create_state(5)
+      create_state(0, request_max_size: 10)
       |> Core.get_events_range_for_download(%SyncData{sync_height: 6, root_chain_height: 10})
-      |> assert_range({6, 10})
+      |> assert_range({1, 10})
       |> Core.add_new_events([event(6), event(7), event(8), event(9)])
 
     for i <- 1..9, do: state |> Core.get_events(i) |> assert_events(check_in_and_db: i)
+  end
+
+  test "tolerates being asked to sync on height already synced" do
+    create_state(5)
+    |> Core.get_events_range_for_download(%SyncData{sync_height: 1, root_chain_height: 10})
+    |> assert_range(:dont_fetch_events)
+    |> Core.add_new_events([])
+    |> Core.get_events(1)
+    |> assert_events(events: [], check_in_and_db: 5)
   end
 end

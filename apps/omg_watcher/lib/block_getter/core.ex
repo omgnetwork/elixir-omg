@@ -609,6 +609,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
   In case `submissions` doesn't hold the submission of the `child_top_block_number`, it returns the otherwise
   persisted `synced_height`
   """
+  # TODO: I suspect this is not necessary at all anymore. It was only valid when synced_height was an exact height
+  #       where we needed to look for new blocks to sync.
+  #       Now, with the new `OMG.API.RootChainCoordinator` and the margins we use in `handle_info(:sync)`,
+  #       it seems not required, but we need to be careful here.
+  #       For now leaving as is, only preventing a back-off which, would hurt (see `max(synced_height)` below)
   @spec figure_out_exact_sync_height([%{blknum: pos_integer, eth_height: pos_integer}], pos_integer, pos_integer) ::
           pos_integer
   def figure_out_exact_sync_height(_, synced_height, 0), do: synced_height
@@ -632,6 +637,9 @@ defmodule OMG.Watcher.BlockGetter.Core do
           %{blknum: ^child_top_block_number} -> exact_height
           _ -> max(0, exact_height - 1)
         end
+        # nevertheless, we don't want to back-off here, which we would if synced_height was driven by a sequence
+        # of no-submission Ethereum blocks
+        |> max(synced_height)
 
       nil ->
         _ =

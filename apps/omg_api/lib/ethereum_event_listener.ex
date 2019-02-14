@@ -82,7 +82,7 @@ defmodule OMG.API.EthereumEventListener do
   def handle_info(:sync, {core, _callbacks} = state) do
     case RootChainCoordinator.get_sync_info() do
       :nosync ->
-        :ok = RootChainCoordinator.check_in(core.synced_height, core.service_name)
+        :ok = RootChainCoordinator.check_in(Core.get_height_to_check_in(core), core.service_name)
         {:noreply, state}
 
       sync_info ->
