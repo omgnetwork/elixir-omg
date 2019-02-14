@@ -55,7 +55,7 @@ tx =
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 # use the hex-encoded tx bytes and `transaction.submit` Http-RPC method described in README.md for child chain server
-%{"data" => %{"tx_hash" => tx1_hash}} =
+%{"data" => %{"txhash" => tx1_hash}} =
   ~c(echo '{"transaction": "#{tx}"}' | http POST localhost:9656/transaction.submit) |>
   :os.cmd() |>
   Poison.decode!()
