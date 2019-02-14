@@ -53,16 +53,16 @@ defmodule OMG.API.EthereumEventListener.Core do
   def init(_, _, _, 0), do: {:error, :invalid_init}
 
   def init(update_key, service_name, last_synced_ethereum_height, request_max_size) do
-    %__MODULE__{
-      synced_height_update_key: update_key,
-      synced_height: last_synced_ethereum_height,
-      service_name: service_name,
-      cached: %{
-        request_max_size: request_max_size,
-        data: [],
-        events_upper_bound: last_synced_ethereum_height
-      }
-    }
+    {%__MODULE__{
+       synced_height_update_key: update_key,
+       synced_height: last_synced_ethereum_height,
+       service_name: service_name,
+       cached: %{
+         request_max_size: request_max_size,
+         data: [],
+         events_upper_bound: last_synced_ethereum_height
+       }
+     }, last_synced_ethereum_height}
   end
 
   @doc """
@@ -113,9 +113,7 @@ defmodule OMG.API.EthereumEventListener.Core do
         } = state,
         sync_height
       ) do
-    sync = sync_height
-    {events, new_data} = Enum.split_while(data, fn %{eth_height: height} -> height <= sync end)
-    new_synced_height = max(old_synced_height, sync_height)
+    {events, new_data} = Enum.split_while(data, fn %{eth_height: height} -> height <= sync_height end)
 
     db_update = [{:put, update_key, new_synced_height}]
     new_state = %__MODULE__{state | synced_height: new_synced_height, cached: %{cached_data | data: new_data}}

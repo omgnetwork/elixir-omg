@@ -23,8 +23,11 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
   @service_name :name
   @request_max_size 5
 
-  defp create_state(height) do
-    Core.init(@db_key, @service_name, height, @request_max_size)
+  defp create_state(height, opts \\ []) do
+    request_max_size = Keyword.get(opts, :request_max_size, @request_max_size)
+    # this assert is meaningful - currently we want to explicitly check_in the height read from DB
+    assert {state, ^height} = Core.init(@db_key, @service_name, height, request_max_size)
+    state
   end
 
   defp event(height), do: %{eth_height: height}
@@ -49,20 +52,20 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
   end
 
   test "asks until root chain height provided" do
-    Core.init(@db_key, @service_name, _height = 0, _request_max_size = 100)
+    create_state(0, request_max_size: 100)
     |> Core.get_events_range_for_download(%SyncData{sync_height: 1, root_chain_height: 10})
     |> assert_range({1, 10})
   end
 
   test "max request size respected" do
-    Core.init(@db_key, @service_name, _height = 0, _request_max_size = 2)
+    create_state(0, request_max_size: 2)
     |> Core.get_events_range_for_download(%SyncData{sync_height: 1, root_chain_height: 10})
     |> assert_range({1, 2})
   end
 
   test "max request size ignored if caller is insiting to get a lot of events" do
     # this might be counterintuitive, but to we require that the requested sync_height is never left unhandled
-    Core.init(@db_key, @service_name, _height = 0, _request_max_size = 2)
+    create_state(0, request_max_size: 2)
     |> Core.get_events_range_for_download(%SyncData{sync_height: 4, root_chain_height: 10})
     |> assert_range({1, 4})
   end
