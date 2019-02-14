@@ -17,9 +17,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
 
-  alias OMG.API
   alias OMG.API.Crypto
-  alias OMG.API.State.Transaction
   alias OMG.RPC.Web.Encoding
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
@@ -410,6 +408,25 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       ])
 
       assert [_, _, _] = TestHelper.success?("transaction.all")
+    end
+  end
+
+  describe "submitting transaction to child chain" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "handles incorrectly encoded parameter" do
+      hex_without_0x = "5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21"
+
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "transaction",
+                   "validator" => ":hex"
+                 }
+               }
+             } == TestHelper.no_success?("transaction.submit", %{"transaction" => hex_without_0x})
     end
   end
 end

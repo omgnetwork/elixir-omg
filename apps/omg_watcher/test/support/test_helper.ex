@@ -143,4 +143,10 @@ defmodule OMG.Watcher.TestHelper do
 
     decode16(competitor_data, ["in_flight_txbytes", "in_flight_proof"])
   end
+
+  def submit(transaction) do
+    submission_info = success?("transaction.submit", %{transaction: Encoding.to_hex(transaction)})
+
+    decode16(submission_info, ["txhash"])
+  end
 end

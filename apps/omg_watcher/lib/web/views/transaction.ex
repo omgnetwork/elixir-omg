@@ -33,6 +33,9 @@ defmodule OMG.Watcher.Web.View.Transaction do
     |> Response.serialize()
   end
 
+  # TODO :)
+  def render("submission.json", %{response: transaction}), do: true
+
   defp render_transaction(transaction) do
     transaction
     |> Map.take([:txindex, :txhash, :block, :inputs, :outputs, :txbytes])

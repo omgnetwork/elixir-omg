@@ -23,7 +23,6 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.Eth
-  alias OMG.RPC.Client
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
 
@@ -45,7 +44,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     tx1 = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
     tx2 = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 10}])
 
-    {:ok, %{blknum: blknum}} = Client.submit(tx1 |> Transaction.Signed.encode())
+    %{"blknum" => blknum} = TestHelper.submit(tx1 |> Transaction.Signed.encode())
 
     IntegrationTest.wait_for_block_fetch(blknum, @timeout)
 
