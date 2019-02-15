@@ -164,9 +164,9 @@ defmodule OMG.API.EthereumEventListener.CoreTest do
 
   test "persists/checks in eth_height without margins substracted, and never goes negative" do
     state =
-      create_state(5)
-      |> Core.get_events_range_for_download(%SyncData{sync_height: 6, root_chain_height: 10})
-      |> assert_range({4, 8})
+      Core.init(@db_key, @service_name, 0, @finality_margin, 10)
+      |> Core.get_events_range_for_download(%SyncData{sync_height: 6, root_chain_height: 12})
+      |> assert_range({1, 10})
       |> Core.add_new_events([event(4), event(5), event(6), event(7)])
 
     for i <- 1..9, do: state |> Core.get_events(i) |> assert_events(check_in_and_db: i)

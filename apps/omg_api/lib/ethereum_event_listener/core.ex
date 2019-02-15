@@ -112,17 +112,19 @@ defmodule OMG.API.EthereumEventListener.Core do
   def get_events(
         %__MODULE__{
           synced_height_update_key: update_key,
-          cached: %{data: data} = cached_data
+          cached: %{data: data} = cached_data,
+          synced_height: old_synced_height
         } = state,
         sync_height
       ) do
     sync = apply_margin(sync_height, state)
     {events, new_data} = Enum.split_while(data, fn %{eth_height: height} -> height <= sync end)
+    new_synced_height = max(old_synced_height, sync_height)
 
-    db_update = [{:put, update_key, sync_height}]
-    new_state = %__MODULE__{state | synced_height: sync_height, cached: %{cached_data | data: new_data}}
+    db_update = [{:put, update_key, new_synced_height}]
+    new_state = %__MODULE__{state | synced_height: new_synced_height, cached: %{cached_data | data: new_data}}
 
-    {:ok, events, db_update, sync_height, new_state}
+    {:ok, events, db_update, new_synced_height, new_state}
   end
 
   defp apply_margin(height, %__MODULE__{block_finality_margin: block_finality_margin}),
