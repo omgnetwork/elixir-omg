@@ -29,7 +29,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
-  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
   require Utxo
 
@@ -41,9 +40,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   @utxo_pos1 Utxo.position(1, 0, 0)
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
-
-  @update_key1 {1, 0, 0}
-  @update_key2 {@late_blknum - 1_000, 0, 1}
 
   defp not_included_competitor_pos do
     <<long::256>> =
@@ -112,13 +108,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     List.duplicate({1, <<1::192>>}, length(in_flight_exit_events))
   end
 
-  deffixture in_flight_exits(in_flight_exit_events, contract_ife_statuses) do
-    Enum.zip(in_flight_exit_events, contract_ife_statuses)
-    |> Enum.map(fn {event, status} -> build_in_flight_exit(event, status) end)
+  deffixture ife_tx_hashes(transactions) do
+    transactions |> Enum.map(&Transaction.hash/1)
   end
 
-  deffixture in_flight_exits_challenges_events(in_flight_exits, competing_transactions) do
-    [{tx1_hash, _}, {tx2_hash, _}] = in_flight_exits
+  deffixture in_flight_exits_challenges_events(ife_tx_hashes, competing_transactions) do
+    [tx1_hash, tx2_hash] = ife_tx_hashes
     [competing_tx1, competing_tx2, competing_tx3] = competing_transactions
 
     [
@@ -155,18 +150,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     ]
   end
 
-  deffixture challenged_in_flight_exits(in_flight_exits, in_flight_exits_challenges_events) do
-    ifes = Map.new(in_flight_exits)
-
-    in_flight_exits_challenges_events
-    |> Enum.map(fn %{tx_hash: ife_hash, competitor_position: position} ->
-      {ife_hash, InFlightExitInfo.challenge(Map.get(ifes, ife_hash), position)}
-    end)
-    # removes intermediate updates of the same ife
-    |> Map.new()
-    |> Map.to_list()
-  end
-
   deffixture processor_filled(
                processor_empty,
                exit_events,
@@ -177,26 +160,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     {state, _} = Core.new_exits(processor_empty, exit_events, contract_exit_statuses)
     {state, _} = Core.new_in_flight_exits(state, in_flight_exit_events, contract_ife_statuses)
     state
-  end
-
-  # TODO: will be removed, when persistence and behaviors are tested more thoroughly, without reaching into the guts
-  defp build_in_flight_exit(
-         %{call_data: %{in_flight_tx: bytes, in_flight_tx_sigs: sigs}},
-         {timestamp, contract_ife_id}
-       ) do
-    {:ok, raw_tx} = Transaction.decode(bytes)
-
-    # TODO rethink fixtures to avoid doing this
-    chopped_sigs = for <<chunk::size(65)-unit(8) <- sigs>>, do: <<chunk::size(65)-unit(8)>>
-
-    signed_tx = %Transaction.Signed{
-      raw_tx: raw_tx,
-      sigs: chopped_sigs
-    }
-
-    signed_tx = %{signed_tx | signed_tx_bytes: Transaction.Signed.encode(signed_tx)}
-
-    {Transaction.hash(raw_tx), %InFlightExitInfo{tx: signed_tx, timestamp: timestamp, contract_id: contract_ife_id}}
   end
 
   @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
@@ -507,26 +470,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, [], Enum.slice(statuses, 0, 1))
   end
 
-  @tag fixtures: [:processor_filled, :in_flight_exits]
-  test "piggybacking sanity checks", %{processor_filled: state, in_flight_exits: [{ife_id, ife} | _]} do
-    {^state, []} = Core.new_piggybacks(state, [])
+  @tag fixtures: [:processor_filled, :ife_tx_hashes]
+  test "piggybacking sanity checks", %{processor_filled: state, ife_tx_hashes: [ife_id | _]} do
+    assert {^state, []} = Core.new_piggybacks(state, [])
     catch_error(Core.new_piggybacks(state, [%{tx_hash: 0, output_index: 0}]))
     catch_error(Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 8}]))
 
     # cannot piggyback twice the same output
     {updated_state, [_]} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
     catch_error(Core.new_piggybacks(updated_state, [%{tx_hash: ife_id, output_index: 0}]))
-
-    # piggybacked outputs are considered as piggybacked
-    {:ok, piggybacked_ife} = InFlightExitInfo.piggyback(ife, 0)
-    assert InFlightExitInfo.is_piggybacked?(piggybacked_ife, 0)
-
-    # other outputs are considered as not piggybacked
-    assert 1..7
-           |> Enum.reduce(true, fn
-             index, true -> !InFlightExitInfo.is_piggybacked?(piggybacked_ife, index)
-             _, false -> false
-           end)
   end
 
   @tag fixtures: [:processor_filled, :in_flight_exits_challenges_events]
@@ -541,26 +493,25 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert processor2 != processor
   end
 
-  @tag fixtures: [:processor_filled, :in_flight_exits]
+  @tag fixtures: [:processor_filled, :ife_tx_hashes]
   test "forgets challenged piggybacks",
-       %{processor_filled: processor, in_flight_exits: ifes} do
-    events = ifes |> Enum.map(fn {tx_hash, _} -> %{tx_hash: tx_hash, output_index: 0} end)
+       %{processor_filled: processor, ife_tx_hashes: [tx_hash1, tx_hash2]} do
+    {processor, _} =
+      Core.new_piggybacks(processor, [%{tx_hash: tx_hash1, output_index: 0}, %{tx_hash: tx_hash2, output_index: 0}])
 
-    {processor, _} = Core.new_piggybacks(processor, events)
     # sanity: there are some piggybacks after piggybacking, to be removed later
     assert [%{piggybacked_inputs: [_]}, %{piggybacked_inputs: [_]}] = Core.get_in_flight_exits(processor)
-    %{tx_hash: challenged_tx_hash} = to_challenge = hd(events)
-    {processor, _} = Core.challenge_piggybacks(processor, [to_challenge])
+    {processor, _} = Core.challenge_piggybacks(processor, [%{tx_hash: tx_hash1, output_index: 0}])
 
-    assert [%{txhash: ^challenged_tx_hash, piggybacked_inputs: []}, %{piggybacked_inputs: [0]}] =
+    assert [%{txhash: ^tx_hash1, piggybacked_inputs: []}, %{piggybacked_inputs: [0]}] =
              Core.get_in_flight_exits(processor)
              |> Enum.sort_by(&length(&1.piggybacked_inputs))
   end
 
-  @tag fixtures: [:processor_filled, :in_flight_exits]
+  @tag fixtures: [:processor_filled, :ife_tx_hashes]
   test "can open and challenge two piggybacks at one call",
-       %{processor_filled: processor, in_flight_exits: ifes} do
-    events = ifes |> Enum.map(fn {tx_hash, _} -> %{tx_hash: tx_hash, output_index: 0} end)
+       %{processor_filled: processor, ife_tx_hashes: [tx_hash1, tx_hash2]} do
+    events = [%{tx_hash: tx_hash1, output_index: 0}, %{tx_hash: tx_hash2, output_index: 0}]
 
     {processor, _} = Core.new_piggybacks(processor, events)
     # sanity: there are some piggybacks after piggybacking, to be removed later
@@ -570,26 +521,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert [%{piggybacked_inputs: []}, %{piggybacked_inputs: []}] = Core.get_in_flight_exits(processor)
   end
 
-  @tag fixtures: [:processor_filled, :in_flight_exits]
-  test "challenge piggybacks sanity checks", %{processor_filled: state, in_flight_exits: [{tx_hash, ife}, _]} do
+  @tag fixtures: [:processor_filled, :ife_tx_hashes]
+  test "challenge piggybacks sanity checks", %{processor_filled: state, ife_tx_hashes: [tx_hash | _]} do
     # cannot challenge piggyback of unknown ife
     assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: 0, output_index: 0}])
-
     # cannot challenge not piggybacked output
     assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: tx_hash, output_index: 0}])
-
     # other sanity checks
     assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: tx_hash, output_index: 8}])
-
-    # challenged piggyback is considered as not piggybacked
-    {:ok, piggybacked_ife} = InFlightExitInfo.piggyback(ife, 0)
-    {:ok, challenged} = InFlightExitInfo.challenge_piggyback(piggybacked_ife, 0)
-
-    assert 0..7
-           |> Enum.reduce(true, fn
-             index, true -> !InFlightExitInfo.is_piggybacked?(challenged, index)
-             _, false -> false
-           end)
   end
 
   describe "available piggybacks" do
@@ -717,7 +656,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   describe "finds competitors and allows canonicity challenges" do
-    @tag fixtures: [:processor_filled, :in_flight_exits]
+    @tag fixtures: [:processor_filled]
     test "none if input never spent elsewhere",
          %{processor_filled: processor} do
       assert {:ok, []} =

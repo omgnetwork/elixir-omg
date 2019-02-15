@@ -27,19 +27,14 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   alias OMG.API.Utxo
   alias OMG.Watcher.ExitProcessor.Core
 
-  import OMG.API.TestHelper
-
   require Utxo
 
   @eth OMG.API.Crypto.zero_address()
   @not_eth <<1::size(160)>>
   @zero_address OMG.API.Crypto.zero_address()
 
-  @early_blknum 1_000
-  @late_blknum 10_000
-
   @utxo_pos1 Utxo.position(1, 0, 0)
-  @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
+  @utxo_pos2 Utxo.position(1_000, 0, 1)
 
   setup %{db_pid: db_pid} do
     :ok = OMG.DB.initiation_multiupdate(db_pid)
@@ -50,79 +45,60 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     empty
   end
 
-  @tag fixtures: [:processor_empty, :alice]
-  test "persist started exits and loads persisted on init, not all exits active",
-       %{processor_empty: processor, alice: alice, db_pid: db_pid} do
-    # FIXME: dry against ExitProcessor.CoreTest? but I don't want to use fixtures here :(...
-    exit_events = [
-      %{amount: 10, currency: @eth, owner: alice.addr, utxo_pos: Utxo.Position.encode(@utxo_pos1), eth_height: 2},
-      %{amount: 9, currency: @not_eth, owner: alice.addr, utxo_pos: Utxo.Position.encode(@utxo_pos2), eth_height: 4},
-      %{amount: 9, currency: @not_eth, owner: alice.addr, utxo_pos: Utxo.Position.encode(@utxo_pos2), eth_height: 4}
-    ]
-
-    contract_statuses = [{alice.addr, @eth, 10}, {@zero_address, @eth, 10}, {alice.addr, @not_eth, 9}]
-
-    processor
-    |> persist_new_exits(exit_events, contract_statuses, db_pid)
+  deffixture exits(alice) do
+    {[
+       %{amount: 10, currency: @eth, owner: alice.addr, utxo_pos: Utxo.Position.encode(@utxo_pos1), eth_height: 2},
+       %{amount: 9, currency: @not_eth, owner: alice.addr, utxo_pos: Utxo.Position.encode(@utxo_pos2), eth_height: 4}
+     ], [{alice.addr, @eth, 10}, {@zero_address, @eth, 10}]}
   end
 
-  @tag fixtures: [:processor_empty, :alice]
-  test "persist finalizations with various validities",
-       %{processor_empty: processor, alice: alice, db_pid: db_pid} do
-    # FIXME: dry against ExitProcessor.CoreTest? but I don't want to use fixtures here :(...
-    exit_events = [
-      %{amount: 10, currency: @eth, owner: alice.addr, utxo_pos: Utxo.Position.encode(@utxo_pos1), eth_height: 2},
-      %{amount: 9, currency: @not_eth, owner: alice.addr, utxo_pos: Utxo.Position.encode(@utxo_pos2), eth_height: 4}
-    ]
-
-    contract_statuses = [{alice.addr, @eth, 10}, {@zero_address, @eth, 10}]
-
+  @tag fixtures: [:processor_empty, :exits]
+  test "persist finalizations with mixed validities",
+       %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
     processor
-    |> persist_new_exits(exit_events, contract_statuses, db_pid)
+    |> persist_new_exits(exit_events, statuses, db_pid)
     |> persist_finalize_exits({[@utxo_pos1], [@utxo_pos2]}, db_pid)
   end
 
-  @tag fixtures: [:processor_empty, :alice]
-  test "persist challenges and challenge responses",
-       %{processor_empty: processor, alice: alice, db_pid: db_pid} do
-    # FIXME: dry against ExitProcessor.CoreTest? but I don't want to use fixtures here :(...
-    exit_events = [
-      %{amount: 10, currency: @eth, owner: alice.addr, utxo_pos: Utxo.Position.encode(@utxo_pos1), eth_height: 2},
-      %{amount: 9, currency: @not_eth, owner: alice.addr, utxo_pos: Utxo.Position.encode(@utxo_pos2), eth_height: 4}
-    ]
-
-    contract_statuses = [{alice.addr, @eth, 10}, {@zero_address, @eth, 10}]
-
+  @tag fixtures: [:processor_empty, :exits]
+  test "persist finalizations with all valid",
+       %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
     processor
-    |> persist_new_exits(exit_events, contract_statuses, db_pid)
+    |> persist_new_exits(exit_events, statuses, db_pid)
+    |> persist_finalize_exits({[@utxo_pos1, @utxo_pos2], []}, db_pid)
+  end
+
+  @tag fixtures: [:processor_empty, :exits]
+  test "persist finalizations with all invalid",
+       %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
+    processor
+    |> persist_new_exits(exit_events, statuses, db_pid)
+    |> persist_finalize_exits({[], [@utxo_pos1, @utxo_pos2]}, db_pid)
+  end
+
+  @tag fixtures: [:processor_empty, :exits]
+  test "persist challenges and challenge responses",
+       %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
+    processor
+    |> persist_new_exits(exit_events, statuses, db_pid)
     |> persist_challenge_exits([@utxo_pos1], db_pid)
     # NOTE: this might break when respond_to_in_flight_exits_challenges is actually implemented, it works because noop
     |> persist_respond_to_in_flight_exits_challenges([@utxo_pos1], db_pid)
+  end
 
+  @tag fixtures: [:processor_empty, :exits]
+  test "persist multiple challenges and challenge responses",
+       %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
     processor
-    |> persist_new_exits(exit_events, contract_statuses, db_pid)
+    |> persist_new_exits(exit_events, statuses, db_pid)
     |> persist_challenge_exits([@utxo_pos2, @utxo_pos1], db_pid)
     # NOTE: see above comment
     |> persist_respond_to_in_flight_exits_challenges([@utxo_pos2, @utxo_pos1], db_pid)
   end
 
   @tag fixtures: [:processor_empty, :alice, :carol]
-  test "persist multiple started ifes and loads persisted on init",
-       %{processor_empty: processor, alice: alice, carol: carol, db_pid: db_pid} do
-    # FIXME: dry against ExitProcessor.CoreTest? but I don't want to use fixtures here :(...
-    txs = [
-      Transaction.new([{1, 0, 0}, {1, 2, 1}], [{alice.addr, @eth, 1}]),
-      Transaction.new([{2, 1, 0}, {2, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}])
-    ]
-
-    processor
-    |> persist_new_ifes(txs, [[alice.priv], [alice.priv, carol.priv]], db_pid)
-  end
-
-  @tag fixtures: [:processor_empty, :alice, :carol]
   test "persist started ifes regardless of status",
        %{processor_empty: processor, alice: alice, carol: carol, db_pid: db_pid} do
-    # FIXME: dry against ExitProcessor.CoreTest? but I don't want to use fixtures here :(...
     txs = [
       Transaction.new([{1, 0, 0}, {1, 2, 1}], [{alice.addr, @eth, 1}]),
       Transaction.new([{2, 1, 0}, {2, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}])
@@ -137,7 +113,6 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   @tag fixtures: [:processor_empty, :alice]
   test "persist new challenges, responses and piggybacks",
        %{processor_empty: processor, alice: alice, db_pid: db_pid} do
-    # FIXME: dry against ExitProcessor.CoreTest? but I don't want to use fixtures here :(...
     tx = Transaction.new([{2, 1, 0}], [{alice.addr, @eth, 1}, {alice.addr, @eth, 2}])
     hash = Transaction.hash(tx)
     competing_tx = Transaction.new([{2, 1, 0}, {1, 0, 0}], [{alice.addr, @eth, 2}, {alice.addr, @eth, 1}])
@@ -165,9 +140,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   end
 
   @tag fixtures: [:processor_empty, :alice]
-  test "persist finalizations",
+  test "persist ife finalizations",
        %{processor_empty: processor, alice: alice, db_pid: db_pid} do
-    # FIXME: dry against ExitProcessor.CoreTest? but I don't want to use fixtures here :(...
     tx = Transaction.new([{2, 1, 0}], [{alice.addr, @eth, 1}, {alice.addr, @eth, 2}])
     hash = Transaction.hash(tx)
 
@@ -219,10 +193,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   end
 
   defp persist_new_ifes(processor, txs, priv_keys, statuses \\ nil, db_pid) do
-    # FIXME: dry against machinery in CorTest
-    encoded_txs =
-      txs
-      |> Enum.map(&Transaction.encode/1)
+    # TODO: dry against machinery in CoreTest, after other TODO's settle down (`deffixture in_flight_exit_events`)
+    encoded_txs = txs |> Enum.map(&Transaction.encode/1)
 
     sigs =
       txs
