@@ -26,7 +26,8 @@ defmodule OMG.API.State.TransactionTest do
   deffixture transaction do
     Transaction.new(
       [{1, 1, 0}, {1, 2, 1}],
-      [{"alicealicealicealice", eth(), 1}, {"carolcarolcarolcarol", eth(), 2}]
+      [{"alicealicealicealice", eth(), 1}, {"carolcarolcarolcarol", eth(), 2}],
+      <<0::256>>
     )
   end
 
@@ -38,7 +39,7 @@ defmodule OMG.API.State.TransactionTest do
 
   @tag fixtures: [:transaction]
   test "transaction hash is correct", %{transaction: transaction} do
-    {:ok, hash_value} = Base.decode16("e0e6fbd41f4909b4e621565fcdf6a0b54921711ff15a23d6cb07f1f87e345a33", case: :lower)
+    {:ok, hash_value} = Base.decode16("09645ee9736332be55eaccf9d08ff572a6fa23e2f6dc2aac42dbf09832d8f60e", case: :lower)
     assert Transaction.hash(transaction) == hash_value
   end
 
@@ -94,6 +95,84 @@ defmodule OMG.API.State.TransactionTest do
            }
   end
 
+  @tag fixtures: [:utxos]
+  test "create transaction with metadata", %{utxos: utxos} do
+    {:ok, transaction} =
+      Transaction.create_from_utxos(
+        utxos,
+        [%{owner: "Joe Black", currency: eth(), amount: 53}],
+        <<42::256>>
+      )
+
+    assert transaction == %Transaction{
+             inputs: [
+               %{blknum: 20, txindex: 42, oindex: 1},
+               %{blknum: 2, txindex: 21, oindex: 0} | List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 2)
+             ],
+             outputs: [
+               %{owner: "Joe Black", currency: eth(), amount: 53}
+               | List.duplicate(%{owner: Crypto.zero_address(), currency: eth(), amount: 0}, 3)
+             ],
+             metadata: <<42::256>>
+           }
+  end
+
+  @tag fixtures: [:utxos]
+  test "incorrect metadata", %{utxos: utxos} do
+    # too long metadata
+    assert {:error, :incorrect_metadata} ==
+             Transaction.create_from_utxos(
+               utxos,
+               [%{owner: "Joe Black", currency: eth(), amount: 53}],
+               String.duplicate("0", 90)
+             )
+
+    # incorrect type
+    assert {:error, :incorrect_metadata} ==
+             Transaction.create_from_utxos(
+               utxos,
+               [%{owner: "Joe Black", currency: eth(), amount: 53}],
+               42
+             )
+  end
+
+  @tag fixtures: [:utxos]
+  test "checking input validation error messages", %{utxos: utxos} do
+    assert {:error, :inputs_should_be_list} == Transaction.create_from_utxos(%{}, [])
+
+    assert {:error, :outputs_should_be_list} == Transaction.create_from_utxos(utxos, %{})
+
+    assert {:error, :at_least_one_input_required} == Transaction.create_from_utxos([], [])
+
+    assert {:error, :too_many_inputs} == Transaction.create_from_utxos(utxos ++ utxos ++ utxos, [])
+
+    assert {:error, :too_many_outputs} == Transaction.create_from_utxos(utxos, [%{}, %{}, %{}, %{}, %{}])
+
+    assert {:error, :amount_noninteger_or_negative} ==
+             Transaction.create_from_utxos(utxos, [%{owner: "Joe", currency: eth(), amount: -4}])
+
+    utxo_with_neg_amount = %{(utxos |> hd()) | amount: -10}
+
+    assert {:error, :amount_noninteger_or_negative} ==
+             Transaction.create_from_utxos([utxo_with_neg_amount], [%{owner: "Joe", currency: eth(), amount: 4}])
+
+    assert {:error, :amount_noninteger_or_negative} ==
+             Transaction.create_from_utxos(utxos, [%{owner: "Joe", currency: eth(), amount: "NaN"}])
+
+    assert {:error, :not_enough_funds_to_cover_spend} ==
+             Transaction.create_from_utxos(utxos, [%{owner: "Joe", currency: eth(), amount: 144}])
+
+    [first_utxo, second_utxo] = utxos
+
+    utxos_with_more_currencies = [%{first_utxo | currency: <<1::size(160)>>}] ++ [second_utxo]
+
+    assert {:error, :currency_mixing_not_possible} ==
+             Transaction.create_from_utxos(
+               utxos_with_more_currencies,
+               [%{owner: "Joe", currency: eth(), amount: 4}]
+             )
+  end
+
   @tag fixtures: [:alice, :state_alice_deposit, :bob]
   test "using created transaction in child chain", %{alice: alice, bob: bob, state_alice_deposit: state} do
     state =
@@ -120,6 +199,25 @@ defmodule OMG.API.State.TransactionTest do
     {:ok, transaction} = signed |> Transaction.Signed.encode() |> API.Core.recover_tx()
 
     assert {:ok, {_, _, _}, _state} = Core.exec(state_core, transaction, %{eth() => 0})
+  end
+
+  @tag fixtures: [:alice, :state_empty, :bob]
+  test "transactions created by :new and :create_from_utxos should be equal", %{alice: alice, bob: bob} do
+    utxos = [
+      %{amount: 10, currency: eth(), blknum: 1, oindex: 0, txindex: 0},
+      %{amount: 11, currency: eth(), blknum: 2, oindex: 0, txindex: 0}
+    ]
+
+    {:ok, tx1} =
+      Transaction.create_from_utxos(
+        utxos,
+        [%{owner: bob.addr, currency: eth(), amount: 16}, %{owner: alice.addr, currency: eth(), amount: 5}],
+        <<13::256>>
+      )
+
+    tx2 = Transaction.new([{1, 0, 0}, {2, 0, 0}], [{bob.addr, eth(), 16}, {alice.addr, eth(), 5}], <<13::256>>)
+
+    assert tx1 == tx2
   end
 
   @tag fixtures: [:alice, :bob]

@@ -26,11 +26,14 @@ defmodule OMG.API.State.Transaction do
   @max_inputs 4
   @max_outputs 4
 
-  defstruct [:inputs, :outputs]
+  @default_metadata nil
+
+  defstruct [:inputs, :outputs, metadata: @default_metadata]
 
   @type t() :: %__MODULE__{
           inputs: list(input()),
-          outputs: list(output())
+          outputs: list(output()),
+          metadata: binary() | nil
         }
 
   @type currency() :: Crypto.address_t()
@@ -47,6 +50,96 @@ defmodule OMG.API.State.Transaction do
           amount: non_neg_integer()
         }
 
+  defmacro is_metadata(metadata) do
+    quote do
+      unquote(metadata) == nil or (is_binary(unquote(metadata)) and byte_size(unquote(metadata)) == 32)
+    end
+  end
+
+  @doc """
+  Creates transaction from utxo positions and outputs. Provides simple, stateless validation on arguments.
+
+  #### Assumptions:
+   * length of inputs between 1 and `@max_inputs`
+   * length of outputs between 0 and `@max_inputs`
+   * the same currency for each output
+   * all amounts are non-negative integers
+  """
+  @spec create_from_utxos(
+          [
+            %{
+              blknum: pos_integer(),
+              txindex: non_neg_integer(),
+              oindex: non_neg_integer(),
+              currency: Crypto.address_t(),
+              amount: pos_integer()
+            }
+          ],
+          [%{owner: Crypto.address_t(), amount: non_neg_integer()}],
+          binary() | nil
+        ) :: {:ok, t()} | {:error, atom()}
+  def create_from_utxos(inputs, outputs, metadata \\ @default_metadata)
+  def create_from_utxos(inputs, _, _) when not is_list(inputs), do: {:error, :inputs_should_be_list}
+  def create_from_utxos(_, outputs, _) when not is_list(outputs), do: {:error, :outputs_should_be_list}
+  def create_from_utxos(inputs, _, _) when length(inputs) > @max_inputs, do: {:error, :too_many_inputs}
+  def create_from_utxos([], _, _), do: {:error, :at_least_one_input_required}
+  def create_from_utxos(_, outputs, _) when length(outputs) > @max_outputs, do: {:error, :too_many_outputs}
+  def create_from_utxos(_, _, metadata) when not is_metadata(metadata), do: {:error, :incorrect_metadata}
+
+  def create_from_utxos(input_utxos, outputs, metadata) do
+    with {:ok, currency} <- validate_currency(input_utxos, outputs),
+         :ok <- validate_amount(input_utxos),
+         :ok <- validate_amount(outputs),
+         :ok <- amounts_add_up?(input_utxos, outputs) do
+      {:ok,
+       new(
+         input_utxos |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
+         outputs |> Enum.map(&{&1.owner, currency, &1.amount}),
+         metadata
+       )}
+    end
+  end
+
+  defp validate_currency(input_utxos, outputs) do
+    currencies =
+      (input_utxos ++ outputs)
+      |> Enum.map(& &1.currency)
+      |> Enum.dedup()
+
+    # NOTE we support one currency
+    case currencies do
+      [_] -> {:ok, currencies |> hd()}
+      [] -> {:ok, @zero_address}
+      _ -> {:error, :currency_mixing_not_possible}
+    end
+  end
+
+  # Validates amount in both inputs and outputs
+  defp validate_amount(amounts) do
+    all_valid? =
+      amounts
+      |> Enum.map(& &1.amount)
+      |> Enum.all?(fn amount -> is_integer(amount) and amount >= 0 end)
+
+    if all_valid?,
+      do: :ok,
+      else: {:error, :amount_noninteger_or_negative}
+  end
+
+  defp amounts_add_up?(inputs, outputs) do
+    spent =
+      inputs
+      |> Enum.map(& &1.amount)
+      |> Enum.sum()
+
+    received =
+      outputs
+      |> Enum.map(& &1.amount)
+      |> Enum.sum()
+
+    if received > spent, do: {:error, :not_enough_funds_to_cover_spend}, else: :ok
+  end
+
   @doc """
   Creates a new transaction from a list of inputs and a list of outputs.
   Adds empty (zeroes) inputs and/or outputs to reach the expected size
@@ -60,9 +153,10 @@ defmodule OMG.API.State.Transaction do
   """
   @spec new(
           list({pos_integer, pos_integer, 0 | 1}),
-          list({Crypto.address_t(), currency(), pos_integer})
+          list({Crypto.address_t(), currency(), pos_integer}),
+          binary() | nil
         ) :: t()
-  def new(inputs, outputs) do
+  def new(inputs, outputs, metadata \\ @default_metadata) do
     inputs =
       inputs
       |> Enum.map(fn {blknum, txindex, oindex} -> %{blknum: blknum, txindex: txindex, oindex: oindex} end)
@@ -80,14 +174,15 @@ defmodule OMG.API.State.Transaction do
           @max_outputs - Kernel.length(outputs)
         )
 
-    %__MODULE__{inputs: inputs, outputs: outputs}
+    %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
   def account_address?(@zero_address), do: false
   def account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
   def account_address?(_), do: false
 
-  def reconstruct([inputs_rlp, outputs_rlp]) do
+  def reconstruct([inputs_rlp, outputs_rlp | rest_rlp])
+      when rest_rlp == [] or (is_metadata(hd(rest_rlp)) and length(rest_rlp) == 1) do
     inputs =
       Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
         %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
@@ -103,10 +198,13 @@ defmodule OMG.API.State.Transaction do
 
     if error = Enum.find(outputs, &match?({:error, _}, &1)),
       do: error,
-      else: {:ok, %__MODULE__{inputs: inputs, outputs: outputs}}
+      else: {:ok, %__MODULE__{inputs: inputs, outputs: outputs, metadata: reconstruct_metadata(rest_rlp)}}
   end
 
   def reconstruct(_), do: {:error, :malformed_transaction}
+
+  def reconstruct_metadata([]), do: nil
+  def reconstruct_metadata([metadata]) when is_metadata(metadata), do: metadata
 
   defp parse_int(binary), do: :binary.decode_unsigned(binary, :big)
 
@@ -129,18 +227,19 @@ defmodule OMG.API.State.Transaction do
   end
 
   def encode(transaction) do
-    get_filled_inputs_and_outputs(transaction)
+    get_data_for_rlp(transaction)
     |> ExRLP.encode()
   end
 
-  def get_filled_inputs_and_outputs(%__MODULE__{inputs: inputs, outputs: outputs}),
-    do: [
-      # contract expects 4 inputs and outputs
-      Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
-        List.duplicate([0, 0, 0], 4 - length(inputs)),
-      Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
-        List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs))
-    ]
+  def get_data_for_rlp(%__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}) when is_metadata(metadata),
+    do:
+      [
+        # contract expects 4 inputs and outputs
+        Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
+          List.duplicate([0, 0, 0], 4 - length(inputs)),
+        Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
+          List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs))
+      ] ++ if(metadata, do: [metadata], else: [])
 
   def hash(%__MODULE__{} = tx) do
     tx
