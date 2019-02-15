@@ -155,6 +155,22 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
+  def process_exits(
+        token,
+        utxo_pos,
+        exits_to_process,
+        from,
+        contract \\ nil,
+        opts \\ []
+      ) do
+    opts = @tx_defaults  |> Keyword.merge(opts)
+
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "processExits(address,uint256,uint256)"
+    args = [token, utxo_pos, exits_to_process]
+    Eth.contract_transact(from, contract, signature, args, opts)
+  end
+
   # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
   def challenge_in_flight_exit_not_canonical(
         in_flight_txbytes,
