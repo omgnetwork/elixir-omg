@@ -175,7 +175,7 @@ defmodule OMG.Eth.RootChain do
         contract \\ nil,
         opts \\ []
       ) do
-    opts = @tx_defaults  |> Keyword.merge(opts)
+    opts = @tx_defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "processExits(address,uint256,uint256)"

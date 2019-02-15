@@ -62,11 +62,14 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-      Process.sleep(2 * exit_period + 10)
-      {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} = OMG.Eth.RootChain.process_exits(@eth, 0, 1, alice.addr) |> Eth.DevHelpers.transact_sync!()
-      Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
+    Process.sleep(2 * exit_period + 10)
 
-      balance_post_exit = TestHelper.get_balance(alice.addr, @encoded_eth)
-      assert balance_post_exit == 0
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+      OMG.Eth.RootChain.process_exits(@eth, 0, 1, alice.addr) |> Eth.DevHelpers.transact_sync!()
+
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
+
+    balance_post_exit = TestHelper.get_balance(alice.addr, @encoded_eth)
+    assert balance_post_exit == 0
   end
 end
