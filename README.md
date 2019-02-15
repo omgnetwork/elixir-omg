@@ -10,27 +10,18 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
 
 <!--ts-->
    * [Getting Started](#getting-started)
-      * [Install](#install)
-      * [Setup](#setup)
-         * [Setting up a child chain server (a developer environment)](#setting-up-a-child-chain-server-a-developer-environment)
-            * [Start up developer instance of Ethereum](#start-up-developer-instance-of-ethereum)
-               * [Persistent developer geth instance](#persistent-developer-geth-instance)
-            * [Prepare and configure the root chain contract](#prepare-and-configure-the-root-chain-contract)
-            * [Initialize the child chain database](#initialize-the-child-chain-database)
-            * [Start it up!](#start-it-up)
-         * [Setting up a Watcher (a developer environment)](#setting-up-a-watcher-a-developer-environment)
-            * [Configure the PostgreSQL server with:](#configure-the-postgresql-server-with)
-            * [Configure the Watcher](#configure-the-watcher)
-            * [Initialize the Watcher's databases](#initialize-the-watchers-databases)
-            * [Start the Watcher](#start-the-watcher)
+      * [Service start up using Docker Compose](#service-start-up-using-docker-compose)
+         * [Mac](#mac)
+         * [Linux](#linux)
+         * [Get the deployed contract details](#get-the-deployed-contract-details)
+         * [Troubleshooting Docker](#troubleshooting-docker)
+      * [Install on a Linux host &amp; manual start up](#install-on-a-linux-host--manual-start-up)
          * [Follow the demos](#follow-the-demos)
       * [Troubleshooting](#troubleshooting)
    * [elixir-omg applications](#elixir-omg-applications)
       * [Child chain server](#child-chain-server)
          * [Using the child chain server's API](#using-the-child-chain-servers-api)
-            * [Http-RPC](#http-rpc)
-               * [submit](#submit)
-               * [get_block](#get_block)
+            * [HTTP-RPC](#http-rpc)
          * [Running a child chain in practice](#running-a-child-chain-in-practice)
             * [Funding the operator address](#funding-the-operator-address)
       * [Watcher](#watcher)
@@ -48,15 +39,17 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
       * [Contracts](#contracts)
          * [Installing dependencies and compiling contracts](#installing-dependencies-and-compiling-contracts)
    * [Testing &amp; development](#testing--development)
+   * [Working with API Spec's](#working-with-api-specs)
 
-<!-- Added by: user, at: 2018-10-22T11:44+02:00 -->
+<!-- Added by: user, at: 2019-02-15T16:18+01:00 -->
 
 <!--te-->
 
 <!-- Created by [gh-md-toc](https://github.com/ekalinin/github-markdown-toc) -->
-<!-- .gh-md-toc --insert README.md -->
+<!-- GH_TOC_TOKEN=75... ./gh-md-toc --insert ../omisego/README.md -->
 
-The first release of the OMG Network is based upon **Tesuji Plasma**, an iterative design step over [Plasma MVP](https://github.com/omisego/plasma-mvp). The diagram below illustrates the relationship between the wallet provider and how wallet providers connect to **Tesuji Plasma**.
+The first release of the OMG Network is based upon **Tesuji Plasma**, an iterative design step over [Plasma MVP](https://github.com/omisego/plasma-mvp).
+The diagram below illustrates the relationship between the wallet provider and how wallet providers connect to **Tesuji Plasma**.
 
 ![eWallet server and OMG Network](docs/assets/OMG-network-eWallet.jpg)
 
@@ -65,10 +58,13 @@ See the [Tesuji Plasma design document](docs/tesuji_blockchain_design.md) for a 
 
 # Getting Started
 
-A public testnet for the OMG Network is coming soon. However, if you are brave and want to test being a Tesuji Plasma chain operator, read on!
+A public testnet for the OMG Network is coming soon.
+However, if you are brave and want to test being a Tesuji Plasma chain operator, read on!
 
 ## Service start up using Docker Compose
-This is the recommended method of starting the blockchain services, with the auxiliary services automatically provisioned through Docker. Before attempting the start up please ensure that you are not running any services that are listening on the following TCP ports: 9656, 7434, 5000, 8545, 5432, 5433. All commands should be run from the root of the repo.
+This is the recommended method of starting the blockchain services, with the auxiliary services automatically provisioned through Docker.
+Before attempting the start up please ensure that you are not running any services that are listening on the following TCP ports: 9656, 7434, 5000, 8545, 5432, 5433.
+All commands should be run from the root of the repo.
 
 ### Mac
 `docker-compose up`
@@ -83,12 +79,15 @@ This is the recommended method of starting the blockchain services, with the aux
 ### Troubleshooting Docker
 You can view the running containers via `docker ps`
 
-If service start up is unsuccessful, containers can be left hanging which impacts the start of services on the future attempts of `docker-compose up`. You can stop all running containers via `docker kill $(docker ps -q)`.
+If service start up is unsuccessful, containers can be left hanging which impacts the start of services on the future attempts of `docker-compose up`.
+You can stop all running containers via `docker kill $(docker ps -q)`.
 
-If the blockchain services are not already present on the host, docker-compose will attempt to build the image with the tag `elixir-omg:dockercompose` and continue to use that. If you want Docker to use the latest commit from `elixir-omg` you can trigger a fresh build by passing the `--build` flag to `docker-compose up --build`.
+If the blockchain services are not already present on the host, docker-compose will attempt to build the image with the tag `elixir-omg:dockercompose` and continue to use that.
+If you want Docker to use the latest commit from `elixir-omg` you can trigger a fresh build by passing the `--build` flag to `docker-compose up --build`.
 
 ## Install on a Linux host & manual start up
-Follow the guide to **[install](docs/install.md)** the child chain server and watcher. Then use the guide in **[manual service startup](docs/manual_service_startup.md)** to stand up.
+Follow the guide to **[install](docs/install.md)** the child chain server and watcher.
+Then use the guide in **[manual service startup](docs/manual_service_startup.md)** to stand up.
 
 ### Follow the demos
 After starting the child chain server and/or Watcher as above, you may follow the steps in the demo scripts.
@@ -113,12 +112,12 @@ The general idea of the apps responsibilities is:
     - tracks Ethereum for things happening in the root chain contract (deposits/exits)
     - gathers transactions, decides on validity, forms blocks, persists
     - submits blocks to the root chain contract
-    - see `lib/api/application.ex` for a rundown of children processes involved
+    - see `apps/omg_api/lib/application.ex` for a rundown of children processes involved
   - `omg_db` - wrapper around the child chain server's database to store the UTXO set and blocks necessary for state persistence
   - `omg_eth` - wrapper around the [Ethereum RPC client](https://github.com/exthereum/ethereumex)
-  - `omg_rpc` - a Http-RPC server being the gateway to `omg_api`
+  - `omg_rpc` - an HTTP-RPC server being the gateway to `omg_api`
   - `omg_performance` - performance tester for the child chain server
-  - `omg_watcher` - Phoenix app that runs the Watcher
+  - `omg_watcher` - the [Watcher](#watcher)
 
 See [application architecture](docs/architecture.md) for more details.
 
@@ -130,68 +129,17 @@ For the responsibilities and design of the child chain server see [Tesuji Plasma
 
 ### Using the child chain server's API
 
-#### Http-RPC
+The child chain server is listening on port `9656` by default.
 
-Http-RPC requests are served up on the port specified in `omg_rpc`'s `config` (`9656` by default).
-The available RPC calls are defined by `omg_api` in `api.ex` - paths follow RPC convention e.g. `block.get`, `transaction.submit`. All requests shall be POST with parameters provided in the request
-body in JSON object. Object's properties names correspond to the names of parameters. Binary values
-shall be hex-encoded strings.
+#### HTTP-RPC
 
-##### `transaction.submit`
+HTTP-RPC requests are served up on the port specified in `omg_rpc`'s `config` (`:omg_rpc, OMG.RPC.Web.Endpoint, http: [port: ...]`).
+The available RPC calls are defined by `omg_api` in `api.ex` - paths follow RPC convention e.g. `block.get`, `transaction.submit`.
+All requests shall be POST with parameters provided in the request body in JSON object.
+Object's properties names correspond to the names of parameters. Binary values shall be hex-encoded strings.
 
-Request:
-
-`POST /transaction.submit`
-body:
-```json
-{
-  "transaction":"rlp encoded plasma transaction in hex"
-}
-```
-
-See the [step by step transaction generation specs here](docs/tesuji_tx_integration.md).
-
-Response:
-
-```json
-{
-    "version": "1",
-    "success": true,
-    "data": {
-        "blknum": 123000,
-        "txindex": 111,
-        "txhash": "transaction hash in hex"
-    }
-}
-```
-
-##### `block.get`
-
-Request:
-
-`POST /block.get`
-body:
-```json
-{
-  "hash":"block hash in hex"
-}
-```
-
-Response:
-
-```json
-{
-  "version": "1",
-  "success": true,
-  "data": {
-      "blknum": 123000,
-      "hash": "block hash in hex",
-      "transactions": [
-          "rlp encoded plasma transaction in hex",
-      ]
-  }
-}
-```
+For API documentation see: https://omisego.github.io/elixir-omg.
+Also see the [step by step transaction generation specs here](docs/tesuji_tx_integration.md).
 
 ### Running a child chain in practice
 
@@ -234,15 +182,18 @@ gas_reserve ~= 4 * 60 * 24 / 1 * 7 * 75071 * 40 / 10**9  ~= 121 ETH
 
 The Watcher is an observing node that connects to Ethereum and the child chain server's API.
 It ensures that the child chain is valid and notifies otherwise.
-It exposes the information it gathers via a REST interface (Phoenix).
+It exposes the information it gathers via an HTTP-RPC interface (driven by Phoenix).
 It provides a secure proxy to the child chain server's API and to Ethereum, ensuring that sensitive requests are only sent to a valid chain.
 
 For more on the responsibilities and design of the Watcher see [Tesuji Plasma Blockchain Design document](docs/tesuji_blockchain_design.md).
 
 ### Using the watcher
 
+The watcher is listening on port `7434` by default.
+
 ### Endpoints
-TODO
+
+For API documentation see: https://omisego.github.io/elixir-omg
 
 ### Websockets
 
@@ -316,36 +267,6 @@ Events:
 
 **address_received**
 
-#### byzantine_invalid_exit
-
-Events:
-
-**in_flight_exit**
-
-**piggyback**
-
-**exit_from_spent**
-
-#### byzantine_bad_chain
-
-These should be treated as a prompt to mass exit immediately.
-
-Events:
-
-**invalid_block**
-
-Event informing about that particular block is invalid
-
-**unchallenged_exit**
-
-Event informing about a particular, invalid, active exit having gone too long without being challenged, jeopardizing funds in the child chain.
-
-**block_withholding**
-
-Event informing about that the child chain is withholding block.
-
-**invalid_fee_exit**
-
 #### TODO block
 
 #### TODO deposit_spendable
@@ -398,6 +319,7 @@ iex -S mix run --no-start
 
 # Working with API Spec's
 
-This repo contains `gh-pages` branch intended to host [Slate-based](https://omisego.github.io/elixir-omg) API specification. Branch `gh-pages` is totally diseparated from other development branches and contains just Slate generated page's files.
+This repo contains `gh-pages` branch intended to host [Swagger-based](https://omisego.github.io/elixir-omg) API specification.
+Branch `gh-pages` is totally diseparated from other development branches and contains just Slate generated page's files.
 
 See [gh-pages README](https://github.com/omisego/elixir-omg/blob/gh-pages/docs/api_specs/README.md) for more details.
