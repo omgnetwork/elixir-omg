@@ -18,6 +18,7 @@ defmodule OMG.Watcher.API.Transaction do
   """
 
   alias OMG.API.Utxo
+  alias OMG.RPC.Client
   alias OMG.Watcher.DB
 
   require Utxo
@@ -48,5 +49,19 @@ defmodule OMG.Watcher.API.Transaction do
     # TODO: implement pagination. Defend against fetching huge dataset.
     limit = min(limit, @default_transactions_limit)
     DB.Transaction.get_by_filters(address, blknum, limit)
+  end
+
+  @doc """
+  Passes signed transaction to the child chain only if it's secure, e.g.
+  * Watcher is fully synced,
+  * all operator blocks have been verified,
+  * transaction doesn't spend funds not yet mined
+  * etc...
+
+  Note: No validation for now, just passes given tx to the child chain. See: OMG-410
+  """
+  @spec submit(binary()) :: Client.response_t()
+  def(submit(txbytes)) do
+    Client.submit(txbytes)
   end
 end
