@@ -178,4 +178,49 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
   end
+
+  @tag fixtures: [:watcher_sandbox, :alice, :bob, :child_chain, :token, :alice_deposits]
+  test "honest and cooperating users exit in-flight transaction",
+       %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+    exit_period = Application.fetch_env!(:omg_eth, :exit_period_seconds)
+
+    %Transaction.Signed{raw_tx: raw_tx} =
+      tx = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
+
+    get_in_flight_exit_response = tx |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
+
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+      OMG.Eth.RootChain.in_flight_exit(
+        get_in_flight_exit_response["in_flight_tx"],
+        get_in_flight_exit_response["input_txs"],
+        get_in_flight_exit_response["input_txs_inclusion_proofs"],
+        get_in_flight_exit_response["in_flight_tx_sigs"],
+        alice.addr
+      )
+      |> Eth.DevHelpers.transact_sync!()
+
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
+
+    assert %{"in_flight_exits" => [%{}]} = TestHelper.success?("/status.get")
+
+    raw_tx_bytes = raw_tx |> Transaction.encode()
+
+    {:ok, %{"status" => "0x1"}} =
+      OMG.Eth.RootChain.piggyback_in_flight_exit(raw_tx_bytes, 4 + 1, bob.addr)
+      |> Eth.DevHelpers.transact_sync!()
+
+    Process.sleep(2 * exit_period + 10)
+
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+      OMG.Eth.RootChain.process_exits(@eth, 0, 3, alice_address) |> Eth.DevHelpers.transact_sync!()
+
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
+
+    %{in_flight_exits: in_flight_exits} = TestHelper.get_status()
+    assert in_flight_exits == []
+  end
+
+  test "standard exit does not interfere with in-flight exit" do
+  end
 end

@@ -162,8 +162,11 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def respond_to_challenge(%__MODULE__{}, _), do: {:error, :cannot_respond}
 
-  def finalize(%__MODULE__{} = ife, _output_index) do
-    # here, we'll check whether can be finalized and then mark it as finalized, OMG-381
+  def finalize(%__MODULE__{exit_map: exit_map} = ife, output_index) do
+    output_exit = Map.fetch!(exit_map, output_index)
+    output_exit = %{output_exit | is_finalized: true}
+    exit_map = Map.update!(exit_map, output_index, output_exit)
+    ife = %{ife | exit_map: exit_map}
     {:ok, ife}
   end
 
