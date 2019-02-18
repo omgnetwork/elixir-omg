@@ -59,7 +59,7 @@ defmodule OMG.Watcher.BlockGetter do
 
   def handle_cast(
         {:apply_block, %{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block,
-         block_rootchain_height},
+         block_rootchain_height, is_final_for_eth_height?},
         state
       ) do
     with {:ok, _} <- Core.chain_ok(state),
@@ -74,7 +74,9 @@ defmodule OMG.Watcher.BlockGetter do
 
       {:ok, db_updates_from_state} = OMG.API.State.close_block(block_rootchain_height)
 
-      {state, synced_height, db_updates} = Core.apply_block(state, blknum)
+      {state, synced_height, db_updates} =
+        Core.apply_block(state, block, block_rootchain_height, is_final_for_eth_height?)
+
       _ = Logger.debug("Synced height update: #{inspect(db_updates)}")
 
       :ok = OMG.DB.multi_update(db_updates ++ db_updates_from_state)
@@ -190,8 +192,8 @@ defmodule OMG.Watcher.BlockGetter do
 
       _ = Logger.debug("Synced height is #{inspect(synced_height)}, got #{length(blocks_to_apply)} blocks to apply")
 
-      Enum.each(blocks_to_apply, fn {block, eth_height} ->
-        GenServer.cast(__MODULE__, {:apply_block, block, eth_height})
+      Enum.each(blocks_to_apply, fn {block, eth_height, is_final_for_eth_height?} ->
+        GenServer.cast(__MODULE__, {:apply_block, block, eth_height, is_final_for_eth_height?})
       end)
 
       :ok = OMG.DB.multi_update(db_updates)

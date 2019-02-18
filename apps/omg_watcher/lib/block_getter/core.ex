@@ -70,7 +70,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   defstruct [
-    :eth_height_done_by_blknum,
     :synced_height,
     :last_applied_block,
     :num_of_highest_block_being_downloaded,
@@ -84,7 +83,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
   ]
 
   @type t() :: %__MODULE__{
-          eth_height_done_by_blknum: map(),
           synced_height: pos_integer(),
           last_applied_block: non_neg_integer,
           num_of_highest_block_being_downloaded: non_neg_integer,
@@ -145,7 +143,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
          true <- opts_valid?(opts) do
       state =
         %__MODULE__{
-          eth_height_done_by_blknum: %{},
           synced_height: synced_height,
           last_applied_block: block_number,
           num_of_highest_block_being_downloaded: block_number,
@@ -187,29 +184,22 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Marks that child chain block published on `blk_eth_height` was processed
   """
-  @spec apply_block(t(), pos_integer()) :: {t(), non_neg_integer(), list()}
-  def apply_block(%__MODULE__{eth_height_done_by_blknum: eth_height_done_by_blknum} = state, applied_block_number) do
+  # FIXME: retype here
+  @spec apply_block(t(), map(), non_neg_integer(), boolean()) :: {t(), non_neg_integer(), list()}
+  def apply_block(%__MODULE__{} = state, %{number: blknum}, eth_height, is_final_for_eth_height?) do
     _ =
-      Logger.debug(
-        "Applied block #{inspect(applied_block_number)}, blknums that finalize eth_heights: #{
-          inspect(state.eth_height_done_by_blknum)
-        }"
+      Logger.info(
+        "Applied block: ##{inspect(blknum)}, from eth height: #{inspect(eth_height)}, " <>
+          "eth height done?: #{inspect(is_final_for_eth_height?)}"
       )
 
-    case Map.pop(eth_height_done_by_blknum, applied_block_number) do
-      # not present - this applied child block doesn't wrap up any eth height
-      {nil, _} ->
-        {state, state.synced_height, []}
-
-      # present - we need to mark this eth height as processed
-      {eth_height_done, updated_map} ->
-        state = %{
-          state
-          | synced_height: eth_height_done,
-            eth_height_done_by_blknum: updated_map
-        }
-
-        {state, eth_height_done, [{:put, :last_block_getter_eth_height, eth_height_done}]}
+    if is_final_for_eth_height? do
+      # final - we need to mark this eth height as processed
+      state = %{state | synced_height: eth_height}
+      {state, eth_height, [{:put, :last_block_getter_eth_height, eth_height}]}
+    else
+      # not final - this applied child block doesn't wrap up any eth height
+      {state, state.synced_height, []}
     end
   end
 
@@ -233,7 +223,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   contained in `block_submitted_events`, published on ethereum height not exceeding `coordinator_height` and not pushed to state before.
   """
   @spec get_blocks_to_apply(t(), list(), non_neg_integer()) ::
-          {list({Block.t(), non_neg_integer()}), non_neg_integer(), list(), t()}
+          {list({Block.t(), pos_integer(), non_neg_integer(), boolean()}), non_neg_integer(), list(), t()}
   def get_blocks_to_apply(
         %__MODULE__{last_applied_block: last_applied} = state,
         block_submitted_events,
@@ -267,7 +257,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
          block_submissions,
          _coordinator_height
        ) do
-    eth_height_done_by_blknum = append_final_blknums(block_submissions, state.eth_height_done_by_blknum)
+    eth_height_done_by_blknum = final_blknums(block_submissions)
 
     block_submissions =
       Enum.into(block_submissions, %{}, fn %{blknum: blknum, eth_height: eth_height} -> {blknum, eth_height} end)
@@ -284,13 +274,14 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
     blocks_to_apply =
       blknums_to_apply
-      |> Enum.map(fn blknum -> {Map.get(blocks, blknum), Map.get(block_submissions, blknum)} end)
+      |> Enum.map(fn blknum ->
+        {Map.get(blocks, blknum), Map.get(block_submissions, blknum), Map.has_key?(eth_height_done_by_blknum, blknum)}
+      end)
 
     {blocks_to_apply, state.synced_height, [],
      %{
        state
        | unapplied_blocks: blocks_to_keep,
-         eth_height_done_by_blknum: eth_height_done_by_blknum,
          last_applied_block: last_applied_block
      }}
   end
@@ -298,16 +289,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
   # goes through new submissions and figures out a mapping from blknum to eth_height, where blknum
   # is the **last** child block number submitted at the root chain height it maps to
   # this is later used to sign eth heights off as synced (`apply_block`)
-  defp append_final_blknums(new_submissions, current_eth_height_done_by_blknum) do
+  defp final_blknums(new_submissions) do
     new_submissions
     |> Enum.group_by(fn %{eth_height: eth_height} -> eth_height end, fn %{blknum: blknum} -> blknum end)
     |> Enum.into(%{}, fn {eth_height, blknums} ->
       last_blknum = Enum.max(blknums)
       {last_blknum, eth_height}
     end)
-    # merging in this order means that in the case of a reorg the old values are overwritten by the changes
-    # which makes the last_synced_height more accurate
-    |> (&Map.merge(current_eth_height_done_by_blknum, &1)).()
   end
 
   @doc """
