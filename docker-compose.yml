@@ -85,7 +85,7 @@ services:
 
   watcher:
     image: elixir-omg:dockercompose
-    entrypoint: /bin/bash -c "./launcher.py && mix ecto.reset --no-start && mix xomg.watcher.start --config ~/config_watcher.exs"
+    entrypoint: /bin/bash -c "./launcher.py && mix ecto.reset --no-start && mix xomg.watcher.start --convenience --config ~/config_watcher.exs"
     environment:
       - MIX_ENV=dev
       - ELIXIR_SERVICE=WATCHER
