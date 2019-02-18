@@ -22,11 +22,11 @@ defmodule OMG.API.EthereumEventListener.Core do
 
   NOTE: this could and should at some point be implemented as a `@behavior` instead, to avoid using callbacks
   """
-  alias OMG.API.RootChainCoordinator.SyncData
+  alias OMG.API.RootChainCoordinator.SyncGuide
 
   defstruct synced_height_update_key: nil,
             service_name: nil,
-            # what's being exchanged with RootChainCoorinator - the point in Eth blockchain until where it did process
+            # what's being exchanged with `RootChainCoordinator` - the point in root chain until where it processed
             synced_height: 0,
             cached: %{
               data: [],
@@ -50,9 +50,7 @@ defmodule OMG.API.EthereumEventListener.Core do
   @spec init(atom(), atom(), non_neg_integer(), non_neg_integer()) :: {t(), non_neg_integer()} | {:error, :invalid_init}
   def init(update_key, service_name, last_synced_ethereum_height, request_max_size \\ 1000)
 
-  def init(_, _, _, 0), do: {:error, :invalid_init}
-
-  def init(update_key, service_name, last_synced_ethereum_height, request_max_size) do
+  def init(update_key, service_name, last_synced_ethereum_height, request_max_size) when request_max_size > 0 do
     initial_state = %__MODULE__{
       synced_height_update_key: update_key,
       synced_height: last_synced_ethereum_height,
@@ -67,15 +65,17 @@ defmodule OMG.API.EthereumEventListener.Core do
     {initial_state, get_height_to_check_in(initial_state)}
   end
 
+  def init(_, _, _, _), do: {:error, :invalid_init}
+
   @spec get_height_to_check_in(t()) :: non_neg_integer()
   def get_height_to_check_in(%__MODULE__{synced_height: synced_height}), do: synced_height
 
   @doc """
   Returns range Ethereum height to download
   """
-  @spec get_events_range_for_download(t(), SyncData.t()) ::
+  @spec get_events_range_for_download(t(), SyncGuide.t()) ::
           {:dont_fetch_events, t()} | {:get_events, {non_neg_integer, non_neg_integer}, t()}
-  def get_events_range_for_download(%__MODULE__{cached: %{events_upper_bound: upper}} = state, %SyncData{
+  def get_events_range_for_download(%__MODULE__{cached: %{events_upper_bound: upper}} = state, %SyncGuide{
         sync_height: sync_height
       })
       when sync_height <= upper,
@@ -85,7 +85,7 @@ defmodule OMG.API.EthereumEventListener.Core do
         %__MODULE__{
           cached: %{request_max_size: request_max_size, events_upper_bound: old_upper_bound} = cached_data
         } = state,
-        %SyncData{root_chain_height: root_chain_height, sync_height: sync_height}
+        %SyncGuide{root_chain_height: root_chain_height, sync_height: sync_height}
       ) do
     # grab as much as allowed, but not higher than current root_chain_height and at least as much as needed to sync
     # NOTE: both root_chain_height and sync_height are assumed to have any required finality margins applied by caller

@@ -23,7 +23,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
   """
 
   alias OMG.API.RootChainCoordinator.Service
-  alias OMG.API.RootChainCoordinator.SyncData
+  alias OMG.API.RootChainCoordinator.SyncGuide
 
   use OMG.API.LoggerExt
 
@@ -97,7 +97,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
   @doc """
   Gets synchronized info
   """
-  @spec get_synced_info(t(), atom() | pid()) :: SyncData.t() | :nosync
+  @spec get_synced_info(t(), atom() | pid()) :: SyncGuide.t() | :nosync
   def get_synced_info(state, pid) when is_pid(pid) do
     service = Enum.find(state.services, fn service -> match?({_, %Service{pid: ^pid}}, service) end)
 
@@ -127,7 +127,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
 
       finality_bearing_root = max(0, root_chain_height - finality_margin_for(config))
 
-      %SyncData{sync_height: next_sync_height, root_chain_height: finality_bearing_root}
+      %SyncGuide{sync_height: next_sync_height, root_chain_height: finality_bearing_root}
     else
       :nosync
     end

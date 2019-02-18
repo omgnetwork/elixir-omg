@@ -14,12 +14,12 @@
 
 defmodule OMG.API.EthereumEventListener do
   @moduledoc """
-  GenServer running the listener, see `OMG.API.EthereumEventListener`
+  GenServer running the listener, see `OMG.API.EthereumEventListener.Core`
   """
 
   alias OMG.API.EthereumEventListener.Core
   alias OMG.API.RootChainCoordinator
-  alias OMG.API.RootChainCoordinator.SyncData
+  alias OMG.API.RootChainCoordinator.SyncGuide
 
   use OMG.API.LoggerExt
 
@@ -91,7 +91,7 @@ defmodule OMG.API.EthereumEventListener do
     end
   end
 
-  defp sync_height({state, callbacks}, %SyncData{sync_height: sync_height} = sync_info) do
+  defp sync_height({state, callbacks}, %SyncGuide{sync_height: sync_height} = sync_info) do
     state =
       case Core.get_events_range_for_download(state, sync_info) do
         {:get_events, {from, to}, state} ->
