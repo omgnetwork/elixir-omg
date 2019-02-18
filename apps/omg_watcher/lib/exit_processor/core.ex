@@ -321,42 +321,86 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {%{state | in_flight_exits: Map.merge(ifes, updated_ifes)}, db_updates}
   end
 
-  # NOTE: write tests - OMG-381
-  # TODO: simplify flow
-  # https://github.com/omisego/elixir-omg/pull/361#discussion_r247485778
-  @spec finalize_in_flight_exits(t(), [map()]) :: {t(), list()}
+  @spec finalize_in_flight_exits(t(), [map()]) ::
+          {:ok, t(), list()} | {:not_piggybacked, list()} | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
   def finalize_in_flight_exits(%__MODULE__{in_flight_exits: ifes} = state, finalizations) do
-    ifes_to_update =
-      finalizations
-      |> Enum.reduce(%{}, fn %{in_flight_exit_id: id}, acc ->
-        Enum.find(ifes, fn {_tx_hash, %InFlightExitInfo{contract_id: contract_id}} -> id == contract_id end)
-        |> case do
-          nil -> acc
-          # map by id from contract and mark as not updated
-          {tx_hash, ife} -> Map.put(acc, id, {tx_hash, ife, false})
-        end
-      end)
+    with {:ok, ifes_by_contract_id} <- get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes),
+         {:ok, []} <- outputs_piggybacked?(finalizations, ifes_by_contract_id) do
+      ifes_to_finalize = get_ifes_to_finalize(finalizations, ifes_by_contract_id)
+      finalized_ifes = finalize_ifes(finalizations, ifes_to_finalize)
+      db_updates = finalized_ifes |> Enum.map(&InFlightExitInfo.make_db_update/1)
+      {:ok, %{state | in_flight_exits: Map.merge(ifes, finalized_ifes)}, db_updates}
+    end
+  end
 
-    updated_ifes =
+  defp get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes) do
+    finalizations_ids =
       finalizations
-      |> Enum.reduce(ifes_to_update, fn %{in_flight_exit_id: id, output_index: output}, acc ->
-        with {:ok, {tx_hash, ife, _}} <- Enum.fetch(acc, id),
-             {:ok, updated_ife} <- InFlightExitInfo.finalize(ife, output) do
-          # update value and flag as updated
-          %{acc | id => {tx_hash, updated_ife, true}}
-        else
-          _ -> acc
-        end
-      end)
-      |> Enum.reduce([], fn
-        {_, {tx_hash, ife, true}}, acc -> [{tx_hash, ife} | acc]
-        _, acc -> acc
-      end)
+      |> Enum.map(fn %{in_flight_exit_id: id} -> id end)
+      |> MapSet.new()
+
+    by_contract_id =
+      ifes
+      |> Enum.filter(fn {_, %InFlightExitInfo{contract_id: id}} -> MapSet.member?(finalizations_ids, id) end)
+      |> Enum.map(fn {tx_hash, %InFlightExitInfo{contract_id: id} = ife} -> {id, {tx_hash, ife}} end)
       |> Map.new()
 
-    db_updates = updated_ifes |> Enum.map(&InFlightExitInfo.make_db_update/1)
+    known_ifes =
+      by_contract_id
+      |> Map.keys()
+      |> MapSet.new()
 
-    {%{state | in_flight_exits: Map.merge(ifes, updated_ifes)}, db_updates}
+    unknown_ifes = MapSet.difference(finalizations_ids, known_ifes)
+
+    if Enum.empty?(unknown_ifes) do
+      {:ok, by_contract_id}
+    else
+      {:unknown_in_flight_exit, unknown_ifes}
+    end
+  end
+
+  defp get_ifes_to_finalize(finalizations, ifes_by_contract_id) do
+    ifes_to_update =
+      finalizations
+      |> Enum.filter(fn %{in_flight_exit_id: ife_id, output_index: output} ->
+        {_, ife} = Map.get(ifes_by_contract_id, ife_id)
+        InFlightExitInfo.is_active?(ife, output)
+      end)
+      |> Enum.map(fn %{in_flight_exit_id: ife_id} -> ife_id end)
+
+    Map.take(ifes_by_contract_id, ifes_to_update)
+  end
+
+  defp outputs_piggybacked?(finalizations, ifes_by_contract_id) do
+    not_piggybacked =
+      finalizations
+      |> Enum.filter(fn %{in_flight_exit_id: ife_id, output_index: output} ->
+        {_, ife} = Map.get(ifes_by_contract_id, ife_id)
+        not InFlightExitInfo.is_piggybacked?(ife, output)
+      end)
+
+    if Enum.empty?(not_piggybacked) do
+      {:ok, []}
+    else
+      {:not_piggybacked, not_piggybacked}
+    end
+  end
+
+  defp finalize_ifes(finalizations, ifes_to_update) do
+    ifes_to_updates_ids = Map.keys(ifes_to_update)
+
+    finalizations
+    |> Enum.filter(fn %{in_flight_exit_id: ife_id} -> ife_id in ifes_to_updates_ids end)
+    |> Enum.reduce(
+      ifes_to_update,
+      fn %{in_flight_exit_id: ife_id, output_index: output}, acc ->
+        {tx_hash, ife_to_finalize} = Map.get(acc, ife_id)
+        {:ok, finalized_ife} = InFlightExitInfo.finalize(ife_to_finalize, output)
+        Map.put(acc, ife_id, {tx_hash, finalized_ife})
+      end
+    )
+    |> Enum.map(fn {_, value} -> value end)
+    |> Map.new()
   end
 
   @doc """

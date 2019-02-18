@@ -56,7 +56,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   @type t :: %__MODULE__{
           tx: Transaction.Signed.t(),
-          # use utxo_position really, for convenience and tooling, even if oindex is always zero here
+          # use utxo_position for convenience and tooling, even if oindex is always zero
           tx_pos: Utxo.Position.t() | nil,
           timestamp: non_neg_integer(),
           contract_id: ife_contract_id(),
@@ -162,43 +162,21 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def respond_to_challenge(%__MODULE__{}, _), do: {:error, :cannot_respond}
 
+  @spec finalize(t(), non_neg_integer()) :: {:ok, t()} | :unknown_output_index
   def finalize(%__MODULE__{exit_map: exit_map} = ife, output_index) do
-    output_exit = Map.fetch!(exit_map, output_index)
-    output_exit = %{output_exit | is_finalized: true}
-    exit_map = Map.update!(exit_map, output_index, output_exit)
-    ife = %{ife | exit_map: exit_map}
-    {:ok, ife}
+    case Map.get(exit_map, output_index) do
+      nil ->
+        :unknown_output_index
+
+      output_exit ->
+        output_exit = %{output_exit | is_finalized: true}
+        exit_map = Map.put(exit_map, output_index, output_exit)
+        ife = %{ife | exit_map: exit_map}
+        {:ok, ife}
+    end
   end
 
   @spec get_exiting_utxo_positions(t()) :: list({:utxo_position, non_neg_integer(), non_neg_integer(), non_neg_integer})
-  def get_exiting_utxo_positions(ife)
-
-  # TODO: do we need this commented batch of code? will we be determining these utxo positions like this? discuss
-  #  def get_exiting_utxo_positions(%__MODULE__{is_canonical: false} = ife) do
-  #    ife.inputs
-  #    |> Enum.with_index()
-  #    |> Enum.filter(&is_active?(ife, :input, elem(&1, 1)))
-  #    |> Enum.map(
-  #      &(&1
-  #        |> elem(0)
-  #        |> elem(0))
-  #    )
-  #  end
-  #
-  #  def get_exiting_utxo_positions(ife = %__MODULE__{is_canonical: true, tx_pos: tx_pos}) when tx_pos != nil do
-  #    active_outputs_offsets =
-  #      ife.outputs
-  #      |> Enum.with_index()
-  #      |> Enum.filter(&is_active?(ife, :input, elem(&1, 1)))
-  #      |> Enum.map(
-  #        &(&1
-  #          |> elem(1))
-  #      )
-  #
-  #    Utxo.position(blknum, tx_index, _) = tx_pos
-  #    for pos <- active_outputs_offsets, do: Utxo.position(blknum, tx_index, pos)
-  #  end
-
   def get_exiting_utxo_positions(%__MODULE__{tx: %Transaction.Signed{raw_tx: tx}}) do
     Transaction.get_inputs(tx)
   end
@@ -235,9 +213,6 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   end
 
   def is_canonical?(%__MODULE__{is_canonical: value}), do: value
-
-  #  defp offset(:input), do: 0
-  #  defp offset(:output), do: 4
 
   defp is_older?(Utxo.position(tx1_blknum, tx1_index, _), Utxo.position(tx2_blknum, tx2_index, _)),
     do: tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)
