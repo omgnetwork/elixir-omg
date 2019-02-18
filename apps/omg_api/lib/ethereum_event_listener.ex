@@ -74,7 +74,7 @@ defmodule OMG.API.EthereumEventListener do
       process_events_callback: process_events_callback
     }
 
-    {:ok, _} = schedule_get_events(Application.fetch_env!(:omg_api, :ethereum_status_check_interval_ms))
+    {:ok, _} = schedule_get_events()
     :ok = RootChainCoordinator.check_in(height_to_check_in, service_name)
     {:ok, {initial_state, callbacks_map}}
   end
@@ -83,10 +83,12 @@ defmodule OMG.API.EthereumEventListener do
     case RootChainCoordinator.get_sync_info() do
       :nosync ->
         :ok = RootChainCoordinator.check_in(Core.get_height_to_check_in(core), core.service_name)
+        {:ok, _} = schedule_get_events()
         {:noreply, state}
 
       sync_info ->
         new_state = sync_height(state, sync_info)
+        {:ok, _} = schedule_get_events()
         {:noreply, new_state}
     end
   end
@@ -110,7 +112,8 @@ defmodule OMG.API.EthereumEventListener do
     {state, callbacks}
   end
 
-  defp schedule_get_events(interval) do
-    :timer.send_interval(interval, self(), :sync)
+  defp schedule_get_events do
+    Application.fetch_env!(:omg_api, :ethereum_status_check_interval_ms)
+    |> :timer.send_after(self(), :sync)
   end
 end

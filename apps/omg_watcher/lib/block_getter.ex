@@ -117,9 +117,8 @@ defmodule OMG.Watcher.BlockGetter do
 
     :ok = RootChainCoordinator.check_in(exact_synced_height, __MODULE__)
 
-    height_sync_interval = Application.fetch_env!(:omg_watcher, :block_getter_height_sync_interval_ms)
-    {:ok, _} = schedule_sync_height(height_sync_interval)
-    :producer = send(self(), :producer)
+    {:ok, _} = schedule_sync_height()
+    {:ok, _} = schedule_producer()
 
     # how many eth blocks backward can change during an reorg
     block_reorg_margin = Application.fetch_env!(:omg_watcher, :block_reorg_margin)
@@ -159,7 +158,7 @@ defmodule OMG.Watcher.BlockGetter do
   def handle_info(:producer, state) do
     with {:ok, _} <- Core.chain_ok(state) do
       new_state = run_block_download_task(state)
-      {:ok, _} = :timer.send_after(2_000, self(), :producer)
+      {:ok, _} = schedule_producer()
       {:noreply, new_state}
     else
       {:error, _} = error ->
@@ -202,6 +201,8 @@ defmodule OMG.Watcher.BlockGetter do
 
       :ok = OMG.DB.multi_update(db_updates)
       :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
+      {:ok, _} = schedule_sync_height()
+
       {:noreply, state}
     else
       :nosync ->
@@ -223,7 +224,13 @@ defmodule OMG.Watcher.BlockGetter do
     new_state
   end
 
-  defp schedule_sync_height(interval) do
-    :timer.send_interval(interval, self(), :sync)
+  defp schedule_sync_height do
+    Application.fetch_env!(:omg_watcher, :block_getter_loops_interval_ms)
+    |> :timer.send_after(self(), :sync)
+  end
+
+  defp schedule_producer do
+    Application.fetch_env!(:omg_watcher, :block_getter_loops_interval_ms)
+    |> :timer.send_after(self(), :producer)
   end
 end

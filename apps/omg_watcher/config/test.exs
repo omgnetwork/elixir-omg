@@ -16,5 +16,5 @@ config :omg_watcher,
   # NOTE: can't be made shorter. At 3 it sometimes causes :unchallenged_exit because `geth --dev` is too fast
   exit_processor_sla_margin: 5,
   maximum_block_withholding_time_ms: 6_000,
-  block_getter_height_sync_interval_ms: 50,
+  block_getter_loops_interval_ms: 50,
   exit_finality_margin: 1

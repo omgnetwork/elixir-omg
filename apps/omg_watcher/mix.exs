@@ -24,7 +24,7 @@ defmodule OMG.Watcher.Mixfile do
       env: [
         exit_processor_sla_margin: 4 * 60,
         maximum_block_withholding_time_ms: 1_200_000,
-        block_getter_height_sync_interval_ms: 2_000,
+        block_getter_loops_interval_ms: 500,
         maximum_number_of_unapplied_blocks: 50,
         exit_finality_margin: 12,
         block_reorg_margin: 20,
