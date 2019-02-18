@@ -316,7 +316,7 @@ class WatcherLauncher:
         return request.content
 
     def check_watcher_chain_data_empty(self) -> bool:
-        ''' Return True if ~/.omg_watcher/ is empty. This allows deployment
+        ''' Return True if ~/.omg/ is empty. This allows deployment
         for both environments that are fresh and where there is existing data.
         '''
         if os.path.exists(os.path.expanduser('~') + '/.omg'):
