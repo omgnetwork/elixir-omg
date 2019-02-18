@@ -18,7 +18,10 @@ defmodule OMG.API.EthereumEventListener.Core do
   on parent chain and feeds them to a callback.
 
   It is **not** responsible for figuring out which ranges of eth-blocks to scan and when, see
-  `OMG.API.RootChainCoordinator.Core` for that
+  `OMG.API.RootChainCoordinator.Core` for that.
+
+  It **is** responsible for processing all events and processing them only once. The only "help" from the coordinator
+  it gets is in that it receives the `SyncGuide` that takes some finality (reorg) margin into account.
 
   NOTE: this could and should at some point be implemented as a `@behavior` instead, to avoid using callbacks
   """

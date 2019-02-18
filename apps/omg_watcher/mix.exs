@@ -27,7 +27,7 @@ defmodule OMG.Watcher.Mixfile do
         block_getter_loops_interval_ms: 500,
         maximum_number_of_unapplied_blocks: 50,
         exit_finality_margin: 12,
-        block_reorg_margin: 20,
+        block_getter_reorg_margin: 200,
         convenience_api_mode: false
       ],
       mod: {OMG.Watcher.Application, []},

@@ -17,8 +17,6 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
 
   alias OMG.API.RootChainCoordinator.Core
 
-  import ExUnit.CaptureLog
-
   deffixture initial_state() do
     Core.init(%{:depositor => [], :exiter => [waits_for: :depositor]}, 10)
   end
@@ -120,24 +118,6 @@ defmodule OMG.API.RootChainCoordinator.CoreTest do
     assert {:ok, state} = Core.update_root_chain_height(state, 11)
     assert %{sync_height: 11} = Core.get_synced_info(state, depositor_pid)
     assert %{sync_height: 10} = Core.get_synced_info(state, exiter_pid)
-  end
-
-  # TODO: testing via assert_raise is not elegant in our setup, rethink
-  test "invalid synced height update, gives richer error information" do
-    service_pid = :c.pid(0, 1, 0)
-
-    {:ok, state} =
-      Core.init(%{some_service: []}, 11)
-      |> Core.check_in(service_pid, 11, :some_service)
-
-    logs_error =
-      capture_log(fn ->
-        assert {:error, :invalid_synced_height_update} = Core.check_in(state, service_pid, 10, :some_service)
-      end)
-
-    assert logs_error =~ "synced_height: 11"
-    assert logs_error =~ "new_reported_sync_height: 10"
-    assert logs_error =~ "some_service"
   end
 
   @pid %{

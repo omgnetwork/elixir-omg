@@ -42,7 +42,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     @moduledoc false
     defstruct [
       :block_interval,
-      :block_reorg_margin,
+      :block_getter_reorg_margin,
       maximum_number_of_pending_blocks: 10,
       maximum_block_withholding_time_ms: 0,
       maximum_number_of_unapplied_blocks: 50
@@ -115,7 +115,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block,
   using `child_block_interval` when progressing from one child block to another,
   `synced_height` as the root chain height up to witch all published blocked were processed
-  and `block_reorg_margin` as number of root chain blocks that may change during an reorg
+  and `block_getter_reorg_margin` as number of root chain blocks that may change during an reorg
 
   Opts can be:
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
@@ -135,7 +135,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         block_number,
         child_block_interval,
         synced_height,
-        block_reorg_margin,
+        block_getter_reorg_margin,
         last_persisted_block,
         state_at_block_beginning,
         exit_processor_results,
@@ -156,7 +156,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
           config:
             struct(
               Config,
-              Keyword.merge(opts, block_interval: child_block_interval, block_reorg_margin: block_reorg_margin)
+              Keyword.merge(opts,
+                block_interval: child_block_interval,
+                block_getter_reorg_margin: block_getter_reorg_margin
+              )
             ),
           events: [],
           chain_status: :ok
@@ -200,16 +203,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
       # present - we need to mark this eth height as processed
       {eth_height_done, updated_map} ->
-        # in case of a reorg we do not want to check in with a lower height
-        max_synced_height = max(eth_height_done, state.synced_height)
-
         state = %{
           state
-          | synced_height: max_synced_height,
+          | synced_height: eth_height_done,
             eth_height_done_by_blknum: updated_map
         }
 
-        {state, max_synced_height, [{:put, :last_block_getter_eth_height, max_synced_height}]}
+        {state, eth_height_done, [{:put, :last_block_getter_eth_height, eth_height_done}]}
     end
   end
 
@@ -223,7 +223,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         %__MODULE__{synced_height: synced_height, config: config},
         coordinator_height
       ) do
-    {max(0, synced_height - config.block_reorg_margin), coordinator_height}
+    {max(0, synced_height - config.block_getter_reorg_margin), coordinator_height}
   end
 
   @doc """
@@ -239,20 +239,29 @@ defmodule OMG.Watcher.BlockGetter.Core do
         block_submitted_events,
         coordinator_height
       ) do
+    # this ensures that we don't take submissions of already applied blocks into account **at all**
     filtered_submissions = block_submitted_events |> Enum.filter(fn %{blknum: blknum} -> blknum > last_applied end)
+
     do_get_blocks_to_apply(state, filtered_submissions, coordinator_height)
   end
 
-  defp do_get_blocks_to_apply(%__MODULE__{synced_height: synced_height} = state, _block_submitted_events, older_height)
-       when older_height <= synced_height do
+  # height served as syncable from the `OMG.API.RootChainCoordinator` is older, nothing we can do about it, so noop
+  defp do_get_blocks_to_apply(
+         %__MODULE__{synced_height: synced_height} = state,
+         _block_submitted_events,
+         coordinator_height
+       )
+       when coordinator_height <= synced_height do
     {[], synced_height, [], state}
   end
 
+  # there are no **non-applied** submissions in the prescribed range of eth-blocks, so let's as much as we can
   defp do_get_blocks_to_apply(%__MODULE__{} = state, [], coordinator_height) do
     db_updates = [{:put, :last_block_getter_eth_height, coordinator_height}]
     {[], coordinator_height, db_updates, %{state | synced_height: coordinator_height}}
   end
 
+  # there are blocks to apply, so let's schedule that. This clause defers advancing the synced_height until apply_block
   defp do_get_blocks_to_apply(
          %__MODULE__{unapplied_blocks: blocks, config: config} = state,
          block_submissions,
@@ -293,7 +302,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     new_submissions
     |> Enum.group_by(fn %{eth_height: eth_height} -> eth_height end, fn %{blknum: blknum} -> blknum end)
     |> Enum.into(%{}, fn {eth_height, blknums} ->
-      [last_blknum | _] = Enum.sort(blknums, &(&1 >= &2))
+      last_blknum = Enum.max(blknums)
       {last_blknum, eth_height}
     end)
     # merging in this order means that in the case of a reorg the old values are overwritten by the changes
@@ -586,63 +595,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
     raw_tx
     |> Transaction.get_currencies()
     |> Enum.into(fee_map, fn currency -> {currency, 0} end)
-  end
-
-  @doc """
-  Given:
-   - a persisted `synced_height` and
-   - the actual child block number from `OMG.API.State`
-  figures out the exact eth height, which we should begin with. Uses a list of block submission event logs,
-  which should contain the `child_top_block_number`'s respective submission.
-
-  This is a workaround for the case where a child block is processed and block number advanced, and eth height isn't.
-  This can be the case when the getter crashes after consuming a child block but before it's recognized as synced.
-
-  In case `submissions` doesn't hold the submission of the `child_top_block_number`, it returns the otherwise
-  persisted `synced_height`
-  """
-  # TODO: I suspect this is not necessary at all anymore. It was only valid when synced_height was an exact height
-  #       where we needed to look for new blocks to sync.
-  #       Now, with the new `OMG.API.RootChainCoordinator` and the margins we use in `handle_info(:sync)`,
-  #       it seems not required, but we need to be careful here.
-  #       For now leaving as is, only preventing a back-off which, would hurt (see `max(synced_height)` below)
-  @spec figure_out_exact_sync_height([%{blknum: pos_integer, eth_height: pos_integer}], pos_integer, pos_integer) ::
-          pos_integer
-  def figure_out_exact_sync_height(_, synced_height, 0), do: synced_height
-
-  def figure_out_exact_sync_height(submissions, synced_height, child_top_block_number) do
-    # first get the exact match for the eth_height of top child blknum
-    submissions
-    |> Enum.find(fn %{blknum: blknum} -> blknum == child_top_block_number end)
-    # if it exists - good, if it doesn't - the submission is old and we're probably good
-    |> case do
-      %{eth_height: exact_height} ->
-        # here we need to take into account multiple child submissions in one eth height
-        # we can only treat as synced, if all children blocks have been processed
-        submissions
-        # get all the neighbors of the child block last applied
-        |> Enum.filter(fn %{eth_height: eth_height} -> eth_height == exact_height end)
-        # get the youngest of neighbors. If there are no submissions there, just assume we've found in previous step
-        |> Enum.max_by(fn %{blknum: blknum} -> blknum end)
-        # if it is our last applied child block then the eth height is good to go, otherwise back off by one eth block
-        |> case do
-          %{blknum: ^child_top_block_number} -> exact_height
-          _ -> max(0, exact_height - 1)
-        end
-        # nevertheless, we don't want to back-off here, which we would if synced_height was driven by a sequence
-        # of no-submission Ethereum blocks
-        |> max(synced_height)
-
-      nil ->
-        _ =
-          Logger.warn(
-            "#{inspect(child_top_block_number)} not found in recent submissions #{
-              inspect(submissions, limit: :infinity)
-            }"
-          )
-
-        synced_height
-    end
   end
 
   @doc """

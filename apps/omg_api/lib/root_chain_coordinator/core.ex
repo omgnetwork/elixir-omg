@@ -18,7 +18,13 @@ defmodule OMG.API.RootChainCoordinator.Core do
   Service reports its height by calling 'check_in'.
   After all the services are checked in, coordinator returns currently synchronizable height, for every service which asks
   In case a service fails, it is checked out and coordinator does not resume until the missing service checks_in again.
-  Coordinator periodically updates root chain height, looks after finality margins and ensures geth-queries aren't huge
+  Coordinator periodically updates root chain height, looks after finality margins and ensures geth-queries aren't huge.
+
+  Coordinator is forgiving in terms of height backoffs:
+    - if the root chain's height backs off, it will treat it as an interim state and ignore the back off (noop)
+    - if any of the coordinated services backs off, it will register the backed off height and coordinate acordingly.
+      All services must accept a `SyncGuide` that tells them they should back off. All services must ensure this doesn't
+      cause them to process any events twice! All services must ensure they process everything!
   """
 
   alias OMG.API.RootChainCoordinator.Service
@@ -37,7 +43,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
           services: map()
         }
 
-  @type check_in_error_t :: {:error, :service_not_allowed | :invalid_synced_height_update}
+  @type check_in_error_t :: {:error, :service_not_allowed}
 
   # RootChainCoordinator is also checking if queries to Ethereum client don't get huge
   @maximum_leap_forward 10_000
@@ -73,24 +79,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
          service_name
        ) do
     new_service_state = %Service{synced_height: new_reported_sync_height, pid: pid}
-    current_service_state = Map.get(services, service_name, new_service_state)
-
-    if valid_sync_height_update?(current_service_state, new_reported_sync_height) do
-      {:ok, %{state | services: Map.put(services, service_name, new_service_state)}}
-    else
-      report_data = %{
-        current: current_service_state,
-        service_name: service_name,
-        new_reported_sync_height: new_reported_sync_height
-      }
-
-      _ = Logger.error("Invalid synced height update #{inspect(report_data, pretty: true)}")
-      {:error, :invalid_synced_height_update}
-    end
-  end
-
-  defp valid_sync_height_update?(%Service{synced_height: current_synced_height}, new_reported_sync_height) do
-    current_synced_height <= new_reported_sync_height
+    {:ok, %{state | services: Map.put(services, service_name, new_service_state)}}
   end
 
   @doc """

@@ -338,57 +338,6 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     |> assert_check([1_000])
   end
 
-  @tag :capture_log
-  test "figures out the proper synced height on init" do
-    assert 0 == Core.figure_out_exact_sync_height([], 0, 0)
-    assert 0 == Core.figure_out_exact_sync_height([], 0, 10)
-    assert 1 == Core.figure_out_exact_sync_height([], 1, 10)
-    assert 1 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}], 1, 10)
-    assert 100 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 10}], 1, 10)
-
-    assert 100 ==
-             [%{eth_height: 100, blknum: 10}, %{eth_height: 101, blknum: 11}, %{eth_height: 90, blknum: 9}]
-             |> Core.figure_out_exact_sync_height(1, 10)
-  end
-
-  @tag :capture_log
-  test "figures out the proper synced height on init, if there's many submissions per eth height" do
-    # the exact sync height is picked only if it's the youngest submission, otherwise backoff
-    assert 1 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}, %{eth_height: 100, blknum: 8}], 1, 10)
-
-    assert 99 ==
-             Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 10}, %{eth_height: 100, blknum: 11}], 1, 10)
-
-    assert 100 ==
-             Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 10}, %{eth_height: 100, blknum: 9}], 1, 10)
-
-    assert 100 ==
-             Core.figure_out_exact_sync_height(
-               [%{eth_height: 100, blknum: 10}, %{eth_height: 101, blknum: 11}, %{eth_height: 100, blknum: 9}],
-               1,
-               10
-             )
-
-    assert 99 ==
-             Core.figure_out_exact_sync_height(
-               [%{eth_height: 100, blknum: 10}, %{eth_height: 101, blknum: 11}, %{eth_height: 100, blknum: 11}],
-               1,
-               10
-             )
-  end
-
-  @tag :capture_log
-  test "never figures out it is synced earlier than it was" do
-    assert 1000 == Core.figure_out_exact_sync_height([], 1000, 0)
-    assert 1000 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}], 1000, 9)
-
-    assert 1000 ==
-             Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}, %{eth_height: 100, blknum: 8}], 1000, 8)
-
-    assert 1000 ==
-             Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}, %{eth_height: 100, blknum: 8}], 1000, 9)
-  end
-
   test "applying block updates height" do
     state =
       init_state(synced_height: 0, init_opts: [maximum_number_of_pending_blocks: 5])
@@ -737,7 +686,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
         3
       )
 
-    {_, 2, _} = Core.apply_block(state, 1_000)
+    {_, 1, _} = Core.apply_block(state, 1_000)
   end
 
   test "apply a block that moved forward" do
@@ -821,12 +770,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   test "returns valid eth range" do
-    # properly looks `block_reorg_margin` number of blocks backward
-    state = init_state(synced_height: 100, block_reorg_margin: 10)
+    # properly looks `block_getter_reorg_margin` number of blocks backward
+    state = init_state(synced_height: 100, block_getter_reorg_margin: 10)
     assert {100 - 10, 101} == Core.get_eth_range_for_block_submitted_events(state, 101)
 
     # beginning of the range is no less than 0
-    state = init_state(synced_height: 0, block_reorg_margin: 10)
+    state = init_state(synced_height: 0, block_getter_reorg_margin: 10)
     assert {0, 101} == Core.get_eth_range_for_block_submitted_events(state, 101)
   end
 
@@ -836,7 +785,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
         start_block_number: 0,
         interval: 1_000,
         synced_height: 1,
-        block_reorg_margin: 5,
+        block_getter_reorg_margin: 5,
         state_at_beginning: true,
         exit_processor_results: {:ok, []},
         init_opts: []
@@ -849,7 +798,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
              init_params.start_block_number,
              init_params.interval,
              init_params.synced_height,
-             init_params.block_reorg_margin,
+             init_params.block_getter_reorg_margin,
              nil,
              init_params.state_at_beginning,
              init_params.exit_processor_results,

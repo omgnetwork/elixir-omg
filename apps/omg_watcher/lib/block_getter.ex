@@ -17,6 +17,10 @@ defmodule OMG.Watcher.BlockGetter do
   Downloads blocks from child chain, validates them and updates watcher state.
   Manages simultaneous getting and stateless-processing of blocks.
   Detects byzantine behaviors like invalid blocks and block withholding and notifies Eventer.
+
+  Reponsible for processing all block submissions and processing them once, regardless of the reorg situation.
+  Note that the former responsibility is quite involved, as `BlockGetter` should have any finality margin configured,
+  i.e. it should be prepared to be served not-yet-confirmed eth heights from the `OMG.API.RootChainCoordinator`
   """
 
   alias OMG.API.RootChainCoordinator
@@ -102,27 +106,14 @@ defmodule OMG.Watcher.BlockGetter do
 
     {current_block_height, state_at_block_beginning} = State.get_status()
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-
     # State treats current as the next block to be executed or a block that is being executed
     # while top block number is a block that has been formed (they differ by the interval)
     child_top_block_number = current_block_height - child_block_interval
 
-    # here we look for submissions dating from a reasonably old ethereum block
-    # the subtraction is in the rare event where BlockGetter erroneously checked in to the future height
-    {:ok, block_submissions} =
-      Eth.RootChain.get_block_submitted_events({max(0, synced_height - 1000), synced_height + 1000})
-
-    exact_synced_height = Core.figure_out_exact_sync_height(block_submissions, synced_height, child_top_block_number)
     last_persisted_block = DB.Block.get_max_blknum()
 
-    :ok = RootChainCoordinator.check_in(exact_synced_height, __MODULE__)
-
-    {:ok, _} = schedule_sync_height()
-    {:ok, _} = schedule_producer()
-
     # how many eth blocks backward can change during an reorg
-    block_reorg_margin = Application.fetch_env!(:omg_watcher, :block_reorg_margin)
-
+    block_getter_reorg_margin = Application.fetch_env!(:omg_watcher, :block_getter_reorg_margin)
     maximum_block_withholding_time_ms = Application.fetch_env!(:omg_watcher, :maximum_block_withholding_time_ms)
     maximum_number_of_unapplied_blocks = Application.fetch_env!(:omg_watcher, :maximum_number_of_unapplied_blocks)
 
@@ -132,8 +123,8 @@ defmodule OMG.Watcher.BlockGetter do
       Core.init(
         child_top_block_number,
         child_block_interval,
-        exact_synced_height,
-        block_reorg_margin,
+        synced_height,
+        block_getter_reorg_margin,
         last_persisted_block,
         state_at_block_beginning,
         exit_processor_initial_results,
@@ -142,6 +133,10 @@ defmodule OMG.Watcher.BlockGetter do
         # NOTE: not elegant, but this should limit the number of heavy-lifting workers and chance to starve the rest
         maximum_number_of_pending_blocks: System.schedulers()
       )
+
+    :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
+    {:ok, _} = schedule_sync_height()
+    {:ok, _} = schedule_producer()
 
     {:ok, state}
   end
