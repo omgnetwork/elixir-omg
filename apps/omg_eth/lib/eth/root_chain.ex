@@ -250,12 +250,12 @@ defmodule OMG.Eth.RootChain do
   """
   def get_standard_exit(exit_id, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    Eth.call_contract(contract, "exits(uint192)", [exit_id], [:address, :address, {:uint, 256}])
+    Eth.call_contract(contract, "exits(uint192)", [exit_id], [:address, :address, {:uint, 256}, {:uint, 192}])
   end
 
-  def get_standard_exit_id(utxo_pos, contract \\ nil) do
+  def get_standard_exit_id(txhash, oindex, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    Eth.call_contract(contract, "getStandardExitId(uint256)", [utxo_pos], [{:uint, 192}])
+    Eth.call_contract(contract, "getStandardExitId(bytes32,uint8)", [txhash, oindex], [{:uint, 192}])
   end
 
   @doc """
@@ -328,7 +328,7 @@ defmodule OMG.Eth.RootChain do
   """
   def get_standard_exits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "ExitStarted(address,uint256,uint256,address)"
+    signature = "ExitStarted(address,uint192)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &decode_exit_started/1)}
@@ -472,8 +472,8 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_exit_started(log) do
-    non_indexed_keys = [:utxo_pos, :amount, :currency]
-    non_indexed_key_types = [{:uint, 256}, {:uint, 256}, :address]
+    non_indexed_keys = [:exit_id]
+    non_indexed_key_types = [{:uint, 192}]
     indexed_keys = [:owner]
     indexed_keys_types = [:address]
 

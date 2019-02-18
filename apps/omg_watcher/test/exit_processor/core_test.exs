@@ -77,8 +77,17 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     %{addr: alice} = alice
 
     [
-      %{amount: 10, currency: @eth, owner: alice, utxo_pos: Utxo.Position.encode(@utxo_pos1), eth_height: 2},
-      %{amount: 9, currency: @not_eth, owner: alice, utxo_pos: Utxo.Position.encode(@utxo_pos2), eth_height: 4}
+      %{owner: alice, eth_height: 2, exit_id: 1},
+      %{owner: alice, eth_height: 4, exit_id: 2}
+    ]
+  end
+
+  # extracts the mocked responses of the `Eth.RootChain.get_standard_exit` for the exit events
+  # all exits active (owner non-zero). This is the auxiliary, second argument that's fed into `new_exits`
+  deffixture contract_exit_statuses(alice) do
+    [
+      {alice.addr, @eth, 10, Utxo.Position.encode(@utxo_pos1)},
+      {alice.addr, @not_eth, 9, Utxo.Position.encode(@utxo_pos2)}
     ]
   end
 
@@ -98,13 +107,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       %{call_data: %{in_flight_tx: tx1_bytes, in_flight_tx_sigs: tx1_sigs}, eth_height: 2},
       %{call_data: %{in_flight_tx: tx2_bytes, in_flight_tx_sigs: tx2_sigs}, eth_height: 4}
     ]
-  end
-
-  # extracts the mocked responses of the `Eth.RootChain.get_standard_exit` for the exit events
-  # all exits active (owner non-zero). This is the auxiliary, second argument that's fed into `new_exits`
-  deffixture contract_exit_statuses(exit_events) do
-    exit_events
-    |> Enum.map(fn %{amount: amount, currency: currency, owner: owner} -> {owner, currency, amount} end)
   end
 
   deffixture contract_ife_statuses(in_flight_exit_events) do
@@ -160,7 +162,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                in_flight_exit_events,
                contract_ife_statuses
              ) do
-    {state, _} = Core.new_exits(processor_empty, exit_events, contract_exit_statuses)
+    {state, _, _} = Core.new_exits(processor_empty, exit_events, contract_exit_statuses)
     {state, _} = Core.new_in_flight_exits(state, in_flight_exit_events, contract_ife_statuses)
     state
   end
@@ -188,9 +190,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     processor_empty: empty,
     processor_filled: filled
   } do
-    assert {^empty, []} = Core.new_exits(empty, [], [])
+    assert {^empty, [], []} = Core.new_exits(empty, [], [])
     assert {^empty, []} = Core.new_in_flight_exits(empty, [], [])
-    assert {^filled, []} = Core.new_exits(filled, [], [])
+    assert {^filled, [], []} = Core.new_exits(filled, [], [])
     assert {^filled, []} = Core.new_in_flight_exits(filled, [], [])
 
     assert {^filled, []} = Core.finalize_exits(filled, {[], []})
@@ -205,7 +207,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     state_empty: state,
     exit_events: events
   } do
-    {processor, _} =
+    {processor, _, _} =
       processor
       |> Core.new_exits(events, [{alice, @eth, 10}, {@zero_address, @not_eth, 9}])
 
@@ -238,7 +240,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     exit_events: [one_exit | _],
     contract_exit_statuses: [one_status | _]
   } do
-    {processor, _} =
+    {processor, _, _} =
       processor
       |> Core.new_exits([one_exit], [one_status])
 
@@ -272,7 +274,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     exiting_position = Utxo.Position.encode(@utxo_pos1)
 
-    {processor, _} =
+    {processor, _, _} =
       processor
       |> Core.new_exits([one_exit], [one_status])
 
@@ -289,7 +291,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     exit_events: events,
     contract_exit_statuses: contract_statuses
   } do
-    {processor, _} =
+    {processor, _, _} =
       processor
       |> Core.new_exits(events, contract_statuses)
 
@@ -317,7 +319,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     exiting_position = Utxo.Position.encode(@utxo_pos1)
 
-    {processor, _} =
+    {processor, _, _} =
       processor
       |> Core.new_exits([one_exit], [one_status])
 
@@ -335,9 +337,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     state_empty: state,
     exit_events: [one_exit | _]
   } do
-    {processor, _} =
+    {processor, _, _} =
       processor
+<<<<<<< HEAD
       |> Core.new_exits([one_exit], [{@zero_address, @eth, 10}])
+=======
+      |> Core.new_exits([one_exit], [{Crypto.zero_address(), @eth, 10, Utxo.Position.encode(@utxo_pos1)}])
+>>>>>>> chore: standard exit compatible with plasma_contract:master
 
     assert {:ok, []} =
              %ExitProcessor.Request{eth_height_now: 13, blknum_now: @late_blknum}
@@ -353,7 +359,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     exit_events: [_, late_exit | _],
     contract_exit_statuses: [_, active_status | _]
   } do
-    {processor, _} =
+    {processor, _, _} =
       processor
       |> Core.new_exits([late_exit], [active_status])
 
@@ -384,7 +390,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     in_flight_exit_events: [one_ife | _],
     contract_ife_statuses: [one_ife_status | _]
   } do
-    {processor, _} = processor |> Core.new_exits([one_exit], [one_status])
+    {processor, _, _} = processor |> Core.new_exits([one_exit], [one_status])
     {processor, _} = processor |> Core.new_in_flight_exits([one_ife], [one_ife_status])
 
     assert %{utxos_to_check: [@utxo_pos1, Utxo.position(1, 2, 1) | _]} =

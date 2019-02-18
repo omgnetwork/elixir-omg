@@ -167,14 +167,10 @@ defmodule OMG.Watcher.ExitProcessor do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized exits: #{inspect(exits)}")
 
     exit_contract_statuses =
-      Enum.map(
-        exits,
-        fn %{utxo_pos: utxo_pos} ->
-          {:ok, exit_id} = Eth.RootChain.get_standard_exit_id(utxo_pos)
-          {:ok, result} = Eth.RootChain.get_standard_exit(exit_id)
-          result
-        end
-      )
+      Enum.map(exits, fn %{exit_id: exit_id} ->
+        {:ok, result} = Eth.RootChain.get_standard_exit(exit_id)
+        result
+      end)
 
     {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
