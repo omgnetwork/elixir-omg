@@ -106,9 +106,11 @@ defmodule OMG.Watcher.TestHelper do
   end
 
   def get_balance(address, token) do
+    {:ok, encoded_token} = Crypto.encode_address(token)
+
     address
     |> get_balances()
-    |> Enum.find(%{"amount" => 0}, fn %{"currency" => currency} -> token == currency end)
+    |> Enum.find(%{"amount" => 0}, fn %{"currency" => currency} -> encoded_token == currency end)
     |> Map.get("amount")
   end
 

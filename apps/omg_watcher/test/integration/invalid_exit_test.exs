@@ -82,6 +82,17 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     assert {:ok, {OMG.Eth.zero_address(), @eth, 0, 0}} == Eth.RootChain.get_standard_exit(exit_id)
 
     IntegrationTest.wait_for_byzantine_events([], @timeout)
+
+    exit_period = Application.fetch_env!(:omg_eth, :exit_period_seconds)
+    Process.sleep(2 * exit_period + 10)
+
+    {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
+      OMG.Eth.RootChain.process_exits(@eth, 0, 1, alice.addr) |> Eth.DevHelpers.transact_sync!()
+
+    exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
+
+    assert 10 == TestHelper.get_balance(alice.addr, @eth)
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]

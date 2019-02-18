@@ -20,11 +20,10 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   use Plug.Test
 
   alias OMG.API
-  alias OMG.API.Crypto
   alias OMG.API.Utxo
   alias OMG.Eth
-  alias OMG.Watcher.TestHelper
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OMG.Watcher.TestHelper
 
   require Utxo
 
@@ -32,8 +31,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   @moduletag timeout: 120_000
 
   @timeout 40_000
-  @eth Crypto.zero_address()
-  @encoded_eth Crypto.zero_address() |> Crypto.encode_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
   test "exit finalizes", %{
@@ -69,7 +67,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
 
-    balance_post_exit = TestHelper.get_balance(alice.addr, @encoded_eth)
+    balance_post_exit = TestHelper.get_balance(alice.addr, @eth)
     assert balance_post_exit == 0
   end
 end

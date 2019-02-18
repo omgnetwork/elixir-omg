@@ -347,7 +347,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     Process.sleep(2 * exit_period + 10)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      OMG.Eth.RootChain.process_exits(@eth, 0, 3, alice_address) |> Eth.DevHelpers.transact_sync!()
+      OMG.Eth.RootChain.process_exits(@eth, 0, 3, alice.addr) |> Eth.DevHelpers.transact_sync!()
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
 

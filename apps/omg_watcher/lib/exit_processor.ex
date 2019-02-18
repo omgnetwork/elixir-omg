@@ -245,8 +245,19 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:finalize_in_flight_exits, finalizations}, _from, state) do
     _ = if not Enum.empty?(finalizations), do: Logger.info("Recognized ife finalizations: #{inspect(finalizations)}")
-    {new_state, db_updates} = Core.finalize_in_flight_exits(state, finalizations)
-    {:reply, {:ok, db_updates}, new_state}
+
+    case Core.finalize_in_flight_exits(state, finalizations) do
+      {:ok, state, db_updates} ->
+        {:reply, {:ok, db_updates}, state}
+
+      {:not_piggybacked, not_piggybacked} ->
+        _ = Logger.error("Outputs not piggybacked: #{inspect(not_piggybacked)}")
+        {:stop, :not_piggybacked, state}
+
+      {:unknown_in_flight_exit, unknown_ifes} ->
+        _ = Logger.error("Unknown in-flight exits: #{inspect(unknown_ifes)}")
+        {:stop, :unknown_in_flight_exit, Elixir.Agent.Server, state}
+    end
   end
 
   @doc """
