@@ -108,7 +108,6 @@ defmodule OMG.API.State.TransactionTest do
 
   @tag fixtures: [:alice, :state_alice_deposit, :bob]
   test "using created transaction with one input in child chain", %{alice: alice, bob: bob, state_alice_deposit: state} do
-    utxos = [%{amount: 10, currency: eth(), blknum: 1, oindex: 0, txindex: 0}]
     transaction = Transaction.new([{1, 0, 0}], [{bob.addr, eth(), 4}])
 
     transaction
