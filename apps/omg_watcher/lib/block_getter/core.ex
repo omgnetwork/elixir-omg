@@ -18,6 +18,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   alias OMG.API
   alias OMG.API.Block
   alias OMG.API.State.Transaction
+  alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
 
@@ -88,7 +89,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           num_of_highest_block_being_downloaded: non_neg_integer,
           number_of_blocks_being_downloaded: non_neg_integer,
           last_block_persisted_from_prev_run: non_neg_integer,
-          unapplied_blocks: %{non_neg_integer => Block.t()},
+          unapplied_blocks: %{non_neg_integer => BlockApplication.t()},
           potential_block_withholdings: %{
             non_neg_integer => PotentialWithholding.t()
           },
@@ -106,7 +107,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @type init_error() :: :not_at_block_beginning
 
   @type validate_download_response_result_t() ::
-          {:ok, Block.t() | PotentialWithholdingReport.t()}
+          {:ok, BlockApplication.t() | PotentialWithholdingReport.t()}
           | {:error, {block_error(), binary(), pos_integer()}}
 
   @doc """
@@ -184,16 +185,19 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Marks that child chain block published on `blk_eth_height` was processed
   """
-  # FIXME: retype here
-  @spec apply_block(t(), map(), non_neg_integer(), boolean()) :: {t(), non_neg_integer(), list()}
-  def apply_block(%__MODULE__{} = state, %{number: blknum}, eth_height, is_final_for_eth_height?) do
+  @spec apply_block(t(), BlockApplication.t()) :: {t(), non_neg_integer(), list()}
+  def apply_block(%__MODULE__{} = state, %BlockApplication{
+        number: blknum,
+        eth_height: eth_height,
+        eth_height_done: eth_height_done
+      }) do
     _ =
       Logger.info(
         "Applied block: ##{inspect(blknum)}, from eth height: #{inspect(eth_height)}, " <>
-          "eth height done?: #{inspect(is_final_for_eth_height?)}"
+          "eth height done?: #{inspect(eth_height_done)}"
       )
 
-    if is_final_for_eth_height? do
+    if eth_height_done do
       # final - we need to mark this eth height as processed
       state = %{state | synced_height: eth_height}
       {state, eth_height, [{:put, :last_block_getter_eth_height, eth_height}]}
@@ -223,7 +227,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   contained in `block_submitted_events`, published on ethereum height not exceeding `coordinator_height` and not pushed to state before.
   """
   @spec get_blocks_to_apply(t(), list(), non_neg_integer()) ::
-          {list({Block.t(), pos_integer(), non_neg_integer(), boolean()}), non_neg_integer(), list(), t()}
+          {list(BlockApplication.t()), non_neg_integer(), list(), t()}
   def get_blocks_to_apply(
         %__MODULE__{last_applied_block: last_applied} = state,
         block_submitted_events,
@@ -275,7 +279,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
     blocks_to_apply =
       blknums_to_apply
       |> Enum.map(fn blknum ->
-        {Map.get(blocks, blknum), Map.get(block_submissions, blknum), Map.has_key?(eth_height_done_by_blknum, blknum)}
+        Map.get(blocks, blknum)
+        |> Map.put(:eth_height, Map.get(block_submissions, blknum))
+        |> Map.put(:eth_height_done, Map.has_key?(eth_height_done_by_blknum, blknum))
+        |> struct!()
       end)
 
     {blocks_to_apply, state.synced_height, [],
@@ -384,7 +391,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
   """
   @spec handle_downloaded_block(
           %__MODULE__{},
-          {:ok, OMG.API.Block.t() | PotentialWithholdingReport.t()} | {:error, {block_error(), binary(), pos_integer()}}
+          {:ok, BlockApplication.t() | PotentialWithholdingReport.t()}
+          | {:error, {block_error(), binary(), pos_integer()}}
         ) ::
           {:ok | {:error, block_error()}, %__MODULE__{}}
           | {:error, :duplicate | :unexpected_block}
@@ -428,13 +436,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
            unapplied_blocks: unapplied_blocks,
            potential_block_withholdings: potential_block_withholdings
          } = state,
-         {:ok, %{number: number} = block}
+         {:ok, %BlockApplication{number: number} = to_apply}
        ) do
     with true <- not_queued_up_yet?(number, unapplied_blocks) || {{:error, :duplicate}, state},
          true <- expected_to_queue_up?(number, state) || {{:error, :unexpected_block}, state} do
       state = %{
         state
-        | unapplied_blocks: Map.put(unapplied_blocks, number, block),
+        | unapplied_blocks: Map.put(unapplied_blocks, number, to_apply),
           potential_block_withholdings: Map.delete(potential_block_withholdings, number)
       }
 
@@ -506,27 +514,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
         "Validating block \##{inspect(requested_number)} #{short_hash}... with #{inspect(length(transactions))} txs"
       end)
 
-    with transaction_decode_results <- Enum.map(transactions, &API.Core.recover_tx/1),
-         nil <- Enum.find(transaction_decode_results, &(!match?({:ok, _}, &1))),
-         transactions <- Enum.map(transaction_decode_results, &elem(&1, 1)),
-         true <- returned_hash == requested_hash || {:error, :bad_returned_hash} do
-      # hash the block yourself and compare
-      %Block{hash: calculated_hash} = Block.hashed_txs_at(transactions, number)
-
-      # we as the Watcher don't care about the fees, so we fix all currencies to require 0 fee
-      zero_fee_requirements = transactions |> Enum.reduce(%{}, &add_zero_fee/2)
-
-      if calculated_hash == requested_hash,
-        do:
-          {:ok,
-           %{
-             transactions: transactions,
-             number: requested_number,
-             hash: returned_hash,
-             timestamp: block_timestamp,
-             zero_fee_requirements: zero_fee_requirements
-           }},
-        else: {:error, {:incorrect_hash, requested_hash, requested_number}}
+    with true <- returned_hash == requested_hash || {:error, :bad_returned_hash},
+         true <- number == requested_number || {:error, :bad_returned_number},
+         {:ok, recovered_txs} <- recover_all_txs(transactions),
+         # hash the block yourself and compare
+         %Block{hash: calculated_hash} = block = Block.hashed_txs_at(recovered_txs, number),
+         true <- calculated_hash == requested_hash || {:error, :incorrect_hash} do
+      {:ok, BlockApplication.new(block, recovered_txs, block_timestamp)}
     else
       {:error, error_type} ->
         {:error, {error_type, requested_hash, requested_number}}
@@ -542,6 +536,17 @@ defmodule OMG.Watcher.BlockGetter.Core do
       )
 
     {:ok, %PotentialWithholdingReport{blknum: requested_number, hash: requested_hash, time: time}}
+  end
+
+  defp recover_all_txs(transactions) do
+    transactions
+    |> Enum.reverse()
+    |> Enum.reduce_while({:ok, []}, fn tx, {:ok, recovered_so_far} ->
+      case API.Core.recover_tx(tx) do
+        {:ok, recovered} -> {:cont, {:ok, [recovered | recovered_so_far]}}
+        other -> {:halt, other}
+      end
+    end)
   end
 
   @spec validate_executions(
@@ -577,12 +582,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
   def consider_exits(%__MODULE__{} = state, {{:error, :unchallenged_exit} = error, _}) do
     _ = Logger.warn("Chain invalid when taking exits into account, because of #{inspect(error)}")
     set_chain_status(state, :error)
-  end
-
-  defp add_zero_fee(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}, fee_map) do
-    raw_tx
-    |> Transaction.get_currencies()
-    |> Enum.into(fee_map, fn currency -> {currency, 0} end)
   end
 
   @doc """

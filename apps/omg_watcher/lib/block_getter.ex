@@ -28,6 +28,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.API.State
   alias OMG.Eth
   alias OMG.RPC.Client
+  alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.DB
   alias OMG.Watcher.ExitProcessor
@@ -58,15 +59,20 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   def handle_cast(
-        {:apply_block, %{transactions: transactions, number: blknum, zero_fee_requirements: fees} = block,
-         block_rootchain_height, is_final_for_eth_height?},
+        {:apply_block,
+         %BlockApplication{
+           transactions: transactions,
+           number: blknum,
+           zero_fee_requirements: fees,
+           eth_height: block_rootchain_height
+         } = to_apply},
         state
       ) do
     with {:ok, _} <- Core.chain_ok(state),
          tx_exec_results = for(tx <- transactions, do: OMG.API.State.exec(tx, fees)),
-         {:ok, state} <- Core.validate_executions(tx_exec_results, block, state) do
+         {:ok, state} <- Core.validate_executions(tx_exec_results, to_apply, state) do
       _ =
-        block
+        to_apply
         |> Core.ensure_block_imported_once(block_rootchain_height, state.last_block_persisted_from_prev_run)
         |> Enum.each(&DB.Transaction.update_with/1)
 
@@ -74,8 +80,7 @@ defmodule OMG.Watcher.BlockGetter do
 
       {:ok, db_updates_from_state} = OMG.API.State.close_block(block_rootchain_height)
 
-      {state, synced_height, db_updates} =
-        Core.apply_block(state, block, block_rootchain_height, is_final_for_eth_height?)
+      {state, synced_height, db_updates} = Core.apply_block(state, to_apply)
 
       _ = Logger.debug("Synced height update: #{inspect(db_updates)}")
 
@@ -192,9 +197,7 @@ defmodule OMG.Watcher.BlockGetter do
 
       _ = Logger.debug("Synced height is #{inspect(synced_height)}, got #{length(blocks_to_apply)} blocks to apply")
 
-      Enum.each(blocks_to_apply, fn {block, eth_height, is_final_for_eth_height?} ->
-        GenServer.cast(__MODULE__, {:apply_block, block, eth_height, is_final_for_eth_height?})
-      end)
+      Enum.each(blocks_to_apply, &GenServer.cast(__MODULE__, {:apply_block, &1}))
 
       :ok = OMG.DB.multi_update(db_updates)
       :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
