@@ -28,11 +28,6 @@ defmodule OMG.API.Crypto do
   @type hash_t() :: <<_::256>>
 
   @doc """
-  Returns placeholder for non-existent Ethereum address
-  """
-  def zero_address, do: <<0::160>>
-
-  @doc """
   Produces a cryptographic digest of a message.
   """
   def hash(message), do: message |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())

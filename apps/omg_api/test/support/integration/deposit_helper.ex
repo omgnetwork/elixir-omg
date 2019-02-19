@@ -17,11 +17,10 @@ defmodule OMG.API.Integration.DepositHelper do
   Common helper functions that are useful when integration-testing the child chain and watcher requiring deposits
   """
 
-  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.Eth
 
-  @eth Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   def deposit_to_child_chain(to, value, token \\ @eth)
 

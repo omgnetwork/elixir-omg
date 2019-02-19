@@ -17,10 +17,11 @@ defmodule OMG.API.State.TransactionTest do
   use ExUnit.Case, async: true
 
   alias OMG.API
-  alias OMG.API.Crypto
   alias OMG.API.DevCrypto
   alias OMG.API.State.{Core, Transaction}
   alias OMG.API.TestHelper
+
+  @zero_address OMG.Eth.zero_address()
 
   deffixture transaction do
     Transaction.new(
@@ -33,7 +34,7 @@ defmodule OMG.API.State.TransactionTest do
     [{20, 42, 1}, {2, 21, 0}]
   end
 
-  def eth, do: Crypto.zero_address()
+  def eth, do: OMG.Eth.RootChain.eth_pseudo_address()
 
   @tag fixtures: [:transaction]
   test "transaction hash is correct", %{transaction: transaction} do
@@ -50,7 +51,7 @@ defmodule OMG.API.State.TransactionTest do
              inputs: [%{blknum: 20, txindex: 42, oindex: 1} | List.duplicate(%{blknum: 0, oindex: 0, txindex: 0}, 3)],
              outputs: [
                %{owner: "Joe Black", currency: eth(), amount: 99}
-               | List.duplicate(%{owner: Crypto.zero_address(), currency: eth(), amount: 0}, 3)
+               | List.duplicate(%{owner: @zero_address, currency: eth(), amount: 0}, 3)
              ]
            }
 
@@ -62,7 +63,7 @@ defmodule OMG.API.State.TransactionTest do
              outputs: [
                %{owner: "Joe Black", currency: eth(), amount: 22},
                %{owner: "McDuck", currency: eth(), amount: 21}
-               | List.duplicate(%{owner: Crypto.zero_address(), currency: eth(), amount: 0}, 2)
+               | List.duplicate(%{owner: @zero_address, currency: eth(), amount: 0}, 2)
              ]
            }
 
@@ -77,7 +78,7 @@ defmodule OMG.API.State.TransactionTest do
              outputs: [
                %{owner: "Joe Black", currency: eth(), amount: 53},
                %{owner: "McDuck", currency: eth(), amount: 90}
-               | List.duplicate(%{owner: Crypto.zero_address(), currency: eth(), amount: 0}, 2)
+               | List.duplicate(%{owner: @zero_address, currency: eth(), amount: 0}, 2)
              ]
            }
 
@@ -89,7 +90,7 @@ defmodule OMG.API.State.TransactionTest do
                %{blknum: 20, txindex: 42, oindex: 1},
                %{blknum: 2, txindex: 21, oindex: 0} | List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 2)
              ],
-             outputs: List.duplicate(%{owner: Crypto.zero_address(), currency: eth(), amount: 0}, 4)
+             outputs: List.duplicate(%{owner: @zero_address, currency: eth(), amount: 0}, 4)
            }
   end
 

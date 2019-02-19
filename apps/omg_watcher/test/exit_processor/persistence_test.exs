@@ -29,9 +29,9 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   require Utxo
 
-  @eth OMG.API.Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
   @not_eth <<1::size(160)>>
-  @zero_address OMG.API.Crypto.zero_address()
+  @zero_address OMG.Eth.zero_address()
 
   @utxo_pos1 Utxo.position(1, 0, 0)
   @utxo_pos2 Utxo.position(1_000, 0, 1)

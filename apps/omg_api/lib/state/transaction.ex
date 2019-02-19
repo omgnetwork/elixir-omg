@@ -22,7 +22,7 @@ defmodule OMG.API.State.Transaction do
 
   require Utxo
 
-  @zero_address Crypto.zero_address()
+  @zero_address OMG.Eth.zero_address()
   @max_inputs 4
   @max_outputs 4
 

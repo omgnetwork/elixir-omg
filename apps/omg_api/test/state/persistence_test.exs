@@ -27,7 +27,7 @@ defmodule OMG.API.State.PersistenceTest do
 
   require Utxo
 
-  @eth OMG.API.Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
   @not_eth <<1::size(160)>>
   @zero_fees %{@eth => 0, @not_eth => 0}
   @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)

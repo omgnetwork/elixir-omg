@@ -21,7 +21,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   use OMG.API.Fixtures
 
   alias OMG.API.Block
-  alias OMG.API.Crypto
   alias OMG.API.DevCrypto
   alias OMG.API.State
   alias OMG.API.State.Transaction
@@ -32,8 +31,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   require Utxo
 
-  @eth Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
   @not_eth <<1::size(160)>>
+  @zero_address OMG.Eth.zero_address()
 
   @early_blknum 1_000
   @late_blknum 10_000
@@ -204,7 +204,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     {processor, _} =
       processor
-      |> Core.new_exits(events, [{alice, @eth, 10}, {Crypto.zero_address(), @not_eth, 9}])
+      |> Core.new_exits(events, [{alice, @eth, 10}, {@zero_address, @not_eth, 9}])
 
     # exits invalidly finalize and continue/start emitting events and complain
     {:ok, {_, _, two_spend}, state_after_spend} =
@@ -334,7 +334,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     {processor, _} =
       processor
-      |> Core.new_exits([one_exit], [{Crypto.zero_address(), @eth, 10}])
+      |> Core.new_exits([one_exit], [{@zero_address, @eth, 10}])
 
     assert {:ok, []} =
              %ExitProcessor.Request{eth_height_now: 13, blknum_now: @late_blknum}

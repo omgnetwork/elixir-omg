@@ -21,7 +21,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   """
 
   alias OMG.API.Block
-  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   require Utxo
@@ -34,7 +33,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Watcher.ExitProcessor.TxAppendix
 
   @default_sla_margin 10
-  @zero_address Crypto.zero_address()
+  @zero_address OMG.Eth.zero_address()
 
   @type tx_hash() :: <<_::32>>
   @type output_offset() :: 0..7
@@ -767,7 +766,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   defp zero_address?(address) do
-    address != Crypto.zero_address()
+    address != @zero_address
   end
 
   defp get_ife(txbytes, %__MODULE__{in_flight_exits: ifes}) do

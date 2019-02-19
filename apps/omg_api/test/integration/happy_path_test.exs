@@ -23,7 +23,6 @@ defmodule OMG.API.Integration.HappyPathTest do
 
   alias OMG.API
   alias OMG.API.Block
-  alias OMG.API.Crypto
   alias OMG.API.DevCrypto
   alias OMG.API.Integration.DepositHelper
   alias OMG.API.State.Transaction
@@ -38,7 +37,7 @@ defmodule OMG.API.Integration.HappyPathTest do
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
   @moduletag timeout: 120_000
 
-  @eth Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
   @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
 
   @tag fixtures: [:alice, :bob, :omg_child_chain, :token, :alice_deposits]
