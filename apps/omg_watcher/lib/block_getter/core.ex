@@ -522,8 +522,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
          true <- calculated_hash == requested_hash || {:error, :incorrect_hash} do
       {:ok, BlockApplication.new(block, recovered_txs, block_timestamp)}
     else
-      {:error, error_type} ->
-        {:error, {error_type, requested_hash, requested_number}}
+      {:error, reason} -> {:error, {reason, requested_hash, requested_number}}
     end
   end
 
