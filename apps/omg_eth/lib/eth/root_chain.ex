@@ -122,7 +122,7 @@ defmodule OMG.Eth.RootChain do
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "challengeStandardExit(uint192,bytes,uint256,bytes)"
+    signature = "challengeStandardExit(uint192,bytes,uint8,bytes)"
     args = [exit_id, challenge_tx, input_index, challenge_tx_sig]
     Eth.contract_transact(from, contract, signature, args, opts)
   end
@@ -306,7 +306,7 @@ defmodule OMG.Eth.RootChain do
 
   def get_piggybacks(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
-    signature = "InFlightExitPiggybacked(address,bytes32,uint256)"
+    signature = "InFlightExitPiggybacked(address,bytes32,uint8)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &decode_piggybacked/1)}

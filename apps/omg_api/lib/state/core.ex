@@ -45,13 +45,6 @@ defmodule OMG.API.State.Core do
   @type in_flight_exit() :: %{in_flight_tx: bitstring()}
   @type piggyback() :: %{txhash: Transaction.Recovered.tx_hash_t(), output_index: non_neg_integer}
 
-  @type exit_t() :: %{
-          utxo_pos: pos_integer(),
-          token: Crypto.address_t(),
-          owner: Crypto.address_t(),
-          amount: pos_integer()
-        }
-
   @type utxos() :: %{Utxo.Position.t() => Utxo.t()}
 
   @type exec_error ::
@@ -406,14 +399,9 @@ defmodule OMG.API.State.Core do
   bare `EthereumEventListener` or `ExitProcessor`
   """
   @spec exit_utxos(
-          exiting_utxos :: [Utxo.Position.t()] | [exit_t()] | [piggyback()] | [in_flight_exit()],
+          exiting_utxos :: [Utxo.Position.t()] | [piggyback()] | [in_flight_exit()],
           state :: t()
         ) :: {:ok, {[exit_event], [db_update], {list(Utxo.Position.t()), list(Utxo.Position.t())}}, new_state :: t()}
-  def exit_utxos([%{utxo_pos: _} | _] = exit_infos, %Core{} = state) do
-    exit_infos
-    |> Enum.map(&Utxo.Position.decode(&1.utxo_pos))
-    |> exit_utxos(state)
-  end
 
   def exit_utxos([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{} = state) do
     in_flight_txs

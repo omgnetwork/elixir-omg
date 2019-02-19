@@ -214,10 +214,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     # exits invalidly finalize and continue/start emitting events and complain
     {:ok, {_, _, two_spend}, state_after_spend} =
       State.Core.exit_utxos(
-        [
-          %{utxo_pos: Utxo.Position.encode(@utxo_pos1)},
-          %{utxo_pos: Utxo.Position.encode(@utxo_pos2)}
-        ],
+        [@utxo_pos1, @utxo_pos2],
         state
       )
 
@@ -258,8 +255,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> Core.invalid_exits(processor)
 
     # exit validly finalizes and continues to not emit any events
-    {:ok, {_, _, spends}, _} = State.Core.exit_utxos([%{utxo_pos: Utxo.Position.encode(@utxo_pos1)}], state)
-    assert {processor, _} = Core.finalize_exits(processor, spends)
+    {:ok, {_, _, spends}, _} = State.Core.exit_utxos([@utxo_pos1], state)
+    assert {processor, [{:delete, :exit_info, @update_key1}]} = Core.finalize_exits(processor, spends)
 
     assert %ExitProcessor.Request{utxos_to_check: []} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
@@ -339,11 +336,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     {processor, _, _} =
       processor
-<<<<<<< HEAD
       |> Core.new_exits([one_exit], [{@zero_address, @eth, 10}])
-=======
-      |> Core.new_exits([one_exit], [{Crypto.zero_address(), @eth, 10, Utxo.Position.encode(@utxo_pos1)}])
->>>>>>> chore: standard exit compatible with plasma_contract:master
 
     assert {:ok, []} =
              %ExitProcessor.Request{eth_height_now: 13, blknum_now: @late_blknum}

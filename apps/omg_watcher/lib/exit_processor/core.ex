@@ -110,7 +110,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   This is to prevent spurious invalid exit events being fired during syncing for exits that were challenged/finalized
   Still we do want to track these exits when syncing, to have them spend from `OMG.API.State` on their finalization
   """
-  @spec new_exits(t(), list(map()), list(map)) :: {t(), list()} | {:error, :unexpected_events}
+  @spec new_exits(t(), list(map()), list(map)) :: {t(), list(), list(Utxo.Position.t())} | {:error, :unexpected_events}
   def new_exits(state, new_exits, exit_contract_statuses)
 
   def new_exits(_, new_exits, exit_contract_statuses) when length(new_exits) != length(exit_contract_statuses) do

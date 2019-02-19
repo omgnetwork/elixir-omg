@@ -29,13 +29,12 @@ defmodule OMG.Watcher.Challenger.Core do
   @doc """
   Creates a challenge for exiting utxo.
   """
-  @spec create_challenge(ExitInfo.t(), Block.t(), Utxo.Position.t()) :: Challenge.t()
-  def create_challenge(%ExitInfo{owner: owner}, spending_block, Utxo.position(_, _, _) = utxo_exit) do
+  @spec create_challenge(ExitInfo.t(), Block.t(), Utxo.Position.t(), non_neg_integer) :: Challenge.t()
+  def create_challenge(%ExitInfo{owner: owner}, spending_block, Utxo.position(_, _, oindex) = utxo_exit, exit_id) do
     {%Transaction.Signed{raw_tx: challenging_tx} = challenging_signed, input_index} =
       get_spending_transaction_with_index(spending_block, utxo_exit)
-
     %Challenge{
-      utxo_pos: Utxo.Position.encode(utxo_exit),
+      exit_id: exit_id,
       input_index: input_index,
       txbytes: challenging_tx |> Transaction.encode(),
       sig: find_sig(challenging_signed, owner)

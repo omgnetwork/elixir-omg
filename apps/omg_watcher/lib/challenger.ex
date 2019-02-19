@@ -30,10 +30,12 @@ defmodule OMG.Watcher.Challenger do
   def create_challenge(Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos) do
     with spending_blknum_response = OMG.DB.spent_blknum({blknum, txindex, oindex}),
          exit_response = OMG.DB.exit_info({blknum, txindex, oindex}),
+         %{txhash: txhash} <- OMG.Watcher.DB.Transaction.get_by_position(blknum, txindex),
+         {:ok, exit_id} <- OMG.Eth.RootChain.get_standard_exit_id(txhash, oindex),
          {:ok, spending_blknum, exit_info} <- Core.ensure_challengeable(spending_blknum_response, exit_response) do
       {:ok, hashes} = OMG.DB.block_hashes([spending_blknum])
       {:ok, [spending_block]} = OMG.DB.blocks(hashes)
-      {:ok, Core.create_challenge(exit_info, spending_block, exiting_utxo_pos)}
+      {:ok, Core.create_challenge(exit_info, spending_block, exiting_utxo_pos, exit_id)}
     end
   end
 end
