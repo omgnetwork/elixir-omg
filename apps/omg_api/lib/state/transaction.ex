@@ -48,90 +48,14 @@ defmodule OMG.API.State.Transaction do
         }
 
   @doc """
-  Creates transaction from utxo positions and outputs. Provides simple, stateless validation on arguments.
-
-  #### Assumptions:
-   * length of inputs between 1 and `@max_inputs`
-   * length of outputs between 0 and `@max_inputs`
-   * the same currency for each output
-   * all amounts are non-negative integers
-  """
-  @spec create_from_utxos(
-          [
-            %{
-              blknum: pos_integer(),
-              txindex: non_neg_integer(),
-              oindex: non_neg_integer(),
-              currency: Crypto.address_t(),
-              amount: pos_integer()
-            }
-          ],
-          [%{owner: Crypto.address_t(), amount: non_neg_integer()}]
-        ) :: {:ok, t()} | {:error, atom()}
-  def create_from_utxos(inputs, outputs)
-  def create_from_utxos(inputs, _) when not is_list(inputs), do: {:error, :inputs_should_be_list}
-  def create_from_utxos(_, outputs) when not is_list(outputs), do: {:error, :outputs_should_be_list}
-  def create_from_utxos(inputs, _) when length(inputs) > @max_inputs, do: {:error, :too_many_inputs}
-  def create_from_utxos([], _), do: {:error, :at_least_one_input_required}
-  def create_from_utxos(_, outputs) when length(outputs) > @max_outputs, do: {:error, :too_many_outputs}
-
-  def create_from_utxos(input_utxos, outputs) do
-    with {:ok, currency} <- validate_currency(input_utxos, outputs),
-         :ok <- validate_amount(input_utxos),
-         :ok <- validate_amount(outputs),
-         :ok <- amounts_add_up?(input_utxos, outputs) do
-      {:ok,
-       new(
-         input_utxos |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
-         outputs |> Enum.map(&{&1.owner, currency, &1.amount})
-       )}
-    end
-  end
-
-  defp validate_currency(input_utxos, outputs) do
-    currencies =
-      (input_utxos ++ outputs)
-      |> Enum.map(& &1.currency)
-      |> Enum.dedup()
-
-    # NOTE we support one currency
-    case currencies do
-      [_] -> {:ok, currencies |> hd()}
-      [] -> {:ok, @zero_address}
-      _ -> {:error, :currency_mixing_not_possible}
-    end
-  end
-
-  # Validates amount in both inputs and outputs
-  defp validate_amount(amounts) do
-    all_valid? =
-      amounts
-      |> Enum.map(& &1.amount)
-      |> Enum.all?(fn amount -> is_integer(amount) and amount >= 0 end)
-
-    if all_valid?,
-      do: :ok,
-      else: {:error, :amount_noninteger_or_negative}
-  end
-
-  defp amounts_add_up?(inputs, outputs) do
-    spent =
-      inputs
-      |> Enum.map(& &1.amount)
-      |> Enum.sum()
-
-    received =
-      outputs
-      |> Enum.map(& &1.amount)
-      |> Enum.sum()
-
-    if received > spent, do: {:error, :not_enough_funds_to_cover_spend}, else: :ok
-  end
-
-  @doc """
   Creates a new transaction from a list of inputs and a list of outputs.
   Adds empty (zeroes) inputs and/or outputs to reach the expected size
-  of 4 inputs and 4 outputs.
+  of `@max_inputs` inputs and `@max_outputs` outputs.
+
+  assumptions:
+  ```
+    length(inputs) <= @max_inputs
+    length(outputs) <= @max_outputs
   ```
   """
   @spec new(
