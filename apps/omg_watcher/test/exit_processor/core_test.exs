@@ -41,6 +41,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @utxo_pos1 Utxo.position(1, 0, 0)
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
 
+  @non_zero_exit_id <<1::192>>
+  @zero_sig <<0::520>>
+
   defp not_included_competitor_pos do
     <<long::256>> =
       List.duplicate(<<255::8>>, 32)
@@ -105,7 +108,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   deffixture contract_ife_statuses(in_flight_exit_events) do
-    List.duplicate({1, <<1::192>>}, length(in_flight_exit_events))
+    List.duplicate({1, @non_zero_exit_id}, length(in_flight_exit_events))
   end
 
   deffixture ife_tx_hashes(transactions) do
@@ -124,7 +127,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         call_data: %{
           competing_tx: Transaction.encode(competing_tx1),
           competing_tx_input_index: 1,
-          competing_tx_sig: <<0::520>>
+          competing_tx_sig: @zero_sig
         }
       },
       %{
@@ -134,7 +137,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         call_data: %{
           competing_tx: Transaction.encode(competing_tx2),
           competing_tx_input_index: 1,
-          competing_tx_sig: <<0::520>>
+          competing_tx_sig: @zero_sig
         }
       },
       %{
@@ -572,7 +575,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       signature = DevCrypto.sign(tx, [alice.priv]) |> Map.get(:sigs) |> Enum.join()
 
       ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
-      ife_status = {1, <<1::192>>}
+      ife_status = {1, @non_zero_exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
 
@@ -620,7 +623,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       signature = DevCrypto.sign(tx, [alice.priv, bob.priv]) |> Map.get(:sigs) |> Enum.join()
 
       ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
-      ife_status = {1, <<1::192>>}
+      ife_status = {1, @non_zero_exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
 
@@ -673,7 +676,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       other_signature = DevCrypto.sign(comp3, [alice.priv, alice.priv]) |> Map.get(:sigs) |> Enum.join()
 
       other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}, eth_height: 2}
-      other_ife_status = {1, <<1::192>>}
+      other_ife_status = {1, @non_zero_exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
@@ -737,7 +740,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       %{sigs: [other_signature, _]} = DevCrypto.sign(tx1, [alice.priv, alice.priv])
 
       other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}, eth_height: 2}
-      other_ife_status = {1, <<1::192>>}
+      other_ife_status = {1, @non_zero_exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
@@ -759,7 +762,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       %{sigs: [other_signature, _]} = DevCrypto.sign(comp1, [alice.priv, <<>>])
 
       other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}, eth_height: 2}
-      other_ife_status = {1, <<1::192>>}
+      other_ife_status = {1, @non_zero_exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
@@ -957,7 +960,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         eth_height: 2
       }
 
-      other_ife_status = {1, <<1::192>>}
+      other_ife_status = {1, @non_zero_exit_id}
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
       exit_processor_request = %ExitProcessor.Request{
@@ -1022,7 +1025,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
       # inactive
-      ife_status = {0, <<1::192>>}
+      ife_status = {0, @non_zero_exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
 

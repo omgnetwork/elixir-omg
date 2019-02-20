@@ -36,6 +36,10 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   @utxo_pos1 Utxo.position(1, 0, 0)
   @utxo_pos2 Utxo.position(1_000, 0, 1)
 
+  @zero_exit_id <<0::192>>
+  @non_zero_exit_id <<1::192>>
+  @zero_sig <<0::520>>
+
   setup %{db_pid: db_pid} do
     :ok = OMG.DB.initiation_multiupdate(db_pid)
   end
@@ -92,7 +96,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     processor
     |> persist_new_exits(exit_events, statuses, db_pid)
     |> persist_challenge_exits([@utxo_pos2, @utxo_pos1], db_pid)
-    # NOTE: see above comment
+    # NOTE: this might break when respond_to_in_flight_exits_challenges is actually implemented, it works because noop
     |> persist_respond_to_in_flight_exits_challenges([@utxo_pos2, @utxo_pos1], db_pid)
   end
 
@@ -104,7 +108,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
       Transaction.new([{2, 1, 0}, {2, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}])
     ]
 
-    contract_statuses = [{1, <<1::192>>}, {0, <<0::192>>}]
+    contract_statuses = [{1, @non_zero_exit_id}, {0, @zero_exit_id}]
 
     processor
     |> persist_new_ifes(txs, [[alice.priv], [alice.priv, carol.priv]], contract_statuses, db_pid)
@@ -123,7 +127,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
       call_data: %{
         competing_tx: Transaction.encode(competing_tx),
         competing_tx_input_index: 0,
-        competing_tx_sig: <<0::520>>
+        competing_tx_sig: @zero_sig
       }
     }
 
@@ -152,9 +156,12 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     |> persist_new_ifes([tx], [[alice.priv]], db_pid)
     |> persist_new_piggybacks(piggybacks1, db_pid)
     |> persist_new_piggybacks(piggybacks2, db_pid)
-    |> persist_finalize_ifes([%{in_flight_exit_id: <<1::192>>, output_index: 0}], db_pid)
+    |> persist_finalize_ifes([%{in_flight_exit_id: @non_zero_exit_id, output_index: 0}], db_pid)
     |> persist_finalize_ifes(
-      [%{in_flight_exit_id: <<1::192>>, output_index: 4}, %{in_flight_exit_id: <<1::192>>, output_index: 5}],
+      [
+        %{in_flight_exit_id: @non_zero_exit_id, output_index: 4},
+        %{in_flight_exit_id: @non_zero_exit_id, output_index: 5}
+      ],
       db_pid
     )
   end
@@ -208,7 +215,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
         %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: sigs}, eth_height: 2}
       end)
 
-    statuses = statuses || List.duplicate({1, <<1::192>>}, length(in_flight_exit_events))
+    statuses = statuses || List.duplicate({1, @non_zero_exit_id}, length(in_flight_exit_events))
     {processor, db_updates} = Core.new_in_flight_exits(processor, in_flight_exit_events, statuses)
     persist_common(processor, db_updates, db_pid)
   end
