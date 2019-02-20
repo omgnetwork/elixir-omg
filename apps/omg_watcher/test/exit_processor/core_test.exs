@@ -169,13 +169,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                alice,
                processor_filled,
                transactions,
-               in_flight_exits,
+               ife_tx_hashes,
                competing_transactions
              ) do
     tx = hd(transactions)
     comp1 = hd(competing_transactions)
     state = processor_filled
-    {ife_id, _} = hd(in_flight_exits)
+    ife_id = hd(ife_tx_hashes)
     txbytes = Transaction.encode(tx)
     comp1_txbytes = Transaction.encode(comp1)
 
@@ -200,18 +200,26 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       }
       |> Core.find_ifes_in_blocks(state)
 
-    %{state: state, request: request, bad_pb_output: 0, ife_txbytes: txbytes}
+    %{
+      state: state,
+      request: request,
+      ife_input_index: 0,
+      ife_txbytes: txbytes,
+      spending_txbytes: comp1_txbytes,
+      spending_input_index: 1,
+      spending_sig: hd(comp1_signatures)
+    }
   end
 
   deffixture invalid_piggyback_on_output(
                alice,
                processor_filled,
                transactions,
-               in_flight_exits
+               ife_tx_hashes
              ) do
     tx = hd(transactions)
     state = processor_filled
-    {ife_id, _} = hd(in_flight_exits)
+    ife_id = hd(ife_tx_hashes)
     # the piggybacked-output-spending tx is going to be included in a block, which requires more back&forth
     # 1. transaction which is, ife'd, output piggybacked, and included in a block
     txbytes = Transaction.encode(tx)
@@ -219,7 +227,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     # 2. transaction which spends that piggybacked output
     comp = Transaction.new([{3000, 0, 0}], [])
-    {:ok, comp_recovered} = DevCrypto.sign(comp, [alice.priv]) |> Transaction.Recovered.recover_from()
+    comp_txbytes = Transaction.encode(comp)
+    %{sigs: comp_signatures} = signed = DevCrypto.sign(comp, [alice.priv])
+    {:ok, comp_recovered} = Transaction.Recovered.recover_from(signed)
 
     # 3. stuff happens in the contract; output #4 is a double-spend; #5 is OK
     {state, _} =
@@ -231,39 +241,31 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     tx_blknum = 3000
     comp_blknum = 4000
 
+    block = Block.hashed_txs_at([recovered], tx_blknum)
     {exit_processor_request, state} =
       %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5,
-        blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)],
+        blocks_result: [block],
         piggybacked_blocks_result: [
-          Block.hashed_txs_at([recovered], tx_blknum),
+          block,
           Block.hashed_txs_at([comp_recovered], comp_blknum)
         ]
       }
       |> Core.find_ifes_in_blocks(state)
 
-    %{state: state, request: exit_processor_request, bad_pb_output: 4, good_pb_output: 5, ife_txbytes: txbytes}
-  end
-
-  # TODO: will be removed, when persistence and behaviors are tested more thoroughly, without reaching into the guts
-  defp build_in_flight_exit(
-         %{call_data: %{in_flight_tx: bytes, in_flight_tx_sigs: sigs}},
-         {timestamp, contract_ife_id}
-       ) do
-    {:ok, raw_tx} = Transaction.decode(bytes)
-
-    # TODO rethink fixtures to avoid doing this
-    chopped_sigs = for <<chunk::size(65)-unit(8) <- sigs>>, do: <<chunk::size(65)-unit(8)>>
-
-    signed_tx = %Transaction.Signed{
-      raw_tx: raw_tx,
-      sigs: chopped_sigs
+    %{
+      state: state,
+      request: exit_processor_request,
+      ife_good_pb_index: 5,
+      ife_txbytes: txbytes,
+      ife_output_pos: Utxo.Position.encode(Utxo.position(tx_blknum, 0, 0)),
+      ife_proof: Block.inclusion_proof(block, 0),
+      spending_txbytes: comp_txbytes,
+      spending_input_index: 0,
+      spending_sig: hd(comp_signatures),
+      ife_input_index: 4
     }
-
-    signed_tx = %{signed_tx | signed_tx_bytes: Transaction.Signed.encode(signed_tx)}
-
-    {Transaction.hash(raw_tx), %InFlightExitInfo{tx: signed_tx, timestamp: timestamp, contract_id: contract_ife_id}}
   end
 
   @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
@@ -760,21 +762,22 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   describe "evaluates correctness of new piggybacks" do
-    @tag fixtures: [:processor_filled, :in_flight_exits]
+    @tag fixtures: [:processor_filled]
     test "detects none if there is no piggybacks", %{processor_filled: processor} do
       assert {:ok, []} =
                %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
                |> invalid_exits_filtered(processor, only: [Event.InvalidPiggyback])
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
+    @tag :wrong2
+    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
     test "detects double-spend of an input",
          %{
            alice: alice,
            processor_filled: state,
            transactions: [tx | _],
            competing_transactions: [comp | _],
-           in_flight_exits: [{ife_id, _} | _]
+           ife_tx_hashes: [ife_id | _]
          } do
       txbytes = Transaction.encode(tx)
       comp_txbytes = Transaction.encode(comp)
@@ -793,13 +796,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> invalid_exits_filtered(state, only: [Event.InvalidPiggyback])
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
+    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
     test "detects double-spend of an output, found in a IFE",
          %{
            alice: alice,
            processor_filled: state,
            transactions: [tx | _],
-           in_flight_exits: [{ife_id, _} | _]
+           ife_tx_hashes: [ife_id | _]
          } do
       # 1. transaction which is, ife'd, output piggybacked, and included in a block
       txbytes = Transaction.encode(tx)
@@ -835,13 +838,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
+    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
     test "detects double-spend of an output, found in a block",
          %{
            alice: alice,
            processor_filled: state,
            transactions: [tx | _],
-           in_flight_exits: [{ife_id, _} | _]
+           ife_tx_hashes: [ife_id | _]
          } do
       # this time, the piggybacked-output-spending tx is going to be included in a block, which requires more back&forth
       # 1. transaction which is, ife'd, output piggybacked, and included in a block
@@ -874,13 +877,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
+    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
     test "seeks piggybacked-output-spending txs in blocks",
          %{
            alice: alice,
            processor_filled: processor,
            transactions: [tx | _],
-           in_flight_exits: [{ife_id, _} | _]
+           ife_tx_hashes: [ife_id | _]
          } do
       # if an output-piggybacking transaction is included in some block, we need to seek blocks that could be spending
       {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
@@ -913,14 +916,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.determine_ife_blocks_to_get()
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :in_flight_exits, :competing_transactions]
+    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
     test "detects multiple double-spends in single IFE",
          %{
            alice: alice,
            processor_filled: state,
            transactions: [tx | _],
            competing_transactions: [comp | _],
-           in_flight_exits: [{ife_id, _} | _]
+           ife_tx_hashes: [ife_id | _]
          } do
       txbytes = Transaction.encode(tx)
       comp_txbytes = Transaction.encode(comp)
@@ -956,27 +959,36 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   describe "produces challenges for bad piggybacks" do
-    @tag fixtures: [:invalid_piggyback_on_input, :in_flight_exits, :competing_transactions]
+    @tag fixtures: [:invalid_piggyback_on_input, :competing_transactions]
     test "produces single challenge proof on double-spent piggyback input",
          %{
            invalid_piggyback_on_input: %{
              state: state,
              request: request,
-             bad_pb_output: bad_pb_output,
-             ife_txbytes: txbytes
+             ife_input_index: ife_input_index,
+             ife_txbytes: ife_txbytes,
+             spending_txbytes: spending_txbytes,
+             spending_input_index: spending_input_index,
+             spending_sig: spending_sig
            }
          } do
-      assert {:ok, %{in_flight_input_index: ^bad_pb_output}} =
-               Core.get_input_challenge_data(request, state, txbytes, bad_pb_output)
+      assert {:ok,
+              %{
+                in_flight_input_index: ^ife_input_index,
+                in_flight_txbytes: ^ife_txbytes,
+                spending_txbytes: ^spending_txbytes,
+                spending_input_index: ^spending_input_index,
+                spending_sig: ^spending_sig
+              }} = Core.get_input_challenge_data(request, state, ife_txbytes, ife_input_index)
     end
 
-    @tag fixtures: [:invalid_piggyback_on_input, :in_flight_exits, :competing_transactions]
+    @tag fixtures: [:invalid_piggyback_on_input, :competing_transactions]
     test "fail when asked to produce proof for wrong oindex",
          %{
            invalid_piggyback_on_input: %{
              state: state,
              request: request,
-             bad_pb_output: bad_pb_output,
+             ife_input_index: bad_pb_output,
              ife_txbytes: txbytes
            }
          } do
@@ -986,47 +998,59 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                Core.get_input_challenge_data(request, state, txbytes, 1)
     end
 
-    @tag fixtures: [:invalid_piggyback_on_input, :in_flight_exits, :competing_transactions]
+    @tag fixtures: [:invalid_piggyback_on_input, :competing_transactions]
     test "fail when asked to produce proof for wrong txhash",
          %{invalid_piggyback_on_input: %{state: state, request: request}, competing_transactions: [_, _, comp3 | _]} do
       comp3_txbytes = Transaction.encode(comp3)
       assert {:error, :unknown_ife} = Core.get_input_challenge_data(request, state, comp3_txbytes, 0)
     end
 
-    @tag fixtures: [:invalid_piggyback_on_input, :in_flight_exits, :competing_transactions]
+    @tag fixtures: [:invalid_piggyback_on_input, :competing_transactions]
     test "fail when asked to produce proof for wrong badly encoded tx",
          %{invalid_piggyback_on_input: %{state: state, request: request}, competing_transactions: [_, _, comp3 | _]} do
       corrupted_txbytes = "corruption" <> Transaction.encode(comp3)
       assert {:error, :malformed_transaction_rlp} = Core.get_input_challenge_data(request, state, corrupted_txbytes, 0)
     end
 
-    @tag fixtures: [:invalid_piggyback_on_input, :in_flight_exits, :competing_transactions]
+    @tag fixtures: [:invalid_piggyback_on_input]
     test "fail when asked to produce proof for illegal oindex",
          %{invalid_piggyback_on_input: %{state: state, request: request, ife_txbytes: txbytes}} do
       assert {:error, :piggybacked_index_out_of_range} = Core.get_input_challenge_data(request, state, txbytes, -1)
     end
 
-    @tag fixtures: [:invalid_piggyback_on_output, :in_flight_exits, :competing_transactions]
+    @tag fixtures: [:invalid_piggyback_on_output]
     test "will produce the challenge proofs for a invalid piggyback on a output",
          %{
            invalid_piggyback_on_output: %{
              state: state,
              request: request,
-             bad_pb_output: bad_pb_output,
-             ife_txbytes: txbytes
+             ife_output_pos: in_flight_output_pos,
+             ife_txbytes: in_flight_txbytes,
+             ife_proof: in_flight_proof,
+             spending_txbytes: comp_txbytes,
+             spending_input_index: spending_input_index,
+             spending_sig: spending_sig,
+             ife_input_index: ife_input_index
            }
          } do
-      assert {:ok, %{in_flight_input_index: ^bad_pb_output}} =
-               Core.get_output_challenge_data(request, state, txbytes, bad_pb_output - 4)
+      assert {:ok,
+              %{
+                in_flight_txbytes: ^in_flight_txbytes,
+                in_flight_output_pos: ^in_flight_output_pos,
+                in_flight_proof: ^in_flight_proof,
+                spending_txbytes: ^comp_txbytes,
+                spending_input_index: ^spending_input_index,
+                spending_sig: ^spending_sig
+              }} = Core.get_output_challenge_data(request, state, in_flight_txbytes, ife_input_index - 4)
     end
 
-    @tag fixtures: [:invalid_piggyback_on_output, :in_flight_exits, :competing_transactions]
+    @tag fixtures: [:invalid_piggyback_on_output]
     test "will fail if asked to produce proof for wrong output",
          %{
            invalid_piggyback_on_output: %{
              state: state,
              request: request,
-             bad_pb_output: bad_pb_output,
+             ife_input_index: bad_pb_output,
              ife_txbytes: txbytes
            }
          } do
@@ -1036,13 +1060,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                Core.get_output_challenge_data(request, state, txbytes, 2)
     end
 
-    @tag fixtures: [:invalid_piggyback_on_output, :in_flight_exits, :competing_transactions]
+    @tag fixtures: [:invalid_piggyback_on_output]
     test "will fail if asked to produce proof for correct piggyback on output",
          %{
            invalid_piggyback_on_output: %{
              state: state,
              request: request,
-             good_pb_output: good_pb_output,
+             ife_good_pb_index: good_pb_output,
              ife_txbytes: txbytes
            }
          } do
