@@ -14,15 +14,12 @@
 
 defmodule OMG.API.EthereumEventListener do
   @moduledoc """
-  Periodically fetches events made on dynamically changing block range
-  on parent chain and feeds them to a callback.
-  For code simplicity it listens for events from blocks with a configured finality margin.
-
-  NOTE: this could and should at some point be implemented as a `@behavior` instead, to avoid using callbacks
+  GenServer running the listener, see `OMG.API.EthereumEventListener.Core`
   """
+
   alias OMG.API.EthereumEventListener.Core
   alias OMG.API.RootChainCoordinator
-  alias OMG.API.RootChainCoordinator.SyncData
+  alias OMG.API.RootChainCoordinator.SyncGuide
 
   use OMG.API.LoggerExt
 
@@ -44,49 +41,59 @@ defmodule OMG.API.EthereumEventListener do
     GenServer.start_link(__MODULE__, config, name: name)
   end
 
+  @doc """
+  Returns child_specs for the given `EthereumEventListener` setup, to be included e.g. in Supervisor's children
+  See `init/1` for the required keyword arguments
+  """
+  @spec prepare_child(keyword()) :: %{id: atom(), start: tuple()}
+  def prepare_child(opts \\ []) do
+    name = Keyword.fetch!(opts, :service_name)
+    %{id: name, start: {OMG.API.EthereumEventListener, :start_link, [Map.new(opts)]}}
+  end
+
   ### Server
 
   use GenServer
 
   def init(%{
-        block_finality_margin: finality_margin,
         synced_height_update_key: update_key,
         service_name: service_name,
         get_events_callback: get_events_callback,
         process_events_callback: process_events_callback
       }) do
-    {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
-    {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
-
-    # we don't need to ever look at earlier than contract deployment
-    last_event_block_height = max(last_event_block_height, contract_deployment_height)
-
-    {:ok, _} = schedule_get_events(Application.fetch_env!(:omg_api, :ethereum_status_check_interval_ms))
-    :ok = RootChainCoordinator.check_in(last_event_block_height, service_name)
-
     _ = Logger.info("Starting EthereumEventListener for #{service_name}")
 
-    {:ok,
-     {Core.init(update_key, service_name, last_event_block_height, finality_margin),
-      %{
-        get_ethereum_events_callback: get_events_callback,
-        process_events_callback: process_events_callback
-      }}}
+    {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
+    {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
+    # we don't need to ever look at earlier than contract deployment
+    last_event_block_height = max(last_event_block_height, contract_deployment_height)
+    {initial_state, height_to_check_in} = Core.init(update_key, service_name, last_event_block_height)
+
+    callbacks_map = %{
+      get_ethereum_events_callback: get_events_callback,
+      process_events_callback: process_events_callback
+    }
+
+    {:ok, _} = schedule_get_events()
+    :ok = RootChainCoordinator.check_in(height_to_check_in, service_name)
+    {:ok, {initial_state, callbacks_map}}
   end
 
   def handle_info(:sync, {core, _callbacks} = state) do
     case RootChainCoordinator.get_sync_info() do
       :nosync ->
-        :ok = RootChainCoordinator.check_in(core.synced_height, core.service_name)
+        :ok = RootChainCoordinator.check_in(Core.get_height_to_check_in(core), core.service_name)
+        {:ok, _} = schedule_get_events()
         {:noreply, state}
 
       sync_info ->
         new_state = sync_height(state, sync_info)
+        {:ok, _} = schedule_get_events()
         {:noreply, new_state}
     end
   end
 
-  defp sync_height({state, callbacks}, %SyncData{sync_height: sync_height} = sync_info) do
+  defp sync_height({state, callbacks}, %SyncGuide{sync_height: sync_height} = sync_info) do
     state =
       case Core.get_events_range_for_download(state, sync_info) do
         {:get_events, {from, to}, state} ->
@@ -105,7 +112,8 @@ defmodule OMG.API.EthereumEventListener do
     {state, callbacks}
   end
 
-  defp schedule_get_events(interval) do
-    :timer.send_interval(interval, self(), :sync)
+  defp schedule_get_events do
+    Application.fetch_env!(:omg_api, :ethereum_status_check_interval_ms)
+    |> :timer.send_after(self(), :sync)
   end
 end

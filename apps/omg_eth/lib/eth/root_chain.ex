@@ -31,6 +31,7 @@ defmodule OMG.Eth.RootChain do
   @type optional_addr_t() :: <<_::160>> | nil
 
   @gas_start_exit 1_000_000
+  @gas_challenge_exit 300_000
   @gas_deposit 180_000
   @gas_deposit_from 250_000
   @gas_init 1_000_000
@@ -117,7 +118,8 @@ defmodule OMG.Eth.RootChain do
   end
 
   def challenge_exit(exit_id, challenge_tx, input_index, challenge_tx_sig, from, contract \\ nil, opts \\ []) do
-    opts = @tx_defaults |> Keyword.merge(opts)
+    defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_exit)
+    opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "challengeStandardExit(uint192,bytes,uint256,bytes)"
