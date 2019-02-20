@@ -18,7 +18,6 @@ defmodule OMG.API.Integration.Fixtures do
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
 
-  alias OMG.API.Crypto
   alias OMG.API.TestHelper
   alias OMG.Eth
 
@@ -27,7 +26,7 @@ defmodule OMG.API.Integration.Fixtures do
   deffixture fee_file(token) do
     # ensuring that the child chain handles the token (esp. fee-wise)
 
-    enc_eth = Eth.Encoding.to_hex(Crypto.zero_address())
+    enc_eth = Eth.Encoding.to_hex(OMG.Eth.RootChain.eth_pseudo_address())
     {:ok, path} = TestHelper.write_fee_file(%{enc_eth => 0, Eth.Encoding.to_hex(token) => 0})
     default_path = Application.fetch_env!(:omg_api, :fee_specs_file_path)
     Application.put_env(:omg_api, :fee_specs_file_path, path, persistent: true)

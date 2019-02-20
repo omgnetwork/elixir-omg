@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   @moduletag :integration
 
   @timeout 40_000
-  @eth API.Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
   test "exit which is using already spent utxo from transaction causes to emit invalid_exit event", %{
@@ -81,7 +81,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    assert {:ok, {API.Crypto.zero_address(), @eth, 0}} == Eth.RootChain.get_standard_exit(exit_id)
+    assert {:ok, {OMG.Eth.zero_address(), @eth, 0}} == Eth.RootChain.get_standard_exit(exit_id)
 
     IntegrationTest.wait_for_byzantine_events([], @timeout)
   end

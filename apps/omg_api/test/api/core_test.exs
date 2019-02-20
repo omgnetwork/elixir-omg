@@ -17,14 +17,13 @@ defmodule OMG.API.CoreTest do
   use ExUnit.Case, async: true
 
   alias OMG.API.Core
-  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.API.TestHelper
 
   @empty_signature <<0::size(520)>>
   @no_owner %{priv: <<>>, addr: nil}
 
-  def eth, do: Crypto.zero_address()
+  def eth, do: OMG.Eth.RootChain.eth_pseudo_address()
 
   @tag fixtures: [:alice, :bob]
   test "signed transaction is valid in all input zeroing combinations", %{

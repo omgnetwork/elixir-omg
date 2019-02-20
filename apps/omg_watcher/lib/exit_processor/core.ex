@@ -21,7 +21,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   """
 
   alias OMG.API.Block
-  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   require Utxo
@@ -34,7 +33,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Watcher.ExitProcessor.TxAppendix
 
   @default_sla_margin 10
-  @zero_address Crypto.zero_address()
+  @zero_address OMG.Eth.zero_address()
 
   @type tx_hash() :: <<_::32>>
   @type output_offset() :: 0..7
@@ -325,15 +324,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     ifes_to_update =
       finalizations
       |> Enum.reduce(%{}, fn %{in_flight_exit_id: id}, acc ->
-        with :not_found <-
-               Enum.find(ifes, :not_found, fn {_tx_hash, %InFlightExitInfo{contract_id: contract_id}} ->
-                 id == contract_id
-               end) do
-          acc
-        else
+        Enum.find(ifes, fn {_tx_hash, %InFlightExitInfo{contract_id: contract_id}} -> id == contract_id end)
+        |> case do
+          nil -> acc
           # map by id from contract and mark as not updated
-          {tx_hash, ife} ->
-            %{acc | id => {tx_hash, ife, false}}
+          {tx_hash, ife} -> Map.put(acc, id, {tx_hash, ife, false})
         end
       end)
 
@@ -771,7 +766,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   defp zero_address?(address) do
-    address != Crypto.zero_address()
+    address != @zero_address
   end
 
   defp get_ife(txbytes, %__MODULE__{in_flight_exits: ifes}) do

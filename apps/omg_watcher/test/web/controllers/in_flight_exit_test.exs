@@ -18,12 +18,11 @@ defmodule OMG.Watcher.Web.Controller.InFlightExitTest do
   use OMG.API.Fixtures
 
   alias OMG.API
-  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.RPC.Web.Encoding
   alias OMG.Watcher.TestHelper
 
-  @eth Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   describe "getting in-flight exits" do
     @tag fixtures: [:initial_blocks, :bob, :alice]

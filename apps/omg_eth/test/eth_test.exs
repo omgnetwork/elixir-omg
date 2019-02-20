@@ -27,7 +27,7 @@ defmodule OMG.EthTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  @eth <<0::160>>
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @moduletag :wrappers
 

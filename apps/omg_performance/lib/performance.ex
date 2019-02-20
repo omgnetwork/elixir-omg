@@ -48,7 +48,7 @@ defmodule OMG.Performance do
 
   require Utxo
 
-  @eth Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @doc """
   start_simple_perf runs test with {ntx_to_send} tx for each {nspenders} senders with given options.
