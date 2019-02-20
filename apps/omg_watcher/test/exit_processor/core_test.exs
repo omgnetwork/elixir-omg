@@ -41,13 +41,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @early_blknum 1_000
   @late_blknum 10_000
 
-  @utxo_pos1 Utxo.position(1, 0, 0)
+  @utxo_pos1 Utxo.position(1, 3, 0)
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
 
-  @update_key1 {1, 0, 0}
+  @update_key1 {1, 3, 0}
   @update_key2 {@late_blknum - 1_000, 0, 1}
-
-  @eth <<1::160>>
 
   defp not_included_competitor_pos do
     <<long::256>> =
@@ -313,7 +311,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       processor
       |> Core.new_exits([one_exit], [one_status])
 
-    assert {:ok, []} =
+    assert {:ok, [%Event.InvalidExit{}]} =
              %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
@@ -458,7 +456,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     {processor, _} = processor |> Core.new_exits([one_exit], [one_status])
     {processor, _} = processor |> Core.new_in_flight_exits([one_ife], [one_ife_status])
 
-    assert %{utxos_to_check: [@utxo_pos1, Utxo.position(1, 2, 1) | _]} =
+    assert %{utxos_to_check: [_, Utxo.position(1, 2, 1), @utxo_pos1]} =
              exit_processor_request =
              %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
@@ -651,7 +649,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     processor_filled: state,
     in_flight_exits: [{tx_hash, ife}, _]
   } do
-#    TODO
+    #    TODO
   end
 
   test "start standard exit challenge using ife tx as spend which was piggybacked and finalized" do
@@ -1121,6 +1119,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                  # refer to stuff added by `deffixture processor_filled` for this - both ifes and standard exits here
                  Utxo.position(1, 0, 0),
                  Utxo.position(1, 2, 1),
+                 Utxo.position(1, 3, 0),
                  Utxo.position(2, 1, 0),
                  Utxo.position(2, 2, 1),
                  Utxo.position(9000, 0, 1)
@@ -1340,6 +1339,36 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     {result, filtered_events}
   end
+
+  #
+  #  @spec wait_for_byzantine_events_match([match_function :: (any() -> bool())], timeout()) :: {:ok, any()} | no_return()
+  #  def wait_for_byzantine_events_match(event_matches, timeout) do
+  #    fn ->
+  #      %{"byzantine_events" => emitted_events} = success?("/status.get")
+  #
+  #      IO.puts("emitted_events: #{inspect(emitted_events)}")
+  #
+  #      {matched, remaining_events} =
+  #        event_matches
+  #        |> Enum.reduce(
+  #             {[], emitted_events},
+  #             fn match, {already_matched, remaining_events} ->
+  #               case Enum.split_with(remaining_events, match) do
+  #                 {[], remaining_events} -> {already_matched, remaining_events}
+  #                 {[first_match | other_matches], rest} -> {[first_match | already_matched], other_matches ++ rest}
+  #               end
+  #             end
+  #           )
+  #
+  #      IO.puts("... matched so far: #{inspect(matched)}")
+  #      all_events = length(event_matches) == length(matched)
+  #
+  #      if all_events,
+  #         do: {:ok, matched},
+  #         else: :repeat
+  #    end
+  #    |> wait_for(timeout)
+  #  end
 
   #  Challenger
 
