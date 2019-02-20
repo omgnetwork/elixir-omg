@@ -446,7 +446,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       ifes
       |> Map.values()
       |> Enum.filter(& &1.is_active)
-      |> Enum.flat_map(fn %{tx: %Transaction.Signed{raw_tx: tx}} -> Transaction.get_inputs(tx) end)
+      |> Enum.flat_map(fn %{tx: %Transaction.Signed{raw_tx: tx}} = ife ->
+        InFlightExitInfo.get_piggybacked_outputs_positions(ife) ++ Transaction.get_inputs(tx)
+      end)
       |> only_utxos_checked_and_missing(utxo_exists?)
       |> Enum.uniq()
 
@@ -468,6 +470,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Map.values()
       |> Enum.filter(& &1.is_active)
       |> Enum.flat_map(fn %{tx: %Transaction.Signed{raw_tx: tx}} -> Transaction.get_inputs(tx) end)
+      |> Enum.filter(&Utxo.Position.non_zero?/1)
       |> only_utxos_checked_and_missing(utxo_exists?)
       |> Enum.uniq()
 
@@ -596,7 +599,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   def get_output_challenge_data(request, state, txbytes, output_index) do
     case output_index in 0..3 do
       true -> get_piggyback_challenge_data(request, state, txbytes, output_index + 4)
-      false -> {:error, :piggybacked_output_index_out_of_range}
+      false -> {:error, :piggybacked_index_out_of_range}
     end
   end
 
@@ -619,7 +622,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   defp produce_proofs_and_find_the_requested_one(
-         %ExitProcessor.Request{blocks_result: blocks, piggybacked_blocks_result: piggybacked_blocks},
+         %ExitProcessor.Request{blocks_result: blocks, piggybacked_blocks_result: piggybacked_blocks} = request,
          state,
          tx,
          pb_index
@@ -629,7 +632,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     with {:ok, {ife, _encoded_tx, bad_inputs, bad_outputs, proofs}} <-
            get_proof_for_particular_piggyback(tx, pb_index, known_txs, state),
          :ok <- is_piggyback_in_the_list_of_proofs(pb_index, bad_inputs, bad_outputs) do
-      challenge_data = encode_piggyback_challenge_proofs(ife, tx, pb_index, proofs)
+      challenge_data = prepare_piggyback_challenge_proofs(ife, tx, pb_index, proofs, request)
       {:ok, hd(challenge_data)}
     end
   end
@@ -657,7 +660,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  defp encode_piggyback_challenge_proofs(_ife, tx, input_index, proofs) when input_index in 0..3 do
+  defp prepare_piggyback_challenge_proofs(_ife, tx, input_index, proofs, _) when input_index in 0..3 do
     for {competing_ktx, _utxo_of_doublespend, his_doublespend_input_index} <- Map.get(proofs, input_index),
         do: %{
           in_flight_txbytes: Transaction.encode(tx),
@@ -668,16 +671,29 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         }
   end
 
-  defp encode_piggyback_challenge_proofs(ife, tx, output_index, proofs) when output_index in 4..7 do
-    for {competing_ktx, _utxo_of_doublespend, his_doublespend_input_index} <- Map.get(proofs, output_index - 4),
-        do: %{
-          in_flight_txbytes: Transaction.encode(tx),
-          in_flight_output_pos: Utxo.Position.encode(ife.tx_included_at),
-          in_flight_input_index: output_index,
-          spending_txbytes: Transaction.encode(competing_ktx.signed_tx.raw_tx),
-          spending_input_index: his_doublespend_input_index,
-          spending_sig: Enum.at(competing_ktx.signed_tx.sigs, his_doublespend_input_index)
-        }
+  defp prepare_piggyback_challenge_proofs(_ife, tx, output_index, proofs, request) when output_index in 4..7 do
+    for {competing_ktx, utxo_of_doublespend, his_doublespend_input_index} <- Map.get(proofs, output_index - 4) do
+      {:utxo_position, blknum, txindex, _} = utxo_of_doublespend
+
+      get_block = fn(blocks) -> Enum.find(blocks, fn(%Block{number: number}) -> number == blknum end) end
+      block1 = get_block.(request.blocks_result)
+      block2 = get_block.(request.piggybacked_blocks_result)
+      block = if block1 != nil do
+        block1
+      else
+        block2
+      end
+
+      inclusion_proof = Block.inclusion_proof(block, txindex)
+      %{
+        in_flight_txbytes: Transaction.encode(tx),
+        in_flight_output_pos: utxo_of_doublespend,
+        in_flight_proof: inclusion_proof,
+        spending_txbytes: Transaction.encode(competing_ktx.signed_tx.raw_tx),
+        spending_input_index: his_doublespend_input_index,
+        spending_sig: Enum.at(competing_ktx.signed_tx.sigs, his_doublespend_input_index)
+      }
+    end
   end
 
   @spec get_invalid_piggybacks(ExitProcessor.Request.t(), __MODULE__.t()) :: [{binary, [0..3], [0..3]}]
@@ -685,7 +701,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         %ExitProcessor.Request{blocks_result: blocks, piggybacked_blocks_result: piggybacked_blocks},
         state
       ) do
-    known_txs = get_known_txs(Enum.uniq(piggybacked_blocks ++ blocks)) ++ get_known_txs(state)
+    ktxs1 = get_known_txs(piggybacked_blocks)
+    ktxs2 = get_known_txs(blocks)
+    ktxs3 = get_known_txs(state)
+    known_txs = ktxs1 ++ ktxs2 ++ ktxs3
     bad_piggybacks_on_inputs = get_invalid_piggybacks_on_inputs(known_txs, state)
     bad_piggybacks_on_outputs = get_invalid_piggybacks_on_outputs(known_txs, state)
     # produce only one event per IFE, with both pbs on inputs and outputs
@@ -708,6 +727,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         ]
         when input_pb: 0..3
   defp get_invalid_piggybacks_on_inputs(known_txs, %__MODULE__{in_flight_exits: ifes}) do
+    known_txs = :lists.usort(known_txs)
+
     # getting invalid piggybacks on inputs
     ifes
     |> Map.values()
@@ -744,7 +765,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     # To find bad piggybacks on outputs of IFE, we need to find spends on those outputs.
     # To do that, we first need to find IFE inclusion position.
     # If IFE was included, the value of :tx_included_at
-    # Next, check its spends, which are already included into request.block_results
+    # Next, check its spends, which are already included into request.blocks_result
+
+    # TODO: drop next line
+    known_txs = :lists.usort(known_txs)
+
     ifes
     |> Map.values()
     |> Enum.map(fn ife ->
@@ -757,18 +782,19 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end)
     |> Enum.filter(fn {_ife, pbs} -> pbs != [] end)
     |> Enum.map(fn {ife, pbs} ->
-      proof_materials = find_spends(pbs, known_txs)
+      proof_materials = find_spends(pbs, known_txs, ife.tx.raw_tx)
       {ife, Transaction.encode(ife.tx.raw_tx), [], Map.keys(proof_materials), proof_materials}
     end)
     |> Enum.filter(fn {_, _, _, on_outputs, _} -> on_outputs != [] end)
   end
 
-  defp find_spends(single_tx_indexed_inputs, known_txs, original_tx \\ nil) do
+  defp find_spends(single_tx_indexed_inputs, known_txs, original_tx) do
     # Will find all spenders of provided indexed inputs.
     # Remember to check if result contains original tx!
     known_txs
+    |> Enum.filter(&(original_tx != &1.signed_tx.raw_tx))
     |> Enum.map(fn ktx -> {ktx, get_double_spends(single_tx_indexed_inputs, ktx)} end)
-    |> Enum.filter(fn {ktx, doublespends} -> doublespends != [] and original_tx != ktx.signed_tx.raw_tx end)
+    |> Enum.filter(fn {_ktx, doublespends} -> doublespends != [] end)
     |> Enum.flat_map(fn {ktx, dbl_spends} ->
       {my_indexes, utxo_poses, his_indexes} = :lists.unzip3(dbl_spends)
       Enum.zip([my_indexes, List.duplicate(ktx, length(my_indexes)), utxo_poses, his_indexes])
@@ -1046,7 +1072,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       for {left, left_index} <- inputs,
           {right, right_index} <- known_spent_inputs,
           left == right,
-          left_index <= right_index,
           do: {left_index, left, right_index}
 
     :lists.usort(list)
@@ -1067,12 +1092,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp index_inputs(%Transaction.Signed{raw_tx: raw_tx}), do: index_inputs(raw_tx)
   defp index_inputs(%KnownTx{signed_tx: signed}), do: index_inputs(signed)
 
-  defp get_known_txs(%__MODULE__{} = state) do
+  def get_known_txs(%__MODULE__{} = state) do
     TxAppendix.get_all(state)
     |> Enum.map(fn signed -> %KnownTx{signed_tx: signed} end)
   end
 
-  defp get_known_txs(%Block{transactions: txs, number: blknum}) do
+  def get_known_txs(%Block{transactions: txs, number: blknum}) do
     txs
     |> Enum.map(fn tx_bytes ->
       %Transaction.Recovered{signed_tx: signed} = recover_correct_tx_from_block(tx_bytes)
@@ -1082,10 +1107,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.map(fn {signed, txindex} -> %KnownTx{signed_tx: signed, utxo_pos: Utxo.position(blknum, txindex, 0)} end)
   end
 
-  defp get_known_txs([]), do: []
+  def get_known_txs([]), do: []
 
   # we're sorting the blocks by their blknum here, because we wan't oldest (best) competitors first always
-  defp get_known_txs([%Block{} | _] = blocks),
+  def get_known_txs([%Block{} | _] = blocks),
     do: blocks |> Enum.sort_by(fn block -> block.number end) |> Enum.flat_map(&get_known_txs/1)
 
   defp recover_correct_tx_from_block(tx_bytes) do

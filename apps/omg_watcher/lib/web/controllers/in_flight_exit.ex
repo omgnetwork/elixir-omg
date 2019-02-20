@@ -38,16 +38,19 @@ defmodule OMG.Watcher.Web.Controller.InFlightExit do
   end
 
   def get_input_challenge_data(conn, params) do
-    handle_txbytes_based_request(conn, params, &API.InFlightExit.get_input_challenge_data/2, :get_input_challenge_data)
+    with {:ok, txbytes} <- expect(params, "txbytes", :hex),
+         {:ok, input_index} <- expect(params, "input_index", :non_neg_integer) do
+      API.InFlightExit.get_input_challenge_data(txbytes, input_index)
+      |> api_response(conn, :get_input_challenge_data)
+    end
   end
 
   def get_output_challenge_data(conn, params) do
-    handle_txbytes_based_request(
-      conn,
-      params,
-      &API.InFlightExit.get_output_challenge_data/2,
-      :get_output_challenge_data
-    )
+    with {:ok, txbytes} <- expect(params, "txbytes", :hex),
+         {:ok, output_index} <- expect(params, "output_index", :non_neg_integer) do
+      API.InFlightExit.get_output_challenge_data(txbytes, output_index)
+      |> api_response(conn, :get_output_challenge_data)
+    end
   end
 
   # NOTE: don't overdo this DRYing here - if the above controller functions evolve and diverge, it might be better to

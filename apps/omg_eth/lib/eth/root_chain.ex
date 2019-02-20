@@ -27,6 +27,8 @@ defmodule OMG.Eth.RootChain do
 
   @deposit_created_event_signature "DepositCreated(address,uint256,address,uint256)"
   @challenge_ife_func_signature "challengeInFlightExitNotCanonical(bytes,uint8,bytes,uint8,uint256,bytes,bytes)"
+  @challenge_ife_input_spent "challengeInFlightExitInputSpent(bytes,uint8,bytes,uint8,bytes)"
+  @challenge_ife_output_spent "challengeInFlightExitOutputSpent(bytes,uint256,bytes,bytes,uint8,bytes)"
 
   @type optional_addr_t() :: <<_::160>> | nil
 
@@ -204,6 +206,76 @@ defmodule OMG.Eth.RootChain do
     signature = "respondToNonCanonicalChallenge(bytes,uint256,bytes)"
 
     args = [in_flight_tx, in_flight_tx_pos, in_flight_tx_inclusion_proof]
+
+    Eth.contract_transact(from, contract, signature, args, opts)
+  end
+
+  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
+  def challenge_in_flight_exit_input_spent(
+        in_flight_txbytes,
+        in_flight_input_index,
+        spending_txbytes,
+        spending_tx_input_index,
+        spending_tx_sig,
+        from,
+        contract \\ nil,
+        opts \\ []
+      ) do
+    defaults = @tx_defaults
+    opts = defaults |> Keyword.merge(opts)
+
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = @challenge_ife_input_spent
+
+    args = [
+      in_flight_txbytes,
+      in_flight_input_index,
+      spending_txbytes,
+      spending_tx_input_index,
+      spending_tx_sig
+    ]
+
+    Eth.contract_transact(from, contract, signature, args, opts)
+  end
+
+  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
+  def challenge_in_flight_exit_output_spent(
+        in_flight_txbytes,
+        in_flight_output_pos,
+        in_flight_tx_inclusion_proof,
+        spending_txbytes,
+        spending_tx_input_index,
+        spending_tx_sig,
+        from,
+        contract \\ nil,
+        opts \\ []
+      ) do
+    x = {
+      in_flight_txbytes,
+      in_flight_output_pos,
+      in_flight_tx_inclusion_proof,
+      spending_txbytes,
+      spending_tx_input_index,
+      spending_tx_sig,
+      from,
+      contract,
+      opts
+    }
+    IO.puts("challenge_in_flight_exit_output_spent args: #{inspect x}")
+    defaults = @tx_defaults
+    opts = defaults |> Keyword.merge(opts)
+
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = @challenge_ife_output_spent
+
+    args = [
+      in_flight_txbytes,
+      in_flight_output_pos,
+      in_flight_tx_inclusion_proof,
+      spending_txbytes,
+      spending_tx_input_index,
+      spending_tx_sig
+    ]
 
     Eth.contract_transact(from, contract, signature, args, opts)
   end
