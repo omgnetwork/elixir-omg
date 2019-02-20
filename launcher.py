@@ -267,7 +267,7 @@ class WatcherLauncher:
         if self.initialise_watcher_chain_database() is False:
             logging.critical('Could not initialise Watcher LevelDB instance')
             sys.exit(1)
-        if self.check_watcher_chain_data_empty is True:
+        if self.check_watcher_chain_data_present is True:
             if self.initialise_watcher_postgres_database() is False:
                 logging.critical(
                     'Could not connect to the Postgres database Exiting.'
@@ -315,8 +315,8 @@ class WatcherLauncher:
 
         return request.content
 
-    def check_watcher_chain_data_empty(self) -> bool:
-        ''' Return True if ~/.omg/ is empty. This allows deployment
+    def check_watcher_chain_data_present(self) -> bool:
+        ''' Return True if ~/.omg/ exits. This allows deployment
         for both environments that are fresh and where there is existing data.
         '''
         if os.path.exists(os.path.expanduser('~') + '/.omg'):
