@@ -46,9 +46,7 @@ defmodule OMG.API.State.TransactionTest do
   @tag fixtures: [:utxos]
   test "create transaction with different number inputs and oputputs", %{utxos: utxos} do
     # 1 - input, 1 - output
-    transaction = Transaction.new([hd(utxos)], [{"Joe Black", eth(), 99}])
-
-    assert transaction == %Transaction{
+    assert Transaction.new([hd(utxos)], [{"Joe Black", eth(), 99}]) == %Transaction{
              inputs: [%{blknum: 20, txindex: 42, oindex: 1} | List.duplicate(%{blknum: 0, oindex: 0, txindex: 0}, 3)],
              outputs: [
                %{owner: "Joe Black", currency: eth(), amount: 99}
@@ -57,9 +55,7 @@ defmodule OMG.API.State.TransactionTest do
            }
 
     # 1 - input, 2 - outputs
-    transaction = Transaction.new(tl(utxos), [{"Joe Black", eth(), 22}, {"McDuck", eth(), 21}])
-
-    assert transaction == %Transaction{
+    assert Transaction.new(tl(utxos), [{"Joe Black", eth(), 22}, {"McDuck", eth(), 21}]) == %Transaction{
              inputs: [%{blknum: 2, txindex: 21, oindex: 0} | List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 3)],
              outputs: [
                %{owner: "Joe Black", currency: eth(), amount: 22},
@@ -69,9 +65,7 @@ defmodule OMG.API.State.TransactionTest do
            }
 
     # 2 - inputs, 2 - outputs
-    transaction = Transaction.new(utxos, [{"Joe Black", eth(), 53}, {"McDuck", eth(), 90}])
-
-    assert transaction == %Transaction{
+    assert Transaction.new(utxos, [{"Joe Black", eth(), 53}, {"McDuck", eth(), 90}]) == %Transaction{
              inputs: [
                %{blknum: 20, txindex: 42, oindex: 1},
                %{blknum: 2, txindex: 21, oindex: 0} | List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 2)
@@ -84,9 +78,7 @@ defmodule OMG.API.State.TransactionTest do
            }
 
     # 2 - inputs, 0 - outputs
-    transaction = Transaction.new(utxos, [])
-
-    assert transaction == %Transaction{
+    assert Transaction.new(utxos, []) == %Transaction{
              inputs: [
                %{blknum: 20, txindex: 42, oindex: 1},
                %{blknum: 2, txindex: 21, oindex: 0} | List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 2)
@@ -97,9 +89,7 @@ defmodule OMG.API.State.TransactionTest do
 
   @tag fixtures: [:utxos]
   test "create transaction with metadata", %{utxos: utxos} do
-    transaction = Transaction.new(utxos, [{"Joe Black", eth(), 53}], <<42::256>>)
-
-    assert transaction == %Transaction{
+    assert Transaction.new(utxos, [{"Joe Black", eth(), 53}], <<42::256>>) == %Transaction{
              inputs: [
                %{blknum: 20, txindex: 42, oindex: 1},
                %{blknum: 2, txindex: 21, oindex: 0} | List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 2)
@@ -116,21 +106,12 @@ defmodule OMG.API.State.TransactionTest do
   test "incorrect metadata", %{utxos: utxos} do
     # too long metadata
     assert_raise FunctionClauseError, fn ->
-      {:error, :incorrect_metadata} ==
-        Transaction.new(
-          utxos,
-          [%{owner: "Joe Black", currency: eth(), amount: 53}],
-          String.duplicate("0", 90)
-        )
+      Transaction.new(utxos, [%{owner: "Joe Black", currency: eth(), amount: 53}], String.duplicate("0", 90))
     end
 
     # incorrect type
     assert_raise FunctionClauseError, fn ->
-      Transaction.new(
-        utxos,
-        [%{owner: "Joe Black", currency: eth(), amount: 53}],
-        42
-      )
+      Transaction.new(utxos, [%{owner: "Joe Black", currency: eth(), amount: 53}], 42)
     end
   end
 

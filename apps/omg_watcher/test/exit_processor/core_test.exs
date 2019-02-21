@@ -210,11 +210,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Core.new_exits(events, contract_exit_statuses)
 
     # exits invalidly finalize and continue/start emitting events and complain
-    {:ok, {_, _, two_spend}, state_after_spend} =
-      State.Core.exit_utxos(
-        [@utxo_pos1, @utxo_pos2],
-        state
-      )
+    {:ok, {_, _, two_spend}, state_after_spend} = State.Core.exit_utxos([@utxo_pos1, @utxo_pos2], state)
 
     # finalizing here - note that without `finalize_exits`, we would just get a single invalid exit event
     # with - we get 3, because we include the invalidly finalized on which will hurt forever

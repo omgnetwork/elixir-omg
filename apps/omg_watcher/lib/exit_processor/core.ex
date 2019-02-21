@@ -127,7 +127,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
            amount: amount,
            currency: token,
            owner: address,
-           is_active: is_active?(contract_status),
+           is_active: parse_contract_exit_status(contract_status),
            eth_height: eth_height
          }}
       end)
@@ -142,8 +142,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {%{state | exits: Map.merge(exits, new_exits_map)}, db_updates, positions}
   end
 
-  defp is_active?({@zero_address, _contract_token, _contract_amount, _contract_position}), do: false
-  defp is_active?({_contract_owner, _contract_token, _contract_amount, _contract_position}), do: true
+  defp parse_contract_exit_status({@zero_address, _contract_token, _contract_amount, _contract_position}), do: false
+  defp parse_contract_exit_status({_contract_owner, _contract_token, _contract_amount, _contract_position}), do: true
 
   # TODO: syncing problem (look new exits)
   @doc """
