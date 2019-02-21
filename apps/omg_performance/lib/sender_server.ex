@@ -23,7 +23,6 @@ defmodule OMG.Performance.SenderServer do
   use GenServer
   use OMG.API.LoggerExt
 
-  alias OMG.API.Crypto
   alias OMG.API.DevCrypto
   alias OMG.API.State.Transaction
   alias OMG.API.TestHelper
@@ -31,7 +30,7 @@ defmodule OMG.Performance.SenderServer do
 
   require Utxo
 
-  @eth Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   defmodule LastTx do
     @moduledoc """

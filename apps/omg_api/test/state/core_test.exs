@@ -21,14 +21,14 @@ defmodule OMG.API.State.CoreTest do
   use ExUnit.Case, async: true
 
   alias OMG.API
-  alias OMG.API.{Block, Crypto, Fees, Utxo}
+  alias OMG.API.{Block, Fees, Utxo}
   alias OMG.API.State.{Core, Transaction}
 
   import OMG.API.TestHelper
 
   require Utxo
 
-  @eth Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
   @not_eth <<1::size(160)>>
   @zero_fees %{@eth => 0, @not_eth => 0}
   @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)

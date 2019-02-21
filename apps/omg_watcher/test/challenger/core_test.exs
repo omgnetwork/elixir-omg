@@ -27,7 +27,7 @@ defmodule OMG.Watcher.Challenger.CoreTest do
 
   require Utxo
 
-  @eth <<1::160>>
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   defp create_block_with(blknum, txs) do
     %Block{

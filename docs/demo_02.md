@@ -37,6 +37,9 @@ bob_enc = Crypto.encode_address!(bob.addr)
 bob_deposit_blknum = DepositHelper.deposit_to_child_chain(bob.addr, 10)
 alice_deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, 10)
 
+child_chain_url = "localhost:9656"
+watcher_url = "localhost:7434"
+
 ### START DEMO HERE
 
 # we've got alice, bob prepared, also an honest child chain is running with a watcher connected
@@ -56,7 +59,7 @@ tx =
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 # use the hex-encoded tx bytes and `transaction.submit` Http-RPC method described in README.md for child chain server
 %{"data" => %{"txhash" => tx1_hash}} =
-  ~c(echo '{"transaction": "#{tx}"}' | http POST localhost:9656/transaction.submit) |>
+  ~c(echo '{"transaction": "#{tx}"}' | http POST #{child_chain_url}/transaction.submit) |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -66,14 +69,12 @@ tx =
 
 # we grabbed the first transaction hash as returned by the Child chain server's API (response to `http`'s request)
 
-~c(echo '{"id": "#{tx1_hash}"}' | http POST localhost:7434/transaction.get) |>
-to_charlist() |>
+~c(echo '{"id": "#{tx1_hash}"}' | http POST #{watcher_url}/transaction.get) |>
 :os.cmd() |>
 Poison.decode!()
 
 %{"data" => [_bobs_deposit, %{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
-  ~c(echo '{"address": "#{bob_enc}"}' | http POST localhost:7434/account.get_utxos) |>
-  to_charlist() |>
+  ~c(echo '{"address": "#{bob_enc}"}' | http POST #{watcher_url}/account.get_utxos) |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -82,8 +83,7 @@ Poison.decode!()
 exiting_utxopos = OMG.API.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
 
 %{"data" => composed_exit} =
-  ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST localhost:7434/utxo.get_exit_data) |>
-  to_charlist() |>
+  ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST #{watcher_url}/utxo.get_exit_data) |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -94,7 +94,7 @@ tx2 =
   OMG.RPC.Web.Encoding.to_hex()
 
 # FIRST you need to spend in transaction as above, so that the exit then is in fact invalid and challengeable
-~c(echo '{"transaction": "#{tx2}"}' | http POST localhost:9656/transaction.submit) |>
+~c(echo '{"transaction": "#{tx2}"}' | http POST #{child_chain_url}/transaction.submit) |>
 :os.cmd() |>
 Poison.decode!()
 
@@ -110,7 +110,7 @@ Poison.decode!()
 Eth.WaitFor.eth_receipt(txhash)
 
 %{"data" => challenge} =
-  ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST localhost:7434/utxo.get_challenge_data) |>
+  ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST #{watcher_url}/utxo.get_challenge_data) |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
@@ -146,7 +146,7 @@ tx3 =
   OMG.RPC.Web.Encoding.to_hex()
 
 %{"success" => true} =
-  ~c(echo '{"transaction": "#{tx3}"}' | http POST localhost:9656/transaction.submit) |>
+  ~c(echo '{"transaction": "#{tx3}"}' | http POST #{child_chain_url}/transaction.submit) |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -169,7 +169,7 @@ r(OMG.API.State.Core)
 
 # grab an utxo that bob can spend
 %{"data" => [_bobs_deposit, %{"blknum" => spend_blknum, "txindex" => 0, "oindex" => 0}]} =
-  ~c(echo '{"address": "#{bob_enc}"}' | http POST localhost:7434/utxo.get) |>
+  ~c(echo '{"address": "#{bob_enc}"}' | http POST #{watcher_url}/utxo.get) |>
   to_charlist() |>
   :os.cmd() |>
   Poison.decode!()
@@ -181,7 +181,7 @@ tx4 =
   OMG.RPC.Web.Encoding.to_hex()
 
 # and send using httpie
-~c(echo '{"transaction": "#{tx4}"}' | http POST localhost:9656/transaction.submit) |>
+~c(echo '{"transaction": "#{tx4}"}' | http POST #{child_chain_url}/transaction.submit) |>
 :os.cmd() |>
 Poison.decode!()
 

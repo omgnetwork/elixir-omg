@@ -36,7 +36,7 @@ defmodule OMG.DBTest do
 
     assert {:ok, [%{hash: "wvxyz"}, %{hash: "xyz"}]} == DB.blocks(["wvxyz", "xyz"], pid)
 
-    :ok = DB.multi_update([{:delete, :block, %{hash: "xyz"}}], pid)
+    :ok = DB.multi_update([{:delete, :block, "xyz"}], pid)
 
     checks = fn pid ->
       assert {:ok, [%{hash: "wvxyz"}, :not_found, %{hash: "vxyz"}]} == DB.blocks(["wvxyz", "xyz", "vxyz"], pid)

@@ -18,7 +18,6 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   use OMG.API.Fixtures
 
   alias OMG.API
-  alias OMG.API.Crypto
   alias OMG.API.TestHelper
   alias OMG.API.Utxo
   alias OMG.RPC.Web.Encoding
@@ -27,8 +26,8 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
 
   require Utxo
 
-  @eth Crypto.zero_address()
-  @eth_hex Crypto.zero_address() |> Encoding.to_hex()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @eth_hex Encoding.to_hex(@eth)
 
   @tag fixtures: [:initial_blocks, :carol]
   test "no utxos are returned for non-existing addresses", %{carol: carol} do

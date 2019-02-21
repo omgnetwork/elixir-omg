@@ -13,29 +13,40 @@
 # limitations under the License.
 defmodule OMG.API.RootChainCoordinator.Core do
   @moduledoc """
-  Synchronizes services on root chain height.
+  Synchronizes multiple log-reading services on root chain height.
   Each synchronized service must have a unique name.
   Service reports its height by calling 'check_in'.
-  After all the services are checked in, coordinator returns currently synchronized height.
+  After all the services are checked in, coordinator returns currently synchronizable height, for every service which asks
   In case a service fails, it is checked out and coordinator does not resume until the missing service checks_in again.
-  After all the services checked in with the same height, coordinator returns the next root chain height when calling `check_in`.
-  Coordinator periodically updates root chain height.
+  Coordinator periodically updates root chain height, looks after finality margins and ensures geth-queries aren't huge.
+
+  Coordinator is forgiving in terms of height backoffs:
+    - if the root chain's height backs off, it will treat it as an interim state and ignore the back off (noop)
+    - if any of the coordinated services backs off, it will register the backed off height and coordinate acordingly.
+      All services must accept a `SyncGuide` that tells them they should back off. All services must ensure this doesn't
+      cause them to process any events twice! All services must ensure they process everything!
   """
 
   alias OMG.API.RootChainCoordinator.Service
-  alias OMG.API.RootChainCoordinator.SyncData
+  alias OMG.API.RootChainCoordinator.SyncGuide
 
   use OMG.API.LoggerExt
 
   defstruct configs_services: %{}, root_chain_height: 0, services: %{}
 
-  @type configs_services :: %{required(atom()) => %{sync_mode: :sync_with_root_chain | :sync_with_coordinator}}
+  @type config_t :: keyword()
+  @type configs_services :: %{required(atom()) => config_t()}
 
   @type t() :: %__MODULE__{
           configs_services: configs_services,
           root_chain_height: non_neg_integer(),
           services: map()
         }
+
+  @type check_in_error_t :: {:error, :service_not_allowed}
+
+  # RootChainCoordinator is also checking if queries to Ethereum client don't get huge
+  @maximum_leap_forward 10_000
 
   @doc """
   Initializes core.
@@ -49,27 +60,13 @@ defmodule OMG.API.RootChainCoordinator.Core do
 
   @doc """
   Updates Ethereum height on which a service is synchronized.
-  Returns list of pids of services to synchronize on next Ethereum height.
-  List is not empty only when service that checks in is the last one synchronizing on a given height.
   """
-  @spec check_in(t(), pid(), pos_integer(), atom()) :: {:ok, t(), list(pid())} | :service_not_allowed
+  @spec check_in(t(), pid(), pos_integer(), atom()) :: {:ok, t()} | check_in_error_t()
   def check_in(state, pid, service_height, service_name) when is_integer(service_height) do
     if allowed?(state.configs_services, service_name) do
-      previous_synced_height =
-        case get_synced_info(state, service_name) do
-          :nosync ->
-            0
-
-          %SyncData{sync_height: synced_height} ->
-            synced_height
-        end
-
-      {:ok, state} = update_service_synced_height(state, pid, service_height, service_name)
-      services_to_sync = get_services_to_sync(state, service_name, previous_synced_height)
-
-      {:ok, state, services_to_sync}
+      update_service_synced_height(state, pid, service_height, service_name)
     else
-      :service_not_allowed
+      {:error, :service_not_allowed}
     end
   end
 
@@ -82,46 +79,13 @@ defmodule OMG.API.RootChainCoordinator.Core do
          service_name
        ) do
     new_service_state = %Service{synced_height: new_reported_sync_height, pid: pid}
-    current_service_state = Map.get(services, service_name, new_service_state)
-
-    if valid_sync_height_update?(current_service_state, new_reported_sync_height) do
-      {:ok, %{state | services: Map.put(services, service_name, new_service_state)}}
-    else
-      report_data = %{
-        current: current_service_state,
-        service_name: service_name,
-        new_reported_sync_height: new_reported_sync_height
-      }
-
-      _ = Logger.error("Invalid synced height update #{inspect(report_data, pretty: true)}")
-      :invalid_synced_height_update
-    end
-  end
-
-  defp valid_sync_height_update?(%Service{synced_height: current_synced_height}, new_reported_sync_height) do
-    current_synced_height <= new_reported_sync_height
-  end
-
-  defp get_services_to_sync(state, service_name, previous_synced_height) do
-    case get_synced_info(state, service_name) do
-      :nosync ->
-        []
-
-      %SyncData{sync_height: synced_height} when synced_height > previous_synced_height ->
-        state.services
-        |> Map.values()
-        |> Enum.filter(fn service -> service.synced_height <= synced_height end)
-        |> Enum.map(& &1.pid)
-
-      _ ->
-        []
-    end
+    {:ok, %{state | services: Map.put(services, service_name, new_service_state)}}
   end
 
   @doc """
   Gets synchronized info
   """
-  @spec get_synced_info(t(), atom() | pid()) :: SyncData.t() | :nosync
+  @spec get_synced_info(t(), atom() | pid()) :: SyncGuide.t() | :nosync
   def get_synced_info(state, pid) when is_pid(pid) do
     service = Enum.find(state.services, fn service -> match?({_, %Service{pid: ^pid}}, service) end)
 
@@ -131,42 +95,59 @@ defmodule OMG.API.RootChainCoordinator.Core do
     end
   end
 
-  def get_synced_info(state, service_name) when is_atom(service_name) do
-    sync_mode =
-      state.configs_services
-      |> Map.get(service_name)
-      |> Map.get(:sync_mode, :sync_with_coordinator)
-
-    get_synced_info_by_mode(state, sync_mode)
-  end
-
-  defp get_synced_info_by_mode(
-         %__MODULE__{services: services, root_chain_height: root_chain_height} = state,
-         :sync_with_coordinator
-       ) do
+  def get_synced_info(
+        %__MODULE__{root_chain_height: root_chain_height, configs_services: configs, services: services} = state,
+        service_name
+      )
+      when is_atom(service_name) do
     if all_services_checked_in?(state) do
-      # do not allow syncing to Ethereum blocks higher than block last seen by synchronizer
-      next_sync_height = min(sync_height(services) + 1, root_chain_height)
-      %SyncData{sync_height: next_sync_height, root_chain_height: root_chain_height}
+      config = configs[service_name]
+      current_sync_height = services[service_name].synced_height
+
+      next_sync_height =
+        config
+        |> Keyword.get(:waits_for, [])
+        |> get_height_of_awaited(state)
+        |> consider_finality(configs[service_name], root_chain_height)
+        |> min(current_sync_height + @maximum_leap_forward)
+        |> min(root_chain_height)
+        |> max(0)
+
+      finality_bearing_root = max(0, root_chain_height - finality_margin_for(config))
+
+      %SyncGuide{sync_height: next_sync_height, root_chain_height: finality_bearing_root}
     else
       :nosync
     end
   end
 
-  defp get_synced_info_by_mode(%__MODULE__{root_chain_height: root_chain_height}, :sync_with_root_chain) do
-    %SyncData{sync_height: root_chain_height, root_chain_height: root_chain_height}
-  end
+  defp finality_margin_for(config), do: Keyword.get(config, :finality_margin, 0)
+  defp finality_margin_for!(config), do: Keyword.fetch!(config, :finality_margin)
+
+  # ensures we don't exceed the allowed finality margin applied to the root_chain_height
+  defp consider_finality(sync_height, config, root_chain_height),
+    do: min(sync_height, root_chain_height - finality_margin_for(config))
+
+  # get the earliest-synced of all of the services we're waiting for, if any, if none then root chain height
+  defp get_height_of_awaited([], %__MODULE__{root_chain_height: root_chain_height}),
+    # wait for nothing so root chain is the limit
+    do: root_chain_height
+
+  defp get_height_of_awaited(single_awaited, %__MODULE__{services: services}) when is_atom(single_awaited),
+    # we wait for a single service so get that
+    do: services[single_awaited].synced_height
+
+  defp get_height_of_awaited({single_awaited, :no_margin}, %__MODULE__{configs_services: configs} = state),
+    # in this clause we're waiting on a service, but skipping ahead its particular finality margin
+    do: get_height_of_awaited(single_awaited, state) + finality_margin_for!(configs[single_awaited])
+
+  defp get_height_of_awaited(awaited, state),
+    # we're waiting for multiple services, so iterate the list and get the least synced height
+    do: Enum.map(awaited, &get_height_of_awaited(&1, state)) |> Enum.min()
 
   defp all_services_checked_in?(%__MODULE__{configs_services: configs_services, services: services}) do
     sort = fn map -> map |> Map.keys() |> Enum.sort() end
     sort.(configs_services) == sort.(services)
-  end
-
-  defp sync_height(services) do
-    services
-    |> Map.values()
-    |> Enum.map(& &1.synced_height)
-    |> Enum.min()
   end
 
   @doc """

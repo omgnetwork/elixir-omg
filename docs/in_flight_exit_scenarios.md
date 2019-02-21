@@ -2,7 +2,7 @@
 
 Alice sends tokens to Bob in transaction `tx` which has one input and 2 outputs, one to Bob and one back to herself as change. The block is withheld. 
 
-Alice calls `watcher/status` and gets a response:
+Alice calls `watcher/status.get` and gets a response:
 
 ```json
 {
@@ -122,7 +122,7 @@ RootChain.piggybackInFlightExit(
 After finalization, if nobody challenges the exit, Alice will exit her output and get her `inFlightExitBond` and `piggybackBond` back.
 
 #### 5. Bob finds out that he can piggyback his output
-When Bob calls `watcher/status` he gets this response:
+When Bob calls `watcher/status.get` he gets this response:
 
 ```json
 {
@@ -183,7 +183,7 @@ To challenge an IFE we must attempt to prove that it is non-canonical by present
 If the competing transaction has already been included in a block, then we must present its inclusion proof.
 Imagine that Alice's transaction `tx1` in the previous example is a double spend - its `input0` was already spent as `input1` of another transaction `tx0`
 
-Request `watcher/status`:
+Request `watcher/status.get`:
 
 ```json
 {
@@ -265,7 +265,7 @@ RootChain.challengeInFlightExitNotCanonical(
 # Respond to an IFE challenge
 To respond to a challenge to an IFE, we need to show that the transaction _is_ included. This situation can arise if the user that started the exit did not see the transaction in a block, but subsequently he or another user _did_ see the transaction being put into a block.
 
-`/watcher/status` response will contain:
+`/watcher/status.get` response will contain:
 ```
     "byzantine_events": [
         {
@@ -312,7 +312,7 @@ If this transaction is the oldest competitor then it is canonical and the IFE su
 # Challenging a Piggybacked input
 To challenge a piggybacked input we must present a different transaction that spends that input.
 
-`/watcher/status` response will contain:
+`/watcher/status.get` response will contain:
 ```
     "byzantine_events": [
         {
@@ -364,7 +364,7 @@ RootChain.challengeInFlightExitInputSpent(
 # Challenging a Piggybacked output
 To challenge a piggybacked output we must present a transaction that spends that output. The in-flight transaction must have been put into a block, but the spending transaction does _not_ need to be in a block.
 
-`/watcher/status` response will contain:
+`/watcher/status.get` response will contain:
 ```
     "byzantine_events": [
         {

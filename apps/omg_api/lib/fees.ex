@@ -115,7 +115,7 @@ defmodule OMG.API.Fees do
   end
 
   @empty_input Utxo.position(0, 0, 0)
-  @empty_output %{owner: Crypto.zero_address(), currency: Crypto.zero_address(), amount: 0}
+  @empty_output %{owner: OMG.Eth.zero_address(), currency: OMG.Eth.RootChain.eth_pseudo_address(), amount: 0}
 
   defp has_same_account?(%Transaction.Recovered{
          signed_tx: %Transaction.Signed{raw_tx: raw_tx},

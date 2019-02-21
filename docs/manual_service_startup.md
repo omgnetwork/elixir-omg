@@ -161,14 +161,13 @@ mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
 
 #### Start the Watcher
 
-It is possible to run the watcher in two different modes:
-- The first is `security critical` mode.
-```bash
-iex -S mix xomg.watcher.start --config ~/config_watcher.exs
-```
-- The second is `security critical` + `convenience` mode.
+It is possible to run the watcher in two different modes: "`security critical`" and "`security critical` + `convenience`"
+The one that should be chosen currently is `security critical` + `convenience` mode, which provides all the expected functionality:
+
 ```bash
 iex -S mix xomg.watcher.start --convenience --config ~/config_watcher.exs
 ```
+
+> "security critical" mode can be started by omitting the `--convenience` flag, but this not fully implemented yet
 
 See docs/TODO for more details about watcher modes.

@@ -21,11 +21,10 @@ defmodule OMG.API.BlockTest do
   use ExUnit.Case, async: true
 
   alias OMG.API.Block
-  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.API.TestHelper, as: Test
 
-  defp eth, do: Crypto.zero_address()
+  defp eth, do: OMG.Eth.RootChain.eth_pseudo_address()
 
   @tag fixtures: [:stable_alice, :stable_bob]
   test "Block merkle proof smoke test", %{

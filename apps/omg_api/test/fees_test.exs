@@ -21,7 +21,7 @@ defmodule OMG.API.FeesTest do
   import OMG.API.Fees
   import OMG.API.TestHelper
 
-  @eth OMG.API.Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
   @not_eth <<1::size(160)>>
 
   @fees %{

@@ -17,13 +17,12 @@ defmodule OMG.Watcher.DB.EthEventTest do
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
 
-  alias OMG.API.Crypto
   alias OMG.API.Utxo
   alias OMG.Watcher.DB
 
   require Utxo
 
-  @eth Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "insert deposits: creates deposit event and utxo" do

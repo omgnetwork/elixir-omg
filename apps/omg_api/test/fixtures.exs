@@ -15,11 +15,12 @@
 defmodule OMG.API.Fixtures do
   use ExUnitFixtures.FixtureModule
 
-  alias OMG.API.Crypto
   alias OMG.API.State.Core
   alias OMG.Eth
 
   import OMG.API.TestHelper
+
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   deffixture(entities, do: entities())
 
@@ -40,11 +41,11 @@ defmodule OMG.API.Fixtures do
 
   deffixture state_alice_deposit(state_empty, alice) do
     state_empty
-    |> do_deposit(alice, %{amount: 10, currency: Crypto.zero_address(), blknum: 1})
+    |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
   end
 
   deffixture state_stable_alice_deposit(state_empty, stable_alice) do
     state_empty
-    |> do_deposit(stable_alice, %{amount: 10, currency: Crypto.zero_address(), blknum: 1})
+    |> do_deposit(stable_alice, %{amount: 10, currency: @eth, blknum: 1})
   end
 end
