@@ -250,18 +250,6 @@ defmodule OMG.Eth.RootChain do
         contract \\ nil,
         opts \\ []
       ) do
-    x = {
-      in_flight_txbytes,
-      in_flight_output_pos,
-      in_flight_tx_inclusion_proof,
-      spending_txbytes,
-      spending_tx_input_index,
-      spending_tx_sig,
-      from,
-      contract,
-      opts
-    }
-    IO.puts("challenge_in_flight_exit_output_spent args: #{inspect x}")
     defaults = @tx_defaults
     opts = defaults |> Keyword.merge(opts)
 
