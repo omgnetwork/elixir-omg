@@ -252,7 +252,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Combine data from `ExitProcessor` and `API.State` to figure out what to do about exits
   """
   def handle_call(:check_validity, _from, state) do
-    {state1, request} = do_validity_check(state)
+    {state1, request} = prepare_validity_check(state)
     {chain_status, events} = Core.invalid_exits(request, state1)
     {:reply, {chain_status, events}, state}
   end
@@ -312,12 +312,12 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   def handle_call({:get_output_challenge_data, txbytes, output_index}, _from, state) do
-    {state1, request} = do_validity_check(state)
+    {state1, request} = prepare_validity_check(state)
     response = Core.get_output_challenge_data(request, state1, txbytes, output_index)
     {:reply, response, state}
   end
 
-  defp do_validity_check(state) do
+  defp prepare_validity_check(state) do
     # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
     {request, state} =
       %ExitProcessor.Request{}
@@ -363,7 +363,12 @@ defmodule OMG.Watcher.ExitProcessor do
 
   defp run_ife_input_utxo_existance(%ExitProcessor.Request{piggybacked_utxos_to_check: positions} = request) do
     result = positions |> Enum.map(&State.utxo_exists?/1)
-    _ = Logger.debug("piggybacked_utxos_to_check: #{inspect(positions)}, piggybacked_utxo_exists_result: #{inspect(result)}")
+
+    _ =
+      Logger.debug(
+        "piggybacked_utxos_to_check: #{inspect(positions)}, piggybacked_utxo_exists_result: #{inspect(result)}"
+      )
+
     %{request | piggybacked_utxo_exists_result: result}
   end
 
@@ -375,7 +380,12 @@ defmodule OMG.Watcher.ExitProcessor do
 
   defp run_ife_spend_getting(%ExitProcessor.Request{piggybacked_spends_to_get: positions} = request) do
     result = positions |> Enum.map(&single_spend_getting/1)
-    _ = Logger.debug("piggybacked_spends_to_get: #{inspect(positions)}, piggybacked_spent_blknum_result: #{inspect(result)}")
+
+    _ =
+      Logger.debug(
+        "piggybacked_spends_to_get: #{inspect(positions)}, piggybacked_spent_blknum_result: #{inspect(result)}"
+      )
+
     %{request | piggybacked_spent_blknum_result: result}
   end
 

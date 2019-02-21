@@ -43,20 +43,17 @@ defmodule OMG.Watcher.Integration.TestHelper do
 
   @spec wait_for_byzantine_events_match([match_function :: (any() -> bool())], timeout()) :: {:ok, any()} | no_return()
   def wait_for_byzantine_events_match(event_matches, timeout) do
+    match_reduce = fn match, {already_matched, remaining_events} ->
+      case Enum.split_with(remaining_events, match) do
+        {[], remaining_events} -> {already_matched, remaining_events}
+        {[first_match | other_matches], rest} -> {[first_match | already_matched], other_matches ++ rest}
+      end
+    end
+
     fn ->
       %{"byzantine_events" => emitted_events} = success?("/status.get")
 
-      {matched, remaining_events} =
-        event_matches
-        |> Enum.reduce(
-          {[], emitted_events},
-          fn match, {already_matched, remaining_events} ->
-            case Enum.split_with(remaining_events, match) do
-              {[], remaining_events} -> {already_matched, remaining_events}
-              {[first_match | other_matches], rest} -> {[first_match | already_matched], other_matches ++ rest}
-            end
-          end
-        )
+      {matched, _remaining_events} = Enum.reduce(event_matches, {[], emitted_events}, match_reduce)
 
       all_events = length(event_matches) == length(matched)
 

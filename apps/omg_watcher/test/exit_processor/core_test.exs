@@ -242,6 +242,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     comp_blknum = 4000
 
     block = Block.hashed_txs_at([recovered], tx_blknum)
+
     {exit_processor_request, state} =
       %ExitProcessor.Request{
         blknum_now: 5000,
@@ -259,7 +260,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       request: exit_processor_request,
       ife_good_pb_index: 5,
       ife_txbytes: txbytes,
-      ife_output_pos: Utxo.Position.encode(Utxo.position(tx_blknum, 0, 0)),
+      ife_output_pos: Utxo.position(tx_blknum, 0, 0),
       ife_proof: Block.inclusion_proof(block, 0),
       spending_txbytes: comp_txbytes,
       spending_input_index: 0,
@@ -769,7 +770,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> invalid_exits_filtered(processor, only: [Event.InvalidPiggyback])
     end
 
-    @tag :wrong2
     @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
     test "detects double-spend of an input",
          %{
@@ -790,10 +790,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
 
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
+      request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> invalid_exits_filtered(state, only: [Event.InvalidPiggyback])
+               invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
+
+      assert {:ok, _} = Core.get_input_challenge_data(request, state, txbytes, 0)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
@@ -836,6 +838,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}]} =
                invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
+
+      assert {:ok, _} = Core.get_output_challenge_data(exit_processor_request, state, txbytes, 0)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
@@ -875,6 +879,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}]} =
                invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
+
+      assert {:ok, _} = Core.get_output_challenge_data(exit_processor_request, state, txbytes, 0)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
@@ -955,6 +961,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       # IFE is not canonical
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
                invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
+
+      assert {:ok, _} = Core.get_input_challenge_data(request, state, txbytes, 0)
     end
   end
 
@@ -1503,7 +1511,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert %{blknums_to_get: []} = %ExitProcessor.Request{spent_blknum_result: []} |> Core.determine_blocks_to_get()
 
-      assert %{blknums_to_get: [2000, 1000]} =
+      assert %{blknums_to_get: [1000, 2000]} =
                %ExitProcessor.Request{spent_blknum_result: [2000, 1000]} |> Core.determine_blocks_to_get()
     end
 
