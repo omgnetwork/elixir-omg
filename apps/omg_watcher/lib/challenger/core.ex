@@ -33,6 +33,7 @@ defmodule OMG.Watcher.Challenger.Core do
   def create_challenge(%ExitInfo{owner: owner}, spending_block, Utxo.position(_, _, oindex) = utxo_exit, exit_id) do
     {%Transaction.Signed{raw_tx: challenging_tx} = challenging_signed, input_index} =
       get_spending_transaction_with_index(spending_block, utxo_exit)
+
     %Challenge{
       exit_id: exit_id,
       input_index: input_index,

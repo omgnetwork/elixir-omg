@@ -79,7 +79,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    assert {:ok, {API.Crypto.zero_address(), @eth, 0, 0}} == Eth.RootChain.get_standard_exit(exit_id)
+    assert {:ok, {OMG.Eth.zero_address(), @eth, 0, 0}} == Eth.RootChain.get_standard_exit(exit_id)
 
     IntegrationTest.wait_for_byzantine_events([], @timeout)
   end

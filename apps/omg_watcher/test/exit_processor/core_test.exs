@@ -173,9 +173,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     exit_events: events,
     contract_exit_statuses: contract_statuses
   } do
-    {state2, _} = Core.new_exits(empty, Enum.slice(events, 0, 1), Enum.slice(contract_statuses, 0, 1))
-    {final_state, _} = Core.new_exits(empty, events, contract_statuses)
-    assert {^final_state, _} = Core.new_exits(state2, Enum.slice(events, 1, 1), Enum.slice(contract_statuses, 1, 1))
+    {state2, _, _} = Core.new_exits(empty, Enum.slice(events, 0, 1), Enum.slice(contract_statuses, 0, 1))
+    {final_state, _, _} = Core.new_exits(empty, events, contract_statuses)
+    assert {^final_state, _, _} = Core.new_exits(state2, Enum.slice(events, 1, 1), Enum.slice(contract_statuses, 1, 1))
   end
 
   @tag fixtures: [:processor_empty, :alice, :exit_events]
@@ -198,18 +198,16 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {^filled, []} = Core.finalize_exits(filled, {[], []})
   end
 
-  @tag fixtures: [:processor_empty, :alice, :state_empty, :exit_events]
+  @tag fixtures: [:processor_empty, :alice, :state_empty, :exit_events, :contract_exit_statuses]
   test "handles invalid exit finalization - doesn't forget and causes a byzantine chain report", %{
     processor_empty: processor,
-    alice: %{
-      addr: alice
-    },
     state_empty: state,
-    exit_events: events
+    exit_events: events,
+    contract_exit_statuses: contract_exit_statuses
   } do
     {processor, _, _} =
       processor
-      |> Core.new_exits(events, [{alice, @eth, 10}, {@zero_address, @not_eth, 9}])
+      |> Core.new_exits(events, contract_exit_statuses)
 
     # exits invalidly finalize and continue/start emitting events and complain
     {:ok, {_, _, two_spend}, state_after_spend} =
@@ -256,7 +254,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     # exit validly finalizes and continues to not emit any events
     {:ok, {_, _, spends}, _} = State.Core.exit_utxos([@utxo_pos1], state)
-    assert {processor, [{:delete, :exit_info, @update_key1}]} = Core.finalize_exits(processor, spends)
+    assert {processor, _} = Core.finalize_exits(processor, spends)
 
     assert %ExitProcessor.Request{utxos_to_check: []} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
@@ -336,7 +334,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     {processor, _, _} =
       processor
-      |> Core.new_exits([one_exit], [{@zero_address, @eth, 10}])
+      |> Core.new_exits([one_exit], [{@zero_address, @eth, 10, Utxo.Position.encode(@utxo_pos1)}])
 
     assert {:ok, []} =
              %ExitProcessor.Request{eth_height_now: 13, blknum_now: @late_blknum}
