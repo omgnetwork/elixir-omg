@@ -264,10 +264,13 @@ class WatcherLauncher:
         if self.deploy_contract() is False:
             logging.critical('Contract not deployed. Exiting.')
             sys.exit(1)
-        if self.initialise_watcher_chain_database() is False:
-            logging.critical('Could not initialise Watcher LevelDB instance')
-            sys.exit(1)
-        if self.check_watcher_chain_data_present is True:
+        if self.check_watcher_chain_data_present() is False:
+            # This is a fresh deploy of the Watcher
+            if self.initialise_watcher_chain_database() is False:
+                logging.critical(
+                    'Could not initialise Watcher LevelDB instance'
+                )
+                sys.exit(1)
             if self.initialise_watcher_postgres_database() is False:
                 logging.critical(
                     'Could not connect to the Postgres database Exiting.'
@@ -317,10 +320,10 @@ class WatcherLauncher:
 
     def check_watcher_chain_data_present(self) -> bool:
         ''' Return True if ~/.omg/ exits. This allows deployment
-        for both environments that are fresh and where there is existing data.
+        for both situations that are fresh and where there is existing data.
         '''
         if os.path.exists(os.path.expanduser('~') + '/.omg'):
-            logging.info('Childchain data found')
+            logging.info('Chain data found')
             return True
         else:
             logging.info('Chain data not found')
