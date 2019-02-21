@@ -322,7 +322,7 @@ class WatcherLauncher:
         ''' Return True if ~/.omg/ exits. This allows deployment
         for both situations that are fresh and where there is existing data.
         '''
-        if os.path.exists(os.path.expanduser('~') + '/.omg'):
+        if os.path.exists(os.path.expanduser('~') + '/.omg/data_watcher'):
             logging.info('Chain data found')
             return True
         else:
