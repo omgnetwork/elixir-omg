@@ -756,13 +756,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   describe "evaluates correctness of new piggybacks" do
-    @tag fixtures: [:processor_filled]
-    test "detects none if there is no piggybacks", %{processor_filled: processor} do
-      assert {:ok, []} =
-               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor, only: [Event.InvalidPiggyback])
-    end
-
     @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
     test "detects double-spend of an input",
          %{
