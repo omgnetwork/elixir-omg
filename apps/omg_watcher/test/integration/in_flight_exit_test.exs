@@ -22,6 +22,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   alias OMG.API
   alias OMG.API.State.Transaction
   alias OMG.Eth
+  alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
 
@@ -108,10 +109,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       |> Eth.DevHelpers.transact_sync!()
 
     # ask for byzantine events first, learn both piggybacks are invalid
-    # produces single event with two pbs
-    {:ok, [_piggyback]} =
-      [&match?(%{"details" => %{"inputs" => [1], "outputs" => [1]}}, &1)]
-      |> IntegrationTest.wait_for_byzantine_events_match(@timeout)
+    # wait for NonCanonicalIFE (waiting for invalid piggyback is flaky)
+    {:ok, _} = IntegrationTest.wait_for_byzantine_events([%Event.NonCanonicalIFE{}.name], @timeout)
 
     # make sure that list of byzantine events is as expected
     assert %{
