@@ -33,9 +33,12 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   @output_offset 4
 
+  @max_number_of_inputs Enum.count(@inputs_index_range)
+
   defstruct [
     :tx,
-    :tx_pos,
+    :contract_tx_pos,
+    :tx_seen_in_blocks_at,
     :timestamp,
     :contract_id,
     :oldest_competitor,
@@ -56,8 +59,12 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   @type t :: %__MODULE__{
           tx: Transaction.Signed.t(),
-          # use utxo_position really, for convenience and tooling, even if oindex is always zero here
-          tx_pos: Utxo.Position.t() | nil,
+          # if not nil, position was proven in contract
+          contract_tx_pos: Utxo.Position.t() | nil,
+          # nil value means that it was not included
+          # OR we haven't processed it yet
+          # OR we have found and filled this data, but haven't persisted it later
+          tx_seen_in_blocks_at: Utxo.Position.t() | nil,
           timestamp: non_neg_integer(),
           contract_id: ife_contract_id(),
           oldest_competitor: Utxo.Position.t() | nil,
@@ -145,16 +152,16 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           {:ok, t()} | {:error, :responded_with_too_young_tx | :cannot_respond}
   def respond_to_challenge(ife, tx_position)
 
-  def respond_to_challenge(%__MODULE__{oldest_competitor: nil, tx_pos: nil} = ife, tx_position) do
+  def respond_to_challenge(%__MODULE__{oldest_competitor: nil, contract_tx_pos: nil} = ife, tx_position) do
     decoded = Utxo.Position.decode(tx_position)
-    {:ok, %{ife | oldest_competitor: decoded, is_canonical: true, tx_pos: decoded}}
+    {:ok, %{ife | oldest_competitor: decoded, is_canonical: true, contract_tx_pos: decoded}}
   end
 
-  def respond_to_challenge(%__MODULE__{oldest_competitor: current_oldest, tx_pos: nil} = ife, tx_position) do
+  def respond_to_challenge(%__MODULE__{oldest_competitor: current_oldest, contract_tx_pos: nil} = ife, tx_position) do
     decoded = Utxo.Position.decode(tx_position)
 
     if is_older?(decoded, current_oldest) do
-      {:ok, %{ife | oldest_competitor: decoded, is_canonical: true, tx_pos: decoded}}
+      {:ok, %{ife | oldest_competitor: decoded, is_canonical: true, contract_tx_pos: decoded}}
     else
       {:error, :responded_with_too_young_tx}
     end
@@ -168,39 +175,22 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   end
 
   @spec get_exiting_utxo_positions(t()) :: list({:utxo_position, non_neg_integer(), non_neg_integer(), non_neg_integer})
-  def get_exiting_utxo_positions(ife)
-
-  # TODO: do we need this commented batch of code? will we be determining these utxo positions like this? discuss
-  #  def get_exiting_utxo_positions(%__MODULE__{is_canonical: false} = ife) do
-  #    ife.inputs
-  #    |> Enum.with_index()
-  #    |> Enum.filter(&is_active?(ife, :input, elem(&1, 1)))
-  #    |> Enum.map(
-  #      &(&1
-  #        |> elem(0)
-  #        |> elem(0))
-  #    )
-  #  end
-  #
-  #  def get_exiting_utxo_positions(ife = %__MODULE__{is_canonical: true, tx_pos: tx_pos}) when tx_pos != nil do
-  #    active_outputs_offsets =
-  #      ife.outputs
-  #      |> Enum.with_index()
-  #      |> Enum.filter(&is_active?(ife, :input, elem(&1, 1)))
-  #      |> Enum.map(
-  #        &(&1
-  #          |> elem(1))
-  #      )
-  #
-  #    Utxo.position(blknum, tx_index, _) = tx_pos
-  #    for pos <- active_outputs_offsets, do: Utxo.position(blknum, tx_index, pos)
-  #  end
-
   def get_exiting_utxo_positions(%__MODULE__{tx: %Transaction.Signed{raw_tx: tx}}) do
     Transaction.get_inputs(tx)
   end
 
-  def is_piggybacked?(%__MODULE__{exit_map: map}, index) do
+  @spec get_piggybacked_outputs_positions(t()) :: [Utxo.Position.t()]
+  def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: nil}), do: []
+
+  def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: txpos, exit_map: exit_map}) do
+    {_, blknum, txindex, _} = txpos
+
+    @outputs_index_range
+    |> Enum.filter(&exit_map[&1].is_piggybacked)
+    |> Enum.map(&Utxo.position(blknum, txindex, &1 - @max_number_of_inputs))
+  end
+
+  def is_piggybacked?(%__MODULE__{exit_map: map}, index) when is_integer(index) do
     with {:ok, exit} <- Map.fetch(map, index) do
       Map.get(exit, :is_piggybacked)
     else
@@ -233,8 +223,18 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def is_canonical?(%__MODULE__{is_canonical: value}), do: value
 
-  #  defp offset(:input), do: 0
-  #  defp offset(:output), do: 4
+  def input_to_output_piggyback_index(%{oindex: oindex}), do: oindex + @max_number_of_inputs
+
+  @spec get_input_index(__MODULE__.t(), Utxo.Position.t()) :: non_neg_integer() | nil
+  def get_input_index(%__MODULE__{tx: %Transaction.Signed{raw_tx: tx}}, utxopos) do
+    {_, input_index} =
+      tx
+      |> Transaction.get_inputs()
+      |> Enum.with_index()
+      |> Enum.find(fn {pos, _index} -> pos == utxopos end)
+
+    input_index
+  end
 
   defp is_older?(Utxo.position(tx1_blknum, tx1_index, _), Utxo.position(tx2_blknum, tx2_index, _)),
     do: tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)

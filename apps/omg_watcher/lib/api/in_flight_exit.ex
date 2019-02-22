@@ -74,6 +74,24 @@ defmodule OMG.Watcher.API.InFlightExit do
     ExitProcessor.prove_canonical_for_ife(txbytes)
   end
 
+  @doc """
+  Returns arguments for plasma contract function proving that input was double-signed in some other IFE.
+
+  This delegates directly to `OMG.Watcher.ExitProcessor` see there for details
+  """
+  def get_input_challenge_data(txbytes, input_index) do
+    ExitProcessor.get_input_challenge_data(txbytes, input_index)
+  end
+
+  @doc """
+  Returns arguments for plasma contract function proving that output was double-spent in other IFE or block.
+
+  This delegates directly to `OMG.Watcher.ExitProcessor` see there for details
+  """
+  def get_output_challenge_data(txbytes, output_index) do
+    ExitProcessor.get_output_challenge_data(txbytes, output_index)
+  end
+
   defp find_input_data(%Transaction.Signed{raw_tx: raw_tx}) do
     result =
       raw_tx

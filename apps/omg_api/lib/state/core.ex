@@ -42,7 +42,7 @@ defmodule OMG.API.State.Core do
           amount: pos_integer()
         }
 
-  @type in_flight_exit() :: %{in_flight_tx: bitstring()}
+  @type in_flight_exit() :: %{in_flight_tx: binary()}
   @type piggyback() :: %{txhash: Transaction.Recovered.tx_hash_t(), output_index: non_neg_integer}
 
   @type exit_t() :: %{

@@ -147,6 +147,14 @@ defmodule OMG.Watcher.ExitProcessor do
     GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
   end
 
+  def get_input_challenge_data(txbytes, input_index) do
+    GenServer.call(__MODULE__, {:get_input_challenge_data, txbytes, input_index})
+  end
+
+  def get_output_challenge_data(txbytes, output_index) do
+    GenServer.call(__MODULE__, {:get_output_challenge_data, txbytes, output_index})
+  end
+
   ### Server
 
   use GenServer
@@ -244,18 +252,8 @@ defmodule OMG.Watcher.ExitProcessor do
   Combine data from `ExitProcessor` and `API.State` to figure out what to do about exits
   """
   def handle_call(:check_validity, _from, state) do
-    # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
-    {chain_status, events} =
-      %ExitProcessor.Request{}
-      |> run_status_gets()
-      |> Core.determine_utxo_existence_to_get(state)
-      |> run_utxo_exists()
-      |> Core.determine_spends_to_get(state)
-      |> run_spend_getting()
-      |> Core.determine_blocks_to_get()
-      |> run_block_getting()
-      |> Core.invalid_exits(state)
-
+    {state1, request} = prepare_validity_check(state)
+    {chain_status, events} = Core.invalid_exits(request, state1)
     {:reply, {chain_status, events}, state}
   end
 
@@ -298,6 +296,57 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, canonicity_result, state}
   end
 
+  def handle_call({:get_input_challenge_data, txbytes, input_index}, _from, state) do
+    response =
+      %ExitProcessor.Request{}
+      |> run_status_gets()
+      |> Core.determine_utxo_existence_to_get(state)
+      |> run_utxo_exists()
+      |> Core.determine_spends_to_get(state)
+      |> run_spend_getting()
+      |> Core.determine_blocks_to_get()
+      |> run_block_getting()
+      |> Core.get_input_challenge_data(state, txbytes, input_index)
+
+    {:reply, response, state}
+  end
+
+  def handle_call({:get_output_challenge_data, txbytes, output_index}, _from, state) do
+    {state1, request} = prepare_validity_check(state)
+    response = Core.get_output_challenge_data(request, state1, txbytes, output_index)
+    {:reply, response, state}
+  end
+
+  defp prepare_validity_check(state) do
+    # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
+    {request, state} =
+      %ExitProcessor.Request{}
+      |> run_status_gets()
+      # To find if IFE was included, see first if its inputs were spent.
+      |> Core.determine_ife_input_utxos_existence_to_get(state)
+      |> run_ife_input_utxo_existance()
+      # Next, check by what transactions they were spent.
+      |> Core.determine_ife_spends_to_get(state)
+      |> run_ife_spend_getting()
+      # Find tx bodies.
+      |> Core.determine_ife_blocks_to_get()
+      |> run_ife_block_getting()
+      # Compare found txes with ife.tx.
+      # If equal, persist information about position.
+      |> Core.find_ifes_in_blocks(state)
+
+    request =
+      request
+      |> Core.determine_utxo_existence_to_get(state)
+      |> run_utxo_exists()
+      |> Core.determine_spends_to_get(state)
+      |> run_spend_getting()
+      |> Core.determine_blocks_to_get()
+      |> run_block_getting()
+
+    {state, request}
+  end
+
   defp run_status_gets(%ExitProcessor.Request{} = request) do
     {:ok, eth_height_now} = Eth.get_ethereum_height()
     {blknum_now, _} = State.get_status()
@@ -312,10 +361,32 @@ defmodule OMG.Watcher.ExitProcessor do
     %{request | utxo_exists_result: result}
   end
 
+  defp run_ife_input_utxo_existance(%ExitProcessor.Request{piggybacked_utxos_to_check: positions} = request) do
+    result = positions |> Enum.map(&State.utxo_exists?/1)
+
+    _ =
+      Logger.debug(
+        "piggybacked_utxos_to_check: #{inspect(positions)}, piggybacked_utxo_exists_result: #{inspect(result)}"
+      )
+
+    %{request | piggybacked_utxo_exists_result: result}
+  end
+
   defp run_spend_getting(%ExitProcessor.Request{spends_to_get: positions} = request) do
     result = positions |> Enum.map(&single_spend_getting/1)
     _ = Logger.debug("spends_to_get: #{inspect(positions)}, spent_blknum_result: #{inspect(result)}")
     %{request | spent_blknum_result: result}
+  end
+
+  defp run_ife_spend_getting(%ExitProcessor.Request{piggybacked_spends_to_get: positions} = request) do
+    result = positions |> Enum.map(&single_spend_getting/1)
+
+    _ =
+      Logger.debug(
+        "piggybacked_spends_to_get: #{inspect(positions)}, piggybacked_spent_blknum_result: #{inspect(result)}"
+      )
+
+    %{request | piggybacked_spent_blknum_result: result}
   end
 
   defp single_spend_getting(position) do
@@ -334,5 +405,14 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, blocks} = OMG.DB.blocks(hashes)
     _ = Logger.debug("blocks_result: #{inspect(blocks)}")
     %{request | blocks_result: blocks}
+  end
+
+  defp run_ife_block_getting(%ExitProcessor.Request{piggybacked_blknums_to_get: blknums} = request) do
+    _ = Logger.debug("piggybacked_blknums_to_get: #{inspect(blknums)}")
+    {:ok, hashes} = OMG.DB.block_hashes(blknums)
+    _ = Logger.debug("piggybacked_hashes: #{inspect(hashes)}")
+    {:ok, blocks} = OMG.DB.blocks(hashes)
+    _ = Logger.debug("piggybacked_blocks_result: #{inspect(blocks)}")
+    %{request | piggybacked_blocks_result: blocks}
   end
 end

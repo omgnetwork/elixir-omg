@@ -37,8 +37,8 @@ defmodule OMG.API do
     |> result_with_logging()
   end
 
-  @spec get_block(hash :: bitstring) ::
-          {:ok, %{hash: bitstring, transactions: list, blknum: integer}} | {:error, :not_found | :internal_error}
+  @spec get_block(hash :: binary) ::
+          {:ok, %{hash: binary, transactions: list, blknum: integer}} | {:error, :not_found | :internal_error}
   def get_block(hash) do
     with {:ok, struct_block} <- FreshBlocks.get(hash) do
       {:ok, Block.to_api_format(struct_block)}

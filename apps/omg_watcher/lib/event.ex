@@ -38,10 +38,10 @@ defmodule OMG.Watcher.Event do
 
     @type t :: %__MODULE__{
             tx: Transaction.Recovered.t(),
-            child_blknum: integer(),
-            child_txindex: integer(),
+            child_blknum: pos_integer(),
+            child_txindex: non_neg_integer(),
             child_block_hash: Block.block_hash_t(),
-            submited_at_ethheight: integer()
+            submited_at_ethheight: pos_integer()
           }
   end
 
@@ -54,10 +54,10 @@ defmodule OMG.Watcher.Event do
 
     @type t :: %__MODULE__{
             tx: Transaction.Recovered.t(),
-            child_blknum: integer(),
-            child_txindex: integer(),
+            child_blknum: pos_integer(),
+            child_txindex: non_neg_integer(),
             child_block_hash: Block.block_hash_t(),
-            submited_at_ethheight: integer()
+            submited_at_ethheight: pos_integer()
           }
   end
 
@@ -166,6 +166,21 @@ defmodule OMG.Watcher.Event do
             txbytes: binary(),
             available_outputs: list(available_output()),
             available_inputs: list(available_output()),
+            name: atom()
+          }
+  end
+
+  defmodule InvalidPiggyback do
+    @moduledoc """
+    Notifies about invalid piggyback.
+    """
+
+    defstruct [:txbytes, :inputs, :outputs, name: :invalid_piggyback]
+
+    @type t :: %__MODULE__{
+            txbytes: binary(),
+            inputs: [non_neg_integer()],
+            outputs: [non_neg_integer()],
             name: atom()
           }
   end
