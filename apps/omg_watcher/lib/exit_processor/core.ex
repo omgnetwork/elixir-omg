@@ -616,12 +616,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         pb_index
       ) do
     with {:ok, tx} <- Transaction.decode(txbytes),
-         {:known_ife, true} <- {:known_ife, Transaction.hash(tx) in Map.keys(ifes)},
+         true <- Transaction.hash(tx) in Map.keys(ifes) || {:error, :unknown_ife},
          {:ok, proof} <- produce_invalid_piggyback_proof(request, state, tx, pb_index) do
       {:ok, proof}
-    else
-      {:known_ife, false} -> {:error, :unknown_ife}
-      error -> error
     end
   end
 
@@ -635,7 +632,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     with {:ok, {ife, _encoded_tx, bad_inputs, bad_outputs, proofs}} <-
            get_proof_for_particular_piggyback(tx, pb_index, known_txs, state),
-         :ok <- is_piggyback_in_the_list_of_proofs(pb_index, bad_inputs, bad_outputs) do
+         true <-
+           is_piggyback_in_the_list_of_proofs?(pb_index, bad_inputs, bad_outputs) ||
+             {:error, :no_double_spend_on_particular_piggyback} do
       challenge_data = prepare_piggyback_challenge_proofs(ife, tx, pb_index, proofs, request)
       {:ok, hd(challenge_data)}
     end
@@ -657,12 +656,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  defp is_piggyback_in_the_list_of_proofs(pb_index, bad_inputs, bad_outputs) do
-    case pb_index in bad_inputs or (pb_index - 4) in bad_outputs do
-      true -> :ok
-      false -> {:error, :no_double_spend_on_particular_piggyback}
-    end
-  end
+  defp is_piggyback_in_the_list_of_proofs?(pb_index, bad_inputs, bad_outputs),
+    do: pb_index in bad_inputs or (pb_index - 4) in bad_outputs
 
   defp prepare_piggyback_challenge_proofs(_ife, tx, input_index, proofs, _) when input_index in 0..3 do
     for {competing_ktx, _utxo_of_doublespend, his_doublespend_input_index} <- Map.get(proofs, input_index),
