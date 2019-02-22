@@ -119,8 +119,8 @@ defmodule OMG.API.State.Transaction do
 
   def reconstruct(_), do: {:error, :malformed_transaction}
 
-  def reconstruct_metadata([]), do: nil
-  def reconstruct_metadata([metadata]) when is_metadata(metadata), do: metadata
+  defp reconstruct_metadata([]), do: nil
+  defp reconstruct_metadata([metadata]) when is_metadata(metadata), do: metadata
 
   defp parse_int(binary), do: :binary.decode_unsigned(binary, :big)
 
