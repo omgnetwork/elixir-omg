@@ -1195,6 +1195,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
 
+      # no invalid piggyback events are generated
+      assert {:ok, []} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> invalid_exits_filtered(processor, only: [Event.InvalidPiggyback])
+
       assert_events(events, [%Event.NonCanonicalIFE{txbytes: txbytes}, %Event.NonCanonicalIFE{txbytes: other_txbytes}])
 
       assert {:ok,
