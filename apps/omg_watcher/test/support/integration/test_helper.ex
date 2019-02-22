@@ -41,29 +41,6 @@ defmodule OMG.Watcher.Integration.TestHelper do
     |> wait_for(timeout)
   end
 
-  @spec wait_for_byzantine_events_match([match_function :: (any() -> bool())], timeout()) :: {:ok, any()} | no_return()
-  def wait_for_byzantine_events_match(event_matches, timeout) do
-    match_reduce = fn match, {already_matched, remaining_events} ->
-      case Enum.split_with(remaining_events, match) do
-        {[], remaining_events} -> {already_matched, remaining_events}
-        {[first_match | other_matches], rest} -> {[first_match | already_matched], other_matches ++ rest}
-      end
-    end
-
-    fn ->
-      %{"byzantine_events" => emitted_events} = success?("/status.get")
-
-      {matched, _remaining_events} = Enum.reduce(event_matches, {[], emitted_events}, match_reduce)
-
-      all_events = length(event_matches) == length(matched)
-
-      if all_events,
-        do: {:ok, matched},
-        else: :repeat
-    end
-    |> wait_for(timeout)
-  end
-
   def wait_for_block_fetch(block_nr, timeout) do
     # TODO query to State used in tests instead of an event system, remove when event system is here
     fn ->
