@@ -1100,12 +1100,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp index_inputs(%Transaction.Signed{raw_tx: raw_tx}), do: index_inputs(raw_tx)
   defp index_inputs(%KnownTx{signed_tx: signed}), do: index_inputs(signed)
 
-  def get_known_txs(%__MODULE__{} = state) do
+  defp get_known_txs(%__MODULE__{} = state) do
     TxAppendix.get_all(state)
     |> Enum.map(fn signed -> %KnownTx{signed_tx: signed} end)
   end
 
-  def get_known_txs(%Block{transactions: txs, number: blknum}) do
+  defp get_known_txs(%Block{transactions: txs, number: blknum}) do
     txs
     |> Enum.map(fn tx_bytes ->
       %Transaction.Recovered{signed_tx: signed} = recover_correct_tx_from_block(tx_bytes)
@@ -1115,10 +1115,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.map(fn {signed, txindex} -> %KnownTx{signed_tx: signed, utxo_pos: Utxo.position(blknum, txindex, 0)} end)
   end
 
-  def get_known_txs([]), do: []
+  defp get_known_txs([]), do: []
 
   # we're sorting the blocks by their blknum here, because we wan't oldest (best) competitors first always
-  def get_known_txs([%Block{} | _] = blocks),
+  defp get_known_txs([%Block{} | _] = blocks),
     do: blocks |> Enum.sort_by(fn block -> block.number end) |> Enum.flat_map(&get_known_txs/1)
 
   defp recover_correct_tx_from_block(tx_bytes) do
