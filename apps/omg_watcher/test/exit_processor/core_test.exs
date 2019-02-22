@@ -162,7 +162,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                in_flight_exit_events,
                contract_ife_statuses
              ) do
-    {state, _, _} = Core.new_exits(processor_empty, exit_events, contract_exit_statuses)
+    {state, _} = Core.new_exits(processor_empty, exit_events, contract_exit_statuses)
     {state, _} = Core.new_in_flight_exits(state, in_flight_exit_events, contract_ife_statuses)
     state
   end
@@ -173,9 +173,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     exit_events: events,
     contract_exit_statuses: contract_statuses
   } do
-    {state2, _, _} = Core.new_exits(empty, Enum.slice(events, 0, 1), Enum.slice(contract_statuses, 0, 1))
-    {final_state, _, _} = Core.new_exits(empty, events, contract_statuses)
-    assert {^final_state, _, _} = Core.new_exits(state2, Enum.slice(events, 1, 1), Enum.slice(contract_statuses, 1, 1))
+    {state2, _} = Core.new_exits(empty, Enum.slice(events, 0, 1), Enum.slice(contract_statuses, 0, 1))
+    {final_state, _} = Core.new_exits(empty, events, contract_statuses)
+    assert {^final_state, _} = Core.new_exits(state2, Enum.slice(events, 1, 1), Enum.slice(contract_statuses, 1, 1))
   end
 
   @tag fixtures: [:processor_empty, :alice, :exit_events]
@@ -190,9 +190,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     processor_empty: empty,
     processor_filled: filled
   } do
-    assert {^empty, [], []} = Core.new_exits(empty, [], [])
+    assert {^empty, []} = Core.new_exits(empty, [], [])
     assert {^empty, []} = Core.new_in_flight_exits(empty, [], [])
-    assert {^filled, [], []} = Core.new_exits(filled, [], [])
+    assert {^filled, []} = Core.new_exits(filled, [], [])
     assert {^filled, []} = Core.new_in_flight_exits(filled, [], [])
 
     assert {^filled, []} = Core.finalize_exits(filled, {[], []})
@@ -205,7 +205,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     exit_events: events,
     contract_exit_statuses: contract_exit_statuses
   } do
-    {processor, _, _} =
+    {processor, _} =
       processor
       |> Core.new_exits(events, contract_exit_statuses)
 
@@ -231,7 +231,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     exit_events: [one_exit | _],
     contract_exit_statuses: [one_status | _]
   } do
-    {processor, _, _} =
+    {processor, _} =
       processor
       |> Core.new_exits([one_exit], [one_status])
 
@@ -265,7 +265,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     exiting_position = Utxo.Position.encode(@utxo_pos1)
 
-    {processor, _, _} =
+    {processor, _} =
       processor
       |> Core.new_exits([one_exit], [one_status])
 
@@ -282,7 +282,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     exit_events: events,
     contract_exit_statuses: contract_statuses
   } do
-    {processor, _, _} =
+    {processor, _} =
       processor
       |> Core.new_exits(events, contract_statuses)
 
@@ -310,7 +310,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     exiting_position = Utxo.Position.encode(@utxo_pos1)
 
-    {processor, _, _} =
+    {processor, _} =
       processor
       |> Core.new_exits([one_exit], [one_status])
 
@@ -328,7 +328,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     state_empty: state,
     exit_events: [one_exit | _]
   } do
-    {processor, _, _} =
+    {processor, _} =
       processor
       |> Core.new_exits([one_exit], [{@zero_address, @eth, 10, Utxo.Position.encode(@utxo_pos1)}])
 
@@ -346,7 +346,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     exit_events: [_, late_exit | _],
     contract_exit_statuses: [_, active_status | _]
   } do
-    {processor, _, _} =
+    {processor, _} =
       processor
       |> Core.new_exits([late_exit], [active_status])
 
@@ -377,7 +377,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     in_flight_exit_events: [one_ife | _],
     contract_ife_statuses: [one_ife_status | _]
   } do
-    {processor, _, _} = processor |> Core.new_exits([one_exit], [one_status])
+    {processor, _} = processor |> Core.new_exits([one_exit], [one_status])
     {processor, _} = processor |> Core.new_in_flight_exits([one_ife], [one_ife_status])
 
     assert %{utxos_to_check: [@utxo_pos1, Utxo.position(1, 2, 1) | _]} =

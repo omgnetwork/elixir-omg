@@ -172,7 +172,7 @@ defmodule OMG.Watcher.ExitProcessor do
         result
       end)
 
-    {new_state, db_updates, _} = Core.new_exits(state, exits, exit_contract_statuses)
+    {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
   end
 

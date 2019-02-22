@@ -186,7 +186,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   end
 
   defp persist_new_exits(processor, exit_events, contract_statuses, db_pid) do
-    {processor, db_updates, _} = Core.new_exits(processor, exit_events, contract_statuses)
+    {processor, db_updates} = Core.new_exits(processor, exit_events, contract_statuses)
     persist_common(processor, db_updates, db_pid)
   end
 

@@ -110,7 +110,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   This is to prevent spurious invalid exit events being fired during syncing for exits that were challenged/finalized
   Still we do want to track these exits when syncing, to have them spend from `OMG.API.State` on their finalization
   """
-  @spec new_exits(t(), list(map()), list(map)) :: {t(), list(), list(Utxo.Position.t())} | {:error, :unexpected_events}
+  @spec new_exits(t(), list(map()), list(map)) :: {t(), list()} | {:error, :unexpected_events}
   def new_exits(state, new_exits, exit_contract_statuses)
 
   def new_exits(_, new_exits, exit_contract_statuses) when length(new_exits) != length(exit_contract_statuses) do
@@ -137,9 +137,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.map(&ExitInfo.make_db_update/1)
 
     new_exits_map = Map.new(new_exits_kv_pairs)
-    positions = new_exits_kv_pairs |> Enum.map(&elem(&1, 0))
 
-    {%{state | exits: Map.merge(exits, new_exits_map)}, db_updates, positions}
+    {%{state | exits: Map.merge(exits, new_exits_map)}, db_updates}
   end
 
   defp parse_contract_exit_status({@zero_address, _contract_token, _contract_amount, _contract_position}), do: false
