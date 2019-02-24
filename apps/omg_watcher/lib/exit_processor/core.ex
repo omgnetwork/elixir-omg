@@ -519,6 +519,26 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {chain_validity, events}
   end
 
+  @spec get_exit_info(Utxo.Position.t(), t()) :: {:ok, ExitInfo.t()} | {:ok, :not_found}
+  def get_exit_info(Utxo.position(_, _, _) = utxo_exit, %__MODULE__{exits: exits}) do
+    case Map.get(exits, utxo_exit) do
+      nil -> {:ok, :not_found}
+      exit_info -> {:ok, exit_info}
+    end
+  end
+
+  @spec get_ife_based_on_utxo(Utxo.Position.t(), t()) :: {:ok, Transaction.Signed.t()} | {:ok, :not_found}
+  def get_ife_based_on_utxo(Utxo.position(_, _, _) = utxo_exit, %__MODULE__{} = state) do
+    get_known_txs(state)
+    |> Enum.find(fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = tx}} ->
+      Enum.member?(Transaction.get_inputs(tx), utxo_exit)
+    end)
+    |> case do
+      nil -> {:ok, :not_found}
+      signed_tx -> {:ok, signed_tx}
+    end
+  end
+
   defp get_invalid_exits_based_on_ifes(%__MODULE__{exits: exits} = state) do
     exiting_utxo_positions =
       get_known_txs(state)
@@ -811,10 +831,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   # Challenger part
 
   @doc """
-  Creates a challenge for exiting utxo.
+  Creates a challenge for exiting utxo based on provided block or transaction.
   """
-#  TODO reimplement create_challenge
-  @spec create_challenge(ExitInfo.t(), Block.t(), Utxo.Position.t()) :: Challenge.t()
+  @spec create_challenge(ExitInfo.t(), Block.t() | Transaction.Signed.t(), Utxo.Position.t()) :: Challenge.t()
   def create_challenge(%ExitInfo{owner: owner}, %Block{} = spending_block, Utxo.position(_, _, _) = utxo_exit) do
     {%Transaction.Signed{raw_tx: challenging_tx} = challenging_signed, input_index} =
       get_spending_transaction_with_index(spending_block, utxo_exit)
@@ -827,53 +846,66 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     }
   end
 
-  def create_challenge(%ExitInfo{owner: owner}, %KnownTx{} = known_tx, Utxo.position(_, _, _) = utxo_exit) do
+  def create_challenge(
+        %ExitInfo{owner: owner},
+        %Transaction.Signed{} = challenging_signed,
+        Utxo.position(_, _, _) = utxo_exit
+      ) do
+    {%Transaction.Signed{raw_tx: challenging_tx}, input_index} =
+      get_spending_transaction_with_index(challenging_signed, utxo_exit)
 
+    %Challenge{
+      utxo_pos: Utxo.Position.encode(utxo_exit),
+      input_index: input_index,
+      txbytes: challenging_tx |> Transaction.encode(),
+      sig: find_sig(challenging_signed, owner)
+    }
   end
 
-#  TODO reimplement ensure_challengeable
-#  def ensure_challengeable({:ok, blknum}, utxo_exit_position, %__MODULE__{exits: exits}) when is_integer(blknum) do
-#    case Map.get(utxo_exit_position) do
-#      nil ->
-#        {:error, :exit_not_found}
-#      exit ->
-#        {:ok, blknum, exit}
-#    end
-#  end
-
   @doc """
-  Checks whether database responses hold all the relevant data succesfully fetched:
+  Checks whether database responses hold all the relevant data successfully fetched:
    - a block number which can be used to retrieve needed information to challenge.
    - the relevant exit information
   """
-  @spec ensure_challengeable(tuple(), tuple()) :: {:ok, pos_integer(), ExitInfo.t()} | {:error, atom()}
-  def ensure_challengeable(spending_blknum_response, exit_response)
 
-  def ensure_challengeable({:ok, :not_found}, _), do: {:error, :utxo_not_spent}
-  def ensure_challengeable(_, {:ok, :not_found}), do: {:error, :exit_not_found}
+  @spec ensure_challengeable(tuple(), ExitInfo.t(), InFlightExitInfo.t()) ::
+          {:ok, pos_integer() | Transaction.Signed.t(), ExitInfo.t()} | {:error, atom()}
+  def ensure_challengeable(spending_blknum_response, exit_response, ife_response)
 
-  def ensure_challengeable({:ok, blknum}, {:ok, {_, exit_info}}) when is_integer(blknum),
-      do: {:ok, blknum, ExitInfo.from_db_value(exit_info)}
+  def ensure_challengeable({:ok, :not_found}, _, {:ok, :not_found}), do: {:error, :utxo_not_spent}
+  def ensure_challengeable(_, {:ok, :not_found}, _), do: {:error, :exit_not_found}
 
-  def ensure_challengeable({:error, error}, _), do: {:error, error}
-  def ensure_challengeable(_, {:error, error}), do: {:error, error}
+  def ensure_challengeable({:ok, blknum}, {:ok, exit_info}, _) when is_integer(blknum),
+    do: {:ok, blknum, exit_info}
+
+  def ensure_challengeable(_, {:ok, exit_info}, {:ok, %Transaction.Signed{} = signed_tx}),
+    do: {:ok, signed_tx, exit_info}
+
+  def ensure_challengeable({:error, error}, _, _), do: {:error, error}
+  def ensure_challengeable(_, {:error, error}, _), do: {:error, error}
+  def ensure_challengeable(_, _, {:error, error}), do: {:error, error}
 
   # finds transaction in given block and input index spending given utxo
-  @spec get_spending_transaction_with_index(Block.t(), Utxo.Position.t()) ::
+  @spec get_spending_transaction_with_index(Block.t() | Transaction.Signed.t(), Utxo.Position.t()) ::
           {Transaction.Signed.t(), non_neg_integer()} | false
   defp get_spending_transaction_with_index(%Block{transactions: txs}, utxo_pos) do
     txs
     |> Enum.map(&Transaction.Signed.decode/1)
-    |> Enum.find_value(fn {:ok, %Transaction.Signed{raw_tx: tx} = tx_signed} ->
+    |> Enum.find_value(fn {:ok, %Transaction.Signed{} = tx_signed} ->
       # `Enum.find_value/2` allows to find tx that spends `utxo_pos` and return it along with input index in one run
-      inputs = Transaction.get_inputs(tx)
 
-      if input_index = Enum.find_index(inputs, &(&1 == utxo_pos)) do
-        {tx_signed, input_index}
-      else
-        false
-      end
+      get_spending_transaction_with_index(tx_signed, utxo_pos)
     end)
+  end
+
+  defp get_spending_transaction_with_index(%Transaction.Signed{raw_tx: tx} = tx_signed, utxo_pos) do
+    inputs = Transaction.get_inputs(tx)
+
+    if input_index = Enum.find_index(inputs, &(&1 == utxo_pos)) do
+      {tx_signed, input_index}
+    else
+      false
+    end
   end
 
   defp find_sig(tx, owner) do

@@ -25,6 +25,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
   alias OMG.API.State
   alias OMG.API.Utxo
+  require Utxo
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Watcher.ExitProcessor
@@ -311,7 +312,10 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:create_challenge, Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos}, _from, state) do
     with spending_blknum_response = OMG.DB.spent_blknum({blknum, txindex, oindex}),
-         {:ok, raw_spending_proof, exit_info} <- Core.ensure_challengeable(spending_blknum_response, exiting_utxo_pos, state) do
+         ife_response = Core.get_ife_based_on_utxo(exiting_utxo_pos, state),
+         exit_response = Core.get_exit_info(exiting_utxo_pos, state),
+         {:ok, raw_spending_proof, exit_info} <-
+           Core.ensure_challengeable(spending_blknum_response, exit_response, ife_response, state) do
       spending_proof =
         case raw_spending_proof do
           blknum when is_number(blknum) ->
@@ -319,12 +323,20 @@ defmodule OMG.Watcher.ExitProcessor do
             {:ok, [spending_block]} = OMG.DB.blocks(hashes)
             spending_block
 
-#          TODO add %knownTx case
-
+          signed_tx ->
+            signed_tx
         end
 
       {:ok, Core.create_challenge(exit_info, spending_proof, exiting_utxo_pos)}
     end
+
+    #    with spending_blknum_response = OMG.DB.spent_blknum({blknum, txindex, oindex}),
+    #         exit_response = OMG.DB.exit_info({blknum, txindex, oindex}),
+    #         {:ok, spending_blknum, exit_info} <- Core.ensure_challengeable(spending_blknum_response, exit_response) do
+    #      {:ok, hashes} = OMG.DB.block_hashes([spending_blknum])
+    #      {:ok, [spending_block]} = OMG.DB.blocks(hashes)
+    #      {:ok, Core.create_challenge(exit_info, spending_block, exiting_utxo_pos)}
+    #    end
   end
 
   defp run_status_gets(%ExitProcessor.Request{} = request) do
