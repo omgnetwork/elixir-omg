@@ -1340,36 +1340,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     {result, filtered_events}
   end
 
-  #
-  #  @spec wait_for_byzantine_events_match([match_function :: (any() -> bool())], timeout()) :: {:ok, any()} | no_return()
-  #  def wait_for_byzantine_events_match(event_matches, timeout) do
-  #    fn ->
-  #      %{"byzantine_events" => emitted_events} = success?("/status.get")
-  #
-  #      IO.puts("emitted_events: #{inspect(emitted_events)}")
-  #
-  #      {matched, remaining_events} =
-  #        event_matches
-  #        |> Enum.reduce(
-  #             {[], emitted_events},
-  #             fn match, {already_matched, remaining_events} ->
-  #               case Enum.split_with(remaining_events, match) do
-  #                 {[], remaining_events} -> {already_matched, remaining_events}
-  #                 {[first_match | other_matches], rest} -> {[first_match | already_matched], other_matches ++ rest}
-  #               end
-  #             end
-  #           )
-  #
-  #      IO.puts("... matched so far: #{inspect(matched)}")
-  #      all_events = length(event_matches) == length(matched)
-  #
-  #      if all_events,
-  #         do: {:ok, matched},
-  #         else: :repeat
-  #    end
-  #    |> wait_for(timeout)
-  #  end
-
   #  Challenger
 
   defp create_block_with(blknum, txs) do
@@ -1427,13 +1397,16 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   test "not spent or not existed utxo should be not challengeable" do
-    exit_info = %{owner: "alice"}
-    assert {:ok, 1000, %ExitInfo{owner: "alice"}} = Core.ensure_challengeable({:ok, 1000}, {:ok, {{}, exit_info}})
+    exit_info = %ExitInfo{owner: "alice"}
+    signed_tx = %Transaction.Signed{signed_tx_bytes: <<1>>}
 
-    assert {:error, :utxo_not_spent} = Core.ensure_challengeable({:ok, :not_found}, {:ok, {{}, exit_info}})
-    assert {:error, :exit_not_found} = Core.ensure_challengeable({:ok, 1000}, {:ok, :not_found})
+    assert {:ok, 1000, exit_info} = Core.ensure_challengeable({:ok, 1000}, {:ok, exit_info}, {:ok, :not_found})
+    assert {:ok, signed_tx, exit_info} = Core.ensure_challengeable({:ok, :not_found}, {:ok, exit_info}, {:ok, signed_tx})
 
-    assert {:error, :db_other_error1} = Core.ensure_challengeable({:error, :db_other_error1}, {:ok, {{}, exit_info}})
-    assert {:error, :db_other_error2} = Core.ensure_challengeable({:ok, 1000}, {:error, :db_other_error2})
+    assert {:error, :utxo_not_spent} = Core.ensure_challengeable({:ok, :not_found}, {:ok, exit_info}, {:ok, :not_found})
+    assert {:error, :exit_not_found} = Core.ensure_challengeable({:ok, 1000}, {:ok, :not_found}, {:ok, :not_found})
+
+    assert {:error, :db_other_error1} = Core.ensure_challengeable({:error, :db_other_error1}, {:ok, exit_info}, {:ok, :not_found})
+    assert {:error, :db_other_error2} = Core.ensure_challengeable({:ok, 1000}, {:error, :db_other_error2}, {:ok, :not_found})
   end
 end

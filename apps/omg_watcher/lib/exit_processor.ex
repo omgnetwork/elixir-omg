@@ -315,7 +315,7 @@ defmodule OMG.Watcher.ExitProcessor do
          ife_response = Core.get_ife_based_on_utxo(exiting_utxo_pos, state),
          exit_response = Core.get_exit_info(exiting_utxo_pos, state),
          {:ok, raw_spending_proof, exit_info} <-
-           Core.ensure_challengeable(spending_blknum_response, exit_response, ife_response, state) do
+           Core.ensure_challengeable(spending_blknum_response, exit_response, ife_response) do
       spending_proof =
         case raw_spending_proof do
           blknum when is_number(blknum) ->
@@ -327,7 +327,8 @@ defmodule OMG.Watcher.ExitProcessor do
             signed_tx
         end
 
-      {:ok, Core.create_challenge(exit_info, spending_proof, exiting_utxo_pos)}
+      {:reply, {:ok, Core.create_challenge(exit_info, spending_proof, exiting_utxo_pos)}, state}
+
     end
 
     #    with spending_blknum_response = OMG.DB.spent_blknum({blknum, txindex, oindex}),
