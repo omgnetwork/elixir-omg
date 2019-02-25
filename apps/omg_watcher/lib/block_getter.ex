@@ -73,7 +73,7 @@ defmodule OMG.Watcher.BlockGetter do
          {:ok, state} <- Core.validate_executions(tx_exec_results, to_apply, state) do
       _ =
         to_apply
-        |> Core.ensure_block_imported_once(eth_height, state.last_block_persisted_from_prev_run)
+        |> Core.ensure_block_imported_once(state)
         |> Enum.each(&DB.Transaction.update_with/1)
 
       state = run_block_download_task(state)

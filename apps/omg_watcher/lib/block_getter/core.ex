@@ -582,23 +582,25 @@ defmodule OMG.Watcher.BlockGetter.Core do
   can get out of sync, and then we don't want to send already consumed blocks which could not succeed due
   key constraints on WatcherDB.
   """
-  @spec ensure_block_imported_once(map(), pos_integer, non_neg_integer) :: [OMG.Watcher.DB.Transaction.mined_block()]
-  def ensure_block_imported_once(block, eth_height, last_persisted_block)
-  def ensure_block_imported_once(block, eth_height, nil), do: ensure_block_imported_once(block, eth_height, 0)
+  @spec ensure_block_imported_once(BlockApplication.t(), t()) :: [OMG.Watcher.DB.Transaction.mined_block()]
+  def ensure_block_imported_once(block, state)
 
-  def ensure_block_imported_once(%{number: number}, _eth_height, last_persisted_block)
-      when number <= last_persisted_block,
-      do: []
+  def ensure_block_imported_once(block, %__MODULE__{last_block_persisted_from_prev_run: last_persisted_block}),
+    do: do_ensure_block_imported_once(block, last_persisted_block)
 
-  def ensure_block_imported_once(block, eth_height, _last_persisted_block) do
-    [block |> to_mined_block(eth_height)]
-  end
+  defp do_ensure_block_imported_once(block, nil), do: [to_mined_block(block)]
+
+  defp do_ensure_block_imported_once(%BlockApplication{number: number}, last_persisted_block)
+       when number <= last_persisted_block,
+       do: []
+
+  defp do_ensure_block_imported_once(block, _), do: [to_mined_block(block)]
 
   # The purpose of this function is to ensure contract between block_getter and db code
-  @spec to_mined_block(map(), pos_integer()) :: OMG.Watcher.DB.Transaction.mined_block()
-  defp to_mined_block(block, eth_height) do
+  @spec to_mined_block(BlockApplication.t()) :: OMG.Watcher.DB.Transaction.mined_block()
+  defp to_mined_block(%BlockApplication{} = block) do
     %{
-      eth_height: eth_height,
+      eth_height: block.eth_height,
       blknum: block.number,
       blkhash: block.hash,
       timestamp: block.timestamp,
