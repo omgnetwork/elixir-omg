@@ -18,8 +18,8 @@ defmodule OMG.Watcher.API.Utxo do
   """
 
   alias OMG.API.Utxo
-  alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.DB
+  alias OMG.Watcher.ExitProcessor
 
   @doc """
   Returns all utxos owner by `address`

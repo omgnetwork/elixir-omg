@@ -25,13 +25,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   alias OMG.API.DevCrypto
   alias OMG.API.State
   alias OMG.API.State.Transaction
+  alias OMG.API.TestHelper
   alias OMG.API.Utxo
   alias OMG.Watcher.Event
-  alias OMG.API.TestHelper
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
-  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.ExitInfo
+  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
   require Utxo
 
@@ -674,10 +674,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_utxo}]} =
              %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
              |> invalid_exits_filtered(processor, only: [Event.InvalidExit])
-  end
-
-  test "start standard exit challenge using ife tx as spend which was piggybacked and finalized" do
-    #    TODO
   end
 
   describe "available piggybacks" do

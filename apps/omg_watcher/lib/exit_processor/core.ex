@@ -25,11 +25,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   require Utxo
-  alias OMG.Watcher.ExitProcessor.Tools
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.ExitProcessor.CompetitorInfo
   alias OMG.Watcher.ExitProcessor.Challenge
+  alias OMG.Watcher.ExitProcessor.CompetitorInfo
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
   alias OMG.Watcher.ExitProcessor.Tools
@@ -868,7 +867,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
    - a block number which can be used to retrieve needed information to challenge or if exists ife which spends inputs
    - the relevant exit information
   """
-  @spec ensure_challengeable(tuple(), ExitInfo.t(), InFlightExitInfo.t()) ::
+  @spec ensure_challengeable(tuple(), {:ok, ExitInfo.t() | :not_found}, {:ok, InFlightExitInfo.t() | :not_found}) ::
           {:ok, pos_integer() | Transaction.Signed.t(), ExitInfo.t()} | {:error, atom()}
   def ensure_challengeable(spending_blknum_response, exit_response, ife_response)
 
