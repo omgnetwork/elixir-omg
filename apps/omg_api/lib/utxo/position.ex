@@ -62,16 +62,4 @@ defmodule OMG.API.Utxo.Position do
 
   @spec from_db_key({pos_integer, non_neg_integer, non_neg_integer}) :: t()
   def from_db_key({blknum, txindex, oindex}), do: Utxo.position(blknum, txindex, oindex)
-
-  def to_input(Utxo.position(blknum, txindex, oindex)) do
-    %{blknum: blknum, txindex: txindex, oindex: oindex}
-  end
-
-  def to_tuple(Utxo.position(blknum, txindex, oindex)) do
-    {blknum, txindex, oindex}
-  end
-
-  def blknum(Utxo.position(blknum, _, _)), do: blknum
-  def txindex(Utxo.position(_, txindex, _)), do: txindex
-  def oindex(Utxo.position(_, _, oindex)), do: oindex
 end
