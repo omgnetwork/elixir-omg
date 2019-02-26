@@ -945,6 +945,43 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
+    test "does not look into piggybacked_blocks_result when it should not",
+         %{
+           alice: alice,
+           processor_filled: state,
+           transactions: [tx | _],
+           ife_tx_hashes: [ife_id | _]
+         } do
+      txbytes = Transaction.encode(tx)
+      {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+
+      tx_blknum = 3000
+
+      {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
+
+      {exit_processor_request, state} =
+        %ExitProcessor.Request{
+          blknum_now: 5000,
+          eth_height_now: 5,
+          piggybacked_blocks_result: [
+            Block.hashed_txs_at([recovered], tx_blknum)
+          ]
+        }
+        |> Core.find_ifes_in_blocks(state)
+
+      exit_processor_request = %{
+        exit_processor_request
+        | blocks_result: [],
+        piggybacked_blocks_result: nil
+      }
+
+      assert {:ok, []} =
+               invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
+
+      assert {:error, :zzz} = Core.get_output_challenge_data(exit_processor_request, state, txbytes, 0)
+    end
+
+    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
     test "seeks piggybacked-output-spending txs in blocks",
          %{
            alice: alice,
