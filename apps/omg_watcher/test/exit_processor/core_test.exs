@@ -792,6 +792,44 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
+    test "detects double-spend of an input, found in a block",
+      %{
+        alice: alice,
+        processor_filled: state,
+        transactions: [tx | _],
+        competing_transactions: [comp | _],
+        ife_tx_hashes: [ife_id | _]
+      } do
+      txbytes = Transaction.encode(tx)
+      comp_txbytes = Transaction.encode(comp)
+      %{sigs: [_, other_sig]} = comp_signed = DevCrypto.sign(comp, [alice.priv, alice.priv])
+      {:ok, comp_recovered} = comp_signed |> Transaction.Recovered.recover_from()
+      {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
+
+      comp_blknum = 4000
+
+      {request, state} =
+        %ExitProcessor.Request{
+          blknum_now: 5000,
+          eth_height_now: 5,
+          blocks_result: [Block.hashed_txs_at([comp_recovered], comp_blknum)]
+        }
+        |> Core.find_ifes_in_blocks(state)
+
+      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
+        invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
+
+      assert {:ok,
+              %{
+                in_flight_input_index: 0,
+                in_flight_txbytes: ^txbytes,
+                spending_txbytes: ^comp_txbytes,
+                spending_input_index: 1,
+                spending_sig: ^other_sig,
+              }} = Core.get_input_challenge_data(request, state, txbytes, 0)
+    end
+
+    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
     test "detects double-spend of an output, found in a IFE",
          %{
            alice: alice,
