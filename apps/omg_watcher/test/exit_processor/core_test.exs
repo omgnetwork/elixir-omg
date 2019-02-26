@@ -311,13 +311,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     {processor, _} =
       processor
-      |> Core.new_exits([one_exit], [one_status])
+      |> (
+        Core.new_exits([one_exit], [one_status])
 
-    assert {:ok, [%Event.InvalidExit{}]} =
-             %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
-             |> Core.determine_utxo_existence_to_get(processor)
-             |> mock_utxo_exists(state)
-             |> Core.invalid_exits(processor)
+        assert {:ok, [%Event.InvalidExit{}]} =
+                 %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
+                 |> Core.determine_utxo_existence_to_get(processor)
+                 |> mock_utxo_exists(state)
+                 |> Core.invalid_exits(processor)
+      )
 
     exiting_position = Utxo.Position.encode(@utxo_pos1)
 
@@ -649,12 +651,31 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            end)
   end
 
-  @tag fixtures: [:processor_filled, :in_flight_exits]
-  test "start standard exit challenge using ife tx as spend", %{
-    processor_filled: state,
-    in_flight_exits: [{tx_hash, ife}, _]
+  @tag fixtures: [:processor_empty, :alice, :exit_events, :contract_exit_statuses]
+  test "detect invalid standard exit based on ife tx which spends same input", %{
+    processor_empty: processor,
+    alice: alice,
+    exit_events: [one_exit | _],
+    contract_exit_statuses: [one_status | _]
   } do
-    #    TODO
+    tx = Transaction.new([{1, 3, 0}], [])
+    txbytes = Transaction.encode(tx)
+    signature = DevCrypto.sign(tx, [alice.priv]) |> Map.get(:sigs) |> Enum.join()
+
+    ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
+    ife_status = {1, <<1::192>>}
+
+    {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
+
+    {processor, _} =
+      processor
+      |> Core.new_exits([one_exit], [one_status])
+
+    exiting_utxo = Utxo.Position.encode(@utxo_pos1)
+
+    assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_utxo}]} =
+             %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
+             |> invalid_exits_filtered(processor, only: [Event.InvalidExit])
   end
 
   test "start standard exit challenge using ife tx as spend which was piggybacked and finalized" do
