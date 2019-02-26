@@ -329,14 +329,6 @@ defmodule OMG.Watcher.ExitProcessor do
 
       {:reply, {:ok, Core.create_challenge(exit_info, spending_proof, exiting_utxo_pos)}, state}
     end
-
-    #    with spending_blknum_response = OMG.DB.spent_blknum({blknum, txindex, oindex}),
-    #         exit_response = OMG.DB.exit_info({blknum, txindex, oindex}),
-    #         {:ok, spending_blknum, exit_info} <- Core.ensure_challengeable(spending_blknum_response, exit_response) do
-    #      {:ok, hashes} = OMG.DB.block_hashes([spending_blknum])
-    #      {:ok, [spending_block]} = OMG.DB.blocks(hashes)
-    #      {:ok, Core.create_challenge(exit_info, spending_block, exiting_utxo_pos)}
-    #    end
   end
 
   defp run_status_gets(%ExitProcessor.Request{} = request) do

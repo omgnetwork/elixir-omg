@@ -539,6 +539,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
+  @spec get_invalid_exits_based_on_ifes(t()) :: list(%{Utxo.Position.t() => ExitInfo.t()})
   defp get_invalid_exits_based_on_ifes(%__MODULE__{exits: exits} = state) do
     exiting_utxo_positions =
       get_known_txs(state)
@@ -864,10 +865,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @doc """
   Checks whether database responses hold all the relevant data successfully fetched:
-   - a block number which can be used to retrieve needed information to challenge.
+   - a block number which can be used to retrieve needed information to challenge or if exists ife which spends inputs
    - the relevant exit information
   """
-
   @spec ensure_challengeable(tuple(), ExitInfo.t(), InFlightExitInfo.t()) ::
           {:ok, pos_integer() | Transaction.Signed.t(), ExitInfo.t()} | {:error, atom()}
   def ensure_challengeable(spending_blknum_response, exit_response, ife_response)

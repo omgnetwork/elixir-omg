@@ -311,15 +311,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     {processor, _} =
       processor
-      |> (
-        Core.new_exits([one_exit], [one_status])
+      |> Core.new_exits([one_exit], [one_status])
 
-        assert {:ok, [%Event.InvalidExit{}]} =
-                 %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
-                 |> Core.determine_utxo_existence_to_get(processor)
-                 |> mock_utxo_exists(state)
-                 |> Core.invalid_exits(processor)
-      )
+    assert {:ok, [%Event.InvalidExit{}]} =
+             %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
+             |> Core.determine_utxo_existence_to_get(processor)
+             |> mock_utxo_exists(state)
+             |> Core.invalid_exits(processor)
 
     exiting_position = Utxo.Position.encode(@utxo_pos1)
 
@@ -1420,6 +1418,20 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            } = Core.create_challenge(%ExitInfo{owner: bob.addr}, spending_block, Utxo.position(1000, 0, 1))
 
     assert_sig_belongs_to(bob_signature, tx_spending_2nd_utxo, bob)
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "create challenge based on ife", %{alice: alice, bob: bob} do
+    expected_utxo_pos = Utxo.position(1000, 0, 1) |> Utxo.Position.encode()
+    tx = TestHelper.create_signed([{0, 0, 0, alice}, {1000, 0, 1, alice}], @eth, [{bob, 50}, {alice, 50}])
+    expected_txbytes = tx.raw_tx |> Transaction.encode()
+
+    assert %{
+             utxo_pos: ^expected_utxo_pos,
+             input_index: 1,
+             txbytes: ^expected_txbytes,
+             sig: alice_signature
+           } = Core.create_challenge(%ExitInfo{owner: alice.addr}, tx, Utxo.position(1000, 0, 1))
   end
 
   test "not spent or not existed utxo should be not challengeable" do
