@@ -1032,22 +1032,29 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.determine_ife_blocks_to_get()
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
+    @tag fixtures: [:alice, :bob, :carol, :processor_filled, :transactions, :ife_tx_hashes]
     test "detects multiple double-spends in single IFE",
          %{
            alice: alice,
+           bob: bob,
+           carol: carol,
            processor_filled: state,
            transactions: [tx | _],
-           competing_transactions: [comp | _],
            ife_tx_hashes: [ife_id | _]
          } do
+      tx_blknum = 3000
       txbytes = Transaction.encode(tx)
+      {:ok, recovered} = DevCrypto.sign(tx, [bob.priv, bob.priv]) |> Transaction.Recovered.recover_from()
+
+      comp = Transaction.new([{1, 0, 0}, {1, 2, 1}, {tx_blknum, 0, 0}, {tx_blknum, 0, 1}], [])
       comp_txbytes = Transaction.encode(comp)
+      %{sigs: array_of_sigs} = DevCrypto.sign(tx, [bob.priv, bob.priv, alice.priv, carol.priv])
 
-      {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
-      %{sigs: [_, other_signature]} = DevCrypto.sign(comp, [<<>>, alice.priv])
+      other_ife_event = %{
+        call_data: %{in_flight_tx: comp_txbytes, in_flight_tx_sigs: Enum.join(array_of_sigs)},
+        eth_height: 2
+      }
 
-      other_ife_event = %{call_data: %{in_flight_tx: comp_txbytes, in_flight_tx_sigs: other_signature}, eth_height: 2}
       other_ife_status = {1, <<1::192>>}
 
       {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
@@ -1057,8 +1064,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 5}])
 
-      tx_blknum = 3000
-
       {request, state} =
         %ExitProcessor.Request{
           blknum_now: 4000,
@@ -1067,11 +1072,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         }
         |> Core.find_ifes_in_blocks(state)
 
-      # note that outputs are not double-spent and can't be challenged; they can't exit since
-      # IFE is not canonical
-      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
+      assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0, 1], outputs: [0, 1]}]} =
                invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
 
+      # FIXME: expand the check
       assert {:ok, _} = Core.get_input_challenge_data(request, state, txbytes, 0)
     end
   end
