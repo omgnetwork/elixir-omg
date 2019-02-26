@@ -100,8 +100,29 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     end
   end
 
-  def make_db_update({_ife_hash, %__MODULE__{} = _ife} = update) do
-    {:put, :in_flight_exit_info, update}
+  # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
+  def make_db_update({ife_hash, %__MODULE__{} = ife}) do
+    persistable = [
+      :tx,
+      :tx_pos,
+      :timestamp,
+      :contract_id,
+      :oldest_competitor,
+      :eth_height,
+      :exit_map,
+      :is_canonical,
+      :is_active
+    ]
+
+    {:put, :in_flight_exit_info, {ife_hash, Map.take(ife, persistable)}}
+  end
+
+  def from_db_kv({ife_hash, %__MODULE__{} = db_ife}) do
+    from_db_kv({ife_hash, Map.from_struct(db_ife)})
+  end
+
+  def from_db_kv({ife_hash, db_ife}) do
+    {ife_hash, struct!(__MODULE__, db_ife)}
   end
 
   @spec piggyback(t(), non_neg_integer()) :: {:ok, t()} | {:error, :non_existent_exit | :cannot_piggyback}

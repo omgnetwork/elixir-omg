@@ -118,12 +118,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   def init(db_exits, db_in_flight_exits, db_competitors, sla_margin \\ @default_sla_margin) do
     {:ok,
      %__MODULE__{
-       exits:
-         db_exits
-         |> Enum.map(fn {db_utxo_pos, v} -> {Utxo.Position.from_db_key(db_utxo_pos), ExitInfo.from_db_value(v)} end)
-         |> Map.new(),
-       in_flight_exits: db_in_flight_exits |> Map.new(),
-       competitors: db_competitors |> Map.new(),
+       exits: db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new(),
+       in_flight_exits: db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new(),
+       competitors: db_competitors |> Enum.map(&CompetitorInfo.from_db_kv/1) |> Map.new(),
        sla_margin: sla_margin
      }}
   end
