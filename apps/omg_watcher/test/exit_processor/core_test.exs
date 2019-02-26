@@ -757,7 +757,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   describe "evaluates correctness of new piggybacks" do
     @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
-    test "detects double-spend of an input",
+    test "detects double-spend of an input, found in IFE",
          %{
            alice: alice,
            processor_filled: state,
@@ -768,9 +768,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       txbytes = Transaction.encode(tx)
       comp_txbytes = Transaction.encode(comp)
 
-      %{sigs: [_, other_signature]} = DevCrypto.sign(comp, [<<>>, alice.priv])
+      %{sigs: [first_sig, other_sig]} = DevCrypto.sign(comp, [alice.priv, alice.priv])
 
-      other_ife_event = %{call_data: %{in_flight_tx: comp_txbytes, in_flight_tx_sigs: other_signature}, eth_height: 3}
+      other_ife_event = %{call_data: %{in_flight_tx: comp_txbytes, in_flight_tx_sigs: first_sig <> other_sig}, eth_height: 3}
       other_ife_status = {1, <<1::192>>}
 
       {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
@@ -781,7 +781,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
                invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
 
-      assert {:ok, _} = Core.get_input_challenge_data(request, state, txbytes, 0)
+      assert {:ok,
+              %{
+                in_flight_input_index: 0,
+                in_flight_txbytes: ^txbytes,
+                spending_txbytes: ^comp_txbytes,
+                spending_input_index: 1,
+                spending_sig: ^other_sig,
+              }} = Core.get_input_challenge_data(request, state, txbytes, 0)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
