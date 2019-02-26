@@ -841,8 +841,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       txbytes = Transaction.encode(tx)
       {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
+      tx_blknum = 3000
+
       # 2. transaction which spends that piggybacked output
-      comp = Transaction.new([{3000, 0, 0}], [])
+      comp = Transaction.new([{tx_blknum, 0, 0}], [])
       comp_txbytes = Transaction.encode(comp)
       %{sigs: [comp_signature]} = DevCrypto.sign(comp, [alice.priv])
 
@@ -857,8 +859,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
 
-      tx_blknum = 3000
-
       {exit_processor_request, state} =
         %ExitProcessor.Request{
           blknum_now: 5000,
@@ -870,7 +870,17 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}]} =
                invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
 
-      assert {:ok, _} = Core.get_output_challenge_data(exit_processor_request, state, txbytes, 0)
+      assert {:ok,
+              %{
+                in_flight_output_pos: Utxo.position(^tx_blknum, 0, 0),
+                in_flight_proof: proof_bytes,
+                in_flight_txbytes: ^txbytes,
+                spending_txbytes: ^comp_txbytes,
+                spending_input_index: 0,
+                spending_sig: ^comp_signature
+              }} = Core.get_output_challenge_data(exit_processor_request, state, txbytes, 0)
+
+      assert_proof_sound(proof_bytes)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
@@ -1055,32 +1065,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "fail when asked to produce proof for illegal oindex",
          %{invalid_piggyback_on_input: %{state: state, request: request, ife_txbytes: txbytes}} do
       assert {:error, :piggybacked_index_out_of_range} = Core.get_input_challenge_data(request, state, txbytes, -1)
-    end
-
-    @tag fixtures: [:invalid_piggyback_on_output]
-    test "will produce the challenge proofs for a invalid piggyback on a output",
-         %{
-           invalid_piggyback_on_output: %{
-             state: state,
-             request: request,
-             ife_output_pos: in_flight_output_pos,
-             ife_txbytes: in_flight_txbytes,
-             ife_proof: in_flight_proof,
-             spending_txbytes: comp_txbytes,
-             spending_input_index: spending_input_index,
-             spending_sig: spending_sig,
-             ife_input_index: ife_input_index
-           }
-         } do
-      assert {:ok,
-              %{
-                in_flight_txbytes: ^in_flight_txbytes,
-                in_flight_output_pos: ^in_flight_output_pos,
-                in_flight_proof: ^in_flight_proof,
-                spending_txbytes: ^comp_txbytes,
-                spending_input_index: ^spending_input_index,
-                spending_sig: ^spending_sig
-              }} = Core.get_output_challenge_data(request, state, in_flight_txbytes, ife_input_index - 4)
     end
 
     @tag fixtures: [:invalid_piggyback_on_output]
