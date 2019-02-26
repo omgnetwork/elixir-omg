@@ -952,7 +952,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            transactions: [tx | _],
            ife_tx_hashes: [ife_id | _]
          } do
-      txbytes = Transaction.encode(tx)
       {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
       tx_blknum = 3000
@@ -972,13 +971,26 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       exit_processor_request = %{
         exit_processor_request
         | blocks_result: [],
-        piggybacked_blocks_result: nil
+          piggybacked_blocks_result: nil
       }
 
-      assert {:ok, []} =
-               invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
+      assert {:ok, []} = invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
+    end
 
-      assert {:error, :zzz} = Core.get_output_challenge_data(exit_processor_request, state, txbytes, 0)
+    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
+    test "handles well situation when syncing is in progress",
+         %{
+           processor_filled: state,
+           ife_tx_hashes: [ife_id | _]
+         } do
+      {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
+
+      %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        piggybacked_blocks_result: [:not_found]
+      }
+      |> Core.find_ifes_in_blocks(state)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
