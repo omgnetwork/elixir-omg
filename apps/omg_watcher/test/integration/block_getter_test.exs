@@ -248,7 +248,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
            end) =~ inspect(:unchallenged_exit)
 
     # we should still be able to challenge this "unchallenged exit" - just smoke testing the endpoint, details elsewhere
-    IO.inspect  TestHelper.get_exit_challenge(exit_blknum, 0, 0)
     TestHelper.get_exit_challenge(exit_blknum, 0, 0)
   end
 end

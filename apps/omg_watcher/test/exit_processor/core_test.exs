@@ -43,9 +43,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   @utxo_pos1 Utxo.position(1, 3, 0)
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
+  @utxo_pos3 Utxo.position(1, 0, 0)
 
   @update_key1 {1, 3, 0}
   @update_key2 {@late_blknum - 1_000, 0, 1}
+  @update_key3 {1, 0, 0}
 
   defp not_included_competitor_pos do
     <<long::256>> =
@@ -317,18 +319,21 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> mock_utxo_exists(state)
              |> Core.invalid_exits(processor)
 
+    exiting_position = Utxo.Position.encode(@utxo_pos1)
+
     # go into the future - old exits work the same
-    assert {:ok, []} =
+    assert {{:error, :unchallenged_exit},
+            [%Event.InvalidExit{utxo_pos: ^exiting_position}, %Event.UnchallengedExit{utxo_pos: ^exiting_position}]} =
              %ExitProcessor.Request{eth_height_now: 105, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
              |> Core.invalid_exits(processor)
 
     # exit validly finalizes and continues to not emit any events
-    {:ok, {_, _, spends}, _} = State.Core.exit_utxos([%{utxo_pos: Utxo.Position.encode(@utxo_pos1)}], state)
-    assert {processor, [{:delete, :exit_info, @update_key1}]} = Core.finalize_exits(processor, spends)
+    {:ok, {_, _, spends}, _} = State.Core.exit_utxos([%{utxo_pos: Utxo.Position.encode(@utxo_pos3)}], state)
+    assert {processor, [{:delete, :exit_info, @update_key3}]} = Core.finalize_exits(processor, spends)
 
-    assert %ExitProcessor.Request{utxos_to_check: []} =
+    assert %ExitProcessor.Request{utxos_to_check: [Utxo.position(1, 3, 0)]} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
   end
 
@@ -378,7 +383,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
-  test "can work with State to determine invalid exits entered too late", %{
+  test "can work with State to determine invalid exits enutxos_to_checktered too late", %{
     processor_empty: processor,
     state_empty: state,
     exit_events: [one_exit | _],
@@ -391,7 +396,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Core.new_exits([one_exit], [one_status])
 
     assert {{:error, :unchallenged_exit},
-            [%Event.UnchallengedExit{utxo_pos: ^exiting_position}, %Event.InvalidExit{utxo_pos: ^exiting_position}]} =
+            [%Event.InvalidExit{utxo_pos: ^exiting_position}, %Event.UnchallengedExit{utxo_pos: ^exiting_position}]} =
              %ExitProcessor.Request{eth_height_now: 13, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
@@ -1401,12 +1406,17 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     signed_tx = %Transaction.Signed{signed_tx_bytes: <<1>>}
 
     assert {:ok, 1000, exit_info} = Core.ensure_challengeable({:ok, 1000}, {:ok, exit_info}, {:ok, :not_found})
-    assert {:ok, signed_tx, exit_info} = Core.ensure_challengeable({:ok, :not_found}, {:ok, exit_info}, {:ok, signed_tx})
+
+    assert {:ok, signed_tx, exit_info} =
+             Core.ensure_challengeable({:ok, :not_found}, {:ok, exit_info}, {:ok, signed_tx})
 
     assert {:error, :utxo_not_spent} = Core.ensure_challengeable({:ok, :not_found}, {:ok, exit_info}, {:ok, :not_found})
     assert {:error, :exit_not_found} = Core.ensure_challengeable({:ok, 1000}, {:ok, :not_found}, {:ok, :not_found})
 
-    assert {:error, :db_other_error1} = Core.ensure_challengeable({:error, :db_other_error1}, {:ok, exit_info}, {:ok, :not_found})
-    assert {:error, :db_other_error2} = Core.ensure_challengeable({:ok, 1000}, {:error, :db_other_error2}, {:ok, :not_found})
+    assert {:error, :db_other_error1} =
+             Core.ensure_challengeable({:error, :db_other_error1}, {:ok, exit_info}, {:ok, :not_found})
+
+    assert {:error, :db_other_error2} =
+             Core.ensure_challengeable({:ok, 1000}, {:error, :db_other_error2}, {:ok, :not_found})
   end
 end

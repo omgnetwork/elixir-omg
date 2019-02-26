@@ -328,7 +328,6 @@ defmodule OMG.Watcher.ExitProcessor do
         end
 
       {:reply, {:ok, Core.create_challenge(exit_info, spending_proof, exiting_utxo_pos)}, state}
-
     end
 
     #    with spending_blknum_response = OMG.DB.spent_blknum({blknum, txindex, oindex}),
