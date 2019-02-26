@@ -112,7 +112,7 @@ defmodule OMG.API.BlockQueue do
             other
         end
 
-      interval = Application.fetch_env!(:omg_api, :ethereum_status_check_interval_ms)
+      interval = Application.fetch_env!(:omg_api, :block_queue_eth_height_check_interval_ms)
       {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
       _ = Logger.info("Started BlockQueue")

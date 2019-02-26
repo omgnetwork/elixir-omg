@@ -20,14 +20,13 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   use Plug.Test
 
   alias OMG.API
-  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.Eth
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
 
   @timeout 40_000
-  @eth Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @moduletag :integration
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test

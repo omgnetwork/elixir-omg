@@ -21,7 +21,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   """
 
   alias OMG.API.Block
-  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   require Utxo
@@ -35,7 +34,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Watcher.ExitProcessor.TxAppendix
 
   @default_sla_margin 10
-  @zero_address Crypto.zero_address()
+  @zero_address OMG.Eth.zero_address()
 
   @type tx_hash() :: <<_::32>>
   @type output_offset() :: 0..7
@@ -326,15 +325,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     ifes_to_update =
       finalizations
       |> Enum.reduce(%{}, fn %{in_flight_exit_id: id}, acc ->
-        with :not_found <-
-               Enum.find(ifes, :not_found, fn {_tx_hash, %InFlightExitInfo{contract_id: contract_id}} ->
-                 id == contract_id
-               end) do
-          acc
-        else
+        Enum.find(ifes, fn {_tx_hash, %InFlightExitInfo{contract_id: contract_id}} -> id == contract_id end)
+        |> case do
+          nil -> acc
           # map by id from contract and mark as not updated
-          {tx_hash, ife} ->
-            %{acc | id => {tx_hash, ife, false}}
+          {tx_hash, ife} -> Map.put(acc, id, {tx_hash, ife, false})
         end
       end)
 
@@ -477,11 +472,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       invalid_exit_positions
       |> Enum.map(fn position -> ExitInfo.make_event_data(Event.InvalidExit, position, exits[position]) end)
 
-    # get exits which are invalid because of being spent in IFEs
-    invalid_exits_based_on_ifes_events =
-      get_invalid_exits_based_on_ifes(state)
-      |> Enum.map(fn {position, exit_info} -> ExitInfo.make_event_data(Event.InvalidExit, position, exit_info) end)
-
     ifes_with_competitors_events =
       get_ifes_with_competitors(request, state)
       |> Enum.map(fn txbytes -> %Event.NonCanonicalIFE{txbytes: txbytes} end)
@@ -497,6 +487,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     late_invalid_exits_events =
       late_invalid_exits
       |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
+
+    # get exits which are invalid because of being spent in IFEs
+    invalid_exits_based_on_ifes_events =
+      get_invalid_exits_based_on_ifes(state)
+      |> Enum.map(fn {position, exit_info} -> ExitInfo.make_event_data(Event.InvalidExit, position, exit_info) end)
 
     invalid_exit_events =
       invalid_exits_based_on_ifes_events
@@ -753,7 +748,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  # tells whether a signle transaction is a competitor for another single transactions, by returning nil or the
+  # tells whether a oindexsignle transaction is a competitor for another single transactions, by returning nil or the
   # UTXO position of the input double spent
   defp competitor_for(%Transaction.Signed{raw_tx: raw_tx}, %Transaction{} = known_raw_tx) do
     inputs = Transaction.get_inputs(raw_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
@@ -816,7 +811,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   defp zero_address?(address) do
-    address != Crypto.zero_address()
+    address != @zero_address
   end
 
   defp get_ife(txbytes, %__MODULE__{in_flight_exits: ifes}) do

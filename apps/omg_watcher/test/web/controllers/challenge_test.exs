@@ -18,14 +18,13 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
   use OMG.API.Fixtures
 
   alias OMG.API
-  alias OMG.API.Crypto
   alias OMG.API.Utxo
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
 
   require Utxo
 
-  @eth Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @tag skip: true
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]

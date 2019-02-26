@@ -17,44 +17,25 @@ defmodule OMG.API.CoreTest do
   use ExUnit.Case, async: true
 
   alias OMG.API.Core
-  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
   alias OMG.API.TestHelper
 
   @empty_signature <<0::size(520)>>
+  @no_owner %{priv: <<>>, addr: nil}
 
-  def eth, do: Crypto.zero_address()
+  def eth, do: OMG.Eth.RootChain.eth_pseudo_address()
 
   @tag fixtures: [:alice, :bob]
   test "signed transaction is valid in all input zeroing combinations", %{
     alice: alice,
     bob: bob
   } do
-    parametrized_tester = fn inputs ->
-      tx = TestHelper.create_signed(inputs, [{alice, eth(), 7}, {bob, eth(), 3}])
-
-      encoded_signed_tx = Transaction.Signed.encode(tx)
-
-      spenders =
-        inputs
-        |> Enum.filter(fn {_, _, _, %{addr: addr}} -> addr != nil end)
-        |> Enum.map(fn {_, _, _, spender} -> spender.addr end)
-
-      assert {:ok,
-              %Transaction.Recovered{
-                signed_tx: ^tx,
-                spenders: ^spenders
-              }} = Core.recover_tx(encoded_signed_tx)
-    end
-
-    no_owner = %{priv: <<>>, addr: nil}
-
     [
-      [{1, 2, 3, alice}, {2, 3, 4, bob}],
-      [{1, 2, 3, alice}, {0, 0, 0, no_owner}],
-      [{0, 0, 0, no_owner}, {2, 3, 4, bob}]
+      {[{1, 2, 3, alice}, {2, 3, 4, bob}], [{alice, eth(), 7}, {bob, eth(), 3}]},
+      {[{1, 2, 3, alice}, {0, 0, 0, @no_owner}], [{alice, eth(), 7}, {bob, eth(), 3}]},
+      {[{0, 0, 0, @no_owner}, {2, 3, 4, bob}], [{alice, eth(), 7}, {bob, eth(), 3}]}
     ]
-    |> Enum.map(parametrized_tester)
+    |> Enum.map(&parametrized_tester/1)
   end
 
   test "encoded transaction is malformed or empty" do
@@ -141,5 +122,31 @@ defmodule OMG.API.CoreTest do
     assert {:error, :no_inputs} == Core.recover_tx(double_zero_tx2)
     assert {:error, :no_inputs} == Core.recover_tx(double_zero_tx3)
     assert {:error, :no_inputs} == Core.recover_tx(double_zero_tx4)
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "transaction with 4in/4out is valid", %{alice: alice, bob: bob} do
+    [
+      {[{1, 2, 3, alice}, {2, 3, 1, alice}, {2, 3, 2, bob}, {3, 3, 4, bob}],
+       [{alice, eth(), 7}, {alice, eth(), 3}, {bob, eth(), 7}, {bob, eth(), 3}]}
+    ]
+    |> Enum.map(&parametrized_tester/1)
+  end
+
+  defp parametrized_tester({inputs, outputs}) do
+    tx = TestHelper.create_signed(inputs, outputs)
+
+    encoded_signed_tx = Transaction.Signed.encode(tx)
+
+    spenders =
+      inputs
+      |> Enum.filter(fn {_, _, _, %{addr: addr}} -> addr != nil end)
+      |> Enum.map(fn {_, _, _, spender} -> spender.addr end)
+
+    assert {:ok,
+            %Transaction.Recovered{
+              signed_tx: ^tx,
+              spenders: ^spenders
+            }} = Core.recover_tx(encoded_signed_tx)
   end
 end

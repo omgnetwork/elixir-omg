@@ -153,7 +153,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns challenge for an exit
   """
   @spec create_challenge(Utxo.Position.t()) ::
-          {:ok, Challenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
+          {:ok, Challenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
   def create_challenge(exiting_utxo_pos) do
     GenServer.call(__MODULE__, {:create_challenge, exiting_utxo_pos})
   end
@@ -188,7 +188,6 @@ defmodule OMG.Watcher.ExitProcessor do
       )
 
     {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
-    _ = OMG.Watcher.DB.EthEvent.insert_exits(exits)
     {:reply, {:ok, db_updates}, new_state}
   end
 
@@ -310,8 +309,8 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, canonicity_result, state}
   end
 
-  def handle_call({:create_challenge, Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos}, _from, state) do
-    with spending_blknum_response = OMG.DB.spent_blknum({blknum, txindex, oindex}),
+  def handle_call({:create_challenge, Utxo.position(blknum, _, _) = exiting_utxo_pos}, _from, state) do
+    with spending_blknum_response = OMG.DB.spent_blknum(Utxo.Position.to_db_key(exiting_utxo_pos)),
          ife_response = Core.get_ife_based_on_utxo(exiting_utxo_pos, state),
          exit_response = Core.get_exit_info(exiting_utxo_pos, state),
          {:ok, raw_spending_proof, exit_info} <-

@@ -37,7 +37,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @moduletag :integration
 
   @timeout 40_000
-  @eth Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @endpoint OMG.Watcher.Web.Endpoint
 
@@ -184,7 +184,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     test_server: context
   } do
     # preparing block with invalid transaction
-    recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], Crypto.zero_address(), [{alice, 10}])
+    recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
     block_with_incorrect_transaction = API.Block.hashed_txs_at([recovered], 1000)
 
     # from now on the child chain server is broken until end of test

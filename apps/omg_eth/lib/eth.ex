@@ -43,6 +43,12 @@ defmodule OMG.Eth do
     end
   end
 
+  @doc """
+  Returns placeholder for non-existent Ethereum address
+  """
+  @spec zero_address :: address()
+  def zero_address, do: <<0::160>>
+
   def call_contract(contract, signature, args, return_types) do
     data = signature |> ABI.encode(args)
 

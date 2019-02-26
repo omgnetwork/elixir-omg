@@ -20,11 +20,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
   alias OMG.API
   alias OMG.API.Block
-  alias OMG.API.Crypto
+  alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.Event
 
-  @eth Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   def assert_check(result, status, value) do
     assert {^status, new_state, ^value} = result
@@ -55,8 +55,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     init_state(init_opts: [maximum_number_of_pending_blocks: 4])
     |> Core.get_numbers_of_blocks_to_download(20_000)
     |> assert_check([1_000, 2_000, 3_000, 4_000])
-    |> handle_downloaded_block(%Block{number: 4_000})
-    |> handle_downloaded_block(%Block{number: 2_000})
+    |> handle_downloaded_block(%BlockApplication{number: 4_000})
+    |> handle_downloaded_block(%BlockApplication{number: 2_000})
     |> Core.get_numbers_of_blocks_to_download(20_000)
     |> assert_check([5_000, 6_000])
   end
@@ -65,8 +65,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     init_state(start_block_number: 7_000, interval: 100, init_opts: [maximum_number_of_pending_blocks: 4])
     |> Core.get_numbers_of_blocks_to_download(20_000)
     |> assert_check([7_100, 7_200, 7_300, 7_400])
-    |> handle_downloaded_block(%Block{number: 7_200})
-    |> handle_downloaded_block({:ok, %Block{number: 7_100}})
+    |> handle_downloaded_block(%BlockApplication{number: 7_200})
+    |> handle_downloaded_block({:ok, %BlockApplication{number: 7_100}})
   end
 
   test "does not download same blocks twice and respects increasing next block number" do
@@ -87,10 +87,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     assert {{:error, :duplicate}, state} =
              state
-             |> handle_downloaded_block(%Block{number: 2_000})
-             |> Core.handle_downloaded_block({:ok, %Block{number: 2_000}})
+             |> handle_downloaded_block(%BlockApplication{number: 2_000})
+             |> Core.handle_downloaded_block({:ok, %BlockApplication{number: 2_000}})
 
-    assert {{:error, :unexpected_block}, _} = state |> Core.handle_downloaded_block({:ok, %Block{number: 3_000}})
+    assert {{:error, :unexpected_block}, _} =
+             state |> Core.handle_downloaded_block({:ok, %BlockApplication{number: 3_000}})
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -100,16 +101,21 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     state_alice_deposit: state_alice_deposit
   } do
     block =
-      Block.hashed_txs_at(
-        [API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])],
-        26_000
-      )
+      [API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])]
+      |> Block.hashed_txs_at(26_000)
 
     state = process_single_block(block)
     synced_height = 2
 
-    assert {[{%{transactions: [tx], zero_fee_requirements: fees}, 2}], _, _, _} =
-             Core.get_blocks_to_apply(state, [%{blknum: block.number, eth_height: synced_height}], synced_height)
+    assert {[
+              %BlockApplication{
+                transactions: [tx],
+                zero_fee_requirements: fees,
+                eth_height: ^synced_height,
+                eth_height_done: true
+              }
+            ], _, _,
+            _} = Core.get_blocks_to_apply(state, [%{blknum: block.number, eth_height: synced_height}], synced_height)
 
     # check feasibility of transactions from block to consume at the API.State
     assert {:ok, tx_result, _} = API.State.Core.exec(state_alice_deposit, tx, fees)
@@ -124,19 +130,17 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     other_currency = <<1::160>>
 
     block =
-      Block.hashed_txs_at(
-        [
-          API.TestHelper.create_recovered([{1, 0, 0, alice}], other_currency, [{bob, 7}, {alice, 3}]),
-          API.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
-        ],
-        26_000
-      )
+      [
+        API.TestHelper.create_recovered([{1, 0, 0, alice}], other_currency, [{bob, 7}, {alice, 3}]),
+        API.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
+      ]
+      |> Block.hashed_txs_at(26_000)
 
     state = process_single_block(block)
 
     synced_height = 2
 
-    assert {[{%{transactions: [_tx1, _tx2], zero_fee_requirements: fees}, _}], _, _, _} =
+    assert {[%BlockApplication{transactions: [_tx1, _tx2], zero_fee_requirements: fees}], _, _, _} =
              Core.get_blocks_to_apply(state, [%{blknum: block.number, eth_height: synced_height}], synced_height)
 
     assert fees == %{@eth => 0, other_currency => 0}
@@ -162,15 +166,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     state = init_state()
 
     block = %Block{
-      Block.hashed_txs_at(
-        [API.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}])],
-        1
-      )
+      Block.hashed_txs_at([API.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}])], 1)
       | hash: matching_bad_returned_hash
     }
 
-    assert {:error, {:incorrect_hash, matching_bad_returned_hash, 0}} ==
-             Core.validate_download_response({:ok, block}, matching_bad_returned_hash, 0, 0, 0)
+    assert {:error, {:incorrect_hash, matching_bad_returned_hash, 1}} ==
+             Core.validate_download_response({:ok, block}, matching_bad_returned_hash, 1, 0, 0)
 
     events = [%Event.InvalidBlock{error_type: :incorrect_hash, hash: matching_bad_returned_hash, blknum: 1}]
 
@@ -185,13 +186,11 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     %Block{hash: hash} =
       block =
-      Block.hashed_txs_at(
-        [
-          API.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}]),
-          API.TestHelper.create_recovered([], @eth, [{alice, 100}])
-        ],
-        1
-      )
+      [
+        API.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}]),
+        API.TestHelper.create_recovered([], @eth, [{alice, 100}])
+      ]
+      |> Block.hashed_txs_at(1)
 
     # a particular API.Core.recover_tx_error instance
     assert {:error, {:no_inputs, hash, 1}} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
@@ -210,10 +209,9 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {:error, {:no_inputs, hash, 1}} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
   end
 
-  test "the blknum is overriden by the requested one" do
+  test "the blknum is checked against the requested one" do
     %Block{hash: hash} = block = Block.hashed_txs_at([], 1)
-
-    assert {:ok, %{number: 2 = _overridden_number}} = Core.validate_download_response({:ok, block}, hash, 2, 0, 0)
+    assert {:error, {:bad_returned_number, ^hash, 2}} = Core.validate_download_response({:ok, block}, hash, 2, 0, 0)
   end
 
   test "handle_downloaded_block function called once with PotentialWithholdingReport doesn't return BlockWithholding event, and get_numbers_of_blocks_to_download function returns this block" do
@@ -246,12 +244,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     init_state(init_opts: [maximum_number_of_pending_blocks: 4, maximum_block_withholding_time_ms: 0])
     |> Core.get_numbers_of_blocks_to_download(20_000)
     |> assert_check([1_000, 2_000, 3_000, 4_000])
-    |> handle_downloaded_block(%Block{number: 1_000})
-    |> handle_downloaded_block(%Block{number: 2_000})
+    |> handle_downloaded_block(%BlockApplication{number: 1_000})
+    |> handle_downloaded_block(%BlockApplication{number: 2_000})
     |> handle_downloaded_block(Core.validate_download_response({:error, :error_reason}, <<>>, 3_000, 0, 0))
     |> Core.get_numbers_of_blocks_to_download(5_000)
     |> assert_check([3_000])
-    |> handle_downloaded_block(%Block{number: 3_000})
+    |> handle_downloaded_block(%BlockApplication{number: 3_000})
     |> Core.get_numbers_of_blocks_to_download(20_000)
     |> assert_check([5_000, 6_000, 7_000])
   end
@@ -260,12 +258,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     init_state(init_opts: [maximum_number_of_pending_blocks: 4, maximum_block_withholding_time_ms: 0])
     |> Core.get_numbers_of_blocks_to_download(20_000)
     |> assert_check([1_000, 2_000, 3_000, 4_000])
-    |> handle_downloaded_block(%Block{number: 1_000})
-    |> handle_downloaded_block(%Block{number: 2_000})
+    |> handle_downloaded_block(%BlockApplication{number: 1_000})
+    |> handle_downloaded_block(%BlockApplication{number: 2_000})
     |> handle_downloaded_block(Core.validate_download_response({:error, :error_reason}, <<>>, 3_000, 0, 0))
     |> Core.get_numbers_of_blocks_to_download(20_000)
     |> assert_check([3_000, 5_000, 6_000])
-    |> handle_downloaded_block(%Block{number: 5_000})
+    |> handle_downloaded_block(%BlockApplication{number: 5_000})
     |> Core.get_numbers_of_blocks_to_download(20_000)
     |> assert_check([7_000])
   end
@@ -299,25 +297,15 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {:ok, []} = init_state() |> Core.consider_exits({:ok, [%Event.InvalidExit{}]}) |> Core.chain_ok()
   end
 
-  # temporarily skipped, see comment in Core.consider_exits
-  @tag :skip
   @tag :capture_log
   test "prevents progressing when unchallenged_exit is detected" do
     assert {:error, []} = init_state() |> Core.consider_exits({{:error, :unchallenged_exit}, []}) |> Core.chain_ok()
   end
 
-  # temporarily skipped, see comment in Core.consider_exits
-  @tag :skip
   @tag :capture_log
   test "prevents applying when started with an unchallenged_exit" do
-    assert {:error, []} = init_state(exit_processor_results: {{:error, :unchallenged_exit}, []}) |> Core.chain_ok()
-  end
-
-  # temporarily _added_ see above
-  @tag :capture_log
-  test "temporarily allows an unchallenged_exit" do
-    assert {:ok, []} = init_state(exit_processor_results: {{:error, :unchallenged_exit}, []}) |> Core.chain_ok()
-    assert {:ok, []} = init_state() |> Core.consider_exits({{:error, :unchallenged_exit}, []}) |> Core.chain_ok()
+    state = init_state(exit_processor_results: {{:error, :unchallenged_exit}, []})
+    assert {:error, []} = Core.chain_ok(state)
   end
 
   test "validate_executions function prevent getter from progressing when invalid block is detected" do
@@ -349,78 +337,35 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     |> assert_check([1_000])
   end
 
-  @tag :capture_log
-  test "figures out the proper synced height on init" do
-    assert 0 == Core.figure_out_exact_sync_height([], 0, 0)
-    assert 0 == Core.figure_out_exact_sync_height([], 0, 10)
-    assert 1 == Core.figure_out_exact_sync_height([], 1, 10)
-    assert 1 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}], 1, 10)
-    assert 100 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 10}], 1, 10)
-
-    assert 100 ==
-             [%{eth_height: 100, blknum: 10}, %{eth_height: 101, blknum: 11}, %{eth_height: 90, blknum: 9}]
-             |> Core.figure_out_exact_sync_height(1, 10)
-  end
-
-  @tag :capture_log
-  test "figures out the proper synced height on init, if there's many submissions per eth height" do
-    # the exact sync height is picked only if it's the youngest submission, otherwise backoff
-    assert 1 == Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 9}, %{eth_height: 100, blknum: 8}], 1, 10)
-
-    assert 99 ==
-             Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 10}, %{eth_height: 100, blknum: 11}], 1, 10)
-
-    assert 100 ==
-             Core.figure_out_exact_sync_height([%{eth_height: 100, blknum: 10}, %{eth_height: 100, blknum: 9}], 1, 10)
-
-    assert 100 ==
-             Core.figure_out_exact_sync_height(
-               [%{eth_height: 100, blknum: 10}, %{eth_height: 101, blknum: 11}, %{eth_height: 100, blknum: 9}],
-               1,
-               10
-             )
-
-    assert 99 ==
-             Core.figure_out_exact_sync_height(
-               [%{eth_height: 100, blknum: 10}, %{eth_height: 101, blknum: 11}, %{eth_height: 100, blknum: 11}],
-               1,
-               10
-             )
-  end
-
   test "applying block updates height" do
     state =
       init_state(synced_height: 0, init_opts: [maximum_number_of_pending_blocks: 5])
       |> Core.get_numbers_of_blocks_to_download(4_000)
       |> assert_check([1_000, 2_000, 3_000])
-      |> handle_downloaded_block(%Block{number: 1_000})
-      |> handle_downloaded_block(%Block{number: 2_000})
-      |> handle_downloaded_block(%Block{number: 3_000})
+      |> handle_downloaded_block(%BlockApplication{number: 1_000})
+      |> handle_downloaded_block(%BlockApplication{number: 2_000})
+      |> handle_downloaded_block(%BlockApplication{number: 3_000})
 
     synced_height = 2
     next_synced_height = synced_height + 1
 
-    assert {[{_, ^synced_height}, {_, ^synced_height}], 0, [], state} =
+    assert {[application1, application2], 0, [], state} =
              Core.get_blocks_to_apply(
                state,
                [%{blknum: 1_000, eth_height: synced_height}, %{blknum: 2_000, eth_height: synced_height}],
                synced_height
              )
 
-    assert {state, 0, []} = Core.apply_block(state, 1_000)
+    assert {state, 0, []} = Core.apply_block(state, application1)
 
     assert {state, ^synced_height, [{:put, :last_block_getter_eth_height, ^synced_height}]} =
-             Core.apply_block(state, 2_000)
+             Core.apply_block(state, application2)
 
-    assert {[{_, ^next_synced_height}], ^synced_height, [], state} =
-             Core.get_blocks_to_apply(
-               state,
-               [%{blknum: 3_000, eth_height: next_synced_height}],
-               next_synced_height
-             )
+    assert {[application3], ^synced_height, [], state} =
+             Core.get_blocks_to_apply(state, [%{blknum: 3_000, eth_height: next_synced_height}], next_synced_height)
 
     assert {state, ^next_synced_height, [{:put, :last_block_getter_eth_height, ^next_synced_height}]} =
-             Core.apply_block(state, 3_000)
+             Core.apply_block(state, application3)
 
     # weird case when submissions for next_synced_height are now empty
     assert {[], ^next_synced_height, [], ^state} = Core.get_blocks_to_apply(state, [], next_synced_height)
@@ -457,124 +402,106 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       init_state(synced_height: 58, start_block_number: 1_000, init_opts: [maximum_number_of_pending_blocks: 3])
       |> Core.get_numbers_of_blocks_to_download(16_000_000)
       |> assert_check([2_000, 3_000, 4_000])
-      |> handle_downloaded_block(%Block{number: 2_000})
-      |> handle_downloaded_block(%Block{number: 3_000})
-      |> handle_downloaded_block(%Block{number: 4_000})
+      |> handle_downloaded_block(%BlockApplication{number: 2_000})
+      |> handle_downloaded_block(%BlockApplication{number: 3_000})
+      |> handle_downloaded_block(%BlockApplication{number: 4_000})
 
     # coordinator dwells in the past
-    assert {[], 58, [], _} =
-             Core.get_blocks_to_apply(
-               state,
-               take_submissions.({58, 58}),
-               58
-             )
+    assert {[], 58, [], _} = Core.get_blocks_to_apply(state, take_submissions.({58, 58}), 58)
 
     # coordinator allows into the future
-    assert {[{%{number: 2_000}, 59}, {%{number: 3_000}, 60}], 58, [], state_alt} =
+    assert {[application0, application1000], 58, [], state_alt} =
              Core.get_blocks_to_apply(
                state,
                take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 60)),
                60
              )
 
-    assert {_, 59, [{:put, :last_block_getter_eth_height, 59}]} = Core.apply_block(state_alt, 2_000)
-    assert {_, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state_alt, 3_000)
+    assert {_, 59, [{:put, :last_block_getter_eth_height, 59}]} = Core.apply_block(state_alt, application0)
+    assert {_, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state_alt, application1000)
 
     # coordinator on time
-    assert {[{%{number: 2_000}, 59}], 58, [], state} =
+    assert {[^application0], 58, [], state} =
              Core.get_blocks_to_apply(
                state,
                take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 59)),
                59
              )
 
-    assert {state, 59, [{:put, :last_block_getter_eth_height, 59}]} = Core.apply_block(state, 2_000)
+    assert {state, 59, [{:put, :last_block_getter_eth_height, 59}]} = Core.apply_block(state, application0)
 
     state =
       state
       |> Core.get_numbers_of_blocks_to_download(16_000_000)
       |> assert_check([5_000, 6_000, 7_000])
-      |> handle_downloaded_block(%Block{number: 5_000})
-      |> handle_downloaded_block(%Block{number: 6_000})
+      |> handle_downloaded_block(%BlockApplication{number: 5_000})
+      |> handle_downloaded_block(%BlockApplication{number: 6_000})
 
     # coordinator dwells in the past
-    assert {[], 59, [], ^state} =
-             Core.get_blocks_to_apply(
-               state,
-               take_submissions.({59, 59}),
-               59
-             )
+    assert {[], 59, [], ^state} = Core.get_blocks_to_apply(state, take_submissions.({59, 59}), 59)
 
     # coordinator allows into the future
-    assert {[{%{number: 3_000}, 60}, {%{number: 4_000}, 61}, {%{number: 5_000}, 61}], 59, [], state_alt} =
+    assert {[^application1000, application4000, application5000], 59, [], state_alt} =
              Core.get_blocks_to_apply(
                state,
                take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 61)),
                61
              )
 
-    assert {state_alt, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state_alt, 3_000)
-    assert {state_alt, 60, []} = Core.apply_block(state_alt, 4_000)
-    assert {_, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state_alt, 5_000)
+    assert {state_alt, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state_alt, application1000)
+    assert {state_alt, 60, []} = Core.apply_block(state_alt, application4000)
+    assert {_, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state_alt, application5000)
 
     # coordinator on time
-    assert {[{%{number: 3_000}, 60}], 59, [], state} =
+    assert {[^application1000], 59, [], state} =
              Core.get_blocks_to_apply(
                state,
                take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 60)),
                60
              )
 
-    assert {state, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state, 3_000)
+    assert {state, 60, [{:put, :last_block_getter_eth_height, 60}]} = Core.apply_block(state, application1000)
 
     # coordinator dwells in the past
-    assert {[], 60, [], ^state} =
-             Core.get_blocks_to_apply(
-               state,
-               take_submissions.({60, 60}),
-               60
-             )
+    assert {[], 60, [], ^state} = Core.get_blocks_to_apply(state, take_submissions.({60, 60}), 60)
 
     # coordinator allows into the future
-    assert {[{%{number: 4_000}, 61}, {%{number: 5_000}, 61}], 60, [], state_alt} =
+    assert {[^application4000, ^application5000], 60, [], state_alt} =
              Core.get_blocks_to_apply(
                state,
                take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 62)),
                62
              )
 
-    assert {state_alt, 60, []} = Core.apply_block(state_alt, 4_000)
-    assert {_, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state_alt, 5_000)
+    assert {state_alt, 60, []} = Core.apply_block(state_alt, application4000)
+    assert {_, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state_alt, application5000)
 
     # coordinator on time
-    assert {[{%{number: 4_000}, 61}, {%{number: 5_000}, 61}], 60, [], state} =
+    assert {[^application4000, ^application5000], 60, [], state} =
              Core.get_blocks_to_apply(
                state,
                take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 61)),
                61
              )
 
-    assert {state, 60, []} = Core.apply_block(state, 4_000)
-    assert {state, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state, 5_000)
+    assert {state, 60, []} = Core.apply_block(state, application4000)
+    assert {state, 61, [{:put, :last_block_getter_eth_height, 61}]} = Core.apply_block(state, application5000)
 
     # coordinator dwells in the past
-    assert {[], 61, [], ^state} =
-             Core.get_blocks_to_apply(
-               state,
-               take_submissions.({61, 61}),
-               61
-             )
+    assert {[], 61, [], ^state} = Core.get_blocks_to_apply(state, take_submissions.({61, 61}), 61)
 
     # coordinator allows into the future
-    assert {[{%{number: 6_000}, 63}], 61, [], state_alt} =
+    assert {[application6000], 61, [], state_alt} =
              Core.get_blocks_to_apply(
                state,
                take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 63)),
                63
              )
 
-    assert {state_alt, 61, []} = Core.apply_block(state_alt, 6_000)
-    assert {_, 63, [{:put, :last_block_getter_eth_height, 63}]} = Core.apply_block(state_alt, 7_000)
+    application7000 = %BlockApplication{number: 7_000, eth_height: 63, eth_height_done: true}
+
+    assert {state_alt, 61, []} = Core.apply_block(state_alt, application6000)
+    assert {_, 63, [{:put, :last_block_getter_eth_height, 63}]} = Core.apply_block(state_alt, application7000)
 
     # coordinator on time
     assert {[], 62, [{:put, :last_block_getter_eth_height, 62}], state} =
@@ -593,24 +520,25 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
              )
 
     # coordinator allows into the future
-    assert {[{%{number: 6_000}, 63}], 62, [], state_alt} =
+    assert {[^application6000], 62, [], state_alt} =
              Core.get_blocks_to_apply(
                state,
                take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 64)),
                64
              )
 
-    assert {_, 62, []} = Core.apply_block(state_alt, 6_000)
+    assert {_, 62, []} = Core.apply_block(state_alt, application6000)
 
     # coordinator on time
-    assert {[{%{number: 6_000}, 63}], 62, [], state} =
+    assert {[^application6000], 62, [], state} =
              Core.get_blocks_to_apply(
                state,
                take_submissions.(Core.get_eth_range_for_block_submitted_events(state, 63)),
                63
              )
 
-    assert {_, 62, []} = Core.apply_block(state, 6_000)
+    assert {state, 62, []} = Core.apply_block(state, application6000)
+    assert {_, 63, [{:put, :last_block_getter_eth_height, 63}]} = Core.apply_block(state, application7000)
   end
 
   test "gets continous ranges of blocks to apply" do
@@ -618,27 +546,17 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       init_state(synced_height: 0, init_opts: [maximum_number_of_pending_blocks: 5])
       |> Core.get_numbers_of_blocks_to_download(5_000)
       |> assert_check([1_000, 2_000, 3_000, 4_000])
-      |> handle_downloaded_block(%Block{number: 1_000})
-      |> handle_downloaded_block(%Block{number: 3_000})
-      |> handle_downloaded_block(%Block{number: 4_000})
+      |> handle_downloaded_block(%BlockApplication{number: 1_000})
+      |> handle_downloaded_block(%BlockApplication{number: 3_000})
+      |> handle_downloaded_block(%BlockApplication{number: 4_000})
 
-    {[{_, 1}], _, _, state} =
-      Core.get_blocks_to_apply(
-        state,
-        [%{blknum: 1_000, eth_height: 1}, %{blknum: 2_000, eth_height: 2}],
-        2
-      )
+    {[%BlockApplication{eth_height: 1, eth_height_done: true}], _, _, state} =
+      Core.get_blocks_to_apply(state, [%{blknum: 1_000, eth_height: 1}, %{blknum: 2_000, eth_height: 2}], 2)
 
-    state =
-      state
-      |> handle_downloaded_block(%Block{number: 2_000})
+    state = state |> handle_downloaded_block(%BlockApplication{number: 2_000})
 
-    {[{_, 2}], _, _, _} =
-      Core.get_blocks_to_apply(
-        state,
-        [%{blknum: 1_000, eth_height: 1}, %{blknum: 2_000, eth_height: 2}],
-        2
-      )
+    {[%BlockApplication{eth_height: 2, eth_height_done: true}], _, _, _} =
+      Core.get_blocks_to_apply(state, [%{blknum: 1_000, eth_height: 1}, %{blknum: 2_000, eth_height: 2}], 2)
   end
 
   test "do not download blocks when there are too many downloaded blocks not yet applied" do
@@ -651,18 +569,12 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       |> assert_check([1_000, 2_000, 3_000])
       |> Core.get_numbers_of_blocks_to_download(5_000)
       |> assert_check([])
-      |> handle_downloaded_block(%Block{number: 1_000})
+      |> handle_downloaded_block(%BlockApplication{number: 1_000})
       |> Core.get_numbers_of_blocks_to_download(5_000)
       |> assert_check([])
 
     synced_height = 1
-
-    {_, _, _, state} =
-      Core.get_blocks_to_apply(
-        state,
-        [%{blknum: 1_000, eth_height: synced_height}],
-        synced_height
-      )
+    {_, _, _, state} = Core.get_blocks_to_apply(state, [%{blknum: 1_000, eth_height: synced_height}], synced_height)
 
     {_, [4_000]} = Core.get_numbers_of_blocks_to_download(state, 5_000)
   end
@@ -681,14 +593,14 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       init_state(synced_height: 1, start_block_number: 1000)
       |> Core.get_numbers_of_blocks_to_download(5_000)
       |> assert_check([2_000, 3_000, 4_000])
-      |> handle_downloaded_block(%Block{number: 2_000})
+      |> handle_downloaded_block(%BlockApplication{number: 2_000})
 
-    {[{%Block{number: 2_000}, 2}], 1, _, _} =
-      Core.get_blocks_to_apply(
-        state,
-        [%{blknum: 1_000, eth_height: 1}, %{blknum: 2_000, eth_height: 2}],
-        2
-      )
+    submissions = [%{blknum: 1_000, eth_height: 1}, %{blknum: 2_000, eth_height: 2}]
+    {[application], 1, [], state} = Core.get_blocks_to_apply(state, submissions, 2)
+
+    # apply that and see if we won't get the same thing again
+    {state, 2, _} = Core.apply_block(state, application)
+    {[], 2, _, _} = Core.get_blocks_to_apply(state, submissions, 2)
   end
 
   test "an unapplied block appears in an already synced eth block (due to reorg)" do
@@ -696,15 +608,14 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       init_state(synced_height: 2, start_block_number: 1000)
       |> Core.get_numbers_of_blocks_to_download(5_000)
       |> assert_check([2_000, 3_000, 4_000])
-      |> handle_downloaded_block(%Block{number: 2_000})
-      |> handle_downloaded_block(%Block{number: 3_000})
+      |> handle_downloaded_block(%BlockApplication{number: 2_000})
+      |> handle_downloaded_block(%BlockApplication{number: 3_000})
 
-    {[{%Block{number: 2_000}, 1}, {%Block{number: 3_000}, 3}], 2, _, _} =
-      Core.get_blocks_to_apply(
-        state,
-        [%{blknum: 2_000, eth_height: 1}, %{blknum: 3_000, eth_height: 3}],
-        3
-      )
+    {[
+       %BlockApplication{number: 2_000, eth_height: 1, eth_height_done: true},
+       %BlockApplication{number: 3_000, eth_height: 3, eth_height_done: true}
+     ], 2, _,
+     _} = Core.get_blocks_to_apply(state, [%{blknum: 2_000, eth_height: 1}, %{blknum: 3_000, eth_height: 3}], 3)
   end
 
   test "an already applied child chain block appears in a block above synced_height (due to a reorg)" do
@@ -712,14 +623,10 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       init_state(start_block_number: 1_000)
       |> Core.get_numbers_of_blocks_to_download(5_000)
       |> assert_check([2_000, 3_000, 4_000])
-      |> handle_downloaded_block(%Block{number: 2_000})
+      |> handle_downloaded_block(%BlockApplication{number: 2_000})
 
-    {[{%Block{number: 2_000}, 3}], 1, [], _} =
-      Core.get_blocks_to_apply(
-        state,
-        [%{blknum: 1_000, eth_height: 3}, %{blknum: 2_000, eth_height: 3}],
-        3
-      )
+    {[%BlockApplication{number: 2_000, eth_height: 3, eth_height_done: true}], 1, [], _} =
+      Core.get_blocks_to_apply(state, [%{blknum: 1_000, eth_height: 3}, %{blknum: 2_000, eth_height: 3}], 3)
   end
 
   test "apply block with eth_height lower than synced_height" do
@@ -727,16 +634,10 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       init_state(synced_height: 2)
       |> Core.get_numbers_of_blocks_to_download(2_000)
       |> assert_check([1_000])
-      |> handle_downloaded_block(%Block{number: 1_000})
+      |> handle_downloaded_block(%BlockApplication{number: 1_000})
 
-    {[{%Block{number: 1_000}, 1}], 2, [], state} =
-      Core.get_blocks_to_apply(
-        state,
-        [%{blknum: 1_000, eth_height: 1}],
-        3
-      )
-
-    {_, 2, _} = Core.apply_block(state, 1_000)
+    {[application], 2, [], state} = Core.get_blocks_to_apply(state, [%{blknum: 1_000, eth_height: 1}], 3)
+    {_, 1, _} = Core.apply_block(state, application)
   end
 
   test "apply a block that moved forward" do
@@ -747,29 +648,21 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     # block 2_000 first appears at height 3
     {[], 1, [], state} =
-      Core.get_blocks_to_apply(
-        state,
-        [%{blknum: 2_000, eth_height: 3}, %{blknum: 3_000, eth_height: 4}],
-        4
-      )
+      Core.get_blocks_to_apply(state, [%{blknum: 2_000, eth_height: 3}, %{blknum: 3_000, eth_height: 4}], 4)
 
     # download blocks
     state =
       state
-      |> handle_downloaded_block(%Block{number: 2_000})
-      |> handle_downloaded_block(%Block{number: 3_000})
+      |> handle_downloaded_block(%BlockApplication{number: 2_000})
+      |> handle_downloaded_block(%BlockApplication{number: 3_000})
 
     # block then moves forward
-    {[{%Block{number: 2_000}, 4}, {%Block{number: 3_000}, 4}], 1, [], state} =
-      Core.get_blocks_to_apply(
-        state,
-        [%{blknum: 2_000, eth_height: 4}, %{blknum: 3_000, eth_height: 4}],
-        4
-      )
+    {[application1, application2], 1, [], state} =
+      Core.get_blocks_to_apply(state, [%{blknum: 2_000, eth_height: 4}, %{blknum: 3_000, eth_height: 4}], 4)
 
     # the block is applied at height it was first seen
-    {state, 3, _} = Core.apply_block(state, 2_000)
-    {_, 4, _} = Core.apply_block(state, 3_000)
+    {state, 1, _} = Core.apply_block(state, application1)
+    {_, 4, _} = Core.apply_block(state, application2)
   end
 
   test "apply a block that moved backward" do
@@ -780,29 +673,21 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     # block 2_000 first appears at height 3
     {[], 1, [], state} =
-      Core.get_blocks_to_apply(
-        state,
-        [%{blknum: 2_000, eth_height: 3}, %{blknum: 3_000, eth_height: 4}],
-        4
-      )
+      Core.get_blocks_to_apply(state, [%{blknum: 2_000, eth_height: 3}, %{blknum: 3_000, eth_height: 4}], 4)
 
     # download blocks
     state =
       state
-      |> handle_downloaded_block(%Block{number: 2_000})
-      |> handle_downloaded_block(%Block{number: 3_000})
+      |> handle_downloaded_block(%BlockApplication{number: 2_000})
+      |> handle_downloaded_block(%BlockApplication{number: 3_000})
 
     # block then moves backward
-    {[{%Block{number: 2_000}, 2}, {%Block{number: 3_000}, 4}], 1, [], state} =
-      Core.get_blocks_to_apply(
-        state,
-        [%{blknum: 2_000, eth_height: 2}, %{blknum: 3_000, eth_height: 4}],
-        4
-      )
+    {[application1, application2], 1, [], state} =
+      Core.get_blocks_to_apply(state, [%{blknum: 2_000, eth_height: 2}, %{blknum: 3_000, eth_height: 4}], 4)
 
     # the block is applied at updated height
-    {state, 2, _} = Core.apply_block(state, 2_000)
-    {_, 4, _} = Core.apply_block(state, 3_000)
+    {state, 2, _} = Core.apply_block(state, application1)
+    {_, 4, _} = Core.apply_block(state, application2)
   end
 
   test "move forward even though an applied block appears in submissions" do
@@ -811,21 +696,16 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
       |> Core.get_numbers_of_blocks_to_download(3_000)
       |> assert_check([2_000])
 
-    {[], 3, [_], _} =
-      Core.get_blocks_to_apply(
-        state,
-        [%{blknum: 1_000, eth_height: 1}],
-        3
-      )
+    {[], 3, [_], _} = Core.get_blocks_to_apply(state, [%{blknum: 1_000, eth_height: 1}], 3)
   end
 
   test "returns valid eth range" do
-    # properly looks `block_reorg_margin` number of blocks backward
-    state = init_state(synced_height: 100, block_reorg_margin: 10)
+    # properly looks `block_getter_reorg_margin` number of blocks backward
+    state = init_state(synced_height: 100, block_getter_reorg_margin: 10)
     assert {100 - 10, 101} == Core.get_eth_range_for_block_submitted_events(state, 101)
 
     # beginning of the range is no less than 0
-    state = init_state(synced_height: 0, block_reorg_margin: 10)
+    state = init_state(synced_height: 0, block_getter_reorg_margin: 10)
     assert {0, 101} == Core.get_eth_range_for_block_submitted_events(state, 101)
   end
 
@@ -835,7 +715,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
         start_block_number: 0,
         interval: 1_000,
         synced_height: 1,
-        block_reorg_margin: 5,
+        block_getter_reorg_margin: 5,
         state_at_beginning: true,
         exit_processor_results: {:ok, []},
         init_opts: []
@@ -848,7 +728,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
              init_params.start_block_number,
              init_params.interval,
              init_params.synced_height,
-             init_params.block_reorg_margin,
+             init_params.block_getter_reorg_margin,
              nil,
              init_params.state_at_beginning,
              init_params.exit_processor_results,

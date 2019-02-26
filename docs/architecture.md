@@ -42,20 +42,21 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 - reads Ethereum block height from `OMG.Eth`
 - synchronizes view of Ethereum block height of all enrolled processes (see other processes descriptions)
 
-### `:exiter`
+### `:exiter`'s
 
 Actually `OMG.API.EthereumEventListener` setup with `:exiter`.
+**NOTE** there's a multitude of exiter-related processes, which work along these lines, we're not listing them here
 
-- used only in child chain
-- pushes exits to `OMG.API.State` on child chain server's side
-- tracks exits via `OMG.API.RootChainCoordinator`
+- pushes exit-related events to `OMG.API.State` on child chain server's side
+- pushes exit-related events to `OMG.Watcher.ExitProcessor` on watcher's side
+- pushes exit-related events to `WatcherDB`
 
 ### `:depositor`
 
 Actually `OMG.API.EthereumEventListener` setup with `:depositor`.
 
 - pushes deposits to `OMG.API.State`
-- tracks deposits via `OMG.API.RootChainCoordinator`
+- pushes deposits to `WatcherDB`
 
 ### `OMG.API.BlockQueue`
 
@@ -72,13 +73,13 @@ Actually `OMG.API.EthereumEventListener` setup with `:depositor`.
 - pushes decoded and statelessly valid blocks to `OMG.API.State`
 - pushes statefully valid blocks and transactions (acknowledged by `OMG.API.State` above) to `WatcherDB`
 - emits block, transaction, consensus events to `OMG.Watcher.Eventer`
-- talks to `OMG.Watcher.ExitProcessor` to trigger exit validation and see if block getting must stop
+- stops if `OMG.Watcher.ExitProcessor` reports a dangerous byzantine condition related to exits
 
 ### `OMG.Watcher.ExitProcessor`
 
 - get various Ethereum events from `OMG.API.EthereumEventListener`
 - used only in Watcher
-- validates exits and pushes them to `WatcherDB`
+- validates exits
 - emits byzantine events to `OMG.Watcher.Eventer`
 - spends finalizing exits in `OMG.API.State`
 

@@ -17,13 +17,12 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
 
-  alias OMG.API.Crypto
   alias OMG.RPC.Web.Encoding
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
 
-  @eth Crypto.zero_address()
-  @zero_address_hex Crypto.zero_address() |> Encoding.to_hex()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
+  @zero_address_hex OMG.Eth.zero_address() |> Encoding.to_hex()
 
   describe "getting transaction by id" do
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]

@@ -25,6 +25,9 @@ eth = Crypto.zero_address()
 
 {:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
 
+child_chain_url = "localhost:9656"
+watcher_url = "localhost:7434"
+
 ### START DEMO HERE
 
 # sends a deposit transaction _to Ethereum_
@@ -43,7 +46,7 @@ tx =
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
 # use the hex-encoded tx bytes and `transaction.submit` Http-RPC method described in README.md for child chain server
 %{"data" => %{"blknum" => child_tx_block_number, "txindex" => tx_index}} =
-  ~c(echo '{"transaction": "#{tx}"}' | http POST localhost:9656/transaction.submit) |>
+  ~c(echo '{"transaction": "#{tx}"}' | http POST #{child_chain_url}/transaction.submit) |>
   :os.cmd() |>
   Poison.decode!()
 
@@ -57,7 +60,7 @@ in_flight_tx_bytes =
 # get in-flight exit data for tx
 
 %{"data" => get_in_flight_exit_response} =
-  ~c(echo '{"txbytes": "#{in_flight_tx_bytes}"}' | http POST localhost:7434/in_flight_exit.get_data) |>
+  ~c(echo '{"txbytes": "#{in_flight_tx_bytes}"}' | http POST #{watcher_url}/in_flight_exit.get_data) |>
   :os.cmd() |>
   Poison.decode!()
 

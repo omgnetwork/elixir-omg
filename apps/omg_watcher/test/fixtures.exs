@@ -28,7 +28,7 @@ defmodule OMG.Watcher.Fixtures do
   alias OMG.Watcher.DB
   alias Watcher.TestHelper
 
-  @eth OMG.API.Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   deffixture child_chain(contract, fee_file) do
     config_file_path = Briefly.create!(extname: ".exs")

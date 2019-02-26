@@ -13,7 +13,7 @@
 # limitations under the License.
 defmodule OMG.API.RootChainCoordinator do
   @moduledoc """
-  Synchronizes services on root chain height.
+  Synchronizes services on root chain height, see `OMG.API.RootChainCoordinator.Core`
   """
 
   alias OMG.API.RootChainCoordinator.Core
@@ -21,10 +21,14 @@ defmodule OMG.API.RootChainCoordinator do
 
   use OMG.API.LoggerExt
 
-  defmodule SyncData do
+  defmodule SyncGuide do
     @moduledoc """
-     info needed to synchronize 
+    A guiding message to a coordinated service. Tells until which root chain height it is safe to advance syncing to.
+
+    `sync_height` - until where it is safe to process the root chain
+    `root_chain_height` - until where it is safe to pre-fetch and cache the events from the root chain
     """
+
     defstruct [:root_chain_height, :sync_height]
 
     @type t() :: %__MODULE__{
@@ -50,7 +54,7 @@ defmodule OMG.API.RootChainCoordinator do
   @doc """
   Gets Ethereum height that services can synchronize up to.
   """
-  @spec get_sync_info() :: SyncData.t() | :nosync
+  @spec get_sync_info() :: SyncGuide.t() | :nosync
   def get_sync_info do
     GenServer.call(__MODULE__, :get_sync_info)
   end
@@ -59,8 +63,8 @@ defmodule OMG.API.RootChainCoordinator do
 
   def init(configs_services) do
     {:ok, rootchain_height} = Eth.get_ethereum_height()
-    height_sync_interval = Application.fetch_env!(:omg_api, :ethereum_status_check_interval_ms)
-    {:ok, _} = schedule_get_ethereum_height(height_sync_interval)
+    height_check_interval = Application.fetch_env!(:omg_api, :coordinator_eth_height_check_interval_ms)
+    {:ok, _} = schedule_get_ethereum_height(height_check_interval)
     state = Core.init(configs_services, rootchain_height)
 
     configs_services
@@ -72,9 +76,7 @@ defmodule OMG.API.RootChainCoordinator do
 
   def handle_call({:check_in, synced_height, service_name}, {pid, _}, state) do
     _ = Logger.debug("#{inspect(service_name)} checks in on height #{inspect(synced_height)}")
-    {:ok, state, services_to_sync} = Core.check_in(state, pid, synced_height, service_name)
-    _ = length(services_to_sync) > 0 and Logger.debug("Services to sync: #{inspect(services_to_sync)}")
-    request_sync(services_to_sync)
+    {:ok, state} = Core.check_in(state, pid, synced_height, service_name)
     {:reply, :ok, state, 60_000}
   end
 

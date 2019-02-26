@@ -18,6 +18,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   alias OMG.API
   alias OMG.API.Block
   alias OMG.API.State.Transaction
+  alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
 
@@ -42,7 +43,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     @moduledoc false
     defstruct [
       :block_interval,
-      :block_reorg_margin,
+      :block_getter_reorg_margin,
       maximum_number_of_pending_blocks: 10,
       maximum_block_withholding_time_ms: 0,
       maximum_number_of_unapplied_blocks: 50
@@ -70,7 +71,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   defstruct [
-    :eth_height_done_by_blknum,
     :synced_height,
     :last_applied_block,
     :num_of_highest_block_being_downloaded,
@@ -84,13 +84,12 @@ defmodule OMG.Watcher.BlockGetter.Core do
   ]
 
   @type t() :: %__MODULE__{
-          eth_height_done_by_blknum: map(),
           synced_height: pos_integer(),
           last_applied_block: non_neg_integer,
           num_of_highest_block_being_downloaded: non_neg_integer,
           number_of_blocks_being_downloaded: non_neg_integer,
           last_block_persisted_from_prev_run: non_neg_integer,
-          unapplied_blocks: %{non_neg_integer => Block.t()},
+          unapplied_blocks: %{non_neg_integer => BlockApplication.t()},
           potential_block_withholdings: %{
             non_neg_integer => PotentialWithholding.t()
           },
@@ -108,14 +107,14 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @type init_error() :: :not_at_block_beginning
 
   @type validate_download_response_result_t() ::
-          {:ok, Block.t() | PotentialWithholdingReport.t()}
+          {:ok, BlockApplication.t() | PotentialWithholdingReport.t()}
           | {:error, {block_error(), binary(), pos_integer()}}
 
   @doc """
   Initializes a fresh instance of BlockGetter's state, having `block_number` as last consumed child block,
   using `child_block_interval` when progressing from one child block to another,
   `synced_height` as the root chain height up to witch all published blocked were processed
-  and `block_reorg_margin` as number of root chain blocks that may change during an reorg
+  and `block_getter_reorg_margin` as number of root chain blocks that may change during an reorg
 
   Opts can be:
     - `:maximum_number_of_pending_blocks` - how many block should be pulled from the child chain at once (10)
@@ -135,7 +134,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         block_number,
         child_block_interval,
         synced_height,
-        block_reorg_margin,
+        block_getter_reorg_margin,
         last_persisted_block,
         state_at_block_beginning,
         exit_processor_results,
@@ -145,7 +144,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
          true <- opts_valid?(opts) do
       state =
         %__MODULE__{
-          eth_height_done_by_blknum: %{},
           synced_height: synced_height,
           last_applied_block: block_number,
           num_of_highest_block_being_downloaded: block_number,
@@ -156,7 +154,10 @@ defmodule OMG.Watcher.BlockGetter.Core do
           config:
             struct(
               Config,
-              Keyword.merge(opts, block_interval: child_block_interval, block_reorg_margin: block_reorg_margin)
+              Keyword.merge(opts,
+                block_interval: child_block_interval,
+                block_getter_reorg_margin: block_getter_reorg_margin
+              )
             ),
           events: [],
           chain_status: :ok
@@ -184,32 +185,21 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @doc """
   Marks that child chain block published on `blk_eth_height` was processed
   """
-  @spec apply_block(t(), pos_integer()) :: {t(), non_neg_integer(), list()}
-  def apply_block(%__MODULE__{eth_height_done_by_blknum: eth_height_done_by_blknum} = state, applied_block_number) do
-    _ =
-      Logger.debug(
-        "Applied block #{inspect(applied_block_number)}, blknums that finalize eth_heights: #{
-          inspect(state.eth_height_done_by_blknum)
-        }"
-      )
+  @spec apply_block(t(), BlockApplication.t()) :: {t(), non_neg_integer(), list()}
+  def apply_block(%__MODULE__{} = state, %BlockApplication{
+        number: blknum,
+        eth_height: eth_height,
+        eth_height_done: eth_height_done
+      }) do
+    _ = Logger.debug("\##{inspect(blknum)}, from: #{inspect(eth_height)}, eth height done: #{inspect(eth_height_done)}")
 
-    case Map.pop(eth_height_done_by_blknum, applied_block_number) do
-      # not present - this applied child block doesn't wrap up any eth height
-      {nil, _} ->
-        {state, state.synced_height, []}
-
-      # present - we need to mark this eth height as processed
-      {eth_height_done, updated_map} ->
-        # in case of a reorg we do not want to check in with a lower height
-        max_synced_height = max(eth_height_done, state.synced_height)
-
-        state = %{
-          state
-          | synced_height: max_synced_height,
-            eth_height_done_by_blknum: updated_map
-        }
-
-        {state, max_synced_height, [{:put, :last_block_getter_eth_height, max_synced_height}]}
+    if eth_height_done do
+      # final - we need to mark this eth height as processed
+      state = %{state | synced_height: eth_height}
+      {state, eth_height, [{:put, :last_block_getter_eth_height, eth_height}]}
+    else
+      # not final - this applied child block doesn't wrap up any eth height
+      {state, state.synced_height, []}
     end
   end
 
@@ -223,7 +213,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         %__MODULE__{synced_height: synced_height, config: config},
         coordinator_height
       ) do
-    {max(0, synced_height - config.block_reorg_margin), coordinator_height}
+    {max(0, synced_height - config.block_getter_reorg_margin), coordinator_height}
   end
 
   @doc """
@@ -233,32 +223,41 @@ defmodule OMG.Watcher.BlockGetter.Core do
   contained in `block_submitted_events`, published on ethereum height not exceeding `coordinator_height` and not pushed to state before.
   """
   @spec get_blocks_to_apply(t(), list(), non_neg_integer()) ::
-          {list({Block.t(), non_neg_integer()}), non_neg_integer(), list(), t()}
+          {list(BlockApplication.t()), non_neg_integer(), list(), t()}
   def get_blocks_to_apply(
         %__MODULE__{last_applied_block: last_applied} = state,
         block_submitted_events,
         coordinator_height
       ) do
+    # this ensures that we don't take submissions of already applied blocks into account **at all**
     filtered_submissions = block_submitted_events |> Enum.filter(fn %{blknum: blknum} -> blknum > last_applied end)
+
     do_get_blocks_to_apply(state, filtered_submissions, coordinator_height)
   end
 
-  defp do_get_blocks_to_apply(%__MODULE__{synced_height: synced_height} = state, _block_submitted_events, older_height)
-       when older_height <= synced_height do
+  # height served as syncable from the `OMG.API.RootChainCoordinator` is older, nothing we can do about it, so noop
+  defp do_get_blocks_to_apply(
+         %__MODULE__{synced_height: synced_height} = state,
+         _block_submitted_events,
+         coordinator_height
+       )
+       when coordinator_height <= synced_height do
     {[], synced_height, [], state}
   end
 
+  # there are no **non-applied** submissions in the prescribed range of eth-blocks, so let's as much as we can
   defp do_get_blocks_to_apply(%__MODULE__{} = state, [], coordinator_height) do
     db_updates = [{:put, :last_block_getter_eth_height, coordinator_height}]
     {[], coordinator_height, db_updates, %{state | synced_height: coordinator_height}}
   end
 
+  # there are blocks to apply, so let's schedule that. This clause defers advancing the synced_height until apply_block
   defp do_get_blocks_to_apply(
          %__MODULE__{unapplied_blocks: blocks, config: config} = state,
          block_submissions,
          _coordinator_height
        ) do
-    eth_height_done_by_blknum = append_final_blknums(block_submissions, state.eth_height_done_by_blknum)
+    eth_height_done_by_blknum = final_blknums(block_submissions)
 
     block_submissions =
       Enum.into(block_submissions, %{}, fn %{blknum: blknum, eth_height: eth_height} -> {blknum, eth_height} end)
@@ -275,13 +274,17 @@ defmodule OMG.Watcher.BlockGetter.Core do
 
     blocks_to_apply =
       blknums_to_apply
-      |> Enum.map(fn blknum -> {Map.get(blocks, blknum), Map.get(block_submissions, blknum)} end)
+      |> Enum.map(fn blknum ->
+        Map.get(blocks, blknum)
+        |> Map.put(:eth_height, Map.get(block_submissions, blknum))
+        |> Map.put(:eth_height_done, Map.has_key?(eth_height_done_by_blknum, blknum))
+        |> struct!()
+      end)
 
     {blocks_to_apply, state.synced_height, [],
      %{
        state
        | unapplied_blocks: blocks_to_keep,
-         eth_height_done_by_blknum: eth_height_done_by_blknum,
          last_applied_block: last_applied_block
      }}
   end
@@ -289,16 +292,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
   # goes through new submissions and figures out a mapping from blknum to eth_height, where blknum
   # is the **last** child block number submitted at the root chain height it maps to
   # this is later used to sign eth heights off as synced (`apply_block`)
-  defp append_final_blknums(new_submissions, current_eth_height_done_by_blknum) do
+  defp final_blknums(new_submissions) do
     new_submissions
     |> Enum.group_by(fn %{eth_height: eth_height} -> eth_height end, fn %{blknum: blknum} -> blknum end)
     |> Enum.into(%{}, fn {eth_height, blknums} ->
-      [last_blknum | _] = Enum.sort(blknums, &(&1 >= &2))
+      last_blknum = Enum.max(blknums)
       {last_blknum, eth_height}
     end)
-    # merging in this order means that in the case of a reorg the old values are overwritten by the changes
-    # which makes the last_synced_height more accurate
-    |> (&Map.merge(current_eth_height_done_by_blknum, &1)).()
   end
 
   @doc """
@@ -387,7 +387,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
   """
   @spec handle_downloaded_block(
           %__MODULE__{},
-          {:ok, OMG.API.Block.t() | PotentialWithholdingReport.t()} | {:error, {block_error(), binary(), pos_integer()}}
+          {:ok, BlockApplication.t() | PotentialWithholdingReport.t()}
+          | {:error, {block_error(), binary(), pos_integer()}}
         ) ::
           {:ok | {:error, block_error()}, %__MODULE__{}}
           | {:error, :duplicate | :unexpected_block}
@@ -431,13 +432,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
            unapplied_blocks: unapplied_blocks,
            potential_block_withholdings: potential_block_withholdings
          } = state,
-         {:ok, %{number: number} = block}
+         {:ok, %BlockApplication{number: number} = to_apply}
        ) do
     with true <- not_queued_up_yet?(number, unapplied_blocks) || {{:error, :duplicate}, state},
          true <- expected_to_queue_up?(number, state) || {{:error, :unexpected_block}, state} do
       state = %{
         state
-        | unapplied_blocks: Map.put(unapplied_blocks, number, block),
+        | unapplied_blocks: Map.put(unapplied_blocks, number, to_apply),
           potential_block_withholdings: Map.delete(potential_block_withholdings, number)
       }
 
@@ -504,47 +505,39 @@ defmodule OMG.Watcher.BlockGetter.Core do
         _time
       ) do
     _ =
-      Logger.info(fn ->
-        short_hash = returned_hash |> Base.encode16() |> Binary.drop(-48)
-        "Validating block \##{inspect(requested_number)} #{short_hash}... with #{inspect(length(transactions))} txs"
+      Logger.debug(fn ->
+        short_hash = returned_hash |> OMG.Eth.Encoding.to_hex() |> Binary.drop(-48)
+
+        "Validating block \##{inspect(requested_number)} #{inspect(short_hash)}... " <>
+          "with #{inspect(length(transactions))} txs"
       end)
 
-    with transaction_decode_results <- Enum.map(transactions, &API.Core.recover_tx/1),
-         nil <- Enum.find(transaction_decode_results, &(!match?({:ok, _}, &1))),
-         transactions <- Enum.map(transaction_decode_results, &elem(&1, 1)),
-         true <- returned_hash == requested_hash || {:error, :bad_returned_hash} do
-      # hash the block yourself and compare
-      %Block{hash: calculated_hash} = Block.hashed_txs_at(transactions, number)
-
-      # we as the Watcher don't care about the fees, so we fix all currencies to require 0 fee
-      zero_fee_requirements = transactions |> Enum.reduce(%{}, &add_zero_fee/2)
-
-      if calculated_hash == requested_hash,
-        do:
-          {:ok,
-           %{
-             transactions: transactions,
-             number: requested_number,
-             hash: returned_hash,
-             timestamp: block_timestamp,
-             zero_fee_requirements: zero_fee_requirements
-           }},
-        else: {:error, {:incorrect_hash, requested_hash, requested_number}}
+    with true <- returned_hash == requested_hash || {:error, :bad_returned_hash},
+         true <- number == requested_number || {:error, :bad_returned_number},
+         {:ok, recovered_txs} <- recover_all_txs(transactions),
+         # hash the block yourself and compare
+         %Block{hash: calculated_hash} = block = Block.hashed_txs_at(recovered_txs, number),
+         true <- calculated_hash == requested_hash || {:error, :incorrect_hash} do
+      {:ok, BlockApplication.new(block, recovered_txs, block_timestamp)}
     else
-      {:error, error_type} ->
-        {:error, {error_type, requested_hash, requested_number}}
+      {:error, reason} -> {:error, {reason, requested_hash, requested_number}}
     end
   end
 
   def validate_download_response({:error, _} = error, requested_hash, requested_number, _block_timestamp, time) do
-    _ =
-      Logger.info(
-        "Detected potential block withholding  #{inspect(error)}, hash: #{inspect(requested_hash |> Base.encode16())}, number: #{
-          inspect(requested_number)
-        }"
-      )
-
+    _ = Logger.info("Potential block withholding #{inspect(error)}, number: \##{inspect(requested_number)}")
     {:ok, %PotentialWithholdingReport{blknum: requested_number, hash: requested_hash, time: time}}
+  end
+
+  defp recover_all_txs(transactions) do
+    transactions
+    |> Enum.reverse()
+    |> Enum.reduce_while({:ok, []}, fn tx, {:ok, recovered_so_far} ->
+      case API.Core.recover_tx(tx) do
+        {:ok, recovered} -> {:cont, {:ok, [recovered | recovered_so_far]}}
+        other -> {:halt, other}
+      end
+    end)
   end
 
   @spec validate_executions(
@@ -578,71 +571,8 @@ defmodule OMG.Watcher.BlockGetter.Core do
   def consider_exits(%__MODULE__{} = state, {:ok, _}), do: state
 
   def consider_exits(%__MODULE__{} = state, {{:error, :unchallenged_exit} = error, _}) do
-    # NOTE: this is the correct implementation of this function `:unchallenged_exit` should set chain to invalid
-    # _ = Logger.warn("Chain invalid when taking exits into account, because of #{inspect(error)}")
-    # set_chain_status(state, :error)
-    #
-    # this is a temporary implementation, which turns this check off, but still prints a more explanatory warning
-    # revert after OMG-405 is properly fixed. Also:
-    #   - revert (2) test skips to bring back testing that this check is functional
-    #   - remove 1 sanity check that checks that this workaround is applied
-    _ = Logger.warn("#{inspect(error)} spotted, but if syncing, it's probably OK. Check status.get after synced")
-    state
-  end
-
-  defp add_zero_fee(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}, fee_map) do
-    raw_tx
-    |> Transaction.get_currencies()
-    |> Enum.into(fee_map, fn currency -> {currency, 0} end)
-  end
-
-  @doc """
-  Given:
-   - a persisted `synced_height` and
-   - the actual child block number from `OMG.API.State`
-  figures out the exact eth height, which we should begin with. Uses a list of block submission event logs,
-  which should contain the `child_top_block_number`'s respective submission.
-
-  This is a workaround for the case where a child block is processed and block number advanced, and eth height isn't.
-  This can be the case when the getter crashes after consuming a child block but before it's recognized as synced.
-
-  In case `submissions` doesn't hold the submission of the `child_top_block_number`, it returns the otherwise
-  persisted `synced_height`
-  """
-  @spec figure_out_exact_sync_height([%{blknum: pos_integer, eth_height: pos_integer}], pos_integer, pos_integer) ::
-          pos_integer
-  def figure_out_exact_sync_height(_, synced_height, 0), do: synced_height
-
-  def figure_out_exact_sync_height(submissions, synced_height, child_top_block_number) do
-    # first get the exact match for the eth_height of top child blknum
-    submissions
-    |> Enum.find(fn %{blknum: blknum} -> blknum == child_top_block_number end)
-    # if it exists - good, if it doesn't - the submission is old and we're probably good
-    |> case do
-      %{eth_height: exact_height} ->
-        # here we need to take into account multiple child submissions in one eth height
-        # we can only treat as synced, if all children blocks have been processed
-        submissions
-        # get all the neighbors of the child block last applied
-        |> Enum.filter(fn %{eth_height: eth_height} -> eth_height == exact_height end)
-        # get the youngest of neighbors. If there are no submissions there, just assume we've found in previous step
-        |> Enum.max_by(fn %{blknum: blknum} -> blknum end)
-        # if it is our last applied child block then the eth height is good to go, otherwise back off by one eth block
-        |> case do
-          %{blknum: ^child_top_block_number} -> exact_height
-          _ -> max(0, exact_height - 1)
-        end
-
-      nil ->
-        _ =
-          Logger.warn(
-            "#{inspect(child_top_block_number)} not found in recent submissions #{
-              inspect(submissions, limit: :infinity)
-            }"
-          )
-
-        synced_height
-    end
+    _ = Logger.warn("Chain invalid when taking exits into account, because of #{inspect(error)}")
+    set_chain_status(state, :error)
   end
 
   @doc """

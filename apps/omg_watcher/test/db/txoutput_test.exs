@@ -18,13 +18,12 @@ defmodule OMG.Watcher.DB.TxOutputTest do
   use OMG.API.Fixtures
 
   alias OMG.API
-  alias OMG.API.Crypto
   alias OMG.API.Utxo
   alias OMG.Watcher.DB
 
   require Utxo
 
-  @eth Crypto.zero_address()
+  @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @tag fixtures: [:initial_blocks]
   test "compose_utxo_exit should return proper proof format" do
