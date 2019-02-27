@@ -30,7 +30,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
   @moduletag :integration
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
-  @moduletag timeout: 120_000
+  @moduletag timeout: 240_000
 
   @tag fixtures: [:watcher_sandbox, :alice, :bob, :child_chain, :token, :alice_deposits]
   test "in-flight exit competitor is detected by watcher",
@@ -182,8 +182,9 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   @tag fixtures: [:watcher_sandbox, :alice, :bob, :child_chain, :token, :alice_deposits]
   test "honest and cooperating users exit in-flight transaction",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
+    Eth.DevHelpers.import_unlock_fund(bob)
+
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
-    exit_period = Application.fetch_env!(:omg_eth, :exit_period_seconds)
 
     %Transaction.Signed{raw_tx: raw_tx} =
       tx = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
@@ -210,17 +211,14 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       OMG.Eth.RootChain.piggyback_in_flight_exit(raw_tx_bytes, 4 + 1, bob.addr)
       |> Eth.DevHelpers.transact_sync!()
 
-    Process.sleep(2 * exit_period + 10)
+    exit_period = Application.fetch_env!(:omg_eth, :exit_period_seconds) * 1_000
+    Process.sleep(2 * exit_period + 5_000)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      OMG.Eth.RootChain.process_exits(@eth, 0, 3, alice.addr) |> Eth.DevHelpers.transact_sync!()
+      OMG.Eth.RootChain.process_exits(@eth, 0, 1, alice.addr) |> Eth.DevHelpers.transact_sync!()
 
-    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
+    Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 10)
 
-    %{in_flight_exits: in_flight_exits} = TestHelper.get_status()
-    assert in_flight_exits == []
-  end
-
-  test "standard exit does not interfere with in-flight exit" do
+    assert %{"in_flight_exits" => []} = TestHelper.success?("/status.get")
   end
 end

@@ -455,7 +455,7 @@ defmodule OMG.Eth.RootChain do
   """
   def get_in_flight_exit_finalizations(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "InFlightExitFinalized(uint192,uint256)"
+    signature = "InFlightExitFinalized(uint192,uint8)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &decode_in_flight_exit_output_finalized/1)}
