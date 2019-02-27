@@ -38,15 +38,4 @@ defmodule OMG.Watcher.Web.View.InFlightExit do
     |> Map.update!(:in_flight_tx_pos, &Utxo.Position.encode/1)
     |> Response.serialize()
   end
-
-  def render("get_input_challenge_data.json", %{response: challenge_data}) do
-    challenge_data
-    |> Response.serialize()
-  end
-
-  def render("get_output_challenge_data.json", %{response: challenge_data}) do
-    challenge_data
-    |> Map.update!(:in_flight_output_pos, &Utxo.Position.encode/1)
-    |> Response.serialize()
-  end
 end
