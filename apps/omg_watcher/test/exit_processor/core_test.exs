@@ -1049,7 +1049,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       comp = Transaction.new([{1, 0, 0}, {1, 2, 1}, {tx_blknum, 0, 0}, {tx_blknum, 0, 1}], [])
       comp_txbytes = Transaction.encode(comp)
-      %{sigs: array_of_sigs} = DevCrypto.sign(tx, [alice.priv, alice.priv, alice.priv, carol.priv])
+      %{sigs: [_, alice_sig | _] = array_of_sigs} = DevCrypto.sign(tx, [alice.priv, alice.priv, alice.priv, carol.priv])
 
       other_ife_event = %{
         call_data: %{in_flight_tx: comp_txbytes, in_flight_tx_sigs: Enum.join(array_of_sigs)},
@@ -1076,8 +1076,26 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0, 1], outputs: [0, 1]}]} =
                invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
 
-      # FIXME: expand the check
-      assert {:ok, _} = Core.get_input_challenge_data(request, state, txbytes, 0)
+      assert {:ok,
+              %{
+                in_flight_input_index: 1,
+                in_flight_txbytes: ^txbytes,
+                spending_txbytes: ^comp_txbytes,
+                spending_input_index: 1,
+                spending_sig: ^alice_sig
+              }} = Core.get_input_challenge_data(request, state, txbytes, 1)
+
+      assert {:ok,
+              %{
+                in_flight_txbytes: ^txbytes,
+                in_flight_output_pos: Utxo.position(^tx_blknum, 0, 0),
+                in_flight_proof: inclusion_proof,
+                spending_txbytes: ^comp_txbytes,
+                spending_input_index: 2,
+                spending_sig: ^alice_sig
+              }} = Core.get_output_challenge_data(request, state, txbytes, 0)
+
+      assert_proof_sound(inclusion_proof)
     end
   end
 
