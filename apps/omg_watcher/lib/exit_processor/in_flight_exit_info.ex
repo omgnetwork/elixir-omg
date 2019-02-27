@@ -64,7 +64,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
           # nil value means that it was not included
           # OR we haven't processed it yet
           # OR we have found and filled this data, but haven't persisted it later
-          tx_seen_in_blocks_at: Utxo.Position.t() | nil,
+          tx_seen_in_blocks_at: {Utxo.Position.t(), inclusion_proof :: binary()} | nil,
           timestamp: non_neg_integer(),
           contract_id: ife_contract_id(),
           oldest_competitor: Utxo.Position.t() | nil,
@@ -182,7 +182,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   @spec get_piggybacked_outputs_positions(t()) :: [Utxo.Position.t()]
   def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: nil}), do: []
 
-  def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: txpos, exit_map: exit_map}) do
+  def get_piggybacked_outputs_positions(%__MODULE__{tx_seen_in_blocks_at: {txpos, _}, exit_map: exit_map}) do
     {_, blknum, txindex, _} = txpos
 
     @outputs_index_range

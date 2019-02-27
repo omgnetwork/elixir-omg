@@ -954,6 +954,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          } do
       {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
+      txbytes = Transaction.encode(tx)
       tx_blknum = 3000
 
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
@@ -975,6 +976,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       }
 
       assert {:ok, []} = invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
+
+      assert {:error, :no_double_spend_on_particular_piggyback} =
+               Core.get_output_challenge_data(exit_processor_request, state, txbytes, 0)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
@@ -985,12 +989,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          } do
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
 
-      %ExitProcessor.Request{
-        blknum_now: 5000,
-        eth_height_now: 5,
-        piggybacked_blocks_result: [:not_found]
-      }
-      |> Core.find_ifes_in_blocks(state)
+      assert %ExitProcessor.Request{utxos_to_check: [], piggybacked_utxos_to_check: []} =
+               %ExitProcessor.Request{eth_height_now: 13, blknum_now: 0}
+               |> Core.determine_ife_input_utxos_existence_to_get(state)
+               |> Core.determine_utxo_existence_to_get(state)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
