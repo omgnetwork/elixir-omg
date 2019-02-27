@@ -394,9 +394,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> List.flatten()
       |> Enum.filter(&Utxo.Position.non_zero?/1)
       |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
-      |> Enum.uniq()
-      |> Enum.sort()
-
+      |> :lists.usort()
 
     %{request | piggybacked_utxos_to_check: piggybacked_output_utxos}
   end
@@ -430,8 +428,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     (ife_outputs_pos ++ ife_inputs_pos ++ standard_exits_pos)
     |> Enum.filter(&Utxo.Position.non_zero?/1)
     |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
-    |> Enum.uniq()
-    |> Enum.sort()
+    |> :lists.usort()
   end
 
   @doc """
@@ -459,7 +456,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         InFlightExitInfo.get_piggybacked_outputs_positions(ife) ++ Transaction.get_inputs(tx)
       end)
       |> only_utxos_checked_and_missing(utxo_exists?)
-      |> Enum.uniq()
+      |> :lists.usort()
 
     %{request | spends_to_get: spends_to_get}
   end
@@ -485,7 +482,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.flat_map(fn %{tx: %Transaction.Signed{raw_tx: tx}} -> Transaction.get_inputs(tx) end)
       |> Enum.filter(&Utxo.Position.non_zero?/1)
       |> only_utxos_checked_and_missing(utxo_exists?)
-      |> Enum.uniq()
+      |> :lists.usort()
 
     %{request | piggybacked_spends_to_get: spends_to_get}
   end
