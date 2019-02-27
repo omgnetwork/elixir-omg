@@ -113,7 +113,7 @@ defmodule OMG.API.EthereumEventListener do
   end
 
   defp schedule_get_events do
-    Application.fetch_env!(:omg_api, :ethereum_status_check_interval_ms)
+    Application.fetch_env!(:omg_api, :ethereum_events_check_interval_ms)
     |> :timer.send_after(self(), :sync)
   end
 end

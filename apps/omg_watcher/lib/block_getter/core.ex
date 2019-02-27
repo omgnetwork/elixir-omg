@@ -191,11 +191,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
         eth_height: eth_height,
         eth_height_done: eth_height_done
       }) do
-    _ =
-      Logger.info(
-        "Applied block: ##{inspect(blknum)}, from eth height: #{inspect(eth_height)}, " <>
-          "eth height done?: #{inspect(eth_height_done)}"
-      )
+    _ = Logger.debug("\##{inspect(blknum)}, from: #{inspect(eth_height)}, eth height done: #{inspect(eth_height_done)}")
 
     if eth_height_done do
       # final - we need to mark this eth height as processed
@@ -509,9 +505,11 @@ defmodule OMG.Watcher.BlockGetter.Core do
         _time
       ) do
     _ =
-      Logger.info(fn ->
-        short_hash = returned_hash |> Base.encode16() |> Binary.drop(-48)
-        "Validating block \##{inspect(requested_number)} #{short_hash}... with #{inspect(length(transactions))} txs"
+      Logger.debug(fn ->
+        short_hash = returned_hash |> OMG.Eth.Encoding.to_hex() |> Binary.drop(-48)
+
+        "Validating block \##{inspect(requested_number)} #{inspect(short_hash)}... " <>
+          "with #{inspect(length(transactions))} txs"
       end)
 
     with true <- returned_hash == requested_hash || {:error, :bad_returned_hash},
@@ -527,13 +525,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   def validate_download_response({:error, _} = error, requested_hash, requested_number, _block_timestamp, time) do
-    _ =
-      Logger.info(
-        "Detected potential block withholding  #{inspect(error)}, hash: #{inspect(requested_hash |> Base.encode16())}, number: #{
-          inspect(requested_number)
-        }"
-      )
-
+    _ = Logger.info("Potential block withholding #{inspect(error)}, number: \##{inspect(requested_number)}")
     {:ok, %PotentialWithholdingReport{blknum: requested_number, hash: requested_hash, time: time}}
   end
 

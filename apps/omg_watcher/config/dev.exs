@@ -43,13 +43,6 @@ config :phoenix, :stacktrace_depth, 20
 config :omg_watcher, OMG.Watcher.DB.Repo,
   adapter: Ecto.Adapters.Postgres,
   pool_size: 10,
-  timeout: 60_000,
-  connect_timeout: 60_000,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
   url: {:system, "DATABASE_URL", "postgres://omisego_dev:omisego_dev@localhost/omisego_dev"},
   loggers: [Appsignal.Ecto, Ecto.LogEntry]
-
-config :omg_watcher,
-  exit_processor_sla_margin: 10,
-  maximum_block_withholding_time_ms: 10_000,
-  exit_finality_margin: 4
