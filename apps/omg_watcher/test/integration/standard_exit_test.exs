@@ -28,7 +28,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   require Utxo
 
   @moduletag :integration
-  @moduletag timeout: 120_000
+  @moduletag timeout: 240_000
 
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -39,7 +39,6 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
     stable_alice_deposits: {deposit_blknum, _}
   } do
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
-    exit_period = Application.fetch_env!(:omg_eth, :exit_period_seconds)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     %{"blknum" => tx_blknum} = TestHelper.submit(tx)
 
@@ -60,7 +59,10 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    Process.sleep(2 * exit_period + 10)
+    exit_period = Application.fetch_env!(:omg_eth, :exit_period_seconds) * 1_000
+    Process.sleep(2 * exit_period + 5_000)
+
+    assert 10 == TestHelper.get_balance(alice.addr, @eth)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       OMG.Eth.RootChain.process_exits(@eth, 0, 1, alice.addr) |> Eth.DevHelpers.transact_sync!()

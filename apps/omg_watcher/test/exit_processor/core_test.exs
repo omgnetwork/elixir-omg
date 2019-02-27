@@ -1576,6 +1576,26 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.determine_spends_to_get(processor)
     end
 
+    @tag fixtures: [:alice, :processor_empty, :transactions]
+    test "by not asking for utxo spends concerning finalized ifes",
+         %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
+      txbytes = Transaction.encode(tx)
+      %{sigs: [signature, _]} = DevCrypto.sign(tx, [alice.priv, <<>>])
+
+      ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
+      # inactive
+      ife_status = {0, @non_zero_exit_id}
+
+      {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
+
+      assert %{spends_to_get: []} =
+               %ExitProcessor.Request{
+                 utxos_to_check: [Utxo.position(1, 0, 0)],
+                 utxo_exists_result: [false]
+               }
+               |> Core.determine_spends_to_get(processor)
+    end
+
     @tag fixtures: [:processor_empty]
     test "by not asking for spends on no ifes",
          %{processor_empty: processor} do

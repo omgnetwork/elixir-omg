@@ -180,6 +180,13 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
         output_exit = %{output_exit | is_finalized: true}
         exit_map = Map.put(exit_map, output_index, output_exit)
         ife = %{ife | exit_map: exit_map}
+
+        is_active =
+          exit_map
+          |> Map.keys()
+          |> Enum.any?(fn output_index -> is_active?(ife, output_index) end)
+
+        ife = %{ife | is_active: is_active}
         {:ok, ife}
     end
   end
