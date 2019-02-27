@@ -50,7 +50,7 @@ defmodule OMG.API.MixProject do
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
       {:omg_rpc, in_umbrella: true},
-      {:sentry, "~> 6.2.0"},
+      {:sentry, "~> 6.4"},
       {:appsignal, "~> 1.0"}
     ]
   end
