@@ -64,11 +64,10 @@ defmodule OMG.Watcher.DB.EthEvent do
       |> DB.Repo.insert()
   end
 
-  @spec insert_exits([OMG.API.State.Core.exit_t()]) :: [{:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}]
+  @spec insert_exits([Utxo.Position.t()]) :: [{:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}]
   def insert_exits(exits) do
     exits
-    |> Enum.map(fn %{utxo_pos: utxo_pos} ->
-      position = Utxo.Position.decode(utxo_pos)
+    |> Enum.map(fn position ->
       {:ok, _} = insert_exit(position)
     end)
   end

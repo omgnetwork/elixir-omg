@@ -20,6 +20,6 @@ config :sentry,
     application: Mix.Project.config()[:app]
   },
   server_name: elem(:inet.gethostname(), 1),
-  included_environments: [:prod, :dev]
+  included_environments: [:prod]
 
 import_config "#{Mix.env()}.exs"

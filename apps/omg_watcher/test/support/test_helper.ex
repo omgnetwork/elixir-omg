@@ -149,37 +149,4 @@ defmodule OMG.Watcher.TestHelper do
 
     decode16(submission_info, ["txhash"])
   end
-
-  def get_input_challenge_data(transaction, input_index) do
-    proof_data =
-      success?("in_flight_exit.get_input_challenge_data", %{
-        txbytes: Encoding.to_hex(transaction),
-        input_index: input_index
-      })
-
-    decode16(proof_data, [
-      "in_flight_txbytes",
-      "in_flight_input_index",
-      "spending_txbytes",
-      "spending_input_index",
-      "spending_sig"
-    ])
-  end
-
-  def get_output_challenge_data(transaction, output_index) do
-    proof_data =
-      success?("in_flight_exit.get_output_challenge_data", %{
-        txbytes: Encoding.to_hex(transaction),
-        output_index: output_index
-      })
-
-    decode16(proof_data, [
-      "in_flight_txbytes",
-      "in_flight_output_pos",
-      "in_flight_proof",
-      "spending_txbytes",
-      "spending_input_index",
-      "spending_sig"
-    ])
-  end
 end

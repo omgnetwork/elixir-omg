@@ -26,16 +26,17 @@ defmodule OMG.API.State.Transaction do
   @max_inputs 4
   @max_outputs 4
 
-  defstruct [:inputs, :outputs]
+  @default_metadata nil
+
+  defstruct [:inputs, :outputs, metadata: @default_metadata]
 
   @type t() :: %__MODULE__{
           inputs: list(input()),
-          outputs: list(output())
+          outputs: list(output()),
+          metadata: binary() | nil
         }
 
   @type currency() :: Crypto.address_t()
-  @type tx_bytes() :: binary()
-  @type tx_hash() :: Crypto.hash_t()
 
   @type input() :: %{
           blknum: non_neg_integer(),
@@ -48,6 +49,12 @@ defmodule OMG.API.State.Transaction do
           currency: currency(),
           amount: non_neg_integer()
         }
+
+  defmacro is_metadata(metadata) do
+    quote do
+      unquote(metadata) == nil or (is_binary(unquote(metadata)) and byte_size(unquote(metadata)) == 32)
+    end
+  end
 
   @doc """
   Creates a new transaction from a list of inputs and a list of outputs.
@@ -62,9 +69,10 @@ defmodule OMG.API.State.Transaction do
   """
   @spec new(
           list({pos_integer, pos_integer, 0 | 1}),
-          list({Crypto.address_t(), currency(), pos_integer})
+          list({Crypto.address_t(), currency(), pos_integer}),
+          binary() | nil
         ) :: t()
-  def new(inputs, outputs) do
+  def new(inputs, outputs, metadata \\ @default_metadata) when is_metadata(metadata) do
     inputs =
       inputs
       |> Enum.map(fn {blknum, txindex, oindex} -> %{blknum: blknum, txindex: txindex, oindex: oindex} end)
@@ -82,14 +90,15 @@ defmodule OMG.API.State.Transaction do
           @max_outputs - Kernel.length(outputs)
         )
 
-    %__MODULE__{inputs: inputs, outputs: outputs}
+    %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
   def account_address?(@zero_address), do: false
   def account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
   def account_address?(_), do: false
 
-  def reconstruct([inputs_rlp, outputs_rlp]) do
+  def reconstruct([inputs_rlp, outputs_rlp | rest_rlp])
+      when rest_rlp == [] or (is_metadata(hd(rest_rlp)) and length(rest_rlp) == 1) do
     inputs =
       Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
         %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
@@ -105,10 +114,13 @@ defmodule OMG.API.State.Transaction do
 
     if error = Enum.find(outputs, &match?({:error, _}, &1)),
       do: error,
-      else: {:ok, %__MODULE__{inputs: inputs, outputs: outputs}}
+      else: {:ok, %__MODULE__{inputs: inputs, outputs: outputs, metadata: reconstruct_metadata(rest_rlp)}}
   end
 
   def reconstruct(_), do: {:error, :malformed_transaction}
+
+  defp reconstruct_metadata([]), do: nil
+  defp reconstruct_metadata([metadata]) when is_metadata(metadata), do: metadata
 
   defp parse_int(binary), do: :binary.decode_unsigned(binary, :big)
 
@@ -119,15 +131,9 @@ defmodule OMG.API.State.Transaction do
   defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
   defp parse_address(_), do: {:error, :malformed_address}
 
-  @spec decode(tx_bytes()) :: {:ok, t()} | {:error, atom()}
   def decode(tx_bytes) do
     with {:ok, raw_tx_rlp_decoded_chunks} <- try_exrlp_decode(tx_bytes),
          do: reconstruct(raw_tx_rlp_decoded_chunks)
-  end
-
-  def decode!(tx_bytes) do
-    {:ok, tx} = decode(tx_bytes)
-    tx
   end
 
   defp try_exrlp_decode(tx_bytes) do
@@ -136,22 +142,21 @@ defmodule OMG.API.State.Transaction do
     _ -> {:error, :malformed_transaction_rlp}
   end
 
-  @spec encode(t()) :: tx_bytes()
   def encode(transaction) do
-    get_filled_inputs_and_outputs(transaction)
+    get_data_for_rlp(transaction)
     |> ExRLP.encode()
   end
 
-  def get_filled_inputs_and_outputs(%__MODULE__{inputs: inputs, outputs: outputs}),
-    do: [
-      # contract expects 4 inputs and outputs
-      Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
-        List.duplicate([0, 0, 0], 4 - length(inputs)),
-      Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
-        List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs))
-    ]
+  def get_data_for_rlp(%__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}) when is_metadata(metadata),
+    do:
+      [
+        # contract expects 4 inputs and outputs
+        Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
+          List.duplicate([0, 0, 0], 4 - length(inputs)),
+        Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
+          List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs))
+      ] ++ if(metadata, do: [metadata], else: [])
 
-  @spec hash(t()) :: tx_hash()
   def hash(%__MODULE__{} = tx) do
     tx
     |> encode

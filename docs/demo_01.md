@@ -20,7 +20,7 @@ alias OMG.API.Integration.DepositHelper
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
-eth = Crypto.zero_address()
+eth = OMG.Eth.zero_address()
 
 {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
 

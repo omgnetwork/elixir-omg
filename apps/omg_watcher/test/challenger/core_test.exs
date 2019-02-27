@@ -57,28 +57,32 @@ defmodule OMG.Watcher.Challenger.CoreTest do
     spending_block = create_block_with(2000, [tx_spending_1st_utxo, tx_spending_2nd_utxo])
 
     # Assert 1st spend challenge
-    expected_utxo_pos = Utxo.position(1000, 0, 0) |> Utxo.Position.encode()
     expected_txbytes = tx_spending_1st_utxo.raw_tx |> Transaction.encode()
 
     assert %{
-             utxo_pos: ^expected_utxo_pos,
+             exit_id: 424_242_424_242_424_242_424_242_424_242,
              input_index: 1,
              txbytes: ^expected_txbytes,
              sig: alice_signature
-           } = Core.create_challenge(%ExitInfo{owner: alice.addr}, spending_block, Utxo.position(1000, 0, 0))
+           } =
+             Core.create_challenge(
+               %ExitInfo{owner: alice.addr},
+               spending_block,
+               Utxo.position(1000, 0, 0),
+               424_242_424_242_424_242_424_242_424_242
+             )
 
     assert_sig_belongs_to(alice_signature, tx_spending_1st_utxo, alice)
 
     # Assert 2nd spend challenge
-    expected_utxo_pos = Utxo.position(1000, 0, 1) |> Utxo.Position.encode()
     expected_txbytes = tx_spending_2nd_utxo.raw_tx |> Transaction.encode()
 
     assert %{
-             utxo_pos: ^expected_utxo_pos,
+             exit_id: 333,
              input_index: 0,
              txbytes: ^expected_txbytes,
              sig: bob_signature
-           } = Core.create_challenge(%ExitInfo{owner: bob.addr}, spending_block, Utxo.position(1000, 0, 1))
+           } = Core.create_challenge(%ExitInfo{owner: bob.addr}, spending_block, Utxo.position(1000, 0, 1), 333)
 
     assert_sig_belongs_to(bob_signature, tx_spending_2nd_utxo, bob)
   end

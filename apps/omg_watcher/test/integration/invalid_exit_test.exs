@@ -40,18 +40,18 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     stable_alice_deposits: {deposit_blknum, _}
   } do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    %{"blknum" => deposit_blknum} = TestHelper.submit(tx)
+    %{"blknum" => first_tx_blknum, "txhash" => first_txhash} = TestHelper.submit(tx)
 
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    %{"blknum" => tx_blknum, "txhash" => _tx_hash} = TestHelper.submit(tx)
+    tx = API.TestHelper.create_encoded([{first_tx_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    %{"blknum" => second_tx_blknum} = TestHelper.submit(tx)
 
-    IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
+    IntegrationTest.wait_for_block_fetch(second_tx_blknum, @timeout)
 
     %{
       "txbytes" => txbytes,
       "proof" => proof,
       "utxo_pos" => utxo_pos
-    } = TestHelper.get_exit_data(deposit_blknum, 0, 0)
+    } = TestHelper.get_exit_data(first_tx_blknum, 0, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => _eth_height}} =
       Eth.RootChain.start_exit(
@@ -65,15 +65,13 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
 
     # after the notification has been received, a challenged is composed and sent
-    challenge = TestHelper.get_exit_challenge(deposit_blknum, 0, 0)
-    {:ok, exit_id} = Eth.RootChain.get_standard_exit_id(utxo_pos)
-    assert {:ok, {alice.addr, @eth, 10}} == Eth.RootChain.get_standard_exit(exit_id)
+    challenge = TestHelper.get_exit_challenge(first_tx_blknum, 0, 0)
+    {:ok, exit_id} = Eth.RootChain.get_standard_exit_id(first_txhash, 0)
+    assert {:ok, {alice.addr, @eth, 10, utxo_pos}} == Eth.RootChain.get_standard_exit(exit_id)
 
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.challenge_exit(
-        challenge["utxo_pos"],
-        # exit_id,  # TODO: the line above must be changed into this one
-        # as soon as we will use plasma-contract with changes from commit 4d336183f3fd80605ac760e847138e0a02e63a5d
+        challenge["exit_id"],
         challenge["txbytes"],
         challenge["input_index"],
         challenge["sig"],
@@ -81,7 +79,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    assert {:ok, {OMG.Eth.zero_address(), @eth, 0}} == Eth.RootChain.get_standard_exit(exit_id)
+    assert {:ok, {OMG.Eth.zero_address(), @eth, 0, 0}} == Eth.RootChain.get_standard_exit(exit_id)
 
     IntegrationTest.wait_for_byzantine_events([], @timeout)
   end

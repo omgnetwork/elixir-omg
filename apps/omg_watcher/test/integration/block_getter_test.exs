@@ -43,7 +43,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob, :alice_deposits, :token]
   test "get the blocks from child chain after sending a transaction and start exit", %{
-    alice: alice,
+    alice: %{addr: alice_addr} = alice,
     bob: bob,
     token: token,
     alice_deposits: {deposit_blknum, token_deposit_blknum}
@@ -122,8 +122,10 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
 
-    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth, eth_height: exit_eth_height}]} ==
+    assert {:ok, [%{exit_id: exit_id, owner: ^alice_addr, eth_height: ^exit_eth_height}]} =
              Eth.RootChain.get_standard_exits(0, exit_eth_height)
+
+    assert {:ok, {alice_addr, @eth, 7, utxo_pos}} == Eth.RootChain.get_standard_exit(exit_id)
 
     # Here we're waiting for child chain and watcher to process the exits
     deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)

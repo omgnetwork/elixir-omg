@@ -26,7 +26,8 @@ defmodule OMG.API.State.TransactionTest do
   deffixture transaction do
     Transaction.new(
       [{1, 1, 0}, {1, 2, 1}],
-      [{"alicealicealicealice", eth(), 1}, {"carolcarolcarolcarol", eth(), 2}]
+      [{"alicealicealicealice", eth(), 1}, {"carolcarolcarolcarol", eth(), 2}],
+      <<0::256>>
     )
   end
 
@@ -38,16 +39,14 @@ defmodule OMG.API.State.TransactionTest do
 
   @tag fixtures: [:transaction]
   test "transaction hash is correct", %{transaction: transaction} do
-    {:ok, hash_value} = Base.decode16("e0e6fbd41f4909b4e621565fcdf6a0b54921711ff15a23d6cb07f1f87e345a33", case: :lower)
+    {:ok, hash_value} = Base.decode16("09645ee9736332be55eaccf9d08ff572a6fa23e2f6dc2aac42dbf09832d8f60e", case: :lower)
     assert Transaction.hash(transaction) == hash_value
   end
 
   @tag fixtures: [:utxos]
   test "create transaction with different number inputs and oputputs", %{utxos: utxos} do
     # 1 - input, 1 - output
-    transaction = Transaction.new([hd(utxos)], [{"Joe Black", eth(), 99}])
-
-    assert transaction == %Transaction{
+    assert Transaction.new([hd(utxos)], [{"Joe Black", eth(), 99}]) == %Transaction{
              inputs: [%{blknum: 20, txindex: 42, oindex: 1} | List.duplicate(%{blknum: 0, oindex: 0, txindex: 0}, 3)],
              outputs: [
                %{owner: "Joe Black", currency: eth(), amount: 99}
@@ -56,9 +55,7 @@ defmodule OMG.API.State.TransactionTest do
            }
 
     # 1 - input, 2 - outputs
-    transaction = Transaction.new(tl(utxos), [{"Joe Black", eth(), 22}, {"McDuck", eth(), 21}])
-
-    assert transaction == %Transaction{
+    assert Transaction.new(tl(utxos), [{"Joe Black", eth(), 22}, {"McDuck", eth(), 21}]) == %Transaction{
              inputs: [%{blknum: 2, txindex: 21, oindex: 0} | List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 3)],
              outputs: [
                %{owner: "Joe Black", currency: eth(), amount: 22},
@@ -68,9 +65,7 @@ defmodule OMG.API.State.TransactionTest do
            }
 
     # 2 - inputs, 2 - outputs
-    transaction = Transaction.new(utxos, [{"Joe Black", eth(), 53}, {"McDuck", eth(), 90}])
-
-    assert transaction == %Transaction{
+    assert Transaction.new(utxos, [{"Joe Black", eth(), 53}, {"McDuck", eth(), 90}]) == %Transaction{
              inputs: [
                %{blknum: 20, txindex: 42, oindex: 1},
                %{blknum: 2, txindex: 21, oindex: 0} | List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 2)
@@ -83,15 +78,41 @@ defmodule OMG.API.State.TransactionTest do
            }
 
     # 2 - inputs, 0 - outputs
-    transaction = Transaction.new(utxos, [])
-
-    assert transaction == %Transaction{
+    assert Transaction.new(utxos, []) == %Transaction{
              inputs: [
                %{blknum: 20, txindex: 42, oindex: 1},
                %{blknum: 2, txindex: 21, oindex: 0} | List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 2)
              ],
              outputs: List.duplicate(%{owner: @zero_address, currency: eth(), amount: 0}, 4)
            }
+  end
+
+  @tag fixtures: [:utxos]
+  test "create transaction with metadata", %{utxos: utxos} do
+    assert Transaction.new(utxos, [{"Joe Black", eth(), 53}], <<42::256>>) == %Transaction{
+             inputs: [
+               %{blknum: 20, txindex: 42, oindex: 1},
+               %{blknum: 2, txindex: 21, oindex: 0} | List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, 2)
+             ],
+             outputs: [
+               %{owner: "Joe Black", currency: eth(), amount: 53}
+               | List.duplicate(%{owner: @zero_address, currency: eth(), amount: 0}, 3)
+             ],
+             metadata: <<42::256>>
+           }
+  end
+
+  @tag fixtures: [:utxos]
+  test "incorrect metadata", %{utxos: utxos} do
+    # too long metadata
+    assert_raise FunctionClauseError, fn ->
+      Transaction.new(utxos, [%{owner: "Joe Black", currency: eth(), amount: 53}], String.duplicate("0", 90))
+    end
+
+    # incorrect type
+    assert_raise FunctionClauseError, fn ->
+      Transaction.new(utxos, [%{owner: "Joe Black", currency: eth(), amount: 53}], 42)
+    end
   end
 
   @tag fixtures: [:alice, :state_alice_deposit, :bob]
