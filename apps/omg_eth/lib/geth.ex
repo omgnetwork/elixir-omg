@@ -21,7 +21,7 @@ defmodule OMG.Eth.Geth do
   def node_ready do
     case Ethereumex.HttpClient.eth_syncing() do
       {:ok, false} -> :ok
-      {:ok, true} -> {:error, :geth_still_syncing}
+      {:ok, _} -> {:error, :geth_still_syncing}
       {:error, :econnrefused} -> {:error, :geth_not_listening}
     end
   end
