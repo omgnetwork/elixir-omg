@@ -1034,11 +1034,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.determine_ife_blocks_to_get()
     end
 
-    @tag fixtures: [:alice, :bob, :carol, :processor_filled, :transactions, :ife_tx_hashes]
+    @tag fixtures: [:alice, :carol, :processor_filled, :transactions, :ife_tx_hashes]
     test "detects multiple double-spends in single IFE",
          %{
            alice: alice,
-           bob: bob,
            carol: carol,
            processor_filled: state,
            transactions: [tx | _],
@@ -1046,11 +1045,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          } do
       tx_blknum = 3000
       txbytes = Transaction.encode(tx)
-      {:ok, recovered} = DevCrypto.sign(tx, [bob.priv, bob.priv]) |> Transaction.Recovered.recover_from()
+      {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
       comp = Transaction.new([{1, 0, 0}, {1, 2, 1}, {tx_blknum, 0, 0}, {tx_blknum, 0, 1}], [])
       comp_txbytes = Transaction.encode(comp)
-      %{sigs: array_of_sigs} = DevCrypto.sign(tx, [bob.priv, bob.priv, alice.priv, carol.priv])
+      %{sigs: array_of_sigs} = DevCrypto.sign(tx, [alice.priv, alice.priv, alice.priv, carol.priv])
 
       other_ife_event = %{
         call_data: %{in_flight_tx: comp_txbytes, in_flight_tx_sigs: Enum.join(array_of_sigs)},
