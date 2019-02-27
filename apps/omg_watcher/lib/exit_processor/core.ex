@@ -121,10 +121,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     new_exits_kv_pairs =
       new_exits
       |> Enum.zip(exit_contract_statuses)
-      |> Enum.map(fn {%{utxo_pos: utxo_pos} = exit_info, contract_status} ->
-        is_active = parse_contract_exit_status(contract_status)
-        map_exit_info = exit_info |> Map.delete(:utxo_pos) |> Map.put(:is_active, is_active)
-        {Utxo.Position.decode(utxo_pos), struct!(ExitInfo, map_exit_info)}
+      |> Enum.map(fn {%{eth_height: eth_height}, {address, token, amount, utxo_pos} = contract_status} ->
+        {Utxo.Position.decode(utxo_pos),
+         %ExitInfo{
+           amount: amount,
+           currency: token,
+           owner: address,
+           is_active: parse_contract_exit_status(contract_status),
+           eth_height: eth_height
+         }}
       end)
 
     db_updates =
@@ -136,8 +141,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {%{state | exits: Map.merge(exits, new_exits_map)}, db_updates}
   end
 
-  defp parse_contract_exit_status({@zero_address, _contract_token, _contract_amount}), do: false
-  defp parse_contract_exit_status({_contract_owner, _contract_token, _contract_amount}), do: true
+  defp parse_contract_exit_status({@zero_address, _contract_token, _contract_amount, _contract_position}), do: false
+  defp parse_contract_exit_status({_contract_owner, _contract_token, _contract_amount, _contract_position}), do: true
 
   # TODO: syncing problem (look new exits)
   @doc """

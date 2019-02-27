@@ -47,7 +47,8 @@ defmodule OMG.API.Integration.HappyPathTest do
     token: token,
     alice_deposits: {deposit_blknum, token_deposit_blknum}
   } do
-    raw_tx = Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, @eth, 7}, {alice.addr, @eth, 3}])
+    raw_tx = Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, @eth, 7}, {alice.addr, @eth, 3}], <<0::256>>)
+
     tx = raw_tx |> DevCrypto.sign([alice.priv, <<>>]) |> Transaction.Signed.encode()
     # spend the deposit
     assert {:ok, %{"blknum" => spend_child_block}} = submit_transaction(tx)

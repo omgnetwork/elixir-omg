@@ -24,7 +24,7 @@ alias OMG.API.Integration.DepositHelper
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
-eth = Crypto.zero_address()
+eth = OMG.Eth.zero_address()
 
 alice_enc = Crypto.encode_address!(alice.addr)
 bob_enc = Crypto.encode_address!(bob.addr)
@@ -119,13 +119,13 @@ Eth.WaitFor.eth_receipt(txhash)
 {:ok, sig} = OMG.RPC.Web.Encoding.from_hex(challenge["sig"])
 {:ok, txhash} =
   OMG.Eth.RootChain.challenge_exit(
-    challenge["utxo_pos"],
+    challenge["exit_id"],
     txbytes,
     challenge["input_index"],
     sig,
     alice.addr
   )
-{:ok, _} = Eth.WaitFor.eth_receipt(txhash)
+{:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash)
 
 # 4/ let's introduce a delay into the process of getting child block contents from the child chain server
 
