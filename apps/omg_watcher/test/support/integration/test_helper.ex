@@ -69,7 +69,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   def wait_for_exit_processing(exit_eth_height, timeout \\ 5_000) do
     exit_finality = Application.fetch_env!(:omg_watcher, :exit_finality_margin) + 1
     Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + exit_finality, timeout)
-
-    Process.sleep(100)
+    # wait some more to ensure exit is processed
+    Process.sleep(Application.fetch_env!(:omg_api, :ethereum_events_check_interval_ms) * 2)
   end
 end

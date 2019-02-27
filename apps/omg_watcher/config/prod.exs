@@ -23,10 +23,6 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
 # Configure your database
 config :omg_watcher, OMG.Watcher.DB.Repo,
   adapter: Ecto.Adapters.Postgres,
-  # NOTE: taken from :dev env, not sure if appropriate, but this allows reasonable blocks to be written to unoptimized
-  #       Postgres setup
-  timeout: 60_000,
-  connect_timeout: 60_000,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`
   url: {:system, "DATABASE_URL"},
   loggers: [Appsignal.Ecto, Ecto.LogEntry]

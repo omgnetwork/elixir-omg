@@ -64,7 +64,7 @@ defmodule OMG.Watcher.BlockGetter do
            transactions: transactions,
            number: blknum,
            zero_fee_requirements: fees,
-           eth_height: block_rootchain_height
+           eth_height: eth_height
          } = to_apply},
         state
       ) do
@@ -73,12 +73,12 @@ defmodule OMG.Watcher.BlockGetter do
          {:ok, state} <- Core.validate_executions(tx_exec_results, to_apply, state) do
       _ =
         to_apply
-        |> Core.ensure_block_imported_once(block_rootchain_height, state.last_block_persisted_from_prev_run)
+        |> Core.ensure_block_imported_once(eth_height, state.last_block_persisted_from_prev_run)
         |> Enum.each(&DB.Transaction.update_with/1)
 
       state = run_block_download_task(state)
 
-      {:ok, db_updates_from_state} = OMG.API.State.close_block(block_rootchain_height)
+      {:ok, db_updates_from_state} = OMG.API.State.close_block(eth_height)
 
       {state, synced_height, db_updates} = Core.apply_block(state, to_apply)
 
@@ -89,6 +89,12 @@ defmodule OMG.Watcher.BlockGetter do
 
       exit_processor_results = ExitProcessor.check_validity()
       state = Core.consider_exits(state, exit_processor_results)
+
+      _ =
+        Logger.info(
+          "Applied block: \##{inspect(blknum)}, from eth height: #{inspect(eth_height)} " <>
+            "with #{inspect(length(transactions))} txs"
+        )
 
       {:noreply, state}
     else

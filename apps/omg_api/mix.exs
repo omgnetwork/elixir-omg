@@ -24,7 +24,9 @@ defmodule OMG.API.MixProject do
         # we need to be just one block after deposits to never miss exits from deposits
         exiters_finality_margin: 11,
         submission_finality_margin: 20,
-        ethereum_status_check_interval_ms: 6_000,
+        ethereum_events_check_interval_ms: 500,
+        block_queue_eth_height_check_interval_ms: 6_000,
+        coordinator_eth_height_check_interval_ms: 6_000,
         child_block_minimal_enqueue_gap: 1
       ],
       # Add Sentry and Appsignal
@@ -50,7 +52,7 @@ defmodule OMG.API.MixProject do
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
       {:omg_rpc, in_umbrella: true},
-      {:sentry, "~> 6.2.0"},
+      {:sentry, "~> 6.4"},
       {:appsignal, "~> 1.0"}
     ]
   end
