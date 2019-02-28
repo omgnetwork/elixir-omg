@@ -716,6 +716,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
         interval: 1_000,
         synced_height: 1,
         block_getter_reorg_margin: 5,
+        last_persisted_block: nil,
         state_at_beginning: true,
         exit_processor_results: {:ok, []},
         init_opts: []
@@ -729,7 +730,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
              init_params.interval,
              init_params.synced_height,
              init_params.block_getter_reorg_margin,
-             nil,
+             init_params.last_persisted_block,
              init_params.state_at_beginning,
              init_params.exit_processor_results,
              init_params.init_opts
@@ -739,14 +740,14 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
   describe "WatcherDB idempotency:" do
     test "prevents older or block with the same blknum as previously consumed" do
-      last_persisted_block = 3000
+      state = init_state(last_persisted_block: 3000)
 
-      assert [] == Core.ensure_block_imported_once(%Block{number: 2000}, 1, last_persisted_block)
-      assert [] == Core.ensure_block_imported_once(%Block{number: last_persisted_block}, 1, last_persisted_block)
+      assert [] == Core.ensure_block_imported_once(%BlockApplication{number: 2000}, state)
+      assert [] == Core.ensure_block_imported_once(%BlockApplication{number: 3000}, state)
     end
 
     test "allows newer blocks to get consumed" do
-      last_persisted_block = 3000
+      state = init_state(last_persisted_block: 3000)
 
       assert [
                %{
@@ -758,13 +759,14 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
                }
              ] ==
                Core.ensure_block_imported_once(
-                 %{number: 4000, transactions: [], hash: <<0::256>>, timestamp: 0},
-                 1,
-                 last_persisted_block
+                 %BlockApplication{number: 4000, transactions: [], hash: <<0::256>>, timestamp: 0, eth_height: 1},
+                 state
                )
     end
 
     test "do not hold blocks when not properly initialized or DB empty" do
+      state = init_state()
+
       assert [
                %{
                  eth_height: 1,
@@ -775,9 +777,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
                }
              ] ==
                Core.ensure_block_imported_once(
-                 %{number: 4000, transactions: [], hash: <<0::256>>, timestamp: 0},
-                 1,
-                 nil
+                 %BlockApplication{number: 4000, transactions: [], hash: <<0::256>>, timestamp: 0, eth_height: 1},
+                 state
                )
     end
   end
