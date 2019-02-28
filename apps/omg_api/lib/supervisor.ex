@@ -73,7 +73,7 @@ defmodule OMG.API.Supervisor do
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     :ok = :error_logger.add_report_handler(Sentry.Logger)
-    Supervisor.start_link(children, opts)
+    Supervisor.init(children, opts)
   end
 
   def coordinator_setup do
