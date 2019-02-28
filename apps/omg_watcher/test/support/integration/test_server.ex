@@ -35,7 +35,7 @@ defmodule OMG.Watcher.Integration.TestServer do
   def with_route(%{fake_addr: fake_addr, server_id: server_id} = _context, path, response_block) do
     Application.put_env(:omg_rpc, OMG.RPC.Client, child_chain_url: fake_addr)
     env = EnvAgent.get_env(server_id)
-    EnvAgent.save_env(server_id, %FakeServer.Env{env | routes: [path | env.routes]})
+    _ = EnvAgent.save_env(server_id, %FakeServer.Env{env | routes: [path | env.routes]})
     Server.add_response(server_id, path, response_block)
   end
 

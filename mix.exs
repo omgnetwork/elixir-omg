@@ -13,7 +13,7 @@ defmodule OMG.Umbrella.MixProject do
         "coveralls.detail": :test,
         "coveralls.post": :test,
         "coveralls.html": :test,
-        dialyzer: :prod
+        dialyzer: :test
       ],
       dialyzer: dialyzer(),
       test_coverage: [tool: ExCoveralls],
@@ -25,7 +25,7 @@ defmodule OMG.Umbrella.MixProject do
 
   defp deps do
     [
-      {:dialyxir, "~> 1.0.0-rc.4", only: [:prod], runtime: false},
+      {:dialyxir, "~> 1.0.0-rc.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.10.3", only: [:test], runtime: false},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
@@ -52,17 +52,9 @@ defmodule OMG.Umbrella.MixProject do
 
   defp dialyzer do
     [
-      paths: [
-        "_build/prod/lib/omg_watcher/ebin",
-        "_build/prod/lib/omg_rpc/ebin",
-        "_build/prod/lib/omg_api/ebin",
-        "_build/prod/lib/omg_eth/ebin",
-        "_build/prod/lib/omg_db/ebin"
-      ],
       flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
-      plt_add_deps: :transitive,
-      plt_add_apps: [:mix],
-      ignore_warnings: "dialyzer.ignore-warnings"
+      ignore_warnings: "dialyzer.ignore-warnings",
+      plt_add_apps: [:mix, :iex, :ex_unit, :ranch, :plug, :jason, :cowboy]
     ]
   end
 end
