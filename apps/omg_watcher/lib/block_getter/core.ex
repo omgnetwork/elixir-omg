@@ -583,8 +583,6 @@ defmodule OMG.Watcher.BlockGetter.Core do
   key constraints on WatcherDB.
   """
   @spec ensure_block_imported_once(BlockApplication.t(), t()) :: [OMG.Watcher.DB.Transaction.mined_block()]
-  def ensure_block_imported_once(block, state)
-
   def ensure_block_imported_once(block, %__MODULE__{last_block_persisted_from_prev_run: last_persisted_block}),
     do: do_ensure_block_imported_once(block, last_persisted_block)
 
