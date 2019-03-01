@@ -530,7 +530,6 @@ defmodule OMG.API.State.CoreTest do
     # alternative api of exit_utxos gives the same result and new state
     assert ^exit_utxos_response =
              utxo_pos_exits
-             |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)})
              |> Core.exit_utxos(state)
 
     state_after_exit

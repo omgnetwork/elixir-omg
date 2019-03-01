@@ -81,8 +81,17 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     %{addr: alice} = alice
 
     [
-      %{amount: 10, currency: @eth, owner: alice, utxo_pos: Utxo.Position.encode(@utxo_pos1), eth_height: 2},
-      %{amount: 9, currency: @not_eth, owner: alice, utxo_pos: Utxo.Position.encode(@utxo_pos2), eth_height: 4}
+      %{owner: alice, eth_height: 2, exit_id: 1},
+      %{owner: alice, eth_height: 4, exit_id: 2}
+    ]
+  end
+
+  # extracts the mocked responses of the `Eth.RootChain.get_standard_exit` for the exit events
+  # all exits active (owner non-zero). This is the auxiliary, second argument that's fed into `new_exits`
+  deffixture contract_exit_statuses(alice) do
+    [
+      {alice.addr, @eth, 10, Utxo.Position.encode(@utxo_pos1)},
+      {alice.addr, @not_eth, 9, Utxo.Position.encode(@utxo_pos2)}
     ]
   end
 
@@ -102,13 +111,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       %{call_data: %{in_flight_tx: tx1_bytes, in_flight_tx_sigs: tx1_sigs}, eth_height: 2},
       %{call_data: %{in_flight_tx: tx2_bytes, in_flight_tx_sigs: tx2_sigs}, eth_height: 4}
     ]
-  end
-
-  # extracts the mocked responses of the `Eth.RootChain.get_standard_exit` for the exit events
-  # all exits active (owner non-zero). This is the auxiliary, second argument that's fed into `new_exits`
-  deffixture contract_exit_statuses(exit_events) do
-    exit_events
-    |> Enum.map(fn %{amount: amount, currency: currency, owner: owner} -> {owner, currency, amount} end)
   end
 
   deffixture contract_ife_statuses(in_flight_exit_events) do
@@ -200,28 +202,19 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {^filled, []} = Core.finalize_exits(filled, {[], []})
   end
 
-  @tag fixtures: [:processor_empty, :alice, :state_empty, :exit_events]
+  @tag fixtures: [:processor_empty, :alice, :state_empty, :exit_events, :contract_exit_statuses]
   test "handles invalid exit finalization - doesn't forget and causes a byzantine chain report", %{
     processor_empty: processor,
-    alice: %{
-      addr: alice
-    },
     state_empty: state,
-    exit_events: events
+    exit_events: events,
+    contract_exit_statuses: contract_exit_statuses
   } do
     {processor, _} =
       processor
-      |> Core.new_exits(events, [{alice, @eth, 10}, {@zero_address, @not_eth, 9}])
+      |> Core.new_exits(events, contract_exit_statuses)
 
     # exits invalidly finalize and continue/start emitting events and complain
-    {:ok, {_, _, two_spend}, state_after_spend} =
-      State.Core.exit_utxos(
-        [
-          %{utxo_pos: Utxo.Position.encode(@utxo_pos1)},
-          %{utxo_pos: Utxo.Position.encode(@utxo_pos2)}
-        ],
-        state
-      )
+    {:ok, {_, _, two_spend}, state_after_spend} = State.Core.exit_utxos([@utxo_pos1, @utxo_pos2], state)
 
     # finalizing here - note that without `finalize_exits`, we would just get a single invalid exit event
     # with - we get 3, because we include the invalidly finalized on which will hurt forever
@@ -263,7 +256,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> Core.invalid_exits(processor)
 
     # exit validly finalizes and continues to not emit any events
-    {:ok, {_, _, spends}, _} = State.Core.exit_utxos([%{utxo_pos: Utxo.Position.encode(@utxo_pos3)}], state)
+    {:ok, {_, _, spends}, _} = State.Core.exit_utxos([@utxo_pos3], state)
     assert {processor, [{:delete, :exit_info, {1, 0, 0}}]} = Core.finalize_exits(processor, spends)
 
     assert %ExitProcessor.Request{utxos_to_check: [Utxo.position(1, 3, 0)]} =
@@ -344,7 +337,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     {processor, _} =
       processor
-      |> Core.new_exits([one_exit], [{@zero_address, @eth, 10}])
+      |> Core.new_exits([one_exit], [{@zero_address, @eth, 10, Utxo.Position.encode(@utxo_pos1)}])
 
     assert {:ok, []} =
              %ExitProcessor.Request{eth_height_now: 13, blknum_now: @late_blknum}
@@ -1282,62 +1275,58 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     spending_block = create_block_with(2000, [tx_spending_1st_utxo, tx_spending_2nd_utxo])
 
     # Assert 1st spend challenge
-    expected_utxo_pos = Utxo.position(1000, 0, 0) |> Utxo.Position.encode()
     expected_txbytes = tx_spending_1st_utxo.raw_tx |> Transaction.encode()
 
     assert %{
-             utxo_pos: ^expected_utxo_pos,
+             exit_id: 424_242_424_242_424_242_424_242_424_242,
              input_index: 1,
              txbytes: ^expected_txbytes,
              sig: alice_signature
-           } = Core.create_challenge(%ExitInfo{owner: alice.addr}, spending_block, Utxo.position(1000, 0, 0))
+           } =
+             Core.create_challenge(
+               %ExitInfo{owner: alice.addr},
+               spending_block,
+               Utxo.position(1000, 0, 0),
+               424_242_424_242_424_242_424_242_424_242
+             )
 
     assert_sig_belongs_to(alice_signature, tx_spending_1st_utxo, alice)
 
     # Assert 2nd spend challenge
-    expected_utxo_pos = Utxo.position(1000, 0, 1) |> Utxo.Position.encode()
     expected_txbytes = tx_spending_2nd_utxo.raw_tx |> Transaction.encode()
 
     assert %{
-             utxo_pos: ^expected_utxo_pos,
+             exit_id: 333,
              input_index: 0,
              txbytes: ^expected_txbytes,
              sig: bob_signature
-           } = Core.create_challenge(%ExitInfo{owner: bob.addr}, spending_block, Utxo.position(1000, 0, 1))
+           } = Core.create_challenge(%ExitInfo{owner: bob.addr}, spending_block, Utxo.position(1000, 0, 1), 333)
 
     assert_sig_belongs_to(bob_signature, tx_spending_2nd_utxo, bob)
   end
 
   @tag fixtures: [:alice, :bob]
   test "create challenge based on ife", %{alice: alice, bob: bob} do
-    expected_utxo_pos = Utxo.position(1000, 0, 1) |> Utxo.Position.encode()
     tx = TestHelper.create_signed([{0, 0, 0, alice}, {1000, 0, 1, alice}], @eth, [{bob, 50}, {alice, 50}])
     expected_txbytes = tx.raw_tx |> Transaction.encode()
 
     assert %{
-             utxo_pos: ^expected_utxo_pos,
+             exit_id: 111,
              input_index: 1,
              txbytes: ^expected_txbytes,
              sig: alice_signature
-           } = Core.create_challenge(%ExitInfo{owner: alice.addr}, tx, Utxo.position(1000, 0, 1))
+           } = Core.create_challenge(%ExitInfo{owner: alice.addr}, tx, Utxo.position(1000, 0, 1), 111)
   end
 
-  test "not spent or not existed utxo should be not challengeable" do
-    exit_info = %ExitInfo{owner: "alice"}
-    signed_tx = %Transaction.Signed{signed_tx_bytes: <<1>>}
+  @tag fixtures: [:processor_filled]
+  test "not spent or not existed utxo should be not challengeable", %{
+    processor_filled: processor
+  } do
+    assert {:ok, 1000, exit_info} = Core.get_challange_data({:ok, 1000}, @utxo_pos1, processor)
 
-    assert {:ok, 1000, exit_info} = Core.ensure_challengeable({:ok, 1000}, {:ok, exit_info}, {:ok, :not_found})
+    assert {:error, :utxo_not_spent} = Core.get_challange_data({:ok, :not_found}, Utxo.position(1000, 0, 1), processor)
+    assert {:error, :exit_not_found} = Core.get_challange_data({:ok, 1000}, @utxo_pos3, processor)
 
-    assert {:ok, signed_tx, exit_info} =
-             Core.ensure_challengeable({:ok, :not_found}, {:ok, exit_info}, {:ok, signed_tx})
-
-    assert {:error, :utxo_not_spent} = Core.ensure_challengeable({:ok, :not_found}, {:ok, exit_info}, {:ok, :not_found})
-    assert {:error, :exit_not_found} = Core.ensure_challengeable({:ok, 1000}, {:ok, :not_found}, {:ok, :not_found})
-
-    assert {:error, :db_other_error1} =
-             Core.ensure_challengeable({:error, :db_other_error1}, {:ok, exit_info}, {:ok, :not_found})
-
-    assert {:error, :db_other_error2} =
-             Core.ensure_challengeable({:ok, 1000}, {:error, :db_other_error2}, {:ok, :not_found})
+    assert {:error, :db_other_error1} = Core.get_challange_data({:error, :db_other_error1}, @utxo_pos1, processor)
   end
 end

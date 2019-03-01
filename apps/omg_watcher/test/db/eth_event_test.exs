@@ -70,17 +70,15 @@ defmodule OMG.Watcher.DB.EthEventTest do
     assert [hash1, hash2, hash3] == DB.TxOutput.get_utxos(alice.addr) |> Enum.map(& &1.creating_deposit)
   end
 
-  @tag fixtures: [:initial_blocks, :alice, :bob]
-  test "insert exits: creates exit event and marks utxo as spent", %{alice: alice, bob: bob} do
+  @tag fixtures: [:initial_blocks]
+  test "insert exits: creates exit event and marks utxo as spent" do
     bobs_deposit_pos = Utxo.position(2, 0, 0)
-    bobs_deposit = %{utxo_pos: Utxo.Position.encode(bobs_deposit_pos), token: @eth, owner: bob.addr, amount: 100}
     bobs_deposit_exit_hash = DB.EthEvent.generate_unique_key(bobs_deposit_pos, :exit)
 
     alices_utxo_pos = Utxo.position(3000, 1, 1)
-    alices_utxo = %{utxo_pos: Utxo.Position.encode(alices_utxo_pos), token: @eth, owner: alice.addr, amount: 50}
     alices_utxo_exit_hash = DB.EthEvent.generate_unique_key(alices_utxo_pos, :exit)
 
-    [{:ok, _exit1}, {:ok, _exit2}] = DB.EthEvent.insert_exits([bobs_deposit, alices_utxo])
+    [{:ok, _exit1}, {:ok, _exit2}] = DB.EthEvent.insert_exits([bobs_deposit_pos, alices_utxo_pos])
 
     assert %DB.EthEvent{blknum: 2, txindex: 0, event_type: :exit, hash: ^bobs_deposit_exit_hash} =
              DB.EthEvent.get(bobs_deposit_exit_hash)

@@ -122,10 +122,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     new_exits_kv_pairs =
       new_exits
       |> Enum.zip(exit_contract_statuses)
-      |> Enum.map(fn {%{utxo_pos: utxo_pos} = exit_info, contract_status} ->
-        is_active = parse_contract_exit_status(contract_status)
-        map_exit_info = exit_info |> Map.delete(:utxo_pos) |> Map.put(:is_active, is_active)
-        {Utxo.Position.decode(utxo_pos), struct!(ExitInfo, map_exit_info)}
+      |> Enum.map(fn {%{eth_height: eth_height}, {address, token, amount, utxo_pos} = contract_status} ->
+        {Utxo.Position.decode(utxo_pos),
+         %ExitInfo{
+           amount: amount,
+           currency: token,
+           owner: address,
+           is_active: parse_contract_exit_status(contract_status),
+           eth_height: eth_height
+         }}
       end)
 
     db_updates =
@@ -137,8 +142,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {%{state | exits: Map.merge(exits, new_exits_map)}, db_updates}
   end
 
-  defp parse_contract_exit_status({@zero_address, _contract_token, _contract_amount}), do: false
-  defp parse_contract_exit_status({_contract_owner, _contract_token, _contract_amount}), do: true
+  defp parse_contract_exit_status({@zero_address, _contract_token, _contract_amount, _contract_position}), do: false
+  defp parse_contract_exit_status({_contract_owner, _contract_token, _contract_amount, _contract_position}), do: true
 
   # TODO: syncing problem (look new exits)
   @doc """
@@ -489,12 +494,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
 
     # get exits which are invalid because of being spent in IFEs
-    invalid_exits_based_on_ifes_events =
+    invalid_exit_events =
       get_invalid_exits_based_on_ifes(state)
       |> Enum.map(fn {position, exit_info} -> ExitInfo.make_event_data(Event.InvalidExit, position, exit_info) end)
-
-    invalid_exit_events =
-      invalid_exits_based_on_ifes_events
       |> Enum.concat(non_late_events)
       |> Enum.uniq_by(fn %Event.InvalidExit{utxo_pos: utxo_pos} -> utxo_pos end)
 
@@ -514,7 +516,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @spec get_exit_info(Utxo.Position.t(), t()) :: {:ok, ExitInfo.t()} | {:ok, :not_found}
-  def get_exit_info(Utxo.position(_, _, _) = utxo_exit, %__MODULE__{exits: exits}) do
+  defp get_exit_info(Utxo.position(_, _, _) = utxo_exit, %__MODULE__{exits: exits}) do
     case Map.get(exits, utxo_exit) do
       nil -> {:ok, :not_found}
       exit_info -> {:ok, exit_info}
@@ -522,7 +524,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @spec get_ife_based_on_utxo(Utxo.Position.t(), t()) :: {:ok, Transaction.Signed.t()} | {:ok, :not_found}
-  def get_ife_based_on_utxo(Utxo.position(_, _, _) = utxo_exit, %__MODULE__{} = state) do
+  defp get_ife_based_on_utxo(Utxo.position(_, _, _) = utxo_exit, %__MODULE__{} = state) do
     get_known_txs(state)
     |> Enum.find(fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = tx}} ->
       Enum.member?(Transaction.get_inputs(tx), utxo_exit)
@@ -543,7 +545,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     exits
     |> Enum.filter(fn {utxo_pos, _exit_info} ->
-      Enum.find(exiting_utxo_positions, fn exiting_utxo_pos -> utxo_pos == exiting_utxo_pos end)
+      Enum.find(exiting_utxo_positions, &match?(^utxo_pos, &1))
     end)
   end
 
@@ -828,13 +830,14 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @doc """
   Creates a challenge for exiting utxo based on provided block or transaction.
   """
-  @spec create_challenge(ExitInfo.t(), Block.t() | Transaction.Signed.t(), Utxo.Position.t()) :: Challenge.t()
-  def create_challenge(%ExitInfo{owner: owner}, %Block{} = spending_block, Utxo.position(_, _, _) = utxo_exit) do
+  @spec create_challenge(ExitInfo.t(), Block.t() | Transaction.Signed.t(), Utxo.Position.t(), non_neg_integer) ::
+          Challenge.t()
+  def create_challenge(%ExitInfo{owner: owner}, %Block{} = spending_block, utxo_exit, exit_id) do
     {%Transaction.Signed{raw_tx: challenging_tx} = challenging_signed, input_index} =
       get_spending_transaction_with_index(spending_block, utxo_exit)
 
     %Challenge{
-      utxo_pos: Utxo.Position.encode(utxo_exit),
+      exit_id: exit_id,
       input_index: input_index,
       txbytes: challenging_tx |> Transaction.encode(),
       sig: find_sig(challenging_signed, owner)
@@ -844,13 +847,14 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   def create_challenge(
         %ExitInfo{owner: owner},
         %Transaction.Signed{} = challenging_signed,
-        Utxo.position(_, _, _) = utxo_exit
+        utxo_exit,
+        exit_id
       ) do
     {%Transaction.Signed{raw_tx: challenging_tx}, input_index} =
       get_spending_transaction_with_index(challenging_signed, utxo_exit)
 
     %Challenge{
-      utxo_pos: Utxo.Position.encode(utxo_exit),
+      exit_id: exit_id,
       input_index: input_index,
       txbytes: challenging_tx |> Transaction.encode(),
       sig: find_sig(challenging_signed, owner)
@@ -862,26 +866,34 @@ defmodule OMG.Watcher.ExitProcessor.Core do
    - a block number which can be used to retrieve needed information to challenge or if exists ife which spends inputs
    - the relevant exit information
   """
+  @spec get_challange_data(tuple, Utxo.Position.t(), t()) ::
+          {:ok, pos_integer() | Transaction.Signed.t(), ExitInfo.t()} | {:error, atom()}
+  def get_challange_data(spending_blknum_response, exiting_utxo_pos, %__MODULE__{} = state) do
+    ife_response = get_ife_based_on_utxo(exiting_utxo_pos, state)
+    exit_response = get_exit_info(exiting_utxo_pos, state)
+    ensure_challengeable(spending_blknum_response, exit_response, ife_response)
+  end
+
   @spec ensure_challengeable(tuple(), {:ok, ExitInfo.t() | :not_found}, {:ok, InFlightExitInfo.t() | :not_found}) ::
           {:ok, pos_integer() | Transaction.Signed.t(), ExitInfo.t()} | {:error, atom()}
-  def ensure_challengeable(spending_blknum_response, exit_response, ife_response)
+  defp ensure_challengeable(spending_blknum_response, exit_response, ife_response)
 
-  def ensure_challengeable({:ok, :not_found}, _, {:ok, :not_found}), do: {:error, :utxo_not_spent}
-  def ensure_challengeable(_, {:ok, :not_found}, _), do: {:error, :exit_not_found}
+  defp ensure_challengeable({:ok, :not_found}, _, {:ok, :not_found}), do: {:error, :utxo_not_spent}
+  defp ensure_challengeable(_, {:ok, :not_found}, _), do: {:error, :exit_not_found}
 
-  def ensure_challengeable({:ok, blknum}, {:ok, exit_info}, _) when is_integer(blknum),
+  defp ensure_challengeable({:ok, blknum}, {:ok, exit_info}, _) when is_integer(blknum),
     do: {:ok, blknum, exit_info}
 
-  def ensure_challengeable(_, {:ok, exit_info}, {:ok, %Transaction.Signed{} = signed_tx}),
+  defp ensure_challengeable(_, {:ok, exit_info}, {:ok, %Transaction.Signed{} = signed_tx}),
     do: {:ok, signed_tx, exit_info}
 
-  def ensure_challengeable({:error, error}, _, _), do: {:error, error}
-  def ensure_challengeable(_, {:error, error}, _), do: {:error, error}
-  def ensure_challengeable(_, _, {:error, error}), do: {:error, error}
+  defp ensure_challengeable({:error, error}, _, _), do: {:error, error}
+  defp ensure_challengeable(_, {:error, error}, _), do: {:error, error}
+  defp ensure_challengeable(_, _, {:error, error}), do: {:error, error}
 
   # finds transaction in given block and input index spending given utxo
   @spec get_spending_transaction_with_index(Block.t() | Transaction.Signed.t(), Utxo.Position.t()) ::
-          {Transaction.Signed.t(), non_neg_integer()} | false
+          {Transaction.Signed.t(), non_neg_integer()} | nil
   defp get_spending_transaction_with_index(%Block{transactions: txs}, utxo_pos) do
     txs
     |> Enum.map(&Transaction.Signed.decode/1)
@@ -898,7 +910,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     if input_index = Enum.find_index(inputs, &(&1 == utxo_pos)) do
       {tx_signed, input_index}
     else
-      false
+      nil
     end
   end
 

@@ -21,7 +21,7 @@ alias OMG.Eth.Encoding
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
-eth = Crypto.zero_address()
+eth = OMG.Eth.zero_address()
 
 {:ok, alice_enc} = Eth.DevHelpers.import_unlock_fund(alice)
 

@@ -178,14 +178,10 @@ defmodule OMG.Watcher.ExitProcessor do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized exits: #{inspect(exits)}")
 
     exit_contract_statuses =
-      Enum.map(
-        exits,
-        fn %{utxo_pos: utxo_pos} ->
-          {:ok, exit_id} = Eth.RootChain.get_standard_exit_id(utxo_pos)
-          {:ok, result} = Eth.RootChain.get_standard_exit(exit_id)
-          result
-        end
-      )
+      Enum.map(exits, fn %{exit_id: exit_id} ->
+        {:ok, result} = Eth.RootChain.get_standard_exit(exit_id)
+        result
+      end)
 
     {new_state, db_updates} = Core.new_exits(state, exits, exit_contract_statuses)
     {:reply, {:ok, db_updates}, new_state}
@@ -309,16 +305,15 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, canonicity_result, state}
   end
 
-  def handle_call({:create_challenge, Utxo.position(blknum, _, _) = exiting_utxo_pos}, _from, state) do
-    with spending_blknum_response = OMG.DB.spent_blknum(Utxo.Position.to_db_key(exiting_utxo_pos)),
-         ife_response = Core.get_ife_based_on_utxo(exiting_utxo_pos, state),
-         exit_response = Core.get_exit_info(exiting_utxo_pos, state),
-         {:ok, raw_spending_proof, exit_info} <-
-           Core.ensure_challengeable(spending_blknum_response, exit_response, ife_response) do
+  def handle_call({:create_challenge, Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos}, _from, state) do
+    with spending_blknum_response <- exiting_utxo_pos |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum(),
+         %{txhash: txhash} <- OMG.Watcher.DB.Transaction.get_by_position(blknum, txindex),
+         {:ok, exit_id} <- OMG.Eth.RootChain.get_standard_exit_id(txhash, oindex),
+         {:ok, raw_spending_proof, exit_info} <- Core.get_challange_data(spending_blknum_response, exiting_utxo_pos, state) do
       spending_proof =
         case raw_spending_proof do
-          blknum when is_number(blknum) ->
-            {:ok, hashes} = OMG.DB.block_hashes([blknum])
+          raw_blknum when is_number(raw_blknum) ->
+            {:ok, hashes} = OMG.DB.block_hashes([raw_blknum])
             {:ok, [spending_block]} = OMG.DB.blocks(hashes)
             spending_block
 
@@ -326,7 +321,7 @@ defmodule OMG.Watcher.ExitProcessor do
             signed_tx
         end
 
-      {:reply, {:ok, Core.create_challenge(exit_info, spending_proof, exiting_utxo_pos)}, state}
+      {:reply, {:ok, Core.create_challenge(exit_info, spending_proof, exiting_utxo_pos, exit_id)}, state}
     end
   end
 

@@ -56,8 +56,8 @@ jobs:
           name: Lint
           command: |
             mix do credo, format --check-formatted --dry-run
-  
-  build_and_deploy:
+
+  build_and_deploy_development:
     docker:
       - image: ubuntu:16.04
     working_directory: ~/repo
@@ -83,7 +83,7 @@ jobs:
             gcloud auth activate-service-account --key-file /tmp/gcp_key.json
             gcloud config set project ${GCP_ACCOUNT_ID}
             gcloud config set compute/zone ${GCP_ZONE}
-            gcloud container clusters get-credentials ${GCP_CLUSTER_ID}
+            gcloud container clusters get-credentials ${GCP_CLUSTER_DEVELOPMENT}
       - run:
           name: Build & Deploy Services
           command: |
@@ -93,7 +93,46 @@ jobs:
             docker tag elixir-omg $DOCKER_IMAGE
             docker push jakebunce/elixir-omg:$CIRCLE_SHA1
             kubectl set image statefulset childchain childchain=$DOCKER_IMAGE
-            sleep 120
+            while true; do if [ "$(kubectl get pods childchain-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
+            kubectl set image statefulset watcher watcher=$DOCKER_IMAGE
+
+  build_and_deploy_staging:
+    docker:
+      - image: ubuntu:16.04
+    working_directory: ~/repo
+    steps:
+      - setup_remote_docker
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update && apt-get install -y lsb-release curl
+            curl -sSL https://get.docker.com/ > docker.sh && chmod +x docker.sh && ./docker.sh
+      - run:
+          name: Install gcloud SDK
+          command: |
+            export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
+            echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+            curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+            apt-get update -y && apt-get install -y google-cloud-sdk kubectl
+      - run:
+          name: Initialise & authenticate gcloud SDK
+          command: |
+            echo "${GCP_KEY_FILE}" | base64 --decode >> /tmp/gcp_key.json
+            gcloud auth activate-service-account --key-file /tmp/gcp_key.json
+            gcloud config set project ${GCP_ACCOUNT_ID}
+            gcloud config set compute/zone ${GCP_ZONE}
+            gcloud container clusters get-credentials ${GCP_CLUSTER_STAGING}
+      - run:
+          name: Build & Deploy Services
+          command: |
+            docker build -t elixir-omg .
+            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
+            export DOCKER_IMAGE=jakebunce/elixir-omg:$CIRCLE_SHA1
+            docker tag elixir-omg $DOCKER_IMAGE
+            docker push jakebunce/elixir-omg:$CIRCLE_SHA1
+            kubectl set image statefulset childchain childchain=$DOCKER_IMAGE
+            while true; do if [ "$(kubectl get pods childchain-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
             kubectl set image statefulset watcher watcher=$DOCKER_IMAGE
 
 workflows:
@@ -101,10 +140,17 @@ workflows:
   build-deploy:
     jobs:
       - test-1.8
-      - build_and_deploy:
+      - build_and_deploy_development:
           requires:
             - test-1.8
           filters:
             branches:
-              only: 
+              only:
                 - master
+      - build_and_deploy_staging:
+          requires:
+            - test-1.8
+          filters:
+            branches:
+              only:
+                - v0.1

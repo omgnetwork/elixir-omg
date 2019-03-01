@@ -30,7 +30,6 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @not_eth <<1::size(160)>>
   @zero_address OMG.Eth.zero_address()
 
   @utxo_pos1 Utxo.position(1, 0, 0)
@@ -51,9 +50,13 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   deffixture exits(alice) do
     {[
-       %{amount: 10, currency: @eth, owner: alice.addr, utxo_pos: Utxo.Position.encode(@utxo_pos1), eth_height: 2},
-       %{amount: 9, currency: @not_eth, owner: alice.addr, utxo_pos: Utxo.Position.encode(@utxo_pos2), eth_height: 4}
-     ], [{alice.addr, @eth, 10}, {@zero_address, @eth, 10}]}
+       %{owner: alice.addr, eth_height: 2, exit_id: 1},
+       %{owner: alice.addr, eth_height: 4, exit_id: 2}
+     ],
+     [
+       {alice.addr, @eth, 10, Utxo.Position.encode(@utxo_pos1)},
+       {@zero_address, @eth, 10, Utxo.Position.encode(@utxo_pos2)}
+     ]}
   end
 
   @tag fixtures: [:processor_empty, :exits]
