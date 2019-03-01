@@ -26,8 +26,6 @@ defmodule OMG.API.Supervisor do
   def init(:ok) do
     DeferredConfig.populate(:omg_api)
 
-    DeferredConfig.populate(:omg_api)
-
     children = [
       {OMG.API.State, []},
       {OMG.API.BlockQueue.Server, []},

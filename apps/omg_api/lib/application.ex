@@ -19,9 +19,8 @@ defmodule OMG.API.Application do
   """
 
   use Application
-  alias OMG.API.Supervisor
 
   def start(_type, _args) do
-    Supervisor.start_link()
+    OMG.API.Supervisor.start_link()
   end
 end
