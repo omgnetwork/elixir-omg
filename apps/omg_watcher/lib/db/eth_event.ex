@@ -46,22 +46,25 @@ defmodule OMG.Watcher.DB.EthEvent do
 
   @spec insert_deposit(OMG.API.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   defp insert_deposit(%{blknum: blknum, owner: owner, currency: currency, amount: amount}) do
-    {:ok, _} =
-      %__MODULE__{
-        hash: deposit_key(blknum),
-        blknum: blknum,
-        txindex: 0,
-        event_type: :deposit,
-        created_utxo: %DB.TxOutput{
-          blknum: blknum,
-          txindex: 0,
-          oindex: 0,
-          owner: owner,
-          currency: currency,
-          amount: amount
-        }
-      }
-      |> DB.Repo.insert()
+    if existing_deposit = get(deposit_key(blknum)) != nil,
+      do: {:ok, existing_deposit},
+      else:
+        {:ok, _} =
+          %__MODULE__{
+            hash: deposit_key(blknum),
+            blknum: blknum,
+            txindex: 0,
+            event_type: :deposit,
+            created_utxo: %DB.TxOutput{
+              blknum: blknum,
+              txindex: 0,
+              oindex: 0,
+              owner: owner,
+              currency: currency,
+              amount: amount
+            }
+          }
+          |> DB.Repo.insert()
   end
 
   @spec insert_exits([Utxo.Position.t()]) :: [{:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}]
@@ -74,17 +77,21 @@ defmodule OMG.Watcher.DB.EthEvent do
 
   @spec insert_exit(Utxo.Position.t()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   defp insert_exit(Utxo.position(blknum, txindex, _oindex) = position) do
-    utxo = DB.TxOutput.get_by_position(position)
+    if existing_exit = get(exit_key(position)) != nil do
+      {:ok, existing_exit}
+    else
+      utxo = DB.TxOutput.get_by_position(position)
 
-    {:ok, _} =
-      %__MODULE__{
-        hash: exit_key(position),
-        blknum: blknum,
-        txindex: txindex,
-        event_type: :exit,
-        exited_utxo: utxo
-      }
-      |> DB.Repo.insert()
+      {:ok, _} =
+        %__MODULE__{
+          hash: exit_key(position),
+          blknum: blknum,
+          txindex: txindex,
+          event_type: :exit,
+          exited_utxo: utxo
+        }
+        |> DB.Repo.insert()
+    end
   end
 
   @doc """

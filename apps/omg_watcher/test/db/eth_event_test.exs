@@ -92,4 +92,16 @@ defmodule OMG.Watcher.DB.EthEventTest do
     assert %DB.TxOutput{amount: 50, spending_tx_oindex: nil, spending_exit: ^alices_utxo_exit_hash} =
              DB.TxOutput.get_by_position(alices_utxo_pos)
   end
+
+  @tag fixtures: [:alice, :initial_blocks]
+  test "Writes of deposits and exits are idempotent", %{alice: alice} do
+    # try to insert again existing deposit (from initial_blocks)
+    assert [{:ok, _}] = DB.EthEvent.insert_deposits([%{owner: alice.addr, currency: @eth, amount: 333, blknum: 1}])
+
+    assert [{:ok, _}, {:ok, _}] =
+             DB.EthEvent.insert_exits([
+               Utxo.position(1, 0, 0),
+               Utxo.position(1, 0, 0)
+             ])
+  end
 end
