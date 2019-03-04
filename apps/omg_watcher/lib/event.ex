@@ -14,6 +14,7 @@
 
 defmodule OMG.Watcher.Event do
   alias OMG.API.Block
+  alias OMG.API.Crypto
   alias OMG.API.State.Transaction
 
   @type byzantine_t ::
@@ -24,7 +25,7 @@ defmodule OMG.Watcher.Event do
           | OMG.Watcher.Event.NonCanonicalIFE.t()
           | OMG.Watcher.Event.InvalidIFEChallenge.t()
 
-  @type t :: OMG.Watcher.Event.AddressReceived.t() | byzantine_t()
+  @type t :: OMG.Watcher.Event.AddressReceived.t() | OMG.Watcher.Event.ExitFinalized.t() | byzantine_t()
 
   #  TODO The reason why events have name as String and byzantine events as atom is that
   #  Phoniex websockets requires topics as strings + currently we treat Strings and binaries in
@@ -58,6 +59,22 @@ defmodule OMG.Watcher.Event do
             child_txindex: integer(),
             child_block_hash: Block.block_hash_t(),
             submited_at_ethheight: integer()
+          }
+  end
+
+  defmodule ExitFinalized do
+    @moduledoc """
+    Notifies about finalized exit
+    """
+
+    defstruct [:currency, :amount, :child_blknum, :child_txindex, :child_oindex]
+
+    @type t :: %__MODULE__{
+            currency: Crypto.address_t(),
+            amount: non_neg_integer(),
+            child_blknum: non_neg_integer(),
+            child_txindex: non_neg_integer(),
+            child_oindex: non_neg_integer()
           }
   end
 

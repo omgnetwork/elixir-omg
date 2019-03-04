@@ -194,7 +194,18 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   def handle_call({:finalize_exits, exits}, _from, state) do
-    _ = if not Enum.empty?(exits), do: Logger.info("Recognized finalizations: #{inspect(exits)}")
+    _ =
+      if not Enum.empty?(exits) do
+        Logger.info("Recognized finalizations: #{inspect(exits)}")
+      end
+
+    exits =
+      exits
+      |> Enum.map(fn %{exit_id: exit_id} ->
+        {:ok, {_, _, _, uxo_pos}} = Eth.RootChain.get_standard_exit(exit_id)
+        Utxo.Position.decode(uxo_pos)
+      end)
+
     {:ok, db_updates_from_state, validities} = State.exit_utxos(exits)
     {new_state, db_updates} = Core.finalize_exits(state, validities)
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}

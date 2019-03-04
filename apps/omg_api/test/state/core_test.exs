@@ -506,9 +506,12 @@ defmodule OMG.API.State.CoreTest do
   @tag fixtures: [:alice, :state_alice_deposit]
   test "spends utxo validly when exiting", %{alice: alice, state_alice_deposit: state} do
     # persistence tested in-depth elsewhere
+    amount_1 = 7
+    amount_2 = 3
+
     state =
       state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}]), @zero_fees)
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, amount_1}, {alice, amount_2}]), @zero_fees)
       |> success?
 
     expected_owner = alice.addr
@@ -519,8 +522,8 @@ defmodule OMG.API.State.CoreTest do
 
     assert {:ok,
             {[
-               %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_1}},
-               %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_2}}
+               %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_1, amount: ^amount_1, currency: @eth}},
+               %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_2, amount: ^amount_2, currency: @eth}}
              ], [_ | _], {[^utxo_pos_exit_1, ^utxo_pos_exit_2], []}},
             state_after_exit} =
              exit_utxos_response =

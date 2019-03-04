@@ -18,14 +18,20 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   use OMG.API.Fixtures
   use OMG.API.Integration.Fixtures
   use Plug.Test
+  use Phoenix.ChannelTest
 
   alias OMG.API
+  alias OMG.API.Crypto
   alias OMG.API.Utxo
   alias OMG.Eth
+  alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
+  alias OMG.Watcher.Web.{Channel, Serializer.Response}
 
   require Utxo
+
+  @endpoint OMG.Watcher.Web.Endpoint
 
   @moduletag :integration
   @moduletag timeout: 240_000
@@ -38,6 +44,15 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
     stable_alice: alice,
     stable_alice_deposits: {deposit_blknum, _}
   } do
+    {:ok, encoded_alice_address} = Crypto.encode_address(alice.addr)
+
+    {:ok, _, _socket} =
+      subscribe_and_join(
+        socket(OMG.Watcher.Web.Socket),
+        Channel.Exit,
+        TestHelper.create_topic("exit", encoded_alice_address)
+      )
+
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     %{"blknum" => tx_blknum} = TestHelper.submit(tx)
@@ -62,14 +77,21 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
     exit_period = Application.fetch_env!(:omg_eth, :exit_period_seconds) * 1_000
     Process.sleep(2 * exit_period + 5_000)
 
-    assert 10 == TestHelper.get_balance(alice.addr, @eth)
-
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       OMG.Eth.RootChain.process_exits(@eth, 0, 1, alice.addr) |> Eth.DevHelpers.transact_sync!()
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 1)
 
-    balance_post_exit = TestHelper.get_balance(alice.addr, @eth)
-    assert balance_post_exit == 0
+    expected_event =
+      %Event.ExitFinalized{
+        currency: @eth,
+        amount: 10,
+        child_blknum: tx_blknum,
+        child_txindex: 0,
+        child_oindex: 0
+      }
+      |> Response.sanitize()
+
+    assert_push("exit_finalized", ^expected_event)
   end
 end
