@@ -22,6 +22,6 @@ config :logger, :console,
 config :appsignal, :config,
   name: "OmiseGO Plasma MoreVP Implementation",
   env: Mix.env(),
-  instrumenters: [Appsignal.Phoenix.Instrumenter]
+  active: true
 
 import_config "#{Mix.env()}.exs"
