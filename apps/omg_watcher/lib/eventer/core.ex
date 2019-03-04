@@ -19,9 +19,13 @@ defmodule OMG.Watcher.Eventer.Core do
 
   alias OMG.API.Crypto
   alias OMG.API.State.Transaction
+  alias OMG.API.Utxo
   alias OMG.Watcher.Event
 
+  require OMG.API.Utxo
+
   @transfer_topic "transfer"
+  @exit_topic "exit"
 
   @spec pair_events_with_topics(any() | Event.t()) :: list({String.t(), String.t(), Event.t()})
   def pair_events_with_topics(event_triggers) do
@@ -32,6 +36,27 @@ defmodule OMG.Watcher.Eventer.Core do
   defp get_event_with_topic(%{deposit: _deposit}), do: []
 
   defp get_event_with_topic(%{exit: _exit}), do: []
+
+  defp get_event_with_topic(%{
+         exit_finalized: %{
+           owner: owner,
+           currency: currency,
+           amount: amount,
+           utxo_pos: Utxo.position(blknum, txindex, oindex)
+         }
+       }) do
+    [
+      {create_exit_subtopic(owner), "exit_finalized",
+       struct(Event.ExitFinalized, %{
+         owner: owner,
+         currency: currency,
+         amount: amount,
+         child_blknum: blknum,
+         child_txindex: txindex,
+         child_oindex: oindex
+       })}
+    ]
+  end
 
   defp get_event_with_topic(%{tx: _tx} = event_trigger) do
     get_address_received_events(event_trigger) ++ get_address_spent_events(event_trigger)
@@ -79,6 +104,11 @@ defmodule OMG.Watcher.Eventer.Core do
   defp create_transfer_subtopic(address) do
     {:ok, encoded_address} = Crypto.encode_address(address)
     create_subtopic(@transfer_topic, encoded_address)
+  end
+
+  defp create_exit_subtopic(address) do
+    {:ok, encoded_address} = Crypto.encode_address(address)
+    create_subtopic(@exit_topic, encoded_address)
   end
 
   defp create_subtopic(main_topic, subtopic), do: main_topic <> ":" <> subtopic

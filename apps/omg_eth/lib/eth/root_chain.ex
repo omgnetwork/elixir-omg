@@ -459,7 +459,7 @@ defmodule OMG.Eth.RootChain do
   """
   def get_finalizations(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "ExitFinalized(uint256)"
+    signature = "ExitFinalized(uint192)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &decode_exit_finalized/1)}
@@ -596,7 +596,7 @@ defmodule OMG.Eth.RootChain do
   defp decode_exit_finalized(log) do
     non_indexed_keys = []
     non_indexed_key_types = []
-    indexed_keys = [:utxo_pos]
+    indexed_keys = [:exit_id]
     indexed_keys_types = [{:uint, 256}]
 
     Eth.parse_events_with_indexed_fields(
@@ -619,8 +619,14 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_exit_challenged(log) do
-    # faux-DRY - just leveraging that these events happen to have exactly the same fields/indexings, in current impl.
-    decode_exit_finalized(log)
+    indexed_keys = [:utxo_pos]
+    indexed_keys_types = [{:uint, 256}]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {[], []},
+      {indexed_keys, indexed_keys_types}
+    )
   end
 
   defp decode_in_flight_exit_challenged(log) do

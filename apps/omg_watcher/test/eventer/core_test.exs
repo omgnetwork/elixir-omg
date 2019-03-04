@@ -21,9 +21,12 @@ defmodule OMG.Watcher.Eventer.CoreTest do
 
   alias OMG.API
   alias OMG.API.Crypto
+  alias OMG.API.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.Eventer
   alias OMG.Watcher.TestHelper
+
+  require Utxo
 
   @zero_address OMG.Eth.zero_address()
 
@@ -63,5 +66,22 @@ defmodule OMG.Watcher.Eventer.CoreTest do
     event_2 = {topic, "address_spent", %Event.AddressSpent{tx: recovered_tx}}
 
     assert [event_1, event_2] == Eventer.Core.pair_events_with_topics([%{tx: recovered_tx}])
+  end
+
+  @tag fixtures: [:alice]
+  test "generates proper exit finalized event", %{alice: alice} do
+    event_trigger = %{
+      exit_finalized: %{owner: alice.addr, currency: @zero_address, amount: 7, utxo_pos: Utxo.position(1, 0, 0)}
+    }
+
+    {:ok, encoded_alice_address} = Crypto.encode_address(alice.addr)
+
+    topic = TestHelper.create_topic("exit", encoded_alice_address)
+
+    event =
+      {topic, "exit_finalized",
+       %Event.ExitFinalized{amount: 7, currency: @zero_address, child_blknum: 1, child_txindex: 0, child_oindex: 0}}
+
+    assert [event] == Eventer.Core.pair_events_with_topics([event_trigger])
   end
 end

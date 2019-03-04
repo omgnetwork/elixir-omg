@@ -1223,4 +1223,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       value -> {:ok, value}
     end
   end
+
+  def create_exit_finalized_events(event_triggers) do
+    event_triggers
+    |> Enum.flat_map(fn
+      %{exit: event_data} -> [%{exit_finalized: event_data}]
+      _ -> []
+    end)
+  end
 end

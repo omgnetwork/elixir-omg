@@ -60,7 +60,7 @@ defmodule OMG.API.State do
   end
 
   @spec exit_utxos(utxos :: Core.exiting_utxos_t()) ::
-          {:ok, list(Core.db_update()), Core.validities_t()}
+          {:ok, list(Core.exit_event()), list(Core.db_update()), Core.validities_t()}
   def exit_utxos(utxos) do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
   end
@@ -140,7 +140,7 @@ defmodule OMG.API.State do
 
     EventerAPI.emit_events(event_triggers)
 
-    {:reply, {:ok, db_updates, validities}, new_state}
+    {:reply, {:ok, event_triggers, db_updates, validities}, new_state}
   end
 
   @doc """

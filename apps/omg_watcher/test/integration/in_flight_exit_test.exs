@@ -33,7 +33,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
   @moduletag :integration
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
-  @moduletag timeout: 240_000
+  @moduletag timeout: 180_000
 
   @tag fixtures: [:watcher_sandbox, :alice, :bob, :child_chain]
   test "piggyback in flight exit", %{alice: alice, bob: bob} do

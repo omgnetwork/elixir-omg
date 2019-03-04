@@ -23,6 +23,7 @@ defmodule OMG.Watcher.ExitProcessor do
   NOTE: Note that all calls return `db_updates` and relay on the caller to do persistence.
   """
 
+  alias OMG.API.EventerAPI
   alias OMG.API.State
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
@@ -208,7 +209,22 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:finalize_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized finalizations: #{inspect(exits)}")
-    {:ok, db_updates_from_state, validities} = State.exit_utxos(exits)
+
+    exits =
+      exits
+      |> Enum.map(fn %{exit_id: exit_id} ->
+        {:ok, {_, _, _, utxo_pos}} = Eth.RootChain.get_standard_exit(exit_id)
+        Utxo.Position.decode(utxo_pos)
+      end)
+
+    {:ok, exit_event_triggers, db_updates_from_state, validities} = State.exit_utxos(exits)
+
+    _ = Logger.info("Finalized exits: #{inspect(validities)}")
+
+    exit_event_triggers
+    |> Core.create_exit_finalized_events()
+    |> EventerAPI.emit_events()
+
     {new_state, db_updates} = Core.finalize_exits(state, validities)
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end
