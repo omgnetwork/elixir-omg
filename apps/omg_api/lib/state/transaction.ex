@@ -98,12 +98,25 @@ defmodule OMG.API.State.Transaction do
   def account_address?(_), do: false
 
   def reconstruct([inputs_rlp, outputs_rlp | rest_rlp])
-      when rest_rlp == [] or (is_metadata(hd(rest_rlp)) and length(rest_rlp) == 1) do
-    inputs =
-      Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
-        %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
-      end)
+      when rest_rlp == [] or length(rest_rlp) == 1 do
+    with {:ok, inputs} <- reconstruct_inputs(inputs_rlp),
+         {:ok, outputs} <- reconstruct_outputs(outputs_rlp),
+         {:ok, metadata} <- reconstruct_metadata(rest_rlp),
+         do: {:ok, %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}}
+  end
 
+  def reconstruct(_), do: {:error, :malformed_transaction}
+
+  defp reconstruct_inputs(inputs_rlp) do
+    {:ok,
+     Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
+       %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
+     end)}
+  rescue
+    _ -> {:error, :malformed_inputs}
+  end
+
+  defp reconstruct_outputs(outputs_rlp) do
     outputs =
       Enum.map(outputs_rlp, fn [owner, currency, amount] ->
         with {:ok, cur12} <- parse_address(currency),
@@ -114,13 +127,14 @@ defmodule OMG.API.State.Transaction do
 
     if error = Enum.find(outputs, &match?({:error, _}, &1)),
       do: error,
-      else: {:ok, %__MODULE__{inputs: inputs, outputs: outputs, metadata: reconstruct_metadata(rest_rlp)}}
+      else: {:ok, outputs}
+  rescue
+    _ -> {:error, :malformed_outputs}
   end
 
-  def reconstruct(_), do: {:error, :malformed_transaction}
-
-  defp reconstruct_metadata([]), do: nil
-  defp reconstruct_metadata([metadata]) when is_metadata(metadata), do: metadata
+  defp reconstruct_metadata([]), do: {:ok, nil}
+  defp reconstruct_metadata([metadata]) when is_metadata(metadata), do: {:ok, metadata}
+  defp reconstruct_metadata([_]), do: {:error, :malformed_metadata}
 
   defp parse_int(binary), do: :binary.decode_unsigned(binary, :big)
 

@@ -47,16 +47,18 @@ defmodule OMG.API.CoreTest do
   @tag fixtures: [:alice, :bob]
   test "encoded transaction is corrupt", %{alice: alice, bob: bob} do
     encoded_signed_tx = TestHelper.create_encoded([{1, 2, 3, alice}, {2, 3, 4, bob}], eth(), [{alice, 7}])
-    cropped_size = byte_size(encoded_signed_tx) - 1
 
     malformed1 = encoded_signed_tx <> "a"
-    malformed2 = "A" <> encoded_signed_tx
-    <<_, malformed3::binary>> = encoded_signed_tx
-    <<malformed4::binary-size(cropped_size), _::binary-size(1)>> = encoded_signed_tx
+    assert {:error, :malformed_metadata} = Core.recover_tx(malformed1)
 
-    assert {:error, :malformed_transaction} = Core.recover_tx(malformed1)
+    malformed2 = "A" <> encoded_signed_tx
     assert {:error, :malformed_transaction_rlp} = Core.recover_tx(malformed2)
+
+    <<_, malformed3::binary>> = encoded_signed_tx
     assert {:error, :malformed_transaction_rlp} = Core.recover_tx(malformed3)
+
+    cropped_size = byte_size(encoded_signed_tx) - 1
+    <<malformed4::binary-size(cropped_size), _::binary-size(1)>> = encoded_signed_tx
     assert {:error, :malformed_transaction_rlp} = Core.recover_tx(malformed4)
   end
 
