@@ -51,7 +51,8 @@ defmodule OMG.API.State.Transaction.Signed do
   end
 
   defp reconstruct([sigs | raw_tx_rlp_decoded_chunks], signed_tx_bytes) do
-    with true <- Enum.all?(sigs, &signature_length?/1),
+    with true <- is_list(sigs),
+         true <- Enum.all?(sigs, &signature_length?/1),
          {:ok, raw_tx} <- Transaction.reconstruct(raw_tx_rlp_decoded_chunks) do
       {:ok,
        %__MODULE__{
@@ -60,7 +61,7 @@ defmodule OMG.API.State.Transaction.Signed do
          signed_tx_bytes: signed_tx_bytes
        }}
     else
-      false -> {:error, :bad_signature_length}
+      false -> {:error, :malformed_signatures}
       err -> err
     end
   end

@@ -54,7 +54,7 @@ defmodule OMG.API.CoreTest do
     <<_, malformed3::binary>> = encoded_signed_tx
     <<malformed4::binary-size(cropped_size), _::binary-size(1)>> = encoded_signed_tx
 
-    assert {:error, :malformed_transaction} = Core.recover_tx(malformed1)
+    assert {:error, :malformed_metadata} = Core.recover_tx(malformed1)
     assert {:error, :malformed_transaction_rlp} = Core.recover_tx(malformed2)
     assert {:error, :malformed_transaction_rlp} = Core.recover_tx(malformed3)
     assert {:error, :malformed_transaction_rlp} = Core.recover_tx(malformed4)
