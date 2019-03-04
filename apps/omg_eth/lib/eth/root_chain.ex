@@ -321,6 +321,14 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
+  Based on information from a standard exit started event, will get the encoded utxo position from the contract data
+  """
+  def get_standard_exit_utxo_pos(%{exit_id: exit_id}, contract \\ nil) do
+    {:ok, {_, _, _, position}} = OMG.Eth.RootChain.get_standard_exit(exit_id, contract)
+    position
+  end
+
+  @doc """
   Returns in flight exit for a specific id. Calls contract method.
   """
   def get_in_flight_exit(in_flight_exit_id, contract \\ nil) do

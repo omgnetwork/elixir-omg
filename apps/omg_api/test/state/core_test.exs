@@ -504,6 +504,30 @@ defmodule OMG.API.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :state_alice_deposit]
+  test "exits utxos given in various forms", %{alice: alice, state_alice_deposit: state} do
+    # this test checks whether all ways of calling `exit_utxos/1` work on par
+    # this is _very important_ to support all clients of that functions, whose inputs come in different flavors
+    state =
+      state
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}]), @zero_fees)
+      |> success?
+
+    utxo_pos_exits = [Utxo.position(@blknum1, 0, 0), Utxo.position(@blknum1, 0, 1)]
+
+    exit_utxos_response_reference = utxo_pos_exits |> Core.exit_utxos(state)
+
+    assert exit_utxos_response_reference ==
+             utxo_pos_exits
+             |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)})
+             |> Core.exit_utxos(state)
+
+    assert exit_utxos_response_reference ==
+             utxo_pos_exits
+             |> Enum.map(&Utxo.Position.encode/1)
+             |> Core.exit_utxos(state)
+  end
+
+  @tag fixtures: [:alice, :state_alice_deposit]
   test "spends utxo validly when exiting", %{alice: alice, state_alice_deposit: state} do
     # persistence tested in-depth elsewhere
     state =
@@ -522,15 +546,7 @@ defmodule OMG.API.State.CoreTest do
                %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_1}},
                %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_2}}
              ], [_ | _], {[^utxo_pos_exit_1, ^utxo_pos_exit_2], []}},
-            state_after_exit} =
-             exit_utxos_response =
-             utxo_pos_exits
-             |> Core.exit_utxos(state)
-
-    # alternative api of exit_utxos gives the same result and new state
-    assert ^exit_utxos_response =
-             utxo_pos_exits
-             |> Core.exit_utxos(state)
+            state_after_exit} = Core.exit_utxos(utxo_pos_exits, state)
 
     state_after_exit
     |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), @zero_fees)
