@@ -354,7 +354,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     # go into the future - old exits work the same
     assert {{:error, :unchallenged_exit},
-            [%Event.InvalidExit{utxo_pos: ^exiting_position}, %Event.UnchallengedExit{utxo_pos: ^exiting_position}]} =
+            [%Event.UnchallengedExit{utxo_pos: ^exiting_position}, %Event.InvalidExit{utxo_pos: ^exiting_position}]} =
              %ExitProcessor.Request{eth_height_now: 105, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
@@ -427,7 +427,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Core.new_exits([one_exit], [one_status])
 
     assert {{:error, :unchallenged_exit},
-            [%Event.InvalidExit{utxo_pos: ^exiting_position}, %Event.UnchallengedExit{utxo_pos: ^exiting_position}]} =
+            [%Event.UnchallengedExit{utxo_pos: ^exiting_position}, %Event.InvalidExit{utxo_pos: ^exiting_position}]} =
              %ExitProcessor.Request{eth_height_now: 13, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
@@ -1873,7 +1873,5 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     assert {:error, :utxo_not_spent} = Core.get_challange_data({:ok, :not_found}, Utxo.position(1000, 0, 1), processor)
     assert {:error, :exit_not_found} = Core.get_challange_data({:ok, 1000}, @utxo_pos3, processor)
-
-    assert {:error, :db_other_error1} = Core.get_challange_data({:error, :db_other_error1}, @utxo_pos1, processor)
   end
 end

@@ -359,6 +359,27 @@ defmodule OMG.Watcher.ExitProcessor do
     {state, request}
   end
 
+  def handle_call({:get_input_challenge_data, txbytes, input_index}, _from, state) do
+    response =
+      %ExitProcessor.Request{}
+      |> run_status_gets()
+      |> Core.determine_utxo_existence_to_get(state)
+      |> run_utxo_exists()
+      |> Core.determine_spends_to_get(state)
+      |> run_spend_getting()
+      |> Core.determine_blocks_to_get()
+      |> run_block_getting()
+      |> Core.get_input_challenge_data(state, txbytes, input_index)
+
+    {:reply, response, state}
+  end
+
+  def handle_call({:get_output_challenge_data, txbytes, output_index}, _from, state) do
+    {state1, request} = prepare_validity_check(state)
+    response = Core.get_output_challenge_data(request, state1, txbytes, output_index)
+    {:reply, response, state}
+  end
+
   def handle_call({:create_challenge, Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos}, _from, state) do
     with spending_blknum_response <- exiting_utxo_pos |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum(),
          %{txhash: txhash} <- OMG.Watcher.DB.Transaction.get_by_position(blknum, txindex),

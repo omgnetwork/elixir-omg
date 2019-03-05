@@ -602,8 +602,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     events =
       [
-        invalid_exit_events,
         late_invalid_exits_events,
+        invalid_exit_events,
         invalid_piggybacks,
         late_invalid_piggybacks,
         ifes_with_competitors_events,
@@ -628,21 +628,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     case output_index in 0..(Transaction.max_inputs() - 1) do
       true -> get_piggyback_challenge_data(request, state, txbytes, output_index + 4)
       false -> {:error, :piggybacked_index_out_of_range}
-    end
-  end
-
-  @spec get_piggyback_challenge_data(ExitProcessor.Request.t(), t(), Transaction.Signed.tx_bytes(), 0..7) ::
-          {:ok, input_challenge_data() | output_challenge_data()} | {:error, piggyback_challenge_data_error()}
-  def get_piggyback_challenge_data(
-        request,
-        %__MODULE__{in_flight_exits: ifes} = state,
-        txbytes,
-        pb_index
-      ) do
-    with {:ok, tx} <- Transaction.decode(txbytes),
-         true <- Map.has_key?(ifes, Transaction.hash(tx)) || {:error, :unknown_ife},
-         {:ok, proof} <- produce_invalid_piggyback_proof(request, state, tx, pb_index) do
-      {:ok, proof}
     end
   end
 
@@ -812,6 +797,66 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       Enum.zip([my_indexes, List.duplicate(ktx, length(my_indexes)), utxo_poses, his_indexes])
     end)
     |> Enum.group_by(&elem(&1, 0), &Tuple.delete_at(&1, 0))
+  end
+
+  @spec get_piggyback_challenge_data(ExitProcessor.Request.t(), t(), Transaction.Signed.tx_bytes(), 0..7) ::
+          {:ok, input_challenge_data() | output_challenge_data()} | {:error, piggyback_challenge_data_error()}
+  def get_piggyback_challenge_data(
+        request,
+        %__MODULE__{in_flight_exits: ifes} = state,
+        txbytes,
+        pb_index
+      ) do
+    with {:ok, tx} <- Transaction.decode(txbytes),
+         true <- Map.has_key?(ifes, Transaction.hash(tx)) || {:error, :unknown_ife},
+         {:ok, proof} <- produce_invalid_piggyback_proof(request, state, tx, pb_index) do
+      {:ok, proof}
+    end
+  end
+
+  defp produce_invalid_piggyback_proof(
+         %ExitProcessor.Request{blocks_result: blocks},
+         state,
+         tx,
+         pb_index
+       ) do
+    known_txs = get_known_txs(blocks) ++ get_known_txs(state)
+
+    with {:ok, {ife, _encoded_tx, bad_inputs, bad_outputs, proofs}} <-
+           get_proofs_for_particular_ife(tx, pb_index, known_txs, state),
+         true <-
+           is_piggyback_in_the_list_of_known_doublespends?(pb_index, bad_inputs, bad_outputs) ||
+             {:error, :no_double_spend_on_particular_piggyback} do
+      challenge_data = prepare_piggyback_challenge_proofs(ife, tx, pb_index, proofs)
+      {:ok, hd(challenge_data)}
+    end
+  end
+
+  defp prepare_piggyback_challenge_proofs(_ife, tx, input_index, proofs)
+       when input_index in 0..(Transaction.max_inputs() - 1) do
+    for {competing_ktx, _utxo_of_doublespend, his_doublespend_input_index} <- Map.get(proofs, input_index),
+        do: %{
+          in_flight_txbytes: Transaction.encode(tx),
+          in_flight_input_index: input_index,
+          spending_txbytes: Transaction.encode(competing_ktx.signed_tx.raw_tx),
+          spending_input_index: his_doublespend_input_index,
+          spending_sig: Enum.at(competing_ktx.signed_tx.sigs, his_doublespend_input_index)
+        }
+  end
+
+  defp prepare_piggyback_challenge_proofs(ife, tx, output_index, proofs) when output_index in 4..7 do
+    for {competing_ktx, utxo_of_doublespend, his_doublespend_input_index} <- Map.get(proofs, output_index - 4) do
+      {_, inclusion_proof} = ife.tx_seen_in_blocks_at
+
+      %{
+        in_flight_txbytes: Transaction.encode(tx),
+        in_flight_output_pos: utxo_of_doublespend,
+        in_flight_proof: inclusion_proof,
+        spending_txbytes: Transaction.encode(competing_ktx.signed_tx.raw_tx),
+        spending_input_index: his_doublespend_input_index,
+        spending_sig: Enum.at(competing_ktx.signed_tx.sigs, his_doublespend_input_index)
+      }
+    end
   end
 
   @spec get_exit_info(Utxo.Position.t(), t()) :: {:ok, ExitInfo.t()} | {:ok, :not_found}
@@ -1203,6 +1248,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     address != @zero_address
   end
 
+  K
+
   defp get_ife(txbytes, %__MODULE__{in_flight_exits: ifes}) do
     {:ok, raw_ife_tx} = Transaction.decode(txbytes)
 
@@ -1253,7 +1300,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
    - a block number which can be used to retrieve needed information to challenge or if exists ife which spends inputs
    - the relevant exit information
   """
-  @spec get_challange_data(tuple, Utxo.Position.t(), t()) ::
+  @spec get_challange_data(tuple(), Utxo.Position.t(), t()) ::
           {:ok, pos_integer() | Transaction.Signed.t(), ExitInfo.t()} | {:error, atom()}
   def get_challange_data(spending_blknum_response, exiting_utxo_pos, %__MODULE__{} = state) do
     ife_response = get_ife_based_on_utxo(exiting_utxo_pos, state)
@@ -1262,8 +1309,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     ensure_challengeable(spending_blknum_response, exit_response, ife_response)
   end
 
-  @spec ensure_challengeable(tuple(), {:ok, ExitInfo.t() | :not_found}, {:ok, InFlightExitInfo.t() | :not_found}) ::
-          {:ok, pos_integer() | Transaction.Signed.t(), ExitInfo.t()} | {:error, atom()}
   defp ensure_challengeable(spending_blknum_response, exit_response, ife_response)
 
   defp ensure_challengeable({:ok, :not_found}, _, {:ok, :not_found}), do: {:error, :utxo_not_spent}
@@ -1274,6 +1319,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp ensure_challengeable(_, {:ok, exit_info}, {:ok, %Transaction.Signed{} = signed_tx}),
     do: {:ok, signed_tx, exit_info}
+
+  defp ensure_challengeable({:error, error}, _, _), do: {:error, error}
 
   # finds transaction in given block and input index spending given utxo
   @spec get_spending_transaction_with_index(Block.t() | Transaction.Signed.t(), Utxo.Position.t()) ::
