@@ -27,7 +27,7 @@ defmodule OMG.Umbrella.MixProject do
     [
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.10.3", only: [:test], runtime: false},
+      {:excoveralls, "~> 0.10.6", only: [:test], runtime: false},
       {:licensir, "~> 0.2.0", only: :dev, runtime: false},
       {
         :ex_unit_fixtures,
