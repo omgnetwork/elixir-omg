@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  test-1.8:
+  build:
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
         environment:
@@ -14,23 +14,115 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
+      # - restore_cache:
+      #     keys:
+      #       - v1-mix-cache-{{ checksum "mix.lock" }}
       - run:
           name: Install Hex
           command: |
             mix do local.hex --force, local.rebar --force
       - run:
-          name: Clean Dependencies
-          command: |
-            mix deps.clean --all
-      - run:
           name: Get Dependencies
           command: |
-            mix do deps.get, deps.compile, compile
+            mix do deps.get, deps.compile
+      # - save_cache:
+      #     key: v1-mix-cache-{{ checksum "mix.lock" }}
+      #     paths: "deps"
       - run:
-          name: Unit Test
-          command: |
-            export MIX_ENV=test
-            mix test
+          name: Compile
+          command: mix compile
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .circleci
+            - dialyzer.ignore-warnings
+            - .formatter.exs
+            - .git
+            - .gitignore
+            - _build
+            - .credo.exs
+            - apps
+            - bin
+            - config
+            - db/.gitkeep
+            - deps
+            - doc
+            - mix.exs
+            - mix.lock
+            - deploy_and_populate.sh
+            - priv
+            - launcher.py
+            - docker-compose.yml
+            - fee_specs.json
+
+  test:
+    docker:
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+        environment:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      - image: circleci/postgres:9.6-alpine
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: omisego_dev
+          MIX_ENV: test
+    working_directory: ~/repo
+
+    steps:
+      - attach_workspace:
+           at: .
+
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
+
+      # - restore_cache:
+      #     keys:
+      #       - v1-mix-cache-{{ checksum "mix.lock" }}
+
+      - run: mix test
+
+  lint:
+    docker:
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+        environment:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      - image: circleci/postgres:9.6-alpine
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: omisego_dev
+          MIX_ENV: test
+    working_directory: ~/repo
+
+    steps:
+      - attach_workspace:
+           at: .
+      - run: mix do credo, format --check-formatted --dry-run
+
+  coveralls_and_integration_tests:
+    docker:
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+        environment:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      - image: circleci/postgres:9.6-alpine
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: omisego_dev
+          MIX_ENV: test
+    working_directory: ~/repo
+
+    steps:
+      - attach_workspace:
+           at: .
+
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
+
+      # - restore_cache:
+      #     keys:
+      #       - v1-mix-cache-{{ checksum "mix.lock" }}
+
       - run:
           name: Integration Tests & Coveralls
           command: |
@@ -43,19 +135,71 @@ jobs:
               --sha $CIRCLE_SHA \
               --branch $CIRCLE_BRANCH \
               --message "$GIT_COMMIT_DESCRIPTION"
+
+  dialyzer:
+    docker:
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+        environment:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      - image: circleci/postgres:9.6-alpine
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: omisego_dev
+          MIX_ENV: test
+
+    working_directory: ~/repo
+
+    steps:
+      - attach_workspace:
+           at: .
+
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
+
+      # - restore_cache:
+      #     keys:
+      #       - v1-mix-cache-{{ checksum "mix.lock" }}
+
+      - restore_cache:
+          keys:
+            - v1-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
+            - v1-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
+            - v1-plt-cache-{{ ".tool-versions" }}
+
       - run:
-          name: Clean Build
+          name: Unpack PLT cache
           command: |
-            export MIX_ENV=test
-            mix do compile --warnings-as-errors --force, test --exclude test
+            mkdir -p _build/test
+            cp plts/dialyxir*.plt _build/test/ || true
+            mkdir -p ~/.mix
+            cp plts/dialyxir*.plt ~/.mix/ || true
+
+      - run: mix dialyzer --plt
+
       - run:
-          name: Dialyze
+          name: Pack PLT cache
           command: |
-            mix dialyzer --halt-exit-status
-      - run:
-          name: Lint
-          command: |
-            mix do credo, format --check-formatted --dry-run
+            mkdir -p plts
+            cp _build/test/dialyxir*.plt plts/
+            cp ~/.mix/dialyxir*.plt plts/
+
+      - save_cache:
+          key: v1-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.lock" }}
+          paths:
+            - plts
+
+      - save_cache:
+          key: v1-plt-cache-{{ ".tool-versions" }}-{{ checksum "mix.exs" }}
+          paths:
+            - plts
+
+      - save_cache:
+          key: v1-plt-cache-{{ ".tool-versions" }}
+          paths:
+            - plts
+
+      - run: mix dialyzer --format short --halt-exit-status
 
   build_and_deploy_development:
     docker:
@@ -139,17 +283,33 @@ workflows:
   version: 2
   build-deploy:
     jobs:
-      - test-1.8
+      - build
+      - coveralls_and_integration_tests:
+          requires: [build]
+      - lint:
+          requires: [build]
+      - dialyzer:
+          requires: [build]
+      - test:
+          requires: [build]
       - build_and_deploy_development:
           requires:
-            - test-1.8
+            - build
+            - lint
+            - dialyzer
+            - test
+            - coveralls_and_integration_tests
           filters:
             branches:
               only:
                 - master
       - build_and_deploy_staging:
           requires:
-            - test-1.8
+            - build
+            - lint
+            - dialyzer
+            - test
+            - coveralls_and_integration_tests
           filters:
             branches:
               only:
