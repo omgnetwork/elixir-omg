@@ -76,7 +76,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     txbytes1 = Transaction.encode(tx_submit1.raw_tx)
     {:ok, ife_id} = OMG.Eth.RootChain.get_in_flight_exit_id(txbytes1)
     # sanity check
-    {:ok, {_, 0, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
+    {:ok, {_, _, 0, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
 
     # PB 1
     {:ok, %{"status" => "0x1"}} =
@@ -89,7 +89,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       |> Eth.DevHelpers.transact_sync!()
 
     # sanity check
-    {:ok, {_, exitmap, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
+    {:ok, {_, _, exitmap, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
     assert exitmap != 0
 
     in_flight_tx =
@@ -138,7 +138,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       |> Eth.DevHelpers.transact_sync!()
 
     # sanity check
-    {:ok, {_, exitmap1, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
+    {:ok, {_, _, exitmap1, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
     assert exitmap1 != exitmap
     assert exitmap1 != 0
 
@@ -164,7 +164,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       |> Eth.DevHelpers.transact_sync!()
 
     # observe the result - piggybacks are gone
-    assert {:ok, {_, 0, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
+    assert {:ok, {_, _, 0, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
   end
 
   @tag fixtures: [:watcher_sandbox, :alice, :bob, :child_chain, :token, :alice_deposits]

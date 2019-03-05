@@ -330,6 +330,7 @@ defmodule OMG.Eth.RootChain do
     return_struct = [
       {:uint, 256},
       {:uint, 256},
+      {:uint, 256},
       :address,
       {:uint, 256}
     ]
