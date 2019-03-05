@@ -82,7 +82,7 @@ defmodule OMG.Watcher.Supervisor do
         synced_height_update_key: :last_convenience_deposit_processor_eth_height,
         get_events_callback: &Eth.RootChain.get_deposits/2,
         process_events_callback: fn deposits ->
-          _ = Watcher.DB.EthEvent.insert_deposits(deposits)
+          Watcher.DB.EthEvent.insert_deposits!(deposits)
           {:ok, []}
         end
       ),
@@ -100,10 +100,9 @@ defmodule OMG.Watcher.Supervisor do
         synced_height_update_key: :last_convenience_exit_processor_eth_height,
         get_events_callback: &Eth.RootChain.get_standard_exits/2,
         process_events_callback: fn exits ->
-          _ =
-            exits
-            |> Enum.map(&OMG.Eth.RootChain.get_standard_exit_utxo_pos/1)
-            |> Watcher.DB.EthEvent.insert_exits()
+          exits
+          |> Enum.map(&OMG.Eth.RootChain.get_standard_exit_utxo_pos/1)
+          |> Watcher.DB.EthEvent.insert_exits!()
 
           {:ok, []}
         end
