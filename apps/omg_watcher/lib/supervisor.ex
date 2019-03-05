@@ -163,7 +163,7 @@ defmodule OMG.Watcher.Supervisor do
       }
     ]
 
-    opts = [strategy: :one_for_one, max_restarts: 1000, max_seconds: 60_000]
+    opts = [strategy: :one_for_one, max_restarts: 1000, max_seconds: 60]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     Supervisor.init(children, opts)

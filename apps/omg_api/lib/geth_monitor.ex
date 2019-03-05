@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2018 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-=======
->>>>>>> wip
-Application.ensure_all_started(:omg_status)
-ExUnit.start()
+
+defmodule OMG.API.GethMonitor do
+  @moduledoc """
+  This module periodically checks Geth (every second or less) and raises an alarm
+  when it can't reach the client and clears the alarm when the client connection is established again.
+  """
+  use GenServer
+
+  def start_link(_args) do
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  end
+
+  def init(_args) do
+    {:ok, %{}}
+  end
+
+  def terminate(_, _), do: :ok
+end

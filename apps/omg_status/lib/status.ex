@@ -32,6 +32,10 @@ defmodule OMG.Status do
     |> Supervisor.start_link(strategy: :one_for_one, name: Status.Supervisor)
   end
 
+  def start_phase(:install_alarm_handler, _start_type, _phase_args) do
+    :ok = AlarmHandler.install()
+  end
+
   @spec vm_metrics :: maybe_improper_list(atom(), fun()) | []
   defp vm_metrics, do: do_vm_metrics(is_enabled?() || false)
 

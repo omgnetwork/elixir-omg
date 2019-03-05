@@ -12,20 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Application do
+defmodule OMG.API.Monitor do
   @moduledoc """
-  The application here is the Child chain server and its API.
-  See here (children) for the processes that compose into the Child Chain server.
+  This module is a custom implemented supervisor that monitors all it's chilldren
+  and restarts them based on alarms raised. This means that in the period when Geth alarms are raised
+  it would wait before it would restart them.
+
+  When you receive an EXIT, check for an alarm raised that's related to Ethereum client synhronisation or connection
+  problems and react accordingly.
+
   """
+  use GenServer
 
-  use Application
-  alias OMG.API.Alert.AlarmHandler
-
-  def start(_type, _args) do
-    OMG.API.Supervisor.start_link()
+  def start_link(children) do
+    GenServer.start_link(__MODULE__, children, name: __MODULE__)
   end
 
-  def start_phase(:install_alarm_handler, _start_type, _phase_args) do
-    :ok = AlarmHandler.install()
+  def init(children) do
+    {:ok, children}
   end
+
+  def terminate(_, _), do: :ok
 end

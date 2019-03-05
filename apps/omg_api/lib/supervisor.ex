@@ -26,7 +26,7 @@ defmodule OMG.API.Supervisor do
   def init(:ok) do
     DeferredConfig.populate(:omg_api)
 
-    children = [
+    monitor_children = [
       {OMG.API.State, []},
       {OMG.API.BlockQueue.Server, []},
       {OMG.API.FreshBlocks, []},
@@ -67,7 +67,12 @@ defmodule OMG.API.Supervisor do
       {OMG.RPC.Web.Endpoint, []}
     ]
 
-    opts = [strategy: :one_for_one, max_restarts: 1000, max_seconds: 60_000]
+    children = [
+      {OMG.API.GethMonitor, []},
+      {OMG.API.Monitor, monitor_children}
+    ]
+
+    opts = [strategy: :one_for_one, max_restarts: 1000, max_seconds: 60]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     :ok = :error_logger.add_report_handler(Sentry.Logger)
