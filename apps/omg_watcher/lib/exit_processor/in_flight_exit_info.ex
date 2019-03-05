@@ -23,15 +23,16 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   alias OMG.API.Utxo
 
   require Utxo
+  require Transaction
+
+  @max_inputs Transaction.max_inputs()
 
   # TODO: divide into inputs and outputs: prevent contract's implementation from leaking into watcher
   # https://github.com/omisego/elixir-omg/pull/361#discussion_r247926222
-  @exit_map_index_range 0..7
+  @exit_map_index_range Range.new(0, @max_inputs * 2 - 1)
 
-  @inputs_index_range 0..3
-  @outputs_index_range 4..7
-
-  @output_offset 4
+  @inputs_index_range Range.new(0, @max_inputs - 1)
+  @outputs_index_range Range.new(@max_inputs, @max_inputs * 2 - 1)
 
   @max_number_of_inputs Enum.count(@inputs_index_range)
 
@@ -206,7 +207,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   def piggybacked_outputs(ife) do
     @outputs_index_range
     |> Enum.filter(&is_piggybacked?(ife, &1))
-    |> Enum.map(&(&1 - @output_offset))
+    |> Enum.map(&(&1 - @max_inputs))
   end
 
   def is_finalized?(%__MODULE__{exit_map: map}, index) do

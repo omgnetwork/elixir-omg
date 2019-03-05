@@ -52,11 +52,41 @@ defmodule OMG.API.State.Transaction do
           amount: non_neg_integer()
         }
 
+  @type decode_error() ::
+          :malformed_transaction_rlp
+          | :malformed_inputs
+          | :malformed_outputs
+          | :malformed_address
+          | :malformed_metadata
+          | :malformed_transaction
+
   defmacro is_metadata(metadata) do
     quote do
       unquote(metadata) == nil or (is_binary(unquote(metadata)) and byte_size(unquote(metadata)) == 32)
     end
   end
+
+  defmacro max_inputs do
+    quote do
+      unquote(@max_inputs)
+    end
+  end
+
+  defmacro max_outputs do
+    quote do
+      unquote(@max_outputs)
+    end
+  end
+
+  defmacro input_index do
+    range = Range.new(0, @max_inputs - 1)
+
+    quote do
+      unquote(range)
+    end
+  end
+
+  @type input_index_t() :: 0..3
 
   @doc """
   Creates a new transaction from a list of inputs and a list of outputs.
@@ -147,7 +177,7 @@ defmodule OMG.API.State.Transaction do
   defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
   defp parse_address(_), do: {:error, :malformed_address}
 
-  @spec decode(tx_bytes()) :: {:ok, t()} | {:error, atom()}
+  @spec decode(tx_bytes()) :: {:ok, t()} | {:error, decode_error()}
   def decode(tx_bytes) do
     with {:ok, raw_tx_rlp_decoded_chunks} <- try_exrlp_decode(tx_bytes),
          do: reconstruct(raw_tx_rlp_decoded_chunks)

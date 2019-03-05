@@ -175,23 +175,23 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                competing_transactions
              ) do
     tx = hd(transactions)
-    comp1 = hd(competing_transactions)
+    competitor = hd(competing_transactions)
     state = processor_filled
     ife_id = hd(ife_tx_hashes)
     txbytes = Transaction.encode(tx)
-    comp1_txbytes = Transaction.encode(comp1)
+    competitor_txbytes = Transaction.encode(competitor)
 
     {:ok, recovered} = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
-    %{sigs: comp1_signatures} = DevCrypto.sign(comp1, [alice.priv, alice.priv])
+    %{sigs: competitor_signatures} = DevCrypto.sign(competitor, [alice.priv, alice.priv])
 
-    comp1_ife_event = %{
-      call_data: %{in_flight_tx: comp1_txbytes, in_flight_tx_sigs: Enum.join(comp1_signatures)},
+    competitor_ife_event = %{
+      call_data: %{in_flight_tx: competitor_txbytes, in_flight_tx_sigs: Enum.join(competitor_signatures)},
       eth_height: 2
     }
 
-    comp1_ife_status = {1, <<1::192>>}
+    competitor_ife_status = {1, <<1::192>>}
 
-    {state, _} = Core.new_in_flight_exits(state, [comp1_ife_event], [comp1_ife_status])
+    {state, _} = Core.new_in_flight_exits(state, [competitor_ife_event], [competitor_ife_status])
     {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
 
     {request, state} =
@@ -207,9 +207,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       request: request,
       ife_input_index: 0,
       ife_txbytes: txbytes,
-      spending_txbytes: comp1_txbytes,
+      spending_txbytes: competitor_txbytes,
       spending_input_index: 1,
-      spending_sig: hd(comp1_signatures)
+      spending_sig: hd(competitor_signatures)
     }
   end
 
@@ -1287,11 +1287,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
     test "each other, if input spent in different ife",
-         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp1 | _]} do
+         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp | _]} do
       txbytes = Transaction.encode(tx1)
 
-      other_txbytes = Transaction.encode(comp1)
-      %{sigs: [other_signature, _]} = DevCrypto.sign(comp1, [alice.priv, <<>>])
+      other_txbytes = Transaction.encode(comp)
+      %{sigs: [other_signature, _]} = DevCrypto.sign(comp, [alice.priv, <<>>])
 
       other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}, eth_height: 2}
       other_ife_status = {1, @non_zero_exit_id}
@@ -1358,13 +1358,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
     test "a single competitor included in a block, with proof",
-         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp1 | _]} do
+         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp | _]} do
       txbytes = Transaction.encode(tx1)
 
-      other_txbytes = Transaction.encode(comp1)
+      other_txbytes = Transaction.encode(comp)
 
       {:ok, %{signed_tx: %{sigs: [other_signature, _]}} = other_recovered} =
-        DevCrypto.sign(comp1, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+        DevCrypto.sign(comp, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
       other_blknum = 3000
 
@@ -1459,12 +1459,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            bob: bob,
            processor_filled: processor,
            transactions: [tx1 | _],
-           competing_transactions: [comp1 | _]
+           competing_transactions: [competitor | _]
          } do
       txbytes = Transaction.encode(tx1)
 
       {:ok, %{signed_tx: %{sigs: [_, other_signature]}} = other_recovered} =
-        DevCrypto.sign(comp1, [bob.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+        DevCrypto.sign(competitor, [bob.priv, alice.priv]) |> Transaction.Recovered.recover_from()
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -1479,7 +1479,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
     test "a best competitor, included earliest in a block, regardless of conflicting utxo position",
-         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp1 | _]} do
+         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp | _]} do
       # NOTE that the recent competitor spends an __older__ input. Also note the reversing of block results done below
       #      Regardless of these, the best competitor (from blknum 2000) must always be returned
       # NOTE also that non-included competitors always are considered last, and hence worst and never are returned
@@ -1493,7 +1493,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       # ife-related competitor
       other_ife_event = %{
-        call_data: %{in_flight_tx: Transaction.encode(comp1), in_flight_tx_sigs: <<4::520>>},
+        call_data: %{in_flight_tx: Transaction.encode(comp), in_flight_tx_sigs: <<4::520>>},
         eth_height: 2
       }
 

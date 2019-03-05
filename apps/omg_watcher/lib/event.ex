@@ -172,7 +172,9 @@ defmodule OMG.Watcher.Event do
 
   defmodule InvalidPiggyback do
     @moduledoc """
-    Notifies about invalid piggyback.
+    Notifies about invalid piggyback. Piggyback is invalid if it is on input and that particular
+    input was double-spend in other transaction (or other in-flight exit) or if it is on output
+    that was spent on plasma chain.
     """
 
     defstruct [:txbytes, :inputs, :outputs, name: :invalid_piggyback]
