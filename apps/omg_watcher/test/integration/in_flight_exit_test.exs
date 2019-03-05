@@ -142,16 +142,23 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     assert exitmap1 != exitmap
     assert exitmap1 != 0
 
-    assert %{"in_flight_txbytes" => ^txbytes_raw1} = proof2 = TestHelper.get_output_challenge_data(txbytes_raw1, 1)
+    assert %{
+             "in_flight_txbytes" => ^txbytes_raw1,
+             "in_flight_output_pos" => in_flight_output_pos,
+             "in_flight_proof" => in_flight_proof,
+             "spending_txbytes" => spending_txbytes,
+             "spending_input_index" => spending_input_index,
+             "spending_sig" => spending_sig
+           } = TestHelper.get_output_challenge_data(txbytes_raw1, 1)
 
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.challenge_in_flight_exit_output_spent(
-        proof2["in_flight_txbytes"],
-        proof2["in_flight_output_pos"],
-        proof2["in_flight_proof"],
-        proof2["spending_txbytes"],
-        proof2["spending_input_index"],
-        proof2["spending_sig"],
+        txbytes_raw1,
+        in_flight_output_pos,
+        in_flight_proof,
+        spending_txbytes,
+        spending_input_index,
+        spending_sig,
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
