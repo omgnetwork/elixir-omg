@@ -21,14 +21,14 @@ defmodule OMG.API.State.Transaction.Signed do
   alias OMG.API.State.Transaction
 
   @signature_length 65
-  @type signed_tx_bytes_t() :: bitstring() | nil
+  @type tx_bytes() :: binary() | nil
 
   defstruct [:raw_tx, :sigs, :signed_tx_bytes]
 
   @type t() :: %__MODULE__{
           raw_tx: Transaction.t(),
           sigs: [Crypto.sig_t()],
-          signed_tx_bytes: signed_tx_bytes_t()
+          signed_tx_bytes: tx_bytes()
         }
 
   def encode(%__MODULE__{
