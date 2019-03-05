@@ -59,8 +59,8 @@ defmodule OMG.API.State do
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
-  @spec exit_utxos(utxos :: [Utxo.Position.t()]) ::
-          {:ok, list(Core.db_update()), {list(Utxo.Position.t()), list(Utxo.Position.t())}}
+  @spec exit_utxos(utxos :: Core.exiting_utxos_t()) ::
+          {:ok, list(Core.db_update()), Core.validities_t()}
   def exit_utxos(utxos) do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
   end

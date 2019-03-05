@@ -178,7 +178,7 @@ defmodule OMG.Watcher.Fixtures do
     :ok = phoenix_ecto_sandbox
 
     # Initial data depending tests can reuse
-    DB.EthEvent.insert_deposits([
+    DB.EthEvent.insert_deposits!([
       %{owner: alice.addr, currency: @eth, amount: 333, blknum: 1},
       %{owner: bob.addr, currency: @eth, amount: 100, blknum: 2}
     ])

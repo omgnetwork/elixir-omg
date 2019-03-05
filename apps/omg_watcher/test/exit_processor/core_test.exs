@@ -314,7 +314,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Core.new_exits(events, contract_exit_statuses)
 
     # exits invalidly finalize and continue/start emitting events and complain
-    {:ok, {_, _, two_spend}, state_after_spend} = State.Core.exit_utxos([@utxo_pos1, @utxo_pos2], state)
+    {:ok, {_, _, two_spend}, state_after_spend} =
+      [@utxo_pos1, @utxo_pos2] |> prepare_exit_finalizations() |> State.Core.exit_utxos(state)
 
     # finalizing here - note that without `finalize_exits`, we would just get a single invalid exit event
     # with - we get 3, because we include the invalidly finalized on which will hurt forever
@@ -353,7 +354,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> Core.invalid_exits(processor)
 
     # exit validly finalizes and continues to not emit any events
-    {:ok, {_, _, spends}, _} = State.Core.exit_utxos([@utxo_pos1], state)
+    {:ok, {_, _, spends}, _} = [@utxo_pos1] |> prepare_exit_finalizations() |> State.Core.exit_utxos(state)
     assert {processor, _} = Core.finalize_exits(processor, spends)
 
     assert %ExitProcessor.Request{utxos_to_check: []} =
@@ -1753,4 +1754,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     {result, filtered_events}
   end
+
+  defp prepare_exit_finalizations(utxo_positions), do: Enum.map(utxo_positions, &%{utxo_pos: Utxo.Position.encode(&1)})
 end
