@@ -35,7 +35,7 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
   #       the ledger
   @type t :: %__MODULE__{
           tx: Transaction.Signed.t(),
-          competing_input_index: 0..3,
+          competing_input_index: Transaction.input_index_t(),
           competing_input_signature: Crypto.sig_t()
         }
 

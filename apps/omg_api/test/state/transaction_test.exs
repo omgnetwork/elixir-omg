@@ -176,16 +176,31 @@ defmodule OMG.API.State.TransactionTest do
   end
 
   @tag fixtures: [:alice]
-  test "decoding signed transaction fails when signatures do not have a proper length", %{alice: alice} do
-    tx = Transaction.new([{1000, 0, 0}, {1000, 0, 1}], [{alice.addr, eth(), 10}])
+  test "decoding malformed signed transaction", %{alice: alice} do
+    %Transaction.Signed{sigs: sigs, raw_tx: raw_tx} =
+      Transaction.new([{1, 0, 0}, {2, 0, 0}], [{alice.addr, eth(), 12}])
+      |> DevCrypto.sign([alice.priv, alice.priv])
 
-    [inputs, outputs] =
-      tx
-      |> Transaction.encode()
-      |> ExRLP.decode()
+    [inputs, outputs] = Transaction.encode(raw_tx) |> ExRLP.decode()
 
-    encoded_with_sigs = ExRLP.encode([[<<1>>, <<1>>], inputs, outputs])
+    assert {:error, :malformed_transaction} = Transaction.Signed.decode(ExRLP.encode(23))
+    assert {:error, :malformed_transaction} = Transaction.Signed.decode(ExRLP.encode([sigs, []]))
 
-    assert {:error, :bad_signature_length} == Transaction.Signed.decode(encoded_with_sigs)
+    assert {:error, :malformed_signatures} == Transaction.Signed.decode(ExRLP.encode([[<<1>>, <<1>>], inputs, outputs]))
+    assert {:error, :malformed_signatures} == Transaction.Signed.decode(ExRLP.encode([<<1>>, inputs, outputs]))
+
+    assert {:error, :malformed_inputs} = Transaction.Signed.decode(ExRLP.encode([sigs, 42, outputs]))
+    assert {:error, :malformed_inputs} = Transaction.Signed.decode(ExRLP.encode([sigs, [[1, 2]], outputs]))
+    assert {:error, :malformed_inputs} = Transaction.Signed.decode(ExRLP.encode([sigs, [[1, 2, 'a']], outputs]))
+
+    assert {:error, :malformed_outputs} = Transaction.Signed.decode(ExRLP.encode([sigs, inputs, 42]))
+
+    assert {:error, :malformed_outputs} =
+             Transaction.Signed.decode(ExRLP.encode([sigs, inputs, [[alice.addr, alice.addr]]]))
+
+    assert {:error, :malformed_outputs} =
+             Transaction.Signed.decode(ExRLP.encode([sigs, inputs, [[alice.addr, alice.addr, 'a']]]))
+
+    assert {:error, :malformed_metadata} = Transaction.Signed.decode(ExRLP.encode([sigs, inputs, outputs, ""]))
   end
 end

@@ -28,7 +28,7 @@ defmodule OMG.Watcher.DB.EthEventTest do
   test "insert deposits: creates deposit event and utxo" do
     owner = <<1::160>>
     expected_hash = DB.EthEvent.generate_unique_key(Utxo.position(1, 0, 0), :deposit)
-    DB.EthEvent.insert_deposits([%{blknum: 1, owner: owner, currency: @eth, amount: 1}])
+    DB.EthEvent.insert_deposits!([%{blknum: 1, owner: owner, currency: @eth, amount: 1}])
 
     [event] = DB.EthEvent.get_all()
     assert %DB.EthEvent{blknum: 1, txindex: 0, event_type: :deposit, hash: ^expected_hash} = event
@@ -48,8 +48,8 @@ defmodule OMG.Watcher.DB.EthEventTest do
 
   @tag fixtures: [:phoenix_ecto_sandbox, :alice]
   test "insert deposits: creates deposits and retrieves them by hash", %{alice: alice} do
-    [{:ok, _evnt1}, {:ok, _evnt2}, {:ok, _evnt3}] =
-      DB.EthEvent.insert_deposits([
+    :ok =
+      DB.EthEvent.insert_deposits!([
         %{blknum: 1, owner: alice.addr, currency: @eth, amount: 1},
         %{blknum: 1000, owner: alice.addr, currency: @eth, amount: 2},
         %{blknum: 2013, owner: alice.addr, currency: @eth, amount: 3}
@@ -78,7 +78,8 @@ defmodule OMG.Watcher.DB.EthEventTest do
     alices_utxo_pos = Utxo.position(3000, 1, 1)
     alices_utxo_exit_hash = DB.EthEvent.generate_unique_key(alices_utxo_pos, :exit)
 
-    [{:ok, _exit1}, {:ok, _exit2}] = DB.EthEvent.insert_exits([bobs_deposit_pos, alices_utxo_pos])
+    to_insert = Enum.map([bobs_deposit_pos, alices_utxo_pos], &Utxo.Position.encode/1)
+    :ok = DB.EthEvent.insert_exits!(to_insert)
 
     assert %DB.EthEvent{blknum: 2, txindex: 0, event_type: :exit, hash: ^bobs_deposit_exit_hash} =
              DB.EthEvent.get(bobs_deposit_exit_hash)
@@ -91,5 +92,14 @@ defmodule OMG.Watcher.DB.EthEventTest do
 
     assert %DB.TxOutput{amount: 50, spending_tx_oindex: nil, spending_exit: ^alices_utxo_exit_hash} =
              DB.TxOutput.get_by_position(alices_utxo_pos)
+  end
+
+  @tag fixtures: [:alice, :initial_blocks]
+  test "Writes of deposits and exits are idempotent", %{alice: alice} do
+    # try to insert again existing deposit (from initial_blocks)
+    assert :ok = DB.EthEvent.insert_deposits!([%{owner: alice.addr, currency: @eth, amount: 333, blknum: 1}])
+
+    to_insert = Enum.map([Utxo.position(1, 0, 0), Utxo.position(1, 0, 0)], &Utxo.Position.encode/1)
+    assert :ok = DB.EthEvent.insert_exits!(to_insert)
   end
 end

@@ -38,53 +38,62 @@ defmodule OMG.Watcher.DB.EthEvent do
   def get(hash), do: DB.Repo.get(__MODULE__, hash)
   def get_all, do: DB.Repo.all(__MODULE__)
 
-  @spec insert_deposits([OMG.API.State.Core.deposit()]) :: [{:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}]
-  def insert_deposits(deposits) do
-    deposits
-    |> Enum.map(fn deposit -> {:ok, _} = insert_deposit(deposit) end)
+  @doc """
+  Inserts deposits based on a list of event maps (if not already inserted before)
+  """
+  @spec insert_deposits!([OMG.API.State.Core.deposit()]) :: :ok
+  def insert_deposits!(deposits) do
+    deposits |> Enum.each(&insert_deposit!/1)
   end
 
-  @spec insert_deposit(OMG.API.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
-  defp insert_deposit(%{blknum: blknum, owner: owner, currency: currency, amount: amount}) do
+  @spec insert_deposit!(OMG.API.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
+  defp insert_deposit!(%{blknum: blknum, owner: owner, currency: currency, amount: amount}) do
     {:ok, _} =
-      %__MODULE__{
-        hash: deposit_key(blknum),
-        blknum: blknum,
-        txindex: 0,
-        event_type: :deposit,
-        created_utxo: %DB.TxOutput{
+      if existing_deposit = get(deposit_key(blknum)) != nil,
+        do: {:ok, existing_deposit},
+        else:
+          %__MODULE__{
+            hash: deposit_key(blknum),
+            blknum: blknum,
+            txindex: 0,
+            event_type: :deposit,
+            created_utxo: %DB.TxOutput{
+              blknum: blknum,
+              txindex: 0,
+              oindex: 0,
+              owner: owner,
+              currency: currency,
+              amount: amount
+            }
+          }
+          |> DB.Repo.insert()
+  end
+
+  @doc """
+  Uses a list of encoded `Utxo.Position`s to insert the exits (if not already inserted before)
+  """
+  @spec insert_exits!([non_neg_integer()]) :: :ok
+  def insert_exits!(exits) do
+    Enum.each(exits, &(&1 |> Utxo.Position.decode() |> insert_exit!()))
+  end
+
+  @spec insert_exit!(Utxo.Position.t()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
+  defp insert_exit!(Utxo.position(blknum, txindex, _oindex) = position) do
+    {:ok, _} =
+      if existing_exit = get(exit_key(position)) != nil do
+        {:ok, existing_exit}
+      else
+        utxo = DB.TxOutput.get_by_position(position)
+
+        %__MODULE__{
+          hash: exit_key(position),
           blknum: blknum,
-          txindex: 0,
-          oindex: 0,
-          owner: owner,
-          currency: currency,
-          amount: amount
+          txindex: txindex,
+          event_type: :exit,
+          exited_utxo: utxo
         }
-      }
-      |> DB.Repo.insert()
-  end
-
-  @spec insert_exits([Utxo.Position.t()]) :: [{:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}]
-  def insert_exits(exits) do
-    exits
-    |> Enum.map(fn position ->
-      {:ok, _} = insert_exit(position)
-    end)
-  end
-
-  @spec insert_exit(Utxo.Position.t()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
-  defp insert_exit(Utxo.position(blknum, txindex, _oindex) = position) do
-    utxo = DB.TxOutput.get_by_position(position)
-
-    {:ok, _} =
-      %__MODULE__{
-        hash: exit_key(position),
-        blknum: blknum,
-        txindex: txindex,
-        event_type: :exit,
-        exited_utxo: utxo
-      }
-      |> DB.Repo.insert()
+        |> DB.Repo.insert()
+      end
   end
 
   @doc """

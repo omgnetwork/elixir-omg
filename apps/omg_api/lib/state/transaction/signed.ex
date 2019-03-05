@@ -21,14 +21,14 @@ defmodule OMG.API.State.Transaction.Signed do
   alias OMG.API.State.Transaction
 
   @signature_length 65
-  @type signed_tx_bytes_t() :: bitstring() | nil
+  @type tx_bytes() :: binary() | nil
 
   defstruct [:raw_tx, :sigs, :signed_tx_bytes]
 
   @type t() :: %__MODULE__{
           raw_tx: Transaction.t(),
           sigs: [Crypto.sig_t()],
-          signed_tx_bytes: signed_tx_bytes_t()
+          signed_tx_bytes: tx_bytes()
         }
 
   def encode(%__MODULE__{
@@ -51,7 +51,8 @@ defmodule OMG.API.State.Transaction.Signed do
   end
 
   defp reconstruct([sigs | raw_tx_rlp_decoded_chunks], signed_tx_bytes) do
-    with true <- Enum.all?(sigs, &signature_length?/1),
+    with true <- is_list(sigs),
+         true <- Enum.all?(sigs, &signature_length?/1),
          {:ok, raw_tx} <- Transaction.reconstruct(raw_tx_rlp_decoded_chunks) do
       {:ok,
        %__MODULE__{
@@ -60,7 +61,7 @@ defmodule OMG.API.State.Transaction.Signed do
          signed_tx_bytes: signed_tx_bytes
        }}
     else
-      false -> {:error, :bad_signature_length}
+      false -> {:error, :malformed_signatures}
       err -> err
     end
   end

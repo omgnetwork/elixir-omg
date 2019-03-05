@@ -37,6 +37,8 @@ defmodule OMG.API.State.Transaction do
         }
 
   @type currency() :: Crypto.address_t()
+  @type tx_bytes() :: binary()
+  @type tx_hash() :: Crypto.hash_t()
 
   @type input() :: %{
           blknum: non_neg_integer(),
@@ -50,11 +52,41 @@ defmodule OMG.API.State.Transaction do
           amount: non_neg_integer()
         }
 
+  @type decode_error() ::
+          :malformed_transaction_rlp
+          | :malformed_inputs
+          | :malformed_outputs
+          | :malformed_address
+          | :malformed_metadata
+          | :malformed_transaction
+
   defmacro is_metadata(metadata) do
     quote do
       unquote(metadata) == nil or (is_binary(unquote(metadata)) and byte_size(unquote(metadata)) == 32)
     end
   end
+
+  defmacro max_inputs do
+    quote do
+      unquote(@max_inputs)
+    end
+  end
+
+  defmacro max_outputs do
+    quote do
+      unquote(@max_outputs)
+    end
+  end
+
+  defmacro input_index do
+    range = Range.new(0, @max_inputs - 1)
+
+    quote do
+      unquote(range)
+    end
+  end
+
+  @type input_index_t() :: 0..3
 
   @doc """
   Creates a new transaction from a list of inputs and a list of outputs.
@@ -98,12 +130,25 @@ defmodule OMG.API.State.Transaction do
   def account_address?(_), do: false
 
   def reconstruct([inputs_rlp, outputs_rlp | rest_rlp])
-      when rest_rlp == [] or (is_metadata(hd(rest_rlp)) and length(rest_rlp) == 1) do
-    inputs =
-      Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
-        %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
-      end)
+      when rest_rlp == [] or length(rest_rlp) == 1 do
+    with {:ok, inputs} <- reconstruct_inputs(inputs_rlp),
+         {:ok, outputs} <- reconstruct_outputs(outputs_rlp),
+         {:ok, metadata} <- reconstruct_metadata(rest_rlp),
+         do: {:ok, %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}}
+  end
 
+  def reconstruct(_), do: {:error, :malformed_transaction}
+
+  defp reconstruct_inputs(inputs_rlp) do
+    {:ok,
+     Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
+       %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
+     end)}
+  rescue
+    _ -> {:error, :malformed_inputs}
+  end
+
+  defp reconstruct_outputs(outputs_rlp) do
     outputs =
       Enum.map(outputs_rlp, fn [owner, currency, amount] ->
         with {:ok, cur12} <- parse_address(currency),
@@ -114,13 +159,14 @@ defmodule OMG.API.State.Transaction do
 
     if error = Enum.find(outputs, &match?({:error, _}, &1)),
       do: error,
-      else: {:ok, %__MODULE__{inputs: inputs, outputs: outputs, metadata: reconstruct_metadata(rest_rlp)}}
+      else: {:ok, outputs}
+  rescue
+    _ -> {:error, :malformed_outputs}
   end
 
-  def reconstruct(_), do: {:error, :malformed_transaction}
-
-  defp reconstruct_metadata([]), do: nil
-  defp reconstruct_metadata([metadata]) when is_metadata(metadata), do: metadata
+  defp reconstruct_metadata([]), do: {:ok, nil}
+  defp reconstruct_metadata([metadata]) when is_metadata(metadata), do: {:ok, metadata}
+  defp reconstruct_metadata([_]), do: {:error, :malformed_metadata}
 
   defp parse_int(binary), do: :binary.decode_unsigned(binary, :big)
 
@@ -131,9 +177,15 @@ defmodule OMG.API.State.Transaction do
   defp parse_address(<<_::160>> = address_bytes), do: {:ok, address_bytes}
   defp parse_address(_), do: {:error, :malformed_address}
 
+  @spec decode(tx_bytes()) :: {:ok, t()} | {:error, decode_error()}
   def decode(tx_bytes) do
     with {:ok, raw_tx_rlp_decoded_chunks} <- try_exrlp_decode(tx_bytes),
          do: reconstruct(raw_tx_rlp_decoded_chunks)
+  end
+
+  def decode!(tx_bytes) do
+    {:ok, tx} = decode(tx_bytes)
+    tx
   end
 
   defp try_exrlp_decode(tx_bytes) do
@@ -142,6 +194,7 @@ defmodule OMG.API.State.Transaction do
     _ -> {:error, :malformed_transaction_rlp}
   end
 
+  @spec encode(t()) :: tx_bytes()
   def encode(transaction) do
     get_data_for_rlp(transaction)
     |> ExRLP.encode()
@@ -157,6 +210,7 @@ defmodule OMG.API.State.Transaction do
           List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs))
       ] ++ if(metadata, do: [metadata], else: [])
 
+  @spec hash(t()) :: tx_hash()
   def hash(%__MODULE__{} = tx) do
     tx
     |> encode

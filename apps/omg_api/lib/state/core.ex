@@ -42,8 +42,22 @@ defmodule OMG.API.State.Core do
           amount: pos_integer()
         }
 
-  @type in_flight_exit() :: %{in_flight_tx: bitstring()}
+  @type exit_t() :: %{utxo_pos: pos_integer()}
+
+  @type exit_finalization_t() :: %{utxo_pos: pos_integer()}
+
+  @type exiting_utxos_t() ::
+          [Utxo.Position.t()]
+          | [non_neg_integer()]
+          | [exit_t()]
+          | [exit_finalization_t()]
+          | [piggyback()]
+          | [in_flight_exit()]
+
+  @type in_flight_exit() :: %{in_flight_tx: binary()}
   @type piggyback() :: %{txhash: Transaction.Recovered.tx_hash_t(), output_index: non_neg_integer}
+
+  @type validities_t() :: {list(Utxo.Position.t()), list(Utxo.Position.t())}
 
   @type utxos() :: %{Utxo.Position.t() => Utxo.t()}
 
@@ -395,13 +409,18 @@ defmodule OMG.API.State.Core do
   @doc """
   Spends exited utxos. Accepts both a list of utxo positions (decoded) or full exit info from an event.
 
-  It is done like this to accommodate different clients of this function as they can either be
-  bare `EthereumEventListener` or `ExitProcessor`
+  NOTE: It is done like this to accommodate different clients of this function as they can either be
+  bare `EthereumEventListener` or `ExitProcessor`. Hence different forms it can get the exiting utxos delivered
   """
-  @spec exit_utxos(
-          exiting_utxos :: [Utxo.Position.t()] | [piggyback()] | [in_flight_exit()],
-          state :: t()
-        ) :: {:ok, {[exit_event], [db_update], {list(Utxo.Position.t()), list(Utxo.Position.t())}}, new_state :: t()}
+  @spec exit_utxos(exiting_utxos :: exiting_utxos_t(), state :: t()) ::
+          {:ok, {[exit_event], [db_update], validities_t()}, new_state :: t()}
+  def exit_utxos([%{utxo_pos: _} | _] = exit_infos, %Core{} = state) do
+    exit_infos |> Enum.map(& &1.utxo_pos) |> exit_utxos(state)
+  end
+
+  def exit_utxos([encoded_utxo_pos | _] = exit_infos, %Core{} = state) when is_integer(encoded_utxo_pos) do
+    exit_infos |> Enum.map(&Utxo.Position.decode/1) |> exit_utxos(state)
+  end
 
   def exit_utxos([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{} = state) do
     in_flight_txs

@@ -27,6 +27,8 @@ defmodule OMG.Eth.RootChain do
 
   @deposit_created_event_signature "DepositCreated(address,uint256,address,uint256)"
   @challenge_ife_func_signature "challengeInFlightExitNotCanonical(bytes,uint8,bytes,uint8,uint256,bytes,bytes)"
+  @challenge_ife_input_spent "challengeInFlightExitInputSpent(bytes,uint8,bytes,uint8,bytes)"
+  @challenge_ife_output_spent "challengeInFlightExitOutputSpent(bytes,uint256,bytes,bytes,uint8,bytes)"
 
   @type optional_addr_t() :: <<_::160>> | nil
 
@@ -37,6 +39,8 @@ defmodule OMG.Eth.RootChain do
   @gas_init 1_000_000
   @standard_exit_bond 31_415_926_535
   @piggyback_bond 31_415_926_535
+
+  @type in_flight_exit_piggybacked_event() :: %{owner: <<_::160>>, tx_hash: <<_::256>>, output_index: non_neg_integer}
 
   @spec submit_block(binary, pos_integer, pos_integer, optional_addr_t(), optional_addr_t()) ::
           {:error, binary() | atom() | map()}
@@ -206,6 +210,64 @@ defmodule OMG.Eth.RootChain do
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
+  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
+  def challenge_in_flight_exit_input_spent(
+        in_flight_txbytes,
+        in_flight_input_index,
+        spending_txbytes,
+        spending_tx_input_index,
+        spending_tx_sig,
+        from,
+        contract \\ nil,
+        opts \\ []
+      ) do
+    defaults = @tx_defaults
+    opts = defaults |> Keyword.merge(opts)
+
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = @challenge_ife_input_spent
+
+    args = [
+      in_flight_txbytes,
+      in_flight_input_index,
+      spending_txbytes,
+      spending_tx_input_index,
+      spending_tx_sig
+    ]
+
+    Eth.contract_transact(from, contract, signature, args, opts)
+  end
+
+  # credo:disable-for-next-line Credo.Check.Refactor.FunctionArity
+  def challenge_in_flight_exit_output_spent(
+        in_flight_txbytes,
+        in_flight_output_pos,
+        in_flight_tx_inclusion_proof,
+        spending_txbytes,
+        spending_tx_input_index,
+        spending_tx_sig,
+        from,
+        contract \\ nil,
+        opts \\ []
+      ) do
+    defaults = @tx_defaults
+    opts = defaults |> Keyword.merge(opts)
+
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = @challenge_ife_output_spent
+
+    args = [
+      in_flight_txbytes,
+      in_flight_output_pos,
+      in_flight_tx_inclusion_proof,
+      spending_txbytes,
+      spending_tx_input_index,
+      spending_tx_sig
+    ]
+
+    Eth.contract_transact(from, contract, signature, args, opts)
+  end
+
   ########################
   # READING THE CONTRACT #
   ########################
@@ -259,6 +321,14 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
+  Based on information from a standard exit started event, will get the encoded utxo position from the contract data
+  """
+  def get_standard_exit_utxo_pos(%{exit_id: exit_id}, contract \\ nil) do
+    {:ok, {_, _, _, position}} = OMG.Eth.RootChain.get_standard_exit(exit_id, contract)
+    position
+  end
+
+  @doc """
   Returns in flight exit for a specific id. Calls contract method.
   """
   def get_in_flight_exit(in_flight_exit_id, contract \\ nil) do
@@ -266,6 +336,7 @@ defmodule OMG.Eth.RootChain do
 
     # solidity does not return arrays of structs
     return_struct = [
+      {:uint, 256},
       {:uint, 256},
       {:uint, 256},
       :address,
@@ -304,6 +375,7 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_deposit/1)}
   end
 
+  @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_addr_t) :: {:ok, [in_flight_exit_piggybacked_event]}
   def get_piggybacks(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "InFlightExitPiggybacked(address,bytes32,uint8)"
