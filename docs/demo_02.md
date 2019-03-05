@@ -27,8 +27,8 @@ alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
 eth = Eth.RootChain.eth_pseudo_address()
 
-alice_enc = Crypto.encode_address!(alice.addr)
-bob_enc = Crypto.encode_address!(bob.addr)
+{:ok, alice_enc} = Crypto.encode_address(alice.addr)
+{:ok, bob_enc} = Crypto.encode_address(bob.addr)
 
 {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
 {:ok, _} = Eth.DevHelpers.import_unlock_fund(bob)

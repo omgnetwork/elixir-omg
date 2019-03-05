@@ -47,12 +47,6 @@ defmodule OMG.API.Utxo.Position do
     Utxo.position(blknum, txindex, oindex)
   end
 
-  @spec is_deposit(t()) :: boolean()
-  def is_deposit(Utxo.position(blknum, _, _)) do
-    {:ok, interval} = OMG.Eth.RootChain.get_child_block_interval()
-    rem(blknum, interval) != 0
-  end
-
   @spec non_zero?(t()) :: boolean()
   def non_zero?(Utxo.position(0, 0, 0)), do: false
   def non_zero?(Utxo.position(_, _, _)), do: true
@@ -62,14 +56,6 @@ defmodule OMG.API.Utxo.Position do
 
   @spec from_db_key({pos_integer, non_neg_integer, non_neg_integer}) :: t()
   def from_db_key({blknum, txindex, oindex}), do: Utxo.position(blknum, txindex, oindex)
-
-  def to_input(Utxo.position(blknum, txindex, oindex)) do
-    %{blknum: blknum, txindex: txindex, oindex: oindex}
-  end
-
-  def to_tuple(Utxo.position(blknum, txindex, oindex)) do
-    {blknum, txindex, oindex}
-  end
 
   def blknum(Utxo.position(blknum, _, _)), do: blknum
   def txindex(Utxo.position(_, txindex, _)), do: txindex

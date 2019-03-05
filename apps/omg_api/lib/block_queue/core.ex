@@ -129,11 +129,6 @@ defmodule OMG.API.BlockQueue.Core do
     end
   end
 
-  @spec enqueue_block(Core.t()) :: Core.t()
-  def enqueue_block(state) do
-    %{state | wait_for_enqueue: false}
-  end
-
   defp validate_block_number(block_number, block_number), do: :ok
   defp validate_block_number(_, _), do: {:error, :unexpected_block_number}
 
@@ -193,19 +188,13 @@ defmodule OMG.API.BlockQueue.Core do
   # Updates gas price to use basing on :calculate_gas_price function, updates current parent height
   # and last mined child block number in the state which used by gas price calculations
   @spec adjust_gas_price(Core.t()) :: Core.t()
-  defp adjust_gas_price(%Core{parent_height: nil} = state), do: state
-
   defp adjust_gas_price(%Core{gas_price_adj_params: %GasPriceParams{last_block_mined: nil} = gas_params} = state) do
     # initializes last block mined
     %{state | gas_price_adj_params: GasPriceParams.with(gas_params, state.parent_height, state.mined_child_block_num)}
   end
 
   defp adjust_gas_price(
-         %Core{
-           blocks: blocks,
-           parent_height: parent_height,
-           last_parent_height: last_parent_height
-         } = state
+         %Core{blocks: blocks, parent_height: parent_height, last_parent_height: last_parent_height} = state
        ) do
     if parent_height <= last_parent_height or
          !Enum.find(blocks, to_mined_block_filter(state)) do

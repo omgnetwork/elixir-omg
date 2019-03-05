@@ -60,7 +60,7 @@ defmodule OMG.Watcher.DB.TxOutput do
 
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
   def compose_utxo_exit(Utxo.position(blknum, txindex, _) = decoded_utxo_pos) do
-    if Utxo.Position.is_deposit(decoded_utxo_pos) do
+    if is_deposit(decoded_utxo_pos) do
       compose_deposit_exit(decoded_utxo_pos)
     else
       txs = DB.Transaction.get_by_blknum(blknum)
@@ -69,6 +69,12 @@ defmodule OMG.Watcher.DB.TxOutput do
         do: {:ok, compose_output_exit(txs, decoded_utxo_pos)},
         else: {:error, :utxo_not_found}
     end
+  end
+
+  @spec is_deposit(Utxo.Position.t()) :: boolean()
+  defp is_deposit(Utxo.position(blknum, _, _)) do
+    {:ok, interval} = OMG.Eth.RootChain.get_child_block_interval()
+    rem(blknum, interval) != 0
   end
 
   defp compose_deposit_exit(decoded_utxo_pos) do
