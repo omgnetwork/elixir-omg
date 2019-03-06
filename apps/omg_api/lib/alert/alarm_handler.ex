@@ -13,16 +13,16 @@
 # limitations under the License.
 
 defmodule OMG.API.Alert.AlarmHandler do
-  ### Client
+  @moduledoc """
+  Handler for OMG API app.
+  """
 
-  def install() do
-    :alarm_handler.add_alarm_handler(__MODULE__)
-  end
+  def install, do: :alarm_handler.add_alarm_handler(__MODULE__)
 
-  @callback geth_synchronisation_in_progress(node(), module()) :: {atom(), map()}
+  @callback ethereum_client_connection_issue(node(), module()) :: {atom(), map()}
 
   # subscribing to alarms of type
-  def alarm_types(), do: [:geth_synchronisation_in_progress]
+  def alarm_types, do: [:ethereum_client_connection_issue]
 
   def start_link(_args) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
@@ -35,7 +35,7 @@ defmodule OMG.API.Alert.AlarmHandler do
   def handle_call(:get_alarms, %{alarms: alarms} = state), do: {:ok, alarms, state}
 
   def handle_event({:set_alarm, new_alarm}, %{alarms: alarms} = state) do
-    #was the alarm raised already and is this our type of alarm?
+    # was the alarm raised already and is this our type of alarm?
     case {Enum.any?(alarms, &(&1 == new_alarm)), Enum.member?(alarm_types(), elem(new_alarm, 0))} do
       {true, _} ->
         {:ok, state}

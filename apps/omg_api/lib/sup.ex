@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Supervisor do
+defmodule OMG.API.Sup do
   @moduledoc """
    OMG.API top level supervisor.
   """
@@ -68,7 +68,7 @@ defmodule OMG.API.Supervisor do
     ]
 
     children = [
-      {OMG.API.GethMonitor, []},
+      {OMG.API.EthereumClientMonitor, []},
       {OMG.API.Monitor, monitor_children}
     ]
 

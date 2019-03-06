@@ -1,3 +1,17 @@
+# Copyright 2018 OmiseGO Pte Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 defmodule OMG.Status.Alert.AlarmsTest do
   use ExUnit.Case, async: false
   alias OMG.Status.Alert.Alarms
@@ -34,7 +48,7 @@ defmodule OMG.Status.Alert.AlarmsTest do
     assert length(get_alarms([:some_system_alarm, :geth_synchronisation_in_progress])) == 2
 
     Alarms.clear_all()
-    assert length(get_alarms([:some_system_alarm, :geth_synchronisation_in_progress])) == 0
+    assert Enum.empty?(get_alarms([:some_system_alarm, :geth_synchronisation_in_progress])) == true
   end
 
   test "raise and clear alarm based only on id" do
@@ -64,7 +78,7 @@ defmodule OMG.Status.Alert.AlarmsTest do
     Alarms.clear(alarm1)
     Alarms.clear(alarm2)
     Alarms.clear(alarm3)
-    assert length(get_alarms([:geth_synchronisation_in_progress])) == 0
+    assert Enum.empty?(get_alarms([:geth_synchronisation_in_progress])) == true
   end
 
   @tag timeout: 240_000
