@@ -39,12 +39,12 @@ defmodule OMG.Status do
 
   defp do_vm_metrics(true) do
     memory =
-      for n <- ~w(total processes ets binary atom atom_used)a,
-          do: {String.to_atom("erlang_memory_#{n}"), fn -> :erlang.memory(n) end}
+      for type <- ~w(total processes ets binary atom atom_used)a,
+          do: {String.to_atom("erlang_memory_#{type}"), fn -> :erlang.memory(type) end}
 
     system_info =
-      for n <- ~w(schedulers atom_count process_count port_count)a,
-          do: {String.to_atom("erlang_system_info_#{n}"), fn -> :erlang.system_info(n) end}
+      for type <- ~w(schedulers atom_count process_count port_count)a,
+          do: {String.to_atom("erlang_system_info_#{type}"), fn -> :erlang.system_info(type) end}
 
     other = [
       {:erlang_uptime, fn -> :erlang.statistics(:wall_clock) |> elem(0) |> Kernel.div(1000) end},

@@ -25,7 +25,7 @@ defmodule Status.Metric.Recorder do
           interval: pos_integer(),
           reporter: (... -> atom()),
           tref: reference() | nil,
-          node: charlist() | nil
+          node: String.t() | nil
         }
   defstruct name: nil, fn: nil, key: nil, interval: @default_interval, reporter: nil, tref: nil, node: nil
 
@@ -50,7 +50,7 @@ defmodule Status.Metric.Recorder do
        | key: to_charlist(opts.name),
          interval: get_interval(opts.name) || @default_interval,
          tref: tref,
-         node: to_charlist(:erlang.node())
+         node: to_string(:erlang.node())
      }}
   end
 
