@@ -46,7 +46,7 @@ defmodule OMG.API.MixProject do
       {:phoenix_pubsub, "~> 1.0"},
       {:ex_rlp, "~> 0.2.1"},
       {:blockchain, "~> 0.1.6"},
-      {:merkle_tree, git: "https://github.com/omisego/merkle_tree.git", branch: "refactor"},
+      {:merkle_tree, "~> 1.5.0"},
       {:deferred_config, "~> 0.1.1"},
       #
       {:omg_db, in_umbrella: true},
