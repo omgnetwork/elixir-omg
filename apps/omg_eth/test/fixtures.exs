@@ -23,7 +23,8 @@ defmodule OMG.Eth.Fixtures do
   import Eth.Encoding
 
   deffixture geth do
-    {:ok, exit_fn} = Eth.DevGeth.start()
+    DeferredConfig.populate(:omg_eth)
+    {:ok, exit_fn} = Eth.DevNode.start()
     on_exit(exit_fn)
     :ok
   end
