@@ -21,10 +21,11 @@ alias OMG.API.DevCrypto
 alias OMG.API.State.Transaction
 alias OMG.API.TestHelper
 alias OMG.API.Integration.DepositHelper
+alias OMG.Eth.Encoding
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
-eth = OMG.Eth.zero_address()
+eth = Eth.RootChain.eth_pseudo_address()
 
 alice_enc = Crypto.encode_address!(alice.addr)
 bob_enc = Crypto.encode_address!(bob.addr)
@@ -98,13 +99,11 @@ tx2 =
 :os.cmd() |>
 Poison.decode!()
 
-{:ok, txbytes} = OMG.RPC.Web.Encoding.from_hex(composed_exit["txbytes"])
-{:ok, proof} = OMG.RPC.Web.Encoding.from_hex(composed_exit["proof"])
 {:ok, txhash} =
   Eth.RootChain.start_exit(
     composed_exit["utxo_pos"],
-    txbytes,
-    proof,
+    composed_exit["txbytes"] |> Encoding.from_hex(),
+    composed_exit["proof"] |> Encoding.from_hex(),
     bob.addr
   )
 Eth.WaitFor.eth_receipt(txhash)
@@ -115,14 +114,12 @@ Eth.WaitFor.eth_receipt(txhash)
   :os.cmd() |>
   Poison.decode!()
 
-{:ok, txbytes} = OMG.RPC.Web.Encoding.from_hex(challenge["txbytes"])
-{:ok, sig} = OMG.RPC.Web.Encoding.from_hex(challenge["sig"])
 {:ok, txhash} =
   OMG.Eth.RootChain.challenge_exit(
     challenge["exit_id"],
-    txbytes,
+    challenge["txbytes"] |> Encoding.from_hex(),
     challenge["input_index"],
-    sig,
+    challenge["sig"] |> Encoding.from_hex(),
     alice.addr
   )
 {:ok, %{"status" => "0x1"}} = Eth.WaitFor.eth_receipt(txhash)

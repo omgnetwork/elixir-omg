@@ -32,11 +32,15 @@ defmodule OMG.Eth.RootChain do
 
   @type optional_addr_t() :: <<_::160>> | nil
 
+  @gas_add_token 500_000
   @gas_start_exit 1_000_000
   @gas_challenge_exit 300_000
   @gas_deposit 180_000
   @gas_deposit_from 250_000
   @gas_init 1_000_000
+  @gas_start_in_flight_exit 2_000_000
+  @gas_challenge_in_flight_exit_not_canonical 1_000_000
+  @gas_respond_to_non_canonical_challenge 1_000_000
   @standard_exit_bond 31_415_926_535
   @piggyback_bond 31_415_926_535
 
@@ -113,7 +117,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   def add_token(token, contract \\ nil, opts \\ []) do
-    opts = @tx_defaults |> Keyword.merge(opts)
+    opts = @tx_defaults |> Keyword.put(:gas, @gas_add_token) |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
@@ -150,7 +154,11 @@ defmodule OMG.Eth.RootChain do
         contract \\ nil,
         opts \\ []
       ) do
-    defaults = @tx_defaults |> Keyword.put(:value, @standard_exit_bond)
+    defaults =
+      @tx_defaults
+      |> Keyword.put(:value, @standard_exit_bond)
+      |> Keyword.put(:gas, @gas_start_in_flight_exit)
+
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
@@ -172,7 +180,7 @@ defmodule OMG.Eth.RootChain do
         contract \\ nil,
         opts \\ []
       ) do
-    defaults = @tx_defaults
+    defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_in_flight_exit_not_canonical)
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
@@ -199,7 +207,7 @@ defmodule OMG.Eth.RootChain do
         contract \\ nil,
         opts \\ []
       ) do
-    defaults = @tx_defaults
+    defaults = @tx_defaults |> Keyword.put(:gas, @gas_respond_to_non_canonical_challenge)
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
