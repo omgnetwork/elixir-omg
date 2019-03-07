@@ -48,14 +48,15 @@ defmodule OMG.API.BlockQueue.CoreTest do
   end
 
   deffixture empty_with_gas_params(empty) do
-    state = %{empty | formed_child_block_num: 5, gas_price_to_use: 100}
+    state = %{empty | formed_child_block_num: 5 * @child_block_interval, gas_price_to_use: 100}
 
     {:dont_form_block, state} =
       state
-      |> set_ethereum_status(1, 3, false)
+      |> set_ethereum_status(1, 3 * @child_block_interval, false)
 
     # assertions - to be explicit how state looks like
-    assert {1, 3} = state.gas_price_adj_params.last_block_mined
+    child_block_mined = 3 * @child_block_interval
+    assert {1, ^child_block_mined} = state.gas_price_adj_params.last_block_mined
 
     state
   end
@@ -382,20 +383,37 @@ defmodule OMG.API.BlockQueue.CoreTest do
       assert [%{hash: "3", nonce: 3}, %{hash: "4", nonce: 4}, %{hash: "5", nonce: 5}] = queue |> get_blocks_to_submit()
     end
 
+    # helper function makes a chain that have size blocks
+    defp make_chain(base, size) do
+      if size > 0,
+        do:
+          1..size
+          |> Enum.reduce(base, fn hash, state ->
+            enqueue_block(state, hash, hash * @child_block_interval, hash)
+          end),
+        else: base
+    end
+
+    def size(state) do
+      state |> :erlang.term_to_binary() |> byte_size()
+    end
+
     @tag fixtures: [:empty]
-    test "Old blocks are GCd, but only after they're mined", %{empty: empty} do
+    test "Old blocks are removed, but only after finality_threshold", %{empty: empty} do
       long_length = 1_000
-      short_length = 100
+      short_length = 4
 
       # make chains where no child blocks ever get mined to bloat the object
-      long = long_length |> make_chain(empty)
-      long_size = long |> :erlang.term_to_binary() |> byte_size()
-      short_size = short_length |> make_chain(empty) |> :erlang.term_to_binary() |> byte_size()
+      long = make_chain(empty, long_length)
+      long_size = long |> size()
 
-      # sanity check if we haven't GCd too early
-      assert long_size > long_length / short_length * short_size
+      empty_size = empty |> size()
+      one_block_size = (make_chain(empty, 1) |> size()) - empty_size
 
-      # here we suddenly mine the child blocks and the GCing should happen
+      # sanity check if we haven't removed blocks to early
+      assert long_size - empty_size >= one_block_size * long_length
+
+      # here we suddenly mine the child blocks and the remove should happen
       long_mined_size =
         long
         |> set_ethereum_status(long_length, (long_length - short_length) * 1000, false)
@@ -403,21 +421,8 @@ defmodule OMG.API.BlockQueue.CoreTest do
         |> :erlang.term_to_binary()
         |> byte_size()
 
-      assert_in_delta(long_mined_size / short_size, 1, 0.2)
+      assert long_mined_size - empty_size < (short_length + empty.finality_threshold + 1) * one_block_size
     end
-  end
-
-  # helper function for the GCing test, makes a long chain
-  defp make_chain(length, empty) do
-    {:dont_form_block, queue} =
-      2..length
-      |> Enum.reduce(empty, fn hash, state ->
-        {:do_form_block, state} = set_ethereum_status(state, hash, 0, false)
-        enqueue_block(state, hash, (hash - 1) * @child_block_interval, hash - 1)
-      end)
-      |> set_ethereum_status(length, 0, false)
-
-    queue
   end
 
   describe "Adjusting gas price" do
@@ -453,10 +458,10 @@ defmodule OMG.API.BlockQueue.CoreTest do
 
     @tag fixtures: [:empty_with_gas_params]
     test "Gas price is lowered when ethereum blocks gap isn't filled", %{empty_with_gas_params: empty_with_gas_params} do
-      state = empty_with_gas_params
+      state = empty_with_gas_params |> Core.enqueue_block(<<0>>, 6 * @child_block_interval, 1)
       current_price = state.gas_price_to_use
 
-      {:do_form_block, newstate} =
+      {:dont_form_block, newstate} =
         state
         |> set_ethereum_status(2, 0, false)
 
@@ -474,6 +479,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
 
       {:do_form_block, newstate} =
         state
+        |> Core.enqueue_block(<<0>>, 6 * @child_block_interval, 1)
         |> set_ethereum_status(1 + eth_gap, 0, false)
 
       assert current_price < newstate.gas_price_to_use
@@ -486,43 +492,43 @@ defmodule OMG.API.BlockQueue.CoreTest do
     test "Gas price is lowered and then raised when ethereum blocks gap gets filled", %{
       empty_with_gas_params: empty_with_gas_params
     } do
-      state = empty_with_gas_params
+      state = empty_with_gas_params |> Core.enqueue_block(<<6>>, 6 * @child_block_interval, 1)
       gas_params = %{state.gas_price_adj_params | eth_gap_without_child_blocks: 3}
       state1 = %{state | gas_price_adj_params: gas_params}
 
       {:do_form_block, state2} =
         state1
-        |> set_ethereum_status(2, 0, false)
+        |> set_ethereum_status(4, 5 * @child_block_interval, false)
 
       assert state.gas_price_to_use > state2.gas_price_to_use
+      state2 = state2 |> Core.enqueue_block(<<6>>, 7 * @child_block_interval, 1)
 
-      {:dont_form_block, state3} =
+      {:do_form_block, state3} =
         state2
-        |> set_ethereum_status(3, 0, false)
+        |> set_ethereum_status(6, 5 * @child_block_interval, false)
 
       assert state2.gas_price_to_use > state3.gas_price_to_use
 
       # Now the ethereum block gap without child blocks is reached
-      {:dont_form_block, state4} =
+      {:do_form_block, state4} =
         state2
-        |> set_ethereum_status(4, 0, false)
+        |> set_ethereum_status(7, 5 * @child_block_interval, false)
 
       assert state3.gas_price_to_use < state4.gas_price_to_use
     end
 
     @tag fixtures: [:empty_with_gas_params]
-    test "Gas price calculation cannot be raised above limit", %{empty_with_gas_params: empty_with_gas_params} do
-      state = empty_with_gas_params
+    test "Gas price calculation cannot be raised above limit", %{empty_with_gas_params: state} do
       expected_max_price = 5 * state.gas_price_to_use
       gas_params = %{state.gas_price_adj_params | gas_price_raising_factor: 10, max_gas_price: expected_max_price}
-      state1 = %{state | gas_price_adj_params: gas_params}
-      eth_gap = state1.gas_price_adj_params.eth_gap_without_child_blocks
+      state = %{state | gas_price_adj_params: gas_params} |> enqueue_block(<<0>>, 6 * @child_block_interval, 1)
 
-      {:do_form_block, newstate} =
-        state1
-        |> set_ethereum_status(1 + eth_gap, 0, false)
-
-      assert expected_max_price == newstate.gas_price_to_use
+      # many times not main block
+      Enum.reduce(4..100, state, fn eth_height, state ->
+        {_, state} = set_ethereum_status(state, eth_height, 3, false)
+        assert expected_max_price == state.gas_price_to_use
+        state
+      end)
     end
   end
 
@@ -570,6 +576,22 @@ defmodule OMG.API.BlockQueue.CoreTest do
       assert capture_log(fn ->
                assert {:error, :account_locked} = process_submit_result(submission, @account_locked_response, 0)
              end) =~ "[error]"
+    end
+
+    @tag fixtures: [:empty_with_gas_params]
+    test "gas price change only, when try to push blocks", %{empty_with_gas_params: state} do
+      gas_price = state.gas_price_to_use
+
+      state =
+        Enum.reduce(4..10, state, fn eth_height, state ->
+          {_, state} = set_ethereum_status(state, eth_height, 0, false)
+          assert gas_price == state.gas_price_to_use
+          state
+        end)
+
+      state = state |> Core.enqueue_block(<<0>>, 6 * @child_block_interval, 1)
+      {_, state} = set_ethereum_status(state, 101, 0, false)
+      assert state.gas_price_to_use != gas_price
     end
   end
 end

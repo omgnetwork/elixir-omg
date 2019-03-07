@@ -48,6 +48,7 @@ defmodule OMG.API.BlockQueue.Core do
   defstruct [
     :blocks,
     :parent_height,
+    last_parent_height: 0,
     formed_child_block_num: 0,
     wait_for_enqueue: false,
     gas_price_to_use: 20_000_000_000,
@@ -89,9 +90,7 @@ defmodule OMG.API.BlockQueue.Core do
 
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
 
-  def new do
-    {:ok, %__MODULE__{blocks: Map.new()}}
-  end
+  def new, do: {:ok, %__MODULE__{blocks: Map.new()}}
 
   @spec new(keyword) :: {:ok, Core.t()} | {:error, :mined_hash_not_found_in_db} | {:error, :contract_ahead_of_db}
   def new(
@@ -203,20 +202,30 @@ defmodule OMG.API.BlockQueue.Core do
 
   defp adjust_gas_price(
          %Core{
+           mined_child_block_num: mined_child_block_num,
+           formed_child_block_num: formed,
+           child_block_interval: block_interval,
+           blocks: blocks,
            parent_height: parent_height,
-           gas_price_adj_params: %GasPriceParams{last_block_mined: {last_parent_height, _mined_block_num}}
+           last_parent_height: last_parent_height
          } = state
-       )
-       when parent_height == last_parent_height,
-       do: state
+       ) do
+    first_blknum = mined_child_block_num + block_interval
 
-  defp adjust_gas_price(%Core{} = state) do
-    new_gas_price = calculate_gas_price(state)
-    _ = Logger.debug("using new gas price '#{inspect(new_gas_price)}'")
+    if parent_height == last_parent_height or
+         !Enum.find(blocks, fn {key, _} -> key >= first_blknum and key <= formed end) do
+      state
+    else
+      new_gas_price = calculate_gas_price(state)
+      _ = Logger.debug("using new gas price '#{inspect(new_gas_price)}'")
 
-    state
-    |> set_gas_price(new_gas_price)
-    |> update_last_checked_mined_block_num()
+      new_state =
+        state
+        |> set_gas_price(new_gas_price)
+        |> update_last_checked_mined_block_num()
+
+      %{new_state | last_parent_height: parent_height}
+    end
   end
 
   # Calculates the gas price basing on simple strategy to raise the gas price by gas_price_raising_factor
@@ -302,14 +311,11 @@ defmodule OMG.API.BlockQueue.Core do
     } = state
 
     first_blknum = mined_child_block_num + block_interval
-    block_nums = make_range(first_blknum, formed, block_interval)
-
     _ = Logger.debug("preparing blocks #{inspect(first_blknum)}..#{inspect(formed)} for submission")
 
     blocks
-    |> Map.split(block_nums)
-    |> elem(0)
-    |> Map.values()
+    |> Enum.filter(fn {key, _value} -> key >= first_blknum and key <= formed end)
+    |> Enum.map(fn {_key, value} -> value end)
     |> Enum.sort_by(& &1.num)
     |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
   end
