@@ -68,9 +68,9 @@ defmodule OMG.Status do
   @spec is_enabled?() :: boolean()
   defp is_enabled?() do
     case {Application.get_env(:omg_status, :metrics), System.get_env("METRICS")} do
-      {nil, nil} -> false
       {true, _} -> true
       {_, "TRUE"} -> true
+      _ -> false
     end
   end
 end
