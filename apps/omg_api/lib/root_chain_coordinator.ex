@@ -64,6 +64,8 @@ defmodule OMG.API.RootChainCoordinator do
   end
 
   def handle_continue(:setup, configs_services) do
+    _ = Logger.info("Starting #{__MODULE__} service.")
+    :ok = Eth.Geth.node_ready()
     {:ok, rootchain_height} = Eth.get_ethereum_height()
     height_check_interval = Application.fetch_env!(:omg_api, :coordinator_eth_height_check_interval_ms)
     {:ok, _} = schedule_get_ethereum_height(height_check_interval)
@@ -100,6 +102,11 @@ defmodule OMG.API.RootChainCoordinator do
   def handle_info(:timeout, state) do
     _ = Logger.warn("No new activity for 60 seconds. Are we dead?")
     {:noreply, state}
+  end
+
+  # processes that are dependent on the client connectivity return an extra indicator
+  def terminate(reason, state) do
+    exit({{:ethereum_client_connection, reason}, state})
   end
 
   defp schedule_get_ethereum_height(interval) do

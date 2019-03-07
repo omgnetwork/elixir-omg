@@ -48,8 +48,8 @@ defmodule OMG.API.EthereumClientMonitor do
   def terminate(_, _), do: :ok
 
   @spec raise_clear(:error | non_neg_integer()) :: :ok | :duplicate
-  defp raise_clear(:error), do: Alarm.raise({:ethereum_client_connection_issue, :erlang.node(), __MODULE__})
-  defp raise_clear(_), do: Alarm.clear({:ethereum_client_connection_issue, :erlang.node(), __MODULE__})
+  defp raise_clear(:error), do: Alarm.raise({:ethereum_client_connection, :erlang.node(), __MODULE__})
+  defp raise_clear(_), do: Alarm.clear({:ethereum_client_connection, :erlang.node(), __MODULE__})
 
   @spec check :: non_neg_integer() | :error
   defp check do

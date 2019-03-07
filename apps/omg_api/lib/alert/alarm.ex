@@ -21,7 +21,7 @@ defmodule OMG.API.Alert.Alarm do
 
   @impl AlarmHandler
   def ethereum_client_connection_issue(node, reporter),
-    do: {:ethereum_client_connection_issue, %{node: node, reporter: reporter}}
+    do: {:ethereum_client_connection, %{node: node, reporter: reporter}}
 
   @spec raise({atom(), node(), module()}) :: :ok | :duplicate
   def raise(raw_alarm) do
@@ -59,7 +59,7 @@ defmodule OMG.API.Alert.Alarm do
 
   defp all_raw, do: :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
 
-  defp make_alarm({:ethereum_client_connection_issue, node, reporter}) do
+  defp make_alarm({:ethereum_client_connection, node, reporter}) do
     ethereum_client_connection_issue(node, reporter)
   end
 end

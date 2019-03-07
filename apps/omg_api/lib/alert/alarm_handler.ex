@@ -22,7 +22,7 @@ defmodule OMG.API.Alert.AlarmHandler do
   @callback ethereum_client_connection_issue(node(), module()) :: {atom(), map()}
 
   # subscribing to alarms of type
-  def alarm_types, do: [:ethereum_client_connection_issue]
+  def alarm_types, do: [:ethereum_client_connection]
 
   def start_link(_args) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)

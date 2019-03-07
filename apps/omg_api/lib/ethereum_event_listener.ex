@@ -20,7 +20,7 @@ defmodule OMG.API.EthereumEventListener do
   alias OMG.API.EthereumEventListener.Core
   alias OMG.API.RootChainCoordinator
   alias OMG.API.RootChainCoordinator.SyncGuide
-
+  alias OMG.Eth
   use OMG.API.LoggerExt
 
   @type config() :: %{
@@ -65,7 +65,8 @@ defmodule OMG.API.EthereumEventListener do
         get_events_callback: get_events_callback,
         process_events_callback: process_events_callback
       }) do
-    _ = Logger.info("Starting EthereumEventListener for #{service_name}")
+    _ = Logger.info("Starting EthereumEventListener for #{service_name}.")
+    :ok = Eth.Geth.node_ready()
     {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
     {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
     # we don't need to ever look at earlier than contract deployment
@@ -118,5 +119,10 @@ defmodule OMG.API.EthereumEventListener do
   defp schedule_get_events do
     Application.fetch_env!(:omg_api, :ethereum_events_check_interval_ms)
     |> :timer.send_after(self(), :sync)
+  end
+
+  # processes that are dependent on the client connectivity return an extra indicator
+  def terminate(reason, state) do
+    exit({{:ethereum_client_connection, reason}, state})
   end
 end
