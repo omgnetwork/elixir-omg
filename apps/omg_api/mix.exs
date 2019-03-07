@@ -49,6 +49,7 @@ defmodule OMG.API.MixProject do
       {:merkle_tree, "~> 1.5.0"},
       {:deferred_config, "~> 0.1.1"},
       #
+      {:omg_status, in_umbrella: true},
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
       {:omg_rpc, in_umbrella: true},
