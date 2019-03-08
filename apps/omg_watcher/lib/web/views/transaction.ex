@@ -38,7 +38,6 @@ defmodule OMG.Watcher.Web.View.Transaction do
     |> Response.serialize()
   end
 
-  # FIXME: restructure `create_advice_t()` to response
   def render("create.json", %{response: advice}) do
     advice
     |> Response.serialize()

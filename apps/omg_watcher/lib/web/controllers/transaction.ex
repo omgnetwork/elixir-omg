@@ -98,7 +98,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   end
 
   defp parse_payment(raw_payment) do
-    with {:ok, owner} <- expect(raw_payment, "owner", :address),
+    with {:ok, owner} <- expect(raw_payment, "owner", [:address, :optional]),
          {:ok, amount} <- expect(raw_payment, "amount", :pos_integer),
          {:ok, currency} <- expect(raw_payment, "currency", :address),
          do: {:ok, %{owner: owner, currency: currency, amount: amount}}
