@@ -81,6 +81,15 @@ defmodule OMG.RPC.Web.Validator.BaseTest do
       assert {:error, {:validation_error, "len_1", {:length, 5}}} == expect(@params, "len_1", length: 5)
       assert {:error, {:validation_error, "len_2", {:length, 1}}} == expect(@params, "len_2", length: 1)
     end
+
+    test "list, positive" do
+      list = [1, "a", :b]
+      assert {:ok, list} == expect(%{"list" => list}, "list", :list)
+    end
+
+    test "list, negative" do
+      assert {:error, {:validation_error, "list", :list}} == expect(%{"list" => "[42]"}, "list", :list)
+    end
   end
 
   describe "Preprocessors:" do
