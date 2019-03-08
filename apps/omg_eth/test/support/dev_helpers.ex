@@ -62,13 +62,6 @@ defmodule OMG.Eth.DevHelpers do
     end
   end
 
-  defp get_exit_period(nil) do
-    DeferredConfig.populate(:omg_eth)
-    Application.fetch_env!(:omg_eth, :exit_period_seconds)
-  end
-
-  defp get_exit_period(exit_period), do: exit_period
-
   def create_conf_file(%{contract_addr: contract_addr, txhash_contract: txhash, authority_addr: authority_addr}) do
     """
     use Mix.Config
@@ -79,13 +72,6 @@ defmodule OMG.Eth.DevHelpers do
     """
   end
 
-  def create_and_fund_authority_addr(opts \\ []) do
-    with {:ok, authority} <- Ethereumex.HttpClient.request("personal_newAccount", [@passphrase], []),
-         {:ok, _} <- unlock_fund(authority, opts) do
-      {:ok, from_hex(authority)}
-    end
-  end
-
   @doc """
   Will take a map with eth-account information (from &generate_entity/0) and then
   import priv key->unlock->fund with lots of ether on that account
@@ -94,7 +80,7 @@ defmodule OMG.Eth.DevHelpers do
     account_priv_enc = Base.encode16(account_priv)
 
     {:ok, account_enc} = Ethereumex.HttpClient.request("personal_importRawKey", [account_priv_enc, @passphrase], [])
-    {:ok, _} = unlock_fund(account_enc, opts)
+    {:ok, _} = fund_address_from_faucet(account_enc, opts)
 
     {:ok, from_hex(account_enc)}
   end
@@ -104,7 +90,7 @@ defmodule OMG.Eth.DevHelpers do
   for mining of a successful result
   """
   @spec transact_sync!({:ok, Eth.hash()}) :: {:ok, map}
-  def transact_sync!({:ok, txhash} = _transaction_submission_result) do
+  def transact_sync!({:ok, txhash} = _transaction_submission_result) when byte_size(txhash) == 32 do
     {:ok, %{"status" => "0x1"} = result} = WaitFor.eth_receipt(txhash, @about_4_blocks_time)
     {:ok, result |> Map.update!("blockNumber", &int_from_hex(&1))}
   end
@@ -116,26 +102,6 @@ defmodule OMG.Eth.DevHelpers do
   def deploy_sync!({:ok, txhash} = transaction_submission_result) do
     {:ok, %{"contractAddress" => contract, "status" => "0x1"}} = transact_sync!(transaction_submission_result)
     {:ok, txhash, from_hex(contract)}
-  end
-
-  # private
-
-  defp unlock_fund(account_enc, opts) do
-    {:ok, [default_faucet | _]} = Ethereumex.HttpClient.eth_accounts()
-    defaults = [faucet: default_faucet, initial_funds: @one_hundred_eth]
-
-    %{faucet: faucet, initial_funds: initial_funds} =
-      defaults
-      |> Keyword.merge(opts)
-      |> Enum.into(%{})
-
-    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [account_enc, @passphrase, 0], [])
-
-    {:ok, tx_fund} =
-      %{from: faucet, to: account_enc, value: to_hex(initial_funds)}
-      |> Ethereumex.HttpClient.eth_send_transaction()
-
-    tx_fund |> from_hex() |> WaitFor.eth_receipt(@about_4_blocks_time)
   end
 
   def wait_for_root_chain_block(awaited_eth_height, timeout \\ 600_000) do
@@ -156,5 +122,50 @@ defmodule OMG.Eth.DevHelpers do
     end
 
     fn -> WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
+  end
+
+  # private
+
+  defp create_and_fund_authority_addr(opts) do
+    with {:ok, authority} <- Ethereumex.HttpClient.request("personal_newAccount", [@passphrase], []),
+         {:ok, _} <- fund_address_from_faucet(authority, opts) do
+      {:ok, from_hex(authority)}
+    end
+  end
+
+  defp get_exit_period(nil) do
+    DeferredConfig.populate(:omg_eth)
+    Application.fetch_env!(:omg_eth, :exit_period_seconds)
+  end
+
+  defp get_exit_period(exit_period), do: exit_period
+
+  defp fund_address_from_faucet(account_enc, opts) do
+    {:ok, [default_faucet | _]} = Ethereumex.HttpClient.eth_accounts()
+    defaults = [faucet: default_faucet, initial_funds: @one_hundred_eth]
+
+    %{faucet: faucet, initial_funds: initial_funds} =
+      defaults
+      |> Keyword.merge(opts)
+      |> Enum.into(%{})
+
+    unlock_if_possible(account_enc)
+
+    params = %{from: faucet, to: account_enc, value: to_hex(initial_funds)}
+    {:ok, tx_fund} = OMG.Eth.send_transaction(params)
+
+    tx_fund |> WaitFor.eth_receipt(@about_4_blocks_time)
+  end
+
+  defp unlock_if_possible(account_enc) do
+    unlock_if_possible(account_enc, OMG.Eth.backend())
+  end
+
+  defp unlock_if_possible(account_enc, :geth) do
+    {:ok, true} = Ethereumex.HttpClient.request("personal_unlockAccount", [account_enc, @passphrase, 0], [])
+  end
+
+  defp unlock_if_possible(_account_enc, :parity) do
+    :dont_bother_will_use_personal_sendTransaction
   end
 end
