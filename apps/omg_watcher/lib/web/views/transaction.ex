@@ -38,6 +38,12 @@ defmodule OMG.Watcher.Web.View.Transaction do
     |> Response.serialize()
   end
 
+  # FIXME: restructure `create_advice_t()` to response
+  def render("create.json", %{response: advice}) do
+    advice
+    |> Response.serialize()
+  end
+
   defp render_transaction(transaction) do
     transaction
     |> Map.take([:txindex, :txhash, :block, :inputs, :outputs, :txbytes])

@@ -24,7 +24,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @other_token <<127::160>>
-  @zero_address_hex OMG.Eth.zero_address() |> Encoding.to_hex()
+  @eth_hex OMG.Eth.zero_address() |> Encoding.to_hex()
+  @other_token_hex @other_token |> Encoding.to_hex()
 
   describe "getting transaction by id" do
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
@@ -58,7 +59,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  %{
                    "amount" => 333,
                    "blknum" => 1,
-                   "currency" => @zero_address_hex,
+                   "currency" => @eth_hex,
                    "oindex" => 0,
                    "owner" => ^alice_addr,
                    "txindex" => 0
@@ -68,7 +69,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  %{
                    "amount" => 300,
                    "blknum" => 1000,
-                   "currency" => @zero_address_hex,
+                   "currency" => @eth_hex,
                    "oindex" => 0,
                    "owner" => ^bob_addr,
                    "txindex" => 0
@@ -160,7 +161,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  },
                  "results" => [
                    %{
-                     "currency" => @zero_address_hex,
+                     "currency" => @eth_hex,
                      "value" => value
                    }
                  ],
@@ -354,7 +355,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert [
                %{
                  "results" => [
-                   %{"currency" => @zero_address_hex, "value" => 3},
+                   %{"currency" => @eth_hex, "value" => 3},
                    %{"currency" => ^not_eth_enc, "value" => 9}
                  ]
                }
@@ -453,7 +454,6 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       fee = 5
       metadata = (alice.addr <> bob.addr) |> OMG.API.Crypto.hash() |> Encoding.to_hex()
 
-      currency = Encoding.to_hex(@eth)
       alice_addr = Encoding.to_hex(alice.addr)
       bob_addr = Encoding.to_hex(bob.addr)
 
@@ -461,12 +461,12 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                "result" => "complete",
                "transactions" => [
                  %{
-                   "inputs" => [%{"owner" => ^alice_addr, "currency" => ^currency, "blknum" => 5000} | _],
+                   "inputs" => [%{"owner" => ^alice_addr, "currency" => @eth_hex, "blknum" => 5000} | _],
                    "outputs" => [
-                     %{"amount" => ^alice_to_bob, "currency" => ^currency, "owner" => ^bob_addr},
-                     %{"currency" => ^currency, "owner" => ^alice_addr, "amount" => _rest}
+                     %{"amount" => ^alice_to_bob, "currency" => @eth_hex, "owner" => ^bob_addr},
+                     %{"currency" => @eth_hex, "owner" => ^alice_addr, "amount" => _rest}
                    ],
-                   "fee" => %{"amount" => ^fee, "currency" => ^currency},
+                   "fee" => %{"amount" => ^fee, "currency" => @eth_hex},
                    "metadata" => ^metadata,
                    "txbytes" => "0x" <> _txbytes
                  }
@@ -477,9 +477,9 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  %{
                    "owner" => alice_addr,
                    "payments" => [
-                     %{"amount" => alice_to_bob, "currency" => currency, "owner" => bob_addr}
+                     %{"amount" => alice_to_bob, "currency" => @eth_hex, "owner" => bob_addr}
                    ],
-                   "fee" => %{"amount" => fee, "currency" => currency},
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex},
                    "metadata" => metadata
                  }
                )
@@ -495,7 +495,6 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       fee = 5
       metadata = (alice.addr <> bob.addr) |> OMG.API.Crypto.hash()
 
-      currency = Encoding.to_hex(@eth)
       alice_addr = Encoding.to_hex(alice.addr)
 
       assert %{
@@ -507,9 +506,9 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  %{
                    "owner" => alice_addr,
                    "payments" => [
-                     %{"amount" => alice_to_bob, "currency" => currency, "owner" => Encoding.to_hex(bob.addr)}
+                     %{"amount" => alice_to_bob, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
                    ],
-                   "fee" => %{"amount" => fee, "currency" => currency},
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex},
                    "metadata" => Encoding.to_hex(metadata)
                  }
                )
@@ -547,9 +546,9 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
                    "payments" => [
-                     %{"amount" => payment, "currency" => @eth, "owner" => Encoding.to_hex(bob.addr)}
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
                    ],
-                   "fee" => %{"amount" => fee, "currency" => @eth}
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex}
                  }
                )
 
@@ -576,9 +575,9 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
                    "payments" => [
-                     %{"amount" => payment, "currency" => @eth, "owner" => Encoding.to_hex(bob.addr)}
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
                    ],
-                   "fee" => %{"amount" => fee, "currency" => @eth}
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex}
                  }
                )
 
@@ -608,10 +607,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
                    "payments" => [
-                     %{"amount" => payment_eth, "currency" => @eth, "owner" => Encoding.to_hex(bob.addr)},
-                     %{"amount" => payment_token, "currency" => @other_token, "owner" => Encoding.to_hex(bob.addr)}
+                     %{"amount" => payment_eth, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)},
+                     %{"amount" => payment_token, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
                    ],
-                   "fee" => %{"amount" => fee, "currency" => @eth}
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex}
                  }
                )
 
@@ -644,10 +643,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
                    "payments" => [
-                     %{"amount" => payment_eth, "currency" => @eth, "owner" => Encoding.to_hex(bob.addr)},
-                     %{"amount" => payment_token, "currency" => @other_token, "owner" => Encoding.to_hex(bob.addr)}
+                     %{"amount" => payment_eth, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)},
+                     %{"amount" => payment_token, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
                    ],
-                   "fee" => %{"amount" => fee, "currency" => @eth}
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex}
                  }
                )
 
@@ -664,22 +663,24 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
     @tag fixtures: [:alice, :bob, :more_utxos]
     test "insufficient funds returns custom error", %{alice: alice, bob: bob} do
-      payment = balance_in_token(alice.addr, @eth) + 10
+      balance = balance_in_token(alice.addr, @eth)
+      payment = balance + 10
       fee = 5
 
       assert %{
                "object" => "error",
-               "code" => "transaction:insufficient_funds",
-               "description" => "Account balance is too low to satisfy the payment."
+               "code" => "transaction.create:insufficient_funds",
+               "description" => "Account balance is too low to satisfy the payment.",
+               "messages" => [%{"token" => @eth_hex, "missing" => payment + fee - balance}]
              } ==
                TestHelper.no_success?(
                  "transaction.create",
                  %{
                    "owner" => Encoding.to_hex(alice.addr),
                    "payments" => [
-                     %{"amount" => payment, "currency" => @eth, "owner" => Encoding.to_hex(bob.addr)}
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
                    ],
-                   "fee" => %{"amount" => fee, "currency" => @eth}
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex}
                  }
                )
     end

@@ -64,4 +64,91 @@ defmodule OMG.Watcher.API.Transaction do
   def(submit(txbytes)) do
     Client.submit(txbytes)
   end
+
+  @type payment_t() :: %{
+          owner: Crypto.address_t() | nil,
+          currency: Crypto.address_t(),
+          amount: pos_integer()
+        }
+
+  @type fee_t() :: %{
+          currency: Crypto.address_t(),
+          amount: non_neg_integer()
+        }
+
+  @type order_t() :: %{
+          owner: Crypto.address_t(),
+          payments: nonempty_list(payment_t()),
+          fee: fee_t()
+        }
+
+  @type create_advice_t() ::
+          {:ok,
+           %{
+             result: :complete | :intermediate,
+             transactions: nonempty_list(%DB.Transaction{}),
+             fee: fee_t()
+           }}
+          | {:error, :insufficient_funds, map()}
+
+  @doc """
+  Given order finds spender's inputs sufficient to perform a payment.
+  If also provided with receiver's address, creates and encodes a transaction.
+  """
+  @spec create(order_t()) :: create_advice_t()
+  def create(%{owner: owner, payments: payments, fee: fee}) do
+    needed_funds = needed_funds(payments, fee)
+    token_utxo_selection = select_utxo(DB.TxOutput.get_utxos(owner), needed_funds)
+
+    with {:ok, funds} <- funds_sufficient?(token_utxo_selection) do
+
+    end
+  end
+
+  defp needed_funds(payments, %{currency: fee_currency, amount: fee_amount}) do
+    needed_funds =
+      payments
+      |> Enum.group_by(& &1.currency)
+      |> Enum.map(fn {k, v} ->
+        {k, v |> Enum.map(& &1.amount) |> Enum.sum()}
+      end)
+      |> Map.new()
+
+    Map.update(needed_funds, fee_currency, 0, &(&1 + fee_amount))
+  end
+
+  defp select_utxo(utxos, needed_funds) do
+    utxos =
+      utxos
+      |> Enum.group_by(& &1.currency)
+      |> Enum.map(fn {k, v} -> {k, Enum.sort_by(v, & &1.amount, &>=/2)} end)
+      |> Map.new()
+
+    Enum.map(needed_funds, fn {token, need} ->
+      token_utxos = Map.get(utxos, token, [])
+
+      {token,
+       case Enum.find(token_utxos, fn %DB.TxOutput{amount: amount} -> amount == need end) do
+         nil ->
+           Enum.reduce_while(token_utxos, {need, []}, fn
+             %DB.TxOutput{amount: amount}, {need, acc} when need <= 0 -> {:halt, {need, acc}}
+             %DB.TxOutput{amount: amount} = utxo, {need, acc} -> {:cont, {need - amount, [utxo | acc]}}
+           end)
+
+         utxo ->
+           {0, [utxo]}
+       end}
+    end)
+  end
+
+  defp funds_sufficient?(utxo_selection) do
+    missing_funds =
+      utxo_selection
+      |> Enum.filter(fn {token, {short, _}} -> short > 0 end)
+      |> Enum.map(fn {token, {short, _}} -> %{token: OMG.RPC.Web.Encoding.to_hex(token), missing: short} end)
+
+    if Enum.empty?(missing_funds),
+      do: {:ok, utxo_selection},
+    else: {:error, :insufficient_funds, missing_funds}
+  end
 end
