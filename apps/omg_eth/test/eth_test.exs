@@ -31,7 +31,7 @@ defmodule OMG.EthTest do
 
   @moduletag :wrappers
 
-  @tag fixtures: [:geth]
+  @tag fixtures: [:eth_node]
   test "get_ethereum_height returns integer" do
     assert {:ok, number} = Eth.get_ethereum_height()
     assert is_integer(number)

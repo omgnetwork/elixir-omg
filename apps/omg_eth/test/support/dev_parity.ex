@@ -31,7 +31,7 @@ defmodule OMG.Eth.DevParity do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, homedir} = Briefly.create(directory: true)
 
-    parity_pid = launch("parity --chain dev --geth --jsonrpc-apis personal,eth,web3 --base-path #{homedir} 2>&1")
+    parity_pid = launch("parity --chain dev --geth --jsonrpc-apis personal,eth,web3,parity_accounts --base-path #{homedir} 2>&1")
 
     {:ok, :ready} = Eth.WaitFor.eth_rpc()
 

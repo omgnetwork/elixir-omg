@@ -22,15 +22,15 @@ defmodule OMG.Eth.Fixtures do
 
   import Eth.Encoding
 
-  deffixture geth do
+  deffixture eth_node do
     DeferredConfig.populate(:omg_eth)
     {:ok, exit_fn} = Eth.DevNode.start()
     on_exit(exit_fn)
     :ok
   end
 
-  deffixture contract(geth) do
-    :ok = geth
+  deffixture contract(eth_node) do
+    :ok = eth_node
 
     %{} = Eth.DevHelpers.prepare_env!(root_path: "../../")
   end
@@ -41,6 +41,7 @@ defmodule OMG.Eth.Fixtures do
     root_path = "../../"
     {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
 
+    DeferredConfig.populate(:omg_eth)
     {:ok, _, token_addr} = Eth.Deployer.create_new(OMG.Eth.Token, root_path, from_hex(addr))
 
     # ensuring that the root chain contract handles token_addr
@@ -52,6 +53,7 @@ defmodule OMG.Eth.Fixtures do
   end
 
   deffixture root_chain_contract_config(contract) do
+    DeferredConfig.populate(:omg_eth)
     Application.put_env(:omg_eth, :contract_addr, to_hex(contract.contract_addr), persistent: true)
     Application.put_env(:omg_eth, :authority_addr, to_hex(contract.authority_addr), persistent: true)
     Application.put_env(:omg_eth, :txhash_contract, to_hex(contract.txhash_contract), persistent: true)

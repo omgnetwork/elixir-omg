@@ -79,7 +79,7 @@ defmodule OMG.Eth.DevHelpers do
   def import_unlock_fund(%{priv: account_priv}, opts \\ []) do
     account_priv_enc = Base.encode16(account_priv)
 
-    {:ok, account_enc} = Ethereumex.HttpClient.request("personal_importRawKey", [account_priv_enc, @passphrase], [])
+    {:ok, account_enc} = create_account_from_secret(OMG.Eth.backend(), account_priv_enc, @passphrase)
     {:ok, _} = fund_address_from_faucet(account_enc, opts)
 
     {:ok, from_hex(account_enc)}
@@ -131,6 +131,16 @@ defmodule OMG.Eth.DevHelpers do
          {:ok, _} <- fund_address_from_faucet(authority, opts) do
       {:ok, from_hex(authority)}
     end
+  end
+
+  def create_account_from_secret(:geth, secret, passphrase) do
+    {:ok, _} = Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], [])
+  end
+
+  def create_account_from_secret(:parity, secret, passphrase) when byte_size(secret) == 64 do
+    secret = secret |> Base.decode16!(case: :upper) |> Base.encode16(case: :lower)
+    secret = "0x" <> secret
+    {:ok, _} = Ethereumex.HttpClient.request("parity_newAccountFromSecret", [secret, passphrase], [])
   end
 
   defp get_exit_period(nil) do
