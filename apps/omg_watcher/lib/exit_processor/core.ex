@@ -934,7 +934,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec get_in_flight_exits(__MODULE__.t()) :: list(map)
   def get_in_flight_exits(%__MODULE__{in_flight_exits: ifes}) do
     ifes
-    |> Enum.map(&get_in_flight_exit/1)
+    |> Enum.map(&prepare_in_flight_exit/1)
   end
 
   @doc """
@@ -944,10 +944,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   def get_active_in_flight_exits(%__MODULE__{in_flight_exits: ifes}) do
     ifes
     |> Enum.filter(fn {_, %InFlightExitInfo{is_active: is_active}} -> is_active end)
-    |> Enum.map(&get_in_flight_exit/1)
+    |> Enum.map(&prepare_in_flight_exit/1)
   end
 
-  defp get_in_flight_exit({txhash, ife_info}) do
+  defp prepare_in_flight_exit({txhash, ife_info}) do
     %{tx: %Transaction.Signed{raw_tx: raw_tx}, eth_height: eth_height} = ife_info
 
     %{

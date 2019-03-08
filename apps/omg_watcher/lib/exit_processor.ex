@@ -219,7 +219,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
     {:ok, exit_event_triggers, db_updates_from_state, validities} = State.exit_utxos(exits)
 
-    _ = Logger.info("Finalized exits: #{inspect(validities)}")
+    _ = if not Enum.empty?(exit_event_triggers), do: Logger.info("Finalized exits: #{inspect(validities)}")
 
     exit_event_triggers
     |> Core.create_exit_finalized_events()

@@ -169,7 +169,7 @@ defmodule OMG.Eth.RootChain do
 
   def process_exits(
         token,
-        utxo_pos,
+        top_exit_id,
         exits_to_process,
         from,
         contract \\ nil,
@@ -179,7 +179,7 @@ defmodule OMG.Eth.RootChain do
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "processExits(address,uint192,uint256)"
-    args = [token, utxo_pos, exits_to_process]
+    args = [token, top_exit_id, exits_to_process]
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
