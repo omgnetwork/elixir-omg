@@ -50,7 +50,7 @@ defmodule OMG.API.EthereumClientMonitor do
 
   @spec check :: non_neg_integer() | :error
   defp check do
-    {:ok, rootchain_height} = Eth.get_ethereum_height()
+    {:ok, rootchain_height} = eth().get_ethereum_height()
     rootchain_height
   rescue
     _ -> :error
@@ -59,4 +59,6 @@ defmodule OMG.API.EthereumClientMonitor do
   @spec raise_clear(:error | non_neg_integer()) :: :ok | :duplicate
   defp raise_clear(:error), do: Alarm.raise({:ethereum_client_connection, :erlang.node(), __MODULE__})
   defp raise_clear(_), do: Alarm.clear({:ethereum_client_connection, :erlang.node(), __MODULE__})
+
+  defp eth, do: Application.get_env(:omg_api, :eth_integration_module, Eth)
 end
