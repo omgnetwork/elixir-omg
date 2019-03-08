@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.API.SupervisorTest do
+defmodule OMG.API.SupTest do
   @moduledoc """
   This test is here mainly to test the logic-rich part of the supervisor setup, namely the config of
   `OMG.API.RootChainCoordinator.Core` supplied therein
@@ -21,7 +21,7 @@ defmodule OMG.API.SupervisorTest do
 
   alias OMG.API.RootChainCoordinator.Core
 
-  @setup OMG.API.Supervisor.coordinator_setup()
+  @setup OMG.API.Sup.coordinator_setup()
   @pid @setup
        |> Map.keys()
        |> Enum.with_index(1)
