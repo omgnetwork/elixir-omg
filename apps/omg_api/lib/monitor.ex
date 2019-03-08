@@ -30,7 +30,8 @@ defmodule OMG.API.Monitor do
   use GenServer
   require Logger
   alias OMG.API.Alert.Alarm
-  @default_interval 1_000
+  # needs to be less then checks from RootChainCoordinator
+  @default_interval 300
   @type t :: %__MODULE__{
           pid: pid(),
           spec: {module(), term()} | map(),

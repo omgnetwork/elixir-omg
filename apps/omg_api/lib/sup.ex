@@ -42,26 +42,22 @@ defmodule OMG.API.Sup do
         service_name: :in_flight_exit,
         synced_height_update_key: :last_in_flight_exit_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
-        process_events_callback: &ignore_validities/1
+        process_events_callback: &exit_and_ignore_validities/1
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :piggyback,
         synced_height_update_key: :last_piggyback_exit_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
-        process_events_callback: &ignore_validities/1
+        process_events_callback: &exit_and_ignore_validities/1
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :exiter,
         synced_height_update_key: :last_exiter_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
         process_events_callback: fn exits ->
-          exits =
-            Enum.map(exits, fn %{exit_id: exit_id} ->
-              {:ok, {_, _, _, position}} = OMG.Eth.RootChain.get_standard_exit(exit_id)
-              OMG.API.Utxo.Position.decode(position)
-            end)
-
-          ignore_validities(exits)
+          exits
+          |> Enum.map(&OMG.Eth.RootChain.get_standard_exit_utxo_pos/1)
+          |> exit_and_ignore_validities()
         end
       ),
       {OMG.RPC.Web.Endpoint, []}
@@ -90,7 +86,7 @@ defmodule OMG.API.Sup do
     }
   end
 
-  defp ignore_validities(exits) do
+  defp exit_and_ignore_validities(exits) do
     {status, db_updates, _validities} = OMG.API.State.exit_utxos(exits)
     {status, db_updates}
   end

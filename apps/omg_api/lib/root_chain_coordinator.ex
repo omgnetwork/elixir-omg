@@ -106,7 +106,8 @@ defmodule OMG.API.RootChainCoordinator do
 
   # processes that are dependent on the client connectivity return an extra indicator
   def terminate(reason, state) do
-    exit({{:ethereum_client_connection, reason}, state})
+    Process.exit(self(), {{:ethereum_client_connection, reason}, state})
+    :ok
   end
 
   defp schedule_get_ethereum_height(interval) do

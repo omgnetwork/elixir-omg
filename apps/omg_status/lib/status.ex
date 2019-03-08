@@ -18,10 +18,8 @@ defmodule OMG.Status do
   """
   use Application
   alias Status.Metric.Recorder
+  alias OMG.Status.Alert.AlarmHandler
 
-  @moduledoc """
-  Top level Supervisor.
-  """
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 

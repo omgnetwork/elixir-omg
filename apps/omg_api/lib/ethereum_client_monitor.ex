@@ -35,6 +35,7 @@ defmodule OMG.API.EthereumClientMonitor do
 
   def init(_args) do
     state = %__MODULE__{}
+    _ = raise_clear(check())
     {:ok, tref} = :timer.send_interval(state.interval, self(), :health_check)
     _ = Logger.info("Starting Ethereum client monitor.")
     {:ok, %{state | tref: tref}}
@@ -47,10 +48,6 @@ defmodule OMG.API.EthereumClientMonitor do
 
   def terminate(_, _), do: :ok
 
-  @spec raise_clear(:error | non_neg_integer()) :: :ok | :duplicate
-  defp raise_clear(:error), do: Alarm.raise({:ethereum_client_connection, :erlang.node(), __MODULE__})
-  defp raise_clear(_), do: Alarm.clear({:ethereum_client_connection, :erlang.node(), __MODULE__})
-
   @spec check :: non_neg_integer() | :error
   defp check do
     {:ok, rootchain_height} = Eth.get_ethereum_height()
@@ -58,4 +55,8 @@ defmodule OMG.API.EthereumClientMonitor do
   rescue
     _ -> :error
   end
+
+  @spec raise_clear(:error | non_neg_integer()) :: :ok | :duplicate
+  defp raise_clear(:error), do: Alarm.raise({:ethereum_client_connection, :erlang.node(), __MODULE__})
+  defp raise_clear(_), do: Alarm.clear({:ethereum_client_connection, :erlang.node(), __MODULE__})
 end

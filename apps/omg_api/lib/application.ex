@@ -23,10 +23,7 @@ defmodule OMG.API.Application do
   alias OMG.API.Sup
 
   def start(_type, _args) do
-    Sup.start_link()
-  end
-
-  def start_phase(:install_alarm_handler, _start_type, _phase_args) do
     :ok = AlarmHandler.install()
+    Sup.start_link()
   end
 end

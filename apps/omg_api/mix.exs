@@ -31,7 +31,6 @@ defmodule OMG.API.MixProject do
       ],
       # Add Sentry and Appsignal
       extra_applications: [:sentry, :logger, :appsignal],
-      start_phases: [{:install_alarm_handler, []}],
       mod: {OMG.API.Application, []}
     ]
   end

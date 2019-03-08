@@ -121,8 +121,9 @@ defmodule OMG.API.EthereumEventListener do
     |> :timer.send_after(self(), :sync)
   end
 
-  # processes that are dependent on the client connectivity return an extra indicator
+  # processes that are dependent on the client connectivity return an extra indicator :ethereum_client_connection
   def terminate(reason, state) do
-    exit({{:ethereum_client_connection, reason}, state})
+    Process.exit(self(), {{:ethereum_client_connection, reason}, state})
+    :ok
   end
 end
