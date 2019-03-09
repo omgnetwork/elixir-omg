@@ -1,4 +1,4 @@
-# Copyright 2018 OmiseGO Pte Ltd
+# Copyright 2019 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ defmodule OMG.API.EthereumClientMonitorTest do
     Mock.set_faulty_response()
 
     :ok =
-      pull_client_alarm(30, [
+      pull_client_alarm(300, [
         %{
           details: %{node: :erlang.node(), reporter: EthereumClientMonitor},
           id: :ethereum_client_connection
@@ -48,7 +48,7 @@ defmodule OMG.API.EthereumClientMonitorTest do
     Mock.set_faulty_response()
 
     :ok =
-      pull_client_alarm(30, [
+      pull_client_alarm(300, [
         %{
           details: %{node: :erlang.node(), reporter: EthereumClientMonitor},
           id: :ethereum_client_connection

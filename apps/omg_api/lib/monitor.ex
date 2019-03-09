@@ -82,6 +82,7 @@ defmodule OMG.API.Monitor do
   # starting the child
   def handle_info({:EXIT, from, reason}, state) do
     {%__MODULE__{pid: ^from} = child, other_children} = find_child_from_dead_pid(from, state)
+
     new_child = restart_or_delay(reason, child)
 
     {:noreply, [new_child | other_children]}
