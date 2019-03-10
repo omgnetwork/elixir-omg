@@ -4,6 +4,7 @@ jobs:
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
         environment:
+          COVERALLS_REPO_TOKEN: $COVERALLS_REPO_TOKEN
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       - image: circleci/postgres:9.6-alpine
         environment:
@@ -59,6 +60,7 @@ jobs:
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
         environment:
+          COVERALLS_PARALLEL: true
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       - image: circleci/postgres:9.6-alpine
         environment:
@@ -66,7 +68,6 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: omisego_dev
           MIX_ENV: test
-          COVERALLS_PARALLEL: true
     working_directory: ~/repo
 
     steps:
@@ -115,6 +116,7 @@ jobs:
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
         environment:
+          COVERALLS_PARALLEL: true
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       - image: circleci/postgres:9.6-alpine
         environment:
@@ -122,7 +124,6 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: omisego_dev
           MIX_ENV: test
-          COVERALLS_PARALLEL: true
     working_directory: ~/repo
 
     steps:
@@ -157,6 +158,7 @@ jobs:
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
         environment:
+          COVERALLS_PARALLEL: true
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
       - image: circleci/postgres:9.6-alpine
         environment:
@@ -164,7 +166,6 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: omisego_dev
           MIX_ENV: test
-          COVERALLS_PARALLEL: true
     working_directory: ~/repo
 
     steps:
@@ -340,11 +341,14 @@ jobs:
             kubectl set image statefulset watcher watcher=$DOCKER_IMAGE
 
   parallel-finished:
-    environment:
-      COVERALLS_REPO_TOKEN: $COVERALLS_REPO_TOKEN
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+        environment:
+          COVERALLS_REPO_TOKEN: $COVERALLS_REPO_TOKEN
+    working_directory: ~/repo
     steps:
+      - attach_workspace:
+           at: .
       - run: curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_ID&payload[status]=done"
 
 workflows:
