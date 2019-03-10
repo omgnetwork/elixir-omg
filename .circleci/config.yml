@@ -79,7 +79,17 @@ jobs:
       #     keys:
       #       - v1-mix-cache-{{ checksum "mix.lock" }}
 
-      - run: mix test
+      - run:
+          name: Tests & Coveralls
+          command: |
+            export GIT_COMMIT_DESCRIPTION=$(git log --format=%B -n 1 $CIRCLE_SHA1)
+            export SHELL=/bin/bash
+            mix coveralls.post \
+              --umbrella \
+              --parallel \
+              --sha $CIRCLE_SHA \
+              --branch $CIRCLE_BRANCH \
+              --message "$GIT_COMMIT_DESCRIPTION"
 
   lint:
     docker:
@@ -172,6 +182,9 @@ jobs:
               --umbrella \
               --parallel \
               --exclude wrappers \
+              --exclude wrappers \
+              --exclude api_integration \
+              --exclude performance_integration \
               --include integration \
               --sha $CIRCLE_SHA \
               --branch $CIRCLE_BRANCH \
