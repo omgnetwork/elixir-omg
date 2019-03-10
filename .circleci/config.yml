@@ -1,7 +1,4 @@
 version: 2
-notify:
-  webhooks:
-    - url: https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN
 jobs:
   build:
     docker:
@@ -86,6 +83,7 @@ jobs:
       - run:
           name: Tests & Coveralls
           command: |
+            export CIRCLE_BUILD_NUM=$CIRCLE_WORKFLOW_ID
             export GIT_COMMIT_DESCRIPTION=$(git log --format=%B -n 1 $CIRCLE_SHA1)
             export SHELL=/bin/bash
             mix coveralls.post \
@@ -141,6 +139,7 @@ jobs:
       - run:
           name: Integration Tests & Coveralls
           command: |
+            export CIRCLE_BUILD_NUM=$CIRCLE_WORKFLOW_ID
             export GIT_COMMIT_DESCRIPTION=$(git log --format=%B -n 1 $CIRCLE_SHA1)
             export SHELL=/bin/bash
             mix coveralls.post \
@@ -182,6 +181,7 @@ jobs:
       - run:
           name: Integration Tests & Coveralls
           command: |
+            export CIRCLE_BUILD_NUM=$CIRCLE_WORKFLOW_ID
             export GIT_COMMIT_DESCRIPTION=$(git log --format=%B -n 1 $CIRCLE_SHA1)
             export SHELL=/bin/bash
             mix coveralls.post \
@@ -339,6 +339,14 @@ jobs:
             while true; do if [ "$(kubectl get pods childchain-0 -o jsonpath=\"{.status.phase}\" | grep Running)" ]; then break; fi; done
             kubectl set image statefulset watcher watcher=$DOCKER_IMAGE
 
+  parallel-finished:
+    environment:
+      COVERALLS_REPO_TOKEN: $COVERALLS_REPO_TOKEN
+    docker:
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+    steps:
+      - run: curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_ID&payload[status]=done"
+
 workflows:
   version: 2
   build-deploy:
@@ -354,6 +362,12 @@ workflows:
           requires: [build]
       - test:
           requires: [build]
+      - parallel-finished:
+          requires:
+            - coveralls_and_integration_tests_1
+            - coveralls_and_integration_tests_2
+            - test
+
       - build_and_deploy_development:
           requires:
             - build
