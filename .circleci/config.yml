@@ -99,7 +99,7 @@ jobs:
            at: .
       - run: mix do credo, format --check-formatted --dry-run
 
-  coveralls_and_integration_tests:
+  coveralls_and_integration_tests_1:
     docker:
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
         environment:
@@ -130,8 +130,47 @@ jobs:
             export SHELL=/bin/bash
             mix coveralls.post \
               --umbrella \
-              --include integration \
+              --parallel \
+              --exclude integration \
               --include wrappers \
+              --sha $CIRCLE_SHA \
+              --branch $CIRCLE_BRANCH \
+              --message "$GIT_COMMIT_DESCRIPTION"
+
+  coveralls_and_integration_tests_2:
+    docker:
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+        environment:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/omisego_dev
+      - image: circleci/postgres:9.6-alpine
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: omisego_dev
+          MIX_ENV: test
+    working_directory: ~/repo
+
+    steps:
+      - attach_workspace:
+           at: .
+
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
+
+      # - restore_cache:
+      #     keys:
+      #       - v1-mix-cache-{{ checksum "mix.lock" }}
+
+      - run:
+          name: Integration Tests & Coveralls
+          command: |
+            export GIT_COMMIT_DESCRIPTION=$(git log --format=%B -n 1 $CIRCLE_SHA1)
+            export SHELL=/bin/bash
+            mix coveralls.post \
+              --umbrella \
+              --parallel \
+              --exclude wrappers \
+              --include integration \
               --sha $CIRCLE_SHA \
               --branch $CIRCLE_BRANCH \
               --message "$GIT_COMMIT_DESCRIPTION"
@@ -284,7 +323,9 @@ workflows:
   build-deploy:
     jobs:
       - build
-      - coveralls_and_integration_tests:
+      - coveralls_and_integration_tests_1:
+          requires: [build]
+      - coveralls_and_integration_tests_2:
           requires: [build]
       - lint:
           requires: [build]
@@ -298,7 +339,8 @@ workflows:
             - lint
             - dialyzer
             - test
-            - coveralls_and_integration_tests
+            - coveralls_and_integration_tests_1
+            - coveralls_and_integration_tests_2
           filters:
             branches:
               only:
@@ -309,7 +351,8 @@ workflows:
             - lint
             - dialyzer
             - test
-            - coveralls_and_integration_tests
+            - coveralls_and_integration_tests_1
+            - coveralls_and_integration_tests_2
           filters:
             branches:
               only:
