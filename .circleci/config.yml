@@ -1,4 +1,7 @@
 version: 2
+notify:
+  webhooks:
+    - url: https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN
 jobs:
   build:
     docker:
@@ -66,6 +69,7 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: omisego_dev
           MIX_ENV: test
+          COVERALLS_PARALLEL: true
     working_directory: ~/repo
 
     steps:
@@ -120,6 +124,7 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: omisego_dev
           MIX_ENV: test
+          COVERALLS_PARALLEL: true
     working_directory: ~/repo
 
     steps:
@@ -160,6 +165,7 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: omisego_dev
           MIX_ENV: test
+          COVERALLS_PARALLEL: true
     working_directory: ~/repo
 
     steps:
