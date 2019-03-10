@@ -23,7 +23,7 @@ defmodule OMG.PerformanceTest do
 
   alias OMG.Eth
 
-  @moduletag :integration
+  @moduletag :performance_integration
 
   deffixture destdir do
     {:ok, _} = Application.ensure_all_started(:briefly)

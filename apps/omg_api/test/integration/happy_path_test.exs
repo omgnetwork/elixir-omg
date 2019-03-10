@@ -33,7 +33,7 @@ defmodule OMG.API.Integration.HappyPathTest do
 
   require OMG.API.Utxo
 
-  @moduletag :integration
+  @moduletag :api_integration
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
   @moduletag timeout: 120_000
 

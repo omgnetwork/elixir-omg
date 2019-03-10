@@ -133,6 +133,8 @@ jobs:
               --parallel \
               --exclude integration \
               --include wrappers \
+              --include api_integration \
+              --include performance_integration \
               --sha $CIRCLE_SHA \
               --branch $CIRCLE_BRANCH \
               --message "$GIT_COMMIT_DESCRIPTION"

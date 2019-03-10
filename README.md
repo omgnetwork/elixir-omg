@@ -307,7 +307,7 @@ mix test
 
 Longer-running integration tests (requires compiling contracts):
 ```bash
-mix test --only integration
+mix test --only integration --only performance_integration --only api_integration
 ```
 
 For other kinds of checks, refer to the CI/CD pipeline (https://circleci.com/gh/omisego/workflows/elixir-omg).
