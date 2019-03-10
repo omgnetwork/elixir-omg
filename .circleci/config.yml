@@ -349,7 +349,7 @@ jobs:
     steps:
       - attach_workspace:
            at: .
-      - run: curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_ID&payload[status]=done"
+      - run: CIRCLE_BUILD_NUM=$CIRCLE_WORKFLOW_ID curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_ID&payload[status]=done"
 
 workflows:
   version: 2
