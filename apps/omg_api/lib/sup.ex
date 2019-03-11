@@ -45,7 +45,7 @@ defmodule OMG.API.Sup do
         service_name: :piggyback,
         synced_height_update_key: :last_piggyback_exit_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
-                process_events_callback: &exit_and_ignore_events_and_validities/1
+        process_events_callback: &exit_and_ignore_events_and_validities/1
       ),
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :exiter,
@@ -68,7 +68,7 @@ defmodule OMG.API.Sup do
       {OMG.API.Monitor, monitor_children}
     ]
 
-    opts = [strategy: :one_for_one, max_restarts: 1000, max_seconds: 60]
+    opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     :ok = :error_logger.add_report_handler(Sentry.Logger)
