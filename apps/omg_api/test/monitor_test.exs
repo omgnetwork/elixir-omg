@@ -132,7 +132,7 @@ defmodule OMG.API.MonitorTest do
         true
 
       _ ->
-        :timer.sleep(10)
+        Process.sleep(10)
         pull_links_and_find_process(monitor_pid, old_pid, index - 1)
     end
   end
@@ -145,7 +145,7 @@ defmodule OMG.API.MonitorTest do
         is_reference(tref)
 
       _ ->
-        :timer.sleep(10)
+        Process.sleep(10)
         pull_state_and_find_timer(monitor_pid, index - 1)
     end
   end

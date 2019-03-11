@@ -46,13 +46,7 @@ defmodule OMG.API.Monitor do
   def init(children_specs) do
     Process.flag(:trap_exit, true)
 
-    children =
-      Enum.map(
-        children_specs,
-        fn spec ->
-          start_child(spec)
-        end
-      )
+    children = Enum.map(children_specs, &start_child(&1))
 
     {:ok, children}
   end
@@ -80,10 +74,10 @@ defmodule OMG.API.Monitor do
   # we got an exit signal from a linked child, we have to act as a supervisor now and decide what to do
   # we try to find the child via his old pid that we kept in the state, retrieve his exit reason and specification for
   # starting the child
-  def handle_info({:EXIT, from, reason}, state) do
+  def handle_info({:EXIT, from, _reason}, state) do
     {%__MODULE__{pid: ^from} = child, other_children} = find_child_from_dead_pid(from, state)
 
-    new_child = restart_or_delay(reason, child)
+    new_child = restart_or_delay(child)
 
     {:noreply, [new_child | other_children]}
   end
@@ -93,29 +87,14 @@ defmodule OMG.API.Monitor do
 
   @spec find_child_from_dead_pid(pid(), list(t)) :: {t, list(t)} | {nil, list(t)}
   defp find_child_from_dead_pid(pid, state) do
-    item =
-      Enum.find(
-        state,
-        fn
-          %{pid: ^pid} -> true
-          _ -> false
-        end
-      )
+    item = Enum.find(state, &(&1.pid == pid))
 
-    {
-      item,
-      state --
-        [item]
-    }
+    {item, state -- [item]}
   end
 
-  ### We want to capture processes that need Ethereum client connectivity
-  ### and try to figure out, if the client is unavailable. If it is, we'll postpone the
+  ### Figure out, if the client is unavailable. If it is, we'll postpone the
   ### restart until the alarm clears. Other processes can be restarted immediately.
-  defp restart_or_delay(
-         {{:ethereum_client_connection, _reason}, _child_state},
-         child
-       ) do
+  defp restart_or_delay(child) do
     case is_raised?() do
       true ->
         {:ok, tref} = :timer.send_interval(@default_interval, self(), {:delayed_restart, child})
@@ -125,8 +104,6 @@ defmodule OMG.API.Monitor do
         start_child(child.spec)
     end
   end
-
-  defp restart_or_delay(_, child), do: start_child(child.spec)
 
   defp start_child({child_module, args} = spec) do
     {:ok, pid} = child_module.start_link(args)
@@ -139,14 +116,10 @@ defmodule OMG.API.Monitor do
   end
 
   defp is_raised?() do
-    is_map(
-      Enum.find(
-        Alarm.all(),
-        fn
-          %{id: :ethereum_client_connection} -> true
-          _ -> false
-        end
-      )
-    )
+    alarms = Alarm.all()
+
+    alarms
+    |> Enum.find(fn x -> match?(%{id: :ethereum_client_connection}, x) end)
+    |> is_map()
   end
 end

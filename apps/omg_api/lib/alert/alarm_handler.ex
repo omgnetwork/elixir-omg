@@ -50,8 +50,11 @@ defmodule OMG.API.Alert.AlarmHandler do
   end
 
   def handle_event({:clear_alarm, alarm_id}, %{alarms: alarms}) do
-    new_alarms = Enum.filter(alarms, &(elem(&1, 0) != alarm_id))
-    new_alarms = Enum.filter(new_alarms, &(&1 != alarm_id))
+    new_alarms =
+      alarms
+      |> Enum.filter(&(elem(&1, 0) != alarm_id))
+      |> Enum.filter(&(&1 != alarm_id))
+
     {:ok, %{alarms: new_alarms}}
   end
 

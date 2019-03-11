@@ -46,9 +46,9 @@ defmodule OMG.Status.Alert.AlarmTest do
     # sets memory check limit to 1%
     # see if memsup alarm was raised after next check
     :memsup.set_sysmem_high_watermark(1)
-    :timer.sleep(:memsup.get_check_interval() + 1000)
+    Process.sleep(:memsup.get_check_interval() + 1000)
     :memsup.set_sysmem_high_watermark(0.01)
-    :timer.sleep(:memsup.get_check_interval() + 1000)
+    Process.sleep(:memsup.get_check_interval() + 1000)
     assert Enum.any?(Alarm.all(), &(Map.get(&1, :id) == :system_memory_high_watermark))
   end
 

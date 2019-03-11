@@ -27,10 +27,7 @@ defmodule OMG.API.Sup do
     DeferredConfig.populate(:omg_api)
 
     monitor_children = [
-      {OMG.API.State, []},
       {OMG.API.BlockQueue.Server, []},
-      {OMG.API.FreshBlocks, []},
-      {OMG.API.FeeServer, []},
       {OMG.API.RootChainCoordinator, coordinator_setup()},
       OMG.API.EthereumEventListener.prepare_child(
         service_name: :depositor,
@@ -64,6 +61,9 @@ defmodule OMG.API.Sup do
     ]
 
     children = [
+      {OMG.API.State, []},
+      {OMG.API.FreshBlocks, []},
+      {OMG.API.FeeServer, []},
       {OMG.API.EthereumClientMonitor, []},
       {OMG.API.Monitor, monitor_children}
     ]

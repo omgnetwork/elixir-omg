@@ -155,12 +155,6 @@ defmodule OMG.API.BlockQueue do
       {:noreply, state1}
     end
 
-    # processes that are dependent on the client connectivity return an extra indicator
-    def terminate(reason, state) do
-      Process.exit(self(), {{:ethereum_client_connection, reason}, state})
-      :ok
-    end
-
     # private (server)
 
     @spec submit_blocks(Core.t()) :: :ok

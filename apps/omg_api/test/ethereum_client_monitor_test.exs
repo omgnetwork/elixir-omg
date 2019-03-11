@@ -32,11 +32,16 @@ defmodule OMG.API.EthereumClientMonitorTest do
     end)
   end
 
+  setup do
+    Alarm.clear_all()
+  end
+
   test "that alarm gets raised if there's no ethereum client running" do
     Mock.set_faulty_response()
+    true = is_pid(Process.whereis(EthereumClientMonitor))
 
     :ok =
-      pull_client_alarm(300, [
+      pull_client_alarm(400, [
         %{
           details: %{node: :erlang.node(), reporter: EthereumClientMonitor},
           id: :ethereum_client_connection
@@ -46,9 +51,10 @@ defmodule OMG.API.EthereumClientMonitorTest do
 
   test "that alarm gets raised if there's no ethereum client running and cleared when it's running" do
     Mock.set_faulty_response()
+    true = is_pid(Process.whereis(EthereumClientMonitor))
 
     :ok =
-      pull_client_alarm(300, [
+      pull_client_alarm(400, [
         %{
           details: %{node: :erlang.node(), reporter: EthereumClientMonitor},
           id: :ethereum_client_connection
@@ -56,10 +62,10 @@ defmodule OMG.API.EthereumClientMonitorTest do
       ])
 
     _ = Mock.set_ok_response()
-    :ok = pull_client_alarm(20, [])
+    :ok = pull_client_alarm(300, [])
   end
 
-  defp pull_client_alarm(0, _), do: :cant_match
+  defp pull_client_alarm(0, _), do: {:cant_match, Alarm.all()}
 
   defp pull_client_alarm(n, match) do
     case Alarm.all() do
@@ -67,7 +73,7 @@ defmodule OMG.API.EthereumClientMonitorTest do
         :ok
 
       _ ->
-        :timer.sleep(100)
+        Process.sleep(100)
         pull_client_alarm(n - 1, match)
     end
   end
