@@ -111,7 +111,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   deffixture contract_ife_statuses(in_flight_exit_events) do
-    List.duplicate({1, @non_zero_exit_id}, length(in_flight_exit_events))
+    1..length(in_flight_exit_events)
+    |> Enum.map(fn i -> {i, <<i::192>>} end)
   end
 
   deffixture ife_tx_hashes(transactions) do
@@ -1783,6 +1784,22 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       finalization = %{in_flight_exit_id: ife_id, output_index: 1}
       {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization])
       {:ok, ^processor, []} = Core.finalize_in_flight_exits(processor, [finalization])
+    end
+
+    @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
+    test "finalizing perserve in flights exits that are not being finalized",
+         %{
+           processor_empty: processor,
+           in_flight_exit_events: [ife1, ife2 | _],
+           contract_ife_statuses: [{_, ife_id} = ife_status1, ife_status2 | _]
+         } do
+      {processor, _} = Core.new_in_flight_exits(processor, [ife1, ife2], [ife_status1, ife_status2])
+
+      tx_hash = ife_tx_hash(ife1)
+      {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: 1}])
+      finalization = %{in_flight_exit_id: ife_id, output_index: 1}
+      {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization])
+      [_, _] = Core.get_in_flight_exits(processor)
     end
 
     @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]

@@ -320,7 +320,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       challenges
       |> Enum.map(fn %{tx_hash: tx_hash} -> tx_hash end)
       |> (&Map.take(ifes, &1)).()
-      # initialises all ifes as not updated
+      # initializes all ifes as not updated
       |> Enum.map(fn {key, value} -> {key, {value, false}} end)
       |> Map.new()
 
@@ -349,13 +349,20 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec finalize_in_flight_exits(t(), [map()]) ::
           {:ok, t(), list()} | {:not_piggybacked, list()} | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
   def finalize_in_flight_exits(%__MODULE__{in_flight_exits: ifes} = state, finalizations) do
-    with {:ok, ifes_by_contract_id} <- get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes),
-         {:ok, []} <- outputs_piggybacked?(finalizations, ifes_by_contract_id) do
-      ifes_to_finalize = get_ifes_to_finalize(finalizations, ifes_by_contract_id)
-      finalized_ifes = finalize_ifes(finalizations, ifes_to_finalize)
-      db_updates = finalized_ifes |> Enum.map(&InFlightExitInfo.make_db_update/1)
+    with {:ok, ifes_by_id} <- get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes),
+         {:ok, []} <- outputs_piggybacked?(finalizations, ifes_by_id) do
+      {db_updates_by_id, ifes_by_id} =
+        finalizations
+        |> Enum.reduce({%{}, ifes_by_id}, &finalize_single_exit/2)
 
-      {:ok, %{state | in_flight_exits: Map.merge(ifes, finalized_ifes)}, db_updates}
+      ifes =
+        ifes_by_id
+        |> Enum.map(fn {_, value} -> value end)
+        |> Map.new()
+
+      db_updates = Map.values(db_updates_by_id)
+
+      {:ok, %{state | in_flight_exits: ifes}, db_updates}
     end
   end
 
@@ -367,7 +374,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     by_contract_id =
       ifes
-      |> Enum.filter(fn {_, %InFlightExitInfo{contract_id: id}} -> MapSet.member?(finalizations_ids, id) end)
       |> Enum.map(fn {tx_hash, %InFlightExitInfo{contract_id: id} = ife} -> {id, {tx_hash, ife}} end)
       |> Map.new()
 
@@ -385,23 +391,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  defp get_ifes_to_finalize(finalizations, ifes_by_contract_id) do
-    ifes_to_update =
-      finalizations
-      |> Enum.filter(fn %{in_flight_exit_id: ife_id, output_index: output} ->
-        {_, ife} = Map.get(ifes_by_contract_id, ife_id)
-        InFlightExitInfo.is_active?(ife, output)
-      end)
-      |> Enum.map(fn %{in_flight_exit_id: ife_id} -> ife_id end)
-
-    Map.take(ifes_by_contract_id, ifes_to_update)
-  end
-
-  defp outputs_piggybacked?(finalizations, ifes_by_contract_id) do
+  defp outputs_piggybacked?(finalizations, ifes_by_id) do
     not_piggybacked =
       finalizations
       |> Enum.filter(fn %{in_flight_exit_id: ife_id, output_index: output} ->
-        {_, ife} = Map.get(ifes_by_contract_id, ife_id)
+        {_, ife} = Map.get(ifes_by_id, ife_id)
         not InFlightExitInfo.is_piggybacked?(ife, output)
       end)
 
@@ -412,21 +406,19 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  defp finalize_ifes(finalizations, ifes_to_update) do
-    ifes_to_updates_ids = Map.keys(ifes_to_update)
+  defp finalize_single_exit(%{in_flight_exit_id: ife_id, output_index: output}, {updates_by_id, ifes_by_id} = acc) do
+    {tx_hash, ife} = Map.get(ifes_by_id, ife_id)
 
-    finalizations
-    |> Enum.filter(fn %{in_flight_exit_id: ife_id} -> ife_id in ifes_to_updates_ids end)
-    |> Enum.reduce(
-      ifes_to_update,
-      fn %{in_flight_exit_id: ife_id, output_index: output}, acc ->
-        {tx_hash, ife_to_finalize} = Map.get(acc, ife_id)
-        {:ok, finalized_ife} = InFlightExitInfo.finalize(ife_to_finalize, output)
-        Map.put(acc, ife_id, {tx_hash, finalized_ife})
-      end
-    )
-    |> Enum.map(fn {_, value} -> value end)
-    |> Map.new()
+    if InFlightExitInfo.is_active?(ife, output) do
+      {:ok, finalized_ife} = InFlightExitInfo.finalize(ife, output)
+      ifes_by_id = Map.put(ifes_by_id, ife_id, {tx_hash, finalized_ife})
+
+      update = InFlightExitInfo.make_db_update({tx_hash, finalized_ife})
+      updates_by_id = Map.put(updates_by_id, ife_id, update)
+      {updates_by_id, ifes_by_id}
+    else
+      acc
+    end
   end
 
   @doc """
