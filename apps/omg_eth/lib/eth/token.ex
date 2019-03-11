@@ -23,25 +23,27 @@ defmodule OMG.Eth.Token do
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
+  @gas_token_ops 80_000
+
   ##########
   # writes #
   ##########
 
   def mint(owner, amount, token, opts \\ []) do
-    opts = @tx_defaults |> Keyword.merge(opts)
+    opts = @tx_defaults |> Keyword.put(:gas, @gas_token_ops) |> Keyword.merge(opts)
 
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
     Eth.contract_transact(from_hex(from), token, "mint(address,uint256)", [owner, amount], opts)
   end
 
   def transfer(from, owner, amount, token, opts \\ []) do
-    opts = @tx_defaults |> Keyword.merge(opts)
+    opts = @tx_defaults |> Keyword.put(:gas, @gas_token_ops) |> Keyword.merge(opts)
 
     Eth.contract_transact(from, token, "transfer(address,uint256)", [owner, amount], opts)
   end
 
   def approve(from, spender, amount, token, opts \\ []) do
-    opts = @tx_defaults |> Keyword.merge(opts)
+    opts = @tx_defaults |> Keyword.put(:gas, @gas_token_ops) |> Keyword.merge(opts)
 
     Eth.contract_transact(from, token, "approve(address,uint256)", [spender, amount], opts)
   end
