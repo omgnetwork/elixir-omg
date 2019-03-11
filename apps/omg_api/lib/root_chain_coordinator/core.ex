@@ -46,7 +46,7 @@ defmodule OMG.API.RootChainCoordinator.Core do
   @type check_in_error_t :: {:error, :service_not_allowed}
 
   # RootChainCoordinator is also checking if queries to Ethereum client don't get huge
-  @maximum_leap_forward 10_000
+  @maximum_leap_forward 2_500
 
   @doc """
   Initializes core.
