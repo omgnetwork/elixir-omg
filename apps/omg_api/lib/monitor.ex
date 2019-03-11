@@ -53,21 +53,21 @@ defmodule OMG.API.Monitor do
 
   def handle_info({:delayed_restart, child}, state) do
     # child still holds the old pid
-    case is_raised?() do
-      true ->
-        {:noreply, state}
 
+    from = child.pid
+
+    with false <- is_raised?(),
+         {%__MODULE__{pid: ^from, tref: tref} = child, other_children} <- find_child_from_dead_pid(from, state) do
+      {:ok, :cancel} = :timer.cancel(tref)
+
+      new_child = start_child(child.spec)
+
+      {:noreply, [new_child | other_children]}
+    else
       _ ->
-        # old pid that the crash came from
-        from = child.pid
-        {%__MODULE__{pid: ^from, tref: tref} = child, other_children} = find_child_from_dead_pid(from, state)
-        # the state child holds our timer reference, because it was set after the timer
-        # has been started, and the new child returned to the state
+        # alarm is still raised, or the child was already cleared from state in a previous timer
 
-        {:ok, :cancel} = :timer.cancel(tref)
-
-        new_child = start_child(child.spec)
-        {:noreply, [new_child | other_children]}
+        {:noreply, state}
     end
   end
 
@@ -97,7 +97,8 @@ defmodule OMG.API.Monitor do
   defp restart_or_delay(child) do
     case is_raised?() do
       true ->
-        {:ok, tref} = :timer.send_interval(@default_interval, self(), {:delayed_restart, child})
+        {:ok, tref} = :timer.send_interval(@default_interval, {:delayed_restart, child})
+
         %__MODULE__{child | tref: tref}
 
       _ ->

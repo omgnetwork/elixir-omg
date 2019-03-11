@@ -92,6 +92,49 @@ defmodule OMG.API.MonitorTest do
     assert pull_state_and_find_timer(monitor_pid, 1000)
   end
 
+  test "for race condition starting two long init processes" do
+    # a potential race condition that was addressed was
+    # 1. a child gets killed and an alarm is raised before it can be restarted
+    # 2. a timer is set for the restart
+    # 3. timer tries to restart the child, but can't because alarm
+    # 4. alarms gets cleared and timer kicks in for restart
+    # 5. imagine the child needs to fetch the state from DB and there's latency
+    # above the default milliseconds for the timer
+    # 6. child gets restarted and cleansup his old pid from the state while
+    # the new timer is already in
+    # 7. breaks - can't find old pid (solved with a with statement)
+
+    # With the below test - that starts chilldren with a Sleep function in init, we're
+    # simulating the messages in Monitor getting filled.
+    children = Enum.map(1..3, fn _ -> {__MODULE__.Mock, [:no_name]} end)
+    {:ok, monitor_pid} = Monitor.start_link(children)
+    Process.unlink(monitor_pid)
+    Alarm.raise({:ethereum_client_connection, :erlang.node(), __MODULE__})
+    {:links, links} = Process.info(monitor_pid, :links)
+
+    spawn(fn ->
+      Enum.map(links, &Process.exit(&1, :killed))
+    end)
+
+    Alarm.clear_all()
+    check_restarted(monitor_pid, links, 100)
+  end
+
+  defp check_restarted(_monitor_pid, _old_links, 0), do: false
+
+  defp check_restarted(monitor_pid, old_links, n) do
+    {:links, links} = Process.info(monitor_pid, :links)
+
+    case Enum.count(links -- old_links) do
+      3 ->
+        true
+
+      _ ->
+        Process.sleep(100)
+        check_restarted(monitor_pid, old_links, n - 1)
+    end
+  end
+
   defp handle_killing_and_monitoring(monitor_pid) do
     # 1. we start the child and log the pid
     # 2. exit the pid
@@ -160,16 +203,22 @@ defmodule OMG.API.MonitorTest do
       %{id: __MODULE__, start: {__MODULE__, :start_link, [[]]}}
     end
 
+    def start_link([:no_name]), do: GenServer.start_link(__MODULE__, [:no_name])
     def start_link(_), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
+
+    def init([:no_name]) do
+      Process.sleep(3_000)
+      {:ok, %{}}
+    end
+
+    def init(_), do: {:ok, %{}}
+
     def terminate(:ethereum_client_connection), do: GenServer.call(__MODULE__, :terminate_ethereum_client_connection)
     def terminate(reason), do: GenServer.call(__MODULE__, {:terminate, reason})
 
-    def init(_), do: {:ok, %{}}
     def handle_call({:terminate, reason}, _, state), do: {:stop, reason, state}
 
     def handle_call(:terminate_ethereum_client_connection, _, state),
       do: Process.exit(self(), {{:ethereum_client_connection, :normal}, state})
-
-    # processes that are dependent on the client connectivity return an extra indicator :ethereum_client_connection
   end
 end
