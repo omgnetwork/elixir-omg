@@ -23,6 +23,7 @@ defmodule OMG.Watcher.ExitProcessor do
   NOTE: Note that all calls return `db_updates` and relay on the caller to do persistence.
   """
 
+  alias OMG.API.EventerAPI
   alias OMG.API.State
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
@@ -125,9 +126,9 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns a map of requested in flight exits, where keys are IFE hashes and values are IFES
   If given empty list of hashes, all IFEs are returned.
   """
-  @spec get_in_flight_exits() :: {:ok, %{binary() => InFlightExitInfo.t()}}
-  def get_in_flight_exits do
-    GenServer.call(__MODULE__, :get_in_flight_exits)
+  @spec get_active_in_flight_exits() :: {:ok, %{binary() => InFlightExitInfo.t()}}
+  def get_active_in_flight_exits do
+    GenServer.call(__MODULE__, :get_active_in_flight_exits)
   end
 
   @doc """
@@ -208,7 +209,22 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:finalize_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized finalizations: #{inspect(exits)}")
-    {:ok, db_updates_from_state, validities} = State.exit_utxos(exits)
+
+    exits =
+      exits
+      |> Enum.map(fn %{exit_id: exit_id} ->
+        {:ok, {_, _, _, utxo_pos}} = Eth.RootChain.get_standard_exit(exit_id)
+        Utxo.Position.decode(utxo_pos)
+      end)
+
+    {:ok, exit_event_triggers, db_updates_from_state, validities} = State.exit_utxos(exits)
+
+    _ = if not Enum.empty?(exit_event_triggers), do: Logger.info("Finalized exits: #{inspect(validities)}")
+
+    exit_event_triggers
+    |> Core.create_exit_finalized_events()
+    |> EventerAPI.emit_events()
+
     {new_state, db_updates} = Core.finalize_exits(state, validities)
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end
@@ -245,8 +261,19 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:finalize_in_flight_exits, finalizations}, _from, state) do
     _ = if not Enum.empty?(finalizations), do: Logger.info("Recognized ife finalizations: #{inspect(finalizations)}")
-    {new_state, db_updates} = Core.finalize_in_flight_exits(state, finalizations)
-    {:reply, {:ok, db_updates}, new_state}
+
+    case Core.finalize_in_flight_exits(state, finalizations) do
+      {:ok, state, db_updates} ->
+        {:reply, {:ok, db_updates}, state}
+
+      {:not_piggybacked, not_piggybacked} ->
+        _ = Logger.error("Outputs not piggybacked: #{inspect(not_piggybacked)}")
+        {:stop, :not_piggybacked, state}
+
+      {:unknown_in_flight_exit, unknown_ifes} ->
+        _ = Logger.error("Unknown in-flight exits: #{inspect(unknown_ifes)}")
+        {:stop, :unknown_in_flight_exit, Elixir.Agent.Server, state}
+    end
   end
 
   @doc """
@@ -258,8 +285,8 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {chain_status, events}, state}
   end
 
-  def handle_call(:get_in_flight_exits, _from, state),
-    do: {:reply, {:ok, Core.get_in_flight_exits(state)}, state}
+  def handle_call(:get_active_in_flight_exits, _from, state),
+    do: {:reply, {:ok, Core.get_active_in_flight_exits(state)}, state}
 
   def handle_call({:get_competitor_for_ife, txbytes}, _from, state) do
     # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details

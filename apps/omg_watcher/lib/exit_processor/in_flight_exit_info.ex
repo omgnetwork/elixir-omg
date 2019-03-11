@@ -170,9 +170,25 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def respond_to_challenge(%__MODULE__{}, _), do: {:error, :cannot_respond}
 
-  def finalize(%__MODULE__{} = ife, _output_index) do
-    # here, we'll check whether can be finalized and then mark it as finalized, OMG-381
-    {:ok, ife}
+  @spec finalize(t(), non_neg_integer()) :: {:ok, t()} | :unknown_output_index
+  def finalize(%__MODULE__{exit_map: exit_map} = ife, output_index) do
+    case Map.get(exit_map, output_index) do
+      nil ->
+        :unknown_output_index
+
+      output_exit ->
+        output_exit = %{output_exit | is_finalized: true}
+        exit_map = Map.put(exit_map, output_index, output_exit)
+        ife = %{ife | exit_map: exit_map}
+
+        is_active =
+          exit_map
+          |> Map.keys()
+          |> Enum.any?(fn output_index -> is_active?(ife, output_index) end)
+
+        ife = %{ife | is_active: is_active}
+        {:ok, ife}
+    end
   end
 
   @spec get_exiting_utxo_positions(t()) :: list({:utxo_position, non_neg_integer(), non_neg_integer(), non_neg_integer})
