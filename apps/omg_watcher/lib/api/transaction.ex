@@ -204,8 +204,8 @@ defmodule OMG.Watcher.API.Transaction do
     |> Enum.map(fn {token, utxos} ->
       Enum.chunk_every(utxos, Transaction.max_outputs())
       |> Enum.map(fn
-        # merge not needed
         [_single_input] ->
+          # merge not needed
           []
 
         inputs ->
@@ -233,24 +233,10 @@ defmodule OMG.Watcher.API.Transaction do
         |> Transaction.encode()
   end
 
-  defp respond({:ok, transaction}, result),
-    do: {
-      :ok,
-      %{
-        result: result,
-        transactions: [transaction]
-      }
-    }
+  defp respond({:ok, transaction}, result), do: {:ok, %{result: result, transactions: [transaction]}}
 
-  defp respond(transactions, result) when is_list(transactions) do
-    {
-      :ok,
-      %{
-        result: result,
-        transactions: transactions
-      }
-    }
-  end
+  defp respond(transactions, result) when is_list(transactions),
+    do: {:ok, %{result: result, transactions: transactions}}
 
   defp respond(error, _), do: error
 end

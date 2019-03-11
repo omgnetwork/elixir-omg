@@ -585,6 +585,31 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
+    test "advice on merge does not merge single utxo", %{alice: alice, bob: bob, blocks_inserter: blocks_inserter} do
+      max_spendable = max_amount_spendable_in_single_tx(alice.addr, @eth)
+
+      payment = max_spendable + 1
+
+      assert %{
+               "result" => "intermediate",
+               "transactions" => [transaction]
+             } =
+               TestHelper.success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+                   ],
+                   "fee" => %{"amount" => 0, "currency" => @eth_hex}
+                 }
+               )
+
+      require OMG.API.State.Transaction
+      assert OMG.API.State.Transaction.max_inputs() == length(transaction["inputs"])
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
     test "allows to pay multi token tx", %{alice: alice, bob: bob, blocks_inserter: blocks_inserter} do
       alice_eth = balance_in_token(alice.addr, @eth)
       alice_token = balance_in_token(alice.addr, @other_token)
@@ -852,16 +877,74 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                )
     end
 
-    test "metadata should be hex-encoded hash" do
-      flunk("Implement me")
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "metadata should be hex-encoded hash", %{alice: alice} do
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "metadata",
+                   "validator" => ":hex"
+                 }
+               }
+             } ==
+               TestHelper.no_success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [],
+                   "fee" => %{"amount" => 5, "currency" => @eth_hex},
+                   "metadata" => "no-a-hex"
+                 }
+               )
     end
 
-    test "payment should have valid fields" do
-      flunk("Implement me")
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "payment should have valid fields", %{alice: alice} do
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "payments",
+                   "validator" => ":list"
+                 }
+               }
+             } ==
+               TestHelper.no_success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => "not-a-list",
+                   "fee" => %{"amount" => 5, "currency" => @eth_hex}
+                 }
+               )
     end
 
-    test "fee should have valid fields" do
-      flunk("Implement me")
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "fee should have valid fields", %{alice: alice} do
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "amount",
+                   "validator" => "{:greater, -1}"
+                 }
+               }
+             } ==
+               TestHelper.no_success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [],
+                   "fee" => %{"amount" => -10, "currency" => @eth_hex}
+                 }
+               )
     end
   end
 end
