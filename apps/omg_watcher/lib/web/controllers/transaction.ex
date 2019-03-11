@@ -56,59 +56,11 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   If also provided with receiver's address, creates and encodes a transaction.
   """
   def create(conn, params) do
-    with {:ok, order} <- parse_order(params) do
+    alias OMG.Watcher.Web.Validator.Order
+
+    with {:ok, order} <- Order.parse(params) do
       API.Transaction.create(order)
       |> api_response(conn, :create)
     end
   end
-
-  defp parse_order(params) do
-    with {:ok, owner} <- expect(params, "owner", :address),
-         {:ok, metadata} <- expect(params, "metadata", [:hash, :optional]),
-         {:ok, raw_payments} <- expect(params, "payments", :list),
-         {:ok, fee} <- parse_fee(Map.get(params, "fee", nil)),
-         {:ok, payments} <- parse_payments(raw_payments) do
-      {:ok,
-       %{
-         owner: owner,
-         payments: payments,
-         fee: fee,
-         metadata: metadata
-       }}
-    end
-  end
-
-  defp parse_payments(raw_payments) do
-    alias OMG.API.State.Transaction
-    require Transaction
-
-    payments =
-      Enum.reduce_while(raw_payments, [], fn raw_payment, acc ->
-        case parse_payment(raw_payment) do
-          {:ok, payment} -> {:cont, acc ++ [payment]}
-          error -> {:halt, error}
-        end
-      end)
-
-    case payments do
-      {:error, _} = validation_error -> validation_error
-      payments when length(payments) <= Transaction.max_outputs() -> {:ok, payments}
-      _ -> error("payments", {:too_many_payments, Transaction.max_outputs()})
-    end
-  end
-
-  defp parse_payment(raw_payment) do
-    with {:ok, owner} <- expect(raw_payment, "owner", [:address, :optional]),
-         {:ok, amount} <- expect(raw_payment, "amount", :pos_integer),
-         {:ok, currency} <- expect(raw_payment, "currency", :address),
-         do: {:ok, %{owner: owner, currency: currency, amount: amount}}
-  end
-
-  defp parse_fee(map) when is_map(map) do
-    with {:ok, currency} <- expect(map, "currency", :address),
-         {:ok, amount} <- expect(map, "amount", :non_neg_integer),
-         do: {:ok, %{currency: currency, amount: amount}}
-  end
-
-  defp parse_fee(_), do: error("fee", :missing)
 end
