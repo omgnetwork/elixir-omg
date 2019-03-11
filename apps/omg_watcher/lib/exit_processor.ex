@@ -329,6 +329,30 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, response, state}
   end
 
+  def handle_call({:create_challenge, Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos}, _from, state) do
+    with spending_blknum_response <- exiting_utxo_pos |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum(),
+         %{txhash: txhash} <- OMG.Watcher.DB.Transaction.get_by_position(blknum, txindex),
+         {:ok, exit_id} <- OMG.Eth.RootChain.get_standard_exit_id(txhash, oindex),
+         {:ok, raw_spending_proof, exit_info} <-
+           Core.get_challange_data(spending_blknum_response, exiting_utxo_pos, state) do
+      # TODO: we're violating the shell/core pattern here, refactor!
+      spending_proof =
+        case raw_spending_proof do
+          raw_blknum when is_number(raw_blknum) ->
+            {:ok, hashes} = OMG.DB.block_hashes([raw_blknum])
+            {:ok, [spending_block]} = OMG.DB.blocks(hashes)
+            spending_block
+
+          signed_tx ->
+            signed_tx
+        end
+
+      {:reply, {:ok, Core.create_challenge(exit_info, spending_proof, exiting_utxo_pos, exit_id)}, state}
+    else
+      error -> {:reply, error, state}
+    end
+  end
+
   defp prepare_validity_check(state) do
     # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
     {request, state} =
@@ -357,50 +381,6 @@ defmodule OMG.Watcher.ExitProcessor do
       |> run_block_getting()
 
     {state, request}
-  end
-
-  def handle_call({:get_input_challenge_data, txbytes, input_index}, _from, state) do
-    response =
-      %ExitProcessor.Request{}
-      |> run_status_gets()
-      |> Core.determine_utxo_existence_to_get(state)
-      |> run_utxo_exists()
-      |> Core.determine_spends_to_get(state)
-      |> run_spend_getting()
-      |> Core.determine_blocks_to_get()
-      |> run_block_getting()
-      |> Core.get_input_challenge_data(state, txbytes, input_index)
-
-    {:reply, response, state}
-  end
-
-  def handle_call({:get_output_challenge_data, txbytes, output_index}, _from, state) do
-    {state1, request} = prepare_validity_check(state)
-    response = Core.get_output_challenge_data(request, state1, txbytes, output_index)
-    {:reply, response, state}
-  end
-
-  def handle_call({:create_challenge, Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos}, _from, state) do
-    with spending_blknum_response <- exiting_utxo_pos |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum(),
-         %{txhash: txhash} <- OMG.Watcher.DB.Transaction.get_by_position(blknum, txindex),
-         {:ok, exit_id} <- OMG.Eth.RootChain.get_standard_exit_id(txhash, oindex),
-         {:ok, raw_spending_proof, exit_info} <-
-           Core.get_challange_data(spending_blknum_response, exiting_utxo_pos, state) do
-      spending_proof =
-        case raw_spending_proof do
-          raw_blknum when is_number(raw_blknum) ->
-            {:ok, hashes} = OMG.DB.block_hashes([raw_blknum])
-            {:ok, [spending_block]} = OMG.DB.blocks(hashes)
-            spending_block
-
-          signed_tx ->
-            signed_tx
-        end
-
-      {:reply, {:ok, Core.create_challenge(exit_info, spending_proof, exiting_utxo_pos, exit_id)}, state}
-    else
-      error -> {:reply, error, state}
-    end
   end
 
   defp run_status_gets(%ExitProcessor.Request{} = request) do

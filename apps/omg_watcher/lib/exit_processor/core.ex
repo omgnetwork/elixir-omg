@@ -631,12 +631,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  defp produce_invalid_piggyback_proof(
-         %ExitProcessor.Request{blocks_result: blocks},
-         state,
-         tx,
-         pb_index
-       ) do
+  defp produce_invalid_piggyback_proof(%ExitProcessor.Request{blocks_result: blocks}, state, tx, pb_index) do
     known_txs = get_known_txs(blocks) ++ get_known_txs(state)
 
     with {:ok, {ife, _encoded_tx, bad_inputs, bad_outputs, proofs}} <-
@@ -801,62 +796,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @spec get_piggyback_challenge_data(ExitProcessor.Request.t(), t(), Transaction.Signed.tx_bytes(), 0..7) ::
           {:ok, input_challenge_data() | output_challenge_data()} | {:error, piggyback_challenge_data_error()}
-  def get_piggyback_challenge_data(
-        request,
-        %__MODULE__{in_flight_exits: ifes} = state,
-        txbytes,
-        pb_index
-      ) do
+  def get_piggyback_challenge_data(request, %__MODULE__{in_flight_exits: ifes} = state, txbytes, pb_index) do
     with {:ok, tx} <- Transaction.decode(txbytes),
          true <- Map.has_key?(ifes, Transaction.hash(tx)) || {:error, :unknown_ife},
-         {:ok, proof} <- produce_invalid_piggyback_proof(request, state, tx, pb_index) do
-      {:ok, proof}
-    end
-  end
-
-  defp produce_invalid_piggyback_proof(
-         %ExitProcessor.Request{blocks_result: blocks},
-         state,
-         tx,
-         pb_index
-       ) do
-    known_txs = get_known_txs(blocks) ++ get_known_txs(state)
-
-    with {:ok, {ife, _encoded_tx, bad_inputs, bad_outputs, proofs}} <-
-           get_proofs_for_particular_ife(tx, pb_index, known_txs, state),
-         true <-
-           is_piggyback_in_the_list_of_known_doublespends?(pb_index, bad_inputs, bad_outputs) ||
-             {:error, :no_double_spend_on_particular_piggyback} do
-      challenge_data = prepare_piggyback_challenge_proofs(ife, tx, pb_index, proofs)
-      {:ok, hd(challenge_data)}
-    end
-  end
-
-  defp prepare_piggyback_challenge_proofs(_ife, tx, input_index, proofs)
-       when input_index in 0..(Transaction.max_inputs() - 1) do
-    for {competing_ktx, _utxo_of_doublespend, his_doublespend_input_index} <- Map.get(proofs, input_index),
-        do: %{
-          in_flight_txbytes: Transaction.encode(tx),
-          in_flight_input_index: input_index,
-          spending_txbytes: Transaction.encode(competing_ktx.signed_tx.raw_tx),
-          spending_input_index: his_doublespend_input_index,
-          spending_sig: Enum.at(competing_ktx.signed_tx.sigs, his_doublespend_input_index)
-        }
-  end
-
-  defp prepare_piggyback_challenge_proofs(ife, tx, output_index, proofs) when output_index in 4..7 do
-    for {competing_ktx, utxo_of_doublespend, his_doublespend_input_index} <- Map.get(proofs, output_index - 4) do
-      {_, inclusion_proof} = ife.tx_seen_in_blocks_at
-
-      %{
-        in_flight_txbytes: Transaction.encode(tx),
-        in_flight_output_pos: utxo_of_doublespend,
-        in_flight_proof: inclusion_proof,
-        spending_txbytes: Transaction.encode(competing_ktx.signed_tx.raw_tx),
-        spending_input_index: his_doublespend_input_index,
-        spending_sig: Enum.at(competing_ktx.signed_tx.sigs, his_doublespend_input_index)
-      }
-    end
+         do: produce_invalid_piggyback_proof(request, state, tx, pb_index)
   end
 
   @spec get_exit_info(Utxo.Position.t(), t()) :: {:ok, ExitInfo.t()} | {:ok, :not_found}
@@ -1091,16 +1034,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     owner = Enum.at(input_owners, in_flight_input_index)
 
-    # if this returns nil it means somethings very wrong - the owner taken (effectively) from the contract
-    # doesn't appear to have signed the potential competitor, which means that some prior signature checking was skipped
-    {:ok, competing_sig} = Tools.find_sig(known_signed_tx, owner)
-
     %{
       in_flight_txbytes: raw_ife_tx |> Transaction.encode(),
       in_flight_input_index: in_flight_input_index,
       competing_txbytes: raw_known_tx |> Transaction.encode(),
       competing_input_index: competing_input_index,
-      competing_sig: competing_sig,
+      competing_sig: find_sig(known_signed_tx, owner),
       competing_tx_pos: known_tx_utxo_pos || Utxo.position(0, 0, 0),
       competing_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
     }
@@ -1248,8 +1187,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     address != @zero_address
   end
 
-  K
-
   defp get_ife(txbytes, %__MODULE__{in_flight_exits: ifes}) do
     {:ok, raw_ife_tx} = Transaction.decode(txbytes)
 
@@ -1278,12 +1215,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     }
   end
 
-  def create_challenge(
-        %ExitInfo{owner: owner},
-        %Transaction.Signed{} = challenging_signed,
-        utxo_exit,
-        exit_id
-      ) do
+  def create_challenge(%ExitInfo{owner: owner}, %Transaction.Signed{} = challenging_signed, utxo_exit, exit_id) do
     {%Transaction.Signed{raw_tx: challenging_tx}, input_index} =
       get_spending_transaction_with_index(challenging_signed, utxo_exit)
 
@@ -1325,12 +1257,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   # finds transaction in given block and input index spending given utxo
   @spec get_spending_transaction_with_index(Block.t() | Transaction.Signed.t(), Utxo.Position.t()) ::
           {Transaction.Signed.t(), non_neg_integer()} | nil
-  defp get_spending_transaction_with_index(%Block{transactions: txs} = block, utxo_pos) do
+  defp get_spending_transaction_with_index(%Block{transactions: txs}, utxo_pos) do
     txs
     |> Enum.map(&Transaction.Signed.decode/1)
     |> Enum.find_value(fn {:ok, %Transaction.Signed{} = tx_signed} ->
       # `Enum.find_value/2` allows to find tx that spends `utxo_pos` and return it along with input index in one run
-
       get_spending_transaction_with_index(tx_signed, utxo_pos)
     end)
   end
@@ -1347,6 +1278,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp find_sig(tx, owner) do
     # at this point having a tx that wasn't actually signed is an error, hence pattern match
+    # if this returns nil it means somethings very wrong - the owner taken (effectively) from the contract
+    # doesn't appear to have signed the potential competitor, which means that some prior signature checking was skipped
     {:ok, sig} = Tools.find_sig(tx, owner)
     sig
   end
