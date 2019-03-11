@@ -17,6 +17,7 @@ defmodule OMG.Status do
   Top level application module.
   """
   use Application
+  alias OMG.Status.Alert.AlarmHandler
   alias Status.Metric.Recorder
 
   def start(_type, _args) do
@@ -30,6 +31,10 @@ defmodule OMG.Status do
       })
     end)
     |> Supervisor.start_link(strategy: :one_for_one, name: Status.Supervisor)
+  end
+
+  def start_phase(:install_alarm_handler, _start_type, _phase_args) do
+    :ok = AlarmHandler.install()
   end
 
   @spec vm_metrics :: maybe_improper_list(atom(), fun()) | []

@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2018 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,5 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-Application.ensure_all_started(:omg_status)
-ExUnit.start()
+defmodule OMG.Status.Alert.Alarm do
+  @moduledoc """
+  Interface for raising and clearing alarms.
+  """
+  alias OMG.Status.Alert.AlarmHandler
+
+  def clear_all do
+    all_raw()
+    |> Enum.each(&:alarm_handler.clear_alarm(&1))
+  end
+
+  def all do
+    all_raw()
+    |> Enum.map(&format_alarm/1)
+  end
+
+  defp format_alarm({id, details}), do: %{id: id, details: details}
+  defp format_alarm(alarm), do: %{id: alarm}
+
+  defp all_raw, do: :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
+end
