@@ -584,8 +584,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert max_amount_spendable_in_single_tx(alice.addr, @eth) >= payment
     end
 
-    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
-    test "advice on merge does not merge single utxo", %{alice: alice, bob: bob, blocks_inserter: blocks_inserter} do
+    @tag fixtures: [:alice, :bob, :more_utxos]
+    test "advice on merge does not merge single utxo", %{alice: alice, bob: bob} do
       max_spendable = max_amount_spendable_in_single_tx(alice.addr, @eth)
 
       payment = max_spendable + 1
@@ -826,13 +826,14 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
 
     defp max_amount_spendable_in_single_tx(address, token) do
-      require OMG.API.State.Transaction
+      alias OMG.API.State.Transaction
+      require Transaction
       currency = Encoding.to_hex(token)
 
       TestHelper.get_utxos(address)
       |> Enum.filter(&(&1["currency"] == currency))
       |> Enum.sort_by(& &1["amount"], &>=/2)
-      |> Enum.take(OMG.API.State.Transaction.max_inputs())
+      |> Enum.take(Transaction.max_inputs())
       |> Enum.map(& &1["amount"])
       |> Enum.sum()
     end
