@@ -418,8 +418,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
         long
         |> set_ethereum_status(long_length, (long_length - short_length) * 1000, false)
         |> elem(1)
-        |> :erlang.term_to_binary()
-        |> byte_size()
+        |> size()
 
       assert long_mined_size - empty_size < (short_length + empty.finality_threshold + 1) * one_block_size
     end
@@ -523,7 +522,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
       gas_params = %{state.gas_price_adj_params | gas_price_raising_factor: 10, max_gas_price: expected_max_price}
       state = %{state | gas_price_adj_params: gas_params} |> enqueue_block(<<0>>, 6 * @child_block_interval, 1)
 
-      # many times not main block
+      # Despite Ethereum height changing multiple times, gas price does not grow since no new blocks are mined
       Enum.reduce(4..100, state, fn eth_height, state ->
         {_, state} = set_ethereum_status(state, eth_height, 3, false)
         assert expected_max_price == state.gas_price_to_use
@@ -591,7 +590,46 @@ defmodule OMG.API.BlockQueue.CoreTest do
 
       state = state |> Core.enqueue_block(<<0>>, 6 * @child_block_interval, 1)
       {_, state} = set_ethereum_status(state, 101, 0, false)
-      assert state.gas_price_to_use != gas_price
+      assert state.gas_price_to_use > gas_price
+    end
+
+    @tag fixtures: [:empty_with_gas_params]
+    test "gas price changes only, when etherum advanses", %{empty_with_gas_params: state} do
+      gas_price = state.gas_price_to_use
+      eth_height = 0
+
+      state =
+        Enum.reduce(6..20, state, fn child_number, state ->
+          {_, state} =
+            state
+            |> Core.enqueue_block(<<0>>, child_number * @child_block_interval, 1)
+            |> set_ethereum_status(eth_height, 0, false)
+
+          assert gas_price == state.gas_price_to_use
+          state
+        end)
+
+      {_, state} = set_ethereum_status(state, eth_height + 1, 0, false)
+      assert state.gas_price_to_use < gas_price
+    end
+
+    @tag fixtures: [:empty_with_gas_params]
+    test "gas price doesn't change when ethereum backs off, even if block in queue", %{empty_with_gas_params: state} do
+      eth_height = 100
+      {_, state} = set_ethereum_status(state, eth_height, 0, false)
+      gas_price = state.gas_price_to_use
+
+      state
+      |> Core.enqueue_block(<<0>>, 6 * @child_block_interval, 1)
+      |> Core.enqueue_block(<<0>>, 7 * @child_block_interval, 1)
+      |> Core.enqueue_block(<<0>>, 8 * @child_block_interval, 1)
+
+      state =
+        Enum.reduce(80..(eth_height - 1), state, fn eth_height, state ->
+          {_, state} = set_ethereum_status(state, eth_height, 0, false)
+          assert gas_price == state.gas_price_to_use
+          state
+        end)
     end
   end
 end

@@ -134,7 +134,7 @@ defmodule OMG.API.BlockQueue.Core do
     %{state | wait_for_enqueue: false}
   end
 
-  defp validate_block_number(block_number, own_height) when block_number == own_height, do: :ok
+  defp validate_block_number(block_number, block_number), do: :ok
   defp validate_block_number(_, _), do: {:error, :unexpected_block_number}
 
   defp enqueue_block(state, hash, parent_height) do
@@ -202,18 +202,13 @@ defmodule OMG.API.BlockQueue.Core do
 
   defp adjust_gas_price(
          %Core{
-           mined_child_block_num: mined_child_block_num,
-           formed_child_block_num: formed,
-           child_block_interval: block_interval,
            blocks: blocks,
            parent_height: parent_height,
            last_parent_height: last_parent_height
          } = state
        ) do
-    first_blknum = mined_child_block_num + block_interval
-
-    if parent_height == last_parent_height or
-         !Enum.find(blocks, fn {key, _} -> key >= first_blknum and key <= formed end) do
+    if parent_height <= last_parent_height or
+         !Enum.find(blocks, to_mined_block_filter(state)) do
       state
     else
       new_gas_price = calculate_gas_price(state)
@@ -302,23 +297,22 @@ defmodule OMG.API.BlockQueue.Core do
   Picks for submission child blocks that haven't yet been seen mined on Ethereum
   """
   @spec get_blocks_to_submit(Core.t()) :: [BlockQueue.encoded_signed_tx()]
-  def get_blocks_to_submit(state) do
-    %{
-      blocks: blocks,
-      mined_child_block_num: mined_child_block_num,
-      formed_child_block_num: formed,
-      child_block_interval: block_interval
-    } = state
-
-    first_blknum = mined_child_block_num + block_interval
-    _ = Logger.debug("preparing blocks #{inspect(first_blknum)}..#{inspect(formed)} for submission")
+  def get_blocks_to_submit(%{blocks: blocks, formed_child_block_num: formed} = state) do
+    _ = Logger.debug("preparing blocks #{inspect(first_to_mined(state))}..#{inspect(formed)} for submission")
 
     blocks
-    |> Enum.filter(fn {key, _value} -> key >= first_blknum and key <= formed end)
-    |> Enum.map(fn {_key, value} -> value end)
+    |> Enum.filter(to_mined_block_filter(state))
+    |> Enum.map(fn {_blknum, block} -> block end)
     |> Enum.sort_by(& &1.num)
     |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
   end
+
+  @spec first_to_mined(Core.t()) :: pos_integer()
+  defp first_to_mined(%{mined_child_block_num: mined, child_block_interval: interval}), do: mined + interval
+
+  @spec to_mined_block_filter(Core.t()) :: ({pos_integer, BlockSubmission.t()} -> boolean)
+  defp to_mined_block_filter(%{formed_child_block_num: formed} = state),
+    do: fn {blknum, _} -> first_to_mined(state) <= blknum and blknum <= formed end
 
   @doc """
   Generates an enumberable of block numbers to be starting the BlockQueue with
