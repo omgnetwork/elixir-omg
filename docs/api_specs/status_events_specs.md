@@ -132,8 +132,7 @@ txbytes | Hex encoded string | The in-flight transaction that the event relates 
 }
 ```
 
-An in-flight exit has been started and can be piggybacked. If all inputs are owned by the same address, then `available_inputs` will not be present.
-<aside class="warning"> Not Implemented Yet.</aside>
+An in-flight exit has been started and can be piggybacked. If all inputs are owned by the same address, then `available_inputs` will not be present. This event is reported only for in-flight exits from transactions that have not been included in a block.
 
 Event details:
 

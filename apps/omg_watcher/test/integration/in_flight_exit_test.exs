@@ -295,8 +295,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
              "byzantine_events" => [
                %{"event" => "invalid_piggyback"},
                %{"event" => "non_canonical_ife"},
-               %{"event" => "invalid_ife_challenge"},
-               %{"event" => "piggyback_available"}
+               %{"event" => "invalid_ife_challenge"}
              ]
            } = TestHelper.success?("/status.get")
 
@@ -353,6 +352,6 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exit_finality_margin + 10)
 
-    assert %{"in_flight_exits" => []} = TestHelper.success?("/status.get")
+    assert %{"in_flight_exits" => [], "byzantine_events" => []} = TestHelper.success?("/status.get")
   end
 end

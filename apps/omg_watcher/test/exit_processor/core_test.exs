@@ -773,6 +773,67 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> invalid_exits_filtered(processor, only: [Event.PiggybackAvailable])
     end
 
+    @tag fixtures: [:alice, :processor_empty]
+    test "when output is already piggybacked, it is not reported in piggyback available event", %{
+      alice: alice,
+      processor_empty: processor
+    } do
+      tx = Transaction.new([{1, 0, 0}, {1, 2, 1}], [])
+
+      txbytes = Transaction.encode(tx)
+      signature = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Map.get(:sigs) |> Enum.join()
+
+      ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
+      ife_status = {1, @non_zero_exit_id}
+
+      {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
+
+      tx_hash = Transaction.hash(tx)
+      {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: 0}])
+
+      assert {:ok,
+              [
+                %Event.PiggybackAvailable{
+                  available_inputs: [%{index: 1}],
+                  available_outputs: []
+                }
+              ]} =
+               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+               |> invalid_exits_filtered(processor, only: [Event.PiggybackAvailable])
+    end
+
+    @tag fixtures: [:alice, :processor_empty]
+    test "when ife is finalized, it's outputs are not reported as available for piggyback", %{
+      alice: alice,
+      processor_empty: processor
+    } do
+      tx = Transaction.new([{1, 0, 0}, {1, 2, 1}], [])
+
+      txbytes = Transaction.encode(tx)
+      signature = DevCrypto.sign(tx, [alice.priv, alice.priv]) |> Map.get(:sigs) |> Enum.join()
+
+      ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
+      ife_status = {1, @non_zero_exit_id}
+
+      {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
+
+      tx_hash = Transaction.hash(tx)
+      {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: 0}])
+
+      finalization = %{in_flight_exit_id: @non_zero_exit_id, output_index: 0}
+
+      {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization])
+
+      assert {:ok, []} =
+               %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
+               |> invalid_exits_filtered(processor, only: [Event.PiggybackAvailable])
+    end
+
+    test "in-flight exit without piggybacked outputs does not emit piggyback available event after it's finalized" do
+      # TODO: this functionality does not work
+      # it would require changes on the root chain contract to implement that
+    end
+
     @tag fixtures: [:processor_filled, :transactions, :in_flight_exits_challenges_events]
     test "challenged IFEs emit the same piggybacks as canonical ones", %{
       processor_filled: processor,

@@ -215,6 +215,14 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     end
   end
 
+  def is_input_piggybacked?(%__MODULE__{} = ife, index) when is_integer(index) and index < @max_inputs do
+    is_piggybacked?(ife, index)
+  end
+
+  def is_output_piggybacked?(%__MODULE__{} = ife, index) when is_integer(index) and index < @max_inputs do
+    is_piggybacked?(ife, index + @max_inputs)
+  end
+
   def piggybacked_inputs(ife) do
     @inputs_index_range
     |> Enum.filter(&is_piggybacked?(ife, &1))
