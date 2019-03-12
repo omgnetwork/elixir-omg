@@ -763,7 +763,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :more_utxos, :blocks_inserter]
-    test "does not return txbytes when spent owner is not provided", %{alice: alice} do
+    test "does not return txbytes when spend owner is not provided", %{alice: alice} do
       payment = 100
       fee = 5
       alice_addr = Encoding.to_hex(alice.addr)

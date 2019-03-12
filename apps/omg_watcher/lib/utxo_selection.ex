@@ -82,6 +82,8 @@ defmodule OMG.Watcher.UtxoSelection do
   # Given available Utxo set and needed amount, we try to find an Utxo which fully satisfies the payment (without
   # the change). If this fails, we start to collect Utxos (starting from largest amount) which will cover the payment.
   # We return {token, {change, [utxos for payment]}}, change > 0 means insufficient funds.
+  # NOTE: order of Utxo list is implicitly assumed for the algorithm to work deterministically,
+  # see: `OMG.Watcher.DB.TxOutput.get_sorted_grouped_utxos`
   @spec select_utxo(%{Transaction.currency() => list(%DB.TxOutput{})}, %{Transaction.currency() => pos_integer()}) ::
           list({Transaction.currency(), {integer, list(%DB.TxOutput{})}})
   defp select_utxo(utxos, needed_funds) do
@@ -115,11 +117,12 @@ defmodule OMG.Watcher.UtxoSelection do
     Map.update(needed_funds, fee_currency, fee_amount, &(&1 + fee_amount))
   end
 
+  # See also comment to `select_utxo` function
   defp funds_sufficient?(utxo_selection) do
     missing_funds =
       utxo_selection
-      |> Stream.filter(fn {_, {change, _}} -> change > 0 end)
-      |> Enum.map(fn {token, {change, _}} -> %{token: OMG.RPC.Web.Encoding.to_hex(token), missing: change} end)
+      |> Stream.filter(fn {_, {missing, _}} -> missing > 0 end)
+      |> Enum.map(fn {token, {missing, _}} -> %{token: OMG.RPC.Web.Encoding.to_hex(token), missing: missing} end)
 
     if Enum.empty?(missing_funds),
       do: {:ok, utxo_selection |> Enum.map(fn {token, {_, utxos}} -> {token, utxos} end)},
