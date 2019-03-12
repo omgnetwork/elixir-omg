@@ -27,9 +27,11 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.API.State
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
+  require Utxo
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.ExitProcessor.Challenge
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
@@ -159,6 +161,15 @@ defmodule OMG.Watcher.ExitProcessor do
           {:ok, Core.output_challenge_data()} | {:error, Core.piggyback_challenge_data_error()}
   def get_output_challenge_data(txbytes, output_index) do
     GenServer.call(__MODULE__, {:get_output_challenge_data, txbytes, output_index})
+  end
+
+  @doc """
+  Returns challenge for an exit
+  """
+  @spec create_challenge(Utxo.Position.t()) ::
+          {:ok, Challenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
+  def create_challenge(exiting_utxo_pos) do
+    GenServer.call(__MODULE__, {:create_challenge, exiting_utxo_pos})
   end
 
   ### Server
@@ -343,6 +354,30 @@ defmodule OMG.Watcher.ExitProcessor do
     {state1, request} = prepare_validity_check(state)
     response = Core.get_output_challenge_data(request, state1, txbytes, output_index)
     {:reply, response, state}
+  end
+
+  def handle_call({:create_challenge, Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos}, _from, state) do
+    with spending_blknum_response <- exiting_utxo_pos |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum(),
+         %{txhash: txhash} <- OMG.Watcher.DB.Transaction.get_by_position(blknum, txindex),
+         {:ok, exit_id} <- OMG.Eth.RootChain.get_standard_exit_id(txhash, oindex),
+         {:ok, raw_spending_proof, exit_info} <-
+           Core.get_challange_data(spending_blknum_response, exiting_utxo_pos, state) do
+      # TODO: we're violating the shell/core pattern here, refactor!
+      spending_proof =
+        case raw_spending_proof do
+          raw_blknum when is_number(raw_blknum) ->
+            {:ok, hashes} = OMG.DB.block_hashes([raw_blknum])
+            {:ok, [spending_block]} = OMG.DB.blocks(hashes)
+            spending_block
+
+          signed_tx ->
+            signed_tx
+        end
+
+      {:reply, {:ok, Core.create_challenge(exit_info, spending_proof, exiting_utxo_pos, exit_id)}, state}
+    else
+      error -> {:reply, error, state}
+    end
   end
 
   defp prepare_validity_check(state) do

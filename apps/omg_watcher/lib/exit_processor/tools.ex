@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Challenger.Tools do
+defmodule OMG.Watcher.ExitProcessor.Tools do
   @moduledoc """
   Functional common tools useful when processing transactions to be used as challenges.
 
