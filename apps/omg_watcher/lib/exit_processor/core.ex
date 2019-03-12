@@ -28,9 +28,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Watcher.Challenger.Tools
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.ExitProcessor.Challenge
   alias OMG.Watcher.ExitProcessor.CompetitorInfo
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias OMG.Watcher.ExitProcessor.Tools
   alias OMG.Watcher.ExitProcessor.TxAppendix
 
   @default_sla_margin 10
@@ -628,10 +630,17 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       late_invalid_exits
       |> Enum.map(fn {position, late_exit} -> ExitInfo.make_event_data(Event.UnchallengedExit, position, late_exit) end)
 
+    # get exits which are invalid because of being spent in IFEs
+    invalid_exit_events =
+      get_invalid_exits_based_on_ifes(state)
+      |> Enum.map(fn {position, exit_info} -> ExitInfo.make_event_data(Event.InvalidExit, position, exit_info) end)
+      |> Enum.concat(non_late_events)
+      |> Enum.uniq_by(fn %Event.InvalidExit{utxo_pos: utxo_pos} -> utxo_pos end)
+
     events =
       [
         late_invalid_exits_events,
-        non_late_events,
+        invalid_exit_events,
         invalid_piggybacks,
         late_invalid_piggybacks,
         ifes_with_competitors_events,
@@ -659,27 +668,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  @spec get_piggyback_challenge_data(ExitProcessor.Request.t(), t(), Transaction.Signed.tx_bytes(), 0..7) ::
-          {:ok, input_challenge_data() | output_challenge_data()} | {:error, piggyback_challenge_data_error()}
-  def get_piggyback_challenge_data(
-        request,
-        %__MODULE__{in_flight_exits: ifes} = state,
-        txbytes,
-        pb_index
-      ) do
-    with {:ok, tx} <- Transaction.decode(txbytes),
-         true <- Map.has_key?(ifes, Transaction.hash(tx)) || {:error, :unknown_ife},
-         {:ok, proof} <- produce_invalid_piggyback_proof(request, state, tx, pb_index) do
-      {:ok, proof}
-    end
-  end
-
-  defp produce_invalid_piggyback_proof(
-         %ExitProcessor.Request{blocks_result: blocks},
-         state,
-         tx,
-         pb_index
-       ) do
+  defp produce_invalid_piggyback_proof(%ExitProcessor.Request{blocks_result: blocks}, state, tx, pb_index) do
     known_txs = get_known_txs(blocks) ++ get_known_txs(state)
 
     with {:ok, {ife, _encoded_tx, bad_inputs, bad_outputs, proofs}} <-
@@ -840,6 +829,48 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       Enum.zip([my_indexes, List.duplicate(ktx, length(my_indexes)), utxo_poses, his_indexes])
     end)
     |> Enum.group_by(&elem(&1, 0), &Tuple.delete_at(&1, 0))
+  end
+
+  @spec get_piggyback_challenge_data(ExitProcessor.Request.t(), t(), Transaction.Signed.tx_bytes(), 0..7) ::
+          {:ok, input_challenge_data() | output_challenge_data()} | {:error, piggyback_challenge_data_error()}
+  def get_piggyback_challenge_data(request, %__MODULE__{in_flight_exits: ifes} = state, txbytes, pb_index) do
+    with {:ok, tx} <- Transaction.decode(txbytes),
+         true <- Map.has_key?(ifes, Transaction.hash(tx)) || {:error, :unknown_ife},
+         do: produce_invalid_piggyback_proof(request, state, tx, pb_index)
+  end
+
+  @spec get_exit_info(Utxo.Position.t(), t()) :: {:ok, ExitInfo.t()} | {:ok, :not_found}
+  defp get_exit_info(Utxo.position(_, _, _) = utxo_exit, %__MODULE__{exits: exits}) do
+    case Map.get(exits, utxo_exit) do
+      nil -> {:ok, :not_found}
+      exit_info -> {:ok, exit_info}
+    end
+  end
+
+  @spec get_ife_based_on_utxo(Utxo.Position.t(), t()) :: {:ok, Transaction.Signed.t()} | {:ok, :not_found}
+  defp get_ife_based_on_utxo(Utxo.position(_, _, _) = utxo_exit, %__MODULE__{} = state) do
+    get_known_txs(state)
+    |> Enum.find(fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = tx}} ->
+      Enum.member?(Transaction.get_inputs(tx), utxo_exit)
+    end)
+    |> case do
+      nil -> {:ok, :not_found}
+      signed_tx -> {:ok, signed_tx}
+    end
+  end
+
+  @spec get_invalid_exits_based_on_ifes(t()) :: list(%{Utxo.Position.t() => ExitInfo.t()})
+  defp get_invalid_exits_based_on_ifes(%__MODULE__{exits: exits} = state) do
+    exiting_utxo_positions =
+      get_known_txs(state)
+      |> Enum.flat_map(fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = tx}} ->
+        Transaction.get_inputs(tx)
+      end)
+
+    exits
+    |> Enum.filter(fn {utxo_pos, _exit_info} ->
+      Enum.find(exiting_utxo_positions, &match?(^utxo_pos, &1))
+    end)
   end
 
   # Gets the list of open IFEs that have the competitors _somewhere_
@@ -1050,16 +1081,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     owner = Enum.at(input_owners, in_flight_input_index)
 
-    # if this returns nil it means somethings very wrong - the owner taken (effectively) from the contract
-    # doesn't appear to have signed the potential competitor, which means that some prior signature checking was skipped
-    {:ok, competing_sig} = Tools.find_sig(known_signed_tx, owner)
-
     %{
       in_flight_txbytes: raw_ife_tx |> Transaction.encode(),
       in_flight_input_index: in_flight_input_index,
       competing_txbytes: raw_known_tx |> Transaction.encode(),
       competing_input_index: competing_input_index,
-      competing_sig: competing_sig,
+      competing_sig: find_sig(known_signed_tx, owner),
       competing_tx_pos: known_tx_utxo_pos || Utxo.position(0, 0, 0),
       competing_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
     }
@@ -1214,6 +1241,94 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       nil -> {:error, :ife_not_known_for_tx}
       value -> {:ok, value}
     end
+  end
+
+  # Challenger part
+
+  @doc """
+  Creates a challenge for exiting utxo based on provided block or transaction.
+  """
+  @spec create_challenge(ExitInfo.t(), Block.t() | Transaction.Signed.t(), Utxo.Position.t(), non_neg_integer) ::
+          Challenge.t()
+  def create_challenge(%ExitInfo{owner: owner}, %Block{} = spending_block, utxo_exit, exit_id) do
+    {%Transaction.Signed{raw_tx: challenging_tx} = challenging_signed, input_index} =
+      get_spending_transaction_with_index(spending_block, utxo_exit)
+
+    %Challenge{
+      exit_id: exit_id,
+      input_index: input_index,
+      txbytes: challenging_tx |> Transaction.encode(),
+      sig: find_sig(challenging_signed, owner)
+    }
+  end
+
+  def create_challenge(%ExitInfo{owner: owner}, %Transaction.Signed{} = challenging_signed, utxo_exit, exit_id) do
+    {%Transaction.Signed{raw_tx: challenging_tx}, input_index} =
+      get_spending_transaction_with_index(challenging_signed, utxo_exit)
+
+    %Challenge{
+      exit_id: exit_id,
+      input_index: input_index,
+      txbytes: challenging_tx |> Transaction.encode(),
+      sig: find_sig(challenging_signed, owner)
+    }
+  end
+
+  @doc """
+  Checks whether database responses hold all the relevant data successfully fetched:
+   - a block number which can be used to retrieve needed information to challenge or if exists ife which spends inputs
+   - the relevant exit information
+  """
+  @spec get_challange_data(tuple(), Utxo.Position.t(), t()) ::
+          {:ok, pos_integer() | Transaction.Signed.t(), ExitInfo.t()} | {:error, atom()}
+  def get_challange_data(spending_blknum_response, exiting_utxo_pos, %__MODULE__{} = state) do
+    ife_response = get_ife_based_on_utxo(exiting_utxo_pos, state)
+    exit_response = get_exit_info(exiting_utxo_pos, state)
+
+    ensure_challengeable(spending_blknum_response, exit_response, ife_response)
+  end
+
+  defp ensure_challengeable(spending_blknum_response, exit_response, ife_response)
+
+  defp ensure_challengeable({:ok, :not_found}, _, {:ok, :not_found}), do: {:error, :utxo_not_spent}
+  defp ensure_challengeable(_, {:ok, :not_found}, _), do: {:error, :exit_not_found}
+
+  defp ensure_challengeable({:ok, blknum}, {:ok, exit_info}, _) when is_integer(blknum),
+    do: {:ok, blknum, exit_info}
+
+  defp ensure_challengeable(_, {:ok, exit_info}, {:ok, %Transaction.Signed{} = signed_tx}),
+    do: {:ok, signed_tx, exit_info}
+
+  defp ensure_challengeable({:error, error}, _, _), do: {:error, error}
+
+  # finds transaction in given block and input index spending given utxo
+  @spec get_spending_transaction_with_index(Block.t() | Transaction.Signed.t(), Utxo.Position.t()) ::
+          {Transaction.Signed.t(), non_neg_integer()} | nil
+  defp get_spending_transaction_with_index(%Block{transactions: txs}, utxo_pos) do
+    txs
+    |> Enum.map(&Transaction.Signed.decode/1)
+    |> Enum.find_value(fn {:ok, %Transaction.Signed{} = tx_signed} ->
+      # `Enum.find_value/2` allows to find tx that spends `utxo_pos` and return it along with input index in one run
+      get_spending_transaction_with_index(tx_signed, utxo_pos)
+    end)
+  end
+
+  defp get_spending_transaction_with_index(%Transaction.Signed{raw_tx: tx} = tx_signed, utxo_pos) do
+    inputs = Transaction.get_inputs(tx)
+
+    if input_index = Enum.find_index(inputs, &(&1 == utxo_pos)) do
+      {tx_signed, input_index}
+    else
+      nil
+    end
+  end
+
+  defp find_sig(tx, owner) do
+    # at this point having a tx that wasn't actually signed is an error, hence pattern match
+    # if this returns nil it means somethings very wrong - the owner taken (effectively) from the contract
+    # doesn't appear to have signed the potential competitor, which means that some prior signature checking was skipped
+    {:ok, sig} = Tools.find_sig(tx, owner)
+    sig
   end
 
   def create_exit_finalized_events(event_triggers) do
