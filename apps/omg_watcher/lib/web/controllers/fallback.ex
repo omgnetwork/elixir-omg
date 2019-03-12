@@ -51,7 +51,7 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
     },
     too_many_outputs: %{
       code: "transaction.create:too_many_outputs",
-      description: "Effective number of outputs exceed allowed maximum."
+      description: "Total number of payments + change + fees exceed maximum allowed outputs."
     }
   }
 

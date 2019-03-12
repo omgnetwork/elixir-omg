@@ -70,7 +70,7 @@ defmodule OMG.Watcher.API.Transaction do
   Given order finds spender's inputs sufficient to perform a payment.
   If also provided with receiver's address, creates and encodes a transaction.
   """
-  @spec create(UtxoSelection.order_t()) :: UtxoSelection.create_advice_t()
+  @spec create(UtxoSelection.order_t()) :: UtxoSelection.advice_t()
   def create(order) do
     utxos = DB.TxOutput.get_sorted_grouped_utxos(order.owner)
     UtxoSelection.create_advice(utxos, order)

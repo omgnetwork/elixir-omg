@@ -28,7 +28,7 @@ defmodule OMG.Watcher.Web.Validator.Order do
     with {:ok, owner} <- expect(params, "owner", :address),
          {:ok, metadata} <- expect(params, "metadata", [:hash, :optional]),
          {:ok, raw_payments} <- expect(params, "payments", :list),
-         {:ok, fee} <- parse_fee(Map.get(params, "fee", nil)),
+         {:ok, fee} <- parse_fee(Map.get(params, "fee")),
          {:ok, payments} <- parse_payments(raw_payments) do
       {:ok,
        %{

@@ -793,13 +793,13 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos]
-    test "effective number of outputs exceeds allowed returns custom error", %{alice: alice, bob: bob} do
+    test "total number of outputs exceeds allowed outputs returns custom error", %{alice: alice, bob: bob} do
       bob_addr = Encoding.to_hex(bob.addr)
 
       assert %{
                "object" => "error",
                "code" => "transaction.create:too_many_outputs",
-               "description" => "Effective number of outputs exceed allowed maximum."
+               "description" => "Total number of payments + change + fees exceed maximum allowed outputs."
              } ==
                TestHelper.no_success?(
                  "transaction.create",
@@ -831,10 +831,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       currency = Encoding.to_hex(token)
 
       TestHelper.get_utxos(address)
-      |> Enum.filter(&(&1["currency"] == currency))
+      |> Stream.filter(&(&1["currency"] == currency))
       |> Enum.sort_by(& &1["amount"], &>=/2)
-      |> Enum.take(Transaction.max_inputs())
-      |> Enum.map(& &1["amount"])
+      |> Stream.take(Transaction.max_inputs())
+      |> Stream.map(& &1["amount"])
       |> Enum.sum()
     end
 
@@ -944,6 +944,28 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                    "owner" => Encoding.to_hex(alice.addr),
                    "payments" => [],
                    "fee" => %{"amount" => -10, "currency" => @eth_hex}
+                 }
+               )
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "request's fee object is mandatory", %{alice: alice} do
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "fee",
+                   "validator" => ":missing"
+                 }
+               }
+             } ==
+               TestHelper.no_success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => []
                  }
                )
     end
