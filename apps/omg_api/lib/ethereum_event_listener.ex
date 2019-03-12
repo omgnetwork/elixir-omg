@@ -22,6 +22,7 @@ defmodule OMG.API.EthereumEventListener do
   alias OMG.API.RootChainCoordinator.SyncGuide
   alias OMG.Eth
   use OMG.API.LoggerExt
+  alias Status.Metric.Recorder
 
   @type config() :: %{
           block_finality_margin: non_neg_integer,
@@ -80,6 +81,21 @@ defmodule OMG.API.EthereumEventListener do
 
     {:ok, _} = schedule_get_events()
     :ok = RootChainCoordinator.check_in(height_to_check_in, service_name)
+    parent = self()
+
+    name =
+      service_name
+      |> to_string
+      |> Kernel.<>(".Recorder")
+      |> String.to_atom()
+
+    {:ok, _} =
+      Recorder.start_link(%Recorder{
+        name: name,
+        fn: fn -> Process.info(parent, :message_queue_len) |> elem(1) end,
+        reporter: &Appsignal.set_gauge/3
+      })
+
     {:noreply, {initial_state, callbacks_map}}
   end
 
