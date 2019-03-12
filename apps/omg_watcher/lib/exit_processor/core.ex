@@ -322,7 +322,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       challenges
       |> Enum.map(fn %{tx_hash: tx_hash} -> tx_hash end)
       |> (&Map.take(ifes, &1)).()
-      # initialises all ifes as not updated
+      # initializes all ifes as not updated
       |> Enum.map(fn {key, value} -> {key, {value, false}} end)
       |> Map.new()
 
@@ -348,42 +348,79 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     {%{state | in_flight_exits: Map.merge(ifes, updated_ifes)}, db_updates}
   end
 
-  # NOTE: write tests - OMG-381
-  # TODO: simplify flow
-  # https://github.com/omisego/elixir-omg/pull/361#discussion_r247485778
-  @spec finalize_in_flight_exits(t(), [map()]) :: {t(), list()}
+  @spec finalize_in_flight_exits(t(), [map()]) ::
+          {:ok, t(), list()} | {:not_piggybacked, list()} | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
   def finalize_in_flight_exits(%__MODULE__{in_flight_exits: ifes} = state, finalizations) do
-    ifes_to_update =
-      finalizations
-      |> Enum.reduce(%{}, fn %{in_flight_exit_id: id}, acc ->
-        Enum.find(ifes, fn {_tx_hash, %InFlightExitInfo{contract_id: contract_id}} -> id == contract_id end)
-        |> case do
-          nil -> acc
-          # map by id from contract and mark as not updated
-          {tx_hash, ife} -> Map.put(acc, id, {tx_hash, ife, false})
-        end
-      end)
+    with {:ok, ifes_by_id} <- get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes),
+         {:ok, []} <- outputs_piggybacked?(finalizations, ifes_by_id) do
+      {db_updates_by_id, ifes_by_id} =
+        finalizations
+        |> Enum.reduce({%{}, ifes_by_id}, &finalize_single_exit/2)
 
-    updated_ifes =
+      ifes =
+        ifes_by_id
+        |> Enum.map(fn {_, value} -> value end)
+        |> Map.new()
+
+      db_updates = Map.values(db_updates_by_id)
+
+      {:ok, %{state | in_flight_exits: ifes}, db_updates}
+    end
+  end
+
+  defp get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes) do
+    finalizations_ids =
       finalizations
-      |> Enum.reduce(ifes_to_update, fn %{in_flight_exit_id: id, output_index: output}, acc ->
-        with {:ok, {tx_hash, ife, _}} <- Enum.fetch(acc, id),
-             {:ok, updated_ife} <- InFlightExitInfo.finalize(ife, output) do
-          # update value and flag as updated
-          %{acc | id => {tx_hash, updated_ife, true}}
-        else
-          _ -> acc
-        end
-      end)
-      |> Enum.reduce([], fn
-        {_, {tx_hash, ife, true}}, acc -> [{tx_hash, ife} | acc]
-        _, acc -> acc
-      end)
+      |> Enum.map(fn %{in_flight_exit_id: id} -> id end)
+      |> MapSet.new()
+
+    by_contract_id =
+      ifes
+      |> Enum.map(fn {tx_hash, %InFlightExitInfo{contract_id: id} = ife} -> {id, {tx_hash, ife}} end)
       |> Map.new()
 
-    db_updates = updated_ifes |> Enum.map(&InFlightExitInfo.make_db_update/1)
+    known_ifes =
+      by_contract_id
+      |> Map.keys()
+      |> MapSet.new()
 
-    {%{state | in_flight_exits: Map.merge(ifes, updated_ifes)}, db_updates}
+    unknown_ifes = MapSet.difference(finalizations_ids, known_ifes)
+
+    if Enum.empty?(unknown_ifes) do
+      {:ok, by_contract_id}
+    else
+      {:unknown_in_flight_exit, unknown_ifes}
+    end
+  end
+
+  defp outputs_piggybacked?(finalizations, ifes_by_id) do
+    not_piggybacked =
+      finalizations
+      |> Enum.filter(fn %{in_flight_exit_id: ife_id, output_index: output} ->
+        {_, ife} = Map.get(ifes_by_id, ife_id)
+        not InFlightExitInfo.is_piggybacked?(ife, output)
+      end)
+
+    if Enum.empty?(not_piggybacked) do
+      {:ok, []}
+    else
+      {:not_piggybacked, not_piggybacked}
+    end
+  end
+
+  defp finalize_single_exit(%{in_flight_exit_id: ife_id, output_index: output}, {updates_by_id, ifes_by_id} = acc) do
+    {tx_hash, ife} = Map.get(ifes_by_id, ife_id)
+
+    if InFlightExitInfo.is_active?(ife, output) do
+      {:ok, finalized_ife} = InFlightExitInfo.finalize(ife, output)
+      ifes_by_id = Map.put(ifes_by_id, ife_id, {tx_hash, finalized_ife})
+
+      update = InFlightExitInfo.make_db_update({tx_hash, finalized_ife})
+      updates_by_id = Map.put(updates_by_id, ife_id, update)
+      {updates_by_id, ifes_by_id}
+    else
+      acc
+    end
   end
 
   @doc """
@@ -920,10 +957,20 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec get_in_flight_exits(__MODULE__.t()) :: list(map)
   def get_in_flight_exits(%__MODULE__{in_flight_exits: ifes}) do
     ifes
-    |> Enum.map(&get_in_flight_exit/1)
+    |> Enum.map(&prepare_in_flight_exit/1)
   end
 
-  defp get_in_flight_exit({txhash, ife_info}) do
+  @doc """
+  Returns a map of active in flight exits, where keys are IFE hashes and values are IFES
+  """
+  @spec get_active_in_flight_exits(__MODULE__.t()) :: list(map)
+  def get_active_in_flight_exits(%__MODULE__{in_flight_exits: ifes}) do
+    ifes
+    |> Enum.filter(fn {_, %InFlightExitInfo{is_active: is_active}} -> is_active end)
+    |> Enum.map(&prepare_in_flight_exit/1)
+  end
+
+  defp prepare_in_flight_exit({txhash, ife_info}) do
     %{tx: %Transaction.Signed{raw_tx: raw_tx}, eth_height: eth_height} = ife_info
 
     %{
@@ -1282,5 +1329,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     # doesn't appear to have signed the potential competitor, which means that some prior signature checking was skipped
     {:ok, sig} = Tools.find_sig(tx, owner)
     sig
+  end
+
+  def create_exit_finalized_events(event_triggers) do
+    event_triggers
+    |> Enum.flat_map(fn
+      %{exit: event_data} -> [%{exit_finalized: event_data}]
+      _ -> []
+    end)
   end
 end

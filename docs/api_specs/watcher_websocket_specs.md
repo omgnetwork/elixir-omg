@@ -61,6 +61,42 @@ child_block_hash | HEX-encoded string |
 submited_at_ethheight | integer |
 tx | object | Structure of signed transaction
 
+## Topic `exit:{address}`
+
+### `exit_finalized` event
+
+> An example of exit_finalized event
+
+```json
+{
+  "topic": "exit:0xfd5374cd3fe7ba8626b173a1ca1db68696ff3692",
+  "ref": null,
+  "payload": {
+    "event": "exit_finalized",
+    "details": {
+      "child_blknum": 10000,
+      "child_txindex": 12,
+      "child_oindex": 0,
+      "currency": "0x0000000000000000000000000000000000000000",
+      "amount": 100
+    },
+    "join_ref": null,
+    "event": "exit_finalized"
+  }  
+}
+```
+
+Informs that exit is finalized and exited amount of currency was transferred to owner's account.
+
+
+Attribute | Type | Description
+--------- | ------- | -----------
+child_blknum | Integer |
+child_txindex | Integer |
+child_oindex | Integer |
+currency | HEX-encoded string |
+amount | integer |
+
 
 ## Topic `childchain`
 
@@ -104,5 +140,4 @@ The RootChain contract raises certain events on Ethereum
  * new_deposit
  * exit_started
  * exit_challenged
- * exit_finalized
  * fees_exited

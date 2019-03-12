@@ -18,7 +18,7 @@ defmodule OMG.API.RootChainCoordinator do
 
   alias OMG.API.RootChainCoordinator.Core
   alias OMG.Eth
-
+  use GenServer
   use OMG.API.LoggerExt
 
   defmodule SyncGuide do
@@ -59,9 +59,13 @@ defmodule OMG.API.RootChainCoordinator do
     GenServer.call(__MODULE__, :get_sync_info)
   end
 
-  use GenServer
-
   def init(configs_services) do
+    {:ok, configs_services, {:continue, :setup}}
+  end
+
+  def handle_continue(:setup, configs_services) do
+    _ = Logger.info("Starting #{__MODULE__} service.")
+    :ok = Eth.Geth.node_ready()
     {:ok, rootchain_height} = Eth.get_ethereum_height()
     height_check_interval = Application.fetch_env!(:omg_api, :coordinator_eth_height_check_interval_ms)
     {:ok, _} = schedule_get_ethereum_height(height_check_interval)
@@ -71,7 +75,7 @@ defmodule OMG.API.RootChainCoordinator do
     |> Map.keys()
     |> request_sync()
 
-    {:ok, state}
+    {:noreply, state}
   end
 
   def handle_call({:check_in, synced_height, service_name}, {pid, _}, state) do

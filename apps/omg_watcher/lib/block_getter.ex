@@ -113,6 +113,10 @@ defmodule OMG.Watcher.BlockGetter do
   end
 
   def init(_opts) do
+    {:ok, %{}, {:continue, :setup}}
+  end
+
+  def handle_continue(:setup, %{}) do
     {:ok, deployment_height} = Eth.RootChain.get_root_deployment_height()
     {:ok, last_synced_height} = OMG.DB.get_single_value(:last_block_getter_eth_height)
     synced_height = max(deployment_height, last_synced_height)
@@ -151,7 +155,7 @@ defmodule OMG.Watcher.BlockGetter do
     {:ok, _} = schedule_sync_height()
     {:ok, _} = schedule_producer()
 
-    {:ok, state}
+    {:noreply, state}
   end
 
   @spec handle_info(

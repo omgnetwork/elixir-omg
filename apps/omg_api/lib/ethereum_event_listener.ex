@@ -20,7 +20,7 @@ defmodule OMG.API.EthereumEventListener do
   alias OMG.API.EthereumEventListener.Core
   alias OMG.API.RootChainCoordinator
   alias OMG.API.RootChainCoordinator.SyncGuide
-
+  alias OMG.Eth
   use OMG.API.LoggerExt
 
   @type config() :: %{
@@ -55,14 +55,18 @@ defmodule OMG.API.EthereumEventListener do
 
   use GenServer
 
-  def init(%{
+  def init(init) do
+    {:ok, init, {:continue, :setup}}
+  end
+
+  def handle_continue(:setup, %{
         synced_height_update_key: update_key,
         service_name: service_name,
         get_events_callback: get_events_callback,
         process_events_callback: process_events_callback
       }) do
-    _ = Logger.info("Starting EthereumEventListener for #{service_name}")
-
+    _ = Logger.info("Starting EthereumEventListener for #{service_name}.")
+    :ok = Eth.Geth.node_ready()
     {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
     {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
     # we don't need to ever look at earlier than contract deployment
@@ -76,7 +80,7 @@ defmodule OMG.API.EthereumEventListener do
 
     {:ok, _} = schedule_get_events()
     :ok = RootChainCoordinator.check_in(height_to_check_in, service_name)
-    {:ok, {initial_state, callbacks_map}}
+    {:noreply, {initial_state, callbacks_map}}
   end
 
   def handle_info(:sync, {core, _callbacks} = state) do

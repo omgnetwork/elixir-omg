@@ -54,7 +54,6 @@ defmodule OMG.API.BlockQueue do
 
     use GenServer
     use OMG.API.LoggerExt
-
     alias OMG.Eth
 
     def start_link(_args) do
@@ -62,6 +61,11 @@ defmodule OMG.API.BlockQueue do
     end
 
     def init(:ok) do
+      {:ok, %{}, {:continue, :setup}}
+    end
+
+    def handle_continue(:setup, %{}) do
+      _ = Logger.info("Starting #{__MODULE__} service.")
       :ok = Eth.Geth.node_ready()
       :ok = Eth.RootChain.contract_ready()
       {:ok, parent_height} = Eth.get_ethereum_height()
@@ -116,7 +120,7 @@ defmodule OMG.API.BlockQueue do
       {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
       _ = Logger.info("Started BlockQueue")
-      {:ok, state}
+      {:noreply, state}
     end
 
     @doc """

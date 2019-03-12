@@ -30,6 +30,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   import ExUnit.CaptureLog
 
   @moduletag :integration
+  @moduletag timeout: 120_000
 
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -85,7 +86,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
-  test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event ",
+  test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     %{"blknum" => exit_blknum} = TestHelper.submit(tx)

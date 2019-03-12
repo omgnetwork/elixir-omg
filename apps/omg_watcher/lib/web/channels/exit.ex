@@ -1,4 +1,4 @@
-# Copyright 2019 OmiseGO Pte Ltd
+# Copyright 2018 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,5 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-Application.ensure_all_started(:omg_status)
-ExUnit.start()
+defmodule OMG.Watcher.Web.Channel.Exit do
+  @moduledoc """
+  Channel Exit
+  """
+
+  use Phoenix.Channel
+
+  def join("exit:" <> _address, _params, socket) do
+    {:ok, socket}
+  end
+
+  def join(_, _, _), do: {:error, :invalid_parameter}
+end
