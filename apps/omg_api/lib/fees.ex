@@ -23,13 +23,13 @@ defmodule OMG.API.Fees do
 
   require Utxo
 
-  @type fee_spec_t() :: %{token: Crypto.address_t(), flat_fee: non_neg_integer}
-  @type token_fee_t() :: %{Crypto.address_t() => non_neg_integer} | :ignore
+  @type fee_spec_t() :: %{token: Transaction.currency(), flat_fee: non_neg_integer}
+  @type fee_t() :: %{Transaction.currency() => non_neg_integer} | :ignore
 
   @doc """
   Parses provided json string to token-fee map and returns the map together with possible parsing errors
   """
-  @spec parse_file_content(binary()) :: {list({:error, atom()}), token_fee_t()}
+  @spec parse_file_content(binary()) :: {list({:error, atom()}), fee_t()}
   def parse_file_content(file_content) do
     {:ok, json} = Poison.decode(file_content)
 
@@ -44,8 +44,9 @@ defmodule OMG.API.Fees do
   @doc """
   Checks whether transaction's funds cover the fee
   """
-  @spec covered?(input_amounts::map(), output_amounts::map(), fees::token_fee_t()) :: boolean()
-  def covered?(_,_,:ignore), do: true
+  @spec covered?(input_amounts :: map(), output_amounts :: map(), fees :: fee_t()) :: boolean()
+  def covered?(_, _, :ignore), do: true
+
   def covered?(input_amounts, output_amounts, fees) do
     for {input_currency, input_amount} <- Map.to_list(input_amounts) do
       # fee is implicit - it's the difference between funds owned and spend
@@ -62,7 +63,7 @@ defmodule OMG.API.Fees do
   @doc """
   Returns fees for particular transaction
   """
-  @spec for_tx(Transaction.Recovered.t(), token_fee_t()) :: token_fee_t()
+  @spec for_tx(Transaction.Recovered.t(), fee_t()) :: fee_t()
   def for_tx(
         %Transaction.Recovered{
           signed_tx: %Transaction.Signed{raw_tx: raw_tx}

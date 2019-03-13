@@ -21,6 +21,7 @@ defmodule OMG.API.State do
   alias OMG.API.Block
   alias OMG.API.BlockQueue
   alias OMG.API.EventerAPI
+  alias OMG.API.Fees
   alias OMG.API.FreshBlocks
   alias OMG.API.State.Core
   alias OMG.API.State.Transaction
@@ -38,7 +39,7 @@ defmodule OMG.API.State do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @spec exec(tx :: %Transaction.Recovered{}, fees :: map()) ::
+  @spec exec(tx :: %Transaction.Recovered{}, fees :: Fees.fee_t()) ::
           {:ok, {Transaction.Recovered.tx_hash_t(), pos_integer, non_neg_integer}}
           | {:error, exec_error()}
   def exec(tx, input_fees) do

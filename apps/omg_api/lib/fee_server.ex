@@ -43,7 +43,7 @@ defmodule OMG.API.FeeServer do
   @doc """
   Returns accepted tokens and amounts in which transaction fees are collected
   """
-  @spec transaction_fees() :: {:ok, Fees.token_fee_t()}
+  @spec transaction_fees() :: {:ok, Fees.fee_t()}
   def transaction_fees do
     {:ok, load_fees()}
   end
