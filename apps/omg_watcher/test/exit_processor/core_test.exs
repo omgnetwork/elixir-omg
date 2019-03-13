@@ -31,7 +31,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.ExitInfo
-  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
   require Utxo
 
@@ -1777,7 +1776,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   describe "in-flight exit finalization" do
     @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
-    test "succeeds",
+    test "deactivate in-flight exit after all piggybacked outputs are finalized",
          %{
            processor_empty: processor,
            in_flight_exit_events: [ife | _],
@@ -1789,19 +1788,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: 1}])
       {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: 2}])
 
-      finalization1 = %{in_flight_exit_id: ife_id, output_index: 1}
+      {:ok, processor, [{:put, :in_flight_exit_info, _}]} =
+        Core.finalize_in_flight_exits(processor, [%{in_flight_exit_id: ife_id, output_index: 1}])
 
-      {:ok, processor, [{:put, :in_flight_exit_info, {_, exit_info}}]} =
-        Core.finalize_in_flight_exits(processor, [finalization1])
+      [_] = Core.get_active_in_flight_exits(processor)
 
-      assert expect_finalized_outputs(exit_info, [1], [2])
+      {:ok, processor, [{:put, :in_flight_exit_info, _}]} =
+        Core.finalize_in_flight_exits(processor, [%{in_flight_exit_id: ife_id, output_index: 2}])
 
-      finalization2 = %{in_flight_exit_id: ife_id, output_index: 2}
-
-      {:ok, _, [{:put, :in_flight_exit_info, {_, exit_info}}]} =
-        Core.finalize_in_flight_exits(processor, [finalization2])
-
-      assert expect_finalized_outputs(exit_info, [1, 2], [])
+      assert [] == Core.get_active_in_flight_exits(processor)
     end
 
     @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
@@ -1863,18 +1858,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {:not_piggybacked, [^finalization2]} = Core.finalize_in_flight_exits(processor, [finalization1, finalization2])
     end
-  end
-
-  defp expect_finalized_outputs(exit_info, expected_finalized_outputs, expected_active_outputs) do
-    expected_finalized =
-      expected_finalized_outputs
-      |> Enum.all?(&InFlightExitInfo.is_finalized?(exit_info, &1))
-
-    expected_active =
-      expected_active_outputs
-      |> Enum.all?(&InFlightExitInfo.is_active?(exit_info, &1))
-
-    expected_finalized and expected_active
   end
 
   defp ife_tx_hash(%{call_data: %{in_flight_tx: tx_bytes}}) do
