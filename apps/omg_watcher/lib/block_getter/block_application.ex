@@ -28,7 +28,6 @@ defmodule OMG.Watcher.BlockGetter.BlockApplication do
           hash: binary(),
           timestamp: pos_integer(),
           transactions: list(),
-          zero_fee_requirements: map()
         }
 
   defstruct [
@@ -37,27 +36,16 @@ defmodule OMG.Watcher.BlockGetter.BlockApplication do
     :eth_height_done,
     :hash,
     :timestamp,
-    transactions: [],
-    zero_fee_requirements: %{}
+    transactions: []
   ]
 
   def new(block, recovered_txs, block_timestamp) do
-    # we as the Watcher don't care about the fees, so we fix all currencies to require 0 fee
-    zero_fee_requirements = recovered_txs |> Enum.reduce(%{}, &add_zero_fee/2)
-
     struct!(
       BlockApplication,
       block
       |> Map.from_struct()
       |> Map.put(:transactions, recovered_txs)
       |> Map.put(:timestamp, block_timestamp)
-      |> Map.put(:zero_fee_requirements, zero_fee_requirements)
     )
-  end
-
-  defp add_zero_fee(%Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}, fee_map) do
-    raw_tx
-    |> Transaction.get_currencies()
-    |> Enum.into(fee_map, fn currency -> {currency, 0} end)
   end
 end

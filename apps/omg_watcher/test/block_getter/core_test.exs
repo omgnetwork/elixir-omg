@@ -110,7 +110,6 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     assert {[
               %BlockApplication{
                 transactions: [tx],
-                zero_fee_requirements: fees,
                 eth_height: ^synced_height,
                 eth_height_done: true
               }
@@ -118,7 +117,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
             _} = Core.get_blocks_to_apply(state, [%{blknum: block.number, eth_height: synced_height}], synced_height)
 
     # check feasibility of transactions from block to consume at the API.State
-    assert {:ok, tx_result, _} = API.State.Core.exec(state_alice_deposit, tx, fees)
+    assert {:ok, tx_result, _} = API.State.Core.exec(state_alice_deposit, tx, :ignore)
 
     assert {:ok, ^state} = Core.validate_executions([{:ok, tx_result}], block, state)
 
@@ -140,10 +139,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     synced_height = 2
 
-    assert {[%BlockApplication{transactions: [_tx1, _tx2], zero_fee_requirements: fees}], _, _, _} =
+    assert {[%BlockApplication{transactions: [_tx1, _tx2]}], _, _, _} =
              Core.get_blocks_to_apply(state, [%{blknum: block.number, eth_height: synced_height}], synced_height)
-
-    assert fees == %{@eth => 0, other_currency => 0}
   end
 
   defp process_single_block(%Block{hash: requested_hash} = block) do
