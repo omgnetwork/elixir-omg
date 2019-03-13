@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.API.RootChainCoordinator.Core do
+defmodule OMG.Sync.RootChainCoordinator.Core do
   @moduledoc """
   Synchronizes multiple log-reading services on root chain height.
   Each synchronized service must have a unique name.
@@ -27,10 +27,10 @@ defmodule OMG.API.RootChainCoordinator.Core do
       cause them to process any events twice! All services must ensure they process everything!
   """
 
-  alias OMG.API.RootChainCoordinator.Service
-  alias OMG.API.RootChainCoordinator.SyncGuide
+  alias OMG.Sync.RootChainCoordinator.Service
+  alias OMG.Sync.RootChainCoordinator.SyncGuide
 
-  use OMG.API.LoggerExt
+  use OMG.Sync.LoggerExt
 
   defstruct configs_services: %{}, root_chain_height: 0, services: %{}
 

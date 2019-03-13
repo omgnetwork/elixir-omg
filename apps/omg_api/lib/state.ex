@@ -28,7 +28,7 @@ defmodule OMG.API.State do
   alias OMG.DB
   alias OMG.Eth
 
-  use OMG.API.LoggerExt
+  use OMG.Sync.LoggerExt
 
   @type exec_error :: Core.exec_error()
 

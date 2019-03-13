@@ -12,20 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.EthereumEventListener.Core do
+defmodule OMG.Sync.EthereumEventListener.Core do
   @moduledoc """
   Periodically fetches events made on dynamically changing block range
   on parent chain and feeds them to a callback.
 
   It is **not** responsible for figuring out which ranges of eth-blocks to scan and when, see
-  `OMG.API.RootChainCoordinator.Core` for that.
+  `OMG.Sync.RootChainCoordinator.Core` for that.
 
   It **is** responsible for processing all events and processing them only once. The only "help" from the coordinator
   it gets is in that it receives the `SyncGuide` that takes some finality (reorg) margin into account.
 
   NOTE: this could and should at some point be implemented as a `@behavior` instead, to avoid using callbacks
   """
-  alias OMG.API.RootChainCoordinator.SyncGuide
+  alias OMG.Sync.RootChainCoordinator.SyncGuide
 
   defstruct synced_height_update_key: nil,
             service_name: nil,

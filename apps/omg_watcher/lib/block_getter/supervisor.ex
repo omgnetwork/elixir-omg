@@ -18,7 +18,7 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
    In case one process fails, this supervisor's role is to restore consistent state
   """
   use Supervisor
-  use OMG.API.LoggerExt
+  use OMG.Sync.LoggerExt
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)

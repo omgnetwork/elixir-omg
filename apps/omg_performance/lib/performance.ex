@@ -39,7 +39,7 @@ defmodule OMG.Performance do
   (github.com/erlang/otp and the JIRA it points you to).
   """
 
-  use OMG.API.LoggerExt
+  use OMG.Sync.LoggerExt
 
   alias OMG.API.Crypto
   alias OMG.API.Integration.DepositHelper

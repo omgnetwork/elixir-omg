@@ -35,7 +35,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
-  use OMG.API.LoggerExt
+  use OMG.Sync.LoggerExt
 
   ### Client
 

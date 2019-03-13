@@ -11,15 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.API.RootChainCoordinator do
+defmodule OMG.Sync.RootChainCoordinator do
   @moduledoc """
-  Synchronizes services on root chain height, see `OMG.API.RootChainCoordinator.Core`
+  Synchronizes services on root chain height, see `OMG.Sync.RootChainCoordinator.Core`
   """
 
-  alias OMG.API.RootChainCoordinator.Core
   alias OMG.Eth
+  alias OMG.Sync.RootChainCoordinator.Core
+
   use GenServer
-  use OMG.API.LoggerExt
+  use OMG.Sync.LoggerExt
 
   defmodule SyncGuide do
     @moduledoc """

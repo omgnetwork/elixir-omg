@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.EthereumEventListener do
+defmodule OMG.Sync.EthereumEventListener do
   @moduledoc """
-  GenServer running the listener, see `OMG.API.EthereumEventListener.Core`
+  GenServer running the listener, see `OMG.Sync.EthereumEventListener.Core`
   """
 
-  alias OMG.API.EthereumEventListener.Core
-  alias OMG.API.RootChainCoordinator
-  alias OMG.API.RootChainCoordinator.SyncGuide
   alias OMG.Eth
-  use OMG.API.LoggerExt
+  alias OMG.Sync.EthereumEventListener.Core
+  alias OMG.Sync.RootChainCoordinator
+  alias OMG.Sync.RootChainCoordinator.SyncGuide
+
+  use OMG.Sync.LoggerExt
 
   @type config() :: %{
           block_finality_margin: non_neg_integer,
@@ -48,7 +49,7 @@ defmodule OMG.API.EthereumEventListener do
   @spec prepare_child(keyword()) :: %{id: atom(), start: tuple()}
   def prepare_child(opts \\ []) do
     name = Keyword.fetch!(opts, :service_name)
-    %{id: name, start: {OMG.API.EthereumEventListener, :start_link, [Map.new(opts)]}}
+    %{id: name, start: {OMG.Sync.EthereumEventListener, :start_link, [Map.new(opts)]}}
   end
 
   ### Server

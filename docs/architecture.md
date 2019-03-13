@@ -37,14 +37,14 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 
 - reverts to reading `OMG.DB` for old blocks
 
-### `OMG.API.RootChainCoordinator`
+### `OMG.Sync.RootChainCoordinator`
 
 - reads Ethereum block height from `OMG.Eth`
 - synchronizes view of Ethereum block height of all enrolled processes (see other processes descriptions)
 
 ### `:exiter`'s
 
-Actually `OMG.API.EthereumEventListener` setup with `:exiter`.
+Actually `OMG.Sync.EthereumEventListener` setup with `:exiter`.
 **NOTE** there's a multitude of exiter-related processes, which work along these lines, we're not listing them here
 
 - pushes exit-related events to `OMG.API.State` on child chain server's side
@@ -53,7 +53,7 @@ Actually `OMG.API.EthereumEventListener` setup with `:exiter`.
 
 ### `:depositor`
 
-Actually `OMG.API.EthereumEventListener` setup with `:depositor`.
+Actually `OMG.Sync.EthereumEventListener` setup with `:depositor`.
 
 - pushes deposits to `OMG.API.State`
 - pushes deposits to `WatcherDB`
@@ -61,14 +61,14 @@ Actually `OMG.API.EthereumEventListener` setup with `:depositor`.
 ### `OMG.API.BlockQueue`
 
 - requests `form_block` on `OMG.API.State` and takes block hashes in return
-- tracks Ethereum height and child chain block submission mining via `OMG.Eth` and `OMG.API.RootChainCoordinator`
+- tracks Ethereum height and child chain block submission mining via `OMG.Eth` and `OMG.Sync.RootChainCoordinator`
 
 ### `OMG.API.FeeServer`
 - `OMG.API` calls it to get acceptable currencies and actual fee amounts to validate transactions
 
 ### `OMG.Watcher.BlockGetter`
 
-- tracks child chain blocks via `OMG.API.RootChainCoordinator`
+- tracks child chain blocks via `OMG.Sync.RootChainCoordinator`
 - manages concurrent `Task`'s to pull blocks from child chain server API (JSON-RPC)
 - pushes decoded and statelessly valid blocks to `OMG.API.State`
 - pushes statefully valid blocks and transactions (acknowledged by `OMG.API.State` above) to `WatcherDB`
@@ -77,7 +77,7 @@ Actually `OMG.API.EthereumEventListener` setup with `:depositor`.
 
 ### `OMG.Watcher.ExitProcessor`
 
-- get various Ethereum events from `OMG.API.EthereumEventListener`
+- get various Ethereum events from `OMG.Sync.EthereumEventListener`
 - used only in Watcher
 - validates exits
 - emits byzantine events to `OMG.Watcher.Eventer`

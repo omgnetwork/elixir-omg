@@ -21,7 +21,7 @@ defmodule OMG.API do
   """
 
   alias OMG.API.{Block, Core, Fees, FeeServer, FreshBlocks, State}
-  use OMG.API.LoggerExt
+  use OMG.Sync.LoggerExt
 
   @type submit_error() :: Core.recover_tx_error() | State.exec_error()
 

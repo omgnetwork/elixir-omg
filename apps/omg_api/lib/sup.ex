@@ -17,7 +17,7 @@ defmodule OMG.API.Sup do
    OMG.API top level supervisor.
   """
   use Supervisor
-  use OMG.API.LoggerExt
+  use OMG.Sync.LoggerExt
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -28,26 +28,26 @@ defmodule OMG.API.Sup do
 
     monitor_children = [
       {OMG.API.BlockQueue.Server, []},
-      {OMG.API.RootChainCoordinator, coordinator_setup()},
-      OMG.API.EthereumEventListener.prepare_child(
+      {OMG.Sync.RootChainCoordinator, coordinator_setup()},
+      OMG.Sync.EthereumEventListener.prepare_child(
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_deposits/2,
         process_events_callback: &OMG.API.State.deposit/1
       ),
-      OMG.API.EthereumEventListener.prepare_child(
+      OMG.Sync.EthereumEventListener.prepare_child(
         service_name: :in_flight_exit,
         synced_height_update_key: :last_in_flight_exit_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
         process_events_callback: &exit_and_ignore_events_and_validities/1
       ),
-      OMG.API.EthereumEventListener.prepare_child(
+      OMG.Sync.EthereumEventListener.prepare_child(
         service_name: :piggyback,
         synced_height_update_key: :last_piggyback_exit_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
         process_events_callback: &exit_and_ignore_events_and_validities/1
       ),
-      OMG.API.EthereumEventListener.prepare_child(
+      OMG.Sync.EthereumEventListener.prepare_child(
         service_name: :exiter,
         synced_height_update_key: :last_exiter_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,

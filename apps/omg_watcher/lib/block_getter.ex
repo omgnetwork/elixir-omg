@@ -20,21 +20,21 @@ defmodule OMG.Watcher.BlockGetter do
 
   Reponsible for processing all block submissions and processing them once, regardless of the reorg situation.
   Note that the former responsibility is quite involved, as `BlockGetter` should have any finality margin configured,
-  i.e. it should be prepared to be served not-yet-confirmed eth heights from the `OMG.API.RootChainCoordinator`
+  i.e. it should be prepared to be served not-yet-confirmed eth heights from the `OMG.Sync.RootChainCoordinator`
   """
 
-  alias OMG.API.RootChainCoordinator
-  alias OMG.API.RootChainCoordinator.SyncGuide
   alias OMG.API.State
   alias OMG.Eth
   alias OMG.RPC.Client
+  alias OMG.Sync.RootChainCoordinator
+  alias OMG.Sync.RootChainCoordinator.SyncGuide
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.DB
   alias OMG.Watcher.ExitProcessor
 
   use GenServer
-  use OMG.API.LoggerExt
+  use OMG.Sync.LoggerExt
 
   def get_events do
     GenServer.call(__MODULE__, :get_events)

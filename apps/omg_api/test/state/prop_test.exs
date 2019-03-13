@@ -53,7 +53,7 @@ defmodule OMG.API.State.PropTest do
   use PropCheck
   use PropCheck.StateM.DSL
   use ExUnit.Case
-  use OMG.API.LoggerExt
+  use OMG.Sync.LoggerExt
 
   # commands import to test
   use OMG.API.State.PropTest.{

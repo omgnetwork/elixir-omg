@@ -12,21 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Application do
-  @moduledoc false
-  use Application
-  use OMG.Sync.LoggerExt
+defmodule OMG.Watcher.Sup do
+  @moduledoc """
+   OMG.Watcher top level supervisor.
+  """
+  use Supervisor
 
-  def start(_type, _args) do
-    DeferredConfig.populate(:omg_watcher)
-    DeferredConfig.populate(:omg_rpc)
-
-    _ = Logger.info("Starting #{inspect(__MODULE__)}")
-
-    start_root_supervisor()
+  def start_link do
+    Supervisor.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  def start_root_supervisor do
+  def init(_) do
     # root supervisor must stop whenever any of its children supervisors goes down (children carry the load of restarts)
     children = [
       %{
@@ -46,18 +42,10 @@ defmodule OMG.Watcher.Application do
     opts = [
       strategy: :one_for_one,
       # whenever any of supervisor's children goes down, so it does
-      max_restarts: 0,
-      name: OMG.Watcher.RootSupervisor
+      max_restarts: 0
     ]
 
     :ok = :error_logger.add_report_handler(Sentry.Logger)
-    Supervisor.start_link(children, opts)
-  end
-
-  # Tell Phoenix to update the endpoint configuration
-  # whenever the application is updated.
-  def config_change(changed, _new, removed) do
-    OMG.Watcher.Web.Endpoint.config_change(changed, removed)
-    :ok
+    Supervisor.init(children, opts)
   end
 end

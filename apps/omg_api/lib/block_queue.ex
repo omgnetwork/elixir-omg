@@ -53,7 +53,7 @@ defmodule OMG.API.BlockQueue do
     """
 
     use GenServer
-    use OMG.API.LoggerExt
+    use OMG.Sync.LoggerExt
     alias OMG.Eth
 
     def start_link(_args) do

@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Fixtures do
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
   use OMG.API.Integration.Fixtures
-  use OMG.API.LoggerExt
+  use OMG.Sync.LoggerExt
 
   alias Ecto.Adapters.SQL
   alias OMG.Watcher

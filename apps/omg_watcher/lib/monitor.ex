@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Monitor do
+defmodule OMG.Watcher.Monitor do
   @moduledoc """
   This module is a custom implemented supervisor that monitors all it's chilldren
   and restarts them based on alarms raised. This means that in the period when Geth alarms are raised
@@ -29,7 +29,7 @@ defmodule OMG.API.Monitor do
   """
   use GenServer
   require Logger
-  alias OMG.API.Alert.Alarm
+  alias OMG.Watcher.Alert.Alarm
   # needs to be less then checks from RootChainCoordinator
   @default_interval 300
   @type t :: %__MODULE__{

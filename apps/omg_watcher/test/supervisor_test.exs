@@ -14,12 +14,12 @@
 defmodule OMG.Watcher.SupervisorTest do
   @moduledoc """
   This test is here mainly to test the logic-rich part of the supervisor setup, namely the config of
-  `OMG.API.RootChainCoordinator.Core` supplied therein
+  `OMG.Sync.RootChainCoordinator.Core` supplied therein
   """
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OMG.API.RootChainCoordinator.Core
+  alias OMG.Sync.RootChainCoordinator.Core
 
   @setup OMG.Watcher.Supervisor.coordinator_setup()
   @pid @setup

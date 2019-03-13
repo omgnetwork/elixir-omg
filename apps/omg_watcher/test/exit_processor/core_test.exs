@@ -77,7 +77,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     empty
   end
 
-  # events is whatever `OMG.Eth` would feed into the `OMG.Watcher.ExitProcessor`, via `OMG.API.EthereumEventListener`
+  # events is whatever `OMG.Eth` would feed into the `OMG.Watcher.ExitProcessor`, via `OMG.Sync.EthereumEventListener`
   deffixture exit_events(alice) do
     %{addr: alice} = alice
 

@@ -17,12 +17,13 @@ defmodule OMG.Watcher.Supervisor do
   Supervises the remainder (i.e. all except the `Watcher.BlockGetter` + `OMG.API.State` pair, supervised elsewhere)
   of the Watcher app
   """
-  use Supervisor
-  use OMG.API.LoggerExt
 
-  alias OMG.API.EthereumEventListener
   alias OMG.Eth
+  alias OMG.Sync.EthereumEventListener
   alias OMG.Watcher
+
+  use Supervisor
+  use OMG.Sync.LoggerExt
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -69,7 +70,7 @@ defmodule OMG.Watcher.Supervisor do
       },
       # Start workers
       {Watcher.Eventer, []},
-      {OMG.API.RootChainCoordinator, coordinator_setup()},
+      {OMG.Sync.RootChainCoordinator, coordinator_setup()},
       EthereumEventListener.prepare_child(
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
