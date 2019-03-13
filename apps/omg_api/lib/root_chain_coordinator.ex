@@ -76,11 +76,7 @@ defmodule OMG.API.RootChainCoordinator do
     |> Map.keys()
     |> request_sync()
 
-    {:ok, _} =
-      Recorder.start_link(%Recorder{
-        name: __MODULE__.Recorder,
-        parent: self()
-      })
+    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
 
     {:noreply, state}
   end

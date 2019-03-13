@@ -48,7 +48,7 @@ defmodule OMG.Watcher.Recorder do
        | key: to_charlist(opts.name),
          interval: get_interval(opts.name) || @default_interval,
          tref: tref,
-         node: to_string(:erlang.node())
+         node: Atom.to_string(:erlang.node())
      }}
   end
 

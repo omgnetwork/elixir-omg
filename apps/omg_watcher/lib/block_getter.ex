@@ -88,11 +88,7 @@ defmodule OMG.Watcher.BlockGetter do
     {:ok, _} = schedule_sync_height()
     {:ok, _} = schedule_producer()
 
-    {:ok, _} =
-      Recorder.start_link(%Recorder{
-        name: __MODULE__.Recorder,
-        parent: self()
-      })
+    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
 
     {:noreply, state}
   end

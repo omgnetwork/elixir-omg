@@ -84,15 +84,11 @@ defmodule OMG.API.EthereumEventListener do
 
     name =
       service_name
-      |> to_string
+      |> Atom.to_string()
       |> Kernel.<>(".Recorder")
       |> String.to_atom()
 
-    {:ok, _} =
-      Recorder.start_link(%Recorder{
-        name: name,
-        parent: self()
-      })
+    {:ok, _} = Recorder.start_link(%Recorder{name: name, parent: self()})
 
     {:noreply, {initial_state, callbacks_map}}
   end

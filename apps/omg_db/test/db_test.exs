@@ -64,7 +64,8 @@ defmodule OMG.DBTest do
 
   defp restart(dir, pid) do
     :ok = GenServer.stop(pid)
-    {:ok, pid} = GenServer.start_link(OMG.DB.LevelDBServer, %{db_path: dir}, name: :"TestDB_#{make_ref() |> inspect()}")
+    name = :"TestDB_#{make_ref() |> inspect()}"
+    {:ok, pid} = GenServer.start_link(OMG.DB.LevelDBServer, %{db_path: dir, name: name}, name: name)
     pid
   end
 end

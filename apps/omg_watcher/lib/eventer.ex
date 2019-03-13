@@ -36,11 +36,7 @@ defmodule OMG.Watcher.Eventer do
   use GenServer
 
   def init(:ok) do
-    {:ok, _} =
-      Recorder.start_link(%Recorder{
-        name: __MODULE__.Recorder,
-        parent: self()
-      })
+    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
 
     {:ok, nil}
   end

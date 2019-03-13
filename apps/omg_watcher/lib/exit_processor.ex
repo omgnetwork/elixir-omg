@@ -187,11 +187,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
     processor = Core.init(db_exits, db_ifes, db_competitors, sla_margin)
 
-    {:ok, _} =
-      Recorder.start_link(%Recorder{
-        name: __MODULE__.Recorder,
-        parent: self()
-      })
+    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
 
     _ = Logger.info("Initializing with: #{inspect(processor)}")
     processor

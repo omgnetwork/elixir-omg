@@ -120,11 +120,7 @@ defmodule OMG.API.BlockQueue do
       interval = Application.fetch_env!(:omg_api, :block_queue_eth_height_check_interval_ms)
       {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
-      {:ok, _} =
-        Recorder.start_link(%Recorder{
-          name: __MODULE__.Recorder,
-          parent: self()
-        })
+      {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
 
       _ = Logger.info("Started BlockQueue")
       {:noreply, state}
