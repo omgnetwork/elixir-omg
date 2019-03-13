@@ -210,4 +210,13 @@ defmodule OMG.Watcher.DB.TxOutput do
       {Utxo.position(blknum, txindex, oindex), index, spending_txhash}
     end)
   end
+
+  @spec get_sorted_grouped_utxos(OMG.API.Crypto.address_t()) :: %{OMG.API.Crypto.address_t() => list(%__MODULE__{})}
+  def get_sorted_grouped_utxos(owner) do
+    # TODO: use clever DB query to get following out of DB
+    get_utxos(owner)
+    |> Enum.group_by(& &1.currency)
+    |> Enum.map(fn {k, v} -> {k, Enum.sort_by(v, & &1.amount, &>=/2)} end)
+    |> Map.new()
+  end
 end

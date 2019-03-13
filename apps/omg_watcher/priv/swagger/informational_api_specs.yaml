@@ -97,6 +97,26 @@ paths:
           $ref: '#/responses/GetTransactionsOpId'
         500:
           $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
+  /transaction.create:
+    post:
+      tags:
+        - Transaction
+      summary: Finds an optimal way to construct a transaction spending particular amount.
+      description: >
+        Given token, amount and spender, finds spender's inputs sufficient to perform a payment.
+        If also provided with receiver's address, creates and encodes a transaction.
+      operationId: createTransaction
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      requestBody:
+        $ref: '#/requests/CreateTransactionOpId'
+      responses:
+        200:
+          $ref: '#/responses/CreateTransactionOpId'
+        500:
+          $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
   /transaction.get:
     post:
       tags:
@@ -213,7 +233,65 @@ requests:
           example:
             address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
             blknum: 68290000
-            limit: 100             
+            limit: 100 
+  CreateTransactionOpId:
+    description: The description of transaction to be crafted.
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            owner:
+              type: string
+              format: binary
+            payments:
+              type: array
+              items: 
+                type: object
+                properties:
+                  amount:
+                    type: integer
+                    format: int256
+                  currency:
+                    type: string
+                    format: binary
+                  owner:
+                    type: string
+                    format: binary
+                required:
+                  - amount
+                  - currency
+            fee:
+              type: object
+              properties:
+                amount:
+                  type: integer
+                  format: int256
+                currency:
+                  type: string
+                  format: binary
+              required:
+                - amount
+                - currency
+            metadata:
+              type: string
+              format: binary
+          required:
+            - owner
+            - payments
+            - fee
+          example:
+            owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+            payments:
+              -
+                amount: 100
+                currency: '0x0000000000000000000000000000000000000000'
+                owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
+            fee:
+              amount: 5
+              currency: '0x0000000000000000000000000000000000000000'
+            metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
   GetTransactionOpId:
     description: Id (hash) of the transaction
     required: true
@@ -362,6 +440,95 @@ responses:
                 -
                   currency: '0x0000000000000000000000000000000000000000'
                   value: 20000000
+  CreateTransactionOpId:
+    description: Transaction create successful response
+    content:
+      application/json:
+        schema:
+          allOf:
+          - $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+          - type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  result:
+                    type: string
+                    enum: [complete, intermediate]
+                  transactions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        inputs:
+                          type: array
+                          items:
+                            - $ref: 'schemata.yaml#/TransactionOutputSchema'  
+                        outputs:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              amount:
+                                type: integer
+                                format: int256
+                              currency:
+                                type: string
+                                format: binary                
+                              owner:
+                                type: string
+                                format: binary
+                        fee:
+                          type: object
+                          properties:
+                            amount:
+                              type: integer
+                              format: int256
+                            currency:
+                              type: string
+                              format: binary
+                        metadata:
+                          type: string
+                          format: binary 
+                        txbytes:
+                          type: string
+                          format: binary 
+            example:
+              data:
+                result: 'complete'
+                transactions:
+                  -
+                    inputs:
+                      - 
+                        blknum: 123000
+                        txindex: 111
+                        oindex: 0
+                        utxo_pos: 123000001110000
+                        owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                        currency: '0x0000000000000000000000000000000000000000'
+                        amount: 50
+                      - 
+                        blknum: 277000
+                        txindex: 2340
+                        oindex: 3
+                        utxo_pos: 277000023400003
+                        owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                        currency: '0x0000000000000000000000000000000000000000'
+                        amount: 75
+                    outputs:
+                      -
+                        amount: 100
+                        currency: '0x0000000000000000000000000000000000000000'
+                        owner: '0xae8ae48796090ba693af60b5ea6be3686206523b'
+                      -
+                        amount: 20
+                        currency: '0x0000000000000000000000000000000000000000'
+                        owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+                    fee:
+                      amount: 5
+                      currency: '0x0000000000000000000000000000000000000000'
+                    metadata: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+                    txbytes: '0x5df13a6bee20000...'
   GetTransactionOpId:
     description: Transaction details succcessful response
     content:
@@ -372,9 +539,8 @@ responses:
           - type: object
             properties:
               data:
-                type: array
-                items:
-                - $ref: 'schemata.yaml#/TransactionSchema'
+                type: object
+                $ref: 'schemata.yaml#/TransactionSchema'
             example:
               data:
                 txindex: 5113
