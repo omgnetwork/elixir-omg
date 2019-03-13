@@ -12,20 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Challenger.Challenge do
+defmodule OMG.Watcher.Web.Channel.Exit do
   @moduledoc """
-  Represents a challenge
+  Channel Exit
   """
 
-  # NOTE: eutxoindex and cutxopos names were chosen for consistency with Solidity contract source code
-  # eutoxoindex is index of exiting utxo in challenging transaction
-  # cutxopos is position of challenging utxo
-  defstruct [:exit_id, :txbytes, :input_index, :sig]
+  use Phoenix.Channel
 
-  @type t() :: %__MODULE__{
-          exit_id: non_neg_integer(),
-          txbytes: String.t(),
-          input_index: non_neg_integer(),
-          sig: String.t()
-        }
+  def join("exit:" <> _address, _params, socket) do
+    {:ok, socket}
+  end
+
+  def join(_, _, _), do: {:error, :invalid_parameter}
 end

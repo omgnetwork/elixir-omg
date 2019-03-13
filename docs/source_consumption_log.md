@@ -45,7 +45,7 @@ keccakf1600 2.0.0       -> MPL 2.0 (ok'd by legal, compliant with our Apache 2.0
 libsecp256k1 0.1.4      -> MIT
 licensir 0.2.7          -> MIT
 merkle_patricia_tree 0.2.6-> MIT
-merkle_tree 1.3.0       -> MIT
+merkle_tree 1.5.0       -> MIT
 metrics 1.0.1           -> BSD
 mime 1.3.0              -> Apache 2
 mimerl 1.0.2            -> MIT

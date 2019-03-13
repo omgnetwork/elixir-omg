@@ -23,12 +23,15 @@ defmodule OMG.Watcher.ExitProcessor do
   NOTE: Note that all calls return `db_updates` and relay on the caller to do persistence.
   """
 
+  alias OMG.API.EventerAPI
   alias OMG.API.State
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
+  require Utxo
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.ExitProcessor.Challenge
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
@@ -125,9 +128,9 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns a map of requested in flight exits, where keys are IFE hashes and values are IFES
   If given empty list of hashes, all IFEs are returned.
   """
-  @spec get_in_flight_exits() :: {:ok, %{binary() => InFlightExitInfo.t()}}
-  def get_in_flight_exits do
-    GenServer.call(__MODULE__, :get_in_flight_exits)
+  @spec get_active_in_flight_exits() :: {:ok, %{binary() => InFlightExitInfo.t()}}
+  def get_active_in_flight_exits do
+    GenServer.call(__MODULE__, :get_active_in_flight_exits)
   end
 
   @doc """
@@ -158,6 +161,15 @@ defmodule OMG.Watcher.ExitProcessor do
           {:ok, Core.output_challenge_data()} | {:error, Core.piggyback_challenge_data_error()}
   def get_output_challenge_data(txbytes, output_index) do
     GenServer.call(__MODULE__, {:get_output_challenge_data, txbytes, output_index})
+  end
+
+  @doc """
+  Returns challenge for an exit
+  """
+  @spec create_challenge(Utxo.Position.t()) ::
+          {:ok, Challenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
+  def create_challenge(exiting_utxo_pos) do
+    GenServer.call(__MODULE__, {:create_challenge, exiting_utxo_pos})
   end
 
   ### Server
@@ -208,7 +220,22 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:finalize_exits, exits}, _from, state) do
     _ = if not Enum.empty?(exits), do: Logger.info("Recognized finalizations: #{inspect(exits)}")
-    {:ok, db_updates_from_state, validities} = State.exit_utxos(exits)
+
+    exits =
+      exits
+      |> Enum.map(fn %{exit_id: exit_id} ->
+        {:ok, {_, _, _, utxo_pos}} = Eth.RootChain.get_standard_exit(exit_id)
+        Utxo.Position.decode(utxo_pos)
+      end)
+
+    {:ok, exit_event_triggers, db_updates_from_state, validities} = State.exit_utxos(exits)
+
+    _ = if not Enum.empty?(exit_event_triggers), do: Logger.info("Finalized exits: #{inspect(validities)}")
+
+    exit_event_triggers
+    |> Core.create_exit_finalized_events()
+    |> EventerAPI.emit_events()
+
     {new_state, db_updates} = Core.finalize_exits(state, validities)
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end
@@ -245,8 +272,19 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:finalize_in_flight_exits, finalizations}, _from, state) do
     _ = if not Enum.empty?(finalizations), do: Logger.info("Recognized ife finalizations: #{inspect(finalizations)}")
-    {new_state, db_updates} = Core.finalize_in_flight_exits(state, finalizations)
-    {:reply, {:ok, db_updates}, new_state}
+
+    case Core.finalize_in_flight_exits(state, finalizations) do
+      {:ok, state, db_updates} ->
+        {:reply, {:ok, db_updates}, state}
+
+      {:not_piggybacked, not_piggybacked} ->
+        _ = Logger.error("Outputs not piggybacked: #{inspect(not_piggybacked)}")
+        {:stop, :not_piggybacked, state}
+
+      {:unknown_in_flight_exit, unknown_ifes} ->
+        _ = Logger.error("Unknown in-flight exits: #{inspect(unknown_ifes)}")
+        {:stop, :unknown_in_flight_exit, Elixir.Agent.Server, state}
+    end
   end
 
   @doc """
@@ -258,8 +296,8 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, {chain_status, events}, state}
   end
 
-  def handle_call(:get_in_flight_exits, _from, state),
-    do: {:reply, {:ok, Core.get_in_flight_exits(state)}, state}
+  def handle_call(:get_active_in_flight_exits, _from, state),
+    do: {:reply, {:ok, Core.get_active_in_flight_exits(state)}, state}
 
   def handle_call({:get_competitor_for_ife, txbytes}, _from, state) do
     # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
@@ -316,6 +354,30 @@ defmodule OMG.Watcher.ExitProcessor do
     {state1, request} = prepare_validity_check(state)
     response = Core.get_output_challenge_data(request, state1, txbytes, output_index)
     {:reply, response, state}
+  end
+
+  def handle_call({:create_challenge, Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos}, _from, state) do
+    with spending_blknum_response <- exiting_utxo_pos |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum(),
+         %{txhash: txhash} <- OMG.Watcher.DB.Transaction.get_by_position(blknum, txindex),
+         {:ok, exit_id} <- OMG.Eth.RootChain.get_standard_exit_id(txhash, oindex),
+         {:ok, raw_spending_proof, exit_info} <-
+           Core.get_challange_data(spending_blknum_response, exiting_utxo_pos, state) do
+      # TODO: we're violating the shell/core pattern here, refactor!
+      spending_proof =
+        case raw_spending_proof do
+          raw_blknum when is_number(raw_blknum) ->
+            {:ok, hashes} = OMG.DB.block_hashes([raw_blknum])
+            {:ok, [spending_block]} = OMG.DB.blocks(hashes)
+            spending_block
+
+          signed_tx ->
+            signed_tx
+        end
+
+      {:reply, {:ok, Core.create_challenge(exit_info, spending_proof, exiting_utxo_pos, exit_id)}, state}
+    else
+      error -> {:reply, error, state}
+    end
   end
 
   defp prepare_validity_check(state) do

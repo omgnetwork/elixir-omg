@@ -448,14 +448,20 @@ defmodule OMG.API.State.Core do
   end
 
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
-    _ = if exiting_utxos != [], do: Logger.info("Recognized exits #{inspect(exiting_utxos)}")
+    _ =
+      if exiting_utxos != [] do
+        Logger.info("Recognized exits #{inspect(exiting_utxos)}")
+      end
 
     {valid, _invalid} = validities = Enum.split_with(exiting_utxos, &utxo_exists?(&1, state))
 
     {event_triggers, db_updates} =
       valid
       |> Enum.map(fn Utxo.position(blknum, txindex, oindex) = utxo_pos ->
-        {%{exit: %{owner: utxos[utxo_pos].owner, utxo_pos: utxo_pos}}, {:delete, :utxo, {blknum, txindex, oindex}}}
+        %Utxo{amount: amount, owner: owner, currency: currency} = utxos[utxo_pos]
+
+        {%{exit: %{owner: owner, amount: amount, currency: currency, utxo_pos: utxo_pos}},
+         {:delete, :utxo, {blknum, txindex, oindex}}}
       end)
       |> Enum.unzip()
 

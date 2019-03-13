@@ -44,6 +44,14 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
     econnrefused: %{
       code: "get_status:econnrefused",
       description: "Cannot connect to the Ethereum node."
+    },
+    insufficient_funds: %{
+      code: "transaction.create:insufficient_funds",
+      description: "Account balance is too low to satisfy the payment."
+    },
+    too_many_outputs: %{
+      code: "transaction.create:too_many_outputs",
+      description: "Total number of payments + change + fees exceed maximum allowed outputs."
     }
   }
 
@@ -61,15 +69,11 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
     json(conn, response)
   end
 
-  def call(conn, {:error, reason}) do
-    err_info =
-      @errors
-      |> Map.get(
-        reason,
-        %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil}
-      )
+  def call(conn, {:error, reason}), do: respond(conn, error_info(conn, reason))
 
-    respond(conn, err_info)
+  def call(conn, {:error, reason, data}) do
+    error = error_info(conn, reason)
+    respond(conn, Map.put(error, :messages, data))
   end
 
   def call(conn, :error), do: call(conn, {:error, :unknown_error})
@@ -77,7 +81,12 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
   # Controller's action with expression has no match, e.g. on guard
   def call(conn, _), do: call(conn, {:error, :unknown_error})
 
-  defp respond(conn, %{code: code, description: description}) do
-    json(conn, Error.serialize(code, description))
+  defp respond(conn, %{code: code, description: description} = err_info) do
+    json(conn, Error.serialize(code, description, Map.get(err_info, :messages)))
   end
+
+  defp error_info(conn, reason),
+    do:
+      @errors
+      |> Map.get(reason, %{code: "#{action_name(conn)}#{inspect(reason)}", description: nil})
 end

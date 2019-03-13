@@ -38,6 +38,16 @@ defmodule OMG.Watcher.Web.View.Transaction do
     |> Response.serialize()
   end
 
+  def render("create.json", %{response: advice}) do
+    transactions =
+      advice.transactions
+      |> Enum.map(fn tx -> Map.update!(tx, :inputs, &render_txoutputs/1) end)
+
+    advice
+    |> Map.put(:transactions, transactions)
+    |> Response.serialize()
+  end
+
   defp render_transaction(transaction) do
     transaction
     |> Map.take([:txindex, :txhash, :block, :inputs, :outputs, :txbytes])
@@ -67,6 +77,6 @@ defmodule OMG.Watcher.Web.View.Transaction do
 
   defp render_txoutputs(inputs) do
     inputs
-    |> Enum.map(&Map.take(&1, [:amount, :blknum, :txindex, :oindex, :currency, :owner]))
+    |> Enum.map(&to_utxo/1)
   end
 end

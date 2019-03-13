@@ -17,12 +17,15 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   use ExUnit.Case, async: false
   use OMG.API.Fixtures
 
+  alias OMG.API.TestHelper, as: Test
   alias OMG.RPC.Web.Encoding
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @zero_address_hex OMG.Eth.zero_address() |> Encoding.to_hex()
+  @other_token <<127::160>>
+  @eth_hex OMG.Eth.zero_address() |> Encoding.to_hex()
+  @other_token_hex @other_token |> Encoding.to_hex()
 
   describe "getting transaction by id" do
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
@@ -35,7 +38,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
         blocks_inserter.([
           {1000,
            [
-             OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+             Test.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
            ]}
         ])
 
@@ -56,20 +59,22 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  %{
                    "amount" => 333,
                    "blknum" => 1,
-                   "currency" => @zero_address_hex,
+                   "currency" => @eth_hex,
                    "oindex" => 0,
                    "owner" => ^alice_addr,
-                   "txindex" => 0
+                   "txindex" => 0,
+                   "utxo_pos" => 1_000_000_000
                  }
                ],
                "outputs" => [
                  %{
                    "amount" => 300,
                    "blknum" => 1000,
-                   "currency" => @zero_address_hex,
+                   "currency" => @eth_hex,
                    "oindex" => 0,
                    "owner" => ^bob_addr,
-                   "txindex" => 0
+                   "txindex" => 0,
+                   "utxo_pos" => 1_000_000_000_000
                  }
                ],
                "txhash" => ^txhash,
@@ -89,12 +94,12 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
         blocks_inserter.([
           {1000,
            [
-             OMG.API.TestHelper.create_recovered(
+             Test.create_recovered(
                [{1, 0, 0, alice}],
                @eth,
                [{alice, 10}, {alice, 20}, {alice, 30}, {alice, 40}]
              ),
-             OMG.API.TestHelper.create_recovered(
+             Test.create_recovered(
                [{1000, 0, 0, alice}, {1000, 0, 1, alice}, {1000, 0, 2, alice}, {1000, 0, 3, alice}],
                @eth,
                [{alice, 1}, {alice, 2}, {alice, 3}, {alice, 4}]
@@ -158,7 +163,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  },
                  "results" => [
                    %{
-                     "currency" => @zero_address_hex,
+                     "currency" => @eth_hex,
                      "value" => value
                    }
                  ],
@@ -177,11 +182,11 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       alice: alice
     } do
       blocks_inserter.([
-        {1000, [OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 300}])]},
+        {1000, [Test.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 300}])]},
         {2000,
          [
-           OMG.API.TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 300}]),
-           OMG.API.TestHelper.create_recovered([{2000, 1, 0, alice}], @eth, [{alice, 300}])
+           Test.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 300}]),
+           Test.create_recovered([{2000, 1, 0, alice}], @eth, [{alice, 300}])
          ]}
       ])
 
@@ -198,11 +203,11 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       bob: bob
     } do
       blocks_inserter.([
-        {1000, [OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 300}])]},
+        {1000, [Test.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 300}])]},
         {2000,
          [
-           OMG.API.TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 300}]),
-           OMG.API.TestHelper.create_recovered([{2, 0, 0, bob}], @eth, [{bob, 300}])
+           Test.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 300}]),
+           Test.create_recovered([{2, 0, 0, bob}], @eth, [{bob, 300}])
          ]}
       ])
 
@@ -221,7 +226,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       blocks_inserter.([
         {1000,
          [
-           OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
+           Test.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}])
          ]}
       ])
 
@@ -241,9 +246,9 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       blocks_inserter.([
         {1000,
          [
-           OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}]),
-           OMG.API.TestHelper.create_recovered([{2, 0, 0, bob}], @eth, [{bob, 300}]),
-           OMG.API.TestHelper.create_recovered([{1000, 1, 0, bob}], @eth, [{alice, 300}])
+           Test.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}]),
+           Test.create_recovered([{2, 0, 0, bob}], @eth, [{bob, 300}]),
+           Test.create_recovered([{1000, 1, 0, bob}], @eth, [{alice, 300}])
          ]}
       ])
 
@@ -265,7 +270,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       blocks_inserter.([
         {1000,
          [
-           OMG.API.TestHelper.create_recovered([{2, 0, 0, bob}], @eth, [{alice, 100}])
+           Test.create_recovered([{2, 0, 0, bob}], @eth, [{alice, 100}])
          ]}
       ])
 
@@ -283,7 +288,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       blocks_inserter.([
         {1000,
          [
-           OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 100}])
+           Test.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 100}])
          ]}
       ])
 
@@ -301,7 +306,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       blocks_inserter.([
         {1000,
          [
-           OMG.API.TestHelper.create_recovered([], @eth, [{alice, 10}])
+           Test.create_recovered([], @eth, [{alice, 10}])
          ]}
       ])
 
@@ -320,7 +325,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       blocks_inserter.([
         {1000,
          [
-           OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 0}])
+           Test.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 0}])
          ]}
       ])
 
@@ -341,7 +346,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       blocks_inserter.([
         {1000,
          [
-           OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], [
+           Test.create_recovered([{1, 0, 0, alice}], [
              {alice, @eth, 3},
              {alice, not_eth, 4},
              {alice, not_eth, 5}
@@ -352,7 +357,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       assert [
                %{
                  "results" => [
-                   %{"currency" => @zero_address_hex, "value" => 3},
+                   %{"currency" => @eth_hex, "value" => 3},
                    %{"currency" => ^not_eth_enc, "value" => 9}
                  ]
                }
@@ -370,12 +375,12 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       blocks_inserter.([
         {1000,
          [
-           OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 3}]),
-           OMG.API.TestHelper.create_recovered([{1_000, 0, 0, bob}], @eth, [{bob, 2}])
+           Test.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 3}]),
+           Test.create_recovered([{1_000, 0, 0, bob}], @eth, [{bob, 2}])
          ]},
         {2000,
          [
-           OMG.API.TestHelper.create_recovered([{1_000, 1, 0, bob}], @eth, [{alice, 1}])
+           Test.create_recovered([{1_000, 1, 0, bob}], @eth, [{alice, 1}])
          ]}
       ])
 
@@ -397,12 +402,12 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       blocks_inserter.([
         {1000,
          [
-           OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 3}]),
-           OMG.API.TestHelper.create_recovered([{1_000, 0, 0, bob}], @eth, [{alice, 2}])
+           Test.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 3}]),
+           Test.create_recovered([{1_000, 0, 0, bob}], @eth, [{alice, 2}])
          ]},
         {2000,
          [
-           OMG.API.TestHelper.create_recovered([{1_000, 1, 0, alice}], @eth, [{bob, 1}])
+           Test.create_recovered([{1_000, 1, 0, alice}], @eth, [{bob, 1}])
          ]}
       ])
 
@@ -426,6 +431,561 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  }
                }
              } == TestHelper.no_success?("transaction.submit", %{"transaction" => hex_without_0x})
+    end
+  end
+
+  describe "creating transaction" do
+    deffixture more_utxos(alice, blocks_inserter) do
+      [
+        {5000,
+         [
+           Test.create_recovered([], @eth, [{alice, 40}, {alice, 42}, {alice, 43}, {alice, 44}]),
+           Test.create_recovered([], @eth, [{alice, 41}, {alice, 45}]),
+           Test.create_recovered([], @other_token, [{alice, 5}, {alice, 110}, {alice, 15}]),
+           Test.create_recovered([], @other_token, [{alice, 105}, {alice, 10}, {alice, 115}])
+         ]}
+      ]
+      |> blocks_inserter.()
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos]
+    test "returns appropriate schema", %{alice: alice, bob: bob} do
+      alias OMG.API.Utxo
+      require Utxo
+
+      alice_to_bob = 100
+      fee = 5
+      metadata = (alice.addr <> bob.addr) |> OMG.API.Crypto.hash() |> Encoding.to_hex()
+
+      alice_addr = Encoding.to_hex(alice.addr)
+      bob_addr = Encoding.to_hex(bob.addr)
+      blknum = 5000
+
+      assert %{
+               "result" => "complete",
+               "transactions" => [
+                 %{
+                   "inputs" => [
+                     %{
+                       "owner" => ^alice_addr,
+                       "currency" => @eth_hex,
+                       "blknum" => ^blknum,
+                       "txindex" => txindex,
+                       "oindex" => oindex,
+                       "utxo_pos" => utxo_pos
+                     }
+                     | _
+                   ],
+                   "outputs" => [
+                     %{"amount" => ^alice_to_bob, "currency" => @eth_hex, "owner" => ^bob_addr},
+                     %{"currency" => @eth_hex, "owner" => ^alice_addr, "amount" => _rest}
+                   ],
+                   "metadata" => ^metadata,
+                   "fee" => %{"amount" => ^fee, "currency" => @eth_hex},
+                   "txbytes" => "0x" <> _txbytes
+                 }
+               ]
+             } =
+               TestHelper.success?(
+                 "transaction.create",
+                 %{
+                   "owner" => alice_addr,
+                   "payments" => [
+                     %{"amount" => alice_to_bob, "currency" => @eth_hex, "owner" => bob_addr}
+                   ],
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex},
+                   "metadata" => metadata
+                 }
+               )
+
+      assert Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode() == utxo_pos
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos]
+    test "returns correctly formed transaction", %{alice: alice, bob: bob} do
+      alias OMG.API.State.Transaction
+
+      alice_to_bob = 100
+      fee = 5
+      metadata = (alice.addr <> bob.addr) |> OMG.API.Crypto.hash()
+
+      alice_addr = Encoding.to_hex(alice.addr)
+
+      assert %{
+               "result" => "complete",
+               "transactions" => [%{"txbytes" => tx_hex}]
+             } =
+               TestHelper.success?(
+                 "transaction.create",
+                 %{
+                   "owner" => alice_addr,
+                   "payments" => [
+                     %{"amount" => alice_to_bob, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+                   ],
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex},
+                   "metadata" => Encoding.to_hex(metadata)
+                 }
+               )
+
+      assert {:ok, txbytes} = Encoding.from_hex(tx_hex)
+      assert {:ok, raw_tx} = Transaction.decode(txbytes)
+
+      alice_addr = alice.addr
+      bob_addr = bob.addr
+
+      assert %Transaction{
+               inputs: [%{blknum: 5000} | _],
+               outputs: [
+                 %{owner: ^bob_addr, currency: @eth, amount: ^alice_to_bob},
+                 %{owner: ^alice_addr, currency: @eth}
+                 | _
+               ],
+               metadata: ^metadata
+             } = raw_tx
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
+    test "allows to pay single token tx", %{alice: alice, bob: bob, blocks_inserter: blocks_inserter} do
+      alice_balance = balance_in_token(alice.addr, @eth)
+      bob_balance = balance_in_token(bob.addr, @eth)
+
+      payment = 100
+      fee = 5
+
+      assert %{
+               "result" => "complete",
+               "transactions" => [%{"txbytes" => tx_hex}]
+             } =
+               TestHelper.success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+                   ],
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex}
+                 }
+               )
+
+      make_payments(7000, alice, [tx_hex], blocks_inserter)
+
+      assert alice_balance - (payment + fee) == balance_in_token(alice.addr, @eth)
+      assert bob_balance + payment == balance_in_token(bob.addr, @eth)
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
+    test "advice on merge single token tx", %{alice: alice, bob: bob, blocks_inserter: blocks_inserter} do
+      alice_balance = balance_in_token(alice.addr, @eth)
+      max_spendable = max_amount_spendable_in_single_tx(alice.addr, @eth)
+
+      payment = max_spendable + 10
+      fee = 5
+
+      assert %{
+               "result" => "intermediate",
+               "transactions" => transactions
+             } =
+               TestHelper.success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+                   ],
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex}
+                 }
+               )
+
+      make_payments(7000, alice, Enum.map(transactions, & &1["txbytes"]), blocks_inserter)
+
+      assert alice_balance == balance_in_token(alice.addr, @eth)
+      assert max_amount_spendable_in_single_tx(alice.addr, @eth) >= payment
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos]
+    test "advice on merge does not merge single utxo", %{alice: alice, bob: bob} do
+      max_spendable = max_amount_spendable_in_single_tx(alice.addr, @eth)
+
+      payment = max_spendable + 1
+
+      assert %{
+               "result" => "intermediate",
+               "transactions" => [transaction]
+             } =
+               TestHelper.success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+                   ],
+                   "fee" => %{"amount" => 0, "currency" => @eth_hex}
+                 }
+               )
+
+      require OMG.API.State.Transaction
+      assert OMG.API.State.Transaction.max_inputs() == length(transaction["inputs"])
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
+    test "allows to pay multi token tx", %{alice: alice, bob: bob, blocks_inserter: blocks_inserter} do
+      alice_eth = balance_in_token(alice.addr, @eth)
+      alice_token = balance_in_token(alice.addr, @other_token)
+      bob_eth = balance_in_token(bob.addr, @eth)
+      bob_token = balance_in_token(bob.addr, @other_token)
+
+      payment_eth = 100
+      payment_token = 110
+      fee = 5
+
+      assert %{
+               "result" => "complete",
+               "transactions" => [%{"txbytes" => tx_hex}]
+             } =
+               TestHelper.success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [
+                     %{"amount" => payment_eth, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)},
+                     %{"amount" => payment_token, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+                   ],
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex}
+                 }
+               )
+
+      make_payments(7000, alice, [tx_hex], blocks_inserter)
+
+      assert alice_eth - (payment_eth + fee) == balance_in_token(alice.addr, @eth)
+      assert alice_token - payment_token == balance_in_token(alice.addr, @other_token)
+      assert bob_eth + payment_eth == balance_in_token(bob.addr, @eth)
+      assert bob_token + payment_token == balance_in_token(bob.addr, @other_token)
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
+    test "allows to pay other token tx with fee in different currency",
+         %{alice: alice, bob: bob, blocks_inserter: blocks_inserter} do
+      alice_eth = balance_in_token(alice.addr, @eth)
+      alice_token = balance_in_token(alice.addr, @other_token)
+      bob_token = balance_in_token(bob.addr, @other_token)
+
+      payment_token = 110
+      fee = 5
+
+      assert %{
+               "result" => "complete",
+               "transactions" => [%{"txbytes" => tx_hex}]
+             } =
+               TestHelper.success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [
+                     %{"amount" => payment_token, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+                   ],
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex}
+                 }
+               )
+
+      make_payments(7000, alice, [tx_hex], blocks_inserter)
+
+      assert alice_eth - fee == balance_in_token(alice.addr, @eth)
+      assert alice_token - payment_token == balance_in_token(alice.addr, @other_token)
+      assert bob_token + payment_token == balance_in_token(bob.addr, @other_token)
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
+    test "advice on merge multi token tx", %{alice: alice, bob: bob, blocks_inserter: blocks_inserter} do
+      alice_eth = balance_in_token(alice.addr, @eth)
+      alice_token = balance_in_token(alice.addr, @other_token)
+      bob_eth = balance_in_token(bob.addr, @eth)
+      bob_token = balance_in_token(bob.addr, @other_token)
+
+      payment_eth = max_amount_spendable_in_single_tx(alice.addr, @eth) + 10
+      payment_token = max_amount_spendable_in_single_tx(alice.addr, @other_token) + 10
+      fee = 5
+
+      assert %{
+               "result" => "intermediate",
+               "transactions" => transactions
+             } =
+               TestHelper.success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [
+                     %{"amount" => payment_eth, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)},
+                     %{"amount" => payment_token, "currency" => @other_token_hex, "owner" => Encoding.to_hex(bob.addr)}
+                   ],
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex}
+                 }
+               )
+
+      make_payments(7000, alice, Enum.map(transactions, & &1["txbytes"]), blocks_inserter)
+
+      assert alice_eth == balance_in_token(alice.addr, @eth)
+      assert alice_token == balance_in_token(alice.addr, @other_token)
+      assert bob_eth == balance_in_token(bob.addr, @eth)
+      assert bob_token == balance_in_token(bob.addr, @other_token)
+
+      assert max_amount_spendable_in_single_tx(alice.addr, @eth) >= payment_eth
+      assert max_amount_spendable_in_single_tx(alice.addr, @other_token) >= payment_token
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos]
+    test "insufficient funds returns custom error", %{alice: alice, bob: bob} do
+      balance = balance_in_token(alice.addr, @eth)
+      payment = balance + 10
+      fee = 5
+
+      assert %{
+               "object" => "error",
+               "code" => "transaction.create:insufficient_funds",
+               "description" => "Account balance is too low to satisfy the payment.",
+               "messages" => [%{"token" => @eth_hex, "missing" => payment + fee - balance}]
+             } ==
+               TestHelper.no_success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
+                   ],
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex}
+                 }
+               )
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos]
+    test "unknown owner returns insufficient funds error", %{alice: alice, bob: bob} do
+      assert 0 == balance_in_token(bob.addr, @eth)
+      payment = 25
+      fee = 5
+
+      assert %{
+               "object" => "error",
+               "code" => "transaction.create:insufficient_funds",
+               "description" => "Account balance is too low to satisfy the payment.",
+               "messages" => [%{"token" => @eth_hex, "missing" => payment + fee}]
+             } ==
+               TestHelper.no_success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(bob.addr),
+                   "payments" => [
+                     %{"amount" => payment, "currency" => @eth_hex, "owner" => Encoding.to_hex(alice.addr)}
+                   ],
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex}
+                 }
+               )
+    end
+
+    @tag fixtures: [:alice, :more_utxos, :blocks_inserter]
+    test "does not return txbytes when spend owner is not provided", %{alice: alice} do
+      payment = 100
+      fee = 5
+      alice_addr = Encoding.to_hex(alice.addr)
+
+      assert %{
+               "result" => "complete",
+               "transactions" => [
+                 %{
+                   "txbytes" => nil,
+                   "outputs" => [
+                     %{"amount" => ^payment, "currency" => @eth_hex, "owner" => nil},
+                     %{"currency" => @eth_hex, "owner" => ^alice_addr}
+                   ]
+                 }
+               ]
+             } =
+               TestHelper.success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [
+                     %{"amount" => payment, "currency" => @eth_hex}
+                   ],
+                   "fee" => %{"amount" => fee, "currency" => @eth_hex}
+                 }
+               )
+    end
+
+    @tag fixtures: [:alice, :bob, :more_utxos]
+    test "total number of outputs exceeds allowed outputs returns custom error", %{alice: alice, bob: bob} do
+      bob_addr = Encoding.to_hex(bob.addr)
+
+      assert %{
+               "object" => "error",
+               "code" => "transaction.create:too_many_outputs",
+               "description" => "Total number of payments + change + fees exceed maximum allowed outputs."
+             } ==
+               TestHelper.no_success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [
+                     %{"amount" => 1, "currency" => @other_token_hex, "owner" => bob_addr},
+                     %{"amount" => 2, "currency" => @other_token_hex, "owner" => bob_addr},
+                     %{"amount" => 3, "currency" => @other_token_hex, "owner" => bob_addr}
+                   ],
+                   "fee" => %{"amount" => 5, "currency" => @eth_hex}
+                 }
+               )
+    end
+
+    defp balance_in_token(address, token) do
+      currency = Encoding.to_hex(token)
+
+      TestHelper.get_balance(address)
+      |> Enum.find_value(0, fn
+        %{"currency" => ^currency, "amount" => amount} -> amount
+        _ -> false
+      end)
+    end
+
+    defp max_amount_spendable_in_single_tx(address, token) do
+      alias OMG.API.State.Transaction
+      require Transaction
+      currency = Encoding.to_hex(token)
+
+      TestHelper.get_utxos(address)
+      |> Stream.filter(&(&1["currency"] == currency))
+      |> Enum.sort_by(& &1["amount"], &>=/2)
+      |> Stream.take(Transaction.max_inputs())
+      |> Stream.map(& &1["amount"])
+      |> Enum.sum()
+    end
+
+    defp make_payments(blknum, spender, txs_bytes, blocks_inserter) when is_list(txs_bytes) do
+      alias OMG.API.DevCrypto
+      alias OMG.API.State.Transaction
+
+      recovered_txs =
+        txs_bytes
+        |> Enum.map(fn "0x" <> tx ->
+          %Transaction.Recovered{} =
+            tx
+            |> Base.decode16!(case: :lower)
+            |> Transaction.decode!()
+            |> DevCrypto.sign([spender.priv])
+            |> Transaction.Recovered.recover_from()
+            |> Kernel.elem(1)
+        end)
+
+      [{blknum, recovered_txs}] |> blocks_inserter.()
+    end
+  end
+
+  describe "creating transaction: Validation" do
+    @tag fixtures: [:phoenix_ecto_sandbox]
+    test "owner should be hex-encoded address" do
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "owner",
+                   "validator" => ":hex"
+                 }
+               }
+             } ==
+               TestHelper.no_success?(
+                 "transaction.create",
+                 %{"owner" => "not-a-hex"}
+               )
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "metadata should be hex-encoded hash", %{alice: alice} do
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "metadata",
+                   "validator" => ":hex"
+                 }
+               }
+             } ==
+               TestHelper.no_success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [],
+                   "fee" => %{"amount" => 5, "currency" => @eth_hex},
+                   "metadata" => "no-a-hex"
+                 }
+               )
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "payment should have valid fields", %{alice: alice} do
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "payments",
+                   "validator" => ":list"
+                 }
+               }
+             } ==
+               TestHelper.no_success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => "not-a-list",
+                   "fee" => %{"amount" => 5, "currency" => @eth_hex}
+                 }
+               )
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "fee should have valid fields", %{alice: alice} do
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "amount",
+                   "validator" => "{:greater, -1}"
+                 }
+               }
+             } ==
+               TestHelper.no_success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [],
+                   "fee" => %{"amount" => -10, "currency" => @eth_hex}
+                 }
+               )
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox, :alice]
+    test "request's fee object is mandatory", %{alice: alice} do
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{
+                   "parameter" => "fee",
+                   "validator" => ":missing"
+                 }
+               }
+             } ==
+               TestHelper.no_success?(
+                 "transaction.create",
+                 %{
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => []
+                 }
+               )
     end
   end
 end

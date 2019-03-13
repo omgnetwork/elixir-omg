@@ -23,7 +23,7 @@ defmodule OMG.Eth.Defaults do
 
   # safe, reasonable amount, equal to the testnet block gas limit
   @lots_of_gas 5_712_388
-  @gas_price 20_000_000_000
+  @gas_price 1_000_000_000
 
   def tx_defaults do
     [value: 0, gasPrice: @gas_price, gas: @lots_of_gas]

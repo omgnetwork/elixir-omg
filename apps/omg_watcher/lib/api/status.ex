@@ -45,7 +45,7 @@ defmodule OMG.Watcher.API.Status do
 
       {_, events_processor} = ExitProcessor.check_validity()
       {_, events_block_getter} = BlockGetter.get_events()
-      {:ok, in_flight_exits} = ExitProcessor.get_in_flight_exits()
+      {:ok, in_flight_exits} = ExitProcessor.get_active_in_flight_exits()
 
       status = %{
         last_validated_child_block_number: state_current_block - child_block_interval,

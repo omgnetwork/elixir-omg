@@ -32,11 +32,15 @@ defmodule OMG.Eth.RootChain do
 
   @type optional_addr_t() :: <<_::160>> | nil
 
+  @gas_add_token 500_000
   @gas_start_exit 1_000_000
   @gas_challenge_exit 300_000
   @gas_deposit 180_000
   @gas_deposit_from 250_000
   @gas_init 1_000_000
+  @gas_start_in_flight_exit 2_000_000
+  @gas_challenge_in_flight_exit_not_canonical 1_000_000
+  @gas_respond_to_non_canonical_challenge 1_000_000
   @standard_exit_bond 31_415_926_535
   @piggyback_bond 31_415_926_535
 
@@ -113,7 +117,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   def add_token(token, contract \\ nil, opts \\ []) do
-    opts = @tx_defaults |> Keyword.merge(opts)
+    opts = @tx_defaults |> Keyword.put(:gas, @gas_add_token) |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     {:ok, [from | _]} = Ethereumex.HttpClient.eth_accounts()
@@ -150,12 +154,32 @@ defmodule OMG.Eth.RootChain do
         contract \\ nil,
         opts \\ []
       ) do
-    defaults = @tx_defaults |> Keyword.put(:value, @standard_exit_bond)
+    defaults =
+      @tx_defaults
+      |> Keyword.put(:value, @standard_exit_bond)
+      |> Keyword.put(:gas, @gas_start_in_flight_exit)
+
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "startInFlightExit(bytes,bytes,bytes,bytes)"
     args = [in_flight_tx, input_txs, input_txs_inclusion_proofs, in_flight_tx_sigs]
+    Eth.contract_transact(from, contract, signature, args, opts)
+  end
+
+  def process_exits(
+        token,
+        top_exit_id,
+        exits_to_process,
+        from,
+        contract \\ nil,
+        opts \\ []
+      ) do
+    opts = @tx_defaults |> Keyword.merge(opts)
+
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    signature = "processExits(address,uint192,uint256)"
+    args = [token, top_exit_id, exits_to_process]
     Eth.contract_transact(from, contract, signature, args, opts)
   end
 
@@ -172,7 +196,7 @@ defmodule OMG.Eth.RootChain do
         contract \\ nil,
         opts \\ []
       ) do
-    defaults = @tx_defaults
+    defaults = @tx_defaults |> Keyword.put(:gas, @gas_challenge_in_flight_exit_not_canonical)
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
@@ -199,7 +223,7 @@ defmodule OMG.Eth.RootChain do
         contract \\ nil,
         opts \\ []
       ) do
-    defaults = @tx_defaults
+    defaults = @tx_defaults |> Keyword.put(:gas, @gas_respond_to_non_canonical_challenge)
     opts = defaults |> Keyword.merge(opts)
 
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
@@ -435,7 +459,7 @@ defmodule OMG.Eth.RootChain do
   """
   def get_finalizations(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "ExitFinalized(uint256)"
+    signature = "ExitFinalized(uint192)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &decode_exit_finalized/1)}
@@ -511,7 +535,7 @@ defmodule OMG.Eth.RootChain do
   """
   def get_in_flight_exit_finalizations(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "InFlightExitFinalized(uint192,uint256)"
+    signature = "InFlightExitFinalized(uint192,uint8)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
          do: {:ok, Enum.map(logs, &decode_in_flight_exit_output_finalized/1)}
@@ -572,7 +596,7 @@ defmodule OMG.Eth.RootChain do
   defp decode_exit_finalized(log) do
     non_indexed_keys = []
     non_indexed_key_types = []
-    indexed_keys = [:utxo_pos]
+    indexed_keys = [:exit_id]
     indexed_keys_types = [{:uint, 256}]
 
     Eth.parse_events_with_indexed_fields(
@@ -595,8 +619,14 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_exit_challenged(log) do
-    # faux-DRY - just leveraging that these events happen to have exactly the same fields/indexings, in current impl.
-    decode_exit_finalized(log)
+    indexed_keys = [:utxo_pos]
+    indexed_keys_types = [{:uint, 256}]
+
+    Eth.parse_events_with_indexed_fields(
+      log,
+      {[], []},
+      {indexed_keys, indexed_keys_types}
+    )
   end
 
   defp decode_in_flight_exit_challenged(log) do

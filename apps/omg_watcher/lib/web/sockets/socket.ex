@@ -22,6 +22,7 @@ defmodule OMG.Watcher.Web.Socket do
 
   ## Channels
   channel("transfer:*", OMG.Watcher.Web.Channel.Transfer)
+  channel("exit:*", OMG.Watcher.Web.Channel.Exit)
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After

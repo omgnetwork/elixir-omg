@@ -33,12 +33,13 @@ defmodule OMG.API.State.Transaction do
   @type t() :: %__MODULE__{
           inputs: list(input()),
           outputs: list(output()),
-          metadata: binary() | nil
+          metadata: metadata()
         }
 
   @type currency() :: Crypto.address_t()
   @type tx_bytes() :: binary()
   @type tx_hash() :: Crypto.hash_t()
+  @type metadata() :: binary() | nil
 
   @type input() :: %{
           blknum: non_neg_integer(),

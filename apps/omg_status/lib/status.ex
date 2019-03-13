@@ -17,6 +17,7 @@ defmodule OMG.Status do
   Top level application module.
   """
   use Application
+  alias OMG.Status.Alert.AlarmHandler
   alias Status.Metric.Recorder
 
   def start(_type, _args) do
@@ -32,8 +33,12 @@ defmodule OMG.Status do
     |> Supervisor.start_link(strategy: :one_for_one, name: Status.Supervisor)
   end
 
+  def start_phase(:install_alarm_handler, _start_type, _phase_args) do
+    :ok = AlarmHandler.install()
+  end
+
   @spec vm_metrics :: maybe_improper_list(atom(), fun()) | []
-  defp vm_metrics, do: do_vm_metrics(is_enabled?())
+  defp vm_metrics, do: do_vm_metrics(is_enabled?() || false)
 
   defp do_vm_metrics(false), do: []
 
@@ -65,12 +70,14 @@ defmodule OMG.Status do
     Enum.concat([memory, system_info, other])
   end
 
-  @spec is_enabled?() :: boolean()
+  @spec is_enabled?() :: boolean() | nil
   defp is_enabled?() do
     case {Application.get_env(:omg_status, :metrics), System.get_env("METRICS")} do
-      {nil, nil} -> false
       {true, _} -> true
-      {_, "TRUE"} -> true
+      {_, "true"} -> true
+      {false, _} -> false
+      {_, "false"} -> false
+      _ -> nil
     end
   end
 end

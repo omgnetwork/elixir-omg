@@ -21,13 +21,17 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   use OMG.API.Fixtures
 
   alias OMG.API.Block
+  alias OMG.API.Crypto
   alias OMG.API.DevCrypto
   alias OMG.API.State
   alias OMG.API.State.Transaction
+  alias OMG.API.TestHelper
   alias OMG.API.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.Watcher.ExitProcessor.ExitInfo
+  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
   require Utxo
 
@@ -38,8 +42,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @early_blknum 1_000
   @late_blknum 10_000
 
-  @utxo_pos1 Utxo.position(1, 0, 0)
+  @utxo_pos1 Utxo.position(1, 3, 0)
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
+  @utxo_pos3 Utxo.position(1, 0, 0)
 
   @non_zero_exit_id <<1::192>>
   @zero_sig <<0::520>>
@@ -110,7 +115,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   deffixture contract_ife_statuses(in_flight_exit_events) do
-    List.duplicate({1, @non_zero_exit_id}, length(in_flight_exit_events))
+    1..length(in_flight_exit_events)
+    |> Enum.map(fn i -> {i, <<i::192>>} end)
   end
 
   deffixture ife_tx_hashes(transactions) do
@@ -340,24 +346,27 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       processor
       |> Core.new_exits([one_exit], [one_status])
 
-    assert {:ok, []} =
+    assert {:ok, [%Event.InvalidExit{}]} =
              %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
              |> Core.invalid_exits(processor)
 
+    exiting_position = Utxo.Position.encode(@utxo_pos1)
+
     # go into the future - old exits work the same
-    assert {:ok, []} =
+    assert {{:error, :unchallenged_exit},
+            [%Event.UnchallengedExit{utxo_pos: ^exiting_position}, %Event.InvalidExit{utxo_pos: ^exiting_position}]} =
              %ExitProcessor.Request{eth_height_now: 105, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
              |> Core.invalid_exits(processor)
 
     # exit validly finalizes and continues to not emit any events
-    {:ok, {_, _, spends}, _} = [@utxo_pos1] |> prepare_exit_finalizations() |> State.Core.exit_utxos(state)
-    assert {processor, _} = Core.finalize_exits(processor, spends)
+    {:ok, {_, _, spends}, _} = [@utxo_pos3] |> prepare_exit_finalizations() |> State.Core.exit_utxos(state)
+    assert {processor, [{:delete, :exit_info, {1, 0, 0}}]} = Core.finalize_exits(processor, spends)
 
-    assert %ExitProcessor.Request{utxos_to_check: []} =
+    assert %ExitProcessor.Request{utxos_to_check: [Utxo.position(1, 3, 0)]} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
   end
 
@@ -485,7 +494,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     {processor, _} = processor |> Core.new_exits([one_exit], [one_status])
     {processor, _} = processor |> Core.new_in_flight_exits([one_ife], [one_ife_status])
 
-    assert %{utxos_to_check: [@utxo_pos1, Utxo.position(1, 2, 1) | _]} =
+    assert %{utxos_to_check: [_, Utxo.position(1, 2, 1), @utxo_pos1]} =
              exit_processor_request =
              %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
@@ -630,6 +639,33 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: tx_hash, output_index: 0}])
     # other sanity checks
     assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: tx_hash, output_index: 8}])
+  end
+
+  @tag fixtures: [:processor_empty, :alice, :exit_events, :contract_exit_statuses]
+  test "detect invalid standard exit based on ife tx which spends same input", %{
+    processor_empty: processor,
+    alice: alice,
+    exit_events: [one_exit | _],
+    contract_exit_statuses: [one_status | _]
+  } do
+    tx = Transaction.new([{1, 3, 0}], [])
+    txbytes = Transaction.encode(tx)
+    signature = DevCrypto.sign(tx, [alice.priv]) |> Map.get(:sigs) |> Enum.join()
+
+    ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
+    ife_status = {1, <<1::192>>}
+
+    {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
+
+    {processor, _} =
+      processor
+      |> Core.new_exits([one_exit], [one_status])
+
+    exiting_utxo = Utxo.Position.encode(@utxo_pos1)
+
+    assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_utxo}]} =
+             %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
+             |> invalid_exits_filtered(processor, only: [Event.InvalidExit])
   end
 
   describe "available piggybacks" do
@@ -1535,6 +1571,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                  # refer to stuff added by `deffixture processor_filled` for this - both ifes and standard exits here
                  Utxo.position(1, 0, 0),
                  Utxo.position(1, 2, 1),
+                 Utxo.position(1, 3, 0),
                  Utxo.position(2, 1, 0),
                  Utxo.position(2, 2, 1),
                  Utxo.position(9000, 0, 1)
@@ -1557,6 +1594,26 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     @tag fixtures: [:alice, :processor_empty, :transactions]
     test "by not asking for utxo spends concerning non-active ifes",
+         %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
+      txbytes = Transaction.encode(tx)
+      %{sigs: [signature, _]} = DevCrypto.sign(tx, [alice.priv, <<>>])
+
+      ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
+      # inactive
+      ife_status = {0, @non_zero_exit_id}
+
+      {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
+
+      assert %{spends_to_get: []} =
+               %ExitProcessor.Request{
+                 utxos_to_check: [Utxo.position(1, 0, 0)],
+                 utxo_exists_result: [false]
+               }
+               |> Core.determine_spends_to_get(processor)
+    end
+
+    @tag fixtures: [:alice, :processor_empty, :transactions]
+    test "by not asking for utxo spends concerning finalized ifes",
          %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
       txbytes = Transaction.encode(tx)
       %{sigs: [signature, _]} = DevCrypto.sign(tx, [alice.priv, <<>>])
@@ -1718,6 +1775,113 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     end
   end
 
+  describe "in-flight exit finalization" do
+    @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
+    test "succeeds",
+         %{
+           processor_empty: processor,
+           in_flight_exit_events: [ife | _],
+           contract_ife_statuses: [{_, ife_id} = ife_status | _]
+         } do
+      {processor, _} = Core.new_in_flight_exits(processor, [ife], [ife_status])
+      tx_hash = ife_tx_hash(ife)
+
+      {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: 1}])
+      {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: 2}])
+
+      finalization1 = %{in_flight_exit_id: ife_id, output_index: 1}
+
+      {:ok, processor, [{:put, :in_flight_exit_info, {_, exit_info}}]} =
+        Core.finalize_in_flight_exits(processor, [finalization1])
+
+      assert expect_finalized_outputs(exit_info, [1], [2])
+
+      finalization2 = %{in_flight_exit_id: ife_id, output_index: 2}
+
+      {:ok, _, [{:put, :in_flight_exit_info, {_, exit_info}}]} =
+        Core.finalize_in_flight_exits(processor, [finalization2])
+
+      assert expect_finalized_outputs(exit_info, [1, 2], [])
+    end
+
+    @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
+    test "finalizing multiple times does not do harm",
+         %{
+           processor_empty: processor,
+           in_flight_exit_events: [ife | _],
+           contract_ife_statuses: [{_, ife_id} = ife_status | _]
+         } do
+      {processor, _} = Core.new_in_flight_exits(processor, [ife], [ife_status])
+
+      tx_hash = ife_tx_hash(ife)
+      {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: 1}])
+
+      finalization = %{in_flight_exit_id: ife_id, output_index: 1}
+      {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization])
+      {:ok, ^processor, []} = Core.finalize_in_flight_exits(processor, [finalization])
+    end
+
+    @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
+    test "finalizing perserve in flights exits that are not being finalized",
+         %{
+           processor_empty: processor,
+           in_flight_exit_events: [ife1, ife2 | _],
+           contract_ife_statuses: [{_, ife_id} = ife_status1, ife_status2 | _]
+         } do
+      {processor, _} = Core.new_in_flight_exits(processor, [ife1, ife2], [ife_status1, ife_status2])
+
+      tx_hash = ife_tx_hash(ife1)
+      {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: 1}])
+      finalization = %{in_flight_exit_id: ife_id, output_index: 1}
+      {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization])
+      [_, _] = Core.get_in_flight_exits(processor)
+    end
+
+    @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
+    test "fails when unknown in-flight exit is being finalized", %{processor_empty: processor} do
+      ife_id = <<1::192>>
+      finalization = %{in_flight_exit_id: ife_id, output_index: 1}
+
+      {:unknown_in_flight_exit, unknown_exits} = Core.finalize_in_flight_exits(processor, [finalization])
+      assert unknown_exits == MapSet.new([ife_id])
+    end
+
+    @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
+    test "fails when exiting an output that is not piggybacked",
+         %{
+           processor_empty: processor,
+           in_flight_exit_events: [ife | _],
+           contract_ife_statuses: [{_, ife_id} = ife_status | _]
+         } do
+      {processor, _} = Core.new_in_flight_exits(processor, [ife], [ife_status])
+
+      tx_hash = ife_tx_hash(ife)
+      {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: 1}])
+
+      finalization1 = %{in_flight_exit_id: ife_id, output_index: 1}
+      finalization2 = %{in_flight_exit_id: ife_id, output_index: 2}
+
+      {:not_piggybacked, [^finalization2]} = Core.finalize_in_flight_exits(processor, [finalization1, finalization2])
+    end
+  end
+
+  defp expect_finalized_outputs(exit_info, expected_finalized_outputs, expected_active_outputs) do
+    expected_finalized =
+      expected_finalized_outputs
+      |> Enum.all?(&InFlightExitInfo.is_finalized?(exit_info, &1))
+
+    expected_active =
+      expected_active_outputs
+      |> Enum.all?(&InFlightExitInfo.is_active?(exit_info, &1))
+
+    expected_finalized and expected_active
+  end
+
+  defp ife_tx_hash(%{call_data: %{in_flight_tx: tx_bytes}}) do
+    {:ok, tx} = tx_bytes |> Transaction.decode()
+    Transaction.hash(tx)
+  end
+
   defp mock_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions} = request, state) do
     %{request | utxo_exists_result: positions |> Enum.map(&State.Core.utxo_exists?(&1, state))}
   end
@@ -1756,4 +1920,87 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   defp prepare_exit_finalizations(utxo_positions), do: Enum.map(utxo_positions, &%{utxo_pos: Utxo.Position.encode(&1)})
+
+  #  Challenger
+
+  defp create_block_with(blknum, txs) do
+    %Block{
+      number: blknum,
+      transactions: Enum.map(txs, & &1.signed_tx_bytes)
+    }
+  end
+
+  defp assert_sig_belongs_to(sig, %Transaction.Signed{raw_tx: raw_tx}, expected_owner) do
+    {:ok, signer_addr} =
+      raw_tx
+      |> Transaction.hash()
+      |> Crypto.recover_address(sig)
+
+    assert expected_owner.addr == signer_addr
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "creates a challenge for an exit; provides utxo position of non-zero amount", %{alice: alice, bob: bob} do
+    # transactions spending one of utxos from above transaction
+    tx_spending_1st_utxo =
+      TestHelper.create_signed([{0, 0, 0, alice}, {1000, 0, 0, alice}], @eth, [{bob, 50}, {alice, 50}])
+
+    tx_spending_2nd_utxo =
+      TestHelper.create_signed([{1000, 0, 1, bob}, {0, 0, 0, alice}], @eth, [{alice, 50}, {bob, 50}])
+
+    spending_block = create_block_with(2000, [tx_spending_1st_utxo, tx_spending_2nd_utxo])
+
+    # Assert 1st spend challenge
+    expected_txbytes = tx_spending_1st_utxo.raw_tx |> Transaction.encode()
+
+    assert %{
+             exit_id: 424_242_424_242_424_242_424_242_424_242,
+             input_index: 1,
+             txbytes: ^expected_txbytes,
+             sig: alice_signature
+           } =
+             Core.create_challenge(
+               %ExitInfo{owner: alice.addr},
+               spending_block,
+               Utxo.position(1000, 0, 0),
+               424_242_424_242_424_242_424_242_424_242
+             )
+
+    assert_sig_belongs_to(alice_signature, tx_spending_1st_utxo, alice)
+
+    # Assert 2nd spend challenge
+    expected_txbytes = tx_spending_2nd_utxo.raw_tx |> Transaction.encode()
+
+    assert %{
+             exit_id: 333,
+             input_index: 0,
+             txbytes: ^expected_txbytes,
+             sig: bob_signature
+           } = Core.create_challenge(%ExitInfo{owner: bob.addr}, spending_block, Utxo.position(1000, 0, 1), 333)
+
+    assert_sig_belongs_to(bob_signature, tx_spending_2nd_utxo, bob)
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "create challenge based on ife", %{alice: alice, bob: bob} do
+    tx = TestHelper.create_signed([{0, 0, 0, alice}, {1000, 0, 1, alice}], @eth, [{bob, 50}, {alice, 50}])
+    expected_txbytes = tx.raw_tx |> Transaction.encode()
+
+    assert %{
+             exit_id: 111,
+             input_index: 1,
+             txbytes: ^expected_txbytes,
+             sig: alice_signature
+           } = Core.create_challenge(%ExitInfo{owner: alice.addr}, tx, Utxo.position(1000, 0, 1), 111)
+  end
+
+  @tag fixtures: [:processor_filled]
+  test "not spent or not existed utxo should be not challengeable", %{
+    processor_filled: processor
+  } do
+    assert {:ok, 1000, exit_info} = Core.get_challange_data({:ok, 1000}, @utxo_pos1, processor)
+
+    assert {:error, :utxo_not_spent} = Core.get_challange_data({:ok, :not_found}, Utxo.position(1000, 0, 1), processor)
+    assert {:error, :exit_not_found} = Core.get_challange_data({:ok, 1000}, @utxo_pos3, processor)
+  end
 end
