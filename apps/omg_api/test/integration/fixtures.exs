@@ -28,11 +28,11 @@ defmodule OMG.API.Integration.Fixtures do
 
     enc_eth = Eth.Encoding.to_hex(OMG.Eth.RootChain.eth_pseudo_address())
     {:ok, path} = TestHelper.write_fee_file(%{enc_eth => 0, Eth.Encoding.to_hex(token) => 0})
-    default_path = Application.fetch_env!(:omg_api, :fee_specs_file_path)
-    Application.put_env(:omg_api, :fee_specs_file_path, path, persistent: true)
+    default_path = Application.fetch_env!(:omg_sync, :fee_specs_file_path)
+    Application.put_env(:omg_sync, :fee_specs_file_path, path, persistent: true)
 
     on_exit(fn ->
-      Application.put_env(:omg_api, :fee_specs_file_path, default_path)
+      Application.put_env(:omg_sync, :fee_specs_file_path, default_path)
     end)
 
     path

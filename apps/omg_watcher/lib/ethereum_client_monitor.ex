@@ -60,5 +60,5 @@ defmodule OMG.Watcher.EthereumClientMonitor do
   defp raise_clear(:error), do: Alarm.raise({:ethereum_client_connection, :erlang.node(), __MODULE__})
   defp raise_clear(_), do: Alarm.clear({:ethereum_client_connection, :erlang.node(), __MODULE__})
 
-  defp eth, do: Application.get_env(:omg_api, :eth_integration_module, Eth)
+  defp eth, do: Application.get_env(:omg_watcher, :eth_integration_module, Eth)
 end

@@ -128,7 +128,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert {:ok, {alice_addr, @eth, 7, utxo_pos}} == Eth.RootChain.get_standard_exit(exit_id)
 
     # Here we're waiting for child chain and watcher to process the exits
-    deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
+    deposit_finality_margin = Application.fetch_env!(:omg_sync, :deposit_finality_margin)
     Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + deposit_finality_margin + 1 + 1)
 
     assert [%{"blknum" => ^token_deposit_blknum}] = TestHelper.get_utxos(alice.addr)

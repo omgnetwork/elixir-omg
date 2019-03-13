@@ -56,10 +56,10 @@ defmodule OMG.API.Integration.DepositHelper do
   end
 
   defp wait_deposit_recognized(deposit_eth_height) do
-    post_event_block_finality = deposit_eth_height + Application.fetch_env!(:omg_api, :deposit_finality_margin)
+    post_event_block_finality = deposit_eth_height + Application.fetch_env!(:omg_sync, :deposit_finality_margin)
     {:ok, _} = Eth.DevHelpers.wait_for_root_chain_block(post_event_block_finality + 1)
     # sleeping until the deposit is spendable
-    Process.sleep(Application.fetch_env!(:omg_api, :ethereum_events_check_interval_ms) * 2)
+    Process.sleep(Application.fetch_env!(:omg_sync, :ethereum_events_check_interval_ms) * 2)
     :ok
   end
 end

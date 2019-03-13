@@ -9,7 +9,7 @@ defmodule OMG.Watcher.Mixfile do
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
-      elixir: "~> 1.4",
+      elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -31,7 +31,7 @@ defmodule OMG.Watcher.Mixfile do
         convenience_api_mode: false
       ],
       mod: {OMG.Watcher.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:omg_sync, :logger, :runtime_tools]
     ]
   end
 
@@ -55,9 +55,9 @@ defmodule OMG.Watcher.Mixfile do
       {:briefly, "~> 0.3"},
       {:fake_server, "~> 1.5", only: [:test, :dev]},
       #
+      # {:omg_api, in_umbrella: true},
       {:omg_sync, in_umbrella: true},
       {:omg_status, in_umbrella: true},
-      {:omg_api, in_umbrella: true, runtime: false},
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
       {:appsignal, "~> 1.0"}

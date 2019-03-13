@@ -76,7 +76,7 @@ defmodule OMG.API.Sup do
   end
 
   def coordinator_setup do
-    deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
+    deposit_finality_margin = Application.fetch_env!(:omg_sync, :deposit_finality_margin)
 
     %{
       depositor: [finality_margin: deposit_finality_margin],
