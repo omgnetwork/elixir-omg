@@ -279,7 +279,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
       {:unknown_piggybacks, unknown_piggybacks} ->
         _ = Logger.error("Outputs not piggybacked: #{inspect(unknown_piggybacks)}")
-        {:stop, :not_piggybacked, state}
+        {:stop, :unknown_piggybacks, state}
 
       {:unknown_in_flight_exit, unknown_ifes} ->
         _ = Logger.error("Unknown in-flight exits: #{inspect(unknown_ifes)}")

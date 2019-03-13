@@ -118,6 +118,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
                %{"event" => "invalid_piggyback"},
                %{"event" => "non_canonical_ife"},
                %{"event" => "non_canonical_ife"},
+               # only piggyback_available for tx2 is present, tx1 is included in block and does not spawn that event
                %{"event" => "piggyback_available"}
              ]
            } = TestHelper.success?("/status.get")
