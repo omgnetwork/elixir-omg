@@ -349,10 +349,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @spec finalize_in_flight_exits(t(), [map()]) ::
-          {:ok, t(), list()} | {:not_piggybacked, list()} | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
+          {:ok, t(), list()} | {:unknown_piggybacks, list()} | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
   def finalize_in_flight_exits(%__MODULE__{in_flight_exits: ifes} = state, finalizations) do
     with {:ok, ifes_by_id} <- get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes),
-         {:ok, []} <- outputs_piggybacked?(finalizations, ifes_by_id) do
+         {:ok, []} <- known_piggybacks?(finalizations, ifes_by_id) do
       {db_updates_by_id, ifes_by_id} =
         finalizations
         |> Enum.reduce({%{}, ifes_by_id}, &finalize_single_exit/2)
@@ -393,7 +393,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  defp outputs_piggybacked?(finalizations, ifes_by_id) do
+  defp known_piggybacks?(finalizations, ifes_by_id) do
     not_piggybacked =
       finalizations
       |> Enum.filter(fn %{in_flight_exit_id: ife_id, output_index: output} ->
@@ -404,7 +404,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     if Enum.empty?(not_piggybacked) do
       {:ok, []}
     else
-      {:not_piggybacked, not_piggybacked}
+      {:unknown_piggybacks, not_piggybacked}
     end
   end
 
@@ -930,7 +930,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @spec prepare_available_piggyback(InFlightExitInfo.t()) :: list(Event.PiggybackAvailable.t())
-  defp prepare_available_piggyback(%InFlightExitInfo{tx: %Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx} = signed_tx} = ife) do
+  defp prepare_available_piggyback(
+         %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx} = signed_tx} = ife
+       ) do
     {:ok, %Transaction.Recovered{spenders: input_owners}} = Transaction.Recovered.recover_from(signed_tx)
 
     available_inputs =

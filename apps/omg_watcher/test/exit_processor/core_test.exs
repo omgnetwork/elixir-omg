@@ -1917,7 +1917,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       finalization1 = %{in_flight_exit_id: ife_id, output_index: 1}
       finalization2 = %{in_flight_exit_id: ife_id, output_index: 2}
 
-      {:not_piggybacked, [^finalization2]} = Core.finalize_in_flight_exits(processor, [finalization1, finalization2])
+      {:unknown_piggybacks, [^finalization2]} = Core.finalize_in_flight_exits(processor, [finalization1, finalization2])
     end
   end
 
