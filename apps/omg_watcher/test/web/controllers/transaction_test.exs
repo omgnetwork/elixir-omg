@@ -62,7 +62,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                    "currency" => @eth_hex,
                    "oindex" => 0,
                    "owner" => ^alice_addr,
-                   "txindex" => 0
+                   "txindex" => 0,
+                   "utxo_pos" => 1_000_000_000
                  }
                ],
                "outputs" => [
@@ -72,7 +73,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                    "currency" => @eth_hex,
                    "oindex" => 0,
                    "owner" => ^bob_addr,
-                   "txindex" => 0
+                   "txindex" => 0,
+                   "utxo_pos" => 1_000_000_000_000
                  }
                ],
                "txhash" => ^txhash,
@@ -448,18 +450,32 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
     @tag fixtures: [:alice, :bob, :more_utxos]
     test "returns appropriate schema", %{alice: alice, bob: bob} do
+      alias OMG.API.Utxo
+      require Utxo
+
       alice_to_bob = 100
       fee = 5
       metadata = (alice.addr <> bob.addr) |> OMG.API.Crypto.hash() |> Encoding.to_hex()
 
       alice_addr = Encoding.to_hex(alice.addr)
       bob_addr = Encoding.to_hex(bob.addr)
+      blknum = 5000
 
       assert %{
                "result" => "complete",
                "transactions" => [
                  %{
-                   "inputs" => [%{"owner" => ^alice_addr, "currency" => @eth_hex, "blknum" => 5000} | _],
+                   "inputs" => [
+                     %{
+                       "owner" => ^alice_addr,
+                       "currency" => @eth_hex,
+                       "blknum" => ^blknum,
+                       "txindex" => txindex,
+                       "oindex" => oindex,
+                       "utxo_pos" => utxo_pos
+                     }
+                     | _
+                   ],
                    "outputs" => [
                      %{"amount" => ^alice_to_bob, "currency" => @eth_hex, "owner" => ^bob_addr},
                      %{"currency" => @eth_hex, "owner" => ^alice_addr, "amount" => _rest}
@@ -481,6 +497,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                    "metadata" => metadata
                  }
                )
+
+      assert Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode() == utxo_pos
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos]

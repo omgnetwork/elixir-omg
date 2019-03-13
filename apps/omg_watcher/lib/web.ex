@@ -78,6 +78,7 @@ defmodule OMG.Watcher.Web do
       import Phoenix.Controller, only: [get_flash: 2, view_module: 1]
 
       import OMG.Watcher.Web.Router.Helpers
+      import OMG.RPC.Web.Serializer.Base
     end
   end
 
