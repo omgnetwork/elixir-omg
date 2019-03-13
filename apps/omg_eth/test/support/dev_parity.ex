@@ -31,11 +31,16 @@ defmodule OMG.Eth.DevParity do
     {:ok, _} = Application.ensure_all_started(:ethereumex)
     {:ok, homedir} = Briefly.create(directory: true)
 
-    parity_pid = launch("parity --chain dev --geth --jsonrpc-apis personal,eth,web3,parity_accounts --base-path #{homedir} 2>&1")
+    parity_pid =
+      launch("parity --chain dev --geth --jsonrpc-apis personal,eth,web3,parity_accounts --base-path #{homedir} 2>&1")
 
     {:ok, :ready} = Eth.WaitFor.eth_rpc()
+    {:ok, dev_period} = OMG.Eth.DevMiningHelper.start()
 
-    on_exit = fn -> stop(parity_pid) end
+    on_exit = fn ->
+      Process.exit(dev_period, :kill)
+      stop(parity_pid)
+    end
 
     {:ok, on_exit}
   end

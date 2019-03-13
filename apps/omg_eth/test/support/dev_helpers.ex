@@ -124,15 +124,6 @@ defmodule OMG.Eth.DevHelpers do
     fn -> WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
   end
 
-  # private
-
-  defp create_and_fund_authority_addr(opts) do
-    with {:ok, authority} <- Ethereumex.HttpClient.request("personal_newAccount", [@passphrase], []),
-         {:ok, _} <- fund_address_from_faucet(authority, opts) do
-      {:ok, from_hex(authority)}
-    end
-  end
-
   def create_account_from_secret(:geth, secret, passphrase) do
     {:ok, _} = Ethereumex.HttpClient.request("personal_importRawKey", [secret, passphrase], [])
   end
@@ -141,6 +132,15 @@ defmodule OMG.Eth.DevHelpers do
     secret = secret |> Base.decode16!(case: :upper) |> Base.encode16(case: :lower)
     secret = "0x" <> secret
     {:ok, _} = Ethereumex.HttpClient.request("parity_newAccountFromSecret", [secret, passphrase], [])
+  end
+
+  # private
+
+  defp create_and_fund_authority_addr(opts) do
+    with {:ok, authority} <- Ethereumex.HttpClient.request("personal_newAccount", [@passphrase], []),
+         {:ok, _} <- fund_address_from_faucet(authority, opts) do
+      {:ok, from_hex(authority)}
+    end
   end
 
   defp get_exit_period(nil) do
