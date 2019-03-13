@@ -15,6 +15,8 @@
 defmodule OMG.Status.Alert.AlarmTest do
   use ExUnit.Case, async: false
   alias OMG.Status.Alert.Alarm
+  @moduletag :integration
+  @moduletag timeout: 240_000
 
   setup do
     Alarm.clear_all()
@@ -36,8 +38,6 @@ defmodule OMG.Status.Alert.AlarmTest do
     assert get_alarms([{:id, "test"}]) == []
   end
 
-  @tag timeout: 240_000
-  @tag :slow
   test "memsup alarms" do
     # check if memsup is running
     assert is_pid(GenServer.whereis(:memsup))
