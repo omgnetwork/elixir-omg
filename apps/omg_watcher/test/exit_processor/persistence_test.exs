@@ -48,10 +48,30 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     empty
   end
 
-  deffixture exits(alice) do
+  # TODO: DRY against `exit_processor/core_test.exs` or refactor to make unnecessary in any other way
+  deffixture transactions(alice, carol) do
+    [
+      Transaction.new([{1, 0, 0}, {1, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}]),
+      Transaction.new([{2, 1, 0}, {2, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}])
+    ]
+  end
+
+  deffixture exits(alice, transactions) do
+    [txbytes1, txbytes2] = transactions |> Enum.map(&Transaction.encode/1)
+
     {[
-       %{owner: alice.addr, eth_height: 2, exit_id: 1},
-       %{owner: alice.addr, eth_height: 4, exit_id: 2}
+       %{
+         owner: alice.addr,
+         eth_height: 2,
+         exit_id: 1,
+         call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos1), output_tx: txbytes1}
+       },
+       %{
+         owner: alice.addr,
+         eth_height: 4,
+         exit_id: 2,
+         call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos2), output_tx: txbytes2}
+       }
      ],
      [
        {alice.addr, @eth, 10, Utxo.Position.encode(@utxo_pos1)},
