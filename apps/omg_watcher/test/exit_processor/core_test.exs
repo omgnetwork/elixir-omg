@@ -829,11 +829,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> invalid_exits_filtered(processor, only: [Event.PiggybackAvailable])
     end
 
-    test "in-flight exit without piggybacked outputs does not emit piggyback available event after it's finalized" do
-      # TODO: this functionality does not work
-      # it would require changes on the root chain contract to implement that
-    end
-
     @tag fixtures: [:processor_filled, :transactions, :in_flight_exits_challenges_events]
     test "challenged IFEs emit the same piggybacks as canonical ones", %{
       processor_filled: processor,

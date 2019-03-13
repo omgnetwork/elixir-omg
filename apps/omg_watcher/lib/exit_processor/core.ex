@@ -769,7 +769,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       inputs =
         Transaction.get_inputs(tx.raw_tx)
         |> Enum.with_index()
-        |> Enum.filter(fn {_input, index} -> InFlightExitInfo.is_piggybacked?(ife, index) end)
+        |> Enum.filter(fn {_input, index} -> InFlightExitInfo.is_input_piggybacked?(ife, index) end)
 
       {ife, inputs}
     end)
@@ -912,7 +912,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @spec get_ifes_to_piggyback(ExitProcessor.Request.t(), __MODULE__.t()) ::
-          list({InFlightExitInfo.t(), Transaction.Signed.t()})
+          list(InFlightExitInfo.t())
   defp get_ifes_to_piggyback(
          %ExitProcessor.Request{blocks_result: blocks},
          %__MODULE__{in_flight_exits: ifes}
@@ -920,18 +920,17 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     known_txs = get_known_txs(blocks)
 
     ifes
-    |> Stream.filter(fn {_, %InFlightExitInfo{is_active: is_active}} -> is_active end)
-    |> Stream.map(fn {_, %InFlightExitInfo{tx: signed_tx} = ife} -> {ife, signed_tx} end)
+    |> Map.values()
+    |> Stream.filter(fn %InFlightExitInfo{is_active: is_active} -> is_active end)
     # TODO: expensive!
-    |> Stream.filter(fn {_, %Transaction.Signed{raw_tx: raw_tx}} ->
+    |> Stream.filter(fn %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: raw_tx}} ->
       !is_among_known_txs?(raw_tx, known_txs)
     end)
-    |> Enum.uniq_by(fn {_, tx} -> tx end)
+    |> Enum.uniq_by(fn %InFlightExitInfo{tx: signed_tx} -> signed_tx end)
   end
 
-  @spec prepare_available_piggyback({InFlightExitInfo.t(), Transaction.Signed.t()}) ::
-          list(Event.PiggybackAvailable.t())
-  defp prepare_available_piggyback({ife, %Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx} = signed_tx}) do
+  @spec prepare_available_piggyback(InFlightExitInfo.t()) :: list(Event.PiggybackAvailable.t())
+  defp prepare_available_piggyback(%InFlightExitInfo{tx: %Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx} = signed_tx} = ife) do
     {:ok, %Transaction.Recovered{spenders: input_owners}} = Transaction.Recovered.recover_from(signed_tx)
 
     available_inputs =
