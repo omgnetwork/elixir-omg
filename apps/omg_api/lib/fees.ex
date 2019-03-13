@@ -70,14 +70,10 @@ defmodule OMG.API.Fees do
         } = recovered_tx,
         fee_map
       ) do
-    if is_merge_transaction?(recovered_tx) do
-      # To make transaction fee free, zero-fee for transaction's currency needs to be explicitly returned.
-      currency = raw_tx |> Transaction.get_currencies() |> hd()
-      %{currency => 0}
-    else
+    if is_merge_transaction?(recovered_tx),
+      do: :ignore,
       # TODO: reducing fees to output currencies only is incorrect, let's deffer until fees get large
-      fee_map
-    end
+      else: fee_map
   end
 
   defp parse_fee_spec(%{"flat_fee" => fee, "token" => token}) do

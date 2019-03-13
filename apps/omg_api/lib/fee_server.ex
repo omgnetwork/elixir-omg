@@ -95,7 +95,9 @@ defmodule OMG.API.FeeServer do
   end
 
   defp load_fees do
-    :ets.lookup_element(:fees_bucket, :fees_map_key, 2)
+    if Application.get_env(:omg_api, :ignore_fees),
+      do: :ignore,
+      else: :ets.lookup_element(:fees_bucket, :fees_map_key, 2)
   end
 
   defp should_load_file(path) do

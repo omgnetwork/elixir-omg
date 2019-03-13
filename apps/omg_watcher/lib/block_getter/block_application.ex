@@ -27,7 +27,7 @@ defmodule OMG.Watcher.BlockGetter.BlockApplication do
           eth_height_done: boolean(),
           hash: binary(),
           timestamp: pos_integer(),
-          transactions: list(),
+          transactions: list()
         }
 
   defstruct [
