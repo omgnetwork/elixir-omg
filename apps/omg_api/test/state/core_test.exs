@@ -30,7 +30,6 @@ defmodule OMG.API.State.CoreTest do
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @not_eth <<1::size(160)>>
-  @zero_fees %{@eth => 0, @not_eth => 0}
   @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
   @blknum1 @interval
   @blknum2 @interval * 2
@@ -42,9 +41,9 @@ defmodule OMG.API.State.CoreTest do
   test "can spend deposits", %{alice: alice, bob: bob, state_empty: state} do
     state
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), @zero_fees)
+    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :ignore)
     |> success?
-    |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{bob, 3}]), @zero_fees)
+    |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{bob, 3}]), :ignore)
     |> success?
   end
 
@@ -54,19 +53,19 @@ defmodule OMG.API.State.CoreTest do
       state1 =
         state
         |> do_deposit(alice, %{amount: 10, currency: @not_eth, blknum: 1})
-        |> Core.exec(create_recovered([{1, 0, 0, alice}], @not_eth, [{alice, 7}, {alice, 3}]), @zero_fees)
+        |> Core.exec(create_recovered([{1, 0, 0, alice}], @not_eth, [{alice, 7}, {alice, 3}]), :ignore)
         |> success?
 
       state1
-      |> Core.exec(create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 9}]), @zero_fees)
+      |> Core.exec(create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 9}]), :ignore)
       |> fail?(:amounts_do_not_add_up)
 
       state1
-      |> Core.exec(create_recovered([{1000, 0, 0, alice}], [{alice, @eth, 9}, {alice, @not_eth, 3}]), @zero_fees)
+      |> Core.exec(create_recovered([{1000, 0, 0, alice}], [{alice, @eth, 9}, {alice, @not_eth, 3}]), :ignore)
       |> fail?(:amounts_do_not_add_up)
 
       state1
-      |> Core.exec(create_recovered([{1000, 0, 0, alice}], [{alice, @not_eth, 3}]), @zero_fees)
+      |> Core.exec(create_recovered([{1000, 0, 0, alice}], [{alice, @not_eth, 3}]), :ignore)
       |> success?
     end
 
@@ -77,10 +76,10 @@ defmodule OMG.API.State.CoreTest do
       # outputs exceed inputs, no fee
       state =
         state
-        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}, {bob, 3}]), @zero_fees)
+        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}, {bob, 3}]), :ignore)
         |> fail?(:amounts_do_not_add_up)
         |> same?(state)
-        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 2}, {alice, 8}]), @zero_fees)
+        |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 2}, {alice, 8}]), :ignore)
         |> success?
 
       # outputs exceed inputs, with fee
@@ -92,13 +91,13 @@ defmodule OMG.API.State.CoreTest do
       |> same?(state)
       |> Core.exec(
         create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{alice, 9}, {bob, 2}]),
-        @zero_fees
+        :ignore
       )
       |> fail?(:amounts_do_not_add_up)
       |> same?(state)
       |> Core.exec(
         create_recovered([{@blknum1, 0, 0, bob}, {@blknum1, 0, 1, alice}], @eth, [{alice, 7}, {bob, 2}]),
-        @zero_fees
+        :ignore
       )
       |> success?()
     end
@@ -217,7 +216,7 @@ defmodule OMG.API.State.CoreTest do
       |> do_deposit(alice, %{amount: 2, currency: @not_eth, blknum: 2})
       |> Core.exec(
         create_recovered([{1, 0, 0, alice}, {2, 0, 0, alice}], [{bob, @eth, 1}, {bob, @not_eth, 2}]),
-        @zero_fees
+        :ignore
       )
       |> success?
     end
@@ -228,9 +227,9 @@ defmodule OMG.API.State.CoreTest do
     state
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
     |> do_deposit(bob, %{amount: 20, currency: @eth, blknum: 2})
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 10}]), @zero_fees)
+    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 10}]), :ignore)
     |> success?
-    |> Core.exec(create_recovered([{2, 0, 0, bob}], @eth, [{alice, 20}]), @zero_fees)
+    |> Core.exec(create_recovered([{2, 0, 0, bob}], @eth, [{alice, 20}]), :ignore)
     |> success?
   end
 
@@ -239,7 +238,7 @@ defmodule OMG.API.State.CoreTest do
     state
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
     |> do_deposit(bob, %{amount: 20, currency: @eth, blknum: 2})
-    |> Core.exec(create_recovered([{1, 0, 0, bob}, {2, 0, 0, alice}], @eth, [{bob, 10}]), @zero_fees)
+    |> Core.exec(create_recovered([{1, 0, 0, bob}, {2, 0, 0, alice}], @eth, [{bob, 10}]), :ignore)
     |> fail?(:unauthorized_spent)
   end
 
@@ -266,7 +265,7 @@ defmodule OMG.API.State.CoreTest do
     state_deposit = state |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
 
     state_deposit
-    |> Core.exec(create_recovered([{1, 1, 0, alice}, {1, 0, 0, alice}], @eth, [{bob, 7}]), @zero_fees)
+    |> Core.exec(create_recovered([{1, 1, 0, alice}, {1, 0, 0, alice}], @eth, [{bob, 7}]), :ignore)
     |> fail?(:utxo_not_found)
     |> same?(state_deposit)
   end
@@ -274,10 +273,10 @@ defmodule OMG.API.State.CoreTest do
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
   test "can't spend other people's funds", %{alice: alice, bob: bob, state_alice_deposit: state} do
     state
-    |> Core.exec(create_recovered([{1, 0, 0, bob}], @eth, [{bob, 8}, {alice, 3}]), @zero_fees)
+    |> Core.exec(create_recovered([{1, 0, 0, bob}], @eth, [{bob, 8}, {alice, 3}]), :ignore)
     |> fail?(:unauthorized_spent)
     |> same?(state)
-    |> Core.exec(create_recovered([{1, 0, 0, bob}], @eth, [{alice, 10}]), @zero_fees)
+    |> Core.exec(create_recovered([{1, 0, 0, bob}], @eth, [{alice, 10}]), :ignore)
     |> fail?(:unauthorized_spent)
     |> same?(state)
   end
@@ -291,7 +290,7 @@ defmodule OMG.API.State.CoreTest do
 
     for first <- transactions,
         second <- transactions do
-      state |> Core.exec(first, @zero_fees) |> success? |> Core.exec(second, @zero_fees) |> fail?(:utxo_not_found)
+      state |> Core.exec(first, :ignore) |> success? |> Core.exec(second, :ignore) |> fail?(:utxo_not_found)
     end
   end
 
@@ -303,13 +302,13 @@ defmodule OMG.API.State.CoreTest do
     state_alice_deposit: state
   } do
     state
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), @zero_fees)
+    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :ignore)
     |> success?
-    |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}], @eth, [{carol, 7}]), @zero_fees)
+    |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}], @eth, [{carol, 7}]), :ignore)
     |> success?
-    |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{carol, 3}]), @zero_fees)
+    |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{carol, 3}]), :ignore)
     |> success?
-    |> Core.exec(create_recovered([{@blknum1, 1, 0, carol}, {@blknum1, 2, 0, carol}], @eth, [{alice, 10}]), @zero_fees)
+    |> Core.exec(create_recovered([{@blknum1, 1, 0, carol}, {@blknum1, 2, 0, carol}], @eth, [{alice, 10}]), :ignore)
     |> success?
   end
 
@@ -319,9 +318,9 @@ defmodule OMG.API.State.CoreTest do
     {:ok, {_, _, _}, state} = form_block_check(state)
 
     state
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), @zero_fees)
+    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :ignore)
     |> success?
-    |> Core.exec(create_recovered([{next_block_height, 0, 0, bob}], @eth, [{bob, 7}]), @zero_fees)
+    |> Core.exec(create_recovered([{next_block_height, 0, 0, bob}], @eth, [{bob, 7}]), :ignore)
     |> success?
   end
 
@@ -331,11 +330,11 @@ defmodule OMG.API.State.CoreTest do
 
     {:ok, {_, _, _}, state} =
       state
-      |> Core.exec(recovered, @zero_fees)
+      |> Core.exec(recovered, :ignore)
       |> success?
       |> form_block_check()
 
-    Core.exec(state, recovered, @zero_fees) |> fail?(:utxo_not_found) |> same?(state)
+    Core.exec(state, recovered, :ignore) |> fail?(:utxo_not_found) |> same?(state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
@@ -345,9 +344,9 @@ defmodule OMG.API.State.CoreTest do
 
     assert {:ok, {%Block{hash: block_hash, number: block_number}, triggers, _}, _} =
              state
-             |> Core.exec(recover1, @zero_fees)
+             |> Core.exec(recover1, :ignore)
              |> success?
-             |> Core.exec(recover2, @zero_fees)
+             |> Core.exec(recover2, :ignore)
              |> success?
              |> form_block_check()
 
@@ -365,9 +364,9 @@ defmodule OMG.API.State.CoreTest do
   } do
     state =
       state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), @zero_fees)
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :ignore)
       |> success?
-      |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}], @eth, [{alice, 7}]), @zero_fees)
+      |> Core.exec(create_recovered([{@blknum1, 0, 0, bob}], @eth, [{alice, 7}]), :ignore)
       |> success?
 
     assert {:ok, {_, [_trigger1, _trigger2], _}, _} = form_block_check(state)
@@ -380,7 +379,7 @@ defmodule OMG.API.State.CoreTest do
     state_alice_deposit: state
   } do
     state
-    |> Core.exec(create_recovered([{1, 1, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), @zero_fees)
+    |> Core.exec(create_recovered([{1, 1, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :ignore)
     |> same?(state)
 
     assert {:ok, {_, [], _}, _} = form_block_check(state)
@@ -405,7 +404,7 @@ defmodule OMG.API.State.CoreTest do
   } do
     state =
       state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), @zero_fees)
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :ignore)
       |> success?
 
     assert {:ok, {_, [_trigger], _}, state} = form_block_check(state)
@@ -427,11 +426,11 @@ defmodule OMG.API.State.CoreTest do
 
     state =
       state
-      |> Core.exec(recovered_tx_1, @zero_fees)
+      |> Core.exec(recovered_tx_1, :ignore)
       |> success?
-      |> Core.exec(recovered_tx_2, @zero_fees)
+      |> Core.exec(recovered_tx_2, :ignore)
       |> success?
-      |> Core.exec(recovered_tx_3, @zero_fees)
+      |> Core.exec(recovered_tx_3, :ignore)
       |> success?
 
     assert {:ok,
@@ -458,7 +457,7 @@ defmodule OMG.API.State.CoreTest do
   } do
     state =
       state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), @zero_fees)
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :ignore)
       |> success?
 
     {:ok, {_, _, _}, state} = form_block_check(state)
@@ -484,7 +483,7 @@ defmodule OMG.API.State.CoreTest do
     # persistence tested in-depth elsewhere
     {:ok, {_, _, [_ | _]}, state} =
       state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), @zero_fees)
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]), :ignore)
       |> success?
       |> form_block_check()
 
@@ -509,7 +508,7 @@ defmodule OMG.API.State.CoreTest do
     # this is _very important_ to support all clients of that functions, whose inputs come in different flavors
     state =
       state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}]), @zero_fees)
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}]), :ignore)
       |> success?
 
     utxo_pos_exits = [Utxo.position(@blknum1, 0, 0), Utxo.position(@blknum1, 0, 1)]
@@ -535,7 +534,7 @@ defmodule OMG.API.State.CoreTest do
 
     state =
       state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, amount_1}, {alice, amount_2}]), @zero_fees)
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, amount_1}, {alice, amount_2}]), :ignore)
       |> success?
 
     expected_owner = alice.addr
@@ -552,10 +551,10 @@ defmodule OMG.API.State.CoreTest do
             state_after_exit} = Core.exit_utxos(utxo_pos_exits, state)
 
     state_after_exit
-    |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), @zero_fees)
+    |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :ignore)
     |> fail?(:utxo_not_found)
     |> same?(state_after_exit)
-    |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{alice, 3}]), @zero_fees)
+    |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{alice, 3}]), :ignore)
     |> fail?(:utxo_not_found)
   end
 
@@ -567,7 +566,7 @@ defmodule OMG.API.State.CoreTest do
 
     state =
       state
-      |> Core.exec(tx, @zero_fees)
+      |> Core.exec(tx, :ignore)
       |> success?
 
     expected_owner = alice.addr
@@ -582,10 +581,10 @@ defmodule OMG.API.State.CoreTest do
             state_after_exit} = Core.exit_utxos(utxo_pos_exits_piggyback, state)
 
     state_after_exit
-    |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), @zero_fees)
+    |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :ignore)
     |> fail?(:utxo_not_found)
     |> same?(state_after_exit)
-    |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{alice, 3}]), @zero_fees)
+    |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{alice, 3}]), :ignore)
     |> success?
   end
 
@@ -594,7 +593,7 @@ defmodule OMG.API.State.CoreTest do
     # persistence tested in-depth elsewhere
     state =
       state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}]), @zero_fees)
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}]), :ignore)
       |> success?
 
     %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}} =
@@ -609,10 +608,10 @@ defmodule OMG.API.State.CoreTest do
             state_after_exit} = Core.exit_utxos(utxo_pos_exits_in_flight, state)
 
     state_after_exit
-    |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), @zero_fees)
+    |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :ignore)
     |> fail?(:utxo_not_found)
     |> same?(state_after_exit)
-    |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{alice, 3}]), @zero_fees)
+    |> Core.exec(create_recovered([{@blknum1, 0, 1, alice}], @eth, [{alice, 3}]), :ignore)
     |> success?
   end
 
@@ -632,7 +631,7 @@ defmodule OMG.API.State.CoreTest do
 
     state =
       state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}]), @zero_fees)
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}]), :ignore)
       |> success?
 
     assert not Core.utxo_exists?(Utxo.position(1, 0, 0), state)
@@ -659,7 +658,7 @@ defmodule OMG.API.State.CoreTest do
     {:ok, _, state} =
       state
       |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}]), @zero_fees)
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}]), :ignore)
 
     assert {@blknum1, false} = Core.get_status(state)
 
@@ -673,9 +672,9 @@ defmodule OMG.API.State.CoreTest do
   test "Output can have a zero value; can't be used as input though", %{alice: alice, state_empty: state} do
     state
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}, {alice, 0}]), @zero_fees)
+    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}, {alice, 0}]), :ignore)
     |> success?
-    |> Core.exec(create_recovered([{1000, 0, 1, alice}], @eth, [{alice, 0}]), @zero_fees)
+    |> Core.exec(create_recovered([{1000, 0, 1, alice}], @eth, [{alice, 0}]), :ignore)
     |> fail?(:utxo_not_found)
   end
 
@@ -683,9 +682,9 @@ defmodule OMG.API.State.CoreTest do
   test "Output with zero value does not change oindex of other outputs", %{alice: alice, state_empty: state} do
     state
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}, {alice, 8}]), @zero_fees)
+    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}, {alice, 8}]), :ignore)
     |> success?
-    |> Core.exec(create_recovered([{1000, 0, 1, alice}], @eth, [{alice, 1}]), @zero_fees)
+    |> Core.exec(create_recovered([{1000, 0, 1, alice}], @eth, [{alice, 1}]), :ignore)
     |> success?
   end
 
@@ -693,7 +692,7 @@ defmodule OMG.API.State.CoreTest do
   test "Output with zero value will not be written to DB", %{alice: alice, state_alice_deposit: state} do
     state =
       state
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}]), @zero_fees)
+      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}]), :ignore)
       |> success?
 
     {:ok, {_, _, db_updates}, _} = form_block_check(state)
@@ -704,7 +703,7 @@ defmodule OMG.API.State.CoreTest do
   test "Transaction can have no outputs", %{alice: alice, state_empty: state} do
     state
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, []), @zero_fees)
+    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, []), :ignore)
     |> success?
   end
 
@@ -719,33 +718,33 @@ defmodule OMG.API.State.CoreTest do
 
     # input utxo blknum is greater than state's blknum
     state
-    |> Core.exec(create_recovered([{future_deposit_blknum, 0, 0, alice}], @eth, [{bob, 6}, {alice, 4}]), @zero_fees)
+    |> Core.exec(create_recovered([{future_deposit_blknum, 0, 0, alice}], @eth, [{bob, 6}, {alice, 4}]), :ignore)
     |> fail?(:input_utxo_ahead_of_state)
 
     state
     |> Core.exec(
       create_recovered([{1, 0, 0, alice}, {future_deposit_blknum, 0, 0, alice}], @eth, [{bob, 6}, {alice, 4}]),
-      @zero_fees
+      :ignore
     )
     |> fail?(:input_utxo_ahead_of_state)
 
     # when non-existent input comes with a blknum of the current block fail with :utxo_not_found
     state
-    |> Core.exec(create_recovered([{@blknum1, 1, 0, alice}], @eth, [{bob, 6}, {alice, 4}]), @zero_fees)
+    |> Core.exec(create_recovered([{@blknum1, 1, 0, alice}], @eth, [{bob, 6}, {alice, 4}]), :ignore)
     |> fail?(:utxo_not_found)
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
   test "Fee exec expect fee ingore option", %{alice: alice, bob: bob, state_empty: state} do
-      state
-      |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 4}]), :ignore)
-      |> success?
+    state
+    |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
+    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 4}]), :ignore)
+    |> success?
 
-      state
-      |> do_deposit(alice, %{amount: 10, currency: @not_eth, blknum: 1})
-      |> Core.exec(create_recovered([{1, 0, 0, alice}], @not_eth, [{bob, 6}, {alice, 4}]), :ignore)
-      |> success?
+    state
+    |> do_deposit(alice, %{amount: 10, currency: @not_eth, blknum: 1})
+    |> Core.exec(create_recovered([{1, 0, 0, alice}], @not_eth, [{bob, 6}, {alice, 4}]), :ignore)
+    |> success?
   end
 
   defp success?(result) do
