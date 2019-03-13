@@ -20,6 +20,8 @@ defmodule OMG.RPC.Web.Validator.Base do
 
   alias OMG.RPC.Web.Encoding
 
+  @type validation_error_t() :: {:error, {:validation_error, binary(), any()}}
+
   # Creates a named chain of basic validators aka alias, for easier to use.
   # IMPORTANT: Alias can use already defined validators, not other aliases (no backtracking)
   @aliases %{
@@ -48,8 +50,7 @@ defmodule OMG.RPC.Web.Validator.Base do
     NOTE: **invalid order** it's the same as just `:integer`
     To validate optional integer values it should be `:integer, :optional`
   """
-  @spec expect(map(), atom() | binary(), atom() | list()) ::
-          {:ok, any()} | {:error, {:validation_error, atom() | binary(), atom() | list()}}
+  @spec expect(map(), atom() | binary(), atom() | list()) :: {:ok, any()} | validation_error_t()
   def expect(map, key, atom) when is_atom(atom), do: expect(map, key, [atom])
 
   def expect(map, key, opts) do
@@ -60,13 +61,17 @@ defmodule OMG.RPC.Web.Validator.Base do
       &validate/2
     )
     |> case do
-      {val, []} ->
-        {:ok, val}
-
-      {_, [err | _]} ->
-        {:error, {:validation_error, key, err}}
+      {val, []} -> {:ok, val}
+      {_, [err | _]} -> error(key, err)
     end
   end
+
+  @doc """
+  Creates custom validation error
+  """
+  @spec error(binary(), any()) :: validation_error_t()
+  def error(param_name, reason) when is_binary(param_name),
+    do: {:error, {:validation_error, param_name, reason}}
 
   @doc """
   `integer` function is an example of basic validator used by the engine.
@@ -113,6 +118,11 @@ defmodule OMG.RPC.Web.Validator.Base do
   def greater({val, []}, bound) when is_integer(val) and val > bound, do: {val, []}
   def greater({val, []}, _b) when not is_integer(val), do: {val, [:integer]}
   def greater({val, []}, bound), do: {val, greater: bound}
+
+  @spec list({any(), list()}) :: {any(), list()}
+  def list({_, [_ | _]} = err), do: err
+  def list({val, []}) when is_list(val), do: {val, []}
+  def list({val, _}), do: {val, [:list]}
 
   # provides initial value to the validators reducer, see: `expect`
   defp get(map, key), do: {Map.get(map, key, :missing), []}

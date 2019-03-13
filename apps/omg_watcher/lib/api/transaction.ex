@@ -20,6 +20,7 @@ defmodule OMG.Watcher.API.Transaction do
   alias OMG.API.Utxo
   alias OMG.RPC.Client
   alias OMG.Watcher.DB
+  alias OMG.Watcher.UtxoSelection
 
   require Utxo
 
@@ -63,5 +64,15 @@ defmodule OMG.Watcher.API.Transaction do
   @spec submit(binary()) :: Client.response_t()
   def(submit(txbytes)) do
     Client.submit(txbytes)
+  end
+
+  @doc """
+  Given order finds spender's inputs sufficient to perform a payment.
+  If also provided with receiver's address, creates and encodes a transaction.
+  """
+  @spec create(UtxoSelection.order_t()) :: UtxoSelection.advice_t()
+  def create(order) do
+    utxos = DB.TxOutput.get_sorted_grouped_utxos(order.owner)
+    UtxoSelection.create_advice(utxos, order)
   end
 end

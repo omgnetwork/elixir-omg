@@ -50,4 +50,17 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
       |> api_response(conn, :submission)
     end
   end
+
+  @doc """
+  Given token, amount and spender, finds spender's inputs sufficient to perform a payment.
+  If also provided with receiver's address, creates and encodes a transaction.
+  """
+  def create(conn, params) do
+    alias OMG.Watcher.Web.Validator.Order
+
+    with {:ok, order} <- Order.parse(params) do
+      API.Transaction.create(order)
+      |> api_response(conn, :create)
+    end
+  end
 end

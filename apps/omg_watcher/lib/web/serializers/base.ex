@@ -12,25 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.View.Account do
+defmodule OMG.Watcher.Web.Serializer.Base do
   @moduledoc """
-  The account view for rendering json
+  Common structure formatters module.
   """
 
-  use OMG.Watcher.Web, :view
+  def to_utxo(%{blknum: blknum, txindex: txindex, oindex: oindex} = db_entry) do
+    alias OMG.API.Utxo
+    require Utxo
 
-  alias OMG.API.Utxo
-  alias OMG.RPC.Web
-  require Utxo
-
-  def render("balance.json", %{response: balance}) do
-    balance
-    |> Web.Response.serialize()
-  end
-
-  def render("utxos.json", %{response: utxos}) do
-    utxos
-    |> Enum.map(&to_utxo/1)
-    |> Web.Response.serialize()
+    db_entry
+    |> Map.take([:amount, :currency, :blknum, :txindex, :oindex, :owner])
+    |> Map.put(:utxo_pos, Utxo.position(blknum, txindex, oindex) |> Utxo.Position.encode())
   end
 end
