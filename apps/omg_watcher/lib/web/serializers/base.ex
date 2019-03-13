@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.RPC.Web.Serializer.Base do
+defmodule OMG.Watcher.Web.Serializer.Base do
   @moduledoc """
   Common structure formatters module.
   """
