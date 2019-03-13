@@ -48,6 +48,7 @@ defmodule OMG.API.BlockQueue.Core do
   defstruct [
     :blocks,
     :parent_height,
+    last_parent_height: 0,
     formed_child_block_num: 0,
     wait_for_enqueue: false,
     gas_price_to_use: 20_000_000_000,
@@ -89,9 +90,7 @@ defmodule OMG.API.BlockQueue.Core do
 
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
 
-  def new do
-    {:ok, %__MODULE__{blocks: Map.new()}}
-  end
+  def new, do: {:ok, %__MODULE__{blocks: Map.new()}}
 
   @spec new(keyword) :: {:ok, Core.t()} | {:error, :mined_hash_not_found_in_db} | {:error, :contract_ahead_of_db}
   def new(
@@ -135,7 +134,7 @@ defmodule OMG.API.BlockQueue.Core do
     %{state | wait_for_enqueue: false}
   end
 
-  defp validate_block_number(block_number, own_height) when block_number == own_height, do: :ok
+  defp validate_block_number(block_number, block_number), do: :ok
   defp validate_block_number(_, _), do: {:error, :unexpected_block_number}
 
   defp enqueue_block(state, hash, parent_height) do
@@ -203,20 +202,25 @@ defmodule OMG.API.BlockQueue.Core do
 
   defp adjust_gas_price(
          %Core{
+           blocks: blocks,
            parent_height: parent_height,
-           gas_price_adj_params: %GasPriceParams{last_block_mined: {last_parent_height, _mined_block_num}}
+           last_parent_height: last_parent_height
          } = state
-       )
-       when parent_height == last_parent_height,
-       do: state
+       ) do
+    if parent_height <= last_parent_height or
+         !Enum.find(blocks, to_mined_block_filter(state)) do
+      state
+    else
+      new_gas_price = calculate_gas_price(state)
+      _ = Logger.debug("using new gas price '#{inspect(new_gas_price)}'")
 
-  defp adjust_gas_price(%Core{} = state) do
-    new_gas_price = calculate_gas_price(state)
-    _ = Logger.debug("using new gas price '#{inspect(new_gas_price)}'")
+      new_state =
+        state
+        |> set_gas_price(new_gas_price)
+        |> update_last_checked_mined_block_num()
 
-    state
-    |> set_gas_price(new_gas_price)
-    |> update_last_checked_mined_block_num()
+      %{new_state | last_parent_height: parent_height}
+    end
   end
 
   # Calculates the gas price basing on simple strategy to raise the gas price by gas_price_raising_factor
@@ -293,26 +297,22 @@ defmodule OMG.API.BlockQueue.Core do
   Picks for submission child blocks that haven't yet been seen mined on Ethereum
   """
   @spec get_blocks_to_submit(Core.t()) :: [BlockQueue.encoded_signed_tx()]
-  def get_blocks_to_submit(state) do
-    %{
-      blocks: blocks,
-      mined_child_block_num: mined_child_block_num,
-      formed_child_block_num: formed,
-      child_block_interval: block_interval
-    } = state
-
-    first_blknum = mined_child_block_num + block_interval
-    block_nums = make_range(first_blknum, formed, block_interval)
-
-    _ = Logger.debug("preparing blocks #{inspect(first_blknum)}..#{inspect(formed)} for submission")
+  def get_blocks_to_submit(%{blocks: blocks, formed_child_block_num: formed} = state) do
+    _ = Logger.debug("preparing blocks #{inspect(first_to_mined(state))}..#{inspect(formed)} for submission")
 
     blocks
-    |> Map.split(block_nums)
-    |> elem(0)
-    |> Map.values()
+    |> Enum.filter(to_mined_block_filter(state))
+    |> Enum.map(fn {_blknum, block} -> block end)
     |> Enum.sort_by(& &1.num)
     |> Enum.map(&Map.put(&1, :gas_price, state.gas_price_to_use))
   end
+
+  @spec first_to_mined(Core.t()) :: pos_integer()
+  defp first_to_mined(%{mined_child_block_num: mined, child_block_interval: interval}), do: mined + interval
+
+  @spec to_mined_block_filter(Core.t()) :: ({pos_integer, BlockSubmission.t()} -> boolean)
+  defp to_mined_block_filter(%{formed_child_block_num: formed} = state),
+    do: fn {blknum, _} -> first_to_mined(state) <= blknum and blknum <= formed end
 
   @doc """
   Generates an enumberable of block numbers to be starting the BlockQueue with
