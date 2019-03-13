@@ -735,7 +735,7 @@ defmodule OMG.API.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
-  test "Fee exec expect fee ingore option", %{alice: alice, bob: bob, state_empty: state} do
+  test "exec accepts, ignou fee option", %{alice: alice, bob: bob, state_empty: state} do
     state
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
     |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, 6}, {alice, 4}]), :ignore)
