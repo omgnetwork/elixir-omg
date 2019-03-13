@@ -16,9 +16,9 @@ defmodule OMG.API.RootChainCoordinator do
   Synchronizes services on root chain height, see `OMG.API.RootChainCoordinator.Core`
   """
 
+  alias OMG.API.Recorder
   alias OMG.API.RootChainCoordinator.Core
   alias OMG.Eth
-  alias Status.Metric.Recorder
   use GenServer
   use OMG.API.LoggerExt
 
@@ -76,13 +76,10 @@ defmodule OMG.API.RootChainCoordinator do
     |> Map.keys()
     |> request_sync()
 
-    parent = self()
-
     {:ok, _} =
       Recorder.start_link(%Recorder{
         name: __MODULE__.Recorder,
-        fn: fn -> Process.info(parent, :message_queue_len) |> elem(1) end,
-        reporter: &Appsignal.set_gauge/3
+        parent: self()
       })
 
     {:noreply, state}

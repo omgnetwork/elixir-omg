@@ -25,3 +25,4 @@ config :appsignal, :config,
   active: true
 
 import_config "#{Mix.env()}.exs"
+import_config "appsignal.exs"

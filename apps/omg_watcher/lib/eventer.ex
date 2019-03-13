@@ -22,9 +22,9 @@ defmodule OMG.Watcher.Eventer do
   """
 
   alias OMG.Watcher.Eventer.Core
+  alias OMG.Watcher.Recorder
   alias OMG.Watcher.Web.Endpoint
   alias OMG.Watcher.Web.Serializer.Response
-  alias Status.Metric.Recorder
   ### Client
 
   def start_link(_args) do
@@ -36,13 +36,10 @@ defmodule OMG.Watcher.Eventer do
   use GenServer
 
   def init(:ok) do
-    parent = self()
-
     {:ok, _} =
       Recorder.start_link(%Recorder{
         name: __MODULE__.Recorder,
-        fn: fn -> Process.info(parent, :message_queue_len) |> elem(1) end,
-        reporter: &Appsignal.set_gauge/3
+        parent: self()
       })
 
     {:ok, nil}

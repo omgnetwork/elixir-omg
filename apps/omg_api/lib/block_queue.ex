@@ -30,7 +30,7 @@ defmodule OMG.API.BlockQueue do
   alias OMG.API.Block
   alias OMG.API.BlockQueue.Core
   alias OMG.API.BlockQueue.Core.BlockSubmission
-  alias Status.Metric.Recorder
+  alias OMG.API.Recorder
 
   @type eth_height() :: non_neg_integer()
   @type hash() :: BlockSubmission.hash()
@@ -119,13 +119,11 @@ defmodule OMG.API.BlockQueue do
 
       interval = Application.fetch_env!(:omg_api, :block_queue_eth_height_check_interval_ms)
       {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
-      parent = self()
 
       {:ok, _} =
         Recorder.start_link(%Recorder{
           name: __MODULE__.Recorder,
-          fn: fn -> Process.info(parent, :message_queue_len) |> elem(1) end,
-          reporter: &Appsignal.set_gauge/3
+          parent: self()
         })
 
       _ = Logger.info("Started BlockQueue")
