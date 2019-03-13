@@ -24,7 +24,7 @@ defmodule OMG.API.Fees do
   require Utxo
 
   @type fee_spec_t() :: %{token: Crypto.address_t(), flat_fee: non_neg_integer}
-  @type token_fee_t() :: %{Crypto.address_t() => non_neg_integer}
+  @type token_fee_t() :: %{Crypto.address_t() => non_neg_integer} | :ignore
 
   @doc """
   Parses provided json string to token-fee map and returns the map together with possible parsing errors
@@ -44,7 +44,8 @@ defmodule OMG.API.Fees do
   @doc """
   Checks whether transaction's funds cover the fee
   """
-  @spec covered?(map(), map(), token_fee_t()) :: boolean()
+  @spec covered?(input_amounts::map(), output_amounts::map(), fees::token_fee_t()) :: boolean()
+  def covered?(_,_,:ignore), do: true
   def covered?(input_amounts, output_amounts, fees) do
     for {input_currency, input_amount} <- Map.to_list(input_amounts) do
       # fee is implicit - it's the difference between funds owned and spend
