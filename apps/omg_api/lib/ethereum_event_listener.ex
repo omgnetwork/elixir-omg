@@ -101,7 +101,13 @@ defmodule OMG.API.EthereumEventListener do
     state =
       case Core.get_events_range_for_download(state, sync_info) do
         {:get_events, {from, to}, state} ->
-          {:ok, new_events} = callbacks.get_ethereum_events_callback.(from, to)
+          {time, {:ok, new_events}} = :timer.tc(fn -> callbacks.get_ethereum_events_callback.(from, to) end)
+          time = round(time / 1000)
+
+          _ =
+            if time > Application.fetch_env!(:omg_eth, :ethereum_client_warning_time_ms),
+              do: Logger.warn("Query to Ethereum client took long: #{inspect(time)} ms")
+
           Core.add_new_events(state, new_events)
 
         {:dont_fetch_events, state} ->
