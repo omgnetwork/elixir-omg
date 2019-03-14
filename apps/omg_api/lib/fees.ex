@@ -89,18 +89,15 @@ defmodule OMG.API.Fees do
   defp validate_fee(fee) when is_integer(fee) and fee >= 0, do: {:ok, fee}
   defp validate_fee(_fee), do: {:error, :invalid_fee}
 
-  defp spec_reducer(fee_spec, {errors, token_fee_map, spec_index}) do
-    case fee_spec do
-      # most errors can be detected parsing particular record
-      {:error, _} = error ->
-        {[{error, spec_index} | errors], token_fee_map, spec_index + 1}
+  defp spec_reducer({:error, _} = error, {errors, token_fee_map, spec_index}),
+    # most errors can be detected parsing particular record
+    do: {[{error, spec_index} | errors], token_fee_map, spec_index + 1}
 
-      # checks whether token was specified before
-      %{token: token, flat_fee: fee} ->
-        if Map.has_key?(token_fee_map, token),
-          do: {[{{:error, :duplicate_token}, spec_index} | errors], token_fee_map, spec_index + 1},
-          else: {errors, Map.put(token_fee_map, token, fee), spec_index + 1}
-    end
+  defp spec_reducer(%{token: token, flat_fee: fee}, {errors, token_fee_map, spec_index}) do
+    # checks whether token was specified before
+    if Map.has_key?(token_fee_map, token),
+      do: {[{{:error, :duplicate_token}, spec_index} | errors], token_fee_map, spec_index + 1},
+      else: {errors, Map.put(token_fee_map, token, fee), spec_index + 1}
   end
 
   defp is_merge_transaction?(recovered_tx) do

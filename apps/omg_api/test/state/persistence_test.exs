@@ -28,7 +28,6 @@ defmodule OMG.API.State.PersistenceTest do
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @not_eth <<1::size(160)>>
   @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
   @blknum1 @interval
 

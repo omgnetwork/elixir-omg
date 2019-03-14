@@ -32,9 +32,17 @@ defmodule OMG.API.FeeServer do
 
   def init(args) do
     :ok = ensure_ets_init()
-    :ok = update_fee_spec()
 
-    {:ok, _} = :timer.apply_interval(@file_changed_check_interval_ms, __MODULE__, :update_fee_spec, [])
+    _ =
+      case Application.get_env(:omg_api, :ignore_fees) do
+        true ->
+          :ok = save_fees(:ignore, 0)
+          _ = Logger.info("fee specs from file is ignore")
+
+        opt when is_nil(opt) or is_boolean(opt) ->
+          :ok = update_fee_spec()
+          {:ok, _} = :timer.apply_interval(@file_changed_check_interval_ms, __MODULE__, :update_fee_spec, [])
+      end
 
     _ = Logger.info("Started FeeServer")
     {:ok, args}
@@ -62,7 +70,7 @@ defmodule OMG.API.FeeServer do
   Reads fee specification file if needed and updates :ets state with current fees information
   """
   @spec update_fee_spec() :: :ok | :file_unchanged | {:error, atom()}
-  def update_fee_spec do
+  defp update_fee_spec do
     path = Application.fetch_env!(:omg_api, :fee_specs_file_path)
 
     with {:reload, changed_at} <- should_load_file(path),
@@ -74,7 +82,6 @@ defmodule OMG.API.FeeServer do
       :ok
     else
       {:file_unchanged, last_change_at} ->
-        _ = Logger.debug("File unchanged, last modified at #{inspect(last_change_at)}")
         :file_unchanged
 
       {:error, :enoent} ->
@@ -90,15 +97,11 @@ defmodule OMG.API.FeeServer do
 
   defp save_fees(fee_specs, loaded_at) do
     true = :ets.insert(:fees_bucket, {:last_loaded, loaded_at})
-    true = :ets.insert(:fees_bucket, {:fees_map_key, fee_specs})
+    true = :ets.insert(:fees_bucket, {:fees, fee_specs})
     :ok
   end
 
-  defp load_fees do
-    if Application.get_env(:omg_api, :ignore_fees),
-      do: :ignore,
-      else: :ets.lookup_element(:fees_bucket, :fees_map_key, 2)
-  end
+  defp load_fees, do: :ets.lookup_element(:fees_bucket, :fees, 2)
 
   defp should_load_file(path) do
     loaded = get_last_loaded_file_timestamp()
