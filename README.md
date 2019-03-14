@@ -162,8 +162,8 @@ where
 child_blocks_per_day = ethereum_blocks_per_day / submit_period
 ```
 **Fee options** configured in `:omg_api, :fee_specs_file_path` and `:omg_api, :ignore_fees`.
- - ignore_fees is boolean option to turn on ignoring fees.
- - fee_specs_file_path is path to file with define fee look at [fee_specs.json](fee_specs.json).
+ - ignore_fees is boolean option allowing to turn off fee charging.
+ - fee_specs_file_path is path to file which define fee. Please see [fee_specs.json](fee_specs.json).
 
 **Submit period** is the number of Ethereum blocks per a single child block submission) - configured in `:omg_api, :child_block_submit_period`
 
