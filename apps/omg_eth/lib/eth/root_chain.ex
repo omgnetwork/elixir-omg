@@ -38,6 +38,7 @@ defmodule OMG.Eth.RootChain do
   @gas_deposit 180_000
   @gas_deposit_from 250_000
   @gas_init 1_000_000
+  # NOTE: only good enough for "small" IFEs. E.g. IFE tx with 4 inputs costs ~2_500_000
   @gas_start_in_flight_exit 2_000_000
   @gas_challenge_in_flight_exit_not_canonical 1_000_000
   @gas_respond_to_non_canonical_challenge 1_000_000
@@ -345,14 +346,6 @@ defmodule OMG.Eth.RootChain do
   end
 
   @doc """
-  Based on information from a standard exit started event, will get the encoded utxo position from the contract data
-  """
-  def get_standard_exit_utxo_pos(%{exit_id: exit_id}, contract \\ nil) do
-    {:ok, {_, _, _, position}} = OMG.Eth.RootChain.get_standard_exit(exit_id, contract)
-    position
-  end
-
-  @doc """
   Returns in flight exit for a specific id. Calls contract method.
   """
   def get_in_flight_exit(in_flight_exit_id, contract \\ nil) do
@@ -427,7 +420,20 @@ defmodule OMG.Eth.RootChain do
     signature = "ExitStarted(address,uint192)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
-         do: {:ok, Enum.map(logs, &decode_exit_started/1)}
+         do:
+           {:ok,
+            Enum.map(logs, fn log ->
+              decode_exit_started(log)
+              |> Map.put(
+                :call_data,
+                Eth.get_call_data(
+                  from_hex(log["transactionHash"]),
+                  "startStandardExit",
+                  [:utxo_pos, :output_tx, :output_tx_inclusion_proof],
+                  [:uint192, :bytes, :bytes]
+                )
+              )
+            end)}
   end
 
   @doc """

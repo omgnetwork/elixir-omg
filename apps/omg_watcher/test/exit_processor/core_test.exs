@@ -78,12 +78,22 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   # events is whatever `OMG.Eth` would feed into the `OMG.Watcher.ExitProcessor`, via `OMG.API.EthereumEventListener`
-  deffixture exit_events(alice) do
-    %{addr: alice} = alice
+  deffixture exit_events(alice, transactions) do
+    [txbytes1, txbytes2] = transactions |> Enum.map(&Transaction.encode/1)
 
     [
-      %{owner: alice, eth_height: 2, exit_id: 1},
-      %{owner: alice, eth_height: 4, exit_id: 2}
+      %{
+        owner: alice.addr,
+        eth_height: 2,
+        exit_id: 1,
+        call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos1), output_tx: txbytes1}
+      },
+      %{
+        owner: alice.addr,
+        eth_height: 4,
+        exit_id: 2,
+        call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos2), output_tx: txbytes2}
+      }
     ]
   end
 
@@ -97,15 +107,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   deffixture in_flight_exit_events(transactions, alice) do
-    %{priv: alice_priv} = alice
-
     [tx1_bytes, tx2_bytes] =
       transactions
       |> Enum.map(&Transaction.encode/1)
 
     [tx1_sigs, tx2_sigs] =
       transactions
-      |> Enum.map(&DevCrypto.sign(&1, [alice_priv, alice_priv]))
+      |> Enum.map(&DevCrypto.sign(&1, [alice.priv, alice.priv]))
       |> Enum.map(&Enum.join(&1.sigs))
 
     [
@@ -399,6 +407,29 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     {processor, _} =
       processor
       |> Core.new_exits(events, contract_statuses)
+
+    # sanity
+    assert %ExitProcessor.Request{utxos_to_check: [_, _]} =
+             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
+
+    assert {processor, _} =
+             processor
+             |> Core.challenge_exits([
+               %{utxo_pos: Utxo.Position.encode(@utxo_pos1)},
+               %{utxo_pos: Utxo.Position.encode(@utxo_pos2)}
+             ])
+
+    assert %ExitProcessor.Request{utxos_to_check: []} =
+             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
+  end
+
+  @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
+  test "can process challenged exits",
+       %{processor_empty: processor, exit_events: events} do
+    # see the contract and `Eth.RootChain.get_standard_exit/1` for some explanation why like this
+    # this is what an exit looks like after a challenge
+    zero_status = {0, 0, 0, 0}
+    {processor, _} = processor |> Core.new_exits(events, [zero_status, zero_status])
 
     # sanity
     assert %ExitProcessor.Request{utxos_to_check: [_, _]} =

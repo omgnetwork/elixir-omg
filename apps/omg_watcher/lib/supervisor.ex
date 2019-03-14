@@ -100,10 +100,7 @@ defmodule OMG.Watcher.Supervisor do
         synced_height_update_key: :last_convenience_exit_processor_eth_height,
         get_events_callback: &Eth.RootChain.get_standard_exits/2,
         process_events_callback: fn exits ->
-          exits
-          |> Enum.map(&OMG.Eth.RootChain.get_standard_exit_utxo_pos/1)
-          |> Watcher.DB.EthEvent.insert_exits!()
-
+          exits |> Watcher.DB.EthEvent.insert_exits!()
           {:ok, []}
         end
       ),

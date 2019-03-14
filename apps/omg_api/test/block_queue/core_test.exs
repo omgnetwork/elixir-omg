@@ -624,7 +624,7 @@ defmodule OMG.API.BlockQueue.CoreTest do
       |> Core.enqueue_block(<<0>>, 7 * @child_block_interval, 1)
       |> Core.enqueue_block(<<0>>, 8 * @child_block_interval, 1)
 
-      state =
+      _ =
         Enum.reduce(80..(eth_height - 1), state, fn eth_height, state ->
           {_, state} = set_ethereum_status(state, eth_height, 0, false)
           assert gas_price == state.gas_price_to_use
