@@ -56,7 +56,7 @@ defmodule OMG.Watcher.DB.TransactionTest do
   @tag fixtures: [:alice, :blocks_inserter]
   test "transaction metadata is persisted in database", %{alice: alice, blocks_inserter: blocks_inserter} do
     eth = OMG.Eth.RootChain.eth_pseudo_address()
-    metadata = <<1::8*32>>
+    metadata = <<1::256>>
 
     [
       {1000,
