@@ -148,12 +148,17 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     new_exits_kv_pairs =
       new_exits
       |> Enum.zip(exit_contract_statuses)
-      |> Enum.map(fn {%{eth_height: eth_height}, {address, token, amount, utxo_pos} = contract_status} ->
-        {Utxo.Position.decode(utxo_pos),
+      |> Enum.map(fn {event, contract_status} ->
+        %{eth_height: eth_height, call_data: %{utxo_pos: utxo_pos, output_tx: txbytes}} = event
+        Utxo.position(_, _, oindex) = utxo_pos_decoded = Utxo.Position.decode(utxo_pos)
+        {:ok, raw_tx} = Transaction.decode(txbytes)
+        %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
+
+        {utxo_pos_decoded,
          %ExitInfo{
            amount: amount,
-           currency: token,
-           owner: address,
+           currency: currency,
+           owner: owner,
            is_active: parse_contract_exit_status(contract_status),
            eth_height: eth_height
          }}
