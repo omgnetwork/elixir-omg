@@ -15,9 +15,7 @@
 defmodule OMG.Watcher.Web.Controller.StatusTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-
   alias OMG.Watcher.TestHelper
-
   @moduletag :integration
 
   @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]

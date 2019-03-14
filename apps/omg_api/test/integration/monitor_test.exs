@@ -18,6 +18,8 @@ defmodule OMG.API.MonitorTest do
   alias OMG.API.Alert.AlarmHandler
   alias OMG.API.Monitor
   use ExUnit.Case, async: true
+  @moduletag :integration
+  @moduletag timeout: 120_000
 
   setup_all do
     :ok = AlarmHandler.install()
@@ -43,9 +45,10 @@ defmodule OMG.API.MonitorTest do
     :ok
   end
 
+  @tag :capture_log
   test "if a tuple spec child gets started" do
     {:ok, monitor_pid} = Monitor.start_link([{__MODULE__.Mock, []}])
-    Process.unlink(monitor_pid)
+    _ = Process.unlink(monitor_pid)
     {:links, links} = Process.info(monitor_pid, :links)
 
     names =
@@ -71,12 +74,14 @@ defmodule OMG.API.MonitorTest do
     assert Enum.member?(names, __MODULE__.Mock)
   end
 
+  @tag :capture_log
   test "if a map spec child gets restarted after exit" do
     child = __MODULE__.Mock.prepare_child()
     {:ok, monitor_pid} = Monitor.start_link([child])
     handle_killing_and_monitoring(monitor_pid)
   end
 
+  @tag :capture_log
   test "if a tuple spec child gets restarted after exit" do
     child = {__MODULE__.Mock, []}
     {:ok, monitor_pid} = Monitor.start_link([child])
@@ -86,12 +91,13 @@ defmodule OMG.API.MonitorTest do
   test "if a child gets a interval set after termination" do
     child = {__MODULE__.Mock, []}
     {:ok, monitor_pid} = Monitor.start_link([child])
-    Process.unlink(monitor_pid)
-    Alarm.raise({:ethereum_client_connection, :erlang.node(), __MODULE__})
-    spawn(fn -> __MODULE__.Mock.terminate(:ethereum_client_connection) end)
+    _ = Process.unlink(monitor_pid)
+    _ = Alarm.raise({:ethereum_client_connection, :erlang.node(), __MODULE__})
+    _ = spawn(fn -> __MODULE__.Mock.terminate(:ethereum_client_connection) end)
     assert pull_state_and_find_timer(monitor_pid, 1000)
   end
 
+  @tag :capture_log
   test "for race condition starting two long init processes" do
     # a potential race condition that was addressed was
     # 1. a child gets killed and an alarm is raised before it can be restarted
