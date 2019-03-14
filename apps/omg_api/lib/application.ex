@@ -68,7 +68,7 @@ defmodule OMG.API.Application do
       {OMG.RPC.Web.Endpoint, []}
     ]
 
-    opts = [strategy: :one_for_one]
+    opts = [strategy: :one_for_one, max_restarts: Enum.count(children) * 10]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     :ok = :error_logger.add_report_handler(Sentry.Logger)
