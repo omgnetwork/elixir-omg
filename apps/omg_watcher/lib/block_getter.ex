@@ -63,13 +63,12 @@ defmodule OMG.Watcher.BlockGetter do
          %BlockApplication{
            transactions: transactions,
            number: blknum,
-           zero_fee_requirements: fees,
            eth_height: eth_height
          } = to_apply},
         state
       ) do
     with {:ok, _} <- Core.chain_ok(state),
-         tx_exec_results = for(tx <- transactions, do: OMG.API.State.exec(tx, fees)),
+         tx_exec_results = for(tx <- transactions, do: OMG.API.State.exec(tx, :ignore)),
          {:ok, state} <- Core.validate_executions(tx_exec_results, to_apply, state) do
       _ =
         to_apply

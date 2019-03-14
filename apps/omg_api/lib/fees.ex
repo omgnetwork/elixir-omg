@@ -23,28 +23,15 @@ defmodule OMG.API.Fees do
 
   require Utxo
 
-  @type fee_spec_t() :: %{token: Crypto.address_t(), flat_fee: non_neg_integer}
-  @type token_fee_t() :: %{Crypto.address_t() => non_neg_integer}
-
-  @doc """
-  Parses provided json string to token-fee map and returns the map together with possible parsing errors
-  """
-  @spec parse_file_content(binary()) :: {list({:error, atom()}), token_fee_t()}
-  def parse_file_content(file_content) do
-    {:ok, json} = Poison.decode(file_content)
-
-    {errors, token_fee_map, _} =
-      json
-      |> Enum.map(&parse_fee_spec/1)
-      |> Enum.reduce({[], %{}, 1}, &spec_reducer/2)
-
-    {Enum.reverse(errors), token_fee_map}
-  end
+  @type fee_spec_t() :: %{token: Transaction.currency(), flat_fee: non_neg_integer}
+  @type fee_t() :: %{Transaction.currency() => non_neg_integer} | :ignore
 
   @doc """
   Checks whether transaction's funds cover the fee
   """
-  @spec covered?(map(), map(), token_fee_t()) :: boolean()
+  @spec covered?(input_amounts :: map(), output_amounts :: map(), fees :: fee_t()) :: boolean()
+  def covered?(_, _, :ignore), do: true
+
   def covered?(input_amounts, output_amounts, fees) do
     for {input_currency, input_amount} <- Map.to_list(input_amounts) do
       # fee is implicit - it's the difference between funds owned and spend
@@ -61,48 +48,32 @@ defmodule OMG.API.Fees do
   @doc """
   Returns fees for particular transaction
   """
-  @spec for_tx(Transaction.Recovered.t(), token_fee_t()) :: token_fee_t()
+  @spec for_tx(Transaction.Recovered.t(), fee_t()) :: fee_t()
   def for_tx(
         %Transaction.Recovered{
           signed_tx: %Transaction.Signed{raw_tx: raw_tx}
         } = recovered_tx,
         fee_map
       ) do
-    if is_merge_transaction?(recovered_tx) do
-      # To make transaction fee free, zero-fee for transaction's currency needs to be explicitly returned.
-      currency = raw_tx |> Transaction.get_currencies() |> hd()
-      %{currency => 0}
-    else
+    if is_merge_transaction?(recovered_tx),
+      do: :ignore,
       # TODO: reducing fees to output currencies only is incorrect, let's deffer until fees get large
-      fee_map
-    end
+      else: fee_map
   end
 
-  defp parse_fee_spec(%{"flat_fee" => fee, "token" => token}) do
-    # defensive code against user input
-    with {:ok, fee} <- validate_fee(fee),
-         {:ok, addr} <- Crypto.decode_address(token) do
-      %{token: addr, flat_fee: fee}
-    end
-  end
+  @doc """
+  Parses provided json string to token-fee map and returns the map together with possible parsing errors
+  """
+  @spec parse_file_content(binary()) :: {list({:error, atom()}), fee_t()}
+  def parse_file_content(file_content) do
+    {:ok, json} = Poison.decode(file_content)
 
-  defp parse_fee_spec(_), do: {:error, :invalid_fee_spec}
+    {errors, token_fee_map, _} =
+      json
+      |> Enum.map(&parse_fee_spec/1)
+      |> Enum.reduce({[], %{}, 1}, &spec_reducer/2)
 
-  defp validate_fee(fee) when is_integer(fee) and fee >= 0, do: {:ok, fee}
-  defp validate_fee(_fee), do: {:error, :invalid_fee}
-
-  defp spec_reducer(fee_spec, {errors, token_fee_map, spec_index}) do
-    case fee_spec do
-      # most errors can be detected parsing particular record
-      {:error, _} = error ->
-        {[{error, spec_index} | errors], token_fee_map, spec_index + 1}
-
-      # checks whether token was specified before
-      %{token: token, flat_fee: fee} ->
-        if Map.has_key?(token_fee_map, token),
-          do: {[{{:error, :duplicate_token}, spec_index} | errors], token_fee_map, spec_index + 1},
-          else: {errors, Map.put(token_fee_map, token, fee), spec_index + 1}
-    end
+    {Enum.reverse(errors), token_fee_map}
   end
 
   defp is_merge_transaction?(recovered_tx) do
@@ -157,4 +128,28 @@ defmodule OMG.API.Fees do
   defp has_less_outputs_than_inputs?(inputs, outputs), do: length(inputs) >= 1 and length(inputs) > length(outputs)
 
   defp single?(list), do: 1 == list |> Enum.dedup() |> length()
+
+  defp parse_fee_spec(%{"flat_fee" => fee, "token" => token}) do
+    # defensive code against user input
+    with {:ok, fee} <- validate_fee(fee),
+         {:ok, addr} <- Crypto.decode_address(token) do
+      %{token: addr, flat_fee: fee}
+    end
+  end
+
+  defp parse_fee_spec(_), do: {:error, :invalid_fee_spec}
+
+  defp validate_fee(fee) when is_integer(fee) and fee >= 0, do: {:ok, fee}
+  defp validate_fee(_fee), do: {:error, :invalid_fee}
+
+  defp spec_reducer({:error, _} = error, {errors, token_fee_map, spec_index}),
+    # most errors can be detected parsing particular record
+    do: {[{error, spec_index} | errors], token_fee_map, spec_index + 1}
+
+  defp spec_reducer(%{token: token, flat_fee: fee}, {errors, token_fee_map, spec_index}) do
+    # checks whether token was specified before
+    if Map.has_key?(token_fee_map, token),
+      do: {[{{:error, :duplicate_token}, spec_index} | errors], token_fee_map, spec_index + 1},
+      else: {errors, Map.put(token_fee_map, token, fee), spec_index + 1}
+  end
 end

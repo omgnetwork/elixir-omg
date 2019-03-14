@@ -28,8 +28,6 @@ defmodule OMG.API.State.PersistenceTest do
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
-  @not_eth <<1::size(160)>>
-  @zero_fees %{@eth => 0, @not_eth => 0}
   @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
   @blknum1 @interval
 
@@ -175,7 +173,7 @@ defmodule OMG.API.State.PersistenceTest do
   end
 
   defp exec(state, tx) do
-    assert {:ok, _, state} = Core.exec(state, tx, @zero_fees)
+    assert {:ok, _, state} = Core.exec(state, tx, :ignore)
     state
   end
 end
