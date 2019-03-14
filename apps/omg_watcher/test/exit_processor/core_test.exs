@@ -31,7 +31,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.ExitInfo
-  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
   require Utxo
 
@@ -544,10 +543,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     in_flight_exit_events: events,
     contract_ife_statuses: statuses
   } do
-    assert [] == Core.get_in_flight_exits(processor)
+    assert [] == Core.get_active_in_flight_exits(processor)
 
     {processor, _} = Core.new_in_flight_exits(processor, events, statuses)
-    ifes_response = Core.get_in_flight_exits(processor)
+    ifes_response = Core.get_active_in_flight_exits(processor)
 
     assert ifes_response |> Enum.count() == 2
   end
@@ -576,7 +575,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                piggybacked_inputs: [],
                piggybacked_outputs: []
              }
-           ] == Core.get_in_flight_exits(processor) |> Enum.sort_by(& &1.eth_height)
+           ] == Core.get_active_in_flight_exits(processor) |> Enum.sort_by(& &1.eth_height)
   end
 
   @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses, :transactions]
@@ -588,16 +587,16 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   } do
     txhash = Transaction.hash(tx)
     {processor, _} = Core.new_in_flight_exits(processor, [event], [status])
-    assert [%{piggybacked_inputs: [], piggybacked_outputs: []}] = Core.get_in_flight_exits(processor)
+    assert [%{piggybacked_inputs: [], piggybacked_outputs: []}] = Core.get_active_in_flight_exits(processor)
 
     {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: txhash, output_index: 0}])
 
-    assert [%{piggybacked_inputs: [0], piggybacked_outputs: []}] = Core.get_in_flight_exits(processor)
+    assert [%{piggybacked_inputs: [0], piggybacked_outputs: []}] = Core.get_active_in_flight_exits(processor)
 
     {processor, _} =
       Core.new_piggybacks(processor, [%{tx_hash: txhash, output_index: 4}, %{tx_hash: txhash, output_index: 5}])
 
-    assert [%{piggybacked_inputs: [0], piggybacked_outputs: [0, 1]}] = Core.get_in_flight_exits(processor)
+    assert [%{piggybacked_inputs: [0], piggybacked_outputs: [0, 1]}] = Core.get_active_in_flight_exits(processor)
   end
 
   @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
@@ -627,9 +626,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     processor_filled: processor,
     in_flight_exits_challenges_events: [challenge | _]
   } do
-    assert Core.get_in_flight_exits(processor) |> Enum.count() == 2
+    assert Core.get_active_in_flight_exits(processor) |> Enum.count() == 2
     {processor2, _} = Core.new_ife_challenges(processor, [challenge])
-    assert Core.get_in_flight_exits(processor2) |> Enum.count() == 2
+    assert Core.get_active_in_flight_exits(processor2) |> Enum.count() == 2
     # sanity
     assert processor2 != processor
   end
@@ -641,11 +640,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       Core.new_piggybacks(processor, [%{tx_hash: tx_hash1, output_index: 0}, %{tx_hash: tx_hash2, output_index: 0}])
 
     # sanity: there are some piggybacks after piggybacking, to be removed later
-    assert [%{piggybacked_inputs: [_]}, %{piggybacked_inputs: [_]}] = Core.get_in_flight_exits(processor)
+    assert [%{piggybacked_inputs: [_]}, %{piggybacked_inputs: [_]}] = Core.get_active_in_flight_exits(processor)
     {processor, _} = Core.challenge_piggybacks(processor, [%{tx_hash: tx_hash1, output_index: 0}])
 
     assert [%{txhash: ^tx_hash1, piggybacked_inputs: []}, %{piggybacked_inputs: [0]}] =
-             Core.get_in_flight_exits(processor)
+             Core.get_active_in_flight_exits(processor)
              |> Enum.sort_by(&length(&1.piggybacked_inputs))
   end
 
@@ -656,10 +655,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     {processor, _} = Core.new_piggybacks(processor, events)
     # sanity: there are some piggybacks after piggybacking, to be removed later
-    assert [%{piggybacked_inputs: [_]}, %{piggybacked_inputs: [_]}] = Core.get_in_flight_exits(processor)
+    assert [%{piggybacked_inputs: [_]}, %{piggybacked_inputs: [_]}] = Core.get_active_in_flight_exits(processor)
     {processor, _} = Core.challenge_piggybacks(processor, events)
 
-    assert [%{piggybacked_inputs: []}, %{piggybacked_inputs: []}] = Core.get_in_flight_exits(processor)
+    assert [%{piggybacked_inputs: []}, %{piggybacked_inputs: []}] = Core.get_active_in_flight_exits(processor)
   end
 
   @tag fixtures: [:processor_filled, :ife_tx_hashes]
@@ -1864,7 +1863,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   describe "in-flight exit finalization" do
     @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
-    test "succeeds",
+    test "deactivate in-flight exit after all piggybacked outputs are finalized",
          %{
            processor_empty: processor,
            in_flight_exit_events: [ife | _],
@@ -1876,19 +1875,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: 1}])
       {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: 2}])
 
-      finalization1 = %{in_flight_exit_id: ife_id, output_index: 1}
+      {:ok, processor, [{:put, :in_flight_exit_info, _}]} =
+        Core.finalize_in_flight_exits(processor, [%{in_flight_exit_id: ife_id, output_index: 1}])
 
-      {:ok, processor, [{:put, :in_flight_exit_info, {_, exit_info}}]} =
-        Core.finalize_in_flight_exits(processor, [finalization1])
+      [_] = Core.get_active_in_flight_exits(processor)
 
-      assert expect_finalized_outputs(exit_info, [1], [2])
+      {:ok, processor, [{:put, :in_flight_exit_info, _}]} =
+        Core.finalize_in_flight_exits(processor, [%{in_flight_exit_id: ife_id, output_index: 2}])
 
-      finalization2 = %{in_flight_exit_id: ife_id, output_index: 2}
-
-      {:ok, _, [{:put, :in_flight_exit_info, {_, exit_info}}]} =
-        Core.finalize_in_flight_exits(processor, [finalization2])
-
-      assert expect_finalized_outputs(exit_info, [1, 2], [])
+      assert [] == Core.get_active_in_flight_exits(processor)
     end
 
     @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
@@ -1912,16 +1907,18 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "finalizing perserve in flights exits that are not being finalized",
          %{
            processor_empty: processor,
-           in_flight_exit_events: [ife1, ife2 | _],
-           contract_ife_statuses: [{_, ife_id} = ife_status1, ife_status2 | _]
+           in_flight_exit_events: [ife1, ife2],
+           contract_ife_statuses: [{_, ife_id} = ife_status1, ife_status2]
          } do
       {processor, _} = Core.new_in_flight_exits(processor, [ife1, ife2], [ife_status1, ife_status2])
 
-      tx_hash = ife_tx_hash(ife1)
-      {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: 1}])
+      tx1_hash = ife_tx_hash(ife1)
+      {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx1_hash, output_index: 1}])
       finalization = %{in_flight_exit_id: ife_id, output_index: 1}
       {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization])
-      [_, _] = Core.get_in_flight_exits(processor)
+
+      tx2_hash = ife_tx_hash(ife2)
+      [%{txhash: ^tx2_hash}] = Core.get_active_in_flight_exits(processor)
     end
 
     @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
@@ -1950,18 +1947,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {:unknown_piggybacks, [^finalization2]} = Core.finalize_in_flight_exits(processor, [finalization1, finalization2])
     end
-  end
-
-  defp expect_finalized_outputs(exit_info, expected_finalized_outputs, expected_active_outputs) do
-    expected_finalized =
-      expected_finalized_outputs
-      |> Enum.all?(&InFlightExitInfo.is_finalized?(exit_info, &1))
-
-    expected_active =
-      expected_active_outputs
-      |> Enum.all?(&InFlightExitInfo.is_active?(exit_info, &1))
-
-    expected_finalized and expected_active
   end
 
   defp ife_tx_hash(%{call_data: %{in_flight_tx: tx_bytes}}) do
