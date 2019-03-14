@@ -418,6 +418,10 @@ defmodule OMG.API.State.Core do
     exit_infos |> Enum.map(& &1.utxo_pos) |> exit_utxos(state)
   end
 
+  def exit_utxos([%{call_data: %{utxo_pos: _}} | _] = exit_infos, %Core{} = state) do
+    exit_infos |> Enum.map(& &1.call_data) |> exit_utxos(state)
+  end
+
   def exit_utxos([encoded_utxo_pos | _] = exit_infos, %Core{} = state) when is_integer(encoded_utxo_pos) do
     exit_infos |> Enum.map(&Utxo.Position.decode/1) |> exit_utxos(state)
   end

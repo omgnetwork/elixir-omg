@@ -148,12 +148,17 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     new_exits_kv_pairs =
       new_exits
       |> Enum.zip(exit_contract_statuses)
-      |> Enum.map(fn {%{eth_height: eth_height}, {address, token, amount, utxo_pos} = contract_status} ->
-        {Utxo.Position.decode(utxo_pos),
+      |> Enum.map(fn {event, contract_status} ->
+        %{eth_height: eth_height, call_data: %{utxo_pos: utxo_pos, output_tx: txbytes}} = event
+        Utxo.position(_, _, oindex) = utxo_pos_decoded = Utxo.Position.decode(utxo_pos)
+        {:ok, raw_tx} = Transaction.decode(txbytes)
+        %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
+
+        {utxo_pos_decoded,
          %ExitInfo{
            amount: amount,
-           currency: token,
-           owner: address,
+           currency: currency,
+           owner: owner,
            is_active: parse_contract_exit_status(contract_status),
            eth_height: eth_height
          }}
@@ -349,10 +354,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @spec finalize_in_flight_exits(t(), [map()]) ::
-          {:ok, t(), list()} | {:not_piggybacked, list()} | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
+          {:ok, t(), list()} | {:unknown_piggybacks, list()} | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
   def finalize_in_flight_exits(%__MODULE__{in_flight_exits: ifes} = state, finalizations) do
     with {:ok, ifes_by_id} <- get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes),
-         {:ok, []} <- outputs_piggybacked?(finalizations, ifes_by_id) do
+         {:ok, []} <- known_piggybacks?(finalizations, ifes_by_id) do
       {db_updates_by_id, ifes_by_id} =
         finalizations
         |> Enum.reduce({%{}, ifes_by_id}, &finalize_single_exit/2)
@@ -393,7 +398,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  defp outputs_piggybacked?(finalizations, ifes_by_id) do
+  defp known_piggybacks?(finalizations, ifes_by_id) do
     not_piggybacked =
       finalizations
       |> Enum.filter(fn %{in_flight_exit_id: ife_id, output_index: output} ->
@@ -404,7 +409,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     if Enum.empty?(not_piggybacked) do
       {:ok, []}
     else
-      {:not_piggybacked, not_piggybacked}
+      {:unknown_piggybacks, not_piggybacked}
     end
   end
 
@@ -624,7 +629,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     available_piggybacks_events =
       get_ifes_to_piggyback(request, state)
-      |> Enum.map(&prepare_available_piggyback/1)
+      |> Enum.flat_map(&prepare_available_piggyback/1)
 
     late_invalid_exits_events =
       late_invalid_exits
@@ -769,7 +774,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       inputs =
         Transaction.get_inputs(tx.raw_tx)
         |> Enum.with_index()
-        |> Enum.filter(fn {_input, index} -> InFlightExitInfo.is_piggybacked?(ife, index) end)
+        |> Enum.filter(fn {_input, index} -> InFlightExitInfo.is_input_piggybacked?(ife, index) end)
 
       {ife, inputs}
     end)
@@ -911,7 +916,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Enum.uniq()
   end
 
-  @spec get_ifes_to_piggyback(ExitProcessor.Request.t(), __MODULE__.t()) :: list(Transaction.Signed.t())
+  @spec get_ifes_to_piggyback(ExitProcessor.Request.t(), __MODULE__.t()) ::
+          list(InFlightExitInfo.t())
   defp get_ifes_to_piggyback(
          %ExitProcessor.Request{blocks_result: blocks},
          %__MODULE__{in_flight_exits: ifes}
@@ -920,44 +926,45 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     ifes
     |> Map.values()
-    |> Stream.map(fn %InFlightExitInfo{tx: signed_tx} -> signed_tx end)
+    |> Stream.filter(fn %InFlightExitInfo{is_active: is_active} -> is_active end)
     # TODO: expensive!
-    |> Stream.filter(fn %Transaction.Signed{raw_tx: raw_tx} ->
+    |> Stream.filter(fn %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: raw_tx}} ->
       !is_among_known_txs?(raw_tx, known_txs)
     end)
-    |> Enum.uniq()
+    |> Enum.uniq_by(fn %InFlightExitInfo{tx: signed_tx} -> signed_tx end)
   end
 
-  @spec prepare_available_piggyback(Transaction.Signed.t()) :: Event.PiggybackAvailable.t()
-  defp prepare_available_piggyback(%Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx} = signed_tx) do
+  @spec prepare_available_piggyback(InFlightExitInfo.t()) :: list(Event.PiggybackAvailable.t())
+  defp prepare_available_piggyback(
+         %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx} = signed_tx} = ife
+       ) do
     {:ok, %Transaction.Recovered{spenders: input_owners}} = Transaction.Recovered.recover_from(signed_tx)
 
     available_inputs =
       input_owners
       |> Enum.filter(&zero_address?/1)
       |> Enum.with_index()
+      |> Enum.filter(fn {_, index} -> not InFlightExitInfo.is_input_piggybacked?(ife, index) end)
       |> Enum.map(fn {owner, index} -> %{index: index, address: owner} end)
 
     available_outputs =
       outputs
       |> Enum.filter(fn %{owner: owner} -> zero_address?(owner) end)
       |> Enum.with_index()
+      |> Enum.filter(fn {_, index} -> not InFlightExitInfo.is_output_piggybacked?(ife, index) end)
       |> Enum.map(fn {%{owner: owner}, index} -> %{index: index, address: owner} end)
 
-    %Event.PiggybackAvailable{
-      txbytes: Transaction.encode(tx),
-      available_outputs: available_outputs,
-      available_inputs: available_inputs
-    }
-  end
-
-  @doc """
-  Returns a map of all in flight exits, where keys are IFE hashes and values are IFES
-  """
-  @spec get_in_flight_exits(__MODULE__.t()) :: list(map)
-  def get_in_flight_exits(%__MODULE__{in_flight_exits: ifes}) do
-    ifes
-    |> Enum.map(&prepare_in_flight_exit/1)
+    if Enum.empty?(available_inputs) and Enum.empty?(available_outputs) do
+      []
+    else
+      [
+        %Event.PiggybackAvailable{
+          txbytes: Transaction.encode(tx),
+          available_outputs: available_outputs,
+          available_inputs: available_inputs
+        }
+      ]
+    end
   end
 
   @doc """

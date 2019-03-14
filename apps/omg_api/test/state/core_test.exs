@@ -517,6 +517,11 @@ defmodule OMG.API.State.CoreTest do
 
     assert exit_utxos_response_reference ==
              utxo_pos_exits
+             |> Enum.map(&%{call_data: %{utxo_pos: Utxo.Position.encode(&1)}})
+             |> Core.exit_utxos(state)
+
+    assert exit_utxos_response_reference ==
+             utxo_pos_exits
              |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)})
              |> Core.exit_utxos(state)
 

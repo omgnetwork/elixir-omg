@@ -78,7 +78,7 @@ defmodule OMG.Watcher.DB.EthEventTest do
     alices_utxo_pos = Utxo.position(3000, 1, 1)
     alices_utxo_exit_hash = DB.EthEvent.generate_unique_key(alices_utxo_pos, :exit)
 
-    to_insert = Enum.map([bobs_deposit_pos, alices_utxo_pos], &Utxo.Position.encode/1)
+    to_insert = prepare_to_insert([bobs_deposit_pos, alices_utxo_pos])
     :ok = DB.EthEvent.insert_exits!(to_insert)
 
     assert %DB.EthEvent{blknum: 2, txindex: 0, event_type: :exit, hash: ^bobs_deposit_exit_hash} =
@@ -99,7 +99,11 @@ defmodule OMG.Watcher.DB.EthEventTest do
     # try to insert again existing deposit (from initial_blocks)
     assert :ok = DB.EthEvent.insert_deposits!([%{owner: alice.addr, currency: @eth, amount: 333, blknum: 1}])
 
-    to_insert = Enum.map([Utxo.position(1, 0, 0), Utxo.position(1, 0, 0)], &Utxo.Position.encode/1)
+    to_insert = prepare_to_insert([Utxo.position(1, 0, 0), Utxo.position(1, 0, 0)])
+
     assert :ok = DB.EthEvent.insert_exits!(to_insert)
   end
+
+  defp prepare_to_insert(positions),
+    do: Enum.map(positions, &%{call_data: %{utxo_pos: Utxo.Position.encode(&1)}})
 end
