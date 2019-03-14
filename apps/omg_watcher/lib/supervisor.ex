@@ -160,7 +160,7 @@ defmodule OMG.Watcher.Supervisor do
       }
     ]
 
-    opts = [strategy: :one_for_one]
+    opts = [strategy: :one_for_one, max_restarts: Enum.count(children) * 10]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
     Supervisor.init(children, opts)
