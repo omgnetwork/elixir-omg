@@ -78,10 +78,11 @@ defmodule OMG.API.TestHelper do
   @spec create_recovered(
           list({pos_integer, pos_integer, 0 | 1, map}),
           Transaction.currency(),
-          list({Crypto.address_t(), pos_integer})
+          list({Crypto.address_t(), pos_integer}),
+          Transaction.metadata()
         ) :: Transaction.Recovered.t()
-  def create_recovered(inputs, currency, outputs) do
-    signed_tx = create_signed(inputs, currency, outputs)
+  def create_recovered(inputs, currency, outputs, metadata \\ nil) do
+    signed_tx = create_signed(inputs, currency, outputs, metadata)
     {:ok, recovered} = Transaction.Recovered.recover_from(signed_tx)
     recovered
   end
@@ -102,13 +103,15 @@ defmodule OMG.API.TestHelper do
   @spec create_signed(
           list({pos_integer, pos_integer, 0 | 1, map}),
           Transaction.currency(),
-          list({Crypto.address_t(), pos_integer})
+          list({Crypto.address_t(), pos_integer}),
+          Transaction.metadata()
         ) :: Transaction.Signed.t()
-  def create_signed(inputs, currency, outputs) do
+  def create_signed(inputs, currency, outputs, metadata \\ nil) do
     raw_tx =
       Transaction.new(
         inputs |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end),
-        outputs |> Enum.map(fn {owner, amount} -> {owner.addr, currency, amount} end)
+        outputs |> Enum.map(fn {owner, amount} -> {owner.addr, currency, amount} end),
+        metadata
       )
 
     privs = get_private_keys(inputs)

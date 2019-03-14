@@ -103,7 +103,7 @@ defmodule OMG.API.State.Transaction do
   @spec new(
           list({pos_integer, pos_integer, 0 | 1}),
           list({Crypto.address_t(), currency(), pos_integer}),
-          binary() | nil
+          metadata()
         ) :: t()
   def new(inputs, outputs, metadata \\ @default_metadata) when is_metadata(metadata) do
     inputs =

@@ -52,4 +52,21 @@ defmodule OMG.Watcher.DB.TransactionTest do
 
     assert [] == DB.Transaction.get_by_blknum(5000)
   end
+
+  @tag fixtures: [:alice, :blocks_inserter]
+  test "transaction metadata is persisted in database", %{alice: alice, blocks_inserter: blocks_inserter} do
+    eth = OMG.Eth.RootChain.eth_pseudo_address()
+    metadata = <<1::8*32>>
+
+    [
+      {1000,
+       [
+         OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], eth, [{alice, 300}], metadata)
+       ]}
+    ]
+    |> blocks_inserter.()
+
+    assert not is_nil(tx = DB.Transaction.get_by_position(1000, 0))
+    assert metadata == tx.metadata
+  end
 end
