@@ -957,15 +957,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @doc """
-  Returns a map of all in flight exits, where keys are IFE hashes and values are IFES
-  """
-  @spec get_in_flight_exits(__MODULE__.t()) :: list(map)
-  def get_in_flight_exits(%__MODULE__{in_flight_exits: ifes}) do
-    ifes
-    |> Enum.map(&prepare_in_flight_exit/1)
-  end
-
-  @doc """
   Returns a map of active in flight exits, where keys are IFE hashes and values are IFES
   """
   @spec get_active_in_flight_exits(__MODULE__.t()) :: list(map)
