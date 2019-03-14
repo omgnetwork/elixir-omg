@@ -51,11 +51,7 @@ defmodule OMG.API.Sup do
         service_name: :exiter,
         synced_height_update_key: :last_exiter_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
-        process_events_callback: fn exits ->
-          exits
-          |> Enum.map(&OMG.Eth.RootChain.get_standard_exit_utxo_pos/1)
-          |> exit_and_ignore_events_and_validities()
-        end
+        process_events_callback: &exit_and_ignore_events_and_validities/1
       ),
       {OMG.RPC.Web.Endpoint, []}
     ]

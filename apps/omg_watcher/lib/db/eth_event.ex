@@ -74,8 +74,13 @@ defmodule OMG.Watcher.DB.EthEvent do
   """
   @spec insert_exits!([non_neg_integer()]) :: :ok
   def insert_exits!(exits) do
-    Enum.each(exits, &(&1 |> Utxo.Position.decode() |> insert_exit!()))
+    exits
+    |> Stream.map(&utxo_pos_from_exit_event/1)
+    |> Enum.each(&insert_exit!/1)
   end
+
+  @spec utxo_pos_from_exit_event(%{call_data: %{utxo_pos: pos_integer()}}) :: Utxo.Position.t()
+  defp utxo_pos_from_exit_event(%{call_data: %{utxo_pos: utxo_pos}}), do: Utxo.Position.decode(utxo_pos)
 
   @spec insert_exit!(Utxo.Position.t()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   defp insert_exit!(Utxo.position(blknum, txindex, _oindex) = position) do
