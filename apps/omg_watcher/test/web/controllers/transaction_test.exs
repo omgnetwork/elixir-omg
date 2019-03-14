@@ -363,6 +363,24 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                }
              ] = TestHelper.success?("transaction.all")
     end
+
+    @tag fixtures: [:initial_blocks]
+    test "returns transactions containing metadata", %{initial_blocks: initial_blocks} do
+      {blknum, txindex, txhash, recovered_tx} = initial_blocks |> Enum.find(&match?({2000, 0, _, _}, &1))
+      expected_metadata = recovered_tx.signed_tx.raw_tx.metadata
+
+      assert [
+        %{
+          "block" => %{
+            "blknum" => ^blknum
+          },
+          "txhash" => ^txhash,
+          "txindex" => ^txindex,
+          "metadata" => ^expected_metadata
+        }
+        | _
+      ] = TestHelper.success?("transaction.all", %{"metadata" => expected_metadata})
+    end
   end
 
   describe "getting transactions with limit on number of transactions" do
