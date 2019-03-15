@@ -18,7 +18,6 @@ defmodule OMG.Watcher.BlockGetter.BlockApplication do
   valid, downloaded block
   """
 
-  alias OMG.API.State.Transaction
   alias OMG.Watcher.BlockGetter.BlockApplication
 
   @type t :: %__MODULE__{
