@@ -59,14 +59,10 @@ defmodule OMG.Watcher.DB.TransactionTest do
     metadata = <<1::256>>
 
     [
-      {1000,
-       [
-         OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], eth, [{alice, 300}], metadata)
-       ]}
+      {1000, [OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], eth, [{alice, 300}], metadata)]}
     ]
     |> blocks_inserter.()
 
-    assert not is_nil(tx = DB.Transaction.get_by_position(1000, 0))
-    assert metadata == tx.metadata
+    assert metadata == DB.Transaction.get_by_position(1000, 0).metadata
   end
 end

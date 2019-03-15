@@ -68,6 +68,10 @@ defmodule OMG.Watcher.DB.Transaction do
     DB.Repo.one(query)
   end
 
+  @doc """
+  Returns transactions possibly filtered by constrains
+  * constrains - accepts keyword in the form of [schema_field: value]
+  """
   @spec get_by_filters(Keyword.t()) :: list(%__MODULE__{})
   def get_by_filters(constrains) do
     # we need to handle complex constrains with dedicated modifier function

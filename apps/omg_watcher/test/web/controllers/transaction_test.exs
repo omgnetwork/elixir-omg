@@ -373,14 +373,11 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
       assert [
                %{
-                 "block" => %{
-                   "blknum" => ^blknum
-                 },
+                 "block" => %{"blknum" => ^blknum},
                  "metadata" => ^expected_metadata,
                  "txhash" => ^expected_txhash,
                  "txindex" => ^txindex
                }
-               # | _
              ] = TestHelper.success?("transaction.all", %{"metadata" => expected_metadata})
     end
   end
