@@ -25,7 +25,7 @@ defmodule OMG.Watcher.DB.Transaction do
 
   require Utxo
 
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query, only: [from: 2, where: 2]
 
   @type mined_block() :: %{
           transactions: [OMG.API.State.Transaction.Recovered.t()],
@@ -42,6 +42,7 @@ defmodule OMG.Watcher.DB.Transaction do
     field(:txindex, :integer)
     field(:txbytes, :binary)
     field(:sent_at, :utc_datetime)
+    field(:metadata, :binary)
 
     has_many(:inputs, DB.TxOutput, foreign_key: :spending_txhash)
     has_many(:outputs, DB.TxOutput, foreign_key: :creating_txhash)
@@ -67,10 +68,23 @@ defmodule OMG.Watcher.DB.Transaction do
     DB.Repo.one(query)
   end
 
-  def get_by_filters(address, blknum, limit) do
+  @doc """
+  Returns transactions possibly filtered by constrains
+  * constrains - accepts keyword in the form of [schema_field: value]
+  """
+  @spec get_by_filters(Keyword.t()) :: list(%__MODULE__{})
+  def get_by_filters(constrains) do
+    allowed_constrains = [:limit, :address, :blknum, :txindex, :metadata]
+
+    constrains = filter_constrains(constrains, allowed_constrains)
+
+    # we need to handle complex constrains with dedicated modifier function
+    {limit, constrains} = Keyword.pop(constrains, :limit)
+    {address, constrains} = Keyword.pop(constrains, :address)
+
     query_get_last(limit)
     |> query_get_by_address(address)
-    |> query_get_by_blknum(blknum)
+    |> query_get_by(constrains)
     |> DB.Repo.all()
   end
 
@@ -95,12 +109,11 @@ defmodule OMG.Watcher.DB.Transaction do
     )
   end
 
-  defp query_get_by_blknum(base, nil), do: base
-  defp query_get_by_blknum(base, blknum), do: base |> from(where: [blknum: ^blknum])
+  defp query_get_by(query, constrains) when is_list(constrains), do: query |> where(^constrains)
 
   def get_by_blknum(blknum) do
     __MODULE__
-    |> query_get_by_blknum(blknum)
+    |> query_get_by(blknum: blknum)
     |> from(order_by: [asc: :txindex])
     |> DB.Repo.all()
   end
@@ -151,31 +164,50 @@ defmodule OMG.Watcher.DB.Transaction do
   defp process(
          %Transaction.Recovered{
            tx_hash: tx_hash,
-           signed_tx: %Transaction.Signed{signed_tx_bytes: signed_tx_bytes, raw_tx: raw_tx = %Transaction{}}
+           signed_tx: %Transaction.Signed{
+             signed_tx_bytes: signed_tx_bytes,
+             raw_tx: %Transaction{metadata: metadata} = raw_tx
+           }
          },
          block_number,
          txindex,
          [tx_list, output_list, input_list]
        ) do
     [
-      [create(block_number, txindex, tx_hash, signed_tx_bytes) | tx_list],
+      [create(block_number, txindex, tx_hash, signed_tx_bytes, metadata) | tx_list],
       DB.TxOutput.create_outputs(block_number, txindex, tx_hash, raw_tx) ++ output_list,
       DB.TxOutput.create_inputs(raw_tx, tx_hash) ++ input_list
     ]
   end
 
-  @spec create(pos_integer(), integer(), binary(), binary()) :: map()
+  @spec create(pos_integer(), integer(), binary(), binary(), Transaction.metadata()) ::
+          map()
   defp create(
          block_number,
          txindex,
          txhash,
-         txbytes
+         txbytes,
+         metadata
        ) do
     %{
       txhash: txhash,
       txbytes: txbytes,
       blknum: block_number,
-      txindex: txindex
+      txindex: txindex,
+      metadata: metadata
     }
+  end
+
+  defp filter_constrains(constrains, allowed_constrains) do
+    case Keyword.drop(constrains, allowed_constrains) do
+      [{out_of_schema, _} | _] ->
+        _ =
+          Logger.warn("Constrain on #{inspect(out_of_schema)} does not exist in schema and was dropped from the query")
+
+        constrains |> Keyword.take(allowed_constrains)
+
+      [] ->
+        constrains
+    end
   end
 end

@@ -23,7 +23,8 @@ defmodule OMG.Watcher.Web.Serializer.ResponseTest do
     sent_at: nil,
     txbytes: nil,
     txhash: nil,
-    txindex: nil
+    txindex: nil,
+    metadata: nil
   }
 
   test "cleaning response structure: map of maps" do

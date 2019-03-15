@@ -163,7 +163,7 @@ defmodule OMG.Watcher.Fixtures do
        ]},
       {2000,
        [
-         OMG.API.TestHelper.create_recovered([{1000, 1, 0, alice}], @eth, [{bob, 99}, {alice, 1}])
+         OMG.API.TestHelper.create_recovered([{1000, 1, 0, alice}], @eth, [{bob, 99}, {alice, 1}], <<1337::256>>)
        ]},
       {3000,
        [
