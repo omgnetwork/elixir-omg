@@ -2070,9 +2070,28 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   test "not spent or not existed utxo should be not challengeable", %{
     processor_filled: processor
   } do
-    assert {:ok, 1000, exit_info} = Core.get_challange_data({:ok, 1000}, @utxo_pos1, processor)
+    assert {:ok, 1000, exit_info} = Core.get_challenge_data({:ok, 1000}, @utxo_pos1, processor)
 
-    assert {:error, :utxo_not_spent} = Core.get_challange_data({:ok, :not_found}, Utxo.position(1000, 0, 1), processor)
-    assert {:error, :exit_not_found} = Core.get_challange_data({:ok, 1000}, @utxo_pos3, processor)
+    assert {:error, :utxo_not_spent} = Core.get_challenge_data({:ok, :not_found}, @utxo_pos2, processor)
+    assert {:error, :exit_not_found} = Core.get_challenge_data({:ok, 1000}, @utxo_pos3, processor)
+  end
+
+  @tag fixtures: [:processor_filled, :alice, :transactions]
+  test "challenges standard exits challengeable by IFE transactions",
+       %{processor_filled: processor, alice: %{addr: alice_addr}, transactions: [ife_tx | _]} do
+    txbytes = Transaction.new([], [{alice_addr, @eth, 10}]) |> Transaction.encode()
+
+    event = %{
+      owner: alice_addr,
+      eth_height: 2,
+      exit_id: 1,
+      call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos3), output_tx: txbytes}
+    }
+
+    status = {alice_addr, @eth, 10, Utxo.Position.encode(@utxo_pos3)}
+    {processor, _} = Core.new_exits(processor, [event], [status])
+
+    assert {:ok, %Transaction.Signed{raw_tx: ^ife_tx}, %ExitInfo{owner: ^alice_addr}} =
+             Core.get_challenge_data({:ok, :not_found}, @utxo_pos3, processor)
   end
 end
