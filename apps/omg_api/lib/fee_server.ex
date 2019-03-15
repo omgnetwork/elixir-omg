@@ -82,7 +82,7 @@ defmodule OMG.API.FeeServer do
 
         :ok
       else
-        {:file_unchanged, last_change_at} ->
+        {:file_unchanged, _last_change_at} ->
           :ok
 
         {:error, :enoent} ->

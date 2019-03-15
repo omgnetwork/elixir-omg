@@ -50,9 +50,7 @@ defmodule OMG.API.Fees do
   """
   @spec for_tx(Transaction.Recovered.t(), fee_t()) :: fee_t()
   def for_tx(
-        %Transaction.Recovered{
-          signed_tx: %Transaction.Signed{raw_tx: raw_tx}
-        } = recovered_tx,
+        %Transaction.Recovered{} = recovered_tx,
         fee_map
       ) do
     if is_merge_transaction?(recovered_tx),
