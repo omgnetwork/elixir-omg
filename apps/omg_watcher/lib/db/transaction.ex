@@ -74,6 +74,10 @@ defmodule OMG.Watcher.DB.Transaction do
   """
   @spec get_by_filters(Keyword.t()) :: list(%__MODULE__{})
   def get_by_filters(constrains) do
+    allowed_constrains = [:limit, :address, :blknum, :txindex, :metadata]
+
+    constrains = filter_constrains(constrains, allowed_constrains)
+
     # we need to handle complex constrains with dedicated modifier function
     {limit, constrains} = Keyword.pop(constrains, :limit)
     {address, constrains} = Keyword.pop(constrains, :address)
@@ -192,5 +196,18 @@ defmodule OMG.Watcher.DB.Transaction do
       txindex: txindex,
       metadata: metadata
     }
+  end
+
+  defp filter_constrains(constrains, allowed_constrains) do
+    case Keyword.drop(constrains, allowed_constrains) do
+      [{out_of_schema, _} | _] ->
+        _ =
+          Logger.warn("Constrain on #{inspect(out_of_schema)} does not exist in schema and was dropped from the query")
+
+        constrains |> Keyword.take(allowed_constrains)
+
+      [] ->
+        constrains
+    end
   end
 end

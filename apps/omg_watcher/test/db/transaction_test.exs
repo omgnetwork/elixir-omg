@@ -23,6 +23,7 @@ defmodule OMG.Watcher.DB.TransactionTest do
   alias OMG.Watcher.DB
 
   require Utxo
+  import ExUnit.CaptureLog
 
   @tag fixtures: [:initial_blocks]
   test "verifies all expected transaction were inserted", %{initial_blocks: initial_blocks} do
@@ -64,5 +65,12 @@ defmodule OMG.Watcher.DB.TransactionTest do
     |> blocks_inserter.()
 
     assert metadata == DB.Transaction.get_by_position(1000, 0).metadata
+  end
+
+  @tag fixtures: [:initial_blocks]
+  test "passing constrains out of allowed takes no effect and print a warning" do
+    assert capture_log([level: :warn], fn ->
+             [_tx] = DB.Transaction.get_by_filters(blknum: 2000, nothing: "there's no such thing")
+           end) =~ "Constrain on :nothing does not exist in schema and was dropped from the query"
   end
 end
