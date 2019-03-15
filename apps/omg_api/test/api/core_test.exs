@@ -97,15 +97,30 @@ defmodule OMG.API.CoreTest do
   end
 
   @tag fixtures: [:alice]
-  test "transactions with corrupt signatures don't do harm", %{alice: alice} do
+  test "transactions with corrupt signatures don't do harm - one signature", %{alice: alice} do
     full_signed_tx = TestHelper.create_signed([{1, 2, 3, alice}], eth(), [{alice, 7}])
     %Transaction.Signed{sigs: [sig1 | _]} = full_signed_tx
 
-    corrupt =
-      %Transaction.Signed{full_signed_tx | sigs: [<<1::size(520)>>, sig1]}
-      |> Transaction.Signed.encode()
+    assert {:error, :signature_corrupt} ==
+             %Transaction.Signed{full_signed_tx | sigs: [<<1::size(520)>>, sig1]}
+             |> Transaction.Signed.encode()
+             |> Core.recover_tx()
+  end
 
-    assert {:error, :signature_corrupt} == Core.recover_tx(corrupt)
+  @tag fixtures: [:alice]
+  test "transactions with corrupt signatures don't do harm - one of many signatures", %{alice: alice} do
+    full_signed_tx = TestHelper.create_signed([{1, 2, 3, alice}, {1, 2, 4, alice}], eth(), [{alice, 7}])
+    %Transaction.Signed{sigs: [sig1, sig2 | _]} = full_signed_tx
+
+    assert {:error, :signature_corrupt} ==
+             %Transaction.Signed{full_signed_tx | sigs: [sig1, <<1::size(520)>>]}
+             |> Transaction.Signed.encode()
+             |> Core.recover_tx()
+
+    assert {:error, :signature_corrupt} ==
+             %Transaction.Signed{full_signed_tx | sigs: [<<1::size(520)>>, sig2]}
+             |> Transaction.Signed.encode()
+             |> Core.recover_tx()
   end
 
   @tag fixtures: [:alice]
