@@ -20,6 +20,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   use OMG.Watcher.Web, :controller
 
   alias OMG.Watcher.API
+  alias OMG.Watcher.Web.Validator
 
   @doc """
   Retrieves a specific transaction by id.
@@ -36,14 +37,15 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   Retrieves a list of transactions
   """
   def get_transactions(conn, params) do
-    with {:ok, address} <- expect(params, "address", [:address, :optional]),
-         {:ok, limit} <- expect(params, "limit", [:pos_integer, :optional]),
-         {:ok, blknum} <- expect(params, "blknum", [:pos_integer, :optional]) do
-      API.Transaction.get_transactions(address, blknum, limit)
+    with {:ok, constrains} <- Validator.Constrains.parse(params) do
+      API.Transaction.get_transactions(constrains)
       |> api_response(conn, :transactions)
     end
   end
 
+  @doc """
+  Submits transaction to child chain
+  """
   def submit(conn, params) do
     with {:ok, tx} <- expect(params, "transaction", :hex) do
       API.Transaction.submit(tx)
@@ -56,9 +58,7 @@ defmodule OMG.Watcher.Web.Controller.Transaction do
   If also provided with receiver's address, creates and encodes a transaction.
   """
   def create(conn, params) do
-    alias OMG.Watcher.Web.Validator.Order
-
-    with {:ok, order} <- Order.parse(params) do
+    with {:ok, order} <- Validator.Order.parse(params) do
       API.Transaction.create(order)
       |> api_response(conn, :create)
     end
