@@ -56,36 +56,38 @@ defmodule OMG.API.FeeServer do
     {:ok, load_fees()}
   end
 
-  # Reads fee specification file if needed and updates :ets state with current fees information
-  @spec update_fee_spec() :: :ok | :file_unchanged | {:error, atom()}
-  defp update_fee_spec do
+  @doc """
+   Reads fee specification file if needed and updates :ets state with current fees information
+  """
+  @spec update_fee_spec() :: :ok
+  def update_fee_spec do
     path = Application.fetch_env!(:omg_api, :fee_specs_file_path)
 
-    with {:reload, changed_at} <- should_load_file(path),
-         {:ok, content} <- File.read(path),
-         {:ok, specs} <- Fees.parse_file_content(content) do
-      :ok = save_fees(specs, changed_at)
-      _ = Logger.info("Reloaded #{inspect(Enum.count(specs))} fee specs from file, changed at #{inspect(changed_at)}")
+    :ok =
+      with {:reload, changed_at} <- should_load_file(path),
+           {:ok, content} <- File.read(path),
+           {:ok, specs} <- Fees.parse_file_content(content) do
+        :ok = save_fees(specs, changed_at)
+        _ = Logger.info("Reloaded #{inspect(Enum.count(specs))} fee specs from file, changed at #{inspect(changed_at)}")
 
-      :ok
-    else
-      {:file_unchanged, _last_change_at} ->
-        :file_unchanged
+        :ok
+      else
+        {:file_unchanged, _last_change_at} ->
+          :ok
 
-      {:error, :enoent} ->
-        _ = Logger.error("The fee specification file #{inspect(path)} not found in #{System.get_env("PWD")}")
+        {:error, :enoent} ->
+          _ = Logger.error("The fee specification file #{inspect(path)} not found in #{System.get_env("PWD")}")
 
-        {:error, :fee_spec_not_found}
+          {:error, :fee_spec_not_found}
 
-      error ->
-        _ = Logger.warn("Unable to update fees from file. Reason: #{inspect(error)}")
-        error
-    end
+        error ->
+          _ = Logger.warn("Unable to update fees from file. Reason: #{inspect(error)}")
+          error
+      end
   end
 
   defp save_fees(fee_specs, loaded_at) do
-    true = :ets.insert(:fees_bucket, {:last_loaded, loaded_at})
-    true = :ets.insert(:fees_bucket, {:fees, fee_specs})
+    true = :ets.insert(:fees_bucket, [{:last_loaded, loaded_at}, {:fees, fee_specs}])
     :ok
   end
 
