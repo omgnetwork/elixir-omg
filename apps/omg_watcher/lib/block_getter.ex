@@ -32,6 +32,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.DB
   alias OMG.Watcher.ExitProcessor
+  alias OMG.Watcher.Recorder
 
   use GenServer
   use OMG.API.LoggerExt
@@ -40,18 +41,56 @@ defmodule OMG.Watcher.BlockGetter do
     GenServer.call(__MODULE__, :get_events)
   end
 
-  @spec download_block(pos_integer()) :: Core.validate_download_response_result_t()
-  defp download_block(requested_number) do
-    {:ok, {requested_hash, block_timestamp}} = Eth.RootChain.get_child_chain(requested_number)
-    response = Client.get_block(requested_hash)
+  def start_link(_args) do
+    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  end
 
-    Core.validate_download_response(
-      response,
-      requested_hash,
-      requested_number,
-      block_timestamp,
-      :os.system_time(:millisecond)
-    )
+  def init(_opts) do
+    {:ok, %{}, {:continue, :setup}}
+  end
+
+  def handle_continue(:setup, %{}) do
+    {:ok, deployment_height} = Eth.RootChain.get_root_deployment_height()
+    {:ok, last_synced_height} = OMG.DB.get_single_value(:last_block_getter_eth_height)
+    synced_height = max(deployment_height, last_synced_height)
+
+    {current_block_height, state_at_block_beginning} = State.get_status()
+    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
+    # State treats current as the next block to be executed or a block that is being executed
+    # while top block number is a block that has been formed (they differ by the interval)
+    child_top_block_number = current_block_height - child_block_interval
+
+    last_persisted_block = DB.Block.get_max_blknum()
+
+    # how many eth blocks backward can change during an reorg
+    block_getter_reorg_margin = Application.fetch_env!(:omg_watcher, :block_getter_reorg_margin)
+    maximum_block_withholding_time_ms = Application.fetch_env!(:omg_watcher, :maximum_block_withholding_time_ms)
+    maximum_number_of_unapplied_blocks = Application.fetch_env!(:omg_watcher, :maximum_number_of_unapplied_blocks)
+
+    exit_processor_initial_results = ExitProcessor.check_validity()
+
+    {:ok, state} =
+      Core.init(
+        child_top_block_number,
+        child_block_interval,
+        synced_height,
+        block_getter_reorg_margin,
+        last_persisted_block,
+        state_at_block_beginning,
+        exit_processor_initial_results,
+        maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
+        maximum_number_of_unapplied_blocks: maximum_number_of_unapplied_blocks,
+        # NOTE: not elegant, but this should limit the number of heavy-lifting workers and chance to starve the rest
+        maximum_number_of_pending_blocks: System.schedulers()
+      )
+
+    :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
+    {:ok, _} = schedule_sync_height()
+    {:ok, _} = schedule_producer()
+
+    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
+
+    {:noreply, state}
   end
 
   def handle_call(:get_events, _from, state) do
@@ -105,56 +144,6 @@ defmodule OMG.Watcher.BlockGetter do
         _ = Logger.warn("Chain already invalid before applying block #{inspect(blknum)} because of #{inspect(error)}")
         {:noreply, state}
     end
-  end
-
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
-  end
-
-  def init(_opts) do
-    {:ok, %{}, {:continue, :setup}}
-  end
-
-  def handle_continue(:setup, %{}) do
-    {:ok, deployment_height} = Eth.RootChain.get_root_deployment_height()
-    {:ok, last_synced_height} = OMG.DB.get_single_value(:last_block_getter_eth_height)
-    synced_height = max(deployment_height, last_synced_height)
-
-    {current_block_height, state_at_block_beginning} = State.get_status()
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-    # State treats current as the next block to be executed or a block that is being executed
-    # while top block number is a block that has been formed (they differ by the interval)
-    child_top_block_number = current_block_height - child_block_interval
-
-    last_persisted_block = DB.Block.get_max_blknum()
-
-    # how many eth blocks backward can change during an reorg
-    block_getter_reorg_margin = Application.fetch_env!(:omg_watcher, :block_getter_reorg_margin)
-    maximum_block_withholding_time_ms = Application.fetch_env!(:omg_watcher, :maximum_block_withholding_time_ms)
-    maximum_number_of_unapplied_blocks = Application.fetch_env!(:omg_watcher, :maximum_number_of_unapplied_blocks)
-
-    exit_processor_initial_results = ExitProcessor.check_validity()
-
-    {:ok, state} =
-      Core.init(
-        child_top_block_number,
-        child_block_interval,
-        synced_height,
-        block_getter_reorg_margin,
-        last_persisted_block,
-        state_at_block_beginning,
-        exit_processor_initial_results,
-        maximum_block_withholding_time_ms: maximum_block_withholding_time_ms,
-        maximum_number_of_unapplied_blocks: maximum_number_of_unapplied_blocks,
-        # NOTE: not elegant, but this should limit the number of heavy-lifting workers and chance to starve the rest
-        maximum_number_of_pending_blocks: System.schedulers()
-      )
-
-    :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)
-    {:ok, _} = schedule_sync_height()
-    {:ok, _} = schedule_producer()
-
-    {:noreply, state}
   end
 
   @spec handle_info(
@@ -251,5 +240,19 @@ defmodule OMG.Watcher.BlockGetter do
   defp schedule_producer do
     Application.fetch_env!(:omg_watcher, :block_getter_loops_interval_ms)
     |> :timer.send_after(self(), :producer)
+  end
+
+  @spec download_block(pos_integer()) :: Core.validate_download_response_result_t()
+  defp download_block(requested_number) do
+    {:ok, {requested_hash, block_timestamp}} = Eth.RootChain.get_child_chain(requested_number)
+    response = Client.get_block(requested_hash)
+
+    Core.validate_download_response(
+      response,
+      requested_hash,
+      requested_number,
+      block_timestamp,
+      :os.system_time(:millisecond)
+    )
   end
 end

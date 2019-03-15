@@ -23,6 +23,7 @@ defmodule OMG.API.State do
   alias OMG.API.EventerAPI
   alias OMG.API.Fees
   alias OMG.API.FreshBlocks
+  alias OMG.API.Recorder
   alias OMG.API.State.Core
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
@@ -112,6 +113,8 @@ defmodule OMG.API.State do
         other ->
           other
       end
+
+    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
 
     {:noreply, state}
   end

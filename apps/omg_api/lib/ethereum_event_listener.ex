@@ -18,6 +18,7 @@ defmodule OMG.API.EthereumEventListener do
   """
 
   alias OMG.API.EthereumEventListener.Core
+  alias OMG.API.Recorder
   alias OMG.API.RootChainCoordinator
   alias OMG.API.RootChainCoordinator.SyncGuide
   alias OMG.Eth
@@ -80,6 +81,15 @@ defmodule OMG.API.EthereumEventListener do
 
     {:ok, _} = schedule_get_events()
     :ok = RootChainCoordinator.check_in(height_to_check_in, service_name)
+
+    name =
+      service_name
+      |> Atom.to_string()
+      |> Kernel.<>(".Recorder")
+      |> String.to_atom()
+
+    {:ok, _} = Recorder.start_link(%Recorder{name: name, parent: self()})
+
     {:noreply, {initial_state, callbacks_map}}
   end
 
