@@ -173,6 +173,7 @@ defmodule OMG.API.State.TransactionTest do
   test "Decode transaction", %{transaction: tx} do
     {:ok, decoded} = tx |> Transaction.encode() |> Transaction.decode()
     assert decoded == tx
+    assert decoded == tx |> Transaction.encode() |> Transaction.decode!()
   end
 
   @tag fixtures: [:alice]

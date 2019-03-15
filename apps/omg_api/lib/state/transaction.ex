@@ -79,14 +79,6 @@ defmodule OMG.API.State.Transaction do
     end
   end
 
-  defmacro input_index do
-    range = Range.new(0, @max_inputs - 1)
-
-    quote do
-      unquote(range)
-    end
-  end
-
   @type input_index_t() :: 0..3
 
   @doc """
@@ -216,15 +208,6 @@ defmodule OMG.API.State.Transaction do
     tx
     |> encode
     |> Crypto.hash()
-  end
-
-  @doc """
-  Returns all input currencies
-  """
-  @spec get_currencies(t()) :: list(currency())
-  def get_currencies(%__MODULE__{outputs: outputs}) do
-    outputs
-    |> Enum.map(& &1.currency)
   end
 
   @doc """

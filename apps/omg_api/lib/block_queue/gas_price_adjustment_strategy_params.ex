@@ -36,15 +36,6 @@ defmodule OMG.API.BlockQueue.GasPriceAdjustmentStrategyParams do
           last_block_mined: tuple() | nil
         }
 
-  def new(raising_factor, lowering_factor, eth_blocks_gap \\ 2) do
-    %__MODULE__{
-      gas_price_raising_factor: raising_factor,
-      gas_price_lowering_factor: lowering_factor,
-      eth_gap_without_child_blocks: eth_blocks_gap,
-      last_block_mined: nil
-    }
-  end
-
   def with(state, last_checked_parent_height, last_checked_mined_child_block_num) do
     %{state | last_block_mined: {last_checked_parent_height, last_checked_mined_child_block_num}}
   end
