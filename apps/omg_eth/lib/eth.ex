@@ -33,6 +33,24 @@ defmodule OMG.Eth do
   @type address :: <<_::160>>
   @type hash :: <<_::256>>
 
+  @spec node_ready() :: :ok | {:error, :geth_still_syncing | :geth_not_listening}
+  def node_ready do
+    case Ethereumex.HttpClient.eth_syncing() do
+      {:ok, false} -> :ok
+      {:ok, _} -> {:error, :geth_still_syncing}
+      {:error, :econnrefused} -> {:error, :geth_not_listening}
+    end
+  end
+
+  @doc """
+  Checks geth syncing status, errors are treated as not synced.
+  Returns:
+  * false - geth is synced
+  * true  - geth is still syncing.
+  """
+  @spec syncing?() :: boolean
+  def syncing?, do: node_ready() != :ok
+
   def get_ethereum_height do
     case Ethereumex.HttpClient.eth_block_number() do
       {:ok, height_hex} ->
