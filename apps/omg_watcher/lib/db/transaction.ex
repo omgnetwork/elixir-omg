@@ -25,7 +25,7 @@ defmodule OMG.Watcher.DB.Transaction do
 
   require Utxo
 
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query, only: [from: 2, where: 2]
 
   @type mined_block() :: %{
           transactions: [OMG.API.State.Transaction.Recovered.t()],
@@ -68,10 +68,15 @@ defmodule OMG.Watcher.DB.Transaction do
     DB.Repo.one(query)
   end
 
-  def get_by_filters(address, blknum, limit) do
+  @spec get_by_filters(Keyword.t()) :: list(%__MODULE__{})
+  def get_by_filters(constrains) do
+    # we need to handle complex constrains with dedicated modifier function
+    {limit, constrains} = Keyword.pop(constrains, :limit)
+    {address, constrains} = Keyword.pop(constrains, :address)
+
     query_get_last(limit)
     |> query_get_by_address(address)
-    |> query_get_by_blknum(blknum)
+    |> query_get_by(constrains)
     |> DB.Repo.all()
   end
 
@@ -96,12 +101,11 @@ defmodule OMG.Watcher.DB.Transaction do
     )
   end
 
-  defp query_get_by_blknum(base, nil), do: base
-  defp query_get_by_blknum(base, blknum), do: base |> from(where: [blknum: ^blknum])
+  defp query_get_by(query, constrains) when is_list(constrains), do: query |> where(^constrains)
 
   def get_by_blknum(blknum) do
     __MODULE__
-    |> query_get_by_blknum(blknum)
+    |> query_get_by(blknum: blknum)
     |> from(order_by: [asc: :txindex])
     |> DB.Repo.all()
   end

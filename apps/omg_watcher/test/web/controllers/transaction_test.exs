@@ -370,16 +370,16 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       expected_metadata = recovered_tx.signed_tx.raw_tx.metadata
 
       assert [
-        %{
-          "block" => %{
-            "blknum" => ^blknum
-          },
-          "txhash" => ^txhash,
-          "txindex" => ^txindex,
-          "metadata" => ^expected_metadata
-        }
-        | _
-      ] = TestHelper.success?("transaction.all", %{"metadata" => expected_metadata})
+               %{
+                 "block" => %{
+                   "blknum" => ^blknum
+                 },
+                 "txhash" => ^txhash,
+                 "txindex" => ^txindex,
+                 "metadata" => ^expected_metadata
+               }
+               | _
+             ] = TestHelper.success?("transaction.all", %{"metadata" => expected_metadata})
     end
   end
 

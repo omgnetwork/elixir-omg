@@ -43,13 +43,17 @@ defmodule OMG.Watcher.API.Transaction do
 
   Length of the list is limited by `limit` argument
   """
-  @spec get_transactions(nil | OMG.API.Crypto.address_t(), nil | pos_integer(), pos_integer()) ::
-          list(%DB.Transaction{})
-  def get_transactions(address, blknum, limit) do
-    limit = limit || @default_transactions_limit
+  @spec get_transactions(Keyword.t()) :: list(%DB.Transaction{})
+  def get_transactions(constrains) do
+    allowed_constrains = [:limit, :address, :blknum]
+
     # TODO: implement pagination. Defend against fetching huge dataset.
-    limit = min(limit, @default_transactions_limit)
-    DB.Transaction.get_by_filters(address, blknum, limit)
+    constrains =
+      constrains
+      |> Keyword.take(allowed_constrains)
+      |> Keyword.update(:limit, @default_transactions_limit, &min(&1, @default_transactions_limit))
+
+    DB.Transaction.get_by_filters(constrains)
   end
 
   @doc """
