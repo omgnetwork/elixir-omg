@@ -45,7 +45,7 @@ defmodule OMG.Watcher.API.Transaction do
   """
   @spec get_transactions(Keyword.t()) :: list(%DB.Transaction{})
   def get_transactions(constrains) do
-    allowed_constrains = [:limit, :address, :blknum]
+    allowed_constrains = [:limit, :address, :blknum, :metadata]
 
     # TODO: implement pagination. Defend against fetching huge dataset.
     constrains =

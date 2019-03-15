@@ -27,7 +27,8 @@ defmodule OMG.Watcher.Web.Validator.Constrains do
     constrains = [
       address: [:address, :optional],
       limit: [:pos_integer, :optional],
-      blknum: [:pos_integer, :optional]
+      blknum: [:pos_integer, :optional],
+      metadata: [:hash, :optional]
     ]
 
     constrains
