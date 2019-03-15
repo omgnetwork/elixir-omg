@@ -264,14 +264,18 @@ class WatcherLauncher:
         if self.deploy_contract() is False:
             logging.critical('Contract not deployed. Exiting.')
             sys.exit(1)
-        if self.initialise_watcher_chain_database() is False:
-            logging.critical('Could not initialise Watcher LevelDB instance')
-            sys.exit(1)
-        if self.initialise_watcher_postgres_database() is False:
-            logging.critical(
-                'Could not connect to the Postgres database Exiting.'
-            )
-            sys.exit(1)
+        if self.check_watcher_chain_data_present() is False:
+            # This is a fresh deploy of the Watcher
+            if self.initialise_watcher_chain_database() is False:
+                logging.critical(
+                    'Could not initialise Watcher LevelDB instance'
+                )
+                sys.exit(1)
+            if self.initialise_watcher_postgres_database() is False:
+                logging.critical(
+                    'Could not connect to the Postgres database Exiting.'
+                )
+                sys.exit(1)
 
         logging.info('Launcher process complete')
 
@@ -313,6 +317,17 @@ class WatcherLauncher:
         logging.info('Response received from the contract exchanger service')
 
         return request.content
+
+    def check_watcher_chain_data_present(self) -> bool:
+        ''' Return True if ~/.omg/ exits. This allows deployment
+        for both situations that are fresh and where there is existing data.
+        '''
+        if os.path.exists(os.path.expanduser('~') + '/.omg/data_watcher'):
+            logging.info('Chain data found')
+            return True
+        else:
+            logging.info('Chain data not found')
+            return False
 
     def config_writer_dynamic(self) -> bool:
         ''' Write the configuration from data retrieved from the contract
@@ -387,21 +402,6 @@ class WatcherLauncher:
     def initialise_watcher_chain_database(self) -> bool:
         ''' Initialise the childchian database (chain data store)
         '''
-        remove_stale_data = subprocess.run(
-            "rm -Rf ~/.omg/data_watcher",
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            shell=True
-        )
-        if not remove_stale_data.returncode == 0:
-            logging.warning(
-                'Could not delete Watcher LevelDB data! Error: {}'.format(
-                    remove_stale_data.stdout
-                )
-            )
-        else:
-            logging.info('Deleted Watcher LevelDB data')
-
         result = subprocess.run(
             "mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs", # noqa E501
             stdout=subprocess.PIPE,
@@ -504,3 +504,4 @@ def main():
 if __name__ == '__main__':
     set_logger()
     main()
+
