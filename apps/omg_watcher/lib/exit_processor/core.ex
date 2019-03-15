@@ -844,24 +844,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
          do: produce_invalid_piggyback_proof(request, state, tx, pb_index)
   end
 
-  @spec get_exit_info(Utxo.Position.t(), t()) :: {:ok, ExitInfo.t()} | {:ok, :not_found}
-  defp get_exit_info(Utxo.position(_, _, _) = utxo_exit, %__MODULE__{exits: exits}) do
-    case Map.get(exits, utxo_exit) do
-      nil -> {:ok, :not_found}
-      exit_info -> {:ok, exit_info}
-    end
-  end
-
-  @spec get_ife_based_on_utxo(Utxo.Position.t(), t()) :: {:ok, Transaction.Signed.t()} | {:ok, :not_found}
+  @spec get_ife_based_on_utxo(Utxo.Position.t(), t()) :: KnownTx.t() | nil
   defp get_ife_based_on_utxo(Utxo.position(_, _, _) = utxo_exit, %__MODULE__{} = state) do
     get_known_txs(state)
     |> Enum.find(fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = tx}} ->
       Enum.member?(Transaction.get_inputs(tx), utxo_exit)
     end)
-    |> case do
-      nil -> {:ok, :not_found}
-      signed_tx -> {:ok, signed_tx}
-    end
   end
 
   @spec get_invalid_exits_based_on_ifes(t()) :: list(%{Utxo.Position.t() => ExitInfo.t()})
@@ -1282,31 +1270,25 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   @doc """
-  Checks whether database responses hold all the relevant data successfully fetched:
-   - a block number which can be used to retrieve needed information to challenge or if exists ife which spends inputs
+  Checks whether database responses or IFEs hold all the relevant data successfully fetched:
+   - a block number which can be used to retrieve needed information to challenge or an ife which spends inputs
    - the relevant exit information
   """
-  @spec get_challange_data(tuple(), Utxo.Position.t(), t()) ::
-          {:ok, pos_integer() | Transaction.Signed.t(), ExitInfo.t()} | {:error, atom()}
-  def get_challange_data(spending_blknum_response, exiting_utxo_pos, %__MODULE__{} = state) do
-    ife_response = get_ife_based_on_utxo(exiting_utxo_pos, state)
-    exit_response = get_exit_info(exiting_utxo_pos, state)
-
-    ensure_challengeable(spending_blknum_response, exit_response, ife_response)
+  @spec get_challenge_data(tuple(), Utxo.Position.t(), t()) ::
+          {:ok, pos_integer() | KnownTx.t(), ExitInfo.t()} | {:error, atom()}
+  def get_challenge_data(spending_blknum_response, exiting_utxo_pos, %__MODULE__{exits: exits} = state) do
+    with %ExitInfo{} = exit_info <- Map.get(exits, exiting_utxo_pos, {:error, :exit_not_found}),
+         ife_response = get_ife_based_on_utxo(exiting_utxo_pos, state),
+         {:ok, raw_spending_proof} <- ensure_challengeable(spending_blknum_response, ife_response),
+         do: {:ok, raw_spending_proof, exit_info}
   end
 
-  defp ensure_challengeable(spending_blknum_response, exit_response, ife_response)
+  defp ensure_challengeable(spending_blknum_response, ife_response)
 
-  defp ensure_challengeable({:ok, :not_found}, _, {:ok, :not_found}), do: {:error, :utxo_not_spent}
-  defp ensure_challengeable(_, {:ok, :not_found}, _), do: {:error, :exit_not_found}
-
-  defp ensure_challengeable({:ok, blknum}, {:ok, exit_info}, _) when is_integer(blknum),
-    do: {:ok, blknum, exit_info}
-
-  defp ensure_challengeable(_, {:ok, exit_info}, {:ok, %Transaction.Signed{} = signed_tx}),
-    do: {:ok, signed_tx, exit_info}
-
-  defp ensure_challengeable({:error, error}, _, _), do: {:error, error}
+  defp ensure_challengeable({:ok, :not_found}, nil), do: {:error, :utxo_not_spent}
+  defp ensure_challengeable({:ok, blknum}, _) when is_integer(blknum), do: {:ok, blknum}
+  defp ensure_challengeable(_, %KnownTx{signed_tx: signed_tx}), do: {:ok, signed_tx}
+  defp ensure_challengeable(other_db_result, _), do: other_db_result
 
   # finds transaction in given block and input index spending given utxo
   @spec get_spending_transaction_with_index(Block.t() | Transaction.Signed.t(), Utxo.Position.t()) ::

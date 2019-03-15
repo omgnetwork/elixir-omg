@@ -366,7 +366,7 @@ defmodule OMG.Watcher.ExitProcessor do
          %{txhash: txhash} <- OMG.Watcher.DB.Transaction.get_by_position(blknum, txindex),
          {:ok, exit_id} <- OMG.Eth.RootChain.get_standard_exit_id(txhash, oindex),
          {:ok, raw_spending_proof, exit_info} <-
-           Core.get_challange_data(spending_blknum_response, exiting_utxo_pos, state) do
+           Core.get_challenge_data(spending_blknum_response, exiting_utxo_pos, state) do
       # TODO: we're violating the shell/core pattern here, refactor!
       spending_proof =
         case raw_spending_proof do
