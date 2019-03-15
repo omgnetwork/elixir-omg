@@ -22,11 +22,11 @@ defmodule OMG.API.Integration.Fixtures do
 
   import OMG.API.Integration.DepositHelper
 
-  deffixture fee_file(token) do
+  deffixture fee_file(token, nftoken) do
     # ensuring that the child chain handles the token (esp. fee-wise)
 
     enc_eth = Eth.Encoding.to_hex(OMG.API.Crypto.zero_address())
-    {:ok, path} = OMG.API.TestHelper.write_fee_file(%{enc_eth => 0, Eth.Encoding.to_hex(token) => 0})
+    {:ok, path} = OMG.API.TestHelper.write_fee_file(%{enc_eth => 0, Eth.Encoding.to_hex(token) => 0, Eth.Encoding.to_hex(nftoken) => 0})
     default_path = Application.fetch_env!(:omg_api, :fee_specs_file_path)
     Application.put_env(:omg_api, :fee_specs_file_path, path, persistent: true)
 
@@ -54,20 +54,21 @@ defmodule OMG.API.Integration.Fixtures do
     :ok
   end
 
-  deffixture alice_deposits(alice, token) do
-    deposit(alice, token)
+  deffixture alice_deposits(alice, token, nftoken) do
+    deposit(alice, token, nftoken)
   end
 
-  deffixture stable_alice_deposits(stable_alice, token) do
-    deposit(stable_alice, token)
+  deffixture stable_alice_deposits(stable_alice, token, nftoken) do
+    deposit(stable_alice, token, nftoken)
   end
 
-  defp deposit(alice, token) do
+  defp deposit(alice, token, nftoken) do
     {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
 
     deposit_blknum = deposit_to_child_chain(alice.addr, 10)
     token_deposit_blknum = deposit_to_child_chain(alice.addr, 10, token)
+    nftoken_deposit_blknum = deposit_to_child_chain(alice.addr, [1, 2, 3, 4, 5, 6, 7], nftoken)
 
-    {deposit_blknum, token_deposit_blknum}
+    {deposit_blknum, token_deposit_blknum, nftoken_deposit_blknum}
   end
 end

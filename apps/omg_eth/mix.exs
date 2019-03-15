@@ -41,17 +41,39 @@ defmodule OMG.Eth.MixProject do
       #       then there's some unexpected behavior of mix that won't allow to mix these, see
       #       [here](https://elixirforum.com/t/mix-dependency-is-not-locked-error-when-building-with-edeliver/7069/3)
       #       OMG-373 (Elixir 1.8) should fix this
-      {:briefly, "~> 0.3"},
-      {:deferred_config, "~> 0.1.1"},
+    #   {:briefly, "~> 0.3"},
       {
         :plasma_contracts,
-        git: "https://github.com/omisego/plasma-contracts",
+        git: "ssh://git@github.com/hoardexchange/plasma-contracts.git",
         branch: "master",
         sparse: "contracts/",
         compile: contracts_compile(),
         app: false,
         only: [:dev, :test]
       },
+    # {
+    #     :plasma_contracts,
+    #     # NOTE: this is a long-running patch-branch applied to `master` which hard-codes shorter exit periods.
+    #     #       Rebase on `master`, if new changes are pushed there.
+    #     #       Switch back to `master`, after the exit periods are properly parametrized on deployment
+    #     git: "https://github.com/omisego/plasma-contracts",
+    #     branch: "master_short_exit_period",
+    #     sparse: "contracts/",
+    #     compile: contracts_compile(),
+    #     app: false,
+    #     only: [:dev, :test]
+    #   },
+    #   {:briefly, "~> 0.3"},
+    #   {
+    #     :plasma_contracts,
+    #     git: "https://github.com/pdobacz/plasma-contracts",
+    #     branch: "finalization_challenge_events",
+    #     sparse: "contracts/",
+    #     compile: contracts_compile(),
+    #     app: false,
+    #     only: [:dev, :test]
+    #   }
+      {:deferred_config, "~> 0.1.1"},
       {:appsignal, "~> 1.0"}
     ]
   end
@@ -66,7 +88,7 @@ defmodule OMG.Eth.MixProject do
     compilation_path = Path.join([mixfile_path, "../..", contracts_dir])
 
     contract_paths =
-      ["RootChain.sol", "MintableToken.sol"]
+      ["RootChain.sol", "MintableToken.sol", "NFTBasicToken.sol"]
       |> Enum.join(" ")
 
     output_path = Path.join([mixfile_path, "../..", "_build/contracts"])

@@ -43,6 +43,13 @@ defmodule OMG.API.State.Core do
           owner: Crypto.address_t(),
           amount: pos_integer()
         }
+        |
+        %{
+            blknum: non_neg_integer(),
+            currency: Crypto.address_t(),
+            owner: Crypto.address_t(),
+            tokenids: list(pos_integer())
+        }
 
   @type in_flight_exit() :: %{in_flight_tx: bitstring()}
   @type piggyback() :: %{txhash: Transaction.Recovered.tx_hash_t(), output_index: non_neg_integer}
@@ -53,7 +60,13 @@ defmodule OMG.API.State.Core do
           owner: Crypto.address_t(),
           amount: pos_integer()
         }
-
+        |
+        %{
+            utxo_pos: pos_integer(),
+            token: Crypto.address_t(),
+            owner: Crypto.address_t(),
+            tokenids: list(pos_integer())
+        }
   @type utxos() :: %{Utxo.Position.t() => Utxo.t()}
 
   @type exec_error ::
@@ -171,9 +184,19 @@ defmodule OMG.API.State.Core do
     inputs = Transaction.get_inputs(raw_tx)
 
     with :ok <- inputs_not_from_future_block?(state, inputs),
-         {:ok, inputs} <- inputs_belong_to_spenders?(utxos, recovered_tx) do
-      {:ok, get_amounts_by_currency(inputs)}
+        {:ok, inputs} <- inputs_belong_to_spenders?(utxos, recovered_tx) do
+        {:ok, inputs 
+            |> Enum.map(fn utxo -> utxo_to_input(utxo) end)
+            |> get_amounts_by_currency()}
     end
+  end
+
+  defp utxo_to_input(%Utxo{currency: currency, owner: owner, tokenids: nil, amount: amount}) do
+    %{currency: currency, owner: owner, amount: amount}
+  end
+
+  defp utxo_to_input(%Utxo{currency: currency, owner: owner, tokenids: tokenids, amount: nil}) do
+    %{currency: currency, owner: owner, tokenids: tokenids}
   end
 
   defp inputs_not_from_future_block?(%__MODULE__{height: blknum}, inputs) do
@@ -214,10 +237,17 @@ defmodule OMG.API.State.Core do
     end
   end
 
-  defp get_amounts_by_currency(utxos) do
+  defp get_amounts_by_currency([%{currency: _, amount: _}|_] = utxos) do
     utxos
     |> Enum.group_by(fn %{currency: currency} -> currency end, fn %{amount: amount} -> amount end)
     |> Enum.map(fn {currency, amounts} -> {currency, Enum.sum(amounts)} end)
+    |> Map.new()
+  end
+
+  defp get_amounts_by_currency([%{currency: _, tokenids: _}|_] = utxos) do
+    utxos
+    |> Enum.group_by(fn %{currency: currency} -> currency end, fn %{tokenids: tokenids} -> tokenids end)
+    |> Enum.map(fn {currency, all_tokenids} -> {currency, Enum.sort(Enum.concat(all_tokenids))} end)
     |> Map.new()
   end
 
@@ -226,7 +256,7 @@ defmodule OMG.API.State.Core do
     outputs_covered =
       for {output_currency, output_amount} <- Map.to_list(output_amounts) do
         input_amount = Map.get(input_amounts, output_currency, 0)
-        input_amount >= output_amount
+        check_amounts(input_amount, output_amount)
       end
       |> Enum.all?()
 
@@ -234,11 +264,31 @@ defmodule OMG.API.State.Core do
       for {input_currency, input_amount} <- Map.to_list(input_amounts) do
         output_amount = Map.get(output_amounts, input_currency, 0)
         fee = Map.get(fees, input_currency, 0)
-        input_amount - output_amount >= fee
+        check_fee(input_amount, output_amount, fee)
       end
       |> Enum.any?()
 
     if outputs_covered and fees_covered, do: :ok, else: {:error, :amounts_do_not_add_up}
+  end
+
+  defp check_amounts(input_amount, output_amount) when is_integer(input_amount) and is_integer(output_amount) do
+    input_amount >= output_amount
+  end
+
+  defp check_amounts(input_amount, output_amount) when is_list(input_amount) and is_list(output_amount) do
+    (input_amount -- output_amount) == []
+  end
+
+  defp check_amounts(0, []), do: true 
+  defp check_amounts([], 0), do: true
+
+  defp check_fee(input_amount, output_amount, fee) when is_integer(input_amount) and is_integer(output_amount) do
+    input_amount - output_amount >= fee
+  end
+
+  # FIXME: Add support for ft and nft in one tx and then define fee checking.
+  defp check_fee(input_amount, output_amount, fee) when is_list(input_amount) and is_list(output_amount) do
+    fee == 0
   end
 
   defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, new_tx) do
@@ -276,11 +326,22 @@ defmodule OMG.API.State.Core do
          height,
          tx_index
        ) do
-    outputs = Transaction.get_outputs(tx)
 
+    Transaction.get_outputs(tx)
+    |> utxo_from_outputs(height, tx_index, hash)
+  end
+
+  defp utxo_from_outputs([%{owner: _, currency: _, amount: _}|_] = outputs, height, tx_index, hash) do
     for {%{owner: owner, currency: currency, amount: amount}, oindex} <- Enum.with_index(outputs) do
-      {Utxo.position(height, tx_index, oindex),
-       %Utxo{owner: owner, currency: currency, amount: amount, creating_txhash: hash}}
+        {Utxo.position(height, tx_index, oindex),
+         %Utxo{owner: owner, currency: currency, amount: amount, creating_txhash: hash}}
+    end
+  end
+
+  defp utxo_from_outputs([%{owner: _, currency: _, tokenids: _}|_] = outputs, height, tx_index, hash) do
+    for {%{owner: owner, currency: currency, tokenids: tokenids}, oindex} <- Enum.with_index(outputs) do
+        {Utxo.position(height, tx_index, oindex),
+         %Utxo{owner: owner, currency: currency, tokenids: tokenids, creating_txhash: hash}}
     end
   end
 
@@ -353,7 +414,7 @@ defmodule OMG.API.State.Core do
 
     event_triggers =
       deposits
-      |> Enum.map(fn %{owner: owner, amount: amount} -> %{deposit: %{amount: amount, owner: owner}} end)
+      |> create_event_triggers()
 
     last_deposit_child_blknum = get_last_deposit_child_blknum(deposits, last_deposit_child_blknum)
 
@@ -364,7 +425,7 @@ defmodule OMG.API.State.Core do
     db_updates = db_updates_new_utxos ++ last_deposit_child_blknum_db_update(deposits, last_deposit_child_blknum)
 
     _ = if deposits != [], do: Logger.info(fn -> "Recognized deposits #{inspect(deposits)}" end)
-
+    
     new_state = %Core{
       state
       | utxos: Map.merge(utxos, Map.new(new_utxos)),
@@ -374,11 +435,30 @@ defmodule OMG.API.State.Core do
     {:ok, {event_triggers, db_updates}, new_state}
   end
 
+  defp create_event_triggers([]), do: []
+  defp create_event_triggers([%{owner: _, amount: _}|_] = deposits) do
+    deposits
+    |> Enum.map(fn %{owner: owner, amount: amount} -> %{deposit: %{amount: amount, owner: owner}} end)
+  end
+
+  defp create_event_triggers([%{owner: _, tokenids: _}|_] = deposits) do
+    deposits
+    |> Enum.map(fn %{owner: owner, tokenids: tokenids} -> %{deposit: %{tokenids: tokenids, owner: owner}} end)
+  end
+
   defp utxo_to_db_put({utxo_pos, %Utxo{} = utxo}),
     do: {:put, :utxo, {Utxo.Position.to_db_key(utxo_pos), Map.from_struct(utxo)}}
 
-  defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount}) do
+  defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount, tokenids: []}) do
     {Utxo.position(blknum, 0, 0), %Utxo{amount: amount, currency: cur, owner: owner}}
+  end
+
+  defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: 0, tokenids: [_|_] = tokenids}) do
+    {Utxo.position(blknum, 0, 0), %Utxo{currency: cur, owner: owner, tokenids: tokenids}}
+  end
+
+  defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: 0, tokenids: []}) do
+    {Utxo.position(blknum, 0, 0), %Utxo{currency: cur, owner: owner}}
   end
 
   defp get_last_deposit_child_blknum(deposits, current_height) do

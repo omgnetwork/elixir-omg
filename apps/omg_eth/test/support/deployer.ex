@@ -21,7 +21,7 @@ defmodule OMG.Eth.Deployer do
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
-  @gas_contract_rootchain 6_180_000
+  @gas_contract_rootchain 6_280_000
   @gas_contract_token 1_590_893
 
   def create_new(contract, path_project_root, from, opts \\ [])
@@ -41,6 +41,16 @@ defmodule OMG.Eth.Deployer do
     opts = defaults |> Keyword.merge(opts)
 
     bytecode = Eth.get_bytecode!(path_project_root, "MintableToken")
+
+    Eth.deploy_contract(from, bytecode, [], [], opts)
+    |> Eth.DevHelpers.deploy_sync!()
+  end
+
+  def create_new(OMG.Eth.NFToken, path_project_root, from, opts) do
+    defaults = @tx_defaults |> Keyword.put(:gas, @gas_contract_token)
+    opts = defaults |> Keyword.merge(opts)
+
+    bytecode = Eth.get_bytecode!(path_project_root, "NFTBasicToken")
 
     Eth.deploy_contract(from, bytecode, [], [], opts)
     |> Eth.DevHelpers.deploy_sync!()

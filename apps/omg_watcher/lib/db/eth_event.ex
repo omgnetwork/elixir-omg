@@ -45,7 +45,7 @@ defmodule OMG.Watcher.DB.EthEvent do
   end
 
   @spec insert_deposit(OMG.API.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
-  defp insert_deposit(%{blknum: blknum, owner: owner, currency: currency, amount: amount}) do
+  defp insert_deposit(%{blknum: blknum, owner: owner, currency: currency, amount: amount, tokenids: tokenids}) do
     {:ok, _} =
       %__MODULE__{
         hash: deposit_key(blknum),
@@ -58,7 +58,8 @@ defmodule OMG.Watcher.DB.EthEvent do
           oindex: 0,
           owner: owner,
           currency: currency,
-          amount: amount
+          amount: amount,
+          tokenids: tokenids
         }
       }
       |> DB.Repo.insert()

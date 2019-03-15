@@ -104,6 +104,7 @@ defmodule OMG.Watcher.Fixtures do
 
   defp log_output(prefix, line) do
     Logger.debug(fn -> "#{prefix}: " <> line end)
+    # IO.puts("#{prefix}: #{line}")
     line
   end
 
@@ -175,8 +176,8 @@ defmodule OMG.Watcher.Fixtures do
 
     # Initial data depending tests can reuse
     OMG.Watcher.DB.EthEvent.insert_deposits([
-      %{owner: alice.addr, currency: @eth, amount: 333, blknum: 1},
-      %{owner: bob.addr, currency: @eth, amount: 100, blknum: 2}
+      %{owner: alice.addr, currency: @eth, amount: 333, blknum: 1, tokenids: []},
+      %{owner: bob.addr, currency: @eth, amount: 100, blknum: 2, tokenids: []}
     ])
 
     :ok

@@ -56,8 +56,8 @@ defmodule OMG.API.PropTest.Helper do
   Collapse deposits list into a short form use in OMG.API.PropTest
   """
   def format_deposits(deposits) do
-    Enum.map(deposits, fn %{amount: amount, blknum: blknum, currency: currency, owner: owner} ->
-      {amount, currency_to_atom(currency), addr_to_owner_name(owner), blknum}
+    Enum.map(deposits, fn %{amount: amount, blknum: blknum, currency: currency, owner: owner, tokenids: tokenids} ->
+      {amount, currency_to_atom(currency), addr_to_owner_name(owner), blknum, tokenids} 
     end)
   end
 
@@ -87,8 +87,8 @@ defmodule OMG.API.PropTest.Helper do
   defp get_utxos([{:deposits, deposits} | history], {unspent, spent}, position) do
     new_unspent =
       deposits
-      |> Enum.map(fn {amount, currency, owner, blknum} ->
-        {Utxo.position(blknum, 0, 0), %{currency: currency, owner: owner, amount: amount}}
+      |> Enum.map(fn {amount, currency, owner, blknum, tokenids} ->
+        {Utxo.position(blknum, 0, 0), %{currency: currency, owner: owner, amount: amount, tokenids: tokenids}}
       end)
       |> Map.new()
       |> Map.merge(unspent)

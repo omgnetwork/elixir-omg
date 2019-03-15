@@ -91,12 +91,12 @@ defmodule OMG.DBTest do
     :ok =
       DB.multi_update(
         [
-          {:put, :utxo, {{10, 30, 0}, %{amount: 10, owner: "alice1"}}},
-          {:put, :utxo, {{11, 30, 0}, %{amount: 10, owner: "alice2"}}},
-          {:put, :utxo, {{11, 31, 0}, %{amount: 10, owner: "alice3"}}},
-          {:put, :utxo, {{11, 31, 1}, %{amount: 10, owner: "alice4"}}},
-          {:put, :utxo, {{50, 30, 0}, %{amount: 10, owner: "alice5"}}},
-          {:delete, :utxo, {50, 30, 0}}
+          {:put, :utxo, {{10, 30, 0, 0}, %{amount: 10, owner: "alice1"}}},
+          {:put, :utxo, {{11, 30, 0, 0}, %{amount: 10, owner: "alice2"}}},
+          {:put, :utxo, {{11, 31, 0, 0}, %{amount: 10, owner: "alice3"}}},
+          {:put, :utxo, {{11, 31, 1, 0}, %{amount: 10, owner: "alice4"}}},
+          {:put, :utxo, {{50, 30, 0, 0}, %{amount: 10, owner: "alice5"}}},
+          {:delete, :utxo, {50, 30, 0, 0}}
         ],
         TestDBServer
       )
@@ -104,10 +104,10 @@ defmodule OMG.DBTest do
     checks = fn ->
       assert {:ok,
               [
-                {{10, 30, 0}, %{amount: 10, owner: "alice1"}},
-                {{11, 30, 0}, %{amount: 10, owner: "alice2"}},
-                {{11, 31, 0}, %{amount: 10, owner: "alice3"}},
-                {{11, 31, 1}, %{amount: 10, owner: "alice4"}}
+                {{10, 30, 0, 0}, %{amount: 10, owner: "alice1"}},
+                {{11, 30, 0, 0}, %{amount: 10, owner: "alice2"}},
+                {{11, 31, 0, 0}, %{amount: 10, owner: "alice3"}},
+                {{11, 31, 1, 0}, %{amount: 10, owner: "alice4"}}
               ]} == DB.utxos(TestDBServer)
     end
 

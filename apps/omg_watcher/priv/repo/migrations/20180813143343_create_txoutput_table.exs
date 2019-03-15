@@ -13,6 +13,7 @@ defmodule OMG.Watcher.Repo.Migrations.CreateTxoutputTable do
       add :spending_tx_oindex, :integer
       add :owner, :binary, null: false
       add :amount, :decimal, precision: 81, scale: 0, null: false
+      add :tokenids, {:array, :integer}, null: false
       add :currency, :binary, null: false
       add :proof, :binary
     end

@@ -26,6 +26,8 @@ defmodule OMG.API.Integration.HappyPathTest do
   alias OMG.Eth
   alias OMG.RPC.Web.TestHelper
 
+  @moduletag timeout: 120000
+
   @moduletag :integration
 
   defp eth, do: Crypto.zero_address()
@@ -35,7 +37,7 @@ defmodule OMG.API.Integration.HappyPathTest do
     alice: alice,
     bob: bob,
     token: token,
-    alice_deposits: {deposit_blknum, token_deposit_blknum}
+    alice_deposits: {deposit_blknum, token_deposit_blknum, _}
   } do
     raw_tx = Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, eth(), 7}, {alice.addr, eth(), 3}])
 
@@ -121,5 +123,72 @@ defmodule OMG.API.Integration.HappyPathTest do
       if(resp_body["success"], do: :ok, else: :error),
       resp_body["data"]
     }
+  end
+
+  @tag fixtures: [:alice, :bob, :omg_child_chain, :nftoken, :alice_deposits]
+  test "NFT deposit, spend, exit, restart etc works fine", %{
+    alice: alice,
+    bob: bob,
+    nftoken: nftoken,
+    alice_deposits: {_, _, nftoken_deposit_blknum}
+  } do
+    raw_tx = Transaction.new([{nftoken_deposit_blknum, 0, 0}], [{bob.addr, nftoken, [1, 2, 3]}, {alice.addr, nftoken, [4, 5, 6, 7]}])
+
+    tx = raw_tx |> Transaction.sign([alice.priv, <<>>]) |> Transaction.Signed.encode()
+
+    # spend the token deposit
+    assert {:ok, %{"blknum" => spend_child_block}} = submit_transaction(tx)
+    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
+
+    post_spend_child_block = spend_child_block + child_block_interval
+    {:ok, _} = Eth.DevHelpers.wait_for_next_child_block(post_spend_child_block)
+
+    # check if operator is propagating block with hash submitted to RootChain
+    {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(spend_child_block)
+    assert {:ok, %{"transactions" => transactions}} = get_block(block_hash)
+
+    # NOTE: we are checking only the `hd` because token_tx might possibly be in the next block
+    {:ok, decoded_tx_bytes} = transactions |> hd() |> OMG.RPC.Web.Encoding.from_hex()
+
+    assert {:ok, %{raw_tx: ^raw_tx}} =
+             decoded_tx_bytes
+             |> Transaction.Signed.decode()
+
+    # Restart everything to check persistance and revival
+    [:omg_api, :omg_eth, :omg_db] |> Enum.each(&Application.stop/1)
+
+    {:ok, started_apps} = Application.ensure_all_started(:omg_api)
+    # sanity check, did-we restart really?
+    assert Enum.member?(started_apps, :omg_api)
+
+    # repeat spending to see if all works
+
+    raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, nftoken, [1, 2, 3, 4, 5, 6, 7]}])
+    tx2 = raw_tx2 |> Transaction.sign([bob.priv, alice.priv]) |> Transaction.Signed.encode()
+
+    # spend the output of the first eth_tx
+    assert {:ok, %{"blknum" => spend_child_block2}} = submit_transaction(tx2)
+
+    post_spend_child_block2 = spend_child_block2 + child_block_interval
+    {:ok, _} = Eth.DevHelpers.wait_for_next_child_block(post_spend_child_block2)
+
+    # check if operator is propagating block with hash submitted to RootChain
+    {:ok, {block_hash2, _}} = Eth.RootChain.get_child_chain(spend_child_block2)
+
+    assert {:ok, %{"transactions" => [transaction2]}} = get_block(block_hash2)
+
+    {:ok, decoded_tx2_bytes} = transaction2 |> OMG.RPC.Web.Encoding.from_hex()
+
+    assert {:ok, %{raw_tx: ^raw_tx2}} =
+             decoded_tx2_bytes
+             |> Transaction.Signed.decode()
+
+    # sanity checks
+    assert {:ok, %{}} = get_block(block_hash)
+    assert {:error, %{"code" => "get_block:not_found"}} = get_block(<<0::size(256)>>)
+
+    assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(tx)
+
+    assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(tx2)
   end
 end

@@ -62,7 +62,7 @@ defmodule OMG.Performance.SenderManager do
     initial_blknums =
       utxos
       |> Enum.map(fn %{utxo_pos: utxo_pos} ->
-        {:utxo_position, blknum, _txindex, _oindex} = Utxo.Position.decode(utxo_pos)
+        {:utxo_position, blknum, _txindex, _oindex_} = Utxo.Position.decode(utxo_pos)
         blknum
       end)
 

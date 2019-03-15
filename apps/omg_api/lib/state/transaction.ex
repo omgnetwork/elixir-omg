@@ -47,6 +47,12 @@ defmodule OMG.API.State.Transaction do
           currency: currency(),
           amount: non_neg_integer()
         }
+        | 
+        %{
+          owner: Crypto.address_t(),
+          currency: currency(),
+          tokenids: list(non_neg_integer())
+        }
 
   @doc """
   Creates transaction from utxo positions and outputs. Provides simple, stateless validation on arguments.
@@ -64,10 +70,24 @@ defmodule OMG.API.State.Transaction do
               txindex: non_neg_integer(),
               oindex: non_neg_integer(),
               currency: Crypto.address_t(),
-              amount: pos_integer()
+              amount: non_neg_integer()
+            } | %{
+              blknum: pos_integer(),
+              txindex: non_neg_integer(),
+              oindex: non_neg_integer(),
+              currency: Crypto.address_t(),
+              tokenids: list(non_neg_integer())
             }
           ],
-          [%{owner: Crypto.address_t(), amount: non_neg_integer()}]
+          [
+            %{
+              owner: Crypto.address_t(),
+              amount: non_neg_integer()
+            } | %{
+              owner: Crypto.address_t(),
+              tokenids: list(non_neg_integer())
+            }
+          ]
         ) :: {:ok, t()} | {:error, atom()}
   def create_from_utxos(inputs, outputs)
   def create_from_utxos(inputs, _) when not is_list(inputs), do: {:error, :inputs_should_be_list}
@@ -81,12 +101,26 @@ defmodule OMG.API.State.Transaction do
          :ok <- validate_amount(input_utxos),
          :ok <- validate_amount(outputs),
          :ok <- amounts_add_up?(input_utxos, outputs) do
-      {:ok,
-       new(
-         input_utxos |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
-         outputs |> Enum.map(&{&1.owner, currency, &1.amount})
-       )}
+      {:ok, create(input_utxos, outputs, currency)}
     end
+  end
+
+  defp create([%{amount: _}| _] = input_utxos, [], _) do
+    new(input_utxos |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}), [])
+  end
+
+  defp create([%{amount: _}| _] = input_utxos, [%{amount: _}| _] = outputs, currency) do
+    new(
+        input_utxos |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
+        outputs |> Enum.map(&{&1.owner, currency, &1.amount})
+      )
+  end
+
+  defp create([%{tokenids: _}| _] = input_utxos, [%{tokenids: _}| _] = outputs, currency) do
+    new(
+        input_utxos |> Enum.map(&{&1.blknum, &1.txindex, &1.oindex}),
+        outputs |> Enum.map(&{&1.owner, currency, &1.tokenids})
+      )
   end
 
   defp validate_currency(input_utxos, outputs) do
@@ -104,7 +138,8 @@ defmodule OMG.API.State.Transaction do
   end
 
   # Validates amount in both inputs and outputs
-  defp validate_amount(amounts) do
+  defp validate_amount([]), do: :ok
+  defp validate_amount([%{amount: _}|_] = amounts) do
     all_valid? =
       amounts
       |> Enum.map(& &1.amount)
@@ -114,8 +149,28 @@ defmodule OMG.API.State.Transaction do
       do: :ok,
       else: {:error, :amount_noninteger_or_negative}
   end
+  
+  defp validate_amount([%{tokenids: _}|_] = amounts) do
+    all_valid? =
+      amounts
+      |> Enum.map(& &1.tokenids)
+      |> Enum.all?(fn tokenids -> is_list(tokenids) 
+            and List.last(tokenids) != nil 
+            and length(Enum.uniq(tokenids)) == length(tokenids) 
+            and tokenids == Enum.sort(tokenids) end)
 
-  defp amounts_add_up?(inputs, outputs) do
+    if all_valid?,
+      do: :ok,
+      else: {:error, :tokenids_nonlist_or_negative_or_nonsorted_or_nonunique}
+  end
+
+  defp validate_amount([%{tokenids: _, amount: _}|_]) do
+    {:error, :amount_and_tokenids}
+  end
+  
+  defp amounts_add_up?([], []), do: :ok
+  defp amounts_add_up?([%{amount: _}|_], []), do: :ok
+  defp amounts_add_up?([%{amount: _}|_] = inputs, [%{amount: _}|_] = outputs) do
     spent =
       inputs
       |> Enum.map(& &1.amount)
@@ -129,6 +184,27 @@ defmodule OMG.API.State.Transaction do
     if received > spent, do: {:error, :not_enough_funds_to_cover_spend}, else: :ok
   end
 
+  defp amounts_add_up?([%{tokenids: _}|_] = inputs, [%{tokenids: _}|_] = outputs) do
+    spent =
+      inputs
+      |> Enum.map(& &1.tokenids)
+      |> Enum.concat()
+
+    received =
+      outputs
+      |> Enum.map(& &1.tokenids)
+      |> Enum.concat()
+
+    if length(Enum.uniq(spent)) == length(spent) and
+       length(Enum.uniq(received)) == length(received) and
+       length(spent) == length(received)
+    do
+        :ok
+    else
+        {:error, :outputs_and_inputs_different}
+    end
+  end
+
   @doc """
   Creates a new transaction from a list of inputs and a list of outputs.
   Adds empty (zeroes) inputs and/or outputs to reach the expected size
@@ -137,7 +213,7 @@ defmodule OMG.API.State.Transaction do
   """
   @spec new(
           list({pos_integer, pos_integer, 0 | 1}),
-          list({Crypto.address_t(), currency(), pos_integer})
+          list({Crypto.address_t(), currency(), non_neg_integer() | list(pos_integer)})
         ) :: t()
   def new(inputs, outputs) do
     inputs =
@@ -146,18 +222,41 @@ defmodule OMG.API.State.Transaction do
 
     inputs = inputs ++ List.duplicate(%{blknum: 0, txindex: 0, oindex: 0}, @max_inputs - Kernel.length(inputs))
 
-    outputs =
-      outputs
-      |> Enum.map(fn {owner, currency, amount} -> %{owner: owner, currency: currency, amount: amount} end)
+    outputs = map_output(outputs)
+    outputs = fillup_outputs(outputs)
 
-    outputs =
-      outputs ++
+    %__MODULE__{inputs: inputs, outputs: outputs}
+  end
+
+  defp map_output([]), do: [] 
+  defp map_output([{_, _, amount} | _] = outputs) when is_integer(amount) do 
+    outputs |> 
+    Enum.map(fn {owner, currency, amount} -> %{owner: owner, currency: currency, amount: amount} end)
+  end 
+
+  defp map_output([{_, _, [_|_]} | _] = outputs) do
+    outputs |> 
+    Enum.map(fn {owner, currency, tokenids} -> %{owner: owner, currency: currency, tokenids: tokenids} end)
+  end 
+
+  defp fillup_outputs([]) do
+    fillup_outputs([%{owner: @zero_address, currency: @zero_address, amount: 0}])
+  end
+
+  defp fillup_outputs([%{owner: _, currency: _, amount: amount} | _] = outputs) when is_integer(amount) do
+    outputs ++ 
         List.duplicate(
           %{owner: @zero_address, currency: @zero_address, amount: 0},
           @max_outputs - Kernel.length(outputs)
         )
+  end
 
-    %__MODULE__{inputs: inputs, outputs: outputs}
+  defp fillup_outputs([%{owner: _, currency: _, tokenids: tokenids} | _] = outputs) when is_list(tokenids) do
+    outputs ++ 
+        List.duplicate(
+        %{owner: @zero_address, currency: @zero_address, tokenids: []},
+        @max_outputs - Kernel.length(outputs)
+        )     
   end
 
   def account_address?(@zero_address), do: false
@@ -173,10 +272,15 @@ defmodule OMG.API.State.Transaction do
     outputs =
       Enum.map(outputs_rlp, fn [owner, currency, amount] ->
         with {:ok, cur12} <- parse_address(currency),
-             {:ok, owner} <- parse_address(owner) do
-          %{owner: owner, currency: cur12, amount: parse_int(amount)}
+             {:ok, owner} <- parse_address(owner),
+             amount_parsed <- parse_amount(amount) do
+                case amount_parsed do
+                    a when is_list(a) -> %{owner: owner, currency: cur12, tokenids: amount_parsed}
+                    _ -> %{owner: owner, currency: cur12, amount: amount_parsed}
+                end
+          end
         end
-      end)
+      )
 
     if error = Enum.find(outputs, &match?({:error, _}, &1)),
       do: error,
@@ -185,7 +289,18 @@ defmodule OMG.API.State.Transaction do
 
   def from_rlp(_), do: {:error, :malformed_transaction}
 
-  defp parse_int(binary), do: :binary.decode_unsigned(binary, :big)
+  defp parse_int(binary) do
+    :binary.decode_unsigned(binary, :big)
+  end
+
+  defp parse_amount(binary) when is_binary(binary) do
+    parse_int(binary)
+  end
+
+  defp parse_amount(tokenids) when is_list(tokenids) do
+    tokenids |> Enum.map(fn elem -> :binary.decode_unsigned(elem, :big) end)
+  end
+
 
   # necessary, because RLP handles empty string equally to integer 0
   @spec parse_address(<<>> | Crypto.address_t()) :: {:ok, Crypto.address_t()} | {:error, :malformed_address}
@@ -210,14 +325,26 @@ defmodule OMG.API.State.Transaction do
     |> ExRLP.encode()
   end
 
-  def get_filled_inputs_and_outputs(%__MODULE__{inputs: inputs, outputs: outputs}),
-    do: [
-      # contract expects 4 inputs and outputs
-      Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
-        List.duplicate([0, 0, 0], 4 - length(inputs)),
-      Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
-        List.duplicate([@zero_address, @zero_address, 0], 4 - length(outputs))
-    ]
+  def get_filled_inputs_and_outputs(%__MODULE__{inputs: inputs, outputs: outputs}) do
+    case outputs do
+        [%{owner: _, currency: _, amount: _} | _] -> 
+            [
+                # contract expects 4 inputs and outputs
+                Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
+                List.duplicate([0, 0, 0], @max_inputs - length(inputs)),
+                Enum.map(outputs, fn %{owner: owner, currency: currency, amount: amount} -> [owner, currency, amount] end) ++
+                List.duplicate([@zero_address, @zero_address, 0], @max_outputs - length(outputs))
+            ]
+        [%{owner: _, currency: _, tokenids: _} | _] ->
+            [
+                # contract expects 4 inputs and outputs
+                Enum.map(inputs, fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> [blknum, txindex, oindex] end) ++
+                List.duplicate([0, 0, 0], @max_inputs - length(inputs)),
+                Enum.map(outputs, fn %{owner: owner, currency: currency, tokenids: tokenids} -> [owner, currency, tokenids] end) ++
+                List.duplicate([@zero_address, @zero_address, []],@max_outputs - length(outputs))
+            ]
+    end
+  end
 
   def hash(%__MODULE__{} = tx) do
     tx

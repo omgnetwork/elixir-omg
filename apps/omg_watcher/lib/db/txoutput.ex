@@ -30,7 +30,8 @@ defmodule OMG.Watcher.DB.TxOutput do
 
   @type balance() :: %{
           currency: binary(),
-          amount: non_neg_integer()
+          amount: non_neg_integer(),
+          tokenids: list(non_neg_integer())
         }
 
   @type exit_t() :: %{
@@ -47,6 +48,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     field(:oindex, :integer, primary_key: true)
     field(:owner, :binary)
     field(:amount, OMG.Watcher.DB.Types.IntegerType)
+    field(:tokenids, {:array, :integer})
     field(:currency, :binary)
     field(:proof, :binary)
     field(:spending_tx_oindex, :integer)
@@ -71,9 +73,21 @@ defmodule OMG.Watcher.DB.TxOutput do
     end
   end
 
+  defp create_tx_from_output(%{amount: 0, currency: currency, owner: owner, tokenids: []} = output) do
+    Transaction.new([], [{owner, currency, 0}])
+  end
+
+  defp create_tx_from_output(%{amount: amount, currency: currency, owner: owner, tokenids: []} = output) when amount > 0 do
+    Transaction.new([], [{owner, currency, amount}])
+  end
+
+  defp create_tx_from_output(%{amount: 0, currency: currency, owner: owner, tokenids: [_|_] = tokenids} = output) do
+    Transaction.new([], [{owner, currency, tokenids}])
+  end
+
   defp compose_deposit_exit(decoded_utxo_pos) do
-    with %{amount: amount, currency: currency, owner: owner} <- get_by_position(decoded_utxo_pos) do
-      tx = Transaction.new([], [{owner, currency, amount}])
+    with %{amount: amount, currency: currency, owner: owner, tokenids: tokenids} <- get_by_position(decoded_utxo_pos) do
+      tx = create_tx_from_output(%{amount: amount, currency: currency, owner: owner, tokenids: tokenids})
 
       {:ok,
        %{
@@ -136,6 +150,7 @@ defmodule OMG.Watcher.DB.TxOutput do
         t in __MODULE__,
         where: t.owner == ^owner and is_nil(t.spending_txhash) and is_nil(t.spending_exit),
         group_by: t.currency,
+        order_by: t.currency,
         select: {t.currency, sum(t.amount)}
       )
 
@@ -170,16 +185,28 @@ defmodule OMG.Watcher.DB.TxOutput do
       tx
       |> Transaction.get_outputs()
       |> Enum.with_index()
-      |> Enum.flat_map(fn {%{currency: currency, owner: owner, amount: amount}, oindex} ->
-        create_output(blknum, txindex, oindex, txhash, owner, currency, amount)
-      end)
+      |> (fn outs ->
+        case outs do  # outputs types dispatching 
+          [{%{currency: _, owner: _, amount: _}, _}|_] -> Enum.flat_map(outs, 
+              fn {%{currency: currency, owner: owner, amount: amount}, oindex} ->
+              create_output(blknum, txindex, oindex, txhash, owner, currency, amount)
+              end
+          )
+          [{%{currency: _, owner: _, tokenids: _}, _}|_] -> Enum.flat_map(outs,
+              fn {%{currency: currency, owner: owner, tokenids: tokenids}, oindex} ->
+              create_output(blknum, txindex, oindex, txhash, owner, currency, tokenids)
+              end
+          )
+        end
+    end).()
 
     outputs
   end
 
   defp create_output(_blknum, _txindex, _txhash, _oindex, _owner, _currency, 0), do: []
+  defp create_output(_blknum, _txindex, _txhash, _oindex, _owner, _currency, []), do: []
 
-  defp create_output(blknum, txindex, oindex, txhash, owner, currency, amount) when amount > 0,
+  defp create_output(blknum, txindex, oindex, txhash, owner, currency, amount) when is_integer(amount) and amount > 0,
     do: [
       %{
         blknum: blknum,
@@ -187,11 +214,25 @@ defmodule OMG.Watcher.DB.TxOutput do
         oindex: oindex,
         owner: owner,
         amount: amount,
+        tokenids: [],
         currency: currency,
         creating_txhash: txhash
       }
     ]
-
+  defp create_output(blknum, txindex, oindex, txhash, owner, currency, [_|_] = tokenids),
+    do: [
+      %{
+        blknum: blknum,
+        txindex: txindex,
+        oindex: oindex,
+        owner: owner,
+        amount: 0,
+        tokenids: tokenids,
+        currency: currency,
+        creating_txhash: txhash
+      }
+    ]
+  
   @spec create_inputs(%Transaction{}, binary()) :: [tuple()]
   def create_inputs(%Transaction{inputs: inputs}, spending_txhash) do
     inputs

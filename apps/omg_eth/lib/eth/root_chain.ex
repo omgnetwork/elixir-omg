@@ -25,14 +25,14 @@ defmodule OMG.Eth.RootChain do
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
-  @deposit_created_event_signature "DepositCreated(address,uint256,address,uint256)"
+  @deposit_created_event_signature "DepositCreated(address,uint256,address,uint256,uint256[])"
   @challenge_ife_func_signature "challengeInFlightExitNotCanonical(bytes,uint8,bytes,uint8,uint256,bytes,bytes)"
 
   @type optional_addr_t() :: <<_::160>> | nil
 
   @gas_start_exit 1_000_000
   @gas_deposit 180_000
-  @gas_deposit_from 250_000
+  @gas_deposit_from 650_000
   @gas_init 1_000_000
   @standard_exit_bond 31_415_926_535
   @piggyback_bond 31_415_926_535
@@ -316,10 +316,10 @@ defmodule OMG.Eth.RootChain do
   """
   def get_exits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    signature = "ExitStarted(address,uint256,uint256,address)"
+    signature = "ExitStarted(address,uint256,uint256,uint256[],address)"
 
     with {:ok, logs} <- Eth.get_ethereum_events(block_from, block_to, signature, contract),
-         do: {:ok, Enum.map(logs, &decode_exit_started/1)}
+        do: {:ok, Enum.map(logs, &decode_exit_started/1)}
   end
 
   @doc """
@@ -434,16 +434,16 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_deposit(log) do
-    non_indexed_keys = [:amount]
-    non_indexed_key_types = [{:uint, 256}]
+    non_indexed_keys = [:amount, :offset, :tokenids]
+    non_indexed_key_types = [{:uint, 256}, {:uint, 256}, {:array, {:uint, 256}}]
     indexed_keys = [:owner, :blknum, :currency]
     indexed_keys_types = [:address, {:uint, 256}, :address]
 
-    Eth.parse_events_with_indexed_fields(
+    result = Eth.parse_events_with_indexed_fields(
       log,
       {non_indexed_keys, non_indexed_key_types},
       {indexed_keys, indexed_keys_types}
-    )
+    ) |> Map.delete(:offset)
   end
 
   defp decode_piggybacked(log) do
@@ -456,12 +456,12 @@ defmodule OMG.Eth.RootChain do
       log,
       {non_indexed_keys, non_indexed_key_types},
       {indexed_keys, indexed_keys_types}
-    )
+    ) |> Map.delete(:offset)
   end
 
   defp decode_exit_started(log) do
-    non_indexed_keys = [:utxo_pos, :amount, :currency]
-    non_indexed_key_types = [{:uint, 256}, {:uint, 256}, :address]
+    non_indexed_keys = [:utxo_pos, :amount, :offset, :currency, :tokenids]
+    non_indexed_key_types = [{:uint, 256}, {:uint, 256}, {:uint, 256}, :address, {:array, {:uint, 256}}]
     indexed_keys = [:owner]
     indexed_keys_types = [:address]
 
@@ -469,7 +469,7 @@ defmodule OMG.Eth.RootChain do
       log,
       {non_indexed_keys, non_indexed_key_types},
       {indexed_keys, indexed_keys_types}
-    )
+    ) |> Map.delete(:offset)
   end
 
   defp decode_in_flight_exit(log) do
@@ -482,7 +482,7 @@ defmodule OMG.Eth.RootChain do
       log,
       {non_indexed_keys, non_indexed_key_types},
       {indexed_keys, indexed_keys_types}
-    )
+    ) |> Map.delete(:offset)
   end
 
   defp decode_exit_finalized(log) do

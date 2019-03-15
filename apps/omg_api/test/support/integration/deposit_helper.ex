@@ -35,7 +35,7 @@ defmodule OMG.API.Integration.DepositHelper do
     process_deposit(receipt)
   end
 
-  def deposit_to_child_chain(to, value, token_addr) when is_binary(token_addr) and byte_size(token_addr) == 20 do
+  def deposit_to_child_chain(to, value, token_addr) when is_number(value) and is_binary(token_addr) and byte_size(token_addr) == 20 do
     contract_addr = Eth.Encoding.from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
 
     to |> Eth.Token.mint(value, token_addr) |> Eth.DevHelpers.transact_sync!()
@@ -43,6 +43,21 @@ defmodule OMG.API.Integration.DepositHelper do
 
     {:ok, receipt} =
       Transaction.new([], [{to, token_addr, value}])
+      |> Transaction.encode()
+      |> Eth.RootChain.deposit_from(to)
+      |> Eth.DevHelpers.transact_sync!()
+
+    process_deposit(receipt)
+  end
+
+  def deposit_to_child_chain(to, tokenids, nftoken_addr) when is_list(tokenids) and is_binary(nftoken_addr) and byte_size(nftoken_addr) == 20 do
+    contract_addr = Eth.Encoding.from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+
+    for t <- tokenids, do: Eth.NFToken.mint(to, t, nftoken_addr) |> Eth.DevHelpers.transact_sync!()
+    for t <- tokenids, do: Eth.NFToken.approve(to, contract_addr, t, nftoken_addr) |> Eth.DevHelpers.transact_sync!()
+
+    {:ok, receipt} =
+      Transaction.new([], [{to, nftoken_addr, tokenids}])
       |> Transaction.encode()
       |> Eth.RootChain.deposit_from(to)
       |> Eth.DevHelpers.transact_sync!()
@@ -80,4 +95,30 @@ defmodule OMG.API.Integration.DepositHelper do
 
     :ok
   end
+
+#   def wait_for_root_chain_block(blknum, dev \\ false, timeout \\ 10_000) do
+#     f = fn ->
+#       {:ok, last_blknum} = OMG.Eth.get_ethereum_height()
+
+#       case last_blknum < blknum do
+#         true ->
+#           _ = OMG.Eth.DevGeth.maybe_mine(dev)
+#           :repeat
+
+#         false ->
+#           {:ok, last_blknum}
+#       end
+#     end
+
+#     fn -> Eth.WaitFor.repeat_until_ok(f) end |> Task.async() |> Task.await(timeout)
+#   end
+
+#   def wait_ethereum_event_block_finality_margin_for_receipt(receipt) do
+#     case receipt["blockNumber"] do
+#       "0x" <> blknum_hex ->
+#         {blknum, ""} = Integer.parse(blknum_hex, 16)
+#         wait_ethereum_event_block_finality_margin(blknum)
+#     end
+#   end
+
 end

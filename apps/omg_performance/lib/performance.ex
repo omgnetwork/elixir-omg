@@ -69,6 +69,8 @@ defmodule OMG.Performance do
         "PerfTest number of spenders: #{inspect(nspenders)}, number of tx to send per spender: #{inspect(ntx_to_send)}."
       end)
 
+    DeferredConfig.populate(:omg_rpc)
+
     defaults = %{destdir: ".", profile: false, block_every_ms: 2000}
     opts = Map.merge(defaults, opts)
 
@@ -224,10 +226,10 @@ defmodule OMG.Performance do
     spenders
     |> Enum.with_index(1)
     |> Enum.map(fn {spender, index} ->
-      {:ok, _} = OMG.API.State.deposit([%{owner: spender.addr, currency: @eth, amount: ntx_to_send, blknum: index}])
+      {:ok, _} = OMG.API.State.deposit([%{owner: spender.addr, currency: @eth, amount: ntx_to_send, blknum: index, tokenids: []}])
 
       utxo_pos = Utxo.position(index, 0, 0) |> Utxo.Position.encode()
-      %{owner: spender, utxo_pos: utxo_pos, amount: ntx_to_send}
+      %{owner: spender, utxo_pos: utxo_pos, amount: ntx_to_send, tokenids: []}
     end)
   end
 
@@ -236,7 +238,7 @@ defmodule OMG.Performance do
     make_deposits(10 * ntx_to_send, spenders)
     |> Enum.map(fn {:ok, owner, blknum, amount} ->
       utxo_pos = Utxo.position(blknum, 0, 0) |> Utxo.Position.encode()
-      %{owner: owner, utxo_pos: utxo_pos, amount: amount}
+      %{owner: owner, utxo_pos: utxo_pos, amount: amount, tokenids: []}
     end)
   end
 

@@ -204,6 +204,24 @@ defmodule OMG.API.State.TransactionTest do
     assert tx1 == tx2
   end
 
+  @tag fixtures: [:alice, :state_empty, :bob]
+  test "transactions created by :new and :create_from_utxos should be equal (nft tokens)", %{alice: alice, bob: bob} do
+    utxos = [
+      %{tokenids: [5101, 5102, 5105], currency: eth(), blknum: 1, oindex: 0, txindex: 0},
+      %{tokenids: [5111], currency: eth(), blknum: 2, oindex: 0, txindex: 0}
+    ]
+
+    {:ok, tx1} =
+      Transaction.create_from_utxos(
+        utxos,
+        [%{owner: bob.addr, currency: eth(), tokenids: [5101, 5111]}, %{owner: alice.addr, currency: eth(), tokenids: [5102, 5105]}]
+      )
+
+    tx2 = Transaction.new([{1, 0, 0}, {2, 0, 0}], [{bob.addr, eth(), [5101, 5111]}, {alice.addr, eth(), [5102, 5105]}])
+
+    assert tx1 == tx2
+  end
+
   @tag fixtures: [:alice, :bob]
   test "different signers, one output", %{alice: alice, bob: bob} do
     tx =

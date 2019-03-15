@@ -24,10 +24,11 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
 
   require Utxo
 
-  defstruct [:amount, :currency, :owner, :is_active, :eth_height]
+  defstruct [:amount, :tokenids, :currency, :owner, :is_active, :eth_height]
 
   @type t :: %__MODULE__{
           amount: non_neg_integer(),
+          tokenids: [non_neg_integer()],
           currency: Crypto.address_t(),
           owner: Crypto.address_t(),
           # this means the exit has been first seen active. If false, it won't be considered harmful

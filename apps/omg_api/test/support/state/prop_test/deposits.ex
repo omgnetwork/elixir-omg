@@ -30,9 +30,10 @@ defmodule OMG.API.State.PropTest.Deposits do
             [
               currency <- Generators.get_currency(),
               %{addr: owner} <- Generators.entity(),
-              amount <- integer(10_000, 300_000)
+              amount <- integer(10_000, 300_000),
+              tokenids <- [] 
             ],
-            do: %{blknum: blknum + number, currency: currency, owner: owner, amount: amount}
+            do: %{blknum: blknum + number, currency: currency, owner: owner, amount: amount, tokenids: tokenids}
           )
         end
       ]

@@ -30,6 +30,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   alias OMG.Watcher.TestHelper
 
   @timeout 40_000
+  @moduletag timeout: 120_000
   @eth Crypto.zero_address()
 
   @moduletag :integration
@@ -37,7 +38,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
   @tag fixtures: [:watcher_sandbox, :alice, :child_chain, :alice_deposits]
   @tag timeout: 120_000
   test "in-flight exit data returned by watcher http API produces a valid in-flight exit",
-       %{alice: alice, alice_deposits: {deposit_blknum, _}} do
+       %{alice: alice, alice_deposits: {deposit_blknum, _, _}} do
     # NOTE: this test is here to assert valid behavior of the child chain when exits are filed in the root chain
     #       contract. See `integration/block_getter_test.exs` for another example of this
     # TODO: After this is moved to child-chain specific tests, this test can be removed as duplicate with the other
@@ -125,7 +126,7 @@ defmodule OMG.Watcher.Integration.WatcherApiTest do
 
   @tag fixtures: [:watcher_sandbox, :alice, :bob, :child_chain, :token, :alice_deposits]
   test "in-flight exit competitor is detected by watcher",
-       %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
+       %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _, _}} do
     # tx1 is submitted then in-flight-exited
     # tx2 is in-flight-exited
     tx1 = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])

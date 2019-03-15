@@ -34,7 +34,7 @@ defmodule OMG.PerformanceTest do
   end
 
   @tag fixtures: [:destdir]
-  test "Smoke test - run start_simple_perf and see if it don't crash", %{destdir: destdir} do
+  test "Smoke test - run start_simple_perf and see if it doesn't crash", %{destdir: destdir} do
     ntxs = 3000
     nsenders = 2
     assert :ok = OMG.Performance.start_simple_perftest(ntxs, nsenders, %{destdir: destdir})
@@ -44,7 +44,7 @@ defmodule OMG.PerformanceTest do
   end
 
   @tag fixtures: [:destdir, :contract, :omg_child_chain, :alice, :bob]
-  test "Smoke test - run start_extended_perf and see if it don't crash", %{
+  test "Smoke test - run start_extended_perf and see if it doesn't crash", %{
     destdir: destdir,
     contract: contract,
     alice: alice,
@@ -61,7 +61,7 @@ defmodule OMG.PerformanceTest do
   end
 
   @tag fixtures: [:destdir]
-  test "Smoke test - run start_simple_perf and see if it don't crash - with profiling", %{destdir: destdir} do
+  test "Smoke test - run start_simple_perf and see if it doesn't crash - with profiling", %{destdir: destdir} do
     ntxs = 3
     nsenders = 2
 
@@ -83,7 +83,7 @@ defmodule OMG.PerformanceTest do
   end
 
   @tag fixtures: [:destdir]
-  test "Smoke test - run start_simple_perf and see if it don't crash - overiding block creation", %{destdir: destdir} do
+  test "Smoke test - run start_simple_perf and see if it doesn't crash - overiding block creation", %{destdir: destdir} do
     ntxs = 3000
     nsenders = 2
     assert :ok = OMG.Performance.start_simple_perftest(ntxs, nsenders, %{destdir: destdir, block_every_ms: 3000})

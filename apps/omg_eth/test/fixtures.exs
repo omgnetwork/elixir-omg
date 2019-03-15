@@ -50,6 +50,22 @@ defmodule OMG.Eth.Fixtures do
     token_addr
   end
 
+  deffixture nftoken(root_chain_contract_config) do
+    :ok = root_chain_contract_config
+
+    root_path = "../../"
+    {:ok, [addr | _]} = Ethereumex.HttpClient.eth_accounts()
+
+    {:ok, _, nftoken_addr} = Eth.Deployer.create_new(Eth.NFToken, root_path, from_hex(addr))
+
+    # ensuring that the root chain contract handles nftoken_addr
+    {:ok, false} = Eth.RootChain.has_token(nftoken_addr)
+    {:ok, _} = Eth.RootChain.add_token(nftoken_addr) |> Eth.DevHelpers.transact_sync!()
+    {:ok, true} = Eth.RootChain.has_token(nftoken_addr)
+
+    nftoken_addr
+  end
+
   deffixture root_chain_contract_config(contract) do
     Application.put_env(:omg_eth, :contract_addr, to_hex(contract.contract_addr), persistent: true)
     Application.put_env(:omg_eth, :authority_addr, to_hex(contract.authority_addr), persistent: true)

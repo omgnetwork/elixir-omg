@@ -63,9 +63,16 @@ defmodule OMG.API.TestHelper do
     %{priv: priv, addr: addr}
   end
 
-  def do_deposit(state, owner, %{amount: amount, currency: cur, blknum: blknum}) do
+  def do_deposit(state, owner, %{amount: amount, currency: cur, blknum: blknum}) when is_integer(amount) do
     {:ok, {_, _}, new_state} =
-      Core.deposit([%{owner: owner.addr, currency: cur, amount: amount, blknum: blknum}], state)
+      Core.deposit([%{owner: owner.addr, currency: cur, amount: amount, tokenids: [], blknum: blknum}], state)
+
+    new_state
+  end
+
+  def do_deposit(state, owner, %{tokenids: tokenids, currency: cur, blknum: blknum}) when is_list(tokenids) do
+    {:ok, {_, _}, new_state} =
+      Core.deposit([%{owner: owner.addr, currency: cur, amount: 0, tokenids: tokenids, blknum: blknum}], state)
 
     new_state
   end
@@ -77,7 +84,7 @@ defmodule OMG.API.TestHelper do
   @spec create_recovered(
           list({pos_integer, pos_integer, 0 | 1, map}),
           Transaction.currency(),
-          list({Crypto.address_t(), pos_integer})
+          list({Crypto.address_t(), pos_integer | list(pos_integer)})
         ) :: Transaction.Recovered.t()
   def create_recovered(inputs, currency, outputs) do
     signed_tx = create_signed(inputs, currency, outputs)
@@ -103,12 +110,39 @@ defmodule OMG.API.TestHelper do
           Transaction.currency(),
           list({Crypto.address_t(), pos_integer})
         ) :: Transaction.Signed.t()
-  def create_signed(inputs, currency, outputs) do
+  def create_signed(inputs, currency, [{_, amount}|_] = outputs) when is_integer(amount) and amount >= 0 do
     raw_tx =
       Transaction.new(
         inputs |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end),
         outputs |> Enum.map(fn {owner, amount} -> {owner.addr, currency, amount} end)
       )
+
+    privs = get_private_keys(inputs)
+    Transaction.sign(raw_tx, privs)
+  end
+
+  @spec create_signed(
+    list({pos_integer, pos_integer, 0 | 1, map}),
+    Transaction.currency(),
+    list({Crypto.address_t(), list(pos_integer)})
+  ) :: Transaction.Signed.t()
+  def create_signed(inputs, currency, [{_, tokenids}|_] = outputs) when is_list(tokenids) do
+    raw_tx =
+    Transaction.new(
+      inputs |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end),
+      outputs |> Enum.map(fn {owner, tokenids} -> {owner.addr, currency, tokenids} end)
+    )
+
+    privs = get_private_keys(inputs)
+    Transaction.sign(raw_tx, privs)
+  end
+
+  def create_signed(inputs, _, []) do
+    raw_tx =
+    Transaction.new(
+      inputs |> Enum.map(fn {blknum, txindex, oindex, _} -> {blknum, txindex, oindex} end),
+      []
+    )
 
     privs = get_private_keys(inputs)
     Transaction.sign(raw_tx, privs)
@@ -124,7 +158,7 @@ defmodule OMG.API.TestHelper do
 
   @spec create_signed(
           list({pos_integer, pos_integer, 0 | 1, map}),
-          list({Crypto.address_t(), Transaction.currency(), pos_integer})
+          list({Crypto.address_t(), Transaction.currency(), pos_integer | list(pos_integer)})
         ) :: Transaction.Signed.t()
   def create_signed(inputs, outputs) do
     raw_tx =

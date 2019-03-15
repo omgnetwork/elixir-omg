@@ -36,8 +36,8 @@ defmodule OMG.Performance.SenderServer do
     @moduledoc """
     Keeps last transaction sent by sender, remembered for next submission.
     """
-    defstruct [:blknum, :txindex, :oindex, :amount]
-    @type t :: %__MODULE__{blknum: integer, txindex: integer, oindex: integer, amount: integer}
+    defstruct [:blknum, :txindex, :oindex, :amount, :tokenids]
+    @type t :: %__MODULE__{blknum: integer, txindex: integer, oindex: integer, amount: integer, tokenids: [integer]}
   end
 
   @doc """
@@ -203,7 +203,7 @@ defmodule OMG.Performance.SenderServer do
 
   #   Generates module's initial state
   @spec init_state(pos_integer(), map(), pos_integer()) :: __MODULE__.state()
-  defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount}, ntx_to_send) do
+  defp init_state(seqnum, %{owner: spender, utxo_pos: utxo_pos, amount: amount, tokenids: tokenids}, ntx_to_send) do
     {:utxo_position, blknum, txindex, oindex} = Utxo.Position.decode(utxo_pos)
 
     %__MODULE__{
@@ -215,7 +215,8 @@ defmodule OMG.Performance.SenderServer do
         blknum: blknum,
         txindex: txindex,
         oindex: oindex,
-        amount: amount
+        amount: amount,
+        tokenids: tokenids
       }
     }
   end

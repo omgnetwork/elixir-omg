@@ -88,7 +88,7 @@ defmodule OMG.EthTest do
 
     {:ok, height} = Eth.get_ethereum_height()
 
-    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.authority_addr, currency: @eth, eth_height: height}]} ==
+    assert {:ok, [%{amount: 1, blknum: 1, owner: contract.authority_addr, currency: @eth, eth_height: height, tokenids: []}]} ==
              Eth.RootChain.get_deposits(1, height, contract.contract_addr)
   end
 end

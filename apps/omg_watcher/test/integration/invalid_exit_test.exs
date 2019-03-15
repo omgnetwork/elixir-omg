@@ -33,12 +33,13 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   @moduletag :integration
 
   @timeout 40_000
+  @moduletag timeout: 120_000
   @eth API.Crypto.zero_address()
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
   test "exit which is using already spent utxo from transaction causes to emit invalid_exit event", %{
     stable_alice: alice,
-    stable_alice_deposits: {deposit_blknum, _}
+    stable_alice_deposits: {deposit_blknum, _, _}
   } do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: deposit_blknum}} = Client.submit(tx)
@@ -87,7 +88,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
   test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event ",
-       %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
+       %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _, _}, test_server: context} do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: exit_blknum}} = Client.submit(tx)
 
@@ -129,7 +130,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
   test "invalid exit is detected after block withholding", %{
     stable_alice: alice,
-    stable_alice_deposits: {deposit_blknum, _}
+    stable_alice_deposits: {deposit_blknum, _, _}
   } do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: deposit_blknum}} = Client.submit(tx)

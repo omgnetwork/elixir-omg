@@ -57,6 +57,38 @@ defmodule OMG.API.CoreTest do
     |> Enum.map(parametrized_tester)
   end
 
+  @tag fixtures: [:alice, :bob]
+  test "signed transaction is valid in all input zeroing combinations (nft tokens)", %{
+    alice: alice,
+    bob: bob
+  } do
+    parametrized_tester = fn inputs ->
+      tx = TestHelper.create_signed(inputs, [{alice, eth(), [1,2,3,7]}, {bob, eth(), [4,5,6]}])
+
+      encoded_signed_tx = Transaction.Signed.encode(tx)
+
+      spenders =
+        inputs
+        |> Enum.filter(fn {_, _, _, %{addr: addr}} -> addr != nil end)
+        |> Enum.map(fn {_, _, _, spender} -> spender.addr end)
+
+      assert {:ok,
+              %Transaction.Recovered{
+                signed_tx: ^tx,
+                spenders: ^spenders
+              }} = Core.recover_tx(encoded_signed_tx)
+    end
+
+    no_owner = %{priv: <<>>, addr: nil}
+
+    [
+      [{1, 2, 3, alice}, {2, 3, 4, bob}],
+      [{1, 2, 3, alice}, {0, 0, 0, no_owner}],
+      [{0, 0, 0, no_owner}, {2, 3, 4, bob}]
+    ]
+    |> Enum.map(parametrized_tester)
+  end
+
   test "encoded transaction is malformed or empty" do
     assert {:error, :malformed_transaction} = Core.recover_tx(<<192>>)
     assert {:error, :malformed_transaction} = Core.recover_tx(<<0x80>>)
@@ -88,6 +120,25 @@ defmodule OMG.API.CoreTest do
 
     malformed_signed3 =
       TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, bob}], eth(), [{alice, 7}, {malformed_alice, 3}])
+
+    malformed1 = Transaction.Signed.encode(malformed_signed1)
+    malformed2 = Transaction.Signed.encode(malformed_signed2)
+    malformed3 = Transaction.Signed.encode(malformed_signed3)
+
+    assert {:error, :malformed_address} = Core.recover_tx(malformed1)
+    assert {:error, :malformed_address} = Core.recover_tx(malformed2)
+    assert {:error, :malformed_address} = Core.recover_tx(malformed3)
+  end
+
+  @tag fixtures: [:alice, :bob]
+  test "address in encoded transaction malformed (nft tokens)", %{alice: alice, bob: bob} do
+    malformed_alice = %{addr: "0x0000000000000000000000000000000000000000"}
+    malformed_eth = "0x0000000000000000000000000000000000000000"
+    malformed_signed1 = TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, bob}], eth(), [{malformed_alice, [7, 8, 10]}])
+    malformed_signed2 = TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, bob}], malformed_eth, [{alice, [7, 8, 10]}])
+
+    malformed_signed3 =
+      TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, bob}], eth(), [{alice, [7, 8, 10]}, {malformed_alice, [1, 3]}])
 
     malformed1 = Transaction.Signed.encode(malformed_signed1)
     malformed2 = Transaction.Signed.encode(malformed_signed2)

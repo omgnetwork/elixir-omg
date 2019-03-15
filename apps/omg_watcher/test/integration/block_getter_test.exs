@@ -42,25 +42,32 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   @moduletag :integration
 
+  @moduletag timeout: 120000
+
   @timeout 40_000
   @eth Crypto.zero_address()
 
   @endpoint OMG.Watcher.Web.Endpoint
 
-  @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob, :alice_deposits, :token]
+  @tag fixtures: [:watcher_sandbox, :child_chain, :alice, :bob, :alice_deposits, :token, :nftoken]
   test "get the blocks from child chain after sending a transaction and start exit", %{
     alice: alice,
     bob: bob,
     token: token,
-    alice_deposits: {deposit_blknum, token_deposit_blknum}
+    nftoken: nftoken,
+    alice_deposits: {deposit_blknum, token_deposit_blknum, nftoken_deposit_blknum}
   } do
     {:ok, alice_address} = Crypto.encode_address(alice.addr)
 
     token_addr = token |> OMG.RPC.Web.Encoding.to_hex()
+    nftoken_addr = nftoken |> OMG.RPC.Web.Encoding.to_hex()
 
     # utxo from deposit should be available
-    assert [%{"blknum" => ^deposit_blknum}, %{"blknum" => ^token_deposit_blknum, "currency" => ^token_addr}] =
-             TestHelper.get_utxos(alice.addr)
+    assert [
+        %{"blknum" => ^deposit_blknum},
+        %{"blknum" => ^token_deposit_blknum, "currency" => ^token_addr},
+        %{"blknum" => ^nftoken_deposit_blknum, "currency" => ^nftoken_addr}
+        ] = TestHelper.get_utxos(alice.addr)
 
     # start spending and exiting to see if watcher integrates all the pieces
     {:ok, _, _socket} =
@@ -75,6 +82,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     assert [
              %{"blknum" => ^token_deposit_blknum},
+             %{"blknum" => ^nftoken_deposit_blknum},
              %{"blknum" => ^block_nr}
            ] = TestHelper.get_utxos(alice.addr)
 
@@ -124,7 +132,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     utxo_pos = Utxo.position(block_nr, 0, 0) |> Utxo.Position.encode()
 
-    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth, eth_height: exit_eth_height}]} ==
+    assert {:ok, [%{amount: 7, utxo_pos: utxo_pos, owner: alice.addr, currency: @eth, eth_height: exit_eth_height, tokenids: []}]} ==
              Eth.RootChain.get_exits(0, exit_eth_height)
 
     # Here we're waiting for childchain and watcher to process the exits
@@ -135,7 +143,10 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
     {:error, {:client_error, %{"code" => "submit:utxo_not_found"}}} = Client.submit(tx2)
 
-    assert [%{"blknum" => ^token_deposit_blknum}] = TestHelper.get_utxos(alice.addr)
+    assert [
+      %{"blknum" => ^token_deposit_blknum},
+      %{"blknum" => ^nftoken_deposit_blknum}
+    ] = TestHelper.get_utxos(alice.addr)
     # finally alice exits her token deposit
     %{
       "utxo_pos" => utxo_pos,
@@ -151,6 +162,26 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         alice.addr
       )
       |> Eth.DevHelpers.transact_sync!()
+
+    IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
+
+    assert [%{"blknum" => ^nftoken_deposit_blknum}] = TestHelper.get_utxos(alice.addr)
+
+    # finally alice exits her nftoken deposit
+    %{
+      "utxo_pos" => utxo_pos,
+      "txbytes" => txbytes,
+      "proof" => proof
+    } = TestHelper.get_exit_data(nftoken_deposit_blknum, 0, 0)
+
+    {:ok, %{"status" => "0x1", "blockNumber" => exit_eth_height}} =
+    Eth.RootChain.start_exit(
+      utxo_pos,
+      txbytes,
+      proof,
+      alice.addr
+    )
+    |> Eth.DevHelpers.transact_sync!()
 
     IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
 
@@ -210,7 +241,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
   test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit unchallenged_exit event",
-       %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
+       %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _, _}, test_server: context} do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     {:ok, %{blknum: exit_blknum}} = Client.submit(tx)
 

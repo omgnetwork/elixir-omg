@@ -29,7 +29,7 @@ defmodule OMG.Watcher.DB.EthEventTest do
   test "insert deposits: creates deposit event and utxo" do
     owner = <<1::160>>
     expected_hash = DB.EthEvent.generate_unique_key(Utxo.position(1, 0, 0), :deposit)
-    DB.EthEvent.insert_deposits([%{blknum: 1, owner: owner, currency: @eth, amount: 1}])
+    DB.EthEvent.insert_deposits([%{blknum: 1, owner: owner, currency: @eth, amount: 1, tokenids: []}])
 
     [event] = DB.EthEvent.get_all()
     assert %DB.EthEvent{blknum: 1, txindex: 0, event_type: :deposit, hash: ^expected_hash} = event
@@ -43,6 +43,7 @@ defmodule OMG.Watcher.DB.EthEventTest do
              owner: ^owner,
              currency: @eth,
              amount: 1,
+             tokenids: [],
              creating_deposit: ^expected_hash
            } = utxo
   end
@@ -51,9 +52,9 @@ defmodule OMG.Watcher.DB.EthEventTest do
   test "insert deposits: creates deposits and retrieves them by hash", %{alice: alice} do
     [{:ok, _evnt1}, {:ok, _evnt2}, {:ok, _evnt3}] =
       DB.EthEvent.insert_deposits([
-        %{blknum: 1, owner: alice.addr, currency: @eth, amount: 1},
-        %{blknum: 1000, owner: alice.addr, currency: @eth, amount: 2},
-        %{blknum: 2013, owner: alice.addr, currency: @eth, amount: 3}
+        %{blknum: 1, owner: alice.addr, currency: @eth, amount: 1, tokenids: []},
+        %{blknum: 1000, owner: alice.addr, currency: @eth, amount: 2, tokenids: []},
+        %{blknum: 2013, owner: alice.addr, currency: @eth, amount: 3, tokenids: []}
       ])
 
     hash1 = DB.EthEvent.generate_unique_key(Utxo.position(1, 0, 0), :deposit)

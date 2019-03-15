@@ -176,6 +176,17 @@ defmodule OMG.API.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :bob, :state_empty]
+  test "can spend a batch of deposits (nft tokens)", %{alice: alice, bob: bob, state_empty: state} do
+    state
+    |> do_deposit(alice, %{tokenids: [10], currency: @eth, blknum: 1})
+    |> do_deposit(bob, %{tokenids: [20], currency: @eth, blknum: 2})
+    |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{bob, [10]}]), @zero_fees)
+    |> success?
+    |> Core.exec(create_recovered([{2, 0, 0, bob}], @eth, [{alice, [20]}]), @zero_fees)
+    |> success?
+  end
+
+  @tag fixtures: [:alice, :bob, :state_empty]
   test "can't spend when signature order does not match input order", %{alice: alice, bob: bob, state_empty: state} do
     state
     |> do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
@@ -190,17 +201,17 @@ defmodule OMG.API.State.CoreTest do
     bob: bob,
     state_empty: state
   } do
-    deposits = [%{owner: alice.addr, currency: @eth, amount: 20, blknum: 2}]
+    deposits = [%{owner: alice.addr, currency: @eth, amount: 20, tokenids: [], blknum: 2}]
     assert {:ok, {_, [_, {:put, :last_deposit_child_blknum, 2}]}, state} = Core.deposit(deposits, state)
 
-    assert {:ok, {[], []}, ^state} = Core.deposit([%{owner: bob.addr, currency: @eth, amount: 20, blknum: 1}], state)
+    assert {:ok, {[], []}, ^state} = Core.deposit([%{owner: bob.addr, currency: @eth, amount: 20, tokenids: [], blknum: 1}], state)
   end
 
   @tag fixtures: [:bob]
   test "ignores deposits from blocks not higher than the deposit height read from db", %{bob: bob} do
     {:ok, state} = Core.extract_initial_state([], 0, 1, @interval)
 
-    assert {:ok, {[], []}, ^state} = Core.deposit([%{owner: bob.addr, currency: @eth, amount: 20, blknum: 1}], state)
+    assert {:ok, {[], []}, ^state} = Core.deposit([%{owner: bob.addr, currency: @eth, amount: 20, tokenids: [], blknum: 1}], state)
   end
 
   test "extract_initial_state function returns error when passed last deposit as :not_found" do
@@ -341,7 +352,7 @@ defmodule OMG.API.State.CoreTest do
     alice: alice,
     state_empty: state
   } do
-    assert {:ok, {[trigger], _}, state} = Core.deposit([%{owner: alice, currency: @eth, amount: 4, blknum: 1}], state)
+    assert {:ok, {[trigger], _}, state} = Core.deposit([%{owner: alice, currency: @eth, amount: 4, tokenids: [], blknum: 1}], state)
 
     assert trigger == %{deposit: %{owner: alice, amount: 4}}
     assert {:ok, {_, [], _}, _} = form_block_check(state)
@@ -475,7 +486,7 @@ defmodule OMG.API.State.CoreTest do
     state_empty: state
   } do
     assert {:ok, {_, [utxo_update, height_update]}, state} =
-             Core.deposit([%{owner: alice.addr, currency: @eth, amount: 10, blknum: 1}], state)
+             Core.deposit([%{owner: alice.addr, currency: @eth, amount: 10, tokenids: [], blknum: 1}], state)
 
     assert {:put, :utxo, {{1, 0, 0}, %{owner: ^alice_addr, currency: @eth, amount: 10}}} = utxo_update
     assert height_update == {:put, :last_deposit_child_blknum, 1}
