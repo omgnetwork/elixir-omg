@@ -56,32 +56,20 @@ defmodule OMG.API.FeeServer do
     {:ok, load_fees()}
   end
 
-  @doc """
-  Parses and validates json encoded fee specifications file
-  """
-  @spec parse_file_content(binary()) :: {:ok, list(Fees.fee_spec_t())} | {:error, reason :: atom()}
-  def parse_file_content(file_content) do
-    file_content
-    |> Fees.parse_file_content()
-    |> handle_parser_output()
-  end
-
-  @doc """
-  Reads fee specification file if needed and updates :ets state with current fees information
-  """
+  # Reads fee specification file if needed and updates :ets state with current fees information
   @spec update_fee_spec() :: :ok | :file_unchanged | {:error, atom()}
   defp update_fee_spec do
     path = Application.fetch_env!(:omg_api, :fee_specs_file_path)
 
     with {:reload, changed_at} <- should_load_file(path),
          {:ok, content} <- File.read(path),
-         {:ok, specs} <- parse_file_content(content) do
+         {:ok, specs} <- Fees.parse_file_content(content) do
       :ok = save_fees(specs, changed_at)
       _ = Logger.info("Reloaded #{inspect(Enum.count(specs))} fee specs from file, changed at #{inspect(changed_at)}")
 
       :ok
     else
-      {:file_unchanged, last_change_at} ->
+      {:file_unchanged, _last_change_at} ->
         :file_unchanged
 
       {:error, :enoent} ->
@@ -135,21 +123,5 @@ defmodule OMG.API.FeeServer do
 
     true = :ets.insert(:fees_bucket, {:last_loaded, 0})
     :ok
-  end
-
-  defp handle_parser_output({[], fee_specs}) do
-    _ = Logger.debug("Parsing fee specification file completes successfully.")
-    {:ok, fee_specs}
-  end
-
-  defp handle_parser_output({[{error, _index} | _] = errors, _fee_specs}) do
-    _ = Logger.warn("Parsing fee specification file fails with errors:")
-
-    Enum.each(errors, fn {{:error, reason}, index} ->
-      _ = Logger.warn(" * ##{inspect(index)} fee spec parser failed with error: #{inspect(reason)}")
-    end)
-
-    # return first error
-    error
   end
 end

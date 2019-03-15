@@ -39,16 +39,17 @@ defmodule OMG.API.FeesTest do
 
   describe "Parser output:" do
     test "parse valid data is successful" do
-      assert {[], fee_map} = parse_file_content(@fee_config_file)
+      assert {:ok, fee_map} = parse_file_content(@fee_config_file)
 
       assert Enum.count(fee_map) == 3
       assert fee_map[@eth] == 2
     end
 
     test "empty fee spec list is parsed correctly" do
-      assert {[], %{}} = parse_file_content("[]")
+      assert {:ok, %{}} = parse_file_content("[]")
     end
 
+    @tag :capture_log
     test "parse invalid data return errors" do
       json = ~s([
         {
@@ -72,25 +73,23 @@ defmodule OMG.API.FeesTest do
         }
       ])
 
-      expected_errors = [
-        {{:error, :invalid_fee_spec}, 1},
-        {{:error, :invalid_fee}, 2},
-        {{:error, :bad_address_encoding}, 3},
-        {{:error, :bad_address_encoding}, 4}
-      ]
-
-      assert {^expected_errors, _} = parse_file_content(json)
+      assert {:error,
+              [
+                {{:error, :invalid_fee_spec}, 1},
+                {{:error, :invalid_fee}, 2},
+                {{:error, :bad_address_encoding}, 3},
+                {{:error, :bad_address_encoding}, 4}
+              ]} = parse_file_content(json)
     end
 
+    @tag :capture_log
     test "json with duplicate tokens returns error" do
       json = ~s([
         {"token": "0x0000000000000000000000000000000000000000", "flat_fee": 1},
         {"token": "0x0000000000000000000000000000000000000000", "flat_fee": 2}
       ])
 
-      expected_errors = [{{:error, :duplicate_token}, 2}]
-
-      assert {^expected_errors, _} = parse_file_content(json)
+      assert {:error, [{{:error, :duplicate_token}, 2}]} = parse_file_content(json)
     end
   end
 

@@ -23,6 +23,8 @@ defmodule OMG.API.Fees do
 
   require Utxo
 
+  use OMG.API.LoggerExt
+
   @type fee_spec_t() :: %{token: Transaction.currency(), flat_fee: non_neg_integer}
   @type fee_t() :: %{Transaction.currency() => non_neg_integer} | :ignore
 
@@ -49,12 +51,7 @@ defmodule OMG.API.Fees do
   Returns fees for particular transaction
   """
   @spec for_tx(Transaction.Recovered.t(), fee_t()) :: fee_t()
-  def for_tx(
-        %Transaction.Recovered{
-          signed_tx: %Transaction.Signed{raw_tx: raw_tx}
-        } = recovered_tx,
-        fee_map
-      ) do
+  def for_tx(%Transaction.Recovered{} = recovered_tx, fee_map) do
     if is_merge_transaction?(recovered_tx),
       do: :ignore,
       # TODO: reducing fees to output currencies only is incorrect, let's deffer until fees get large
@@ -62,9 +59,11 @@ defmodule OMG.API.Fees do
   end
 
   @doc """
+  Parses and validates json encoded fee specifications file
+
   Parses provided json string to token-fee map and returns the map together with possible parsing errors
   """
-  @spec parse_file_content(binary()) :: {list({:error, atom()}), fee_t()}
+  @spec parse_file_content(binary()) :: {:ok, fee_t()} | {:error, list({:error, atom()})}
   def parse_file_content(file_content) do
     {:ok, json} = Poison.decode(file_content)
 
@@ -74,6 +73,7 @@ defmodule OMG.API.Fees do
       |> Enum.reduce({[], %{}, 1}, &spec_reducer/2)
 
     {Enum.reverse(errors), token_fee_map}
+    |> handle_parser_output()
   end
 
   defp is_merge_transaction?(recovered_tx) do
@@ -151,5 +151,20 @@ defmodule OMG.API.Fees do
     if Map.has_key?(token_fee_map, token),
       do: {[{{:error, :duplicate_token}, spec_index} | errors], token_fee_map, spec_index + 1},
       else: {errors, Map.put(token_fee_map, token, fee), spec_index + 1}
+  end
+
+  defp handle_parser_output({[], fee_specs}) do
+    _ = Logger.debug("Parsing fee specification file completes successfully.")
+    {:ok, fee_specs}
+  end
+
+  defp handle_parser_output({[{_error, _index} | _] = errors, _fee_specs}) do
+    _ = Logger.warn("Parsing fee specification file fails with errors:")
+
+    Enum.each(errors, fn {{:error, reason}, index} ->
+      _ = Logger.warn(" * ##{inspect(index)} fee spec parser failed with error: #{inspect(reason)}")
+    end)
+
+    {:error, errors}
   end
 end
