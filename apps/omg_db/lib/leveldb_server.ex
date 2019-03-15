@@ -22,8 +22,8 @@ defmodule OMG.DB.LevelDBServer do
   defstruct [:db_ref]
 
   use GenServer
-
   alias OMG.DB.LevelDBCore
+  alias OMG.DB.Recorder
 
   require Logger
 
@@ -40,12 +40,20 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   def start_link(name: name, db_path: db_path) do
-    GenServer.start_link(__MODULE__, %{db_path: db_path}, name: name)
+    GenServer.start_link(__MODULE__, %{db_path: db_path, name: name}, name: name)
   end
 
-  def init(%{db_path: db_path}) do
+  def init(%{db_path: db_path, name: name}) do
     # needed so that terminate callback is called on normal close
     Process.flag(:trap_exit, true)
+
+    name =
+      name
+      |> Atom.to_string()
+      |> Kernel.<>(".Recorder")
+      |> String.to_atom()
+
+    {:ok, _} = Recorder.start_link(%Recorder{name: name, parent: self()})
 
     with {:ok, db_ref} <- Exleveldb.open(db_path, create_if_missing: false) do
       {:ok, %__MODULE__{db_ref: db_ref}}

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Status.Metric.Recorder do
+defmodule OMG.DB.Recorder do
   @moduledoc """
   A GenServer template for metrics recording.
   """
@@ -20,22 +20,20 @@ defmodule Status.Metric.Recorder do
   @default_interval 5_000
   @type t :: %__MODULE__{
           name: atom(),
-          fn: (... -> atom()),
+          parent: pid(),
           key: charlist() | nil,
           interval: pos_integer(),
           reporter: (... -> atom()),
           tref: reference() | nil,
           node: String.t() | nil
         }
-  defstruct name: nil, fn: nil, key: nil, interval: @default_interval, reporter: nil, tref: nil, node: nil
-
-  @doc """
-  Returns child_specs for the given metric setup, to be included e.g. in Supervisor's children.
-  """
-  @spec prepare_child(t) :: %{id: atom(), start: tuple()}
-  def prepare_child(opts) do
-    %{id: opts.name, start: {__MODULE__, :start_link, [opts]}}
-  end
+  defstruct name: nil,
+            parent: nil,
+            key: nil,
+            interval: @default_interval,
+            reporter: &Appsignal.set_gauge/3,
+            tref: nil,
+            node: nil
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: opts.name)
@@ -56,7 +54,7 @@ defmodule Status.Metric.Recorder do
 
   def handle_info(:gather, state) do
     # invoke the reporter function and pass the key and value (invoke the fn)
-    _ = state.reporter.(state.key, apply(state.fn(), []), %{node: state.node})
+    _ = state.reporter.(state.key, Process.info(state.parent, :message_queue_len) |> elem(1), %{node: state.node})
     {:noreply, state}
   end
 

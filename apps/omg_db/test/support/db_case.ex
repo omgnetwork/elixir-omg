@@ -30,8 +30,8 @@ defmodule OMG.DB.Case do
   setup %{test: test_name} do
     {:ok, dir} = Briefly.create(directory: true)
     :ok = OMG.DB.LevelDBServer.init_storage(dir)
-
-    {:ok, pid} = GenServer.start_link(OMG.DB.LevelDBServer, %{db_path: dir}, name: :"TestDB_#{test_name}")
+    name = :"TestDB_#{test_name}"
+    {:ok, pid} = GenServer.start_link(OMG.DB.LevelDBServer, %{db_path: dir, name: name}, name: name)
     {:ok, %{db_dir: dir, db_pid: pid}}
   end
 end

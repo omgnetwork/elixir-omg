@@ -27,15 +27,17 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.API.State
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
-  require Utxo
+
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Challenge
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias OMG.Watcher.Recorder
 
   use OMG.API.LoggerExt
+  require Utxo
 
   ### Client
 
@@ -184,6 +186,9 @@ defmodule OMG.Watcher.ExitProcessor do
     sla_margin = Application.fetch_env!(:omg_watcher, :exit_processor_sla_margin)
 
     processor = Core.init(db_exits, db_ifes, db_competitors, sla_margin)
+
+    {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
+
     _ = Logger.info("Initializing with: #{inspect(processor)}")
     processor
   end
