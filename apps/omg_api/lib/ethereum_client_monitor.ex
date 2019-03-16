@@ -22,7 +22,7 @@ defmodule OMG.API.EthereumClientMonitor do
   alias OMG.API.Alert.Alarm
   alias OMG.Eth
 
-  @default_interval 1_000
+  @default_interval 500
   @type t :: %__MODULE__{
           interval: pos_integer(),
           tref: reference() | nil
@@ -36,14 +36,15 @@ defmodule OMG.API.EthereumClientMonitor do
   def init(_args) do
     state = %__MODULE__{}
     _ = raise_clear(check())
-    {:ok, tref} = :timer.send_interval(state.interval, self(), :health_check)
+    {:ok, tref} = :timer.send_after(state.interval, :health_check)
     _ = Logger.info("Starting Ethereum client monitor.")
     {:ok, %{state | tref: tref}}
   end
 
   def handle_info(:health_check, state) do
     _ = raise_clear(check())
-    {:noreply, state}
+    {:ok, tref} = :timer.send_after(state.interval, :health_check)
+    {:noreply, %{state | tref: tref}}
   end
 
   def terminate(_, _), do: :ok
