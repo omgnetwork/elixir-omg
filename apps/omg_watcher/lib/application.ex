@@ -50,7 +50,6 @@ defmodule OMG.Watcher.Application do
       name: OMG.Watcher.RootSupervisor
     ]
 
-    :ok = :error_logger.add_report_handler(Sentry.Logger)
     Supervisor.start_link(children, opts)
   end
 

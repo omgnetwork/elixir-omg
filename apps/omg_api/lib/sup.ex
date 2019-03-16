@@ -67,7 +67,6 @@ defmodule OMG.API.Sup do
     opts = [strategy: :one_for_one]
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    :ok = :error_logger.add_report_handler(Sentry.Logger)
     Supervisor.init(children, opts)
   end
 

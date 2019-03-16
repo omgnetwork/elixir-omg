@@ -29,8 +29,7 @@ defmodule OMG.API.MixProject do
         coordinator_eth_height_check_interval_ms: 6_000,
         child_block_minimal_enqueue_gap: 1
       ],
-      # Add Sentry and Appsignal
-      extra_applications: [:sentry, :logger, :appsignal],
+      extra_applications: [:logger, :appsignal],
       mod: {OMG.API.Application, []}
     ]
   end
@@ -53,7 +52,6 @@ defmodule OMG.API.MixProject do
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
       {:omg_rpc, in_umbrella: true},
-      {:sentry, "~> 6.4"},
       {:appsignal, "~> 1.0"}
     ]
   end
