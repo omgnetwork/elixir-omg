@@ -97,7 +97,7 @@ jobs:
     steps:
       - attach_workspace:
            at: .
-      - run: mix do credo, format --check-formatted --dry-run
+      - run: MIX_ENV=test mix do local.hex --force, local.rebar --force, compile --warnings-as-errors --force, test --exclude test, credo, format --check-formatted --dry-run
 
   coveralls_and_integration_tests:
     docker:
