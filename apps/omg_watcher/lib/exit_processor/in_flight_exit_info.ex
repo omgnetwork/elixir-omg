@@ -136,7 +136,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     {:put, :in_flight_exit_info, {ife_hash, value}}
   end
 
-  defp assert_utxo_pos_type({:utxo_position, blknum, txindex, oindex})
+  defp assert_utxo_pos_type(Utxo.position(blknum, txindex, oindex))
        when is_integer(blknum) and is_integer(txindex) and is_integer(oindex),
        do: :ok
 
