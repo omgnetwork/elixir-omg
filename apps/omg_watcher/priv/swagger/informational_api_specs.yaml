@@ -70,7 +70,7 @@ paths:
       produces:
       - application/json
       requestBody:
-        $ref: '#/requests/GetTransactionsOpId'
+        $ref: '#/requests/GetTransactionsAllOpId'
       responses:
         200:
           $ref: '#/responses/GetTransactionsOpId'
@@ -191,28 +191,8 @@ paths:
           $ref: '../../../omg_rpc/priv/swagger/shared.yaml#/InternalServerError'
 
 requests:
-  GetTransactionsOpId:
-    description: Account address and optional limit
-    required: true
-    content:
-      application/json:
-        schema:
-          type: object
-          properties:
-            address:
-              type: string
-              format: binary
-            limit:
-              type: integer
-              format: int32
-              default: 200              
-          required:
-            - address
-          example:
-            address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
-            limit: 100 
   GetTransactionsAllOpId:
-    description: Account address, block number or limit
+    description: Account address, block number and other criteria
     required: true
     content:
       application/json:
@@ -224,7 +204,10 @@ requests:
               format: binary
             blknum:
               type: integer
-              format: int64              
+              format: int64
+            metadata:
+              type: string
+              format: binary
             limit:
               type: integer
               format: int32
