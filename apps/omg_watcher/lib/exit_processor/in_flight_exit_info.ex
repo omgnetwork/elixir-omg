@@ -248,19 +248,6 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   def is_canonical?(%__MODULE__{is_canonical: value}), do: value
 
-  def input_to_output_piggyback_index(%{oindex: oindex}), do: oindex + @max_number_of_inputs
-
-  @spec get_input_index(__MODULE__.t(), Utxo.Position.t()) :: non_neg_integer() | nil
-  def get_input_index(%__MODULE__{tx: %Transaction.Signed{raw_tx: tx}}, utxopos) do
-    {_, input_index} =
-      tx
-      |> Transaction.get_inputs()
-      |> Enum.with_index()
-      |> Enum.find(fn {pos, _index} -> pos == utxopos end)
-
-    input_index
-  end
-
   defp is_older?(Utxo.position(tx1_blknum, tx1_index, _), Utxo.position(tx2_blknum, tx2_index, _)),
     do: tx1_blknum < tx2_blknum or (tx1_blknum == tx2_blknum and tx1_index < tx2_index)
 end

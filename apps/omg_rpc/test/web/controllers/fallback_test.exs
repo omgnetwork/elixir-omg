@@ -12,18 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.FallbackTest do
+defmodule OMG.RPC.Web.Controller.FallbackTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  alias OMG.Watcher.TestHelper
+  alias OMG.RPC.Web.TestHelper
 
-  @tag fixtures: [:phoenix_ecto_sandbox]
+  @tag fixtures: [:phoenix_sandbox]
   test "returns error for non existing method" do
     assert %{
-             "object" => "error",
-             "code" => "operation:not_found",
-             "description" => "Operation cannot be found. Check request URL."
-           } == TestHelper.no_success?("no_such.endpoint", %{})
+             "success" => false,
+             "data" => %{
+               "object" => "error",
+               "code" => "operation:not_found",
+               "description" => "Operation cannot be found. Check request URL."
+             }
+           } = TestHelper.rpc_call(:post, "no_such.endpoint", %{})
   end
 end

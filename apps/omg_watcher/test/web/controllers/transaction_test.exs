@@ -894,6 +894,62 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   end
 
   describe "creating transaction: Validation" do
+    @tag fixtures: [:alice, :more_utxos]
+    test "empty payments list attempted", %{alice: alice} do
+      alice_addr = Encoding.to_hex(alice.addr)
+
+      # NOTE: this is unintended behavior, there's a chore to fix this. Alter this test accordingly, when doing that.
+      #       The intended behavior would be a relevant error message. For now testing non-crash at least:
+      assert %{"result" => "complete"} =
+               TestHelper.success?(
+                 "transaction.create",
+                 %{"owner" => alice_addr, "payments" => [], "fee" => %{"amount" => 0, "currency" => @eth_hex}}
+               )
+    end
+
+    @tag fixtures: [:alice, :more_utxos]
+    test "incorrect payment in payment list", %{alice: alice} do
+      alice_addr = Encoding.to_hex(alice.addr)
+
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{"validation_error" => %{"parameter" => "amount", "validator" => ":integer"}}
+             } ==
+               TestHelper.no_success?(
+                 "transaction.create",
+                 %{
+                   "owner" => alice_addr,
+                   "payments" => [%{"amount" => "zonk", "currency" => @other_token_hex, "owner" => alice_addr}],
+                   "fee" => %{"amount" => 0, "currency" => @eth_hex}
+                 }
+               )
+    end
+
+    @tag fixtures: [:alice, :more_utxos]
+    test "too many payments attempted", %{alice: alice} do
+      alice_addr = Encoding.to_hex(alice.addr)
+      too_many_payments = List.duplicate(%{"amount" => 1, "currency" => @other_token_hex, "owner" => alice_addr}, 5)
+
+      assert %{
+               "object" => "error",
+               "code" => "operation:bad_request",
+               "description" => "Parameters required by this operation are missing or incorrect.",
+               "messages" => %{
+                 "validation_error" => %{"parameter" => "payments", "validator" => "{:too_many_payments, 4}"}
+               }
+             } ==
+               TestHelper.no_success?(
+                 "transaction.create",
+                 %{
+                   "owner" => alice_addr,
+                   "payments" => too_many_payments,
+                   "fee" => %{"amount" => 0, "currency" => @eth_hex}
+                 }
+               )
+    end
+
     @tag fixtures: [:phoenix_ecto_sandbox]
     test "owner should be hex-encoded address" do
       assert %{

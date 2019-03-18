@@ -67,7 +67,7 @@ defmodule OMG.API.BlockQueue do
 
     def handle_continue(:setup, %{}) do
       _ = Logger.info("Starting #{__MODULE__} service.")
-      :ok = Eth.Geth.node_ready()
+      :ok = Eth.node_ready()
       :ok = Eth.RootChain.contract_ready()
       {:ok, parent_height} = Eth.get_ethereum_height()
       {:ok, mined_num} = Eth.RootChain.get_mined_child_block()
