@@ -31,9 +31,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.ExitProcessor.Challenge
-  alias OMG.Watcher.ExitProcessor.Core
-  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias ExitProcessor.{Challenge, Core, ExitInfo, InFlightExitInfo}
   alias OMG.Watcher.Recorder
 
   use OMG.API.LoggerExt
@@ -363,10 +361,9 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:create_challenge, Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos}, _from, state) do
     with spending_blknum_response <- exiting_utxo_pos |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum(),
-         %{txhash: txhash} <- OMG.Watcher.DB.Transaction.get_by_position(blknum, txindex),
-         {:ok, exit_id} <- OMG.Eth.RootChain.get_standard_exit_id(txhash, oindex),
          {:ok, raw_spending_proof, exit_info} <-
-           Core.get_challenge_data(spending_blknum_response, exiting_utxo_pos, state) do
+           Core.get_challenge_data(spending_blknum_response, exiting_utxo_pos, state),
+         {:ok, exit_id} <- get_standard_exit_id(exiting_utxo_pos, exit_info) do
       # TODO: we're violating the shell/core pattern here, refactor!
       spending_proof =
         case raw_spending_proof do
@@ -382,6 +379,34 @@ defmodule OMG.Watcher.ExitProcessor do
       {:reply, {:ok, Core.create_challenge(exit_info, spending_proof, exiting_utxo_pos, exit_id)}, state}
     else
       error -> {:reply, error, state}
+    end
+  end
+
+  defmacro is_deposit(blknum) do
+    {:ok, interval} = OMG.Eth.RootChain.get_child_block_interval()
+
+    quote do
+      rem(unquote(blknum), unquote(interval)) != 0
+    end
+  end
+
+  defp get_standard_exit_id(
+         Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos,
+         %ExitInfo{owner: owner, currency: currency, amount: amount} = exit_info
+       )
+       when is_deposit(blknum) do
+    Transaction.new([], [{owner, currency, amount}])
+    |> Transaction.hash()
+    |> OMG.Eth.RootChain.get_standard_exit_id(oindex)
+  end
+
+  defp get_standard_exit_id(Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos, _exit_info) do
+    with {:ok, {requested_hash, block_timestamp}} <- Eth.RootChain.get_child_chain(blknum),
+         {:ok, [%{transactions: transactions}]} <- OMG.DB.blocks([requested_hash]),
+         {:ok, bytes_tx} <- Enum.fetch(transactions, txindex),
+         {:ok, %{raw_tx: raw_tx}} <- OMG.API.State.Transaction.Signed.decode(bytes_tx) do
+      txhash = Transaction.hash(raw_tx)
+      OMG.Eth.RootChain.get_standard_exit_id(txhash, oindex)
     end
   end
 
