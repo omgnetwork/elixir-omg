@@ -1,4 +1,4 @@
-FROM ubuntu:16.10
+FROM ubuntu:18.04
 
 MAINTAINER Jake Bunce <jake@omise.co>
 
