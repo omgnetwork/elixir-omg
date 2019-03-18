@@ -67,7 +67,7 @@ defmodule OMG.API.EthereumEventListener do
         process_events_callback: process_events_callback
       }) do
     _ = Logger.info("Starting EthereumEventListener for #{service_name}.")
-    :ok = Eth.Geth.node_ready()
+    :ok = Eth.node_ready()
     {:ok, contract_deployment_height} = OMG.Eth.RootChain.get_root_deployment_height()
     {:ok, last_event_block_height} = OMG.DB.get_single_value(update_key)
     # we don't need to ever look at earlier than contract deployment

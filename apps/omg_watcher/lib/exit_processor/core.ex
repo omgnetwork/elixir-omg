@@ -120,9 +120,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
      %__MODULE__{
        exits:
          db_exits
-         |> Enum.map(fn {db_utxo_pos, v} ->
-           {Utxo.Position.from_db_key(db_utxo_pos), struct!(ExitInfo, v)}
-         end)
+         |> Enum.map(fn {db_utxo_pos, v} -> {Utxo.Position.from_db_key(db_utxo_pos), ExitInfo.from_db_value(v)} end)
          |> Map.new(),
        in_flight_exits: db_in_flight_exits |> Map.new(),
        competitors: db_competitors |> Map.new(),

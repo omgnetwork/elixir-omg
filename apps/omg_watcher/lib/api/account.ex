@@ -29,6 +29,8 @@ defmodule OMG.Watcher.API.Account do
 
   @doc """
   Returns all utxos owner by `address`
+
+  TODO: For now uses Postgres data, but should be adapted to OMG.DB (in security-critical only mode)
   """
   @spec get_utxos(OMG.API.Crypto.address_t()) :: list(%DB.TxOutput{})
   def get_utxos(address) do

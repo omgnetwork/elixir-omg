@@ -1517,6 +1517,109 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert_proof_sound(proof_bytes)
     end
 
+    @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
+    test "handle two competitors, when the younger one already challenged",
+         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp | _]} do
+      txbytes = Transaction.encode(tx1)
+      other_txbytes = Transaction.encode(comp)
+
+      {:ok, %{signed_tx: %{sigs: [other_signature, _]}} = other_recovered} =
+        DevCrypto.sign(comp, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+
+      other_blknum = 3000
+
+      exit_processor_request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([other_recovered, other_recovered], other_blknum)]
+      }
+
+      # the transaction is firstmost submitted as a competitor and used to challenge with no inclusion proof
+      other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signature}, eth_height: 2}
+      other_ife_status = {1, @non_zero_exit_id}
+      {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
+
+      challenge = %{
+        tx_hash: Transaction.hash(tx1),
+        # in-flight transaction
+        competitor_position: not_included_competitor_pos(),
+        call_data: %{
+          competing_tx: other_txbytes,
+          competing_tx_input_index: 1,
+          competing_tx_sig: @zero_sig
+        }
+      }
+
+      # sanity check - there's two non-canonicals, because IFE compete with each other
+      # after the first challenge there should be only one, after the final challenge - none
+      assert {:ok, [_, _]} = exit_processor_request |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
+
+      assert_competitors_work = fn processor ->
+        # should be `assert {:ok, [_, _]}` but we have OMG-441 (see other comment)
+        assert {:ok, [_]} = exit_processor_request |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
+
+        assert {:ok, %{competing_txbytes: ^other_txbytes, competing_tx_pos: Utxo.position(^other_blknum, 0, 0)}} =
+                 exit_processor_request |> Core.get_competitor_for_ife(processor, txbytes)
+      end
+
+      # challenge with IFE (no position)
+      {processor, _} = Core.new_ife_challenges(processor, [challenge])
+      assert_competitors_work.(processor)
+
+      # challenge with the younger competitor (incomplete challenge)
+      young_challenge = %{challenge | competitor_position: Utxo.position(other_blknum, 1, 0) |> Utxo.Position.encode()}
+      {processor, _} = Core.new_ife_challenges(processor, [young_challenge])
+      assert_competitors_work.(processor)
+
+      # challenge with the older competitor (final)
+      older_challenge = %{challenge | competitor_position: Utxo.position(other_blknum, 0, 0) |> Utxo.Position.encode()}
+      {processor, _} = Core.new_ife_challenges(processor, [older_challenge])
+      # NOTE: should be like this - only the "other" IFE remains challenged, because our main one got challenged by the
+      # oldest competitor now):
+      # assert {:ok, [_]} = exit_processor_request |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])?
+      #
+      # i.e. if the challenge present is no the oldest competitor, we still should challenge. After it is the oldest
+      # we stop bothering, see OMG-441
+      #
+      # this is temporary behavior being tested:
+      assert_competitors_work.(processor)
+    end
+
+    @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
+    test "none if IFE is challenged enough already",
+         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp | _]} do
+      txbytes = Transaction.encode(tx1)
+
+      other_txbytes = Transaction.encode(comp)
+      {:ok, other_recovered} = DevCrypto.sign(comp, [alice.priv, alice.priv]) |> Transaction.Recovered.recover_from()
+      other_blknum = 3000
+
+      exit_processor_request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([other_recovered], other_blknum)]
+      }
+
+      challenge_event = %{
+        tx_hash: Transaction.hash(tx1),
+        # in-flight transaction
+        competitor_position: Utxo.position(other_blknum, 0, 0) |> Utxo.Position.encode(),
+        call_data: %{
+          competing_tx: other_txbytes,
+          competing_tx_input_index: 1,
+          competing_tx_sig: @zero_sig
+        }
+      }
+
+      {processor, _} = Core.new_ife_challenges(processor, [challenge_event])
+
+      assert {:ok, []} = exit_processor_request |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
+
+      # getting the competitor is still valid, so allowing this
+      assert {:ok, %{competing_txbytes: ^other_txbytes, competing_tx_pos: Utxo.position(other_blknum, 0, 0)}} =
+               exit_processor_request |> Core.get_competitor_for_ife(processor, txbytes)
+    end
+
     @tag fixtures: [:alice, :processor_filled, :transactions]
     test "a competitor having the double-spend on various input indices",
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _]} do

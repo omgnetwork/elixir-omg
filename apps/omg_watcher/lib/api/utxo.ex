@@ -22,17 +22,8 @@ defmodule OMG.Watcher.API.Utxo do
   alias OMG.Watcher.ExitProcessor
 
   @doc """
-  Returns all utxos owner by `address`
-  TODO: For now uses Postgres data, but should be adapted to OMG.DB
-  """
-  @spec get_utxos(OMG.API.Crypto.address_t()) :: list(%DB.TxOutput{})
-  def get_utxos(address) do
-    DB.TxOutput.get_utxos(address)
-  end
-
-  @doc """
   Returns exit data for an utxo
-  TODO: For now uses Postgres data, but should be adapted to OMG.DB
+  TODO: For now uses Postgres data, but should be adapted to OMG.DB (in security-critical only mode)
   """
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, DB.TxOutput.exit_t()} | {:error, :utxo_not_found}
   def compose_utxo_exit(utxo) do
