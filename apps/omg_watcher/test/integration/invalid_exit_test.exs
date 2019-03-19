@@ -85,6 +85,48 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     IntegrationTest.wait_for_byzantine_events([], @timeout)
   end
 
+  @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
+  test "challenge standard exits from deposits", %{
+    stable_alice: alice,
+    stable_alice_deposits: {deposit_blknum, _}
+  } do
+    %{"blknum" => tx_blknum} =
+      API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}]) |> TestHelper.submit()
+
+    %{"utxo_pos" => utxo_pos, "txbytes" => txbytes, "proof" => proof} = TestHelper.get_exit_data(deposit_blknum, 0, 0)
+
+    {:ok, %{"status" => "0x1"}} =
+      Eth.RootChain.start_exit(utxo_pos, txbytes, proof, alice.addr)
+      |> Eth.DevHelpers.transact_sync!()
+
+    IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
+    IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
+
+    {:ok, exit_id} =
+      Eth.RootChain.get_standard_exit_id(
+        # calculate hash from deposit
+        OMG.API.State.Transaction.new([], [{alice.addr, @eth, 10}])
+        |> OMG.API.State.Transaction.hash(),
+        0
+      )
+
+    assert {:ok, {alice.addr, @eth, 10, utxo_pos}} == Eth.RootChain.get_standard_exit(exit_id)
+
+    # after the notification has been received, a challenged is composed and sent
+    challenge = TestHelper.get_exit_challenge(deposit_blknum, 0, 0)
+    assert {:ok, %{"status" => "0x1"}} =
+             OMG.Eth.RootChain.challenge_exit(
+               challenge["exit_id"],
+               challenge["txbytes"],
+               challenge["input_index"],
+               challenge["sig"],
+               alice.addr
+             )
+             |> Eth.DevHelpers.transact_sync!()
+
+    assert {:ok, {OMG.Eth.zero_address(), @eth, 0, 0}} == Eth.RootChain.get_standard_exit(exit_id)
+  end
+
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
   test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
