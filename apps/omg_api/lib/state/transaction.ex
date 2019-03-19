@@ -133,26 +133,22 @@ defmodule OMG.API.State.Transaction do
   def reconstruct(_), do: {:error, :malformed_transaction}
 
   defp reconstruct_inputs(inputs_rlp) do
-    {:ok,
-     Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
-       %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
-     end)}
+    Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
+      %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
+    end)
+    |> inputs_without_gaps()
   rescue
     _ -> {:error, :malformed_inputs}
   end
 
   defp reconstruct_outputs(outputs_rlp) do
-    outputs =
-      Enum.map(outputs_rlp, fn [owner, currency, amount] ->
-        with {:ok, cur12} <- parse_address(currency),
-             {:ok, owner} <- parse_address(owner) do
-          %{owner: owner, currency: cur12, amount: parse_int(amount)}
-        end
-      end)
-
-    if error = Enum.find(outputs, &match?({:error, _}, &1)),
-      do: error,
-      else: {:ok, outputs}
+    Enum.map(outputs_rlp, fn [owner, currency, amount] ->
+      with {:ok, cur12} <- parse_address(currency),
+           {:ok, owner} <- parse_address(owner) do
+        %{owner: owner, currency: cur12, amount: parse_int(amount)}
+      end
+    end)
+    |> outputs_without_gaps()
   rescue
     _ -> {:error, :malformed_outputs}
   end
@@ -223,4 +219,31 @@ defmodule OMG.API.State.Transaction do
   """
   @spec get_outputs(t()) :: list(output())
   def get_outputs(%__MODULE__{outputs: outputs}), do: outputs
+
+  defp inputs_without_gaps([input | _] = inputs) do
+    inputs
+    |> check_for_gaps(input, %{blknum: 0, txindex: 0, oindex: 0}, {:error, :inputs_contain_gaps})
+  end
+
+  defp outputs_without_gaps([output | _] = outputs) do
+    if error = Enum.find(outputs, &match?({:error, _}, &1)),
+      do: error,
+      else:
+        outputs
+        |> check_for_gaps(
+          output,
+          %{owner: @zero_address, currency: @zero_address, amount: 0},
+          {:error, :outputs_contain_gaps}
+        )
+  end
+
+  defp check_for_gaps(items, init, empty, error) do
+    with {:ok, _} <-
+           Enum.reduce_while(items, {:ok, init}, fn elt, {:ok, prev} ->
+             if prev == empty and elt != empty,
+               do: {:halt, error},
+               else: {:cont, {:ok, elt}}
+           end),
+         do: {:ok, items}
+  end
 end
