@@ -20,6 +20,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   use Plug.Test
 
   alias OMG.API
+  alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Eth
@@ -105,8 +106,8 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     {:ok, exit_id} =
       Eth.RootChain.get_standard_exit_id(
         # calculate hash from deposit
-        OMG.API.State.Transaction.new([], [{alice.addr, @eth, 10}])
-        |> OMG.API.State.Transaction.hash(),
+        Transaction.new([], [{alice.addr, @eth, 10}])
+        |> Transaction.hash(),
         0
       )
 
@@ -114,6 +115,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
 
     # after the notification has been received, a challenged is composed and sent
     challenge = TestHelper.get_exit_challenge(deposit_blknum, 0, 0)
+
     assert {:ok, %{"status" => "0x1"}} =
              OMG.Eth.RootChain.challenge_exit(
                challenge["exit_id"],
