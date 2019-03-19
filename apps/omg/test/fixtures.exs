@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Fixtures do
+defmodule OMG.Fixtures do
   use ExUnitFixtures.FixtureModule
 
-  alias OMG.API.State.Core
   alias OMG.Eth
+  alias OMG.State.Core
 
-  import OMG.API.TestHelper
+  import OMG.TestHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 

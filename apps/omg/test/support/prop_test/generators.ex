@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.PropTest.Generators do
+defmodule OMG.PropTest.Generators do
   @moduledoc """
   Custom generators
   For our properties to be even more useful.
@@ -20,7 +20,7 @@ defmodule OMG.API.PropTest.Generators do
   that are use in prop_test
   """
 
-  alias OMG.API.PropTest.Constants
+  alias OMG.PropTest.Constants
   alias PropCheck.BasicTypes
   use PropCheck
   import BasicTypes
@@ -50,7 +50,7 @@ defmodule OMG.API.PropTest.Generators do
   end
 
   @spec entitie_atom() :: BasicTypes.type()
-  def entitie_atom, do: oneof(OMG.API.TestHelper.entities_stable() |> Map.keys())
+  def entitie_atom, do: oneof(OMG.TestHelper.entities_stable() |> Map.keys())
 
   @spec new_owners() :: BasicTypes.type()
   def new_owners do
@@ -68,7 +68,7 @@ defmodule OMG.API.PropTest.Generators do
   @spec entity() :: BasicTypes.type()
   def entity do
     addresses =
-      OMG.API.TestHelper.entities_stable()
+      OMG.TestHelper.entities_stable()
       |> Map.values()
 
     oneof(addresses)

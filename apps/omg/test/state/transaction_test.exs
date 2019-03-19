@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.TransactionTest do
+defmodule OMG.State.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
   alias OMG.API
-  alias OMG.API.DevCrypto
-  alias OMG.API.State.{Core, Transaction}
-  alias OMG.API.TestHelper
+  alias OMG.DevCrypto
+  alias OMG.State.{Core, Transaction}
+  alias OMG.TestHelper
 
   @zero_address OMG.Eth.zero_address()
 

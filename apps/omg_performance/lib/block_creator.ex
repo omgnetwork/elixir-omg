@@ -18,7 +18,7 @@ defmodule OMG.Performance.BlockCreator do
   """
 
   use GenServer
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   @initial_block_number 1000
 
@@ -47,7 +47,7 @@ defmodule OMG.Performance.BlockCreator do
   def handle_info(:do, {blknum, block_every_ms}) do
     child_block_interval = 1000
 
-    OMG.API.State.form_block()
+    OMG.State.form_block()
     OMG.Performance.SenderManager.block_forming_time(blknum, 0)
 
     reschedule_task(block_every_ms)

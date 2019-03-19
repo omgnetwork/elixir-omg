@@ -12,25 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State do
+defmodule OMG.State do
   @moduledoc """
   Imperative shell for the state.
   The state meant here is the state of the ledger (UTXO set), that determines spendability of coins and forms blocks.
   All spend transactions, deposits and exits should sync on this for validity of moving funds.
   """
-  alias OMG.API.Block
   alias OMG.API.BlockQueue
-  alias OMG.API.EventerAPI
-  alias OMG.API.Fees
   alias OMG.API.FreshBlocks
-  alias OMG.API.Recorder
-  alias OMG.API.State.Core
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+
+  alias OMG.Block
   alias OMG.DB
   alias OMG.Eth
+  alias OMG.EventerAPI
+  alias OMG.Fees
+  alias OMG.Recorder
+  alias OMG.State.Core
+  alias OMG.State.Transaction
+  alias OMG.Utxo
 
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   @type exec_error :: Core.exec_error()
 

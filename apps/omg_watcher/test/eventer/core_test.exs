@@ -17,11 +17,10 @@ defmodule OMG.Watcher.Eventer.CoreTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: true
-  use OMG.API.Fixtures
+  use OMG.Fixtures
 
-  alias OMG.API
-  alias OMG.API.Crypto
-  alias OMG.API.Utxo
+  alias OMG.Crypto
+  alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.Eventer
   alias OMG.Watcher.TestHelper
@@ -33,7 +32,7 @@ defmodule OMG.Watcher.Eventer.CoreTest do
   @tag fixtures: [:alice, :bob]
   test "notify function generates 2 proper address_received events", %{alice: alice, bob: bob} do
     recovered_tx =
-      API.TestHelper.create_recovered([{1, 0, 0, alice}, {2, 0, 0, bob}], @zero_address, [
+      OMG.TestHelper.create_recovered([{1, 0, 0, alice}, {2, 0, 0, bob}], @zero_address, [
         {alice, 100},
         {bob, 5}
       ])
@@ -56,7 +55,7 @@ defmodule OMG.Watcher.Eventer.CoreTest do
 
   @tag fixtures: [:alice, :bob]
   test "prepare_events function generates 1 proper address_received events", %{alice: alice} do
-    recovered_tx = API.TestHelper.create_recovered([{1, 0, 0, alice}], @zero_address, [{alice, 100}])
+    recovered_tx = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @zero_address, [{alice, 100}])
 
     {:ok, encoded_alice_address} = Crypto.encode_address(alice.addr)
     topic = TestHelper.create_topic("transfer", encoded_alice_address)

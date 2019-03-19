@@ -14,11 +14,12 @@
 
 defmodule OMG.API.CoreTest do
   use ExUnitFixtures
+  use OMG.Fixtures
   use ExUnit.Case, async: true
 
   alias OMG.API.Core
-  alias OMG.API.State.Transaction
-  alias OMG.API.TestHelper
+  alias OMG.State.Transaction
+  alias OMG.TestHelper
 
   @empty_signature <<0::size(520)>>
   @no_owner %{priv: <<>>, addr: nil}

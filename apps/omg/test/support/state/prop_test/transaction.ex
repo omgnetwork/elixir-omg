@@ -12,20 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.PropTest.Transaction do
+defmodule OMG.State.PropTest.Transaction do
   @moduledoc """
   Generates function needed to make correct transaction in propcheck test
   """
   use PropCheck
-  alias OMG.API.PropTest.Constants
-  alias OMG.API.PropTest.Generators
-  alias OMG.API.PropTest.Helper
-  alias OMG.API.Utxo
+  alias OMG.PropTest.Constants
+  alias OMG.PropTest.Generators
+  alias OMG.PropTest.Helper
+  alias OMG.Utxo
   require Constants
   require Utxo
 
   def normalize_variables({inputs, currency, future_owners}) do
-    stable_entities = OMG.API.TestHelper.entities_stable()
+    stable_entities = OMG.TestHelper.entities_stable()
     currency = Map.get(Constants.currencies(), currency)
 
     owners = Enum.map(inputs, fn {_, owner} -> Map.get(stable_entities, owner) end)
@@ -46,7 +46,7 @@ defmodule OMG.API.State.PropTest.Transaction do
   def create(variable) do
     {input_owners, inputs, outputs} = normalize_variables(variable)
 
-    OMG.API.TestHelper.create_recovered(
+    OMG.TestHelper.create_recovered(
       input_owners,
       inputs,
       outputs
@@ -76,7 +76,7 @@ defmodule OMG.API.State.PropTest.Transaction do
   end
 
   def impl(tr, fee_map),
-    do: OMG.API.State.PropTest.StateCoreGS.exec(create(tr), create_fee_map(fee_map))
+    do: OMG.State.PropTest.StateCoreGS.exec(create(tr), create_fee_map(fee_map))
 
   def args(%{model: %{history: history}}) do
     {unspent, _spent} = Helper.get_utxos(history)

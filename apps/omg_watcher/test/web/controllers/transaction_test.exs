@@ -15,10 +15,10 @@
 defmodule OMG.Watcher.Web.Controller.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Fixtures
+  use OMG.Fixtures
 
-  alias OMG.API.TestHelper, as: Test
   alias OMG.RPC.Web.Encoding
+  alias OMG.TestHelper, as: Test
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
 
@@ -467,12 +467,12 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
     @tag fixtures: [:alice, :bob, :more_utxos]
     test "returns appropriate schema", %{alice: alice, bob: bob} do
-      alias OMG.API.Utxo
+      alias OMG.Utxo
       require Utxo
 
       alice_to_bob = 100
       fee = 5
-      metadata = (alice.addr <> bob.addr) |> OMG.API.Crypto.hash() |> Encoding.to_hex()
+      metadata = (alice.addr <> bob.addr) |> OMG.Crypto.hash() |> Encoding.to_hex()
 
       alice_addr = Encoding.to_hex(alice.addr)
       bob_addr = Encoding.to_hex(bob.addr)
@@ -520,11 +520,11 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
     @tag fixtures: [:alice, :bob, :more_utxos]
     test "returns correctly formed transaction", %{alice: alice, bob: bob} do
-      alias OMG.API.State.Transaction
+      alias OMG.State.Transaction
 
       alice_to_bob = 100
       fee = 5
-      metadata = (alice.addr <> bob.addr) |> OMG.API.Crypto.hash()
+      metadata = (alice.addr <> bob.addr) |> OMG.Crypto.hash()
 
       alice_addr = Encoding.to_hex(alice.addr)
 
@@ -640,8 +640,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  }
                )
 
-      require OMG.API.State.Transaction
-      assert OMG.API.State.Transaction.max_inputs() == length(transaction["inputs"])
+      require OMG.State.Transaction
+      assert OMG.State.Transaction.max_inputs() == length(transaction["inputs"])
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
@@ -861,7 +861,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
 
     defp max_amount_spendable_in_single_tx(address, token) do
-      alias OMG.API.State.Transaction
+      alias OMG.State.Transaction
       require Transaction
       currency = Encoding.to_hex(token)
 
@@ -874,8 +874,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
 
     defp make_payments(blknum, spender, txs_bytes, blocks_inserter) when is_list(txs_bytes) do
-      alias OMG.API.DevCrypto
-      alias OMG.API.State.Transaction
+      alias OMG.DevCrypto
+      alias OMG.State.Transaction
 
       recovered_txs =
         txs_bytes

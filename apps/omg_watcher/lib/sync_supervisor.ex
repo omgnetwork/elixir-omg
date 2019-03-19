@@ -20,8 +20,8 @@ defmodule OMG.Watcher.SyncSupervisor do
   use Supervisor
   use OMG.API.LoggerExt
 
-  alias OMG.API.EthereumEventListener
   alias OMG.Eth
+  alias OMG.EthereumEventListener
   alias OMG.Watcher
   alias OMG.Watcher.CoordinatorSetup
 
@@ -49,7 +49,7 @@ defmodule OMG.Watcher.SyncSupervisor do
         restart: :permanent,
         type: :supervisor
       },
-      {OMG.API.RootChainCoordinator, CoordinatorSetup.coordinator_setup()},
+      {OMG.RootChainCoordinator, CoordinatorSetup.coordinator_setup()},
       EthereumEventListener.prepare_child(
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,

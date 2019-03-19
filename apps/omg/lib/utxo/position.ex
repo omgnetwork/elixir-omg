@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Utxo.Position do
+defmodule OMG.Utxo.Position do
   @moduledoc """
   Representation of a UTXO position in the child chain, providing encoding/decoding to/from format digestible in Eth
   """
@@ -21,7 +21,7 @@ defmodule OMG.API.Utxo.Position do
   @block_offset 1_000_000_000
   @transaction_offset 10_000
 
-  alias OMG.API.Utxo
+  alias OMG.Utxo
   require Utxo
 
   @type t() :: {

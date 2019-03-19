@@ -12,5 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require OMG.API.PropTest.BlackBoxMe
-OMG.API.PropTest.BlackBoxMe.create(OMG.API.State.Core, OMG.API.State.PropTest.StateCoreGS)
+ExUnit.configure(exclude: [integration: true, property: true])
+Application.ensure_all_started(:propcheck)
+ExUnitFixtures.start()
+# loading all fixture files from the whole umbrella project
+ExUnitFixtures.load_fixture_files("../**/test/**/fixtures.exs")
+ExUnit.start()

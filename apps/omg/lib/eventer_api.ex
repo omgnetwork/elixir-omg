@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.EventerAPI do
+defmodule OMG.EventerAPI do
   @moduledoc """
   Interface to cast event triggers to the `OMG.Watcher.Eventer`
   """

@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Fees do
+defmodule OMG.Fees do
   @moduledoc """
   Transaction's fee validation functions
   """
 
-  alias OMG.API.{Crypto, Utxo}
-  alias OMG.API.State.Transaction
+  alias OMG.{Crypto, Utxo}
+  alias OMG.State.Transaction
   alias Poison
 
   require Utxo
 
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   @type fee_spec_t() :: %{token: Transaction.currency(), flat_fee: non_neg_integer}
   @type fee_t() :: %{Transaction.currency() => non_neg_integer} | :ignore

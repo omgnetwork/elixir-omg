@@ -21,8 +21,8 @@ defmodule OMG.API.Monitor do
   When you receive an EXIT, check for an alarm raised that's related to Ethereum client synhronisation or connection
   problems and react accordingly.
 
-  Children that need Ethereum client connectivity are OMG.API.EthereumEventListener
-  OMG.API.BlockQueue.Server and OMG.API.RootChainCoordinator. For these children, we make
+  Children that need Ethereum client connectivity are OMG.EthereumEventListener
+  OMG.API.BlockQueue.Server and OMG.RootChainCoordinator. For these children, we make
   additional checks if they exit. If there's an alarm raised of type :ethereum_client_connection we postpone
   the restart util the alarm is cleared. Other children are restarted immediately.
 

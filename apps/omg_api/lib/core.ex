@@ -16,8 +16,8 @@ defmodule OMG.API.Core do
   @moduledoc """
   Functional core work-horse for `OMG.API`.
   """
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.State.Transaction
+  alias OMG.Utxo
 
   require Utxo
 

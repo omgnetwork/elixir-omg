@@ -81,7 +81,7 @@ Poison.decode!()
 
 # 3/ Exiting, challenging invalid exits
 
-exiting_utxopos = OMG.API.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
+exiting_utxopos = OMG.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
 
 %{"data" => composed_exit} =
   ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST #{watcher_url}/utxo.get_exit_data) |>

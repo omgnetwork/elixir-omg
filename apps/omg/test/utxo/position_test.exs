@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Utxo.PositionTest do
+defmodule OMG.Utxo.PositionTest do
   @moduledoc false
 
   use ExUnit.Case, async: true
 
-  alias OMG.API.Utxo
+  alias OMG.Utxo
   require Utxo
 
   test "encode and decode the utxo position checking" do

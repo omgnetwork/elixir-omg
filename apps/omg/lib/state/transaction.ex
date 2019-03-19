@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.Transaction do
+defmodule OMG.State.Transaction do
   @moduledoc """
   Internal representation of transaction spent on Plasma chain
   """
 
-  alias OMG.API.Crypto
-  alias OMG.API.Utxo
+  alias OMG.Crypto
+  alias OMG.Utxo
 
   require Utxo
 

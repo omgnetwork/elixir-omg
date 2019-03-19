@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.Transaction.Recovered do
+defmodule OMG.State.Transaction.Recovered do
   @moduledoc """
-  Representation of a Signed transaction, with addresses recovered from signatures (from `OMG.API.State.Transaction.Signed`)
-  Intent is to allow concurrent processing of signatures outside of serial processing in `OMG.API.State`
+  Representation of a Signed transaction, with addresses recovered from signatures (from `OMG.State.Transaction.Signed`)
+  Intent is to allow concurrent processing of signatures outside of serial processing in `OMG.State`
   """
 
-  alias OMG.API.Crypto
-  alias OMG.API.State.Transaction
+  alias OMG.Crypto
+  alias OMG.State.Transaction
 
   @empty_signature <<0::size(520)>>
   @type tx_hash_t() :: <<_::768>>

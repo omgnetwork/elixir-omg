@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Block do
+defmodule OMG.Block do
   @moduledoc """
   Representation of an OMG network child chain block.
   """
 
-  alias OMG.API.Crypto
-  alias OMG.API.State.Transaction
+  alias OMG.Crypto
+  alias OMG.State.Transaction
 
   @transaction_merkle_tree_height 16
   @type block_hash_t() :: <<_::256>>

@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.PropTest.Helper do
+defmodule OMG.PropTest.Helper do
   @moduledoc """
   Common helper functions that are useful when propCheck testing
   """
-  alias OMG.API.PropTest.Constants
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.PropTest.Constants
+  alias OMG.State.Transaction
+  alias OMG.Utxo
   require Constants
   require Utxo
 
   @doc """
-  Collapse of the recover transaction into a short form use in OMG.API.PropTest
+  Collapse of the recover transaction into a short form use in OMG.PropTest
   """
   def format_transaction(%Transaction.Recovered{
         signed_tx: %Transaction.Signed{
@@ -53,7 +53,7 @@ defmodule OMG.API.PropTest.Helper do
   end
 
   @doc """
-  Collapse deposits list into a short form use in OMG.API.PropTest
+  Collapse deposits list into a short form use in OMG.PropTest
   """
   def format_deposits(deposits) do
     Enum.map(deposits, fn %{amount: amount, blknum: blknum, currency: currency, owner: owner} ->
@@ -61,11 +61,11 @@ defmodule OMG.API.PropTest.Helper do
     end)
   end
 
-  def get_addr(owner), do: OMG.API.TestHelper.entities_stable()[owner].addr
+  def get_addr(owner), do: OMG.TestHelper.entities_stable()[owner].addr
 
-  @spec addr_to_owner_name(OMG.API.Crypto.priv_key_t() | OMG.API.Crypto.pub_key_t()) :: atom()
+  @spec addr_to_owner_name(OMG.Crypto.priv_key_t() | OMG.Crypto.pub_key_t()) :: atom()
   def addr_to_owner_name(addr) do
-    entities = OMG.API.TestHelper.entities_stable()
+    entities = OMG.TestHelper.entities_stable()
 
     case Enum.find(entities, fn element ->
            match?({_, %{addr: ^addr}}, element) or match?({_, %{priv: ^addr}}, element)

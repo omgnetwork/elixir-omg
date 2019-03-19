@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.PropTest.DifferentSpenderTransaction do
+defmodule OMG.State.PropTest.DifferentSpenderTransaction do
   @moduledoc """
   Generates function needed to make transaction with wrong spender in propcheck test
   """
   use PropCheck
-  alias OMG.API.PropTest.Generators
-  alias OMG.API.PropTest.Helper
-  alias OMG.API.State.PropTest
+  alias OMG.PropTest.Generators
+  alias OMG.PropTest.Helper
+  alias OMG.State.PropTest
 
   defdelegate impl(input, fee_map), to: PropTest.Transaction
   def change_owner({position, _}), do: {position, Generators.entitie_atom()}

@@ -14,19 +14,19 @@
 
 defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @moduledoc """
-  Test of the logic of exit processor - detecting byzantine conditions, emitting events, talking to API.State.Core
+  Test of the logic of exit processor - detecting byzantine conditions, emitting events, talking to OMG.State.Core
   """
   use ExUnitFixtures
   use ExUnit.Case, async: true
-  use OMG.API.Fixtures
+  use OMG.Fixtures
 
-  alias OMG.API.Block
-  alias OMG.API.Crypto
-  alias OMG.API.DevCrypto
-  alias OMG.API.State
-  alias OMG.API.State.Transaction
-  alias OMG.API.TestHelper
-  alias OMG.API.Utxo
+  alias OMG.Block
+  alias OMG.Crypto
+  alias OMG.DevCrypto
+  alias OMG.State
+  alias OMG.State.Transaction
+  alias OMG.TestHelper
+  alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
@@ -76,7 +76,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     empty
   end
 
-  # events is whatever `OMG.Eth` would feed into the `OMG.Watcher.ExitProcessor`, via `OMG.API.EthereumEventListener`
+  # events is whatever `OMG.Eth` would feed into the `OMG.Watcher.ExitProcessor`, via `OMG.EthereumEventListener`
   deffixture exit_events(alice, transactions) do
     [txbytes1, txbytes2] = transactions |> Enum.map(&Transaction.encode/1)
 

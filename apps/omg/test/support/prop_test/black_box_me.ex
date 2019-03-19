@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.PropTest.BlackBoxMe do
+defmodule OMG.PropTest.BlackBoxMe do
   @moduledoc """
   Generates dumb wrapper for pure library that keeps state in process dictionary.
   Wrapper creates module.
 
   Example:
   ```
-  OMG.API.PropTest.BlackBoxMe.create(YourProject.State.Core, CoreGS) # generate module name CoreGS
+  OMG.PropTest.BlackBoxMe.create(YourProject.State.Core, CoreGS) # generate module name CoreGS
   ```
   would create a ```YourProject.State.CoreGS``` module, accessible in every ```MIX_ENV```.
 
@@ -91,7 +91,7 @@ defmodule OMG.API.PropTest.BlackBoxMe do
   @doc """
   generate module name CoreGS
   ```
-  OMG.API.PropTest.BlackBoxMe.create(YourProject.State.Core, CoreGS)
+  OMG.PropTest.BlackBoxMe.create(YourProject.State.Core, CoreGS)
   ```
   """
   defmacro create({:__aliases__, _, list_atoms}, {:__aliases__, _, dest}) do

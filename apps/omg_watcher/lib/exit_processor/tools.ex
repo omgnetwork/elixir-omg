@@ -19,8 +19,8 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   NOTE: unit tested by means of more public API calls like `OMG.Watcher.Challenger` or `OMG.Watcher.ExitProcessor`
   """
 
-  alias OMG.API.Crypto
-  alias OMG.API.State.Transaction
+  alias OMG.Crypto
+  alias OMG.State.Transaction
 
   @doc """
   Finds the exact signature which signed the particular transaction for the given owner address

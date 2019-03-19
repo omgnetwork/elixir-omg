@@ -18,7 +18,7 @@ defmodule OMG.Watcher.Eventer do
   All handling of event triggers that are processed, transformed into events and pushed to Phoenix Channels
   for their respective topics is intended to be done here.
 
-  See `OMG.API.EventerAPI` for the API to the GenServer
+  See `OMG.EventerAPI` for the API to the GenServer
   """
 
   alias OMG.Watcher.Eventer.Core

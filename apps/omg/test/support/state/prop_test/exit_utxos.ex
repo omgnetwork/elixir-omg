@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.PropTest.ExitUtxos do
+defmodule OMG.State.PropTest.ExitUtxos do
   @moduledoc """
   Generates function needed to get out of their utxo
   """
   use PropCheck
-  alias OMG.API.PropTest.Helper
-  alias OMG.API.Utxo
+  alias OMG.PropTest.Helper
+  alias OMG.Utxo
   require Utxo
 
-  def impl(exiting_utxos), do: OMG.API.State.PropTest.StateCoreGS.exit_utxos(exiting_utxos)
+  def impl(exiting_utxos), do: OMG.State.PropTest.StateCoreGS.exit_utxos(exiting_utxos)
 
   def args(%{model: %{history: history}}) do
     spendable = Helper.spendable(history) |> Map.to_list()

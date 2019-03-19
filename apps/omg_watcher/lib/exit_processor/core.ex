@@ -20,9 +20,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     - MoreVP protocol managing should go here
   """
 
-  alias OMG.API.Block
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.Block
+  alias OMG.State.Transaction
+  alias OMG.Utxo
   require Utxo
   require Transaction
   alias OMG.Watcher.Challenger.Tools
@@ -130,7 +130,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   The list of `exit_contract_statuses` is used to track current (as in wall-clock "now", not syncing "now") status.
   This is to prevent spurious invalid exit events being fired during syncing for exits that were challenged/finalized
-  Still we do want to track these exits when syncing, to have them spend from `OMG.API.State` on their finalization
+  Still we do want to track these exits when syncing, to have them spend from `OMG.State` on their finalization
   """
   @spec new_exits(t(), list(map()), list(map)) :: {t(), list()} | {:error, :unexpected_events}
   def new_exits(state, new_exits, exit_contract_statuses)
@@ -485,7 +485,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @doc """
   Figures out which numbers of "spending transaction blocks" to get for the utxos, based on the existence reported by
-  `OMG.API.State` and possibly other factors, eg. only take the non-existent UTXOs spends (naturally) and ones that
+  `OMG.State` and possibly other factors, eg. only take the non-existent UTXOs spends (naturally) and ones that
   pertain to IFE transaction inputs.
 
   Assumes that UTXOs that haven't been checked (i.e. not a key in `utxo_exists?` map) **exist**

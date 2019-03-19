@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.CryptoTest do
+defmodule OMG.CryptoTest do
   use ExUnit.Case, async: true
 
   @moduledoc """
   A sanity and compatibility check of the crypto implementation.
   """
 
-  alias OMG.API.Crypto
-  alias OMG.API.DevCrypto
+  alias OMG.Crypto
+  alias OMG.DevCrypto
 
   test "sha3 library usage, address generation" do
     # test vectors below were generated using pyethereum's sha3 and privtoaddr

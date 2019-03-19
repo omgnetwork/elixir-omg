@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.BlockTest do
+defmodule OMG.BlockTest do
   @moduledoc """
-  Simple unit test of part of `OMG.API.Block`.
+  Simple unit test of part of `OMG.Block`.
   """
 
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OMG.API.Block
-  alias OMG.API.State.Transaction
-  alias OMG.API.TestHelper, as: Test
+  alias OMG.Block
+  alias OMG.State.Transaction
+  alias OMG.TestHelper, as: Test
 
   defp eth, do: OMG.Eth.RootChain.eth_pseudo_address()
 

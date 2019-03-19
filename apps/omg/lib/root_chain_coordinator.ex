@@ -11,16 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.API.RootChainCoordinator do
+defmodule OMG.RootChainCoordinator do
   @moduledoc """
-  Synchronizes services on root chain height, see `OMG.API.RootChainCoordinator.Core`
+  Synchronizes services on root chain height, see `OMG.RootChainCoordinator.Core`
   """
 
-  alias OMG.API.Recorder
-  alias OMG.API.RootChainCoordinator.Core
   alias OMG.Eth
+  alias OMG.Recorder
+  alias OMG.RootChainCoordinator.Core
+
   use GenServer
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   defmodule SyncGuide do
     @moduledoc """
@@ -68,7 +69,7 @@ defmodule OMG.API.RootChainCoordinator do
     _ = Logger.info("Starting #{__MODULE__} service.")
     :ok = Eth.node_ready()
     {:ok, rootchain_height} = Eth.get_ethereum_height()
-    height_check_interval = Application.fetch_env!(:omg_api, :coordinator_eth_height_check_interval_ms)
+    height_check_interval = Application.fetch_env!(:omg, :coordinator_eth_height_check_interval_ms)
     {:ok, _} = schedule_get_ethereum_height(height_check_interval)
     state = Core.init(configs_services, rootchain_height)
 

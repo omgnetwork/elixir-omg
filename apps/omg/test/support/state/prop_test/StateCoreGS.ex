@@ -12,11 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.PropTest.Constants do
-  @moduledoc false
-  defmacro eth, do: <<0::160>>
-  defmacro other_currency, do: <<1::160>>
-  defmacro child_block_interval, do: 1_000
-
-  defmacro currencies, do: quote(do: %{eth: unquote(eth()), other: unquote(other_currency())})
-end
+require OMG.PropTest.BlackBoxMe
+OMG.PropTest.BlackBoxMe.create(OMG.State.Core, OMG.State.PropTest.StateCoreGS)

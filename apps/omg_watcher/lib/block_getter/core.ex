@@ -16,13 +16,13 @@ defmodule OMG.Watcher.BlockGetter.Core do
   @moduledoc false
 
   alias OMG.API
-  alias OMG.API.Block
-  alias OMG.API.State.Transaction
+  alias OMG.Block
+  alias OMG.State.Transaction
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
 
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   defmodule PotentialWithholdingReport do
     @moduledoc """
@@ -235,7 +235,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     do_get_blocks_to_apply(state, filtered_submissions, coordinator_height)
   end
 
-  # height served as syncable from the `OMG.API.RootChainCoordinator` is older, nothing we can do about it, so noop
+  # height served as syncable from the `OMG.RootChainCoordinator` is older, nothing we can do about it, so noop
   defp do_get_blocks_to_apply(
          %__MODULE__{synced_height: synced_height} = state,
          _block_submitted_events,

@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.API.State.PropTest.FormBlock do
+defmodule OMG.State.PropTest.FormBlock do
   @moduledoc """
   Generates function needed to produce block in propcheck test
   """
 
-  alias OMG.API.PropTest.Constants
-  alias OMG.API.PropTest.Helper
-  alias OMG.API.State
+  alias OMG.PropTest.Constants
+  alias OMG.PropTest.Helper
+  alias OMG.State
   require Constants
 
   def impl do

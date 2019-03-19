@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.PersistenceTest do
+defmodule OMG.State.PersistenceTest do
   @moduledoc """
-  Test focused on the persistence bits of `OMG.API.State.Core`
+  Test focused on the persistence bits of `OMG.State.Core`
   """
   use ExUnitFixtures
   use OMG.DB.Case, async: true
 
-  alias OMG.API.State.Core
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.State.Core
+  alias OMG.State.Transaction
+  alias OMG.Utxo
 
-  import OMG.API.TestHelper
+  import OMG.TestHelper
 
   require Utxo
 

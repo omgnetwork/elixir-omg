@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.Core do
+defmodule OMG.State.Core do
   @moduledoc """
   Functional core for State.
   """
@@ -21,10 +21,10 @@ defmodule OMG.API.State.Core do
 
   defstruct [:height, :last_deposit_child_blknum, :utxos, pending_txs: [], tx_index: 0]
 
-  alias OMG.API.{Block, Crypto, Fees, Utxo}
-  alias OMG.API.State.{Core, Transaction}
+  alias OMG.{Block, Crypto, Fees, Utxo}
+  alias OMG.State.{Core, Transaction}
 
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
   require Utxo
 
   @type t() :: %__MODULE__{

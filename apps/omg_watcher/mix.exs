@@ -55,8 +55,10 @@ defmodule OMG.Watcher.Mixfile do
       {:briefly, "~> 0.3"},
       {:fake_server, "~> 1.5", only: [:test, :dev]},
       #
+      {:omg, in_umbrella: true},
       {:omg_status, in_umbrella: true},
-      {:omg_api, in_umbrella: true, runtime: false},
+      # here only to leverage common test helpers and code
+      {:omg_api, in_umbrella: true, only: [:test], runtime: false},
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
       {:appsignal, "~> 1.0"}

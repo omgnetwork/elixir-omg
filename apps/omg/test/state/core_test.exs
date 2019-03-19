@@ -12,19 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.CoreTest do
+defmodule OMG.State.CoreTest do
   @moduledoc """
-  Tests functional behaviors of our high-throughput ledger being `OMG.API.State.Core`. For test related to state
-  persistence of this see `OMG.API.State.PersistenceTest`
+  Tests functional behaviors of our high-throughput ledger being `OMG.State.Core`. For test related to state
+  persistence of this see `OMG.State.PersistenceTest`
   """
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OMG.API
-  alias OMG.API.{Block, Fees, Utxo}
-  alias OMG.API.State.{Core, Transaction}
+  alias OMG.{Block, Fees, Utxo}
+  alias OMG.State.{Core, Transaction}
 
-  import OMG.API.TestHelper
+  import OMG.TestHelper
 
   require Utxo
 
@@ -445,8 +444,8 @@ defmodule OMG.API.State.CoreTest do
              "ee44e104950e8784c17495e423493c54026fa554180bbbca057c1176bc4e1ded"
 
     # Check that contents of the block can be recovered again to original txs
-    assert {:ok, ^recovered_tx_1} = API.Core.recover_tx(block_tx1)
-    assert {:ok, ^recovered_tx_2} = API.Core.recover_tx(block_tx2)
+    assert {:ok, ^recovered_tx_1} = OMG.API.Core.recover_tx(block_tx1)
+    assert {:ok, ^recovered_tx_2} = OMG.API.Core.recover_tx(block_tx2)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]

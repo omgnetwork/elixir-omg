@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Crypto do
+defmodule OMG.Crypto do
   @moduledoc """
   Signs and validates signatures. Constructed signatures can be used directly
   in Ethereum with `ecrecover` call.
 
   For unsafe code, limited to `:test` and `:dev` environments and related to private key handling refer to:
-  `OMG.API.DevCrypto` in `test/support`
+  `OMG.DevCrypto` in `test/support`
   """
 
   @type sig_t() :: <<_::520>>

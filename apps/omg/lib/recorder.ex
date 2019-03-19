@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Recorder do
+defmodule OMG.Recorder do
   @moduledoc """
   A GenServer template for metrics recording.
   """

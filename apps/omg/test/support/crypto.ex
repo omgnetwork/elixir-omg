@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.DevCrypto do
+defmodule OMG.DevCrypto do
   @moduledoc """
   Non-production crypto code like:
     - anything that touches private keys
   """
 
-  alias OMG.API.Crypto
-  alias OMG.API.State.Transaction
+  alias OMG.Crypto
+  alias OMG.State.Transaction
 
   @doc """
   Generates private key. Internally uses OpenSSL RAND_bytes. May throw if there is not enough entropy.

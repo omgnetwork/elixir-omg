@@ -18,7 +18,7 @@ defmodule OMG.Watcher.Web.Serializer.Base do
   """
 
   def to_utxo(%{blknum: blknum, txindex: txindex, oindex: oindex} = db_entry) do
-    alias OMG.API.Utxo
+    alias OMG.Utxo
     require Utxo
 
     db_entry

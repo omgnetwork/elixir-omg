@@ -39,12 +39,12 @@ defmodule OMG.Performance do
   (github.com/erlang/otp and the JIRA it points you to).
   """
 
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
-  alias OMG.API.Crypto
-  alias OMG.API.Integration.DepositHelper
-  alias OMG.API.TestHelper
-  alias OMG.API.Utxo
+  alias OMG.Crypto
+  alias OMG.Integration.DepositHelper
+  alias OMG.TestHelper
+  alias OMG.Utxo
 
   require Utxo
 
@@ -151,7 +151,7 @@ defmodule OMG.Performance do
         start: {Phoenix.PubSub.PG2, :start_link, [:eventer, []]},
         type: :supervisor
       },
-      {OMG.API.State, []},
+      {OMG.State, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeServer, []},
       {OMG.RPC.Web.Endpoint, []}
@@ -226,7 +226,7 @@ defmodule OMG.Performance do
     spenders
     |> Enum.with_index(1)
     |> Enum.map(fn {spender, index} ->
-      {:ok, _} = OMG.API.State.deposit([%{owner: spender.addr, currency: @eth, amount: ntx_to_send, blknum: index}])
+      {:ok, _} = OMG.State.deposit([%{owner: spender.addr, currency: @eth, amount: ntx_to_send, blknum: index}])
 
       utxo_pos = Utxo.position(index, 0, 0) |> Utxo.Position.encode()
       %{owner: spender, utxo_pos: utxo_pos, amount: ntx_to_send}

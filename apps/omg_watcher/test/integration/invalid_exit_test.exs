@@ -15,12 +15,11 @@
 defmodule OMG.Watcher.Integration.InvalidExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Fixtures
+  use OMG.Fixtures
   use OMG.API.Integration.Fixtures
   use Plug.Test
 
-  alias OMG.API
-  alias OMG.API.Utxo
+  alias OMG.Utxo
   require Utxo
   alias OMG.Eth
   alias OMG.Watcher
@@ -40,10 +39,10 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     stable_alice: alice,
     stable_alice_deposits: {deposit_blknum, _}
   } do
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     %{"blknum" => first_tx_blknum} = TestHelper.submit(tx)
 
-    tx = API.TestHelper.create_encoded([{first_tx_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = OMG.TestHelper.create_encoded([{first_tx_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     %{"blknum" => second_tx_blknum} = TestHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(second_tx_blknum, @timeout)
@@ -105,15 +104,15 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
   test "transaction which is using already spent utxo from exit and happened before end of margin of slow validator (m_sv) causes to emit invalid_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     %{"blknum" => exit_blknum} = TestHelper.submit(tx)
 
     # Here we're preparing invalid block
     bad_block_number = 2_000
-    bad_tx = API.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    bad_tx = OMG.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
 
     %{hash: bad_block_hash, number: _, transactions: _} =
-      bad_block = API.Block.hashed_txs_at([bad_tx], bad_block_number)
+      bad_block = OMG.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
     Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
@@ -148,10 +147,10 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
     stable_alice: alice,
     stable_alice_deposits: {deposit_blknum, _}
   } do
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     %{"blknum" => deposit_blknum} = TestHelper.submit(tx)
 
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     %{"blknum" => tx_blknum, "txhash" => _tx_hash} = TestHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)

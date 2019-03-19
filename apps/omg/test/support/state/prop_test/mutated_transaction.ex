@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.PropTest.MutatedTransaction do
+defmodule OMG.State.PropTest.MutatedTransaction do
   @moduledoc """
   Generates function needed to make transaction with wrong some parameters in propcheck test
   """
   use PropCheck
   import PropCheck.BasicTypes
-  alias OMG.API.PropTest.Constants
-  alias OMG.API.PropTest.Generators
-  alias OMG.API.PropTest.Helper
-  alias OMG.API.State.PropTest
-  alias OMG.API.Utxo
+  alias OMG.PropTest.Constants
+  alias OMG.PropTest.Generators
+  alias OMG.PropTest.Helper
+  alias OMG.State.PropTest
+  alias OMG.Utxo
   require Constants
   require Utxo
 
@@ -38,7 +38,7 @@ defmodule OMG.API.State.PropTest.MutatedTransaction do
        frequency([{@proportion, blknum}, {1, Generators.add_random(blknum, {-blknum, 1_000})}]),
        frequency([{@proportion, txindex}, {1, choose(0, 65_000)}]),
        frequency([{@proportion, oindex}, {1, oneof([0, 1])}])
-     ), frequency([{@proportion, owner}, {1, oneof(OMG.API.TestHelper.entities_stable() |> Map.keys())}])}
+     ), frequency([{@proportion, owner}, {1, oneof(OMG.TestHelper.entities_stable() |> Map.keys())}])}
   end
 
   def args(state) do
@@ -55,7 +55,7 @@ defmodule OMG.API.State.PropTest.MutatedTransaction do
 
   @doc "check if OMG.API.Core.recover_tx validate transaction and PropTest.Transaction.pre invalidate transaction"
   def pre(state, [tx | _] = args) do
-    create_signed = &OMG.API.TestHelper.create_signed/3
+    create_signed = &OMG.TestHelper.create_signed/3
 
     {valid, _} =
       tx

@@ -21,13 +21,12 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Fixtures
+  use OMG.Fixtures
   use OMG.API.Integration.Fixtures
   use Plug.Test
   use Phoenix.ChannelTest
 
-  alias OMG.{API, Eth, RPC.Web.Encoding, Watcher}
-  alias API.{Crypto, Utxo}
+  alias OMG.{API, Crypto, Eth, RPC.Web.Encoding, Utxo, Watcher}
   alias Watcher.Integration.TestHelper, as: IntegrationTest
   alias Watcher.{Event, TestHelper, Web.Channel, Web.Serializer.Response}
 
@@ -64,7 +63,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
         TestHelper.create_topic("transfer", alice_address)
       )
 
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {bob, 3}])
     %{"blknum" => block_nr} = TestHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(block_nr, @timeout)
@@ -128,7 +127,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     assert {:ok, {alice_addr, @eth, 7, utxo_pos}} == Eth.RootChain.get_standard_exit(exit_id)
 
     # Here we're waiting for child chain and watcher to process the exits
-    deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
+    deposit_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin)
     Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + deposit_finality_margin + 1 + 1)
 
     assert [%{"blknum" => ^token_deposit_blknum}] = TestHelper.get_utxos(alice.addr)
@@ -163,7 +162,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @tag fixtures: [:watcher_sandbox, :test_server]
   test "hash of returned block does not match hash submitted to the root chain", %{test_server: context} do
     different_hash = <<0::256>>
-    block_with_incorrect_hash = %{API.Block.hashed_txs_at([], 1000) | hash: different_hash}
+    block_with_incorrect_hash = %{OMG.Block.hashed_txs_at([], 1000) | hash: different_hash}
 
     # from now on the child chain server is broken until end of test
     Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(
@@ -186,8 +185,8 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     test_server: context
   } do
     # preparing block with invalid transaction
-    recovered = API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    block_with_incorrect_transaction = API.Block.hashed_txs_at([recovered], 1000)
+    recovered = OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    block_with_incorrect_transaction = OMG.Block.hashed_txs_at([recovered], 1000)
 
     # from now on the child chain server is broken until end of test
     OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(
@@ -207,15 +206,15 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
   test "transaction which is using already spent utxo from exit and happened after margin of slow validator(m_sv) causes to emit unchallenged_exit event",
        %{stable_alice: alice, stable_alice_deposits: {deposit_blknum, _}, test_server: context} do
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     %{"blknum" => exit_blknum} = TestHelper.submit(tx)
 
     # Here we're preparing invalid block
-    bad_tx = API.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    bad_tx = OMG.TestHelper.create_recovered([{exit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     bad_block_number = 2_000
 
     %{hash: bad_block_hash, number: _, transactions: _} =
-      bad_block = API.Block.hashed_txs_at([bad_tx], bad_block_number)
+      bad_block = OMG.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
     OMG.Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)

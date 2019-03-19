@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.FeesTest do
+defmodule OMG.FeesTest do
   @moduledoc false
 
   use ExUnitFixtures
+  use OMG.Fixtures
   use ExUnit.Case, async: true
 
-  import OMG.API.Fees
-  import OMG.API.TestHelper
+  import OMG.Fees
+  import OMG.TestHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @not_eth <<1::size(160)>>

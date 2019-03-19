@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.EthereumEventListener.CoreTest do
+defmodule OMG.EthereumEventListener.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OMG.API.EthereumEventListener.Core
-  alias OMG.API.RootChainCoordinator.SyncGuide
+  alias OMG.EthereumEventListener.Core
+  alias OMG.RootChainCoordinator.SyncGuide
 
   @db_key :db_key
   @service_name :name

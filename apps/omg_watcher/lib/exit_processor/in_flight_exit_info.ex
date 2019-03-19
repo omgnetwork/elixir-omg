@@ -19,8 +19,8 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
   Internal stuff of `OMG.Watcher.ExitProcessor`
   """
 
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.State.Transaction
+  alias OMG.Utxo
 
   require Utxo
   require Transaction

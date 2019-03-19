@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.PropTest do
+defmodule OMG.State.PropTest do
   @moduledoc """
   # check if model don't change bilans of tokens (in brackets which commands are needed to detect this)
 
@@ -53,10 +53,10 @@ defmodule OMG.API.State.PropTest do
   use PropCheck
   use PropCheck.StateM.DSL
   use ExUnit.Case
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   # commands import to test
-  use OMG.API.State.PropTest.{
+  use OMG.State.PropTest.{
     Deposits,
     DifferentSpenderTransaction,
     DoubleSpendTransaction,
@@ -67,10 +67,10 @@ defmodule OMG.API.State.PropTest do
     Transaction
   }
 
-  alias OMG.API.PropTest.Helper
-  alias OMG.API.State.Core
-  alias OMG.API.State.PropTest
-  require OMG.API.PropTest.Constants
+  alias OMG.PropTest.Helper
+  alias OMG.State.Core
+  alias OMG.State.PropTest
+  require OMG.PropTest.Constants
 
   def initial_state do
     %{
@@ -165,7 +165,7 @@ defmodule OMG.API.State.PropTest do
 
   @tag :property
   @tag timeout: 1_200_000
-  property "OMG.API.State.Core prope check", numtests: 10_000 do
+  property "OMG.State.Core prope check", numtests: 10_000 do
     state_core_property_test()
   end
 end

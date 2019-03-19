@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.Transaction.Signed do
+defmodule OMG.State.Transaction.Signed do
   @moduledoc """
   Representation of a signed transaction
   """
 
-  alias OMG.API.Crypto
-  alias OMG.API.State.Transaction
+  alias OMG.Crypto
+  alias OMG.State.Transaction
 
   @signature_length 65
   @type tx_bytes() :: binary() | nil

@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Utxo do
+defmodule OMG.Utxo do
   @moduledoc """
   Manipulates a single unspent transaction output (UTXO) held be the child chain state.
   """
 
-  alias OMG.API.Crypto
-  alias OMG.API.State.Transaction
+  alias OMG.Crypto
+  alias OMG.State.Transaction
 
   defstruct [:owner, :currency, :amount, :creating_txhash]
 

@@ -15,9 +15,9 @@
 defmodule OMG.Watcher.DB.EthEventTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Fixtures
+  use OMG.Fixtures
 
-  alias OMG.API.Utxo
+  alias OMG.Utxo
   alias OMG.Watcher.DB
 
   require Utxo

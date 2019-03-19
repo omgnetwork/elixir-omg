@@ -20,8 +20,9 @@ defmodule OMG.API do
   (but not transport-specific encoding like hex).
   """
 
-  alias OMG.API.{Block, Core, Fees, FeeServer, FreshBlocks, State}
-  use OMG.API.LoggerExt
+  alias OMG.API.{Core, FeeServer, FreshBlocks}
+  alias OMG.{Block, Fees, State}
+  use OMG.LoggerExt
 
   @type submit_error() :: Core.recover_tx_error() | State.exec_error()
 

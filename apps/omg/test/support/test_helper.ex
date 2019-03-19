@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.TestHelper do
+defmodule OMG.TestHelper do
   @moduledoc false
 
-  alias OMG.API.Crypto
-  alias OMG.API.DevCrypto
-  alias OMG.API.State.Core
-  alias OMG.API.State.Transaction
+  alias OMG.Crypto
+  alias OMG.DevCrypto
+  alias OMG.State.Core
+  alias OMG.State.Transaction
 
   @type entity :: %{priv: Crypto.priv_key_t(), addr: Crypto.pub_key_t()}
 

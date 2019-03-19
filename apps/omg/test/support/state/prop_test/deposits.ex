@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.State.PropTest.Deposits do
+defmodule OMG.State.PropTest.Deposits do
   @moduledoc """
   Generates function needed to place deposit in propcheck test
   """
   use PropCheck
-  alias OMG.API.PropTest.Generators
-  alias OMG.API.PropTest.Helper
+  alias OMG.PropTest.Generators
+  alias OMG.PropTest.Helper
 
-  def impl(deposits), do: OMG.API.State.PropTest.StateCoreGS.deposit(deposits)
+  def impl(deposits), do: OMG.State.PropTest.StateCoreGS.deposit(deposits)
 
   def args(%{eth: %{blknum: blknum}}) do
     let [number_of_deposit <- integer(1, 3)] do
