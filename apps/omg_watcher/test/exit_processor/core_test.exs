@@ -2118,10 +2118,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   test "creates a challenge for an exit; provides utxo position of non-zero amount", %{alice: alice, bob: bob} do
     # transactions spending one of utxos from above transaction
     tx_spending_1st_utxo =
-      TestHelper.create_signed([{0, 0, 0, alice}, {1000, 0, 0, alice}], @eth, [{bob, 50}, {alice, 50}])
+      TestHelper.create_signed([{1, 0, 0, alice}, {1000, 0, 0, alice}], @eth, [{bob, 50}, {alice, 50}])
 
     tx_spending_2nd_utxo =
-      TestHelper.create_signed([{1000, 0, 1, bob}, {0, 0, 0, alice}], @eth, [{alice, 50}, {bob, 50}])
+      TestHelper.create_signed([{1000, 0, 1, bob}, {1, 0, 0, alice}], @eth, [{alice, 50}, {bob, 50}])
 
     spending_block = create_block_with(2000, [tx_spending_1st_utxo, tx_spending_2nd_utxo])
 

@@ -33,7 +33,8 @@ defmodule OMG.API.CoreTest do
     [
       {[{1, 2, 3, alice}, {2, 3, 4, bob}], [{alice, eth(), 7}, {bob, eth(), 3}]},
       {[{1, 2, 3, alice}, {0, 0, 0, @no_owner}], [{alice, eth(), 7}, {bob, eth(), 3}]},
-      {[{0, 0, 0, @no_owner}, {2, 3, 4, bob}], [{alice, eth(), 7}, {bob, eth(), 3}]}
+      {[{1, 2, 3, alice}, {2, 3, 4, bob}, {0, 0, 0, @no_owner}, {0, 0, 0, @no_owner}],
+       [{alice, eth(), 7}, {bob, eth(), 3}]}
     ]
     |> Enum.map(&parametrized_tester/1)
   end
