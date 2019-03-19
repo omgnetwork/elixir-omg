@@ -434,7 +434,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_deposit(log) do
-    non_indexed_keys = [:amount, :offset, :tokenids]
+    non_indexed_keys = [:amount, :offset, :tokenids]  # 'offset' added to workaround RPL array parsing
     non_indexed_key_types = [{:uint, 256}, {:uint, 256}, {:array, {:uint, 256}}]
     indexed_keys = [:owner, :blknum, :currency]
     indexed_keys_types = [:address, {:uint, 256}, :address]
@@ -460,7 +460,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   defp decode_exit_started(log) do
-    non_indexed_keys = [:utxo_pos, :amount, :offset, :currency, :tokenids]
+    non_indexed_keys = [:utxo_pos, :amount, :offset, :currency, :tokenids]  # 'offset' added to workaround RPL array parsing
     non_indexed_key_types = [{:uint, 256}, {:uint, 256}, {:uint, 256}, :address, {:array, {:uint, 256}}]
     indexed_keys = [:owner]
     indexed_keys_types = [:address]
