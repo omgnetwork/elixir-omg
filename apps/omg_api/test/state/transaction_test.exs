@@ -204,4 +204,59 @@ defmodule OMG.API.State.TransactionTest do
 
     assert {:error, :malformed_metadata} = Transaction.Signed.decode(ExRLP.encode([sigs, inputs, outputs, ""]))
   end
+
+  @tag fixtures: [:utxos, :alice]
+  test "Decoding transaction with gaps in inputs returns error",
+       %{utxos: [input1, input2 | _], alice: %{addr: alice_addr}} do
+    assert {:error, :inputs_contain_gaps} ==
+             create_decoded([{0, 0, 0}, input1], [{alice_addr, eth(), 100}])
+             |> Transaction.decode()
+
+    assert {:error, :inputs_contain_gaps} ==
+             create_decoded([input1, {0, 0, 0}, input2], [{alice_addr, eth(), 100}])
+             |> Transaction.decode()
+
+    assert {:ok, _} =
+             create_decoded([input1, input2, {0, 0, 0}], [{alice_addr, eth(), 100}])
+             |> Transaction.decode()
+  end
+
+  @tag fixtures: [:alice]
+  test "Decoding deposit transaction without inputs is successful", %{alice: %{addr: alice_addr}} do
+    assert {:ok, _} =
+             create_decoded([], [{alice_addr, eth(), 100}])
+             |> Transaction.decode()
+  end
+
+  @tag fixtures: [:alice]
+  test "Decoding transaction with gaps in outputs returns error", %{alice: %{addr: alice_addr}} do
+    assert {:error, :outputs_contain_gaps} ==
+             create_decoded([{1, 0, 0}], [{@zero_address, eth(), 0}, {alice_addr, eth(), 100}])
+             |> Transaction.decode()
+
+    assert {:error, :outputs_contain_gaps} ==
+             create_decoded(
+               [{1, 0, 0}],
+               [{alice_addr, eth(), 100}, {@zero_address, eth(), 0}, {alice_addr, eth(), 100}]
+             )
+             |> Transaction.decode()
+
+    assert {:ok, _} =
+             create_decoded(
+               [{1, 0, 0}],
+               [{alice_addr, eth(), 100}, {alice_addr, eth(), 100}, {@zero_address, eth(), 0}]
+             )
+             |> Transaction.decode()
+  end
+
+  test "Decoding transaction without outputs is successful" do
+    assert {:ok, _} =
+             create_decoded([{1, 0, 0}], [])
+             |> Transaction.decode()
+  end
+
+  defp create_decoded(inputs, outputs),
+    do:
+      Transaction.new(inputs, outputs)
+      |> Transaction.encode()
 end
