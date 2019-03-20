@@ -55,7 +55,7 @@ defmodule OMG.State.Core do
           | [in_flight_exit()]
 
   @type in_flight_exit() :: %{in_flight_tx: binary()}
-  @type piggyback() :: %{txhash: Transaction.Recovered.tx_hash_t(), output_index: non_neg_integer}
+  @type piggyback() :: %{txhash: Transaction.tx_hash(), output_index: non_neg_integer}
 
   @type validities_t() :: {list(Utxo.Position.t()), list(Utxo.Position.t())}
 
@@ -143,7 +143,7 @@ defmodule OMG.State.Core do
   See docs/transaction_validation.md for more information about stateful and stateless validation.
   """
   @spec exec(state :: t(), tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
-          {:ok, {Transaction.Recovered.tx_hash_t(), pos_integer, non_neg_integer}, t()}
+          {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}, t()}
           | {{:error, exec_error}, t()}
   def exec(
         %Core{height: height, tx_index: tx_index} = state,

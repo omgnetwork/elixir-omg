@@ -924,9 +924,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @spec prepare_available_piggyback(InFlightExitInfo.t()) :: list(Event.PiggybackAvailable.t())
   defp prepare_available_piggyback(
-         %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx} = signed_tx} = ife
+         %InFlightExitInfo{
+           tx: %Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx, signed_tx_bytes: signed_tx_bytes}
+         } = ife
        ) do
-    {:ok, %Transaction.Recovered{spenders: input_owners}} = Transaction.Recovered.recover_from(signed_tx)
+    %Transaction.Recovered{spenders: input_owners} = recover_correct_tx!(signed_tx_bytes)
 
     available_inputs =
       input_owners
@@ -1060,14 +1062,14 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp prepare_competitor_response(
          %KnownTx{signed_tx: known_signed_tx, utxo_pos: known_tx_utxo_pos},
-         %Transaction.Signed{raw_tx: raw_ife_tx} = signed_ife_tx,
+         %Transaction.Signed{raw_tx: raw_ife_tx, signed_tx_bytes: signed_tx_bytes} = signed_ife_tx,
          blocks
        ) do
     ife_inputs = Transaction.get_inputs(raw_ife_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
 
     %Transaction.Signed{raw_tx: raw_known_tx} = known_signed_tx
     known_spent_inputs = Transaction.get_inputs(raw_known_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
-    {:ok, %Transaction.Recovered{spenders: input_owners}} = Transaction.Recovered.recover_from(signed_ife_tx)
+    %Transaction.Recovered{spenders: input_owners} = recover_correct_tx!(signed_tx_bytes)
 
     # get info about the double spent input and it's respective indices in transactions
     spent_input = competitor_for(signed_ife_tx, known_signed_tx)
@@ -1190,7 +1192,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp get_known_txs(%Block{transactions: txs, number: blknum}) do
     txs
     |> Enum.map(fn tx_bytes ->
-      %Transaction.Recovered{signed_tx: signed} = recover_correct_tx_from_block(tx_bytes)
+      %Transaction.Recovered{signed_tx: signed} = recover_correct_tx!(tx_bytes)
       signed
     end)
     |> Enum.with_index()
@@ -1203,8 +1205,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp get_known_txs([%Block{} | _] = blocks),
     do: blocks |> Enum.sort_by(fn block -> block.number end) |> Enum.flat_map(&get_known_txs/1)
 
-  defp recover_correct_tx_from_block(tx_bytes) do
-    {:ok, recovered} = OMG.API.Core.recover_tx(tx_bytes)
+  # recovers a transaction which comes from a place where it's known to be correct (block, ife)
+  defp recover_correct_tx!(tx_bytes) do
+    {:ok, recovered} = Transaction.Recovered.recover_from(tx_bytes)
     recovered
   end
 

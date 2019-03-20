@@ -176,20 +176,19 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   @tag fixtures: [:alice]
-  test "check error returned by decode_block, one of API.Core.recover_tx checks", %{alice: alice} do
-    # NOTE: this test only test if API.Core.recover_tx-specific checks are run and errors returned
+  test "check error returned by decoding, one of Transaction.Recovered.recover_from checks", %{alice: alice} do
+    # NOTE: this test only test if Transaction.Recovered.recover_from-specific checks are run and errors returned
     #       the more extensive testing of such checks is done in API.CoreTest where it belongs
 
     %Block{hash: hash} =
       block =
-      [
-        OMG.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}]),
-        OMG.TestHelper.create_recovered([], @eth, [{alice, 100}])
-      ]
+      [OMG.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}])]
       |> Block.hashed_txs_at(1)
 
-    # a particular API.Core.recover_tx_error instance
-    assert {:error, {:no_inputs, hash, 1}} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
+    block = %{block | transactions: block.transactions ++ [<<34>>]}
+
+    # a particular Transaction.Recovered.recover_from error instance
+    assert {:error, {:malformed_transaction, hash, 1}} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
   end
 
   test "check error returned by decode_block, hash mismatch checks" do
@@ -197,12 +196,6 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     block = Block.hashed_txs_at([], 1)
 
     assert {:error, {:bad_returned_hash, hash, 1}} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
-  end
-
-  test "check error returned by decode_block, API.Core.recover_tx checks" do
-    %Block{hash: hash} = block = Block.hashed_txs_at([OMG.TestHelper.create_recovered([], @eth, [])], 1)
-
-    assert {:error, {:no_inputs, hash, 1}} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
   end
 
   test "the blknum is checked against the requested one" do

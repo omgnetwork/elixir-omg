@@ -135,7 +135,7 @@ defmodule OMG.State.PersistenceTest do
 
     assert {:ok, [hash]} = OMG.DB.block_hashes([@blknum1], db_pid)
     assert {:ok, [%{number: @blknum1, transactions: [block_tx], hash: ^hash}]} = OMG.DB.blocks([hash], db_pid)
-    assert {:ok, tx} == OMG.API.Core.recover_tx(block_tx)
+    assert {:ok, tx} == Transaction.Recovered.recover_from(block_tx)
     assert {:ok, 1000} == OMG.DB.spent_blknum({1, 0, 0}, db_pid)
   end
 

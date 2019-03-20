@@ -82,8 +82,7 @@ defmodule OMG.TestHelper do
           Transaction.metadata()
         ) :: Transaction.Recovered.t()
   def create_recovered(inputs, currency, outputs, metadata \\ nil) do
-    signed_tx = create_signed(inputs, currency, outputs, metadata)
-    {:ok, recovered} = Transaction.Recovered.recover_from(signed_tx)
+    {:ok, recovered} = create_encoded(inputs, currency, outputs, metadata) |> Transaction.Recovered.recover_from()
     recovered
   end
 
@@ -92,9 +91,17 @@ defmodule OMG.TestHelper do
           list({Crypto.address_t(), Transaction.currency(), pos_integer})
         ) :: Transaction.Recovered.t()
   def create_recovered(inputs, outputs) do
-    signed_tx = create_signed(inputs, outputs)
-    {:ok, recovered} = Transaction.Recovered.recover_from(signed_tx)
+    # FIXME: introduce recover_from! for numberous cases like this
+    {:ok, recovered} = create_encoded(inputs, outputs) |> Transaction.Recovered.recover_from()
     recovered
+  end
+
+  def create_encoded(inputs, currency, outputs, metadata \\ nil) do
+    create_signed(inputs, currency, outputs, metadata) |> Transaction.Signed.encode()
+  end
+
+  def create_encoded(inputs, outputs) do
+    create_signed(inputs, outputs) |> Transaction.Signed.encode()
   end
 
   @doc """
@@ -118,14 +125,6 @@ defmodule OMG.TestHelper do
     DevCrypto.sign(raw_tx, privs)
   end
 
-  defp get_private_keys(inputs) do
-    filler = List.duplicate(<<>>, 4 - length(inputs))
-
-    inputs
-    |> Enum.map(fn {_, _, _, owner} -> owner.priv end)
-    |> Enum.concat(filler)
-  end
-
   @spec create_signed(
           list({pos_integer, pos_integer, 0 | 1, map}),
           list({Crypto.address_t(), Transaction.currency(), pos_integer})
@@ -141,9 +140,12 @@ defmodule OMG.TestHelper do
     DevCrypto.sign(raw_tx, privs)
   end
 
-  def create_encoded(inputs, currency, outputs) do
-    signed_tx = create_signed(inputs, currency, outputs)
-    Transaction.Signed.encode(signed_tx)
+  defp get_private_keys(inputs) do
+    filler = List.duplicate(<<>>, 4 - length(inputs))
+
+    inputs
+    |> Enum.map(fn {_, _, _, owner} -> owner.priv end)
+    |> Enum.concat(filler)
   end
 
   @spec write_fee_file(%{Crypto.address_t() => non_neg_integer}) :: {:ok, binary}

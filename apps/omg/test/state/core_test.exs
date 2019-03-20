@@ -444,8 +444,8 @@ defmodule OMG.State.CoreTest do
              "ee44e104950e8784c17495e423493c54026fa554180bbbca057c1176bc4e1ded"
 
     # Check that contents of the block can be recovered again to original txs
-    assert {:ok, ^recovered_tx_1} = OMG.API.Core.recover_tx(block_tx1)
-    assert {:ok, ^recovered_tx_2} = OMG.API.Core.recover_tx(block_tx2)
+    assert {:ok, ^recovered_tx_1} = Transaction.Recovered.recover_from(block_tx1)
+    assert {:ok, ^recovered_tx_2} = Transaction.Recovered.recover_from(block_tx2)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]

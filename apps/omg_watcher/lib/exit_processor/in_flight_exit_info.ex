@@ -84,13 +84,15 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     with {:ok, raw_tx} <- Transaction.decode(tx_bytes) do
       chopped_sigs = for <<chunk::size(65)-unit(8) <- tx_signatures>>, do: <<chunk::size(65)-unit(8)>>
 
+      # this is very ugly. Caused by us using a Transaction.Recovered.recover_from function which takes in bytes
+      # are there better ways without bloating the APIs?
+      tx = %Transaction.Signed{raw_tx: raw_tx, sigs: chopped_sigs}
+      tx_with_bytes = %Transaction.Signed{tx | signed_tx_bytes: Transaction.Signed.encode(tx)}
+
       {
         Transaction.hash(raw_tx),
         %__MODULE__{
-          tx: %Transaction.Signed{
-            raw_tx: raw_tx,
-            sigs: chopped_sigs
-          },
+          tx: tx_with_bytes,
           timestamp: timestamp,
           contract_id: contract_id,
           is_active: is_active,

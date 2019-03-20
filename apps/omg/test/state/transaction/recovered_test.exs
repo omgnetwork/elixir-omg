@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.CoreTest do
+defmodule OMG.State.Transaction.RecoveredTest do
   use ExUnitFixtures
-  use OMG.Fixtures
   use ExUnit.Case, async: true
 
-  alias OMG.API.Core
   alias OMG.State.Transaction
   alias OMG.TestHelper
 
@@ -41,9 +39,9 @@ defmodule OMG.API.CoreTest do
   end
 
   test "encoded transaction is malformed or empty" do
-    assert {:error, :malformed_transaction} = Core.recover_tx(<<192>>)
-    assert {:error, :malformed_transaction} = Core.recover_tx(<<0x80>>)
-    assert {:error, :malformed_transaction} = Core.recover_tx(<<>>)
+    assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(<<192>>)
+    assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(<<0x80>>)
+    assert {:error, :malformed_transaction} = Transaction.Recovered.recover_from(<<>>)
   end
 
   @tag fixtures: [:alice, :bob]
@@ -51,17 +49,17 @@ defmodule OMG.API.CoreTest do
     encoded_signed_tx = TestHelper.create_encoded([{1, 2, 3, alice}, {2, 3, 4, bob}], eth(), [{alice, 7}])
 
     malformed1 = encoded_signed_tx <> "a"
-    assert {:error, :malformed_metadata} = Core.recover_tx(malformed1)
+    assert {:error, :malformed_metadata} = Transaction.Recovered.recover_from(malformed1)
 
     malformed2 = "A" <> encoded_signed_tx
-    assert {:error, :malformed_transaction_rlp} = Core.recover_tx(malformed2)
+    assert {:error, :malformed_transaction_rlp} = Transaction.Recovered.recover_from(malformed2)
 
     <<_, malformed3::binary>> = encoded_signed_tx
-    assert {:error, :malformed_transaction_rlp} = Core.recover_tx(malformed3)
+    assert {:error, :malformed_transaction_rlp} = Transaction.Recovered.recover_from(malformed3)
 
     cropped_size = byte_size(encoded_signed_tx) - 1
     <<malformed4::binary-size(cropped_size), _::binary-size(1)>> = encoded_signed_tx
-    assert {:error, :malformed_transaction_rlp} = Core.recover_tx(malformed4)
+    assert {:error, :malformed_transaction_rlp} = Transaction.Recovered.recover_from(malformed4)
   end
 
   @tag fixtures: [:alice, :bob]
@@ -78,16 +76,16 @@ defmodule OMG.API.CoreTest do
     malformed2 = Transaction.Signed.encode(malformed_signed2)
     malformed3 = Transaction.Signed.encode(malformed_signed3)
 
-    assert {:error, :malformed_address} = Core.recover_tx(malformed1)
-    assert {:error, :malformed_address} = Core.recover_tx(malformed2)
-    assert {:error, :malformed_address} = Core.recover_tx(malformed3)
+    assert {:error, :malformed_address} = Transaction.Recovered.recover_from(malformed1)
+    assert {:error, :malformed_address} = Transaction.Recovered.recover_from(malformed2)
+    assert {:error, :malformed_address} = Transaction.Recovered.recover_from(malformed3)
   end
 
   @tag fixtures: [:alice]
   test "transaction must have distinct inputs", %{alice: alice} do
     duplicate_inputs = TestHelper.create_encoded([{1, 2, 3, alice}, {1, 2, 3, alice}], eth(), [{alice, 7}])
 
-    assert {:error, :duplicate_inputs} = Core.recover_tx(duplicate_inputs)
+    assert {:error, :duplicate_inputs} = Transaction.Recovered.recover_from(duplicate_inputs)
   end
 
   @tag fixtures: [:alice, :bob]
@@ -95,7 +93,7 @@ defmodule OMG.API.CoreTest do
     tx = TestHelper.create_signed([{1, 2, 3, alice}, {2, 3, 4, alice}], eth(), [{alice, 7}])
     tx_no_sigs = %{tx | sigs: [@empty_signature, @empty_signature]}
     tx_hash = Transaction.Signed.encode(tx_no_sigs)
-    assert {:error, :missing_signature} == Core.recover_tx(tx_hash)
+    assert {:error, :missing_signature} == Transaction.Recovered.recover_from(tx_hash)
   end
 
   @tag fixtures: [:alice]
@@ -106,7 +104,7 @@ defmodule OMG.API.CoreTest do
     assert {:error, :signature_corrupt} ==
              %Transaction.Signed{full_signed_tx | sigs: [<<1::size(520)>>, sig1]}
              |> Transaction.Signed.encode()
-             |> Core.recover_tx()
+             |> Transaction.Recovered.recover_from()
   end
 
   @tag fixtures: [:alice]
@@ -117,12 +115,12 @@ defmodule OMG.API.CoreTest do
     assert {:error, :signature_corrupt} ==
              %Transaction.Signed{full_signed_tx | sigs: [sig1, <<1::size(520)>>]}
              |> Transaction.Signed.encode()
-             |> Core.recover_tx()
+             |> Transaction.Recovered.recover_from()
 
     assert {:error, :signature_corrupt} ==
              %Transaction.Signed{full_signed_tx | sigs: [<<1::size(520)>>, sig2]}
              |> Transaction.Signed.encode()
-             |> Core.recover_tx()
+             |> Transaction.Recovered.recover_from()
   end
 
   @tag fixtures: [:alice]
@@ -137,10 +135,10 @@ defmodule OMG.API.CoreTest do
 
     double_zero_tx4 = TestHelper.create_encoded([{0, 0, 0, alice}, {0, 0, 0, alice}], eth(), [{alice, 7}])
 
-    assert {:error, :no_inputs} == Core.recover_tx(double_zero_tx1)
-    assert {:error, :no_inputs} == Core.recover_tx(double_zero_tx2)
-    assert {:error, :no_inputs} == Core.recover_tx(double_zero_tx3)
-    assert {:error, :no_inputs} == Core.recover_tx(double_zero_tx4)
+    assert {:error, :no_inputs} == Transaction.Recovered.recover_from(double_zero_tx1)
+    assert {:error, :no_inputs} == Transaction.Recovered.recover_from(double_zero_tx2)
+    assert {:error, :no_inputs} == Transaction.Recovered.recover_from(double_zero_tx3)
+    assert {:error, :no_inputs} == Transaction.Recovered.recover_from(double_zero_tx4)
   end
 
   @tag fixtures: [:alice, :bob]
@@ -166,6 +164,6 @@ defmodule OMG.API.CoreTest do
             %Transaction.Recovered{
               signed_tx: ^tx,
               spenders: ^spenders
-            }} = Core.recover_tx(encoded_signed_tx)
+            }} = Transaction.Recovered.recover_from(encoded_signed_tx)
   end
 end

@@ -37,7 +37,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
     blocks_inserter.([
       {11_000,
        [
-         OMG.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])
+         OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @other_token, [{alice, 121}, {alice, 256}])
        ]}
     ])
 

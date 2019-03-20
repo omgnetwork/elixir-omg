@@ -306,7 +306,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       blocks_inserter.([
         {1000,
          [
-           Test.create_recovered([], @eth, [{alice, 10}])
+           Test.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
          ]}
       ])
 
@@ -456,10 +456,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       [
         {5000,
          [
-           Test.create_recovered([], @eth, [{alice, 40}, {alice, 42}, {alice, 43}, {alice, 44}]),
-           Test.create_recovered([], @eth, [{alice, 41}, {alice, 45}]),
-           Test.create_recovered([], @other_token, [{alice, 5}, {alice, 110}, {alice, 15}]),
-           Test.create_recovered([], @other_token, [{alice, 105}, {alice, 10}, {alice, 115}])
+           Test.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 40}, {alice, 42}, {alice, 43}, {alice, 44}]),
+           Test.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 41}, {alice, 45}]),
+           Test.create_recovered([{1, 0, 0, alice}], @other_token, [{alice, 5}, {alice, 110}, {alice, 15}]),
+           Test.create_recovered([{1, 0, 0, alice}], @other_token, [{alice, 105}, {alice, 10}, {alice, 115}])
          ]}
       ]
       |> blocks_inserter.()
@@ -880,13 +880,15 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       recovered_txs =
         txs_bytes
         |> Enum.map(fn "0x" <> tx ->
-          %Transaction.Recovered{} =
+          {:ok, %Transaction.Recovered{} = recovered} =
             tx
             |> Base.decode16!(case: :lower)
             |> Transaction.decode!()
             |> DevCrypto.sign([spender.priv])
+            |> Transaction.Signed.encode()
             |> Transaction.Recovered.recover_from()
-            |> Kernel.elem(1)
+
+          recovered
         end)
 
       [{blknum, recovered_txs}] |> blocks_inserter.()

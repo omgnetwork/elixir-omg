@@ -22,6 +22,7 @@ defmodule OMG.State.PropTest.MutatedTransaction do
   alias OMG.PropTest.Generators
   alias OMG.PropTest.Helper
   alias OMG.State.PropTest
+  alias OMG.State.Transaction
   alias OMG.Utxo
   require Constants
   require Utxo
@@ -53,7 +54,9 @@ defmodule OMG.State.PropTest.MutatedTransaction do
     end
   end
 
-  @doc "check if OMG.API.Core.recover_tx validate transaction and PropTest.Transaction.pre invalidate transaction"
+  @doc """
+  Check if Transaction.Recovered.recover_from validate transaction and PropTest.Transaction.pre invalidate transaction
+  """
   def pre(state, [tx | _] = args) do
     create_signed = &OMG.TestHelper.create_signed/3
 
@@ -61,7 +64,7 @@ defmodule OMG.State.PropTest.MutatedTransaction do
       tx
       |> PropTest.Transaction.normalize_variables()
       |> (&apply(create_signed, Tuple.to_list(&1))).()
-      |> OMG.API.Core.recover_tx()
+      |> Transaction.Recovered.recover_from()
 
     !PropTest.Transaction.pre(state, args) && valid == :ok
   end

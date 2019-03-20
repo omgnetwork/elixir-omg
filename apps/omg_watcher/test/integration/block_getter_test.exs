@@ -26,7 +26,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use Plug.Test
   use Phoenix.ChannelTest
 
-  alias OMG.{API, Crypto, Eth, RPC.Web.Encoding, Utxo, Watcher}
+  alias OMG.{Crypto, Eth, RPC.Web.Encoding, Utxo, Watcher}
   alias Watcher.Integration.TestHelper, as: IntegrationTest
   alias Watcher.{Event, TestHelper, Web.Channel, Web.Serializer.Response}
 
@@ -75,7 +75,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
              %{"blknum" => ^block_nr}
            ] = TestHelper.get_utxos(alice.addr)
 
-    {:ok, recovered_tx} = API.Core.recover_tx(tx)
+    {:ok, recovered_tx} = Transaction.Recovered.recover_from(tx)
     {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(block_nr)
 
     event_eth_height = get_block_submitted_event_height(block_nr)

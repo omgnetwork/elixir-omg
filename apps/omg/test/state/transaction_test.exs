@@ -16,7 +16,6 @@ defmodule OMG.State.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OMG.API
   alias OMG.DevCrypto
   alias OMG.State.{Core, Transaction}
   alias OMG.TestHelper
@@ -138,7 +137,7 @@ defmodule OMG.State.TransactionTest do
   end
 
   defp assert_tx_usable(signed, state_core) do
-    {:ok, transaction} = signed |> Transaction.Signed.encode() |> API.Core.recover_tx()
+    {:ok, transaction} = signed |> Transaction.Signed.encode() |> Transaction.Recovered.recover_from()
 
     assert {:ok, {_, _, _}, _state} = Core.exec(state_core, transaction, %{eth() => 0})
   end
@@ -151,7 +150,7 @@ defmodule OMG.State.TransactionTest do
       |> DevCrypto.sign([bob.priv, alice.priv])
       |> Transaction.Signed.encode()
 
-    {:ok, recovered} = tx |> OMG.API.Core.recover_tx()
+    {:ok, recovered} = Transaction.Recovered.recover_from(tx)
     assert recovered.spenders == [bob.addr, alice.addr]
   end
 

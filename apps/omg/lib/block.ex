@@ -79,8 +79,7 @@ defmodule OMG.Block do
   end
 
   defp to_recovered_tx(txbytes) do
-    {:ok, signed_tx} = Transaction.Signed.decode(txbytes)
-    {:ok, recovered_tx} = Transaction.Recovered.recover_from(signed_tx)
+    {:ok, recovered_tx} = Transaction.Recovered.recover_from(txbytes)
     recovered_tx
   end
 
