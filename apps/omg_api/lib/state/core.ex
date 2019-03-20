@@ -103,8 +103,9 @@ defmodule OMG.API.State.Core do
     height = height_query_result + child_block_interval
 
     utxos =
-      Enum.reduce(utxos_query_result, %{}, fn {db_position, db_utxo}, acc_map ->
-        Map.put(acc_map, Utxo.Position.from_db_key(db_position), struct!(Utxo, db_utxo))
+      utxos_query_result
+      |> Enum.into(%{}, fn {db_position, db_utxo} ->
+        {Utxo.Position.from_db_key(db_position), Utxo.from_db_value(db_utxo)}
       end)
 
     state = %__MODULE__{
@@ -320,9 +321,10 @@ defmodule OMG.API.State.Core do
         Transaction.get_inputs(tx)
       end)
       |> Enum.filter(&Utxo.Position.non_zero?/1)
-      |> Enum.flat_map(fn Utxo.position(blknum, txindex, oindex) ->
+      |> Enum.flat_map(fn utxo_pos ->
         # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
-        [{:delete, :utxo, {blknum, txindex, oindex}}, {:put, :spend, {{blknum, txindex, oindex}, height}}]
+        db_key = Utxo.Position.to_db_key(utxo_pos)
+        [{:delete, :utxo, db_key}, {:put, :spend, {db_key, height}}]
       end)
 
     db_updates_block = [{:put, :block, block}]
@@ -374,8 +376,8 @@ defmodule OMG.API.State.Core do
     {:ok, {event_triggers, db_updates}, new_state}
   end
 
-  defp utxo_to_db_put({utxo_pos, %Utxo{} = utxo}),
-    do: {:put, :utxo, {Utxo.Position.to_db_key(utxo_pos), Map.from_struct(utxo)}}
+  defp utxo_to_db_put({utxo_pos, utxo}),
+    do: {:put, :utxo, {Utxo.Position.to_db_key(utxo_pos), Utxo.to_db_value(utxo)}}
 
   defp deposit_to_utxo(%{blknum: blknum, currency: cur, owner: owner, amount: amount}) do
     {Utxo.position(blknum, 0, 0), %Utxo{amount: amount, currency: cur, owner: owner}}

@@ -37,4 +37,12 @@ defmodule OMG.API.Utxo do
       {:utxo_position, unquote(blknum), unquote(txindex), unquote(oindex)}
     end
   end
+
+  # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
+  def to_db_value(%__MODULE__{} = utxo) do
+    Map.take(utxo, [:owner, :currency, :amount, :creating_txhash])
+  end
+
+  def from_db_value(%__MODULE__{} = utxo), do: from_db_value(Map.from_struct(utxo))
+  def from_db_value(utxo_map), do: struct!(__MODULE__, utxo_map)
 end
