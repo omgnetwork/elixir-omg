@@ -20,7 +20,6 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   use Plug.Test
 
   alias OMG.API
-  alias OMG.API.State.Transaction
   alias OMG.API.Utxo
   require Utxo
   alias OMG.Eth
@@ -37,84 +36,37 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
-  test "exit which is using already spent utxo from transaction causes to emit invalid_exit event", %{
+  test "exit which is using already spent utxo from transaction and deposit causes to emit invalid_exit event", %{
     stable_alice: alice,
     stable_alice_deposits: {deposit_blknum, _}
   } do
     tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
-    %{"blknum" => first_tx_blknum, "txhash" => first_txhash} = TestHelper.submit(tx)
+    %{"blknum" => first_tx_blknum} = TestHelper.submit(tx)
 
     tx = API.TestHelper.create_encoded([{first_tx_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     %{"blknum" => second_tx_blknum} = TestHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(second_tx_blknum, @timeout)
 
-    %{
-      "txbytes" => txbytes,
-      "proof" => proof,
-      "utxo_pos" => utxo_pos
-    } = TestHelper.get_exit_data(first_tx_blknum, 0, 0)
+    %{"txbytes" => txbytes, "proof" => proof, "utxo_pos" => tx_utxo_pos} =
+      TestHelper.get_exit_data(first_tx_blknum, 0, 0)
 
-    {:ok, %{"status" => "0x1", "blockNumber" => _eth_height}} =
-      Eth.RootChain.start_exit(
-        utxo_pos,
-        txbytes,
-        proof,
-        alice.addr
-      )
+    {:ok, %{"status" => "0x1"}} =
+      Eth.RootChain.start_exit(tx_utxo_pos, txbytes, proof, alice.addr)
       |> Eth.DevHelpers.transact_sync!()
 
-    IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
+    %{"txbytes" => txbytes, "proof" => proof, "utxo_pos" => deposit_utxo_pos} =
+      TestHelper.get_exit_data(deposit_blknum, 0, 0)
+
+    {:ok, %{"status" => "0x1"}} =
+      Eth.RootChain.start_exit(deposit_utxo_pos, txbytes, proof, alice.addr)
+      |> Eth.DevHelpers.transact_sync!()
+
+    IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name, %Event.InvalidExit{}.name], @timeout)
 
     # after the notification has been received, a challenged is composed and sent
     challenge = TestHelper.get_exit_challenge(first_tx_blknum, 0, 0)
-    {:ok, exit_id} = Eth.RootChain.get_standard_exit_id(first_txhash, 0)
-    assert {:ok, {alice.addr, @eth, 10, utxo_pos}} == Eth.RootChain.get_standard_exit(exit_id)
-
-    {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChain.challenge_exit(
-        challenge["exit_id"],
-        challenge["txbytes"],
-        challenge["input_index"],
-        challenge["sig"],
-        alice.addr
-      )
-      |> Eth.DevHelpers.transact_sync!()
-
-    assert {:ok, {OMG.Eth.zero_address(), @eth, 0, 0}} == Eth.RootChain.get_standard_exit(exit_id)
-
-    IntegrationTest.wait_for_byzantine_events([], @timeout)
-  end
-
-  @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits]
-  test "challenge standard exits from deposits", %{
-    stable_alice: alice,
-    stable_alice_deposits: {deposit_blknum, _}
-  } do
-    %{"blknum" => tx_blknum} =
-      API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}]) |> TestHelper.submit()
-
-    %{"utxo_pos" => utxo_pos, "txbytes" => txbytes, "proof" => proof} = TestHelper.get_exit_data(deposit_blknum, 0, 0)
-
-    {:ok, %{"status" => "0x1"}} =
-      Eth.RootChain.start_exit(utxo_pos, txbytes, proof, alice.addr)
-      |> Eth.DevHelpers.transact_sync!()
-
-    IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)
-    IntegrationTest.wait_for_byzantine_events([%Event.InvalidExit{}.name], @timeout)
-
-    {:ok, exit_id} =
-      Eth.RootChain.get_standard_exit_id(
-        # calculate hash from deposit
-        Transaction.new([], [{alice.addr, @eth, 10}])
-        |> Transaction.hash(),
-        0
-      )
-
-    assert {:ok, {alice.addr, @eth, 10, utxo_pos}} == Eth.RootChain.get_standard_exit(exit_id)
-
-    # after the notification has been received, a challenged is composed and sent
-    challenge = TestHelper.get_exit_challenge(deposit_blknum, 0, 0)
+    assert {:ok, {alice.addr, @eth, 10, tx_utxo_pos}} == Eth.RootChain.get_standard_exit(challenge["exit_id"])
 
     assert {:ok, %{"status" => "0x1"}} =
              OMG.Eth.RootChain.challenge_exit(
@@ -126,7 +78,28 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
              )
              |> Eth.DevHelpers.transact_sync!()
 
-    assert {:ok, {OMG.Eth.zero_address(), @eth, 0, 0}} == Eth.RootChain.get_standard_exit(exit_id)
+    assert {:ok, {OMG.Eth.zero_address(), @eth, 0, 0}} == Eth.RootChain.get_standard_exit(challenge["exit_id"])
+
+    # challenge standard exits from deposits
+    challenge_exit_deposit = TestHelper.get_exit_challenge(deposit_blknum, 0, 0)
+
+    assert {:ok, {alice.addr, @eth, 10, deposit_utxo_pos}} ==
+             Eth.RootChain.get_standard_exit(challenge_exit_deposit["exit_id"])
+
+    assert {:ok, %{"status" => "0x1"}} =
+             OMG.Eth.RootChain.challenge_exit(
+               challenge_exit_deposit["exit_id"],
+               challenge_exit_deposit["txbytes"],
+               challenge_exit_deposit["input_index"],
+               challenge_exit_deposit["sig"],
+               alice.addr
+             )
+             |> Eth.DevHelpers.transact_sync!()
+
+    assert {:ok, {OMG.Eth.zero_address(), @eth, 0, 0}} ==
+             Eth.RootChain.get_standard_exit(challenge_exit_deposit["exit_id"])
+
+    IntegrationTest.wait_for_byzantine_events([], @timeout)
   end
 
   @tag fixtures: [:watcher_sandbox, :stable_alice, :child_chain, :token, :stable_alice_deposits, :test_server]
