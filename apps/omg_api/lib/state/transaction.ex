@@ -142,12 +142,18 @@ defmodule OMG.API.State.Transaction do
   end
 
   defp reconstruct_outputs(outputs_rlp) do
-    Enum.map(outputs_rlp, fn [owner, currency, amount] ->
-      with {:ok, cur12} <- parse_address(currency),
-           {:ok, owner} <- parse_address(owner) do
-        %{owner: owner, currency: cur12, amount: parse_int(amount)}
-      end
-    end)
+    outputs =
+      Enum.map(outputs_rlp, fn [owner, currency, amount] ->
+        with {:ok, cur12} <- parse_address(currency),
+             {:ok, owner} <- parse_address(owner) do
+          %{owner: owner, currency: cur12, amount: parse_int(amount)}
+        end
+      end)
+
+    if(error = Enum.find(outputs, &match?({:error, _}, &1)),
+      do: error,
+      else: outputs
+    )
     |> outputs_without_gaps()
   rescue
     _ -> {:error, :malformed_outputs}
@@ -220,30 +226,29 @@ defmodule OMG.API.State.Transaction do
   @spec get_outputs(t()) :: list(output())
   def get_outputs(%__MODULE__{outputs: outputs}), do: outputs
 
-  defp inputs_without_gaps([input | _] = inputs) do
-    inputs
-    |> check_for_gaps(input, %{blknum: 0, txindex: 0, oindex: 0}, {:error, :inputs_contain_gaps})
-  end
+  defp inputs_without_gaps(inputs),
+    do: check_for_gaps(inputs, %{blknum: 0, txindex: 0, oindex: 0}, {:error, :inputs_contain_gaps})
 
-  defp outputs_without_gaps([output | _] = outputs) do
-    if error = Enum.find(outputs, &match?({:error, _}, &1)),
-      do: error,
-      else:
-        outputs
-        |> check_for_gaps(
-          output,
-          %{owner: @zero_address, currency: @zero_address, amount: 0},
-          {:error, :outputs_contain_gaps}
-        )
-  end
+  defp outputs_without_gaps({:error, _} = error), do: error
 
-  defp check_for_gaps(items, init, empty, error) do
-    with {:ok, _} <-
-           Enum.reduce_while(items, {:ok, init}, fn elt, {:ok, prev} ->
-             if prev == empty and elt != empty,
-               do: {:halt, error},
-               else: {:cont, {:ok, elt}}
-           end),
-         do: {:ok, items}
+  defp outputs_without_gaps(outputs),
+    do:
+      check_for_gaps(
+        outputs,
+        %{owner: @zero_address, currency: @zero_address, amount: 0},
+        {:error, :outputs_contain_gaps}
+      )
+
+  # Check if any consecutive pair of elements contains empty followed by non-empty element
+  # which means there is a gap
+  defp check_for_gaps(items, empty, error) do
+    items
+    # discard - discards last unpaired element from a comparison
+    |> Stream.chunk_every(2, 1, :discard)
+    |> Enum.any?(fn
+      [^empty, elt] when elt != empty -> true
+      _ -> false
+    end)
+    |> if(do: error, else: {:ok, items})
   end
 end
