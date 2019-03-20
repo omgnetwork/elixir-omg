@@ -925,10 +925,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec prepare_available_piggyback(InFlightExitInfo.t()) :: list(Event.PiggybackAvailable.t())
   defp prepare_available_piggyback(
          %InFlightExitInfo{
-           tx: %Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx, signed_tx_bytes: signed_tx_bytes}
+           tx: %Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx} = signed_tx
          } = ife
        ) do
-    %Transaction.Recovered{spenders: input_owners} = recover_correct_tx!(signed_tx_bytes)
+    %Transaction.Recovered{spenders: input_owners} = recover_correct_tx_struct!(signed_tx)
 
     available_inputs =
       input_owners
@@ -1062,14 +1062,14 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp prepare_competitor_response(
          %KnownTx{signed_tx: known_signed_tx, utxo_pos: known_tx_utxo_pos},
-         %Transaction.Signed{raw_tx: raw_ife_tx, signed_tx_bytes: signed_tx_bytes} = signed_ife_tx,
+         %Transaction.Signed{raw_tx: raw_ife_tx} = signed_ife_tx,
          blocks
        ) do
     ife_inputs = Transaction.get_inputs(raw_ife_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
 
     %Transaction.Signed{raw_tx: raw_known_tx} = known_signed_tx
     known_spent_inputs = Transaction.get_inputs(raw_known_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
-    %Transaction.Recovered{spenders: input_owners} = recover_correct_tx!(signed_tx_bytes)
+    %Transaction.Recovered{spenders: input_owners} = recover_correct_tx_struct!(signed_ife_tx)
 
     # get info about the double spent input and it's respective indices in transactions
     spent_input = competitor_for(signed_ife_tx, known_signed_tx)
@@ -1206,9 +1206,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     do: blocks |> Enum.sort_by(fn block -> block.number end) |> Enum.flat_map(&get_known_txs/1)
 
   # recovers a transaction which comes from a place where it's known to be correct (block, ife)
-  defp recover_correct_tx!(tx_bytes) do
-    {:ok, recovered} = Transaction.Recovered.recover_from(tx_bytes)
-    recovered
+  defp recover_correct_tx!(tx_bytes), do: Transaction.Recovered.recover_from!(tx_bytes)
+
+  defp recover_correct_tx_struct!(%Transaction.Signed{} = signed_tx) do
+    # this is very ugly. Caused by us using a Transaction.Recovered.recover_from function which takes in bytes
+    # TODO: are there better ways without bloating the APIs? Punted till when we refactor ExitProcessor logic
+    signed_tx |> Transaction.Signed.encode() |> recover_correct_tx!()
   end
 
   # based on an enumberable of `Utxo.Position` and a mapping that tells whether one exists it will pick
@@ -1298,7 +1301,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   # get the hash of a transaction from a block
   defp get_standard_exit_txhash(_exit_info, Utxo.position(_blknum, txindex, _oindex), %Block{transactions: transactions}) do
     with {:ok, bytes_tx} <- Enum.fetch(transactions, txindex),
-         {:ok, %{raw_tx: raw_tx}} <- OMG.API.State.Transaction.Signed.decode(bytes_tx),
+         {:ok, %{raw_tx: raw_tx}} <- Transaction.Signed.decode(bytes_tx),
          do: raw_tx |> Transaction.hash()
   end
 

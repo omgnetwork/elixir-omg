@@ -2286,7 +2286,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   defp get_block_exit_txhash(Utxo.position(blknum, txindex, oindex), owner) do
     recoverd_tx_list =
       Enum.map(0..txindex, fn index ->
-        TestHelper.create_recovered([{0, index + 1, 0, owner}], @eth, List.duplicate({owner, 8}, oindex + 1))
+        TestHelper.create_recovered([{1, index + 1, 0, owner}], @eth, List.duplicate({owner, 8}, oindex + 1))
       end)
 
     {Block.hashed_txs_at(recoverd_tx_list, blknum), Enum.at(recoverd_tx_list, txindex).tx_hash}

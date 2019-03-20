@@ -78,10 +78,7 @@ defmodule OMG.Block do
     {bytes, hash}
   end
 
-  defp to_recovered_tx(txbytes) do
-    {:ok, recovered_tx} = Transaction.Recovered.recover_from(txbytes)
-    recovered_tx
-  end
+  defp to_recovered_tx(txbytes), do: Transaction.Recovered.recover_from!(txbytes)
 
   @default_leaf <<0>> |> List.duplicate(32) |> Enum.join() |> Crypto.hash()
   # Creates a Merkle proof that transaction under a given transaction index

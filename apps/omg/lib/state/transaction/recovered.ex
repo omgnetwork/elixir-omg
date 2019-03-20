@@ -59,6 +59,15 @@ defmodule OMG.State.Transaction.Recovered do
   end
 
   @doc """
+  Throwing version of `recover_from/1`
+  """
+  @spec recover_from!(binary) :: Transaction.Recovered.t()
+  def recover_from!(encoded_signed_tx) do
+    {:ok, recovered} = Transaction.Recovered.recover_from(encoded_signed_tx)
+    recovered
+  end
+
+  @doc """
   Checks if input spenders and recovered transaction's spenders are the same and have the same order
   """
   @spec all_spenders_authorized(t(), list()) :: :ok | {:error, :unauthorized_spent}

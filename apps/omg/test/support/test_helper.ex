@@ -82,19 +82,14 @@ defmodule OMG.TestHelper do
           Transaction.metadata()
         ) :: Transaction.Recovered.t()
   def create_recovered(inputs, currency, outputs, metadata \\ nil) do
-    {:ok, recovered} = create_encoded(inputs, currency, outputs, metadata) |> Transaction.Recovered.recover_from()
-    recovered
+    create_encoded(inputs, currency, outputs, metadata) |> Transaction.Recovered.recover_from!()
   end
 
   @spec create_recovered(
           list({pos_integer, pos_integer, 0 | 1, map}),
           list({Crypto.address_t(), Transaction.currency(), pos_integer})
         ) :: Transaction.Recovered.t()
-  def create_recovered(inputs, outputs) do
-    # FIXME: introduce recover_from! for numberous cases like this
-    {:ok, recovered} = create_encoded(inputs, outputs) |> Transaction.Recovered.recover_from()
-    recovered
-  end
+  def create_recovered(inputs, outputs), do: create_encoded(inputs, outputs) |> Transaction.Recovered.recover_from!()
 
   def create_encoded(inputs, currency, outputs, metadata \\ nil) do
     create_signed(inputs, currency, outputs, metadata) |> Transaction.Signed.encode()
