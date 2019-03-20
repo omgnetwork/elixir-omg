@@ -28,7 +28,7 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   alias OMG.{Crypto, Eth, RPC.Web.Encoding, Utxo, Watcher}
   alias Watcher.Integration.TestHelper, as: IntegrationTest
-  alias Watcher.{Event, TestHelper, Web.Channel, Web.Serializer.Response}
+  alias Watcher.{Event, TestHelper, Web.Channel}
 
   require Utxo
   import ExUnit.CaptureLog
@@ -75,34 +75,9 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
              %{"blknum" => ^block_nr}
            ] = TestHelper.get_utxos(alice.addr)
 
-    {:ok, recovered_tx} = Transaction.Recovered.recover_from(tx)
-    {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(block_nr)
-
-    event_eth_height = get_block_submitted_event_height(block_nr)
-
-    address_received_event =
-      %Event.AddressReceived{
-        tx: recovered_tx,
-        child_blknum: block_nr,
-        child_txindex: 0,
-        child_block_hash: block_hash,
-        submited_at_ethheight: event_eth_height
-      }
-      |> Response.sanitize()
-
-    address_spent_event =
-      %Event.AddressSpent{
-        tx: recovered_tx,
-        child_blknum: block_nr,
-        child_txindex: 0,
-        child_block_hash: block_hash,
-        submited_at_ethheight: event_eth_height
-      }
-      |> Response.sanitize()
-
-    assert_push("address_received", ^address_received_event)
-
-    assert_push("address_spent", ^address_spent_event)
+    # only checking integration of the events here, contents of events tested elsewhere
+    assert_push("address_received", %{})
+    assert_push("address_spent", %{})
 
     %{
       "utxo_pos" => utxo_pos,
@@ -150,13 +125,6 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
     IntegrationTest.wait_for_exit_processing(exit_eth_height, @timeout)
 
     assert [] == TestHelper.get_utxos(alice.addr)
-  end
-
-  defp get_block_submitted_event_height(block_number) do
-    {:ok, height} = Eth.get_ethereum_height()
-    {:ok, block_submissions} = Eth.RootChain.get_block_submitted_events({1, height})
-    [%{eth_height: eth_height}] = Enum.filter(block_submissions, fn submission -> submission.blknum == block_number end)
-    eth_height
   end
 
   @tag fixtures: [:watcher_sandbox, :test_server]

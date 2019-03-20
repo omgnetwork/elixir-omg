@@ -181,12 +181,9 @@ defmodule OMG.State do
   Returns `db_updates` due and relies on the caller to do persistence
   """
   def handle_call({:close_block, eth_height}, _from, state) do
-    {:ok, {_block, event_triggers, db_updates}, new_state} = do_form_block(state)
+    {:ok, {_block, event_triggers, db_updates}, new_state} = do_form_block(state, eth_height)
 
-    event_triggers
-    # enrich the event triggers with the ethereum height supplied
-    |> Enum.map(&Map.put(&1, :submited_at_ethheight, eth_height))
-    |> EventerAPI.emit_events()
+    EventerAPI.emit_events(event_triggers)
 
     {:reply, {:ok, db_updates}, new_state}
   end
@@ -220,8 +217,8 @@ defmodule OMG.State do
     {:noreply, new_state}
   end
 
-  defp do_form_block(state) do
+  defp do_form_block(state, eth_height \\ nil) do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-    Core.form_block(child_block_interval, state)
+    Core.form_block(child_block_interval, eth_height, state)
   end
 end

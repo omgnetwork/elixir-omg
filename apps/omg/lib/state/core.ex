@@ -294,8 +294,9 @@ defmodule OMG.State.Core do
    - generates requests to the persistence layer for a block
    - processes pending txs gathered, updates height etc
   """
-  @spec form_block(pos_integer(), state :: t()) :: {:ok, {Block.t(), [tx_event], [db_update]}, new_state :: t()}
-  def form_block(child_block_interval, %Core{pending_txs: reverse_txs, height: height} = state) do
+  @spec form_block(pos_integer(), pos_integer() | nil, state :: t()) ::
+          {:ok, {Block.t(), [tx_event], [db_update]}, new_state :: t()}
+  def form_block(child_block_interval, eth_height \\ nil, %Core{pending_txs: reverse_txs, height: height} = state) do
     txs = Enum.reverse(reverse_txs)
 
     block = txs |> Block.hashed_txs_at(height)
@@ -306,6 +307,8 @@ defmodule OMG.State.Core do
       |> Enum.map(fn {tx, index} ->
         %{tx: tx, child_blknum: block.number, child_txindex: index, child_block_hash: block.hash}
       end)
+      # enrich the event triggers with the ethereum height supplied
+      |> Enum.map(&Map.put(&1, :submited_at_ethheight, eth_height))
 
     db_updates_new_utxos =
       txs

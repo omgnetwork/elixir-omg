@@ -349,10 +349,22 @@ defmodule OMG.State.CoreTest do
              |> success?
              |> form_block_check()
 
-    assert triggers == [
-             %{tx: recover1, child_blknum: block_number, child_txindex: 0, child_block_hash: block_hash},
-             %{tx: recover2, child_blknum: block_number, child_txindex: 1, child_block_hash: block_hash}
-           ]
+    assert [
+             %{tx: ^recover1, child_blknum: ^block_number, child_txindex: 0, child_block_hash: ^block_hash},
+             %{tx: ^recover2, child_blknum: ^block_number, child_txindex: 1, child_block_hash: ^block_hash}
+           ] = triggers
+  end
+
+  @tag fixtures: [:alice, :state_alice_deposit]
+  test "spending provides eth_height in event", %{alice: alice, state_alice_deposit: state} do
+    recover1 = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 3}])
+
+    assert state =
+             state
+             |> Core.exec(recover1, :ignore)
+             |> success?
+
+    assert {_, {_block, [%{submited_at_ethheight: 123}], _db_updates}, _} = Core.form_block(@interval, 123, state)
   end
 
   @tag fixtures: [:alice, :bob, :state_alice_deposit]
