@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.EventerAPI do
+defmodule OMG.BlockQueueAPI do
   @moduledoc """
-  Interface to cast event triggers to the `OMG.Watcher.Eventer`
+  Interface to cast a new block for publishing
 
-  NOTE: this should be turned into a proper pub-sub to publish events within the OTP app
+  NOTE: same comment on pub-sub as `OMG.EventerAPI`
   """
 
   @doc """
-  Casts (only when `OMG.Watcher.Eventer` is started) or ignores the triggers
+  Casts (only when `OMG.API.BlockQueue.Server` is started) or ignores the block
   """
-  def emit_events(event_triggers) do
-    GenServer.cast(OMG.Watcher.Eventer, {:emit_events, event_triggers})
+  def enqueue_block(block) do
+    GenServer.cast(OMG.API.BlockQueue.Server, {:enqueue_block, block})
   end
 end

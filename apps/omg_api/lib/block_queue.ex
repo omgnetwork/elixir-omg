@@ -29,6 +29,7 @@ defmodule OMG.API.BlockQueue do
 
   alias OMG.API.BlockQueue.Core
   alias OMG.API.BlockQueue.Core.BlockSubmission
+  alias OMG.API.FreshBlocks
   alias OMG.Block
   alias OMG.Recorder
 
@@ -149,11 +150,12 @@ defmodule OMG.API.BlockQueue do
       {:noreply, state1}
     end
 
-    def handle_cast({:enqueue_block, %Block{number: block_number, hash: block_hash}}, %Core{} = state) do
+    def handle_cast({:enqueue_block, %Block{number: block_number, hash: block_hash} = block}, %Core{} = state) do
       {:ok, parent_height} = Eth.get_ethereum_height()
       state1 = Core.enqueue_block(state, block_hash, block_number, parent_height)
       _ = Logger.info("Enqueuing block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'")
 
+      FreshBlocks.push(block)
       submit_blocks(state1)
       {:noreply, state1}
     end

@@ -18,10 +18,9 @@ defmodule OMG.State do
   The state meant here is the state of the ledger (UTXO set), that determines spendability of coins and forms blocks.
   All spend transactions, deposits and exits should sync on this for validity of moving funds.
   """
-  alias OMG.API.BlockQueue
-  alias OMG.API.FreshBlocks
 
   alias OMG.Block
+  alias OMG.BlockQueueAPI
   alias OMG.DB
   alias OMG.Eth
   alias OMG.EventerAPI
@@ -216,8 +215,7 @@ defmodule OMG.State do
     :ok = DB.multi_update(db_updates)
 
     ### casts, note these are no-ops if given processes are turned off
-    FreshBlocks.push(block)
-    BlockQueue.enqueue_block(block)
+    BlockQueueAPI.enqueue_block(block)
 
     {:noreply, new_state}
   end
