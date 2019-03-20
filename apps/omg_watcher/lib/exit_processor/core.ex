@@ -1289,7 +1289,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
        ),
        do: Transaction.new([], [{owner, currency, amount}]) |> Transaction.hash()
 
-  defp get_standard_exit_txhash(_exit_info, Utxo.position(_blknum, txindex, _oindex), %Block{transactions: transactions} = block) do
+  defp get_standard_exit_txhash(_exit_info, Utxo.position(_blknum, txindex, _oindex), %Block{transactions: transactions}) do
     with {:ok, bytes_tx} <- Enum.fetch(transactions, txindex),
          {:ok, %{raw_tx: raw_tx}} <- OMG.API.State.Transaction.Signed.decode(bytes_tx),
          do: raw_tx |> Transaction.hash()
