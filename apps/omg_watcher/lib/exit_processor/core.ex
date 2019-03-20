@@ -118,12 +118,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   def init(db_exits, db_in_flight_exits, db_competitors, sla_margin \\ @default_sla_margin) do
     {:ok,
      %__MODULE__{
-       exits:
-         db_exits
-         |> Enum.map(fn {db_utxo_pos, v} -> {Utxo.Position.from_db_key(db_utxo_pos), ExitInfo.from_db_value(v)} end)
-         |> Map.new(),
-       in_flight_exits: db_in_flight_exits |> Map.new(),
-       competitors: db_competitors |> Map.new(),
+       exits: db_exits |> Enum.map(&ExitInfo.from_db_kv/1) |> Map.new(),
+       in_flight_exits: db_in_flight_exits |> Enum.map(&InFlightExitInfo.from_db_kv/1) |> Map.new(),
+       competitors: db_competitors |> Enum.map(&CompetitorInfo.from_db_kv/1) |> Map.new(),
        sla_margin: sla_margin
      }}
   end
@@ -192,7 +189,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.map(fn {%{eth_height: eth_height, call_data: %{in_flight_tx: tx_bytes, in_flight_tx_sigs: signatures}},
                       {timestamp, contract_ife_id} = contract_status} ->
         is_active = parse_contract_in_flight_exit_status(contract_status)
-        InFlightExitInfo.new(tx_bytes, signatures, contract_ife_id, timestamp, is_active, eth_height)
+        InFlightExitInfo.new(tx_bytes, signatures, <<contract_ife_id::192>>, timestamp, is_active, eth_height)
       end)
 
     db_updates =
@@ -354,6 +351,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec finalize_in_flight_exits(t(), [map()]) ::
           {:ok, t(), list()} | {:unknown_piggybacks, list()} | {:unknown_in_flight_exit, MapSet.t(non_neg_integer())}
   def finalize_in_flight_exits(%__MODULE__{in_flight_exits: ifes} = state, finalizations) do
+    # convert ife_id from int (given by contract) to a binary
+    finalizations =
+      finalizations
+      |> Enum.map(fn %{in_flight_exit_id: id} = map -> Map.replace!(map, :in_flight_exit_id, <<id::192>>) end)
+
     with {:ok, ifes_by_id} <- get_all_finalized_ifes_by_ife_contract_id(finalizations, ifes),
          {:ok, []} <- known_piggybacks?(finalizations, ifes_by_id) do
       {db_updates_by_id, ifes_by_id} =
