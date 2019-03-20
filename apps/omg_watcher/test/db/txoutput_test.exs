@@ -55,9 +55,7 @@ defmodule OMG.Watcher.DB.TxOutputTest do
     big_amount = power_of_2.(260)
 
     DB.Transaction.update_with(%{
-      transactions: [
-        OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, big_amount}])
-      ],
+      transactions: [OMG.TestHelper.create_recovered([], @eth, [{alice, big_amount}])],
       blknum: 11_000,
       blkhash: <<?#::256>>,
       timestamp: :os.system_time(:second),

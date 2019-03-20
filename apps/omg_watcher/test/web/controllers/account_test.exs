@@ -35,10 +35,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
 
     # adds other token funds for alice to make more interesting
     blocks_inserter.([
-      {11_000,
-       [
-         OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @other_token, [{alice, 121}, {alice, 256}])
-       ]}
+      {11_000, [OMG.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])]}
     ])
 
     data = TestHelper.success?("account.get_balance", body_for(alice))

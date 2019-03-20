@@ -167,7 +167,7 @@ defmodule OMG.Watcher.Fixtures do
        ]},
       {3000,
        [
-         OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 150}]),
+         OMG.TestHelper.create_recovered([], @eth, [{alice, 150}]),
          OMG.TestHelper.create_recovered([{1000, 1, 1, bob}], @eth, [{bob, 150}, {alice, 50}])
        ]}
     ]

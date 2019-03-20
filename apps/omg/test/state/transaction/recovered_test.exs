@@ -124,21 +124,10 @@ defmodule OMG.State.Transaction.RecoveredTest do
   end
 
   @tag fixtures: [:alice]
-  test "transaction is never allowed to have 2 empty inputs", %{alice: alice} do
-    double_zero_tx1 =
-      TestHelper.create_encoded([{0, 0, 0, %{priv: <<>>}}, {0, 0, 0, %{priv: <<>>}}], eth(), [{alice, 7}])
-
-    double_zero_tx2 = TestHelper.create_encoded([{0, 0, 0, alice}, {0, 0, 0, alice}], eth(), [{alice, 7}])
-
-    double_zero_tx3 =
-      TestHelper.create_encoded([{0, 0, 0, %{priv: <<>>}}, {0, 0, 0, %{priv: <<>>}}], eth(), [{alice, 7}])
-
-    double_zero_tx4 = TestHelper.create_encoded([{0, 0, 0, alice}, {0, 0, 0, alice}], eth(), [{alice, 7}])
-
-    assert {:error, :no_inputs} == Transaction.Recovered.recover_from(double_zero_tx1)
-    assert {:error, :no_inputs} == Transaction.Recovered.recover_from(double_zero_tx2)
-    assert {:error, :no_inputs} == Transaction.Recovered.recover_from(double_zero_tx3)
-    assert {:error, :no_inputs} == Transaction.Recovered.recover_from(double_zero_tx4)
+  test "transaction is allowed to have empty inputs, e.g. deposit txs work equally well", %{alice: alice} do
+    # NOTE: it is up to the stateful validity check to verify, that non-deposit transactions like these are invalid
+    tx = TestHelper.create_encoded([], eth(), [{alice, 7}])
+    assert {:ok, _} = Transaction.Recovered.recover_from(tx)
   end
 
   @tag fixtures: [:alice, :bob]

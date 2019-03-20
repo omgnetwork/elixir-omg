@@ -31,7 +31,6 @@ defmodule OMG.State.Transaction.Recovered do
           | :duplicate_inputs
           | :malformed_transaction
           | :malformed_transaction_rlp
-          | :no_inputs
           | :signature_corrupt
           | :missing_signature
 
@@ -101,22 +100,15 @@ defmodule OMG.State.Transaction.Recovered do
        }) do
     inputs = Transaction.get_inputs(raw_tx)
 
-    with :ok <- inputs_present?(inputs),
-         :ok <- no_duplicate_inputs?(inputs) do
+    with :ok <- no_duplicate_inputs?(inputs) do
       all_inputs_signed?(inputs, sigs)
     end
-  end
-
-  defp inputs_present?(inputs) do
-    inputs_present = inputs |> Enum.any?(&Utxo.Position.non_zero?/1)
-
-    if inputs_present, do: :ok, else: {:error, :no_inputs}
   end
 
   defp no_duplicate_inputs?(inputs) do
     inputs =
       inputs
-      |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum != 0 end)
+      |> Enum.filter(&Utxo.Position.non_zero?/1)
 
     number_of_unique_inputs =
       inputs

@@ -210,8 +210,8 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
     blocks_inserter.([
       {blknum,
        [
-         OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 0}, {alice, 100}]),
-         OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 101}, {alice, 0}])
+         OMG.TestHelper.create_recovered([], @eth, [{alice, 0}, {alice, 100}]),
+         OMG.TestHelper.create_recovered([], @eth, [{alice, 101}, {alice, 0}])
        ]}
     ])
 
