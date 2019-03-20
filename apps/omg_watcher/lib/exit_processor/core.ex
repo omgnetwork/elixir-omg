@@ -1272,13 +1272,27 @@ defmodule OMG.Watcher.ExitProcessor.Core do
    - a block number which can be used to retrieve needed information to challenge or an ife which spends inputs
    - the relevant exit information
   """
-  @spec get_challenge_data(tuple(), Utxo.Position.t(), t()) ::
+  @spec get_challenge_data(tuple(), Utxo.Position.t(), Block.t() | :not_found, t()) ::
           {:ok, pos_integer() | KnownTx.t(), ExitInfo.t()} | {:error, atom()}
-  def get_challenge_data(spending_blknum_response, exiting_utxo_pos, %__MODULE__{exits: exits} = state) do
+  def get_challenge_data(spending_blknum_response, exiting_utxo_pos, block, %__MODULE__{exits: exits} = state) do
     with %ExitInfo{} = exit_info <- Map.get(exits, exiting_utxo_pos, {:error, :exit_not_found}),
+         exit_txhash <- get_standard_exit_txhash(exit_info, exiting_utxo_pos, block),
          ife_response = get_ife_based_on_utxo(exiting_utxo_pos, state),
          {:ok, raw_spending_proof} <- ensure_challengeable(spending_blknum_response, ife_response),
-         do: {:ok, raw_spending_proof, exit_info}
+         do: {:ok, raw_spending_proof, %{exit_info | exit_txhash: exit_txhash}}
+  end
+
+  defp get_standard_exit_txhash(
+         %ExitInfo{owner: owner, currency: currency, amount: amount},
+         _exiting_utxo_pos,
+         :not_found
+       ),
+       do: Transaction.new([], [{owner, currency, amount}]) |> Transaction.hash()
+
+  defp get_standard_exit_txhash(_exit_info, Utxo.position(_blknum, txindex, _oindex), %Block{transactions: transactions} = block) do
+    with {:ok, bytes_tx} <- Enum.fetch(transactions, txindex),
+         {:ok, %{raw_tx: raw_tx}} <- OMG.API.State.Transaction.Signed.decode(bytes_tx),
+         do: raw_tx |> Transaction.hash()
   end
 
   defp ensure_challengeable(spending_blknum_response, ife_response)

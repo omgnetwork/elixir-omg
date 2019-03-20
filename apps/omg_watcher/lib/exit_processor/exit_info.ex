@@ -20,11 +20,11 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   """
 
   alias OMG.API.Crypto
+  alias OMG.API.State.Transaction
   alias OMG.API.Utxo
-
   require Utxo
 
-  defstruct [:amount, :currency, :owner, :is_active, :eth_height]
+  defstruct [:amount, :currency, :owner, :is_active, :eth_height, :exit_txhash]
 
   @type t :: %__MODULE__{
           amount: non_neg_integer(),
@@ -32,7 +32,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
           owner: Crypto.address_t(),
           # this means the exit has been first seen active. If false, it won't be considered harmful
           is_active: boolean(),
-          eth_height: pos_integer()
+          eth_height: pos_integer(),
+          exit_txhash: Transaction.tx_hash()
         }
 
   def make_event_data(type, position, %__MODULE__{} = exit_info) do
