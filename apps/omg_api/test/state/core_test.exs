@@ -285,7 +285,7 @@ defmodule OMG.API.State.CoreTest do
   test "can't spend spent", %{alice: alice, bob: bob, state_alice_deposit: state} do
     transactions = [
       create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}]),
-      create_recovered([{0, 0, 0, %{priv: <<>>, addr: nil}}, {1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
+      create_recovered([{1, 0, 0, alice}, {0, 0, 0, %{priv: <<>>, addr: nil}}], @eth, [{bob, 7}, {alice, 3}])
     ]
 
     for first <- transactions,

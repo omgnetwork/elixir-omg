@@ -133,10 +133,10 @@ defmodule OMG.API.State.Transaction do
   def reconstruct(_), do: {:error, :malformed_transaction}
 
   defp reconstruct_inputs(inputs_rlp) do
-    {:ok,
-     Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
-       %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
-     end)}
+    Enum.map(inputs_rlp, fn [blknum, txindex, oindex] ->
+      %{blknum: parse_int(blknum), txindex: parse_int(txindex), oindex: parse_int(oindex)}
+    end)
+    |> inputs_without_gaps()
   rescue
     _ -> {:error, :malformed_inputs}
   end
@@ -150,9 +150,11 @@ defmodule OMG.API.State.Transaction do
         end
       end)
 
-    if error = Enum.find(outputs, &match?({:error, _}, &1)),
+    if(error = Enum.find(outputs, &match?({:error, _}, &1)),
       do: error,
-      else: {:ok, outputs}
+      else: outputs
+    )
+    |> outputs_without_gaps()
   rescue
     _ -> {:error, :malformed_outputs}
   end
@@ -223,4 +225,30 @@ defmodule OMG.API.State.Transaction do
   """
   @spec get_outputs(t()) :: list(output())
   def get_outputs(%__MODULE__{outputs: outputs}), do: outputs
+
+  defp inputs_without_gaps(inputs),
+    do: check_for_gaps(inputs, %{blknum: 0, txindex: 0, oindex: 0}, {:error, :inputs_contain_gaps})
+
+  defp outputs_without_gaps({:error, _} = error), do: error
+
+  defp outputs_without_gaps(outputs),
+    do:
+      check_for_gaps(
+        outputs,
+        %{owner: @zero_address, currency: @zero_address, amount: 0},
+        {:error, :outputs_contain_gaps}
+      )
+
+  # Check if any consecutive pair of elements contains empty followed by non-empty element
+  # which means there is a gap
+  defp check_for_gaps(items, empty, error) do
+    items
+    # discard - discards last unpaired element from a comparison
+    |> Stream.chunk_every(2, 1, :discard)
+    |> Enum.any?(fn
+      [^empty, elt] when elt != empty -> true
+      _ -> false
+    end)
+    |> if(do: error, else: {:ok, items})
+  end
 end
