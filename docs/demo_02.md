@@ -15,12 +15,12 @@ Run a developer's Child chain server, Watcher and start IEx REPL with code and c
 # we're going to be using the exthereum's client to geth's JSON RPC
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
-alias OMG.{API, Eth}
-alias OMG.API.Crypto
-alias OMG.API.DevCrypto
-alias OMG.API.State.Transaction
-alias OMG.API.TestHelper
-alias OMG.API.Integration.DepositHelper
+alias OMG.Eth
+alias OMG.Crypto
+alias OMG.DevCrypto
+alias OMG.State.Transaction
+alias OMG.TestHelper
+alias OMG.Integration.DepositHelper
 alias OMG.Eth.Encoding
 
 alice = TestHelper.generate_entity()
@@ -155,12 +155,12 @@ tx3 =
 
 # let's break the Child chain now and say that duplicates every transaction submitted!
 
-# in order to do that, you need to duplicate the `|> add_pending_tx(recovered_tx)` in API.State.Core module,
+# in order to do that, you need to duplicate the `|> add_pending_tx(recovered_tx)` in State.Core module,
 # around line 160
 
 # now, with the code "broken" go to the `iex` REPL of the child chain and recompile the module
 
-r(OMG.API.State.Core)
+r(OMG.State.Core)
 
 # let's do a broken spend:
 

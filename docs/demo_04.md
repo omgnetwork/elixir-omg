@@ -11,12 +11,12 @@ Run a developer's Child chain server, Watcher, and start IEx REPL with code and 
 # we're going to be using the exthereum's client to geth's JSON RPC
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
-alias OMG.{API, Eth}
-alias OMG.API.Crypto
-alias OMG.API.DevCrypto
-alias OMG.API.Integration.DepositHelper
-alias OMG.API.State.Transaction
-alias OMG.API.TestHelper
+alias OMG.Eth
+alias OMG.Crypto
+alias OMG.DevCrypto
+alias OMG.Integration.DepositHelper
+alias OMG.State.Transaction
+alias OMG.TestHelper
 alias OMG.Eth.Encoding
 
 alice = TestHelper.generate_entity()
