@@ -22,34 +22,56 @@ defmodule OMG.Watcher.Supervisor do
 
   alias OMG.Watcher
 
+  if Application.get_env(:omg_watcher, :sql_sandbox) do
+    defmodule Sandbox do
+      @moduledoc false
+      use GenServer
+      alias Ecto.Adapters.SQL
+
+      def start_link(_args) do
+        GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+      end
+
+      def init(stack) do
+        :ok = SQL.Sandbox.checkout(Watcher.DB.Repo, ownership_timeout: 180_000)
+        SQL.Sandbox.mode(Watcher.DB.Repo, {:shared, self()})
+        {:ok, stack}
+      end
+    end
+  end
+
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
   def init(:ok) do
-    children = [
-      {OMG.InternalEventBus, []},
-      # Start the Ecto repository
-      %{
-        id: Watcher.DB.Repo,
-        start: {Watcher.DB.Repo, :start_link, []},
-        type: :supervisor
-      },
-      %{
-        id: OMG.Watcher.SyncSupervisor,
-        start: {OMG.Watcher.SyncSupervisor, :start_link, []},
-        restart: :permanent,
-        type: :supervisor
-      },
-      # Start workers
-      {Watcher.Eventer, []},
-      # Start the endpoint when the application starts
-      %{
-        id: Watcher.Web.Endpoint,
-        start: {Watcher.Web.Endpoint, :start_link, []},
-        type: :supervisor
-      }
-    ]
+    children =
+      [
+        {OMG.InternalEventBus, []},
+        # Start the Ecto repository
+        %{
+          id: Watcher.DB.Repo,
+          start: {Watcher.DB.Repo, :start_link, []},
+          type: :supervisor
+        }
+      ] ++
+        if(Application.get_env(:omg_watcher, :sql_sandbox), do: [{__MODULE__.Sandbox, []}], else: []) ++
+        [
+          %{
+            id: Watcher.SyncSupervisor,
+            start: {Watcher.SyncSupervisor, :start_link, []},
+            restart: :permanent,
+            type: :supervisor
+          },
+          # Start workers
+          {Watcher.Eventer, []},
+          # Start the endpoint when the application starts
+          %{
+            id: Watcher.Web.Endpoint,
+            start: {Watcher.Web.Endpoint, :start_link, []},
+            type: :supervisor
+          }
+        ]
 
     opts = [strategy: :one_for_one]
 

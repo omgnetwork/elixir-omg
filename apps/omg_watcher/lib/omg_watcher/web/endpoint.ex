@@ -18,6 +18,11 @@ defmodule OMG.Watcher.Web.Endpoint do
 
   socket("/socket", OMG.Watcher.Web.Socket, websocket: [])
 
+  # It's important that this is at the top of `endpoint.ex`, before any other plugs.
+  if Application.get_env(:omg_watcher, :sql_sandbox) do
+    plug(Phoenix.Ecto.SQL.Sandbox)
+  end
+
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phoenix.digest

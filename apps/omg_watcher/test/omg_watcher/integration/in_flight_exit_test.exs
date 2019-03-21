@@ -34,7 +34,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
   @moduletag timeout: 180_000
 
-  @tag fixtures: [:watcher_sandbox, :alice, :bob, :child_chain]
+  @tag fixtures: [:watcher, :alice, :bob, :child_chain]
   test "piggyback in flight exit", %{alice: alice, bob: bob} do
     {:ok, _} = Eth.DevHelpers.import_unlock_fund(alice)
     {:ok, _} = Eth.DevHelpers.import_unlock_fund(bob)
@@ -167,7 +167,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     assert {:ok, {_, _, 0, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
   end
 
-  @tag fixtures: [:watcher_sandbox, :alice, :bob, :child_chain, :token, :alice_deposits]
+  @tag fixtures: [:watcher, :alice, :bob, :child_chain, :token, :alice_deposits]
   test "in-flight exit competitor is detected by watcher",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     # Bob, we need you (Bob's going to send some Ethereum transactions)
@@ -309,7 +309,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       |> Eth.DevHelpers.transact_sync!()
   end
 
-  @tag fixtures: [:watcher_sandbox, :alice, :bob, :child_chain, :token, :alice_deposits]
+  @tag fixtures: [:watcher, :alice, :bob, :child_chain, :token, :alice_deposits]
   test "honest and cooperating users exit in-flight transaction",
        %{alice: alice, bob: bob, alice_deposits: {deposit_blknum, _}} do
     Eth.DevHelpers.import_unlock_fund(bob)

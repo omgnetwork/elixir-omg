@@ -127,12 +127,6 @@ defmodule OMG.Watcher.Fixtures do
     end)
   end
 
-  deffixture watcher_sandbox(watcher) do
-    :ok = watcher
-    :ok = SQL.Sandbox.checkout(DB.Repo, ownership_timeout: 90_000)
-    SQL.Sandbox.mode(DB.Repo, {:shared, self()})
-  end
-
   @doc "run only database in sandbox and endpoint to make request"
   deffixture phoenix_ecto_sandbox do
     {:ok, pid} =
@@ -145,7 +139,7 @@ defmodule OMG.Watcher.Fixtures do
         name: Watcher.Supervisor
       )
 
-    :ok = SQL.Sandbox.checkout(DB.Repo)
+    :ok = SQL.Sandbox.checkout(DB.Repo, ownership_timeout: 180_000)
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
       TestHelper.wait_for_process(pid)
