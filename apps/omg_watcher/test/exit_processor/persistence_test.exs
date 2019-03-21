@@ -35,8 +35,8 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   @utxo_pos1 Utxo.position(1, 0, 0)
   @utxo_pos2 Utxo.position(1_000, 0, 1)
 
-  @zero_exit_id <<0::192>>
-  @non_zero_exit_id <<1::192>>
+  @zero_exit_id 0
+  @non_zero_exit_id 1
   @zero_sig <<0::520>>
 
   setup %{db_pid: db_pid} do
