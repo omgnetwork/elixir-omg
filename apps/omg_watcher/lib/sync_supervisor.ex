@@ -14,11 +14,11 @@
 
 defmodule OMG.Watcher.SyncSupervisor do
   @moduledoc """
-  Supervises the remainder (i.e. all except the `Watcher.BlockGetter` + `OMG.API.State` pair, supervised elsewhere)
+  Supervises the remainder (i.e. all except the `Watcher.BlockGetter` + `OMG.State` pair, supervised elsewhere)
   of the Watcher app
   """
   use Supervisor
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   alias OMG.Eth
   alias OMG.EthereumEventListener
@@ -54,7 +54,7 @@ defmodule OMG.Watcher.SyncSupervisor do
         service_name: :depositor,
         synced_height_update_key: :last_depositor_eth_height,
         get_events_callback: &Eth.RootChain.get_deposits/2,
-        process_events_callback: &OMG.API.State.deposit/1
+        process_events_callback: &OMG.State.deposit/1
       ),
       # this instance of the listener sends deposits to be consumed by the convenience API
       EthereumEventListener.prepare_child(
