@@ -14,6 +14,7 @@
 
 defmodule OMG.Watcher.Application do
   @moduledoc false
+  alias OMG.Watcher.Alert.AlarmHandler
   use Application
   use OMG.API.LoggerExt
 
@@ -22,7 +23,7 @@ defmodule OMG.Watcher.Application do
     DeferredConfig.populate(:omg_rpc)
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-
+    :ok = AlarmHandler.install()
     start_root_supervisor()
   end
 
@@ -32,12 +33,6 @@ defmodule OMG.Watcher.Application do
       %{
         id: OMG.Watcher.Supervisor,
         start: {OMG.Watcher.Supervisor, :start_link, []},
-        restart: :permanent,
-        type: :supervisor
-      },
-      %{
-        id: OMG.Watcher.BlockGetter.Supervisor,
-        start: {OMG.Watcher.BlockGetter.Supervisor, :start_link, []},
         restart: :permanent,
         type: :supervisor
       }

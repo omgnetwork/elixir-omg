@@ -45,7 +45,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
   @utxo_pos3 Utxo.position(1, 0, 0)
 
-  @non_zero_exit_id <<1::192>>
+  @non_zero_exit_id 1
   @zero_sig <<0::520>>
 
   defp not_included_competitor_pos do
@@ -123,7 +123,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   deffixture contract_ife_statuses(in_flight_exit_events) do
     1..length(in_flight_exit_events)
-    |> Enum.map(fn i -> {i, <<i::192>>} end)
+    |> Enum.map(fn i -> {i, i} end)
   end
 
   deffixture ife_tx_hashes(transactions) do
@@ -202,7 +202,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       eth_height: 2
     }
 
-    competitor_ife_status = {1, <<1::192>>}
+    competitor_ife_status = {1, @non_zero_exit_id}
 
     {state, _} = Core.new_in_flight_exits(state, [competitor_ife_event], [competitor_ife_status])
     {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
@@ -683,7 +683,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     signature = DevCrypto.sign(tx, [alice.priv]) |> Map.get(:sigs) |> Enum.join()
 
     ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
-    ife_status = {1, <<1::192>>}
+    ife_status = {1, @non_zero_exit_id}
 
     {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
 
@@ -898,7 +898,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         eth_height: 3
       }
 
-      other_ife_status = {1, <<1::192>>}
+      other_ife_status = {1, @non_zero_exit_id}
 
       {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
 
@@ -980,7 +980,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         eth_height: 4
       }
 
-      other_ife_status = {1, <<1::192>>}
+      other_ife_status = {1, @non_zero_exit_id}
 
       # 3. stuff happens in the contract
       {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
@@ -1179,7 +1179,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         eth_height: 2
       }
 
-      other_ife_status = {1, <<1::192>>}
+      other_ife_status = {1, @non_zero_exit_id}
 
       {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
 
@@ -2026,11 +2026,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
     test "fails when unknown in-flight exit is being finalized", %{processor_empty: processor} do
-      ife_id = <<1::192>>
-      finalization = %{in_flight_exit_id: ife_id, output_index: 1}
+      finalization = %{in_flight_exit_id: @non_zero_exit_id, output_index: 1}
 
       {:unknown_in_flight_exit, unknown_exits} = Core.finalize_in_flight_exits(processor, [finalization])
-      assert unknown_exits == MapSet.new([ife_id])
+      assert unknown_exits == MapSet.new([<<@non_zero_exit_id::192>>])
     end
 
     @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
@@ -2048,7 +2047,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       finalization1 = %{in_flight_exit_id: ife_id, output_index: 1}
       finalization2 = %{in_flight_exit_id: ife_id, output_index: 2}
 
-      {:unknown_piggybacks, [^finalization2]} = Core.finalize_in_flight_exits(processor, [finalization1, finalization2])
+      expected_unknown_piggybacks = [%{in_flight_exit_id: <<ife_id::192>>, output_index: 2}]
+
+      {:unknown_piggybacks, ^expected_unknown_piggybacks} =
+        Core.finalize_in_flight_exits(processor, [finalization1, finalization2])
     end
   end
 
@@ -2118,10 +2120,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   test "creates a challenge for an exit; provides utxo position of non-zero amount", %{alice: alice, bob: bob} do
     # transactions spending one of utxos from above transaction
     tx_spending_1st_utxo =
-      TestHelper.create_signed([{0, 0, 0, alice}, {1000, 0, 0, alice}], @eth, [{bob, 50}, {alice, 50}])
+      TestHelper.create_signed([{1, 0, 0, alice}, {1000, 0, 0, alice}], @eth, [{bob, 50}, {alice, 50}])
 
     tx_spending_2nd_utxo =
-      TestHelper.create_signed([{1000, 0, 1, bob}, {0, 0, 0, alice}], @eth, [{alice, 50}, {bob, 50}])
+      TestHelper.create_signed([{1000, 0, 1, bob}, {1, 0, 0, alice}], @eth, [{alice, 50}, {bob, 50}])
 
     spending_block = create_block_with(2000, [tx_spending_1st_utxo, tx_spending_2nd_utxo])
 

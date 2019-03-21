@@ -204,4 +204,66 @@ defmodule OMG.API.State.TransactionTest do
 
     assert {:error, :malformed_metadata} = Transaction.Signed.decode(ExRLP.encode([sigs, inputs, outputs, ""]))
   end
+
+  @tag fixtures: [:alice]
+  test "Decoding transaction with gaps in inputs returns error", %{alice: alice} do
+    assert {:error, :inputs_contain_gaps} ==
+             TestHelper.create_signed([{0, 0, 0, alice}, {1000, 0, 0, alice}], eth(), [{alice, 100}])
+             |> Transaction.Recovered.recover_from()
+
+    assert {:error, :inputs_contain_gaps} ==
+             TestHelper.create_signed(
+               [{1000, 0, 0, alice}, {0, 0, 0, alice}, {2000, 0, 0, alice}],
+               eth(),
+               [{alice, 100}]
+             )
+             |> Transaction.Recovered.recover_from()
+
+    assert {:ok, _} =
+             TestHelper.create_signed(
+               [{1000, 0, 0, alice}, {2000, 0, 0, alice}, {3000, 0, 0, alice}, {0, 0, 0, alice}],
+               eth(),
+               [{alice, 100}]
+             )
+             |> Transaction.Recovered.recover_from()
+  end
+
+  @tag fixtures: [:alice]
+  test "Decoding deposit transaction without inputs is successful", %{alice: alice} do
+    assert {:ok, _} =
+             TestHelper.create_signed([], eth(), [{alice, 100}])
+             |> Transaction.Recovered.recover_from()
+  end
+
+  @tag fixtures: [:alice]
+  test "Decoding transaction with gaps in outputs returns error", %{alice: alice} do
+    no_account = %{addr: @zero_address}
+
+    assert {:error, :outputs_contain_gaps} ==
+             TestHelper.create_signed([{1000, 0, 0, alice}], eth(), [{no_account, 0}, {alice, 100}])
+             |> Transaction.Recovered.recover_from()
+
+    assert {:error, :outputs_contain_gaps} ==
+             TestHelper.create_signed(
+               [{1000, 0, 0, alice}],
+               eth(),
+               [{alice, 100}, {no_account, 0}, {alice, 100}]
+             )
+             |> Transaction.Recovered.recover_from()
+
+    assert {:ok, _} =
+             TestHelper.create_signed(
+               [{1000, 0, 0, alice}],
+               eth(),
+               [{alice, 100}, {alice, 100}, {no_account, 0}, {no_account, 0}]
+             )
+             |> Transaction.Recovered.recover_from()
+  end
+
+  @tag fixtures: [:alice]
+  test "Decoding transaction without outputs is successful", %{alice: alice} do
+    assert {:ok, _} =
+             TestHelper.create_signed([{1000, 0, 0, alice}], eth(), [])
+             |> Transaction.Recovered.recover_from()
+  end
 end

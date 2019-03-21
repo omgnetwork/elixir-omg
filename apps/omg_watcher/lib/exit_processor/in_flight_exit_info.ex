@@ -100,8 +100,85 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     end
   end
 
-  def make_db_update({_ife_hash, %__MODULE__{} = _ife} = update) do
-    {:put, :in_flight_exit_info, update}
+  # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
+  def make_db_update(
+        {ife_hash,
+         %__MODULE__{
+           tx: %Transaction.Signed{} = tx,
+           contract_tx_pos: tx_pos,
+           timestamp: timestamp,
+           contract_id: contract_id,
+           oldest_competitor: oldest_competitor,
+           eth_height: eth_height,
+           exit_map: %{} = exit_map,
+           is_canonical: is_canonical,
+           is_active: is_active
+         }}
+      )
+      when is_binary(contract_id) and
+             is_integer(timestamp) and is_integer(eth_height) and
+             is_boolean(is_canonical) and is_boolean(is_active) do
+    :ok = assert_utxo_pos_type(tx_pos)
+    :ok = assert_utxo_pos_type(oldest_competitor)
+    # mapping is used in case of changes in data structure
+    value = %{
+      tx: tx,
+      tx_pos: tx_pos,
+      timestamp: timestamp,
+      contract_id: contract_id,
+      oldest_competitor: oldest_competitor,
+      eth_height: eth_height,
+      exit_map: exit_map,
+      is_canonical: is_canonical,
+      is_active: is_active
+    }
+
+    {:put, :in_flight_exit_info, {ife_hash, value}}
+  end
+
+  defp assert_utxo_pos_type(Utxo.position(blknum, txindex, oindex))
+       when is_integer(blknum) and is_integer(txindex) and is_integer(oindex),
+       do: :ok
+
+  defp assert_utxo_pos_type(nil), do: :ok
+
+  def from_db_kv({ife_hash, %__MODULE__{} = db_ife}) do
+    from_db_kv({ife_hash, Map.from_struct(db_ife)})
+  end
+
+  def from_db_kv(
+        {ife_hash,
+         %{
+           tx: %Transaction.Signed{} = tx,
+           tx_pos: tx_pos,
+           timestamp: timestamp,
+           contract_id: contract_id,
+           oldest_competitor: oldest_competitor,
+           eth_height: eth_height,
+           exit_map: %{} = exit_map,
+           is_canonical: is_canonical,
+           is_active: is_active
+         }}
+      )
+      when is_binary(contract_id) and
+             is_integer(timestamp) and is_integer(eth_height) and
+             is_boolean(is_canonical) and is_boolean(is_active) do
+    :ok = assert_utxo_pos_type(tx_pos)
+    :ok = assert_utxo_pos_type(oldest_competitor)
+    # mapping is used in case of changes in data structure
+    ife_map = %{
+      tx: tx,
+      contract_tx_pos: tx_pos,
+      timestamp: timestamp,
+      contract_id: contract_id,
+      oldest_competitor: oldest_competitor,
+      eth_height: eth_height,
+      exit_map: exit_map,
+      is_canonical: is_canonical,
+      is_active: is_active
+    }
+
+    {ife_hash, struct!(__MODULE__, ife_map)}
   end
 
   @spec piggyback(t(), non_neg_integer()) :: {:ok, t()} | {:error, :non_existent_exit | :cannot_piggyback}

@@ -39,8 +39,33 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
           competing_input_signature: Crypto.sig_t()
         }
 
-  def make_db_update({_tx_hash, %__MODULE__{} = _competitor} = update) do
-    {:put, :competitor_info, update}
+  # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
+  def make_db_update(
+        {tx_hash,
+         %__MODULE__{
+           tx: tx = %Transaction.Signed{},
+           competing_input_index: input_index,
+           competing_input_signature: signature
+         }}
+      )
+      when is_integer(input_index) and is_binary(signature) do
+    value = %{tx: tx, competing_input_index: input_index, competing_input_signature: signature}
+    {:put, :competitor_info, {tx_hash, value}}
+  end
+
+  def from_db_kv({tx_hash, %__MODULE__{} = competitor}), do: from_db_kv({tx_hash, Map.from_struct(competitor)})
+
+  def from_db_kv(
+        {tx_hash, %{tx: %Transaction.Signed{} = tx, competing_input_index: index, competing_input_signature: signature}}
+      )
+      when is_integer(index) and is_binary(signature) do
+    competitor_map = %{
+      tx: tx,
+      competing_input_index: index,
+      competing_input_signature: signature
+    }
+
+    {tx_hash, struct!(__MODULE__, competitor_map)}
   end
 
   def new(tx_bytes, competing_input_index, competing_input_signature) do
