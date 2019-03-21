@@ -14,8 +14,10 @@ This document presents current way of stateless and stateful validation of
     * Checking addresses and if fail then `{:error, :malformed_address}`
     * Checking if the integer fields contains integers
 2. Checking signed_tx
-    * if transaction have 2 empty inputs then `{:error, :no_inputs}`
+    * if transaction have all inputs empty then `{:error, :no_inputs}`
     * if transaction have duplicated inputs then `{:error, :duplicate_inputs}`
+    * if transaction's inputs intersperse with empty ones then `{:error, :inputs_contain_gaps}`
+    * if transaction's outputs intersperse with empty ones then `{:error, :outputs_contain_gaps}`
     * if transaction have input and empty sig then  `{:error, :missing_signature}`
     * if transaction have no input and empty sig then `:ok`
 3. Recovering of singed transaction using `OMG.API.State.Transaction.Recovered.recover_from`

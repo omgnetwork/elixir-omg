@@ -34,9 +34,13 @@ defmodule OMG.API.State.Transaction.Recovered do
 
   @spec recover_from(Transaction.Signed.t()) :: {:ok, t()} | any
   def recover_from(%Transaction.Signed{raw_tx: raw_tx, sigs: sigs} = signed_tx) do
-    hash_no_spenders = Transaction.hash(raw_tx)
+    hash_without_sigs = Transaction.hash(raw_tx)
 
-    with {:ok, spenders} <- get_spenders(hash_no_spenders, sigs),
+    # TODO: remove unnecessary `encode |> decode`. It's here to allow testing `illegality of gaps in inputs|outputs`
+    # on "public API level" while keeping actual check very bottom in `Transaction.decode`.
+    # This is expected to be fixed with PR #529
+    with {:ok, _} <- raw_tx |> Transaction.encode() |> Transaction.decode(),
+         {:ok, spenders} <- get_spenders(hash_without_sigs, sigs),
          do:
            {:ok,
             %__MODULE__{
@@ -46,16 +50,16 @@ defmodule OMG.API.State.Transaction.Recovered do
             }}
   end
 
-  defp get_spenders(hash_no_spenders, sigs) do
+  defp get_spenders(hash_without_sigs, sigs) do
     sigs
     |> Enum.filter(fn sig -> sig != @empty_signature end)
-    |> Enum.reduce({:ok, []}, fn sig, acc -> get_spender(hash_no_spenders, sig, acc) end)
+    |> Enum.reduce({:ok, []}, fn sig, acc -> get_spender(hash_without_sigs, sig, acc) end)
   end
 
-  defp get_spender(_hash_no_spenders, _sig, {:error, _} = err), do: err
+  defp get_spender(_hash_without_sigs, _sig, {:error, _} = err), do: err
 
-  defp get_spender(hash_no_spenders, sig, {:ok, spenders}) do
-    recovered_address = Crypto.recover_address(hash_no_spenders, sig)
+  defp get_spender(hash_without_sigs, sig, {:ok, spenders}) do
+    recovered_address = Crypto.recover_address(hash_without_sigs, sig)
 
     case recovered_address do
       {:ok, spender} -> {:ok, spenders ++ [spender]}

@@ -35,13 +35,13 @@ A developer instance of `geth` runs Ethereum locally and prefunds an account.
 However, when `geth` terminates, the state of the Ethereum network is lost.
 
 ```bash
-geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0
+geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0
 ```
 
 ##### Persistent developer `geth` instance
 Alternatively, a persistent developer instance that does not lose state can be started with the following command:
 ```bash
-geth --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0 --datadir ~/.geth
+geth --targetgaslimit "6200000" --dev --dev.period 1 --rpc --rpcapi personal,web3,eth,net  --rpcaddr 0.0.0.0 --datadir ~/.geth
 ```
 
 #### Connecting to a non-dev chain
@@ -53,6 +53,12 @@ geth --rinkeby --rpc --rpcapi personal,web3,eth,net  --rpcaddr 127.0.0.1
 ```
 
 **NOTE** Contrary to working with developer instance, operator's account must be manually funded with testnet Ether.
+
+#### Using Parity
+
+Parity can be used instead of Geth. Two environment variables must be set:
+* `ETH_NODE=parity` - to tell watcher and or child-chain to use parity.
+* `SIGNER_PASSPHRASE=your-passphrase` - for the child chain server, to [unlock](https://github.com/paritytech/parity-ethereum/issues/1215#issuecomment-224317361) the account.
 
 #### Prepare and configure the root chain contract
 
