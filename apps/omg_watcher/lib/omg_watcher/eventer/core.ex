@@ -26,6 +26,7 @@ defmodule OMG.Watcher.Eventer.Core do
 
   @transfer_topic "transfer"
   @exit_topic "exit"
+  @zero_address OMG.Eth.zero_address()
 
   @spec pair_events_with_topics(any() | Event.t()) :: list({String.t(), String.t(), Event.t()})
   def pair_events_with_topics(event_triggers) do
@@ -70,7 +71,7 @@ defmodule OMG.Watcher.Eventer.Core do
          } = event_trigger
        ) do
     spenders
-    |> Enum.filter(&Transaction.account_address?/1)
+    |> Enum.filter(&account_address?/1)
     |> Enum.map(&create_address_spent_event(event_trigger, &1))
     |> Enum.uniq()
   end
@@ -90,10 +91,14 @@ defmodule OMG.Watcher.Eventer.Core do
     raw_tx
     |> Transaction.get_outputs()
     |> Enum.map(fn %{owner: owner} -> owner end)
-    |> Enum.filter(&Transaction.account_address?/1)
+    |> Enum.filter(&account_address?/1)
     |> Enum.map(&create_address_received_event(event_trigger, &1))
     |> Enum.uniq()
   end
+
+  defp account_address?(@zero_address), do: false
+  defp account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
+  defp account_address?(_), do: false
 
   defp create_address_received_event(event_trigger, address) do
     subtopic = create_transfer_subtopic(address)

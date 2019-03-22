@@ -121,10 +121,6 @@ defmodule OMG.State.Transaction do
     %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
-  def account_address?(@zero_address), do: false
-  def account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
-  def account_address?(_), do: false
-
   def reconstruct([inputs_rlp, outputs_rlp | rest_rlp])
       when rest_rlp == [] or length(rest_rlp) == 1 do
     with {:ok, inputs} <- reconstruct_inputs(inputs_rlp),
