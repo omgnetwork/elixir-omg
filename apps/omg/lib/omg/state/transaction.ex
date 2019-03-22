@@ -97,7 +97,10 @@ defmodule OMG.State.Transaction do
           list({Crypto.address_t(), currency(), pos_integer}),
           metadata()
         ) :: t()
-  def new(inputs, outputs, metadata \\ @default_metadata) when is_metadata(metadata) do
+  def new(inputs, outputs, metadata \\ @default_metadata)
+
+  def new(inputs, outputs, metadata)
+      when is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
     inputs =
       inputs
       |> Enum.map(fn {blknum, txindex, oindex} -> %{blknum: blknum, txindex: txindex, oindex: oindex} end)
