@@ -7,7 +7,7 @@ use Mix.Config
 # watchers to your application. For example, we use it
 # with webpack to recompile .js and .css sources.
 config :omg_rpc, OMG.RPC.Web.Endpoint,
-  http: [port: 9656],
+  http: [port: {:system, "PORT", 9656, {String, :to_integer}}],
   url: [host: "localhost", port: 9656],
   debug_errors: true,
   check_origin: false,
