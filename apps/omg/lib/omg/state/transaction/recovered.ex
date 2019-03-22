@@ -109,8 +109,9 @@ defmodule OMG.State.Transaction.Recovered do
     |> Enum.find(:ok, &(&1 != :ok))
   end
 
-  defp input_signature_valid({Utxo.position(0, _, _), @empty_signature}), do: :ok
-  defp input_signature_valid({Utxo.position(0, _, _), _}), do: {:error, :signature_corrupt}
-  defp input_signature_valid({_, @empty_signature}), do: {:error, :missing_signature}
-  defp input_signature_valid({_, _}), do: :ok
+  defp input_signature_valid({utxo_pos, @empty_signature}),
+    do: if(Utxo.Position.non_zero?(utxo_pos), do: {:error, :missing_signature}, else: :ok)
+
+  defp input_signature_valid({utxo_pos, _}),
+    do: if(Utxo.Position.non_zero?(utxo_pos), do: :ok, else: {:error, :superfluous_signature})
 end

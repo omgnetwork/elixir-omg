@@ -97,12 +97,22 @@ defmodule OMG.State.Transaction.RecoveredTest do
   end
 
   @tag fixtures: [:alice]
-  test "transactions with corrupt signatures don't do harm - one signature", %{alice: alice} do
+  test "transactions with superfluous signatures don't do harm", %{alice: alice} do
     full_signed_tx = TestHelper.create_signed([{1, 2, 3, alice}], eth(), [{alice, 7}])
     %Transaction.Signed{sigs: [sig1 | _]} = full_signed_tx
 
+    assert {:error, :superfluous_signature} ==
+             %Transaction.Signed{full_signed_tx | sigs: [sig1, sig1]}
+             |> Transaction.Signed.encode()
+             |> Transaction.Recovered.recover_from()
+  end
+
+  @tag fixtures: [:alice]
+  test "transactions with corrupt signatures don't do harm - one signature", %{alice: alice} do
+    full_signed_tx = TestHelper.create_signed([{1, 2, 3, alice}], eth(), [{alice, 7}])
+
     assert {:error, :signature_corrupt} ==
-             %Transaction.Signed{full_signed_tx | sigs: [<<1::size(520)>>, sig1]}
+             %Transaction.Signed{full_signed_tx | sigs: [<<1::size(520)>>]}
              |> Transaction.Signed.encode()
              |> Transaction.Recovered.recover_from()
   end
