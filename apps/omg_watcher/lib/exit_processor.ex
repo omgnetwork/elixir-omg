@@ -31,7 +31,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Watcher.ExitProcessor
-  alias ExitProcessor.{Challenge, Core, ExitInfo, InFlightExitInfo}
+  alias ExitProcessor.{Challenge, Core, InFlightExitInfo}
   alias OMG.Watcher.Recorder
 
   use OMG.API.LoggerExt
@@ -361,9 +361,9 @@ defmodule OMG.Watcher.ExitProcessor do
 
   def handle_call({:create_challenge, Utxo.position(blknum, _txindex, oindex) = exiting_utxo_pos}, _from, state) do
     with spending_blknum_response <- exiting_utxo_pos |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum(),
-         {:ok, {block_hash, _block_timestamp}} <- Eth.RootChain.get_child_chain(blknum),
-         {:ok, [block]} <- OMG.DB.blocks([block_hash]),
-         {:ok, raw_spending_proof, %ExitInfo{exit_txhash: exit_txhash} = exit_info} <-
+         {:ok, hashes} <- OMG.DB.block_hashes([blknum]),
+         {:ok, [block]} <- OMG.DB.blocks(hashes),
+         {:ok, raw_spending_proof, exit_info, exit_txhash} <-
            Core.get_challenge_data(spending_blknum_response, exiting_utxo_pos, block, state),
          {:ok, exit_id} <- OMG.Eth.RootChain.get_standard_exit_id(exit_txhash, oindex) do
       # TODO: we're violating the shell/core pattern here, refactor!

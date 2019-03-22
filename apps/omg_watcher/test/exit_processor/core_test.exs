@@ -2175,8 +2175,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   test "not spent or not existed utxo should be not challengeable", %{processor_filled: processor, alice: alice} do
     {block, exit_txhash} = get_block_exit_txhash(@utxo_pos1, alice)
 
-    assert {:ok, 1000, %ExitInfo{exit_txhash: ^exit_txhash}} =
-             Core.get_challenge_data({:ok, 1000}, @utxo_pos1, block, processor)
+    assert {:ok, 1000, %ExitInfo{}, ^exit_txhash} = Core.get_challenge_data({:ok, 1000}, @utxo_pos1, block, processor)
 
     {block2, _exit_txhash} = get_block_exit_txhash(@utxo_pos2, alice)
     assert {:error, :utxo_not_spent} = Core.get_challenge_data({:ok, :not_found}, @utxo_pos2, block2, processor)
@@ -2200,7 +2199,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     {processor, _} = Core.new_exits(processor, [event], [status])
     {block, exit_txhash} = get_block_exit_txhash(@utxo_pos3, alice)
 
-    assert {:ok, %Transaction.Signed{raw_tx: ^ife_tx}, %ExitInfo{owner: ^alice_addr, exit_txhash: ^exit_txhash}} =
+    assert {:ok, %Transaction.Signed{raw_tx: ^ife_tx}, %ExitInfo{owner: ^alice_addr}, ^exit_txhash} =
              Core.get_challenge_data({:ok, :not_found}, @utxo_pos3, block, processor)
   end
 
@@ -2222,7 +2221,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     contract_exit_statuses = [{alice.addr, @eth, 10, Utxo.Position.encode(Utxo.position(1, 0, 0))}]
     {processor, _} = Core.new_exits(empty, exit_events, contract_exit_statuses)
 
-    assert {:ok, 1, %ExitInfo{exit_txhash: ^exit_txhash}} =
+    assert {:ok, 1, %ExitInfo{}, ^exit_txhash} =
              Core.get_challenge_data({:ok, 1}, Utxo.position(1, 0, 0), :not_found, processor)
   end
 
