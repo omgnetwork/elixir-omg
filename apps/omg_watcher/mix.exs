@@ -31,7 +31,7 @@ defmodule OMG.Watcher.Mixfile do
         convenience_api_mode: false
       ],
       mod: {OMG.Watcher.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :sasl]
     ]
   end
 
