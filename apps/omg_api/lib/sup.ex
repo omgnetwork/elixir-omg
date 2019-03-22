@@ -25,6 +25,7 @@ defmodule OMG.API.Sup do
 
   def init(:ok) do
     DeferredConfig.populate(:omg_api)
+    DeferredConfig.populate(:omg_eth)
 
     monitor_children = [
       {OMG.API.BlockQueue.Server, []},
