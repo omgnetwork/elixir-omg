@@ -41,7 +41,7 @@ defmodule OMG.Watcher.Web.Validator.Order do
   end
 
   defp parse_payments(raw_payments) do
-    alias OMG.API.State.Transaction
+    alias OMG.State.Transaction
     require Transaction
 
     payments =

@@ -14,11 +14,11 @@
 
 defmodule OMG.Watcher.Supervisor do
   @moduledoc """
-  Supervises the remainder (i.e. all except the `Watcher.BlockGetter` + `OMG.API.State` pair, supervised elsewhere)
+  Supervises the remainder (i.e. all except the `Watcher.BlockGetter` + `OMG.State` pair, supervised elsewhere)
   of the Watcher app
   """
   use Supervisor
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   alias OMG.Watcher
 

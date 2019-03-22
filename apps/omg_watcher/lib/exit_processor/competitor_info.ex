@@ -19,8 +19,8 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
   Internal stuff of `OMG.Watcher.ExitProcessor`
   """
 
-  alias OMG.API.Crypto
-  alias OMG.API.State.Transaction
+  alias OMG.Crypto
+  alias OMG.State.Transaction
 
   # mapped by tx_hash
   defstruct [

@@ -18,8 +18,8 @@ defmodule OMG.Watcher.DB.EthEvent do
   """
   use Ecto.Schema
 
-  alias OMG.API.Crypto
-  alias OMG.API.Utxo
+  alias OMG.Crypto
+  alias OMG.Utxo
   alias OMG.Watcher.DB
 
   require Utxo
@@ -41,12 +41,12 @@ defmodule OMG.Watcher.DB.EthEvent do
   @doc """
   Inserts deposits based on a list of event maps (if not already inserted before)
   """
-  @spec insert_deposits!([OMG.API.State.Core.deposit()]) :: :ok
+  @spec insert_deposits!([OMG.State.Core.deposit()]) :: :ok
   def insert_deposits!(deposits) do
     deposits |> Enum.each(&insert_deposit!/1)
   end
 
-  @spec insert_deposit!(OMG.API.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
+  @spec insert_deposit!(OMG.State.Core.deposit()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   defp insert_deposit!(%{blknum: blknum, owner: owner, currency: currency, amount: amount}) do
     {:ok, _} =
       if existing_deposit = get(deposit_key(blknum)) != nil,
@@ -106,7 +106,7 @@ defmodule OMG.Watcher.DB.EthEvent do
   Switching to composite key requires careful consideration of data types and schema change,
   so for now, we'd go with artificial key
   """
-  @spec generate_unique_key(Utxo.Position.t(), :deposit | :exit) :: OMG.API.Crypto.hash_t()
+  @spec generate_unique_key(Utxo.Position.t(), :deposit | :exit) :: OMG.Crypto.hash_t()
   def generate_unique_key(position, type) do
     "<#{position |> Utxo.Position.encode()}:#{type}>" |> Crypto.hash()
   end

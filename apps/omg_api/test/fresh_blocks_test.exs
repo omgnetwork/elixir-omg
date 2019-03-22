@@ -15,8 +15,8 @@
 defmodule OMG.API.FreshBlocksTest do
   use ExUnit.Case, async: true
 
-  alias OMG.API.Block
   alias OMG.API.FreshBlocks.Core, as: FreshBlocks
+  alias OMG.Block
 
   def generate_blocks(range) do
     Enum.map(range, &%Block{hash: &1})

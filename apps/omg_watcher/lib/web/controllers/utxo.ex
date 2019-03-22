@@ -20,7 +20,7 @@ defmodule OMG.Watcher.Web.Controller.Utxo do
 
   use OMG.Watcher.Web, :controller
 
-  alias OMG.API.Utxo.Position
+  alias OMG.Utxo.Position
   alias OMG.Watcher.API
 
   def get_utxo_exit(conn, params) do

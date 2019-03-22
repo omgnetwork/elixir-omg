@@ -15,15 +15,14 @@
 defmodule OMG.Watcher.Integration.StandardExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Fixtures
+  use OMG.Fixtures
   use OMG.API.Integration.Fixtures
   use Plug.Test
   use Phoenix.ChannelTest
 
-  alias OMG.API
-  alias OMG.API.Crypto
-  alias OMG.API.Utxo
+  alias OMG.Crypto
   alias OMG.Eth
+  alias OMG.Utxo
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
@@ -54,7 +53,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
       )
 
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
-    tx = API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
+    tx = OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 10}])
     %{"blknum" => tx_blknum} = TestHelper.submit(tx)
 
     IntegrationTest.wait_for_block_fetch(tx_blknum, @timeout)

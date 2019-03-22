@@ -15,10 +15,9 @@
 defmodule OMG.Watcher.DB.TxOutputTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Fixtures
+  use OMG.Fixtures
 
-  alias OMG.API
-  alias OMG.API.Utxo
+  alias OMG.Utxo
   alias OMG.Watcher.DB
 
   require Utxo
@@ -56,9 +55,7 @@ defmodule OMG.Watcher.DB.TxOutputTest do
     big_amount = power_of_2.(260)
 
     DB.Transaction.update_with(%{
-      transactions: [
-        API.TestHelper.create_recovered([], @eth, [{alice, big_amount}])
-      ],
+      transactions: [OMG.TestHelper.create_recovered([], @eth, [{alice, big_amount}])],
       blknum: 11_000,
       blkhash: <<?#::256>>,
       timestamp: :os.system_time(:second),

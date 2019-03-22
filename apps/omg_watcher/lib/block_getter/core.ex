@@ -15,14 +15,13 @@
 defmodule OMG.Watcher.BlockGetter.Core do
   @moduledoc false
 
-  alias OMG.API
-  alias OMG.API.Block
-  alias OMG.API.State.Transaction
+  alias OMG.Block
+  alias OMG.State.Transaction
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
 
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   defmodule PotentialWithholdingReport do
     @moduledoc """
@@ -102,7 +101,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
           :incorrect_hash
           | :bad_returned_hash
           | :withholding
-          | API.Core.recover_tx_error()
+          | Transaction.Recovered.recover_tx_error()
 
   @type init_error() :: :not_at_block_beginning
 
@@ -235,7 +234,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     do_get_blocks_to_apply(state, filtered_submissions, coordinator_height)
   end
 
-  # height served as syncable from the `OMG.API.RootChainCoordinator` is older, nothing we can do about it, so noop
+  # height served as syncable from the `OMG.RootChainCoordinator` is older, nothing we can do about it, so noop
   defp do_get_blocks_to_apply(
          %__MODULE__{synced_height: synced_height} = state,
          _block_submitted_events,
@@ -533,7 +532,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
     transactions
     |> Enum.reverse()
     |> Enum.reduce_while({:ok, []}, fn tx, {:ok, recovered_so_far} ->
-      case API.Core.recover_tx(tx) do
+      case Transaction.Recovered.recover_from(tx) do
         {:ok, recovered} -> {:cont, {:ok, [recovered | recovered_so_far]}}
         other -> {:halt, other}
       end
@@ -541,7 +540,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   end
 
   @spec validate_executions(
-          list({Transaction.Recovered.tx_hash_t(), pos_integer, pos_integer}),
+          list({Transaction.tx_hash(), pos_integer, pos_integer}),
           map,
           t()
         ) :: {:ok, t()} | {{:error, {:tx_execution, any()}}, t()}

@@ -15,11 +15,10 @@
 defmodule OMG.Watcher.BlockGetter.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
-  use OMG.API.Fixtures
+  use OMG.Fixtures
   use Plug.Test
 
-  alias OMG.API
-  alias OMG.API.Block
+  alias OMG.Block
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.Event
@@ -101,7 +100,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     state_alice_deposit: state_alice_deposit
   } do
     block =
-      [API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])]
+      [OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])]
       |> Block.hashed_txs_at(26_000)
 
     state = process_single_block(block)
@@ -116,8 +115,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
             ], _, _,
             _} = Core.get_blocks_to_apply(state, [%{blknum: block.number, eth_height: synced_height}], synced_height)
 
-    # check feasibility of transactions from block to consume at the API.State
-    assert {:ok, tx_result, _} = API.State.Core.exec(state_alice_deposit, tx, :ignore)
+    # check feasibility of transactions from block to consume at the OMG.State
+    assert {:ok, tx_result, _} = OMG.State.Core.exec(state_alice_deposit, tx, :ignore)
 
     assert {:ok, ^state} = Core.validate_executions([{:ok, tx_result}], block, state)
 
@@ -130,8 +129,8 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
 
     block =
       [
-        API.TestHelper.create_recovered([{1, 0, 0, alice}], other_currency, [{bob, 7}, {alice, 3}]),
-        API.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
+        OMG.TestHelper.create_recovered([{1, 0, 0, alice}], other_currency, [{bob, 7}, {alice, 3}]),
+        OMG.TestHelper.create_recovered([{2, 0, 0, alice}], @eth, [{bob, 7}, {alice, 3}])
       ]
       |> Block.hashed_txs_at(26_000)
 
@@ -163,7 +162,7 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     state = init_state()
 
     block = %Block{
-      Block.hashed_txs_at([API.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}])], 1)
+      Block.hashed_txs_at([OMG.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}])], 1)
       | hash: matching_bad_returned_hash
     }
 
@@ -177,20 +176,19 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
   end
 
   @tag fixtures: [:alice]
-  test "check error returned by decode_block, one of API.Core.recover_tx checks", %{alice: alice} do
-    # NOTE: this test only test if API.Core.recover_tx-specific checks are run and errors returned
+  test "check error returned by decoding, one of Transaction.Recovered.recover_from checks", %{alice: alice} do
+    # NOTE: this test only test if Transaction.Recovered.recover_from-specific checks are run and errors returned
     #       the more extensive testing of such checks is done in API.CoreTest where it belongs
 
     %Block{hash: hash} =
       block =
-      [
-        API.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}]),
-        API.TestHelper.create_recovered([], @eth, [{alice, 100}])
-      ]
+      [OMG.TestHelper.create_recovered([{1_000, 20, 0, alice}], @eth, [{alice, 100}])]
       |> Block.hashed_txs_at(1)
 
-    # a particular API.Core.recover_tx_error instance
-    assert {:error, {:no_inputs, hash, 1}} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
+    block = %{block | transactions: block.transactions ++ [<<34>>]}
+
+    # a particular Transaction.Recovered.recover_from error instance
+    assert {:error, {:malformed_transaction, hash, 1}} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
   end
 
   test "check error returned by decode_block, hash mismatch checks" do
@@ -198,12 +196,6 @@ defmodule OMG.Watcher.BlockGetter.CoreTest do
     block = Block.hashed_txs_at([], 1)
 
     assert {:error, {:bad_returned_hash, hash, 1}} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
-  end
-
-  test "check error returned by decode_block, API.Core.recover_tx checks" do
-    %Block{hash: hash} = block = Block.hashed_txs_at([API.TestHelper.create_recovered([], @eth, [])], 1)
-
-    assert {:error, {:no_inputs, hash, 1}} == Core.validate_download_response({:ok, block}, hash, 1, 0, 0)
   end
 
   test "the blknum is checked against the requested one" do

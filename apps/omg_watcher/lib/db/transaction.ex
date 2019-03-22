@@ -17,10 +17,10 @@ defmodule OMG.Watcher.DB.Transaction do
   Ecto Schema representing a transaction
   """
   use Ecto.Schema
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.State.Transaction
+  alias OMG.Utxo
   alias OMG.Watcher.DB
 
   require Utxo
@@ -28,7 +28,7 @@ defmodule OMG.Watcher.DB.Transaction do
   import Ecto.Query, only: [from: 2, where: 2]
 
   @type mined_block() :: %{
-          transactions: [OMG.API.State.Transaction.Recovered.t()],
+          transactions: [OMG.State.Transaction.Recovered.t()],
           blknum: pos_integer(),
           blkhash: <<_::256>>,
           timestamp: pos_integer(),

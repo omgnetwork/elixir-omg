@@ -15,11 +15,10 @@
 defmodule OMG.Watcher.Web.Controller.AccountTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Fixtures
+  use OMG.Fixtures
 
-  alias OMG.API
-  alias OMG.API.Crypto
-  alias OMG.API.TestHelper
+  alias OMG.Crypto
+  alias OMG.TestHelper
   alias OMG.Watcher.TestHelper
 
   @eth_hex <<0::160>> |> OMG.RPC.Web.Encoding.to_hex()
@@ -36,10 +35,7 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
 
     # adds other token funds for alice to make more interesting
     blocks_inserter.([
-      {11_000,
-       [
-         API.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])
-       ]}
+      {11_000, [OMG.TestHelper.create_recovered([], @other_token, [{alice, 121}, {alice, 256}])]}
     ])
 
     data = TestHelper.success?("account.get_balance", body_for(alice))

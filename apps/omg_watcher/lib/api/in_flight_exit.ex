@@ -17,8 +17,8 @@ defmodule OMG.Watcher.API.InFlightExit do
   Module provides API for transactions
   """
 
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.State.Transaction
+  alias OMG.Utxo
   alias OMG.Watcher.DB
   alias OMG.Watcher.ExitProcessor
 

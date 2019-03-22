@@ -16,7 +16,7 @@ defmodule OMG.Watcher.CoordinatorSetup do
   @moduledoc false
   def coordinator_setup do
     # Define workers and child supervisors to be supervised
-    deposit_finality_margin = Application.fetch_env!(:omg_api, :deposit_finality_margin)
+    deposit_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin)
     finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
 
     %{

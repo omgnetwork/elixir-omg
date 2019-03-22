@@ -22,9 +22,9 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   use ExUnitFixtures
   use OMG.DB.Case, async: true
 
-  alias OMG.API.DevCrypto
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.DevCrypto
+  alias OMG.State.Transaction
+  alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor.Core
 
   require Utxo

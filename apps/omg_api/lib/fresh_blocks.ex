@@ -17,10 +17,10 @@ defmodule OMG.API.FreshBlocks do
   Allows for quick access to a fresh subset of blocks by keeping them in memory, independent of `OMG.DB`.
   """
 
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
-  alias OMG.API.Block
   alias OMG.API.FreshBlocks.Core
+  alias OMG.Block
   alias OMG.DB
 
   ##### Client

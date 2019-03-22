@@ -14,7 +14,7 @@
 
 defmodule OMG.Watcher.Web.View.ErrorView do
   use OMG.Watcher.Web, :view
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   alias OMG.RPC.Web.Error
 

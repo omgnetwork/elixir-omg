@@ -15,7 +15,7 @@
 defmodule OMG.Watcher.DB.BlockTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Fixtures
+  use OMG.Fixtures
 
   alias OMG.Watcher.DB
 

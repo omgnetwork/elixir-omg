@@ -19,10 +19,10 @@ defmodule OMG.API.FeeServer do
   Provides function to validate transaction's fee.
   """
 
-  alias OMG.API.Fees
+  alias OMG.Fees
 
   use GenServer
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   @file_changed_check_interval_ms 10_000
 

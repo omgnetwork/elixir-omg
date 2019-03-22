@@ -17,7 +17,7 @@ defmodule OMG.Performance.Runner do
   Orchestration and running tests
   """
 
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   @doc """
   Runs below :run function with :fprof profiler. Profiler analysis is written to the temp file.

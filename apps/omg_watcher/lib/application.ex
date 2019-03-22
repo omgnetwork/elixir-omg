@@ -16,7 +16,7 @@ defmodule OMG.Watcher.Application do
   @moduledoc false
   alias OMG.Watcher.Alert.AlarmHandler
   use Application
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   def start(_type, _args) do
     DeferredConfig.populate(:omg_eth)
