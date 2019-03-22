@@ -14,7 +14,9 @@
 
 defmodule OMG.State.Transaction.Signed do
   @moduledoc """
-  Representation of a signed transaction
+  Representation of a signed transaction.
+
+  NOTE: before you use this, make sure you shouldn't use `Transaction` or `Transaction.Recovered`
   """
 
   alias OMG.Crypto

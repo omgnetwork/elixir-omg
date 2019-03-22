@@ -214,6 +214,10 @@ defmodule OMG.State.Transaction do
   @doc """
   Returns all inputs
   """
+  @spec get_inputs(t() | __MODULE__.Signed.t() | __MODULE__.Recovered.t()) :: list(input())
+  def get_inputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_inputs(signed_tx)
+  def get_inputs(%__MODULE__.Signed{raw_tx: raw_tx}), do: get_inputs(raw_tx)
+
   def get_inputs(%__MODULE__{inputs: inputs}) do
     inputs
     |> Enum.reject(&match?(%{blknum: 0, txindex: 0, oindex: 0}, &1))
@@ -223,11 +227,15 @@ defmodule OMG.State.Transaction do
   @doc """
   Returns all outputs
   """
+  @spec get_outputs(t() | __MODULE__.Signed.t() | __MODULE__.Recovered.t()) :: list(output())
+  def get_outputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_outputs(signed_tx)
+  def get_outputs(%__MODULE__.Signed{raw_tx: raw_tx}), do: get_outputs(raw_tx)
+
   @spec get_outputs(t()) :: list(output())
-  def get_outputs(%__MODULE__{outputs: outputs}),
-    do:
-      outputs
-      |> Enum.reject(&match?(%{owner: @zero_address, currency: @zero_address, amount: 0}, &1))
+  def get_outputs(%__MODULE__{outputs: outputs}) do
+    outputs
+    |> Enum.reject(&match?(%{owner: @zero_address, currency: @zero_address, amount: 0}, &1))
+  end
 
   defp inputs_without_gaps(inputs),
     do: check_for_gaps(inputs, %{blknum: 0, txindex: 0, oindex: 0}, {:error, :inputs_contain_gaps})

@@ -444,8 +444,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       ifes
       |> Map.values()
       |> Enum.filter(&(InFlightExitInfo.piggybacked_outputs(&1) != []))
-      |> Enum.map(&Transaction.get_inputs(&1.tx.raw_tx))
-      |> List.flatten()
+      |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
       |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
       |> :lists.usort()
 
@@ -472,7 +471,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     ife_inputs_pos =
       ifes
-      |> Enum.flat_map(fn {_, ife} -> InFlightExitInfo.get_exiting_utxo_positions(ife) end)
+      |> Enum.flat_map(fn {_, ife} -> Transaction.get_inputs(ife.tx) end)
 
     ife_outputs_pos =
       ifes
@@ -504,7 +503,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       ifes
       |> Map.values()
       |> Enum.filter(& &1.is_active)
-      |> Enum.flat_map(fn %{tx: %Transaction.Signed{raw_tx: tx}} = ife ->
+      |> Enum.flat_map(fn %{tx: tx} = ife ->
         InFlightExitInfo.get_piggybacked_outputs_positions(ife) ++ Transaction.get_inputs(tx)
       end)
       |> only_utxos_checked_and_missing(utxo_exists?)
@@ -531,7 +530,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       ifes
       |> Map.values()
       |> Enum.filter(& &1.is_active)
-      |> Enum.flat_map(fn %{tx: %Transaction.Signed{raw_tx: tx}} -> Transaction.get_inputs(tx) end)
+      |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
       |> only_utxos_checked_and_missing(utxo_exists?)
       |> :lists.usort()
 
@@ -771,7 +770,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     |> Map.values()
     |> Enum.map(fn %InFlightExitInfo{tx: tx} = ife ->
       inputs =
-        Transaction.get_inputs(tx.raw_tx)
+        tx
+        |> Transaction.get_inputs()
         |> Enum.with_index()
         |> Enum.filter(fn {_input, index} -> InFlightExitInfo.is_input_piggybacked?(ife, index) end)
 
@@ -845,19 +845,17 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @spec get_ife_based_on_utxo(Utxo.Position.t(), t()) :: KnownTx.t() | nil
   defp get_ife_based_on_utxo(Utxo.position(_, _, _) = utxo_exit, %__MODULE__{} = state) do
-    get_known_txs(state)
-    |> Enum.find(fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = tx}} ->
-      Enum.member?(Transaction.get_inputs(tx), utxo_exit)
-    end)
+    state
+    |> get_known_txs()
+    |> Enum.find(fn %KnownTx{signed_tx: tx} -> Enum.member?(Transaction.get_inputs(tx), utxo_exit) end)
   end
 
   @spec get_invalid_exits_based_on_ifes(t()) :: list(%{Utxo.Position.t() => ExitInfo.t()})
   defp get_invalid_exits_based_on_ifes(%__MODULE__{exits: exits} = state) do
     exiting_utxo_positions =
-      get_known_txs(state)
-      |> Enum.flat_map(fn %KnownTx{signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = tx}} ->
-        Transaction.get_inputs(tx)
-      end)
+      state
+      |> get_known_txs()
+      |> Enum.flat_map(fn %KnownTx{signed_tx: tx} -> Transaction.get_inputs(tx) end)
 
     exits
     |> Enum.filter(fn {utxo_pos, _exit_info} ->
@@ -1064,10 +1062,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
          %Transaction.Signed{raw_tx: raw_ife_tx} = signed_ife_tx,
          blocks
        ) do
-    ife_inputs = Transaction.get_inputs(raw_ife_tx)
+    ife_inputs = Transaction.get_inputs(signed_ife_tx)
 
     %Transaction.Signed{raw_tx: raw_known_tx} = known_signed_tx
-    known_spent_inputs = Transaction.get_inputs(raw_known_tx)
+    known_spent_inputs = Transaction.get_inputs(known_signed_tx)
     {:ok, input_owners} = Transaction.Signed.get_spenders(signed_ife_tx)
 
     # get info about the double spent input and it's respective indices in transactions
@@ -1173,13 +1171,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     inputs_list
   end
 
-  defp index_inputs(%Transaction{} = raw_tx) do
-    raw_tx
+  defp index_inputs(%Transaction.Signed{} = tx) do
+    tx
     |> Transaction.get_inputs()
     |> Enum.with_index()
   end
 
-  defp index_inputs(%Transaction.Signed{raw_tx: raw_tx}), do: index_inputs(raw_tx)
   defp index_inputs(%KnownTx{signed_tx: signed}), do: index_inputs(signed)
 
   defp get_known_txs(%__MODULE__{} = state) do
@@ -1315,11 +1312,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end)
   end
 
-  defp get_spending_transaction_with_index(%Transaction.Signed{raw_tx: tx} = tx_signed, utxo_pos) do
+  defp get_spending_transaction_with_index(%Transaction.Signed{} = tx, utxo_pos) do
     inputs = Transaction.get_inputs(tx)
 
     if input_index = Enum.find_index(inputs, &(&1 == utxo_pos)) do
-      {tx_signed, input_index}
+      {tx, input_index}
     else
       nil
     end

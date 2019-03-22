@@ -152,7 +152,7 @@ defmodule OMG.Performance.SenderServer do
             "[#{inspect(seqnum)}]: Transaction submitted successfully {#{inspect(blknum)}, #{inspect(txindex)}}"
           )
 
-        [%{amount: amount} | _] = Transaction.get_outputs(tx.raw_tx)
+        [%{amount: amount} | _] = Transaction.get_outputs(tx)
         {:ok, blknum, txindex, amount}
     end
   end

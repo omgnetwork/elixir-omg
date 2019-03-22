@@ -81,11 +81,8 @@ defmodule OMG.State.Transaction.Recovered do
          do: {:ok, %__MODULE__{tx_hash: Transaction.hash(raw_tx), spenders: spenders, signed_tx: signed_tx}}
   end
 
-  defp valid?(%Transaction.Signed{
-         raw_tx: raw_tx,
-         sigs: sigs
-       }) do
-    inputs = Transaction.get_inputs(raw_tx)
+  defp valid?(%Transaction.Signed{sigs: sigs} = tx) do
+    inputs = Transaction.get_inputs(tx)
 
     with :ok <- no_duplicate_inputs?(inputs) do
       all_inputs_signed?(inputs, sigs)

@@ -92,9 +92,9 @@ defmodule OMG.Watcher.API.InFlightExit do
     ExitProcessor.get_output_challenge_data(txbytes, output_index)
   end
 
-  defp find_input_data(%Transaction.Signed{raw_tx: raw_tx}) do
+  defp find_input_data(tx) do
     result =
-      raw_tx
+      tx
       |> Transaction.get_inputs()
       |> Enum.map(fn
         Utxo.position(0, 0, 0) ->

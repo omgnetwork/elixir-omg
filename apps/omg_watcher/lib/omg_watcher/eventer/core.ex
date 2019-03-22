@@ -81,14 +81,8 @@ defmodule OMG.Watcher.Eventer.Core do
     {subtopic, "address_spent", struct(Event.AddressSpent, event_trigger)}
   end
 
-  defp get_address_received_events(
-         %{
-           tx: %Transaction.Recovered{
-             signed_tx: %Transaction.Signed{raw_tx: raw_tx}
-           }
-         } = event_trigger
-       ) do
-    raw_tx
+  defp get_address_received_events(%{tx: tx} = event_trigger) do
+    tx
     |> Transaction.get_outputs()
     |> Enum.map(fn %{owner: owner} -> owner end)
     |> Enum.filter(&account_address?/1)

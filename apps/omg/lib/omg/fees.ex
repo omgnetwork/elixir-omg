@@ -85,32 +85,25 @@ defmodule OMG.Fees do
     |> Enum.all?(fn predicate -> predicate.(recovered_tx) end)
   end
 
-  defp has_same_account?(%Transaction.Recovered{
-         signed_tx: %Transaction.Signed{raw_tx: raw_tx},
-         spenders: spenders
-       }) do
-    raw_tx
+  defp has_same_account?(%Transaction.Recovered{spenders: spenders} = tx) do
+    tx
     |> Transaction.get_outputs()
     |> Enum.map(& &1.owner)
     |> Enum.concat(spenders)
     |> single?()
   end
 
-  defp has_single_currency?(%Transaction.Recovered{
-         signed_tx: %Transaction.Signed{raw_tx: raw_tx}
-       }) do
-    raw_tx
+  defp has_single_currency?(tx) do
+    tx
     |> Transaction.get_outputs()
     |> Enum.map(& &1.currency)
     |> single?()
   end
 
-  defp has_less_outputs_than_inputs?(%Transaction.Recovered{
-         signed_tx: %Transaction.Signed{raw_tx: raw_tx}
-       }) do
+  defp has_less_outputs_than_inputs?(tx) do
     has_less_outputs_than_inputs?(
-      Transaction.get_inputs(raw_tx),
-      Transaction.get_outputs(raw_tx)
+      Transaction.get_inputs(tx),
+      Transaction.get_outputs(tx)
     )
   end
 
