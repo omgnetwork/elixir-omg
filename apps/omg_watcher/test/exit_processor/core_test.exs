@@ -1836,7 +1836,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            processor_filled: processor,
            state_alice_deposit: state
          } do
-      other_recovered = OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}])
+      other_recovered = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}])
 
       # first sanity-check as if the utxo was not spent yet
       assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
@@ -2171,19 +2171,21 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            } = Core.create_challenge(%ExitInfo{owner: alice.addr}, tx, Utxo.position(1000, 0, 1), 111)
   end
 
-  @tag fixtures: [:processor_filled]
-  test "not spent or not existed utxo should be not challengeable", %{
-    processor_filled: processor
-  } do
-    assert {:ok, 1000, exit_info} = Core.get_challenge_data({:ok, 1000}, @utxo_pos1, processor)
+  @tag fixtures: [:processor_filled, :alice]
+  test "not spent or not existed utxo should be not challengeable", %{processor_filled: processor, alice: alice} do
+    {block, exit_txhash} = get_block_exit_txhash(@utxo_pos1, alice)
 
-    assert {:error, :utxo_not_spent} = Core.get_challenge_data({:ok, :not_found}, @utxo_pos2, processor)
-    assert {:error, :exit_not_found} = Core.get_challenge_data({:ok, 1000}, @utxo_pos3, processor)
+    assert {:ok, 1000, %ExitInfo{}, ^exit_txhash} = Core.get_challenge_data({:ok, 1000}, @utxo_pos1, block, processor)
+
+    {block2, _exit_txhash} = get_block_exit_txhash(@utxo_pos2, alice)
+    assert {:error, :utxo_not_spent} = Core.get_challenge_data({:ok, :not_found}, @utxo_pos2, block2, processor)
+    {block3, _exit_txhash} = get_block_exit_txhash(@utxo_pos3, alice)
+    assert {:error, :exit_not_found} = Core.get_challenge_data({:ok, 1000}, @utxo_pos3, block3, processor)
   end
 
   @tag fixtures: [:processor_filled, :alice, :transactions]
   test "challenges standard exits challengeable by IFE transactions",
-       %{processor_filled: processor, alice: %{addr: alice_addr}, transactions: [ife_tx | _]} do
+       %{processor_filled: processor, alice: %{addr: alice_addr} = alice, transactions: [ife_tx | _]} do
     txbytes = Transaction.new([], [{alice_addr, @eth, 10}]) |> Transaction.encode()
 
     event = %{
@@ -2195,8 +2197,40 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     status = {alice_addr, @eth, 10, Utxo.Position.encode(@utxo_pos3)}
     {processor, _} = Core.new_exits(processor, [event], [status])
+    {block, exit_txhash} = get_block_exit_txhash(@utxo_pos3, alice)
 
-    assert {:ok, %Transaction.Signed{raw_tx: ^ife_tx}, %ExitInfo{owner: ^alice_addr}} =
-             Core.get_challenge_data({:ok, :not_found}, @utxo_pos3, processor)
+    assert {:ok, %Transaction.Signed{raw_tx: ^ife_tx}, %ExitInfo{owner: ^alice_addr}, ^exit_txhash} =
+             Core.get_challenge_data({:ok, :not_found}, @utxo_pos3, block, processor)
+  end
+
+  @tag fixtures: [:processor_empty, :alice]
+  test "get exit txhash from deposit", %{processor_empty: empty, alice: alice} do
+    tx = Transaction.new([], [{alice.addr, @eth, 10}])
+    txbytes = tx |> Transaction.encode()
+    exit_txhash = tx |> Transaction.hash()
+
+    exit_events = [
+      %{
+        owner: alice.addr,
+        eth_height: 2,
+        exit_id: 1,
+        call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0)), output_tx: txbytes}
+      }
+    ]
+
+    contract_exit_statuses = [{alice.addr, @eth, 10, Utxo.Position.encode(Utxo.position(1, 0, 0))}]
+    {processor, _} = Core.new_exits(empty, exit_events, contract_exit_statuses)
+
+    assert {:ok, 1, %ExitInfo{}, ^exit_txhash} =
+             Core.get_challenge_data({:ok, 1}, Utxo.position(1, 0, 0), :not_found, processor)
+  end
+
+  defp get_block_exit_txhash(Utxo.position(blknum, txindex, oindex), owner) do
+    recoverd_tx_list =
+      Enum.map(0..txindex, fn index ->
+        TestHelper.create_recovered([{0, index + 1, 0, owner}], @eth, List.duplicate({owner, 8}, oindex + 1))
+      end)
+
+    {Block.hashed_txs_at(recoverd_tx_list, blknum), Enum.at(recoverd_tx_list, txindex).tx_hash}
   end
 end
