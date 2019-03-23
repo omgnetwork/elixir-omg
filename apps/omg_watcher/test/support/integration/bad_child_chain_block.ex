@@ -18,7 +18,7 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
     which is returning a bad block for a particular block hash.
   """
 
-  alias OMG.API.Block
+  alias OMG.Block
   alias OMG.RPC.Client
   alias OMG.RPC.Web.Encoding
   alias OMG.Watcher.Integration.TestServer

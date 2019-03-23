@@ -6,10 +6,12 @@ Run a developer's Child chain server, Watcher, and start IEx REPL with code and 
 
 **NOTE** It's advisable to adjust the processing of deposits like so (in your `~/config.exs`):
 ```
-config :omg_api,
+config :omg,
   deposit_finality_margin: 1,
-  exiters_finality_margin: 2,
   ethereum_status_check_interval_ms: 100
+
+config :omg_api,
+  exiters_finality_margin: 2,
 ```
 Otherwise one might experience a long wait before the child chain allows the deposits to be spent (which every invocation of `start_extended_perftest` waits for).
 
@@ -22,10 +24,10 @@ Run `iex -S mix run --no-start --config ~/config.exs` and inside REPL do:
 # we're going to be using the exthereum's client to geth's JSON RPC
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
-alias OMG.{API, Eth}
-alias OMG.API.Crypto
-alias OMG.API.DevCrypto
-alias OMG.API.TestHelper
+alias OMG.Eth
+alias OMG.Crypto
+alias OMG.DevCrypto
+alias OMG.TestHelper
 
 {:ok, contract_addr} = Application.fetch_env!(:omg_eth, :contract_addr) |> Crypto.decode_address()
 

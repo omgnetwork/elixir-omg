@@ -21,17 +21,16 @@ defmodule OMG.API.Integration.HappyPathTest do
   use ExUnit.Case, async: false
   use Plug.Test
 
-  alias OMG.API
-  alias OMG.API.Block
-  alias OMG.API.DevCrypto
-  alias OMG.API.Integration.DepositHelper
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.Block
+  alias OMG.DevCrypto
   alias OMG.Eth
+  alias OMG.Integration.DepositHelper
   alias OMG.RPC.Web.Encoding
   alias OMG.RPC.Web.TestHelper
+  alias OMG.State.Transaction
+  alias OMG.Utxo
 
-  require OMG.API.Utxo
+  require OMG.Utxo
 
   @moduletag :integration
   # bumping the timeout to two minutes for the tests here, as they do a lot of transactions to Ethereum to test
@@ -115,7 +114,7 @@ defmodule OMG.API.Integration.HappyPathTest do
              |> Eth.DevHelpers.transact_sync!()
 
     # check if the utxo is no longer available
-    exiters_finality_margin = Application.fetch_env!(:omg_api, :exiters_finality_margin) + 1
+    exiters_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin) + 1
     {:ok, _} = Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + exiters_finality_margin)
 
     invalid_raw_tx = Transaction.new([{spend_child_block2, 0, 0}], [{alice.addr, @eth, 10}])
@@ -127,7 +126,7 @@ defmodule OMG.API.Integration.HappyPathTest do
   test "check that unspent funds can be exited exited with in-flight exits",
        %{alice: alice, alice_deposits: {deposit_blknum, _}} do
     # create transaction, submit, wait for block publication
-    tx = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
+    tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
     {:ok, %{"blknum" => blknum, "txindex" => txindex}} = tx |> Transaction.Signed.encode() |> submit_transaction()
 
     post_spend_child_block = blknum + @interval
@@ -137,7 +136,7 @@ defmodule OMG.API.Integration.HappyPathTest do
     %Transaction.Signed{
       raw_tx: raw_in_flight_tx,
       sigs: in_flight_tx_sigs
-    } = API.TestHelper.create_signed([{blknum, txindex, 0, alice}, {blknum, txindex, 1, alice}], @eth, [{alice, 10}])
+    } = OMG.TestHelper.create_signed([{blknum, txindex, 0, alice}, {blknum, txindex, 1, alice}], @eth, [{alice, 10}])
 
     proof = Block.inclusion_proof(%Block{transactions: [Transaction.Signed.encode(tx)]}, 0)
 
@@ -151,24 +150,24 @@ defmodule OMG.API.Integration.HappyPathTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    exiters_finality_margin = Application.fetch_env!(:omg_api, :exiters_finality_margin) + 1
+    exiters_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin) + 1
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)
 
     # check that output of 1st transaction was spend by in-flight exit
-    tx_double_spend = API.TestHelper.create_encoded([{blknum, txindex, 0, alice}], @eth, [{alice, 2}, {alice, 3}])
+    tx_double_spend = OMG.TestHelper.create_encoded([{blknum, txindex, 0, alice}], @eth, [{alice, 2}, {alice, 3}])
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(tx_double_spend)
 
     deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, 10)
 
     %Transaction.Signed{raw_tx: raw_tx, sigs: sigs} =
-      tx = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
+      tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
     {:ok, %{"blknum" => blknum}} = submit_transaction(tx |> Transaction.Signed.encode())
 
     in_flight_tx = raw_tx |> Transaction.encode()
 
     # create exit data for tx spending deposit & start in-flight exit
-    deposit_tx = API.TestHelper.create_signed([], @eth, [{alice, 10}])
+    deposit_tx = OMG.TestHelper.create_signed([], @eth, [{alice, 10}])
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.in_flight_exit(
@@ -191,14 +190,14 @@ defmodule OMG.API.Integration.HappyPathTest do
 
     # check that deposit & 1st, piggybacked output are spent, 2nd output is not
     deposit_double_spend =
-      API.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
+      OMG.TestHelper.create_encoded([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(deposit_double_spend)
 
-    first_output_double_spend = API.TestHelper.create_encoded([{blknum, 0, 0, alice}], @eth, [{alice, 7}])
+    first_output_double_spend = OMG.TestHelper.create_encoded([{blknum, 0, 0, alice}], @eth, [{alice, 7}])
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(first_output_double_spend)
 
-    second_output_spend = API.TestHelper.create_encoded([{blknum, 0, 1, alice}], @eth, [{alice, 3}])
+    second_output_spend = OMG.TestHelper.create_encoded([{blknum, 0, 1, alice}], @eth, [{alice, 3}])
     assert {:ok, _} = submit_transaction(second_output_spend)
   end
 

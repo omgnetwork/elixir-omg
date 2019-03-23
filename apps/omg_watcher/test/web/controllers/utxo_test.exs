@@ -15,12 +15,11 @@
 defmodule OMG.Watcher.Web.Controller.UtxoTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Fixtures
+  use OMG.Fixtures
 
-  alias OMG.API
-  alias OMG.API.TestHelper
-  alias OMG.API.Utxo
   alias OMG.RPC.Web.Encoding
+  alias OMG.TestHelper
+  alias OMG.Utxo
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
 
@@ -80,7 +79,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
 
     # bob spends his utxo to carol
     DB.Transaction.update_with(%{
-      transactions: [API.TestHelper.create_recovered([{2000, 0, 0, bob}], @eth, [{bob, 49}, {carol, 50}])],
+      transactions: [OMG.TestHelper.create_recovered([{2000, 0, 0, bob}], @eth, [{bob, 49}, {carol, 50}])],
       blknum: 11_000,
       blkhash: <<?#::256>>,
       timestamp: :os.system_time(:second),
@@ -136,7 +135,7 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
            } = utxos |> Enum.find(&(&1["blknum"] < 1000))
 
     DB.Transaction.update_with(%{
-      transactions: [API.TestHelper.create_recovered([{blknum, 0, 0, bob}], @eth, [{carol, 100}])],
+      transactions: [OMG.TestHelper.create_recovered([{blknum, 0, 0, bob}], @eth, [{carol, 100}])],
       blknum: 11_000,
       blkhash: <<?#::256>>,
       timestamp: :os.system_time(:second),
@@ -211,8 +210,8 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
     blocks_inserter.([
       {blknum,
        [
-         API.TestHelper.create_recovered([], @eth, [{alice, 0}, {alice, 100}]),
-         API.TestHelper.create_recovered([], @eth, [{alice, 101}, {alice, 0}])
+         OMG.TestHelper.create_recovered([], @eth, [{alice, 0}, {alice, 100}]),
+         OMG.TestHelper.create_recovered([], @eth, [{alice, 101}, {alice, 0}])
        ]}
     ])
 

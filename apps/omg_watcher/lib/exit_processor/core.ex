@@ -20,9 +20,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     - MoreVP protocol managing should go here
   """
 
-  alias OMG.API.Block
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.Block
+  alias OMG.State.Transaction
+  alias OMG.Utxo
   require Utxo
   require Transaction
   alias OMG.Watcher.Challenger.Tools
@@ -130,7 +130,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   The list of `exit_contract_statuses` is used to track current (as in wall-clock "now", not syncing "now") status.
   This is to prevent spurious invalid exit events being fired during syncing for exits that were challenged/finalized
-  Still we do want to track these exits when syncing, to have them spend from `OMG.API.State` on their finalization
+  Still we do want to track these exits when syncing, to have them spend from `OMG.State` on their finalization
   """
   @spec new_exits(t(), list(map()), list(map)) :: {t(), list()} | {:error, :unexpected_events}
   def new_exits(state, new_exits, exit_contract_statuses)
@@ -485,7 +485,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @doc """
   Figures out which numbers of "spending transaction blocks" to get for the utxos, based on the existence reported by
-  `OMG.API.State` and possibly other factors, eg. only take the non-existent UTXOs spends (naturally) and ones that
+  `OMG.State` and possibly other factors, eg. only take the non-existent UTXOs spends (naturally) and ones that
   pertain to IFE transaction inputs.
 
   Assumes that UTXOs that haven't been checked (i.e. not a key in `utxo_exists?` map) **exist**
@@ -924,9 +924,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @spec prepare_available_piggyback(InFlightExitInfo.t()) :: list(Event.PiggybackAvailable.t())
   defp prepare_available_piggyback(
-         %InFlightExitInfo{tx: %Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx} = signed_tx} = ife
+         %InFlightExitInfo{
+           tx: %Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx} = signed_tx
+         } = ife
        ) do
-    {:ok, %Transaction.Recovered{spenders: input_owners}} = Transaction.Recovered.recover_from(signed_tx)
+    %Transaction.Recovered{spenders: input_owners} = recover_correct_tx_struct!(signed_tx)
 
     available_inputs =
       input_owners
@@ -1067,7 +1069,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     %Transaction.Signed{raw_tx: raw_known_tx} = known_signed_tx
     known_spent_inputs = Transaction.get_inputs(raw_known_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
-    {:ok, %Transaction.Recovered{spenders: input_owners}} = Transaction.Recovered.recover_from(signed_ife_tx)
+    %Transaction.Recovered{spenders: input_owners} = recover_correct_tx_struct!(signed_ife_tx)
 
     # get info about the double spent input and it's respective indices in transactions
     spent_input = competitor_for(signed_ife_tx, known_signed_tx)
@@ -1190,7 +1192,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp get_known_txs(%Block{transactions: txs, number: blknum}) do
     txs
     |> Enum.map(fn tx_bytes ->
-      %Transaction.Recovered{signed_tx: signed} = recover_correct_tx_from_block(tx_bytes)
+      %Transaction.Recovered{signed_tx: signed} = recover_correct_tx!(tx_bytes)
       signed
     end)
     |> Enum.with_index()
@@ -1203,9 +1205,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp get_known_txs([%Block{} | _] = blocks),
     do: blocks |> Enum.sort_by(fn block -> block.number end) |> Enum.flat_map(&get_known_txs/1)
 
-  defp recover_correct_tx_from_block(tx_bytes) do
-    {:ok, recovered} = OMG.API.Core.recover_tx(tx_bytes)
-    recovered
+  # recovers a transaction which comes from a place where it's known to be correct (block, ife)
+  defp recover_correct_tx!(tx_bytes), do: Transaction.Recovered.recover_from!(tx_bytes)
+
+  defp recover_correct_tx_struct!(%Transaction.Signed{} = signed_tx) do
+    # this is very ugly. Caused by us using a Transaction.Recovered.recover_from function which takes in bytes
+    # TODO: are there better ways without bloating the APIs? Punted till when we refactor ExitProcessor logic
+    signed_tx |> Transaction.Signed.encode() |> recover_correct_tx!()
   end
 
   # based on an enumberable of `Utxo.Position` and a mapping that tells whether one exists it will pick
@@ -1274,13 +1280,29 @@ defmodule OMG.Watcher.ExitProcessor.Core do
    - a block number which can be used to retrieve needed information to challenge or an ife which spends inputs
    - the relevant exit information
   """
-  @spec get_challenge_data(tuple(), Utxo.Position.t(), t()) ::
-          {:ok, pos_integer() | KnownTx.t(), ExitInfo.t()} | {:error, atom()}
-  def get_challenge_data(spending_blknum_response, exiting_utxo_pos, %__MODULE__{exits: exits} = state) do
+  @spec get_challenge_data(tuple(), Utxo.Position.t(), Block.t() | :not_found, t()) ::
+          {:ok, pos_integer() | KnownTx.t(), ExitInfo.t(), Transaction.tx_hash()} | {:error, atom()}
+  def get_challenge_data(spending_blknum_response, exiting_utxo_pos, block, %__MODULE__{exits: exits} = state) do
     with %ExitInfo{} = exit_info <- Map.get(exits, exiting_utxo_pos, {:error, :exit_not_found}),
+         exit_txhash <- get_standard_exit_txhash(exit_info, exiting_utxo_pos, block),
          ife_response = get_ife_based_on_utxo(exiting_utxo_pos, state),
          {:ok, raw_spending_proof} <- ensure_challengeable(spending_blknum_response, ife_response),
-         do: {:ok, raw_spending_proof, exit_info}
+         do: {:ok, raw_spending_proof, exit_info, exit_txhash}
+  end
+
+  # get the hash of a deposit transaction
+  defp get_standard_exit_txhash(
+         %ExitInfo{owner: owner, currency: currency, amount: amount},
+         _exiting_utxo_pos,
+         :not_found
+       ),
+       do: Transaction.new([], [{owner, currency, amount}]) |> Transaction.hash()
+
+  # get the hash of a transaction from a block
+  defp get_standard_exit_txhash(_exit_info, Utxo.position(_blknum, txindex, _oindex), %Block{transactions: transactions}) do
+    with {:ok, bytes_tx} <- Enum.fetch(transactions, txindex),
+         {:ok, %{raw_tx: raw_tx}} <- Transaction.Signed.decode(bytes_tx),
+         do: raw_tx |> Transaction.hash()
   end
 
   defp ensure_challengeable(spending_blknum_response, ife_response)

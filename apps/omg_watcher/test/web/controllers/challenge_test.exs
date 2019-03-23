@@ -15,10 +15,9 @@
 defmodule OMG.Watcher.Web.Controller.ChallengeTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Fixtures
+  use OMG.Fixtures
 
-  alias OMG.API
-  alias OMG.API.Utxo
+  alias OMG.Utxo
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
 
@@ -33,7 +32,7 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
 
     DB.Transaction.update_with(%{
       transactions: [
-        API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 100}])
+        OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 100}])
       ],
       blknum: 1000,
       blkhash: <<?#::256>>,

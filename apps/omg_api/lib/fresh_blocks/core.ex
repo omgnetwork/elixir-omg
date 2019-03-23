@@ -19,7 +19,7 @@ defmodule OMG.API.FreshBlocks.Core do
 
   # NOTE: Pending discussion/solution how we're going to really scale this?
 
-  alias OMG.API.Block
+  alias OMG.Block
 
   defstruct container: %{}, max_size: 100, keys_queue: :queue.new()
 

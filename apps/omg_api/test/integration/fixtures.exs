@@ -14,14 +14,14 @@
 
 defmodule OMG.API.Integration.Fixtures do
   use ExUnitFixtures.FixtureModule
-  use OMG.API.Fixtures
+  use OMG.Fixtures
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
 
-  alias OMG.API.TestHelper
   alias OMG.Eth
+  alias OMG.TestHelper
 
-  import OMG.API.Integration.DepositHelper
+  import OMG.Integration.DepositHelper
 
   deffixture fee_file(token) do
     # ensuring that the child chain handles the token (esp. fee-wise)

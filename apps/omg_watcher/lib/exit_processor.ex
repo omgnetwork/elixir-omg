@@ -16,27 +16,25 @@ defmodule OMG.Watcher.ExitProcessor do
   @moduledoc """
   Encapsulates managing and executing the behaviors related to treating exits by the child chain and watchers
   Keeps a state of exits that are in progress, updates it with news from the root chain, compares to the
-  state of the ledger (`OMG.API.State`), issues notifications as it finds suitable.
+  state of the ledger (`OMG.State`), issues notifications as it finds suitable.
 
   Should manage all kinds of exits allowed in the protocol and handle the interactions between them.
 
   NOTE: Note that all calls return `db_updates` and relay on the caller to do persistence.
   """
 
-  alias OMG.API.EventerAPI
-  alias OMG.API.State
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.EventerAPI
+  alias OMG.State
+  alias OMG.State.Transaction
+  alias OMG.Utxo
 
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.ExitProcessor.Challenge
-  alias OMG.Watcher.ExitProcessor.Core
-  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias ExitProcessor.{Challenge, Core, InFlightExitInfo}
   alias OMG.Watcher.Recorder
 
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
   require Utxo
 
   ### Client
@@ -120,7 +118,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   @doc """
-  Checks validity and causes event emission to `OMG.Watcher.Eventer`. Works with `OMG.API.State` to discern validity
+  Checks validity and causes event emission to `OMG.Watcher.Eventer`. Works with `OMG.State` to discern validity
   """
   def check_validity do
     GenServer.call(__MODULE__, :check_validity)
@@ -293,7 +291,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   @doc """
-  Combine data from `ExitProcessor` and `API.State` to figure out what to do about exits
+  Combine data from `ExitProcessor` and `OMG.State` to figure out what to do about exits
   """
   def handle_call(:check_validity, _from, state) do
     {state1, request} = prepare_validity_check(state)
@@ -361,12 +359,13 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, response, state}
   end
 
-  def handle_call({:create_challenge, Utxo.position(blknum, txindex, oindex) = exiting_utxo_pos}, _from, state) do
+  def handle_call({:create_challenge, Utxo.position(blknum, _txindex, oindex) = exiting_utxo_pos}, _from, state) do
     with spending_blknum_response <- exiting_utxo_pos |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum(),
-         %{txhash: txhash} <- OMG.Watcher.DB.Transaction.get_by_position(blknum, txindex),
-         {:ok, exit_id} <- OMG.Eth.RootChain.get_standard_exit_id(txhash, oindex),
-         {:ok, raw_spending_proof, exit_info} <-
-           Core.get_challenge_data(spending_blknum_response, exiting_utxo_pos, state) do
+         {:ok, hashes} <- OMG.DB.block_hashes([blknum]),
+         {:ok, [block]} <- OMG.DB.blocks(hashes),
+         {:ok, raw_spending_proof, exit_info, exit_txhash} <-
+           Core.get_challenge_data(spending_blknum_response, exiting_utxo_pos, block, state),
+         {:ok, exit_id} <- OMG.Eth.RootChain.get_standard_exit_id(exit_txhash, oindex) do
       # TODO: we're violating the shell/core pattern here, refactor!
       spending_proof =
         case raw_spending_proof do

@@ -17,12 +17,12 @@ defmodule OMG.Watcher.Eventer.Core do
   Functional core of eventer
   """
 
-  alias OMG.API.Crypto
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.Crypto
+  alias OMG.State.Transaction
+  alias OMG.Utxo
   alias OMG.Watcher.Event
 
-  require OMG.API.Utxo
+  require OMG.Utxo
 
   @transfer_topic "transfer"
   @exit_topic "exit"

@@ -13,9 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.Event do
-  alias OMG.API.Block
-  alias OMG.API.Crypto
-  alias OMG.API.State.Transaction
+  alias OMG.Block
+  alias OMG.Crypto
+  alias OMG.State.Transaction
 
   @type byzantine_t ::
           OMG.Watcher.Event.InvalidBlock.t()
