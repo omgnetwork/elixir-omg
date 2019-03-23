@@ -11,21 +11,6 @@ services:
       timeout: 3s
       retries: 5
 
-  childchain_db:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_USER: omisego_dev
-      POSTGRES_PASSWORD: omisego_dev
-      POSTGRES_DB: omisego_dev
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: pg_isready -U omisego_dev
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
   watcher_db:
     image: postgres
     restart: always
