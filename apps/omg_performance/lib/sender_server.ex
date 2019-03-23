@@ -21,12 +21,12 @@ defmodule OMG.Performance.SenderServer do
   @tx_retry_waiting_time_ms 333
 
   use GenServer
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
-  alias OMG.API.DevCrypto
-  alias OMG.API.State.Transaction
-  alias OMG.API.TestHelper
-  alias OMG.API.Utxo
+  alias OMG.DevCrypto
+  alias OMG.State.Transaction
+  alias OMG.TestHelper
+  alias OMG.Utxo
 
   require Utxo
 

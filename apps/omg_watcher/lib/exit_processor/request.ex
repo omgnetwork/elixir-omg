@@ -25,8 +25,8 @@ defmodule OMG.Watcher.ExitProcessor.Request do
         EDIT: the multitude and duplication of the fields here is a clear sign that this design loses.
   """
 
-  alias OMG.API.Block
-  alias OMG.API.Utxo
+  alias OMG.Block
+  alias OMG.Utxo
 
   defstruct [
     :eth_height_now,

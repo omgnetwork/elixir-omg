@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Fixtures do
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
   use OMG.API.Integration.Fixtures
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   alias Ecto.Adapters.SQL
   alias OMG.Watcher
@@ -158,17 +158,17 @@ defmodule OMG.Watcher.Fixtures do
     [
       {1000,
        [
-         OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}]),
-         OMG.API.TestHelper.create_recovered([{1000, 0, 0, bob}], @eth, [{alice, 100}, {bob, 200}])
+         OMG.TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 300}]),
+         OMG.TestHelper.create_recovered([{1000, 0, 0, bob}], @eth, [{alice, 100}, {bob, 200}])
        ]},
       {2000,
        [
-         OMG.API.TestHelper.create_recovered([{1000, 1, 0, alice}], @eth, [{bob, 99}, {alice, 1}], <<1337::256>>)
+         OMG.TestHelper.create_recovered([{1000, 1, 0, alice}], @eth, [{bob, 99}, {alice, 1}], <<1337::256>>)
        ]},
       {3000,
        [
-         OMG.API.TestHelper.create_recovered([], @eth, [{alice, 150}]),
-         OMG.API.TestHelper.create_recovered([{1000, 1, 1, bob}], @eth, [{bob, 150}, {alice, 50}])
+         OMG.TestHelper.create_recovered([], @eth, [{alice, 150}]),
+         OMG.TestHelper.create_recovered([{1000, 1, 1, bob}], @eth, [{bob, 150}, {alice, 50}])
        ]}
     ]
     |> blocks_inserter.()

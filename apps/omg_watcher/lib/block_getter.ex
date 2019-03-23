@@ -20,14 +20,14 @@ defmodule OMG.Watcher.BlockGetter do
 
   Reponsible for processing all block submissions and processing them once, regardless of the reorg situation.
   Note that the former responsibility is quite involved, as `BlockGetter` should have any finality margin configured,
-  i.e. it should be prepared to be served not-yet-confirmed eth heights from the `OMG.API.RootChainCoordinator`
+  i.e. it should be prepared to be served not-yet-confirmed eth heights from the `OMG.RootChainCoordinator`
   """
 
-  alias OMG.API.RootChainCoordinator
-  alias OMG.API.RootChainCoordinator.SyncGuide
-  alias OMG.API.State
   alias OMG.Eth
+  alias OMG.RootChainCoordinator
+  alias OMG.RootChainCoordinator.SyncGuide
   alias OMG.RPC.Client
+  alias OMG.State
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.DB
@@ -35,7 +35,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.Watcher.Recorder
 
   use GenServer
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   def get_events do
     GenServer.call(__MODULE__, :get_events)
@@ -107,7 +107,7 @@ defmodule OMG.Watcher.BlockGetter do
         state
       ) do
     with {:ok, _} <- Core.chain_ok(state),
-         tx_exec_results = for(tx <- transactions, do: OMG.API.State.exec(tx, :ignore)),
+         tx_exec_results = for(tx <- transactions, do: OMG.State.exec(tx, :ignore)),
          {:ok, state} <- Core.validate_executions(tx_exec_results, to_apply, state) do
       _ =
         to_apply
@@ -116,7 +116,7 @@ defmodule OMG.Watcher.BlockGetter do
 
       state = run_block_download_task(state)
 
-      {:ok, db_updates_from_state} = OMG.API.State.close_block(eth_height)
+      {:ok, db_updates_from_state} = OMG.State.close_block(eth_height)
 
       {state, synced_height, db_updates} = Core.apply_block(state, to_apply)
 

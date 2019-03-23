@@ -19,9 +19,8 @@ defmodule OMG.Watcher.ExitProcessor.ExitInfo do
   Internal stuff of `OMG.Watcher.ExitProcessor`
   """
 
-  alias OMG.API.Crypto
-  alias OMG.API.Utxo
-
+  alias OMG.Crypto
+  alias OMG.Utxo
   require Utxo
 
   defstruct [:amount, :currency, :owner, :is_active, :eth_height]

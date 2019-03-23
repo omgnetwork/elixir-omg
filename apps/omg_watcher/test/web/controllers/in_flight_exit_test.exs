@@ -15,11 +15,10 @@
 defmodule OMG.Watcher.Web.Controller.InFlightExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Fixtures
+  use OMG.Fixtures
 
-  alias OMG.API
-  alias OMG.API.State.Transaction
   alias OMG.RPC.Web.Encoding
+  alias OMG.State.Transaction
   alias OMG.Watcher.TestHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -34,7 +33,7 @@ defmodule OMG.Watcher.Web.Controller.InFlightExitTest do
 
         in_flight_txbytes =
           inputs
-          |> API.TestHelper.create_encoded(@eth, [{bob, 100}])
+          |> OMG.TestHelper.create_encoded(@eth, [{bob, 100}])
           |> Encoding.to_hex()
 
         # `2 + ` for prepending `0x` in HEX encoded binaries
@@ -88,7 +87,7 @@ defmodule OMG.Watcher.Web.Controller.InFlightExitTest do
     test "behaves well if input is not found", %{bob: bob} do
       in_flight_txbytes =
         [{3000, 1, 0, bob}]
-        |> API.TestHelper.create_encoded(@eth, [{bob, 150}])
+        |> OMG.TestHelper.create_encoded(@eth, [{bob, 150}])
         |> Encoding.to_hex()
 
       assert %{

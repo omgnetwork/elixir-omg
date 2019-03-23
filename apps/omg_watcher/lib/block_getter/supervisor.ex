@@ -18,7 +18,7 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
    In case one process fails, this supervisor's role is to restore consistent state
   """
   use Supervisor
-  use OMG.API.LoggerExt
+  use OMG.LoggerExt
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -29,7 +29,7 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
     # If Block Getter fails, it starts from the last checkpoint while State might have had executed some transactions
     # such a situation will cause error when trying to execute already executed transaction
     children = [
-      {OMG.API.State, []},
+      {OMG.State, []},
       %{
         id: OMG.Watcher.BlockGetter,
         start: {OMG.Watcher.BlockGetter, :start_link, [[]]},

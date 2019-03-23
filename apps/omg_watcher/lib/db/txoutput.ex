@@ -18,9 +18,9 @@ defmodule OMG.Watcher.DB.TxOutput do
   """
   use Ecto.Schema
 
-  alias OMG.API.Block
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.Block
+  alias OMG.State.Transaction
+  alias OMG.Utxo
   alias OMG.Watcher.DB
   alias OMG.Watcher.DB.Repo
 
@@ -145,7 +145,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     Repo.all(query)
   end
 
-  @spec get_balance(OMG.API.Crypto.address_t()) :: list(balance())
+  @spec get_balance(OMG.Crypto.address_t()) :: list(balance())
   def get_balance(owner) do
     query =
       from(
@@ -217,7 +217,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     end)
   end
 
-  @spec get_sorted_grouped_utxos(OMG.API.Crypto.address_t()) :: %{OMG.API.Crypto.address_t() => list(%__MODULE__{})}
+  @spec get_sorted_grouped_utxos(OMG.Crypto.address_t()) :: %{OMG.Crypto.address_t() => list(%__MODULE__{})}
   def get_sorted_grouped_utxos(owner) do
     # TODO: use clever DB query to get following out of DB
     get_utxos(owner)

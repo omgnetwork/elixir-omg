@@ -15,18 +15,17 @@
 defmodule OMG.Watcher.Integration.InFlightExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Fixtures
+  use OMG.Fixtures
   use OMG.API.Integration.Fixtures
   use Plug.Test
 
-  alias OMG.API
-  alias OMG.API.State.Transaction
   alias OMG.Eth
+  alias OMG.State.Transaction
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
 
-  alias OMG.API.Integration.DepositHelper
+  alias OMG.Integration.DepositHelper
 
   @timeout 40_000
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -45,7 +44,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     bob_deposit = DepositHelper.deposit_to_child_chain(bob.addr, 10)
 
     tx_submit1 =
-      API.TestHelper.create_signed(
+      OMG.TestHelper.create_signed(
         [{alice_deposit, 0, 0, alice}, {bob_deposit, 0, 0, bob}],
         @eth,
         [{alice, 5}, {bob, 15}]
@@ -56,7 +55,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     # Submit tx 2
     TestHelper.submit(
-      API.TestHelper.create_signed([{blknum, 0, 1, bob}], @eth, [{alice, 2}, {alice, 3}])
+      OMG.TestHelper.create_signed([{blknum, 0, 1, bob}], @eth, [{alice, 2}, {alice, 3}])
       |> Transaction.Signed.encode()
     )
 
@@ -93,7 +92,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     assert exitmap != 0
 
     in_flight_tx =
-      API.TestHelper.create_signed([{bob_deposit, 0, 0, bob}], @eth, [{bob, 5}])
+      OMG.TestHelper.create_signed([{bob_deposit, 0, 0, bob}], @eth, [{bob, 5}])
       |> Transaction.Signed.encode()
       |> TestHelper.get_in_flight_exit()
 
@@ -176,8 +175,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     # tx1 is submitted then in-flight-exited
     # tx2 is in-flight-exited
-    tx1 = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
-    tx2 = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 10}])
+    tx1 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {alice, 5}])
+    tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{bob, 10}])
 
     assert %{
              "blknum" => blknum,
@@ -321,7 +320,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
     exit_finality_margin = Application.fetch_env!(:omg_watcher, :exit_finality_margin)
 
     %Transaction.Signed{raw_tx: raw_tx} =
-      tx = API.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
+      tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 5}, {bob, 5}])
 
     get_in_flight_exit_response = tx |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
 

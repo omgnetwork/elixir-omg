@@ -15,7 +15,7 @@
 defmodule OMG.Watcher.Web.Controller.EnforceContentPlugTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Fixtures
+  use OMG.Fixtures
   use Plug.Test
   alias OMG.RPC.Web.Encoding
 

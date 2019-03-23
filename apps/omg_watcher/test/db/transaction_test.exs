@@ -15,11 +15,11 @@
 defmodule OMG.Watcher.DB.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  use OMG.API.Fixtures
+  use OMG.Fixtures
   use Plug.Test
 
-  alias OMG.API.State.Transaction
-  alias OMG.API.Utxo
+  alias OMG.State.Transaction
+  alias OMG.Utxo
   alias OMG.Watcher.DB
 
   require Utxo
@@ -60,7 +60,7 @@ defmodule OMG.Watcher.DB.TransactionTest do
     metadata = <<1::256>>
 
     [
-      {1000, [OMG.API.TestHelper.create_recovered([{1, 0, 0, alice}], eth, [{alice, 300}], metadata)]}
+      {1000, [OMG.TestHelper.create_recovered([{1, 0, 0, alice}], eth, [{alice, 300}], metadata)]}
     ]
     |> blocks_inserter.()
 
