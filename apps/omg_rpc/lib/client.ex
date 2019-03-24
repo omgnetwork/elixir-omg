@@ -21,10 +21,10 @@ defmodule OMG.RPC.Client do
   require Logger
 
   @type response_t() ::
-          {:ok, %{required(atom()) => Jason.Parser.t()}}
+          {:ok, %{required(atom()) => any()}}
           | {:error,
              {:client_error | :server_error, any()}
-             | {:malformed_response, Jason.Parser.t() | {:error, :invalid}}}
+             | {:malformed_response, any() | {:error, :invalid}}}
 
   @doc """
   Gets Block of given hash

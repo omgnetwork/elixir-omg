@@ -20,6 +20,7 @@ defmodule OMG.Crypto do
   For unsafe code, limited to `:test` and `:dev` environments and related to private key handling refer to:
   `OMG.DevCrypto` in `test/support`
   """
+  alias OMG.Signature
 
   @type sig_t() :: <<_::520>>
   @type pub_key_t() :: <<_::512>>
@@ -59,7 +60,7 @@ defmodule OMG.Crypto do
   def recover_public(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
     {v, r, s} = unpack_signature(packed_signature)
 
-    with {:ok, _pub} = result <- OMG.Signature.recover_public(digest, v, r, s) do
+    with {:ok, _pub} = result <- Signature.recover_public(digest, v, r, s) do
       result
     else
       {:error, "Recovery id invalid 0-3"} -> {:error, :signature_corrupt}
