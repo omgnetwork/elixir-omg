@@ -19,6 +19,7 @@ defmodule OMG.DevCrypto do
   """
 
   alias OMG.Crypto
+  alias OMG.Signature
   alias OMG.State.Transaction
 
   @doc """
@@ -32,7 +33,7 @@ defmodule OMG.DevCrypto do
   """
   @spec generate_public_key(Crypto.priv_key_t()) :: {:ok, Crypto.pub_key_t()}
   def generate_public_key(<<priv::binary-size(32)>>) do
-    {:ok, der_pub} = Blockchain.Transaction.Signature.get_public_key(priv)
+    {:ok, der_pub} = get_public_key(priv)
     {:ok, der_to_raw(der_pub)}
   end
 
@@ -57,7 +58,7 @@ defmodule OMG.DevCrypto do
   """
   @spec signature_digest(<<_::256>>, <<_::256>>) :: <<_::520>>
   def signature_digest(digest, priv) when is_binary(digest) and byte_size(digest) == 32 do
-    {v, r, s} = Blockchain.Transaction.Signature.sign_hash(digest, priv)
+    {v, r, s} = Signature.sign_hash(digest, priv)
     pack_signature(v, r, s)
   end
 
@@ -80,4 +81,11 @@ defmodule OMG.DevCrypto do
   end
 
   defp der_to_raw(<<4::integer-size(8), data::binary>>), do: data
+
+  defp get_public_key(private_key) do
+    case :libsecp256k1.ec_pubkey_create(private_key, :uncompressed) do
+      {:ok, public_key} -> {:ok, public_key}
+      {:error, reason} -> {:error, to_string(reason)}
+    end
+  end
 end

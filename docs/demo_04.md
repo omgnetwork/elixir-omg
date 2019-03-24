@@ -48,7 +48,7 @@ tx =
 %{"data" => %{"blknum" => child_tx_block_number, "txindex" => tx_index}} =
   ~c(echo '{"transaction": "#{tx}"}' | http POST #{child_chain_url}/transaction.submit) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 # create an in-flight transaction that uses tx's output as an input
 in_flight_tx_bytes =
@@ -62,7 +62,7 @@ in_flight_tx_bytes =
 %{"data" => get_in_flight_exit_response} =
   ~c(echo '{"txbytes": "#{in_flight_tx_bytes}"}' | http POST #{watcher_url}/in_flight_exit.get_data) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 # call root chain function that initiates in-flight exit
 {:ok, txhash} =

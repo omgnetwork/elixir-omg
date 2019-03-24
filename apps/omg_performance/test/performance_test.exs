@@ -95,7 +95,7 @@ defmodule OMG.PerformanceTest do
   end
 
   defp smoke_test_statistics(path, expected_txs) do
-    assert {:ok, stats} = Poison.decode(File.read!(path))
+    assert {:ok, stats} = Jason.decode(File.read!(path))
 
     txs_count =
       stats

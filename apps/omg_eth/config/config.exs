@@ -7,9 +7,9 @@ config :ethereumex,
   http_options: [recv_timeout: ethereum_client_timeout_ms]
 
 config :omg_eth,
-  contract_addr: nil,
-  authority_addr: nil,
-  txhash_contract: nil,
+  contract_addr: "0xf632cfa9d5a70277f8761804d3b5e35843cd893d",
+  authority_addr: "0x65f73a2ca5ec8d292e44cb41d7defbb358ebc79a",
+  txhash_contract: "0xa7d0be764ce771de0133f99cda38b53ebf8255f7235d341a1c20776ddae4b920",
   # "geth" | "parity"
   eth_node: {:system, "ETH_NODE", "geth"},
   node_logging_in_debug: true,

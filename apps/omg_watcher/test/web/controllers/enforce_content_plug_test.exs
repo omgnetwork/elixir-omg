@@ -37,6 +37,6 @@ defmodule OMG.Watcher.Web.Controller.EnforceContentPlugTest do
              },
              "success" => false,
              "version" => "1.0"
-           } == Poison.decode!(response.resp_body)
+           } == Jason.decode!(response.resp_body)
   end
 end

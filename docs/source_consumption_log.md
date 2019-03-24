@@ -31,7 +31,7 @@ eleveldb 2.2.20         -> Apache 2.0
 erlexec 1.7.5           -> BSD
 ethereumex 0.3.2        -> MIT
 evm 0.1.14              -> MIT
-ex_rlp 0.2.1            -> MIT
+ex_rlp 0.5.2            -> MIT
 ex_unit_fixtures        -> MIT
 exexec 0.1.0            -> Apache 2.0
 exleveldb 0.11.1        -> Apache 2.0

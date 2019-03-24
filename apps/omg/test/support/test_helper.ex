@@ -148,7 +148,7 @@ defmodule OMG.TestHelper do
     {:ok, json} =
       map
       |> Enum.map(fn {"0x" <> _ = k, v} -> %{token: k, flat_fee: v} end)
-      |> Poison.encode()
+      |> Jason.encode()
 
     {:ok, path} = Briefly.create(prefix: "omisego_operator_test_fees_file")
     :ok = File.write(path, json, [:write])

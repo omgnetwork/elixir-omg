@@ -21,10 +21,10 @@ defmodule OMG.RPC.Client do
   require Logger
 
   @type response_t() ::
-          {:ok, %{required(atom()) => Poison.Parser.t()}}
+          {:ok, %{required(atom()) => Jason.Parser.t()}}
           | {:error,
              {:client_error | :server_error, any()}
-             | {:malformed_response, Poison.Parser.t() | {:error, :invalid}}}
+             | {:malformed_response, Jason.Parser.t() | {:error, :invalid}}}
 
   @doc """
   Gets Block of given hash
@@ -56,7 +56,7 @@ defmodule OMG.RPC.Client do
     addr = "#{url}/#{path}"
     headers = [{"content-type", "application/json"}]
 
-    with {:ok, body} <- Poison.encode(body),
+    with {:ok, body} <- Jason.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
       _ = Logger.debug("Child chain rpc post #{inspect(addr)} completed successfully")
       response
@@ -93,7 +93,7 @@ defmodule OMG.RPC.Client do
   the structure in body is known, so we can try to deserialize it.
   """
   def get_response_body(%HTTPoison.Response{status_code: 200, body: body}) do
-    with {:ok, response} <- Poison.decode(body),
+    with {:ok, response} <- Jason.decode(body),
          %{"success" => true, "data" => data} <- response do
       {
         :ok,

@@ -59,7 +59,7 @@ defmodule OMG.Crypto do
   def recover_public(<<digest::binary-size(32)>>, <<packed_signature::binary-size(65)>>) do
     {v, r, s} = unpack_signature(packed_signature)
 
-    with {:ok, _pub} = result <- Blockchain.Transaction.Signature.recover_public(digest, v, r, s) do
+    with {:ok, _pub} = result <- OMG.Signature.recover_public(digest, v, r, s) do
       result
     else
       {:error, "Recovery id invalid 0-3"} -> {:error, :signature_corrupt}
