@@ -330,7 +330,7 @@ defmodule OMG.State.Core do
         [{:delete, :utxo, db_key}, {:put, :spend, {db_key, height}}]
       end)
 
-    db_updates_block = [{:put, :block, block}]
+    db_updates_block = [{:put, :block, Block.to_db_value(block)}]
 
     db_updates_top_block_number = [{:put, :child_top_block_number, height}]
 

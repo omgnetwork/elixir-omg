@@ -29,6 +29,8 @@ alias OMG.Crypto
 alias OMG.DevCrypto
 alias OMG.TestHelper
 
+DeferredConfig.populate(:omg_eth)
+
 {:ok, contract_addr} = Application.fetch_env!(:omg_eth, :contract_addr) |> Crypto.decode_address()
 
 # defaults

@@ -19,6 +19,7 @@ defmodule OMG.State.PersistenceTest do
   use ExUnitFixtures
   use OMG.DB.Case, async: true
 
+  alias OMG.Block
   alias OMG.State.Core
   alias OMG.State.Transaction
   alias OMG.Utxo
@@ -134,7 +135,10 @@ defmodule OMG.State.PersistenceTest do
     |> persist_form(db_pid)
 
     assert {:ok, [hash]} = OMG.DB.block_hashes([@blknum1], db_pid)
-    assert {:ok, [%{number: @blknum1, transactions: [block_tx], hash: ^hash}]} = OMG.DB.blocks([hash], db_pid)
+
+    assert {:ok, [db_block]} = OMG.DB.blocks([hash], db_pid)
+    %Block{number: @blknum1, transactions: [block_tx], hash: ^hash} = Block.from_db_value(db_block)
+
     assert {:ok, tx} == Transaction.Recovered.recover_from(block_tx)
     assert {:ok, 1000} == OMG.DB.spent_blknum({1, 0, 0}, db_pid)
   end
