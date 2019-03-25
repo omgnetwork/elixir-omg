@@ -428,6 +428,7 @@ defmodule OMG.API.BlockQueue.Core do
   defp validate_block_hash(_, nil), do: {:error, :mined_blknum_not_found_in_db}
   defp validate_block_hash(_, _), do: {:error, :hashes_dont_match}
 
+  # TODO: consider moving this logic to separate module
   @spec process_submit_result(BlockSubmission.t(), submit_result_t(), BlockSubmission.plasma_block_num()) ::
           :ok | {:error, atom}
   def process_submit_result(submission, submit_result, newest_mined_blknum) do
@@ -449,6 +450,15 @@ defmodule OMG.API.BlockQueue.Core do
         {:error, :account_locked}
 
       {:error, %{"code" => -32_000, "message" => "nonce too low"}} ->
+        process_nonce_too_low(submission, newest_mined_blknum)
+
+      # parity error code for duplicated tx
+      {:error, %{"code" => -32_010, "message" => "Transaction with the same hash was already imported."}} ->
+        _ = Logger.debug("Submission #{inspect(submission)} is known transaction - ignored")
+        :ok
+
+      # parity specific error for nonce-too-low
+      {:error, %{"code" => -32_010, "message" => "Transaction nonce is too low." <> _}} ->
         process_nonce_too_low(submission, newest_mined_blknum)
     end
   end
