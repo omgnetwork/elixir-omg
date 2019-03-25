@@ -23,5 +23,3 @@ config :appsignal, :config,
   name: "OmiseGO Plasma MoreVP Implementation",
   env: Mix.env(),
   active: true
-
-import_config "#{Mix.env()}.exs"
