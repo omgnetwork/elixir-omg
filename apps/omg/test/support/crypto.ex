@@ -46,7 +46,7 @@ defmodule OMG.DevCrypto do
   """
   @spec sign(Transaction.t(), list(Crypto.priv_key_t())) :: Transaction.Signed.t()
   def sign(%Transaction{} = tx, private_keys) do
-    encoded_tx = Transaction.encode(tx)
+    encoded_tx = Transaction.raw_txbytes(tx)
     sigs = Enum.map(private_keys, fn pk -> signature(encoded_tx, pk) end)
 
     transaction = %Transaction.Signed{raw_tx: tx, sigs: sigs}

@@ -88,7 +88,7 @@ defmodule OMG.Watcher.DB.TxOutput do
       {:ok,
        %{
          utxo_pos: decoded_utxo_pos |> Utxo.Position.encode(),
-         txbytes: tx |> Transaction.encode(),
+         txbytes: tx |> Transaction.raw_txbytes(),
          proof: Block.inclusion_proof(block, 0)
        }}
     else
@@ -105,11 +105,7 @@ defmodule OMG.Watcher.DB.TxOutput do
 
     signed_tx = Enum.at(sorted_tx_bytes, txindex)
 
-    {:ok,
-     %Transaction.Signed{
-       raw_tx: raw_tx,
-       sigs: sigs
-     }} = Transaction.Signed.decode(signed_tx)
+    {:ok, %Transaction.Signed{sigs: sigs} = tx} = Transaction.Signed.decode(signed_tx)
 
     proof =
       %Block{transactions: sorted_tx_bytes}
@@ -120,7 +116,7 @@ defmodule OMG.Watcher.DB.TxOutput do
 
     %{
       utxo_pos: utxo_pos,
-      txbytes: Transaction.encode(raw_tx),
+      txbytes: Transaction.raw_txbytes(tx),
       proof: proof,
       sigs: sigs
     }

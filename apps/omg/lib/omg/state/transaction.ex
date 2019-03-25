@@ -189,7 +189,7 @@ defmodule OMG.State.Transaction do
   end
 
   @spec encode(t()) :: tx_bytes()
-  def encode(transaction) do
+  defp encode(transaction) do
     get_data_for_rlp(transaction)
     |> ExRLP.encode()
   end
@@ -205,7 +205,7 @@ defmodule OMG.State.Transaction do
       ] ++ if(metadata, do: [metadata], else: [])
 
   @spec hash(t()) :: tx_hash()
-  def hash(%__MODULE__{} = tx) do
+  defp hash(%__MODULE__{} = tx) do
     tx
     |> encode
     |> Crypto.hash()
@@ -236,6 +236,22 @@ defmodule OMG.State.Transaction do
     outputs
     |> Enum.reject(&match?(%{owner: @zero_address, currency: @zero_address, amount: 0}, &1))
   end
+
+  @doc """
+  Returns the encoded bytes of a raw transaction, i.e. without the signatures
+  """
+  @spec raw_txbytes(t() | __MODULE__.Signed.t() | __MODULE__.Recovered.t()) :: binary
+  def raw_txbytes(%__MODULE__.Recovered{signed_tx: signed_tx}), do: raw_txbytes(signed_tx)
+  def raw_txbytes(%__MODULE__.Signed{raw_tx: raw_tx}), do: raw_txbytes(raw_tx)
+  def raw_txbytes(%__MODULE__{} = raw_tx), do: encode(raw_tx)
+
+  @doc """
+  Returns the hash of a raw transaction, i.e. without the signatures
+  """
+  @spec raw_txhash(t() | __MODULE__.Signed.t() | __MODULE__.Recovered.t()) :: binary
+  def raw_txhash(%__MODULE__.Recovered{signed_tx: signed_tx}), do: raw_txhash(signed_tx)
+  def raw_txhash(%__MODULE__.Signed{raw_tx: raw_tx}), do: raw_txhash(raw_tx)
+  def raw_txhash(%__MODULE__{} = raw_tx), do: hash(raw_tx)
 
   defp inputs_without_gaps(inputs),
     do: check_for_gaps(inputs, %{blknum: 0, txindex: 0, oindex: 0}, {:error, :inputs_contain_gaps})

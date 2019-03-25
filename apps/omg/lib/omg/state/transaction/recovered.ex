@@ -76,9 +76,9 @@ defmodule OMG.State.Transaction.Recovered do
   end
 
   @spec recover_from_struct(Transaction.Signed.t()) :: {:ok, t()} | {:error, recover_tx_error()}
-  defp recover_from_struct(%Transaction.Signed{raw_tx: raw_tx} = signed_tx) do
+  defp recover_from_struct(%Transaction.Signed{} = signed_tx) do
     with {:ok, spenders} <- Transaction.Signed.get_spenders(signed_tx),
-         do: {:ok, %__MODULE__{tx_hash: Transaction.hash(raw_tx), spenders: spenders, signed_tx: signed_tx}}
+         do: {:ok, %__MODULE__{tx_hash: Transaction.raw_txhash(signed_tx), spenders: spenders, signed_tx: signed_tx}}
   end
 
   defp valid?(%Transaction.Signed{sigs: sigs} = tx) do

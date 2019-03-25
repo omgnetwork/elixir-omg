@@ -87,7 +87,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       tx = %Transaction.Signed{raw_tx: raw_tx, sigs: chopped_sigs}
 
       {
-        Transaction.hash(raw_tx),
+        Transaction.raw_txhash(raw_tx),
         %__MODULE__{
           tx: tx,
           timestamp: timestamp,

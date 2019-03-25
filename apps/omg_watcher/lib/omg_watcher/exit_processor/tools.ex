@@ -26,8 +26,8 @@ defmodule OMG.Watcher.ExitProcessor.Tools do
   Finds the exact signature which signed the particular transaction for the given owner address
   """
   @spec find_sig(Transaction.Signed.t(), Crypto.address_t()) :: {:ok, Crypto.sig_t()} | nil
-  def find_sig(%Transaction.Signed{raw_tx: tx, sigs: sigs}, owner) do
-    tx_hash = Transaction.hash(tx)
+  def find_sig(%Transaction.Signed{sigs: sigs} = tx, owner) do
+    tx_hash = Transaction.raw_txhash(tx)
 
     Enum.find(sigs, fn sig ->
       {:ok, owner} == Crypto.recover_address(tx_hash, sig)

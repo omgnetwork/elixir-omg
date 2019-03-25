@@ -72,19 +72,19 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       )
       |> Eth.DevHelpers.transact_sync!()
 
-    txbytes1 = Transaction.encode(tx_submit1.raw_tx)
+    txbytes1 = Transaction.raw_txbytes(tx_submit1)
     {:ok, ife_id} = OMG.Eth.RootChain.get_in_flight_exit_id(txbytes1)
     # sanity check
     {:ok, {_, _, 0, _, _}} = OMG.Eth.RootChain.get_in_flight_exit(ife_id)
 
     # PB 1
     {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChain.piggyback_in_flight_exit(Transaction.encode(tx_submit1.raw_tx), 5, bob.addr)
+      OMG.Eth.RootChain.piggyback_in_flight_exit(Transaction.raw_txbytes(tx_submit1), 5, bob.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     # PB 2
     {:ok, %{"status" => "0x1"}} =
-      OMG.Eth.RootChain.piggyback_in_flight_exit(Transaction.encode(tx_submit1.raw_tx), 1, bob.addr)
+      OMG.Eth.RootChain.piggyback_in_flight_exit(Transaction.raw_txbytes(tx_submit1), 1, bob.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     # sanity check
@@ -123,7 +123,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
            } = TestHelper.success?("/status.get")
 
     # ask for proofs
-    txbytes_raw1 = tx_submit1.raw_tx |> Transaction.encode()
+    txbytes_raw1 = tx_submit1 |> Transaction.raw_txbytes()
     assert %{"in_flight_txbytes" => ^txbytes_raw1} = proof1 = TestHelper.get_input_challenge_data(txbytes_raw1, 1)
     # challenge piggybacks
     {:ok, %{"status" => "0x1"}} =
@@ -186,13 +186,10 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     IntegrationTest.wait_for_block_fetch(blknum, @timeout)
 
-    %Transaction.Signed{raw_tx: raw_tx1} = tx1
-    %Transaction.Signed{raw_tx: raw_tx2} = tx2
-    raw_tx1_bytes = raw_tx1 |> Transaction.encode()
-    raw_tx2_bytes = raw_tx2 |> Transaction.encode()
+    raw_tx1_bytes = tx1 |> Transaction.raw_txbytes()
+    raw_tx2_bytes = tx2 |> Transaction.raw_txbytes()
 
     get_in_flight_exit_response1 = tx1 |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
-
     get_in_flight_exit_response2 = tx2 |> Transaction.Signed.encode() |> TestHelper.get_in_flight_exit()
 
     {:ok, %{"status" => "0x1"}} =
@@ -216,8 +213,8 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
       |> Eth.DevHelpers.transact_sync!()
 
     # check in-flight exit has started on root chain, wait for finalization
-    raw_tx1_hash = Transaction.hash(raw_tx1)
-    raw_tx2_hash = Transaction.hash(raw_tx2)
+    raw_tx1_hash = Transaction.raw_txhash(tx1)
+    raw_tx2_hash = Transaction.raw_txhash(tx2)
     alice_address = alice.addr
 
     assert {:ok,
@@ -338,7 +335,7 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
     assert %{"in_flight_exits" => [%{}]} = TestHelper.success?("/status.get")
 
-    raw_tx_bytes = raw_tx |> Transaction.encode()
+    raw_tx_bytes = raw_tx |> Transaction.raw_txbytes()
 
     {:ok, %{"status" => "0x1"}} =
       OMG.Eth.RootChain.piggyback_in_flight_exit(raw_tx_bytes, 4 + 1, bob.addr)
