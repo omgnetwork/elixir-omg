@@ -19,7 +19,7 @@ defmodule OMG.DevCrypto do
   """
 
   alias OMG.Crypto
-  alias OMG.Signature
+  alias OMG.SignatureHelper
   alias OMG.State.Transaction
 
   @doc """
@@ -58,7 +58,7 @@ defmodule OMG.DevCrypto do
   """
   @spec signature_digest(<<_::256>>, <<_::256>>) :: <<_::520>>
   def signature_digest(digest, priv) when is_binary(digest) and byte_size(digest) == 32 do
-    {v, r, s} = Signature.sign_hash(digest, priv)
+    {v, r, s} = SignatureHelper.sign_hash(digest, priv)
     pack_signature(v, r, s)
   end
 

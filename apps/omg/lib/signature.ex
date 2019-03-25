@@ -37,20 +37,6 @@ defmodule OMG.Signature do
   @type signature_len :: unquote(@signature_len)
 
   @doc """
-  Given a private key, returns a public key.
-
-  This covers Eq.(206) of the Yellow Paper.
-
-  """
-  @spec get_public_key(private_key) :: {:ok, public_key} | {:error, String.t()}
-  def get_public_key(private_key) do
-    case :libsecp256k1.ec_pubkey_create(private_key, :uncompressed) do
-      {:ok, public_key} -> {:ok, public_key}
-      {:error, reason} -> {:error, to_string(reason)}
-    end
-  end
-
-  @doc """
   Recovers a public key from a signed hash.
 
   This implements Eq.(208) of the Yellow Paper, adapted from https://stackoverflow.com/a/20000007
@@ -75,29 +61,6 @@ defmodule OMG.Signature do
       {:ok, <<_byte::8, public_key::binary()>>} -> {:ok, public_key}
       {:error, reason} -> {:error, to_string(reason)}
     end
-  end
-
-  @doc """
-  Returns a ECDSA signature (v,r,s) for a given hashed value.
-
-  This implementes Eq.(207) of the Yellow Paper.
-
-  """
-  @spec sign_hash(keccak_hash(), private_key, integer() | nil) ::
-          {hash_v, hash_r, hash_s}
-  def sign_hash(hash, private_key, chain_id \\ nil) do
-    {:ok, <<r::size(256), s::size(256)>>, recovery_id} =
-      :libsecp256k1.ecdsa_sign_compact(hash, private_key, :default, <<>>)
-
-    # Fork Ψ EIP-155
-    recovery_id =
-      if chain_id do
-        chain_id * 2 + @base_recovery_id_eip_155 + recovery_id
-      else
-        @base_recovery_id + recovery_id
-      end
-
-    {recovery_id, r, s}
   end
 
   @spec uses_chain_id?(hash_v) :: boolean()
