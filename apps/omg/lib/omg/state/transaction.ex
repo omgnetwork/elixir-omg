@@ -36,6 +36,8 @@ defmodule OMG.State.Transaction do
           metadata: metadata()
         }
 
+  @type any_flavor_t() :: t() | __MODULE__.Signed.t() | __MODULE__.Recovered.t()
+
   @type currency() :: Crypto.address_t()
   @type tx_bytes() :: binary()
   @type tx_hash() :: Crypto.hash_t()
@@ -214,7 +216,7 @@ defmodule OMG.State.Transaction do
   @doc """
   Returns all inputs
   """
-  @spec get_inputs(t() | __MODULE__.Signed.t() | __MODULE__.Recovered.t()) :: list(input())
+  @spec get_inputs(any_flavor_t()) :: list(input())
   def get_inputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_inputs(signed_tx)
   def get_inputs(%__MODULE__.Signed{raw_tx: raw_tx}), do: get_inputs(raw_tx)
 
@@ -227,7 +229,7 @@ defmodule OMG.State.Transaction do
   @doc """
   Returns all outputs
   """
-  @spec get_outputs(t() | __MODULE__.Signed.t() | __MODULE__.Recovered.t()) :: list(output())
+  @spec get_outputs(any_flavor_t()) :: list(output())
   def get_outputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_outputs(signed_tx)
   def get_outputs(%__MODULE__.Signed{raw_tx: raw_tx}), do: get_outputs(raw_tx)
 
@@ -240,7 +242,7 @@ defmodule OMG.State.Transaction do
   @doc """
   Returns the encoded bytes of a raw transaction, i.e. without the signatures
   """
-  @spec raw_txbytes(t() | __MODULE__.Signed.t() | __MODULE__.Recovered.t()) :: binary
+  @spec raw_txbytes(any_flavor_t()) :: binary
   def raw_txbytes(%__MODULE__.Recovered{signed_tx: signed_tx}), do: raw_txbytes(signed_tx)
   def raw_txbytes(%__MODULE__.Signed{raw_tx: raw_tx}), do: raw_txbytes(raw_tx)
   def raw_txbytes(%__MODULE__{} = raw_tx), do: encode(raw_tx)
@@ -248,7 +250,7 @@ defmodule OMG.State.Transaction do
   @doc """
   Returns the hash of a raw transaction, i.e. without the signatures
   """
-  @spec raw_txhash(t() | __MODULE__.Signed.t() | __MODULE__.Recovered.t()) :: binary
+  @spec raw_txhash(any_flavor_t()) :: binary
   def raw_txhash(%__MODULE__.Recovered{signed_tx: signed_tx}), do: raw_txhash(signed_tx)
   def raw_txhash(%__MODULE__.Signed{raw_tx: raw_tx}), do: raw_txhash(raw_tx)
   def raw_txhash(%__MODULE__{} = raw_tx), do: hash(raw_tx)

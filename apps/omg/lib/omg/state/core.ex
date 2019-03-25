@@ -147,9 +147,10 @@ defmodule OMG.State.Core do
           | {{:error, exec_error}, t()}
   def exec(
         %Core{height: height, tx_index: tx_index} = state,
-        %Transaction.Recovered{tx_hash: tx_hash} = tx,
+        %Transaction.Recovered{} = tx,
         fees
       ) do
+    tx_hash = Transaction.raw_txhash(tx)
     outputs = Transaction.get_outputs(tx)
 
     with :ok <- validate_block_size(state),
@@ -240,7 +241,8 @@ defmodule OMG.State.Core do
     |> Enum.filter(fn {_key, value} -> is_non_zero_amount?(value) end)
   end
 
-  defp utxos_from(%Transaction.Recovered{tx_hash: hash} = tx, height, tx_index) do
+  defp utxos_from(tx, height, tx_index) do
+    hash = Transaction.raw_txhash(tx)
     outputs = Transaction.get_outputs(tx)
 
     for {%{owner: owner, currency: currency, amount: amount}, oindex} <- Enum.with_index(outputs) do

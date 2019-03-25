@@ -1032,7 +1032,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     known_txs = get_known_txs(blocks) ++ get_known_txs(state)
 
     # find its competitor and use it to prepare the requested data
-    with {:ok, %InFlightExitInfo{tx: %Transaction.Signed{} = signed_ife_tx}} <- get_ife(ife_txbytes, state),
+    with {:ok, %InFlightExitInfo{tx: signed_ife_tx}} <- get_ife(ife_txbytes, state),
          {:ok, known_signed_tx} <- find_competitor(known_txs, signed_ife_tx),
          do: {:ok, prepare_competitor_response(known_signed_tx, signed_ife_tx, blocks)}
   end
@@ -1164,13 +1164,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     inputs_list
   end
 
-  defp index_inputs(%Transaction.Signed{} = tx) do
+  defp index_inputs(%KnownTx{signed_tx: signed}), do: index_inputs(signed)
+
+  defp index_inputs(tx) do
     tx
     |> Transaction.get_inputs()
     |> Enum.with_index()
   end
-
-  defp index_inputs(%KnownTx{signed_tx: signed}), do: index_inputs(signed)
 
   defp get_known_txs(%__MODULE__{} = state) do
     TxAppendix.get_all(state)
@@ -1230,19 +1230,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   """
   @spec create_challenge(ExitInfo.t(), Block.t() | Transaction.Signed.t(), Utxo.Position.t(), non_neg_integer) ::
           Challenge.t()
-  def create_challenge(%ExitInfo{owner: owner}, %Block{} = spending_block, utxo_exit, exit_id) do
-    {challenging_signed, input_index} = get_spending_transaction_with_index(spending_block, utxo_exit)
-
-    %Challenge{
-      exit_id: exit_id,
-      input_index: input_index,
-      txbytes: challenging_signed |> Transaction.raw_txbytes(),
-      sig: find_sig(challenging_signed, owner)
-    }
-  end
-
-  def create_challenge(%ExitInfo{owner: owner}, %Transaction.Signed{} = challenging_signed, utxo_exit, exit_id) do
-    {challenging_signed, input_index} = get_spending_transaction_with_index(challenging_signed, utxo_exit)
+  def create_challenge(%ExitInfo{owner: owner}, spending_tx_or_block, utxo_exit, exit_id) do
+    {challenging_signed, input_index} = get_spending_transaction_with_index(spending_tx_or_block, utxo_exit)
 
     %Challenge{
       exit_id: exit_id,
@@ -1303,7 +1292,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end)
   end
 
-  defp get_spending_transaction_with_index(%Transaction.Signed{} = tx, utxo_pos) do
+  defp get_spending_transaction_with_index(tx, utxo_pos) do
     inputs = Transaction.get_inputs(tx)
 
     if input_index = Enum.find_index(inputs, &(&1 == utxo_pos)) do

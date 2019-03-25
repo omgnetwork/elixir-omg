@@ -51,8 +51,8 @@ defmodule OMG.Fees do
   Returns fees for particular transaction
   """
   @spec for_tx(Transaction.Recovered.t(), fee_t()) :: fee_t()
-  def for_tx(%Transaction.Recovered{} = recovered_tx, fee_map) do
-    if is_merge_transaction?(recovered_tx),
+  def for_tx(tx, fee_map) do
+    if is_merge_transaction?(tx),
       do: :ignore,
       # TODO: reducing fees to output currencies only is incorrect, let's deffer until fees get large
       else: fee_map

@@ -25,14 +25,9 @@ defmodule OMG.PropTest.Helper do
   @doc """
   Collapse of the recover transaction into a short form use in OMG.PropTest
   """
-  def format_transaction(%Transaction.Recovered{
-        signed_tx: %Transaction.Signed{
-          raw_tx: raw_tx
-        },
-        spenders: [spender1, spender2]
-      }) do
-    inputs = Transaction.get_inputs(raw_tx)
-    outputs = Transaction.get_outputs(raw_tx)
+  def format_transaction(%Transaction.Recovered{spenders: [spender1, spender2]} = tx) do
+    inputs = Transaction.get_inputs(tx)
+    outputs = Transaction.get_outputs(tx)
 
     [%{blknum: blknum1, txindex: txindex1, oindex: oindex1}, %{blknum: blknum2, txindex: txindex2, oindex: oindex2}] =
       inputs

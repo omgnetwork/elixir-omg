@@ -63,13 +63,7 @@ defmodule OMG.Watcher.Eventer.Core do
     get_address_received_events(event_trigger) ++ get_address_spent_events(event_trigger)
   end
 
-  defp get_address_spent_events(
-         %{
-           tx: %Transaction.Recovered{
-             spenders: spenders
-           }
-         } = event_trigger
-       ) do
+  defp get_address_spent_events(%{tx: %Transaction.Recovered{spenders: spenders}} = event_trigger) do
     spenders
     |> Enum.filter(&account_address?/1)
     |> Enum.map(&create_address_spent_event(event_trigger, &1))

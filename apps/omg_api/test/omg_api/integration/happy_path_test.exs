@@ -133,16 +133,15 @@ defmodule OMG.API.Integration.HappyPathTest do
     {:ok, _} = Eth.DevHelpers.wait_for_next_child_block(post_spend_child_block)
 
     # create transaction & data for in-flight exit, start in-flight exit
-    %Transaction.Signed{
-      raw_tx: raw_in_flight_tx,
-      sigs: in_flight_tx_sigs
-    } = OMG.TestHelper.create_signed([{blknum, txindex, 0, alice}, {blknum, txindex, 1, alice}], @eth, [{alice, 10}])
+    %Transaction.Signed{sigs: in_flight_tx_sigs} =
+      in_flight_tx =
+      OMG.TestHelper.create_signed([{blknum, txindex, 0, alice}, {blknum, txindex, 1, alice}], @eth, [{alice, 10}])
 
     proof = Block.inclusion_proof(%Block{transactions: [Transaction.Signed.encode(tx)]}, 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.in_flight_exit(
-        raw_in_flight_tx |> Transaction.raw_txbytes(),
+        in_flight_tx |> Transaction.raw_txbytes(),
         get_input_txs([tx, tx]),
         proof <> proof,
         Enum.join(in_flight_tx_sigs),
@@ -160,18 +159,18 @@ defmodule OMG.API.Integration.HappyPathTest do
     deposit_blknum = DepositHelper.deposit_to_child_chain(alice.addr, 10)
 
     %Transaction.Signed{sigs: sigs} =
-      tx = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
+      in_flight_tx2 = OMG.TestHelper.create_signed([{deposit_blknum, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
-    {:ok, %{"blknum" => blknum}} = submit_transaction(tx |> Transaction.Signed.encode())
+    {:ok, %{"blknum" => blknum}} = submit_transaction(in_flight_tx2 |> Transaction.Signed.encode())
 
-    in_flight_tx = tx |> Transaction.raw_txbytes()
+    in_flight_tx2_rawbytes = in_flight_tx2 |> Transaction.raw_txbytes()
 
     # create exit data for tx spending deposit & start in-flight exit
     deposit_tx = OMG.TestHelper.create_signed([], @eth, [{alice, 10}])
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.in_flight_exit(
-        in_flight_tx,
+        in_flight_tx2_rawbytes,
         get_input_txs([deposit_tx]),
         Block.inclusion_proof(%Block{transactions: [Transaction.Signed.encode(deposit_tx)]}, 0),
         Enum.join(sigs),
@@ -183,7 +182,7 @@ defmodule OMG.API.Integration.HappyPathTest do
 
     # piggyback only to the first transaction's output & wait for finalization
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
-      Eth.RootChain.piggyback_in_flight_exit(in_flight_tx, 4, alice.addr)
+      Eth.RootChain.piggyback_in_flight_exit(in_flight_tx2_rawbytes, 4, alice.addr)
       |> Eth.DevHelpers.transact_sync!()
 
     Eth.DevHelpers.wait_for_root_chain_block(eth_height + exiters_finality_margin)

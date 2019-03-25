@@ -55,14 +55,9 @@ defmodule OMG.Watcher.Web.Controller.InFlightExitTest do
         input_txs =
           input_txs
           |> ExRLP.decode()
-          |> Enum.map(fn
-            "" ->
-              nil
-
-            rlp_decoded ->
-              {:ok, tx} = Transaction.reconstruct(rlp_decoded)
-              tx
-          end)
+          |> Enum.filter(&(&1 != ""))
+          |> Enum.map(&ExRLP.encode/1)
+          |> Enum.map(&Transaction.decode!/1)
 
         assert input_txs == expected_input_txs
       end
@@ -105,6 +100,11 @@ defmodule OMG.Watcher.Web.Controller.InFlightExitTest do
                  }
                }
              } = TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "tx"})
+
+      assert %{
+               "code" => "get_in_flight_exit:malformed_transaction_rlp",
+               "object" => "error"
+             } = TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "0x1234"})
     end
   end
 end
