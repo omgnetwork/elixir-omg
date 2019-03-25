@@ -57,5 +57,5 @@ alices = 1..5 |> Enum.map(fn _ -> Task.async(generate) end) |> Enum.map(& Task.a
 OMG.Performance.start_extended_perftest(10_000, alices, contract_addr)
 
 
-:os.cmd('cat #{result_file}') |> Poison.decode!
+:os.cmd('cat #{result_file}') |> Jason.decode!
 ```

@@ -33,7 +33,7 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
       context,
       "/block.get",
       fn %{body: params} ->
-        {:ok, %{"hash" => req_hash}} = Poison.decode(params)
+        {:ok, %{"hash" => req_hash}} = Jason.decode(params)
 
         if {:ok, bad_block_hash} == Encoding.from_hex(req_hash) do
           bad_block

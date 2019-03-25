@@ -64,7 +64,7 @@ defmodule OMG.Eth.DevMiningHelper do
 
   defp generate_entity do
     priv = :crypto.strong_rand_bytes(32)
-    {:ok, <<4::integer-size(8), pub::binary>>} = Blockchain.Transaction.Signature.get_public_key(priv)
+    {:ok, <<4::integer-size(8), pub::binary>>} = get_public_key(priv)
     {:ok, addr} = generate_address(pub)
     %{priv: priv, addr: addr}
   end
@@ -75,4 +75,11 @@ defmodule OMG.Eth.DevMiningHelper do
   end
 
   defp hash(message), do: message |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec())
+
+  defp get_public_key(private_key) do
+    case :libsecp256k1.ec_pubkey_create(private_key, :uncompressed) do
+      {:ok, public_key} -> {:ok, public_key}
+      {:error, reason} -> {:error, to_string(reason)}
+    end
+  end
 end
