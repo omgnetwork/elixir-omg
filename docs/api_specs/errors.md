@@ -31,3 +31,4 @@ in_flight_exit:tx_for_input_not_found | No transaction that created input.
 transaction:not_found | Transaction doesn't exist for provided search criteria
 transaction.create:insufficient_funds | Account balance is too low to satisfy the payment.
 transaction.create:too_many_outputs | Total number of payments + change + fees exceed maximum allowed outputs in transaction. We need to reserve one output per payment and one output per change for each currency used in the transaction.
+transaction.create:empty_transaction | Requested payment resulted in empty transaction that transfers no funds.

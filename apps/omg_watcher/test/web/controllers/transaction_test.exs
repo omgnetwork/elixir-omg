@@ -850,6 +850,31 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                )
     end
 
+    @tag fixtures: [:alice, :more_utxos, :blocks_inserter]
+    test "transaction without payments that burns funds in fees is correct",
+         %{alice: alice, blocks_inserter: blocks_inserter} do
+      alice_addr = Encoding.to_hex(alice.addr)
+      alice_balance = balance_in_token(alice.addr, @other_token)
+      fee = 15
+
+      assert %{
+               "result" => "complete",
+               "transactions" => [%{"txbytes" => tx_hex}]
+             } =
+               TestHelper.success?(
+                 "transaction.create",
+                 %{
+                   "owner" => alice_addr,
+                   "payments" => [],
+                   "fee" => %{"amount" => fee, "currency" => @other_token_hex}
+                 }
+               )
+
+      make_payments(7000, alice, [tx_hex], blocks_inserter)
+
+      assert alice_balance - fee == balance_in_token(alice.addr, @other_token)
+    end
+
     defp balance_in_token(address, token) do
       currency = Encoding.to_hex(token)
 
@@ -897,13 +922,15 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
   describe "creating transaction: Validation" do
     @tag fixtures: [:alice, :more_utxos]
-    test "empty payments list attempted", %{alice: alice} do
+    test "empty transaction without payments list is not allowed", %{alice: alice} do
       alice_addr = Encoding.to_hex(alice.addr)
 
-      # NOTE: this is unintended behavior, there's a chore to fix this. Alter this test accordingly, when doing that.
-      #       The intended behavior would be a relevant error message. For now testing non-crash at least:
-      assert %{"result" => "complete"} =
-               TestHelper.success?(
+      assert %{
+               "object" => "error",
+               "code" => "transaction.create:empty_transaction",
+               "description" => "Requested payment transfers no funds."
+             } ==
+               TestHelper.no_success?(
                  "transaction.create",
                  %{"owner" => alice_addr, "payments" => [], "fee" => %{"amount" => 0, "currency" => @eth_hex}}
                )
