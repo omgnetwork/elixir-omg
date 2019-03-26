@@ -67,7 +67,9 @@ defmodule OMG.API.FreshBlocksTest do
 
     # db block
     {nil = fresh_block, [0]} = FreshBlocks.get(0, state)
-    assert {:ok, %Block{hash: 0}} = FreshBlocks.combine_getting_results(fresh_block, {:ok, [%Block{hash: 0}]})
+
+    db_block = %Block{transactions: [], hash: <<0>>, number: 1000}
+    assert {:ok, %Block{hash: <<0>>}} = FreshBlocks.combine_getting_results(fresh_block, {:ok, [db_block]})
 
     # missing block
     {nil = fresh_block, [11]} = FreshBlocks.get(11, state)
@@ -75,7 +77,7 @@ defmodule OMG.API.FreshBlocksTest do
 
     # tolerate spurrious/erroneous/missing db result, if found a fresh block
     {fresh_block, []} = FreshBlocks.get(9, state)
-    assert {:ok, ^fresh_block} = FreshBlocks.combine_getting_results(fresh_block, {:ok, [%Block{hash: 0}]})
+    assert {:ok, ^fresh_block} = FreshBlocks.combine_getting_results(fresh_block, {:ok, [db_block]})
     assert {:ok, ^fresh_block} = FreshBlocks.combine_getting_results(fresh_block, {:ok, [%Block{hash: 9}]})
     assert {:ok, ^fresh_block} = FreshBlocks.combine_getting_results(fresh_block, {:ok, [:not_found]})
   end

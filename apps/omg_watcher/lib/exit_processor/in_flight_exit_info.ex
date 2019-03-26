@@ -109,19 +109,19 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
            contract_id: contract_id,
            oldest_competitor: oldest_competitor,
            eth_height: eth_height,
-           exit_map: %{} = exit_map,
+           exit_map: exit_map,
            is_canonical: is_canonical,
            is_active: is_active
          }}
       )
       when is_binary(contract_id) and
-             is_integer(timestamp) and is_integer(eth_height) and
+             is_integer(timestamp) and is_integer(eth_height) and is_map(exit_map) and
              is_boolean(is_canonical) and is_boolean(is_active) do
     :ok = assert_utxo_pos_type(tx_pos)
     :ok = assert_utxo_pos_type(oldest_competitor)
     # mapping is used in case of changes in data structure
     value = %{
-      tx: tx,
+      tx: to_db_value(tx),
       tx_pos: tx_pos,
       timestamp: timestamp,
       contract_id: contract_id,
@@ -141,32 +141,29 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
 
   defp assert_utxo_pos_type(nil), do: :ok
 
-  def from_db_kv({ife_hash, %__MODULE__{} = db_ife}) do
-    from_db_kv({ife_hash, Map.from_struct(db_ife)})
-  end
-
   def from_db_kv(
         {ife_hash,
          %{
-           tx: %Transaction.Signed{} = tx,
+           tx: signed_tx_map,
            tx_pos: tx_pos,
            timestamp: timestamp,
            contract_id: contract_id,
            oldest_competitor: oldest_competitor,
            eth_height: eth_height,
-           exit_map: %{} = exit_map,
+           exit_map: exit_map,
            is_canonical: is_canonical,
            is_active: is_active
          }}
       )
-      when is_binary(contract_id) and
-             is_integer(timestamp) and is_integer(eth_height) and
+      when is_map(signed_tx_map) and is_binary(contract_id) and
+             is_integer(timestamp) and is_integer(eth_height) and is_map(exit_map) and
              is_boolean(is_canonical) and is_boolean(is_active) do
     :ok = assert_utxo_pos_type(tx_pos)
     :ok = assert_utxo_pos_type(oldest_competitor)
+
     # mapping is used in case of changes in data structure
     ife_map = %{
-      tx: tx,
+      tx: from_db_signed_tx(signed_tx_map),
       contract_tx_pos: tx_pos,
       timestamp: timestamp,
       contract_id: contract_id,
@@ -178,6 +175,28 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
     }
 
     {ife_hash, struct!(__MODULE__, ife_map)}
+  end
+
+  # NOTE: the databases currently don't hold the `signed_tx_bytes` field, hence dropping this here and in the other fun.
+  # NOTE: non-private because `CompetitorInfo` holds `Transaction.Signed` objects too
+  def from_db_signed_tx(%{raw_tx: raw_tx_map, sigs: sigs}) when is_map(raw_tx_map) and is_list(sigs) do
+    value = %{raw_tx: from_db_raw_tx(raw_tx_map), sigs: sigs}
+    struct!(Transaction.Signed, value)
+  end
+
+  def from_db_raw_tx(%{inputs: inputs, outputs: outputs, metadata: metadata})
+      when is_list(inputs) and is_list(outputs) and Transaction.is_metadata(metadata) do
+    value = %{inputs: inputs, outputs: outputs, metadata: metadata}
+    struct!(Transaction, value)
+  end
+
+  def to_db_value(%Transaction.Signed{raw_tx: raw_tx, sigs: sigs}) when is_list(sigs) do
+    %{raw_tx: to_db_value(raw_tx), sigs: sigs}
+  end
+
+  def to_db_value(%Transaction{inputs: inputs, outputs: outputs, metadata: metadata})
+      when is_list(inputs) and is_list(outputs) and Transaction.is_metadata(metadata) do
+    %{inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
   @spec piggyback(t(), non_neg_integer()) :: {:ok, t()} | {:error, :non_existent_exit | :cannot_piggyback}

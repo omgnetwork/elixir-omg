@@ -28,6 +28,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.State.Transaction
   alias OMG.Utxo
 
+  alias OMG.Block
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Watcher.ExitProcessor
@@ -372,7 +373,7 @@ defmodule OMG.Watcher.ExitProcessor do
           raw_blknum when is_number(raw_blknum) ->
             {:ok, hashes} = OMG.DB.block_hashes([raw_blknum])
             {:ok, [spending_block]} = OMG.DB.blocks(hashes)
-            spending_block
+            Block.from_db_value(spending_block)
 
           signed_tx ->
             signed_tx
@@ -465,21 +466,19 @@ defmodule OMG.Watcher.ExitProcessor do
     spend_blknum
   end
 
-  defp run_block_getting(%ExitProcessor.Request{blknums_to_get: blknums} = request) do
+  defp run_block_getting(%ExitProcessor.Request{blknums_to_get: blknums} = request),
+    do: %{request | blocks_result: do_block_getting(blknums)}
+
+  defp run_ife_block_getting(%ExitProcessor.Request{piggybacked_blknums_to_get: blknums} = request),
+    do: %{request | piggybacked_blocks_result: do_block_getting(blknums)}
+
+  defp do_block_getting(blknums) do
     _ = Logger.debug("blknums_to_get: #{inspect(blknums)}")
     {:ok, hashes} = OMG.DB.block_hashes(blknums)
     _ = Logger.debug("hashes: #{inspect(hashes)}")
     {:ok, blocks} = OMG.DB.blocks(hashes)
     _ = Logger.debug("blocks_result: #{inspect(blocks)}")
-    %{request | blocks_result: blocks}
-  end
 
-  defp run_ife_block_getting(%ExitProcessor.Request{piggybacked_blknums_to_get: blknums} = request) do
-    _ = Logger.debug("piggybacked_blknums_to_get: #{inspect(blknums)}")
-    {:ok, hashes} = OMG.DB.block_hashes(blknums)
-    _ = Logger.debug("piggybacked_hashes: #{inspect(hashes)}")
-    {:ok, blocks} = OMG.DB.blocks(hashes)
-    _ = Logger.debug("piggybacked_blocks_result: #{inspect(blocks)}")
-    %{request | piggybacked_blocks_result: blocks}
+    blocks |> Enum.map(&Block.from_db_value/1)
   end
 end

@@ -21,6 +21,7 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
 
   alias OMG.Crypto
   alias OMG.State.Transaction
+  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
 
   # mapped by tx_hash
   defstruct [
@@ -49,16 +50,19 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
          }}
       )
       when is_integer(input_index) and is_binary(signature) do
-    value = %{tx: tx, competing_input_index: input_index, competing_input_signature: signature}
+    value = %{
+      tx: InFlightExitInfo.to_db_value(tx),
+      competing_input_index: input_index,
+      competing_input_signature: signature
+    }
+
     {:put, :competitor_info, {tx_hash, value}}
   end
 
-  def from_db_kv({tx_hash, %__MODULE__{} = competitor}), do: from_db_kv({tx_hash, Map.from_struct(competitor)})
+  def from_db_kv({tx_hash, %{tx: signed_tx_map, competing_input_index: index, competing_input_signature: signature}})
+      when is_map(signed_tx_map) and is_integer(index) and is_binary(signature) do
+    tx = InFlightExitInfo.from_db_signed_tx(signed_tx_map)
 
-  def from_db_kv(
-        {tx_hash, %{tx: %Transaction.Signed{} = tx, competing_input_index: index, competing_input_signature: signature}}
-      )
-      when is_integer(index) and is_binary(signature) do
     competitor_map = %{
       tx: tx,
       competing_input_index: index,

@@ -38,11 +38,21 @@ defmodule OMG.Utxo do
     end
   end
 
-  # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
-  def to_db_value(%__MODULE__{} = utxo) do
-    Map.take(utxo, [:owner, :currency, :amount, :creating_txhash])
+  defmacrop is_nil_or_binary(binary) do
+    quote do
+      is_binary(unquote(binary)) or is_nil(unquote(binary))
+    end
   end
 
-  def from_db_value(%__MODULE__{} = utxo), do: from_db_value(Map.from_struct(utxo))
-  def from_db_value(utxo_map), do: struct!(__MODULE__, utxo_map)
+  # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
+  def to_db_value(%__MODULE__{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash})
+      when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_nil_or_binary(creating_txhash) do
+    %{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash}
+  end
+
+  def from_db_value(%{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash})
+      when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_nil_or_binary(creating_txhash) do
+    value = %{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash}
+    struct!(__MODULE__, value)
+  end
 end

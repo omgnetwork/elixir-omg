@@ -55,6 +55,18 @@ defmodule OMG.Block do
     |> Map.put(:blknum, blknum)
   end
 
+  # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
+  def to_db_value(%__MODULE__{transactions: transactions, hash: hash, number: number})
+      when is_list(transactions) and is_binary(hash) and is_integer(number) do
+    %{transactions: transactions, hash: hash, number: number}
+  end
+
+  def from_db_value(%{transactions: transactions, hash: hash, number: number})
+      when is_list(transactions) and is_binary(hash) and is_integer(number) do
+    value = %{transactions: transactions, hash: hash, number: number}
+    struct!(__MODULE__, value)
+  end
+
   @doc """
   Calculates inclusion proof for the transaction in the block
   """
