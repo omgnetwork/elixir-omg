@@ -193,11 +193,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     ife_id = hd(ife_tx_hashes)
     txbytes = Transaction.raw_txbytes(tx)
     competitor_txbytes = Transaction.raw_txbytes(competitor)
-
-    {:ok, recovered} =
-      DevCrypto.sign(tx, [alice.priv, alice.priv])
-      |> Transaction.Signed.encode()
-      |> Transaction.Recovered.recover_from()
+    recovered = OMG.TestHelper.sign_recover!(tx, [alice.priv, alice.priv])
 
     %{sigs: competitor_signatures} = DevCrypto.sign(competitor, [alice.priv, alice.priv])
 
@@ -242,17 +238,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     # the piggybacked-output-spending tx is going to be included in a block, which requires more back&forth
     # 1. transaction which is, ife'd, output piggybacked, and included in a block
     txbytes = Transaction.raw_txbytes(tx)
-
-    {:ok, recovered} =
-      DevCrypto.sign(tx, [alice.priv, alice.priv])
-      |> Transaction.Signed.encode()
-      |> Transaction.Recovered.recover_from()
+    recovered = OMG.TestHelper.sign_recover!(tx, [alice.priv, alice.priv])
 
     # 2. transaction which spends that piggybacked output
     comp = Transaction.new([{3000, 0, 0}], [])
     comp_txbytes = Transaction.raw_txbytes(comp)
-    %{sigs: comp_signatures} = signed = DevCrypto.sign(comp, [alice.priv])
-    {:ok, comp_recovered} = signed |> Transaction.Signed.encode() |> Transaction.Recovered.recover_from()
+    %{signed_tx: %{sigs: comp_signatures}} = comp_recovered = OMG.TestHelper.sign_recover!(comp, [alice.priv])
 
     # 3. stuff happens in the contract; output #4 is a double-spend; #5 is OK
     {state, _} =
@@ -781,10 +772,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       processor_filled: processor,
       transactions: [tx1, tx2]
     } do
-      {:ok, recovered_tx1} =
-        DevCrypto.sign(tx1, [alice.priv, alice.priv])
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from()
+      recovered_tx1 = OMG.TestHelper.sign_recover!(tx1, [alice.priv, alice.priv])
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -959,8 +947,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          } do
       txbytes = Transaction.raw_txbytes(tx)
       comp_txbytes = Transaction.raw_txbytes(comp)
-      %{sigs: [_, other_sig]} = comp_signed = DevCrypto.sign(comp, [alice.priv, alice.priv])
-      {:ok, comp_recovered} = comp_signed |> Transaction.Signed.encode() |> Transaction.Recovered.recover_from()
+
+      %{signed_tx: %{sigs: [_, other_sig]}} =
+        comp_recovered = OMG.TestHelper.sign_recover!(comp, [alice.priv, alice.priv])
+
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
 
       comp_blknum = 4000
@@ -996,12 +986,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          } do
       # 1. transaction which is, ife'd, output piggybacked, and included in a block
       txbytes = Transaction.raw_txbytes(tx)
-
-      {:ok, recovered} =
-        DevCrypto.sign(tx, [alice.priv, alice.priv])
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from()
-
+      recovered = OMG.TestHelper.sign_recover!(tx, [alice.priv, alice.priv])
       tx_blknum = 3000
 
       # 2. transaction which spends that piggybacked output
@@ -1055,19 +1040,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       # this time, the piggybacked-output-spending tx is going to be included in a block, which requires more back&forth
       # 1. transaction which is, ife'd, output piggybacked, and included in a block
       txbytes = Transaction.raw_txbytes(tx)
-
-      {:ok, recovered} =
-        DevCrypto.sign(tx, [alice.priv, alice.priv])
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from()
-
+      recovered = OMG.TestHelper.sign_recover!(tx, [alice.priv, alice.priv])
       tx_blknum = 3000
 
       # 2. transaction which spends that piggybacked output
       comp = Transaction.new([{tx_blknum, 0, 0}], [])
       comp_txbytes = Transaction.raw_txbytes(comp)
-      %{sigs: [comp_signature]} = comp_signed = DevCrypto.sign(comp, [alice.priv])
-      {:ok, comp_recovered} = comp_signed |> Transaction.Signed.encode() |> Transaction.Recovered.recover_from()
+      %{signed_tx: %{sigs: [comp_signature]}} = comp_recovered = OMG.TestHelper.sign_recover!(comp, [alice.priv])
 
       # 3. stuff happens in the contract
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
@@ -1113,11 +1092,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            transactions: [tx | _],
            ife_tx_hashes: [ife_id | _]
          } do
-      {:ok, recovered} =
-        DevCrypto.sign(tx, [alice.priv, alice.priv])
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from()
-
+      recovered = OMG.TestHelper.sign_recover!(tx, [alice.priv, alice.priv])
       txbytes = Transaction.raw_txbytes(tx)
       tx_blknum = 3000
 
@@ -1168,10 +1143,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            ife_tx_hashes: [ife_id | _]
          } do
       # if an output-piggybacking transaction is included in some block, we need to seek blocks that could be spending
-      {:ok, recovered} =
-        DevCrypto.sign(tx, [alice.priv, alice.priv])
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from()
+      recovered = tx |> OMG.TestHelper.sign_recover!([alice.priv, alice.priv])
 
       {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: ife_id, output_index: 4}])
 
@@ -1213,11 +1185,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          } do
       tx_blknum = 3000
       txbytes = Transaction.raw_txbytes(tx)
-
-      {:ok, recovered} =
-        DevCrypto.sign(tx, [alice.priv, alice.priv])
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from()
+      recovered = OMG.TestHelper.sign_recover!(tx, [alice.priv, alice.priv])
 
       comp = Transaction.new([{1, 0, 0}, {1, 2, 1}, {tx_blknum, 0, 0}, {tx_blknum, 0, 1}], [])
       comp_txbytes = Transaction.raw_txbytes(comp)
@@ -1397,11 +1365,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "none if different input spent in some tx from block",
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [_, _, comp3]} do
       txbytes = Transaction.raw_txbytes(tx1)
-
-      {:ok, other_recovered} =
-        DevCrypto.sign(comp3, [alice.priv, alice.priv])
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from()
+      other_recovered = OMG.TestHelper.sign_recover!(comp3, [alice.priv, alice.priv])
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -1421,11 +1385,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "none if input spent in _same_ tx in block",
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _]} do
       txbytes = Transaction.raw_txbytes(tx1)
-
-      {:ok, other_recovered} =
-        DevCrypto.sign(tx1, [alice.priv, alice.priv])
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from()
+      other_recovered = OMG.TestHelper.sign_recover!(tx1, [alice.priv, alice.priv])
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -1538,13 +1498,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "a single competitor included in a block, with proof",
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp | _]} do
       txbytes = Transaction.raw_txbytes(tx1)
-
       other_txbytes = Transaction.raw_txbytes(comp)
 
-      {:ok, %{signed_tx: %{sigs: [other_signature, _]}} = other_recovered} =
-        DevCrypto.sign(comp, [alice.priv, alice.priv])
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from()
+      %{signed_tx: %{sigs: [other_signature, _]}} =
+        other_recovered = OMG.TestHelper.sign_recover!(comp, [alice.priv, alice.priv])
 
       other_blknum = 3000
 
@@ -1580,10 +1537,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       txbytes = Transaction.raw_txbytes(tx1)
       other_txbytes = Transaction.raw_txbytes(comp)
 
-      {:ok, %{signed_tx: %{sigs: [other_signature, _]}} = other_recovered} =
-        DevCrypto.sign(comp, [alice.priv, alice.priv])
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from()
+      %{signed_tx: %{sigs: [other_signature, _]}} =
+        other_recovered = OMG.TestHelper.sign_recover!(comp, [alice.priv, alice.priv])
 
       other_blknum = 3000
 
@@ -1648,14 +1603,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "none if IFE is challenged enough already",
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp | _]} do
       txbytes = Transaction.raw_txbytes(tx1)
-
       other_txbytes = Transaction.raw_txbytes(comp)
-
-      {:ok, other_recovered} =
-        DevCrypto.sign(comp, [alice.priv, alice.priv])
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from()
-
+      other_recovered = OMG.TestHelper.sign_recover!(comp, [alice.priv, alice.priv])
       other_blknum = 3000
 
       exit_processor_request = %ExitProcessor.Request{
@@ -1716,11 +1665,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
           |> Enum.count()
           |> (&List.duplicate(alice.priv, &1)).()
 
-        {:ok, other_recovered} =
-          comp
-          |> DevCrypto.sign(required_priv_key_list)
-          |> Transaction.Signed.encode()
-          |> Transaction.Recovered.recover_from()
+        other_recovered = OMG.TestHelper.sign_recover!(comp, required_priv_key_list)
 
         exit_processor_request = %ExitProcessor.Request{
           blknum_now: 5000,
@@ -1756,10 +1701,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          } do
       txbytes = Transaction.raw_txbytes(tx1)
 
-      {:ok, %{signed_tx: %{sigs: [_, other_signature]}} = other_recovered} =
-        DevCrypto.sign(competitor, [bob.priv, alice.priv])
-        |> Transaction.Signed.encode()
-        |> Transaction.Recovered.recover_from()
+      %{signed_tx: %{sigs: [_, other_signature]}} =
+        other_recovered = OMG.TestHelper.sign_recover!(competitor, [bob.priv, alice.priv])
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -1782,12 +1725,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       # first the included competitors
       comp_recent = Transaction.new([{1, 0, 0}], [])
       comp_oldest = Transaction.new([{1, 2, 1}], [])
-
-      {:ok, recovered_recent} =
-        DevCrypto.sign(comp_recent, [alice.priv]) |> Transaction.Signed.encode() |> Transaction.Recovered.recover_from()
-
-      {:ok, recovered_oldest} =
-        DevCrypto.sign(comp_oldest, [alice.priv]) |> Transaction.Signed.encode() |> Transaction.Recovered.recover_from()
+      recovered_recent = OMG.TestHelper.sign_recover!(comp_recent, [alice.priv])
+      recovered_oldest = OMG.TestHelper.sign_recover!(comp_oldest, [alice.priv])
 
       # ife-related competitor
       other_ife_event = %{
@@ -1983,14 +1922,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       block =
         txs
-        |> Enum.map(fn tx1 ->
-          {:ok, tx1_recovered} =
-            DevCrypto.sign(tx1, [alice.priv, alice.priv])
-            |> Transaction.Signed.encode()
-            |> Transaction.Recovered.recover_from()
-
-          tx1_recovered
-        end)
+        |> Enum.map(&OMG.TestHelper.sign_recover!(&1, [alice.priv, alice.priv]))
         |> Block.hashed_txs_at(other_blknum)
 
       other_blknum = 3000

@@ -22,7 +22,6 @@ defmodule OMG.API.Integration.HappyPathTest do
   use Plug.Test
 
   alias OMG.Block
-  alias OMG.DevCrypto
   alias OMG.Eth
   alias OMG.Integration.DepositHelper
   alias OMG.RPC.Web.Encoding
@@ -48,12 +47,12 @@ defmodule OMG.API.Integration.HappyPathTest do
   } do
     raw_tx = Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, @eth, 7}, {alice.addr, @eth, 3}], <<0::256>>)
 
-    tx = raw_tx |> DevCrypto.sign([alice.priv, <<>>]) |> Transaction.Signed.encode()
+    tx = raw_tx |> OMG.TestHelper.sign_encode([alice.priv, <<>>])
     # spend the deposit
     assert {:ok, %{"blknum" => spend_child_block}} = submit_transaction(tx)
 
     token_raw_tx = Transaction.new([{token_deposit_blknum, 0, 0}], [{bob.addr, token, 8}, {alice.addr, token, 2}])
-    token_tx = token_raw_tx |> DevCrypto.sign([alice.priv, <<>>]) |> Transaction.Signed.encode()
+    token_tx = token_raw_tx |> OMG.TestHelper.sign_encode([alice.priv, <<>>])
     # spend the token deposit
     assert {:ok, %{"blknum" => spend_token_child_block}} = submit_transaction(token_tx)
 
@@ -78,7 +77,7 @@ defmodule OMG.API.Integration.HappyPathTest do
 
     # repeat spending to see if all works
     raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, @eth, 10}])
-    tx2 = raw_tx2 |> DevCrypto.sign([bob.priv, alice.priv]) |> Transaction.Signed.encode()
+    tx2 = raw_tx2 |> OMG.TestHelper.sign_encode([bob.priv, alice.priv])
     # spend the output of the first tx
     assert {:ok, %{"blknum" => spend_child_block2}} = submit_transaction(tx2)
 
@@ -118,7 +117,7 @@ defmodule OMG.API.Integration.HappyPathTest do
     {:ok, _} = Eth.DevHelpers.wait_for_root_chain_block(exit_eth_height + exiters_finality_margin)
 
     invalid_raw_tx = Transaction.new([{spend_child_block2, 0, 0}], [{alice.addr, @eth, 10}])
-    invalid_tx = invalid_raw_tx |> DevCrypto.sign([alice.priv]) |> Transaction.Signed.encode()
+    invalid_tx = invalid_raw_tx |> OMG.TestHelper.sign_encode([alice.priv])
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(invalid_tx)
   end
 
