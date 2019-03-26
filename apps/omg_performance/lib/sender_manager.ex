@@ -177,7 +177,7 @@ defmodule OMG.Performance.SenderManager do
     destfile = Path.join(destdir, "perf_result_#{:os.system_time(:seconds)}_stats.json")
 
     stats = analyze(state)
-    :ok = File.write(destfile, Poison.encode!(stats))
+    :ok = File.write(destfile, Jason.encode!(stats))
     _ = Logger.info("Performance statistics written to file: #{inspect(destfile)}")
     :ok
   end

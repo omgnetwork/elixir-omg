@@ -29,7 +29,7 @@ defmodule OMG.RPC.Web.TestHelper do
 
     assert response.status == 200
 
-    Poison.decode!(response.resp_body)
+    Jason.decode!(response.resp_body)
   end
 
   defp send_request(req) do

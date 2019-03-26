@@ -37,7 +37,7 @@ defmodule OMG.Watcher.DB.Transaction do
 
   @primary_key {:txhash, :binary, []}
   @derive {Phoenix.Param, key: :txhash}
-  @derive {Poison.Encoder, except: [:__meta__]}
+  @derive {Jason.Encoder, except: [:__meta__]}
   schema "transactions" do
     field(:txindex, :integer)
     field(:txbytes, :binary)

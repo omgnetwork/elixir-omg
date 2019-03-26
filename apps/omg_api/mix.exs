@@ -36,7 +36,7 @@ defmodule OMG.API.MixProject do
 
   defp deps do
     [
-      {:ex_rlp, "~> 0.2.1"},
+      {:ex_rlp, "~> 0.5.2"},
       {:deferred_config, "~> 0.1.1"},
       {:appsignal, "~> 1.0"},
       #

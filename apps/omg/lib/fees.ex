@@ -65,7 +65,7 @@ defmodule OMG.Fees do
   """
   @spec parse_file_content(binary()) :: {:ok, fee_t()} | {:error, list({:error, atom()})}
   def parse_file_content(file_content) do
-    {:ok, json} = Poison.decode(file_content)
+    {:ok, json} = Jason.decode(file_content)
 
     {errors, token_fee_map, _} =
       json

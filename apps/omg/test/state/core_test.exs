@@ -397,10 +397,8 @@ defmodule OMG.State.CoreTest do
   end
 
   @tag fixtures: [:alice, :state_empty]
-  test "deposits emit event triggers, they don't leak into next block", %{
-    alice: alice,
-    state_empty: state
-  } do
+  test "deposits emit event triggers, they don't leak into next block",
+       %{alice: %{addr: alice}, state_empty: state} do
     assert {:ok, {[trigger], _}, state} = Core.deposit([%{owner: alice, currency: @eth, amount: 4, blknum: 1}], state)
 
     assert trigger == %{deposit: %{owner: alice, amount: 4}}
@@ -780,7 +778,7 @@ defmodule OMG.State.CoreTest do
     {_, {block, _, db_updates}, _} = result = Core.form_block(@interval, state)
 
     # check if block returned and sent to db_updates is the same
-    assert Enum.member?(db_updates, {:put, :block, block})
+    assert Enum.member?(db_updates, {:put, :block, Block.to_db_value(block)})
     # check if that's the only db_update for block
     is_block_put? = fn {operation, type, _} -> operation == :put && type == :block end
     assert Enum.count(db_updates, is_block_put?) == 1

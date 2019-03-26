@@ -19,12 +19,11 @@ defmodule OMG.DB.LevelDBServer do
 
   # All complex operations on data written/read should go into OMG.DB.LevelDBCore
 
-  defstruct [:db_ref]
+  defstruct [:db_ref, :name]
 
   use GenServer
   alias OMG.DB.LevelDBCore
   alias OMG.DB.Recorder
-
   require Logger
 
   @doc """
@@ -53,10 +52,10 @@ defmodule OMG.DB.LevelDBServer do
       |> Kernel.<>(".Recorder")
       |> String.to_atom()
 
-    {:ok, _} = Recorder.start_link(%Recorder{name: name, parent: self()})
+    {:ok, _recorder_pid} = Recorder.start_link(%Recorder{name: name, parent: self()})
 
     with {:ok, db_ref} <- Exleveldb.open(db_path, create_if_missing: false) do
-      {:ok, %__MODULE__{db_ref: db_ref}}
+      {:ok, %__MODULE__{name: name, db_ref: db_ref}}
     else
       error ->
         _ = Logger.error("It seems that Child chain database is not initialized. Check README.md")
@@ -64,52 +63,52 @@ defmodule OMG.DB.LevelDBServer do
     end
   end
 
-  def handle_call({:multi_update, db_updates}, _from, %__MODULE__{db_ref: db_ref} = state) do
+  def handle_call({:multi_update, db_updates}, _from, state) do
     result =
       db_updates
       |> LevelDBCore.parse_multi_updates()
-      |> write(db_ref)
+      |> write(state)
 
     {:reply, result, state}
   end
 
-  def handle_call({:blocks, blocks_to_fetch}, _from, %__MODULE__{db_ref: db_ref} = state) do
+  def handle_call({:blocks, blocks_to_fetch}, _from, state) do
     result =
       blocks_to_fetch
       |> Enum.map(fn block -> LevelDBCore.key(:block, block) end)
-      |> Enum.map(fn key -> get(key, db_ref) end)
+      |> Enum.map(fn key -> get(key, state) end)
       |> LevelDBCore.decode_values(:block)
 
     {:reply, result, state}
   end
 
-  def handle_call(:utxos, _from, %__MODULE__{db_ref: db_ref} = state) do
-    result = get_all_by_type(:utxo, db_ref)
+  def handle_call(:utxos, _from, state) do
+    result = get_all_by_type(:utxo, state)
     {:reply, result, state}
   end
 
-  def handle_call(:exit_infos, _from, %__MODULE__{db_ref: db_ref} = state) do
-    result = get_all_by_type(:exit_info, db_ref)
+  def handle_call(:exit_infos, _from, state) do
+    result = get_all_by_type(:exit_info, state)
     {:reply, result, state}
   end
 
-  def handle_call({:block_hashes, block_numbers_to_fetch}, _from, %__MODULE__{db_ref: db_ref} = state) do
+  def handle_call({:block_hashes, block_numbers_to_fetch}, _from, state) do
     result =
       block_numbers_to_fetch
       |> Enum.map(fn block_number -> LevelDBCore.key(:block_hash, block_number) end)
-      |> Enum.map(fn key -> get(key, db_ref) end)
+      |> Enum.map(fn key -> get(key, state) end)
       |> LevelDBCore.decode_values(:block_hash)
 
     {:reply, result, state}
   end
 
-  def handle_call(:in_flight_exits_info, _from, %__MODULE__{db_ref: db_ref} = state) do
-    result = get_all_by_type(:in_flight_exit_info, db_ref)
+  def handle_call(:in_flight_exits_info, _from, state) do
+    result = get_all_by_type(:in_flight_exit_info, state)
     {:reply, result, state}
   end
 
-  def handle_call(:competitors_info, _from, %__MODULE__{db_ref: db_ref} = state) do
-    result = get_all_by_type(:competitor_info, db_ref)
+  def handle_call(:competitors_info, _from, state) do
+    result = get_all_by_type(:competitor_info, state)
     {:reply, result, state}
   end
 
@@ -118,27 +117,27 @@ defmodule OMG.DB.LevelDBServer do
     result =
       parameter
       |> LevelDBCore.key(nil)
-      |> get(state.db_ref)
+      |> get(state)
       |> LevelDBCore.decode_value(parameter)
 
     {:reply, result, state}
   end
 
-  def handle_call({:exit_info, utxo_pos}, _from, %__MODULE__{db_ref: db_ref} = state) do
+  def handle_call({:exit_info, utxo_pos}, _from, state) do
     result =
       :exit_info
       |> LevelDBCore.key(utxo_pos)
-      |> get(db_ref)
+      |> get(state)
       |> LevelDBCore.decode_value(:exit_info)
 
     {:reply, result, state}
   end
 
-  def handle_call({:spent_blknum, utxo_pos}, _from, %__MODULE__{db_ref: db_ref} = state) do
+  def handle_call({:spent_blknum, utxo_pos}, _from, state) do
     result =
       :spend
       |> LevelDBCore.key(utxo_pos)
-      |> get(db_ref)
+      |> get(state)
       |> LevelDBCore.decode_value(:spend)
 
     {:reply, result, state}
@@ -150,16 +149,37 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   # Argument order flipping tools :(
-
-  defp write(operations, db_ref) do
+  defp write(operations, %__MODULE__{db_ref: db_ref, name: __MODULE__}) do
+    _ = Recorder.update_write()
     Exleveldb.write(db_ref, operations)
   end
 
-  defp get(key, db_ref) do
+  defp write(operations, %__MODULE__{db_ref: db_ref, name: name}) do
+    _ = Recorder.update_write(name)
+    Exleveldb.write(db_ref, operations)
+  end
+
+  defp get(key, %__MODULE__{db_ref: db_ref, name: __MODULE__}) do
+    _ = Recorder.update_read()
     Exleveldb.get(db_ref, key)
   end
 
-  defp get_all_by_type(type, db_ref) do
+  defp get(key, %__MODULE__{db_ref: db_ref, name: name}) do
+    _ = Recorder.update_read(name)
+    Exleveldb.get(db_ref, key)
+  end
+
+  defp get_all_by_type(type, %__MODULE__{db_ref: db_ref, name: __MODULE__}) do
+    _ = Recorder.update_multiread()
+    do_get_all_by_type(type, db_ref)
+  end
+
+  defp get_all_by_type(type, %__MODULE__{db_ref: db_ref, name: name}) do
+    _ = Recorder.update_multiread(name)
+    do_get_all_by_type(type, db_ref)
+  end
+
+  defp do_get_all_by_type(type, db_ref) do
     db_ref
     |> Exleveldb.stream()
     |> LevelDBCore.filter_keys(type)

@@ -18,6 +18,8 @@ alias OMG.State.Transaction
 alias OMG.TestHelper
 alias OMG.Integration.DepositHelper
 
+DeferredConfig.populate(:omg_eth)
+
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
 eth = Eth.RootChain.eth_pseudo_address()
@@ -45,7 +47,7 @@ tx =
 %{"data" => %{"blknum" => child_tx_block_number}} =
   ~c(echo '{"transaction": "#{tx}"}' | http POST #{child_chain_url}/transaction.submit) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 # with that block number, we can ask the root chain to give us the block hash
 {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(child_tx_block_number)
@@ -54,7 +56,7 @@ block_hash_enc = OMG.RPC.Web.Encoding.to_hex(block_hash)
 # with the block hash we can get the whole block
 ~c(echo '{"hash":"#{block_hash_enc}"}' | http POST #{child_chain_url}/block.get) |>
 :os.cmd() |>
-Poison.decode!()
+Jason.decode!()
 
 # if you were watching, you could have decoded and validated the transaction bytes in the block
 ```

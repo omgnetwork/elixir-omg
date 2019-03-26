@@ -37,10 +37,8 @@ defmodule OMG.MixProject do
 
   defp deps do
     [
-      {:poison, "~> 3.1"},
       {:propcheck, "~> 1.1", only: [:dev, :test]},
-      {:ex_rlp, "~> 0.2.1"},
-      {:blockchain, "~> 0.1.6"},
+      {:ex_rlp, "~> 0.5.2"},
       {:merkle_tree, "~> 1.5.0"},
       {:deferred_config, "~> 0.1.1"},
       {:appsignal, "~> 1.0"},

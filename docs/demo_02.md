@@ -23,6 +23,8 @@ alias OMG.TestHelper
 alias OMG.Integration.DepositHelper
 alias OMG.Eth.Encoding
 
+DeferredConfig.populate(:omg_eth)
+
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
 eth = Eth.RootChain.eth_pseudo_address()
@@ -62,7 +64,7 @@ tx =
 %{"data" => %{"txhash" => tx1_hash}} =
   ~c(echo '{"transaction": "#{tx}"}' | http POST #{child_chain_url}/transaction.submit) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 # see the Watcher getting a 1-txs block
 
@@ -72,12 +74,12 @@ tx =
 
 ~c(echo '{"id": "#{tx1_hash}"}' | http POST #{watcher_url}/transaction.get) |>
 :os.cmd() |>
-Poison.decode!()
+Jason.decode!()
 
 %{"data" => [_bobs_deposit, %{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
   ~c(echo '{"address": "#{bob_enc}"}' | http POST #{watcher_url}/account.get_utxos) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 # 3/ Exiting, challenging invalid exits
 
@@ -86,7 +88,7 @@ exiting_utxopos = OMG.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum,
 %{"data" => composed_exit} =
   ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST #{watcher_url}/utxo.get_exit_data) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 tx2 =
   Transaction.new([{exiting_utxo_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
@@ -97,7 +99,7 @@ tx2 =
 # FIRST you need to spend in transaction as above, so that the exit then is in fact invalid and challengeable
 ~c(echo '{"transaction": "#{tx2}"}' | http POST #{child_chain_url}/transaction.submit) |>
 :os.cmd() |>
-Poison.decode!()
+Jason.decode!()
 
 {:ok, txhash} =
   Eth.RootChain.start_exit(
@@ -112,7 +114,7 @@ Eth.WaitFor.eth_receipt(txhash)
   ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST #{watcher_url}/utxo.get_challenge_data) |>
   to_charlist() |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 {:ok, txhash} =
   OMG.Eth.RootChain.challenge_exit(
@@ -145,7 +147,7 @@ tx3 =
 %{"success" => true} =
   ~c(echo '{"transaction": "#{tx3}"}' | http POST #{child_chain_url}/transaction.submit) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 # see Watcher's console logs to see the struggle and final give-in. You can restart the Watcher many times
 
@@ -169,7 +171,7 @@ r(OMG.State.Core)
   ~c(echo '{"address": "#{bob_enc}"}' | http POST #{watcher_url}/utxo.get) |>
   to_charlist() |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 tx4 =
   Transaction.new([{spend_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
@@ -180,7 +182,7 @@ tx4 =
 # and send using httpie
 ~c(echo '{"transaction": "#{tx4}"}' | http POST #{child_chain_url}/transaction.submit) |>
 :os.cmd() |>
-Poison.decode!()
+Jason.decode!()
 
 # See the Watcher stop on an error
 ```
