@@ -50,8 +50,6 @@ defmodule OMG.Utxo do
     %{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash}
   end
 
-  def from_db_value(%__MODULE__{} = utxo), do: from_db_value(Map.from_struct(utxo))
-
   def from_db_value(%{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash})
       when is_binary(owner) and is_binary(currency) and is_integer(amount) and is_nil_or_binary(creating_txhash) do
     value = %{owner: owner, currency: currency, amount: amount, creating_txhash: creating_txhash}

@@ -61,8 +61,6 @@ defmodule OMG.Block do
     %{transactions: transactions, hash: hash, number: number}
   end
 
-  def from_db_value(%__MODULE__{} = block), do: from_db_value(Map.from_struct(block))
-
   def from_db_value(%{transactions: transactions, hash: hash, number: number})
       when is_list(transactions) and is_binary(hash) and is_integer(number) do
     value = %{transactions: transactions, hash: hash, number: number}
