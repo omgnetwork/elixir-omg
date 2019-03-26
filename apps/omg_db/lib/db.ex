@@ -30,9 +30,7 @@ defmodule OMG.DB do
   @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
 
   def multi_update(db_updates, server_name \\ @server_name) do
-    {duration, result} = :timer.tc(fn -> GenServer.call(server_name, {:multi_update, db_updates}) end)
-    _ = Logger.debug("DB.multi_update done in #{inspect(round(duration / 1000))} ms")
-    result
+    GenServer.call(server_name, {:multi_update, db_updates})
   end
 
   @spec blocks(block_to_fetch :: list(), atom) :: {:ok, list()} | {:error, any}
@@ -94,26 +92,6 @@ defmodule OMG.DB do
   end
 
   @doc """
-  Does all of the initialization of `OMG.DB` based on the configured path
-  """
-  def init(server_name \\ @server_name) do
-    path = Application.fetch_env!(:omg_db, :leveldb_path)
-    :ok = File.mkdir_p(path)
-
-    with :ok <- server_name.init_storage(path),
-         {:ok, started_apps} <- Application.ensure_all_started(:omg_db),
-         :ok <- initiation_multiupdate(server_name) do
-      started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
-
-      :ok
-    else
-      error ->
-        _ = Logger.error("Unable to init: #{inspect(error)}")
-        error
-    end
-  end
-
-  @doc """
   Puts all zeroes and other init values to a generically initialized `OMG-DB`
   """
   def initiation_multiupdate(server_name \\ @server_name) do
@@ -140,5 +118,25 @@ defmodule OMG.DB do
     ]
     |> Enum.map(&{:put, &1, 0})
     |> OMG.DB.multi_update(server_name)
+  end
+
+  @doc """
+  Does all of the initialization of `OMG.DB` based on the configured path
+  """
+  def init(server_name \\ @server_name) do
+    path = Application.fetch_env!(:omg_db, :leveldb_path)
+    :ok = File.mkdir_p(path)
+
+    with :ok <- server_name.init_storage(path),
+         {:ok, started_apps} <- Application.ensure_all_started(:omg_db),
+         :ok <- initiation_multiupdate(server_name) do
+      started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
+
+      :ok
+    else
+      error ->
+        _ = Logger.error("Unable to init: #{inspect(error)}")
+        error
+    end
   end
 end

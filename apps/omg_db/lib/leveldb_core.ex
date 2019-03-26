@@ -31,27 +31,30 @@ defmodule OMG.DB.LevelDBCore do
 
   @key_types Map.keys(@keys_prefixes)
 
+  @single_value_parameter_names [
+    :child_top_block_number,
+    :last_deposit_child_blknum,
+    :last_block_getter_eth_height,
+    :last_depositor_eth_height,
+    :last_convenience_deposit_processor_eth_height,
+    :last_exiter_eth_height,
+    :last_piggyback_exit_eth_height,
+    :last_in_flight_exit_eth_height,
+    :last_exit_processor_eth_height,
+    :last_convenience_exit_processor_eth_height,
+    :last_exit_finalizer_eth_height,
+    :last_exit_challenger_eth_height,
+    :last_in_flight_exit_processor_eth_height,
+    :last_piggyback_processor_eth_height,
+    :last_competitor_processor_eth_height,
+    :last_challenges_responds_processor_eth_height,
+    :last_piggyback_challenges_processor_eth_height,
+    :last_ife_exit_finalizer_eth_height
+  ]
+
   def parse_multi_updates(db_updates) do
     db_updates
     |> Enum.flat_map(&parse_multi_update/1)
-  end
-
-  defp parse_multi_update({:put, :block, %{number: number, hash: hash} = item}) do
-    [
-      {:put, key_for_item(:block, item), encode_value(:block, item)},
-      {:put, key(:block_hash, number), encode_value(:block_hash, hash)}
-    ]
-  end
-
-  defp parse_multi_update({:put, type, item}), do: [{:put, key_for_item(type, item), encode_value(type, item)}]
-  defp parse_multi_update({:delete, type, item}), do: [{:delete, key(type, item)}]
-
-  defp decode_response(_type, db_response) do
-    case db_response do
-      :not_found -> :not_found
-      {:ok, encoded} -> :erlang.binary_to_term(encoded)
-      other -> {:error, other}
-    end
   end
 
   @doc """
@@ -78,35 +81,8 @@ defmodule OMG.DB.LevelDBCore do
       else: {:ok, raw_decoded}
   end
 
-  defp encode_value(:spend, {_position, blknum}), do: :erlang.term_to_binary(blknum)
-  defp encode_value(_type, value), do: :erlang.term_to_binary(value)
-
   def filter_keys(key_stream, type) when type in @key_types,
     do: do_filter_keys(key_stream, Map.get(@keys_prefixes, type))
-
-  defp do_filter_keys(keys_stream, prefix),
-    do: Stream.filter(keys_stream, fn {key, _} -> String.starts_with?(key, prefix) end)
-
-  @single_value_parameter_names [
-    :child_top_block_number,
-    :last_deposit_child_blknum,
-    :last_block_getter_eth_height,
-    :last_depositor_eth_height,
-    :last_convenience_deposit_processor_eth_height,
-    :last_exiter_eth_height,
-    :last_piggyback_exit_eth_height,
-    :last_in_flight_exit_eth_height,
-    :last_exit_processor_eth_height,
-    :last_convenience_exit_processor_eth_height,
-    :last_exit_finalizer_eth_height,
-    :last_exit_challenger_eth_height,
-    :last_in_flight_exit_processor_eth_height,
-    :last_piggyback_processor_eth_height,
-    :last_competitor_processor_eth_height,
-    :last_challenges_responds_processor_eth_height,
-    :last_piggyback_challenges_processor_eth_height,
-    :last_ife_exit_finalizer_eth_height
-  ]
 
   @doc """
   Produces a type-specific LevelDB key for a combination of type and type-agnostic/LevelDB-ignorant key
@@ -125,4 +101,28 @@ defmodule OMG.DB.LevelDBCore do
   defp key_for_item(:in_flight_exit_info, {position, _info}), do: key(:in_flight_exit_info, position)
   defp key_for_item(:competitor_info, {position, _info}), do: key(:competitor_info, position)
   defp key_for_item(parameter, value) when parameter in @single_value_parameter_names, do: key(parameter, value)
+
+  defp parse_multi_update({:put, :block, %{number: number, hash: hash} = item}) do
+    [
+      {:put, key_for_item(:block, item), encode_value(:block, item)},
+      {:put, key(:block_hash, number), encode_value(:block_hash, hash)}
+    ]
+  end
+
+  defp parse_multi_update({:put, type, item}), do: [{:put, key_for_item(type, item), encode_value(type, item)}]
+  defp parse_multi_update({:delete, type, item}), do: [{:delete, key(type, item)}]
+
+  defp encode_value(:spend, {_position, blknum}), do: :erlang.term_to_binary(blknum)
+  defp encode_value(_type, value), do: :erlang.term_to_binary(value)
+
+  defp decode_response(_type, db_response) do
+    case db_response do
+      :not_found -> :not_found
+      {:ok, encoded} -> :erlang.binary_to_term(encoded)
+      other -> {:error, other}
+    end
+  end
+
+  defp do_filter_keys(keys_stream, prefix),
+    do: Stream.filter(keys_stream, fn {key, _} -> String.starts_with?(key, prefix) end)
 end
