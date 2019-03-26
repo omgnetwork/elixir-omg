@@ -56,6 +56,7 @@ defmodule OMG.Watcher.UtxoSelection do
            }}
           | {:error, :insufficient_funds, list(map())}
           | {:error, :too_many_outputs}
+          | {:error, :empty_transaction}
 
   @doc """
   Given order finds spender's inputs sufficient to perform a payment.
@@ -146,9 +147,14 @@ defmodule OMG.Watcher.UtxoSelection do
       |> Enum.map(fn {_, utxos} -> utxos end)
       |> List.flatten()
 
-    if(Enum.count(outputs) > Transaction.max_outputs(),
-      do: {:error, :too_many_outputs},
-      else:
+    cond do
+      Enum.count(outputs) > Transaction.max_outputs() ->
+        {:error, :too_many_outputs}
+
+      Enum.empty?(inputs) ->
+        {:error, :empty_transaction}
+
+      true ->
         {:ok,
          %{
            inputs: inputs,
@@ -157,7 +163,7 @@ defmodule OMG.Watcher.UtxoSelection do
            metadata: metadata,
            txbytes: create_txbytes(inputs, outputs, metadata)
          }}
-    )
+    end
   end
 
   defp create_merge(owner, utxos_per_token) do
