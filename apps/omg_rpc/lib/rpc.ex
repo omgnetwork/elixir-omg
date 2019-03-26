@@ -12,17 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.ApplicationTest do
-  @moduledoc """
-  Only tests if the application can start and stop and the db can init at some location
-  """
-  use ExUnitFixtures
-  use ExUnit.Case, async: false
-
-  @moduletag :wrappers
-
-  @tag fixtures: [:db_initialized]
-  test "starts and stops app, inits", %{db_initialized: db_result} do
-    assert :ok = db_result
-  end
+defmodule OMG.RPC do
+  @moduledoc false
 end
