@@ -441,7 +441,22 @@ defmodule OMG.API.BlockQueue.Core do
         _ = Logger.debug("Submission #{inspect(submission)} is known transaction - ignored")
         :ok
 
+      # parity error code for duplicated tx
+      {:error, %{"code" => -32_010, "message" => "Transaction with the same hash was already imported."}} ->
+        _ = Logger.debug("Submission #{inspect(submission)} is known transaction - ignored")
+        :ok
+
       {:error, %{"code" => -32_000, "message" => "replacement transaction underpriced"}} ->
+        _ = Logger.debug("Submission #{inspect(submission)} is known, but with higher price - ignored")
+        :ok
+
+      # parity version
+      {:error,
+       %{
+         "code" => -32_010,
+         "message" =>
+           "Transaction gas price is too low. There is another transaction with same nonce in the queue." <> _
+       }} ->
         _ = Logger.debug("Submission #{inspect(submission)} is known, but with higher price - ignored")
         :ok
 
@@ -451,11 +466,6 @@ defmodule OMG.API.BlockQueue.Core do
 
       {:error, %{"code" => -32_000, "message" => "nonce too low"}} ->
         process_nonce_too_low(submission, newest_mined_blknum)
-
-      # parity error code for duplicated tx
-      {:error, %{"code" => -32_010, "message" => "Transaction with the same hash was already imported."}} ->
-        _ = Logger.debug("Submission #{inspect(submission)} is known transaction - ignored")
-        :ok
 
       # parity specific error for nonce-too-low
       {:error, %{"code" => -32_010, "message" => "Transaction nonce is too low." <> _}} ->
