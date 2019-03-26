@@ -19,9 +19,9 @@ defmodule OMG.DB.Recorder do
   use GenServer
   @default_interval 5_000
   @table __MODULE__
-  @write :write
-  @read :read
-  @multiread :multiread
+  @write :leveldb_write
+  @read :leveldb_read
+  @multiread :leveldb_multiread
   @keys [{@write, to_charlist(@write)}, {@read, to_charlist(@read)}, {@multiread, to_charlist(@multiread)}]
 
   @type t :: %__MODULE__{
@@ -41,7 +41,7 @@ defmodule OMG.DB.Recorder do
             reporter: &Appsignal.set_gauge/3,
             tref: nil,
             node: nil,
-            table: @table
+            table: nil
 
   @spec update_write :: integer()
   def update_write(table \\ @table) do
@@ -84,25 +84,15 @@ defmodule OMG.DB.Recorder do
     _ =
       Enum.each(@keys, fn {table_key, key} ->
         case :ets.take(state.table, table_key) do
-          [{^table_key, value}] -> _ = state.reporter.(key, value, %{node: state.node})
-          _ -> :ok
+          [{^table_key, value}] ->
+            _ = state.reporter.(key, value, %{node: state.node})
+
+          _ ->
+            :ok
         end
       end)
 
     {:noreply, state}
-  end
-
-  @spec create_stats_table(t) :: atom()
-  def create_stats_table(%{name: __MODULE__}) do
-    case :ets.whereis(@table) do
-      :undefined ->
-        true = @table == :ets.new(@table, table_settings())
-
-        @table
-
-      _ ->
-        @table
-    end
   end
 
   def create_stats_table(%{name: name}) do

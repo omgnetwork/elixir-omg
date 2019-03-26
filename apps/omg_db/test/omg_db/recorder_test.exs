@@ -31,8 +31,8 @@ defmodule OMG.RecorderTest do
           :pass
 
         {:registered_name, _} ->
-          result = :ets.lookup(Map.get(:sys.get_state(pid), :table), :write)
-          assert [write: 1] == result
+          result = :ets.lookup(Map.get(:sys.get_state(pid), :table), :leveldb_write)
+          assert [leveldb_write: 1] == result
       end
     end)
   end
@@ -47,8 +47,8 @@ defmodule OMG.RecorderTest do
           :pass
 
         {:registered_name, _} ->
-          result = :ets.lookup(Map.get(:sys.get_state(pid), :table), :read)
-          assert [read: 1] == result
+          result = :ets.lookup(Map.get(:sys.get_state(pid), :table), :leveldb_read)
+          assert [leveldb_read: 1] == result
       end
     end)
   end
@@ -63,8 +63,8 @@ defmodule OMG.RecorderTest do
           :pass
 
         {:registered_name, _} ->
-          result = :ets.lookup(Map.get(:sys.get_state(pid), :table), :multiread)
-          assert [multiread: 1] == result
+          result = :ets.lookup(Map.get(:sys.get_state(pid), :table), :leveldb_multiread)
+          assert [leveldb_multiread: 1] == result
       end
     end)
   end
