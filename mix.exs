@@ -25,6 +25,8 @@ defmodule OMG.Umbrella.MixProject do
 
   defp deps do
     [
+      # We override eleveldb as the version used by hexpm is old and does not compile on macOS Mojave
+      {:eleveldb, git: "https://github.com/basho/eleveldb.git", ref: "7920245", manager: :make, override: true},
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.10.6", only: [:test], runtime: false},
