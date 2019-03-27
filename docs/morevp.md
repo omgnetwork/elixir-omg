@@ -167,7 +167,7 @@ The contract can validate that the exiting transaction is correctly formed.
 Another user can challenge one of these signatures by presenting some transaction that created an input such that the true input owner did not sign the signature.
 In this case, the exit would be blocked entirely and the challenging user would receive `exit bond`.
 
-Option (1) checks that a transaction is exitable when the exit is started.
+Option (1) (chosen in the implementation) checks that a transaction is exitable when the exit is started.
 This has lower communication cost and complexity but higher up-front gas cost.
 This option also ensures that only a single exit on any given transaction can exist at any point in time.
 Option (2) allows a user to assert that a transaction is exitable, but leaves the proof to a challenge-response game.
@@ -258,7 +258,7 @@ Piggybacks on outputs should be challenged by standard exits and vice-versa.
 Standard exits on UTXO seen as the input of a in-flight tx exit can be challenged using tx body.
 Canonicity of in-flight exit can be removed by pointing contract to finalized standard exit from in-flight exit inputs, marking particular input as spent.
 
-For details, [see here](mvp_morevp_interaction.md).
+For details, [see here](docs/standard_vs_in_flight_exits_interaction.md).
 
 
 

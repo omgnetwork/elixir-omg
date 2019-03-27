@@ -23,25 +23,19 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
          * [Using the child chain server's API](#using-the-child-chain-servers-api)
             * [HTTP-RPC](#http-rpc)
          * [Running a child chain in practice](#running-a-child-chain-in-practice)
+            * [Private key management](#private-key-management)
+            * [Specifying the fees required](#specifying-the-fees-required)
             * [Funding the operator address](#funding-the-operator-address)
       * [Watcher](#watcher)
          * [Using the watcher](#using-the-watcher)
          * [Endpoints](#endpoints)
-         * [Websockets](#websockets)
-            * [transfer:ethereum_address](#transferethereum_address)
-            * [spends:ethereum_address](#spendsethereum_address)
-            * [receives:ethereum_address](#receivesethereum_address)
-            * [byzantine_invalid_exit](#byzantine_invalid_exit)
-            * [byzantine_bad_chain](#byzantine_bad_chain)
-            * [TODO block](#todo-block)
-            * [TODO deposit_spendable](#todo-deposit_spendable)
-            * [TODO fees](#todo-fees)
+         * [Private key management](#private-key-management-1)
       * [Contracts](#contracts)
          * [Installing dependencies and compiling contracts](#installing-dependencies-and-compiling-contracts)
    * [Testing &amp; development](#testing--development)
    * [Working with API Spec's](#working-with-api-specs)
 
-<!-- Added by: user, at: 2019-02-15T16:18+01:00 -->
+<!-- Added by: user, at: 2019-03-29T14:02+01:00 -->
 
 <!--te-->
 
@@ -139,11 +133,29 @@ All requests shall be POST with parameters provided in the request body in JSON 
 Object's properties names correspond to the names of parameters. Binary values shall be hex-encoded strings.
 
 For API documentation see: https://omisego.github.io/elixir-omg.
-Also see the [step by step transaction generation specs here](docs/tesuji_tx_integration.md).
 
 ### Running a child chain in practice
 
 **TODO** other sections
+
+#### Private key management
+
+Currently, the child chain server assumes that the authority account is unlocked or otherwise available on the Ethereum node.
+This might change in the future.
+
+**NOTE** on `parity` - the above comment is relevant for `geth`.
+Since `parity` doesn't support indefinite unlocking of the account, handling of such key is yet to be solved.
+Currently (an unsafely) such private key is read from a secret system environment variable and handed to `parity` for signing.
+
+#### Specifying the fees required
+
+The child chain server will require the incoming transactions to satisfy the fee requirement.
+The fee requirement reads that at least one token being inputted in a transaction must cover the fee as specified.
+In particular note that the fee required cannot be paid in two tokens, splitting the payment.
+
+The fees are configured in the config entries `:omg_api, :fee_specs_file_path` and `:omg_api, :ignore_fees`.
+ - `ignore_fees` is boolean option allowing to turn off fee charging altogether.
+ - `fee_specs_file_path` is path to file which define fee. Please see [fee_specs.json](fee_specs.json) for an example.
 
 #### Funding the operator address
 
@@ -161,9 +173,6 @@ where
 ```
 child_blocks_per_day = ethereum_blocks_per_day / submit_period
 ```
-**Fee options** configured in `:omg_api, :fee_specs_file_path` and `:omg_api, :ignore_fees`.
- - ignore_fees is boolean option allowing to turn off fee charging.
- - fee_specs_file_path is path to file which define fee. Please see [fee_specs.json](fee_specs.json).
 
 **Submit period** is the number of Ethereum blocks per a single child block submission) - configured in `:omg_api, :child_block_submit_period`
 
@@ -175,12 +184,16 @@ Assuming:
 - submission of a child block every Ethereum block
 - weekly cadence of funding
 - highest gas price 40 Gwei
-- 75071 gas per submission (checked for `RootChain.sol` used  [at this revision](https://github.com/omisego/omisego/commit/21dfb32fae82a59824aa19bbe7db87ecf33ecd04))
+- 71505 gas per submission (checked for `RootChain.sol` [at this revision](https://github.com/omisego/plasma-contracts/commit/50653d52169a01a7d7d0b9e2e4e3c4a4b904f128).
+C.f. [here](https://rinkeby.etherscan.io/tx/0x1a79fdfa310f91625d93e25139e15299b4ab272ae504c56b5798a018f6f4dc7b))
 
 we get
 ```
-gas_reserve ~= 4 * 60 * 24 / 1 * 7 * 75071 * 40 / 10**9  ~= 121 ETH
+gas_reserve ~= 4 * 60 * 24 / 1 * 7 * 71505 * 40 / 10**9  ~= 115 ETH
 ```
+
+**NOTE** that the above calculation doesn't imply this is what is going to be used within a week, just a pessimistic scenario to calculate an adequate reserve.
+If one assumes an _average_ gas price of 4 Gwei, the amount is immediately reduced to ~11.5 ETH weekly.
 
 ## Watcher
 
@@ -199,87 +212,11 @@ The watcher is listening on port `7434` by default.
 
 For API documentation see: https://omisego.github.io/elixir-omg
 
-### Websockets
+### Private key management
 
-Exposed websockets are using [Phoenix channels](https://hexdocs.pm/phoenix/channels.html) feature.
-Different events are emitted for each topic.
-
-There are the following topics:
-
-#### transfer:ethereum_address
-
-Events:
-
-**address_received and address_spent**
-
-`address_received` event informing about that particular address received funds.
-
-`address_spent` event informing about that particular address spent funds.
-
-Blocks are validated by the Watcher after a short (not-easily-configurable) finality margin. By consequence, above events will be emitted no earlier than that finality margin.
-In case extra finality is required for high-stakes transactions, the client is free to wait any number of Ethereum blocks (confirmations) on top of `submitted_at_ethheight`.
-
-```json
-{
-  "topic": "transfer:0xfd5374cd3fe7ba8626b173a1ca1db68696ff3692",
-  "ref": null,
-  "payload": {
-    "child_blknum": 10000,
-    "child_txindex": 12,
-    "child_block_hash": "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec",
-    "submited_at_ethheight": 14,
-    "tx": {
-      "signed_tx": {
-        "raw_tx": {
-          "amount1": 7,
-          "amount2": 3,
-          "blknum1": 2001,
-          "blknum2": 0,
-          "cur12": "0x0000000000000000000000000000000000000000",
-          "newowner1": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
-          "newowner2": "0xae8ae48796090ba693af60b5ea6be3686206523b",
-          "oindex1": 0,
-          "oindex2": 0,
-          "txindex1": 0,
-          "txindex2": 0
-        },
-        "sig1": "0x6bfb9b2dbe32 ...",
-        "sig2": "0xcedb8b31d1e4 ...",
-        "signed_tx_bytes": "0xf3170101c0940000..."
-      },
-      "tx_hash": "0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d",
-      "spender1": "0xbfdf85743ef16cfb1f8d4dd1dfc74c51dc496434",
-      "spender2": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"
-    }
-  },
-  "join_ref": null,
-  "event": "address_received"
-}
-```
-
-**TODO** the rest of the events' specs. First draft:
-
-#### spends:ethereum_address
-
-Events:
-
-**address_spent**
-
-#### receives:ethereum_address
-
-Events:
-
-**address_received**
-
-#### TODO block
-
-#### TODO deposit_spendable
-
-#### TODO fees
-
-Events:
-
-**fees_exited**
+Watcher doesn't hold or manage user's keys.
+All signatures are assumed to be done outside.
+A planned exception may be to allow Watcher to sign challenges, but using a non-sensitive/low-funded Ethereum account.
 
 ## Contracts
 
@@ -312,6 +249,11 @@ mix test
 Longer-running integration tests (requires compiling contracts):
 ```bash
 mix test --only integration
+```
+
+To run these tests with `parity` as a backend, set it via `ETH_NODE` environmental variable (default is `geth`):
+```
+ETH_NODE=parity mix test --only integration
 ```
 
 For other kinds of checks, refer to the CI/CD pipeline (https://circleci.com/gh/omisego/workflows/elixir-omg).

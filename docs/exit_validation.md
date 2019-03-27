@@ -4,7 +4,7 @@ This document describes the exit validation (processing) done by the Watcher in 
 **NOTE** not all of this is implemented yet.
 
 NOTE:
-* `eth_exit_finality_margin` margin exit processor (in Ethereum blocks)
+* `exit_finality_margin` margin exit processor (in Ethereum blocks)
 * `SLA` Service Level Agreement
 * `sla_margin` margin of service level agreement validation (in Ethereum blocks). This is a number of blocks prior to finalization, indicating a period of time that can affect the validity of an exit.
 
@@ -18,11 +18,11 @@ For completeness we give a quick run-down of the rules followed by the Child Cha
 The Child Chain will become invalid if any invalid exit gets finalized.
 2. To satisfy this objective:
     - the Child Chain server listens to every `ExitStarted` Root Chain event and immediately "spends" the exited utxo.
-    This blocks the user from spending that utxo, thus preventing exit invalidation.
-    This immediacy is however limited; the server must wait the same Ethereum blocks' margin as it waits with deposits.
-    Otherwise, an exit from a fresh deposit might be processed before that deposit (and it _must_ wait for deposit's finality).
     - the Child Chain server listens to every `InFlightExitStarted` Root Chain event and immediately "spends" the exiting tx's **inputs**
     - the Child Chain server listens to every `InFlightExitPiggybacked` Root Chain event (on outputs) and immediately "spends" the piggybacked outputs - as long as the IFEing tx has been included in the chain and the output exists
+  These rules block the user from spending an UTXO exiting this way or another, thus preventing exit invalidation.
+  This immediacy is however limited; the server must process deposits before exits.
+  Otherwise, an exit from a fresh deposit might be processed before that deposit (and deposits _must_ wait for finality on the root chain).
 
 There are scenarios, when a race condition/reorg on the root chain might make the Child Chain Server block spending of a particular UTXO **too late**, regardless of the immediacy mentioned above.
 This is acceptable as long as the delay doesn't exceed `scheduled finalization time` minus the predetermined `sla_margin`.
@@ -39,8 +39,8 @@ This is acceptable as long as the delay doesn't exceed `scheduled finalization t
 
 ### Actions that the Watcher should prompt:
 1. If an exit is known to be invalid it should be challenged (almost) immediately
-2. If an exit is invalidated with a transaction submitted *before* `finalization - sla_margin`it must be challenged
-3. If an exit is invalidated with a transaction submitted *after* `finalization - sla_margin` it must be challenged **AND** watcher must prompt an exit **AND** watcher must not allow spending and depositing
+2. If an exit is invalidated with a transaction submitted *before* `scheduled_finalization_time - sla_margin` it must be challenged
+3. If an exit is invalidated with a transaction submitted *after* `scheduled_finalization_time - sla_margin` it must be challenged **AND** watcher must prompt an exit **AND** watcher must not allow spending and depositing
     - because our child chain implementation will never get close to this happening, so it is a symptom of a (subtle) hack attempt on the child chain server.
     By "subtle" we mean that it is a hack that counts on getting away with exit invalidation being submitted too late, rather than on just dropping a huge invalid UTXO and attempting to exit from that
 4. If an exit is invalid and remains unchallenged within a short period of time (`sla_margin`) from its finalization, it must be challenged **AND** watcher must not allow spending and depositing, because:
@@ -68,7 +68,7 @@ Causes an `:unchallenged_exit` event.
 Causes an `:invalid_finalization` event.
 
 ### Solution for above cases:
-2. `ExitProcessor` pulls open exit requests from root chain contract logs, as soon as they're `eth_exit_finality_margin` blocks old (~12 blocks)
+2. `ExitProcessor` pulls open exit requests from root chain contract logs, as soon as they're `exit_finality_margin` blocks old (~12 blocks)
 3. For every open exit request run `State.utxo_exists?` method
     * if `true` -> noop,
     * if `false` -> emit `:invalid_exit` event  which leads to challenge
@@ -76,14 +76,14 @@ Causes an `:invalid_finalization` event.
 4. Spend utxos in `State` on exit finalization or challenging
 5. `ExitProcessor` recognizes exits that are (as seen at the tip of the root chain) already gone, when pulled from old  logs.
 This prevents spurious event raising during syncing.
-6. Checking the validation of exits is user responsibility by calling `/status.get` endpoint. 
+6. Checking the validation of exits is user responsibility by calling `/status.get` endpoint.
 
 
 ### Things considered
-1. We don't want to have any type of exit-related flags in `OMG.API.State`'s utxos
-2. The reason to wait `eth_exit_finality_margin` is to not have a situation, where due to a reorg, an exit is tracked and then vanishes.
+1. We don't want to have any type of exit-related flags in `OMG.State`'s utxos
+2. The reason to wait `exit_finality_margin` is to not have a situation, where due to a reorg, an exit is tracked and then vanishes.
 If we didn't handle that it would grow old and at some point could raise prompts to mass exit (`:unchallenged_exit`).
-An alternative is to always check the current status of every exit, before taking action, but that might create excessive load on `geth` and be quite complex nevertheless
+An alternative is to always check the current status of every exit, before taking action, but that might create excessive load on `geth` and be quite complex
 
 ### Mandatory automatic challenging with a strategy + spend prohibition
 
@@ -111,12 +111,12 @@ Absence of challenges within some period (like `sla_margin`) must result in clie
 
 ## In-flight exits
 
-With MoreVP, we need to handle another type of exit game, which is the in-flight exit game, as specced out [here](morevp.md).
+With MoreVP, we need to handle another type of exit game, which is the in-flight exit game, as specced out [here](docs/morevp.md).
 
 In terms of handling within the Watcher, similar principles will apply:
   - we gather and keep in `OMG.Watcher.ExitProcessor`'s persistent state the current state of in-flight txs and exits
   - we periodically check the validity of this state, emitting events and allowing for actions as necessary
-  - we touch `OMG.API.State` only when the in-flight exit finalizes
+  - we touch `OMG.State` only when the in-flight exit finalizes
   - if some invalid IFE or piggyback runs unchallenged for too long, it should be a prompt to exit (ala `:unchallenged_exit` above)
 
 **[Diagram](https://docs.google.com/drawings/d/1UaAMZTJBbikTM0eFSbNM7ZVgi1HZrLTfwYCUvHGUaW0/edit?usp=sharing)** illustrates the flows described below (with the addition of handling on the Child Chain Server side for comparison).
@@ -145,15 +145,15 @@ This flow is about the user piggybacking (or not), challenging IFEs and respondi
 
 #### new IFEs, competitors, piggybacks
 
-Any `InFlightExitStarted` should, after `eth_exit_finality_margin`, cause the IFE to be tracked and tx added to something called `TxAppendix`.
+Any `InFlightExitStarted` should, after `exit_finality_margin`, cause the IFE to be tracked and tx added to something called `TxAppendix`.
 
-Any competitor published should, after `eth_exit_finality_margin`, be tracked and tx added to `TxAppendix`
+Any competitor published should, after `exit_finality_margin`, be tracked and tx added to `TxAppendix`
 
-Any piggyback done should, after `eth_exit_finality_margin`, be taken into account.
+Any piggyback done should, after `exit_finality_margin`, be taken into account.
 
 #### finalization
 
-Finalization behaves analogically to standard exits - finalization spends in `OMG.API.State` all utxos that actually exit **and existed in the child chain**.
+Finalization behaves analogically to standard exits - finalization spends in `OMG.State` all utxos that actually exit **and existed in the child chain**.
 These spends that fail cause a byzantine chain condition (`unchallenged_exit`)
 
 #### "wait"
@@ -188,7 +188,7 @@ The augmentation consist in that these transactions are taken into account, when
 
 For example consider this:
 There are two competitor transactions that someone starts an IFE for.
-Neither transaction appeared on chain, so we should store these transactions somewhere, to be able to figure out that we should and then how we should challenge such IFE (both transctions are not canonical).
+Neither transaction appeared on chain, so we should store these transactions somewhere, to be able to figure out that we should and then how we should challenge such IFE (both transactions are not canonical).
 
 `TxAppendix` will be a store of such transactions that have been published and are important, but haven't been included in any block, at least not at the time of publishing.
 

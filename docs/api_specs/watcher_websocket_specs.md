@@ -3,67 +3,83 @@
 
 <aside class="warning">TODO Explanation of the WebSocket/ Phoenix Channels mechanism used to receive events</aside>
 
+Exposed via websockets using [Phoenix channels](https://hexdocs.pm/phoenix/channels.html).
+Different events are emitted for each topic.
+
+There are the following topics:
+
 ## Topic `transfer:{address}`
 
 ### Events `address_received` and `address_spent`
 
+`address_received` event informing about that particular address received funds.
+
+`address_spent` event informing about that particular address spent funds.
+
+**NOTE** on finality:
+Blocks are validated by the Watcher after a short (not-easily-configurable) finality margin.
+By consequence, above events will be emitted no earlier than that finality margin.
+In case extra finality is required for high-stakes transactions, the client is free to wait any number of Ethereum blocks (confirmations) on top of `submitted_at_ethheight`.
+
 > An example response of the `address_received` event:
+
+**TODO** the following is an example of current event format. Is likely to change.
 
 ```json
 {
-  "topic": "transfer:0xfd5374cd3fe7ba8626b173a1ca1db68696ff3692",
-  "ref": null,
+  "event": "address_received",
   "payload": {
-    "child_blknum": 10000,
-    "child_txindex": 12,
-    "child_block_hash": "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec",
-    "submited_at_ethheight": 14,
+    "child_blknum": 1000,
+    "child_block_hash": "0x670ca0195c680659c5d71833d347d8ad8da1cd6cb74fd1fab064ea72705f5e4f",
+    "child_txindex": 0,
+    "submited_at_ethheight": 36,
     "tx": {
       "signed_tx": {
         "raw_tx": {
-          "amount1": 7,
-          "amount2": 3,
-          "blknum1": 2001,
-          "blknum2": 0,
-          "cur12": "0x0000000000000000000000000000000000000000",
-          "newowner1": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
-          "newowner2": "0xae8ae48796090ba693af60b5ea6be3686206523b",
-          "oindex1": 0,
-          "oindex2": 0,
-          "txindex1": 0,
-          "txindex2": 0
+          "inputs": [
+            {"blknum": 1, "oindex": 0, "txindex": 0},
+            {"blknum": 0, "oindex": 0, "txindex": 0},
+            {"snip..."}
+          ],
+          "metadata": null,
+          "outputs": [
+            {"amount": 7, "currency": "0x0000000000000000000000000000000000000000", "owner": "0x42ca696117ef67092a3e0374378767cd4e3119ee"},
+            {"amount": 3, "currency": "0x0000000000000000000000000000000000000000", "owner": "0xa746c588a5a05fda7255063d6de63613bdb21b58"},
+            {"amount": 0, "currency": "0x0000000000000000000000000000000000000000", "owner": "0x0000000000000000000000000000000000000000"},
+            {"snip..."}
+          ]
         },
-        "sig1": "0x6bfb9b2dbe32 ...",
-        "sig2": "0xcedb8b31d1e4 ...",
-        "signed_txbytes": "0xf3170101c0940000..."
+        "signed_tx_bytes": "0xf901d2f9010cb841bab1a744 <snip> 0000080",
+        "sigs": [
+          "0xbab1a744b2cd721c774 <snip> 210de00a28b3e4f4abc39dbb1c",
+          "<snip>..."
+        ]
       },
-      "txhash": "0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d",
-      "spender1": "0xbfdf85743ef16cfb1f8d4dd1dfc74c51dc496434",
-      "spender2": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"
+      "spenders": ["0x42ca696117ef67092a3e0374378767cd4e3119ee"],
+      "tx_hash": "0x95429e09250f3bf836a8925aafa325f45f1918088727117ebf8da190fb8627bd"
     }
   },
-  "join_ref": null,
-  "event": "address_received"
+  "topic": "transfer:0x42ca696117ef67092a3e0374378767cd4e3119ee"
 }
 ```
-
-The address_received event informing about that particular address received funds.
-
-The address_spent event informing about that particular address spent funds.
 
 Both event types have the same structure.
 
 Attribute | Type | Description
 --------- | ------- | -----------
-child_blknum | Integer |
-child_txindex | Integer |
-child_block_hash | HEX-encoded string |
-submited_at_ethheight | integer |
-tx | object | Structure of signed transaction
+`child_blknum` | Integer |
+`child_txindex` | Integer |
+`child_block_hash` | HEX-encoded string |
+`submited_at_ethheight` | integer |
+`tx` | object | Structure of signed transaction
 
 ## Topic `exit:{address}`
 
+**NOT IMPLEMENTED**
+
 ### `exit_finalized` event
+
+**NOT IMPLEMENTED**
 
 > An example of exit_finalized event
 
@@ -91,16 +107,20 @@ Informs that exit is finalized and exited amount of currency was transferred to 
 
 Attribute | Type | Description
 --------- | ------- | -----------
-child_blknum | Integer |
-child_txindex | Integer |
-child_oindex | Integer |
-currency | HEX-encoded string |
-amount | integer |
+`child_blknum` | Integer |
+`child_txindex` | Integer |
+`child_oindex` | Integer |
+`currency` | HEX-encoded string |
+`amount` | integer |
 
 
 ## Topic `childchain`
 
+**NOT IMPLEMENTED**
+
 ### Events `new_block`
+
+**NOT IMPLEMENTED**
 
 > An example response of the `new_block` event:
 
@@ -125,17 +145,23 @@ Both event types have the same structure.
 
 Attribute | Type | Description
 --------- | ------- | -----------
-blknum | Integer |
-block_hash | HEX-encoded string |
-ethheight | integer |
-timestamp | integer |
+`blknum` | Integer |
+`block_hash` | HEX-encoded string |
+`ethheight` | integer |
+`timestamp` | integer |
 
+#### deposit_spendable
 
+**TODO** the rest of topics
+
+#### fees
+
+**TODO** the rest of topics
 
 # RootChain - Events
 The RootChain contract raises certain events on Ethereum
 <aside class="warning">TODO We may want to forward these events through the watcher</aside>
-<aside class="warning">TODO Most of these events are not currently implemented in the RootChain contract</aside>
+<aside class="warning">TODO Some of these events are not currently implemented in the RootChain contract</aside>
 
  * new_deposit
  * exit_started

@@ -17,9 +17,9 @@ When an error occurs, `success` will be set to `false` and `data` will contain m
 
 # Error codes description
 
-Code | Description 
+Code | Description
 ---- | -----------  
-server:internal_server_error | Something went wrong on the server. Try again soon. 
+server:internal_server_error | Something went wrong on the server. Try again soon.
 operation:bad_request | Parameters required by this operation are missing or incorrect. More information about error in response object `data/messages` property.
 operation:not_found | Operation cannot be found. Check request URL.
 operation:invalid_content | Content type of application/json header is required for all requests.
@@ -32,3 +32,5 @@ transaction:not_found | Transaction doesn't exist for provided search criteria
 transaction.create:insufficient_funds | Account balance is too low to satisfy the payment.
 transaction.create:too_many_outputs | Total number of payments + change + fees exceed maximum allowed outputs in transaction. We need to reserve one output per payment and one output per change for each currency used in the transaction.
 transaction.create:empty_transaction | Requested payment resulted in empty transaction that transfers no funds.
+
+Refer to `...web/controllers/fallback.ex` family of files for a comprehensive list of error codes and descriptions.

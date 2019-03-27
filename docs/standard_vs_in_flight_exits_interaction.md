@@ -1,5 +1,4 @@
-Standard vs In-flight Exits
-==
+# Standard vs In-flight Exits
 
 Since both Standard exit (aka SE) and In-flight exit (aka IFE) provide an exit opportunity, it is possible to effectively double-spend.
 To prevent such possibility, and to preserve the rule that honest owner can ignore IFE provided that he enjoys data availability, we need a set of rules.
@@ -85,4 +84,3 @@ A: I don't see a way to do it yet.
 
 Q: When IFE/piggyback on output is added, what is the cost of checking if standard exits were performed from output(s)?  
 A: Number of outputs is known on both IFE and piggyback; single SLOAD per output?  
-

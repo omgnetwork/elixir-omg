@@ -17,8 +17,7 @@ These are the key features of the design, which might be seen as main deviations
 
 1. Supports only transactions that transfer value between addresses (Multiple currencies: Eth + ERC20).
 See **Transactions** section.
-(The value transfer can take the form of an atomic swap - two currencies being exchanged in a single transaction.
-See **Atomic Swap** section to see the usage of the atomic swap transaction. FIXME distill this section)
+(The value transfer can take the form of an atomic swap - two currencies being exchanged in a single transaction.)
 5. The network is a non-p2p, proof-of-authority network, i.e. child chain is centrally controlled by a designated, fixed Ethereum address (**child chain operator**), other participants (**users**) connect to the child chain server.
 See **Child chain server** section
 6. The Plasma construction employed is a single-tiered one, i.e. the child chain doesn't serve as a parent of any chain
@@ -91,8 +90,8 @@ Any Ethereum address that proves possession of funds (UTXO) on the child chain, 
 The proof consists in showing the transaction (containing the UTXO as output) and proving inclusion of the transaction in one of the submitted child chain blocks.
 
 However, this isn't the full attestation required to be able to withdraw funds from the root chain contract.
-The submitted (proven) exit request must still withstand a **challenge period** when it can be challenged by anyone who provides proof that the exited UTXO has been spent.
-The proof of such double-spend is similar to the aforementioned proof of possession of funds (inclusion of a certain transaction).
+The submitted (proven) exit request must still withstand a **challenge period** when it can be challenged by anyone who provides evidence that the exited UTXO has been spent.
+The evidence consists in a signed transaction spending the exiting UTXO, regardless of its inclusion.
 
 Exit's challenge period counts from exit request submission till that exit's scheduled finalization time (see below).
 
@@ -222,12 +221,17 @@ The transaction's fee is implicit (think bitcoin), i.e. surplus of the amount be
 
 A child chain transaction will have:
 ```
-    [inpPos1, inpPos2, inpPos3, inpPos4,
-    sig1, sig2,
-    newOwner1, currency1, amount1,
-    newOwner2, currency2, amount2,
-    newOwner3, currency3, amount3,
-    newOwner4, currency4, amount4]
+    [
+      [sig1, sig2, sig3, sig4],
+      [inpPos1, inpPos2, inpPos3, inpPos4],
+      [
+        [newOwner1, currency1, amount1],
+        [newOwner2, currency2, amount2],
+        [newOwner3, currency3, amount3],
+        [newOwner4, currency4, amount4]
+      ],
+      metadata
+    ]
 ```
 
 - `inpPos` - specify the inputs to the transaction.
@@ -235,17 +239,18 @@ Every `inpPos` is an output's unique position, derived from child block number, 
 Every such output must be unspent for the transaction to be valid.
 `inpPos` might be zero if less than 4 inputs are required
 - `sig` is a signature of all the other fields in a transaction, RLP-encoded and hashed.
-A transaction can have up to two signatures even though it can have up to 4 inputs.
-Any of the two signatures may prove any of the four inputs, all inputs must be proven.
-This forces transactions with over two inputs to have multiple inputs with the same owner.
-The decision to have at most two owners was made to increase simplicity because having more than two owners for creating transactions is difficult in most real world cases.
-This form of transaction is the minimal that allows for atomic swaps with change, see **Atomic Swaps** section.
-`sig` may be 65 zero bytes if no signature is provided.
+A transaction must have a non-zero signature per every non-zero input used, under the same indices.
+Any zero input must have a zero signature (65 zero bytes) delivered.
 - `newOwner`, `currency` and `amount` specify a single output with the address of the new owner for a given amount of currency
+- `metadata` is an optional field that can hold any 32bytes-worth of data.
+It isn't involved in any form of logic, it only is included in the Transaction hashes preimage.
+To not have it, this item should just be skipped in the array
+- All zero outputs, inputs must come after the non-zero ones.
 
 **NOTE** To create a valid transaction, a user needs to have access to positions of all the UTXOs that they own.
 
-For a hands-on specs of transaction format see [here](docs/tesuji_tx_integration.md).
+**TODO** A detailed documentation of transaction encoding scheme used is pending.
+As a temporary source of information refer to the implementation details in `elixir-omg` repo [with an entrypoint here.](https://github.com/omisego/elixir-omg/blob/master/apps/omg/lib/state/transaction/signed.ex#L35)
 
 ### Fees
 
@@ -265,7 +270,7 @@ The watcher is assumed to be run by the users, or taken differently, to be trust
 Proper functioning of the watcher is critical to the security of funds deposited.
 
 The watcher is responsible for pinging the child chain server to ensure that everything is valid.
-The watcher will watch the root chain contract for a `childBlock` log (a submission of a child chain block).
+The watcher will watch the root chain contract for a `BlockSubmitted` event log (a submission of a child chain block).
 As soon as it receives a log it will ping the child chain for the full block and then make sure the block is valid and that it's root matches the child chain root submitted.
 
 The watcher will check for the following conditions of chain invalidity.
@@ -295,40 +300,8 @@ As soon as one watcher detects the child chain to be invalid, all others will as
 Watcher takes on an additional responsibility: collecting and storing data relevant to secure handling of user's assets on the child chain:
 
 1. UTXOs in possession of the address holding assets
-2. Full transaction history (only if the Watcher is tasked with challenging)
+2. Full transaction history (child chain blocks)
 
 ## Exchange
 
-This section outlines what the two flows of using the exchange sitting on top of Tesuji Plasma OmiseGO network could look like.
-First (the baseline one) is a centralized exchange that takes custody over its user's funds.
-The second one attempts to remove the need to give custody over user's funds to the exchange.
-
-### Custodial exchange
-
-An exchange will take custody of funds and then redistribute them.
-The centralized exchange minimizes the amount of funds in custody and the amount of time they have custody to minimize risk of funds being lost, though this is not enforced on the child chain.
-Custody is limited to the period between placing an order and order being matched and executed.
-This is shorter, than in the situation where custody of funds is held between the deposit and withdrawal from the exchange done on the root chain.
-
-Because the centralized exchange has custody they'll be able to support whatever order types and fee structures they want on Plasma MVP.
-
-An example of how a user could interact with the centralized exchange would be:
-
-1. Alice wants to trade Ether for OMG tokens and goes to an exchanges website.
-1. There Alice is told that she has no tokens on the Plasma chain and is asked the currency and denomination she'd like to deposit.
-1. She chooses 2 Ether, clicks deposit and is prompted to sign a metamask transaction.  
-1. Alice watches her deposit transaction sink lower as more Ethereum blocks get mined on top of the deposit transaction block until sufficient block confirmations have been received from Ethereum (~12 blocks).
-1. Alice is prompted to enter the parameters for her order; a price she'd like to trade at, the currency she'd like to trade to and from, and the quantity she'd like to trade.
-Alice fills in 2 Ether, OMG and at .02 Ether per OMG and clicks submit.
-1. Alice is then prompted to add the OMG Network custom rpc to metamask and sign her order transaction.
-1. The exchanges website watches Alice's transaction get included in a child chain block that's submitted to the root chain, once this happens her order enters the orderbook and once it's conditions are met the order is filled.
-1. Once the order is filled the exchange sends a transaction to Alice settling the order.
-Alices receives her funds minus an exchange fee (exchange specific) and a plasma fee (set on Plasma chain) from the exchange.
-
-Important:  In this example the exchange has custody between the time Alice sends the order and when Alice receives the settlement (or refund, in case the Alice cancels the order).
-
-The centralized exchange will be responsible for creating well formed Plasma transactions for users to sign.
-
-### Atomic swaps
-
-(FIXME: section taken from the former "User flows" secion. Rethink/rewrite)
+See [here](docs/dex_design.md) for a high-level discussion about exchange designs on top of Tesuji plasma.
