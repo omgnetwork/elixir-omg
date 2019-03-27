@@ -85,16 +85,12 @@ defmodule OMG.Fees do
     |> Enum.all?(fn predicate -> predicate.(recovered_tx) end)
   end
 
-  @empty_input Utxo.position(0, 0, 0)
-  @empty_output %{owner: OMG.Eth.zero_address(), currency: OMG.Eth.RootChain.eth_pseudo_address(), amount: 0}
-
   defp has_same_account?(%Transaction.Recovered{
          signed_tx: %Transaction.Signed{raw_tx: raw_tx},
          spenders: spenders
        }) do
     raw_tx
     |> Transaction.get_outputs()
-    |> Enum.reject(&(@empty_output == &1))
     |> Enum.map(& &1.owner)
     |> Enum.concat(spenders)
     |> single?()
@@ -105,7 +101,6 @@ defmodule OMG.Fees do
        }) do
     raw_tx
     |> Transaction.get_outputs()
-    |> Enum.reject(&(@empty_output == &1))
     |> Enum.map(& &1.currency)
     |> single?()
   end
@@ -113,16 +108,10 @@ defmodule OMG.Fees do
   defp has_less_outputs_than_inputs?(%Transaction.Recovered{
          signed_tx: %Transaction.Signed{raw_tx: raw_tx}
        }) do
-    # we need to filter out placeholders
-    inputs =
-      Transaction.get_inputs(raw_tx)
-      |> Enum.reject(&(@empty_input == &1))
-
-    outputs =
+    has_less_outputs_than_inputs?(
+      Transaction.get_inputs(raw_tx),
       Transaction.get_outputs(raw_tx)
-      |> Enum.reject(&(@empty_output == &1))
-
-    has_less_outputs_than_inputs?(inputs, outputs)
+    )
   end
 
   defp has_less_outputs_than_inputs?(inputs, outputs), do: length(inputs) >= 1 and length(inputs) > length(outputs)

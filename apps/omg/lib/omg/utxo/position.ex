@@ -47,10 +47,6 @@ defmodule OMG.Utxo.Position do
     Utxo.position(blknum, txindex, oindex)
   end
 
-  @spec non_zero?(t()) :: boolean()
-  def non_zero?(Utxo.position(0, 0, 0)), do: false
-  def non_zero?(Utxo.position(_, _, _)), do: true
-
   @spec to_db_key(t()) :: {pos_integer, non_neg_integer, non_neg_integer}
   def to_db_key(Utxo.position(blknum, txindex, oindex)), do: {blknum, txindex, oindex}
 

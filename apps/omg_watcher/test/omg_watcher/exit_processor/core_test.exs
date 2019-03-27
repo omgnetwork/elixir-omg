@@ -1713,7 +1713,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         required_priv_key_list =
           comp
           |> Transaction.get_inputs()
-          |> Enum.filter(&Utxo.Position.non_zero?/1)
           |> Enum.count()
           |> (&List.duplicate(alice.priv, &1)).()
 
