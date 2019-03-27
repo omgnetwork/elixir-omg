@@ -928,7 +928,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
            tx: %Transaction.Signed{raw_tx: %Transaction{outputs: outputs} = tx} = signed_tx
          } = ife
        ) do
-    %Transaction.Recovered{spenders: input_owners} = recover_correct_tx_struct!(signed_tx)
+    {:ok, input_owners} = Transaction.Signed.get_spenders(signed_tx)
 
     available_inputs =
       input_owners
@@ -1069,7 +1069,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
     %Transaction.Signed{raw_tx: raw_known_tx} = known_signed_tx
     known_spent_inputs = Transaction.get_inputs(raw_known_tx) |> Enum.filter(&Utxo.Position.non_zero?/1)
-    %Transaction.Recovered{spenders: input_owners} = recover_correct_tx_struct!(signed_ife_tx)
+    {:ok, input_owners} = Transaction.Signed.get_spenders(signed_ife_tx)
 
     # get info about the double spent input and it's respective indices in transactions
     spent_input = competitor_for(signed_ife_tx, known_signed_tx)
@@ -1192,7 +1192,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   defp get_known_txs(%Block{transactions: txs, number: blknum}) do
     txs
     |> Enum.map(fn tx_bytes ->
-      %Transaction.Recovered{signed_tx: signed} = recover_correct_tx!(tx_bytes)
+      {:ok, signed} = Transaction.Signed.decode(tx_bytes)
       signed
     end)
     |> Enum.with_index()
@@ -1204,15 +1204,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   # we're sorting the blocks by their blknum here, because we wan't oldest (best) competitors first always
   defp get_known_txs([%Block{} | _] = blocks),
     do: blocks |> Enum.sort_by(fn block -> block.number end) |> Enum.flat_map(&get_known_txs/1)
-
-  # recovers a transaction which comes from a place where it's known to be correct (block, ife)
-  defp recover_correct_tx!(tx_bytes), do: Transaction.Recovered.recover_from!(tx_bytes)
-
-  defp recover_correct_tx_struct!(%Transaction.Signed{} = signed_tx) do
-    # this is very ugly. Caused by us using a Transaction.Recovered.recover_from function which takes in bytes
-    # TODO: are there better ways without bloating the APIs? Punted till when we refactor ExitProcessor logic
-    signed_tx |> Transaction.Signed.encode() |> recover_correct_tx!()
-  end
 
   # based on an enumberable of `Utxo.Position` and a mapping that tells whether one exists it will pick
   # only those that **were checked** and were missing

@@ -76,31 +76,9 @@ defmodule OMG.State.Transaction.Recovered do
   end
 
   @spec recover_from_struct(Transaction.Signed.t()) :: {:ok, t()} | {:error, recover_tx_error()}
-  defp recover_from_struct(%Transaction.Signed{raw_tx: raw_tx, sigs: sigs} = signed_tx) do
-    hash_without_sigs = Transaction.hash(raw_tx)
-
-    with {:ok, reversed_spenders} <- get_reversed_spenders(hash_without_sigs, sigs),
-         do:
-           {:ok,
-            %__MODULE__{
-              tx_hash: Transaction.hash(raw_tx),
-              spenders: reversed_spenders |> Enum.reverse(),
-              signed_tx: signed_tx
-            }}
-  end
-
-  defp get_reversed_spenders(hash_without_sigs, sigs) do
-    sigs
-    |> Enum.filter(fn sig -> sig != @empty_signature end)
-    |> Enum.reduce_while({:ok, []}, fn sig, acc -> get_spender(hash_without_sigs, sig, acc) end)
-  end
-
-  defp get_spender(hash_without_sigs, sig, {:ok, spenders}) do
-    Crypto.recover_address(hash_without_sigs, sig)
-    |> case do
-      {:ok, spender} -> {:cont, {:ok, [spender | spenders]}}
-      error -> {:halt, error}
-    end
+  defp recover_from_struct(%Transaction.Signed{raw_tx: raw_tx} = signed_tx) do
+    with {:ok, spenders} <- Transaction.Signed.get_spenders(signed_tx),
+         do: {:ok, %__MODULE__{tx_hash: Transaction.hash(raw_tx), spenders: spenders, signed_tx: signed_tx}}
   end
 
   defp valid?(%Transaction.Signed{

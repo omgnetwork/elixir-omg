@@ -21,6 +21,7 @@ defmodule OMG.State.Transaction.Signed do
   alias OMG.State.Transaction
 
   @signature_length 65
+  @empty_signature <<0::size(520)>>
   @type tx_bytes() :: binary() | nil
 
   defstruct [:raw_tx, :sigs, :signed_tx_bytes]
@@ -42,6 +43,31 @@ defmodule OMG.State.Transaction.Signed do
   def decode(signed_tx_bytes) do
     with {:ok, raw_tx_rlp_decoded_chunks} <- try_exrlp_decode(signed_tx_bytes),
          do: reconstruct(raw_tx_rlp_decoded_chunks, signed_tx_bytes)
+  end
+
+  @doc """
+  Recovers the spenders for non-empty signatures, in the order they appear in transaction's signatures
+  """
+  @spec get_spenders(t()) :: {:ok, list(Crypto.address_t())} | {:error, atom}
+  def get_spenders(%Transaction.Signed{raw_tx: raw_tx, sigs: sigs}) do
+    hash_without_sigs = Transaction.hash(raw_tx)
+
+    with {:ok, reversed_spenders} <- get_reversed_spenders(hash_without_sigs, sigs),
+         do: {:ok, Enum.reverse(reversed_spenders)}
+  end
+
+  defp get_reversed_spenders(hash_without_sigs, sigs) do
+    sigs
+    |> Enum.filter(fn sig -> sig != @empty_signature end)
+    |> Enum.reduce_while({:ok, []}, fn sig, acc -> get_spender(hash_without_sigs, sig, acc) end)
+  end
+
+  defp get_spender(hash_without_sigs, sig, {:ok, spenders}) do
+    Crypto.recover_address(hash_without_sigs, sig)
+    |> case do
+      {:ok, spender} -> {:cont, {:ok, [spender | spenders]}}
+      error -> {:halt, error}
+    end
   end
 
   defp try_exrlp_decode(signed_tx_bytes) do
