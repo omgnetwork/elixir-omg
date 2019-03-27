@@ -73,14 +73,11 @@ defmodule OMG.Watcher.Web.Controller.InFlightExitTest do
 
     # gets the input transactions, as expected from the endpoint - based on the position and initial_blocks fixture
     defp get_input_txs(initial_blocks, positions) do
-      filler = List.duplicate(nil, 4 - length(positions))
-
       initial_blocks
       |> Enum.filter(fn {blknum, txindex, _, _} -> {blknum, txindex} in positions end)
       # reversing, because the inputs are reversed in the IFtx below, and we need that order, not by position!
       |> Enum.reverse()
       |> Enum.map(fn {_, _, _, %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: raw_tx}}} -> raw_tx end)
-      |> Enum.concat(filler)
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox, :bob]
