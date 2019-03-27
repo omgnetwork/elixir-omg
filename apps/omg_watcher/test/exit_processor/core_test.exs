@@ -756,6 +756,25 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.invalid_exits(processor)
     end
 
+    @tag fixtures: [:processor_empty, :alice]
+    test "detects available piggyback correctly, even if signed multiple times",
+         %{processor_empty: processor, alice: alice} do
+      # there is leeway in the contract, that allows IFE transactions to hold non-zero signatures for zero-inputs
+      # we want to be sure that this doesn't crash the `ExitProcessor`
+      tx = Transaction.new([{1, 0, 0}], [])
+      txbytes = Transaction.encode(tx)
+      signature = DevCrypto.sign(tx, [alice.priv, alice.priv, alice.priv, alice.priv]) |> Map.get(:sigs) |> Enum.join()
+
+      ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
+      ife_status = {1, @non_zero_exit_id}
+
+      {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
+
+      assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes}]} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> Core.invalid_exits(processor)
+    end
+
     @tag fixtures: [:alice, :processor_filled, :transactions]
     test "doesn't detect available piggybacks because txs seen in valid block", %{
       alice: alice,
