@@ -99,7 +99,7 @@ defmodule OMG.API.Integration.HappyPathTest do
     assert {:error, %{"code" => "submit:utxo_not_found"}} = submit_transaction(token_tx)
 
     # try to exit from transaction2's output
-    proof = Block.inclusion_proof(%Block{transactions: [tx2]}, 0)
+    proof = Block.inclusion_proof([tx2], 0)
     encoded_utxo_pos = Utxo.position(spend_child_block2, 0, 0) |> Utxo.Position.encode()
     raw_txbytes = Transaction.raw_txbytes(raw_tx2)
 
@@ -136,7 +136,7 @@ defmodule OMG.API.Integration.HappyPathTest do
       in_flight_tx =
       OMG.TestHelper.create_signed([{blknum, txindex, 0, alice}, {blknum, txindex, 1, alice}], @eth, [{alice, 10}])
 
-    proof = Block.inclusion_proof(%Block{transactions: [Transaction.Signed.encode(tx)]}, 0)
+    proof = Block.inclusion_proof([Transaction.Signed.encode(tx)], 0)
 
     {:ok, %{"status" => "0x1", "blockNumber" => eth_height}} =
       Eth.RootChain.in_flight_exit(
@@ -171,7 +171,7 @@ defmodule OMG.API.Integration.HappyPathTest do
       Eth.RootChain.in_flight_exit(
         in_flight_tx2_rawbytes,
         get_input_txs([deposit_tx]),
-        Block.inclusion_proof(%Block{transactions: [Transaction.Signed.encode(deposit_tx)]}, 0),
+        Block.inclusion_proof([Transaction.Signed.encode(deposit_tx)], 0),
         Enum.join(sigs),
         alice.addr
       )

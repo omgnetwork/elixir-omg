@@ -13,12 +13,7 @@
 # limitations under the License.
 defmodule OMG.RootChainCoordinator.Service do
   @moduledoc """
-  Represents a service that is coordinated by root chain coordinator.
-  Such a service is expected to get root chain height by calling `RootChainCoordinator.get_height()` function
-  and report processed height by calling `RootChainCoordiantor.check_in(height, service_name)`
-  where `service_name` is a unique name of that service.
-  Service is expected to handle `:sync` message that notifies about necessity to check synchronization status by calling
-  `OMG.RootChainCoordinator.get_height/0`.
+  Represents a state of a service that is coordinated by `RootChainCoordinator.Core`
   """
 
   defstruct synced_height: nil, pid: nil

@@ -17,7 +17,8 @@ defmodule OMG.API.FreshBlocks.Core do
   Logic of the service to serve freshest blocks quickly.
   """
 
-  # NOTE: Pending discussion/solution how we're going to really scale this?
+  # NOTE: Pending discussion/solution how we're going to really scale this? In some scaling approaches to `get_block`,
+  # this might end up being completely redundant
 
   alias OMG.Block
 

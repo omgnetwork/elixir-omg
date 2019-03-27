@@ -70,6 +70,11 @@ defmodule OMG.EthereumEventListener.Core do
 
   def init(_, _, _, _), do: {:error, :invalid_init}
 
+  @doc """
+  Provides a uniform way to get the height to check in.
+
+  Every call to RootChainCoordinator.check_in should use value taken from this, after all mutations to the state
+  """
   @spec get_height_to_check_in(t()) :: non_neg_integer()
   def get_height_to_check_in(%__MODULE__{synced_height: synced_height}), do: synced_height
 
@@ -104,6 +109,9 @@ defmodule OMG.EthereumEventListener.Core do
     {:get_events, {old_upper_bound + 1, next_upper_bound}, new_state}
   end
 
+  @doc """
+  Stores the freshly fetched ethereum events into a memory-cache
+  """
   @spec add_new_events(t(), list(event)) :: t()
   def add_new_events(
         %__MODULE__{cached: %{data: data} = cached_data} = state,
@@ -112,6 +120,9 @@ defmodule OMG.EthereumEventListener.Core do
     %__MODULE__{state | cached: %{cached_data | data: data ++ new_events}}
   end
 
+  @doc """
+  Pop some ethereum events stored in the memory-cache, up to a certain height
+  """
   @spec get_events(t(), non_neg_integer) :: {:ok, list(event), list(), non_neg_integer, t()}
   def get_events(
         %__MODULE__{synced_height_update_key: update_key, cached: %{data: data}} = state,

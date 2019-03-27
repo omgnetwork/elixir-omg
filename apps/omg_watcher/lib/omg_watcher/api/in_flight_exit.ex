@@ -14,7 +14,7 @@
 
 defmodule OMG.Watcher.API.InFlightExit do
   @moduledoc """
-  Module provides API for transactions
+  Module provides API for starting, validating and challenging in-flight exits
   """
 
   alias OMG.State.Transaction

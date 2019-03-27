@@ -14,11 +14,7 @@
 
 defmodule OMG.Watcher.ExitProcessor do
   @moduledoc """
-  Encapsulates managing and executing the behaviors related to treating exits by the child chain and watchers
-  Keeps a state of exits that are in progress, updates it with news from the root chain, compares to the
-  state of the ledger (`OMG.State`), issues notifications as it finds suitable.
-
-  Should manage all kinds of exits allowed in the protocol and handle the interactions between them.
+  Imperative shell here, for functional core and more info see `OMG.Watcher.ExitProcessor.Core`
 
   NOTE: Note that all calls return `db_updates` and relay on the caller to do persistence.
   """
@@ -32,7 +28,9 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.DB
   alias OMG.Eth
   alias OMG.Watcher.ExitProcessor
-  alias ExitProcessor.{Challenge, Core, InFlightExitInfo}
+  alias OMG.Watcher.ExitProcessor.Core
+  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias OMG.Watcher.ExitProcessor.StandardExitChallenge
   alias OMG.Watcher.Recorder
 
   use OMG.LoggerExt
@@ -168,7 +166,7 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns challenge for an exit
   """
   @spec create_challenge(Utxo.Position.t()) ::
-          {:ok, Challenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
+          {:ok, StandardExitChallenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
   def create_challenge(exiting_utxo_pos) do
     GenServer.call(__MODULE__, {:create_challenge, exiting_utxo_pos})
   end

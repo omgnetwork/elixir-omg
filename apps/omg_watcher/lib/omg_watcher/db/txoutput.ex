@@ -81,15 +81,13 @@ defmodule OMG.Watcher.DB.TxOutput do
     with %{amount: amount, currency: currency, owner: owner} <- get_by_position(decoded_utxo_pos) do
       tx = Transaction.new([], [{owner, currency, amount}])
 
-      block = %Block{
-        transactions: [%Transaction.Signed{raw_tx: tx, sigs: []} |> Transaction.Signed.encode()]
-      }
+      txs = [%Transaction.Signed{raw_tx: tx, sigs: []} |> Transaction.Signed.encode()]
 
       {:ok,
        %{
          utxo_pos: decoded_utxo_pos |> Utxo.Position.encode(),
          txbytes: tx |> Transaction.raw_txbytes(),
-         proof: Block.inclusion_proof(block, 0)
+         proof: Block.inclusion_proof(txs, 0)
        }}
     else
       _ -> {:error, :no_deposit_for_given_blknum}
@@ -107,9 +105,7 @@ defmodule OMG.Watcher.DB.TxOutput do
 
     {:ok, %Transaction.Signed{sigs: sigs} = tx} = Transaction.Signed.decode(signed_tx)
 
-    proof =
-      %Block{transactions: sorted_tx_bytes}
-      |> Block.inclusion_proof(txindex)
+    proof = sorted_tx_bytes |> Block.inclusion_proof(txindex)
 
     utxo_pos = decoded_utxo_pos |> Utxo.Position.encode()
     sigs = Enum.join(sigs)

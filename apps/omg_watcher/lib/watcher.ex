@@ -13,5 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.Watcher do
-  @moduledoc false
+  @moduledoc """
+  Watcher is responsible for syncing and validating the child chain, and providing a secure API to it.
+
+  For details see [here](README.md) and [here](docs/tesuji_blockchain_design.md)
+  """
 end

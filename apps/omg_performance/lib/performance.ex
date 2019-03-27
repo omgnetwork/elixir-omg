@@ -18,15 +18,22 @@ defmodule OMG.Performance do
 
   # Usage
 
-  Always `cd apps/omg_performance` before running performance tests
+  See functions in this module for options available
 
   ## start_simple_perftest runs test with 5 transactions for each 3 senders and default options.
-    ```> mix run -e 'OMG.Performance.start_simple_perftest(5, 3)'```
+
+  ```
+  mix run --no-start -e 'OMG.Performance.start_simple_perftest(5, 3)'
+  ```
 
   ## start_extended_perftest runs test with 100 transactions for one specified account and default options.
   ## extended test is run on testnet make sure you followed instruction in `README.md` and both `geth` and `omg_api` are running
-    ```> mix run -e 'OMG.Performance.start_extended_perftest(100, [%{ addr: <<192, 206, 18, ...>>, priv: <<246, 22, 164, ...>>}], "0xbc5f ...")'```
-  ## Parameters passed are:  1. number of transaction each sender will send, 2. list of senders (see: TestHelper.generate_entity()) and 3. `contract` address
+
+  ```
+  mix run --no-start -e 'OMG.Performance.start_extended_perftest(100, [%{ addr: <<192, 206, 18, ...>>, priv: <<246, 22, 164, ...>>}], "0xbc5f ...")'
+  ```
+
+  ## Parameters passed are: 1. number of transaction each sender will send, 2. list of senders (see: TestHelper.generate_entity()) and 3. `contract` address
 
   # Note:
 

@@ -24,16 +24,20 @@ defmodule OMG.State.Transaction.Signed do
 
   @signature_length 65
   @empty_signature <<0::size(520)>>
-  @type tx_bytes() :: binary() | nil
+  @type tx_bytes() :: binary()
 
   defstruct [:raw_tx, :sigs, :signed_tx_bytes]
 
   @type t() :: %__MODULE__{
           raw_tx: Transaction.t(),
           sigs: [Crypto.sig_t()],
-          signed_tx_bytes: tx_bytes()
+          signed_tx_bytes: tx_bytes() | nil
         }
 
+  @doc """
+  Produce a binary form of a signed transaction - coerces into RLP-encodeable structure and RLP encodes
+  """
+  @spec encode(t()) :: tx_bytes()
   def encode(%__MODULE__{
         raw_tx: raw_tx,
         sigs: sigs
@@ -42,6 +46,11 @@ defmodule OMG.State.Transaction.Signed do
     |> ExRLP.encode()
   end
 
+  @doc """
+  Produces a struct from the binary encoded form of a signed transactions - RLP decodes to structure of RLP-items
+  and then produces an Elixir struct
+  """
+  @spec decode(tx_bytes()) :: {:ok, t()} | {:error, atom}
   def decode(signed_tx_bytes) do
     with {:ok, raw_tx_rlp_decoded_chunks} <- try_exrlp_decode(signed_tx_bytes),
          do: reconstruct(raw_tx_rlp_decoded_chunks, signed_tx_bytes)

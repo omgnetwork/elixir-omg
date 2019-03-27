@@ -14,7 +14,8 @@
 
 defmodule OMG.Utxo.Position do
   @moduledoc """
-  Representation of a UTXO position in the child chain, providing encoding/decoding to/from format digestible in Eth
+  Representation of a UTXO position in the child chain, providing encoding/decoding to/from formats digestible in `Eth`
+  and in the `OMG.DB`
   """
 
   # these two offset constants are driven by the constants from the RootChain.sol contract
@@ -34,6 +35,8 @@ defmodule OMG.Utxo.Position do
           non_neg_integer
         }
 
+  @type db_t() :: {pos_integer, non_neg_integer, non_neg_integer}
+
   @spec encode(t()) :: pos_integer()
   def encode(Utxo.position(blknum, txindex, oindex)),
     do: blknum * @block_offset + txindex * @transaction_offset + oindex
@@ -51,10 +54,10 @@ defmodule OMG.Utxo.Position do
   def non_zero?(Utxo.position(0, 0, 0)), do: false
   def non_zero?(Utxo.position(_, _, _)), do: true
 
-  @spec to_db_key(t()) :: {pos_integer, non_neg_integer, non_neg_integer}
+  @spec to_db_key(t()) :: db_t()
   def to_db_key(Utxo.position(blknum, txindex, oindex)), do: {blknum, txindex, oindex}
 
-  @spec from_db_key({pos_integer, non_neg_integer, non_neg_integer}) :: t()
+  @spec from_db_key(db_t()) :: t()
   def from_db_key({blknum, txindex, oindex}), do: Utxo.position(blknum, txindex, oindex)
 
   def blknum(Utxo.position(blknum, _, _)), do: blknum

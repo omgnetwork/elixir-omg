@@ -48,7 +48,7 @@ defmodule OMG.Fees do
   end
 
   @doc """
-  Returns fees for particular transaction
+  Returns fees to require for a particular transaction, and under particular fee specs listed in `fee_map`
   """
   @spec for_tx(Transaction.Recovered.t(), fee_t()) :: fee_t()
   def for_tx(tx, fee_map) do

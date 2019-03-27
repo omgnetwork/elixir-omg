@@ -16,7 +16,9 @@ defmodule OMG.RootChainCoordinator.Core do
   Synchronizes multiple log-reading services on root chain height.
   Each synchronized service must have a unique name.
   Service reports its height by calling 'check_in'.
-  After all the services are checked in, coordinator returns currently synchronizable height, for every service which asks
+  After all the services are checked in, coordinator returns currently synchronizable height,
+  for every service which asks by calling `RootChainCoordinator.get_height()`
+
   In case a service fails, it is checked out and coordinator does not resume until the missing service checks_in again.
   Coordinator periodically updates root chain height, looks after finality margins and ensures geth-queries aren't huge.
 
@@ -70,20 +72,31 @@ defmodule OMG.RootChainCoordinator.Core do
     end
   end
 
-  defp allowed?(configs_services, service_name), do: Map.has_key?(configs_services, service_name)
+  @doc """
+  Removes service from services being synchronized
+  """
+  @spec check_out(t(), pid()) :: {:ok, t()}
+  def check_out(%__MODULE__{} = state, pid) do
+    {service_name, _} =
+      state.services
+      |> Enum.find(fn {_, service} -> service.pid == pid end)
 
-  defp update_service_synced_height(
-         %__MODULE__{services: services} = state,
-         pid,
-         new_reported_sync_height,
-         service_name
-       ) do
-    new_service_state = %Service{synced_height: new_reported_sync_height, pid: pid}
-    {:ok, %{state | services: Map.put(services, service_name, new_service_state)}}
+    services = Map.delete(state.services, service_name)
+    state = %{state | services: services}
+    {:ok, state}
   end
 
   @doc """
-  Gets synchronized info
+  Sets root chain height, only allowing to progress, in case Ethereum RPC reports an earlier height
+  """
+  @spec update_root_chain_height(t(), pos_integer()) :: {:ok, t()}
+  def update_root_chain_height(%__MODULE__{root_chain_height: old_height} = state, new_height)
+      when is_integer(new_height) do
+    {:ok, %{state | root_chain_height: max(old_height, new_height)}}
+  end
+
+  @doc """
+  Provides synchronization guide to a service which asks
   """
   @spec get_synced_info(t(), atom() | pid()) :: SyncGuide.t() | :nosync
   def get_synced_info(state, pid) when is_pid(pid) do
@@ -150,26 +163,15 @@ defmodule OMG.RootChainCoordinator.Core do
     sort.(configs_services) == sort.(services)
   end
 
-  @doc """
-  Removes service from services being synchronized
-  """
-  @spec check_out(t(), pid()) :: {:ok, t()}
-  def check_out(%__MODULE__{} = state, pid) do
-    {service_name, _} =
-      state.services
-      |> Enum.find(fn {_, service} -> service.pid == pid end)
+  defp allowed?(configs_services, service_name), do: Map.has_key?(configs_services, service_name)
 
-    services = Map.delete(state.services, service_name)
-    state = %{state | services: services}
-    {:ok, state}
-  end
-
-  @doc """
-  Sets root chain height, only allowing to progress, in case Ethereum RPC reports an earlier height
-  """
-  @spec update_root_chain_height(t(), pos_integer()) :: {:ok, t()}
-  def update_root_chain_height(%__MODULE__{root_chain_height: old_height} = state, new_height)
-      when is_integer(new_height) do
-    {:ok, %{state | root_chain_height: max(old_height, new_height)}}
+  defp update_service_synced_height(
+         %__MODULE__{services: services} = state,
+         pid,
+         new_reported_sync_height,
+         service_name
+       ) do
+    new_service_state = %Service{synced_height: new_reported_sync_height, pid: pid}
+    {:ok, %{state | services: Map.put(services, service_name, new_service_state)}}
   end
 end

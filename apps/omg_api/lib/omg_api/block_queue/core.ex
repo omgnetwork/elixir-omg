@@ -14,17 +14,27 @@
 
 defmodule OMG.API.BlockQueue.Core do
   @moduledoc """
-  Maintains a queue of to-be-mined blocks. Has no side-effects or side-causes.
+  Responsible for keeping a queue of blocks lined up for submission to Ethereum.
+  Responsible for determining the cadence of forming/submitting blocks to Ethereum.
+  Responsible for determining correct gas price and ensuring submissions get mined eventually.
+
+  In particular responsible for picking up, where it's left off (crashed) gracefully.
+
+  Relies on RootChain contract having reorg protection ('decimals for deposits' part).
+  Relies on RootChain contract's 'authority' account not being used to send any other transaction.
+
+  Reacts to external requests of changing gas price and resubmits block submission transactions not being mined.
+  For changing the gas price it needs external signals (e.g. from a price oracle)
 
   Note that first nonce (zero) of authority account is used to deploy RootChain.
   Every next nonce is used to submit operator blocks.
 
-  (thus, it handles config values as internal variables)
+  This is the functional core: has no side-effects or side-causes, for the effectful shell see `OMG.API.BlockQueue`
   """
 
   alias OMG.API.BlockQueue
   alias OMG.API.BlockQueue.Core
-  alias OMG.API.BlockQueue.GasPriceAdjustmentStrategyParams, as: GasPriceParams
+  alias OMG.API.BlockQueue.GasPriceAdjustment
 
   use OMG.LoggerExt
 
@@ -59,7 +69,7 @@ defmodule OMG.API.BlockQueue.Core do
     chain_start_parent_height: nil,
     minimal_enqueue_block_gap: 1,
     finality_threshold: 12,
-    gas_price_adj_params: %GasPriceParams{}
+    gas_price_adj_params: %GasPriceAdjustment{}
   ]
 
   @type t() :: %__MODULE__{
@@ -85,7 +95,7 @@ defmodule OMG.API.BlockQueue.Core do
           # depth of max reorg we take into account
           finality_threshold: pos_integer(),
           # the gas price adjustment strategy parameters
-          gas_price_adj_params: GasPriceParams.t()
+          gas_price_adj_params: GasPriceAdjustment.t()
         }
 
   @type submit_result_t() :: {:ok, <<_::256>>} | {:error, map}
@@ -112,7 +122,7 @@ defmodule OMG.API.BlockQueue.Core do
       chain_start_parent_height: child_start_parent_height,
       minimal_enqueue_block_gap: minimal_enqueue_block_gap,
       finality_threshold: finality_threshold,
-      gas_price_adj_params: %GasPriceParams{},
+      gas_price_adj_params: %GasPriceAdjustment{},
       last_enqueued_block_at_height: last_enqueued_block_at_height
     }
 
@@ -188,9 +198,12 @@ defmodule OMG.API.BlockQueue.Core do
   # Updates gas price to use basing on :calculate_gas_price function, updates current parent height
   # and last mined child block number in the state which used by gas price calculations
   @spec adjust_gas_price(Core.t()) :: Core.t()
-  defp adjust_gas_price(%Core{gas_price_adj_params: %GasPriceParams{last_block_mined: nil} = gas_params} = state) do
+  defp adjust_gas_price(%Core{gas_price_adj_params: %GasPriceAdjustment{last_block_mined: nil} = gas_params} = state) do
     # initializes last block mined
-    %{state | gas_price_adj_params: GasPriceParams.with(gas_params, state.parent_height, state.mined_child_block_num)}
+    %{
+      state
+      | gas_price_adj_params: GasPriceAdjustment.with(gas_params, state.parent_height, state.mined_child_block_num)
+    }
   end
 
   defp adjust_gas_price(
@@ -220,7 +233,7 @@ defmodule OMG.API.BlockQueue.Core do
          mined_child_block_num: mined_child_block_num,
          gas_price_to_use: gas_price_to_use,
          parent_height: parent_height,
-         gas_price_adj_params: %GasPriceParams{
+         gas_price_adj_params: %GasPriceAdjustment{
            gas_price_lowering_factor: gas_price_lowering_factor,
            gas_price_raising_factor: gas_price_raising_factor,
            eth_gap_without_child_blocks: eth_gap_without_child_blocks,
@@ -249,7 +262,7 @@ defmodule OMG.API.BlockQueue.Core do
          %Core{
            parent_height: parent_height,
            mined_child_block_num: mined_child_block_num,
-           gas_price_adj_params: %GasPriceParams{
+           gas_price_adj_params: %GasPriceAdjustment{
              last_block_mined: {_lastechecked_parent_height, lastchecked_mined_block_num}
            }
          } = state
@@ -257,7 +270,8 @@ defmodule OMG.API.BlockQueue.Core do
     if lastchecked_mined_block_num < mined_child_block_num do
       %Core{
         state
-        | gas_price_adj_params: GasPriceParams.with(state.gas_price_adj_params, parent_height, mined_child_block_num)
+        | gas_price_adj_params:
+            GasPriceAdjustment.with(state.gas_price_adj_params, parent_height, mined_child_block_num)
       }
     else
       state

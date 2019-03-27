@@ -13,5 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.RPC do
-  @moduledoc false
+  @moduledoc """
+  A device to expose child chain server's or watcher's API as HTTP-RPC, by means of Phoenix
+  """
 end

@@ -72,6 +72,8 @@ defmodule OMG.API.Sup do
     Supervisor.init(children, opts)
   end
 
+  # The setup of `OMG.RootChainCoordinator` for the child chain server - configures the relations between different
+  # event listeners
   def coordinator_setup do
     deposit_finality_margin = Application.fetch_env!(:omg, :deposit_finality_margin)
 

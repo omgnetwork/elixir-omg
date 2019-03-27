@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.Challenge do
+defmodule OMG.Watcher.ExitProcessor.StandardExitChallenge do
   @moduledoc """
-  Represents a challenge
+  Represents a challenge to a standard exit
   """
 
-  # NOTE: eutxoindex and cutxopos names were chosen for consistency with Solidity contract source code
-  # eutoxoindex is index of exiting utxo in challenging transaction
-  # cutxopos is position of challenging utxo
   defstruct [:exit_id, :txbytes, :input_index, :sig]
 
   @type t() :: %__MODULE__{

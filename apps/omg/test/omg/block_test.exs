@@ -37,6 +37,9 @@ defmodule OMG.BlockTest do
     tx_2 = TestHelper.create_encoded([{1, 1, 0, alice}], eth(), [{alice, 2}])
     tx_3 = TestHelper.create_encoded([{1, 0, 1, alice}], eth(), [{alice, 2}])
 
+    txs = [tx_1, tx_2, tx_3]
+    assert Block.inclusion_proof(txs, 1) == Block.inclusion_proof(%Block{transactions: txs}, 1)
+
     assert %Block{transactions: [tx_1, tx_2, tx_3]}
            |> Block.inclusion_proof(2)
            |> Base.encode16(case: :lower) ==
