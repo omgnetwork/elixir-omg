@@ -52,6 +52,10 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
     too_many_outputs: %{
       code: "transaction.create:too_many_outputs",
       description: "Total number of payments + change + fees exceed maximum allowed outputs."
+    },
+    empty_transaction: %{
+      code: "transaction.create:empty_transaction",
+      description: "Requested payment transfers no funds."
     }
   }
 
