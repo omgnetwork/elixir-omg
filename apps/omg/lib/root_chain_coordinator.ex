@@ -67,7 +67,6 @@ defmodule OMG.RootChainCoordinator do
 
   def handle_continue(:setup, configs_services) do
     _ = Logger.info("Starting #{__MODULE__} service.")
-    :ok = Eth.node_ready()
     {:ok, rootchain_height} = Eth.get_ethereum_height()
     height_check_interval = Application.fetch_env!(:omg, :coordinator_eth_height_check_interval_ms)
     {:ok, _} = schedule_get_ethereum_height(height_check_interval)
