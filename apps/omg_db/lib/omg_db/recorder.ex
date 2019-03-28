@@ -18,7 +18,6 @@ defmodule OMG.DB.Recorder do
   """
   use GenServer
   @default_interval 5_000
-  @table __MODULE__
   @write :leveldb_write
   @read :leveldb_read
   @multiread :leveldb_multiread
@@ -43,18 +42,18 @@ defmodule OMG.DB.Recorder do
             node: nil,
             table: nil
 
-  @spec update_write :: integer()
-  def update_write(table \\ @table) do
+  @spec update_write(atom()) :: integer()
+  def update_write(table) do
     :ets.update_counter(table, @write, {2, 1}, {@write, 0})
   end
 
-  @spec update_read :: integer()
-  def update_read(table \\ @table) do
+  @spec update_read(atom()) :: integer()
+  def update_read(table) do
     :ets.update_counter(table, @read, {2, 1}, {@read, 0})
   end
 
-  @spec update_multiread :: integer()
-  def update_multiread(table \\ @table) do
+  @spec update_multiread(atom()) :: integer()
+  def update_multiread(table) do
     :ets.update_counter(table, @multiread, {2, 1}, {@multiread, 0})
   end
 
@@ -63,7 +62,6 @@ defmodule OMG.DB.Recorder do
   end
 
   def init(opts) do
-    table = create_stats_table(opts)
     {:ok, tref} = :timer.send_interval(opts.interval, self(), :gather)
 
     {:ok,
@@ -73,7 +71,7 @@ defmodule OMG.DB.Recorder do
          interval: get_interval(opts.name) || @default_interval,
          tref: tref,
          node: Atom.to_string(:erlang.node()),
-         table: table
+         table: opts.table
      }}
   end
 
@@ -95,18 +93,6 @@ defmodule OMG.DB.Recorder do
     {:noreply, state}
   end
 
-  def create_stats_table(%{name: name}) do
-    case :ets.whereis(name) do
-      :undefined ->
-        true = name == :ets.new(name, table_settings())
-
-        name
-
-      _ ->
-        name
-    end
-  end
-
   # check configuration and system env variable, otherwise use the default
   defp get_interval(name) do
     case Application.get_env(:omg_status, String.to_atom("#{name}_interval")) do
@@ -121,6 +107,4 @@ defmodule OMG.DB.Recorder do
         num
     end
   end
-
-  defp table_settings, do: [:named_table, :set, :public, write_concurrency: true]
 end
