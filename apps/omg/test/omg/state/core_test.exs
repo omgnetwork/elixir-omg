@@ -20,8 +20,11 @@ defmodule OMG.State.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  alias OMG.{Block, Fees, Utxo}
-  alias OMG.State.{Core, Transaction}
+  alias OMG.Block
+  alias OMG.Fees
+  alias OMG.State.Core
+  alias OMG.State.Transaction
+  alias OMG.Utxo
 
   import OMG.TestHelper
 

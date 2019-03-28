@@ -17,7 +17,8 @@ defmodule OMG.State.TransactionTest do
   use ExUnit.Case, async: true
 
   alias OMG.DevCrypto
-  alias OMG.State.{Core, Transaction}
+  alias OMG.State.Core
+  alias OMG.State.Transaction
   alias OMG.TestHelper
 
   @zero_address OMG.Eth.zero_address()
