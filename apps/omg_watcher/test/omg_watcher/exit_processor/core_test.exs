@@ -714,8 +714,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            transactions: [tx1, tx2],
            alice: alice
          } do
-      [%{owner: tx1_owner1}, %{owner: tx1_owner2}, _, _] = Transaction.get_outputs(tx1)
-      [%{owner: tx2_owner1}, %{owner: tx2_owner2}, _, _] = Transaction.get_outputs(tx2)
+      [%{owner: tx1_owner1}, %{owner: tx1_owner2} | _] = Transaction.get_outputs(tx1)
+      [%{owner: tx2_owner1}, %{owner: tx2_owner2} | _] = Transaction.get_outputs(tx2)
 
       txbytes_1 = Transaction.encode(tx1)
       txbytes_2 = Transaction.encode(tx2)
@@ -1713,7 +1713,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         required_priv_key_list =
           comp
           |> Transaction.get_inputs()
-          |> Enum.filter(&Utxo.Position.non_zero?/1)
           |> Enum.count()
           |> (&List.duplicate(alice.priv, &1)).()
 
@@ -2237,7 +2236,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   @tag fixtures: [:alice, :bob]
   test "create challenge based on ife", %{alice: alice, bob: bob} do
-    tx = TestHelper.create_signed([{0, 0, 0, alice}, {1000, 0, 1, alice}], @eth, [{bob, 50}, {alice, 50}])
+    tx = TestHelper.create_signed([{1000, 0, 0, alice}, {1000, 0, 1, alice}], @eth, [{bob, 50}, {alice, 50}])
     expected_txbytes = tx.raw_tx |> Transaction.encode()
 
     assert %{

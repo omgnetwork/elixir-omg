@@ -217,6 +217,7 @@ defmodule OMG.State.Transaction do
   """
   def get_inputs(%__MODULE__{inputs: inputs}) do
     inputs
+    |> Enum.reject(&match?(%{blknum: 0, txindex: 0, oindex: 0}, &1))
     |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> Utxo.position(blknum, txindex, oindex) end)
   end
 
@@ -224,7 +225,10 @@ defmodule OMG.State.Transaction do
   Returns all outputs
   """
   @spec get_outputs(t()) :: list(output())
-  def get_outputs(%__MODULE__{outputs: outputs}), do: outputs
+  def get_outputs(%__MODULE__{outputs: outputs}),
+    do:
+      outputs
+      |> Enum.reject(&match?(%{owner: @zero_address, currency: @zero_address, amount: 0}, &1))
 
   defp inputs_without_gaps(inputs),
     do: check_for_gaps(inputs, %{blknum: 0, txindex: 0, oindex: 0}, {:error, :inputs_contain_gaps})

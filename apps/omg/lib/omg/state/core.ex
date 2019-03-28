@@ -208,7 +208,6 @@ defmodule OMG.State.Core do
 
   defp get_input_utxos(utxos, inputs) do
     inputs
-    |> Enum.filter(&Utxo.Position.non_zero?/1)
     |> Enum.reduce({:ok, []}, fn input, acc -> get_utxos(utxos, input, acc) end)
   end
 
@@ -323,7 +322,6 @@ defmodule OMG.State.Core do
       |> Enum.flat_map(fn %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}} ->
         Transaction.get_inputs(tx)
       end)
-      |> Enum.filter(&Utxo.Position.non_zero?/1)
       |> Enum.flat_map(fn utxo_pos ->
         # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
         db_key = Utxo.Position.to_db_key(utxo_pos)

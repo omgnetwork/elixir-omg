@@ -93,10 +93,6 @@ defmodule OMG.State.Transaction.Recovered do
   end
 
   defp no_duplicate_inputs?(inputs) do
-    inputs =
-      inputs
-      |> Enum.filter(&Utxo.Position.non_zero?/1)
-
     number_of_unique_inputs =
       inputs
       |> Enum.uniq()
