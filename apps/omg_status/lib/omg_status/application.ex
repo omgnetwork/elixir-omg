@@ -23,51 +23,19 @@ defmodule OMG.Status.Application do
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 
-    Enum.map(vm_metrics(), fn {name, invoke} ->
-      Recorder.prepare_child(%Recorder{
-        name: name,
-        fn: invoke,
-        reporter: &Appsignal.set_gauge/3
-      })
-    end)
-    |> Supervisor.start_link(strategy: :one_for_one, name: Status.Supervisor)
+    children =
+      if is_enabled?() do
+        _ = Application.put_env(:vmstats, :sink, Status.Metric.Recorder)
+        [Recorder.prepare_child()]
+      else
+        []
+      end
+
+    Supervisor.start_link(children, strategy: :one_for_one, name: Status.Supervisor)
   end
 
   def start_phase(:install_alarm_handler, _start_type, _phase_args) do
     :ok = AlarmHandler.install()
-  end
-
-  @spec vm_metrics :: maybe_improper_list(atom(), fun()) | []
-  defp vm_metrics, do: do_vm_metrics(is_enabled?() || false)
-
-  defp do_vm_metrics(false), do: []
-
-  defp do_vm_metrics(true) do
-    memory =
-      for type <- ~w(total processes ets binary atom atom_used)a,
-          do: {String.to_atom("erlang_memory_#{type}"), fn -> :erlang.memory(type) end}
-
-    system_info =
-      for type <- ~w(schedulers atom_count process_count port_count)a,
-          do: {String.to_atom("erlang_system_info_#{type}"), fn -> :erlang.system_info(type) end}
-
-    other = [
-      {:erlang_uptime, fn -> :erlang.statistics(:wall_clock) |> elem(0) |> Kernel.div(1000) end},
-      {:erlang_io_input_kb,
-       fn ->
-         {{:input, input}, {:output, _output}} = :erlang.statistics(:io)
-         input |> Kernel.div(1024)
-       end},
-      {:erlang_io_output_kb,
-       fn ->
-         {{:input, _input}, {:output, output}} = :erlang.statistics(:io)
-         output |> Kernel.div(1024)
-       end},
-      {:erlang_total_run_queue_lengths, fn -> :erlang.statistics(:total_run_queue_lengths) end},
-      {:erlang_ets_count, fn -> length(:ets.all()) end}
-    ]
-
-    Enum.concat([memory, system_info, other])
   end
 
   @spec is_enabled?() :: boolean() | nil

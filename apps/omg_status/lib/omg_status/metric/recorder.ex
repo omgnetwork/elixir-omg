@@ -16,62 +16,37 @@ defmodule Status.Metric.Recorder do
   @moduledoc """
   A GenServer template for metrics recording.
   """
-  use GenServer
-  @default_interval 5_000
-  @type t :: %__MODULE__{
-          name: atom(),
-          fn: (... -> atom()),
-          key: charlist() | nil,
-          interval: pos_integer(),
-          reporter: (... -> atom()),
-          tref: reference() | nil,
-          node: String.t() | nil
-        }
-  defstruct name: nil, fn: nil, key: nil, interval: @default_interval, reporter: nil, tref: nil, node: nil
+  @behaviour :vmstats_sink
+  @type vm_stat :: {:vmstats_sup, :start_link, [any(), ...]}
+
+  def collect(:counter, key, value) do
+    key
+    |> List.flatten()
+    |> to_string()
+    |> Appsignal.increment_counter(value, %{node: to_string(:erlang.node())})
+  end
+
+  def collect(:gauge, key, value) do
+    key
+    |> List.flatten()
+    |> to_string()
+    |> Appsignal.set_gauge(value, %{node: to_string(:erlang.node())})
+  end
+
+  def collect(:timing, key, value) do
+    key
+    |> List.flatten()
+    |> to_string()
+    |> Appsignal.set_gauge(value, %{node: to_string(:erlang.node())})
+  end
 
   @doc """
   Returns child_specs for the given metric setup, to be included e.g. in Supervisor's children.
   """
-  @spec prepare_child(t) :: %{id: atom(), start: tuple()}
-  def prepare_child(opts) do
-    %{id: opts.name, start: {__MODULE__, :start_link, [opts]}}
+  @spec prepare_child() :: %{id: :vmstats_sup, start: vm_stat()}
+  def prepare_child do
+    %{id: :vmstats_sup, start: {:vmstats_sup, :start_link, [__MODULE__, base_key()]}}
   end
 
-  def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts, name: opts.name)
-  end
-
-  def init(opts) do
-    {:ok, tref} = :timer.send_interval(opts.interval, self(), :gather)
-
-    {:ok,
-     %{
-       opts
-       | key: to_charlist(opts.name),
-         interval: get_interval(opts.name) || @default_interval,
-         tref: tref,
-         node: Atom.to_string(:erlang.node())
-     }}
-  end
-
-  def handle_info(:gather, state) do
-    # invoke the reporter function and pass the key and value (invoke the fn)
-    _ = state.reporter.(state.key, apply(state.fn(), []), %{node: state.node})
-    {:noreply, state}
-  end
-
-  # check configuration and system env variable, otherwise use the default
-  defp get_interval(name) do
-    case Application.get_env(:omg_status, String.to_atom("#{name}_interval")) do
-      nil ->
-        name
-        |> Atom.to_string()
-        |> String.upcase()
-        |> Kernel.<>("_INTERVAL")
-        |> System.get_env()
-
-      num ->
-        num
-    end
-  end
+  defp base_key, do: Application.get_env(:vmstats, :base_key)
 end

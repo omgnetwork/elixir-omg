@@ -45,14 +45,15 @@ defmodule OMG.DB.LevelDBServer do
   def init(%{db_path: db_path, name: name}) do
     # needed so that terminate callback is called on normal close
     Process.flag(:trap_exit, true)
+    table = create_stats_table(name)
 
-    name =
+    recorder_name =
       name
       |> Atom.to_string()
       |> Kernel.<>(".Recorder")
       |> String.to_atom()
 
-    {:ok, _recorder_pid} = Recorder.start_link(%Recorder{name: name, parent: self()})
+    {:ok, _recorder_pid} = Recorder.start_link(%Recorder{name: recorder_name, parent: self(), table: table})
 
     with {:ok, db_ref} <- Exleveldb.open(db_path, create_if_missing: false) do
       {:ok, %__MODULE__{name: name, db_ref: db_ref}}
@@ -149,29 +150,15 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   # Argument order flipping tools :(
-  defp write(operations, %__MODULE__{db_ref: db_ref, name: __MODULE__}) do
-    _ = Recorder.update_write()
-    Exleveldb.write(db_ref, operations)
-  end
 
   defp write(operations, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_write(name)
     Exleveldb.write(db_ref, operations)
   end
 
-  defp get(key, %__MODULE__{db_ref: db_ref, name: __MODULE__}) do
-    _ = Recorder.update_read()
-    Exleveldb.get(db_ref, key)
-  end
-
   defp get(key, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_read(name)
     Exleveldb.get(db_ref, key)
-  end
-
-  defp get_all_by_type(type, %__MODULE__{db_ref: db_ref, name: __MODULE__}) do
-    _ = Recorder.update_multiread()
-    do_get_all_by_type(type, db_ref)
   end
 
   defp get_all_by_type(type, %__MODULE__{db_ref: db_ref, name: name}) do
@@ -186,4 +173,18 @@ defmodule OMG.DB.LevelDBServer do
     |> Enum.map(fn {_, value} -> {:ok, value} end)
     |> LevelDBCore.decode_values(type)
   end
+
+  defp create_stats_table(name) do
+    case :ets.whereis(name) do
+      :undefined ->
+        true = name == :ets.new(name, table_settings())
+
+        name
+
+      _ ->
+        name
+    end
+  end
+
+  defp table_settings, do: [:named_table, :set, :public, write_concurrency: true]
 end

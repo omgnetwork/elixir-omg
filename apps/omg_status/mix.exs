@@ -28,5 +28,5 @@ defmodule OMG.Status.Mixfile do
     ]
   end
 
-  defp deps, do: []
+  defp deps, do: [{:vmstats, "~> 2.3", runtime: false}]
 end
