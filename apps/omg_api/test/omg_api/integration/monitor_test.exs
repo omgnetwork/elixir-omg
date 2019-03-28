@@ -47,7 +47,7 @@ defmodule OMG.API.MonitorTest do
 
   @tag :capture_log
   test "if a tuple spec child gets started" do
-    {:ok, monitor_pid} = Monitor.start_link([{__MODULE__.Mock, []}])
+    {:ok, monitor_pid} = Monitor.start_link([Alarm, [{__MODULE__.Mock, []}]])
     _ = Process.unlink(monitor_pid)
     {:links, links} = Process.info(monitor_pid, :links)
 
@@ -61,7 +61,7 @@ defmodule OMG.API.MonitorTest do
   end
 
   test "if a map spec child gets started" do
-    {:ok, monitor_pid} = Monitor.start_link([__MODULE__.Mock.prepare_child()])
+    {:ok, monitor_pid} = Monitor.start_link([Alarm, [__MODULE__.Mock.prepare_child()]])
     Process.unlink(monitor_pid)
     {:links, links} = Process.info(monitor_pid, :links)
 
@@ -77,68 +77,15 @@ defmodule OMG.API.MonitorTest do
   @tag :capture_log
   test "if a map spec child gets restarted after exit" do
     child = __MODULE__.Mock.prepare_child()
-    {:ok, monitor_pid} = Monitor.start_link([child])
+    {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
     handle_killing_and_monitoring(monitor_pid)
   end
 
   @tag :capture_log
   test "if a tuple spec child gets restarted after exit" do
     child = {__MODULE__.Mock, []}
-    {:ok, monitor_pid} = Monitor.start_link([child])
+    {:ok, monitor_pid} = Monitor.start_link([Alarm, [child]])
     handle_killing_and_monitoring(monitor_pid)
-  end
-
-  test "if a child gets a interval set after termination" do
-    child = {__MODULE__.Mock, []}
-    {:ok, monitor_pid} = Monitor.start_link([child])
-    _ = Process.unlink(monitor_pid)
-    _ = Alarm.raise({:ethereum_client_connection, :erlang.node(), __MODULE__})
-    _ = spawn(fn -> __MODULE__.Mock.terminate(:ethereum_client_connection) end)
-    assert pull_state_and_find_timer(monitor_pid, 1000)
-  end
-
-  @tag :capture_log
-  test "for race condition starting two long init processes" do
-    # a potential race condition that was addressed was
-    # 1. a child gets killed and an alarm is raised before it can be restarted
-    # 2. a timer is set for the restart
-    # 3. timer tries to restart the child, but can't because alarm
-    # 4. alarms gets cleared and timer kicks in for restart
-    # 5. imagine the child needs to fetch the state from DB and there's latency
-    # above the default milliseconds for the timer
-    # 6. child gets restarted and cleansup his old pid from the state while
-    # the new timer is already in
-    # 7. breaks - can't find old pid (solved with a with statement)
-
-    # With the below test - that starts chilldren with a Sleep function in init, we're
-    # simulating the messages in Monitor getting filled.
-    children = Enum.map(1..3, fn _ -> {__MODULE__.Mock, [:no_name]} end)
-    {:ok, monitor_pid} = Monitor.start_link(children)
-    Process.unlink(monitor_pid)
-    Alarm.raise({:ethereum_client_connection, :erlang.node(), __MODULE__})
-    {:links, links} = Process.info(monitor_pid, :links)
-
-    spawn(fn ->
-      Enum.map(links, &Process.exit(&1, :killed))
-    end)
-
-    Alarm.clear_all()
-    check_restarted(monitor_pid, links, 100)
-  end
-
-  defp check_restarted(_monitor_pid, _old_links, 0), do: false
-
-  defp check_restarted(monitor_pid, old_links, n) do
-    {:links, links} = Process.info(monitor_pid, :links)
-
-    case Enum.count(links -- old_links) do
-      3 ->
-        true
-
-      _ ->
-        Process.sleep(100)
-        check_restarted(monitor_pid, old_links, n - 1)
-    end
   end
 
   defp handle_killing_and_monitoring(monitor_pid) do
@@ -183,19 +130,6 @@ defmodule OMG.API.MonitorTest do
       _ ->
         Process.sleep(10)
         pull_links_and_find_process(monitor_pid, old_pid, index - 1)
-    end
-  end
-
-  defp pull_state_and_find_timer(_, 0), do: false
-
-  defp pull_state_and_find_timer(monitor_pid, index) do
-    case hd(:sys.get_state(monitor_pid)) do
-      %{tref: {:interval, tref}} ->
-        is_reference(tref)
-
-      _ ->
-        Process.sleep(10)
-        pull_state_and_find_timer(monitor_pid, index - 1)
     end
   end
 
