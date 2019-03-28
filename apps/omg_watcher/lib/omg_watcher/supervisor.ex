@@ -24,7 +24,10 @@ defmodule OMG.Watcher.Supervisor do
 
   if Application.get_env(:omg_watcher, :sql_sandbox) do
     defmodule Sandbox do
-      @moduledoc false
+      @moduledoc """
+       Must be start after Watcher.DB.Repo,
+       that no data will be downloaded/inserted before setting the sandbox option.
+      """
       use GenServer
       alias Ecto.Adapters.SQL
 
