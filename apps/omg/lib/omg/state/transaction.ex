@@ -222,8 +222,8 @@ defmodule OMG.State.Transaction do
 
   def get_inputs(%__MODULE__{inputs: inputs}) do
     inputs
-    |> Enum.reject(&match?(%{blknum: 0, txindex: 0, oindex: 0}, &1))
     |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> Utxo.position(blknum, txindex, oindex) end)
+    |> Enum.filter(&Utxo.Position.non_zero?/1)
   end
 
   @doc """
@@ -233,7 +233,6 @@ defmodule OMG.State.Transaction do
   def get_outputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_outputs(signed_tx)
   def get_outputs(%__MODULE__.Signed{raw_tx: raw_tx}), do: get_outputs(raw_tx)
 
-  @spec get_outputs(t()) :: list(output())
   def get_outputs(%__MODULE__{outputs: outputs}) do
     outputs
     |> Enum.reject(&match?(%{owner: @zero_address, currency: @zero_address, amount: 0}, &1))

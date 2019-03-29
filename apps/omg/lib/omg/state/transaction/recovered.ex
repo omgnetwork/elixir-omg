@@ -54,7 +54,7 @@ defmodule OMG.State.Transaction.Recovered do
   @spec recover_from(binary) :: {:ok, Transaction.Recovered.t()} | {:error, recover_tx_error()}
   def recover_from(encoded_signed_tx) do
     with {:ok, signed_tx} <- Transaction.Signed.decode(encoded_signed_tx),
-         :ok <- valid?(signed_tx),
+         true <- valid?(signed_tx),
          do: recover_from_struct(signed_tx)
   end
 
@@ -84,9 +84,8 @@ defmodule OMG.State.Transaction.Recovered do
   defp valid?(%Transaction.Signed{sigs: sigs} = tx) do
     inputs = Transaction.get_inputs(tx)
 
-    with :ok <- no_duplicate_inputs?(inputs) do
-      all_inputs_signed?(inputs, sigs)
-    end
+    with true <- no_duplicate_inputs?(inputs) || {:error, :duplicate_inputs},
+         do: all_inputs_signed?(inputs, sigs)
   end
 
   defp no_duplicate_inputs?(inputs) do
@@ -96,19 +95,17 @@ defmodule OMG.State.Transaction.Recovered do
       |> Enum.count()
 
     inputs_length = Enum.count(inputs)
-
-    if inputs_length == number_of_unique_inputs, do: :ok, else: {:error, :duplicate_inputs}
+    inputs_length == number_of_unique_inputs
   end
 
-  defp all_inputs_signed?(inputs, sigs) do
-    Enum.zip(inputs, sigs)
-    |> Enum.map(&input_signature_valid/1)
-    |> Enum.find(:ok, &(&1 != :ok))
+  defp all_inputs_signed?(non_zero_inputs, sigs) do
+    count_non_zero_signatures = Enum.count(sigs, &(&1 != @empty_signature))
+    count_non_zero_inputs = length(non_zero_inputs)
+
+    cond do
+      count_non_zero_signatures > count_non_zero_inputs -> {:error, :superfluous_signature}
+      count_non_zero_signatures < count_non_zero_inputs -> {:error, :missing_signature}
+      true -> true
+    end
   end
-
-  defp input_signature_valid({utxo_pos, @empty_signature}),
-    do: if(Utxo.Position.non_zero?(utxo_pos), do: {:error, :missing_signature}, else: :ok)
-
-  defp input_signature_valid({utxo_pos, _}),
-    do: if(Utxo.Position.non_zero?(utxo_pos), do: :ok, else: {:error, :superfluous_signature})
 end

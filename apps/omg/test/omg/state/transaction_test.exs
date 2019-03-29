@@ -88,21 +88,16 @@ defmodule OMG.State.TransactionTest do
       check_output2 = %{amount: 99, currency: @eth, owner: "Joe Black"}
       # 1 - input, 1 - output
       tx1_1 = Transaction.new([hd(@utxo_positions)], [output1])
-      assert 1 == tx1_1 |> Transaction.get_inputs() |> Enum.filter(&Utxo.Position.non_zero?/1) |> length()
-      assert 1 == tx1_1 |> Transaction.get_outputs() |> Enum.filter(&(&1.amount != 0)) |> length()
+      assert 1 == tx1_1 |> Transaction.get_inputs() |> length()
+      assert 1 == tx1_1 |> Transaction.get_outputs() |> length()
       assert [^check_input1 | _] = Transaction.get_inputs(tx1_1)
       assert [^check_output2 | _] = Transaction.get_outputs(tx1_1)
       # 4 - input, 4 - outputs
       tx4_4 = Transaction.new(@utxo_positions, [output1, {"J", @eth, 929}, {"J", @eth, 929}, {"J", @eth, 199}])
-      assert 4 == tx4_4 |> Transaction.get_inputs() |> Enum.filter(&Utxo.Position.non_zero?/1) |> length()
-      assert 4 == tx4_4 |> Transaction.get_outputs() |> Enum.filter(&(&1.amount != 0)) |> length()
+      assert 4 == tx4_4 |> Transaction.get_inputs() |> length()
+      assert 4 == tx4_4 |> Transaction.get_outputs() |> length()
       assert [^check_input1 | _] = Transaction.get_inputs(tx4_4)
       assert [^check_output2 | _] = Transaction.get_outputs(tx4_4)
-
-      # NOTE: this is temporary behavior - as soon as we filter out non_zeros from get_inputs, remove this test
-      #       **AND** remove the filterings above
-      assert 4 == tx1_1 |> Transaction.get_inputs() |> length()
-      assert 4 == tx1_1 |> Transaction.get_outputs() |> length()
     end
 
     @tag fixtures: [:alice, :bob]

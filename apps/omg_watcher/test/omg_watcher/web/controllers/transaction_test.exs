@@ -897,10 +897,11 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       recovered_txs =
         txs_bytes
         |> Enum.map(fn "0x" <> tx ->
-          tx
-          |> Base.decode16!(case: :lower)
-          |> Transaction.decode!()
-          |> DevCrypto.sign([spender.priv])
+          raw_tx = tx |> Base.decode16!(case: :lower) |> Transaction.decode!()
+          n_inputs = raw_tx |> Transaction.get_inputs() |> length
+
+          raw_tx
+          |> DevCrypto.sign(List.duplicate(spender.priv, n_inputs))
           |> Transaction.Signed.encode()
           |> Transaction.Recovered.recover_from!()
         end)
