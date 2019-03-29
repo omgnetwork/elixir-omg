@@ -147,39 +147,34 @@ defmodule OMG.State.Core do
           | {{:error, exec_error}, t()}
   def exec(
         %Core{height: height, tx_index: tx_index} = state,
-        %Transaction.Recovered{
-          signed_tx: %Transaction.Signed{raw_tx: raw_tx},
-          tx_hash: tx_hash
-        } = recovered_tx,
+        %Transaction.Recovered{} = tx,
         fees
       ) do
-    outputs = Transaction.get_outputs(raw_tx)
+    tx_hash = Transaction.raw_txhash(tx)
+    outputs = Transaction.get_outputs(tx)
 
     with :ok <- validate_block_size(state),
-         {:ok, input_amounts_by_currency} <- correct_inputs?(state, recovered_tx),
+         {:ok, input_amounts_by_currency} <- correct_inputs?(state, tx),
          output_amounts_by_currency = get_amounts_by_currency(outputs),
          :ok <- amounts_add_up?(input_amounts_by_currency, output_amounts_by_currency),
          :ok <- transaction_covers_fee?(input_amounts_by_currency, output_amounts_by_currency, fees) do
       {:ok, {tx_hash, height, tx_index},
        state
-       |> apply_spend(recovered_tx)
-       |> add_pending_tx(recovered_tx)}
+       |> apply_spend(tx)
+       |> add_pending_tx(tx)}
     else
       {:error, _reason} = error -> {error, state}
     end
   end
 
-  defp correct_inputs?(
-         %Core{utxos: utxos} = state,
-         %Transaction.Recovered{
-           signed_tx: %Transaction.Signed{raw_tx: raw_tx}
-         } = recovered_tx
-       ) do
-    inputs = Transaction.get_inputs(raw_tx)
+  defp correct_inputs?(%Core{utxos: utxos} = state, tx) do
+    inputs = Transaction.get_inputs(tx)
 
     with :ok <- inputs_not_from_future_block?(state, inputs),
-         {:ok, inputs} <- inputs_belong_to_spenders?(utxos, recovered_tx) do
-      {:ok, get_amounts_by_currency(inputs)}
+         {:ok, input_utxos} <- get_input_utxos(utxos, inputs),
+         input_utxos_owners <- Enum.map(input_utxos, fn %{owner: owner} -> owner end),
+         :ok <- Transaction.Recovered.all_spenders_authorized(tx, input_utxos_owners) do
+      {:ok, get_amounts_by_currency(input_utxos)}
     end
   end
 
@@ -191,32 +186,15 @@ defmodule OMG.State.Core do
     if no_utxo_from_future_block, do: :ok, else: {:error, :input_utxo_ahead_of_state}
   end
 
-  defp inputs_belong_to_spenders?(
-         utxos,
-         %Transaction.Recovered{
-           signed_tx: %Transaction.Signed{raw_tx: raw_tx}
-         } = recovered_tx
-       ) do
-    inputs = Transaction.get_inputs(raw_tx)
-
-    with {:ok, input_utxos} <- get_input_utxos(utxos, inputs),
-         input_utxos_owners <- Enum.map(input_utxos, fn %{owner: owner} -> owner end),
-         :ok <- Transaction.Recovered.all_spenders_authorized(recovered_tx, input_utxos_owners) do
-      {:ok, input_utxos}
-    end
-  end
-
   defp get_input_utxos(utxos, inputs) do
     inputs
-    |> Enum.reduce({:ok, []}, fn input, acc -> get_utxos(utxos, input, acc) end)
+    |> Enum.reduce_while({:ok, []}, fn input, acc -> get_utxos(utxos, input, acc) end)
   end
-
-  defp get_utxos(_, _, {:error, _} = err), do: err
 
   defp get_utxos(utxos, position, {:ok, acc}) do
     case Map.get(utxos, position) do
-      nil -> {:error, :utxo_not_found}
-      found -> {:ok, acc ++ [found]}
+      nil -> {:halt, {:error, :utxo_not_found}}
+      found -> {:cont, {:ok, acc ++ [found]}}
     end
   end
 
@@ -241,7 +219,7 @@ defmodule OMG.State.Core do
     |> if(do: :ok, else: {:error, :fees_not_covered})
   end
 
-  defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, new_tx) do
+  defp add_pending_tx(%Core{pending_txs: pending_txs, tx_index: tx_index} = state, %Transaction.Recovered{} = new_tx) do
     %Core{
       state
       | tx_index: tx_index + 1,
@@ -249,33 +227,22 @@ defmodule OMG.State.Core do
     }
   end
 
-  defp apply_spend(
-         %Core{height: height, tx_index: tx_index, utxos: utxos} = state,
-         %Transaction.Recovered{
-           signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = raw_tx}
-         } = recovered_tx
-       ) do
-    new_utxos_map =
-      recovered_tx
-      |> non_zero_utxos_from(height, tx_index)
-      |> Map.new()
+  defp apply_spend(%Core{height: height, tx_index: tx_index, utxos: utxos} = state, tx) do
+    new_utxos_map = tx |> non_zero_utxos_from(height, tx_index) |> Map.new()
 
-    inputs = Transaction.get_inputs(raw_tx)
+    inputs = Transaction.get_inputs(tx)
     utxos = Map.drop(utxos, inputs)
     %Core{state | utxos: Map.merge(utxos, new_utxos_map)}
   end
 
-  defp non_zero_utxos_from(%Transaction.Recovered{} = recovered_tx, height, tx_index) do
-    recovered_tx
+  defp non_zero_utxos_from(tx, height, tx_index) do
+    tx
     |> utxos_from(height, tx_index)
     |> Enum.filter(fn {_key, value} -> is_non_zero_amount?(value) end)
   end
 
-  defp utxos_from(
-         %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: %Transaction{} = tx}, tx_hash: hash},
-         height,
-         tx_index
-       ) do
+  defp utxos_from(tx, height, tx_index) do
+    hash = Transaction.raw_txhash(tx)
     outputs = Transaction.get_outputs(tx)
 
     for {%{owner: owner, currency: currency, amount: amount}, oindex} <- Enum.with_index(outputs) do
@@ -312,16 +279,12 @@ defmodule OMG.State.Core do
     db_updates_new_utxos =
       txs
       |> Enum.with_index()
-      |> Enum.flat_map(fn {tx, tx_idx} ->
-        non_zero_utxos_from(tx, height, tx_idx)
-      end)
+      |> Enum.flat_map(fn {tx, tx_idx} -> non_zero_utxos_from(tx, height, tx_idx) end)
       |> Enum.map(&utxo_to_db_put/1)
 
     db_updates_spent_utxos =
       txs
-      |> Enum.flat_map(fn %Transaction.Recovered{signed_tx: %Transaction.Signed{raw_tx: tx}} ->
-        Transaction.get_inputs(tx)
-      end)
+      |> Enum.flat_map(&Transaction.get_inputs/1)
       |> Enum.flat_map(fn utxo_pos ->
         # NOTE: child chain mode don't need 'spend' data for now. Consider to add only in Watcher's modes - OMG-382
         db_key = Utxo.Position.to_db_key(utxo_pos)
@@ -431,11 +394,10 @@ defmodule OMG.State.Core do
 
   def exit_utxos([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{} = state) do
     in_flight_txs
-    |> Enum.map(fn %{call_data: %{in_flight_tx: tx_bytes}} ->
+    |> Enum.flat_map(fn %{call_data: %{in_flight_tx: tx_bytes}} ->
       {:ok, tx} = Transaction.decode(tx_bytes)
       Transaction.get_inputs(tx)
     end)
-    |> List.flatten()
     |> exit_utxos(state)
   end
 

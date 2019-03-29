@@ -87,7 +87,7 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
       tx = %Transaction.Signed{raw_tx: raw_tx, sigs: chopped_sigs}
 
       {
-        Transaction.hash(raw_tx),
+        Transaction.raw_txhash(raw_tx),
         %__MODULE__{
           tx: tx,
           timestamp: timestamp,
@@ -284,11 +284,6 @@ defmodule OMG.Watcher.ExitProcessor.InFlightExitInfo do
         ife = %{ife | is_active: is_active}
         {:ok, ife}
     end
-  end
-
-  @spec get_exiting_utxo_positions(t()) :: list({:utxo_position, non_neg_integer(), non_neg_integer(), non_neg_integer})
-  def get_exiting_utxo_positions(%__MODULE__{tx: %Transaction.Signed{raw_tx: tx}}) do
-    Transaction.get_inputs(tx)
   end
 
   @spec get_piggybacked_outputs_positions(t()) :: [Utxo.Position.t()]

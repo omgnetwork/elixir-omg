@@ -54,7 +54,7 @@ defmodule OMG.State.Transaction.Recovered do
   @spec recover_from(binary) :: {:ok, Transaction.Recovered.t()} | {:error, recover_tx_error()}
   def recover_from(encoded_signed_tx) do
     with {:ok, signed_tx} <- Transaction.Signed.decode(encoded_signed_tx),
-         :ok <- valid?(signed_tx),
+         true <- valid?(signed_tx),
          do: recover_from_struct(signed_tx)
   end
 
@@ -76,20 +76,16 @@ defmodule OMG.State.Transaction.Recovered do
   end
 
   @spec recover_from_struct(Transaction.Signed.t()) :: {:ok, t()} | {:error, recover_tx_error()}
-  defp recover_from_struct(%Transaction.Signed{raw_tx: raw_tx} = signed_tx) do
+  defp recover_from_struct(%Transaction.Signed{} = signed_tx) do
     with {:ok, spenders} <- Transaction.Signed.get_spenders(signed_tx),
-         do: {:ok, %__MODULE__{tx_hash: Transaction.hash(raw_tx), spenders: spenders, signed_tx: signed_tx}}
+         do: {:ok, %__MODULE__{tx_hash: Transaction.raw_txhash(signed_tx), spenders: spenders, signed_tx: signed_tx}}
   end
 
-  defp valid?(%Transaction.Signed{
-         raw_tx: raw_tx,
-         sigs: sigs
-       }) do
-    inputs = Transaction.get_inputs(raw_tx)
+  defp valid?(%Transaction.Signed{sigs: sigs} = tx) do
+    inputs = Transaction.get_inputs(tx)
 
-    with :ok <- no_duplicate_inputs?(inputs) do
-      all_inputs_signed?(inputs, sigs)
-    end
+    with true <- no_duplicate_inputs?(inputs) || {:error, :duplicate_inputs},
+         do: all_inputs_signed?(inputs, sigs)
   end
 
   defp no_duplicate_inputs?(inputs) do
@@ -99,18 +95,17 @@ defmodule OMG.State.Transaction.Recovered do
       |> Enum.count()
 
     inputs_length = Enum.count(inputs)
-
-    if inputs_length == number_of_unique_inputs, do: :ok, else: {:error, :duplicate_inputs}
+    inputs_length == number_of_unique_inputs
   end
 
-  defp all_inputs_signed?(inputs, sigs) do
-    Enum.zip(inputs, sigs)
-    |> Enum.map(&input_signature_valid/1)
-    |> Enum.find(:ok, &(&1 != :ok))
-  end
+  defp all_inputs_signed?(non_zero_inputs, sigs) do
+    count_non_zero_signatures = Enum.count(sigs, &(&1 != @empty_signature))
+    count_non_zero_inputs = length(non_zero_inputs)
 
-  defp input_signature_valid({Utxo.position(0, _, _), @empty_signature}), do: :ok
-  defp input_signature_valid({Utxo.position(0, _, _), _}), do: {:error, :signature_corrupt}
-  defp input_signature_valid({_, @empty_signature}), do: {:error, :missing_signature}
-  defp input_signature_valid({_, _}), do: :ok
+    cond do
+      count_non_zero_signatures > count_non_zero_inputs -> {:error, :superfluous_signature}
+      count_non_zero_signatures < count_non_zero_inputs -> {:error, :missing_signature}
+      true -> true
+    end
+  end
 end

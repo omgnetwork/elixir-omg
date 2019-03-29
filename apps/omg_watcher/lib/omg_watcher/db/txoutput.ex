@@ -88,7 +88,7 @@ defmodule OMG.Watcher.DB.TxOutput do
       {:ok,
        %{
          utxo_pos: decoded_utxo_pos |> Utxo.Position.encode(),
-         txbytes: tx |> Transaction.encode(),
+         txbytes: tx |> Transaction.raw_txbytes(),
          proof: Block.inclusion_proof(block, 0)
        }}
     else
@@ -105,11 +105,7 @@ defmodule OMG.Watcher.DB.TxOutput do
 
     signed_tx = Enum.at(sorted_tx_bytes, txindex)
 
-    {:ok,
-     %Transaction.Signed{
-       raw_tx: raw_tx,
-       sigs: sigs
-     }} = Transaction.Signed.decode(signed_tx)
+    {:ok, %Transaction.Signed{sigs: sigs} = tx} = Transaction.Signed.decode(signed_tx)
 
     proof =
       %Block{transactions: sorted_tx_bytes}
@@ -120,7 +116,7 @@ defmodule OMG.Watcher.DB.TxOutput do
 
     %{
       utxo_pos: utxo_pos,
-      txbytes: Transaction.encode(raw_tx),
+      txbytes: Transaction.raw_txbytes(tx),
       proof: proof,
       sigs: sigs
     }
@@ -174,7 +170,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     end)
   end
 
-  @spec create_outputs(pos_integer(), integer(), binary(), %Transaction{}) :: [map()]
+  @spec create_outputs(pos_integer(), integer(), binary(), Transaction.any_flavor_t()) :: [map()]
   def create_outputs(
         blknum,
         txindex,
@@ -208,12 +204,13 @@ defmodule OMG.Watcher.DB.TxOutput do
       }
     ]
 
-  @spec create_inputs(%Transaction{}, binary()) :: [tuple()]
-  def create_inputs(%Transaction{inputs: inputs}, spending_txhash) do
-    inputs
+  @spec create_inputs(Transaction.any_flavor_t(), binary()) :: [tuple()]
+  def create_inputs(tx, spending_txhash) do
+    tx
+    |> Transaction.get_inputs()
     |> Enum.with_index()
-    |> Enum.map(fn {%{blknum: blknum, txindex: txindex, oindex: oindex}, index} ->
-      {Utxo.position(blknum, txindex, oindex), index, spending_txhash}
+    |> Enum.map(fn {Utxo.position(_, _, _) = input_utxo_pos, index} ->
+      {input_utxo_pos, index, spending_txhash}
     end)
   end
 

@@ -197,7 +197,7 @@ defmodule OMG.Watcher.UtxoSelection do
           outputs |> Enum.map(&{&1.owner, &1.currency, &1.amount}),
           metadata
         )
-        |> Transaction.encode()
+        |> Transaction.raw_txbytes()
   end
 
   defp respond({:ok, transaction}, result), do: {:ok, %{result: result, transactions: [transaction]}}

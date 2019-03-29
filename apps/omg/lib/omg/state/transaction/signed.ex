@@ -14,7 +14,9 @@
 
 defmodule OMG.State.Transaction.Signed do
   @moduledoc """
-  Representation of a signed transaction
+  Representation of a signed transaction.
+
+  NOTE: before you use this, make sure you shouldn't use `Transaction` or `Transaction.Recovered`
   """
 
   alias OMG.Crypto
@@ -50,7 +52,7 @@ defmodule OMG.State.Transaction.Signed do
   """
   @spec get_spenders(t()) :: {:ok, list(Crypto.address_t())} | {:error, atom}
   def get_spenders(%Transaction.Signed{raw_tx: raw_tx, sigs: sigs}) do
-    hash_without_sigs = Transaction.hash(raw_tx)
+    hash_without_sigs = Transaction.raw_txhash(raw_tx)
 
     with {:ok, reversed_spenders} <- get_reversed_spenders(hash_without_sigs, sigs),
          do: {:ok, Enum.reverse(reversed_spenders)}

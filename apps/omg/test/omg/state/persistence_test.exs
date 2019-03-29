@@ -89,11 +89,10 @@ defmodule OMG.State.PersistenceTest do
   @tag fixtures: [:alice, :state_empty]
   test "persists piggyback related exits",
        %{alice: alice, db_pid: db_pid, state_empty: state} do
-    %Transaction.Recovered{tx_hash: tx_hash, signed_tx: %Transaction.Signed{raw_tx: raw_tx}} =
-      tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
+    tx = create_recovered([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
-    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.encode(raw_tx)}}]
-    utxo_pos_exits_piggyback = [%{tx_hash: tx_hash, output_index: 4}]
+    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
+    utxo_pos_exits_piggyback = [%{tx_hash: Transaction.raw_txhash(tx), output_index: 4}]
 
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)
@@ -106,9 +105,9 @@ defmodule OMG.State.PersistenceTest do
   @tag fixtures: [:alice, :state_empty]
   test "persists ife related exits",
        %{alice: alice, db_pid: db_pid, state_empty: state} do
-    %Transaction.Signed{raw_tx: raw_tx} = create_signed([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
+    tx = create_signed([{1, 0, 0, alice}], @eth, [{alice, 7}, {alice, 3}])
 
-    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.encode(raw_tx)}}]
+    utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
 
     state
     |> persist_deposit([%{owner: alice.addr, currency: @eth, amount: 20, blknum: 1}], db_pid)

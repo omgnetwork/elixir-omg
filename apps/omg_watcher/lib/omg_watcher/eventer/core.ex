@@ -26,6 +26,7 @@ defmodule OMG.Watcher.Eventer.Core do
 
   @transfer_topic "transfer"
   @exit_topic "exit"
+  @zero_address OMG.Eth.zero_address()
 
   @spec pair_events_with_topics(any() | Event.t()) :: list({String.t(), String.t(), Event.t()})
   def pair_events_with_topics(event_triggers) do
@@ -62,15 +63,9 @@ defmodule OMG.Watcher.Eventer.Core do
     get_address_received_events(event_trigger) ++ get_address_spent_events(event_trigger)
   end
 
-  defp get_address_spent_events(
-         %{
-           tx: %Transaction.Recovered{
-             spenders: spenders
-           }
-         } = event_trigger
-       ) do
+  defp get_address_spent_events(%{tx: %Transaction.Recovered{spenders: spenders}} = event_trigger) do
     spenders
-    |> Enum.filter(&Transaction.account_address?/1)
+    |> Enum.filter(&account_address?/1)
     |> Enum.map(&create_address_spent_event(event_trigger, &1))
     |> Enum.uniq()
   end
@@ -80,20 +75,18 @@ defmodule OMG.Watcher.Eventer.Core do
     {subtopic, "address_spent", struct(Event.AddressSpent, event_trigger)}
   end
 
-  defp get_address_received_events(
-         %{
-           tx: %Transaction.Recovered{
-             signed_tx: %Transaction.Signed{raw_tx: raw_tx}
-           }
-         } = event_trigger
-       ) do
-    raw_tx
+  defp get_address_received_events(%{tx: tx} = event_trigger) do
+    tx
     |> Transaction.get_outputs()
     |> Enum.map(fn %{owner: owner} -> owner end)
-    |> Enum.filter(&Transaction.account_address?/1)
+    |> Enum.filter(&account_address?/1)
     |> Enum.map(&create_address_received_event(event_trigger, &1))
     |> Enum.uniq()
   end
+
+  defp account_address?(@zero_address), do: false
+  defp account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
+  defp account_address?(_), do: false
 
   defp create_address_received_event(event_trigger, address) do
     subtopic = create_transfer_subtopic(address)

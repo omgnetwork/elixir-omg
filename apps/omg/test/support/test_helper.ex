@@ -135,6 +135,11 @@ defmodule OMG.TestHelper do
     DevCrypto.sign(raw_tx, privs)
   end
 
+  def sign_encode(%Transaction{} = tx, priv_keys), do: tx |> DevCrypto.sign(priv_keys) |> Transaction.Signed.encode()
+
+  def sign_recover!(%Transaction{} = tx, priv_keys),
+    do: tx |> sign_encode(priv_keys) |> Transaction.Recovered.recover_from!()
+
   defp get_private_keys(inputs) do
     filler = List.duplicate(<<>>, 4 - length(inputs))
 

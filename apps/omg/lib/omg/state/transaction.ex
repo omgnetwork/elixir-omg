@@ -36,6 +36,8 @@ defmodule OMG.State.Transaction do
           metadata: metadata()
         }
 
+  @type any_flavor_t() :: t() | __MODULE__.Signed.t() | __MODULE__.Recovered.t()
+
   @type currency() :: Crypto.address_t()
   @type tx_bytes() :: binary()
   @type tx_hash() :: Crypto.hash_t()
@@ -97,7 +99,10 @@ defmodule OMG.State.Transaction do
           list({Crypto.address_t(), currency(), pos_integer}),
           metadata()
         ) :: t()
-  def new(inputs, outputs, metadata \\ @default_metadata) when is_metadata(metadata) do
+  def new(inputs, outputs, metadata \\ @default_metadata)
+
+  def new(inputs, outputs, metadata)
+      when is_metadata(metadata) and length(inputs) <= @max_inputs and length(outputs) <= @max_outputs do
     inputs =
       inputs
       |> Enum.map(fn {blknum, txindex, oindex} -> %{blknum: blknum, txindex: txindex, oindex: oindex} end)
@@ -117,10 +122,6 @@ defmodule OMG.State.Transaction do
 
     %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}
   end
-
-  def account_address?(@zero_address), do: false
-  def account_address?(address) when is_binary(address) and byte_size(address) == 20, do: true
-  def account_address?(_), do: false
 
   def reconstruct([inputs_rlp, outputs_rlp | rest_rlp])
       when rest_rlp == [] or length(rest_rlp) == 1 do
@@ -190,7 +191,7 @@ defmodule OMG.State.Transaction do
   end
 
   @spec encode(t()) :: tx_bytes()
-  def encode(transaction) do
+  defp encode(transaction) do
     get_data_for_rlp(transaction)
     |> ExRLP.encode()
   end
@@ -206,7 +207,7 @@ defmodule OMG.State.Transaction do
       ] ++ if(metadata, do: [metadata], else: [])
 
   @spec hash(t()) :: tx_hash()
-  def hash(%__MODULE__{} = tx) do
+  defp hash(%__MODULE__{} = tx) do
     tx
     |> encode
     |> Crypto.hash()
@@ -215,20 +216,43 @@ defmodule OMG.State.Transaction do
   @doc """
   Returns all inputs
   """
+  @spec get_inputs(any_flavor_t()) :: list(input())
+  def get_inputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_inputs(signed_tx)
+  def get_inputs(%__MODULE__.Signed{raw_tx: raw_tx}), do: get_inputs(raw_tx)
+
   def get_inputs(%__MODULE__{inputs: inputs}) do
     inputs
-    |> Enum.reject(&match?(%{blknum: 0, txindex: 0, oindex: 0}, &1))
     |> Enum.map(fn %{blknum: blknum, txindex: txindex, oindex: oindex} -> Utxo.position(blknum, txindex, oindex) end)
+    |> Enum.filter(&Utxo.Position.non_zero?/1)
   end
 
   @doc """
   Returns all outputs
   """
-  @spec get_outputs(t()) :: list(output())
-  def get_outputs(%__MODULE__{outputs: outputs}),
-    do:
-      outputs
-      |> Enum.reject(&match?(%{owner: @zero_address, currency: @zero_address, amount: 0}, &1))
+  @spec get_outputs(any_flavor_t()) :: list(output())
+  def get_outputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_outputs(signed_tx)
+  def get_outputs(%__MODULE__.Signed{raw_tx: raw_tx}), do: get_outputs(raw_tx)
+
+  def get_outputs(%__MODULE__{outputs: outputs}) do
+    outputs
+    |> Enum.reject(&match?(%{owner: @zero_address, currency: @zero_address, amount: 0}, &1))
+  end
+
+  @doc """
+  Returns the encoded bytes of a raw transaction, i.e. without the signatures
+  """
+  @spec raw_txbytes(any_flavor_t()) :: binary
+  def raw_txbytes(%__MODULE__.Recovered{signed_tx: signed_tx}), do: raw_txbytes(signed_tx)
+  def raw_txbytes(%__MODULE__.Signed{raw_tx: raw_tx}), do: raw_txbytes(raw_tx)
+  def raw_txbytes(%__MODULE__{} = raw_tx), do: encode(raw_tx)
+
+  @doc """
+  Returns the hash of a raw transaction, i.e. without the signatures
+  """
+  @spec raw_txhash(any_flavor_t()) :: binary
+  def raw_txhash(%__MODULE__.Recovered{signed_tx: signed_tx}), do: raw_txhash(signed_tx)
+  def raw_txhash(%__MODULE__.Signed{raw_tx: raw_tx}), do: raw_txhash(raw_tx)
+  def raw_txhash(%__MODULE__{} = raw_tx), do: hash(raw_tx)
 
   defp inputs_without_gaps(inputs),
     do: check_for_gaps(inputs, %{blknum: 0, txindex: 0, oindex: 0}, {:error, :inputs_contain_gaps})

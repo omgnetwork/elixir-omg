@@ -519,46 +519,38 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos]
-    test "returns correctly formed transaction", %{alice: alice, bob: bob} do
+    test "returns correctly formed transaction, identical with the verbose form", %{alice: alice, bob: bob} do
       alias OMG.State.Transaction
-
-      alice_to_bob = 100
-      fee = 5
-      metadata = (alice.addr <> bob.addr) |> OMG.Crypto.hash()
-
-      alice_addr = Encoding.to_hex(alice.addr)
 
       assert %{
                "result" => "complete",
-               "transactions" => [%{"txbytes" => tx_hex}]
+               "transactions" => [
+                 %{
+                   "inputs" => verbose_inputs,
+                   "outputs" => verbose_outputs,
+                   "metadata" => verbose_metadata,
+                   "txbytes" => tx_hex
+                 }
+               ]
              } =
                TestHelper.success?(
                  "transaction.create",
                  %{
-                   "owner" => alice_addr,
-                   "payments" => [
-                     %{"amount" => alice_to_bob, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}
-                   ],
-                   "fee" => %{"amount" => fee, "currency" => @eth_hex},
-                   "metadata" => Encoding.to_hex(metadata)
+                   "owner" => Encoding.to_hex(alice.addr),
+                   "payments" => [%{"amount" => 100, "currency" => @eth_hex, "owner" => Encoding.to_hex(bob.addr)}],
+                   "fee" => %{"amount" => 5, "currency" => @eth_hex},
+                   "metadata" => Encoding.to_hex(<<123::256>>)
                  }
                )
 
-      assert {:ok, txbytes} = Encoding.from_hex(tx_hex)
-      assert {:ok, raw_tx} = Transaction.decode(txbytes)
+      verbose_tx =
+        Transaction.new(
+          verbose_inputs |> Enum.map(&{&1["blknum"], &1["txindex"], &1["oindex"]}),
+          verbose_outputs |> Enum.map(&{from_hex!(&1["owner"]), from_hex!(&1["currency"]), &1["amount"]}),
+          from_hex!(verbose_metadata)
+        )
 
-      alice_addr = alice.addr
-      bob_addr = bob.addr
-
-      assert %Transaction{
-               inputs: [%{blknum: 5000} | _],
-               outputs: [
-                 %{owner: ^bob_addr, currency: @eth, amount: ^alice_to_bob},
-                 %{owner: ^alice_addr, currency: @eth}
-                 | _
-               ],
-               metadata: ^metadata
-             } = raw_tx
+      assert tx_hex == verbose_tx |> Transaction.raw_txbytes() |> Encoding.to_hex()
     end
 
     @tag fixtures: [:alice, :bob, :more_utxos, :blocks_inserter]
@@ -905,15 +897,13 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
       recovered_txs =
         txs_bytes
         |> Enum.map(fn "0x" <> tx ->
-          {:ok, %Transaction.Recovered{} = recovered} =
-            tx
-            |> Base.decode16!(case: :lower)
-            |> Transaction.decode!()
-            |> DevCrypto.sign([spender.priv])
-            |> Transaction.Signed.encode()
-            |> Transaction.Recovered.recover_from()
+          raw_tx = tx |> Base.decode16!(case: :lower) |> Transaction.decode!()
+          n_inputs = raw_tx |> Transaction.get_inputs() |> length
 
-          recovered
+          raw_tx
+          |> DevCrypto.sign(List.duplicate(spender.priv, n_inputs))
+          |> Transaction.Signed.encode()
+          |> Transaction.Recovered.recover_from!()
         end)
 
       [{blknum, recovered_txs}] |> blocks_inserter.()
@@ -1089,5 +1079,10 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
                  }
                )
     end
+  end
+
+  defp from_hex!(hex) do
+    {:ok, result} = Encoding.from_hex(hex)
+    result
   end
 end
