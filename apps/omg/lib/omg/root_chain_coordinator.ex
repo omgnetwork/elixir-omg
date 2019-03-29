@@ -81,10 +81,11 @@ defmodule OMG.RootChainCoordinator do
     {:noreply, state}
   end
 
-  def handle_call({:check_in, synced_height, service_name}, {pid, _}, state) do
+  def handle_call({:check_in, synced_height, service_name}, {pid, _ref}, state) do
     _ = Logger.debug("#{inspect(service_name)} checks in on height #{inspect(synced_height)}")
+
     {:ok, state} = Core.check_in(state, pid, synced_height, service_name)
-    {:reply, :ok, state, 60_000}
+    {:reply, :ok, state}
   end
 
   def handle_call(:get_sync_info, {pid, _}, state) do
@@ -99,11 +100,6 @@ defmodule OMG.RootChainCoordinator do
 
   def handle_info({:DOWN, _ref, :process, pid, _}, state) do
     {:ok, state} = Core.check_out(state, pid)
-    {:noreply, state}
-  end
-
-  def handle_info(:timeout, state) do
-    _ = Logger.warn("No new activity for 60 seconds. Are we dead?")
     {:noreply, state}
   end
 

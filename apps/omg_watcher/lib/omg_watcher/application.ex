@@ -24,6 +24,7 @@ defmodule OMG.Watcher.Application do
     DeferredConfig.populate(:omg_rpc)
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
+
     :ok = AlarmHandler.install()
     start_root_supervisor()
   end
