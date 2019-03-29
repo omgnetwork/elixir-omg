@@ -40,7 +40,7 @@ defmodule OMG.API.EthereumClientMonitor do
   def init([alarm_module]) do
     install()
     state = %__MODULE__{alarm_module: alarm_module}
-    :ok = alarm_module.raise({:ethereum_client_connection, :erlang.node(), __MODULE__})
+    _ = alarm_module.raise({:ethereum_client_connection, :erlang.node(), __MODULE__})
     _ = raise_clear(alarm_module, state.raised, check())
     {:ok, tref} = :timer.send_after(state.interval, :health_check)
     _ = Logger.info("Starting Ethereum client monitor.")
@@ -115,5 +115,10 @@ defmodule OMG.API.EthereumClientMonitor do
 
   defp eth, do: Application.get_env(:omg_api, :eth_integration_module, Eth)
 
-  defp install, do: :alarm_handler.add_alarm_handler(__MODULE__)
+  defp install do
+    case Enum.member?(:gen_event.which_handlers(:alarm_handler), __MODULE__) do
+      true -> :ok
+      _ -> :alarm_handler.add_alarm_handler(__MODULE__)
+    end
+  end
 end

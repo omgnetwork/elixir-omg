@@ -17,7 +17,12 @@ defmodule OMG.Watcher.Alert.AlarmHandler do
   Handler for OMG Watcher app.
   """
 
-  def install, do: :alarm_handler.add_alarm_handler(__MODULE__)
+  def install do
+    case Enum.member?(:gen_event.which_handlers(:alarm_handler), __MODULE__) do
+      true -> :ok
+      _ -> :alarm_handler.add_alarm_handler(__MODULE__)
+    end
+  end
 
   @callback ethereum_client_connection_issue(node(), module()) :: {atom(), map()}
 

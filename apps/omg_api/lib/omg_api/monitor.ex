@@ -166,5 +166,10 @@ defmodule OMG.API.Monitor do
     |> is_map()
   end
 
-  defp install, do: :alarm_handler.add_alarm_handler(__MODULE__)
+  defp install do
+    case Enum.member?(:gen_event.which_handlers(:alarm_handler), __MODULE__) do
+      true -> :ok
+      _ -> :alarm_handler.add_alarm_handler(__MODULE__)
+    end
+  end
 end
