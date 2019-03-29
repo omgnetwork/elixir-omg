@@ -19,6 +19,8 @@ defmodule OMG.DB.LevelDBCore do
 
   # adapter - testable, if we really really want to
 
+  @single_value_parameter_names OMG.DB.single_value_parameter_names()
+
   @keys_prefixes %{
     block: "b",
     block_hash: "bn",
@@ -30,27 +32,6 @@ defmodule OMG.DB.LevelDBCore do
   }
 
   @key_types Map.keys(@keys_prefixes)
-
-  @single_value_parameter_names [
-    :child_top_block_number,
-    :last_deposit_child_blknum,
-    :last_block_getter_eth_height,
-    :last_depositor_eth_height,
-    :last_convenience_deposit_processor_eth_height,
-    :last_exiter_eth_height,
-    :last_piggyback_exit_eth_height,
-    :last_in_flight_exit_eth_height,
-    :last_exit_processor_eth_height,
-    :last_convenience_exit_processor_eth_height,
-    :last_exit_finalizer_eth_height,
-    :last_exit_challenger_eth_height,
-    :last_in_flight_exit_processor_eth_height,
-    :last_piggyback_processor_eth_height,
-    :last_competitor_processor_eth_height,
-    :last_challenges_responds_processor_eth_height,
-    :last_piggyback_challenges_processor_eth_height,
-    :last_ife_exit_finalizer_eth_height
-  ]
 
   def parse_multi_updates(db_updates) do
     db_updates
