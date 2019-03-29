@@ -62,6 +62,8 @@ Parity can be used instead of Geth. Two environment variables must be set:
 * `ETH_NODE=parity` - to tell watcher and or child-chain to use parity.
 * `SIGNER_PASSPHRASE=your-passphrase` - for the child chain server, to [unlock](https://github.com/paritytech/parity-ethereum/issues/1215#issuecomment-224317361) the account.
 
+You will also need to enable specific JSON-RPC APIs using switch: `--jsonrpc-apis personal,eth,web3,parity_accounts`
+
 #### Prepare and configure the root chain contract
 
 The following step will:
