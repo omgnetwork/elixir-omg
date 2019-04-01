@@ -232,15 +232,11 @@ defmodule OMG.Watcher.ExitProcessor do
         Utxo.Position.decode(utxo_pos)
       end)
 
-    {:ok, exit_event_triggers, db_updates_from_state, validities} = State.exit_utxos(exits)
+    {:ok, db_updates_from_state, validities} = State.exit_utxos(exits)
+    {new_state, exit_event_triggers, db_updates} = Core.finalize_exits(state, validities)
 
-    _ = if not Enum.empty?(exit_event_triggers), do: Logger.info("Finalized exits: #{inspect(validities)}")
+    EventerAPI.emit_events(exit_event_triggers)
 
-    exit_event_triggers
-    |> Core.create_exit_finalized_events()
-    |> EventerAPI.emit_events()
-
-    {new_state, db_updates} = Core.finalize_exits(state, validities)
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end
 

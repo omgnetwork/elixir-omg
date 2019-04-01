@@ -41,19 +41,19 @@ defmodule OMG.API.Sup do
         service_name: :in_flight_exit,
         synced_height_update_key: :last_in_flight_exit_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_in_flight_exit_starts/2,
-        process_events_callback: &exit_and_ignore_events_and_validities/1
+        process_events_callback: &exit_and_ignore_validities/1
       ),
       OMG.EthereumEventListener.prepare_child(
         service_name: :piggyback,
         synced_height_update_key: :last_piggyback_exit_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_piggybacks/2,
-        process_events_callback: &exit_and_ignore_events_and_validities/1
+        process_events_callback: &exit_and_ignore_validities/1
       ),
       OMG.EthereumEventListener.prepare_child(
         service_name: :exiter,
         synced_height_update_key: :last_exiter_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
-        process_events_callback: &exit_and_ignore_events_and_validities/1
+        process_events_callback: &exit_and_ignore_validities/1
       ),
       {OMG.RPC.Web.Endpoint, []}
     ]
@@ -83,8 +83,8 @@ defmodule OMG.API.Sup do
     }
   end
 
-  defp exit_and_ignore_events_and_validities(exits) do
-    {status, _events, db_updates, _validities} = OMG.State.exit_utxos(exits)
+  defp exit_and_ignore_validities(exits) do
+    {status, db_updates, _validities} = OMG.State.exit_utxos(exits)
     {status, db_updates}
   end
 end

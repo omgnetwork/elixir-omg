@@ -62,7 +62,7 @@ defmodule OMG.State do
   end
 
   @spec exit_utxos(utxos :: Core.exiting_utxos_t()) ::
-          {:ok, list(Core.exit_event()), list(Core.db_update()), Core.validities_t()}
+          {:ok, list(Core.db_update()), Core.validities_t()}
   def exit_utxos(utxos) do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
   end
@@ -149,11 +149,9 @@ defmodule OMG.State do
   Exits (spends) utxos on child chain, explicitly signals all utxos that have already been spent
   """
   def handle_call({:exit_utxos, utxos}, _from, state) do
-    {:ok, {event_triggers, db_updates, validities}, new_state} = Core.exit_utxos(utxos, state)
+    {:ok, {db_updates, validities}, new_state} = Core.exit_utxos(utxos, state)
 
-    EventerAPI.emit_events(event_triggers)
-
-    {:reply, {:ok, event_triggers, db_updates, validities}, new_state}
+    {:reply, {:ok, db_updates, validities}, new_state}
   end
 
   @doc """

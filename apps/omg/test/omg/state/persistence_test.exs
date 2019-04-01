@@ -171,7 +171,7 @@ defmodule OMG.State.PersistenceTest do
   end
 
   defp persist_exit_utxos(state, utxo_positions, db_pid) do
-    assert {:ok, {_, db_updates, _}, state} = utxo_positions |> Core.exit_utxos(state)
+    assert {:ok, {db_updates, _}, state} = utxo_positions |> Core.exit_utxos(state)
     persist_common(state, db_updates, db_pid)
   end
 

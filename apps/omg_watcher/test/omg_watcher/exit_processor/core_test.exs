@@ -41,7 +41,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @early_blknum 1_000
   @late_blknum 10_000
 
-  @utxo_pos1 Utxo.position(1, 3, 0)
+  @utxo_pos1 Utxo.position(2, 0, 0)
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
   @utxo_pos3 Utxo.position(1, 0, 0)
 
@@ -310,8 +310,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {^empty, []} = Core.new_in_flight_exits(empty, [], [])
     assert {^filled, []} = Core.new_exits(filled, [], [])
     assert {^filled, []} = Core.new_in_flight_exits(filled, [], [])
-
-    assert {^filled, []} = Core.finalize_exits(filled, {[], []})
+    assert {^filled, [], []} = Core.finalize_exits(filled, {[], []})
   end
 
   @tag fixtures: [:processor_empty, :alice, :state_empty, :exit_events, :contract_exit_statuses]
@@ -326,13 +325,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Core.new_exits(events, contract_exit_statuses)
 
     # exits invalidly finalize and continue/start emitting events and complain
-    {:ok, {_, _, two_spend}, state_after_spend} =
+    {:ok, {_, two_spend}, state_after_spend} =
       [@utxo_pos1, @utxo_pos2] |> prepare_exit_finalizations() |> State.Core.exit_utxos(state)
 
     # finalizing here - note that without `finalize_exits`, we would just get a single invalid exit event
     # with - we get 3, because we include the invalidly finalized on which will hurt forever
     # (see persistence tests for the "forever" part)
-    assert {processor, _} = Core.finalize_exits(processor, two_spend)
+    assert {processor, [], _} = Core.finalize_exits(processor, two_spend)
 
     assert {{:error, :unchallenged_exit}, [_event1, _event2, _event3]} =
              %ExitProcessor.Request{eth_height_now: 12, blknum_now: @late_blknum}
@@ -341,39 +340,62 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> Core.invalid_exits(processor)
   end
 
-  @tag fixtures: [:processor_empty, :state_alice_deposit, :exit_events, :contract_exit_statuses]
+  @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses, :alice]
   test "can work with State to determine valid exits and finalize them", %{
     processor_empty: processor,
-    state_alice_deposit: state,
+    state_empty: state_empty,
     exit_events: [one_exit | _],
-    contract_exit_statuses: [one_status | _]
+    contract_exit_statuses: [one_status | _],
+    alice: alice
   } do
+    state = state_empty |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
+
     {processor, _} =
       processor
       |> Core.new_exits([one_exit], [one_status])
 
-    assert {:ok, [%Event.InvalidExit{}]} =
+    assert {:ok, []} =
              %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
              |> Core.invalid_exits(processor)
 
-    exiting_position = Utxo.Position.encode(@utxo_pos1)
-
     # go into the future - old exits work the same
-    assert {{:error, :unchallenged_exit},
-            [%Event.UnchallengedExit{utxo_pos: ^exiting_position}, %Event.InvalidExit{utxo_pos: ^exiting_position}]} =
+    assert {:ok, []} =
              %ExitProcessor.Request{eth_height_now: 105, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
              |> Core.invalid_exits(processor)
 
     # exit validly finalizes and continues to not emit any events
-    {:ok, {_, _, spends}, _} = [@utxo_pos3] |> prepare_exit_finalizations() |> State.Core.exit_utxos(state)
-    assert {processor, [{:delete, :exit_info, {1, 0, 0}}]} = Core.finalize_exits(processor, spends)
+    {:ok, {_, spends}, _} = [@utxo_pos1] |> prepare_exit_finalizations() |> State.Core.exit_utxos(state)
+    assert {processor, _, [{:delete, :exit_info, {2, 0, 0}}]} = Core.finalize_exits(processor, spends)
 
-    assert %ExitProcessor.Request{utxos_to_check: [Utxo.position(1, 3, 0)]} =
+    assert %ExitProcessor.Request{utxos_to_check: []} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
+  end
+
+  @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses, :alice]
+  test "emits exit events when finalizing valid exits", %{
+    processor_empty: processor,
+    exit_events: [one_exit | _],
+    contract_exit_statuses: [one_status | _],
+    alice: %{addr: alice_addr}
+  } do
+    {processor, _} = processor |> Core.new_exits([one_exit], [one_status])
+
+    assert {_, [%{exit_finalized: %{amount: 1, currency: @eth, owner: ^alice_addr, utxo_pos: @utxo_pos1}}], _} =
+             Core.finalize_exits(processor, {[@utxo_pos1], []})
+  end
+
+  @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
+  test "doesn't emit exit events when finalizing invalid exits", %{
+    processor_empty: processor,
+    exit_events: [one_exit | _],
+    contract_exit_statuses: [one_status | _]
+  } do
+    {processor, _} = processor |> Core.new_exits([one_exit], [one_status])
+    assert {_, [], _} = Core.finalize_exits(processor, {[], [@utxo_pos1]})
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
@@ -677,7 +699,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     exit_events: [one_exit | _],
     contract_exit_statuses: [one_status | _]
   } do
-    tx = Transaction.new([{1, 3, 0}], [])
+    tx = Transaction.new([{2, 0, 0}], [])
     txbytes = Transaction.raw_txbytes(tx)
     signature = DevCrypto.sign(tx, [alice.priv]) |> Map.get(:sigs) |> Enum.join()
 
@@ -1771,7 +1793,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                  # refer to stuff added by `deffixture processor_filled` for this - both ifes and standard exits here
                  Utxo.position(1, 0, 0),
                  Utxo.position(1, 2, 1),
-                 Utxo.position(1, 3, 0),
+                 Utxo.position(2, 0, 0),
                  Utxo.position(2, 1, 0),
                  Utxo.position(2, 2, 1),
                  Utxo.position(9000, 0, 1)
@@ -1840,13 +1862,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.determine_spends_to_get(processor)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :state_alice_deposit]
+    @tag fixtures: [:alice, :processor_filled, :state_empty]
     test "by working with State - only asking for spends concerning ifes",
          %{
            alice: alice,
            processor_filled: processor,
-           state_alice_deposit: state
+           state_empty: state_empty
          } do
+      state = state_empty |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
       other_recovered = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}])
 
       # first sanity-check as if the utxo was not spent yet
