@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Utils.JsonRPC.Client do
+defmodule OMG.Watcher.JsonRPC.Client do
   @moduledoc """
   Provides functions to communicate with Child Chain API
   """
@@ -52,7 +52,7 @@ defmodule Utils.JsonRPC.Client do
   defp rpc_post(body, path, url) do
     addr = "#{url}/#{path}"
     headers = [{"content-type", "application/json"}]
-
+    IO.inspect addr
     with {:ok, body} <- Jason.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
       _ = Logger.debug("Child chain rpc post #{inspect(addr)} completed successfully")

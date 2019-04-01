@@ -27,7 +27,7 @@ defmodule OMG.Performance.SenderServer do
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
-
+  alias OMG.Watcher.JsonRPC.Client
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -189,7 +189,9 @@ defmodule OMG.Performance.SenderServer do
   # Submits Tx to the child chain server via http (Http-RPC) and translates successful result to atom-keyed map.
   @spec submit_tx_rpc(binary) :: {:ok, map} | {:error, any}
   defp submit_tx_rpc(encoded_tx) do
-    Utils.JsonRPC.Client.submit(encoded_tx, "URL")
+    url = Application.get_env(:omg_watcher, :child_chain_url)
+    IO.inspect("submit_tx_rpc #{url}")
+    Client.submit(encoded_tx, url)
   end
 
   #   Generates module's initial state

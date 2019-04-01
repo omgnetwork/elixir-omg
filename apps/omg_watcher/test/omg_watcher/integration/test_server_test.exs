@@ -16,7 +16,7 @@ defmodule OMG.Watcher.Integration.TestServerTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  alias Utils.JsonRPC.Client
+  alias OMG.Watcher.JsonRPC.Client
   alias Utils.JsonRPC.Encoding
   alias OMG.Watcher.Integration.TestServer
 
