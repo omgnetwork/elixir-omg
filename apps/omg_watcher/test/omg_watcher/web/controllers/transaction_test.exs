@@ -17,7 +17,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
-  alias OMG.RPC.Web.Encoding
+  alias Utils.JsonRPC.Encoding
   alias OMG.TestHelper, as: Test
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper

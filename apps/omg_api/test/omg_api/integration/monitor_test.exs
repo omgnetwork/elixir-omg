@@ -14,8 +14,8 @@
 
 defmodule OMG.API.MonitorTest do
   @moduledoc false
-  alias OMG.API.Alert.Alarm
-  alias OMG.API.Alert.AlarmHandler
+  alias OMG.Alert.Alarm
+  alias OMG.Alert.AlarmHandler
   alias OMG.API.Monitor
   use ExUnit.Case, async: true
   @moduletag :integration

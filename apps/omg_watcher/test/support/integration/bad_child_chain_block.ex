@@ -19,10 +19,10 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
   """
 
   alias OMG.Block
-  alias OMG.RPC.Client
-  alias OMG.RPC.Web.Encoding
+  alias Utils.JsonRPC.Client
+  alias Utils.JsonRPC.Encoding
   alias OMG.Watcher.Integration.TestServer
-  alias OMG.Watcher.Web.Serializer.Response
+  alias Utils.JsonRPC.Response
 
   @doc """
   Adds a route to TestServer which responded with prepared bad block when asked for known hash
@@ -43,7 +43,7 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
         else
           {:ok, block} =
             %{hash: req_hash}
-            |> Client.rpc_post("block.get", context.real_addr)
+            |> Client.get_block(context.real_addr)
             |> Client.get_response_body()
 
           TestServer.make_response(block)

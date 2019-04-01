@@ -24,7 +24,7 @@ defmodule OMG.API.Integration.HappyPathTest do
   alias OMG.Block
   alias OMG.Eth
   alias OMG.Integration.DepositHelper
-  alias OMG.RPC.Web.Encoding
+  alias Utils.JsonRPC.Encoding
   alias OMG.RPC.Web.TestHelper
   alias OMG.State.Transaction
   alias OMG.Utxo

@@ -16,7 +16,7 @@ defmodule OMG.Watcher.Web.View.ErrorView do
   use OMG.Watcher.Web, :view
   use OMG.LoggerExt
 
-  alias OMG.RPC.Web.Error
+  alias Utils.JsonRPC.Error
 
   @doc """
   Handles client errors, e.g. malformed json in request body

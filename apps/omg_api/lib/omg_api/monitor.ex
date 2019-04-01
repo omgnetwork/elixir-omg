@@ -38,7 +38,7 @@ defmodule OMG.API.Monitor do
   use GenServer
 
   require Logger
-  # needs to be less then checks from RootChainCoordinator
+
   @type t :: %__MODULE__{
           alarm_module: module(),
           children: list(Child.t())

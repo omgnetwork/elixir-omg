@@ -26,7 +26,7 @@ defmodule OMG.Watcher.Eventer do
   alias OMG.Watcher.Eventer.Core
   alias OMG.Watcher.Recorder
   alias OMG.Watcher.Web.Endpoint
-  alias OMG.Watcher.Web.Serializer.Response
+  alias Utils.JsonRPC.Response
   ### Client
 
   def start_link(_args) do

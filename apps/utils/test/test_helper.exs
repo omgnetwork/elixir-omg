@@ -12,25 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.View.Account do
-  @moduledoc """
-  The account view for rendering json
-  """
-
-  use OMG.Watcher.Web, :view
-  alias Utils.JsonRPC.Response
-  alias OMG.Utxo
-
-  require Utxo
-
-  def render("balance.json", %{response: balance}) do
-    balance
-    |> Response.serialize()
-  end
-
-  def render("utxos.json", %{response: utxos}) do
-    utxos
-    |> Enum.map(&to_utxo/1)
-    |> Response.serialize()
-  end
-end
+ExUnit.start()
