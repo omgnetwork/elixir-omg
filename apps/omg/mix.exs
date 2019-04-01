@@ -27,6 +27,7 @@ defmodule OMG.MixProject do
         ethereum_events_check_interval_ms: 500,
         coordinator_eth_height_check_interval_ms: 6_000
       ],
+      mod: {OMG.Application, []},
       extra_applications: [:logger, :appsignal]
     ]
   end
@@ -44,7 +45,8 @@ defmodule OMG.MixProject do
       {:appsignal, "~> 1.0"},
       #
       {:omg_db, in_umbrella: true},
-      {:omg_eth, in_umbrella: true}
+      {:omg_eth, in_umbrella: true},
+      {:omg_status, in_umbrella: true}
     ]
   end
 end

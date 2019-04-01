@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Alert.AlarmTest do
+defmodule OMG.Alert.AlarmTest do
   use ExUnit.Case, async: false
-  alias OMG.API.Alert.Alarm
-  alias OMG.API.Alert.AlarmHandler
+  alias OMG.Alert.Alarm
+  alias OMG.Alert.AlarmHandler
 
   setup_all do
     :ok = AlarmHandler.install()

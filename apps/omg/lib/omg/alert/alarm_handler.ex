@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Alert.AlarmHandler do
+defmodule OMG.Alert.AlarmHandler do
   @moduledoc """
-  Handler for OMG Watcher app.
+  Handler for OMG API app.
   """
 
   def install do
