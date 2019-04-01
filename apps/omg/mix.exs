@@ -19,6 +19,7 @@ defmodule OMG.MixProject do
 
   def application do
     [
+      mod: {OMG.Application, []},
       extra_applications: [:logger, :appsignal]
     ]
   end
@@ -37,7 +38,8 @@ defmodule OMG.MixProject do
       {:phoenix_pubsub, "~> 1.0"},
       #
       {:omg_db, in_umbrella: true},
-      {:omg_eth, in_umbrella: true}
+      {:omg_eth, in_umbrella: true},
+      {:omg_status, in_umbrella: true}
     ]
   end
 end

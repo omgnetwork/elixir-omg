@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Alert.Alarm do
+defmodule OMG.Alert.Alarm do
   @moduledoc """
   Interface for raising and clearing alarms.
   """
-  alias OMG.Watcher.Alert.AlarmHandler
+  alias OMG.Alert.AlarmHandler
   @behaviour AlarmHandler
 
   @impl AlarmHandler

@@ -18,7 +18,7 @@ defmodule OMG.API.Sup do
   """
   use Supervisor
   use OMG.LoggerExt
-  alias OMG.API.Alert.Alarm
+  alias OMG.Alert.Alarm
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -63,7 +63,6 @@ defmodule OMG.API.Sup do
       {OMG.State, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeServer, []},
-      {OMG.API.EthereumClientMonitor, [Alarm]},
       {OMG.API.Monitor, [Alarm, monitor_children]}
     ]
 
