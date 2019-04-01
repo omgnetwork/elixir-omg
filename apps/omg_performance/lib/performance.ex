@@ -121,7 +121,7 @@ defmodule OMG.Performance do
     DeferredConfig.populate(:omg_rpc)
 
     url =
-      Application.get_env(:omg_rpc, Utils.JsonRPC.Client, "http://localhost:9656")
+      Application.get_env(:omg_rpc, :child_chain_url, "http://localhost:9656")
       |> case do
         nil -> nil
         opts -> Keyword.get(opts, :child_chain_url)
