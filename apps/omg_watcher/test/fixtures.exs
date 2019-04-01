@@ -203,12 +203,12 @@ defmodule OMG.Watcher.Fixtures do
 
     EnvAgent.save_env(server_id, env)
 
-    real_addr = Application.fetch_env!(:omg_rpc, OMG.RPC.Client) |> Keyword.fetch!(:child_chain_url)
-    old_client_env = Application.get_env(:omg_rpc, OMG.RPC.Client)
+    real_addr = Application.fetch_env!(:omg_rpc, Utils.JsonRPC.Client) |> Keyword.fetch!(:child_chain_url)
+    old_client_env = Application.get_env(:omg_rpc, Utils.JsonRPC.Client)
     fake_addr = "http://#{env.ip}:#{env.port}"
 
     on_exit(fn ->
-      Application.put_env(:omg_rpc, OMG.RPC.Client, old_client_env)
+      Application.put_env(:omg_rpc, Utils.JsonRPC.Client, old_client_env)
 
       Server.stop(server_id)
       EnvAgent.delete_env(server_id)

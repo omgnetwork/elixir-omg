@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.RPC.Web.Error do
+defmodule Utils.JsonRPC.Error do
   @moduledoc """
   Provides standard data structure for API Error response
   """
+  alias Utils.JsonRPC.Response
 
   @doc """
   Serializes error's code and description provided in response's data field.
@@ -28,7 +29,7 @@ defmodule OMG.RPC.Web.Error do
       description: description
     }
     |> add_messages(messages)
-    |> OMG.RPC.Web.Response.serialize()
+    |> Response.serialize()
   end
 
   defp add_messages(data, nil), do: data

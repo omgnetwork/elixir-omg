@@ -17,7 +17,7 @@ defmodule OMG.Watcher.Web.Controller.InFlightExitTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
-  alias OMG.RPC.Web.Encoding
+  alias Utils.JsonRPC.Encoding
   alias OMG.State.Transaction
   alias OMG.Watcher.TestHelper
 

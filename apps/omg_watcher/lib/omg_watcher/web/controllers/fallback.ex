@@ -18,7 +18,7 @@ defmodule OMG.Watcher.Web.Controller.Fallback do
   """
 
   use Phoenix.Controller
-  alias OMG.RPC.Web.Error
+  alias Utils.JsonRPC.Error
 
   @errors %{
     exit_not_found: %{

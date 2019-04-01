@@ -17,7 +17,7 @@ defmodule OMG.Watcher.Web.View.Transaction do
   The transaction view for rendering json
   """
 
-  alias OMG.RPC.Web.Response
+  alias Utils.JsonRPC.Response
 
   use OMG.Watcher.Web, :view
 
