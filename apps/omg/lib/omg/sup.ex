@@ -12,29 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Application do
+defmodule OMG.Sup do
   @moduledoc """
-  The application here is the Child chain server and its API.
-  See here (children) for the processes that compose into the Child Chain server.
+   OMG top level supervisor.
   """
+  use Supervisor
+  use OMG.LoggerExt
+  alias OMG.Alert.Alarm
 
-  use Application
-  alias OMG.API.Sup
-  require Logger
-
-  def start(_type, _args) do
-    cookie = System.get_env("ERL_CC_COOKIE")
-    :ok = set_cookie(cookie)
-
-    :ok = AlarmHandler.install()
-    Sup.start_link()
+  def start_link do
+    Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  defp set_cookie(cookie) when is_binary(cookie) do
-    cookie
-    |> String.to_atom()
-    |> Node.set_cookie()
-  end
+  def init(:ok) do
+    children = [
+      {OMG.EthereumClientMonitor, [Alarm]}
+    ]
 
-  defp set_cookie(_), do: _ = Logger.warn("Cookie not applied.")
+    opts = [strategy: :one_for_one]
+
+    _ = Logger.info("Starting #{inspect(__MODULE__)}")
+    Supervisor.init(children, opts)
+  end
 end

@@ -12,29 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Application do
+defmodule OMG.Application do
   @moduledoc """
   The application here is the Child chain server and its API.
   See here (children) for the processes that compose into the Child Chain server.
   """
 
   use Application
-  alias OMG.API.Sup
-  require Logger
+  alias OMG.Alert.AlarmHandler
+  alias OMG.Sup
 
   def start(_type, _args) do
-    cookie = System.get_env("ERL_CC_COOKIE")
-    :ok = set_cookie(cookie)
-
     :ok = AlarmHandler.install()
     Sup.start_link()
   end
-
-  defp set_cookie(cookie) when is_binary(cookie) do
-    cookie
-    |> String.to_atom()
-    |> Node.set_cookie()
-  end
-
-  defp set_cookie(_), do: _ = Logger.warn("Cookie not applied.")
 end
