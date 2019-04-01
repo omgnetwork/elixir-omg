@@ -17,7 +17,7 @@ defmodule OMG.Watcher.API.Transaction do
   Module provides API for transactions
   """
 
-  alias OMG.RPC.Client
+  alias Utils.JsonRPC.Client
   alias OMG.Utxo
   alias OMG.Watcher.DB
   alias OMG.Watcher.UtxoSelection
@@ -64,7 +64,7 @@ defmodule OMG.Watcher.API.Transaction do
   """
   @spec submit(binary()) :: Client.response_t()
   def(submit(txbytes)) do
-    Client.submit(txbytes)
+    Client.submit(txbytes, "URL")
   end
 
   @doc """

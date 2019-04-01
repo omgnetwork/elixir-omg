@@ -69,7 +69,7 @@ defmodule OMG.Watcher.Monitor do
   def handle_call(_request, state), do: {:ok, :ok, state}
 
   def handle_event({:clear_alarm, {:ethereum_client_connection, _}}, state) do
-    _ = Logger.warn(":ethereum_client_connection alarm was cleared from monitor. Begining to restart processes.")
+    _ = Logger.warn(":ethereum_client_connection alarm was cleared. Begining to restart processes.")
     :ok = GenServer.cast(__MODULE__, :start_children)
     {:ok, state}
   end

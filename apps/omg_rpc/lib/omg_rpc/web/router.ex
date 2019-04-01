@@ -17,6 +17,7 @@ defmodule OMG.RPC.Web.Router do
 
   pipeline :api do
     plug(:accepts, ["json"])
+    plug(OMG.RPC.Plugs.Health)
   end
 
   scope "/", OMG.RPC.Web do

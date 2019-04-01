@@ -17,7 +17,7 @@ defmodule OMG.Watcher.Web.Validator.Constrains do
   Validates `/transaction.all` query parameters
   """
 
-  import OMG.RPC.Web.Validator.Base
+  import Utils.JsonRPC.Validator.Base
 
   @doc """
   Validates possible query constrains, stops on first error.

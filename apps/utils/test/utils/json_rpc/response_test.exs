@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Serializer.ResponseTest do
+defmodule Utils.JsonRPC.ResponseTest do
   use ExUnit.Case, async: true
 
-  alias OMG.RPC.Web.Encoding
-  alias OMG.Watcher.{DB, TestHelper, Web.Serializer.Response}
+  alias Utils.JsonRPC.Encoding
+  alias Utils.JsonRPC.Response
+  alias OMG.Watcher.DB
+  alias OMG.Watcher.TestHelper
 
   @cleaned_tx %{
     blknum: nil,

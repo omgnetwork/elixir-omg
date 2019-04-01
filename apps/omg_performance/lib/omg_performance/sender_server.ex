@@ -189,7 +189,7 @@ defmodule OMG.Performance.SenderServer do
   # Submits Tx to the child chain server via http (Http-RPC) and translates successful result to atom-keyed map.
   @spec submit_tx_rpc(binary) :: {:ok, map} | {:error, any}
   defp submit_tx_rpc(encoded_tx) do
-    OMG.RPC.Client.submit(encoded_tx)
+    Utils.JsonRPC.Client.submit(encoded_tx, "URL")
   end
 
   #   Generates module's initial state

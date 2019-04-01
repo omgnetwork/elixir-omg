@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.RPC.Client do
+defmodule Utils.JsonRPC.Client do
   @moduledoc """
   Provides functions to communicate with Child Chain API
   """
 
-  alias OMG.RPC.Web.Encoding
+  alias Utils.JsonRPC.Encoding
   require Logger
 
   @type response_t() ::
@@ -29,10 +29,10 @@ defmodule OMG.RPC.Client do
   @doc """
   Gets Block of given hash
   """
-  @spec get_block(binary()) :: response_t()
-  def get_block(hash) do
+  @spec get_block(binary(), binary()) :: response_t()
+  def get_block(hash, url) do
     %{hash: Encoding.to_hex(hash)}
-    |> rpc_post("block.get")
+    |> rpc_post("block.get", url)
     |> get_response_body()
     |> decode_response()
   end
@@ -40,19 +40,16 @@ defmodule OMG.RPC.Client do
   @doc """
   Submits transaction
   """
-  @spec submit(binary()) :: response_t()
-  def submit(tx) do
+  @spec submit(binary(), binary()) :: response_t()
+  def submit(tx, url) do
     %{transaction: Encoding.to_hex(tx)}
-    |> rpc_post("transaction.submit")
+    |> rpc_post("transaction.submit", url)
     |> get_response_body()
     |> decode_response()
   end
 
-  @doc """
-  Makes HTTP POST request to the API
-  """
-  def rpc_post(body, path, url \\ nil) do
-    url = url || Application.fetch_env!(:omg_rpc, OMG.RPC.Client) |> Keyword.fetch!(:child_chain_url)
+  # Makes HTTP POST request to the API
+  defp rpc_post(body, path, url) do
     addr = "#{url}/#{path}"
     headers = [{"content-type", "application/json"}]
 

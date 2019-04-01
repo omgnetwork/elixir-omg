@@ -54,8 +54,7 @@ defmodule OMG.API.Sup do
         synced_height_update_key: :last_exiter_eth_height,
         get_events_callback: &OMG.Eth.RootChain.get_standard_exits/2,
         process_events_callback: &exit_and_ignore_validities/1
-      ),
-      {OMG.RPC.Web.Endpoint, []}
+      )
     ]
 
     children = [
