@@ -44,7 +44,6 @@ defmodule OMG.RPC.MixProject do
       {:appsignal, "~> 1.0"},
       #
       {:omg, in_umbrella: true},
-      {:utils, in_umbrella: true},
       {:utils, in_umbrella: true}
     ]
   end

@@ -56,6 +56,7 @@ defmodule OMG.Watcher.TestHelper do
   end
 
   def rpc_call(path, body \\ nil, expected_resp_status \\ 200) do
+    IO.inspect path
     request =
       conn(:post, path, body)
       |> put_req_header("content-type", "application/json")

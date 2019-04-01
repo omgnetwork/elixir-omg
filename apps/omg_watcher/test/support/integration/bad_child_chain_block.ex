@@ -19,7 +19,7 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
   """
 
   alias OMG.Block
-  alias Utils.JsonRPC.Client
+  alias OMG.Watcher.JsonRPC.Client
   alias Utils.JsonRPC.Encoding
   alias OMG.Watcher.Integration.TestServer
   alias Utils.JsonRPC.Response
@@ -42,7 +42,7 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
           |> TestServer.make_response()
         else
           {:ok, block} =
-            %{hash: req_hash}
+            req_hash
             |> Client.get_block(context.real_addr)
             |> Client.get_response_body()
 

@@ -10,8 +10,6 @@ use Mix.Config
 config :omg_rpc,
   child_chain_api_module: OMG.API
 
-config :omg_rpc, Utils.JsonRPC.Client, child_chain_url: {:system, "CHILD_CHAIN_URL", "http://localhost:9656"}
-
 # Configures the endpoint
 config :omg_rpc, OMG.RPC.Web.Endpoint,
   secret_key_base: "TKO1TD87rXknWy9NhAGiEdv0cXm6W88/8G1E0uV0LISh998yZYNNPRZ5vfEexceb",
