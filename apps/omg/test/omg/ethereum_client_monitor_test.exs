@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.EthereumClientMonitorTest do
+defmodule OMG.EthereumClientMonitorTest do
   @moduledoc false
 
   use ExUnit.Case, async: true
   alias __MODULE__.Mock
-  alias OMG.API.Alert.Alarm
-  alias OMG.API.Alert.AlarmHandler
-  alias OMG.API.EthereumClientMonitor
+  alias OMG.Alert.Alarm
+  alias OMG.Alert.AlarmHandler
+  alias OMG.EthereumClientMonitor
 
   setup_all do
     :ok = AlarmHandler.install()

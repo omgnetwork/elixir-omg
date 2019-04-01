@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Application do
+defmodule OMG.Application do
   @moduledoc """
   The application here is the Child chain server and its API.
   See here (children) for the processes that compose into the Child Chain server.
   """
 
   use Application
-  alias OMG.API.Sup
+  alias OMG.Alert.AlarmHandler
+  alias OMG.Sup
 
   def start(_type, _args) do
+    :ok = AlarmHandler.install()
     Sup.start_link()
   end
 end

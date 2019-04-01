@@ -32,7 +32,6 @@ defmodule OMG.Watcher.SyncSupervisor do
 
   def init(:ok) do
     children = [
-      {OMG.API.EthereumClientMonitor, [Alarm]},
       {OMG.API.Monitor, [Alarm, monitor_children()]}
     ]
 

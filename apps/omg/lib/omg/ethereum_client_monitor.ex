@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.EthereumClientMonitor do
+defmodule OMG.EthereumClientMonitor do
   @moduledoc """
   This module periodically checks Geth (every second or less) and raises an alarm
   when it can't reach the client and clears the alarm when the client connection is established again.

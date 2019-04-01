@@ -14,7 +14,6 @@
 
 defmodule OMG.Watcher.Application do
   @moduledoc false
-  alias OMG.Watcher.Alert.AlarmHandler
   use Application
   use OMG.LoggerExt
 
@@ -25,7 +24,6 @@ defmodule OMG.Watcher.Application do
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
 
-    :ok = AlarmHandler.install()
     start_root_supervisor()
   end
 
