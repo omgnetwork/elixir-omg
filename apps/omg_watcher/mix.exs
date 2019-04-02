@@ -38,22 +38,19 @@ defmodule OMG.Watcher.Mixfile do
       {:postgrex, ">= 0.13.5"},
       {:deferred_config, "~> 0.1.1"},
       {:cors_plug, "~> 2.0"},
-      {:socket, "~> 0.3"},
       {:appsignal, "~> 1.0"},
-      # NOTE: we only need in :dev and :test here, but we need in :prod too in performance
-      #       then there's some unexpected behavior of mix that won't allow to mix these, see
-      #       [here](https://elixirforum.com/t/mix-dependency-is-not-locked-error-when-building-with-edeliver/7069/3)
-      #       OMG-373 (Elixir 1.8) should fix this
-      {:briefly, "~> 0.3"},
-      {:fake_server, "~> 1.5", only: [:test, :dev]},
-      #
+      # UMBRELLA
       {:omg, in_umbrella: true},
       {:omg_status, in_umbrella: true},
-      # here only to leverage common test helpers and code
-      {:omg_api, in_umbrella: true, only: [:test], runtime: false},
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
-      {:utils, in_umbrella: true}
+      {:utils, in_umbrella: true},
+
+      # TEST ONLY
+      # here only to leverage common test helpers and code
+      {:fake_server, "~> 1.5", only: [:dev, :test], runtime: false},
+      {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
+      {:omg_api, in_umbrella: true, only: [:test], runtime: false}
     ]
   end
 

@@ -20,6 +20,17 @@ defmodule XomgTasks.Utils do
   @doc """
   Runs a specific app for some arguments. Will handle IEx, if one's running
   """
+  def generic_run(args, apps) when is_list(apps) do
+    Mix.Task.run("run", args)
+
+    _ =
+      Enum.each(apps, fn app ->
+        {:ok, _} = Application.ensure_all_started(app)
+      end)
+
+    iex_running?() || Process.sleep(:infinity)
+  end
+
   def generic_run(args, app) do
     Mix.Task.run("run", args)
     {:ok, _} = Application.ensure_all_started(app)

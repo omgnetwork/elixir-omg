@@ -13,6 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.Eth.Encoding do
+  # TODO merge his with Utils.JsonRPC.Encoding
   @moduledoc """
   Internal encoding helpers to talk to ethereum.
   For use in `OMG.Eth` and `OMG.Eth.DevHelper`

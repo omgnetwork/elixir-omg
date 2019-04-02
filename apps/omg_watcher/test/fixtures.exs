@@ -114,6 +114,8 @@ defmodule OMG.Watcher.Fixtures do
   deffixture watcher(db_initialized, root_chain_contract_config) do
     :ok = root_chain_contract_config
     :ok = db_initialized
+
+    DeferredConfig.populate(:omg_watcher)
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omg_watcher)
 
@@ -197,7 +199,7 @@ defmodule OMG.Watcher.Fixtures do
     alias FakeServer.HTTP.Server
 
     DeferredConfig.populate(:omg_rpc)
-
+    DeferredConfig.populate(:omg_watcher)
     {:ok, server_id, port} = Server.run()
     env = FakeServer.Env.new(port)
 

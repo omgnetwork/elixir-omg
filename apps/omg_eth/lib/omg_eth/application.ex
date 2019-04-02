@@ -12,21 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.RPC.Web.Router do
-  use OMG.RPC.Web, :router
+defmodule OMG.Eth.Application do
+  @moduledoc false
 
-  pipeline :api do
-    plug(:accepts, ["json"])
-    # plug(OMG.RPC.Plugs.Health)
-  end
+  use Application
 
-  scope "/", OMG.RPC.Web do
-    pipe_through(:api)
-
-    post("/block.get", Controller.Block, :get_block)
-    post("/transaction.submit", Controller.Transaction, :submit)
-
-    # NOTE: This *has to* be the last route, catching all unhandled paths
-    match(:*, "/*path", Controller.Fallback, Route.NotFound)
+  def start(_type, _args) do
+    DeferredConfig.populate(:omg_eth)
+    {:ok, self()}
   end
 end
