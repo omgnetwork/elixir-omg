@@ -19,9 +19,10 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
   """
 
   alias OMG.Block
+  alias OMG.Watcher.Integration.TestServer
   alias OMG.Watcher.JsonRPC.Client
   alias Utils.JsonRPC.Encoding
-  alias OMG.Watcher.Integration.TestServer
+
   alias Utils.JsonRPC.Response
 
   @doc """
