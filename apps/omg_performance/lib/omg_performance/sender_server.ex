@@ -190,7 +190,7 @@ defmodule OMG.Performance.SenderServer do
   @spec submit_tx_rpc(binary) :: {:ok, map} | {:error, any}
   defp submit_tx_rpc(encoded_tx) do
     url = Application.get_env(:omg_watcher, :child_chain_url)
-    IO.inspect("submit_tx_rpc #{url}")
+
     Client.submit(encoded_tx, url)
   end
 

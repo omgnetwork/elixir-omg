@@ -17,9 +17,9 @@ defmodule OMG.Watcher.Integration.TestServerTest do
   use ExUnit.Case, async: false
 
   alias OMG.Watcher.JsonRPC.Client
-  alias Utils.JsonRPC.Encoding
-  alias OMG.Watcher.Integration.TestServer
 
+  alias OMG.Watcher.Integration.TestServer
+  alias Utils.JsonRPC.Encoding
   @expected_block_hash <<0::256>>
 
   describe "/block.get -" do

@@ -18,8 +18,8 @@ defmodule OMG.Watcher.Web.View.Account do
   """
 
   use OMG.Watcher.Web, :view
-  alias Utils.JsonRPC.Response
   alias OMG.Utxo
+  alias Utils.JsonRPC.Response
 
   require Utxo
 

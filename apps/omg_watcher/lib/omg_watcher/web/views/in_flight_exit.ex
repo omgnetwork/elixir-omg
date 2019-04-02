@@ -18,9 +18,8 @@ defmodule OMG.Watcher.Web.View.InFlightExit do
   """
 
   use OMG.Watcher.Web, :view
-
-  alias Utils.JsonRPC.Response
   alias OMG.Utxo
+  alias Utils.JsonRPC.Response
 
   def render("in_flight_exit.json", %{response: in_flight_exit}) do
     in_flight_exit

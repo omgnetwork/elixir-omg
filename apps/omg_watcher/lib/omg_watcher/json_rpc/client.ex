@@ -52,7 +52,7 @@ defmodule OMG.Watcher.JsonRPC.Client do
   defp rpc_post(body, path, url) do
     addr = "#{url}/#{path}"
     headers = [{"content-type", "application/json"}]
-    IO.inspect addr
+
     with {:ok, body} <- Jason.encode(body),
          {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
       _ = Logger.debug("Child chain rpc post #{inspect(addr)} completed successfully")

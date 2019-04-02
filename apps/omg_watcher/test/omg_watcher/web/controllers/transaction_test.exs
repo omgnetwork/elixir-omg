@@ -16,11 +16,12 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
-
-  alias Utils.JsonRPC.Encoding
   alias OMG.TestHelper, as: Test
   alias OMG.Watcher.DB
+
   alias OMG.Watcher.TestHelper
+
+  alias Utils.JsonRPC.Encoding
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @other_token <<127::160>>
