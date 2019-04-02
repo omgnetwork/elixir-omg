@@ -38,15 +38,17 @@ defmodule OMG.MixProject do
 
   defp deps do
     [
-      {:propcheck, "~> 1.1", only: [:dev, :test]},
       {:ex_rlp, "~> 0.5.2"},
       {:merkle_tree, "~> 1.5.0"},
       {:deferred_config, "~> 0.1.1"},
       {:appsignal, "~> 1.0"},
-      #
+      # UMBRELLA
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
-      {:omg_status, in_umbrella: true}
+      {:omg_status, in_umbrella: true},
+
+      # TEST ONLY
+      {:propcheck, "~> 1.1", only: [:dev, :test], runtime: false}
     ]
   end
 end

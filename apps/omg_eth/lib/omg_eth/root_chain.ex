@@ -21,7 +21,7 @@ defmodule OMG.Eth.RootChain do
 
   alias OMG.Eth
 
-  import Eth.Encoding
+  import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   @tx_defaults Eth.Defaults.tx_defaults()
 
@@ -342,6 +342,7 @@ defmodule OMG.Eth.RootChain do
 
   def get_standard_exit_id(txhash, oindex, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+
     Eth.call_contract(contract, "getStandardExitId(bytes32,uint8)", [txhash, oindex], [{:uint, 192}])
   end
 

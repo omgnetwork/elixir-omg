@@ -26,7 +26,8 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   alias OMG.Watcher.Event
   alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
   alias OMG.Watcher.TestHelper
-  alias OMG.Watcher.Web.{Channel, Serializer.Response}
+  alias OMG.Watcher.Web.Channel
+  alias Utils.JsonRPC.Response
 
   require Utxo
 
