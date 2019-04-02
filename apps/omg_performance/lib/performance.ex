@@ -46,7 +46,7 @@ defmodule OMG.Performance do
   (github.com/erlang/otp and the JIRA it points you to).
   """
 
-  use OMG.LoggerExt
+  require Logger
 
   alias OMG.Crypto
   alias OMG.Integration.DepositHelper
@@ -120,12 +120,7 @@ defmodule OMG.Performance do
 
     DeferredConfig.populate(:omg_rpc)
 
-    url =
-      Application.get_env(:omg_rpc, :child_chain_url, "http://localhost:9656")
-      |> case do
-        nil -> nil
-        opts -> Keyword.get(opts, :child_chain_url)
-      end
+    url = Application.get_env(:omg_rpc, :child_chain_url, "http://localhost:9656")
 
     defaults = %{destdir: ".", geth: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545", child_chain: url}
     opts = Map.merge(defaults, opts)

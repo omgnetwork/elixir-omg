@@ -38,12 +38,12 @@ defmodule OMG.EthereumClientMonitor do
   end
 
   def init([alarm_module]) do
+    _ = Logger.info("Starting Ethereum client monitor.")
     install()
     state = %__MODULE__{alarm_module: alarm_module}
     _ = alarm_module.raise({:ethereum_client_connection, Node.self(), __MODULE__})
     _ = raise_clear(alarm_module, state.raised, check())
     {:ok, tref} = :timer.send_after(state.interval, :health_check)
-    _ = Logger.info("Starting Ethereum client monitor.")
     {:ok, %{state | tref: tref}}
   end
 

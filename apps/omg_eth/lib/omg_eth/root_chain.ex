@@ -21,7 +21,7 @@ defmodule OMG.Eth.RootChain do
 
   alias OMG.Eth
 
-  import Eth.Encoding
+  import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   @tx_defaults Eth.Defaults.tx_defaults()
 

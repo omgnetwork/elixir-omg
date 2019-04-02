@@ -17,7 +17,9 @@ defmodule OMG.Watcher.JsonRPC.Client do
   Provides functions to communicate with Child Chain API
   """
 
+  alias OMG.Watcher.JsonRPC.Adapter
   alias Utils.JsonRPC.Encoding
+
   require Logger
 
   @type response_t() ::
@@ -32,8 +34,8 @@ defmodule OMG.Watcher.JsonRPC.Client do
   @spec get_block(binary(), binary()) :: response_t()
   def get_block(hash, url) do
     %{hash: Encoding.to_hex(hash)}
-    |> rpc_post("block.get", url)
-    |> get_response_body()
+    |> Adapter.rpc_post("block.get", url)
+    |> Adapter.get_response_body()
     |> decode_response()
   end
 
@@ -43,25 +45,9 @@ defmodule OMG.Watcher.JsonRPC.Client do
   @spec submit(binary(), binary()) :: response_t()
   def submit(tx, url) do
     %{transaction: Encoding.to_hex(tx)}
-    |> rpc_post("transaction.submit", url)
-    |> get_response_body()
+    |> Adapter.rpc_post("transaction.submit", url)
+    |> Adapter.get_response_body()
     |> decode_response()
-  end
-
-  # Makes HTTP POST request to the API
-  defp rpc_post(body, path, url) do
-    addr = "#{url}/#{path}"
-    headers = [{"content-type", "application/json"}]
-
-    with {:ok, body} <- Jason.encode(body),
-         {:ok, %HTTPoison.Response{} = response} <- HTTPoison.post(addr, body, headers) do
-      _ = Logger.debug("Child chain rpc post #{inspect(addr)} completed successfully")
-      response
-    else
-      err ->
-        _ = Logger.warn("Child chain rpc post #{inspect(addr)} failed with #{inspect(err)}")
-        err
-    end
   end
 
   # Translates response's body to known elixir structure, either block or tx submission response or error.
@@ -83,35 +69,5 @@ defmodule OMG.Watcher.JsonRPC.Client do
   defp decode16!(hexstr) do
     {:ok, bin} = Encoding.from_hex(hexstr)
     bin
-  end
-
-  @doc """
-  Retrieves body from response structure. When response is successful
-  the structure in body is known, so we can try to deserialize it.
-  """
-  def get_response_body(%HTTPoison.Response{status_code: 200, body: body}) do
-    with {:ok, response} <- Jason.decode(body),
-         %{"success" => true, "data" => data} <- response do
-      {
-        :ok,
-        data |> convert_keys_to_atoms()
-      }
-    else
-      %{"success" => false, "data" => data} -> {:error, {:client_error, data}}
-      match_err -> {:error, {:malformed_response, match_err}}
-    end
-  end
-
-  def get_response_body(%HTTPoison.Response{body: error}),
-    do: {:error, {:server_error, error}}
-
-  def get_response_body(error), do: {:error, {:client_error, error}}
-
-  defp convert_keys_to_atoms(data) when is_map(data) do
-    data
-    |> Stream.map(fn {k, v} ->
-      {String.to_existing_atom(k), v}
-    end)
-    |> Map.new()
   end
 end
