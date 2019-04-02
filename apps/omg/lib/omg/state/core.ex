@@ -68,9 +68,6 @@ defmodule OMG.State.Core do
           | :utxo_not_found
 
   @type deposit_event :: %{deposit: %{amount: non_neg_integer, owner: Crypto.address_t()}}
-  @type exit_event :: %{
-          exit: %{owner: Crypto.address_t(), blknum: pos_integer, txindex: non_neg_integer, oindex: non_neg_integer}
-        }
   @type tx_event :: %{
           tx: Transaction.Recovered.t(),
           child_blknum: pos_integer,
@@ -379,7 +376,7 @@ defmodule OMG.State.Core do
   bare `EthereumEventListener` or `ExitProcessor`. Hence different forms it can get the exiting utxos delivered
   """
   @spec exit_utxos(exiting_utxos :: exiting_utxos_t(), state :: t()) ::
-          {:ok, {[exit_event], [db_update], validities_t()}, new_state :: t()}
+          {:ok, {[db_update], validities_t()}, new_state :: t()}
   def exit_utxos([%{utxo_pos: _} | _] = exit_infos, %Core{} = state) do
     exit_infos |> Enum.map(& &1.utxo_pos) |> exit_utxos(state)
   end
@@ -417,26 +414,15 @@ defmodule OMG.State.Core do
   end
 
   def exit_utxos(exiting_utxos, %Core{utxos: utxos} = state) do
-    _ =
-      if exiting_utxos != [] do
-        Logger.info("Recognized exits #{inspect(exiting_utxos)}")
-      end
+    _ = if exiting_utxos != [], do: Logger.info("Recognized exits #{inspect(exiting_utxos)}")
 
     {valid, _invalid} = validities = Enum.split_with(exiting_utxos, &utxo_exists?(&1, state))
 
-    {event_triggers, db_updates} =
-      valid
-      |> Enum.map(fn Utxo.position(blknum, txindex, oindex) = utxo_pos ->
-        %Utxo{amount: amount, owner: owner, currency: currency} = utxos[utxo_pos]
-
-        {%{exit: %{owner: owner, amount: amount, currency: currency, utxo_pos: utxo_pos}},
-         {:delete, :utxo, {blknum, txindex, oindex}}}
-      end)
-      |> Enum.unzip()
+    db_updates = valid |> Enum.map(fn utxo_pos -> {:delete, :utxo, Utxo.Position.to_db_key(utxo_pos)} end)
 
     new_state = %{state | utxos: Map.drop(utxos, valid)}
 
-    {:ok, {event_triggers, db_updates, validities}, new_state}
+    {:ok, {db_updates, validities}, new_state}
   end
 
   @doc """

@@ -229,15 +229,24 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Invalid finalizing exits should continue being tracked as `is_active`, to continue emitting events.
   This includes non-`is_active` exits that finalize invalid, which are turned to be `is_active` now.
   """
-  @spec finalize_exits(t(), validities :: {list(Utxo.Position.t()), list(Utxo.Position.t())}) :: {t(), list()}
+  @spec finalize_exits(t(), validities :: {list(Utxo.Position.t()), list(Utxo.Position.t())}) :: {t(), list(), list()}
   def finalize_exits(%__MODULE__{exits: exits} = state, {valid_finalizations, invalid}) do
     # handling valid finalizations
-    state = %{state | exits: Map.drop(exits, valid_finalizations)}
+    exit_event_triggers =
+      valid_finalizations
+      |> Enum.map(fn utxo_pos ->
+        %ExitInfo{owner: owner, currency: currency, amount: amount} = exits[utxo_pos]
+
+        %{exit_finalized: %{owner: owner, currency: currency, amount: amount, utxo_pos: utxo_pos}}
+      end)
+
+    state_without_valid_ones = %{state | exits: Map.drop(exits, valid_finalizations)}
     db_updates = delete_positions(valid_finalizations)
 
-    {state, activating_db_updates} = activate_on_invalid_finalization(state, invalid)
+    # invalid ones - activating, in case they were inactive, to keep being invalid forever
+    {new_state, activating_db_updates} = activate_on_invalid_finalization(state_without_valid_ones, invalid)
 
-    {state, db_updates ++ activating_db_updates}
+    {new_state, exit_event_triggers, db_updates ++ activating_db_updates}
   end
 
   defp activate_on_invalid_finalization(%__MODULE__{exits: exits} = state, invalid_finalizations) do
@@ -1308,13 +1317,5 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     # doesn't appear to have signed the potential competitor, which means that some prior signature checking was skipped
     {:ok, sig} = Tools.find_sig(tx, owner)
     sig
-  end
-
-  def create_exit_finalized_events(event_triggers) do
-    event_triggers
-    |> Enum.flat_map(fn
-      %{exit: event_data} -> [%{exit_finalized: event_data}]
-      _ -> []
-    end)
   end
 end

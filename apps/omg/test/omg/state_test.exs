@@ -55,7 +55,7 @@ defmodule OMG.StateTest do
     assert {blknum, _} = State.get_status()
     assert :ok = State.form_block()
     # exits, with invalid ones
-    assert {:ok, _events, _db, _} = State.exit_utxos([Utxo.position(blknum, 0, 0)])
+    assert {:ok, _db, _} = State.exit_utxos([Utxo.position(blknum, 0, 0)])
     # close block
     assert {:ok, _db} = State.close_block(123)
   end

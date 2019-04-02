@@ -554,18 +554,12 @@ defmodule OMG.State.CoreTest do
       |> Core.exec(create_recovered([{1, 0, 0, alice}], @eth, [{alice, amount_1}, {alice, amount_2}]), :ignore)
       |> success?
 
-    expected_owner = alice.addr
-
     utxo_pos_exit_1 = Utxo.position(@blknum1, 0, 0)
     utxo_pos_exit_2 = Utxo.position(@blknum1, 0, 1)
     utxo_pos_exits = [utxo_pos_exit_1, utxo_pos_exit_2]
 
-    assert {:ok,
-            {[
-               %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_1, amount: ^amount_1, currency: @eth}},
-               %{exit: %{owner: ^expected_owner, utxo_pos: ^utxo_pos_exit_2, amount: ^amount_2, currency: @eth}}
-             ], [_ | _], {[^utxo_pos_exit_1, ^utxo_pos_exit_2], []}},
-            state_after_exit} = Core.exit_utxos(utxo_pos_exits, state)
+    assert {:ok, {[_ | _], {[^utxo_pos_exit_1, ^utxo_pos_exit_2], []}}, state_after_exit} =
+             Core.exit_utxos(utxo_pos_exits, state)
 
     state_after_exit
     |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :ignore)
@@ -582,16 +576,14 @@ defmodule OMG.State.CoreTest do
 
     state = state |> Core.exec(tx, :ignore) |> success?
 
-    expected_owner = alice.addr
     utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
     utxo_pos_exits_piggyback = [%{tx_hash: Transaction.raw_txhash(tx), output_index: 4}]
     expected_position = Utxo.position(@blknum1, 0, 0)
 
-    assert {:ok, {[], [], {[], _}}, ^state} = Core.exit_utxos(utxo_pos_exits_in_flight, state)
+    assert {:ok, {[], {[], _}}, ^state} = Core.exit_utxos(utxo_pos_exits_in_flight, state)
 
-    assert {:ok,
-            {[%{exit: %{owner: ^expected_owner, utxo_pos: ^expected_position}}], [_ | _], {[^expected_position], []}},
-            state_after_exit} = Core.exit_utxos(utxo_pos_exits_piggyback, state)
+    assert {:ok, {[_ | _], {[^expected_position], []}}, state_after_exit} =
+             Core.exit_utxos(utxo_pos_exits_piggyback, state)
 
     state_after_exit
     |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :ignore)
@@ -611,13 +603,11 @@ defmodule OMG.State.CoreTest do
 
     tx = create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 3}, {alice, 3}])
 
-    expected_owner = alice.addr
     utxo_pos_exits_in_flight = [%{call_data: %{in_flight_tx: Transaction.raw_txbytes(tx)}}]
     expected_position = Utxo.position(@blknum1, 0, 0)
 
-    assert {:ok,
-            {[%{exit: %{owner: ^expected_owner, utxo_pos: ^expected_position}}], [_ | _], {[^expected_position], _}},
-            state_after_exit} = Core.exit_utxos(utxo_pos_exits_in_flight, state)
+    assert {:ok, {[_ | _], {[^expected_position], _}}, state_after_exit} =
+             Core.exit_utxos(utxo_pos_exits_in_flight, state)
 
     state_after_exit
     |> Core.exec(create_recovered([{@blknum1, 0, 0, alice}], @eth, [{alice, 7}]), :ignore)
@@ -631,7 +621,7 @@ defmodule OMG.State.CoreTest do
   test "notifies about invalid utxo exiting", %{state_empty: state} do
     utxo_pos_exit_1 = Utxo.position(@blknum1, 0, 0)
 
-    assert {:ok, {[], [], {[], [^utxo_pos_exit_1]}}, ^state} = Core.exit_utxos([utxo_pos_exit_1], state)
+    assert {:ok, {[], {[], [^utxo_pos_exit_1]}}, ^state} = Core.exit_utxos([utxo_pos_exit_1], state)
   end
 
   @tag fixtures: [:alice, :state_empty]
