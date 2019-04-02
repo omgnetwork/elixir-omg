@@ -17,10 +17,9 @@ defmodule OMG.Watcher.Web.Controller.InFlightExitTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
-  alias Utils.JsonRPC.Encoding
   alias OMG.State.Transaction
   alias OMG.Watcher.TestHelper
-
+  alias Utils.JsonRPC.Encoding
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   describe "getting in-flight exits" do

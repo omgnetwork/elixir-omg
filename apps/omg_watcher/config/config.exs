@@ -5,7 +5,7 @@
 # is restricted to this project.
 use Mix.Config
 
-#child chain url
+# child chain url
 config :omg_watcher, child_chain_url: {:system, "CHILD_CHAIN_URL", "http://localhost:9656"}
 
 # General application configuration

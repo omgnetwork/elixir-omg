@@ -15,10 +15,10 @@
 defmodule Utils.JsonRPC.ResponseTest do
   use ExUnit.Case, async: true
 
-  alias Utils.JsonRPC.Encoding
-  alias Utils.JsonRPC.Response
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
+  alias Utils.JsonRPC.Encoding
+  alias Utils.JsonRPC.Response
 
   @cleaned_tx %{
     blknum: nil,
