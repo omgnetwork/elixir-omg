@@ -14,8 +14,8 @@
 
 defmodule OMG.Watcher.BlockGetter.Supervisor do
   @moduledoc """
-   This supervisor takes care of BlockGetter and State processes.
-   In case one process fails, this supervisor's role is to restore consistent state
+  This supervisor takes care of BlockGetter and State processes.
+  In case one process fails, this supervisor's role is to restore consistent state
   """
   use Supervisor
   use OMG.LoggerExt

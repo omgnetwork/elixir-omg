@@ -1,11 +1,8 @@
-Watcher database design
-===
+# Watcher database design
 
 Watcher benefits from two databases approach:
 * leveldb - key-value database that child chain state uses for transaction validation
 * watcherDb - PostgreSQL database that stores transactions and contains data needed for challenges and exits. It provides user interface with the data of user's concern (e.g: did I pay the electricity bill, who sent me money last week).
-
-This separation into two databases is driven by *Limited Custody exchange* case where exchange uses address pool to send transactions, and uses multiple Watcher instances, each managing some part of the address pool. Each Watcher instance validates the chain and does not rely on other instances. Instances may use shared WatcherDb to handle exits and challenges.
 
 ## The blocks table
 Stores data about blocks: hash, timestamp when block was mined, Ethereum height is was published on.
@@ -104,6 +101,10 @@ update txoutputs
 
 ### 7. get exit data by an utxo position
 For exit we need: proof that transaction is included in block.
+
+(**NOTE** that this is only optionally served by `WatcherDB`.
+Normally one expects this to be served by the `security-critical` Watcher mode, which doesn't run `WatcherDB`)
+
 ```
 select (t.txhash, t.txbytes)
   into @out
@@ -114,15 +115,4 @@ from transactions t
 select t.txhash
   from transactions t
  where t.blknum  == @blknum
-```
-
-### 8. get challenge data to utxo exit
-For challenge we need: proof that spending transaction is included in block and spending (input) index of (u)txo. See previous point as well.
-```
-select (t.txhash, t.txbytes, i.spending_tx_oindex)
-  into @out
-  from from transactions t
-  join txoutputs i on i.spending_txhash = t.txhash
-  join txoutputs o on o.creating_txhash = t.txhash
- where (t.blknum, t.txindex, o.oindex) = @position
 ```

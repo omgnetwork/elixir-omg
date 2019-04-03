@@ -26,6 +26,12 @@ defmodule OMG.Block do
   defstruct [:transactions, :hash, :number]
 
   @type t() :: %__MODULE__{
+          transactions: list(Transaction.Signed.tx_bytes()),
+          hash: block_hash_t(),
+          number: pos_integer()
+        }
+
+  @type db_t() :: %{
           transactions: list(binary),
           hash: block_hash_t(),
           number: pos_integer()
@@ -70,8 +76,8 @@ defmodule OMG.Block do
   @doc """
   Calculates inclusion proof for the transaction in the block
   """
-  @spec inclusion_proof(%__MODULE__{}, non_neg_integer()) :: binary()
-  def inclusion_proof(%__MODULE__{transactions: transactions}, txindex) do
+  @spec inclusion_proof(t() | list(Transaction.Signed.tx_bytes()), non_neg_integer()) :: binary()
+  def inclusion_proof(transactions, txindex) when is_list(transactions) do
     {_, hashed_txs} =
       transactions
       |> Enum.map(&to_recovered_tx/1)
@@ -80,6 +86,8 @@ defmodule OMG.Block do
 
     create_tx_proof(hashed_txs, txindex)
   end
+
+  def inclusion_proof(%__MODULE__{transactions: transactions}, txindex), do: inclusion_proof(transactions, txindex)
 
   # extracts the necessary data from a single transaction to include in a block and merkle hash
   # add more clauses to form blocks from other forms of transactions

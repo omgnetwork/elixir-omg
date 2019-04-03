@@ -14,7 +14,7 @@
 
 defmodule OMG.API do
   @moduledoc """
-  Entrypoint for all the exposed public functions of the child chain API.
+  Entrypoint for all the exposed public functions of the child chain server's API.
 
   Should handle all the initial processing of requests like state-less validity, decoding/encoding
   (but not transport-specific encoding like hex).

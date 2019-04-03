@@ -16,11 +16,11 @@ defmodule OMG.Watcher.BlockGetter do
   @moduledoc """
   Downloads blocks from child chain, validates them and updates watcher state.
   Manages simultaneous getting and stateless-processing of blocks.
-  Detects byzantine behaviors like invalid blocks and block withholding and notifies Eventer.
+  Detects byzantine behaviors like invalid blocks and block withholding and exposes those events.
 
   Reponsible for processing all block submissions and processing them once, regardless of the reorg situation.
-  Note that the former responsibility is quite involved, as `BlockGetter` should have any finality margin configured,
-  i.e. it should be prepared to be served not-yet-confirmed eth heights from the `OMG.RootChainCoordinator`
+  Note that the former responsibility is quite involved, as `BlockGetter` shouldn't have any finality margin configured,
+  i.e. it should be prepared to be served events from zero-confirmation Ethereum blocks from the `OMG.RootChainCoordinator`
   """
 
   alias OMG.Eth

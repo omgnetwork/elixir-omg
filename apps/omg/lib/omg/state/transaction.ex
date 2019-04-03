@@ -14,7 +14,15 @@
 
 defmodule OMG.State.Transaction do
   @moduledoc """
-  Internal representation of transaction spent on Plasma chain
+  Internal representation of transaction spent on Plasma chain.
+
+  This module holds the representation of a "raw" transaction, i.e. without signatures nor recovered input spenders
+
+  This module also contains the public Transaction API to be prefered to access data of different transaction "flavors",
+  like `Transaction.Signed` or `Transaction.Recovered`
+
+  NOTE: consider splitting the "raw" struct out of here to `Transaction.Raw` and have only the public Transaction API
+  remain here
   """
 
   alias OMG.Crypto
@@ -123,6 +131,9 @@ defmodule OMG.State.Transaction do
     %__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}
   end
 
+  @doc """
+  Transaform the structure of RLP items after a successful RLP decode of a raw transaction, into a structure instance
+  """
   def reconstruct([inputs_rlp, outputs_rlp | rest_rlp])
       when rest_rlp == [] or length(rest_rlp) == 1 do
     with {:ok, inputs} <- reconstruct_inputs(inputs_rlp),
@@ -196,6 +207,9 @@ defmodule OMG.State.Transaction do
     |> ExRLP.encode()
   end
 
+  @doc """
+  Turns a structure instance into a structure of RLP items, ready to be RLP encoded, for a raw transaction
+  """
   def get_data_for_rlp(%__MODULE__{inputs: inputs, outputs: outputs, metadata: metadata}) when is_metadata(metadata),
     do:
       [
@@ -214,7 +228,7 @@ defmodule OMG.State.Transaction do
   end
 
   @doc """
-  Returns all inputs
+  Returns all inputs, never returns zero inputs
   """
   @spec get_inputs(any_flavor_t()) :: list(input())
   def get_inputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_inputs(signed_tx)
@@ -227,7 +241,7 @@ defmodule OMG.State.Transaction do
   end
 
   @doc """
-  Returns all outputs
+  Returns all outputs, never returns zero outputs
   """
   @spec get_outputs(any_flavor_t()) :: list(output())
   def get_outputs(%__MODULE__.Recovered{signed_tx: signed_tx}), do: get_outputs(signed_tx)
@@ -239,7 +253,7 @@ defmodule OMG.State.Transaction do
   end
 
   @doc """
-  Returns the encoded bytes of a raw transaction, i.e. without the signatures
+  Returns the encoded bytes of the raw transaction involved, i.e. without the signatures
   """
   @spec raw_txbytes(any_flavor_t()) :: binary
   def raw_txbytes(%__MODULE__.Recovered{signed_tx: signed_tx}), do: raw_txbytes(signed_tx)
@@ -247,7 +261,7 @@ defmodule OMG.State.Transaction do
   def raw_txbytes(%__MODULE__{} = raw_tx), do: encode(raw_tx)
 
   @doc """
-  Returns the hash of a raw transaction, i.e. without the signatures
+  Returns the hash of the raw transaction involved, i.e. without the signatures
   """
   @spec raw_txhash(any_flavor_t()) :: binary
   def raw_txhash(%__MODULE__.Recovered{signed_tx: signed_tx}), do: raw_txhash(signed_tx)

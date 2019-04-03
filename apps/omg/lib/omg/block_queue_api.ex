@@ -19,9 +19,13 @@ defmodule OMG.BlockQueueAPI do
   NOTE: same comment on pub-sub as `OMG.EventerAPI`
   """
 
+  alias OMG.Block
+
   @doc """
-  Casts (only when `OMG.API.BlockQueue.Server` is started) or ignores the block
+  Enqueues child chain block to be submitted to Ethereum
+  Casts (only when `OMG.API.BlockQueue.Server` is started; if not, it is a noop)
   """
+  @spec enqueue_block(Block.t()) :: :ok
   def enqueue_block(block) do
     GenServer.cast(OMG.API.BlockQueue.Server, {:enqueue_block, block})
   end

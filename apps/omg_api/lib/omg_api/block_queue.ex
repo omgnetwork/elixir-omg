@@ -14,17 +14,7 @@
 
 defmodule OMG.API.BlockQueue do
   @moduledoc """
-  Responsible for keeping a queue of blocks lined up for submission to Ethereum.
-  Responsible for determining the cadence of forming/submitting blocks to Ethereum.
-  Responsible for determining correct gas price and ensuring submissions get mined eventually.
-
-  In particular responsible for picking up, where it's left off (crashed) gracefully.
-
-  Relies on RootChain contract having reorg protection ('decimals for deposits' part).
-  Relies on RootChain contract's 'authority' account not being used to send any other transaction.
-
-  Reacts to external requests of changing gas price and resubmits block submission transactions not being mined.
-  For changing the gas price it needs external signals (e.g. from a price oracle)
+  Imperative shell for `OMG.API.BlockQueue.Core`, see there for more info
   """
 
   alias OMG.API.BlockQueue.Core
@@ -38,14 +28,6 @@ defmodule OMG.API.BlockQueue do
   @type plasma_block_num() :: BlockSubmission.plasma_block_num()
   # child chain block number, as assigned by plasma contract
   @type encoded_signed_tx() :: binary()
-
-  @doc """
-  Enqueues child chain block to be submitted to Ethereum
-  """
-  @spec enqueue_block(Block.t()) :: :ok
-  def enqueue_block(block) do
-    GenServer.cast(__MODULE__.Server, {:enqueue_block, block})
-  end
 
   defmodule Server do
     @moduledoc """

@@ -14,7 +14,7 @@
 
 defmodule OMG.API.FeeServer do
   @moduledoc """
-  Maintains current fee rates and acceptable tokens.
+  Maintains current fee rates and tokens in which fees may be paid.
   Updates fees information from external source.
   Provides function to validate transaction's fee.
   """

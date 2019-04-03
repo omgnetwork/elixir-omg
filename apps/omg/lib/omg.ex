@@ -13,5 +13,7 @@
 # limitations under the License.
 
 defmodule OMG do
-  @moduledoc false
+  @moduledoc """
+  The common library of building blocks that are used to run child chain servers and watchers
+  """
 end

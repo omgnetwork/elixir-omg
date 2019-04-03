@@ -13,6 +13,11 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.Event do
+  @moduledoc """
+  Definitions of structures representing various events delivered by the Watcher
+
+  This module is agnostic of mode of delivery of events - both push and poll events go here
+  """
   alias OMG.Block
   alias OMG.Crypto
   alias OMG.State.Transaction

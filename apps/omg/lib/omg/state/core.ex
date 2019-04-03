@@ -14,7 +14,8 @@
 
 defmodule OMG.State.Core do
   @moduledoc """
-  Functional core for State.
+  The state meant here is the state of the ledger (UTXO set), that determines spendability of coins and forms blocks.
+  All spend transactions, deposits and exits should sync on this for validity of moving funds.
   """
 
   @maximum_block_size 65_536
@@ -76,12 +77,15 @@ defmodule OMG.State.Core do
         }
 
   @type db_update ::
-          {:put, :utxo, {{pos_integer, non_neg_integer, non_neg_integer}, map}}
-          | {:delete, :utxo, {pos_integer, non_neg_integer, non_neg_integer}}
+          {:put, :utxo, {Utxo.Position.db_t(), map}}
+          | {:delete, :utxo, Utxo.Position.db_t()}
           | {:put, :child_top_block_number, pos_integer}
           | {:put, :last_deposit_child_blknum, pos_integer}
-          | {:put, :block, Block.t()}
+          | {:put, :block, Block.db_t()}
 
+  @doc """
+  Recovers the ledger's state from data delivered by the `OMG.DB`
+  """
   @spec extract_initial_state(
           utxos_query_result :: [utxos],
           height_query_result :: non_neg_integer | :not_found,

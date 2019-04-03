@@ -1,5 +1,5 @@
 ---
-title: OmiseGO Plasma API Reference
+title: OmiseGO Network APIs Reference
 
 language_tabs: # must be one of https://git.io/vQNgJ
   - shell
@@ -22,7 +22,8 @@ search: true
 
 # Introduction
 
-This is the HTTP-RPC API for the ChildChain and Watcher.
+This is the HTTP-RPC API for the Child Chain Server and Watcher.
 
 All calls use HTTP POST and pass options in the request body in JSON format.
-Errors will usually return with HTTP response code 200, and the details of the error in the response body. See [Errors](#errors).
+Errors will usually return with HTTP response code 200, and the details of the error in the response body.
+See [Errors](#errors).

@@ -14,25 +14,34 @@
 
 defmodule OMG.Watcher.ExitProcessor.Core do
   @moduledoc """
-  The functional, zero-side-effect part of the exit processor. Logic should go here:
+  Encapsulates managing and executing the behaviors related to treating exits by the child chain and watchers
+  Keeps a state of exits that are in progress, updates it with news from the root chain, compares to the
+  state of the ledger (`OMG.State`), issues notifications as it finds suitable.
+
+  Should manage all kinds of exits allowed in the protocol and handle the interactions between them.
+
+  This is the functional, zero-side-effect part of the exit processor. Logic should go here:
     - orchestrating the persistence of the state
     - finding invalid exits, disseminating them as events according to rules
-    - MoreVP protocol managing should go here
+    - enabling to challenge invalid exits
+    - figuring out critical failure of invalid exit challenging (aka `:unchallenged_exit` event)
+    - MoreVP protocol managing in general
+
+  For the imperative shell, see `OMG.Watcher.ExitProcessor`
   """
 
   alias OMG.Block
+  alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.Utxo
   require Utxo
   require Transaction
-  alias OMG.Watcher.Challenger.Tools
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.ExitProcessor.Challenge
   alias OMG.Watcher.ExitProcessor.CompetitorInfo
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
-  alias OMG.Watcher.ExitProcessor.Tools
+  alias OMG.Watcher.ExitProcessor.StandardExitChallenge
   alias OMG.Watcher.ExitProcessor.TxAppendix
 
   @default_sla_margin 10
@@ -846,7 +855,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @spec get_piggyback_challenge_data(ExitProcessor.Request.t(), t(), Transaction.Signed.tx_bytes(), 0..7) ::
           {:ok, input_challenge_data() | output_challenge_data()} | {:error, piggyback_challenge_data_error()}
-  def get_piggyback_challenge_data(request, %__MODULE__{in_flight_exits: ifes} = state, txbytes, pb_index) do
+  defp get_piggyback_challenge_data(request, %__MODULE__{in_flight_exits: ifes} = state, txbytes, pb_index) do
     with {:ok, tx} <- Transaction.decode(txbytes),
          true <- Map.has_key?(ifes, Transaction.raw_txhash(tx)) || {:error, :unknown_ife},
          do: produce_invalid_piggyback_proof(request, state, tx, pb_index)
@@ -1085,7 +1094,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       in_flight_input_index: in_flight_input_index,
       competing_txbytes: known_signed_tx |> Transaction.raw_txbytes(),
       competing_input_index: competing_input_index,
-      competing_sig: find_sig(known_signed_tx, owner),
+      competing_sig: find_sig!(known_signed_tx, owner),
       competing_tx_pos: known_tx_utxo_pos || Utxo.position(0, 0, 0),
       competing_proof: maybe_calculate_proof(known_tx_utxo_pos, blocks)
     }
@@ -1238,15 +1247,15 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Creates a challenge for exiting utxo based on provided block or transaction.
   """
   @spec create_challenge(ExitInfo.t(), Block.t() | Transaction.Signed.t(), Utxo.Position.t(), non_neg_integer) ::
-          Challenge.t()
+          StandardExitChallenge.t()
   def create_challenge(%ExitInfo{owner: owner}, spending_tx_or_block, utxo_exit, exit_id) do
     {challenging_signed, input_index} = get_spending_transaction_with_index(spending_tx_or_block, utxo_exit)
 
-    %Challenge{
+    %StandardExitChallenge{
       exit_id: exit_id,
       input_index: input_index,
       txbytes: challenging_signed |> Transaction.raw_txbytes(),
-      sig: find_sig(challenging_signed, owner)
+      sig: find_sig!(challenging_signed, owner)
     }
   end
 
@@ -1311,11 +1320,25 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  defp find_sig(tx, owner) do
+  # Finds the exact signature which signed the particular transaction for the given owner address
+  @spec find_sig(Transaction.Signed.t(), Crypto.address_t()) :: {:ok, Crypto.sig_t()} | nil
+  defp find_sig(%Transaction.Signed{sigs: sigs} = tx, owner) do
+    tx_hash = Transaction.raw_txhash(tx)
+
+    Enum.find(sigs, fn sig ->
+      {:ok, owner} == Crypto.recover_address(tx_hash, sig)
+    end)
+    |> case do
+      nil -> nil
+      other -> {:ok, other}
+    end
+  end
+
+  defp find_sig!(tx, owner) do
     # at this point having a tx that wasn't actually signed is an error, hence pattern match
     # if this returns nil it means somethings very wrong - the owner taken (effectively) from the contract
     # doesn't appear to have signed the potential competitor, which means that some prior signature checking was skipped
-    {:ok, sig} = Tools.find_sig(tx, owner)
+    {:ok, sig} = find_sig(tx, owner)
     sig
   end
 end

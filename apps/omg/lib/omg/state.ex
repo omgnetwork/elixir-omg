@@ -14,9 +14,7 @@
 
 defmodule OMG.State do
   @moduledoc """
-  Imperative shell for the state.
-  The state meant here is the state of the ledger (UTXO set), that determines spendability of coins and forms blocks.
-  All spend transactions, deposits and exits should sync on this for validity of moving funds.
+  Imperative shell - a GenServer serving the ledger, for functional core and more info see `OMG.State.Core`.
   """
 
   alias OMG.Block

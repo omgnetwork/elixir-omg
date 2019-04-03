@@ -2134,7 +2134,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   defp create_block_with(blknum, txs) do
     %Block{
       number: blknum,
-      transactions: Enum.map(txs, & &1.signed_tx_bytes)
+      transactions: Enum.map(txs, &Transaction.Signed.encode/1)
     }
   end
 

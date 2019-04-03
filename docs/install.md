@@ -79,8 +79,3 @@ To run integration tests (requires compiling contracts and **not** having `geth`
 ```
 mix test --only integration
 ```
-
-To run test with parity as a backend, set it via `export ETH_NODE=parity` environmental variable or via config. E.g. 
-```
-ETH_NODE=parity mix test --only integration
-```
