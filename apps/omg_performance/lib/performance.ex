@@ -153,11 +153,7 @@ defmodule OMG.Performance do
 
     # select just necessary components to run the tests
     children = [
-      %{
-        id: Phoenix.PubSub.PG2,
-        start: {Phoenix.PubSub.PG2, :start_link, [:eventer, []]},
-        type: :supervisor
-      },
+      {Phoenix.PubSub.PG2, [name: OMG.InternalEventBus]},
       {OMG.State, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeServer, []},

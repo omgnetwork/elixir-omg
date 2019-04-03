@@ -15,6 +15,8 @@
 defmodule OMG.API.BlockQueue do
   @moduledoc """
   Imperative shell for `OMG.API.BlockQueue.Core`, see there for more info
+
+  The new blocks to enqueue arrive here via `OMG.InternalEventBus`
   """
 
   alias OMG.API.BlockQueue.Core
@@ -103,10 +105,13 @@ defmodule OMG.API.BlockQueue do
       interval = Application.fetch_env!(:omg_api, :block_queue_eth_height_check_interval_ms)
       {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
+      # `link: true` because we want the `BlockQueue` to restart and resubscribe, if the bus crashes
+      :ok = Phoenix.PubSub.subscribe(OMG.InternalEventBus, "blocks", link: true)
+
       {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
 
       _ = Logger.info("Started BlockQueue")
-      {:noreply, state}
+      {:noreply, %Core{} = state}
     end
 
     @doc """
@@ -129,17 +134,20 @@ defmodule OMG.API.BlockQueue do
         end
 
       submit_blocks(state1)
-      {:noreply, state1}
+      {:noreply, %Core{} = state1}
     end
 
-    def handle_cast({:enqueue_block, %Block{number: block_number, hash: block_hash} = block}, %Core{} = state) do
+    def handle_info(
+          {:internal_event_bus, :enqueue_block, %Block{number: block_number, hash: block_hash} = block},
+          %Core{} = state
+        ) do
       {:ok, parent_height} = Eth.get_ethereum_height()
       state1 = Core.enqueue_block(state, block_hash, block_number, parent_height)
       _ = Logger.info("Enqueuing block num '#{inspect(block_number)}', hash '#{inspect(Base.encode16(block_hash))}'")
 
       FreshBlocks.push(block)
       submit_blocks(state1)
-      {:noreply, state1}
+      {:noreply, %Core{} = state1}
     end
 
     # private (server)

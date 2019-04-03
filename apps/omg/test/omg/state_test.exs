@@ -41,7 +41,16 @@ defmodule OMG.StateTest do
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
 
-    {:ok, _} = Supervisor.start_link([{OMG.State, []}], strategy: :one_for_one)
+    # the pubsub is required, because `OMG.State` is broadcasting to the `OMG.InternalEventBus`
+    {:ok, _} =
+      Supervisor.start_link(
+        [
+          {OMG.State, []},
+          {Phoenix.PubSub.PG2, [name: OMG.InternalEventBus]}
+        ],
+        strategy: :one_for_one
+      )
+
     :ok
   end
 

@@ -18,6 +18,8 @@ defmodule OMG.Watcher.Eventer do
   All handling of event triggers that are processed, transformed into events and pushed to Phoenix Channels
   for their respective topics is intended to be done here.
 
+  The event triggers (which get later translated into specific events/topics etc.) arrive here via `OMG.InternalEventBus`
+
   See `OMG.EventerAPI` for the API to the GenServer
   """
 
@@ -38,10 +40,13 @@ defmodule OMG.Watcher.Eventer do
   def init(:ok) do
     {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
 
+    # `link: true` because we want the `Eventer` to restart and resubscribe, if the bus crashes
+    :ok = Phoenix.PubSub.subscribe(OMG.InternalEventBus, "events", link: true)
+
     {:ok, nil}
   end
 
-  def handle_cast({:emit_events, event_triggers}, state) do
+  def handle_info({:internal_event_bus, :emit_events, event_triggers}, nil) do
     event_triggers
     |> Core.pair_events_with_topics()
     |> Enum.each(fn {topic, event_name, event} ->
@@ -53,6 +58,6 @@ defmodule OMG.Watcher.Eventer do
         )
     end)
 
-    {:noreply, state}
+    {:noreply, nil}
   end
 end
