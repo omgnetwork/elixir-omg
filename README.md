@@ -23,13 +23,13 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
          * [Using the child chain server's API](#using-the-child-chain-servers-api)
             * [HTTP-RPC](#http-rpc)
          * [Running a child chain in practice](#running-a-child-chain-in-practice)
-            * [Private key management](#private-key-management)
+            * [Ethereum private key management](#ethereum-private-key-management)
             * [Specifying the fees required](#specifying-the-fees-required)
             * [Funding the operator address](#funding-the-operator-address)
       * [Watcher](#watcher)
          * [Using the watcher](#using-the-watcher)
          * [Endpoints](#endpoints)
-         * [Private key management](#private-key-management-1)
+         * [Ethereum private key management](#ethereum-private-key-management-1)
       * [Contracts](#contracts)
          * [Installing dependencies and compiling contracts](#installing-dependencies-and-compiling-contracts)
    * [Testing &amp; development](#testing--development)
@@ -138,12 +138,15 @@ For API documentation see: https://omisego.github.io/elixir-omg.
 
 **TODO** other sections
 
-#### Private key management
+#### Ethereum private key management
+
+##### `geth`
 
 Currently, the child chain server assumes that the authority account is unlocked or otherwise available on the Ethereum node.
 This might change in the future.
 
-**NOTE** on `parity` - the above comment is relevant for `geth`.
+##### `parity`
+
 Since `parity` doesn't support indefinite unlocking of the account, handling of such key is yet to be solved.
 Currently (an unsafely) such private key is read from a secret system environment variable and handed to `parity` for signing.
 
@@ -151,7 +154,7 @@ Currently (an unsafely) such private key is read from a secret system environmen
 
 The child chain server will require the incoming transactions to satisfy the fee requirement.
 The fee requirement reads that at least one token being inputted in a transaction must cover the fee as specified.
-In particular note that the fee required cannot be paid in two tokens, splitting the payment.
+In particular, note that the required fee must be paid in one token in its entirety.
 
 The fees are configured in the config entries `:omg_api, :fee_specs_file_path` and `:omg_api, :ignore_fees`.
  - `ignore_fees` is boolean option allowing to turn off fee charging altogether.
@@ -182,14 +185,15 @@ child_blocks_per_day = ethereum_blocks_per_day / submit_period
 
 Assuming:
 - submission of a child block every Ethereum block
-- weekly cadence of funding
-- highest gas price 40 Gwei
-- 71505 gas per submission (checked for `RootChain.sol` [at this revision](https://github.com/omisego/plasma-contracts/commit/50653d52169a01a7d7d0b9e2e4e3c4a4b904f128).
+- 15 second block interval on Ethereum, on average
+- weekly cadence of funding, i.e. `days_in_interval == 7`
+- allowing gas price up to 40 Gwei
+- `gas_per_submission == 71505` (checked for `RootChain.sol` [at this revision](https://github.com/omisego/plasma-contracts/commit/50653d52169a01a7d7d0b9e2e4e3c4a4b904f128).
 C.f. [here](https://rinkeby.etherscan.io/tx/0x1a79fdfa310f91625d93e25139e15299b4ab272ae504c56b5798a018f6f4dc7b))
 
 we get
-```
-gas_reserve ~= 4 * 60 * 24 / 1 * 7 * 71505 * 40 / 10**9  ~= 115 ETH
+```   
+gas_reserve ~= (4 * 60 * 24 / 1) * 7 * 71505 * (40 / 10**9)  ~= 115 ETH
 ```
 
 **NOTE** that the above calculation doesn't imply this is what is going to be used within a week, just a pessimistic scenario to calculate an adequate reserve.
@@ -212,7 +216,7 @@ The watcher is listening on port `7434` by default.
 
 For API documentation see: https://omisego.github.io/elixir-omg
 
-### Private key management
+### Ethereum private key management
 
 Watcher doesn't hold or manage user's keys.
 All signatures are assumed to be done outside.

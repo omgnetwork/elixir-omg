@@ -39,20 +39,20 @@ In case extra finality is required for high-stakes transactions, the client is f
           "inputs": [
             {"blknum": 1, "oindex": 0, "txindex": 0},
             {"blknum": 0, "oindex": 0, "txindex": 0},
-            {"snip..."}
+            {"..."}
           ],
           "metadata": null,
           "outputs": [
             {"amount": 7, "currency": "0x0000000000000000000000000000000000000000", "owner": "0x42ca696117ef67092a3e0374378767cd4e3119ee"},
             {"amount": 3, "currency": "0x0000000000000000000000000000000000000000", "owner": "0xa746c588a5a05fda7255063d6de63613bdb21b58"},
             {"amount": 0, "currency": "0x0000000000000000000000000000000000000000", "owner": "0x0000000000000000000000000000000000000000"},
-            {"snip..."}
+            {"..."}
           ]
         },
-        "signed_tx_bytes": "0xf901d2f9010cb841bab1a744 <snip> 0000080",
+        "signed_tx_bytes": "0xf901d2f9010cb841bab1a744...",
         "sigs": [
-          "0xbab1a744b2cd721c774 <snip> 210de00a28b3e4f4abc39dbb1c",
-          "<snip>..."
+          "0xbab1a744b2cd721c774...",
+          "..."
         ]
       },
       "spenders": ["0x42ca696117ef67092a3e0374378767cd4e3119ee"],

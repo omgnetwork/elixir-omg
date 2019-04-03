@@ -31,7 +31,7 @@ Such configuration must become part of the [Mix configuration](https://hexdocs.p
 ### Setting up a child chain server (a developer environment)
 #### Start up developer instance of Ethereum
 The easiest way to get started is if you have access to a developer instance of `geth`.
-If you don't already have access to a developer instance of `geth`, follow the [installation](docs/install.md) instructions.
+If you don't already have access to a developer instance of `geth`, follow the [installation](./install.md) instructions.
 
 A developer instance of `geth` runs Ethereum locally and prefunds an account.
 However, when `geth` terminates, the state of the Ethereum network is lost.

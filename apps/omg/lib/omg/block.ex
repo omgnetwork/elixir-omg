@@ -26,7 +26,7 @@ defmodule OMG.Block do
   defstruct [:transactions, :hash, :number]
 
   @type t() :: %__MODULE__{
-          transactions: list(binary),
+          transactions: list(Transaction.Signed.tx_bytes()),
           hash: block_hash_t(),
           number: pos_integer()
         }

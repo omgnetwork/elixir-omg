@@ -304,4 +304,4 @@ Watcher takes on an additional responsibility: collecting and storing data relev
 
 ## Exchange
 
-See [here](docs/dex_design.md) for a high-level discussion about exchange designs on top of Tesuji plasma.
+See [here](./dex_design.md) for a high-level discussion about exchange designs on top of Tesuji plasma.
