@@ -17,7 +17,7 @@ defmodule OMG.Watcher.Web.Channel.Exit do
   Channel Exit
   """
 
-  use Phoenix.Channel
+  use Phoenix.Channel, log_join: :debug
 
   def join("exit:" <> _address, _params, socket) do
     {:ok, socket}
