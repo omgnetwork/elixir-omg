@@ -41,7 +41,7 @@ defmodule OMG.Watcher.Eventer do
     {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
 
     # `link: true` because we want the `Eventer` to restart and resubscribe, if the bus crashes
-    :ok = Phoenix.PubSub.subscribe(OMG.InternalEventBus, "events", link: true)
+    :ok = OMG.InternalEventBus.subscribe("events", link: true)
 
     {:ok, nil}
   end

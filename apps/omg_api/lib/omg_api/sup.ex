@@ -59,7 +59,7 @@ defmodule OMG.API.Sup do
     ]
 
     children = [
-      {Phoenix.PubSub.PG2, [name: OMG.InternalEventBus]},
+      {OMG.InternalEventBus, []},
       {OMG.State, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeServer, []},

@@ -231,7 +231,7 @@ defmodule OMG.Watcher.ExitProcessor do
     {:ok, db_updates_from_state, validities} = State.exit_utxos(exits)
     {new_state, event_triggers, db_updates} = Core.finalize_exits(state, validities)
 
-    :ok = Phoenix.PubSub.broadcast(OMG.InternalEventBus, "events", {:internal_event_bus, :emit_events, event_triggers})
+    :ok = OMG.InternalEventBus.broadcast("events", {:emit_events, event_triggers})
 
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end

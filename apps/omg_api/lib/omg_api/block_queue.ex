@@ -106,7 +106,7 @@ defmodule OMG.API.BlockQueue do
       {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
       # `link: true` because we want the `BlockQueue` to restart and resubscribe, if the bus crashes
-      :ok = Phoenix.PubSub.subscribe(OMG.InternalEventBus, "blocks", link: true)
+      :ok = OMG.InternalEventBus.subscribe("blocks", link: true)
 
       {:ok, _} = Recorder.start_link(%Recorder{name: __MODULE__.Recorder, parent: self()})
 
