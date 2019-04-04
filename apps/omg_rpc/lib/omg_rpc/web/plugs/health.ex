@@ -17,59 +17,40 @@ defmodule OMG.RPC.Plugs.Health do
   this is primarily a Plug, but we're subscribing to Alarms as well, so that we're able to reject API calls.
   """
 
+  alias OMG.Status.Alert.Alarm
   alias Phoenix.Controller
-  import Plug.Conn
   alias Utils.JsonRPC.Error
+
+  import Plug.Conn
   require Logger
   use GenServer
 
   @table_name :rpc_node_alarms
+  @alarms [:boot_in_progress, :ethereum_client_connection]
 
   def start_link(_args) do
     GenServer.start_link(__MODULE__, :gen_server, name: __MODULE__)
   end
 
-  def handle_cast({:service_available, :ethereum_client_connection = key}, state) do
+  def handle_cast({:service_available, key}, state) when key in @alarms do
     do_clear(key)
     {:noreply, state}
   end
 
-  def handle_cast({:service_available, :boot_in_progress = key}, state) do
-    _ = do_clear(key)
-    {:noreply, state}
-  end
-
-  def handle_cast({:service_unavailable, :ethereum_client_connection = key}, state) do
+  def handle_cast({:service_unavailable, key}, state) when key in @alarms do
     _ = do_raise(key)
     {:noreply, state}
   end
 
-  def handle_cast({:service_unavailable, :boot_in_progress = key}, state) do
-    _ = do_raise(key)
-    {:noreply, state}
-  end
-
-  def handle_event({:clear_alarm, {:ethereum_client_connection, _}}, state) do
-    _ = Logger.warn("Alarm :ethereum_client_connection was cleared.")
-    :ok = GenServer.cast(__MODULE__, {:service_available, :ethereum_client_connection})
+  def handle_event({:clear_alarm, {alarm, _}}, state) when alarm in @alarms do
+    _ = Logger.warn("Alarm #{alarm} was cleared.")
+    :ok = GenServer.cast(__MODULE__, {:service_available, alarm})
     {:ok, state}
   end
 
-  def handle_event({:set_alarm, {:ethereum_client_connection, _}}, state) do
-    _ = Logger.warn("Alarm :ethereum_client_connection was raised.")
-    :ok = GenServer.cast(__MODULE__, {:service_unavailable, :ethereum_client_connection})
-    {:ok, state}
-  end
-
-  def handle_event({:clear_alarm, {:boot_in_progress, _}}, state) do
-    _ = Logger.warn("Alarm :boot_in_progress was cleared.")
-    :ok = GenServer.cast(__MODULE__, {:service_available, :boot_in_progress})
-    {:ok, state}
-  end
-
-  def handle_event({:set_alarm, {:boot_in_progress, _}}, state) do
-    _ = Logger.warn("Alarm :boot_in_progress was raised.")
-    :ok = GenServer.cast(__MODULE__, {:service_unavailable, :boot_in_progress})
+  def handle_event({:set_alarm, {alarm, _}}, state) when alarm in @alarms do
+    _ = Logger.warn("Alarm #{alarm} was raised.")
+    :ok = GenServer.cast(__MODULE__, {:service_unavailable, alarm})
     {:ok, state}
   end
 
@@ -123,6 +104,14 @@ defmodule OMG.RPC.Plugs.Health do
 
       _ ->
         :alarm_handler.add_alarm_handler(__MODULE__, :gen_event)
+        # if rpc app is started last we might miss any previously raised alarms
+        # so we resend all alarms that we can handle. Handlers that already reacted to an alarm
+        # need to be idempotent.
+        alarms = Alarm.all()
+
+        alarms
+        |> Enum.filter(fn {id, _} -> id in @alarms end)
+        |> Enum.each(&:alarm_handler.set_alarm(&1))
     end
   end
 
