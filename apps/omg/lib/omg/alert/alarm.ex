@@ -17,11 +17,12 @@ defmodule OMG.Alert.Alarm do
   Interface for raising and clearing alarms.
   """
   alias OMG.Alert.AlarmHandler
-  @behaviour AlarmHandler
 
-  @impl AlarmHandler
   def ethereum_client_connection_issue(node, reporter),
     do: {:ethereum_client_connection, %{node: node, reporter: reporter}}
+
+  def boot_in_progress(node, reporter),
+    do: {:boot_in_progress, %{node: node, reporter: reporter}}
 
   @spec raise({atom(), node(), module()}) :: :ok | :duplicate
   def raise(raw_alarm) do
@@ -61,5 +62,9 @@ defmodule OMG.Alert.Alarm do
 
   defp make_alarm({:ethereum_client_connection, node, reporter}) do
     ethereum_client_connection_issue(node, reporter)
+  end
+
+  defp make_alarm({:boot_in_progress, node, reporter}) do
+    boot_in_progress(node, reporter)
   end
 end

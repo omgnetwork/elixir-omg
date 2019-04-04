@@ -24,10 +24,8 @@ defmodule OMG.Alert.AlarmHandler do
     end
   end
 
-  @callback ethereum_client_connection_issue(node(), module()) :: {atom(), map()}
-
   # subscribing to alarms of type
-  def alarm_types, do: [:ethereum_client_connection]
+  def alarm_types, do: [:ethereum_client_connection, :boot_in_progress]
 
   def init(_args) do
     {:ok, %{alarms: []}}

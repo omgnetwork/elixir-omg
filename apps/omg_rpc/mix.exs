@@ -24,7 +24,7 @@ defmodule OMG.RPC.MixProject do
   def application do
     [
       mod: {OMG.RPC.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :sasl]
     ]
   end
 
@@ -43,7 +43,6 @@ defmodule OMG.RPC.MixProject do
       {:httpoison, "~> 1.4.0"},
       {:appsignal, "~> 1.0"},
       #
-      {:omg, in_umbrella: true},
       {:utils, in_umbrella: true}
     ]
   end

@@ -136,6 +136,7 @@ defmodule OMG.Performance do
 
   @spec setup_simple_perftest(map()) :: {:ok, list, pid}
   defp setup_simple_perftest(opts) do
+    DeferredConfig.populate(:omg_watcher)
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
     Application.put_env(:omg_db, :leveldb_path, dbdir, persistent: true)
@@ -156,7 +157,8 @@ defmodule OMG.Performance do
       {OMG.State, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeServer, []},
-      {OMG.RPC.Web.Endpoint, []}
+      {OMG.RPC.Web.Endpoint, []},
+      {OMG.RPC.Plugs.Health, []}
     ]
 
     {:ok, api_children_supervisor} = Supervisor.start_link(children, strategy: :one_for_one)

@@ -26,6 +26,7 @@ defmodule OMG.API.MixProject do
         fee_specs_file_path: nil
       ],
       extra_applications: [:logger, :appsignal],
+      start_phases: [{:boot_done, []}],
       mod: {OMG.API.Application, []}
     ]
   end
