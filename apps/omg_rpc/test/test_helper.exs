@@ -13,6 +13,7 @@
 # limitations under the License.
 
 ExUnit.configure(exclude: [integration: true])
+ExUnitFixtures.load_fixture_files("../**/test/**/**/fixtures.exs")
 ExUnitFixtures.start()
 ExUnit.start()
 

@@ -33,6 +33,7 @@ defmodule OMG.Performance.MixProject do
       # TEST ONLY
       {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
       {:omg_api, in_umbrella: true, only: [:test], runtime: false},
+      {:omg_rpc, in_umbrella: true, only: [:test], runtime: false},
       {:omg_watcher, in_umbrella: true, only: [:test], runtime: false}
     ]
   end

@@ -80,23 +80,6 @@ defmodule OMG.Watcher.Monitor do
     {:ok, state}
   end
 
-  def handle_info({:delayed_restart, child}, state) do
-    # child still holds the old pid
-    from = child.pid
-
-    with false <- is_raised?(state.alarm_module),
-         {%Child{pid: ^from} = child, other_children} <- pop_child_from_dead_pid(from, state.children) do
-      new_child = start_child(child.spec)
-
-      {:noreply, %{state | children: [new_child | other_children]}}
-    else
-      _ ->
-        # alarm is still raised, or the child was already cleared from state in a previous timer
-
-        {:noreply, state}
-    end
-  end
-
   # we got an exit signal from a linked child, we have to act as a supervisor now and decide what to do
   # we try to find the child via his old pid that we kept in the state, retrieve his exit reason and specification for
   # starting the child

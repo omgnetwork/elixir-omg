@@ -16,49 +16,78 @@ defmodule OMG.RPC.Plugs.Health do
   @moduledoc """
   this is primarily a Plug, but we're subscribing to Alarms as well, so that we're able to reject API calls.
   """
-  use GenServer
+
+  alias Phoenix.Controller
+  import Plug.Conn
+  alias Utils.JsonRPC.Error
   require Logger
+  use GenServer
 
-  @type t :: %__MODULE__{
-          alarm_module: module(),
-          raised: boolean()
-        }
-  defstruct alarm_module: nil, raised: true
+  @table_name :rpc_node_alarms
 
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  def start_link(_args) do
+    GenServer.start_link(__MODULE__, :gen_server, name: __MODULE__)
   end
 
-  def handle_cast(:service_available, state) do
-    {:noreply, %{state | raised: false}}
+  def handle_cast({:service_available, :ethereum_client_connection = key}, state) do
+    do_clear(key)
+    {:noreply, state}
   end
 
-  def handle_cast(:service_unavailable, state) do
-    {:noreply, %{state | raised: true}}
+  def handle_cast({:service_available, :boot_in_progress = key}, state) do
+    _ = do_clear(key)
+    {:noreply, state}
+  end
+
+  def handle_cast({:service_unavailable, :ethereum_client_connection = key}, state) do
+    _ = do_raise(key)
+    {:noreply, state}
+  end
+
+  def handle_cast({:service_unavailable, :boot_in_progress = key}, state) do
+    _ = do_raise(key)
+    {:noreply, state}
   end
 
   def handle_event({:clear_alarm, {:ethereum_client_connection, _}}, state) do
-    _ = Logger.warn(":ethereum_client_connection alarm was cleared. RPC service available.")
-    :ok = GenServer.cast(__MODULE__, :service_available)
+    _ = Logger.warn("Alarm :ethereum_client_connection was cleared.")
+    :ok = GenServer.cast(__MODULE__, {:service_available, :ethereum_client_connection})
     {:ok, state}
   end
 
   def handle_event({:set_alarm, {:ethereum_client_connection, _}}, state) do
-    _ = Logger.warn("Health check raised :ethereum_client_connection alarm. RPC Service unavailable.")
-    :ok = GenServer.cast(__MODULE__, :service_unavailable)
+    _ = Logger.warn("Alarm :ethereum_client_connection was raised.")
+    :ok = GenServer.cast(__MODULE__, {:service_unavailable, :ethereum_client_connection})
+    {:ok, state}
+  end
+
+  def handle_event({:clear_alarm, {:boot_in_progress, _}}, state) do
+    _ = Logger.warn("Alarm :boot_in_progress was cleared.")
+    :ok = GenServer.cast(__MODULE__, {:service_available, :boot_in_progress})
+    {:ok, state}
+  end
+
+  def handle_event({:set_alarm, {:boot_in_progress, _}}, state) do
+    _ = Logger.warn("Alarm :boot_in_progress was raised.")
+    :ok = GenServer.cast(__MODULE__, {:service_unavailable, :boot_in_progress})
     {:ok, state}
   end
 
   # flush
   def handle_event(event, state) do
-    _ = Logger.info("Health got event: #{inspect(event)}. Ignoring.")
+    _ = Logger.info("Health RPC plug got event: #{inspect(event)}. Ignoring.")
     {:ok, state}
   end
 
-  def init([alarm_module]) do
+  # gen server boot
+  def init(:gen_server) do
+    table_setup()
     install()
-    {:ok, %__MODULE__{alarm_module: alarm_module}}
+    {:ok, %{}}
   end
+
+  # gen_event boot
+  def init(:gen_event), do: {:ok, %{}}
 
   ###
   ### PLUG
@@ -66,13 +95,37 @@ defmodule OMG.RPC.Plugs.Health do
   def init(options), do: options
 
   def call(conn, _params) do
-    conn
+    # is anything raised?
+
+    case :ets.match_object(@table_name, {:_, 1}) do
+      [] ->
+        conn
+
+      _ ->
+        data = Error.serialize("operation:service_unavailable", "The server is not ready to handle the request.")
+
+        conn
+        |> Controller.json(data)
+        |> halt()
+    end
   end
+
+  defp table_setup do
+    _ = if :undefined == :ets.info(@table_name), do: @table_name = :ets.new(@table_name, table_settings())
+  end
+
+  defp table_settings, do: [:named_table, :set, :public, read_concurrency: true]
 
   defp install do
     case Enum.member?(:gen_event.which_handlers(:alarm_handler), __MODULE__) do
-      true -> :ok
-      _ -> :alarm_handler.add_alarm_handler(__MODULE__)
+      true ->
+        :ok
+
+      _ ->
+        :alarm_handler.add_alarm_handler(__MODULE__, :gen_event)
     end
   end
+
+  defp do_raise(key), do: :ets.update_counter(@table_name, key, {2, 1, 1, 1}, {key, 0})
+  defp do_clear(key), do: :ets.update_counter(@table_name, key, {2, -1, 0, 0}, {key, 1})
 end
