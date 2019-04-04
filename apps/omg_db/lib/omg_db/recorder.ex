@@ -12,29 +12,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Status.Metric.Recorder do
+defmodule OMG.DB.Recorder do
   @moduledoc """
   A GenServer template for metrics recording.
   """
   use GenServer
   @default_interval 5_000
+  @write :leveldb_write
+  @read :leveldb_read
+  @multiread :leveldb_multiread
+  @keys [{@write, to_charlist(@write)}, {@read, to_charlist(@read)}, {@multiread, to_charlist(@multiread)}]
+
   @type t :: %__MODULE__{
           name: atom(),
-          fn: (... -> atom()),
+          parent: pid(),
           key: charlist() | nil,
           interval: pos_integer(),
           reporter: (... -> atom()),
           tref: reference() | nil,
-          node: String.t() | nil
+          node: String.t() | nil,
+          table: atom()
         }
-  defstruct name: nil, fn: nil, key: nil, interval: @default_interval, reporter: nil, tref: nil, node: nil
+  defstruct name: nil,
+            parent: nil,
+            key: nil,
+            interval: @default_interval,
+            reporter: &Appsignal.set_gauge/3,
+            tref: nil,
+            node: nil,
+            table: nil
 
-  @doc """
-  Returns child_specs for the given metric setup, to be included e.g. in Supervisor's children.
-  """
-  @spec prepare_child(t) :: %{id: atom(), start: tuple()}
-  def prepare_child(opts) do
-    %{id: opts.name, start: {__MODULE__, :start_link, [opts]}}
+  @spec update_write(atom()) :: integer()
+  def update_write(table) do
+    :ets.update_counter(table, @write, {2, 1}, {@write, 0})
+  end
+
+  @spec update_read(atom()) :: integer()
+  def update_read(table) do
+    :ets.update_counter(table, @read, {2, 1}, {@read, 0})
+  end
+
+  @spec update_multiread(atom()) :: integer()
+  def update_multiread(table) do
+    :ets.update_counter(table, @multiread, {2, 1}, {@multiread, 0})
   end
 
   def start_link(opts) do
@@ -50,17 +70,26 @@ defmodule Status.Metric.Recorder do
        | key: to_charlist(opts.name),
          interval: get_interval(opts.name) || @default_interval,
          tref: tref,
-<<<<<<< HEAD:apps/omg_status/lib/status/metric/recorder.ex
-         node: to_string(:erlang.node())
-=======
-         node: Atom.to_string(Node.self())
->>>>>>> f2c36db8... Merge pull request #567 from omisego/dev_introspection:apps/omg_watcher/lib/omg_watcher/recorder.ex
+         node: Atom.to_string(Node.self()),
+         table: opts.table
      }}
   end
 
   def handle_info(:gather, state) do
     # invoke the reporter function and pass the key and value (invoke the fn)
-    _ = state.reporter.(state.key, apply(state.fn(), []), %{node: state.node})
+    _ = state.reporter.(state.key, Process.info(state.parent, :message_queue_len) |> elem(1), %{node: state.node})
+
+    _ =
+      Enum.each(@keys, fn {table_key, key} ->
+        case :ets.take(state.table, table_key) do
+          [{^table_key, value}] ->
+            _ = state.reporter.(key, value, %{node: state.node})
+
+          _ ->
+            :ok
+        end
+      end)
+
     {:noreply, state}
   end
 
