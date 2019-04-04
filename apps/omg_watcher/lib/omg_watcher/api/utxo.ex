@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.API.Utxo do
+defmodule OmgWatcher.API.Utxo do
   @moduledoc """
   Module provides API for utxos
   """
 
   alias OMG.Utxo
-  alias OMG.Watcher.DB
-  alias OMG.Watcher.ExitProcessor
+  alias OmgWatcher.DB
+  alias OmgWatcher.ExitProcessor
 
   @doc """
   Returns exit data for an utxo

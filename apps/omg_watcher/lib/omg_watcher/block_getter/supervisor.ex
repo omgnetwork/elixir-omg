@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.BlockGetter.Supervisor do
+defmodule OmgWatcher.BlockGetter.Supervisor do
   @moduledoc """
   This supervisor takes care of BlockGetter and State processes.
   In case one process fails, this supervisor's role is to restore consistent state
@@ -31,8 +31,8 @@ defmodule OMG.Watcher.BlockGetter.Supervisor do
     children = [
       {OMG.State, []},
       %{
-        id: OMG.Watcher.BlockGetter,
-        start: {OMG.Watcher.BlockGetter, :start_link, [[]]},
+        id: OmgWatcher.BlockGetter,
+        start: {OmgWatcher.BlockGetter, :start_link, [[]]},
         restart: :transient
       }
     ]

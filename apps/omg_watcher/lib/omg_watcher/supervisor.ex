@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Supervisor do
+defmodule OmgWatcher.Supervisor do
   @moduledoc """
-  Supervises the remainder (i.e. all except the `Watcher.BlockGetter` + `OMG.State` pair, supervised elsewhere)
+  Supervises the remainder (i.e. all except the `OmgWatcher.BlockGetter` + `OMG.State` pair, supervised elsewhere)
   of the Watcher app
   """
   use Supervisor
   use OMG.LoggerExt
 
-  alias OMG.Watcher
+  alias OmgWatcher
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -31,22 +31,22 @@ defmodule OMG.Watcher.Supervisor do
       {OMG.InternalEventBus, []},
       # Start the Ecto repository
       %{
-        id: Watcher.DB.Repo,
-        start: {Watcher.DB.Repo, :start_link, []},
+        id: OmgWatcher.DB.Repo,
+        start: {OmgWatcher.DB.Repo, :start_link, []},
         type: :supervisor
       },
       %{
-        id: OMG.Watcher.SyncSupervisor,
-        start: {OMG.Watcher.SyncSupervisor, :start_link, []},
+        id: OmgWatcher.SyncSupervisor,
+        start: {OmgWatcher.SyncSupervisor, :start_link, []},
         restart: :permanent,
         type: :supervisor
       },
       # Start workers
-      {Watcher.Eventer, []},
+      {OmgWatcher.Eventer, []},
       # Start the endpoint when the application starts
       %{
-        id: Watcher.Web.Endpoint,
-        start: {Watcher.Web.Endpoint, :start_link, []},
+        id: OmgWatcher.Web.Endpoint,
+        start: {OmgWatcher.Web.Endpoint, :start_link, []},
         type: :supervisor
       }
     ]

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Integration.InFlightExitTest do
+defmodule OmgWatcher.Integration.InFlightExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
@@ -21,9 +21,9 @@ defmodule OMG.Watcher.Integration.InFlightExitTest do
 
   alias OMG.Eth
   alias OMG.State.Transaction
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.Watcher.TestHelper
+  alias OmgWatcher.Event
+  alias OmgWatcher.Integration.TestHelper, as: IntegrationTest
+  alias OmgWatcher.TestHelper
 
   alias OMG.Integration.DepositHelper
 

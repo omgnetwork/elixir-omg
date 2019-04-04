@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.View.Utxo do
+defmodule OmgWatcher.Web.View.Utxo do
   @moduledoc """
   The utxo view for rendering json
   """
 
-  use OMG.Watcher.Web, :view
+  use OmgWatcher.Web, :view
   alias OMG.Utils.HttpRPC.Response
 
   def render("utxo_exit.json", %{response: utxo_exit}) do

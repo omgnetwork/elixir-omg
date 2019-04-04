@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher do
+defmodule OmgWatcher do
   @moduledoc """
   Watcher is responsible for syncing and validating the child chain, and providing a secure interface to it.
 

@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.ChallengeTest do
+defmodule OmgWatcher.Web.Controller.ChallengeTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
   alias OMG.Utxo
-  alias OMG.Watcher.DB
-  alias OMG.Watcher.TestHelper
+  alias OmgWatcher.DB
+  alias OmgWatcher.TestHelper
 
   require Utxo
 

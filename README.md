@@ -199,7 +199,7 @@ Assuming:
 C.f. [here](https://rinkeby.etherscan.io/tx/0x1a79fdfa310f91625d93e25139e15299b4ab272ae504c56b5798a018f6f4dc7b))
 
 we get
-```   
+```
 gas_reserve ~= (4 * 60 * 24 / 1) * 7 * 71505 * (40 / 10**9)  ~= 115 ETH
 ```
 
@@ -280,7 +280,7 @@ See [exit validation documentation](docs/exit_validation.md) for details.
 
 * **`exit_finality_margin`** - the margin waited before an exit-related event is considered final enough to pull and process
 
-* **`block_getter_reorg_margin`** - the margin considered by `OMG.Watcher.BlockGetter` when searching for recent child chain block submission events.
+* **`block_getter_reorg_margin`** - the margin considered by `OmgWatcher.BlockGetter` when searching for recent child chain block submission events.
 This is driving the process of determining the height and particular event related to the submission of a particular child chain block
 
 * **`convenience_api_mode`** - whether Convenience API should be started for the Watcher.

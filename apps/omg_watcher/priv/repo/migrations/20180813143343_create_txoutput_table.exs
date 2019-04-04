@@ -1,4 +1,4 @@
-defmodule OMG.Watcher.Repo.Migrations.CreateTxoutputTable do
+defmodule OmgWatcher.Repo.Migrations.CreateTxoutputTable do
   use Ecto.Migration
 
   def change do

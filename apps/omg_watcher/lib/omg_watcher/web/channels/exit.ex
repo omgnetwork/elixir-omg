@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Channel.Exit do
+defmodule OmgWatcher.Web.Channel.Exit do
   @moduledoc """
   Channel Exit
   """

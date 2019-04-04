@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Event do
+defmodule OmgWatcher.Event do
   @moduledoc """
   Definitions of structures representing various events delivered by the Watcher
 
@@ -23,18 +23,18 @@ defmodule OMG.Watcher.Event do
   alias OMG.State.Transaction
 
   @type byzantine_t ::
-          OMG.Watcher.Event.InvalidBlock.t()
-          | OMG.Watcher.Event.BlockWithholding.t()
-          | OMG.Watcher.Event.InvalidExit.t()
-          | OMG.Watcher.Event.UnchallengedExit.t()
-          | OMG.Watcher.Event.NonCanonicalIFE.t()
-          | OMG.Watcher.Event.InvalidIFEChallenge.t()
+          OmgWatcher.Event.InvalidBlock.t()
+          | OmgWatcher.Event.BlockWithholding.t()
+          | OmgWatcher.Event.InvalidExit.t()
+          | OmgWatcher.Event.UnchallengedExit.t()
+          | OmgWatcher.Event.NonCanonicalIFE.t()
+          | OmgWatcher.Event.InvalidIFEChallenge.t()
 
-  @type t :: OMG.Watcher.Event.AddressReceived.t() | OMG.Watcher.Event.ExitFinalized.t() | byzantine_t()
+  @type t :: OmgWatcher.Event.AddressReceived.t() | OmgWatcher.Event.ExitFinalized.t() | byzantine_t()
 
   #  TODO The reason why events have name as String and byzantine events as atom is that
   #  Phoniex websockets requires topics as strings + currently we treat Strings and binaries in
-  #  the same way in `OMG.Watcher.Web.Serializers.Response`
+  #  the same way in `OmgWatcher.Web.Serializers.Response`
   defmodule AddressReceived do
     @moduledoc """
     Notifies about received funds by particular address

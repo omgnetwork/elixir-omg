@@ -2,11 +2,11 @@ use Mix.Config
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
-config :omg_watcher, OMG.Watcher.Web.Endpoint,
+config :omg_watcher, OmgWatcher.Web.Endpoint,
   http: [port: 7435],
   server: false
 
-config :omg_watcher, OMG.Watcher.DB.Repo,
+config :omg_watcher, OmgWatcher.DB.Repo,
   adapter: Ecto.Adapters.Postgres,
   pool: Ecto.Adapters.SQL.Sandbox,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`

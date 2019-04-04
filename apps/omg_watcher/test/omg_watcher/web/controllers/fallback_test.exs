@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.FallbackTest do
+defmodule OmgWatcher.Web.Controller.FallbackTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
 
-  alias OMG.Watcher.TestHelper
+  alias OmgWatcher.TestHelper
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "returns error for non existing method" do

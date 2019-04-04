@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.StatusTest do
+defmodule OmgWatcher.Web.Controller.StatusTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
-  alias OMG.Watcher.TestHelper
+  alias OmgWatcher.TestHelper
   @moduletag :integration
 
   @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]

@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.Transaction do
+defmodule OmgWatcher.Web.Controller.Transaction do
   @moduledoc """
   Operations related to transaction.
   """
 
-  use OMG.Watcher.Web, :controller
+  use OmgWatcher.Web, :controller
 
-  alias OMG.Watcher.API
-  alias OMG.Watcher.Web.Validator
+  alias OmgWatcher.API
+  alias OmgWatcher.Web.Validator
 
   @doc """
   Retrieves a specific transaction by id.

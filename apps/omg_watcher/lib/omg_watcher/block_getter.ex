@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.BlockGetter do
+defmodule OmgWatcher.BlockGetter do
   @moduledoc """
   Downloads blocks from child chain, validates them and updates watcher state.
   Manages simultaneous getting and stateless-processing of blocks.
@@ -27,13 +27,13 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
   alias OMG.State
-  alias OMG.Watcher.HttpRPC.Client
+  alias OmgWatcher.HttpRPC.Client
 
-  alias OMG.Watcher.BlockGetter.BlockApplication
-  alias OMG.Watcher.BlockGetter.Core
-  alias OMG.Watcher.DB
-  alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.Recorder
+  alias OmgWatcher.BlockGetter.BlockApplication
+  alias OmgWatcher.BlockGetter.Core
+  alias OmgWatcher.DB
+  alias OmgWatcher.ExitProcessor
+  alias OmgWatcher.Recorder
 
   use GenServer
   use OMG.LoggerExt

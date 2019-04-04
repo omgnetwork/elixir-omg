@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Validator.Constrains do
+defmodule OmgWatcher.Web.Validator.Constrains do
   @moduledoc """
   Validates `/transaction.all` query parameters
   """

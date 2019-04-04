@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.View.Challenge do
+defmodule OmgWatcher.Web.View.Challenge do
   @moduledoc """
   The challenge view for rendering json
   """
 
-  use OMG.Watcher.Web, :view
+  use OmgWatcher.Web, :view
   alias OMG.Utils.HttpRPC.Response
 
   def render("challenge.json", %{response: challenge}) do

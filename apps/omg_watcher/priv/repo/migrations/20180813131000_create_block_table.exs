@@ -1,4 +1,4 @@
-defmodule OMG.Watcher.Repo.Migrations.CreateBlockTable do
+defmodule OmgWatcher.Repo.Migrations.CreateBlockTable do
   use Ecto.Migration
 
   def change do

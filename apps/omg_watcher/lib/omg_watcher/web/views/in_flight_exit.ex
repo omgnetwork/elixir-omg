@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.View.InFlightExit do
+defmodule OmgWatcher.Web.View.InFlightExit do
   @moduledoc """
   The transaction view for rendering json
   """
 
-  use OMG.Watcher.Web, :view
+  use OmgWatcher.Web, :view
 
   alias OMG.Utils.HttpRPC.Response
   alias OMG.Utxo

@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.DB.EthEventTest do
+defmodule OmgWatcher.DB.EthEventTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
   alias OMG.Utxo
-  alias OMG.Watcher.DB
+  alias OmgWatcher.DB
 
   require Utxo
 

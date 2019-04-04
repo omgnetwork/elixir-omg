@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Socket do
+defmodule OmgWatcher.Web.Socket do
   @moduledoc """
   This module is the entry points for websocket connections to the watcher API. It contains the
   channels to which providers/clients can connect to listen and receive events.
@@ -21,8 +21,8 @@ defmodule OMG.Watcher.Web.Socket do
   use Phoenix.Socket
 
   ## Channels
-  channel("transfer:*", OMG.Watcher.Web.Channel.Transfer)
-  channel("exit:*", OMG.Watcher.Web.Channel.Exit)
+  channel("transfer:*", OmgWatcher.Web.Channel.Transfer)
+  channel("exit:*", OmgWatcher.Web.Channel.Exit)
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
@@ -46,7 +46,7 @@ defmodule OMG.Watcher.Web.Socket do
   # Would allow you to broadcast a "disconnect" event and terminate
   # all active sockets and channels for a given user:
   #
-  #     OMG.Watcher.Web.Endpoint.broadcast("user_socket:#{user.id}", "disconnect", %{})
+  #     OmgWatcher.Web.Endpoint.broadcast("user_socket:#{user.id}", "disconnect", %{})
   #
   # Returning `nil` makes this socket anonymous.
   def id(_socket), do: nil

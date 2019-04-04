@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule OMG.Watcher.SupervisorTest do
+defmodule OmgWatcher.SupervisorTest do
   @moduledoc """
   This test is here mainly to test the logic-rich part of the supervisor setup, namely the config of
   `OMG.RootChainCoordinator.Core` supplied therein
@@ -21,7 +21,7 @@ defmodule OMG.Watcher.SupervisorTest do
 
   alias OMG.RootChainCoordinator.Core
 
-  @setup OMG.Watcher.CoordinatorSetup.coordinator_setup()
+  @setup OmgWatcher.CoordinatorSetup.coordinator_setup()
   @pid @setup
        |> Map.keys()
        |> Enum.with_index(1)
@@ -44,7 +44,7 @@ defmodule OMG.Watcher.SupervisorTest do
   test "syncs services correctly", %{state: state} do
     # NOTE: this assumes some finality margines embedded in `config/test.exs`. Consider refactoring if these
     #       needs to change and break this test, instead of modifying this test!
-    getter = :"Elixir.OMG.Watcher.BlockGetter"
+    getter = :"Elixir.OmgWatcher.BlockGetter"
 
     # start - only depositor and getter allowed to move
     assert %{sync_height: 9, root_chain_height: 9} = Core.get_synced_info(state, @pid[:depositor])

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Eventer.Core do
+defmodule OmgWatcher.Eventer.Core do
   @moduledoc """
   Functional core of eventer
   """
@@ -20,7 +20,7 @@ defmodule OMG.Watcher.Eventer.Core do
   alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.Event
+  alias OmgWatcher.Event
 
   require OMG.Utxo
 

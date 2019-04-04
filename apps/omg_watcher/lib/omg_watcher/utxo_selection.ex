@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.UtxoSelection do
+defmodule OmgWatcher.UtxoSelection do
   @moduledoc """
   Provides Utxos selection and merging algorithms.
   """
 
   alias OMG.{Crypto, State.Transaction}
-  alias OMG.Watcher.DB
+  alias OmgWatcher.DB
 
   require Transaction
 
@@ -83,7 +83,7 @@ defmodule OMG.Watcher.UtxoSelection do
   # the change). If this fails, we start to collect Utxos (starting from largest amount) which will cover the payment.
   # We return {token, {change, [utxos for payment]}}, change > 0 means insufficient funds.
   # NOTE: order of Utxo list is implicitly assumed for the algorithm to work deterministically,
-  # see: `OMG.Watcher.DB.TxOutput.get_sorted_grouped_utxos`
+  # see: `OmgWatcher.DB.TxOutput.get_sorted_grouped_utxos`
   @spec select_utxo(%{Transaction.currency() => list(%DB.TxOutput{})}, %{Transaction.currency() => pos_integer()}) ::
           list({Transaction.currency(), {integer, list(%DB.TxOutput{})}})
   defp select_utxo(utxos, needed_funds) do

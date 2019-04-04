@@ -15,7 +15,7 @@
 # unfortunately something is wrong with the fixtures loading in `test_helper.exs` and the following needs to be done
 Code.require_file("#{__DIR__}/../../omg_api/test/omg_api/integration/fixtures.exs")
 
-defmodule OMG.Watcher.Fixtures do
+defmodule OmgWatcher.Fixtures do
   use ExUnitFixtures.FixtureModule
 
   use OMG.Eth.Fixtures
@@ -24,9 +24,9 @@ defmodule OMG.Watcher.Fixtures do
   use OMG.LoggerExt
 
   alias Ecto.Adapters.SQL
-  alias OMG.Watcher
-  alias OMG.Watcher.DB
-  alias Watcher.TestHelper
+  alias OmgWatcher
+  alias OmgWatcher.DB
+  alias OmgWatcher.TestHelper
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
@@ -140,10 +140,10 @@ defmodule OMG.Watcher.Fixtures do
       Supervisor.start_link(
         [
           %{id: DB.Repo, start: {DB.Repo, :start_link, []}, type: :supervisor},
-          %{id: Watcher.Web.Endpoint, start: {Watcher.Web.Endpoint, :start_link, []}, type: :supervisor}
+          %{id: OmgWatcher.Web.Endpoint, start: {OmgWatcher.Web.Endpoint, :start_link, []}, type: :supervisor}
         ],
         strategy: :one_for_one,
-        name: Watcher.Supervisor
+        name: OmgWatcher.Supervisor
       )
 
     :ok = SQL.Sandbox.checkout(DB.Repo)

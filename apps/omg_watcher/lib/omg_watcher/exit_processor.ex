@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor do
+defmodule OmgWatcher.ExitProcessor do
   @moduledoc """
-  Imperative shell here, for functional core and more info see `OMG.Watcher.ExitProcessor.Core`
+  Imperative shell here, for functional core and more info see `OmgWatcher.ExitProcessor.Core`
 
   NOTE: Note that all calls return `db_updates` and relay on the caller to do persistence.
   """
@@ -25,11 +25,11 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.ExitProcessor.Core
-  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
-  alias OMG.Watcher.ExitProcessor.StandardExitChallenge
-  alias OMG.Watcher.Recorder
+  alias OmgWatcher.ExitProcessor
+  alias OmgWatcher.ExitProcessor.Core
+  alias OmgWatcher.ExitProcessor.InFlightExitInfo
+  alias OmgWatcher.ExitProcessor.StandardExitChallenge
+  alias OmgWatcher.Recorder
 
   use OMG.LoggerExt
   require Utxo
@@ -115,7 +115,7 @@ defmodule OMG.Watcher.ExitProcessor do
   end
 
   @doc """
-  Checks validity and causes event emission to `OMG.Watcher.Eventer`. Works with `OMG.State` to discern validity
+  Checks validity and causes event emission to `OmgWatcher.Eventer`. Works with `OMG.State` to discern validity
   """
   def check_validity do
     GenServer.call(__MODULE__, :check_validity)

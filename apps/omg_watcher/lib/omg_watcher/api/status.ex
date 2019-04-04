@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.API.Status do
+defmodule OmgWatcher.API.Status do
   @moduledoc """
   Watcher status API
   """
 
   alias OMG.Eth
   alias OMG.State
-  alias OMG.Watcher.BlockGetter
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.ExitProcessor
+  alias OmgWatcher.BlockGetter
+  alias OmgWatcher.Event
+  alias OmgWatcher.ExitProcessor
 
   @opaque t() :: %{
             last_validated_child_block_number: non_neg_integer(),

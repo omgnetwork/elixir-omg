@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Validator.Order do
+defmodule OmgWatcher.Web.Validator.Order do
   @moduledoc """
   Validates `/transaction.create` request body.
   """
 
-  alias OMG.Watcher.UtxoSelection
+  alias OmgWatcher.UtxoSelection
   import OMG.Utils.HttpRPC.Validator.Base
 
   @doc """

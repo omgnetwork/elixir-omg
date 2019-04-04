@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.TransactionTest do
+defmodule OmgWatcher.Web.Controller.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
   alias OMG.TestHelper, as: Test
-  alias OMG.Watcher.DB
+  alias OmgWatcher.DB
 
-  alias OMG.Watcher.TestHelper
+  alias OmgWatcher.TestHelper
 
   alias OMG.Utils.HttpRPC.Encoding
 

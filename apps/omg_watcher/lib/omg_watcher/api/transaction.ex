@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.API.Transaction do
+defmodule OmgWatcher.API.Transaction do
   @moduledoc """
   Module provides API for transactions
   """
 
   alias OMG.Utxo
-  alias OMG.Watcher.DB
-  alias OMG.Watcher.HttpRPC.Client
-  alias OMG.Watcher.UtxoSelection
+  alias OmgWatcher.DB
+  alias OmgWatcher.HttpRPC.Client
+  alias OmgWatcher.UtxoSelection
 
   require Utxo
 

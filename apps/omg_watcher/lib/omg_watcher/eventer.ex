@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Eventer do
+defmodule OmgWatcher.Eventer do
   @moduledoc """
   Imperative shell for handling events, which are exposed to the client of the Watcher application.
   All handling of event triggers that are processed, transformed into events and pushed to Phoenix Channels
@@ -24,9 +24,9 @@ defmodule OMG.Watcher.Eventer do
   """
 
   alias OMG.Utils.HttpRPC.Response
-  alias OMG.Watcher.Eventer.Core
-  alias OMG.Watcher.Recorder
-  alias OMG.Watcher.Web.Endpoint
+  alias OmgWatcher.Eventer.Core
+  alias OmgWatcher.Recorder
+  alias OmgWatcher.Web.Endpoint
   ### Client
 
   def start_link(_args) do

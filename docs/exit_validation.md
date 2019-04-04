@@ -114,7 +114,7 @@ Absence of challenges within some period (like `sla_margin`) must result in clie
 With MoreVP, we need to handle another type of exit game, which is the in-flight exit game, as specced out [here](./morevp.md).
 
 In terms of handling within the Watcher, similar principles will apply:
-  - we gather and keep in `OMG.Watcher.ExitProcessor`'s persistent state the current state of in-flight txs and exits
+  - we gather and keep in `OmgWatcher.ExitProcessor`'s persistent state the current state of in-flight txs and exits
   - we periodically check the validity of this state, emitting events and allowing for actions as necessary
   - we touch `OMG.State` only when the in-flight exit finalizes
   - if some invalid IFE or piggyback runs unchallenged for too long, it should be a prompt to exit (ala `:unchallenged_exit` above)

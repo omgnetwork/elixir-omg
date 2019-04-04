@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.API.InFlightExit do
+defmodule OmgWatcher.API.InFlightExit do
   @moduledoc """
   Module provides API for starting, validating and challenging in-flight exits
   """
 
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.DB
-  alias OMG.Watcher.ExitProcessor
+  alias OmgWatcher.DB
+  alias OmgWatcher.ExitProcessor
 
   require Utxo
 
@@ -58,7 +58,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   Returns arguments for plasma contract function that challenges a non-canonical IFE with a competitor for a given
   in-flight-exiting transaction.
 
-  This delegates directly to `OMG.Watcher.ExitProcessor` see there for details
+  This delegates directly to `OmgWatcher.ExitProcessor` see there for details
   """
   def get_competitor(txbytes) do
     ExitProcessor.get_competitor_for_ife(txbytes)
@@ -67,7 +67,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   @doc """
   Returns arguments for plasma contract function that responds to a challeng to an IFE with an inclusion proof
 
-  This delegates directly to `OMG.Watcher.ExitProcessor` see there for details
+  This delegates directly to `OmgWatcher.ExitProcessor` see there for details
   """
   def prove_canonical(txbytes) do
     ExitProcessor.prove_canonical_for_ife(txbytes)
@@ -76,7 +76,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   @doc """
   Returns arguments for plasma contract function proving that input was double-signed in some other IFE.
 
-  This delegates directly to `OMG.Watcher.ExitProcessor` see there for details
+  This delegates directly to `OmgWatcher.ExitProcessor` see there for details
   """
   def get_input_challenge_data(txbytes, input_index) do
     ExitProcessor.get_input_challenge_data(txbytes, input_index)
@@ -85,7 +85,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   @doc """
   Returns arguments for plasma contract function proving that output was double-spent in other IFE or block.
 
-  This delegates directly to `OMG.Watcher.ExitProcessor` see there for details
+  This delegates directly to `OmgWatcher.ExitProcessor` see there for details
   """
   def get_output_challenge_data(txbytes, output_index) do
     ExitProcessor.get_output_challenge_data(txbytes, output_index)

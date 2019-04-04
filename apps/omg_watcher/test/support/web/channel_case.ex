@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.ChannelCase do
+defmodule OmgWatcher.Web.ChannelCase do
   @moduledoc """
   This module defines the test case to be used by
   channel tests.
@@ -28,7 +28,7 @@ defmodule OMG.Watcher.Web.ChannelCase do
   """
 
   alias Ecto.Adapters.SQL
-  alias OMG.Watcher
+  alias OmgWatcher
   use ExUnit.CaseTemplate
 
   using do
@@ -37,15 +37,15 @@ defmodule OMG.Watcher.Web.ChannelCase do
       use Phoenix.ChannelTest
 
       # The default endpoint for testing
-      @endpoint OMG.Watcher.Web.Endpoint
+      @endpoint OmgWatcher.Web.Endpoint
     end
   end
 
   setup tags do
-    :ok = SQL.Sandbox.checkout(Watcher.DB.Repo)
+    :ok = SQL.Sandbox.checkout(OmgWatcher.DB.Repo)
 
     unless tags[:async] do
-      SQL.Sandbox.mode(Watcher.DB.Repo, {:shared, self()})
+      SQL.Sandbox.mode(OmgWatcher.DB.Repo, {:shared, self()})
     end
 
     :ok

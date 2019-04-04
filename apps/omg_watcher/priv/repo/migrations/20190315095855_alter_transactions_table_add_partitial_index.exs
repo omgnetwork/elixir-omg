@@ -1,4 +1,4 @@
-defmodule OMG.Watcher.DB.Repo.Migrations.AlterTransactionsTableAddPartialIndex do
+defmodule OmgWatcher.DB.Repo.Migrations.AlterTransactionsTableAddPartialIndex do
   use Ecto.Migration
 
   def up do

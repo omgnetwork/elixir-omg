@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.AccountTest do
+defmodule OmgWatcher.Web.Controller.AccountTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
   alias OMG.Crypto
   alias OMG.TestHelper
-  alias OMG.Watcher.TestHelper
+  alias OmgWatcher.TestHelper
 
   @eth_hex <<0::160>> |> OMG.Utils.HttpRPC.Encoding.to_hex()
   @other_token <<127::160>>

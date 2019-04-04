@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.Fallback do
+defmodule OmgWatcher.Web.Controller.Fallback do
   @moduledoc """
   The fallback handler.
   """

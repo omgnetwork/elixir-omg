@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web do
+defmodule OmgWatcher.Web do
   @moduledoc """
   The entrypoint for defining your web interface, such
   as controllers, views, channels and so on.
 
   This can be used in your application as:
 
-      use OMG.Watcher.Web, :controller
-      use OMG.Watcher.Web, :view
+      use OmgWatcher.Web, :controller
+      use OmgWatcher.Web, :view
 
   The definitions below will be executed for every view,
   controller, etc, so keep them short and clean, focused
@@ -33,16 +33,16 @@ defmodule OMG.Watcher.Web do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: OMG.Watcher.Web, log: :debug
+      use Phoenix.Controller, namespace: OmgWatcher.Web, log: :debug
       import Plug.Conn
-      import OMG.Watcher.Web.Router.Helpers
+      import OmgWatcher.Web.Router.Helpers
       import OMG.Utils.HttpRPC.Validator.Base
 
-      action_fallback(OMG.Watcher.Web.Controller.Fallback)
+      action_fallback(OmgWatcher.Web.Controller.Fallback)
 
       @doc """
       Passes result to the render process when successful or returns error result unchanged.
-      Error tuple will be passed to the see: `OMG.Watcher.Web.Controller.Fallback`
+      Error tuple will be passed to the see: `OmgWatcher.Web.Controller.Fallback`
       """
       def api_response(api_result, conn, template) when is_tuple(api_result),
         do: with({:ok, data} <- api_result, do: api_response(data, conn, template))
@@ -72,13 +72,13 @@ defmodule OMG.Watcher.Web do
     quote do
       use Phoenix.View,
         root: "lib/omg_watcher_web/templates",
-        namespace: OMG.Watcher.Web
+        namespace: OmgWatcher.Web
 
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_flash: 2, view_module: 1]
 
-      import OMG.Watcher.Web.Router.Helpers
-      import OMG.Watcher.Web.Serializer.Base
+      import OmgWatcher.Web.Router.Helpers
+      import OmgWatcher.Web.Serializer.Base
     end
   end
 

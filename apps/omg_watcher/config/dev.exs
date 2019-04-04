@@ -6,7 +6,7 @@ use Mix.Config
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we use it
 # with brunch.io to recompile .js and .css sources.
-config :omg_watcher, OMG.Watcher.Web.Endpoint,
+config :omg_watcher, OmgWatcher.Web.Endpoint,
   http: [port: {:system, "PORT", 7434, {String, :to_integer}}],
   url: [host: "localhost", port: 7434],
   debug_errors: true,
@@ -40,7 +40,7 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
 config :phoenix, :stacktrace_depth, 20
 
 # Configure your database
-config :omg_watcher, OMG.Watcher.DB.Repo,
+config :omg_watcher, OmgWatcher.DB.Repo,
   adapter: Ecto.Adapters.Postgres,
   pool_size: 10,
   # DATABASE_URL format is following `postgres://{user_name}:{password}@{host:port}/{database_name}`

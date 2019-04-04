@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
+defmodule OmgWatcher.ExitProcessor.PersistenceTest do
   @moduledoc """
-  Test focused on the persistence bits of `OMG.Watcher.ExitProcessor.Core`.
+  Test focused on the persistence bits of `OmgWatcher.ExitProcessor.Core`.
 
   The aim of this test is to ensure, that whatever state the processor ends up being in will be revived from the DB
   """
@@ -25,7 +25,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   alias OMG.DevCrypto
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.ExitProcessor.Core
+  alias OmgWatcher.ExitProcessor.Core
 
   require Utxo
 
@@ -189,7 +189,7 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     )
   end
 
-  # mimics `&OMG.Watcher.ExitProcessor.init/1`
+  # mimics `&OmgWatcher.ExitProcessor.init/1`
   defp state_from(db_pid) do
     {:ok, db_exits} = OMG.DB.exit_infos(db_pid)
     {:ok, db_ifes} = OMG.DB.in_flight_exits_info(db_pid)

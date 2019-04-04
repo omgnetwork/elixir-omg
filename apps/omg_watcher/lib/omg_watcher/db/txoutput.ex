@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.DB.TxOutput do
+defmodule OmgWatcher.DB.TxOutput do
   @moduledoc """
   Ecto schema for transaction's output or input
   """
@@ -21,8 +21,8 @@ defmodule OMG.Watcher.DB.TxOutput do
   alias OMG.Block
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.DB
-  alias OMG.Watcher.DB.Repo
+  alias OmgWatcher.DB
+  alias OmgWatcher.DB.Repo
 
   require Utxo
 
@@ -46,7 +46,7 @@ defmodule OMG.Watcher.DB.TxOutput do
     field(:txindex, :integer, primary_key: true)
     field(:oindex, :integer, primary_key: true)
     field(:owner, :binary)
-    field(:amount, OMG.Watcher.DB.Types.IntegerType)
+    field(:amount, OmgWatcher.DB.Types.IntegerType)
     field(:currency, :binary)
     field(:proof, :binary)
     field(:spending_tx_oindex, :integer)

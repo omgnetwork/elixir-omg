@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.InFlightExit do
+defmodule OmgWatcher.Web.Controller.InFlightExit do
   @moduledoc """
   Operations related to in flight exits starting and handling.
   """
 
-  use OMG.Watcher.Web, :controller
+  use OmgWatcher.Web, :controller
 
-  alias OMG.Watcher.API
+  alias OmgWatcher.API
 
   @doc """
   For a given transaction provided in params,

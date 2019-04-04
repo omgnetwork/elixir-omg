@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.CoreTest do
+defmodule OmgWatcher.ExitProcessor.CoreTest do
   @moduledoc """
   Test of the logic of exit processor - detecting byzantine conditions, emitting events, talking to OMG.State.Core
   """
@@ -27,10 +27,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.ExitProcessor.Core
-  alias OMG.Watcher.ExitProcessor.ExitInfo
+  alias OmgWatcher.Event
+  alias OmgWatcher.ExitProcessor
+  alias OmgWatcher.ExitProcessor.Core
+  alias OmgWatcher.ExitProcessor.ExitInfo
 
   require Utxo
 
@@ -76,7 +76,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     empty
   end
 
-  # events is whatever `OMG.Eth` would feed into the `OMG.Watcher.ExitProcessor`, via `OMG.EthereumEventListener`
+  # events is whatever `OMG.Eth` would feed into the `OmgWatcher.ExitProcessor`, via `OMG.EthereumEventListener`
   deffixture exit_events(alice, transactions) do
     [txbytes1, txbytes2] = transactions |> Enum.map(&Transaction.raw_txbytes/1)
 

@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Endpoint do
+defmodule OmgWatcher.Web.Endpoint do
   use Phoenix.Endpoint, otp_app: :omg_watcher
   use Appsignal.Phoenix
 
-  socket("/socket", OMG.Watcher.Web.Socket, websocket: [])
+  socket("/socket", OmgWatcher.Web.Socket, websocket: [])
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -43,8 +43,8 @@ defmodule OMG.Watcher.Web.Endpoint do
   plug(Plug.MethodOverride)
   plug(Plug.Head)
 
-  if Application.get_env(:omg_watcher, OMG.Watcher.Web.Endpoint)[:enable_cors],
+  if Application.get_env(:omg_watcher, OmgWatcher.Web.Endpoint)[:enable_cors],
     do: plug(CORSPlug)
 
-  plug(OMG.Watcher.Web.Router)
+  plug(OmgWatcher.Web.Router)
 end

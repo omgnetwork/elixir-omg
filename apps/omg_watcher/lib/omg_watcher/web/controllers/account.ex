@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.Account do
+defmodule OmgWatcher.Web.Controller.Account do
   @moduledoc """
   Module provides operation related to plasma accounts.
   """
 
-  use OMG.Watcher.Web, :controller
+  use OmgWatcher.Web, :controller
 
-  alias OMG.Watcher.API
+  alias OmgWatcher.API
 
   @doc """
   Gets plasma account balance

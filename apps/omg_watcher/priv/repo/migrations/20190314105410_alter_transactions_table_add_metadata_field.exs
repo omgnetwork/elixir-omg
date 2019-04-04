@@ -1,4 +1,4 @@
-defmodule OMG.Watcher.DB.Repo.Migrations.AlterTransactionsTableAddMetadataField do
+defmodule OmgWatcher.DB.Repo.Migrations.AlterTransactionsTableAddMetadataField do
   use Ecto.Migration
 
   def change do

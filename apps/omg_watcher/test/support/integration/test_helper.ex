@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Integration.TestHelper do
+defmodule OmgWatcher.Integration.TestHelper do
   @moduledoc """
   Common helper functions that are useful when integration-testing the watcher
   """
@@ -22,7 +22,7 @@ defmodule OMG.Watcher.Integration.TestHelper do
   alias OMG.Utxo
 
   require Utxo
-  import OMG.Watcher.TestHelper
+  import OmgWatcher.TestHelper
 
   def wait_for_byzantine_events(event_names, timeout) do
     fn ->

@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.BlockGetter.CoreTest do
+defmodule OmgWatcher.BlockGetter.CoreTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
   use OMG.Fixtures
   use Plug.Test
 
   alias OMG.Block
-  alias OMG.Watcher.BlockGetter.BlockApplication
-  alias OMG.Watcher.BlockGetter.Core
-  alias OMG.Watcher.Event
+  alias OmgWatcher.BlockGetter.BlockApplication
+  alias OmgWatcher.BlockGetter.Core
+  alias OmgWatcher.Event
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 

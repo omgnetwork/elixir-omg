@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.Status do
+defmodule OmgWatcher.Web.Controller.Status do
   @moduledoc """
   Module provides operation related to the child chain health status, like: geth syncing status, last minned block
   number and time and last block verified by watcher.
   """
 
-  use OMG.Watcher.Web, :controller
+  use OmgWatcher.Web, :controller
 
-  alias OMG.Watcher.API
+  alias OmgWatcher.API
 
   @doc """
   Gets plasma network and Watcher status

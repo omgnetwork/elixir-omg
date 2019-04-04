@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Mix.Tasks.Xomg.Watcher.Start do
+defmodule Mix.Tasks.Xomg.OmgWatcher.Start do
   @moduledoc """
     Contains mix.task to run the watcher in different modes:
       a) mix xomg.watcher.start ----> security critical

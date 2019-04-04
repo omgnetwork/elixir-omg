@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.View.Status do
+defmodule OmgWatcher.Web.View.Status do
   @moduledoc """
   The status view for rendering json
   """
 
-  use OMG.Watcher.Web, :view
+  use OmgWatcher.Web, :view
   alias OMG.Utils.HttpRPC.Response
 
   def render("status.json", %{response: status}) do

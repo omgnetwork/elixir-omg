@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.EnforceContentPlugTest do
+defmodule OmgWatcher.Web.Controller.EnforceContentPlugTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
@@ -25,7 +25,7 @@ defmodule OMG.Watcher.Web.Controller.EnforceContentPlugTest do
 
     response =
       conn(:post, "account.get_balance", %{"address" => no_account})
-      |> OMG.Watcher.Web.Endpoint.call([])
+      |> OmgWatcher.Web.Endpoint.call([])
 
     assert response.status == 200
 

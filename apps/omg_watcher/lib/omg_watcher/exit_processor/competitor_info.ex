@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
+defmodule OmgWatcher.ExitProcessor.CompetitorInfo do
   @moduledoc """
   Represents the bulk of information about a competitor to an IFE.
 
-  Internal stuff of `OMG.Watcher.ExitProcessor`
+  Internal stuff of `OmgWatcher.ExitProcessor`
   """
 
   alias OMG.Crypto
   alias OMG.State.Transaction
-  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
+  alias OmgWatcher.ExitProcessor.InFlightExitInfo
 
   # mapped by tx_hash
   defstruct [

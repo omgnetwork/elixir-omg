@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.TestHelper do
+defmodule OmgWatcher.TestHelper do
   @moduledoc """
   Module provides common testing functions used by App's tests.
   """
@@ -37,6 +37,8 @@ defmodule OMG.Watcher.TestHelper do
   end
 
   def success?(path, body \\ nil) do
+    IO.inspect path
+    IO.inspect body
     response_body = rpc_call(path, body, 200)
     %{"version" => "1.0", "success" => true, "data" => data} = response_body
     data
@@ -66,7 +68,7 @@ defmodule OMG.Watcher.TestHelper do
 
   defp send_request(req) do
     req
-    |> OMG.Watcher.Web.Endpoint.call([])
+    |> OmgWatcher.Web.Endpoint.call([])
   end
 
   def create_topic(main_topic, subtopic), do: main_topic <> ":" <> subtopic

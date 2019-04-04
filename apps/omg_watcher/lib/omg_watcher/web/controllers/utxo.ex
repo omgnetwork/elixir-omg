@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.Utxo do
+defmodule OmgWatcher.Web.Controller.Utxo do
   @moduledoc """
   Operations related to utxo.
   Modify the state in the database.
   """
 
-  use OMG.Watcher.Web, :controller
+  use OmgWatcher.Web, :controller
 
   alias OMG.Utxo.Position
-  alias OMG.Watcher.API
+  alias OmgWatcher.API
 
   def get_utxo_exit(conn, params) do
     with {:ok, utxo_pos} <- expect(params, "utxo_pos", :pos_integer),

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Integration.StandardExitTest do
+defmodule OmgWatcher.Integration.StandardExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
@@ -24,14 +24,14 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
   alias OMG.Eth
   alias OMG.Utils.HttpRPC.Response
   alias OMG.Utxo
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
-  alias OMG.Watcher.TestHelper
-  alias OMG.Watcher.Web.Channel
+  alias OmgWatcher.Event
+  alias OmgWatcher.Integration.TestHelper, as: IntegrationTest
+  alias OmgWatcher.TestHelper
+  alias OmgWatcher.Web.Channel
 
   require Utxo
 
-  @endpoint OMG.Watcher.Web.Endpoint
+  @endpoint OmgWatcher.Web.Endpoint
 
   @moduletag :integration
   @moduletag timeout: 180_000
@@ -48,7 +48,7 @@ defmodule OMG.Watcher.Integration.StandardExitTest do
 
     {:ok, _, _socket} =
       subscribe_and_join(
-        socket(OMG.Watcher.Web.Socket),
+        socket(OmgWatcher.Web.Socket),
         Channel.Exit,
         TestHelper.create_topic("exit", encoded_alice_address)
       )

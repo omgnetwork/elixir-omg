@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Eventer.CoreTest do
+defmodule OmgWatcher.Eventer.CoreTest do
   @moduledoc false
 
   use ExUnitFixtures
@@ -21,9 +21,9 @@ defmodule OMG.Watcher.Eventer.CoreTest do
 
   alias OMG.Crypto
   alias OMG.Utxo
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.Eventer
-  alias OMG.Watcher.TestHelper
+  alias OmgWatcher.Event
+  alias OmgWatcher.Eventer
+  alias OmgWatcher.TestHelper
 
   require Utxo
 

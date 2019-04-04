@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.DB.Block do
+defmodule OmgWatcher.DB.Block do
   @moduledoc """
   Ecto schema for Plasma Chain block
   """
   use Ecto.Schema
 
-  alias OMG.Watcher.DB
+  alias OmgWatcher.DB
 
   @primary_key {:blknum, :integer, []}
   @derive {Phoenix.Param, key: :blknum}

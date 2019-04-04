@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.Core do
+defmodule OmgWatcher.ExitProcessor.Core do
   @moduledoc """
   Encapsulates managing and executing the behaviors related to treating exits by the child chain and watchers
   Keeps a state of exits that are in progress, updates it with news from the root chain, compares to the
@@ -27,7 +27,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     - figuring out critical failure of invalid exit challenging (aka `:unchallenged_exit` event)
     - MoreVP protocol managing in general
 
-  For the imperative shell, see `OMG.Watcher.ExitProcessor`
+  For the imperative shell, see `OmgWatcher.ExitProcessor`
   """
 
   alias OMG.Block
@@ -36,13 +36,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Utxo
   require Utxo
   require Transaction
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.ExitProcessor
-  alias OMG.Watcher.ExitProcessor.CompetitorInfo
-  alias OMG.Watcher.ExitProcessor.ExitInfo
-  alias OMG.Watcher.ExitProcessor.InFlightExitInfo
-  alias OMG.Watcher.ExitProcessor.StandardExitChallenge
-  alias OMG.Watcher.ExitProcessor.TxAppendix
+  alias OmgWatcher.Event
+  alias OmgWatcher.ExitProcessor
+  alias OmgWatcher.ExitProcessor.CompetitorInfo
+  alias OmgWatcher.ExitProcessor.ExitInfo
+  alias OmgWatcher.ExitProcessor.InFlightExitInfo
+  alias OmgWatcher.ExitProcessor.StandardExitChallenge
+  alias OmgWatcher.ExitProcessor.TxAppendix
 
   @default_sla_margin 10
   @zero_address OMG.Eth.zero_address()

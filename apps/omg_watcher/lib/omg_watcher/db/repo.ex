@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.DB.Repo do
+defmodule OmgWatcher.DB.Repo do
   use Ecto.Repo, otp_app: :omg_watcher
 
   # Workaround an issue where ecto.migrate task won't start the app

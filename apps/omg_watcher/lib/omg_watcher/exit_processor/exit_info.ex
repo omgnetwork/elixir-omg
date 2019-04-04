@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.ExitInfo do
+defmodule OmgWatcher.ExitProcessor.ExitInfo do
   @moduledoc """
   Represents the bulk of information about a tracked exit.
 
-  Internal stuff of `OMG.Watcher.ExitProcessor`
+  Internal stuff of `OmgWatcher.ExitProcessor`
   """
 
   alias OMG.Crypto

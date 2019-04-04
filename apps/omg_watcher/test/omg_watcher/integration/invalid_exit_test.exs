@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Integration.InvalidExitTest do
+defmodule OmgWatcher.Integration.InvalidExitTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
@@ -22,9 +22,9 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
   alias OMG.Utxo
   require Utxo
   alias OMG.Eth
-  alias OMG.Watcher
-  alias OMG.Watcher.{Event, TestHelper}
-  alias OMG.Watcher.Integration.TestHelper, as: IntegrationTest
+  alias OmgWatcher
+  alias OmgWatcher.{Event, TestHelper}
+  alias OmgWatcher.Integration.TestHelper, as: IntegrationTest
 
   import ExUnit.CaptureLog
 
@@ -115,7 +115,7 @@ defmodule OMG.Watcher.Integration.InvalidExitTest do
       bad_block = OMG.Block.hashed_txs_at([bad_tx], bad_block_number)
 
     # from now on the child chain server is broken until end of test
-    Watcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
+    OmgWatcher.Integration.BadChildChainServer.prepare_route_to_inject_bad_block(context, bad_block)
 
     IntegrationTest.wait_for_block_fetch(exit_blknum, @timeout)
 

@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.Challenge do
+defmodule OmgWatcher.Web.Controller.Challenge do
   @moduledoc """
   Handles exit challenges
   """
 
-  use OMG.Watcher.Web, :controller
+  use OmgWatcher.Web, :controller
 
   alias OMG.Utxo
-  alias OMG.Watcher.API
+  alias OmgWatcher.API
 
   @doc """
   Challenges exits

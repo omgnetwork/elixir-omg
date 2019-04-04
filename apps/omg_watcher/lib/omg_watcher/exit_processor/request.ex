@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.Request do
+defmodule OmgWatcher.ExitProcessor.Request do
   @moduledoc """
-  Encapsulates the state of processing of `OMG.Watcher.ExitProcessor` pipelines
+  Encapsulates the state of processing of `OmgWatcher.ExitProcessor` pipelines
 
   Holds all the necessary query date and the respective response
 

@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.View.Transaction do
+defmodule OmgWatcher.Web.View.Transaction do
   @moduledoc """
   The transaction view for rendering json
   """
 
   alias OMG.Utils.HttpRPC.Response
 
-  use OMG.Watcher.Web, :view
+  use OmgWatcher.Web, :view
 
   def render("transaction.json", %{response: transaction}) do
     transaction

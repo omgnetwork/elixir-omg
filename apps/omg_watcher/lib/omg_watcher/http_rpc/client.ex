@@ -18,7 +18,7 @@ defmodule OmgWatcher.HttpRPC.Client do
   """
 
   alias OMG.Utils.HttpRPC.Encoding
-  alias OMG.Watcher.HttpRPC.Adapter
+  alias OmgWatcher.HttpRPC.Adapter
 
   require Logger
 

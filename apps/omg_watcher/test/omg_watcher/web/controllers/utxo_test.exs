@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Controller.UtxoTest do
+defmodule OmgWatcher.Web.Controller.UtxoTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
@@ -20,8 +20,8 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   alias OMG.TestHelper
   alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
-  alias OMG.Watcher.DB
-  alias OMG.Watcher.TestHelper
+  alias OmgWatcher.DB
+  alias OmgWatcher.TestHelper
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()

@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.BlockGetter.BlockApplication do
+defmodule OmgWatcher.BlockGetter.BlockApplication do
   @moduledoc """
   Contains all the information that `apply_block` and `handle_cast(:apply_block)` would need to apply a statelessly
   valid, downloaded block
   """
 
-  alias OMG.Watcher.BlockGetter.BlockApplication
+  alias OmgWatcher.BlockGetter.BlockApplication
 
   @type t :: %__MODULE__{
           number: pos_integer(),

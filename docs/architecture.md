@@ -16,7 +16,7 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 **NOTE**:
 - for `OMG` modules/processes look in `apps/omg`
 - for `OMG.API` modules/processes look in `apps/omg_api`
-- for `OMG.Watcher` modules/processes look in `apps/omg_watcher`
+- for `OmgWatcher` modules/processes look in `apps/omg_watcher`
 - for `OMG.Eth` look in `apps/omg_eth`
 - for `OMG.DB` look in `apps/omg_db`
 - for `OMG.Performance` look in `apps/omg_performance`
@@ -49,7 +49,7 @@ Actually `OMG.EthereumEventListener` setup with `:exiter`.
 **NOTE** there's a multitude of exiter-related processes, which work along these lines, we're not listing them here
 
 - pushes exit-related events to `OMG.State` on child chain server's side
-- pushes exit-related events to `OMG.Watcher.ExitProcessor` on watcher's side
+- pushes exit-related events to `OmgWatcher.ExitProcessor` on watcher's side
 - pushes exit-related events to `WatcherDB`
 
 ### `:depositor`
@@ -67,29 +67,29 @@ Actually `OMG.EthereumEventListener` setup with `:depositor`.
 ### `OMG.API.FeeServer`
 - `OMG.API` calls it to get acceptable currencies and actual fee amounts to validate transactions
 
-### `OMG.Watcher.BlockGetter`
+### `OmgWatcher.BlockGetter`
 
 - tracks child chain blocks via `OMG.RootChainCoordinator`
 - manages concurrent `Task`'s to pull blocks from child chain server API (JSON-RPC)
 - pushes decoded and statelessly valid blocks to `OMG.State`
 - pushes statefully valid blocks and transactions (acknowledged by `OMG.State` above) to `WatcherDB`
-- emits block, transaction, consensus events to `OMG.Watcher.Eventer`
-- stops if `OMG.Watcher.ExitProcessor` reports a dangerous byzantine condition related to exits
+- emits block, transaction, consensus events to `OmgWatcher.Eventer`
+- stops if `OmgWatcher.ExitProcessor` reports a dangerous byzantine condition related to exits
 
-### `OMG.Watcher.ExitProcessor`
+### `OmgWatcher.ExitProcessor`
 
 - get various Ethereum events from `OMG.EthereumEventListener`
 - used only in Watcher
 - validates exits
-- emits byzantine events to `OMG.Watcher.Eventer`
+- emits byzantine events to `OmgWatcher.Eventer`
 - spends finalizing exits in `OMG.State`
 
 ### `Phoenix app` (not a module - section name TODO)
 
 - uses data stored in the `WatcherDB` to server user's requests
-- subscribes to event buses to `OMG.Watcher.Eventer`
+- subscribes to event buses to `OmgWatcher.Eventer`
 
-### `OMG.Watcher.Eventer`
+### `OmgWatcher.Eventer`
 
 - pushes events to `Phoenix app`
 

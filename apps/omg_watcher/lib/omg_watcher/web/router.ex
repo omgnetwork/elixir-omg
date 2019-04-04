@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.Router do
-  use OMG.Watcher.Web, :router
+defmodule OmgWatcher.Web.Router do
+  use OmgWatcher.Web, :router
 
   pipeline :api do
     plug(:accepts, ["json"])
     plug(:enforce_json_content)
   end
 
-  scope "/", OMG.Watcher.Web do
+  scope "/", OmgWatcher.Web do
     pipe_through([:api])
 
     post("/account.get_balance", Controller.Account, :get_balance)

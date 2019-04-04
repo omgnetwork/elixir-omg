@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Application do
+defmodule OmgWatcher.Application do
   @moduledoc false
   use Application
   require Logger
@@ -31,8 +31,8 @@ defmodule OMG.Watcher.Application do
     # root supervisor must stop whenever any of its children supervisors goes down (children carry the load of restarts)
     children = [
       %{
-        id: OMG.Watcher.Supervisor,
-        start: {OMG.Watcher.Supervisor, :start_link, []},
+        id: OmgWatcher.Supervisor,
+        start: {OmgWatcher.Supervisor, :start_link, []},
         restart: :permanent,
         type: :supervisor
       }
@@ -42,7 +42,7 @@ defmodule OMG.Watcher.Application do
       strategy: :one_for_one,
       # whenever any of supervisor's children goes down, so it does
       max_restarts: 0,
-      name: OMG.Watcher.RootSupervisor
+      name: OmgWatcher.RootSupervisor
     ]
 
     Supervisor.start_link(children, opts)
@@ -51,7 +51,7 @@ defmodule OMG.Watcher.Application do
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
   def config_change(changed, _new, removed) do
-    OMG.Watcher.Web.Endpoint.config_change(changed, removed)
+    OmgWatcher.Web.Endpoint.config_change(changed, removed)
     :ok
   end
 

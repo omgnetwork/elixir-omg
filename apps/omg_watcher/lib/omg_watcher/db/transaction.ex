@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.DB.Transaction do
+defmodule OmgWatcher.DB.Transaction do
   @moduledoc """
   Ecto Schema representing a transaction
   """
@@ -21,7 +21,7 @@ defmodule OMG.Watcher.DB.Transaction do
 
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.DB
+  alias OmgWatcher.DB
 
   require Utxo
 

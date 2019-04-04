@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.CoordinatorSetup do
+defmodule OmgWatcher.CoordinatorSetup do
   @moduledoc """
   The setup of `OMG.RootChainCoordinator` for the Watcher - configures the relations between different event listeners
   """
@@ -24,14 +24,14 @@ defmodule OMG.Watcher.CoordinatorSetup do
     %{
       depositor: [finality_margin: deposit_finality_margin],
       convenience_deposit_processor: [waits_for: [:depositor], finality_margin: finality_margin],
-      "Elixir.OMG.Watcher.BlockGetter": [waits_for: [depositor: :no_margin], finality_margin: 0],
+      "Elixir.OmgWatcher.BlockGetter": [waits_for: [depositor: :no_margin], finality_margin: 0],
       exit_processor: [waits_for: :depositor, finality_margin: finality_margin],
       convenience_exit_processor: [
-        waits_for: [:depositor, :"Elixir.OMG.Watcher.BlockGetter"],
+        waits_for: [:depositor, :"Elixir.OmgWatcher.BlockGetter"],
         finality_margin: finality_margin
       ],
       exit_finalizer: [
-        waits_for: [:depositor, :"Elixir.OMG.Watcher.BlockGetter", :exit_processor],
+        waits_for: [:depositor, :"Elixir.OmgWatcher.BlockGetter", :exit_processor],
         finality_margin: finality_margin
       ],
       exit_challenger: [waits_for: :exit_processor, finality_margin: finality_margin],
@@ -41,7 +41,7 @@ defmodule OMG.Watcher.CoordinatorSetup do
       challenges_responds_processor: [waits_for: :competitor_processor, finality_margin: finality_margin],
       piggyback_challenges_processor: [waits_for: :piggyback_processor, finality_margin: finality_margin],
       ife_exit_finalizer: [
-        waits_for: [:depositor, :"Elixir.OMG.Watcher.BlockGetter", :in_flight_exit_processor, :piggyback_processor],
+        waits_for: [:depositor, :"Elixir.OmgWatcher.BlockGetter", :in_flight_exit_processor, :piggyback_processor],
         finality_margin: finality_margin
       ]
     }

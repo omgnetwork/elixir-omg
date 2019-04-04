@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.BlockGetter.Core do
+defmodule OmgWatcher.BlockGetter.Core do
   @moduledoc false
 
   alias OMG.Block
   alias OMG.State.Transaction
-  alias OMG.Watcher.BlockGetter.BlockApplication
-  alias OMG.Watcher.Event
-  alias OMG.Watcher.ExitProcessor
+  alias OmgWatcher.BlockGetter.BlockApplication
+  alias OmgWatcher.Event
+  alias OmgWatcher.ExitProcessor
 
   use OMG.LoggerExt
 
@@ -581,7 +581,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   can get out of sync, and then we don't want to send already consumed blocks which could not succeed due
   key constraints on WatcherDB.
   """
-  @spec ensure_block_imported_once(BlockApplication.t(), t()) :: [OMG.Watcher.DB.Transaction.mined_block()]
+  @spec ensure_block_imported_once(BlockApplication.t(), t()) :: [OmgWatcher.DB.Transaction.mined_block()]
   def ensure_block_imported_once(block, %__MODULE__{last_block_persisted_from_prev_run: last_persisted_block}),
     do: do_ensure_block_imported_once(block, last_persisted_block)
 
@@ -594,7 +594,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   defp do_ensure_block_imported_once(block, _), do: [to_mined_block(block)]
 
   # The purpose of this function is to ensure contract between block_getter and db code
-  @spec to_mined_block(BlockApplication.t()) :: OMG.Watcher.DB.Transaction.mined_block()
+  @spec to_mined_block(BlockApplication.t()) :: OmgWatcher.DB.Transaction.mined_block()
   defp to_mined_block(%BlockApplication{} = block) do
     %{
       eth_height: block.eth_height,

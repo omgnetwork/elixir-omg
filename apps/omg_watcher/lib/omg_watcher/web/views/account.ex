@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.View.Account do
+defmodule OmgWatcher.Web.View.Account do
   @moduledoc """
   The account view for rendering json
   """
 
-  use OMG.Watcher.Web, :view
+  use OmgWatcher.Web, :view
   alias OMG.Utils.HttpRPC.Response
   alias OMG.Utxo
 

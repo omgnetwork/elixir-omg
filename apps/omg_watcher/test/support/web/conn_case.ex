@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.ConnCase do
+defmodule OmgWatcher.Web.ConnCase do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.
@@ -28,25 +28,25 @@ defmodule OMG.Watcher.Web.ConnCase do
   """
 
   alias Ecto.Adapters.SQL
-  alias OMG.Watcher
+  alias OmgWatcher
   use ExUnit.CaseTemplate
 
   using do
     quote do
       # Import conveniences for testing with connections
       use Phoenix.ConnTest
-      import OMG.Watcher.Web.Router.Helpers
+      import OmgWatcher.Web.Router.Helpers
 
       # The default endpoint for testing
-      @endpoint OMG.Watcher.Web.Endpoint
+      @endpoint OmgWatcher.Web.Endpoint
     end
   end
 
   setup tags do
-    :ok = SQL.Sandbox.checkout(OMG.Watcher.DB.Repo)
+    :ok = SQL.Sandbox.checkout(OmgWatcher.DB.Repo)
 
     unless tags[:async] do
-      SQL.Sandbox.mode(Watcher.DB.Repo, {:shared, self()})
+      SQL.Sandbox.mode(OmgWatcher.DB.Repo, {:shared, self()})
     end
 
     {:ok, conn: Phoenix.ConnTest.build_conn()}

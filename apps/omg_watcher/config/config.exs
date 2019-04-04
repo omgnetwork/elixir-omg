@@ -11,8 +11,8 @@ config :omg_watcher, child_chain_url: {:system, "CHILD_CHAIN_URL", "http://local
 # General application configuration
 # see [here](README.md) for documentation
 config :omg_watcher,
-  namespace: OMG.Watcher,
-  ecto_repos: [OMG.Watcher.DB.Repo],
+  namespace: OmgWatcher,
+  ecto_repos: [OmgWatcher.DB.Repo],
   # 4 hours worth of blocks - this is how long the child chain server has to block spends from exiting utxos
   exit_processor_sla_margin: 4 * 4 * 60,
   maximum_block_withholding_time_ms: 1_200_000,
@@ -23,14 +23,14 @@ config :omg_watcher,
   convenience_api_mode: false
 
 # Configures the endpoint
-config :omg_watcher, OMG.Watcher.Web.Endpoint,
+config :omg_watcher, OmgWatcher.Web.Endpoint,
   secret_key_base: "grt5Ef/y/jpx7AfLmrlUS/nfYJUOq+2e+1xmU4nphTm2x8WB7nLFCJ91atbSBrv5",
-  render_errors: [view: OMG.Watcher.Web.Views.Error, accepts: ~w(json)],
-  pubsub: [name: OMG.Watcher.PubSub, adapter: Phoenix.PubSub.PG2],
+  render_errors: [view: OmgWatcher.Web.Views.Error, accepts: ~w(json)],
+  pubsub: [name: OmgWatcher.PubSub, adapter: Phoenix.PubSub.PG2],
   instrumenters: [Appsignal.Phoenix.Instrumenter],
   enable_cors: true
 
-config :omg_watcher, OMG.Watcher.DB.Repo,
+config :omg_watcher, OmgWatcher.DB.Repo,
   adapter: Ecto.Adapters.Postgres,
   # NOTE: not sure if appropriate, but this allows reasonable blocks to be written to unoptimized Postgres setup
   timeout: 60_000,

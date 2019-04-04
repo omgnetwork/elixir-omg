@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.DB.EthEvent do
+defmodule OmgWatcher.DB.EthEvent do
   @moduledoc """
   Ecto schema for events logged by Ethereum: deposits and exits
   """
@@ -20,7 +20,7 @@ defmodule OMG.Watcher.DB.EthEvent do
 
   alias OMG.Crypto
   alias OMG.Utxo
-  alias OMG.Watcher.DB
+  alias OmgWatcher.DB
 
   require Utxo
 
@@ -29,7 +29,7 @@ defmodule OMG.Watcher.DB.EthEvent do
   schema "ethevents" do
     field(:blknum, :integer)
     field(:txindex, :integer)
-    field(:event_type, OMG.Watcher.DB.Types.AtomType)
+    field(:event_type, OmgWatcher.DB.Types.AtomType)
 
     has_one(:created_utxo, DB.TxOutput, foreign_key: :creating_deposit)
     has_one(:exited_utxo, DB.TxOutput, foreign_key: :spending_exit)

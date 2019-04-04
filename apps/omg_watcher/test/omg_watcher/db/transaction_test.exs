@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.DB.TransactionTest do
+defmodule OmgWatcher.DB.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
@@ -20,7 +20,7 @@ defmodule OMG.Watcher.DB.TransactionTest do
 
   alias OMG.State.Transaction
   alias OMG.Utxo
-  alias OMG.Watcher.DB
+  alias OmgWatcher.DB
 
   require Utxo
   import ExUnit.CaptureLog

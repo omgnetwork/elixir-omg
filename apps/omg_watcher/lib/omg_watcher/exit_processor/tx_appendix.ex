@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ExitProcessor.TxAppendix do
+defmodule OmgWatcher.ExitProcessor.TxAppendix do
   @moduledoc """
   Part of the exit processor serving as the API to the transaction appendix
 
   Transaction appendix (TxAppendix) serves the transactions that were witnessed, but aren't included in the blocks
   """
 
-  alias OMG.Watcher.ExitProcessor
+  alias OmgWatcher.ExitProcessor
 
   def get_all(%ExitProcessor.Core{in_flight_exits: ifes, competitors: competitors}) do
     ifes
