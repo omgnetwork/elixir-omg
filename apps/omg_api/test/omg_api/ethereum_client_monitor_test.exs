@@ -43,7 +43,7 @@ defmodule OMG.API.EthereumClientMonitorTest do
     :ok =
       pull_client_alarm(400, [
         %{
-          details: %{node: :erlang.node(), reporter: EthereumClientMonitor},
+          details: %{node: Node.self(), reporter: EthereumClientMonitor},
           id: :ethereum_client_connection
         }
       ])
@@ -56,7 +56,7 @@ defmodule OMG.API.EthereumClientMonitorTest do
     :ok =
       pull_client_alarm(400, [
         %{
-          details: %{node: :erlang.node(), reporter: EthereumClientMonitor},
+          details: %{node: Node.self(), reporter: EthereumClientMonitor},
           id: :ethereum_client_connection
         }
       ])
@@ -74,7 +74,7 @@ defmodule OMG.API.EthereumClientMonitorTest do
     _ =
       pull_client_alarm(10, [
         %{
-          details: %{node: :erlang.node(), reporter: EthereumClientMonitor},
+          details: %{node: Node.self(), reporter: EthereumClientMonitor},
           id: :ethereum_client_connection
         }
       ])

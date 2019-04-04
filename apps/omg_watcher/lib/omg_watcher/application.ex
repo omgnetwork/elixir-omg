@@ -15,6 +15,7 @@
 defmodule OMG.Watcher.Application do
   @moduledoc false
   alias OMG.Watcher.Alert.AlarmHandler
+  require Logger
   use Application
   use OMG.LoggerExt
 
@@ -22,6 +23,8 @@ defmodule OMG.Watcher.Application do
     DeferredConfig.populate(:omg_eth)
     DeferredConfig.populate(:omg_watcher)
     DeferredConfig.populate(:omg_rpc)
+    cookie = System.get_env("ERL_W_COOKIE")
+    :ok = set_cookie(cookie)
 
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
 
@@ -56,4 +59,12 @@ defmodule OMG.Watcher.Application do
     OMG.Watcher.Web.Endpoint.config_change(changed, removed)
     :ok
   end
+
+  defp set_cookie(cookie) when is_binary(cookie) do
+    cookie
+    |> String.to_atom()
+    |> Node.set_cookie()
+  end
+
+  defp set_cookie(_), do: _ = Logger.warn("Cookie not applied.")
 end

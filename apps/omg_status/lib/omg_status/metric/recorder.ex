@@ -23,21 +23,21 @@ defmodule Status.Metric.Recorder do
     key
     |> List.flatten()
     |> to_string()
-    |> Appsignal.increment_counter(value, %{node: to_string(:erlang.node())})
+    |> Appsignal.increment_counter(value, %{node: to_string(Node.self())})
   end
 
   def collect(:gauge, key, value) do
     key
     |> List.flatten()
     |> to_string()
-    |> Appsignal.set_gauge(value, %{node: to_string(:erlang.node())})
+    |> Appsignal.set_gauge(value, %{node: to_string(Node.self())})
   end
 
   def collect(:timing, key, value) do
     key
     |> List.flatten()
     |> to_string()
-    |> Appsignal.set_gauge(value, %{node: to_string(:erlang.node())})
+    |> Appsignal.set_gauge(value, %{node: to_string(Node.self())})
   end
 
   @doc """

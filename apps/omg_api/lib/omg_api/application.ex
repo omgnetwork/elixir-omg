@@ -21,9 +21,21 @@ defmodule OMG.API.Application do
   use Application
   alias OMG.API.Alert.AlarmHandler
   alias OMG.API.Sup
+  require Logger
 
   def start(_type, _args) do
+    cookie = System.get_env("ERL_CC_COOKIE")
+    :ok = set_cookie(cookie)
+
     :ok = AlarmHandler.install()
     Sup.start_link()
   end
+
+  defp set_cookie(cookie) when is_binary(cookie) do
+    cookie
+    |> String.to_atom()
+    |> Node.set_cookie()
+  end
+
+  defp set_cookie(_), do: _ = Logger.warn("Cookie not applied.")
 end

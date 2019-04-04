@@ -40,7 +40,7 @@ defmodule OMG.API.EthereumClientMonitor do
   def init([alarm_module]) do
     install()
     state = %__MODULE__{alarm_module: alarm_module}
-    _ = alarm_module.raise({:ethereum_client_connection, :erlang.node(), __MODULE__})
+    _ = alarm_module.raise({:ethereum_client_connection, Node.self(), __MODULE__})
     _ = raise_clear(alarm_module, state.raised, check())
     {:ok, tref} = :timer.send_after(state.interval, :health_check)
     _ = Logger.info("Starting Ethereum client monitor.")
@@ -106,10 +106,10 @@ defmodule OMG.API.EthereumClientMonitor do
   defp raise_clear(_alarm_module, true, :error), do: :ok
 
   defp raise_clear(alarm_module, false, :error),
-    do: alarm_module.raise({:ethereum_client_connection, :erlang.node(), __MODULE__})
+    do: alarm_module.raise({:ethereum_client_connection, Node.self(), __MODULE__})
 
   defp raise_clear(alarm_module, true, _),
-    do: alarm_module.clear({:ethereum_client_connection, :erlang.node(), __MODULE__})
+    do: alarm_module.clear({:ethereum_client_connection, Node.self(), __MODULE__})
 
   defp raise_clear(_alarm_module, false, _), do: :ok
 

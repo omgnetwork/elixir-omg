@@ -28,7 +28,7 @@ services:
 
   childchain:
     image: elixir-omg:dockercompose
-    entrypoint: /bin/bash -c "./launcher.py && mix xomg.child_chain.start --config ~/config.exs"
+    entrypoint: /bin/bash -c "./launcher.py && elixir --erl '-sname childchain' -S mix xomg.child_chain.start --config ~/config.exs"
     environment:
       - MIX_ENV=dev
       - EXIT_PERIOD_SECONDS=86400
@@ -54,7 +54,7 @@ services:
 
   watcher:
     image: elixir-omg:dockercompose
-    entrypoint: /bin/bash -c "./launcher.py && mix ecto.reset --no-start && mix xomg.watcher.start --convenience --config ~/config_watcher.exs"
+    entrypoint: /bin/bash -c "./launcher.py && mix ecto.reset --no-start && elixir --erl '-sname watcher' -S mix xomg.watcher.start --convenience --config ~/config_watcher.exs"
     environment:
       - MIX_ENV=dev
       - ELIXIR_SERVICE=WATCHER
