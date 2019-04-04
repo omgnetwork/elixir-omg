@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Sup do
+defmodule OMG.API.Supervisor do
   @moduledoc """
    OMG.API top level supervisor.
   """

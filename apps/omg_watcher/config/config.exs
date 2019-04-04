@@ -25,7 +25,7 @@ config :omg_watcher,
 # Configures the endpoint
 config :omg_watcher, OMG.Watcher.Web.Endpoint,
   secret_key_base: "grt5Ef/y/jpx7AfLmrlUS/nfYJUOq+2e+1xmU4nphTm2x8WB7nLFCJ91atbSBrv5",
-  render_errors: [view: OMG.Watcher.Web.View.ErrorView, accepts: ~w(json)],
+  render_errors: [view: OMG.Watcher.Web.Views.Error, accepts: ~w(json)],
   pubsub: [name: OMG.Watcher.PubSub, adapter: Phoenix.PubSub.PG2],
   instrumenters: [Appsignal.Phoenix.Instrumenter],
   enable_cors: true

@@ -20,7 +20,7 @@ defmodule OMG.API.Application do
   use Application
 
   alias OMG.Alert.Alarm
-  alias OMG.API.Sup
+
   require Logger
 
   def start(_type, _args) do
@@ -28,7 +28,7 @@ defmodule OMG.API.Application do
     :ok = set_cookie(cookie)
 
     :ok = Alarm.set(alarm())
-    Sup.start_link()
+    OMG.API.Supervisor.start_link()
   end
 
   def start_phase(:boot_done, :normal, _phase_args) do

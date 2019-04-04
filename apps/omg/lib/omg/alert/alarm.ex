@@ -46,13 +46,9 @@ defmodule OMG.Alert.Alarm do
   end
 
   defp do_raise(alarm) do
-    case Enum.member?(all_raw(), alarm) do
-      false ->
-        :alarm_handler.set_alarm(alarm)
-
-      _ ->
-        :duplicate
-    end
+    if Enum.member?(all_raw(), alarm),
+      do: :duplicate,
+      else: :alarm_handler.set_alarm(alarm)
   end
 
   defp format_alarm({id, details}), do: %{id: id, details: details}

@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.View.ErrorView do
-  use OMG.Watcher.Web, :view
-  use OMG.LoggerExt
+defmodule OMG.RPC.Web.Views.Error do
+  @moduledoc false
+  use OMG.RPC.Web, :view
+  require Logger
 
   alias OMG.Utils.HttpRPC.Error
 
