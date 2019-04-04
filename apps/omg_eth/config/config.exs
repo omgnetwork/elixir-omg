@@ -1,5 +1,7 @@
 use Mix.Config
 
+# see [here](README.md) for documentation
+
 ethereum_client_timeout_ms = 20_000
 
 config :ethereumex,

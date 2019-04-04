@@ -19,11 +19,6 @@ defmodule OMG.DB.MixProject do
 
   def application do
     [
-      env: [
-        leveldb_path: Path.join([System.get_env("HOME"), ".omg/data"]),
-        server_module: OMG.DB.LevelDBServer,
-        server_name: OMG.DB.LevelDBServer
-      ],
       extra_applications: [:logger],
       mod: {OMG.DB.Application, []}
     ]

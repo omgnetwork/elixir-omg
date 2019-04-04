@@ -19,14 +19,6 @@ defmodule OMG.MixProject do
 
   def application do
     [
-      env: [
-        # we're using a shared (in `omg` app) config entry. The reason here is to minimize risk of Child Chain server's
-        # and Watcher's configuration entries diverging (it would be bad, as they must share the same value of this).
-        # However, this sharing isn't elegant, as this setting is never read in `:omg` app per se
-        deposit_finality_margin: 10,
-        ethereum_events_check_interval_ms: 500,
-        coordinator_eth_height_check_interval_ms: 6_000
-      ],
       extra_applications: [:logger, :appsignal]
     ]
   end
