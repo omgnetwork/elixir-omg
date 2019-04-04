@@ -19,7 +19,6 @@ defmodule OMG.RPC.Application do
 
   use Application
   require Logger
-  alias OMG.Alert.Alarm
 
   def start(_type, _args) do
     DeferredConfig.populate(:omg_rpc)
@@ -28,7 +27,10 @@ defmodule OMG.RPC.Application do
 
     opts = [strategy: :one_for_one, name: OMG.RPC.Supervisor]
 
-    children = [{OMG.RPC.Plugs.Health, [Alarm]}, {OMG.RPC.Web.Endpoint, []}]
+    children = [
+      {OMG.RPC.Plugs.Health, []},
+      {OMG.RPC.Web.Endpoint, []}
+    ]
 
     Supervisor.start_link(children, opts)
   end

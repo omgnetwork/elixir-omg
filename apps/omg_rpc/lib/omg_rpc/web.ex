@@ -43,6 +43,14 @@ defmodule OMG.RPC.Web do
     end
   end
 
+  def view do
+    quote do
+      use Phoenix.View,
+        root: "lib/omg_rpc_web/templates",
+        namespace: OMG.RPC.Web
+    end
+  end
+
   def router do
     quote do
       use Phoenix.Router

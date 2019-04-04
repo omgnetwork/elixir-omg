@@ -20,6 +20,7 @@ defmodule OMG.API.MixProject do
   def application do
     [
       extra_applications: [:logger, :appsignal],
+      start_phases: [{:boot_done, []}],
       mod: {OMG.API.Application, []}
     ]
   end
