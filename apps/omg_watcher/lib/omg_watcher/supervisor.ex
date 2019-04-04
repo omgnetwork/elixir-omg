@@ -28,6 +28,7 @@ defmodule OMG.Watcher.Supervisor do
 
   def init(:ok) do
     children = [
+      {OMG.InternalEventBus, []},
       # Start the Ecto repository
       %{
         id: Watcher.DB.Repo,

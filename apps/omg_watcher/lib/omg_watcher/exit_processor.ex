@@ -19,14 +19,12 @@ defmodule OMG.Watcher.ExitProcessor do
   NOTE: Note that all calls return `db_updates` and relay on the caller to do persistence.
   """
 
-  alias OMG.EventerAPI
-  alias OMG.State
-  alias OMG.State.Transaction
-  alias OMG.Utxo
-
   alias OMG.Block
   alias OMG.DB
   alias OMG.Eth
+  alias OMG.State
+  alias OMG.State.Transaction
+  alias OMG.Utxo
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
@@ -231,9 +229,9 @@ defmodule OMG.Watcher.ExitProcessor do
       end)
 
     {:ok, db_updates_from_state, validities} = State.exit_utxos(exits)
-    {new_state, exit_event_triggers, db_updates} = Core.finalize_exits(state, validities)
+    {new_state, event_triggers, db_updates} = Core.finalize_exits(state, validities)
 
-    EventerAPI.emit_events(exit_event_triggers)
+    :ok = OMG.InternalEventBus.broadcast("events", {:emit_events, event_triggers})
 
     {:reply, {:ok, db_updates ++ db_updates_from_state}, new_state}
   end

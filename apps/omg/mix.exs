@@ -42,6 +42,7 @@ defmodule OMG.MixProject do
       {:merkle_tree, "~> 1.5.0"},
       {:deferred_config, "~> 0.1.1"},
       {:appsignal, "~> 1.0"},
+      {:phoenix_pubsub, "~> 1.0"},
       #
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true}

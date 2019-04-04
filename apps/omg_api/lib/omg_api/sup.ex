@@ -59,6 +59,7 @@ defmodule OMG.API.Sup do
     ]
 
     children = [
+      {OMG.InternalEventBus, []},
       {OMG.State, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeServer, []},
