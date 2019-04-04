@@ -231,6 +231,47 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> Core.invalid_exits(processor)
   end
 
+  # NOTE: this test is strictly `v0.1`, as it checks whether there is no fallout out of
+  #       https://github.com/omisego/plasma-contracts/issues/69
+  @tag fixtures: [:processor_empty, :alice, :state_empty, :exit_events]
+  test "handles spurious exit finalization event on a challenged exit entry", %{
+    processor_empty: processor,
+    alice: %{
+      addr: alice
+    },
+    state_empty: state,
+    exit_events: events
+  } do
+    {processor, _} =
+      processor
+      |> Core.new_exits(events, [{alice, @eth, 10}, {@zero_address, @not_eth, 9}])
+
+    # here is the incorrect behavior from the `v0.1` contracts: despite challenging, finalization occurs
+    assert {processor, _} =
+             processor
+             |> Core.challenge_exits([
+               %{utxo_pos: Utxo.Position.encode(@utxo_pos1)},
+               %{utxo_pos: Utxo.Position.encode(@utxo_pos2)}
+             ])
+
+    {:ok, {_, _, two_spend}, state_after_spend} =
+      State.Core.exit_utxos(
+        [
+          %{utxo_pos: Utxo.Position.encode(@utxo_pos1)},
+          %{utxo_pos: Utxo.Position.encode(@utxo_pos2)}
+        ],
+        state
+      )
+
+    assert {processor, _} = Core.finalize_exits(processor, two_spend)
+
+    assert {:ok, []} =
+             %ExitProcessor.Request{eth_height_now: 12, blknum_now: @late_blknum}
+             |> Core.determine_utxo_existence_to_get(processor)
+             |> mock_utxo_exists(state_after_spend)
+             |> Core.invalid_exits(processor)
+  end
+
   @tag fixtures: [:processor_empty, :state_alice_deposit, :exit_events, :contract_exit_statuses]
   test "can work with State to determine valid exits and finalize them", %{
     processor_empty: processor,
