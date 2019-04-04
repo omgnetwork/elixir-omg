@@ -21,13 +21,13 @@ defmodule OMG.Performance.SenderServer do
   @tx_retry_waiting_time_ms 333
 
   use GenServer
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   alias OMG.DevCrypto
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
-  alias OMG.Watcher.JsonRPC.Client
+  alias OMG.Watcher.HttpRPC.Client
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()

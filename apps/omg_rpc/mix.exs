@@ -43,7 +43,8 @@ defmodule OMG.RPC.MixProject do
       {:httpoison, "~> 1.4.0"},
       {:appsignal, "~> 1.0"},
       #
-      {:utils, in_umbrella: true}
+      {:omg_status, in_umbrella: true},
+      {:omg_utils, in_umbrella: true}
     ]
   end
 end

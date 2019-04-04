@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Fixtures do
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
   use OMG.API.Integration.Fixtures
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   alias Ecto.Adapters.SQL
   alias OMG.Watcher
@@ -115,7 +115,6 @@ defmodule OMG.Watcher.Fixtures do
     :ok = root_chain_contract_config
     :ok = db_initialized
 
-    DeferredConfig.populate(:omg_watcher)
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omg_watcher)
 

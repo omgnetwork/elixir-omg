@@ -17,7 +17,7 @@ defmodule OMG.RPC.Web.View.Transaction do
   The Transaction submission view for rendering json
   """
 
-  alias Utils.JsonRPC.Response
+  alias OMG.Utils.HttpRPC.Response
 
   def render("submit.json", %{result: result}) do
     result

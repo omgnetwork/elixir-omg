@@ -31,7 +31,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.Watcher.ExitProcessor.StandardExitChallenge
   alias OMG.Watcher.Recorder
 
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
   require Utxo
 
   ### Client

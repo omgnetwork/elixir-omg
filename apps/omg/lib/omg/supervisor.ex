@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Sup do
+defmodule OMG.Supervisor do
   @moduledoc """
    OMG top level supervisor.
   """
   use Supervisor
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
   alias OMG.Alert.Alarm
 
   def start_link do

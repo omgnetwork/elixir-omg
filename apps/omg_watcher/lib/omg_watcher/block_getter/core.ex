@@ -21,7 +21,7 @@ defmodule OMG.Watcher.BlockGetter.Core do
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
 
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   defmodule PotentialWithholdingReport do
     @moduledoc """

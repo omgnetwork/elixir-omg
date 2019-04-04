@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.Web.View.ErrorView do
+defmodule OMG.Watcher.Web.Views.Error do
+  @moduledoc false
   use OMG.Watcher.Web, :view
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
-  alias Utils.JsonRPC.Error
+  alias OMG.Utils.HttpRPC.Error
 
   @doc """
   Handles client errors, e.g. malformed json in request body

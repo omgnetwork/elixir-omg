@@ -18,7 +18,7 @@ defmodule OMG.Watcher.Supervisor do
   of the Watcher app
   """
   use Supervisor
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   alias OMG.Watcher
 

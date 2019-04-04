@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Utils.JsonRPC.Error do
+defmodule OMG.Utils.HttpRPC.Error do
   @moduledoc """
   Provides standard data structure for API Error response
   """
-  alias Utils.JsonRPC.Response
+  alias OMG.Utils.HttpRPC.Response
 
   @doc """
   Serializes error's code and description provided in response's data field.

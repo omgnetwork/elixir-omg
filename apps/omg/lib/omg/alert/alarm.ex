@@ -24,8 +24,8 @@ defmodule OMG.Alert.Alarm do
   def boot_in_progress(node, reporter),
     do: {:boot_in_progress, %{node: node, reporter: reporter}}
 
-  @spec raise({atom(), node(), module()}) :: :ok | :duplicate
-  def raise(raw_alarm) do
+  @spec set({atom(), node(), module()}) :: :ok | :duplicate
+  def set(raw_alarm) do
     alarm = make_alarm(raw_alarm)
     do_raise(alarm)
   end
@@ -46,13 +46,9 @@ defmodule OMG.Alert.Alarm do
   end
 
   defp do_raise(alarm) do
-    case Enum.member?(all_raw(), alarm) do
-      false ->
-        :alarm_handler.set_alarm(alarm)
-
-      _ ->
-        :duplicate
-    end
+    if Enum.member?(all_raw(), alarm),
+      do: :duplicate,
+      else: :alarm_handler.set_alarm(alarm)
   end
 
   defp format_alarm({id, details}), do: %{id: id, details: details}

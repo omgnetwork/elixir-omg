@@ -19,10 +19,10 @@ defmodule OMG.Watcher.Integration.BadChildChainServer do
   """
 
   alias OMG.Block
+  alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Utils.HttpRPC.Response
+  alias OMG.Watcher.HttpRPC.Adapter
   alias OMG.Watcher.Integration.TestServer
-  alias OMG.Watcher.JsonRPC.Adapter
-  alias Utils.JsonRPC.Encoding
-  alias Utils.JsonRPC.Response
 
   @doc """
   Adds a route to TestServer which responded with prepared bad block when asked for known hash

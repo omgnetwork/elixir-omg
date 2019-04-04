@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.JsonRPC.Client do
+defmodule OMG.Watcher.HttpRPC.Client do
   @moduledoc """
   Provides functions to communicate with Child Chain API
   """
 
-  alias OMG.Watcher.JsonRPC.Adapter
-  alias Utils.JsonRPC.Encoding
+  alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Watcher.HttpRPC.Adapter
 
   require Logger
 

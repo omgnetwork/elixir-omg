@@ -18,10 +18,10 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   use OMG.Fixtures
 
   alias OMG.TestHelper
+  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
-  alias Utils.JsonRPC.Encoding
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()

@@ -23,7 +23,7 @@ defmodule OMG.Fees do
 
   require Utxo
 
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   @type fee_spec_t() :: %{token: Transaction.currency(), flat_fee: non_neg_integer}
   @type fee_t() :: %{Transaction.currency() => non_neg_integer} | :ignore

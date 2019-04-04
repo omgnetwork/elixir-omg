@@ -23,10 +23,10 @@ defmodule OMG.Watcher.Eventer do
   See `OMG.EventerAPI` for the API to the GenServer
   """
 
+  alias OMG.Utils.HttpRPC.Response
   alias OMG.Watcher.Eventer.Core
   alias OMG.Watcher.Recorder
   alias OMG.Watcher.Web.Endpoint
-  alias Utils.JsonRPC.Response
   ### Client
 
   def start_link(_args) do

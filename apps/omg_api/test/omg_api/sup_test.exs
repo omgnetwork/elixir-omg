@@ -21,7 +21,7 @@ defmodule OMG.API.SupTest do
 
   alias OMG.RootChainCoordinator.Core
 
-  @setup OMG.API.Sup.coordinator_setup()
+  @setup OMG.API.Supervisor.coordinator_setup()
   @pid @setup
        |> Map.keys()
        |> Enum.with_index(1)

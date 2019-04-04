@@ -22,7 +22,7 @@ defmodule OMG.RPC.Web.Controller.Fallback do
 
   use Phoenix.Controller
 
-  alias Utils.JsonRPC.Error
+  alias OMG.Utils.HttpRPC.Error
 
   @errors %{}
 

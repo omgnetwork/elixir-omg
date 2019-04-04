@@ -18,7 +18,7 @@ defmodule OMG.Performance.SenderManager do
   """
 
   use GenServer
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   alias OMG.Utxo
 

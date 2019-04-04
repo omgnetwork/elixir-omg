@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Utils do
+defmodule OMG.Utils do
   @moduledoc false
 end

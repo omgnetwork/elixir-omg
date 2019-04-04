@@ -19,7 +19,7 @@ defmodule OMG.Watcher.API.Transaction do
 
   alias OMG.Utxo
   alias OMG.Watcher.DB
-  alias OMG.Watcher.JsonRPC.Client
+  alias OMG.Watcher.HttpRPC.Client
   alias OMG.Watcher.UtxoSelection
 
   require Utxo

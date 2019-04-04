@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule Utils.JsonRPC.Response do
+defmodule OMG.Utils.HttpRPC.Response do
   @moduledoc """
   Serializes the response into expected result/data format.
 
   TODO: Intentionally we want to have single Phx app exposing both APIs, until then please keep this file similar
   to the corresponding Watcher's one to make merge simpler.
   """
-  alias Utils.JsonRPC.Encoding
+  alias OMG.Utils.HttpRPC.Encoding
   @type response_t :: %{version: binary(), success: boolean(), data: map()}
 
   @doc """
@@ -43,23 +43,24 @@ defmodule Utils.JsonRPC.Response do
   end
 
   def sanitize(map_or_struct) when is_map(map_or_struct) do
-    if Code.ensure_loaded?(Ecto) do
-      map_or_struct
-      |> to_map()
-      |> Enum.filter(fn {_k, v} -> Ecto.assoc_loaded?(v) end)
-      |> Enum.map(fn {k, v} -> {k, sanitize(v)} end)
-      |> Map.new()
-    else
-      map_or_struct
-      |> to_map()
-      |> Enum.map(fn {k, v} -> {k, sanitize(v)} end)
-      |> Map.new()
-    end
+    map_or_struct
+    |> to_map()
+    |> do_filter()
+    |> Enum.map(fn {k, v} -> {k, sanitize(v)} end)
+    |> Map.new()
   end
 
   def sanitize(bin) when is_binary(bin), do: Encoding.to_hex(bin)
   def sanitize({:skip_hex_encode, bin}), do: bin
   def sanitize(value), do: value
+
+  defp do_filter(map_or_struct) do
+    if Code.ensure_loaded?(Ecto) do
+      Enum.filter(map_or_struct, fn {_k, v} -> Ecto.assoc_loaded?(v) end)
+    else
+      map_or_struct
+    end
+  end
 
   defp to_map(struct), do: Map.drop(struct, [:__struct__, :__meta__])
 

@@ -31,12 +31,6 @@ defmodule XomgTasks.Utils do
     iex_running?() || Process.sleep(:infinity)
   end
 
-  def generic_run(args, app) do
-    Mix.Task.run("run", args)
-    {:ok, _} = Application.ensure_all_started(app)
-    iex_running?() || Process.sleep(:infinity)
-  end
-
   @doc """
   Will do all the generic preparations on the arguments required
   """

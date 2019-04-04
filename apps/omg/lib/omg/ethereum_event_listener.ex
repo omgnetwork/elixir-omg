@@ -21,7 +21,7 @@ defmodule OMG.EthereumEventListener do
   alias OMG.Recorder
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   @type config() :: %{
           block_finality_margin: non_neg_integer,

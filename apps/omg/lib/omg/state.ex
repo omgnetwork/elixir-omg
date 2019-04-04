@@ -26,7 +26,7 @@ defmodule OMG.State do
   alias OMG.State.Transaction
   alias OMG.Utxo
 
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   @type exec_error :: Core.exec_error()
 

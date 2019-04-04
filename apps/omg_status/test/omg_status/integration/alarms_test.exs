@@ -23,19 +23,21 @@ defmodule OMG.Status.Alert.AlarmTest do
   end
 
   test "raise and clear alarm based only on id" do
-    :alarm_handler.set_alarm({{:id, "test"}, "details"})
-    assert get_alarms([{:id, "test"}]) == [%{details: "details", id: {:id, "test"}}]
-    :alarm_handler.clear_alarm({:id, "test"})
-    assert get_alarms([{:id, "test"}]) == []
+    alarm = {:id, "details"}
+    :alarm_handler.set_alarm(alarm)
+    assert get_alarms([:id]) == [alarm]
+    :alarm_handler.clear_alarm(alarm)
+    assert get_alarms([:id]) == []
   end
 
   test "raise and clear alarm based on full alarm" do
-    :alarm_handler.set_alarm({{:id, "test"}, %{a: 12, b: 34}})
-    assert get_alarms([{:id, "test"}]) == [%{details: %{a: 12, b: 34}, id: {:id, "test"}}]
-    :alarm_handler.clear_alarm({{:id, "test"}, %{a: 12, b: 666}})
-    assert get_alarms([{:id, "test"}]) == [%{details: %{a: 12, b: 34}, id: {:id, "test"}}]
-    :alarm_handler.clear_alarm({{:id, "test"}, %{a: 12, b: 34}})
-    assert get_alarms([{:id, "test"}]) == []
+    alarm = {:id5, %{a: 12, b: 34}}
+    :alarm_handler.set_alarm(alarm)
+    assert get_alarms([:id5]) == [alarm]
+    :alarm_handler.clear_alarm({:id5, %{a: 12, b: 666}})
+    assert get_alarms([:id5]) == [alarm]
+    :alarm_handler.clear_alarm(alarm)
+    assert get_alarms([:id5]) == []
   end
 
   test "memsup alarms" do
@@ -49,10 +51,11 @@ defmodule OMG.Status.Alert.AlarmTest do
     Process.sleep(:memsup.get_check_interval() + 1000)
     :memsup.set_sysmem_high_watermark(0.01)
     Process.sleep(:memsup.get_check_interval() + 1000)
-    assert Enum.any?(Alarm.all(), &(Map.get(&1, :id) == :system_memory_high_watermark))
+
+    assert Enum.any?(Alarm.all(), &(elem(&1, 0) == :system_memory_high_watermark))
   end
 
   # we need to filter them because of unwanted system alarms, like high memory threshold
   # so we send the alarms we want to find in the args
-  defp get_alarms(ids), do: Enum.filter(Alarm.all(), fn %{id: id} -> id in ids end)
+  defp get_alarms(ids), do: Enum.filter(Alarm.all(), fn {id, _desc} -> id in ids end)
 end

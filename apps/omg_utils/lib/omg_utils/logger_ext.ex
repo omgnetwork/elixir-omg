@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.LoggerExt do
+defmodule OMG.Utils.LoggerExt do
   @moduledoc """
   Module provides extenssion point over default logging functionality. However we allow changes only in development
   environment for debugging purposes. No changes to this module can be committed to the main branch ever!

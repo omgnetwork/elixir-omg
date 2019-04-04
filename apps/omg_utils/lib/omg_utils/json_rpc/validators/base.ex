@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Utils.JsonRPC.Validator.Base do
+defmodule OMG.Utils.HttpRPC.Validator.Base do
   @moduledoc """
   Implements simple validation engine with basic validators provided and allows to chain them
   to make more comprehensive one.
   """
 
-  alias Utils.JsonRPC.Encoding
+  alias OMG.Utils.HttpRPC.Encoding
 
   @type validation_error_t() :: {:error, {:validation_error, binary(), any()}}
 

@@ -26,16 +26,16 @@ defmodule OMG.Alert.AlarmTest do
   end
 
   test "an alarm raise twice is reported once" do
-    Alarm.raise({:ethereum_client_connection, Node.self(), __MODULE__})
+    Alarm.set({:ethereum_client_connection, Node.self(), __MODULE__})
     first_count = Enum.count(get_alarms([:ethereum_client_connection]))
-    Alarm.raise({:ethereum_client_connection, Node.self(), __MODULE__})
+    Alarm.set({:ethereum_client_connection, Node.self(), __MODULE__})
     ^first_count = Enum.count(get_alarms([:ethereum_client_connection]))
   end
 
   test "system alarms are not part of OMG API" do
     :alarm_handler.set_alarm({:some_system_alarm, "description_1"})
 
-    Alarm.raise({:ethereum_client_connection, Node.self(), __MODULE__})
+    Alarm.set({:ethereum_client_connection, Node.self(), __MODULE__})
     1 = length(Alarm.all())
   end
 
@@ -44,10 +44,10 @@ defmodule OMG.Alert.AlarmTest do
     :alarm_handler.set_alarm({:some_system_alarm, "description_1"})
     assert Enum.empty?(get_alarms([:some_system_alarm]))
 
-    Alarm.raise({:ethereum_client_connection, Node.self(), __MODULE__})
+    Alarm.set({:ethereum_client_connection, Node.self(), __MODULE__})
     assert Enum.count(get_alarms([:some_system_alarm, :ethereum_client_connection])) == 1
 
-    Alarm.raise({:ethereum_client_connection, Node.self(), __MODULE__.SecondProcess})
+    Alarm.set({:ethereum_client_connection, Node.self(), __MODULE__.SecondProcess})
     assert Enum.count(get_alarms([:some_system_alarm, :ethereum_client_connection])) == 2
 
     Alarm.clear({:ethereum_client_connection, Node.self(), __MODULE__})
@@ -61,9 +61,9 @@ defmodule OMG.Alert.AlarmTest do
     alarm1 = {:ethereum_client_connection, Node.self(), __MODULE__}
     alarm2 = {:ethereum_client_connection, Node.self(), __MODULE__.SecondProcess}
     alarm3 = {:ethereum_client_connection, Node.self(), __MODULE__.ThirdProcess}
-    Alarm.raise(alarm1)
-    Alarm.raise(alarm2)
-    Alarm.raise(alarm3)
+    Alarm.set(alarm1)
+    Alarm.set(alarm2)
+    Alarm.set(alarm3)
     assert Enum.count(Alarm.all()) == 3
     Alarm.clear(alarm1)
     Alarm.clear(alarm2)

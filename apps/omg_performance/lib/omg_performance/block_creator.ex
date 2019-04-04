@@ -18,7 +18,7 @@ defmodule OMG.Performance.BlockCreator do
   """
 
   use GenServer
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   @initial_block_number 1000
 
