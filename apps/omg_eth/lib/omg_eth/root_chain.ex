@@ -340,9 +340,9 @@ defmodule OMG.Eth.RootChain do
     Eth.call_contract(contract, "exits(uint192)", [exit_id], [:address, :address, {:uint, 256}, {:uint, 192}])
   end
 
-  def get_standard_exit_id(txhash, oindex, contract \\ nil) do
+  def get_standard_exit_id(txbytes, utxo_pos, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    Eth.call_contract(contract, "getStandardExitId(bytes32,uint8)", [txhash, oindex], [{:uint, 192}])
+    Eth.call_contract(contract, "getStandardExitId(bytes,uint256)", [txbytes, utxo_pos], [{:uint, 192}])
   end
 
   @doc """

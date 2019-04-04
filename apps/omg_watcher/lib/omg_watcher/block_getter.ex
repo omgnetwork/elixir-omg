@@ -18,7 +18,7 @@ defmodule OMG.Watcher.BlockGetter do
   Manages simultaneous getting and stateless-processing of blocks.
   Detects byzantine behaviors like invalid blocks and block withholding and exposes those events.
 
-  Reponsible for processing all block submissions and processing them once, regardless of the reorg situation.
+  Responsible for processing all block submissions and processing them once, regardless of the reorg situation.
   Note that the former responsibility is quite involved, as `BlockGetter` shouldn't have any finality margin configured,
   i.e. it should be prepared to be served events from zero-confirmation Ethereum blocks from the `OMG.RootChainCoordinator`
   """

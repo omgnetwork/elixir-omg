@@ -354,13 +354,14 @@ defmodule OMG.Watcher.ExitProcessor do
     {:reply, response, state}
   end
 
-  def handle_call({:create_challenge, Utxo.position(blknum, _txindex, oindex) = exiting_utxo_pos}, _from, state) do
+  def handle_call({:create_challenge, Utxo.position(blknum, _txindex, _oindex) = exiting_utxo_pos}, _from, state) do
     with spending_blknum_response <- exiting_utxo_pos |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum(),
          {:ok, hashes} <- OMG.DB.block_hashes([blknum]),
          {:ok, [block]} <- OMG.DB.blocks(hashes),
-         {:ok, raw_spending_proof, exit_info, exit_txhash} <-
+         {:ok, raw_spending_proof, exit_info, exit_txbytes} <-
            Core.get_challenge_data(spending_blknum_response, exiting_utxo_pos, block, state),
-         {:ok, exit_id} <- OMG.Eth.RootChain.get_standard_exit_id(exit_txhash, oindex) do
+         encoded_utxo_pos <- Utxo.Position.encode(exiting_utxo_pos),
+         {:ok, exit_id} <- OMG.Eth.RootChain.get_standard_exit_id(exit_txbytes, encoded_utxo_pos) do
       # TODO: we're violating the shell/core pattern here, refactor!
       spending_proof =
         case raw_spending_proof do

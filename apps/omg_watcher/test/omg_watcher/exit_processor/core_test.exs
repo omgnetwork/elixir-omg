@@ -2204,13 +2204,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   @tag fixtures: [:processor_filled, :alice]
   test "not spent or not existed utxo should be not challengeable", %{processor_filled: processor, alice: alice} do
-    {block, exit_txhash} = get_block_exit_txhash(@utxo_pos1, alice)
+    {block, exit_txbytes} = get_block_exit_txbytes(@utxo_pos1, alice)
 
-    assert {:ok, 1000, %ExitInfo{}, ^exit_txhash} = Core.get_challenge_data({:ok, 1000}, @utxo_pos1, block, processor)
+    assert {:ok, 1000, %ExitInfo{}, ^exit_txbytes} = Core.get_challenge_data({:ok, 1000}, @utxo_pos1, block, processor)
 
-    {block2, _exit_txhash} = get_block_exit_txhash(@utxo_pos2, alice)
+    {block2, _exit_txbytes} = get_block_exit_txbytes(@utxo_pos2, alice)
     assert {:error, :utxo_not_spent} = Core.get_challenge_data({:ok, :not_found}, @utxo_pos2, block2, processor)
-    {block3, _exit_txhash} = get_block_exit_txhash(@utxo_pos3, alice)
+    {block3, _exit_txbytes} = get_block_exit_txbytes(@utxo_pos3, alice)
     assert {:error, :exit_not_found} = Core.get_challenge_data({:ok, 1000}, @utxo_pos3, block3, processor)
   end
 
@@ -2228,17 +2228,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     status = {alice_addr, @eth, 10, Utxo.Position.encode(@utxo_pos3)}
     {processor, _} = Core.new_exits(processor, [event], [status])
-    {block, exit_txhash} = get_block_exit_txhash(@utxo_pos3, alice)
+    {block, exit_txbytes} = get_block_exit_txbytes(@utxo_pos3, alice)
 
-    assert {:ok, %Transaction.Signed{raw_tx: ^ife_tx}, %ExitInfo{owner: ^alice_addr}, ^exit_txhash} =
+    assert {:ok, %Transaction.Signed{raw_tx: ^ife_tx}, %ExitInfo{owner: ^alice_addr}, ^exit_txbytes} =
              Core.get_challenge_data({:ok, :not_found}, @utxo_pos3, block, processor)
   end
 
   @tag fixtures: [:processor_empty, :alice]
-  test "get exit txhash from deposit", %{processor_empty: empty, alice: alice} do
-    tx = Transaction.new([], [{alice.addr, @eth, 10}])
-    txbytes = tx |> Transaction.raw_txbytes()
-    exit_txhash = tx |> Transaction.raw_txhash()
+  test "get exit txbytes from deposit", %{processor_empty: empty, alice: alice} do
+    txbytes = Transaction.new([], [{alice.addr, @eth, 10}]) |> Transaction.raw_txbytes()
 
     exit_events = [
       %{
@@ -2252,16 +2250,18 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     contract_exit_statuses = [{alice.addr, @eth, 10, Utxo.Position.encode(Utxo.position(1, 0, 0))}]
     {processor, _} = Core.new_exits(empty, exit_events, contract_exit_statuses)
 
-    assert {:ok, 1, %ExitInfo{}, ^exit_txhash} =
+    assert {:ok, 1, %ExitInfo{}, ^txbytes} =
              Core.get_challenge_data({:ok, 1}, Utxo.position(1, 0, 0), :not_found, processor)
   end
 
-  defp get_block_exit_txhash(Utxo.position(blknum, txindex, oindex), owner) do
-    recoverd_tx_list =
+  defp get_block_exit_txbytes(Utxo.position(blknum, txindex, oindex), owner) do
+    recovered_tx_list =
       Enum.map(0..txindex, fn index ->
         TestHelper.create_recovered([{1, index + 1, 0, owner}], @eth, List.duplicate({owner, 8}, oindex + 1))
       end)
 
-    {Block.hashed_txs_at(recoverd_tx_list, blknum), Enum.at(recoverd_tx_list, txindex).tx_hash}
+    exit_txbytes = Enum.at(recovered_tx_list, txindex) |> Transaction.raw_txbytes()
+
+    {Block.hashed_txs_at(recovered_tx_list, blknum), exit_txbytes}
   end
 end

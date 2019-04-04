@@ -1265,30 +1265,30 @@ defmodule OMG.Watcher.ExitProcessor.Core do
    - the relevant exit information
   """
   @spec get_challenge_data(tuple(), Utxo.Position.t(), map() | :not_found, t()) ::
-          {:ok, pos_integer() | KnownTx.t(), ExitInfo.t(), Transaction.tx_hash()} | {:error, atom()}
+          {:ok, pos_integer() | KnownTx.t(), ExitInfo.t(), Transaction.tx_bytes()} | {:error, atom()}
   def get_challenge_data(spending_blknum_response, exiting_utxo_pos, db_block, %__MODULE__{exits: exits} = state) do
     with %ExitInfo{} = exit_info <- Map.get(exits, exiting_utxo_pos, {:error, :exit_not_found}),
-         exit_txhash <- get_standard_exit_txhash(exit_info, exiting_utxo_pos, db_block),
-         ife_response = get_ife_based_on_utxo(exiting_utxo_pos, state),
+         exit_txbytes <- get_standard_exit_txbytes(exit_info, exiting_utxo_pos, db_block),
+         ife_response <- get_ife_based_on_utxo(exiting_utxo_pos, state),
          {:ok, raw_spending_proof} <- ensure_challengeable(spending_blknum_response, ife_response),
-         do: {:ok, raw_spending_proof, exit_info, exit_txhash}
+         do: {:ok, raw_spending_proof, exit_info, exit_txbytes}
   end
 
   # get the hash of a deposit transaction
-  defp get_standard_exit_txhash(
+  defp get_standard_exit_txbytes(
          %ExitInfo{owner: owner, currency: currency, amount: amount},
          _exiting_utxo_pos,
          :not_found
        ),
-       do: Transaction.new([], [{owner, currency, amount}]) |> Transaction.raw_txhash()
+       do: Transaction.new([], [{owner, currency, amount}]) |> Transaction.raw_txbytes()
 
   # get the hash of a transaction from a block
-  defp get_standard_exit_txhash(_exit_info, Utxo.position(_blknum, txindex, _oindex), db_block) do
+  defp get_standard_exit_txbytes(_exit_info, Utxo.position(_blknum, txindex, _oindex), db_block) do
     %Block{transactions: transactions} = Block.from_db_value(db_block)
 
     with {:ok, bytes_tx} <- Enum.fetch(transactions, txindex),
          {:ok, tx} <- Transaction.Signed.decode(bytes_tx),
-         do: Transaction.raw_txhash(tx)
+         do: Transaction.raw_txbytes(tx)
   end
 
   defp ensure_challengeable(spending_blknum_response, ife_response)
