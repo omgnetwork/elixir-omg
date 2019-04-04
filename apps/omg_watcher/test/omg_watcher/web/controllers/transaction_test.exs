@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
 
   alias OMG.Watcher.TestHelper
 
-  alias Utils.JsonRPC.Encoding
+  alias OMG.Utils.HttpRPC.Encoding
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @other_token <<127::160>>

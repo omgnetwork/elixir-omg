@@ -18,8 +18,8 @@ defmodule OMG.Watcher.Web.Controller.InFlightExitTest do
   use OMG.Fixtures
 
   alias OMG.State.Transaction
+  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Watcher.TestHelper
-  alias Utils.JsonRPC.Encoding
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   describe "getting in-flight exits" do

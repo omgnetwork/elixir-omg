@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Utils.JsonRPC.Validator.BaseTest do
+defmodule OMG.Utils.HttpRPC.Validator.BaseTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
-  import Utils.JsonRPC.Validator.Base
+  import OMG.Utils.HttpRPC.Validator.Base
 
   @bin_value <<179, 37, 96, 38, 134, 62, 182, 174, 91, 6, 250, 57, 106, 176, 144, 105, 120, 78, 168, 234>>
   @params %{

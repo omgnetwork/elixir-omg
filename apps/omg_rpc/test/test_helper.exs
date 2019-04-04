@@ -13,8 +13,8 @@
 # limitations under the License.
 
 ExUnit.configure(exclude: [integration: true])
-ExUnitFixtures.load_fixture_files("../**/test/**/**/fixtures.exs")
 ExUnitFixtures.start()
+ExUnitFixtures.load_fixture_files()
 ExUnit.start()
 
 {:ok, _} = Application.ensure_all_started(:cowboy)

@@ -18,7 +18,7 @@ defmodule OMG.Watcher.Web.View.Status do
   """
 
   use OMG.Watcher.Web, :view
-  alias Utils.JsonRPC.Response
+  alias OMG.Utils.HttpRPC.Response
 
   def render("status.json", %{response: status}) do
     status

@@ -18,7 +18,7 @@ defmodule OMG.Watcher.Web.View.Utxo do
   """
 
   use OMG.Watcher.Web, :view
-  alias Utils.JsonRPC.Response
+  alias OMG.Utils.HttpRPC.Response
 
   def render("utxo_exit.json", %{response: utxo_exit}) do
     utxo_exit

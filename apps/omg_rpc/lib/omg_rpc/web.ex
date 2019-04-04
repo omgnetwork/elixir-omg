@@ -36,7 +36,7 @@ defmodule OMG.RPC.Web do
       use Phoenix.Controller, namespace: OMG.RPC.Web
 
       import Plug.Conn
-      import Utils.JsonRPC.Validator.Base
+      import OMG.Utils.HttpRPC.Validator.Base
       alias OMG.RPC.Web.Router.Helpers, as: Routes
 
       action_fallback(OMG.RPC.Web.Controller.Fallback)

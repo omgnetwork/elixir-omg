@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Utils.JsonRPC.Encoding do
+defmodule OMG.Utils.HttpRPC.Encoding do
   @moduledoc """
   Provides binary to HEX and reverse encodings.
   NOTE: Intentionally wraps see: `OMG.Eth.Encoding` to keep flexibility for change.

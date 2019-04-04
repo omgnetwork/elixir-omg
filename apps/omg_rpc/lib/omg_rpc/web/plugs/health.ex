@@ -15,11 +15,22 @@
 defmodule OMG.RPC.Plugs.Health do
   @moduledoc """
   this is primarily a Plug, but we're subscribing to Alarms as well, so that we're able to reject API calls.
+
+  The module serves and a guard from requests reaching unhealthy services.
+  When an application that needs ethereum node connectivity raises an alarm, we react to that alarm
+  and prevent requests reach the underlying controllers. We do the same when there's a long boot
+  process.
+
+  The mechanics: we're subscribed to alarms, when we receive an alarm we cast the alarm to
+  the genserver implemented in the same module and that server increments the alarm key in the ETS table @table_name.
+  ETS table query is super fast and it gets hit with every request. If an alarm key is set to 1, we
+  reject the request with service_unavailable response.
+
   """
 
   alias OMG.Status.Alert.Alarm
+  alias OMG.Utils.HttpRPC.Error
   alias Phoenix.Controller
-  alias Utils.JsonRPC.Error
 
   import Plug.Conn
   require Logger

@@ -27,7 +27,7 @@ defmodule OMG.Performance.SenderServer do
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
-  alias OMG.Watcher.JsonRPC.Client
+  alias OMG.Watcher.HttpRPC.Client
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()

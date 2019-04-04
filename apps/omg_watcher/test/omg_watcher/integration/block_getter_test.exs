@@ -28,9 +28,9 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
 
   alias OMG.Crypto
   alias OMG.Eth
+  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher
-  alias Utils.JsonRPC.Encoding
   alias Watcher.Event
   alias Watcher.Integration.TestHelper, as: IntegrationTest
   alias Watcher.TestHelper

@@ -21,9 +21,9 @@ defmodule OMG.Watcher.Web.Controller.AccountTest do
   alias OMG.TestHelper
   alias OMG.Watcher.TestHelper
 
-  @eth_hex <<0::160>> |> Utils.JsonRPC.Encoding.to_hex()
+  @eth_hex <<0::160>> |> OMG.Utils.HttpRPC.Encoding.to_hex()
   @other_token <<127::160>>
-  @other_token_hex @other_token |> Utils.JsonRPC.Encoding.to_hex()
+  @other_token_hex @other_token |> OMG.Utils.HttpRPC.Encoding.to_hex()
 
   @tag fixtures: [:alice, :bob, :blocks_inserter, :initial_blocks]
   test "Account balance groups account tokens and provide sum of available funds", %{

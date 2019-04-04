@@ -17,6 +17,7 @@ defmodule OMG.API.Application do
   The application here is the Child chain server and its API.
   See here (children) for the processes that compose into the Child Chain server.
   """
+  use Application
 
   alias OMG.Alert.Alarm
   alias OMG.API.Sup
@@ -26,7 +27,7 @@ defmodule OMG.API.Application do
     cookie = System.get_env("ERL_CC_COOKIE")
     :ok = set_cookie(cookie)
 
-    :ok = Alarm.raise(alarm())
+    :ok = Alarm.set(alarm())
     Sup.start_link()
   end
 

@@ -24,8 +24,8 @@ defmodule OMG.Alert.Alarm do
   def boot_in_progress(node, reporter),
     do: {:boot_in_progress, %{node: node, reporter: reporter}}
 
-  @spec raise({atom(), node(), module()}) :: :ok | :duplicate
-  def raise(raw_alarm) do
+  @spec set({atom(), node(), module()}) :: :ok | :duplicate
+  def set(raw_alarm) do
     alarm = make_alarm(raw_alarm)
     do_raise(alarm)
   end

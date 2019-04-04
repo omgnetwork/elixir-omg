@@ -115,7 +115,7 @@ defmodule OMG.Watcher.Fixtures do
     :ok = root_chain_contract_config
     :ok = db_initialized
 
-    DeferredConfig.populate(:omg_watcher)
+    #    DeferredConfig.populate(:omg_watcher)
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omg_watcher)
 

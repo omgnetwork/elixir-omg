@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-defmodule Utils.JsonRPC.Response do
+defmodule OMG.Utils.HttpRPC.Response do
   @moduledoc """
   Serializes the response into expected result/data format.
 
   TODO: Intentionally we want to have single Phx app exposing both APIs, until then please keep this file similar
   to the corresponding Watcher's one to make merge simpler.
   """
-  alias Utils.JsonRPC.Encoding
+  alias OMG.Utils.HttpRPC.Encoding
   @type response_t :: %{version: binary(), success: boolean(), data: map()}
 
   @doc """

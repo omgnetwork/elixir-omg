@@ -26,12 +26,8 @@ defmodule OMG.RPC.Plugs.HealthTest do
 
       assert %{
                "data" => %{
-                 "code" => "operation:service_unavailable",
-                 "description" => "The server is not ready to handle the request.",
-                 "object" => "error"
-               },
-               "success" => false,
-               "version" => "1.0"
+                 "code" => "operation:service_unavailable"
+               }
              } = TestHelper.rpc_call(:post, "/block.get", %{})
 
       :ok = :alarm_handler.clear_alarm(@alarm_1)
@@ -42,19 +38,11 @@ defmodule OMG.RPC.Plugs.HealthTest do
       :ok = :alarm_handler.clear_alarm(@alarm_1)
       missing_param = %{}
 
-      assert %{
-               "success" => false,
+      refute %{
                "data" => %{
-                 "object" => "error",
-                 "code" => "operation:bad_request",
-                 "messages" => %{
-                   "validation_error" => %{
-                     "parameter" => "hash",
-                     "validator" => ":hex"
-                   }
-                 }
+                 "code" => "operation:service_unavailable"
                }
-             } = TestHelper.rpc_call(:post, "/block.get", missing_param)
+             } == TestHelper.rpc_call(:post, "/block.get", missing_param)
     end
   end
 
@@ -65,12 +53,8 @@ defmodule OMG.RPC.Plugs.HealthTest do
 
       assert %{
                "data" => %{
-                 "code" => "operation:service_unavailable",
-                 "description" => "The server is not ready to handle the request.",
-                 "object" => "error"
-               },
-               "success" => false,
-               "version" => "1.0"
+                 "code" => "operation:service_unavailable"
+               }
              } = TestHelper.rpc_call(:post, "/block.get", %{})
 
       :ok = :alarm_handler.clear_alarm(@alarm_2)
@@ -81,19 +65,11 @@ defmodule OMG.RPC.Plugs.HealthTest do
       :ok = :alarm_handler.clear_alarm(@alarm_2)
       missing_param = %{}
 
-      assert %{
-               "success" => false,
+      refute %{
                "data" => %{
-                 "object" => "error",
-                 "code" => "operation:bad_request",
-                 "messages" => %{
-                   "validation_error" => %{
-                     "parameter" => "hash",
-                     "validator" => ":hex"
-                   }
-                 }
+                 "code" => "operation:service_unavailable"
                }
-             } = TestHelper.rpc_call(:post, "/block.get", missing_param)
+             } == TestHelper.rpc_call(:post, "/block.get", missing_param)
     end
   end
 end

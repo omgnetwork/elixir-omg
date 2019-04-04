@@ -27,7 +27,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
   alias OMG.State
-  alias OMG.Watcher.JsonRPC.Client
+  alias OMG.Watcher.HttpRPC.Client
 
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
@@ -246,8 +246,8 @@ defmodule OMG.Watcher.BlockGetter do
   @spec download_block(pos_integer()) :: Core.validate_download_response_result_t()
   defp download_block(requested_number) do
     {:ok, {requested_hash, block_timestamp}} = Eth.RootChain.get_child_chain(requested_number)
-    cc_url = Application.get_env(:omg_watcher, :child_chain_url)
-    response = Client.get_block(requested_hash, cc_url)
+    child_chain_url = Application.get_env(:omg_watcher, :child_chain_url)
+    response = Client.get_block(requested_hash, child_chain_url)
 
     Core.validate_download_response(
       response,

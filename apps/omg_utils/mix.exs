@@ -3,7 +3,7 @@ defmodule Utils.MixProject do
 
   def project do
     [
-      app: :utils,
+      app: :omg_utils,
       version: OMG.Umbrella.MixProject.umbrella_version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
