@@ -53,7 +53,14 @@ release :watcher do
       omg_watcher: :permanent,
       omg_status: :permanent,
       omg_db: :permanent,
-      omg_eth: :permanent
+      omg_eth: :permanent,
+      xomg_tasks: :load
+    ]
+  )
+
+  set(
+    commands: [
+      initdb: "rel/commands/init_pg_db.sh"
     ]
   )
 end
@@ -69,7 +76,14 @@ release :childchain do
       omg_status: :permanent,
       omg_db: :permanent,
       omg_eth: :permanent,
-      omg_rpc: :permanent
+      omg_rpc: :permanent,
+      xomg_tasks: :load
+    ]
+  )
+
+  set(
+    commands: [
+      init_kv_db: "rel/commands/init_kv_db.sh"
     ]
   )
 end
