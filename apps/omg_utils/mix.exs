@@ -25,5 +25,5 @@ defmodule Utils.MixProject do
   defp elixirc_paths(:prod), do: ["lib"]
   defp elixirc_paths(_), do: ["lib", "test/support"]
 
-  defp deps, do: []
+  defp deps, do: [{:ecto_sql, "~> 3.1"}]
 end

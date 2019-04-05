@@ -22,7 +22,7 @@ defmodule OMG.Watcher.Supervisor do
 
   alias OMG.Watcher
 
-  if Application.get_env(:omg_watcher, :sql_sandbox) do
+  if Mix.env() == :test do
     defmodule Sandbox do
       @moduledoc """
        Must be start after Watcher.DB.Repo,
@@ -36,49 +36,51 @@ defmodule OMG.Watcher.Supervisor do
       end
 
       def init(stack) do
-        :ok = SQL.Sandbox.checkout(Watcher.DB.Repo, ownership_timeout: 180_000)
+        :ok = SQL.Sandbox.checkout(Watcher.DB.Repo)
         SQL.Sandbox.mode(Watcher.DB.Repo, {:shared, self()})
         {:ok, stack}
       end
     end
   end
 
+  @children_run_after_repo if(Mix.env() == :test, do: [{__MODULE__.Sandbox, []}], else: [])
+
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
   def init(:ok) do
-    children =
+    # why sandbox is in this code
+    # https://github.com/omisego/elixir-omg/pull/562
+    top_children =
       [
         {OMG.InternalEventBus, []},
-        # Start the Ecto repository
         %{
           id: Watcher.DB.Repo,
           start: {Watcher.DB.Repo, :start_link, []},
           type: :supervisor
         }
-      ] ++
-        if(Application.get_env(:omg_watcher, :sql_sandbox), do: [{__MODULE__.Sandbox, []}], else: []) ++
-        [
-          %{
-            id: Watcher.SyncSupervisor,
-            start: {Watcher.SyncSupervisor, :start_link, []},
-            restart: :permanent,
-            type: :supervisor
-          },
-          # Start workers
-          {Watcher.Eventer, []},
-          # Start the endpoint when the application starts
-          %{
-            id: Watcher.Web.Endpoint,
-            start: {Watcher.Web.Endpoint, :start_link, []},
-            type: :supervisor
-          }
-        ]
+      ] ++ @children_run_after_repo
+
+    children = [
+      %{
+        id: Watcher.SyncSupervisor,
+        start: {Watcher.SyncSupervisor, :start_link, []},
+        restart: :permanent,
+        type: :supervisor
+      },
+      # Start workers
+      {Watcher.Eventer, []},
+      # Start the endpoint when the application starts
+      %{
+        id: Watcher.Web.Endpoint,
+        start: {Watcher.Web.Endpoint, :start_link, []},
+        type: :supervisor
+      }
+    ]
 
     opts = [strategy: :one_for_one]
-
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    Supervisor.init(children, opts)
+    Supervisor.init(top_children ++ children, opts)
   end
 end

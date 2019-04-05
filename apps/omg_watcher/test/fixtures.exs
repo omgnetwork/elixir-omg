@@ -117,6 +117,7 @@ defmodule OMG.Watcher.Fixtures do
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omg_watcher)
+    [] = DB.Block.get_all()
 
     on_exit(fn ->
       Application.put_env(:omg_db, :leveldb_path, nil)
@@ -139,7 +140,7 @@ defmodule OMG.Watcher.Fixtures do
         name: Watcher.Supervisor
       )
 
-    :ok = SQL.Sandbox.checkout(DB.Repo, ownership_timeout: 180_000)
+    :ok = SQL.Sandbox.checkout(DB.Repo)
     # setup and body test are performed in one process, `on_exit` is performed in another
     on_exit(fn ->
       TestHelper.wait_for_process(pid)

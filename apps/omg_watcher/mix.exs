@@ -36,7 +36,7 @@ defmodule OMG.Watcher.Mixfile do
       {:plug_cowboy, "~> 1.0"},
       {:phoenix_ecto, "~> 4.0"},
       {:postgrex, "~> 0.14"},
-      {:ecto_sql, "~> 3.0"},
+      {:ecto_sql, "~> 3.1"},
       {:deferred_config, "~> 0.1.1"},
       {:cors_plug, "~> 2.0"},
       {:appsignal, "~> 1.0"},
