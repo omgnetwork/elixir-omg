@@ -44,7 +44,7 @@ defmodule OMG.ChildChain.Application do
   defp set_cookie(_), do: _ = Logger.warn("Cookie not applied.")
   defp alarm, do: {:boot_in_progress, Node.self(), __MODULE__}
 
-  defp set_fee_specs_file() do
+  defp set_fee_specs_file do
     app_name = :omg_api
     fee_specs_file_path = :fee_specs_file_path
     current = Application.fetch_env!(app_name, fee_specs_file_path)

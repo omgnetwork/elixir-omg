@@ -14,6 +14,7 @@ config :omg_rpc, OMG.RPC.Web.Endpoint,
   check_origin: false,
   watchers: []
 
+config :omg_rpc, environment: :dev
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed

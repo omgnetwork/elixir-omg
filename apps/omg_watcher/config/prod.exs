@@ -27,6 +27,8 @@ config :omg_watcher, OMG.Watcher.DB.Repo,
   url: {:system, "DATABASE_URL", ""},
   loggers: [Appsignal.Ecto, Ecto.LogEntry]
 
+config :omg_watcher, environment: :prod
+
 # ## SSL Support
 #
 # To get SSL working, you will need to add the `https` key
