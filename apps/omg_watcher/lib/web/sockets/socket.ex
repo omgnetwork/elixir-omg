@@ -18,7 +18,7 @@ defmodule OMG.Watcher.Web.Socket do
   channels to which providers/clients can connect to listen and receive events.
   """
 
-  use Phoenix.Socket
+  use Phoenix.Socket, log: :debug
 
   ## Channels
   channel("transfer:*", OMG.Watcher.Web.Channel.Transfer)
