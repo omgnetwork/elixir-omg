@@ -17,7 +17,7 @@ defmodule OMG.Watcher.Web.Controller.EnforceContentPlugTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
   use Plug.Test
-  alias OMG.RPC.Web.Encoding
+  alias OMG.Utils.HttpRPC.Encoding
 
   @tag fixtures: [:phoenix_ecto_sandbox]
   test "Request missing expected content type header is rejected" do

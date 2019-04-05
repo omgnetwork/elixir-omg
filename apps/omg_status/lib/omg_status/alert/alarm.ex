@@ -23,13 +23,7 @@ defmodule OMG.Status.Alert.Alarm do
     |> Enum.each(&:alarm_handler.clear_alarm(&1))
   end
 
-  def all do
-    all_raw()
-    |> Enum.map(&format_alarm/1)
-  end
-
-  defp format_alarm({id, details}), do: %{id: id, details: details}
-  defp format_alarm(alarm), do: %{id: alarm}
+  def all, do: all_raw()
 
   defp all_raw, do: :gen_event.call(:alarm_handler, AlarmHandler, :get_alarms)
 end

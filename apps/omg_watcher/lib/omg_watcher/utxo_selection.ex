@@ -122,7 +122,7 @@ defmodule OMG.Watcher.UtxoSelection do
     missing_funds =
       utxo_selection
       |> Stream.filter(fn {_, {missing, _}} -> missing > 0 end)
-      |> Enum.map(fn {token, {missing, _}} -> %{token: OMG.RPC.Web.Encoding.to_hex(token), missing: missing} end)
+      |> Enum.map(fn {token, {missing, _}} -> %{token: OMG.Utils.HttpRPC.Encoding.to_hex(token), missing: missing} end)
 
     if Enum.empty?(missing_funds),
       do: {:ok, utxo_selection |> Enum.map(fn {token, {_, utxos}} -> {token, utxos} end)},

@@ -32,7 +32,7 @@ defmodule OMG.RootChainCoordinator.Core do
   alias OMG.RootChainCoordinator.Service
   alias OMG.RootChainCoordinator.SyncGuide
 
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   defstruct configs_services: %{}, root_chain_height: 0, services: %{}
 

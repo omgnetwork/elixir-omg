@@ -46,7 +46,7 @@ defmodule OMG.Performance do
   (github.com/erlang/otp and the JIRA it points you to).
   """
 
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   alias OMG.Crypto
   alias OMG.Integration.DepositHelper
@@ -120,12 +120,7 @@ defmodule OMG.Performance do
 
     DeferredConfig.populate(:omg_rpc)
 
-    url =
-      Application.get_env(:omg_rpc, OMG.RPC.Client, "http://localhost:9656")
-      |> case do
-        nil -> nil
-        opts -> Keyword.get(opts, :child_chain_url)
-      end
+    url = Application.get_env(:omg_rpc, :child_chain_url, "http://localhost:9656")
 
     defaults = %{destdir: ".", geth: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545", child_chain: url}
     opts = Map.merge(defaults, opts)
@@ -141,6 +136,7 @@ defmodule OMG.Performance do
 
   @spec setup_simple_perftest(map()) :: {:ok, list, pid}
   defp setup_simple_perftest(opts) do
+    DeferredConfig.populate(:omg_watcher)
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
     Application.put_env(:omg_db, :leveldb_path, dbdir, persistent: true)
@@ -157,7 +153,8 @@ defmodule OMG.Performance do
       {OMG.State, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeServer, []},
-      {OMG.RPC.Web.Endpoint, []}
+      {OMG.RPC.Web.Endpoint, []},
+      {OMG.RPC.Plugs.Health, []}
     ]
 
     {:ok, api_children_supervisor} = Supervisor.start_link(children, strategy: :one_for_one)

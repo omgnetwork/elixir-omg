@@ -22,7 +22,7 @@ defmodule OMG.API.FeeServer do
   alias OMG.Fees
 
   use GenServer
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   @file_changed_check_interval_ms 10_000
 

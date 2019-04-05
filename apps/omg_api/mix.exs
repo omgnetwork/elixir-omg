@@ -20,6 +20,7 @@ defmodule OMG.API.MixProject do
   def application do
     [
       extra_applications: [:logger, :appsignal],
+      start_phases: [{:boot_done, []}],
       mod: {OMG.API.Application, []}
     ]
   end
@@ -38,7 +39,8 @@ defmodule OMG.API.MixProject do
       {:omg_status, in_umbrella: true},
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
-      {:omg_rpc, in_umbrella: true}
+      {:omg_rpc, in_umbrella: true, only: [:test]},
+      {:omg_utils, in_umbrella: true, only: [:test]}
     ]
   end
 end

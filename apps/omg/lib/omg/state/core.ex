@@ -25,7 +25,7 @@ defmodule OMG.State.Core do
   alias OMG.{Block, Crypto, Fees, Utxo}
   alias OMG.State.{Core, Transaction}
 
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
   require Utxo
 
   @type t() :: %__MODULE__{

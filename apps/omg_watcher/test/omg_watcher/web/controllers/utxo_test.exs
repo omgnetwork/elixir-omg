@@ -17,12 +17,11 @@ defmodule OMG.Watcher.Web.Controller.UtxoTest do
   use ExUnit.Case, async: false
   use OMG.Fixtures
 
-  alias OMG.RPC.Web.Encoding
   alias OMG.TestHelper
+  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
   alias OMG.Watcher.DB
   alias OMG.Watcher.TestHelper
-
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()

@@ -18,13 +18,14 @@ defmodule OMG.Watcher.SyncSupervisor do
   of the Watcher app
   """
   use Supervisor
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
+  alias OMG.Alert.Alarm
   alias OMG.Eth
   alias OMG.EthereumEventListener
   alias OMG.Watcher
-  alias OMG.Watcher.Alert.Alarm
   alias OMG.Watcher.CoordinatorSetup
+  alias OMG.Watcher.Monitor
 
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -32,8 +33,7 @@ defmodule OMG.Watcher.SyncSupervisor do
 
   def init(:ok) do
     children = [
-      {OMG.API.EthereumClientMonitor, [Alarm]},
-      {OMG.API.Monitor, [Alarm, monitor_children()]}
+      {Monitor, [Alarm, monitor_children()]}
     ]
 
     opts = [strategy: :one_for_one]

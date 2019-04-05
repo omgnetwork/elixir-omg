@@ -26,8 +26,9 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.Eth
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
-  alias OMG.RPC.Client
   alias OMG.State
+  alias OMG.Watcher.HttpRPC.Client
+
   alias OMG.Watcher.BlockGetter.BlockApplication
   alias OMG.Watcher.BlockGetter.Core
   alias OMG.Watcher.DB
@@ -35,7 +36,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.Watcher.Recorder
 
   use GenServer
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   def get_events do
     GenServer.call(__MODULE__, :get_events)
@@ -245,7 +246,8 @@ defmodule OMG.Watcher.BlockGetter do
   @spec download_block(pos_integer()) :: Core.validate_download_response_result_t()
   defp download_block(requested_number) do
     {:ok, {requested_hash, block_timestamp}} = Eth.RootChain.get_child_chain(requested_number)
-    response = Client.get_block(requested_hash)
+    child_chain_url = Application.get_env(:omg_watcher, :child_chain_url)
+    response = Client.get_block(requested_hash, child_chain_url)
 
     Core.validate_download_response(
       response,

@@ -22,7 +22,7 @@ Such configuration must become part of the [Mix configuration](https://hexdocs.p
 1. (**Watcher only**) Acquire the configuration file with root chain deployment data
 1. (**Watcher only**, optional) If running on the same machine as the child chain server, customize the location of `OMG.DB` database folder
 1. (**Watcher only**) Configure the child chain url (default is `http://localhost:9656`) by:
-    - configuring `:omg_rpc, OMG.RPC.Client` with `child_chain_url: "desired_childchain_url"`
+    - configuring `:omg_watcher, :child_chain_url` with `"desired_childchain_url"`
     - configuring with an environment variable `CHILD_CHAIN_URL=desired_childchain_url`
 1. (**Watcher only**) Initialize the Watcher's `OMG.DB` database
 1. (**Watcher only**) Create and migrate the PostgreSQL `WatcherDB` database

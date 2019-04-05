@@ -16,8 +16,7 @@ defmodule OMG.Watcher.TestHelper do
   @moduledoc """
   Module provides common testing functions used by App's tests.
   """
-
-  alias OMG.RPC.Web.Encoding
+  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
 
   require Utxo

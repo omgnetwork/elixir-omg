@@ -18,7 +18,8 @@ defmodule OMG.RPC.Fixtures do
   @doc "run only endpoint to make request"
   deffixture phoenix_sandbox do
     DeferredConfig.populate(:omg_eth)
-    {:ok, pid} = Supervisor.start_link([OMG.RPC.Web.Endpoint], strategy: :one_for_one, name: OMG.RPC.Supervisor)
+    children = [OMG.RPC.Web.Endpoint, OMG.RPC.Plugs.Health]
+    {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one, name: OMG.RPC.Supervisor)
 
     on_exit(fn ->
       ref = Process.monitor(pid)

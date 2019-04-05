@@ -21,13 +21,13 @@ defmodule OMG.Performance.SenderServer do
   @tx_retry_waiting_time_ms 333
 
   use GenServer
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   alias OMG.DevCrypto
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
-
+  alias OMG.Watcher.HttpRPC.Client
   require Utxo
 
   @eth OMG.Eth.RootChain.eth_pseudo_address()
@@ -189,7 +189,8 @@ defmodule OMG.Performance.SenderServer do
   # Submits Tx to the child chain server via http (Http-RPC) and translates successful result to atom-keyed map.
   @spec submit_tx_rpc(binary) :: {:ok, map} | {:error, any}
   defp submit_tx_rpc(encoded_tx) do
-    OMG.RPC.Client.submit(encoded_tx)
+    url = Application.get_env(:omg_watcher, :child_chain_url)
+    Client.submit(encoded_tx, url)
   end
 
   #   Generates module's initial state

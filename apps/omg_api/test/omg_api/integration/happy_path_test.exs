@@ -24,11 +24,10 @@ defmodule OMG.API.Integration.HappyPathTest do
   alias OMG.Block
   alias OMG.Eth
   alias OMG.Integration.DepositHelper
-  alias OMG.RPC.Web.Encoding
   alias OMG.RPC.Web.TestHelper
   alias OMG.State.Transaction
+  alias OMG.Utils.HttpRPC.Encoding
   alias OMG.Utxo
-
   require OMG.Utxo
 
   @moduletag :integration

@@ -36,7 +36,7 @@ defmodule OMG.Watcher.Web do
       use Phoenix.Controller, namespace: OMG.Watcher.Web, log: :debug
       import Plug.Conn
       import OMG.Watcher.Web.Router.Helpers
-      import OMG.RPC.Web.Validator.Base
+      import OMG.Utils.HttpRPC.Validator.Base
 
       action_fallback(OMG.Watcher.Web.Controller.Fallback)
 
@@ -59,7 +59,7 @@ defmodule OMG.Watcher.Web do
           |> String.replace("Controller", "View")
           |> String.to_existing_atom()
 
-        serialized = OMG.Watcher.Web.Serializer.Response.sanitize(data)
+        serialized = OMG.Utils.HttpRPC.Response.sanitize(data)
 
         conn
         |> put_view(view_module)

@@ -17,7 +17,7 @@ defmodule OMG.Watcher.DB.Transaction do
   Ecto Schema representing a transaction
   """
   use Ecto.Schema
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   alias OMG.State.Transaction
   alias OMG.Utxo

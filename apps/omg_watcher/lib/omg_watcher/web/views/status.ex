@@ -18,11 +18,12 @@ defmodule OMG.Watcher.Web.View.Status do
   """
 
   use OMG.Watcher.Web, :view
+  alias OMG.Utils.HttpRPC.Response
 
   def render("status.json", %{response: status}) do
     status
     |> format_byzantine_events()
-    |> OMG.RPC.Web.Response.serialize()
+    |> Response.serialize()
   end
 
   defp format_byzantine_events(%{byzantine_events: byzantine_events} = status) do

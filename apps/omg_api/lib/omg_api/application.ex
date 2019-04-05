@@ -17,18 +17,22 @@ defmodule OMG.API.Application do
   The application here is the Child chain server and its API.
   See here (children) for the processes that compose into the Child Chain server.
   """
-
   use Application
-  alias OMG.API.Alert.AlarmHandler
-  alias OMG.API.Sup
+
+  alias OMG.Alert.Alarm
+
   require Logger
 
   def start(_type, _args) do
     cookie = System.get_env("ERL_CC_COOKIE")
     :ok = set_cookie(cookie)
 
-    :ok = AlarmHandler.install()
-    Sup.start_link()
+    :ok = Alarm.set(alarm())
+    OMG.API.Supervisor.start_link()
+  end
+
+  def start_phase(:boot_done, :normal, _phase_args) do
+    :ok = Alarm.clear(alarm())
   end
 
   defp set_cookie(cookie) when is_binary(cookie) do
@@ -38,4 +42,5 @@ defmodule OMG.API.Application do
   end
 
   defp set_cookie(_), do: _ = Logger.warn("Cookie not applied.")
+  defp alarm, do: {:boot_in_progress, Node.self(), __MODULE__}
 end

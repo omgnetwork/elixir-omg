@@ -21,7 +21,7 @@ defmodule OMG.RootChainCoordinator do
   alias OMG.RootChainCoordinator.Core
 
   use GenServer
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   defmodule SyncGuide do
     @moduledoc """

@@ -18,7 +18,7 @@ defmodule OMG.Watcher.Web.Validator.Order do
   """
 
   alias OMG.Watcher.UtxoSelection
-  import OMG.RPC.Web.Validator.Base
+  import OMG.Utils.HttpRPC.Validator.Base
 
   @doc """
   Parses and validates request body

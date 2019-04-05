@@ -19,7 +19,7 @@ defmodule OMG.PerformanceTest do
 
   import ExUnit.CaptureIO
 
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   alias OMG.Eth
 

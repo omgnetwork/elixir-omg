@@ -36,7 +36,7 @@ defmodule OMG.API.BlockQueue.Core do
   alias OMG.API.BlockQueue.Core
   alias OMG.API.BlockQueue.GasPriceAdjustment
 
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   defmodule BlockSubmission do
     @moduledoc false

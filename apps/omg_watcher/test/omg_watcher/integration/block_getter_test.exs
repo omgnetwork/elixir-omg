@@ -26,9 +26,15 @@ defmodule OMG.Watcher.Integration.BlockGetterTest do
   use Plug.Test
   use Phoenix.ChannelTest
 
-  alias OMG.{Crypto, Eth, RPC.Web.Encoding, Utxo, Watcher}
+  alias OMG.Crypto
+  alias OMG.Eth
+  alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Utxo
+  alias OMG.Watcher
+  alias Watcher.Event
   alias Watcher.Integration.TestHelper, as: IntegrationTest
-  alias Watcher.{Event, TestHelper, Web.Channel}
+  alias Watcher.TestHelper
+  alias Watcher.Web.Channel
 
   require Utxo
   import ExUnit.CaptureLog
