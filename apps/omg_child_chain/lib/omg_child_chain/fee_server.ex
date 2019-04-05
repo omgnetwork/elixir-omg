@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.FeeServer do
+defmodule OMG.ChildChain.FeeServer do
   @moduledoc """
   Maintains current fee rates and tokens in which fees may be paid.
   Updates fees information from external source.
@@ -34,7 +34,7 @@ defmodule OMG.API.FeeServer do
     :ok = ensure_ets_init()
 
     _ =
-      case Application.get_env(:omg_api, :ignore_fees) do
+      case Application.get_env(:omg_child_chain, :ignore_fees) do
         true ->
           :ok = save_fees(:ignore, 0)
           _ = Logger.info("fee specs from file is ignore")
@@ -61,7 +61,7 @@ defmodule OMG.API.FeeServer do
   """
   @spec update_fee_spec() :: :ok
   def update_fee_spec do
-    path = Application.fetch_env!(:omg_api, :fee_specs_file_path)
+    path = Application.fetch_env!(:omg_child_chain, :fee_specs_file_path)
 
     :ok =
       with {:reload, changed_at} <- should_load_file(path),

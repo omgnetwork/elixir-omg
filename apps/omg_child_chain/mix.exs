@@ -1,9 +1,9 @@
-defmodule OMG.API.MixProject do
+defmodule OMG.ChildChain.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :omg_api,
+      app: :omg_child_chain,
       version: OMG.Umbrella.MixProject.umbrella_version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
@@ -21,7 +21,7 @@ defmodule OMG.API.MixProject do
     [
       extra_applications: [:logger, :appsignal],
       start_phases: [{:boot_done, []}],
-      mod: {OMG.API.Application, []}
+      mod: {OMG.ChildChain.Application, []}
     ]
   end
 

@@ -13,14 +13,14 @@
 # limitations under the License.
 
 # unfortunately something is wrong with the fixtures loading in `test_helper.exs` and the following needs to be done
-Code.require_file("#{__DIR__}/../../omg_api/test/omg_api/integration/fixtures.exs")
+Code.require_file("#{__DIR__}/../../omg_child_chain/test/omg_child_chain/integration/fixtures.exs")
 
 defmodule OMG.Watcher.Fixtures do
   use ExUnitFixtures.FixtureModule
 
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
-  use OMG.API.Integration.Fixtures
+  use OMG.ChildChain.Integration.Fixtures
   use OMG.Utils.LoggerExt
 
   alias Ecto.Adapters.SQL
@@ -42,7 +42,7 @@ defmodule OMG.Watcher.Fixtures do
       config :omg_db, leveldb_path: "#{db_path}"
       # this causes the inner test child chain server process to log debug. To see these logs adjust test's log level
       config :logger, level: :debug
-      config :omg_api, fee_specs_file_path: "#{fee_file}"
+      config :omg_child_chain, fee_specs_file_path: "#{fee_file}"
     """)
     |> File.close()
 

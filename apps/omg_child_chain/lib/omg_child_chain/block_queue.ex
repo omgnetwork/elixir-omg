@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.BlockQueue do
+defmodule OMG.ChildChain.BlockQueue do
   @moduledoc """
-  Imperative shell for `OMG.API.BlockQueue.Core`, see there for more info
+  Imperative shell for `OMG.ChildChain.BlockQueue.Core`, see there for more info
 
   The new blocks to enqueue arrive here via `OMG.InternalEventBus`
   """
 
-  alias OMG.API.BlockQueue.Core
-  alias OMG.API.BlockQueue.Core.BlockSubmission
-  alias OMG.API.FreshBlocks
   alias OMG.Block
+  alias OMG.ChildChain.BlockQueue.Core
+  alias OMG.ChildChain.BlockQueue.Core.BlockSubmission
+  alias OMG.ChildChain.FreshBlocks
   alias OMG.Recorder
 
   @type eth_height() :: non_neg_integer()
@@ -59,7 +59,7 @@ defmodule OMG.API.BlockQueue do
       {:ok, parent_start} = Eth.RootChain.get_root_deployment_height()
       {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
       {:ok, stored_child_top_num} = OMG.DB.get_single_value(:child_top_block_number)
-      {:ok, finality_threshold} = Application.fetch_env(:omg_api, :submission_finality_margin)
+      {:ok, finality_threshold} = Application.fetch_env(:omg_child_chain, :submission_finality_margin)
 
       _ =
         Logger.info(
@@ -84,7 +84,7 @@ defmodule OMG.API.BlockQueue do
                  parent_height: parent_height,
                  child_block_interval: child_block_interval,
                  chain_start_parent_height: parent_start,
-                 minimal_enqueue_block_gap: Application.fetch_env!(:omg_api, :child_block_minimal_enqueue_gap),
+                 minimal_enqueue_block_gap: Application.fetch_env!(:omg_child_chain, :child_block_minimal_enqueue_gap),
                  finality_threshold: finality_threshold,
                  last_enqueued_block_at_height: parent_height
                ) do
@@ -102,7 +102,7 @@ defmodule OMG.API.BlockQueue do
             other
         end
 
-      interval = Application.fetch_env!(:omg_api, :block_queue_eth_height_check_interval_ms)
+      interval = Application.fetch_env!(:omg_child_chain, :block_queue_eth_height_check_interval_ms)
       {:ok, _} = :timer.send_interval(interval, self(), :check_ethereum_status)
 
       # `link: true` because we want the `BlockQueue` to restart and resubscribe, if the bus crashes

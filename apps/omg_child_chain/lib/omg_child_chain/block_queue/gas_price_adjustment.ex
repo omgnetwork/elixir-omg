@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.BlockQueue.GasPriceAdjustment do
+defmodule OMG.ChildChain.BlockQueue.GasPriceAdjustment do
   @moduledoc """
   Encapsulates the Eth gas price adjustment strategy parameters into its own structure
   """

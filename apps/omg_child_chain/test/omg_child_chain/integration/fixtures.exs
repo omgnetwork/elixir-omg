@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Integration.Fixtures do
+defmodule OMG.ChildChain.Integration.Fixtures do
   use ExUnitFixtures.FixtureModule
   use OMG.Fixtures
   use OMG.Eth.Fixtures
@@ -28,11 +28,11 @@ defmodule OMG.API.Integration.Fixtures do
 
     enc_eth = Eth.Encoding.to_hex(OMG.Eth.RootChain.eth_pseudo_address())
     {:ok, path} = TestHelper.write_fee_file(%{enc_eth => 0, Eth.Encoding.to_hex(token) => 0})
-    default_path = Application.fetch_env!(:omg_api, :fee_specs_file_path)
-    Application.put_env(:omg_api, :fee_specs_file_path, path, persistent: true)
+    default_path = Application.fetch_env!(:omg_child_chain, :fee_specs_file_path)
+    Application.put_env(:omg_child_chain, :fee_specs_file_path, path, persistent: true)
 
     on_exit(fn ->
-      Application.put_env(:omg_api, :fee_specs_file_path, default_path)
+      Application.put_env(:omg_child_chain, :fee_specs_file_path, default_path)
     end)
 
     path
@@ -44,7 +44,7 @@ defmodule OMG.API.Integration.Fixtures do
     _ = db_initialized
     _ = fee_file
     # need to override that to very often, so that many checks fall in between a single child chain block submission
-    {:ok, started_apps} = Application.ensure_all_started(:omg_api)
+    {:ok, started_apps} = Application.ensure_all_started(:omg_child_chain)
 
     on_exit(fn ->
       started_apps

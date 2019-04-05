@@ -51,7 +51,7 @@ defmodule OMG.Watcher.Mixfile do
       # here only to leverage common test helpers and code
       {:fake_server, "~> 1.5", only: [:dev, :test], runtime: false},
       {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
-      {:omg_api, in_umbrella: true, only: [:test], runtime: false}
+      {:omg_child_chain, in_umbrella: true, only: [:test], runtime: false}
     ]
   end
 

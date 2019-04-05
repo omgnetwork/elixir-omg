@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Application do
+defmodule OMG.ChildChain.Application do
   @moduledoc """
   The application here is the Child chain server and its API.
   See here (children) for the processes that compose into the Child Chain server.
@@ -28,7 +28,7 @@ defmodule OMG.API.Application do
     :ok = set_cookie(cookie)
 
     :ok = Alarm.set(alarm())
-    OMG.API.Supervisor.start_link()
+    OMG.ChildChain.Supervisor.start_link()
   end
 
   def start_phase(:boot_done, :normal, _phase_args) do

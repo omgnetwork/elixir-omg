@@ -135,7 +135,7 @@ Eth.WaitFor.eth_receipt(txhash)
 
 # now, with the code "broken" go to the `iex` REPL of the child chain and recompile the module
 
-r(OMG.API)
+r(OMG.ChildChain)
 
 # submit a transaction that will get mined in a new block
 tx3 =
