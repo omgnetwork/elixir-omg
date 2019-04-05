@@ -26,7 +26,7 @@ defmodule OMG.ChildChain.Application do
   def start(_type, _args) do
     cookie = System.get_env("ERL_CC_COOKIE")
     :ok = set_cookie(cookie)
-
+    :ok = set_fee_specs_file()
     :ok = Alarm.set(alarm())
     OMG.ChildChain.Supervisor.start_link()
   end
@@ -43,4 +43,16 @@ defmodule OMG.ChildChain.Application do
 
   defp set_cookie(_), do: _ = Logger.warn("Cookie not applied.")
   defp alarm, do: {:boot_in_progress, Node.self(), __MODULE__}
+
+  defp set_fee_specs_file() do
+    app_name = :omg_api
+    fee_specs_file_path = :fee_specs_file_path
+    current = Application.fetch_env!(app_name, fee_specs_file_path)
+
+    if File.exists?(current) do
+      :ok
+    else
+      Application.put_env(app_name, fee_specs_file_path, Application.app_dir(app_name, "priv/fee_specs.json"))
+    end
+  end
 end

@@ -24,7 +24,8 @@ defmodule OMG.Status.Mixfile do
     [
       mod: {OMG.Status.Application, []},
       start_phases: [{:install_alarm_handler, []}],
-      extra_applications: [:appsignal, :logger, :sasl, :os_mon]
+      extra_applications: [:appsignal, :logger, :sasl, :os_mon],
+      included_applications: [:vmstats]
     ]
   end
 

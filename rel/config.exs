@@ -53,8 +53,7 @@ release :watcher do
       omg_watcher: :permanent,
       omg_status: :permanent,
       omg_db: :permanent,
-      omg_eth: :permanent,
-      omg_rpc: :permanent
+      omg_eth: :permanent
     ]
   )
 end
