@@ -135,15 +135,13 @@ defmodule OMG.Performance do
     cleanup_extended_perftest(started_apps)
   end
 
-  @doc """
-  Hackney is http-client httpoison's dependency.
+  # Hackney is http-client httpoison's dependency.
+  # We start omg_api app that will will start omg_rpc
+  # (because of it's dependency when mix env == test).
+  # We don't need :omg application so we stop it and clear all alarms it raised
+  # (otherwise omg_rpc gets notified of alarms and halts requests).
+  # We also don't want all descendants of Monitoring process so we terminate it.
 
-  We start omg_api app that will will start omg_rpc
-  (because of it's dependency when mix env == test).
-  We don't need :omg application so we stop it and clear all alarms it raised
-  (otherwise omg_rpc gets notified of alarms and halts requests).
-  We also don't want all descendants of Monitoring process so we terminate it.
-  """
   @spec setup_simple_perftest(map()) :: {:ok, list, pid}
   defp setup_simple_perftest(opts) do
     DeferredConfig.populate(:omg_watcher)
