@@ -24,6 +24,7 @@ defmodule OMG.ChildChain.Application do
   require Logger
 
   def start(_type, _args) do
+    _ = Logger.info("Starting #{inspect(__MODULE__)}")
     cookie = System.get_env("ERL_CC_COOKIE")
     :ok = set_cookie(cookie)
     :ok = set_fee_specs_file()

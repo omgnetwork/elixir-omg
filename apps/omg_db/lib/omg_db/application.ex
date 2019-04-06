@@ -29,7 +29,4 @@ defmodule OMG.DB.Application do
     opts = [strategy: :one_for_one, name: OMG.DB.Supervisor]
     Supervisor.start_link(children, opts)
   end
-
-  def start_phase(phase, start_type, phase_args),
-    do: IO.puts("top_app:start_phase(#{inspect(phase)},#{inspect(start_type)},#{inspect(phase_args)}).")
 end

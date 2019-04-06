@@ -20,8 +20,7 @@ defmodule OMG.DB.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {OMG.DB.Application, []},
-      start_phases: [{:init, []}, {:go, []}]
+      mod: {OMG.DB.Application, []}
     ]
   end
 
