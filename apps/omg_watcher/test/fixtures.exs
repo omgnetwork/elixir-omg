@@ -117,6 +117,7 @@ defmodule OMG.Watcher.Fixtures do
 
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omg_watcher)
+    [] = DB.Block.get_all()
 
     on_exit(fn ->
       Application.put_env(:omg_db, :leveldb_path, nil)
@@ -125,12 +126,6 @@ defmodule OMG.Watcher.Fixtures do
       |> Enum.reverse()
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
-  end
-
-  deffixture watcher_sandbox(watcher) do
-    :ok = watcher
-    :ok = SQL.Sandbox.checkout(DB.Repo, ownership_timeout: 90_000)
-    SQL.Sandbox.mode(DB.Repo, {:shared, self()})
   end
 
   @doc "run only database in sandbox and endpoint to make request"

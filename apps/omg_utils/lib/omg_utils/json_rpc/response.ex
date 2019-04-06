@@ -56,7 +56,10 @@ defmodule OMG.Utils.HttpRPC.Response do
 
   defp do_filter(map_or_struct) do
     if Code.ensure_loaded?(Ecto) do
-      Enum.filter(map_or_struct, fn {_k, v} -> Ecto.assoc_loaded?(v) end)
+      Enum.filter(map_or_struct, fn
+        {_, %Ecto.Association.NotLoaded{}} -> false
+        _ -> true
+      end)
     else
       map_or_struct
     end

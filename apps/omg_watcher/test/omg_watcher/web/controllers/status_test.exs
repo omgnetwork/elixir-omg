@@ -18,7 +18,7 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
   alias OMG.Watcher.TestHelper
   @moduletag :integration
 
-  @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]
+  @tag fixtures: [:watcher, :root_chain_contract_config]
   test "status endpoint returns expected response format" do
     assert %{
              "last_validated_child_block_number" => last_validated_child_block_number,

@@ -22,22 +22,50 @@ defmodule OMG.Watcher.Supervisor do
 
   alias OMG.Watcher
 
+  if Mix.env() == :test do
+    defmodule Sandbox do
+      @moduledoc """
+       Must be start after Watcher.DB.Repo,
+       that no data will be downloaded/inserted before setting the sandbox option.
+      """
+      use GenServer
+      alias Ecto.Adapters.SQL
+
+      def start_link(_args) do
+        GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+      end
+
+      def init(stack) do
+        :ok = SQL.Sandbox.checkout(Watcher.DB.Repo)
+        SQL.Sandbox.mode(Watcher.DB.Repo, {:shared, self()})
+        {:ok, stack}
+      end
+    end
+  end
+
+  @children_run_after_repo if(Mix.env() == :test, do: [{__MODULE__.Sandbox, []}], else: [])
+
   def start_link do
     Supervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
   def init(:ok) do
+    # why sandbox is in this code
+    # https://github.com/omisego/elixir-omg/pull/562
+    top_children =
+      [
+        {OMG.InternalEventBus, []},
+        %{
+          id: Watcher.DB.Repo,
+          start: {Watcher.DB.Repo, :start_link, []},
+          type: :supervisor
+        }
+      ] ++ @children_run_after_repo
+
     children = [
-      {OMG.InternalEventBus, []},
-      # Start the Ecto repository
       %{
-        id: Watcher.DB.Repo,
-        start: {Watcher.DB.Repo, :start_link, []},
-        type: :supervisor
-      },
-      %{
-        id: OMG.Watcher.SyncSupervisor,
-        start: {OMG.Watcher.SyncSupervisor, :start_link, []},
+        id: Watcher.SyncSupervisor,
+        start: {Watcher.SyncSupervisor, :start_link, []},
         restart: :permanent,
         type: :supervisor
       },
@@ -52,8 +80,7 @@ defmodule OMG.Watcher.Supervisor do
     ]
 
     opts = [strategy: :one_for_one]
-
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
-    Supervisor.init(children, opts)
+    Supervisor.init(top_children ++ children, opts)
   end
 end

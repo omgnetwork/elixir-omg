@@ -13,7 +13,9 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.DB.Repo do
-  use Ecto.Repo, otp_app: :omg_watcher
+  use Ecto.Repo,
+    otp_app: :omg_watcher,
+    adapter: Ecto.Adapters.Postgres
 
   # Workaround an issue where ecto.migrate task won't start the app
   # thus DeferredConfig.populate is not getting called.
