@@ -21,9 +21,7 @@ defmodule OMG.Eth.MixProject do
 
   def application do
     [
-      env: [
-        child_block_interval: 1000
-      ],
+      mod: {OMG.Eth.Application, []},
       extra_applications: [:logger]
     ]
   end
@@ -36,8 +34,6 @@ defmodule OMG.Eth.MixProject do
     [
       {:ex_abi, "~> 0.2.0"},
       {:ethereumex, "~> 0.5.2"},
-      {:exexec, git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", runtime: true},
-      {:briefly, "~> 0.3", only: [:dev, :test]},
       {:deferred_config, "~> 0.1.1"},
       {
         :plasma_contracts,
@@ -51,7 +47,11 @@ defmodule OMG.Eth.MixProject do
         app: false,
         only: [:dev, :test]
       },
-      {:appsignal, "~> 1.0"}
+      {:appsignal, "~> 1.0"},
+      # TEST ONLY
+      {:exexec,
+       git: "https://github.com/pthomalla/exexec.git", branch: "add_streams", only: [:dev, :test], runtime: false},
+      {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false}
     ]
   end
 

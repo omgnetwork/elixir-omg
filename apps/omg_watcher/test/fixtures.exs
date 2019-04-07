@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # unfortunately something is wrong with the fixtures loading in `test_helper.exs` and the following needs to be done
-Code.require_file("#{__DIR__}/../../omg_api/test/integration/fixtures.exs")
+Code.require_file("#{__DIR__}/../../omg_api/test/omg_api/integration/fixtures.exs")
 
 defmodule OMG.Watcher.Fixtures do
   use ExUnitFixtures.FixtureModule
@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Fixtures do
   use OMG.Eth.Fixtures
   use OMG.DB.Fixtures
   use OMG.API.Integration.Fixtures
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   alias Ecto.Adapters.SQL
   alias OMG.Watcher
@@ -114,8 +114,10 @@ defmodule OMG.Watcher.Fixtures do
   deffixture watcher(db_initialized, root_chain_contract_config) do
     :ok = root_chain_contract_config
     :ok = db_initialized
+
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
     {:ok, started_watcher} = Application.ensure_all_started(:omg_watcher)
+    [] = DB.Block.get_all()
 
     on_exit(fn ->
       Application.put_env(:omg_db, :leveldb_path, nil)
@@ -124,12 +126,6 @@ defmodule OMG.Watcher.Fixtures do
       |> Enum.reverse()
       |> Enum.map(fn app -> :ok = Application.stop(app) end)
     end)
-  end
-
-  deffixture watcher_sandbox(watcher) do
-    :ok = watcher
-    :ok = SQL.Sandbox.checkout(DB.Repo, ownership_timeout: 90_000)
-    SQL.Sandbox.mode(DB.Repo, {:shared, self()})
   end
 
   @doc "run only database in sandbox and endpoint to make request"
@@ -197,18 +193,18 @@ defmodule OMG.Watcher.Fixtures do
     alias FakeServer.HTTP.Server
 
     DeferredConfig.populate(:omg_rpc)
-
+    DeferredConfig.populate(:omg_watcher)
     {:ok, server_id, port} = Server.run()
     env = FakeServer.Env.new(port)
 
     EnvAgent.save_env(server_id, env)
 
-    real_addr = Application.fetch_env!(:omg_rpc, OMG.RPC.Client) |> Keyword.fetch!(:child_chain_url)
-    old_client_env = Application.get_env(:omg_rpc, OMG.RPC.Client)
+    real_addr = Application.fetch_env!(:omg_watcher, :child_chain_url)
+    old_client_env = Application.fetch_env!(:omg_watcher, :child_chain_url)
     fake_addr = "http://#{env.ip}:#{env.port}"
 
     on_exit(fn ->
-      Application.put_env(:omg_rpc, OMG.RPC.Client, old_client_env)
+      Application.put_env(:omg_watcher, :child_chain_url, old_client_env)
 
       Server.stop(server_id)
       EnvAgent.delete_env(server_id)

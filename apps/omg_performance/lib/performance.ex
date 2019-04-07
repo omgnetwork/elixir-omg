@@ -18,15 +18,22 @@ defmodule OMG.Performance do
 
   # Usage
 
-  Always `cd apps/omg_performance` before running performance tests
+  See functions in this module for options available
 
   ## start_simple_perftest runs test with 5 transactions for each 3 senders and default options.
-    ```> mix run -e 'OMG.Performance.start_simple_perftest(5, 3)'```
+
+  ```
+  mix run --no-start -e 'OMG.Performance.start_simple_perftest(5, 3)'
+  ```
 
   ## start_extended_perftest runs test with 100 transactions for one specified account and default options.
   ## extended test is run on testnet make sure you followed instruction in `README.md` and both `geth` and `omg_api` are running
-    ```> mix run -e 'OMG.Performance.start_extended_perftest(100, [%{ addr: <<192, 206, 18, ...>>, priv: <<246, 22, 164, ...>>}], "0xbc5f ...")'```
-  ## Parameters passed are:  1. number of transaction each sender will send, 2. list of senders (see: TestHelper.generate_entity()) and 3. `contract` address
+
+  ```
+  mix run --no-start -e 'OMG.Performance.start_extended_perftest(100, [%{ addr: <<192, 206, 18, ...>>, priv: <<246, 22, 164, ...>>}], "0xbc5f ...")'
+  ```
+
+  ## Parameters passed are: 1. number of transaction each sender will send, 2. list of senders (see: TestHelper.generate_entity()) and 3. `contract` address
 
   # Note:
 
@@ -39,7 +46,7 @@ defmodule OMG.Performance do
   (github.com/erlang/otp and the JIRA it points you to).
   """
 
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   alias OMG.Crypto
   alias OMG.Integration.DepositHelper
@@ -113,12 +120,7 @@ defmodule OMG.Performance do
 
     DeferredConfig.populate(:omg_rpc)
 
-    url =
-      Application.get_env(:omg_rpc, OMG.RPC.Client, "http://localhost:9656")
-      |> case do
-        nil -> nil
-        opts -> Keyword.get(opts, :child_chain_url)
-      end
+    url = Application.get_env(:omg_rpc, :child_chain_url, "http://localhost:9656")
 
     defaults = %{destdir: ".", geth: System.get_env("ETHEREUM_RPC_URL") || "http://localhost:8545", child_chain: url}
     opts = Map.merge(defaults, opts)
@@ -134,6 +136,7 @@ defmodule OMG.Performance do
 
   @spec setup_simple_perftest(map()) :: {:ok, list, pid}
   defp setup_simple_perftest(opts) do
+    DeferredConfig.populate(:omg_watcher)
     {:ok, _} = Application.ensure_all_started(:briefly)
     {:ok, dbdir} = Briefly.create(directory: true, prefix: "leveldb")
     Application.put_env(:omg_db, :leveldb_path, dbdir, persistent: true)
@@ -146,15 +149,12 @@ defmodule OMG.Performance do
 
     # select just necessary components to run the tests
     children = [
-      %{
-        id: Phoenix.PubSub.PG2,
-        start: {Phoenix.PubSub.PG2, :start_link, [:eventer, []]},
-        type: :supervisor
-      },
+      {OMG.InternalEventBus, []},
       {OMG.State, []},
       {OMG.API.FreshBlocks, []},
       {OMG.API.FeeServer, []},
-      {OMG.RPC.Web.Endpoint, []}
+      {OMG.RPC.Web.Endpoint, []},
+      {OMG.RPC.Plugs.Health, []}
     ]
 
     {:ok, api_children_supervisor} = Supervisor.start_link(children, strategy: :one_for_one)

@@ -23,25 +23,28 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
          * [Using the child chain server's API](#using-the-child-chain-servers-api)
             * [HTTP-RPC](#http-rpc)
          * [Running a child chain in practice](#running-a-child-chain-in-practice)
+            * [Ethereum private key management](#ethereum-private-key-management)
+               * [geth](#geth)
+               * [parity](#parity)
+            * [Specifying the fees required](#specifying-the-fees-required)
             * [Funding the operator address](#funding-the-operator-address)
       * [Watcher](#watcher)
          * [Using the watcher](#using-the-watcher)
          * [Endpoints](#endpoints)
-         * [Websockets](#websockets)
-            * [transfer:ethereum_address](#transferethereum_address)
-            * [spends:ethereum_address](#spendsethereum_address)
-            * [receives:ethereum_address](#receivesethereum_address)
-            * [byzantine_invalid_exit](#byzantine_invalid_exit)
-            * [byzantine_bad_chain](#byzantine_bad_chain)
-            * [TODO block](#todo-block)
-            * [TODO deposit_spendable](#todo-deposit_spendable)
-            * [TODO fees](#todo-fees)
+         * [Ethereum private key management](#ethereum-private-key-management-1)
+      * [mix configuration parameters](#mix-configuration-parameters)
+         * [Generic configuration - :omg app](#generic-configuration---omg-app)
+         * [Child chain server configuration - :omg_api app](#child-chain-server-configuration---omg_api-app)
+         * [Watcher configuration - :omg_watcher app](#watcher-configuration---omg_watcher-app)
+         * [OMG.DB configuration - :omg_db app](#omgdb-configuration---omg_db-app)
+         * [OMG.Eth configuration - :omg_eth app](#omgeth-configuration---omg_eth-app)
+   * ["geth" | "parity"](#geth--parity)
       * [Contracts](#contracts)
          * [Installing dependencies and compiling contracts](#installing-dependencies-and-compiling-contracts)
    * [Testing &amp; development](#testing--development)
    * [Working with API Spec's](#working-with-api-specs)
 
-<!-- Added by: user, at: 2019-02-15T16:18+01:00 -->
+<!-- Added by: user, at: 2019-04-03T18:13+02:00 -->
 
 <!--te-->
 
@@ -139,11 +142,30 @@ All requests shall be POST with parameters provided in the request body in JSON 
 Object's properties names correspond to the names of parameters. Binary values shall be hex-encoded strings.
 
 For API documentation see: https://omisego.github.io/elixir-omg.
-Also see the [step by step transaction generation specs here](docs/tesuji_tx_integration.md).
 
 ### Running a child chain in practice
 
 **TODO** other sections
+
+#### Ethereum private key management
+
+##### `geth`
+
+Currently, the child chain server assumes that the authority account is unlocked or otherwise available on the Ethereum node.
+This might change in the future.
+
+##### `parity`
+
+Since `parity` doesn't support indefinite unlocking of the account, handling of such key is yet to be solved.
+Currently (an unsafely) such private key is read from a secret system environment variable and handed to `parity` for signing.
+
+#### Specifying the fees required
+
+The child chain server will require the incoming transactions to satisfy the fee requirement.
+The fee requirement reads that at least one token being inputted in a transaction must cover the fee as specified.
+In particular, note that the required fee must be paid in one token in its entirety.
+
+The fees are configured in the config entries for `omg_api` see [config secion](#mix-configuration-parameters).
 
 #### Funding the operator address
 
@@ -161,9 +183,6 @@ where
 ```
 child_blocks_per_day = ethereum_blocks_per_day / submit_period
 ```
-**Fee options** configured in `:omg_api, :fee_specs_file_path` and `:omg_api, :ignore_fees`.
- - ignore_fees is boolean option allowing to turn off fee charging.
- - fee_specs_file_path is path to file which define fee. Please see [fee_specs.json](fee_specs.json).
 
 **Submit period** is the number of Ethereum blocks per a single child block submission) - configured in `:omg_api, :child_block_submit_period`
 
@@ -173,14 +192,19 @@ child_blocks_per_day = ethereum_blocks_per_day / submit_period
 
 Assuming:
 - submission of a child block every Ethereum block
-- weekly cadence of funding
-- highest gas price 40 Gwei
-- 75071 gas per submission (checked for `RootChain.sol` used  [at this revision](https://github.com/omisego/omisego/commit/21dfb32fae82a59824aa19bbe7db87ecf33ecd04))
+- 15 second block interval on Ethereum, on average
+- weekly cadence of funding, i.e. `days_in_interval == 7`
+- allowing gas price up to 40 Gwei
+- `gas_per_submission == 71505` (checked for `RootChain.sol` [at this revision](https://github.com/omisego/plasma-contracts/commit/50653d52169a01a7d7d0b9e2e4e3c4a4b904f128).
+C.f. [here](https://rinkeby.etherscan.io/tx/0x1a79fdfa310f91625d93e25139e15299b4ab272ae504c56b5798a018f6f4dc7b))
 
 we get
+```   
+gas_reserve ~= (4 * 60 * 24 / 1) * 7 * 71505 * (40 / 10**9)  ~= 115 ETH
 ```
-gas_reserve ~= 4 * 60 * 24 / 1 * 7 * 75071 * 40 / 10**9  ~= 121 ETH
-```
+
+**NOTE** that the above calculation doesn't imply this is what is going to be used within a week, just a pessimistic scenario to calculate an adequate reserve.
+If one assumes an _average_ gas price of 4 Gwei, the amount is immediately reduced to ~11.5 ETH weekly.
 
 ## Watcher
 
@@ -199,87 +223,97 @@ The watcher is listening on port `7434` by default.
 
 For API documentation see: https://omisego.github.io/elixir-omg
 
-### Websockets
+### Ethereum private key management
 
-Exposed websockets are using [Phoenix channels](https://hexdocs.pm/phoenix/channels.html) feature.
-Different events are emitted for each topic.
+Watcher doesn't hold or manage user's keys.
+All signatures are assumed to be done outside.
+A planned exception may be to allow Watcher to sign challenges, but using a non-sensitive/low-funded Ethereum account.
 
-There are the following topics:
+## `mix` configuration parameters
 
-#### transfer:ethereum_address
+`Mix.Config` is currently used to configure all the parameters required to set the child chain server and watcher up.
+Per usual practice, the default values are defined in `apps/<app>/config/config.exs`.
 
-Events:
+**NOTE**: all margins are denominated in Ethereum blocks
 
-**address_received and address_spent**
+### Generic configuration - `:omg` app
 
-`address_received` event informing about that particular address received funds.
+* **`deposit_finality_margin`** - the margin that is waited after a `DepositCreated` event in the root chain contract.
+Only after this margin had passed:
+  - the child chain will allow spending the deposit
+  - the watcher will consider a transaction spending this deposit a valid transaction
 
-`address_spent` event informing about that particular address spent funds.
+  It is important that for a given child chain, the child chain server and watchers use the same value of this margin.
 
-Blocks are validated by the Watcher after a short (not-easily-configurable) finality margin. By consequence, above events will be emitted no earlier than that finality margin.
-In case extra finality is required for high-stakes transactions, the client is free to wait any number of Ethereum blocks (confirmations) on top of `submitted_at_ethheight`.
+  **NOTE**: This entry is defined in `omg`, despite not being accessed there, only in `omg_api` and `omg_watcher`.
+  The reason here is to minimize risk of Child Chain server's and Watcher's configuration entries diverging.
 
-```json
-{
-  "topic": "transfer:0xfd5374cd3fe7ba8626b173a1ca1db68696ff3692",
-  "ref": null,
-  "payload": {
-    "child_blknum": 10000,
-    "child_txindex": 12,
-    "child_block_hash": "0x0017372421f9a92bedb7163310918e623557ab5310befc14e67212b660c33bec",
-    "submited_at_ethheight": 14,
-    "tx": {
-      "signed_tx": {
-        "raw_tx": {
-          "amount1": 7,
-          "amount2": 3,
-          "blknum1": 2001,
-          "blknum2": 0,
-          "cur12": "0x0000000000000000000000000000000000000000",
-          "newowner1": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea",
-          "newowner2": "0xae8ae48796090ba693af60b5ea6be3686206523b",
-          "oindex1": 0,
-          "oindex2": 0,
-          "txindex1": 0,
-          "txindex2": 0
-        },
-        "sig1": "0x6bfb9b2dbe32 ...",
-        "sig2": "0xcedb8b31d1e4 ...",
-        "signed_tx_bytes": "0xf3170101c0940000..."
-      },
-      "tx_hash": "0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d",
-      "spender1": "0xbfdf85743ef16cfb1f8d4dd1dfc74c51dc496434",
-      "spender2": "0xb3256026863eb6ae5b06fa396ab09069784ea8ea"
-    }
-  },
-  "join_ref": null,
-  "event": "address_received"
-}
-```
+* **`ethereum_events_check_interval_ms`** - polling interval for pulling Ethereum events (logs) from the Ethereum client.
 
-**TODO** the rest of the events' specs. First draft:
+* **`coordinator_eth_height_check_interval_ms`** - polling interval for checking whether the root chain had progressed for the `RootChainCoordinator`.
+Affects how quick the services reading Ethereum events realize there's a new block.
 
-#### spends:ethereum_address
+### Child chain server configuration - `:omg_api` app
 
-Events:
+* **`submission_finality_margin`** - the margin waited before mined block submissions are purged from `BlockQueue`'s memory
 
-**address_spent**
+* **`block_queue_eth_height_check_interval_ms`** - polling interval for checking whether the root chain had progressed for the `BlockQueue` exclusively
 
-#### receives:ethereum_address
+* **`child_block_minimal_enqueue_gap`** - how many new Ethereum blocks must be mined, since previous submission **attempt**, before another block is going to be formed and submitted.
 
-Events:
+* **`fee_specs_file_path`** - path to file which defines fee requirements, see [fee_specs.json](fee_specs.json) for an example.
 
-**address_received**
+* **`ignore_fees`** - boolean option allowing to turn off fee charging altogether
 
-#### TODO block
+### Watcher configuration - `:omg_watcher` app
 
-#### TODO deposit_spendable
+* **`exit_processor_sla_margin`** - the margin to define the notion of a "late", invalid exit.
+After this margin passes, every invalid exit is deemed a critical failure of the child chain (`unchallenged_exit`).
+Such event will prompt a mass exit and stop processing new blocks.
+See [exit validation documentation](docs/exit_validation.md) for details.
 
-#### TODO fees
+* **`maximum_block_withholding_time_ms`** - for how long the Watcher will tolerate failures to get a submitted child chain block, before reporting a block withholding attack and stopping
 
-Events:
+* **`block_getter_loops_interval_ms`** - polling interval for checking new child chain blocks submissions being mined on the root chain
 
-**fees_exited**
+* **`maximum_number_of_unapplied_blocks`** - the maximum number of downloaded and statelessly validated child chain blocks to hold in queue for applying
+
+* **`exit_finality_margin`** - the margin waited before an exit-related event is considered final enough to pull and process
+
+* **`block_getter_reorg_margin`** - the margin considered by `OMG.Watcher.BlockGetter` when searching for recent child chain block submission events.
+This is driving the process of determining the height and particular event related to the submission of a particular child chain block
+
+* **`convenience_api_mode`** - whether Convenience API should be started for the Watcher.
+This setting is usually set by running the `Mix.Tasks.Xomg.Watcher.Start` with the appropriate flag.
+
+### `OMG.DB` configuration - `:omg_db` app
+
+* **`leveldb_path`** - path to the directory holding the LevelDB data store
+
+* **`server_module`** - the module to use when talking to the `OMG.DB`
+
+* **`server_name`** - the named process to refer to when talking to the `OMG.DB`
+
+### `OMG.Eth` configuration - `:omg_eth` app
+
+All binary entries are expected in hex-encoded, `0x`-prefixed.
+
+* **`contract_addr`** - the address of the root chain contract
+
+* **`authority_addr`** - the address used by the operator to submit blocks
+
+* **`txhash_contract`** - the Ethereum-transaction hash holding the deployment of the root chain contract
+
+* **`eth_node`** - the Ethereum client which is used: `"geth" | "parity"`.
+
+* **`node_logging_in_debug`** - whether the output of the Ethereum node being run in integration test should be printed to `:debug` level logs.
+If you set this to false, remember to set the logging level to `:debug` to see the logs
+
+* **`child_block_interval`** - mirror of contract configuration `uint256 constant public CHILD_BLOCK_INTERVAL` from `RootChain.sol`
+
+* **`exit_period_seconds`** - mirror of contract configuration `uint256 public minExitPeriod`
+
+* **`ethereum_client_warning_time_ms`** - queries for event logs made to the Ethereum node lasting more than this will emit a `:warn`-level log
 
 ## Contracts
 
@@ -312,6 +346,11 @@ mix test
 Longer-running integration tests (requires compiling contracts):
 ```bash
 mix test --only integration
+```
+
+To run these tests with `parity` as a backend, set it via `ETH_NODE` environmental variable (default is `geth`):
+```
+ETH_NODE=parity mix test --only integration
 ```
 
 For other kinds of checks, refer to the CI/CD pipeline (https://circleci.com/gh/omisego/workflows/elixir-omg).

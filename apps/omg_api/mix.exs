@@ -19,13 +19,8 @@ defmodule OMG.API.MixProject do
 
   def application do
     [
-      env: [
-        submission_finality_margin: 20,
-        block_queue_eth_height_check_interval_ms: 6_000,
-        child_block_minimal_enqueue_gap: 1,
-        fee_specs_file_path: nil
-      ],
       extra_applications: [:logger, :appsignal],
+      start_phases: [{:boot_done, []}],
       mod: {OMG.API.Application, []}
     ]
   end
@@ -44,7 +39,8 @@ defmodule OMG.API.MixProject do
       {:omg_status, in_umbrella: true},
       {:omg_db, in_umbrella: true},
       {:omg_eth, in_umbrella: true},
-      {:omg_rpc, in_umbrella: true}
+      {:omg_rpc, in_umbrella: true, only: [:test]},
+      {:omg_utils, in_umbrella: true, only: [:test]}
     ]
   end
 end

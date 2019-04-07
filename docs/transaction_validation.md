@@ -8,19 +8,17 @@ This document presents current way of stateless and stateful validation of
 
 #### Stateless validation
 
-1. Decoding of encoded singed transaction using `OMG.API.State.Transaction.Signed.decode` method
+1. Decoding of encoded singed transaction using `OMG.State.Transaction.Signed.decode` method
     * Decoding using `ExRLP.decode` method and if fail then `{:error, :malformed_transaction_rlp}`
+    * Decoding the raw structure of RLP items and if fail then `{:error, :malformed_transaction}`
     * Checking signatures lengths and if fail then `{:error, :bad_signature_length}`
-    * Checking addresses and if fail then `{:error, :malformed_address}`
-    * Checking if the integer fields contains integers
-2. Checking signed_tx
-    * if transaction have all inputs empty then `{:error, :no_inputs}`
+    * Checking addresses/inputs/outputs/metadata and if fail then `{:error, :malformed_address}` / `{:error, :malformed_inputs}` / `{:error, :malformed_outputs}` / `{:error, :malformed_metadata}` respectively
+2. Checking signed_tx using `OMG.State.Transaction.Recovered.recover_from`
     * if transaction have duplicated inputs then `{:error, :duplicate_inputs}`
     * if transaction's inputs intersperse with empty ones then `{:error, :inputs_contain_gaps}`
     * if transaction's outputs intersperse with empty ones then `{:error, :outputs_contain_gaps}`
     * if transaction have input and empty sig then  `{:error, :missing_signature}`
-    * if transaction have no input and empty sig then `:ok`
-3. Recovering of singed transaction using `OMG.API.State.Transaction.Recovered.recover_from`
+    * if transaction have empty input and non-empty sig then  `{:error, :superfluous_signature}`
     * Recovering address of spenders from signatures and if fail then `{:error, :signature_corrupt}`
 
 #### Stateful validation
@@ -33,3 +31,5 @@ This document presents current way of stateless and stateful validation of
     * if the owner of input does not match with spender then `{:error, :unauthorized_spent}`
 3. Checking if the amounts from the provided inputs adds up.
     * if not then `{:error, :amounts_do_not_add_up}`
+4. (if in child chain server tx submission pipeline): see if the transaction pays the correct fee.
+    * if not then `{:error, :fees_not_covered}`

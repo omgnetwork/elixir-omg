@@ -95,27 +95,8 @@ defmodule OMG.DB do
   Puts all zeroes and other init values to a generically initialized `OMG-DB`
   """
   def initiation_multiupdate(server_name \\ @server_name) do
-    # setting a number of markers to zeroes (possibly DRY it out somehow wrt. `@single_value_parameter_names`?)
-    [
-      :last_deposit_child_blknum,
-      :child_top_block_number,
-      :last_block_getter_eth_height,
-      :last_depositor_eth_height,
-      :last_convenience_deposit_processor_eth_height,
-      :last_exiter_eth_height,
-      :last_piggyback_exit_eth_height,
-      :last_in_flight_exit_eth_height,
-      :last_exit_processor_eth_height,
-      :last_convenience_exit_processor_eth_height,
-      :last_exit_finalizer_eth_height,
-      :last_exit_challenger_eth_height,
-      :last_in_flight_exit_processor_eth_height,
-      :last_piggyback_processor_eth_height,
-      :last_competitor_processor_eth_height,
-      :last_challenges_responds_processor_eth_height,
-      :last_piggyback_challenges_processor_eth_height,
-      :last_ife_exit_finalizer_eth_height
-    ]
+    # setting a number of markers to zeroes
+    single_value_parameter_names()
     |> Enum.map(&{:put, &1, 0})
     |> OMG.DB.multi_update(server_name)
   end
@@ -138,5 +119,31 @@ defmodule OMG.DB do
         _ = Logger.error("Unable to init: #{inspect(error)}")
         error
     end
+  end
+
+  @doc """
+  A list of all atoms that we use as single-values stored in the database (i.e. markers/flags of all kinds)
+  """
+  def single_value_parameter_names do
+    [
+      :child_top_block_number,
+      :last_deposit_child_blknum,
+      :last_block_getter_eth_height,
+      :last_depositor_eth_height,
+      :last_convenience_deposit_processor_eth_height,
+      :last_exiter_eth_height,
+      :last_piggyback_exit_eth_height,
+      :last_in_flight_exit_eth_height,
+      :last_exit_processor_eth_height,
+      :last_convenience_exit_processor_eth_height,
+      :last_exit_finalizer_eth_height,
+      :last_exit_challenger_eth_height,
+      :last_in_flight_exit_processor_eth_height,
+      :last_piggyback_processor_eth_height,
+      :last_competitor_processor_eth_height,
+      :last_challenges_responds_processor_eth_height,
+      :last_piggyback_challenges_processor_eth_height,
+      :last_ife_exit_finalizer_eth_height
+    ]
   end
 end

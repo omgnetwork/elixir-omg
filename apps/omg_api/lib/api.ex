@@ -14,7 +14,7 @@
 
 defmodule OMG.API do
   @moduledoc """
-  Entrypoint for all the exposed public functions of the child chain API.
+  Entrypoint for all the exposed public functions of the child chain server's API.
 
   Should handle all the initial processing of requests like state-less validity, decoding/encoding
   (but not transport-specific encoding like hex).
@@ -23,7 +23,7 @@ defmodule OMG.API do
   alias OMG.API.{FeeServer, FreshBlocks}
   alias OMG.{Block, Fees, State}
   alias OMG.State.Transaction
-  use OMG.LoggerExt
+  use OMG.Utils.LoggerExt
 
   @type submit_error() :: Transaction.Recovered.recover_tx_error() | State.exec_error()
 

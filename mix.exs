@@ -1,7 +1,7 @@
 defmodule OMG.Umbrella.MixProject do
   use Mix.Project
 
-  def umbrella_version, do: "0.1.0"
+  def umbrella_version, do: "0.2.0"
 
   def project do
     [
@@ -54,7 +54,21 @@ defmodule OMG.Umbrella.MixProject do
     [
       flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
       ignore_warnings: "dialyzer.ignore-warnings",
-      plt_add_apps: [:mix, :iex, :ex_unit, :ranch, :plug, :jason, :cowboy]
+      plt_add_apps: [
+        :mix,
+        :iex,
+        :ex_unit,
+        :ranch,
+        :plug,
+        :jason,
+        :cowboy,
+        :vmstats,
+        :briefly,
+        :propcheck,
+        :proper,
+        :fake_server,
+        :exexec
+      ]
     ]
   end
 end

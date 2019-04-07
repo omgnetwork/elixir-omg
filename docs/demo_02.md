@@ -56,7 +56,7 @@ tx =
   Transaction.new([{alice_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
   DevCrypto.sign([alice.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  OMG.RPC.Web.Encoding.to_hex()
+  OMG.Utils.HttpRPC.Encoding.to_hex()
 
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
@@ -94,7 +94,7 @@ tx2 =
   Transaction.new([{exiting_utxo_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
   DevCrypto.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  OMG.RPC.Web.Encoding.to_hex()
+  OMG.Utils.HttpRPC.Encoding.to_hex()
 
 # FIRST you need to spend in transaction as above, so that the exit then is in fact invalid and challengeable
 ~c(echo '{"transaction": "#{tx2}"}' | http POST #{child_chain_url}/transaction.submit) |>
@@ -142,7 +142,7 @@ tx3 =
   Transaction.new([{bob_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
   DevCrypto.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  OMG.RPC.Web.Encoding.to_hex()
+  OMG.Utils.HttpRPC.Encoding.to_hex()
 
 %{"success" => true} =
   ~c(echo '{"transaction": "#{tx3}"}' | http POST #{child_chain_url}/transaction.submit) |>
@@ -177,7 +177,7 @@ tx4 =
   Transaction.new([{spend_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
   DevCrypto.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  OMG.RPC.Web.Encoding.to_hex()
+  OMG.Utils.HttpRPC.Encoding.to_hex()
 
 # and send using httpie
 ~c(echo '{"transaction": "#{tx4}"}' | http POST #{child_chain_url}/transaction.submit) |>

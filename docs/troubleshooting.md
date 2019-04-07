@@ -19,9 +19,3 @@ Ensure `solc` is at at least the required version (see [installation instruction
 ```
 mix deps.compile plasma_contracts
 ```
-
-## To re-activate the virtualenv
-```
-cd ~
-source DEV/bin/activate
-```
