@@ -1308,11 +1308,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:error, :unknown_ife} = Core.get_input_challenge_data(request, state, comp3_txbytes, 0)
     end
 
-    @tag fixtures: [:invalid_piggyback_on_input, :competing_transactions]
+    @tag fixtures: [:invalid_piggyback_on_input]
     test "fail when asked to produce proof for wrong badly encoded tx",
-         %{invalid_piggyback_on_input: %{state: state, request: request}, competing_transactions: [_, _, comp3 | _]} do
-      corrupted_txbytes = "corruption" <> Transaction.raw_txbytes(comp3)
-      assert {:error, :malformed_transaction_rlp} = Core.get_input_challenge_data(request, state, corrupted_txbytes, 0)
+         %{invalid_piggyback_on_input: %{state: state, request: request}} do
+      assert {:error, :malformed_transaction} = Core.get_input_challenge_data(request, state, <<0>>, 0)
+      assert {:error, :malformed_transaction} = Core.get_output_challenge_data(request, state, <<0>>, 0)
     end
 
     @tag fixtures: [:invalid_piggyback_on_input]
@@ -1927,6 +1927,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
+
+    @tag fixtures: [:processor_empty]
+    test "for malformed input txbytes doesn't crash",
+         %{processor_empty: processor} do
+      assert {:error, :malformed_transaction} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> Core.get_competitor_for_ife(processor, <<0>>)
+    end
   end
 
   describe "detects the need and allows to respond to canonicity challenges" do
@@ -1979,6 +1987,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:error, :canonical_not_found} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> Core.prove_canonical_for_ife(txbytes)
+    end
+
+    test "for malformed input txbytes doesn't crash" do
+      assert {:error, :malformed_transaction} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5} |> Core.prove_canonical_for_ife(<<0>>)
     end
 
     @tag fixtures: [:processor_filled]
