@@ -15,13 +15,15 @@ Run a developer's Child chain server, Watcher and start IEx REPL with code and c
 # we're going to be using the exthereum's client to geth's JSON RPC
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
-alias OMG.{API, Eth}
-alias OMG.API.Crypto
-alias OMG.API.DevCrypto
-alias OMG.API.State.Transaction
-alias OMG.API.TestHelper
-alias OMG.API.Integration.DepositHelper
+alias OMG.Eth
+alias OMG.Crypto
+alias OMG.DevCrypto
+alias OMG.State.Transaction
+alias OMG.TestHelper
+alias OMG.Integration.DepositHelper
 alias OMG.Eth.Encoding
+
+DeferredConfig.populate(:omg_eth)
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
@@ -54,7 +56,7 @@ tx =
   Transaction.new([{alice_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
   DevCrypto.sign([alice.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  OMG.RPC.Web.Encoding.to_hex()
+  OMG.Utils.HttpRPC.Encoding.to_hex()
 
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
@@ -62,7 +64,7 @@ tx =
 %{"data" => %{"txhash" => tx1_hash}} =
   ~c(echo '{"transaction": "#{tx}"}' | http POST #{child_chain_url}/transaction.submit) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 # see the Watcher getting a 1-txs block
 
@@ -72,32 +74,32 @@ tx =
 
 ~c(echo '{"id": "#{tx1_hash}"}' | http POST #{watcher_url}/transaction.get) |>
 :os.cmd() |>
-Poison.decode!()
+Jason.decode!()
 
 %{"data" => [_bobs_deposit, %{"blknum" => exiting_utxo_blknum, "txindex" => 0, "oindex" => 0}]} =
   ~c(echo '{"address": "#{bob_enc}"}' | http POST #{watcher_url}/account.get_utxos) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 # 3/ Exiting, challenging invalid exits
 
-exiting_utxopos = OMG.API.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
+exiting_utxopos = OMG.Utxo.Position.encode({:utxo_position, exiting_utxo_blknum, 0, 0})
 
 %{"data" => composed_exit} =
   ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST #{watcher_url}/utxo.get_exit_data) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 tx2 =
   Transaction.new([{exiting_utxo_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
   DevCrypto.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  OMG.RPC.Web.Encoding.to_hex()
+  OMG.Utils.HttpRPC.Encoding.to_hex()
 
 # FIRST you need to spend in transaction as above, so that the exit then is in fact invalid and challengeable
 ~c(echo '{"transaction": "#{tx2}"}' | http POST #{child_chain_url}/transaction.submit) |>
 :os.cmd() |>
-Poison.decode!()
+Jason.decode!()
 
 {:ok, txhash} =
   Eth.RootChain.start_exit(
@@ -112,7 +114,7 @@ Eth.WaitFor.eth_receipt(txhash)
   ~c(echo '{"utxo_pos": #{exiting_utxopos}}' | http POST #{watcher_url}/utxo.get_challenge_data) |>
   to_charlist() |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 {:ok, txhash} =
   OMG.Eth.RootChain.challenge_exit(
@@ -140,12 +142,12 @@ tx3 =
   Transaction.new([{bob_deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
   DevCrypto.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  OMG.RPC.Web.Encoding.to_hex()
+  OMG.Utils.HttpRPC.Encoding.to_hex()
 
 %{"success" => true} =
   ~c(echo '{"transaction": "#{tx3}"}' | http POST #{child_chain_url}/transaction.submit) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 # see Watcher's console logs to see the struggle and final give-in. You can restart the Watcher many times
 
@@ -155,12 +157,12 @@ tx3 =
 
 # let's break the Child chain now and say that duplicates every transaction submitted!
 
-# in order to do that, you need to duplicate the `|> add_pending_tx(recovered_tx)` in API.State.Core module,
+# in order to do that, you need to duplicate the `|> add_pending_tx(recovered_tx)` in State.Core module,
 # around line 160
 
 # now, with the code "broken" go to the `iex` REPL of the child chain and recompile the module
 
-r(OMG.API.State.Core)
+r(OMG.State.Core)
 
 # let's do a broken spend:
 
@@ -169,18 +171,18 @@ r(OMG.API.State.Core)
   ~c(echo '{"address": "#{bob_enc}"}' | http POST #{watcher_url}/utxo.get) |>
   to_charlist() |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 tx4 =
   Transaction.new([{spend_blknum, 0, 0}], [{bob.addr, eth, 7}]) |>
   DevCrypto.sign([bob.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  OMG.RPC.Web.Encoding.to_hex()
+  OMG.Utils.HttpRPC.Encoding.to_hex()
 
 # and send using httpie
 ~c(echo '{"transaction": "#{tx4}"}' | http POST #{child_chain_url}/transaction.submit) |>
 :os.cmd() |>
-Poison.decode!()
+Jason.decode!()
 
 # See the Watcher stop on an error
 ```

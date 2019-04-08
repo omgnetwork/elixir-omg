@@ -277,6 +277,12 @@ class WatcherLauncher:
                 )
                 sys.exit(1)
 
+        if self.update_watcher_postgres_database() is False:
+            logging.critical(
+                'Could not update the Postgres database Exiting.'
+            )
+            sys.exit(1)
+
         logging.info('Launcher process complete')
 
     def compile_application(self) -> bool:
@@ -384,7 +390,7 @@ class WatcherLauncher:
         '''
         os.chdir(os.path.expanduser('~') + '/elixir-omg')
         result = subprocess.run(
-            'mix ecto.reset --no-start',
+            "mix ecto.reset",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True
@@ -394,6 +400,26 @@ class WatcherLauncher:
             return True
         logging.critical(
             'Could not initialise the database. Error: {}'.format(
+                result.stdout
+            )
+        )
+        return False
+
+    def update_watcher_postgres_database(self) -> bool:
+        ''' Updates the watcher postgres database with latest migration scripts
+        '''
+        os.chdir(os.path.expanduser('~') + '/elixir-omg')
+        result = subprocess.run(
+            "mix ecto.migrate",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            shell=True
+        )
+        if result.returncode == 0:
+            logging.info('Watcher Postgres - all migrations up')
+            return True
+        logging.critical(
+            'Could not migrate the database. Error: {}'.format(
                 result.stdout
             )
         )

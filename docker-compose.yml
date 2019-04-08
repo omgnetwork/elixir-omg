@@ -11,21 +11,6 @@ services:
       timeout: 3s
       retries: 5
 
-  childchain_db:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_USER: omisego_dev
-      POSTGRES_PASSWORD: omisego_dev
-      POSTGRES_DB: omisego_dev
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: pg_isready -U omisego_dev
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
   watcher_db:
     image: postgres
     restart: always
@@ -60,7 +45,7 @@ services:
 
   childchain:
     image: elixir-omg:dockercompose
-    entrypoint: /bin/bash -c "./launcher.py && mix xomg.child_chain.start --config ~/config.exs"
+    entrypoint: /bin/bash -c "./launcher.py && elixir --erl '-sname childchain' -S mix xomg.child_chain.start --config ~/config.exs"
     environment:
       - MIX_ENV=dev
       - EXIT_PERIOD_SECONDS=86400
@@ -85,7 +70,7 @@ services:
 
   watcher:
     image: elixir-omg:dockercompose
-    entrypoint: /bin/bash -c "./launcher.py && mix ecto.reset --no-start && mix xomg.watcher.start --convenience --config ~/config_watcher.exs"
+    entrypoint: /bin/bash -c "./launcher.py && mix ecto.reset --no-start && elixir --erl '-sname watcher' -S mix xomg.watcher.start --convenience --config ~/config_watcher.exs "
     environment:
       - MIX_ENV=dev
       - ELIXIR_SERVICE=WATCHER
@@ -93,7 +78,7 @@ services:
       - ETHEREUM_RPC_URL=http://docker.for.mac.localhost:8545
       - CHILD_CHAIN_URL=http://docker.for.mac.localhost:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
-      - DATABASE_URL=postgres://omisego_dev:omisego_dev@docker.for.mac.localhost:5432/omisego_dev
+      - DATABASE_URL=postgres://omisego_dev:omisego_dev@docker.for.mac.localhost:5433/omisego_dev
     restart: always
     ports:
       - "7434:7434"

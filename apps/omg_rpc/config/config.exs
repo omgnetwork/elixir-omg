@@ -10,12 +10,10 @@ use Mix.Config
 config :omg_rpc,
   child_chain_api_module: OMG.API
 
-config :omg_rpc, OMG.RPC.Client, child_chain_url: {:system, "CHILD_CHAIN_URL", "http://localhost:9656"}
-
 # Configures the endpoint
 config :omg_rpc, OMG.RPC.Web.Endpoint,
-  secret_key_base: "TKO1TD87rXknWy9NhAGiEdv0cXm6W88/8G1E0uV0LISh998yZYNNPRZ5vfEexceb",
-  render_errors: [view: OMG.RPC.Web.ErrorView, accepts: ~w(json)],
+  secret_key_base: {:system, "SECRET_KEY_BASE"},
+  render_errors: [view: OMG.RPC.Web.Views.Error, accepts: ~w(json)],
   instrumenters: [Appsignal.Phoenix.Instrumenter]
 
 # Use Poison for JSON parsing in Phoenix

@@ -21,7 +21,9 @@ Such configuration must become part of the [Mix configuration](https://hexdocs.p
 1. (**Watcher only**) Configure PostgreSQL for `WatcherDB` database
 1. (**Watcher only**) Acquire the configuration file with root chain deployment data
 1. (**Watcher only**, optional) If running on the same machine as the child chain server, customize the location of `OMG.DB` database folder
-1. (**Watcher only**) Configure the child chain url (default is `http://localhost:9656`) by configuring `:omg_rpc, OMG.RPC.Web.Endpoint` with `http: [port: 9656]`
+1. (**Watcher only**) Configure the child chain url (default is `http://localhost:9656`) by:
+    - configuring `:omg_watcher, :child_chain_url` with `"desired_childchain_url"`
+    - configuring with an environment variable `CHILD_CHAIN_URL=desired_childchain_url`
 1. (**Watcher only**) Initialize the Watcher's `OMG.DB` database
 1. (**Watcher only**) Create and migrate the PostgreSQL `WatcherDB` database
 1. (**Watcher only**) At this point the Watcher should be properly setup to run by starting the `omg_watcher` Mix app
@@ -29,7 +31,7 @@ Such configuration must become part of the [Mix configuration](https://hexdocs.p
 ### Setting up a child chain server (a developer environment)
 #### Start up developer instance of Ethereum
 The easiest way to get started is if you have access to a developer instance of `geth`.
-If you don't already have access to a developer instance of `geth`, follow the [installation](docs/install.md) instructions.
+If you don't already have access to a developer instance of `geth`, follow the [installation](./install.md) instructions.
 
 A developer instance of `geth` runs Ethereum locally and prefunds an account.
 However, when `geth` terminates, the state of the Ethereum network is lost.
@@ -59,6 +61,8 @@ geth --rinkeby --rpc --rpcapi personal,web3,eth,net  --rpcaddr 127.0.0.1
 Parity can be used instead of Geth. Two environment variables must be set:
 * `ETH_NODE=parity` - to tell watcher and or child-chain to use parity.
 * `SIGNER_PASSPHRASE=your-passphrase` - for the child chain server, to [unlock](https://github.com/paritytech/parity-ethereum/issues/1215#issuecomment-224317361) the account.
+
+You will also need to enable specific JSON-RPC APIs using switch: `--jsonrpc-apis personal,eth,web3,parity_accounts`
 
 #### Prepare and configure the root chain contract
 
@@ -120,11 +124,15 @@ The database files are put at the default location `~/.omg/data`.
 You need to re-initialize the database, in case you want to start a new child chain from scratch!
 
 #### Start it up!
+
+The child chain server is listening on port `9656` by default.
+To customize, run the child chain server with environment variable `PORT` set to a different value.
+
 * Start up geth if not already started.
 * Start Up the child chain server:
 
 ```bash
-iex -S mix xomg.child_chain.start --config ~/config.exs
+mix xomg.child_chain.start --config ~/config.exs
 ```
 
 ### Setting up a Watcher (a developer environment)
@@ -167,11 +175,14 @@ mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
 
 #### Start the Watcher
 
+The watcher is listening on port `7434` by default.
+To customize, run with environment variable `PORT` set to a different value.
+
 It is possible to run the watcher in two different modes: "`security critical`" and "`security critical` + `convenience`"
 The one that should be chosen currently is `security critical` + `convenience` mode, which provides all the expected functionality:
 
 ```bash
-iex -S mix xomg.watcher.start --convenience --config ~/config_watcher.exs
+mix xomg.watcher.start --convenience --config ~/config_watcher.exs
 ```
 
 > "security critical" mode can be started by omitting the `--convenience` flag, but this not fully implemented yet

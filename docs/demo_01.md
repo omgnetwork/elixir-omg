@@ -11,12 +11,14 @@ Run a developer's Child chain server and start IEx REPL with code and config loa
 # we're going to be using the exthereum's client to geth's JSON RPC
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
-alias OMG.{API, Eth}
-alias OMG.API.Crypto
-alias OMG.API.DevCrypto
-alias OMG.API.State.Transaction
-alias OMG.API.TestHelper
-alias OMG.API.Integration.DepositHelper
+alias OMG.Eth
+alias OMG.Crypto
+alias OMG.DevCrypto
+alias OMG.State.Transaction
+alias OMG.TestHelper
+alias OMG.Integration.DepositHelper
+
+DeferredConfig.populate(:omg_eth)
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
@@ -37,7 +39,7 @@ tx =
   Transaction.new([{deposit_blknum, 0, 0}], [{bob.addr, eth, 7}, {alice.addr, eth, 3}]) |>
   DevCrypto.sign([alice.priv, <<>>]) |>
   Transaction.Signed.encode() |>
-  OMG.RPC.Web.Encoding.to_hex()
+  OMG.Utils.HttpRPC.Encoding.to_hex()
 
 # submits a transaction to the child chain
 # this only will work after the deposit has been "consumed" by the child chain, be patient (~15sec)
@@ -45,16 +47,16 @@ tx =
 %{"data" => %{"blknum" => child_tx_block_number}} =
   ~c(echo '{"transaction": "#{tx}"}' | http POST #{child_chain_url}/transaction.submit) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 # with that block number, we can ask the root chain to give us the block hash
 {:ok, {block_hash, _}} = Eth.RootChain.get_child_chain(child_tx_block_number)
-block_hash_enc = OMG.RPC.Web.Encoding.to_hex(block_hash)
+block_hash_enc = OMG.Utils.HttpRPC.Encoding.to_hex(block_hash)
 
 # with the block hash we can get the whole block
 ~c(echo '{"hash":"#{block_hash_enc}"}' | http POST #{child_chain_url}/block.get) |>
 :os.cmd() |>
-Poison.decode!()
+Jason.decode!()
 
 # if you were watching, you could have decoded and validated the transaction bytes in the block
 ```

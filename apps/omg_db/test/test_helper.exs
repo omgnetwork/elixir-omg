@@ -13,4 +13,5 @@
 # limitations under the License.
 
 ExUnit.configure(exclude: [wrappers: true])
+ExUnitFixtures.load_fixture_files()
 ExUnit.start()

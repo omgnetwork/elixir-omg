@@ -11,13 +11,15 @@ Run a developer's Child chain server, Watcher, and start IEx REPL with code and 
 # we're going to be using the exthereum's client to geth's JSON RPC
 {:ok, _} = Application.ensure_all_started(:ethereumex)
 
-alias OMG.{API, Eth}
-alias OMG.API.Crypto
-alias OMG.API.DevCrypto
-alias OMG.API.Integration.DepositHelper
-alias OMG.API.State.Transaction
-alias OMG.API.TestHelper
+alias OMG.Eth
+alias OMG.Crypto
+alias OMG.DevCrypto
+alias OMG.Integration.DepositHelper
+alias OMG.State.Transaction
+alias OMG.TestHelper
 alias OMG.Eth.Encoding
+
+DeferredConfig.populate(:omg_eth)
 
 alice = TestHelper.generate_entity()
 bob = TestHelper.generate_entity()
@@ -48,7 +50,7 @@ tx =
 %{"data" => %{"blknum" => child_tx_block_number, "txindex" => tx_index}} =
   ~c(echo '{"transaction": "#{tx}"}' | http POST #{child_chain_url}/transaction.submit) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 # create an in-flight transaction that uses tx's output as an input
 in_flight_tx_bytes =
@@ -62,7 +64,7 @@ in_flight_tx_bytes =
 %{"data" => get_in_flight_exit_response} =
   ~c(echo '{"txbytes": "#{in_flight_tx_bytes}"}' | http POST #{watcher_url}/in_flight_exit.get_data) |>
   :os.cmd() |>
-  Poison.decode!()
+  Jason.decode!()
 
 # call root chain function that initiates in-flight exit
 {:ok, txhash} =

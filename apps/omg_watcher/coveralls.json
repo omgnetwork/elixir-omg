@@ -1,5 +1,5 @@
 {
   "skip_files": [
-    "test/support", "mix/tasks"
+    "test/support"
   ]
 }

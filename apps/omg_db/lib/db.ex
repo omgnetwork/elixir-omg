@@ -30,9 +30,7 @@ defmodule OMG.DB do
   @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
 
   def multi_update(db_updates, server_name \\ @server_name) do
-    {duration, result} = :timer.tc(fn -> GenServer.call(server_name, {:multi_update, db_updates}) end)
-    _ = Logger.debug("DB.multi_update done in #{inspect(round(duration / 1000))} ms")
-    result
+    GenServer.call(server_name, {:multi_update, db_updates})
   end
 
   @spec blocks(block_to_fetch :: list(), atom) :: {:ok, list()} | {:error, any}
@@ -94,6 +92,16 @@ defmodule OMG.DB do
   end
 
   @doc """
+  Puts all zeroes and other init values to a generically initialized `OMG-DB`
+  """
+  def initiation_multiupdate(server_name \\ @server_name) do
+    # setting a number of markers to zeroes
+    single_value_parameter_names()
+    |> Enum.map(&{:put, &1, 0})
+    |> OMG.DB.multi_update(server_name)
+  end
+
+  @doc """
   Does all of the initialization of `OMG.DB` based on the configured path
   """
   def init(server_name \\ @server_name) do
@@ -114,13 +122,12 @@ defmodule OMG.DB do
   end
 
   @doc """
-  Puts all zeroes and other init values to a generically initialized `OMG-DB`
+  A list of all atoms that we use as single-values stored in the database (i.e. markers/flags of all kinds)
   """
-  def initiation_multiupdate(server_name \\ @server_name) do
-    # setting a number of markers to zeroes (possibly DRY it out somehow wrt. `@single_value_parameter_names`?)
+  def single_value_parameter_names do
     [
-      :last_deposit_child_blknum,
       :child_top_block_number,
+      :last_deposit_child_blknum,
       :last_block_getter_eth_height,
       :last_depositor_eth_height,
       :last_convenience_deposit_processor_eth_height,
@@ -138,7 +145,5 @@ defmodule OMG.DB do
       :last_piggyback_challenges_processor_eth_height,
       :last_ife_exit_finalizer_eth_height
     ]
-    |> Enum.map(&{:put, &1, 0})
-    |> OMG.DB.multi_update(server_name)
   end
 end

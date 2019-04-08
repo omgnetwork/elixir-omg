@@ -16,9 +16,8 @@ defmodule OMG.Watcher.TestHelper do
   @moduledoc """
   Module provides common testing functions used by App's tests.
   """
-
-  alias OMG.API.Utxo
-  alias OMG.RPC.Web.Encoding
+  alias OMG.Utils.HttpRPC.Encoding
+  alias OMG.Utxo
 
   require Utxo
 
@@ -62,7 +61,7 @@ defmodule OMG.Watcher.TestHelper do
 
     response = request |> send_request
     assert response.status == expected_resp_status
-    Poison.decode!(response.resp_body)
+    Jason.decode!(response.resp_body)
   end
 
   defp send_request(req) do

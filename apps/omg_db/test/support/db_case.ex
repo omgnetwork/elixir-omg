@@ -32,6 +32,6 @@ defmodule OMG.DB.Case do
     :ok = OMG.DB.LevelDBServer.init_storage(dir)
     name = :"TestDB_#{test_name}"
     {:ok, pid} = GenServer.start_link(OMG.DB.LevelDBServer, %{db_path: dir, name: name}, name: name)
-    {:ok, %{db_dir: dir, db_pid: pid}}
+    {:ok, %{db_dir: dir, db_pid: pid, db_pid_name: name}}
   end
 end
