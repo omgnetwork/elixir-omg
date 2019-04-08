@@ -1828,32 +1828,26 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
 
-      assert %{spends_to_get: []} =
-               %ExitProcessor.Request{
-                 utxos_to_check: [Utxo.position(1, 0, 0)],
-                 utxo_exists_result: [false]
-               }
-               |> Core.determine_spends_to_get(processor)
+      assert %{utxos_to_check: []} =
+               %ExitProcessor.Request{blknum_now: @late_blknum} |> Core.determine_utxo_existence_to_get(processor)
     end
 
-    @tag fixtures: [:alice, :processor_empty, :transactions]
-    test "by not asking for utxo spends concerning finalized ifes",
-         %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
-      txbytes = Transaction.raw_txbytes(tx)
-      %{sigs: [signature, _]} = DevCrypto.sign(tx, [alice.priv, <<>>])
+    @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
+    test "by not asking for utxo existence concerning finalized ifes",
+         %{
+           processor_empty: processor,
+           in_flight_exit_events: [ife | _],
+           contract_ife_statuses: [{_, ife_id} = ife_status | _]
+         } do
+      {processor, _} = Core.new_in_flight_exits(processor, [ife], [ife_status])
+      tx_hash = ife_tx_hash(ife)
+      piggybacks = [%{tx_hash: tx_hash, output_index: 1}, %{tx_hash: tx_hash, output_index: 2}]
+      {processor, _} = Core.new_piggybacks(processor, piggybacks)
+      finalizations = [%{in_flight_exit_id: ife_id, output_index: 1}, %{in_flight_exit_id: ife_id, output_index: 2}]
+      {:ok, processor, _} = Core.finalize_in_flight_exits(processor, finalizations)
 
-      ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
-      # inactive
-      ife_status = {0, @non_zero_exit_id}
-
-      {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
-
-      assert %{spends_to_get: []} =
-               %ExitProcessor.Request{
-                 utxos_to_check: [Utxo.position(1, 0, 0)],
-                 utxo_exists_result: [false]
-               }
-               |> Core.determine_spends_to_get(processor)
+      assert %{utxos_to_check: []} =
+               %ExitProcessor.Request{blknum_now: @late_blknum} |> Core.determine_utxo_existence_to_get(processor)
     end
 
     @tag fixtures: [:processor_empty]
