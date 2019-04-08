@@ -1306,6 +1306,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{invalid_piggyback_on_input: %{state: state, request: request}, competing_transactions: [_, _, comp3 | _]} do
       comp3_txbytes = Transaction.raw_txbytes(comp3)
       assert {:error, :unknown_ife} = Core.get_input_challenge_data(request, state, comp3_txbytes, 0)
+      assert {:error, :unknown_ife} = Core.get_output_challenge_data(request, state, comp3_txbytes, 0)
     end
 
     @tag fixtures: [:invalid_piggyback_on_input]
@@ -1319,6 +1320,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "fail when asked to produce proof for illegal oindex",
          %{invalid_piggyback_on_input: %{state: state, request: request, ife_txbytes: txbytes}} do
       assert {:error, :piggybacked_index_out_of_range} = Core.get_input_challenge_data(request, state, txbytes, -1)
+      assert {:error, :piggybacked_index_out_of_range} = Core.get_output_challenge_data(request, state, txbytes, -1)
     end
 
     @tag fixtures: [:invalid_piggyback_on_output]

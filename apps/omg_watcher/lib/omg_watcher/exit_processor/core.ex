@@ -683,7 +683,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   def get_output_challenge_data(request, state, txbytes, output_index) do
-    case output_index in 0..(Transaction.max_inputs() - 1) do
+    case output_index in 0..(Transaction.max_outputs() - 1) do
       true -> get_piggyback_challenge_data(request, state, txbytes, output_index + 4)
       false -> {:error, :piggybacked_index_out_of_range}
     end
@@ -751,17 +751,16 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec get_invalid_piggybacks(ExitProcessor.Request.t(), __MODULE__.t()) :: [
           {binary, [Transaction.input_index_t()], [Transaction.input_index_t()]}
         ]
-  def get_invalid_piggybacks(
-        %ExitProcessor.Request{blocks_result: blocks},
-        state
-      ) do
+  defp get_invalid_piggybacks(
+         %ExitProcessor.Request{blocks_result: blocks},
+         state
+       ) do
     known_txs = get_known_txs(state) ++ get_known_txs(blocks)
     bad_piggybacks_on_inputs = get_invalid_piggybacks_on_inputs(known_txs, state)
     bad_piggybacks_on_outputs = get_invalid_piggybacks_on_outputs(known_txs, state)
     # produce only one event per IFE, with both piggybacks on inputs and outputs
     (bad_piggybacks_on_inputs ++ bad_piggybacks_on_outputs)
-    |> Enum.map(&Tuple.delete_at(&1, 0))
-    |> Enum.group_by(&elem(&1, 0), fn {_, ins, outs, _} ->
+    |> Enum.group_by(&elem(&1, 1), fn {_, _, ins, outs, _} ->
       {ins, outs}
     end)
     |> Enum.map(fn {txhash, zipped_bad_piggyback_indexes} ->
