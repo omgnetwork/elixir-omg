@@ -98,6 +98,12 @@ defmodule OMG.Watcher.Web.Controller.InFlightExitTest do
     end
 
     @tag fixtures: [:phoenix_ecto_sandbox]
+    test "behaves well if input malformed" do
+      assert %{"code" => "get_in_flight_exit:malformed_transaction"} =
+               TestHelper.no_success?("/in_flight_exit.get_data", %{"txbytes" => "0x00"})
+    end
+
+    @tag fixtures: [:phoenix_ecto_sandbox]
     test "responds with error for malformed in-flight transaction bytes" do
       assert %{
                "code" => "operation:bad_request",

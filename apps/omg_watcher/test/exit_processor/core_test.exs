@@ -1150,6 +1150,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
+
+    @tag fixtures: [:processor_empty]
+    test "for malformed input txbytes doesn't crash",
+         %{processor_empty: processor} do
+      assert {:error, :malformed_transaction} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> Core.get_competitor_for_ife(processor, <<0>>)
+    end
   end
 
   describe "detects the need and allows to respond to canonicity challenges" do
@@ -1205,6 +1213,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:error, :canonical_not_found} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> Core.prove_canonical_for_ife(txbytes)
+    end
+
+    test "for malformed input txbytes doesn't crash" do
+      assert {:error, :malformed_transaction} =
+               %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
+               |> Core.prove_canonical_for_ife(<<0>>)
     end
 
     @tag fixtures: [:processor_filled]
