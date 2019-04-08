@@ -154,7 +154,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.zip(exit_contract_statuses)
       |> Enum.map(fn {event, contract_status} ->
         %{eth_height: eth_height, call_data: %{utxo_pos: utxo_pos, output_tx: txbytes}} = event
-        Utxo.position(_, _, oindex) = utxo_pos_decoded = Utxo.Position.decode(utxo_pos)
+        Utxo.position(_, _, oindex) = utxo_pos_decoded = Utxo.Position.decode!(utxo_pos)
         {:ok, raw_tx} = Transaction.decode(txbytes)
         %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
 
@@ -283,7 +283,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp get_positions_from_events(exits) do
     exits
-    |> Enum.map(fn %{utxo_pos: utxo_pos} = _finalization_info -> Utxo.Position.decode(utxo_pos) end)
+    |> Enum.map(fn %{utxo_pos: utxo_pos} = _finalization_info -> Utxo.Position.decode!(utxo_pos) end)
   end
 
   defp delete_positions(utxo_positions),

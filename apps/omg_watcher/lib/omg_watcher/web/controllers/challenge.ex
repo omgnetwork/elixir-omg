@@ -27,7 +27,7 @@ defmodule OMG.Watcher.Web.Controller.Challenge do
   """
   def get_utxo_challenge(conn, params) do
     with {:ok, utxo_pos} <- expect(params, "utxo_pos", :pos_integer),
-         utxo <- Utxo.Position.decode(utxo_pos) do
+         {:ok, utxo} <- Utxo.Position.decode(utxo_pos) do
       utxo
       |> API.Utxo.create_challenge()
       |> api_response(conn, :challenge)

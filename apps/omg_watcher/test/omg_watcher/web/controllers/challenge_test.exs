@@ -75,4 +75,10 @@ defmodule OMG.Watcher.Web.Controller.ChallengeTest do
              }
            } == TestHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => "1200000120000"})
   end
+
+  @tag fixtures: [:phoenix_ecto_sandbox]
+  test "utxo.get_exit_data handles too low utxo position inputs" do
+    assert %{"object" => "error", "code" => "get_utxo_challenge:encoded_utxo_position_too_low"} =
+             TestHelper.no_success?("utxo.get_challenge_data", %{"utxo_pos" => 1000})
+  end
 end

@@ -225,7 +225,7 @@ defmodule OMG.Watcher.ExitProcessor do
       exits
       |> Enum.map(fn %{exit_id: exit_id} ->
         {:ok, {_, _, _, utxo_pos}} = Eth.RootChain.get_standard_exit(exit_id)
-        Utxo.Position.decode(utxo_pos)
+        Utxo.Position.decode!(utxo_pos)
       end)
 
     {:ok, db_updates_from_state, validities} = State.exit_utxos(exits)
