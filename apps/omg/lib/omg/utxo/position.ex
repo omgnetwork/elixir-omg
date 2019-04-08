@@ -41,14 +41,22 @@ defmodule OMG.Utxo.Position do
   def encode(Utxo.position(blknum, txindex, oindex)),
     do: blknum * @block_offset + txindex * @transaction_offset + oindex
 
-  @spec decode(pos_integer()) :: t()
+  @spec decode!(pos_integer()) :: t()
+  def decode!(encoded) do
+    {:ok, decoded} = decode(encoded)
+    decoded
+  end
+
+  @spec decode(pos_integer()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low}
   def decode(encoded) when encoded >= @block_offset do
     blknum = div(encoded, @block_offset)
     txindex = encoded |> rem(@block_offset) |> div(@transaction_offset)
     oindex = rem(encoded, @transaction_offset)
 
-    Utxo.position(blknum, txindex, oindex)
+    {:ok, Utxo.position(blknum, txindex, oindex)}
   end
+
+  def decode(encoded) when is_number(encoded), do: {:error, :encoded_utxo_position_too_low}
 
   @spec non_zero?(t()) :: boolean()
   def non_zero?(Utxo.position(0, 0, 0)), do: false

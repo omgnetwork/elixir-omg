@@ -80,7 +80,7 @@ defmodule OMG.Watcher.DB.EthEvent do
   end
 
   @spec utxo_pos_from_exit_event(%{call_data: %{utxo_pos: pos_integer()}}) :: Utxo.Position.t()
-  defp utxo_pos_from_exit_event(%{call_data: %{utxo_pos: utxo_pos}}), do: Utxo.Position.decode(utxo_pos)
+  defp utxo_pos_from_exit_event(%{call_data: %{utxo_pos: utxo_pos}}), do: Utxo.Position.decode!(utxo_pos)
 
   @spec insert_exit!(Utxo.Position.t()) :: {:ok, %__MODULE__{}} | {:error, Ecto.Changeset.t()}
   defp insert_exit!(Utxo.position(blknum, txindex, _oindex) = position) do
