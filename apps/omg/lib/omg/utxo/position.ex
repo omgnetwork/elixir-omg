@@ -41,7 +41,10 @@ defmodule OMG.Utxo.Position do
   def encode(Utxo.position(blknum, txindex, oindex)),
     do: blknum * @block_offset + txindex * @transaction_offset + oindex
 
-  @spec decode!(pos_integer()) :: t()
+  # NOTE: the `__MODULE__` in the below spec if clearly redundant, but one gets:
+  #       "Type specification is a supertype of the success typing." if it isn't there.
+  #       Fix thanks to Ino. No idea why would this affect dialyzing
+  @spec decode!(pos_integer()) :: __MODULE__.t()
   def decode!(encoded) do
     {:ok, decoded} = decode(encoded)
     decoded
