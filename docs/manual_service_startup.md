@@ -17,7 +17,7 @@ A high level flow of the setup for both is outlined below.
 The configuration keys can be looked up at [`apps/omg_eth/config/config.exs`](apps/omg_eth/config/config.exs).
 Such configuration must become part of the [Mix configuration](https://hexdocs.pm/mix/Mix.Config.html) for the app you're going to be running.
 1. Initialize the child chain server's `OMG.DB` database.
-1. At this point the child chain server should be properly setup to run by starting the `omg_api` Mix app
+1. At this point the child chain server should be properly setup to run by starting the `omg_child_chain` Mix app
 1. (**Watcher only**) Configure PostgreSQL for `WatcherDB` database
 1. (**Watcher only**) Acquire the configuration file with root chain deployment data
 1. (**Watcher only**, optional) If running on the same machine as the child chain server, customize the location of `OMG.DB` database folder

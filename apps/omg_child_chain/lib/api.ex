@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API do
+defmodule OMG.ChildChain do
   @moduledoc """
   Entrypoint for all the exposed public functions of the child chain server's API.
 
@@ -20,8 +20,11 @@ defmodule OMG.API do
   (but not transport-specific encoding like hex).
   """
 
-  alias OMG.API.{FeeServer, FreshBlocks}
-  alias OMG.{Block, Fees, State}
+  alias OMG.Block
+  alias OMG.ChildChain.FeeServer
+  alias OMG.ChildChain.FreshBlocks
+  alias OMG.Fees
+  alias OMG.State
   alias OMG.State.Transaction
   use OMG.Utils.LoggerExt
 

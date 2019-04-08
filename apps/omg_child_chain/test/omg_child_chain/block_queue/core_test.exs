@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.BlockQueue.CoreTest do
+defmodule OMG.ChildChain.BlockQueue.CoreTest do
   @moduledoc false
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureLog
-  import OMG.API.BlockQueue.Core
+  import OMG.ChildChain.BlockQueue.Core
 
-  alias OMG.API.BlockQueue.Core
+  alias OMG.ChildChain.BlockQueue.Core
 
   @child_block_interval 1000
 

@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.FreshBlocks do
+defmodule OMG.ChildChain.FreshBlocks do
   @moduledoc """
   Allows for quick access to a fresh subset of blocks by keeping them in memory, independent of `OMG.DB`.
   """
 
   use OMG.Utils.LoggerExt
 
-  alias OMG.API.FreshBlocks.Core
   alias OMG.Block
+  alias OMG.ChildChain.FreshBlocks.Core
   alias OMG.DB
 
   ##### Client

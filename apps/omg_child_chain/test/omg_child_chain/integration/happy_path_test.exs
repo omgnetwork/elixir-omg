@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Integration.HappyPathTest do
+defmodule OMG.ChildChain.Integration.HappyPathTest do
   @moduledoc """
   Tests a simple happy path of all the pieces working together
   """
@@ -69,10 +69,10 @@ defmodule OMG.API.Integration.HappyPathTest do
     # Restart everything to check persistance and revival.
     # NOTE: this is an integration test of the critical data persistence in the child chain
     #       See various ...PersistenceTest tests for more detailed tests of persistence behaviors
-    [:omg_api, :omg_eth, :omg_db] |> Enum.each(&Application.stop/1)
-    {:ok, started_apps} = Application.ensure_all_started(:omg_api)
+    [:omg_child_chain, :omg_eth, :omg_db] |> Enum.each(&Application.stop/1)
+    {:ok, started_apps} = Application.ensure_all_started(:omg_child_chain)
     # sanity check, did-we restart really?
-    assert Enum.member?(started_apps, :omg_api)
+    assert Enum.member?(started_apps, :omg_child_chain)
 
     # repeat spending to see if all works
     raw_tx2 = Transaction.new([{spend_child_block, 0, 0}, {spend_child_block, 0, 1}], [{alice.addr, @eth, 10}])

@@ -34,7 +34,7 @@ The `elixir-omg` repository contains OmiseGO's Elixir implementation of Plasma a
          * [Ethereum private key management](#ethereum-private-key-management-1)
       * [mix configuration parameters](#mix-configuration-parameters)
          * [Generic configuration - :omg app](#generic-configuration---omg-app)
-         * [Child chain server configuration - :omg_api app](#child-chain-server-configuration---omg_api-app)
+         * [Child chain server configuration - :omg_child_chain app](#child-chain-server-configuration---omg_child_chain-app)
          * [Watcher configuration - :omg_watcher app](#watcher-configuration---omg_watcher-app)
          * [OMG.DB configuration - :omg_db app](#omgdb-configuration---omg_db-app)
          * [OMG.Eth configuration - :omg_eth app](#omgeth-configuration---omg_eth-app)
@@ -111,14 +111,14 @@ Solutions to common problems may be found in the [troubleshooting](docs/troubles
 `elixir-omg` is an umbrella app comprising of several Elixir applications:
 
 The general idea of the apps responsibilities is:
-  - `omg_api` - child chain server
+  - `omg_child_chain` - child chain server
     - tracks Ethereum for things happening in the root chain contract (deposits/exits)
     - gathers transactions, decides on validity, forms blocks, persists
     - submits blocks to the root chain contract
-    - see `apps/omg_api/lib/application.ex` for a rundown of children processes involved
+    - see `apps/omg_child_chain/lib/omg_child_chain/application.ex` for a rundown of children processes involved
   - `omg_db` - wrapper around the child chain server's database to store the UTXO set and blocks necessary for state persistence
   - `omg_eth` - wrapper around the [Ethereum RPC client](https://github.com/exthereum/ethereumex)
-  - `omg_rpc` - an HTTP-RPC server being the gateway to `omg_api`
+  - `omg_rpc` - an HTTP-RPC server being the gateway to `omg_child_chain`
   - `omg_performance` - performance tester for the child chain server
   - `omg_watcher` - the [Watcher](#watcher)
 
@@ -126,7 +126,7 @@ See [application architecture](docs/architecture.md) for more details.
 
 ## Child chain server
 
-`:omg_api` is the Elixir app which runs the child chain server, whose API is exposed by `:omg_rpc`.
+`:omg_child_chain` is the Elixir app which runs the child chain server, whose API is exposed by `:omg_rpc`.
 
 For the responsibilities and design of the child chain server see [Tesuji Plasma Blockchain Design document](docs/tesuji_blockchain_design.md).
 
@@ -137,7 +137,7 @@ The child chain server is listening on port `9656` by default.
 #### HTTP-RPC
 
 HTTP-RPC requests are served up on the port specified in `omg_rpc`'s `config` (`:omg_rpc, OMG.RPC.Web.Endpoint, http: [port: ...]`).
-The available RPC calls are defined by `omg_api` in `api.ex` - paths follow RPC convention e.g. `block.get`, `transaction.submit`.
+The available RPC calls are defined by `omg_child_chain` in `api.ex` - paths follow RPC convention e.g. `block.get`, `transaction.submit`.
 All requests shall be POST with parameters provided in the request body in JSON object.
 Object's properties names correspond to the names of parameters. Binary values shall be hex-encoded strings.
 
@@ -165,7 +165,7 @@ The child chain server will require the incoming transactions to satisfy the fee
 The fee requirement reads that at least one token being inputted in a transaction must cover the fee as specified.
 In particular, note that the required fee must be paid in one token in its entirety.
 
-The fees are configured in the config entries for `omg_api` see [config secion](#mix-configuration-parameters).
+The fees are configured in the config entries for `omg_child_chain` see [config secion](#mix-configuration-parameters).
 
 #### Funding the operator address
 
@@ -184,7 +184,7 @@ where
 child_blocks_per_day = ethereum_blocks_per_day / submit_period
 ```
 
-**Submit period** is the number of Ethereum blocks per a single child block submission) - configured in `:omg_api, :child_block_submit_period`
+**Submit period** is the number of Ethereum blocks per a single child block submission) - configured in `:omg_child_chain, :child_block_submit_period`
 
 **Highest gas price** is the maximum gas price which the operator allows for when trying to have the block submission mined (operator always tries to pay less than that maximum, but has to adapt to Ethereum traffic) - configured in (**TODO** when doing OMG-47 task)
 
@@ -199,7 +199,7 @@ Assuming:
 C.f. [here](https://rinkeby.etherscan.io/tx/0x1a79fdfa310f91625d93e25139e15299b4ab272ae504c56b5798a018f6f4dc7b))
 
 we get
-```   
+```
 gas_reserve ~= (4 * 60 * 24 / 1) * 7 * 71505 * (40 / 10**9)  ~= 115 ETH
 ```
 
@@ -245,7 +245,7 @@ Only after this margin had passed:
 
   It is important that for a given child chain, the child chain server and watchers use the same value of this margin.
 
-  **NOTE**: This entry is defined in `omg`, despite not being accessed there, only in `omg_api` and `omg_watcher`.
+  **NOTE**: This entry is defined in `omg`, despite not being accessed there, only in `omg_child_chain` and `omg_watcher`.
   The reason here is to minimize risk of Child Chain server's and Watcher's configuration entries diverging.
 
 * **`ethereum_events_check_interval_ms`** - polling interval for pulling Ethereum events (logs) from the Ethereum client.
@@ -253,7 +253,7 @@ Only after this margin had passed:
 * **`coordinator_eth_height_check_interval_ms`** - polling interval for checking whether the root chain had progressed for the `RootChainCoordinator`.
 Affects how quick the services reading Ethereum events realize there's a new block.
 
-### Child chain server configuration - `:omg_api` app
+### Child chain server configuration - `:omg_child_chain` app
 
 * **`submission_finality_margin`** - the margin waited before mined block submissions are purged from `BlockQueue`'s memory
 
