@@ -31,6 +31,13 @@ defmodule OMG.Watcher.DB.TransactionTest do
 
       assert length(transactions) == 5
     end
+
+    @tag fixtures: [:alice, :initial_blocks]
+    test "gets all transactions for an address with limit = 1", %{alice: alice} do
+      transactions = DB.Transaction.get_by_filters(alice.addr, nil, 1)
+
+      assert length(transactions) == 1
+    end
   end
 
   @tag fixtures: [:initial_blocks]

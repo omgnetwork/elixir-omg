@@ -26,7 +26,7 @@ defmodule OMG.Watcher.DB.TxOutput do
 
   require Utxo
 
-  import Ecto.Query, only: [from: 2, where: 2, where: 3, select: 3]
+  import Ecto.Query, only: [from: 2, where: 2]
 
   @type balance() :: %{
           currency: binary(),
@@ -56,14 +56,6 @@ defmodule OMG.Watcher.DB.TxOutput do
 
     belongs_to(:spending_transaction, DB.Transaction, foreign_key: :spending_txhash, references: :txhash, type: :binary)
     belongs_to(:exit, DB.EthEvent, foreign_key: :spending_exit, references: :hash, type: :binary)
-  end
-
-  @spec get_all_by_address(String.t()) :: [%TxOuput{}]
-  def get_all_by_address(address) do
-    TxOutput
-    |> where([o], o.owner == ^address)
-    |> select([o], {o.creating_txhash, o.spending_txhash})
-    |> Repo.all()
   end
 
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
