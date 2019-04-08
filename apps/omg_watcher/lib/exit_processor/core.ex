@@ -614,7 +614,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     known_txs = get_known_txs(blocks) ++ get_known_txs(state)
 
     # find its competitor and use it to prepare the requested data
-    with {:ok, %InFlightExitInfo{tx: %Transaction.Signed{} = signed_ife_tx}} <- get_ife(ife_txbytes, state),
+    with {:ok, raw_ife_tx} <- Transaction.decode(ife_txbytes),
+         {:ok, %InFlightExitInfo{tx: %Transaction.Signed{} = signed_ife_tx}} <- get_ife(raw_ife_tx, state),
          {:ok, known_signed_tx} <- find_competitor(known_txs, signed_ife_tx),
          do: {:ok, prepare_competitor_response(known_signed_tx, signed_ife_tx, blocks)}
   end
@@ -630,9 +631,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         ife_txbytes
       ) do
     known_txs = get_known_txs(blocks)
-    {:ok, raw_ife_tx} = Transaction.decode(ife_txbytes)
 
-    with {:ok, %KnownTx{utxo_pos: known_tx_utxo_pos}} <- find_canonical(known_txs, raw_ife_tx),
+    with {:ok, raw_ife_tx} <- Transaction.decode(ife_txbytes),
+         {:ok, %KnownTx{utxo_pos: known_tx_utxo_pos}} <- find_canonical(known_txs, raw_ife_tx),
          do: {:ok, prepare_canonical_response(ife_txbytes, known_tx_utxo_pos, blocks)}
   end
 
@@ -769,9 +770,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     address != @zero_address
   end
 
-  defp get_ife(txbytes, %__MODULE__{in_flight_exits: ifes}) do
-    {:ok, raw_ife_tx} = Transaction.decode(txbytes)
-
+  defp get_ife(raw_ife_tx, %__MODULE__{in_flight_exits: ifes}) do
     case ifes[Transaction.hash(raw_ife_tx)] do
       nil -> {:error, :ife_not_known_for_tx}
       value -> {:ok, value}
