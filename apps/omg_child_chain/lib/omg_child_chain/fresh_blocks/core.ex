@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.FreshBlocks.Core do
+defmodule OMG.ChildChain.FreshBlocks.Core do
   @moduledoc """
   Logic of the service to serve freshest blocks quickly.
   """

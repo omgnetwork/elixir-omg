@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.MonitorTest do
+defmodule OMG.ChildChain.MonitorTest do
   @moduledoc false
   alias OMG.Alert.Alarm
   alias OMG.Alert.AlarmHandler
-  alias OMG.API.Monitor
+  alias OMG.ChildChain.Monitor
   use ExUnit.Case, async: true
   @moduletag :integration
   @moduletag timeout: 120_000

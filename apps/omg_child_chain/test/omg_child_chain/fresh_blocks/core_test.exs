@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.FreshBlocks.CoreTest do
+defmodule OMG.ChildChain.FreshBlocks.CoreTest do
   use ExUnit.Case, async: true
 
-  alias OMG.API.FreshBlocks.Core
   alias OMG.Block
+  alias OMG.ChildChain.FreshBlocks.Core
 
   def generate_blocks(range) do
     Enum.map(range, &%Block{hash: &1})

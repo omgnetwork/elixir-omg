@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.BlockQueue.Core do
+defmodule OMG.ChildChain.BlockQueue.Core do
   @moduledoc """
   Responsible for keeping a queue of blocks lined up for submission to Ethereum.
   Responsible for determining the cadence of forming/submitting blocks to Ethereum.
@@ -29,12 +29,12 @@ defmodule OMG.API.BlockQueue.Core do
   Note that first nonce (zero) of authority account is used to deploy RootChain.
   Every next nonce is used to submit operator blocks.
 
-  This is the functional core: has no side-effects or side-causes, for the effectful shell see `OMG.API.BlockQueue`
+  This is the functional core: has no side-effects or side-causes, for the effectful shell see `OMG.ChildChain.BlockQueue`
   """
 
-  alias OMG.API.BlockQueue
-  alias OMG.API.BlockQueue.Core
-  alias OMG.API.BlockQueue.GasPriceAdjustment
+  alias OMG.ChildChain.BlockQueue
+  alias OMG.ChildChain.BlockQueue.Core
+  alias OMG.ChildChain.BlockQueue.GasPriceAdjustment
 
   use OMG.Utils.LoggerExt
 

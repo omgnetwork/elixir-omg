@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.API.Supervisor do
+defmodule OMG.ChildChain.Supervisor do
   @moduledoc """
-   OMG.API top level supervisor.
+   OMG.ChildChain top level supervisor.
   """
   use Supervisor
   use OMG.Utils.LoggerExt
@@ -25,11 +25,11 @@ defmodule OMG.API.Supervisor do
   end
 
   def init(:ok) do
-    DeferredConfig.populate(:omg_api)
+    DeferredConfig.populate(:omg_child_chain)
     DeferredConfig.populate(:omg_eth)
 
     monitor_children = [
-      {OMG.API.BlockQueue.Server, []},
+      {OMG.ChildChain.BlockQueue.Server, []},
       {OMG.RootChainCoordinator, coordinator_setup()},
       OMG.EthereumEventListener.prepare_child(
         service_name: :depositor,
@@ -60,9 +60,9 @@ defmodule OMG.API.Supervisor do
     children = [
       {OMG.InternalEventBus, []},
       {OMG.State, []},
-      {OMG.API.FreshBlocks, []},
-      {OMG.API.FeeServer, []},
-      {OMG.API.Monitor, [Alarm, monitor_children]}
+      {OMG.ChildChain.FreshBlocks, []},
+      {OMG.ChildChain.FeeServer, []},
+      {OMG.ChildChain.Monitor, [Alarm, monitor_children]}
     ]
 
     opts = [strategy: :one_for_one]

@@ -27,7 +27,7 @@ defmodule OMG.Performance do
   ```
 
   ## start_extended_perftest runs test with 100 transactions for one specified account and default options.
-  ## extended test is run on testnet make sure you followed instruction in `README.md` and both `geth` and `omg_api` are running
+  ## extended test is run on testnet make sure you followed instruction in `README.md` and both `geth` and `omg_child_chain` are running
 
   ```
   mix run --no-start -e 'OMG.Performance.start_extended_perftest(100, [%{ addr: <<192, 206, 18, ...>>, priv: <<246, 22, 164, ...>>}], "0xbc5f ...")'
@@ -151,8 +151,8 @@ defmodule OMG.Performance do
     children = [
       {OMG.InternalEventBus, []},
       {OMG.State, []},
-      {OMG.API.FreshBlocks, []},
-      {OMG.API.FeeServer, []},
+      {OMG.ChildChain.FreshBlocks, []},
+      {OMG.ChildChain.FeeServer, []},
       {OMG.RPC.Web.Endpoint, []},
       {OMG.RPC.Plugs.Health, []}
     ]
