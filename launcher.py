@@ -390,7 +390,7 @@ class WatcherLauncher:
         '''
         os.chdir(os.path.expanduser('~') + '/elixir-omg')
         result = subprocess.run(
-            'mix ecto.reset --no-start',
+            "mix ecto.reset --no-start",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True
@@ -410,7 +410,7 @@ class WatcherLauncher:
         '''
         os.chdir(os.path.expanduser('~') + '/elixir-omg')
         result = subprocess.run(
-            'mix ecto.migrate --no-start',
+            "mix ecto.migrate --no-start",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True
