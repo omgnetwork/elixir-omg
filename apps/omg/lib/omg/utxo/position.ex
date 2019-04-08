@@ -49,10 +49,7 @@ defmodule OMG.Utxo.Position do
 
   @spec decode(pos_integer()) :: {:ok, t()} | {:error, :encoded_utxo_position_too_low}
   def decode(encoded) when encoded >= @block_offset do
-    blknum = div(encoded, @block_offset)
-    txindex = encoded |> rem(@block_offset) |> div(@transaction_offset)
-    oindex = rem(encoded, @transaction_offset)
-
+    {blknum, txindex, oindex} = get_position(encoded)
     {:ok, Utxo.position(blknum, txindex, oindex)}
   end
 
@@ -71,4 +68,12 @@ defmodule OMG.Utxo.Position do
   def blknum(Utxo.position(blknum, _, _)), do: blknum
   def txindex(Utxo.position(_, txindex, _)), do: txindex
   def oindex(Utxo.position(_, _, oindex)), do: oindex
+
+  @spec get_position(pos_integer()) :: {pos_integer, non_neg_integer, non_neg_integer}
+  defp get_position(encoded) do
+    blknum = div(encoded, @block_offset)
+    txindex = encoded |> rem(@block_offset) |> div(@transaction_offset)
+    oindex = rem(encoded, @transaction_offset)
+    {blknum, txindex, oindex}
+  end
 end
