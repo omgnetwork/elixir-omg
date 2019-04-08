@@ -25,8 +25,7 @@ defmodule OMG.Watcher.DB.Transaction do
 
   require Utxo
 
-  # , only: [from: 2, where: 3, join: 5]
-  import Ecto.Query
+  import Ecto.Query, only: [from: 2, where: 3, select: 3, join: 5, distinct: 2]
 
   @type mined_block() :: %{
           transactions: [OMG.API.State.Transaction.Recovered.t()],
