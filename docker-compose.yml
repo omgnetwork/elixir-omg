@@ -93,7 +93,7 @@ services:
       - ETHEREUM_RPC_URL=http://docker.for.mac.localhost:8545
       - CHILD_CHAIN_URL=http://docker.for.mac.localhost:9656
       - ETHEREUM_NETWORK=LOCALCHAIN
-      - DATABASE_URL=postgres://omisego_dev:omisego_dev@docker.for.mac.localhost:5432/omisego_dev
+      - DATABASE_URL=postgres://omisego_dev:omisego_dev@docker.for.mac.localhost:5433/omisego_dev
     restart: always
     ports:
       - "7434:7434"
