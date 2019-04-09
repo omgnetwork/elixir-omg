@@ -46,7 +46,7 @@ defmodule OMG.ChildChain.Application do
   defp alarm, do: {:boot_in_progress, Node.self(), __MODULE__}
 
   defp set_fee_specs_file do
-    app_name = :omg_api
+    app_name = :omg_child_chain
     fee_specs_file_path = :fee_specs_file_path
     current = Application.fetch_env!(app_name, fee_specs_file_path)
 

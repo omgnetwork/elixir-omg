@@ -136,7 +136,7 @@ defmodule OMG.Performance do
   end
 
   # Hackney is http-client httpoison's dependency.
-  # We start omg_api app that will will start omg_rpc
+  # We start omg_child_chain app that will will start omg_rpc
   # (because of it's dependency when mix env == test).
   # We don't need :omg application so we stop it and clear all alarms it raised
   # (otherwise omg_rpc gets notified of alarms and halts requests).
@@ -152,7 +152,7 @@ defmodule OMG.Performance do
 
     :ok = OMG.DB.init()
 
-    started_apps = ensure_all_started([:omg_db, :cowboy, :hackney, :omg_api])
+    started_apps = ensure_all_started([:omg_db, :cowboy, :hackney, :omg_child_chain])
 
     :ok = Application.stop(:omg)
     :ok = Supervisor.terminate_child(OMG.API.Supervisor, OMG.API.Monitor)

@@ -49,8 +49,8 @@ release :watcher do
   set(
     applications: [
       :runtime_tools,
-      omg: :permanent,
       omg_watcher: :permanent,
+      omg: :permanent,
       omg_status: :permanent,
       omg_db: :permanent,
       omg_eth: :permanent,
@@ -66,14 +66,14 @@ release :watcher do
   )
 end
 
-release :childchain do
+release :child_chain do
   set(version: "0.2.0")
 
   set(
     applications: [
       :runtime_tools,
+      omg_child_chain: :permanent,
       omg: :permanent,
-      omg_api: :permanent,
       omg_status: :permanent,
       omg_db: :permanent,
       omg_eth: :permanent,
@@ -84,7 +84,7 @@ release :childchain do
 
   set(
     commands: [
-      init_kv_db: "rel/commands/childchain/init_kv_db.sh"
+      init_kv_db: "rel/commands/child_chain/init_kv_db.sh"
     ]
   )
 end

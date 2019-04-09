@@ -17,7 +17,7 @@
 set +e
 
 print_usage() {
-    printf "Usage: bin/childchain initkvdb [OPTS]\\n"
+    printf "Usage: bin/child_chain initkvdb [OPTS]\\n"
     printf "\\n"
     printf "Init the database.\\n"
     printf "\\n"
@@ -45,4 +45,4 @@ while true; do
     esac
 done
 
-exec "$RELEASE_ROOT_DIR/bin/childchain" command Elixir.OMG.API.ReleaseTasks.InitKVDB run
+exec "$RELEASE_ROOT_DIR/bin/child_chain" command Elixir.OMG.API.ReleaseTasks.InitKVDB run
