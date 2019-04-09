@@ -503,6 +503,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   pertain to IFE transaction inputs.
 
   Assumes that UTXOs that haven't been checked (i.e. not a key in `utxo_exists?` map) **exist**
+
+  To proceed with validation/proof building, this function must ask for blocks that satisfy following criteria:
+    1/ blocks where any input to any IFE was spent
+    2/ blocks where any output to any IFE was spent
+    3/ blocks where the whole IFE transaction **might've** been included, to get piggyback availability and to get InvalidIFEChallenge's
   """
   @spec determine_spends_to_get(ExitProcessor.Request.t(), __MODULE__.t()) :: ExitProcessor.Request.t()
   def determine_spends_to_get(
@@ -528,6 +533,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @doc """
   Figures out which numbers of "spending transaction blocks" to get for the outputs on IFEs utxos.
+
+  To proceed with validation/proof building, this function must ask for blocks that satisfy following criteria:
+    1/ blocks, where any output from an IFE tx might have been created, by including such IFE tx
+
   Similar to `determine_spends_to_get`, otherwise.
   """
   @spec determine_ife_spends_to_get(ExitProcessor.Request.t(), __MODULE__.t()) :: ExitProcessor.Request.t()
@@ -548,37 +557,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> :lists.usort()
 
     %{request | piggybacked_spends_to_get: spends_to_get}
-  end
-
-  @doc """
-  Figures out which block numbers to ask from the database, based on the blknums where relevant UTXOs were spent and
-  (in the future) some additional insights from the state of ExitProcessor (eg. only get the oldest block per ife)
-
-  This function must return blocks that satisfy following criteria:
-    1/ blocks where any input to any IFE was spent
-    2/ blocks where any output to any IFE was spent
-    3/ blocks where the whole IFE transaction **might've** been included, to get piggyback availability and to get InvalidIFEChallenge's
-
-  """
-  @spec determine_blocks_to_get(ExitProcessor.Request.t()) :: ExitProcessor.Request.t()
-  def determine_blocks_to_get(
-        %ExitProcessor.Request{
-          spent_blknum_result: spent_blknum_result
-        } = request
-      ) do
-    %{request | blknums_to_get: :lists.usort(spent_blknum_result)}
-  end
-
-  @doc """
-  Similar to `determine_blocks_to_get`, but for possibly spent, piggybacked outputs of IFEs.
-  """
-  @spec determine_ife_blocks_to_get(ExitProcessor.Request.t()) :: ExitProcessor.Request.t()
-  def determine_ife_blocks_to_get(
-        %ExitProcessor.Request{
-          piggybacked_spent_blknum_result: spent_blknum_result
-        } = request
-      ) do
-    %{request | piggybacked_blknums_to_get: :lists.usort(spent_blknum_result)}
   end
 
   @doc """

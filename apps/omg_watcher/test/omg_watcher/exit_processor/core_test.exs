@@ -1189,11 +1189,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         |> Core.determine_ife_spends_to_get(processor)
 
       assert Utxo.position(1, 0, 0) in request.piggybacked_spends_to_get
-
-      assert %ExitProcessor.Request{piggybacked_blknums_to_get: [1]} =
-               exit_processor_request
-               |> struct!(%{piggybacked_spends_to_get: [Utxo.position(1, 0, 0)], piggybacked_spent_blknum_result: [1]})
-               |> Core.determine_ife_blocks_to_get()
     end
 
     @tag fixtures: [:alice, :carol, :processor_filled, :transactions, :ife_tx_hashes]
@@ -1890,18 +1885,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {Utxo.position(1, 0, 0), false} in Enum.zip(utxos_to_check, utxo_exists_result)
       assert Utxo.position(1, 0, 0) in spends_to_get
-    end
-
-    test "by asking for the right blocks",
-         %{} do
-      # NOTE: for now test trivial, because we don't require any filtering yet
-      assert %{blknums_to_get: [1000]} =
-               %ExitProcessor.Request{spent_blknum_result: [1000]} |> Core.determine_blocks_to_get()
-
-      assert %{blknums_to_get: []} = %ExitProcessor.Request{spent_blknum_result: []} |> Core.determine_blocks_to_get()
-
-      assert %{blknums_to_get: [1000, 2000]} =
-               %ExitProcessor.Request{spent_blknum_result: [2000, 1000]} |> Core.determine_blocks_to_get()
     end
 
     @tag fixtures: [:processor_filled]

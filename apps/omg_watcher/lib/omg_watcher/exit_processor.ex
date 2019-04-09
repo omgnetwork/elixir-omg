@@ -306,9 +306,7 @@ defmodule OMG.Watcher.ExitProcessor do
       |> Core.determine_utxo_existence_to_get(state)
       |> run_utxo_exists()
       |> Core.determine_spends_to_get(state)
-      |> run_spend_getting()
-      |> Core.determine_blocks_to_get()
-      |> run_block_getting()
+      |> run_spending_block_getting()
       |> Core.get_competitor_for_ife(state, txbytes)
 
     {:reply, competitor_result, state}
@@ -323,9 +321,7 @@ defmodule OMG.Watcher.ExitProcessor do
       |> Core.determine_utxo_existence_to_get(state)
       |> run_utxo_exists()
       |> Core.determine_spends_to_get(state)
-      |> run_spend_getting()
-      |> Core.determine_blocks_to_get()
-      |> run_block_getting()
+      |> run_spending_block_getting()
       |> Core.prove_canonical_for_ife(txbytes)
 
     {:reply, canonicity_result, state}
@@ -338,9 +334,7 @@ defmodule OMG.Watcher.ExitProcessor do
       |> Core.determine_utxo_existence_to_get(state)
       |> run_utxo_exists()
       |> Core.determine_spends_to_get(state)
-      |> run_spend_getting()
-      |> Core.determine_blocks_to_get()
-      |> run_block_getting()
+      |> run_spending_block_getting()
       |> Core.get_input_challenge_data(state, txbytes, input_index)
 
     {:reply, response, state}
@@ -388,10 +382,7 @@ defmodule OMG.Watcher.ExitProcessor do
       |> run_ife_input_utxo_existance()
       # Next, check by what transactions they were spent.
       |> Core.determine_ife_spends_to_get(state)
-      |> run_ife_spend_getting()
-      # Find tx bodies.
-      |> Core.determine_ife_blocks_to_get()
-      |> run_ife_block_getting()
+      |> run_ife_tx_block_getting()
       # Compare found txes with ife.tx.
       # If equal, persist information about position.
       |> Core.find_ifes_in_blocks(state)
@@ -401,9 +392,7 @@ defmodule OMG.Watcher.ExitProcessor do
       |> Core.determine_utxo_existence_to_get(state)
       |> run_utxo_exists()
       |> Core.determine_spends_to_get(state)
-      |> run_spend_getting()
-      |> Core.determine_blocks_to_get()
-      |> run_block_getting()
+      |> run_spending_block_getting()
 
     {state, request}
   end
@@ -416,62 +405,37 @@ defmodule OMG.Watcher.ExitProcessor do
     %{request | eth_height_now: eth_height_now, blknum_now: blknum_now}
   end
 
-  defp run_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions} = request) do
+  defp run_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions} = request),
+    do: %{request | utxo_exists_result: do_utxo_existence(positions)}
+
+  defp run_ife_input_utxo_existance(%ExitProcessor.Request{piggybacked_utxos_to_check: positions} = request),
+    do: %{request | piggybacked_utxo_exists_result: do_utxo_existence(positions)}
+
+  defp do_utxo_existence(positions) do
     result = positions |> Enum.map(&State.utxo_exists?/1)
     _ = Logger.debug("utxos_to_check: #{inspect(positions)}, utxo_exists_result: #{inspect(result)}")
-    %{request | utxo_exists_result: result}
+    result
   end
 
-  defp run_ife_input_utxo_existance(%ExitProcessor.Request{piggybacked_utxos_to_check: positions} = request) do
-    result = positions |> Enum.map(&State.utxo_exists?/1)
+  defp run_spending_block_getting(%ExitProcessor.Request{spends_to_get: positions} = request),
+    do: %{request | blocks_result: do_spending_block_getting(positions)}
 
-    _ =
-      Logger.debug(
-        "piggybacked_utxos_to_check: #{inspect(positions)}, piggybacked_utxo_exists_result: #{inspect(result)}"
-      )
+  defp run_ife_tx_block_getting(%ExitProcessor.Request{piggybacked_spends_to_get: positions} = request),
+    do: %{request | piggybacked_blocks_result: do_spending_block_getting(positions)}
 
-    %{request | piggybacked_utxo_exists_result: result}
-  end
-
-  defp run_spend_getting(%ExitProcessor.Request{spends_to_get: positions} = request) do
-    result = positions |> Enum.map(&single_spend_getting/1)
-    _ = Logger.debug("spends_to_get: #{inspect(positions)}, spent_blknum_result: #{inspect(result)}")
-    %{request | spent_blknum_result: result}
-  end
-
-  defp run_ife_spend_getting(%ExitProcessor.Request{piggybacked_spends_to_get: positions} = request) do
-    result = positions |> Enum.map(&single_spend_getting/1)
-
-    _ =
-      Logger.debug(
-        "piggybacked_spends_to_get: #{inspect(positions)}, piggybacked_spent_blknum_result: #{inspect(result)}"
-      )
-
-    %{request | piggybacked_spent_blknum_result: result}
-  end
-
-  defp single_spend_getting(position) do
-    {:ok, spend_blknum} =
-      position
-      |> Utxo.Position.to_db_key()
-      |> OMG.DB.spent_blknum()
-
-    spend_blknum
-  end
-
-  defp run_block_getting(%ExitProcessor.Request{blknums_to_get: blknums} = request),
-    do: %{request | blocks_result: do_block_getting(blknums)}
-
-  defp run_ife_block_getting(%ExitProcessor.Request{piggybacked_blknums_to_get: blknums} = request),
-    do: %{request | piggybacked_blocks_result: do_block_getting(blknums)}
-
-  defp do_block_getting(blknums) do
-    _ = Logger.debug("blknums_to_get: #{inspect(blknums)}")
+  defp do_spending_block_getting(positions) do
+    blknums = positions |> Enum.map(&single_spend_getting/1)
+    _ = Logger.debug("spends_to_get: #{inspect(positions)}, spent_blknum_result: #{inspect(blknums)}")
     {:ok, hashes} = OMG.DB.block_hashes(blknums)
     _ = Logger.debug("hashes: #{inspect(hashes)}")
     {:ok, blocks} = OMG.DB.blocks(hashes)
     _ = Logger.debug("blocks_result: #{inspect(blocks)}")
 
     blocks |> Enum.map(&Block.from_db_value/1)
+  end
+
+  defp single_spend_getting(position) do
+    {:ok, spend_blknum} = position |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum()
+    spend_blknum
   end
 end
