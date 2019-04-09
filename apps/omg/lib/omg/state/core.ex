@@ -390,7 +390,7 @@ defmodule OMG.State.Core do
   end
 
   def exit_utxos([encoded_utxo_pos | _] = exit_infos, %Core{} = state) when is_integer(encoded_utxo_pos) do
-    exit_infos |> Enum.map(&Utxo.Position.decode/1) |> exit_utxos(state)
+    exit_infos |> Enum.map(&Utxo.Position.decode!/1) |> exit_utxos(state)
   end
 
   def exit_utxos([%{call_data: %{in_flight_tx: _}} | _] = in_flight_txs, %Core{} = state) do

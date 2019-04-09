@@ -113,7 +113,7 @@ defmodule OMG.EthereumClientMonitor do
 
   defp raise_clear(_alarm_module, false, _), do: :ok
 
-  defp eth, do: Application.get_env(:omg_api, :eth_integration_module, Eth)
+  defp eth, do: Application.get_env(:omg_child_chain, :eth_integration_module, Eth)
 
   defp install do
     case Enum.member?(:gen_event.which_handlers(:alarm_handler), __MODULE__) do

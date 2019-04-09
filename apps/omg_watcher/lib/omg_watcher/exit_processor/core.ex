@@ -154,7 +154,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.zip(exit_contract_statuses)
       |> Enum.map(fn {event, contract_status} ->
         %{eth_height: eth_height, call_data: %{utxo_pos: utxo_pos, output_tx: txbytes}} = event
-        Utxo.position(_, _, oindex) = utxo_pos_decoded = Utxo.Position.decode(utxo_pos)
+        Utxo.position(_, _, oindex) = utxo_pos_decoded = Utxo.Position.decode!(utxo_pos)
         {:ok, raw_tx} = Transaction.decode(txbytes)
         %{amount: amount, currency: currency, owner: owner} = raw_tx |> Transaction.get_outputs() |> Enum.at(oindex)
 
@@ -283,7 +283,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   defp get_positions_from_events(exits) do
     exits
-    |> Enum.map(fn %{utxo_pos: utxo_pos} = _finalization_info -> Utxo.Position.decode(utxo_pos) end)
+    |> Enum.map(fn %{utxo_pos: utxo_pos} = _finalization_info -> Utxo.Position.decode!(utxo_pos) end)
   end
 
   defp delete_positions(utxo_positions),
@@ -1050,7 +1050,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     known_txs = get_known_txs(blocks) ++ get_known_txs(state)
 
     # find its competitor and use it to prepare the requested data
-    with {:ok, %InFlightExitInfo{tx: signed_ife_tx}} <- get_ife(ife_txbytes, state),
+    with {:ok, ife_tx} <- Transaction.decode(ife_txbytes),
+         {:ok, %InFlightExitInfo{tx: signed_ife_tx}} <- get_ife(ife_tx, state),
          {:ok, known_signed_tx} <- find_competitor(known_txs, signed_ife_tx),
          do: {:ok, prepare_competitor_response(known_signed_tx, signed_ife_tx, blocks)}
   end
@@ -1066,9 +1067,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
         ife_txbytes
       ) do
     known_txs = get_known_txs(blocks)
-    {:ok, raw_ife_tx} = Transaction.decode(ife_txbytes)
 
-    with {:ok, %KnownTx{utxo_pos: known_tx_utxo_pos}} <- find_canonical(known_txs, raw_ife_tx),
+    with {:ok, raw_ife_tx} <- Transaction.decode(ife_txbytes),
+         {:ok, %KnownTx{utxo_pos: known_tx_utxo_pos}} <- find_canonical(known_txs, raw_ife_tx),
          do: {:ok, prepare_canonical_response(ife_txbytes, known_tx_utxo_pos, blocks)}
   end
 
@@ -1232,10 +1233,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     address != @zero_address
   end
 
-  defp get_ife(txbytes, %__MODULE__{in_flight_exits: ifes}) do
-    {:ok, raw_ife_tx} = Transaction.decode(txbytes)
-
-    case ifes[Transaction.raw_txhash(raw_ife_tx)] do
+  defp get_ife(ife_tx, %__MODULE__{in_flight_exits: ifes}) do
+    case ifes[Transaction.raw_txhash(ife_tx)] do
       nil -> {:error, :ife_not_known_for_tx}
       value -> {:ok, value}
     end

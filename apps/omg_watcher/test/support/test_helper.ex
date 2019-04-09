@@ -112,7 +112,7 @@ defmodule OMG.Watcher.TestHelper do
   end
 
   def get_exit_data(blknum, txindex, oindex) do
-    utxo_pos = Utxo.Position.encode({:utxo_position, blknum, txindex, oindex})
+    utxo_pos = Utxo.Position.encode(Utxo.position(blknum, txindex, oindex))
 
     data = success?("utxo.get_exit_data", %{utxo_pos: utxo_pos})
 

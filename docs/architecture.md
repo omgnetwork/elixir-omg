@@ -15,7 +15,7 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 
 **NOTE**:
 - for `OMG` modules/processes look in `apps/omg`
-- for `OMG.API` modules/processes look in `apps/omg_api`
+- for `OMG.ChildChain` modules/processes look in `apps/omg_child_chain`
 - for `OMG.Watcher` modules/processes look in `apps/omg_watcher`
 - for `OMG.Eth` look in `apps/omg_eth`
 - for `OMG.DB` look in `apps/omg_db`
@@ -27,14 +27,14 @@ For responsibilities of the processes/modules look into respective docs in `.ex`
 ### `OMG.State`
 
 - writes blocks and UTXO set to `OMG.DB`
-- pushes freshly formed blocks to `OMG.API.FreshBlocks`
+- pushes freshly formed blocks to `OMG.ChildChain.FreshBlocks`
 
-### `OMG.API`
+### `OMG.ChildChain`
 
 - accepts child chain transactions, decodes, stateless-validates and executes on `OMG.State`
-- forwards `get_block` requests to `OMG.API.FreshBlocks`
+- forwards `get_block` requests to `OMG.ChildChain.FreshBlocks`
 
-### `OMG.API.FreshBlocks`
+### `OMG.ChildChain.FreshBlocks`
 
 - reverts to reading `OMG.DB` for old blocks
 
@@ -59,13 +59,13 @@ Actually `OMG.EthereumEventListener` setup with `:depositor`.
 - pushes deposits to `OMG.State`
 - pushes deposits to `WatcherDB`
 
-### `OMG.API.BlockQueue`
+### `OMG.ChildChain.BlockQueue`
 
 - requests `form_block` on `OMG.State` and takes block hashes in return
 - tracks Ethereum height and child chain block submission mining via `OMG.Eth` and `OMG.RootChainCoordinator`
 
-### `OMG.API.FeeServer`
-- `OMG.API` calls it to get acceptable currencies and actual fee amounts to validate transactions
+### `OMG.ChildChain.FeeServer`
+- `OMG.ChildChain` calls it to get acceptable currencies and actual fee amounts to validate transactions
 
 ### `OMG.Watcher.BlockGetter`
 
@@ -95,7 +95,7 @@ Actually `OMG.EthereumEventListener` setup with `:depositor`.
 
 ### `OMG.RPC`
 
-- exposes `OMG.API` (as configured by `:omg_rpc, :child_chain_api_module` setting) via a `phoenix`-driven HTTP-RPC interface
+- exposes `OMG.ChildChain` (as configured by `:omg_rpc, :child_chain_api_module` setting) via a `phoenix`-driven HTTP-RPC interface
 
 ### `OMG.Performance`
 
