@@ -53,20 +53,6 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
   @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]
   test "status endpoint returns expected response format without worrying about the Content-Type header" do
     response_body = TestHelper.rpc_call("status.get", nil, 200, "text/plain")
-    %{"version" => "1.0", "success" => true, "data" => data} = response_body
-
-    assert %{
-             "last_validated_child_block_number" => last_validated_child_block_number,
-             "last_mined_child_block_number" => last_mined_child_block_number,
-             "last_mined_child_block_timestamp" => last_mined_child_block_timestamp,
-             "eth_syncing" => eth_syncing,
-             "byzantine_events" => byzantine_events
-           } = data
-
-    assert is_integer(last_validated_child_block_number)
-    assert is_integer(last_mined_child_block_number)
-    assert is_integer(last_mined_child_block_timestamp)
-    assert is_atom(eth_syncing)
-    assert is_list(byzantine_events)
+    assert %{"version" => "1.0", "success" => true, "data" => _data} = response_body
   end
 end
