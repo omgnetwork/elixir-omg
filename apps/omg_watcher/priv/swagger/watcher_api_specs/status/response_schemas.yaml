@@ -1,0 +1,43 @@
+StatusResponseSchema:
+  description: The response schema for a status
+  allOf:
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
+  - type: object
+    properties:
+      data:
+        type: object
+        $ref: 'schemas.yaml#/StatusSchema'
+    example:
+      data:
+        last_validated_child_block_number: 10000
+        last_mined_child_block_timestamp: 1535031020
+        last_mined_child_block_number: 11000
+        eth_syncing: true
+        byzantine_events:
+        -
+          event: invalid_exit
+          details:
+            eth_height: 615440
+            utxo_pos: 10000000010000000
+            owner: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
+            currency: '0x0000000000000000000000000000000000000000'
+            amount: 100
+        in_flight_txs:
+        -
+          txhash: '0xbdf562c24ace032176e27621073df58ce1c6f65de3b5932343b70ba03c72132d'
+          txbytes: '0x3eb6ae5b06f3...'
+          input_addresses:
+          - '0x1234...'
+          ouput_addresses:
+          - '0x1234...'
+          - '0x7890...'
+        in_flight_exits:
+        -
+          txhash: '0x5df13a6bf96dbcf6e66d8babd6b55bd40d64d4320c3b115364c6588fc18c2a21'
+          txbytes: '0xf3170101c094...'
+          eth_height: 615441
+          piggybacked_inputs:
+          - 1
+          piggybacked_outputs:
+          - 0
+          - 1

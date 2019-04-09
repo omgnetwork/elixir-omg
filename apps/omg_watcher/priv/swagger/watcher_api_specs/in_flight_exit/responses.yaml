@@ -1,0 +1,34 @@
+GetInFlightExitDataResponse:
+  description: Get in-flight exit successful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/GetInFlightExitDataResponseSchema'
+
+GetCompetitorResponse:
+  description: Get competitor successful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/GetCompetitorResponseSchema'
+
+ProveCanonicalResponse:
+  description: Prove canonical successful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/ProveCanonicalResponseSchema'
+
+InputChallengeDataResponse:
+  description: Get input challenge successful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/InputChallengeDataResponseSchema'
+
+OutputChallengeDataResponse:
+  description: Get output challenge successful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/OutputChallengeDataResponseSchema'

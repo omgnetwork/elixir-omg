@@ -38,6 +38,6 @@ TransactionBodySchema:
         properties:
           transaction:
             type: string
-            format: binary  
+            format: binary
         example:
-          transaction: '0xf8d083015ba98080808080940000...'       
+          transaction: '0xf8d083015ba98080808080940000...'

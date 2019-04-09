@@ -1,0 +1,49 @@
+InFlightExitTxBytesBody:
+  description: In-flight transaction bytes body
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          txbytes:
+            type: string
+            format: binary
+        example:
+          txbytes: '0xf3170101c0940000...'
+
+InFlightExitInputChallengeDataBody:
+  description: In-flight transaction bytes and invalid input index
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          txbytes:
+            type: string
+            format: binary
+          input_index:
+            type: integer
+            format: int8
+        example:
+          txbytes: '0xf3170101c0940000...'
+          input_index: 1
+
+InFlightExitOutputChallengeDataBody:
+  description: In-flight transaction bytes and invalid output index
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          txbytes:
+            type: string
+            format: binary
+          output_index:
+            type: integer
+            format: int8
+        example:
+          txbytes: '0xf3170101c0940000...'
+          output_index: 0
