@@ -45,4 +45,4 @@ while true; do
     esac
 done
 
-exec "$RELEASE_ROOT_DIR/bin/child_chain" command Elixir.OMG.API.ReleaseTasks.InitKVDB run
+exec "$RELEASE_ROOT_DIR/bin/child_chain" command Elixir.OMG.ChildChain.ReleaseTasks.InitKVDB run

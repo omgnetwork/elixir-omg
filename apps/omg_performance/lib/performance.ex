@@ -155,7 +155,7 @@ defmodule OMG.Performance do
     started_apps = ensure_all_started([:omg_db, :cowboy, :hackney, :omg_child_chain])
 
     :ok = Application.stop(:omg)
-    :ok = Supervisor.terminate_child(OMG.API.Supervisor, OMG.API.Monitor)
+    :ok = Supervisor.terminate_child(OMG.ChildChain.Supervisor, OMG.ChildChain.Monitor)
     Alarm.clear_all()
     # select just necessary components to run the tests
 
