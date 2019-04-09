@@ -55,9 +55,9 @@ defmodule OMG.Utils.HttpRPC.Response do
   def sanitize(value), do: value
 
   defp do_filter(map_or_struct) do
-    if Code.ensure_loaded?(Ecto) do
+    if :code.is_loaded(Ecto) do
       Enum.filter(map_or_struct, fn
-        {_, %Ecto.Association.NotLoaded{}} -> false
+        {_, %{__struct__: Ecto.Association.NotLoaded}} -> false
         _ -> true
       end)
     else
