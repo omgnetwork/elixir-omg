@@ -1,0 +1,13 @@
+GetTransactionsResponse:
+  description: Transactions succcessful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/GetTransactionsResponseSchema'
+
+GetTransactionResponse:
+  description: Transaction details succcessful response
+  content:
+    application/json:
+      schema:
+        $ref: 'response_schemas.yaml#/GetTransactionResponseSchema'

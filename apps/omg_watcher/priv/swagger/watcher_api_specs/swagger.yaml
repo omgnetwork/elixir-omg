@@ -29,7 +29,7 @@ tags:
     description: InFlightExit related API.
 
 servers:
-  - url: http://watcher.ari.omg.network/
+  - url: https://watcher.ari.omg.network/
   - url: http://localhost:7434/
 
 
