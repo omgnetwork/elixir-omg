@@ -207,13 +207,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     {state, _} = Core.new_in_flight_exits(state, [competitor_ife_event], [competitor_ife_status])
     {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
 
-    {request, state} =
-      %ExitProcessor.Request{
-        blknum_now: 4000,
-        eth_height_now: 5,
-        piggybacked_blocks_result: [Block.hashed_txs_at([recovered], 3000)]
-      }
-      |> Core.find_ifes_in_blocks(state)
+    request = %ExitProcessor.Request{
+      blknum_now: 4000,
+      eth_height_now: 5,
+      piggybacked_blocks_result: [Block.hashed_txs_at([recovered], 3000)]
+    }
+
+    state = Core.find_ifes_in_blocks(request, state)
 
     %{
       state: state,
@@ -257,17 +257,17 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     block = Block.hashed_txs_at([recovered], tx_blknum)
 
-    {exit_processor_request, state} =
-      %ExitProcessor.Request{
-        blknum_now: 5000,
-        eth_height_now: 5,
-        blocks_result: [block],
-        piggybacked_blocks_result: [
-          block,
-          Block.hashed_txs_at([comp_recovered], comp_blknum)
-        ]
-      }
-      |> Core.find_ifes_in_blocks(state)
+    exit_processor_request = %ExitProcessor.Request{
+      blknum_now: 5000,
+      eth_height_now: 5,
+      blocks_result: [block],
+      piggybacked_blocks_result: [
+        block,
+        Block.hashed_txs_at([comp_recovered], comp_blknum)
+      ]
+    }
+
+    state = Core.find_ifes_in_blocks(exit_processor_request, state)
 
     %{
       state: state,
@@ -977,13 +977,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       comp_blknum = 4000
 
-      {request, state} =
-        %ExitProcessor.Request{
-          blknum_now: 5000,
-          eth_height_now: 5,
-          blocks_result: [Block.hashed_txs_at([comp_recovered], comp_blknum)]
-        }
-        |> Core.find_ifes_in_blocks(state)
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([comp_recovered], comp_blknum)]
+      }
+
+      state = Core.find_ifes_in_blocks(request, state)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
                invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
@@ -1027,13 +1027,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
 
-      {exit_processor_request, state} =
-        %ExitProcessor.Request{
-          blknum_now: 5000,
-          eth_height_now: 5,
-          piggybacked_blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)]
-        }
-        |> Core.find_ifes_in_blocks(state)
+      exit_processor_request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        piggybacked_blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)]
+      }
+
+      state = Core.find_ifes_in_blocks(exit_processor_request, state)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}]} =
                invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
@@ -1075,15 +1075,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       comp_blknum = 4000
 
-      {exit_processor_request, state} =
-        %ExitProcessor.Request{
-          blknum_now: 5000,
-          eth_height_now: 5,
-          piggybacked_blocks_result: [
-            Block.hashed_txs_at([recovered], tx_blknum)
-          ]
-        }
-        |> Core.find_ifes_in_blocks(state)
+      exit_processor_request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        piggybacked_blocks_result: [
+          Block.hashed_txs_at([recovered], tx_blknum)
+        ]
+      }
+
+      state = Core.find_ifes_in_blocks(exit_processor_request, state)
 
       exit_processor_request = %{
         exit_processor_request
@@ -1120,15 +1120,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
 
-      {exit_processor_request, state} =
-        %ExitProcessor.Request{
-          blknum_now: 5000,
-          eth_height_now: 5,
-          piggybacked_blocks_result: [
-            Block.hashed_txs_at([recovered], tx_blknum)
-          ]
-        }
-        |> Core.find_ifes_in_blocks(state)
+      exit_processor_request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        piggybacked_blocks_result: [
+          Block.hashed_txs_at([recovered], tx_blknum)
+        ]
+      }
+
+      state = Core.find_ifes_in_blocks(exit_processor_request, state)
 
       exit_processor_request = %{
         exit_processor_request
@@ -1222,13 +1222,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 5}])
 
-      {request, state} =
-        %ExitProcessor.Request{
-          blknum_now: 4000,
-          eth_height_now: 5,
-          piggybacked_blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)]
-        }
-        |> Core.find_ifes_in_blocks(state)
+      request = %ExitProcessor.Request{
+        blknum_now: 4000,
+        eth_height_now: 5,
+        piggybacked_blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)]
+      }
+
+      state = Core.find_ifes_in_blocks(request, state)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0, 1], outputs: [0, 1]}]} =
                invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])

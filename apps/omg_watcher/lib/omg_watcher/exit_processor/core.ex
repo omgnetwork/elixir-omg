@@ -968,7 +968,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Note: this change is not persisted later!
   """
   def find_ifes_in_blocks(
-        %ExitProcessor.Request{piggybacked_blocks_result: blocks} = request,
+        %ExitProcessor.Request{piggybacked_blocks_result: blocks},
         %__MODULE__{in_flight_exits: ifes} = state
       ) do
     updated_ifes =
@@ -982,8 +982,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       end)
       |> Map.new()
 
-    state = %{state | in_flight_exits: Map.merge(ifes, updated_ifes)}
-    {request, state}
+    %{state | in_flight_exits: Map.merge(ifes, updated_ifes)}
   end
 
   defp find_ife_in_blocks(ife, blocks) do

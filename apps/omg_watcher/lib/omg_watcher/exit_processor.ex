@@ -25,6 +25,7 @@ defmodule OMG.Watcher.ExitProcessor do
   alias OMG.State
   alias OMG.State.Transaction
   alias OMG.Utxo
+  # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
@@ -287,41 +288,36 @@ defmodule OMG.Watcher.ExitProcessor do
   Combine data from `ExitProcessor` and `OMG.State` to figure out what to do about exits
   """
   def handle_call(:check_validity, _from, state) do
-    {state1, request} = prepare_validity_check(state)
-    {chain_status, events} = Core.invalid_exits(request, state1)
-    {:reply, {chain_status, events}, state}
+    new_state = update_with_ife_txs_from_blocks(state)
+
+    response =
+      %ExitProcessor.Request{}
+      |> fill_request_with_data(new_state)
+      |> Core.check_validity(new_state)
+
+    {:reply, response, new_state}
   end
 
   def handle_call(:get_active_in_flight_exits, _from, state),
     do: {:reply, {:ok, Core.get_active_in_flight_exits(state)}, state}
 
   def handle_call({:get_competitor_for_ife, txbytes}, _from, state) do
-    # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
+    # TODO: run_status_gets and getting all non-existent UTXO positions imaginable can be optimized out heavily
+    #       only the UTXO positions being inputs to `txbytes` must be looked at, but it becomes problematic as
+    #       txbytes can be invalid so we'd need a with here...
     competitor_result =
       %ExitProcessor.Request{}
-      # TODO: run_status_gets and getting all non-existent UTXO positions imaginable can be optimized out heavily
-      #       only the UTXO positions being inputs to `txbytes` must be looked at, but it becomes problematic as
-      #       txbytes can be invalid so we'd need a with here...
-      |> run_status_gets()
-      |> Core.determine_utxo_existence_to_get(state)
-      |> run_utxo_exists()
-      |> Core.determine_spends_to_get(state)
-      |> run_spending_block_getting()
+      |> fill_request_with_data(state)
       |> Core.get_competitor_for_ife(state, txbytes)
 
     {:reply, competitor_result, state}
   end
 
   def handle_call({:prove_canonical_for_ife, txbytes}, _from, state) do
-    # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
+    # TODO: same comment as above in get_competitor_for_ife
     canonicity_result =
       %ExitProcessor.Request{}
-      # TODO: same comment as above in get_competitor_for_ife
-      |> run_status_gets()
-      |> Core.determine_utxo_existence_to_get(state)
-      |> run_utxo_exists()
-      |> Core.determine_spends_to_get(state)
-      |> run_spending_block_getting()
+      |> fill_request_with_data(state)
       |> Core.prove_canonical_for_ife(txbytes)
 
     {:reply, canonicity_result, state}
@@ -330,20 +326,21 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:get_input_challenge_data, txbytes, input_index}, _from, state) do
     response =
       %ExitProcessor.Request{}
-      |> run_status_gets()
-      |> Core.determine_utxo_existence_to_get(state)
-      |> run_utxo_exists()
-      |> Core.determine_spends_to_get(state)
-      |> run_spending_block_getting()
+      |> fill_request_with_data(state)
       |> Core.get_input_challenge_data(state, txbytes, input_index)
 
     {:reply, response, state}
   end
 
   def handle_call({:get_output_challenge_data, txbytes, output_index}, _from, state) do
-    {state1, request} = prepare_validity_check(state)
-    response = Core.get_output_challenge_data(request, state1, txbytes, output_index)
-    {:reply, response, state}
+    new_state = update_with_ife_txs_from_blocks(state)
+
+    response =
+      %ExitProcessor.Request{}
+      |> fill_request_with_data(new_state)
+      |> Core.get_output_challenge_data(new_state, txbytes, output_index)
+
+    {:reply, response, new_state}
   end
 
   def handle_call({:create_challenge, Utxo.position(blknum, _txindex, _oindex) = exiting_utxo_pos}, _from, state) do
@@ -372,29 +369,31 @@ defmodule OMG.Watcher.ExitProcessor do
     end
   end
 
-  defp prepare_validity_check(state) do
-    # NOTE: future of using `ExitProcessor.Request` struct not certain, see that module for details
-    {request, state} =
-      %ExitProcessor.Request{}
-      |> run_status_gets()
-      # To find if IFE was included, see first if its inputs were spent.
-      |> Core.determine_ife_input_utxos_existence_to_get(state)
-      |> run_ife_input_utxo_existance()
-      # Next, check by what transactions they were spent.
-      |> Core.determine_ife_spends_to_get(state)
-      |> run_ife_tx_block_getting()
-      # Compare found txes with ife.tx.
-      # If equal, persist information about position.
-      |> Core.find_ifes_in_blocks(state)
+  # based on the exits being processed, fills the request structure with data required to process queries
+  @spec fill_request_with_data(ExitProcessor.Request.t(), Core.t()) :: ExitProcessor.Request.t()
+  defp fill_request_with_data(request, state) do
+    request
+    |> run_status_gets()
+    |> Core.determine_utxo_existence_to_get(state)
+    |> run_utxo_exists()
+    |> Core.determine_spends_to_get(state)
+    |> run_spending_block_getting()
+  end
 
-    request =
-      request
-      |> Core.determine_utxo_existence_to_get(state)
-      |> run_utxo_exists()
-      |> Core.determine_spends_to_get(state)
-      |> run_spending_block_getting()
-
-    {state, request}
+  # based on in-flight exiting transactions, updates the state with witnesses of those transactions' inclusions in block
+  @spec update_with_ife_txs_from_blocks(Core.t()) :: Core.t()
+  defp update_with_ife_txs_from_blocks(state) do
+    %ExitProcessor.Request{}
+    |> run_status_gets()
+    # To find if IFE was included, see first if its inputs were spent.
+    |> Core.determine_ife_input_utxos_existence_to_get(state)
+    |> run_ife_input_utxo_existence()
+    # Next, check by what transactions they were spent.
+    |> Core.determine_ife_spends_to_get(state)
+    |> run_ife_tx_block_getting()
+    # Compare found txes with ife.tx.
+    # If equal, persist information about position.
+    |> Core.find_ifes_in_blocks(state)
   end
 
   defp run_status_gets(%ExitProcessor.Request{} = request) do
@@ -408,7 +407,7 @@ defmodule OMG.Watcher.ExitProcessor do
   defp run_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions} = request),
     do: %{request | utxo_exists_result: do_utxo_existence(positions)}
 
-  defp run_ife_input_utxo_existance(%ExitProcessor.Request{piggybacked_utxos_to_check: positions} = request),
+  defp run_ife_input_utxo_existence(%ExitProcessor.Request{piggybacked_utxos_to_check: positions} = request),
     do: %{request | piggybacked_utxo_exists_result: do_utxo_existence(positions)}
 
   defp do_utxo_existence(positions) do
