@@ -21,7 +21,7 @@ defmodule OMG.Watcher.DB.Transaction do
 
   alias OMG.API.State.Transaction
   alias OMG.API.Utxo
-  alias OMG.Watcher.{DB, DB.TxOutput}
+  alias OMG.Watcher.DB
 
   require Utxo
 
@@ -67,7 +67,7 @@ defmodule OMG.Watcher.DB.Transaction do
     DB.Repo.one(query)
   end
 
-  def get_by_filters(address, blknum \\ nil, limit \\ nil) do
+  def get_by_filters(address, blknum, limit) do
     query_get_last(limit)
     |> query_get_by_address(address)
     |> query_get_by_blknum(blknum)
@@ -87,14 +87,20 @@ defmodule OMG.Watcher.DB.Transaction do
 
   defp query_get_by_address(query, address) do
     query
-    |> join(:inner, [t], o in TxOutput, t.txhash == o.creating_txhash or t.txhash == o.spending_txhash)
+    |> join(
+      :inner,
+      [t],
+      o in DB.TxOutput,
+      t.txhash == o.creating_txhash or
+        t.txhash == o.spending_txhash
+    )
     |> where([t, o], o.owner == ^address)
     |> select([t, o], t)
     |> distinct(true)
   end
 
-  defp query_get_by_blknum(base, nil), do: base
-  defp query_get_by_blknum(base, blknum), do: base |> from(where: [blknum: ^blknum])
+  defp query_get_by_blknum(query, nil), do: query
+  defp query_get_by_blknum(query, blknum), do: query |> from(where: [blknum: ^blknum])
 
   def get_by_blknum(blknum) do
     __MODULE__
