@@ -467,7 +467,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
       |> :lists.usort()
 
-    %{request | piggybacked_utxos_to_check: piggybacked_output_utxos}
+    %{request | ife_input_utxos_to_check: piggybacked_output_utxos}
   end
 
   @doc """
@@ -542,8 +542,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec determine_ife_spends_to_get(ExitProcessor.Request.t(), __MODULE__.t()) :: ExitProcessor.Request.t()
   def determine_ife_spends_to_get(
         %ExitProcessor.Request{
-          piggybacked_utxos_to_check: utxos_to_check,
-          piggybacked_utxo_exists_result: utxo_exists_result
+          ife_input_utxos_to_check: utxos_to_check,
+          ife_input_utxo_exists_result: utxo_exists_result
         } = request,
         %__MODULE__{in_flight_exits: ifes}
       ) do
@@ -556,7 +556,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> only_utxos_checked_and_missing(utxo_exists?)
       |> :lists.usort()
 
-    %{request | piggybacked_spends_to_get: spends_to_get}
+    %{request | ife_input_spends_to_get: spends_to_get}
   end
 
   @doc """
@@ -569,8 +569,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   NOTE: If there were any exits unchallenged for some time in chain history, this might detect breach of SLA,
         even if the exits were eventually challenged (e.g. during syncing)
   """
-  @spec invalid_exits(ExitProcessor.Request.t(), t()) :: check_validity_result_t()
-  def invalid_exits(
+  @spec check_validity(ExitProcessor.Request.t(), t()) :: check_validity_result_t()
+  def check_validity(
         %ExitProcessor.Request{
           eth_height_now: eth_height_now,
           utxos_to_check: utxos_to_check,
@@ -968,7 +968,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Note: this change is not persisted later!
   """
   def find_ifes_in_blocks(
-        %ExitProcessor.Request{piggybacked_blocks_result: blocks},
+        %ExitProcessor.Request{ife_input_spending_blocks_result: blocks},
         %__MODULE__{in_flight_exits: ifes} = state
       ) do
     updated_ifes =
