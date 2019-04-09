@@ -494,7 +494,7 @@ paths:
       description: >-
         Note that if the competing transaction has not been put into a block
         `competing_tx_pos` and `competing_proof` will not be returned.
-      operationId: getCompetitor
+      operationId: in_flight_exit_get_competitor
       requestBody: *ref_4
       responses:
         '200':
@@ -549,7 +549,7 @@ paths:
       description: >-
         To respond to a challenge to an in-flight exit, this proves that the
         transaction has been put into a block (and therefore is canonical).
-      operationId: proveCanonical
+      operationId: in_flight_exit_prove_canonical
       requestBody: *ref_4
       responses:
         '200':

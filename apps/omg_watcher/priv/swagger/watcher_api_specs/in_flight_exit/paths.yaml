@@ -19,7 +19,7 @@ in_flight_exit.get_competitor:
       - InFlightExit
     summary: Returns a competitor to an in-flight exit.
     description: Note that if the competing transaction has not been put into a block `competing_tx_pos` and `competing_proof` will not be returned.
-    operationId: getCompetitor
+    operationId: in_flight_exit_get_competitor
     requestBody:
       $ref: 'request_bodies.yaml#/InFlightExitTxBytesBody'
     responses:
@@ -34,7 +34,7 @@ in_flight_exit.prove_canonical:
       - InFlightExit
     summary: Proves transaction is canonical.
     description: To respond to a challenge to an in-flight exit, this proves that the transaction has been put into a block (and therefore is canonical).
-    operationId: proveCanonical
+    operationId: in_flight_exit_prove_canonical
     requestBody:
       $ref: 'request_bodies.yaml#/InFlightExitTxBytesBody'
     responses:
@@ -49,7 +49,7 @@ in_flight_exit.get_input_challenge_data:
       - InFlightExit
     summary: Gets the data to challenge an invalid input piggybacked on an in-flight exit.
     description: Coming soon
-    operationId: getInputChallengeData
+    operationId: in_flight_exit_get_input_challenge_data
     requestBody:
       $ref: 'request_bodies.yaml#/InFlightExitInputChallengeDataBody'
     responses:
@@ -64,7 +64,7 @@ in_flight_exit.get_output_challenge_data:
       - InFlightExit
     summary: Gets the data to challenge an invalid output piggybacked on an in-flight exit.
     description: Coming soon
-    operationId: getOutputChallengeData
+    operationId: in_flight_exit_get_output_challenge_data
     requestBody:
       $ref: 'request_bodies.yaml#/InFlightExitOutputChallengeDataBody'
     responses:
