@@ -26,6 +26,7 @@ defmodule OMG.State do
   alias OMG.State.Transaction
   alias OMG.Utxo
 
+  use Appsignal.Instrumentation.Decorators
   use OMG.Utils.LoggerExt
 
   @type exec_error :: Core.exec_error()
@@ -36,6 +37,7 @@ defmodule OMG.State do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
+  @decorate transaction(:state)
   @spec exec(tx :: Transaction.Recovered.t(), fees :: Fees.fee_t()) ::
           {:ok, {Transaction.tx_hash(), pos_integer, non_neg_integer}}
           | {:error, exec_error()}
@@ -43,31 +45,37 @@ defmodule OMG.State do
     GenServer.call(__MODULE__, {:exec, tx, input_fees})
   end
 
+  @decorate transaction(:state)
   def form_block do
     GenServer.cast(__MODULE__, :form_block)
   end
 
+  @decorate transaction(:state)
   @spec close_block(pos_integer) :: {:ok, list(Core.db_update())}
   def close_block(eth_height) do
     GenServer.call(__MODULE__, {:close_block, eth_height})
   end
 
+  @decorate transaction(:state)
   @spec deposit(deposits :: [Core.deposit()]) :: {:ok, list(Core.db_update())}
   def deposit(deposits) do
     GenServer.call(__MODULE__, {:deposits, deposits})
   end
 
+  @decorate transaction(:state)
   @spec exit_utxos(utxos :: Core.exiting_utxos_t()) ::
           {:ok, list(Core.db_update()), Core.validities_t()}
   def exit_utxos(utxos) do
     GenServer.call(__MODULE__, {:exit_utxos, utxos})
   end
 
+  @decorate transaction(:state)
   @spec utxo_exists?(Utxo.Position.t()) :: boolean()
   def utxo_exists?(utxo) do
     GenServer.call(__MODULE__, {:utxo_exists, utxo})
   end
 
+  @decorate transaction(:state)
   @spec get_status :: {non_neg_integer(), boolean()}
   def get_status do
     GenServer.call(__MODULE__, :get_status)
@@ -196,12 +204,18 @@ defmodule OMG.State do
 
     # persistence is required to be here, since propagating the block onwards requires restartability including the
     # new block
-    :ok = DB.multi_update(db_updates)
+    do_multi_update(db_updates)
 
     publish_block_to_event_bus(block, event_triggers)
     {:noreply, new_state}
   end
 
+  @decorate transaction(:state)
+  defp do_multi_update(db_updates) do
+    :ok = DB.multi_update(db_updates)
+  end
+
+  @decorate transaction(:state)
   defp do_form_block(state, eth_height \\ nil) do
     {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
     Core.form_block(child_block_interval, eth_height, state)
