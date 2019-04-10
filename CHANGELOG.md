@@ -1,40 +1,62 @@
 ## Unreleased
 
 
-## v0.1.4
+## [v0.1.4](https://github.com/omisego/elixir-omg/releases/tag/v0.1.4) 
+Date: 9/4/19  
 
-Merge pull request #583 from omisego/silence_socket_connect_logs
+- #583 silenced phoenix socket logs
 
-## v0.1.3
+- #543 getting metrics on leveldb usage (read,multiread,write) 
 
-Merge pull request #498 from omisego/safeguard_against_lengthy_get_et…
-Merge pull request #512 from omisego/increase_restarts
-Merge pull request #514 from omisego/update_launcher_logic_watcher
+- #531 stop improperly constructed transactions leak into the system
 
-## v0.1.2
+## [v0.1.3](https://github.com/omisego/elixir-omg/releases/tag/v0.1.3)
+Date: 21/3/19
 
-Merge pull request #490 from omisego/OMG-218-appsignal_phoenix_instru…
-Merge pull request #482 from omisego/ignore_processing_exit_finalized…
-Merge pull request #481 from omisego/v0.1_cirlc
-Merge pull request #469 from omisego/update_ci_config
+- #498 more frequent ethereum events checking intervals
 
-## v0.1.1
+- #512 increase the amount of restarts per max_seconds
 
-Merge pull request #444 from omisego/OMG-405_revamp_root_chain_coord
-Merge pull request #448 from omisego/OMG-329_exit_proc_persistence_test
-Merge pull request #452 from omisego/OMG-357_move_create_from_utxo_to…
-Merge pull request #443 from omisego/OMG-397_minimal_transaction_subm
-Merge pull request #433 from omisego/OMG-391_transactions_merge_utxos…
+- #514 making sure the watcher will not resync if there is data present.
 
-## v0.1.0
+## [v0.1.2](https://github.com/omisego/elixir-omg/releases/tag/v0.1.2)
+Date: 8/3/19
 
-- Update to Elixir 1.8 (#411)
-- Basic More Viable Plasma Support (#352)
-- Improved, consistent API (#305)
-- Increase to 4 input/4 output UTXOs per transaction (#278)
-- Deploy to Rinkeby as root chain (#267)
+- #490 add omg watcher and api status as a dependency in umbrella app
 
-## v0.0.1
+- #482 ignore exit-finalized watcher events
+
+- #469 updated circle ci config for v0.1
+
+
+## [v0.1.1](https://github.com/omisego/elixir-omg/releases/tag/v0.1.1)
+Date: 22/2/19
+
+- #444 Makes the configuration and behavior of RootChainCoordinator much more explicit
+
+- #448 add persistence test to exit processor
+
+- #452 move create from utxo to test helper
+
+- #443 implemented minimal transaction submit for watche
+
+- #433 making merge utxos transaction feeless
+
+## [v0.1.0](https://github.com/omisego/elixir-omg/releases/tag/v0.1.0)
+Date: 5/11/18
+
+- #411 Update to Elixir 1.8 
+
+- #352 Basic More Viable Plasma Support 
+
+- #305 Improved, consistent API 
+
+- #278 Increase to 4 input/4 output UTXOs per transaction 
+
+- #267 Deploy to Rinkeby as root chain 
+
+## [v0.0.1](https://github.com/omisego/elixir-omg/releases/tag/v0.0.1)
+Date: 28/10/18
 
 - Initial release of Minimal Viable Plasma implementation for ETH and ERC-20
- -
+ 
