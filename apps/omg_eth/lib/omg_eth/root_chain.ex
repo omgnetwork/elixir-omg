@@ -20,7 +20,7 @@ defmodule OMG.Eth.RootChain do
   """
 
   alias OMG.Eth
-
+  use Appsignal.Instrumentation.Decorators
   import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   @tx_defaults Eth.Defaults.tx_defaults()
@@ -385,6 +385,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns lists of deposits sorted by child chain block number
   """
+  @decorate transaction(:event_listener)
   def get_deposits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
 
@@ -393,6 +394,7 @@ defmodule OMG.Eth.RootChain do
   end
 
   @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_addr_t) :: {:ok, [in_flight_exit_piggybacked_event]}
+  @decorate transaction(:event_listener)
   def get_piggybacks(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "InFlightExitPiggybacked(address,bytes32,uint8)"
@@ -415,6 +417,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns standard exits from a range of blocks. Collects exits from Ethereum logs.
   """
+  @decorate transaction(:event_listener)
   def get_standard_exits(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "ExitStarted(address,uint192)"
@@ -439,6 +442,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns InFlightExit from a range of blocks.
   """
+  @decorate transaction(:event_listener)
   def get_in_flight_exit_starts(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "InFlightExitStarted(address,bytes32)"

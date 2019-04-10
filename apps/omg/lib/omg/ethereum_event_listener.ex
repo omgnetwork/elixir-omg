@@ -21,6 +21,8 @@ defmodule OMG.EthereumEventListener do
   alias OMG.Recorder
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
+  
+  use Appsignal.Instrumentation.Decorators
   use OMG.Utils.LoggerExt
 
   @type config() :: %{
@@ -91,7 +93,9 @@ defmodule OMG.EthereumEventListener do
     {:noreply, {initial_state, callbacks_map}}
   end
 
-  def handle_info(:sync, {%Core{} = core, _callbacks} = state) do
+  def handle_info(:sync, state), do: do_sync(state)
+  @decorate transaction(:event_listener)
+  def do_sync({%Core{} = core, _callbacks} = state) do
     case RootChainCoordinator.get_sync_info() do
       :nosync ->
         :ok = RootChainCoordinator.check_in(Core.get_height_to_check_in(core), core.service_name)
