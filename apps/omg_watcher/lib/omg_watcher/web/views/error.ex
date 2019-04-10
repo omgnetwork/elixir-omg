@@ -32,7 +32,7 @@ defmodule OMG.Watcher.Web.Views.Error do
       "operation:bad_request",
       "Server has failed to parse the request.",
       # add stack trace unless running on production env
-      if(Mix.env() in [:dev, :test], do: "#{inspect(reason)}")
+      if(Application.get_env(:omg_watcher, :environment) in [:dev, :test], do: "#{inspect(reason)}")
     )
   end
 
@@ -44,7 +44,7 @@ defmodule OMG.Watcher.Web.Views.Error do
       "server:internal_server_error",
       message,
       # add stack trace unless running on production env
-      if(Mix.env() in [:dev, :test], do: "#{inspect(Map.get(conn, :stack))}")
+      if(Application.get_env(:omg_watcher, :environment) in [:dev, :test], do: "#{inspect(Map.get(conn, :stack))}")
     )
   end
 

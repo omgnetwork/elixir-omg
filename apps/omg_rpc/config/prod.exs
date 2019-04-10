@@ -8,6 +8,8 @@ config :omg_rpc, OMG.RPC.Web.Endpoint,
   # TODO: adjust this when `:prod` environment starts being used
   url: [host: "example.com", port: 80]
 
+config :omg_rpc, environment: :prod
+
 # NOTE: no `cache_static_manifest` here
 
 # ## SSL Support

@@ -6,3 +6,5 @@ config :omg_rpc, OMG.RPC.Web.Endpoint,
   secret_key_base: "dQOUY43PWqdyl6Sv7VTvp7aS/J8gpPsnzVOSy2K2Oo8MbyZ/0chS90duekNd4d8t",
   http: [port: 9656],
   server: true
+
+config :omg_rpc, environment: :test

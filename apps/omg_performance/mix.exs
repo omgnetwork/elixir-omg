@@ -34,7 +34,8 @@ defmodule OMG.Performance.MixProject do
       {:briefly, "~> 0.3.0", only: [:dev, :test], runtime: false},
       {:omg_child_chain, in_umbrella: true, only: [:test], runtime: false},
       {:omg_rpc, in_umbrella: true, only: [:test], runtime: false},
-      {:omg_watcher, in_umbrella: true, only: [:test], runtime: false}
+      {:omg_watcher, in_umbrella: true, only: [:test], runtime: false},
+      {:omg_status, in_umbrella: true, only: [:test], runtime: false}
     ]
   end
 end

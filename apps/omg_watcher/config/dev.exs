@@ -16,6 +16,8 @@ config :omg_watcher, OMG.Watcher.Web.Endpoint,
   watchers: [],
   server: true
 
+config :omg_watcher, environment: :dev
+
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed
