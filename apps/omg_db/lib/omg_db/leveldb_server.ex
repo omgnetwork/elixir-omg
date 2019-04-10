@@ -20,7 +20,7 @@ defmodule OMG.DB.LevelDBServer do
   # All complex operations on data written/read should go into OMG.DB.LevelDBCore
 
   defstruct [:db_ref, :name]
-
+  use Appsignal.Instrumentation.Decorators
   use GenServer
   alias OMG.DB.LevelDBCore
   alias OMG.DB.Recorder
@@ -64,7 +64,9 @@ defmodule OMG.DB.LevelDBServer do
     end
   end
 
-  def handle_call({:multi_update, db_updates}, _from, state) do
+  def handle_call({:multi_update, db_updates}, _from, state), do: multi_update(db_updates, state)
+  @decorate transaction(:LevelDB)
+  defp multi_update(db_updates, state) do
     result =
       db_updates
       |> LevelDBCore.parse_multi_updates()
@@ -73,7 +75,9 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call({:blocks, blocks_to_fetch}, _from, state) do
+  def handle_call({:blocks, blocks_to_fetch}, _from, state), do: blocks(blocks_to_fetch, state)
+  @decorate transaction(:LevelDB)
+  defp blocks(blocks_to_fetch, state) do
     result =
       blocks_to_fetch
       |> Enum.map(fn block -> LevelDBCore.key(:block, block) end)
@@ -83,17 +87,25 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call(:utxos, _from, state) do
+  def handle_call(:utxos, _from, state), do: utxos(state)
+  @decorate transaction(:LevelDB)
+  defp utxos(state) do
     result = get_all_by_type(:utxo, state)
     {:reply, result, state}
   end
 
-  def handle_call(:exit_infos, _from, state) do
+  def handle_call(:exit_infos, _from, state), do: exit_infos(state)
+  @decorate transaction(:LevelDB)
+  defp exit_infos(state) do
     result = get_all_by_type(:exit_info, state)
     {:reply, result, state}
   end
 
-  def handle_call({:block_hashes, block_numbers_to_fetch}, _from, state) do
+  def handle_call({:block_hashes, block_numbers_to_fetch}, _from, state),
+    do: block_hashes(block_numbers_to_fetch, state)
+
+  @decorate transaction(:LevelDB)
+  defp block_hashes(block_numbers_to_fetch, state) do
     result =
       block_numbers_to_fetch
       |> Enum.map(fn block_number -> LevelDBCore.key(:block_hash, block_number) end)
@@ -103,18 +115,26 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call(:in_flight_exits_info, _from, state) do
+  def handle_call(:in_flight_exits_info, _from, state), do: in_flight_exits_info(state)
+  @decorate transaction(:LevelDB)
+  defp in_flight_exits_info(state) do
     result = get_all_by_type(:in_flight_exit_info, state)
     {:reply, result, state}
   end
 
-  def handle_call(:competitors_info, _from, state) do
+  def handle_call(:competitors_info, _from, state), do: competitors_info(state)
+  @decorate transaction(:LevelDB)
+  defp competitors_info(state) do
     result = get_all_by_type(:competitor_info, state)
     {:reply, result, state}
   end
 
   def handle_call({:get_single_value, parameter}, _from, state)
-      when is_atom(parameter) do
+       when is_atom(parameter),
+       do: get_single_value(parameter, state)
+
+  @decorate transaction(:LevelDB)
+  defp get_single_value(parameter, state) do
     result =
       parameter
       |> LevelDBCore.key(nil)
@@ -124,7 +144,9 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call({:exit_info, utxo_pos}, _from, state) do
+  def handle_call({:exit_info, utxo_pos}, _from, state), do: exit_info(utxo_pos, state)
+  @decorate transaction(:LevelDB)
+  defp exit_info(utxo_pos, state) do
     result =
       :exit_info
       |> LevelDBCore.key(utxo_pos)
@@ -134,7 +156,9 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call({:spent_blknum, utxo_pos}, _from, state) do
+  def handle_call({:spent_blknum, utxo_pos}, _from, state), do: spent_blknum(utxo_pos, state)
+  @decorate transaction(:LevelDB)
+  defp spent_blknum(utxo_pos, state) do
     result =
       :spend
       |> LevelDBCore.key(utxo_pos)
@@ -150,17 +174,19 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   # Argument order flipping tools :(
-
+  @decorate transaction(:LevelDB)
   defp write(operations, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_write(name)
     Exleveldb.write(db_ref, operations)
   end
 
+  @decorate transaction(:LevelDB)
   defp get(key, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_read(name)
     Exleveldb.get(db_ref, key)
   end
 
+  @decorate transaction(:LevelDB)
   defp get_all_by_type(type, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_multiread(name)
     do_get_all_by_type(type, db_ref)
