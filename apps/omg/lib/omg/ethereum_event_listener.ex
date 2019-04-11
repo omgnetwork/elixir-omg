@@ -21,7 +21,7 @@ defmodule OMG.EthereumEventListener do
   alias OMG.Recorder
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
-  
+
   use Appsignal.Instrumentation.Decorators
   use OMG.Utils.LoggerExt
 

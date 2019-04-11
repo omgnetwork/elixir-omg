@@ -35,6 +35,7 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.Recorder
 
+  use Appsignal.Instrumentation.Decorators
   use GenServer
   use OMG.Utils.LoggerExt
 
@@ -98,15 +99,16 @@ defmodule OMG.Watcher.BlockGetter do
     {:reply, Core.chain_ok(state), state}
   end
 
-  def handle_cast(
-        {:apply_block,
+  def handle_cast({:apply_block, %BlockApplication{} = to_apply}, state), do: apply_block(to_apply, state)
+
+  defp apply_block(
          %BlockApplication{
            transactions: transactions,
            number: blknum,
            eth_height: eth_height
-         } = to_apply},
-        state
-      ) do
+         } = to_apply,
+         state
+       ) do
     with {:ok, _} <- Core.chain_ok(state),
          tx_exec_results = for(tx <- transactions, do: OMG.State.exec(tx, :ignore)),
          {:ok, state} <- Core.validate_executions(tx_exec_results, to_apply, state) do
@@ -155,8 +157,12 @@ defmodule OMG.Watcher.BlockGetter do
           Core.t()
         ) :: {:noreply, Core.t()} | {:stop, :normal, Core.t()}
   def handle_info(msg, state)
+  def handle_info(:producer, state), do: producer(state)
+  def handle_info({_ref, {:downloaded_block, response}}, state), do: downloaded_block(response, state)
+  def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
+  def handle_info(:sync, state), do: sync(state)
 
-  def handle_info(:producer, state) do
+  defp producer(state) do
     with {:ok, _} <- Core.chain_ok(state) do
       new_state = run_block_download_task(state)
       {:ok, _} = schedule_producer()
@@ -168,7 +174,7 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
-  def handle_info({_ref, {:downloaded_block, response}}, state) do
+  defp downloaded_block(response, state) do
     # 1/ process the block that arrived and consume
 
     with {:ok, state} <- Core.handle_downloaded_block(state, response) do
@@ -182,9 +188,7 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
-  def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
-
-  def handle_info(:sync, state) do
+  defp sync(state) do
     with %SyncGuide{sync_height: next_synced_height} <- RootChainCoordinator.get_sync_info() do
       block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
 

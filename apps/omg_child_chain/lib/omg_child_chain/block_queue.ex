@@ -40,6 +40,7 @@ defmodule OMG.ChildChain.BlockQueue do
 
     use GenServer
     use OMG.Utils.LoggerExt
+    use Appsignal.Instrumentation.Decorators
     alias OMG.Eth
 
     def start_link(_args) do
@@ -159,6 +160,7 @@ defmodule OMG.ChildChain.BlockQueue do
       |> Enum.each(&submit/1)
     end
 
+    @decorate transaction(:BlockQueue)
     defp submit(%Core.BlockSubmission{hash: hash, nonce: nonce, gas_price: gas_price} = submission) do
       _ = Logger.debug("Submitting: #{inspect(submission)}")
 

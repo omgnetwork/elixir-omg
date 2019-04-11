@@ -467,6 +467,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns finalizations of exits from a range of blocks from Ethereum logs.
   """
+  @decorate transaction(:event_listener)
   def get_finalizations(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "ExitFinalized(uint192)"
@@ -478,6 +479,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
   Returns challenges of exits from a range of blocks from Ethereum logs.
   """
+  @decorate transaction(:event_listener)
   def get_challenges(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "ExitChallenged(uint256)"
@@ -489,6 +491,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
     Returns challenges of in flight exits from a range of blocks from Ethereum logs.
   """
+  @decorate transaction(:event_listener)
   def get_in_flight_exit_challenges(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "InFlightExitChallenged(address,bytes32,uint256)"
@@ -521,6 +524,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
     Returns responds to challenges of in flight exits from a range of blocks from Ethereum logs.
   """
+  @decorate transaction(:event_listener)
   def get_responds_to_in_flight_exit_challenges(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "InFlightExitChallengeResponded(address,bytes32,uint256)"
@@ -532,6 +536,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
     Returns challenges of piggybacks from a range of block from Ethereum logs.
   """
+  @decorate transaction(:event_listener)
   def get_piggybacks_challenges(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "InFlightExitOutputBlocked(address,bytes32,uint256)"
@@ -543,6 +548,7 @@ defmodule OMG.Eth.RootChain do
   @doc """
     Returns finalizations of in flight exits from a range of blocks from Ethereum logs.
   """
+  @decorate transaction(:event_listener)
   def get_in_flight_exit_finalizations(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
     signature = "InFlightExitFinalized(uint192,uint8)"
