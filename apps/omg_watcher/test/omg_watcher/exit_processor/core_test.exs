@@ -207,13 +207,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     {state, _} = Core.new_in_flight_exits(state, [competitor_ife_event], [competitor_ife_status])
     {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
 
-    {request, state} =
-      %ExitProcessor.Request{
-        blknum_now: 4000,
-        eth_height_now: 5,
-        piggybacked_blocks_result: [Block.hashed_txs_at([recovered], 3000)]
-      }
-      |> Core.find_ifes_in_blocks(state)
+    request = %ExitProcessor.Request{
+      blknum_now: 4000,
+      eth_height_now: 5,
+      ife_input_spending_blocks_result: [Block.hashed_txs_at([recovered], 3000)]
+    }
+
+    state = Core.find_ifes_in_blocks(request, state)
 
     %{
       state: state,
@@ -257,17 +257,17 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     block = Block.hashed_txs_at([recovered], tx_blknum)
 
-    {exit_processor_request, state} =
-      %ExitProcessor.Request{
-        blknum_now: 5000,
-        eth_height_now: 5,
-        blocks_result: [block],
-        piggybacked_blocks_result: [
-          block,
-          Block.hashed_txs_at([comp_recovered], comp_blknum)
-        ]
-      }
-      |> Core.find_ifes_in_blocks(state)
+    exit_processor_request = %ExitProcessor.Request{
+      blknum_now: 5000,
+      eth_height_now: 5,
+      blocks_result: [block],
+      ife_input_spending_blocks_result: [
+        block,
+        Block.hashed_txs_at([comp_recovered], comp_blknum)
+      ]
+    }
+
+    state = Core.find_ifes_in_blocks(exit_processor_request, state)
 
     %{
       state: state,
@@ -337,7 +337,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              %ExitProcessor.Request{eth_height_now: 12, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state_after_spend)
-             |> Core.invalid_exits(processor)
+             |> Core.check_validity(processor)
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses, :alice]
@@ -358,14 +358,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
-             |> Core.invalid_exits(processor)
+             |> Core.check_validity(processor)
 
     # go into the future - old exits work the same
     assert {:ok, []} =
              %ExitProcessor.Request{eth_height_now: 105, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
-             |> Core.invalid_exits(processor)
+             |> Core.check_validity(processor)
 
     # exit validly finalizes and continues to not emit any events
     {:ok, {_, spends}, _} = [@utxo_pos1] |> prepare_exit_finalizations() |> State.Core.exit_utxos(state)
@@ -415,7 +415,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
-             |> Core.invalid_exits(processor)
+             |> Core.check_validity(processor)
   end
 
   @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
@@ -484,7 +484,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              %ExitProcessor.Request{eth_height_now: 13, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
-             |> Core.invalid_exits(processor)
+             |> Core.check_validity(processor)
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :exit_events]
@@ -501,7 +501,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              %ExitProcessor.Request{eth_height_now: 13, blknum_now: @late_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
-             |> Core.invalid_exits(processor)
+             |> Core.check_validity(processor)
   end
 
   @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
@@ -519,7 +519,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              %ExitProcessor.Request{eth_height_now: 13, blknum_now: @early_blknum}
              |> Core.determine_utxo_existence_to_get(processor)
              |> mock_utxo_exists(state)
-             |> Core.invalid_exits(processor)
+             |> Core.check_validity(processor)
   end
 
   @tag fixtures: [:processor_empty]
@@ -555,7 +555,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {:ok, [%Event.InvalidExit{}]} =
              exit_processor_request
              |> struct!(utxo_exists_result: [false, false, false])
-             |> invalid_exits_filtered(processor, only: [Event.InvalidExit])
+             |> check_validity_filtered(processor, only: [Event.InvalidExit])
   end
 
   @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses, :transactions]
@@ -716,7 +716,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_utxo}]} =
              %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
-             |> invalid_exits_filtered(processor, only: [Event.InvalidExit])
+             |> check_validity_filtered(processor, only: [Event.InvalidExit])
   end
 
   describe "available piggybacks" do
@@ -735,7 +735,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok, events} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> Core.invalid_exits(processor)
+               |> Core.check_validity(processor)
 
       assert_events(events, [
         %Event.PiggybackAvailable{
@@ -766,7 +766,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes}]} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> Core.invalid_exits(processor)
+               |> Core.check_validity(processor)
     end
 
     @tag fixtures: [:processor_empty, :alice]
@@ -785,7 +785,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes}]} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> Core.invalid_exits(processor)
+               |> Core.check_validity(processor)
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions]
@@ -809,7 +809,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                 %Event.PiggybackAvailable{
                   txbytes: ^txbytes_2
                 }
-              ]} = exit_processor_request |> Core.invalid_exits(processor)
+              ]} = exit_processor_request |> Core.check_validity(processor)
     end
 
     @tag fixtures: [:alice, :bob, :processor_empty]
@@ -840,7 +840,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                 }
               ]} =
                %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor, only: [Event.PiggybackAvailable])
+               |> check_validity_filtered(processor, only: [Event.PiggybackAvailable])
     end
 
     @tag fixtures: [:alice, :processor_empty]
@@ -869,7 +869,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                 }
               ]} =
                %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor, only: [Event.PiggybackAvailable])
+               |> check_validity_filtered(processor, only: [Event.PiggybackAvailable])
     end
 
     @tag fixtures: [:alice, :processor_empty]
@@ -896,7 +896,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok, []} =
                %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor, only: [Event.PiggybackAvailable])
+               |> check_validity_filtered(processor, only: [Event.PiggybackAvailable])
     end
 
     @tag fixtures: [:processor_filled, :transactions, :in_flight_exits_challenges_events]
@@ -906,13 +906,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     } do
       assert {:ok, events_canonical} =
                %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> Core.invalid_exits(processor)
+               |> Core.check_validity(processor)
 
       {challenged_processor, _} = Core.new_ife_challenges(processor, [challenge_event])
 
       assert {:ok, events_challenged} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> Core.invalid_exits(challenged_processor)
+               |> Core.check_validity(challenged_processor)
 
       assert_events(events_canonical, events_challenged)
     end
@@ -946,7 +946,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       request = %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
-               invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
+               check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
 
       assert {:ok,
               %{
@@ -977,16 +977,16 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       comp_blknum = 4000
 
-      {request, state} =
-        %ExitProcessor.Request{
-          blknum_now: 5000,
-          eth_height_now: 5,
-          blocks_result: [Block.hashed_txs_at([comp_recovered], comp_blknum)]
-        }
-        |> Core.find_ifes_in_blocks(state)
+      request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        blocks_result: [Block.hashed_txs_at([comp_recovered], comp_blknum)]
+      }
+
+      state = Core.find_ifes_in_blocks(request, state)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0], outputs: []}]} =
-               invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
+               check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
 
       assert {:ok,
               %{
@@ -1027,16 +1027,16 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
 
-      {exit_processor_request, state} =
-        %ExitProcessor.Request{
-          blknum_now: 5000,
-          eth_height_now: 5,
-          piggybacked_blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)]
-        }
-        |> Core.find_ifes_in_blocks(state)
+      exit_processor_request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)]
+      }
+
+      state = Core.find_ifes_in_blocks(exit_processor_request, state)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}]} =
-               invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
+               check_validity_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
 
       assert {:ok,
               %{
@@ -1075,15 +1075,15 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       comp_blknum = 4000
 
-      {exit_processor_request, state} =
-        %ExitProcessor.Request{
-          blknum_now: 5000,
-          eth_height_now: 5,
-          piggybacked_blocks_result: [
-            Block.hashed_txs_at([recovered], tx_blknum)
-          ]
-        }
-        |> Core.find_ifes_in_blocks(state)
+      exit_processor_request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [
+          Block.hashed_txs_at([recovered], tx_blknum)
+        ]
+      }
+
+      state = Core.find_ifes_in_blocks(exit_processor_request, state)
 
       exit_processor_request = %{
         exit_processor_request
@@ -1091,7 +1091,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       }
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [], outputs: [0]}]} =
-               invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
+               check_validity_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
 
       assert {:ok,
               %{
@@ -1107,7 +1107,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_transactions]
-    test "does not look into piggybacked_blocks_result when it should not",
+    test "does not look into ife_input_spending_blocks_result when it should not",
          %{
            alice: alice,
            processor_filled: state,
@@ -1120,23 +1120,23 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
 
-      {exit_processor_request, state} =
-        %ExitProcessor.Request{
-          blknum_now: 5000,
-          eth_height_now: 5,
-          piggybacked_blocks_result: [
-            Block.hashed_txs_at([recovered], tx_blknum)
-          ]
-        }
-        |> Core.find_ifes_in_blocks(state)
+      exit_processor_request = %ExitProcessor.Request{
+        blknum_now: 5000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [
+          Block.hashed_txs_at([recovered], tx_blknum)
+        ]
+      }
+
+      state = Core.find_ifes_in_blocks(exit_processor_request, state)
 
       exit_processor_request = %{
         exit_processor_request
         | blocks_result: [],
-          piggybacked_blocks_result: nil
+          ife_input_spending_blocks_result: nil
       }
 
-      assert {:ok, []} = invalid_exits_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
+      assert {:ok, []} = check_validity_filtered(exit_processor_request, state, only: [Event.InvalidPiggyback])
 
       assert {:error, :no_double_spend_on_particular_piggyback} =
                Core.get_output_challenge_data(exit_processor_request, state, txbytes, 0)
@@ -1150,7 +1150,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          } do
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
 
-      assert %ExitProcessor.Request{utxos_to_check: [], piggybacked_utxos_to_check: []} =
+      assert %ExitProcessor.Request{utxos_to_check: [], ife_input_utxos_to_check: []} =
                %ExitProcessor.Request{eth_height_now: 13, blknum_now: 0}
                |> Core.determine_ife_input_utxos_existence_to_get(state)
                |> Core.determine_utxo_existence_to_get(state)
@@ -1179,21 +1179,16 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       # for one piggybacked output, we're asking for its inputs positions to check utxo existence
       request = Core.determine_ife_input_utxos_existence_to_get(exit_processor_request, processor)
-      assert Utxo.position(1, 0, 0) in request.piggybacked_utxos_to_check
-      assert Utxo.position(1, 2, 1) in request.piggybacked_utxos_to_check
+      assert Utxo.position(1, 0, 0) in request.ife_input_utxos_to_check
+      assert Utxo.position(1, 2, 1) in request.ife_input_utxos_to_check
 
       # if it turns out to not exists, we're fetching the spending block
       request =
         exit_processor_request
-        |> struct!(%{piggybacked_utxos_to_check: [Utxo.position(1, 0, 0)], piggybacked_utxo_exists_result: [false]})
+        |> struct!(%{ife_input_utxos_to_check: [Utxo.position(1, 0, 0)], ife_input_utxo_exists_result: [false]})
         |> Core.determine_ife_spends_to_get(processor)
 
-      assert Utxo.position(1, 0, 0) in request.piggybacked_spends_to_get
-
-      assert %ExitProcessor.Request{piggybacked_blknums_to_get: [1]} =
-               exit_processor_request
-               |> struct!(%{piggybacked_spends_to_get: [Utxo.position(1, 0, 0)], piggybacked_spent_blknum_result: [1]})
-               |> Core.determine_ife_blocks_to_get()
+      assert Utxo.position(1, 0, 0) in request.ife_input_spends_to_get
     end
 
     @tag fixtures: [:alice, :carol, :processor_filled, :transactions, :ife_tx_hashes]
@@ -1227,16 +1222,16 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 5}])
 
-      {request, state} =
-        %ExitProcessor.Request{
-          blknum_now: 4000,
-          eth_height_now: 5,
-          piggybacked_blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)]
-        }
-        |> Core.find_ifes_in_blocks(state)
+      request = %ExitProcessor.Request{
+        blknum_now: 4000,
+        eth_height_now: 5,
+        ife_input_spending_blocks_result: [Block.hashed_txs_at([recovered], tx_blknum)]
+      }
+
+      state = Core.find_ifes_in_blocks(request, state)
 
       assert {:ok, [%Event.InvalidPiggyback{txbytes: ^txbytes, inputs: [0, 1], outputs: [0, 1]}]} =
-               invalid_exits_filtered(request, state, only: [Event.InvalidPiggyback])
+               check_validity_filtered(request, state, only: [Event.InvalidPiggyback])
 
       assert {:ok,
               %{
@@ -1306,6 +1301,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{invalid_piggyback_on_input: %{state: state, request: request}, competing_transactions: [_, _, comp3 | _]} do
       comp3_txbytes = Transaction.raw_txbytes(comp3)
       assert {:error, :unknown_ife} = Core.get_input_challenge_data(request, state, comp3_txbytes, 0)
+      assert {:error, :unknown_ife} = Core.get_output_challenge_data(request, state, comp3_txbytes, 0)
     end
 
     @tag fixtures: [:invalid_piggyback_on_input]
@@ -1319,6 +1315,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     test "fail when asked to produce proof for illegal oindex",
          %{invalid_piggyback_on_input: %{state: state, request: request, ife_txbytes: txbytes}} do
       assert {:error, :piggybacked_index_out_of_range} = Core.get_input_challenge_data(request, state, txbytes, -1)
+      assert {:error, :piggybacked_index_out_of_range} = Core.get_output_challenge_data(request, state, txbytes, -1)
     end
 
     @tag fixtures: [:invalid_piggyback_on_output]
@@ -1358,7 +1355,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{processor_filled: processor} do
       assert {:ok, []} =
                %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor, exclude: [Event.PiggybackAvailable])
+               |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
     end
 
     @tag fixtures: [:processor_filled, :transactions, :competing_transactions, :alice]
@@ -1376,7 +1373,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok, []} =
                %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor, exclude: [Event.PiggybackAvailable])
+               |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
 
       assert {:error, :competitor_not_found} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
@@ -1396,7 +1393,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       }
 
       assert {:ok, []} =
-               exit_processor_request |> invalid_exits_filtered(processor, exclude: [Event.PiggybackAvailable])
+               exit_processor_request |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
 
       assert {:error, :competitor_not_found} =
                exit_processor_request
@@ -1416,7 +1413,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       }
 
       assert {:ok, []} =
-               exit_processor_request |> invalid_exits_filtered(processor, exclude: [Event.PiggybackAvailable])
+               exit_processor_request |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
 
       assert {:error, :competitor_not_found} =
                exit_processor_request
@@ -1438,7 +1435,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok, []} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor, exclude: [Event.PiggybackAvailable])
+               |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
 
       assert {:error, :competitor_not_found} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
@@ -1460,12 +1457,12 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok, events} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
+               |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])
 
       # no invalid piggyback events are generated
       assert {:ok, []} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor, only: [Event.InvalidPiggyback])
+               |> check_validity_filtered(processor, only: [Event.InvalidPiggyback])
 
       assert_events(events, [%Event.NonCanonicalIFE{txbytes: txbytes}, %Event.NonCanonicalIFE{txbytes: other_txbytes}])
 
@@ -1505,7 +1502,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       exit_processor_request = %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
 
       assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
-               exit_processor_request |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
+               exit_processor_request |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])
 
       assert {:ok,
               %{
@@ -1535,7 +1532,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
                exit_processor_request
-               |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
+               |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])
 
       assert {:ok,
               %{
@@ -1588,11 +1585,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       # sanity check - there's two non-canonicals, because IFE compete with each other
       # after the first challenge there should be only one, after the final challenge - none
-      assert {:ok, [_, _]} = exit_processor_request |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
+      assert {:ok, [_, _]} = exit_processor_request |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])
 
       assert_competitors_work = fn processor ->
         # should be `assert {:ok, [_, _]}` but we have OMG-441 (see other comment)
-        assert {:ok, [_]} = exit_processor_request |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
+        assert {:ok, [_]} = exit_processor_request |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])
 
         assert {:ok, %{competing_txbytes: ^other_txbytes, competing_tx_pos: Utxo.position(^other_blknum, 0, 0)}} =
                  exit_processor_request |> Core.get_competitor_for_ife(processor, txbytes)
@@ -1612,7 +1609,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {processor, _} = Core.new_ife_challenges(processor, [older_challenge])
       # NOTE: should be like this - only the "other" IFE remains challenged, because our main one got challenged by the
       # oldest competitor now):
-      # assert {:ok, [_]} = exit_processor_request |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])?
+      # assert {:ok, [_]} = exit_processor_request |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])?
       #
       # i.e. if the challenge present is no the oldest competitor, we still should challenge. After it is the oldest
       # we stop bothering, see OMG-441
@@ -1648,7 +1645,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {processor, _} = Core.new_ife_challenges(processor, [challenge_event])
 
-      assert {:ok, []} = exit_processor_request |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
+      assert {:ok, []} = exit_processor_request |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])
 
       # getting the competitor is still valid, so allowing this
       assert {:ok, %{competing_txbytes: ^other_txbytes, competing_tx_pos: Utxo.position(other_blknum, 0, 0)}} =
@@ -1696,7 +1693,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         }
 
         assert {:ok, [%Event.NonCanonicalIFE{txbytes: ^txbytes}]} =
-                 exit_processor_request |> invalid_exits_filtered(processor, only: [Event.NonCanonicalIFE])
+                 exit_processor_request |> check_validity_filtered(processor, only: [Event.NonCanonicalIFE])
 
         assert {:ok,
                 %{
@@ -1826,32 +1823,26 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
 
-      assert %{spends_to_get: []} =
-               %ExitProcessor.Request{
-                 utxos_to_check: [Utxo.position(1, 0, 0)],
-                 utxo_exists_result: [false]
-               }
-               |> Core.determine_spends_to_get(processor)
+      assert %{utxos_to_check: []} =
+               %ExitProcessor.Request{blknum_now: @late_blknum} |> Core.determine_utxo_existence_to_get(processor)
     end
 
-    @tag fixtures: [:alice, :processor_empty, :transactions]
-    test "by not asking for utxo spends concerning finalized ifes",
-         %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
-      txbytes = Transaction.raw_txbytes(tx)
-      %{sigs: [signature, _]} = DevCrypto.sign(tx, [alice.priv, <<>>])
+    @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
+    test "by not asking for utxo existence concerning finalized ifes",
+         %{
+           processor_empty: processor,
+           in_flight_exit_events: [ife | _],
+           contract_ife_statuses: [{_, ife_id} = ife_status | _]
+         } do
+      {processor, _} = Core.new_in_flight_exits(processor, [ife], [ife_status])
+      tx_hash = ife_tx_hash(ife)
+      piggybacks = [%{tx_hash: tx_hash, output_index: 1}, %{tx_hash: tx_hash, output_index: 2}]
+      {processor, _} = Core.new_piggybacks(processor, piggybacks)
+      finalizations = [%{in_flight_exit_id: ife_id, output_index: 1}, %{in_flight_exit_id: ife_id, output_index: 2}]
+      {:ok, processor, _} = Core.finalize_in_flight_exits(processor, finalizations)
 
-      ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
-      # inactive
-      ife_status = {0, @non_zero_exit_id}
-
-      {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
-
-      assert %{spends_to_get: []} =
-               %ExitProcessor.Request{
-                 utxos_to_check: [Utxo.position(1, 0, 0)],
-                 utxo_exists_result: [false]
-               }
-               |> Core.determine_spends_to_get(processor)
+      assert %{utxos_to_check: []} =
+               %ExitProcessor.Request{blknum_now: @late_blknum} |> Core.determine_utxo_existence_to_get(processor)
     end
 
     @tag fixtures: [:processor_empty]
@@ -1894,18 +1885,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       assert {Utxo.position(1, 0, 0), false} in Enum.zip(utxos_to_check, utxo_exists_result)
       assert Utxo.position(1, 0, 0) in spends_to_get
-    end
-
-    test "by asking for the right blocks",
-         %{} do
-      # NOTE: for now test trivial, because we don't require any filtering yet
-      assert %{blknums_to_get: [1000]} =
-               %ExitProcessor.Request{spent_blknum_result: [1000]} |> Core.determine_blocks_to_get()
-
-      assert %{blknums_to_get: []} = %ExitProcessor.Request{spent_blknum_result: []} |> Core.determine_blocks_to_get()
-
-      assert %{blknums_to_get: [1000, 2000]} =
-               %ExitProcessor.Request{spent_blknum_result: [2000, 1000]} |> Core.determine_blocks_to_get()
     end
 
     @tag fixtures: [:processor_filled]
@@ -1965,7 +1944,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       }
 
       assert {:ok, [%Event.InvalidIFEChallenge{txbytes: ^txbytes}]} =
-               exit_processor_request |> Core.invalid_exits(challenged_processor)
+               exit_processor_request |> Core.check_validity(challenged_processor)
 
       assert {:ok,
               %{
@@ -1999,7 +1978,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{processor_filled: processor} do
       assert {:ok, []} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
-               |> invalid_exits_filtered(processor, exclude: [Event.PiggybackAvailable])
+               |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
     end
 
     # TODO: implement more behavior tests
@@ -2118,11 +2097,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert MapSet.new(events) == MapSet.new(expected_events)
   end
 
-  defp invalid_exits_filtered(request, processor, opts) do
+  defp check_validity_filtered(request, processor, opts) do
     exclude_events = Keyword.get(opts, :exclude, [])
     only_events = Keyword.get(opts, :only, [])
 
-    {result, events} = Core.invalid_exits(request, processor)
+    {result, events} = Core.check_validity(request, processor)
 
     any? = fn filtering_events, event ->
       Enum.any?(filtering_events, fn filtering_event -> event.__struct__ == filtering_event end)

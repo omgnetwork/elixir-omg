@@ -461,12 +461,13 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     piggybacked_output_utxos =
       ifes
       |> Map.values()
+      |> Enum.filter(& &1.is_active)
       |> Enum.filter(&(InFlightExitInfo.piggybacked_outputs(&1) != []))
       |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
       |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum < blknum_now end)
       |> :lists.usort()
 
-    %{request | piggybacked_utxos_to_check: piggybacked_output_utxos}
+    %{request | ife_input_utxos_to_check: piggybacked_output_utxos}
   end
 
   @doc """
@@ -487,13 +488,9 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       |> Enum.filter(fn {_key, %ExitInfo{is_active: is_active}} -> is_active end)
       |> Enum.map(fn {utxo_pos, _value} -> utxo_pos end)
 
-    ife_inputs_pos =
-      ifes
-      |> Enum.flat_map(fn {_, ife} -> Transaction.get_inputs(ife.tx) end)
-
-    ife_outputs_pos =
-      ifes
-      |> Enum.flat_map(fn {_, ife} -> InFlightExitInfo.get_piggybacked_outputs_positions(ife) end)
+    active_ifes = ifes |> Map.values() |> Enum.filter(& &1.is_active)
+    ife_inputs_pos = active_ifes |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
+    ife_outputs_pos = active_ifes |> Enum.flat_map(&InFlightExitInfo.get_piggybacked_outputs_positions/1)
 
     (ife_outputs_pos ++ ife_inputs_pos ++ standard_exits_pos)
     |> Enum.filter(fn Utxo.position(blknum, _, _) -> blknum != 0 and blknum < blknum_now end)
@@ -506,6 +503,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   pertain to IFE transaction inputs.
 
   Assumes that UTXOs that haven't been checked (i.e. not a key in `utxo_exists?` map) **exist**
+
+  To proceed with validation/proof building, this function must ask for blocks that satisfy following criteria:
+    1/ blocks where any input to any IFE was spent
+    2/ blocks where any output to any IFE was spent
+    3/ blocks where the whole IFE transaction **might've** been included, to get piggyback availability and to get InvalidIFEChallenge's
   """
   @spec determine_spends_to_get(ExitProcessor.Request.t(), __MODULE__.t()) :: ExitProcessor.Request.t()
   def determine_spends_to_get(
@@ -520,7 +522,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     spends_to_get =
       ifes
       |> Map.values()
-      |> Enum.filter(& &1.is_active)
       |> Enum.flat_map(fn %{tx: tx} = ife ->
         InFlightExitInfo.get_piggybacked_outputs_positions(ife) ++ Transaction.get_inputs(tx)
       end)
@@ -532,13 +533,17 @@ defmodule OMG.Watcher.ExitProcessor.Core do
 
   @doc """
   Figures out which numbers of "spending transaction blocks" to get for the outputs on IFEs utxos.
+
+  To proceed with validation/proof building, this function must ask for blocks that satisfy following criteria:
+    1/ blocks, where any output from an IFE tx might have been created, by including such IFE tx
+
   Similar to `determine_spends_to_get`, otherwise.
   """
   @spec determine_ife_spends_to_get(ExitProcessor.Request.t(), __MODULE__.t()) :: ExitProcessor.Request.t()
   def determine_ife_spends_to_get(
         %ExitProcessor.Request{
-          piggybacked_utxos_to_check: utxos_to_check,
-          piggybacked_utxo_exists_result: utxo_exists_result
+          ife_input_utxos_to_check: utxos_to_check,
+          ife_input_utxo_exists_result: utxo_exists_result
         } = request,
         %__MODULE__{in_flight_exits: ifes}
       ) do
@@ -547,43 +552,11 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     spends_to_get =
       ifes
       |> Map.values()
-      |> Enum.filter(& &1.is_active)
       |> Enum.flat_map(&Transaction.get_inputs(&1.tx))
       |> only_utxos_checked_and_missing(utxo_exists?)
       |> :lists.usort()
 
-    %{request | piggybacked_spends_to_get: spends_to_get}
-  end
-
-  @doc """
-  Figures out which block numbers to ask from the database, based on the blknums where relevant UTXOs were spent and
-  (in the future) some additional insights from the state of ExitProcessor (eg. only get the oldest block per ife)
-
-  This function must return blocks that satisfy following criteria:
-    1/ blocks where any input to any IFE was spent
-    2/ blocks where any output to any IFE was spent
-    3/ blocks where the whole IFE transaction **might've** been included, to get piggyback availability and to get InvalidIFEChallenge's
-
-  """
-  @spec determine_blocks_to_get(ExitProcessor.Request.t()) :: ExitProcessor.Request.t()
-  def determine_blocks_to_get(
-        %ExitProcessor.Request{
-          spent_blknum_result: spent_blknum_result
-        } = request
-      ) do
-    %{request | blknums_to_get: :lists.usort(spent_blknum_result)}
-  end
-
-  @doc """
-  Similar to `determine_blocks_to_get`, but for possibly spent, piggybacked outputs of IFEs.
-  """
-  @spec determine_ife_blocks_to_get(ExitProcessor.Request.t()) :: ExitProcessor.Request.t()
-  def determine_ife_blocks_to_get(
-        %ExitProcessor.Request{
-          piggybacked_spent_blknum_result: spent_blknum_result
-        } = request
-      ) do
-    %{request | piggybacked_blknums_to_get: :lists.usort(spent_blknum_result)}
+    %{request | ife_input_spends_to_get: spends_to_get}
   end
 
   @doc """
@@ -596,8 +569,8 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   NOTE: If there were any exits unchallenged for some time in chain history, this might detect breach of SLA,
         even if the exits were eventually challenged (e.g. during syncing)
   """
-  @spec invalid_exits(ExitProcessor.Request.t(), t()) :: check_validity_result_t()
-  def invalid_exits(
+  @spec check_validity(ExitProcessor.Request.t(), t()) :: check_validity_result_t()
+  def check_validity(
         %ExitProcessor.Request{
           eth_height_now: eth_height_now,
           utxos_to_check: utxos_to_check,
@@ -683,7 +656,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   end
 
   def get_output_challenge_data(request, state, txbytes, output_index) do
-    case output_index in 0..(Transaction.max_inputs() - 1) do
+    case output_index in 0..(Transaction.max_outputs() - 1) do
       true -> get_piggyback_challenge_data(request, state, txbytes, output_index + 4)
       false -> {:error, :piggybacked_index_out_of_range}
     end
@@ -751,17 +724,16 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   @spec get_invalid_piggybacks(ExitProcessor.Request.t(), __MODULE__.t()) :: [
           {binary, [Transaction.input_index_t()], [Transaction.input_index_t()]}
         ]
-  def get_invalid_piggybacks(
-        %ExitProcessor.Request{blocks_result: blocks},
-        state
-      ) do
+  defp get_invalid_piggybacks(
+         %ExitProcessor.Request{blocks_result: blocks},
+         state
+       ) do
     known_txs = get_known_txs(state) ++ get_known_txs(blocks)
     bad_piggybacks_on_inputs = get_invalid_piggybacks_on_inputs(known_txs, state)
     bad_piggybacks_on_outputs = get_invalid_piggybacks_on_outputs(known_txs, state)
     # produce only one event per IFE, with both piggybacks on inputs and outputs
     (bad_piggybacks_on_inputs ++ bad_piggybacks_on_outputs)
-    |> Enum.map(&Tuple.delete_at(&1, 0))
-    |> Enum.group_by(&elem(&1, 0), fn {_, ins, outs, _} ->
+    |> Enum.group_by(&elem(&1, 1), fn {_, _, ins, outs, _} ->
       {ins, outs}
     end)
     |> Enum.map(fn {txhash, zipped_bad_piggyback_indexes} ->
@@ -996,7 +968,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   Note: this change is not persisted later!
   """
   def find_ifes_in_blocks(
-        %ExitProcessor.Request{piggybacked_blocks_result: blocks} = request,
+        %ExitProcessor.Request{ife_input_spending_blocks_result: blocks},
         %__MODULE__{in_flight_exits: ifes} = state
       ) do
     updated_ifes =
@@ -1010,8 +982,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
       end)
       |> Map.new()
 
-    state = %{state | in_flight_exits: Map.merge(ifes, updated_ifes)}
-    {request, state}
+    %{state | in_flight_exits: Map.merge(ifes, updated_ifes)}
   end
 
   defp find_ife_in_blocks(ife, blocks) do
