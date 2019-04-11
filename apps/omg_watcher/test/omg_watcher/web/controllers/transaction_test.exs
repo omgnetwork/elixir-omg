@@ -16,6 +16,8 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   use ExUnitFixtures
   use ExUnit.Case, async: false
   use OMG.Fixtures
+
+  alias OMG.State.Transaction
   alias OMG.TestHelper, as: Test
   alias OMG.Watcher.DB
 
@@ -29,6 +31,17 @@ defmodule OMG.Watcher.Web.Controller.TransactionTest do
   @other_token_hex @other_token |> Encoding.to_hex()
 
   describe "getting transaction by id" do
+    @tag fixtures: [:initial_blocks]
+    test "verifies all inserted transactions available to get", %{initial_blocks: initial_blocks} do
+      initial_blocks
+      |> Enum.each(fn {blknum, txindex, txhash, _recovered_tx} ->
+        txhash_enc = Encoding.to_hex(txhash)
+
+        assert %{"block" => %{"blknum" => ^blknum}, "txhash" => ^txhash_enc, "txindex" => ^txindex} =
+                 TestHelper.success?("transaction.get", %{id: txhash_enc})
+      end)
+    end
+
     @tag fixtures: [:blocks_inserter, :initial_deposits, :alice, :bob]
     test "returns transaction in expected format", %{
       blocks_inserter: blocks_inserter,
