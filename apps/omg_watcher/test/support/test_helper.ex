@@ -56,10 +56,10 @@ defmodule OMG.Watcher.TestHelper do
     data
   end
 
-  def rpc_call(path, body \\ nil, expected_resp_status \\ 200) do
+  def rpc_call(path, body \\ nil, expected_resp_status \\ 200, content_type \\ "application/json") do
     request =
       conn(:post, path, body)
-      |> put_req_header("content-type", "application/json")
+      |> put_req_header("content-type", content_type)
 
     response = request |> send_request
     assert response.status == expected_resp_status
