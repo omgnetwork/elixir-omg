@@ -21,7 +21,7 @@ defmodule OMG.Watcher.Application do
     DeferredConfig.populate(:omg_watcher)
     cookie = System.get_env("ERL_W_COOKIE")
     :ok = set_cookie(cookie)
-
+    :ok = set_code_reloading()
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
 
     start_root_supervisor()
@@ -62,4 +62,13 @@ defmodule OMG.Watcher.Application do
   end
 
   defp set_cookie(_), do: _ = Logger.warn("Cookie not applied.")
+
+  defp set_code_reloading do
+    if Code.ensure_loaded?(IEx) and IEx.started?() do
+      :ok
+    else
+      old = Application.get_env(:omg_watcher, OMG.Watcher.Web.Endpoint)
+      Application.put_env(:omg_watcher, OMG.Watcher.Web.Endpoint, Keyword.put(old, :code_reloader, false))
+    end
+  end
 end

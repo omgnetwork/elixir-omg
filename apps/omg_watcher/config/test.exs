@@ -20,3 +20,5 @@ config :omg_watcher,
   # NOTE: must be here - one of our integration tests actually fakes block withholding to test something
   maximum_block_withholding_time_ms: 1_000,
   exit_finality_margin: 1
+
+config :omg_watcher, environment: :test
