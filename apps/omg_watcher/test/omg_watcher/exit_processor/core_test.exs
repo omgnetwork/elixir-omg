@@ -21,7 +21,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   use OMG.Fixtures
 
   alias OMG.Block
-  alias OMG.Crypto
   alias OMG.DevCrypto
   alias OMG.State
   alias OMG.State.Transaction
@@ -30,7 +29,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   alias OMG.Watcher.Event
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.ExitProcessor.Core
-  alias OMG.Watcher.ExitProcessor.ExitInfo
 
   require Utxo
 
@@ -43,7 +41,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   @utxo_pos1 Utxo.position(2, 0, 0)
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
-  @utxo_pos3 Utxo.position(1, 0, 0)
 
   @non_zero_exit_id 1
   @zero_sig <<0::520>>
@@ -2120,140 +2117,4 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   defp prepare_exit_finalizations(utxo_positions), do: Enum.map(utxo_positions, &%{utxo_pos: Utxo.Position.encode(&1)})
-
-  #  Challenger
-
-  defp create_block_with(blknum, txs) do
-    %Block{
-      number: blknum,
-      transactions: Enum.map(txs, &Transaction.Signed.encode/1)
-    }
-  end
-
-  defp assert_sig_belongs_to(sig, tx, expected_owner) do
-    {:ok, signer_addr} =
-      tx
-      |> Transaction.raw_txhash()
-      |> Crypto.recover_address(sig)
-
-    assert expected_owner.addr == signer_addr
-  end
-
-  @tag fixtures: [:alice, :bob]
-  test "creates a challenge for an exit; provides utxo position of non-zero amount", %{alice: alice, bob: bob} do
-    # transactions spending one of utxos from above transaction
-    tx_spending_1st_utxo =
-      TestHelper.create_signed([{1, 0, 0, alice}, {1000, 0, 0, alice}], @eth, [{bob, 50}, {alice, 50}])
-
-    tx_spending_2nd_utxo =
-      TestHelper.create_signed([{1000, 0, 1, bob}, {1, 0, 0, alice}], @eth, [{alice, 50}, {bob, 50}])
-
-    spending_block = create_block_with(2000, [tx_spending_1st_utxo, tx_spending_2nd_utxo])
-
-    # Assert 1st spend challenge
-    expected_txbytes = tx_spending_1st_utxo |> Transaction.raw_txbytes()
-
-    assert %{
-             exit_id: 424_242_424_242_424_242_424_242_424_242,
-             input_index: 1,
-             txbytes: ^expected_txbytes,
-             sig: alice_signature
-           } =
-             Core.create_challenge(
-               %ExitInfo{owner: alice.addr},
-               spending_block,
-               Utxo.position(1000, 0, 0),
-               424_242_424_242_424_242_424_242_424_242
-             )
-
-    assert_sig_belongs_to(alice_signature, tx_spending_1st_utxo, alice)
-
-    # Assert 2nd spend challenge
-    expected_txbytes = tx_spending_2nd_utxo |> Transaction.raw_txbytes()
-
-    assert %{
-             exit_id: 333,
-             input_index: 0,
-             txbytes: ^expected_txbytes,
-             sig: bob_signature
-           } = Core.create_challenge(%ExitInfo{owner: bob.addr}, spending_block, Utxo.position(1000, 0, 1), 333)
-
-    assert_sig_belongs_to(bob_signature, tx_spending_2nd_utxo, bob)
-  end
-
-  @tag fixtures: [:alice, :bob]
-  test "create challenge based on ife", %{alice: alice, bob: bob} do
-    tx = TestHelper.create_signed([{1000, 0, 0, alice}, {1000, 0, 1, alice}], @eth, [{bob, 50}, {alice, 50}])
-    expected_txbytes = Transaction.raw_txbytes(tx)
-
-    assert %{
-             exit_id: 111,
-             input_index: 1,
-             txbytes: ^expected_txbytes,
-             sig: alice_signature
-           } = Core.create_challenge(%ExitInfo{owner: alice.addr}, tx, Utxo.position(1000, 0, 1), 111)
-  end
-
-  @tag fixtures: [:processor_filled, :alice]
-  test "not spent or not existed utxo should be not challengeable", %{processor_filled: processor, alice: alice} do
-    {block, exit_txbytes} = get_block_exit_txbytes(@utxo_pos1, alice)
-
-    assert {:ok, 1000, %ExitInfo{}, ^exit_txbytes} = Core.get_challenge_data({:ok, 1000}, @utxo_pos1, block, processor)
-
-    {block2, _exit_txbytes} = get_block_exit_txbytes(@utxo_pos2, alice)
-    assert {:error, :utxo_not_spent} = Core.get_challenge_data({:ok, :not_found}, @utxo_pos2, block2, processor)
-    {block3, _exit_txbytes} = get_block_exit_txbytes(@utxo_pos3, alice)
-    assert {:error, :exit_not_found} = Core.get_challenge_data({:ok, 1000}, @utxo_pos3, block3, processor)
-  end
-
-  @tag fixtures: [:processor_filled, :alice, :transactions]
-  test "challenges standard exits challengeable by IFE transactions",
-       %{processor_filled: processor, alice: %{addr: alice_addr} = alice, transactions: [ife_tx | _]} do
-    txbytes = Transaction.new([], [{alice_addr, @eth, 10}]) |> Transaction.raw_txbytes()
-
-    event = %{
-      owner: alice_addr,
-      eth_height: 2,
-      exit_id: 1,
-      call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos3), output_tx: txbytes}
-    }
-
-    status = {alice_addr, @eth, 10, Utxo.Position.encode(@utxo_pos3)}
-    {processor, _} = Core.new_exits(processor, [event], [status])
-    {block, exit_txbytes} = get_block_exit_txbytes(@utxo_pos3, alice)
-
-    assert {:ok, %Transaction.Signed{raw_tx: ^ife_tx}, %ExitInfo{owner: ^alice_addr}, ^exit_txbytes} =
-             Core.get_challenge_data({:ok, :not_found}, @utxo_pos3, block, processor)
-  end
-
-  @tag fixtures: [:processor_empty, :alice]
-  test "get exit txbytes from deposit", %{processor_empty: empty, alice: alice} do
-    txbytes = Transaction.new([], [{alice.addr, @eth, 10}]) |> Transaction.raw_txbytes()
-
-    exit_events = [
-      %{
-        owner: alice.addr,
-        eth_height: 2,
-        exit_id: 1,
-        call_data: %{utxo_pos: Utxo.Position.encode(Utxo.position(1, 0, 0)), output_tx: txbytes}
-      }
-    ]
-
-    contract_exit_statuses = [{alice.addr, @eth, 10, Utxo.Position.encode(Utxo.position(1, 0, 0))}]
-    {processor, _} = Core.new_exits(empty, exit_events, contract_exit_statuses)
-
-    assert {:ok, 1, %ExitInfo{}, ^txbytes} =
-             Core.get_challenge_data({:ok, 1}, Utxo.position(1, 0, 0), :not_found, processor)
-  end
-
-  defp get_block_exit_txbytes(Utxo.position(blknum, txindex, oindex), owner) do
-    recovered_tx_list =
-      Enum.map(0..txindex, fn index ->
-        TestHelper.create_recovered([{1, index + 1, 0, owner}], @eth, List.duplicate({owner, 8}, oindex + 1))
-      end)
-
-    exit_txbytes = Enum.at(recovered_tx_list, txindex) |> Transaction.raw_txbytes()
-
-    {Block.hashed_txs_at(recovered_tx_list, blknum), exit_txbytes}
-  end
 end

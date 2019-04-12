@@ -41,7 +41,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
   alias OMG.Watcher.ExitProcessor.CompetitorInfo
   alias OMG.Watcher.ExitProcessor.ExitInfo
   alias OMG.Watcher.ExitProcessor.InFlightExitInfo
-  alias OMG.Watcher.ExitProcessor.StandardExitChallenge
   alias OMG.Watcher.ExitProcessor.TxAppendix
 
   @default_sla_margin 10
@@ -662,6 +661,10 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
+  defdelegate determine_standard_challenge_queries(request, state), to: ExitProcessor.StandardExitChallenge
+  defdelegate determine_exit_txbytes(request, state), to: ExitProcessor.StandardExitChallenge
+  defdelegate create_challenge(request, state), to: ExitProcessor.StandardExitChallenge
+
   defp produce_invalid_piggyback_proof(%ExitProcessor.Request{blocks_result: blocks}, state, tx, pb_index) do
     known_txs = get_known_txs(blocks) ++ get_known_txs(state)
 
@@ -833,19 +836,12 @@ defmodule OMG.Watcher.ExitProcessor.Core do
          do: produce_invalid_piggyback_proof(request, state, tx, pb_index)
   end
 
-  @spec get_ife_based_on_utxo(Utxo.Position.t(), t()) :: KnownTx.t() | nil
-  defp get_ife_based_on_utxo(Utxo.position(_, _, _) = utxo_exit, %__MODULE__{} = state) do
-    state
-    |> get_known_txs()
-    |> Enum.find(fn %KnownTx{signed_tx: tx} -> Enum.member?(Transaction.get_inputs(tx), utxo_exit) end)
-  end
-
   @spec get_invalid_exits_based_on_ifes(t()) :: list(%{Utxo.Position.t() => ExitInfo.t()})
   defp get_invalid_exits_based_on_ifes(%__MODULE__{exits: exits} = state) do
     exiting_utxo_positions =
       state
-      |> get_known_txs()
-      |> Enum.flat_map(fn %KnownTx{signed_tx: tx} -> Transaction.get_inputs(tx) end)
+      |> TxAppendix.get_all()
+      |> Enum.flat_map(&Transaction.get_inputs/1)
 
     exits
     |> Enum.filter(fn {utxo_pos, _exit_info} ->
@@ -1211,85 +1207,6 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  # Challenger part
-
-  @doc """
-  Creates a challenge for exiting utxo based on provided block or transaction.
-  """
-  @spec create_challenge(ExitInfo.t(), Block.t() | Transaction.Signed.t(), Utxo.Position.t(), non_neg_integer) ::
-          StandardExitChallenge.t()
-  def create_challenge(%ExitInfo{owner: owner}, spending_tx_or_block, utxo_exit, exit_id) do
-    {challenging_signed, input_index} = get_spending_transaction_with_index(spending_tx_or_block, utxo_exit)
-
-    %StandardExitChallenge{
-      exit_id: exit_id,
-      input_index: input_index,
-      txbytes: challenging_signed |> Transaction.raw_txbytes(),
-      sig: find_sig!(challenging_signed, owner)
-    }
-  end
-
-  @doc """
-  Checks whether database responses or IFEs hold all the relevant data successfully fetched:
-   - a block number which can be used to retrieve needed information to challenge or an ife which spends inputs
-   - the relevant exit information
-  """
-  @spec get_challenge_data(tuple(), Utxo.Position.t(), map() | :not_found, t()) ::
-          {:ok, pos_integer() | KnownTx.t(), ExitInfo.t(), Transaction.tx_bytes()} | {:error, atom()}
-  def get_challenge_data(spending_blknum_response, exiting_utxo_pos, db_block, %__MODULE__{exits: exits} = state) do
-    with %ExitInfo{} = exit_info <- Map.get(exits, exiting_utxo_pos, {:error, :exit_not_found}),
-         exit_txbytes <- get_standard_exit_txbytes(exit_info, exiting_utxo_pos, db_block),
-         ife_response <- get_ife_based_on_utxo(exiting_utxo_pos, state),
-         {:ok, raw_spending_proof} <- ensure_challengeable(spending_blknum_response, ife_response),
-         do: {:ok, raw_spending_proof, exit_info, exit_txbytes}
-  end
-
-  # get the hash of a deposit transaction
-  defp get_standard_exit_txbytes(
-         %ExitInfo{owner: owner, currency: currency, amount: amount},
-         _exiting_utxo_pos,
-         :not_found
-       ),
-       do: Transaction.new([], [{owner, currency, amount}]) |> Transaction.raw_txbytes()
-
-  # get the hash of a transaction from a block
-  defp get_standard_exit_txbytes(_exit_info, Utxo.position(_blknum, txindex, _oindex), db_block) do
-    %Block{transactions: transactions} = Block.from_db_value(db_block)
-
-    with {:ok, bytes_tx} <- Enum.fetch(transactions, txindex),
-         {:ok, tx} <- Transaction.Signed.decode(bytes_tx),
-         do: Transaction.raw_txbytes(tx)
-  end
-
-  defp ensure_challengeable(spending_blknum_response, ife_response)
-
-  defp ensure_challengeable({:ok, :not_found}, nil), do: {:error, :utxo_not_spent}
-  defp ensure_challengeable({:ok, blknum}, _) when is_integer(blknum), do: {:ok, blknum}
-  defp ensure_challengeable(_, %KnownTx{signed_tx: signed_tx}), do: {:ok, signed_tx}
-  defp ensure_challengeable(other_db_result, _), do: other_db_result
-
-  # finds transaction in given block and input index spending given utxo
-  @spec get_spending_transaction_with_index(Block.t() | Transaction.Signed.t(), Utxo.Position.t()) ::
-          {Transaction.Signed.t(), non_neg_integer()} | nil
-  defp get_spending_transaction_with_index(%Block{transactions: txs}, utxo_pos) do
-    txs
-    |> Enum.map(&Transaction.Signed.decode/1)
-    |> Enum.find_value(fn {:ok, tx_signed} ->
-      # `Enum.find_value/2` allows to find tx that spends `utxo_pos` and return it along with input index in one run
-      get_spending_transaction_with_index(tx_signed, utxo_pos)
-    end)
-  end
-
-  defp get_spending_transaction_with_index(tx, utxo_pos) do
-    inputs = Transaction.get_inputs(tx)
-
-    if input_index = Enum.find_index(inputs, &(&1 == utxo_pos)) do
-      {tx, input_index}
-    else
-      nil
-    end
-  end
-
   # Finds the exact signature which signed the particular transaction for the given owner address
   @spec find_sig(Transaction.Signed.t(), Crypto.address_t()) :: {:ok, Crypto.sig_t()} | nil
   defp find_sig(%Transaction.Signed{sigs: sigs} = tx, owner) do
@@ -1304,7 +1221,7 @@ defmodule OMG.Watcher.ExitProcessor.Core do
     end
   end
 
-  defp find_sig!(tx, owner) do
+  def find_sig!(tx, owner) do
     # at this point having a tx that wasn't actually signed is an error, hence pattern match
     # if this returns nil it means somethings very wrong - the owner taken (effectively) from the contract
     # doesn't appear to have signed the potential competitor, which means that some prior signature checking was skipped

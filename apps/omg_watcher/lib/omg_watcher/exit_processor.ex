@@ -282,7 +282,7 @@ defmodule OMG.Watcher.ExitProcessor do
 
     response =
       %ExitProcessor.Request{}
-      |> fill_request_with_data(new_state)
+      |> fill_request_with_spending_data(new_state)
       |> Core.check_validity(new_state)
 
     {:reply, response, new_state}
@@ -297,7 +297,7 @@ defmodule OMG.Watcher.ExitProcessor do
     #       txbytes can be invalid so we'd need a with here...
     competitor_result =
       %ExitProcessor.Request{}
-      |> fill_request_with_data(state)
+      |> fill_request_with_spending_data(state)
       |> Core.get_competitor_for_ife(state, txbytes)
 
     {:reply, competitor_result, state}
@@ -307,7 +307,7 @@ defmodule OMG.Watcher.ExitProcessor do
     # TODO: same comment as above in get_competitor_for_ife
     canonicity_result =
       %ExitProcessor.Request{}
-      |> fill_request_with_data(state)
+      |> fill_request_with_spending_data(state)
       |> Core.prove_canonical_for_ife(txbytes)
 
     {:reply, canonicity_result, state}
@@ -316,7 +316,7 @@ defmodule OMG.Watcher.ExitProcessor do
   def handle_call({:get_input_challenge_data, txbytes, input_index}, _from, state) do
     response =
       %ExitProcessor.Request{}
-      |> fill_request_with_data(state)
+      |> fill_request_with_spending_data(state)
       |> Core.get_input_challenge_data(state, txbytes, input_index)
 
     {:reply, response, state}
@@ -327,41 +327,44 @@ defmodule OMG.Watcher.ExitProcessor do
 
     response =
       %ExitProcessor.Request{}
-      |> fill_request_with_data(new_state)
+      |> fill_request_with_spending_data(new_state)
       |> Core.get_output_challenge_data(new_state, txbytes, output_index)
 
     {:reply, response, new_state}
   end
 
-  def handle_call({:create_challenge, Utxo.position(blknum, _txindex, _oindex) = exiting_utxo_pos}, _from, state) do
-    with spending_blknum_response <- exiting_utxo_pos |> Utxo.Position.to_db_key() |> OMG.DB.spent_blknum(),
-         {:ok, hashes} <- OMG.DB.block_hashes([blknum]),
-         {:ok, [block]} <- OMG.DB.blocks(hashes),
-         {:ok, raw_spending_proof, exit_info, exit_txbytes} <-
-           Core.get_challenge_data(spending_blknum_response, exiting_utxo_pos, block, state),
-         encoded_utxo_pos <- Utxo.Position.encode(exiting_utxo_pos),
-         {:ok, exit_id} <- OMG.Eth.RootChain.get_standard_exit_id(exit_txbytes, encoded_utxo_pos) do
-      # TODO: we're violating the shell/core pattern here, refactor!
-      spending_proof =
-        case raw_spending_proof do
-          raw_blknum when is_number(raw_blknum) ->
-            {:ok, hashes} = OMG.DB.block_hashes([raw_blknum])
-            {:ok, [spending_block]} = OMG.DB.blocks(hashes)
-            Block.from_db_value(spending_block)
+  def handle_call({:create_challenge, exiting_utxo_pos}, _from, state) do
+    response =
+      %ExitProcessor.Request{se_exiting_pos: exiting_utxo_pos}
+      |> Core.determine_standard_challenge_queries(state)
+      |> fill_request_with_standard_challenge_data()
+      |> Core.determine_exit_txbytes(state)
+      |> fill_request_with_standard_exit_id()
+      |> Core.create_challenge(state)
 
-          signed_tx ->
-            signed_tx
-        end
+    {:reply, response, state}
+  end
 
-      {:reply, {:ok, Core.create_challenge(exit_info, spending_proof, exiting_utxo_pos, exit_id)}, state}
-    else
-      error -> {:reply, error, state}
-    end
+  defp fill_request_with_standard_challenge_data(
+         %ExitProcessor.Request{se_spending_blocks_to_get: positions, se_creating_blocks_to_get: blknums} = request
+       ) do
+    %ExitProcessor.Request{
+      request
+      | se_spending_blocks_result: do_get_spending_blocks(positions),
+        se_creating_blocks_result: do_get_blocks(blknums)
+    }
+  end
+
+  defp fill_request_with_standard_exit_id(
+         %ExitProcessor.Request{se_exit_id_to_get: creating_txbytes, se_exiting_pos: utxo_pos} = request
+       ) do
+    {:ok, exit_id} = OMG.Eth.RootChain.get_standard_exit_id(creating_txbytes, Utxo.Position.encode(utxo_pos))
+    %ExitProcessor.Request{request | se_exit_id_result: exit_id}
   end
 
   # based on the exits being processed, fills the request structure with data required to process queries
-  @spec fill_request_with_data(ExitProcessor.Request.t(), Core.t()) :: ExitProcessor.Request.t()
-  defp fill_request_with_data(request, state) do
+  @spec fill_request_with_spending_data(ExitProcessor.Request.t(), Core.t()) :: ExitProcessor.Request.t()
+  defp fill_request_with_spending_data(request, state) do
     request
     |> run_status_gets()
     |> Core.determine_utxo_existence_to_get(state)
@@ -415,8 +418,12 @@ defmodule OMG.Watcher.ExitProcessor do
   defp do_get_spending_blocks(positions) do
     blknums = positions |> Enum.map(&do_get_spent_blknum/1)
     _ = Logger.debug("spends_to_get: #{inspect(positions)}, spent_blknum_result: #{inspect(blknums)}")
+    do_get_blocks(blknums)
+  end
+
+  defp do_get_blocks(blknums) do
     {:ok, hashes} = OMG.DB.block_hashes(blknums)
-    _ = Logger.debug("hashes: #{inspect(hashes)}")
+    _ = Logger.debug("blknums: #{inspect(blknums)}, hashes: #{inspect(hashes)}")
     {:ok, blocks} = OMG.DB.blocks(hashes)
     _ = Logger.debug("blocks_result: #{inspect(blocks)}")
 

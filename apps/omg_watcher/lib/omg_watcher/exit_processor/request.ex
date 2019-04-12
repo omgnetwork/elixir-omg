@@ -23,6 +23,8 @@ defmodule OMG.Watcher.ExitProcessor.Request do
         has its problems. Decide and update this note after OMG-384 or OMG-383
 
         EDIT: the multitude and duplication of the fields here is a clear sign that this design loses.
+        EDIT2: probably splitting this struct up, so that there isn't so many fields (`IFEInclusionRequest`,
+        `ValidityRequest`, `SEChallengeRequest` etc), might be the way to go
   """
 
   alias OMG.Block
@@ -42,7 +44,14 @@ defmodule OMG.Watcher.ExitProcessor.Request do
     blocks_result: [],
     ife_input_utxo_exists_result: [],
     piggybacked_spent_blknum_result: [],
-    ife_input_spending_blocks_result: []
+    ife_input_spending_blocks_result: [],
+    se_exiting_pos: nil,
+    se_creating_blocks_to_get: [],
+    se_creating_blocks_result: [],
+    se_spending_blocks_to_get: [],
+    se_spending_blocks_result: [],
+    se_exit_id_to_get: nil,
+    se_exit_id_result: nil
   ]
 
   @type t :: %__MODULE__{
@@ -59,6 +68,13 @@ defmodule OMG.Watcher.ExitProcessor.Request do
           blocks_result: list(Block.t()),
           ife_input_utxo_exists_result: list(boolean),
           piggybacked_spent_blknum_result: list(pos_integer),
-          ife_input_spending_blocks_result: list(Block.t())
+          ife_input_spending_blocks_result: list(Block.t()),
+          se_exiting_pos: nil | Utxo.Position.t(),
+          se_creating_blocks_to_get: list(pos_integer),
+          se_creating_blocks_result: list(Block.t()),
+          se_spending_blocks_to_get: list(Utxo.Position.t()),
+          se_spending_blocks_result: list(Block.t()),
+          se_exit_id_to_get: nil | binary(),
+          se_exit_id_result: nil | pos_integer()
         }
 end

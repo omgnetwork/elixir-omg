@@ -76,4 +76,13 @@ defmodule OMG.Utxo.Position do
     oindex = rem(encoded, @transaction_offset)
     {blknum, txindex, oindex}
   end
+
+  @doc """
+  Based on the contract parameters determines whether UTXO position provided was created by a deposit
+  """
+  @spec is_deposit?(__MODULE__.t()) :: boolean()
+  def is_deposit?(Utxo.position(blknum, _, _)) do
+    {:ok, interval} = OMG.Eth.RootChain.get_child_block_interval()
+    rem(blknum, interval) != 0
+  end
 end
