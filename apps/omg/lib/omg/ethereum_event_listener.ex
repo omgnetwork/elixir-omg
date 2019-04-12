@@ -94,7 +94,7 @@ defmodule OMG.EthereumEventListener do
   end
 
   def handle_info(:sync, state), do: do_sync(state)
-  @decorate transaction(:event_listener)
+  @decorate transaction(:EthereumEventListener)
   def do_sync({%Core{} = core, _callbacks} = state) do
     case RootChainCoordinator.get_sync_info() do
       :nosync ->

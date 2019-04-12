@@ -18,11 +18,13 @@ defmodule OMG.Watcher.API.Account do
   """
 
   alias OMG.Watcher.DB
+  use Appsignal.Instrumentation.Decorators
 
   @doc """
   Returns a list of amounts of currencies that a given address owns
   """
   @spec get_balance(OMG.Crypto.address_t()) :: list(DB.TxOutput.balance())
+  @decorate transaction(:Watcher_API_Account)
   def get_balance(address) do
     DB.TxOutput.get_balance(address)
   end
@@ -33,6 +35,7 @@ defmodule OMG.Watcher.API.Account do
   TODO: For now uses Postgres data, but should be adapted to OMG.DB (in security-critical only mode)
   """
   @spec get_utxos(OMG.Crypto.address_t()) :: list(%DB.TxOutput{})
+  @decorate transaction(:Watcher_API_Account)
   def get_utxos(address) do
     DB.TxOutput.get_utxos(address)
   end

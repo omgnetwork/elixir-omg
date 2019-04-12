@@ -82,7 +82,7 @@ defmodule OMG.DB.LevelDBServer do
   def handle_call({:exit_info, utxo_pos}, _from, state), do: exit_info(utxo_pos, state)
   def handle_call({:spent_blknum, utxo_pos}, _from, state), do: spent_blknum(utxo_pos, state)
 
-  @decorate transaction(:LevelDB)
+  @decorate transaction_event(:LevelDBServer)
   defp multi_update(db_updates, state) do
     result =
       db_updates
@@ -92,7 +92,7 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  @decorate transaction(:LevelDB)
+  @decorate transaction_event(:LevelDBServer)
   defp blocks(blocks_to_fetch, state) do
     result =
       blocks_to_fetch
@@ -103,19 +103,19 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  @decorate transaction(:LevelDB)
+  @decorate transaction_event(:LevelDBServer)
   defp utxos(state) do
     result = get_all_by_type(:utxo, state)
     {:reply, result, state}
   end
 
-  @decorate transaction(:LevelDB)
+  @decorate transaction_event(:LevelDBServer)
   defp exit_infos(state) do
     result = get_all_by_type(:exit_info, state)
     {:reply, result, state}
   end
 
-  @decorate transaction(:LevelDB)
+  @decorate transaction_event(:LevelDBServer)
   defp block_hashes(block_numbers_to_fetch, state) do
     result =
       block_numbers_to_fetch
@@ -126,19 +126,19 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  @decorate transaction(:LevelDB)
+  @decorate transaction_event(:LevelDBServer)
   defp in_flight_exits_info(state) do
     result = get_all_by_type(:in_flight_exit_info, state)
     {:reply, result, state}
   end
 
-  @decorate transaction(:LevelDB)
+  @decorate transaction_event(:LevelDBServer)
   defp competitors_info(state) do
     result = get_all_by_type(:competitor_info, state)
     {:reply, result, state}
   end
 
-  @decorate transaction(:LevelDB)
+  @decorate transaction_event(:LevelDBServer)
   defp get_single_value(parameter, state) do
     result =
       parameter
@@ -149,7 +149,7 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  @decorate transaction(:LevelDB)
+  @decorate transaction_event(:LevelDBServer)
   defp exit_info(utxo_pos, state) do
     result =
       :exit_info
@@ -160,7 +160,7 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  @decorate transaction(:LevelDB)
+  @decorate transaction_event(:LevelDBServer)
   defp spent_blknum(utxo_pos, state) do
     result =
       :spend
@@ -177,19 +177,19 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   # Argument order flipping tools :(
-  @decorate transaction(:LevelDB)
+  @decorate transaction_event(:LevelDBServer)
   defp write(operations, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_write(name)
     Exleveldb.write(db_ref, operations)
   end
 
-  @decorate transaction(:LevelDB)
+  @decorate transaction_event(:LevelDBServer)
   defp get(key, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_read(name)
     Exleveldb.get(db_ref, key)
   end
 
-  @decorate transaction(:LevelDB)
+  @decorate transaction_event(:LevelDBServer)
   defp get_all_by_type(type, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_multiread(name)
     do_get_all_by_type(type, db_ref)

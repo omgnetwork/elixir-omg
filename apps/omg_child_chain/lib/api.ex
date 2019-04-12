@@ -27,12 +27,13 @@ defmodule OMG.ChildChain do
   alias OMG.State
   alias OMG.State.Transaction
   use OMG.Utils.LoggerExt
-
+  use Appsignal.Instrumentation.Decorators
   @type submit_error() :: Transaction.Recovered.recover_tx_error() | State.exec_error()
 
   @spec submit(transaction :: binary) ::
           {:ok, %{txhash: Transaction.tx_hash(), blknum: pos_integer, txindex: non_neg_integer}}
           | {:error, submit_error()}
+  @decorate transaction(:ChildChain)
   def submit(transaction) do
     with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(transaction),
          {:ok, fees} <- FeeServer.transaction_fees(),
@@ -45,6 +46,7 @@ defmodule OMG.ChildChain do
 
   @spec get_block(hash :: binary) ::
           {:ok, %{hash: binary, transactions: list, blknum: integer}} | {:error, :not_found | :internal_error}
+  @decorate transaction(:ChildChain)
   def get_block(hash) do
     with {:ok, struct_block} <- FreshBlocks.get(hash) do
       {:ok, Block.to_api_format(struct_block)}
