@@ -708,6 +708,7 @@ defmodule OMG.Eth.RootChain do
         {:ok, int_from_hex(height)}
 
       {:ok, _} ->
+        #TODO this should be an alarm
         {:error, :wrong_contract_address}
 
       other ->

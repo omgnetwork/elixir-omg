@@ -26,8 +26,8 @@ environment :dev do
   # It is recommended that you build with MIX_ENV=prod and pass
   # the --env flag to Distillery explicitly if you want to use
   # dev mode.
-  set(dev_mode: true)
-  set(include_erts: false)
+  set(dev_mode: false)
+  set(include_erts: true)
   set(cookie: :"pfM{d5El5p5@Sws2{:eRTKw>{7!5!]H;y,F=8LVD^FIoU?=pLb)Urn9?S79BWzxz")
 end
 
@@ -57,11 +57,15 @@ release :watcher do
       xomg_tasks: :load
     ]
   )
+  set config_providers: [
+    {OMG.Watcher.ReleaseTasks.InitContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
+  ]
 
   set(
     commands: [
       init_pg_db: "rel/commands/watcher/init_pg_db.sh",
-      init_kv_db: "rel/commands/watcher/init_kv_db.sh"
+      init_kv_db: "rel/commands/watcher/init_kv_db.sh",
+
     ]
   )
 end

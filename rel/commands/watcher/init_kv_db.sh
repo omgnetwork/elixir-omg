@@ -17,7 +17,7 @@
 set +e
 
 print_usage() {
-    printf "Usage: bin/watcher initkvdb [OPTS]\\n"
+    printf "Usage: bin/watcher init_kv_db [OPTS]\\n"
     printf "\\n"
     printf "Init the database.\\n"
     printf "\\n"

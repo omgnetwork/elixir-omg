@@ -17,7 +17,7 @@
 set +e
 
 print_usage() {
-    printf "Usage: bin/child_chain initkvdb [OPTS]\\n"
+    printf "Usage: bin/child_chain init_kv_db [OPTS]\\n"
     printf "\\n"
     printf "Init the database.\\n"
     printf "\\n"

@@ -17,7 +17,7 @@
 set +e
 
 print_usage() {
-    printf "Usage: bin/watcher initdb [OPTS]\\n"
+    printf "Usage: bin/watcher init_db [OPTS]\\n"
     printf "\\n"
     printf "Create and upgrade the database.\\n"
     printf "\\n"
