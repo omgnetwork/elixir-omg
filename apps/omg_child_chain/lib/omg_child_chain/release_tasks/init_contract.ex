@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ReleaseTasks.InitContract do
+defmodule OMG.ChildChain.ReleaseTasks.InitContract do
   use Mix.Releases.Config.Provider
 
   @doc """

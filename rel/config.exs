@@ -57,15 +57,17 @@ release :watcher do
       xomg_tasks: :load
     ]
   )
-  set config_providers: [
-    {OMG.Watcher.ReleaseTasks.InitContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
-  ]
+
+  set(
+    config_providers: [
+      {OMG.Watcher.ReleaseTasks.InitContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
+    ]
+  )
 
   set(
     commands: [
       init_pg_db: "rel/commands/watcher/init_pg_db.sh",
-      init_kv_db: "rel/commands/watcher/init_kv_db.sh",
-
+      init_kv_db: "rel/commands/watcher/init_kv_db.sh"
     ]
   )
 end
@@ -83,6 +85,12 @@ release :child_chain do
       omg_eth: :permanent,
       omg_rpc: :permanent,
       xomg_tasks: :load
+    ]
+  )
+
+  set(
+    config_providers: [
+      {OMG.ChildChain.ReleaseTasks.InitContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
     ]
   )
 

@@ -18,7 +18,7 @@ defmodule OMG.ChildChain.ReleaseTasks.InitKVDB do
   """
 
   import IO.ANSI
-  @start_apps [:crypto, :ssl]
+  @start_apps [:logger, :crypto, :ssl]
   @apps [:omg_db]
 
   def run do
