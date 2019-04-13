@@ -13,6 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.Watcher.ReleaseTasks.InitContract do
+  @moduledoc false
   use Mix.Releases.Config.Provider
 
   @doc """

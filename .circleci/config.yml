@@ -50,10 +50,9 @@ jobs:
             - mix.exs
             - mix.lock
             - deploy_and_populate.sh
-            - priv
             - launcher.py
             - docker-compose.yml
-            - fee_specs.json
+            - rel/
 
   test:
     docker:
@@ -201,6 +200,36 @@ jobs:
 
       - run: mix dialyzer --format short --halt-exit-status
 
+  release:
+    docker:
+      # Ensure .tool-versions matches
+      - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
+        environment:
+          MIX_ENV: dev
+    working_directory: ~/repo
+
+    steps:
+      - attach_workspace:
+           at: .
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
+      - run: MIX_ENV=prod mix release --name watcher --warnings-as-errors --env prod
+      - run: MIX_ENV=prod mix release --name child_chain --warnings-as-errors --env prod
+      - run: MIX_ENV=dev mix release --name watcher --warnings-as-errors --env dev
+      - run: MIX_ENV=dev mix release --name child_chain --warnings-as-errors --env dev
+      - run:
+          name: Collecting Watcher *prod* artifacts
+          command: |
+            mkdir -p ci_artifact
+            mv ./_build/prod/rel/watcher/releases/*/watcher.tar.gz ./ci_artifact/prod_watcher.tar.gz
+            mv ./_build/dev/rel/watcher/releases/*/watcher.tar.gz ./ci_artifact/dev_watcher.tar.gz
+            mv ./_build/prod/rel/child_chain/releases/*/child_chain.tar.gz ./ci_artifact/prod_child_chain.tar.gz
+            mv ./_build/dev/rel/child_chain/releases/*/child_chain.tar.gz ./ci_artifact/dev_child_chain.tar.gz
+          when: always
+      - store_artifacts:
+          name: Uploading watcher CI artifacts
+          path: ./ci_artifact
+
   build_and_deploy_development:
     docker:
       - image: ubuntu:16.04
@@ -292,12 +321,15 @@ workflows:
           requires: [build]
       - test:
           requires: [build]
+      - release:
+          requires: [build]
       - build_and_deploy_development:
           requires:
             - build
             - lint
             - dialyzer
             - test
+            - release
             - coveralls_and_integration_tests
           filters:
             branches:

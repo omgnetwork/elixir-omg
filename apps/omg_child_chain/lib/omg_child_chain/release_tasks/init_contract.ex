@@ -13,6 +13,7 @@
 # limitations under the License.
 
 defmodule OMG.ChildChain.ReleaseTasks.InitContract do
+  @moduledoc false
   use Mix.Releases.Config.Provider
 
   @doc """
