@@ -11,14 +11,6 @@ use Mix.Releases.Config,
   # This sets the default environment used by `mix release`
   default_environment: Mix.env()
 
-# For a full list of config options for both releases
-# and environments, visit https://hexdocs.pm/distillery/config/distillery.html
-
-# You may define one or more environments in this file,
-# an environment's settings will override those of a release
-# when building in that environment, this combination of release
-# and environment configuration is called a profile
-
 environment :dev do
   set(dev_mode: false)
   set(include_erts: true)
@@ -48,14 +40,14 @@ release :watcher do
 
   set(
     config_providers: [
-      {OMG.Watcher.ReleaseTasks.InitContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
+      {OMG.ReleaseTasks.InitContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.ReleaseTasks.InitKVDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
     ]
   )
 
   set(
     commands: [
-      init_pg_db: "rel/commands/watcher/init_pg_db.sh",
-      init_kv_db: "rel/commands/watcher/init_kv_db.sh"
+      init_pg_db: "rel/commands/watcher/init_pg_db.sh"
     ]
   )
 end
@@ -78,13 +70,8 @@ release :child_chain do
 
   set(
     config_providers: [
-      {OMG.ChildChain.ReleaseTasks.InitContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
-    ]
-  )
-
-  set(
-    commands: [
-      init_kv_db: "rel/commands/child_chain/init_kv_db.sh"
+      {OMG.ReleaseTasks.InitContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.ReleaseTasks.InitKVDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
     ]
   )
 end

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ReleaseTasks.InitContract do
+defmodule OMG.ReleaseTasks.InitContract do
   @moduledoc false
   use Mix.Releases.Config.Provider
 
@@ -25,7 +25,7 @@ defmodule OMG.Watcher.ReleaseTasks.InitContract do
   """
   @impl Provider
   def init(_args) do
-    case System.get_env("NETWORK") do
+    case get_env("NETWORK") do
       "RINKEBY" ->
         :ok = Application.put_env(:omg_eth, :txhash_contract, get_env("RINKEBY_TXHASH_CONTRACT"), persistent: true)
         :ok = Application.put_env(:omg_eth, :authority_addr, get_env("RINKEBY_AUTHORITY_ADDRESS"), persistent: true)

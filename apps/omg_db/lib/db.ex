@@ -104,8 +104,12 @@ defmodule OMG.DB do
   @doc """
   Does all of the initialization of `OMG.DB` based on the configured path
   """
-  def init(server_name \\ @server_name) do
-    path = Application.fetch_env!(:omg_db, :leveldb_path)
+  def init, do: do_init(@server_name, Application.fetch_env!(:omg_db, :leveldb_path))
+  def init(path) when is_binary(path), do: do_init(@server_name, path)
+  def init(server_name), do: do_init(server_name, Application.fetch_env!(:omg_db, :leveldb_path))
+  def init(server_name, path), do: do_init(server_name, path)
+
+  defp do_init(server_name, path) do
     :ok = File.mkdir_p(path)
 
     with :ok <- server_name.init_storage(path),

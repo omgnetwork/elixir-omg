@@ -12,32 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ReleaseTasks.InitKVDB do
+defmodule OMG.ReleaseTasks.InitKVDB do
   @moduledoc """
   A release task that performs database initialization.
   """
+  use Mix.Releases.Config.Provider
 
-  import IO.ANSI
   @start_apps [:logger, :crypto, :ssl]
-  @apps [:omg_db]
 
-  def run do
-    Enum.each(@start_apps, &Application.ensure_all_started/1)
-    Enum.each(@apps, &init_kv_db/1)
-    :init.stop()
+  @impl Provider
+  def init(_args) do
+    path = get_env("DB_PATH")
+    :ok = Application.put_env(:omg_db, :leveldb_path, path, persistent: true)
+    process(path)
+    :ok
   end
 
-  defp init_kv_db(app_name) do
-    case OMG.DB.init() do
-      {:error, term} -> error("The database for #{inspect(app_name)} couldn't be created: #{term}")
-      :ok -> info("The database for #{inspect(app_name)} has been created")
+  defp process(path) do
+    Enum.each(@start_apps, &Application.ensure_all_started/1)
+    _ = init_kv_db(path)
+    Enum.each(Enum.reverse(@start_apps), &Application.stop/1)
+  end
+
+  defp init_kv_db(path) do
+    case OMG.DB.init(path) do
+      {:error, term} -> exit("Could not init the DB in #{path}. Reason #{inspect(term)}")
+      :ok -> :ok
     end
   end
 
-  defp info(message), do: [:normal, message] |> format |> IO.puts()
+  defp get_env(key), do: validate(System.get_env(key))
 
-  def error(message, device \\ :stderr) do
-    formatted = format([:red, message])
-    IO.puts(device, formatted)
-  end
+  defp validate(value) when is_binary(value), do: value
+
+  defp validate(nil), do: exit("Set DB_PATH environment variable.")
 end
