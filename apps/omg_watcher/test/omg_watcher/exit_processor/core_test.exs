@@ -41,7 +41,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @utxo_pos1 Utxo.position(2, 0, 0)
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
 
-  @non_zero_exit_id 1
+  @exit_id 1
   @zero_sig <<0::520>>
 
   defp not_included_competitor_pos do
@@ -55,7 +55,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   deffixture transactions(alice, carol) do
     [
       TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, carol}], [{alice, @eth, 1}, {carol, @eth, 2}]),
-      TestHelper.create_recovered([{2, 1, 0, alice}, {2, 2, 1, carol}], [{alice, @eth, 1}, {carol, @eth, 2}])
+      TestHelper.create_recovered([{2, 1, 0, alice}, {2, 2, 1, carol}], [{alice, @not_eth, 1}, {carol, @not_eth, 2}])
     ]
   end
 
@@ -70,35 +70,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   deffixture processor_empty() do
     {:ok, empty} = Core.init([], [], [])
     empty
-  end
-
-  # events is whatever `OMG.Eth` would feed into the `OMG.Watcher.ExitProcessor`, via `OMG.EthereumEventListener`
-  deffixture exit_events(alice, transactions) do
-    [txbytes1, txbytes2] = transactions |> Enum.map(&Transaction.raw_txbytes/1)
-
-    [
-      %{
-        owner: alice.addr,
-        eth_height: 2,
-        exit_id: 1,
-        call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos1), output_tx: txbytes1}
-      },
-      %{
-        owner: alice.addr,
-        eth_height: 4,
-        exit_id: 2,
-        call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos2), output_tx: txbytes2}
-      }
-    ]
-  end
-
-  # extracts the mocked responses of the `Eth.RootChain.get_standard_exit` for the exit events
-  # all exits active (owner non-zero). This is the auxiliary, second argument that's fed into `new_exits`
-  deffixture contract_exit_statuses(alice) do
-    [
-      {alice.addr, @eth, 10, Utxo.Position.encode(@utxo_pos1)},
-      {alice.addr, @not_eth, 9, Utxo.Position.encode(@utxo_pos2)}
-    ]
   end
 
   deffixture in_flight_exit_events(transactions) do
@@ -165,13 +136,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   deffixture processor_filled(
                processor_empty,
-               exit_events,
-               contract_exit_statuses,
                in_flight_exit_events,
                contract_ife_statuses
              ) do
-    {state, _} = Core.new_exits(processor_empty, exit_events, contract_exit_statuses)
-    {state, _} = Core.new_in_flight_exits(state, in_flight_exit_events, contract_ife_statuses)
+    {state, _} = Core.new_in_flight_exits(processor_empty, in_flight_exit_events, contract_ife_statuses)
     state
   end
 
@@ -195,7 +163,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       eth_height: 2
     }
 
-    competitor_ife_status = {1, @non_zero_exit_id}
+    competitor_ife_status = {1, @exit_id}
 
     {state, _} = Core.new_in_flight_exits(state, [competitor_ife_event], [competitor_ife_status])
     {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 0}])
@@ -274,22 +242,37 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     }
   end
 
-  @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
-  test "can start new standard exits one by one or batched", %{
-    processor_empty: empty,
-    exit_events: events,
-    contract_exit_statuses: contract_statuses
-  } do
-    {state2, _} = Core.new_exits(empty, Enum.slice(events, 0, 1), Enum.slice(contract_statuses, 0, 1))
-    {final_state, _} = Core.new_exits(empty, events, contract_statuses)
-    assert {^final_state, _} = Core.new_exits(state2, Enum.slice(events, 1, 1), Enum.slice(contract_statuses, 1, 1))
+  @tag fixtures: [:processor_empty, :alice, :bob]
+  test "can start new standard exits one by one or batched", %{processor_empty: empty, alice: alice, bob: bob} do
+    # FIXME dry this test
+    standard_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    txbytes1 = Transaction.raw_txbytes(standard_exit_tx1)
+    enc_pos1 = Utxo.Position.encode(@utxo_pos1)
+    owner1 = alice.addr
+    call_data1 = %{utxo_pos: enc_pos1, output_tx: txbytes1}
+    event1 = %{owner: owner1, eth_height: 2, exit_id: @exit_id, call_data: call_data1}
+    status1 = {owner1, @eth, 10, enc_pos1}
+
+    standard_exit_tx2 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 10}, {bob, 10}])
+    txbytes2 = Transaction.raw_txbytes(standard_exit_tx2)
+    enc_pos2 = Utxo.Position.encode(@utxo_pos2)
+    owner2 = bob.addr
+    call_data2 = %{utxo_pos: enc_pos2, output_tx: txbytes2}
+    event2 = %{owner: owner2, eth_height: 2, exit_id: @exit_id, call_data: call_data2}
+    status2 = {owner2, @eth, 10, enc_pos2}
+
+    events = [event1, event2]
+    statuses = [status1, status2]
+
+    {state2, _} = Core.new_exits(empty, Enum.slice(events, 0, 1), Enum.slice(statuses, 0, 1))
+    {final_state, _} = Core.new_exits(empty, events, statuses)
+    assert {^final_state, _} = Core.new_exits(state2, Enum.slice(events, 1, 1), Enum.slice(statuses, 1, 1))
   end
 
-  @tag fixtures: [:processor_empty, :alice, :exit_events]
-  test "new_exits sanity checks",
-       %{processor_empty: processor, alice: %{addr: alice}, exit_events: [one_exit | _]} do
-    {:error, :unexpected_events} = processor |> Core.new_exits([one_exit], [])
-    {:error, :unexpected_events} = processor |> Core.new_exits([], [{alice, @eth, 10}])
+  @tag fixtures: [:processor_empty]
+  test "new_exits sanity checks", %{processor_empty: processor} do
+    {:error, :unexpected_events} = processor |> Core.new_exits([:anything], [])
+    {:error, :unexpected_events} = processor |> Core.new_exits([], [:anything])
   end
 
   @tag fixtures: [:processor_empty, :processor_filled]
@@ -304,16 +287,19 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {^filled, [], []} = Core.finalize_exits(filled, {[], []})
   end
 
-  @tag fixtures: [:processor_empty, :alice, :state_empty, :exit_events, :contract_exit_statuses]
+  @tag fixtures: [:processor_empty, :alice, :state_empty]
   test "handles invalid exit finalization - doesn't forget and causes a byzantine chain report", %{
     processor_empty: processor,
     state_empty: state,
-    exit_events: events,
-    contract_exit_statuses: contract_exit_statuses
+    alice: alice
   } do
-    {processor, _} =
+    standard_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    standard_exit_tx2 = TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 10}, {alice, 10}])
+
+    processor =
       processor
-      |> Core.new_exits(events, contract_exit_statuses)
+      |> start_se_from(standard_exit_tx1, @utxo_pos1)
+      |> start_se_from(standard_exit_tx2, @utxo_pos2, eth_height: 4)
 
     # exits invalidly finalize and continue/start emitting events and complain
     {:ok, {_, two_spend}, state_after_spend} =
@@ -331,19 +317,16 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> Core.check_validity(processor)
   end
 
-  @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses, :alice]
+  @tag fixtures: [:processor_empty, :state_empty, :alice]
   test "can work with State to determine valid exits and finalize them", %{
     processor_empty: processor,
     state_empty: state_empty,
-    exit_events: [one_exit | _],
-    contract_exit_statuses: [one_status | _],
     alice: alice
   } do
     state = state_empty |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
 
-    {processor, _} =
-      processor
-      |> Core.new_exits([one_exit], [one_status])
+    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
 
     assert {:ok, []} =
              %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
@@ -366,41 +349,37 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
   end
 
-  @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses, :alice]
+  @tag fixtures: [:processor_empty, :alice]
   test "emits exit events when finalizing valid exits", %{
     processor_empty: processor,
-    exit_events: [one_exit | _],
-    contract_exit_statuses: [one_status | _],
-    alice: %{addr: alice_addr}
+    alice: %{addr: alice_addr} = alice
   } do
-    {processor, _} = processor |> Core.new_exits([one_exit], [one_status])
+    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
 
-    assert {_, [%{exit_finalized: %{amount: 1, currency: @eth, owner: ^alice_addr, utxo_pos: @utxo_pos1}}], _} =
+    assert {_, [%{exit_finalized: %{amount: 10, currency: @eth, owner: ^alice_addr, utxo_pos: @utxo_pos1}}], _} =
              Core.finalize_exits(processor, {[@utxo_pos1], []})
   end
 
-  @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
-  test "doesn't emit exit events when finalizing invalid exits", %{
-    processor_empty: processor,
-    exit_events: [one_exit | _],
-    contract_exit_statuses: [one_status | _]
-  } do
-    {processor, _} = processor |> Core.new_exits([one_exit], [one_status])
+  # FIXME: arrange the context pattern match in the whole file
+  @tag fixtures: [:processor_empty, :alice]
+  test "doesn't emit exit events when finalizing invalid exits",
+       %{processor_empty: processor, alice: alice} do
+    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
     assert {_, [], _} = Core.finalize_exits(processor, {[], [@utxo_pos1]})
   end
 
-  @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
+  @tag fixtures: [:processor_empty, :state_empty, :alice]
   test "can work with State to determine and notify invalid exits", %{
     processor_empty: processor,
     state_empty: state,
-    exit_events: [one_exit | _],
-    contract_exit_statuses: [one_status | _]
+    alice: alice
   } do
     exiting_position = Utxo.Position.encode(@utxo_pos1)
 
-    {processor, _} =
-      processor
-      |> Core.new_exits([one_exit], [one_status])
+    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
 
     assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_position}]} =
              %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
@@ -409,66 +388,58 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> Core.check_validity(processor)
   end
 
-  @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
+  @tag fixtures: [:processor_empty, :alice]
   test "can challenge exits, which are then forgotten completely", %{
     processor_empty: processor,
-    exit_events: events,
-    contract_exit_statuses: contract_statuses
+    alice: alice
   } do
-    {processor, _} =
+    standard_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    standard_exit_tx2 = TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 10}, {alice, 10}])
+
+    processor =
       processor
-      |> Core.new_exits(events, contract_statuses)
+      |> start_se_from(standard_exit_tx1, @utxo_pos1)
+      |> start_se_from(standard_exit_tx2, @utxo_pos2)
 
     # sanity
     assert %ExitProcessor.Request{utxos_to_check: [_, _]} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
 
-    assert {processor, _} =
-             processor
-             |> Core.challenge_exits([
-               %{utxo_pos: Utxo.Position.encode(@utxo_pos1)},
-               %{utxo_pos: Utxo.Position.encode(@utxo_pos2)}
-             ])
+    {processor, _} =
+      processor |> Core.challenge_exits([@utxo_pos1, @utxo_pos2] |> Enum.map(&%{utxo_pos: Utxo.Position.encode(&1)}))
 
     assert %ExitProcessor.Request{utxos_to_check: []} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
   end
 
-  @tag fixtures: [:processor_empty, :exit_events, :contract_exit_statuses]
+  @tag fixtures: [:processor_empty, :alice]
   test "can process challenged exits",
-       %{processor_empty: processor, exit_events: events} do
+       %{processor_empty: processor, alice: alice} do
     # see the contract and `Eth.RootChain.get_standard_exit/1` for some explanation why like this
     # this is what an exit looks like after a challenge
     zero_status = {0, 0, 0, 0}
-    {processor, _} = processor |> Core.new_exits(events, [zero_status, zero_status])
+    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1, status: zero_status)
 
     # sanity
-    assert %ExitProcessor.Request{utxos_to_check: [_, _]} =
+    assert %ExitProcessor.Request{utxos_to_check: [_]} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
 
-    assert {processor, _} =
-             processor
-             |> Core.challenge_exits([
-               %{utxo_pos: Utxo.Position.encode(@utxo_pos1)},
-               %{utxo_pos: Utxo.Position.encode(@utxo_pos2)}
-             ])
+    {processor, _} = processor |> Core.challenge_exits([%{utxo_pos: Utxo.Position.encode(@utxo_pos1)}])
 
     assert %ExitProcessor.Request{utxos_to_check: []} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
   end
 
-  @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
+  @tag fixtures: [:processor_empty, :state_empty, :alice]
   test "can work with State to determine invalid exits entered too late", %{
     processor_empty: processor,
     state_empty: state,
-    exit_events: [one_exit | _],
-    contract_exit_statuses: [one_status | _]
+    alice: alice
   } do
     exiting_position = Utxo.Position.encode(@utxo_pos1)
-
-    {processor, _} =
-      processor
-      |> Core.new_exits([one_exit], [one_status])
+    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
 
     assert {{:error, :unchallenged_exit},
             [%Event.UnchallengedExit{utxo_pos: ^exiting_position}, %Event.InvalidExit{utxo_pos: ^exiting_position}]} =
@@ -478,15 +449,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> Core.check_validity(processor)
   end
 
-  @tag fixtures: [:processor_empty, :state_empty, :exit_events]
+  @tag fixtures: [:processor_empty, :state_empty, :alice]
   test "invalid exits that have been witnessed already inactive don't excite events", %{
     processor_empty: processor,
     state_empty: state,
-    exit_events: [one_exit | _]
+    alice: alice
   } do
-    {processor, _} =
-      processor
-      |> Core.new_exits([one_exit], [{@zero_address, @eth, 10, Utxo.Position.encode(@utxo_pos1)}])
+    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1, inactive: true)
 
     assert {:ok, []} =
              %ExitProcessor.Request{eth_height_now: 13, blknum_now: @late_blknum}
@@ -495,16 +465,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> Core.check_validity(processor)
   end
 
-  @tag fixtures: [:processor_empty, :state_empty, :exit_events, :contract_exit_statuses]
+  @tag fixtures: [:processor_empty, :state_empty, :alice]
   test "exits of utxos that couldn't have been seen created yet never excite events", %{
     processor_empty: processor,
     state_empty: state,
-    exit_events: [_, late_exit | _],
-    contract_exit_statuses: [_, active_status | _]
+    alice: alice
   } do
-    {processor, _} =
-      processor
-      |> Core.new_exits([late_exit], [active_status])
+    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+    processor = processor |> start_se_from(standard_exit_tx, Utxo.position(@late_blknum, 0, 0))
 
     assert {:ok, []} =
              %ExitProcessor.Request{eth_height_now: 13, blknum_now: @early_blknum}
@@ -519,22 +487,19 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, empty)
   end
 
-  @tag fixtures: [
-         :processor_empty,
-         :exit_events,
-         :contract_exit_statuses,
-         :in_flight_exit_events,
-         :contract_ife_statuses
-       ]
+  @tag fixtures: [:alice, :processor_empty, :in_flight_exit_events, :contract_ife_statuses]
   test "ifes and standard exits don't interfere", %{
+    alice: alice,
     processor_empty: processor,
-    exit_events: [one_exit | _],
-    contract_exit_statuses: [one_status | _],
     in_flight_exit_events: [one_ife | _],
     contract_ife_statuses: [one_ife_status | _]
   } do
-    {processor, _} = processor |> Core.new_exits([one_exit], [one_status])
-    {processor, _} = processor |> Core.new_in_flight_exits([one_ife], [one_ife_status])
+    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+
+    {processor, _} =
+      processor
+      |> start_se_from(standard_exit_tx, @utxo_pos1)
+      |> Core.new_in_flight_exits([one_ife], [one_ife_status])
 
     assert %{utxos_to_check: [_, Utxo.position(1, 2, 1), @utxo_pos1]} =
              exit_processor_request =
@@ -683,24 +648,18 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: tx_hash, output_index: 8}])
   end
 
-  @tag fixtures: [:processor_empty, :alice, :exit_events, :contract_exit_statuses]
-  test "detect invalid standard exit based on ife tx which spends same input", %{
-    processor_empty: processor,
-    alice: alice,
-    exit_events: [one_exit | _],
-    contract_exit_statuses: [one_status | _]
-  } do
+  @tag fixtures: [:processor_empty, :alice]
+  test "detect invalid standard exit based on ife tx which spends same input",
+       %{processor_empty: processor, alice: alice} do
+    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
     tx = TestHelper.create_recovered([{2, 0, 0, alice}], [])
     {txbytes, signature} = {txbytes(tx), sig(tx)}
 
     ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
-    ife_status = {1, @non_zero_exit_id}
-
-    {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
+    ife_status = {1, @exit_id}
 
     {processor, _} =
-      processor
-      |> Core.new_exits([one_exit], [one_status])
+      processor |> start_se_from(standard_exit_tx, @utxo_pos1) |> Core.new_in_flight_exits([ife_event], [ife_status])
 
     exiting_utxo = Utxo.Position.encode(@utxo_pos1)
 
@@ -747,7 +706,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {txbytes, signature} = {txbytes(tx), sig(tx)}
 
       ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
-      ife_status = {1, @non_zero_exit_id}
+      ife_status = {1, @exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
 
@@ -765,7 +724,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {txbytes, signatures} = {txbytes(tx), sigs(tx) |> Enum.join()}
 
       ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signatures}, eth_height: 2}
-      ife_status = {1, @non_zero_exit_id}
+      ife_status = {1, @exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
 
@@ -812,7 +771,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {txbytes, signatures} = {txbytes(tx), sigs(tx) |> Enum.join()}
 
       ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signatures}, eth_height: 2}
-      ife_status = {1, @non_zero_exit_id}
+      ife_status = {1, @exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
 
@@ -837,7 +796,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {txbytes, signatures} = {txbytes(tx), sigs(tx) |> Enum.join()}
 
       ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signatures}, eth_height: 2}
-      ife_status = {1, @non_zero_exit_id}
+      ife_status = {1, @exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
 
@@ -864,14 +823,14 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {txbytes, signatures} = {txbytes(tx), sigs(tx) |> Enum.join()}
 
       ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signatures}, eth_height: 2}
-      ife_status = {1, @non_zero_exit_id}
+      ife_status = {1, @exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
 
       tx_hash = Transaction.raw_txhash(tx)
       {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: tx_hash, output_index: 0}])
 
-      finalization = %{in_flight_exit_id: @non_zero_exit_id, output_index: 0}
+      finalization = %{in_flight_exit_id: @exit_id, output_index: 0}
 
       {:ok, processor, _} = Core.finalize_in_flight_exits(processor, [finalization])
 
@@ -917,7 +876,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         eth_height: 3
       }
 
-      other_ife_status = {1, @non_zero_exit_id}
+      other_ife_status = {1, @exit_id}
 
       {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
 
@@ -995,7 +954,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         eth_height: 4
       }
 
-      other_ife_status = {1, @non_zero_exit_id}
+      other_ife_status = {1, @exit_id}
 
       # 3. stuff happens in the contract
       {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
@@ -1185,7 +1144,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         eth_height: 2
       }
 
-      other_ife_status = {1, @non_zero_exit_id}
+      other_ife_status = {1, @exit_id}
 
       {state, _} = Core.new_in_flight_exits(state, [other_ife_event], [other_ife_status])
 
@@ -1338,7 +1297,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {other_txbytes, other_signatures} = {txbytes(comp3), sigs(comp3) |> Enum.join()}
 
       other_ife_event = %{call_data: %{in_flight_tx: other_txbytes, in_flight_tx_sigs: other_signatures}, eth_height: 2}
-      other_ife_status = {1, @non_zero_exit_id}
+      other_ife_status = {1, @exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
@@ -1395,7 +1354,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {txbytes, signatures} = {txbytes(tx1), sigs(tx1) |> Enum.join()}
 
       other_ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signatures}, eth_height: 2}
-      other_ife_status = {1, @non_zero_exit_id}
+      other_ife_status = {1, @exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
@@ -1419,7 +1378,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         eth_height: 2
       }
 
-      other_ife_status = {1, @non_zero_exit_id}
+      other_ife_status = {1, @exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
@@ -1534,7 +1493,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       # the transaction is firstmost submitted as a competitor and used to challenge with no inclusion proof
       other_ife_event = %{call_data: %{in_flight_tx: comp_txbytes, in_flight_tx_sigs: comp_signature}, eth_height: 2}
-      other_ife_status = {1, @non_zero_exit_id}
+      other_ife_status = {1, @exit_id}
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
       challenge = %{
@@ -1627,7 +1586,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         eth_height: 2
       }
 
-      ife_status = {1, @non_zero_exit_id}
+      ife_status = {1, @exit_id}
       {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
 
       input_spent_in_idx0 = {1, 0, 0}
@@ -1717,7 +1676,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
         eth_height: 2
       }
 
-      other_ife_status = {1, @non_zero_exit_id}
+      other_ife_status = {1, @exit_id}
       {processor, _} = Core.new_in_flight_exits(processor, [other_ife_event], [other_ife_status])
 
       exit_processor_request = %ExitProcessor.Request{
@@ -1746,20 +1705,20 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    @tag fixtures: [:processor_filled]
+    @tag fixtures: [:processor_empty, :alice]
     test "by asking for utxo existence concerning active ifes and standard exits",
-         %{processor_filled: processor} do
-      assert %{
-               utxos_to_check: [
-                 # refer to stuff added by `deffixture processor_filled` for this - both ifes and standard exits here
-                 Utxo.position(1, 0, 0),
-                 Utxo.position(1, 2, 1),
-                 Utxo.position(2, 0, 0),
-                 Utxo.position(2, 1, 0),
-                 Utxo.position(2, 2, 1),
-                 Utxo.position(9000, 0, 1)
-               ]
-             } =
+         %{processor_empty: processor, alice: alice} do
+      standard_exit_tx = TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 10}, {alice, 10}])
+
+      ife_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
+      {ife_txbytes, ife_sig} = {txbytes(ife_tx), sig(ife_tx)}
+      ife_event = %{call_data: %{in_flight_tx: ife_txbytes, in_flight_tx_sigs: ife_sig}, eth_height: 2}
+      ife_status = {1, @exit_id}
+
+      {processor, _} =
+        processor |> start_se_from(standard_exit_tx, @utxo_pos2) |> Core.new_in_flight_exits([ife_event], [ife_status])
+
+      assert %{utxos_to_check: [Utxo.position(1, 0, 0), @utxo_pos2]} =
                %ExitProcessor.Request{blknum_now: @late_blknum}
                |> Core.determine_utxo_existence_to_get(processor)
     end
@@ -1792,7 +1751,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: signature}, eth_height: 2}
       # inactive
-      ife_status = {0, @non_zero_exit_id}
+      ife_status = {0, @exit_id}
 
       {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
 
@@ -2018,10 +1977,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
     test "fails when unknown in-flight exit is being finalized", %{processor_empty: processor} do
-      finalization = %{in_flight_exit_id: @non_zero_exit_id, output_index: 1}
+      finalization = %{in_flight_exit_id: @exit_id, output_index: 1}
 
       {:unknown_in_flight_exit, unknown_exits} = Core.finalize_in_flight_exits(processor, [finalization])
-      assert unknown_exits == MapSet.new([<<@non_zero_exit_id::192>>])
+      assert unknown_exits == MapSet.new([<<@exit_id::192>>])
     end
 
     @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
@@ -2089,4 +2048,22 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   defp prepare_exit_finalizations(utxo_positions), do: Enum.map(utxo_positions, &%{utxo_pos: Utxo.Position.encode(&1)})
+
+  defp start_se_from(processor, tx, exiting_pos, opts \\ []) do
+    Utxo.position(_, _, oindex) = exiting_pos
+    txbytes = Transaction.raw_txbytes(tx)
+    enc_pos = Utxo.Position.encode(exiting_pos)
+    owner = tx |> Transaction.get_outputs() |> Enum.at(oindex) |> Map.get(:owner)
+    eth_height = Keyword.get(opts, :eth_height, 2)
+
+    call_data = %{utxo_pos: enc_pos, output_tx: txbytes}
+    event = %{owner: owner, eth_height: eth_height, exit_id: @exit_id, call_data: call_data}
+
+    status =
+      Keyword.get(opts, :status) ||
+        if(Keyword.get(opts, :inactive), do: {@zero_address, @eth, 10, enc_pos}, else: {owner, @eth, 10, enc_pos})
+
+    {processor, _} = Core.new_exits(processor, [event], [status])
+    processor
+  end
 end
