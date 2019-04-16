@@ -18,7 +18,26 @@ defmodule OMG.DB.LevelDBCore do
   """
 
   # adapter - testable, if we really really want to
-
+  @single_value_parameter_names [
+    :child_top_block_number,
+    :last_deposit_child_blknum,
+    :last_block_getter_eth_height,
+    :last_depositor_eth_height,
+    :last_convenience_deposit_processor_eth_height,
+    :last_exiter_eth_height,
+    :last_piggyback_exit_eth_height,
+    :last_in_flight_exit_eth_height,
+    :last_exit_processor_eth_height,
+    :last_convenience_exit_processor_eth_height,
+    :last_exit_finalizer_eth_height,
+    :last_exit_challenger_eth_height,
+    :last_in_flight_exit_processor_eth_height,
+    :last_piggyback_processor_eth_height,
+    :last_competitor_processor_eth_height,
+    :last_challenges_responds_processor_eth_height,
+    :last_piggyback_challenges_processor_eth_height,
+    :last_ife_exit_finalizer_eth_height
+  ]
   @keys_prefixes %{
     block: "b",
     block_hash: "bn",
@@ -54,7 +73,7 @@ defmodule OMG.DB.LevelDBCore do
     case decode_response(type, db_response) do
       {:error, error} -> {:error, error}
       :not_found -> {:ok, 0}
-      other = other -> {:ok, other}
+      other -> {:ok, other}
     end
   end
 
@@ -83,7 +102,7 @@ defmodule OMG.DB.LevelDBCore do
   def key(type, specific_key) when type in @key_types,
     do: Map.get(@keys_prefixes, type) <> :erlang.term_to_binary(specific_key)
 
-  def key(parameter, _), do: Atom.to_string(parameter)
+  def key(parameter, _) when parameter in @single_value_parameter_names, do: Atom.to_string(parameter)
 
   # `key_for_item` gets the type-specific key to persist a whole item at, as used by `:put` updates
   defp key_for_item(:block, %{hash: hash} = _block), do: key(:block, hash)
