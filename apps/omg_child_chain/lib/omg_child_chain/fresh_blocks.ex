@@ -36,7 +36,6 @@ defmodule OMG.ChildChain.FreshBlocks do
   end
 
   @spec push(Block.t()) :: :ok
-  @decorate transaction_event(:FreshBlocks)
   def push(block) do
     GenServer.cast(__MODULE__, {:push, block})
   end
@@ -59,7 +58,10 @@ defmodule OMG.ChildChain.FreshBlocks do
     {:reply, result, state}
   end
 
-  def handle_cast({:push, %Block{number: block_number, hash: block_hash} = block}, state) do
+  def handle_cast({:push, block}, state), do: do_push(block,state)
+
+  @decorate transaction_event(:FreshBlocks)
+  defp do_push(%Block{number: block_number, hash: block_hash} = block, state) do
     {:ok, new_state} = Core.push(block, state)
     _ = Logger.debug("new block pushed, blknum '#{inspect(block_number)}', hash '#{inspect(block_hash)}'")
 
