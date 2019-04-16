@@ -464,10 +464,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   test "ifes and standard exits don't interfere", %{
     alice: alice,
     processor_empty: processor,
-    transactions: [one_ife | _]
+    transactions: [tx | _]
   } do
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1) |> start_ife_from(one_ife)
+    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1) |> start_ife_from(tx)
 
     assert %{utxos_to_check: [_, Utxo.position(1, 2, 1), @utxo_pos1]} =
              exit_processor_request =
@@ -690,22 +690,16 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       processor_filled: processor,
       transactions: [tx1, tx2]
     } do
-      recovered_tx1 = tx1
+      txbytes2 = txbytes(tx2)
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
         eth_height_now: 5,
-        blocks_result: [Block.hashed_txs_at([recovered_tx1], 3000)]
+        blocks_result: [Block.hashed_txs_at([tx1], 3000)]
       }
 
-      txbytes_2 = Transaction.raw_txbytes(tx2)
-
-      assert {:ok,
-              [
-                %Event.PiggybackAvailable{
-                  txbytes: ^txbytes_2
-                }
-              ]} = exit_processor_request |> Core.check_validity(processor)
+      assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes2}]} =
+               exit_processor_request |> Core.check_validity(processor)
     end
 
     @tag fixtures: [:alice, :bob, :processor_empty]
@@ -1517,11 +1511,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Enum.each(check)
     end
 
-    @tag fixtures: [:alice, :bob, :processor_filled, :transactions, :competing_transactions]
+    @tag fixtures: [:alice, :bob, :processor_filled, :transactions]
     test "a competitor being signed on various positions",
-         %{processor_filled: processor, transactions: [tx1 | _], competing_transactions: [comp | _]} do
-      txbytes = txbytes(tx1)
-      comp_signature = sig(comp)
+         %{processor_filled: processor, transactions: [tx1 | _], alice: alice, bob: bob} do
+      comp = TestHelper.create_recovered([{10, 2, 1, bob}, {1, 0, 0, alice}], [])
+      comp_signature = sig(comp, 1)
 
       exit_processor_request = %ExitProcessor.Request{
         blknum_now: 5000,
@@ -1530,8 +1524,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       }
 
       assert {:ok, %{competing_sig: ^comp_signature}} =
-               exit_processor_request
-               |> Core.get_competitor_for_ife(processor, txbytes)
+               exit_processor_request |> Core.get_competitor_for_ife(processor, txbytes(tx1))
     end
 
     @tag fixtures: [:alice, :processor_filled, :transactions, :competing_transactions]
