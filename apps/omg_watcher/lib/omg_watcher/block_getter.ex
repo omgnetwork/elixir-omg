@@ -47,6 +47,9 @@ defmodule OMG.Watcher.BlockGetter do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
+  @decorate transaction(:BlockGetter)
+  def apply_block(%BlockApplication{} = to_apply), do: GenServer.cast(__MODULE__, {:apply_block, to_apply})
+
   def init(_opts) do
     {:ok, %{}, {:continue, :setup}}
   end
@@ -99,16 +102,15 @@ defmodule OMG.Watcher.BlockGetter do
     {:reply, Core.chain_ok(state), state}
   end
 
-  def handle_cast({:apply_block, %BlockApplication{} = to_apply}, state), do: apply_block(to_apply, state)
-
-  defp apply_block(
+  def handle_cast(
+        {:apply_block,
          %BlockApplication{
            transactions: transactions,
            number: blknum,
            eth_height: eth_height
-         } = to_apply,
-         state
-       ) do
+         } = to_apply},
+        state
+      ) do
     with {:ok, _} <- Core.chain_ok(state),
          tx_exec_results = for(tx <- transactions, do: OMG.State.exec(tx, :ignore)),
          {:ok, state} <- Core.validate_executions(tx_exec_results, to_apply, state) do
@@ -157,12 +159,13 @@ defmodule OMG.Watcher.BlockGetter do
           Core.t()
         ) :: {:noreply, Core.t()} | {:stop, :normal, Core.t()}
   def handle_info(msg, state)
-  def handle_info(:producer, state), do: producer(state)
-  def handle_info({_ref, {:downloaded_block, response}}, state), do: downloaded_block(response, state)
-  def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
-  def handle_info(:sync, state), do: sync(state)
 
-  defp producer(state) do
+  def handle_info(:producer, state), do: do_producer(state)
+  def handle_info({_ref, {:downloaded_block, response}}, state), do: do_downloaded_block(response, state)
+  def handle_info({:DOWN, _ref, :process, _pid, :normal} = _process, state), do: {:noreply, state}
+  def handle_info(:sync, state), do: do_sync(state)
+
+  defp do_producer(state) do
     with {:ok, _} <- Core.chain_ok(state) do
       new_state = run_block_download_task(state)
       {:ok, _} = schedule_producer()
@@ -174,7 +177,7 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
-  defp downloaded_block(response, state) do
+  defp do_downloaded_block(response, state) do
     # 1/ process the block that arrived and consume
 
     with {:ok, state} <- Core.handle_downloaded_block(state, response) do
@@ -188,7 +191,7 @@ defmodule OMG.Watcher.BlockGetter do
     end
   end
 
-  defp sync(state) do
+  defp do_sync(state) do
     with %SyncGuide{sync_height: next_synced_height} <- RootChainCoordinator.get_sync_info() do
       block_range = Core.get_eth_range_for_block_submitted_events(state, next_synced_height)
 
@@ -210,7 +213,7 @@ defmodule OMG.Watcher.BlockGetter do
 
       _ = Logger.debug("Synced height is #{inspect(synced_height)}, got #{length(blocks_to_apply)} blocks to apply")
 
-      Enum.each(blocks_to_apply, &GenServer.cast(__MODULE__, {:apply_block, &1}))
+      Enum.each(blocks_to_apply, &apply_block(&1))
 
       :ok = OMG.DB.multi_update(db_updates)
       :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)

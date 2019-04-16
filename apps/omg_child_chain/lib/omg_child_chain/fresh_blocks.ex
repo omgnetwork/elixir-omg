@@ -30,13 +30,13 @@ defmodule OMG.ChildChain.FreshBlocks do
   end
 
   @spec get(block_hash :: binary) :: {:ok, Block.t()} | {:error, :not_found | any}
-  @decorate transaction(:ChildChain_FreshBlocks)
+  @decorate transaction_event(:FreshBlocks)
   def get(block_hash) do
     GenServer.call(__MODULE__, {:get, block_hash})
   end
 
   @spec push(Block.t()) :: :ok
-  @decorate transaction(:ChildChain_FreshBlocks)
+  @decorate transaction_event(:FreshBlocks)
   def push(block) do
     GenServer.cast(__MODULE__, {:push, block})
   end

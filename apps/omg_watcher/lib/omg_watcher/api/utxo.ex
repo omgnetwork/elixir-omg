@@ -28,7 +28,7 @@ defmodule OMG.Watcher.API.Utxo do
   TODO: For now uses Postgres data, but should be adapted to OMG.DB (in security-critical only mode)
   """
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, DB.TxOutput.exit_t()} | {:error, :utxo_not_found}
-  @decorate transaction(:Watcher_API_Utxo)
+  @decorate transaction_event(:Utxo)
   def compose_utxo_exit(utxo) do
     DB.TxOutput.compose_utxo_exit(utxo)
   end
@@ -38,7 +38,7 @@ defmodule OMG.Watcher.API.Utxo do
   """
   @spec create_challenge(Utxo.Position.t()) ::
           {:ok, ExitProcessor.StandardExitChallenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
-  @decorate transaction(:Watcher_API_Utxo)
+  @decorate transaction_event(:Utxo)
   def create_challenge(utxo) do
     ExitProcessor.create_challenge(utxo)
   end

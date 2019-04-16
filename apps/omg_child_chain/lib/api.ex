@@ -33,7 +33,7 @@ defmodule OMG.ChildChain do
   @spec submit(transaction :: binary) ::
           {:ok, %{txhash: Transaction.tx_hash(), blknum: pos_integer, txindex: non_neg_integer}}
           | {:error, submit_error()}
-  @decorate transaction(:ChildChain)
+  @decorate transaction_event(:ChildChain)
   def submit(transaction) do
     with {:ok, recovered_tx} <- Transaction.Recovered.recover_from(transaction),
          {:ok, fees} <- FeeServer.transaction_fees(),
@@ -46,7 +46,7 @@ defmodule OMG.ChildChain do
 
   @spec get_block(hash :: binary) ::
           {:ok, %{hash: binary, transactions: list, blknum: integer}} | {:error, :not_found | :internal_error}
-  @decorate transaction(:ChildChain)
+  @decorate transaction_event(:ChildChain)
   def get_block(hash) do
     with {:ok, struct_block} <- FreshBlocks.get(hash) do
       {:ok, Block.to_api_format(struct_block)}

@@ -64,26 +64,26 @@ defmodule OMG.DB.LevelDBServer do
     end
   end
 
-  def handle_call({:multi_update, db_updates}, _from, state), do: multi_update(db_updates, state)
-  def handle_call({:blocks, blocks_to_fetch}, _from, state), do: blocks(blocks_to_fetch, state)
-  def handle_call(:utxos, _from, state), do: utxos(state)
-  def handle_call(:exit_infos, _from, state), do: exit_infos(state)
+  def handle_call({:multi_update, db_updates}, _from, state), do: do_multi_update(db_updates, state)
+  def handle_call({:blocks, blocks_to_fetch}, _from, state), do: do_blocks(blocks_to_fetch, state)
+  def handle_call(:utxos, _from, state), do: do_utxos(state)
+  def handle_call(:exit_infos, _from, state), do: do_exit_infos(state)
 
   def handle_call({:block_hashes, block_numbers_to_fetch}, _from, state),
-    do: block_hashes(block_numbers_to_fetch, state)
+    do: do_block_hashes(block_numbers_to_fetch, state)
 
-  def handle_call(:in_flight_exits_info, _from, state), do: in_flight_exits_info(state)
-  def handle_call(:competitors_info, _from, state), do: competitors_info(state)
+  def handle_call(:in_flight_exits_info, _from, state), do: do_in_flight_exits_info(state)
+  def handle_call(:competitors_info, _from, state), do: do_competitors_info(state)
 
   def handle_call({:get_single_value, parameter}, _from, state)
       when is_atom(parameter),
-      do: get_single_value(parameter, state)
+      do: do_get_single_value(parameter, state)
 
-  def handle_call({:exit_info, utxo_pos}, _from, state), do: exit_info(utxo_pos, state)
-  def handle_call({:spent_blknum, utxo_pos}, _from, state), do: spent_blknum(utxo_pos, state)
+  def handle_call({:exit_info, utxo_pos}, _from, state), do: do_exit_info(utxo_pos, state)
+  def handle_call({:spent_blknum, utxo_pos}, _from, state), do: do_spent_blknum(utxo_pos, state)
 
   @decorate transaction_event(:LevelDBServer)
-  defp multi_update(db_updates, state) do
+  defp do_multi_update(db_updates, state) do
     result =
       db_updates
       |> LevelDBCore.parse_multi_updates()
@@ -93,7 +93,7 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   @decorate transaction_event(:LevelDBServer)
-  defp blocks(blocks_to_fetch, state) do
+  defp do_blocks(blocks_to_fetch, state) do
     result =
       blocks_to_fetch
       |> Enum.map(fn block -> LevelDBCore.key(:block, block) end)
@@ -104,19 +104,19 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   @decorate transaction_event(:LevelDBServer)
-  defp utxos(state) do
+  defp do_utxos(state) do
     result = get_all_by_type(:utxo, state)
     {:reply, result, state}
   end
 
   @decorate transaction_event(:LevelDBServer)
-  defp exit_infos(state) do
+  defp do_exit_infos(state) do
     result = get_all_by_type(:exit_info, state)
     {:reply, result, state}
   end
 
   @decorate transaction_event(:LevelDBServer)
-  defp block_hashes(block_numbers_to_fetch, state) do
+  defp do_block_hashes(block_numbers_to_fetch, state) do
     result =
       block_numbers_to_fetch
       |> Enum.map(fn block_number -> LevelDBCore.key(:block_hash, block_number) end)
@@ -127,19 +127,19 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   @decorate transaction_event(:LevelDBServer)
-  defp in_flight_exits_info(state) do
+  defp do_in_flight_exits_info(state) do
     result = get_all_by_type(:in_flight_exit_info, state)
     {:reply, result, state}
   end
 
   @decorate transaction_event(:LevelDBServer)
-  defp competitors_info(state) do
+  defp do_competitors_info(state) do
     result = get_all_by_type(:competitor_info, state)
     {:reply, result, state}
   end
 
   @decorate transaction_event(:LevelDBServer)
-  defp get_single_value(parameter, state) do
+  defp do_get_single_value(parameter, state) do
     result =
       parameter
       |> LevelDBCore.key(nil)
@@ -150,7 +150,7 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   @decorate transaction_event(:LevelDBServer)
-  defp exit_info(utxo_pos, state) do
+  defp do_exit_info(utxo_pos, state) do
     result =
       :exit_info
       |> LevelDBCore.key(utxo_pos)
@@ -161,7 +161,7 @@ defmodule OMG.DB.LevelDBServer do
   end
 
   @decorate transaction_event(:LevelDBServer)
-  defp spent_blknum(utxo_pos, state) do
+  defp do_spent_blknum(utxo_pos, state) do
     result =
       :spend
       |> LevelDBCore.key(utxo_pos)

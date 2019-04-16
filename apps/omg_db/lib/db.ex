@@ -30,13 +30,13 @@ defmodule OMG.DB do
 
   @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
 
-  @decorate transaction_event(:LevelDB)
+  @decorate transaction_event(:DB)
   def multi_update(db_updates, server_name \\ @server_name) do
     GenServer.call(server_name, {:multi_update, db_updates})
   end
 
   @spec blocks(block_to_fetch :: list(), atom) :: {:ok, list()} | {:error, any}
-  @decorate transaction_event(:LevelDB)
+  @decorate transaction_event(:DB)
   def blocks(blocks_to_fetch, server_name \\ @server_name) do
     case blocks_to_fetch do
       [] -> {:ok, []}
@@ -44,53 +44,53 @@ defmodule OMG.DB do
     end
   end
 
-  @decorate transaction_event(:LevelDB)
+  @decorate transaction_event(:DB)
   def utxos(server_name \\ @server_name) do
     _ = Logger.info("Reading UTXO set, this might take a while. Allowing #{inspect(@ten_minutes)} ms")
     GenServer.call(server_name, :utxos, @ten_minutes)
   end
 
-  @decorate transaction_event(:LevelDB)
+  @decorate transaction_event(:DB)
   def exit_infos(server_name \\ @server_name) do
     _ = Logger.info("Reading exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
     GenServer.call(server_name, :exit_infos, @one_minute)
   end
 
-  @decorate transaction_event(:LevelDB)
+  @decorate transaction_event(:DB)
   def in_flight_exits_info(server_name \\ @server_name) do
     _ = Logger.info("Reading in flight exits' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
     GenServer.call(server_name, :in_flight_exits_info, @one_minute)
   end
 
-  @decorate transaction_event(:LevelDB)
+  @decorate transaction_event(:DB)
   def competitors_info(server_name \\ @server_name) do
     _ = Logger.info("Reading competitors' info, this might take a while. Allowing #{inspect(@one_minute)} ms")
     GenServer.call(server_name, :competitors_info, @one_minute)
   end
 
   @spec exit_info({pos_integer, non_neg_integer, non_neg_integer}, atom) :: {:ok, map} | {:error, atom}
-  @decorate transaction_event(:LevelDB)
+  @decorate transaction_event(:DB)
   def exit_info(utxo_pos, server_name \\ @server_name) do
     GenServer.call(server_name, {:exit_info, utxo_pos})
   end
 
   @spec spent_blknum(utxo_pos_db_t(), atom) :: {:ok, pos_integer} | {:error, atom}
-  @decorate transaction_event(:LevelDB)
+  @decorate transaction_event(:DB)
   def spent_blknum(utxo_pos, server_name \\ @server_name) do
     GenServer.call(server_name, {:spent_blknum, utxo_pos})
   end
 
-  @decorate transaction_event(:LevelDB)
+  @decorate transaction_event(:DB)
   def block_hashes(block_numbers_to_fetch, server_name \\ @server_name) do
     GenServer.call(server_name, {:block_hashes, block_numbers_to_fetch})
   end
 
-  @decorate transaction_event(:LevelDB)
+  @decorate transaction_event(:DB)
   def last_deposit_child_blknum(server_name \\ @server_name) do
     GenServer.call(server_name, :last_deposit_child_blknum)
   end
 
-  @decorate transaction_event(:LevelDB)
+  @decorate transaction_event(:DB)
   def child_top_block_number(server_name \\ @server_name) do
     GenServer.call(server_name, :child_top_block_number)
   end
@@ -98,7 +98,7 @@ defmodule OMG.DB do
   # Note: *_eth_height values below denote actual Ethereum height service has processed.
   # It might differ from "latest" Ethereum block.
 
-  @decorate transaction_event(:LevelDB)
+  @decorate transaction_event(:DB)
   def get_single_value(server_name \\ @server_name, parameter_name) do
     GenServer.call(server_name, {:get_single_value, parameter_name})
   end
