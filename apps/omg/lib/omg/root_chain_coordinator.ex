@@ -22,6 +22,7 @@ defmodule OMG.RootChainCoordinator do
 
   use GenServer
   use OMG.Utils.LoggerExt
+  use Appsignal.Instrumentation.Decorators
 
   defmodule SyncGuide do
     @moduledoc """
@@ -49,6 +50,7 @@ defmodule OMG.RootChainCoordinator do
   `synced_height` is the height that the service is synced when calling this function.
   """
   @spec check_in(non_neg_integer(), atom()) :: :ok
+  @decorate transaction_event(:RootChainCoordinator)
   def check_in(synced_height, service_name) do
     GenServer.call(__MODULE__, {:check_in, synced_height, service_name})
   end
@@ -57,6 +59,7 @@ defmodule OMG.RootChainCoordinator do
   Gets Ethereum height that services can synchronize up to.
   """
   @spec get_sync_info() :: SyncGuide.t() | :nosync
+  @decorate transaction_event(:RootChainCoordinator)
   def get_sync_info do
     GenServer.call(__MODULE__, :get_sync_info)
   end
