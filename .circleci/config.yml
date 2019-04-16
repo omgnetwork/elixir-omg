@@ -218,7 +218,7 @@ jobs:
       - run: MIX_ENV=dev mix release --name watcher --warnings-as-errors --env dev
       - run: MIX_ENV=dev mix release --name child_chain --warnings-as-errors --env dev
       - run:
-          name: Collecting Watcher *prod* artifacts
+          name: Collecting Watcher artifacts
           command: |
             mkdir -p ci_artifact
             mv ./_build/prod/rel/watcher/releases/*/watcher.tar.gz ./ci_artifact/prod_watcher.tar.gz
@@ -323,6 +323,10 @@ workflows:
           requires: [build]
       - release:
           requires: [build]
+          filters:
+            branches:
+              only:
+                - master
       - build_and_deploy_development:
           requires:
             - build
