@@ -110,7 +110,7 @@ RootChain.startInFlightExit(
  Alice sees that her in-flight exit is in progress and she can now piggyback her ouput. Note that as Alice is the sole owner of the inputs, she does not need to piggyback any input.
 
 #### 4. Piggyback the output
-The second argument is `5` because she is piggybacking the first output.
+The second argument is `5` because she is piggybacking the second output.
 ```
 RootChain.piggybackInFlightExit(
     response.data.txbytes,
