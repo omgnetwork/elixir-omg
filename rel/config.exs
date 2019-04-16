@@ -40,14 +40,15 @@ release :watcher do
 
   set(
     config_providers: [
-      {OMG.ReleaseTasks.InitContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.ReleaseTasks.InitKVDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
+      {OMG.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.ReleaseTasks.SetKVDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
     ]
   )
 
   set(
     commands: [
-      init_pg_db: "rel/commands/watcher/init_pg_db.sh"
+      init_pg_db: "rel/commands/watcher/init_pg_db.sh",
+      init_kv_db: "rel/commands/init_kv_db.sh"
     ]
   )
 end
@@ -70,8 +71,14 @@ release :child_chain do
 
   set(
     config_providers: [
-      {OMG.ReleaseTasks.InitContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
-      {OMG.ReleaseTasks.InitKVDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
+      {OMG.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.ReleaseTasks.SetKVDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
+    ]
+  )
+
+  set(
+    commands: [
+      init_kv_db: "rel/commands/init_kv_db.sh"
     ]
   )
 end

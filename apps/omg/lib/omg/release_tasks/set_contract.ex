@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ReleaseTasks.InitContract do
+defmodule OMG.ReleaseTasks.SetContract do
   @moduledoc false
   use Mix.Releases.Config.Provider
 

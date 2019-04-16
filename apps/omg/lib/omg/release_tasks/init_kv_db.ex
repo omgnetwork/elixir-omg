@@ -13,37 +13,28 @@
 # limitations under the License.
 
 defmodule OMG.ReleaseTasks.InitKVDB do
-  @moduledoc """
-  A release task that performs database initialization.
-  """
-  use Mix.Releases.Config.Provider
+  @moduledoc false
 
   @start_apps [:logger, :crypto, :ssl]
+  alias OMG.ReleaseTasks.CliUtils
 
-  @impl Provider
-  def init(_args) do
-    path = get_env("DB_PATH")
-    :ok = Application.put_env(:omg_db, :leveldb_path, path, persistent: true)
-    process(path)
+  def run do
+    path = Application.get_env(:omg_db, :leveldb_path)
+    _ = process(path)
     :ok
   end
 
   defp process(path) do
-    Enum.each(@start_apps, &Application.ensure_all_started/1)
+    _ = CliUtils.info("Creating database at #{inspect(path)}")
+    _ = Enum.each(@start_apps, &Application.ensure_all_started/1)
     _ = init_kv_db(path)
     Enum.each(Enum.reverse(@start_apps), &Application.stop/1)
   end
 
   defp init_kv_db(path) do
     case OMG.DB.init(path) do
-      {:error, term} -> exit("Could not init the DB in #{path}. Reason #{inspect(term)}")
-      :ok -> :ok
+      {:error, term} -> CliUtils.error("Could not initialize the DB in #{path}. Reason #{inspect(term)}")
+      :ok -> CliUtils.info("The database at #{inspect(path)} has been created")
     end
   end
-
-  defp get_env(key), do: validate(System.get_env(key))
-
-  defp validate(value) when is_binary(value), do: value
-
-  defp validate(nil), do: exit("Set DB_PATH environment variable.")
 end

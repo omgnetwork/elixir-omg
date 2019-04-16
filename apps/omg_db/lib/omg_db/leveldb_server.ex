@@ -33,8 +33,6 @@ defmodule OMG.DB.LevelDBServer do
   @spec init_storage(binary) :: :ok | {:error, atom}
   def init_storage(db_path) do
     # open and close with the create flag set to true to initialize the LevelDB itself
-    _ = Logger.info("Creating storage in #{db_path}")
-
     with {:ok, db_ref} <- Exleveldb.open(db_path, create_if_missing: true),
          true <- Exleveldb.is_empty?(db_ref) || {:error, :leveldb_not_empty},
          do: Exleveldb.close(db_ref)
