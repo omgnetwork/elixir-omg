@@ -54,8 +54,9 @@ defmodule OMG.DB.LevelDBServer do
       |> String.to_atom()
 
     {:ok, _recorder_pid} = Recorder.start_link(%Recorder{name: recorder_name, parent: self(), table: table})
+    :ok = File.mkdir_p(db_path)
 
-    with {:ok, db_ref} <- Exleveldb.open(db_path, create_if_missing: false) do
+    with {:ok, db_ref} <- Exleveldb.open(db_path, create_if_missing: true) do
       {:ok, %__MODULE__{name: name, db_ref: db_ref}}
     else
       error ->
@@ -113,13 +114,13 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call({:get_single_value, parameter}, _from, state)
+  def handle_call({:get_single_value, parameter, is_single_value_parameter}, _from, state)
       when is_atom(parameter) do
     result =
       parameter
       |> LevelDBCore.key(nil)
       |> get(state)
-      |> LevelDBCore.decode_value(parameter)
+      |> LevelDBCore.decode_value(parameter, is_single_value_parameter)
 
     {:reply, result, state}
   end

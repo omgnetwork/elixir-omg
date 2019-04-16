@@ -62,11 +62,6 @@ defmodule OMG.DB do
     GenServer.call(server_name, :competitors_info, @one_minute)
   end
 
-  @spec exit_info({pos_integer, non_neg_integer, non_neg_integer}, atom) :: {:ok, map} | {:error, atom}
-  def exit_info(utxo_pos, server_name \\ @server_name) do
-    GenServer.call(server_name, {:exit_info, utxo_pos})
-  end
-
   @spec spent_blknum(utxo_pos_db_t(), atom) :: {:ok, pos_integer} | {:error, atom}
   def spent_blknum(utxo_pos, server_name \\ @server_name) do
     GenServer.call(server_name, {:spent_blknum, utxo_pos})
@@ -76,49 +71,14 @@ defmodule OMG.DB do
     GenServer.call(server_name, {:block_hashes, block_numbers_to_fetch})
   end
 
-  def last_deposit_child_blknum(server_name \\ @server_name) do
-    GenServer.call(server_name, :last_deposit_child_blknum)
-  end
-
-  def child_top_block_number(server_name \\ @server_name) do
-    GenServer.call(server_name, :child_top_block_number)
-  end
-
   # Note: *_eth_height values below denote actual Ethereum height service has processed.
   # It might differ from "latest" Ethereum block.
 
   def get_single_value(server_name \\ @server_name, parameter_name) do
-    GenServer.call(server_name, {:get_single_value, parameter_name})
-  end
-
-  @doc """
-  Puts all zeroes and other init values to a generically initialized `OMG-DB`
-  """
-  def initiation_multiupdate(server_name \\ @server_name) do
-    # setting a number of markers to zeroes
-    single_value_parameter_names()
-    |> Enum.map(&{:put, &1, 0})
-    |> OMG.DB.multi_update(server_name)
-  end
-
-  @doc """
-  Does all of the initialization of `OMG.DB` based on the configured path
-  """
-  def init(server_name \\ @server_name) do
-    path = Application.fetch_env!(:omg_db, :leveldb_path)
-    :ok = File.mkdir_p(path)
-
-    with :ok <- server_name.init_storage(path),
-         {:ok, started_apps} <- Application.ensure_all_started(:omg_db),
-         :ok <- initiation_multiupdate(server_name) do
-      started_apps |> Enum.reverse() |> Enum.each(fn app -> :ok = Application.stop(app) end)
-
-      :ok
-    else
-      error ->
-        _ = Logger.error("Unable to init: #{inspect(error)}")
-        error
-    end
+    GenServer.call(
+      server_name,
+      {:get_single_value, parameter_name, Enum.member?(single_value_parameter_names(), parameter_name)}
+    )
   end
 
   @doc """

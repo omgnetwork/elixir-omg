@@ -39,10 +39,6 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
   @non_zero_exit_id 1
   @zero_sig <<0::520>>
 
-  setup %{db_pid: db_pid} do
-    :ok = OMG.DB.initiation_multiupdate(db_pid)
-  end
-
   deffixture processor_empty() do
     {:ok, empty} = Core.init([], [], [])
     empty

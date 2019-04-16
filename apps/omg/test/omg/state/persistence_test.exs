@@ -32,10 +32,6 @@ defmodule OMG.State.PersistenceTest do
   @interval OMG.Eth.RootChain.get_child_block_interval() |> elem(1)
   @blknum1 @interval
 
-  setup %{db_pid: db_pid} do
-    :ok = OMG.DB.initiation_multiupdate(db_pid)
-  end
-
   @tag fixtures: [:state_empty, :alice]
   test "persists_deposits",
        %{alice: alice, db_pid: db_pid, state_empty: state} do

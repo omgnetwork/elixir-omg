@@ -227,7 +227,7 @@ class ChildchainLauncher:
         ''' Initialise the childchian database (chain data store)
         '''
         result = subprocess.run(
-            "mix run --no-start -e 'OMG.DB.init()'",
+            "mix run --no-start",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True
@@ -453,7 +453,7 @@ class WatcherLauncher:
         ''' Initialise the childchian database (chain data store)
         '''
         result = subprocess.run(
-            "mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs", # noqa E501
+            "mix run --no-start --config ~/config_watcher.exs", # noqa E501
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True

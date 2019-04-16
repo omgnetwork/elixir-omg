@@ -117,7 +117,7 @@ Initialize the database with the following command.
 **CAUTION** This wipes the old data clean!:
 ```bash
 rm -rf ~/.omg/data
-mix run --no-start -e 'OMG.DB.init()'
+mix run --no-start
 ```
 
 The database files are put at the default location `~/.omg/data`.
@@ -170,7 +170,7 @@ config :omg_db,
 ```bash
 rm -rf ~/.omg/data_watcher
 mix ecto.reset --no-start
-mix run --no-start -e 'OMG.DB.init()' --config ~/config_watcher.exs
+mix run --no-start --config ~/config_watcher.exs
 ```
 
 #### Start the Watcher

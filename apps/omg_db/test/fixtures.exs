@@ -24,8 +24,6 @@ defmodule OMG.DB.Fixtures do
 
     Application.put_env(:omg_db, :leveldb_path, db_path, persistent: true)
 
-    :ok = OMG.DB.init()
-
     {:ok, started_apps} = Application.ensure_all_started(:omg_db)
 
     on_exit(fn ->

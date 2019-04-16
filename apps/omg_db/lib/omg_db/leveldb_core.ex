@@ -49,6 +49,20 @@ defmodule OMG.DB.LevelDBCore do
   end
 
   @doc """
+  Interprets the response from leveldb and returns a success-decorated result. If the key is coming from
+  the single value parameter list, we interpret not found results as 0 (default value return).
+  """
+  def decode_value(db_response, type, true = _is_single_value_parameter) do
+    case decode_response(type, db_response) do
+      {:error, error} -> {:error, error}
+      :not_found -> {:ok, 0}
+      other = other -> {:ok, other}
+    end
+  end
+
+  def decode_value(db_response, type, _is_single_value_parameter), do: decode_value(db_response, type)
+
+  @doc """
   Interprets an enumerable of responses from leveldb and decorates the enumerable with a `{:ok, _enumerable}`
   if no errors occurred
   """
