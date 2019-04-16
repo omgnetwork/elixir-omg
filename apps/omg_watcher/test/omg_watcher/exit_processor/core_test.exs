@@ -14,14 +14,13 @@
 
 defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @moduledoc """
-  Test of the logic of exit processor - detecting byzantine conditions, emitting events, talking to OMG.State.Core
+  Test of the logic of exit processor - detecting byzantine conditions, emitting events
   """
   use ExUnitFixtures
   use ExUnit.Case, async: true
   use OMG.Fixtures
 
   alias OMG.Block
-  alias OMG.State
   alias OMG.State.Transaction
   alias OMG.TestHelper
   alias OMG.Utxo
@@ -31,11 +30,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   require Utxo
 
+  import OMG.Watcher.ExitProcessor.TestHelper
+
   @eth OMG.Eth.RootChain.eth_pseudo_address()
   @not_eth <<1::size(160)>>
-  @zero_address OMG.Eth.zero_address()
 
-  @early_blknum 1_000
   @late_blknum 10_000
 
   @utxo_pos1 Utxo.position(2, 0, 0)
@@ -220,68 +219,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {^filled, [], []} = Core.finalize_exits(filled, {[], []})
   end
 
-  @tag fixtures: [:processor_empty, :alice, :state_empty]
-  test "handles invalid exit finalization - doesn't forget and causes a byzantine chain report", %{
-    processor_empty: processor,
-    state_empty: state,
-    alice: alice
-  } do
-    standard_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    standard_exit_tx2 = TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 10}, {alice, 10}])
-
-    processor =
-      processor
-      |> start_se_from(standard_exit_tx1, @utxo_pos1)
-      |> start_se_from(standard_exit_tx2, @utxo_pos2, eth_height: 4)
-
-    # exits invalidly finalize and continue/start emitting events and complain
-    {:ok, {_, two_spend}, state_after_spend} =
-      [@utxo_pos1, @utxo_pos2] |> prepare_exit_finalizations() |> State.Core.exit_utxos(state)
-
-    # finalizing here - note that without `finalize_exits`, we would just get a single invalid exit event
-    # with - we get 3, because we include the invalidly finalized on which will hurt forever
-    # (see persistence tests for the "forever" part)
-    assert {processor, [], _} = Core.finalize_exits(processor, two_spend)
-
-    assert {{:error, :unchallenged_exit}, [_event1, _event2, _event3]} =
-             %ExitProcessor.Request{eth_height_now: 12, blknum_now: @late_blknum}
-             |> Core.determine_utxo_existence_to_get(processor)
-             |> mock_utxo_exists(state_after_spend)
-             |> Core.check_validity(processor)
-  end
-
-  @tag fixtures: [:processor_empty, :state_empty, :alice]
-  test "can work with State to determine valid exits and finalize them", %{
-    processor_empty: processor,
-    state_empty: state_empty,
-    alice: alice
-  } do
-    state = state_empty |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
-
-    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
-
-    assert {:ok, []} =
-             %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
-             |> Core.determine_utxo_existence_to_get(processor)
-             |> mock_utxo_exists(state)
-             |> Core.check_validity(processor)
-
-    # go into the future - old exits work the same
-    assert {:ok, []} =
-             %ExitProcessor.Request{eth_height_now: 105, blknum_now: @late_blknum}
-             |> Core.determine_utxo_existence_to_get(processor)
-             |> mock_utxo_exists(state)
-             |> Core.check_validity(processor)
-
-    # exit validly finalizes and continues to not emit any events
-    {:ok, {_, spends}, _} = [@utxo_pos1] |> prepare_exit_finalizations() |> State.Core.exit_utxos(state)
-    assert {processor, _, [{:delete, :exit_info, {2, 0, 0}}]} = Core.finalize_exits(processor, spends)
-
-    assert %ExitProcessor.Request{utxos_to_check: []} =
-             Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
-  end
-
   @tag fixtures: [:processor_empty, :alice]
   test "emits exit events when finalizing valid exits", %{
     processor_empty: processor,
@@ -301,24 +238,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
     processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
     assert {_, [], _} = Core.finalize_exits(processor, {[], [@utxo_pos1]})
-  end
-
-  @tag fixtures: [:processor_empty, :state_empty, :alice]
-  test "can work with State to determine and notify invalid exits", %{
-    processor_empty: processor,
-    state_empty: state,
-    alice: alice
-  } do
-    exiting_position = Utxo.Position.encode(@utxo_pos1)
-
-    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
-
-    assert {:ok, [%Event.InvalidExit{utxo_pos: ^exiting_position}]} =
-             %ExitProcessor.Request{eth_height_now: 5, blknum_now: @late_blknum}
-             |> Core.determine_utxo_existence_to_get(processor)
-             |> mock_utxo_exists(state)
-             |> Core.check_validity(processor)
   end
 
   @tag fixtures: [:processor_empty, :alice]
@@ -362,56 +281,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
     assert %ExitProcessor.Request{utxos_to_check: []} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
-  end
-
-  @tag fixtures: [:processor_empty, :state_empty, :alice]
-  test "can work with State to determine invalid exits entered too late", %{
-    processor_empty: processor,
-    state_empty: state,
-    alice: alice
-  } do
-    exiting_position = Utxo.Position.encode(@utxo_pos1)
-    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
-
-    assert {{:error, :unchallenged_exit},
-            [%Event.UnchallengedExit{utxo_pos: ^exiting_position}, %Event.InvalidExit{utxo_pos: ^exiting_position}]} =
-             %ExitProcessor.Request{eth_height_now: 13, blknum_now: @late_blknum}
-             |> Core.determine_utxo_existence_to_get(processor)
-             |> mock_utxo_exists(state)
-             |> Core.check_validity(processor)
-  end
-
-  @tag fixtures: [:processor_empty, :state_empty, :alice]
-  test "invalid exits that have been witnessed already inactive don't excite events", %{
-    processor_empty: processor,
-    state_empty: state,
-    alice: alice
-  } do
-    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1, inactive: true)
-
-    assert {:ok, []} =
-             %ExitProcessor.Request{eth_height_now: 13, blknum_now: @late_blknum}
-             |> Core.determine_utxo_existence_to_get(processor)
-             |> mock_utxo_exists(state)
-             |> Core.check_validity(processor)
-  end
-
-  @tag fixtures: [:processor_empty, :state_empty, :alice]
-  test "exits of utxos that couldn't have been seen created yet never excite events", %{
-    processor_empty: processor,
-    state_empty: state,
-    alice: alice
-  } do
-    standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    processor = processor |> start_se_from(standard_exit_tx, Utxo.position(@late_blknum, 0, 0))
-
-    assert {:ok, []} =
-             %ExitProcessor.Request{eth_height_now: 13, blknum_now: @early_blknum}
-             |> Core.determine_utxo_existence_to_get(processor)
-             |> mock_utxo_exists(state)
-             |> Core.check_validity(processor)
   end
 
   @tag fixtures: [:processor_empty]
@@ -1563,40 +1432,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.determine_spends_to_get(processor)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :state_empty]
-    test "by working with State - only asking for spends concerning ifes",
-         %{
-           alice: alice,
-           processor_filled: processor,
-           state_empty: state_empty
-         } do
-      state = state_empty |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
-      other_recovered = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 8}])
-
-      # first sanity-check as if the utxo was not spent yet
-      assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
-               %ExitProcessor.Request{blknum_now: @late_blknum}
-               |> Core.determine_utxo_existence_to_get(processor)
-               |> mock_utxo_exists(state)
-               |> Core.determine_spends_to_get(processor)
-
-      assert {Utxo.position(1, 0, 0), false} not in Enum.zip(utxos_to_check, utxo_exists_result)
-      assert Utxo.position(1, 0, 0) not in spends_to_get
-
-      # spend and see that Core now requests the relevant utxo checks and spends to get
-      {:ok, _, state} = State.Core.exec(state, other_recovered, %{@eth => 0})
-      {:ok, {block, _, _}, state} = State.Core.form_block(1000, state)
-
-      assert %{utxos_to_check: utxos_to_check, utxo_exists_result: utxo_exists_result, spends_to_get: spends_to_get} =
-               %ExitProcessor.Request{blknum_now: @late_blknum, blocks_result: [block]}
-               |> Core.determine_utxo_existence_to_get(processor)
-               |> mock_utxo_exists(state)
-               |> Core.determine_spends_to_get(processor)
-
-      assert {Utxo.position(1, 0, 0), false} in Enum.zip(utxos_to_check, utxo_exists_result)
-      assert Utxo.position(1, 0, 0) in spends_to_get
-    end
-
     @tag fixtures: [:processor_filled]
     test "none if input not yet created during sync",
          %{processor_filled: processor} do
@@ -1785,10 +1620,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     end
   end
 
-  defp mock_utxo_exists(%ExitProcessor.Request{utxos_to_check: positions} = request, state) do
-    %{request | utxo_exists_result: positions |> Enum.map(&State.Core.utxo_exists?(&1, state))}
-  end
-
   defp assert_proof_sound(proof_bytes) do
     # NOTE: checking of actual proof working up to the contract integration test
     assert is_binary(proof_bytes)
@@ -1820,37 +1651,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       end)
 
     {result, filtered_events}
-  end
-
-  defp prepare_exit_finalizations(utxo_positions), do: Enum.map(utxo_positions, &%{utxo_pos: Utxo.Position.encode(&1)})
-
-  defp start_se_from(processor, tx, exiting_pos, opts \\ []) do
-    Utxo.position(_, _, oindex) = exiting_pos
-    txbytes = Transaction.raw_txbytes(tx)
-    enc_pos = Utxo.Position.encode(exiting_pos)
-    owner = tx |> Transaction.get_outputs() |> Enum.at(oindex) |> Map.get(:owner)
-    eth_height = Keyword.get(opts, :eth_height, 2)
-
-    call_data = %{utxo_pos: enc_pos, output_tx: txbytes}
-    event = %{owner: owner, eth_height: eth_height, exit_id: @exit_id, call_data: call_data}
-
-    status =
-      Keyword.get(opts, :status) ||
-        if(Keyword.get(opts, :inactive), do: {@zero_address, @eth, 10, enc_pos}, else: {owner, @eth, 10, enc_pos})
-
-    {processor, _} = Core.new_exits(processor, [event], [status])
-    processor
-  end
-
-  defp start_ife_from(processor, tx, opts \\ []) do
-    status = Keyword.get(opts, :status, {1, @exit_id})
-    {processor, _} = Core.new_in_flight_exits(processor, [ife_event(tx, opts)], [status])
-    processor
-  end
-
-  defp ife_event(tx, opts \\ []) do
-    eth_height = Keyword.get(opts, :eth_height, 2)
-    %{call_data: %{in_flight_tx: txbytes(tx), in_flight_tx_sigs: Enum.join(sigs(tx))}, eth_height: eth_height}
   end
 
   defp ife_challenge(tx, comp, opts \\ []) do
