@@ -176,23 +176,10 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
   @tag fixtures: [:processor_empty, :alice, :bob]
   test "can start new standard exits one by one or batched", %{processor_empty: empty, alice: alice, bob: bob} do
-    # FIXME dry this test
     standard_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
-    txbytes1 = Transaction.raw_txbytes(standard_exit_tx1)
-    enc_pos1 = Utxo.Position.encode(@utxo_pos1)
-    owner1 = alice.addr
-    call_data1 = %{utxo_pos: enc_pos1, output_tx: txbytes1}
-    event1 = %{owner: owner1, eth_height: 2, exit_id: @exit_id, call_data: call_data1}
-    status1 = {owner1, @eth, 10, enc_pos1}
-
     standard_exit_tx2 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 10}, {bob, 10}])
-    txbytes2 = Transaction.raw_txbytes(standard_exit_tx2)
-    enc_pos2 = Utxo.Position.encode(@utxo_pos2)
-    owner2 = bob.addr
-    call_data2 = %{utxo_pos: enc_pos2, output_tx: txbytes2}
-    event2 = %{owner: owner2, eth_height: 2, exit_id: @exit_id, call_data: call_data2}
-    status2 = {owner2, @eth, 10, enc_pos2}
-
+    {event1, status1} = se_event_status(standard_exit_tx1, @utxo_pos1)
+    {event2, status2} = se_event_status(standard_exit_tx2, @utxo_pos2)
     events = [event1, event2]
     statuses = [status1, status2]
 
@@ -501,10 +488,11 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{processor_empty: processor, alice: alice} do
       # there is leeway in the contract, that allows IFE transactions to hold non-zero signatures for zero-inputs
       # we want to be sure that this doesn't crash the `ExitProcessor`
-      # FIXME: test got broken, fix
-      tx = TestHelper.create_recovered([{1, 0, 0, alice}], [])
+      tx = Transaction.new([{1, 0, 0}], [])
       txbytes = txbytes(tx)
-      processor = processor |> start_ife_from(tx)
+      # superfluous signatures
+      %{sigs: sigs} = signed_tx = OMG.DevCrypto.sign(tx, [alice.priv, alice.priv, alice.priv])
+      processor = processor |> start_ife_from(signed_tx, sigs: sigs)
 
       assert {:ok, [%Event.PiggybackAvailable{txbytes: ^txbytes}]} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
@@ -1117,8 +1105,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
          %{alice: alice, processor_filled: processor, transactions: [tx1, tx2 | _]} do
       # ifes in processor here aren't competitors to each other, but the challenge filed for tx2 is a competitor
       # for tx1, which is what we want to detect:
-      # FIXME: this transaction isn't tx2's competitor - it should compete with both to make sense!
-      comp = TestHelper.create_recovered([{1, 0, 0, alice}], [])
+      comp = TestHelper.create_recovered([{1, 0, 0, alice}, {2, 1, 0, alice}], [])
       {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
       txbytes = Transaction.raw_txbytes(tx1)
       challenge_event = ife_challenge(tx2, comp)
@@ -1277,7 +1264,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
 
       check = fn {comp, {competing_input_index, in_flight_input_index}} ->
         # unfortunately, transaction validity requires us to duplicate a signature for every non-zero input
-        # FIXME: refactor here as well?
         required_priv_key_list =
           comp
           |> Transaction.get_inputs()
@@ -1387,16 +1373,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                }
                |> Core.determine_spends_to_get(processor)
     end
-
-    # FIXME: move and DRY
-    defp sigs(tx) do
-      %{signed_tx: %{sigs: sigs}} = tx
-      sigs
-    end
-
-    defp sig(tx, idx \\ 0), do: tx |> sigs() |> Enum.at(idx)
-
-    defp txbytes(tx), do: Transaction.raw_txbytes(tx)
 
     @tag fixtures: [:alice, :processor_empty, :transactions]
     test "by not asking for utxo spends concerning non-active ifes",
@@ -1669,4 +1645,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       }
     }
   end
+
+  defp sigs(tx), do: tx.signed_tx.sigs
+  defp sig(tx, idx \\ 0), do: tx |> sigs() |> Enum.at(idx)
+  defp txbytes(tx), do: Transaction.raw_txbytes(tx)
 end

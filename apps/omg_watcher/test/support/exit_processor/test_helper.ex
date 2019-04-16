@@ -28,6 +28,12 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
   @exit_id 1
 
   def start_se_from(%Core{} = processor, tx, exiting_pos, opts \\ []) do
+    {event, status} = se_event_status(tx, exiting_pos, opts)
+    {processor, _} = Core.new_exits(processor, [event], [status])
+    processor
+  end
+
+  def se_event_status(tx, exiting_pos, opts \\ []) do
     Utxo.position(_, _, oindex) = exiting_pos
     txbytes = Transaction.raw_txbytes(tx)
     enc_pos = Utxo.Position.encode(exiting_pos)
@@ -41,8 +47,7 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
       Keyword.get(opts, :status) ||
         if(Keyword.get(opts, :inactive), do: {@zero_address, @eth, 10, enc_pos}, else: {owner, @eth, 10, enc_pos})
 
-    {processor, _} = Core.new_exits(processor, [event], [status])
-    processor
+    {event, status}
   end
 
   def start_ife_from(%Core{} = processor, tx, opts \\ []) do
@@ -51,7 +56,8 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
     processor
   end
 
-  def ife_event(%{signed_tx: %{sigs: sigs}} = tx, opts \\ []) do
+  def ife_event(tx, opts \\ []) do
+    sigs = Keyword.get(opts, :sigs) || get_sigs(tx)
     eth_height = Keyword.get(opts, :eth_height, 2)
 
     %{
@@ -59,4 +65,6 @@ defmodule OMG.Watcher.ExitProcessor.TestHelper do
       eth_height: eth_height
     }
   end
+
+  defp get_sigs(%{signed_tx: %{sigs: sigs}}), do: sigs
 end
