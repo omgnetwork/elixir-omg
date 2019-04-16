@@ -114,13 +114,13 @@ defmodule OMG.DB.LevelDBServer do
     {:reply, result, state}
   end
 
-  def handle_call({:get_single_value, parameter, is_single_value_parameter}, _from, state)
+  def handle_call({:get_single_value, parameter}, _from, state)
       when is_atom(parameter) do
     result =
       parameter
       |> LevelDBCore.key(nil)
       |> get(state)
-      |> LevelDBCore.decode_value(parameter, is_single_value_parameter)
+      |> LevelDBCore.decode_single_value(parameter)
 
     {:reply, result, state}
   end

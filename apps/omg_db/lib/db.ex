@@ -75,35 +75,6 @@ defmodule OMG.DB do
   # It might differ from "latest" Ethereum block.
 
   def get_single_value(server_name \\ @server_name, parameter_name) do
-    GenServer.call(
-      server_name,
-      {:get_single_value, parameter_name, Enum.member?(single_value_parameter_names(), parameter_name)}
-    )
-  end
-
-  @doc """
-  A list of all atoms that we use as single-values stored in the database (i.e. markers/flags of all kinds)
-  """
-  def single_value_parameter_names do
-    [
-      :child_top_block_number,
-      :last_deposit_child_blknum,
-      :last_block_getter_eth_height,
-      :last_depositor_eth_height,
-      :last_convenience_deposit_processor_eth_height,
-      :last_exiter_eth_height,
-      :last_piggyback_exit_eth_height,
-      :last_in_flight_exit_eth_height,
-      :last_exit_processor_eth_height,
-      :last_convenience_exit_processor_eth_height,
-      :last_exit_finalizer_eth_height,
-      :last_exit_challenger_eth_height,
-      :last_in_flight_exit_processor_eth_height,
-      :last_piggyback_processor_eth_height,
-      :last_competitor_processor_eth_height,
-      :last_challenges_responds_processor_eth_height,
-      :last_piggyback_challenges_processor_eth_height,
-      :last_ife_exit_finalizer_eth_height
-    ]
+    GenServer.call(server_name, {:get_single_value, parameter_name})
   end
 end

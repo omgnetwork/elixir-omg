@@ -19,8 +19,6 @@ defmodule OMG.DB.LevelDBCore do
 
   # adapter - testable, if we really really want to
 
-  @single_value_parameter_names OMG.DB.single_value_parameter_names()
-
   @keys_prefixes %{
     block: "b",
     block_hash: "bn",
@@ -49,18 +47,16 @@ defmodule OMG.DB.LevelDBCore do
   end
 
   @doc """
-  Interprets the response from leveldb and returns a success-decorated result. If the key is coming from
+  Interprets the response from leveldb and returns a success-decorated result. The keys are coming from
   the single value parameter list, we interpret not found results as 0 (default value return).
   """
-  def decode_value(db_response, type, true = _is_single_value_parameter) do
+  def decode_single_value(db_response, type) do
     case decode_response(type, db_response) do
       {:error, error} -> {:error, error}
       :not_found -> {:ok, 0}
       other = other -> {:ok, other}
     end
   end
-
-  def decode_value(db_response, type, _is_single_value_parameter), do: decode_value(db_response, type)
 
   @doc """
   Interprets an enumerable of responses from leveldb and decorates the enumerable with a `{:ok, _enumerable}`
@@ -83,10 +79,11 @@ defmodule OMG.DB.LevelDBCore do
   Produces a type-specific LevelDB key for a combination of type and type-agnostic/LevelDB-ignorant key
   """
   def key(:block, hash) when is_binary(hash), do: @keys_prefixes.block <> hash
-  def key(parameter, _) when parameter in @single_value_parameter_names, do: Atom.to_string(parameter)
 
   def key(type, specific_key) when type in @key_types,
     do: Map.get(@keys_prefixes, type) <> :erlang.term_to_binary(specific_key)
+
+  def key(parameter, _), do: Atom.to_string(parameter)
 
   # `key_for_item` gets the type-specific key to persist a whole item at, as used by `:put` updates
   defp key_for_item(:block, %{hash: hash} = _block), do: key(:block, hash)
@@ -95,7 +92,7 @@ defmodule OMG.DB.LevelDBCore do
   defp key_for_item(:exit_info, {position, _exit_info}), do: key(:exit_info, position)
   defp key_for_item(:in_flight_exit_info, {position, _info}), do: key(:in_flight_exit_info, position)
   defp key_for_item(:competitor_info, {position, _info}), do: key(:competitor_info, position)
-  defp key_for_item(parameter, value) when parameter in @single_value_parameter_names, do: key(parameter, value)
+  defp key_for_item(parameter, value), do: key(parameter, value)
 
   defp parse_multi_update({:put, :block, %{number: number, hash: hash} = item}) do
     [
