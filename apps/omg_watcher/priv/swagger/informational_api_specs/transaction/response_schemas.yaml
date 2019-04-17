@@ -1,6 +1,6 @@
 GetTransactionsResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -24,7 +24,7 @@ GetTransactionsResponseSchema:
 
 GetTransactionResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:

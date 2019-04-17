@@ -29,7 +29,7 @@ paths:
         - Account
       summary: Returns the balance of each currency for the given account address.
       operationId: account_get_balance
-      requestBody: &ref_0
+      requestBody: &ref_1
         description: HEX-encoded address of the account
         required: true
         content:
@@ -51,7 +51,7 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - &ref_1
+                  - &ref_0
                     description: The response schema for a successful operation
                     type: object
                     properties:
@@ -95,23 +95,7 @@ paths:
               schema:
                 description: The response schema for an error
                 allOf:
-                  - description: The response schema for a successful operation
-                    type: object
-                    properties:
-                      version:
-                        type: string
-                      success:
-                        type: boolean
-                      data:
-                        type: object
-                    required:
-                      - version
-                      - success
-                      - data
-                    example:
-                      version: '1.0'
-                      success: true
-                      data: {}
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -147,7 +131,7 @@ paths:
         - Account
       summary: Gets all utxos belonging to the given address.
       operationId: account_get_utxos
-      requestBody: *ref_0
+      requestBody: *ref_1
       responses:
         '200':
           description: Account utxos succcessful response
@@ -155,7 +139,7 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_1
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -227,7 +211,7 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_1
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -321,7 +305,7 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_1
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -391,7 +375,7 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_1
+                  - *ref_0
                   - type: object
                     properties:
                       data:

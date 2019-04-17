@@ -1,6 +1,6 @@
 GetInFlightExitDataResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -15,7 +15,7 @@ GetInFlightExitDataResponseSchema:
 
 GetCompetitorResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -33,7 +33,7 @@ GetCompetitorResponseSchema:
 
 ProveCanonicalResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -47,7 +47,7 @@ ProveCanonicalResponseSchema:
 
 InputChallengeDataResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -63,7 +63,7 @@ InputChallengeDataResponseSchema:
 
 OutputChallengeDataResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:

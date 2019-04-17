@@ -304,24 +304,7 @@ paths:
               schema:
                 description: The response schema for utxo challenge data
                 allOf:
-                  - &ref_3
-                    description: The response schema for a successful operation
-                    type: object
-                    properties:
-                      version:
-                        type: string
-                      success:
-                        type: boolean
-                      data:
-                        type: object
-                    required:
-                      - version
-                      - success
-                      - data
-                    example:
-                      version: '1.0'
-                      success: true
-                      data: {}
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -362,7 +345,7 @@ paths:
               schema:
                 description: The response schema for utxo exit data
                 allOf:
-                  - *ref_3
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -415,7 +398,7 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_3
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -446,7 +429,7 @@ paths:
         Exit data are arguments to `startInFlightExit` root chain contract
         function.
       operationId: in_flight_exit_get_data
-      requestBody: &ref_4
+      requestBody: &ref_3
         description: In-flight transaction bytes body
         required: true
         content:
@@ -468,7 +451,7 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_3
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -503,7 +486,7 @@ paths:
         Note that if the competing transaction has not been put into a block
         `competing_tx_pos` and `competing_proof` will not be returned.
       operationId: in_flight_exit_get_competitor
-      requestBody: *ref_4
+      requestBody: *ref_3
       responses:
         '200':
           description: Get competitor successful response
@@ -511,7 +494,7 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_3
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -558,7 +541,7 @@ paths:
         To respond to a challenge to an in-flight exit, this proves that the
         transaction has been put into a block (and therefore is canonical).
       operationId: in_flight_exit_prove_canonical
-      requestBody: *ref_4
+      requestBody: *ref_3
       responses:
         '200':
           description: Prove canonical successful response
@@ -566,7 +549,7 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_3
+                  - *ref_0
                   - type: object
                     properties:
                       data:

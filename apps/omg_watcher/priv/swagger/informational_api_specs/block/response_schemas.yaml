@@ -1,6 +1,6 @@
 BlocksAllResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
@@ -17,13 +17,12 @@ BlocksAllResponseSchema:
 
 BlockResponseSchema:
   allOf:
-  - $ref: '../../../../../omg_rpc/priv/swagger/shared.yaml#/BaseResponseSchema'
+  - $ref: '../../../../../omg_rpc/priv/swagger/shared/schemas.yaml#/BaseResponseSchema'
   - type: object
     properties:
       data:
-        type: array
-        items:
-          $ref: 'schemas.yaml#/BlockSchema'
+        type: object
+        $ref: 'schemas.yaml#/BlockSchema'
     example:
       data:
         timestamp: 1540365586
