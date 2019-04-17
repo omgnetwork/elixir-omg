@@ -146,7 +146,7 @@ paths:
         '500': &ref_1
           description: Returns an internal server error
           content:
-            application/vnd.omisego.v1+json:
+            application/json:
               schema:
                 description: The response schema for an error
                 allOf:
@@ -203,6 +203,8 @@ paths:
                 address:
                   type: string
                   format: binary
+              required:
+                - address
               example:
                 address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
       responses:
@@ -290,6 +292,8 @@ paths:
                 utxo_pos:
                   type: integer
                   format: int256
+              required:
+                - utxo_pos
               example:
                 utxo_pos: 10000000010000000
       responses:
@@ -300,24 +304,7 @@ paths:
               schema:
                 description: The response schema for utxo challenge data
                 allOf:
-                  - &ref_3
-                    description: The response schema for a successful operation
-                    type: object
-                    properties:
-                      version:
-                        type: string
-                      success:
-                        type: boolean
-                      data:
-                        type: object
-                    required:
-                      - version
-                      - success
-                      - data
-                    example:
-                      version: '1.0'
-                      success: true
-                      data: {}
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -358,7 +345,7 @@ paths:
               schema:
                 description: The response schema for utxo exit data
                 allOf:
-                  - *ref_3
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -400,6 +387,8 @@ paths:
                 transaction:
                   type: string
                   format: binary
+              required:
+                - transaction
               example:
                 transaction: 0xf8d083015ba98080808080940000...
       responses:
@@ -409,7 +398,7 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_3
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -440,7 +429,7 @@ paths:
         Exit data are arguments to `startInFlightExit` root chain contract
         function.
       operationId: in_flight_exit_get_data
-      requestBody: &ref_4
+      requestBody: &ref_3
         description: In-flight transaction bytes body
         required: true
         content:
@@ -451,6 +440,8 @@ paths:
                 txbytes:
                   type: string
                   format: binary
+              required:
+                - txbytes
               example:
                 txbytes: 0xf3170101c0940000...
       responses:
@@ -460,7 +451,7 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_3
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -495,7 +486,7 @@ paths:
         Note that if the competing transaction has not been put into a block
         `competing_tx_pos` and `competing_proof` will not be returned.
       operationId: in_flight_exit_get_competitor
-      requestBody: *ref_4
+      requestBody: *ref_3
       responses:
         '200':
           description: Get competitor successful response
@@ -503,7 +494,7 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_3
+                  - *ref_0
                   - type: object
                     properties:
                       data:
@@ -550,7 +541,7 @@ paths:
         To respond to a challenge to an in-flight exit, this proves that the
         transaction has been put into a block (and therefore is canonical).
       operationId: in_flight_exit_prove_canonical
-      requestBody: *ref_4
+      requestBody: *ref_3
       responses:
         '200':
           description: Prove canonical successful response
@@ -558,7 +549,7 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - *ref_3
+                  - *ref_0
                   - type: object
                     properties:
                       data:
