@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.LevelDBCore do
+defmodule OMG.DB.LevelDB.Core do
   @moduledoc """
   Responsible for converting type-aware, logic-specific queries and updates into leveldb specific queries and updates
   """

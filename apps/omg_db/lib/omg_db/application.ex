@@ -18,15 +18,23 @@ defmodule OMG.DB.Application do
   use Application
 
   def start(_type, _args) do
+    children = get_children(Application.fetch_env!(:omg_db, :type))
+    opts = [strategy: :one_for_one, name: OMG.DB.Supervisor]
+    Supervisor.start_link(children, opts)
+  end
+
+  defp get_children(:leveldb) do
     db_path = Application.fetch_env!(:omg_db, :leveldb_path)
     server_module = Application.fetch_env!(:omg_db, :server_module)
     server_name = Application.fetch_env!(:omg_db, :server_name)
 
-    children = [
-      {server_module, name: server_name, db_path: db_path}
-    ]
+    [{server_module, name: server_name, db_path: db_path}]
+  end
 
-    opts = [strategy: :one_for_one, name: OMG.DB.Supervisor]
-    Supervisor.start_link(children, opts)
+  defp get_children(:ets) do
+    server_module = Application.fetch_env!(:omg_db, :server_module)
+    server_name = Application.fetch_env!(:omg_db, :server_name)
+
+    [{server_module, name: server_name}]
   end
 end

@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.DB.LevelDBServer do
+defmodule OMG.DB.LevelDB.Server do
   @moduledoc """
   Handles connection to leveldb
   """
 
-  # All complex operations on data written/read should go into OMG.DB.LevelDBCore
+  # All complex operations on data written/read should go into OMG.DB.LevelDB.Core
 
   defstruct [:db_ref, :name]
   use OMG.Utils.Metrics
   use GenServer
-  alias OMG.DB.LevelDBCore
-  alias OMG.DB.Recorder
+  alias OMG.DB.LevelDB.Core
+  alias OMG.DB.LevelDB.Recorder
   require Logger
 
   @doc """
@@ -86,7 +86,7 @@ defmodule OMG.DB.LevelDBServer do
   defp do_multi_update(db_updates, state) do
     result =
       db_updates
-      |> LevelDBCore.parse_multi_updates()
+      |> Core.parse_multi_updates()
       |> write(state)
 
     {:reply, result, state}
@@ -96,9 +96,9 @@ defmodule OMG.DB.LevelDBServer do
   defp do_blocks(blocks_to_fetch, state) do
     result =
       blocks_to_fetch
-      |> Enum.map(fn block -> LevelDBCore.key(:block, block) end)
+      |> Enum.map(fn block -> Core.key(:block, block) end)
       |> Enum.map(fn key -> get(key, state) end)
-      |> LevelDBCore.decode_values(:block)
+      |> Core.decode_values(:block)
 
     {:reply, result, state}
   end
@@ -119,9 +119,9 @@ defmodule OMG.DB.LevelDBServer do
   defp do_block_hashes(block_numbers_to_fetch, state) do
     result =
       block_numbers_to_fetch
-      |> Enum.map(fn block_number -> LevelDBCore.key(:block_hash, block_number) end)
+      |> Enum.map(fn block_number -> Core.key(:block_hash, block_number) end)
       |> Enum.map(fn key -> get(key, state) end)
-      |> LevelDBCore.decode_values(:block_hash)
+      |> Core.decode_values(:block_hash)
 
     {:reply, result, state}
   end
@@ -142,9 +142,9 @@ defmodule OMG.DB.LevelDBServer do
   defp do_get_single_value(parameter, state) do
     result =
       parameter
-      |> LevelDBCore.key(nil)
+      |> Core.key(nil)
       |> get(state)
-      |> LevelDBCore.decode_value(parameter)
+      |> Core.decode_value(parameter)
 
     {:reply, result, state}
   end
@@ -153,9 +153,9 @@ defmodule OMG.DB.LevelDBServer do
   defp do_exit_info(utxo_pos, state) do
     result =
       :exit_info
-      |> LevelDBCore.key(utxo_pos)
+      |> Core.key(utxo_pos)
       |> get(state)
-      |> LevelDBCore.decode_value(:exit_info)
+      |> Core.decode_value(:exit_info)
 
     {:reply, result, state}
   end
@@ -164,9 +164,9 @@ defmodule OMG.DB.LevelDBServer do
   defp do_spent_blknum(utxo_pos, state) do
     result =
       :spend
-      |> LevelDBCore.key(utxo_pos)
+      |> Core.key(utxo_pos)
       |> get(state)
-      |> LevelDBCore.decode_value(:spend)
+      |> Core.decode_value(:spend)
 
     {:reply, result, state}
   end
@@ -198,9 +198,9 @@ defmodule OMG.DB.LevelDBServer do
   defp do_get_all_by_type(type, db_ref) do
     db_ref
     |> Exleveldb.stream()
-    |> LevelDBCore.filter_keys(type)
+    |> Core.filter_keys(type)
     |> Enum.map(fn {_, value} -> {:ok, value} end)
-    |> LevelDBCore.decode_values(type)
+    |> Core.decode_values(type)
   end
 
   defp create_stats_table(name) do
