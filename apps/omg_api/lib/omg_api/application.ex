@@ -25,7 +25,14 @@ defmodule OMG.API.Application do
 
   def start(_type, _args) do
     cookie = System.get_env("ERL_CC_COOKIE")
+<<<<<<< HEAD:apps/omg_api/lib/omg_api/application.ex
     :ok = set_cookie(cookie)
+=======
+    true = set_cookie(cookie)
+    :ok = Alarm.set(alarm())
+    OMG.ChildChain.Supervisor.start_link()
+  end
+>>>>>>> 1ff21130... Merge pull request #617 from omisego/579-otp_release:apps/omg_child_chain/lib/omg_child_chain/application.ex
 
     :ok = AlarmHandler.install()
     Sup.start_link()
@@ -37,5 +44,10 @@ defmodule OMG.API.Application do
     |> Node.set_cookie()
   end
 
+<<<<<<< HEAD:apps/omg_api/lib/omg_api/application.ex
   defp set_cookie(_), do: _ = Logger.warn("Cookie not applied.")
+=======
+  defp set_cookie(_), do: :ok == Logger.warn("Cookie not applied.")
+  defp alarm, do: {:boot_in_progress, Node.self(), __MODULE__}
+>>>>>>> 1ff21130... Merge pull request #617 from omisego/579-otp_release:apps/omg_child_chain/lib/omg_child_chain/application.ex
 end

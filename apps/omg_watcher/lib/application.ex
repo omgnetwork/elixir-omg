@@ -26,8 +26,13 @@ defmodule OMG.Watcher.Application do
     DeferredConfig.populate(:omg_watcher)
     DeferredConfig.populate(:omg_rpc)
     cookie = System.get_env("ERL_W_COOKIE")
+<<<<<<< HEAD:apps/omg_watcher/lib/application.ex
     :ok = set_cookie(cookie)
 
+=======
+    true = set_cookie(cookie)
+    :ok = set_code_reloading()
+>>>>>>> 1ff21130... Merge pull request #617 from omisego/579-otp_release:apps/omg_watcher/lib/omg_watcher/application.ex
     _ = Logger.info("Starting #{inspect(__MODULE__)}")
 
     start_root_supervisor()
@@ -74,5 +79,18 @@ defmodule OMG.Watcher.Application do
     |> Node.set_cookie()
   end
 
+<<<<<<< HEAD:apps/omg_watcher/lib/application.ex
   defp set_cookie(_), do: _ = Logger.warn("Cookie not applied.")
+=======
+  defp set_cookie(_), do: :ok == Logger.warn("Cookie not applied.")
+
+  defp set_code_reloading do
+    if Code.ensure_loaded?(IEx) and IEx.started?() do
+      :ok
+    else
+      old = Application.get_env(:omg_watcher, OMG.Watcher.Web.Endpoint)
+      Application.put_env(:omg_watcher, OMG.Watcher.Web.Endpoint, Keyword.put(old, :code_reloader, false))
+    end
+  end
+>>>>>>> 1ff21130... Merge pull request #617 from omisego/579-otp_release:apps/omg_watcher/lib/omg_watcher/application.ex
 end

@@ -50,10 +50,9 @@ jobs:
             - mix.exs
             - mix.lock
             - deploy_and_populate.sh
-            - priv
             - launcher.py
             - docker-compose.yml
-            - fee_specs.json
+            - rel/
 
   tests_compile_once:
     docker:
@@ -224,6 +223,7 @@ jobs:
           command: |
             # Don't submit coverage report for forks, but let the build succeed
             export SHELL=/bin/bash
+<<<<<<< HEAD
             if [[ -z "$COVERALLS_REPO_TOKEN" ]]; then
               mix coveralls.html --parallel --umbrella --trace
             else
@@ -249,6 +249,16 @@ jobs:
       - attach_workspace:
            at: .
       - run: mix do credo, format --check-formatted --dry-run
+=======
+            mix coveralls.post \
+              --umbrella \
+              --trace \
+              --include integration \
+              --include wrappers \
+              --sha $CIRCLE_SHA \
+              --branch $CIRCLE_BRANCH \
+              --message "$GIT_COMMIT_DESCRIPTION"
+>>>>>>> 1ff21130... Merge pull request #617 from omisego/579-otp_release
 
   dialyzer:
     docker:
@@ -315,17 +325,48 @@ jobs:
 
       - run: mix dialyzer --format short --halt-exit-status
 
+<<<<<<< HEAD
   coveralls_merge:
+=======
+  release:
+>>>>>>> 1ff21130... Merge pull request #617 from omisego/579-otp_release
     docker:
       # Ensure .tool-versions matches
       - image: omisegoimages/elixir-omg-circleci:v1.8-20190129-02
         environment:
+<<<<<<< HEAD
           MIX_ENV: test
 
     steps:
       - run:
           name: Tell coveralls.io build is done
           command: curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$CIRCLE_WORKFLOW_WORKSPACE_ID&payload[status]=done"
+=======
+          MIX_ENV: dev
+    working_directory: ~/repo
+
+    steps:
+      - attach_workspace:
+           at: .
+      - run: mix local.hex --force
+      - run: mix local.rebar --force
+      - run: MIX_ENV=prod mix release --name watcher --warnings-as-errors --env prod
+      - run: MIX_ENV=prod mix release --name child_chain --warnings-as-errors --env prod
+      - run: MIX_ENV=dev mix release --name watcher --warnings-as-errors --env dev
+      - run: MIX_ENV=dev mix release --name child_chain --warnings-as-errors --env dev
+      - run:
+          name: Collecting Watcher artifacts
+          command: |
+            mkdir -p ci_artifact
+            mv ./_build/prod/rel/watcher/releases/*/watcher.tar.gz ./ci_artifact/prod_watcher.tar.gz
+            mv ./_build/dev/rel/watcher/releases/*/watcher.tar.gz ./ci_artifact/dev_watcher.tar.gz
+            mv ./_build/prod/rel/child_chain/releases/*/child_chain.tar.gz ./ci_artifact/prod_child_chain.tar.gz
+            mv ./_build/dev/rel/child_chain/releases/*/child_chain.tar.gz ./ci_artifact/dev_child_chain.tar.gz
+          when: always
+      - store_artifacts:
+          name: Uploading watcher CI artifacts
+          path: ./ci_artifact
+>>>>>>> 1ff21130... Merge pull request #617 from omisego/579-otp_release
 
   build_and_deploy_development:
     docker:
@@ -435,18 +476,33 @@ workflows:
       - dialyzer:
           requires: [build]
       - test:
+<<<<<<< HEAD
           requires:
             - build
             - tests_compile_once
+=======
+          requires: [build]
+      - release:
+          requires: [build]
+          filters:
+            branches:
+              only:
+                - master
+>>>>>>> 1ff21130... Merge pull request #617 from omisego/579-otp_release
       - build_and_deploy_development:
           requires:
             - build
             - lint
             - dialyzer
             - test
+<<<<<<< HEAD
             - child_chain_coveralls_and_integration_tests
             - watcher_coveralls_and_integration_tests
             - common_coveralls_and_integration_tests
+=======
+            - release
+            - coveralls_and_integration_tests
+>>>>>>> 1ff21130... Merge pull request #617 from omisego/579-otp_release
           filters:
             branches:
               only:

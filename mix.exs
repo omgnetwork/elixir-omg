@@ -60,9 +60,32 @@ defmodule OMG.Umbrella.MixProject do
         "_build/prod/lib/omg_db/ebin"
       ],
       flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
+<<<<<<< HEAD
       plt_add_deps: :transitive,
       plt_add_apps: [:mix],
       ignore_warnings: "dialyzer.ignore-warnings"
+=======
+      ignore_warnings: "dialyzer.ignore-warnings",
+      plt_add_apps: plt_apps()
+>>>>>>> 1ff21130... Merge pull request #617 from omisego/579-otp_release
     ]
   end
+
+  defp plt_apps,
+    do: [
+      :mix,
+      :iex,
+      :ex_unit,
+      :ranch,
+      :plug,
+      :jason,
+      :cowboy,
+      :vmstats,
+      :briefly,
+      :propcheck,
+      :proper,
+      :fake_server,
+      :exexec,
+      :distillery
+    ]
 end

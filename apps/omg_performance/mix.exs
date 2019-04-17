@@ -22,6 +22,13 @@ defmodule OMG.Performance.MixProject do
     ]
   end
 
+<<<<<<< HEAD
+=======
+  # we don't need the performance app in a production release
+  defp elixirc_paths(:prod), do: []
+  defp elixirc_paths(_), do: ["lib", "test/support"]
+
+>>>>>>> 1ff21130... Merge pull request #617 from omisego/579-otp_release
   defp deps do
     [
       {:briefly, "~> 0.3"},
