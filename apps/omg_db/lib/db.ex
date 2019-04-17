@@ -19,6 +19,19 @@ defmodule OMG.DB do
   """
   use OMG.Utils.Metrics
   @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
+  @callback init(String.t()) :: :ok
+  @callback multi_update(term(), atom()) :: :ok
+  @callback blocks(block_to_fetch :: list(), atom) :: {:ok, list()} | {:error, any}
+  @callback utxos() :: list()
+  @callback exit_infos(atom()) :: list()
+  @callback in_flight_exits_info(atom()) :: list()
+  @callback competitors_info(atom) :: list()
+  @callback exit_info({pos_integer, non_neg_integer, non_neg_integer}, atom) :: {:ok, map} | {:error, atom}
+  @callback spent_blknum(utxo_pos_db_t(), atom) :: {:ok, pos_integer} | {:error, atom}
+  @callback block_hashes(integer(), atom()) :: list()
+  @callback last_deposit_child_blknum(atom()) :: list()
+  @callback child_top_block_number(atom()) :: {:ok, non_neg_integer()}
+  @callback initiation_multiupdate(atom) :: :ok
 
   @callback start_link(term) :: GenServer.on_start()
   @callback child_spec() :: Supervisor.child_spec()
