@@ -146,7 +146,7 @@ paths:
         '500': &ref_1
           description: Returns an internal server error
           content:
-            application/vnd.omisego.v1+json:
+            application/json:
               schema:
                 description: The response schema for an error
                 allOf:
