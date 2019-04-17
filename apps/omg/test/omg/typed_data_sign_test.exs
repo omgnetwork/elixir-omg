@@ -18,142 +18,192 @@ defmodule OMG.TypedDataSignTest do
   use ExUnitFixtures
   use ExUnit.Case, async: true
 
+  alias OMG.Crypto
   alias OMG.State.Transaction
   alias OMG.TypedDataSign
+  alias OMG.Utxo
 
-  describe "Test vectors" do
+  require Utxo
+
+  @chain_id 4
+  @test_domain_separator TypedDataSign.Config.domain_separator(
+                           "OMG Network",
+                           "1",
+                           @chain_id,
+                           "1C56346CD2A2Bf3202F771f50d3D14a367B48070" |> Base.decode16!(case: :mixed),
+                           "f2d857f4a3edcb9b78b4d503bfe733db1e3f6cdc2b7971ee739626c97e86a558"
+                           |> Base.decode16!(case: :mixed)
+                         )
+
+  deffixture hardcoded_randoms() do
+    null_addr = <<0::160>>
+    owner = "2258a5279850f6fb78888a7e45ea2a5eb1b3c436" |> Base.decode16!(case: :lower)
+    token = "0123456789abcdef000000000000000000000000" |> Base.decode16!(case: :lower)
+
+    %{
+      inputs: [
+        {1, 0, 0},
+        {1000, 2, 3},
+        {101_000, 1337, 3}
+      ],
+      outputs: [
+        {owner, null_addr, 100},
+        {token, null_addr, 111},
+        {owner, token, 1337},
+        {null_addr, null_addr, 0}
+      ],
+      metadata: "853a8d8af99c93405a791b97d57e819e538b06ffaa32ad70da2582500bc18d43" |> Base.decode16!(case: :lower)
+    }
+  end
+
+  describe "Compliance with contract code" do
+    test "EIP domain type is encoded correctly" do
+      eip_domain = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
+      expected_hash = "d87cd6ef79d4e2b95e15ce8abf732db51ec771f1ca2edccf22a46c729ac56472"
+
+      assert expected_hash == eip_domain |> Crypto.hash() |> Base.encode16(case: :lower)
+    end
+
+    test "Input type hash is computed correctly" do
+      expected = "5f0e06e50b513a68a090818949172483acfec769d9b7756cad7c00b26b52178c"
+
+      assert expected ==
+               "Input(uint256 blknum,uint256 txindex,uint256 oindex)" |> Crypto.hash() |> Base.encode16(case: :lower)
+    end
+
+    test "Output type hash is computed correctly" do
+      expected = "44a2b66b59d762782e867c9a6d8ab5a03eed0dcef5f1dd3092455b4701a5c65b"
+
+      assert expected ==
+               "Output(address owner,address token,uint256 amount)" |> Crypto.hash() |> Base.encode16(case: :lower)
+    end
+
+    test "Transaction type hash is computed correctly" do
+      expected = "73f5401d37a3fdbb9bc225b971d5b78cf16f2e53076434f577773b0d9edf3e7a"
+
+      full_type =
+        "Transaction(" <>
+          "Input input0,Input input1,Input input2,Input input3," <>
+          "Output output0,Output output1,Output output2,Output output3," <>
+          "bytes32 metadata)" <>
+          "Input(uint256 blknum,uint256 txindex,uint256 oindex)" <>
+          "Output(address owner,address token,uint256 amount)"
+
+      assert expected == full_type |> Crypto.hash() |> Base.encode16(case: :lower)
+    end
+
+    test "domain separator is computed correctly" do
+      expected = "d42a6f7e5730ebf9ab9a2802b60543ccf4a220a0f3a3e6b97f5226cfcf30b0f5"
+
+      assert expected ==
+               @test_domain_separator
+               |> Base.encode16(case: :lower)
+    end
+
+    test "Input is hashed properly" do
+      assert "1a5933eb0b3223b0500fbbe7039cab9badc006adda6cf3d337751412fd7a4b61" ==
+               TypedDataSign.hash_input(Utxo.position(0, 0, 0)) |> Base.encode16(case: :lower)
+
+      assert "7377afcd24fdc685fd8c6ea2b5d15a74f2c898c3d5bcce3499f448a4d68db290" ==
+               TypedDataSign.hash_input(Utxo.position(1, 0, 0)) |> Base.encode16(case: :lower)
+
+      assert "c198a0ab9b12c3f225195cf0f7870c7ab12c316b33eb99771dfd0f3f7da455a5" ==
+               TypedDataSign.hash_input(Utxo.position(101_000, 1337, 3)) |> Base.encode16(case: :lower)
+    end
+
+    @tag fixtures: [:hardcoded_randoms]
+    test "Output is hashed properly", %{hardcoded_randoms: %{outputs: [output1, output2, output3, output4]}} do
+      to_output = fn {owner, currency, amount} -> %{owner: owner, currency: currency, amount: amount} end
+
+      assert "2d7e855c4ed0b5442749af2f2e1654a1d005d7f33c74db997112aa746362331a" ==
+               TypedDataSign.hash_output(to_output.(output1)) |> Base.encode16(case: :lower)
+
+      assert "6ea3ef954bc4b17441b63a96a0014f033583456ac0187a8497959a390c83bb82" ==
+               TypedDataSign.hash_output(to_output.(output2)) |> Base.encode16(case: :lower)
+
+      assert "3084addf822b16a011704753552a98545d33df967386e14f00ba3ab4faaaa80b" ==
+               TypedDataSign.hash_output(to_output.(output3)) |> Base.encode16(case: :lower)
+
+      assert "853a8d8af99c93405a791b97d57e819e538b06ffaa32ad70da2582500bc18d43" ==
+               TypedDataSign.hash_output(to_output.(output4)) |> Base.encode16(case: :lower)
+    end
+
+    @tag fixtures: [:hardcoded_randoms]
+    test "Metadata is hashed properly", %{hardcoded_randoms: %{metadata: metadata}} do
+      empty = <<0::256>>
+
+      assert "290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563" ==
+               Crypto.hash(empty) |> Base.encode16(case: :lower)
+
+      assert "f32aecc93539658c0e9f102ad05b1f37ec4692366142955451b7e432f59a513a" ==
+               Crypto.hash(metadata) |> Base.encode16(case: :lower)
+    end
+
+    @tag fixtures: [:hardcoded_randoms]
+    test "Transaction is hashed correctly",
+         %{hardcoded_randoms: %{inputs: inputs, outputs: outputs, metadata: metadata}} do
+      assert "cd7d70602e84b8a52123727394b8fdba87380cc03a91c8ab1c0baa7dde7c3558" ==
+               TypedDataSign.hash_transaction(Transaction.new([], [])) |> Base.encode16(case: :lower)
+
+      assert "25ad23b53146d4462a31bfe7c44a67d8fa0fc3c9bb9366a39c1a26b4f20e3231" ==
+               TypedDataSign.hash_transaction(Transaction.new(inputs, outputs))
+               |> Base.encode16(case: :lower)
+
+      assert "e2af729df6f59730dd7f39c9f60b6eb293b1ad128e059fe70fc146ce77d3c9b9" ==
+               TypedDataSign.hash_transaction(Transaction.new(inputs, outputs, metadata))
+               |> Base.encode16(case: :lower)
+    end
+
+    @tag fixtures: [:hardcoded_randoms]
+    test "Structured hash is computed correctly",
+         %{hardcoded_randoms: %{inputs: inputs, outputs: outputs, metadata: metadata}} do
+      assert "0aa26a80d09f12d1f03b8bd0dcfd66fb5776554b326a56d21cfdfdc25254a9c4" ==
+               TypedDataSign.hash_struct(Transaction.new([], []), @test_domain_separator) |> Base.encode16(case: :lower)
+
+      assert "71e72678fe793358b35855734a9987d4d377bb1f9b5d4b04b8f2554a34e51628" ==
+               TypedDataSign.hash_struct(Transaction.new(inputs, outputs), @test_domain_separator)
+               |> Base.encode16(case: :lower)
+
+      assert "78ddf5f81d7e9271bc125ae6590a8aa27a630135c4f0ba094cd7fd7943a8a2f4" ==
+               TypedDataSign.hash_struct(Transaction.new(inputs, outputs, metadata), @test_domain_separator)
+               |> Base.encode16(case: :lower)
+    end
+  end
+
+  describe "Signature compliance with Metamask" do
     # This account was used with metamask to create signatures - do not change!
     @signer <<34, 88, 165, 39, 152, 80, 246, 251, 120, 136, 138, 126, 69, 234, 42, 94, 177, 179, 196, 54>>
 
-    # TODO inline computation here
-    @test_domain_separator <<0::256>>
-
-    @other_addr <<1, 35, 69, 103, 137, 171, 205, 239, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
-    @eth <<0::160>>
-
-    test "simple transfer" do
+    test "test #0" do
       signature =
-        <<31, 250, 170, 204, 65, 228, 206, 34, 124, 90, 254, 51, 13, 175, 144, 76, 120, 130, 249, 167, 63, 119, 178,
-          224, 100, 33, 195, 89, 105, 150, 12, 163, 70, 14, 254, 3, 118, 104, 21, 242, 139, 207, 69, 2, 208, 10, 160,
-          105, 159, 86, 226, 67, 166, 19, 237, 223, 161, 248, 125, 14, 251, 185, 29, 33, 28>>
+        "00f291813e96fc5dcb236d6893de26d5a1dd1297615a20dce36b7515d37f94e51a0bf2bb122ff558f20e502eee14fc7d48fba89dcb9f4f0980185ff4ae65b15f1c"
+        |> Base.decode16!(case: :lower)
 
-      # sanity check
-      assert 65 == signature |> Kernel.byte_size()
+      raw_tx = Transaction.new([], [])
 
-      raw_tx = Transaction.new([{1000, 0, 1}], [{@other_addr, @eth, 5}, {@signer, @eth, 10}])
-
-      assert {:ok, true} == TypedDataSign.verify(raw_tx, signature, @signer, @test_domain_separator)
+      assert {:ok, true} == Crypto.verify(raw_tx, signature, @signer, @chain_id, @test_domain_separator)
     end
 
-    test "transaction with different input" do
+    @tag fixtures: [:hardcoded_randoms]
+    test "test #1", %{hardcoded_randoms: %{inputs: inputs, outputs: outputs}} do
       signature =
-        <<11, 160, 68, 236, 58, 193, 245, 1, 166, 52, 16, 162, 74, 175, 246, 106, 113, 185, 158, 109, 22, 63, 24, 241,
-          20, 69, 105, 202, 173, 79, 126, 254, 35, 198, 254, 125, 61, 160, 72, 181, 101, 216, 216, 45, 6, 105, 192, 103,
-          93, 117, 80, 239, 189, 65, 133, 206, 120, 40, 155, 186, 152, 219, 240, 124, 28>>
+        "467270afdecbe4fc9301d3dca63685dda7459530fae431e7b54e4b0899e5640577e703110423b20b9f2321b721e6eda4427820c1390fa778432ece5f206546da1c"
+        |> Base.decode16!(case: :lower)
 
-      # sanity check
-      assert 65 == signature |> Kernel.byte_size()
+      raw_tx = Transaction.new(inputs, outputs)
 
-      raw_tx = Transaction.new([{1000, 1, 0}], [{@other_addr, @eth, 5}, {@signer, @eth, 10}])
-
-      assert {:ok, true} == TypedDataSign.verify(raw_tx, signature, @signer, @test_domain_separator)
+      assert {:ok, true} == Crypto.verify(raw_tx, signature, @signer, @chain_id, @test_domain_separator)
     end
 
-    test "transaction outputs reverted" do
+    @tag fixtures: [:hardcoded_randoms]
+    test "test #2", %{hardcoded_randoms: %{inputs: inputs, outputs: outputs, metadata: metadata}} do
       signature =
-        <<224, 157, 107, 96, 72, 147, 122, 111, 131, 43, 6, 20, 138, 103, 188, 34, 65, 10, 25, 44, 221, 1, 240, 131, 98,
-          186, 162, 85, 164, 180, 194, 228, 66, 19, 77, 44, 226, 198, 252, 231, 87, 131, 64, 33, 223, 127, 47, 124, 91,
-          173, 39, 22, 21, 20, 82, 220, 187, 159, 38, 162, 3, 25, 132, 95, 28>>
+        "f4a9fa3c09bbef23fc26f4a1a871b6f5f04a51b9d73a07096ffb8c08880d23112bcfc7748673121708d60a8efbeb15362582d8dd9c21d336c1be47763edd5ed11c"
+        |> Base.decode16!(case: :lower)
 
-      # sanity check
-      assert 65 == signature |> Kernel.byte_size()
+      raw_tx = Transaction.new(inputs, outputs, metadata)
 
-      raw_tx = Transaction.new([{1000, 1, 0}], [{@signer, @eth, 10}, {@other_addr, @eth, 5}])
-
-      assert {:ok, true} == TypedDataSign.verify(raw_tx, signature, @signer, @test_domain_separator)
-    end
-
-    test "transaction with input & output placeholders" do
-      signature =
-        <<227, 83, 26, 156, 250, 126, 83, 252, 198, 185, 4, 1, 80, 227, 104, 100, 155, 83, 170, 81, 102, 51, 78, 141, 3,
-          24, 82, 136, 43, 104, 101, 126, 51, 46, 103, 60, 113, 190, 70, 11, 94, 211, 43, 199, 107, 189, 189, 38, 76,
-          20, 231, 42, 123, 27, 187, 41, 14, 49, 23, 113, 254, 1, 161, 245, 28>>
-
-      # sanity check
-      assert 65 == signature |> Kernel.byte_size()
-
-      raw_tx =
-        Transaction.new(
-          [{1000, 1, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}],
-          [{@signer, @eth, 10}, {@other_addr, @eth, 5}, {@eth, @eth, 0}, {@eth, @eth, 0}]
-        )
-
-      assert {:ok, true} == TypedDataSign.verify(raw_tx, signature, @signer, @test_domain_separator)
-    end
-
-    test "transaction with metadata" do
-      signature =
-        <<32, 199, 147, 113, 164, 1, 117, 84, 255, 203, 194, 52, 25, 19, 39, 152, 124, 74, 26, 190, 101, 45, 0, 4, 133,
-          7, 153, 37, 145, 178, 120, 207, 50, 100, 176, 203, 239, 161, 16, 78, 33, 54, 22, 231, 97, 149, 219, 111, 189,
-          149, 0, 88, 94, 34, 84, 252, 135, 131, 169, 180, 218, 192, 240, 252, 28>>
-
-      # sanity check
-      assert 65 == signature |> Kernel.byte_size()
-
-      raw_tx =
-        Transaction.new(
-          [{1000, 1, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}],
-          [{@signer, @eth, 10}, {@other_addr, @eth, 5}, {@eth, @eth, 0}, {@eth, @eth, 0}],
-          <<0::256>>
-        )
-
-      assert {:ok, true} == TypedDataSign.verify(raw_tx, signature, @signer, @test_domain_separator)
-    end
-
-    test "transaction with metadata, no placeholders" do
-      signature =
-        <<102, 120, 226, 61, 200, 191, 140, 150, 166, 228, 220, 97, 187, 239, 40, 211, 3, 27, 182, 159, 41, 63, 176,
-          196, 122, 120, 173, 80, 120, 33, 57, 227, 60, 33, 239, 77, 100, 216, 154, 92, 108, 90, 185, 81, 215, 107, 144,
-          39, 143, 182, 104, 112, 158, 160, 163, 76, 160, 35, 10, 40, 137, 225, 159, 177, 27>>
-
-      # sanity check
-      assert 65 == signature |> Kernel.byte_size()
-
-      raw_tx = Transaction.new([{1000, 1, 0}], [{@signer, @eth, 10}, {@other_addr, @eth, 5}], <<0::256>>)
-
-      assert {:ok, true} == TypedDataSign.verify(raw_tx, signature, @signer, @test_domain_separator)
-    end
-
-    test "merge transaction 4 to 1" do
-      signature =
-        <<38, 214, 56, 179, 8, 85, 1, 28, 122, 201, 140, 71, 2, 31, 96, 40, 73, 105, 42, 223, 25, 52, 152, 85, 226, 195,
-          50, 44, 135, 156, 36, 229, 85, 235, 226, 196, 114, 61, 81, 21, 163, 145, 18, 109, 221, 204, 83, 78, 122, 136,
-          191, 205, 2, 48, 44, 49, 59, 6, 217, 46, 222, 151, 112, 141, 28>>
-
-      # sanity check
-      assert 65 == signature |> Kernel.byte_size()
-
-      raw_tx = Transaction.new([{1001, 0, 0}, {1002, 0, 0}, {2000, 0, 0}, {2000, 1, 0}], [{@signer, @eth, 100}])
-
-      assert {:ok, true} == TypedDataSign.verify(raw_tx, signature, @signer, @test_domain_separator)
-    end
-
-    test "all inputs & outputs filled in" do
-      signature =
-        <<179, 119, 206, 222, 82, 209, 134, 139, 81, 148, 176, 53, 26, 120, 8, 27, 53, 55, 186, 183, 82, 52, 186, 53,
-          93, 244, 184, 227, 135, 108, 78, 101, 35, 182, 203, 133, 157, 217, 136, 1, 56, 148, 39, 108, 70, 149, 171,
-          234, 173, 117, 46, 200, 17, 255, 38, 148, 62, 79, 202, 116, 166, 146, 112, 125, 27>>
-
-      # sanity check
-      assert 65 == signature |> Kernel.byte_size()
-
-      raw_tx =
-        Transaction.new(
-          [{1001, 0, 0}, {1002, 0, 0}, {2000, 0, 0}, {2000, 1, 0}],
-          [{@signer, @eth, 50}, {@signer, @eth, 50}, {@signer, @eth, 50}, {@signer, @eth, 50}]
-        )
-
-      assert {:ok, true} == TypedDataSign.verify(raw_tx, signature, @signer, @test_domain_separator)
+      assert {:ok, true} == Crypto.verify(raw_tx, signature, @signer, @chain_id, @test_domain_separator)
     end
   end
 end

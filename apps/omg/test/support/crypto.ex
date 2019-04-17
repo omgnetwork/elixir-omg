@@ -21,6 +21,7 @@ defmodule OMG.DevCrypto do
   alias OMG.Crypto
   alias OMG.SignatureHelper
   alias OMG.State.Transaction
+  alias OMG.TypedDataSign
 
   @doc """
   Generates private key. Internally uses OpenSSL RAND_bytes. May throw if there is not enough entropy.
@@ -46,8 +47,7 @@ defmodule OMG.DevCrypto do
   """
   @spec sign(Transaction.t(), list(Crypto.priv_key_t())) :: Transaction.Signed.t()
   def sign(%Transaction{} = tx, private_keys) do
-    encoded_tx = Transaction.raw_txbytes(tx)
-    sigs = Enum.map(private_keys, fn pk -> signature(encoded_tx, pk) end)
+    sigs = Enum.map(private_keys, fn pk -> signature(tx, pk) end)
 
     transaction = %Transaction.Signed{raw_tx: tx, sigs: sigs}
     %{transaction | signed_tx_bytes: Transaction.Signed.encode(transaction)}
@@ -65,13 +65,13 @@ defmodule OMG.DevCrypto do
   @doc """
   Produces a stand-alone, 65 bytes long, signature for message of arbitrary length.
   """
-  @spec signature(binary, Crypto.priv_key_t()) :: Crypto.sig_t()
-  def signature(_msg, <<>>), do: <<0::size(520)>>
-  def signature(msg, priv), do: do_signature(msg, priv)
+  @spec signature(Transaction.t(), Crypto.priv_key_t()) :: Crypto.sig_t()
+  def signature(_tx, <<>>), do: <<0::size(520)>>
+  def signature(tx, priv), do: do_signature(tx, priv)
 
-  defp do_signature(msg, priv) do
-    msg
-    |> Crypto.hash()
+  defp do_signature(%Transaction{} = tx, priv) do
+    tx
+    |> TypedDataSign.hash_struct()
     |> signature_digest(priv)
   end
 

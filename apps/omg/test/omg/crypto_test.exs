@@ -56,14 +56,16 @@ defmodule OMG.CryptoTest do
   end
 
   test "sign, verify" do
+    alias OMG.State.Transaction
     {:ok, priv} = DevCrypto.generate_private_key()
     {:ok, pub} = DevCrypto.generate_public_key(priv)
     {:ok, address} = Crypto.generate_address(pub)
 
-    signature = DevCrypto.signature("message", priv)
+    raw_tx = Transaction.new([{1000, 1, 0}], [])
+    signature = DevCrypto.signature(raw_tx, priv)
     assert byte_size(signature) == 65
-    assert {:ok, true} == Crypto.verify("message", signature, address)
-    assert {:ok, false} == Crypto.verify("message2", signature, address)
+    assert {:ok, true} == Crypto.verify(raw_tx, signature, address, nil)
+    assert {:ok, false} == Crypto.verify(Transaction.new([{1000, 0, 1}], []), signature, address, nil)
   end
 
   test "checking decode_address function for diffrent agruments" do
