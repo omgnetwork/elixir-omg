@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ReleaseTasks.InitKVDB do
-  @moduledoc false
+defmodule OMG.DB.ReleaseTasks.InitKeyValueDB do
+  @moduledoc """
+    Creates an empty instance of OMG DB storage and fills it with the required initial data.
+  """
 
   @start_apps [:logger, :crypto, :ssl]
-  alias OMG.ReleaseTasks.CliUtils
+  alias OMG.Utils.CLI
 
   def run do
     path = Application.get_env(:omg_db, :leveldb_path)
@@ -25,7 +27,7 @@ defmodule OMG.ReleaseTasks.InitKVDB do
   end
 
   defp process(path) do
-    _ = CliUtils.info("Creating database at #{inspect(path)}")
+    _ = CLI.info("Creating database at #{inspect(path)}")
     _ = Enum.each(@start_apps, &Application.ensure_all_started/1)
     _ = init_kv_db(path)
     Enum.each(Enum.reverse(@start_apps), &Application.stop/1)
@@ -33,8 +35,8 @@ defmodule OMG.ReleaseTasks.InitKVDB do
 
   defp init_kv_db(path) do
     case OMG.DB.init(path) do
-      {:error, term} -> CliUtils.error("Could not initialize the DB in #{path}. Reason #{inspect(term)}")
-      :ok -> CliUtils.info("The database at #{inspect(path)} has been created")
+      {:error, term} -> CLI.error("Could not initialize the DB in #{path}. Reason #{inspect(term)}")
+      :ok -> CLI.info("The database at #{inspect(path)} has been created")
     end
   end
 end

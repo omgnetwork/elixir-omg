@@ -1,1 +1,0 @@
-release_ctl eval --mfa "OMG.ReleaseTasks.InitKVDB.run/0" --argv -- "$@"

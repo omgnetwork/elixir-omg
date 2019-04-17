@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ReleaseTasks.InitPGDB do
+defmodule OMG.Watcher.ReleaseTasks.InitPostgresqlDB do
   @moduledoc """
   A release task that performs database initialization, namely database creation and migration.
 
@@ -20,7 +20,7 @@ defmodule OMG.Watcher.ReleaseTasks.InitPGDB do
   database schema.
   """
   alias Ecto.Migrator
-  alias OMG.ReleaseTasks.CliUtils
+  alias OMG.Utils.CLI
   @start_apps [:crypto, :ssl, :postgrex, :phoenix_ecto, :ecto_sql, :telemetry]
   @apps [:omg_watcher]
 
@@ -41,22 +41,22 @@ defmodule OMG.Watcher.ReleaseTasks.InitPGDB do
   defp run_create_for(repo) do
     case repo.__adapter__.storage_up(repo.config) do
       :ok ->
-        CliUtils.info("The database for #{inspect(repo)} has been created")
+        CLI.info("The database for #{inspect(repo)} has been created")
 
       {:error, :already_up} ->
-        CliUtils.info("The database for #{inspect(repo)} has already been created")
+        CLI.info("The database for #{inspect(repo)} has already been created")
 
       {:error, term} when is_binary(term) ->
-        CliUtils.error("The database for #{inspect(repo)} couldn't be created: #{term}")
+        CLI.error("The database for #{inspect(repo)} couldn't be created: #{term}")
 
       {:error, term} ->
-        CliUtils.error("The database for #{inspect(repo)} couldn't be created: #{inspect(term)}")
+        CLI.error("The database for #{inspect(repo)} couldn't be created: #{inspect(term)}")
     end
   end
 
   defp run_migrations_for(repo) do
     migrations_path = priv_path_for(repo, "migrations")
-    CliUtils.info("Running migration for #{inspect(repo)}...")
+    CLI.info("Running migration for #{inspect(repo)}...")
     Migrator.run(repo, migrations_path, :up, all: true)
   end
 

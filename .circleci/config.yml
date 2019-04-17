@@ -129,6 +129,7 @@ jobs:
             export SHELL=/bin/bash
             mix coveralls.post \
               --umbrella \
+              --trace \
               --include integration \
               --include wrappers \
               --sha $CIRCLE_SHA \

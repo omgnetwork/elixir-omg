@@ -12,19 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ReleaseTasks.SetKVDB do
-  @moduledoc false
-  use Mix.Releases.Config.Provider
+defmodule OMG.Utils.CLI do
+  @moduledoc """
+  Helper module for working with the command line interface.
+  """
+  import IO
+  import IO.ANSI
 
-  @impl Provider
-  def init(_args) do
-    path = get_env("DB_PATH")
-    :ok = Application.put_env(:omg_db, :leveldb_path, path, persistent: true)
+  def info(message), do: [:normal, message] |> format |> puts
+
+  def debug(message), do: [:faint, message] |> format |> puts
+
+  def success(message), do: [:green, message] |> format |> puts
+
+  def warn(message), do: [:yellow, message] |> format |> puts
+
+  def error(message, device \\ :stderr) do
+    formatted = format([:red, message])
+    IO.puts(device, formatted)
   end
-
-  defp get_env(key), do: validate(System.get_env(key))
-
-  defp validate(value) when is_binary(value), do: value
-
-  defp validate(nil), do: exit("Set DB_PATH environment variable.")
 end

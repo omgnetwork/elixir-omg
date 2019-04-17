@@ -1,0 +1,1 @@
+release_ctl eval --mfa "OMG.Watcher.ReleaseTasks.InitPostgresqlDB.run/0" --argv -- "$@"

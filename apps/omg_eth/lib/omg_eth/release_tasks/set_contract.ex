@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ReleaseTasks.SetContract do
+defmodule OMG.Eth.ReleaseTasks.SetContract do
   @moduledoc false
   use Mix.Releases.Config.Provider
 
@@ -26,17 +26,20 @@ defmodule OMG.ReleaseTasks.SetContract do
   @impl Provider
   def init(_args) do
     case get_env("NETWORK") do
-      "RINKEBY" ->
-        :ok = Application.put_env(:omg_eth, :txhash_contract, get_env("RINKEBY_TXHASH_CONTRACT"), persistent: true)
-        :ok = Application.put_env(:omg_eth, :authority_addr, get_env("RINKEBY_AUTHORITY_ADDRESS"), persistent: true)
-        :ok = Application.put_env(:omg_eth, :contract_addr, get_env("RINKEBY_CONTRACT_ADDRESS"), persistent: true)
-
-      _ ->
-        # TODO perhaps?
-        exit("Rinkeby or not implemented. There's no contracts that the release could point to.")
+      "RINKEBY" = network -> :ok = apply_settings(network)
+      _ -> exit("Rinkeby or not implemented. There's no contracts that the release could point to.")
     end
 
     :ok
+  end
+
+  defp apply_settings(network) do
+    txhash_contract = get_env(network <> "_TXHASH_CONTRACT")
+    authority_address = get_env(network <> "_AUTHORITY_ADDRESS")
+    contract_address = get_env(network <> "_CONTRACT_ADDRESS")
+    :ok = Application.put_env(:omg_eth, :txhash_contract, txhash_contract, persistent: true)
+    :ok = Application.put_env(:omg_eth, :authority_addr, authority_address, persistent: true)
+    :ok = Application.put_env(:omg_eth, :contract_addr, contract_address, persistent: true)
   end
 
   defp get_env(key), do: validate(System.get_env(key))

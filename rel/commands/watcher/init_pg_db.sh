@@ -1,1 +1,0 @@
-release_ctl eval --mfa "OMG.Watcher.ReleaseTasks.InitPGDB.run/0" --argv -- "$@"

@@ -12,14 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.ReleaseTasks.CliUtils do
-  @moduledoc false
-  import IO.ANSI
+defmodule OMG.DB.ReleaseTasks.SetKeyValueDB do
+  @moduledoc """
+  Gets the DB path from environment and perstists it to configuration.
+  """
+  use Mix.Releases.Config.Provider
 
-  def info(message), do: [:normal, message] |> format |> IO.puts()
-
-  def error(message, device \\ :stderr) do
-    formatted = format([:red, message])
-    IO.puts(device, formatted)
+  @impl Provider
+  def init(_args) do
+    path = get_env("DB_PATH")
+    :ok = Application.put_env(:omg_db, :leveldb_path, path, persistent: true)
   end
+
+  defp get_env(key), do: validate(System.get_env(key))
+
+  defp validate(value) when is_binary(value), do: value
+
+  defp validate(nil), do: exit("Set DB_PATH environment variable.")
 end
