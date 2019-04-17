@@ -1,6 +1,6 @@
 InternalServerError:
   description: Returns an internal server error
   content:
-    application/vnd.omisego.v1+json:
+    application/json:
       schema:
         $ref: 'response_schemas.yaml#/ErrorResponseSchema'
