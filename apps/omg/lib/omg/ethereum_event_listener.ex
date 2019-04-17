@@ -22,7 +22,8 @@ defmodule OMG.EthereumEventListener do
   alias OMG.RootChainCoordinator
   alias OMG.RootChainCoordinator.SyncGuide
 
-  use Appsignal.Instrumentation.Decorators
+  use GenServer
+  use OMG.Utils.Metrics
   use OMG.Utils.LoggerExt
 
   @type config() :: %{
@@ -54,8 +55,6 @@ defmodule OMG.EthereumEventListener do
   end
 
   ### Server
-
-  use GenServer
 
   def init(init) do
     {:ok, init, {:continue, :setup}}
@@ -94,7 +93,7 @@ defmodule OMG.EthereumEventListener do
   end
 
   def handle_info(:sync, state), do: do_sync(state)
-  @decorate transaction(:EthereumEventListener)
+  @decorate measure_start()
   def do_sync({%Core{} = core, _callbacks} = state) do
     case RootChainCoordinator.get_sync_info() do
       :nosync ->

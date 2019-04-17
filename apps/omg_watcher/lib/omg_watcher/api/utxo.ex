@@ -21,14 +21,14 @@ defmodule OMG.Watcher.API.Utxo do
   alias OMG.Watcher.DB
   alias OMG.Watcher.ExitProcessor
 
-  use Appsignal.Instrumentation.Decorators
+  use OMG.Utils.Metrics
 
   @doc """
   Returns exit data for an utxo
   TODO: For now uses Postgres data, but should be adapted to OMG.DB (in security-critical only mode)
   """
   @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, DB.TxOutput.exit_t()} | {:error, :utxo_not_found}
-  @decorate transaction_event(:Utxo)
+  @decorate measure_event()
   def compose_utxo_exit(utxo) do
     DB.TxOutput.compose_utxo_exit(utxo)
   end
@@ -38,7 +38,7 @@ defmodule OMG.Watcher.API.Utxo do
   """
   @spec create_challenge(Utxo.Position.t()) ::
           {:ok, ExitProcessor.StandardExitChallenge.t()} | {:error, :utxo_not_spent} | {:error, :exit_not_found}
-  @decorate transaction_event(:Utxo)
+  @decorate measure_event()
   def create_challenge(utxo) do
     ExitProcessor.create_challenge(utxo)
   end

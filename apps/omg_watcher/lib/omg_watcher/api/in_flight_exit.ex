@@ -22,7 +22,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   alias OMG.Watcher.DB
   alias OMG.Watcher.ExitProcessor
 
-  use Appsignal.Instrumentation.Decorators
+  use OMG.Utils.Metrics
   require Utxo
 
   @type in_flight_exit() :: %{
@@ -36,7 +36,7 @@ defmodule OMG.Watcher.API.InFlightExit do
   Returns arguments for plasma contract function that starts in-flight exit for a given transaction.
   """
   @spec get_in_flight_exit(binary) :: {:ok, in_flight_exit()} | {:error, atom}
-  @decorate transaction_event(:InFlightExit)
+  @decorate measure_event()
   def get_in_flight_exit(txbytes) do
     with {:ok, tx} <- Transaction.Signed.decode(txbytes),
          {:ok, {proofs, input_txs}} <- find_input_data(tx) do
@@ -62,7 +62,7 @@ defmodule OMG.Watcher.API.InFlightExit do
 
   This delegates directly to `OMG.Watcher.ExitProcessor` see there for details
   """
-  @decorate transaction_event(:InFlightExit)
+  @decorate measure_event()
   def get_competitor(txbytes) do
     ExitProcessor.get_competitor_for_ife(txbytes)
   end
@@ -72,7 +72,7 @@ defmodule OMG.Watcher.API.InFlightExit do
 
   This delegates directly to `OMG.Watcher.ExitProcessor` see there for details
   """
-  @decorate transaction_event(:InFlightExit)
+  @decorate measure_event()
   def prove_canonical(txbytes) do
     ExitProcessor.prove_canonical_for_ife(txbytes)
   end
@@ -82,7 +82,7 @@ defmodule OMG.Watcher.API.InFlightExit do
 
   This delegates directly to `OMG.Watcher.ExitProcessor` see there for details
   """
-  @decorate transaction_event(:InFlightExit)
+  @decorate measure_event()
   def get_input_challenge_data(txbytes, input_index) do
     ExitProcessor.get_input_challenge_data(txbytes, input_index)
   end
@@ -92,7 +92,7 @@ defmodule OMG.Watcher.API.InFlightExit do
 
   This delegates directly to `OMG.Watcher.ExitProcessor` see there for details
   """
-  @decorate transaction_event(:InFlightExit)
+  @decorate measure_event()
   def get_output_challenge_data(txbytes, output_index) do
     ExitProcessor.get_output_challenge_data(txbytes, output_index)
   end

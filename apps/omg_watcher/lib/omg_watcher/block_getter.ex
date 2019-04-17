@@ -35,9 +35,9 @@ defmodule OMG.Watcher.BlockGetter do
   alias OMG.Watcher.ExitProcessor
   alias OMG.Watcher.Recorder
 
-  use Appsignal.Instrumentation.Decorators
   use GenServer
   use OMG.Utils.LoggerExt
+  use OMG.Utils.Metrics
 
   def get_events do
     GenServer.call(__MODULE__, :get_events)
@@ -47,7 +47,6 @@ defmodule OMG.Watcher.BlockGetter do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @decorate transaction(:BlockGetter)
   def apply_block(%BlockApplication{} = to_apply), do: GenServer.cast(__MODULE__, {:apply_block, to_apply})
 
   def init(_opts) do
@@ -102,6 +101,7 @@ defmodule OMG.Watcher.BlockGetter do
     {:reply, Core.chain_ok(state), state}
   end
 
+  @decorate measure_start()
   def handle_cast(
         {:apply_block,
          %BlockApplication{
