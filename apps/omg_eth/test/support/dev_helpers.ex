@@ -21,7 +21,7 @@ defmodule OMG.Eth.DevHelpers do
   alias OMG.Eth
   alias OMG.Eth.WaitFor
 
-  import Eth.Encoding
+  import Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   require Logger
 

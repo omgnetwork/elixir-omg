@@ -12,29 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ReleaseTasks.InitKVDB do
+defmodule OMG.Utils.CLI do
   @moduledoc """
-  A release task that performs database initialization.
+  Helper module for working with the command line interface.
   """
-
+  import IO
   import IO.ANSI
-  @start_apps [:crypto, :ssl]
-  @apps [:omg_db]
 
-  def run do
-    Enum.each(@start_apps, &Application.ensure_all_started/1)
-    Enum.each(@apps, &init_kv_db/1)
-    :init.stop()
-  end
+  def info(message), do: [:normal, message] |> format |> puts
 
-  defp init_kv_db(app_name) do
-    case OMG.DB.init() do
-      {:error, term} -> error("The database for #{inspect(app_name)} couldn't be created: #{term}")
-      :ok -> info("The database for #{inspect(app_name)} has been created")
-    end
-  end
+  def debug(message), do: [:faint, message] |> format |> puts
 
-  defp info(message), do: [:normal, message] |> format |> IO.puts()
+  def success(message), do: [:green, message] |> format |> puts
+
+  def warn(message), do: [:yellow, message] |> format |> puts
 
   def error(message, device \\ :stderr) do
     formatted = format([:red, message])

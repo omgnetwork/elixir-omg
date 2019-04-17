@@ -3,10 +3,10 @@
 ## http://erlang.org/doc/man/erl.html
 
 ## Name of the node
--name <%= release_name %>@127.0.0.1
+-name <%= release_name %>@${NODE_HOST}
 
 ## Cookie for distributed erlang
--setcookie <%= release.profile.cookie %>
+-setcookie ${ERLANG_COOKIE}
 
 ## Heartbeat management; auto-restarts VM if it dies or becomes unresponsive
 ## (Disabled by default..use with caution!)

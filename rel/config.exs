@@ -11,40 +11,21 @@ use Mix.Releases.Config,
   # This sets the default environment used by `mix release`
   default_environment: Mix.env()
 
-# For a full list of config options for both releases
-# and environments, visit https://hexdocs.pm/distillery/config/distillery.html
-
-# You may define one or more environments in this file,
-# an environment's settings will override those of a release
-# when building in that environment, this combination of release
-# and environment configuration is called a profile
-
 environment :dev do
-  # If you are running Phoenix, you should make sure that
-  # server: true is set and the code reloader is disabled,
-  # even in dev mode.
-  # It is recommended that you build with MIX_ENV=prod and pass
-  # the --env flag to Distillery explicitly if you want to use
-  # dev mode.
-  set(dev_mode: true)
-  set(include_erts: false)
-  set(cookie: :"pfM{d5El5p5@Sws2{:eRTKw>{7!5!]H;y,F=8LVD^FIoU?=pLb)Urn9?S79BWzxz")
+  set(dev_mode: false)
+  set(include_erts: true)
+  set(cookie: :dev)
 end
 
 environment :prod do
   set(include_erts: true)
   set(include_src: false)
-  set(cookie: :"<(aC$=?_3ufz0E1mi^]PY^&TbDwmA?s6ZNv~d$XDg{Abqn}XWvZsN^O!$[OWp`w$")
-  set(vm_args: "rel/vm.args")
+  set(cookie: :prod)
 end
 
-# You may define one or more releases in this file.
-# If you have not set a default release, or selected one
-# when running `mix release`, the first release in the file
-# will be used by default
-
 release :watcher do
-  set(version: "0.2.0")
+  set(version: current_version(:omg_watcher))
+  set(vm_args: "rel/vm.args")
 
   set(
     applications: [
@@ -53,21 +34,28 @@ release :watcher do
       omg: :permanent,
       omg_status: :permanent,
       omg_db: :permanent,
-      omg_eth: :permanent,
-      xomg_tasks: :load
+      omg_eth: :permanent
+    ]
+  )
+
+  set(
+    config_providers: [
+      {OMG.Eth.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.DB.ReleaseTasks.SetKeyValueDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
     ]
   )
 
   set(
     commands: [
-      init_pg_db: "rel/commands/watcher/init_pg_db.sh",
-      init_kv_db: "rel/commands/watcher/init_kv_db.sh"
+      init_postgresql_db: "rel/commands/watcher/init_postgresql_db.sh",
+      init_key_value_db: "rel/commands/init_key_value_db.sh"
     ]
   )
 end
 
 release :child_chain do
-  set(version: "0.2.0")
+  set(version: current_version(:omg_child_chain))
+  set(vm_args: "rel/vm.args")
 
   set(
     applications: [
@@ -77,14 +65,20 @@ release :child_chain do
       omg_status: :permanent,
       omg_db: :permanent,
       omg_eth: :permanent,
-      omg_rpc: :permanent,
-      xomg_tasks: :load
+      omg_rpc: :permanent
+    ]
+  )
+
+  set(
+    config_providers: [
+      {OMG.Eth.ReleaseTasks.SetContract, ["${RELEASE_ROOT_DIR}/config/config.exs"]},
+      {OMG.DB.ReleaseTasks.SetKeyValueDB, ["${RELEASE_ROOT_DIR}/config/config.exs"]}
     ]
   )
 
   set(
     commands: [
-      init_kv_db: "rel/commands/child_chain/init_kv_db.sh"
+      init_key_value_db: "rel/commands/init_key_value_db.sh"
     ]
   )
 end

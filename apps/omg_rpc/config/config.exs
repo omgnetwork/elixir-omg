@@ -18,7 +18,7 @@ config :omg_rpc, OMG.RPC.Web.Endpoint,
 
 # Use Poison for JSON parsing in Phoenix
 config :phoenix,
-  json_library: Poison,
+  json_library: Jason,
   serve_endpoints: true,
   persistent: true
 

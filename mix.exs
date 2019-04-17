@@ -55,21 +55,25 @@ defmodule OMG.Umbrella.MixProject do
     [
       flags: [:error_handling, :race_conditions, :underspecs, :unknown, :unmatched_returns],
       ignore_warnings: "dialyzer.ignore-warnings",
-      plt_add_apps: [
-        :mix,
-        :iex,
-        :ex_unit,
-        :ranch,
-        :plug,
-        :jason,
-        :cowboy,
-        :vmstats,
-        :briefly,
-        :propcheck,
-        :proper,
-        :fake_server,
-        :exexec
-      ]
+      plt_add_apps: plt_apps()
     ]
   end
+
+  defp plt_apps,
+    do: [
+      :mix,
+      :iex,
+      :ex_unit,
+      :ranch,
+      :plug,
+      :jason,
+      :cowboy,
+      :vmstats,
+      :briefly,
+      :propcheck,
+      :proper,
+      :fake_server,
+      :exexec,
+      :distillery
+    ]
 end

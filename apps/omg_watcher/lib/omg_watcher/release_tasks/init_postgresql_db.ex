@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule OMG.Watcher.ReleaseTasks.InitPGDB do
+defmodule OMG.Watcher.ReleaseTasks.InitPostgresqlDB do
   @moduledoc """
   A release task that performs database initialization, namely database creation and migration.
 
@@ -20,8 +20,7 @@ defmodule OMG.Watcher.ReleaseTasks.InitPGDB do
   database schema.
   """
   alias Ecto.Migrator
-  import IO.ANSI
-
+  alias OMG.Utils.CLI
   @start_apps [:crypto, :ssl, :postgrex, :phoenix_ecto, :ecto_sql, :telemetry]
   @apps [:omg_watcher]
 
@@ -42,22 +41,22 @@ defmodule OMG.Watcher.ReleaseTasks.InitPGDB do
   defp run_create_for(repo) do
     case repo.__adapter__.storage_up(repo.config) do
       :ok ->
-        info("The database for #{inspect(repo)} has been created")
+        CLI.info("The database for #{inspect(repo)} has been created")
 
       {:error, :already_up} ->
-        info("The database for #{inspect(repo)} has already been created")
+        CLI.info("The database for #{inspect(repo)} has already been created")
 
       {:error, term} when is_binary(term) ->
-        error("The database for #{inspect(repo)} couldn't be created: #{term}")
+        CLI.error("The database for #{inspect(repo)} couldn't be created: #{term}")
 
       {:error, term} ->
-        error("The database for #{inspect(repo)} couldn't be created: #{inspect(term)}")
+        CLI.error("The database for #{inspect(repo)} couldn't be created: #{inspect(term)}")
     end
   end
 
   defp run_migrations_for(repo) do
     migrations_path = priv_path_for(repo, "migrations")
-    info("Running migration for #{inspect(repo)}...")
+    CLI.info("Running migration for #{inspect(repo)}...")
     Migrator.run(repo, migrations_path, :up, all: true)
   end
 
@@ -67,12 +66,5 @@ defmodule OMG.Watcher.ReleaseTasks.InitPGDB do
     app = Keyword.get(repo.config, :otp_app)
     repo_underscore = repo |> Module.split() |> List.last() |> Macro.underscore()
     Path.join([priv_dir(app), repo_underscore, filename])
-  end
-
-  defp info(message), do: [:normal, message] |> format |> IO.puts()
-
-  def error(message, device \\ :stderr) do
-    formatted = format([:red, message])
-    IO.puts(device, formatted)
   end
 end
