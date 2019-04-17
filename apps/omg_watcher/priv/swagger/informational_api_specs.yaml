@@ -295,7 +295,6 @@ paths:
       operationId: transactions_all
       requestBody:
         description: 'Account address, block number or limit'
-        required: true
         content:
           application/json:
             schema:

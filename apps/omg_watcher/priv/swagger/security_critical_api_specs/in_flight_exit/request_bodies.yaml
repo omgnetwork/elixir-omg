@@ -9,6 +9,8 @@ InFlightExitTxBytesBody:
           txbytes:
             type: string
             format: binary
+        required:
+          - txbytes
         example:
           txbytes: '0xf3170101c0940000...'
 
@@ -26,6 +28,9 @@ InFlightExitInputChallengeDataBody:
           input_index:
             type: integer
             format: int8
+        required:
+          - txbytes
+          - input_index
         example:
           txbytes: '0xf3170101c0940000...'
           input_index: 1
@@ -44,6 +49,9 @@ InFlightExitOutputChallengeDataBody:
           output_index:
             type: integer
             format: int8
+        required:
+          - txbytes
+          - output_index
         example:
           txbytes: '0xf3170101c0940000...'
           output_index: 0

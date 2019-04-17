@@ -9,5 +9,7 @@ TransactionSubmitBody:
           transaction:
             type: string
             format: binary
+        required:
+          - transaction
         example:
           transaction: '0xf8d083015ba98080808080940000...'

@@ -203,6 +203,8 @@ paths:
                 address:
                   type: string
                   format: binary
+              required:
+                - address
               example:
                 address: '0xb3256026863eb6ae5b06fa396ab09069784ea8ea'
       responses:
@@ -290,6 +292,8 @@ paths:
                 utxo_pos:
                   type: integer
                   format: int256
+              required:
+                - utxo_pos
               example:
                 utxo_pos: 10000000010000000
       responses:
@@ -400,6 +404,8 @@ paths:
                 transaction:
                   type: string
                   format: binary
+              required:
+                - transaction
               example:
                 transaction: 0xf8d083015ba98080808080940000...
       responses:
@@ -451,6 +457,8 @@ paths:
                 txbytes:
                   type: string
                   format: binary
+              required:
+                - txbytes
               example:
                 txbytes: 0xf3170101c0940000...
       responses:

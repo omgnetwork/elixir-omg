@@ -9,5 +9,7 @@ UtxoPositionBody:
           utxo_pos:
             type: integer
             format: int256
+        required:
+          - utxo_pos
         example:
           utxo_pos: 10000000010000000
