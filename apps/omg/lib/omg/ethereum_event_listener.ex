@@ -94,7 +94,7 @@ defmodule OMG.EthereumEventListener do
 
   def handle_info(:sync, state), do: do_sync(state)
   @decorate measure_start()
-  def do_sync({%Core{} = core, _callbacks} = state) do
+  defp do_sync({%Core{} = core, _callbacks} = state) do
     case RootChainCoordinator.get_sync_info() do
       :nosync ->
         :ok = RootChainCoordinator.check_in(Core.get_height_to_check_in(core), core.service_name)
