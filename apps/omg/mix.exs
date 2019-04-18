@@ -31,7 +31,7 @@ defmodule OMG.MixProject do
   defp deps do
     [
       {:ex_rlp, "~> 0.5.2"},
-      {:merkle_tree, "~> 1.5.0"},
+      {:merkle_tree, "~> 1.6"},
       {:deferred_config, "~> 0.1.1"},
       {:appsignal, "~> 1.0"},
       {:phoenix_pubsub, "~> 1.0"},
