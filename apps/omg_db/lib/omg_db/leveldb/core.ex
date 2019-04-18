@@ -41,9 +41,10 @@ defmodule OMG.DB.LevelDB.Core do
   @doc """
   Interprets the response from leveldb and returns a success-decorated result
   """
+  @spec decode_value({:ok, binary()} | :not_found, atom()) :: {:ok, term()} | :not_found
   def decode_value(db_response, type) do
     case decode_response(type, db_response) do
-      {:error, error} -> {:error, error}
+      :not_found -> :not_found
       other -> {:ok, other}
     end
   end
@@ -52,14 +53,13 @@ defmodule OMG.DB.LevelDB.Core do
   Interprets an enumerable of responses from leveldb and decorates the enumerable with a `{:ok, _enumerable}`
   if no errors occurred
   """
+  @spec decode_values(Enumerable.t(), atom) :: {:ok, list}
   def decode_values(encoded_enumerable, type) do
     raw_decoded =
       encoded_enumerable
       |> Enum.map(fn encoded -> decode_response(type, encoded) end)
 
-    if Enum.any?(raw_decoded, &match?({:error, _}, &1)),
-      do: {:error, raw_decoded},
-      else: {:ok, raw_decoded}
+    {:ok, raw_decoded}
   end
 
   def filter_keys(key_stream, type) when type in @key_types,
@@ -100,7 +100,6 @@ defmodule OMG.DB.LevelDB.Core do
     case db_response do
       :not_found -> :not_found
       {:ok, encoded} -> :erlang.binary_to_term(encoded)
-      other -> {:error, other}
     end
   end
 

@@ -17,7 +17,7 @@ defmodule OMG.RecorderTest do
   A smoke test of the LevelDB support but for counters.
   """
   use ExUnitFixtures
-  use OMG.DB.Case, async: true
+  use OMG.DB.LevelDBCase, async: true
   alias OMG.DB
 
   test "if multi update counter gets incremented", %{db_pid: db_pid} do

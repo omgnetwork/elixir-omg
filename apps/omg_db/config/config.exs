@@ -3,8 +3,8 @@ use Mix.Config
 # see [here](README.md) for documentation
 
 config :omg_db,
-  # :leveldb, #:rocksdb
-  type: :ets,
+  # :leveldb, #:ets
+  type: :leveldb,
   # leveldb
   leveldb_path: Path.join([System.get_env("HOME"), ".omg/data"]),
   # leveldb

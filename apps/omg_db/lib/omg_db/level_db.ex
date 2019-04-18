@@ -17,17 +17,44 @@ defmodule OMG.DB.LevelDB do
   Our-types-aware port/adapter to a database backend.
   Contains functions to access data stored in the database
   """
-
+  alias OMG.DB
   @behaviour OMG.DB
 
   require Logger
 
-  @server_name OMG.DB.LevelDBServer
+  @server_name OMG.DB.LevelDB.Server
 
   @one_minute 60_000
   @ten_minutes 10 * @one_minute
 
   @type utxo_pos_db_t :: {pos_integer, non_neg_integer, non_neg_integer}
+
+  def start_link(args) do
+    @server_name.start_link(args)
+  end
+
+  def child_spec do
+    db_path = Application.fetch_env!(:omg_db, :leveldb_path)
+    server_module = Application.fetch_env!(:omg_db, :server_module)
+    server_name = Application.fetch_env!(:omg_db, :server_name)
+    args = [db_path: db_path, name: server_name]
+
+    %{
+      id: server_module,
+      start: {server_module, :start_link, [args]},
+      type: :worker
+    }
+  end
+
+  def child_spec([db_path: _db_path, name: server_name] = args) do
+    server_module = Application.fetch_env!(:omg_db, :server_module)
+
+    %{
+      id: server_name,
+      start: {server_module, :start_link, [args]},
+      type: :worker
+    }
+  end
 
   def multi_update(db_updates, server_name \\ @server_name) do
     GenServer.call(server_name, {:multi_update, db_updates})
@@ -87,18 +114,15 @@ defmodule OMG.DB.LevelDB do
   # Note: *_eth_height values below denote actual Ethereum height service has processed.
   # It might differ from "latest" Ethereum block.
 
-  def get_single_value(server_name \\ @server_name, parameter_name) do
+  def get_single_value(parameter_name, server_name \\ @server_name) do
     GenServer.call(server_name, {:get_single_value, parameter_name})
   end
 
-  # @doc """
-  # Puts all zeroes and other init values to a generically initialized `OMG-DB`
-  # """
-  defp initiation_multiupdate(server_name) do
+  def initiation_multiupdate(server_name \\ @server_name) do
     # setting a number of markers to zeroes
-    single_value_parameter_names()
+    DB.single_value_parameter_names()
     |> Enum.map(&{:put, &1, 0})
-    |> OMG.DB.multi_update(server_name)
+    |> multi_update(server_name)
   end
 
   @doc """
@@ -123,31 +147,5 @@ defmodule OMG.DB.LevelDB do
         _ = Logger.error("Unable to init: #{inspect(error)}")
         error
     end
-  end
-
-  @doc """
-  A list of all atoms that we use as single-values stored in the database (i.e. markers/flags of all kinds)
-  """
-  def single_value_parameter_names do
-    [
-      :child_top_block_number,
-      :last_deposit_child_blknum,
-      :last_block_getter_eth_height,
-      :last_depositor_eth_height,
-      :last_convenience_deposit_processor_eth_height,
-      :last_exiter_eth_height,
-      :last_piggyback_exit_eth_height,
-      :last_in_flight_exit_eth_height,
-      :last_exit_processor_eth_height,
-      :last_convenience_exit_processor_eth_height,
-      :last_exit_finalizer_eth_height,
-      :last_exit_challenger_eth_height,
-      :last_in_flight_exit_processor_eth_height,
-      :last_piggyback_processor_eth_height,
-      :last_competitor_processor_eth_height,
-      :last_challenges_responds_processor_eth_height,
-      :last_piggyback_challenges_processor_eth_height,
-      :last_ife_exit_finalizer_eth_height
-    ]
   end
 end
