@@ -16,9 +16,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   @moduledoc """
   Test talking to OMG.State.Core
   """
-  use ExUnitFixtures
   use ExUnit.Case, async: true
-  use OMG.Fixtures
 
   alias OMG.State
   alias OMG.TestHelper
@@ -39,12 +37,16 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   @utxo_pos1 Utxo.position(2, 0, 0)
   @utxo_pos2 Utxo.position(@late_blknum - 1_000, 0, 1)
 
-  @tag fixtures: [:processor_empty, :state_empty, :alice]
-  test "can work with State to determine and notify invalid exits", %{
-    processor_empty: processor,
-    state_empty: state,
-    alice: alice
-  } do
+  setup do
+    {:ok, processor_empty} = Core.init([], [], [])
+    {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
+    {:ok, state_empty} = State.Core.extract_initial_state([], 0, 0, child_block_interval)
+
+    {:ok, %{alice: TestHelper.generate_entity(), processor_empty: processor_empty, state_empty: state_empty}}
+  end
+
+  test "can work with State to determine and notify invalid exits",
+       %{processor_empty: processor, state_empty: state, alice: alice} do
     exiting_position = Utxo.Position.encode(@utxo_pos1)
 
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
@@ -57,12 +59,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
              |> Core.check_validity(processor)
   end
 
-  @tag fixtures: [:processor_empty, :state_empty, :alice]
-  test "can work with State to determine invalid exits entered too late", %{
-    processor_empty: processor,
-    state_empty: state,
-    alice: alice
-  } do
+  test "can work with State to determine invalid exits entered too late",
+       %{processor_empty: processor, state_empty: state, alice: alice} do
     exiting_position = Utxo.Position.encode(@utxo_pos1)
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
     processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
@@ -75,12 +73,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
              |> Core.check_validity(processor)
   end
 
-  @tag fixtures: [:processor_empty, :state_empty, :alice]
-  test "invalid exits that have been witnessed already inactive don't excite events", %{
-    processor_empty: processor,
-    state_empty: state,
-    alice: alice
-  } do
+  test "invalid exits that have been witnessed already inactive don't excite events",
+       %{processor_empty: processor, state_empty: state, alice: alice} do
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
     processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1, inactive: true)
 
@@ -91,12 +85,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
              |> Core.check_validity(processor)
   end
 
-  @tag fixtures: [:processor_empty, :state_empty, :alice]
-  test "exits of utxos that couldn't have been seen created yet never excite events", %{
-    processor_empty: processor,
-    state_empty: state,
-    alice: alice
-  } do
+  test "exits of utxos that couldn't have been seen created yet never excite events",
+       %{processor_empty: processor, state_empty: state, alice: alice} do
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
     processor = processor |> start_se_from(standard_exit_tx, Utxo.position(@late_blknum, 0, 0))
 
@@ -107,12 +97,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
              |> Core.check_validity(processor)
   end
 
-  @tag fixtures: [:processor_empty, :alice, :state_empty]
-  test "handles invalid exit finalization - doesn't forget and causes a byzantine chain report", %{
-    processor_empty: processor,
-    state_empty: state,
-    alice: alice
-  } do
+  test "handles invalid exit finalization - doesn't forget and causes a byzantine chain report",
+       %{processor_empty: processor, state_empty: state, alice: alice} do
     standard_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
     standard_exit_tx2 = TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 10}, {alice, 10}])
 
@@ -137,12 +123,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
              |> Core.check_validity(processor)
   end
 
-  @tag fixtures: [:processor_empty, :state_empty, :alice]
-  test "can work with State to determine valid exits and finalize them", %{
-    processor_empty: processor,
-    state_empty: state_empty,
-    alice: alice
-  } do
+  test "can work with State to determine valid exits and finalize them",
+       %{processor_empty: processor, state_empty: state_empty, alice: alice} do
     state = state_empty |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 2})
 
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
@@ -169,13 +151,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
   end
 
-  @tag fixtures: [:alice, :processor_empty, :state_empty]
   test "only asking for spends concerning ifes",
-       %{
-         alice: alice,
-         processor_empty: processor,
-         state_empty: state_empty
-       } do
+       %{alice: alice, processor_empty: processor, state_empty: state_empty} do
     processor = processor |> start_ife_from(TestHelper.create_recovered([{1, 0, 0, alice}], []))
 
     state = state_empty |> TestHelper.do_deposit(alice, %{amount: 10, currency: @eth, blknum: 1})
@@ -210,10 +187,4 @@ defmodule OMG.Watcher.ExitProcessor.Core.StateInteractionTest do
   end
 
   defp prepare_exit_finalizations(utxo_positions), do: Enum.map(utxo_positions, &%{utxo_pos: Utxo.Position.encode(&1)})
-
-  # FIXME: stop being a fixture
-  deffixture processor_empty() do
-    {:ok, empty} = Core.init([], [], [])
-    empty
-  end
 end

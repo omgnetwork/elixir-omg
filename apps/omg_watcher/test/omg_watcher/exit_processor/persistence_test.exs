@@ -41,45 +41,41 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
 
   setup %{db_pid: db_pid} do
     :ok = OMG.DB.initiation_multiupdate(db_pid)
-  end
 
-  deffixture processor_empty() do
-    {:ok, empty} = Core.init([], [], [])
-    empty
-  end
+    alice = OMG.TestHelper.generate_entity()
+    carol = OMG.TestHelper.generate_entity()
+    {:ok, processor_empty} = Core.init([], [], [])
 
-  # TODO: DRY against `exit_processor/core_test.exs` or refactor to make unnecessary in any other way
-  deffixture transactions(alice, carol) do
-    [
+    transactions = [
       Transaction.new([{1, 0, 0}, {1, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}]),
       Transaction.new([{2, 1, 0}, {2, 2, 1}], [{alice.addr, @eth, 1}, {carol.addr, @eth, 2}])
     ]
-  end
 
-  deffixture exits(alice, transactions) do
     [txbytes1, txbytes2] = transactions |> Enum.map(&Transaction.raw_txbytes/1)
 
-    {[
-       %{
-         owner: alice.addr,
-         eth_height: 2,
-         exit_id: 1,
-         call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos1), output_tx: txbytes1}
-       },
-       %{
-         owner: alice.addr,
-         eth_height: 4,
-         exit_id: 2,
-         call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos2), output_tx: txbytes2}
-       }
-     ],
-     [
-       {alice.addr, @eth, 10, Utxo.Position.encode(@utxo_pos1)},
-       {@zero_address, @eth, 10, Utxo.Position.encode(@utxo_pos2)}
-     ]}
+    exits =
+      {[
+         %{
+           owner: alice.addr,
+           eth_height: 2,
+           exit_id: 1,
+           call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos1), output_tx: txbytes1}
+         },
+         %{
+           owner: alice.addr,
+           eth_height: 4,
+           exit_id: 2,
+           call_data: %{utxo_pos: Utxo.Position.encode(@utxo_pos2), output_tx: txbytes2}
+         }
+       ],
+       [
+         {alice.addr, @eth, 10, Utxo.Position.encode(@utxo_pos1)},
+         {@zero_address, @eth, 10, Utxo.Position.encode(@utxo_pos2)}
+       ]}
+
+    {:ok, %{alice: alice, carol: carol, processor_empty: processor_empty, transactions: transactions, exits: exits}}
   end
 
-  @tag fixtures: [:processor_empty, :exits]
   test "persist finalizations with mixed validities",
        %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
     processor
@@ -87,7 +83,6 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     |> persist_finalize_exits({[@utxo_pos1], [@utxo_pos2]}, db_pid)
   end
 
-  @tag fixtures: [:processor_empty, :exits]
   test "persist finalizations with all valid",
        %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
     processor
@@ -95,7 +90,6 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     |> persist_finalize_exits({[@utxo_pos1, @utxo_pos2], []}, db_pid)
   end
 
-  @tag fixtures: [:processor_empty, :exits]
   test "persist finalizations with all invalid",
        %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
     processor
@@ -103,7 +97,6 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     |> persist_finalize_exits({[], [@utxo_pos1, @utxo_pos2]}, db_pid)
   end
 
-  @tag fixtures: [:processor_empty, :exits]
   test "persist challenges and challenge responses",
        %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
     processor
@@ -113,7 +106,6 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     |> persist_respond_to_in_flight_exits_challenges([@utxo_pos1], db_pid)
   end
 
-  @tag fixtures: [:processor_empty, :exits]
   test "persist multiple challenges and challenge responses",
        %{processor_empty: processor, db_pid: db_pid, exits: {exit_events, statuses}} do
     processor
@@ -123,7 +115,6 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     |> persist_respond_to_in_flight_exits_challenges([@utxo_pos2, @utxo_pos1], db_pid)
   end
 
-  @tag fixtures: [:processor_empty, :alice, :carol]
   test "persist started ifes regardless of status",
        %{processor_empty: processor, alice: alice, carol: carol, db_pid: db_pid} do
     txs = [
@@ -137,7 +128,6 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     |> persist_new_ifes(txs, [[alice.priv], [alice.priv, carol.priv]], contract_statuses, db_pid)
   end
 
-  @tag fixtures: [:processor_empty, :alice]
   test "persist new challenges, responses and piggybacks",
        %{processor_empty: processor, alice: alice, db_pid: db_pid} do
     tx = Transaction.new([{2, 1, 0}], [{alice.addr, @eth, 1}, {alice.addr, @eth, 2}])
@@ -166,7 +156,6 @@ defmodule OMG.Watcher.ExitProcessor.PersistenceTest do
     |> persist_challenge_piggybacks(piggybacks1, db_pid)
   end
 
-  @tag fixtures: [:processor_empty, :alice]
   test "persist ife finalizations",
        %{processor_empty: processor, alice: alice, db_pid: db_pid} do
     tx = Transaction.new([{2, 1, 0}], [{alice.addr, @eth, 1}, {alice.addr, @eth, 2}])

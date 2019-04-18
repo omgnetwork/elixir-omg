@@ -15,7 +15,6 @@
 defmodule OMG.Fixtures do
   use ExUnitFixtures.FixtureModule
 
-  alias OMG.Eth
   alias OMG.State.Core
 
   import OMG.TestHelper
@@ -33,8 +32,7 @@ defmodule OMG.Fixtures do
   deffixture(stable_mallory(entities), do: entities.stable_mallory)
 
   deffixture state_empty() do
-    {:ok, child_block_interval} = Eth.RootChain.get_child_block_interval()
-
+    {:ok, child_block_interval} = OMG.Eth.RootChain.get_child_block_interval()
     {:ok, state} = Core.extract_initial_state([], 0, 0, child_block_interval)
     state
   end

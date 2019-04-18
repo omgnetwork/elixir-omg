@@ -16,9 +16,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   @moduledoc """
   Test of the logic of exit processor - detecting byzantine conditions, emitting events
   """
-  use ExUnitFixtures
   use ExUnit.Case, async: true
-  use OMG.Fixtures
 
   alias OMG.Block
   alias OMG.State.Transaction
@@ -50,61 +48,56 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     long
   end
 
-  deffixture transactions(alice, carol) do
-    [
+  setup do
+    [alice, bob, carol] = 1..3 |> Enum.map(fn _ -> TestHelper.generate_entity() end)
+
+    transactions = [
       TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, carol}], [{alice, @eth, 1}, {carol, @eth, 2}]),
       TestHelper.create_recovered([{2, 1, 0, alice}, {2, 2, 1, carol}], [{alice, @not_eth, 1}, {carol, @not_eth, 2}])
     ]
-  end
 
-  deffixture competing_tx(alice, bob, carol) do
-    TestHelper.create_recovered([{10, 2, 1, alice}, {1, 0, 0, alice}], [{bob, @eth, 2}, {carol, @eth, 1}])
-  end
+    competing_tx =
+      TestHelper.create_recovered([{10, 2, 1, alice}, {1, 0, 0, alice}], [{bob, @eth, 2}, {carol, @eth, 1}])
 
-  deffixture unrelated_tx(alice, bob, carol) do
-    TestHelper.create_recovered([{20, 1, 0, alice}, {20, 20, 1, alice}], [{bob, @eth, 2}, {carol, @eth, 1}])
-  end
+    unrelated_tx =
+      TestHelper.create_recovered([{20, 1, 0, alice}, {20, 20, 1, alice}], [{bob, @eth, 2}, {carol, @eth, 1}])
 
-  # FIXME: stop being a fixture
-  deffixture processor_empty() do
-    {:ok, empty} = Core.init([], [], [])
-    empty
-  end
+    {:ok, processor_empty} = Core.init([], [], [])
 
-  deffixture in_flight_exit_events(transactions) do
-    transactions |> Enum.zip([2, 4]) |> Enum.map(fn {tx, eth_height} -> ife_event(tx, eth_height: eth_height) end)
-  end
+    in_flight_exit_events =
+      transactions |> Enum.zip([2, 4]) |> Enum.map(fn {tx, eth_height} -> ife_event(tx, eth_height: eth_height) end)
 
-  deffixture contract_ife_statuses(in_flight_exit_events) do
-    1..length(in_flight_exit_events)
-    |> Enum.map(fn i -> {i, i} end)
-  end
+    contract_ife_statuses = 1..length(transactions) |> Enum.map(fn i -> {i, i} end)
 
-  deffixture ife_tx_hashes(transactions) do
-    transactions |> Enum.map(&Transaction.raw_txhash/1)
-  end
+    ife_tx_hashes = transactions |> Enum.map(&Transaction.raw_txhash/1)
 
-  deffixture processor_filled(processor_empty, transactions) do
-    state =
+    processor_filled =
       transactions
       |> Enum.zip([2, 4])
       |> Enum.reduce(processor_empty, fn {tx, eth_height}, processor ->
         processor |> start_ife_from(tx, eth_height: eth_height)
       end)
 
-    state
+    {:ok,
+     %{
+       alice: alice,
+       bob: bob,
+       carol: carol,
+       transactions: transactions,
+       competing_tx: competing_tx,
+       unrelated_tx: unrelated_tx,
+       processor_empty: processor_empty,
+       in_flight_exit_events: in_flight_exit_events,
+       contract_ife_statuses: contract_ife_statuses,
+       ife_tx_hashes: ife_tx_hashes,
+       processor_filled: processor_filled,
+       invalid_piggyback_on_input:
+         invalid_piggyback_on_input(processor_filled, transactions, ife_tx_hashes, competing_tx),
+       invalid_piggyback_on_output: invalid_piggyback_on_output(alice, processor_filled, transactions, ife_tx_hashes)
+     }}
   end
 
-  deffixture invalid_piggyback_on_input(
-               alice,
-               processor_filled,
-               transactions,
-               ife_tx_hashes,
-               competing_tx
-             ) do
-    tx = hd(transactions)
-    state = processor_filled
-    ife_id = hd(ife_tx_hashes)
+  defp invalid_piggyback_on_input(state, [tx | _], [ife_id | _], competing_tx) do
     {state, _} = state |> start_ife_from(competing_tx) |> Core.new_piggybacks([%{tx_hash: ife_id, output_index: 0}])
 
     request = %ExitProcessor.Request{
@@ -126,18 +119,9 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     }
   end
 
-  deffixture invalid_piggyback_on_output(
-               alice,
-               processor_filled,
-               transactions,
-               ife_tx_hashes
-             ) do
+  defp invalid_piggyback_on_output(alice, state, [tx | _], [ife_id | _]) do
     # the piggybacked-output-spending tx is going to be included in a block, which requires more back&forth
     # 1. transaction which is, ife'd, output piggybacked, and included in a block
-    tx = hd(transactions)
-    state = processor_filled
-    ife_id = hd(ife_tx_hashes)
-
     # 2. transaction which spends that piggybacked output
     comp = TestHelper.create_recovered([{3000, 0, 0, alice}], [])
 
@@ -174,7 +158,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     }
   end
 
-  @tag fixtures: [:processor_empty, :alice, :bob]
   test "can start new standard exits one by one or batched", %{processor_empty: empty, alice: alice, bob: bob} do
     standard_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
     standard_exit_tx2 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{bob, 10}, {bob, 10}])
@@ -188,17 +171,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {^final_state, _} = Core.new_exits(state2, Enum.slice(events, 1, 1), Enum.slice(statuses, 1, 1))
   end
 
-  @tag fixtures: [:processor_empty]
   test "new_exits sanity checks", %{processor_empty: processor} do
     {:error, :unexpected_events} = processor |> Core.new_exits([:anything], [])
     {:error, :unexpected_events} = processor |> Core.new_exits([], [:anything])
   end
 
-  @tag fixtures: [:processor_empty, :processor_filled]
-  test "can process empty new exits, empty in flight exits or empty finalizations", %{
-    processor_empty: empty,
-    processor_filled: filled
-  } do
+  test "can process empty new exits, empty in flight exits or empty finalizations",
+       %{processor_empty: empty, processor_filled: filled} do
     assert {^empty, []} = Core.new_exits(empty, [], [])
     assert {^empty, []} = Core.new_in_flight_exits(empty, [], [])
     assert {^filled, []} = Core.new_exits(filled, [], [])
@@ -206,11 +185,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {^filled, [], []} = Core.finalize_exits(filled, {[], []})
   end
 
-  @tag fixtures: [:processor_empty, :alice]
-  test "emits exit events when finalizing valid exits", %{
-    processor_empty: processor,
-    alice: %{addr: alice_addr} = alice
-  } do
+  test "emits exit events when finalizing valid exits",
+       %{processor_empty: processor, alice: %{addr: alice_addr} = alice} do
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
     processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1)
 
@@ -218,8 +194,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              Core.finalize_exits(processor, {[@utxo_pos1], []})
   end
 
-  # FIXME: arrange the context pattern match in the whole file
-  @tag fixtures: [:processor_empty, :alice]
   test "doesn't emit exit events when finalizing invalid exits",
        %{processor_empty: processor, alice: alice} do
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
@@ -227,11 +201,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {_, [], _} = Core.finalize_exits(processor, {[], [@utxo_pos1]})
   end
 
-  @tag fixtures: [:processor_empty, :alice]
-  test "can challenge exits, which are then forgotten completely", %{
-    processor_empty: processor,
-    alice: alice
-  } do
+  test "can challenge exits, which are then forgotten completely",
+       %{processor_empty: processor, alice: alice} do
     standard_exit_tx1 = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
     standard_exit_tx2 = TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 10}, {alice, 10}])
 
@@ -251,9 +222,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
   end
 
-  @tag fixtures: [:processor_empty, :alice]
-  test "can process challenged exits",
-       %{processor_empty: processor, alice: alice} do
+  test "can process challenged exits", %{processor_empty: processor, alice: alice} do
     # see the contract and `Eth.RootChain.get_standard_exit/1` for some explanation why like this
     # this is what an exit looks like after a challenge
     zero_status = {0, 0, 0, 0}
@@ -270,18 +239,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, processor)
   end
 
-  @tag fixtures: [:processor_empty]
   test "empty processor returns no exiting utxo positions", %{processor_empty: empty} do
     assert %ExitProcessor.Request{utxos_to_check: []} =
              Core.determine_utxo_existence_to_get(%ExitProcessor.Request{blknum_now: @late_blknum}, empty)
   end
 
-  @tag fixtures: [:alice, :processor_empty, :transactions]
-  test "ifes and standard exits don't interfere", %{
-    alice: alice,
-    processor_empty: processor,
-    transactions: [tx | _]
-  } do
+  test "ifes and standard exits don't interfere",
+       %{alice: alice, processor_empty: processor, transactions: [tx | _]} do
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
     processor = processor |> start_se_from(standard_exit_tx, @utxo_pos1) |> start_ife_from(tx)
 
@@ -298,12 +262,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> check_validity_filtered(processor, only: [Event.InvalidExit])
   end
 
-  @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses, :transactions]
-  test "properly processes new in flight exits, returns all of them on request", %{
-    processor_empty: processor,
-    in_flight_exit_events: events,
-    contract_ife_statuses: statuses
-  } do
+  test "properly processes new in flight exits, returns all of them on request",
+       %{processor_empty: processor, in_flight_exit_events: events, contract_ife_statuses: statuses} do
     assert [] == Core.get_active_in_flight_exits(processor)
 
     {processor, _} = Core.new_in_flight_exits(processor, events, statuses)
@@ -312,11 +272,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert ifes_response |> Enum.count() == 2
   end
 
-  @tag fixtures: [:processor_filled, :transactions]
-  test "correct format of getting all ifes", %{
-    processor_filled: processor,
-    transactions: [tx1, tx2 | _]
-  } do
+  test "correct format of getting all ifes",
+       %{processor_filled: processor, transactions: [tx1, tx2 | _]} do
     assert [
              %{
                txbytes: Transaction.raw_txbytes(tx1),
@@ -335,11 +292,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
            ] == Core.get_active_in_flight_exits(processor) |> Enum.sort_by(& &1.eth_height)
   end
 
-  @tag fixtures: [:processor_empty, :transactions]
-  test "reports piggybacked inputs/outputs when getting ifes", %{
-    processor_empty: processor,
-    transactions: [tx | _]
-  } do
+  test "reports piggybacked inputs/outputs when getting ifes",
+       %{processor_empty: processor, transactions: [tx | _]} do
     txhash = Transaction.raw_txhash(tx)
     processor = processor |> start_ife_from(tx)
     assert [%{piggybacked_inputs: [], piggybacked_outputs: []}] = Core.get_active_in_flight_exits(processor)
@@ -354,18 +308,13 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert [%{piggybacked_inputs: [0], piggybacked_outputs: [0, 1]}] = Core.get_active_in_flight_exits(processor)
   end
 
-  @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
-  test "in flight exits sanity checks", %{
-    processor_empty: state,
-    in_flight_exit_events: events,
-    contract_ife_statuses: statuses
-  } do
+  test "in flight exits sanity checks",
+       %{processor_empty: state, in_flight_exit_events: events, contract_ife_statuses: statuses} do
     assert {state, []} == Core.new_in_flight_exits(state, [], [])
     assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, Enum.slice(events, 0, 1), [])
     assert {:error, :unexpected_events} == Core.new_in_flight_exits(state, [], Enum.slice(statuses, 0, 1))
   end
 
-  @tag fixtures: [:processor_filled, :ife_tx_hashes]
   test "piggybacking sanity checks", %{processor_filled: state, ife_tx_hashes: [ife_id | _]} do
     assert {^state, []} = Core.new_piggybacks(state, [])
     catch_error(Core.new_piggybacks(state, [%{tx_hash: 0, output_index: 0}]))
@@ -376,12 +325,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     catch_error(Core.new_piggybacks(updated_state, [%{tx_hash: ife_id, output_index: 0}]))
   end
 
-  @tag fixtures: [:processor_filled, :competing_tx, :transactions]
-  test "challenges don't affect the list of IFEs returned", %{
-    processor_filled: processor,
-    transactions: [tx | _],
-    competing_tx: comp
-  } do
+  test "challenges don't affect the list of IFEs returned",
+       %{processor_filled: processor, transactions: [tx | _], competing_tx: comp} do
     assert Core.get_active_in_flight_exits(processor) |> Enum.count() == 2
     {processor2, _} = Core.new_ife_challenges(processor, [ife_challenge(tx, comp)])
     assert Core.get_active_in_flight_exits(processor2) |> Enum.count() == 2
@@ -389,7 +334,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert processor2 != processor
   end
 
-  @tag fixtures: [:processor_filled, :ife_tx_hashes]
   test "forgets challenged piggybacks",
        %{processor_filled: processor, ife_tx_hashes: [tx_hash1, tx_hash2]} do
     {processor, _} =
@@ -404,7 +348,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
              |> Enum.sort_by(&length(&1.piggybacked_inputs))
   end
 
-  @tag fixtures: [:processor_filled, :ife_tx_hashes]
   test "can open and challenge two piggybacks at one call",
        %{processor_filled: processor, ife_tx_hashes: [tx_hash1, tx_hash2]} do
     events = [%{tx_hash: tx_hash1, output_index: 0}, %{tx_hash: tx_hash2, output_index: 0}]
@@ -417,7 +360,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert [%{piggybacked_inputs: []}, %{piggybacked_inputs: []}] = Core.get_active_in_flight_exits(processor)
   end
 
-  @tag fixtures: [:processor_filled, :ife_tx_hashes]
   test "challenge piggybacks sanity checks", %{processor_filled: state, ife_tx_hashes: [tx_hash | _]} do
     # cannot challenge piggyback of unknown ife
     assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: 0, output_index: 0}])
@@ -427,7 +369,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
     assert {state, []} == Core.challenge_piggybacks(state, [%{tx_hash: tx_hash, output_index: 8}])
   end
 
-  @tag fixtures: [:processor_empty, :alice]
   test "detect invalid standard exit based on ife tx which spends same input",
        %{processor_empty: processor, alice: alice} do
     standard_exit_tx = TestHelper.create_recovered([{1, 0, 0, alice}], @eth, [{alice, 10}])
@@ -441,14 +382,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   describe "available piggybacks" do
-    @tag fixtures: [:processor_filled, :transactions, :alice, :carol]
     test "detects multiple available piggybacks, with all the fields",
-         %{
-           processor_filled: processor,
-           transactions: [tx1, tx2],
-           alice: alice,
-           carol: carol
-         } do
+         %{processor_filled: processor, transactions: [tx1, tx2], alice: alice, carol: carol} do
       txbytes_1 = Transaction.raw_txbytes(tx1)
       txbytes_2 = Transaction.raw_txbytes(tx2)
 
@@ -470,7 +405,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       ])
     end
 
-    @tag fixtures: [:processor_empty, :alice]
     test "detects available piggyback because tx not seen in valid block, regardless of competitors",
          %{processor_empty: processor, alice: alice} do
       # testing this because everywhere else, the test fixtures always imply competitors
@@ -483,7 +417,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.check_validity(processor)
     end
 
-    @tag fixtures: [:processor_empty, :alice]
     test "detects available piggyback correctly, even if signed multiple times",
          %{processor_empty: processor, alice: alice} do
       # there is leeway in the contract, that allows IFE transactions to hold non-zero signatures for zero-inputs
@@ -499,12 +432,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.check_validity(processor)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions]
-    test "doesn't detect available piggybacks because txs seen in valid block", %{
-      alice: alice,
-      processor_filled: processor,
-      transactions: [tx1, tx2]
-    } do
+    test "doesn't detect available piggybacks because txs seen in valid block",
+         %{processor_filled: processor, transactions: [tx1, tx2]} do
       txbytes2 = txbytes(tx2)
 
       exit_processor_request = %ExitProcessor.Request{
@@ -517,12 +446,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                exit_processor_request |> Core.check_validity(processor)
     end
 
-    @tag fixtures: [:alice, :bob, :processor_empty]
-    test "transaction without outputs and different input owners", %{
-      alice: alice,
-      bob: bob,
-      processor_empty: processor
-    } do
+    test "transaction without outputs and different input owners",
+         %{alice: alice, bob: bob, processor_empty: processor} do
       tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, bob}], [])
       alice_addr = alice.addr
       bob_addr = bob.addr
@@ -541,11 +466,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> check_validity_filtered(processor, only: [Event.PiggybackAvailable])
     end
 
-    @tag fixtures: [:alice, :processor_empty]
-    test "when output is already piggybacked, it is not reported in piggyback available event", %{
-      alice: alice,
-      processor_empty: processor
-    } do
+    test "when output is already piggybacked, it is not reported in piggyback available event",
+         %{alice: alice, processor_empty: processor} do
       tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [])
       tx_hash = Transaction.raw_txhash(tx)
       {processor, _} = processor |> start_ife_from(tx) |> Core.new_piggybacks([%{tx_hash: tx_hash, output_index: 0}])
@@ -561,11 +483,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> check_validity_filtered(processor, only: [Event.PiggybackAvailable])
     end
 
-    @tag fixtures: [:alice, :processor_empty]
-    test "when ife is finalized, it's outputs are not reported as available for piggyback", %{
-      alice: alice,
-      processor_empty: processor
-    } do
+    test "when ife is finalized, it's outputs are not reported as available for piggyback",
+         %{alice: alice, processor_empty: processor} do
       tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [])
       tx_hash = Transaction.raw_txhash(tx)
       {processor, _} = processor |> start_ife_from(tx) |> Core.new_piggybacks([%{tx_hash: tx_hash, output_index: 0}])
@@ -577,12 +496,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> check_validity_filtered(processor, only: [Event.PiggybackAvailable])
     end
 
-    @tag fixtures: [:processor_filled, :transactions, :competing_tx]
-    test "challenged IFEs emit the same piggybacks as canonical ones", %{
-      processor_filled: processor,
-      transactions: [tx | _],
-      competing_tx: comp
-    } do
+    test "challenged IFEs emit the same piggybacks as canonical ones",
+         %{processor_filled: processor, transactions: [tx | _], competing_tx: comp} do
       assert {:ok, events_canonical} =
                %ExitProcessor.Request{blknum_now: 1000, eth_height_now: 5}
                |> Core.check_validity(processor)
@@ -598,15 +513,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   describe "evaluates correctness of new piggybacks" do
-    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_tx]
     test "detects double-spend of an input, found in IFE",
-         %{
-           alice: alice,
-           processor_filled: state,
-           transactions: [tx | _],
-           competing_tx: comp,
-           ife_tx_hashes: [ife_id | _]
-         } do
+         %{processor_filled: state, transactions: [tx | _], competing_tx: comp, ife_tx_hashes: [ife_id | _]} do
       txbytes = txbytes(tx)
       {comp_txbytes, other_sig} = {txbytes(comp), sig(comp, 1)}
       {state, _} = state |> start_ife_from(comp) |> Core.new_piggybacks([%{tx_hash: ife_id, output_index: 0}])
@@ -625,15 +533,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
               }} = Core.get_input_challenge_data(request, state, txbytes, 0)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes, :competing_tx]
     test "detects double-spend of an input, found in a block",
-         %{
-           alice: alice,
-           processor_filled: state,
-           transactions: [tx | _],
-           competing_tx: comp,
-           ife_tx_hashes: [ife_id | _]
-         } do
+         %{processor_filled: state, transactions: [tx | _], competing_tx: comp, ife_tx_hashes: [ife_id | _]} do
       txbytes = txbytes(tx)
       {comp_txbytes, comp_sig} = {txbytes(comp), sig(comp, 1)}
 
@@ -662,14 +563,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
               }} = Core.get_input_challenge_data(request, state, txbytes, 0)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes]
     test "detects double-spend of an output, found in a IFE",
-         %{
-           alice: alice,
-           processor_filled: state,
-           transactions: [tx | _],
-           ife_tx_hashes: [ife_id | _]
-         } do
+         %{alice: alice, processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
       # 1. transaction which is, ife'd, output piggybacked, and included in a block
       txbytes = txbytes(tx)
       tx_blknum = 3000
@@ -705,14 +600,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert_proof_sound(proof_bytes)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes]
     test "detects double-spend of an output, found in a block",
-         %{
-           alice: alice,
-           processor_filled: state,
-           transactions: [tx | _],
-           ife_tx_hashes: [ife_id | _]
-         } do
+         %{alice: alice, processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
       # this time, the piggybacked-output-spending tx is going to be included in a block, which requires more back&forth
       # 1. transaction which is, ife'd, output piggybacked, and included in a block
       txbytes = txbytes(tx)
@@ -758,14 +647,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert_proof_sound(proof_bytes)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes]
     test "does not look into ife_input_spending_blocks_result when it should not",
-         %{
-           alice: alice,
-           processor_filled: state,
-           transactions: [tx | _],
-           ife_tx_hashes: [ife_id | _]
-         } do
+         %{processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
       txbytes = txbytes(tx)
       tx_blknum = 3000
 
@@ -793,12 +676,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                Core.get_output_challenge_data(exit_processor_request, state, txbytes, 0)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes]
     test "handles well situation when syncing is in progress",
-         %{
-           processor_filled: state,
-           ife_tx_hashes: [ife_id | _]
-         } do
+         %{processor_filled: state, ife_tx_hashes: [ife_id | _]} do
       {state, _} = Core.new_piggybacks(state, [%{tx_hash: ife_id, output_index: 4}])
 
       assert %ExitProcessor.Request{utxos_to_check: [], ife_input_utxos_to_check: []} =
@@ -807,14 +686,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.determine_utxo_existence_to_get(state)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :ife_tx_hashes]
     test "seeks piggybacked-output-spending txs in blocks",
-         %{
-           alice: alice,
-           processor_filled: processor,
-           transactions: [tx | _],
-           ife_tx_hashes: [ife_id | _]
-         } do
+         %{processor_filled: processor, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
       # if an output-piggybacking transaction is included in some block, we need to seek blocks that could be spending
       {processor, _} = Core.new_piggybacks(processor, [%{tx_hash: ife_id, output_index: 4}])
 
@@ -840,15 +713,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert Utxo.position(1, 0, 0) in request.ife_input_spends_to_get
     end
 
-    @tag fixtures: [:alice, :carol, :processor_filled, :transactions, :ife_tx_hashes]
     test "detects multiple double-spends in single IFE",
-         %{
-           alice: alice,
-           carol: carol,
-           processor_filled: state,
-           transactions: [tx | _],
-           ife_tx_hashes: [ife_id | _]
-         } do
+         %{alice: alice, processor_filled: state, transactions: [tx | _], ife_tx_hashes: [ife_id | _]} do
       tx_blknum = 3000
       txbytes = txbytes(tx)
 
@@ -901,7 +767,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   describe "produces challenges for bad piggybacks" do
-    @tag fixtures: [:invalid_piggyback_on_input]
     test "produces single challenge proof on double-spent piggyback input",
          %{
            invalid_piggyback_on_input: %{
@@ -924,7 +789,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
               }} = Core.get_input_challenge_data(request, state, ife_txbytes, ife_input_index)
     end
 
-    @tag fixtures: [:invalid_piggyback_on_input]
     test "fail when asked to produce proof for wrong oindex",
          %{
            invalid_piggyback_on_input: %{
@@ -940,7 +804,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                Core.get_input_challenge_data(request, state, txbytes, 1)
     end
 
-    @tag fixtures: [:invalid_piggyback_on_input, :unrelated_tx]
     test "fail when asked to produce proof for wrong txhash",
          %{invalid_piggyback_on_input: %{state: state, request: request}, unrelated_tx: comp} do
       comp_txbytes = Transaction.raw_txbytes(comp)
@@ -948,21 +811,18 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:error, :unknown_ife} = Core.get_output_challenge_data(request, state, comp_txbytes, 0)
     end
 
-    @tag fixtures: [:invalid_piggyback_on_input]
     test "fail when asked to produce proof for wrong badly encoded tx",
          %{invalid_piggyback_on_input: %{state: state, request: request}} do
       assert {:error, :malformed_transaction} = Core.get_input_challenge_data(request, state, <<0>>, 0)
       assert {:error, :malformed_transaction} = Core.get_output_challenge_data(request, state, <<0>>, 0)
     end
 
-    @tag fixtures: [:invalid_piggyback_on_input]
     test "fail when asked to produce proof for illegal oindex",
          %{invalid_piggyback_on_input: %{state: state, request: request, ife_txbytes: txbytes}} do
       assert {:error, :piggybacked_index_out_of_range} = Core.get_input_challenge_data(request, state, txbytes, -1)
       assert {:error, :piggybacked_index_out_of_range} = Core.get_output_challenge_data(request, state, txbytes, -1)
     end
 
-    @tag fixtures: [:invalid_piggyback_on_output]
     test "will fail if asked to produce proof for wrong output",
          %{
            invalid_piggyback_on_output: %{
@@ -978,7 +838,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                Core.get_output_challenge_data(request, state, txbytes, 2)
     end
 
-    @tag fixtures: [:invalid_piggyback_on_output]
     test "will fail if asked to produce proof for correct piggyback on output",
          %{
            invalid_piggyback_on_output: %{
@@ -994,7 +853,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   describe "finds competitors and allows canonicity challenges" do
-    @tag fixtures: [:processor_filled]
     test "none if input never spent elsewhere",
          %{processor_filled: processor} do
       assert {:ok, []} =
@@ -1002,9 +860,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
     end
 
-    @tag fixtures: [:processor_filled, :transactions, :unrelated_tx, :alice]
     test "none if different input spent in some tx from appendix",
-         %{processor_filled: processor, transactions: [tx1 | _], unrelated_tx: comp, alice: alice} do
+         %{processor_filled: processor, transactions: [tx1 | _], unrelated_tx: comp} do
       txbytes = txbytes(tx1)
       processor = processor |> start_ife_from(comp)
 
@@ -1017,9 +874,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :unrelated_tx]
     test "none if different input spent in some tx from block",
-         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], unrelated_tx: comp} do
+         %{processor_filled: processor, transactions: [tx1 | _], unrelated_tx: comp} do
       txbytes = txbytes(tx1)
 
       exit_processor_request = %ExitProcessor.Request{
@@ -1034,9 +890,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert {:error, :competitor_not_found} = exit_processor_request |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions]
     test "none if input spent in _same_ tx in block",
-         %{alice: alice, processor_filled: processor, transactions: [tx1 | _]} do
+         %{processor_filled: processor, transactions: [tx1 | _]} do
       txbytes = txbytes(tx1)
 
       exit_processor_request = %ExitProcessor.Request{
@@ -1053,9 +908,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions]
     test "none if input spent in _same_ tx in tx appendix",
-         %{alice: alice, processor_filled: processor, transactions: [tx | _]} do
+         %{processor_filled: processor, transactions: [tx | _]} do
       txbytes = txbytes(tx)
       processor = processor |> start_ife_from(tx)
 
@@ -1068,9 +922,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :competing_tx]
     test "each other, if input spent in different ife",
-         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_tx: comp} do
+         %{processor_filled: processor, transactions: [tx1 | _], competing_tx: comp} do
       txbytes = txbytes(tx1)
       {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
       processor = processor |> start_ife_from(comp)
@@ -1100,7 +953,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions]
     test "a competitor that's submitted as challenge to other IFE",
          %{alice: alice, processor_filled: processor, transactions: [tx1, tx2 | _]} do
       # ifes in processor here aren't competitors to each other, but the challenge filed for tx2 is a competitor
@@ -1125,9 +977,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
               }} = exit_processor_request |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :competing_tx]
     test "a single competitor included in a block, with proof",
-         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_tx: comp} do
+         %{processor_filled: processor, transactions: [tx1 | _], competing_tx: comp} do
       txbytes = txbytes(tx1)
       {comp_txbytes, comp_signature} = {txbytes(comp), sig(comp)}
 
@@ -1159,9 +1010,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert_proof_sound(proof_bytes)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :competing_tx]
     test "handle two competitors, when the younger one already challenged",
-         %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_tx: comp} do
+         %{processor_filled: processor, transactions: [tx1 | _], competing_tx: comp} do
       txbytes = txbytes(tx1)
       comp_txbytes = txbytes(comp)
       other_blknum = 3000
@@ -1211,7 +1061,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert_competitors_work.(processor)
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :competing_tx]
     test "none if IFE is challenged enough already",
          %{processor_filled: processor, transactions: [tx1 | _], competing_tx: comp} do
       txbytes = txbytes(tx1)
@@ -1236,7 +1085,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                exit_processor_request |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    @tag fixtures: [:alice, :processor_empty]
     test "a competitor having the double-spend on various input indices",
          %{alice: alice, processor_empty: processor} do
       tx = TestHelper.create_recovered([{1, 0, 0, alice}, {1, 2, 1, alice}], [])
@@ -1295,7 +1143,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       |> Enum.each(check)
     end
 
-    @tag fixtures: [:alice, :bob, :processor_filled, :transactions]
     test "a competitor being signed on various positions",
          %{processor_filled: processor, transactions: [tx1 | _], alice: alice, bob: bob} do
       comp = TestHelper.create_recovered([{10, 2, 1, bob}, {1, 0, 0, alice}], [])
@@ -1311,7 +1158,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                exit_processor_request |> Core.get_competitor_for_ife(processor, txbytes(tx1))
     end
 
-    @tag fixtures: [:alice, :processor_filled, :transactions, :competing_tx]
     test "a best competitor, included earliest in a block, regardless of conflicting utxo position",
          %{alice: alice, processor_filled: processor, transactions: [tx1 | _], competing_tx: comp} do
       # NOTE that the recent competitor spends an __older__ input. Also note the reversing of block results done below
@@ -1351,7 +1197,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    @tag fixtures: [:processor_empty, :alice]
     test "by asking for utxo existence concerning active ifes and standard exits",
          %{processor_empty: processor, alice: alice} do
       standard_exit_tx = TestHelper.create_recovered([{1000, 0, 0, alice}], @eth, [{alice, 10}, {alice, 10}])
@@ -1363,7 +1208,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.determine_utxo_existence_to_get(processor)
     end
 
-    @tag fixtures: [:processor_filled]
     test "by asking for utxo spends concerning active ifes",
          %{processor_filled: processor} do
       assert %{spends_to_get: [Utxo.position(1, 2, 1)]} =
@@ -1374,7 +1218,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.determine_spends_to_get(processor)
     end
 
-    @tag fixtures: [:alice, :processor_empty, :transactions]
     test "by not asking for utxo spends concerning non-active ifes",
          %{processor_empty: processor, transactions: [tx | _]} do
       processor = processor |> start_ife_from(tx, status: {0, @exit_id})
@@ -1383,12 +1226,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                %ExitProcessor.Request{blknum_now: @late_blknum} |> Core.determine_utxo_existence_to_get(processor)
     end
 
-    @tag fixtures: [:processor_empty, :transactions]
     test "by not asking for utxo existence concerning finalized ifes",
-         %{
-           processor_empty: processor,
-           transactions: [tx | _]
-         } do
+         %{processor_empty: processor, transactions: [tx | _]} do
       tx_hash = Transaction.raw_txhash(tx)
       piggybacks = [%{tx_hash: tx_hash, output_index: 1}, %{tx_hash: tx_hash, output_index: 2}]
       ife_id = 123
@@ -1400,7 +1239,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                %ExitProcessor.Request{blknum_now: @late_blknum} |> Core.determine_utxo_existence_to_get(processor)
     end
 
-    @tag fixtures: [:processor_empty]
     test "by not asking for spends on no ifes",
          %{processor_empty: processor} do
       assert %{spends_to_get: []} =
@@ -1408,7 +1246,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.determine_spends_to_get(processor)
     end
 
-    @tag fixtures: [:processor_filled]
     test "none if input not yet created during sync",
          %{processor_filled: processor} do
       assert %{utxos_to_check: to_check} =
@@ -1418,7 +1255,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert Utxo.position(9000, 0, 1) not in to_check
     end
 
-    @tag fixtures: [:transactions, :processor_empty]
     test "for nonexistent tx doesn't crash",
          %{transactions: [tx | _], processor_empty: processor} do
       txbytes = Transaction.raw_txbytes(tx)
@@ -1428,7 +1264,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                |> Core.get_competitor_for_ife(processor, txbytes)
     end
 
-    @tag fixtures: [:processor_empty]
     test "for malformed input txbytes doesn't crash",
          %{processor_empty: processor} do
       assert {:error, :malformed_transaction} =
@@ -1438,13 +1273,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   describe "detects the need and allows to respond to canonicity challenges" do
-    @tag fixtures: [:alice, :processor_filled, :transactions, :competing_tx]
     test "against a competitor",
-         %{
-           processor_filled: processor,
-           transactions: [tx1 | _] = txs,
-           competing_tx: comp
-         } do
+         %{processor_filled: processor, transactions: [tx1 | _] = txs, competing_tx: comp} do
       {challenged_processor, _} = Core.new_ife_challenges(processor, [ife_challenge(tx1, comp)])
       txbytes = Transaction.raw_txbytes(tx1)
       other_blknum = 3000
@@ -1470,9 +1300,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert_proof_sound(proof_bytes)
     end
 
-    @tag fixtures: [:transactions]
-    test "proving canonical for nonexistent tx doesn't crash",
-         %{transactions: [tx | _]} do
+    test "proving canonical for nonexistent tx doesn't crash", %{transactions: [tx | _]} do
       txbytes = Transaction.raw_txbytes(tx)
 
       assert {:error, :canonical_not_found} =
@@ -1485,9 +1313,7 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5} |> Core.prove_canonical_for_ife(<<0>>)
     end
 
-    @tag fixtures: [:processor_filled]
-    test "none if ifes are canonical",
-         %{processor_filled: processor} do
+    test "none if ifes are canonical", %{processor_filled: processor} do
       assert {:ok, []} =
                %ExitProcessor.Request{blknum_now: 5000, eth_height_now: 5}
                |> check_validity_filtered(processor, exclude: [Event.PiggybackAvailable])
@@ -1500,12 +1326,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
   end
 
   describe "in-flight exit finalization" do
-    @tag fixtures: [:processor_empty, :transactions]
     test "deactivate in-flight exit after all piggybacked outputs are finalized",
-         %{
-           processor_empty: processor,
-           transactions: [tx | _]
-         } do
+         %{processor_empty: processor, transactions: [tx | _]} do
       ife_id = 123
       tx_hash = Transaction.raw_txhash(tx)
       processor = processor |> start_ife_from(tx, status: {1, ife_id})
@@ -1523,12 +1345,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert [] == Core.get_active_in_flight_exits(processor)
     end
 
-    @tag fixtures: [:processor_empty, :transactions]
     test "finalizing multiple times does not do harm",
-         %{
-           processor_empty: processor,
-           transactions: [tx | _]
-         } do
+         %{processor_empty: processor, transactions: [tx | _]} do
       ife_id = 123
       tx_hash = Transaction.raw_txhash(tx)
 
@@ -1542,12 +1360,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       {:ok, ^processor, []} = Core.finalize_in_flight_exits(processor, [finalization])
     end
 
-    @tag fixtures: [:processor_empty, :transactions]
     test "finalizing perserve in flights exits that are not being finalized",
-         %{
-           processor_empty: processor,
-           transactions: [tx1, tx2]
-         } do
+         %{processor_empty: processor, transactions: [tx1, tx2]} do
       ife_id1 = 123
       tx_hash1 = Transaction.raw_txhash(tx1)
       ife_id2 = 124
@@ -1564,7 +1378,6 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       [%{txhash: ^tx_hash2}] = Core.get_active_in_flight_exits(processor)
     end
 
-    @tag fixtures: [:processor_empty, :in_flight_exit_events, :contract_ife_statuses]
     test "fails when unknown in-flight exit is being finalized", %{processor_empty: processor} do
       finalization = %{in_flight_exit_id: @exit_id, output_index: 1}
 
@@ -1572,12 +1385,8 @@ defmodule OMG.Watcher.ExitProcessor.CoreTest do
       assert unknown_exits == MapSet.new([<<@exit_id::192>>])
     end
 
-    @tag fixtures: [:processor_empty, :transactions]
     test "fails when exiting an output that is not piggybacked",
-         %{
-           processor_empty: processor,
-           transactions: [tx | _]
-         } do
+         %{processor_empty: processor, transactions: [tx | _]} do
       tx_hash = Transaction.raw_txhash(tx)
       ife_id = 123
 
