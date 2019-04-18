@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Copyright 2018 OmiseGO Pte Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,8 +16,4 @@ defmodule OMG.DB.Ets do
   @moduledoc """
   Alternative DB backend implementation.
   """
-=======
-defmodule OMG.DB.Ets do
-  # @behaviour OMG.DB
->>>>>>> refactor: db abstraction
 end

@@ -18,16 +18,9 @@ defmodule OMG.DB.LevelDB.Server do
   """
 
   # All complex operations on data written/read should go into OMG.DB.LevelDB.Core
-<<<<<<< HEAD:apps/omg_db/lib/omg_db/leveldb/server.ex
   use OMG.Utils.Metrics
   use GenServer
 
-=======
-
-  defstruct [:db_ref, :name]
-
-  use GenServer
->>>>>>> refactor: db abstraction:apps/omg_db/lib/omg_db/leveldb/server.ex
   alias OMG.DB.LevelDB.Core
   alias OMG.DB.LevelDB.Recorder
   require Logger
@@ -188,6 +181,7 @@ defmodule OMG.DB.LevelDB.Server do
     Exleveldb.write(db_ref, operations)
   end
 
+  @spec get(atom() | binary(), t) :: {:ok, binary()} | :not_found
   defp get(key, %__MODULE__{db_ref: db_ref, name: name}) do
     _ = Recorder.update_read(name)
     Exleveldb.get(db_ref, key)
