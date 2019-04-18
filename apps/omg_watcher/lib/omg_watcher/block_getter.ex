@@ -47,8 +47,6 @@ defmodule OMG.Watcher.BlockGetter do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def apply_block(%BlockApplication{} = to_apply), do: GenServer.cast(__MODULE__, {:apply_block, to_apply})
-
   def init(_opts) do
     {:ok, %{}, {:continue, :setup}}
   end
@@ -213,7 +211,7 @@ defmodule OMG.Watcher.BlockGetter do
 
       _ = Logger.debug("Synced height is #{inspect(synced_height)}, got #{length(blocks_to_apply)} blocks to apply")
 
-      Enum.each(blocks_to_apply, &apply_block(&1))
+      Enum.each(blocks_to_apply, &GenServer.cast(__MODULE__, {:apply_block, &1}))
 
       :ok = OMG.DB.multi_update(db_updates)
       :ok = RootChainCoordinator.check_in(synced_height, __MODULE__)

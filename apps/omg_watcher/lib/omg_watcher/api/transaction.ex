@@ -29,8 +29,8 @@ defmodule OMG.Watcher.API.Transaction do
   @doc """
   Retrieves a specific transaction by id
   """
-  @spec get(binary()) :: {:ok, %DB.Transaction{}} | {:error, :transaction_not_found}
   @decorate measure_event()
+  @spec get(binary()) :: {:ok, %DB.Transaction{}} | {:error, :transaction_not_found}
   def get(transaction_id) do
     if transaction = DB.Transaction.get(transaction_id),
       do: {:ok, transaction},
@@ -44,8 +44,8 @@ defmodule OMG.Watcher.API.Transaction do
 
   Length of the list is limited by `limit` argument
   """
-  @spec get_transactions(Keyword.t()) :: list(%DB.Transaction{})
   @decorate measure_event()
+  @spec get_transactions(Keyword.t()) :: list(%DB.Transaction{})
   def get_transactions(constrains) do
     # TODO: implement pagination. Defend against fetching huge dataset.
     constrains =
@@ -64,8 +64,8 @@ defmodule OMG.Watcher.API.Transaction do
 
   Note: No validation for now, just passes given tx to the child chain. See: OMG-410
   """
-  @spec submit(binary()) :: Client.response_t()
   @decorate measure_event()
+  @spec submit(binary()) :: Client.response_t()
   def(submit(txbytes)) do
     url = Application.get_env(:omg_watcher, :child_chain_url)
     Client.submit(txbytes, url)
@@ -75,8 +75,8 @@ defmodule OMG.Watcher.API.Transaction do
   Given order finds spender's inputs sufficient to perform a payment.
   If also provided with receiver's address, creates and encodes a transaction.
   """
-  @spec create(UtxoSelection.order_t()) :: UtxoSelection.advice_t()
   @decorate measure_event()
+  @spec create(UtxoSelection.order_t()) :: UtxoSelection.advice_t()
   def create(order) do
     utxos = DB.TxOutput.get_sorted_grouped_utxos(order.owner)
     UtxoSelection.create_advice(utxos, order)

@@ -35,8 +35,8 @@ defmodule OMG.DB do
     GenServer.call(server_name, {:multi_update, db_updates})
   end
 
-  @spec blocks(block_to_fetch :: list(), atom) :: {:ok, list()} | {:error, any}
   @decorate measure_event()
+  @spec blocks(block_to_fetch :: list(), atom) :: {:ok, list()} | {:error, any}
   def blocks(blocks_to_fetch, server_name \\ @server_name) do
     case blocks_to_fetch do
       [] -> {:ok, []}
@@ -68,14 +68,14 @@ defmodule OMG.DB do
     GenServer.call(server_name, :competitors_info, @one_minute)
   end
 
-  @spec exit_info({pos_integer, non_neg_integer, non_neg_integer}, atom) :: {:ok, map} | {:error, atom}
   @decorate measure_event()
+  @spec exit_info({pos_integer, non_neg_integer, non_neg_integer}, atom) :: {:ok, map} | {:error, atom}
   def exit_info(utxo_pos, server_name \\ @server_name) do
     GenServer.call(server_name, {:exit_info, utxo_pos})
   end
 
-  @spec spent_blknum(utxo_pos_db_t(), atom) :: {:ok, pos_integer} | {:error, atom}
   @decorate measure_event()
+  @spec spent_blknum(utxo_pos_db_t(), atom) :: {:ok, pos_integer} | {:error, atom}
   def spent_blknum(utxo_pos, server_name \\ @server_name) do
     GenServer.call(server_name, {:spent_blknum, utxo_pos})
   end

@@ -203,15 +203,10 @@ defmodule OMG.State do
 
     # persistence is required to be here, since propagating the block onwards requires restartability including the
     # new block
-    do_multi_update(db_updates)
+    :ok = DB.multi_update(db_updates)
 
     publish_block_to_event_bus(block, event_triggers)
     {:noreply, new_state}
-  end
-
-  @decorate measure_event()
-  defp do_multi_update(db_updates) do
-    :ok = DB.multi_update(db_updates)
   end
 
   @decorate measure_event()

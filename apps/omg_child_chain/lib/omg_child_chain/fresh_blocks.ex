@@ -28,8 +28,8 @@ defmodule OMG.ChildChain.FreshBlocks do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @spec get(block_hash :: binary) :: {:ok, Block.t()} | {:error, :not_found | any}
   @decorate measure_event()
+  @spec get(block_hash :: binary) :: {:ok, Block.t()} | {:error, :not_found | any}
   def get(block_hash) do
     GenServer.call(__MODULE__, {:get, block_hash})
   end

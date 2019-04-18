@@ -59,8 +59,8 @@ defmodule OMG.Watcher.DB.TxOutput do
     belongs_to(:exit, DB.EthEvent, foreign_key: :spending_exit, references: :hash, type: :binary)
   end
 
-  @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
   @decorate measure_event()
+  @spec compose_utxo_exit(Utxo.Position.t()) :: {:ok, exit_t()} | {:error, :utxo_not_found}
   def compose_utxo_exit(Utxo.position(blknum, txindex, _) = decoded_utxo_pos) do
     if Utxo.Position.is_deposit?(decoded_utxo_pos) do
       compose_deposit_exit(decoded_utxo_pos)
@@ -119,8 +119,8 @@ defmodule OMG.Watcher.DB.TxOutput do
   @decorate measure_event()
   def get_all, do: Repo.all(__MODULE__)
 
-  @spec get_by_position(Utxo.Position.t()) :: map() | nil
   @decorate measure_event()
+  @spec get_by_position(Utxo.Position.t()) :: map() | nil
   def get_by_position(Utxo.position(blknum, txindex, oindex)) do
     Repo.get_by(__MODULE__, blknum: blknum, txindex: txindex, oindex: oindex)
   end
@@ -138,8 +138,8 @@ defmodule OMG.Watcher.DB.TxOutput do
     Repo.all(query)
   end
 
-  @spec get_balance(OMG.Crypto.address_t()) :: list(balance())
   @decorate measure_event()
+  @spec get_balance(OMG.Crypto.address_t()) :: list(balance())
   def get_balance(owner) do
     query =
       from(
@@ -157,8 +157,8 @@ defmodule OMG.Watcher.DB.TxOutput do
     end)
   end
 
-  @spec spend_utxos([map()]) :: :ok
   @decorate measure_event()
+  @spec spend_utxos([map()]) :: :ok
   def spend_utxos(db_inputs) do
     db_inputs
     |> Enum.each(fn {Utxo.position(blknum, txindex, oindex), spending_oindex, spending_txhash} ->
@@ -169,8 +169,8 @@ defmodule OMG.Watcher.DB.TxOutput do
     end)
   end
 
-  @spec create_outputs(pos_integer(), integer(), binary(), Transaction.any_flavor_t()) :: [map()]
   @decorate measure_event()
+  @spec create_outputs(pos_integer(), integer(), binary(), Transaction.any_flavor_t()) :: [map()]
   def create_outputs(
         blknum,
         txindex,
@@ -204,8 +204,8 @@ defmodule OMG.Watcher.DB.TxOutput do
       }
     ]
 
-  @spec create_inputs(Transaction.any_flavor_t(), binary()) :: [tuple()]
   @decorate measure_event()
+  @spec create_inputs(Transaction.any_flavor_t(), binary()) :: [tuple()]
   def create_inputs(tx, spending_txhash) do
     tx
     |> Transaction.get_inputs()
@@ -215,8 +215,8 @@ defmodule OMG.Watcher.DB.TxOutput do
     end)
   end
 
-  @spec get_sorted_grouped_utxos(OMG.Crypto.address_t()) :: %{OMG.Crypto.address_t() => list(%__MODULE__{})}
   @decorate measure_event()
+  @spec get_sorted_grouped_utxos(OMG.Crypto.address_t()) :: %{OMG.Crypto.address_t() => list(%__MODULE__{})}
   def get_sorted_grouped_utxos(owner) do
     # TODO: use clever DB query to get following out of DB
     get_utxos(owner)

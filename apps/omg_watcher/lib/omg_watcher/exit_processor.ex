@@ -151,8 +151,8 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns all information required to produce a transaction to the root chain contract to present a competitor for
   a non-canonical in-flight exit
   """
-  @spec get_competitor_for_ife(binary()) :: {:ok, Core.competitor_data_t()} | {:error, :competitor_not_found}
   @decorate measure_event()
+  @spec get_competitor_for_ife(binary()) :: {:ok, Core.competitor_data_t()} | {:error, :competitor_not_found}
   def get_competitor_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:get_competitor_for_ife, txbytes})
   end
@@ -161,22 +161,22 @@ defmodule OMG.Watcher.ExitProcessor do
   Returns all information required to produce a transaction to the root chain contract to present a proof of canonicity
   for a challenged in-flight exit
   """
-  @spec prove_canonical_for_ife(binary()) :: {:ok, Core.prove_canonical_data_t()} | {:error, :canonical_not_found}
   @decorate measure_event()
+  @spec prove_canonical_for_ife(binary()) :: {:ok, Core.prove_canonical_data_t()} | {:error, :canonical_not_found}
   def prove_canonical_for_ife(txbytes) do
     GenServer.call(__MODULE__, {:prove_canonical_for_ife, txbytes})
   end
 
+  @decorate measure_event()
   @spec get_input_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
           {:ok, Core.input_challenge_data()} | {:error, Core.piggyback_challenge_data_error()}
-  @decorate measure_event()
   def get_input_challenge_data(txbytes, input_index) do
     GenServer.call(__MODULE__, {:get_input_challenge_data, txbytes, input_index})
   end
 
+  @decorate measure_event()
   @spec get_output_challenge_data(Transaction.Signed.tx_bytes(), Transaction.input_index_t()) ::
           {:ok, Core.output_challenge_data()} | {:error, Core.piggyback_challenge_data_error()}
-  @decorate measure_event()
   def get_output_challenge_data(txbytes, output_index) do
     GenServer.call(__MODULE__, {:get_output_challenge_data, txbytes, output_index})
   end
@@ -184,9 +184,9 @@ defmodule OMG.Watcher.ExitProcessor do
   @doc """
   Returns challenge for an exit
   """
+  @decorate measure_event()
   @spec create_challenge(Utxo.Position.t()) ::
           {:ok, StandardExitChallenge.t()} | {:error, :utxo_not_spent | :exit_not_found}
-  @decorate measure_event()
   def create_challenge(exiting_utxo_pos) do
     GenServer.call(__MODULE__, {:create_challenge, exiting_utxo_pos})
   end
