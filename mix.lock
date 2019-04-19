@@ -41,7 +41,7 @@
   "licensir": {:hex, :licensir, "0.2.7", "ad902c337560ccd70de843e5b208c1db08ba2f879ee01c9389023b779131f30a", [:mix], [], "hexpm"},
   "makeup": {:hex, :makeup, "0.8.0", "9cf32aea71c7fe0a4b2e9246c2c4978f9070257e5c9ce6d4a28ec450a839b55f", [:mix], [{:nimble_parsec, "~> 0.5.0", [hex: :nimble_parsec, repo: "hexpm", optional: false]}], "hexpm"},
   "makeup_elixir": {:hex, :makeup_elixir, "0.13.0", "be7a477997dcac2e48a9d695ec730b2d22418292675c75aa2d34ba0909dcdeda", [:mix], [{:makeup, "~> 0.8", [hex: :makeup, repo: "hexpm", optional: false]}], "hexpm"},
-  "merkle_tree": {:hex, :merkle_tree, "1.5.0", "5caa988eeae19c7f72fc204ca1050973f041453f3e35cce8cf6955109b2ad0b4", [:mix], [], "hexpm"},
+  "merkle_tree": {:hex, :merkle_tree, "1.6.0", "33caf6e597704e91fb1e521ccc81298727568344b1dfd88b5c03bcd774e50a6d", [:mix], [], "hexpm"},
   "metrics": {:hex, :metrics, "1.0.1", "25f094dea2cda98213cecc3aeff09e940299d950904393b2a29d191c346a8486", [:rebar3], [], "hexpm"},
   "mime": {:hex, :mime, "1.3.1", "30ce04ab3175b6ad0bdce0035cba77bba68b813d523d1aac73d9781b4d193cf8", [:mix], [], "hexpm"},
   "mimerl": {:hex, :mimerl, "1.2.0", "67e2d3f571088d5cfd3e550c383094b47159f3eee8ffa08e64106cdf5e981be3", [:rebar3], [], "hexpm"},

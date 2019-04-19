@@ -28,6 +28,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
 
   require Utxo
 
+  import OMG.Watcher.ExitProcessor.TestHelper
+
   @eth OMG.Eth.RootChain.eth_pseudo_address()
 
   @deposit_blknum1 1
@@ -40,7 +42,6 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
   @deposit_input2 {@deposit_blknum2, 0, 0}
 
   @exit_id 123
-  @ife_exit_id 1234
 
   setup do
     {:ok, empty} = Core.init([], [], [])
@@ -51,7 +52,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
     test "asks for correct data: deposit utxo double spent in IFE",
          %{alice: alice, processor_empty: processor} do
       ife_tx = TestHelper.create_recovered([{@deposit_blknum1, 0, 0, alice}], @eth, [])
-      processor = processor |> start_se_from_deposit(@utxo_pos_deposit, alice) |> start_ife(ife_tx)
+      processor = processor |> start_se_from_deposit(@utxo_pos_deposit, alice) |> start_ife_from(ife_tx)
 
       assert %ExitProcessor.Request{se_creating_blocks_to_get: [], se_spending_blocks_to_get: []} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_deposit}
@@ -70,7 +71,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
     test "asks for correct data: tx utxo double spent in an IFE",
          %{alice: alice, processor_empty: processor} do
       ife_tx = TestHelper.create_recovered([{@blknum, 0, 0, alice}], @eth, [])
-      processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice) |> start_ife(ife_tx)
+      processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice) |> start_ife_from(ife_tx)
 
       assert %ExitProcessor.Request{se_creating_blocks_to_get: [@blknum], se_spending_blocks_to_get: []} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx}
@@ -99,7 +100,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
          %{alice: alice, processor_empty: processor} do
       tx = Transaction.new([], [{alice.addr, @eth, 10}])
       deposit_txbytes = Transaction.raw_txbytes(tx)
-      processor = processor |> start_se(@utxo_pos_deposit, tx, alice)
+      processor = processor |> start_se_from(tx, @utxo_pos_deposit)
 
       assert %ExitProcessor.Request{se_exit_id_to_get: ^deposit_txbytes} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_deposit}
@@ -110,7 +111,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
          %{alice: alice, processor_empty: processor} do
       creating_recovered = TestHelper.create_recovered([{@deposit_blknum2, 0, 0, alice}], @eth, [{alice, 10}])
       creating_txbytes = Transaction.raw_txbytes(creating_recovered)
-      processor = processor |> start_se(@utxo_pos_tx, creating_recovered, alice)
+      processor = processor |> start_se_from(creating_recovered, @utxo_pos_tx)
 
       assert %ExitProcessor.Request{se_exit_id_to_get: ^creating_txbytes} =
                %ExitProcessor.Request{
@@ -141,7 +142,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
          %{alice: alice, processor_empty: processor} do
       ife_tx = TestHelper.create_recovered([{@deposit_blknum1, 0, 0, alice}], @eth, [])
       {txbytes, alice_sig} = get_bytes_sig(ife_tx)
-      processor = processor |> start_se_from_deposit(@utxo_pos_deposit, alice) |> start_ife(ife_tx)
+      processor = processor |> start_se_from_deposit(@utxo_pos_deposit, alice) |> start_ife_from(ife_tx)
 
       assert {:ok, %{exit_id: @exit_id, input_index: 0, txbytes: ^txbytes, sig: ^alice_sig}} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_deposit, se_exit_id_result: @exit_id}
@@ -169,7 +170,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
       # quite similar to the deposit utxo case, but leaving the test in for completeness
       ife_tx = TestHelper.create_recovered([{@blknum, 0, 0, alice}], @eth, [])
       {txbytes, alice_sig} = get_bytes_sig(ife_tx)
-      processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice) |> start_ife(ife_tx)
+      processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice) |> start_ife_from(ife_tx)
 
       assert {:ok, %{exit_id: @exit_id, input_index: 0, txbytes: ^txbytes, sig: ^alice_sig}} =
                %ExitProcessor.Request{se_exiting_pos: @utxo_pos_tx, se_exit_id_result: @exit_id}
@@ -223,11 +224,10 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
 
     test "creates challenge: tx utxo double spent signed_by different signers",
          %{alice: alice, bob: bob, processor_empty: processor} do
-      processor1 =
-        processor |> start_se(@utxo_pos_tx, Transaction.new([@deposit_input2], [{alice.addr, @eth, 10}]), alice)
-
-      processor2 =
-        processor |> start_se(@utxo_pos_tx, Transaction.new([@deposit_input2], [{bob.addr, @eth, 10}]), alice)
+      tx1 = Transaction.new([@deposit_input2], [{alice.addr, @eth, 10}])
+      tx2 = Transaction.new([@deposit_input2], [{bob.addr, @eth, 10}])
+      processor1 = processor |> start_se_from(tx1, @utxo_pos_tx)
+      processor2 = processor |> start_se_from(tx2, @utxo_pos_tx)
 
       recovered_spends = [
         TestHelper.create_recovered([{1, 0, 0, bob}, {@blknum, 0, 0, alice}], @eth, [{alice, 10}]),
@@ -251,13 +251,8 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
 
     test "creates challenge: both utxos spent don't interfere",
          %{alice: alice, processor_empty: processor} do
-      processor =
-        processor
-        |> start_se(
-          @utxo_pos_tx,
-          Transaction.new([@deposit_input2], [{alice.addr, @eth, 10}, {alice.addr, @eth, 10}]),
-          alice
-        )
+      tx = Transaction.new([@deposit_input2], [{alice.addr, @eth, 10}, {alice.addr, @eth, 10}])
+      processor = processor |> start_se_from(tx, @utxo_pos_tx)
 
       recovered_spend = TestHelper.create_recovered([{@blknum, 0, 0, alice}], @eth, [{alice, 10}])
       recovered_spend2 = TestHelper.create_recovered([{@blknum, 0, 1, alice}], @eth, [{alice, 10}])
@@ -276,7 +271,7 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
          %{alice: alice, processor_empty: processor} do
       ife_tx = TestHelper.create_recovered([{@blknum, 0, 0, alice}], @eth, [])
       {txbytes, alice_sig} = get_bytes_sig(ife_tx)
-      processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice) |> start_ife(ife_tx)
+      processor = processor |> start_se_from_block_tx(@utxo_pos_tx, alice) |> start_ife_from(ife_tx)
 
       # same tx spends in both
       assert {:ok, %{exit_id: @exit_id, input_index: 0, txbytes: ^txbytes, sig: ^alice_sig}} =
@@ -323,37 +318,15 @@ defmodule OMG.Watcher.ExitProcessor.Core.StandardExitChallengeTest do
     end
   end
 
-  defp start_se(processor, exiting_pos, tx, alice) do
-    txbytes = Transaction.raw_txbytes(tx)
-    enc_pos = Utxo.Position.encode(exiting_pos)
-
-    event = %{owner: alice.addr, eth_height: 2, exit_id: @exit_id, call_data: %{utxo_pos: enc_pos, output_tx: txbytes}}
-    status = {alice.addr, @eth, 10, enc_pos}
-
-    {processor, _} = Core.new_exits(processor, [event], [status])
-    processor
-  end
-
   defp start_se_from_deposit(processor, exiting_pos, alice) do
-    processor |> start_se(exiting_pos, Transaction.new([], [{alice.addr, @eth, 10}]), alice)
+    tx = TestHelper.create_recovered([], [{alice, @eth, 10}])
+    processor |> start_se_from(tx, exiting_pos)
   end
 
   defp start_se_from_block_tx(processor, exiting_pos, alice) do
-    processor |> start_se(exiting_pos, Transaction.new([@deposit_input2], [{alice.addr, @eth, 10}]), alice)
+    tx = TestHelper.create_recovered([Tuple.append(@deposit_input2, alice)], [{alice, @eth, 10}])
+    processor |> start_se_from(tx, exiting_pos)
   end
 
-  defp get_bytes_sig(tx, sig_idx \\ 0) do
-    txbytes = Transaction.raw_txbytes(tx)
-    %{signed_tx: %{sigs: sigs}} = tx
-    {txbytes, Enum.at(sigs, sig_idx)}
-  end
-
-  defp start_ife(processor, tx) do
-    {txbytes, alice_sig} = get_bytes_sig(tx)
-    ife_event = %{call_data: %{in_flight_tx: txbytes, in_flight_tx_sigs: alice_sig}, eth_height: 2}
-    ife_status = {1, @ife_exit_id}
-
-    {processor, _} = Core.new_in_flight_exits(processor, [ife_event], [ife_status])
-    processor
-  end
+  defp get_bytes_sig(tx, sig_idx \\ 0), do: {Transaction.raw_txbytes(tx), Enum.at(tx.signed_tx.sigs, sig_idx)}
 end
