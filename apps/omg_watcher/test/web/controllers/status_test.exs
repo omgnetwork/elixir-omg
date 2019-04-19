@@ -49,4 +49,10 @@ defmodule OMG.Watcher.Web.Controller.StatusTest do
 
     started_apps |> Enum.each(fn app -> :ok = Application.stop(app) end)
   end
+
+  @tag fixtures: [:watcher_sandbox, :root_chain_contract_config]
+  test "status endpoint returns expected response format without worrying about the Content-Type header" do
+    response_body = TestHelper.rpc_call("status.get", nil, 200, "text/plain")
+    assert %{"version" => "1.0", "success" => true, "data" => _data} = response_body
+  end
 end
