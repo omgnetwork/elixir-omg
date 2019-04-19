@@ -30,8 +30,6 @@ defmodule OMG.Eth.RootChain do
   @challenge_ife_input_spent "challengeInFlightExitInputSpent(bytes,uint8,bytes,uint8,bytes)"
   @challenge_ife_output_spent "challengeInFlightExitOutputSpent(bytes,uint256,bytes,bytes,uint8,bytes)"
 
-  @type optional_addr_t() :: <<_::160>> | nil
-
   @gas_add_token 500_000
   @gas_start_exit 1_000_000
   @gas_challenge_exit 300_000
@@ -47,7 +45,7 @@ defmodule OMG.Eth.RootChain do
 
   @type in_flight_exit_piggybacked_event() :: %{owner: <<_::160>>, tx_hash: <<_::256>>, output_index: non_neg_integer}
 
-  @spec submit_block(binary, pos_integer, pos_integer, optional_addr_t(), optional_addr_t()) ::
+  @spec submit_block(binary, pos_integer, pos_integer, Eth.optional_addr_t(), Eth.optional_addr_t()) ::
           {:error, binary() | atom() | map()}
           | {:ok, binary()}
   def submit_block(hash, nonce, gas_price, from \\ nil, contract \\ nil) do
@@ -327,11 +325,6 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, next - interval}
   end
 
-  def authority(contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    Eth.call_contract(contract, "operator()", [], [:address])
-  end
-
   @doc """
   Returns exit for a specific utxo. Calls contract method.
   """
@@ -392,7 +385,8 @@ defmodule OMG.Eth.RootChain do
          do: {:ok, Enum.map(logs, &decode_deposit/1)}
   end
 
-  @spec get_piggybacks(non_neg_integer, non_neg_integer, optional_addr_t) :: {:ok, [in_flight_exit_piggybacked_event]}
+  @spec get_piggybacks(non_neg_integer, non_neg_integer, Eth.optional_addr_t()) ::
+          {:ok, [in_flight_exit_piggybacked_event]}
   def get_piggybacks(block_from, block_to, contract \\ nil) do
     contract = contract || from_hex(Application.get_env(:omg_eth, :contract_addr))
     signature = "InFlightExitPiggybacked(address,bytes32,uint8)"
@@ -676,45 +670,6 @@ defmodule OMG.Eth.RootChain do
   ########################
   # MISC #
   ########################
-
-  @spec contract_ready(optional_addr_t()) ::
-          :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
-  def contract_ready(contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-
-    try do
-      {:ok, addr} = authority(contract)
-
-      case addr != <<0::256>> do
-        true -> :ok
-        false -> {:error, :root_chain_authority_is_nil}
-      end
-    rescue
-      _ -> {:error, :root_chain_contract_not_available}
-    end
-  end
-
-  @spec get_root_deployment_height(binary() | nil, optional_addr_t()) ::
-          {:ok, integer()} | Ethereumex.HttpClient.error()
-  def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
-    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
-    txhash = txhash || from_hex(Application.fetch_env!(:omg_eth, :txhash_contract))
-
-    # the back&forth is just the dumb but natural way to go about Ethereumex/Eth APIs conventions for encoding
-    hex_contract = to_hex(contract)
-
-    case txhash |> to_hex() |> Ethereumex.HttpClient.eth_get_transaction_receipt() do
-      {:ok, %{"contractAddress" => ^hex_contract, "blockNumber" => height}} ->
-        {:ok, int_from_hex(height)}
-
-      {:ok, _} ->
-        # TODO this should be an alarm
-        {:error, :wrong_contract_address}
-
-      other ->
-        other
-    end
-  end
 
   def deposit_blknum_from_receipt(%{"logs" => logs}) do
     topic =

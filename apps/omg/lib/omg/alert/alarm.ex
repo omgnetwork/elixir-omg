@@ -18,11 +18,32 @@ defmodule OMG.Alert.Alarm do
   """
   alias OMG.Alert.AlarmHandler
 
+  @doc """
+    An alarm raised means we're not able to reach any of the Ethereum clients because
+    of either network or faulty client.
+  """
   def ethereum_client_connection_issue(node, reporter),
     do: {:ethereum_client_connection, %{node: node, reporter: reporter}}
 
+  @doc """
+    Services are still booting and the system is not yet fully functional.
+  """
   def boot_in_progress(node, reporter),
     do: {:boot_in_progress, %{node: node, reporter: reporter}}
+
+  @doc """
+    Raised alarm of this type means we tried to call get the block number of when the
+    contract got deployed on the blockchain network but
+    - the blockchain client is still syncing UP TO the height of the deployment or
+    - the plasma settings are faulty.
+
+    Raised alarm of this type could also mean we tried to call `operator` method on the deployed plasma contract
+    but:
+    - the contract either isn't deployed at the address set in the configuration, or
+    - is faulty
+  """
+  def contract_deployment_issue(node, reporter),
+    do: {:contract_deployment_issue, %{node: node, reporter: reporter}}
 
   @spec set({atom(), node(), module()}) :: :ok | :duplicate
   def set(raw_alarm) do
@@ -62,5 +83,9 @@ defmodule OMG.Alert.Alarm do
 
   defp make_alarm({:boot_in_progress, node, reporter}) do
     boot_in_progress(node, reporter)
+  end
+
+  defp make_alarm({:contract_deployment_issue, node, reporter}) do
+    contract_deployment_issue(node, reporter)
   end
 end

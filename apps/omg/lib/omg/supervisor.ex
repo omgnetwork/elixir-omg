@@ -26,7 +26,8 @@ defmodule OMG.Supervisor do
 
   def init(:ok) do
     children = [
-      {OMG.EthereumClientMonitor, [Alarm]}
+      {OMG.EthereumClientMonitor, [Alarm]},
+      {OMG.PlasmaDeploymentHeight, [Alarm]}
     ]
 
     opts = [strategy: :one_for_one]

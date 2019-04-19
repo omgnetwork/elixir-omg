@@ -24,11 +24,11 @@ defmodule OMG.EthereumClientMonitorTest do
   setup_all do
     :ok = AlarmHandler.install()
     Mock.start_link()
-    Application.put_env(:omg_child_chain, :eth_integration_module, Mock)
+    Application.put_env(:omg, :eth_integration_module, Mock)
     {:ok, _} = EthereumClientMonitor.start_link([Alarm])
 
     on_exit(fn ->
-      Application.put_env(:omg_child_chain, :eth_integration_module, nil)
+      Application.put_env(:omg, :eth_integration_module, nil)
     end)
   end
 

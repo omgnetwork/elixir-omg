@@ -28,7 +28,7 @@ defmodule OMG.Eth do
   however they must be encoded/decoded when entering/leaving the `Ethereumex` realm
   """
 
-  import OMG.Eth.Encoding
+  import OMG.Eth.Encoding, only: [to_hex: 1, from_hex: 1, int_from_hex: 1]
 
   require Logger
 
@@ -36,6 +36,7 @@ defmodule OMG.Eth do
   @type hash :: <<_::256>>
   @type send_transaction_opts() :: [send_transaction_option()]
   @type send_transaction_option() :: {:passphrase, binary()}
+  @type optional_addr_t() :: <<_::160>> | nil
 
   @spec node_ready() :: :ok | {:error, :geth_still_syncing | :geth_not_listening}
   def node_ready do
@@ -43,6 +44,41 @@ defmodule OMG.Eth do
       {:ok, false} -> :ok
       {:ok, _} -> {:error, :geth_still_syncing}
       {:error, :econnrefused} -> {:error, :geth_not_listening}
+    end
+  end
+
+  @spec get_root_deployment_height(binary() | nil, optional_addr_t()) ::
+          {:ok, integer()} | Ethereumex.HttpClient.error()
+  def get_root_deployment_height(txhash \\ nil, contract \\ nil) do
+    contract = contract || from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+    txhash = txhash || from_hex(Application.fetch_env!(:omg_eth, :txhash_contract))
+
+    # the back&forth is just the dumb but natural way to go about Ethereumex/Eth APIs conventions for encoding
+    hex_contract = to_hex(contract)
+
+    case txhash |> to_hex() |> Ethereumex.HttpClient.eth_get_transaction_receipt() do
+      {:ok, %{"contractAddress" => ^hex_contract, "blockNumber" => height}} ->
+        {:ok, int_from_hex(height)}
+
+      other ->
+        other
+    end
+  end
+
+  @spec contract_ready() ::
+          :ok | {:error, :root_chain_contract_not_available | :root_chain_authority_is_nil}
+  def contract_ready() do
+    contract = from_hex(Application.fetch_env!(:omg_eth, :contract_addr))
+
+    try do
+      {:ok, addr} = call_contract(contract, "operator()", [], [:address])
+
+      case addr != <<0::256>> do
+        true -> :ok
+        false -> {:error, :root_chain_authority_is_nil}
+      end
+    rescue
+      _ -> {:error, :root_chain_contract_not_available}
     end
   end
 
@@ -160,29 +196,6 @@ defmodule OMG.Eth do
     {:ok, _txhash} = send_transaction(txmap)
   end
 
-  defp read_contracts_bin!(path_project_root, contract_name) do
-    path = "_build/contracts/#{contract_name}.bin"
-
-    case File.read(Path.join(path_project_root, path)) do
-      {:ok, contract_json} ->
-        contract_json
-
-      {:error, reason} ->
-        raise(
-          RuntimeError,
-          "Can't read #{path} because #{inspect(reason)}, try running mix deps.compile plasma_contracts"
-        )
-    end
-  end
-
-  defp event_topic_for_signature(signature) do
-    signature |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec()) |> to_hex()
-  end
-
-  defp filter_not_removed(logs) do
-    logs |> Enum.filter(&(not Map.get(&1, "removed", true)))
-  end
-
   def get_ethereum_events(block_from, block_to, signature, contract) do
     topic = event_topic_for_signature(signature)
 
@@ -292,5 +305,28 @@ defmodule OMG.Eth do
       value ->
         {:ok, value}
     end
+  end
+
+  defp read_contracts_bin!(path_project_root, contract_name) do
+    path = "_build/contracts/#{contract_name}.bin"
+
+    case File.read(Path.join(path_project_root, path)) do
+      {:ok, contract_json} ->
+        contract_json
+
+      {:error, reason} ->
+        raise(
+          RuntimeError,
+          "Can't read #{path} because #{inspect(reason)}, try running mix deps.compile plasma_contracts"
+        )
+    end
+  end
+
+  defp event_topic_for_signature(signature) do
+    signature |> ExthCrypto.Hash.hash(ExthCrypto.Hash.kec()) |> to_hex()
+  end
+
+  defp filter_not_removed(logs) do
+    logs |> Enum.filter(&(not Map.get(&1, "removed", true)))
   end
 end

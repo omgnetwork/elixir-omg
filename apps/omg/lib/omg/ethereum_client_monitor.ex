@@ -74,7 +74,7 @@ defmodule OMG.EthereumClientMonitor do
   def handle_call(_request, state), do: {:ok, :ok, state}
 
   def handle_event({:clear_alarm, {:ethereum_client_connection, %{reporter: __MODULE__}}}, state) do
-    _ = Logger.warn("Health check established connection to the client. :ethereum_client_connection alarm clearead.")
+    _ = Logger.info("Health check established connection to the client. :ethereum_client_connection alarm clearead.")
     :ok = GenServer.cast(__MODULE__, :clear_alarm)
     {:ok, state}
   end
@@ -93,7 +93,7 @@ defmodule OMG.EthereumClientMonitor do
 
   @spec check :: non_neg_integer() | :error
   defp check do
-    {:ok, rootchain_height} = eth().get_ethereum_height()
+    {:ok, rootchain_height} = eth().get_root_deployment_height()
     rootchain_height
   rescue
     _ -> :error
@@ -113,7 +113,7 @@ defmodule OMG.EthereumClientMonitor do
 
   defp raise_clear(_alarm_module, false, _), do: :ok
 
-  defp eth, do: Application.get_env(:omg_child_chain, :eth_integration_module, Eth)
+  defp eth, do: Application.get_env(:omg, :eth_integration_module, Eth)
 
   defp install do
     case Enum.member?(:gen_event.which_handlers(:alarm_handler), __MODULE__) do
