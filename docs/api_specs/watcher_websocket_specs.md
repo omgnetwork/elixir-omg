@@ -3,7 +3,8 @@
 
 <aside class="warning">TODO Explanation of the WebSocket/ Phoenix Channels mechanism used to receive events</aside>
 
-Exposed via websockets using [Phoenix channels](https://hexdocs.pm/phoenix/channels.html).
+Exposed via websockets using [Phoenix channels](https://hexdocs.pm/phoenix/channels.html) on `ws://host:port/socket/websocket`.
+
 Different events are emitted for each topic.
 
 There are the following topics:
